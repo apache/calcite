@@ -1011,7 +1011,7 @@ Bug fixes, API changes and minor enhancements
   Type of 'Java<Long> * `INTEGER`' should be `BIGINT`
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-894">CALCITE-894</a>]
   Do not generate redundant column alias for the left relation when
-  translating `IN` subquery (Maryann Xue)
+  translating `IN` sub-query (Maryann Xue)
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-897">CALCITE-897</a>]
   Enable debugging using "-Dcalcite.debug"
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-885">CALCITE-885</a>]
@@ -1137,7 +1137,7 @@ Bug fixes, API changes and minor enhancements
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-813">CALCITE-813</a>]
       Upgrade `updateCount`, `maxRows` from int to long
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-714">CALCITE-714</a>]
-      When de-correlating, push join condition into subquery
+      When de-correlating, push join condition into sub-query
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-751">CALCITE-751</a>]
       Push aggregate with aggregate functions through join
 * Add `RelBuilder.avg`

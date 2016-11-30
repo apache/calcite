@@ -22,7 +22,7 @@ import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 
 /**
- * Namespace offered by a subquery.
+ * Namespace offered by a sub-query.
  *
  * @see SelectScope
  * @see SetopNamespace

@@ -430,7 +430,7 @@ public class MongoRules {
       }
       implementor.newline(buf)
           .append("FROM ");
-      implementor.subquery(buf, 0, getChild(), "t");
+      implementor.subQuery(buf, 0, getChild(), "t");
       if (program.getCondition() != null) {
         implementor.newline(buf);
         buf.append("WHERE ");

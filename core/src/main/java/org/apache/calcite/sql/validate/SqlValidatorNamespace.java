@@ -30,8 +30,8 @@ import java.util.List;
  * and DEPT, and a row type consisting of the combined columns of those tables.
  *
  * <p>Other examples of namespaces include a table in the from list (the
- * namespace contains the constituent columns) and a subquery (the namespace
- * contains the columns in the SELECT clause of the subquery).
+ * namespace contains the constituent columns) and a sub-query (the namespace
+ * contains the columns in the SELECT clause of the sub-query).
  *
  * <p>These various kinds of namespace are implemented by classes
  * {@link IdentifierNamespace} for table names, {@link SelectNamespace} for

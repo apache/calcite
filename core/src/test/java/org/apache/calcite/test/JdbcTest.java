@@ -4723,7 +4723,7 @@ public class JdbcTest {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-313">[CALCITE-313]
    * Query decorrelation fails</a>. */
-  @Test public void testJoinInCorrelatedSubquery() {
+  @Test public void testJoinInCorrelatedSubQuery() {
     CalciteAssert.hr()
         .query("select *\n"
             + "from \"hr\".\"depts\" as d\n"
@@ -4762,8 +4762,8 @@ public class JdbcTest {
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-559">[CALCITE-559]
-   * Correlated scalar subquery in WHERE gives error</a>. */
-  @Test public void testJoinCorrelatedScalarSubquery() throws SQLException {
+   * Correlated scalar sub-query in WHERE gives error</a>. */
+  @Test public void testJoinCorrelatedScalarSubQuery() throws SQLException {
     final String sql = "select e.employee_id, d.department_id "
         + " from employee e, department d "
         + " where e.department_id = d.department_id "

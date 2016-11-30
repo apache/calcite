@@ -1927,11 +1927,12 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     // No conversion to join since less than IN-list size threshold 10
     SqlToRelConverter.Config noConvertConfig = SqlToRelConverter.configBuilder().
 
-        withInSubqueryThreshold(10).build();
+
+        withInSubQueryThreshold(10).build();
     sql(sql).withConfig(noConvertConfig).convertsTo("${planNotConverted}");
     // Conversion to join since greater than IN-list size threshold 2
     SqlToRelConverter.Config convertConfig = SqlToRelConverter.configBuilder().
-        withInSubqueryThreshold(2).build();
+        withInSubQueryThreshold(2).build();
     sql(sql).withConfig(convertConfig).convertsTo("${planConverted}");
   }
 

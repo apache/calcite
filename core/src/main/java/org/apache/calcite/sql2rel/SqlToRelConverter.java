@@ -209,7 +209,11 @@ public class SqlToRelConverter {
 
   /** Size of the smallest IN list that will be converted to a semijoin to a
    * static table. */
-  public static final int DEFAULT_IN_SUBQUERY_THRESHOLD = 20;
+  public static final int DEFAULT_IN_SUB_QUERY_THRESHOLD = 20;
+
+  @Deprecated // to be removed before 2.0
+  public static final int DEFAULT_IN_SUBQUERY_THRESHOLD =
+      DEFAULT_IN_SUB_QUERY_THRESHOLD;
 
   //~ Instance fields --------------------------------------------------------
 
@@ -218,7 +222,7 @@ public class SqlToRelConverter {
   protected final Prepare.CatalogReader catalogReader;
   protected final RelOptCluster cluster;
   private DefaultValueFactory defaultValueFactory;
-  private SubqueryConverter subqueryConverter;
+  private SubQueryConverter subQueryConverter;
   protected final List<RelNode> leaves = new ArrayList<>();
   private final List<SqlDynamicParam> dynamicParamSqlNodes = new ArrayList<>();
   private final SqlOperatorTable opTab;
@@ -228,7 +232,7 @@ public class SqlToRelConverter {
   public final SqlToRelConverter.Config config;
 
   /**
-   * Fields used in name resolution for correlated subqueries.
+   * Fields used in name resolution for correlated sub-queries.
    */
   private final Map<CorrelationId, DeferredLookup> mapCorrelToDeferred =
       new HashMap<>();
@@ -240,8 +244,8 @@ public class SqlToRelConverter {
   private final Deque<String> datasetStack = new ArrayDeque<>();
 
   /**
-   * Mapping of non-correlated subqueries that have been converted to their
-   * equivalent constants. Used to avoid re-evaluating the subquery if it's
+   * Mapping of non-correlated sub-queries that have been converted to their
+   * equivalent constants. Used to avoid re-evaluating the sub-query if it's
    * already been evaluated.
    */
   private final Map<SqlNode, RexNode> mapConvertedNonCorrSubqs =
@@ -300,7 +304,7 @@ public class SqlToRelConverter {
     this.validator = validator;
     this.catalogReader = catalogReader;
     this.defaultValueFactory = new NullDefaultValueFactory();
-    this.subqueryConverter = new NoOpSubqueryConverter();
+    this.subQueryConverter = new NoOpSubQueryConverter();
     this.rexBuilder = cluster.getRexBuilder();
     this.typeFactory = rexBuilder.getTypeFactory();
     this.cluster = Preconditions.checkNotNull(cluster);
@@ -365,7 +369,7 @@ public class SqlToRelConverter {
   }
 
   /**
-   * @return mapping of non-correlated subqueries that have been converted to
+   * @return mapping of non-correlated sub-queries that have been converted to
    * the constants that they evaluate to
    */
   public Map<SqlNode, RexNode> getMapConvertedNonCorrSubqs() {
@@ -373,8 +377,8 @@ public class SqlToRelConverter {
   }
 
   /**
-   * Adds to the current map of non-correlated converted subqueries the
-   * elements from another map that contains non-correlated subqueries that
+   * Adds to the current map of non-correlated converted sub-queries the
+   * elements from another map that contains non-correlated sub-queries that
    * have been converted by another SqlToRelConverter.
    *
    * @param alreadyConvertedNonCorrSubqs the other map
@@ -395,13 +399,13 @@ public class SqlToRelConverter {
   }
 
   /**
-   * Sets a new SubqueryConverter. To have any effect, this must be called
+   * Sets a new SubQueryConverter. To have any effect, this must be called
    * before any convert method.
    *
-   * @param converter new SubqueryConverter
+   * @param converter new SubQueryConverter
    */
-  public void setSubqueryConverter(SubqueryConverter converter) {
-    subqueryConverter = converter;
+  public void setSubQueryConverter(SubQueryConverter converter) {
+    subQueryConverter = converter;
   }
 
   /**
@@ -459,7 +463,7 @@ public class SqlToRelConverter {
   }
 
   /**
-   * If subquery is correlated and decorrelation is enabled, performs
+   * If sub-query is correlated and decorrelation is enabled, performs
    * decorrelation.
    *
    * @param query   Query
@@ -981,7 +985,7 @@ public class SqlToRelConverter {
       final Blackboard bb,
       final SqlNode expr,
       RelOptUtil.Logic logic) {
-    findSubqueries(bb, expr, logic, false);
+    findSubQueries(bb, expr, logic, false);
     for (SubQuery node : bb.subQueryList) {
       substituteSubQuery(bb, node);
     }
@@ -1034,7 +1038,7 @@ public class SqlToRelConverter {
       if (query instanceof SqlNodeList) {
         SqlNodeList valueList = (SqlNodeList) query;
         if (!containsNullLiteral(valueList)
-            && valueList.size() < config.getInSubqueryThreshold()) {
+            && valueList.size() < config.getInSubQueryThreshold()) {
           // We're under the threshold, so convert to OR.
           subQuery.expr =
               convertInToOr(
@@ -1076,7 +1080,7 @@ public class SqlToRelConverter {
           SqlTypeUtil.promoteToRowType(typeFactory,
               validator.getValidatedNodeType(leftKeyNode), null);
       converted =
-          convertExists(query, RelOptUtil.SubqueryType.IN, subQuery.logic,
+          convertExists(query, RelOptUtil.SubQueryType.IN, subQuery.logic,
               notIn, targetRowType);
       if (converted.indicator) {
         // Generate
@@ -1122,19 +1126,19 @@ public class SqlToRelConverter {
     case EXISTS:
       // "select from emp where exists (select a from T)"
       //
-      // is converted to the following if the subquery is correlated:
+      // is converted to the following if the sub-query is correlated:
       //
       // "select from emp left outer join (select AGG_TRUE() as indicator
       // from T group by corr_var) q where q.indicator is true"
       //
       // If there is no correlation, the expression is replaced with a
-      // boolean indicating whether the subquery returned 0 or >= 1 row.
+      // boolean indicating whether the sub-query returned 0 or >= 1 row.
       call = (SqlBasicCall) subQuery.node;
       query = call.operand(0);
       if (!config.isExpand()) {
         return;
       }
-      converted = convertExists(query, RelOptUtil.SubqueryType.EXISTS,
+      converted = convertExists(query, RelOptUtil.SubQueryType.EXISTS,
           subQuery.logic, true, null);
       assert !converted.indicator;
       if (convertNonCorrelatedSubQuery(subQuery, bb, converted.r, true)) {
@@ -1144,14 +1148,14 @@ public class SqlToRelConverter {
       return;
 
     case SCALAR_QUERY:
-      // Convert the subquery.  If it's non-correlated, convert it
+      // Convert the sub-query.  If it's non-correlated, convert it
       // to a constant expression.
       if (!config.isExpand()) {
         return;
       }
       call = (SqlBasicCall) subQuery.node;
       query = call.operand(0);
-      converted = convertExists(query, RelOptUtil.SubqueryType.SCALAR,
+      converted = convertExists(query, RelOptUtil.SubQueryType.SCALAR,
           subQuery.logic, true, null);
       assert !converted.indicator;
       if (convertNonCorrelatedSubQuery(subQuery, bb, converted.r, false)) {
@@ -1166,14 +1170,14 @@ public class SqlToRelConverter {
       //
       // select * from unnest(select multiset[deptno] from emps);
       //
-      converted = convertExists(subQuery.node, RelOptUtil.SubqueryType.SCALAR,
+      converted = convertExists(subQuery.node, RelOptUtil.SubQueryType.SCALAR,
           subQuery.logic, true, null);
       assert !converted.indicator;
       subQuery.expr = bb.register(converted.r, JoinRelType.LEFT);
       return;
 
     default:
-      throw Util.newInternal("unexpected kind of subquery :" + subQuery.node);
+      throw Util.newInternal("unexpected kind of sub-query :" + subQuery.node);
     }
   }
 
@@ -1194,7 +1198,7 @@ public class SqlToRelConverter {
       //
       // RexRangeRef contains the following fields:
       //   leftKeysForIn,
-      //   rightKeysForIn (the original subquery select list),
+      //   rightKeysForIn (the original sub-query select list),
       //   nullIndicator
       //
       // The first two lists contain the same number of fields.
@@ -1277,14 +1281,14 @@ public class SqlToRelConverter {
   }
 
   /**
-   * Determines if a subquery is non-correlated and if so, converts it to a
+   * Determines if a sub-query is non-correlated and if so, converts it to a
    * constant.
    *
-   * @param subQuery  the call that references the subquery
-   * @param bb        blackboard used to convert the subquery
-   * @param converted RelNode tree corresponding to the subquery
-   * @param isExists  true if the subquery is part of an EXISTS expression
-   * @return if the subquery can be converted to a constant
+   * @param subQuery  the call that references the sub-query
+   * @param bb        blackboard used to convert the sub-query
+   * @param converted RelNode tree corresponding to the sub-query
+   * @param isExists  true if the sub-query is part of an EXISTS expression
+   * @return Whether the sub-query can be converted to a constant
    */
   private boolean convertNonCorrelatedSubQuery(
       SubQuery subQuery,
@@ -1292,15 +1296,15 @@ public class SqlToRelConverter {
       RelNode converted,
       boolean isExists) {
     SqlCall call = (SqlBasicCall) subQuery.node;
-    if (subqueryConverter.canConvertSubquery()
+    if (subQueryConverter.canConvertSubQuery()
         && isSubQueryNonCorrelated(converted, bb)) {
-      // First check if the subquery has already been converted
-      // because it's a nested subquery.  If so, don't re-evaluate
+      // First check if the sub-query has already been converted
+      // because it's a nested sub-query.  If so, don't re-evaluate
       // it again.
       RexNode constExpr = mapConvertedNonCorrSubqs.get(call);
       if (constExpr == null) {
         constExpr =
-            subqueryConverter.convertSubquery(
+            subQueryConverter.convertSubQuery(
                 call,
                 this,
                 isExists,
@@ -1449,15 +1453,15 @@ public class SqlToRelConverter {
    * predicate. A threshold of 0 forces usage of an inline table in all cases; a
    * threshold of Integer.MAX_VALUE forces usage of OR in all cases
    *
-   * @return threshold, default {@link #DEFAULT_IN_SUBQUERY_THRESHOLD}
+   * @return threshold, default {@link #DEFAULT_IN_SUB_QUERY_THRESHOLD}
    */
   @Deprecated // to be removed before 2.0
   protected int getInSubqueryThreshold() {
-    return config.getInSubqueryThreshold();
+    return config.getInSubQueryThreshold();
   }
 
   /**
-   * Converts an EXISTS or IN predicate into a join. For EXISTS, the subquery
+   * Converts an EXISTS or IN predicate into a join. For EXISTS, the sub-query
    * produces an indicator variable, and the result is a relational expression
    * which outer joins that indicator to the original query. After performing
    * the outer join, the condition will be TRUE if the EXISTS condition holds,
@@ -1465,7 +1469,7 @@ public class SqlToRelConverter {
    *
    * @param seek           A query, for example 'select * from emp' or
    *                       'values (1,2,3)' or '('Foo', 34)'.
-   * @param subqueryType   Whether sub-query is IN, EXISTS or scalar
+   * @param subQueryType   Whether sub-query is IN, EXISTS or scalar
    * @param logic Whether the answer needs to be in full 3-valued logic (TRUE,
    *     FALSE, UNKNOWN) will be required, or whether we can accept an
    *     approximation (say representing UNKNOWN as FALSE)
@@ -1475,7 +1479,7 @@ public class SqlToRelConverter {
    */
   private RelOptUtil.Exists convertExists(
       SqlNode seek,
-      RelOptUtil.SubqueryType subqueryType,
+      RelOptUtil.SubQueryType subQueryType,
       RelOptUtil.Logic logic,
       boolean notIn,
       RelDataType targetDataType) {
@@ -1486,7 +1490,7 @@ public class SqlToRelConverter {
     final Blackboard seekBb = createBlackboard(seekScope, null, false);
     RelNode seekRel = convertQueryOrInList(seekBb, seek, targetDataType);
 
-    return RelOptUtil.createExistsPlan(seekRel, subqueryType, logic, notIn);
+    return RelOptUtil.createExistsPlan(seekRel, subQueryType, logic, notIn);
   }
 
   private RelNode convertQueryOrInList(
@@ -1520,7 +1524,7 @@ public class SqlToRelConverter {
     // NOTE jvs 30-Apr-2006: We combine all rows consisting entirely of
     // literals into a single LogicalValues; this gives the optimizer a smaller
     // input tree.  For everything else (computed expressions, row
-    // subqueries), we union each row in as a projection on top of a
+    // sub-queries), we union each row in as a projection on top of a
     // LogicalOneRow.
 
     final ImmutableList.Builder<ImmutableList<RexLiteral>> tupleList =
@@ -1678,16 +1682,16 @@ public class SqlToRelConverter {
    * @param logic Whether the answer needs to be in full 3-valued logic (TRUE,
    *              FALSE, UNKNOWN) will be required, or whether we can accept
    *              an approximation (say representing UNKNOWN as FALSE)
-   * @param registerOnlyScalarSubqueries if set to true and the parse tree
+   * @param registerOnlyScalarSubQueries if set to true and the parse tree
    *                                     corresponds to a variation of a select
    *                                     node, only register it if it's a scalar
-   *                                     subquery
+   *                                     sub-query
    */
-  private void findSubqueries(
+  private void findSubQueries(
       Blackboard bb,
       SqlNode node,
       RelOptUtil.Logic logic,
-      boolean registerOnlyScalarSubqueries) {
+      boolean registerOnlyScalarSubQueries) {
     final SqlKind kind = node.getKind();
     switch (kind) {
     case EXISTS:
@@ -1697,7 +1701,7 @@ public class SqlToRelConverter {
     case ARRAY_QUERY_CONSTRUCTOR:
     case CURSOR:
     case SCALAR_QUERY:
-      if (!registerOnlyScalarSubqueries
+      if (!registerOnlyScalarSubQueries
           || (kind == SqlKind.SCALAR_QUERY)) {
         bb.registerSubQuery(node, RelOptUtil.Logic.TRUE_FALSE);
       }
@@ -1715,27 +1719,27 @@ public class SqlToRelConverter {
       for (SqlNode operand : ((SqlCall) node).getOperandList()) {
         if (operand != null) {
           // In the case of an IN expression, locate scalar
-          // subqueries so we can convert them to constants
-          findSubqueries(
+          // sub-queries so we can convert them to constants
+          findSubQueries(
               bb,
               operand,
               logic,
-              kind == SqlKind.IN || registerOnlyScalarSubqueries);
+              kind == SqlKind.IN || registerOnlyScalarSubQueries);
         }
       }
     } else if (node instanceof SqlNodeList) {
       for (SqlNode child : (SqlNodeList) node) {
-        findSubqueries(
+        findSubQueries(
             bb,
             child,
             logic,
-            kind == SqlKind.IN || registerOnlyScalarSubqueries);
+            kind == SqlKind.IN || registerOnlyScalarSubQueries);
       }
     }
 
-    // Now that we've located any scalar subqueries inside the IN
+    // Now that we've located any scalar sub-queries inside the IN
     // expression, register the IN expression itself.  We need to
-    // register the scalar subqueries first so they can be converted
+    // register the scalar sub-queries first so they can be converted
     // before the IN expression is converted.
     if (kind == SqlKind.IN) {
       switch (logic) {
@@ -2257,7 +2261,7 @@ public class SqlToRelConverter {
         Map<Integer, Integer> exprProjection =
             bb.mapRootRelToFieldProjection.get(bb.root);
 
-        // subquery can reference group by keys projected from
+        // sub-query can reference group by keys projected from
         // the root of the outer relation.
         if (exprProjection.containsKey(pos)) {
           pos = exprProjection.get(pos);
@@ -2288,15 +2292,15 @@ public class SqlToRelConverter {
   }
 
   /**
-   * Determines whether a subquery is non-correlated. Note that a
-   * non-correlated subquery can contain correlated references, provided those
+   * Determines whether a sub-query is non-correlated. Note that a
+   * non-correlated sub-query can contain correlated references, provided those
    * references do not reference select statements that are parents of the
-   * subquery.
+   * sub-query.
    *
-   * @param subq the subquery
-   * @param bb   blackboard used while converting the subquery, i.e., the
-   *             blackboard of the parent query of this subquery
-   * @return true if the subquery is non-correlated.
+   * @param subq the sub-query
+   * @param bb   blackboard used while converting the sub-query, i.e., the
+   *             blackboard of the parent query of this sub-query
+   * @return true if the sub-query is non-correlated
    */
   private boolean isSubQueryNonCorrelated(RelNode subq, Blackboard bb) {
     Set<CorrelationId> correlatedVariables = RelOptUtil.getVariablesUsed(subq);
@@ -2312,7 +2316,7 @@ public class SqlToRelConverter {
       SqlValidatorScope ancestorScope = resolved.only().scope;
 
       // If the correlated reference is in a scope that's "above" the
-      // subquery, then this is a correlated subquery.
+      // sub-query, then this is a correlated sub-query.
       SqlValidatorScope parentScope = bb.scope;
       do {
         if (ancestorScope == parentScope) {
@@ -2461,7 +2465,7 @@ public class SqlToRelConverter {
       having.accept(aggregateFinder);
     }
 
-    // first replace the subqueries inside the aggregates
+    // first replace the sub-queries inside the aggregates
     // because they will provide input rows to the aggregates.
     replaceSubQueries(bb, aggregateFinder.list,
         RelOptUtil.Logic.TRUE_FALSE_UNKNOWN);
@@ -2586,7 +2590,7 @@ public class SqlToRelConverter {
 
       bb.mapRootRelToFieldProjection.put(bb.root, r.groupExprProjection);
 
-      // Replace subqueries in having here and modify having to use
+      // Replace sub-queries in having here and modify having to use
       // the replaced expressions
       if (having != null) {
         SqlNode newHaving = pushDownNotForIn(having);
@@ -2597,13 +2601,13 @@ public class SqlToRelConverter {
         }
       }
 
-      // Now convert the other subqueries in the select list.
-      // This needs to be done separately from the subquery inside
+      // Now convert the other sub-queries in the select list.
+      // This needs to be done separately from the sub-query inside
       // any aggregate in the select list, and after the aggregate rel
       // is allocated.
       replaceSubQueries(bb, selectList, RelOptUtil.Logic.TRUE_FALSE_UNKNOWN);
 
-      // Now subqueries in the entire select list have been converted.
+      // Now sub-queries in the entire select list have been converted.
       // Convert the select expressions to get the final list to be
       // projected.
       int k = 0;
@@ -2819,7 +2823,7 @@ public class SqlToRelConverter {
 
   @Deprecated // to be removed before 2.0
   protected boolean enableDecorrelation() {
-    // disable subquery decorrelation when needed.
+    // disable sub-query decorrelation when needed.
     // e.g. if outer joins are not supported.
     return config.isDecorrelationEnabled();
   }
@@ -3589,7 +3593,7 @@ public class SqlToRelConverter {
       SqlCall values,
       RelDataType targetRowType) {
     // Attempt direct conversion to LogicalValues; if that fails, deal with
-    // fancy stuff like subqueries below.
+    // fancy stuff like sub-queries below.
     RelNode valuesRel =
         convertRowValues(
             bb,
@@ -3682,8 +3686,8 @@ public class SqlToRelConverter {
 
     /**
      * Project the groupby expressions out of the root of this sub-select.
-     * Subqueries can reference group by expressions projected from the
-     * "right" to the subquery.
+     * Sub-queries can reference group by expressions projected from the
+     * "right" to the sub-query.
      */
     private final Map<RelNode, Map<Integer, Integer>>
     mapRootRelToFieldProjection = new HashMap<>();
@@ -3841,7 +3845,7 @@ public class SqlToRelConverter {
      * @param leaf Whether the relational expression is a leaf, that is,
      *             derived from an atomic relational expression such as a table
      *             name in the from clause, or the projection on top of a
-     *             select-subquery. In particular, relational expressions
+     *             select-sub-query. In particular, relational expressions
      *             derived from JOIN operators are not leaves, but set
      *             expressions are.
      */
@@ -4141,12 +4145,12 @@ public class SqlToRelConverter {
         if (((kind == SqlKind.SCALAR_QUERY)
             || (kind == SqlKind.EXISTS))
             && isConvertedSubq(rex)) {
-          // scalar subquery or EXISTS has been converted to a
+          // scalar sub-query or EXISTS has been converted to a
           // constant
           return rex;
         }
 
-        // The indicator column is the last field of the subquery.
+        // The indicator column is the last field of the sub-query.
         RexNode fieldAccess =
             rexBuilder.makeFieldAccess(
                 rex,
@@ -4195,7 +4199,7 @@ public class SqlToRelConverter {
     }
 
     /**
-     * Determines whether a RexNode corresponds to a subquery that's been
+     * Determines whether a RexNode corresponds to a sub-query that's been
      * converted to a constant.
      *
      * @param rex the expression to be examined
@@ -4348,15 +4352,15 @@ public class SqlToRelConverter {
   }
 
   /**
-   * A default implementation of SubqueryConverter that does no conversion.
+   * A default implementation of SubQueryConverter that does no conversion.
    */
-  private class NoOpSubqueryConverter implements SubqueryConverter {
-    public boolean canConvertSubquery() {
+  private class NoOpSubQueryConverter implements SubQueryConverter {
+    public boolean canConvertSubQuery() {
       return false;
     }
 
-    public RexNode convertSubquery(
-        SqlCall subquery,
+    public RexNode convertSubQuery(
+        SqlCall subQuery,
         SqlToRelConverter parentConverter,
         boolean isExists,
         boolean isExplain) {
@@ -4518,7 +4522,7 @@ public class SqlToRelConverter {
         return null;
       case SELECT:
         // rchen 2006-10-17:
-        // for now do not detect aggregates in subqueries.
+        // for now do not detect aggregates in sub-queries.
         return null;
       }
       final boolean prevInOver = inOver;
@@ -4750,7 +4754,7 @@ public class SqlToRelConverter {
     /**
      * Creates a LookupContext with multiple input relational expressions.
      *
-     * @param bb               Context for translating this subquery
+     * @param bb               Context for translating this sub-query
      * @param rels             Relational expressions
      * @param systemFieldCount Number of system fields
      */
@@ -5045,7 +5049,7 @@ public class SqlToRelConverter {
     boolean isConvertTableAccess();
 
     /** Returns the {@code decorrelationEnabled} option. Controls whether to
-     * disable subquery decorrelation when needed. e.g. if outer joins are not
+     * disable sub-query decorrelation when needed. e.g. if outer joins are not
      * supported. */
     boolean isDecorrelationEnabled();
 
@@ -5067,15 +5071,15 @@ public class SqlToRelConverter {
      * {@link org.apache.calcite.rex.RexSubQuery}. */
     boolean isExpand();
 
-    /** Returns the {@code inSubqueryThreshold} option,
-     * default {@link #DEFAULT_IN_SUBQUERY_THRESHOLD}. Controls the list size
+    /** Returns the {@code inSubQueryThreshold} option,
+     * default {@link #DEFAULT_IN_SUB_QUERY_THRESHOLD}. Controls the list size
      * threshold under which {@link #convertInToOr} is used. Lists of this size
      * or greater will instead be converted to use a join against an inline
      * table ({@link org.apache.calcite.rel.logical.LogicalValues}) rather than
      * a predicate. A threshold of 0 forces usage of an inline table in all
      * cases; a threshold of {@link Integer#MAX_VALUE} forces usage of OR in all
      * cases. */
-    int getInSubqueryThreshold();
+    int getInSubQueryThreshold();
   }
 
   /** Builder for a {@link Config}. */
@@ -5086,7 +5090,7 @@ public class SqlToRelConverter {
     private boolean createValuesRel = true;
     private boolean explain;
     private boolean expand = true;
-    private int inSubqueryThreshold = DEFAULT_IN_SUBQUERY_THRESHOLD;
+    private int inSubQueryThreshold = DEFAULT_IN_SUB_QUERY_THRESHOLD;
 
     private ConfigBuilder() {}
 
@@ -5098,7 +5102,7 @@ public class SqlToRelConverter {
       this.createValuesRel = config.isCreateValuesRel();
       this.explain = config.isExplain();
       this.expand = config.isExpand();
-      this.inSubqueryThreshold = config.getInSubqueryThreshold();
+      this.inSubQueryThreshold = config.getInSubQueryThreshold();
       return this;
     }
 
@@ -5132,8 +5136,13 @@ public class SqlToRelConverter {
       return this;
     }
 
-    public ConfigBuilder withInSubqueryThreshold(int inSubqueryThreshold) {
-      this.inSubqueryThreshold = inSubqueryThreshold;
+    @Deprecated // to be removed before 2.0
+    public ConfigBuilder withInSubqueryThreshold(int inSubQueryThreshold) {
+      return withInSubQueryThreshold(inSubQueryThreshold);
+    }
+
+    public ConfigBuilder withInSubQueryThreshold(int inSubQueryThreshold) {
+      this.inSubQueryThreshold = inSubQueryThreshold;
       return this;
     }
 
@@ -5141,7 +5150,7 @@ public class SqlToRelConverter {
     public Config build() {
       return new ConfigImpl(convertTableAccess, decorrelationEnabled,
           trimUnusedFields, createValuesRel, explain, expand,
-          inSubqueryThreshold);
+          inSubQueryThreshold);
     }
   }
 
@@ -5153,19 +5162,19 @@ public class SqlToRelConverter {
     private final boolean trimUnusedFields;
     private final boolean createValuesRel;
     private final boolean explain;
-    private final int inSubqueryThreshold;
+    private final int inSubQueryThreshold;
     private final boolean expand;
 
     private ConfigImpl(boolean convertTableAccess, boolean decorrelationEnabled,
         boolean trimUnusedFields, boolean createValuesRel, boolean explain,
-        boolean expand, int inSubqueryThreshold) {
+        boolean expand, int inSubQueryThreshold) {
       this.convertTableAccess = convertTableAccess;
       this.decorrelationEnabled = decorrelationEnabled;
       this.trimUnusedFields = trimUnusedFields;
       this.createValuesRel = createValuesRel;
       this.explain = explain;
       this.expand = expand;
-      this.inSubqueryThreshold = inSubqueryThreshold;
+      this.inSubQueryThreshold = inSubQueryThreshold;
     }
 
     public boolean isConvertTableAccess() {
@@ -5192,8 +5201,8 @@ public class SqlToRelConverter {
       return expand;
     }
 
-    public int getInSubqueryThreshold() {
-      return inSubqueryThreshold;
+    public int getInSubQueryThreshold() {
+      return inSubQueryThreshold;
     }
   }
 }

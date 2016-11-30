@@ -103,12 +103,12 @@ import java.util.Set;
  * <td>false</td>
  * </tr>
  * <tr>
- * <td>{@link #setSubqueryStyle SubqueryStyle}</td>
+ * <td>{@link #setSubQueryStyle SubQueryStyle}</td>
  * <td>Style for formatting sub-queries. Values are:
- * {@link org.apache.calcite.sql.SqlWriter.SubqueryStyle#HYDE Hyde},
- * {@link org.apache.calcite.sql.SqlWriter.SubqueryStyle#BLACK Black}.</td>
+ * {@link org.apache.calcite.sql.SqlWriter.SubQueryStyle#HYDE Hyde},
+ * {@link org.apache.calcite.sql.SqlWriter.SubQueryStyle#BLACK Black}.</td>
  *
- * <td>{@link org.apache.calcite.sql.SqlWriter.SubqueryStyle#HYDE Hyde}</td>
+ * <td>{@link org.apache.calcite.sql.SqlWriter.SubQueryStyle#HYDE Hyde}</td>
  * </tr>
  * <tr>
  * <td>{@link #setLineLength LineLength}</td>
@@ -153,7 +153,7 @@ public class SqlPrettyWriter implements SqlWriter {
   private boolean windowDeclListNewline;
   private boolean updateSetListNewline;
   private boolean windowNewline;
-  private SubqueryStyle subqueryStyle;
+  private SubQueryStyle subQueryStyle;
   private boolean whereListItemsOnSeparateLines;
 
   private boolean caseClausesOnNewLines;
@@ -197,11 +197,11 @@ public class SqlPrettyWriter implements SqlWriter {
   }
 
   /**
-   * Sets the subquery style. Default is
-   * {@link org.apache.calcite.sql.SqlWriter.SubqueryStyle#HYDE}.
+   * Sets the sub-query style. Default is
+   * {@link org.apache.calcite.sql.SqlWriter.SubQueryStyle#HYDE}.
    */
-  public void setSubqueryStyle(SubqueryStyle subqueryStyle) {
-    this.subqueryStyle = subqueryStyle;
+  public void setSubQueryStyle(SubQueryStyle subQueryStyle) {
+    this.subQueryStyle = subQueryStyle;
   }
 
   public void setWindowNewline(boolean windowNewline) {
@@ -266,7 +266,7 @@ public class SqlPrettyWriter implements SqlWriter {
     windowDeclListNewline = true;
     updateSetListNewline = true;
     windowNewline = false;
-    subqueryStyle = SubqueryStyle.HYDE;
+    subQueryStyle = SubQueryStyle.HYDE;
     alwaysUseParentheses = false;
     whereListItemsOnSeparateLines = false;
     lineLength = 0;
@@ -512,7 +512,7 @@ public class SqlPrettyWriter implements SqlWriter {
             false);
 
       case SUB_QUERY:
-        switch (subqueryStyle) {
+        switch (subQueryStyle) {
         case BLACK:
 
           // Generate, e.g.:
@@ -559,7 +559,7 @@ public class SqlPrettyWriter implements SqlWriter {
             }
           };
         default:
-          throw Util.unexpected(subqueryStyle);
+          throw Util.unexpected(subQueryStyle);
         }
 
       case ORDER_BY:

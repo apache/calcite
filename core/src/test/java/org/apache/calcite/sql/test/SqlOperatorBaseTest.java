@@ -1834,8 +1834,8 @@ public abstract class SqlOperatorBaseTest {
         "1",
         0);
 
-    // Check return type on scalar subquery in select list.  Note return
-    // type is always nullable even if subquery select value is NOT NULL.
+    // Check return type on scalar sub-query in select list.  Note return
+    // type is always nullable even if sub-query select value is NOT NULL.
     // Bug FRG-189 causes this test to fail only in SqlOperatorTest; not
     // in subtypes.
     if (Bug.FRG189_FIXED

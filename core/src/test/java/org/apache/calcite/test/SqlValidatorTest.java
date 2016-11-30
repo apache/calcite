@@ -4400,7 +4400,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
             "Duplicate window specification not allowed in the same window clause");
   }
 
-  @Test public void testWindowClauseWithSubquery() {
+  @Test public void testWindowClauseWithSubQuery() {
     check("select * from\n"
         + "( select sum(empno) over w, sum(deptno) over w from emp\n"
         + "window w as (order by hiredate range interval '1' minute preceding))");
@@ -4748,7 +4748,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         ERR_IN_OPERANDS_INCOMPATIBLE);
   }
 
-  @Test public void testInSubquery() {
+  @Test public void testInSubQuery() {
     check("select * from emp where deptno in (select deptno from dept)");
     check("select * from emp where (empno,deptno)"
         + " in (select deptno,deptno from dept)");
@@ -4800,7 +4800,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         "select 1 from emp, dept, emp as e, ^dept as emp^, emp",
         "Duplicate relation name 'EMP' in FROM clause");
 
-    // alias applied to subquery
+    // alias applied to sub-query
     checkFails(
         "select 1 from emp, (^select 1 as x from (values (true))) as emp^",
         "Duplicate relation name 'EMP' in FROM clause");
@@ -5428,8 +5428,8 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "join (select 1 as job from (true)) using (job)", "ambig");
   }
 
-  @Ignore("bug: should fail if subquery does not have alias")
-  @Test public void testJoinSubquery() {
+  @Ignore("bug: should fail if sub-query does not have alias")
+  @Test public void testJoinSubQuery() {
     // Sub-queries require alias
     checkFails("select * from (select 1 as one from emp)\n"
             + "join (values (1), (2)) on true",
@@ -5616,7 +5616,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   /** Tests the {@code WITH} clause in sub-queries. */
-  @Test public void testWithSubquery() {
+  @Test public void testWithSubQuery() {
     // nested WITH (parentheses required - and even with parentheses SQL
     // standard doesn't allow sub-query to have WITH)
     checkResultType("with emp2 as (select * from emp)\n"
@@ -5863,7 +5863,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         // invalid in oracle and pre-99
         conformance.isSortByOrdinal() ? "Ordinal out of range" : null);
 
-    // Sort by scalar subquery
+    // Sort by scalar sub-query
     check("select * from emp\n"
         + "order by (select name from dept where deptno = emp.deptno)");
     checkFails(
@@ -6155,7 +6155,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     check("select * from (select empno,deptno from emp) group by deptno,empno");
 
     // This query tries to reference an agg expression from within a
-    // subquery as a correlating expression, but the SQL syntax rules say
+    // sub-query as a correlating expression, but the SQL syntax rules say
     // that the agg function SUM always applies to the current scope.
     // As it happens, the query is valid.
     check("select deptno\n"
@@ -6163,7 +6163,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "group by deptno\n"
         + "having exists (select sum(emp.sal) > 10 from (values(true)))");
 
-    // if you reference a column from a subquery, it must be a group col
+    // if you reference a column from a sub-query, it must be a group col
     check("select deptno "
         + "from emp "
         + "group by deptno "
@@ -6283,7 +6283,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
 
   // todo: enable when correlating variables work
   public void _testGroupExpressionEquivalenceCorrelated() {
-    // dname comes from dept, so it is constant within the subquery, and
+    // dname comes from dept, so it is constant within the sub-query, and
     // is so is a valid expr in a group-by query
     check("select * from dept where exists ("
         + "select dname from emp group by empno)");
@@ -7187,11 +7187,12 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         "SELECT  ename, 1 + (select deptno from dept where deptno=1) as X FROM emp",
         "RecordType(VARCHAR(20) NOT NULL ENAME, INTEGER X) NOT NULL");
 
-    // scalar subquery inside WHERE
+    // scalar sub-query inside WHERE
     check("select * from emp where (select true from dept)");
   }
 
-  public void _testSubqueryInOnClause() {
+  @Ignore("not supported")
+  @Test public void testSubQueryInOnClause() {
     // Currently not supported. Should give validator error, but gives
     // internal error.
     check("select * from emp as emps left outer join dept as depts\n"

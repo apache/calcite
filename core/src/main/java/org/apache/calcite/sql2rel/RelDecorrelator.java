@@ -1402,11 +1402,11 @@ public class RelDecorrelator implements ReflectiveVisitor {
 
       // Construct a CASE expression to handle the null indicator.
       //
-      // This also covers the case where a left correlated subquery
+      // This also covers the case where a left correlated sub-query
       // projects fields from outer relation. Since LOJ cannot produce
       // nulls on the LHS, the projection now need to make a nullable LHS
       // reference using a nullability indicator. If this this indicator
-      // is null, it means the subquery does not produce any value. As a
+      // is null, it means the sub-query does not produce any value. As a
       // result, any RHS ref by this usbquery needs to produce null value.
 
       // WHEN indicator IS NULL
@@ -1600,7 +1600,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
 
       // check projRel only projects one expression
       // check this project only projects one expression, i.e. scalar
-      // subqueries.
+      // sub-queries.
       List<RexNode> projExprs = project.getProjects();
       if (projExprs.size() != 1) {
         return;
@@ -1677,7 +1677,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
       }
 
       // check this project only projects one expression, i.e. scalar
-      // subqueries.
+      // sub-queries.
       if (project.getProjects().size() != 1) {
         return;
       }

@@ -626,7 +626,7 @@ EnumerableCalc(expr#0..1=[{inputs}], expr#2=[1], expr#3=[=($t0, $t2)], proj#0..1
   EnumerableTableScan(table=[[foodmart2, days]])
 !plan
 
-# [HIVE-5873] Semi-join to count subquery
+# [HIVE-5873] Semi-join to count sub-query
 # [CALCITE-365] AssertionError while translating query with WITH and correlated sub-query
 !if (false) {
 with parts (PNum, OrderOnHand)
@@ -704,8 +704,8 @@ group by case when a=1 then 1 else 2 end;
 
 !ok
 
-# [DERBY-4450] GROUP BY in an IN-subquery inside HAVING clause whose select list
-# is subset of group by columns.
+# [DERBY-4450] GROUP BY in an IN-sub-query inside HAVING clause whose select
+# list is subset of group by columns.
 select sum("day") from "days" group by "week_day" having "week_day" in (
   select "week_day" from "days" group by "week_day", "day");
 +--------+

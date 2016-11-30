@@ -106,7 +106,7 @@ public class Programs {
 
   /** Program that expands sub-queries. */
   public static final Program SUB_QUERY_PROGRAM =
-      subquery(DefaultRelMetadataProvider.INSTANCE);
+      subQuery(DefaultRelMetadataProvider.INSTANCE);
 
   public static final ImmutableSet<RelOptRule> RULE_SET =
       ImmutableSet.of(
@@ -261,7 +261,12 @@ public class Programs {
     return hep(CALC_RULES, true, metadataProvider);
   }
 
+  @Deprecated // to be removed before 2.0
   public static Program subquery(RelMetadataProvider metadataProvider) {
+    return subQuery(metadataProvider);
+  }
+
+  public static Program subQuery(RelMetadataProvider metadataProvider) {
     return hep(
         ImmutableList.of((RelOptRule) SubQueryRemoveRule.FILTER,
             SubQueryRemoveRule.PROJECT,
@@ -303,7 +308,7 @@ public class Programs {
           }
         };
 
-    return sequence(subquery(metadataProvider),
+    return sequence(subQuery(metadataProvider),
         new DecorrelateProgram(),
         new TrimFieldsProgram(),
         program1,

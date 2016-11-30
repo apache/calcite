@@ -20,33 +20,34 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlCall;
 
 /**
- * SubqueryConverter provides the interface for classes that convert subqueries
+ * SubQueryConverter provides the interface for classes that convert sub-queries
  * into equivalent expressions.
  */
-public interface SubqueryConverter {
+public interface SubQueryConverter {
   //~ Methods ----------------------------------------------------------------
 
   /**
-   * @return true if the subquery can be converted
+   * @return Whether the sub-query can be converted
    */
-  boolean canConvertSubquery();
+  boolean canConvertSubQuery();
 
   /**
-   * Converts the subquery to an equivalent expression.
+   * Converts the sub-query to an equivalent expression.
    *
-   * @param subquery        the SqlNode tree corresponding to a subquery
+   * @param subQuery        the SqlNode tree corresponding to a sub-query
    * @param parentConverter sqlToRelConverter of the parent query
-   * @param isExists        whether the subquery is part of an EXISTS expression
-   * @param isExplain       whether the subquery is part of an EXPLAIN PLAN
+   * @param isExists        whether the sub-query is part of an EXISTS
+   *                        expression
+   * @param isExplain       whether the sub-query is part of an EXPLAIN PLAN
    *                        statement
-   * @return the equivalent expression or null if the subquery couldn't be
+   * @return the equivalent expression or null if the sub-query couldn't be
    * converted
    */
-  RexNode convertSubquery(
-      SqlCall subquery,
+  RexNode convertSubQuery(
+      SqlCall subQuery,
       SqlToRelConverter parentConverter,
       boolean isExists,
       boolean isExplain);
 }
 
-// End SubqueryConverter.java
+// End SubQueryConverter.java

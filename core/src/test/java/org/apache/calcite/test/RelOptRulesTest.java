@@ -179,7 +179,8 @@ public class RelOptRulesTest extends RelOptTestBase {
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1479">[CALCITE-1479]
-   * AssertionError in ReduceExpressionsRule on multi-column IN subquery</a>. */
+   * AssertionError in ReduceExpressionsRule on multi-column IN
+   * sub-query</a>. */
   @Test public void testReduceCompositeInSubQuery() {
     final HepProgram hepProgram = new HepProgramBuilder()
         .addRuleInstance(ReduceExpressionsRule.FILTER_INSTANCE)

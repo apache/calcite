@@ -816,7 +816,7 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
   @Test public void testSubQueryInWhere() {
     String sql;
 
-    // Aliases from enclosing subqueries are inherited: hence A from
+    // Aliases from enclosing sub-queries are inherited: hence A from
     // enclosing, B from same scope.
     // The raw columns from dept are suggested (because they can
     // be used unqualified in the inner scope) but the raw
@@ -988,7 +988,7 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
     expected = "SELECT emp.empno FROM sales.emp ORDER BY _suggest_";
     assertSimplify(sql, expected);
 
-    // subquery in from
+    // sub-query in from
     sql =
         "select t.^ from (select 1 as x, 2 as y from sales.emp) as t "
             + "where t.dummy=1";
@@ -1025,10 +1025,10 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
         "SELECT t. _suggest_ FROM ( SELECT 0 AS x , 0 AS y FROM sales )";
     assertSimplify(sql, expected);
 
-    // subquery in where; note that:
-    // 1. removes the SELECT clause of subquery in WHERE clause;
-    // 2. keeps SELECT clause of subquery in FROM clause;
-    // 3. removes GROUP BY clause of subquery in FROM clause;
+    // sub-query in where; note that:
+    // 1. removes the SELECT clause of sub-query in WHERE clause;
+    // 2. keeps SELECT clause of sub-query in FROM clause;
+    // 3. removes GROUP BY clause of sub-query in FROM clause;
     // 4. removes SELECT clause of outer query.
     sql =
         "select x + y + 32 from "
@@ -1057,7 +1057,7 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
             + "WHERE substring ( a. _suggest_ FROM 3 for 6 ) = '1234'";
     assertSimplify(sql, expected);
 
-    // missing ')' following subquery
+    // missing ')' following sub-query
     sql =
         "select * from sales.emp a where deptno in ("
             + "select * from sales.dept b where ^";

@@ -1,4 +1,4 @@
-# subquery.iq - Queries involving IN and EXISTS sub-queries
+# sub-query.iq - Queries involving IN and EXISTS sub-queries
 #
 # Licensed to the Apache Software Foundation (ASF) under one or more
 # contributor license agreements.  See the NOTICE file distributed with
@@ -312,7 +312,7 @@ GROUP BY emp.deptno;
 
 !ok
 
-# [DRILL-4407] Group by subquery causes Java NPE
+# [DRILL-4407] Group by sub-query causes Java NPE
 select count(*) as c
 from "scott".emp
 group by (select deptno from "scott".emp where empno = 10);
@@ -510,4 +510,4 @@ where d.dname = (
 
 !ok
 
-# End subquery.iq
+# End sub-query.iq

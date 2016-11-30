@@ -419,7 +419,7 @@ public enum SqlKind {
   EXPLICIT_TABLE,
 
   /**
-   * Scalar query; that is, a subquery used in an expression context, and
+   * Scalar query; that is, a sub-query used in an expression context, and
    * returning one row and one column.
    */
   SCALAR_QUERY,

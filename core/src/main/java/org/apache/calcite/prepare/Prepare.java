@@ -268,7 +268,7 @@ public abstract class Prepare {
     root = root.withRel(flattenTypes(root.rel, true));
 
     if (this.context.config().forceDecorrelate()) {
-      // Subquery decorrelation.
+      // Sub-query decorrelation.
       root = root.withRel(decorrelate(sqlToRelConverter, sqlQuery, root.rel));
     }
 

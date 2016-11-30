@@ -1281,7 +1281,7 @@ public class SqlParserTest {
         "values a similar to b like c similar to d escape e escape f",
         "VALUES (ROW((`A` SIMILAR TO (`B` LIKE (`C` SIMILAR TO `D` ESCAPE `E`) ESCAPE `F`))))");
 
-    // SIMILAR TO with subquery
+    // SIMILAR TO with sub-query
     check(
         "values a similar to (select * from t where a like b escape c) escape d",
         "VALUES (ROW((`A` SIMILAR TO (SELECT *\n"
@@ -1601,7 +1601,7 @@ public class SqlParserTest {
         "(?s)Encountered \"with\" at .*");
   }
 
-  @Test public void testWithNestedInSubquery() {
+  @Test public void testWithNestedInSubQuery() {
     // SQL standard does not allow sub-query to contain WITH but we do
     check("with emp2 as (select * from emp)\n"
             + "(\n"
@@ -1956,7 +1956,7 @@ public class SqlParserTest {
             + "WHERE (3 = 3)");
   }
 
-  @Test public void testSubqueryInJoin() {
+  @Test public void testSubQueryInJoin() {
     if (!Bug.TODO_FIXED) {
       return;
     }
@@ -3423,7 +3423,7 @@ public class SqlParserTest {
         "case col1 when \n1.2 then 'one' when 2 then 'two' else 'three' end",
         "(CASE WHEN (`COL1` = 1.2) THEN 'one' WHEN (`COL1` = 2) THEN 'two' ELSE 'three' END)");
 
-    // subqueries as case expression operands
+    // sub-queries as case expression operands
     checkExp(
         "case (select * from emp) when 1 then 2 end",
         "(CASE WHEN ((SELECT *\n"
@@ -3716,7 +3716,7 @@ public class SqlParserTest {
         "(?s)Encountered \"w1\" at.*");
   }
 
-  @Test public void testWindowInSubquery() {
+  @Test public void testWindowInSubQuery() {
     check(
         "select * from ( select sum(x) over w, sum(y) over w from s window w as (range interval '1' minute preceding))",
         "SELECT *\n"
@@ -3761,7 +3761,7 @@ public class SqlParserTest {
         "select count(z) over w as foo from Bids window w as (order by x ^partition^ by y)",
         "(?s).*Encountered \"partition\".*");
 
-    // Cannot partition by subquery
+    // Cannot partition by sub-query
     checkFails(
         "select sum(a) over (partition by ^(^select 1 from t), x) from t2",
         "Query expression encountered in illegal context");

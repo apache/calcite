@@ -413,8 +413,8 @@ public interface CalciteResource {
   @BaseMessage("The {0} function does not support the {1} data type.")
   ExInst<SqlValidatorException> minMaxBadType(String a0, String a1);
 
-  @BaseMessage("Only scalar subqueries allowed in select list.")
-  ExInst<SqlValidatorException> onlyScalarSubqueryAllowed();
+  @BaseMessage("Only scalar sub-queries allowed in select list.")
+  ExInst<SqlValidatorException> onlyScalarSubQueryAllowed();
 
   @BaseMessage("Ordinal out of range")
   ExInst<SqlValidatorException> orderByOrdinalOutOfRange();
