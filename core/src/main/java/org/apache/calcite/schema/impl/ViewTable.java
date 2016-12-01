@@ -32,6 +32,7 @@ import org.apache.calcite.rel.type.RelDataTypeImpl;
 import org.apache.calcite.rel.type.RelProtoDataType;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.schema.CustomExpansionTable;
 import org.apache.calcite.schema.FunctionParameter;
 import org.apache.calcite.schema.ModifiableView;
 import org.apache.calcite.schema.Path;
@@ -57,19 +58,21 @@ import java.util.List;
  */
 public class ViewTable
     extends AbstractQueryableTable
-    implements TranslatableTable {
+    implements TranslatableTable, CustomExpansionTable {
   private final String viewSql;
   private final List<String> schemaPath;
   private final RelProtoDataType protoRowType;
   private final List<String> viewPath;
+  protected final Table table;
 
   public ViewTable(Type elementType, RelProtoDataType rowType, String viewSql,
-      List<String> schemaPath, List<String> viewPath) {
+      List<String> schemaPath, List<String> viewPath, Table table) {
     super(elementType);
     this.viewSql = viewSql;
     this.schemaPath = ImmutableList.copyOf(schemaPath);
     this.protoRowType = rowType;
     this.viewPath = viewPath == null ? null : ImmutableList.copyOf(viewPath);
+    this.table = table;
   }
 
   @Deprecated // to be removed before 2.0
@@ -127,6 +130,11 @@ public class ViewTable
     return expandView(context, relOptTable.getRowType(), viewSql).rel;
   }
 
+  public List<List<String>> getCustomStarExpansion() {
+    return table instanceof CustomExpansionTable
+        ? ((CustomExpansionTable) table).getCustomStarExpansion() : null;
+  }
+
   private RelRoot expandView(RelOptTable.ToRelContext preparingStmt,
       RelDataType rowType, String queryString) {
     try {
@@ -179,8 +187,8 @@ public class ViewTable
             parsed.table, Schemas.path(schema.root(), parsed.tablePath),
             parsed.constraint, parsed.columnMapping);
       } else {
-        return new ViewTable(elementType,
-            RelDataTypeImpl.proto(parsed.rowType), viewSql, schemaPath1, viewPath);
+        return new ViewTable(elementType, RelDataTypeImpl.proto(parsed.rowType),
+            viewSql, schemaPath1, viewPath, parsed.table);
       }
     }
   }
@@ -188,7 +196,6 @@ public class ViewTable
   /** Extension to {@link ViewTable} that is modifiable. */
   static class ModifiableViewTable extends ViewTable
       implements ModifiableView {
-    private final Table table;
     private final Path tablePath;
     private final RexNode constraint;
     private final ImmutableIntList columnMapping;
@@ -197,8 +204,7 @@ public class ViewTable
         String viewSql, List<String> schemaPath, List<String> viewPath,
         Table table, Path tablePath, RexNode constraint,
         ImmutableIntList columnMapping) {
-      super(elementType, rowType, viewSql, schemaPath, viewPath);
-      this.table = table;
+      super(elementType, rowType, viewSql, schemaPath, viewPath, table);
       this.tablePath = tablePath;
       this.constraint = constraint;
       this.columnMapping = columnMapping;

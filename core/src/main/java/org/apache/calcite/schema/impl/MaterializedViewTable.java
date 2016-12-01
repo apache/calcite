@@ -70,7 +70,7 @@ public class MaterializedViewTable extends ViewTable {
       List<String> viewSchemaPath,
       List<String> viewPath,
       MaterializationKey key) {
-    super(elementType, relDataType, viewSql, viewSchemaPath, viewPath);
+    super(elementType, relDataType, viewSql, viewSchemaPath, viewPath, null);
     this.key = key;
   }
 
