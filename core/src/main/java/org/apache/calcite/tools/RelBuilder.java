@@ -384,24 +384,34 @@ public class RelBuilder {
   /** Creates a reference to a field of the current record which originated
    * in a relation with a given alias. */
   public RexNode field(String alias, String fieldName) {
+    return field(1, alias, fieldName);
+  }
+
+  /** Creates a reference to a field which originated in a relation with the
+   * given alias. Searches for the relation starting at the top of the
+   * stack. */
+  public RexNode field(int inputCount, String alias, String fieldName) {
     Preconditions.checkNotNull(alias);
     Preconditions.checkNotNull(fieldName);
-    final Frame frame = stack.peek();
     final List<String> aliases = new ArrayList<>();
-    int offset = 0;
-    for (Pair<String, RelDataType> pair : frame.right) {
-      if (pair.left != null && pair.left.equals(alias)) {
-        int i = pair.right.getFieldNames().indexOf(fieldName);
-        if (i >= 0) {
-          return field(offset + i);
-        } else {
-          throw new IllegalArgumentException("no field '" + fieldName
-              + "' in relation '" + alias
-              + "'; fields are: " + pair.right.getFieldNames());
+    for (int inputOrdinal = 0; inputOrdinal < inputCount; ++inputOrdinal) {
+      final Frame frame = peek_(inputOrdinal);
+      int offset = 0; // relative to this frame
+      for (Pair<String, RelDataType> pair : frame.right) {
+        if (pair.left != null && pair.left.equals(alias)) {
+          int i = pair.right.getFieldNames().indexOf(fieldName);
+          if (i >= 0) {
+            return field(inputCount, inputCount - 1 - inputOrdinal,
+                offset + i);
+          } else {
+            throw new IllegalArgumentException("no field '" + fieldName
+                + "' in relation '" + alias
+                + "'; fields are: " + pair.right.getFieldNames());
+          }
         }
+        aliases.add(pair.left);
+        offset += pair.right.getFieldCount();
       }
-      aliases.add(pair.left);
-      offset += pair.right.getFieldCount();
     }
     throw new IllegalArgumentException("no relation with alias '" + alias
         + "'; aliases are: " + aliases);
