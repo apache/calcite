@@ -712,6 +712,32 @@ public class RelBuilderTest {
             + "      LogicalTableScan(table=[[scott, EMP]])\n"));
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1522">[CALCITE-1522]
+   * Fix error message for SetOp with incompatible args</a>. */
+  @Test public void testBadUnionArgsErrorMessage() {
+    // Equivalent SQL:
+    //   SELECT EMPNO, SAL FROM emp
+    //   UNION ALL
+    //   SELECT DEPTNO FROM dept
+    final RelBuilder builder = RelBuilder.create(config().build());
+    try {
+      final RelNode root =
+          builder.scan("DEPT")
+              .project(builder.field("DEPTNO"))
+              .scan("EMP")
+              .project(builder.field("EMPNO"), builder.field("SAL"))
+              .union(true)
+              .build();
+      fail("Expected error, got " + root);
+    } catch (IllegalArgumentException e) {
+      final String expected = "Cannot compute compatible row type for "
+          + "arguments to set op: RecordType(TINYINT DEPTNO), "
+          + "RecordType(SMALLINT EMPNO, DECIMAL(7, 2) SAL)";
+      assertThat(e.getMessage(), is(expected));
+    }
+  }
+
   @Test public void testUnion3() {
     // Equivalent SQL:
     //   SELECT deptno FROM dept
