@@ -25,6 +25,8 @@ import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.schema.CustomColumnResolvingTable;
+import org.apache.calcite.schema.Table;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlDynamicParam;
@@ -40,6 +42,7 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Litmus;
+import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -432,6 +435,37 @@ public class SqlValidatorUtil {
       nameList.add(name);
       uniqueNames.add(name);
       typeList.add(field.getType());
+    }
+  }
+
+  /**
+   * Resolve a target column name in the target table.
+   *
+   * @return the target field or null if the name cannot be resolved
+   * @param rowType the target row type
+   * @param id      the target column identifier
+   * @param table   the target table or null if it is not a RelOptTable instance
+   */
+  public static RelDataTypeField getTargetField(
+      RelDataType rowType, RelDataTypeFactory typeFactory,
+      SqlIdentifier id, SqlValidatorCatalogReader catalogReader,
+      RelOptTable table) {
+    final Table t = table == null ? null : table.unwrap(Table.class);
+    if (!(t instanceof CustomColumnResolvingTable)) {
+      return catalogReader.field(rowType, id.getSimple());
+    }
+
+    final List<Pair<RelDataTypeField, List<String>>> entries =
+        ((CustomColumnResolvingTable) t).resolveColumn(
+            rowType, typeFactory, id.names);
+    switch (entries.size()) {
+    case 1:
+      if (!entries.get(0).getValue().isEmpty()) {
+        return null;
+      }
+      return entries.get(0).getKey();
+    default:
+      return null;
     }
   }
 

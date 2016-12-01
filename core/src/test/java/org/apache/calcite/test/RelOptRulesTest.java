@@ -2744,7 +2744,7 @@ public class RelOptRulesTest extends RelOptTestBase {
     checkSubQuery(sql).check();
   }
 
-  @Test public void testStructTypeInNonCorrelatedSubQuery() {
+  @Test public void testCustomColumnResolvingInNonCorrelatedSubQuery() {
     final String sql = "select *\n"
         + "from struct.t t1\n"
         + "where c0 in (\n"
@@ -2758,7 +2758,7 @@ public class RelOptRulesTest extends RelOptTestBase {
     checkPlanning(tester, null, new HepPlanner(program), sql);
   }
 
-  @Test public void testStructTypeInCorrelatedSubQuery() {
+  @Test public void testCustomColumnResolvingInCorrelatedSubQuery() {
     final String sql = "select *\n"
         + "from struct.t t1\n"
         + "where c0 = (\n"
@@ -2772,7 +2772,7 @@ public class RelOptRulesTest extends RelOptTestBase {
     checkPlanning(tester, null, new HepPlanner(program), sql);
   }
 
-  @Test public void testStructTypeInCorrelatedSubQuery2() {
+  @Test public void testCustomColumnResolvingInCorrelatedSubQuery2() {
     final String sql = "select *\n"
         + "from struct.t t1\n"
         + "where c0 in (\n"

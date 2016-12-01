@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.test;
 
+import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.linq4j.QueryProvider;
 import org.apache.calcite.linq4j.Queryable;
 import org.apache.calcite.linq4j.tree.Expression;
@@ -48,8 +49,7 @@ import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
-import org.apache.calcite.schema.CustomExpansionTable;
-import org.apache.calcite.schema.ModifiableView;
+import org.apache.calcite.schema.CustomColumnResolvingTable;
 import org.apache.calcite.schema.Path;
 import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.SchemaPlus;
@@ -93,8 +93,10 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 
 /**
@@ -357,8 +359,8 @@ public class MockCatalogReader implements Prepare.CatalogReader {
     //   FROM EMP
     //   WHERE DEPTNO = 20 AND SAL > 1000
     MockTable emp20View = new MockViewTable(this, salesSchema.getCatalogName(),
-        salesSchema.name, "EMP_20", false, 600, empTable, null,
-        ImmutableIntList.of(0, 1, 2, 3, 4, 5, 6, 8)) {
+        salesSchema.name, "EMP_20", false, 600, empTable,
+        ImmutableIntList.of(0, 1, 2, 3, 4, 5, 6, 8), null) {
 
       @Override public RexNode getConstraint(RexBuilder rexBuilder,
           RelDataType tableRowType) {
@@ -393,89 +395,55 @@ public class MockCatalogReader implements Prepare.CatalogReader {
 
     MockSchema structTypeSchema = new MockSchema("STRUCT");
     registerSchema(structTypeSchema);
-    MockTable structTypeTable = new MockTable(this,
+    final List<CompoundNameColumn> columns = Arrays.asList(
+        new CompoundNameColumn("", "K0", varchar20Type),
+        new CompoundNameColumn("", "C1", varchar20Type),
+        new CompoundNameColumn("F1", "A0", intType),
+        new CompoundNameColumn("F2", "A0", booleanType),
+        new CompoundNameColumn("F0", "C0", intType),
+        new CompoundNameColumn("F1", "C0", intTypeNull),
+        new CompoundNameColumn("F0", "C1", intType),
+        new CompoundNameColumn("F1", "C2", intType),
+        new CompoundNameColumn("F2", "C3", intType));
+    final CompoundNameColumnResolver structTypeTableResolver =
+        new CompoundNameColumnResolver(columns, "F0");
+    final MockTable structTypeTable = new MockTable(this,
         structTypeSchema.getCatalogName(), structTypeSchema.name,
-        "T", false, 100,
-        ImmutableList.<List<String>>of(
-            ImmutableList.of("K0"),
-            ImmutableList.of("C1"),
-            ImmutableList.of("F1", "A0"),
-            ImmutableList.of("F2", "A0"),
-            ImmutableList.of("F0", "C0"),
-            ImmutableList.of("F1", "C0"),
-            ImmutableList.of("F0", "C1"),
-            ImmutableList.of("F1", "C2"),
-            ImmutableList.of("F2", "C3")));
-    structTypeTable.addColumn("K0", varchar20Type);
-    structTypeTable.addColumn("C1", varchar20Type);
-    final RelDataType f0Type = typeFactory.builder()
-        .add("C0", intType)
-        .add("C1", intType)
-        .kind(StructKind.PEEK_FIELDS_DEFAULT)
-        .build();
-    structTypeTable.addColumn("F0", f0Type);
-    final RelDataType f1Type = typeFactory.builder()
-        .add("C0", intTypeNull)
-        .add("C2", intType)
-        .add("A0", intType)
-        .kind(StructKind.PEEK_FIELDS)
-        .build();
-    structTypeTable.addColumn("F1", f1Type);
-    final RelDataType f2Type = typeFactory.builder()
-        .add("C3", intType)
-        .add("A0", booleanType)
-        .kind(StructKind.PEEK_FIELDS)
-        .build();
-    structTypeTable.addColumn("F2", f2Type);
+        "T", false, 100, structTypeTableResolver);
+    for (CompoundNameColumn column : columns) {
+      structTypeTable.addColumn(column.getName(), column.type);
+    }
     registerTable(structTypeTable);
 
     // Register "STRUCT.T_10" view.
     // Same columns as "STRUCT.T",
     // but "F0.C0" is set to 10 by default,
     // which is the equivalent of:
-    //   SELECT K0, C1, F0, F1, F2
+    //   SELECT *
     //   FROM T
     //   WHERE F0.C0 = 10
     MockTable struct10View = new MockViewTable(this,
         structTypeSchema.getCatalogName(),
         structTypeSchema.name, "T_10", false, 20,
-        structTypeTable, null, ImmutableIntList.of(0, 1, 2, 3, 4)) {
+        structTypeTable, ImmutableIntList.of(0, 1, 2, 3, 4, 5, 6, 7, 8),
+        structTypeTableResolver) {
 
       @Override public RexNode getConstraint(RexBuilder rexBuilder,
           RelDataType tableRowType) {
-        final RelDataTypeField f0Field =
-            tableRowType.getFieldList().get(2);
         final RelDataTypeField c0Field =
-            f0Field.getType().getFieldList().get(0);
+            tableRowType.getFieldList().get(4);
         return rexBuilder.makeCall(SqlStdOperatorTable.EQUALS,
-            rexBuilder.makeFieldAccess(
-                rexBuilder.makeInputRef(f0Field.getType(),
-                    f0Field.getIndex()),
+            rexBuilder.makeInputRef(c0Field.getType(),
                 c0Field.getIndex()),
             rexBuilder.makeExactLiteral(BigDecimal.valueOf(10L),
                 c0Field.getType()));
       }
     };
     structTypeSchema.addTable(Util.last(struct10View.getQualifiedName()));
-    struct10View.addColumn("K0", varchar20Type);
-    struct10View.addColumn("C1", varchar20Type);
-    struct10View.addColumn("F0", f0Type);
-    struct10View.addColumn("F1", f1Type);
-    struct10View.addColumn("F2", f2Type);
+    for (CompoundNameColumn column : columns) {
+      struct10View.addColumn(column.getName(), column.type);
+    }
     registerTable(struct10View);
-
-    // TODO Remove this table and use STRUCT.T instead after
-    // CALCITE-1425 is done.
-    MockTable simpleTable = new MockTable(this,
-        structTypeSchema.getCatalogName(), structTypeSchema.name,
-        "SIMPLE", false, 100,
-        ImmutableList.<List<String>>of(
-            ImmutableList.of("K2"),
-            ImmutableList.of("K0")));
-    simpleTable.addColumn("K0", varchar20Type);
-    simpleTable.addColumn("K1", intTypeNull);
-    simpleTable.addColumn("K2", timestampType);
-    registerTable(simpleTable);
     return this;
   }
 
@@ -624,6 +592,12 @@ public class MockCatalogReader implements Prepare.CatalogReader {
 
   //~ Inner Classes ----------------------------------------------------------
 
+  /** Column resolver*/
+  public interface ColumnResolver {
+    List<Pair<RelDataTypeField, List<String>>> resolveColumn(
+        RelDataType rowType, RelDataTypeFactory typeFactory, List<String> names);
+  }
+
   /** Mock schema. */
   public static class MockSchema {
     private final List<String> tableNames = Lists.newArrayList();
@@ -661,42 +635,73 @@ public class MockCatalogReader implements Prepare.CatalogReader {
     protected final List<String> names;
     private final Set<String> monotonicColumnSet = Sets.newHashSet();
     private StructKind kind = StructKind.FULLY_QUALIFIED;
-    protected final List<List<String>> customExpansionList;
+    protected final ColumnResolver resolver;
 
     public MockTable(MockCatalogReader catalogReader, String catalogName,
         String schemaName, String name, boolean stream, double rowCount,
-        List<List<String>> customExpansionList) {
+        ColumnResolver resolver) {
       this.catalogReader = catalogReader;
       this.stream = stream;
       this.rowCount = rowCount;
       this.names = ImmutableList.of(catalogName, schemaName, name);
-      this.customExpansionList = customExpansionList;
+      this.resolver = resolver;
+    }
+
+    /** Implementation of AbstractModifiableTable. */
+    private class ModifiableTable extends JdbcTest.AbstractModifiableTable {
+
+      protected ModifiableTable(String tableName) {
+        super(tableName);
+      }
+
+      @Override public RelDataType
+      getRowType(RelDataTypeFactory typeFactory) {
+        return typeFactory.createStructType(rowType.getFieldList());
+      }
+
+      @Override public Collection getModifiableCollection() {
+        return null;
+      }
+
+      @Override public <E> Queryable<E>
+      asQueryable(QueryProvider queryProvider, SchemaPlus schema,
+          String tableName) {
+        return null;
+      }
+
+      @Override public Type getElementType() {
+        return null;
+      }
+
+      @Override public Expression getExpression(SchemaPlus schema,
+          String tableName, Class clazz) {
+        return null;
+      }
     }
 
     /**
-     * Subclass of AbstractModifiableTable that also implements
-     * CustomExpansionTable.
+     * Subclass of ModifiableTable that also implements
+     * CustomColumnResolvingTable.
      */
-    private abstract class AbstractModifiableTableWithCustomExpansion
-        extends JdbcTest.AbstractModifiableTable
-        implements CustomExpansionTable {
+    private class ModifiableTableWithCustomColumnResolving
+        extends ModifiableTable implements CustomColumnResolvingTable {
 
-      protected AbstractModifiableTableWithCustomExpansion(String tableName) {
+      protected ModifiableTableWithCustomColumnResolving(String tableName) {
         super(tableName);
       }
+
+      @Override public List<Pair<RelDataTypeField, List<String>>> resolveColumn(
+          RelDataType rowType, RelDataTypeFactory typeFactory, List<String> names) {
+        return resolver.resolveColumn(rowType, typeFactory, names);
+      }
+
     }
 
     public static MockTable create(MockCatalogReader catalogReader,
         MockSchema schema, String name, boolean stream, double rowCount) {
-      return create(catalogReader, schema, name, stream, rowCount, null);
-    }
-
-    public static MockTable create(MockCatalogReader catalogReader,
-        MockSchema schema, String name, boolean stream, double rowCount,
-        List<List<String>> customExpansionList) {
       MockTable table =
           new MockTable(catalogReader, schema.getCatalogName(), schema.name,
-              name, stream, rowCount, customExpansionList);
+              name, stream, rowCount, null);
       schema.addTable(name);
       return table;
     }
@@ -706,36 +711,10 @@ public class MockCatalogReader implements Prepare.CatalogReader {
         return clazz.cast(this);
       }
       if (clazz.isAssignableFrom(Table.class)) {
-        return clazz.cast(
-            new AbstractModifiableTableWithCustomExpansion(Util.last(names)) {
-              @Override public RelDataType
-              getRowType(RelDataTypeFactory typeFactory) {
-                return typeFactory.createStructType(rowType.getFieldList());
-              }
-
-              @Override public Collection getModifiableCollection() {
-                return null;
-              }
-
-              @Override public <E> Queryable<E>
-              asQueryable(QueryProvider queryProvider, SchemaPlus schema,
-                  String tableName) {
-                return null;
-              }
-
-              @Override public Type getElementType() {
-                return null;
-              }
-
-              @Override public Expression getExpression(SchemaPlus schema,
-                  String tableName, Class clazz) {
-                return null;
-              }
-
-              @Override public List<List<String>> getCustomStarExpansion() {
-                return customExpansionList;
-              }
-            });
+        final Table table = resolver == null
+            ? new ModifiableTable(Util.last(names))
+                : new ModifiableTableWithCustomColumnResolving(Util.last(names));
+        return clazz.cast(table);
       }
       return null;
     }
@@ -807,7 +786,7 @@ public class MockCatalogReader implements Prepare.CatalogReader {
 
     public RelOptTable extend(List<RelDataTypeField> extendedFields) {
       final MockTable table = new MockTable(catalogReader, names.get(0),
-          names.get(1), names.get(2), stream, rowCount, customExpansionList);
+          names.get(1), names.get(2), stream, rowCount, resolver);
       table.columnList.addAll(columnList);
       table.columnList.addAll(extendedFields);
       table.onRegister(catalogReader.typeFactory);
@@ -834,13 +813,67 @@ public class MockCatalogReader implements Prepare.CatalogReader {
 
     MockViewTable(MockCatalogReader catalogReader, String catalogName,
         String schemaName, String name, boolean stream, double rowCount,
-        MockTable fromTable, List<List<String>> customExpansionList,
-        ImmutableIntList mapping) {
-      super(catalogReader, catalogName, schemaName, name, stream, rowCount,
-          customExpansionList);
+        MockTable fromTable, ImmutableIntList mapping, ColumnResolver resolver) {
+      super(catalogReader, catalogName,
+          schemaName, name, stream, rowCount, resolver);
       this.fromTable = fromTable;
       this.table = fromTable.unwrap(Table.class);
       this.mapping = mapping;
+    }
+
+    /** Implementation of AbstractModifiableView. */
+    private class ModifiableView extends JdbcTest.AbstractModifiableView {
+
+      @Override public Table getTable() {
+        return fromTable.unwrap(Table.class);
+      }
+
+      @Override public Path getTablePath() {
+        final ImmutableList.Builder<Pair<String, Schema>> builder =
+            ImmutableList.builder();
+        for (String name : fromTable.names) {
+          builder.add(Pair.<String, Schema>of(name, null));
+        }
+        return Schemas.path(builder.build());
+      }
+
+      @Override public ImmutableIntList getColumnMapping() {
+        return mapping;
+      }
+
+      @Override public RexNode getConstraint(RexBuilder rexBuilder,
+          RelDataType tableRowType) {
+        return MockViewTable.this.getConstraint(rexBuilder, tableRowType);
+      }
+
+      @Override public RelDataType
+      getRowType(final RelDataTypeFactory typeFactory) {
+        return typeFactory.createStructType(
+            new AbstractList<Map.Entry<String, RelDataType>>() {
+              @Override public Map.Entry<String, RelDataType>
+              get(int index) {
+                return table.getRowType(typeFactory).getFieldList()
+                    .get(mapping.get(index));
+              }
+
+              @Override public int size() {
+                return mapping.size();
+              }
+            });
+      }
+    }
+
+    /**
+     * Subclass of ModifiableView that also implements
+     * CustomColumnResolvingTable.
+     */
+    private class ModifiableViewWithCustomColumnResolving
+      extends ModifiableView implements CustomColumnResolvingTable {
+
+      @Override public List<Pair<RelDataTypeField, List<String>>> resolveColumn(
+          RelDataType rowType, RelDataTypeFactory typeFactory, List<String> names) {
+        return resolver.resolveColumn(rowType, typeFactory, names);
+      }
     }
 
     protected abstract RexNode getConstraint(RexBuilder rexBuilder,
@@ -876,46 +909,10 @@ public class MockCatalogReader implements Prepare.CatalogReader {
 
     @Override public <T> T unwrap(Class<T> clazz) {
       if (clazz.isAssignableFrom(ModifiableView.class)) {
-        return clazz.cast(
-            new JdbcTest.AbstractModifiableView() {
-              @Override public Table getTable() {
-                return fromTable.unwrap(Table.class);
-              }
-
-              @Override public Path getTablePath() {
-                final ImmutableList.Builder<Pair<String, Schema>> builder =
-                    ImmutableList.builder();
-                for (String name : fromTable.names) {
-                  builder.add(Pair.<String, Schema>of(name, null));
-                }
-                return Schemas.path(builder.build());
-              }
-
-              @Override public ImmutableIntList getColumnMapping() {
-                return mapping;
-              }
-
-              @Override public RexNode getConstraint(RexBuilder rexBuilder,
-                  RelDataType tableRowType) {
-                return MockViewTable.this.getConstraint(rexBuilder, tableRowType);
-              }
-
-              @Override public RelDataType
-              getRowType(final RelDataTypeFactory typeFactory) {
-                return typeFactory.createStructType(
-                    new AbstractList<Map.Entry<String, RelDataType>>() {
-                      @Override public Map.Entry<String, RelDataType>
-                      get(int index) {
-                        return table.getRowType(typeFactory).getFieldList()
-                            .get(mapping.get(index));
-                      }
-
-                      @Override public int size() {
-                        return mapping.size();
-                      }
-                    });
-              }
-            });
+        ModifiableView view = resolver == null
+            ? new ModifiableView()
+                : new ModifiableViewWithCustomColumnResolving();
+        return clazz.cast(view);
       }
       return super.unwrap(clazz);
     }
@@ -1045,6 +1042,150 @@ public class MockCatalogReader implements Prepare.CatalogReader {
 
     public RelDataTypeComparability getComparability() {
       return delegate.getComparability();
+    }
+  }
+
+  /** Column having names with multiple parts. */
+  private static final class CompoundNameColumn {
+    final String first;
+    final String second;
+    final RelDataType type;
+
+    CompoundNameColumn(String first, String second, RelDataType type) {
+      this.first = first;
+      this.second = second;
+      this.type = type;
+    }
+
+    String getName() {
+      return (first.isEmpty() ? "" : ("\"" + first + "\"."))
+          + ("\"" + second + "\"");
+    }
+  }
+
+  /** ColumnResolver implementation that resolves CompoundNameColumn by simulating
+   *  Phoenix behaviors. */
+  private static final class CompoundNameColumnResolver implements ColumnResolver {
+    private final Map<String, Integer> nameMap = Maps.newHashMap();
+    private final Map<String, Map<String, Integer>> groupMap = Maps.newHashMap();
+    private final String defaultColumnGroup;
+
+    CompoundNameColumnResolver(
+        List<CompoundNameColumn> columns, String defaultColumnGroup) {
+      this.defaultColumnGroup = defaultColumnGroup;
+      for (Ord<CompoundNameColumn> column : Ord.zip(columns)) {
+        nameMap.put(column.e.getName(), column.i);
+        Map<String, Integer> subMap = groupMap.get(column.e.first);
+        if (subMap == null) {
+          subMap = Maps.newHashMap();
+          groupMap.put(column.e.first, subMap);
+        }
+        subMap.put(column.e.second, column.i);
+      }
+    }
+
+    @Override public List<Pair<RelDataTypeField, List<String>>> resolveColumn(
+        RelDataType rowType, RelDataTypeFactory typeFactory, List<String> names) {
+      List<Pair<RelDataTypeField, List<String>>> ret = new ArrayList<>();
+      if (names.size() >= 2) {
+        Map<String, Integer> subMap = groupMap.get(names.get(0));
+        if (subMap != null) {
+          Integer index = subMap.get(names.get(1));
+          if (index != null) {
+            ret.add(
+                new Pair<RelDataTypeField, List<String>>(
+                    rowType.getFieldList().get(index),
+                    names.subList(2, names.size())));
+          }
+        }
+      }
+
+      final String columnName = names.get(0);
+      final List<String> remainder = names.subList(1, names.size());
+      Integer index = nameMap.get(columnName);
+      if (index != null) {
+        ret.add(
+            new Pair<RelDataTypeField, List<String>>(
+                rowType.getFieldList().get(index), remainder));
+        return ret;
+      }
+
+      final List<String> priorityGroups = Arrays.asList("", defaultColumnGroup);
+      for (String group : priorityGroups) {
+        Map<String, Integer> subMap = groupMap.get(group);
+        if (subMap != null) {
+          index = subMap.get(columnName);
+          if (index != null) {
+            ret.add(
+                new Pair<RelDataTypeField, List<String>>(
+                    rowType.getFieldList().get(index), remainder));
+            return ret;
+          }
+        }
+      }
+      for (Map.Entry<String, Map<String, Integer>> entry : groupMap.entrySet()) {
+        if (priorityGroups.contains(entry.getKey())) {
+          continue;
+        }
+        index = entry.getValue().get(columnName);
+        if (index != null) {
+          ret.add(
+              new Pair<RelDataTypeField, List<String>>(
+                  rowType.getFieldList().get(index), remainder));
+        }
+      }
+
+      if (ret.isEmpty() && names.size() == 1) {
+        Map<String, Integer> subMap = groupMap.get(columnName);
+        if (subMap != null) {
+          List<Map.Entry<String, Integer>> entries =
+              new ArrayList<>(subMap.entrySet());
+          Collections.sort(
+              entries,
+              new Comparator<Map.Entry<String, Integer>>() {
+                @Override public int compare(
+                    Entry<String, Integer> o1, Entry<String, Integer> o2) {
+                  return o1.getValue() - o2.getValue();
+                }
+              });
+          ret.add(
+              new Pair<RelDataTypeField, List<String>>(
+                  new RelDataTypeFieldImpl(
+                      columnName, -1,
+                      createStructType(
+                          rowType,
+                          typeFactory,
+                          entries)),
+                  remainder));
+        }
+      }
+
+      return ret;
+    }
+
+    private static RelDataType createStructType(
+        final RelDataType rowType,
+        RelDataTypeFactory typeFactory,
+        final List<Map.Entry<String, Integer>> entries) {
+      return typeFactory.createStructType(
+          StructKind.PEEK_FIELDS,
+          new AbstractList<RelDataType>() {
+            @Override public RelDataType get(int index) {
+              final int i = entries.get(index).getValue();
+              return rowType.getFieldList().get(i).getType();
+            }
+            @Override public int size() {
+              return entries.size();
+            }
+          },
+          new AbstractList<String>() {
+            @Override public String get(int index) {
+              return entries.get(index).getKey();
+            }
+            @Override public int size() {
+              return entries.size();
+            }
+          });
     }
   }
 }

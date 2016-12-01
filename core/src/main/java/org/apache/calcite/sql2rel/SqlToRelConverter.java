@@ -3120,7 +3120,11 @@ public class SqlToRelConverter {
     } else {
       for (int i = 0; i < targetColumnList.size(); i++) {
         SqlIdentifier id = (SqlIdentifier) targetColumnList.get(i);
-        targetColumnNames.add(id.getSimple());
+        RelDataTypeField field =
+            SqlValidatorUtil.getTargetField(
+                targetRowType, typeFactory, id, catalogReader, targetTable);
+        assert field != null : "column " + id.toString() + " not found";
+        targetColumnNames.add(field.getName());
       }
     }
 
@@ -3142,10 +3146,14 @@ public class SqlToRelConverter {
 
     // convert update column list from SqlIdentifier to String
     final List<String> targetColumnNameList = new ArrayList<>();
+    final RelDataType targetRowType = targetTable.getRowType();
     for (SqlNode node : call.getTargetColumnList()) {
       SqlIdentifier id = (SqlIdentifier) node;
-      String name = id.getSimple();
-      targetColumnNameList.add(name);
+      RelDataTypeField field =
+          SqlValidatorUtil.getTargetField(
+              targetRowType, typeFactory, id, catalogReader, targetTable);
+      assert field != null : "column " + id.toString() + " not found";
+      targetColumnNameList.add(field.getName());
     }
 
     RelNode sourceRel = convertSelect(call.getSourceSelect(), false);
@@ -3159,12 +3167,16 @@ public class SqlToRelConverter {
 
     // convert update column list from SqlIdentifier to String
     final List<String> targetColumnNameList = new ArrayList<>();
+    final RelDataType targetRowType = targetTable.getRowType();
     SqlUpdate updateCall = call.getUpdateCall();
     if (updateCall != null) {
       for (SqlNode targetColumn : updateCall.getTargetColumnList()) {
         SqlIdentifier id = (SqlIdentifier) targetColumn;
-        String name = id.getSimple();
-        targetColumnNameList.add(name);
+        RelDataTypeField field =
+            SqlValidatorUtil.getTargetField(
+                targetRowType, typeFactory, id, catalogReader, targetTable);
+        assert field != null : "column " + id.toString() + " not found";
+        targetColumnNameList.add(field.getName());
       }
     }
 

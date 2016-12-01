@@ -192,7 +192,7 @@ public class IdentifierNamespace extends AbstractNamespace {
   }
 
   @Override public SqlValidatorTable getTable() {
-    return resolve().getTable();
+    return resolvedNamespace == null ? null : resolve().getTable();
   }
 
   public List<Pair<SqlNode, SqlMonotonicity>> getMonotonicExprs() {

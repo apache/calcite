@@ -7972,10 +7972,24 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     sql(sql2).ok().bindType(expected2);
   }
 
-  @Test public void testInsertBindWithCustomStarExpansion() {
-    sql("insert into struct.simple values (?, ?)")
-        .ok()
-        .bindType("RecordType(TIMESTAMP(0) ?0, VARCHAR(20) ?1)");
+  @Test public void testInsertBindWithCustomColumnResolving() {
+    final String sql = "insert into struct.t\n"
+        + "values (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+    final String expected = "RecordType(VARCHAR(20) ?0, VARCHAR(20) ?1,"
+        + " INTEGER ?2, BOOLEAN ?3, INTEGER ?4, INTEGER ?5, INTEGER ?6,"
+        + " INTEGER ?7, INTEGER ?8)";
+    sql(sql).ok().bindType(expected);
+
+    final String sql2 =
+        "insert into struct.t (c0, c2, c1) values (?, ?, ?)";
+    final String expected2 =
+        "RecordType(INTEGER ?0, INTEGER ?1, VARCHAR(20) ?2)";
+    sql(sql2).ok().bindType(expected2);
+
+    sql("insert into struct.t (c0, ^c4^, c1) values (?, ?, ?)")
+        .fails("Unknown target column 'C4'");
+    sql("insert into struct.t (^a0^, c2, c1) values (?, ?, ?)")
+        .fails("Unknown target column 'A0'");
   }
 
   @Test public void testUpdateBind() {
@@ -8223,15 +8237,15 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     // (To debug individual statements, paste them into this method.)
   }
 
-  @Test public void testStructType() {
-    checkStructType("T");
+  @Test public void testCustomColumnResolving() {
+    checkCustomColumnResolving("T");
   }
 
-  @Test public void testStructTypeWithView() {
-    checkStructType("T_10");
+  @Test public void testCustomColumnResolvingWithView() {
+    checkCustomColumnResolving("T_10");
   }
 
-  private void checkStructType(String table) {
+  private void checkCustomColumnResolving(String table) {
     // Table STRUCT.T is defined as: (
     //   K0 VARCHAR(20) NOT NULL,
     //   C1 VARCHAR(20) NOT NULL,
@@ -8354,26 +8368,21 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
 
     // Resolve struct type F1 with wildcard.
     sql("select f1.* from struct." + table)
-        .type("RecordType(INTEGER C0, INTEGER NOT NULL C2,"
-            + " INTEGER NOT NULL A0) NOT NULL");
+        .type("RecordType(INTEGER NOT NULL A0, INTEGER C0,"
+            + " INTEGER NOT NULL C2) NOT NULL");
 
     // Resolve struct type F1 with wildcard.
     sql("select " + table + ".f1.* from struct." + table)
-        .type("RecordType(INTEGER C0, INTEGER NOT NULL C2,"
-            + " INTEGER NOT NULL A0) NOT NULL");
+        .type("RecordType(INTEGER NOT NULL A0, INTEGER C0,"
+            + " INTEGER NOT NULL C2) NOT NULL");
 
     // Fail non-existent column B0.
     sql("select ^b0^ from struct." + table)
         .fails("Column 'B0' not found in any table");
 
-    // It's OK to reference a record type.
-    //
-    // This is admittedly a bit strange for Phoenix users. We model a column
-    // family as a column whose type is a record, but Phoenix users would
-    // rarely if ever want to use a column family as a record.
-    sql("select f1 from struct." + table)
-        .type("RecordType(RecordType:peek(INTEGER C0, INTEGER NOT NULL C2,"
-            + " INTEGER NOT NULL A0) NOT NULL F1) NOT NULL");
+    // A column family can only be referenced with a star expansion.
+    sql("select ^f1^ from struct." + table)
+        .fails("Column 'F1' not found in any table");
 
     // If we fail to find a column, give an error based on the shortest prefix
     // that fails.

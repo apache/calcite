@@ -1514,6 +1514,26 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  @Test public void testInsertWithCustomColumnResolving() {
+    final String sql = "insert into struct.t values (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+    sql(sql).ok();
+  }
+
+  @Test public void testInsertWithCustomColumnResolving2() {
+    final String sql = "insert into struct.t (c0, c2, c1) values (?, ?, ?)";
+    sql(sql).ok();
+  }
+
+  @Test public void testInsertViewWithCustomColumnResolving() {
+    final String sql = "insert into struct.t_10 (c0, c2, c1) values (?, ?, ?)";
+    sql(sql).ok();
+  }
+
+  @Test public void testUpdateWithCustomColumnResolving() {
+    final String sql = "update struct.t set c0 = c0 + 1";
+    sql(sql).ok();
+  }
+
   /**
    * Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-695">[CALCITE-695]
@@ -1757,38 +1777,27 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).decorrelate(true).ok();
   }
 
-  @Test public void testStructType() {
+  @Test public void testCustomColumnResolving() {
     final String sql = "select k0 from struct.t";
     sql(sql).ok();
   }
 
-  @Test public void testStructType2() {
+  @Test public void testCustomColumnResolving2() {
     final String sql = "select c2 from struct.t";
     sql(sql).ok();
   }
 
-  @Test public void testStructType3() {
+  @Test public void testCustomColumnResolving3() {
     final String sql = "select f1.c2 from struct.t";
     sql(sql).ok();
   }
 
-  @Test public void testStructType4() {
-    final String sql = "select f1 from struct.t";
-    sql(sql).ok();
-  }
-
-  @Test public void testStructTypeWithSelectStar() {
+  @Test public void testCustomColumnResolvingWithSelectStar() {
     final String sql = "select * from struct.t";
     sql(sql).ok();
   }
 
-  @Test public void testStructTypeWithSelectStar2() {
-    final String sql = "select * from struct.t t1 join struct.t t2\n"
-        + "on t1.k0 = t2.k0";
-    sql(sql).ok();
-  }
-
-  @Test public void testStructTypeWithSelectFieldNameDotStar() {
+  @Test public void testCustomColumnResolvingWithSelectFieldNameDotStar() {
     final String sql = "select f1.* from struct.t";
     sql(sql).ok();
   }

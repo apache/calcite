@@ -141,25 +141,6 @@ public abstract class ListScope extends DelegatingScope {
     return map;
   }
 
-  @Override protected boolean hasLiberalChild() {
-    for (Pair<String, SqlValidatorNamespace> child : children) {
-      final RelDataType rowType = child.right.getRowType();
-      switch (rowType.getStructKind()) {
-      case PEEK_FIELDS:
-      case PEEK_FIELDS_DEFAULT:
-        return true;
-      }
-      for (RelDataTypeField field : rowType.getFieldList()) {
-        switch (field.getType().getStructKind()) {
-        case PEEK_FIELDS:
-        case PEEK_FIELDS_DEFAULT:
-          return true;
-        }
-      }
-    }
-    return false;
-  }
-
   @Override public void resolve(List<String> names, boolean deep,
       Resolved resolved) {
     // First resolve by looking through the child namespaces.

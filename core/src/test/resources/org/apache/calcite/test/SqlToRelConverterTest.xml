@@ -2613,92 +2613,110 @@ LogicalTableModify(table=[[CATALOG, SALES, EMP]], operation=[INSERT], updateColu
 ]]>
         </Resource>
     </TestCase>
-    <TestCase name="testStructType">
+    <TestCase name="testInsertWithCustomColumnResolving">
+        <Resource name="sql">
+            <![CDATA[insert into struct.t values (?, ?, ?, ?, ?, ?, ?, ?, ?)]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalTableModify(table=[[CATALOG, STRUCT, T]], operation=[INSERT], updateColumnList=[[]], flattened=[true])
+  LogicalProject("K0"=[?0], "C1"=[?1], "F1"."A0"=[?2], "F2"."A0"=[?3], "F0"."C0"=[?4], "F1"."C0"=[?5], "F0"."C1"=[?6], "F1"."C2"=[?7], "F2"."C3"=[?8])
+    LogicalValues(tuples=[[{ 0 }]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testInsertWithCustomColumnResolving2">
+        <Resource name="sql">
+            <![CDATA[insert into struct.t (c0, c2, c1) values (?, ?, ?)]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalTableModify(table=[[CATALOG, STRUCT, T]], operation=[INSERT], updateColumnList=[[]], flattened=[true])
+  LogicalProject("K0"=[null], "C1"=[$2], "F1"."A0"=[null], "F2"."A0"=[null], "F0"."C0"=[$0], "F1"."C0"=[null], "F0"."C1"=[null], "F1"."C2"=[$1], "F2"."C3"=[null])
+    LogicalProject(EXPR$0=[?0], EXPR$1=[?1], EXPR$2=[?2])
+      LogicalValues(tuples=[[{ 0 }]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testInsertViewWithCustomColumnResolving">
+        <Resource name="sql">
+            <![CDATA[insert into struct.t_10 (c0, c2, c1) values (?, ?, ?)]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalTableModify(table=[[CATALOG, STRUCT, T]], operation=[INSERT], updateColumnList=[[]], flattened=[true])
+  LogicalFilter(condition=[=($4, 10)])
+    LogicalProject("K0"=[CAST($0):VARCHAR(20) CHARACTER SET "ISO-8859-1" COLLATE "ISO-8859-1$en_US$primary" NOT NULL], "C1"=[CAST($1):VARCHAR(20) CHARACTER SET "ISO-8859-1" COLLATE "ISO-8859-1$en_US$primary" NOT NULL], "F1"."A0"=[CAST($2):INTEGER NOT NULL], "F2"."A0"=[CAST($3):BOOLEAN NOT NULL], "F0"."C0"=[CAST($4):INTEGER NOT NULL], "F1"."C0"=[$5], "F0"."C1"=[CAST($6):INTEGER NOT NULL], "F1"."C2"=[CAST($7):INTEGER NOT NULL], "F2"."C3"=[CAST($8):INTEGER NOT NULL])
+      LogicalProject("K0"=[null], "C1"=[$2], "F1"."A0"=[null], "F2"."A0"=[null], "F0"."C0"=[$0], "F1"."C0"=[null], "F0"."C1"=[null], "F1"."C2"=[$1], "F2"."C3"=[null])
+        LogicalProject(EXPR$0=[?0], EXPR$1=[?1], EXPR$2=[?2])
+          LogicalValues(tuples=[[{ 0 }]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testUpdateWithCustomColumnResolving">
+        <Resource name="sql">
+            <![CDATA[update struct.t set c0 = c0 + 1]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalTableModify(table=[[CATALOG, STRUCT, T]], operation=[UPDATE], updateColumnList=[["F0"."C0"]], flattened=[true])
+  LogicalProject("K0"=[$0], "C1"=[$1], "F1"."A0"=[$2], "F2"."A0"=[$3], "F0"."C0"=[$4], "F1"."C0"=[$5], "F0"."C1"=[$6], "F1"."C2"=[$7], "F2"."C3"=[$8], EXPR$0=[+($4, 1)])
+    LogicalTableScan(table=[[CATALOG, STRUCT, T]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testCustomColumnResolving">
         <Resource name="sql">
             <![CDATA[select k0 from struct.t]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
 LogicalProject(K0=[$0])
-  LogicalProject(K0=[$0], C1=[$1], C0=[$2.C0], C13=[$2.C1], C04=[$3.C0], C2=[$3.C2], A0=[$3.A0], C3=[$4.C3], A08=[$4.A0])
-    LogicalTableScan(table=[[CATALOG, STRUCT, T]])
+  LogicalTableScan(table=[[CATALOG, STRUCT, T]])
 ]]>
         </Resource>
     </TestCase>
-    <TestCase name="testStructType2">
+    <TestCase name="testCustomColumnResolving2">
         <Resource name="sql">
             <![CDATA[select c2 from struct.t]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
-LogicalProject(C2=[$5])
-  LogicalProject(K0=[$0], C1=[$1], C0=[$2.C0], C13=[$2.C1], C04=[$3.C0], C2=[$3.C2], A0=[$3.A0], C3=[$4.C3], A08=[$4.A0])
-    LogicalTableScan(table=[[CATALOG, STRUCT, T]])
+LogicalProject(C2=[$7])
+  LogicalTableScan(table=[[CATALOG, STRUCT, T]])
 ]]>
         </Resource>
     </TestCase>
-    <TestCase name="testStructType3">
+    <TestCase name="testCustomColumnResolving3">
         <Resource name="sql">
             <![CDATA[select f1.c2 from struct.t]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
-LogicalProject(C2=[$5])
-  LogicalProject(K0=[$0], C1=[$1], C0=[$2.C0], C13=[$2.C1], C04=[$3.C0], C2=[$3.C2], A0=[$3.A0], C3=[$4.C3], A08=[$4.A0])
-    LogicalTableScan(table=[[CATALOG, STRUCT, T]])
+LogicalProject(C2=[$7])
+  LogicalTableScan(table=[[CATALOG, STRUCT, T]])
 ]]>
         </Resource>
     </TestCase>
-    <TestCase name="testStructType4">
-        <Resource name="sql">
-            <![CDATA[select f1 from struct.t]]>
-        </Resource>
-        <Resource name="plan">
-            <![CDATA[
-LogicalProject(F1=[$0])
-  LogicalProject(F1=[$4], F11=[$5], F12=[$6])
-    LogicalProject(K0=[$0], C1=[$1], C0=[$2.C0], C13=[$2.C1], C04=[$3.C0], C2=[$3.C2], A0=[$3.A0], C3=[$4.C3], A08=[$4.A0])
-      LogicalTableScan(table=[[CATALOG, STRUCT, T]])
-]]>
-        </Resource>
-    </TestCase>
-    <TestCase name="testStructTypeWithSelectStar">
+    <TestCase name="testCustomColumnResolvingWithSelectStar">
         <Resource name="sql">
             <![CDATA[select * from struct.t]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
-LogicalProject(K0=[$0], C1=[$1], A0=[$6], A00=[$8], C0=[$2], C00=[$4], C10=[$3], C2=[$5], C3=[$7])
-  LogicalProject(K0=[$0], C1=[$1], C0=[$2.C0], C13=[$2.C1], C04=[$3.C0], C2=[$3.C2], A0=[$3.A0], C3=[$4.C3], A08=[$4.A0])
-    LogicalTableScan(table=[[CATALOG, STRUCT, T]])
+LogicalProject("K0"=[$0], "C1"=[$1], "F1"."A0"=[$2], "F2"."A0"=[$3], "F0"."C0"=[$4], "F1"."C0"=[$5], "F0"."C1"=[$6], "F1"."C2"=[$7], "F2"."C3"=[$8])
+  LogicalTableScan(table=[[CATALOG, STRUCT, T]])
 ]]>
         </Resource>
     </TestCase>
-    <TestCase name="testStructTypeWithSelectStar2">
-        <Resource name="sql">
-            <![CDATA[select * from struct.t t1 join struct.t t2
-on t1.k0 = t2.k0]]>
-        </Resource>
-        <Resource name="plan">
-            <![CDATA[
-LogicalProject(K0=[$0], C1=[$1], A0=[$6], A00=[$8], C0=[$2], C00=[$4], C10=[$3], C2=[$5], C3=[$7], K00=[$9], C11=[$10], A01=[$15], A02=[$17], C01=[$11], C02=[$13], C12=[$12], C20=[$14], C30=[$16])
-  LogicalJoin(condition=[=($0, $9)], joinType=[inner])
-    LogicalProject(K0=[$0], C1=[$1], C0=[$2.C0], C13=[$2.C1], C04=[$3.C0], C2=[$3.C2], A0=[$3.A0], C3=[$4.C3], A08=[$4.A0])
-      LogicalTableScan(table=[[CATALOG, STRUCT, T]])
-    LogicalProject(K0=[$0], C1=[$1], C0=[$2.C0], C13=[$2.C1], C04=[$3.C0], C2=[$3.C2], A0=[$3.A0], C3=[$4.C3], A08=[$4.A0])
-      LogicalTableScan(table=[[CATALOG, STRUCT, T]])
-]]>
-        </Resource>
-    </TestCase>
-    <TestCase name="testStructTypeWithSelectFieldNameDotStar">
+    <TestCase name="testCustomColumnResolvingWithSelectFieldNameDotStar">
         <Resource name="sql">
             <![CDATA[select f1.* from struct.t]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
-LogicalProject(C0=[$4], C2=[$5], A0=[$6])
-  LogicalProject(K0=[$0], C1=[$1], C0=[$2.C0], C13=[$2.C1], C04=[$3.C0], C2=[$3.C2], A0=[$3.A0], C3=[$4.C3], A08=[$4.A0])
-    LogicalTableScan(table=[[CATALOG, STRUCT, T]])
+LogicalProject("F1"."A0"=[$2], "F1"."C0"=[$5], "F1"."C2"=[$7])
+  LogicalTableScan(table=[[CATALOG, STRUCT, T]])
 ]]>
         </Resource>
     </TestCase>

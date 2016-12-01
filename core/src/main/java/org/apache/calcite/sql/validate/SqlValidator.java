@@ -617,13 +617,6 @@ public interface SqlValidator {
   boolean shouldExpandIdentifiers();
 
   /**
-   * Returns whether to use a Table's custom star expansion.
-   *
-   * @return true if custom star expansion should be used; false otherwise.
-   */
-  boolean shouldUseCustomStarExpansion();
-
-  /**
    * Enables or disables rewrite of "macro-like" calls such as COALESCE.
    *
    * @param rewriteCalls new setting

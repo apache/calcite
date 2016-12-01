@@ -16,10 +16,13 @@
  */
 package org.apache.calcite.sql.validate;
 
+import org.apache.calcite.prepare.Prepare;
 import org.apache.calcite.rel.type.DynamicRecordType;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rel.type.StructKind;
+import org.apache.calcite.schema.CustomColumnResolvingTable;
+import org.apache.calcite.schema.Table;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlNode;
@@ -93,6 +96,26 @@ public abstract class DelegatingScope implements SqlValidatorScope {
     }
     final RelDataType rowType = ns.getRowType();
     if (rowType.isStruct()) {
+      SqlValidatorTable validatorTable = ns.getTable();
+      if (validatorTable instanceof Prepare.PreparingTable) {
+        Table t = ((Prepare.PreparingTable) validatorTable).unwrap(Table.class);
+        if (t instanceof CustomColumnResolvingTable) {
+          final List<Pair<RelDataTypeField, List<String>>> entries =
+              ((CustomColumnResolvingTable) t).resolveColumn(
+                  rowType, validator.getTypeFactory(), names);
+          for (Pair<RelDataTypeField, List<String>> entry : entries) {
+            final RelDataTypeField field = entry.getKey();
+            final List<String> remainder = entry.getValue();
+            final SqlValidatorNamespace ns2 =
+                new FieldNamespace(validator, field.getType());
+            final Step path2 = path.add(rowType, field.getIndex(),
+                StructKind.FULLY_QUALIFIED);
+            resolveInNamespace(ns2, remainder, path2, resolved);
+          }
+          return;
+        }
+      }
+
       final String name = names.get(0);
       final RelDataTypeField field0 =
           validator.catalogReader.field(rowType, name);
@@ -199,6 +222,9 @@ public abstract class DelegatingScope implements SqlValidatorScope {
       final String tableName = pair.left;
       final SqlValidatorNamespace namespace = pair.right;
 
+      final ResolvedImpl resolved = new ResolvedImpl();
+      resolveInNamespace(namespace,
+          identifier.names, resolved.emptyPath(), resolved);
       final RelDataTypeField field =
           validator.catalogReader.field(namespace.getRowType(), columnName);
       if (field != null) {
@@ -273,19 +299,18 @@ public abstract class DelegatingScope implements SqlValidatorScope {
                 ++i;
                 ++size;
               }
+              break;
+            default:
+              // Throw an error if the table was not found.
+              // If one or more of the child namespaces allows peeking
+              // (e.g. if they are Phoenix column families) then we relax the SQL
+              // standard requirement that record fields are qualified by table alias.
+              final SqlIdentifier prefix = identifier.skipLast(1);
+              throw validator.newValidationError(prefix,
+                  RESOURCE.tableNameNotFound(prefix.toString()));
             }
           }
         }
-        }
-
-        // Throw an error if the table was not found.
-        // If one or more of the child namespaces allows peeking
-        // (e.g. if they are Phoenix column families) then we relax the SQL
-        // standard requirement that record fields are qualified by table alias.
-        if (!hasLiberalChild()) {
-          final SqlIdentifier prefix1 = identifier.skipLast(1);
-          throw validator.newValidationError(prefix1,
-              RESOURCE.tableNameNotFound(prefix1.toString()));
         }
       }
 
@@ -370,6 +395,11 @@ public abstract class DelegatingScope implements SqlValidatorScope {
       // and check that references to dynamic stars ("**") are unambiguous.
       int k = i;
       for (Step step : path.steps()) {
+        final String name = identifier.names.get(k);
+        if (step.i < 0) {
+          throw validator.newValidationError(
+              identifier, RESOURCE.columnNotFound(name));
+        }
         final RelDataTypeField field0 =
             step.rowType.getFieldList().get(step.i);
         final String fieldName = field0.getName();
@@ -379,7 +409,6 @@ public abstract class DelegatingScope implements SqlValidatorScope {
           identifier = identifier.add(k, fieldName, SqlParserPos.ZERO);
           break;
         default:
-          final String name = identifier.names.get(k);
           if (!fieldName.equals(name)) {
             identifier = identifier.setName(k, fieldName);
           }
@@ -389,6 +418,12 @@ public abstract class DelegatingScope implements SqlValidatorScope {
           }
         }
         ++k;
+      }
+
+      // Multiple name components may have been resolved as one step by
+      // CustomResolvingTable.
+      if (identifier.names.size() > k) {
+        identifier = identifier.getComponent(0, k);
       }
 
       if (i > 1) {
@@ -408,10 +443,6 @@ public abstract class DelegatingScope implements SqlValidatorScope {
       return SqlQualified.create(this, i, fromNs, identifier);
     }
     }
-  }
-
-  protected boolean hasLiberalChild() {
-    return false;
   }
 
   public void validateExpr(SqlNode expr) {
