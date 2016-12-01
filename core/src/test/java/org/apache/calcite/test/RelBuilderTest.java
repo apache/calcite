@@ -712,6 +712,27 @@ public class RelBuilderTest {
             + "      LogicalTableScan(table=[[scott, EMP]])\n"));
   }
 
+  @Test public void testBadUnionArgsErrorMessage() {
+    // Equivalent SQL:
+    //   SELECT EMPNO, SAL FROM emp
+    //   UNION ALL
+    //   SELECT DEPTNO FROM dept
+    final RelBuilder builder = RelBuilder.create(config().build());
+    try {
+      builder.scan("DEPT")
+             .project(builder.field("DEPTNO"))
+             .scan("EMP")
+             .project(builder.field("EMPNO"), builder.field("SAL"))
+             .union(true);
+      fail("Expect an error for incompatible union args");
+    } catch (IllegalArgumentException e) {
+      assertThat(e.getMessage(),
+                 is("Cannot compute compatible row type for arguments to set op: "
+                    + "RecordType(TINYINT DEPTNO),RecordType(SMALLINT EMPNO, DECIMAL(7, 2) SAL)"));
+    }
+  }
+
+
   @Test public void testUnion3() {
     // Equivalent SQL:
     //   SELECT deptno FROM dept
