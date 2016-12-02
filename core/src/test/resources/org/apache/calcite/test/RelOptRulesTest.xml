@@ -5385,6 +5385,57 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testSortJoinTranspose6">
+        <Resource name="sql">
+            <![CDATA[select * from sales.emp e right join (
+select * from sales.dept d) using (deptno)
+limit 10]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(DEPTNO=[$0], EMPNO=[$2])
+  LogicalSort(offset=[2], fetch=[10])
+    LogicalJoin(condition=[=($0, $9)], joinType=[right])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject(DEPTNO=[$0], EMPNO=[$2])
+  LogicalSort(offset=[2], fetch=[10])
+    LogicalJoin(condition=[=($0, $9)], joinType=[right])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+      LogicalSort(offset=[2], fetch=[10])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testSortJoinTranspose7">
+        <Resource name="sql">
+            <![CDATA[select * from sales.emp e right join (
+select * from sales.dept d) using (deptno)
+limit 10]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(DEPTNO=[$0], EMPNO=[$2])
+  LogicalSort(sort0=[$0], dir0=[ASC], offset=[1])
+    LogicalJoin(condition=[=($0, $9)], joinType=[left])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject(DEPTNO=[$0], EMPNO=[$2])
+  LogicalSort(sort0=[$0], dir0=[ASC], offset=[1])
+    LogicalJoin(condition=[=($0, $9)], joinType=[left])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testSortUnionTranspose">
         <Resource name="sql">
             <![CDATA[select a.name from dept a

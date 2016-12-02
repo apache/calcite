@@ -2639,6 +2639,41 @@ public class RelOptRulesTest extends RelOptTestBase {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1507">[CALCITE-1507]
+   * OFFSET cannot be pushed through a JOIN if the non-preserved side of outer
+   * join is not count-preserving</a>. */
+  @Test public void testSortJoinTranspose6() {
+    final HepProgram preProgram = new HepProgramBuilder()
+        .addRuleInstance(SortProjectTransposeRule.INSTANCE)
+        .build();
+    final HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(SortJoinTransposeRule.INSTANCE)
+        .build();
+    // This one can be pushed down even if it has an OFFSET, since the dept
+    // table is count-preserving against the join condition.
+    final String sql = "select d.deptno, empno from sales.dept d\n"
+        + "right join sales.emp e using (deptno) limit 10 offset 2";
+    checkPlanning(tester, preProgram, new HepPlanner(program), sql);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1507">[CALCITE-1507]
+   * OFFSET cannot be pushed through a JOIN if the non-preserved side of outer
+   * join is not count-preserving</a>. */
+  @Test public void testSortJoinTranspose7() {
+    final HepProgram preProgram = new HepProgramBuilder()
+        .addRuleInstance(SortProjectTransposeRule.INSTANCE)
+        .build();
+    final HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(SortJoinTransposeRule.INSTANCE)
+        .build();
+    // This one cannot be pushed down
+    final String sql = "select d.deptno, empno from sales.dept d\n"
+        + "left join sales.emp e using (deptno) order by d.deptno offset 1";
+    checkPlanning(tester, preProgram, new HepPlanner(program), sql, true);
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1023">[CALCITE-1023]
    * Planner rule that removes Aggregate keys that are constant</a>. */
   @Test public void testAggregateConstantKeyRule() {
