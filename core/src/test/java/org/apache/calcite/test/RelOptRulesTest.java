@@ -493,7 +493,7 @@ public class RelOptRulesTest extends RelOptTestBase {
     checkPlanning(program, sql);
   }
 
-  @Test public void testSemiJoinRule() {
+  @Test public void testSemiJoinRuleExists() {
     final HepProgram preProgram =
         HepProgram.builder()
             .addRuleInstance(FilterProjectTransposeRule.INSTANCE)
@@ -513,6 +513,99 @@ public class RelOptRulesTest extends RelOptTestBase {
         .withTrim(true)
         .withPre(preProgram)
         .with(program)
+        .check();
+  }
+
+  @Test public void testSemiJoinRule() {
+    final HepProgram preProgram =
+        HepProgram.builder()
+            .addRuleInstance(FilterProjectTransposeRule.INSTANCE)
+            .addRuleInstance(FilterJoinRule.FILTER_ON_JOIN)
+            .addRuleInstance(ProjectMergeRule.INSTANCE)
+            .build();
+    final HepProgram program =
+        HepProgram.builder()
+            .addRuleInstance(SemiJoinRule.INSTANCE)
+            .build();
+    final String sql = "select dept.* from dept join (\n"
+        + "  select distinct deptno from emp\n"
+        + "  where sal > 100) using (deptno)";
+    sql(sql)
+        .withDecorrelation(true)
+        .withTrim(true)
+        .withPre(preProgram)
+        .with(program)
+        .check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1495">[CALCITE-1495]
+   * SemiJoinRule should not apply to RIGHT and FULL JOIN</a>. */
+  @Test public void testSemiJoinRuleRight() {
+    final HepProgram preProgram =
+        HepProgram.builder()
+            .addRuleInstance(FilterProjectTransposeRule.INSTANCE)
+            .addRuleInstance(FilterJoinRule.FILTER_ON_JOIN)
+            .addRuleInstance(ProjectMergeRule.INSTANCE)
+            .build();
+    final HepProgram program =
+        HepProgram.builder()
+            .addRuleInstance(SemiJoinRule.INSTANCE)
+            .build();
+    final String sql = "select dept.* from dept right join (\n"
+        + "  select distinct deptno from emp\n"
+        + "  where sal > 100) using (deptno)";
+    sql(sql)
+        .withPre(preProgram)
+        .with(program)
+        .withDecorrelation(true)
+        .withTrim(true)
+        .checkUnchanged();
+  }
+
+  /** Similar to {@link #testSemiJoinRuleRight()} but FULL. */
+  @Test public void testSemiJoinRuleFull() {
+    final HepProgram preProgram =
+        HepProgram.builder()
+            .addRuleInstance(FilterProjectTransposeRule.INSTANCE)
+            .addRuleInstance(FilterJoinRule.FILTER_ON_JOIN)
+            .addRuleInstance(ProjectMergeRule.INSTANCE)
+            .build();
+    final HepProgram program =
+        HepProgram.builder()
+            .addRuleInstance(SemiJoinRule.INSTANCE)
+            .build();
+    final String sql = "select dept.* from dept full join (\n"
+        + "  select distinct deptno from emp\n"
+        + "  where sal > 100) using (deptno)";
+    sql(sql)
+        .withPre(preProgram)
+        .with(program)
+        .withDecorrelation(true)
+        .withTrim(true)
+        .checkUnchanged();
+  }
+
+  /** Similar to {@link #testSemiJoinRule()} but LEFT. */
+  @Test public void testSemiJoinRuleLeft() {
+    final HepProgram preProgram =
+        HepProgram.builder()
+            .addRuleInstance(FilterProjectTransposeRule.INSTANCE)
+            .addRuleInstance(FilterJoinRule.FILTER_ON_JOIN)
+            .addRuleInstance(ProjectMergeRule.INSTANCE)
+            .build();
+    final HepProgram program =
+        HepProgram.builder()
+            .addRuleInstance(SemiJoinRule.INSTANCE)
+            .build();
+    final String sql = "select name from dept left join (\n"
+        + "  select distinct deptno from emp\n"
+        + "  where sal > 100) using (deptno)";
+    sql(sql)
+        .withPre(preProgram)
+        .with(program)
+        .withDecorrelation(true)
+        .withTrim(true)
         .check();
   }
 

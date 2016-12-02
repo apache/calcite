@@ -424,16 +424,29 @@ EnumerableCalc(expr#0..7=[{inputs}], expr#8=[IS NULL($t5)], expr#9=[IS NULL($t7)
         EnumerableJoin(condition=[=($1, $3)], joinType=[inner])
           EnumerableCalc(expr#0=[{inputs}], expr#1=[CAST($t0):INTEGER NOT NULL], proj#0..1=[{exprs}])
             EnumerableAggregate(group=[{0}])
-              EnumerableSemiJoin(condition=[=($1, $2)], joinType=[inner])
-                EnumerableCalc(expr#0..4=[{inputs}], proj#0..1=[{exprs}])
-                  EnumerableTableScan(table=[[hr, emps]])
-                EnumerableJoin(condition=[=($0, $1)], joinType=[inner])
-                  EnumerableAggregate(group=[{1}])
-                    EnumerableTableScan(table=[[hr, emps]])
-                  EnumerableCalc(expr#0..3=[{inputs}], deptno=[$t0])
-                    EnumerableTableScan(table=[[hr, depts]])
+              EnumerableTableScan(table=[[hr, emps]])
           EnumerableCalc(expr#0..3=[{inputs}], expr#4=[90], expr#5=[+($t0, $t4)], deptno=[$t0], $f1=[$t5])
             EnumerableTableScan(table=[[hr, depts]])
+!plan
+
+# Left join to a relation with one row is recognized as a trivial semi-join
+# and eliminated.
+select e."deptno"
+from "hr"."emps" as e
+left join (select count(*) from "hr"."depts") on true;
++--------+
+| deptno |
++--------+
+|     10 |
+|     10 |
+|     10 |
+|     20 |
++--------+
+(4 rows)
+
+!ok
+EnumerableCalc(expr#0..4=[{inputs}], deptno=[$t1])
+  EnumerableTableScan(table=[[hr, emps]])
 !plan
 
 # Filter combined with an OR filter.

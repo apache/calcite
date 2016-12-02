@@ -25,12 +25,15 @@ import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinInfo;
 import org.apache.calcite.rel.core.Project;
-import org.apache.calcite.rel.core.SemiJoin;
+import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.tools.RelBuilder;
+import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.ImmutableIntList;
 
+import com.google.common.base.Predicate;
 import com.google.common.collect.Lists;
 
 import java.util.List;
@@ -41,15 +44,34 @@ import java.util.List;
  * {@link org.apache.calcite.rel.logical.LogicalAggregate}.
  */
 public class SemiJoinRule extends RelOptRule {
-  public static final SemiJoinRule INSTANCE = new SemiJoinRule();
+  private static final Predicate<Join> IS_LEFT_OR_INNER =
+      new Predicate<Join>() {
+        public boolean apply(Join input) {
+          switch (input.getJoinType()) {
+          case LEFT:
+          case INNER:
+            return true;
+          default:
+            return false;
+          }
+        }
+      };
 
-  private SemiJoinRule() {
+  public static final SemiJoinRule INSTANCE =
+      new SemiJoinRule(Project.class, Join.class, Aggregate.class,
+          RelFactories.LOGICAL_BUILDER, "SemiJoinRule");
+
+  /** Creates a SemiJoinRule. */
+  public SemiJoinRule(Class<Project> projectClass, Class<Join> joinClass,
+      Class<Aggregate> aggregateClass, RelBuilderFactory relBuilderFactory,
+      String description) {
     super(
-        operand(Project.class,
+        operand(projectClass,
             some(
-                operand(Join.class,
+                operand(joinClass, null, IS_LEFT_OR_INNER,
                     some(operand(RelNode.class, any()),
-                        operand(Aggregate.class, any()))))));
+                        operand(aggregateClass, any()))))),
+        relBuilderFactory, description);
   }
 
   @Override public void onMatch(RelOptRuleCall call) {
@@ -77,24 +99,35 @@ public class SemiJoinRule extends RelOptRule {
     if (!joinInfo.isEqui()) {
       return;
     }
-    final List<Integer> newRightKeyBuilder = Lists.newArrayList();
-    final List<Integer> aggregateKeys = aggregate.getGroupSet().asList();
-    for (int key : joinInfo.rightKeys) {
-      newRightKeyBuilder.add(aggregateKeys.get(key));
+    final RelBuilder relBuilder = call.builder();
+    relBuilder.push(left);
+    switch (join.getJoinType()) {
+    case INNER:
+      final List<Integer> newRightKeyBuilder = Lists.newArrayList();
+      final List<Integer> aggregateKeys = aggregate.getGroupSet().asList();
+      for (int key : joinInfo.rightKeys) {
+        newRightKeyBuilder.add(aggregateKeys.get(key));
+      }
+      final ImmutableIntList newRightKeys = ImmutableIntList.copyOf(newRightKeyBuilder);
+      relBuilder.push(aggregate.getInput());
+      final RexNode newCondition =
+          RelOptUtil.createEquiJoinCondition(relBuilder.peek(2, 0),
+              joinInfo.leftKeys, relBuilder.peek(2, 1), newRightKeys,
+              rexBuilder);
+      relBuilder.semiJoin(newCondition);
+      break;
+
+    case LEFT:
+      // The right-hand side produces no more than 1 row (because of the
+      // Aggregate) and no fewer than 1 row (because of LEFT), and therefore
+      // we can eliminate the semi-join.
+      break;
+
+    default:
+      throw new AssertionError(join.getJoinType());
     }
-    final ImmutableIntList newRightKeys =
-        ImmutableIntList.copyOf(newRightKeyBuilder);
-    final RelNode newRight = aggregate.getInput();
-    final RexNode newCondition =
-        RelOptUtil.createEquiJoinCondition(left, joinInfo.leftKeys, newRight,
-            newRightKeys, rexBuilder);
-    final SemiJoin semiJoin =
-        SemiJoin.create(left, newRight, newCondition, joinInfo.leftKeys,
-            newRightKeys);
-    final Project newProject =
-        project.copy(project.getTraitSet(), semiJoin, project.getProjects(),
-            project.getRowType());
-    call.transformTo(ProjectRemoveRule.strip(newProject));
+    relBuilder.project(project.getProjects(), project.getRowType().getFieldNames());
+    call.transformTo(relBuilder.build());
   }
 }
 
