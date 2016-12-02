@@ -31,6 +31,7 @@ import org.apache.calcite.rel.rules.FilterJoinRule;
 import org.apache.calcite.rel.rules.JoinProjectTransposeRule;
 import org.apache.calcite.rel.rules.ProjectFilterTransposeRule;
 import org.apache.calcite.rel.rules.ProjectMergeRule;
+import org.apache.calcite.rel.rules.ProjectRemoveRule;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.schema.Table;
@@ -272,6 +273,7 @@ public class RelOptMaterialization {
             JoinProjectTransposeRule.RIGHT_PROJECT,
             JoinProjectTransposeRule.LEFT_PROJECT,
             FilterJoinRule.FilterIntoJoinRule.FILTER_ON_JOIN,
+            ProjectRemoveRule.INSTANCE,
             ProjectMergeRule.INSTANCE),
         false,
         DefaultRelMetadataProvider.INSTANCE);

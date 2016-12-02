@@ -122,12 +122,15 @@ public abstract class Prepare {
    * @param lattices Lattices
    * @return an equivalent optimized relational expression
    */
-  protected RelRoot optimize(final RelRoot root,
+  protected RelRoot optimize(RelRoot root,
       final List<Materialization> materializations,
       final List<CalciteSchema.LatticeEntry> lattices) {
     final RelOptPlanner planner = root.rel.getCluster().getPlanner();
 
-    planner.setRoot(root.rel);
+    // Add a project to the root. Even if the project is trivial, it informs
+    // rules firing on the relational expression below it which of the fields
+    // are used. SemiJoinRule, for instance.
+    planner.setRoot(root.project(true));
 
     final RelTraitSet desiredTraits = getDesiredRootTraitSet(root);
     final Program program = getProgram();
