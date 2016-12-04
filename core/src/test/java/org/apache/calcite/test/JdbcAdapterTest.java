@@ -33,6 +33,8 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Properties;
 
+import static org.apache.calcite.test.CalciteAssert.DatabaseInstance.POSTGRESQL;
+
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertFalse;
@@ -585,6 +587,66 @@ public class JdbcAdapterTest {
             + "WHERE dname = 'ACCOUNTING')")
         .enable(CalciteAssert.DB == CalciteAssert.DatabaseInstance.HSQLDB)
         .returns("CENAME=0\n");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1527">[CALCITE-1527]
+   * Support DML in the JDBC adapter</a>. */
+  @Test public void testJdbcAdapterInsert() {
+    CalciteAssert
+        .model(JdbcTest.FOODMART_MODEL)
+        .enable(CalciteAssert.DB == POSTGRESQL)
+        .query("INSERT INTO \"foodmart\".\"expense_fact\"(\n"
+            + " \"store_id\", \"account_id\", \"exp_date\", \"time_id\","
+            + " \"category_id\", \"currency_id\", \"amount\")\n"
+            + " VALUES (666, 666, TIMESTAMP '1997-01-01 00:00:00',"
+            + " 666, '666', 666, 666)")
+        .explainContains("PLAN=JdbcToEnumerableConverter\n"
+            + "  JdbcTableModify(table=[[foodmart, expense_fact]],"
+            + " operation=[INSERT], updateColumnList=[[]],"
+            + " sourceExpressionList=[[]], flattened=[false])\n"
+            + "    JdbcValues(tuples=[[{ 666, 666, 1997-01-01 00:00:00,"
+            + " 666, '666', 666, 666.0000 }]])\n")
+        .planUpdateHasSql("INSERT INTO \"foodmart\".\"expense_fact\""
+            + " (\"store_id\", \"account_id\", \"exp_date\", \"time_id\","
+            + " \"category_id\", \"currency_id\", \"amount\")\nVALUES"
+            + "(666, 666, TIMESTAMP '1997-01-01 00:00:00', 666, '666',"
+            + " 666, 666.0000)", 1);
+  }
+
+  @Test public void testJdbcAdapterUpdate() {
+    CalciteAssert
+        .model(JdbcTest.FOODMART_MODEL)
+        .enable(CalciteAssert.DB == POSTGRESQL)
+        .query("UPDATE \"foodmart\".\"expense_fact\" SET \"account_id\"=888"
+            + " WHERE \"store_id\"=666\n")
+        .explainContains("PLAN=JdbcToEnumerableConverter\n"
+            + "  JdbcTableModify(table=[[foodmart, expense_fact]],"
+            + " operation=[UPDATE], updateColumnList=[[account_id]],"
+            + " sourceExpressionList=[[888]], flattened=[false])\n"
+            + "    JdbcProject(store_id=[$0], account_id=[$1], exp_date=[$2],"
+            + " time_id=[$3], category_id=[$4], currency_id=[$5], amount=[$6],"
+            + " EXPR$0=[888])\n"
+            + "      JdbcFilter(condition=[=($0, 666)])\n"
+            + "        JdbcTableScan(table=[[foodmart, expense_fact]])")
+        .planUpdateHasSql("UPDATE \"foodmart\".\"expense_fact\" SET"
+            + " \"account_id\" = 888\nWHERE \"store_id\" = 666", 1);
+  }
+
+  @Test public void testJdbcAdapterDelete() {
+    CalciteAssert
+        .model(JdbcTest.FOODMART_MODEL)
+        .enable(CalciteAssert.DB == POSTGRESQL)
+        .query("DELETE FROM \"foodmart\".\"expense_fact\""
+            + " WHERE \"store_id\"=666\n")
+        .explainContains("PLAN=JdbcToEnumerableConverter\n"
+            + "  JdbcTableModify(table=[[foodmart, expense_fact]],"
+            + " operation=[DELETE], updateColumnList=[[]],"
+            + " sourceExpressionList=[[]], flattened=[false])\n"
+            + "    JdbcFilter(condition=[=($0, 666)])\n"
+            + "      JdbcTableScan(table=[[foodmart, expense_fact]]")
+        .planUpdateHasSql("DELETE FROM \"foodmart\".\"expense_fact\""
+            + "\nWHERE \"store_id\" = 666", 1);
   }
 }
 
