@@ -30,13 +30,14 @@ import org.apache.calcite.tools.Planner;
 import org.apache.calcite.tools.Program;
 import org.apache.calcite.util.Util;
 
+import com.google.common.base.Throwables;
+
 import org.junit.Test;
 
 import java.util.List;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
 
 /**
  * Tests for {@link RelToSqlConverter}.
@@ -538,11 +539,11 @@ public class RelToSqlConverterTest {
         RelNode rel = planner.rel(validate).rel;
         final RelToSqlConverter converter =
             new RelToSqlConverter(dialect);
-        final SqlNode sqlNode = converter.visitChild(0, rel).asQuery();
+        final SqlNode sqlNode = converter.visitChild(0, rel).asStatement();
         assertThat(Util.toLinux(sqlNode.toSqlString(dialect).getSql()),
             is(expectedQuery));
       } catch (Exception e) {
-        assertTrue("Parsing failed throwing error: " + e.getMessage(), false);
+        throw Throwables.propagate(e);
       }
       return this;
     }

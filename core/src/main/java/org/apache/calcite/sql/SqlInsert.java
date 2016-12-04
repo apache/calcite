@@ -141,7 +141,7 @@ public class SqlInsert extends SqlCall {
       columnList.unparse(writer, opLeft, opRight);
     }
     writer.newlineAndIndent();
-    source.unparse(writer, opLeft, opRight);
+    source.unparse(writer, 0, 0);
   }
 
   public void validate(SqlValidator validator, SqlValidatorScope scope) {

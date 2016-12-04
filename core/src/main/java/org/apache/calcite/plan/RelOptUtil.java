@@ -1752,6 +1752,7 @@ public abstract class RelOptUtil {
     switch (kind) {
     case INSERT:
     case DELETE:
+    case UPDATE:
       return typeFactory.createStructType(
           ImmutableList.of(
               Pair.of(AvaticaConnection.ROWCOUNT_COLUMN_NAME,

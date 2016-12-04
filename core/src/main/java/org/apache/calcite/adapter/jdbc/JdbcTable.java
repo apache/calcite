@@ -25,13 +25,21 @@ import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.linq4j.QueryProvider;
 import org.apache.calcite.linq4j.Queryable;
+import org.apache.calcite.plan.Convention;
+import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.prepare.Prepare.CatalogReader;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.TableModify;
+import org.apache.calcite.rel.core.TableModify.Operation;
+import org.apache.calcite.rel.logical.LogicalTableModify;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rel.type.RelProtoDataType;
+import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.runtime.ResultSetEnumerable;
+import org.apache.calcite.schema.ModifiableTable;
 import org.apache.calcite.schema.ScannableTable;
 import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.SchemaPlus;
@@ -52,6 +60,7 @@ import com.google.common.collect.Lists;
 
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
@@ -66,7 +75,7 @@ import java.util.List;
  * executed efficiently on the JDBC server.</p>
  */
 class JdbcTable extends AbstractQueryableTable
-    implements TranslatableTable, ScannableTable {
+    implements TranslatableTable, ScannableTable, ModifiableTable {
   private RelProtoDataType protoRowType;
   private final JdbcSchema jdbcSchema;
   private final String jdbcCatalogName;
@@ -167,6 +176,21 @@ class JdbcTable extends AbstractQueryableTable
     final SqlString sql = generateSql();
     return ResultSetEnumerable.of(jdbcSchema.getDataSource(), sql.getSql(),
         JdbcUtils.ObjectArrayRowBuilder.factory(fieldClasses(typeFactory)));
+  }
+
+  @Override public Collection getModifiableCollection() {
+    return null;
+  }
+
+  @Override public TableModify toModificationRel(RelOptCluster cluster,
+      RelOptTable table, CatalogReader catalogReader, RelNode input,
+      Operation operation, List<String> updateColumnList,
+      List<RexNode> sourceExpressionList, boolean flattened) {
+    jdbcSchema.convention.register(cluster.getPlanner());
+
+    return new LogicalTableModify(cluster, cluster.traitSetOf(Convention.NONE),
+        table, catalogReader, input, operation, updateColumnList,
+        sourceExpressionList, flattened);
   }
 
   /** Enumerable that returns the contents of a {@link JdbcTable} by connecting

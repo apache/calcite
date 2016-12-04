@@ -921,7 +921,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   //-------------------------------------------------------------
   //                   SPECIAL OPERATORS
   //-------------------------------------------------------------
-  public static final SqlRowOperator ROW = new SqlRowOperator();
+  public static final SqlRowOperator ROW = new SqlRowOperator("ROW");
 
   /**
    * A special operator for the subtraction of two DATETIMEs. The format of

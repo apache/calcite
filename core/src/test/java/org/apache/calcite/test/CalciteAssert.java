@@ -1316,7 +1316,22 @@ public class CalciteAssert {
     }
 
     public AssertQuery planContains(String expected) {
-      ensurePlan();
+      ensurePlan(null);
+      assertTrue(
+          "Plan [" + plan + "] contains [" + expected + "]",
+          Util.toLinux(plan)
+              .replaceAll("\\\\r\\\\n", "\\\\n")
+              .contains(expected));
+      return this;
+    }
+
+    public AssertQuery planUpdateHasSql(String expected, int count) {
+      ensurePlan(checkUpdateCount(count));
+      expected = "getDataSource(), \""
+          + expected.replace("\\", "\\\\")
+              .replace("\"", "\\\"")
+              .replaceAll("\n", "\\\\n")
+          + "\"";
       assertTrue(
           "Plan [" + plan + "] contains [" + expected + "]",
           Util.toLinux(plan)
@@ -1334,7 +1349,7 @@ public class CalciteAssert {
           + "\"");
     }
 
-    private void ensurePlan() {
+    private void ensurePlan(Function<Integer, Void> checkUpdate) {
       if (plan != null) {
         return;
       }
@@ -1347,11 +1362,11 @@ public class CalciteAssert {
           });
       try {
         assertQuery(createConnection(), sql, limit, materializationsEnabled,
-            hooks, null, null, null);
+            hooks, null, checkUpdate, null);
         assertNotNull(plan);
       } catch (Exception e) {
-        throw new RuntimeException(
-            "exception while executing [" + sql + "]", e);
+        throw new RuntimeException("exception while executing [" + sql + "]",
+            e);
       }
     }
 
@@ -1546,6 +1561,10 @@ public class CalciteAssert {
     }
 
     @Override public AssertQuery planHasSql(String expected) {
+      return this;
+    }
+
+    @Override public AssertQuery planUpdateHasSql(String expected, int count) {
       return this;
     }
 

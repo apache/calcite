@@ -1588,7 +1588,8 @@ public class SqlParserTest {
     check(
         "with v(i,c) as (values (1, 'a'), (2, 'bb'))\n"
             + "select c, i from v",
-        "WITH `V` (`I`, `C`) AS (VALUES (ROW(1, 'a')), (ROW(2, 'bb'))) (SELECT `C`, `I`\n"
+        "WITH `V` (`I`, `C`) AS (VALUES (ROW(1, 'a')),\n"
+            + "(ROW(2, 'bb'))) (SELECT `C`, `I`\n"
             + "FROM `V`)");
   }
 
@@ -2835,7 +2836,9 @@ public class SqlParserTest {
     check(
         "select * from (values(1,'two'), 3, (4, 'five'))",
         "SELECT *\n"
-            + "FROM (VALUES (ROW(1, 'two')), (ROW(3)), (ROW(4, 'five')))");
+            + "FROM (VALUES (ROW(1, 'two')),\n"
+            + "(ROW(3)),\n"
+            + "(ROW(4, 'five')))");
   }
 
   @Test public void testFromValuesWithoutParens() {
@@ -3140,7 +3143,7 @@ public class SqlParserTest {
     final String expected3 = ""
         + "EXPLAIN PLAN INCLUDING ATTRIBUTES WITH IMPLEMENTATION FOR\n"
         + "INSERT INTO `EMPS`\n"
-        + "(VALUES (ROW(1, 'a')))";
+        + "VALUES (ROW(1, 'a'))";
     check("describe insert into emps values (1, 'a')", expected3);
     // only allow query or DML, not explain, inside describe
     checkFails("^describe^ explain plan for select * from emps",
@@ -3176,7 +3179,7 @@ public class SqlParserTest {
 
   @Test public void testInsertValues() {
     final String expected = "INSERT INTO `EMPS`\n"
-        + "(VALUES (ROW(1, 'Fredkin')))";
+        + "VALUES (ROW(1, 'Fredkin'))";
     sql("insert into emps values (1,'Fredkin')")
         .ok(expected)
         .node(not(isDdl()));
@@ -3203,7 +3206,7 @@ public class SqlParserTest {
 
   @Test public void testUpsertValues() {
     final String expected = "UPSERT INTO `EMPS`\n"
-        + "(VALUES (ROW(1, 'Fredkin')))";
+        + "VALUES (ROW(1, 'Fredkin'))";
     sql("upsert into emps values (1,'Fredkin')")
         .ok(expected)
         .node(not(isDdl()));
@@ -3220,7 +3223,7 @@ public class SqlParserTest {
     sql("explain plan for upsert into emps1 values (1, 2)")
         .ok("EXPLAIN PLAN INCLUDING ATTRIBUTES WITH IMPLEMENTATION FOR\n"
             + "UPSERT INTO `EMPS1`\n"
-            + "(VALUES (ROW(1, 2)))");
+            + "VALUES (ROW(1, 2))");
   }
 
   @Test public void testDelete() {
@@ -3856,7 +3859,8 @@ public class SqlParserTest {
     check(
         "select x from (values (1, 2), (3, 4)) as t1 (\"a\", b) where \"a\" > b",
         "SELECT `X`\n"
-            + "FROM (VALUES (ROW(1, 2)), (ROW(3, 4))) AS `T1` (`a`, `B`)\n"
+            + "FROM (VALUES (ROW(1, 2)),\n"
+            + "(ROW(3, 4))) AS `T1` (`a`, `B`)\n"
             + "WHERE (`a` > `B`)");
 
     // must have at least one column
@@ -7090,10 +7094,11 @@ public class SqlParserTest {
                 + "FETCH NEXT 3 ROWS ONLY");
     sql("insert into t values next value for my_seq, current value for my_seq")
         .ok("INSERT INTO `T`\n"
-                + "(VALUES (ROW((NEXT VALUE FOR `MY_SEQ`))), (ROW((CURRENT VALUE FOR `MY_SEQ`))))");
+            + "VALUES (ROW((NEXT VALUE FOR `MY_SEQ`))),\n"
+            + "(ROW((CURRENT VALUE FOR `MY_SEQ`)))");
     sql("insert into t values (1, current value for my_seq)")
         .ok("INSERT INTO `T`\n"
-                + "(VALUES (ROW(1, (CURRENT VALUE FOR `MY_SEQ`))))");
+            + "VALUES (ROW(1, (CURRENT VALUE FOR `MY_SEQ`)))");
   }
 
   //~ Inner Interfaces -------------------------------------------------------

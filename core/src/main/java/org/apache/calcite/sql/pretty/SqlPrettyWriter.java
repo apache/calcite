@@ -454,6 +454,7 @@ public class SqlPrettyWriter implements SqlWriter {
 
       switch (frameTypeEnum) {
       case WINDOW_DECL_LIST:
+      case VALUES:
         return new FrameImpl(
             frameType,
             keyword,

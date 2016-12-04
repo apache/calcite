@@ -2579,7 +2579,7 @@ LogicalProject(DEPTNO=[$0], B=[>($1, $2)])
         </Resource>
         <Resource name="plan">
             <![CDATA[
-LogicalTableModify(table=[[CATALOG, SALES, EMP]], operation=[INSERT], updateColumnList=[[]], flattened=[true])
+LogicalTableModify(table=[[CATALOG, SALES, EMP]], operation=[INSERT], flattened=[true])
   LogicalProject(EMPNO=[$1], ENAME=[$2], JOB=[null], MGR=[null], HIREDATE=[null], SAL=[null], COMM=[null], DEPTNO=[$0], SLACKER=[null])
     LogicalValues(tuples=[[{ 10, 150, 'Fred' }]])
 ]]>
@@ -2605,7 +2605,7 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
         </Resource>
         <Resource name="plan">
             <![CDATA[
-LogicalTableModify(table=[[CATALOG, SALES, EMP]], operation=[INSERT], updateColumnList=[[]], flattened=[true])
+LogicalTableModify(table=[[CATALOG, SALES, EMP]], operation=[INSERT], flattened=[true])
   LogicalFilter(condition=[>($5, 1000)])
     LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[CAST($2):VARCHAR(10) CHARACTER SET "ISO-8859-1" COLLATE "ISO-8859-1$en_US$primary" NOT NULL], MGR=[$3], HIREDATE=[CAST($4):TIMESTAMP(0) NOT NULL], SAL=[CAST($5):INTEGER NOT NULL], COMM=[CAST($6):INTEGER NOT NULL], DEPTNO=[20], SLACKER=[CAST($7):BOOLEAN NOT NULL])
       LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[null], MGR=[null], HIREDATE=[null], SAL=[null], COMM=[null], SLACKER=[null])
@@ -2619,7 +2619,7 @@ LogicalTableModify(table=[[CATALOG, SALES, EMP]], operation=[INSERT], updateColu
         </Resource>
         <Resource name="plan">
             <![CDATA[
-LogicalTableModify(table=[[CATALOG, STRUCT, T]], operation=[INSERT], updateColumnList=[[]], flattened=[true])
+LogicalTableModify(table=[[CATALOG, STRUCT, T]], operation=[INSERT], flattened=[true])
   LogicalProject("K0"=[?0], "C1"=[?1], "F1"."A0"=[?2], "F2"."A0"=[?3], "F0"."C0"=[?4], "F1"."C0"=[?5], "F0"."C1"=[?6], "F1"."C2"=[?7], "F2"."C3"=[?8])
     LogicalValues(tuples=[[{ 0 }]])
 ]]>
@@ -2631,7 +2631,7 @@ LogicalTableModify(table=[[CATALOG, STRUCT, T]], operation=[INSERT], updateColum
         </Resource>
         <Resource name="plan">
             <![CDATA[
-LogicalTableModify(table=[[CATALOG, STRUCT, T]], operation=[INSERT], updateColumnList=[[]], flattened=[true])
+LogicalTableModify(table=[[CATALOG, STRUCT, T]], operation=[INSERT], flattened=[true])
   LogicalProject("K0"=[null], "C1"=[$2], "F1"."A0"=[null], "F2"."A0"=[null], "F0"."C0"=[$0], "F1"."C0"=[null], "F0"."C1"=[null], "F1"."C2"=[$1], "F2"."C3"=[null])
     LogicalProject(EXPR$0=[?0], EXPR$1=[?1], EXPR$2=[?2])
       LogicalValues(tuples=[[{ 0 }]])
@@ -2644,7 +2644,7 @@ LogicalTableModify(table=[[CATALOG, STRUCT, T]], operation=[INSERT], updateColum
         </Resource>
         <Resource name="plan">
             <![CDATA[
-LogicalTableModify(table=[[CATALOG, STRUCT, T]], operation=[INSERT], updateColumnList=[[]], flattened=[true])
+LogicalTableModify(table=[[CATALOG, STRUCT, T]], operation=[INSERT], flattened=[true])
   LogicalFilter(condition=[=($4, 10)])
     LogicalProject("K0"=[CAST($0):VARCHAR(20) CHARACTER SET "ISO-8859-1" COLLATE "ISO-8859-1$en_US$primary" NOT NULL], "C1"=[CAST($1):VARCHAR(20) CHARACTER SET "ISO-8859-1" COLLATE "ISO-8859-1$en_US$primary" NOT NULL], "F1"."A0"=[CAST($2):INTEGER NOT NULL], "F2"."A0"=[CAST($3):BOOLEAN NOT NULL], "F0"."C0"=[CAST($4):INTEGER NOT NULL], "F1"."C0"=[$5], "F0"."C1"=[CAST($6):INTEGER NOT NULL], "F1"."C2"=[CAST($7):INTEGER NOT NULL], "F2"."C3"=[CAST($8):INTEGER NOT NULL])
       LogicalProject("K0"=[null], "C1"=[$2], "F1"."A0"=[null], "F2"."A0"=[null], "F0"."C0"=[$0], "F1"."C0"=[null], "F0"."C1"=[null], "F1"."C2"=[$1], "F2"."C3"=[null])
@@ -2659,7 +2659,7 @@ LogicalTableModify(table=[[CATALOG, STRUCT, T]], operation=[INSERT], updateColum
         </Resource>
         <Resource name="plan">
             <![CDATA[
-LogicalTableModify(table=[[CATALOG, STRUCT, T]], operation=[UPDATE], updateColumnList=[["F0"."C0"]], flattened=[true])
+LogicalTableModify(table=[[CATALOG, STRUCT, T]], operation=[UPDATE], updateColumnList=[["F0"."C0"]], sourceExpressionList=[[+($cor0."F0"."C0", 1)]], flattened=[true])
   LogicalProject("K0"=[$0], "C1"=[$1], "F1"."A0"=[$2], "F2"."A0"=[$3], "F0"."C0"=[$4], "F1"."C0"=[$5], "F0"."C1"=[$6], "F1"."C2"=[$7], "F2"."C3"=[$8], EXPR$0=[+($4, 1)])
     LogicalTableScan(table=[[CATALOG, STRUCT, T]])
 ]]>
@@ -2963,7 +2963,7 @@ LogicalProject(A=[$0], *=[$1])
         </Resource>
         <Resource name="plan">
             <![CDATA[
-LogicalTableModify(table=[[CATALOG, SALES, EMP]], operation=[DELETE], updateColumnList=[[]], flattened=[true])
+LogicalTableModify(table=[[CATALOG, SALES, EMP]], operation=[DELETE], flattened=[true])
   LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
     LogicalFilter(condition=[=($7, 10)])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -2987,7 +2987,7 @@ LogicalProject(EXPR$0=[+(2, 2)])
         </Resource>
         <Resource name="plan">
             <![CDATA[
-LogicalTableModify(table=[[CATALOG, SALES, EMP]], operation=[UPDATE], updateColumnList=[[EMPNO]], flattened=[true])
+LogicalTableModify(table=[[CATALOG, SALES, EMP]], operation=[UPDATE], updateColumnList=[[EMPNO]], sourceExpressionList=[[+($cor0.EMPNO, 1)]], flattened=[true])
   LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], EXPR$0=[+($0, 1)])
     LogicalFilter(condition=[=($7, 10)])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -3000,7 +3000,7 @@ LogicalTableModify(table=[[CATALOG, SALES, EMP]], operation=[UPDATE], updateColu
         </Resource>
         <Resource name="plan">
             <![CDATA[
-LogicalTableModify(table=[[CATALOG, SALES, EMP]], operation=[DELETE], updateColumnList=[[]], flattened=[true])
+LogicalTableModify(table=[[CATALOG, SALES, EMP]], operation=[DELETE], flattened=[true])
   LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
@@ -3012,7 +3012,7 @@ LogicalTableModify(table=[[CATALOG, SALES, EMP]], operation=[DELETE], updateColu
         </Resource>
         <Resource name="plan">
             <![CDATA[
-LogicalTableModify(table=[[CATALOG, SALES, EMP]], operation=[UPDATE], updateColumnList=[[EMPNO]], flattened=[true])
+LogicalTableModify(table=[[CATALOG, SALES, EMP]], operation=[UPDATE], updateColumnList=[[EMPNO]], sourceExpressionList=[[+($cor0.EMPNO, 1)]], flattened=[true])
   LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], EXPR$0=[+($0, 1)])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
@@ -3026,7 +3026,7 @@ set empno = (
         </Resource>
         <Resource name="plan">
             <![CDATA[
-LogicalTableModify(table=[[CATALOG, SALES, EMP]], operation=[UPDATE], updateColumnList=[[EMPNO]], flattened=[true])
+LogicalTableModify(table=[[CATALOG, SALES, EMP]], operation=[UPDATE], updateColumnList=[[EMPNO]], sourceExpressionList=[[]], flattened=[true])
   LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], EXPR$0=[$9])
     LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], EXPR$0=[$10])
       LogicalJoin(condition=[=($7, $9)], joinType=[left])

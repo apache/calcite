@@ -163,6 +163,7 @@ import org.apache.calcite.util.trace.CalciteTrace;
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -2924,7 +2925,7 @@ public class SqlToRelConverter {
     if (modifiableTable != null) {
       return modifiableTable.toModificationRel(cluster, targetTable,
           catalogReader, source, LogicalTableModify.Operation.INSERT, null,
-          false);
+          null, false);
     }
     final ModifiableView modifiableView =
         targetTable.unwrap(ModifiableView.class);
@@ -2939,7 +2940,7 @@ public class SqlToRelConverter {
       return createModify(delegateRelOptTable, newSource);
     }
     return LogicalTableModify.create(targetTable, catalogReader, source,
-        LogicalTableModify.Operation.INSERT, null, false);
+        LogicalTableModify.Operation.INSERT, null, null, false);
   }
 
   /** Wraps a relational expression in the projects and filters implied by
@@ -3138,10 +3139,19 @@ public class SqlToRelConverter {
     RelOptTable targetTable = getTargetTable(call);
     RelNode sourceRel = convertSelect(call.getSourceSelect(), false);
     return LogicalTableModify.create(targetTable, catalogReader, sourceRel,
-        LogicalTableModify.Operation.DELETE, null, false);
+        LogicalTableModify.Operation.DELETE, null, null, false);
   }
 
   private RelNode convertUpdate(SqlUpdate call) {
+    final SqlValidatorScope scope = validator.getWhereScope(call.getSourceSelect());
+    Blackboard bb = createBlackboard(scope, null, false);
+
+    Builder<RexNode> rexNodeSourceExpressionListBuilder = ImmutableList.builder();
+    for (SqlNode n : call.getSourceExpressionList()) {
+      RexNode rn = bb.convertExpression(n);
+      rexNodeSourceExpressionListBuilder.add(rn);
+    }
+
     RelOptTable targetTable = getTargetTable(call);
 
     // convert update column list from SqlIdentifier to String
@@ -3159,7 +3169,8 @@ public class SqlToRelConverter {
     RelNode sourceRel = convertSelect(call.getSourceSelect(), false);
 
     return LogicalTableModify.create(targetTable, catalogReader, sourceRel,
-        LogicalTableModify.Operation.UPDATE, targetColumnNameList, false);
+        LogicalTableModify.Operation.UPDATE, targetColumnNameList,
+        rexNodeSourceExpressionListBuilder.build(), false);
   }
 
   private RelNode convertMerge(SqlMerge call) {
@@ -3240,7 +3251,7 @@ public class SqlToRelConverter {
         RelOptUtil.createProject(join, projects, null, true);
 
     return LogicalTableModify.create(targetTable, catalogReader, massagedRel,
-        LogicalTableModify.Operation.MERGE, targetColumnNameList, false);
+        LogicalTableModify.Operation.MERGE, targetColumnNameList, null, false);
   }
 
   /**

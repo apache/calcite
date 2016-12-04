@@ -189,6 +189,16 @@ public interface SqlWriter {
     SETOP,
 
     /**
+     * VALUES clause.
+     *
+     * <p>Example:
+     *
+     * <blockquote><pre>VALUES (1, 'a'),
+     *   (2, 'b')</pre></blockquote>
+     */
+    VALUES,
+
+    /**
      * FROM clause (containing various kinds of JOIN).
      */
     FROM_LIST,

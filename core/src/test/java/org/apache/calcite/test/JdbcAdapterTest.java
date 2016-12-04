@@ -18,6 +18,8 @@ package org.apache.calcite.test;
 
 import org.apache.calcite.config.Lex;
 import org.apache.calcite.jdbc.CalciteConnection;
+import org.apache.calcite.test.CalciteAssert.AssertThat;
+import org.apache.calcite.test.CalciteAssert.DatabaseInstance;
 
 import com.google.common.base.Function;
 import com.google.common.base.Throwables;
@@ -37,11 +39,32 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 
 /**
  * Tests for the {@code org.apache.calcite.adapter.jdbc} package.
  */
 public class JdbcAdapterTest {
+  /** VALUES is not pushed down, currently. */
+  @Test public void testValuesPlan() {
+    final String sql = "select * from \"days\", (values 1, 2) as t(c)";
+    final String explain = "PLAN="
+        + "EnumerableCalc(expr#0..2=[{inputs}], day=[$t1], week_day=[$t2], EXPR$0=[$t0])\n"
+        + "  EnumerableJoin(condition=[true], joinType=[inner])\n"
+        + "    EnumerableValues(tuples=[[{ 1 }, { 2 }]])\n"
+        + "    JdbcToEnumerableConverter\n"
+        + "      JdbcTableScan(table=[[foodmart, days]])";
+    final String jdbcSql = "SELECT *\n"
+        + "FROM \"foodmart\".\"days\"";
+    CalciteAssert.model(JdbcTest.FOODMART_MODEL)
+        .query(sql)
+        .explainContains(explain)
+        .runs()
+        .enable(CalciteAssert.DB == CalciteAssert.DatabaseInstance.HSQLDB
+            || CalciteAssert.DB == DatabaseInstance.POSTGRESQL)
+        .planHasSql(jdbcSql);
+  }
+
   @Test public void testUnionPlan() {
     CalciteAssert.model(JdbcTest.FOODMART_MODEL)
         .query("select * from \"sales_fact_1997\"\n"
@@ -586,6 +609,179 @@ public class JdbcAdapterTest {
         .enable(CalciteAssert.DB == CalciteAssert.DatabaseInstance.HSQLDB)
         .returns("CENAME=0\n");
   }
+
+  /**
+   * Helper method that should clean any previous TableModify states and create
+   * one expense_fact instance with store_id = 666.
+   *
+   * @param statement JDBC connection statement
+   */
+  private void tableModifyTestDbInitializer(Statement statement) {
+    try {
+      statement.executeUpdate("DELETE FROM \"foodmart\".\"expense_fact\""
+        + " WHERE \"store_id\"=666\n");
+      int rowCount = statement.executeUpdate(
+        "INSERT INTO \"foodmart\".\"expense_fact\"(\n"
+            + " \"store_id\", \"account_id\", \"exp_date\", \"time_id\","
+            + " \"category_id\", \"currency_id\", \"amount\")\n"
+            + " VALUES (666, 666, TIMESTAMP '1997-01-01 00:00:00',"
+            + " 666, '666', 666, 666)");
+      assertTrue(rowCount == 1);
+    } catch (SQLException e) {
+      throw Throwables.propagate(e);
+    }
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1527">[CALCITE-1527]
+   * Support DML in the JDBC adapter</a>. */
+  @Test public void testTableModifyInsert() {
+    final String sql = "INSERT INTO \"foodmart\".\"expense_fact\"(\n"
+        + " \"store_id\", \"account_id\", \"exp_date\", \"time_id\","
+        + " \"category_id\", \"currency_id\", \"amount\")\n"
+        + "VALUES (666, 666, TIMESTAMP '1997-01-01 00:00:00',"
+        + " 666, '666', 666, 666)";
+    final String explain = "PLAN=JdbcToEnumerableConverter\n"
+        + "  JdbcTableModify(table=[[foodmart, expense_fact]], operation=[INSERT], flattened=[false])\n"
+        + "    JdbcValues(tuples=[[{ 666, 666, 1997-01-01 00:00:00, 666, '666', 666, 666.0000 }]])\n";
+    final String jdbcSql = "INSERT INTO \"foodmart\".\"expense_fact\""
+        + " (\"store_id\", \"account_id\", \"exp_date\", \"time_id\","
+        + " \"category_id\", \"currency_id\", \"amount\")\n"
+        + "VALUES  (666, 666, TIMESTAMP '1997-01-01 00:00:00', 666, '666', 666, 666.0000)";
+    CalciteAssert.model(JdbcTest.FOODMART_MODEL)
+        .query(sql)
+        .explainContains(explain)
+        .enable(CalciteAssert.DB == DatabaseInstance.HSQLDB
+            || CalciteAssert.DB == DatabaseInstance.POSTGRESQL)
+        .planUpdateHasSql(jdbcSql, 1);
+  }
+
+  @Test public void testTableModifyInsertMultiValues() {
+    final String sql = "INSERT INTO \"foodmart\".\"expense_fact\"(\n"
+        + " \"store_id\", \"account_id\", \"exp_date\", \"time_id\","
+        + " \"category_id\", \"currency_id\", \"amount\")\n"
+        + "VALUES (666, 666, TIMESTAMP '1997-01-01 00:00:00',"
+        + "   666, '666', 666, 666),\n"
+        + " (777, 666, TIMESTAMP '1997-01-01 00:00:00',"
+        + "   666, '666', 666, 666)";
+    final String explain = "PLAN=JdbcToEnumerableConverter\n"
+        + "  JdbcTableModify(table=[[foodmart, expense_fact]], operation=[INSERT], flattened=[false])\n"
+        + "    JdbcValues(tuples=[[{ 666, 666, 1997-01-01 00:00:00, 666, '666', 666, 666.0000 },"
+        + " { 777, 666, 1997-01-01 00:00:00, 666, '666', 666, 666.0000 }]])\n";
+    final String jdbcSql = "INSERT INTO \"foodmart\".\"expense_fact\""
+        + " (\"store_id\", \"account_id\", \"exp_date\", \"time_id\","
+        + " \"category_id\", \"currency_id\", \"amount\")\n"
+        + "VALUES  (666, 666, TIMESTAMP '1997-01-01 00:00:00', 666, '666', 666, 666.0000),\n"
+        + " (777, 666, TIMESTAMP '1997-01-01 00:00:00', 666, '666', 666, 666.0000)";
+    CalciteAssert
+        .model(JdbcTest.FOODMART_MODEL)
+        .query(sql)
+        .explainContains(explain)
+        .enable(CalciteAssert.DB == DatabaseInstance.HSQLDB
+            || CalciteAssert.DB == DatabaseInstance.POSTGRESQL)
+        .planUpdateHasSql(jdbcSql, 2);
+  }
+
+  @Test public void testTableModifyInsertWithSubQuery() throws Exception {
+    final AssertThat that = CalciteAssert
+        .model(JdbcTest.FOODMART_MODEL)
+        .enable(CalciteAssert.DB == DatabaseInstance.HSQLDB);
+
+    that.doWithConnection(new Function<CalciteConnection, Void>() {
+      public Void apply(CalciteConnection connection) {
+        try {
+          tableModifyTestDbInitializer(connection.createStatement());
+          final String sql = "INSERT INTO \"foodmart\".\"expense_fact\"(\n"
+              + " \"store_id\", \"account_id\", \"exp_date\", \"time_id\","
+              + " \"category_id\", \"currency_id\", \"amount\")\n"
+              + "SELECT  \"store_id\", \"account_id\", \"exp_date\","
+              + " \"time_id\" + 1, \"category_id\", \"currency_id\","
+              + " \"amount\"\n"
+              + "FROM \"foodmart\".\"expense_fact\"\n"
+              + "WHERE \"store_id\" = 666";
+          final String explain = "PLAN=JdbcToEnumerableConverter\n"
+              + "  JdbcTableModify(table=[[foodmart, expense_fact]], operation=[INSERT], flattened=[false])\n"
+              + "    JdbcProject(store_id=[$0], account_id=[$1], exp_date=[$2], time_id=[+($3, 1)], category_id=[$4], currency_id=[$5], amount=[$6])\n"
+              + "      JdbcFilter(condition=[=($0, 666)])\n"
+              + "        JdbcTableScan(table=[[foodmart, expense_fact]])\n";
+          final String jdbcSql = "INSERT INTO \"foodmart\".\"expense_fact\""
+              + " (\"store_id\", \"account_id\", \"exp_date\", \"time_id\","
+              + " \"category_id\", \"currency_id\", \"amount\")\n"
+              + "(SELECT \"store_id\", \"account_id\", \"exp_date\","
+              + " \"time_id\" + 1 AS \"time_id\", \"category_id\","
+              + " \"currency_id\", \"amount\"\n"
+              + "FROM \"foodmart\".\"expense_fact\"\n"
+              + "WHERE \"store_id\" = 666)";
+          that.query(sql)
+              .explainContains(explain)
+              .planUpdateHasSql(jdbcSql, 1);
+          return null;
+        } catch (SQLException e) {
+          throw Throwables.propagate(e);
+        }
+      }
+    });
+  }
+
+  @Test public void testTableModifyUpdate() throws Exception {
+    final AssertThat that = CalciteAssert
+        .model(JdbcTest.FOODMART_MODEL)
+        .enable(CalciteAssert.DB == DatabaseInstance.HSQLDB);
+
+    that.doWithConnection(new Function<CalciteConnection, Void>() {
+      public Void apply(CalciteConnection connection) {
+        try {
+          tableModifyTestDbInitializer(connection.createStatement());
+          final String sql = "UPDATE \"foodmart\".\"expense_fact\"\n"
+              + " SET \"account_id\"=888\n"
+              + " WHERE \"store_id\"=666\n";
+          final String explain = "PLAN=JdbcToEnumerableConverter\n"
+              + "  JdbcTableModify(table=[[foodmart, expense_fact]], operation=[UPDATE], updateColumnList=[[account_id]], sourceExpressionList=[[888]], flattened=[false])\n"
+              + "    JdbcProject(store_id=[$0], account_id=[$1], exp_date=[$2], time_id=[$3], category_id=[$4], currency_id=[$5], amount=[$6], EXPR$0=[888])\n"
+              + "      JdbcFilter(condition=[=($0, 666)])\n"
+              + "        JdbcTableScan(table=[[foodmart, expense_fact]])";
+          final String jdbcSql = "UPDATE \"foodmart\".\"expense_fact\""
+              + " SET \"account_id\" = 888\n"
+              + "WHERE \"store_id\" = 666";
+          that.query(sql)
+              .explainContains(explain)
+              .planUpdateHasSql(jdbcSql, 1);
+          return null;
+        } catch (SQLException e) {
+          throw Throwables.propagate(e);
+        }
+      }
+    });
+  }
+
+  @Test public void testTableModifyDelete() throws Exception {
+    final AssertThat that = CalciteAssert
+        .model(JdbcTest.FOODMART_MODEL)
+        .enable(CalciteAssert.DB == DatabaseInstance.HSQLDB);
+
+    that.doWithConnection(new Function<CalciteConnection, Void>() {
+      public Void apply(CalciteConnection connection) {
+        try {
+          tableModifyTestDbInitializer(connection.createStatement());
+          final String sql = "DELETE FROM \"foodmart\".\"expense_fact\"\n"
+              + "WHERE \"store_id\"=666\n";
+          final String explain = "PLAN=JdbcToEnumerableConverter\n"
+              + "  JdbcTableModify(table=[[foodmart, expense_fact]], operation=[DELETE], flattened=[false])\n"
+              + "    JdbcFilter(condition=[=($0, 666)])\n"
+              + "      JdbcTableScan(table=[[foodmart, expense_fact]]";
+          final String jdbcSql = "DELETE FROM \"foodmart\".\"expense_fact\"\n"
+              + "WHERE \"store_id\" = 666";
+          that.query(sql)
+              .explainContains(explain)
+              .planUpdateHasSql(jdbcSql, 1);
+          return null;
+        } catch (SQLException e) {
+          throw Throwables.propagate(e);
+        }
+      }
+    });
+  }
+
 }
 
 // End JdbcAdapterTest.java
