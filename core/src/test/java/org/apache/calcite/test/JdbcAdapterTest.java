@@ -33,8 +33,6 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Properties;
 
-import static org.apache.calcite.test.CalciteAssert.DatabaseInstance.POSTGRESQL;
-
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertFalse;
@@ -595,7 +593,7 @@ public class JdbcAdapterTest {
   @Test public void testJdbcAdapterInsert() {
     CalciteAssert
         .model(JdbcTest.FOODMART_MODEL)
-        .enable(CalciteAssert.DB == POSTGRESQL)
+        .enable(CalciteAssert.DB == CalciteAssert.DatabaseInstance.POSTGRESQL)
         .query("INSERT INTO \"foodmart\".\"expense_fact\"(\n"
             + " \"store_id\", \"account_id\", \"exp_date\", \"time_id\","
             + " \"category_id\", \"currency_id\", \"amount\")\n"
@@ -617,7 +615,7 @@ public class JdbcAdapterTest {
   @Test public void testJdbcAdapterUpdate() {
     CalciteAssert
         .model(JdbcTest.FOODMART_MODEL)
-        .enable(CalciteAssert.DB == POSTGRESQL)
+        .enable(CalciteAssert.DB == CalciteAssert.DatabaseInstance.POSTGRESQL)
         .query("UPDATE \"foodmart\".\"expense_fact\" SET \"account_id\"=888"
             + " WHERE \"store_id\"=666\n")
         .explainContains("PLAN=JdbcToEnumerableConverter\n"
@@ -636,7 +634,7 @@ public class JdbcAdapterTest {
   @Test public void testJdbcAdapterDelete() {
     CalciteAssert
         .model(JdbcTest.FOODMART_MODEL)
-        .enable(CalciteAssert.DB == POSTGRESQL)
+        .enable(CalciteAssert.DB == CalciteAssert.DatabaseInstance.POSTGRESQL)
         .query("DELETE FROM \"foodmart\".\"expense_fact\""
             + " WHERE \"store_id\"=666\n")
         .explainContains("PLAN=JdbcToEnumerableConverter\n"

@@ -28,6 +28,7 @@ import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.SingleRel;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 
@@ -70,6 +71,7 @@ public abstract class TableModify extends SingleRel {
   protected final RelOptTable table;
   private final Operation operation;
   private final List<String> updateColumnList;
+  private final List<RexNode> sourceExpressionList;
   private RelDataType inputRowType;
   private final boolean flattened;
 
@@ -83,12 +85,14 @@ public abstract class TableModify extends SingleRel {
       RelNode child,
       Operation operation,
       List<String> updateColumnList,
+      List<RexNode> sourceExpressionList,
       boolean flattened) {
     super(cluster, traits, child);
     this.table = table;
     this.catalogReader = catalogReader;
     this.operation = operation;
     this.updateColumnList = updateColumnList;
+    this.sourceExpressionList = sourceExpressionList;
     if (table.getRelOptSchema() != null) {
       cluster.getPlanner().registerSchema(table.getRelOptSchema());
     }
@@ -107,6 +111,10 @@ public abstract class TableModify extends SingleRel {
 
   public List<String> getUpdateColumnList() {
     return updateColumnList;
+  }
+
+  public List<RexNode> getSourceExpressionList() {
+    return sourceExpressionList;
   }
 
   public boolean isFlattened() {
@@ -187,6 +195,11 @@ public abstract class TableModify extends SingleRel {
             (updateColumnList == null)
                 ? Collections.EMPTY_LIST
                 : updateColumnList)
+        .item(
+            "sourceExpressionList",
+            (sourceExpressionList == null)
+                ? Collections.EMPTY_LIST
+                : sourceExpressionList)
         .item("flattened", flattened);
   }
 

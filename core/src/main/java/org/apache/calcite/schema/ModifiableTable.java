@@ -21,6 +21,7 @@ import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.prepare.Prepare;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.TableModify;
+import org.apache.calcite.rex.RexNode;
 
 import java.util.Collection;
 import java.util.List;
@@ -46,6 +47,7 @@ public interface ModifiableTable extends QueryableTable {
       RelNode child,
       TableModify.Operation operation,
       List<String> updateColumnList,
+      List<RexNode> sourceExpressionList,
       boolean flattened);
 }
 

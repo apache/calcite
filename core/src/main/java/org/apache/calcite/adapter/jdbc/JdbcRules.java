@@ -729,6 +729,7 @@ public class JdbcRules {
           convert(modify.getInput(), traitSet),
           modify.getOperation(),
           modify.getUpdateColumnList(),
+          modify.getSourceExpressionList(),
           modify.isFlattened());
     }
   }
@@ -744,9 +745,10 @@ public class JdbcRules {
         RelNode input,
         Operation operation,
         List<String> updateColumnList,
+        List<RexNode> sourceExpressionList,
         boolean flattened) {
       super(cluster, traitSet, table, catalogReader, input, operation,
-          updateColumnList, flattened);
+          updateColumnList, sourceExpressionList, flattened);
       assert input.getConvention() instanceof JdbcConvention;
       assert getConvention() instanceof JdbcConvention;
       final ModifiableTable modifiableTable =
@@ -764,7 +766,7 @@ public class JdbcRules {
       return new JdbcTableModify(
           getCluster(), traitSet, getTable(), getCatalogReader(),
           sole(inputs), getOperation(), getUpdateColumnList(),
-          isFlattened());
+          getSourceExpressionList(), isFlattened());
     }
 
     public JdbcImplementor.Result implement(JdbcImplementor implementor) {

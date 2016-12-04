@@ -1564,6 +1564,10 @@ public class CalciteAssert {
       return this;
     }
 
+    @Override public AssertQuery planUpdateHasSql(String expected, int count) {
+      return this;
+    }
+
     @Override public AssertQuery
     queryContains(Function<List, Void> predicate1) {
       return this;
