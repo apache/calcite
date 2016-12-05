@@ -762,6 +762,11 @@ public class JdbcRules {
       }
     }
 
+    @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
+        RelMetadataQuery mq) {
+      return super.computeSelfCost(planner, mq).multiplyBy(.1);
+    }
+
     @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
       return new JdbcTableModify(
           getCluster(), traitSet, getTable(), getCatalogReader(),

@@ -29,6 +29,7 @@ import org.apache.calcite.rel.core.Minus;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.TableModify;
+import org.apache.calcite.rel.core.TableModify.Operation;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rel.core.Values;
@@ -38,16 +39,28 @@ import org.apache.calcite.rex.RexLocalRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.sql.JoinConditionType;
+import org.apache.calcite.sql.SqlBasicCall;
+import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlDelete;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlIdentifier;
+import org.apache.calcite.sql.SqlInsert;
 import org.apache.calcite.sql.SqlJoin;
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
+import org.apache.calcite.sql.SqlOperatorBinding;
 import org.apache.calcite.sql.SqlSelect;
+import org.apache.calcite.sql.SqlSpecialOperator;
+import org.apache.calcite.sql.SqlUpdate;
+import org.apache.calcite.sql.SqlUtil;
+import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.fun.SqlSingleValueAggFunction;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.type.InferTypes;
+import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.ReflectUtil;
@@ -56,9 +69,11 @@ import org.apache.calcite.util.ReflectiveVisitor;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
+import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
 /**
  * Utility to convert relational expressions to SQL abstract syntax tree.
@@ -285,8 +300,150 @@ public class RelToSqlConverter extends SqlImplementor
   }
 
   /** @see #dispatch */
-  public Result visit(TableModify e) {
-    throw new AssertionError("not implemented: " + e);
+  public Result visit(TableModify modify) {
+    final Map<String, RelDataType> pairs = ImmutableMap.of();
+    final Context context = aliasContext(pairs, false);
+
+    // Target Table Name
+    final SqlIdentifier sqlTargetTable =
+      new SqlIdentifier(modify.getTable().getQualifiedName(), POS);
+
+    if (modify.getOperation().equals(Operation.INSERT)) {
+      Values values = (Values) modify.getInput();
+
+      // Column Names
+      final List<String> fields = values.getRowType().getFieldNames();
+      ImmutableList.Builder<SqlNode> columnNamesBuilder =
+        ImmutableList.builder();
+      for (String field : fields) {
+        columnNamesBuilder.add(new SqlIdentifier(field, POS));
+      }
+      SqlNodeList sqlColumnList =
+        new SqlNodeList(columnNamesBuilder.build(), POS);
+
+      // Values
+      ImmutableList.Builder<SqlNode> valuesOperandsBuilder =
+        ImmutableList.builder();
+      for (List<RexLiteral> tuple: values.getTuples()) {
+        for (RexLiteral rexLiteral : tuple) {
+          valuesOperandsBuilder.add(context.toSql(null, rexLiteral));
+        }
+      }
+      ImmutableList<SqlNode> operandsList = valuesOperandsBuilder.build();
+      SqlNode[] operands = operandsList.toArray(
+        new SqlNode[operandsList.size()]);
+
+      SqlCall sqlValues = new SqlBasicCall(
+        new SqlInsertValueOperator(), operands, POS);
+
+      // Keywords
+      SqlNodeList keywords = new SqlNodeList(ImmutableList.<SqlNode>of(), POS);
+
+      SqlInsert sqlInsert = new SqlInsert(POS, keywords, sqlTargetTable,
+        sqlValues, sqlColumnList);
+
+      return result(sqlInsert, ImmutableList.<Clause>of(), modify, null);
+
+    } else if (modify.getOperation().equals(Operation.UPDATE)) {
+
+      // Update Columns
+      ImmutableList.Builder<SqlIdentifier> targetUpdateColumnListBuilder =
+        ImmutableList.builder();
+      for (String uclName: modify.getUpdateColumnList()) {
+        targetUpdateColumnListBuilder.add(new SqlIdentifier(uclName, POS));
+      }
+
+      // Source Expressions
+      ImmutableList.Builder<SqlNode> sourceExpressionListBuilder =
+        ImmutableList.builder();
+      for (RexNode rexNode : modify.getSourceExpressionList()) {
+        sourceExpressionListBuilder.add(context.toSql(null, rexNode));
+      }
+
+      Result input = visitChild(0, modify.getInput());
+
+      // Source Select
+      SqlSelect sqlSourceSelect = (SqlSelect) visitChild(0,
+        modify.getInput()).node;
+
+      // Condition
+      SqlNode sqlCondition = sqlSourceSelect.getWhere();
+
+      SqlUpdate sqlUpdate  = new SqlUpdate(POS, sqlTargetTable,
+        new SqlNodeList(targetUpdateColumnListBuilder.build(), POS),
+        new SqlNodeList(sourceExpressionListBuilder.build(), POS),
+        sqlCondition,
+        sqlSourceSelect,
+        null);
+
+      return result(sqlUpdate, input.clauses, modify, null);
+
+    } else if (modify.getOperation().equals(Operation.DELETE)) {
+
+      Result input = visitChild(0, modify.getInput());
+
+      // Source Select
+      SqlSelect sqlSourceSelect = (SqlSelect) visitChild(0,
+        modify.getInput()).node;
+
+      // Condition
+      SqlNode sqlCondition = sqlSourceSelect.getWhere();
+
+      SqlDelete sqlDelete = new SqlDelete(POS, sqlTargetTable, sqlCondition,
+        sqlSourceSelect, null);
+
+      return result(sqlDelete, input.clauses, modify, null);
+    }
+
+    throw new AssertionError("not implemented: " + modify);
+  }
+
+  /**
+   * BOZA
+   */
+  public class SqlInsertValueOperator extends SqlSpecialOperator {
+
+    public SqlInsertValueOperator() {
+      super(
+              "VALUES",
+              SqlKind.VALUES, MDX_PRECEDENCE,
+              false,
+              null,
+              InferTypes.RETURN_TYPE,
+              OperandTypes.VARIADIC);
+    }
+
+    public RelDataType inferReturnType(
+            final SqlOperatorBinding opBinding) {
+      // The type of a ROW(e1,e2) expression is a record with the types
+      // {e1type,e2type}.  According to the standard, field names are
+      // implementation-defined.
+      return opBinding.getTypeFactory().createStructType(
+        new AbstractList<Entry<String, RelDataType>>() {
+          public Map.Entry<String, RelDataType> get(int index) {
+            return Pair.of(
+                    SqlUtil.deriveAliasFromOrdinal(index),
+                    opBinding.getOperandType(index));
+          }
+
+          public int size() {
+            return opBinding.getOperandCount();
+          }
+        });
+    }
+
+    public void unparse(
+            SqlWriter writer,
+            SqlCall call,
+            int leftPrec,
+            int rightPrec) {
+      SqlUtil.unparseFunctionSyntax(this, writer, call);
+    }
+
+    // override SqlOperator
+    public boolean requiresDecimalExpansion() {
+      return false;
+    }
   }
 
   @Override public void addSelect(List<SqlNode> selectList, SqlNode node,

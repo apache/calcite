@@ -52,6 +52,7 @@ import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlSelectKeyword;
 import org.apache.calcite.sql.SqlSetOperator;
+import org.apache.calcite.sql.SqlSpecialOperator;
 import org.apache.calcite.sql.SqlWindow;
 import org.apache.calcite.sql.fun.SqlCase;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
@@ -995,6 +996,10 @@ public abstract class SqlImplementor {
     public SqlNode asQuery() {
       if (node instanceof SqlCall
           && ((SqlCall) node).getOperator() instanceof SqlSetOperator) {
+        return node;
+      }
+      if (node instanceof SqlCall
+          && ((SqlCall) node).getOperator() instanceof SqlSpecialOperator) {
         return node;
       }
       return asSelect();
