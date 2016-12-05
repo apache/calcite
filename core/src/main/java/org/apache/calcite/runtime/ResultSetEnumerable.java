@@ -143,6 +143,8 @@ public class ResultSetEnumerable<T> extends AbstractEnumerable<T> {
       }
       if (statement.execute(sql)) {
         final ResultSet resultSet = statement.getResultSet();
+        statement = null;
+        connection = null;
         return new ResultSetEnumerator<T>(resultSet, rowBuilderFactory);
       } else {
         Integer updateCount = statement.getUpdateCount();
