@@ -50,7 +50,7 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
-import org.apache.calcite.sql.SqlOperatorBinding;
+import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlSpecialOperator;
 import org.apache.calcite.sql.SqlUpdate;
@@ -69,11 +69,9 @@ import org.apache.calcite.util.ReflectiveVisitor;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
-import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 
 /**
  * Utility to convert relational expressions to SQL abstract syntax tree.
@@ -333,8 +331,8 @@ public class RelToSqlConverter extends SqlImplementor
       SqlNode[] operands = operandsList.toArray(
         new SqlNode[operandsList.size()]);
 
-      SqlCall sqlValues = new SqlBasicCall(
-        new SqlInsertValueOperator(), operands, POS);
+      SqlCall sqlValues =
+        new SqlBasicCall(SQL_INSERT_VALUES_OPERATOR, operands, POS);
 
       // Keywords
       SqlNodeList keywords = new SqlNodeList(ImmutableList.<SqlNode>of(), POS);
@@ -363,8 +361,7 @@ public class RelToSqlConverter extends SqlImplementor
       Result input = visitChild(0, modify.getInput());
 
       // Source Select
-      SqlSelect sqlSourceSelect = (SqlSelect) visitChild(0,
-        modify.getInput()).node;
+      SqlSelect sqlSourceSelect = (SqlSelect) input.node;
 
       // Condition
       SqlNode sqlCondition = sqlSourceSelect.getWhere();
@@ -398,53 +395,15 @@ public class RelToSqlConverter extends SqlImplementor
     throw new AssertionError("not implemented: " + modify);
   }
 
-  /**
-   * BOZA
-   */
-  public class SqlInsertValueOperator extends SqlSpecialOperator {
-
-    public SqlInsertValueOperator() {
-      super(
-              "VALUES",
-              SqlKind.VALUES, MDX_PRECEDENCE,
-              false,
-              null,
-              InferTypes.RETURN_TYPE,
-              OperandTypes.VARIADIC);
-    }
-
-    public RelDataType inferReturnType(
-            final SqlOperatorBinding opBinding) {
-      // The type of a ROW(e1,e2) expression is a record with the types
-      // {e1type,e2type}.  According to the standard, field names are
-      // implementation-defined.
-      return opBinding.getTypeFactory().createStructType(
-        new AbstractList<Entry<String, RelDataType>>() {
-          public Map.Entry<String, RelDataType> get(int index) {
-            return Pair.of(
-                    SqlUtil.deriveAliasFromOrdinal(index),
-                    opBinding.getOperandType(index));
-          }
-
-          public int size() {
-            return opBinding.getOperandCount();
-          }
-        });
-    }
-
-    public void unparse(
-            SqlWriter writer,
-            SqlCall call,
-            int leftPrec,
-            int rightPrec) {
-      SqlUtil.unparseFunctionSyntax(this, writer, call);
-    }
-
-    // override SqlOperator
-    public boolean requiresDecimalExpansion() {
-      return false;
-    }
-  }
+  private static final SqlSpecialOperator SQL_INSERT_VALUES_OPERATOR =
+    new SqlSpecialOperator("VALUES", SqlKind.VALUES,
+        SqlOperator.MDX_PRECEDENCE, false, null,
+        InferTypes.RETURN_TYPE, OperandTypes.VARIADIC) {
+      public void unparse(SqlWriter writer, SqlCall call,
+          int leftPrec, int rightPrec) {
+        SqlUtil.unparseFunctionSyntax(this, writer, call);
+      }
+    };
 
   @Override public void addSelect(List<SqlNode> selectList, SqlNode node,
       RelDataType rowType) {
