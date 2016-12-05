@@ -642,7 +642,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
 
   @Test public void testRowCountAggregateGroupingSets() {
     final String sql = "select deptno from emp\n"
-        + "group by grouping sets ((deptno), (empno, deptno))";
+        + "group by grouping sets ((deptno), (ename, deptno))";
     checkRowCount(sql, 2.8D); // EMP_SIZE / 10 * 2
     checkMaxRowCount(sql, Double.POSITIVE_INFINITY);
   }
@@ -814,7 +814,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
    * "RelMdColumnUniqueness uses ImmutableBitSet.Builder twice, gets
    * NullPointerException"</a>. */
   @Test public void testJoinUniqueKeys() {
-    RelNode rel = convertSql("select * from emp join dept using (deptno)");
+    RelNode rel = convertSql("select * from emp join bonus using (ename)");
     final RelMetadataQuery mq = RelMetadataQuery.instance();
     Set<ImmutableBitSet> result = mq.getUniqueKeys(rel);
     assertThat(result.isEmpty(), is(true));

@@ -206,7 +206,7 @@ public class MockCatalogReader implements Prepare.CatalogReader {
     // Register "EMP" table.
     final MockTable empTable =
         MockTable.create(this, salesSchema, "EMP", false, 14);
-    empTable.addColumn("EMPNO", intType);
+    empTable.addColumn("EMPNO", intType, true);
     empTable.addColumn("ENAME", varchar20Type);
     empTable.addColumn("JOB", varchar10Type);
     empTable.addColumn("MGR", intTypeNull);
@@ -220,7 +220,7 @@ public class MockCatalogReader implements Prepare.CatalogReader {
     // Register "EMP_B" table. As "EMP", birth with a "BIRTHDATE" column.
     final MockTable empBTable =
         MockTable.create(this, salesSchema, "EMP_B", false, 14);
-    empBTable.addColumn("EMPNO", intType);
+    empBTable.addColumn("EMPNO", intType, true);
     empBTable.addColumn("ENAME", varchar20Type);
     empBTable.addColumn("JOB", varchar10Type);
     empBTable.addColumn("MGR", intTypeNull);
@@ -234,14 +234,14 @@ public class MockCatalogReader implements Prepare.CatalogReader {
 
     // Register "DEPT" table.
     MockTable deptTable = MockTable.create(this, salesSchema, "DEPT", false, 4);
-    deptTable.addColumn("DEPTNO", intType);
+    deptTable.addColumn("DEPTNO", intType, true);
     deptTable.addColumn("NAME", varchar10Type);
     registerTable(deptTable);
 
     // Register "DEPT_NESTED" table.
     MockTable deptNestedTable =
         MockTable.create(this, salesSchema, "DEPT_NESTED", false, 4);
-    deptNestedTable.addColumn("DEPTNO", intType);
+    deptNestedTable.addColumn("DEPTNO", intType, true);
     deptNestedTable.addColumn("NAME", varchar10Type);
     deptNestedTable.addColumn("EMPLOYEES", empListType);
     registerTable(deptNestedTable);
@@ -258,7 +258,7 @@ public class MockCatalogReader implements Prepare.CatalogReader {
     // Register "SALGRADE" table.
     MockTable salgradeTable =
         MockTable.create(this, salesSchema, "SALGRADE", false, 5);
-    salgradeTable.addColumn("GRADE", intType);
+    salgradeTable.addColumn("GRADE", intType, true);
     salgradeTable.addColumn("LOSAL", intType);
     salgradeTable.addColumn("HISAL", intType);
     registerTable(salgradeTable);
@@ -266,7 +266,7 @@ public class MockCatalogReader implements Prepare.CatalogReader {
     // Register "EMP_ADDRESS" table
     MockTable contactAddressTable =
         MockTable.create(this, salesSchema, "EMP_ADDRESS", false, 26);
-    contactAddressTable.addColumn("EMPNO", intType);
+    contactAddressTable.addColumn("EMPNO", intType, true);
     contactAddressTable.addColumn("HOME_ADDRESS", addressType);
     contactAddressTable.addColumn("MAILING_ADDRESS", addressType);
     registerTable(contactAddressTable);
@@ -630,6 +630,7 @@ public class MockCatalogReader implements Prepare.CatalogReader {
     private final double rowCount;
     protected final List<Map.Entry<String, RelDataType>> columnList =
         new ArrayList<>();
+    protected final List<Integer> keyList = new ArrayList<>();
     protected RelDataType rowType;
     private List<RelCollation> collationList;
     protected final List<String> names;
@@ -740,7 +741,8 @@ public class MockCatalogReader implements Prepare.CatalogReader {
     }
 
     public boolean isKey(ImmutableBitSet columns) {
-      return false;
+      return !keyList.isEmpty()
+          && columns.contains(ImmutableBitSet.of(keyList));
     }
 
     public RelDataType getRowType() {
@@ -776,6 +778,13 @@ public class MockCatalogReader implements Prepare.CatalogReader {
     }
 
     public void addColumn(String name, RelDataType type) {
+      addColumn(name, type, false);
+    }
+
+    public void addColumn(String name, RelDataType type, boolean isKey) {
+      if (isKey) {
+        keyList.add(columnList.size());
+      }
       columnList.add(Pair.of(name, type));
     }
 

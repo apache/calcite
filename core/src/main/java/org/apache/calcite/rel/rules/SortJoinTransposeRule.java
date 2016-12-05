@@ -97,11 +97,11 @@ public class SortJoinTransposeRule extends RelOptRule {
             return false;
           }
         }
-        if (sort.offset != null
-            && !RelMdUtil.areColumnsDefinitelyUnique(
-                mq, join.getLeft(), joinInfo.leftSet())) {
-          return false;
-        }
+      }
+      if (sort.offset != null
+          && !RelMdUtil.areColumnsDefinitelyUnique(
+              mq, join.getLeft(), joinInfo.leftSet())) {
+        return false;
       }
     } else {
       return false;
