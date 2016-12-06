@@ -19,7 +19,6 @@ package org.apache.calcite.adapter.splunk.search;
 import org.apache.calcite.adapter.splunk.util.StringUtils;
 import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.linq4j.Linq4j;
-import org.apache.calcite.runtime.HttpUtils;
 
 import au.com.bytecode.opencsv.CSVReader;
 
@@ -182,19 +181,16 @@ public class SplunkConnectionImpl implements SplunkConnection {
     }
   }
 
-  private static void parseResults(InputStream in, SearchResultListener srl)
-      throws IOException {
-    CSVReader csvr = new CSVReader(new InputStreamReader(in));
-    try {
-      String [] header = csvr.readNext();
-
+  private static void parseResults(InputStream in, SearchResultListener srl) {
+    try (CSVReader r = new CSVReader(new InputStreamReader(in))) {
+      String[] header = r.readNext();
       if (header != null
           && header.length > 0
           && !(header.length == 1 && header[0].isEmpty())) {
         srl.setFieldNames(header);
 
         String[] line;
-        while ((line = csvr.readNext()) != null) {
+        while ((line = r.readNext()) != null) {
           if (line.length == header.length) {
             srl.processSearchResult(line);
           }
@@ -204,8 +200,6 @@ public class SplunkConnectionImpl implements SplunkConnection {
       StringWriter sw = new StringWriter();
       ignore.printStackTrace(new PrintWriter(sw));
       LOGGER.warn("{}\n{}", ignore.getMessage(), sw);
-    } finally {
-      HttpUtils.close(csvr); // CSVReader closes the input stream too
     }
   }
 
