@@ -32,6 +32,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
 
+
 /**
  * An environment for related relational expressions during the
  * optimization of a query.
@@ -40,7 +41,7 @@ public class RelOptCluster {
   //~ Instance fields --------------------------------------------------------
 
   private final RelDataTypeFactory typeFactory;
-  private final RelOptPlanner planner;
+  private RelOptPlanner planner;
   private final AtomicInteger nextCorrel;
   private final Map<String, RelNode> mapCorrelToRel;
   private RexNode originalExpression;
@@ -113,6 +114,10 @@ public class RelOptCluster {
 
   public RelOptPlanner getPlanner() {
     return planner;
+  }
+
+  public void setPlanner(RelOptPlanner planner) {
+    this.planner = planner;
   }
 
   public RelDataTypeFactory getTypeFactory() {

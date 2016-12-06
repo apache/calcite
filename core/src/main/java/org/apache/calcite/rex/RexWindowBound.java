@@ -20,6 +20,8 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlWindow;
+import org.apache.calcite.sql.parser.SqlParserPos;
+
 
 /**
  * Abstracts "XX PRECEDING/FOLLOWING" and "CURRENT ROW" bounds for windowed
@@ -43,6 +45,12 @@ public abstract class RexWindowBound {
     }
     return new RexWindowBoundBounded(rexNode);
   }
+
+  /**
+   * Converts into a @{@link SqlNode}
+   * @param pos Sql position
+   */
+  public abstract SqlNode toSqlNode(SqlParserPos pos);
 
   /**
    * Returns if the bound is unbounded.
@@ -115,6 +123,14 @@ public abstract class RexWindowBound {
       this.node = node;
     }
 
+    @Override public SqlNode toSqlNode(SqlParserPos pos) {
+      if (isFollowing()) {
+        return SqlWindow.createUnboundedFollowing(pos);
+      }
+      assert isPreceding();
+      return SqlWindow.createUnboundedPreceding(pos);
+    }
+
     @Override public boolean isUnbounded() {
       return true;
     }
@@ -161,6 +177,10 @@ public abstract class RexWindowBound {
    * Implements CURRENT ROW bound.
    */
   private static class RexWindowBoundCurrentRow extends RexWindowBound {
+    @Override public SqlNode toSqlNode(SqlParserPos pos) {
+      return SqlWindow.createCurrentRow(pos);
+    }
+
     @Override public boolean isCurrentRow() {
       return true;
     }
@@ -203,6 +223,15 @@ public abstract class RexWindowBound {
     private RexWindowBoundBounded(SqlKind sqlKind, RexNode offset) {
       this.sqlKind = sqlKind;
       this.offset = offset;
+    }
+
+    @Override public SqlNode toSqlNode(SqlParserPos pos) {
+      SqlNode offsetLiteral = SqlLiteral.createCharString(offset.digest,  SqlParserPos.ZERO);
+      if (isFollowing()) {
+        return SqlWindow.createFollowing(offsetLiteral, pos);
+      }
+      assert sqlKind == SqlKind.PRECEDING;
+      return SqlWindow.createPreceding(offsetLiteral, pos);
     }
 
     @Override public boolean isPreceding() {

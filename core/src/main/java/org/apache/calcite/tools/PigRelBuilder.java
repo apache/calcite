@@ -38,8 +38,7 @@ import java.util.List;
  */
 public class PigRelBuilder extends RelBuilder {
   private String lastAlias;
-
-  private PigRelBuilder(Context context,
+  protected PigRelBuilder(Context context,
       RelOptCluster cluster,
       RelOptSchema relOptSchema) {
     super(context, cluster, relOptSchema);
@@ -121,10 +120,7 @@ public class PigRelBuilder extends RelBuilder {
     return group(option, partitioner, parallel, ImmutableList.copyOf(groupKeys));
   }
 
-  public PigRelBuilder group(GroupOption option, Partitioner partitioner,
-      int parallel, Iterable<? extends GroupKey> groupKeys) {
-    @SuppressWarnings("unchecked") final List<GroupKeyImpl> groupKeyList =
-        ImmutableList.copyOf((Iterable) groupKeys);
+  protected void validateGroupList(List<GroupKeyImpl> groupKeyList) {
     if (groupKeyList.isEmpty()) {
       throw new IllegalArgumentException("must have at least one group");
     }
@@ -134,6 +130,15 @@ public class PigRelBuilder extends RelBuilder {
         throw new IllegalArgumentException("group key size mismatch");
       }
     }
+  }
+
+  public PigRelBuilder group(GroupOption option, Partitioner partitioner,
+      int parallel, Iterable<? extends GroupKey> groupKeys) {
+    @SuppressWarnings("unchecked") final List<GroupKeyImpl> groupKeyList =
+        ImmutableList.copyOf((Iterable) groupKeys);
+    validateGroupList(groupKeyList);
+
+    final int groupCount = groupKeyList.get(0).nodes.size();
     final int n = groupKeyList.size();
     for (Ord<GroupKeyImpl> groupKey : Ord.reverse(groupKeyList)) {
       RelNode r = null;
@@ -159,7 +164,7 @@ public class PigRelBuilder extends RelBuilder {
     return this;
   }
 
-  String getAlias() {
+  public String getAlias() {
     if (lastAlias != null) {
       return lastAlias;
     } else {

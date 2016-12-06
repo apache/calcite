@@ -106,6 +106,11 @@ public class ScalarFunctionImpl extends ReflectiveFunctionBase
     return new ScalarFunctionImpl(method, implementor);
   }
 
+  public static ScalarFunction createUnsafe(Method method) {
+    CallImplementor implementor = createImplementor(method);
+    return new ScalarFunctionImpl(method, implementor);
+  }
+
   public RelDataType getReturnType(RelDataTypeFactory typeFactory) {
     return typeFactory.createJavaType(method.getReturnType());
   }

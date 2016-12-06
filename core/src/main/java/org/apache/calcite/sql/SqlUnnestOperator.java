@@ -99,7 +99,14 @@ public class SqlUnnestOperator extends SqlFunctionalOperator {
 
   @Override public void unparse(SqlWriter writer, SqlCall call, int leftPrec,
       int rightPrec) {
-    super.unparse(writer, call, leftPrec, rightPrec);
+    if (call.operandCount() == 1
+        && call.getOperandList().get(0).getKind() == SqlKind.SELECT) {
+      // avoid double ( ) on unnesting a sub query
+      writer.keyword(getName());
+      call.operand(0).unparse(writer, 0, 0);
+    } else {
+      super.unparse(writer, call, leftPrec, rightPrec);
+    }
     if (withOrdinality) {
       writer.keyword("WITH ORDINALITY");
     }

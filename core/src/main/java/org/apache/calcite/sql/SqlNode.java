@@ -122,7 +122,7 @@ public abstract class SqlNode implements Cloneable {
   }
 
   public String toString() {
-    return toSqlString(null).getSql();
+    return toSqlString((SqlDialect) null).getSql();
   }
 
   /**
@@ -149,6 +149,15 @@ public abstract class SqlNode implements Cloneable {
     writer.setAlwaysUseParentheses(forceParens);
     writer.setSelectListItemsOnSeparateLines(false);
     writer.setIndentation(0);
+    return toSqlString(writer);
+  }
+
+  /**
+   * Returns the SQL text of the tree of which this <code>SqlNode</code> is
+   * the root.
+   * @param writer The @{@link SqlWriter} to decide dialect and format of SQL text
+   */
+  public SqlString toSqlString(SqlWriter writer) {
     unparse(writer, 0, 0);
     return writer.toSqlString();
   }

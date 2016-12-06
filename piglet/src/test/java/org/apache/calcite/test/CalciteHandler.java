@@ -90,7 +90,9 @@ class CalciteHandler extends Handler {
     case Types.ARRAY:
       final Array array = resultSet.getArray(i);
       writer.print("{");
-      dump(array.getResultSet(), false);
+      if (array != null) {
+        dump(array.getResultSet(), false);
+      }
       writer.print("}");
       return;
     case Types.REAL:

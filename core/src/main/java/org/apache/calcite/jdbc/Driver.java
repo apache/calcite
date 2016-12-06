@@ -48,7 +48,15 @@ import java.util.Properties;
  * Calcite JDBC driver.
  */
 public class Driver extends UnregisteredDriver {
-  public static final String CONNECT_STRING_PREFIX = "jdbc:calcite:";
+  private static String connectStringPrefix = "jdbc:calcite:";
+
+  public static String getDefaultConnectStringPrefix() {
+    return connectStringPrefix;
+  }
+
+  public static void setDefaultConnectStringPrefix(String connectStringPrefix) {
+    Driver.connectStringPrefix = connectStringPrefix;
+  }
 
   final Function0<CalcitePrepare> prepareFactory;
 
@@ -66,7 +74,7 @@ public class Driver extends UnregisteredDriver {
   }
 
   @Override protected String getConnectStringPrefix() {
-    return CONNECT_STRING_PREFIX;
+    return connectStringPrefix;
   }
 
   @Override protected String getFactoryClassName(JdbcVersion jdbcVersion) {
@@ -173,7 +181,7 @@ public class Driver extends UnregisteredDriver {
   CalciteConnection connect(CalciteSchema rootSchema,
       JavaTypeFactory typeFactory) {
     return (CalciteConnection) ((CalciteFactory) factory)
-        .newConnection(this, factory, CONNECT_STRING_PREFIX, new Properties(),
+        .newConnection(this, factory, connectStringPrefix, new Properties(),
             rootSchema, typeFactory);
   }
 
@@ -181,7 +189,7 @@ public class Driver extends UnregisteredDriver {
   CalciteConnection connect(CalciteSchema rootSchema,
       JavaTypeFactory typeFactory, Properties properties) {
     return (CalciteConnection) ((CalciteFactory) factory)
-        .newConnection(this, factory, CONNECT_STRING_PREFIX, properties,
+        .newConnection(this, factory, connectStringPrefix, properties,
             rootSchema, typeFactory);
   }
 }

@@ -2666,8 +2666,13 @@ public class SqlFunctions {
     public FlatLists.ComparableList<E> current() {
       int i = 0;
       for (Object element : (Object[]) elements) {
-        final List list2 = (List) element;
-        Object[] a = list2.toArray();
+        Object[] a;
+        if (element.getClass().isArray()) {
+          a = (Object[]) element;
+        } else {
+          final List list2 = (List) element;
+          a = list2.toArray();
+        }
         System.arraycopy(a, 0, flatElements, i, a.length);
         i += a.length;
       }

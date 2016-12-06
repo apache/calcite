@@ -25,6 +25,7 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.Calc;
+import org.apache.calcite.rel.core.Correlate;
 import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Intersect;
@@ -36,6 +37,7 @@ import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.TableModify;
 import org.apache.calcite.rel.core.TableScan;
+import org.apache.calcite.rel.core.Uncollect;
 import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rel.core.Values;
 import org.apache.calcite.rel.logical.LogicalProject;
@@ -166,6 +168,27 @@ public class RelToSqlConverter extends SqlImplementor
   }
 
   /** @see #dispatch */
+  public Result visit(Correlate e) {
+    final Result leftResult =
+        visitChild(0, e.getLeft()).resetAlias(e.getCorrelVariable(), e.getRowType());
+    parseCorrelTable(e, leftResult);
+    final Result rightResult = visitChild(1, e.getRight());
+    SqlNode rightLateral = SqlStdOperatorTable.LATERAL.createCall(POS, rightResult.node);
+    rightLateral = SqlStdOperatorTable.AS.createCall(POS, rightLateral,
+        new SqlIdentifier(rightResult.neededAlias, POS));
+
+    SqlNode join =
+        new SqlJoin(POS,
+            leftResult.asFrom(),
+            SqlLiteral.createBoolean(false, POS),
+            JoinType.COMMA.symbol(POS),
+            rightLateral,
+            JoinConditionType.NONE.symbol(POS),
+            null);
+    return result(join, leftResult, rightResult);
+  }
+
+  /** @see #dispatch */
   public Result visit(Filter e) {
     final RelNode input = e.getInput();
     Result x = visitChild(0, input);
@@ -189,6 +212,7 @@ public class RelToSqlConverter extends SqlImplementor
 
   /** @see #dispatch */
   public Result visit(Project e) {
+    e.getVariablesSet();
     Result x = visitChild(0, e.getInput());
     parseCorrelTable(e, x);
     if (isStar(e.getChildExps(), e.getInput().getRowType(), e.getRowType())) {
@@ -224,6 +248,57 @@ public class RelToSqlConverter extends SqlImplementor
     final List<SqlNode> selectList = new ArrayList<>();
     final List<SqlNode> groupByList =
         generateGroupList(builder, selectList, e, groupKeyList);
+    return buildAggregate(e, builder, selectList, groupByList);
+  }
+
+  /**
+   * Gets the @{@link org.apache.calcite.rel.rel2sql.SqlImplementor.Builder} for the given
+   * Aggregate node.
+   *
+   * @param e Aggregate node
+   * @param childResult Result from the child
+   * @param isInputProject True iff the child is a Project
+   * @return A SQL builder
+   */
+  protected Builder getAggregateBuilder(Aggregate e, Result childResult, boolean isInputProject) {
+    final Builder builder;
+    if (isInputProject) {
+      builder = childResult.builder(e);
+      builder.clauses.add(Clause.GROUP_BY);
+    } else {
+      builder = childResult.builder(e, Clause.GROUP_BY);
+    }
+    return builder;
+  }
+
+  /**
+   * Builds the group list for an Aggregate node.
+   *
+   * @param e The Aggregate node
+   * @param builder The SQL builder
+   * @param groupByList output group list
+   * @param selectList output select list
+   */
+  protected void buildAggGroupList(Aggregate e, Builder builder, List<SqlNode> groupByList,
+      List<SqlNode> selectList) {
+    for (int group : e.getGroupSet()) {
+      final SqlNode field = builder.context.field(group);
+      addSelect(selectList, field, e.getRowType());
+      groupByList.add(field);
+    }
+  }
+
+  /**
+   * Builds an aggregate query.
+   *
+   * @param e The Aggregate node
+   * @param builder The SQL builder
+   * @param selectList The precomputed group list
+   * @param groupByList The precomputed select list
+   * @return The aggregate query result
+   */
+  protected Result buildAggregate(Aggregate e, Builder builder,  List<SqlNode> selectList,
+      List<SqlNode> groupByList) {
     for (AggregateCall aggCall : e.getAggCallList()) {
       SqlNode aggCallSqlNode = builder.context.toSql(aggCall);
       if (aggCall.getAggregation() instanceof SqlSingleValueAggFunction) {
@@ -713,6 +788,45 @@ public class RelToSqlConverter extends SqlImplementor
         pattern, strictStart, strictEnd, patternDefList, measureList, after,
         subsetList, rowsPerMatch, partitionList, orderByList, interval);
     return result(matchRecognize, Expressions.list(Clause.FROM), e, null);
+  }
+
+  private SqlCall as(SqlNode e, String alias) {
+    return SqlStdOperatorTable.AS.createCall(POS, e,
+        new SqlIdentifier(alias, POS));
+  }
+
+  public Result visit(Uncollect e) {
+    final Result x = visitChild(0, e.getInput());
+    final SqlNode unnestNode = SqlStdOperatorTable.UNNEST.createCall(POS, x.asStatement());
+    final List<SqlNode> operands = createAsFullOperands(e.getRowType(), unnestNode, x.neededAlias);
+    final SqlNode asNode = SqlStdOperatorTable.AS.createCall(POS, operands);
+    return result(asNode, ImmutableList.of(Clause.FROM), e, null);
+  }
+
+  /**
+   * Creates operands for a full AS operator. Format SqlNode AS alias(col_1, col_2,... ,col_n).
+   *
+   * @param rowType Row type of the SqlNode
+   * @param leftOperand SqlNode
+   * @param alias alias
+   */
+  public List<SqlNode> createAsFullOperands(RelDataType rowType, SqlNode leftOperand,
+      String alias) {
+    final List<SqlNode> result = new ArrayList<>();
+    result.add(leftOperand);
+    result.add(new SqlIdentifier(alias, POS));
+    for (int i = 0; i < rowType.getFieldCount(); i++) {
+      final String lowerName = rowType.getFieldNames().get(i).toLowerCase(Locale.ROOT);
+      SqlIdentifier sqlColumn;
+      if (lowerName.startsWith("expr$")) {
+        sqlColumn = new SqlIdentifier("col_" + i, POS);
+        ordinalMap.put(lowerName, sqlColumn);
+      } else {
+        sqlColumn = new SqlIdentifier(rowType.getFieldNames().get(i), POS);
+      }
+      result.add(sqlColumn);
+    }
+    return result;
   }
 
   @Override public void addSelect(List<SqlNode> selectList, SqlNode node,
