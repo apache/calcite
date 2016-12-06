@@ -29,7 +29,6 @@ import org.apache.calcite.rel.core.Minus;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.TableModify;
-import org.apache.calcite.rel.core.TableModify.Operation;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rel.core.Values;
@@ -306,54 +305,43 @@ public class RelToSqlConverter extends SqlImplementor
     final SqlIdentifier sqlTargetTable =
       new SqlIdentifier(modify.getTable().getQualifiedName(), POS);
 
-    if (modify.getOperation().equals(Operation.INSERT)) {
-      Values values = (Values) modify.getInput();
-
+    switch (modify.getOperation()) {
+    case INSERT: {
       // Column Names
-      final List<String> fields = values.getRowType().getFieldNames();
-      ImmutableList.Builder<SqlNode> columnNamesBuilder =
-        ImmutableList.builder();
-      for (String field : fields) {
-        columnNamesBuilder.add(new SqlIdentifier(field, POS));
+      ImmutableList.Builder<SqlNode> namesBuilder = ImmutableList.builder();
+      for (String field : modify.getInput().getRowType().getFieldNames()) {
+        namesBuilder.add(new SqlIdentifier(field, POS));
       }
-      SqlNodeList sqlColumnList =
-        new SqlNodeList(columnNamesBuilder.build(), POS);
-
-      // Values
-      ImmutableList.Builder<SqlNode> valuesOperandsBuilder =
-        ImmutableList.builder();
-      for (List<RexLiteral> tuple: values.getTuples()) {
-        for (RexLiteral rexLiteral : tuple) {
-          valuesOperandsBuilder.add(context.toSql(null, rexLiteral));
-        }
-      }
-      ImmutableList<SqlNode> operandsList = valuesOperandsBuilder.build();
-      SqlNode[] operands = operandsList.toArray(
-        new SqlNode[operandsList.size()]);
-
-      SqlCall sqlValues =
-        new SqlBasicCall(SQL_INSERT_VALUES_OPERATOR, operands, POS);
+      SqlNodeList sqlColumnList = new SqlNodeList(namesBuilder.build(), POS);
 
       // Keywords
       SqlNodeList keywords = new SqlNodeList(ImmutableList.<SqlNode>of(), POS);
 
+      // The visitChild(0, modify.getInput()) can be used with
+      // INSERT INTO (A,B,C) VALUES(v1, v2, v3) too. It will produce
+      // an output like: INSERT INTO (A,B,C) (SELECT v1 as A,v2 as B,v3 as C)
+      // Later syntax is not supported by all SQL dialects and furthermore
+      // we prefer to preserve the original VALUES syntax when possible.
+      SqlCall sqlSource = (modify.getInput() instanceof Values)
+              ? convertValues((Values) modify.getInput())
+              : visitChild(0, modify.getInput()).asSelect();
+
       SqlInsert sqlInsert = new SqlInsert(POS, keywords, sqlTargetTable,
-        sqlValues, sqlColumnList);
+              sqlSource, sqlColumnList);
 
       return result(sqlInsert, ImmutableList.<Clause>of(), modify, null);
-
-    } else if (modify.getOperation().equals(Operation.UPDATE)) {
-
+    }
+    case UPDATE: {
       // Update Columns
       ImmutableList.Builder<SqlIdentifier> targetUpdateColumnListBuilder =
-        ImmutableList.builder();
+              ImmutableList.builder();
       for (String uclName: modify.getUpdateColumnList()) {
         targetUpdateColumnListBuilder.add(new SqlIdentifier(uclName, POS));
       }
 
       // Source Expressions
       ImmutableList.Builder<SqlNode> sourceExpressionListBuilder =
-        ImmutableList.builder();
+              ImmutableList.builder();
       for (RexNode rexNode : modify.getSourceExpressionList()) {
         sourceExpressionListBuilder.add(context.toSql(null, rexNode));
       }
@@ -367,43 +355,64 @@ public class RelToSqlConverter extends SqlImplementor
       SqlNode sqlCondition = sqlSourceSelect.getWhere();
 
       SqlUpdate sqlUpdate  = new SqlUpdate(POS, sqlTargetTable,
-        new SqlNodeList(targetUpdateColumnListBuilder.build(), POS),
-        new SqlNodeList(sourceExpressionListBuilder.build(), POS),
-        sqlCondition,
-        sqlSourceSelect,
-        null);
+              new SqlNodeList(targetUpdateColumnListBuilder.build(), POS),
+              new SqlNodeList(sourceExpressionListBuilder.build(), POS),
+              sqlCondition,
+              sqlSourceSelect,
+              null);
 
       return result(sqlUpdate, input.clauses, modify, null);
-
-    } else if (modify.getOperation().equals(Operation.DELETE)) {
+    }
+    case DELETE: {
 
       Result input = visitChild(0, modify.getInput());
 
       // Source Select
-      SqlSelect sqlSourceSelect = (SqlSelect) visitChild(0,
-        modify.getInput()).node;
+      SqlSelect sqlSourceSelect = input.asSelect();
 
       // Condition
       SqlNode sqlCondition = sqlSourceSelect.getWhere();
 
       SqlDelete sqlDelete = new SqlDelete(POS, sqlTargetTable, sqlCondition,
-        sqlSourceSelect, null);
+              sqlSourceSelect, null);
 
       return result(sqlDelete, input.clauses, modify, null);
     }
-
-    throw new AssertionError("not implemented: " + modify);
+    case MERGE:
+    default:
+      throw new AssertionError("not implemented: " + modify);
+    }
   }
 
-  private static final SqlSpecialOperator SQL_INSERT_VALUES_OPERATOR =
-    new SqlSpecialOperator("VALUES", SqlKind.VALUES,
-        SqlOperator.MDX_PRECEDENCE, false, null,
-        InferTypes.RETURN_TYPE, OperandTypes.VARIADIC) {
-      public void unparse(SqlWriter writer, SqlCall call,
-          int leftPrec, int rightPrec) {
-        SqlUtil.unparseFunctionSyntax(this, writer, call);
+  private SqlCall convertValues(Values e) {
+    final Map<String, RelDataType> pairs = ImmutableMap.of();
+    final Context context = aliasContext(pairs, false);
+    ImmutableList.Builder<SqlNode> rowsBuilder = ImmutableList.builder();
+    for (List<RexLiteral> tuple : e.getTuples()) {
+      ImmutableList.Builder<SqlNode> rowOperandsBuilder =
+              ImmutableList.builder();
+      for (RexLiteral literal : tuple) {
+        rowOperandsBuilder.add(context.toSql(null, literal));
       }
-    };
+      SqlNode[] rowOperands = rowOperandsBuilder.build().toArray(
+              new SqlNode[rowOperandsBuilder.build().size()]);
+
+      rowsBuilder.add(
+        new SqlBasicCall(
+          new SqlSpecialOperator("", SqlKind.ROW,
+                  SqlOperator.MDX_PRECEDENCE, false, null,
+                  InferTypes.RETURN_TYPE, OperandTypes.VARIADIC) {
+            public void unparse(SqlWriter writer, SqlCall call,
+                    int leftPrec, int rightPrec) {
+              SqlUtil.unparseFunctionSyntax(this, writer, call);
+            }
+          }, rowOperands, POS));
+    }
+
+    return SqlStdOperatorTable.VALUES.createCall(
+            new SqlNodeList(rowsBuilder.build(), POS));
+  }
+
 
   @Override public void addSelect(List<SqlNode> selectList, SqlNode node,
       RelDataType rowType) {
