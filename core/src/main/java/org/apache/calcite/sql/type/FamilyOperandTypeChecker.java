@@ -68,7 +68,7 @@ public class FamilyOperandTypeChecker implements SqlSingleOperandTypeChecker {
       // no need to check
       return true;
     }
-    if (SqlUtil.isNullLiteral(node, false)) {
+    if (SqlUtil.isNullLiteral(node, false) && !family.equals(SqlTypeFamily.BOOLEAN)) {
       if (throwOnFailure) {
         throw callBinding.getValidator().newValidationError(node,
             RESOURCE.nullIllegal());
