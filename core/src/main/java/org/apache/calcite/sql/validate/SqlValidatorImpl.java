@@ -4163,8 +4163,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     final RelDataType type = deriveType(scope, selectItem);
     setValidatedNodeType(selectItem, type);
 
-    // we do not want to pass on the RelRecordType returned
-    // by the sub query.  Just the type of the single expression
+    // We do not want to pass on the RelRecordType returned
+    // by the sub-query.  Just the type of the single expression
     // in the sub-query select list.
     assert type instanceof RelRecordType;
     RelRecordType rec = (RelRecordType) type;

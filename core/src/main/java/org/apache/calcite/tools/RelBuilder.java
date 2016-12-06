@@ -276,6 +276,18 @@ public class RelBuilder {
     return proto(Contexts.of(factories));
   }
 
+  public RelOptCluster getCluster() {
+    return cluster;
+  }
+
+  public RelOptSchema getRelOptSchema() {
+    return relOptSchema;
+  }
+
+  public RelFactories.TableScanFactory getScanFactory() {
+    return scanFactory;
+  }
+
   // Methods for manipulating the stack
 
   /** Adds a relational expression to be the input to the next relational
@@ -2577,11 +2589,11 @@ public class RelBuilder {
     GroupKey alias(String alias);
   }
 
-  /** Implementation of {@link GroupKey}. */
-  protected static class GroupKeyImpl implements GroupKey {
-    final ImmutableList<RexNode> nodes;
-    final ImmutableList<ImmutableList<RexNode>> nodeLists;
-    final String alias;
+  /** Implementation of {@link RelBuilder.GroupKey}. */
+  public static class GroupKeyImpl implements GroupKey {
+    public final ImmutableList<RexNode> nodes;
+    public final ImmutableList<ImmutableList<RexNode>> nodeLists;
+    public final String alias;
 
     GroupKeyImpl(ImmutableList<RexNode> nodes,
         ImmutableList<ImmutableList<RexNode>> nodeLists, String alias) {

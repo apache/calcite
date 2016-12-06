@@ -188,8 +188,22 @@ public class EnumUtils {
   static List<Expression> fromInternal(Class<?>[] targetTypes,
       List<Expression> expressions) {
     final List<Expression> list = new ArrayList<>();
-    for (int i = 0; i < expressions.size(); i++) {
-      list.add(fromInternal(expressions.get(i), targetTypes[i]));
+    if (targetTypes.length == expressions.size()) {
+      for (int i = 0; i < expressions.size(); i++) {
+        list.add(fromInternal(expressions.get(i), targetTypes[i]));
+      }
+    } else {
+      int j = 0;
+      for (int i = 0; i < expressions.size(); i++) {
+        Class<?> type;
+        if (!targetTypes[j].isArray()) {
+          type = targetTypes[j];
+          j++;
+        } else {
+          type = targetTypes[j].getComponentType();
+        }
+        list.add(fromInternal(expressions.get(i), type));
+      }
     }
     return list;
   }
