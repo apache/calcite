@@ -44,6 +44,11 @@ public class ExtensionSqlParserTest extends SqlParserTest {
     checkFails("^upload^ jar '/path/to/jar'",
       "(?s).*Encountered \"upload\" at .*");
   }
+
+  @Test public void testCreateTable() {
+    sql("CREATE TABLE foo.baz(i INTEGER, j VARCHAR(10) NOT NULL)")
+        .ok("CREATE TABLE `FOO`.`BAZ` (`I` INTEGER, `J` VARCHAR(10) NOT NULL)");
+  }
 }
 
 // End ExtensionSqlParserTest.java

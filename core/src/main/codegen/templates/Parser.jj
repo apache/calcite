@@ -928,6 +928,10 @@ SqlNode SqlStmt() :
         |
         stmt = SqlAlter()
         |
+<#if parser.createStatementParserMethods?size != 0>
+        stmt = SqlCreate()
+        |
+</#if>
         stmt = OrderedQueryOrExpr(ExprContext.ACCEPT_QUERY)
         |
         stmt = SqlExplain()
@@ -3087,6 +3091,61 @@ String Scope() :
 {
     ( <SYSTEM> | <SESSION> ) { return token.image.toUpperCase(); }
 }
+
+<#if parser.createStatementParserMethods?size != 0>
+/**
+ * Parses a CREATE statement.
+ */
+SqlCreate SqlCreate() :
+{
+    final SqlParserPos pos;
+    boolean replace = false;
+    final SqlCreate create;
+}
+{
+    <CREATE> { pos = getPos(); }
+    [
+        <OR> <REPLACE> {
+            replace = true;
+        }
+    ]
+    (
+    <#-- additional literal parser methods are included here -->
+    <#list parser.createStatementParserMethods as method>
+        create = ${method}(pos, replace)
+        <#sep>|</#sep>
+    </#list>
+    )
+    {
+        return create;
+    }
+}
+</#if>
+
+<#if parser.dropStatementParserMethods?size != 0>
+/**
+ * Parses a DROP statement.
+ */
+SqlDrop SqlDrop() :
+{
+    final SqlParserPos pos;
+    boolean replace = false;
+    final SqlDrop drop;
+}
+{
+    <DROP> { pos = getPos(); }
+    (
+    <#-- additional literal parser methods are included here -->
+    <#list parser.dropStatementParserMethods as method>
+        drop = ${method}(pos, replace)
+        <#sep>|</#sep>
+    </#list>
+    )
+    {
+        return drop;
+    }
+}
+</#if>
 
 /**
  * Parses a literal expression, allowing continued string literals.
@@ -5333,6 +5392,7 @@ SqlPostfixOperator PostfixRowOperator() :
     | < RELATIVE: "RELATIVE" >
     | < RELEASE: "RELEASE" >
     | < REPEATABLE: "REPEATABLE" >
+    | < REPLACE: "REPLACE" >
     | < RESET: "RESET" >
     | < RESTART: "RESTART" >
     | < RESTRICT: "RESTRICT" >
@@ -5733,6 +5793,7 @@ String CommonNonReservedKeyWord() :
         | <READ>
         | <RELATIVE>
         | <REPEATABLE>
+        | <REPLACE>
         | <RESTART>
         | <RESTRICT>
         | <RETURNED_CARDINALITY>

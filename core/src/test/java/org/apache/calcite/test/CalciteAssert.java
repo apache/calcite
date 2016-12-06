@@ -684,6 +684,8 @@ public class CalciteAssert {
     case LINGUAL:
       return rootSchema.add("SALES",
           new ReflectiveSchema(new JdbcTest.LingualSchema()));
+    case BLANK:
+      return rootSchema.add("BLANK", new AbstractSchema());
     case ORINOCO:
       final SchemaPlus orinoco = rootSchema.add("ORINOCO", new AbstractSchema());
       orinoco.add("ORDERS",
@@ -1632,6 +1634,7 @@ public class CalciteAssert {
     HR,
     JDBC_SCOTT,
     SCOTT,
+    BLANK,
     LINGUAL,
     POST,
     ORINOCO

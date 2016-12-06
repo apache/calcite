@@ -120,6 +120,12 @@ public class CalciteConnectionConfigImpl extends ConnectionConfigImpl
         .getBoolean(lex().caseSensitive);
   }
 
+  public <T> T parserFactory(Class<T> parserFactoryClass,
+      T defaultParserFactory) {
+    return CalciteConnectionProperty.PARSER_FACTORY.wrap(properties)
+        .getPlugin(parserFactoryClass, defaultParserFactory);
+  }
+
   public <T> T schemaFactory(Class<T> schemaFactoryClass,
       T defaultSchemaFactory) {
     return CalciteConnectionProperty.SCHEMA_FACTORY.wrap(properties)

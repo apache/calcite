@@ -35,3 +35,16 @@ SqlAlter SqlUploadJarNode(SqlParserPos pos, String scope) :
         return new SqlUploadJarNode(pos.plus(getPos()), scope, jarPathsList);
     }
 }
+
+SqlCreate SqlCreateTable(SqlParserPos pos, boolean replace) :
+{
+    final SqlIdentifier id;
+    final SqlNodeList columnList;
+}
+{
+    <TABLE> id = CompoundIdentifier() columnList = ExtendList() {
+        return new SqlCreateTable(pos, id, columnList);
+    }
+}
+
+// End parserImpls.ftl

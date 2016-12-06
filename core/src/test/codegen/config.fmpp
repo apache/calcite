@@ -21,6 +21,8 @@ data: {
 
       # List of import statements.
       imports: [
+        "org.apache.calcite.sql.SqlCreate",
+        "org.apache.calcite.sql.parser.parserextensiontesting.SqlCreateTable",
         "org.apache.calcite.sql.parser.parserextensiontesting.SqlUploadJarNode"
       ]
 
@@ -47,14 +49,25 @@ data: {
       dataTypeParserMethods: [
       ]
 
-      # List of methods for parsing extensions to ALTER SYSTEM calls.
+      # List of methods for parsing extensions to "ALTER <scope>" calls.
       # Each must accept arguments "(SqlParserPos pos, String scope)".
       alterStatementParserMethods: [
         "SqlUploadJarNode"
       ]
 
+      # List of methods for parsing extensions to "CREATE [OR REPLACE]" calls.
+      # Each must accept arguments "(SqlParserPos pos, boolean replace)".
+      createStatementParserMethods: [
+        "SqlCreateTable"
+      ]
+
+      # List of methods for parsing extensions to "DROP" calls.
+      # Each must accept arguments "(SqlParserPos pos)".
+      dropStatementParserMethods: [
+      ]
+
       # List of files in @includes directory that have parser method
-      # implementations for custom SQL statements, literals or types
+      # implementations for parsing custom SQL statements, literals or types
       # given as part of "statementParserMethods", "literalParserMethods" or
       # "dataTypeParserMethods".
       implementationFiles: [

@@ -127,6 +127,13 @@ public class EnumerableTableScan
     }
   }
 
+  public static JavaRowFormat deduceFormat(RelOptTable table) {
+    final Class elementType = deduceElementType(table.unwrap(Table.class));
+    return elementType == Object[].class
+        ? JavaRowFormat.ARRAY
+        : JavaRowFormat.CUSTOM;
+  }
+
   private Expression getExpression(PhysType physType) {
     final Expression expression = table.getExpression(Queryable.class);
     final Expression expression2 = toEnumerable(expression);

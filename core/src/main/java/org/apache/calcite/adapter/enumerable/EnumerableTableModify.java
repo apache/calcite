@@ -101,9 +101,9 @@ public class EnumerableTableModify extends TableModify
     if (!getInput().getRowType().equals(getRowType())) {
       final JavaTypeFactory typeFactory =
           (JavaTypeFactory) getCluster().getTypeFactory();
+      final JavaRowFormat format = EnumerableTableScan.deduceFormat(table);
       PhysType physType =
-          PhysTypeImpl.of(typeFactory, table.getRowType(),
-              JavaRowFormat.CUSTOM);
+          PhysTypeImpl.of(typeFactory, table.getRowType(), format);
       List<Expression> expressionList = new ArrayList<Expression>();
       final PhysType childPhysType = result.physType;
       final ParameterExpression o_ =
@@ -167,6 +167,7 @@ public class EnumerableTableModify extends TableModify
                 ? JavaRowFormat.ARRAY : JavaRowFormat.SCALAR);
     return implementor.result(physType, builder.toBlock());
   }
+
 }
 
 // End EnumerableTableModify.java

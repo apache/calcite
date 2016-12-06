@@ -78,6 +78,12 @@ public enum CalciteConnectionProperty implements ConnectionProperty {
    *  If not specified, value from {@link #LEX} is used. */
   CASE_SENSITIVE("caseSensitive", Type.BOOLEAN, null, false),
 
+  /** Parser factory.
+   *
+   * <p>The name of a class that implements
+   * {@link org.apache.calcite.sql.parser.SqlParserImplFactory}. */
+  PARSER_FACTORY("parserFactory", Type.PLUGIN, null, false),
+
   /** Name of initial schema. */
   SCHEMA("schema", Type.STRING, null, false),
 

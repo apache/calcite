@@ -7308,7 +7308,7 @@ public class SqlParserTest {
 
   /** Helper class for building fluent code such as
    * {@code sql("values 1").ok();}. */
-  private class Sql {
+  protected class Sql {
     private final String sql;
 
     Sql(String sql) {
