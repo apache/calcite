@@ -40,12 +40,16 @@ public class MemberExpression extends Expression {
     this.field = field;
   }
 
-  @Override public Expression accept(Visitor visitor) {
-    visitor = visitor.preVisit(this);
+  @Override public Expression accept(Shuttle shuttle) {
+    shuttle = shuttle.preVisit(this);
     Expression expression1 = expression == null
         ? null
-        : expression.accept(visitor);
-    return visitor.visit(this, expression1);
+        : expression.accept(shuttle);
+    return shuttle.visit(this, expression1);
+  }
+
+  public <R> R accept(Visitor<R> visitor) {
+    return visitor.visit(this);
   }
 
   public Object evaluate(Evaluator evaluator) {

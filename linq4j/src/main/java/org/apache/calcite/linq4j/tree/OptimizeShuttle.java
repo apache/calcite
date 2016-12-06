@@ -29,14 +29,14 @@ import static org.apache.calcite.linq4j.tree.ExpressionType.Equal;
 import static org.apache.calcite.linq4j.tree.ExpressionType.NotEqual;
 
 /**
- * Visitor that optimizes expressions.
+ * Shuttle that optimizes expressions.
  *
  * <p>The optimizations are essential, not mere tweaks. Without
  * optimization, expressions such as {@code false == null} will be left in,
  * which are invalid to Janino (because it does not automatically box
- * primitives).</p>
+ * primitives).
  */
-public class OptimizeVisitor extends Visitor {
+public class OptimizeShuttle extends Shuttle {
   public static final ConstantExpression FALSE_EXPR =
       Expressions.constant(false);
   public static final ConstantExpression TRUE_EXPR =
@@ -47,8 +47,7 @@ public class OptimizeVisitor extends Visitor {
       Expressions.field(null, Boolean.class, "TRUE");
   public static final Statement EMPTY_STATEMENT = Expressions.statement(null);
 
-  private static final Set<Method> KNOWN_NON_NULL_METHODS =
-      new HashSet<Method>();
+  private static final Set<Method> KNOWN_NON_NULL_METHODS = new HashSet<>();
 
   static {
     for (Class aClass : new Class[]{Boolean.class, Byte.class, Short.class,
@@ -62,9 +61,9 @@ public class OptimizeVisitor extends Visitor {
     }
   }
 
-  private static final Map<ExpressionType, ExpressionType>
-  NOT_BINARY_COMPLEMENT =
-      new EnumMap<ExpressionType, ExpressionType>(ExpressionType.class);
+  private static final
+  Map<ExpressionType, ExpressionType> NOT_BINARY_COMPLEMENT =
+      new EnumMap<>(ExpressionType.class);
 
   static {
     addComplement(ExpressionType.Equal, ExpressionType.NotEqual);
@@ -325,7 +324,7 @@ public class OptimizeVisitor extends Visitor {
       // Nothing to optimize
       return super.visit(conditionalStatement, list);
     }
-    List<Node> newList = new ArrayList<Node>(list.size());
+    List<Node> newList = new ArrayList<>(list.size());
     // Iterate over all the tests, except the latest "else"
     for (int i = 0; i < list.size() - 1; i += 2) {
       Expression test = (Expression) list.get(i);
@@ -420,4 +419,4 @@ public class OptimizeVisitor extends Visitor {
   }
 }
 
-// End OptimizeVisitor.java
+// End OptimizeShuttle.java

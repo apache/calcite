@@ -41,7 +41,7 @@ public abstract class Expression extends AbstractNode {
   }
 
   @Override // More specific return type.
-  public abstract Expression accept(Visitor visitor);
+  public abstract Expression accept(Shuttle shuttle);
 
   /**
    * Indicates that the node can be reduced to a simpler node. If this

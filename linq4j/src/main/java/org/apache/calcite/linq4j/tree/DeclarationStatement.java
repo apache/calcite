@@ -36,13 +36,17 @@ public class DeclarationStatement extends Statement {
     this.initializer = initializer;
   }
 
-  @Override public DeclarationStatement accept(Visitor visitor) {
-    visitor = visitor.preVisit(this);
+  @Override public DeclarationStatement accept(Shuttle shuttle) {
+    shuttle = shuttle.preVisit(this);
     // do not visit parameter - visit may not return a ParameterExpression
     Expression initializer = this.initializer != null
-        ? this.initializer.accept(visitor)
+        ? this.initializer.accept(shuttle)
         : null;
-    return visitor.visit(this, initializer);
+    return shuttle.visit(this, initializer);
+  }
+
+  public <R> R accept(Visitor<R> visitor) {
+    return visitor.visit(this);
   }
 
   @Override void accept0(ExpressionWriter writer) {

@@ -68,10 +68,14 @@ public final class FunctionExpression<F extends Function<?>>
     this(type, null, body, parameters);
   }
 
-  @Override public Expression accept(Visitor visitor) {
-    visitor = visitor.preVisit(this);
-    BlockStatement body = this.body.accept(visitor);
-    return visitor.visit(this, body);
+  @Override public Expression accept(Shuttle shuttle) {
+    shuttle = shuttle.preVisit(this);
+    BlockStatement body = this.body.accept(shuttle);
+    return shuttle.visit(this, body);
+  }
+
+  public <R> R accept(Visitor<R> visitor) {
+    return visitor.visit(this);
   }
 
   public Invokable compile() {

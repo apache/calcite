@@ -3090,28 +3090,28 @@ public abstract class Expressions {
     return toCollection(iterable).toArray(a);
   }
 
-  static <T extends Expression> Expression accept(T node, Visitor visitor) {
+  static <T extends Expression> Expression accept(T node, Shuttle shuttle) {
     if (node == null) {
       return null;
     }
-    return node.accept(visitor);
+    return node.accept(shuttle);
   }
 
-  static <T extends Statement> Statement accept(T node, Visitor visitor) {
+  static <T extends Statement> Statement accept(T node, Shuttle shuttle) {
     if (node == null) {
       return null;
     }
-    return node.accept(visitor);
+    return node.accept(shuttle);
   }
 
   static List<Statement> acceptStatements(List<Statement> statements,
-      Visitor visitor) {
+      Shuttle shuttle) {
     if (statements.isEmpty()) {
       return statements; // short cut
     }
     final List<Statement> statements1 = new ArrayList<Statement>();
     for (Statement statement : statements) {
-      Statement newStatement = statement.accept(visitor);
+      Statement newStatement = statement.accept(shuttle);
       if (newStatement instanceof GotoStatement) {
         GotoStatement goto_ = (GotoStatement) newStatement;
         if (goto_.kind == GotoExpressionKind.Sequence
@@ -3125,65 +3125,75 @@ public abstract class Expressions {
     return statements1;
   }
 
-  static List<Node> acceptNodes(List<Node> nodes, Visitor visitor) {
+  static List<Node> acceptNodes(List<Node> nodes, Shuttle shuttle) {
     if (nodes.isEmpty()) {
       return nodes; // short cut
     }
     final List<Node> statements1 = new ArrayList<Node>();
     for (Node node : nodes) {
-      statements1.add(node.accept(visitor));
+      statements1.add(node.accept(shuttle));
     }
     return statements1;
   }
 
   static List<Expression> acceptParameterExpressions(
-      List<ParameterExpression> parameterExpressions, Visitor visitor) {
+      List<ParameterExpression> parameterExpressions, Shuttle shuttle) {
     if (parameterExpressions.isEmpty()) {
       return Collections.emptyList(); // short cut
     }
     final List<Expression> parameterExpressions1 = new ArrayList<Expression>();
     for (ParameterExpression parameterExpression : parameterExpressions) {
-      parameterExpressions1.add(parameterExpression.accept(visitor));
+      parameterExpressions1.add(parameterExpression.accept(shuttle));
     }
     return parameterExpressions1;
   }
 
   static List<DeclarationStatement> acceptDeclarations(
-      List<DeclarationStatement> declarations, Visitor visitor) {
+      List<DeclarationStatement> declarations, Shuttle shuttle) {
     if (declarations == null || declarations.isEmpty()) {
       return declarations; // short cut
     }
     final List<DeclarationStatement> declarations1 =
         new ArrayList<DeclarationStatement>();
     for (DeclarationStatement declaration : declarations) {
-      declarations1.add(declaration.accept(visitor));
+      declarations1.add(declaration.accept(shuttle));
     }
     return declarations1;
   }
 
   static List<MemberDeclaration> acceptMemberDeclarations(
-      List<MemberDeclaration> memberDeclarations, Visitor visitor) {
+      List<MemberDeclaration> memberDeclarations, Shuttle shuttle) {
     if (memberDeclarations == null || memberDeclarations.isEmpty()) {
       return memberDeclarations; // short cut
     }
     final List<MemberDeclaration> memberDeclarations1 =
         new ArrayList<MemberDeclaration>();
     for (MemberDeclaration memberDeclaration : memberDeclarations) {
-      memberDeclarations1.add(memberDeclaration.accept(visitor));
+      memberDeclarations1.add(memberDeclaration.accept(shuttle));
     }
     return memberDeclarations1;
   }
 
   static List<Expression> acceptExpressions(List<Expression> expressions,
-      Visitor visitor) {
+      Shuttle shuttle) {
     if (expressions.isEmpty()) {
       return expressions; // short cut
     }
-    final List<Expression> expressions1 = new ArrayList<Expression>();
+    final List<Expression> expressions1 = new ArrayList<>();
     for (Expression expression : expressions) {
-      expressions1.add(expression.accept(visitor));
+      expressions1.add(expression.accept(shuttle));
     }
     return expressions1;
+  }
+
+  static <R> R acceptNodes(List<? extends Node> nodes, Visitor<R> visitor) {
+    R r = null;
+    if (nodes != null) {
+      for (Node node : nodes) {
+        r = node.accept(visitor);
+      }
+    }
+    return r;
   }
 
   // ~ Classes and interfaces ------------------------------------------------

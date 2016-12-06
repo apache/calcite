@@ -29,7 +29,7 @@ import java.util.List;
  * Instances of this class should not be reused, so new visitor should be
  * created for optimizing a new expression tree.
  */
-public class ClassDeclarationFinder extends Visitor {
+public class ClassDeclarationFinder extends Shuttle {
   protected final ClassDeclarationFinder parent;
 
   /**
@@ -144,7 +144,7 @@ public class ClassDeclarationFinder extends Visitor {
    * @param newExpression expression to optimize
    * @return nested visitor if anonymous class is given
    */
-  @Override public Visitor preVisit(NewExpression newExpression) {
+  @Override public Shuttle preVisit(NewExpression newExpression) {
     if (newExpression.memberDeclarations == null) {
       return this;
     }
@@ -159,7 +159,7 @@ public class ClassDeclarationFinder extends Visitor {
    * @param classDeclaration expression to optimize
    * @return nested visitor
    */
-  @Override public Visitor preVisit(ClassDeclaration classDeclaration) {
+  @Override public Shuttle preVisit(ClassDeclaration classDeclaration) {
     ClassDeclarationFinder visitor = goDeeper();
     visitor.learnFinalStaticDeclarations(classDeclaration.memberDeclarations);
     return visitor;
@@ -228,7 +228,7 @@ public class ClassDeclarationFinder extends Visitor {
       return memberDeclarations;
     }
     List<MemberDeclaration> newDecls =
-        new ArrayList<MemberDeclaration>(memberDeclarations.size()
+        new ArrayList<>(memberDeclarations.size()
             + addedDeclarations.size());
     newDecls.addAll(memberDeclarations);
     newDecls.addAll(addedDeclarations);

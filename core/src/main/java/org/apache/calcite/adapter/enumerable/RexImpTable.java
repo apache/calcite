@@ -27,7 +27,7 @@ import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.ExpressionType;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.linq4j.tree.MemberExpression;
-import org.apache.calcite.linq4j.tree.OptimizeVisitor;
+import org.apache.calcite.linq4j.tree.OptimizeShuttle;
 import org.apache.calcite.linq4j.tree.ParameterExpression;
 import org.apache.calcite.linq4j.tree.Primitive;
 import org.apache.calcite.linq4j.tree.Types;
@@ -640,7 +640,7 @@ public class RexImpTable {
   }
 
   static Expression optimize(Expression expression) {
-    return expression.accept(new OptimizeVisitor());
+    return expression.accept(new OptimizeShuttle());
   }
 
   static Expression optimize2(Expression operand, Expression expression) {

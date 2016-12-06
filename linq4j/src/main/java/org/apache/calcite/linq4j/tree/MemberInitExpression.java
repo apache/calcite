@@ -25,9 +25,14 @@ public class MemberInitExpression extends Expression {
     super(ExpressionType.MemberInit, Void.TYPE);
   }
 
-  @Override public Expression accept(Visitor visitor) {
+  @Override public Expression accept(Shuttle shuttle) {
+    return shuttle.visit(this);
+  }
+
+  public <R> R accept(Visitor<R> visitor) {
     return visitor.visit(this);
   }
+
 }
 
 // End MemberInitExpression.java

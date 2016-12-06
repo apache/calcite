@@ -47,11 +47,15 @@ public class MethodDeclaration extends MemberDeclaration {
     this.body = body;
   }
 
-  @Override public MemberDeclaration accept(Visitor visitor) {
-    visitor = visitor.preVisit(this);
+  @Override public MemberDeclaration accept(Shuttle shuttle) {
+    shuttle = shuttle.preVisit(this);
     // do not visit parameters
-    final BlockStatement body = this.body.accept(visitor);
-    return visitor.visit(this, body);
+    final BlockStatement body = this.body.accept(shuttle);
+    return shuttle.visit(this, body);
+  }
+
+  public <R> R accept(Visitor<R> visitor) {
+    return visitor.visit(this);
   }
 
   public void accept(ExpressionWriter writer) {

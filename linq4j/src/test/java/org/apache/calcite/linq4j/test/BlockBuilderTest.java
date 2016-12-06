@@ -21,8 +21,8 @@ import org.apache.calcite.linq4j.tree.BlockBuilder;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.ExpressionType;
 import org.apache.calcite.linq4j.tree.Expressions;
-import org.apache.calcite.linq4j.tree.OptimizeVisitor;
-import org.apache.calcite.linq4j.tree.Visitor;
+import org.apache.calcite.linq4j.tree.OptimizeShuttle;
+import org.apache.calcite.linq4j.tree.Shuttle;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -62,8 +62,8 @@ public class BlockBuilderTest {
 
   @Test public void testTestCustomOptimizer() {
     BlockBuilder b = new BlockBuilder() {
-      @Override protected Visitor createOptimizeVisitor() {
-        return new OptimizeVisitor() {
+      @Override protected Shuttle createOptimizeShuttle() {
+        return new OptimizeShuttle() {
           @Override public Expression visit(BinaryExpression binary,
               Expression expression0, Expression expression1) {
             if (binary.getNodeType() == ExpressionType.Add

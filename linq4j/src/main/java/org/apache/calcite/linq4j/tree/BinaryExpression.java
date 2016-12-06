@@ -37,11 +37,15 @@ public class BinaryExpression extends Expression {
     this.primitive = Primitive.of(expression0.getType());
   }
 
-  @Override public Expression accept(Visitor visitor) {
+  @Override public Expression accept(Shuttle visitor) {
     visitor = visitor.preVisit(this);
     Expression expression0 = this.expression0.accept(visitor);
     Expression expression1 = this.expression1.accept(visitor);
     return visitor.visit(this, expression0, expression1);
+  }
+
+  public <R> R accept(Visitor<R> visitor) {
+    return visitor.visit(this);
   }
 
   public Object evaluate(Evaluator evaluator) {

@@ -25,9 +25,14 @@ public class SwitchStatement extends Statement {
     super(nodeType, Void.TYPE);
   }
 
-  @Override public Statement accept(Visitor visitor) {
+  @Override public Statement accept(Shuttle shuttle) {
+    return shuttle.visit(this);
+  }
+
+  public <R> R accept(Visitor<R> visitor) {
     return visitor.visit(this);
   }
+
 }
 
 // End SwitchStatement.java

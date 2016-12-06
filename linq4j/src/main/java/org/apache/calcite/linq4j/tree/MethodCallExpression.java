@@ -53,13 +53,17 @@ public class MethodCallExpression extends Expression {
     this(method.getGenericReturnType(), method, targetExpression, expressions);
   }
 
-  @Override public Expression accept(Visitor visitor) {
-    visitor = visitor.preVisit(this);
+  @Override public Expression accept(Shuttle shuttle) {
+    shuttle = shuttle.preVisit(this);
     Expression targetExpression = Expressions.accept(this.targetExpression,
-        visitor);
+        shuttle);
     List<Expression> expressions = Expressions.acceptExpressions(
-        this.expressions, visitor);
-    return visitor.visit(this, targetExpression, expressions);
+        this.expressions, shuttle);
+    return shuttle.visit(this, targetExpression, expressions);
+  }
+
+  public <R> R accept(Visitor<R> visitor) {
+    return visitor.visit(this);
   }
 
   @Override public Object evaluate(Evaluator evaluator) {

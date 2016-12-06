@@ -65,7 +65,7 @@ public abstract class AbstractNode implements Node {
         "un-parse not supported: " + getClass() + ":" + nodeType);
   }
 
-  public Node accept(Visitor visitor) {
+  public Node accept(Shuttle shuttle) {
     throw new RuntimeException(
         "visit not supported: " + getClass() + ":" + nodeType);
   }
