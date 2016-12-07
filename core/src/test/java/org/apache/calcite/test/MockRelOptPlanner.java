@@ -28,6 +28,8 @@ import org.apache.calcite.rex.RexExecutorImpl;
 import org.apache.calcite.schema.Schemas;
 import org.apache.calcite.util.Pair;
 
+import com.google.common.collect.ImmutableList;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -69,6 +71,11 @@ public class MockRelOptPlanner extends AbstractRelOptPlanner {
   @Override public void clear() {
     super.clear();
     this.rule = null;
+  }
+
+  public List<RelOptRule> getRules() {
+    return rule == null
+        ? ImmutableList.<RelOptRule>of() : ImmutableList.of(rule);
   }
 
   public boolean addRule(RelOptRule rule) {
