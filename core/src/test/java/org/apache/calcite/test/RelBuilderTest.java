@@ -1008,6 +1008,71 @@ public class RelBuilderTest {
     assertThat(str(root), is(expected));
   }
 
+  // test for field access of tables aliased that are not accessible
+  // in the top RelNode
+  @Test public void testAliasPastTop() {
+    // Equivalent SQL:
+    //   SELECT *
+    //   FROM emp
+    //   LEFT JOIN dept ON emp.deptno = dept.deptno
+    //     AND emp.empno = 123
+    //     AND dept.deptno IS NOT NULL
+    final RelBuilder builder = RelBuilder.create(config().build());
+    RelNode root =
+        builder.scan("EMP")
+               .scan("DEPT")
+               .join(JoinRelType.LEFT,
+                     builder.call(SqlStdOperatorTable.EQUALS,
+                                  builder.field(2, "EMP", "DEPTNO"),
+                                  builder.field(2, "DEPT", "DEPTNO")),
+                     builder.call(SqlStdOperatorTable.EQUALS,
+                                  builder.field(2, "EMP", "EMPNO"),
+                                  builder.literal(123)))
+               .build();
+    final String expected = ""
+                            + "LogicalJoin(condition=[AND(=($7, $8), =($0, 123))], joinType=[left])\n"
+                            + "  LogicalTableScan(table=[[scott, EMP]])\n"
+                            + "  LogicalTableScan(table=[[scott, DEPT]])\n";
+    assertThat(str(root), is(expected));
+  }
+
+  // test for field access of tables aliased that are not accessible
+  // in the top RelNode
+  @Test public void testAliasPastTop2() {
+    // Equivalent SQL:
+    //   SELECT t1.EMPNO, t2.EMPNO, t3.DEPTNO
+    //   FROM emp t1
+    //   INNER JOIN emp t2 ON t1.EMPNO = t2.EMPNO
+    //   INNER JOIN dept t3 ON t1.DEPTNO = t3.DEPTNO
+    //     AND t2.JOB != t3.LOC
+    final RelBuilder builder = RelBuilder.create(config().build());
+    RelNode root =
+        builder.scan("EMP").as("t1")
+               .scan("EMP").as("t2")
+               .join(JoinRelType.INNER,
+                     builder.equals(builder.field(2, "t1", "EMPNO"),
+                                    builder.field(2, "t2", "EMPNO")))
+               .scan("DEPT").as("t3")
+               .join(JoinRelType.INNER,
+                     builder.equals(builder.field(2, "t1", "DEPTNO"),
+                                    builder.field(2, "t3", "DEPTNO")),
+                     builder.not(
+                         builder.equals(builder.field(2, "t2", "JOB"),
+                                        builder.field(2, "t3", "LOC"))))
+               .build();
+    // Cols:
+    // 0-7   EMP as t1
+    // 8-15  EMP as t2
+    // 16-18 DEPT as t3
+    final String expected = ""
+                            + "LogicalJoin(condition=[AND(=($7, $16), <>($10, $18))], joinType=[inner])\n"
+                            + "  LogicalJoin(condition=[=($0, $8)], joinType=[inner])\n"
+                            + "    LogicalTableScan(table=[[scott, EMP]])\n"
+                            + "    LogicalTableScan(table=[[scott, EMP]])\n"
+                            + "  LogicalTableScan(table=[[scott, DEPT]])\n";
+    assertThat(str(root), is(expected));
+  }
+
   @Test public void testEmpty() {
     // Equivalent SQL:
     //   SELECT deptno, true FROM dept LIMIT 0

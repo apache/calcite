@@ -235,7 +235,7 @@ field #8.
 
 But through the builder API, you specify which field of which input.
 To reference "SAL", internal field #5,
-write `builder.field(2, 0, "SAL")`
+write `builder.field(2, 0, "SAL")`, `builder.field(2, "EMP", "SAL")`,
 or `builder.field(2, 0, 5)`.
 This means "the field #5 of input #0 of two inputs".
 (Why does it need to know that there are two inputs? Because they are stored on
@@ -244,7 +244,7 @@ If we did not tell the builder that were two inputs, it would not know how deep
 to go for input #0.)
 
 Similarly, to reference "DNAME", internal field #9 (8 + 1),
-write `builder.field(2, 1, "DNAME")`
+write `builder.field(2, 1, "DNAME")`, `builder.field(2, "DEPT", "DNAME")`,
 or `builder.field(2, 1, 1)`.
 
 ### API summary
@@ -274,6 +274,7 @@ return the `RelBuilder`.
 | `union(all [, n])` | Creates a [Union]({{ site.apiRoot }}/org/apache/calcite/rel/core/Union.html) of the `n` (default two) most recent relational expressions.
 | `intersect(all [, n])` | Creates an [Intersect]({{ site.apiRoot }}/org/apache/calcite/rel/core/Intersect.html) of the `n` (default two) most recent relational expressions.
 | `minus(all)` | Creates a [Minus]({{ site.apiRoot }}/org/apache/calcite/rel/core/Minus.html) of the two most recent relational expressions.
+| `as(alias)` | Assigns the given alias to the top-most relational expression.
 
 Argument types:
 
@@ -327,6 +328,8 @@ added to the stack.
 | `field(fieldOrdinal)` | Reference, by ordinal, to a field of the top-most relational expression
 | `field(inputCount, inputOrdinal, fieldName)` | Reference, by name, to a field of the (`inputCount` - `inputOrdinal`)th relational expression
 | `field(inputCount, inputOrdinal, fieldOrdinal)` | Reference, by ordinal, to a field of the (`inputCount` - `inputOrdinal`)th relational expression
+| `field(inputCount, alias, fieldName)` | Reference, by table alias and field name, to a field at most `inputCount - 1` elements from the top of the stack
+| `field(alias, fieldName)` | Reference, by table alias and field name, to a field of the top-most relational expressions
 | `fields(fieldOrdinalList)` | List of expressions referencing input fields by ordinal
 | `fields(mapping)` | List of expressions referencing input fields by a given mapping
 | `fields(collation)` | List of expressions, `exprList`, such that `sort(exprList)` would replicate collation
