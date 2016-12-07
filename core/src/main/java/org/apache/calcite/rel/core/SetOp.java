@@ -100,7 +100,7 @@ public abstract class SetOp extends AbstractRelNode {
   }
 
   @Override protected RelDataType deriveRowType() {
-    return getCluster().getTypeFactory().leastRestrictive(
+    rowType = getCluster().getTypeFactory().leastRestrictive(
         new AbstractList<RelDataType>() {
           @Override public RelDataType get(int index) {
             return inputs.get(index).getRowType();
@@ -110,6 +110,18 @@ public abstract class SetOp extends AbstractRelNode {
             return inputs.size();
           }
         });
+    if (rowType == null) {
+      StringBuilder errMsg = new StringBuilder();
+      for (final RelNode aInput : inputs) {
+        if (errMsg.length() > 0) {
+          errMsg.append(",");
+        }
+        errMsg.append(aInput.getRowType());
+      }
+      throw new IllegalArgumentException("Cannot compute compatible row type "
+                                         + "for arguments to set op: " + errMsg);
+    }
+    return rowType;
   }
 
   /**
