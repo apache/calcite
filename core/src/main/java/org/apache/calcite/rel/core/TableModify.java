@@ -28,8 +28,11 @@ import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.SingleRel;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.type.SqlTypeUtil;
+
+import com.google.common.base.Preconditions;
 
 import java.util.Collections;
 import java.util.List;
@@ -70,11 +73,29 @@ public abstract class TableModify extends SingleRel {
   protected final RelOptTable table;
   private final Operation operation;
   private final List<String> updateColumnList;
+  private final List<RexNode> sourceExpressionList;
   private RelDataType inputRowType;
   private final boolean flattened;
 
   //~ Constructors -----------------------------------------------------------
 
+  /**
+   * The Update operator has format like this:
+   * UPDATE table SET iden1=exp1, ident2=exp2  WHERE condition
+   *
+   *
+   * @param cluster Planner context
+   * @param traits Relation traits
+   * @param table target table to update
+   * @param catalogReader accessor to the table metadata.
+   * @param child Sub-query or filter condition
+   * @param operation modify operation (INSERT, UPDATE, DELETE)
+   * @param updateColumnList list of column identifiers to be updated
+   *           (e.g. ident1, ident2) applicable only for UPDATE operator.
+   * @param sourceExpressionList list of value expression to be set
+   *           (e.g. exp1, exp2) applicable only for UPDATE operator.
+   * @param flattened if set flatens the input row type
+   */
   protected TableModify(
       RelOptCluster cluster,
       RelTraitSet traits,
@@ -83,12 +104,23 @@ public abstract class TableModify extends SingleRel {
       RelNode child,
       Operation operation,
       List<String> updateColumnList,
+      List<RexNode> sourceExpressionList,
       boolean flattened) {
     super(cluster, traits, child);
     this.table = table;
     this.catalogReader = catalogReader;
     this.operation = operation;
     this.updateColumnList = updateColumnList;
+    this.sourceExpressionList = sourceExpressionList;
+    if (operation.equals(Operation.UPDATE)) {
+      Preconditions.checkNotNull(updateColumnList);
+      Preconditions.checkNotNull(sourceExpressionList);
+      Preconditions.checkArgument(
+              sourceExpressionList.size() == updateColumnList.size());
+    } else {
+      Preconditions.checkArgument(updateColumnList == null);
+      Preconditions.checkArgument(sourceExpressionList == null);
+    }
     if (table.getRelOptSchema() != null) {
       cluster.getPlanner().registerSchema(table.getRelOptSchema());
     }
@@ -107,6 +139,10 @@ public abstract class TableModify extends SingleRel {
 
   public List<String> getUpdateColumnList() {
     return updateColumnList;
+  }
+
+  public List<RexNode> getSourceExpressionList() {
+    return sourceExpressionList;
   }
 
   public boolean isFlattened() {
@@ -187,6 +223,11 @@ public abstract class TableModify extends SingleRel {
             (updateColumnList == null)
                 ? Collections.EMPTY_LIST
                 : updateColumnList)
+        .item(
+            "sourceExpressionList",
+            (sourceExpressionList == null)
+                ? Collections.EMPTY_LIST
+                : sourceExpressionList)
         .item("flattened", flattened);
   }
 
