@@ -2653,7 +2653,10 @@ public class RelOptRulesTest extends RelOptTestBase {
     // table is count-preserving against the join condition.
     final String sql = "select d.deptno, empno from sales.dept d\n"
         + "right join sales.emp e using (deptno) limit 10 offset 2";
-    checkPlanning(tester, preProgram, new HepPlanner(program), sql);
+    sql(sql)
+        .withPre(preProgram)
+        .with(program)
+        .check();
   }
 
   /** Test case for
@@ -2670,7 +2673,10 @@ public class RelOptRulesTest extends RelOptTestBase {
     // This one cannot be pushed down
     final String sql = "select d.deptno, empno from sales.dept d\n"
         + "left join sales.emp e using (deptno) order by d.deptno offset 1";
-    checkPlanning(tester, preProgram, new HepPlanner(program), sql, true);
+    sql(sql)
+        .withPre(preProgram)
+        .with(program)
+        .checkUnchanged();
   }
 
   /** Test case for
