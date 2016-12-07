@@ -2007,11 +2007,11 @@ public class RelOptRulesTest extends RelOptTestBase {
     HepProgram program = HepProgram.builder()
         .addRuleInstance(AggregateFilterTransposeRule.INSTANCE)
         .build();
-    final String sql = "select empno, sal, deptno from ("
-        + "  select empno, sal, deptno"
+    final String sql = "select ename, sal, deptno from ("
+        + "  select ename, sal, deptno"
         + "  from emp"
         + "  where sal > 5000)"
-        + "group by empno, sal, deptno";
+        + "group by ename, sal, deptno";
     checkPlanning(tester, preProgram, new HepPlanner(program), sql);
   }
 
@@ -2024,11 +2024,11 @@ public class RelOptRulesTest extends RelOptTestBase {
     HepProgram program = HepProgram.builder()
         .addRuleInstance(AggregateFilterTransposeRule.INSTANCE)
         .build();
-    final String sql = "select empno, sal, deptno from ("
-        + "  select empno, sal, deptno"
+    final String sql = "select ename, sal, deptno from ("
+        + "  select ename, sal, deptno"
         + "  from emp"
         + "  where sal > 5000)"
-        + "group by rollup(empno, sal, deptno)";
+        + "group by rollup(ename, sal, deptno)";
     checkPlanning(tester, preProgram, new HepPlanner(program), sql);
   }
 
@@ -2425,10 +2425,10 @@ public class RelOptRulesTest extends RelOptTestBase {
     final HepProgram program = new HepProgramBuilder()
         .addRuleInstance(AggregateJoinTransposeRule.EXTENDED)
         .build();
-    final String sql = "select e.empno,d.deptno\n"
+    final String sql = "select e.job,d.name\n"
         + "from (select * from sales.emp where empno = 10) as e\n"
-        + "join sales.dept as d on e.empno = d.deptno\n"
-        + "group by e.empno,d.deptno";
+        + "join sales.dept as d on e.job = d.name\n"
+        + "group by e.job,d.name";
     checkPlanning(tester, preProgram, new HepPlanner(program), sql);
   }
 
@@ -2439,11 +2439,11 @@ public class RelOptRulesTest extends RelOptTestBase {
     final HepProgram program = new HepProgramBuilder()
         .addRuleInstance(AggregateJoinTransposeRule.EXTENDED)
         .build();
-    final String sql = "select e.empno,d.deptno\n"
+    final String sql = "select e.job,d.name\n"
         + "from (select * from sales.emp where empno = 10) as e\n"
-        + "join sales.dept as d on e.empno = d.deptno\n"
+        + "join sales.dept as d on e.job = d.name\n"
         + "and e.deptno + e.empno = d.deptno + 5\n"
-        + "group by e.empno,d.deptno";
+        + "group by e.job,d.name";
     checkPlanning(tester, preProgram, new HepPlanner(program), sql);
   }
 
@@ -2469,10 +2469,10 @@ public class RelOptRulesTest extends RelOptTestBase {
     final HepProgram program = new HepProgramBuilder()
         .addRuleInstance(AggregateJoinTransposeRule.EXTENDED)
         .build();
-    final String sql = "select e.empno,sum(sal)\n"
+    final String sql = "select e.job,sum(sal)\n"
         + "from (select * from sales.emp where empno = 10) as e\n"
-        + "join sales.dept as d on e.empno = d.deptno\n"
-        + "group by e.empno,d.deptno";
+        + "join sales.dept as d on e.job = d.name\n"
+        + "group by e.job,d.name";
     checkPlanning(tester, preProgram, new HepPlanner(program), sql);
   }
 
@@ -2484,14 +2484,14 @@ public class RelOptRulesTest extends RelOptTestBase {
     final HepProgram program = new HepProgramBuilder()
         .addRuleInstance(AggregateJoinTransposeRule.EXTENDED)
         .build();
-    final String sql = "select e.empno,\n"
+    final String sql = "select e.job,\n"
         + "  min(sal) as min_sal, min(e.deptno) as min_deptno,\n"
         + "  sum(sal) + 1 as sum_sal_plus, max(sal) as max_sal,\n"
         + "  sum(sal) as sum_sal_2, count(sal) as count_sal,\n"
         + "  count(mgr) as count_mgr\n"
         + "from sales.emp as e\n"
-        + "join sales.dept as d on e.empno = d.deptno\n"
-        + "group by e.empno,d.deptno";
+        + "join sales.dept as d on e.job = d.name\n"
+        + "group by e.job,d.name";
     checkPlanning(tester, preProgram, new HepPlanner(program), sql);
   }
 
@@ -2504,12 +2504,12 @@ public class RelOptRulesTest extends RelOptTestBase {
     final HepProgram program = new HepProgramBuilder()
         .addRuleInstance(AggregateJoinTransposeRule.EXTENDED)
         .build();
-    final String sql = "select d.deptno,\n"
+    final String sql = "select d.name,\n"
         + "  sum(sal) as sum_sal, count(*) as c\n"
         + "from sales.emp as e\n"
-        + "join (select distinct deptno from sales.dept) as d\n"
-        + "  on e.empno = d.deptno\n"
-        + "group by d.deptno";
+        + "join (select distinct name from sales.dept) as d\n"
+        + "  on e.job = d.name\n"
+        + "group by d.name";
     checkPlanning(tester, preProgram, new HepPlanner(program), sql);
   }
 
@@ -2522,7 +2522,7 @@ public class RelOptRulesTest extends RelOptTestBase {
         .addRuleInstance(AggregateJoinTransposeRule.EXTENDED)
         .build();
     final String sql =
-        "select count(*) from sales.emp join sales.dept using (deptno)";
+        "select count(*) from sales.emp join sales.dept on job = name";
     checkPlanning(tester, preProgram, new HepPlanner(program), sql);
   }
 
@@ -2636,6 +2636,47 @@ public class RelOptRulesTest extends RelOptTestBase {
         + "select * from sales.dept d) using (deptno)\n"
         + "limit 10";
     checkPlanning(tester, preProgram, new HepPlanner(program), sql, true);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1507">[CALCITE-1507]
+   * OFFSET cannot be pushed through a JOIN if the non-preserved side of outer
+   * join is not count-preserving</a>. */
+  @Test public void testSortJoinTranspose6() {
+    final HepProgram preProgram = new HepProgramBuilder()
+        .addRuleInstance(SortProjectTransposeRule.INSTANCE)
+        .build();
+    final HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(SortJoinTransposeRule.INSTANCE)
+        .build();
+    // This one can be pushed down even if it has an OFFSET, since the dept
+    // table is count-preserving against the join condition.
+    final String sql = "select d.deptno, empno from sales.dept d\n"
+        + "right join sales.emp e using (deptno) limit 10 offset 2";
+    sql(sql)
+        .withPre(preProgram)
+        .with(program)
+        .check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1507">[CALCITE-1507]
+   * OFFSET cannot be pushed through a JOIN if the non-preserved side of outer
+   * join is not count-preserving</a>. */
+  @Test public void testSortJoinTranspose7() {
+    final HepProgram preProgram = new HepProgramBuilder()
+        .addRuleInstance(SortProjectTransposeRule.INSTANCE)
+        .build();
+    final HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(SortJoinTransposeRule.INSTANCE)
+        .build();
+    // This one cannot be pushed down
+    final String sql = "select d.deptno, empno from sales.dept d\n"
+        + "left join sales.emp e using (deptno) order by d.deptno offset 1";
+    sql(sql)
+        .withPre(preProgram)
+        .with(program)
+        .checkUnchanged();
   }
 
   /** Test case for

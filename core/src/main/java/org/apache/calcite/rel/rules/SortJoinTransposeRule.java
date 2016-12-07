@@ -24,6 +24,7 @@ import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Join;
+import org.apache.calcite.rel.core.JoinInfo;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.logical.LogicalJoin;
@@ -61,11 +62,17 @@ public class SortJoinTransposeRule extends RelOptRule {
   @Override public boolean matches(RelOptRuleCall call) {
     final Sort sort = call.rel(0);
     final Join join = call.rel(1);
+    final RelMetadataQuery mq = RelMetadataQuery.instance();
+    final JoinInfo joinInfo = JoinInfo.of(
+        join.getLeft(), join.getRight(), join.getCondition());
 
     // 1) If join is not a left or right outer, we bail out
-    // 2) If sort does not consist only of a limit operation,
-    // or any sort column is not part of the input where the
+    // 2) If sort is not a trivial order-by, and if there is
+    // any sort column that is not part of the input where the
     // sort is pushed, we bail out
+    // 3) If sort has an offset, and if the non-preserved side
+    // of the join is not count-preserving against the join
+    // condition, we bail out
     if (join.getJoinType() == JoinRelType.LEFT) {
       if (sort.getCollation() != RelCollations.EMPTY) {
         for (RelFieldCollation relFieldCollation
@@ -76,6 +83,11 @@ public class SortJoinTransposeRule extends RelOptRule {
           }
         }
       }
+      if (sort.offset != null
+          && !RelMdUtil.areColumnsDefinitelyUnique(
+              mq, join.getRight(), joinInfo.rightSet())) {
+        return false;
+      }
     } else if (join.getJoinType() == JoinRelType.RIGHT) {
       if (sort.getCollation() != RelCollations.EMPTY) {
         for (RelFieldCollation relFieldCollation
@@ -85,6 +97,11 @@ public class SortJoinTransposeRule extends RelOptRule {
             return false;
           }
         }
+      }
+      if (sort.offset != null
+          && !RelMdUtil.areColumnsDefinitelyUnique(
+              mq, join.getLeft(), joinInfo.leftSet())) {
+        return false;
       }
     } else {
       return false;
