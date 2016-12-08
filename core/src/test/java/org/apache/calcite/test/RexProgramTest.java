@@ -154,6 +154,14 @@ public class RexProgramTest {
     return n;
   }
 
+  private RexNode isNull(RexNode node) {
+    return rexBuilder.makeCall(SqlStdOperatorTable.IS_NULL, node);
+  }
+
+  private RexNode isNotNull(RexNode node) {
+    return rexBuilder.makeCall(SqlStdOperatorTable.IS_NOT_NULL, node);
+  }
+
   private RexNode not(RexNode node) {
     return rexBuilder.makeCall(SqlStdOperatorTable.NOT, node);
   }
@@ -481,10 +489,6 @@ public class RexProgramTest {
     return builder;
   }
 
-  static boolean strongIf(RexNode e, ImmutableBitSet b) {
-    return Strong.is(e, b);
-  }
-
   /** Unit test for {@link org.apache.calcite.plan.Strong}. */
   @Test public void testStrong() {
     final RelDataType intType = typeFactory.createSqlType(SqlTypeName.INTEGER);
@@ -496,29 +500,42 @@ public class RexProgramTest {
     final ImmutableBitSet c13 = ImmutableBitSet.of(1, 3);
 
     // input ref
-    final RexInputRef aRef = rexBuilder.makeInputRef(intType, 0);
+    final RexInputRef i0 = rexBuilder.makeInputRef(intType, 0);
+    final RexInputRef i1 = rexBuilder.makeInputRef(intType, 1);
 
-    assertThat(strongIf(aRef, c0), is(true));
-    assertThat(strongIf(aRef, c1), is(false));
-    assertThat(strongIf(aRef, c01), is(true));
-    assertThat(strongIf(aRef, c13), is(false));
+    assertThat(Strong.isNull(i0, c0), is(true));
+    assertThat(Strong.isNull(i0, c1), is(false));
+    assertThat(Strong.isNull(i0, c01), is(true));
+    assertThat(Strong.isNull(i0, c13), is(false));
 
     // literals are strong iff they are always null
-    assertThat(strongIf(trueLiteral, c), is(false));
-    assertThat(strongIf(trueLiteral, c13), is(false));
-    assertThat(strongIf(falseLiteral, c13), is(false));
-    assertThat(strongIf(nullLiteral, c), is(true));
-    assertThat(strongIf(nullLiteral, c13), is(true));
-    assertThat(strongIf(unknownLiteral, c13), is(true));
+    assertThat(Strong.isNull(trueLiteral, c), is(false));
+    assertThat(Strong.isNull(trueLiteral, c13), is(false));
+    assertThat(Strong.isNull(falseLiteral, c13), is(false));
+    assertThat(Strong.isNull(nullLiteral, c), is(true));
+    assertThat(Strong.isNull(nullLiteral, c13), is(true));
+    assertThat(Strong.isNull(unknownLiteral, c13), is(true));
 
     // AND is strong if one of its arguments is strong
     final RexNode andUnknownTrue = and(unknownLiteral, trueLiteral);
     final RexNode andTrueUnknown = and(trueLiteral, unknownLiteral);
     final RexNode andFalseTrue = and(falseLiteral, trueLiteral);
 
-    assertThat(strongIf(andUnknownTrue, c), is(true));
-    assertThat(strongIf(andTrueUnknown, c), is(true));
-    assertThat(strongIf(andFalseTrue, c), is(false));
+    assertThat(Strong.isNull(andUnknownTrue, c), is(true));
+    assertThat(Strong.isNull(andTrueUnknown, c), is(true));
+    assertThat(Strong.isNull(andFalseTrue, c), is(false));
+
+    // If i0 is null, "i0 and i1 is null" is null
+    assertThat(Strong.isNull(and(i0, isNull(i1)), c0), is(true));
+    // If i1 is null, "i0 and i1 is null" is not necessarily null
+    assertThat(Strong.isNull(and(i0, isNull(i1)), c1), is(false));
+    // If i0 and i1 are both null, "i0 and i1 is null" is null
+    assertThat(Strong.isNull(and(i0, isNull(i1)), c01), is(true));
+    // If i0 and i1 are both null, "i0 or i1" is null
+    assertThat(Strong.isNull(or(i0, i1), c01), is(true));
+    // If i0 is null, "i0 or i1" is not necessarily null
+    assertThat(Strong.isNull(or(i0, i1), c0), is(false));
+    assertThat(Strong.isNull(or(i0, i1), c1), is(false));
   }
 
   /** Unit test for {@link org.apache.calcite.rex.RexUtil#toCnf}. */
@@ -1081,6 +1098,27 @@ public class RexProgramTest {
     assertThat(result.getType().getSqlTypeName(), is(SqlTypeName.BOOLEAN));
   }
 
+  @Test public void testSimplifyIsNotNull() {
+    RelDataType intType =
+        typeFactory.createTypeWithNullability(
+            typeFactory.createSqlType(SqlTypeName.INTEGER), false);
+    RelDataType intNullableType =
+        typeFactory.createTypeWithNullability(
+            typeFactory.createSqlType(SqlTypeName.INTEGER), true);
+    final RexInputRef i0 = rexBuilder.makeInputRef(intNullableType, 0);
+    final RexInputRef i1 = rexBuilder.makeInputRef(intNullableType, 1);
+    final RexInputRef i2 = rexBuilder.makeInputRef(intType, 2);
+    final RexInputRef i3 = rexBuilder.makeInputRef(intType, 3);
+    final RexLiteral one = rexBuilder.makeExactLiteral(BigDecimal.ONE);
+    final RexNode null_ = rexBuilder.makeNullLiteral(SqlTypeName.INTEGER);
+    checkSimplify(isNotNull(lt(i0, i1)),
+        "AND(IS NOT NULL($0), IS NOT NULL($1))");
+    checkSimplify(isNotNull(lt(i0, i2)), "IS NOT NULL($0)");
+    checkSimplify(isNotNull(lt(i2, i3)), "true");
+    checkSimplify(isNotNull(lt(i0, one)), "IS NOT NULL($0)");
+    checkSimplify(isNotNull(lt(i0, null_)), "false");
+  }
+
   @Test public void testSimplifyCastLiteral() {
     final List<RexLiteral> literals = new ArrayList<>();
     literals.add(
@@ -1234,8 +1272,6 @@ public class RexProgramTest {
             ImmutableList.of(eq(aRef, literal1),
                 eq(aRef, literal2)));
     assertThat(getString(map3), is("{1=?0.a, 2=?0.a}"));
-
-
   }
 
   /** Converts a map to a string, sorting on the string representation of its

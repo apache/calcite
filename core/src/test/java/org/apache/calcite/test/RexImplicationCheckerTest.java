@@ -278,6 +278,7 @@ public class RexImplicationCheckerTest {
     final RexNode sIsNull = f.isNull(f.str);
     final RexNode iEq5 = f.eq(f.i, f.literal(5));
     final RexNode iIsNull = f.isNull(f.i);
+    final RexNode iIsNotNull = f.notNull(f.i);
     f.checkNotImplies(sIsNotNull, sIsNull);
     f.checkNotImplies(sIsNull, sIsNotNull);
     f.checkNotImplies(sEqEn, sIsNull);
@@ -303,6 +304,18 @@ public class RexImplicationCheckerTest {
 
     // "s is not null" implies "i = 5 or s is not null"
     f.checkImplies(sIsNotNull, f.or(iEq5, sIsNotNull));
+
+    // "i > 10" implies "x is not null"
+    f.checkImplies(f.gt(f.i, f.literal(10)), iIsNotNull);
+
+    // "-20 > i" implies "x is not null"
+    f.checkImplies(f.gt(f.literal(-20), f.i), iIsNotNull);
+
+    // "s is null and -20 > i" implies "x is not null"
+    f.checkImplies(f.and(sIsNull, f.gt(f.literal(-20), f.i)), iIsNotNull);
+
+    // "i > 10" does not imply "x is null"
+    f.checkNotImplies(f.gt(f.i, f.literal(10)), iIsNull);
   }
 
   /** Contains all the nourishment a test case could possibly need.

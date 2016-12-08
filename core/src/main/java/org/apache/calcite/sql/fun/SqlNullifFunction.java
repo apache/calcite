@@ -42,9 +42,8 @@ public class SqlNullifFunction extends SqlFunction {
     // rewriteCall to convert NULLIF into CASE early.  However,
     // validator rewrite can optionally be disabled, in which case these
     // strategies are used.
-    super(
-        "NULLIF",
-        SqlKind.OTHER_FUNCTION,
+    super("NULLIF",
+        SqlKind.NULLIF,
         ReturnTypes.ARG0_FORCE_NULLABLE,
         null,
         OperandTypes.COMPARABLE_UNORDERED_COMPARABLE_UNORDERED,

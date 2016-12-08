@@ -1372,6 +1372,41 @@ public class RelMetadataTest extends SqlToRelTestBase {
     assertThat(predicates.pulledUpPredicates, sortsAs("[IS NOT NULL($0)]"));
     assertThat(predicates.leftInferredPredicates.isEmpty(), is(true));
     assertThat(predicates.rightInferredPredicates.isEmpty(), is(true));
+
+    // Create another similar Join. From the join condition
+    //   e.MGR - e.EMPNO = d.DEPTNO + e.MGR_COMM
+    // we can deduce the projected predicate
+    //   MGR IS NOT NULL OR MGR_COMM IS NOT NULL
+    //
+    // EMPNO is omitted because it is NOT NULL.
+    // MGR_COMM is a made-up nullable field.
+    relBuilder.push(filter);
+    relBuilder.project(
+        Iterables.concat(relBuilder.fields(),
+            ImmutableList.of(
+                relBuilder.alias(
+                    relBuilder.call(SqlStdOperatorTable.PLUS,
+                        relBuilder.field("MGR"),
+                        relBuilder.field("COMM")),
+                    "MGR_COMM"))));
+    relBuilder.push(deptScan);
+    relBuilder.join(JoinRelType.INNER,
+        relBuilder.equals(
+            relBuilder.call(SqlStdOperatorTable.MINUS,
+                relBuilder.field(2, 0, "MGR"),
+                relBuilder.field(2, 0, "EMPNO")),
+            relBuilder.call(SqlStdOperatorTable.PLUS,
+                relBuilder.field(2, 1, "DEPTNO"),
+                relBuilder.field(2, 0, "MGR_COMM"))));
+
+    relBuilder.project(relBuilder.field("MGR"), relBuilder.field("NAME"),
+        relBuilder.field("MGR_COMM"), relBuilder.field("COMM"));
+    final RelNode project3 = relBuilder.peek();
+    predicates = mq.getPulledUpPredicates(project3);
+    assertThat(predicates.pulledUpPredicates,
+        sortsAs("[OR(IS NOT NULL($0), IS NOT NULL($2))]"));
+    assertThat(predicates.leftInferredPredicates.isEmpty(), is(true));
+    assertThat(predicates.rightInferredPredicates.isEmpty(), is(true));
   }
 
   /**

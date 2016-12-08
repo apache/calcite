@@ -3468,7 +3468,7 @@ public class SqlParserTest {
   @Test public void testNullIf() {
     checkExp(
         "nullif(v1,v2)",
-        "NULLIF(`V1`, `V2`)");
+        "(NULLIF(`V1`, `V2`))");
     checkExpFails(
         "1 ^+^ nullif + 3",
         "(?s)Encountered \"\\+ nullif \\+\" at line 1, column 3.*");
@@ -3477,13 +3477,13 @@ public class SqlParserTest {
   @Test public void testCoalesce() {
     checkExp(
         "coalesce(v1)",
-        "COALESCE(`V1`)");
+        "(COALESCE(`V1`))");
     checkExp(
         "coalesce(v1,v2)",
-        "COALESCE(`V1`, `V2`)");
+        "(COALESCE(`V1`, `V2`))");
     checkExp(
         "coalesce(v1,v2,v3)",
-        "COALESCE(`V1`, `V2`, `V3`)");
+        "(COALESCE(`V1`, `V2`, `V3`))");
   }
 
   @Test public void testLiteralCollate() {
@@ -3638,8 +3638,8 @@ public class SqlParserTest {
     checkExp(
         "trim (coalesce(cast(null as varchar(2)))||"
             + "' '||coalesce('junk ',''))",
-        "TRIM(BOTH ' ' FROM ((COALESCE(CAST(NULL AS VARCHAR(2))) || "
-            + "' ') || COALESCE('junk ', '')))");
+        "TRIM(BOTH ' ' FROM (((COALESCE(CAST(NULL AS VARCHAR(2)))) || "
+            + "' ') || (COALESCE('junk ', ''))))");
 
     checkFails(
         "trim(^from^ 'beard')",
@@ -6700,9 +6700,9 @@ public class SqlParserTest {
   }
 
   @Test public void testProcedureCall() {
-    check("call blubber(5)", "(CALL `BLUBBER`(5))");
-    check("call \"blubber\"(5)", "(CALL `blubber`(5))");
-    check("call whale.blubber(5)", "(CALL `WHALE`.`BLUBBER`(5))");
+    check("call blubber(5)", "CALL `BLUBBER`(5)");
+    check("call \"blubber\"(5)", "CALL `blubber`(5)");
+    check("call whale.blubber(5)", "CALL `WHALE`.`BLUBBER`(5)");
   }
 
   @Test public void testNewSpecification() {

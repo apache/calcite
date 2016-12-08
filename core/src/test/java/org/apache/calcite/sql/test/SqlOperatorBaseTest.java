@@ -18,6 +18,7 @@ package org.apache.calcite.sql.test;
 
 import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.linq4j.Linq4j;
+import org.apache.calcite.plan.Strong;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.runtime.Hook;
@@ -5914,9 +5915,9 @@ public abstract class SqlOperatorBaseTest {
               || s.matches("MOD\\(.*, 0\\)")) {
             continue;
           }
-          boolean strict = isStrict(op);
+          final Strong.Policy policy = Strong.policy(op.kind);
           try {
-            if (nullCount > 0 && strict) {
+            if (nullCount > 0 && policy == Strong.Policy.ANY) {
               tester.checkNull(s);
             } else {
               final String query;
@@ -5941,28 +5942,6 @@ public abstract class SqlOperatorBaseTest {
         }
       }
     }
-  }
-
-  /** Returns whether an operator always returns null if any of its arguments is
-   * null. */
-  private static boolean isStrict(SqlOperator op) {
-    if (op == SqlStdOperatorTable.NULLIF) {
-      return false;
-    }
-    switch (op.kind) {
-    case IS_DISTINCT_FROM:
-    case IS_NOT_DISTINCT_FROM:
-    case IS_NULL:
-    case IS_NOT_NULL:
-    case IS_TRUE:
-    case IS_NOT_TRUE:
-    case IS_FALSE:
-    case IS_NOT_FALSE:
-    case AND: // not strict: FALSE OR NULL yields FALSE
-    case OR: // not strict: TRUE OR NULL yields TRUE
-      return false;
-    }
-    return true;
   }
 
   private List<Object> getValues(BasicSqlType type, boolean inBound) {

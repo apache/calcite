@@ -2233,11 +2233,11 @@ public abstract class RelOptUtil {
 
     for (RexNode filter : aboveFilters) {
       if (joinType.generatesNullsOnLeft()
-          && Strong.is(filter, leftBitmap)) {
+          && Strong.isNull(filter, leftBitmap)) {
         joinType = joinType.cancelNullsOnLeft();
       }
       if (joinType.generatesNullsOnRight()
-          && Strong.is(filter, rightBitmap)) {
+          && Strong.isNull(filter, rightBitmap)) {
         joinType = joinType.cancelNullsOnRight();
       }
       if (joinType == JoinRelType.INNER) {
