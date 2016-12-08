@@ -1521,12 +1521,12 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
   }
 
   @Test public void testInsertWithCustomColumnResolving2() {
-    final String sql = "insert into struct.t (c0, c2, c1) values (?, ?, ?)";
+    final String sql = "insert into struct.t (f0.c0, f1.c2, c1) values (?, ?, ?)";
     sql(sql).ok();
   }
 
   @Test public void testInsertViewWithCustomColumnResolving() {
-    final String sql = "insert into struct.t_10 (c0, c2, c1) values (?, ?, ?)";
+    final String sql = "insert into struct.t_10 (f0.c0, f1.c2, c1) values (?, ?, ?)";
     sql(sql).ok();
   }
 

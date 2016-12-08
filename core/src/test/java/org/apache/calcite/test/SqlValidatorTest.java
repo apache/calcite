@@ -7986,6 +7986,12 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         "RecordType(INTEGER ?0, INTEGER ?1, VARCHAR(20) ?2)";
     sql(sql2).ok().bindType(expected2);
 
+    final String sql3 =
+        "insert into struct.t (f1.c0, f1.c2, f0.c1) values (?, ?, ?)";
+    final String expected3 =
+        "RecordType(INTEGER ?0, INTEGER ?1, INTEGER ?2)";
+    sql(sql3).ok().bindType(expected3);
+
     sql("insert into struct.t (c0, ^c4^, c1) values (?, ?, ?)")
         .fails("Unknown target column 'C4'");
     sql("insert into struct.t (^a0^, c2, c1) values (?, ?, ?)")

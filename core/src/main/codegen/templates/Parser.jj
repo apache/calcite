@@ -1279,7 +1279,7 @@ SqlNode SqlInsert() :
     }
     [
         LOOKAHEAD(2)
-        columnList = ParenthesizedSimpleIdentifierList()
+        columnList = ParenthesizedCompoundIdentifierList()
     ]
     source = OrderedQueryOrExpr(ExprContext.ACCEPT_QUERY)
     {
@@ -3772,6 +3772,40 @@ SqlIdentifier CompoundIdentifier() :
             return SqlIdentifier.star(list, pos, posList);
         }
         return new SqlIdentifier(list, null, pos, posList);
+    }
+}
+
+/**
+ * Parses a comma-separated list of compound identifiers.
+ */
+SqlNodeList CompoundIdentifierCommaList() :
+{
+    List<SqlIdentifier> list = new ArrayList<SqlIdentifier>();
+    SqlIdentifier id;
+}
+{
+    id = CompoundIdentifier() {list.add(id);}
+    (<COMMA> id = CompoundIdentifier() {list.add(id);}) *
+    {
+        return new SqlNodeList(list, getPos());
+    }
+}
+
+/**
+  * List of compound identifiers in parentheses. The position extends from the
+  * open parenthesis to the close parenthesis.
+  */
+SqlNodeList ParenthesizedCompoundIdentifierList() :
+{
+    SqlParserPos pos;
+    SqlNodeList list;
+}
+{
+    <LPAREN> { pos = getPos(); }
+    list = CompoundIdentifierCommaList()
+    <RPAREN>
+    {
+        return list.clone(pos.plus(getPos()));
     }
 }
 <#else>
