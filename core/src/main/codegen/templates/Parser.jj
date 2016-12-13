@@ -1283,7 +1283,7 @@ SqlNode SqlInsert() :
     }
     [
         LOOKAHEAD(2)
-        columnList = ParenthesizedSimpleIdentifierList()
+        columnList = ParenthesizedCompoundIdentifierList()
     ]
     source = OrderedQueryOrExpr(ExprContext.ACCEPT_QUERY)
     {
@@ -3762,17 +3762,13 @@ SqlIdentifier SimpleIdentifier() :
 /**
  * Parses a comma-separated list of simple identifiers.
  */
-SqlNodeList SimpleIdentifierCommaList() :
+void SimpleIdentifierCommaList(List<SqlNode> list) :
 {
-    List<SqlIdentifier> list = new ArrayList<SqlIdentifier>();
     SqlIdentifier id;
 }
 {
     id = SimpleIdentifier() {list.add(id);}
     (<COMMA> id = SimpleIdentifier() {list.add(id);}) *
-    {
-        return new SqlNodeList(list, getPos());
-    }
 }
 
 /**
@@ -3782,14 +3778,14 @@ SqlNodeList SimpleIdentifierCommaList() :
 SqlNodeList ParenthesizedSimpleIdentifierList() :
 {
     SqlParserPos pos;
-    SqlNodeList list;
+    List<SqlNode> list = new ArrayList<SqlNode>();
 }
 {
     <LPAREN> { pos = getPos(); }
-    list = SimpleIdentifierCommaList()
+    SimpleIdentifierCommaList(list)
     <RPAREN>
     {
-        return list.clone(pos.plus(getPos()));
+        return new SqlNodeList(list, pos.plus(getPos()));
     }
 }
 
@@ -3831,6 +3827,36 @@ SqlIdentifier CompoundIdentifier() :
             return SqlIdentifier.star(list, pos, posList);
         }
         return new SqlIdentifier(list, null, pos, posList);
+    }
+}
+
+/**
+ * Parses a comma-separated list of compound identifiers.
+ */
+void CompoundIdentifierCommaList(List<SqlNode> list) :
+{
+    SqlIdentifier id;
+}
+{
+    id = CompoundIdentifier() {list.add(id);}
+    (<COMMA> id = CompoundIdentifier() {list.add(id);}) *
+}
+
+/**
+  * List of compound identifiers in parentheses. The position extends from the
+  * open parenthesis to the close parenthesis.
+  */
+SqlNodeList ParenthesizedCompoundIdentifierList() :
+{
+    SqlParserPos pos;
+    List<SqlNode> list = new ArrayList<SqlNode>();
+}
+{
+    <LPAREN> { pos = getPos(); }
+    CompoundIdentifierCommaList(list)
+    <RPAREN>
+    {
+        return new SqlNodeList(list, pos.plus(getPos()));
     }
 }
 <#else>
