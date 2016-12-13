@@ -3778,17 +3778,13 @@ SqlIdentifier CompoundIdentifier() :
 /**
  * Parses a comma-separated list of compound identifiers.
  */
-SqlNodeList CompoundIdentifierCommaList() :
+void CompoundIdentifierCommaList(List<SqlNode> list) :
 {
-    List<SqlIdentifier> list = new ArrayList<SqlIdentifier>();
     SqlIdentifier id;
 }
 {
     id = CompoundIdentifier() {list.add(id);}
     (<COMMA> id = CompoundIdentifier() {list.add(id);}) *
-    {
-        return new SqlNodeList(list, getPos());
-    }
 }
 
 /**
@@ -3798,14 +3794,14 @@ SqlNodeList CompoundIdentifierCommaList() :
 SqlNodeList ParenthesizedCompoundIdentifierList() :
 {
     SqlParserPos pos;
-    SqlNodeList list;
+    List<SqlNode> list = new ArrayList<SqlNode>();
 }
 {
     <LPAREN> { pos = getPos(); }
-    list = CompoundIdentifierCommaList()
+    CompoundIdentifierCommaList(list)
     <RPAREN>
     {
-        return list.clone(pos.plus(getPos()));
+        return new SqlNodeList(list, pos.plus(getPos()));
     }
 }
 <#else>
