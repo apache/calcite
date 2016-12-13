@@ -3703,17 +3703,13 @@ SqlIdentifier SimpleIdentifier() :
 /**
  * Parses a comma-separated list of simple identifiers.
  */
-SqlNodeList SimpleIdentifierCommaList() :
+void SimpleIdentifierCommaList(List<SqlNode> list) :
 {
-    List<SqlIdentifier> list = new ArrayList<SqlIdentifier>();
     SqlIdentifier id;
 }
 {
     id = SimpleIdentifier() {list.add(id);}
     (<COMMA> id = SimpleIdentifier() {list.add(id);}) *
-    {
-        return new SqlNodeList(list, getPos());
-    }
 }
 
 /**
@@ -3723,14 +3719,14 @@ SqlNodeList SimpleIdentifierCommaList() :
 SqlNodeList ParenthesizedSimpleIdentifierList() :
 {
     SqlParserPos pos;
-    SqlNodeList list;
+    List<SqlNode> list = new ArrayList<SqlNode>();
 }
 {
     <LPAREN> { pos = getPos(); }
-    list = SimpleIdentifierCommaList()
+    SimpleIdentifierCommaList(list)
     <RPAREN>
     {
-        return list.clone(pos.plus(getPos()));
+        return new SqlNodeList(list, pos.plus(getPos()));
     }
 }
 
