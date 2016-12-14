@@ -66,7 +66,13 @@ public enum BuiltInConnectionProperty implements ConnectionProperty {
   PRINCIPAL("principal", Type.STRING, null, false),
 
   /** Keytab to use to perform Kerberos login. */
-  KEYTAB("keytab", Type.STRING, null, false);
+  KEYTAB("keytab", Type.STRING, null, false),
+
+  /** Truststore for SSL/TLS communication */
+  TRUSTSTORE("truststore", Type.STRING, null, false),
+
+  /** Password for the truststore */
+  TRUSTSTORE_PASSWORD("truststore_password", Type.STRING, null, false);
 
   private final String camelName;
   private final Type type;

@@ -92,6 +92,18 @@ public class ConnectionConfigImpl implements ConnectionConfig {
     return keytab;
   }
 
+  public File truststore() {
+    String filename = BuiltInConnectionProperty.TRUSTSTORE.wrap(properties).getString();
+    if (null == filename) {
+      return null;
+    }
+    return new File(filename);
+  }
+
+  public String truststorePassword() {
+    return BuiltInConnectionProperty.TRUSTSTORE_PASSWORD.wrap(properties).getString();
+  }
+
   /** Converts a {@link Properties} object containing (name, value)
    * pairs into a map whose keys are
    * {@link org.apache.calcite.avatica.InternalProperty} objects.
