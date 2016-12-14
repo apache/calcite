@@ -157,17 +157,19 @@ abstract class RelOptTestBase extends SqlToRelTestBase {
 
     assertThat(relBefore, notNullValue());
 
-    String planBefore = NL + RelOptUtil.toString(relBefore);
+    final String planBefore = NL + RelOptUtil.toString(relBefore);
     diffRepos.assertEquals("planBefore", "${planBefore}", planBefore);
     SqlToRelTestBase.assertValid(relBefore);
 
     planner.setRoot(relBefore);
-    RelNode relAfter = planner.findBestExp();
-    String planAfter = NL + RelOptUtil.toString(relAfter);
+    RelNode r = planner.findBestExp();
     if (tester.isLateDecorrelate()) {
-      relAfter = RelDecorrelator.decorrelateQuery(relAfter);
-      planAfter = NL + RelOptUtil.toString(relAfter);
+      final String planMid = NL + RelOptUtil.toString(r);
+      diffRepos.assertEquals("planMid", "${planMid}", planMid);
+      SqlToRelTestBase.assertValid(r);
+      r = RelDecorrelator.decorrelateQuery(r);
     }
+    final String planAfter = NL + RelOptUtil.toString(r);
     if (unchanged) {
       assertThat(planAfter, is(planBefore));
     } else {
@@ -177,7 +179,7 @@ abstract class RelOptTestBase extends SqlToRelTestBase {
             + "You must use unchanged=true or call checkPlanUnchanged");
       }
     }
-    SqlToRelTestBase.assertValid(relAfter);
+    SqlToRelTestBase.assertValid(r);
   }
 
   /** Sets the SQL statement for a test. */

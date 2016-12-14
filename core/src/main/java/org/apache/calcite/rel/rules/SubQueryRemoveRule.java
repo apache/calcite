@@ -43,6 +43,7 @@ import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Pair;
+import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -95,18 +96,25 @@ public abstract class SubQueryRemoveRule extends RelOptRule {
         public void onMatch(RelOptRuleCall call) {
           final Filter filter = call.rel(0);
           final RelBuilder builder = call.builder();
-          final RexSubQuery e =
-              RexUtil.SubQueryFinder.find(filter.getCondition());
-          assert e != null;
-          final RelOptUtil.Logic logic =
-              LogicVisitor.find(RelOptUtil.Logic.TRUE,
-                  ImmutableList.of(filter.getCondition()), e);
           builder.push(filter.getInput());
-          final int fieldCount = builder.peek().getRowType().getFieldCount();
-          final RexNode target = apply(e, filter.getVariablesSet(), logic,
-              builder, 1, fieldCount);
-          final RexShuttle shuttle = new ReplaceSubQueryShuttle(e, target);
-          builder.filter(shuttle.apply(filter.getCondition()));
+          int count = 0;
+          RexNode c = filter.getCondition();
+          for (;;) {
+            final RexSubQuery e = RexUtil.SubQueryFinder.find(c);
+            if (e == null) {
+              assert count > 0;
+              break;
+            }
+            ++count;
+            final RelOptUtil.Logic logic =
+                LogicVisitor.find(RelOptUtil.Logic.TRUE, ImmutableList.of(c),
+                    e);
+            final RexNode target = apply(e, filter.getVariablesSet(), logic,
+                builder, 1, builder.peek().getRowType().getFieldCount());
+            final RexShuttle shuttle = new ReplaceSubQueryShuttle(e, target);
+            c = c.accept(shuttle);
+          }
+          builder.filter(c);
           builder.project(fields(builder, filter.getRowType().getFieldCount()));
           call.transformTo(builder.build());
         }
@@ -291,7 +299,7 @@ public abstract class SubQueryRemoveRule extends RelOptRule {
             builder.literal(false));
         break;
       }
-      operands.add(builder.isNotNull(builder.field("dt", "i")),
+      operands.add(builder.isNotNull(Util.last(builder.fields())),
           builder.literal(true));
       if (!keyIsNulls.isEmpty()) {
         operands.add(builder.or(keyIsNulls), builder.literal(null));

@@ -2895,6 +2895,53 @@ public class RelOptRulesTest extends RelOptTestBase {
     checkSubQuery(sql).check();
   }
 
+  @Test public void testDecorrelateExists() throws Exception {
+    final String sql = "select * from sales.emp\n"
+        + "where EXISTS (\n"
+        + "  select * from emp e where emp.deptno = e.deptno)";
+    checkSubQuery(sql).withLateDecorrelation(true).check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1511">[CALCITE-1511]
+   * AssertionError while decorrelating query with two EXISTS
+   * sub-queries</a>. */
+  @Test public void testDecorrelateTwoExists() throws Exception {
+    final String sql = "select * from sales.emp\n"
+        + "where EXISTS (\n"
+        + "  select * from emp e where emp.deptno = e.deptno)\n"
+        + "AND NOT EXISTS (\n"
+        + "  select * from emp ee where ee.job = emp.job AND ee.sal=34)";
+    checkSubQuery(sql).withLateDecorrelation(true).check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1537">[CALCITE-1537]
+   * Unnecessary project expression in multi-sub-query plan</a>. */
+  @Test public void testDecorrelateTwoIn() throws Exception {
+    final String sql = "select sal\n"
+        + "from sales.emp\n"
+        + "where empno IN (\n"
+        + "  select deptno from dept where emp.job = dept.name)\n"
+        + "AND empno IN (\n"
+        + "  select empno from emp e where emp.ename = e.ename)";
+    checkSubQuery(sql).withLateDecorrelation(true).check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1045">[CALCITE-1045]
+   * Decorrelate sub-queries in Project and Join</a>, with the added
+   * complication that there are two sub-queries. */
+  @Ignore("[CALCITE-1045]")
+  @Test public void testDecorrelateTwoScalar() throws Exception {
+    final String sql = "select deptno,\n"
+        + "  (select min(1) from emp where empno > d.deptno) as i0,\n"
+        + "  (select min(0) from emp\n"
+        + "    where deptno = d.deptno and ename = 'SMITH') as i1\n"
+        + "from dept as d";
+    checkSubQuery(sql).withLateDecorrelation(true).check();
+  }
+
   @Test public void testWhereInCorrelated() {
     final String sql = "select empno from emp as e\n"
         + "join dept as d using (deptno)\n"

@@ -510,4 +510,38 @@ where d.dname = (
 
 !ok
 
+# Two EXISTS
+# [CALCITE-1511] AssertionError while decorrelating query with two EXISTS sub-queries
+select *
+from "scott".dept as d
+where exists (select 1 from "scott".emp where empno > d.deptno)
+and exists (select 0 from "scott".emp where deptno = d.deptno and ename = 'SMITH');
++--------+----------+--------+
+| DEPTNO | DNAME    | LOC    |
++--------+----------+--------+
+|     20 | RESEARCH | DALLAS |
++--------+----------+--------+
+(1 row)
+
+!ok
+
+# Two scalar sub-queries
+!if (fixed.calcite1045) {
+select deptno,
+  (select min(1) from "scott".emp where empno > d.deptno) as i0,
+  (select min(0) from "scott".emp where deptno = d.deptno and ename = 'SMITH') as i1
+from "scott".dept as d;
++--------+----+---+
+| DEPTNO | I0 | I1|
++--------+----+---+
+|     10 |  1 |   |
+|     20 |  1 | 0 |
+|     30 |  1 |   |
+|     40 |  1 |   |
++--------+----+---+
+(4 rows)
+
+!ok
+!}
+
 # End sub-query.iq
