@@ -536,6 +536,17 @@ public class RexProgramTest {
     // If i0 is null, "i0 or i1" is not necessarily null
     assertThat(Strong.isNull(or(i0, i1), c0), is(false));
     assertThat(Strong.isNull(or(i0, i1), c1), is(false));
+
+    // If i0 is null, then "i0 is not null" is false
+    RexNode i0NotNull = isNotNull(i0);
+    assertThat(Strong.isNull(i0NotNull, c0), is(false));
+    assertThat(Strong.isNotTrue(i0NotNull, c0), is(true));
+
+    // If i0 is null, then "not(i0 is not null)" is true.
+    // Join-strengthening relies on this.
+    RexNode notI0NotNull = not(isNotNull(i0));
+    assertThat(Strong.isNull(notI0NotNull, c0), is(false));
+    assertThat(Strong.isNotTrue(notI0NotNull, c0), is(false));
   }
 
   /** Unit test for {@link org.apache.calcite.rex.RexUtil#toCnf}. */

@@ -54,6 +54,10 @@ import java.util.Map;
 public class Strong {
   private static final Map<SqlKind, Policy> MAP = createPolicyMap();
 
+  public Strong() {
+    super();
+  }
+
   /** Returns a checker that consults a bit set to find out whether particular
    * inputs may be null. */
   public static Strong of(final ImmutableBitSet nullColumns) {
@@ -70,10 +74,27 @@ public class Strong {
     return of(nullColumns).isNull(node);
   }
 
+  /** Returns whether the analyzed expression will definitely not return true
+   * (equivalently, will definitely not return null or false) if
+   * all of a given set of input columns are null. */
+  public static boolean isNotTrue(RexNode node, ImmutableBitSet nullColumns) {
+    return of(nullColumns).isNotTrue(node);
+  }
+
   /** Returns how to deduce whether a particular kind of expression is null,
    * given whether its arguments are null. */
   public static Policy policy(SqlKind kind) {
     return Preconditions.checkNotNull(MAP.get(kind), kind);
+  }
+
+  /** Returns whether an expression is definitely not true. */
+  public boolean isNotTrue(RexNode node) {
+    switch (node.getKind()) {
+    case IS_NOT_NULL:
+      return anyNull(((RexCall) node).getOperands());
+    default:
+      return isNull(node);
+    }
   }
 
   /** Returns whether an expression is definitely null.
@@ -85,8 +106,6 @@ public class Strong {
     switch (node.getKind()) {
     case LITERAL:
       return ((RexLiteral) node).getValue() == null;
-    case IS_TRUE:
-    case IS_NOT_NULL:
     case AND:
     case NOT:
     case EQUALS:
