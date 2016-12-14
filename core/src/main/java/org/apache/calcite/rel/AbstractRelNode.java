@@ -200,12 +200,12 @@ public abstract class AbstractRelNode implements RelNode {
     return className;
   }
 
-  public boolean isValid(Litmus litmus) {
+  public boolean isValid(Litmus litmus, Context context) {
     return litmus.succeed();
   }
 
   public boolean isValid(boolean fail) {
-    return isValid(Litmus.THROW);
+    return isValid(Litmus.THROW, null);
   }
 
   /** @deprecated Use {@link RelMetadataQuery#collations(RelNode)} */
@@ -342,7 +342,7 @@ public abstract class AbstractRelNode implements RelNode {
       r = copy(getTraitSet(), inputs);
     }
     r.recomputeDigest();
-    assert r.isValid(Litmus.THROW);
+    assert r.isValid(Litmus.THROW, null);
     return r;
   }
 

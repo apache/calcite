@@ -463,7 +463,7 @@ public class RexProgramBuilder {
       RexProgram program,
       RexBuilder rexBuilder,
       boolean normalize) {
-    assert program.isValid(Litmus.THROW);
+    assert program.isValid(Litmus.THROW, null);
     final RelDataType inputRowType = program.getInputRowType();
     final List<RexLocalRef> projectRefs = program.getProjectList();
     final RexLocalRef conditionRef = program.getCondition();
@@ -740,8 +740,8 @@ public class RexProgramBuilder {
       boolean normalize) {
     // Initialize a program builder with the same expressions, outputs
     // and condition as the bottom program.
-    assert bottomProgram.isValid(Litmus.THROW);
-    assert topProgram.isValid(Litmus.THROW);
+    assert bottomProgram.isValid(Litmus.THROW, null);
+    assert topProgram.isValid(Litmus.THROW, null);
     final RexProgramBuilder progBuilder =
         RexProgramBuilder.forProgram(bottomProgram, rexBuilder, false);
 
@@ -759,7 +759,7 @@ public class RexProgramBuilder {
       progBuilder.addProject(pair.left, pair.right);
     }
     RexProgram mergedProg = progBuilder.getProgram(normalize);
-    assert mergedProg.isValid(Litmus.THROW);
+    assert mergedProg.isValid(Litmus.THROW, null);
     assert mergedProg.getOutputRowType() == topProgram.getOutputRowType();
     return mergedProg;
   }

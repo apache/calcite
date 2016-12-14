@@ -79,7 +79,7 @@ public abstract class Project extends SingleRel {
     assert rowType != null;
     this.exps = ImmutableList.copyOf(projects);
     this.rowType = rowType;
-    assert isValid(Litmus.THROW);
+    assert isValid(Litmus.THROW, null);
   }
 
   @Deprecated // to be removed before 2.0
@@ -171,8 +171,8 @@ public abstract class Project extends SingleRel {
     return 1;
   }
 
-  public boolean isValid(Litmus litmus) {
-    if (!super.isValid(litmus)) {
+  public boolean isValid(Litmus litmus, Context context) {
+    if (!super.isValid(litmus, context)) {
       return litmus.fail(null);
     }
     if (!RexUtil.compatibleTypes(exps, getRowType(), litmus)) {
@@ -180,7 +180,7 @@ public abstract class Project extends SingleRel {
     }
     RexChecker checker =
         new RexChecker(
-            getInput().getRowType(), litmus);
+            getInput().getRowType(), context, litmus);
     for (RexNode exp : exps) {
       exp.accept(checker);
       if (checker.getFailureCount() > 0) {

@@ -379,8 +379,8 @@ public abstract class Aggregate extends SingleRel {
     return builder.build();
   }
 
-  public boolean isValid(Litmus litmus) {
-    return super.isValid(litmus)
+  public boolean isValid(Litmus litmus, Context context) {
+    return super.isValid(litmus, context)
         && litmus.check(Util.isDistinct(getRowType().getFieldNames()),
             "distinct field names: {}", getRowType());
   }

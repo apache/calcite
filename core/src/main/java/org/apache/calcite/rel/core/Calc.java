@@ -64,7 +64,7 @@ public abstract class Calc extends SingleRel {
     super(cluster, traits, child);
     this.rowType = program.getOutputRowType();
     this.program = program;
-    assert isValid(Litmus.THROW);
+    assert isValid(Litmus.THROW, null);
   }
 
   @Deprecated // to be removed before 2.0
@@ -110,7 +110,7 @@ public abstract class Calc extends SingleRel {
     return copy(traitSet, child, program);
   }
 
-  public boolean isValid(Litmus litmus) {
+  public boolean isValid(Litmus litmus, Context context) {
     if (!RelOptUtil.equal(
         "program's input type",
         program.getInputRowType(),
@@ -118,7 +118,7 @@ public abstract class Calc extends SingleRel {
         getInput().getRowType(), litmus)) {
       return litmus.fail(null);
     }
-    if (!program.isValid(litmus)) {
+    if (!program.isValid(litmus, context)) {
       return litmus.fail(null);
     }
     if (!program.isNormalized(litmus, getCluster().getRexBuilder())) {

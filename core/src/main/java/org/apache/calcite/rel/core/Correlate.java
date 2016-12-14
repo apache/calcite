@@ -111,8 +111,8 @@ public abstract class Correlate extends BiRel {
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override public boolean isValid(Litmus litmus) {
-    return super.isValid(litmus)
+  @Override public boolean isValid(Litmus litmus, Context context) {
+    return super.isValid(litmus, context)
         && RelOptUtil.notContainsCorrelation(left, correlationId, litmus);
   }
 

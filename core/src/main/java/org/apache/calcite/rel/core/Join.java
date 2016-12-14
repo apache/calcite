@@ -142,8 +142,8 @@ public abstract class Join extends BiRel {
   }
 
   // TODO: enable
-  public boolean isValid_(Litmus litmus) {
-    if (!super.isValid(litmus)) {
+  public boolean isValid_(Litmus litmus, Context context) {
+    if (!super.isValid(litmus, context)) {
       return false;
     }
     if (getRowType().getFieldCount()
@@ -168,7 +168,7 @@ public abstract class Join extends BiRel {
                   .addAll(getLeft().getRowType().getFieldList())
                   .addAll(getRight().getRowType().getFieldList())
                   .build(),
-              litmus);
+              context, litmus);
       condition.accept(checker);
       if (checker.getFailureCount() > 0) {
         return litmus.fail(checker.getFailureCount()

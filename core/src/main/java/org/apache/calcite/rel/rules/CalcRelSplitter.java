@@ -123,7 +123,7 @@ public abstract class CalcRelSplitter {
     // expression is trivial (either an atom, or a function applied to
     // references to atoms) and every expression depends only on
     // expressions to the left.
-    assert program.isValid(Litmus.THROW);
+    assert program.isValid(Litmus.THROW, null);
     final List<RexNode> exprList = program.getExprList();
     final RexNode[] exprs = exprList.toArray(new RexNode[exprList.size()]);
     assert !RexUtil.containComplexExprs(exprList);

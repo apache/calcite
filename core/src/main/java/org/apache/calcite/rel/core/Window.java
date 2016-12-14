@@ -85,7 +85,7 @@ public abstract class Window extends SingleRel {
     this.groups = ImmutableList.copyOf(groups);
   }
 
-  @Override public boolean isValid(Litmus litmus) {
+  @Override public boolean isValid(Litmus litmus, Context context) {
     // In the window specifications, an aggregate call such as
     // 'SUM(RexInputRef #10)' refers to expression #10 of inputProgram.
     // (Not its projections.)
@@ -106,8 +106,7 @@ public abstract class Window extends SingleRel {
           }
         };
 
-    final RexChecker checker =
-        new RexChecker(inputTypes, litmus);
+    final RexChecker checker = new RexChecker(inputTypes, context, litmus);
     int count = 0;
     for (Group group : groups) {
       for (RexWinAggCall over : group.aggCalls) {

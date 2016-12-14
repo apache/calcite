@@ -17,6 +17,7 @@
 package org.apache.calcite.rex;
 
 import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.util.Litmus;
@@ -56,6 +57,7 @@ import java.util.List;
 public class RexChecker extends RexVisitorImpl<Boolean> {
   //~ Instance fields --------------------------------------------------------
 
+  protected final RelNode.Context context;
   protected final Litmus litmus;
   protected final List<RelDataType> inputTypeList;
   protected int failCount;
@@ -72,10 +74,12 @@ public class RexChecker extends RexVisitorImpl<Boolean> {
    * <p>Otherwise, each method returns whether its part of the tree is valid.
    *
    * @param inputRowType Input row type
+   * @param context Context of the enclosing {@link RelNode}, or null
    * @param litmus What to do if an invalid node is detected
    */
-  public RexChecker(final RelDataType inputRowType, Litmus litmus) {
-    this(RelOptUtil.getFieldTypeList(inputRowType), litmus);
+  public RexChecker(final RelDataType inputRowType, RelNode.Context context,
+      Litmus litmus) {
+    this(RelOptUtil.getFieldTypeList(inputRowType), context, litmus);
   }
 
   /**
@@ -88,11 +92,14 @@ public class RexChecker extends RexVisitorImpl<Boolean> {
    * <p>Otherwise, each method returns whether its part of the tree is valid.
    *
    * @param inputTypeList Input row type
+   * @param context Context of the enclosing {@link RelNode}, or null
    * @param litmus What to do if an error is detected
    */
-  public RexChecker(List<RelDataType> inputTypeList, Litmus litmus) {
+  public RexChecker(List<RelDataType> inputTypeList, RelNode.Context context,
+      Litmus litmus) {
     super(true);
     this.inputTypeList = inputTypeList;
+    this.context = context;
     this.litmus = litmus;
   }
 
@@ -107,7 +114,7 @@ public class RexChecker extends RexVisitorImpl<Boolean> {
     return failCount;
   }
 
-  public Boolean visitInputRef(RexInputRef ref) {
+  @Override public Boolean visitInputRef(RexInputRef ref) {
     final int index = ref.getIndex();
     if ((index < 0) || (index >= inputTypeList.size())) {
       ++failCount;
@@ -123,12 +130,12 @@ public class RexChecker extends RexVisitorImpl<Boolean> {
     return litmus.succeed();
   }
 
-  public Boolean visitLocalRef(RexLocalRef ref) {
+  @Override public Boolean visitLocalRef(RexLocalRef ref) {
     ++failCount;
     return litmus.fail("RexLocalRef illegal outside program");
   }
 
-  public Boolean visitCall(RexCall call) {
+  @Override public Boolean visitCall(RexCall call) {
     for (RexNode operand : call.getOperands()) {
       Boolean valid = operand.accept(this);
       if (valid != null && !valid) {
@@ -138,7 +145,7 @@ public class RexChecker extends RexVisitorImpl<Boolean> {
     return litmus.succeed();
   }
 
-  public Boolean visitFieldAccess(RexFieldAccess fieldAccess) {
+  @Override public Boolean visitFieldAccess(RexFieldAccess fieldAccess) {
     super.visitFieldAccess(fieldAccess);
     final RelDataType refType = fieldAccess.getReferenceExpr().getType();
     assert refType.isStruct();
@@ -156,6 +163,16 @@ public class RexChecker extends RexVisitorImpl<Boolean> {
         fieldAccess.getType(), litmus)) {
       ++failCount;
       return litmus.fail(null);
+    }
+    return litmus.succeed();
+  }
+
+  @Override public Boolean visitCorrelVariable(RexCorrelVariable v) {
+    if (context != null
+        && !context.correlationIds().contains(v.id)) {
+      ++failCount;
+      return litmus.fail("correlation id {} not found in correlation list {}",
+          v, context.correlationIds());
     }
     return litmus.succeed();
   }

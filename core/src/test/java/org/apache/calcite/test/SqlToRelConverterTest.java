@@ -21,6 +21,7 @@ import org.apache.calcite.prepare.Prepare;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelRoot;
 import org.apache.calcite.rel.RelVisitor;
+import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.externalize.RelXmlWriter;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
@@ -33,6 +34,7 @@ import org.apache.calcite.util.TestUtil;
 import org.apache.calcite.util.Util;
 
 import com.google.common.base.Function;
+import com.google.common.collect.ImmutableSet;
 
 import org.junit.Ignore;
 import org.junit.Test;
@@ -42,6 +44,9 @@ import static org.junit.Assert.assertThat;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.util.ArrayDeque;
+import java.util.Deque;
+import java.util.Set;
 
 /**
  * Unit test for {@link org.apache.calcite.sql2rel.SqlToRelConverter}.
@@ -1999,16 +2004,32 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
   /**
    * Visitor that checks that every {@link RelNode} in a tree is valid.
    *
-   * @see RelNode#isValid(org.apache.calcite.util.Litmus)
+   * @see RelNode#isValid(Litmus, RelNode.Context)
    */
-  public static class RelValidityChecker extends RelVisitor {
+  public static class RelValidityChecker extends RelVisitor
+      implements RelNode.Context {
     int invalidCount;
+    final Deque<RelNode> stack = new ArrayDeque<>();
+
+    public Set<CorrelationId> correlationIds() {
+      final ImmutableSet.Builder<CorrelationId> builder =
+          ImmutableSet.builder();
+      for (RelNode r : stack) {
+        builder.addAll(r.getVariablesSet());
+      }
+      return builder.build();
+    }
 
     public void visit(RelNode node, int ordinal, RelNode parent) {
-      if (!node.isValid(Litmus.THROW)) {
-        ++invalidCount;
+      try {
+        stack.push(node);
+        if (!node.isValid(Litmus.THROW, this)) {
+          ++invalidCount;
+        }
+        super.visit(node, ordinal, parent);
+      } finally {
+        stack.pop();
       }
-      super.visit(node, ordinal, parent);
     }
   }
 

@@ -20,6 +20,7 @@ import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelFieldCollation;
+import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.externalize.RelWriterImpl;
 import org.apache.calcite.rel.type.RelDataType;
@@ -112,7 +113,7 @@ public class RexProgram {
     this.projects = ImmutableList.copyOf(projects);
     this.condition = condition;
     this.outputRowType = outputRowType;
-    assert isValid(Litmus.THROW);
+    assert isValid(Litmus.THROW, null);
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -397,9 +398,11 @@ public class RexProgram {
    * fail</code> is false, merely returns whether the program is valid.
    *
    * @param litmus What to do if an error is detected
+   * @param context Context of enclosing {@link RelNode}, for validity checking,
+   *                or null if not known
    * @return Whether the program is valid
    */
-  public boolean isValid(Litmus litmus) {
+  public boolean isValid(Litmus litmus, RelNode.Context context) {
     if (inputRowType == null) {
       return litmus.fail(null);
     }
@@ -441,19 +444,7 @@ public class RexProgram {
       return litmus.fail(null);
     }
     final Checker checker =
-        new Checker(
-            litmus,
-            inputRowType,
-            new AbstractList<RelDataType>() {
-              public RelDataType get(int index) {
-                return exprs.get(index).getType();
-              }
-
-              @Override public int size() {
-                return exprs.size();
-              }
-              // CHECKSTYLE: IGNORE 1
-            });
+        new Checker(inputRowType, RexUtil.types(exprs), null, litmus);
     if (condition != null) {
       if (!SqlTypeUtil.inBooleanFamily(condition.getType())) {
         return litmus.fail("condition must be boolean");
@@ -785,7 +776,7 @@ public class RexProgram {
     // Normalize program by creating program builder from the program, then
     // converting to a program. getProgram does not need to normalize
     // because the builder was normalized on creation.
-    assert isValid(Litmus.THROW);
+    assert isValid(Litmus.THROW, null);
     final RexProgramBuilder builder =
         RexProgramBuilder.create(rexBuilder, inputRowType, exprs, projects,
             condition, outputRowType, true, simplify);
@@ -803,20 +794,22 @@ public class RexProgram {
     /**
      * Creates a Checker.
      *
-     * @param litmus               Whether to fail
      * @param inputRowType         Types of the input fields
      * @param internalExprTypeList Types of the internal expressions
+     * @param context              Context of the enclosing {@link RelNode},
+     *                             or null
+     * @param litmus               Whether to fail
      */
-    public Checker(Litmus litmus,
-        RelDataType inputRowType,
-        List<RelDataType> internalExprTypeList) {
-      super(inputRowType, litmus);
+    public Checker(RelDataType inputRowType,
+        List<RelDataType> internalExprTypeList, RelNode.Context context,
+        Litmus litmus) {
+      super(inputRowType, context, litmus);
       this.internalExprTypeList = internalExprTypeList;
     }
 
-    // override RexChecker; RexLocalRef is illegal in most rex expressions,
-    // but legal in a program
-    public Boolean visitLocalRef(RexLocalRef localRef) {
+    /** Overrides {@link RexChecker} method, because {@link RexLocalRef} is
+     * is illegal in most rex expressions, but legal in a program. */
+    @Override public Boolean visitLocalRef(RexLocalRef localRef) {
       final int index = localRef.getIndex();
       if ((index < 0) || (index >= internalExprTypeList.size())) {
         ++failCount;
