@@ -21,6 +21,7 @@ import org.apache.calcite.avatica.ConnectionConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.File;
 import java.lang.reflect.Constructor;
 import java.net.URL;
 import java.util.Objects;
@@ -67,6 +68,16 @@ public class AvaticaHttpClientFactoryImpl implements AvaticaHttpClientFactory {
     AvaticaHttpClient client = instantiateClient(className, url);
     if (null != kerberosUtil) {
       client = new DoAsAvaticaHttpClient(client, kerberosUtil);
+    }
+
+    if (client instanceof TrustStoreConfigurable) {
+      File truststore = config.truststore();
+      String truststorePassword = config.truststorePassword();
+      if (null != truststore && null != truststorePassword) {
+        ((TrustStoreConfigurable) client).setTrustStore(truststore, truststorePassword);
+      }
+    } else {
+      LOG.debug("{} is not capable of SSL/TLS communication", client.getClass().getName());
     }
 
     if (client instanceof UsernamePasswordAuthenticateable) {

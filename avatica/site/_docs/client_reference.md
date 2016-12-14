@@ -154,3 +154,21 @@ on-hover images for the permalink, but oh well.
 : _Default_: `null`.
 
 : _Required_: No.
+
+<strong><a name="truststore" href="#truststore">truststore</a></strong>
+
+: _Description_: A path to a Java KeyStore (JKS) file on the local filesystem
+  which contains the certificate authority to trust in a TLS handshake. Only
+  necessary when using HTTPS.
+
+: _Default_: `null`.
+
+: _Required_: No.
+
+<strong><a name="truststore_password" href="#truststore_password">truststore_password</a></strong>
+
+: _Description_: The password for the Java KeyStore file specified by <a href="#truststore">truststore</a>.
+
+: _Default_: `null`.
+
+: _Required_: Only if `truststore` was provided.

@@ -37,6 +37,7 @@ import org.eclipse.jetty.server.ServerConnector;
 import org.eclipse.jetty.server.handler.DefaultHandler;
 import org.eclipse.jetty.server.handler.HandlerList;
 import org.eclipse.jetty.util.security.Constraint;
+import org.eclipse.jetty.util.ssl.SslContextFactory;
 import org.eclipse.jetty.util.thread.QueuedThreadPool;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -73,6 +74,7 @@ public class HttpServer {
   private final AvaticaHandler handler;
   private final AvaticaServerConfiguration config;
   private final Subject subject;
+  private final SslContextFactory sslFactory;
 
   @Deprecated
   public HttpServer(Handler handler) {
@@ -120,10 +122,24 @@ public class HttpServer {
    */
   public HttpServer(int port, AvaticaHandler handler, AvaticaServerConfiguration config,
       Subject subject) {
+    this(port, handler, config, subject, null);
+  }
+
+  /**
+   * Constructs an {@link HttpServer}.
+   * @param port The listen port
+   * @param handler The Handler to run
+   * @param config Optional configuration for the server
+   * @param subject The javax.security Subject for the server, or null
+   * @param sslFactory A configured SslContextFactory, or null
+   */
+  public HttpServer(int port, AvaticaHandler handler, AvaticaServerConfiguration config,
+      Subject subject, SslContextFactory sslFactory) {
     this.port = port;
     this.handler = handler;
     this.config = config;
     this.subject = subject;
+    this.sslFactory = sslFactory;
   }
 
   private static AvaticaHandler wrapJettyHandler(Handler handler) {
@@ -158,7 +174,7 @@ public class HttpServer {
     server = new Server(threadPool);
     server.manage(threadPool);
 
-    final ServerConnector connector = configureConnector(new ServerConnector(server), port);
+    final ServerConnector connector = configureConnector(getConnector(), port);
     ConstraintSecurityHandler securityHandler = null;
 
     if (null != this.config) {
@@ -210,6 +226,13 @@ public class HttpServer {
       // Failed to do the DNS lookup, bail out.
       throw new RuntimeException(e);
     }
+  }
+
+  private ServerConnector getConnector() {
+    if (null == sslFactory) {
+      return new ServerConnector(server);
+    }
+    return new ServerConnector(server, sslFactory);
   }
 
   private RpcMetadataResponse createRpcServerMetadata(ServerConnector connector) throws
@@ -382,6 +405,12 @@ public class HttpServer {
     private String loginServiceRealm;
     private String loginServiceProperties;
     private String[] loginServiceAllowedRoles;
+
+    private boolean usingTLS = false;
+    private File keystore;
+    private String keystorePassword;
+    private File truststore;
+    private String truststorePassword;
 
     public Builder() {}
 
@@ -561,6 +590,25 @@ public class HttpServer {
     }
 
     /**
+     * Configures the server to use TLS for wire encryption.
+     *
+     * @param keystore The server's keystore
+     * @param keystorePassword The keystore's password
+     * @param truststore The truststore containing the key used to generate the server's key
+     * @param truststorePassword The truststore's password
+     * @return <code>this</code>
+     */
+    public Builder withTLS(File keystore, String keystorePassword, File truststore,
+        String truststorePassword) {
+      this.usingTLS = true;
+      this.keystore = Objects.requireNonNull(keystore);
+      this.keystorePassword = Objects.requireNonNull(keystorePassword);
+      this.truststore = Objects.requireNonNull(truststore);
+      this.truststorePassword = Objects.requireNonNull(truststorePassword);
+      return this;
+    }
+
+    /**
      * Builds the HttpServer instance from <code>this</code>.
      * @return An HttpServer.
      */
@@ -579,6 +627,9 @@ public class HttpServer {
         subject = null;
         break;
       case SPNEGO:
+        if (usingTLS) {
+          throw new IllegalArgumentException("TLS has not been tested wtih SPNEGO");
+        }
         if (null != keytab) {
           LOG.debug("Performing Kerberos login with {} as {}", keytab, kerberosPrincipal);
           subject = loginViaKerberos(this);
@@ -593,8 +644,16 @@ public class HttpServer {
       }
 
       AvaticaHandler handler = buildHandler(this, serverConfig);
+      SslContextFactory sslFactory = null;
+      if (usingTLS) {
+        sslFactory = new SslContextFactory();
+        sslFactory.setKeyStorePath(this.keystore.getAbsolutePath());
+        sslFactory.setKeyStorePassword(keystorePassword);
+        sslFactory.setTrustStorePath(truststore.getAbsolutePath());
+        sslFactory.setTrustStorePassword(truststorePassword);
+      }
 
-      return new HttpServer(port, handler, serverConfig, subject);
+      return new HttpServer(port, handler, serverConfig, subject, sslFactory);
     }
 
     /**
