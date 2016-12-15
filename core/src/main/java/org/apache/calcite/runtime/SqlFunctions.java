@@ -46,6 +46,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Random;
 import java.util.TimeZone;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Pattern;
@@ -1050,6 +1051,13 @@ public class SqlFunctions {
   /** SQL <code>ABS</code> operator applied to BigDecimal values. */
   public static BigDecimal abs(BigDecimal b0) {
     return b0.abs();
+  }
+
+  // Random Function
+
+  @NonDeterministic
+  public static int randInteger(int n) {
+    return new Random().nextInt(n);
   }
 
   // Helpers

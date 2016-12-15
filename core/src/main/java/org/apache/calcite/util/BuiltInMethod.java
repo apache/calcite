@@ -259,6 +259,7 @@ public enum BuiltInMethod {
   OVERLAY3(SqlFunctions.class, "overlay", String.class, String.class, int.class,
       int.class),
   POSITION(SqlFunctions.class, "position", String.class, String.class),
+  RAND_INTEGER(SqlFunctions.class, "randInteger", int.class),
   TRUNCATE(SqlFunctions.class, "truncate", String.class, int.class),
   TRUNCATE_OR_PAD(SqlFunctions.class, "truncateOrPad", String.class, int.class),
   TRIM(SqlFunctions.class, "trim", boolean.class, boolean.class, String.class,

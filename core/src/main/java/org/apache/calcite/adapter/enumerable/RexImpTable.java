@@ -157,6 +157,7 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.OVERLAY;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.PLUS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.POSITION;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.POWER;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.RAND_INTEGER;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.RANK;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.REINTERPRET;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ROW;
@@ -244,6 +245,8 @@ public class RexImpTable {
     defineMethod(LN, "ln", NullPolicy.STRICT);
     defineMethod(LOG10, "log10", NullPolicy.STRICT);
     defineMethod(ABS, "abs", NullPolicy.STRICT);
+    defineMethod(RAND_INTEGER, BuiltInMethod.RAND_INTEGER.method,
+        NullPolicy.STRICT);
 
     // datetime
     defineImplementor(DATETIME_PLUS, NullPolicy.STRICT,
