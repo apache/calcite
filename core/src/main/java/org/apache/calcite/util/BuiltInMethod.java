@@ -255,6 +255,7 @@ public enum BuiltInMethod {
       long.class),
   FLOOR(SqlFunctions.class, "floor", int.class, int.class),
   CEIL(SqlFunctions.class, "ceil", int.class, int.class),
+  RANDOM_FUNCTION(SqlFunctions.class, "random", int.class),
   OVERLAY(SqlFunctions.class, "overlay", String.class, String.class, int.class),
   OVERLAY3(SqlFunctions.class, "overlay", String.class, String.class, int.class,
       int.class),
