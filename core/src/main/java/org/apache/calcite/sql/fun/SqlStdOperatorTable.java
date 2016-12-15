@@ -229,6 +229,8 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           InferTypes.FIRST_KNOWN,
           OperandTypes.DIVISION_OPERATOR);
 
+  public static final SqlRandomFunction RANDOM_FUNCTION = new SqlRandomFunction();
+
   /**
    * Internal integer arithmetic division operator, '<code>/INT</code>'. This
    * is only used to adjust scale for numerics. We distinguish it from
