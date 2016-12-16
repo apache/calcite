@@ -34,17 +34,23 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Properties;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
 
 /**
  * Tests for the {@code org.apache.calcite.adapter.jdbc} package.
  */
 public class JdbcAdapterTest {
+
+  /** Ensures that tests that are modifying data (doing DML) do not run at the
+   * same time. */
+  private static final ReentrantLock LOCK = new ReentrantLock();
+
   /** VALUES is not pushed down, currently. */
   @Test public void testValuesPlan() {
     final String sql = "select * from \"days\", (values 1, 2) as t(c)";
@@ -612,31 +618,37 @@ public class JdbcAdapterTest {
   }
 
   /**
-   * Helper method that should clean any previous TableModify states and create
+   * Acquires an exclusive connection to a test database, and cleans it.
+   *
+   * <p>Cleans any previous TableModify states and creates
    * one expense_fact instance with store_id = 666.
    *
-   * @param statement JDBC connection statement
+   * <p>Caller must close the returned wrapper, so that the next test can
+   * acquire the lock and use the database.
+   *
+   * @param c JDBC connection
    */
-  private void tableModifyTestDbInitializer(Statement statement) {
-    try {
-      statement.executeUpdate("DELETE FROM \"foodmart\".\"expense_fact\""
-        + " WHERE \"store_id\"=666\n");
-      int rowCount = statement.executeUpdate(
-        "INSERT INTO \"foodmart\".\"expense_fact\"(\n"
-            + " \"store_id\", \"account_id\", \"exp_date\", \"time_id\","
-            + " \"category_id\", \"currency_id\", \"amount\")\n"
-            + " VALUES (666, 666, TIMESTAMP '1997-01-01 00:00:00',"
-            + " 666, '666', 666, 666)");
-      assertTrue(rowCount == 1);
-    } catch (SQLException e) {
-      throw Throwables.propagate(e);
+  private LockWrapper exclusiveCleanDb(Connection c) throws SQLException {
+    final LockWrapper wrapper = LockWrapper.lock(LOCK);
+    try (Statement statement = c.createStatement()) {
+      final String dSql = "DELETE FROM \"foodmart\".\"expense_fact\""
+          + " WHERE \"store_id\"=666\n";
+      final String iSql = "INSERT INTO \"foodmart\".\"expense_fact\"(\n"
+          + " \"store_id\", \"account_id\", \"exp_date\", \"time_id\","
+          + " \"category_id\", \"currency_id\", \"amount\")\n"
+          + " VALUES (666, 666, TIMESTAMP '1997-01-01 00:00:00',"
+          + " 666, '666', 666, 666)";
+      statement.executeUpdate(dSql);
+      int rowCount = statement.executeUpdate(iSql);
+      assertThat(rowCount, is(1));
+      return wrapper;
     }
   }
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1527">[CALCITE-1527]
    * Support DML in the JDBC adapter</a>. */
-  @Test public void testTableModifyInsert() {
+  @Test public void testTableModifyInsert() throws Exception {
     final String sql = "INSERT INTO \"foodmart\".\"expense_fact\"(\n"
         + " \"store_id\", \"account_id\", \"exp_date\", \"time_id\","
         + " \"category_id\", \"currency_id\", \"amount\")\n"
@@ -649,15 +661,26 @@ public class JdbcAdapterTest {
         + " (\"store_id\", \"account_id\", \"exp_date\", \"time_id\","
         + " \"category_id\", \"currency_id\", \"amount\")\n"
         + "VALUES  (666, 666, TIMESTAMP '1997-01-01 00:00:00', 666, '666', 666, 666.0000)";
-    CalciteAssert.model(JdbcTest.FOODMART_MODEL)
-        .query(sql)
-        .explainContains(explain)
-        .enable(CalciteAssert.DB == DatabaseInstance.HSQLDB
-            || CalciteAssert.DB == DatabaseInstance.POSTGRESQL)
-        .planUpdateHasSql(jdbcSql, 1);
+    final AssertThat that =
+        CalciteAssert.model(JdbcTest.FOODMART_MODEL)
+            .enable(CalciteAssert.DB == DatabaseInstance.HSQLDB
+                || CalciteAssert.DB == DatabaseInstance.POSTGRESQL);
+    that.doWithConnection(
+        new Function<CalciteConnection, Void>() {
+          public Void apply(CalciteConnection connection) {
+            try (LockWrapper ignore = exclusiveCleanDb(connection)) {
+              that.query(sql)
+                  .explainContains(explain)
+                  .planUpdateHasSql(jdbcSql, 1);
+              return null;
+            } catch (SQLException e) {
+              throw Throwables.propagate(e);
+            }
+          }
+        });
   }
 
-  @Test public void testTableModifyInsertMultiValues() {
+  @Test public void testTableModifyInsertMultiValues() throws Exception {
     final String sql = "INSERT INTO \"foodmart\".\"expense_fact\"(\n"
         + " \"store_id\", \"account_id\", \"exp_date\", \"time_id\","
         + " \"category_id\", \"currency_id\", \"amount\")\n"
@@ -674,13 +697,23 @@ public class JdbcAdapterTest {
         + " \"category_id\", \"currency_id\", \"amount\")\n"
         + "VALUES  (666, 666, TIMESTAMP '1997-01-01 00:00:00', 666, '666', 666, 666.0000),\n"
         + " (666, 777, TIMESTAMP '1997-01-01 00:00:00', 666, '666', 666, 666.0000)";
-    CalciteAssert
-        .model(JdbcTest.FOODMART_MODEL)
-        .query(sql)
-        .explainContains(explain)
-        .enable(CalciteAssert.DB == DatabaseInstance.HSQLDB
-            || CalciteAssert.DB == DatabaseInstance.POSTGRESQL)
-        .planUpdateHasSql(jdbcSql, 2);
+    final AssertThat that =
+        CalciteAssert.model(JdbcTest.FOODMART_MODEL)
+            .enable(CalciteAssert.DB == DatabaseInstance.HSQLDB
+                || CalciteAssert.DB == DatabaseInstance.POSTGRESQL);
+    that.doWithConnection(
+        new Function<CalciteConnection, Void>() {
+          public Void apply(CalciteConnection connection) {
+            try (LockWrapper ignore = exclusiveCleanDb(connection)) {
+              that.query(sql)
+                  .explainContains(explain)
+                  .planUpdateHasSql(jdbcSql, 2);
+              return null;
+            } catch (SQLException e) {
+              throw Throwables.propagate(e);
+            }
+          }
+        });
   }
 
   @Test public void testTableModifyInsertWithSubQuery() throws Exception {
@@ -690,8 +723,7 @@ public class JdbcAdapterTest {
 
     that.doWithConnection(new Function<CalciteConnection, Void>() {
       public Void apply(CalciteConnection connection) {
-        try {
-          tableModifyTestDbInitializer(connection.createStatement());
+        try (LockWrapper ignore = exclusiveCleanDb(connection)) {
           final String sql = "INSERT INTO \"foodmart\".\"expense_fact\"(\n"
               + " \"store_id\", \"account_id\", \"exp_date\", \"time_id\","
               + " \"category_id\", \"currency_id\", \"amount\")\n"
@@ -731,8 +763,7 @@ public class JdbcAdapterTest {
 
     that.doWithConnection(new Function<CalciteConnection, Void>() {
       public Void apply(CalciteConnection connection) {
-        try {
-          tableModifyTestDbInitializer(connection.createStatement());
+        try (LockWrapper ignore = exclusiveCleanDb(connection)) {
           final String sql = "UPDATE \"foodmart\".\"expense_fact\"\n"
               + " SET \"account_id\"=888\n"
               + " WHERE \"store_id\"=666\n";
@@ -762,8 +793,7 @@ public class JdbcAdapterTest {
 
     that.doWithConnection(new Function<CalciteConnection, Void>() {
       public Void apply(CalciteConnection connection) {
-        try {
-          tableModifyTestDbInitializer(connection.createStatement());
+        try (LockWrapper ignore = exclusiveCleanDb(connection)) {
           final String sql = "DELETE FROM \"foodmart\".\"expense_fact\"\n"
               + "WHERE \"store_id\"=666\n";
           final String explain = "PLAN=JdbcToEnumerableConverter\n"
@@ -783,6 +813,24 @@ public class JdbcAdapterTest {
     });
   }
 
+  /** Acquires a lock, and releases it when closed. */
+  static class LockWrapper implements AutoCloseable {
+    private final Lock lock;
+
+    LockWrapper(Lock lock) {
+      this.lock = lock;
+    }
+
+    /** Acquires a lock and returns a closeable wrapper. */
+    static LockWrapper lock(Lock lock) {
+      lock.lock();
+      return new LockWrapper(lock);
+    }
+
+    public void close() {
+      lock.unlock();
+    }
+  }
 }
 
 // End JdbcAdapterTest.java
