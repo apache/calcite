@@ -230,6 +230,11 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           OperandTypes.DIVISION_OPERATOR);
 
   /**
+   * Random Integer.
+   */
+  public static final SqlRandInteger RAND_INTEGER = new SqlRandInteger();
+
+  /**
    * Internal integer arithmetic division operator, '<code>/INT</code>'. This
    * is only used to adjust scale for numerics. We distinguish it from
    * user-requested division since some personalities want a floating-point

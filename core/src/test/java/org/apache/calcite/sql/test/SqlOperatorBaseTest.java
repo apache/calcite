@@ -3809,6 +3809,13 @@ public abstract class SqlOperatorBaseTest {
     tester.checkNull("log10(cast(null as real))");
   }
 
+  @Test public void testRandomFunc() {
+    tester.setFor(SqlStdOperatorTable.RAND_INTEGER);
+    for (int i = 1; i <= 100; i++) {
+      tester.checkScalarApprox("rand_integer(11)", "INTEGER NOT NULL", 5.0, 5.0);
+    }
+  }
+
   @Test public void testAbsFunc() {
     tester.setFor(SqlStdOperatorTable.ABS);
     tester.checkScalarExact("abs(-1)", "1");
