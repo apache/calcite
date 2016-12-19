@@ -642,6 +642,9 @@ public class JdbcAdapterTest {
       int rowCount = statement.executeUpdate(iSql);
       assertThat(rowCount, is(1));
       return wrapper;
+    } catch (SQLException | RuntimeException | Error e) {
+      wrapper.close();
+      throw e;
     }
   }
 
