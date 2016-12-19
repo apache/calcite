@@ -585,6 +585,7 @@ PRIVILEGES,
 **PROCEDURE**,
 PUBLIC,
 QUARTER,
+RAND_INTEGER,
 **RANGE**,
 **RANK**,
 READ,
@@ -963,6 +964,7 @@ The operator precedence and associativity, highest to lowest.
 | EXP(numeric)              | Returns *e* raised to the power of *numeric*
 | CEIL(numeric)             | Rounds *numeric* up, and returns the smallest number that is greater than or equal to *numeric*
 | FLOOR(numeric)            | Rounds *numeric* down, and returns the largest number that is less than or equal to *numeric*
+| RAND_INTEGER(integer)     | Generates a random integer number between 0 and *numeric*-1 inclusive
 
 ### Character string operators and functions
 

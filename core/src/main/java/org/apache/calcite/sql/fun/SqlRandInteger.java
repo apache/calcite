@@ -24,14 +24,14 @@ import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 
 /**
- * The <code>RANDOM</code> function.
+ * The <code>RAND_INTEGER</code> function.
  */
-public class SqlRandomFunction extends SqlFunction {
+public class SqlRandInteger extends SqlFunction {
   //~ Constructors -----------------------------------------------------------
 
-  public SqlRandomFunction() {
+  public SqlRandInteger() {
     super(
-        "RANDOM",
+        "RAND_INTEGER",
         SqlKind.OTHER_FUNCTION,
         ReturnTypes.INTEGER,
         null,
@@ -51,4 +51,4 @@ public class SqlRandomFunction extends SqlFunction {
   }
 }
 
-// End SqlRandomFunction.java
+// End SqlRandInteger.java

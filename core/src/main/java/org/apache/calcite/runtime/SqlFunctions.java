@@ -1056,7 +1056,7 @@ public class SqlFunctions {
   // Random Function
 
   @NonDeterministic
-  public static int random(int n) {
+  public static int rand_integer(int n) {
     return new Random().nextInt(n);
   }
 

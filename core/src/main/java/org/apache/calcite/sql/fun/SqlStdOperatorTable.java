@@ -229,7 +229,10 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           InferTypes.FIRST_KNOWN,
           OperandTypes.DIVISION_OPERATOR);
 
-  public static final SqlRandomFunction RANDOM_FUNCTION = new SqlRandomFunction();
+  /**
+   * Random Integer.
+   */
+  public static final SqlRandInteger RAND_INTEGER = new SqlRandInteger();
 
   /**
    * Internal integer arithmetic division operator, '<code>/INT</code>'. This
