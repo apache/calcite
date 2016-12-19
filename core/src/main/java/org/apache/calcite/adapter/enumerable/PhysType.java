@@ -140,8 +140,9 @@ public interface PhysType {
       List<Integer> usedFields,
       JavaRowFormat targetFormat);
 
-  /** Generates a selector for the given fields from an expression. */
-  Expression selector(
+  /** Generates a selector for the given fields from an expression.
+   * Only used by EnumerableWindow. */
+  Pair<Type, List<Expression>> selector(
       ParameterExpression parameter,
       List<Integer> fields,
       JavaRowFormat targetFormat);
