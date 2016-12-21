@@ -157,6 +157,7 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.OVERLAY;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.PLUS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.POSITION;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.POWER;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.RAND;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.RAND_INTEGER;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.RANK;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.REINTERPRET;
@@ -245,8 +246,34 @@ public class RexImpTable {
     defineMethod(LN, "ln", NullPolicy.STRICT);
     defineMethod(LOG10, "log10", NullPolicy.STRICT);
     defineMethod(ABS, "abs", NullPolicy.STRICT);
-    defineMethod(RAND_INTEGER, BuiltInMethod.RAND_INTEGER.method,
-        NullPolicy.STRICT);
+
+    defineImplementor(RAND, NullPolicy.STRICT,
+        new NotNullImplementor() {
+          final NotNullImplementor[] implementors = {
+            new ReflectiveCallNotNullImplementor(BuiltInMethod.RAND.method),
+            new ReflectiveCallNotNullImplementor(BuiltInMethod.RAND_SEED.method)
+          };
+          public Expression implement(RexToLixTranslator translator,
+              RexCall call, List<Expression> translatedOperands) {
+            return implementors[call.getOperands().size()]
+                .implement(translator, call, translatedOperands);
+          }
+        }, false);
+    defineImplementor(RAND_INTEGER, NullPolicy.STRICT,
+        new NotNullImplementor() {
+          final NotNullImplementor[] implementors = {
+            null,
+            new ReflectiveCallNotNullImplementor(
+                BuiltInMethod.RAND_INTEGER.method),
+            new ReflectiveCallNotNullImplementor(
+                BuiltInMethod.RAND_INTEGER_SEED.method)
+          };
+          public Expression implement(RexToLixTranslator translator,
+              RexCall call, List<Expression> translatedOperands) {
+            return implementors[call.getOperands().size()]
+                .implement(translator, call, translatedOperands);
+          }
+        }, false);
 
     // datetime
     defineImplementor(DATETIME_PLUS, NullPolicy.STRICT,
@@ -567,6 +594,13 @@ public class RexImpTable {
       SqlOperator operator, Method method, NullPolicy nullPolicy) {
     defineImplementor(
         operator, nullPolicy, new MethodImplementor(method), false);
+  }
+
+  private void defineMethodReflective(
+      SqlOperator operator, Method method, NullPolicy nullPolicy) {
+    defineImplementor(
+        operator, nullPolicy, new ReflectiveCallNotNullImplementor(method),
+        false);
   }
 
   private void defineUnary(

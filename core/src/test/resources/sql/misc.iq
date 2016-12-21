@@ -1640,4 +1640,84 @@ values cast(' -5 ' as double);
 
 !ok
 
+# RAND_INTEGER with seed
+select i, rand_integer(1, 5) as r
+from (values 1, 2, 3, 4, 5) as t(i);
++---+---+
+| I | R |
++---+---+
+| 1 | 0 |
+| 2 | 3 |
+| 3 | 2 |
+| 4 | 3 |
+| 5 | 4 |
++---+---+
+(5 rows)
+
+!ok
+
+# Same query, should yield same results
+select i, rand_integer(1, 5) as r
+from (values 1, 2, 3, 4, 5) as t(i);
++---+---+
+| I | R |
++---+---+
+| 1 | 0 |
+| 2 | 3 |
+| 3 | 2 |
+| 4 | 3 |
+| 5 | 4 |
++---+---+
+(5 rows)
+
+!ok
+
+# Same query with different seed
+select i, rand_integer(-1, 5) as r
+from (values 1, 2, 3, 4, 5) as t(i);
++---+---+
+| I | R |
++---+---+
+| 1 | 3 |
+| 2 | 0 |
+| 3 | 4 |
+| 4 | 4 |
+| 5 | 4 |
++---+---+
+(5 rows)
+
+!ok
+
+# Same query with different bound
+select i, rand_integer(-1, 2) as r
+from (values 1, 2, 3, 4, 5) as t(i);
++---+---+
+| I | R |
++---+---+
+| 1 | 0 |
+| 2 | 0 |
+| 3 | 0 |
+| 4 | 1 |
+| 5 | 1 |
++---+---+
+(5 rows)
+
+!ok
+
+# RAND with seed
+select i, rand(-1) as r
+from (values 1, 2, 3, 4, 5) as t(i);
++---+---------------------+
+| I | R                   |
++---+---------------------+
+| 1 | 0.03305388522187047 |
+| 2 |  0.6573104025344794 |
+| 3 |  0.7450920948729041 |
+| 4 |  0.6624972807480889 |
+| 5 |  0.5532616835728703 |
++---+---------------------+
+(5 rows)
+
+!ok
+
 # End misc.iq

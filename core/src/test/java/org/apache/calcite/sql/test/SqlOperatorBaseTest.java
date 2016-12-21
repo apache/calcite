@@ -3809,13 +3809,34 @@ public abstract class SqlOperatorBaseTest {
     tester.checkNull("log10(cast(null as real))");
   }
 
-  @Test public void testRandomFunc() {
+  @Test public void testRandFunc() {
+    tester.setFor(SqlStdOperatorTable.RAND);
+    tester.checkFails("^rand^", "Column 'RAND' not found in any table", false);
+    for (int i = 0; i < 100; i++) {
+      // Result must always be between 0 and 1, inclusive.
+      tester.checkScalarApprox("rand()", "DOUBLE NOT NULL", 0.5, 0.5);
+    }
+  }
+
+  @Test public void testRandSeedFunc() {
+    tester.setFor(SqlStdOperatorTable.RAND);
+    tester.checkScalarApprox("rand(1)", "DOUBLE NOT NULL", 0.6016, 0.0001);
+    tester.checkScalarApprox("rand(2)", "DOUBLE NOT NULL", 0.4728, 0.0001);
+  }
+
+  @Test public void testRandIntegerFunc() {
     tester.setFor(SqlStdOperatorTable.RAND_INTEGER);
     for (int i = 0; i < 100; i++) {
       // Result must always be between 0 and 10, inclusive.
       tester.checkScalarApprox("rand_integer(11)", "INTEGER NOT NULL", 5.0,
           5.0);
     }
+  }
+
+  @Test public void testRandIntegerSeedFunc() {
+    tester.setFor(SqlStdOperatorTable.RAND_INTEGER);
+    tester.checkScalar("rand_integer(1, 11)", 4, "INTEGER NOT NULL");
+    tester.checkScalar("rand_integer(2, 11)", 1, "INTEGER NOT NULL");
   }
 
   @Test public void testAbsFunc() {

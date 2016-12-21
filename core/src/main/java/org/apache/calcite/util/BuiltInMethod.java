@@ -68,6 +68,7 @@ import org.apache.calcite.runtime.BinarySearch;
 import org.apache.calcite.runtime.Bindable;
 import org.apache.calcite.runtime.Enumerables;
 import org.apache.calcite.runtime.FlatLists;
+import org.apache.calcite.runtime.RandomFunction;
 import org.apache.calcite.runtime.ResultSetEnumerable;
 import org.apache.calcite.runtime.SortedMultiMap;
 import org.apache.calcite.runtime.SqlFunctions;
@@ -259,7 +260,11 @@ public enum BuiltInMethod {
   OVERLAY3(SqlFunctions.class, "overlay", String.class, String.class, int.class,
       int.class),
   POSITION(SqlFunctions.class, "position", String.class, String.class),
-  RAND_INTEGER(SqlFunctions.class, "randInteger", int.class),
+  RAND(RandomFunction.class, "rand"),
+  RAND_SEED(RandomFunction.class, "randSeed", int.class),
+  RAND_INTEGER(RandomFunction.class, "randInteger", int.class),
+  RAND_INTEGER_SEED(RandomFunction.class, "randIntegerSeed", int.class,
+      int.class),
   TRUNCATE(SqlFunctions.class, "truncate", String.class, int.class),
   TRUNCATE_OR_PAD(SqlFunctions.class, "truncateOrPad", String.class, int.class),
   TRIM(SqlFunctions.class, "trim", boolean.class, boolean.class, String.class,
