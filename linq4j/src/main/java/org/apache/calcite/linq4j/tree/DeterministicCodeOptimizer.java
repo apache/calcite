@@ -21,6 +21,7 @@ import org.apache.calcite.linq4j.function.NonDeterministic;
 
 import com.google.common.collect.ImmutableSet;
 
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.math.BigDecimal;
@@ -322,7 +323,19 @@ public class DeterministicCodeOptimizer extends ClassDeclarationFinder {
    * @return true when the method is deterministic
    */
   protected boolean isConstructorDeterministic(NewExpression newExpression) {
-    return allMethodsDeterministic((Class) newExpression.type);
+    final Class klass = (Class) newExpression.type;
+    final Constructor constructor = getConstructor(klass);
+    return allMethodsDeterministic(klass)
+        || constructor != null
+        && constructor.isAnnotationPresent(Deterministic.class);
+  }
+
+  private <C> Constructor<C> getConstructor(Class<C> klass) {
+    try {
+      return klass.getConstructor();
+    } catch (NoSuchMethodException e) {
+      return null;
+    }
   }
 
   /**

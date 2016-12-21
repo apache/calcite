@@ -47,7 +47,9 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.TreeSet;
 
+import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
 
 /**
  * Unit test for {@link org.apache.calcite.linq4j.tree.Expression}
@@ -924,12 +926,12 @@ public class ExpressionTest {
                 "add",
                 element)));
     BlockStatement expression = statements.toBlock();
-    assertEquals(
-        "{\n"
-            + "  return new java.util.TreeSet(\n"
-            + "      (java.util.Comparator) null).add(null);\n"
-            + "}\n",
-        Expressions.toString(expression));
+    final String expected = "{\n"
+        + "  final java.util.TreeSet treeSet = new java.util.TreeSet(\n"
+        + "    (java.util.Comparator) null);\n"
+        + "  return treeSet.add(null);\n"
+        + "}\n";
+    assertThat(Expressions.toString(expression), is(expected));
     expression.accept(new Shuttle());
   }
 

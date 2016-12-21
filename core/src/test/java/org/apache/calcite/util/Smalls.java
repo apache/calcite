@@ -49,6 +49,7 @@ import java.lang.reflect.Method;
 import java.util.AbstractList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
@@ -300,7 +301,29 @@ public class Smalls {
   /** Example of a UDF with a non-static {@code eval} method,
    * and named parameters. */
   public static class MyPlusFunction {
-    public int eval(@Parameter(name = "x") int x, @Parameter(name = "y") int y) {
+    public static final AtomicInteger INSTANCE_COUNT = new AtomicInteger(0);
+
+    // Note: Not marked @Deterministic
+    public MyPlusFunction() {
+      INSTANCE_COUNT.incrementAndGet();
+    }
+
+    public int eval(@Parameter(name = "x") int x,
+        @Parameter(name = "y") int y) {
+      return x + y;
+    }
+  }
+
+  /** As {@link MyPlusFunction} but declared to be deterministic. */
+  public static class MyDeterministicPlusFunction {
+    public static final AtomicInteger INSTANCE_COUNT = new AtomicInteger(0);
+
+    @Deterministic public MyDeterministicPlusFunction() {
+      INSTANCE_COUNT.incrementAndGet();
+    }
+
+    public int eval(@Parameter(name = "x") int x,
+        @Parameter(name = "y") int y) {
       return x + y;
     }
   }

@@ -32,6 +32,7 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.Statement;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
@@ -64,6 +65,12 @@ public class UdfTest {
         + "           name: 'MY_PLUS',\n"
         + "           className: '"
         + Smalls.MyPlusFunction.class.getName()
+        + "'\n"
+        + "         },\n"
+        + "         {\n"
+        + "           name: 'MY_DET_PLUS',\n"
+        + "           className: '"
+        + Smalls.MyDeterministicPlusFunction.class.getName()
         + "'\n"
         + "         },\n"
         + "         {\n"
@@ -140,15 +147,36 @@ public class UdfTest {
     return CalciteAssert.model(model);
   }
 
-  /** Tests user-defined function. */
+  /** Tests a user-defined function that is defined in terms of a class with
+   * non-static methods. */
   @Test public void testUserDefinedFunction() throws Exception {
     final String sql = "select \"adhoc\".my_plus(\"deptno\", 100) as p\n"
         + "from \"adhoc\".EMPLOYEES";
-    final String expected = "P=110\n"
-            + "P=120\n"
-            + "P=110\n"
-            + "P=110\n";
-    withUdf().query(sql).returns(expected);
+    final AtomicInteger c = Smalls.MyPlusFunction.INSTANCE_COUNT;
+    final int before = c.get();
+    withUdf().query(sql).returnsUnordered("P=110",
+        "P=120",
+        "P=110",
+        "P=110");
+    final int after = c.get();
+    assertThat(after, is(before + 4));
+  }
+
+  /** As {@link #testUserDefinedFunction()}, but checks that the class is
+   * instantiated exactly once, per
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1548">[CALCITE-1548]
+   * Instantiate function objects once per query</a>. */
+  @Test public void testUserDefinedFunctionInstanceCount() throws Exception {
+    final String sql = "select \"adhoc\".my_det_plus(\"deptno\", 100) as p\n"
+        + "from \"adhoc\".EMPLOYEES";
+    final AtomicInteger c = Smalls.MyDeterministicPlusFunction.INSTANCE_COUNT;
+    final int before = c.get();
+    withUdf().query(sql).returnsUnordered("P=110",
+        "P=120",
+        "P=110",
+        "P=110");
+    final int after = c.get();
+    assertThat(after, is(before + 1));
   }
 
   @Test public void testUserDefinedFunctionB() throws Exception {

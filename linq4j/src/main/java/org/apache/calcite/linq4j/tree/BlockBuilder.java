@@ -218,7 +218,8 @@ public class BlockBuilder {
   }
 
   /**
-   * Checks if experssion is simple enough for always inline
+   * Checks if expression is simple enough to always inline at zero cost.
+   *
    * @param expr expression to test
    * @return true when given expression is safe to always inline
    */
@@ -244,6 +245,10 @@ public class BlockBuilder {
       Expression expr = normalizeDeclaration(decl);
       expressionForReuse.put(expr, decl);
     }
+  }
+
+  private boolean isCostly(DeclarationStatement decl) {
+    return decl.initializer instanceof NewExpression;
   }
 
   /**
@@ -352,6 +357,11 @@ public class BlockBuilder {
         if (!isSafeForReuse(statement)) {
           // Don't inline variables that are not final. They might be assigned
           // more than once.
+          count = 100;
+        }
+        if (isCostly(statement)) {
+          // Don't inline variables that are costly, such as "new MyFunction()".
+          // Later we will make their declarations static.
           count = 100;
         }
         if (statement.parameter.name.startsWith("_")) {
