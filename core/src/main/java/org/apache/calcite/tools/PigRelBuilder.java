@@ -22,6 +22,7 @@ import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptSchema;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.JoinRelType;
+import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
@@ -36,6 +37,8 @@ import java.util.List;
  * Extension to {@link RelBuilder} for Pig relational operators.
  */
 public class PigRelBuilder extends RelBuilder {
+  private String lastAlias;
+
   private PigRelBuilder(Context context,
       RelOptCluster cluster,
       RelOptSchema relOptSchema) {
@@ -50,10 +53,12 @@ public class PigRelBuilder extends RelBuilder {
   }
 
   @Override public PigRelBuilder scan(String... tableNames) {
+    lastAlias = null;
     return (PigRelBuilder) super.scan(tableNames);
   }
 
   @Override public PigRelBuilder scan(Iterable<String> tableNames) {
+    lastAlias = null;
     return (PigRelBuilder) super.scan(tableNames);
   }
 
@@ -135,14 +140,13 @@ public class PigRelBuilder extends RelBuilder {
       if (groupKey.i < n - 1) {
         r = build();
       }
-      String alias = getAlias();
       // Create a ROW to pass to COLLECT. Interestingly, this is not allowed
       // by standard SQL; see [CALCITE-877] Allow ROW as argument to COLLECT.
       final RexNode row =
           cluster.getRexBuilder().makeCall(peek(1, 0).getRowType(),
               SqlStdOperatorTable.ROW, fields());
       aggregate(groupKey.e,
-          aggregateCall(SqlStdOperatorTable.COLLECT, false, null, alias, row));
+          aggregateCall(SqlStdOperatorTable.COLLECT, false, null, getAlias(), row));
       if (groupKey.i < n - 1) {
         push(r);
         List<RexNode> predicates = new ArrayList<>();
@@ -153,6 +157,25 @@ public class PigRelBuilder extends RelBuilder {
       }
     }
     return this;
+  }
+
+  String getAlias() {
+    if (lastAlias != null) {
+      return lastAlias;
+    } else {
+      RelNode top = peek();
+      if (top instanceof TableScan) {
+        return Util.last(top.getTable().getQualifiedName());
+      } else {
+        return null;
+      }
+    }
+  }
+
+  /** As super-class method, but also retains alias for naming of aggregates. */
+  @Override public RelBuilder as(final String alias) {
+    lastAlias = alias;
+    return super.as(alias);
   }
 
   /** Partitioner for group and join */
