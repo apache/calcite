@@ -49,9 +49,10 @@ class TableScope extends ListScope {
   //~ Methods ----------------------------------------------------------------
 
 
-  @Override public void addChild(SqlValidatorNamespace ns, String alias) {
+  @Override public void addChild(SqlValidatorNamespace ns, String alias,
+      boolean nullable) {
     if (beforeLateral) {
-      super.addChild(ns, alias);
+      super.addChild(ns, alias, nullable);
     }
   }
 

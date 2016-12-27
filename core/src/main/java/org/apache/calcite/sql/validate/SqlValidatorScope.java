@@ -111,8 +111,9 @@ public interface SqlValidatorScope {
    *
    * @param ns    Namespace representing the result-columns of the relation
    * @param alias Alias with which to reference the relation, must not be null
+   * @param nullable Whether this is a null-generating side of a join
    */
-  void addChild(SqlValidatorNamespace ns, String alias);
+  void addChild(SqlValidatorNamespace ns, String alias, boolean nullable);
 
   /**
    * Finds a window with a given name. Returns null if not found.
@@ -179,8 +180,8 @@ public interface SqlValidatorScope {
   /** Callback from
    * {@link SqlValidatorScope#resolve(List, boolean, Resolved)}. */
   interface Resolved {
-    void found(SqlValidatorNamespace namespace, SqlValidatorScope scope,
-        Path path);
+    void found(SqlValidatorNamespace namespace, boolean nullable,
+        SqlValidatorScope scope, Path path);
     int count();
     Path emptyPath();
   }
@@ -242,8 +243,9 @@ public interface SqlValidatorScope {
     final List<Resolve> resolves = new ArrayList<>();
     private final EmptyPath emptyPath = new EmptyPath();
 
-    public void found(SqlValidatorNamespace namespace, SqlValidatorScope scope, Path path) {
-      resolves.add(new Resolve(namespace, scope, path));
+    public void found(SqlValidatorNamespace namespace, boolean nullable,
+        SqlValidatorScope scope, Path path) {
+      resolves.add(new Resolve(namespace, nullable, scope, path));
     }
 
     public int count() {
@@ -268,14 +270,23 @@ public interface SqlValidatorScope {
   /** A match found when looking up a name. */
   class Resolve {
     public final SqlValidatorNamespace namespace;
-    public final SqlValidatorScope scope;
+    private final boolean nullable;
+    public final SqlValidatorScope scope; // may be null
     public final Path path;
 
-    Resolve(SqlValidatorNamespace namespace, SqlValidatorScope scope,
-        Path path) {
+    Resolve(SqlValidatorNamespace namespace, boolean nullable,
+        SqlValidatorScope scope, Path path) {
       this.namespace = Preconditions.checkNotNull(namespace);
+      this.nullable = nullable;
       this.scope = scope;
-      this.path = path;
+      this.path = Preconditions.checkNotNull(path);
+    }
+
+    /** The row type of the found namespace, nullable if the lookup has
+     * looked into outer joins. */
+    public RelDataType rowType() {
+      return namespace.getValidator().getTypeFactory()
+          .createTypeWithNullability(namespace.getRowType(), nullable);
     }
   }
 }

@@ -98,7 +98,6 @@ public abstract class DelegatingNamespace implements SqlValidatorNamespace {
   }
 
   public void makeNullable() {
-    namespace.makeNullable();
   }
 
   public String translate(String name) {

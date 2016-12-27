@@ -2210,6 +2210,7 @@ public class SqlToRelConverter {
       assert resolved.count() == 1;
       final SqlValidatorScope.Resolve resolve = resolved.only();
       final SqlValidatorNamespace foundNs = resolve.namespace;
+      final RelDataType rowType = resolve.rowType();
       final int childNamespaceIndex = resolve.path.steps().get(0).i;
       final SqlValidatorScope ancestorScope = resolve.scope;
       boolean correlInCurrentScope = ancestorScope == bb.scope;
@@ -2246,7 +2247,7 @@ public class SqlToRelConverter {
       while (topLevelFieldAccess.getReferenceExpr() instanceof RexFieldAccess) {
         topLevelFieldAccess = (RexFieldAccess) topLevelFieldAccess.getReferenceExpr();
       }
-      final RelDataTypeField field = foundNs.getRowType().getFieldList()
+      final RelDataTypeField field = rowType.getFieldList()
           .get(topLevelFieldAccess.getField().getIndex() - namespaceOffset);
       int pos = namespaceOffset + field.getIndex();
 
@@ -3910,7 +3911,7 @@ public class SqlToRelConverter {
         return null;
       }
       final SqlValidatorScope.Resolve resolve = resolved.only();
-      final SqlValidatorNamespace foundNs = resolve.namespace;
+      final RelDataType rowType = resolve.rowType();
 
       // Found in current query's from list.  Find which from item.
       // We assume that the order of the from clause items has been
@@ -3936,8 +3937,7 @@ public class SqlToRelConverter {
         final CorrelationId correlId = cluster.createCorrel();
         mapCorrelToDeferred.put(correlId, lookup);
         if (resolve.path.steps().get(0).i < 0) {
-          return Pair.of(rexBuilder.makeCorrel(foundNs.getRowType(), correlId),
-              null);
+          return Pair.of(rexBuilder.makeCorrel(rowType, correlId), null);
         } else {
           final RelDataTypeFactory.FieldInfoBuilder builder =
               typeFactory.builder();

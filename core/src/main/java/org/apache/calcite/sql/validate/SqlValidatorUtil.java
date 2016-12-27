@@ -695,7 +695,7 @@ public class SqlValidatorUtil {
 
       assert resolved.count() == 1;
       final SqlValidatorScope.Resolve resolve = resolved.only();
-      final SqlValidatorNamespace foundNs = resolve.namespace;
+      final RelDataType rowType = resolve.rowType();
       final int childNamespaceIndex = resolve.path.steps().get(0).i;
 
       int namespaceOffset = 0;
@@ -715,7 +715,7 @@ public class SqlValidatorUtil {
       }
 
       RelDataTypeField field =
-          scope.getValidator().getCatalogReader().field(foundNs.getRowType(),
+          scope.getValidator().getCatalogReader().field(rowType,
               originalFieldName);
       int origPos = namespaceOffset + field.getIndex();
 

@@ -105,7 +105,8 @@ class EmptyScope implements SqlValidatorScope {
         RESOURCE.columnNotFound(columnName));
   }
 
-  public void addChild(SqlValidatorNamespace ns, String alias) {
+  public void addChild(SqlValidatorNamespace ns, String alias,
+      boolean nullable) {
     // cannot add to the empty scope
     throw new UnsupportedOperationException();
   }

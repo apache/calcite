@@ -158,10 +158,7 @@ public interface SqlValidatorNamespace {
    */
   SqlMonotonicity getMonotonicity(String columnName);
 
-  /**
-   * Makes all fields in this namespace nullable (typically because it is on
-   * the outer side of an outer join.
-   */
+  @Deprecated // to be removed before 2.0
   void makeNullable();
 
   /**

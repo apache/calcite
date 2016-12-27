@@ -141,15 +141,14 @@ public abstract class Join extends BiRel {
     return joinType;
   }
 
-  // TODO: enable
-  public boolean isValid_(Litmus litmus, Context context) {
+  @Override public boolean isValid(Litmus litmus, Context context) {
     if (!super.isValid(litmus, context)) {
       return false;
     }
     if (getRowType().getFieldCount()
         != getSystemFieldList().size()
         + left.getRowType().getFieldCount()
-        + right.getRowType().getFieldCount()) {
+        + (this instanceof SemiJoin ? 0 : right.getRowType().getFieldCount())) {
       return litmus.fail("field count mismatch");
     }
     if (condition != null) {

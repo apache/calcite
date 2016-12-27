@@ -444,13 +444,16 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     final SqlParserPos startPosition = identifier.getParserPosition();
     switch (identifier.names.size()) {
     case 1:
-      for (Pair<String, SqlValidatorNamespace> p : scope.children) {
-        if (p.right.getRowType().isDynamicStruct()) {
+      for (ScopeChild child : scope.children) {
+        final int before = types.size();
+        if (child.namespace.getRowType().isDynamicStruct()) {
           // don't expand star if the underneath table is dynamic.
           // Treat this star as a special field in validation/conversion and
           // wait until execution time to expand this star.
-          final SqlNode exp = new SqlIdentifier(
-                  ImmutableList.of(p.left, DynamicRecordType.DYNAMIC_STAR_PREFIX),
+          final SqlNode exp =
+              new SqlIdentifier(
+                  ImmutableList.of(child.name,
+                      DynamicRecordType.DYNAMIC_STAR_PREFIX),
                   startPosition);
           addToSelectList(
                selectItems,
@@ -460,7 +463,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
                scope,
                includeSystemVars);
         } else {
-          final SqlNode from = p.right.getNode();
+          final SqlNode from = child.namespace.getNode();
           final SqlValidatorNamespace fromNs = getNamespace(from, scope);
           assert fromNs != null;
           final RelDataType rowType = fromNs.getRowType();
@@ -470,7 +473,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
             // TODO: do real implicit collation here
             final SqlIdentifier exp =
                 new SqlIdentifier(
-                    ImmutableList.of(p.left, columnName),
+                    ImmutableList.of(child.name, columnName),
                     startPosition);
             addOrExpandField(
                 selectItems,
@@ -480,6 +483,17 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
                 scope,
                 exp,
                 field);
+          }
+        }
+        if (child.nullable) {
+          for (int i = before; i < types.size(); i++) {
+            final Map.Entry<String, RelDataType> entry = types.get(i);
+            final RelDataType type = entry.getValue();
+            if (!type.isNullable()) {
+              types.set(i,
+                  Pair.of(entry.getKey(),
+                      typeFactory.createTypeWithNullability(type, true)));
+            }
           }
         }
       }
@@ -496,8 +510,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         throw newValidationError(prefixId,
             RESOURCE.unknownIdentifier(prefixId.toString()));
       }
-      final SqlValidatorNamespace fromNs = resolved.only().namespace;
-      final RelDataType rowType = fromNs.getRowType();
+      final RelDataType rowType = resolved.only().rowType();
       if (rowType.isDynamicStruct()) {
         // don't expand star if the underneath table is dynamic.
         addToSelectList(
@@ -1786,7 +1799,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         ns.getNode(),
         ns);
     if (usingScope != null) {
-      usingScope.addChild(ns, alias);
+      usingScope.addChild(ns, alias, forceNullable);
     }
   }
 
@@ -1990,7 +2003,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       if (tableScope == null) {
         tableScope = new TableScope(parentScope, node);
       }
-      tableScope.addChild(newNs, alias);
+      tableScope.addChild(newNs, alias, forceNullable);
       return newNode;
 
     case LATERAL:
@@ -2065,11 +2078,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         call.setOperand(0, newOperand);
       }
 
-      for (Pair<String, SqlValidatorNamespace> p : overScope.children) {
-        registerNamespace(
-            usingScope,
-            p.left,
-            p.right,
+      for (ScopeChild child : overScope.children) {
+        registerNamespace(usingScope, child.name, child.namespace,
             forceNullable);
       }
 
@@ -2877,11 +2887,9 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       break;
     case ON:
       Util.permAssert(condition != null, "condition != null");
-      if (condition != null) {
-        SqlNode expandedCondition = expand(condition, joinScope);
-        join.setOperand(5, expandedCondition);
-        condition = join.getCondition();
-      }
+      SqlNode expandedCondition = expand(condition, joinScope);
+      join.setOperand(5, expandedCondition);
+      condition = join.getCondition();
       validateWhereOrOn(joinScope, condition, "ON");
       break;
     case USING:
@@ -3043,10 +3051,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     }
 
     // Make sure that items in FROM clause have distinct aliases.
-    final SqlValidatorScope fromScope = getFromScope(select);
-    final List<Pair<String, SqlValidatorNamespace>> children =
-        ((SelectScope) fromScope).children;
-    List<String> names = Pair.left(children);
+    final SelectScope fromScope = (SelectScope) getFromScope(select);
+    List<String> names = fromScope.getChildNames();
     if (!catalogReader.isCaseSensitive()) {
       names = Lists.transform(names,
           new Function<String, String>() {
@@ -3057,10 +3063,10 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     }
     final int duplicateAliasOrdinal = Util.firstDuplicate(names);
     if (duplicateAliasOrdinal >= 0) {
-      final Pair<String, SqlValidatorNamespace> child =
-          children.get(duplicateAliasOrdinal);
-      throw newValidationError(child.right.getEnclosingNode(),
-          RESOURCE.fromAliasDuplicate(child.left));
+      final ScopeChild child =
+          fromScope.children.get(duplicateAliasOrdinal);
+      throw newValidationError(child.namespace.getEnclosingNode(),
+          RESOURCE.fromAliasDuplicate(child.name));
     }
 
     if (select.getFrom() == null) {
@@ -3137,11 +3143,11 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     switch (modality) {
     case STREAM:
       if (scope.children.size() == 1) {
-        for (Pair<String, SqlValidatorNamespace> namespace : scope.children) {
-          if (!namespace.right.supportsModality(modality)) {
+        for (ScopeChild child : scope.children) {
+          if (!child.namespace.supportsModality(modality)) {
             if (fail) {
-              throw newValidationError(namespace.right.getNode(),
-                  Static.RESOURCE.cannotConvertToStream(namespace.left));
+              throw newValidationError(child.namespace.getNode(),
+                  Static.RESOURCE.cannotConvertToStream(child.name));
             } else {
               return false;
             }
@@ -3149,20 +3155,15 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         }
       } else {
         int supportsModalityCount = 0;
-        for (Pair<String, SqlValidatorNamespace> namespace : scope.children) {
-          if (namespace.right.supportsModality(modality)) {
+        for (ScopeChild child : scope.children) {
+          if (child.namespace.supportsModality(modality)) {
             ++supportsModalityCount;
           }
         }
 
         if (supportsModalityCount == 0) {
           if (fail) {
-            List<String> inputList = new ArrayList<String>();
-            for (Pair<String, SqlValidatorNamespace> namespace : scope.children) {
-              inputList.add(namespace.left);
-            }
-            String inputs = Joiner.on(", ").join(inputList);
-
+            String inputs = Joiner.on(", ").join(scope.getChildNames());
             throw newValidationError(select,
                 Static.RESOURCE.cannotStreamResultsForNonStreamingInputs(inputs));
           } else {
@@ -3172,11 +3173,11 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       }
       break;
     default:
-      for (Pair<String, SqlValidatorNamespace> namespace : scope.children) {
-        if (!namespace.right.supportsModality(modality)) {
+      for (ScopeChild child : scope.children) {
+        if (!child.namespace.supportsModality(modality)) {
           if (fail) {
-            throw newValidationError(namespace.right.getNode(),
-                Static.RESOURCE.cannotConvertToRelation(namespace.left));
+            throw newValidationError(child.namespace.getNode(),
+                Static.RESOURCE.cannotConvertToRelation(child.name));
           } else {
             return false;
           }
@@ -4485,7 +4486,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         if (resolved.count() == 1) {
           // There's a namespace with the name we seek.
           final SqlValidatorScope.Resolve resolve = resolved.only();
-          type = resolve.namespace.getRowType();
+          type = resolve.rowType();
           for (SqlValidatorScope.Step p : Util.skip(resolve.path.steps())) {
             type = type.getFieldList().get(p.i).getType();
           }

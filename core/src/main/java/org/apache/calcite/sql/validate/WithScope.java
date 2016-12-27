@@ -54,13 +54,14 @@ class WithScope extends ListScope {
     return super.getTableNamespace(names);
   }
 
-  @Override public void resolve(List<String> names, boolean deep, Resolved resolved) {
+  @Override public void resolve(List<String> names, boolean deep,
+      Resolved resolved) {
     if (names.size() == 1
         && names.equals(withItem.name.names)) {
       final SqlValidatorNamespace ns = validator.getNamespace(withItem);
       final Step path = resolved.emptyPath()
           .add(ns.getRowType(), 0, StructKind.FULLY_QUALIFIED);
-      resolved.found(ns, null, path);
+      resolved.found(ns, false, null, path);
       return;
     }
     super.resolve(names, deep, resolved);
