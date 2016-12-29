@@ -49,6 +49,10 @@ public interface ConnectionConfig {
   String kerberosPrincipal();
   /** @see BuiltInConnectionProperty#KEYTAB */
   File kerberosKeytab();
+  /** @see BuiltInConnectionProperty#TRUSTSTORE */
+  File truststore();
+  /** @see BuiltInConnectionProperty#TRUSTSTORE_PASSWORD */
+  String truststorePassword();
 }
 
 // End ConnectionConfig.java
