@@ -76,7 +76,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 
 import java.math.BigDecimal;
 import java.util.AbstractList;
@@ -870,7 +869,8 @@ public class RelBuilder {
       names.add(name != null ? name : inferAlias(exprList, node));
     }
     final Frame frame = stack.peek();
-    ImmutableList.Builder<Pair<Set<String>, RelDataTypeField>> fields = ImmutableList.builder();
+    ImmutableList.Builder<Pair<ImmutableSet<String>, RelDataTypeField>> fields =
+        ImmutableList.builder();
     final Set<String> uniqueNameList =
         getTypeFactory().getTypeSystem().isSchemaCaseSensitive()
         ? new HashSet<String>()
@@ -879,7 +879,7 @@ public class RelBuilder {
     for (int i = 0; i < names.size(); ++i) {
       RexNode node = exprList.get(i);
       String name = names.get(i);
-      Pair<Set<String>, RelDataTypeField> field = null;
+      Pair<ImmutableSet<String>, RelDataTypeField> field = null;
       if (name == null || uniqueNameList.contains(name)) {
         int j = 0;
         if (name == null) {
@@ -895,7 +895,7 @@ public class RelBuilder {
         // preserve rel aliases for INPUT_REF fields
         field = Pair.of(frame.fields.get(((RexInputRef) node).getIndex()).left, fieldType);
       } else {
-        field = Pair.of((Set<String>) new HashSet<String>(), fieldType);
+        field = Pair.of(ImmutableSet.<String>of(), fieldType);
       }
       uniqueNameList.add(name);
       fields.add(field);
@@ -1036,7 +1036,8 @@ public class RelBuilder {
         groupKey_.indicator, groupSet, groupSets, aggregateCalls);
 
     // build field list
-    ImmutableList.Builder<Pair<Set<String>, RelDataTypeField>> fields = ImmutableList.builder();
+    ImmutableList.Builder<Pair<ImmutableSet<String>, RelDataTypeField>> fields =
+        ImmutableList.builder();
     int i = 0;
     // first, group fields
     for (Integer groupField : groupSet.asList()) {
@@ -1046,7 +1047,7 @@ public class RelBuilder {
       } else {
         String name = aggregate.getRowType().getFieldNames().get(i);
         RelDataTypeField fieldType = new RelDataTypeFieldImpl(name, i, node.getType());
-        fields.add(Pair.<Set<String>, RelDataTypeField>of(new HashSet<String>(), fieldType));
+        fields.add(Pair.of(ImmutableSet.<String>of(), fieldType));
       }
       i++;
     }
@@ -1056,7 +1057,7 @@ public class RelBuilder {
         RelDataTypeField fieldType =
             new RelDataTypeFieldImpl(aggregate.getRowType().getFieldNames().get(i), i,
                                      aggregate.getRowType().getFieldList().get(i).getType());
-        fields.add(Pair.<Set<String>, RelDataTypeField>of(new HashSet<String>(), fieldType));
+        fields.add(Pair.of(ImmutableSet.<String>of(), fieldType));
         i++;
       }
     }
@@ -1066,7 +1067,7 @@ public class RelBuilder {
       RelDataTypeField fieldType =
           new RelDataTypeFieldImpl(aggregate.getRowType().getFieldNames().get(i + j),
                                    i + j, call.getType());
-      fields.add(Pair.<Set<String>, RelDataTypeField>of(new HashSet<String>(), fieldType));
+      fields.add(Pair.of(ImmutableSet.<String>of(), fieldType));
     }
     stack.push(new Frame(aggregate, fields.build()));
     return this;
@@ -1233,7 +1234,8 @@ public class RelBuilder {
       join = joinFactory.createJoin(left.rel, right.rel, condition,
           variablesSet, joinType, false);
     }
-    ImmutableList.Builder<Pair<Set<String>, RelDataTypeField>> fields = ImmutableList.builder();
+    ImmutableList.Builder<Pair<ImmutableSet<String>, RelDataTypeField>> fields =
+        ImmutableList.builder();
     fields.addAll(left.fields);
     fields.addAll(right.fields);
     stack.push(new Frame(join, fields.build()));
@@ -1278,13 +1280,13 @@ public class RelBuilder {
   /** Assigns a table alias to the top entry on the stack. */
   public RelBuilder as(final String alias) {
     final Frame pair = stack.pop();
-    List<Pair<Set<String>, RelDataTypeField>> newFields =
-        Lists.transform(pair.fields, new Function<Pair<Set<String>, RelDataTypeField>,
-                                                  Pair<Set<String>, RelDataTypeField>>() {
-          public Pair<Set<String>, RelDataTypeField> apply(final Pair<Set<String>,
-                                                                      RelDataTypeField> field) {
-            field.left.add(alias);
-            return field;
+    List<Pair<ImmutableSet<String>, RelDataTypeField>> newFields =
+        Lists.transform(pair.fields, new Function<Pair<ImmutableSet<String>, RelDataTypeField>,
+                                                  Pair<ImmutableSet<String>, RelDataTypeField>>() {
+          public Pair<ImmutableSet<String>, RelDataTypeField> apply(
+              Pair<ImmutableSet<String>, RelDataTypeField> field) {
+            return Pair.of(ImmutableSet.<String>builder().addAll(field.left).add(alias).build(),
+                           field.right);
           }
         });
     stack.push(
@@ -1705,26 +1707,30 @@ public class RelBuilder {
    * <p>Describes a previously created relational expression and
    * information about how table aliases map into its row type. */
   private static class Frame {
-    static final Function<Pair<Set<String>, RelDataTypeField>, RelDataTypeField> FN =
-        new Function<Pair<Set<String>, RelDataTypeField>, RelDataTypeField>() {
-          public RelDataTypeField apply(Pair<Set<String>, RelDataTypeField> input) {
+    static final Function<Pair<ImmutableSet<String>, RelDataTypeField>, RelDataTypeField> FN =
+        new Function<Pair<ImmutableSet<String>, RelDataTypeField>, RelDataTypeField>() {
+          public RelDataTypeField apply(Pair<ImmutableSet<String>, RelDataTypeField> input) {
             return input.right;
           }
         };
 
     final RelNode rel;
-    final ImmutableList<Pair<Set<String>, RelDataTypeField>> fields;
+    final ImmutableList<Pair<ImmutableSet<String>, RelDataTypeField>> fields;
 
-    private Frame(RelNode rel, ImmutableList<Pair<Set<String>, RelDataTypeField>> fields) {
+    private Frame(RelNode rel,
+                  ImmutableList<Pair<ImmutableSet<String>, RelDataTypeField>> fields) {
       this.rel = rel;
       this.fields = fields;
     }
 
     private Frame(RelNode rel) {
       String tableAlias = deriveAlias(rel);
-      ImmutableList.Builder<Pair<Set<String>, RelDataTypeField>> builder = ImmutableList.builder();
+      ImmutableList.Builder<Pair<ImmutableSet<String>, RelDataTypeField>> builder =
+          ImmutableList.builder();
+      ImmutableSet<String> aliases = tableAlias == null ? ImmutableSet.<String>of()
+                                                        : ImmutableSet.of(tableAlias);
       for (RelDataTypeField field : rel.getRowType().getFieldList()) {
-        builder.add(Pair.<Set<String>, RelDataTypeField>of(Sets.newHashSet(tableAlias), field));
+        builder.add(Pair.of(aliases, field));
       }
       this.rel = rel;
       this.fields = builder.build();
