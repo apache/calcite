@@ -882,8 +882,11 @@ public class RelBuilder {
       Pair<Set<String>, RelDataTypeField> field = null;
       if (name == null || uniqueNameList.contains(name)) {
         int j = 0;
+        if (name == null) {
+          j = i;
+        }
         do {
-          name = SqlValidatorUtil.F_SUGGESTER.apply(name, j++, i);
+          name = SqlValidatorUtil.F_SUGGESTER.apply(name, j, j++);
         } while (uniqueNameList.contains(name));
         names.set(i, name);
       }

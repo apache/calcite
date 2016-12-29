@@ -367,7 +367,7 @@ public class RelBuilderTest {
     // Note: AS(COMM, C) becomes just $6
     assertThat(str(root),
         is(
-            "LogicalProject(DEPTNO=[$7], COMM=[CAST($6):SMALLINT NOT NULL], $f2=[20], COMM3=[$6], C=[$6])\n"
+            "LogicalProject(DEPTNO=[$7], COMM=[CAST($6):SMALLINT NOT NULL], $f2=[20], COMM0=[$6], C=[$6])\n"
             + "  LogicalTableScan(table=[[scott, EMP]])\n"));
   }
 
@@ -400,7 +400,7 @@ public class RelBuilderTest {
         is("LogicalProject(DEPTNO=[$7], COMM=[CAST($6):SMALLINT NOT NULL],"
                 + " $f2=[OR(=($7, 20), AND(null, =($7, 10), IS NULL($6),"
                 + " IS NULL($7)), =($7, 30))], n2=[IS NULL($2)],"
-                + " nn2=[IS NOT NULL($3)], $f5=[20], COMM6=[$6], C=[$6])\n"
+                + " nn2=[IS NOT NULL($3)], $f5=[20], COMM0=[$6], C=[$6])\n"
                 + "  LogicalTableScan(table=[[scott, EMP]])\n"));
   }
 
@@ -1188,7 +1188,7 @@ public class RelBuilderTest {
     final String expected = ""
                             + "LogicalProject(DEPTNO=[$0], EMPNO=[$2])\n"
                             + "  LogicalFilter(condition=[>($0, 100)])\n"
-                            + "    LogicalProject(DEPTNO=[$16], DEPTNO1=[$16], EMPNO=[$8], MGR=[$3])\n"
+                            + "    LogicalProject(DEPTNO=[$16], DEPTNO0=[$16], EMPNO=[$8], MGR=[$3])\n"
                             + "      LogicalJoin(condition=[true], joinType=[inner])\n"
                             + "        LogicalTableScan(table=[[scott, EMP]])\n"
                             + "        LogicalJoin(condition=[true], joinType=[inner])\n"
