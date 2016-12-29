@@ -2893,6 +2893,14 @@ public class RelOptRulesTest extends RelOptTestBase {
     checkSubQuery(sql).withLateDecorrelation(true).check();
   }
 
+  @Test public void testWhereNotInCorrelated2() {
+    final String sql = "select * from emp e1\n"
+        + "  where e1.empno NOT IN\n"
+        + "   (select empno from (select ename, empno, sal as r from emp) e2\n"
+        + "    where r > 2 and e1.ename= e2.ename)";
+    checkSubQuery(sql).withLateDecorrelation(true).check();
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1546">[CALCITE-1546]
    * Sub-queries connected by OR</a>. */
@@ -3089,12 +3097,39 @@ public class RelOptRulesTest extends RelOptTestBase {
     checkSubQuery(sql).withLateDecorrelation(true).check();
   }
 
-  @Test public void testWhereInCorrelated() {
+  @Test public void testWhereInJoinCorrelated() {
     final String sql = "select empno from emp as e\n"
         + "join dept as d using (deptno)\n"
         + "where e.sal in (\n"
         + "  select e2.sal from emp as e2 where e2.deptno > e.deptno)";
     checkSubQuery(sql).check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1494">[CALCITE-1494]
+   * Inefficient plan for correlated sub-queries</a>. In "planAfter", there
+   * must be only one scan each of emp and dept. We don't need a separate
+   * value-generator for emp.job. */
+  @Test public void testWhereInCorrelated() {
+    final String sql = "select sal from emp where empno IN (\n"
+        + "  select deptno from dept where emp.job = dept.name)";
+    checkSubQuery(sql).withLateDecorrelation(true).check();
+  }
+
+  @Test public void testWhereExpressionInCorrelated() {
+    final String sql = "select ename from (\n"
+        + "  select ename, deptno, sal + 1 as salPlus from emp) as e\n"
+        + "where deptno in (\n"
+        + "  select deptno from emp where sal + 1 = e.salPlus)";
+    checkSubQuery(sql).withLateDecorrelation(true).check();
+  }
+
+  @Test public void testWhereExpressionInCorrelated2() {
+    final String sql = "select name from (\n"
+        + "  select name, deptno, deptno - 10 as deptnoMinus from dept) as d\n"
+        + "where deptno in (\n"
+        + "  select deptno from emp where sal + 1 = d.deptnoMinus)";
+    checkSubQuery(sql).withLateDecorrelation(true).check();
   }
 
   @Test public void testExpandWhereComparisonCorrelated() throws Exception {

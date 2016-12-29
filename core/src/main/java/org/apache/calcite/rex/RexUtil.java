@@ -1449,6 +1449,9 @@ public class RexUtil {
    * Shifts every {@link RexInputRef} in an expression by {@code offset}.
    */
   public static RexNode shift(RexNode node, final int offset) {
+    if (offset == 0) {
+      return node;
+    }
     return node.accept(new RexShiftShuttle(offset));
   }
 

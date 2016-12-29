@@ -4707,11 +4707,7 @@ public class JdbcTest {
         + "    EnumerableTableScan(table=[[hr, emps]])\n"
         + "    EnumerableCalc(expr#0=[{inputs}], expr#1=[true], proj#0..1=[{exprs}])\n"
         + "      EnumerableAggregate(group=[{0}])\n"
-        + "        EnumerableJoin(condition=[=($0, $1)], joinType=[inner])\n"
-        + "          EnumerableAggregate(group=[{1}])\n"
-        + "            EnumerableTableScan(table=[[hr, emps]])\n"
-        + "          EnumerableCalc(expr#0..3=[{inputs}], deptno=[$t0])\n"
-        + "            EnumerableTableScan(table=[[hr, depts]])";
+        + "        EnumerableTableScan(table=[[hr, depts]])";
     CalciteAssert.hr()
         .query(sql)
         .explainContains(explain)

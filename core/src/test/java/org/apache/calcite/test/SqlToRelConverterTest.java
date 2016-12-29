@@ -1145,6 +1145,12 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).decorrelate(true).ok();
   }
 
+  @Test public void testLateralDecorrelateThetaRex() {
+    final String sql = "select * from emp,\n"
+        + " LATERAL (select * from dept where emp.deptno < dept.deptno)";
+    sql(sql).decorrelate(true).ok();
+  }
+
   @Test public void testNestedCorrelations() {
     final String sql = "select *\n"
         + "from (select 2+deptno d2, 3+deptno d3 from emp) e\n"
@@ -1847,6 +1853,17 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
         + "FROM emp e1, dept d1 where e1.deptno = d1.deptno\n"
         + "and e1.deptno < 10 and d1.deptno < 15\n"
         + "and exists (select * from emp e2 where e1.empno = e2.empno)";
+    sql(sql).decorrelate(true).ok();
+  }
+
+  /** A theta join condition, unlike the equi-join condition in
+   * {@link #testCorrelationExistsAndFilterRex()}, requires a value
+   * generator. */
+  @Test public void testCorrelationExistsAndFilterThetaRex() {
+    final String sql = "SELECT e1.empno\n"
+        + "FROM emp e1, dept d1 where e1.deptno = d1.deptno\n"
+        + "and e1.deptno < 10 and d1.deptno < 15\n"
+        + "and exists (select * from emp e2 where e1.empno < e2.empno)";
     sql(sql).decorrelate(true).ok();
   }
 
