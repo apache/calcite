@@ -90,7 +90,7 @@ public class PigRelBuilderTest {
   @Test public void testGroup() {
     // Syntax:
     //   alias = GROUP alias { ALL | BY expression}
-    //     [, alias ALL | BY expression …] [USING 'collected' | 'merge']
+    //     [, alias ALL | BY expression ...] [USING 'collected' | 'merge']
     //     [PARTITION BY partitioner] [PARALLEL n];
     // Equivalent to Pig Latin:
     //   r = GROUP e BY (deptno, job);

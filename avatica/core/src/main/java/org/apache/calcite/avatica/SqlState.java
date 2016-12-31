@@ -24,11 +24,11 @@ import java.util.Map;
 /**
  * SQL error codes.
  *
- * <p>Based upon Table 33 — SQLSTATE class and subclass values in SQL:2014 section 24.1, which is
- * as follows.
+ * <p>Based upon Table 33 &mdash; SQLSTATE class and subclass values in
+ * SQL:2014 section 24.1, which is as follows.
  *
  * <table border=1>
- * <caption>Table 33 — SQLSTATE class and subclass values</caption>
+ * <caption>Table 33 &mdash; SQLSTATE class and subclass values</caption>
  * <tr>
  *   <th>Category</th>
  *   <th>Condition</th>

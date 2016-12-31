@@ -1458,7 +1458,8 @@ public class RemoteDriverTest {
 
   @Test public void testUnicodeColumnNames() throws Exception {
     final String tableName = "unicodeColumn";
-    final String columnName = "НомерТелефона"; // PhoneNumber in Russian
+    final String columnName = "\u041d\u043e\u043c\u0435\u0440\u0422\u0435\u043b"
+        + "\u0435\u0444\u043e\u043d\u0430"; // PhoneNumber in Russian
     ConnectionSpec.getDatabaseLock().lock();
     try (Connection conn = getLocalConnection();
         Statement stmt = conn.createStatement()) {

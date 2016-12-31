@@ -301,14 +301,15 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
   }
 
   /**
-   * GROUP BY with duplicates
+   * GROUP BY with duplicates.
    *
    * <p>From SQL spec:
-   * <blockquote>NOTE 190 — That is, a simple <em>group by clause</em> that is
-   * not primitive may be transformed into a primitive <em>group by clause</em>
-   * by deleting all parentheses, and deleting extra commas as necessary for
-   * correct syntax. If there are no grouping columns at all (for example,
-   * GROUP BY (), ()), this is transformed to the canonical form GROUP BY ().
+   * <blockquote>NOTE 190 &mdash; That is, a simple <em>group by clause</em>
+   * that is not primitive may be transformed into a primitive <em>group by
+   * clause</em> by deleting all parentheses, and deleting extra commas as
+   * necessary for correct syntax. If there are no grouping columns at all (for
+   * example, GROUP BY (), ()), this is transformed to the canonical form GROUP
+   * BY ().
    * </blockquote> */
   // Same effect as writing "GROUP BY ()"
   @Test public void testGroupByWithDuplicates() {
