@@ -54,17 +54,30 @@ class WithScope extends ListScope {
     return super.getTableNamespace(names);
   }
 
-  @Override public void resolve(List<String> names, boolean deep,
-      Resolved resolved) {
+  @Override public void resolveTable(List<String> names,
+      SqlNameMatcher nameMatcher, Path path, Resolved resolved) {
     if (names.size() == 1
         && names.equals(withItem.name.names)) {
       final SqlValidatorNamespace ns = validator.getNamespace(withItem);
-      final Step path = resolved.emptyPath()
-          .add(ns.getRowType(), 0, StructKind.FULLY_QUALIFIED);
-      resolved.found(ns, false, null, path);
+      final Step path2 = path
+          .plus(ns.getRowType(), 0, names.get(0), StructKind.FULLY_QUALIFIED);
+      resolved.found(ns, false, null, path2, null);
       return;
     }
-    super.resolve(names, deep, resolved);
+    super.resolveTable(names, nameMatcher, path, resolved);
+  }
+
+  @Override public void resolve(List<String> names, SqlNameMatcher nameMatcher,
+      boolean deep, Resolved resolved) {
+    if (names.size() == 1
+        && names.equals(withItem.name.names)) {
+      final SqlValidatorNamespace ns = validator.getNamespace(withItem);
+      final Step path = Path.EMPTY.plus(ns.getRowType(), 0, names.get(0),
+          StructKind.FULLY_QUALIFIED);
+      resolved.found(ns, false, null, path, null);
+      return;
+    }
+    super.resolve(names, nameMatcher, deep, resolved);
   }
 }
 

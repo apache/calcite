@@ -108,14 +108,7 @@ public class SqlValidatorUtil {
     return table;
   }
 
-  /**
-   * Looks up a field with a given name, returning null if not found.
-   *
-   * @param caseSensitive Whether match is case-sensitive
-   * @param rowType    Row type
-   * @param columnName Field name
-   * @return Field, or null if not found
-   */
+  @Deprecated // to be removed before 2.0
   public static RelDataTypeField lookupField(boolean caseSensitive,
       final RelDataType rowType, String columnName) {
     return rowType.getField(columnName, caseSensitive, false);
@@ -452,7 +445,8 @@ public class SqlValidatorUtil {
       RelOptTable table) {
     final Table t = table == null ? null : table.unwrap(Table.class);
     if (!(t instanceof CustomColumnResolvingTable)) {
-      return catalogReader.field(rowType, id.getSimple());
+      final SqlNameMatcher nameMatcher = catalogReader.nameMatcher();
+      return nameMatcher.field(rowType, id.getSimple());
     }
 
     final List<Pair<RelDataTypeField, List<String>>> entries =
@@ -478,9 +472,11 @@ public class SqlValidatorUtil {
       SqlValidatorScope scope,
       List<String> names) {
     assert names.size() > 0;
+    final SqlNameMatcher nameMatcher =
+        scope.getValidator().getCatalogReader().nameMatcher();
     final SqlValidatorScope.ResolvedImpl resolved =
         new SqlValidatorScope.ResolvedImpl();
-    scope.resolve(ImmutableList.of(names.get(0)), false, resolved);
+    scope.resolve(ImmutableList.of(names.get(0)), nameMatcher, false, resolved);
     assert resolved.count() == 1;
     SqlValidatorNamespace namespace = resolved.only().namespace;
     for (String name : Util.skip(names)) {
@@ -498,15 +494,10 @@ public class SqlValidatorUtil {
     List<String> subNames = Util.skipLast(names);
 
     // Try successively with catalog.schema, catalog and no prefix
-    List<String> x = catalogReader.getSchemaName();
-    for (;;) {
+    for (List<String> x : catalogReader.getSchemaPaths()) {
       final List<String> names2 =
           ImmutableList.<String>builder().addAll(x).addAll(subNames).build();
       hints.addAll(catalogReader.getAllSchemaObjectNames(names2));
-      if (x.isEmpty()) {
-        break;
-      }
-      x = Util.skipLast(x);
     }
   }
 
@@ -689,9 +680,12 @@ public class SqlValidatorUtil {
       String originalRelName = expr.names.get(0);
       String originalFieldName = expr.names.get(1);
 
+      final SqlNameMatcher nameMatcher =
+          scope.getValidator().getCatalogReader().nameMatcher();
       final SqlValidatorScope.ResolvedImpl resolved =
           new SqlValidatorScope.ResolvedImpl();
-      scope.resolve(ImmutableList.of(originalRelName), false, resolved);
+      scope.resolve(ImmutableList.of(originalRelName), nameMatcher, false,
+          resolved);
 
       assert resolved.count() == 1;
       final SqlValidatorScope.Resolve resolve = resolved.only();
@@ -714,9 +708,7 @@ public class SqlValidatorUtil {
         }
       }
 
-      RelDataTypeField field =
-          scope.getValidator().getCatalogReader().field(rowType,
-              originalFieldName);
+      RelDataTypeField field = nameMatcher.field(rowType, originalFieldName);
       int origPos = namespaceOffset + field.getIndex();
 
       groupExprProjection.put(origPos, ref);
@@ -835,6 +827,7 @@ public class SqlValidatorUtil {
 
     /** Copies a list of nodes. */
     public static SqlNodeList copy(SqlValidatorScope scope, SqlNodeList list) {
+      //noinspection deprecation
       return (SqlNodeList) list.accept(new DeepCopier(scope));
     }
 

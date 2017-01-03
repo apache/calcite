@@ -32,6 +32,7 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.validate.SqlUserDefinedTableFunction;
 import org.apache.calcite.util.Smalls;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
 import org.junit.Test;
@@ -141,8 +142,8 @@ public class LookupOperatorOverloadsTest {
           statement.createPrepareContext();
       final JavaTypeFactory typeFactory = prepareContext.getTypeFactory();
       CalciteCatalogReader reader =
-          new CalciteCatalogReader(prepareContext.getRootSchema(), false, null,
-              typeFactory);
+          new CalciteCatalogReader(prepareContext.getRootSchema(), false,
+              ImmutableList.<String>of(), typeFactory);
 
       final List<SqlOperator> operatorList = new ArrayList<>();
       SqlIdentifier myFuncIdentifier =

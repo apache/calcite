@@ -2358,6 +2358,29 @@ public class Util {
     return "".equals(v) || "true".equalsIgnoreCase(v);
   }
 
+  /** Returns a copy of a list of lists, making the component lists immutable if
+   * they are not already. */
+  public static <E> List<List<E>>
+  immutableCopy(Iterable<? extends Iterable<E>> lists) {
+    int n = 0;
+    for (Iterable<E> list : lists) {
+      if (!(list instanceof ImmutableList)) {
+        ++n;
+      }
+    }
+    if (n == 0) {
+      // Lists are already immutable. Furthermore, if the outer list is
+      // immutable we will just return "lists" unchanged.
+      return ImmutableList.copyOf((Iterable) lists);
+    }
+    final ImmutableList.Builder<List<E>> builder =
+        ImmutableList.builder();
+    for (Iterable<E> list : lists) {
+      builder.add(ImmutableList.copyOf(list));
+    }
+    return builder.build();
+  }
+
   //~ Inner Classes ----------------------------------------------------------
 
   /**

@@ -142,6 +142,7 @@ import org.apache.calcite.sql.validate.ListScope;
 import org.apache.calcite.sql.validate.ParameterScope;
 import org.apache.calcite.sql.validate.SelectScope;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
+import org.apache.calcite.sql.validate.SqlNameMatcher;
 import org.apache.calcite.sql.validate.SqlQualified;
 import org.apache.calcite.sql.validate.SqlUserDefinedTableFunction;
 import org.apache.calcite.sql.validate.SqlUserDefinedTableMacro;
@@ -434,7 +435,7 @@ public class SqlToRelConverter {
         validator.getTypeFactory().createStructType(
             Pair.right(validatedFields),
             SqlValidatorUtil.uniquify(Pair.left(validatedFields),
-                catalogReader.isCaseSensitive()));
+                catalogReader.nameMatcher().isCaseSensitive()));
 
     final List<RelDataTypeField> convertedFields =
         result.getRowType().getFieldList().subList(0, validatedFields.size());
@@ -2202,10 +2203,12 @@ public class SqlToRelConverter {
       String originalRelName = lookup.getOriginalRelName();
       String originalFieldName = fieldAccess.getField().getName();
 
-      SqlValidatorScope.ResolvedImpl resolved =
+      final SqlNameMatcher nameMatcher =
+          lookup.bb.scope.getValidator().getCatalogReader().nameMatcher();
+      final SqlValidatorScope.ResolvedImpl resolved =
           new SqlValidatorScope.ResolvedImpl();
-      lookup.bb.scope.resolve(ImmutableList.of(originalRelName), false,
-          resolved);
+      lookup.bb.scope.resolve(ImmutableList.of(originalRelName),
+          nameMatcher, false, resolved);
       assert resolved.count() == 1;
       final SqlValidatorScope.Resolve resolve = resolved.only();
       final SqlValidatorNamespace foundNs = resolve.namespace;
@@ -2308,10 +2311,12 @@ public class SqlToRelConverter {
       DeferredLookup lookup = mapCorrelToDeferred.get(correlName);
       String originalRelName = lookup.getOriginalRelName();
 
+      final SqlNameMatcher nameMatcher =
+          lookup.bb.scope.getValidator().getCatalogReader().nameMatcher();
       final SqlValidatorScope.ResolvedImpl resolved =
           new SqlValidatorScope.ResolvedImpl();
-      lookup.bb.scope.resolve(ImmutableList.of(originalRelName), false,
-          resolved);
+      lookup.bb.scope.resolve(ImmutableList.of(originalRelName), nameMatcher,
+          false, resolved);
 
       SqlValidatorScope ancestorScope = resolved.only().scope;
 
@@ -2385,6 +2390,7 @@ public class SqlToRelConverter {
   private RexNode convertUsing(SqlValidatorNamespace leftNamespace,
       SqlValidatorNamespace rightNamespace,
       List<String> nameList) {
+    final SqlNameMatcher nameMatcher = catalogReader.nameMatcher();
     final List<RexNode> list = Lists.newArrayList();
     for (String name : nameList) {
       List<RexNode> operands = new ArrayList<>();
@@ -2392,7 +2398,7 @@ public class SqlToRelConverter {
       for (SqlValidatorNamespace n : ImmutableList.of(leftNamespace,
           rightNamespace)) {
         final RelDataType rowType = n.getRowType();
-        final RelDataTypeField field = catalogReader.field(rowType, name);
+        final RelDataTypeField field = nameMatcher.field(rowType, name);
         operands.add(
             rexBuilder.makeInputRef(field.getType(),
                 offset + field.getIndex()));
@@ -3064,8 +3070,9 @@ public class SqlToRelConverter {
     // expression list according to the ordinal value returned from
     // the table construct, leaving nulls in the list for columns
     // that are not referenced.
+    final SqlNameMatcher nameMatcher = catalogReader.nameMatcher();
     for (Pair<String, RexNode> p : Pair.zip(targetColumnNames, columnExprs)) {
-      RelDataTypeField field = catalogReader.field(targetRowType, p.left);
+      RelDataTypeField field = nameMatcher.field(targetRowType, p.left);
       assert field != null : "column " + p.left + " not found";
       sourceExps.set(field.getIndex(), p.right);
     }
@@ -3505,7 +3512,8 @@ public class SqlToRelConverter {
       fieldNames.add(deriveAlias(expr, aliases, i));
     }
 
-    fieldNames = SqlValidatorUtil.uniquify(fieldNames, catalogReader.isCaseSensitive());
+    fieldNames = SqlValidatorUtil.uniquify(fieldNames,
+        catalogReader.nameMatcher().isCaseSensitive());
 
     bb.setRoot(
         RelOptUtil.createProject(bb.root, exprs, fieldNames),
@@ -3902,9 +3910,11 @@ public class SqlToRelConverter {
         }
         return Pair.of(node, null);
       }
+      final SqlNameMatcher nameMatcher =
+          scope.getValidator().getCatalogReader().nameMatcher();
       final SqlValidatorScope.ResolvedImpl resolved =
           new SqlValidatorScope.ResolvedImpl();
-      scope.resolve(qualified.prefix(), false, resolved);
+      scope.resolve(qualified.prefix(), nameMatcher, false, resolved);
       if (!(resolved.count() == 1)) {
         return null;
       }

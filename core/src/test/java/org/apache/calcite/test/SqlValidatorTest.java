@@ -4661,7 +4661,11 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
    */
   @Test public void testStarInFromFails() {
     sql("select emp.empno AS x from ^sales.*^")
-        .fails("Table 'SALES.\\*' not found");
+        .fails("Object '\\*' not found within 'SALES'");
+    sql("select * from ^emp.*^")
+        .fails("Object '\\*' not found within 'SALES.EMP'");
+    sql("select emp.empno AS x from ^emp.*^")
+        .fails("Object '\\*' not found within 'SALES.EMP'");
     sql("select emp.empno from emp where emp.^*^ is not null")
         .fails("Unknown field '\\*'");
   }
@@ -5552,14 +5556,14 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         "with emp3 as (select * from ^emp2^),\n"
             + " emp2 as (select * from emp)\n"
             + "select * from emp3",
-        "Table 'EMP2' not found");
+        "Object 'EMP2' not found");
 
     // forward reference in with-item not used; should still fail
     checkFails(
         "with emp3 as (select * from ^emp2^),\n"
             + " emp2 as (select * from emp)\n"
             + "select * from emp2",
-        "Table 'EMP2' not found");
+        "Object 'EMP2' not found");
 
     // table not used is ok
     checkResultType(
@@ -5572,11 +5576,11 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     checkFails("with emp2 as (select * from emp),\n"
             + " emp3 as (select * from ^emp3^)\n"
             + "values (1)",
-        "Table 'EMP3' not found");
+        "Object 'EMP3' not found");
 
     // self-reference not ok
     checkFails("with emp2 as (select * from ^emp2^)\n"
-        + "select * from emp2 where false", "Table 'EMP2' not found");
+        + "select * from emp2 where false", "Object 'EMP2' not found");
 
     // refer to 2 previous tables, not just immediately preceding
     checkResultType("with emp2 as (select * from emp),\n"
@@ -7097,7 +7101,10 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
             + " BOOLEAN NOT NULL SLACKER) NOT NULL";
     checkResultType("select * from (table emp)", empRecordType);
     checkResultType("table emp", empRecordType);
-    checkFails("table ^nonexistent^", "Table 'NONEXISTENT' not found");
+    checkFails("table ^nonexistent^", "Object 'NONEXISTENT' not found");
+    checkFails("table ^sales.nonexistent^",
+        "Object 'NONEXISTENT' not found within 'SALES'");
+    checkFails("table ^nonexistent.foo^", "Object 'NONEXISTENT' not found");
   }
 
   @Test public void testCollectionTable() {
@@ -7162,7 +7169,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         "RecordType(VARCHAR(1024) NOT NULL NAME) NOT NULL");
     checkFails(
         "select * from table(dedup(cursor(select * from ^bloop^),'ename'))",
-        "Table 'BLOOP' not found");
+        "Object 'BLOOP' not found");
   }
 
   @Test public void testScalarSubQuery() {
@@ -7483,11 +7490,16 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
 
     tester1.checkQueryFails(
         "select ^e^.EMPNO from [EMP] as [e]",
-        "Table 'E' not found");
+        "Table 'E' not found; did you mean 'e'\\?");
 
     tester1.checkQueryFails(
         "select ^x^ from (\n"
             + "  select [e].EMPNO as [x] from [EMP] as [e])",
+        "Column 'X' not found in any table; did you mean 'x'\\?");
+
+    tester1.checkQueryFails(
+        "select ^x^ from (\n"
+            + "  select [e].EMPNO as [x ] from [EMP] as [e])",
         "Column 'X' not found in any table");
 
     tester1.checkQueryFails("select EMP.^\"x\"^ from EMP",
@@ -7506,15 +7518,20 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
 
     tester1.checkQueryFails(
         "select ^e^.EMPNO from EMP as E",
-        "Table 'e' not found");
+        "Table 'e' not found; did you mean 'E'\\?");
 
     tester1.checkQueryFails(
         "select ^E^.EMPNO from EMP as e",
-        "Table 'E' not found");
+        "Table 'E' not found; did you mean 'e'\\?");
 
     tester1.checkQueryFails(
         "select ^x^ from (\n"
             + "  select e.EMPNO as X from EMP as e)",
+        "Column 'x' not found in any table; did you mean 'X'\\?");
+
+    tester1.checkQueryFails(
+        "select ^x^ from (\n"
+            + "  select e.EMPNO as Xx from EMP as e)",
         "Column 'x' not found in any table");
 
     // double-quotes are not valid in this lexical convention
@@ -7546,15 +7563,15 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         "RecordType(INTEGER NOT NULL path, INTEGER NOT NULL x) NOT NULL");
     tester1.checkFails(
         "select ^PATH^ from (select 1 as path from (values (true)))",
-        "Column 'PATH' not found in any table",
+        "Column 'PATH' not found in any table; did you mean 'path'\\?",
         false);
     tester1.checkFails(
         "select t.^PATH^ from (select 1 as path from (values (true))) as t",
-        "Column 'PATH' not found in table 't'",
+        "Column 'PATH' not found in table 't'; did you mean 'path'\\?",
         false);
     tester1.checkQueryFails(
         "select t.x, t.^PATH^ from (values (true, 1)) as t(path, x)",
-        "Column 'PATH' not found in table 't'");
+        "Column 'PATH' not found in table 't'; did you mean 'path'\\?");
 
     // Built-in functions can be written in any case, even those with no args,
     // and regardless of spaces between function name and open parenthesis.
@@ -7598,7 +7615,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     tester2.checkQueryFails(
         "select * from emp as [e] where exists (\n"
             + "select 1 from dept where dept.deptno = ^[E]^.deptno)",
-        "(?s).*Table 'E' not found");
+        "(?s).*Table 'E' not found; did you mean 'e'\\?");
 
     checkFails("select count(1), ^empno^ from emp",
         "Expression 'EMPNO' is not being grouped");
@@ -7641,6 +7658,91 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "  select 1 from dept\n"
         + "  group by eMp.deptno)");
     tester1.checkQuery("select deptno, count(*) from EMP group by DEPTNO");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1549">[CALCITE-1549]
+   * Improve error message when table or column not found</a>. */
+  @Test public void testTableNotFoundDidYouMean() {
+    // No table in default schema
+    tester.checkQueryFails("select * from ^unknownTable^",
+        "Object 'UNKNOWNTABLE' not found");
+
+    // Similar table exists in default schema
+    tester.checkQueryFails("select * from ^\"Emp\"^",
+        "Object 'Emp' not found within 'SALES'; did you mean 'EMP'\\?");
+
+    // Schema correct, but no table in specified schema
+    tester.checkQueryFails("select * from ^sales.unknownTable^",
+        "Object 'UNKNOWNTABLE' not found within 'SALES'");
+    // Similar table exists in specified schema
+    tester.checkQueryFails("select * from ^sales.\"Emp\"^",
+        "Object 'Emp' not found within 'SALES'; did you mean 'EMP'\\?");
+
+    // No schema found
+    tester.checkQueryFails("select * from ^unknownSchema.unknownTable^",
+        "Object 'UNKNOWNSCHEMA' not found");
+    // Similar schema found
+    tester.checkQueryFails("select * from ^\"sales\".emp^",
+        "Object 'sales' not found; did you mean 'SALES'\\?");
+    tester.checkQueryFails("select * from ^\"saLes\".\"eMp\"^",
+        "Object 'saLes' not found; did you mean 'SALES'\\?");
+
+    // Spurious after table
+    tester.checkQueryFails("select * from ^emp.foo^",
+        "Object 'FOO' not found within 'SALES\\.EMP'");
+    tester.checkQueryFails("select * from ^sales.emp.foo^",
+        "Object 'FOO' not found within 'SALES\\.EMP'");
+
+    // Alias not found
+    tester.checkQueryFails("select ^aliAs^.\"name\"\n"
+            + "from sales.emp as \"Alias\"",
+        "Table 'ALIAS' not found; did you mean 'Alias'\\?");
+    // Alias not found, fully-qualified
+    tester.checkQueryFails("select ^sales.\"emp\"^.\"name\" from sales.emp",
+        "Table 'SALES\\.emp' not found; did you mean 'EMP'\\?");
+  }
+
+  @Test public void testColumnNotFoundDidYouMean() {
+    // Column not found
+    tester.checkQueryFails("select ^\"unknownColumn\"^ from emp",
+        "Column 'unknownColumn' not found in any table");
+    // Similar column in table, unqualified table name
+    tester.checkQueryFails("select ^\"empNo\"^ from emp",
+        "Column 'empNo' not found in any table; did you mean 'EMPNO'\\?");
+    // Similar column in table, table name qualified with schema
+    tester.checkQueryFails("select ^\"empNo\"^ from sales.emp",
+        "Column 'empNo' not found in any table; did you mean 'EMPNO'\\?");
+    // Similar column in table, table name qualified with catalog and schema
+    tester.checkQueryFails("select ^\"empNo\"^ from catalog.sales.emp",
+        "Column 'empNo' not found in any table; did you mean 'EMPNO'\\?");
+    // With table alias
+    tester.checkQueryFails("select e.^\"empNo\"^ from catalog.sales.emp as e",
+        "Column 'empNo' not found in table 'E'; did you mean 'EMPNO'\\?");
+    // With fully-qualified table alias
+    tester.checkQueryFails("select catalog.sales.emp.^\"empNo\"^\n"
+            + "from catalog.sales.emp",
+        "Column 'empNo' not found in table 'CATALOG\\.SALES\\.EMP'; "
+            + "did you mean 'EMPNO'\\?");
+    // Similar column in table; multiple tables
+    tester.checkQueryFails("select ^\"name\"^ from emp, dept",
+        "Column 'name' not found in any table; did you mean 'NAME'\\?");
+    // Similar column in table; table and a query
+    tester.checkQueryFails("select ^\"name\"^ from emp,\n"
+            + "  (select * from dept) as d",
+        "Column 'name' not found in any table; did you mean 'NAME'\\?");
+    // Similar column in table; table and an un-aliased query
+    tester.checkQueryFails("select ^\"name\"^ from emp, (select * from dept)",
+        "Column 'name' not found in any table; did you mean 'NAME'\\?");
+    // Similar column in table, multiple tables
+    tester.checkQueryFails("select ^\"deptno\"^ from emp,\n"
+            + "  (select deptno as \"deptNo\" from dept)",
+        "Column 'deptno' not found in any table; "
+            + "did you mean 'DEPTNO', 'deptNo'\\?");
+    tester.checkQueryFails("select ^\"deptno\"^ from emp,\n"
+            + "  (select * from dept) as t(\"deptNo\", name)",
+        "Column 'deptno' not found in any table; "
+            + "did you mean 'DEPTNO', 'deptNo'\\?");
   }
 
   /** Tests matching of built-in operator names. */

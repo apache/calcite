@@ -64,6 +64,71 @@ group by "hr"."emps"."empid";
 
 !ok
 
+# Case-sensitive errors
+select empid from "hr"."emps";
+Column 'EMPID' not found in any table; did you mean 'empid'?
+!error
+
+select empid from "hr".emps;
+Object 'EMPS' not found within 'hr'; did you mean 'emps'?
+!error
+
+select empid from hr.emps;
+Object 'HR' not found; did you mean 'hr'?
+!error
+
+select empid from bad_schema.bad_table;
+Object 'BAD_SCHEMA' not found
+!error
+
+select empid from bad_cat.bad_schema.bad_table;
+Object 'BAD_CAT' not found
+!error
+
+select empid from "catalog".bad_schema.bad_table;
+Object 'catalog' not found
+!error
+
+select empid from catalog.bad_schema.bad_table;
+Object 'CATALOG' not found
+!error
+
+select empid from catalog.HR.bad_table;
+Object 'CATALOG' not found
+!error
+
+select empid from catalog."hr".bad_table;
+Object 'CATALOG' not found
+!error
+
+select empid from catalog."hr".emp;
+Object 'CATALOG' not found
+!error
+
+select empid from HR.bad_table;
+Object 'HR' not found; did you mean 'hr'?
+!error
+
+select empid from "HR".bad_table;
+Object 'HR' not found; did you mean 'hr'?
+!error
+
+select empid from HR."emps";
+Object 'HR' not found; did you mean 'hr'?
+!error
+
+select empid from "hr".bad_table;
+Object 'BAD_TABLE' not found within 'hr'
+!error
+
+select empid from "hr".emps;
+Object 'EMPS' not found within 'hr'; did you mean 'emps'?
+!error
+
+select empid from "hr";
+Object 'hr' not found
+!error
+
 # [CALCITE-307] CAST(timestamp AS DATE) gives ClassCastException
 # Based on [DRILL-1051]
 with data(c_row, c_timestamp) as (select * from (values

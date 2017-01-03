@@ -387,6 +387,7 @@ public class CollectionTypeTest {
           .build();
     }
 
+
     public Statistic getStatistic() {
       return Statistics.UNKNOWN;
     }

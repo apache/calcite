@@ -22,6 +22,7 @@ import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.linq4j.tree.Primitive;
 import org.apache.calcite.linq4j.tree.Types;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rel.type.RelDataTypeFieldImpl;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
@@ -233,19 +234,25 @@ public class JavaTypeFactoryImpl
   }
 
   public RelDataType toSql(RelDataType type) {
+    return toSql(this, type);
+  }
+
+  /** Converts a type in Java format to a SQL-oriented type. */
+  public static RelDataType toSql(final RelDataTypeFactory typeFactory,
+      RelDataType type) {
     if (type instanceof RelRecordType) {
-      return createStructType(
+      return typeFactory.createStructType(
           Lists.transform(type.getFieldList(),
               new Function<RelDataTypeField, RelDataType>() {
                 public RelDataType apply(RelDataTypeField a0) {
-                  return toSql(a0.getType());
+                  return toSql(typeFactory, a0.getType());
                 }
               }),
           type.getFieldNames());
     }
     if (type instanceof JavaType) {
-      return createTypeWithNullability(
-          createSqlType(type.getSqlTypeName()),
+      return typeFactory.createTypeWithNullability(
+          typeFactory.createSqlType(type.getSqlTypeName()),
           type.isNullable());
     }
     return type;

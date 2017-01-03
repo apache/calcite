@@ -37,10 +37,12 @@ import org.junit.Test;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeSet;
 
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.fail;
@@ -65,6 +67,7 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
 
   protected static final List<String> SALES_TABLES =
       Arrays.asList(
+          "SCHEMA(CATALOG.SALES)",
           "TABLE(CATALOG.SALES.EMP)",
           "TABLE(CATALOG.SALES.EMP_B)",
           "TABLE(CATALOG.SALES.EMP_20)",
@@ -359,8 +362,8 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
       String sql,
       List<String>... expectedLists) throws Exception {
     List<String> expectedList = plus(expectedLists);
-    Collections.sort(expectedList);
-    assertHint(sql, toString(expectedList));
+    final String expected = toString(new TreeSet<>(expectedList));
+    assertHint(sql, expected);
   }
 
   /**
@@ -410,8 +413,7 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
       String sql,
       List<String>... expectedResults) {
     List<String> expectedList = plus(expectedResults);
-    Collections.sort(expectedList);
-    String expected = toString(expectedList);
+    String expected = toString(new TreeSet<>(expectedList));
     assertComplete(sql, expected, null);
   }
 
@@ -480,7 +482,7 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
    * @param list List
    * @return String with one item of the list per line
    */
-  private static <T> String toString(List<T> list) {
+  private static <T> String toString(Collection<T> list) {
     StringBuilder buf = new StringBuilder();
     for (T t : list) {
       buf.append(t).append("\n");

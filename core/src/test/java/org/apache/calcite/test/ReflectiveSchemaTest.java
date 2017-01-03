@@ -621,7 +621,7 @@ public class ReflectiveSchemaTest {
     // BitSet is not a valid relation type. It's as if "bitSet" field does
     // not exist.
     with.query("select * from \"s\".\"bitSet\"")
-        .throws_("Table 's.bitSet' not found");
+        .throws_("Object 'bitSet' not found within 's'");
     // Enumerable field returns 3 records with 0 fields
     with.query("select * from \"s\".\"enumerable\"")
         .returns("\n"
