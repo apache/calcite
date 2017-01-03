@@ -15,19 +15,19 @@
  * limitations under the License.
  */
 {
-  version: '1.0',
-  defaultSchema: 'CUSTOM_TABLE',
-  schemas: [
+  "version": "1.0",
+  "defaultSchema": "CUSTOM_TABLE",
+  "schemas": [
     {
-      name: 'CUSTOM_TABLE',
-      tables: [
+      "name": "CUSTOM_TABLE",
+      "tables": [
         {
-          name: 'EMPS',
-          type: 'custom',
-          factory: 'org.apache.calcite.adapter.csv.CsvTableFactory',
-          operand: {
-            file: 'sales/EMPS.csv.gz',
-            flavor: "scannable"
+          "name": "EMPS",
+          "type": "custom",
+          "factory": "org.apache.calcite.adapter.csv.CsvTableFactory",
+          "operand": {
+            "file": "sales/EMPS.csv.gz",
+            "flavor": "scannable"
           }
         }
       ]
