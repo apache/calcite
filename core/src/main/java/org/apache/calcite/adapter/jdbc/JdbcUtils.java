@@ -45,8 +45,9 @@ import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
-import javax.annotation.Nonnull;
 import javax.sql.DataSource;
+
+import edu.umd.cs.findbugs.annotations.NonNull;
 
 /**
  * Utilities for the JDBC provider.
@@ -205,7 +206,7 @@ final class JdbcUtils {
     private final LoadingCache<List<String>, BasicDataSource> cache =
         CacheBuilder.newBuilder().softValues().build(
             new CacheLoader<List<String>, BasicDataSource>() {
-              @Override public BasicDataSource load(@Nonnull List<String> key) {
+              @Override public BasicDataSource load(@NonNull List<String> key) {
                 BasicDataSource dataSource = new BasicDataSource();
                 dataSource.setUrl(key.get(0));
                 dataSource.setUsername(key.get(1));

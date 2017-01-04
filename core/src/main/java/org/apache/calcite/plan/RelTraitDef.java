@@ -24,7 +24,8 @@ import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 
 import java.util.List;
-import javax.annotation.Nonnull;
+
+import edu.umd.cs.findbugs.annotations.NonNull;
 
 /**
  * RelTraitDef represents a class of {@link RelTrait}s. Implementations of
@@ -61,7 +62,7 @@ public abstract class RelTraitDef<T extends RelTrait> {
           .softValues()
           .build(
               new CacheLoader<T, T>() {
-                @Override public T load(@Nonnull T key) throws Exception {
+                @Override public T load(@NonNull T key) throws Exception {
                   return key;
                 }
               });
@@ -78,7 +79,7 @@ public abstract class RelTraitDef<T extends RelTrait> {
           .softValues()
           .build(
               new CacheLoader<Object, RelCompositeTrait>() {
-                @Override public RelCompositeTrait load(@Nonnull Object key) {
+                @Override public RelCompositeTrait load(@NonNull Object key) {
                   if (key instanceof RelCompositeTrait) {
                     return (RelCompositeTrait) key;
                   }

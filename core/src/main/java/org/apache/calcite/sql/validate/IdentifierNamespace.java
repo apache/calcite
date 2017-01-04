@@ -34,7 +34,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
-import javax.annotation.Nullable;
+
+import edu.umd.cs.findbugs.annotations.Nullable;
 
 import static org.apache.calcite.util.Static.RESOURCE;
 

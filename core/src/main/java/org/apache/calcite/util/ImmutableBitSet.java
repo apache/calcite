@@ -39,7 +39,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.SortedMap;
 import java.util.TreeMap;
-import javax.annotation.Nonnull;
+
+import edu.umd.cs.findbugs.annotations.NonNull;
 
 /**
  * An immutable list of bits.
@@ -619,7 +620,7 @@ public class ImmutableBitSet
         return cardinality();
       }
 
-      @Nonnull @Override public Iterator<Integer> iterator() {
+      @NonNull @Override public Iterator<Integer> iterator() {
         return ImmutableBitSet.this.iterator();
       }
     };

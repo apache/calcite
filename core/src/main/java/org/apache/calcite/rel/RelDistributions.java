@@ -29,7 +29,8 @@ import com.google.common.collect.Ordering;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
-import javax.annotation.Nonnull;
+
+import edu.umd.cs.findbugs.annotations.NonNull;
 
 /**
  * Utilities concerning {@link org.apache.calcite.rel.RelDistribution}.
@@ -116,11 +117,11 @@ public class RelDistributions {
       }
     }
 
-    @Nonnull public Type getType() {
+    @NonNull public Type getType() {
       return type;
     }
 
-    @Nonnull public List<Integer> getKeys() {
+    @NonNull public List<Integer> getKeys() {
       return keys;
     }
 

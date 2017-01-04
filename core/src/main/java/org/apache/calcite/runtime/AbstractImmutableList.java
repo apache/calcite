@@ -20,7 +20,8 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
-import javax.annotation.Nonnull;
+
+import edu.umd.cs.findbugs.annotations.NonNull;
 
 /**
  * Base class for lists whose contents are constant after creation.
@@ -30,11 +31,11 @@ import javax.annotation.Nonnull;
 abstract class AbstractImmutableList<E> implements List<E> {
   protected abstract List<E> toList();
 
-  @Nonnull public Iterator<E> iterator() {
+  @NonNull public Iterator<E> iterator() {
     return toList().iterator();
   }
 
-  @Nonnull public ListIterator<E> listIterator() {
+  @NonNull public ListIterator<E> listIterator() {
     return toList().listIterator();
   }
 
@@ -46,19 +47,19 @@ abstract class AbstractImmutableList<E> implements List<E> {
     throw new UnsupportedOperationException();
   }
 
-  public boolean addAll(@Nonnull Collection<? extends E> c) {
+  public boolean addAll(@NonNull Collection<? extends E> c) {
     throw new UnsupportedOperationException();
   }
 
-  public boolean addAll(int index, @Nonnull Collection<? extends E> c) {
+  public boolean addAll(int index, @NonNull Collection<? extends E> c) {
     throw new UnsupportedOperationException();
   }
 
-  public boolean removeAll(@Nonnull Collection<?> c) {
+  public boolean removeAll(@NonNull Collection<?> c) {
     throw new UnsupportedOperationException();
   }
 
-  public boolean retainAll(@Nonnull Collection<?> c) {
+  public boolean retainAll(@NonNull Collection<?> c) {
     throw new UnsupportedOperationException();
   }
 
@@ -78,11 +79,11 @@ abstract class AbstractImmutableList<E> implements List<E> {
     throw new UnsupportedOperationException();
   }
 
-  @Nonnull public ListIterator<E> listIterator(int index) {
+  @NonNull public ListIterator<E> listIterator(int index) {
     return toList().listIterator(index);
   }
 
-  @Nonnull public List<E> subList(int fromIndex, int toIndex) {
+  @NonNull public List<E> subList(int fromIndex, int toIndex) {
     return toList().subList(fromIndex, toIndex);
   }
 
@@ -90,7 +91,7 @@ abstract class AbstractImmutableList<E> implements List<E> {
     return indexOf(o) >= 0;
   }
 
-  public boolean containsAll(@Nonnull Collection<?> c) {
+  public boolean containsAll(@NonNull Collection<?> c) {
     for (Object o : c) {
       if (!contains(o)) {
         return false;

@@ -24,7 +24,8 @@ import com.google.common.collect.ImmutableMap;
 import org.junit.Test;
 
 import java.util.List;
-import javax.annotation.Nullable;
+
+import edu.umd.cs.findbugs.annotations.Nullable;
 
 /**
  * Tests for the {@code org.apache.calcite.adapter.elasticsearch} package.

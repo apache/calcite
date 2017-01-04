@@ -27,7 +27,8 @@ import com.google.common.collect.ImmutableList;
 
 import java.util.AbstractList;
 import java.util.List;
-import javax.annotation.Nullable;
+
+import edu.umd.cs.findbugs.annotations.Nullable;
 
 /**
  * This class allows multiple existing {@link SqlOperandTypeChecker} rules to be

@@ -23,7 +23,8 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
-import javax.annotation.Nonnull;
+
+import edu.umd.cs.findbugs.annotations.NonNull;
 
 /**
  * List that consists of a head element and an immutable non-empty list.
@@ -98,23 +99,23 @@ public class ConsList<E> extends AbstractImmutableList<E> {
     }
   }
 
-  @Override @Nonnull public ListIterator<E> listIterator() {
+  @Override @NonNull public ListIterator<E> listIterator() {
     return toList().listIterator();
   }
 
-  @Override @Nonnull public Iterator<E> iterator() {
+  @Override @NonNull public Iterator<E> iterator() {
     return toList().iterator();
   }
 
-  @Override @Nonnull public ListIterator<E> listIterator(int index) {
+  @Override @NonNull public ListIterator<E> listIterator(int index) {
     return toList().listIterator(index);
   }
 
-  @Nonnull public Object[] toArray() {
+  @NonNull public Object[] toArray() {
     return toList().toArray();
   }
 
-  @Nonnull public <T> T[] toArray(@Nonnull T[] a) {
+  @NonNull public <T> T[] toArray(@NonNull T[] a) {
     final int s = size();
     if (s > a.length) {
       a = Arrays.copyOf(a, s);
