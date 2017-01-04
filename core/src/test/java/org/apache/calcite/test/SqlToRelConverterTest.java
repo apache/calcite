@@ -1742,6 +1742,19 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).decorrelate(true).expand(true).ok();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1543">[CALCITE-1543]
+   * Correlated scalar sub-query with multiple aggregates gives
+   * AssertionError</a>. */
+  @Test public void testCorrelationMultiScalarAggregate() {
+    final String sql = "select sum(e1.empno)\n"
+        + "from emp e1, dept d1\n"
+        + "where e1.deptno = d1.deptno\n"
+        + "and e1.sal > (select avg(e2.sal) from emp e2\n"
+        + "  where e2.deptno = d1.deptno)";
+    sql(sql).decorrelate(true).expand(true).ok();
+  }
+
   @Test public void testCorrelationScalarAggAndFilterRex() {
     final String sql = "SELECT e1.empno\n"
         + "FROM emp e1, dept d1 where e1.deptno = d1.deptno\n"
