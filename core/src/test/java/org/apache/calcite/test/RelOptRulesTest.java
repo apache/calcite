@@ -2462,6 +2462,35 @@ public class RelOptRulesTest extends RelOptTestBase {
     checkPlanning(tester, preProgram, new HepPlanner(program), sql, true);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1544">[CALCITE-1544]
+   * AggregateJoinTransposeRule fails to preserve row type</a>. */
+  @Test public void testPushAggregateThroughJoin4() throws Exception {
+    final HepProgram preProgram = new HepProgramBuilder()
+        .addRuleInstance(AggregateProjectMergeRule.INSTANCE)
+        .build();
+    final HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(AggregateJoinTransposeRule.EXTENDED)
+        .build();
+    final String sql = "select e.deptno\n"
+        + "from sales.emp as e join sales.dept as d on e.deptno = d.deptno\n"
+        + "group by e.deptno";
+    sql(sql).withPre(preProgram).with(program).check();
+  }
+
+  @Test public void testPushAggregateThroughJoin5() throws Exception {
+    final HepProgram preProgram = new HepProgramBuilder()
+        .addRuleInstance(AggregateProjectMergeRule.INSTANCE)
+        .build();
+    final HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(AggregateJoinTransposeRule.EXTENDED)
+        .build();
+    final String sql = "select e.deptno, d.deptno\n"
+        + "from sales.emp as e join sales.dept as d on e.deptno = d.deptno\n"
+        + "group by e.deptno, d.deptno";
+    sql(sql).withPre(preProgram).with(program).check();
+  }
+
   /** SUM is the easiest aggregate function to split. */
   @Test public void testPushAggregateSumThroughJoin() throws Exception {
     final HepProgram preProgram = new HepProgramBuilder()
