@@ -4837,6 +4837,54 @@ LogicalAggregate(group=[{0, 9}])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testPushAggregateThroughJoin4">
+        <Resource name="sql">
+            <![CDATA[select e.deptno
+from sales.emp as e join sales.dept as d on e.deptno = d.deptno
+group by e.deptno]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalAggregate(group=[{7}])
+  LogicalJoin(condition=[=($7, $9)], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject(DEPTNO=[$0])
+  LogicalJoin(condition=[=($0, $1)], joinType=[inner])
+    LogicalAggregate(group=[{7}])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testPushAggregateThroughJoin5">
+        <Resource name="sql">
+            <![CDATA[select e.deptno, d.deptno
+from sales.emp as e join sales.dept as d on e.deptno = d.deptno
+group by e.deptno, d.deptno]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalAggregate(group=[{7, 9}])
+  LogicalJoin(condition=[=($7, $9)], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject(DEPTNO=[$0], DEPTNO0=[$1])
+  LogicalJoin(condition=[=($0, $1)], joinType=[inner])
+    LogicalAggregate(group=[{7}])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testPushAggregateSumThroughJoin">
         <Resource name="sql">
             <![CDATA[select e.job,sum(sal)
