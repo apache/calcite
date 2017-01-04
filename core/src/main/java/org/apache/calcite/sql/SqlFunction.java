@@ -30,7 +30,8 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
 import java.util.List;
-import javax.annotation.Nonnull;
+
+import edu.umd.cs.findbugs.annotations.NonNull;
 
 import static org.apache.calcite.util.Static.RESOURCE;
 
@@ -175,7 +176,7 @@ public class SqlFunction extends SqlOperator {
   /**
    * @return function category
    */
-  @Nonnull public SqlFunctionCategory getFunctionType() {
+  @NonNull public SqlFunctionCategory getFunctionType() {
     return this.category;
   }
 

@@ -73,7 +73,8 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TimeZone;
 import java.util.TreeSet;
-import javax.annotation.Nullable;
+
+import edu.umd.cs.findbugs.annotations.Nullable;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;

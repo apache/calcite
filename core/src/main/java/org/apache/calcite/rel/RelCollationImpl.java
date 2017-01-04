@@ -29,7 +29,8 @@ import com.google.common.collect.UnmodifiableIterator;
 
 import java.util.Iterator;
 import java.util.List;
-import javax.annotation.Nonnull;
+
+import edu.umd.cs.findbugs.annotations.NonNull;
 
 /**
  * Simple implementation of {@link RelCollation}.
@@ -92,7 +93,7 @@ public class RelCollationImpl implements RelCollation {
     return fieldCollations.isEmpty();
   }
 
-  public int compareTo(@Nonnull RelMultipleTrait o) {
+  public int compareTo(@NonNull RelMultipleTrait o) {
     final RelCollationImpl that = (RelCollationImpl) o;
     final UnmodifiableIterator<RelFieldCollation> iterator =
         that.fieldCollations.iterator();

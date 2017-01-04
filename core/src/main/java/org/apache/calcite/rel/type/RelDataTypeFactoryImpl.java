@@ -41,7 +41,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import javax.annotation.Nonnull;
+
+import edu.umd.cs.findbugs.annotations.NonNull;
 
 /**
  * Abstract base for implementations of {@link RelDataTypeFactory}.
@@ -57,7 +58,7 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
           .softValues()
           .build(
               new CacheLoader<Object, RelDataType>() {
-                @Override public RelDataType load(@Nonnull Object k) {
+                @Override public RelDataType load(@NonNull Object k) {
                   if (k instanceof RelDataType) {
                     return (RelDataType) k;
                   }

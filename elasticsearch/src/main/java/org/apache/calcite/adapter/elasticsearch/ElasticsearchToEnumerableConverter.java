@@ -45,7 +45,8 @@ import com.google.common.collect.Lists;
 
 import java.util.AbstractList;
 import java.util.List;
-import javax.annotation.Nullable;
+
+import edu.umd.cs.findbugs.annotations.Nullable;
 
 /**
  * Relational expression representing a scan of a table in an Elasticsearch data source.

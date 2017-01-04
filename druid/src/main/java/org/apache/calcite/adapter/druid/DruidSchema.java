@@ -31,7 +31,8 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
-import javax.annotation.Nonnull;
+
+import edu.umd.cs.findbugs.annotations.NonNull;
 
 /**
  * Schema mapped onto a Druid instance.
@@ -67,7 +68,7 @@ public class DruidSchema extends AbstractSchema {
         ImmutableSet.copyOf(connection.tableNames()),
         CacheBuilder.newBuilder()
             .build(new CacheLoader<String, Table>() {
-              public Table load(@Nonnull String tableName) throws Exception {
+              public Table load(@NonNull String tableName) throws Exception {
                 final Map<String, SqlTypeName> fieldMap = new LinkedHashMap<>();
                 final Set<String> metricNameSet = new LinkedHashSet<>();
                 connection.metadata(tableName, DruidTable.DEFAULT_TIMESTAMP_COLUMN,

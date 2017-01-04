@@ -85,7 +85,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.ExecutionException;
-import javax.annotation.Nonnull;
+
+import edu.umd.cs.findbugs.annotations.NonNull;
 
 /**
  * Implementation of the {@link RelMetadataProvider} interface that generates
@@ -108,7 +109,7 @@ public class JaninoRelMetadataProvider implements RelMetadataProvider {
   private static final LoadingCache<Key, MetadataHandler> HANDLERS =
       CacheBuilder.newBuilder().build(
           new CacheLoader<Key, MetadataHandler>() {
-            public MetadataHandler load(@Nonnull Key key) {
+            public MetadataHandler load(@NonNull Key key) {
               //noinspection unchecked
               return load3(key.def, key.provider.handlers(key.def),
                   key.relClasses);

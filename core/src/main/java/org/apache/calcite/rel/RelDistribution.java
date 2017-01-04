@@ -20,7 +20,8 @@ import org.apache.calcite.plan.RelTrait;
 import org.apache.calcite.util.mapping.Mappings;
 
 import java.util.List;
-import javax.annotation.Nonnull;
+
+import edu.umd.cs.findbugs.annotations.NonNull;
 
 /**
  * Description of the physical distribution of a relational expression.
@@ -37,7 +38,7 @@ import javax.annotation.Nonnull;
  */
 public interface RelDistribution extends RelTrait {
   /** Returns the type of distribution. */
-  @Nonnull Type getType();
+  @NonNull Type getType();
 
   /**
    * Returns the ordinals of the key columns.
@@ -46,7 +47,7 @@ public interface RelDistribution extends RelTrait {
    * it unimportant but impose an arbitrary order; other types (BROADCAST,
    * SINGLETON) never have keys.
    */
-  @Nonnull List<Integer> getKeys();
+  @NonNull List<Integer> getKeys();
 
   RelDistribution apply(Mappings.TargetMapping mapping);
 

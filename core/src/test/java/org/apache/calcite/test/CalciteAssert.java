@@ -83,8 +83,9 @@ import java.util.TimeZone;
 import java.util.TreeSet;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
-import javax.annotation.Nonnull;
 import javax.sql.DataSource;
+
+import edu.umd.cs.findbugs.annotations.NonNull;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -1068,7 +1069,7 @@ public class CalciteAssert {
       private static final LoadingCache<ConnectionFactory, Connection> POOL =
           CacheBuilder.newBuilder().build(
               new CacheLoader<ConnectionFactory, Connection>() {
-                public Connection load(@Nonnull ConnectionFactory key) throws Exception {
+                public Connection load(@NonNull ConnectionFactory key) throws Exception {
                   return key.createConnection();
                 }
               });
