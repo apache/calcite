@@ -451,7 +451,6 @@ public class RelDecorrelator implements ReflectiveVisitor {
       // If input has not been rewritten, do not rewrite this rel.
       return null;
     }
-    assert !frame.corVarOutputPos.isEmpty();
     final RelNode newInput = frame.r;
 
     // map from newInput
