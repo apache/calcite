@@ -3047,6 +3047,32 @@ public class RelOptRulesTest extends RelOptTestBase {
         .build();
     sql(sql).with(program).check();
   }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1558">[CALCITE-1558]
+   * Converting an aggregate to a two-level aggregates</a>
+   */
+  @Test public void testDistinctNonDistinctAggregatesWithGrouping1() {
+    final String sql = ""
+        + "SELECT deptno, SUM(deptno), SUM(DISTINCT sal), MAX(deptno), MAX(comm)\n"
+        + "FROM emp\n"
+        + "GROUP BY deptno";
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(AggregateExpandDistinctAggregatesRule.JOIN)
+        .build();
+    sql(sql).with(program).check();
+  }
+
+  @Test public void testDistinctNonDistinctAggregatesWithGrouping2() {
+    final String sql = ""
+            + "SELECT deptno, COUNT(deptno), SUM(DISTINCT sal)\n"
+            + "FROM emp\n"
+            + "GROUP BY deptno";
+    HepProgram program = new HepProgramBuilder()
+            .addRuleInstance(AggregateExpandDistinctAggregatesRule.JOIN)
+            .build();
+    sql(sql).with(program).check();
+  }
 }
 
 // End RelOptRulesTest.java
