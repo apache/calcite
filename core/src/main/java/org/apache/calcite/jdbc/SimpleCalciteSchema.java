@@ -30,7 +30,7 @@ import com.google.common.collect.ImmutableSortedSet;
  * that maintains minimal state.
  */
 class SimpleCalciteSchema extends CalciteSchema {
-  /** Creates a CachingCalciteSchema.
+  /** Creates a SimpleCalciteSchema.
    *
    * <p>Use {@link CalciteSchema#createRootSchema(boolean)}
    * or {@link #add(String, Schema)}. */
@@ -89,7 +89,8 @@ class SimpleCalciteSchema extends CalciteSchema {
     builder.addAll(schema.getTableNames());
   }
 
-  protected void addImplicitFunctionToBuilder(ImmutableList.Builder<Function> builder) {
+  protected void addImplicitFunctionsToBuilder(
+      ImmutableList.Builder<Function> builder, boolean caseSensitive) {
     for (String functionName : schema.getFunctionNames()) {
       builder.addAll(schema.getFunctions(functionName));
     }

@@ -6113,6 +6113,21 @@ public class JdbcTest {
         .throws_("Table 'metaData.tAbles' not found");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1563">[CALCITE-1563]
+   * In case-insensitive connection, non-existent tables use alphabetically
+   * preceding table</a>. */
+  @Test public void testLexCaseInsensitiveFindsNonexistentTable() {
+    final CalciteAssert.AssertThat with =
+        CalciteAssert.that().with(Lex.MYSQL);
+    // With [CALCITE-1563], the following query succeeded; it queried
+    // metadata.tables.
+    with.query("select COUNT(*) as c from `metaData`.`zoo`")
+        .throws_("Table 'metaData.zoo' not found");
+    with.query("select COUNT(*) as c from `metaData`.`tAbLes`")
+        .returns("c=2\n");
+  }
+
   /** Tests case-insensitive resolution of sub-query columns.
    *
    * <p>Test case for
