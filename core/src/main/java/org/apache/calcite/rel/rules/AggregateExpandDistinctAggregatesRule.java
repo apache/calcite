@@ -266,6 +266,8 @@ public final class AggregateExpandDistinctAggregatesRule extends RelOptRule {
         relBuilder.peek().getRowType().getFieldList();
     final boolean hasGroupBy = aggregate.getGroupSet().size() > 0;
 
+    final Set<Integer> groupSet = aggregate.getGroupSet().asSet();
+
     // Add the distinct aggregate column(s) to the group-by columns,
     // if not already a part of the group-by
     newGroupSet.addAll(aggregate.getGroupSet().asList());
@@ -290,26 +292,31 @@ public final class AggregateExpandDistinctAggregatesRule extends RelOptRule {
     for (final AggregateCall aggCall : aggCalls) {
       if (!aggCall.isDistinct()) {
         for (int arg : aggCall.getArgList()) {
-          sourceOf.put(arg, projects.size());
+          if (!groupSet.contains(arg)) {
+            sourceOf.put(arg, projects.size());
+          }
         }
       }
     }
     int fakeArg0 = 0;
     for (final AggregateCall aggCall : aggCalls) {
       // We will deal with non-distinct aggregates below
-      if (!aggCall.isDistinct()) {
-        if (aggCall.getArgList().size() == 0) {
-          while (sourceOf.get(fakeArg0) != null) {
-            ++fakeArg0;
-          }
-          fakeArgs.add(fakeArg0);
+      if (!aggCall.isDistinct()
+          && (aggCall.getArgList().isEmpty()
+              || Util.intersects(groupSet, aggCall.getArgList()))) {
+        while (sourceOf.get(fakeArg0) != null) {
+          ++fakeArg0;
         }
+        fakeArgs.add(fakeArg0);
+        ++fakeArg0;
       }
     }
     for (final AggregateCall aggCall : aggCalls) {
       if (!aggCall.isDistinct()) {
         for (int arg : aggCall.getArgList()) {
-          sourceOf.remove(arg);
+          if (!groupSet.contains(arg)) {
+            sourceOf.remove(arg);
+          }
         }
       }
     }
@@ -336,6 +343,10 @@ public final class AggregateExpandDistinctAggregatesRule extends RelOptRule {
           ++fakeArgIdx;
         } else {
           for (int arg : newCall.getArgList()) {
+            if (groupSet.contains(arg)) {
+              arg = fakeArgs.get(fakeArgIdx++);
+              callArgMap.put(newCall, arg);
+            }
             sourceOf.put(arg, projects.size());
             projects.add(
                 Pair.of((RexNode) new RexInputRef(arg, newCall.getType()),
@@ -361,7 +372,11 @@ public final class AggregateExpandDistinctAggregatesRule extends RelOptRule {
       final AggregateCall newCall;
       for (int j = 0; j < argCount; j++) {
         final Integer arg = aggCall.getArgList().get(j);
-        newArgs.add(sourceOf.get(arg));
+        if (callArgMap.containsKey(aggCall)) {
+          newArgs.add(sourceOf.get(callArgMap.get(aggCall)));
+        } else {
+          newArgs.add(sourceOf.get(arg));
+        }
       }
       if (aggCall.isDistinct()) {
         newCall =

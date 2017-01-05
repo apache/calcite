@@ -1285,6 +1285,22 @@ public class UtilTest {
     assertFalse(Util.isDistinct(Arrays.asList("a", null, "b", null)));
   }
 
+  /** Unit test for {@link Util#intersects(Collection, Collection)}. */
+  @Test public void testIntersects() {
+    final List<String> empty = Collections.emptyList();
+    final List<String> listA = Collections.singletonList("a");
+    final List<String> listC = Collections.singletonList("c");
+    final List<String> listD = Collections.singletonList("d");
+    final List<String> listAbc = Arrays.asList("a", "b", "c");
+    assertThat(Util.intersects(empty, listA), is(false));
+    assertThat(Util.intersects(empty, empty), is(false));
+    assertThat(Util.intersects(listA, listAbc), is(true));
+    assertThat(Util.intersects(listAbc, listAbc), is(true));
+    assertThat(Util.intersects(listAbc, listC), is(true));
+    assertThat(Util.intersects(listAbc, listD), is(false));
+    assertThat(Util.intersects(listC, listD), is(false));
+  }
+
   /**
    * Unit test for {@link org.apache.calcite.util.JsonBuilder}.
    */

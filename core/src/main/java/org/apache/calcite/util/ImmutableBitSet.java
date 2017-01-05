@@ -30,6 +30,7 @@ import com.google.common.collect.Ordering;
 import java.io.Serializable;
 import java.nio.LongBuffer;
 import java.util.AbstractList;
+import java.util.AbstractSet;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
@@ -37,6 +38,7 @@ import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import javax.annotation.Nonnull;
@@ -621,6 +623,26 @@ public class ImmutableBitSet
 
       @Nonnull @Override public Iterator<Integer> iterator() {
         return ImmutableBitSet.this.iterator();
+      }
+    };
+  }
+
+  /** Creates a view onto this bit set as a set of integers.
+   *
+   * <p>The {@code size} and {@code contains} methods are both O(n), but the
+   * iterator is efficient. */
+  public Set<Integer> asSet() {
+    return new AbstractSet<Integer>() {
+      @Nonnull public Iterator<Integer> iterator() {
+        return ImmutableBitSet.this.iterator();
+      }
+
+      public int size() {
+        return cardinality();
+      }
+
+      @Override public boolean contains(Object o) {
+        return ImmutableBitSet.this.get((Integer) o);
       }
     };
   }

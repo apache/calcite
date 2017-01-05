@@ -826,6 +826,42 @@ public class RelOptRulesTest extends RelOptTestBase {
             + " from sales.emp group by rollup(deptno,job)");
   }
 
+  @Test public void testDistinctNonDistinctAggregates() {
+    final String sql = "select emp.empno, count(*), avg(distinct dept.deptno)\n"
+        + "from sales.emp emp inner join sales.dept dept\n"
+        + "on emp.deptno = dept.deptno\n"
+        + "group by emp.empno";
+    final HepProgram program = HepProgram.builder()
+        .addRuleInstance(AggregateExpandDistinctAggregatesRule.JOIN)
+        .build();
+    sql(sql).with(program).check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1558">[CALCITE-1558]
+   * AggregateExpandDistinctAggregatesRule gets field mapping wrong if groupKey
+   * is used in aggregate function</a>. */
+  @Test public void testDistinctNonDistinctAggregatesWithGrouping1() {
+    final String sql = "SELECT deptno,\n"
+        + "  SUM(deptno), SUM(DISTINCT sal), MAX(deptno), MAX(comm)\n"
+        + "FROM emp\n"
+        + "GROUP BY deptno";
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(AggregateExpandDistinctAggregatesRule.JOIN)
+        .build();
+    sql(sql).with(program).check();
+  }
+
+  @Test public void testDistinctNonDistinctAggregatesWithGrouping2() {
+    final String sql = "SELECT deptno, COUNT(deptno), SUM(DISTINCT sal)\n"
+        + "FROM emp\n"
+        + "GROUP BY deptno";
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(AggregateExpandDistinctAggregatesRule.JOIN)
+        .build();
+    sql(sql).with(program).check();
+  }
+
   @Test public void testPushProjectPastFilter() {
     checkPlanning(ProjectFilterTransposeRule.INSTANCE,
         "select empno + deptno from emp where sal = 10 * comm "
@@ -3066,16 +3102,6 @@ public class RelOptRulesTest extends RelOptTestBase {
     sql(sql).with(program).check();
   }
 
-  @Test public void testDistinctNonDistinctAggregates() {
-    final String sql = "select emp.empno, count(*), avg(distinct dept.deptno)\n"
-        + "from sales.emp emp inner join sales.dept dept\n"
-        + "on emp.deptno = dept.deptno\n"
-        + "group by emp.empno";
-    final HepProgram program = HepProgram.builder()
-        .addRuleInstance(AggregateExpandDistinctAggregatesRule.JOIN)
-        .build();
-    sql(sql).with(program).check();
-  }
 }
 
 // End RelOptRulesTest.java

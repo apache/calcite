@@ -2121,6 +2121,16 @@ public class Util {
     return -1;
   }
 
+  /** Returns whether two collections have any elements in common. */
+  public static <E> boolean intersects(Collection<E> c0, Collection<E> c1) {
+    for (E e : c1) {
+      if (c0.contains(e)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   /** Looks for a string within a list of strings, using a given
    * case-sensitivity policy, and returns the position at which the first match
    * is found, or -1 if there are no matches. */
