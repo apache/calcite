@@ -6622,4 +6622,48 @@ LogicalProject(SAL=[$5])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testDistinctNonDistinctAggregatesWithGrouping1">
+        <Resource name="sql">
+            <![CDATA[SELECT deptno, SUM(deptno), SUM(DISTINCT sal), MAX(deptno), MAX(comm)
+FROM emp
+GROUP BY deptno]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalAggregate(group=[{0}], EXPR$1=[SUM($0)], EXPR$2=[SUM(DISTINCT $1)], EXPR$3=[MAX($0)], EXPR$4=[MAX($2)])
+  LogicalProject(DEPTNO=[$7], SAL=[$5], COMM=[$6])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalAggregate(group=[{0}], EXPR$1=[SUM($2)], EXPR$2=[SUM($1)], EXPR$3=[MAX($3)], EXPR$4=[MAX($4)])
+  LogicalAggregate(group=[{0, 1}], EXPR$1=[SUM($0)], EXPR$3=[MAX($0)], EXPR$4=[MAX($2)])
+    LogicalProject(DEPTNO=[$7], SAL=[$5], COMM=[$6])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testDistinctNonDistinctAggregatesWithGrouping2">
+        <Resource name="sql">
+            <![CDATA[SELECT deptno, SUM(deptno), SUM(DISTINCT sal)
+FROM emp
+GROUP BY deptno]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalAggregate(group=[{0}], EXPR$1=[COUNT()], EXPR$2=[SUM(DISTINCT $1)])
+  LogicalProject(DEPTNO=[$7], SAL=[$5])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalAggregate(group=[{0}], EXPR$1=[SUM($2)], EXPR$2=[SUM($1)])
+  LogicalAggregate(group=[{0, 1}], EXPR$1=[COUNT()])
+    LogicalProject(DEPTNO=[$7], SAL=[$5])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
 </Root>
