@@ -23,6 +23,7 @@ import org.apache.calcite.rel.type.RelDataTypeFamily;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.sql.SqlIntervalQualifier;
+import org.apache.calcite.util.Glossary;
 import org.apache.calcite.util.Util;
 
 import java.nio.charset.Charset;
@@ -491,7 +492,8 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
    *
    * @return false (the default) to provide strict SQL:2003 behavior; true to
    * provide pragmatic behavior
-   * @sql.2003 Part 2 Section 9.3 Syntax Rule 3.a.iii.3
+   *
+   * @see Glossary#SQL2003 SQL:2003 Part 2 Section 9.3 Syntax Rule 3.a.iii.3
    */
   protected boolean shouldRaggedFixedLengthValueUnionBeVariable() {
     // TODO jvs 30-Nov-2006:  implement SQL-Flagger support

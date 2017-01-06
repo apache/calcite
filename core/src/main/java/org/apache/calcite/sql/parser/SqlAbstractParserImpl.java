@@ -27,6 +27,7 @@ import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.SqlUnresolvedFunction;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.validate.SqlConformance;
+import org.apache.calcite.util.Glossary;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
@@ -339,8 +340,9 @@ public abstract class SqlAbstractParserImpl {
   //~ Methods ----------------------------------------------------------------
 
   /**
-   * @return immutable set of all reserved words defined by SQL-92
-   * @sql.92 Section 5.2
+   * Returns immutable set of all reserved words defined by SQL-92.
+   *
+   * @see Glossary#SQL92 SQL-92 Section 5.2
    */
   public static Set<String> getSql92ReservedWords() {
     return SQL_92_RESERVED_WORD_SET;

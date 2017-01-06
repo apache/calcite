@@ -240,12 +240,10 @@ public class VolcanoRuleCall extends RelOptRuleCall {
   }
 
   /**
-   * Applies this rule, with a given relexp in the first slot.
-   *
-   * @pre operand0.matches(rel)
+   * Applies this rule, with a given relational expression in the first slot.
    */
   void match(RelNode rel) {
-    assert getOperand0().matches(rel);
+    assert getOperand0().matches(rel) : "precondition";
     final int solve = 0;
     int operandOrdinal = getOperand0().solveOrder[solve];
     this.rels[operandOrdinal] = rel;
@@ -255,11 +253,11 @@ public class VolcanoRuleCall extends RelOptRuleCall {
   /**
    * Recursively matches operands above a given solve order.
    *
-   * @param solve Solver order of operand
-   * @pre solve &gt; 0
-   * @pre solve &lt;= rule.operands.length
+   * @param solve Solve order of operand (&gt; 0 and &le; the operand count)
    */
   private void matchRecurse(int solve) {
+    assert solve > 0;
+    assert solve <= rule.operands.size();
     final List<RelOptRuleOperand> operands = getRule().operands;
     if (solve == operands.size()) {
       // We have matched all operands. Now ask the rule whether it

@@ -33,6 +33,7 @@ import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.util.SqlBasicVisitor;
 import org.apache.calcite.util.BarfingInvocationHandler;
 import org.apache.calcite.util.ConversionUtil;
+import org.apache.calcite.util.Glossary;
 import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
@@ -357,7 +358,8 @@ public abstract class SqlUtil {
    * @param category whether a function or a procedure. (If a procedure is
    *                 being invoked, the overload rules are simpler.)
    * @return matching routine, or null if none found
-   * @sql.99 Part 2 Section 10.4
+   *
+   * @see Glossary#SQL99 SQL:1999 Part 2 Section 10.4
    */
   public static SqlOperator lookupRoutine(SqlOperatorTable opTab,
       SqlIdentifier funcName, List<RelDataType> argTypes,
@@ -401,7 +403,7 @@ public abstract class SqlUtil {
    * @param sqlKind   the SqlKind of the SqlOperator being looked up
    * @param category category of routine to look up
    * @return list of matching routines
-   * @sql.99 Part 2 Section 10.4
+   * @see Glossary#SQL99 SQL:1999 Part 2 Section 10.4
    */
   public static Iterator<SqlOperator> lookupSubjectRoutines(
       SqlOperatorTable opTab,
@@ -507,7 +509,7 @@ public abstract class SqlUtil {
   }
 
   /**
-   * @sql.99 Part 2 Section 10.4 Syntax Rule 6.b.iii.2.B
+   * @see Glossary#SQL99 SQL:1999 Part 2 Section 10.4 Syntax Rule 6.b.iii.2.B
    */
   private static Iterator<SqlOperator> filterRoutinesByParameterType(
       SqlSyntax syntax,
@@ -570,7 +572,7 @@ public abstract class SqlUtil {
   }
 
   /**
-   * @sql.99 Part 2 Section 9.4
+   * @see Glossary#SQL99 SQL:1999 Part 2 Section 9.4
    */
   private static Iterator<SqlOperator> filterRoutinesByTypePrecedence(
       SqlSyntax sqlSyntax,

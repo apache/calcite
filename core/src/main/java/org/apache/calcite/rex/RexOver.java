@@ -22,6 +22,8 @@ import org.apache.calcite.sql.SqlWindow;
 import org.apache.calcite.util.ControlFlowException;
 import org.apache.calcite.util.Util;
 
+import com.google.common.base.Preconditions;
+
 import java.util.List;
 
 /**
@@ -52,9 +54,6 @@ public class RexOver extends RexCall {
    * @param op       Aggregate operator
    * @param operands Operands list
    * @param window   Window specification
-   * @pre op.isAggregator()
-   * @pre window != null
-   * @pre window.getRefName() == null
    */
   RexOver(
       RelDataType type,
@@ -62,9 +61,8 @@ public class RexOver extends RexCall {
       List<RexNode> operands,
       RexWindow window) {
     super(type, op, operands);
-    assert op.isAggregator() : "precondition: op.isAggregator()";
-    assert window != null : "precondition: window != null";
-    this.window = window;
+    Preconditions.checkArgument(op.isAggregator());
+    this.window = Preconditions.checkNotNull(window);
   }
 
   //~ Methods ----------------------------------------------------------------

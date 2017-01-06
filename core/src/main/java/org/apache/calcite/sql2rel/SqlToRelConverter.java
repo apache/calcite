@@ -1475,7 +1475,6 @@ public class SqlToRelConverter {
    *     approximation (say representing UNKNOWN as FALSE)
    * @param notIn Whether the operation is NOT IN
    * @return join expression
-   * @pre extraExpr == null || extraName != null
    */
   private RelOptUtil.Exists convertExists(
       SqlNode seek,
@@ -3331,12 +3330,11 @@ public class SqlToRelConverter {
    * @param bb             Blackboard
    * @param rowConstructor Row constructor expression
    * @return Relational expression which returns a single row.
-   * @pre isRowConstructor(rowConstructor)
    */
   private RelNode convertRowConstructor(
       Blackboard bb,
       SqlCall rowConstructor) {
-    assert isRowConstructor(rowConstructor) : rowConstructor;
+    Preconditions.checkArgument(isRowConstructor(rowConstructor));
     final List<SqlNode> operands = rowConstructor.getOperandList();
     return convertMultisets(operands, bb);
   }

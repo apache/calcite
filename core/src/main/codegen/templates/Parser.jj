@@ -99,6 +99,7 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.parser.SqlParserUtil;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlConformance;
+import org.apache.calcite.util.Glossary;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.trace.CalciteTrace;
 
@@ -5649,7 +5650,7 @@ SqlPostfixOperator PostfixRowOperator() :
  * by the SQL:2003 standard (see productions for "non-reserved word"
  * and "reserved word" in reference below).
  *
- * @sql.2003 Part 2 Section 5.2
+ * @see Glossary#SQL2003 SQL:2003 Part 2 Section 5.2
  */
 String CommonNonReservedKeyWord() :
 {

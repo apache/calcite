@@ -21,6 +21,8 @@ import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.util.SerializableCharset;
 import org.apache.calcite.util.Util;
 
+import com.google.common.base.Preconditions;
+
 import java.nio.charset.Charset;
 
 /**
@@ -110,14 +112,14 @@ public class BasicSqlType extends AbstractSqlType {
   }
 
   /**
-   * Constructs a type with charset and collation
+   * Constructs a type with charset and collation.
    *
-   * @pre SqlTypeUtil.inCharFamily(this)
+   * <p>This must be a character tyoe.
    */
   BasicSqlType createWithCharsetAndCollation(
       Charset charset,
       SqlCollation collation) {
-    Util.pre(SqlTypeUtil.inCharFamily(this), "Not an chartype");
+    Preconditions.checkArgument(SqlTypeUtil.inCharFamily(this));
     BasicSqlType ret;
     try {
       ret = (BasicSqlType) this.clone();

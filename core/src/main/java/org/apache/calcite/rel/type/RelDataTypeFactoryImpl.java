@@ -22,6 +22,7 @@ import org.apache.calcite.sql.type.JavaToSqlTypeConversionRules;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
+import org.apache.calcite.util.Glossary;
 import org.apache.calcite.util.Util;
 
 import com.google.common.base.Preconditions;
@@ -451,7 +452,7 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
    *
    * p and s are capped at their maximum values
    *
-   * @sql.2003 Part 2 Section 6.26
+   * @see Glossary#SQL2003 SQL:2003 Part 2 Section 6.26
    */
   public RelDataType createDecimalProduct(
       RelDataType type1,
@@ -513,7 +514,7 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
    * <li>p and s are capped at their maximum values</li>
    * </ul>
    *
-   * @sql.2003 Part 2 Section 6.26
+   * @see Glossary#SQL2003 SQL:2003 Part 2 Section 6.26
    */
   public RelDataType createDecimalQuotient(
       RelDataType type1,

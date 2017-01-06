@@ -77,6 +77,7 @@ import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.util.SqlShuttle;
 import org.apache.calcite.sql.util.SqlVisitor;
 import org.apache.calcite.util.BitString;
+import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.ImmutableNullableList;
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Pair;
@@ -1521,16 +1522,16 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   }
 
   /**
-   * Derives the type of a node.
-   *
-   * @post return != null
+   * Derives the type of a node, never null.
    */
   RelDataType deriveTypeImpl(
       SqlValidatorScope scope,
       SqlNode operand) {
     DeriveTypeVisitor v = new DeriveTypeVisitor(scope);
     final RelDataType type = operand.accept(v);
-    return scope.nullifyType(operand, type);
+    // After Guava 17, use Verify.verifyNotNull for Preconditions.checkNotNull
+    Bug.upgrade("guava-17");
+    return Preconditions.checkNotNull(scope.nullifyType(operand, type));
   }
 
   public RelDataType deriveConstructorType(
@@ -2155,7 +2156,6 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
    * @param node        Query node
    * @param alias       Name of this query within its parent. Must be specified
    *                    if usingScope != null
-   * @pre usingScope == null || alias != null
    */
   private void registerQuery(
       SqlValidatorScope parentScope,
@@ -2164,6 +2164,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       SqlNode enclosingNode,
       String alias,
       boolean forceNullable) {
+    Preconditions.checkArgument(usingScope == null || alias != null);
     registerQuery(
         parentScope,
         usingScope,
@@ -2185,7 +2186,6 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
    *                    if usingScope != null
    * @param checkUpdate if true, validate that the update feature is supported
    *                    if validating the update statement
-   * @pre usingScope == null || alias != null
    */
   private void registerQuery(
       SqlValidatorScope parentScope,
@@ -2195,9 +2195,9 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       String alias,
       boolean forceNullable,
       boolean checkUpdate) {
-    assert node != null;
-    assert enclosingNode != null;
-    assert usingScope == null || alias != null : usingScope;
+    Preconditions.checkNotNull(node);
+    Preconditions.checkNotNull(enclosingNode);
+    Preconditions.checkArgument(usingScope == null || alias != null);
 
     SqlCall call;
     List<SqlNode> operands;

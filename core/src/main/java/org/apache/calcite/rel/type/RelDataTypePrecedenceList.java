@@ -16,11 +16,13 @@
  */
 package org.apache.calcite.rel.type;
 
+import org.apache.calcite.util.Glossary;
+
 /**
  * RelDataTypePrecedenceList defines a type precedence list for a particular
  * type.
  *
- * @sql.99 Part 2 Section 9.5
+ * @see Glossary#SQL99 SQL:1999 Part 2 Section 9.5
  */
 public interface RelDataTypePrecedenceList {
   //~ Methods ----------------------------------------------------------------

@@ -18,6 +18,7 @@ package org.apache.calcite.sql.type;
 
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypePrecedenceList;
+import org.apache.calcite.util.Glossary;
 import org.apache.calcite.util.ImmutableNullableList;
 import org.apache.calcite.util.Util;
 
@@ -65,7 +66,7 @@ public class SqlTypeExplicitPrecedenceList
   /**
    * Map from SqlTypeName to corresponding precedence list.
    *
-   * @sql.2003 Part 2 Section 9.5
+   * @see Glossary#SQL2003 SQL:2003 Part 2 Section 9.5
    */
   private static final Map<SqlTypeName, SqlTypeExplicitPrecedenceList>
   TYPE_NAME_TO_PRECEDENCE_LIST =

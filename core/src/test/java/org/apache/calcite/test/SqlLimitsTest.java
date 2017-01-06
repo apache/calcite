@@ -34,6 +34,7 @@ import org.junit.Test;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.List;
 import java.util.Locale;
@@ -193,18 +194,7 @@ public class SqlLimitsTest {
       s = buf.toString();
     } else if (o instanceof Calendar) {
       Calendar calendar = (Calendar) o;
-      DateFormat dateFormat;
-      switch (type.getSqlTypeName()) {
-      case DATE:
-        dateFormat = DateFormat.getDateInstance();
-        break;
-      case TIME:
-        dateFormat = DateFormat.getTimeInstance();
-        break;
-      default:
-        dateFormat = DateFormat.getDateTimeInstance();
-        break;
-      }
+      DateFormat dateFormat = getDateFormat(type.getSqlTypeName());
       dateFormat.setTimeZone(TimeZone.getTimeZone("GMT"));
       s = dateFormat.format(calendar.getTime());
     } else {
@@ -216,6 +206,17 @@ public class SqlLimitsTest {
     pw.print("; as SQL: ");
     pw.print(literal.toSqlString(SqlDialect.DUMMY));
     pw.println();
+  }
+
+  private DateFormat getDateFormat(SqlTypeName typeName) {
+    switch (typeName) {
+    case DATE:
+      return new SimpleDateFormat("MMM d, yyyy");
+    case TIME:
+      return new SimpleDateFormat("hh:mm:ss a");
+    default:
+      return new SimpleDateFormat("MMM d, yyyy hh:mm:ss a");
+    }
   }
 }
 

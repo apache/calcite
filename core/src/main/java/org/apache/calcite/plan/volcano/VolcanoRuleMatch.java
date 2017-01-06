@@ -20,6 +20,7 @@ import org.apache.calcite.plan.RelOptRuleOperand;
 import org.apache.calcite.plan.RelTrait;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.util.Litmus;
 
 import java.util.List;
 import java.util.Map;
@@ -45,14 +46,11 @@ class VolcanoRuleMatch extends VolcanoRuleCall {
    * @param rels     List of targets; copied by the constructor, so the client
    *                 can modify it later
    * @param nodeInputs Map from relational expressions to their inputs
-   * @pre rels[i] != null
    */
   VolcanoRuleMatch(VolcanoPlanner volcanoPlanner, RelOptRuleOperand operand0,
       RelNode[] rels, Map<RelNode, List<RelNode>> nodeInputs) {
     super(volcanoPlanner, operand0, rels.clone(), nodeInputs);
-    for (RelNode rel : rels) {
-      assert rel != null;
-    }
+    assert allNotNull(rels, Litmus.THROW);
 
     // Try to deduce which subset the result will belong to. Assume --
     // for now -- that the set is the same as the root relexp.
@@ -185,6 +183,18 @@ class VolcanoRuleMatch extends VolcanoRuleCall {
     // The target subset doesn't exist yet.
     return null;
   }
+
+  /** Returns whether all elements of a given array are not-null;
+   * fails if any are null. */
+  private static <E> boolean allNotNull(E[] es, Litmus litmus) {
+    for (E e : es) {
+      if (e == null) {
+        return litmus.fail("was null", (Object) es);
+      }
+    }
+    return litmus.succeed();
+  }
+
 }
 
 // End VolcanoRuleMatch.java

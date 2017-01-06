@@ -89,10 +89,12 @@ limitations under the License.
     <javacc-maven-plugin.version>2.4</javacc-maven-plugin.version>
     <jcip-annotations.version>1.0-1</jcip-annotations.version>
     <jetty.version>9.2.15.v20160210</jetty.version>
-    <jmh.version>1.11.2</jmh.version>
+    <jmh.version>1.12</jmh.version>
     <junit.version>4.12</junit.version>
     <maven-checkstyle-plugin.version>2.12.1</maven-checkstyle-plugin.version>
     <maven-dependency-plugin.version>2.10</maven-dependency-plugin.version>
+    <!-- Apache 18 has 2.10.3, but need 2.10.4 for [MJAVADOC-442]. -->
+    <maven-javadoc-plugin.version>2.10.4</maven-javadoc-plugin.version>
     <maven-scm-provider.version>1.9.4</maven-scm-provider.version>
     <maven-shade-plugin.version>2.1</maven-shade-plugin.version>
     <mockito-all.version>1.10.19</mockito-all.version>
@@ -548,29 +550,6 @@ limitations under the License.
             <link>https://docs.oracle.com/javase/8/docs/api/</link>
           </links>
           <excludePackageNames>org.apache.calcite.benchmarks.generated,org.apache.calcite.sql.parser.impl,org.apache.calcite.sql.parser.parserextensiontesting,org.apache.calcite.piglet.parser,org.openjdk.jmh</excludePackageNames>
-          <tags>
-            <tag>
-              <name>sql.92</name>
-              <placement>a</placement>
-              <head>SQL 92 spec:</head>
-            </tag>
-            <tag>
-              <name>sql.99</name>
-              <placement>a</placement>
-              <head>SQL 99 spec:</head>
-            </tag>
-            <tag>
-              <name>sql.2003</name>
-              <placement>a</placement>
-              <head>SQL 2003 spec:</head>
-            </tag>
-            <tag>
-              <name>pre</name>
-            </tag>
-            <tag>
-              <name>post</name>
-            </tag>
-          </tags>
           <show>private</show>
         </configuration>
       </plugin>
@@ -694,6 +673,11 @@ limitations under the License.
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-javadoc-plugin</artifactId>
+          <version>${maven-javadoc-plugin.version}</version>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-shade-plugin</artifactId>
           <version>${maven-shade-plugin.version}</version>
         </plugin>
@@ -731,29 +715,12 @@ limitations under the License.
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-javadoc-plugin</artifactId>
+        <version>${maven-javadoc-plugin.version}</version>
         <configuration>
           <links>
             <link>https://docs.oracle.com/javase/8/docs/api/</link>
           </links>
           <excludePackageNames>org.apache.calcite.benchmarks.generated,org.apache.calcite.sql.parser.impl,org.apache.calcite.sql.parser.parserextensiontesting,org.apache.calcite.piglet.parser,org.openjdk.jmh</excludePackageNames>
-          <tags>
-            <tag>
-              <name>sql.92</name>
-              <placement>a</placement>
-              <head>SQL 92 spec:</head>
-            </tag>
-            <tag>
-              <name>sql.99</name>
-              <placement>a</placement>
-              <head>SQL 99 spec:</head>
-            </tag>
-            <tag>
-              <name>sql.2003</name>
-              <placement>a</placement>
-              <head>SQL 2003 spec:</head>
-            </tag>
-          </tags>
-          <additionalparam>-tag sql.2003:a:xxx</additionalparam>
           <notimestamp>true</notimestamp>
           <windowtitle>Apache Calcite API</windowtitle>
         </configuration>
