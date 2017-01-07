@@ -25,6 +25,7 @@ import org.apache.calcite.avatica.metrics.Timer.Context;
 
 import com.codahale.metrics.MetricRegistry;
 
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -44,6 +45,9 @@ public class DropwizardMetricsSystemTest {
   private DropwizardMetricsSystem metrics;
 
   @Before public void setup() {
+    // Disabled on JDK9 due to Mockito bug; see [CALCITE-1567].
+    Assume.assumeTrue(System.getProperty("java.version").compareTo("9") < 0);
+
     mockRegistry = mock(MetricRegistry.class);
     metrics = new DropwizardMetricsSystem(mockRegistry);
   }

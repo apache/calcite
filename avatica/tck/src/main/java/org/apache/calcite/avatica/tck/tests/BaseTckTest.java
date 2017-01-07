@@ -19,6 +19,7 @@ package org.apache.calcite.avatica.tck.tests;
 import org.apache.calcite.avatica.tck.TestRunner;
 
 import org.junit.After;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.rules.TestName;
@@ -35,6 +36,9 @@ public abstract class BaseTckTest {
   protected Connection connection;
 
   @Before public void initializeConnection() throws Exception {
+    // Disabled on JDK9 due to Mockito bug; see [CALCITE-1567].
+    Assume.assumeTrue(System.getProperty("java.version").compareTo("9") < 0);
+
     connection = TestRunner.getConnection();
   }
 

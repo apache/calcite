@@ -77,6 +77,8 @@ limitations under the License.
     <kerby.version>1.0.0-RC2</kerby.version>
     <maven-checkstyle-plugin.version>2.12.1</maven-checkstyle-plugin.version>
     <maven-dependency-plugin.version>2.10</maven-dependency-plugin.version>
+    <!-- Apache 18 has 2.10.3, need 2.10.4 for [MJAVADOC-442]. -->
+    <maven-javadoc-plugin.version>2.10.4</maven-javadoc-plugin.version>
     <maven-scm-provider.version>1.9.4</maven-scm-provider.version>
     <maven-shade-plugin.version>2.1</maven-shade-plugin.version>
     <mockito-all.version>1.10.19</mockito-all.version>
@@ -414,29 +416,6 @@ limitations under the License.
           <links>
             <link>https://docs.oracle.com/javase/8/docs/api/</link>
           </links>
-          <tags>
-            <tag>
-              <name>sql.92</name>
-              <placement>a</placement>
-              <head>SQL 92 spec:</head>
-            </tag>
-            <tag>
-              <name>sql.99</name>
-              <placement>a</placement>
-              <head>SQL 99 spec:</head>
-            </tag>
-            <tag>
-              <name>sql.2003</name>
-              <placement>a</placement>
-              <head>SQL 2003 spec:</head>
-            </tag>
-            <tag>
-              <name>pre</name>
-            </tag>
-            <tag>
-              <name>post</name>
-            </tag>
-          </tags>
           <show>private</show>
         </configuration>
       </plugin>
@@ -548,6 +527,11 @@ limitations under the License.
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-javadoc-plugin</artifactId>
+          <version>${maven-javadoc-plugin.version}</version>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-shade-plugin</artifactId>
           <version>${maven-shade-plugin.version}</version>
         </plugin>
@@ -590,24 +574,6 @@ limitations under the License.
           <links>
             <link>https://docs.oracle.com/javase/8/docs/api/</link>
           </links>
-          <tags>
-            <tag>
-              <name>sql.92</name>
-              <placement>a</placement>
-              <head>SQL 92 spec:</head>
-            </tag>
-            <tag>
-              <name>sql.99</name>
-              <placement>a</placement>
-              <head>SQL 99 spec:</head>
-            </tag>
-            <tag>
-              <name>sql.2003</name>
-              <placement>a</placement>
-              <head>SQL 2003 spec:</head>
-            </tag>
-          </tags>
-          <additionalparam>-tag sql.2003:a:xxx</additionalparam>
           <notimestamp>true</notimestamp>
           <windowtitle>Apache Calcite Avatica API</windowtitle>
         </configuration>

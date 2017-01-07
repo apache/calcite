@@ -21,6 +21,7 @@ import org.apache.calcite.avatica.metrics.dropwizard3.DropwizardTimer.Dropwizard
 import com.codahale.metrics.Timer;
 import com.codahale.metrics.Timer.Context;
 
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -34,6 +35,9 @@ public class DropwizardTimerTest {
   private Context context;
 
   @Before public void setup() {
+    // Disabled on JDK9 due to Mockito bug; see [CALCITE-1567].
+    Assume.assumeTrue(System.getProperty("java.version").compareTo("9") < 0);
+
     this.timer = Mockito.mock(Timer.class);
     this.context = Mockito.mock(Context.class);
   }

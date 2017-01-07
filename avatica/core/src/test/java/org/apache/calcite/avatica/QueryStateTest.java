@@ -18,6 +18,7 @@ package org.apache.calcite.avatica;
 
 import org.apache.calcite.avatica.remote.MetaDataOperation;
 
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -42,6 +43,9 @@ public class QueryStateTest {
 
   @Before
   public void setup() throws Exception {
+    // Disabled on JDK9 due to Mockito bug; see [CALCITE-1567].
+    Assume.assumeTrue(System.getProperty("java.version").compareTo("9") < 0);
+
     conn = Mockito.mock(Connection.class);
     metadata = Mockito.mock(DatabaseMetaData.class);
     statement = Mockito.mock(Statement.class);

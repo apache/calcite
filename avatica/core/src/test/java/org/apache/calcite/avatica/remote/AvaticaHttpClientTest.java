@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.avatica.remote;
 
+import org.junit.Assume;
+import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 
@@ -37,6 +39,11 @@ public class AvaticaHttpClientTest {
   private static final String RESPONSE =
       "{\"response\":\"createStatement\",\"connectionId\":"
           + "\"8f3f28ee-d0bb-4cdb-a4b1-8f6e8476c534\",\"statementId\":1608176856}";
+
+  @Before public void setup() {
+    // Disabled on JDK9 due to Mockito bug; see [CALCITE-1567].
+    Assume.assumeTrue(System.getProperty("java.version").compareTo("9") < 0);
+  }
 
   @Test
   public void testRetryOnUnavailable() throws Exception {

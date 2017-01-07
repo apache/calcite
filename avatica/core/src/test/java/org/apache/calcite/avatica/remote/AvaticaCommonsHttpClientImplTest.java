@@ -23,6 +23,8 @@ import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.protocol.HttpClientContext;
 import org.apache.http.entity.StringEntity;
 
+import org.junit.Assume;
+import org.junit.Before;
 import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
@@ -40,6 +42,11 @@ import static java.nio.charset.StandardCharsets.UTF_8;
  * Test class for {@link AvaticaCommonsHttpClientImpl}
  */
 public class AvaticaCommonsHttpClientImplTest {
+
+  @Before public void setup() {
+    // Disabled on JDK9 due to Mockito bug; see [CALCITE-1567].
+    Assume.assumeTrue(System.getProperty("java.version").compareTo("9") < 0);
+  }
 
   @Test public void testRetryOnHttp503() throws Exception {
     final byte[] requestBytes = "fake_request".getBytes(UTF_8);

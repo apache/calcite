@@ -22,6 +22,8 @@ import org.apache.calcite.avatica.remote.Service.ErrorResponse;
 import org.apache.calcite.avatica.remote.Service.Request;
 import org.apache.calcite.avatica.remote.Service.Response;
 
+import org.junit.Assume;
+import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 
@@ -44,6 +46,11 @@ public class AbstractHandlerTest {
     PrintWriter pw = new PrintWriter(sw);
     Objects.requireNonNull(e).printStackTrace(pw);
     return sw.toString();
+  }
+
+  @Before public void setup() {
+    // Disabled on JDK9 due to Mockito bug; see [CALCITE-1567].
+    Assume.assumeTrue(System.getProperty("java.version").compareTo("9") < 0);
   }
 
   @Test public void testExceptionUnwrappingWithoutContext() {

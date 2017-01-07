@@ -19,6 +19,8 @@ package org.apache.calcite.avatica.metrics;
 import org.apache.calcite.avatica.metrics.noop.NoopMetricsSystem;
 import org.apache.calcite.avatica.metrics.noop.NoopMetricsSystemConfiguration;
 
+import org.junit.Assume;
+import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 
@@ -32,6 +34,11 @@ import static org.junit.Assert.assertEquals;
  * Test class for {@link MetricsSystemLoader}.
  */
 public class MetricsSystemLoaderTest {
+
+  @Before public void setup() {
+    // Disabled on JDK9 due to Mockito bug; see [CALCITE-1567].
+    Assume.assumeTrue(System.getProperty("java.version").compareTo("9") < 0);
+  }
 
   @Test public void testSingleInstance() {
     final List<MetricsSystemFactory> factories =

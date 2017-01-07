@@ -18,6 +18,8 @@ package org.apache.calcite.avatica.remote;
 
 import org.apache.calcite.avatica.remote.KerberosConnection.RenewalTask;
 
+import org.junit.Assume;
+import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 
@@ -41,6 +43,11 @@ import static org.mockito.Mockito.when;
  * Test case for KerberosConnection
  */
 public class KerberosConnectionTest {
+
+  @Before public void setup() {
+    // Disabled on JDK9 due to Mockito bug; see [CALCITE-1567].
+    Assume.assumeTrue(System.getProperty("java.version").compareTo("9") < 0);
+  }
 
   @Test(expected = NullPointerException.class) public void testNullArgs() {
     new KerberosConnection(null, null);

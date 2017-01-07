@@ -20,6 +20,7 @@ import org.apache.calcite.avatica.remote.AuthenticationType;
 
 import org.hamcrest.BaseMatcher;
 import org.hamcrest.Description;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -47,6 +48,9 @@ public class AbstractAvaticaHandlerTest {
   private HttpServletResponse response;
 
   @Before public void setup() throws Exception {
+    // Disabled on JDK9 due to Mockito bug; see [CALCITE-1567].
+    Assume.assumeTrue(System.getProperty("java.version").compareTo("9") < 0);
+
     handler = mock(AbstractAvaticaHandler.class);
     config = mock(AvaticaServerConfiguration.class);
     request = mock(HttpServletRequest.class);

@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.avatica.jdbc;
 
+import org.junit.Assume;
+import org.junit.Before;
 import org.junit.Test;
 import org.mockito.InOrder;
 import org.mockito.Mockito;
@@ -35,6 +37,11 @@ import static org.junit.Assert.assertTrue;
  * Tests covering {@link StatementInfo}.
  */
 public class StatementInfoTest {
+
+  @Before public void setup() {
+    // Disabled on JDK9 due to Mockito bug; see [CALCITE-1567].
+    Assume.assumeTrue(System.getProperty("java.version").compareTo("9") < 0);
+  }
 
   @Test
   public void testLargeOffsets() throws Exception {

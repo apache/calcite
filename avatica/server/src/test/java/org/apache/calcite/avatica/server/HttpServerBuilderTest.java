@@ -19,6 +19,8 @@ package org.apache.calcite.avatica.server;
 import org.apache.calcite.avatica.remote.Driver.Serialization;
 import org.apache.calcite.avatica.remote.Service;
 
+import org.junit.Assume;
+import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 
@@ -29,6 +31,10 @@ import static org.junit.Assert.assertNull;
  * Test class for {@link HttpServer}.
  */
 public class HttpServerBuilderTest {
+  @Before public void setup() {
+    // Disabled on JDK9 due to Mockito bug; see [CALCITE-1567].
+    Assume.assumeTrue(System.getProperty("java.version").compareTo("9") < 0);
+  }
 
   @Test public void extraAllowedRolesConfigured() {
     final String[] extraRoles = new String[] {"BAR.COM"};

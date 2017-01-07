@@ -20,6 +20,7 @@ import org.apache.calcite.avatica.remote.Driver.Serialization;
 import org.apache.calcite.avatica.remote.Service;
 
 import org.eclipse.jetty.server.Handler;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -36,6 +37,9 @@ public class HandlerFactoryTest {
 
   @Before
   public void setup() {
+    // Disabled on JDK9 due to Mockito bug; see [CALCITE-1567].
+    Assume.assumeTrue(System.getProperty("java.version").compareTo("9") < 0);
+
     this.factory = new HandlerFactory();
     this.service = Mockito.mock(Service.class);
   }

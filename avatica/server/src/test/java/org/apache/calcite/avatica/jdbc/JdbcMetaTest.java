@@ -23,6 +23,7 @@ import org.apache.calcite.avatica.Meta.StatementHandle;
 
 import com.google.common.cache.Cache;
 
+import org.junit.Assume;
 import org.junit.Test;
 import org.mockito.Mockito;
 
@@ -57,6 +58,9 @@ public class JdbcMetaTest {
   }
 
   @Test public void testPrepareSetsMaxRows() throws Exception {
+    // Disabled on JDK9 due to Mockito bug; see [CALCITE-1567].
+    Assume.assumeTrue(System.getProperty("java.version").compareTo("9") < 0);
+
     final String id = UUID.randomUUID().toString();
     final String sql = "SELECT * FROM FOO";
     final int maxRows = 500;
@@ -89,6 +93,9 @@ public class JdbcMetaTest {
   }
 
   @Test public void testPrepareAndExecuteSetsMaxRows() throws Exception {
+    // Disabled on JDK9 due to Mockito bug; see [CALCITE-1567].
+    Assume.assumeTrue(System.getProperty("java.version").compareTo("9") < 0);
+
     final String id = UUID.randomUUID().toString();
     final int statementId = 12345;
     final String sql = "SELECT * FROM FOO";
