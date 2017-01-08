@@ -3525,6 +3525,10 @@ public class SqlParserTest {
         "POSITION('mouse' IN 'house')");
   }
 
+  @Test public void testReplace() {
+    checkExp("replace('x', 'y', 'z')", "REPLACE('x', 'y', 'z')");
+  }
+
   // check date/time functions.
   @Test public void testTimeDate() {
     // CURRENT_TIME - returns time w/ timezone

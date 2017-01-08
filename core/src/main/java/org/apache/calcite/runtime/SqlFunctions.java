@@ -1832,6 +1832,11 @@ public class SqlFunctions {
     return org.apache.commons.lang3.StringUtils.replaceChars(s, search, replacement);
   }
 
+  /** SQL {@code REPLACE(string, search, replacement)} function. */
+  public static String replace(String s, String search, String replacement) {
+    return s.replace(search, replacement);
+  }
+
   /** Helper for "array element reference". Caller has already ensured that
    * array and index are not null. Index is 1-based, per SQL. */
   public static Object arrayItem(List list, int item) {

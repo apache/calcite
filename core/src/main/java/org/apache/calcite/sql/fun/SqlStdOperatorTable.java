@@ -1121,6 +1121,13 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    */
   public static final SqlFunction SUBSTRING = new SqlSubstringFunction();
 
+  /** The {@code REPLACE(string, search, replace)} function. Not standard SQL,
+   * but in Oracle and Postgres. */
+  public static final SqlFunction REPLACE =
+      new SqlFunction("REPLACE", SqlKind.OTHER_FUNCTION,
+          ReturnTypes.ARG0_NULLABLE_VARYING, null,
+          OperandTypes.STRING_STRING_STRING, SqlFunctionCategory.STRING);
+
   public static final SqlFunction CONVERT =
       new SqlConvertFunction("CONVERT");
 

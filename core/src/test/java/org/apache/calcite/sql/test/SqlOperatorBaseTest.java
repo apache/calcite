@@ -1696,12 +1696,23 @@ public abstract class SqlOperatorBaseTest {
     if (false) {
       tester.checkScalar("{fn REPEAT(string, count)}", null, "");
     }
-    if (false) {
-      tester.checkScalar(
-          "{fn REPLACE(string1, string2, string3)}",
-          null,
-          "");
-    }
+
+    tester.checkString("{fn REPLACE('JACK and JUE','J','BL')}",
+        "BLACK and BLUE", "VARCHAR(12) NOT NULL");
+
+    // REPLACE returns NULL in Oracle but not in Postgres or in Calcite.
+    // When [CALCITE-815] is implemented and SqlConformance#emptyStringIsNull is
+    // enabled, it will return empty string as NULL.
+    tester.checkString("{fn REPLACE('ciao', 'ciao', '')}", "",
+        "VARCHAR(4) NOT NULL");
+
+    tester.checkString("{fn REPLACE('hello world', 'o', '')}", "hell wrld",
+        "VARCHAR(11) NOT NULL");
+
+    tester.checkNull("{fn REPLACE(cast(null as varchar(5)), 'ciao', '')}");
+    tester.checkNull("{fn REPLACE('ciao', cast(null as varchar(3)), 'zz')}");
+    tester.checkNull("{fn REPLACE('ciao', 'bella', cast(null as varchar(3)))}");
+
     if (false) {
       tester.checkScalar("{fn RIGHT(string, count)}", null, "");
     }
@@ -3572,6 +3583,17 @@ public abstract class SqlOperatorBaseTest {
         "position(cast('a' as char) in cast('bca' as varchar))",
         0,
         "INTEGER NOT NULL");
+  }
+
+  @Test public void testReplaceFunc() {
+    tester.setFor(SqlStdOperatorTable.REPLACE);
+    tester.checkString("REPLACE('ciao', 'ciao', '')", "",
+        "VARCHAR(4) NOT NULL");
+    tester.checkString("REPLACE('hello world', 'o', '')", "hell wrld",
+        "VARCHAR(11) NOT NULL");
+    tester.checkNull("REPLACE(cast(null as varchar(5)), 'ciao', '')");
+    tester.checkNull("REPLACE('ciao', cast(null as varchar(3)), 'zz')");
+    tester.checkNull("REPLACE('ciao', 'bella', cast(null as varchar(3)))");
   }
 
   @Test public void testCharLengthFunc() {
