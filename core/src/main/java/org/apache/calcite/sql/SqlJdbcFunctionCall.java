@@ -691,6 +691,7 @@ public class SqlJdbcFunctionCall extends SqlFunction {
             }
           });
       map.put("SUBSTRING", simple(SqlStdOperatorTable.SUBSTRING));
+      map.put("REPLACE", simple(SqlStdOperatorTable.REPLACE));
       map.put("UCASE", simple(SqlStdOperatorTable.UPPER));
       map.put("CURDATE", simple(SqlStdOperatorTable.CURRENT_DATE));
       map.put("CURTIME", simple(SqlStdOperatorTable.LOCALTIME));

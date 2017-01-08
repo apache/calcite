@@ -1121,7 +1121,7 @@ Not implemented:
 | {fn RTRIM(string)} | Returns *string* with trailing space characters removed
 | {fn SUBSTRING(string, offset, length)} | Returns a character string that consists of *length* characters from *string* starting at the *offset* position
 | {fn UCASE(string)} | Returns a string in which all alphabetic characters in *string* have been converted to upper case
-
+| {fn REPLACE(string1, string2, string3)} | Returns a string in which all the occurrence of string2 in string1 are replaced with string3; if string3 is the empty string, the occurrenc of string2 are removed.
 Not implemented:
 
 * {fn ASCII(string)} - Convert a single-character string to the corresponding ASCII code, an integer between 0 and 255
@@ -1129,7 +1129,6 @@ Not implemented:
 * {fn DIFFERENCE(string, string)}
 * {fn LEFT(string, integer)}
 * {fn REPEAT(string, integer)}
-* {fn REPLACE(string, string, string)}
 * {fn RIGHT(string, integer)}
 * {fn SOUNDEX(string)}
 * {fn SPACE(integer)}

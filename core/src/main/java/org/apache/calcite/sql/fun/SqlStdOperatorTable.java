@@ -1121,6 +1121,8 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    */
   public static final SqlFunction SUBSTRING = new SqlSubstringFunction();
 
+  public static final SqlFunction REPLACE = new SqlReplaceFunction();
+
   public static final SqlFunction CONVERT =
       new SqlConvertFunction("CONVERT");
 
