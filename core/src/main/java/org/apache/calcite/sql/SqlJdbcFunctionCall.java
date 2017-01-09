@@ -656,11 +656,30 @@ public class SqlJdbcFunctionCall extends SqlFunction {
       // See also SqlOperatorTests.testJdbcFn, which contains the list.
       ImmutableMap.Builder<String, MakeCall> map = ImmutableMap.builder();
       map.put("ABS", simple(SqlStdOperatorTable.ABS));
+      map.put("ACOS", simple(SqlStdOperatorTable.ACOS));
+      map.put("ASIN", simple(SqlStdOperatorTable.ASIN));
+      map.put("ATAN", simple(SqlStdOperatorTable.ATAN));
+      map.put("ATAN2", simple(SqlStdOperatorTable.ATAN2));
+      map.put("CEILING", simple(SqlStdOperatorTable.CEIL));
+      map.put("COS", simple(SqlStdOperatorTable.COS));
+      map.put("COT", simple(SqlStdOperatorTable.COT));
+      map.put("DEGREES", simple(SqlStdOperatorTable.DEGREES));
       map.put("EXP", simple(SqlStdOperatorTable.EXP));
+      map.put("FLOOR", simple(SqlStdOperatorTable.FLOOR));
       map.put("LOG", simple(SqlStdOperatorTable.LN));
       map.put("LOG10", simple(SqlStdOperatorTable.LOG10));
       map.put("MOD", simple(SqlStdOperatorTable.MOD));
+      map.put("PI", simple(SqlStdOperatorTable.PI));
       map.put("POWER", simple(SqlStdOperatorTable.POWER));
+      map.put("RADIANS", simple(SqlStdOperatorTable.RADIANS));
+      map.put("RAND", simple(SqlStdOperatorTable.RAND));
+      map.put("ROUND", simple(SqlStdOperatorTable.ROUND));
+      map.put("SIGN", simple(SqlStdOperatorTable.SIGN));
+      map.put("SIN", simple(SqlStdOperatorTable.SIN));
+      map.put("SQRT", simple(SqlStdOperatorTable.SQRT));
+      map.put("TAN", simple(SqlStdOperatorTable.TAN));
+      map.put("TRUNCATE", simple(SqlStdOperatorTable.TRUNCATE));
+
       map.put("CONCAT", simple(SqlStdOperatorTable.CONCAT));
       map.put("INSERT",
           new PermutingMakeCall(SqlStdOperatorTable.OVERLAY, new int[]{0, 2, 3, 1}));

@@ -505,6 +505,132 @@ public class SqlFunctionsTest {
     assertEquals(-13000, SqlFunctions.round(-12845, 1000));
   }
 
+  @Test public void testSTruncateDouble() {
+    assertEquals(12.345d, SqlFunctions.struncate(12.345d, 3), 0.001);
+    assertEquals(12.340d, SqlFunctions.struncate(12.345d, 2), 0.001);
+    assertEquals(12.300d, SqlFunctions.struncate(12.345d, 1), 0.001);
+    assertEquals(12.000d, SqlFunctions.struncate(12.999d, 0), 0.001);
+
+    assertEquals(-12.345d, SqlFunctions.struncate(-12.345d, 3), 0.001);
+    assertEquals(-12.340d, SqlFunctions.struncate(-12.345d, 2), 0.001);
+    assertEquals(-12.300d, SqlFunctions.struncate(-12.345d, 1), 0.001);
+    assertEquals(-12.000d, SqlFunctions.struncate(-12.999d, 0), 0.001);
+
+    assertEquals(12000d, SqlFunctions.struncate(12345d, -3), 0.001);
+    assertEquals(12000d, SqlFunctions.struncate(12000d, -3), 0.001);
+    assertEquals(12000d, SqlFunctions.struncate(12001d, -3), 0.001);
+    assertEquals(10000d, SqlFunctions.struncate(12000d, -4), 0.001);
+    assertEquals(0d, SqlFunctions.struncate(12000d, -5), 0.001);
+    assertEquals(11000d, SqlFunctions.struncate(11999d, -3), 0.001);
+
+    assertEquals(-12000d, SqlFunctions.struncate(-12345d, -3), 0.001);
+    assertEquals(-12000d, SqlFunctions.struncate(-12000d, -3), 0.001);
+    assertEquals(-11000d, SqlFunctions.struncate(-11999d, -3), 0.001);
+    assertEquals(-10000d, SqlFunctions.struncate(-12000d, -4), 0.001);
+    assertEquals(0d, SqlFunctions.struncate(-12000d, -5), 0.001);
+  }
+
+  @Test public void testSTruncateLong() {
+    assertEquals(12000d, SqlFunctions.struncate(12345L, -3), 0.001);
+    assertEquals(12000d, SqlFunctions.struncate(12000L, -3), 0.001);
+    assertEquals(12000d, SqlFunctions.struncate(12001L, -3), 0.001);
+    assertEquals(10000d, SqlFunctions.struncate(12000L, -4), 0.001);
+    assertEquals(0d, SqlFunctions.struncate(12000L, -5), 0.001);
+    assertEquals(11000d, SqlFunctions.struncate(11999L, -3), 0.001);
+
+    assertEquals(-12000d, SqlFunctions.struncate(-12345L, -3), 0.001);
+    assertEquals(-12000d, SqlFunctions.struncate(-12000L, -3), 0.001);
+    assertEquals(-11000d, SqlFunctions.struncate(-11999L, -3), 0.001);
+    assertEquals(-10000d, SqlFunctions.struncate(-12000L, -4), 0.001);
+    assertEquals(0d, SqlFunctions.struncate(-12000L, -5), 0.001);
+  }
+
+  @Test public void testSTruncateInt() {
+    assertEquals(12000d, SqlFunctions.struncate(12345, -3), 0.001);
+    assertEquals(12000d, SqlFunctions.struncate(12000, -3), 0.001);
+    assertEquals(12000d, SqlFunctions.struncate(12001, -3), 0.001);
+    assertEquals(10000d, SqlFunctions.struncate(12000, -4), 0.001);
+    assertEquals(0d, SqlFunctions.struncate(12000, -5), 0.001);
+    assertEquals(11000d, SqlFunctions.struncate(11999, -3), 0.001);
+
+    assertEquals(-12000d, SqlFunctions.struncate(-12345, -3), 0.001);
+    assertEquals(-12000d, SqlFunctions.struncate(-12000, -3), 0.001);
+    assertEquals(-11000d, SqlFunctions.struncate(-11999, -3), 0.001);
+    assertEquals(-10000d, SqlFunctions.struncate(-12000, -4), 0.001);
+    assertEquals(0d, SqlFunctions.struncate(-12000, -5), 0.001);
+  }
+
+  @Test public void testSRoundDouble() {
+    assertEquals(12.345d, SqlFunctions.sround(12.345d, 3), 0.001);
+    assertEquals(12.350d, SqlFunctions.sround(12.345d, 2), 0.001);
+    assertEquals(12.300d, SqlFunctions.sround(12.345d, 1), 0.001);
+    assertEquals(13.000d, SqlFunctions.sround(12.999d, 2), 0.001);
+    assertEquals(13.000d, SqlFunctions.sround(12.999d, 1), 0.001);
+    assertEquals(13.000d, SqlFunctions.sround(12.999d, 0), 0.001);
+
+    assertEquals(-12.345d, SqlFunctions.sround(-12.345d, 3), 0.001);
+    assertEquals(-12.350d, SqlFunctions.sround(-12.345d, 2), 0.001);
+    assertEquals(-12.300d, SqlFunctions.sround(-12.345d, 1), 0.001);
+    assertEquals(-13.000d, SqlFunctions.sround(-12.999d, 2), 0.001);
+    assertEquals(-13.000d, SqlFunctions.sround(-12.999d, 1), 0.001);
+    assertEquals(-13.000d, SqlFunctions.sround(-12.999d, 0), 0.001);
+
+    assertEquals(12350d, SqlFunctions.sround(12345d, -1), 0.001);
+    assertEquals(12300d, SqlFunctions.sround(12345d, -2), 0.001);
+    assertEquals(12000d, SqlFunctions.sround(12345d, -3), 0.001);
+    assertEquals(12000d, SqlFunctions.sround(12000d, -3), 0.001);
+    assertEquals(12000d, SqlFunctions.sround(12001d, -3), 0.001);
+    assertEquals(10000d, SqlFunctions.sround(12000d, -4), 0.001);
+    assertEquals(0d, SqlFunctions.sround(12000d, -5), 0.001);
+    assertEquals(12000d, SqlFunctions.sround(11999d, -3), 0.001);
+
+    assertEquals(-12350d, SqlFunctions.sround(-12345d, -1), 0.001);
+    assertEquals(-12300d, SqlFunctions.sround(-12345d, -2), 0.001);
+    assertEquals(-12000d, SqlFunctions.sround(-12345d, -3), 0.001);
+    assertEquals(-12000d, SqlFunctions.sround(-12000d, -3), 0.001);
+    assertEquals(-12000d, SqlFunctions.sround(-11999d, -3), 0.001);
+    assertEquals(-10000d, SqlFunctions.sround(-12000d, -4), 0.001);
+    assertEquals(0d, SqlFunctions.sround(-12000d, -5), 0.001);
+  }
+
+  @Test public void testSRoundLong() {
+    assertEquals(12350d, SqlFunctions.sround(12345L, -1), 0.001);
+    assertEquals(12300d, SqlFunctions.sround(12345L, -2), 0.001);
+    assertEquals(12000d, SqlFunctions.sround(12345L, -3), 0.001);
+    assertEquals(12000d, SqlFunctions.sround(12000L, -3), 0.001);
+    assertEquals(12000d, SqlFunctions.sround(12001L, -3), 0.001);
+    assertEquals(10000d, SqlFunctions.sround(12000L, -4), 0.001);
+    assertEquals(0d, SqlFunctions.sround(12000L, -5), 0.001);
+    assertEquals(12000d, SqlFunctions.sround(11999L, -3), 0.001);
+
+    assertEquals(-12350d, SqlFunctions.sround(-12345L, -1), 0.001);
+    assertEquals(-12300d, SqlFunctions.sround(-12345L, -2), 0.001);
+    assertEquals(-12000d, SqlFunctions.sround(-12345L, -3), 0.001);
+    assertEquals(-12000d, SqlFunctions.sround(-12000L, -3), 0.001);
+    assertEquals(-12000d, SqlFunctions.sround(-11999L, -3), 0.001);
+    assertEquals(-10000d, SqlFunctions.sround(-12000L, -4), 0.001);
+    assertEquals(0d, SqlFunctions.sround(-12000L, -5), 0.001);
+  }
+
+  @Test public void testSRoundInt() {
+    assertEquals(12350d, SqlFunctions.sround(12345, -1), 0.001);
+    assertEquals(12300d, SqlFunctions.sround(12345, -2), 0.001);
+    assertEquals(12000d, SqlFunctions.sround(12345, -3), 0.001);
+    assertEquals(12000d, SqlFunctions.sround(12000, -3), 0.001);
+    assertEquals(12000d, SqlFunctions.sround(12001, -3), 0.001);
+    assertEquals(10000d, SqlFunctions.sround(12000, -4), 0.001);
+    assertEquals(0d, SqlFunctions.sround(12000, -5), 0.001);
+    assertEquals(12000d, SqlFunctions.sround(11999, -3), 0.001);
+
+    assertEquals(-12350d, SqlFunctions.sround(-12345, -1), 0.001);
+    assertEquals(-12300d, SqlFunctions.sround(-12345, -2), 0.001);
+    assertEquals(-12000d, SqlFunctions.sround(-12345, -3), 0.001);
+    assertEquals(-12000d, SqlFunctions.sround(-12000, -3), 0.001);
+    assertEquals(-12000d, SqlFunctions.sround(-11999, -3), 0.001);
+    assertEquals(-10000d, SqlFunctions.sround(-12000, -4), 0.001);
+    assertEquals(0d, SqlFunctions.sround(-12000, -5), 0.001);
+  }
+
   @Test public void testByteString() {
     final byte[] bytes = {(byte) 0xAB, (byte) 0xFF};
     final ByteString byteString = new ByteString(bytes);
