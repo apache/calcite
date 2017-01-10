@@ -18,7 +18,6 @@ package org.apache.calcite.avatica.metrics.dropwizard3;
 
 import com.codahale.metrics.Histogram;
 
-import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -31,9 +30,6 @@ public class DropwizardHistogramTest {
   private Histogram histogram;
 
   @Before public void setup() {
-    // Disabled on JDK9 due to Mockito bug; see [CALCITE-1567].
-    Assume.assumeTrue(System.getProperty("java.version").compareTo("9") < 0);
-
     this.histogram = Mockito.mock(Histogram.class);
   }
 

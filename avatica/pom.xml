@@ -81,7 +81,7 @@ limitations under the License.
     <maven-javadoc-plugin.version>2.10.4</maven-javadoc-plugin.version>
     <maven-scm-provider.version>1.9.4</maven-scm-provider.version>
     <maven-shade-plugin.version>2.1</maven-shade-plugin.version>
-    <mockito-all.version>1.10.19</mockito-all.version>
+    <mockito.version>2.5.5</mockito.version>
     <protobuf.version>3.1.0</protobuf.version>
     <scott-data-hsqldb.version>0.1</scott-data-hsqldb.version>
     <servlet.version>3.0.1</servlet.version>
@@ -249,8 +249,8 @@ limitations under the License.
       </dependency>
       <dependency>
         <groupId>org.mockito</groupId>
-        <artifactId>mockito-all</artifactId>
-        <version>${mockito-all.version}</version>
+        <artifactId>mockito-core</artifactId>
+        <version>${mockito.version}</version>
       </dependency>
       <dependency>
         <groupId>org.hamcrest</groupId>

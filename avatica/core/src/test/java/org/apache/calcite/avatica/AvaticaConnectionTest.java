@@ -17,7 +17,6 @@
 package org.apache.calcite.avatica;
 
 import org.junit.Assert;
-import org.junit.Assume;
 import org.junit.Test;
 import org.mockito.Mockito;
 
@@ -30,12 +29,9 @@ public class AvaticaConnectionTest {
 
   @Test
   public void testNumExecuteRetries() {
-    // Disabled on JDK9 due to Mockito bug; see [CALCITE-1567].
-    Assume.assumeTrue(System.getProperty("java.version").compareTo("9") < 0);
-
     AvaticaConnection statement = Mockito.mock(AvaticaConnection.class);
 
-    Mockito.when(statement.getNumStatementRetries(Mockito.any(Properties.class)))
+    Mockito.when(statement.getNumStatementRetries(Mockito.nullable(Properties.class)))
       .thenCallRealMethod();
 
     // Bad argument should throw an exception
