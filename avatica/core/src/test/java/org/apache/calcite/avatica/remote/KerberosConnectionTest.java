@@ -18,8 +18,6 @@ package org.apache.calcite.avatica.remote;
 
 import org.apache.calcite.avatica.remote.KerberosConnection.RenewalTask;
 
-import org.junit.Assume;
-import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 
@@ -36,6 +34,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.nullable;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -43,11 +42,6 @@ import static org.mockito.Mockito.when;
  * Test case for KerberosConnection
  */
 public class KerberosConnectionTest {
-
-  @Before public void setup() {
-    // Disabled on JDK9 due to Mockito bug; see [CALCITE-1567].
-    Assume.assumeTrue(System.getProperty("java.version").compareTo("9") < 0);
-  }
 
   @Test(expected = NullPointerException.class) public void testNullArgs() {
     new KerberosConnection(null, null);
@@ -75,7 +69,7 @@ public class KerberosConnectionTest {
     LoginContext context = mock(LoginContext.class);
 
     // Call the real login(LoginContext, Configuration, Subject) method
-    when(krbUtil.login(any(LoginContext.class), any(Configuration.class), any(Subject.class)))
+    when(krbUtil.login(nullable(LoginContext.class), any(Configuration.class), any(Subject.class)))
         .thenCallRealMethod();
     // Return a fake LoginContext
     when(krbUtil.createLoginContext(conf)).thenReturn(context);
