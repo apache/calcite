@@ -112,7 +112,7 @@ public class AbstractSchema implements Schema {
     return getFunctionMultimap().get(name); // never null
   }
 
-  public Set<String> getFunctionNames() {
+  public final Set<String> getFunctionNames() {
     return getFunctionMultimap().keySet();
   }
 

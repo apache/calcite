@@ -100,7 +100,8 @@ public abstract class CalciteSchema {
 
   /** Adds implicit functions to a builder. */
   protected abstract void addImplicitFunctionsToBuilder(
-      ImmutableList.Builder<Function> builder, boolean caseSensitive);
+      ImmutableList.Builder<Function> builder,
+      String name, boolean caseSensitive);
 
   /** Adds implicit function names to a builder. */
   protected abstract void addImplicitFuncNamesToBuilder(
@@ -290,7 +291,7 @@ public abstract class CalciteSchema {
       builder.add(functionEntry.getFunction());
     }
     // Add implicit functions.
-    addImplicitFunctionsToBuilder(builder, caseSensitive);
+    addImplicitFunctionsToBuilder(builder, name, caseSensitive);
     return builder.build();
   }
 

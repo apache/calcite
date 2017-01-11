@@ -100,7 +100,6 @@ import org.apache.calcite.util.Util;
 import com.google.common.base.Function;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.LinkedListMultimap;
 import com.google.common.collect.Multimap;
 
@@ -147,6 +146,7 @@ import static org.apache.calcite.util.Static.RESOURCE;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.hasItem;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
@@ -6287,23 +6287,28 @@ public class JdbcTest {
           getFunctionMultimap() {
             return functionMap;
           }
-          // no-caching mode
-          @Override public Set<String> getFunctionNames() {
-            return ImmutableSet.<String>of();
-          }
         });
     // add view definition
     final String viewName = "V";
-    functionMap.put(viewName,
+    final org.apache.calcite.schema.Function view =
         ViewTable.viewMacro(rootSchema.getSubSchema("a"),
-            "values('1', '2')", null, null, false));
+            "values('1', '2')", null, null, false);
+    functionMap.put(viewName, view);
 
+    final CalciteSchema calciteSchema = CalciteSchema.from(aSchema);
     assertThat(
-        CalciteSchema.from(aSchema).getTableBasedOnNullaryFunction(viewName, true),
-        notNullValue());
+        calciteSchema.getTableBasedOnNullaryFunction(viewName, true), notNullValue());
     assertThat(
-        CalciteSchema.from(aSchema).getTableBasedOnNullaryFunction(viewName, false),
-        notNullValue());
+        calciteSchema.getTableBasedOnNullaryFunction(viewName, false), notNullValue());
+    assertThat(
+        calciteSchema.getTableBasedOnNullaryFunction("V1", true), nullValue());
+    assertThat(
+        calciteSchema.getTableBasedOnNullaryFunction("V1", false), nullValue());
+
+    assertThat(calciteSchema.getFunctions(viewName, true), hasItem(view));
+    assertThat(calciteSchema.getFunctions(viewName, false), hasItem(view));
+    assertThat(calciteSchema.getFunctions("V1", true), not(hasItem(view)));
+    assertThat(calciteSchema.getFunctions("V1", false), not(hasItem(view)));
   }
 
   @Test public void testSchemaCaching() throws Exception {
