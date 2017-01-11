@@ -100,6 +100,9 @@ import org.apache.calcite.util.Util;
 import com.google.common.base.Function;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.LinkedListMultimap;
+import com.google.common.collect.Multimap;
 
 import org.hsqldb.jdbcDriver;
 
@@ -6270,6 +6273,37 @@ public class JdbcTest {
     aSubSchemaMap.put("b", new AbstractSchema());
     // explicit should win implicit.
     assertThat(aSchema.getSubSchemaNames().size(), is(2));
+  }
+
+  @Test public void testSimpleCalciteSchemaWithView() throws Exception {
+    final SchemaPlus rootSchema = CalciteSchema.createRootSchema(false, false).plus();
+
+    final Multimap<String, org.apache.calcite.schema.Function> functionMap =
+        LinkedListMultimap.create();
+    // create schema "/a"
+    final SchemaPlus aSchema = rootSchema.add("a",
+        new AbstractSchema() {
+          @Override protected Multimap<String, org.apache.calcite.schema.Function>
+          getFunctionMultimap() {
+            return functionMap;
+          }
+          // no-caching mode
+          @Override public Set<String> getFunctionNames() {
+            return ImmutableSet.<String>of();
+          }
+        });
+    // add view definition
+    final String viewName = "V";
+    functionMap.put(viewName,
+        ViewTable.viewMacro(rootSchema.getSubSchema("a"),
+            "values('1', '2')", null, null, false));
+
+    assertThat(
+        CalciteSchema.from(aSchema).getTableBasedOnNullaryFunction(viewName, true),
+        notNullValue());
+    assertThat(
+        CalciteSchema.from(aSchema).getTableBasedOnNullaryFunction(viewName, false),
+        notNullValue());
   }
 
   @Test public void testSchemaCaching() throws Exception {

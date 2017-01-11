@@ -121,13 +121,11 @@ class SimpleCalciteSchema extends CalciteSchema {
 
   protected TableEntry getImplicitTableBasedOnNullaryFunction(String tableName,
       boolean caseSensitive) {
-    for (String s : schema.getFunctionNames()) {
-      for (Function function : schema.getFunctions(s)) {
-        if (function instanceof TableMacro
-            && function.getParameters().isEmpty()) {
-          final Table table = ((TableMacro) function).apply(ImmutableList.of());
-          return tableEntry(tableName, table);
-        }
+    for (Function function : schema.getFunctions(tableName)) {
+      if (function instanceof TableMacro
+          && function.getParameters().isEmpty()) {
+        final Table table = ((TableMacro) function).apply(ImmutableList.of());
+        return tableEntry(tableName, table);
       }
     }
     return null;
