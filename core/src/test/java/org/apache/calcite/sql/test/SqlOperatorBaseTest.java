@@ -1696,12 +1696,14 @@ public abstract class SqlOperatorBaseTest {
     if (false) {
       tester.checkScalar("{fn REPEAT(string, count)}", null, "");
     }
-    if (false) {
-      tester.checkScalar(
-          "{fn REPLACE(string1, string2, string3)}",
-          null,
-          "");
-    }
+
+    tester.checkString(
+        "{fn REPLACE('JACK and JUE','J','BL')}",
+        "BLACK and BLUE",
+        "VARCHAR(12) NOT NULL");
+
+    tester.checkNull("{fn REPLACE('ciao', 'ciao', '')}");
+
     if (false) {
       tester.checkScalar("{fn RIGHT(string, count)}", null, "");
     }
