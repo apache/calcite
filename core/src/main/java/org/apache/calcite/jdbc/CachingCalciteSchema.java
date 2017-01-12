@@ -142,7 +142,8 @@ class CachingCalciteSchema extends CalciteSchema {
   }
 
   protected void addImplicitFunctionsToBuilder(
-      ImmutableList.Builder<Function> builder, boolean caseSensitive) {
+      ImmutableList.Builder<Function> builder,
+      String name, boolean caseSensitive) {
     // Add implicit functions, case-insensitive.
     final long now = System.currentTimeMillis();
     final NameSet set = implicitFunctionCache.get(now);

@@ -25,6 +25,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.ImmutableSortedSet;
 
+import java.util.Collection;
+
 /**
  * A concrete implementation of {@link org.apache.calcite.jdbc.CalciteSchema}
  * that maintains minimal state.
@@ -90,9 +92,11 @@ class SimpleCalciteSchema extends CalciteSchema {
   }
 
   protected void addImplicitFunctionsToBuilder(
-      ImmutableList.Builder<Function> builder, boolean caseSensitive) {
-    for (String functionName : schema.getFunctionNames()) {
-      builder.addAll(schema.getFunctions(functionName));
+      ImmutableList.Builder<Function> builder,
+      String name, boolean caseSensitive) {
+    Collection<Function> functions = schema.getFunctions(name);
+    if (functions != null) {
+      builder.addAll(functions);
     }
   }
 
@@ -121,8 +125,9 @@ class SimpleCalciteSchema extends CalciteSchema {
 
   protected TableEntry getImplicitTableBasedOnNullaryFunction(String tableName,
       boolean caseSensitive) {
-    for (String s : schema.getFunctionNames()) {
-      for (Function function : schema.getFunctions(s)) {
+    Collection<Function> functions = schema.getFunctions(tableName);
+    if (functions != null) {
+      for (Function function : functions) {
         if (function instanceof TableMacro
             && function.getParameters().isEmpty()) {
           final Table table = ((TableMacro) function).apply(ImmutableList.of());
