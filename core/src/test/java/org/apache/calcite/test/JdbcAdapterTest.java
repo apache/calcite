@@ -360,6 +360,18 @@ public class JdbcAdapterTest {
         .returnsCount(1);
   }
 
+  @Test public void testJoinCartesian() {
+    final String sql = "SELECT *\n"
+        + "FROM Scott.dept, Scott.emp";
+    CalciteAssert.model(JdbcTest.SCOTT_MODEL).query(sql).returnsCount(56);
+  }
+
+  @Test public void testJoinCartesianCount() {
+    final String sql = "SELECT count(*) as c\n"
+        + "FROM Scott.dept, Scott.emp";
+    CalciteAssert.model(JdbcTest.SCOTT_MODEL).query(sql).returns("C=56\n");
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-657">[CALCITE-657]
    * NullPointerException when executing JdbcAggregate implement method</a>. */

@@ -316,6 +316,14 @@ public class RelToSqlConverterTest {
     sql(query).ok(expected);
   }
 
+  @Test public void testCartesianProduct() {
+    String query = "select * from \"department\" , \"employee\"";
+    String expected = "SELECT *\n"
+        + "FROM \"foodmart\".\"department\",\n"
+        + "\"foodmart\".\"employee\"";
+    sql(query).ok(expected);
+  }
+
   @Test public void testSimpleIn() {
     String query = "select * from \"department\" where \"department_id\" in (\n"
         + "  select \"department_id\" from \"employee\"\n"
