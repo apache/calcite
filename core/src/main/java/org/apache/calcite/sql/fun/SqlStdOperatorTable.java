@@ -1444,7 +1444,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           SqlKind.OTHER_FUNCTION,
           ReturnTypes.ARG0,
           null,
-          OperandTypes.NUMERIC_INTEGER,
+          OperandTypes.NUMERIC_OPTIONAL_INTEGER,
           SqlFunctionCategory.NUMERIC);
 
   public static final SqlFunction SIGN =
@@ -1481,7 +1481,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           SqlKind.OTHER_FUNCTION,
           ReturnTypes.ARG0,
           null,
-          OperandTypes.NUMERIC_INTEGER,
+          OperandTypes.NUMERIC_OPTIONAL_INTEGER,
           SqlFunctionCategory.NUMERIC);
 
   public static final SqlFunction PI =

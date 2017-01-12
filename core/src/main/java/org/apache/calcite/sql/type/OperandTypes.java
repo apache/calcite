@@ -200,6 +200,16 @@ public abstract class OperandTypes {
   public static final SqlSingleOperandTypeChecker NUMERIC =
       family(SqlTypeFamily.NUMERIC);
 
+
+  public static final SqlSingleOperandTypeChecker NUMERIC_OPTIONAL_INTEGER =
+      family(ImmutableList.of(SqlTypeFamily.NUMERIC, SqlTypeFamily.INTEGER),
+          // Second operand optional (operand index 0, 1)
+          new Predicate<Integer>() {
+            @Override public boolean apply(Integer number) {
+              return number == 1;
+            }
+          });
+
   public static final SqlSingleOperandTypeChecker NUMERIC_INTEGER =
       family(SqlTypeFamily.NUMERIC, SqlTypeFamily.INTEGER);
 

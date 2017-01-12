@@ -4390,6 +4390,19 @@ public abstract class SqlOperatorBaseTest {
         "DECIMAL(2, 3) NOT NULL");
     tester.checkNull("round(cast(null as integer), 1)");
     tester.checkNull("round(cast(null as double), 1)");
+
+    tester.checkNull("round(cast(null as double))");
+    tester.checkScalar("round(42)", 42, "INTEGER NOT NULL");
+    tester.checkScalar(
+        "round(cast(42.346 as decimal(2, 3)))",
+        BigDecimal.valueOf(42, 0),
+        "DECIMAL(2, 3) NOT NULL");
+    tester.checkScalar("round(42.324)",
+        BigDecimal.valueOf(42, 0),
+        "DECIMAL(5, 3) NOT NULL");
+    tester.checkScalar("round(42.724)",
+        BigDecimal.valueOf(43, 0),
+        "DECIMAL(5, 3) NOT NULL");
   }
   @Test public void testSignFunc() {
     tester.setFor(
@@ -4489,6 +4502,18 @@ public abstract class SqlOperatorBaseTest {
         "DECIMAL(2, 3) NOT NULL");
     tester.checkNull("truncate(cast(null as integer), 1)");
     tester.checkNull("truncate(cast(null as double), 1)");
+
+    tester.checkScalar("truncate(42)", 42, "INTEGER NOT NULL");
+    tester.checkScalar("truncate(42.324)",
+        BigDecimal.valueOf(42, 0),
+        "DECIMAL(5, 3) NOT NULL");
+    tester.checkScalar("truncate(cast(42.324 as float))", 42F, "FLOAT NOT NULL");
+    tester.checkScalar(
+        "truncate(cast(42.345 as decimal(2, 3)))",
+        BigDecimal.valueOf(42, 0),
+        "DECIMAL(2, 3) NOT NULL");
+    tester.checkNull("truncate(cast(null as integer))");
+    tester.checkNull("truncate(cast(null as double))");
   }
 
   @Test public void testNullifFunc() {
