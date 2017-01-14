@@ -232,12 +232,15 @@ public abstract class SqlImplementor {
   }
 
   public Result setOpToSql(SqlSetOperator operator, RelNode rel) {
-    List<SqlNode> list = Expressions.list();
+    SqlNode node = null;
     for (Ord<RelNode> input : Ord.zip(rel.getInputs())) {
       final Result result = visitChild(input.i, input.e);
-      list.add(result.asSelect());
+      if (node == null) {
+        node = result.asSelect();
+      } else {
+        node = operator.createCall(POS, node, result.asSelect());
+      }
     }
-    final SqlCall node = operator.createCall(new SqlNodeList(list, POS));
     final List<Clause> clauses =
         Expressions.list(Clause.SET_OP);
     return result(node, clauses, rel, null);

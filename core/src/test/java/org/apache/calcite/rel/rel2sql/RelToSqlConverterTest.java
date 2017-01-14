@@ -16,8 +16,14 @@
  */
 package org.apache.calcite.rel.rel2sql;
 
+import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelTraitDef;
+import org.apache.calcite.plan.hep.HepPlanner;
+import org.apache.calcite.plan.hep.HepProgram;
+import org.apache.calcite.plan.hep.HepProgramBuilder;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.rules.UnionMergeRule;
+import org.apache.calcite.runtime.FlatLists;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlDialect.DatabaseProduct;
@@ -28,9 +34,14 @@ import org.apache.calcite.tools.FrameworkConfig;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.Planner;
 import org.apache.calcite.tools.Program;
+import org.apache.calcite.tools.Programs;
+import org.apache.calcite.tools.RuleSet;
+import org.apache.calcite.tools.RuleSets;
 import org.apache.calcite.util.Util;
 
+import com.google.common.base.Function;
 import com.google.common.base.Throwables;
+import com.google.common.collect.ImmutableList;
 
 import org.junit.Test;
 
@@ -46,7 +57,7 @@ public class RelToSqlConverterTest {
   /** Initiates a test case with a given SQL query. */
   private Sql sql(String sql) {
     return new Sql(CalciteAssert.SchemaSpec.JDBC_FOODMART, sql,
-        SqlDialect.CALCITE);
+        SqlDialect.CALCITE, ImmutableList.<Function<RelNode, RelNode>>of());
   }
 
   private static Planner getPlanner(List<RelTraitDef> traitDefs,
@@ -510,24 +521,64 @@ public class RelToSqlConverterTest {
     sql(query).ok(expected);
   }
 
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1586">[CALCITE-1586]
+   * JDBC adapter generates wrong SQL if UNION has more than two inputs</a>. */
+  @Test public void testThreeQueryUnion() {
+    String query = "SELECT \"product_id\" FROM \"product\" "
+        + " UNION ALL "
+        + "SELECT \"product_id\" FROM \"sales_fact_1997\" "
+        + " UNION ALL "
+        + "SELECT \"product_class_id\" AS product_id FROM \"product_class\"";
+    String expected = "SELECT \"product_id\"\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "UNION ALL\n"
+        + "SELECT \"product_id\"\n"
+        + "FROM \"foodmart\".\"sales_fact_1997\"\n"
+        + "UNION ALL\n"
+        + "SELECT \"product_class_id\" AS \"PRODUCT_ID\"\n"
+        + "FROM \"foodmart\".\"product_class\"";
+
+    final HepProgram program =
+        new HepProgramBuilder().addRuleClass(UnionMergeRule.class).build();
+    final RuleSet rules = RuleSets.ofList(UnionMergeRule.INSTANCE);
+    sql(query)
+        .optimize(rules, new HepPlanner(program))
+        .ok(expected);
+  }
+
   /** Fluid interface to run tests. */
   private static class Sql {
     private CalciteAssert.SchemaSpec schemaSpec;
     private final String sql;
     private final SqlDialect dialect;
+    private final List<Function<RelNode, RelNode>> transforms;
 
-    Sql(CalciteAssert.SchemaSpec schemaSpec, String sql, SqlDialect dialect) {
+    Sql(CalciteAssert.SchemaSpec schemaSpec, String sql, SqlDialect dialect,
+        List<Function<RelNode, RelNode>> transforms) {
       this.schemaSpec = schemaSpec;
       this.sql = sql;
       this.dialect = dialect;
+      this.transforms = ImmutableList.copyOf(transforms);
     }
 
     Sql dialect(SqlDialect dialect) {
-      return new Sql(schemaSpec, sql, dialect);
+      return new Sql(schemaSpec, sql, dialect, transforms);
     }
 
     Sql planner(Planner planner) {
-      return new Sql(schemaSpec, sql, dialect);
+      return new Sql(schemaSpec, sql, dialect, transforms);
+    }
+
+    Sql optimize(final RuleSet ruleSet, final RelOptPlanner relOptPlanner) {
+      return new Sql(schemaSpec, sql, dialect,
+          FlatLists.append(transforms, new Function<RelNode, RelNode>() {
+            public RelNode apply(RelNode r) {
+              Program program = Programs.of(ruleSet);
+              return program.run(relOptPlanner, r, r.getTraitSet());
+            }
+          }));
     }
 
     Sql ok(String expectedQuery) {
@@ -537,6 +588,9 @@ public class RelToSqlConverterTest {
         SqlNode parse = planner.parse(sql);
         SqlNode validate = planner.validate(parse);
         RelNode rel = planner.rel(validate).rel;
+        for (Function<RelNode, RelNode> transform : transforms) {
+          rel = transform.apply(rel);
+        }
         final RelToSqlConverter converter =
             new RelToSqlConverter(dialect);
         final SqlNode sqlNode = converter.visitChild(0, rel).asStatement();
@@ -549,7 +603,7 @@ public class RelToSqlConverterTest {
     }
 
     public Sql schema(CalciteAssert.SchemaSpec schemaSpec) {
-      return new Sql(schemaSpec, sql, dialect);
+      return new Sql(schemaSpec, sql, dialect, transforms);
     }
   }
 }
