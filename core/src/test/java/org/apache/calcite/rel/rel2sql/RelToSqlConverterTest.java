@@ -16,8 +16,12 @@
  */
 package org.apache.calcite.rel.rel2sql;
 
+import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelTraitDef;
+import org.apache.calcite.plan.hep.HepPlanner;
+import org.apache.calcite.plan.hep.HepProgramBuilder;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.rules.UnionMergeRule;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlDialect.DatabaseProduct;
@@ -28,6 +32,9 @@ import org.apache.calcite.tools.FrameworkConfig;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.Planner;
 import org.apache.calcite.tools.Program;
+import org.apache.calcite.tools.Programs;
+import org.apache.calcite.tools.RuleSet;
+import org.apache.calcite.tools.RuleSets;
 import org.apache.calcite.util.Util;
 
 import com.google.common.base.Throwables;
@@ -64,14 +71,14 @@ public class RelToSqlConverterTest {
 
   @Test public void testSimpleSelectStarFromProductTable() {
     String query = "select * from \"product\"";
-    sql(query).ok("SELECT *\nFROM \"foodmart\".\"product\"");
+    sql(query).parse().ok("SELECT *\nFROM \"foodmart\".\"product\"");
   }
 
   @Test public void testSimpleSelectQueryFromProductTable() {
     String query = "select \"product_id\", \"product_class_id\" from \"product\"";
     final String expected = "SELECT \"product_id\", \"product_class_id\"\n"
         + "FROM \"foodmart\".\"product\"";
-    sql(query).ok(expected);
+    sql(query).parse().ok(expected);
   }
 
   @Test public void testSelectQueryWithWhereClauseOfLessThan() {
@@ -80,7 +87,7 @@ public class RelToSqlConverterTest {
     final String expected = "SELECT \"product_id\", \"shelf_width\"\n"
         + "FROM \"foodmart\".\"product\"\n"
         + "WHERE \"product_id\" < 10";
-    sql(query).ok(expected);
+    sql(query).parse().ok(expected);
   }
 
   @Test public void testSelectQueryWithWhereClauseOfBasicOperators() {
@@ -91,7 +98,7 @@ public class RelToSqlConverterTest {
         + "FROM \"foodmart\".\"product\"\n"
         + "WHERE (\"product_id\" = 10 OR \"product_id\" <= 5) "
         + "AND (80 >= \"shelf_width\" OR \"shelf_width\" > 30)";
-    sql(query).ok(expected);
+    sql(query).parse().ok(expected);
   }
 
 
@@ -100,7 +107,7 @@ public class RelToSqlConverterTest {
     final String expected = "SELECT COUNT(*)\n"
         + "FROM \"foodmart\".\"product\"\n"
         + "GROUP BY \"product_class_id\", \"product_id\"";
-    sql(query).ok(expected);
+    sql(query).parse().ok(expected);
   }
 
   @Test public void testSelectQueryWithMinAggregateFunction() {
@@ -108,7 +115,7 @@ public class RelToSqlConverterTest {
     final String expected = "SELECT MIN(\"net_weight\")\n"
         + "FROM \"foodmart\".\"product\"\n"
         + "GROUP BY \"product_class_id\"";
-    sql(query).ok(expected);
+    sql(query).parse().ok(expected);
   }
 
   @Test public void testSelectQueryWithMinAggregateFunction1() {
@@ -117,7 +124,7 @@ public class RelToSqlConverterTest {
     final String expected = "SELECT \"product_class_id\", MIN(\"net_weight\")\n"
         + "FROM \"foodmart\".\"product\"\n"
         + "GROUP BY \"product_class_id\"";
-    sql(query).ok(expected);
+    sql(query).parse().ok(expected);
   }
 
   @Test public void testSelectQueryWithSumAggregateFunction() {
@@ -126,7 +133,7 @@ public class RelToSqlConverterTest {
     final String expected = "SELECT SUM(\"net_weight\")\n"
         + "FROM \"foodmart\".\"product\"\n"
         + "GROUP BY \"product_class_id\"";
-    sql(query).ok(expected);
+    sql(query).parse().ok(expected);
   }
 
   @Test public void testSelectQueryWithMultipleAggregateFunction() {
@@ -136,7 +143,7 @@ public class RelToSqlConverterTest {
         + " COUNT(*)\n"
         + "FROM \"foodmart\".\"product\"\n"
         + "GROUP BY \"product_class_id\"";
-    sql(query).ok(expected);
+    sql(query).parse().ok(expected);
   }
 
   @Test public void testSelectQueryWithMultipleAggregateFunction1() {
@@ -147,7 +154,7 @@ public class RelToSqlConverterTest {
         + " SUM(\"net_weight\"), MIN(\"low_fat\"), COUNT(*)\n"
         + "FROM \"foodmart\".\"product\"\n"
         + "GROUP BY \"product_class_id\"";
-    sql(query).ok(expected);
+    sql(query).parse().ok(expected);
   }
 
   @Test public void testSelectQueryWithGroupByAndProjectList() {
@@ -157,7 +164,7 @@ public class RelToSqlConverterTest {
         + " COUNT(*)\n"
         + "FROM \"foodmart\".\"product\"\n"
         + "GROUP BY \"product_class_id\", \"product_id\"";
-    sql(query).ok(expected);
+    sql(query).parse().ok(expected);
   }
 
   @Test public void testSelectQueryWithGroupByAndProjectList1() {
@@ -167,7 +174,7 @@ public class RelToSqlConverterTest {
     final String expected = "SELECT COUNT(*)\n"
         + "FROM \"foodmart\".\"product\"\n"
         + "GROUP BY \"product_class_id\", \"product_id\"";
-    sql(query).ok(expected);
+    sql(query).parse().ok(expected);
   }
 
   @Test public void testSelectQueryWithGroupByHaving() {
@@ -178,7 +185,7 @@ public class RelToSqlConverterTest {
         + "FROM \"foodmart\".\"product\"\n"
         + "GROUP BY \"product_class_id\", \"product_id\") AS \"t0\"\n"
         + "WHERE \"product_id\" > 10";
-    sql(query).ok(expected);
+    sql(query).parse().ok(expected);
   }
 
   @Test public void testSelectQueryWithOrderByClause() {
@@ -186,7 +193,7 @@ public class RelToSqlConverterTest {
     final String expected = "SELECT \"product_id\", \"net_weight\"\n"
         + "FROM \"foodmart\".\"product\"\n"
         + "ORDER BY \"net_weight\"";
-    sql(query).ok(expected);
+    sql(query).parse().ok(expected);
   }
 
   @Test public void testSelectQueryWithOrderByClause1() {
@@ -195,7 +202,7 @@ public class RelToSqlConverterTest {
     final String expected = "SELECT \"product_id\", \"net_weight\"\n"
         + "FROM \"foodmart\".\"product\"\n"
         + "ORDER BY \"net_weight\"";
-    sql(query).ok(expected);
+    sql(query).parse().ok(expected);
   }
 
   @Test public void testSelectQueryWithTwoOrderByClause() {
@@ -205,7 +212,7 @@ public class RelToSqlConverterTest {
         + " \"gross_weight\"\n"
         + "FROM \"foodmart\".\"product\"\n"
         + "ORDER BY \"net_weight\", \"gross_weight\"";
-    sql(query).ok(expected);
+    sql(query).parse().ok(expected);
   }
 
   @Test public void testSelectQueryWithAscDescOrderByClause() {
@@ -215,7 +222,7 @@ public class RelToSqlConverterTest {
         + " \"product_id\", \"net_weight\", \"gross_weight\", \"low_fat\"\n"
         + "FROM \"foodmart\".\"product\"\n"
         + "ORDER BY \"net_weight\", \"gross_weight\" DESC, \"low_fat\"";
-    sql(query).ok(expected);
+    sql(query).parse().ok(expected);
   }
 
   @Test public void testSelectQueryWithLimitClause() {
@@ -224,7 +231,7 @@ public class RelToSqlConverterTest {
         + "FROM foodmart.product\n"
         + "LIMIT 100\nOFFSET 10";
     sql(query).dialect(SqlDialect.DatabaseProduct.HIVE.getDialect())
-        .ok(expected);
+        .parse().ok(expected);
   }
 
   @Test public void testSelectQueryWithLimitClauseWithoutOrder() {
@@ -233,7 +240,7 @@ public class RelToSqlConverterTest {
         + "FROM \"foodmart\".\"product\"\n"
         + "OFFSET 10 ROWS\n"
         + "FETCH NEXT 100 ROWS ONLY";
-    sql(query).ok(expected);
+    sql(query).parse().ok(expected);
   }
 
   @Test public void testSelectQueryWithLimitOffsetClause() {
@@ -244,7 +251,7 @@ public class RelToSqlConverterTest {
         + "ORDER BY \"net_weight\"\n"
         + "OFFSET 10 ROWS\n"
         + "FETCH NEXT 100 ROWS ONLY";
-    sql(query).ok(expected);
+    sql(query).parse().ok(expected);
   }
 
   @Test public void testSelectQueryWithFetchOffsetClause() {
@@ -255,7 +262,7 @@ public class RelToSqlConverterTest {
         + "ORDER BY \"product_id\"\n"
         + "OFFSET 10 ROWS\n"
         + "FETCH NEXT 100 ROWS ONLY";
-    sql(query).ok(expected);
+    sql(query).parse().ok(expected);
   }
 
   @Test public void testSelectQueryComplex() {
@@ -267,7 +274,7 @@ public class RelToSqlConverterTest {
         + "WHERE \"cases_per_pallet\" > 100\n"
         + "GROUP BY \"product_id\", \"units_per_case\"\n"
         + "ORDER BY \"units_per_case\" DESC";
-    sql(query).ok(expected);
+    sql(query).parse().ok(expected);
   }
 
   @Test public void testSelectQueryWithGroup() {
@@ -281,7 +288,7 @@ public class RelToSqlConverterTest {
         + "WHERE \"hire_date\" > '2015-01-01' "
         + "AND (\"position_title\" = 'SDE' OR \"position_title\" = 'SDM')\n"
         + "GROUP BY \"store_id\", \"position_title\"";
-    sql(query).ok(expected);
+    sql(query).parse().ok(expected);
   }
 
   @Test public void testSimpleJoin() {
@@ -303,7 +310,7 @@ public class RelToSqlConverterTest {
         + ".\"product_class_id\"\n"
         + "WHERE \"customer\".\"city\" = 'San Francisco' AND "
         + "\"product_class\".\"product_department\" = 'Snacks'";
-    sql(query).ok(expected);
+    sql(query).parse().ok(expected);
   }
 
   @Test public void testSimpleIn() {
@@ -317,7 +324,7 @@ public class RelToSqlConverterTest {
         + "(SELECT \"department_id\"\nFROM \"foodmart\".\"employee\"\n"
         + "WHERE \"store_id\" < 150\nGROUP BY \"department_id\") AS \"t1\" "
         + "ON \"department\".\"department_id\" = \"t1\".\"department_id\"";
-    sql(query).ok(expected);
+    sql(query).parse().ok(expected);
   }
 
   /** Test case for
@@ -332,7 +339,7 @@ public class RelToSqlConverterTest {
         + "FROM foodmart.employee AS employee\n"
         + "INNER JOIN foodmart.department AS department "
         + "ON employee.department_id = department.department_id";
-    sql(query).dialect(DatabaseProduct.DB2.getDialect()).ok(expected);
+    sql(query).dialect(DatabaseProduct.DB2.getDialect()).parse().ok(expected);
   }
 
   @Test public void testDb2DialectSelfJoinStar() {
@@ -343,7 +350,7 @@ public class RelToSqlConverterTest {
         + "FROM foodmart.employee AS employee\n"
         + "INNER JOIN foodmart.employee AS employee0 "
         + "ON employee.department_id = employee0.department_id";
-    sql(query).dialect(DatabaseProduct.DB2.getDialect()).ok(expected);
+    sql(query).dialect(DatabaseProduct.DB2.getDialect()).parse().ok(expected);
   }
 
   @Test public void testDb2DialectJoin() {
@@ -355,7 +362,7 @@ public class RelToSqlConverterTest {
         + "FROM foodmart.employee AS employee\n"
         + "INNER JOIN foodmart.department AS department "
         + "ON employee.department_id = department.department_id";
-    sql(query).dialect(DatabaseProduct.DB2.getDialect()).ok(expected);
+    sql(query).dialect(DatabaseProduct.DB2.getDialect()).parse().ok(expected);
   }
 
   @Test public void testDb2DialectSelfJoin() {
@@ -367,7 +374,7 @@ public class RelToSqlConverterTest {
         + "FROM foodmart.employee AS employee\n"
         + "INNER JOIN foodmart.employee AS employee0 "
         + "ON employee.department_id = employee0.department_id";
-    sql(query).dialect(DatabaseProduct.DB2.getDialect()).ok(expected);
+    sql(query).dialect(DatabaseProduct.DB2.getDialect()).parse().ok(expected);
   }
 
   @Test public void testDb2DialectWhere() {
@@ -376,7 +383,7 @@ public class RelToSqlConverterTest {
     final String expected = "SELECT employee.employee_id\n"
         + "FROM foodmart.employee AS employee\n"
         + "WHERE employee.department_id < 1000";
-    sql(query).dialect(DatabaseProduct.DB2.getDialect()).ok(expected);
+    sql(query).dialect(DatabaseProduct.DB2.getDialect()).parse().ok(expected);
   }
 
   @Test public void testDb2DialectJoinWhere() {
@@ -390,7 +397,7 @@ public class RelToSqlConverterTest {
         + "INNER JOIN foodmart.department AS department "
         + "ON employee.department_id = department.department_id\n"
         + "WHERE employee.employee_id < 1000";
-    sql(query).dialect(DatabaseProduct.DB2.getDialect()).ok(expected);
+    sql(query).dialect(DatabaseProduct.DB2.getDialect()).parse().ok(expected);
   }
 
   @Test public void testDb2DialectSelfJoinWhere() {
@@ -404,7 +411,7 @@ public class RelToSqlConverterTest {
         + "INNER JOIN foodmart.employee AS employee0 "
         + "ON employee.department_id = employee0.department_id\n"
         + "WHERE employee0.employee_id < 2000";
-    sql(query).dialect(DatabaseProduct.DB2.getDialect()).ok(expected);
+    sql(query).dialect(DatabaseProduct.DB2.getDialect()).parse().ok(expected);
   }
 
   @Test public void testDb2DialectCast() {
@@ -413,7 +420,7 @@ public class RelToSqlConverterTest {
     final String expected = "SELECT reserve_employee.hire_date, "
         + "CAST(reserve_employee.hire_date AS VARCHAR(10))\n"
         + "FROM foodmart.reserve_employee AS reserve_employee";
-    sql(query).dialect(DatabaseProduct.DB2.getDialect()).ok(expected);
+    sql(query).dialect(DatabaseProduct.DB2.getDialect()).parse().ok(expected);
   }
 
   @Test public void testDb2DialectSelectQueryWithGroupByHaving() {
@@ -426,7 +433,7 @@ public class RelToSqlConverterTest {
         + "FROM foodmart.product AS product\n"
         + "GROUP BY product.product_class_id, product.product_id) AS t0\n"
         + "WHERE t0.product_id > 10";
-    sql(query).dialect(DatabaseProduct.DB2.getDialect()).ok(expected);
+    sql(query).dialect(DatabaseProduct.DB2.getDialect()).parse().ok(expected);
   }
 
 
@@ -440,7 +447,7 @@ public class RelToSqlConverterTest {
         + "WHERE product.cases_per_pallet > 100\n"
         + "GROUP BY product.product_id, product.units_per_case\n"
         + "ORDER BY product.units_per_case DESC";
-    sql(query).dialect(DatabaseProduct.DB2.getDialect()).ok(expected);
+    sql(query).dialect(DatabaseProduct.DB2.getDialect()).parse().ok(expected);
   }
 
   @Test public void testDb2DialectSelectQueryWithGroup() {
@@ -456,7 +463,7 @@ public class RelToSqlConverterTest {
         + "AND (reserve_employee.position_title = 'SDE' OR "
         + "reserve_employee.position_title = 'SDM')\n"
         + "GROUP BY reserve_employee.store_id, reserve_employee.position_title";
-    sql(query).dialect(DatabaseProduct.DB2.getDialect()).ok(expected);
+    sql(query).dialect(DatabaseProduct.DB2.getDialect()).parse().ok(expected);
   }
 
   /** Test case for
@@ -478,8 +485,10 @@ public class RelToSqlConverterTest {
         + "WHERE EMP.JOB LIKE 'PRESIDENT'";
     sql(sql)
         .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
+        .parse()
         .ok(expected)
         .dialect(DatabaseProduct.DB2.getDialect())
+        .parse()
         .ok(expected2);
   }
 
@@ -507,14 +516,41 @@ public class RelToSqlConverterTest {
         + "ON \"sales_fact_1997\".\"product_id\" = \"product\".\"product_id\" OR "
         + "\"sales_fact_1997\".\"product_id\" IS NOT NULL "
         + "OR \"product\".\"product_id\" IS NOT NULL";
-    sql(query).ok(expected);
+    sql(query).parse().ok(expected);
   }
+
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1586">[CALCITE-1586]
+   * wrong rel-to-sql conversion when performing set operation more then two inputs.</a>. */
+  @Test public void testThreeQueryUnion() {
+    String query = "SELECT \"product_id\" FROM \"product\" "
+        + " UNION ALL "
+        + "SELECT \"product_id\" FROM \"sales_fact_1997\" "
+        + " UNION ALL "
+        + "SELECT \"product_class_id\" AS product_id FROM \"product_class\"";
+    String expected = "SELECT \"product_id\"\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "UNION ALL\n"
+        + "SELECT \"product_id\"\n"
+        + "FROM \"foodmart\".\"sales_fact_1997\"\n"
+        + "UNION ALL\n"
+        + "SELECT \"product_class_id\" AS \"PRODUCT_ID\"\n"
+        + "FROM \"foodmart\".\"product_class\"";
+
+    HepProgramBuilder builder = new HepProgramBuilder().addRuleClass(UnionMergeRule.class);
+    RelOptPlanner relOptPlanner = new HepPlanner(builder.build());
+    RuleSet rules = RuleSets.ofList(UnionMergeRule.INSTANCE);
+    sql(query).parse().optimize(rules, relOptPlanner).ok(expected);
+  }
+
 
   /** Fluid interface to run tests. */
   private static class Sql {
     private CalciteAssert.SchemaSpec schemaSpec;
     private final String sql;
     private final SqlDialect dialect;
+    private RelNode rel;
 
     Sql(CalciteAssert.SchemaSpec schemaSpec, String sql, SqlDialect dialect) {
       this.schemaSpec = schemaSpec;
@@ -530,13 +566,41 @@ public class RelToSqlConverterTest {
       return new Sql(schemaSpec, sql, dialect);
     }
 
-    Sql ok(String expectedQuery) {
+    /**
+     * parse sql to relnode.
+     * @return relnode with out optimize.
+     */
+    Sql parse() {
       final Planner planner =
           getPlanner(null, SqlParser.Config.DEFAULT, schemaSpec);
       try {
         SqlNode parse = planner.parse(sql);
         SqlNode validate = planner.validate(parse);
-        RelNode rel = planner.rel(validate).rel;
+        rel = planner.rel(validate).rel;
+      } catch (Exception e) {
+        throw Throwables.propagate(e);
+      }
+      return this;
+    }
+
+    /**
+     * optimze relnode.
+     * @param ruleSet optimzer rules.
+     * @param relOptPlanner optimize planer.
+     * @return relnode after optimizer.
+     */
+    Sql optimize(RuleSet ruleSet, RelOptPlanner relOptPlanner) {
+      try {
+        Program program = Programs.of(ruleSet);
+        rel = program.run(relOptPlanner, rel, rel.getTraitSet());
+      } catch (Exception e) {
+        throw Throwables.propagate(e);
+      }
+      return this;
+    }
+
+    Sql ok(String expectedQuery) {
+      try {
         final RelToSqlConverter converter =
             new RelToSqlConverter(dialect);
         final SqlNode sqlNode = converter.visitChild(0, rel).asStatement();
