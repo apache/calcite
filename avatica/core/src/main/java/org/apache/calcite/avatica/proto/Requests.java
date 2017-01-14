@@ -10841,9 +10841,9 @@ package org.apache.calcite.avatica.proto;
      * The maximum number of rows to return in the first Frame
      * </pre>
      *
-     * <code>optional uint64 first_frame_max_size = 3;</code>
+     * <code>optional int32 first_frame_max_size = 3;</code>
      */
-    long getFirstFrameMaxSize();
+    int getFirstFrameMaxSize();
 
     /**
      * <code>optional bool has_parameter_values = 4;</code>
@@ -10867,7 +10867,7 @@ package org.apache.calcite.avatica.proto;
     }
     private ExecuteRequest() {
       parameterValues_ = java.util.Collections.emptyList();
-      firstFrameMaxSize_ = 0L;
+      firstFrameMaxSize_ = 0;
       hasParameterValues_ = false;
     }
 
@@ -10920,7 +10920,7 @@ package org.apache.calcite.avatica.proto;
             }
             case 24: {
 
-              firstFrameMaxSize_ = input.readUInt64();
+              firstFrameMaxSize_ = input.readInt32();
               break;
             }
             case 32: {
@@ -11012,15 +11012,15 @@ package org.apache.calcite.avatica.proto;
     }
 
     public static final int FIRST_FRAME_MAX_SIZE_FIELD_NUMBER = 3;
-    private long firstFrameMaxSize_;
+    private int firstFrameMaxSize_;
     /**
      * <pre>
      * The maximum number of rows to return in the first Frame
      * </pre>
      *
-     * <code>optional uint64 first_frame_max_size = 3;</code>
+     * <code>optional int32 first_frame_max_size = 3;</code>
      */
-    public long getFirstFrameMaxSize() {
+    public int getFirstFrameMaxSize() {
       return firstFrameMaxSize_;
     }
 
@@ -11051,8 +11051,8 @@ package org.apache.calcite.avatica.proto;
       for (int i = 0; i < parameterValues_.size(); i++) {
         output.writeMessage(2, parameterValues_.get(i));
       }
-      if (firstFrameMaxSize_ != 0L) {
-        output.writeUInt64(3, firstFrameMaxSize_);
+      if (firstFrameMaxSize_ != 0) {
+        output.writeInt32(3, firstFrameMaxSize_);
       }
       if (hasParameterValues_ != false) {
         output.writeBool(4, hasParameterValues_);
@@ -11072,9 +11072,9 @@ package org.apache.calcite.avatica.proto;
         size += com.google.protobuf.CodedOutputStream
           .computeMessageSize(2, parameterValues_.get(i));
       }
-      if (firstFrameMaxSize_ != 0L) {
+      if (firstFrameMaxSize_ != 0) {
         size += com.google.protobuf.CodedOutputStream
-          .computeUInt64Size(3, firstFrameMaxSize_);
+          .computeInt32Size(3, firstFrameMaxSize_);
       }
       if (hasParameterValues_ != false) {
         size += com.google.protobuf.CodedOutputStream
@@ -11126,8 +11126,7 @@ package org.apache.calcite.avatica.proto;
         hash = (53 * hash) + getParameterValuesList().hashCode();
       }
       hash = (37 * hash) + FIRST_FRAME_MAX_SIZE_FIELD_NUMBER;
-      hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
-          getFirstFrameMaxSize());
+      hash = (53 * hash) + getFirstFrameMaxSize();
       hash = (37 * hash) + HAS_PARAMETER_VALUES_FIELD_NUMBER;
       hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
           getHasParameterValues());
@@ -11266,7 +11265,7 @@ package org.apache.calcite.avatica.proto;
         } else {
           parameterValuesBuilder_.clear();
         }
-        firstFrameMaxSize_ = 0L;
+        firstFrameMaxSize_ = 0;
 
         hasParameterValues_ = false;
 
@@ -11381,7 +11380,7 @@ package org.apache.calcite.avatica.proto;
             }
           }
         }
-        if (other.getFirstFrameMaxSize() != 0L) {
+        if (other.getFirstFrameMaxSize() != 0) {
           setFirstFrameMaxSize(other.getFirstFrameMaxSize());
         }
         if (other.getHasParameterValues() != false) {
@@ -11771,15 +11770,15 @@ package org.apache.calcite.avatica.proto;
         return parameterValuesBuilder_;
       }
 
-      private long firstFrameMaxSize_ ;
+      private int firstFrameMaxSize_ ;
       /**
        * <pre>
        * The maximum number of rows to return in the first Frame
        * </pre>
        *
-       * <code>optional uint64 first_frame_max_size = 3;</code>
+       * <code>optional int32 first_frame_max_size = 3;</code>
        */
-      public long getFirstFrameMaxSize() {
+      public int getFirstFrameMaxSize() {
         return firstFrameMaxSize_;
       }
       /**
@@ -11787,9 +11786,9 @@ package org.apache.calcite.avatica.proto;
        * The maximum number of rows to return in the first Frame
        * </pre>
        *
-       * <code>optional uint64 first_frame_max_size = 3;</code>
+       * <code>optional int32 first_frame_max_size = 3;</code>
        */
-      public Builder setFirstFrameMaxSize(long value) {
+      public Builder setFirstFrameMaxSize(int value) {
 
         firstFrameMaxSize_ = value;
         onChanged();
@@ -11800,11 +11799,11 @@ package org.apache.calcite.avatica.proto;
        * The maximum number of rows to return in the first Frame
        * </pre>
        *
-       * <code>optional uint64 first_frame_max_size = 3;</code>
+       * <code>optional int32 first_frame_max_size = 3;</code>
        */
       public Builder clearFirstFrameMaxSize() {
 
-        firstFrameMaxSize_ = 0L;
+        firstFrameMaxSize_ = 0;
         onChanged();
         return this;
       }
@@ -16451,7 +16450,7 @@ package org.apache.calcite.avatica.proto;
       "onnectionProperties\"\236\001\n\016ExecuteRequest\022)" +
       "\n\017statementHandle\030\001 \001(\0132\020.StatementHandl" +
       "e\022%\n\020parameter_values\030\002 \003(\0132\013.TypedValue" +
-      "\022\034\n\024first_frame_max_size\030\003 \001(\004\022\034\n\024has_pa" +
+      "\022\034\n\024first_frame_max_size\030\003 \001(\005\022\034\n\024has_pa" +
       "rameter_values\030\004 \001(\010\"m\n\022SyncResultsReque" +
       "st\022\025\n\rconnection_id\030\001 \001(\t\022\024\n\014statement_i",
       "d\030\002 \001(\r\022\032\n\005state\030\003 \001(\0132\013.QueryState\022\016\n\006o" +
