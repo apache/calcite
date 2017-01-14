@@ -620,9 +620,130 @@ LogicalAggregate(group=[{0}], EXPR$1=[COUNT()], EXPR$2=[SUM(DISTINCT $1)])
         </Resource>
         <Resource name="planAfter">
             <![CDATA[
-LogicalAggregate(group=[{0}], EXPR$1=[SUM($2)], EXPR$2=[SUM($1)])
+LogicalAggregate(group=[{0}], EXPR$1=[$SUM0($2)], EXPR$2=[SUM($1)])
   LogicalAggregate(group=[{0, 1}], EXPR$1=[COUNT()])
     LogicalProject(DEPTNO=[$7], SAL=[$5])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testDistinctNonDistinctTwoAggregatesWithGrouping">
+        <Resource name="sql">
+            <![CDATA[SELECT deptno, sum(comm), min(comm), SUM(DISTINCT sal)
+FROM emp
+GROUP BY deptno]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalAggregate(group=[{0}], EXPR$1=[SUM($1)], EXPR$2=[MIN($1)], EXPR$3=[SUM(DISTINCT $2)])
+  LogicalProject(DEPTNO=[$7], COMM=[$6], SAL=[$5])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalAggregate(group=[{0}], EXPR$1=[SUM($2)], EXPR$2=[MIN($3)], EXPR$3=[SUM($1)])
+  LogicalAggregate(group=[{0, 2}], EXPR$1=[SUM($1)], EXPR$2=[MIN($1)])
+    LogicalProject(DEPTNO=[$7], COMM=[$6], SAL=[$5])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testDistinctWithGrouping">
+        <Resource name="sql">
+            <![CDATA[SELECT sal, sum(comm), min(comm), SUM(DISTINCT sal)
+FROM emp
+GROUP BY sal]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalAggregate(group=[{0}], EXPR$1=[SUM($1)], EXPR$2=[MIN($1)], EXPR$3=[SUM(DISTINCT $0)])
+  LogicalProject(SAL=[$5], COMM=[$6])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalAggregate(group=[{0}], EXPR$1=[SUM($1)], EXPR$2=[MIN($2)], EXPR$3=[SUM($0)])
+  LogicalAggregate(group=[{0}], EXPR$1=[SUM($1)], EXPR$2=[MIN($1)])
+    LogicalProject(SAL=[$5], COMM=[$6])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testMultipleDistinctWithGrouping">
+        <Resource name="sql">
+            <![CDATA[SELECT sal, SUM(comm), MIN(DISTINCT comm), SUM(DISTINCT sal)
+FROM emp
+GROUP BY sal]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalAggregate(group=[{0}], EXPR$1=[SUM($1)], EXPR$2=[MIN(DISTINCT $1)], EXPR$3=[SUM(DISTINCT $0)])
+  LogicalProject(SAL=[$5], COMM=[$6])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject(SAL=[$0], EXPR$1=[$1], EXPR$2=[$3], EXPR$3=[$5])
+  LogicalJoin(condition=[IS NOT DISTINCT FROM($0, $4)], joinType=[inner])
+    LogicalJoin(condition=[IS NOT DISTINCT FROM($0, $2)], joinType=[inner])
+      LogicalAggregate(group=[{0}], EXPR$1=[SUM($1)])
+        LogicalProject(SAL=[$5], COMM=[$6])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalAggregate(group=[{0}], EXPR$2=[MIN($1)])
+        LogicalAggregate(group=[{0, 1}])
+          LogicalProject(SAL=[$5], COMM=[$6])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalAggregate(group=[{0}], EXPR$3=[SUM($0)])
+      LogicalAggregate(group=[{0}])
+        LogicalProject(SAL=[$0])
+          LogicalProject(SAL=[$5], COMM=[$6])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testDistinctWithMultipleInputs">
+        <Resource name="sql">
+            <![CDATA[SELECT deptno, SUM(comm), MIN(comm), COUNT(DISTINCT sal, comm)
+FROM emp
+GROUP BY deptno]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalAggregate(group=[{0}], EXPR$1=[SUM($1)], EXPR$2=[MIN($1)], EXPR$3=[COUNT(DISTINCT $2, $1)])
+  LogicalProject(DEPTNO=[$7], COMM=[$6], SAL=[$5])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalAggregate(group=[{0}], EXPR$1=[SUM($3)], EXPR$2=[MIN($4)], EXPR$3=[COUNT($2, $1)])
+  LogicalAggregate(group=[{0, 1, 2}], EXPR$1=[SUM($1)], EXPR$2=[MIN($1)])
+    LogicalProject(DEPTNO=[$7], COMM=[$6], SAL=[$5])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testDistinctWithMultipleInputsAndGroupby">
+        <Resource name="sql">
+            <![CDATA[SELECT deptno, SUM(comm), MIN(comm), COUNT(DISTINCT sal, deptno, comm)
+FROM emp
+GROUP BY deptno]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalAggregate(group=[{0}], EXPR$1=[SUM($1)], EXPR$2=[MIN($1)], EXPR$3=[COUNT(DISTINCT $2, $0, $1)])
+  LogicalProject(DEPTNO=[$7], COMM=[$6], SAL=[$5])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalAggregate(group=[{0}], EXPR$1=[SUM($3)], EXPR$2=[MIN($4)], EXPR$3=[COUNT($2, $0, $1)])
+  LogicalAggregate(group=[{0, 1, 2}], EXPR$1=[SUM($1)], EXPR$2=[MIN($1)])
+    LogicalProject(DEPTNO=[$7], COMM=[$6], SAL=[$5])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
@@ -7314,7 +7435,7 @@ LogicalAggregate(group=[{0}], EXPR$1=[COUNT()], EXPR$2=[AVG(DISTINCT $1)])
         </Resource>
         <Resource name="planAfter">
             <![CDATA[
-LogicalAggregate(group=[{0}], EXPR$1=[SUM($2)], EXPR$2=[AVG($1)])
+LogicalAggregate(group=[{0}], EXPR$1=[$SUM0($2)], EXPR$2=[AVG($1)])
   LogicalAggregate(group=[{0, 1}], EXPR$1=[COUNT()])
     LogicalProject(EMPNO=[$0], DEPTNO0=[$9])
       LogicalJoin(condition=[=($7, $9)], joinType=[inner])

@@ -1808,4 +1808,89 @@ EnumerableCalc(expr#0=[{inputs}], expr#1=[0], expr#2=[=($t0, $t1)], expr#3=[null
         EnumerableValues(tuples=[[{ 1, 2 }, { 3, 4 }]])
 !plan
 
+!use scott
+
+# [CALCITE-1930] AggregateExpandDistinctAggregateRules should handle multiple aggregate calls with same input ref
+select count(distinct EMPNO), COUNT(SAL), MIN(SAL), MAX(SAL) from "scott".emp;
++--------+--------+--------+---------+
+| EXPR$0 | EXPR$1 | EXPR$2 | EXPR$3  |
++--------+--------+--------+---------+
+|     14 |     14 | 800.00 | 5000.00 |
++--------+--------+--------+---------+
+(1 row)
+
+!ok
+
+EnumerableCalc(expr#0..3=[{inputs}], expr#4=[CAST($t1):BIGINT NOT NULL], EXPR$0=[$t0], EXPR$1=[$t4], EXPR$2=[$t2], EXPR$3=[$t3])
+  EnumerableAggregate(group=[{}], EXPR$0=[COUNT($0) FILTER $5], EXPR$1=[MIN($2) FILTER $6], EXPR$2=[MIN($3) FILTER $6], EXPR$3=[MIN($4) FILTER $6])
+    EnumerableCalc(expr#0..4=[{inputs}], expr#5=[0], expr#6=[1], expr#7=[CASE($t1, $t5, $t6)], expr#8=[=($t7, $t6)], expr#9=[=($t7, $t5)], proj#0..4=[{exprs}], $i0=[$t8], $=[$t9])
+      EnumerableAggregate(group=[{0}], groups=[[{0}, {}]], indicator=[true], EXPR$1=[COUNT($5)], EXPR$2=[MIN($5)], EXPR$3=[MAX($5)])
+        EnumerableTableScan(table=[[scott, EMP]])
+!plan
+
+# [CALCITE-1930] AggregateExpandDistinctAggregateRules should handle multiple aggregate calls with same input ref
+select count(distinct DEPTNO), COUNT(JOB), MIN(SAL), MAX(SAL) from "scott".emp;
++--------+--------+--------+---------+
+| EXPR$0 | EXPR$1 | EXPR$2 | EXPR$3  |
++--------+--------+--------+---------+
+|      3 |     14 | 800.00 | 5000.00 |
++--------+--------+--------+---------+
+(1 row)
+
+!ok
+
+EnumerableCalc(expr#0..3=[{inputs}], expr#4=[CAST($t1):BIGINT NOT NULL], EXPR$0=[$t0], EXPR$1=[$t4], EXPR$2=[$t2], EXPR$3=[$t3])
+  EnumerableAggregate(group=[{}], EXPR$0=[COUNT($0) FILTER $5], EXPR$1=[MIN($2) FILTER $6], EXPR$2=[MIN($3) FILTER $6], EXPR$3=[MIN($4) FILTER $6])
+    EnumerableCalc(expr#0..4=[{inputs}], expr#5=[0], expr#6=[1], expr#7=[CASE($t1, $t5, $t6)], expr#8=[=($t7, $t6)], expr#9=[=($t7, $t5)], proj#0..4=[{exprs}], $i0=[$t8], $=[$t9])
+      EnumerableAggregate(group=[{7}], groups=[[{7}, {}]], indicator=[true], EXPR$1=[COUNT($2)], EXPR$2=[MIN($5)], EXPR$3=[MAX($5)])
+        EnumerableTableScan(table=[[scott, EMP]])
+!plan
+
+# [CALCITE-1930] AggregateExpandDistinctAggregateRules should handle multiple aggregate calls with same input ref
+select MGR, count(distinct DEPTNO), COUNT(JOB), MIN(SAL), MAX(SAL) from "scott".emp group by MGR;
++------+--------+--------+---------+---------+
+| MGR  | EXPR$1 | EXPR$2 | EXPR$3  | EXPR$4  |
++------+--------+--------+---------+---------+
+| 7566 |      1 |      2 | 3000.00 | 3000.00 |
+| 7698 |      1 |      5 |  950.00 | 1600.00 |
+| 7782 |      1 |      1 | 1300.00 | 1300.00 |
+| 7788 |      1 |      1 | 1100.00 | 1100.00 |
+| 7839 |      3 |      3 | 2450.00 | 2975.00 |
+| 7902 |      1 |      1 |  800.00 |  800.00 |
+|      |      1 |      1 | 5000.00 | 5000.00 |
++------+--------+--------+---------+---------+
+(7 rows)
+
+!ok
+
+EnumerableCalc(expr#0..4=[{inputs}], expr#5=[CAST($t2):BIGINT NOT NULL], proj#0..1=[{exprs}], EXPR$2=[$t5], EXPR$3=[$t3], EXPR$4=[$t4])
+  EnumerableAggregate(group=[{0}], EXPR$1=[COUNT($1) FILTER $7], EXPR$2=[MIN($4) FILTER $8], EXPR$3=[MIN($5) FILTER $8], EXPR$4=[MIN($6) FILTER $8])
+    EnumerableCalc(expr#0..6=[{inputs}], expr#7=[0], expr#8=[1], expr#9=[CASE($t2, $t7, $t8)], expr#10=[2], expr#11=[CASE($t3, $t7, $t10)], expr#12=[+($t9, $t11)], expr#13=[3], expr#14=[=($t12, $t13)], expr#15=[=($t12, $t8)], proj#0..6=[{exprs}], $i0_1=[$t14], $i0=[$t15])
+      EnumerableAggregate(group=[{3, 7}], groups=[[{3, 7}, {3}]], indicator=[true], EXPR$2=[COUNT($2)], EXPR$3=[MIN($5)], EXPR$4=[MAX($5)])
+        EnumerableTableScan(table=[[scott, EMP]])
+!plan
+
+# [CALCITE-1930] AggregateExpandDistinctAggregateRules should handle multiple aggregate calls with same input ref
+select MGR, count(distinct DEPTNO, JOB), MIN(SAL), MAX(SAL) from "scott".emp group by MGR;
++------+--------+---------+---------+
+| MGR  | EXPR$1 | EXPR$2  | EXPR$3  |
++------+--------+---------+---------+
+| 7566 |      1 | 3000.00 | 3000.00 |
+| 7698 |      2 |  950.00 | 1600.00 |
+| 7782 |      1 | 1300.00 | 1300.00 |
+| 7788 |      1 | 1100.00 | 1100.00 |
+| 7839 |      3 | 2450.00 | 2975.00 |
+| 7902 |      1 |  800.00 |  800.00 |
+|      |      1 | 5000.00 | 5000.00 |
++------+--------+---------+---------+
+(7 rows)
+
+!ok
+
+EnumerableAggregate(group=[{1}], EXPR$1=[COUNT($2, $0) FILTER $8], EXPR$2=[MIN($6) FILTER $9], EXPR$3=[MIN($7) FILTER $9])
+  EnumerableCalc(expr#0..7=[{inputs}], expr#8=[0], expr#9=[1], expr#10=[CASE($t3, $t8, $t9)], expr#11=[2], expr#12=[CASE($t4, $t8, $t11)], expr#13=[+($t10, $t12)], expr#14=[4], expr#15=[CASE($t5, $t8, $t14)], expr#16=[+($t13, $t15)], expr#17=[7], expr#18=[=($t16, $t17)], expr#19=[=($t16, $t11)], proj#0..7=[{exprs}], $i2_3_7=[$t18], $i3=[$t19])
+    EnumerableAggregate(group=[{2, 3, 7}], groups=[[{2, 3, 7}, {3}]], indicator=[true], EXPR$2=[MIN($5)], EXPR$3=[MAX($5)])
+      EnumerableTableScan(table=[[scott, EMP]])
+!plan
+
 # End agg.iq
