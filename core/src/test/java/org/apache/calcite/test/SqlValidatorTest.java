@@ -4127,6 +4127,17 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
             "RANK or DENSE_RANK functions require ORDER BY clause in window specification");
   }
 
+  @Test public void testLeftOuterJoinWithAlias() {
+    final String query =
+        "select * from "
+            + "(select row_number() over (order by sal) from emp) as emp1(r1) "
+            + "left outer join "
+            + "(select  dense_rank() over(order by sal) from emp) as emp2(r2) "
+            + "on (emp1.r1 = emp2.r2)";
+    // In this case, R2 is nullable in the join since we have a left outer join.
+    sql(query).type("RecordType(BIGINT NOT NULL R1, BIGINT R2) NOT NULL");
+  }
+
   @Test public void testInvalidWindowFunctionWithGroupBy() {
     sql("select max(^empno^) over () from emp\n"
         + "group by deptno")
