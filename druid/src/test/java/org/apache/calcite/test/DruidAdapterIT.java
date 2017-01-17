@@ -415,7 +415,7 @@ public class DruidAdapterIT {
         .queryContains(druidChecker(druidQuery));
   }
 
-  @Test public void testGroupByLimit() {
+  @Test public void testDistinctLimit() {
     // We do not yet push LIMIT into a Druid "groupBy" query.
     final String sql = "select distinct \"gender\", \"state_province\"\n"
         + "from \"foodmart\" fetch next 3 rows only";
@@ -429,6 +429,55 @@ public class DruidAdapterIT {
         + "    DruidQuery(table=[[foodmart, foodmart]], intervals=[[1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z]], projects=[[$39, $30]], groups=[{0, 1}], aggs=[[]])";
     sql(sql)
         .runs()
+        .explainContains(explain)
+        .queryContains(druidChecker(druidQuery));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1578">[CALCITE-1578]
+   * Druid adapter: wrong semantics of topN query limit with granularity</a>. */
+  @Test public void testGroupBySortLimit() {
+    final String sql = "select \"brand_name\", \"gender\", sum(\"unit_sales\") as s\n"
+        + "from \"foodmart\"\n"
+        + "group by \"brand_name\", \"gender\"\n"
+        + "order by s desc limit 3";
+    final String druidQuery = "{'queryType':'groupBy','dataSource':'foodmart',"
+        + "'granularity':'all','dimensions':['brand_name','gender'],"
+        + "'limitSpec':{'type':'default','limit':3,'columns':[{'dimension':'S','direction':'descending'}]},"
+        + "'aggregations':[{'type':'longSum','name':'S','fieldName':'unit_sales'}],"
+        + "'intervals':['1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z']}";
+    final String explain = "PLAN=EnumerableInterpreter\n"
+        + "  DruidQuery(table=[[foodmart, foodmart]], "
+        + "intervals=[[1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z]], "
+        + "groups=[{2, 39}], aggs=[[SUM($89)]], sort0=[2], dir0=[DESC], fetch=[3])\n";
+    sql(sql)
+        .runs()
+        .returnsOrdered("brand_name=Hermanos; gender=M; S=4286",
+            "brand_name=Hermanos; gender=F; S=4183",
+            "brand_name=Tell Tale; gender=F; S=4033")
+        .explainContains(explain)
+        .queryContains(druidChecker(druidQuery));
+  }
+
+  @Test public void testGroupBySingleSortLimit() {
+    final String sql = "select \"brand_name\", sum(\"unit_sales\") as s\n"
+        + "from \"foodmart\"\n"
+        + "group by \"brand_name\"\n"
+        + "order by s desc limit 3";
+    final String druidQuery = "{'queryType':'topN','dataSource':'foodmart',"
+        + "'granularity':'all','dimension':'brand_name','metric':'S',"
+        + "'aggregations':[{'type':'longSum','name':'S','fieldName':'unit_sales'}],"
+        + "'intervals':['1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z'],"
+        + "'threshold':3}";
+    final String explain = "PLAN=EnumerableInterpreter\n"
+        + "  DruidQuery(table=[[foodmart, foodmart]], "
+        + "intervals=[[1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z]], "
+        + "groups=[{2, 39}], aggs=[[SUM($89)]], sort0=[1], dir0=[DESC], fetch=[3])\n";
+    sql(sql)
+        .runs()
+        .returnsOrdered("brand_name=Hermanos; S=8469",
+            "brand_name=Tell Tale; S=7877",
+            "brand_name=Ebony; S=7438")
         .explainContains(explain)
         .queryContains(druidChecker(druidQuery));
   }
