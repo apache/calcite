@@ -46,6 +46,16 @@ public class CalciteConnectionConfigImpl extends ConnectionConfigImpl
     return new CalciteConnectionConfigImpl(properties1);
   }
 
+  public boolean approximateDistinctCount() {
+    return CalciteConnectionProperty.APPROXIMATE_DISTINCT_COUNT.wrap(properties)
+        .getBoolean();
+  }
+
+  public boolean approximateTopN() {
+    return CalciteConnectionProperty.APPROXIMATE_TOP_N.wrap(properties)
+        .getBoolean();
+  }
+
   public boolean autoTemp() {
     return CalciteConnectionProperty.AUTO_TEMP.wrap(properties).getBoolean();
   }

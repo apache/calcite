@@ -33,6 +33,15 @@ import static org.apache.calcite.avatica.ConnectionConfigImpl.parse;
  * Properties that may be specified on the JDBC connect string.
  */
 public enum CalciteConnectionProperty implements ConnectionProperty {
+  /** Whether approximate results from {@code COUNT(DISTINCT ...)} aggregate
+   * functions are acceptable. */
+  APPROXIMATE_DISTINCT_COUNT("approximateDistinctCount", Type.BOOLEAN, false,
+      false),
+
+  /** Whether approximate results from "Top N" queries
+   * ({@code ORDER BY aggFun DESC LIMIT n}) are acceptable. */
+  APPROXIMATE_TOP_N("approximateTopN", Type.BOOLEAN, false, false),
+
   /** Whether to store query results in temporary tables. */
   AUTO_TEMP("autoTemp", Type.BOOLEAN, false, false),
 
