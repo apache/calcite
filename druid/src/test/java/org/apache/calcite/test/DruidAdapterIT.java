@@ -17,6 +17,8 @@
 package org.apache.calcite.test;
 
 import org.apache.calcite.adapter.druid.DruidQuery;
+import org.apache.calcite.config.CalciteConnectionConfig;
+import org.apache.calcite.config.CalciteConnectionProperty;
 import org.apache.calcite.util.Util;
 
 import com.google.common.base.Function;
@@ -456,21 +458,46 @@ public class DruidAdapterIT {
         .queryContains(druidChecker(druidQuery));
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1587">[CALCITE-1587]
+   * Druid adapter: topN returns approximate results</a>. */
   @Test public void testGroupBySingleSortLimit() {
+    checkGroupBySingleSortLimit(false);
+  }
+
+  /** As {@link #testGroupBySingleSortLimit}, but allowing approximate results
+   * due to {@link CalciteConnectionConfig#approximateDistinctCount()}.
+   * Therefore we send a "topN" query to Druid. */
+  @Test public void testGroupBySingleSortLimitApprox() {
+    checkGroupBySingleSortLimit(true);
+  }
+
+  private void checkGroupBySingleSortLimit(boolean approx) {
     final String sql = "select \"brand_name\", sum(\"unit_sales\") as s\n"
         + "from \"foodmart\"\n"
         + "group by \"brand_name\"\n"
         + "order by s desc limit 3";
-    final String druidQuery = "{'queryType':'topN','dataSource':'foodmart',"
+    final String approxDruid = "{'queryType':'topN','dataSource':'foodmart',"
         + "'granularity':'all','dimension':'brand_name','metric':'S',"
         + "'aggregations':[{'type':'longSum','name':'S','fieldName':'unit_sales'}],"
         + "'intervals':['1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z'],"
         + "'threshold':3}";
+    final String exactDruid = "{'queryType':'groupBy','dataSource':'foodmart',"
+        + "'granularity':'all','dimensions':['brand_name'],"
+        + "'limitSpec':{'type':'default','limit':3,"
+        + "'columns':[{'dimension':'S','direction':'descending'}]},"
+        + "'aggregations':[{'type':'longSum','name':'S','fieldName':'unit_sales'}],"
+        + "'intervals':['1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z']}";
+    final String druidQuery = approx ? approxDruid : exactDruid;
     final String explain = "PLAN=EnumerableInterpreter\n"
         + "  DruidQuery(table=[[foodmart, foodmart]], "
         + "intervals=[[1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z]], "
         + "groups=[{2}], aggs=[[SUM($89)]], sort0=[1], dir0=[DESC], fetch=[3])\n";
-    sql(sql)
+    CalciteAssert.that()
+        .enable(enabled())
+        .with(ImmutableMap.of("model", FOODMART.getPath()))
+        .with(CalciteConnectionProperty.APPROXIMATE_TOP_N.name(), approx)
+        .query(sql)
         .runs()
         .returnsOrdered("brand_name=Hermanos; S=8469",
             "brand_name=Tell Tale; S=7877",

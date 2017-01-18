@@ -18,6 +18,7 @@ package org.apache.calcite.adapter.druid;
 
 import org.apache.calcite.DataContext;
 import org.apache.calcite.avatica.ColumnMetaData;
+import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.config.CalciteConnectionProperty;
 import org.apache.calcite.interpreter.BindableRel;
 import org.apache.calcite.interpreter.Bindables;
@@ -414,6 +415,9 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
   protected QuerySpec getQuery(RelDataType rowType, RexNode filter, List<RexNode> projects,
       ImmutableBitSet groupSet, List<AggregateCall> aggCalls, List<String> aggNames,
       List<Integer> collationIndexes, List<Direction> collationDirections, Integer fetch) {
+    final CalciteConnectionConfig config =
+        getCluster().getPlanner().getContext()
+            .unwrap(CalciteConnectionConfig.class);
     QueryType queryType = QueryType.SELECT;
     final Translator translator = new Translator(druidTable, rowType);
     List<String> fieldNames = rowType.getFieldNames();
@@ -541,7 +545,8 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
           && granularity == Granularity.ALL
           && sortsMetric
           && collations.size() == 1
-          && fetch != null) {
+          && fetch != null
+          && config.approximateTopN()) {
         queryType = QueryType.TOP_N;
       } else {
         queryType = QueryType.GROUP_BY;
