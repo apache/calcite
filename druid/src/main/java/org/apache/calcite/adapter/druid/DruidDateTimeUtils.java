@@ -259,7 +259,7 @@ public class DruidDateTimeUtils {
    * @param call the function call
    * @return the granularity, or null if it cannot be inferred
    */
-  public static String extractGranularity(RexCall call) {
+  public static Granularity extractGranularity(RexCall call) {
     if (call.getKind() != SqlKind.FLOOR
         || call.getOperands().size() != 2) {
       return null;
@@ -271,14 +271,21 @@ public class DruidDateTimeUtils {
     }
     switch (timeUnit) {
     case YEAR:
+      return Granularity.YEAR;
     case QUARTER:
+      return Granularity.QUARTER;
     case MONTH:
+      return Granularity.MONTH;
     case WEEK:
+      return Granularity.WEEK;
     case DAY:
+      return Granularity.DAY;
     case HOUR:
+      return Granularity.HOUR;
     case MINUTE:
+      return Granularity.MINUTE;
     case SECOND:
-      return timeUnit.name();
+      return Granularity.SECOND;
     default:
       return null;
     }
