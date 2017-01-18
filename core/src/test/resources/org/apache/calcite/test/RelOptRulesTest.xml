@@ -5449,6 +5449,25 @@ LogicalProject(NAME=[$3], SUM_SAL=[$1], C=[$2])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testReduceNullableCase2">
+        <Resource name="sql">
+            <![CDATA[SELECT deptno, ename, CASE WHEN 1=2 THEN substring(ename, 1, cast(2 as int)) ELSE NULL end from emp group by deptno, ename, case when 1=2 then substring(ename,1, cast(2 as int))  else null end]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalAggregate(group=[{0, 1, 2}])
+  LogicalProject(DEPTNO=[$7], ENAME=[$1], EXPR$2=[CASE(=(1, 2), CAST(SUBSTRING($1, 1, 2)):VARCHAR(20) CHARACTER SET "ISO-8859-1" COLLATE "ISO-8859-1$en_US$primary", null)])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalAggregate(group=[{0, 1, 2}])
+  LogicalProject(DEPTNO=[$7], ENAME=[$1], EXPR$2=[null])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testSemiJoinRule">
         <Resource name="sql">
             <![CDATA[select dept.* from dept join (

@@ -395,7 +395,10 @@ public class RexUtil {
       right = operands.get(1);
     } else {
       left = operands.get(0);
-      right = rexBuilder.makeNullLiteral(left.getType().getSqlTypeName());
+      SqlTypeName typeName = left.getType().getSqlTypeName();
+      right = typeName.allowsPrec()
+          ? rexBuilder.makeNullLiteral(typeName, left.getType().getPrecision())
+          : rexBuilder.makeNullLiteral(typeName);
     }
     // Note that literals are immutable too, and they can only be compared
     // through values.
