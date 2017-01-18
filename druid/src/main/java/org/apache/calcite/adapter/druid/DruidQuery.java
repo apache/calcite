@@ -537,7 +537,11 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
       if (dimensions.isEmpty() && (collations == null || timeSeriesDirection != null)) {
         queryType = QueryType.TIMESERIES;
         assert fetch == null;
-      } else if (dimensions.size() == 1 && sortsMetric && collations.size() == 1 && fetch != null) {
+      } else if (dimensions.size() == 1
+          && granularity == Granularity.ALL
+          && sortsMetric
+          && collations.size() == 1
+          && fetch != null) {
         queryType = QueryType.TOP_N;
       } else {
         queryType = QueryType.GROUP_BY;
