@@ -37,6 +37,7 @@ import org.apache.calcite.rex.RexOver;
 import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.rex.RexWindow;
+import org.apache.calcite.runtime.PredicateImpl;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.Pair;
@@ -76,15 +77,15 @@ public abstract class ProjectToWindowRule extends RelOptRule {
   //~ Static fields/initializers ---------------------------------------------
 
   private static final Predicate<Calc> PREDICATE =
-      new Predicate<Calc>() {
-        public boolean apply(Calc calc) {
+      new PredicateImpl<Calc>() {
+        public boolean test(Calc calc) {
           return RexOver.containsOver(calc.getProgram());
         }
       };
 
   private static final Predicate<Project> PREDICATE2 =
-      new Predicate<Project>() {
-        public boolean apply(Project project) {
+      new PredicateImpl<Project>() {
+        public boolean test(Project project) {
           return RexOver.containsOver(project.getProjects(), null);
         }
       };

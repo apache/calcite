@@ -19,6 +19,7 @@ package org.apache.calcite.sql.parser;
 import org.apache.calcite.avatica.util.Casing;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.runtime.CalciteContextException;
+import org.apache.calcite.runtime.PredicateImpl;
 import org.apache.calcite.sql.SqlBinaryOperator;
 import org.apache.calcite.sql.SqlIntervalLiteral;
 import org.apache.calcite.sql.SqlIntervalQualifier;
@@ -585,8 +586,8 @@ public final class SqlParserUtil {
   public static SqlNode toTreeEx(SqlSpecialOperator.TokenSequence list,
       int start, final int minPrec, final SqlKind stopperKind) {
     final Predicate<PrecedenceClimbingParser.Token> predicate =
-        new Predicate<PrecedenceClimbingParser.Token>() {
-          public boolean apply(PrecedenceClimbingParser.Token t) {
+        new PredicateImpl<PrecedenceClimbingParser.Token>() {
+          public boolean test(PrecedenceClimbingParser.Token t) {
             if (t instanceof PrecedenceClimbingParser.Op) {
               final SqlOperator op = ((ToTreeListItem) t.o).op;
               return stopperKind != SqlKind.OTHER

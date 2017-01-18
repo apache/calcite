@@ -38,6 +38,7 @@ import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.rex.RexUtil;
+import org.apache.calcite.runtime.PredicateImpl;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
@@ -75,8 +76,8 @@ public class DruidRules {
 
   /** Predicate that returns whether Druid can not handle an aggregate. */
   private static final Predicate<AggregateCall> BAD_AGG =
-      new Predicate<AggregateCall>() {
-        public boolean apply(AggregateCall aggregateCall) {
+      new PredicateImpl<AggregateCall>() {
+        public boolean test(AggregateCall aggregateCall) {
           switch (aggregateCall.getAggregation().getKind()) {
           case COUNT:
           case SUM:

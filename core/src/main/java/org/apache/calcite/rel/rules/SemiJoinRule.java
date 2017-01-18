@@ -28,6 +28,7 @@ import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.runtime.PredicateImpl;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.ImmutableBitSet;
@@ -45,8 +46,8 @@ import java.util.List;
  */
 public class SemiJoinRule extends RelOptRule {
   private static final Predicate<Join> IS_LEFT_OR_INNER =
-      new Predicate<Join>() {
-        public boolean apply(Join input) {
+      new PredicateImpl<Join>() {
+        public boolean test(Join input) {
           switch (input.getJoinType()) {
           case LEFT:
           case INNER:

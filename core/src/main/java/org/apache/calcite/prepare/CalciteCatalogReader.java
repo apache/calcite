@@ -23,6 +23,7 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeFactoryImpl;
 import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.runtime.PredicateImpl;
 import org.apache.calcite.schema.AggregateFunction;
 import org.apache.calcite.schema.Function;
 import org.apache.calcite.schema.FunctionParameter;
@@ -275,15 +276,15 @@ public class CalciteCatalogReader implements Prepare.CatalogReader {
     if (category == null) {
       predicate = Predicates.alwaysTrue();
     } else if (category.isTableFunction()) {
-      predicate = new Predicate<Function>() {
-        public boolean apply(Function function) {
+      predicate = new PredicateImpl<Function>() {
+        public boolean test(Function function) {
           return function instanceof TableMacro
               || function instanceof TableFunction;
         }
       };
     } else {
-      predicate = new Predicate<Function>() {
-        public boolean apply(Function function) {
+      predicate = new PredicateImpl<Function>() {
+        public boolean test(Function function) {
           return !(function instanceof TableMacro
               || function instanceof TableFunction);
         }
@@ -313,8 +314,8 @@ public class CalciteCatalogReader implements Prepare.CatalogReader {
           Util.first(type.getSqlTypeName().getFamily(), SqlTypeFamily.ANY));
     }
     final Predicate<Integer> optional =
-        new Predicate<Integer>() {
-          public boolean apply(Integer input) {
+        new PredicateImpl<Integer>() {
+          public boolean test(Integer input) {
             return function.getParameters().get(input).isOptional();
           }
         };

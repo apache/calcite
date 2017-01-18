@@ -28,6 +28,7 @@ import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexLiteral;
+import org.apache.calcite.runtime.PredicateImpl;
 import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.util.Pair;
@@ -65,8 +66,8 @@ public abstract class Values extends AbstractRelNode {
    * expressions and prune away that section of the tree.
    */
   public static final Predicate<? super Values> IS_EMPTY =
-      new Predicate<Values>() {
-        public boolean apply(Values values) {
+      new PredicateImpl<Values>() {
+        public boolean test(Values values) {
           return values.getTuples().isEmpty();
         }
       };
@@ -79,8 +80,8 @@ public abstract class Values extends AbstractRelNode {
    * expressions and prune away that section of the tree.
    */
   public static final Predicate<? super Values> IS_NOT_EMPTY =
-      new Predicate<Values>() {
-        public boolean apply(Values values) {
+      new PredicateImpl<Values>() {
+        public boolean test(Values values) {
           return !values.getTuples().isEmpty();
         }
       };
