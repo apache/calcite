@@ -545,6 +545,35 @@ public class DruidAdapterIT {
         .queryContains(druidChecker(druidQuery));
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1580">[CALCITE-1580]
+   * Druid adapter: Wrong semantics for ordering within groupBy queries</a>. */
+  @Test public void testGroupByDaySortDimension() {
+    final String sql = "select \"brand_name\", floor(\"timestamp\" to DAY) as d,"
+        + " sum(\"unit_sales\") as s\n"
+        + "from \"foodmart\"\n"
+        + "group by \"brand_name\", floor(\"timestamp\" to DAY)\n"
+        + "order by \"brand_name\"";
+    final String druidQuery = "{'queryType':'groupBy','dataSource':'foodmart',"
+        + "'granularity':'day','dimensions':['brand_name'],"
+        + "'limitSpec':{'type':'default'},"
+        + "'aggregations':[{'type':'longSum','name':'S','fieldName':'unit_sales'}],"
+        + "'intervals':['1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z']}";
+    final String explain = "PLAN=EnumerableInterpreter\n"
+        + "  BindableSort(sort0=[$2], dir0=[DESC], fetch=[30])\n"
+        + "    DruidQuery(table=[[foodmart, foodmart]], "
+        + "intervals=[[1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z]], "
+        + "projects=[[$2, FLOOR($0, FLAG(DAY)), $89]], groups=[{0, 1}], "
+        + "aggs=[[SUM($2)]])\n";
+    sql(sql)
+        .runs()
+        .returnsStartingWith("brand_name=Ebony; D=1997-07-27 00:00:00; S=135",
+            "brand_name=Tri-State; D=1997-05-09 00:00:00; S=120",
+            "brand_name=Hermanos; D=1997-05-09 00:00:00; S=115")
+        .explainContains(explain)
+        .queryContains(druidChecker(druidQuery));
+  }
+
   /** Tests a query that contains no GROUP BY and is therefore executed as a
    * Druid "select" query. */
   @Test public void testFilterSortDesc() {
