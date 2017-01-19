@@ -703,6 +703,35 @@ public class DruidAdapterIT {
         .queryContains(druidChecker(druidQuery));
   }
 
+  @Test public void testGroupByMonthGranularitySort() {
+    final String sql = "select floor(\"timestamp\" to MONTH) as m,"
+        + " sum(\"unit_sales\") as s,\n"
+        + " count(\"store_sqft\") as c\n"
+        + "from \"foodmart\"\n"
+        + "group by floor(\"timestamp\" to MONTH)\n"
+        + "order by floor(\"timestamp\" to MONTH) ASC";
+    final String explain = "PLAN="
+        + "EnumerableInterpreter\n"
+        + "  DruidQuery(table=[[foodmart, foodmart]], intervals=[[1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z]], projects=[[FLOOR($0, FLAG(MONTH)), $89, $71]], groups=[{0}], aggs=[[SUM($1), COUNT($2)]], sort0=[0], dir0=[ASC])";
+    sql(sql)
+        .explainContains(explain);
+  }
+
+  @Test public void testGroupByMonthGranularitySortLimit() {
+    final String sql = "select floor(\"timestamp\" to MONTH) as m,"
+        + " sum(\"unit_sales\") as s,\n"
+        + " count(\"store_sqft\") as c\n"
+        + "from \"foodmart\"\n"
+        + "group by floor(\"timestamp\" to MONTH)\n"
+        + "order by floor(\"timestamp\" to MONTH) limit 10";
+    final String explain = "PLAN="
+        + "EnumerableInterpreter\n"
+        + "  BindableSort(sort0=[$0], dir0=[ASC], fetch=[10])\n"
+        + "    DruidQuery(table=[[foodmart, foodmart]], intervals=[[1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z]], projects=[[FLOOR($0, FLAG(MONTH)), $89, $71]], groups=[{0}], aggs=[[SUM($1), COUNT($2)]])";
+    sql(sql)
+        .explainContains(explain);
+  }
+
   @Test public void testGroupByDayGranularity() {
     final String sql = "select sum(\"unit_sales\") as s,\n"
         + " count(\"store_sqft\") as c\n"
