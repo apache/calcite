@@ -1213,6 +1213,11 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  @Test public void testNotNotIn() {
+    final String sql = "select * from EMP where not (ename not in ('Fred') )";
+    sql(sql).ok();
+  }
+
   @Test public void testOverMultiple() {
     final String sql = "select sum(sal) over w1,\n"
         + "  sum(deptno) over w1,\n"

@@ -1807,4 +1807,24 @@ values (degrees(pi), degrees(-pi / 2));
 
 !ok
 
+# [CALCITE-1592] SqlToRelConverter throws UnsupportedOperationException if query has NOT ... NOT IN
+select * from "scott".emp where not (ename not in ('Fred'));
++-------+-------+-----+-----+----------+-----+------+--------+
+| EMPNO | ENAME | JOB | MGR | HIREDATE | SAL | COMM | DEPTNO |
++-------+-------+-----+-----+----------+-----+------+--------+
++-------+-------+-----+-----+----------+-----+------+--------+
+(0 rows)
+
+!ok
+
+select count(*) as c from "scott".emp where not (ename in ('Fred'));
++----+
+| C  |
++----+
+| 14 |
++----+
+(1 row)
+
+!ok
+
 # End misc.iq
