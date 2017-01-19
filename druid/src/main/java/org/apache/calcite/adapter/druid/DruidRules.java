@@ -476,7 +476,14 @@ public class DruidRules {
         boolean refsTimestamp =
                 checkTimestampRefOnQuery(positionsReferenced.build(), topAgg.getInput(), query);
         if (refsTimestamp && metricsRefs != 0) {
+          // Metrics reference timestamp too
           return false;
+        }
+        if (refsTimestamp
+            && sort.collation.getFieldCollations().size() == 1
+            && topAgg.getGroupCount() == 1) {
+          // Timeseries query: if it has a limit, we cannot push
+          return !RelOptUtil.isLimit(sort);
         }
         return true;
       }
