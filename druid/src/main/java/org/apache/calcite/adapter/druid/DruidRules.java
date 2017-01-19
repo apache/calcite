@@ -477,6 +477,7 @@ public class DruidRules {
         boolean refsTimestamp =
                 checkTimestampRefOnQuery(positionsReferenced.build(), topAgg.getInput(), query);
         if (refsTimestamp && metricsRefs != 0) {
+          // Metrics reference timestamp too
           return false;
         }
         // If the aggregate is grouping by timestamp (or a function of the
@@ -487,6 +488,12 @@ public class DruidRules {
             checkTimestampRefOnQuery(topAgg.getGroupSet(), topAgg.getInput(), query);
         if (aggregateRefsTimestamp && metricsRefs != 0) {
           return false;
+        }
+        if (refsTimestamp
+            && sort.collation.getFieldCollations().size() == 1
+            && topAgg.getGroupCount() == 1) {
+          // Timeseries query: if it has a limit, we cannot push
+          return !RelOptUtil.isLimit(sort);
         }
         return true;
       }

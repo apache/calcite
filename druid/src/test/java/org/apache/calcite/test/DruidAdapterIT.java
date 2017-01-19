@@ -890,6 +890,60 @@ public class DruidAdapterIT {
         .queryContains(druidChecker(druidQuery));
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1577">[CALCITE-1577]
+   * Druid adapter: Incorrect result - limit on timestamp disappears</a>. */
+  @Test public void testGroupByMonthGranularitySort() {
+    final String sql = "select floor(\"timestamp\" to MONTH) as m,\n"
+        + " sum(\"unit_sales\") as s,\n"
+        + " count(\"store_sqft\") as c\n"
+        + "from \"foodmart\"\n"
+        + "group by floor(\"timestamp\" to MONTH)\n"
+        + "order by floor(\"timestamp\" to MONTH) ASC";
+    final String explain = "PLAN="
+        + "EnumerableInterpreter\n"
+        + "  BindableSort(sort0=[$0], dir0=[ASC])\n"
+        + "    DruidQuery(table=[[foodmart, foodmart]], "
+        + "intervals=[[1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z]], "
+        + "projects=[[FLOOR($0, FLAG(MONTH)), $89, $71]], groups=[{0}], "
+        + "aggs=[[SUM($1), COUNT($2)]])";
+    sql(sql)
+        .returnsOrdered("M=1997-01-01 00:00:00; S=21628; C=7033",
+            "M=1997-02-01 00:00:00; S=20957; C=6844",
+            "M=1997-03-01 00:00:00; S=23706; C=7710",
+            "M=1997-04-01 00:00:00; S=20179; C=6588",
+            "M=1997-05-01 00:00:00; S=21081; C=6865",
+            "M=1997-06-01 00:00:00; S=21350; C=6912",
+            "M=1997-07-01 00:00:00; S=23763; C=7752",
+            "M=1997-08-01 00:00:00; S=21697; C=7038",
+            "M=1997-09-01 00:00:00; S=20388; C=6662",
+            "M=1997-10-01 00:00:00; S=19958; C=6478",
+            "M=1997-11-01 00:00:00; S=25270; C=8231",
+            "M=1997-12-01 00:00:00; S=26796; C=8716")
+        .explainContains(explain);
+  }
+
+  @Test public void testGroupByMonthGranularitySortLimit() {
+    final String sql = "select floor(\"timestamp\" to MONTH) as m,\n"
+        + " sum(\"unit_sales\") as s,\n"
+        + " count(\"store_sqft\") as c\n"
+        + "from \"foodmart\"\n"
+        + "group by floor(\"timestamp\" to MONTH)\n"
+        + "order by floor(\"timestamp\" to MONTH) limit 3";
+    final String explain = "PLAN="
+        + "EnumerableInterpreter\n"
+        + "  BindableSort(sort0=[$0], dir0=[ASC], fetch=[3])\n"
+        + "    DruidQuery(table=[[foodmart, foodmart]], "
+        + "intervals=[[1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z]], "
+        + "projects=[[FLOOR($0, FLAG(MONTH)), $89, $71]], groups=[{0}], "
+        + "aggs=[[SUM($1), COUNT($2)]])";
+    sql(sql)
+        .returnsOrdered("M=1997-01-01 00:00:00; S=21628; C=7033",
+            "M=1997-02-01 00:00:00; S=20957; C=6844",
+            "M=1997-03-01 00:00:00; S=23706; C=7710")
+        .explainContains(explain);
+  }
+
   @Test public void testGroupByDayGranularity() {
     final String sql = "select sum(\"unit_sales\") as s,\n"
         + " count(\"store_sqft\") as c\n"
