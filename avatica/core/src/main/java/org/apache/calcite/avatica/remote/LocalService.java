@@ -126,7 +126,6 @@ public class LocalService implements Service {
       }
     } else {
       //noinspection unchecked
-      list = (List<Object>) (List) list2(resultSet);
       cursorFactory = Meta.CursorFactory.LIST;
     }
 
@@ -136,16 +135,6 @@ public class LocalService implements Service {
 
     return new ResultSetResponse(resultSet.connectionId, resultSet.statementId,
         resultSet.ownStatement, signature, frame, updateCount, serverLevelRpcMetadata);
-  }
-
-  private List<List<Object>> list2(Meta.MetaResultSet resultSet) {
-    final Meta.StatementHandle h = new Meta.StatementHandle(
-        resultSet.connectionId, resultSet.statementId, null);
-    final List<TypedValue> parameterValues = Collections.emptyList();
-    final Iterable<Object> iterable = meta.createIterable(h, null,
-        resultSet.signature, parameterValues, resultSet.firstFrame);
-    final List<List<Object>> list = new ArrayList<>();
-    return MetaImpl.collect(resultSet.signature.cursorFactory, iterable, list);
   }
 
   public ResultSetResponse apply(CatalogsRequest request) {
