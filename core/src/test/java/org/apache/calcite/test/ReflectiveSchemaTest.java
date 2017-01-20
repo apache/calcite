@@ -704,6 +704,26 @@ public class ReflectiveSchemaTest {
         .returnsUnordered("value=2", "value=6", "value=10");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1569">[CALCITE-1569]
+   * Date condition can generates Integer == Integer, which is always
+   * false</a>. */
+  @Test public void testDateCanCompare() {
+    final String sql = "select a.v\n"
+        + "from (select \"sqlDate\" v\n"
+        + "  from \"s\".\"everyTypes\" "
+        + "  group by \"sqlDate\") a,"
+        + "    (select \"sqlDate\" v\n"
+        + "  from \"s\".\"everyTypes\"\n"
+        + "  group by \"sqlDate\") b\n"
+        + "where a.v >= b.v\n"
+        + "group by a.v";
+    CalciteAssert.that()
+        .withSchema("s", CATCHALL)
+        .query(sql)
+        .returnsUnordered("V=1970-01-01");
+  }
+
   /** Extension to {@link Employee} with a {@code hireDate} column. */
   public static class EmployeeWithHireDate extends Employee {
     public final java.sql.Date hireDate;

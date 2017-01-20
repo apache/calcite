@@ -769,9 +769,13 @@ public class RexToLixTranslator {
         program.getCondition(),
         RexImpTable.NullAs.FALSE);
   }
-
   public static Expression convert(Expression operand, Type toType) {
     final Type fromType = operand.getType();
+    return convert(operand, fromType, toType);
+  }
+
+  public static Expression convert(Expression operand, Type fromType,
+      Type toType) {
     if (fromType.equals(toType)) {
       return operand;
     }
@@ -860,10 +864,22 @@ public class RexToLixTranslator {
         }
       }
       return Expressions.box(operand, toBox);
+    } else if (fromType == java.sql.Date.class) {
+      if (toBox == Primitive.INT) {
+        return Expressions.call(BuiltInMethod.DATE_TO_INT.method, operand);
+      } else {
+        return Expressions.convert_(operand, toType);
+      }
     } else if (toType == java.sql.Date.class) {
       // E.g. from "int" or "Integer" to "java.sql.Date",
       // generate "SqlFunctions.internalToDate".
-      return Expressions.call(BuiltInMethod.INTERNAL_TO_DATE.method, operand);
+      Boolean isPrimitiveInt = fromPrimitive == Primitive.INT;
+      Boolean isBoxInt = fromBox == Primitive.INT;
+      if (isPrimitiveInt || isBoxInt) {
+        return Expressions.call(BuiltInMethod.INTERNAL_TO_DATE.method, operand);
+      } else {
+        return Expressions.convert_(operand, java.sql.Date.class);
+      }
     } else if (toType == java.sql.Time.class) {
       // E.g. from "int" or "Integer" to "java.sql.Time",
       // generate "SqlFunctions.internalToTime".
