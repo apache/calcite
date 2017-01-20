@@ -678,16 +678,53 @@ public class RelBuilderTest {
 
   @Test public void testDistinct() {
     // Equivalent SQL:
-    //   SELECT DISTINCT *
-    //   FROM dept
+    //   SELECT DISTINCT deptno
+    //   FROM emp
+    final RelBuilder builder = RelBuilder.create(config().build());
+    RelNode root =
+        builder.scan("EMP")
+            .project(builder.field("DEPTNO"))
+            .distinct()
+            .build();
+    final String expected = "LogicalAggregate(group=[{0}])\n"
+        + "  LogicalProject(DEPTNO=[$7])\n"
+        + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(str(root),
+        is(expected));
+  }
+
+  @Test public void testDistinctAlready() {
+    // DEPT is already distinct
     final RelBuilder builder = RelBuilder.create(config().build());
     RelNode root =
         builder.scan("DEPT")
             .distinct()
             .build();
     assertThat(str(root),
-        is("LogicalAggregate(group=[{0, 1, 2}])\n"
-                + "  LogicalTableScan(table=[[scott, DEPT]])\n"));
+        is("LogicalTableScan(table=[[scott, DEPT]])\n"));
+  }
+
+  @Test public void testDistinctEmpty() {
+    // Is a relation with zero columns distinct?
+    // What about if we know there are zero rows?
+    // It is a matter of definition: there are no duplicate rows,
+    // but applying "select ... group by ()" to it would change the result.
+    // In theory, we could omit the distinct if we know there is precisely one
+    // row, but we don't currently.
+    final RelBuilder builder = RelBuilder.create(config().build());
+    RelNode root =
+        builder.scan("EMP")
+            .filter(
+                builder.call(SqlStdOperatorTable.IS_NULL,
+                    builder.field("COMM")))
+            .project()
+            .distinct()
+            .build();
+    final String expected = "LogicalAggregate(group=[{}])\n"
+        + "  LogicalProject\n"
+        + "    LogicalFilter(condition=[IS NULL($6)])\n"
+        + "      LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(str(root), is(expected));
   }
 
   @Test public void testUnion() {

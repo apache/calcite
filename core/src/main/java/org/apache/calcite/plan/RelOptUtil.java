@@ -767,13 +767,8 @@ public abstract class RelOptUtil {
         ImmutableBitSet.of(), null, aggCalls);
   }
 
-  /**
-   * Creates a LogicalAggregate that removes all duplicates from the result of
-   * an underlying relational expression.
-   *
-   * @param rel underlying rel
-   * @return rel implementing DISTINCT
-   */
+  /** @deprecated Use {@link RelBuilder#distinct()}. */
+  @Deprecated // to be removed before 2.0
   public static RelNode createDistinctRel(RelNode rel) {
     return LogicalAggregate.create(rel, false,
         ImmutableBitSet.range(rel.getRowType().getFieldCount()), null,

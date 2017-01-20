@@ -36,6 +36,7 @@ import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.core.Values;
+import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
@@ -979,6 +980,28 @@ public class RelBuilder {
     final GroupKeyImpl groupKey_ = (GroupKeyImpl) groupKey;
     final ImmutableBitSet groupSet =
         ImmutableBitSet.of(registerExpressions(extraNodes, groupKey_.nodes));
+  label:
+    if (Iterables.isEmpty(aggCalls)) {
+      final RelMetadataQuery mq = RelMetadataQuery.instance();
+      if (groupSet.isEmpty()) {
+        final Double minRowCount = mq.getMinRowCount(peek());
+        if (minRowCount == null || minRowCount < 1D) {
+          // We can't remove "GROUP BY ()" if there's a chance the rel could be
+          // empty.
+          break label;
+        }
+      }
+      final Boolean unique = mq.areColumnsUnique(peek(), groupSet);
+      if (unique != null && unique) {
+        // Rel is already unique. Nothing to do.
+        return this;
+      }
+      final Double maxRowCount = mq.getMaxRowCount(peek());
+      if (maxRowCount != null && maxRowCount <= 1D) {
+        // If there is at most one row, rel is already unique.
+        return this;
+      }
+    }
     final ImmutableList<ImmutableBitSet> groupSets;
     if (groupKey_.nodeLists != null) {
       final int sizeBefore = extraNodes.size();

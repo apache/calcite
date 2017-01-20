@@ -26,7 +26,7 @@ import javax.annotation.Nullable;
  * <p>Derived class needs to implement the {@link #test} method.
  *
  * <p>Helps with the transition to {@code java.util.function.Predicate},
- * which was introduced in JDK 1.8, and is required in Guava 21.0 and higer,
+ * which was introduced in JDK 1.8, and is required in Guava 21.0 and higher,
  * but still works on JDK 1.7.
  *
  * @param <T> the type of the input to the predicate

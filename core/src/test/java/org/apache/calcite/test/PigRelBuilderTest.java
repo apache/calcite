@@ -63,10 +63,12 @@ public class PigRelBuilderTest {
     final PigRelBuilder builder = PigRelBuilder.create(config().build());
     final RelNode root = builder
         .scan("EMP")
+        .project(builder.field("DEPTNO"))
         .distinct()
         .build();
-    final String plan = "LogicalAggregate(group=[{0, 1, 2, 3, 4, 5, 6, 7}])\n"
-        + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    final String plan = "LogicalAggregate(group=[{0}])\n"
+        + "  LogicalProject(DEPTNO=[$7])\n"
+        + "    LogicalTableScan(table=[[scott, EMP]])\n";
     assertThat(str(root), is(plan));
   }
 

@@ -128,7 +128,7 @@ public class IdentifierNamespace extends AbstractNamespace {
     // lenient match. If we find something we can offer a helpful hint.
     if (nameMatcher.isCaseSensitive()) {
       final SqlNameMatcher liberalMatcher = SqlNameMatchers.liberal();
-      resolved.clear(); // TODO: remove?
+      resolved.clear();
       parentScope.resolveTable(names, liberalMatcher,
           SqlValidatorScope.Path.EMPTY, resolved);
       if (resolved.count() == 1) {

@@ -749,7 +749,9 @@ public class RelDecorrelator implements ReflectiveVisitor {
             RelOptUtil.createProject(
                 newInput,
                 mapNewInputToOutputPos.get(newInput));
-        RelNode distinct = RelOptUtil.createDistinctRel(project);
+        RelNode distinct = relBuilder.push(project)
+            .distinct()
+            .build();
         RelOptCluster cluster = distinct.getCluster();
 
         joinedInputRelSet.add(newInput);
