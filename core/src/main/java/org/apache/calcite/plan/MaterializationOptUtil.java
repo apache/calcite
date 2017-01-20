@@ -40,17 +40,16 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 /**
- * <code>MaterializedViewOptUtil</code> defines static utility methods for using
+ * <code>MaterializationOptUtil</code> defines static utility methods for using
  * materialized views and lattices for queries.
  */
-public abstract class MaterializedViewOptUtil {
+public abstract class MaterializationOptUtil {
 
   /**
    * Return a list of RelNode transformed from all possible combination of
@@ -67,7 +66,9 @@ public abstract class MaterializedViewOptUtil {
         getApplicableMaterializations(rel, materializations);
     final List<Pair<RelNode, List<RelOptMaterialization>>> applied =
         new ArrayList<>();
-    applied.add(Pair.of(rel, Collections.<RelOptMaterialization>emptyList()));
+    applied.add(
+        Pair.<RelNode, List<RelOptMaterialization>>of(
+            rel, ImmutableList.<RelOptMaterialization>of()));
     for (RelOptMaterialization m : applicableMaterializations) {
       int count = applied.size();
       for (int i = 0; i < count; i++) {
@@ -91,13 +92,13 @@ public abstract class MaterializedViewOptUtil {
 
   /**
    * Return a list of RelNode transformed from all possible lattice uses.
-   * @param rel            the original RelNode
-   * @param latticeByName  the lattice map
+   * @param rel       the original RelNode
+   * @param lattices  the lattice list
    * @return the list of transformed RelNode together with their corresponding
    *         lattice used in the transformation.
    */
   public static List<Pair<RelNode, RelOptLattice>> useLattices(
-      final RelNode rel, Map<List<String>, RelOptLattice> latticeByName) {
+      final RelNode rel, List<RelOptLattice> lattices) {
     final Set<RelOptTable> queryTables = RelOptUtil.findTables(rel);
     // Use a lattice if the query uses at least the central (fact) table of the
     // lattice.
@@ -111,7 +112,7 @@ public abstract class MaterializedViewOptUtil {
             return RelOptMaterialization.toLeafJoinForm(rel);
           }
         });
-    for (RelOptLattice lattice : latticeByName.values()) {
+    for (RelOptLattice lattice : lattices) {
       if (queryTableNames.contains(lattice.rootTable().getQualifiedName())) {
         RelNode rel2 = lattice.rewrite(leafJoinRoot.get());
         if (rel2 != null) {
@@ -230,4 +231,4 @@ public abstract class MaterializedViewOptUtil {
     return false;
   }
 }
-// End MaterializedViewOptUtil.java
+// End MaterializationOptUtil.java

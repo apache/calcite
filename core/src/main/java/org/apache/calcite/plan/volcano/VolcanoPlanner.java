@@ -23,7 +23,7 @@ import org.apache.calcite.plan.AbstractRelOptPlanner;
 import org.apache.calcite.plan.Context;
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.ConventionTraitDef;
-import org.apache.calcite.plan.MaterializedViewOptUtil;
+import org.apache.calcite.plan.MaterializationOptUtil;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptCostFactory;
 import org.apache.calcite.plan.RelOptLattice;
@@ -65,11 +65,6 @@ import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.SaffronProperties;
 import org.apache.calcite.util.Util;
-import org.apache.calcite.util.graph.DefaultDirectedGraph;
-import org.apache.calcite.util.graph.DefaultEdge;
-import org.apache.calcite.util.graph.DirectedGraph;
-import org.apache.calcite.util.graph.Graphs;
-import org.apache.calcite.util.graph.TopologicalOrderIterator;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.LinkedHashMultimap;
@@ -353,7 +348,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
 
     // Register rels using materialized views.
     final List<Pair<RelNode, List<RelOptMaterialization>>> materializationUses =
-        MaterializedViewOptUtil.useMaterializations(originalRoot, materializations);
+        MaterializationOptUtil.useMaterializations(originalRoot, materializations);
     for (Pair<RelNode, List<RelOptMaterialization>> use : materializationUses) {
       RelNode rel = use.left;
       Hook.SUB.run(rel);
@@ -363,7 +358,9 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     // Register table rels of materialized views that cannot find a substitution
     // in root rel transformation but can potentially be useful.
     final Set<RelOptMaterialization> applicableMaterializations =
-        new HashSet<>(getApplicableMaterializations(originalRoot, materializations));
+        new HashSet<>(
+            MaterializationOptUtil.getApplicableMaterializations(
+                originalRoot, materializations));
     for (Pair<RelNode, List<RelOptMaterialization>> use : materializationUses) {
       applicableMaterializations.removeAll(use.right);
     }
@@ -379,67 +376,13 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
 
     // Register rels using lattices.
     final List<Pair<RelNode, RelOptLattice>> latticeUses =
-        MaterializedViewOptUtil.useLattices(originalRoot, latticeByName);
+        MaterializationOptUtil.useLattices(
+            originalRoot, ImmutableList.copyOf(latticeByName.values()));
     if (!latticeUses.isEmpty()) {
       RelNode rel = latticeUses.get(0).left;
       Hook.SUB.run(rel);
       registerImpl(rel, root.set);
     }
-  }
-
-  public static List<RelOptMaterialization> getApplicableMaterializations(RelNode root,
-      List<RelOptMaterialization> materializations) {
-    DirectedGraph<List<String>, DefaultEdge> usesGraph =
-        DefaultDirectedGraph.create();
-    final Map<List<String>, RelOptMaterialization> qnameMap = new HashMap<>();
-    for (RelOptMaterialization materialization : materializations) {
-      // If materialization is a tile in a lattice, we will deal with it shortly.
-      if (materialization.table != null
-          && materialization.starTable == null) {
-        final List<String> qname = materialization.table.getQualifiedName();
-        qnameMap.put(qname, materialization);
-        for (RelOptTable usedTable
-            : RelOptUtil.findTables(materialization.queryRel)) {
-          usesGraph.addVertex(qname);
-          usesGraph.addVertex(usedTable.getQualifiedName());
-          usesGraph.addEdge(usedTable.getQualifiedName(), qname);
-        }
-      }
-    }
-
-    // Use a materialization if uses at least one of the tables are used by
-    // the query. (Simple rule that includes some materializations we won't
-    // actually use.)
-    final Graphs.FrozenGraph<List<String>, DefaultEdge> frozenGraph =
-        Graphs.makeImmutable(usesGraph);
-    final Set<RelOptTable> queryTablesUsed = RelOptUtil.findTables(root);
-    final List<RelOptMaterialization> applicableMaterializations = Lists.newArrayList();
-    for (List<String> qname : TopologicalOrderIterator.of(usesGraph)) {
-      RelOptMaterialization materialization = qnameMap.get(qname);
-      if (materialization != null
-          && usesTable(materialization.table, queryTablesUsed, frozenGraph)) {
-        applicableMaterializations.add(materialization);
-      }
-    }
-    return applicableMaterializations;
-  }
-
-  /**
-   * Returns whether {@code table} uses one or more of the tables in
-   * {@code usedTables}.
-   */
-  private static boolean usesTable(
-      RelOptTable table,
-      Set<RelOptTable> usedTables,
-      Graphs.FrozenGraph<List<String>, DefaultEdge> usesGraph) {
-    for (RelOptTable queryTable : usedTables) {
-      if (usesGraph.getShortestPath(
-          queryTable.getQualifiedName(),
-          table.getQualifiedName()) != null) {
-        return true;
-      }
-    }
-    return false;
   }
 
   /**
