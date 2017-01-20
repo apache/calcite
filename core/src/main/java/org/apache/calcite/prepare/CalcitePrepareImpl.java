@@ -193,7 +193,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
           "values 1",
           "VALUES 1");
 
-  private static final List<RelOptRule> ENUMERABLE_RULES =
+  public static final List<RelOptRule> ENUMERABLE_RULES =
       ImmutableList.of(
           EnumerableRules.ENUMERABLE_JOIN_RULE,
           EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE,

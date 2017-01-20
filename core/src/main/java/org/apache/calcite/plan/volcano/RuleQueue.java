@@ -144,6 +144,9 @@ class RuleQueue {
   public void clear() {
     this.subsetImportances.clear();
     this.boostedSubsets.clear();
+    for (PhaseMatchList matchList : matchListMap.values()) {
+      matchList.clear();
+    }
   }
 
   /**

@@ -600,6 +600,10 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     this.ruleNames.clear();
   }
 
+  public List<RelOptRule> getRules() {
+    return ImmutableList.copyOf(ruleSet);
+  }
+
   public boolean addRule(RelOptRule rule) {
     if (locked) {
       return false;

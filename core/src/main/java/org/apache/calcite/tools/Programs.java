@@ -294,6 +294,12 @@ public class Programs {
         new Program() {
           public RelNode run(RelOptPlanner planner, RelNode rel,
               RelTraitSet requiredOutputTraits) {
+            final List<RelOptRule> rules = planner.getRules();
+            planner.clear();
+            for (RelOptRule rule : rules) {
+              planner.addRule(rule);
+            }
+
             final RelNode rootRel2 =
                 rel.getTraitSet().equals(requiredOutputTraits)
                 ? rel

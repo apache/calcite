@@ -31,6 +31,8 @@ import org.apache.calcite.rel.convert.ConverterRule;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.rules.ProjectRemoveRule;
 import org.apache.calcite.rex.RexInputRef;
+import org.apache.calcite.tools.Program;
+import org.apache.calcite.tools.Programs;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
@@ -431,6 +433,56 @@ public class VolcanoPlannerTest {
         RelOptListener.RelChosenEvent.class,
         null,
         null);
+  }
+
+  /**
+   * Verifies that rules matching the original root RelNode will not be
+   * called in the standard VolcanoPlanner Program.
+   */
+  @Test public void testStardardVolcanoProgram() {
+    VolcanoPlanner planner = new VolcanoPlanner();
+    planner.ambitious = true;
+    planner.addRelTraitDef(ConventionTraitDef.INSTANCE);
+
+    planner.addRule(new PhysLeafRule());
+    planner.addRule(new GoodSingleRule());
+    planner.addRule(new GoodRemoveSingleRule());
+
+    TestListener listener = new TestListener();
+    planner.addListener(listener);
+
+    RelOptCluster cluster = newCluster(planner);
+    NoneLeafRel leafRel =
+        new NoneLeafRel(
+            cluster,
+            "a");
+    NoneSingleRel singleRel =
+        new NoneSingleRel(
+            cluster,
+            leafRel);
+    // Set "singleRel" as the original root RelNode.
+    planner.setRoot(singleRel);
+
+    // Call the standard VolcanoPlanner Program on the new
+    // root RelNode "leafRel".
+    Program program = Programs.standard();
+    RelNode result = program.run(
+        planner, leafRel,
+        cluster.traitSetOf(PHYS_CALLING_CONVENTION));
+    assertTrue(result instanceof PhysLeafRel);
+    PhysLeafRel resultLeaf = (PhysLeafRel) result;
+    assertEquals(
+        "a",
+        resultLeaf.label);
+
+    // Check that only rules related to "leafRel" are called.
+    for (RelOptListener.RelEvent event : listener.getEventList()) {
+      if (event.getClass() == RelOptListener.RuleAttemptedEvent.class) {
+        RelOptListener.RuleEvent ruleEvent =
+            (RelOptListener.RuleEvent) event;
+        assertSame(leafRel, ruleEvent.getRel());
+      }
+    }
   }
 
   private void checkEvent(
