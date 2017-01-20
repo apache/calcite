@@ -20,6 +20,8 @@ import org.apache.calcite.adapter.enumerable.EnumerableRules;
 import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.interpreter.NoneToBindableConverterRule;
 import org.apache.calcite.plan.RelOptCostImpl;
+import org.apache.calcite.plan.RelOptLattice;
+import org.apache.calcite.plan.RelOptMaterialization;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptUtil;
@@ -283,17 +285,30 @@ public class Programs {
   }
 
   /** Returns the standard program used by Prepare. */
-  public static Program standard() {
-    return standard(DefaultRelMetadataProvider.INSTANCE);
+  public static Program standard(
+      List<RelOptMaterialization> materializations,
+      List<RelOptLattice> lattices) {
+    return standard(
+        DefaultRelMetadataProvider.INSTANCE, materializations, lattices);
   }
 
   /** Returns the standard program with user metadata provider. */
-  public static Program standard(RelMetadataProvider metadataProvider) {
+  public static Program standard(
+      RelMetadataProvider metadataProvider,
+      final List<RelOptMaterialization> materializations,
+      final List<RelOptLattice> lattices) {
 
     final Program program1 =
         new Program() {
           public RelNode run(RelOptPlanner planner, RelNode rel,
               RelTraitSet requiredOutputTraits) {
+            for (RelOptMaterialization materialization : materializations) {
+              planner.addMaterialization(materialization);
+            }
+            for (RelOptLattice lattice : lattices) {
+              planner.addLattice(lattice);
+            }
+
             final RelNode rootRel2 =
                 rel.getTraitSet().equals(requiredOutputTraits)
                 ? rel

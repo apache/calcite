@@ -64,6 +64,7 @@ import com.google.common.collect.ImmutableList;
 import org.slf4j.Logger;
 
 import java.lang.reflect.Type;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -132,29 +133,30 @@ public abstract class Prepare {
     // are used. SemiJoinRule, for instance.
     planner.setRoot(root.project(true));
 
-    final RelTraitSet desiredTraits = getDesiredRootTraitSet(root);
-    final Program program = getProgram();
-
     final DataContext dataContext = context.getDataContext();
     planner.setExecutor(new RexExecutorImpl(dataContext));
 
+    final List<RelOptMaterialization> materializationList = new ArrayList<>();
     for (Materialization materialization : materializations) {
-      planner.addMaterialization(
+      materializationList.add(
           new RelOptMaterialization(materialization.tableRel,
               materialization.queryRel,
               materialization.starRelOptTable));
     }
 
+    final List<RelOptLattice> latticeList = new ArrayList<>();
     for (CalciteSchema.LatticeEntry lattice : lattices) {
       final CalciteSchema.TableEntry starTable = lattice.getStarTable();
       final JavaTypeFactory typeFactory = context.getTypeFactory();
       final RelOptTableImpl starRelOptTable =
           RelOptTableImpl.create(catalogReader,
               starTable.getTable().getRowType(typeFactory), starTable, null);
-      planner.addLattice(
+      latticeList.add(
           new RelOptLattice(lattice.getLattice(), starRelOptTable));
     }
 
+    final RelTraitSet desiredTraits = getDesiredRootTraitSet(root);
+    final Program program = getProgram(materializationList, latticeList);
     final RelNode rootRel4 = program.run(planner, root.rel, desiredTraits);
     if (LOGGER.isDebugEnabled()) {
       LOGGER.debug("Plan after physical tweaks: {}",
@@ -164,16 +166,16 @@ public abstract class Prepare {
     return root.withRel(rootRel4);
   }
 
-  private Program getProgram() {
+  protected Program getProgram(List<RelOptMaterialization> materializations,
+      List<RelOptLattice> lattices) {
     // Allow a test to override the default program.
-    final List<Materialization> materializations = ImmutableList.of();
     final Holder<Program> holder = Holder.of(null);
-    Hook.PROGRAM.run(Pair.of(materializations, holder));
+    Hook.PROGRAM.run(Pair.of(Pair.of(materializations, lattices), holder));
     if (holder.get() != null) {
       return holder.get();
     }
 
-    return Programs.standard();
+    return Programs.standard(materializations, lattices);
   }
 
   protected RelTraitSet getDesiredRootTraitSet(RelRoot root) {
