@@ -52,6 +52,7 @@ import org.apache.calcite.rel.metadata.BuiltInMetadata.Distribution;
 import org.apache.calcite.rel.metadata.BuiltInMetadata.ExplainVisibility;
 import org.apache.calcite.rel.metadata.BuiltInMetadata.MaxRowCount;
 import org.apache.calcite.rel.metadata.BuiltInMetadata.Memory;
+import org.apache.calcite.rel.metadata.BuiltInMetadata.MinRowCount;
 import org.apache.calcite.rel.metadata.BuiltInMetadata.NonCumulativeCost;
 import org.apache.calcite.rel.metadata.BuiltInMetadata.Parallelism;
 import org.apache.calcite.rel.metadata.BuiltInMetadata.PercentageOriginalRows;
@@ -360,6 +361,7 @@ public enum BuiltInMethod {
   DISTRIBUTION(Distribution.class, "distribution"),
   ROW_COUNT(RowCount.class, "getRowCount"),
   MAX_ROW_COUNT(MaxRowCount.class, "getMaxRowCount"),
+  MIN_ROW_COUNT(MinRowCount.class, "getMinRowCount"),
   DISTINCT_ROW_COUNT(DistinctRowCount.class, "getDistinctRowCount",
       ImmutableBitSet.class, RexNode.class),
   PERCENTAGE_ORIGINAL_ROWS(PercentageOriginalRows.class,

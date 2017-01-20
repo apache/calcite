@@ -90,6 +90,7 @@ public class RelMetadataQuery {
   private BuiltInMetadata.Distribution.Handler distributionHandler;
   private BuiltInMetadata.ExplainVisibility.Handler explainVisibilityHandler;
   private BuiltInMetadata.MaxRowCount.Handler maxRowCountHandler;
+  private BuiltInMetadata.MinRowCount.Handler minRowCountHandler;
   private BuiltInMetadata.Memory.Handler memoryHandler;
   private BuiltInMetadata.NonCumulativeCost.Handler nonCumulativeCostHandler;
   private BuiltInMetadata.Parallelism.Handler parallelismHandler;
@@ -119,6 +120,7 @@ public class RelMetadataQuery {
     this.distributionHandler = prototype.distributionHandler;
     this.explainVisibilityHandler = prototype.explainVisibilityHandler;
     this.maxRowCountHandler = prototype.maxRowCountHandler;
+    this.minRowCountHandler = prototype.minRowCountHandler;
     this.memoryHandler = prototype.memoryHandler;
     this.nonCumulativeCostHandler = prototype.nonCumulativeCostHandler;
     this.parallelismHandler = prototype.parallelismHandler;
@@ -166,6 +168,7 @@ public class RelMetadataQuery {
     this.distributionHandler = initialHandler(BuiltInMetadata.Distribution.Handler.class);
     this.explainVisibilityHandler = initialHandler(BuiltInMetadata.ExplainVisibility.Handler.class);
     this.maxRowCountHandler = initialHandler(BuiltInMetadata.MaxRowCount.Handler.class);
+    this.minRowCountHandler = initialHandler(BuiltInMetadata.MinRowCount.Handler.class);
     this.memoryHandler = initialHandler(BuiltInMetadata.Memory.Handler.class);
     this.nonCumulativeCostHandler = initialHandler(BuiltInMetadata.NonCumulativeCost.Handler.class);
     this.parallelismHandler = initialHandler(BuiltInMetadata.Parallelism.Handler.class);
@@ -221,6 +224,25 @@ public class RelMetadataQuery {
       } catch (JaninoRelMetadataProvider.NoHandler e) {
         maxRowCountHandler =
             revise(e.relClass, BuiltInMetadata.MaxRowCount.DEF);
+      }
+    }
+  }
+
+  /**
+   * Returns the
+   * {@link BuiltInMetadata.MinRowCount#getMinRowCount()}
+   * statistic.
+   *
+   * @param rel the relational expression
+   * @return max row count
+   */
+  public Double getMinRowCount(RelNode rel) {
+    for (;;) {
+      try {
+        return minRowCountHandler.getMinRowCount(rel, this);
+      } catch (JaninoRelMetadataProvider.NoHandler e) {
+        minRowCountHandler =
+            revise(e.relClass, BuiltInMetadata.MinRowCount.DEF);
       }
     }
   }
