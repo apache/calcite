@@ -576,6 +576,12 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
         writeFieldIf(generator, "postAggregations", null);
         writeField(generator, "intervals", intervals);
 
+        generator.writeFieldName("context");
+        // The following field is necessary to conform with SQL semantics (CALCITE-1589)
+        generator.writeStartObject();
+        generator.writeBooleanField("skipEmptyBuckets", true);
+        generator.writeEndObject();
+
         generator.writeEndObject();
         break;
 
