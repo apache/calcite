@@ -73,6 +73,22 @@ public enum JavaRowFormat {
         return Expressions.field(expression, Types.nthField(field, type));
       }
     }
+
+    @Override public MemberExpression field(Expression expression, int field,
+        Type fromType, Type fieldType) {
+      final Type type = expression.getType();
+      if (type instanceof Types.RecordType) {
+        Types.RecordType recordType = (Types.RecordType) type;
+        Types.RecordField recordField =
+            recordType.getRecordFields().get(field);
+        return Expressions.field(
+            expression,
+            recordField.getDeclaringClass(),
+            recordField.getName());
+      } else {
+        return Expressions.field(expression, Types.nthField(field, type));
+      }
+    }
   },
 
   SCALAR {
@@ -97,6 +113,12 @@ public enum JavaRowFormat {
 
     @Override public Expression field(Expression expression, int field,
         Type fieldType) {
+      assert field == 0;
+      return expression;
+    }
+
+    @Override public Expression field(Expression expression, int field,
+        Type fromType, Type fieldType) {
       assert field == 0;
       return expression;
     }
@@ -186,6 +208,16 @@ public enum JavaRowFormat {
               Expressions.constant(field)),
           fieldType);
     }
+
+    @Override public Expression field(Expression expression, int field,
+        Type fromType, Type fieldType) {
+      return RexToLixTranslator.convert(
+          Expressions.call(expression,
+              BuiltInMethod.LIST_GET.method,
+              Expressions.constant(field)),
+          fromType,
+          fieldType);
+    }
   },
 
   /**
@@ -214,6 +246,16 @@ public enum JavaRowFormat {
               Expressions.constant(field)),
           fieldType);
     }
+
+    @Override public Expression field(Expression expression, int field,
+        Type fromType, Type fieldType) {
+      return RexToLixTranslator.convert(
+          Expressions.call(expression,
+              BuiltInMethod.ROW_VALUE.method,
+              Expressions.constant(field)),
+          fromType,
+          fieldType);
+    }
   },
 
   ARRAY {
@@ -240,7 +282,17 @@ public enum JavaRowFormat {
         Type fieldType) {
       return RexToLixTranslator.convert(
           Expressions.arrayIndex(expression, Expressions.constant(field)),
-          fieldType);
+          fieldType
+      );
+    }
+
+    @Override public Expression field(Expression expression, int field,
+        Type fromType, Type fieldType) {
+      return RexToLixTranslator.convert(
+          Expressions.arrayIndex(expression, Expressions.constant(field)),
+          fromType,
+          fieldType
+      );
     }
   };
 
@@ -280,8 +332,9 @@ public enum JavaRowFormat {
     return null;
   }
 
-  public abstract Expression field(Expression expression, int field,
-      Type fieldType);
+  public abstract Expression field(Expression expression, int field, Type fieldType);
+
+  public abstract Expression field(Expression expression, int field, Type fromType, Type fieldType);
 }
 
 // End JavaRowFormat.java

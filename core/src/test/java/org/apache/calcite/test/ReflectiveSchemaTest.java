@@ -77,6 +77,17 @@ public class ReflectiveSchemaTest {
   private static final ReflectiveSchema CATCHALL =
       new ReflectiveSchema(new CatchallSchema());
 
+  @Test
+  public void testDateCanCompare() {
+    //CALCITE-1569
+    CalciteAssert.that()
+        .withSchema("s", CATCHALL)
+        .query("select a.v from (select \"sqlDate\" v from \"s\".\"everyTypes\" "
+        + "group by \"sqlDate\") a, (select \"sqlDate\" v from \"s\".\"everyTypes\" "
+        + "group by \"sqlDate\") b where a.v >= b.v group by a.v")
+        .returnsUnordered("V=1970-01-01");
+  }
+
   /**
    * Test that uses a JDBC connection as a linq4j
    * {@link org.apache.calcite.linq4j.QueryProvider}.
