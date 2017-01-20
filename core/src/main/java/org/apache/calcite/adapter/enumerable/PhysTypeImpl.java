@@ -644,8 +644,16 @@ public class PhysTypeImpl implements PhysType {
       Expression expression, int field, Type storageType) {
     if (storageType == null) {
       storageType = fieldClass(field);
+      return format.field(expression, field, storageType);
+    } else {
+      Type fieldType = fieldClass(field);
+      if (fieldType != java.sql.Date.class) {
+        return format.field(expression, field, storageType);
+      } else {
+        return format.field(expression, field, fieldType, storageType);
+      }
     }
-    return format.field(expression, field, storageType);
+
   }
 }
 

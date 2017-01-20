@@ -1537,6 +1537,7 @@ public class SqlFunctions {
     return o instanceof Integer ? (Integer) o
         : o instanceof Number ? toInt((Number) o)
         : o instanceof String ? toInt((String) o)
+        : o instanceof java.util.Date ? toInt((java.util.Date) o)
         : (Integer) cannotConvert(o, int.class);
   }
 
