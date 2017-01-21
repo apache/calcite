@@ -81,6 +81,11 @@ public interface RelOptPlanner {
   void clear();
 
   /**
+   * Returns the list of all registered rules.
+   */
+  List<RelOptRule> getRules();
+
+  /**
    * Registers a rule.
    *
    * <p>If the rule has already been registered, does nothing.
