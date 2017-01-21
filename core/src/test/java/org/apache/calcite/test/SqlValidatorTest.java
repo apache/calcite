@@ -4430,6 +4430,15 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .fails("Column 'DEPTNO' is ambiguous");
   }
 
+  @Test public void testOrderByColumn() {
+    sql("select emp.deptno from emp, dept order by emp.deptno")
+        .ok();
+    sql("select emp.deptno from emp, dept order by ^deptno^")
+        .fails("Column 'DEPTNO' is ambiguous");
+    sql("select emp.deptno as n, dept.deptno as n from emp, dept order by ^n^")
+        .fails("Column 'N' is ambiguous");
+  }
+
   @Test public void testWindowNegative() {
     // Do not fail when window has negative size. Allow
     final String negSize = null;
@@ -7375,10 +7384,6 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   @Test public void testRewriteWithColumnReferenceExpansion() {
-    // NOTE jvs 9-Apr-2007:  This tests illustrates that
-    // ORDER BY is still a special case.  Update expected
-    // output if that gets fixed in the future.
-
     SqlValidator validator = tester.getValidator();
     validator.setIdentifierExpansion(true);
     validator.setColumnReferenceExpansion(true);
@@ -7391,14 +7396,10 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
             + "WHERE `DEPT`.`NAME` = 'Moonracer'\n"
             + "GROUP BY `DEPT`.`NAME`\n"
             + "HAVING SUM(`DEPT`.`DEPTNO`) > 3\n"
-            + "ORDER BY `NAME`");
+            + "ORDER BY `DEPT`.`NAME`");
   }
 
   @Test public void testRewriteWithColumnReferenceExpansionAndFromAlias() {
-    // NOTE jvs 9-Apr-2007:  This tests illustrates that
-    // ORDER BY is still a special case.  Update expected
-    // output if that gets fixed in the future.
-
     SqlValidator validator = tester.getValidator();
     validator.setIdentifierExpansion(true);
     validator.setColumnReferenceExpansion(true);
@@ -7413,7 +7414,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
             + "WHERE `EXPR$0`.`NAME` = 'Moonracer'\n"
             + "GROUP BY `EXPR$0`.`NAME`\n"
             + "HAVING SUM(`EXPR$0`.`DEPTNO`) > 3\n"
-            + "ORDER BY `NAME`");
+            + "ORDER BY `EXPR$0`.`NAME`");
   }
 
   @Test public void testCoalesceWithoutRewrite() {
