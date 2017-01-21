@@ -4430,6 +4430,36 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .fails("Column 'DEPTNO' is ambiguous");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1535">[CALCITE-1535]
+   * Give error if column referenced in ORDER BY is ambiguous</a>. */
+  @Test public void testOrderByColumn() {
+    sql("select emp.deptno from emp, dept order by emp.deptno")
+        .ok();
+    // Not ambiguous. There are two columns which could be referenced as
+    // "deptno", but the one in the SELECT clause takes priority.
+    sql("select emp.deptno from emp, dept order by deptno")
+        .ok();
+    sql("select emp.deptno as deptno from emp, dept order by deptno")
+        .ok();
+    sql("select emp.empno as deptno from emp, dept order by deptno")
+        .ok();
+    sql("select emp.deptno as n, dept.deptno as n from emp, dept order by ^n^")
+        .fails("Column 'N' is ambiguous");
+    sql("select emp.empno as deptno, dept.deptno from emp, dept\n"
+        + "order by ^deptno^")
+        .fails("Column 'DEPTNO' is ambiguous");
+    sql("select emp.empno as deptno, dept.deptno from emp, dept\n"
+        + "order by emp.deptno")
+        .ok();
+    sql("select emp.empno as deptno, dept.deptno from emp, dept order by 1, 2")
+        .ok();
+    sql("select empno as \"deptno\", deptno from emp order by deptno")
+        .ok();
+    sql("select empno as \"deptno\", deptno from emp order by \"deptno\"")
+        .ok();
+  }
+
   @Test public void testWindowNegative() {
     // Do not fail when window has negative size. Allow
     final String negSize = null;
@@ -7375,9 +7405,9 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   @Test public void testRewriteWithColumnReferenceExpansion() {
-    // NOTE jvs 9-Apr-2007:  This tests illustrates that
-    // ORDER BY is still a special case.  Update expected
-    // output if that gets fixed in the future.
+    // The names in the ORDER BY clause are not qualified.
+    // This is because ORDER BY references columns in the SELECT clause
+    // in preference to columns in tables in the FROM clause.
 
     SqlValidator validator = tester.getValidator();
     validator.setIdentifierExpansion(true);
@@ -7395,25 +7425,27 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   @Test public void testRewriteWithColumnReferenceExpansionAndFromAlias() {
-    // NOTE jvs 9-Apr-2007:  This tests illustrates that
-    // ORDER BY is still a special case.  Update expected
-    // output if that gets fixed in the future.
+    // In the ORDER BY clause, 'ename' is not qualified but 'deptno' and 'sal'
+    // are. This is because 'ename' appears as an alias in the SELECT clause.
+    // 'sal' is qualified in the ORDER BY clause, so remains qualified.
 
     SqlValidator validator = tester.getValidator();
     validator.setIdentifierExpansion(true);
     validator.setColumnReferenceExpansion(true);
     tester.checkRewrite(
         validator,
-        "select name from (select * from dept)"
-            + " where name = 'Moonracer' group by name"
-            + " having sum(deptno) > 3 order by name",
-        "SELECT `EXPR$0`.`NAME`\n"
-            + "FROM (SELECT `DEPT`.`DEPTNO`, `DEPT`.`NAME`\n"
-            + "FROM `CATALOG`.`SALES`.`DEPT` AS `DEPT`) AS `EXPR$0`\n"
-            + "WHERE `EXPR$0`.`NAME` = 'Moonracer'\n"
-            + "GROUP BY `EXPR$0`.`NAME`\n"
-            + "HAVING SUM(`EXPR$0`.`DEPTNO`) > 3\n"
-            + "ORDER BY `NAME`");
+        "select ename, sal from (select * from emp) as e"
+            + " where ename = 'Moonracer' group by ename, deptno, sal"
+            + " having sum(deptno) > 3 order by ename, deptno, e.sal",
+        "SELECT `E`.`ENAME`, `E`.`SAL`\n"
+            + "FROM (SELECT `EMP`.`EMPNO`, `EMP`.`ENAME`, `EMP`.`JOB`,"
+            + " `EMP`.`MGR`, `EMP`.`HIREDATE`, `EMP`.`SAL`, `EMP`.`COMM`,"
+            + " `EMP`.`DEPTNO`, `EMP`.`SLACKER`\n"
+            + "FROM `CATALOG`.`SALES`.`EMP` AS `EMP`) AS `E`\n"
+            + "WHERE `E`.`ENAME` = 'Moonracer'\n"
+            + "GROUP BY `E`.`ENAME`, `E`.`DEPTNO`, `E`.`SAL`\n"
+            + "HAVING SUM(`E`.`DEPTNO`) > 3\n"
+            + "ORDER BY `ENAME`, `E`.`DEPTNO`, `E`.`SAL`");
   }
 
   @Test public void testCoalesceWithoutRewrite() {
