@@ -18,12 +18,16 @@ package org.apache.calcite.sql.validate;
 
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlIdentifier;
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlSelect;
 
 import java.util.List;
+
+import static org.apache.calcite.util.Static.RESOURCE;
 
 /**
  * Represents the name-resolution context for expressions in an ORDER BY clause.
@@ -76,7 +80,26 @@ public class OrderByScope extends DelegatingScope {
 
       final SqlNameMatcher nameMatcher = validator.catalogReader.nameMatcher();
       final RelDataTypeField field = nameMatcher.field(rowType, name);
-      if (field != null && !field.isDynamicStar()) {
+      int qualifidSelectAsCount = 0;
+      String simpleOrderByName = identifier.getSimple();
+      for (SqlNode selectedColumn : select.getSelectList()) {
+        if (selectedColumn instanceof SqlBasicCall) {
+          SqlBasicCall basicCall = (SqlBasicCall) selectedColumn;
+          if (basicCall.getOperator().getKind().equals(SqlKind.AS)) {
+            SqlIdentifier columnAsIdentifier =
+              (SqlIdentifier) basicCall.getOperandList().get(1);
+            String simpleSelect = columnAsIdentifier.getSimple();
+            if (simpleOrderByName.equals(simpleSelect)) {
+              qualifidSelectAsCount++;
+            }
+          }
+        }
+        if (qualifidSelectAsCount > 1) {
+          throw validator.newValidationError(identifier,
+              RESOURCE.columnAmbiguous(simpleOrderByName));
+        }
+      }
+      if (field != null && !field.isDynamicStar() && qualifidSelectAsCount == 1) {
         // if identifier is resolved to a dynamic star, use super.fullyQualify() for such case.
         return SqlQualified.create(this, 1, selectNs, identifier);
       }
