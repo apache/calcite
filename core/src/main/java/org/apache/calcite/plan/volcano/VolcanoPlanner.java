@@ -348,7 +348,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
 
     // Register rels using materialized views.
     final List<Pair<RelNode, List<RelOptMaterialization>>> materializationUses =
-        MaterializationOptUtil.useMaterializations(root, materializations);
+        MaterializationOptUtil.useMaterializations(originalRoot, materializations);
     for (Pair<RelNode, List<RelOptMaterialization>> use : materializationUses) {
       RelNode rel = use.left;
       Hook.SUB.run(rel);
@@ -377,7 +377,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     // Register rels using lattices.
     final List<Pair<RelNode, RelOptLattice>> latticeUses =
         MaterializationOptUtil.useLattices(
-            root, ImmutableList.copyOf(latticeByName.values()));
+            originalRoot, ImmutableList.copyOf(latticeByName.values()));
     if (!latticeUses.isEmpty()) {
       RelNode rel = latticeUses.get(0).left;
       Hook.SUB.run(rel);

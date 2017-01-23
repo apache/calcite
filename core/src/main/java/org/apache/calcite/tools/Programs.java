@@ -302,6 +302,8 @@ public class Programs {
         new Program() {
           public RelNode run(RelOptPlanner planner, RelNode rel,
               RelTraitSet requiredOutputTraits) {
+            planner.setRoot(rel);
+
             for (RelOptMaterialization materialization : materializations) {
               planner.addMaterialization(materialization);
             }

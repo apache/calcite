@@ -128,11 +128,6 @@ public abstract class Prepare {
       final List<CalciteSchema.LatticeEntry> lattices) {
     final RelOptPlanner planner = root.rel.getCluster().getPlanner();
 
-    // Add a project to the root. Even if the project is trivial, it informs
-    // rules firing on the relational expression below it which of the fields
-    // are used. SemiJoinRule, for instance.
-    planner.setRoot(root.project(true));
-
     final DataContext dataContext = context.getDataContext();
     planner.setExecutor(new RexExecutorImpl(dataContext));
 
