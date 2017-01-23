@@ -26,6 +26,10 @@ import org.apache.calcite.sql.validate.SqlConformance;
  * a method for every property. At some point there will be similar config
  * classes for system and statement properties. */
 public interface CalciteConnectionConfig extends ConnectionConfig {
+  /** @see CalciteConnectionProperty#APPROXIMATE_DISTINCT_COUNT */
+  boolean approximateDistinctCount();
+  /** @see CalciteConnectionProperty#APPROXIMATE_TOP_N */
+  boolean approximateTopN();
   /** @see CalciteConnectionProperty#AUTO_TEMP */
   boolean autoTemp();
   /** @see CalciteConnectionProperty#MATERIALIZATIONS_ENABLED */

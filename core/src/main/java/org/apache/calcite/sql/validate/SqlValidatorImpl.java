@@ -320,9 +320,9 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
           select,
           unknownType,
           list,
-          catalogReader.isCaseSensitive()
-          ? new LinkedHashSet<String>()
-              : new TreeSet<String>(String.CASE_INSENSITIVE_ORDER),
+          catalogReader.nameMatcher().isCaseSensitive()
+              ? new LinkedHashSet<String>()
+              : new TreeSet<>(String.CASE_INSENSITIVE_ORDER),
           types,
           includeSystemVars);
     }
@@ -504,7 +504,9 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       final SqlIdentifier prefixId = identifier.skipLast(1);
       final SqlValidatorScope.ResolvedImpl resolved =
           new SqlValidatorScope.ResolvedImpl();
-      scope.resolve(prefixId.names, true, resolved);
+      final SqlNameMatcher nameMatcher =
+          scope.validator.catalogReader.nameMatcher();
+      scope.resolve(prefixId.names, nameMatcher, true, resolved);
       if (resolved.count() == 0) {
         // e.g. "select s.t.* from e"
         // or "select r.* from e"
@@ -737,7 +739,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         if (ns == null) {
           final SqlValidatorScope.ResolvedImpl resolved =
               new SqlValidatorScope.ResolvedImpl();
-          scope.resolve(ImmutableList.of(name), false, resolved);
+          final SqlNameMatcher nameMatcher = catalogReader.nameMatcher();
+          scope.resolve(ImmutableList.of(name), nameMatcher, false, resolved);
           if (resolved.count() == 1) {
             ns = resolved.only().namespace;
           }
@@ -971,9 +974,10 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       final SqlValidatorScope parentScope =
           ((DelegatingScope) scope).getParent();
       if (id.isSimple()) {
+        final SqlNameMatcher nameMatcher = catalogReader.nameMatcher();
         final SqlValidatorScope.ResolvedImpl resolved =
             new SqlValidatorScope.ResolvedImpl();
-        parentScope.resolve(id.names, false, resolved);
+        parentScope.resolve(id.names, nameMatcher, false, resolved);
         if (resolved.count() == 1) {
           return resolved.only().namespace;
         }
@@ -2929,11 +2933,12 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
               rightRowType);
 
       // Check compatibility of the chosen columns.
+      final SqlNameMatcher nameMatcher = catalogReader.nameMatcher();
       for (String name : naturalColumnNames) {
         final RelDataType leftColType =
-            catalogReader.field(leftRowType, name).getType();
+            nameMatcher.field(leftRowType, name).getType();
         final RelDataType rightColType =
-            catalogReader.field(rightRowType, name).getType();
+            nameMatcher.field(rightRowType, name).getType();
         if (!SqlTypeUtil.isComparable(leftColType, rightColType)) {
           throw newValidationError(join,
               RESOURCE.naturalOrUsingColumnNotCompatible(name,
@@ -2994,7 +2999,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       String name = id.names.get(0);
       final SqlValidatorNamespace namespace = getNamespace(leftOrRight);
       final RelDataType rowType = namespace.getRowType();
-      final RelDataTypeField field = catalogReader.field(rowType, name);
+      final SqlNameMatcher nameMatcher = catalogReader.nameMatcher();
+      final RelDataTypeField field = nameMatcher.field(rowType, name);
       if (field != null) {
         if (Collections.frequency(rowType.getFieldNames(), name) > 1) {
           throw newValidationError(id,
@@ -3053,7 +3059,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     // Make sure that items in FROM clause have distinct aliases.
     final SelectScope fromScope = (SelectScope) getFromScope(select);
     List<String> names = fromScope.getChildNames();
-    if (!catalogReader.isCaseSensitive()) {
+    if (!catalogReader.nameMatcher().isCaseSensitive()) {
       names = Lists.transform(names,
           new Function<String, String>() {
             public String apply(String s) {
@@ -3325,24 +3331,24 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
   public void validateSequenceValue(SqlValidatorScope scope, SqlIdentifier id) {
     // Resolve identifier as a table.
-    final SqlValidatorNamespace ns = scope.getTableNamespace(id.names);
-    if (ns == null) {
+    final SqlValidatorScope.ResolvedImpl resolved =
+        new SqlValidatorScope.ResolvedImpl();
+    scope.resolveTable(id.names, catalogReader.nameMatcher(),
+        SqlValidatorScope.Path.EMPTY, resolved);
+    if (resolved.count() != 1) {
       throw newValidationError(id, RESOURCE.tableNameNotFound(id.toString()));
     }
-
     // We've found a table. But is it a sequence?
-    if (!(ns instanceof TableNamespace)) {
-      throw newValidationError(id, RESOURCE.notASequence(id.toString()));
+    final SqlValidatorNamespace ns = resolved.only().namespace;
+    if (ns instanceof TableNamespace) {
+      final Table table = ((RelOptTable) ns.getTable()).unwrap(Table.class);
+      switch (table.getJdbcTableType()) {
+      case SEQUENCE:
+      case TEMPORARY_SEQUENCE:
+        return;
+      }
     }
-    final SqlValidatorTable table = ns.getTable();
-    final Table table1 = ((RelOptTable) table).unwrap(Table.class);
-    switch (table1.getJdbcTableType()) {
-    case SEQUENCE:
-    case TEMPORARY_SEQUENCE:
-      break;
-    default:
-      throw newValidationError(id, RESOURCE.notASequence(id.toString()));
-    }
+    throw newValidationError(id, RESOURCE.notASequence(id.toString()));
   }
 
   public SqlValidatorScope getWithScope(SqlNode withItem) {
@@ -4139,7 +4145,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   }
 
   SqlValidatorNamespace lookupFieldNamespace(RelDataType rowType, String name) {
-    final RelDataTypeField field = catalogReader.field(rowType, name);
+    final SqlNameMatcher nameMatcher = catalogReader.nameMatcher();
+    final RelDataTypeField field = nameMatcher.field(rowType, name);
     return new FieldNamespace(this, field.getType());
   }
 
@@ -4480,9 +4487,10 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         // we could do a better job if they were looked up via
         // resolveColumn.
 
+        final SqlNameMatcher nameMatcher = catalogReader.nameMatcher();
         final SqlValidatorScope.ResolvedImpl resolved =
             new SqlValidatorScope.ResolvedImpl();
-        scope.resolve(id.names.subList(0, i), false, resolved);
+        scope.resolve(id.names.subList(0, i), nameMatcher, false, resolved);
         if (resolved.count() == 1) {
           // There's a namespace with the name we seek.
           final SqlValidatorScope.Resolve resolve = resolved.only();
@@ -4522,7 +4530,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
           name = "*";
           field = null;
         } else {
-          field = catalogReader.field(type, name);
+          final SqlNameMatcher nameMatcher = catalogReader.nameMatcher();
+          field = nameMatcher.field(type, name);
         }
         if (field == null) {
           throw newValidationError(id.getComponent(i),
@@ -4696,8 +4705,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         final SqlValidatorNamespace selectNs = getNamespace(select);
         final RelDataType rowType =
             selectNs.getRowTypeSansSystemColumns();
-        RelDataTypeField field =
-            catalogReader.field(rowType, alias);
+        final SqlNameMatcher nameMatcher = catalogReader.nameMatcher();
+        RelDataTypeField field = nameMatcher.field(rowType, alias);
         if (field != null) {
           return nthSelectItem(
               field.getIndex(),

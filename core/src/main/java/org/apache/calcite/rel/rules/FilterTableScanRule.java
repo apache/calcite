@@ -26,6 +26,7 @@ import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
+import org.apache.calcite.runtime.PredicateImpl;
 import org.apache.calcite.schema.FilterableTable;
 import org.apache.calcite.schema.ProjectableFilterableTable;
 import org.apache.calcite.util.ImmutableIntList;
@@ -50,8 +51,8 @@ import com.google.common.collect.ImmutableList;
  */
 public abstract class FilterTableScanRule extends RelOptRule {
   public static final Predicate<TableScan> PREDICATE =
-      new Predicate<TableScan>() {
-        public boolean apply(TableScan scan) {
+      new PredicateImpl<TableScan>() {
+        public boolean test(TableScan scan) {
           // We can only push filters into a FilterableTable or
           // ProjectableFilterableTable.
           final RelOptTable table = scan.getTable();

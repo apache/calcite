@@ -24,6 +24,7 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypePrecedenceList;
 import org.apache.calcite.runtime.CalciteContextException;
 import org.apache.calcite.runtime.CalciteException;
+import org.apache.calcite.runtime.PredicateImpl;
 import org.apache.calcite.runtime.Resources;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
@@ -385,8 +386,8 @@ public abstract class SqlUtil {
   filterOperatorRoutinesByKind(Iterator<SqlOperator> routines,
       final SqlKind sqlKind) {
     return Iterators.filter(routines,
-        new Predicate<SqlOperator>() {
-          public boolean apply(SqlOperator input) {
+        new PredicateImpl<SqlOperator>() {
+          public boolean test(SqlOperator input) {
             return input.getKind() == sqlKind;
           }
         });
@@ -488,8 +489,8 @@ public abstract class SqlUtil {
           Predicates.instanceOf(SqlFunction.class));
     default:
       return Iterators.filter(sqlOperators.iterator(),
-          new Predicate<SqlOperator>() {
-            public boolean apply(SqlOperator operator) {
+          new PredicateImpl<SqlOperator>() {
+            public boolean test(SqlOperator operator) {
               return operator.getSyntax() == syntax;
             }
           });
@@ -500,8 +501,8 @@ public abstract class SqlUtil {
       Iterator<SqlOperator> routines,
       final List<RelDataType> argTypes) {
     return Iterators.filter(routines,
-        new Predicate<SqlOperator>() {
-          public boolean apply(SqlOperator operator) {
+        new PredicateImpl<SqlOperator>() {
+          public boolean test(SqlOperator operator) {
             SqlOperandCountRange od = operator.getOperandCountRange();
             return od.isValidCount(argTypes.size());
           }
@@ -522,8 +523,8 @@ public abstract class SqlUtil {
     //noinspection unchecked
     return (Iterator) Iterators.filter(
         Iterators.filter(routines, SqlFunction.class),
-        new Predicate<SqlFunction>() {
-          public boolean apply(SqlFunction function) {
+        new PredicateImpl<SqlFunction>() {
+          public boolean test(SqlFunction function) {
             List<RelDataType> paramTypes = function.getParamTypes();
             if (paramTypes == null) {
               // no parameter information for builtins; keep for now
@@ -593,8 +594,8 @@ public abstract class SqlUtil {
         sqlFunctions =
             Lists.newArrayList(
                 Iterables.filter(sqlFunctions,
-                    new Predicate<SqlFunction>() {
-                      public boolean apply(SqlFunction function) {
+                    new PredicateImpl<SqlFunction>() {
+                      public boolean test(SqlFunction function) {
                         final List<RelDataType> paramTypes = function.getParamTypes();
                         if (paramTypes == null) {
                           return false;

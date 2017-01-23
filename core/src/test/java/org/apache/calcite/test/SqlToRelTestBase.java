@@ -254,7 +254,8 @@ public abstract class SqlToRelTestBase {
     }
 
     public RelOptTable getTableForMember(List<String> names) {
-      final SqlValidatorTable table = catalogReader.getTable(names);
+      final SqlValidatorTable table =
+          catalogReader.getTable(names);
       final RelDataType rowType = table.getRowType();
       final List<RelCollation> collationList = deduceMonotonicity(table);
       if (names.size() < 3) {

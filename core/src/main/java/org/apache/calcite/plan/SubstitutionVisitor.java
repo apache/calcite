@@ -48,6 +48,7 @@ import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.rex.RexUtil;
+import org.apache.calcite.runtime.PredicateImpl;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
@@ -2392,8 +2393,8 @@ public class SubstitutionVisitor {
    */
   public static class FilterOnProjectRule extends RelOptRule {
     private static final Predicate<LogicalFilter> PREDICATE =
-        new Predicate<LogicalFilter>() {
-          public boolean apply(LogicalFilter input) {
+        new PredicateImpl<LogicalFilter>() {
+          public boolean test(LogicalFilter input) {
             return input.getCondition() instanceof RexInputRef;
           }
         };

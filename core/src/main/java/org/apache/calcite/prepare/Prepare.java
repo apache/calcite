@@ -385,7 +385,7 @@ public abstract class Prepare {
      * different schema path. */
     CatalogReader withSchemaPath(List<String> schemaPath);
 
-    PreparingTable getTable(List<String> names);
+    @Override PreparingTable getTable(List<String> names);
 
     ThreadLocal<CatalogReader> THREAD_LOCAL = new ThreadLocal<>();
   }

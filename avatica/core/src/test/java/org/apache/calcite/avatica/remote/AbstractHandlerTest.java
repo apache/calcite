@@ -22,8 +22,6 @@ import org.apache.calcite.avatica.remote.Service.ErrorResponse;
 import org.apache.calcite.avatica.remote.Service.Request;
 import org.apache.calcite.avatica.remote.Service.Response;
 
-import org.junit.Assume;
-import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 
@@ -46,11 +44,6 @@ public class AbstractHandlerTest {
     PrintWriter pw = new PrintWriter(sw);
     Objects.requireNonNull(e).printStackTrace(pw);
     return sw.toString();
-  }
-
-  @Before public void setup() {
-    // Disabled on JDK9 due to Mockito bug; see [CALCITE-1567].
-    Assume.assumeTrue(System.getProperty("java.version").compareTo("9") < 0);
   }
 
   @Test public void testExceptionUnwrappingWithoutContext() {
@@ -111,7 +104,7 @@ public class AbstractHandlerTest {
     // Deserialize it back into a POJO
     Mockito.when(handler.decode(Mockito.anyString())).thenReturn(request);
     // Construct the Response for that Request
-    Mockito.when(request.accept(Mockito.any(Service.class))).thenReturn(response);
+    Mockito.when(request.accept(Mockito.nullable(Service.class))).thenReturn(response);
     // Throw an IOException when serializing the Response.
     Mockito.when(handler.encode(response)).thenThrow(exception);
     Mockito.when(handler.convertToErrorResponse(exception)).thenCallRealMethod();

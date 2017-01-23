@@ -226,6 +226,18 @@ public class RelOptRulesTest extends RelOptTestBase {
     sql(sql).with(hepPlanner).check();
   }
 
+  @Test public void testReduceNullableCase2() {
+    HepProgramBuilder builder = new HepProgramBuilder();
+    builder.addRuleClass(ReduceExpressionsRule.class);
+    HepPlanner hepPlanner = new HepPlanner(builder.build());
+    hepPlanner.addRule(ReduceExpressionsRule.PROJECT_INSTANCE);
+
+    final String sql = "SELECT deptno, ename, CASE WHEN 1=2 "
+      + "THEN substring(ename, 1, cast(2 as int)) ELSE NULL end from emp"
+      + " group by deptno, ename, case when 1=2 then substring(ename,1, cast(2 as int))  else null end";
+    sql(sql).with(hepPlanner).check();
+  }
+
   @Test public void testProjectToWindowRuleForMultipleWindows() {
     HepProgram preProgram = new HepProgramBuilder()
         .build();
@@ -2820,6 +2832,16 @@ public class RelOptRulesTest extends RelOptTestBase {
         + "where empno NOT IN (\n"
         + "  select deptno from dept\n"
         + "  where emp.job = dept.name)";
+    checkSubQuery(sql).withLateDecorrelation(true).check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1546">[CALCITE-1546]
+   * Sub-queries connected by OR</a>. */
+  @Test public void testWhereOrSubQuery() {
+    final String sql = "select * from emp\n"
+        + "where sal = 4\n"
+        + "or empno NOT IN (select deptno from dept)";
     checkSubQuery(sql).withLateDecorrelation(true).check();
   }
 

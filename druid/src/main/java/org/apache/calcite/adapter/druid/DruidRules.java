@@ -38,6 +38,7 @@ import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.rex.RexUtil;
+import org.apache.calcite.runtime.PredicateImpl;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
@@ -75,8 +76,8 @@ public class DruidRules {
 
   /** Predicate that returns whether Druid can not handle an aggregate. */
   private static final Predicate<AggregateCall> BAD_AGG =
-      new Predicate<AggregateCall>() {
-        public boolean apply(AggregateCall aggregateCall) {
+      new PredicateImpl<AggregateCall>() {
+        public boolean test(AggregateCall aggregateCall) {
           switch (aggregateCall.getAggregation().getKind()) {
           case COUNT:
           case SUM:
@@ -476,7 +477,23 @@ public class DruidRules {
         boolean refsTimestamp =
                 checkTimestampRefOnQuery(positionsReferenced.build(), topAgg.getInput(), query);
         if (refsTimestamp && metricsRefs != 0) {
+          // Metrics reference timestamp too
           return false;
+        }
+        // If the aggregate is grouping by timestamp (or a function of the
+        // timestamp such as month) then we cannot push Sort to Druid.
+        // Druid's topN and groupBy operators would sort only within the
+        // granularity, whereas we want global sort.
+        final boolean aggregateRefsTimestamp =
+            checkTimestampRefOnQuery(topAgg.getGroupSet(), topAgg.getInput(), query);
+        if (aggregateRefsTimestamp && metricsRefs != 0) {
+          return false;
+        }
+        if (refsTimestamp
+            && sort.collation.getFieldCollations().size() == 1
+            && topAgg.getGroupCount() == 1) {
+          // Timeseries query: if it has a limit, we cannot push
+          return !RelOptUtil.isLimit(sort);
         }
         return true;
       }

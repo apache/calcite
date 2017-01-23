@@ -14,36 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.avatica.metrics.dropwizard3;
+package org.apache.calcite.adapter.druid;
 
-import com.codahale.metrics.Histogram;
+/** Granularity of a Druid query. */
+public enum Granularity {
+  ALL,
+  YEAR,
+  QUARTER,
+  MONTH,
+  WEEK,
+  DAY,
+  HOUR,
+  MINUTE,
+  SECOND,
+  NONE;
 
-import org.junit.Before;
-import org.junit.Test;
-import org.mockito.Mockito;
-
-/**
- * Test class for {@link DropwizardHistogram}.
- */
-public class DropwizardHistogramTest {
-
-  private Histogram histogram;
-
-  @Before public void setup() {
-    this.histogram = Mockito.mock(Histogram.class);
-  }
-
-  @Test public void test() {
-    DropwizardHistogram dwHistogram = new DropwizardHistogram(histogram);
-
-    dwHistogram.update(10);
-
-    dwHistogram.update(100L);
-
-    Mockito.verify(histogram).update(10);
-    Mockito.verify(histogram).update(100L);
-  }
-
+  /** JSON attribute value in a Druid query. */
+  public final String value = name().toLowerCase();
 }
 
-// End DropwizardHistogramTest.java
+// End Granularity.java

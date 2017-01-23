@@ -74,7 +74,8 @@ public class OrderByScope extends DelegatingScope {
           validator.getNamespace(select);
       final RelDataType rowType = selectNs.getRowType();
 
-      final RelDataTypeField field = validator.catalogReader.field(rowType, name);
+      final SqlNameMatcher nameMatcher = validator.catalogReader.nameMatcher();
+      final RelDataTypeField field = nameMatcher.field(rowType, name);
       if (field != null && !field.isDynamicStar()) {
         // if identifier is resolved to a dynamic star, use super.fullyQualify() for such case.
         return SqlQualified.create(this, 1, selectNs, identifier);
@@ -86,7 +87,8 @@ public class OrderByScope extends DelegatingScope {
   public RelDataType resolveColumn(String name, SqlNode ctx) {
     final SqlValidatorNamespace selectNs = validator.getNamespace(select);
     final RelDataType rowType = selectNs.getRowType();
-    final RelDataTypeField field = validator.catalogReader.field(rowType, name);
+    final SqlNameMatcher nameMatcher = validator.catalogReader.nameMatcher();
+    final RelDataTypeField field = nameMatcher.field(rowType, name);
     if (field != null) {
       return field.getType();
     }

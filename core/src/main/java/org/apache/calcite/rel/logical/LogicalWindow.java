@@ -34,12 +34,12 @@ import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.rex.RexWindow;
 import org.apache.calcite.rex.RexWindowBound;
+import org.apache.calcite.runtime.PredicateImpl;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Pair;
 
-import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.LinkedListMultimap;
 import com.google.common.collect.Lists;
@@ -348,8 +348,8 @@ public final class LogicalWindow extends Window {
     RelCollation orderKeys = getCollation(
       Lists.newArrayList(
         Iterables.filter(aggWindow.orderKeys,
-          new Predicate<RexFieldCollation>() {
-            public boolean apply(RexFieldCollation rexFieldCollation) {
+          new PredicateImpl<RexFieldCollation>() {
+            public boolean test(RexFieldCollation rexFieldCollation) {
               // If ORDER BY references constant (i.e. RexInputRef),
               // then we can ignore such ORDER BY key.
               return rexFieldCollation.left instanceof RexLocalRef;

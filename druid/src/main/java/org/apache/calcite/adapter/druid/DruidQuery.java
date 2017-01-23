@@ -18,6 +18,7 @@ package org.apache.calcite.adapter.druid;
 
 import org.apache.calcite.DataContext;
 import org.apache.calcite.avatica.ColumnMetaData;
+import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.config.CalciteConnectionProperty;
 import org.apache.calcite.interpreter.BindableRel;
 import org.apache.calcite.interpreter.Bindables;
@@ -414,6 +415,9 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
   protected QuerySpec getQuery(RelDataType rowType, RexNode filter, List<RexNode> projects,
       ImmutableBitSet groupSet, List<AggregateCall> aggCalls, List<String> aggNames,
       List<Integer> collationIndexes, List<Direction> collationDirections, Integer fetch) {
+    final CalciteConnectionConfig config =
+        getCluster().getPlanner().getContext()
+            .unwrap(CalciteConnectionConfig.class);
     QueryType queryType = QueryType.SELECT;
     final Translator translator = new Translator(druidTable, rowType);
     List<String> fieldNames = rowType.getFieldNames();
@@ -441,7 +445,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
     // executed as a Timeseries, TopN, or GroupBy in Druid
     final List<String> dimensions = new ArrayList<>();
     final List<JsonAggregation> aggregations = new ArrayList<>();
-    String granularity = "all";
+    Granularity granularity = Granularity.ALL;
     Direction timeSeriesDirection = null;
     JsonLimit limit = null;
     if (groupSet != null) {
@@ -461,7 +465,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
             final String origin = druidTable.getRowType(getCluster().getTypeFactory())
                 .getFieldList().get(ref.getIndex()).getName();
             if (origin.equals(druidTable.timestampFieldName)) {
-              granularity = "none";
+              granularity = Granularity.NONE;
               builder.add(s);
               assert timePositionIdx == -1;
               timePositionIdx = groupKey;
@@ -472,7 +476,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
           } else if (project instanceof RexCall) {
             // Call, check if we should infer granularity
             final RexCall call = (RexCall) project;
-            final String funcGranularity =
+            final Granularity funcGranularity =
                 DruidDateTimeUtils.extractGranularity(call);
             if (funcGranularity != null) {
               granularity = funcGranularity;
@@ -491,7 +495,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
         for (int groupKey : groupSet) {
           final String s = fieldNames.get(groupKey);
           if (s.equals(druidTable.timestampFieldName)) {
-            granularity = "NONE";
+            granularity = Granularity.NONE;
             builder.add(s);
             assert timePositionIdx == -1;
             timePositionIdx = groupKey;
@@ -537,7 +541,12 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
       if (dimensions.isEmpty() && (collations == null || timeSeriesDirection != null)) {
         queryType = QueryType.TIMESERIES;
         assert fetch == null;
-      } else if (dimensions.size() == 1 && sortsMetric && collations.size() == 1 && fetch != null) {
+      } else if (dimensions.size() == 1
+          && granularity == Granularity.ALL
+          && sortsMetric
+          && collations.size() == 1
+          && fetch != null
+          && config.approximateTopN()) {
         queryType = QueryType.TOP_N;
       } else {
         queryType = QueryType.GROUP_BY;
@@ -562,7 +571,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
         generator.writeStringField("dataSource", druidTable.dataSource);
         generator.writeBooleanField("descending", timeSeriesDirection != null
             && timeSeriesDirection == Direction.DESCENDING);
-        generator.writeStringField("granularity", granularity);
+        generator.writeStringField("granularity", granularity.value);
         writeFieldIf(generator, "filter", jsonFilter);
         writeField(generator, "aggregations", aggregations);
         writeFieldIf(generator, "postAggregations", null);
@@ -576,7 +585,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
 
         generator.writeStringField("queryType", "topN");
         generator.writeStringField("dataSource", druidTable.dataSource);
-        generator.writeStringField("granularity", granularity);
+        generator.writeStringField("granularity", granularity.value);
         generator.writeStringField("dimension", dimensions.get(0));
         generator.writeStringField("metric", fieldNames.get(collationIndexes.get(0)));
         writeFieldIf(generator, "filter", jsonFilter);
@@ -600,7 +609,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
 
         generator.writeStringField("queryType", "groupBy");
         generator.writeStringField("dataSource", druidTable.dataSource);
-        generator.writeStringField("granularity", granularity);
+        generator.writeStringField("granularity", granularity.value);
         writeField(generator, "dimensions", dimensions);
         writeFieldIf(generator, "limitSpec", limit);
         writeFieldIf(generator, "filter", jsonFilter);
@@ -622,7 +631,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
         writeFieldIf(generator, "filter", jsonFilter);
         writeField(generator, "dimensions", translator.dimensions);
         writeField(generator, "metrics", translator.metrics);
-        generator.writeStringField("granularity", granularity);
+        generator.writeStringField("granularity", granularity.value);
 
         generator.writeFieldName("pagingSpec");
         generator.writeStartObject();

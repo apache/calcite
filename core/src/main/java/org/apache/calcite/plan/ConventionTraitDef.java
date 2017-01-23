@@ -26,18 +26,22 @@ import org.apache.calcite.util.graph.DefaultEdge;
 import org.apache.calcite.util.graph.DirectedGraph;
 import org.apache.calcite.util.graph.Graphs;
 
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 
 import java.util.List;
-import java.util.WeakHashMap;
+import javax.annotation.Nonnull;
 
 /**
  * Definition of the the convention trait.
  * A new set of conversion information is created for
  * each planner that registers at least one {@link ConverterRule} instance.
  *
- * <p>Conversion data is held in a {@link WeakHashMap} so that the JVM's garbage
+ * <p>Conversion data is held in a {@link LoadingCache}
+ * with weak keys so that the JVM's garbage
  * collector may reclaim the conversion data after the planner itself has been
  * garbage collected. The conversion information consists of a graph of
  * conversions (from one calling convention to another) and a map of graph arcs
@@ -52,12 +56,16 @@ public class ConventionTraitDef extends RelTraitDef<Convention> {
   //~ Instance fields --------------------------------------------------------
 
   /**
-   * Weak-key map of RelOptPlanner to ConversionData. The idea is that when
-   * the planner goes away, so does the map entry.
+   * Weak-key cache of RelOptPlanner to ConversionData. The idea is that when
+   * the planner goes away, so does the cache entry.
    */
-  private final WeakHashMap<RelOptPlanner, ConversionData>
-  plannerConversionMap =
-      new WeakHashMap<RelOptPlanner, ConversionData>();
+  private final LoadingCache<RelOptPlanner, ConversionData> conversionCache =
+      CacheBuilder.newBuilder().weakKeys().build(
+          new CacheLoader<RelOptPlanner, ConversionData>() {
+            public ConversionData load(@Nonnull RelOptPlanner key) {
+              return new ConversionData();
+            }
+          });
 
   //~ Constructors -----------------------------------------------------------
 
@@ -200,13 +208,7 @@ public class ConventionTraitDef extends RelTraitDef<Convention> {
   }
 
   private ConversionData getConversionData(RelOptPlanner planner) {
-    ConversionData conversionData = plannerConversionMap.get(planner);
-    if (conversionData == null) {
-      // Create new, empty ConversionData
-      conversionData = new ConversionData();
-      plannerConversionMap.put(planner, conversionData);
-    }
-    return conversionData;
+    return conversionCache.getUnchecked(planner);
   }
 
   //~ Inner Classes ----------------------------------------------------------

@@ -14,36 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.avatica.metrics.dropwizard3;
-
-import com.codahale.metrics.Histogram;
-
-import org.junit.Before;
-import org.junit.Test;
-import org.mockito.Mockito;
+package org.apache.calcite.schema;
 
 /**
- * Test class for {@link DropwizardHistogram}.
+ * Mix-in interface that allows you to find sub-objects.
  */
-public class DropwizardHistogramTest {
-
-  private Histogram histogram;
-
-  @Before public void setup() {
-    this.histogram = Mockito.mock(Histogram.class);
-  }
-
-  @Test public void test() {
-    DropwizardHistogram dwHistogram = new DropwizardHistogram(histogram);
-
-    dwHistogram.update(10);
-
-    dwHistogram.update(100L);
-
-    Mockito.verify(histogram).update(10);
-    Mockito.verify(histogram).update(100L);
-  }
-
+public interface Wrapper {
+  /** Returns an instance of a class, or null. */
+  <C> C unwrap(Class<C> aClass);
 }
 
-// End DropwizardHistogramTest.java
+// End Wrapper.java

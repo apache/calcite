@@ -14,36 +14,30 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.avatica.metrics.dropwizard3;
+package org.apache.calcite.runtime;
 
-import com.codahale.metrics.Histogram;
+import com.google.common.base.Predicate;
 
-import org.junit.Before;
-import org.junit.Test;
-import org.mockito.Mockito;
+import javax.annotation.Nullable;
 
 /**
- * Test class for {@link DropwizardHistogram}.
+ * Abstract implementation of {@link com.google.common.base.Predicate}.
+ *
+ * <p>Derived class needs to implement the {@link #test} method.
+ *
+ * <p>Helps with the transition to {@code java.util.function.Predicate},
+ * which was introduced in JDK 1.8, and is required in Guava 21.0 and higer,
+ * but still works on JDK 1.7.
+ *
+ * @param <T> the type of the input to the predicate
  */
-public class DropwizardHistogramTest {
-
-  private Histogram histogram;
-
-  @Before public void setup() {
-    this.histogram = Mockito.mock(Histogram.class);
+public abstract class PredicateImpl<T> implements Predicate<T> {
+  public final boolean apply(@Nullable T input) {
+    return test(input);
   }
 
-  @Test public void test() {
-    DropwizardHistogram dwHistogram = new DropwizardHistogram(histogram);
-
-    dwHistogram.update(10);
-
-    dwHistogram.update(100L);
-
-    Mockito.verify(histogram).update(10);
-    Mockito.verify(histogram).update(100L);
-  }
-
+  /** Overrides {@code java.util.function.Predicate#test} in JDK8 and higher. */
+  public abstract boolean test(@Nullable T t);
 }
 
-// End DropwizardHistogramTest.java
+// End PredicateImpl.java

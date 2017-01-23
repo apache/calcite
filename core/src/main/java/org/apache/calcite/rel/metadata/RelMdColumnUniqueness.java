@@ -40,6 +40,7 @@ import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.runtime.PredicateImpl;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.ImmutableBitSet;
@@ -65,8 +66,8 @@ public class RelMdColumnUniqueness
 
   /** Aggregate and Calc are "safe" children of a RelSubset to delve into. */
   private static final Predicate<RelNode> SAFE_REL =
-      new Predicate<RelNode>() {
-        public boolean apply(RelNode r) {
+      new PredicateImpl<RelNode>() {
+        public boolean test(RelNode r) {
           return r instanceof Aggregate || r instanceof Project;
         }
       };

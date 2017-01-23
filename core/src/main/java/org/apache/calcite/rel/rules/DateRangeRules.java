@@ -28,6 +28,7 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.rex.RexVisitorImpl;
+import org.apache.calcite.runtime.PredicateImpl;
 import org.apache.calcite.sql.SqlBinaryOperator;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
@@ -77,8 +78,8 @@ public abstract class DateRangeRules {
   private DateRangeRules() {}
 
   private static final Predicate<Filter> FILTER_PREDICATE =
-      new Predicate<Filter>() {
-        @Override public boolean apply(Filter filter) {
+      new PredicateImpl<Filter>() {
+        @Override public boolean test(Filter filter) {
           final ExtractFinder finder = ExtractFinder.THREAD_INSTANCES.get();
           assert finder.timeUnits.isEmpty() : "previous user did not clean up";
           try {

@@ -31,6 +31,7 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeFamily;
 import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.runtime.PredicateImpl;
 import org.apache.calcite.schema.Schemas;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlKind;
@@ -395,7 +396,10 @@ public class RexUtil {
       right = operands.get(1);
     } else {
       left = operands.get(0);
-      right = rexBuilder.makeNullLiteral(left.getType().getSqlTypeName());
+      SqlTypeName typeName = left.getType().getSqlTypeName();
+      right = typeName.allowsPrec()
+          ? rexBuilder.makeNullLiteral(typeName, left.getType().getPrecision())
+          : rexBuilder.makeNullLiteral(typeName);
     }
     // Note that literals are immutable too, and they can only be compared
     // through values.
@@ -2292,9 +2296,9 @@ public class RexUtil {
     case EQUALS:
       final RexCall call = (RexCall) e;
       if (call.getOperands().get(1) instanceof RexLiteral) {
-        notTerms = Iterables.filter(
-            notTerms, new Predicate<RexNode>() {
-              public boolean apply(RexNode input) {
+        notTerms = Iterables.filter(notTerms,
+            new PredicateImpl<RexNode>() {
+              public boolean test(RexNode input) {
                 switch (input.getKind()) {
                 case EQUALS:
                   RexCall call2 = (RexCall) input;
@@ -2309,10 +2313,10 @@ public class RexUtil {
             });
       }
     }
-    return composeConjunction(
-        rexBuilder, Iterables.concat(
-            ImmutableList.of(e), Iterables.transform(
-                notTerms, notFn(rexBuilder))), false);
+    return composeConjunction(rexBuilder,
+        Iterables.concat(ImmutableList.of(e),
+            Iterables.transform(notTerms, notFn(rexBuilder))),
+        false);
   }
 
   /** Returns whether a given operand of a CASE expression is a predicate.
@@ -2851,8 +2855,8 @@ public class RexUtil {
 
     /** Returns whether a {@link Project} contains a sub-query. */
     public static final Predicate<Project> PROJECT_PREDICATE =
-        new Predicate<Project>() {
-          public boolean apply(Project project) {
+        new PredicateImpl<Project>() {
+          public boolean test(Project project) {
             for (RexNode node : project.getProjects()) {
               try {
                 node.accept(INSTANCE);
@@ -2866,8 +2870,8 @@ public class RexUtil {
 
     /** Returns whether a {@link Filter} contains a sub-query. */
     public static final Predicate<Filter> FILTER_PREDICATE =
-        new Predicate<Filter>() {
-          public boolean apply(Filter filter) {
+        new PredicateImpl<Filter>() {
+          public boolean test(Filter filter) {
             try {
               filter.getCondition().accept(INSTANCE);
               return false;
@@ -2879,8 +2883,8 @@ public class RexUtil {
 
     /** Returns whether a {@link Join} contains a sub-query. */
     public static final Predicate<Join> JOIN_PREDICATE =
-        new Predicate<Join>() {
-          public boolean apply(Join join) {
+        new PredicateImpl<Join>() {
+          public boolean test(Join join) {
             try {
               join.getCondition().accept(INSTANCE);
               return false;

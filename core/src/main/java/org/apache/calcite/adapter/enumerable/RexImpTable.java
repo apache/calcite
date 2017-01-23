@@ -1661,8 +1661,9 @@ public class RexImpTable {
       assert translatedOperands.size() == 1;
       ConstantExpression x = (ConstantExpression) translatedOperands.get(0);
       List<String> names = Util.stringToList((String) x.value);
-      RelOptTable table =
-          Prepare.CatalogReader.THREAD_LOCAL.get().getTable(names);
+      final Prepare.CatalogReader catalogReader =
+          Prepare.CatalogReader.THREAD_LOCAL.get();
+      RelOptTable table = catalogReader.getTable(names);
       System.out.println("Now, do something with table " + table);
       return super.implement(translator, call, translatedOperands);
     }

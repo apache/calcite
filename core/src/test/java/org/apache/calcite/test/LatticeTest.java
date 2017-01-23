@@ -172,7 +172,7 @@ public class LatticeTest {
   @Test public void testLatticeInvalidSqlFails() {
     modelWithLattice("star", "select foo from nonexistent")
         .connectThrows("Error instantiating JsonLattice(name=star, ")
-        .connectThrows("Table 'NONEXISTENT' not found");
+        .connectThrows("Object 'NONEXISTENT' not found");
   }
 
   /** Tests a lattice whose SQL is invalid because it contains a GROUP BY. */

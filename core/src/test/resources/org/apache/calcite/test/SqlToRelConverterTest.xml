@@ -2257,6 +2257,18 @@ LogicalProject(DEPTNO=[$1], EXPR$1=[CASE($3, 1, 0)], EXPR$2=[$4], EXPR$3=[CASE($
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testNotNotIn">
+        <Resource name="sql">
+            <![CDATA[select * from EMP where not (ename not in ('Fred') )]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalFilter(condition=[=($1, 'Fred')])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testTableExtend">
         <Resource name="sql">
             <![CDATA[select * from dept extend (x varchar(5) not null)]]>

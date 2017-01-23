@@ -28,7 +28,6 @@ import org.apache.calcite.avatica.remote.Service.FetchRequest;
 import org.apache.calcite.avatica.remote.Service.FetchResponse;
 import org.apache.calcite.avatica.remote.Service.RpcMetadataResponse;
 
-import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -55,9 +54,6 @@ public class ProtobufHandlerTest {
 
   @Before
   public void setupMocks() {
-    // Disabled on JDK9 due to Mockito bug; see [CALCITE-1567].
-    Assume.assumeTrue(System.getProperty("java.version").compareTo("9") < 0);
-
     // Mocks
     service = Mockito.mock(Service.class);
     translation = Mockito.mock(ProtobufTranslation.class);
