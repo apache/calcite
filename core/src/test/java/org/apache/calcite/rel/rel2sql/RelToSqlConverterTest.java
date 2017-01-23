@@ -40,7 +40,6 @@ import org.apache.calcite.tools.RuleSets;
 import org.apache.calcite.util.Util;
 
 import com.google.common.base.Function;
-import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 
 import org.junit.Test;
@@ -567,10 +566,6 @@ public class RelToSqlConverterTest {
       return new Sql(schemaSpec, sql, dialect, transforms);
     }
 
-    Sql planner(Planner planner) {
-      return new Sql(schemaSpec, sql, dialect, transforms);
-    }
-
     Sql optimize(final RuleSet ruleSet, final RelOptPlanner relOptPlanner) {
       return new Sql(schemaSpec, sql, dialect,
           FlatLists.append(transforms, new Function<RelNode, RelNode>() {
@@ -596,8 +591,10 @@ public class RelToSqlConverterTest {
         final SqlNode sqlNode = converter.visitChild(0, rel).asStatement();
         assertThat(Util.toLinux(sqlNode.toSqlString(dialect).getSql()),
             is(expectedQuery));
+      } catch (RuntimeException e) {
+        throw e;
       } catch (Exception e) {
-        throw Throwables.propagate(e);
+        throw new RuntimeException(e);
       }
       return this;
     }

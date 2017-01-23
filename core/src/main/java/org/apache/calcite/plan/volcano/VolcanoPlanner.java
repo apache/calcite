@@ -1093,9 +1093,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
       try {
         schema.registerRules(this);
       } catch (Exception e) {
-        throw Util.newInternal(
-            e,
-            "Error while registering schema " + schema);
+        throw new AssertionError("While registering schema " + schema, e);
       }
     }
   }
@@ -1600,7 +1598,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     if (p != null) {
       p = p.equivalentSet;
       if (p == s) {
-        throw Util.newInternal("cycle in equivalence tree");
+        throw new AssertionError("cycle in equivalence tree");
       }
     }
     return p;
@@ -1626,9 +1624,8 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
 
     assert !isRegistered(rel) : "already been registered: " + rel;
     if (rel.getCluster().getPlanner() != this) {
-      throw Util.newInternal("Relational expression " + rel
-          + " belongs to a different planner than is currently being"
-          + " used.");
+      throw new AssertionError("Relational expression " + rel
+          + " belongs to a different planner than is currently being used.");
     }
 
     // Now is a good time to ensure that the relational expression
@@ -1638,17 +1635,15 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     assert convention != null;
     if (!convention.getInterface().isInstance(rel)
         && !(rel instanceof Converter)) {
-      throw Util.newInternal(
-          "Relational expression " + rel
-              + " has calling-convention " + convention
-              + " but does not implement the required interface '"
-              + convention.getInterface() + "' of that convention");
+      throw new AssertionError("Relational expression " + rel
+          + " has calling-convention " + convention
+          + " but does not implement the required interface '"
+          + convention.getInterface() + "' of that convention");
     }
     if (traits.size() != traitDefs.size()) {
-      throw Util.newInternal(
-          "Relational expression " + rel
-          + " does not have the correct number of traits "
-          + traits.size() + " != " + traitDefs.size());
+      throw new AssertionError("Relational expression " + rel
+          + " does not have the correct number of traits: " + traits.size()
+          + " != " + traitDefs.size());
     }
 
     // Ensure that its sub-expressions are registered.

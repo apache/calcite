@@ -61,7 +61,6 @@ import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.Holder;
 
 import com.google.common.base.Preconditions;
-import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
@@ -163,7 +162,7 @@ abstract class CalciteConnectionImpl
                     ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY,
                     getHoldability());
               } catch (SQLException e) {
-                throw Throwables.propagate(e);
+                throw new RuntimeException(e);
               }
             }
           });
@@ -288,7 +287,7 @@ abstract class CalciteConnectionImpl
     try {
       cancelFlag = getCancelFlag(handle);
     } catch (NoSuchStatementException e) {
-      throw Throwables.propagate(e);
+      throw new RuntimeException(e);
     }
     map.put(DataContext.Variable.CANCEL_FLAG.camelName, cancelFlag);
     final DataContext dataContext = createDataContext(map);

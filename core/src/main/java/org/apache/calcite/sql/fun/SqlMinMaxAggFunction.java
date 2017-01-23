@@ -24,7 +24,6 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlSplittableAggFunction;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
-import org.apache.calcite.util.Util;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
@@ -113,7 +112,7 @@ public class SqlMinMaxAggFunction extends SqlAggFunction {
     case MINMAX_COMPARATOR:
       return argTypes.subList(1, 2);
     default:
-      throw Util.newInternal("bad kind: " + minMaxKind);
+      throw new AssertionError("bad kind: " + minMaxKind);
     }
   }
 
@@ -125,7 +124,7 @@ public class SqlMinMaxAggFunction extends SqlAggFunction {
     case MINMAX_COMPARATOR:
       return argTypes.get(1);
     default:
-      throw Util.newInternal("bad kind: " + minMaxKind);
+      throw new AssertionError("bad kind: " + minMaxKind);
     }
   }
 

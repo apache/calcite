@@ -27,6 +27,8 @@ import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Util;
 
+import com.google.common.base.Preconditions;
+
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
@@ -55,8 +57,7 @@ public abstract class SqlNode implements Cloneable {
    * @param pos Parser position, must not be null.
    */
   SqlNode(SqlParserPos pos) {
-    Util.pre(pos != null, "pos != null");
-    this.pos = pos;
+    this.pos = Preconditions.checkNotNull(pos);
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -68,16 +69,7 @@ public abstract class SqlNode implements Cloneable {
   /**
    * Clones a SqlNode with a different position.
    */
-  public SqlNode clone(SqlParserPos pos) {
-    // REVIEW jvs 26-July-2006:  shouldn't pos be used here?  Or are
-    // subclasses always supposed to override, in which case this
-    // method should probably be abstract?
-    try {
-      return (SqlNode) super.clone();
-    } catch (CloneNotSupportedException e) {
-      throw Util.newInternal(e, "error while cloning " + this);
-    }
-  }
+  public abstract SqlNode clone(SqlParserPos pos);
 
   /**
    * Returns the type of node this is, or

@@ -48,6 +48,7 @@ import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
 import com.google.common.base.Function;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
@@ -168,8 +169,7 @@ public class RexBuilder {
     final RelDataTypeField field =
         type.getField(fieldName, caseSensitive, false);
     if (field == null) {
-      throw Util.newInternal(
-          "Type '" + type + "' has no field '"
+      throw new AssertionError("Type '" + type + "' has no field '"
           + fieldName + "'");
     }
     return makeFieldAccessInternal(expr, field);
@@ -189,7 +189,7 @@ public class RexBuilder {
     final RelDataType type = expr.getType();
     final List<RelDataTypeField> fields = type.getFieldList();
     if ((i < 0) || (i >= fields.size())) {
-      throw Util.newInternal("Field ordinal " + i + " is invalid for "
+      throw new AssertionError("Field ordinal " + i + " is invalid for "
           + " type '" + type + "'");
     }
     return makeFieldAccessInternal(expr, fields.get(i));
@@ -374,7 +374,7 @@ public class RexBuilder {
           makeCast(type, constantNull()));
     }
     if (!allowPartial) {
-      Util.permAssert(physical, "DISALLOW PARTIAL over RANGE");
+      Preconditions.checkArgument(physical, "DISALLOW PARTIAL over RANGE");
       final RelDataType bigintType = getTypeFactory().createSqlType(
           SqlTypeName.BIGINT);
       // todo: read bound

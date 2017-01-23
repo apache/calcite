@@ -419,7 +419,7 @@ public class RexProgramTest {
                   t1));
       break;
     default:
-      throw Util.newInternal("unexpected variant " + variant);
+      throw new AssertionError("unexpected variant " + variant);
     }
     // $t6 = $t4 + $t2 (i.e. (x + y) + (x + 1))
     RexLocalRef t6 =

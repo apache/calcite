@@ -18,8 +18,8 @@ package org.apache.calcite.rel.metadata;
 
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.util.Pair;
+import org.apache.calcite.util.Util;
 
-import com.google.common.base.Throwables;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
@@ -50,7 +50,7 @@ public class MetadataFactoryImpl implements MetadataFactory {
     this.cache = CacheBuilder.newBuilder().build(loader(provider));
   }
 
-  static CacheLoader<Pair<Class<RelNode>, Class<Metadata>>,
+  private static CacheLoader<Pair<Class<RelNode>, Class<Metadata>>,
       UnboundMetadata<Metadata>> loader(final RelMetadataProvider provider) {
     return new CacheLoader<Pair<Class<RelNode>, Class<Metadata>>,
         UnboundMetadata<Metadata>>() {
@@ -73,7 +73,8 @@ public class MetadataFactoryImpl implements MetadataFactory {
       final Metadata apply = cache.get(key).bind(rel, mq);
       return metadataClazz.cast(apply);
     } catch (UncheckedExecutionException | ExecutionException e) {
-      throw Throwables.propagate(e.getCause());
+      Util.throwIfUnchecked(e.getCause());
+      throw new RuntimeException(e.getCause());
     }
   }
 }

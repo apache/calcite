@@ -41,7 +41,6 @@ import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Pair;
 
 import com.google.common.base.Supplier;
-import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -451,7 +450,7 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
         try {
           instance = aggFunction.declaringClass.newInstance();
         } catch (InstantiationException | IllegalAccessException e) {
-          throw Throwables.propagate(e);
+          throw new RuntimeException(e);
         }
       }
     }
@@ -471,7 +470,7 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
       try {
         this.value = factory.aggFunction.initMethod.invoke(factory.instance);
       } catch (IllegalAccessException | InvocationTargetException e) {
-        throw Throwables.propagate(e);
+        throw new RuntimeException(e);
       }
     }
 
@@ -485,7 +484,7 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
       try {
         value = factory.aggFunction.addMethod.invoke(factory.instance, args);
       } catch (IllegalAccessException | InvocationTargetException e) {
-        throw Throwables.propagate(e);
+        throw new RuntimeException(e);
       }
     }
 
@@ -494,7 +493,7 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
       try {
         return factory.aggFunction.resultMethod.invoke(factory.instance, args);
       } catch (IllegalAccessException | InvocationTargetException e) {
-        throw Throwables.propagate(e);
+        throw new RuntimeException(e);
       }
     }
   }

@@ -45,7 +45,6 @@ import org.apache.calcite.util.Pair;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 
-import java.util.AbstractList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -66,16 +65,8 @@ public class CassandraRules {
   };
 
   static List<String> cassandraFieldNames(final RelDataType rowType) {
-    return SqlValidatorUtil.uniquify(
-        new AbstractList<String>() {
-          @Override public String get(int index) {
-            return rowType.getFieldList().get(index).getName();
-          }
-
-          @Override public int size() {
-            return rowType.getFieldCount();
-          }
-        });
+    return SqlValidatorUtil.uniquify(rowType.getFieldNames(),
+        SqlValidatorUtil.EXPR_SUGGESTER, true);
   }
 
   /** Translator from {@link RexNode} to strings in Cassandra's expression

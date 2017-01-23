@@ -924,9 +924,8 @@ public class HepPlanner extends AbstractRelOptPlanner {
       return;
     }
 
-    throw Util.newInternal(
-        "Query graph cycle detected in HepPlanner:  "
-            + cyclicVertices);
+    throw new AssertionError("Query graph cycle detected in HepPlanner: "
+        + cyclicVertices);
   }
 
   private void dumpGraph() {

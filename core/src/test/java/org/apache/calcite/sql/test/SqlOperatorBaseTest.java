@@ -51,7 +51,6 @@ import org.apache.calcite.test.SqlLimitsTest;
 import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.Holder;
 import org.apache.calcite.util.Pair;
-import org.apache.calcite.util.Util;
 
 import com.google.common.base.Function;
 import com.google.common.base.Throwables;
@@ -1410,10 +1409,10 @@ public abstract class SqlOperatorBaseTest {
           return cal;
 
         default:
-          throw Util.newInternal("unexpected time unit " + timeUnit);
+          throw new AssertionError("unexpected time unit: " + timeUnit);
         }
       } catch (InterruptedException e) {
-        throw Util.newInternal(e);
+        throw new RuntimeException(e);
       }
     }
   }
@@ -6410,8 +6409,10 @@ public abstract class SqlOperatorBaseTest {
         final ResultSet resultSet =
             statement.executeQuery(query);
         resultChecker.checkResult(resultSet);
+      } catch (RuntimeException e) {
+        throw e;
       } catch (Exception e) {
-        throw Throwables.propagate(e);
+        throw new RuntimeException(e);
       }
     }
 

@@ -29,7 +29,6 @@ import org.apache.calcite.sql.validate.SqlValidatorNamespace;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.util.NlsString;
-import org.apache.calcite.util.Util;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
@@ -211,7 +210,7 @@ public class SqlCallBinding extends SqlOperatorBinding {
             RESOURCE.numberLiteralOutOfRange(bd.toString()));
       }
     }
-    throw Util.newInternal("should never come here");
+    throw new AssertionError();
   }
 
   @Override public Comparable getOperandLiteralValue(int ordinal) {

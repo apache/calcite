@@ -98,7 +98,6 @@ import org.apache.calcite.util.TryThreadLocal;
 import org.apache.calcite.util.Util;
 
 import com.google.common.base.Function;
-import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.LinkedListMultimap;
 import com.google.common.collect.Multimap;
@@ -315,7 +314,7 @@ public class JdbcTest {
                 statement.close();
                 return null;
               } catch (SQLException e) {
-                throw Throwables.propagate(e);
+                throw new RuntimeException(e);
               }
             }
           });
@@ -6597,7 +6596,7 @@ public class JdbcTest {
                   }
                   return null;
                 } catch (SQLException e) {
-                  throw Throwables.propagate(e);
+                  throw new RuntimeException(e);
                 }
               }
             });

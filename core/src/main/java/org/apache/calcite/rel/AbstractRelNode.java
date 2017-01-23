@@ -361,7 +361,7 @@ public abstract class AbstractRelNode implements RelNode {
   public void replaceInput(
       int ordinalInParent,
       RelNode p) {
-    throw Util.newInternal("replaceInput called on " + this);
+    throw new UnsupportedOperationException("replaceInput called on " + this);
   }
 
   public String toString() {

@@ -22,7 +22,6 @@ import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Pair;
-import org.apache.calcite.util.Util;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -163,21 +162,18 @@ public class RexProgramBuilder {
             if (index < fields.size()) {
               final RelDataTypeField inputField = fields.get(index);
               if (input.getType() != inputField.getType()) {
-                throw Util.newInternal("in expression " + expr
-                    + ", field reference " + input
-                    + " has inconsistent type");
+                throw new AssertionError("in expression " + expr
+                    + ", field reference " + input + " has inconsistent type");
               }
             } else {
               if (index >= fieldOrdinal) {
-                throw Util.newInternal("in expression " + expr
-                    + ", field reference " + input
-                    + " is out of bounds");
+                throw new AssertionError("in expression " + expr
+                    + ", field reference " + input + " is out of bounds");
               }
               RexNode refExpr = exprList.get(index);
               if (refExpr.getType() != input.getType()) {
-                throw Util.newInternal("in expression " + expr
-                    + ", field reference " + input
-                    + " has inconsistent type");
+                throw new AssertionError("in expression " + expr
+                    + ", field reference " + input + " has inconsistent type");
               }
             }
             return null;
@@ -951,8 +947,8 @@ public class RexProgramBuilder {
         if (expr instanceof RexLocalRef) {
           local = (RexLocalRef) expr;
           if (local.index >= index) {
-            throw Util.newInternal("expr " + local
-                + " references later expr " + local.index);
+            throw new AssertionError(
+                "expr " + local + " references later expr " + local.index);
           }
         } else {
           // Add expression to the list, just so that subsequent

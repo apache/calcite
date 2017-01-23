@@ -24,7 +24,6 @@ import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.SingleRel;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
-import org.apache.calcite.util.Util;
 
 /**
  * Abstract implementation of {@link Converter}.
@@ -66,10 +65,10 @@ public abstract class ConverterImpl extends SingleRel
     return planner.getCostFactory().makeCost(dRows, dCpu, dIo);
   }
 
+  @Deprecated // to be removed before 2.0
   protected Error cannotImplement() {
-    return Util.newInternal(
-        getClass() + " cannot convert from "
-            + inTraits + " traits");
+    return new AssertionError(getClass() + " cannot convert from "
+        + inTraits + " traits");
   }
 
   public RelTraitSet getInputTraits() {

@@ -70,8 +70,7 @@ public class SqlPrefixOperator extends SqlOperator {
       RelDataType operandType =
           validator.getValidatedNodeType(call.operand(0));
       if (null == operandType) {
-        throw Util.newInternal(
-            "operand's type should have been derived");
+        throw new AssertionError("operand's type should have been derived");
       }
       if (SqlTypeUtil.inCharFamily(operandType)) {
         SqlCollation collation = operandType.getCollation();

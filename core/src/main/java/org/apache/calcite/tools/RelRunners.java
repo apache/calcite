@@ -18,8 +18,6 @@ package org.apache.calcite.tools;
 
 import org.apache.calcite.rel.RelNode;
 
-import com.google.common.base.Throwables;
-
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -35,7 +33,7 @@ public class RelRunners {
       final RelRunner runner = connection.unwrap(RelRunner.class);
       return runner.prepare(rel);
     } catch (SQLException e) {
-      throw Throwables.propagate(e);
+      throw new RuntimeException(e);
     }
   }
 }

@@ -141,8 +141,8 @@ public enum SqlSyntax {
         SqlCall call,
         int leftPrec,
         int rightPrec) {
-      throw Util.newInternal("Internal operator '" + operator
-          + "' cannot be un-parsed");
+      throw new UnsupportedOperationException("Internal operator '"
+          + operator + "' " + "cannot be un-parsed");
     }
   };
 

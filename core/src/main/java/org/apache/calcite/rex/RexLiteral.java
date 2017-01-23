@@ -532,16 +532,15 @@ public class RexLiteral extends RexNode {
         }
       }
       if (cal == null) {
-        throw Util.newInternal(
-            "fromJdbcString: invalid date/time value '"
-                + literal + "'");
+        throw new AssertionError("fromJdbcString: invalid date/time value '"
+            + literal + "'");
       }
       return new RexLiteral(cal, type, typeName);
     case SYMBOL:
 
       // Symbols are for internal use
     default:
-      throw Util.newInternal("fromJdbcString: unsupported type");
+      throw new AssertionError("fromJdbcString: unsupported type");
     }
   }
 
@@ -554,7 +553,7 @@ public class RexLiteral extends RexNode {
     case TIMESTAMP:
       return DateTimeUtils.TIMESTAMP_FORMAT_STRING;
     default:
-      throw Util.newInternal("getCalendarFormat: unknown type");
+      throw new AssertionError("getCalendarFormat: unknown type");
     }
   }
 
@@ -676,7 +675,7 @@ public class RexLiteral extends RexNode {
         return value.negate();
       }
     }
-    throw Util.newInternal("not a literal: " + node);
+    throw new AssertionError("not a literal: " + node);
   }
 
   public static boolean isNullLiteral(RexNode node) {

@@ -868,8 +868,7 @@ public class ReduceDecimalsRule extends RelOptRule {
       } else if (call.getOperator() == SqlStdOperatorTable.MOD) {
         return expandMod(call, operands);
       } else {
-        throw Util.newInternal(
-            "ReduceDecimalsRule could not expand "
+        throw new AssertionError("ReduceDecimalsRule could not expand "
             + call.getOperator());
       }
     }

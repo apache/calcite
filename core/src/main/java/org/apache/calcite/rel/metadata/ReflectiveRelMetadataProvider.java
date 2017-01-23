@@ -26,7 +26,6 @@ import org.apache.calcite.util.ReflectiveVisitor;
 import org.apache.calcite.util.Util;
 
 import com.google.common.base.Preconditions;
-import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Multimap;
@@ -197,8 +196,8 @@ public class ReflectiveRelMetadataProvider
                         return handlerMethod.invoke(target, args1);
                       } catch (InvocationTargetException
                           | UndeclaredThrowableException e) {
-                        Throwables.propagateIfPossible(e.getCause());
-                        throw e;
+                        Util.throwIfUnchecked(e.getCause());
+                        throw new RuntimeException(e.getCause());
                       } finally {
                         mq.map.remove(key);
                       }

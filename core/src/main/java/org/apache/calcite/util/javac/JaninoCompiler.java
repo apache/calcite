@@ -16,8 +16,6 @@
  */
 package org.apache.calcite.util.javac;
 
-import org.apache.calcite.util.Util;
-
 import org.codehaus.janino.JavaSourceClassLoader;
 import org.codehaus.janino.util.ClassFile;
 import org.codehaus.janino.util.resource.MapResourceFinder;
@@ -81,7 +79,7 @@ public class JaninoCompiler implements JavaCompiler {
     try {
       classLoader.loadClass(args.fullClassName);
     } catch (ClassNotFoundException ex) {
-      throw Util.newInternal(ex, "while compiling " + args.fullClassName);
+      throw new RuntimeException("while compiling " + args.fullClassName, ex);
     }
   }
 
@@ -156,12 +154,11 @@ public class JaninoCompiler implements JavaCompiler {
       return nBytes;
     }
 
-    // override JavaSourceClassLoader
-    public Map generateBytecodes(String name)
+    @Override public Map<String, byte[]> generateBytecodes(String name)
         throws ClassNotFoundException {
-      Map<String, byte[]> map = super.generateBytecodes(name);
+      final Map<String, byte[]> map = super.generateBytecodes(name);
       if (map == null) {
-        return map;
+        return null;
       }
 
       if (destDir != null) {

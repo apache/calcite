@@ -31,7 +31,6 @@ import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlOperandCountRanges;
 import org.apache.calcite.sql.type.SqlTypeUtil;
-import org.apache.calcite.util.Util;
 
 /**
  * An operator describing the <code>LIKE</code> and <code>SIMILAR</code>
@@ -119,8 +118,8 @@ public class SqlLikeOperator extends SqlSpecialOperator {
       // enforce the escape character length to be 1
       break;
     default:
-      throw Util.newInternal(
-          "unexpected number of args to " + callBinding.getCall());
+      throw new AssertionError("unexpected number of args to "
+          + callBinding.getCall() + ": " + callBinding.getOperandCount());
     }
 
     return SqlTypeUtil.isCharTypeComparable(

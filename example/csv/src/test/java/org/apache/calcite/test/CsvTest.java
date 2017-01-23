@@ -24,7 +24,6 @@ import org.apache.calcite.schema.Schema;
 import org.apache.calcite.sql2rel.SqlToRelConverter;
 import org.apache.calcite.util.Util;
 
-import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
 
 import org.junit.Assert;
@@ -198,7 +197,7 @@ public class CsvTest {
           assertThat(resultSet.next(), is(false));
           return null;
         } catch (SQLException e) {
-          throw Throwables.propagate(e);
+          throw new RuntimeException(e);
         }
       }
     });

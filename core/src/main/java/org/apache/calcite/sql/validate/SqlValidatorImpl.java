@@ -597,7 +597,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     }
     final SqlValidatorNamespace ns = getNamespace(outermostNode);
     if (ns == null) {
-      throw Util.newInternal("Not a query: " + outermostNode);
+      throw new AssertionError("Not a query: " + outermostNode);
     }
     Collection<SqlMoniker> hintList = Sets.newTreeSet(SqlMoniker.COMPARATOR);
     lookupSelectHints(ns, pos, hintList);
@@ -1492,8 +1492,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   }
 
   void setValidatedNodeTypeImpl(SqlNode node, RelDataType type) {
-    Util.pre(type != null, "type != null");
-    Util.pre(node != null, "node != null");
+    Preconditions.checkNotNull(type);
+    Preconditions.checkNotNull(node);
     if (type.equals(unknownType)) {
       // don't set anything until we know what it is, and don't overwrite
       // a known type with the unknown type
@@ -1505,8 +1505,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   public RelDataType deriveType(
       SqlValidatorScope scope,
       SqlNode expr) {
-    Util.pre(scope != null, "scope != null");
-    Util.pre(expr != null, "expr != null");
+    Preconditions.checkNotNull(scope);
+    Preconditions.checkNotNull(expr);
 
     // if we already know the type, no need to re-derive
     RelDataType type = nodeToTypeMap.get(expr);
@@ -1518,7 +1518,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       return ns.getType();
     }
     type = deriveTypeImpl(scope, expr);
-    Util.permAssert(
+    Preconditions.checkArgument(
         type != null,
         "SqlValidator.deriveTypeInternal returned null");
     setValidatedNodeTypeImpl(expr, type);
@@ -2842,7 +2842,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       SqlNode node,
       RelDataType targetRowType,
       SqlValidatorScope scope) {
-    Util.pre(targetRowType != null, "targetRowType != null");
+    Preconditions.checkNotNull(targetRowType);
     switch (node.getKind()) {
     case AS:
       validateFrom(
@@ -2870,7 +2870,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   }
 
   protected void validateOver(SqlCall call, SqlValidatorScope scope) {
-    throw Util.newInternal("OVER unexpected in this context");
+    throw new AssertionError("OVER unexpected in this context");
   }
 
   protected void validateJoin(SqlJoin join, SqlValidatorScope scope) {
@@ -2887,10 +2887,10 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     // Validate condition.
     switch (conditionType) {
     case NONE:
-      Util.permAssert(condition == null, "condition == null");
+      Preconditions.checkArgument(condition == null);
       break;
     case ON:
-      Util.permAssert(condition != null, "condition != null");
+      Preconditions.checkArgument(condition != null);
       SqlNode expandedCondition = expand(condition, joinScope);
       join.setOperand(5, expandedCondition);
       condition = join.getCondition();
@@ -2900,7 +2900,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       SqlNodeList list = (SqlNodeList) condition;
 
       // Parser ensures that using clause is not empty.
-      Util.permAssert(list.size() > 0, "Empty USING clause");
+      Preconditions.checkArgument(list.size() > 0, "Empty USING clause");
       for (int i = 0; i < list.size(); i++) {
         SqlIdentifier id = (SqlIdentifier) list.get(i);
         final RelDataType leftColType = validateUsingCol(id, left);
@@ -3375,8 +3375,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       }
     }
     final SqlValidatorScope orderScope = getOrderScope(select);
-
-    Util.permAssert(orderScope != null, "orderScope != null");
+    Preconditions.checkNotNull(orderScope != null);
 
     List<SqlNode> expandList = new ArrayList<>();
     for (SqlNode orderItem : orderList) {

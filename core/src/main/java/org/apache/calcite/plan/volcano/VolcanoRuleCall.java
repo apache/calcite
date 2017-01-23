@@ -22,7 +22,6 @@ import org.apache.calcite.plan.RelOptRuleOperand;
 import org.apache.calcite.plan.RelTraitPropagationVisitor;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
-import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -144,10 +143,9 @@ public class VolcanoRuleCall extends RelOptRuleCall {
                 false);
         volcanoPlanner.listener.ruleProductionSucceeded(event);
       }
-    } catch (Throwable e) {
-      throw Util.newInternal(
-          e,
-          "Error occurred while applying rule " + getRule());
+    } catch (Exception e) {
+      throw new RuntimeException("Error occurred while applying rule "
+          + getRule(), e);
     }
   }
 
@@ -232,10 +230,9 @@ public class VolcanoRuleCall extends RelOptRuleCall {
                 false);
         volcanoPlanner.listener.ruleAttempted(event);
       }
-    } catch (Throwable e) {
-      throw Util.newInternal(e,
-          "Error while applying rule "
-          + getRule() + ", args " + Arrays.toString(rels));
+    } catch (Exception e) {
+      throw new RuntimeException("Error while applying rule " + getRule()
+          + ", args " + Arrays.toString(rels), e);
     }
   }
 

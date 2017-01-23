@@ -19,7 +19,6 @@ package org.apache.calcite.rel;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.runtime.FlatLists;
-import org.apache.calcite.util.Util;
 
 import java.util.List;
 
@@ -70,7 +69,7 @@ public abstract class BiRel extends AbstractRelNode {
       this.right = p;
       break;
     default:
-      throw Util.newInternal();
+      throw new IndexOutOfBoundsException("Input " + ordinalInParent);
     }
     recomputeDigest();
   }

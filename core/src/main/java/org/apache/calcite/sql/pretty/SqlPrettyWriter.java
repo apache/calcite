@@ -25,7 +25,7 @@ import org.apache.calcite.sql.util.SqlString;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.trace.CalciteLogger;
 
-import com.google.common.base.Throwables;
+import com.google.common.base.Preconditions;
 
 import org.slf4j.LoggerFactory;
 
@@ -763,10 +763,8 @@ public class SqlPrettyWriter implements SqlWriter {
 
   public void endList(Frame frame) {
     FrameImpl endedFrame = (FrameImpl) frame;
-    Util.pre(
-        frame == this.frame,
-        "Frame " + endedFrame.frameType
-            + " does not match current frame " + this.frame.frameType);
+    Preconditions.checkArgument(frame == this.frame,
+        "Frame does not match current frame");
     if (this.frame == null) {
       throw new RuntimeException("No list started");
     }
@@ -1159,7 +1157,8 @@ public class SqlPrettyWriter implements SqlWriter {
       try {
         method.invoke(o, value);
       } catch (IllegalAccessException | InvocationTargetException e) {
-        throw Throwables.propagate(e);
+        Util.throwIfUnchecked(e.getCause());
+        throw new RuntimeException(e.getCause());
       }
     }
 
@@ -1168,7 +1167,8 @@ public class SqlPrettyWriter implements SqlWriter {
       try {
         return method.invoke(o);
       } catch (IllegalAccessException | InvocationTargetException e) {
-        throw Throwables.propagate(e);
+        Util.throwIfUnchecked(e.getCause());
+        throw new RuntimeException(e.getCause());
       }
     }
 

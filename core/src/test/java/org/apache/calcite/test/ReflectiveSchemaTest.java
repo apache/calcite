@@ -37,7 +37,6 @@ import org.apache.calcite.util.Smalls;
 import org.apache.calcite.util.Util;
 
 import com.google.common.base.Function;
-import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 
 import org.junit.Assert;
@@ -347,7 +346,7 @@ public class ReflectiveSchemaTest {
                       ++n;
                     }
                   } catch (SQLException e) {
-                    throw Throwables.propagate(e);
+                    throw new RuntimeException(e);
                   }
                   assertThat(n, equalTo(1));
                   return null;
@@ -580,7 +579,7 @@ public class ReflectiveSchemaTest {
                     buf.append(input.getInt(2)).append("\n");
                   }
                 } catch (SQLException e) {
-                  throw Throwables.propagate(e);
+                  throw new RuntimeException(e);
                 }
                 assertThat(buf.toString(), equalTo("0\n2147483647\n"));
                 return null;

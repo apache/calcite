@@ -33,7 +33,6 @@ import org.apache.calcite.util.ConversionUtil;
 import org.apache.calcite.util.TestUtil;
 import org.apache.calcite.util.Util;
 
-import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSortedSet;
@@ -7193,7 +7192,7 @@ public class SqlParserTest {
         final SqlNode sqlNode = getSqlParser(sap.sql).parseStmt();
         assertThat(sqlNode, matcher);
       } catch (SqlParseException e) {
-        throw Throwables.propagate(e);
+        throw new RuntimeException(e);
       }
     }
 

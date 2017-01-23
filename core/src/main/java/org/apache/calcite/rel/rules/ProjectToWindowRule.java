@@ -41,13 +41,13 @@ import org.apache.calcite.runtime.PredicateImpl;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.Pair;
-import org.apache.calcite.util.Util;
 import org.apache.calcite.util.graph.DefaultDirectedGraph;
 import org.apache.calcite.util.graph.DefaultEdge;
 import org.apache.calcite.util.graph.DirectedGraph;
 import org.apache.calcite.util.graph.TopologicalOrderIterator;
 
 import com.google.common.base.Function;
+import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -226,7 +226,7 @@ public abstract class ProjectToWindowRule extends RelOptRule {
 
         protected RelNode makeRel(RelOptCluster cluster, RelTraitSet traitSet,
             RelBuilder relBuilder, RelNode input, RexProgram program) {
-          Util.permAssert(program.getCondition() == null,
+          Preconditions.checkArgument(program.getCondition() == null,
               "WindowedAggregateRel cannot accept a condition");
           return LogicalWindow.create(cluster, traitSet, relBuilder, input,
               program);

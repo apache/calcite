@@ -1185,7 +1185,8 @@ public class SqlToRelConverter {
       return;
 
     default:
-      throw Util.newInternal("unexpected kind of sub-query :" + subQuery.node);
+      throw new AssertionError("unexpected kind of sub-query: "
+          + subQuery.node);
     }
   }
 
@@ -1861,7 +1862,8 @@ public class SqlToRelConverter {
       orderKeys.add(new RexFieldCollation(e, flags));
     }
     try {
-      Util.permAssert(bb.window == null, "already in window agg mode");
+      Preconditions.checkArgument(bb.window == null,
+          "already in window agg mode");
       bb.window = window;
       RexNode rexAgg = exprConverter.convertCall(bb, aggCall);
       rexAgg =
@@ -1945,8 +1947,7 @@ public class SqlToRelConverter {
                 tableSampleSpec.getRepeatableSeed());
         bb.setRoot(new Sample(cluster, bb.root, params), false);
       } else {
-        throw Util.newInternal(
-            "unknown TABLESAMPLE type: " + sampleSpec);
+        throw new AssertionError("unknown TABLESAMPLE type: " + sampleSpec);
       }
       return;
 
@@ -2080,7 +2081,7 @@ public class SqlToRelConverter {
       return;
 
     default:
-      throw Util.newInternal("not a join operator " + from);
+      throw new AssertionError("not a join operator " + from);
     }
   }
 
@@ -2508,7 +2509,7 @@ public class SqlToRelConverter {
     final List<Pair<RexNode, String>> projects = Lists.newArrayList();
 
     try {
-      Util.permAssert(bb.agg == null, "already in agg mode");
+      Preconditions.checkArgument(bb.agg == null, "already in agg mode");
       bb.agg = aggConverter;
 
       // convert the select and having expressions, so that the
@@ -2887,7 +2888,7 @@ public class SqlToRelConverter {
     case VALUES:
       return RelRoot.of(convertValues((SqlCall) query, targetRowType), kind);
     default:
-      throw Util.newInternal("not a query: " + query);
+      throw new AssertionError("not a query: " + query);
     }
   }
 
@@ -3646,7 +3647,7 @@ public class SqlToRelConverter {
     }
 
     if (unionRels.size() == 0) {
-      throw Util.newInternal("empty values clause");
+      throw new AssertionError("empty values clause");
     } else if (unionRels.size() == 1) {
       bb.setRoot(
           unionRels.get(0),
@@ -3912,7 +3913,7 @@ public class SqlToRelConverter {
       if (nameToNodeMap != null && qualified.prefixLength == 1) {
         RexNode node = nameToNodeMap.get(qualified.identifier.names.get(0));
         if (node == null) {
-          throw Util.newInternal("Unknown identifier '" + qualified.identifier
+          throw new AssertionError("Unknown identifier '" + qualified.identifier
               + "' encountered while expanding expression");
         }
         return Pair.of(node, null);
@@ -4192,8 +4193,7 @@ public class SqlToRelConverter {
 
       // Apply standard conversions.
       rex = expr.accept(this);
-      Util.permAssert(rex != null, "conversion result not null");
-      return rex;
+      return Preconditions.checkNotNull(rex);
     }
 
     /**
