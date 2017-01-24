@@ -4378,6 +4378,131 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testConvertMultiFullOuterJoinRule">
+        <Resource name="sql">
+            <![CDATA[select e1.ename from emp e1 full outer join dept d on e1.deptno = d.deptno full outer join emp e2 on d.deptno = e2.deptno]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(ENAME=[$1])
+  LogicalJoin(condition=[=($9, $18)], joinType=[full])
+    LogicalJoin(condition=[=($7, $9)], joinType=[full])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject(ENAME=[$1])
+  MultiJoin(joinFilter=[AND(=($9, $18), =($7, $9))], isFullOuterJoin=[true], joinTypes=[[INNER, INNER, INNER]], outerJoinConditions=[[NULL, NULL, NULL]], projFields=[[ALL, ALL, ALL]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testConvertMultiFullOuterJoinRuleLoptOptimizeJoinRule">
+        <Resource name="sql">
+            <![CDATA[select e1.ename from emp e1 full outer join dept d on e1.deptno = d.deptno full outer join emp e2 on d.deptno = e2.deptno]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(ENAME=[$1])
+  MultiJoin(joinFilter=[AND(=($9, $18), =($7, $9))], isFullOuterJoin=[true], joinTypes=[[INNER, INNER, INNER]], outerJoinConditions=[[NULL, NULL, NULL]], projFields=[[ALL, ALL, ALL]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject(ENAME=[$1])
+  LogicalProject(EMPNO=[$9], ENAME=[$10], JOB=[$11], MGR=[$12], HIREDATE=[$13], SAL=[$14], COMM=[$15], DEPTNO=[$16], SLACKER=[$17], DEPTNO0=[$18], NAME=[$19], EMPNO0=[$0], ENAME0=[$1], JOB0=[$2], MGR0=[$3], HIREDATE0=[$4], SAL0=[$5], COMM0=[$6], DEPTNO1=[$7], SLACKER0=[$8])
+    LogicalJoin(condition=[=($18, $7)], joinType=[full])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalJoin(condition=[=($7, $9)], joinType=[full])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testConvertMultiLeftOuterJoinRuleShouldNotCollapse">
+        <Resource name="sql">
+            <![CDATA[select e1.ename from emp e1 left outer join dept d on e1.deptno = d.deptno full outer join emp e2 on d.deptno = e2.deptno]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(ENAME=[$1])
+  LogicalJoin(condition=[=($9, $18)], joinType=[full])
+    LogicalJoin(condition=[=($7, $9)], joinType=[left])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject(ENAME=[$1])
+  MultiJoin(joinFilter=[=($9, $18)], isFullOuterJoin=[true], joinTypes=[[INNER, INNER]], outerJoinConditions=[[NULL, NULL]], projFields=[[ALL, ALL]])
+    MultiJoin(joinFilter=[true], isFullOuterJoin=[false], joinTypes=[[INNER, LEFT]], outerJoinConditions=[[NULL, =($7, $9)]], projFields=[[ALL, ALL]])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testConvertMultiFullOuterJoinRuleShouldNotCollapse">
+        <Resource name="sql">
+            <![CDATA[select e1.ename from emp e1 full outer join dept d on e1.deptno = d.deptno inner join emp e2 on d.deptno = e2.deptno]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(ENAME=[$1])
+  LogicalJoin(condition=[=($9, $18)], joinType=[inner])
+    LogicalJoin(condition=[=($7, $9)], joinType=[full])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject(ENAME=[$1])
+  MultiJoin(joinFilter=[=($9, $18)], isFullOuterJoin=[false], joinTypes=[[INNER, INNER]], outerJoinConditions=[[NULL, NULL]], projFields=[[ALL, ALL]])
+    MultiJoin(joinFilter=[=($7, $9)], isFullOuterJoin=[true], joinTypes=[[INNER, INNER]], outerJoinConditions=[[NULL, NULL]], projFields=[[ALL, ALL]])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testConvertMultiFullOuterJoinRuleShouldNotCollapseLopOptimizeJoinRule">
+        <Resource name="sql">
+            <![CDATA[select e1.ename from emp e1 full outer join dept d on e1.deptno = d.deptno inner join emp e2 on d.deptno = e2.deptno]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(ENAME=[$1])
+  MultiJoin(joinFilter=[=($9, $18)], isFullOuterJoin=[false], joinTypes=[[INNER, INNER]], outerJoinConditions=[[NULL, NULL]], projFields=[[ALL, ALL]])
+    MultiJoin(joinFilter=[=($7, $9)], isFullOuterJoin=[true], joinTypes=[[INNER, INNER]], outerJoinConditions=[[NULL, NULL]], projFields=[[ALL, ALL]])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject(ENAME=[$1])
+  LogicalProject(EMPNO=[$9], ENAME=[$10], JOB=[$11], MGR=[$12], HIREDATE=[$13], SAL=[$14], COMM=[$15], DEPTNO=[$16], SLACKER=[$17], DEPTNO0=[$18], NAME=[$19], EMPNO0=[$0], ENAME0=[$1], JOB0=[$2], MGR0=[$3], HIREDATE0=[$4], SAL0=[$5], COMM0=[$6], DEPTNO1=[$7], SLACKER0=[$8])
+    LogicalJoin(condition=[=($18, $7)], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalJoin(condition=[=($7, $9)], joinType=[full])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testRemoveSemiJoinWithFilter">
         <Resource name="sql">
             <![CDATA[select e.ename from emp e, dept d where e.deptno = d.deptno and e.ename = 'foo']]>
