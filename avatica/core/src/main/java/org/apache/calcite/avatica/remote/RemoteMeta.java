@@ -244,6 +244,7 @@ class RemoteMeta extends MetaImpl {
         });
   }
 
+  @SuppressWarnings("deprecation")
   @Override public ExecuteResult prepareAndExecute(StatementHandle h, String sql, long maxRowCount,
       PrepareCallback callback) throws NoSuchStatementException {
     // The old semantics were that maxRowCount was also treated as the maximum number of
@@ -327,6 +328,7 @@ class RemoteMeta extends MetaImpl {
     }
   }
 
+  @SuppressWarnings("deprecation")
   @Override public ExecuteResult execute(StatementHandle h, List<TypedValue> parameterValues,
       long maxRowCount) throws NoSuchStatementException {
     return execute(h, parameterValues, AvaticaUtils.toSaturatedInt(maxRowCount));

@@ -192,12 +192,14 @@ public class SqlCallBinding extends SqlOperatorBinding {
     return call.getOperandList().get(ordinal).getMonotonicity(scope);
   }
 
+  @SuppressWarnings("deprecation")
   @Override public String getStringLiteralOperand(int ordinal) {
     SqlNode node = call.operand(ordinal);
     final Object o = SqlLiteral.value(node);
     return o instanceof NlsString ? ((NlsString) o).getValue() : null;
   }
 
+  @SuppressWarnings("deprecation")
   @Override public int getIntLiteralOperand(int ordinal) {
     SqlNode node = call.operand(ordinal);
     final Object o = SqlLiteral.value(node);

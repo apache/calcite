@@ -3402,8 +3402,7 @@ public class SqlToRelConverter {
               }, null, false);
         }
         RelDataType multisetType = validator.getValidatedNodeType(call);
-        validator.setValidatedNodeType(
-            list,
+        ((SqlValidatorImpl) validator).setValidatedNodeType(list,
             multisetType.getComponentType());
         input = convertQueryOrInList(usedBb, list, null);
         break;

@@ -159,6 +159,7 @@ abstract class AbstractNamespace implements SqlValidatorNamespace {
     return SqlMonotonicity.NOT_MONOTONIC;
   }
 
+  @SuppressWarnings("deprecation")
   public void makeNullable() {
   }
 

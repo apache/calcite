@@ -53,6 +53,7 @@ public class SqlUserDefinedAggFunction extends SqlAggFunction {
     this.function = function;
   }
 
+  @SuppressWarnings("deprecation")
   public List<RelDataType> getParameterTypes(
       final RelDataTypeFactory typeFactory) {
     return Lists.transform(function.getParameters(),
@@ -63,6 +64,7 @@ public class SqlUserDefinedAggFunction extends SqlAggFunction {
         });
   }
 
+  @SuppressWarnings("deprecation")
   public RelDataType getReturnType(RelDataTypeFactory typeFactory) {
     return function.getReturnType(typeFactory);
   }

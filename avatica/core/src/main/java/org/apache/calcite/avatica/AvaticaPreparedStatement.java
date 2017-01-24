@@ -197,6 +197,7 @@ public abstract class AvaticaPreparedStatement
     getSite(parameterIndex).setAsciiStream(x, length);
   }
 
+  @SuppressWarnings("deprecation")
   public void setUnicodeStream(int parameterIndex, InputStream x, int length)
       throws SQLException {
     getSite(parameterIndex).setUnicodeStream(x, length);

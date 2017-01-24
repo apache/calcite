@@ -704,7 +704,7 @@ public abstract class AbstractCursor implements Cursor {
       }
       BigDecimal decimal = AvaticaSite.toBigDecimal(n);
       if (0 != scale) {
-        return decimal.setScale(scale, BigDecimal.ROUND_UNNECESSARY);
+        return decimal.setScale(scale, RoundingMode.UNNECESSARY);
       }
       return decimal;
     }

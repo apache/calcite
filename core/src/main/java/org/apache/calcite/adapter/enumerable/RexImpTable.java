@@ -65,6 +65,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -1035,7 +1036,7 @@ public class RexImpTable {
           Expressions.constant(divider.intValueExact()));
     }
     final BigDecimal x =
-        multiplier.divide(divider, BigDecimal.ROUND_UNNECESSARY);
+        multiplier.divide(divider, RoundingMode.UNNECESSARY);
     switch (x.compareTo(BigDecimal.ONE)) {
     case 0:
       return e;

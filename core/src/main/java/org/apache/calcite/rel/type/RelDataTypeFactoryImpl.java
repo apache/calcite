@@ -147,7 +147,7 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
     return canonize(kind, fieldNameList, typeList);
   }
 
-  // implement RelDataTypeFactory
+  @SuppressWarnings("deprecation")
   public RelDataType createStructType(
       final RelDataTypeFactory.FieldInfo fieldInfo) {
     return canonize(StructKind.FULLY_QUALIFIED,
@@ -171,21 +171,25 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
         });
   }
 
-  // implement RelDataTypeFactory
   public final RelDataType createStructType(
       final List<? extends Map.Entry<String, RelDataType>> fieldList) {
-    return createStructType(
-        new FieldInfo() {
-          public int getFieldCount() {
-            return fieldList.size();
-          }
-
-          public String getFieldName(int index) {
+    return canonize(StructKind.FULLY_QUALIFIED,
+        new AbstractList<String>() {
+          @Override public String get(int index) {
             return fieldList.get(index).getKey();
           }
 
-          public RelDataType getFieldType(int index) {
+          @Override public int size() {
+            return fieldList.size();
+          }
+        },
+        new AbstractList<RelDataType>() {
+          @Override public RelDataType get(int index) {
             return fieldList.get(index).getValue();
+          }
+
+          @Override public int size() {
+            return fieldList.size();
           }
         });
   }

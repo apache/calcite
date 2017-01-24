@@ -29,6 +29,8 @@ import org.codehaus.janino.Scanner;
 import java.io.IOException;
 import java.io.Serializable;
 import java.io.StringReader;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
 import java.util.Arrays;
 import java.util.List;
 
@@ -58,9 +60,12 @@ public class RexExecutable {
       cbe.cook(new Scanner(null, new StringReader(code)));
       Class c = cbe.getClazz();
       //noinspection unchecked
-      return (Function1<DataContext, Object[]>) c.newInstance();
+      final Constructor<Function1<DataContext, Object[]>> constructor =
+          c.getConstructor();
+      return constructor.newInstance();
     } catch (CompileException | IOException | InstantiationException
-        | IllegalAccessException e) {
+        | IllegalAccessException | InvocationTargetException
+        | NoSuchMethodException e) {
       throw new RuntimeException("While compiling " + reason, e);
     }
   }

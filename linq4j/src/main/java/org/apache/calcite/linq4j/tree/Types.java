@@ -251,8 +251,8 @@ public abstract class Types {
       return className(clazz.getComponentType()) + "[]";
     }
     String className = clazz.getName();
-    if (clazz.getPackage() == Package.getPackage("java.lang")
-        && !clazz.isPrimitive()) {
+    if (!clazz.isPrimitive()
+        && clazz.getPackage().getName().equals("java.lang")) {
       return className.substring("java.lang.".length());
     }
     return className.replace('$', '.');

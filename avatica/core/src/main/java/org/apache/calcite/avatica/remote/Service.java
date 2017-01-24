@@ -1776,7 +1776,7 @@ public interface Service {
         connectionId = msg.getConnectionId();
       }
 
-      Map<String, String> info = msg.getInfo();
+      Map<String, String> info = msg.getInfoMap();
       if (info.isEmpty()) {
         info = null;
       }
@@ -1790,7 +1790,7 @@ public interface Service {
         builder.setConnectionId(connectionId);
       }
       if (null != info) {
-        builder.getMutableInfo().putAll(info);
+        builder.putAllInfo(info);
       }
 
       return builder.build();

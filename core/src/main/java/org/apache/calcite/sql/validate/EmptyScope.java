@@ -80,6 +80,7 @@ class EmptyScope implements SqlValidatorScope {
       boolean deep, Resolved resolved) {
   }
 
+  @SuppressWarnings("deprecation")
   public SqlValidatorNamespace getTableNamespace(List<String> names) {
     SqlValidatorTable table = validator.catalogReader.getTable(names);
     return table != null
@@ -195,6 +196,7 @@ class EmptyScope implements SqlValidatorScope {
     // valid
   }
 
+  @SuppressWarnings("deprecation")
   public Pair<String, SqlValidatorNamespace>
   findQualifyingTableName(String columnName, SqlNode ctx) {
     throw validator.newValidationError(ctx,

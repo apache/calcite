@@ -54,6 +54,7 @@ import com.google.common.collect.Lists;
 
 import java.math.BigDecimal;
 import java.math.MathContext;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
@@ -536,7 +537,7 @@ public class RexBuilder {
             final BigDecimal divider =
                 literal.getTypeName().getEndUnit().multiplier;
             value = value2.multiply(multiplier)
-                .divide(divider, 0, BigDecimal.ROUND_HALF_DOWN);
+                .divide(divider, 0, RoundingMode.HALF_DOWN);
           }
 
           // Not all types are allowed for literals
@@ -663,12 +664,12 @@ public class RexBuilder {
       // E.g. multiplyDivide(e, 1000, 10) ==> e * 100
       return makeCall(SqlStdOperatorTable.MULTIPLY, e,
           makeExactLiteral(
-              multiplier.divide(divider, BigDecimal.ROUND_UNNECESSARY)));
+              multiplier.divide(divider, RoundingMode.UNNECESSARY)));
     case -1:
       // E.g. multiplyDivide(e, 10, 1000) ==> e / 100
       return makeCall(SqlStdOperatorTable.DIVIDE_INTEGER, e,
           makeExactLiteral(
-              divider.divide(multiplier, BigDecimal.ROUND_UNNECESSARY)));
+              divider.divide(multiplier, RoundingMode.UNNECESSARY)));
     default:
       throw new AssertionError(multiplier + "/" + divider);
     }

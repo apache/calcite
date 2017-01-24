@@ -410,6 +410,7 @@ class DruidConnectionImpl implements DruidConnection {
             enumerator.done.set(true);
           }
 
+          @SuppressWarnings("deprecation")
           public void setSourceEnumerable(Enumerable<Row> enumerable)
               throws InterruptedException {
             for (Row row : enumerable) {

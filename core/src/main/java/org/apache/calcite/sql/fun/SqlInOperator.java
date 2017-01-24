@@ -33,6 +33,7 @@ import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.SqlValidator;
+import org.apache.calcite.sql.validate.SqlValidatorImpl;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.util.Litmus;
 
@@ -126,9 +127,7 @@ public class SqlInOperator extends SqlBinaryOperator {
       }
 
       // Record the RHS type for use by SqlToRelConverter.
-      validator.setValidatedNodeType(
-          nodeList,
-          rightType);
+      ((SqlValidatorImpl) validator).setValidatedNodeType(nodeList, rightType);
     } else {
       // Handle the 'IN (query)' form.
       rightType = validator.deriveType(scope, right);

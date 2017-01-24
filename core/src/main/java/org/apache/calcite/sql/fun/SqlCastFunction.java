@@ -37,6 +37,7 @@ import org.apache.calcite.sql.type.SqlOperandCountRanges;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
+import org.apache.calcite.sql.validate.SqlValidatorImpl;
 
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.SetMultimap;
@@ -101,9 +102,9 @@ public class SqlCastFunction extends SqlFunction {
       if (((operand0 instanceof SqlLiteral)
           && (((SqlLiteral) operand0).getValue() == null))
           || (operand0 instanceof SqlDynamicParam)) {
-        callBinding.getValidator().setValidatedNodeType(
-            operand0,
-            ret);
+        final SqlValidatorImpl validator =
+            (SqlValidatorImpl) callBinding.getValidator();
+        validator.setValidatedNodeType(operand0, ret);
       }
     }
     return ret;

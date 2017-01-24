@@ -45,6 +45,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
+import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -448,8 +449,11 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
         instance = null;
       } else {
         try {
-          instance = aggFunction.declaringClass.newInstance();
-        } catch (InstantiationException | IllegalAccessException e) {
+          final Constructor<?> constructor =
+              aggFunction.declaringClass.getConstructor();
+          instance = constructor.newInstance();
+        } catch (InstantiationException | IllegalAccessException
+            | NoSuchMethodException | InvocationTargetException e) {
           throw new RuntimeException(e);
         }
       }

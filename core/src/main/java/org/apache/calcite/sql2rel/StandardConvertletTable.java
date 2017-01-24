@@ -78,6 +78,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -818,7 +819,7 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
         && val.signum() == 1) {
       try {
         final BigDecimal reciprocal =
-            BigDecimal.ONE.divide(val, BigDecimal.ROUND_UNNECESSARY);
+            BigDecimal.ONE.divide(val, RoundingMode.UNNECESSARY);
         return rexBuilder.makeCall(SqlStdOperatorTable.MULTIPLY, res,
             rexBuilder.makeExactLiteral(reciprocal));
       } catch (ArithmeticException e) {

@@ -97,6 +97,7 @@ public abstract class DelegatingNamespace implements SqlValidatorNamespace {
     return namespace.getMonotonicity(columnName);
   }
 
+  @SuppressWarnings("deprecation")
   public void makeNullable() {
   }
 

@@ -427,7 +427,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
     inferUnknownTypes(targetType, scope, expanded);
     final RelDataType type = deriveType(selectScope, expanded);
-    setValidatedNodeTypeImpl(expanded, type);
+    setValidatedNodeType(expanded, type);
     types.add(Pair.of(alias, type));
     return false;
   }
@@ -1481,17 +1481,17 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     return null;
   }
 
-  public void setValidatedNodeType(
-      SqlNode node,
-      RelDataType type) {
-    setValidatedNodeTypeImpl(node, type);
-  }
-
-  public void removeValidatedNodeType(SqlNode node) {
-    nodeToTypeMap.remove(node);
-  }
-
-  void setValidatedNodeTypeImpl(SqlNode node, RelDataType type) {
+  /**
+   * Saves the type of a {@link SqlNode}, now that it has been validated.
+   *
+   * <p>Unlike the base class method, this method is not deprecated.
+   * It is available from within Calcite, but is not part of the public API.
+   *
+   * @param node A SQL parse tree node, never null
+   * @param type Its type; must not be null
+   */
+  @SuppressWarnings("deprecation")
+  public final void setValidatedNodeType(SqlNode node, RelDataType type) {
     Preconditions.checkNotNull(type);
     Preconditions.checkNotNull(node);
     if (type.equals(unknownType)) {
@@ -1500,6 +1500,10 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       return;
     }
     nodeToTypeMap.put(node, type);
+  }
+
+  public void removeValidatedNodeType(SqlNode node) {
+    nodeToTypeMap.remove(node);
   }
 
   public RelDataType deriveType(
@@ -1521,7 +1525,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     Preconditions.checkArgument(
         type != null,
         "SqlValidator.deriveTypeInternal returned null");
-    setValidatedNodeTypeImpl(expr, type);
+    setValidatedNodeType(expr, type);
     return type;
   }
 
@@ -1648,7 +1652,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
                 inferredType.getCharset(),
                 inferredType.getCollation());
       }
-      setValidatedNodeTypeImpl(node, newInferredType);
+      setValidatedNodeType(node, newInferredType);
     } else if (node instanceof SqlNodeList) {
       SqlNodeList nodeList = (SqlNodeList) node;
       if (inferredType.isStruct()) {
@@ -1689,9 +1693,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
             scope,
             caseCall.getElseOperand());
       } else {
-        setValidatedNodeTypeImpl(
-            caseCall.getElseOperand(),
-            returnType);
+        setValidatedNodeType(caseCall.getElseOperand(), returnType);
       }
     } else if (node instanceof SqlCall) {
       final SqlCall call = (SqlCall) node;
@@ -1790,19 +1792,14 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
    *                      this namespace)
    * @param alias         Alias by which parent will refer to this namespace
    * @param ns            Namespace
-   * @param forceNullable Whether to force the type of namespace to be
+   * @param forceNullable Whether to force the type of namespace to be nullable
    */
   protected void registerNamespace(
       SqlValidatorScope usingScope,
       String alias,
       SqlValidatorNamespace ns,
       boolean forceNullable) {
-    if (forceNullable) {
-      ns.makeNullable();
-    }
-    namespaces.put(
-        ns.getNode(),
-        ns);
+    namespaces.put(ns.getNode(), ns);
     if (usingScope != null) {
       usingScope.addChild(ns, alias, forceNullable);
     }
@@ -2609,6 +2606,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     return aggFinder.findAgg(select.getSelectList());
   }
 
+  @SuppressWarnings("deprecation")
   public boolean isAggregate(SqlNode selectNode) {
     return aggFinder.findAgg(selectNode) != null;
   }
@@ -3420,7 +3418,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       final SqlValidatorScope scope = getOrderScope(select);
       inferUnknownTypes(unknownType, scope, newSqlNode);
       final RelDataType type = deriveType(scope, newSqlNode);
-      setValidatedNodeTypeImpl(newSqlNode, type);
+      setValidatedNodeType(newSqlNode, type);
     }
     return newSqlNode;
   }
@@ -3498,7 +3496,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         break;
       }
       final RelDataType type = deriveType(groupScope, groupItem);
-      setValidatedNodeTypeImpl(groupItem, type);
+      setValidatedNodeType(groupItem, type);
     }
   }
 
@@ -3679,7 +3677,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
     final SelectScope scope = (SelectScope) getWhereScope(parentSelect);
     final RelDataType type = deriveType(scope, selectItem);
-    setValidatedNodeTypeImpl(selectItem, type);
+    setValidatedNodeType(selectItem, type);
 
     // we do not want to pass on the RelRecordType returned
     // by the sub query.  Just the type of the single expression

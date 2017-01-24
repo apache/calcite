@@ -371,24 +371,24 @@ public class UtilTest {
    */
   @Test public void testCastingList() {
     final List<Number> numberList = new ArrayList<>();
-    numberList.add(new Integer(1));
+    numberList.add(1);
     numberList.add(null);
-    numberList.add(new Integer(2));
+    numberList.add(2);
     List<Integer> integerList = Util.cast(numberList, Integer.class);
     assertEquals(3, integerList.size());
-    assertEquals(new Integer(2), integerList.get(2));
+    assertEquals(Integer.valueOf(2), integerList.get(2));
 
     // Nulls are OK.
     assertNull(integerList.get(1));
 
     // Can update the underlying list.
     integerList.set(1, 345);
-    assertEquals(new Integer(345), integerList.get(1));
+    assertEquals(Integer.valueOf(345), integerList.get(1));
     integerList.set(1, null);
     assertNull(integerList.get(1));
 
     // Can add a member of the wrong type to the underlying list.
-    numberList.add(new Double(3.1415));
+    numberList.add(3.1415D);
     assertEquals(4, integerList.size());
 
     // Access a member which is of the wrong type.
@@ -1470,11 +1470,12 @@ public class UtilTest {
   }
 
   public void checkHash(double v) {
-    assertThat(new Double(v).hashCode(), is(Utilities.hashCode(v)));
+    assertThat(Double.valueOf(v).hashCode(), is(Utilities.hashCode(v)));
     final long long_ = (long) v;
-    assertThat(new Long(long_).hashCode(), is(Utilities.hashCode(long_)));
+    assertThat(Long.valueOf(long_).hashCode(), is(Utilities.hashCode(long_)));
     final float float_ = (float) v;
-    assertThat(new Float(float_).hashCode(), is(Utilities.hashCode(float_)));
+    assertThat(Float.valueOf(float_).hashCode(),
+        is(Utilities.hashCode(float_)));
     final boolean boolean_ = v != 0;
     assertThat(Boolean.valueOf(boolean_).hashCode(),
         is(Utilities.hashCode(boolean_)));

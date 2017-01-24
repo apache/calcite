@@ -113,13 +113,7 @@ public abstract class UnregisteredDriver implements java.sql.Driver {
   protected static AvaticaFactory instantiateFactory(String factoryClassName) {
     try {
       final Class<?> clazz = Class.forName(factoryClassName);
-      return (AvaticaFactory) clazz.newInstance();
-    } catch (ClassNotFoundException e) {
-      throw handle("Error loading factory " + factoryClassName, e);
-    } catch (IllegalAccessException e) {
-      throw handle("Error loading factory " + factoryClassName, e);
-    } catch (InstantiationException e) {
-      throw handle("Error loading factory " + factoryClassName, e);
+      return (AvaticaFactory) clazz.getConstructor().newInstance();
     } catch (Throwable e) {
       // It is not usually good to catch Throwable. But class loading can fail
       // with serious errors such as java.lang.NoClassDefFoundError
