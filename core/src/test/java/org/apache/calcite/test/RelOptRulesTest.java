@@ -66,6 +66,7 @@ import org.apache.calcite.rel.rules.JoinPushExpressionsRule;
 import org.apache.calcite.rel.rules.JoinPushTransitivePredicatesRule;
 import org.apache.calcite.rel.rules.JoinToMultiJoinRule;
 import org.apache.calcite.rel.rules.JoinUnionTransposeRule;
+import org.apache.calcite.rel.rules.LoptOptimizeJoinRule;
 import org.apache.calcite.rel.rules.ProjectFilterTransposeRule;
 import org.apache.calcite.rel.rules.ProjectJoinTransposeRule;
 import org.apache.calcite.rel.rules.ProjectMergeRule;
@@ -1432,6 +1433,67 @@ public class RelOptRulesTest extends RelOptTestBase {
     checkPlanning(program,
         "select e1.ename from emp e1, dept d, emp e2 "
             + "where e1.deptno = d.deptno and d.deptno = e2.deptno");
+  }
+
+
+  @Test public void testConvertMultiFullOuterJoinRule() throws Exception {
+    HepProgram program = new HepProgramBuilder()
+        .addMatchOrder(HepMatchOrder.BOTTOM_UP)
+        .addRuleInstance(JoinToMultiJoinRule.INSTANCE)
+        .build();
+    checkPlanning(program,
+        "select e1.ename from emp e1 full outer join dept d on e1.deptno = d.deptno "
+            + "full outer join emp e2 on d.deptno = e2.deptno");
+  }
+
+  @Test public void testConvertMultiFullOuterJoinRuleLoptOptimizeJoinRule() throws Exception {
+    HepProgram preProgram = new HepProgramBuilder()
+        .addMatchOrder(HepMatchOrder.BOTTOM_UP)
+        .addRuleInstance(JoinToMultiJoinRule.INSTANCE)
+        .build();
+    HepProgram program = new HepProgramBuilder()
+        .addMatchOrder(HepMatchOrder.BOTTOM_UP)
+        .addRuleInstance(LoptOptimizeJoinRule.INSTANCE)
+        .build();
+    checkPlanning(tester, preProgram, new HepPlanner(program),
+        "select e1.ename from emp e1 full outer join dept d on e1.deptno = d.deptno "
+            + "full outer join emp e2 on d.deptno = e2.deptno");
+  }
+
+
+  @Test public void testConvertMultiFullOuterJoinRuleShouldNotCollapse() throws Exception {
+    HepProgram program = new HepProgramBuilder()
+        .addMatchOrder(HepMatchOrder.BOTTOM_UP)
+        .addRuleInstance(JoinToMultiJoinRule.INSTANCE)
+        .build();
+    checkPlanning(program,
+        "select e1.ename from emp e1 full outer join dept d on e1.deptno = d.deptno "
+            + "inner join emp e2 on d.deptno = e2.deptno");
+  }
+
+  @Test public void testConvertMultiLeftOuterJoinRuleShouldNotCollapse() throws Exception {
+    HepProgram program = new HepProgramBuilder()
+        .addMatchOrder(HepMatchOrder.BOTTOM_UP)
+        .addRuleInstance(JoinToMultiJoinRule.INSTANCE)
+        .build();
+    checkPlanning(program,
+        "select e1.ename from emp e1 left outer join dept d on e1.deptno = d.deptno "
+            + "full outer join emp e2 on d.deptno = e2.deptno");
+  }
+
+  @Test public void testConvertMultiFullOuterJoinRuleShouldNotCollapseLopOptimizeJoinRule()
+      throws Exception {
+    HepProgram preProgram = new HepProgramBuilder()
+        .addMatchOrder(HepMatchOrder.BOTTOM_UP)
+        .addRuleInstance(JoinToMultiJoinRule.INSTANCE)
+        .build();
+    HepProgram program = new HepProgramBuilder()
+        .addMatchOrder(HepMatchOrder.BOTTOM_UP)
+        .addRuleInstance(LoptOptimizeJoinRule.INSTANCE)
+        .build();
+    checkPlanning(tester, preProgram, new HepPlanner(program),
+        "select e1.ename from emp e1 full outer join dept d on e1.deptno = d.deptno "
+            + "inner join emp e2 on d.deptno = e2.deptno");
   }
 
   @Test public void testReduceConstants() throws Exception {

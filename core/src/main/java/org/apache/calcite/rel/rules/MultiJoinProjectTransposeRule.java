@@ -64,7 +64,7 @@ public class MultiJoinProjectTransposeRule extends JoinProjectTransposeRule {
                   operand(MultiJoin.class, any())),
               operand(LogicalProject.class,
                   operand(MultiJoin.class, any()))),
-          "MultiJoinProjectTransposeRule: with two LogicalProject children");
+          "MultiJoinProjectTransposeRule:TwoLogicalProjects");
 
   public static final MultiJoinProjectTransposeRule MULTI_LEFT_PROJECT =
       new MultiJoinProjectTransposeRule(
@@ -72,7 +72,7 @@ public class MultiJoinProjectTransposeRule extends JoinProjectTransposeRule {
               some(
                   operand(LogicalProject.class,
                       operand(MultiJoin.class, any())))),
-          "MultiJoinProjectTransposeRule: with LogicalProject on left");
+          "MultiJoinProjectTransposeRule:LeftLogicalProject");
 
   public static final MultiJoinProjectTransposeRule MULTI_RIGHT_PROJECT =
       new MultiJoinProjectTransposeRule(
@@ -80,7 +80,7 @@ public class MultiJoinProjectTransposeRule extends JoinProjectTransposeRule {
               operand(RelNode.class, any()),
               operand(LogicalProject.class,
                   operand(MultiJoin.class, any()))),
-          "MultiJoinProjectTransposeRule: with LogicalProject on right");
+          "MultiJoinProjectTransposeRule:RightLogicalProject");
 
   //~ Constructors -----------------------------------------------------------
 
