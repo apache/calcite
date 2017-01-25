@@ -802,8 +802,9 @@ public class Util {
     return new AssertionError("Internal error: " + s, e);
   }
 
-  /** As {@link Throwables#throwIfUnchecked(Throwable)}, but we don't require
-   * Guava version 20 yet. */
+  /** As {@link Throwables}{@code .throwIfUnchecked(Throwable)},
+   * which was introduced in Guava 20,
+   * but we don't require Guava version 20 yet. */
   public static void throwIfUnchecked(Throwable throwable) {
     Bug.upgrade("Remove when minimum Guava version is 20");
     checkNotNull(throwable);
