@@ -1172,11 +1172,11 @@ Not implemented:
 
 #### System
 
-Not implemented:
-
-* {fn DATABASE()}
-* {fn IFNULL(value, value)}
-* {fn USER(value, value)}
+| Operator syntax | Description
+|:--------------- |:-----------
+| {fn DATABASE()} | Equivalent to `CURRENT_CATALOG`
+| {fn IFNULL(value1, value2)} | Returns value2 if value1 is null
+| {fn USER()}     | Equivalent to `CURRENT_USER`
 
 #### Conversion
 
