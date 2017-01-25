@@ -434,6 +434,15 @@ public class SqlJdbcFunctionCall extends SqlFunction {
     return super.createCall(functionQualifier, pos, operands);
   }
 
+  @Override public SqlNode rewriteCall(SqlValidator validator,
+      SqlCall call) {
+    if (null == lookupMakeCallObj) {
+      throw validator.newValidationError(call,
+          RESOURCE.functionUndefined(getName()));
+    }
+    return lookupMakeCallObj.rewriteCall(validator, call);
+  }
+
   public SqlCall getLookupCall() {
     if (null == lookupCall) {
       lookupCall =
@@ -550,6 +559,8 @@ public class SqlJdbcFunctionCall extends SqlFunction {
      */
     SqlCall createCall(SqlParserPos pos, SqlNode... operands);
 
+    SqlNode rewriteCall(SqlValidator validator, SqlCall call);
+
     SqlOperator getOperator();
 
     String isValidArgCount(SqlCallBinding binding);
@@ -569,6 +580,10 @@ public class SqlJdbcFunctionCall extends SqlFunction {
 
     public SqlCall createCall(SqlParserPos pos, SqlNode... operands) {
       return operator.createCall(pos, operands);
+    }
+
+    public SqlNode rewriteCall(SqlValidator validator, SqlCall call) {
+      return operator.rewriteCall(validator, call);
     }
 
     public String isValidArgCount(SqlCallBinding binding) {
@@ -718,6 +733,17 @@ public class SqlJdbcFunctionCall extends SqlFunction {
       map.put("NOW", simple(SqlStdOperatorTable.CURRENT_TIMESTAMP));
       map.put("TIMESTAMPADD", simple(SqlStdOperatorTable.TIMESTAMP_ADD));
       map.put("TIMESTAMPDIFF", simple(SqlStdOperatorTable.TIMESTAMP_DIFF));
+
+      map.put("DATABASE", simple(SqlStdOperatorTable.CURRENT_CATALOG));
+      map.put("IFNULL",
+          new SimpleMakeCall(SqlStdOperatorTable.COALESCE) {
+            @Override public SqlCall createCall(SqlParserPos pos,
+                SqlNode... operands) {
+              assert 2 == operands.length;
+              return super.createCall(pos, operands);
+            }
+          });
+      map.put("USER", simple(SqlStdOperatorTable.CURRENT_USER));
       map.put("CONVERT",
           new SimpleMakeCall(SqlStdOperatorTable.CAST) {
             @Override public SqlCall createCall(SqlParserPos pos,
