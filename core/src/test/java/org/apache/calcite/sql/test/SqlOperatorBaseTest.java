@@ -1780,15 +1780,10 @@ public abstract class SqlOperatorBaseTest {
     }
 
     // System Functions
-    if (false) {
-      tester.checkScalar("{fn DATABASE()}", null, "");
-    }
-    if (false) {
-      tester.checkScalar("{fn IFNULL(expression, value)}", null, "");
-    }
-    if (false) {
-      tester.checkScalar("{fn USER()}", null, "");
-    }
+    tester.checkType("{fn DATABASE()}", "VARCHAR(2000) NOT NULL");
+    tester.checkString("{fn IFNULL('a', 'b')}", "a", "CHAR(1) NOT NULL");
+    tester.checkString("{fn USER()}", "sa", "VARCHAR(2000) NOT NULL");
+
 
     // Conversion Functions
     // Legacy JDBC style
@@ -4320,6 +4315,13 @@ public abstract class SqlOperatorBaseTest {
     // By default, the CURRENT_ROLE function returns
     // the empty string because a role has to be set explicitly.
     tester.checkString("CURRENT_ROLE", "", "VARCHAR(2000) NOT NULL");
+  }
+
+  @Test public void testCurrentCatalogFunc() {
+    tester.setFor(SqlStdOperatorTable.CURRENT_CATALOG, VM_FENNEL);
+    // By default, the CURRENT_CATALOG function returns
+    // the empty string because a catalog has to be set explicitly.
+    tester.checkString("CURRENT_CATALOG", "", "VARCHAR(2000) NOT NULL");
   }
 
   @Test public void testLocalTimeFunc() {
