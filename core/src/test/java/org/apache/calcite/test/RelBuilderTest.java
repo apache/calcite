@@ -58,6 +58,7 @@ import java.util.List;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 /**
@@ -1611,6 +1612,26 @@ public class RelBuilderTest {
           + "EMPNO=7876; ENAME=ADAMS; JOB=CLERK; MGR=7788; HIREDATE=1987-05-23; SAL=1100.00; COMM=null; DEPTNO=20\n"
           + "EMPNO=7902; ENAME=FORD; JOB=ANALYST; MGR=7566; HIREDATE=1981-12-03; SAL=3000.00; COMM=null; DEPTNO=20\n";
       assertThat(s, is(result));
+    }
+  }
+
+  /** Test for [CALCITE-1595]. NPE shouldn't be thrown on invalid type combinations. */
+  @Test public void testTypeInferenceValidation() throws Exception {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    // test for a) call(operator, Iterable<RexNode>)
+    try {
+      builder.call(SqlStdOperatorTable.PLUS,
+                   Lists.newArrayList(builder.literal(0), builder.literal("xyz")));
+      fail("Invalid combination of parameter types");
+    } catch (IllegalArgumentException e) {
+      assertTrue(e.getMessage().contains("cannot derive type"));
+    }
+    // test for b) call(operator, RexNode...)
+    try {
+      builder.call(SqlStdOperatorTable.PLUS, builder.literal(0), builder.literal("abc"));
+      fail("Invalid combination of parameter types");
+    } catch (IllegalArgumentException e) {
+      assertTrue(e.getMessage().contains("cannot derive type"));
     }
   }
 }
