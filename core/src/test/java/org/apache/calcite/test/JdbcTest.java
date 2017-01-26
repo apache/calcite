@@ -4679,7 +4679,7 @@ public class JdbcTest {
   @Test public void testNotExistsCorrelated() {
     final String plan = "PLAN="
         + "EnumerableCalc(expr#0..5=[{inputs}], expr#6=[IS NULL($t5)], proj#0..4=[{exprs}], $condition=[$t6])\n"
-        + "  EnumerableCorrelate(correlation=[$cor0], joinType=[LEFT], requiredColumns=[{1}])\n"
+        + "  EnumerableCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{1}])\n"
         + "    EnumerableTableScan(table=[[hr, emps]])\n"
         + "    EnumerableAggregate(group=[{0}])\n"
         + "      EnumerableCalc(expr#0..3=[{inputs}], expr#4=[true], expr#5=[$cor0], expr#6=[$t5.deptno], expr#7=[=($t6, $t0)], i=[$t4], $condition=[$t7])\n"

@@ -1032,7 +1032,7 @@ public class RelBuilderTest {
     // Note that the join filter gets pushed to the right-hand input of
     // LogicalCorrelate
     final String expected = ""
-        + "LogicalCorrelate(correlation=[$cor0], joinType=[LEFT], requiredColumns=[{7}])\n"
+        + "LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{7}])\n"
         + "  LogicalTableScan(table=[[scott, EMP]])\n"
         + "  LogicalFilter(condition=[=($cor0.SAL, 1000)])\n"
         + "    LogicalFilter(condition=[=($0, $cor0.DEPTNO)])\n"

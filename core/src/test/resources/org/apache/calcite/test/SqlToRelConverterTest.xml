@@ -131,7 +131,7 @@ group by deptno]]>
         <Resource name="plan">
             <![CDATA[
 LogicalProject(DEPTNO=[$0], NAME=[$1], I=[$2])
-  LogicalCorrelate(correlation=[$cor0], joinType=[INNER], requiredColumns=[{0}])
+  LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{0}])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
     LogicalTableFunctionScan(invocation=[RAMP($cor0.DEPTNO)], rowType=[RecordType(INTEGER I)])
 ]]>
@@ -144,7 +144,7 @@ LogicalProject(DEPTNO=[$0], NAME=[$1], I=[$2])
         <Resource name="plan">
             <![CDATA[
 LogicalProject(DEPTNO=[$0], NAME=[$1], I=[$2])
-  LogicalCorrelate(correlation=[$cor0], joinType=[INNER], requiredColumns=[{0}])
+  LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{0}])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
     LogicalTableFunctionScan(invocation=[RAMP($cor0.DEPTNO)], rowType=[RecordType(INTEGER I)])
 ]]>
@@ -283,7 +283,7 @@ LogicalProject(EXPR$0=['a'], EXPR$1=[$SLICE($2)])
         <Resource name="plan">
             <![CDATA[
 LogicalProject(EXPR$0=['abc'], EXPR$1=[$SLICE($9)])
-  LogicalCorrelate(correlation=[$cor0], joinType=[INNER], requiredColumns=[{5, 7}])
+  LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{5, 7}])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     Collect(field=[EXPR$0])
       LogicalUnion(all=[true])
@@ -301,7 +301,7 @@ LogicalProject(EXPR$0=['abc'], EXPR$1=[$SLICE($9)])
         <Resource name="plan">
             <![CDATA[
 LogicalProject(DEPTNO=[$0], NAME=[$1], EMPSET=[$2])
-  LogicalCorrelate(correlation=[$cor0], joinType=[INNER], requiredColumns=[{0}])
+  LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{0}])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
     Collect(field=[EXPR$0])
       LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
@@ -339,7 +339,7 @@ where exists (select 1 from dept where deptno=55)]]>
             <![CDATA[
 LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
   LogicalFilter(condition=[IS NOT NULL($9)])
-    LogicalCorrelate(correlation=[$cor0], joinType=[LEFT], requiredColumns=[{7}])
+    LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{7}])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
       LogicalAggregate(group=[{}], agg#0=[MIN($0)])
         LogicalProject($f0=[true])
@@ -359,7 +359,7 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
 LogicalProject(EXPR$0=[$0])
   Uncollect
     LogicalProject(EXPR$0=[$SLICE($2)])
-      LogicalCorrelate(correlation=[$cor0], joinType=[INNER], requiredColumns=[{0}])
+      LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{0}])
         LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
         Collect(field=[EXPR$0])
           LogicalUnion(all=[true])
@@ -375,7 +375,7 @@ LogicalProject(EXPR$0=[$0])
         <Resource name="plan">
             <![CDATA[
 LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], NAME=[$10])
-  LogicalCorrelate(correlation=[$cor0], joinType=[INNER], requiredColumns=[{7}])
+  LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{7}])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalProject(DEPTNO=[$0], NAME=[$1])
       LogicalFilter(condition=[=($cor0.DEPTNO, $0)])
@@ -1445,7 +1445,7 @@ where exists (
             <![CDATA[
 LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
   LogicalFilter(condition=[IS NOT NULL($9)])
-    LogicalCorrelate(correlation=[$cor1], joinType=[LEFT], requiredColumns=[{7}])
+    LogicalCorrelate(correlation=[$cor1], joinType=[left], requiredColumns=[{7}])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
       LogicalAggregate(group=[{}], agg#0=[MIN($0)])
         LogicalProject($f0=[true])
@@ -1552,14 +1552,14 @@ from (select 2+deptno d2, 3+deptno d3 from emp) e
             <![CDATA[
 LogicalProject(D2=[$0], D3=[$1])
   LogicalFilter(condition=[IS NOT NULL($2)])
-    LogicalCorrelate(correlation=[$cor3], joinType=[LEFT], requiredColumns=[{0, 1}])
+    LogicalCorrelate(correlation=[$cor3], joinType=[left], requiredColumns=[{0, 1}])
       LogicalProject(D2=[+(2, $7)], D3=[+(3, $7)])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
       LogicalAggregate(group=[{}], agg#0=[MIN($0)])
         LogicalProject($f0=[true])
           LogicalProject(EXPR$0=[1])
             LogicalFilter(condition=[AND(=($0, $cor3.D2), IS NOT NULL($1))])
-              LogicalCorrelate(correlation=[$cor0], joinType=[LEFT], requiredColumns=[{0}])
+              LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{0}])
                 LogicalProject(D1=[+($0, 1)])
                   LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
                 LogicalAggregate(group=[{}], agg#0=[MIN($0)])
@@ -1683,7 +1683,7 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
             <![CDATA[
 LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
   LogicalFilter(condition=[IS NOT NULL($9)])
-    LogicalCorrelate(correlation=[$cor0], joinType=[LEFT], requiredColumns=[{7}])
+    LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{7}])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
       LogicalAggregate(group=[{}], agg#0=[MIN($0)])
         LogicalProject($f0=[true])
@@ -1726,7 +1726,7 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
         <Resource name="plan">
             <![CDATA[
 LogicalProject(DEPTNO=[$0], NAME=[$1], EXPR$0=[$2])
-  LogicalCorrelate(correlation=[$cor0], joinType=[INNER], requiredColumns=[{0}])
+  LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{0}])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
     Uncollect
       LogicalProject(EXPR$0=[$SLICE($0)])
@@ -3619,7 +3619,7 @@ LogicalProject(D2=[$0], D3=[$1])
         <Resource name="plan">
             <![CDATA[
 LogicalProject(DEPTNO=[$0], NAME=[$1], EXPR$0=[$2])
-  LogicalCorrelate(correlation=[$cor0], joinType=[INNER], requiredColumns=[{0}])
+  LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{0}])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
     Uncollect
       LogicalProject(EXPR$0=[$SLICE($0)])
@@ -3679,7 +3679,7 @@ LogicalSort(fetch=[1])
 LogicalProject(EXPR$0=[$0])
   Uncollect
     LogicalProject(EXPR$0=[$SLICE($2)])
-      LogicalCorrelate(correlation=[$cor0], joinType=[INNER], requiredColumns=[{0}])
+      LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{0}])
         LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
         Collect(field=[EXPR$0])
           LogicalUnion(all=[true])
@@ -3731,7 +3731,7 @@ from dept]]>
         <Resource name="plan">
             <![CDATA[
 LogicalProject(DEPTNO=[$0], NAME=[$1], EMPSET=[$2])
-  LogicalCorrelate(correlation=[$cor0], joinType=[INNER], requiredColumns=[{0}])
+  LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{0}])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
     Collect(field=[EXPR$0])
       LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
@@ -3747,7 +3747,7 @@ LogicalProject(DEPTNO=[$0], NAME=[$1], EMPSET=[$2])
         <Resource name="plan">
             <![CDATA[
 LogicalProject(EXPR$0=['abc'], EXPR$1=[$SLICE($9)])
-  LogicalCorrelate(correlation=[$cor0], joinType=[INNER], requiredColumns=[{5, 7}])
+  LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{5, 7}])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     Collect(field=[EXPR$0])
       LogicalUnion(all=[true])
@@ -3767,7 +3767,7 @@ LogicalProject(EXPR$0=['abc'], EXPR$1=[$SLICE($9)])
             <![CDATA[
 LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
   LogicalFilter(condition=[NOT(IS NOT NULL($9))])
-    LogicalCorrelate(correlation=[$cor0], joinType=[LEFT], requiredColumns=[{7}])
+    LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{7}])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
       LogicalAggregate(group=[{}], agg#0=[MIN($0)])
         LogicalProject($f0=[true])
@@ -3951,7 +3951,7 @@ select * from t where exists (
 LogicalProject(A=[$0], B=[$1])
   LogicalProject(EXPR$0=[$0], EXPR$1=[$1], $f0=[$2])
     LogicalFilter(condition=[IS NOT NULL($2)])
-      LogicalCorrelate(correlation=[$cor0], joinType=[LEFT], requiredColumns=[{0}])
+      LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{0}])
         LogicalProject(EXPR$0=[$0], EXPR$1=[$1])
           LogicalValues(tuples=[[{ 1, 2 }]])
         LogicalAggregate(group=[{}], agg#0=[MIN($0)])
