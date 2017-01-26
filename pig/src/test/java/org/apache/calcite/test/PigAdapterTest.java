@@ -1,0 +1,282 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to you under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.calcite.test;
+
+import org.apache.calcite.adapter.pig.PigAggregate;
+import org.apache.calcite.adapter.pig.PigFilter;
+import org.apache.calcite.adapter.pig.PigRel;
+import org.apache.calcite.adapter.pig.PigRelFactories;
+import org.apache.calcite.adapter.pig.PigTable;
+import org.apache.calcite.plan.Contexts;
+import org.apache.calcite.plan.RelOptPlanner;
+import org.apache.calcite.plan.RelOptRule;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.JoinRelType;
+import org.apache.calcite.rel.rules.FilterAggregateTransposeRule;
+import org.apache.calcite.rel.rules.FilterJoinRule;
+import org.apache.calcite.rel.rules.FilterJoinRule.FilterIntoJoinRule;
+import org.apache.calcite.schema.Schema;
+import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.tools.FrameworkConfig;
+import org.apache.calcite.tools.Frameworks;
+import org.apache.calcite.tools.RelBuilder;
+import org.apache.calcite.tools.RelBuilderFactory;
+
+import org.apache.pig.pigunit.PigTest;
+
+import org.junit.Test;
+
+import java.io.File;
+import java.net.URISyntaxException;
+
+import static org.apache.calcite.adapter.pig.PigRules.getAllPigOptRules;
+import static org.apache.calcite.rel.rules.FilterJoinRule.TRUE_PREDICATE;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.EQUALS;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.GREATER_THAN;
+
+import static org.apache.pig.data.DataType.CHARARRAY;
+
+import static org.junit.Assert.assertEquals;
+
+/**
+ * Tests for the {@code org.apache.calcite.adapter.pig} package.
+ */
+public class PigAdapterTest {
+
+  @Test
+  public void testScanAndFilter() throws Exception {
+    final SchemaPlus schema = createTestSchema();
+    final RelBuilder builder = createRelBuilder(schema);
+    final RelNode node = builder.scan("t")
+        .filter(builder.call(GREATER_THAN, builder.field("tc0"), builder.literal("abc"))).build();
+    final RelNode optimized = optimizeWithVolcano(node, schema);
+    assertScriptAndResults("t", getPigScript(optimized),
+        "t = LOAD '" + getFullPathForTestDataFile("data.txt")
+            + "' USING PigStorage() AS (tc0:chararray, tc1:chararray);\n"
+            + "t = FILTER t BY (tc0 > 'abc');",
+        new String[] { "(b,2)", "(c,3)" });
+  }
+
+  @Test
+  public void testImplWithMltipleFilters() {
+    final SchemaPlus schema = createTestSchema();
+    final RelBuilder builder = createRelBuilder(schema);
+    final RelNode node = builder.scan("t")
+        .filter(
+            builder.and(builder.call(GREATER_THAN, builder.field("tc0"), builder.literal("abc")),
+                builder.call(EQUALS, builder.field("tc1"), builder.literal("3"))))
+        .build();
+    final RelNode optimized = optimizeWithVolcano(node, schema);
+    assertScriptAndResults("t", getPigScript(optimized),
+        "t = LOAD '" + getFullPathForTestDataFile("data.txt")
+            + "' USING PigStorage() AS (tc0:chararray, tc1:chararray);\n"
+            + "t = FILTER t BY (tc0 > 'abc') AND (tc1 == '3');",
+        new String[] { "(c,3)" });
+  }
+
+  @Test
+  public void testImplWithGroupByAndCount() {
+    final SchemaPlus schema = createTestSchema();
+    final RelBuilder builder = createRelBuilder(schema);
+    final RelNode node = builder.scan("t")
+        .aggregate(builder.groupKey("tc0"), builder.count(false, "c", builder.field("tc1")))
+        .build();
+    final RelNode optimized = optimizeWithVolcano(node, schema);
+    assertScriptAndResults("t", getPigScript(optimized),
+        "t = LOAD '" + getFullPathForTestDataFile("data.txt")
+            + "' USING PigStorage() AS (tc0:chararray, tc1:chararray);\n"
+            + "t = GROUP t BY (tc0);\n"
+            + "t = FOREACH t {\n"
+            + "  GENERATE group AS tc0, COUNT(t.tc1) AS c;\n"
+            + "};",
+        new String[] { "(a,1)", "(b,1)", "(c,1)" });
+  }
+
+  @Test
+  public void testImplWithCountWithoutGroupBy() {
+    final SchemaPlus schema = createTestSchema();
+    final RelBuilder builder = createRelBuilder(schema);
+    final RelNode node = builder.scan("t")
+        .aggregate(builder.groupKey(), builder.count(false, "c", builder.field("tc0"))).build();
+    final RelNode optimized = optimizeWithVolcano(node, schema);
+    assertScriptAndResults("t", getPigScript(optimized),
+        "t = LOAD '" + getFullPathForTestDataFile("data.txt")
+            + "' USING PigStorage() AS (tc0:chararray, tc1:chararray);\n"
+            + "t = GROUP t ALL;\n"
+            + "t = FOREACH t {\n"
+            + "  GENERATE COUNT(t.tc0) AS c;\n"
+            + "};",
+        new String[] { "(3)" });
+  }
+
+  @Test
+  public void testImplWithGroupByMultipleFields() {
+    final SchemaPlus schema = createTestSchema();
+    final RelBuilder builder = createRelBuilder(schema);
+    final RelNode node = builder.scan("t")
+        .aggregate(builder.groupKey("tc1", "tc0"), builder.count(false, "c", builder.field("tc1")))
+        .build();
+    final RelNode optimized = optimizeWithVolcano(node, schema);
+    assertScriptAndResults("t", getPigScript(optimized),
+        "t = LOAD '" + getFullPathForTestDataFile("data.txt")
+            + "' USING PigStorage() AS (tc0:chararray, tc1:chararray);\n"
+            + "t = GROUP t BY (tc0, tc1);\n"
+            + "t = FOREACH t {\n"
+            + "  GENERATE group.tc0 AS tc0, group.tc1 AS tc1, COUNT(t.tc1) AS c;\n"
+            + "};",
+        new String[] { "(a,1,1)", "(b,2,1)", "(c,3,1)" });
+  }
+
+  @Test
+  public void testImplWithGroupByCountDistinct() {
+    final SchemaPlus schema = createTestSchema();
+    final RelBuilder builder = createRelBuilder(schema);
+    final RelNode node = builder.scan("t")
+        .aggregate(builder.groupKey("tc1", "tc0"), builder.count(true, "c", builder.field("tc1")))
+        .build();
+    final RelNode optimized = optimizeWithVolcano(node, schema);
+    assertScriptAndResults("t", getPigScript(optimized),
+        "t = LOAD '" + getFullPathForTestDataFile("data.txt")
+            + "' USING PigStorage() AS (tc0:chararray, tc1:chararray);\n"
+            + "t = GROUP t BY (tc0, tc1);\n"
+            + "t = FOREACH t {\n"
+            + "  tc1_DISTINCT = DISTINCT t.tc1;\n"
+            + "  GENERATE group.tc0 AS tc0, group.tc1 AS tc1, COUNT(tc1_DISTINCT) AS c;\n"
+            + "};",
+        new String[] { "(a,1,1)", "(b,2,1)", "(c,3,1)" });
+  }
+
+  @Test
+  public void testImplWithJoin() throws Exception {
+    final SchemaPlus schema = createTestSchema();
+    final RelBuilder builder = createRelBuilder(schema);
+    final RelNode node = builder.scan("t").scan("s")
+        .join(JoinRelType.INNER,
+            builder.equals(builder.field(2, 0, "tc1"), builder.field(2, 1, "sc0")))
+        .filter(builder.call(GREATER_THAN, builder.field("tc0"), builder.literal("a"))).build();
+    final RelNode optimized = optimizeWithVolcano(node, schema);
+    assertScriptAndResults("t", getPigScript(optimized),
+        "t = LOAD '" + getFullPathForTestDataFile("data.txt")
+            + "' USING PigStorage() AS (tc0:chararray, tc1:chararray);\n"
+            + "t = FILTER t BY (tc0 > 'a');\n"
+            + "s = LOAD '"
+            + getFullPathForTestDataFile("data2.txt")
+            + "' USING PigStorage() AS (sc0:chararray, sc1:chararray);\n"
+            + "t = JOIN t BY tc1 , s BY sc0;",
+        new String[] { "(b,2,2,label2)" });
+  }
+
+  @Test
+  public void testImplWithJoinAndGroupBy() throws Exception {
+    final SchemaPlus schema = createTestSchema();
+    final RelBuilder builder = createRelBuilder(schema);
+    final RelNode node = builder.scan("t").scan("s")
+        .join(JoinRelType.LEFT,
+            builder.equals(builder.field(2, 0, "tc1"), builder.field(2, 1, "sc0")))
+        .filter(builder.call(GREATER_THAN, builder.field("tc0"), builder.literal("abc")))
+        .aggregate(builder.groupKey("tc1"), builder.count(false, "c", builder.field("sc1")))
+        .build();
+    final RelNode optimized = optimizeWithVolcano(node, schema);
+    assertScriptAndResults("t", getPigScript(optimized),
+        "t = LOAD '" + getFullPathForTestDataFile("data.txt")
+            + "' USING PigStorage() AS (tc0:chararray, tc1:chararray);\n"
+            + "t = FILTER t BY (tc0 > 'abc');\n"
+            + "s = LOAD '"
+            + getFullPathForTestDataFile("data2.txt")
+            + "' USING PigStorage() AS (sc0:chararray, sc1:chararray);\n"
+            + "t = JOIN t BY tc1 LEFT, s BY sc0;\n"
+            + "t = GROUP t BY (tc1);\n"
+            + "t = FOREACH t {\n"
+            + "  GENERATE group AS tc1, COUNT(t.sc1) AS c;\n"
+            + "};",
+        new String[] { "(2,1)", "(3,0)" });
+  }
+
+  private SchemaPlus createTestSchema() {
+    SchemaPlus result = Frameworks.createRootSchema(false);
+    result.add("t",
+        new PigTable(getFullPathForTestDataFile("data.txt"),
+        new String[] { "tc0", "tc1" }, new byte[] { CHARARRAY, CHARARRAY }));
+    result.add("s",
+        new PigTable(getFullPathForTestDataFile("data2.txt"),
+        new String[] { "sc0", "sc1" }, new byte[] { CHARARRAY, CHARARRAY }));
+    return result;
+  }
+
+  private String getFullPathForTestDataFile(String fileName) {
+    try {
+      return new File(PigAdapterTest.class.getResource("/" + fileName).toURI()).getAbsolutePath();
+    } catch (URISyntaxException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  private RelBuilder createRelBuilder(SchemaPlus schema) {
+    final FrameworkConfig config = Frameworks.newConfigBuilder().defaultSchema(schema)
+        .context(
+            Contexts.of(
+                new PigRelFactories.PigTableScanFactory(schema),
+                new PigRelFactories.PigFilterFactory(), new PigRelFactories.PigAggregateFactory(),
+                new PigRelFactories.PigJoinFactory()))
+        .build();
+    return RelBuilder.create(config);
+  }
+
+  private RelNode optimizeWithVolcano(RelNode root, Schema schema) {
+    RelOptPlanner planner = getVolcanoPlanner(root, schema);
+    return planner.findBestExp();
+  }
+
+  private RelOptPlanner getVolcanoPlanner(RelNode root, Schema schema) {
+    final RelBuilderFactory builderFactory = getBuilderFactory(schema);
+    final RelOptPlanner planner = root.getCluster().getPlanner(); // VolcanoPlanner
+    for (RelOptRule r : getAllPigOptRules(schema)) {
+      planner.addRule(r);
+    }
+    planner.removeRule(FilterAggregateTransposeRule.INSTANCE);
+    planner.removeRule(FilterJoinRule.FILTER_ON_JOIN);
+    planner.addRule(
+        new FilterAggregateTransposeRule(PigFilter.class, builderFactory, PigAggregate.class));
+    planner.addRule(new FilterIntoJoinRule(true, builderFactory, TRUE_PREDICATE));
+    planner.setRoot(root);
+    return planner;
+  }
+
+  private RelBuilderFactory getBuilderFactory(Schema schema) {
+    return RelBuilder.proto(PigRelFactories.getAllPigRelFactories(schema));
+  }
+
+  private void assertScriptAndResults(String relAliasForStore, String script, String expectedScript,
+      String[] expectedResults) {
+    try {
+      assertEquals(expectedScript, script);
+      script = script + "\nSTORE " + relAliasForStore + " INTO 'myoutput';";
+      PigTest pigTest = new PigTest(script.split("[\\r\\n]+"));
+      pigTest.assertOutputAnyOrder(expectedResults);
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  private String getPigScript(RelNode root) {
+    PigRel.Implementor impl = new PigRel.Implementor();
+    impl.visitChild(0, root);
+    return impl.getScript();
+  }
+}
+
+// End PigAdapterTest.java
