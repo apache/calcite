@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.rel.rel2sql;
 
+import org.apache.calcite.plan.RelOptLattice;
+import org.apache.calcite.plan.RelOptMaterialization;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.plan.hep.HepPlanner;
@@ -579,7 +581,9 @@ public class RelToSqlConverterTest {
           FlatLists.append(transforms, new Function<RelNode, RelNode>() {
             public RelNode apply(RelNode r) {
               Program program = Programs.of(ruleSet);
-              return program.run(relOptPlanner, r, r.getTraitSet());
+              return program.run(relOptPlanner, r, r.getTraitSet(),
+                  ImmutableList.<RelOptMaterialization>of(),
+                  ImmutableList.<RelOptLattice>of());
             }
           }));
     }
