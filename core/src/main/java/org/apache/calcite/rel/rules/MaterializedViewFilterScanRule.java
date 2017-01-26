@@ -16,7 +16,7 @@
  */
 package org.apache.calcite.rel.rules;
 
-import org.apache.calcite.plan.MaterializationOptUtil;
+import org.apache.calcite.plan.RelOptMaterializations;
 import org.apache.calcite.plan.MaterializedViewSubstitutionVisitor;
 import org.apache.calcite.plan.RelOptMaterialization;
 import org.apache.calcite.plan.RelOptPlanner;
@@ -79,7 +79,7 @@ public class MaterializedViewFilterScanRule extends RelOptRule {
       RelNode root = filter.copy(filter.getTraitSet(),
           Collections.singletonList((RelNode) scan));
       List<RelOptMaterialization> applicableMaterializations =
-          MaterializationOptUtil.getApplicableMaterializations(root, materializations);
+          RelOptMaterializations.getApplicableMaterializations(root, materializations);
       for (RelOptMaterialization materialization : applicableMaterializations) {
         if (RelOptUtil.areRowTypesEqual(scan.getRowType(),
             materialization.queryRel.getRowType(), false)) {

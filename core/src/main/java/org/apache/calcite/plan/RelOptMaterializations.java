@@ -49,10 +49,10 @@ import java.util.Set;
  * <code>MaterializationOptUtil</code> defines static utility methods for using
  * materialized views and lattices for queries.
  */
-public abstract class MaterializationOptUtil {
+public abstract class RelOptMaterializations {
 
   /**
-   * Return a list of RelNode transformed from all possible combination of
+   * Returns a list of RelNode transformed from all possible combination of
    * materialized view uses. Big queries will likely have more than one
    * transformed RelNode, e.g., (t1 group by c1) join (t2 group by c2).
    * @param rel               the original RelNode
@@ -60,7 +60,7 @@ public abstract class MaterializationOptUtil {
    * @return the list of transformed RelNode together with their corresponding
    *         materialized views used in the transformation.
    */
-  public static List<Pair<RelNode, List<RelOptMaterialization>>> useMaterializations(
+  public static List<Pair<RelNode, List<RelOptMaterialization>>> useMaterializedViews(
       final RelNode rel, List<RelOptMaterialization> materializations) {
     final List<RelOptMaterialization> applicableMaterializations =
         getApplicableMaterializations(rel, materializations);
@@ -91,7 +91,7 @@ public abstract class MaterializationOptUtil {
   }
 
   /**
-   * Return a list of RelNode transformed from all possible lattice uses.
+   * Returns a list of RelNode transformed from all possible lattice uses.
    * @param rel       the original RelNode
    * @param lattices  the lattice list
    * @return the list of transformed RelNode together with their corresponding
@@ -129,7 +129,7 @@ public abstract class MaterializationOptUtil {
   }
 
   /**
-   * Return a list of materializations that can potentially be used by the query.
+   * Returns a list of materializations that can potentially be used by the query.
    */
   public static List<RelOptMaterialization> getApplicableMaterializations(
       RelNode rel, List<RelOptMaterialization> materializations) {

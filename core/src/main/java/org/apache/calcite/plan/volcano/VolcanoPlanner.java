@@ -23,7 +23,7 @@ import org.apache.calcite.plan.AbstractRelOptPlanner;
 import org.apache.calcite.plan.Context;
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.ConventionTraitDef;
-import org.apache.calcite.plan.MaterializationOptUtil;
+import org.apache.calcite.plan.RelOptMaterializations;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptCostFactory;
 import org.apache.calcite.plan.RelOptLattice;
@@ -348,7 +348,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
 
     // Register rels using materialized views.
     final List<Pair<RelNode, List<RelOptMaterialization>>> materializationUses =
-        MaterializationOptUtil.useMaterializations(originalRoot, materializations);
+        RelOptMaterializations.useMaterializedViews(originalRoot, materializations);
     for (Pair<RelNode, List<RelOptMaterialization>> use : materializationUses) {
       RelNode rel = use.left;
       Hook.SUB.run(rel);
@@ -359,7 +359,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     // in root rel transformation but can potentially be useful.
     final Set<RelOptMaterialization> applicableMaterializations =
         new HashSet<>(
-            MaterializationOptUtil.getApplicableMaterializations(
+            RelOptMaterializations.getApplicableMaterializations(
                 originalRoot, materializations));
     for (Pair<RelNode, List<RelOptMaterialization>> use : materializationUses) {
       applicableMaterializations.removeAll(use.right);
@@ -376,7 +376,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
 
     // Register rels using lattices.
     final List<Pair<RelNode, RelOptLattice>> latticeUses =
-        MaterializationOptUtil.useLattices(
+        RelOptMaterializations.useLattices(
             originalRoot, ImmutableList.copyOf(latticeByName.values()));
     if (!latticeUses.isEmpty()) {
       RelNode rel = latticeUses.get(0).left;

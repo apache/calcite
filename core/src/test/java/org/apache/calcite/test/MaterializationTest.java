@@ -916,7 +916,7 @@ public class MaterializationTest {
     checkMaterializeWithRules(m, q, rules);
   }
 
-  @Test public void testSubquery() {
+  @Test public void testSubQuery() {
     String q = "select \"empid\", \"deptno\", \"salary\" from \"emps\" e1\n"
             + "where \"empid\" = (\n"
             + "  select max(\"empid\") from \"emps\"\n"

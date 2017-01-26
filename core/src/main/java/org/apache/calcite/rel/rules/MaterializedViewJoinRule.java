@@ -16,7 +16,7 @@
  */
 package org.apache.calcite.rel.rules;
 
-import org.apache.calcite.plan.MaterializationOptUtil;
+import org.apache.calcite.plan.RelOptMaterializations;
 import org.apache.calcite.plan.RelOptMaterialization;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptRule;
@@ -154,7 +154,7 @@ public class MaterializedViewJoinRule extends RelOptRule {
             : ImmutableList.<RelOptMaterialization>of();
     if (!materializations.isEmpty()) {
       List<RelOptMaterialization> applicableMaterializations =
-          MaterializationOptUtil.getApplicableMaterializations(join, materializations);
+          RelOptMaterializations.getApplicableMaterializations(join, materializations);
 
       // Prepare a planner to convert views to MultiJoins
       HepPlanner hepPlanner =
