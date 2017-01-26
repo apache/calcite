@@ -34,10 +34,15 @@ presenting the data as tables within a schema.
 * [File adapter](file.html) (<a href="{{ site.apiRoot }}/org/apache/calcite/adapter/file/package-summary.html">calcite-file</a>)
 * JDBC adapter (part of <a href="{{ site.apiRoot }}/org/apache/calcite/adapter/jdbc/package-summary.html">calcite-core</a>)
 * MongoDB adapter (<a href="{{ site.apiRoot }}/org/apache/calcite/adapter/mongodb/package-summary.html">calcite-mongodb</a>)
+* [Pig adapter](pig.html) (<a href="{{ site.apiRoot }}/org/apache/calcite/adapter/pig/package-summary.html">calcite-pig</a>)
 * Solr cloud adapter (<a href="https://github.com/bluejoe2008/solr-sql">solr-sql</a>)
 * Spark adapter (<a href="{{ site.apiRoot }}/org/apache/calcite/adapter/spark/package-summary.html">calcite-spark</a>)
 * Splunk adapter (<a href="{{ site.apiRoot }}/org/apache/calcite/adapter/splunk/package-summary.html">calcite-splunk</a>)
 * Eclipse Memory Analyzer (MAT) adapter (<a href="https://github.com/vlsi/mat-calcite-plugin">mat-calcite-plugin</a>)
+
+### Other language interfaces
+
+* Piglet (<a href="{{ site.apiRoot }}/org/apache/calcite/piglet/package-summary.html">calcite-piglet</a>) runs queries in a subset of <a href="https://pig.apache.org/docs/r0.7.0/piglatin_ref1.html">Pig Latin</a>
 
 ## Engines
 
