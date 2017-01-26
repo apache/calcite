@@ -23,12 +23,12 @@ import org.apache.calcite.plan.AbstractRelOptPlanner;
 import org.apache.calcite.plan.Context;
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.ConventionTraitDef;
-import org.apache.calcite.plan.RelOptMaterializations;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptCostFactory;
 import org.apache.calcite.plan.RelOptLattice;
 import org.apache.calcite.plan.RelOptListener;
 import org.apache.calcite.plan.RelOptMaterialization;
+import org.apache.calcite.plan.RelOptMaterializations;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
@@ -439,6 +439,8 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     this.relImportances.clear();
     this.ruleQueue.clear();
     this.ruleNames.clear();
+    this.materializations.clear();
+    this.latticeByName.clear();
   }
 
   public List<RelOptRule> getRules() {

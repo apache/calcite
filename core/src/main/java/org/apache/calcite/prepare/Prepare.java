@@ -53,7 +53,6 @@ import org.apache.calcite.sql2rel.SqlToRelConverter;
 import org.apache.calcite.tools.Program;
 import org.apache.calcite.tools.Programs;
 import org.apache.calcite.util.Holder;
-import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.TryThreadLocal;
 import org.apache.calcite.util.trace.CalciteTimingTracer;
 import org.apache.calcite.util.trace.CalciteTrace;
@@ -151,8 +150,9 @@ public abstract class Prepare {
     }
 
     final RelTraitSet desiredTraits = getDesiredRootTraitSet(root);
-    final Program program = getProgram(materializationList, latticeList);
-    final RelNode rootRel4 = program.run(planner, root.rel, desiredTraits);
+    final Program program = getProgram();
+    final RelNode rootRel4 = program.run(
+        planner, root.rel, desiredTraits, materializationList, latticeList);
     if (LOGGER.isDebugEnabled()) {
       LOGGER.debug("Plan after physical tweaks: {}",
           RelOptUtil.toString(rootRel4, SqlExplainLevel.ALL_ATTRIBUTES));
@@ -161,16 +161,15 @@ public abstract class Prepare {
     return root.withRel(rootRel4);
   }
 
-  protected Program getProgram(List<RelOptMaterialization> materializations,
-      List<RelOptLattice> lattices) {
+  protected Program getProgram() {
     // Allow a test to override the default program.
     final Holder<Program> holder = Holder.of(null);
-    Hook.PROGRAM.run(Pair.of(Pair.of(materializations, lattices), holder));
+    Hook.PROGRAM.run(holder);
     if (holder.get() != null) {
       return holder.get();
     }
 
-    return Programs.standard(materializations, lattices);
+    return Programs.standard();
   }
 
   protected RelTraitSet getDesiredRootTraitSet(RelRoot root) {

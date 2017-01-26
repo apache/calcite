@@ -207,7 +207,9 @@ public class RelOptMaterialization {
             AggregateFilterTransposeRule.INSTANCE),
         false,
         DefaultRelMetadataProvider.INSTANCE);
-    return program.run(null, rel2, null);
+    return program.run(null, rel2, null,
+        ImmutableList.<RelOptMaterialization>of(),
+        ImmutableList.<RelOptLattice>of());
   }
 
   /** A table scan and optional project mapping and filter condition. */
@@ -282,7 +284,9 @@ public class RelOptMaterialization {
           RelOptUtil.dumpPlan("before", rel, SqlExplainFormat.TEXT,
               SqlExplainLevel.DIGEST_ATTRIBUTES));
     }
-    final RelNode rel2 = program.run(null, rel, null);
+    final RelNode rel2 = program.run(null, rel, null,
+        ImmutableList.<RelOptMaterialization>of(),
+        ImmutableList.<RelOptLattice>of());
     if (CalcitePrepareImpl.DEBUG) {
       System.out.println(
           RelOptUtil.dumpPlan("after", rel2, SqlExplainFormat.TEXT,
