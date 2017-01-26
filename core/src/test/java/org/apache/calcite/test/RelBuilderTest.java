@@ -1613,6 +1613,31 @@ public class RelBuilderTest {
       assertThat(s, is(result));
     }
   }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1595">[CALCITE-1595]
+   * RelBuilder.call throws NullPointerException if argument types are
+   * invalid</a>. */
+  @Test public void testTypeInferenceValidation() throws Exception {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    // test for a) call(operator, Iterable<RexNode>)
+    final RexNode arg0 = builder.literal(0);
+    final RexNode arg1 = builder.literal("xyz");
+    try {
+      builder.call(SqlStdOperatorTable.PLUS, Lists.newArrayList(arg0, arg1));
+      fail("Invalid combination of parameter types");
+    } catch (IllegalArgumentException e) {
+      assertThat(e.getMessage(), containsString("cannot derive type"));
+    }
+
+    // test for b) call(operator, RexNode...)
+    try {
+      builder.call(SqlStdOperatorTable.PLUS, arg0, arg1);
+      fail("Invalid combination of parameter types");
+    } catch (IllegalArgumentException e) {
+      assertThat(e.getMessage(), containsString("cannot derive type"));
+    }
+  }
 }
 
 // End RelBuilderTest.java

@@ -513,8 +513,12 @@ public class RelBuilder {
 
   /** Creates a call to a scalar operator. */
   public RexNode call(SqlOperator operator, RexNode... operands) {
+    return call(operator, ImmutableList.copyOf(operands));
+  }
+
+  /** Creates a call to a scalar operator. */
+  private RexNode call(SqlOperator operator, List<RexNode> operandList) {
     final RexBuilder builder = cluster.getRexBuilder();
-    final List<RexNode> operandList = ImmutableList.copyOf(operands);
     final RelDataType type = builder.deriveReturnType(operator, operandList);
     if (type == null) {
       throw new IllegalArgumentException("cannot derive type: " + operator
@@ -526,8 +530,7 @@ public class RelBuilder {
   /** Creates a call to a scalar operator. */
   public RexNode call(SqlOperator operator,
       Iterable<? extends RexNode> operands) {
-    return cluster.getRexBuilder().makeCall(operator,
-        ImmutableList.copyOf(operands));
+    return call(operator, ImmutableList.copyOf(operands));
   }
 
   /** Creates an AND. */
