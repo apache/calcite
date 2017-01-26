@@ -707,7 +707,17 @@ public class SqlJdbcFunctionCall extends SqlFunction {
                   operands[0]);
             }
           });
+      map.put("YEAR", simple(SqlStdOperatorTable.YEAR));
       map.put("QUARTER", simple(SqlStdOperatorTable.QUARTER));
+      map.put("MONTH", simple(SqlStdOperatorTable.MONTH));
+      map.put("WEEK", simple(SqlStdOperatorTable.WEEK));
+      map.put("DAYOFYEAR", simple(SqlStdOperatorTable.DAYOFYEAR));
+      map.put("DAYOFMONTH", simple(SqlStdOperatorTable.DAYOFMONTH));
+      map.put("DAYOFWEEK", simple(SqlStdOperatorTable.DAYOFWEEK));
+      map.put("HOUR", simple(SqlStdOperatorTable.HOUR));
+      map.put("MINUTE", simple(SqlStdOperatorTable.MINUTE));
+      map.put("SECOND", simple(SqlStdOperatorTable.SECOND));
+
       map.put("RTRIM",
           new SimpleMakeCall(SqlStdOperatorTable.TRIM) {
             @Override public SqlCall createCall(SqlParserPos pos,
