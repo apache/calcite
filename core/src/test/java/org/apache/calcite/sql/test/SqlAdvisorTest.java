@@ -149,6 +149,7 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
           "KEYWORD(FLOOR)",
           "KEYWORD(FUSION)",
           "KEYWORD(GROUPING)",
+          "KEYWORD(HOUR)",
           "KEYWORD(INTERVAL)",
           "KEYWORD(LAST_VALUE)",
           "KEYWORD(LN)",
@@ -157,7 +158,9 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
           "KEYWORD(LOWER)",
           "KEYWORD(MAX)",
           "KEYWORD(MIN)",
+          "KEYWORD(MINUTE)",
           "KEYWORD(MOD)",
+          "KEYWORD(MONTH)",
           "KEYWORD(MULTISET)",
           "KEYWORD(NEW)",
           "KEYWORD(NEXT)",
@@ -174,6 +177,7 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
           "KEYWORD(REGR_SYY)",
           "KEYWORD(ROW)",
           "KEYWORD(ROW_NUMBER)",
+          "KEYWORD(SECOND)",
           "KEYWORD(SESSION_USER)",
           "KEYWORD(SPECIFIC)",
           "KEYWORD(SQRT)",
@@ -191,7 +195,8 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
           "KEYWORD(UPPER)",
           "KEYWORD(USER)",
           "KEYWORD(VAR_POP)",
-          "KEYWORD(VAR_SAMP)");
+          "KEYWORD(VAR_SAMP)",
+          "KEYWORD(YEAR)");
 
   protected static final List<String> SELECT_KEYWORDS =
       Arrays.asList(
