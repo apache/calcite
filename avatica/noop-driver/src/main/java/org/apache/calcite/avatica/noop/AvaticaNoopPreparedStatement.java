@@ -243,6 +243,7 @@ public class AvaticaNoopPreparedStatement implements PreparedStatement {
   @Override public void setAsciiStream(int parameterIndex, InputStream x, int length)
       throws SQLException {}
 
+  @SuppressWarnings("deprecation")
   @Override public void setUnicodeStream(int parameterIndex, InputStream x, int length)
       throws SQLException {}
 

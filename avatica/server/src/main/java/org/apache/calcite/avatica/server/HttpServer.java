@@ -142,7 +142,7 @@ public class HttpServer {
     this.sslFactory = sslFactory;
   }
 
-  private static AvaticaHandler wrapJettyHandler(Handler handler) {
+  static AvaticaHandler wrapJettyHandler(Handler handler) {
     if (handler instanceof AvaticaHandler) {
       return (AvaticaHandler) handler;
     }

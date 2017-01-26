@@ -369,6 +369,7 @@ public class Interpreter extends AbstractEnumerable<Object[]>
     public void end() throws InterruptedException {
     }
 
+    @SuppressWarnings("deprecation")
     @Override public void setSourceEnumerable(Enumerable<Row> enumerable)
         throws InterruptedException {
       // just copy over the source into the local list

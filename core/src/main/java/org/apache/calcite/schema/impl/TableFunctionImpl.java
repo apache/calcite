@@ -35,6 +35,7 @@ import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.TableFunction;
 import org.apache.calcite.util.BuiltInMethod;
 
+import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -143,7 +144,9 @@ public class TableFunctionImpl extends ReflectiveFunctionBase implements
     try {
       Object o = null;
       if (!Modifier.isStatic(method.getModifiers())) {
-        o = method.getDeclaringClass().newInstance();
+        final Constructor<?> constructor =
+            method.getDeclaringClass().getConstructor();
+        o = constructor.newInstance();
       }
       //noinspection unchecked
       final Object table = method.invoke(o, arguments.toArray());
@@ -152,10 +155,9 @@ public class TableFunctionImpl extends ReflectiveFunctionBase implements
       throw RESOURCE.illegalArgumentForTableFunctionCall(
           method.toString(),
           Arrays.toString(method.getParameterTypes()),
-          arguments.toString()
-      ).ex(e);
+          arguments.toString()).ex(e);
     } catch (IllegalAccessException | InvocationTargetException
-        | InstantiationException e) {
+        | InstantiationException | NoSuchMethodException e) {
       throw new RuntimeException(e);
     }
   }

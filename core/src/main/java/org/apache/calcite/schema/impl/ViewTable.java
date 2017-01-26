@@ -42,7 +42,6 @@ import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.TableMacro;
 import org.apache.calcite.schema.TranslatableTable;
 import org.apache.calcite.util.ImmutableIntList;
-import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
@@ -134,9 +133,9 @@ public class ViewTable
 
       root = root.withRel(RelOptUtil.createCastRel(root.rel, rowType, true));
       return root;
-    } catch (Throwable e) {
-      throw Util.newInternal(
-          e, "Error while parsing view definition:  " + queryString);
+    } catch (Exception e) {
+      throw new RuntimeException("Error while parsing view definition: "
+          + queryString, e);
     }
   }
 

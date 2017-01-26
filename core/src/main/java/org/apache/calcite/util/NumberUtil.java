@@ -18,6 +18,7 @@ package org.apache.calcite.util;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.math.RoundingMode;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
 
@@ -81,7 +82,7 @@ public class NumberUtil {
 
   public static BigDecimal rescaleBigDecimal(BigDecimal bd, int scale) {
     if (bd != null) {
-      bd = bd.setScale(scale, BigDecimal.ROUND_HALF_UP);
+      bd = bd.setScale(scale, RoundingMode.HALF_UP);
     }
     return bd;
   }

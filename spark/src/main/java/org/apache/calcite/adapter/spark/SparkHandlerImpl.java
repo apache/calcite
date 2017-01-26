@@ -31,6 +31,8 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.Serializable;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
 import java.util.Calendar;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -124,16 +126,14 @@ public class SparkHandlerImpl implements CalcitePrepare.SparkHandler {
       compiler.getArgs().setSource(source, file.getAbsolutePath());
       compiler.getArgs().setFullClassName(className);
       compiler.compile();
-      Class<?> clazz = Class.forName(className);
-      Object o = clazz.newInstance();
-      return (ArrayBindable) o;
-    } catch (IOException e) {
-      throw new RuntimeException(e);
-    } catch (ClassNotFoundException e) {
-      throw new RuntimeException(e);
-    } catch (InstantiationException e) {
-      throw new RuntimeException(e);
-    } catch (IllegalAccessException e) {
+      @SuppressWarnings("unchecked")
+      final Class<ArrayBindable> clazz =
+          (Class<ArrayBindable>) Class.forName(className);
+      final Constructor<ArrayBindable> constructor = clazz.getConstructor();
+      return constructor.newInstance();
+    } catch (IOException | ClassNotFoundException | InstantiationException
+        | IllegalAccessException | NoSuchMethodException
+        | InvocationTargetException e) {
       throw new RuntimeException(e);
     }
   }

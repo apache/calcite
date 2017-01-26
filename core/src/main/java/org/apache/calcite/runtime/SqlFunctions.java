@@ -724,12 +724,12 @@ public class SqlFunctions {
 
   public static int divide(int b0, BigDecimal b1) {
     return BigDecimal.valueOf(b0)
-        .divide(b1, BigDecimal.ROUND_HALF_DOWN).intValue();
+        .divide(b1, RoundingMode.HALF_DOWN).intValue();
   }
 
   public static long divide(long b0, BigDecimal b1) {
     return BigDecimal.valueOf(b0)
-        .divide(b1, BigDecimal.ROUND_HALF_DOWN).longValue();
+        .divide(b1, RoundingMode.HALF_DOWN).longValue();
   }
 
   // *
@@ -917,7 +917,7 @@ public class SqlFunctions {
   }
 
   public static BigDecimal floor(BigDecimal b0) {
-    return b0.setScale(0, BigDecimal.ROUND_FLOOR);
+    return b0.setScale(0, RoundingMode.FLOOR);
   }
 
   /** SQL <code>FLOOR</code> operator applied to byte values. */
@@ -978,7 +978,7 @@ public class SqlFunctions {
   }
 
   public static BigDecimal ceil(BigDecimal b0) {
-    return b0.setScale(0, BigDecimal.ROUND_CEILING);
+    return b0.setScale(0, RoundingMode.CEILING);
   }
 
   /** SQL <code>CEIL</code> operator applied to byte values. */
@@ -1537,6 +1537,7 @@ public class SqlFunctions {
     return o instanceof Integer ? (Integer) o
         : o instanceof Number ? toInt((Number) o)
         : o instanceof String ? toInt((String) o)
+        : o instanceof java.util.Date ? toInt((java.util.Date) o)
         : (Integer) cannotConvert(o, int.class);
   }
 
@@ -2177,7 +2178,7 @@ public class SqlFunctions {
         i += a.length;
       }
       if (withOrdinality) {
-        flatElements[i] = (E) new Integer(++ordinality); // 1-based
+        flatElements[i] = (E) Integer.valueOf(++ordinality); // 1-based
       }
       return FlatLists.ofComparable(list);
     }

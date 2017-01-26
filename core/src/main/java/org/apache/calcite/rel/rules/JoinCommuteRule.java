@@ -34,7 +34,6 @@ import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
-import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
@@ -100,6 +99,10 @@ public class JoinCommuteRule extends RelOptRule {
   }
 
   /**
+   * Returns a relational expression with the inputs switched round. Does not
+   * modify <code>join</code>. Returns null if the join cannot be swapped (for
+   * example, because it is an outer join).
+   *
    * @param join           join to be swapped
    * @param swapOuterJoins whether outer joins should be swapped
    * @return swapped join if swapping possible; else null
@@ -220,8 +223,7 @@ public class JoinCommuteRule extends RelOptRule {
               rightFields.get(index).getType(),
               index);
         }
-        throw Util.newInternal("Bad field offset: index="
-            + var.getIndex()
+        throw new AssertionError("Bad field offset: index=" + var.getIndex()
             + ", leftFieldCount=" + leftFields.size()
             + ", rightFieldCount=" + rightFields.size());
       } else {

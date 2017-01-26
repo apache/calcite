@@ -31,7 +31,6 @@ import org.apache.calcite.schema.impl.AbstractSchema;
 import org.apache.calcite.schema.impl.AbstractTableQueryable;
 
 import com.google.common.base.Function;
-import com.google.common.base.Throwables;
 
 import org.junit.Ignore;
 import org.junit.Test;
@@ -262,7 +261,7 @@ public class JdbcFrontLinqBackTest {
               }
               return null;
             } catch (SQLException e) {
-              throw Throwables.propagate(e);
+              throw new RuntimeException(e);
             }
           }
         });

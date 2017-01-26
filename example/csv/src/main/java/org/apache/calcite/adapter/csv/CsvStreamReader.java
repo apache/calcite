@@ -23,8 +23,6 @@ import org.apache.commons.io.input.TailerListenerAdapter;
 import au.com.bytecode.opencsv.CSVParser;
 import au.com.bytecode.opencsv.CSVReader;
 
-import com.google.common.base.Throwables;
-
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
@@ -88,7 +86,7 @@ class CsvStreamReader extends CSVReader implements Closeable {
       // wait for tailer to capture data
       Thread.sleep(DEFAULT_MONITOR_DELAY);
     } catch (InterruptedException e) {
-      throw Throwables.propagate(e);
+      throw new RuntimeException(e);
     }
   }
 

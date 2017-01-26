@@ -575,6 +575,7 @@ public class CalciteMetaImpl extends MetaImpl {
     return h;
   }
 
+  @SuppressWarnings("deprecation")
   @Override public ExecuteResult prepareAndExecute(StatementHandle h,
       String sql, long maxRowCount, PrepareCallback callback)
       throws NoSuchStatementException {
@@ -629,6 +630,7 @@ public class CalciteMetaImpl extends MetaImpl {
     return new Meta.Frame(offset, done, rows1);
   }
 
+  @SuppressWarnings("deprecation")
   @Override public ExecuteResult execute(StatementHandle h,
       List<TypedValue> parameterValues, long maxRowCount)
       throws NoSuchStatementException {

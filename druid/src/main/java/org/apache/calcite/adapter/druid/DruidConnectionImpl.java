@@ -26,6 +26,7 @@ import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.prepare.CalcitePrepareImpl;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.Holder;
+import org.apache.calcite.util.Util;
 
 import static org.apache.calcite.runtime.HttpUtils.post;
 
@@ -36,7 +37,6 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.type.CollectionType;
 import com.google.common.base.Preconditions;
-import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
@@ -120,7 +120,7 @@ class DruidConnectionImpl implements DruidConnection {
         System.out.println("Response: " + new String(bytes));
         in = new ByteArrayInputStream(bytes);
       } catch (IOException e) {
-        throw Throwables.propagate(e);
+        throw new RuntimeException(e);
       }
     }
 
@@ -239,7 +239,7 @@ class DruidConnectionImpl implements DruidConnection {
         }
       }
     } catch (IOException | InterruptedException e) {
-      throw Throwables.propagate(e);
+      throw new RuntimeException(e);
     }
   }
 
@@ -410,6 +410,7 @@ class DruidConnectionImpl implements DruidConnection {
             enumerator.done.set(true);
           }
 
+          @SuppressWarnings("deprecation")
           public void setSourceEnumerable(Enumerable<Row> enumerable)
               throws InterruptedException {
             for (Row row : enumerable) {
@@ -483,7 +484,7 @@ class DruidConnectionImpl implements DruidConnection {
         }
       }
     } catch (IOException e) {
-      throw Throwables.propagate(e);
+      throw new RuntimeException(e);
     }
   }
 
@@ -505,7 +506,7 @@ class DruidConnectionImpl implements DruidConnection {
       final List<String> list = mapper.readValue(in, listType);
       return ImmutableSet.copyOf(list);
     } catch (IOException e) {
-      throw Throwables.propagate(e);
+      throw new RuntimeException(e);
     }
   }
 
@@ -517,7 +518,7 @@ class DruidConnectionImpl implements DruidConnection {
         System.out.println("Response: " + new String(bytes));
         in = new ByteArrayInputStream(bytes);
       } catch (IOException e) {
-        throw Throwables.propagate(e);
+        throw new RuntimeException(e);
       }
     }
     return in;
@@ -559,10 +560,11 @@ class DruidConnectionImpl implements DruidConnection {
     public void reset() {}
 
     public void close() {
-      final Throwable throwable = throwableHolder.get();
-      if (throwable != null) {
+      final Throwable e = throwableHolder.get();
+      if (e != null) {
         throwableHolder.set(null);
-        throw Throwables.propagate(throwable);
+        Util.throwIfUnchecked(e);
+        throw new RuntimeException(e);
       }
     }
   }

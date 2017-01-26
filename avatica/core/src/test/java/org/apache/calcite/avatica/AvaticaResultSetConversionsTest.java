@@ -85,6 +85,7 @@ public class AvaticaResultSetConversionsTest {
       throw new UnsupportedOperationException();
     }
 
+    @SuppressWarnings("deprecation")
     @Override public ExecuteResult prepareAndExecute(StatementHandle h, String sql,
         long maxRowCount, PrepareCallback callback) throws NoSuchStatementException {
       throw new UnsupportedOperationException();
@@ -190,6 +191,7 @@ public class AvaticaResultSetConversionsTest {
       throw new UnsupportedOperationException();
     }
 
+    @SuppressWarnings("deprecation")
     @Override public ExecuteResult execute(StatementHandle h, List<TypedValue> parameterValues,
         long maxRowCount) throws NoSuchStatementException {
       throw new UnsupportedOperationException();

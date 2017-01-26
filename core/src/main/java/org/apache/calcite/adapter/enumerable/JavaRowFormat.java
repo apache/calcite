@@ -20,7 +20,9 @@ import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.interpreter.Row;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
+import org.apache.calcite.linq4j.tree.IndexExpression;
 import org.apache.calcite.linq4j.tree.MemberExpression;
+import org.apache.calcite.linq4j.tree.MethodCallExpression;
 import org.apache.calcite.linq4j.tree.Types;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.runtime.FlatLists;
@@ -58,16 +60,14 @@ public enum JavaRowFormat {
       }
     }
 
-    @Override public MemberExpression field(Expression expression, int field,
-        Type fieldType) {
+    public MemberExpression field(Expression expression, int field,
+        Type fromType, Type fieldType) {
       final Type type = expression.getType();
       if (type instanceof Types.RecordType) {
         Types.RecordType recordType = (Types.RecordType) type;
         Types.RecordField recordField =
             recordType.getRecordFields().get(field);
-        return Expressions.field(
-            expression,
-            recordField.getDeclaringClass(),
+        return Expressions.field(expression, recordField.getDeclaringClass(),
             recordField.getName());
       } else {
         return Expressions.field(expression, Types.nthField(field, type));
@@ -89,13 +89,12 @@ public enum JavaRowFormat {
       return javaRowClass(typeFactory, type);
     }
 
-    public Expression record(
-        Type javaRowClass, List<Expression> expressions) {
+    public Expression record(Type javaRowClass, List<Expression> expressions) {
       assert expressions.size() == 1;
       return expressions.get(0);
     }
 
-    @Override public Expression field(Expression expression, int field,
+    public Expression field(Expression expression, int field, Type fromType,
         Type fieldType) {
       assert field == 0;
       return expression;
@@ -178,13 +177,14 @@ public enum JavaRowFormat {
       }
     }
 
-    @Override public Expression field(Expression expression, int field,
+    public Expression field(Expression expression, int field, Type fromType,
         Type fieldType) {
-      return RexToLixTranslator.convert(
-          Expressions.call(expression,
-              BuiltInMethod.LIST_GET.method,
-              Expressions.constant(field)),
-          fieldType);
+      final MethodCallExpression e = Expressions.call(expression,
+          BuiltInMethod.LIST_GET.method, Expressions.constant(field));
+      if (fromType == null) {
+        fromType = e.getType();
+      }
+      return RexToLixTranslator.convert(e, fromType, fieldType);
     }
   },
 
@@ -206,13 +206,14 @@ public enum JavaRowFormat {
       return Expressions.call(BuiltInMethod.ROW_AS_COPY.method, expressions);
     }
 
-    @Override public Expression field(Expression expression, int field,
+    public Expression field(Expression expression, int field, Type fromType,
         Type fieldType) {
-      return RexToLixTranslator.convert(
-          Expressions.call(expression,
-              BuiltInMethod.ROW_VALUE.method,
-              Expressions.constant(field)),
-          fieldType);
+      final Expression e = Expressions.call(expression,
+          BuiltInMethod.ROW_VALUE.method, Expressions.constant(field));
+      if (fromType == null) {
+        fromType = e.getType();
+      }
+      return RexToLixTranslator.convert(e, fromType, fieldType);
     }
   },
 
@@ -236,11 +237,14 @@ public enum JavaRowFormat {
       return Expressions.call(BuiltInMethod.ARRAY_COMPARER.method);
     }
 
-    @Override public Expression field(Expression expression, int field,
+    public Expression field(Expression expression, int field, Type fromType,
         Type fieldType) {
-      return RexToLixTranslator.convert(
-          Expressions.arrayIndex(expression, Expressions.constant(field)),
-          fieldType);
+      final IndexExpression e = Expressions.arrayIndex(expression,
+          Expressions.constant(field));
+      if (fromType == null) {
+        fromType = e.getType();
+      }
+      return RexToLixTranslator.convert(e, fromType, fieldType);
     }
   };
 
@@ -280,8 +284,13 @@ public enum JavaRowFormat {
     return null;
   }
 
+  /** Returns a reference to a particular field.
+   *
+   * <p>{@code fromType} may be null; if null, uses the natural type of the
+   * field.
+   */
   public abstract Expression field(Expression expression, int field,
-      Type fieldType);
+      Type fromType, Type fieldType);
 }
 
 // End JavaRowFormat.java

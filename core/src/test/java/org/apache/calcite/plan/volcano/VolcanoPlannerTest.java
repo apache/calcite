@@ -31,7 +31,6 @@ import org.apache.calcite.rel.convert.ConverterRule;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.rules.ProjectRemoveRule;
 import org.apache.calcite.rex.RexInputRef;
-import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
@@ -520,12 +519,10 @@ public class VolcanoPlannerTest {
               operand(PhysLeafRel.class, any())));
     }
 
-    // implement RelOptRule
-    public Convention getOutConvention() {
+    @Override public Convention getOutConvention() {
       return PHYS_CALLING_CONVENTION;
     }
 
-    // implement RelOptRule
     public void onMatch(RelOptRuleCall call) {
       NoneSingleRel singleRel = call.rel(0);
       RelNode childRel = call.rel(1);
@@ -546,12 +543,10 @@ public class VolcanoPlannerTest {
       super(operand(LogicalProject.class, any()));
     }
 
-    // implement RelOptRule
-    public Convention getOutConvention() {
+    @Override public Convention getOutConvention() {
       return PHYS_CALLING_CONVENTION;
     }
 
-    // implement RelOptRule
     public void onMatch(RelOptRuleCall call) {
       final LogicalProject project = call.rel(0);
       RelNode childRel = project.getInput();
@@ -571,12 +566,10 @@ public class VolcanoPlannerTest {
               operand(PhysLeafRel.class, any())));
     }
 
-    // implement RelOptRule
-    public Convention getOutConvention() {
+    @Override public Convention getOutConvention() {
       return PHYS_CALLING_CONVENTION;
     }
 
-    // implement RelOptRule
     public void onMatch(RelOptRuleCall call) {
       PhysSingleRel singleRel = call.rel(0);
       PhysLeafRel leafRel = call.rel(1);
@@ -596,12 +589,10 @@ public class VolcanoPlannerTest {
               operand(PhysLeafRel.class, any())));
     }
 
-    // implement RelOptRule
     public Convention getOutConvention() {
       return PHYS_CALLING_CONVENTION;
     }
 
-    // implement RelOptRule
     public void onMatch(RelOptRuleCall call) {
       NoneSingleRel singleRel = call.rel(0);
       PhysLeafRel leafRel = call.rel(1);
@@ -628,18 +619,15 @@ public class VolcanoPlannerTest {
       eventList.add(event);
     }
 
-    // implement RelOptListener
     public void relChosen(RelChosenEvent event) {
       recordEvent(event);
     }
 
-    // implement RelOptListener
     public void relDiscarded(RelDiscardedEvent event) {
-      // Volcano is quite a packrat--it never discards anything!
-      throw Util.newInternal(event.toString());
+      // Volcano is quite a pack rat--it never discards anything!
+      throw new AssertionError(event);
     }
 
-    // implement RelOptListener
     public void relEquivalenceFound(RelEquivalenceEvent event) {
       if (!event.isPhysical()) {
         return;
@@ -647,12 +635,10 @@ public class VolcanoPlannerTest {
       recordEvent(event);
     }
 
-    // implement RelOptListener
     public void ruleAttempted(RuleAttemptedEvent event) {
       recordEvent(event);
     }
 
-    // implement RelOptListener
     public void ruleProductionSucceeded(RuleProductionEvent event) {
       recordEvent(event);
     }

@@ -71,10 +71,12 @@ public class RexCallBinding extends SqlOperatorBinding {
 
   //~ Methods ----------------------------------------------------------------
 
+  @SuppressWarnings("deprecation")
   @Override public String getStringLiteralOperand(int ordinal) {
     return RexLiteral.stringValue(operands.get(ordinal));
   }
 
+  @SuppressWarnings("deprecation")
   @Override public int getIntLiteralOperand(int ordinal) {
     return RexLiteral.intValue(operands.get(ordinal));
   }

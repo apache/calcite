@@ -127,6 +127,7 @@ public abstract class ListScope extends DelegatingScope {
     parent.findAliases(result);
   }
 
+  @SuppressWarnings("deprecation")
   @Override public Pair<String, SqlValidatorNamespace>
   findQualifyingTableName(final String columnName, SqlNode ctx) {
     final SqlNameMatcher nameMatcher = validator.catalogReader.nameMatcher();
@@ -134,7 +135,6 @@ public abstract class ListScope extends DelegatingScope {
         findQualifyingTables(columnName, nameMatcher);
     switch (map.size()) {
     case 0:
-      //noinspection deprecation
       return parent.findQualifyingTableName(columnName, ctx);
     case 1:
       final Map.Entry<String, ScopeChild> entry =

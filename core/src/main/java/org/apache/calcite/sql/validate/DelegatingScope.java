@@ -173,6 +173,7 @@ public abstract class DelegatingScope implements SqlValidatorScope {
     parent.findAliases(result);
   }
 
+  @SuppressWarnings("deprecation")
   public Pair<String, SqlValidatorNamespace>
   findQualifyingTableName(String columnName, SqlNode ctx) {
     //noinspection deprecation
@@ -197,6 +198,7 @@ public abstract class DelegatingScope implements SqlValidatorScope {
     return parent.nullifyType(node, type);
   }
 
+  @SuppressWarnings("deprecation")
   public SqlValidatorNamespace getTableNamespace(List<String> names) {
     return parent.getTableNamespace(names);
   }

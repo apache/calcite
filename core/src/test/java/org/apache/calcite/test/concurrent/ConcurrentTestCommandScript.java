@@ -28,6 +28,7 @@ import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.io.StringReader;
 import java.io.StringWriter;
+import java.lang.reflect.Constructor;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -1197,14 +1198,15 @@ public class ConcurrentTestCommandScript
 
     private void plugin(String pluginName) throws IOException {
       try {
-        Class<?> pluginClass = Class.forName(pluginName);
-        ConcurrentTestPlugin plugin =
-            (ConcurrentTestPlugin) pluginClass.newInstance();
+        @SuppressWarnings("unchecked")
+        Class<ConcurrentTestPlugin> pluginClass =
+            (Class<ConcurrentTestPlugin>) Class.forName(pluginName);
+        final Constructor<ConcurrentTestPlugin> constructor =
+            pluginClass.getConstructor();
+        final ConcurrentTestPlugin plugin = constructor.newInstance();
         plugins.add(plugin);
-        addExtraCommands(
-            plugin.getSupportedThreadCommands(), THREAD_STATE);
-        addExtraCommands(
-            plugin.getSupportedThreadCommands(), REPEAT_STATE);
+        addExtraCommands(plugin.getSupportedThreadCommands(), THREAD_STATE);
+        addExtraCommands(plugin.getSupportedThreadCommands(), REPEAT_STATE);
         for (String commandName : plugin.getSupportedThreadCommands()) {
           pluginForCommand.put(commandName, plugin);
         }

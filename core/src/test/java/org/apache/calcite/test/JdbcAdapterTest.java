@@ -22,7 +22,6 @@ import org.apache.calcite.test.CalciteAssert.AssertThat;
 import org.apache.calcite.test.CalciteAssert.DatabaseInstance;
 
 import com.google.common.base.Function;
-import com.google.common.base.Throwables;
 
 import org.hsqldb.jdbcDriver;
 
@@ -361,6 +360,18 @@ public class JdbcAdapterTest {
         .returnsCount(1);
   }
 
+  @Test public void testJoinCartesian() {
+    final String sql = "SELECT *\n"
+        + "FROM Scott.dept, Scott.emp";
+    CalciteAssert.model(JdbcTest.SCOTT_MODEL).query(sql).returnsCount(56);
+  }
+
+  @Test public void testJoinCartesianCount() {
+    final String sql = "SELECT count(*) as c\n"
+        + "FROM Scott.dept, Scott.emp";
+    CalciteAssert.model(JdbcTest.SCOTT_MODEL).query(sql).returns("C=56\n");
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-657">[CALCITE-657]
    * NullPointerException when executing JdbcAggregate implement method</a>. */
@@ -579,7 +590,7 @@ public class JdbcAdapterTest {
                   assertFalse(CalciteAssert.toString(resultSet).isEmpty());
                   return null;
                 } catch (SQLException e) {
-                  throw Throwables.propagate(e);
+                  throw new RuntimeException(e);
                 }
               }
             });
@@ -677,7 +688,7 @@ public class JdbcAdapterTest {
                   .planUpdateHasSql(jdbcSql, 1);
               return null;
             } catch (SQLException e) {
-              throw Throwables.propagate(e);
+              throw new RuntimeException(e);
             }
           }
         });
@@ -713,7 +724,7 @@ public class JdbcAdapterTest {
                   .planUpdateHasSql(jdbcSql, 2);
               return null;
             } catch (SQLException e) {
-              throw Throwables.propagate(e);
+              throw new RuntimeException(e);
             }
           }
         });
@@ -753,7 +764,7 @@ public class JdbcAdapterTest {
               .planUpdateHasSql(jdbcSql, 1);
           return null;
         } catch (SQLException e) {
-          throw Throwables.propagate(e);
+          throw new RuntimeException(e);
         }
       }
     });
@@ -783,7 +794,7 @@ public class JdbcAdapterTest {
               .planUpdateHasSql(jdbcSql, 1);
           return null;
         } catch (SQLException e) {
-          throw Throwables.propagate(e);
+          throw new RuntimeException(e);
         }
       }
     });
@@ -810,7 +821,7 @@ public class JdbcAdapterTest {
               .planUpdateHasSql(jdbcSql, 1);
           return null;
         } catch (SQLException e) {
-          throw Throwables.propagate(e);
+          throw new RuntimeException(e);
         }
       }
     });

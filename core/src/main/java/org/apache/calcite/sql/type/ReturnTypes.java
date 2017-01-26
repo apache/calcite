@@ -28,7 +28,6 @@ import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.sql.SqlOperatorBinding;
 import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.util.Glossary;
-import org.apache.calcite.util.Util;
 
 import com.google.common.base.Preconditions;
 
@@ -627,14 +626,12 @@ public abstract class ReturnTypes {
               .createSqlType(typeName, typePrecision);
           if (null != pickedCollation) {
             RelDataType pickedType;
-            if (argType0.getCollation().equals(
-                pickedCollation)) {
+            if (argType0.getCollation().equals(pickedCollation)) {
               pickedType = argType0;
-            } else if (argType1.getCollation().equals(
-                pickedCollation)) {
+            } else if (argType1.getCollation().equals(pickedCollation)) {
               pickedType = argType1;
             } else {
-              throw Util.newInternal("should never come here");
+              throw new AssertionError("should never come here");
             }
             ret =
                 opBinding.getTypeFactory()

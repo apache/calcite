@@ -493,6 +493,7 @@ limitations under the License.
         <configuration>
           <source>1.7</source>
           <target>1.7</target>
+          <compilerArgument>-Xlint:deprecation</compilerArgument>
         </configuration>
       </plugin>
       <plugin>

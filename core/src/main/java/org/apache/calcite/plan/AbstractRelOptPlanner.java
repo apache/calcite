@@ -108,6 +108,7 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
     return costFactory;
   }
 
+  @SuppressWarnings("deprecation")
   public void setCancelFlag(CancelFlag cancelFlag) {
     // ignored
   }
@@ -242,6 +243,7 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
     return mq.getCumulativeCost(rel);
   }
 
+  @SuppressWarnings("deprecation")
   public RelOptCost getCost(RelNode rel) {
     final RelMetadataQuery mq = RelMetadataQuery.instance();
     return getCost(rel, mq);

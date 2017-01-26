@@ -308,8 +308,8 @@ public abstract class RelOptUtil {
       RelNode p) {
     try {
       visitor.go(p);
-    } catch (Throwable e) {
-      throw Util.newInternal(e, "while visiting tree");
+    } catch (Exception e) {
+      throw new RuntimeException("while visiting tree", e);
     }
   }
 
@@ -382,7 +382,7 @@ public abstract class RelOptUtil {
         + "\nexpression type is " + actualRowType.getFullTypeString()
         + "\nset is " + equivalenceClass.toString()
         + "\nexpression is " + newRel.toString();
-    throw Util.newInternal(s);
+    throw new AssertionError(s);
   }
 
   /**
@@ -1128,10 +1128,9 @@ public abstract class RelOptUtil {
                     ImmutableList.of(leftKeyType, rightKeyType));
 
             if (targetKeyType == null) {
-              throw Util.newInternal(
-                  "Cannot find common type for join keys "
-                  + leftKey + " (type " + leftKeyType + ") and "
-                  + rightKey + " (type " + rightKeyType + ")");
+              throw new AssertionError("Cannot find common type for join keys "
+                  + leftKey + " (type " + leftKeyType + ") and " + rightKey
+                  + " (type " + rightKeyType + ")");
             }
 
             if (leftKeyType != targetKeyType) {

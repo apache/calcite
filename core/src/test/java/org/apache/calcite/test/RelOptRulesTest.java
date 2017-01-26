@@ -99,7 +99,6 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql2rel.SqlToRelConverter;
 import org.apache.calcite.tools.RelBuilder;
-import org.apache.calcite.util.Util;
 
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
@@ -672,7 +671,7 @@ public class RelOptRulesTest extends RelOptTestBase {
         .checkUnchanged();
   }
 
-  @Test public void testSemiJoinTrim() {
+  @Test public void testSemiJoinTrim() throws Exception {
     final DiffRepository diffRepos = getDiffRepos();
     String sql = diffRepos.expand(null, "${sql}");
 
@@ -690,13 +689,7 @@ public class RelOptRulesTest extends RelOptTestBase {
             typeFactory,
             SqlToRelConverter.Config.DEFAULT);
 
-    final SqlNode sqlQuery;
-    try {
-      sqlQuery = t.parseQuery(sql);
-    } catch (Exception e) {
-      throw Util.newInternal(e);
-    }
-
+    final SqlNode sqlQuery = t.parseQuery(sql);
     final SqlNode validatedQuery = validator.validate(sqlQuery);
     RelRoot root =
         converter.convertQuery(validatedQuery, false, true);

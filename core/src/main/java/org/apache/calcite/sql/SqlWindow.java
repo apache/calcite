@@ -698,7 +698,7 @@ public class SqlWindow extends SqlCall {
       }
       break;
     default:
-      throw Util.newInternal("Unexpected node type");
+      throw new AssertionError("Unexpected node type");
     }
   }
 

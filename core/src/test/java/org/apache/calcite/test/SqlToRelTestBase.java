@@ -55,9 +55,9 @@ import org.apache.calcite.sql2rel.SqlToRelConverter;
 import org.apache.calcite.sql2rel.StandardConvertletTable;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.ImmutableBitSet;
-import org.apache.calcite.util.Util;
 
 import com.google.common.base.Function;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 
@@ -522,13 +522,15 @@ public abstract class SqlToRelTestBase {
     }
 
     public RelRoot convertSqlToRel(String sql) {
-      Util.pre(sql != null, "sql != null");
+      Preconditions.checkNotNull(sql);
       final SqlNode sqlQuery;
       final SqlToRelConverter.Config localConfig;
       try {
         sqlQuery = parseQuery(sql);
+      } catch (RuntimeException | Error e) {
+        throw e;
       } catch (Exception e) {
-        throw Util.newInternal(e); // todo: better handling
+        throw new RuntimeException(e);
       }
       final RelDataTypeFactory typeFactory = getTypeFactory();
       final Prepare.CatalogReader catalogReader =

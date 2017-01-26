@@ -22,6 +22,7 @@ import org.apache.calcite.avatica.remote.Service;
 
 import org.eclipse.jetty.server.handler.AbstractHandler;
 
+import java.lang.reflect.InvocationTargetException;
 import java.util.Arrays;
 
 /**
@@ -30,9 +31,9 @@ import java.util.Arrays;
 public class Main {
   private Main() {}
 
-  public static void main(String[] args)
-      throws InterruptedException, ClassNotFoundException,
-      IllegalAccessException, InstantiationException {
+  public static void main(String[] args) throws InterruptedException, ClassNotFoundException,
+      IllegalAccessException, InstantiationException, NoSuchMethodException,
+      InvocationTargetException {
     HttpServer server = start(args);
     server.join();
   }
@@ -64,7 +65,8 @@ public class Main {
    * @param args Command-line arguments
    */
   public static HttpServer start(String[] args) throws ClassNotFoundException,
-         InstantiationException, IllegalAccessException {
+      InstantiationException, IllegalAccessException, NoSuchMethodException,
+      InvocationTargetException {
     return start(args, 8765, JSON_HANDLER_FACTORY);
   }
 
@@ -84,14 +86,16 @@ public class Main {
    * @param handlerFactory Factory to create the handler used by the server
    */
   public static HttpServer start(String[] args, int port, HandlerFactory handlerFactory)
-      throws ClassNotFoundException, InstantiationException,
-      IllegalAccessException {
+      throws ClassNotFoundException, InstantiationException, IllegalAccessException,
+      NoSuchMethodException, InvocationTargetException {
     String factoryClassName = args[0];
-    Class<?> factoryClass = Class.forName(factoryClassName);
-    Meta.Factory factory = (Meta.Factory) factoryClass.newInstance();
+    @SuppressWarnings("unchecked") Class<Meta.Factory> factoryClass =
+        (Class<Meta.Factory>) Class.forName(factoryClassName);
+    Meta.Factory factory = factoryClass.getConstructor().newInstance();
     Meta meta = factory.create(Arrays.asList(args).subList(1, args.length));
     Service service = new LocalService(meta);
-    HttpServer server = new HttpServer(port, handlerFactory.createHandler(service));
+    HttpServer server = new HttpServer(port,
+        HttpServer.wrapJettyHandler(handlerFactory.createHandler(service)));
     server.start();
     return server;
   }

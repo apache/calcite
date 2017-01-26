@@ -371,9 +371,10 @@ public class SqlLiteral extends SqlNode {
       return literal.toValue();
     } else if (node instanceof SqlCall
         && ((SqlCall) node).getOperator() == SqlStdOperatorTable.CAST) {
+      //noinspection deprecation
       return stringValue(((SqlCall) node).operand(0));
     } else {
-      throw Util.newInternal("invalid string literal: " + node);
+      throw new AssertionError("invalid string literal: " + node);
     }
   }
 
@@ -387,7 +388,7 @@ public class SqlLiteral extends SqlNode {
     } else if (SqlUtil.isLiteralChain(node)) {
       return SqlLiteralChainOperator.concatenateOperands((SqlCall) node);
     } else {
-      throw Util.newInternal("invalid literal: " + node);
+      throw new AssertionError("invalid literal: " + node);
     }
   }
 

@@ -79,6 +79,7 @@ public abstract class TableScan extends AbstractRelNode {
     return table;
   }
 
+  @SuppressWarnings("deprecation")
   @Override public List<RelCollation> getCollationList() {
     return table.getCollationList();
   }

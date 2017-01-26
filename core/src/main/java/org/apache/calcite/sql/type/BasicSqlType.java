@@ -19,7 +19,6 @@ package org.apache.calcite.sql.type;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.util.SerializableCharset;
-import org.apache.calcite.util.Util;
 
 import com.google.common.base.Preconditions;
 
@@ -104,7 +103,7 @@ public class BasicSqlType extends AbstractSqlType {
     try {
       ret = (BasicSqlType) this.clone();
     } catch (CloneNotSupportedException e) {
-      throw Util.newInternal(e);
+      throw new AssertionError(e);
     }
     ret.isNullable = nullable;
     ret.computeDigest();
@@ -124,7 +123,7 @@ public class BasicSqlType extends AbstractSqlType {
     try {
       ret = (BasicSqlType) this.clone();
     } catch (CloneNotSupportedException e) {
-      throw Util.newInternal(e);
+      throw new AssertionError(e);
     }
     ret.wrappedCharset = SerializableCharset.forCharset(charset);
     ret.collation = collation;

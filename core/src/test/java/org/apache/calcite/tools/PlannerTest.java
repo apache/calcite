@@ -1038,10 +1038,12 @@ public class PlannerTest {
           OperandTypes.ANY, SqlFunctionCategory.NUMERIC, false, false);
     }
 
+    @SuppressWarnings("deprecation")
     public List<RelDataType> getParameterTypes(RelDataTypeFactory typeFactory) {
       return ImmutableList.of(typeFactory.createSqlType(SqlTypeName.ANY));
     }
 
+    @SuppressWarnings("deprecation")
     public RelDataType getReturnType(RelDataTypeFactory typeFactory) {
       return typeFactory.createSqlType(SqlTypeName.BIGINT);
     }

@@ -250,10 +250,12 @@ public class CalciteCatalogReader implements Prepare.CatalogReader {
     return getTable(names);
   }
 
+  @SuppressWarnings("deprecation")
   public RelDataTypeField field(RelDataType rowType, String alias) {
     return nameMatcher.field(rowType, alias);
   }
 
+  @SuppressWarnings("deprecation")
   public boolean matches(String string, String name) {
     return nameMatcher.matches(string, name);
   }
@@ -394,6 +396,7 @@ public class CalciteCatalogReader implements Prepare.CatalogReader {
   public void registerRules(RelOptPlanner planner) throws Exception {
   }
 
+  @SuppressWarnings("deprecation")
   @Override public boolean isCaseSensitive() {
     return nameMatcher.isCaseSensitive();
   }

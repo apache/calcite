@@ -22,7 +22,6 @@ import org.apache.calcite.config.CalciteConnectionProperty;
 import org.apache.calcite.util.Util;
 
 import com.google.common.base.Function;
-import com.google.common.base.Throwables;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Multimap;
@@ -294,7 +293,7 @@ public class DruidAdapterIT {
                   assertThat(map.get("BIGINT").size(), is(1));
                   assertThat(map.get(VARCHAR_TYPE).size(), is(88));
                 } catch (SQLException e) {
-                  throw Throwables.propagate(e);
+                  throw new RuntimeException(e);
                 }
                 return null;
               }
@@ -350,7 +349,7 @@ public class DruidAdapterIT {
               assertThat(input.next(), is(false));
               return null;
             } catch (SQLException e) {
-              throw Throwables.propagate(e);
+              throw new RuntimeException(e);
             }
           }
         });
@@ -644,7 +643,7 @@ public class DruidAdapterIT {
                   assertFalse(resultSet.next());
                   return null;
                 } catch (SQLException e) {
-                  throw Throwables.propagate(e);
+                  throw new RuntimeException(e);
                 }
               }
             })
@@ -722,7 +721,7 @@ public class DruidAdapterIT {
                   assertFalse(resultSet.next());
                   return null;
                 } catch (SQLException e) {
-                  throw Throwables.propagate(e);
+                  throw new RuntimeException(e);
                 }
               }
             })

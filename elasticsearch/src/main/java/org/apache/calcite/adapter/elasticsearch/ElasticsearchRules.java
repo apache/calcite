@@ -39,9 +39,6 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
-import org.apache.calcite.util.trace.CalciteTrace;
-
-import org.slf4j.Logger;
 
 import java.util.AbstractList;
 import java.util.ArrayList;
@@ -53,8 +50,6 @@ import java.util.List;
  * calling convention.
  */
 class ElasticsearchRules {
-  protected static final Logger LOGGER = CalciteTrace.getPlannerTracer();
-
   static final RelOptRule[] RULES = {
     ElasticsearchSortRule.INSTANCE,
     ElasticsearchFilterRule.INSTANCE,
@@ -84,16 +79,17 @@ class ElasticsearchRules {
 
   static List<String> elasticsearchFieldNames(final RelDataType rowType) {
     return SqlValidatorUtil.uniquify(
-      new AbstractList<String>() {
-        @Override public String get(int index) {
-          final String name = rowType.getFieldList().get(index).getName();
-          return name.startsWith("$") ? "_" + name.substring(2) : name;
-        }
+        new AbstractList<String>() {
+          @Override public String get(int index) {
+            final String name = rowType.getFieldList().get(index).getName();
+            return name.startsWith("$") ? "_" + name.substring(2) : name;
+          }
 
-        @Override public int size() {
-          return rowType.getFieldCount();
-        }
-      });
+          @Override public int size() {
+            return rowType.getFieldCount();
+          }
+        },
+        SqlValidatorUtil.EXPR_SUGGESTER, true);
   }
 
   static String quote(String s) {

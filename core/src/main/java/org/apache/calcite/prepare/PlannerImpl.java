@@ -212,6 +212,7 @@ public class PlannerImpl implements Planner {
     return Pair.of(validatedNode, type);
   }
 
+  @SuppressWarnings("deprecation")
   public final RelNode convert(SqlNode sql) throws RelConversionException {
     return rel(sql).rel;
   }

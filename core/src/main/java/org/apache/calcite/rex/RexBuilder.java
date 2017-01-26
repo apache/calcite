@@ -48,11 +48,13 @@ import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
 import com.google.common.base.Function;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
 import java.math.BigDecimal;
 import java.math.MathContext;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
@@ -168,8 +170,7 @@ public class RexBuilder {
     final RelDataTypeField field =
         type.getField(fieldName, caseSensitive, false);
     if (field == null) {
-      throw Util.newInternal(
-          "Type '" + type + "' has no field '"
+      throw new AssertionError("Type '" + type + "' has no field '"
           + fieldName + "'");
     }
     return makeFieldAccessInternal(expr, field);
@@ -189,7 +190,7 @@ public class RexBuilder {
     final RelDataType type = expr.getType();
     final List<RelDataTypeField> fields = type.getFieldList();
     if ((i < 0) || (i >= fields.size())) {
-      throw Util.newInternal("Field ordinal " + i + " is invalid for "
+      throw new AssertionError("Field ordinal " + i + " is invalid for "
           + " type '" + type + "'");
     }
     return makeFieldAccessInternal(expr, fields.get(i));
@@ -374,7 +375,7 @@ public class RexBuilder {
           makeCast(type, constantNull()));
     }
     if (!allowPartial) {
-      Util.permAssert(physical, "DISALLOW PARTIAL over RANGE");
+      Preconditions.checkArgument(physical, "DISALLOW PARTIAL over RANGE");
       final RelDataType bigintType = getTypeFactory().createSqlType(
           SqlTypeName.BIGINT);
       // todo: read bound
@@ -536,7 +537,7 @@ public class RexBuilder {
             final BigDecimal divider =
                 literal.getTypeName().getEndUnit().multiplier;
             value = value2.multiply(multiplier)
-                .divide(divider, 0, BigDecimal.ROUND_HALF_DOWN);
+                .divide(divider, 0, RoundingMode.HALF_DOWN);
           }
 
           // Not all types are allowed for literals
@@ -663,12 +664,12 @@ public class RexBuilder {
       // E.g. multiplyDivide(e, 1000, 10) ==> e * 100
       return makeCall(SqlStdOperatorTable.MULTIPLY, e,
           makeExactLiteral(
-              multiplier.divide(divider, BigDecimal.ROUND_UNNECESSARY)));
+              multiplier.divide(divider, RoundingMode.UNNECESSARY)));
     case -1:
       // E.g. multiplyDivide(e, 10, 1000) ==> e / 100
       return makeCall(SqlStdOperatorTable.DIVIDE_INTEGER, e,
           makeExactLiteral(
-              divider.divide(multiplier, BigDecimal.ROUND_UNNECESSARY)));
+              divider.divide(multiplier, RoundingMode.UNNECESSARY)));
     default:
       throw new AssertionError(multiplier + "/" + divider);
     }

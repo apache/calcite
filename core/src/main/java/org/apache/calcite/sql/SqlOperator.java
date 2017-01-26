@@ -28,6 +28,7 @@ import org.apache.calcite.sql.util.SqlBasicVisitor;
 import org.apache.calcite.sql.util.SqlVisitor;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
 import org.apache.calcite.sql.validate.SqlValidator;
+import org.apache.calcite.sql.validate.SqlValidatorImpl;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.util.Litmus;
@@ -434,7 +435,7 @@ public abstract class SqlOperator {
 
     // Now infer the result type.
     RelDataType ret = inferReturnType(opBinding);
-    validator.setValidatedNodeType(call, ret);
+    ((SqlValidatorImpl) validator).setValidatedNodeType(call, ret);
     return ret;
   }
 
@@ -581,7 +582,7 @@ public abstract class SqlOperator {
       } else {
         nodeType = validator.deriveType(operandScope, operand);
       }
-      validator.setValidatedNodeType(operand, nodeType);
+      ((SqlValidatorImpl) validator).setValidatedNodeType(operand, nodeType);
       argTypeBuilder.add(nodeType);
     }
 

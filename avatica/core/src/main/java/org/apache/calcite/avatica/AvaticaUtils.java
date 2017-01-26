@@ -234,7 +234,7 @@ public class AvaticaUtils {
       } catch (NoSuchFieldException e) {
         // ignore
       }
-      return clazz.newInstance();
+      return clazz.getConstructor().newInstance();
     } catch (Exception e) {
       throw new RuntimeException("Property '" + className
           + "' not valid for plugin type " + pluginClass.getName(), e);

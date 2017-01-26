@@ -642,10 +642,17 @@ public class PhysTypeImpl implements PhysType {
 
   public Expression fieldReference(
       Expression expression, int field, Type storageType) {
+    Type fieldType;
     if (storageType == null) {
       storageType = fieldClass(field);
+      fieldType = null;
+    } else {
+      fieldType = fieldClass(field);
+      if (fieldType != java.sql.Date.class) {
+        fieldType = null;
+      }
     }
-    return format.field(expression, field, storageType);
+    return format.field(expression, field, fieldType, storageType);
   }
 }
 

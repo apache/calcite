@@ -20,7 +20,6 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterRule;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.util.Pair;
-import org.apache.calcite.util.Util;
 import org.apache.calcite.util.graph.DefaultDirectedGraph;
 import org.apache.calcite.util.graph.DefaultEdge;
 import org.apache.calcite.util.graph.DirectedGraph;
@@ -159,8 +158,7 @@ public class ConventionTraitDef extends RelTraitDef<Convention> {
                   converted, previous, arc,
                   conversionData.mapArcToConverterRule);
           if (converted == null) {
-            throw Util.newInternal("Converter from " + previous
-                + " to " + arc
+            throw new AssertionError("Converter from " + previous + " to " + arc
                 + " guaranteed that it could convert any relexp");
           }
         }
