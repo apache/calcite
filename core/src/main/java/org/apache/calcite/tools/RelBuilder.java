@@ -1541,12 +1541,12 @@ public class RelBuilder {
         if (project.getInput() instanceof Sort) {
           final Sort sort2 = (Sort) project.getInput();
           if (sort2.offset == null && sort2.fetch == null) {
-            replaceTop(sort2.getInput());
             final RelNode sort =
-                sortFactory.createSort(peek(), sort2.collation,
+                sortFactory.createSort(sort2.getInput(), sort2.collation,
                     offsetNode, fetchNode);
-            replaceTop(sort);
-            project(project.getProjects());
+            replaceTop(
+                projectFactory.createProject(sort,
+                    project.getProjects(), Pair.right(project.getNamedProjects())));
             return this;
           }
         }

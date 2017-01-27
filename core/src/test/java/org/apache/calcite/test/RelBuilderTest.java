@@ -1518,6 +1518,30 @@ public class RelBuilderTest {
     assertThat(str(root), is(expected));
   }
 
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-1610">[CALCITE-1610]
+   * RelBuilder sort-combining optimization treats aliases incorrectly</a> */
+  @Test public void testSortOverProjectSort() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    builder.scan("EMP")
+        .sort(0)
+        .project(builder.field(1))
+        // was throwing exception here when attempting to apply to inner sort node
+        .limit(0, 1)
+        .build();
+    RelNode r = builder.scan("EMP")
+        .sort(0)
+        .project(Lists.newArrayList(builder.field(1)),
+            Lists.newArrayList("F1"))
+        .limit(0, 1)
+        // make sure we can still access the field by alias
+        .project(builder.field("F1"))
+        .build();
+    String expected = "LogicalProject(F1=[$1])\n"
+        + "  LogicalSort(sort0=[$0], dir0=[ASC], fetch=[1])\n"
+        + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(str(r), is(expected));
+  }
+
   /** Tests that a sort on a field followed by a limit gives the same
    * effect as calling sortLimit.
    *
