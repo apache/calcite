@@ -33,16 +33,20 @@ import static org.apache.calcite.avatica.util.DateTimeUtils.timeStringToUnixDate
 import static org.apache.calcite.avatica.util.DateTimeUtils.timestampStringToUnixDate;
 import static org.apache.calcite.avatica.util.DateTimeUtils.unixDateExtract;
 import static org.apache.calcite.avatica.util.DateTimeUtils.unixDateToString;
+import static org.apache.calcite.avatica.util.DateTimeUtils.unixTimeExtract;
 import static org.apache.calcite.avatica.util.DateTimeUtils.unixTimeToString;
 import static org.apache.calcite.avatica.util.DateTimeUtils.unixTimestamp;
+import static org.apache.calcite.avatica.util.DateTimeUtils.unixTimestampExtract;
 import static org.apache.calcite.avatica.util.DateTimeUtils.unixTimestampToString;
 import static org.apache.calcite.avatica.util.DateTimeUtils.ymdToJulian;
 import static org.apache.calcite.avatica.util.DateTimeUtils.ymdToUnixDate;
+
 import static org.hamcrest.CoreMatchers.anyOf;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 
 /**
  * Tests for {@link DateTimeUtils}.
@@ -145,6 +149,40 @@ public class DateTimeUtilsTest {
     checkTimeString("23:59:59", 86400000 - 1000);
   }
 
+  @Test public void testTimestampExtract() {
+    // 1970-01-01 00:00:00.000
+    assertThat(unixTimestampExtract(TimeUnitRange.HOUR, 0L), is(0));
+    assertThat(unixTimestampExtract(TimeUnitRange.MINUTE, 0L), is(0));
+    assertThat(unixTimestampExtract(TimeUnitRange.SECOND, 0L), is(0));
+    // 1970-01-02 00:00:00.000
+    assertThat(unixTimestampExtract(TimeUnitRange.HOUR, 86400000L), is(0));
+    assertThat(unixTimestampExtract(TimeUnitRange.MINUTE, 86400000L), is(0));
+    assertThat(unixTimestampExtract(TimeUnitRange.SECOND, 86400000L), is(0));
+  }
+
+  @Test public void testTimeExtract() {
+    // 00:00:00.000
+    assertThat(unixTimeExtract(TimeUnitRange.HOUR, 0), is(0));
+    assertThat(unixTimeExtract(TimeUnitRange.MINUTE, 0), is(0));
+    assertThat(unixTimeExtract(TimeUnitRange.SECOND, 0), is(0));
+    // 00:59:59.999
+    assertThat(unixTimeExtract(TimeUnitRange.HOUR, 3599999), is(0));
+    assertThat(unixTimeExtract(TimeUnitRange.MINUTE, 3599999), is(59));
+    assertThat(unixTimeExtract(TimeUnitRange.SECOND, 3599999), is(59));
+    // 01:59:59.999
+    assertThat(unixTimeExtract(TimeUnitRange.HOUR, 7199999), is(1));
+    assertThat(unixTimeExtract(TimeUnitRange.MINUTE, 7199999), is(59));
+    assertThat(unixTimeExtract(TimeUnitRange.SECOND, 7199999), is(59));
+    // 01:58:59.999
+    assertThat(unixTimeExtract(TimeUnitRange.HOUR, 7139999), is(1));
+    assertThat(unixTimeExtract(TimeUnitRange.MINUTE, 7139999), is(58));
+    assertThat(unixTimeExtract(TimeUnitRange.SECOND, 7139999), is(59));
+    // 23:59:59.999
+    assertThat(unixTimeExtract(TimeUnitRange.HOUR, 86399999), is(23));
+    assertThat(unixTimeExtract(TimeUnitRange.MINUTE, 86399999), is(59));
+    assertThat(unixTimeExtract(TimeUnitRange.SECOND, 86399999), is(59));
+  }
+
   private void checkTimeString(String s, int d) {
     assertThat(unixTimeToString(d), is(s));
     assertThat(timeStringToUnixDate(s), is(d));
@@ -235,6 +273,70 @@ public class DateTimeUtilsTest {
     assertThat(unixDateExtract(TimeUnitRange.MONTH, 364), is(12L));
     assertThat(unixDateExtract(TimeUnitRange.MONTH, 365), is(1L));
 
+    // 1969/12/31 was a Wed (4)
+    assertThat(unixDateExtract(TimeUnitRange.DOW, -1), is(4L)); // wed
+    assertThat(unixDateExtract(TimeUnitRange.DOW, 0), is(5L)); // thu
+    assertThat(unixDateExtract(TimeUnitRange.DOW, 1), is(6L)); // fri
+    assertThat(unixDateExtract(TimeUnitRange.DOW, 2), is(7L)); // sat
+    assertThat(unixDateExtract(TimeUnitRange.DOW, 3), is(1L)); // sun
+    assertThat(unixDateExtract(TimeUnitRange.DOW, 365), is(6L));
+    assertThat(unixDateExtract(TimeUnitRange.DOW, 366), is(7L));
+
+    assertThat(unixDateExtract(TimeUnitRange.DOY, -1), is(365L));
+    assertThat(unixDateExtract(TimeUnitRange.DOY, 0), is(1L));
+    assertThat(unixDateExtract(TimeUnitRange.DOY, 1), is(2L));
+    assertThat(unixDateExtract(TimeUnitRange.DOY, 2), is(3L));
+    assertThat(unixDateExtract(TimeUnitRange.DOY, 3), is(4L));
+    assertThat(unixDateExtract(TimeUnitRange.DOY, 364), is(365L));
+    assertThat(unixDateExtract(TimeUnitRange.DOY, 365), is(1L));
+    assertThat(unixDateExtract(TimeUnitRange.DOY, 366), is(2L));
+    assertThat(unixDateExtract(TimeUnitRange.DOY, 365 + 365 + 366 - 1),
+        is(366L)); // 1972/12/31
+    assertThat(unixDateExtract(TimeUnitRange.DOY, 365 + 365 + 366),
+        is(1L)); // 1973/1/1
+
+    // The number of the week of the year that the day is in. By definition
+    // (ISO 8601), the first week of a year contains January 4 of that year.
+    // (The ISO-8601 week starts on Monday.) In other words, the first Thursday
+    // of a year is in week 1 of that year.
+    //
+    // Because of this, it is possible for early January dates to be part of
+    // the 52nd or 53rd week of the previous year. For example, 2005-01-01 is
+    // part of the 53rd week of year 2004, and 2006-01-01 is part of the 52nd
+    // week of year 2005.
+    assertThat(ymdToUnixDate(1970, 1, 1), is(0));
+    assertThat(unixDateExtract(TimeUnitRange.WEEK, ymdToUnixDate(2003, 1, 1)),
+        is(1L)); // wed
+    assertThat(unixDateExtract(TimeUnitRange.WEEK, ymdToUnixDate(2004, 1, 1)),
+        is(1L)); // thu
+    assertThat(unixDateExtract(TimeUnitRange.WEEK, ymdToUnixDate(2005, 1, 1)),
+        is(53L)); // sat
+    assertThat(unixDateExtract(TimeUnitRange.WEEK, ymdToUnixDate(2006, 1, 1)),
+        is(52L)); // sun
+    assertThat(unixDateExtract(TimeUnitRange.WEEK, ymdToUnixDate(1970, 1, 1)),
+        is(1L)); // thu
+
+    assertThat(unixDateExtract(TimeUnitRange.WEEK, -1), is(53L)); // wed
+    assertThat(unixDateExtract(TimeUnitRange.WEEK, 0), is(1L)); // thu
+    assertThat(unixDateExtract(TimeUnitRange.WEEK, 1), is(1L)); // fru
+    assertThat(unixDateExtract(TimeUnitRange.WEEK, 2), is(1L)); // sat
+    assertThat(unixDateExtract(TimeUnitRange.WEEK, 3), is(1L)); // sun
+    assertThat(unixDateExtract(TimeUnitRange.WEEK, 4), is(2L)); // mon
+    assertThat(unixDateExtract(TimeUnitRange.WEEK, 7), is(2L)); // thu
+    assertThat(unixDateExtract(TimeUnitRange.WEEK, 10), is(2L)); // sun
+    assertThat(unixDateExtract(TimeUnitRange.WEEK, 11), is(3L)); // mon
+    assertThat(unixDateExtract(TimeUnitRange.WEEK, 359), is(52L)); // sat
+    assertThat(unixDateExtract(TimeUnitRange.WEEK, 360), is(52L)); // sun
+    assertThat(unixDateExtract(TimeUnitRange.WEEK, 361), is(53L)); // mon
+    assertThat(unixDateExtract(TimeUnitRange.WEEK, 364), is(53L)); // thu
+    assertThat(unixDateExtract(TimeUnitRange.WEEK, 365), is(53L)); // fri
+    assertThat(unixDateExtract(TimeUnitRange.WEEK, 368), is(1L)); // mon
+
+    assertThat(unixDateExtract(TimeUnitRange.QUARTER, -1), is(4L));
+    assertThat(unixDateExtract(TimeUnitRange.QUARTER, 0), is(1L));
+    assertThat(unixDateExtract(TimeUnitRange.QUARTER, 365), is(1L));
+    assertThat(unixDateExtract(TimeUnitRange.QUARTER, 366), is(1L));
+
     thereAndBack(1900, 1, 1);
     thereAndBack(1900, 2, 28); // no leap day
     thereAndBack(1900, 3, 1);
@@ -261,6 +363,63 @@ public class DateTimeUtilsTest {
     thereAndBack(2004, 3, 1);
     thereAndBack(2005, 2, 28); // no leap day
     thereAndBack(2005, 3, 1);
+    thereAndBack(1601, 1, 1);
+    // Doesn't work much earlier than 1600 because of leap year differences.
+    // Before 1600, does the user expect Gregorian calendar?
+    if (false) {
+      thereAndBack(1581, 1, 1);
+      thereAndBack(1, 1, 1);
+    }
+
+    // Per PostgreSQL: The first century starts at 0001-01-01 00:00:00 AD,
+    // although they did not know it at the time. This definition applies to
+    // all Gregorian calendar countries. There is no century number 0, you go
+    // from -1 century to 1 century. If you disagree with this, please write
+    // your complaint to: Pope, Cathedral Saint-Peter of Roma, Vatican.
+
+    // The 21st century started on 2001/01/01
+    assertThat(
+        unixDateExtract(TimeUnitRange.CENTURY, ymdToUnixDate(2001, 1, 1)),
+        is(21L));
+    assertThat(
+        unixDateExtract(TimeUnitRange.CENTURY, ymdToUnixDate(2000, 12, 31)),
+        is(20L));
+    assertThat(
+        unixDateExtract(TimeUnitRange.CENTURY, ymdToUnixDate(1852, 6, 7)),
+        is(19L));
+    assertThat(
+        unixDateExtract(TimeUnitRange.CENTURY, ymdToUnixDate(1, 2, 1)),
+        is(1L));
+    // TODO: For a small time range around year 1, due to the Gregorian shift,
+    // we end up in the wrong century. Should be 1.
+    assertThat(
+        unixDateExtract(TimeUnitRange.CENTURY, ymdToUnixDate(1, 1, 1)),
+        is(0L));
+    assertThat(
+        unixDateExtract(TimeUnitRange.CENTURY, ymdToUnixDate(-2, 1, 1)),
+        is(-1L));
+
+    // The 3rd millennium started on 2001/01/01
+    assertThat(
+        unixDateExtract(TimeUnitRange.MILLENNIUM, ymdToUnixDate(2001, 1, 1)),
+        is(3L));
+    assertThat(
+        unixDateExtract(TimeUnitRange.MILLENNIUM, ymdToUnixDate(2000, 12, 31)),
+        is(2L));
+    assertThat(
+        unixDateExtract(TimeUnitRange.MILLENNIUM, ymdToUnixDate(1852, 6, 7)),
+        is(2L));
+    // TODO: For a small time range around year 1, due to the Gregorian shift,
+    // we end up in the wrong millennium. Should be 1.
+    assertThat(
+        unixDateExtract(TimeUnitRange.MILLENNIUM, ymdToUnixDate(1, 1, 1)),
+        is(0L));
+    assertThat(
+        unixDateExtract(TimeUnitRange.MILLENNIUM, ymdToUnixDate(1, 2, 1)),
+        is(1L));
+    assertThat(
+        unixDateExtract(TimeUnitRange.MILLENNIUM, ymdToUnixDate(-2, 1, 1)),
+        is(-1L));
   }
 
   private void thereAndBack(int year, int month, int day) {
@@ -271,6 +430,18 @@ public class DateTimeUtilsTest {
         is((long) month));
     assertThat(unixDateExtract(TimeUnitRange.DAY, unixDate),
         is((long) day));
+    final long w = unixDateExtract(TimeUnitRange.WEEK, unixDate);
+    assertTrue(w >= 1 && w <= 53);
+    final long dow = unixDateExtract(TimeUnitRange.DOW, unixDate);
+    assertTrue(dow >= 1 && dow <= 7);
+    final long doy = unixDateExtract(TimeUnitRange.DOY, unixDate);
+    assertTrue(doy >= 1 && dow <= 366);
+    final long q = unixDateExtract(TimeUnitRange.QUARTER, unixDate);
+    assertTrue(q >= 1 && q <= 4);
+    final long c = unixDateExtract(TimeUnitRange.CENTURY, unixDate);
+    assertTrue(c == (year > 0 ? (year + 99) / 100 : (year - 99) / 100));
+    final long m = unixDateExtract(TimeUnitRange.MILLENNIUM, unixDate);
+    assertTrue(m == (year > 0 ? (year + 999) / 1000 : (year - 999) / 1000));
   }
 
   @Test public void testAddMonths() {

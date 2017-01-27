@@ -690,10 +690,65 @@ public class DateTimeUtils {
     switch (range) {
     case YEAR:
       return year;
+    case QUARTER:
+      return (month + 2) / 3;
     case MONTH:
       return month;
     case DAY:
       return day;
+    case DOW:
+      return (int) floorMod(julian + 1, 7) + 1; // sun=1, sat=7
+    case WEEK:
+      long fmofw = firstMondayOfFirstWeek(year);
+      if (julian < fmofw) {
+        fmofw = firstMondayOfFirstWeek(year - 1);
+      }
+      return (int) (julian - fmofw) / 7 + 1;
+    case DOY:
+      final long janFirst = ymdToJulian(year, 1, 1);
+      return (int) (julian - janFirst) + 1;
+    case CENTURY:
+      return year > 0
+          ? (year + 99) / 100
+          : (year - 99) / 100;
+    case MILLENNIUM:
+      return year > 0
+          ? (year + 999) / 1000
+          : (year - 999) / 1000;
+    default:
+      throw new AssertionError(range);
+    }
+  }
+
+  /** Returns the first day of the first week of a year.
+   * Per ISO-8601 it is the Monday of the week that contains Jan 4,
+   * or equivalently, it is a Monday between Dec 29 and Jan 4.
+   * Sometimes it is in the year before the given year. */
+  private static long firstMondayOfFirstWeek(int year) {
+    final long janFirst = ymdToJulian(year, 1, 1);
+    final long janFirstDow = floorMod(janFirst + 1, 7); // sun=0, sat=6
+    return janFirst + (11 - janFirstDow) % 7 - 3;
+  }
+
+  /** Extracts a time unit from a UNIX date (milliseconds since epoch). */
+  public static int unixTimestampExtract(TimeUnitRange range,
+      long timestamp) {
+    return unixTimeExtract(range, (int) floorMod(timestamp, MILLIS_PER_DAY));
+  }
+
+  /** Extracts a time unit from a time value (milliseconds since midnight). */
+  public static int unixTimeExtract(TimeUnitRange range, int time) {
+    assert time >= 0;
+    assert time < MILLIS_PER_DAY;
+    switch (range) {
+    case HOUR:
+      return time / (int) MILLIS_PER_HOUR;
+    case MINUTE:
+      final int minutes = time / (int) MILLIS_PER_MINUTE;
+      return minutes % 60;
+    case SECOND:
+      final int seconds = time / (int) MILLIS_PER_SECOND;
+      return seconds % 60;
     default:
       throw new AssertionError(range);
     }
