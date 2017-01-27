@@ -1760,6 +1760,19 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
         }
       };
 
+  public static final SqlGroupFunction TUMBLE =
+      new SqlGroupFunction(SqlKind.TUMBLE, null,
+          OperandTypes.or(OperandTypes.DATETIME_INTERVAL,
+              OperandTypes.DATETIME_INTERVAL_TIME));
+
+  /** The TUMBLE_START auxiliary function of the TUMBLE group function. */
+  public static final SqlFunction TUMBLE_START =
+      TUMBLE.auxiliary(SqlKind.TUMBLE_START);
+
+  /** The TUMBLE_END auxiliary function of the TUMBLE group function. */
+  public static final SqlFunction TUMBLE_END =
+      TUMBLE.auxiliary(SqlKind.TUMBLE_END);
+
   //~ Methods ----------------------------------------------------------------
 
   /**
@@ -1774,6 +1787,18 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
       instance.init();
     }
     return instance;
+  }
+
+  /** Returns the group function for which a given kind is an auxiliary
+   * function, or null if it is not an auxiliary function. */
+  public static SqlGroupFunction auxiliaryToGroup(SqlKind kind) {
+    switch (kind) {
+    case TUMBLE_START:
+    case TUMBLE_END:
+      return TUMBLE;
+    default:
+      return null;
+    }
   }
 }
 
