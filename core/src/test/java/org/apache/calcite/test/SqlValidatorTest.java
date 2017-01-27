@@ -8576,6 +8576,53 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "  from \"DYNAMIC\".NATION, \"DYNAMIC\".CUSTOMER)";
     sql(sql).type("RecordType(ANY NEWID) NOT NULL");
   }
+
+  @Test public void testStreamTumble() {
+    // TUMBLE
+    sql("select stream tumble_end(rowtime, interval '2' hour) as rowtime\n"
+        + "from orders\n"
+        + "group by tumble(rowtime, interval '2' hour), productId").ok();
+    sql("select stream ^tumble(rowtime, interval '2' hour)^ as rowtime\n"
+        + "from orders\n"
+        + "group by tumble(rowtime, interval '2' hour), productId")
+        .fails("Group function 'TUMBLE' can only appear in GROUP BY clause");
+    // TUMBLE with align argument
+    sql("select stream\n"
+        + "  tumble_end(rowtime, interval '2' hour, time '00:12:00') as rowtime\n"
+        + "from orders\n"
+        + "group by tumble(rowtime, interval '2' hour, time '00:12:00')").ok();
+    // TUMBLE_END without corresponding TUMBLE
+    sql("select stream\n"
+        + "  ^tumble_end(rowtime, interval '2' hour, time '00:13:00')^ as rowtime\n"
+        + "from orders\n"
+        + "group by floor(rowtime to hour)")
+        .fails("Call to auxiliary group function 'TUMBLE_END' must have "
+            + "matching call to group function 'TUMBLE' in GROUP BY clause");
+    // Arguments to TUMBLE_END are slightly different to arguments to TUMBLE
+    sql("select stream\n"
+        + "  ^tumble_start(rowtime, interval '2' hour, time '00:13:00')^ as rowtime\n"
+        + "from orders\n"
+        + "group by tumble(rowtime, interval '2' hour, time '00:12:00')")
+        .fails("Call to auxiliary group function 'TUMBLE_START' must have "
+            + "matching call to group function 'TUMBLE' in GROUP BY clause");
+    // Even though align defaults to TIME '00:00:00', we need structural
+    // equivalence, not semantic equivalence.
+    sql("select stream\n"
+        + "  ^tumble_end(rowtime, interval '2' hour, time '00:00:00')^ as rowtime\n"
+        + "from orders\n"
+        + "group by tumble(rowtime, interval '2' hour)")
+        .fails("Call to auxiliary group function 'TUMBLE_END' must have "
+            + "matching call to group function 'TUMBLE' in GROUP BY clause");
+    // TUMBLE query produces no monotonic column - OK
+    sql("select stream productId\n"
+        + "from orders\n"
+        + "group by tumble(rowtime, interval '2' hour), productId").ok();
+    sql("select stream productId\n"
+        + "from orders\n"
+        + "^group by productId,\n"
+        + "  tumble(timestamp '1990-03-04 12:34:56', interval '2' hour)^")
+        .fails(STR_AGG_REQUIRES_MONO);
+  }
 }
 
 // End SqlValidatorTest.java

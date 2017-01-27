@@ -25,6 +25,7 @@ import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Litmus;
+import org.apache.calcite.util.Pair;
 
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
@@ -33,7 +34,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -95,18 +95,20 @@ public class AggregatingSelectScope
   //~ Methods ----------------------------------------------------------------
 
   private Resolved resolve() {
-    final Map<Integer, Integer> groupExprProjection = new HashMap<>();
     final ImmutableList.Builder<ImmutableList<ImmutableBitSet>> builder =
         ImmutableList.builder();
+    List<SqlNode> extraExprs = ImmutableList.of();
+    Map<Integer, Integer> groupExprProjection = ImmutableMap.of();
     if (select.getGroup() != null) {
-      // We deep-copy the group-list in case subsequent validation
-      // modifies it and makes it no longer equivalent. While copying,
-      // we fully qualify all identifiers.
       final SqlNodeList groupList = select.getGroup();
+      final SqlValidatorUtil.GroupAnalyzer groupAnalyzer =
+          new SqlValidatorUtil.GroupAnalyzer(temporaryGroupExprList);
       for (SqlNode groupExpr : groupList) {
-        SqlValidatorUtil.analyzeGroupItem(this, temporaryGroupExprList,
-            groupExprProjection, builder, groupExpr);
+        SqlValidatorUtil.analyzeGroupItem(this, groupAnalyzer, builder,
+            groupExpr);
       }
+      extraExprs = groupAnalyzer.extraExprs;
+      groupExprProjection = groupAnalyzer.groupExprProjection;
     }
 
     final Set<ImmutableBitSet> flatGroupSets =
@@ -120,7 +122,7 @@ public class AggregatingSelectScope
       flatGroupSets.add(ImmutableBitSet.of());
     }
 
-    return new Resolved(temporaryGroupExprList, flatGroupSets,
+    return new Resolved(extraExprs, temporaryGroupExprList, flatGroupSets,
         groupExprProjection);
   }
 
@@ -134,7 +136,7 @@ public class AggregatingSelectScope
    *
    * @return list of grouping expressions
    */
-  private ImmutableList<SqlNode> getGroupExprs() {
+  private Pair<ImmutableList<SqlNode>, ImmutableList<SqlNode>> getGroupExprs() {
     if (distinct) {
       // Cannot compute this in the constructor: select list has not been
       // expanded yet.
@@ -147,16 +149,18 @@ public class AggregatingSelectScope
       for (SqlNode selectItem : selectScope.getExpandedSelectList()) {
         groupExprs.add(stripAs(selectItem));
       }
-      return groupExprs.build();
+      return Pair.of(ImmutableList.<SqlNode>of(), groupExprs.build());
     } else if (select.getGroup() != null) {
       if (temporaryGroupExprList != null) {
         // we are in the middle of resolving
-        return ImmutableList.copyOf(temporaryGroupExprList);
+        return Pair.of(ImmutableList.<SqlNode>of(),
+            ImmutableList.copyOf(temporaryGroupExprList));
       } else {
-        return resolved.get().groupExprList;
+        final Resolved resolved = this.resolved.get();
+        return Pair.of(resolved.extraExprList, resolved.groupExprList);
       }
     } else {
-      return ImmutableList.of();
+      return Pair.of(ImmutableList.<SqlNode>of(), ImmutableList.<SqlNode>of());
     }
   }
 
@@ -220,13 +224,9 @@ public class AggregatingSelectScope
     }
 
     // Make sure expression is valid, throws if not.
-    List<SqlNode> groupExprs = getGroupExprs();
+    Pair<ImmutableList<SqlNode>, ImmutableList<SqlNode>> pair = getGroupExprs();
     final AggChecker aggChecker =
-        new AggChecker(
-            validator,
-            this,
-            groupExprs,
-            distinct);
+        new AggChecker(validator, this, pair.left, pair.right, distinct);
     if (deep) {
       expr.accept(aggChecker);
     }
@@ -244,14 +244,17 @@ public class AggregatingSelectScope
    * after validation has occurred. Therefore it cannot be populated when
    * the scope is created. */
   public class Resolved {
+    public final ImmutableList<SqlNode> extraExprList;
     public final ImmutableList<SqlNode> groupExprList;
     public final ImmutableBitSet groupSet;
     public final ImmutableList<ImmutableBitSet> groupSets;
     public final boolean indicator;
     public final Map<Integer, Integer> groupExprProjection;
 
-    Resolved(List<SqlNode> groupExprList, Iterable<ImmutableBitSet> groupSets,
+    Resolved(List<SqlNode> extraExprList, List<SqlNode> groupExprList,
+        Iterable<ImmutableBitSet> groupSets,
         Map<Integer, Integer> groupExprProjection) {
+      this.extraExprList = ImmutableList.copyOf(extraExprList);
       this.groupExprList = ImmutableList.copyOf(groupExprList);
       this.groupSet = ImmutableBitSet.range(groupExprList.size());
       this.groupSets = ImmutableList.copyOf(groupSets);

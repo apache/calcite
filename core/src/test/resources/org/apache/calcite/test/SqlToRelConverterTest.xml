@@ -2399,6 +2399,22 @@ LogicalDelta
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testTumbleTable">
+        <Resource name="sql">
+            <![CDATA[select stream tumble_end(rowtime, interval '2' hour) as rowtime, productId
+from orders
+group by tumble(rowtime, interval '2' hour), productId]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalDelta
+  LogicalProject(ROWTIME=[TUMBLE_END($0, 7200000)], PRODUCTID=[$1])
+    LogicalAggregate(group=[{0, 1}])
+      LogicalProject($f0=[TUMBLE($0, 7200000)], PRODUCTID=[$2])
+        LogicalTableScan(table=[[STREAMS, ORDERS]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testGroupByCaseIn">
         <Resource name="sql">
             <![CDATA[select
