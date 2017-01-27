@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.sql.fun;
 
+import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.SqlAggFunction;
@@ -1534,12 +1535,94 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   public static final SqlFunction EXTRACT = new SqlExtractFunction();
 
   /**
+   * The SQL <code>YEAR</code> operator. Returns the Year
+   * from a DATETIME  E.g.<br>
+   * <code>YEAR(date '2008-9-23')</code> returns <code>
+   * 2008</code>
+   */
+  public static final SqlDatePartFunction YEAR =
+      new SqlDatePartFunction("YEAR", TimeUnit.YEAR);
+
+  /**
    * The SQL <code>QUARTER</code> operator. Returns the Quarter
    * from a DATETIME  E.g.<br>
    * <code>QUARTER(date '2008-9-23')</code> returns <code>
    * 3</code>
    */
-  public static final SqlQuarterFunction QUARTER = new SqlQuarterFunction();
+  public static final SqlDatePartFunction QUARTER =
+      new SqlDatePartFunction("QUARTER", TimeUnit.QUARTER);
+
+  /**
+   * The SQL <code>MONTH</code> operator. Returns the Month
+   * from a DATETIME  E.g.<br>
+   * <code>MONTH(date '2008-9-23')</code> returns <code>
+   * 9</code>
+   */
+  public static final SqlDatePartFunction MONTH =
+      new SqlDatePartFunction("MONTH", TimeUnit.MONTH);
+
+  /**
+   * The SQL <code>WEEK</code> operator. Returns the Week
+   * from a DATETIME  E.g.<br>
+   * <code>WEEK(date '2008-9-23')</code> returns <code>
+   * 39</code>
+   */
+  public static final SqlDatePartFunction WEEK =
+      new SqlDatePartFunction("WEEK", TimeUnit.WEEK);
+
+  /**
+   * The SQL <code>DAYOFYEAR</code> operator. Returns the DOY
+   * from a DATETIME  E.g.<br>
+   * <code>DAYOFYEAR(date '2008-9-23')</code> returns <code>
+   * 267</code>
+   */
+  public static final SqlDatePartFunction DAYOFYEAR =
+      new SqlDatePartFunction("DAYOFYEAR", TimeUnit.DOY);
+
+  /**
+   * The SQL <code>DAYOFMONTH</code> operator. Returns the Day
+   * from a DATETIME  E.g.<br>
+   * <code>DAYOFMONTH(date '2008-9-23')</code> returns <code>
+   * 23</code>
+   */
+  public static final SqlDatePartFunction DAYOFMONTH =
+      new SqlDatePartFunction("DAYOFMONTH", TimeUnit.DAY);
+
+  /**
+   * The SQL <code>DAYOFWEEK</code> operator. Returns the DOW
+   * from a DATETIME  E.g.<br>
+   * <code>DAYOFWEEK(date '2008-9-23')</code> returns <code>
+   * 2</code>
+   */
+  public static final SqlDatePartFunction DAYOFWEEK =
+      new SqlDatePartFunction("DAYOFWEEK", TimeUnit.DOW);
+
+  /**
+   * The SQL <code>HOUR</code> operator. Returns the Hour
+   * from a DATETIME  E.g.<br>
+   * <code>HOUR(timestamp '2008-9-23 01:23:45')</code> returns <code>
+   * 1</code>
+   */
+  public static final SqlDatePartFunction HOUR =
+      new SqlDatePartFunction("HOUR", TimeUnit.HOUR);
+
+  /**
+   * The SQL <code>MINUTE</code> operator. Returns the Minute
+   * from a DATETIME  E.g.<br>
+   * <code>MINUTE(timestamp '2008-9-23 01:23:45')</code> returns <code>
+   * 23</code>
+   */
+  public static final SqlDatePartFunction MINUTE =
+      new SqlDatePartFunction("MINUTE", TimeUnit.MINUTE);
+
+  /**
+   * The SQL <code>SECOND</code> operator. Returns the Second
+   * from a DATETIME  E.g.<br>
+   * <code>SECOND(timestamp '2008-9-23 01:23:45')</code> returns <code>
+   * 45</code>
+   */
+  public static final SqlDatePartFunction SECOND =
+      new SqlDatePartFunction("SECOND", TimeUnit.SECOND);
 
   /**
    * The ELEMENT operator, used to convert a multiset with only one item to a
