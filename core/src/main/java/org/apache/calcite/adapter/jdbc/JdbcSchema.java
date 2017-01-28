@@ -283,7 +283,7 @@ public class JdbcSchema implements Schema {
       }
       RelDataType sqlType =
           sqlType(typeFactory, dataType, precision, scale, typeString);
-      boolean nullable = resultSet.getBoolean(11);
+      boolean nullable = resultSet.getInt(11) != DatabaseMetaData.columnNoNulls;
       fieldInfo.add(columnName, sqlType).nullable(nullable);
     }
     resultSet.close();
