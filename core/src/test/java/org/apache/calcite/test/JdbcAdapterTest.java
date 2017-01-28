@@ -827,6 +827,17 @@ public class JdbcAdapterTest {
     });
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1572">[CALCITE-1572]
+   * JdbcSchema throws exception when detecting nullable columns</a>. */
+  @Test public void testColumnNullability() throws Exception {
+    final String sql = "select * from \"foodmart\".\"employee\" limit 10";
+    CalciteAssert.model(JdbcTest.FOODMART_MODEL)
+        .query(sql)
+        .runs()
+        .returnsCount(10);
+  }
+
   /** Acquires a lock, and releases it when closed. */
   static class LockWrapper implements AutoCloseable {
     private final Lock lock;
