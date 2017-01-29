@@ -654,6 +654,11 @@ public interface CalciteResource {
   @BaseMessage("SELECT must have a FROM clause")
   ExInst<SqlValidatorException> selectMissingFrom();
 
+  @BaseMessage("Group function ''{0}'' can only appear in GROUP BY clause")
+  ExInst<SqlValidatorException> groupFunctionMustAppearInGroupByClause(String funcName);
+
+  @BaseMessage("Call to auxiliary group function ''{0}'' must have matching call to group function ''{1}'' in GROUP BY clause")
+  ExInst<SqlValidatorException> auxiliaryWithoutMatchingGroupCall(String func1, String func2);
 }
 
 // End CalciteResource.java

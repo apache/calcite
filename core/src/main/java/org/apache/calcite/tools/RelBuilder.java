@@ -64,7 +64,6 @@ import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.Pair;
-import org.apache.calcite.util.Static;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.mapping.Mapping;
 import org.apache.calcite.util.mapping.Mappings;
@@ -90,6 +89,8 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
+
+import static org.apache.calcite.util.Static.RESOURCE;
 
 /**
  * Builder for relational expressions.
@@ -700,7 +701,7 @@ public class RelBuilder {
       RexNode filter, String alias, Iterable<? extends RexNode> operands) {
     if (filter != null) {
       if (filter.getType().getSqlTypeName() != SqlTypeName.BOOLEAN) {
-        throw Static.RESOURCE.filterMustBeBoolean().ex();
+        throw RESOURCE.filterMustBeBoolean().ex();
       }
       if (filter.getType().isNullable()) {
         filter = call(SqlStdOperatorTable.IS_TRUE, filter);
@@ -758,7 +759,7 @@ public class RelBuilder {
     final List<String> names = ImmutableList.copyOf(tableNames);
     final RelOptTable relOptTable = relOptSchema.getTableForMember(names);
     if (relOptTable == null) {
-      throw Static.RESOURCE.tableNotFound(Joiner.on(".").join(names)).ex();
+      throw RESOURCE.tableNotFound(Joiner.on(".").join(names)).ex();
     }
     final RelNode scan = scanFactory.createScan(cluster, relOptTable);
     push(scan);

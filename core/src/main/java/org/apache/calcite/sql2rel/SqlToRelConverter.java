@@ -2528,17 +2528,14 @@ public class SqlToRelConverter {
       }
 
       // compute inputs to the aggregator
-      List<RexNode> preExprs = aggConverter.getPreExprs();
-      List<String> preNames = aggConverter.getPreNames();
+      List<Pair<RexNode, String>> preExprs = aggConverter.getPreExprs();
 
       if (preExprs.size() == 0) {
         // Special case for COUNT(*), where we can end up with no inputs
         // at all.  The rest of the system doesn't like 0-tuples, so we
         // select a dummy constant here.
-        preExprs =
-            ImmutableList.<RexNode>of(
-                rexBuilder.makeExactLiteral(BigDecimal.ZERO));
-        preNames = Collections.singletonList(null);
+        final RexNode zero = rexBuilder.makeExactLiteral(BigDecimal.ZERO);
+        preExprs = ImmutableList.of(Pair.of(zero, (String) null));
       }
 
       final RelNode inputRel = bb.root;
@@ -2548,7 +2545,6 @@ public class SqlToRelConverter {
           RelOptUtil.createProject(
               inputRel,
               preExprs,
-              preNames,
               true),
           false);
       bb.mapRootRelToFieldProjection.put(bb.root, r.groupExprProjection);
@@ -4417,20 +4413,21 @@ public class SqlToRelConverter {
      * Input expressions for the group columns and aggregates, in
      * {@link RexNode} format. The first elements of the list correspond to the
      * elements in {@link #groupExprs}; the remaining elements are for
-     * aggregates.
+     * aggregates. The right field of each pair is the name of the expression,
+     * where the expressions are simple mappings to input fields.
      */
-    private final List<RexNode> convertedInputExprs = Lists.newArrayList();
+    private final List<Pair<RexNode, String>> convertedInputExprs =
+        new ArrayList<>();
 
-    /**
-     * Names of {@link #convertedInputExprs}, where the expressions are
-     * simple mappings to input fields.
-     */
-    private final List<String> convertedInputExprNames = Lists.newArrayList();
+    /** Expressions to be evaluated as rows are being placed into the
+     * aggregate's hash table. This is when group functions such as TUMBLE
+     * cause rows to be expanded. */
+    private final List<RexNode> midExprs = new ArrayList<>();
 
-    private final List<AggregateCall> aggCalls = Lists.newArrayList();
-    private final Map<SqlNode, RexNode> aggMapping = Maps.newHashMap();
+    private final List<AggregateCall> aggCalls = new ArrayList<>();
+    private final Map<SqlNode, RexNode> aggMapping = new HashMap<>();
     private final Map<AggregateCall, RexNode> aggCallMapping =
-        Maps.newHashMap();
+        new HashMap<>();
 
     /** Are we directly inside a windowed aggregate? */
     private boolean inOver = false;
@@ -4470,7 +4467,6 @@ public class SqlToRelConverter {
     }
 
     public int addGroupExpr(SqlNode expr) {
-      RexNode convExpr = bb.convertExpression(expr);
       int ref = lookupGroupExpr(expr);
       if (ref >= 0) {
         return ref;
@@ -4478,6 +4474,7 @@ public class SqlToRelConverter {
       final int index = groupExprs.size();
       groupExprs.add(expr);
       String name = nameMap.get(expr.toString());
+      RexNode convExpr = bb.convertExpression(expr);
       addExpr(convExpr, name);
       return index;
     }
@@ -4489,17 +4486,16 @@ public class SqlToRelConverter {
      * @param name Suggested name
      */
     private void addExpr(RexNode expr, String name) {
-      convertedInputExprs.add(expr);
       if ((name == null) && (expr instanceof RexInputRef)) {
         final int i = ((RexInputRef) expr).getIndex();
         name = bb.root.getRowType().getFieldList().get(i).getName();
       }
-      if (convertedInputExprNames.contains(name)) {
+      if (Pair.right(convertedInputExprs).contains(name)) {
         // In case like 'SELECT ... GROUP BY x, y, x', don't add
         // name 'x' twice.
         name = null;
       }
-      convertedInputExprNames.add(name);
+      convertedInputExprs.add(Pair.of(expr, name));
     }
 
     public Void visit(SqlIdentifier id) {
@@ -4645,15 +4641,15 @@ public class SqlToRelConverter {
     }
 
     private int lookupOrCreateGroupExpr(RexNode expr) {
-      for (int i = 0; i < convertedInputExprs.size(); i++) {
-        RexNode convertedInputExpr = convertedInputExprs.get(i);
+      int index = 0;
+      for (RexNode convertedInputExpr : Pair.left(convertedInputExprs)) {
         if (expr.toString().equals(convertedInputExpr.toString())) {
-          return i;
+          return index;
         }
+        ++index;
       }
 
       // not found -- add it
-      int index = convertedInputExprs.size();
       addExpr(expr, null);
       return index;
     }
@@ -4741,12 +4737,8 @@ public class SqlToRelConverter {
       return node;
     }
 
-    public List<RexNode> getPreExprs() {
+    public List<Pair<RexNode, String>> getPreExprs() {
       return convertedInputExprs;
-    }
-
-    public List<String> getPreNames() {
-      return convertedInputExprNames;
     }
 
     public List<AggregateCall> getAggCalls() {

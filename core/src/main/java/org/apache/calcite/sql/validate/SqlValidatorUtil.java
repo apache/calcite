@@ -54,6 +54,7 @@ import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -563,13 +564,13 @@ public class SqlValidatorUtil {
   /** Analyzes an expression in a GROUP BY clause.
    *
    * <p>It may be an expression, an empty list (), or a call to
-   * {@code GROUPING SETS}, {@code CUBE} or {@code ROLLUP}.
+   * {@code GROUPING SETS}, {@code CUBE}, {@code ROLLUP} or {@code TUMBLE}.
    *
    * <p>Each group item produces a list of group sets, which are written to
    * {@code topBuilder}. To find the grouping sets of the query, we will take
    * the cartesian product of the group sets. */
   public static void analyzeGroupItem(SqlValidatorScope scope,
-      List<SqlNode> groupExprs, Map<Integer, Integer> groupExprProjection,
+                                      GroupAnalyzer groupAnalyzer,
       ImmutableList.Builder<ImmutableList<ImmutableBitSet>> topBuilder,
       SqlNode groupExpr) {
     final ImmutableList.Builder<ImmutableBitSet> builder;
@@ -579,8 +580,7 @@ public class SqlValidatorUtil {
       // E.g. ROLLUP(a, (b, c)) becomes [{0}, {1, 2}]
       // then we roll up to [(0, 1, 2), (0), ()]  -- note no (0, 1)
       List<ImmutableBitSet> bitSets =
-          analyzeGroupTuple(scope, groupExprs,
-              groupExprProjection, ((SqlCall) groupExpr).getOperandList());
+          analyzeGroupTuple(scope, groupAnalyzer, ((SqlCall) groupExpr).getOperandList());
       switch (groupExpr.getKind()) {
       case ROLLUP:
         topBuilder.add(rollup(bitSets));
@@ -593,16 +593,17 @@ public class SqlValidatorUtil {
       if (groupExpr instanceof SqlNodeList) {
         SqlNodeList list = (SqlNodeList) groupExpr;
         for (SqlNode node : list) {
-          analyzeGroupItem(scope, groupExprs, groupExprProjection, topBuilder,
+          analyzeGroupItem(scope, groupAnalyzer, topBuilder,
               node);
         }
         return;
       }
       // fall through
+    case TUMBLE:
     case GROUPING_SETS:
     default:
       builder = ImmutableList.builder();
-      convertGroupSet(scope, groupExprs, groupExprProjection, builder,
+      convertGroupSet(scope, groupAnalyzer, builder,
           groupExpr);
       topBuilder.add(builder.build());
     }
@@ -610,24 +611,24 @@ public class SqlValidatorUtil {
 
   /** Analyzes a GROUPING SETS item in a GROUP BY clause. */
   private static void convertGroupSet(SqlValidatorScope scope,
-      List<SqlNode> groupExprs, Map<Integer, Integer> groupExprProjection,
+      GroupAnalyzer groupAnalyzer,
       ImmutableList.Builder<ImmutableBitSet> builder, SqlNode groupExpr) {
     switch (groupExpr.getKind()) {
     case GROUPING_SETS:
       final SqlCall call = (SqlCall) groupExpr;
       for (SqlNode node : call.getOperandList()) {
-        convertGroupSet(scope, groupExprs, groupExprProjection, builder, node);
+        convertGroupSet(scope, groupAnalyzer, builder, node);
       }
       return;
     case ROW:
       final List<ImmutableBitSet> bitSets =
-          analyzeGroupTuple(scope, groupExprs, groupExprProjection,
+          analyzeGroupTuple(scope, groupAnalyzer,
               ((SqlCall) groupExpr).getOperandList());
       builder.add(ImmutableBitSet.union(bitSets));
       return;
     default:
       builder.add(
-          analyzeGroupExpr(scope, groupExprs, groupExprProjection, groupExpr));
+          analyzeGroupExpr(scope, groupAnalyzer, groupExpr));
       return;
     }
   }
@@ -641,19 +642,19 @@ public class SqlValidatorUtil {
    * grouped, and returns a bitmap indicating which expressions this tuple
    * is grouping. */
   private static List<ImmutableBitSet>
-  analyzeGroupTuple(SqlValidatorScope scope, List<SqlNode> groupExprs,
-      Map<Integer, Integer> groupExprProjection, List<SqlNode> operandList) {
+  analyzeGroupTuple(SqlValidatorScope scope, GroupAnalyzer groupAnalyzer,
+                    List<SqlNode> operandList) {
     List<ImmutableBitSet> list = Lists.newArrayList();
     for (SqlNode operand : operandList) {
       list.add(
-          analyzeGroupExpr(scope, groupExprs, groupExprProjection, operand));
+          analyzeGroupExpr(scope, groupAnalyzer, operand));
     }
     return list;
   }
 
   /** Analyzes a component of a tuple in a GROUPING SETS clause. */
   private static ImmutableBitSet analyzeGroupExpr(SqlValidatorScope scope,
-      List<SqlNode> groupExprs, Map<Integer, Integer> groupExprProjection,
+      GroupAnalyzer groupAnalyzer,
       SqlNode groupExpr) {
     final SqlNode expandedGroupExpr =
         scope.getValidator().expand(groupExpr, scope);
@@ -661,7 +662,7 @@ public class SqlValidatorUtil {
     switch (expandedGroupExpr.getKind()) {
     case ROW:
       return ImmutableBitSet.union(
-          analyzeGroupTuple(scope, groupExprs, groupExprProjection,
+          analyzeGroupTuple(scope, groupAnalyzer,
               ((SqlCall) expandedGroupExpr).getOperandList()));
     case OTHER:
       if (expandedGroupExpr instanceof SqlNodeList
@@ -670,7 +671,7 @@ public class SqlValidatorUtil {
       }
     }
 
-    final int ref = lookupGroupExpr(groupExprs, groupExpr);
+    final int ref = lookupGroupExpr(groupAnalyzer, groupExpr);
     if (expandedGroupExpr instanceof SqlIdentifier) {
       // SQL 2003 does not allow expressions of column references
       SqlIdentifier expr = (SqlIdentifier) expandedGroupExpr;
@@ -711,20 +712,26 @@ public class SqlValidatorUtil {
       RelDataTypeField field = nameMatcher.field(rowType, originalFieldName);
       int origPos = namespaceOffset + field.getIndex();
 
-      groupExprProjection.put(origPos, ref);
+      groupAnalyzer.groupExprProjection.put(origPos, ref);
     }
 
     return ImmutableBitSet.of(ref);
   }
 
-  private static int lookupGroupExpr(List<SqlNode> groupExprs, SqlNode expr) {
-    for (Ord<SqlNode> node : Ord.zip(groupExprs)) {
+  private static int lookupGroupExpr(GroupAnalyzer groupAnalyzer, SqlNode expr) {
+    for (Ord<SqlNode> node : Ord.zip(groupAnalyzer.groupExprs)) {
       if (node.e.equalsDeep(expr, Litmus.IGNORE)) {
         return node.i;
       }
     }
-    groupExprs.add(expr);
-    return groupExprs.size() - 1;
+
+    switch (expr.getKind()) {
+    case TUMBLE:
+      groupAnalyzer.extraExprs.add(expr);
+      break;
+    }
+    groupAnalyzer.groupExprs.add(expr);
+    return groupAnalyzer.groupExprs.size() - 1;
   }
 
   /** Computes the rollup of bit sets.
@@ -895,6 +902,26 @@ public class SqlValidatorUtil {
           return Util.first(original, "$f") + Math.max(size, attempt);
         }
       };
+
+  /** Builds a list of GROUP BY expressions. */
+  static class GroupAnalyzer {
+    /** Extra expressions, computed from the input as extra GROUP BY
+     * expressions. For example, calls to the {@code TUMBLE} functions. */
+    final List<SqlNode> extraExprs = new ArrayList<>();
+    final List<SqlNode> groupExprs;
+    final Map<Integer, Integer> groupExprProjection = new HashMap<>();
+    int groupCount;
+
+    GroupAnalyzer(List<SqlNode> groupExprs) {
+      this.groupExprs = groupExprs;
+    }
+
+    SqlNode createGroupExpr() {
+      // TODO: create an expression that could have no other source
+      return SqlLiteral.createCharString("xyz" + groupCount++,
+          SqlParserPos.ZERO);
+    }
+  }
 }
 
 // End SqlValidatorUtil.java
