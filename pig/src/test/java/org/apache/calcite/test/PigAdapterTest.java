@@ -20,8 +20,8 @@ import org.apache.calcite.adapter.pig.PigAggregate;
 import org.apache.calcite.adapter.pig.PigFilter;
 import org.apache.calcite.adapter.pig.PigRel;
 import org.apache.calcite.adapter.pig.PigRelFactories;
+import org.apache.calcite.adapter.pig.PigRules;
 import org.apache.calcite.adapter.pig.PigTable;
-import org.apache.calcite.plan.Contexts;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.rel.RelNode;
@@ -43,7 +43,6 @@ import org.junit.Test;
 import java.io.File;
 import java.net.URISyntaxException;
 
-import static org.apache.calcite.adapter.pig.PigRules.getAllPigOptRules;
 import static org.apache.calcite.rel.rules.FilterJoinRule.TRUE_PREDICATE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.EQUALS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.GREATER_THAN;
@@ -63,8 +62,8 @@ public class PigAdapterTest {
     final RelBuilder builder = createRelBuilder(schema);
     final RelNode node = builder.scan("t")
         .filter(builder.call(GREATER_THAN, builder.field("tc0"), builder.literal("abc"))).build();
-    final RelNode optimized = optimizeWithVolcano(node, schema);
-    assertScriptAndResults("t", getPigScript(optimized),
+    final RelNode optimized = optimizeWithVolcano(node);
+    assertScriptAndResults("t", getPigScript(optimized, schema),
         "t = LOAD '" + getFullPathForTestDataFile("data.txt")
             + "' USING PigStorage() AS (tc0:chararray, tc1:chararray);\n"
             + "t = FILTER t BY (tc0 > 'abc');",
@@ -80,8 +79,8 @@ public class PigAdapterTest {
             builder.and(builder.call(GREATER_THAN, builder.field("tc0"), builder.literal("abc")),
                 builder.call(EQUALS, builder.field("tc1"), builder.literal("3"))))
         .build();
-    final RelNode optimized = optimizeWithVolcano(node, schema);
-    assertScriptAndResults("t", getPigScript(optimized),
+    final RelNode optimized = optimizeWithVolcano(node);
+    assertScriptAndResults("t", getPigScript(optimized, schema),
         "t = LOAD '" + getFullPathForTestDataFile("data.txt")
             + "' USING PigStorage() AS (tc0:chararray, tc1:chararray);\n"
             + "t = FILTER t BY (tc0 > 'abc') AND (tc1 == '3');",
@@ -95,8 +94,8 @@ public class PigAdapterTest {
     final RelNode node = builder.scan("t")
         .aggregate(builder.groupKey("tc0"), builder.count(false, "c", builder.field("tc1")))
         .build();
-    final RelNode optimized = optimizeWithVolcano(node, schema);
-    assertScriptAndResults("t", getPigScript(optimized),
+    final RelNode optimized = optimizeWithVolcano(node);
+    assertScriptAndResults("t", getPigScript(optimized, schema),
         "t = LOAD '" + getFullPathForTestDataFile("data.txt")
             + "' USING PigStorage() AS (tc0:chararray, tc1:chararray);\n"
             + "t = GROUP t BY (tc0);\n"
@@ -112,8 +111,8 @@ public class PigAdapterTest {
     final RelBuilder builder = createRelBuilder(schema);
     final RelNode node = builder.scan("t")
         .aggregate(builder.groupKey(), builder.count(false, "c", builder.field("tc0"))).build();
-    final RelNode optimized = optimizeWithVolcano(node, schema);
-    assertScriptAndResults("t", getPigScript(optimized),
+    final RelNode optimized = optimizeWithVolcano(node);
+    assertScriptAndResults("t", getPigScript(optimized, schema),
         "t = LOAD '" + getFullPathForTestDataFile("data.txt")
             + "' USING PigStorage() AS (tc0:chararray, tc1:chararray);\n"
             + "t = GROUP t ALL;\n"
@@ -130,8 +129,8 @@ public class PigAdapterTest {
     final RelNode node = builder.scan("t")
         .aggregate(builder.groupKey("tc1", "tc0"), builder.count(false, "c", builder.field("tc1")))
         .build();
-    final RelNode optimized = optimizeWithVolcano(node, schema);
-    assertScriptAndResults("t", getPigScript(optimized),
+    final RelNode optimized = optimizeWithVolcano(node);
+    assertScriptAndResults("t", getPigScript(optimized, schema),
         "t = LOAD '" + getFullPathForTestDataFile("data.txt")
             + "' USING PigStorage() AS (tc0:chararray, tc1:chararray);\n"
             + "t = GROUP t BY (tc0, tc1);\n"
@@ -148,8 +147,8 @@ public class PigAdapterTest {
     final RelNode node = builder.scan("t")
         .aggregate(builder.groupKey("tc1", "tc0"), builder.count(true, "c", builder.field("tc1")))
         .build();
-    final RelNode optimized = optimizeWithVolcano(node, schema);
-    assertScriptAndResults("t", getPigScript(optimized),
+    final RelNode optimized = optimizeWithVolcano(node);
+    assertScriptAndResults("t", getPigScript(optimized, schema),
         "t = LOAD '" + getFullPathForTestDataFile("data.txt")
             + "' USING PigStorage() AS (tc0:chararray, tc1:chararray);\n"
             + "t = GROUP t BY (tc0, tc1);\n"
@@ -168,8 +167,8 @@ public class PigAdapterTest {
         .join(JoinRelType.INNER,
             builder.equals(builder.field(2, 0, "tc1"), builder.field(2, 1, "sc0")))
         .filter(builder.call(GREATER_THAN, builder.field("tc0"), builder.literal("a"))).build();
-    final RelNode optimized = optimizeWithVolcano(node, schema);
-    assertScriptAndResults("t", getPigScript(optimized),
+    final RelNode optimized = optimizeWithVolcano(node);
+    assertScriptAndResults("t", getPigScript(optimized, schema),
         "t = LOAD '" + getFullPathForTestDataFile("data.txt")
             + "' USING PigStorage() AS (tc0:chararray, tc1:chararray);\n"
             + "t = FILTER t BY (tc0 > 'a');\n"
@@ -190,8 +189,8 @@ public class PigAdapterTest {
         .filter(builder.call(GREATER_THAN, builder.field("tc0"), builder.literal("abc")))
         .aggregate(builder.groupKey("tc1"), builder.count(false, "c", builder.field("sc1")))
         .build();
-    final RelNode optimized = optimizeWithVolcano(node, schema);
-    assertScriptAndResults("t", getPigScript(optimized),
+    final RelNode optimized = optimizeWithVolcano(node);
+    assertScriptAndResults("t", getPigScript(optimized, schema),
         "t = LOAD '" + getFullPathForTestDataFile("data.txt")
             + "' USING PigStorage() AS (tc0:chararray, tc1:chararray);\n"
             + "t = FILTER t BY (tc0 > 'abc');\n"
@@ -227,24 +226,21 @@ public class PigAdapterTest {
 
   private RelBuilder createRelBuilder(SchemaPlus schema) {
     final FrameworkConfig config = Frameworks.newConfigBuilder().defaultSchema(schema)
-        .context(
-            Contexts.of(
-                new PigRelFactories.PigTableScanFactory(schema),
-                new PigRelFactories.PigFilterFactory(), new PigRelFactories.PigAggregateFactory(),
-                new PigRelFactories.PigJoinFactory()))
+        .context(PigRelFactories.ALL_PIG_REL_FACTORIES)
         .build();
     return RelBuilder.create(config);
   }
 
-  private RelNode optimizeWithVolcano(RelNode root, Schema schema) {
-    RelOptPlanner planner = getVolcanoPlanner(root, schema);
+  private RelNode optimizeWithVolcano(RelNode root) {
+    RelOptPlanner planner = getVolcanoPlanner(root);
     return planner.findBestExp();
   }
 
-  private RelOptPlanner getVolcanoPlanner(RelNode root, Schema schema) {
-    final RelBuilderFactory builderFactory = getBuilderFactory(schema);
+  private RelOptPlanner getVolcanoPlanner(RelNode root) {
+    final RelBuilderFactory builderFactory =
+        RelBuilder.proto(PigRelFactories.ALL_PIG_REL_FACTORIES);
     final RelOptPlanner planner = root.getCluster().getPlanner(); // VolcanoPlanner
-    for (RelOptRule r : getAllPigOptRules(schema)) {
+    for (RelOptRule r : PigRules.ALL_PIG_OPT_RULES) {
       planner.addRule(r);
     }
     planner.removeRule(FilterAggregateTransposeRule.INSTANCE);
@@ -254,10 +250,6 @@ public class PigAdapterTest {
     planner.addRule(new FilterIntoJoinRule(true, builderFactory, TRUE_PREDICATE));
     planner.setRoot(root);
     return planner;
-  }
-
-  private RelBuilderFactory getBuilderFactory(Schema schema) {
-    return RelBuilder.proto(PigRelFactories.getAllPigRelFactories(schema));
   }
 
   private void assertScriptAndResults(String relAliasForStore, String script, String expectedScript,
@@ -272,8 +264,8 @@ public class PigAdapterTest {
     }
   }
 
-  private String getPigScript(RelNode root) {
-    PigRel.Implementor impl = new PigRel.Implementor();
+  private String getPigScript(RelNode root, Schema schema) {
+    PigRel.Implementor impl = new PigRel.Implementor(schema);
     impl.visitChild(0, root);
     return impl.getScript();
   }

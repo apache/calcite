@@ -33,15 +33,13 @@ import java.util.List;
  */
 public class PigTableScan extends TableScan implements PigRel {
 
-  private PigTable pigTable;
-
-  public PigTableScan(RelOptCluster cluster, RelTraitSet traitSet, RelOptTable table,
-      PigTable pigTable) {
+  public PigTableScan(RelOptCluster cluster, RelTraitSet traitSet, RelOptTable table) {
     super(cluster, traitSet, table);
-    this.pigTable = pigTable;
   }
 
   @Override public void implement(Implementor implementor) {
+    PigTable pigTable = (PigTable) implementor.getSchema()
+      .getTable(getTable().getQualifiedName().get(0));
     String alias = getTable().getQualifiedName().get(0);
     String schema = '(' + getSchemaForPigStatement(implementor) + ')';
     String statement = alias + " = LOAD '" + pigTable.getFilePath() + "' USING PigStorage() AS "

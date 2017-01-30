@@ -16,10 +16,6 @@
  */
 package org.apache.calcite.adapter.pig;
 
-import org.apache.calcite.adapter.pig.PigRelFactories.PigAggregateFactory;
-import org.apache.calcite.adapter.pig.PigRelFactories.PigFilterFactory;
-import org.apache.calcite.adapter.pig.PigRelFactories.PigJoinFactory;
-import org.apache.calcite.adapter.pig.PigRelFactories.PigTableScanFactory;
 import org.apache.calcite.plan.Context;
 import org.apache.calcite.plan.Contexts;
 import org.apache.calcite.plan.RelOptCluster;
@@ -30,7 +26,6 @@ import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.schema.Schema;
 import org.apache.calcite.util.ImmutableBitSet;
 
 import com.google.common.collect.ImmutableList;
@@ -42,34 +37,29 @@ import java.util.Set;
  */
 public class PigRelFactories {
 
+  public static final Context ALL_PIG_REL_FACTORIES = Contexts.of(PigTableScanFactory.INSTANCE,
+      PigFilterFactory.INSTANCE, PigAggregateFactory.INSTANCE, PigJoinFactory.INSTANCE);
+
   // prevent instantiation
   private PigRelFactories() {
-  }
-
-  public static Context getAllPigRelFactories(Schema schema) {
-    return Contexts.of(new PigFilterFactory(), new PigJoinFactory(), new PigAggregateFactory(),
-        new PigTableScanFactory(schema));
   }
 
   /**
    */
   public static class PigTableScanFactory implements RelFactories.TableScanFactory {
 
-    private final Schema schema;
-
-    public PigTableScanFactory(Schema schema) {
-      this.schema = schema;
-    }
+    public static final PigTableScanFactory INSTANCE = new PigTableScanFactory();
 
     @Override public RelNode createScan(RelOptCluster cluster, RelOptTable table) {
-      PigTable pigTable = (PigTable) schema.getTable(table.getQualifiedName().get(0));
-      return new PigTableScan(cluster, cluster.traitSetOf(PigRel.CONVENTION), table, pigTable);
+      return new PigTableScan(cluster, cluster.traitSetOf(PigRel.CONVENTION), table);
     }
   }
 
   /**
    */
   public static class PigFilterFactory implements RelFactories.FilterFactory {
+
+    public static final PigFilterFactory INSTANCE = new PigFilterFactory();
 
     @Override public RelNode createFilter(RelNode input, RexNode condition) {
       return new PigFilter(input.getCluster(), input.getTraitSet().replace(PigRel.CONVENTION),
@@ -80,6 +70,8 @@ public class PigRelFactories {
   /**
    */
   public static class PigAggregateFactory implements RelFactories.AggregateFactory {
+
+    public static final PigAggregateFactory INSTANCE = new PigAggregateFactory();
 
     @Override public RelNode createAggregate(RelNode input, boolean indicator,
         ImmutableBitSet groupSet, ImmutableList<ImmutableBitSet> groupSets,
@@ -92,6 +84,8 @@ public class PigRelFactories {
   /**
    */
   public static class PigJoinFactory implements RelFactories.JoinFactory {
+
+    public static final PigJoinFactory INSTANCE = new PigJoinFactory();
 
     @Override public RelNode createJoin(RelNode left, RelNode right, RexNode condition,
         Set<CorrelationId> variablesSet, JoinRelType joinType, boolean semiJoinDone) {

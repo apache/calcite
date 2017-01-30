@@ -18,6 +18,7 @@ package org.apache.calcite.adapter.pig;
 
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.schema.Schema;
 
 import com.google.common.base.Joiner;
 
@@ -47,11 +48,17 @@ public interface PigRel extends RelNode {
    */
   class Implementor {
 
+    private final Schema schema;
+
     /**
      * An ordered list or Pig Latin statements.
      * @see https://pig.apache.org/docs/r0.13.0/start.html#pl-statements
      */
-    final List<String> statements = new ArrayList<>();
+    private final List<String> statements = new ArrayList<>();
+
+    public Implementor(Schema schema) {
+      this.schema = schema;
+    }
 
     public String getPigRelationAlias(RelNode input) {
       return input.getTable().getQualifiedName().get(0);
@@ -68,6 +75,10 @@ public interface PigRel extends RelNode {
     public void visitChild(int ordinal, RelNode input) {
       assert ordinal == 0;
       ((PigRel) input).implement(this);
+    }
+
+    public Schema getSchema() {
+      return schema;
     }
 
     public List<String> getStatements() {

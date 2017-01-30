@@ -24,24 +24,20 @@ import org.apache.calcite.rel.convert.ConverterRule;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.logical.LogicalTableScan;
-import org.apache.calcite.schema.Schema;
 
 /**
  *
  */
 public class PigRules {
 
+  public static final RelOptRule[] ALL_PIG_OPT_RULES = new RelOptRule[] { PigFilterRule.INSTANCE,
+    PigTableScanRule.INSTANCE, PigProjectRule.INSTANCE };
+
   /**
    * Prevent instantiation.
    */
   private PigRules() {
   }
-
-  public static RelOptRule[] getAllPigOptRules(Schema schema) {
-    return new RelOptRule[] { PigFilterRule.INSTANCE, new PigTableScanRule(schema),
-      PigProjectRule.INSTANCE
-    };
-  };
 
   /**
    * Rule to convert a {@link org.apache.calcite.rel.logical.LogicalFilter} to a
@@ -67,19 +63,16 @@ public class PigRules {
    * to a {@link PigTableScan}.
    */
   private static class PigTableScanRule extends ConverterRule {
-    private final Schema schema;
+    private static final PigTableScanRule INSTANCE = new PigTableScanRule();
 
-    private PigTableScanRule(Schema schema) {
+    private PigTableScanRule() {
       super(LogicalTableScan.class, Convention.NONE, PigRel.CONVENTION, "PigTableScanRule");
-      this.schema = schema;
     }
 
     public RelNode convert(RelNode rel) {
       final LogicalTableScan scan = (LogicalTableScan) rel;
       final RelTraitSet traitSet = scan.getTraitSet().replace(PigRel.CONVENTION);
-      final PigTable pigTable = (PigTable) schema
-          .getTable(scan.getTable().getQualifiedName().get(0));
-      return new PigTableScan(rel.getCluster(), traitSet, scan.getTable(), pigTable);
+      return new PigTableScan(rel.getCluster(), traitSet, scan.getTable());
     }
   }
 
