@@ -424,6 +424,19 @@ public abstract class OperandTypes {
   public static final SqlSingleOperandTypeChecker DATETIME_INTERVAL =
       family(SqlTypeFamily.DATETIME, SqlTypeFamily.DATETIME_INTERVAL);
 
+  public static final SqlSingleOperandTypeChecker DATETIME_INTERVAL_INTERVAL =
+      family(SqlTypeFamily.DATETIME, SqlTypeFamily.DATETIME_INTERVAL,
+          SqlTypeFamily.DATETIME_INTERVAL);
+
+  public static final SqlSingleOperandTypeChecker
+  DATETIME_INTERVAL_INTERVAL_TIME =
+      family(SqlTypeFamily.DATETIME, SqlTypeFamily.DATETIME_INTERVAL,
+          SqlTypeFamily.DATETIME_INTERVAL, SqlTypeFamily.TIME);
+
+  public static final SqlSingleOperandTypeChecker DATETIME_INTERVAL_TIME =
+      family(SqlTypeFamily.DATETIME, SqlTypeFamily.DATETIME_INTERVAL,
+          SqlTypeFamily.TIME);
+
   public static final SqlSingleOperandTypeChecker INTERVAL_DATETIME =
       family(SqlTypeFamily.DATETIME_INTERVAL, SqlTypeFamily.DATETIME);
 

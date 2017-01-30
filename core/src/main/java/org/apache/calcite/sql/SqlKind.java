@@ -773,6 +773,19 @@ public enum SqlKind {
   /** The {@code ROW_NUMBER} window function. */
   CUME_DIST,
 
+  // Group functions
+
+  /** The {@code TUMBLE} group function. */
+  TUMBLE,
+
+  /** The {@code TUMBLE_START} auxiliary function of
+   * the {@link #TUMBLE} function. */
+  TUMBLE_START,
+
+  /** The {@code TUMBLE_END} auxiliary function of
+   * the {@link #TUMBLE} function. */
+  TUMBLE_END,
+
   // DDL and session control statements follow. The list is not exhaustive: feel
   // free to add more.
 

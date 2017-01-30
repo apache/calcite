@@ -792,6 +792,32 @@ public abstract class SqlOperator {
   }
 
   /**
+   * Returns whether this is a group function.
+   *
+   * <p>Group functions can only appear in the GROUP BY clause.
+   *
+   * <p>Examples are {@code HOP}, {@code TUMBLE}, {@code SESSION}.
+   *
+   * <p>Group functions have auxiliary functions, e.g. {@code HOP_START}, but
+   * these are not group functions.
+   */
+  public boolean isGroup() {
+    return false;
+  }
+
+  /**
+   * Returns whether this is an group auxiliary function.
+   *
+   * <p>Examples are {@code HOP_START} and {@code HOP_END} (both auxiliary to
+   * {@code HOP}).
+   *
+   * @see #isGroup()
+   */
+  public boolean isGroupAuxiliary() {
+    return false;
+  }
+
+  /**
    * Accepts a {@link SqlVisitor}, visiting each operand of a call. Returns
    * null.
    *

@@ -4738,6 +4738,7 @@ SqlIdentifier ReservedFunctionName() :
         | <FLOOR>
         | <FUSION>
         | <GROUPING>
+        | <HOUR>
         | <LAST_VALUE>
         | <LN>
         | <LOCALTIME>
@@ -4745,7 +4746,9 @@ SqlIdentifier ReservedFunctionName() :
         | <LOWER>
         | <MAX>
         | <MIN>
+        | <MINUTE>
         | <MOD>
+        | <MONTH>
         | <NULLIF>
         | <OCTET_LENGTH>
         | <PERCENT_RANK>
@@ -4754,13 +4757,16 @@ SqlIdentifier ReservedFunctionName() :
         | <REGR_SXX>
         | <REGR_SYY>
         | <ROW_NUMBER>
+        | <SECOND>
         | <SQRT>
         | <STDDEV_POP>
         | <STDDEV_SAMP>
         | <SUM>
         | <UPPER>
+        | <USER>
         | <VAR_POP>
         | <VAR_SAMP>
+        | <YEAR>
     )
     {
         return new SqlIdentifier(unquotedIdentifier(), getPos());

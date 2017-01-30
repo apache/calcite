@@ -60,7 +60,6 @@ import org.apache.calcite.sql.fun.SqlMapValueConstructor;
 import org.apache.calcite.sql.fun.SqlMultisetQueryConstructor;
 import org.apache.calcite.sql.fun.SqlMultisetValueConstructor;
 import org.apache.calcite.sql.fun.SqlOverlapsOperator;
-import org.apache.calcite.sql.fun.SqlQuarterFunction;
 import org.apache.calcite.sql.fun.SqlRowOperator;
 import org.apache.calcite.sql.fun.SqlSequenceValueOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
@@ -741,37 +740,6 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
       res = rexBuilder.makeCall(SqlStdOperatorTable.PLUS, res,
           rexBuilder.makeExactLiteral(BigDecimal.ONE));
     }
-    return res;
-  }
-
-  /**
-   * Converts a call to the {@code QUARTER} function.
-   *
-   * <p>Called automatically via reflection.
-   */
-  public RexNode convertQuarter(
-      SqlRexContext cx,
-      SqlQuarterFunction op,
-      SqlCall call) {
-    final List<SqlNode> operands = call.getOperandList();
-    assert operands.size() == 1;
-    RexNode x = cx.convertExpression(operands.get(0));
-    final RexBuilder rexBuilder = cx.getRexBuilder();
-    final RelDataTypeFactory typeFactory = cx.getTypeFactory();
-    final RelDataType resType =
-        typeFactory.createTypeWithNullability(
-            typeFactory.createSqlType(SqlTypeName.BIGINT),
-            x.getType().isNullable());
-    RexNode res =
-        rexBuilder.makeCall(
-            resType,
-            SqlStdOperatorTable.EXTRACT_DATE,
-            ImmutableList.of(rexBuilder.makeFlag(TimeUnitRange.MONTH), x));
-    res = rexBuilder.makeCall(SqlStdOperatorTable.MINUS, res,
-        rexBuilder.makeExactLiteral(BigDecimal.ONE));
-    res = divide(rexBuilder, res, TimeUnit.QUARTER.multiplier);
-    res = rexBuilder.makeCall(SqlStdOperatorTable.PLUS, res,
-        rexBuilder.makeExactLiteral(BigDecimal.ONE));
     return res;
   }
 

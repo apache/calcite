@@ -229,6 +229,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       new IdentityHashMap<>();
   private final AggFinder aggFinder;
   private final AggFinder aggOrOverFinder;
+  private final AggFinder aggOrOverOrGroupFinder;
+  private final AggFinder groupFinder;
   private final AggFinder overFinder;
   private final SqlConformance conformance;
   private final Map<SqlNode, SqlNode> originalExprs = new HashMap<>();
@@ -280,9 +282,11 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
     rewriteCalls = true;
     expandColumnReferences = true;
-    aggFinder = new AggFinder(opTab, false, true, null);
-    aggOrOverFinder = new AggFinder(opTab, true, true, null);
-    overFinder = new AggFinder(opTab, true, false, aggOrOverFinder);
+    aggFinder = new AggFinder(opTab, false, true, false, null);
+    aggOrOverFinder = new AggFinder(opTab, true, true, false, null);
+    overFinder = new AggFinder(opTab, true, false, false, aggOrOverFinder);
+    groupFinder = new AggFinder(opTab, false, false, true, null);
+    aggOrOverOrGroupFinder = new AggFinder(opTab, true, true, true, null);
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -2574,7 +2578,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   }
 
   protected boolean isNestedAggregateWindow(SqlCall windowFunction) {
-    AggFinder nestedAggFinder = new AggFinder(opTab, false, false, aggFinder);
+    AggFinder nestedAggFinder =
+        new AggFinder(opTab, false, false, false, aggFinder);
     return nestedAggFinder.findAgg(windowFunction) != null;
   }
 
@@ -2976,19 +2981,26 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
    * Throws an error if there is an aggregate or windowed aggregate in the
    * given clause.
    *
-   * @param condition Parse tree
+   * @param aggFinder Finder for the particular kind(s) of aggregate function
+   * @param node      Parse tree
    * @param clause    Name of clause: "WHERE", "GROUP BY", "ON"
    */
-  private void validateNoAggs(SqlNode condition, String clause) {
-    final SqlNode agg = aggOrOverFinder.findAgg(condition);
-    if (agg != null) {
-      if (SqlUtil.isCallTo(agg, SqlStdOperatorTable.OVER)) {
-        throw newValidationError(agg,
-            RESOURCE.windowedAggregateIllegalInClause(clause));
-      } else {
-        throw newValidationError(agg,
-            RESOURCE.aggregateIllegalInClause(clause));
-      }
+  private void validateNoAggs(AggFinder aggFinder, SqlNode node,
+                              String clause) {
+    final SqlCall agg = aggFinder.findAgg(node);
+    if (agg == null) {
+      return;
+    }
+    final SqlOperator op = agg.getOperator();
+    if (op == SqlStdOperatorTable.OVER) {
+      throw newValidationError(agg,
+          RESOURCE.windowedAggregateIllegalInClause(clause));
+    } else if (op.isGroup() || op.isGroupAuxiliary()) {
+      throw newValidationError(agg,
+          RESOURCE.groupFunctionMustAppearInGroupByClause(op.getName()));
+    } else {
+      throw newValidationError(agg,
+          RESOURCE.aggregateIllegalInClause(clause));
     }
   }
 
@@ -3432,7 +3444,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     if (groupList == null) {
       return;
     }
-    validateNoAggs(groupList, "GROUP BY");
+    validateNoAggs(aggOrOverFinder, groupList, "GROUP BY");
     final SqlValidatorScope groupScope = getGroupScope(select);
     inferUnknownTypes(unknownType, groupScope, groupList);
 
@@ -3523,7 +3535,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       SqlValidatorScope scope,
       SqlNode condition,
       String keyword) {
-    validateNoAggs(condition, keyword);
+    validateNoAggs(aggOrOverOrGroupFinder, condition, keyword);
     inferUnknownTypes(
         booleanType,
         scope,
@@ -3612,6 +3624,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     inferUnknownTypes(targetRowType, selectScope, newSelectList);
 
     for (SqlNode selectItem : expandedSelectItems) {
+      validateNoAggs(groupFinder, selectItem, "SELECT");
       validateExpr(selectItem, selectScope);
     }
 

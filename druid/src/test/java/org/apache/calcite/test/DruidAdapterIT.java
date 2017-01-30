@@ -185,7 +185,8 @@ public class DruidAdapterIT {
     final String druidQuery = "{'queryType':'timeseries',"
         + "'dataSource':'wikiticker','descending':false,'granularity':'day',"
         + "'aggregations':[{'type':'longSum','name':'EXPR$0','fieldName':'added'}],"
-        + "'intervals':['1900-01-01T00:00:00.000Z/3000-01-01T00:00:00.000Z']}";
+        + "'intervals':['1900-01-01T00:00:00.000Z/3000-01-01T00:00:00.000Z'],"
+        + "'context':{'skipEmptyBuckets':true}}";
     sql(sql, WIKI_AUTO2)
         .explainContains(explain)
         .queryContains(druidChecker(druidQuery));
@@ -223,7 +224,8 @@ public class DruidAdapterIT {
     final String druidQuery = "{'queryType':'timeseries',"
         + "'dataSource':'wikiticker','descending':false,'granularity':'day',"
         + "'aggregations':[{'type':'longSum','name':'EXPR$1','fieldName':'added'}],"
-        + "'intervals':['1900-01-01T00:00:00.000Z/3000-01-01T00:00:00.000Z']}";
+        + "'intervals':['1900-01-01T00:00:00.000Z/3000-01-01T00:00:00.000Z'],"
+        + "'context':{'skipEmptyBuckets':true}}";
     sql(sql, WIKI_AUTO2)
         .returnsUnordered("day=2015-09-12 00:00:00; EXPR$1=9385573")
         .explainContains(explain)
@@ -253,6 +255,24 @@ public class DruidAdapterIT {
         .returnsUnordered("s=199818; page=User:QuackGuru/Electronic cigarettes 1; "
             + "day=2015-09-12 00:00:00")
         .explainContains(explain)
+        .queryContains(druidChecker(druidQuery));
+  }
+
+  @Test public void testSkipEmptyBuckets() {
+    final String sql = "select floor(\"__time\" to SECOND) as \"second\", sum(\"added\")\n"
+        + "from \"wikiticker\"\n"
+        + "where \"page\" = 'Jeremy Corbyn'\n"
+        + "group by floor(\"__time\" to SECOND)";
+    final String druidQuery = "{'queryType':'timeseries',"
+        + "'dataSource':'wikiticker','descending':false,'granularity':'second',"
+        + "'filter':{'type':'selector','dimension':'page','value':'Jeremy Corbyn'},"
+        + "'aggregations':[{'type':'longSum','name':'EXPR$1','fieldName':'added'}],"
+        + "'intervals':['1900-01-01T00:00:00.000Z/3000-01-01T00:00:00.000Z'],"
+        + "'context':{'skipEmptyBuckets':true}}";
+    sql(sql, WIKI_AUTO2)
+        .limit(1)
+        // Result without 'skipEmptyBuckets':true => "second=2015-09-12 00:46:58; EXPR$1=0"
+        .returnsUnordered("second=2015-09-12 01:20:19; EXPR$1=1075")
         .queryContains(druidChecker(druidQuery));
   }
 
@@ -768,7 +788,8 @@ public class DruidAdapterIT {
     final String druidQuery = "{'queryType':'timeseries','dataSource':'foodmart',"
         + "'descending':false,'granularity':'all',"
         + "'aggregations':[{'type':'count','name':'EXPR$0'}],"
-        + "'intervals':['1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z']}";
+        + "'intervals':['1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z'],"
+        + "'context':{'skipEmptyBuckets':true}}";
     final String explain = "PLAN=EnumerableInterpreter\n"
         + "  DruidQuery(table=[[foodmart, foodmart]], intervals=[[1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z]], projects=[[]], groups=[{}], aggs=[[COUNT()]])";
     final String sql = "select count(*) from \"foodmart\"";
@@ -882,7 +903,8 @@ public class DruidAdapterIT {
         + "'descending':false,'granularity':'month',"
         + "'aggregations':[{'type':'longSum','name':'S','fieldName':'unit_sales'},"
         + "{'type':'count','name':'C','fieldName':'store_sqft'}],"
-        + "'intervals':['1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z']}";
+        + "'intervals':['1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z'],"
+        + "'context':{'skipEmptyBuckets':true}}";
     sql(sql)
         .limit(3)
         .returnsUnordered("S=20957; C=6844", "S=21628; C=7033", "S=23706; C=7710")
@@ -952,7 +974,8 @@ public class DruidAdapterIT {
         + "'descending':false,'granularity':'day',"
         + "'aggregations':[{'type':'longSum','name':'S','fieldName':'unit_sales'},"
         + "{'type':'count','name':'C','fieldName':'store_sqft'}],"
-        + "'intervals':['1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z']}";
+        + "'intervals':['1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z'],"
+        + "'context':{'skipEmptyBuckets':true}}";
     sql(sql)
         .limit(3)
         .returnsUnordered("S=348; C=117", "S=589; C=189", "S=635; C=206")
@@ -970,7 +993,8 @@ public class DruidAdapterIT {
         + "'descending':false,'granularity':'month',"
         + "'aggregations':[{'type':'longSum','name':'S','fieldName':'unit_sales'},"
         + "{'type':'count','name':'C','fieldName':'store_sqft'}],"
-        + "'intervals':['1996-01-01T00:00:00.000Z/1998-01-01T00:00:00.000Z']}";
+        + "'intervals':['1996-01-01T00:00:00.000Z/1998-01-01T00:00:00.000Z'],"
+        + "'context':{'skipEmptyBuckets':true}}";
     sql(sql)
         .limit(3)
         .returnsUnordered("S=20957; C=6844", "S=21628; C=7033", "S=23706; C=7710")

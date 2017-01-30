@@ -1739,56 +1739,43 @@ public abstract class SqlOperatorBaseTest {
     if (false) {
       tester.checkScalar("{fn DAYNAME(date)}", null, "");
     }
-    if (false) {
-      tester.checkScalar("{fn DAYOFMONTH(date)}", null, "");
-    }
-    if (false) {
-      tester.checkScalar("{fn DAYOFWEEK(date)}", null, "");
-    }
-    if (false) {
-      tester.checkScalar("{fn DAYOFYEAR(date)}", null, "");
-    }
-    if (false) {
-      tester.checkScalar("{fn HOUR(time)}", null, "");
-    }
-    if (false) {
-      tester.checkScalar("{fn MINUTE(time)}", null, "");
-    }
-    if (false) {
-      tester.checkScalar("{fn MONTH(date)}", null, "");
-    }
+    tester.checkScalar("{fn DAYOFMONTH(DATE '2014-12-10')}", 10,
+        "BIGINT NOT NULL");
+    tester.checkFails("{fn DAYOFWEEK(DATE '2014-12-10')}",
+        "cannot translate call EXTRACT.*",
+        true);
+    tester.checkFails("{fn DAYOFYEAR(DATE '2014-12-10')}",
+        "cannot translate call EXTRACT.*",
+        true);
+    tester.checkScalar("{fn HOUR(TIMESTAMP '2014-12-10 12:34:56')}", 12,
+        "BIGINT NOT NULL");
+    tester.checkScalar("{fn MINUTE(TIMESTAMP '2014-12-10 12:34:56')}", 34,
+        "BIGINT NOT NULL");
+    tester.checkScalar("{fn MONTH(DATE '2014-12-10')}", 12, "BIGINT NOT NULL");
     if (false) {
       tester.checkScalar("{fn MONTHNAME(date)}", null, "");
     }
     tester.checkType("{fn NOW()}", "TIMESTAMP(0) NOT NULL");
     tester.checkScalar("{fn QUARTER(DATE '2014-12-10')}", "4",
         "BIGINT NOT NULL");
-    if (false) {
-      tester.checkScalar("{fn SECOND(time)}", null, "");
-    }
+    tester.checkScalar("{fn SECOND(TIMESTAMP '2014-12-10 12:34:56')}", 56,
+        "BIGINT NOT NULL");
     tester.checkScalar("{fn TIMESTAMPADD(HOUR, 5,"
         + " TIMESTAMP '2014-03-29 12:34:56')}",
         "2014-03-29 17:34:56", "TIMESTAMP(0) NOT NULL");
     tester.checkScalar("{fn TIMESTAMPDIFF(HOUR,"
         + " TIMESTAMP '2014-03-29 12:34:56',"
         + " TIMESTAMP '2014-03-29 12:34:56')}", "0", "INTEGER NOT NULL");
-    if (false) {
-      tester.checkScalar("{fn WEEK(date)}", null, "");
-    }
-    if (false) {
-      tester.checkScalar("{fn YEAR(date)}", null, "");
-    }
+    tester.checkFails("{fn WEEK(DATE '2014-12-10')}",
+        "cannot translate call EXTRACT.*",
+        true);
+    tester.checkScalar("{fn YEAR(DATE '2014-12-10')}", 2014, "BIGINT NOT NULL");
 
     // System Functions
-    if (false) {
-      tester.checkScalar("{fn DATABASE()}", null, "");
-    }
-    if (false) {
-      tester.checkScalar("{fn IFNULL(expression, value)}", null, "");
-    }
-    if (false) {
-      tester.checkScalar("{fn USER()}", null, "");
-    }
+    tester.checkType("{fn DATABASE()}", "VARCHAR(2000) NOT NULL");
+    tester.checkString("{fn IFNULL('a', 'b')}", "a", "CHAR(1) NOT NULL");
+    tester.checkString("{fn USER()}", "sa", "VARCHAR(2000) NOT NULL");
+
 
     // Conversion Functions
     // Legacy JDBC style
@@ -4322,6 +4309,13 @@ public abstract class SqlOperatorBaseTest {
     tester.checkString("CURRENT_ROLE", "", "VARCHAR(2000) NOT NULL");
   }
 
+  @Test public void testCurrentCatalogFunc() {
+    tester.setFor(SqlStdOperatorTable.CURRENT_CATALOG, VM_FENNEL);
+    // By default, the CURRENT_CATALOG function returns
+    // the empty string because a catalog has to be set explicitly.
+    tester.checkString("CURRENT_CATALOG", "", "VARCHAR(2000) NOT NULL");
+  }
+
   @Test public void testLocalTimeFunc() {
     tester.setFor(SqlStdOperatorTable.LOCALTIME);
     tester.checkScalar("LOCALTIME", TIME_PATTERN, "TIME(0) NOT NULL");
@@ -4748,6 +4742,19 @@ public abstract class SqlOperatorBaseTest {
     tester.setFor(SqlStdOperatorTable.FUSION, VM_FENNEL, VM_JAVA);
   }
 
+  @Test public void testYear() {
+    tester.setFor(
+        SqlStdOperatorTable.YEAR,
+        VM_FENNEL,
+        VM_JAVA);
+
+    tester.checkScalar(
+        "year(date '2008-1-23')",
+        "2008",
+        "BIGINT NOT NULL");
+    tester.checkNull("year(cast(null as date))");
+  }
+
   @Test public void testQuarter() {
     tester.setFor(
         SqlStdOperatorTable.QUARTER,
@@ -4803,6 +4810,117 @@ public abstract class SqlOperatorBaseTest {
         "4",
         "BIGINT NOT NULL");
     tester.checkNull("quarter(cast(null as date))");
+  }
+
+  @Test public void testMonth() {
+    tester.setFor(
+        SqlStdOperatorTable.MONTH,
+        VM_FENNEL,
+        VM_JAVA);
+
+    tester.checkScalar(
+        "month(date '2008-1-23')",
+        "1",
+        "BIGINT NOT NULL");
+    tester.checkNull("month(cast(null as date))");
+  }
+
+  @Test public void testWeek() {
+    tester.setFor(
+        SqlStdOperatorTable.WEEK,
+        VM_FENNEL,
+        VM_JAVA);
+    // TODO: Not implemented in operator test execution code
+    tester.checkFails(
+        "week(date '2008-1-23')",
+        "cannot translate call EXTRACT.*",
+        true);
+    tester.checkFails(
+        "week(cast(null as date))",
+        "cannot translate call EXTRACT.*",
+        true);
+  }
+
+  @Test public void testDayOfYear() {
+    tester.setFor(
+        SqlStdOperatorTable.DAYOFYEAR,
+        VM_FENNEL,
+        VM_JAVA);
+    // TODO: Not implemented in operator test execution code
+    tester.checkFails(
+        "dayofyear(date '2008-1-23')",
+        "cannot translate call EXTRACT.*",
+        true);
+    tester.checkFails(
+        "dayofyear(cast(null as date))",
+        "cannot translate call EXTRACT.*",
+        true);
+  }
+
+  @Test public void testDayOfMonth() {
+    tester.setFor(
+        SqlStdOperatorTable.DAYOFMONTH,
+        VM_FENNEL,
+        VM_JAVA);
+    tester.checkScalar(
+        "dayofmonth(date '2008-1-23')",
+        "23",
+        "BIGINT NOT NULL");
+    tester.checkNull("dayofmonth(cast(null as date))");
+  }
+
+  @Test public void testDayOfWeek() {
+    tester.setFor(
+        SqlStdOperatorTable.DAYOFWEEK,
+        VM_FENNEL,
+        VM_JAVA);
+    // TODO: Not implemented in operator test execution code
+    tester.checkFails(
+        "dayofweek(date '2008-1-23')",
+        "cannot translate call EXTRACT.*",
+        true);
+    tester.checkFails("dayofweek(cast(null as date))",
+        "cannot translate call EXTRACT.*",
+        true);
+  }
+
+  @Test public void testHour() {
+    tester.setFor(
+        SqlStdOperatorTable.HOUR,
+        VM_FENNEL,
+        VM_JAVA);
+
+    tester.checkScalar(
+        "hour(timestamp '2008-1-23 12:34:56')",
+        "12",
+        "BIGINT NOT NULL");
+    tester.checkNull("hour(cast(null as timestamp))");
+  }
+
+  @Test public void testMinute() {
+    tester.setFor(
+        SqlStdOperatorTable.MINUTE,
+        VM_FENNEL,
+        VM_JAVA);
+
+    tester.checkScalar(
+        "minute(timestamp '2008-1-23 12:34:56')",
+        "34",
+        "BIGINT NOT NULL");
+    tester.checkNull("minute(cast(null as timestamp))");
+  }
+
+  @Test public void testSecond() {
+    tester.setFor(
+        SqlStdOperatorTable.SECOND,
+        VM_FENNEL,
+        VM_JAVA);
+
+    tester.checkScalar(
+        "second(timestamp '2008-1-23 12:34:56')",
+        "56",
+        "BIGINT NOT NULL");
+    tester.checkNull("second(cast(null as timestamp))");
   }
 
   @Test public void testExtractIntervalYearMonth() {

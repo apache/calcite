@@ -1026,6 +1026,16 @@ Not implemented:
 | EXTRACT(timeUnit FROM datetime) | Extracts and returns the value of a specified datetime field from a datetime value expression
 | FLOOR(datetime TO timeUnit) | Rounds *datetime* down to *timeUnit*
 | CEIL(datetime TO timeUnit) | Rounds *datetime* up to *timeUnit*
+| YEAR(date)                | Equivalent to `EXTRACT(YEAR FROM date)`. Returns an integer.
+| QUARTER(date)             | Equivalent to `EXTRACT(QUARTER FROM date)`. Returns an integer between 1 and 4.
+| MONTH(date)               | Equivalent to `EXTRACT(MONTH FROM date)`. Returns an integer between 1 and 12.
+| WEEK(date)                | Equivalent to `EXTRACT(WEEK FROM date)`. Returns an integer between 1 and 53.
+| DAYOFYEAR(date)           | Equivalent to `EXTRACT(DOY FROM date)`. Returns an integer between 1 and 366.
+| DAYOFMONTH(date)          | Equivalent to `EXTRACT(DAY FROM date)`. Returns an integer between 1 and 31.
+| DAYOFWEEK(date)           | Equivalent to `EXTRACT(DOW FROM date)`. Returns an integer between 1 and 7.
+| HOUR(date)                | Equivalent to `EXTRACT(HOUR FROM date)`. Returns an integer between 0 and 23.
+| MINUTE(date)              | Equivalent to `EXTRACT(MINUTE FROM date)`. Returns an integer between 0 and 59.
+| SECOND(date)              | Equivalent to `EXTRACT(SECOND FROM date)`. Returns an integer between 0 and 59.
 
 Not implemented:
 
@@ -1152,31 +1162,31 @@ Not implemented:
 | {fn CURDATE()}  | Equivalent to `CURRENT_DATE`
 | {fn CURTIME()}  | Equivalent to `LOCALTIME`
 | {fn NOW()}      | Equivalent to `LOCALTIMESTAMP`
+| {fn YEAR(date)} | Equivalent to `EXTRACT(YEAR FROM date)`. Returns an integer.
 | {fn QUARTER(date)} | Equivalent to `EXTRACT(QUARTER FROM date)`. Returns an integer between 1 and 4.
+| {fn MONTH(date)} | Equivalent to `EXTRACT(MONTH FROM date)`. Returns an integer between 1 and 12.
+| {fn WEEK(date)} | Equivalent to `EXTRACT(WEEK FROM date)`. Returns an integer between 1 and 53.
+| {fn DAYOFYEAR(date)} | Equivalent to `EXTRACT(DOY FROM date)`. Returns an integer between 1 and 366.
+| {fn DAYOFMONTH(date)} | Equivalent to `EXTRACT(DAY FROM date)`. Returns an integer between 1 and 31.
+| {fn DAYOFWEEK(date)} | Equivalent to `EXTRACT(DOW FROM date)`. Returns an integer between 1 and 7.
+| {fn HOUR(date)} | Equivalent to `EXTRACT(HOUR FROM date)`. Returns an integer between 0 and 23.
+| {fn MINUTE(date)} | Equivalent to `EXTRACT(MINUTE FROM date)`. Returns an integer between 0 and 59.
+| {fn SECOND(date)} | Equivalent to `EXTRACT(SECOND FROM date)`. Returns an integer between 0 and 59.
 | {fn TIMESTAMPADD(timeUnit, count, timestamp)} | Adds an interval of *count* *timeUnit*s to a timestamp
 | {fn TIMESTAMPDIFF(timeUnit, timestamp1, timestamp2)} | Subtracts *timestamp1* from *timestamp2* and returns the result in *timeUnit*s
 
 Not implemented:
 
 * {fn DAYNAME(date)}
-* {fn DAYOFMONTH(date)}
-* {fn DAYOFWEEK(date)}
-* {fn DAYOFYEAR(date)}
-* {fn HOUR(time)}
-* {fn MINUTE(time)}
-* {fn MONTH(date)}
 * {fn MONTHNAME(date)}
-* {fn SECOND(time)}
-* {fn WEEK(date)}
-* {fn YEAR(date)}
 
 #### System
 
-Not implemented:
-
-* {fn DATABASE()}
-* {fn IFNULL(value, value)}
-* {fn USER(value, value)}
+| Operator syntax | Description
+|:--------------- |:-----------
+| {fn DATABASE()} | Equivalent to `CURRENT_CATALOG`
+| {fn IFNULL(value1, value2)} | Returns value2 if value1 is null
+| {fn USER()}     | Equivalent to `CURRENT_USER`
 
 #### Conversion
 
