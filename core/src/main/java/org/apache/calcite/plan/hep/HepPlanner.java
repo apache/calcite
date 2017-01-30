@@ -155,6 +155,10 @@ public class HepPlanner extends AbstractRelOptPlanner {
     return root;
   }
 
+  public List<RelOptRule> getRules() {
+    return ImmutableList.copyOf(allRules);
+  }
+
   // implement RelOptPlanner
   public boolean addRule(RelOptRule rule) {
     boolean added = allRules.add(rule);

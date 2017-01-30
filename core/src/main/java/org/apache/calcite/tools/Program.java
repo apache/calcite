@@ -16,9 +16,13 @@
  */
 package org.apache.calcite.tools;
 
+import org.apache.calcite.plan.RelOptLattice;
+import org.apache.calcite.plan.RelOptMaterialization;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
+
+import java.util.List;
 
 /**
  * Program that transforms a relational expression into another relational
@@ -31,7 +35,9 @@ import org.apache.calcite.rel.RelNode;
  */
 public interface Program {
   RelNode run(RelOptPlanner planner, RelNode rel,
-      RelTraitSet requiredOutputTraits);
+      RelTraitSet requiredOutputTraits,
+      List<RelOptMaterialization> materializations,
+      List<RelOptLattice> lattices);
 }
 
 // End Program.java

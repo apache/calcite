@@ -916,6 +916,36 @@ public class MaterializationTest {
     checkMaterializeWithRules(m, q, rules);
   }
 
+  @Test public void testSubQuery() {
+    String q = "select \"empid\", \"deptno\", \"salary\" from \"emps\" e1\n"
+            + "where \"empid\" = (\n"
+            + "  select max(\"empid\") from \"emps\"\n"
+            + "  where \"deptno\" = e1.\"deptno\")";
+    final String m = "select \"empid\", \"deptno\" from \"emps\"\n"
+            + "";
+    try (final TryThreadLocal.Memo ignored = Prepare.THREAD_TRIM.push(true)) {
+      MaterializationService.setThreadLocal();
+      CalciteAssert.that()
+          .withMaterializations(JdbcTest.HR_MODEL, "m0", m)
+          .query(q)
+          .enableMaterializations(true)
+          .explainMatches("", new Function<ResultSet, Void>() {
+            public Void apply(ResultSet s) {
+              try {
+                final String actual = Util.toLinux(CalciteAssert.toString(s));
+                final String scan = "EnumerableTableScan(table=[[hr, m0]])";
+                assertTrue(actual + " should have had two occurrences of " + scan,
+                    StringUtils.countMatches(actual, scan) == 2);
+                return null;
+              } catch (SQLException e) {
+                throw new RuntimeException(e);
+              }
+            }
+          })
+          .sameResultWithMaterializationsDisabled();
+    }
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-761">[CALCITE-761]
    * Pre-populated materializations</a>. */

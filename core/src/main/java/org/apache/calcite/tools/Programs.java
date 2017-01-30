@@ -20,6 +20,8 @@ import org.apache.calcite.adapter.enumerable.EnumerableRules;
 import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.interpreter.NoneToBindableConverterRule;
 import org.apache.calcite.plan.RelOptCostImpl;
+import org.apache.calcite.plan.RelOptLattice;
+import org.apache.calcite.plan.RelOptMaterialization;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptUtil;
@@ -191,7 +193,9 @@ public class Programs {
       final RelMetadataProvider metadataProvider) {
     return new Program() {
       public RelNode run(RelOptPlanner planner, RelNode rel,
-          RelTraitSet requiredOutputTraits) {
+          RelTraitSet requiredOutputTraits,
+          List<RelOptMaterialization> materializations,
+          List<RelOptLattice> lattices) {
         final HepPlanner hepPlanner = new HepPlanner(hepProgram,
             null, noDag, null, RelOptCostImpl.FACTORY);
 
@@ -220,7 +224,9 @@ public class Programs {
       final boolean bushy, final int minJoinCount) {
     return new Program() {
       public RelNode run(RelOptPlanner planner, RelNode rel,
-          RelTraitSet requiredOutputTraits) {
+          RelTraitSet requiredOutputTraits,
+          List<RelOptMaterialization> materializations,
+          List<RelOptLattice> lattices) {
         final int joinCount = RelOptUtil.countJoins(rel);
         final Program program;
         if (joinCount < minJoinCount) {
@@ -252,7 +258,8 @@ public class Programs {
 
           program = sequence(program1, program2);
         }
-        return program.run(planner, rel, requiredOutputTraits);
+        return program.run(
+            planner, rel, requiredOutputTraits, materializations, lattices);
       }
     };
   }
@@ -276,7 +283,9 @@ public class Programs {
   public static Program getProgram() {
     return new Program() {
       public RelNode run(RelOptPlanner planner, RelNode rel,
-          RelTraitSet requiredOutputTraits) {
+          RelTraitSet requiredOutputTraits,
+          List<RelOptMaterialization> materializations,
+          List<RelOptLattice> lattices) {
         return null;
       }
     };
@@ -293,7 +302,18 @@ public class Programs {
     final Program program1 =
         new Program() {
           public RelNode run(RelOptPlanner planner, RelNode rel,
-              RelTraitSet requiredOutputTraits) {
+              RelTraitSet requiredOutputTraits,
+              List<RelOptMaterialization> materializations,
+              List<RelOptLattice> lattices) {
+            planner.setRoot(rel);
+
+            for (RelOptMaterialization materialization : materializations) {
+              planner.addMaterialization(materialization);
+            }
+            for (RelOptLattice lattice : lattices) {
+              planner.addLattice(lattice);
+            }
+
             final RelNode rootRel2 =
                 rel.getTraitSet().equals(requiredOutputTraits)
                 ? rel
@@ -327,10 +347,18 @@ public class Programs {
     }
 
     public RelNode run(RelOptPlanner planner, RelNode rel,
-        RelTraitSet requiredOutputTraits) {
+        RelTraitSet requiredOutputTraits,
+        List<RelOptMaterialization> materializations,
+        List<RelOptLattice> lattices) {
       planner.clear();
       for (RelOptRule rule : ruleSet) {
         planner.addRule(rule);
+      }
+      for (RelOptMaterialization materialization : materializations) {
+        planner.addMaterialization(materialization);
+      }
+      for (RelOptLattice lattice : lattices) {
+        planner.addLattice(lattice);
       }
       if (!rel.getTraitSet().equals(requiredOutputTraits)) {
         rel = planner.changeTraits(rel, requiredOutputTraits);
@@ -351,9 +379,12 @@ public class Programs {
     }
 
     public RelNode run(RelOptPlanner planner, RelNode rel,
-        RelTraitSet requiredOutputTraits) {
+        RelTraitSet requiredOutputTraits,
+        List<RelOptMaterialization> materializations,
+        List<RelOptLattice> lattices) {
       for (Program program : programs) {
-        rel = program.run(planner, rel, requiredOutputTraits);
+        rel = program.run(
+            planner, rel, requiredOutputTraits, materializations, lattices);
       }
       return rel;
     }
@@ -368,7 +399,9 @@ public class Programs {
    * {@link TrimFieldsProgram} after this program. */
   private static class DecorrelateProgram implements Program {
     public RelNode run(RelOptPlanner planner, RelNode rel,
-        RelTraitSet requiredOutputTraits) {
+        RelTraitSet requiredOutputTraits,
+        List<RelOptMaterialization> materializations,
+        List<RelOptLattice> lattices) {
       final CalciteConnectionConfig config =
           planner.getContext().unwrap(CalciteConnectionConfig.class);
       if (config != null && config.forceDecorrelate()) {
@@ -381,7 +414,9 @@ public class Programs {
   /** Program that trims fields. */
   private static class TrimFieldsProgram implements Program {
     public RelNode run(RelOptPlanner planner, RelNode rel,
-        RelTraitSet requiredOutputTraits) {
+        RelTraitSet requiredOutputTraits,
+        List<RelOptMaterialization> materializations,
+        List<RelOptLattice> lattices) {
       final RelBuilder relBuilder =
           RelFactories.LOGICAL_BUILDER.create(rel.getCluster(), null);
       return new RelFieldTrimmer(null, relBuilder).trim(rel);

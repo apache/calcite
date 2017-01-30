@@ -76,9 +76,15 @@ public interface RelOptPlanner {
   List<RelTraitDef> getRelTraitDefs();
 
   /**
-   * Removes all internal state, including all rules.
+   * Removes all internal state, including all registered rules,
+   * materialized views, and lattices.
    */
   void clear();
+
+  /**
+   * Returns the list of all registered rules.
+   */
+  List<RelOptRule> getRules();
 
   /**
    * Registers a rule.
