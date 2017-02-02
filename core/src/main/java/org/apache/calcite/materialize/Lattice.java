@@ -19,6 +19,7 @@ package org.apache.calcite.materialize;
 import org.apache.calcite.avatica.AvaticaUtils;
 import org.apache.calcite.jdbc.CalcitePrepare;
 import org.apache.calcite.jdbc.CalciteSchema;
+import org.apache.calcite.linq4j.tree.Primitive;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.prepare.CalcitePrepareImpl;
 import org.apache.calcite.rel.RelNode;
@@ -60,7 +61,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Ordering;
 import com.google.common.collect.Sets;
 
-import java.math.BigInteger;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -113,16 +114,15 @@ public class Lattice {
 
   private Lattice(CalciteSchema rootSchema, ImmutableList<Node> nodes,
       boolean auto, boolean algorithm, long algorithmMaxMillis,
-      LatticeStatisticProvider statisticProvider, Double rowCountEstimate,
-      ImmutableList<Column> columns, ImmutableList<Measure> defaultMeasures,
-      ImmutableList<Tile> tiles) {
+      LatticeStatisticProvider.Factory statisticProviderFactory,
+      Double rowCountEstimate, ImmutableList<Column> columns,
+      ImmutableList<Measure> defaultMeasures, ImmutableList<Tile> tiles) {
     this.rootSchema = rootSchema;
     this.nodes = Preconditions.checkNotNull(nodes);
     this.columns = Preconditions.checkNotNull(columns);
     this.auto = auto;
     this.algorithm = algorithm;
     this.algorithmMaxMillis = algorithmMaxMillis;
-    this.statisticProvider = Preconditions.checkNotNull(statisticProvider);
     this.defaultMeasures = Preconditions.checkNotNull(defaultMeasures);
     this.tiles = Preconditions.checkNotNull(tiles);
 
@@ -151,6 +151,8 @@ public class Lattice {
     }
     Preconditions.checkArgument(rowCountEstimate > 0d);
     this.rowCountEstimate = rowCountEstimate;
+    this.statisticProvider =
+        Preconditions.checkNotNull(statisticProviderFactory.apply(this));
   }
 
   /** Creates a Lattice. */
@@ -233,74 +235,92 @@ public class Lattice {
     throw new AssertionError("input not found");
   }
 
+  /** Generates a SQL query to populate a tile of the lattice specified by a
+   * given set of columns and measures. */
   public String sql(ImmutableBitSet groupSet, List<Measure> aggCallList) {
-    final ImmutableBitSet.Builder columnSetBuilder = groupSet.rebuild();
-    for (Measure call : aggCallList) {
-      for (Column arg : call.args) {
-        columnSetBuilder.set(arg.ordinal);
-      }
-    }
-    final ImmutableBitSet columnSet = columnSetBuilder.build();
+    return sql(groupSet, true, aggCallList);
+  }
 
-    // Figure out which nodes are needed. Use a node if its columns are used
-    // or if has a child whose columns are used.
-    List<Node> usedNodes = Lists.newArrayList();
-    for (Node node : nodes) {
-      if (ImmutableBitSet.range(node.startCol, node.endCol)
-          .intersects(columnSet)) {
-        use(usedNodes, node);
+  /** Generates a SQL query to populate a tile of the lattice specified by a
+   * given set of columns and measures, optionally grouping. */
+  public String sql(ImmutableBitSet groupSet, boolean group,
+      List<Measure> aggCallList) {
+    final List<Node> usedNodes = new ArrayList<>();
+    if (group) {
+      final ImmutableBitSet.Builder columnSetBuilder = groupSet.rebuild();
+      for (Measure call : aggCallList) {
+        for (Column arg : call.args) {
+          columnSetBuilder.set(arg.ordinal);
+        }
       }
+      final ImmutableBitSet columnSet = columnSetBuilder.build();
+
+      // Figure out which nodes are needed. Use a node if its columns are used
+      // or if has a child whose columns are used.
+      for (Node node : nodes) {
+        if (ImmutableBitSet.range(node.startCol, node.endCol)
+            .intersects(columnSet)) {
+          use(usedNodes, node);
+        }
+      }
+      if (usedNodes.isEmpty()) {
+        usedNodes.add(nodes.get(0));
+      }
+    } else {
+      usedNodes.addAll(nodes);
     }
-    if (usedNodes.isEmpty()) {
-      usedNodes.add(nodes.get(0));
-    }
+
     final SqlDialect dialect = SqlDialect.DatabaseProduct.CALCITE.getDialect();
     final StringBuilder buf = new StringBuilder("SELECT ");
     final StringBuilder groupBuf = new StringBuilder("\nGROUP BY ");
     int k = 0;
     final Set<String> columnNames = Sets.newHashSet();
-    for (int i : groupSet) {
-      if (k++ > 0) {
-        buf.append(", ");
-        groupBuf.append(", ");
-      }
-      final Column column = columns.get(i);
-      dialect.quoteIdentifier(buf, column.identifiers());
-      dialect.quoteIdentifier(groupBuf, column.identifiers());
-      final String fieldName = uniqueColumnNames.get(i);
-      columnNames.add(fieldName);
-      if (!column.alias.equals(fieldName)) {
-        buf.append(" AS ");
-        dialect.quoteIdentifier(buf, fieldName);
-      }
-    }
-    if (groupSet.isEmpty()) {
-      groupBuf.append("()");
-    }
-    int m = 0;
-    for (Measure measure : aggCallList) {
-      if (k++ > 0) {
-        buf.append(", ");
-      }
-      buf.append(measure.agg.getName())
-          .append("(");
-      if (measure.args.isEmpty()) {
-        buf.append("*");
-      } else {
-        int z = 0;
-        for (Column arg : measure.args) {
-          if (z++ > 0) {
-            buf.append(", ");
-          }
-          dialect.quoteIdentifier(buf, arg.identifiers());
+    if (groupSet != null) {
+      for (int i : groupSet) {
+        if (k++ > 0) {
+          buf.append(", ");
+          groupBuf.append(", ");
+        }
+        final Column column = columns.get(i);
+        dialect.quoteIdentifier(buf, column.identifiers());
+        dialect.quoteIdentifier(groupBuf, column.identifiers());
+        final String fieldName = uniqueColumnNames.get(i);
+        columnNames.add(fieldName);
+        if (!column.alias.equals(fieldName)) {
+          buf.append(" AS ");
+          dialect.quoteIdentifier(buf, fieldName);
         }
       }
-      buf.append(") AS ");
-      String measureName;
-      while (!columnNames.add(measureName = "m" + m)) {
-        ++m;
+      if (groupSet.isEmpty()) {
+        groupBuf.append("()");
       }
-      dialect.quoteIdentifier(buf, measureName);
+      int m = 0;
+      for (Measure measure : aggCallList) {
+        if (k++ > 0) {
+          buf.append(", ");
+        }
+        buf.append(measure.agg.getName())
+            .append("(");
+        if (measure.args.isEmpty()) {
+          buf.append("*");
+        } else {
+          int z = 0;
+          for (Column arg : measure.args) {
+            if (z++ > 0) {
+              buf.append(", ");
+            }
+            dialect.quoteIdentifier(buf, arg.identifiers());
+          }
+        }
+        buf.append(") AS ");
+        String measureName;
+        while (!columnNames.add(measureName = "m" + m)) {
+          ++m;
+        }
+        dialect.quoteIdentifier(buf, measureName);
+      }
+    } else {
+      buf.append("*");
     }
     buf.append("\nFROM ");
     for (Node node : usedNodes) {
@@ -329,7 +349,9 @@ public class Lattice {
       System.out.println("Lattice SQL:\n"
           + buf);
     }
-    buf.append(groupBuf);
+    if (group) {
+      buf.append(groupBuf);
+    }
     return buf.toString();
   }
 
@@ -381,30 +403,40 @@ public class Lattice {
   /** Returns an estimate of the number of rows in the tile with the given
    * dimensions. */
   public double getRowCount(List<Column> columns) {
+    return statisticProvider.cardinality(columns);
+  }
+
+  /** Returns an estimate of the number of rows in the tile with the given
+   * dimensions. */
+  public static double getRowCount(double factCount, double... columnCounts) {
+    return getRowCount(factCount, Primitive.asList(columnCounts));
+  }
+
+  /** Returns an estimate of the number of rows in the tile with the given
+   * dimensions. */
+  public static double getRowCount(double factCount,
+      List<Double> columnCounts) {
     // The expected number of distinct values when choosing p values
     // with replacement from n integers is n . (1 - ((n - 1) / n) ^ p).
     //
     // If we have several uniformly distributed attributes A1 ... Am
     // with N1 ... Nm distinct values, they behave as one uniformly
     // distributed attribute with N1 * ... * Nm distinct values.
-    BigInteger n = BigInteger.ONE;
-    for (Column column : columns) {
-      final int cardinality = statisticProvider.cardinality(this, column);
-      if (cardinality > 1) {
-        n = n.multiply(BigInteger.valueOf(cardinality));
+    double n = 1d;
+    for (Double columnCount : columnCounts) {
+      if (columnCount > 1d) {
+        n *= columnCount;
       }
     }
-    final double nn = n.doubleValue();
-    final double f = getFactRowCount();
-    final double a = (nn - 1d) / nn;
+    final double a = (n - 1d) / n;
     if (a == 1d) {
       // A under-flows if nn is large.
-      return f;
+      return factCount;
     }
-    final double v = nn * (1d - Math.pow(a, f));
+    final double v = n * (1d - Math.pow(a, factCount));
     // Cap at fact-row-count, because numerical artifacts can cause it
     // to go a few % over.
-    return Math.min(v, f);
+    return Math.min(v, factCount);
   }
 
   /** Source relation of a lattice.
@@ -533,6 +565,15 @@ public class Lattice {
       this.table = Preconditions.checkNotNull(table);
       this.column = Preconditions.checkNotNull(column);
       this.alias = Preconditions.checkNotNull(alias);
+    }
+
+    /** Converts a list of columns to a bit set of their ordinals. */
+    static ImmutableBitSet toBitSet(List<Column> columns) {
+      final ImmutableBitSet.Builder builder = ImmutableBitSet.builder();
+      for (Column column : columns) {
+        builder.set(column.ordinal);
+      }
+      return builder.build();
     }
 
     public int compareTo(Column column) {
@@ -690,9 +731,10 @@ public class Lattice {
 
     /** Builds a lattice. */
     public Lattice build() {
-      LatticeStatisticProvider statisticProvider =
+      LatticeStatisticProvider.Factory statisticProvider =
           this.statisticProvider != null
-              ? AvaticaUtils.instantiatePlugin(LatticeStatisticProvider.class,
+              ? AvaticaUtils.instantiatePlugin(
+                  LatticeStatisticProvider.Factory.class,
                   this.statisticProvider)
               : Lattices.CACHED_SQL;
       Preconditions.checkArgument(rootSchema.isRoot(), "must be root schema");
@@ -815,15 +857,11 @@ public class Lattice {
 
     public Tile(ImmutableList<Measure> measures,
         ImmutableList<Column> dimensions) {
-      this.measures = measures;
-      this.dimensions = dimensions;
+      this.measures = Preconditions.checkNotNull(measures);
+      this.dimensions = Preconditions.checkNotNull(dimensions);
       assert Ordering.natural().isStrictlyOrdered(dimensions);
       assert Ordering.natural().isStrictlyOrdered(measures);
-      final ImmutableBitSet.Builder bitSetBuilder = ImmutableBitSet.builder();
-      for (Column dimension : dimensions) {
-        bitSetBuilder.set(dimension.ordinal);
-      }
-      bitSet = bitSetBuilder.build();
+      bitSet = Column.toBitSet(dimensions);
     }
 
     public static TileBuilder builder() {

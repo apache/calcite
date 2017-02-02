@@ -16,10 +16,16 @@
  */
 package org.apache.calcite.test;
 
+import org.apache.calcite.util.Util;
+
+import com.google.common.base.Functions;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 
+import org.hamcrest.BaseMatcher;
 import org.hamcrest.CustomTypeSafeMatcher;
 import org.hamcrest.Description;
+import org.hamcrest.Factory;
 import org.hamcrest.Matcher;
 
 import java.sql.ResultSet;
@@ -78,6 +84,81 @@ public class Matchers {
         return equals;
       }
     };
+  }
+
+  public static <E extends Comparable> Matcher<Iterable<E>> equalsUnordered(
+      E... lines) {
+    final List<String> expectedList =
+        Lists.newArrayList(toStringList(Arrays.asList(lines)));
+    Collections.sort(expectedList);
+    final String description = Util.lines(expectedList);
+    return new CustomTypeSafeMatcher<Iterable<E>>(description) {
+      @Override protected void describeMismatchSafely(Iterable<E> actuals,
+          Description description) {
+        final List<String> actualList =
+            Lists.newArrayList(toStringList(actuals));
+        Collections.sort(actualList);
+        description.appendText("was ")
+            .appendValue(Util.lines(actualList));
+      }
+
+      protected boolean matchesSafely(Iterable<E> actuals) {
+        final List<String> actualList =
+            Lists.newArrayList(toStringList(actuals));
+        Collections.sort(actualList);
+        return actualList.equals(expectedList);
+      }
+    };
+  }
+
+  private static <E> Iterable<String> toStringList(Iterable<E> items) {
+    return Iterables.transform(items, Functions.toStringFunction());
+  }
+
+  /**
+   * Creates a matcher that matches when the examined object is within
+   * {@code epsilon} of the specified <code>operand</code>.
+   */
+  @Factory
+  public static <T extends Number> Matcher<T> within(T value, double epsilon) {
+    return new IsWithin<T>(value, epsilon);
+  }
+
+  /**
+   * Is the numeric value within a given difference another value?
+   *
+   * @param <T> Value type
+   */
+  public static class IsWithin<T extends Number> extends BaseMatcher<T> {
+    private final T expectedValue;
+    private final double epsilon;
+
+    public IsWithin(T expectedValue, double epsilon) {
+      this.expectedValue = expectedValue;
+      this.epsilon = epsilon;
+    }
+
+    public boolean matches(Object actualValue) {
+      return areEqual(actualValue, expectedValue, epsilon);
+    }
+
+    public void describeTo(Description description) {
+      description.appendValue(expectedValue + " +/-" + epsilon);
+    }
+
+    private static boolean areEqual(Object actual, Number expected,
+        double epsilon) {
+      if (actual == null) {
+        return expected == null;
+      }
+      if (actual.equals(expected)) {
+        return true;
+      }
+      final double a = ((Number) actual).doubleValue();
+      final double min = expected.doubleValue() - epsilon;
+      final double max = expected.doubleValue() + epsilon;
+      return min <= a && a <= max;
+    }
   }
 }
 

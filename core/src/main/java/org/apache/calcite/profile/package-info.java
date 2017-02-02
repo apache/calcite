@@ -14,25 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.materialize;
 
 /**
- * Utilities for {@link Lattice}, {@link LatticeStatisticProvider}.
+ * Utilities to analyze data sets.
  */
-public class Lattices {
-  private Lattices() {}
+@PackageMarker
+package org.apache.calcite.profile;
 
-  /** Statistics provider that uses SQL. */
-  public static final LatticeStatisticProvider.Factory SQL =
-      SqlLatticeStatisticProvider.FACTORY;
+import org.apache.calcite.avatica.util.PackageMarker;
 
-  /** Statistics provider that uses SQL then stores the results in a cache. */
-  public static final LatticeStatisticProvider.Factory CACHED_SQL =
-      SqlLatticeStatisticProvider.CACHED_FACTORY;
-
-  /** Statistics provider that uses a profiler. */
-  public static final LatticeStatisticProvider.Factory PROFILER =
-      ProfilerLatticeStatisticProvider.FACTORY;
-}
-
-// End Lattices.java
+// End package-info.java

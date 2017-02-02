@@ -18,9 +18,13 @@ package org.apache.calcite.util;
 
 import org.apache.calcite.test.CalciteAssert;
 
+import com.google.common.base.Function;
+
+import org.junit.Assume;
 import org.junit.Test;
 
 import java.util.AbstractList;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -28,7 +32,10 @@ import java.util.Random;
 import java.util.Set;
 import java.util.TreeSet;
 
+import static org.hamcrest.CoreMatchers.nullValue;
+import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 /**
@@ -133,6 +140,13 @@ public class PartiallyOrderedSetTest {
 
     // "bcd" is child of "abcd" and parent of ""
     final String bcd = "'bcd'";
+    assertEquals("['abcd']", poset.getParents(bcd, true).toString());
+    assertThat(poset.getParents(bcd, false), nullValue());
+    assertThat(poset.getParents(bcd), nullValue());
+    assertEquals("['']", poset.getChildren(bcd, true).toString());
+    assertThat(poset.getChildren(bcd, false), nullValue());
+    assertThat(poset.getChildren(bcd), nullValue());
+
     poset.add(bcd);
     printValidate(poset);
     assertTrue(poset.isValid(false));
@@ -210,6 +224,66 @@ public class PartiallyOrderedSetTest {
     printValidate(poset);
   }
 
+  @Test public void testPosetBitsLarge() {
+    final PartiallyOrderedSet<Integer> poset =
+        new PartiallyOrderedSet<>(IS_BIT_SUPERSET);
+    checkPosetBitsLarge(poset, 30000, 2921, 164782);
+  }
+
+  @Test public void testPosetBitsLarge2() {
+    Assume.assumeTrue("too slow to run every day", CalciteAssert.ENABLE_SLOW);
+    final int n = 30000;
+    final PartiallyOrderedSet<Integer> poset =
+        new PartiallyOrderedSet<>(IS_BIT_SUPERSET,
+          new Function<Integer, Iterable<Integer>>() {
+            public Iterable<Integer> apply(Integer input) {
+              final int i = input;
+              int r = i; // bits not yet cleared
+              final List<Integer> list = new ArrayList<>();
+              for (int z = 1; r != 0; z <<= 1) {
+                if ((i & z) != 0) {
+                  list.add(i ^ z);
+                  r ^= z;
+                }
+              }
+              return list;
+            }
+          },
+          new Function<Integer, Iterable<Integer>>() {
+            public Iterable<Integer> apply(Integer input) {
+              final int i = input;
+              final List<Integer> list = new ArrayList<>();
+              for (int z = 1; z <= n; z <<= 1) {
+                if ((i & z) == 0) {
+                  list.add(i | z);
+                }
+              }
+              return list;
+            }
+          });
+    checkPosetBitsLarge(poset, n, 2921, 11961);
+  }
+
+  void checkPosetBitsLarge(PartiallyOrderedSet<Integer> poset, int n,
+      int expectedSize, int expectedParentCount) {
+    final Random random = new Random(1);
+    int count = 0;
+    int parentCount = 0;
+    for (int i = 0; i < n; i++) {
+      if (random.nextInt(10) == 0) {
+        if (poset.add(random.nextInt(n * 2))) {
+          ++count;
+        }
+      }
+      final List<Integer> parents =
+          poset.getParents(random.nextInt(n * 2), true);
+      parentCount += parents.size();
+    }
+    assertThat(poset.size(), is(count));
+    assertThat(poset.size(), is(expectedSize));
+    assertThat(parentCount, is(expectedParentCount));
+  }
+
   @Test public void testPosetBitsRemoveParent() {
     final PartiallyOrderedSet<Integer> poset =
         new PartiallyOrderedSet<Integer>(IS_BIT_SUPERSET);
@@ -223,9 +297,6 @@ public class PartiallyOrderedSetTest {
   }
 
   @Test public void testDivisorPoset() {
-    if (!CalciteAssert.ENABLE_SLOW) {
-      return;
-    }
     PartiallyOrderedSet<Integer> integers =
         new PartiallyOrderedSet<Integer>(IS_DIVISOR, range(1, 1000));
     assertEquals(
@@ -405,6 +476,7 @@ public class PartiallyOrderedSetTest {
         expected,
         new TreeSet<String>(ss).toString());
   }
+
 }
 
 // End PartiallyOrderedSetTest.java

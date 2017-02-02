@@ -16,11 +16,16 @@
  */
 package org.apache.calcite.test;
 
+import org.apache.calcite.jdbc.CalciteConnection;
+import org.apache.calcite.jdbc.CalciteSchema;
+import org.apache.calcite.materialize.Lattice;
 import org.apache.calcite.materialize.Lattices;
 import org.apache.calcite.materialize.MaterializationService;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.runtime.Hook;
+import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.TestUtil;
 import org.apache.calcite.util.Util;
 
@@ -29,6 +34,7 @@ import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
+import org.junit.Assume;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -39,11 +45,15 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import static org.apache.calcite.test.Matchers.within;
 
 import static org.hamcrest.CoreMatchers.anyOf;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 
@@ -110,8 +120,8 @@ public class LatticeTest {
       + "  } ]\n"
       + "}\n";
 
-  private CalciteAssert.AssertThat modelWithLattice(String name, String sql,
-      String... extras) {
+  private static CalciteAssert.AssertThat modelWithLattice(String name,
+      String sql, String... extras) {
     final StringBuilder buf = new StringBuilder("{ name: '")
         .append(name)
         .append("', sql: ")
@@ -123,7 +133,8 @@ public class LatticeTest {
     return modelWithLattices(buf.toString());
   }
 
-  private CalciteAssert.AssertThat modelWithLattices(String... lattices) {
+  private static CalciteAssert.AssertThat modelWithLattices(
+      String... lattices) {
     final Class<JdbcTest.EmpDeptTableFactory> clazz =
         JdbcTest.EmpDeptTableFactory.class;
     return CalciteAssert.model(""
@@ -149,6 +160,36 @@ public class LatticeTest {
         + "     }\n"
         + "   ]\n"
         + "}").withDefaultSchema("adhoc");
+  }
+
+  /** Tests that it's OK for a lattice to have the same name as a table in the
+   * schema. */
+  @Test public void testLatticeSql() throws Exception {
+    modelWithLattice("EMPLOYEES", "select * from \"foodmart\".\"days\"")
+        .doWithConnection(new Function<CalciteConnection, Void>() {
+          public Void apply(CalciteConnection c) {
+            final SchemaPlus schema = c.getRootSchema();
+            final SchemaPlus adhoc = schema.getSubSchema("adhoc");
+            assertThat(adhoc.getTableNames().contains("EMPLOYEES"), is(true));
+            final Map.Entry<String, CalciteSchema.LatticeEntry> entry =
+                adhoc.unwrap(CalciteSchema.class).getLatticeMap().firstEntry();
+            final Lattice lattice = entry.getValue().getLattice();
+            final String sql = "SELECT \"days\".\"day\"\n"
+                + "FROM \"foodmart\".\"days\" AS \"days\"\n"
+                + "GROUP BY \"days\".\"day\"";
+            assertThat(
+                lattice.sql(ImmutableBitSet.of(0),
+                    ImmutableList.<Lattice.Measure>of()), is(sql));
+            final String sql2 = "SELECT"
+                + " \"days\".\"day\", \"days\".\"week_day\"\n"
+                + "FROM \"foodmart\".\"days\" AS \"days\"";
+            assertThat(
+                lattice.sql(ImmutableBitSet.of(0, 1), false,
+                    ImmutableList.<Lattice.Measure>of()),
+                is(sql2));
+            return null;
+          }
+        });
   }
 
   /** Tests that it's OK for a lattice to have the same name as a table in the
@@ -377,28 +418,57 @@ public class LatticeTest {
    * Use optimization algorithm to suggest which tiles of a lattice to
    * materialize</a>. */
   @Test public void testTileAlgorithm() {
-    checkTileAlgorithm(FoodMartLatticeStatisticProvider.class.getCanonicalName(),
-        "EnumerableAggregate(group=[{2, 3}])\n"
-            + "  EnumerableTableScan(table=[[adhoc, m{16, 17, 27, 31}]])");
+    final String explain = "EnumerableAggregate(group=[{2, 3}])\n"
+        + "  EnumerableTableScan(table=[[adhoc, m{16, 17, 27, 31, 32, 37}]])";
+    checkTileAlgorithm(
+        FoodMartLatticeStatisticProvider.class.getCanonicalName() + "#FACTORY",
+        explain);
   }
 
+  /** As {@link #testTileAlgorithm()}, but uses the
+   * {@link Lattices#CACHED_SQL} statistics provider. */
   @Test public void testTileAlgorithm2() {
     // Different explain than above, but note that it still selects columns
     // (27, 31).
+    final String explain = "EnumerableAggregate(group=[{0, 1}])\n"
+        + "  EnumerableTableScan(table=[[adhoc, m{27, 31, 32, 36, 37}]";
     checkTileAlgorithm(Lattices.class.getCanonicalName() + "#CACHED_SQL",
-        "EnumerableAggregate(group=[{0, 1}])\n"
-            + "  EnumerableTableScan(table=[[adhoc, m{27, 31, 32, 36, 37}]");
+        explain);
+  }
+
+  /** As {@link #testTileAlgorithm()}, but uses the
+   * {@link Lattices#PROFILER} statistics provider. */
+  @Test public void testTileAlgorithm3() {
+    Assume.assumeTrue("Yahoo sketches requires JDK 8 or higher",
+        TestUtil.getJavaMajorVersion() >= 8);
+    final String explain = "EnumerableAggregate(group=[{0, 1}])\n"
+        + "  EnumerableTableScan(table=[[adhoc, m{27, 31, 32, 36, 37}]";
+    checkTileAlgorithm(Lattices.class.getCanonicalName() + "#PROFILER",
+        explain);
   }
 
   private void checkTileAlgorithm(String statisticProvider,
       String expectedExplain) {
     MaterializationService.setThreadLocal();
     MaterializationService.instance().clear();
-    foodmartModel(
-        " auto: false,\n"
+    foodmartLatticeModel(statisticProvider)
+        .query("select distinct t.\"the_year\", t.\"quarter\"\n"
+            + "from \"foodmart\".\"sales_fact_1997\" as s\n"
+            + "join \"foodmart\".\"time_by_day\" as t using (\"time_id\")\n")
+        .enableMaterializations(true)
+        .explainContains(expectedExplain)
+        .returnsUnordered("the_year=1997; quarter=Q1",
+            "the_year=1997; quarter=Q2",
+            "the_year=1997; quarter=Q3",
+            "the_year=1997; quarter=Q4");
+  }
+
+  private static CalciteAssert.AssertThat foodmartLatticeModel(
+      String statisticProvider) {
+    return foodmartModel(" auto: false,\n"
         + "  algorithm: true,\n"
         + "  algorithmMaxMillis: -1,\n"
-        + "  rowCountEstimate: 86000,\n"
+        + "  rowCountEstimate: 87000,\n"
         + "  defaultMeasures: [ {\n"
         + "      agg: 'sum',\n"
         + "      args: 'unit_sales'\n"
@@ -414,17 +484,7 @@ public class LatticeTest {
         + "  tiles: [ {\n"
         + "    dimensions: [ 'the_year', ['t', 'quarter'] ],\n"
         + "    measures: [ ]\n"
-        + "  } ]\n")
-        .query("select distinct t.\"the_year\", t.\"quarter\"\n"
-            + "from \"foodmart\".\"sales_fact_1997\" as s\n"
-            + "join \"foodmart\".\"time_by_day\" as t using (\"time_id\")\n")
-        .enableMaterializations(true)
-        .explainContains(expectedExplain)
-        .returnsUnordered("the_year=1997; quarter=Q1",
-            "the_year=1997; quarter=Q2",
-            "the_year=1997; quarter=Q3",
-            "the_year=1997; quarter=Q4")
-        .returnsCount(4);
+        + "  } ]\n");
   }
 
   /** Tests a query that is created within {@link #testTileAlgorithm()}. */
@@ -704,7 +764,7 @@ public class LatticeTest {
         .returns("EXPR$0=1\n");
   }
 
-  private CalciteAssert.AssertThat foodmartModel(String... extras) {
+  private static CalciteAssert.AssertThat foodmartModel(String... extras) {
     return modelWithLattice("star",
         "select 1 from \"foodmart\".\"sales_fact_1997\" as \"s\"\n"
             + "join \"foodmart\".\"product\" as \"p\" using (\"product_id\")\n"
@@ -740,6 +800,17 @@ public class LatticeTest {
         .executeQuery("select * from \"adhoc\".\"m{27, 31}\"");
     System.out.println(CalciteAssert.toString(resultSet));
     connection.close();
+  }
+
+  /** Unit test for {@link Lattice#getRowCount(double, List)}. */
+  @Test public void testColumnCount() {
+    assertThat(Lattice.getRowCount(10, 2, 3), within(5.03D, 0.01D));
+    assertThat(Lattice.getRowCount(10, 9, 8), within(9.4D, 0.01D));
+    assertThat(Lattice.getRowCount(100, 9, 8), within(54.2D, 0.1D));
+    assertThat(Lattice.getRowCount(1000, 9, 8), within(72D, 0.01D));
+    assertThat(Lattice.getRowCount(1000, 1, 1), is(1D));
+    assertThat(Lattice.getRowCount(1, 3, 5), within(1D, 0.01D));
+    assertThat(Lattice.getRowCount(1, 3, 5, 13, 4831), within(1D, 0.01D));
   }
 }
 

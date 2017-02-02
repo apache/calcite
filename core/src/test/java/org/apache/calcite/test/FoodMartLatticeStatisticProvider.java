@@ -23,6 +23,8 @@ import org.apache.calcite.materialize.Lattices;
 
 import com.google.common.collect.ImmutableMap;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -33,10 +35,15 @@ import java.util.Map;
  */
 public class FoodMartLatticeStatisticProvider
     extends DelegatingLatticeStatisticProvider {
-  public static final FoodMartLatticeStatisticProvider INSTANCE =
-      new FoodMartLatticeStatisticProvider(Lattices.CACHED_SQL);
+  public static final FoodMartLatticeStatisticProvider.Factory FACTORY =
+      new Factory() {
+        public LatticeStatisticProvider apply(Lattice lattice) {
+          return new FoodMartLatticeStatisticProvider(lattice,
+              Lattices.CACHED_SQL.apply(lattice));
+        }
+      };
 
-  public static final Map<String, Integer> CARDINALITY_MAP =
+  private static final Map<String, Integer> CARDINALITY_MAP =
       ImmutableMap.<String, Integer>builder()
           .put("brand_name", 111)
           .put("cases_per_pallet", 10)
@@ -75,17 +82,28 @@ public class FoodMartLatticeStatisticProvider
           .put("week_of_year", 52)
           .build();
 
-  private FoodMartLatticeStatisticProvider(LatticeStatisticProvider provider) {
+  private final Lattice lattice;
+
+  private FoodMartLatticeStatisticProvider(Lattice lattice,
+      LatticeStatisticProvider provider) {
     super(provider);
+    this.lattice = lattice;
   }
 
-  /** Returns an estimate of the number of distinct values in a column. */
-  public int cardinality(Lattice lattice, Lattice.Column column) {
+  private int cardinality(Lattice.Column column) {
     final Integer integer = CARDINALITY_MAP.get(column.alias);
     if (integer != null && integer > 0) {
       return integer;
     }
     return column.alias.length();
+  }
+
+  @Override public double cardinality(List<Lattice.Column> columns) {
+    final List<Double> cardinalityList = new ArrayList<>();
+    for (Lattice.Column column : columns) {
+      cardinalityList.add((double) cardinality(column));
+    }
+    return Lattice.getRowCount(lattice.getFactRowCount(), cardinalityList);
   }
 }
 

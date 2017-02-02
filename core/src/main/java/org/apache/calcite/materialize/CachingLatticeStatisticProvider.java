@@ -16,43 +16,51 @@
  */
 package org.apache.calcite.materialize;
 
-import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
+import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.UncheckedExecutionException;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.ExecutionException;
+import javax.annotation.Nonnull;
 
 /**
- * Implementation of {@link LatticeStatisticProvider} that gets statistics by
- * executing "SELECT COUNT(DISTINCT ...) ..." SQL queries.
+ * Implementation of {@link LatticeStatisticProvider} that caches single-column
+ * statistics and computes multi-column statistics from these.
  */
 class CachingLatticeStatisticProvider implements LatticeStatisticProvider {
-  private final LoadingCache<Pair<Lattice, Lattice.Column>, Integer> cache;
+  private final Lattice lattice;
+  private final LoadingCache<Lattice.Column, Double> cache;
 
   /** Creates a CachingStatisticProvider. */
-  CachingLatticeStatisticProvider(
+  CachingLatticeStatisticProvider(final Lattice lattice,
       final LatticeStatisticProvider provider) {
-    cache = CacheBuilder.<Pair<Lattice, Lattice.Column>>newBuilder()
+    this.lattice = lattice;
+    cache = CacheBuilder.<Lattice.Column>newBuilder()
         .build(
-            new CacheLoader<Pair<Lattice, Lattice.Column>, Integer>() {
-              public Integer load(Pair<Lattice, Lattice.Column> key)
-                  throws Exception {
-                return provider.cardinality(key.left, key.right);
+            new CacheLoader<Lattice.Column, Double>() {
+              public Double load(@Nonnull Lattice.Column key) throws Exception {
+                return provider.cardinality(ImmutableList.of(key));
               }
             });
   }
 
-  public int cardinality(Lattice lattice, Lattice.Column column) {
-    try {
-      return cache.get(Pair.of(lattice, column));
-    } catch (UncheckedExecutionException | ExecutionException e) {
-      Util.throwIfUnchecked(e.getCause());
-      throw new RuntimeException(e.getCause());
+  public double cardinality(List<Lattice.Column> columns) {
+    final List<Double> counts = new ArrayList<>();
+    for (Lattice.Column column : columns) {
+      try {
+        counts.add(cache.get(column));
+      } catch (UncheckedExecutionException | ExecutionException e) {
+        Util.throwIfUnchecked(e.getCause());
+        throw new RuntimeException(e.getCause());
+      }
     }
+    return (int) Lattice.getRowCount(lattice.getFactRowCount(), counts);
   }
 }
 
