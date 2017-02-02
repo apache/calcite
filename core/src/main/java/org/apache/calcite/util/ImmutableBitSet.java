@@ -843,6 +843,15 @@ public class ImmutableBitSet
     return union(ImmutableBitSet.of(i));
   }
 
+  /** Returns a bit set the same as this but with a given bit set (if b is
+   * true) or unset (if b is false). */
+  public ImmutableBitSet set(int i, boolean b) {
+    if (get(i) == b) {
+      return this;
+    }
+    return b ? set(i) : clear(i);
+  }
+
   /** Returns a bit set the same as this but with a given bit set if condition
    * is true. */
   public ImmutableBitSet setIf(int bit, boolean condition) {

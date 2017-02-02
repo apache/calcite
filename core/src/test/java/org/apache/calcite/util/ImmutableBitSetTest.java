@@ -33,6 +33,7 @@ import java.util.SortedMap;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.sameInstance;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
@@ -488,6 +489,14 @@ public class ImmutableBitSetTest {
         equalTo(ImmutableBitSet.of()));
     assertThat(bitSet.clearIf(29, false), equalTo(bitSet));
     assertThat(bitSet.clearIf(29, true), equalTo(bitSet2));
+  }
+
+  @Test public void testSet2() {
+    final ImmutableBitSet bitSet = ImmutableBitSet.of(29, 4, 1969);
+    final ImmutableBitSet bitSet2 = ImmutableBitSet.of(29, 4, 1969, 30);
+    assertThat(bitSet.set(30, false), sameInstance(bitSet));
+    assertThat(bitSet.set(30, true), equalTo(bitSet2));
+    assertThat(bitSet.set(29, true), sameInstance(bitSet));
   }
 
   @Test public void testShift() {
