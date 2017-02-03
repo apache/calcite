@@ -65,7 +65,7 @@ import java.util.Set;
 /**
  * Implementation of {@link org.apache.calcite.plan.RelOptTable}.
  */
-public class RelOptTableImpl implements Prepare.PreparingTable {
+public class RelOptTableImpl extends Prepare.AbstractPreparingTable {
   private final RelOptSchema schema;
   private final RelDataType rowType;
   private final Table table;

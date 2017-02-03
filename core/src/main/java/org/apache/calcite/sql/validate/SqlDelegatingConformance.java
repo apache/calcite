@@ -52,6 +52,10 @@ public class SqlDelegatingConformance extends SqlAbstractConformance {
   @Override public boolean isMinusAllowed() {
     return delegate.isMinusAllowed();
   }
+
+  @Override public boolean isInsertSubsetColumnsAllowed() {
+    return delegate.isInsertSubsetColumnsAllowed();
+  }
 }
 
 // End SqlDelegatingConformance.java

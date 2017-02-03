@@ -20,7 +20,8 @@ package org.apache.calcite.schema;
  * Mix-in interface that allows you to find sub-objects.
  */
 public interface Wrapper {
-  /** Returns an instance of a class, or null. */
+  /** Finds an instance of an interface implemented by this object,
+   * or returns null if this object does not support that interface. */
   <C> C unwrap(Class<C> aClass);
 }
 

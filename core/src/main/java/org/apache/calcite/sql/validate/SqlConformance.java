@@ -158,6 +158,26 @@ public interface SqlConformance {
    * false otherwise.
    */
   boolean isApplyAllowed();
+
+  /**
+   * Whether to allow {@code INSERT} (or {@code UPSERT}) with no column list
+   * but fewer values than the target table.
+   *
+   * <p>The N values provided are assumed to match the first N columns of the
+   * table, and for each of the remaining columns, the default value of the
+   * column is used. It is an error if any of these columns has no default
+   * value.
+   *
+   * <p>The default value of a column is specified by the {@code DEFAULT}
+   * clause in the {@code CREATE TABLE} statement, or is {@code NULL} if the
+   * column is not declared {@code NOT NULL}.
+   *
+   * <p>Among the built-in conformance levels, true in
+   * {@link SqlConformanceEnum#PRAGMATIC_99},
+   * {@link SqlConformanceEnum#PRAGMATIC_2003};
+   * false otherwise.
+   */
+  boolean isInsertSubsetColumnsAllowed();
 }
 
 // End SqlConformance.java

@@ -134,6 +134,16 @@ public enum SqlConformanceEnum implements SqlConformance {
     }
   }
 
+  public boolean isInsertSubsetColumnsAllowed() {
+    switch (this) {
+    case PRAGMATIC_99:
+    case PRAGMATIC_2003:
+      return true;
+    default:
+      return false;
+    }
+  }
+
 }
 
 // End SqlConformanceEnum.java

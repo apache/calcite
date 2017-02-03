@@ -175,6 +175,11 @@ windowSpec:
       ')'
 {% endhighlight %}
 
+In *insert*, if the INSERT or UPSERT statement does not specify a
+list of target columns, the query must have the same number of
+columns as the target table, except in certain
+[conformance levels]({{ site.apiRoot }}/org/apache/calcite/sql/validate/SqlConformance.html#isInsertSubsetColumnsAllowed--).
+
 In *merge*, at least one of the WHEN MATCHED and WHEN NOT MATCHED clauses must
 be present.
 

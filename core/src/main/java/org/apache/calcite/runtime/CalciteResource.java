@@ -151,6 +151,9 @@ public interface CalciteResource {
   @BaseMessage("Number of INSERT target columns ({0,number}) does not equal number of source items ({1,number})")
   ExInst<SqlValidatorException> unmatchInsertColumn(int a0, int a1);
 
+  @BaseMessage("Column ''{0}'' has no default value and does not allow NULLs")
+  ExInst<SqlValidatorException> columnNotNullable(String a0);
+
   @BaseMessage("Cannot assign to target field ''{0}'' of type {1} from source field ''{2}'' of type {3}")
   ExInst<SqlValidatorException> typeNotAssignable(String a0, String a1,
       String a2, String a3);

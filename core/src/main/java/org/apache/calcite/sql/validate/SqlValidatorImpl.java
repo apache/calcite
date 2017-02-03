@@ -3785,7 +3785,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     RelDataType logicalSourceRowType =
         getLogicalSourceRowType(sourceRowType, insert);
 
-    checkFieldCount(insert, logicalSourceRowType, logicalTargetRowType);
+    checkFieldCount(insert, table, logicalSourceRowType, logicalTargetRowType);
 
     checkTypeAssignment(logicalSourceRowType, logicalTargetRowType, insert);
 
@@ -3794,6 +3794,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
   private void checkFieldCount(
       SqlNode node,
+      SqlValidatorTable table,
       RelDataType logicalSourceRowType,
       RelDataType logicalTargetRowType) {
     final int sourceFieldCount = logicalSourceRowType.getFieldCount();
@@ -3802,12 +3803,43 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       throw newValidationError(node,
           RESOURCE.unmatchInsertColumn(targetFieldCount, sourceFieldCount));
     }
+    // Ensure that non-nullable fields are targeted.
+    for (final RelDataTypeField field : table.getRowType().getFieldList()) {
+      if (!field.getType().isNullable()) {
+        final RelDataTypeField targetField =
+            logicalTargetRowType.getField(field.getName(), true, false);
+        final boolean haveDefaultValue =
+            table.columnHasDefaultValue(table.getRowType(), field.getIndex());
+        if (targetField == null && !haveDefaultValue) {
+          throw newValidationError(node,
+              RESOURCE.columnNotNullable(field.getName()));
+        }
+      }
+    }
   }
 
   protected RelDataType getLogicalTargetRowType(
       RelDataType targetRowType,
       SqlInsert insert) {
-    return targetRowType;
+    if (insert.getTargetColumnList() == null
+        && conformance.isInsertSubsetColumnsAllowed()) {
+      // Target an implicit subset of columns.
+      final SqlNode source = insert.getSource();
+      final RelDataType sourceRowType = getNamespace(source).getRowType();
+      final RelDataType logicalSourceRowType =
+          getLogicalSourceRowType(sourceRowType, insert);
+      final RelDataType implicitTargetRowType =
+          typeFactory.createStructType(
+              targetRowType.getFieldList()
+                  .subList(0, logicalSourceRowType.getFieldCount()));
+      final SqlValidatorNamespace targetNamespace = getNamespace(insert);
+      validateNamespace(targetNamespace, implicitTargetRowType);
+      return implicitTargetRowType;
+    } else {
+      // Either the set of columns are explicitly targeted, or target the full
+      // set of columns.
+      return targetRowType;
+    }
   }
 
   protected RelDataType getLogicalSourceRowType(
@@ -4024,7 +4056,13 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       }
 
       SqlCall rowConstructor = (SqlCall) operand;
-      if (targetRowType.isStruct()
+      if (conformance.isInsertSubsetColumnsAllowed() && targetRowType.isStruct()
+          && rowConstructor.operandCount() < targetRowType.getFieldCount()) {
+        targetRowType =
+            typeFactory.createStructType(
+                targetRowType.getFieldList()
+                    .subList(0, rowConstructor.operandCount()));
+      } else if (targetRowType.isStruct()
           && rowConstructor.operandCount() != targetRowType.getFieldCount()) {
         return;
       }
@@ -4033,6 +4071,18 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
           targetRowType,
           scope,
           rowConstructor);
+
+      if (targetRowType.isStruct()) {
+        for (Pair<SqlNode, RelDataTypeField> pair
+            : Pair.zip(rowConstructor.getOperandList(),
+                targetRowType.getFieldList())) {
+          if (!pair.right.getType().isNullable()
+              && SqlUtil.isNullLiteral(pair.left, false)) {
+            throw newValidationError(node,
+                RESOURCE.columnNotNullable(pair.right.getName()));
+          }
+        }
+      }
     }
 
     for (SqlNode operand : operands) {

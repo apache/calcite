@@ -27,6 +27,8 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.validate.SqlConformance;
+import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.sql2rel.SqlToRelConverter;
 import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.Litmus;
@@ -65,7 +67,7 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
   /** Sets the SQL statement for a test. */
   public final Sql sql(String sql) {
     return new Sql(sql, true, true, tester, false,
-        SqlToRelConverter.Config.DEFAULT);
+        SqlToRelConverter.Config.DEFAULT, SqlConformanceEnum.DEFAULT);
   }
 
   protected final void check(
@@ -1469,9 +1471,53 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
   }
 
   @Test public void testInsert() {
-    final String sql =
-        "insert into emp (deptno, empno, ename) values (10, 150, 'Fred')";
+    final String sql = "insert into empnullables (deptno, empno, ename)\n"
+        + "values (10, 150, 'Fred')";
     sql(sql).ok();
+  }
+
+  @Test public void testInsertSubset() {
+    final String sql = "insert into empnullables \n"
+        + "values (50, 'Fred')";
+    sql(sql).conformance(SqlConformanceEnum.PRAGMATIC_2003).ok();
+  }
+
+  @Test public void testInsertWithCustomInitializerExpressionFactory() {
+    final String sql = "insert into empdefaults (deptno) values (300)";
+    sql(sql).ok();
+  }
+
+  @Test public void testInsertSubsetWithCustomInitializerExpressionFactory() {
+    final String sql = "insert into empdefaults values (100)";
+    sql(sql).conformance(SqlConformanceEnum.PRAGMATIC_2003).ok();
+  }
+
+  @Test public void testInsertBind() {
+    final String sql = "insert into empnullables (deptno, empno, ename)\n"
+        + "values (?, ?, ?)";
+    sql(sql).ok();
+  }
+
+  @Test public void testInsertBindSubset() {
+    final String sql = "insert into empnullables \n"
+        + "values (?, ?)";
+    sql(sql).conformance(SqlConformanceEnum.PRAGMATIC_2003).ok();
+  }
+
+  @Test public void testInsertBindWithCustomInitializerExpressionFactory() {
+    final String sql = "insert into empdefaults (deptno) values (?)";
+    sql(sql).ok();
+  }
+
+  @Test public void testInsertBindSubsetWithCustomInitializerExpressionFactory() {
+    final String sql = "insert into empdefaults values (?)";
+    sql(sql).conformance(SqlConformanceEnum.PRAGMATIC_2003).ok();
+  }
+
+  @Test public void testInsertSubsetView() {
+    final String sql = "insert into empnullables_20 \n"
+        + "values (10, 'Fred')";
+    sql(sql).conformance(SqlConformanceEnum.PRAGMATIC_2003).ok();
   }
 
   @Test public void testDelete() {
@@ -1522,7 +1568,8 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
   }
 
   @Test public void testInsertView() {
-    final String sql = "insert into emp_20 (empno, ename) values (150, 'Fred')";
+    final String sql = "insert into empnullables_20 (empno, ename)\n"
+        + "values (150, 'Fred')";
     sql(sql).ok();
   }
 
@@ -1532,12 +1579,15 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
   }
 
   @Test public void testInsertWithCustomColumnResolving2() {
-    final String sql = "insert into struct.t (f0.c0, f1.c2, c1) values (?, ?, ?)";
+    final String sql = "insert into struct.t_nullables (f0.c0, f1.c2, c1)\n"
+        + "values (?, ?, ?)";
     sql(sql).ok();
   }
 
   @Test public void testInsertViewWithCustomColumnResolving() {
-    final String sql = "insert into struct.t_10 (f0.c0, f1.c2, c1) values (?, ?, ?)";
+    final String sql = "insert into struct.t_10 (f0.c0, f1.c2, c1, k0,\n"
+        + "  f1.a0, f2.a0, f0.c1, f2.c3)\n"
+        + "values (?, ?, ?, ?, ?, ?, ?, ?)";
     sql(sql).ok();
   }
 
@@ -2060,15 +2110,18 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     private final Tester tester;
     private final boolean trim;
     private final SqlToRelConverter.Config config;
+    private final SqlConformance conformance;
 
     Sql(String sql, boolean expand, boolean decorrelate, Tester tester,
-        boolean trim, SqlToRelConverter.Config config) {
+        boolean trim, SqlToRelConverter.Config config,
+        SqlConformance conformance) {
       this.sql = sql;
       this.expand = expand;
       this.decorrelate = decorrelate;
       this.tester = tester;
       this.trim = trim;
       this.config = config;
+      this.conformance = conformance;
     }
 
     public void ok() {
@@ -2078,28 +2131,39 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     public void convertsTo(String plan) {
       tester.withExpand(expand)
           .withDecorrelation(decorrelate)
+          .withConformance(conformance)
           .withConfig(config)
           .assertConvertsTo(sql, plan, trim);
     }
 
     public Sql withConfig(SqlToRelConverter.Config config) {
-      return new Sql(sql, expand, decorrelate, tester, trim, config);
+      return new Sql(sql, expand, decorrelate, tester, trim, config,
+          conformance);
     }
 
     public Sql expand(boolean expand) {
-      return new Sql(sql, expand, decorrelate, tester, trim, config);
+      return new Sql(sql, expand, decorrelate, tester, trim, config,
+          conformance);
     }
 
     public Sql decorrelate(boolean decorrelate) {
-      return new Sql(sql, expand, decorrelate, tester, trim, config);
+      return new Sql(sql, expand, decorrelate, tester, trim, config,
+          conformance);
     }
 
     public Sql with(Tester tester) {
-      return new Sql(sql, expand, decorrelate, tester, trim, config);
+      return new Sql(sql, expand, decorrelate, tester, trim, config,
+          conformance);
     }
 
     public Sql trim(boolean trim) {
-      return new Sql(sql, expand, decorrelate, tester, trim, config);
+      return new Sql(sql, expand, decorrelate, tester, trim, config,
+          conformance);
+    }
+
+    public Sql conformance(SqlConformance conformance) {
+      return new Sql(sql, expand, decorrelate, tester, trim, config,
+          conformance);
     }
   }
 }

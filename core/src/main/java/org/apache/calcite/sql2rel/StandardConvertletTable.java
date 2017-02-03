@@ -900,7 +900,7 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
         ImmutableList.builder();
     for (int i = 0; i < n; ++i) {
       initializationExprs.add(
-          cx.getDefaultValueFactory().newAttributeInitializer(
+          cx.getInitializerExpressionFactory().newAttributeInitializer(
               type, constructor, i, exprs));
     }
 

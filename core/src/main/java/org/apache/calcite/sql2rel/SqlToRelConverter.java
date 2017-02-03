@@ -87,6 +87,7 @@ import org.apache.calcite.schema.ModifiableTable;
 import org.apache.calcite.schema.ModifiableView;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.TranslatableTable;
+import org.apache.calcite.schema.Wrapper;
 import org.apache.calcite.sql.JoinConditionType;
 import org.apache.calcite.sql.JoinType;
 import org.apache.calcite.sql.SemiJoinType;
@@ -150,6 +151,7 @@ import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorImpl;
 import org.apache.calcite.sql.validate.SqlValidatorNamespace;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
+import org.apache.calcite.sql.validate.SqlValidatorTable;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.ImmutableBitSet;
@@ -222,7 +224,6 @@ public class SqlToRelConverter {
   protected final RexBuilder rexBuilder;
   protected final Prepare.CatalogReader catalogReader;
   protected final RelOptCluster cluster;
-  private DefaultValueFactory defaultValueFactory;
   private SubQueryConverter subQueryConverter;
   protected final List<RelNode> leaves = new ArrayList<>();
   private final List<SqlDynamicParam> dynamicParamSqlNodes = new ArrayList<>();
@@ -304,7 +305,6 @@ public class SqlToRelConverter {
             : validator.getOperatorTable();
     this.validator = validator;
     this.catalogReader = catalogReader;
-    this.defaultValueFactory = new NullDefaultValueFactory();
     this.subQueryConverter = new NoOpSubQueryConverter();
     this.rexBuilder = cluster.getRexBuilder();
     this.typeFactory = rexBuilder.getTypeFactory();
@@ -387,16 +387,6 @@ public class SqlToRelConverter {
   public void addConvertedNonCorrSubqs(
       Map<SqlNode, RexNode> alreadyConvertedNonCorrSubqs) {
     mapConvertedNonCorrSubqs.putAll(alreadyConvertedNonCorrSubqs);
-  }
-
-  /**
-   * Set a new DefaultValueFactory. To have any effect, this must be called
-   * before any convert method.
-   *
-   * @param factory new DefaultValueFactory
-   */
-  public void setDefaultValueFactory(DefaultValueFactory factory) {
-    defaultValueFactory = factory;
   }
 
   /**
@@ -3070,6 +3060,9 @@ public class SqlToRelConverter {
         new ArrayList<>(
             Collections.<String>nCopies(targetFields.size(), null));
 
+    final InitializerExpressionFactory initializerFactory =
+        getInitializerFactory(validator.getNamespace(call).getTable());
+
     // Walk the name list and place the associated value in the
     // expression list according to the ordinal value returned from
     // the table construct, leaving nulls in the list for columns
@@ -3088,22 +3081,41 @@ public class SqlToRelConverter {
       final String fieldName = field.getName();
       fieldNames.set(i, fieldName);
       if (sourceExps.get(i) != null) {
-        if (defaultValueFactory.isGeneratedAlways(targetTable, i)) {
+        if (initializerFactory.isGeneratedAlways(targetTable, i)) {
           throw RESOURCE.insertIntoAlwaysGenerated(fieldName).ex();
         }
         continue;
       }
-      sourceExps.set(
-          i, defaultValueFactory.newColumnDefaultValue(targetTable, i));
+      sourceExps.set(i,
+          initializerFactory.newColumnDefaultValue(targetTable, i));
 
       // bare nulls are dangerous in the wrong hands
-      sourceExps.set(
-          i,
-          castNullLiteralIfNeeded(
-              sourceExps.get(i), field.getType()));
+      sourceExps.set(i,
+          castNullLiteralIfNeeded(sourceExps.get(i), field.getType()));
     }
 
     return RelOptUtil.createProject(sourceRel, sourceExps, fieldNames, true);
+  }
+
+  private InitializerExpressionFactory getInitializerFactory(
+      SqlValidatorTable validatorTable) {
+    // We might unwrap a null instead of a InitializerExpressionFactory.
+    final Table table = unwrap(validatorTable, Table.class);
+    if (table != null) {
+      InitializerExpressionFactory f =
+          unwrap(table, InitializerExpressionFactory.class);
+      if (f != null) {
+        return f;
+      }
+    }
+    return new NullInitializerExpressionFactory(typeFactory);
+  }
+
+  private static <T> T unwrap(Object o, Class<T> clazz) {
+    if (o instanceof Wrapper) {
+      return ((Wrapper) o).unwrap(clazz);
+    }
+    return null;
   }
 
   private RexNode castNullLiteralIfNeeded(RexNode node, RelDataType type) {
@@ -3129,16 +3141,24 @@ public class SqlToRelConverter {
       final List<String> targetColumnNames,
       List<RexNode> columnExprs) {
     final RelOptTable targetTable = getTargetTable(call);
-    final RelDataType targetRowType = targetTable.getRowType();
+    final RelDataType tableRowType = targetTable.getRowType();
     SqlNodeList targetColumnList = call.getTargetColumnList();
     if (targetColumnList == null) {
-      targetColumnNames.addAll(targetRowType.getFieldNames());
+      if (validator.getConformance().isInsertSubsetColumnsAllowed()) {
+        final RelDataType targetRowType =
+            typeFactory.createStructType(
+                tableRowType.getFieldList()
+                    .subList(0, sourceRef.getType().getFieldCount()));
+        targetColumnNames.addAll(targetRowType.getFieldNames());
+      } else {
+        targetColumnNames.addAll(tableRowType.getFieldNames());
+      }
     } else {
       for (int i = 0; i < targetColumnList.size(); i++) {
         SqlIdentifier id = (SqlIdentifier) targetColumnList.get(i);
         RelDataTypeField field =
             SqlValidatorUtil.getTargetField(
-                targetRowType, typeFactory, id, catalogReader, targetTable);
+                tableRowType, typeFactory, id, catalogReader, targetTable);
         assert field != null : "column " + id.toString() + " not found";
         targetColumnNames.add(field.getName());
       }
@@ -3708,6 +3728,9 @@ public class SqlToRelConverter {
     private final List<RelDataTypeField> systemFieldList = new ArrayList<>();
     final boolean top;
 
+    private final InitializerExpressionFactory initializerExpressionFactory =
+        new NullInitializerExpressionFactory(typeFactory);
+
     /**
      * Creates a Blackboard.
      *
@@ -4257,8 +4280,8 @@ public class SqlToRelConverter {
       return typeFactory;
     }
 
-    public DefaultValueFactory getDefaultValueFactory() {
-      return defaultValueFactory;
+    public InitializerExpressionFactory getInitializerExpressionFactory() {
+      return initializerExpressionFactory;
     }
 
     public SqlValidator getValidator() {
@@ -4333,31 +4356,6 @@ public class SqlToRelConverter {
 
     public String getOriginalRelName() {
       return originalRelName;
-    }
-  }
-
-  /**
-   * An implementation of DefaultValueFactory which always supplies NULL.
-   */
-  class NullDefaultValueFactory implements DefaultValueFactory {
-    public boolean isGeneratedAlways(
-        RelOptTable table,
-        int iColumn) {
-      return false;
-    }
-
-    public RexNode newColumnDefaultValue(
-        RelOptTable table,
-        int iColumn) {
-      return rexBuilder.constantNull();
-    }
-
-    public RexNode newAttributeInitializer(
-        RelDataType type,
-        SqlFunction constructor,
-        int iAttribute,
-        List<RexNode> constructorArgs) {
-      return rexBuilder.constantNull();
     }
   }
 
