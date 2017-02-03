@@ -28,7 +28,12 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.logical.LogicalProject;
+import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexCallBinding;
+import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
+import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.validate.SqlMonotonicity;
 import org.apache.calcite.util.mapping.Mappings;
 
 import com.google.common.collect.ImmutableList;
@@ -85,11 +90,22 @@ public class SortProjectTransposeRule extends RelOptRule {
     // Determine mapping between project input and output fields. If sort
     // relies on non-trivial expressions, we can't push.
     final Mappings.TargetMapping map =
-        RelOptUtil.permutation(
+        RelOptUtil.permutationIgnoreCast(
             project.getProjects(), project.getInput().getRowType());
     for (RelFieldCollation fc : sort.getCollation().getFieldCollations()) {
       if (map.getTargetOpt(fc.getFieldIndex()) < 0) {
         return;
+      }
+      final RexNode node = project.getProjects().get(fc.getFieldIndex());
+      if (node.isA(SqlKind.CAST)) {
+        // Check whether it is a monotonic preserving cast, otherwise we cannot push
+        final RexCall cast = (RexCall) node;
+        final RexCallBinding binding =
+            RexCallBinding.create(cluster.getTypeFactory(), cast,
+                ImmutableList.of(RexUtil.apply(map, sort.getCollation())));
+        if (cast.getOperator().getMonotonicity(binding) == SqlMonotonicity.NOT_MONOTONIC) {
+          return;
+        }
       }
     }
     final RelCollation newCollation =

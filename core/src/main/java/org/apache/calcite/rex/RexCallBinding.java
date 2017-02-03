@@ -104,7 +104,7 @@ public class RexCallBinding extends SqlOperatorBinding {
     } else if (operand instanceof RexCall) {
       final RexCallBinding binding =
           RexCallBinding.create(typeFactory, (RexCall) operand, inputCollations);
-      ((RexCall) operand).getOperator().getMonotonicity(binding);
+      return ((RexCall) operand).getOperator().getMonotonicity(binding);
     }
 
     return SqlMonotonicity.NOT_MONOTONIC;
