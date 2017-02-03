@@ -44,7 +44,7 @@ public class PigAggregate extends Aggregate implements PigRel {
       ImmutableBitSet groupSet, List<ImmutableBitSet> groupSets, List<AggregateCall> aggCalls) {
     super(cluster, traits, child, indicator, groupSet, groupSets, aggCalls);
     assert getConvention() == PigRel.CONVENTION;
-    assert getConvention() == child.getConvention();
+    //assert getConvention() == child.getConvention();
   }
 
   @Override public Aggregate copy(RelTraitSet traitSet, RelNode input, boolean indicator,

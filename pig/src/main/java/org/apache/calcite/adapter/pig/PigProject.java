@@ -34,7 +34,6 @@ public class PigProject extends Project implements PigRel {
       List<? extends RexNode> projects, RelDataType rowType) {
     super(cluster, traitSet, input, projects, rowType);
     assert getConvention() == PigRel.CONVENTION;
-    assert getConvention() == input.getConvention();
   }
 
   @Override public Project copy(RelTraitSet traitSet, RelNode input, List<RexNode> projects,

@@ -16,48 +16,59 @@
  */
 package org.apache.calcite.adapter.pig;
 
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.plan.RelOptTable.ToRelContext;
+import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.schema.TranslatableTable;
 import org.apache.calcite.schema.impl.AbstractTable;
 import org.apache.calcite.util.Pair;
 
-import com.google.common.base.Preconditions;
+import org.apache.pig.data.DataType;
 
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Represents a Pig relation that is created by Pig Latin <code>LOAD</code>
- * statement. Only the default load function is supported at this pint
- * (PigStorage()).
- * @see https://pig.apache.org/docs/r0.13.0/basic.html#load
+ * Represents a Pig relation that is created by Pig Latin
+ * <a href="https://pig.apache.org/docs/r0.13.0/basic.html#load">
+ * <code>LOAD</code></a> statement. Only the default load function
+ * is supported at this point (PigStorage()). Only VARCHAR (CHARARRAY in Pig)
+ * type supported at this point.
  */
-public class PigTable extends AbstractTable {
+public class PigTable extends AbstractTable implements TranslatableTable {
 
   private final String filePath;
   private final String[] fieldNames;
-  private final byte[] fieldTypes;
 
-  public PigTable(String filePath, String[] fieldNames, byte[] fieldTypes) {
-    Preconditions.checkArgument(fieldNames.length == fieldTypes.length);
+  public PigTable(String filePath, String[] fieldNames) {
     this.filePath = filePath;
     this.fieldNames = fieldNames;
-    this.fieldTypes = fieldTypes;
   }
 
   @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
     final int columnCount = fieldNames.length;
     final List<Pair<String, RelDataType>> columnDesc = new ArrayList<>(columnCount);
     for (int i = 0; i < columnCount; i++) {
+      // only supports CHARARRAY types for now
       final RelDataType relDataType = typeFactory
-        .createSqlType(PigDataType.valueOf(fieldTypes[i]).getSqlType());
-      columnDesc.add(Pair.of(fieldNames[i], relDataType));
+          .createSqlType(PigDataType.valueOf(DataType.CHARARRAY).getSqlType());
+      final RelDataType nullableRelDataType = typeFactory
+          .createTypeWithNullability(relDataType, true);
+      columnDesc.add(Pair.of(fieldNames[i], nullableRelDataType));
     }
     return typeFactory.createStructType(columnDesc);
   }
 
   public String getFilePath() {
     return filePath;
+  }
+
+  @Override public RelNode toRel(ToRelContext context, RelOptTable relOptTable) {
+    final RelOptCluster cluster = context.getCluster();
+    return new PigTableScan(cluster, cluster.traitSetOf(PigRel.CONVENTION), relOptTable);
   }
 }
 // End PigTable.java

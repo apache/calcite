@@ -24,7 +24,7 @@ import org.apache.calcite.sql.SqlKind;
  */
 public enum PigAggFunction {
 
-  COUNT(SqlKind.COUNT, false), COUNT_ALL(SqlKind.COUNT, true);
+  COUNT(SqlKind.COUNT, false), COUNT_STAR(SqlKind.COUNT, true);
 
   private final SqlKind calciteFunc;
   private final boolean star; // as in COUNT(*)

@@ -173,6 +173,7 @@ public enum BuiltInMethod {
   SKIP(ExtendedEnumerable.class, "skip", int.class),
   TAKE(ExtendedEnumerable.class, "take", int.class),
   SINGLETON_ENUMERABLE(Linq4j.class, "singletonEnumerable", Object.class),
+  EMPTY_ENUMERABLE(Linq4j.class, "emptyEnumerable"),
   NULLS_COMPARATOR(Functions.class, "nullsComparator", boolean.class,
       boolean.class),
   ARRAY_COMPARER(Functions.class, "arrayComparer"),

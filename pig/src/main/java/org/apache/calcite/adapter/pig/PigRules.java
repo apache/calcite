@@ -21,17 +21,20 @@ import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterRule;
+import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.logical.LogicalFilter;
+import org.apache.calcite.rel.logical.LogicalJoin;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.logical.LogicalTableScan;
 
 /**
- *
+ * Various {@link RelOptRule}s using the Pig convention.
  */
 public class PigRules {
 
   public static final RelOptRule[] ALL_PIG_OPT_RULES = new RelOptRule[] { PigFilterRule.INSTANCE,
-    PigTableScanRule.INSTANCE, PigProjectRule.INSTANCE };
+    PigTableScanRule.INSTANCE, PigProjectRule.INSTANCE, PigAggregateRule.INSTANCE,
+    PigJoinRule.INSTANCE};
 
   /**
    * Prevent instantiation.
@@ -92,6 +95,44 @@ public class PigRules {
       final RelTraitSet traitSet = project.getTraitSet().replace(PigRel.CONVENTION);
       return new PigProject(project.getCluster(), traitSet, project.getInput(),
           project.getProjects(), project.getRowType());
+    }
+  }
+
+  /**
+   * Rule to convert a {@link org.apache.calcite.rel.logical.LogicalAggregate} to a
+   * {@link PigAggregate}.
+   */
+  private static class PigAggregateRule extends ConverterRule {
+    private static final PigAggregateRule INSTANCE = new PigAggregateRule();
+
+    private PigAggregateRule() {
+      super(LogicalAggregate.class, Convention.NONE, PigRel.CONVENTION, "PigAggregateRule");
+    }
+
+    public RelNode convert(RelNode rel) {
+      final LogicalAggregate agg = (LogicalAggregate) rel;
+      final RelTraitSet traitSet = agg.getTraitSet().replace(PigRel.CONVENTION);
+      return new PigAggregate(agg.getCluster(), traitSet, agg.getInput(),
+          agg.indicator, agg.getGroupSet(), agg.getGroupSets(), agg.getAggCallList());
+    }
+  }
+
+  /**
+   * Rule to convert a {@link org.apache.calcite.rel.logical.LogicalJoin} to
+   * a {@link PigJoin}.
+   */
+  private static class PigJoinRule extends ConverterRule {
+    private static final PigJoinRule INSTANCE = new PigJoinRule();
+
+    private PigJoinRule() {
+      super(LogicalJoin.class, Convention.NONE, PigRel.CONVENTION, "PigJoinRule");
+    }
+
+    public RelNode convert(RelNode rel) {
+      final LogicalJoin join = (LogicalJoin) rel;
+      final RelTraitSet traitSet = join.getTraitSet().replace(PigRel.CONVENTION);
+      return new PigJoin(join.getCluster(), traitSet, join.getLeft(), join.getRight(),
+          join.getCondition(), join.getJoinType());
     }
   }
 }

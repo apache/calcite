@@ -20,12 +20,12 @@ limitations under the License.
   <parent>
     <groupId>org.apache.calcite</groupId>
     <artifactId>calcite</artifactId>
-    <version>1.11.0-SNAPSHOT</version>
+    <version>1.12.0-SNAPSHOT</version>
   </parent>
 
   <artifactId>calcite-pig</artifactId>
   <packaging>jar</packaging>
-  <version>1.11.0-SNAPSHOT</version>
+  <version>1.12.0-SNAPSHOT</version>
   <name>Calcite Pig</name>
   <description>Pig adapter for Calcite</description>
 
@@ -40,6 +40,16 @@ limitations under the License.
       <groupId>org.apache.calcite</groupId>
       <artifactId>calcite-core</artifactId>
       <type>jar</type>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.calcite</groupId>
+      <artifactId>calcite-core</artifactId>
+      <type>test-jar</type>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.calcite</groupId>
+      <artifactId>calcite-linq4j</artifactId>
     </dependency>
     <dependency>
       <groupId>org.apache.hadoop</groupId>
@@ -94,6 +104,7 @@ limitations under the License.
               <ignoredUnusedDeclaredDependencies>
                 <ignoredUnusedDeclaredDependency>org.slf4j:slf4j-api</ignoredUnusedDeclaredDependency>
                 <ignoredUnusedDeclaredDependency>org.slf4j:slf4j-log4j12</ignoredUnusedDeclaredDependency>
+                <ignoredUnusedDeclaredDependency>org.apache.hadoop:hadoop-client</ignoredUnusedDeclaredDependency>
               </ignoredUnusedDeclaredDependencies>
             </configuration>
           </execution>

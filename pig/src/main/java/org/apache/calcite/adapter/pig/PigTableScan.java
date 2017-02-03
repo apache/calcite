@@ -16,10 +16,15 @@
  */
 package org.apache.calcite.adapter.pig;
 
+import org.apache.calcite.adapter.enumerable.EnumerableRules;
+import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptPlanner;
+import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.core.TableScan;
+import org.apache.calcite.rel.rules.AggregateExpandDistinctAggregatesRule;
 import org.apache.calcite.rel.type.RelDataTypeField;
 
 import org.apache.pig.data.DataType;
@@ -35,20 +40,26 @@ public class PigTableScan extends TableScan implements PigRel {
 
   public PigTableScan(RelOptCluster cluster, RelTraitSet traitSet, RelOptTable table) {
     super(cluster, traitSet, table);
+    assert getConvention() == PigRel.CONVENTION;
   }
 
   @Override public void implement(Implementor implementor) {
-    PigTable pigTable = (PigTable) implementor.getSchema()
-      .getTable(getTable().getQualifiedName().get(0));
-    String alias = getTable().getQualifiedName().get(0);
-    String schema = '(' + getSchemaForPigStatement(implementor) + ')';
-    String statement = alias + " = LOAD '" + pigTable.getFilePath() + "' USING PigStorage() AS "
-        + schema + ';';
+    final PigTable pigTable = getPigTable(implementor.getTableName(this));
+    final String alias = implementor.getPigRelationAlias(this);
+    final String schema = '(' + getSchemaForPigStatement(implementor)
+      + ')';
+    final String statement = alias + " = LOAD '" + pigTable.getFilePath()
+      + "' USING PigStorage() AS " + schema + ';';
     implementor.addStatement(statement);
   }
 
+  private PigTable getPigTable(String name) {
+    final CalciteSchema schema = getTable().unwrap(org.apache.calcite.jdbc.CalciteSchema.class);
+    return (PigTable) schema.getTable(name, false).getTable();
+  }
+
   private String getSchemaForPigStatement(Implementor implementor) {
-    List<String> fieldNamesAndTypes = new ArrayList<>(
+    final List<String> fieldNamesAndTypes = new ArrayList<>(
         getTable().getRowType().getFieldList().size());
     for (RelDataTypeField f : getTable().getRowType().getFieldList()) {
       fieldNamesAndTypes.add(getConcatenatedFieldNameAndTypeForPigSchema(implementor, f));
@@ -58,9 +69,22 @@ public class PigTableScan extends TableScan implements PigRel {
 
   private String getConcatenatedFieldNameAndTypeForPigSchema(Implementor implementor,
       RelDataTypeField field) {
-    PigDataType pigDataType = PigDataType.valueOf(field.getType().getSqlTypeName());
-    String fieldName = implementor.getFieldName(this, field.getIndex());
+    final PigDataType pigDataType = PigDataType.valueOf(field.getType().getSqlTypeName());
+    final String fieldName = implementor.getFieldName(this, field.getIndex());
     return fieldName + ':' + DataType.findTypeName(pigDataType.getPigType());
+  }
+
+  @Override public void register(RelOptPlanner planner) {
+    planner.addRule(PigToEnumerableConverterRule.INSTANCE);
+    for (RelOptRule rule : PigRules.ALL_PIG_OPT_RULES) {
+      planner.addRule(rule);
+    }
+    // Don't move Aggregates around, otherwise PigAggregate.implement() won't
+    // know how to correctly procuce Pig Latin
+    planner.removeRule(AggregateExpandDistinctAggregatesRule.INSTANCE);
+    // Make sure planner picks PigJoin over EnumerableJoin. Should there be
+    // a rule for this instead for removing ENUMERABLE_JOIN_RULE here?
+    planner.removeRule(EnumerableRules.ENUMERABLE_JOIN_RULE);
   }
 }
 // End PigTableScan.java

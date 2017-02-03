@@ -40,8 +40,6 @@ public class PigJoin extends Join implements PigRel {
       RexNode condition, JoinRelType joinType) {
     super(cluster, traitSet, left, right, condition, new HashSet<CorrelationId>(0), joinType);
     assert getConvention() == PigRel.CONVENTION;
-    assert getConvention() == left.getConvention();
-    assert getConvention() == right.getConvention();
   }
 
   @Override public Join copy(RelTraitSet traitSet, RexNode conditionExpr, RelNode left,

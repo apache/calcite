@@ -43,7 +43,6 @@ public class PigFilter extends Filter implements PigRel {
   public PigFilter(RelOptCluster cluster, RelTraitSet traitSet, RelNode input, RexNode condition) {
     super(cluster, traitSet, input, condition);
     assert getConvention() == PigRel.CONVENTION;
-    assert getConvention() == input.getConvention();
   }
 
   @Override public Filter copy(RelTraitSet traitSet, RelNode input, RexNode condition) {
