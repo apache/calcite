@@ -21,9 +21,6 @@ import org.apache.calcite.adapter.enumerable.EnumerableRelImplementor;
 import org.apache.calcite.adapter.enumerable.JavaRowFormat;
 import org.apache.calcite.adapter.enumerable.PhysType;
 import org.apache.calcite.adapter.enumerable.PhysTypeImpl;
-import org.apache.calcite.linq4j.AbstractEnumerable;
-import org.apache.calcite.linq4j.Enumerable;
-import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.linq4j.tree.BlockBuilder;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.plan.ConventionTraitDef;
@@ -77,29 +74,6 @@ public class PigToEnumerableConverter
             Expressions.call(
                 BuiltInMethod.EMPTY_ENUMERABLE.method)));
     return implementor.result(physType, list.toBlock());
-  }
-
-  public Enumerable<Object> getEmptyEnumerable() {
-    return new AbstractEnumerable<Object>() {
-      @Override public Enumerator<Object> enumerator() {
-        return new Enumerator<Object>() {
-
-          @Override public Object current() {
-            return null;
-          }
-
-          @Override public boolean moveNext() {
-            return false;
-          }
-
-          @Override public void reset() {
-          }
-
-          @Override public void close() {
-          }
-        };
-      }
-    };
   }
 }
 
