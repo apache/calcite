@@ -33,9 +33,6 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Range;
 import com.google.common.collect.TreeRangeSet;
 
-import org.joda.time.Interval;
-import org.joda.time.chrono.ISOChronology;
-
 import org.slf4j.Logger;
 
 import java.util.ArrayList;
@@ -59,11 +56,12 @@ public class DruidDateTimeUtils {
   }
 
   /**
-   * Generates a list of {@link Interval}s equivalent to a given
+   * Generates a list of {@link LocalInterval}s equivalent to a given
    * expression. Assumes that all the predicates in the input
    * reference a single column: the timestamp column.
    */
-  public static List<Interval> createInterval(RelDataType type, RexNode e) {
+  public static List<LocalInterval> createInterval(RelDataType type,
+      RexNode e) {
     final List<Range<Calendar>> ranges = extractRanges(e, false);
     if (ranges == null) {
       // We did not succeed, bail out
@@ -79,10 +77,10 @@ public class DruidDateTimeUtils {
     return toInterval(ImmutableList.<Range>copyOf(condensedRanges.asRanges()));
   }
 
-  protected static List<Interval> toInterval(List<Range<Calendar>> ranges) {
-    List<Interval> intervals = Lists.transform(ranges,
-        new Function<Range<Calendar>, Interval>() {
-          @Override public Interval apply(Range<Calendar> range) {
+  protected static List<LocalInterval> toInterval(List<Range<Calendar>> ranges) {
+    List<LocalInterval> intervals = Lists.transform(ranges,
+        new Function<Range<Calendar>, LocalInterval>() {
+          public LocalInterval apply(Range<Calendar> range) {
             if (!range.hasLowerBound() && !range.hasUpperBound()) {
               return DruidTable.DEFAULT_INTERVAL;
             }
@@ -100,7 +98,7 @@ public class DruidDateTimeUtils {
                 && range.upperBoundType() == BoundType.CLOSED) {
               end++;
             }
-            return new Interval(start, end, ISOChronology.getInstanceUTC());
+            return LocalInterval.create(start, end);
           }
         });
     if (LOGGER.isInfoEnabled()) {

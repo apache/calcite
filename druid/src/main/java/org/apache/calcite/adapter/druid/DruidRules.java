@@ -49,7 +49,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 
-import org.joda.time.Interval;
 import org.slf4j.Logger;
 
 import java.util.ArrayList;
@@ -125,7 +124,7 @@ public class DruidRules {
         // We can't push anything useful to Druid.
         return;
       }
-      List<Interval> intervals = null;
+      List<LocalInterval> intervals = null;
       if (!pair.left.isEmpty()) {
         intervals = DruidDateTimeUtils.createInterval(
                 query.getRowType().getFieldList().get(timestampFieldIdx).getType(),

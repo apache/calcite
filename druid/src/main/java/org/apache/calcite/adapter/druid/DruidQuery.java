@@ -67,9 +67,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 
-import org.joda.time.Interval;
-import org.joda.time.chrono.ISOChronology;
-
 import java.io.IOException;
 import java.io.StringWriter;
 import java.util.ArrayList;
@@ -87,7 +84,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
 
   final RelOptTable table;
   final DruidTable druidTable;
-  final ImmutableList<Interval> intervals;
+  final ImmutableList<LocalInterval> intervals;
   final ImmutableList<RelNode> rels;
 
   private static final Pattern VALID_SIG = Pattern.compile("sf?p?a?l?");
@@ -105,7 +102,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
    */
   protected DruidQuery(RelOptCluster cluster, RelTraitSet traitSet,
       RelOptTable table, DruidTable druidTable,
-      List<Interval> intervals, List<RelNode> rels) {
+      List<LocalInterval> intervals, List<RelNode> rels) {
     super(cluster, traitSet);
     this.table = table;
     this.druidTable = druidTable;
@@ -145,11 +142,6 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
     final String signature = signature();
     if (!isValidSignature(signature)) {
       return litmus.fail("invalid signature [{}]", signature);
-    }
-    for (Interval interval : intervals) {
-      if (interval.getChronology() != ISOChronology.getInstanceUTC()) {
-        return litmus.fail("interval must be UTC", interval);
-      }
     }
     if (rels.isEmpty()) {
       return litmus.fail("must have at least one rel");
@@ -243,7 +235,8 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
 
   /** Creates a DruidQuery. */
   private static DruidQuery create(RelOptCluster cluster, RelTraitSet traitSet,
-      RelOptTable table, DruidTable druidTable, List<Interval> intervals, List<RelNode> rels) {
+      RelOptTable table, DruidTable druidTable, List<LocalInterval> intervals,
+      List<RelNode> rels) {
     return new DruidQuery(cluster, traitSet, table, druidTable, intervals, rels);
   }
 
@@ -255,7 +248,8 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
   }
 
   /** Extends a DruidQuery. */
-  public static DruidQuery extendQuery(DruidQuery query, List<Interval> intervals) {
+  public static DruidQuery extendQuery(DruidQuery query,
+      List<LocalInterval> intervals) {
     return DruidQuery.create(query.getCluster(), query.getTraitSet(), query.getTable(),
         query.druidTable, intervals, query.rels);
   }
@@ -718,9 +712,8 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
     if (o instanceof String) {
       String s = (String) o;
       generator.writeString(s);
-    } else if (o instanceof Interval) {
-      Interval i = (Interval) o;
-      generator.writeString(i.toString());
+    } else if (o instanceof LocalInterval) {
+      generator.writeString(o.toString());
     } else if (o instanceof Integer) {
       Integer i = (Integer) o;
       generator.writeNumber(i);
@@ -734,7 +727,8 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
   }
 
   /** Generates a JSON string to query metadata about a data source. */
-  static String metadataQuery(String dataSourceName, List<Interval> intervals) {
+  static String metadataQuery(String dataSourceName,
+      List<LocalInterval> intervals) {
     final StringWriter sw = new StringWriter();
     final JsonFactory factory = new JsonFactory();
     try {
