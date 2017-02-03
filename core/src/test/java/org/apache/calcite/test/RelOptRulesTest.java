@@ -2750,6 +2750,42 @@ public class RelOptRulesTest extends RelOptTestBase {
         .checkUnchanged();
   }
 
+  @Test public void testSortProjectTranspose1() {
+    final HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(SortProjectTransposeRule.INSTANCE)
+        .build();
+    // This one can be pushed down
+    final String sql = "select d.deptno from sales.dept d\n"
+        + "order by cast(d.deptno as integer) offset 1";
+    sql(sql)
+        .with(program)
+        .check();
+  }
+
+  @Test public void testSortProjectTranspose2() {
+    final HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(SortProjectTransposeRule.INSTANCE)
+        .build();
+    // This one can be pushed down
+    final String sql = "select d.deptno from sales.dept d\n"
+        + "order by cast(d.deptno as double) offset 1";
+    sql(sql)
+        .with(program)
+        .check();
+  }
+
+  @Test public void testSortProjectTranspose3() {
+    final HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(SortProjectTransposeRule.INSTANCE)
+        .build();
+    // This one cannot be pushed down
+    final String sql = "select d.deptno from sales.dept d\n"
+        + "order by cast(d.deptno as varchar(10)) offset 1";
+    sql(sql)
+        .with(program)
+        .checkUnchanged();
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1023">[CALCITE-1023]
    * Planner rule that removes Aggregate keys that are constant</a>. */

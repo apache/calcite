@@ -5772,6 +5772,66 @@ LogicalProject(DEPTNO=[$0], EMPNO=[$2])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testSortProjectTranspose1">
+        <Resource name="sql">
+            <![CDATA[select d.deptno from sales.dept d
+order by cast(d.deptno as integer) offset 1]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalSort(sort0=[$1], dir0=[ASC], offset=[1])
+  LogicalProject(DEPTNO=[$0], EXPR$1=[CAST($0):INTEGER NOT NULL])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject(DEPTNO=[$0], EXPR$1=[CAST($0):INTEGER NOT NULL])
+  LogicalSort(sort0=[$0], dir0=[ASC], offset=[1])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testSortProjectTranspose2">
+        <Resource name="sql">
+            <![CDATA[select d.deptno from sales.dept d
+order by cast(d.deptno as double) offset 1]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalSort(sort0=[$1], dir0=[ASC], offset=[1])
+  LogicalProject(DEPTNO=[$0], EXPR$1=[CAST($0):DOUBLE NOT NULL])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject(DEPTNO=[$0], EXPR$1=[CAST($0):DOUBLE NOT NULL])
+  LogicalSort(sort0=[$0], dir0=[ASC], offset=[1])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testSortProjectTranspose3">
+        <Resource name="sql">
+            <![CDATA[select d.deptno from sales.dept d
+order by cast(d.deptno as varchar(10)) offset 1]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalSort(sort0=[$1], dir0=[ASC], offset=[1])
+  LogicalProject(DEPTNO=[$0], EXPR$1=[CAST($0):VARCHAR(10) CHARACTER SET "ISO-8859-1" COLLATE "ISO-8859-1$en_US$primary" NOT NULL])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalSort(sort0=[$1], dir0=[ASC], offset=[1])
+  LogicalProject(DEPTNO=[$0], EXPR$1=[CAST($0):VARCHAR(10) CHARACTER SET "ISO-8859-1" COLLATE "ISO-8859-1$en_US$primary" NOT NULL])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testSortUnionTranspose">
         <Resource name="sql">
             <![CDATA[select a.name from dept a
