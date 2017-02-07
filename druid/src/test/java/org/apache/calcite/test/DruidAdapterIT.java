@@ -678,15 +678,62 @@ public class DruidAdapterIT {
 
   /** Tests a query that contains no GROUP BY and is therefore executed as a
    * Druid "select" query. */
-  @Test public void testFilterSortDesc() {
+  @Test public void testFilterSortDesc1() {
     final String sql = "select * from \"foodmart\"\n"
-        + "where \"product_id\" BETWEEN 1500 AND 1502\n"
+        + "where \"product_id\" BETWEEN '1500' AND '1502'\n"
         + "order by \"state_province\" desc, \"product_id\"";
     final String druidQuery = "{'queryType':'select','dataSource':'foodmart',"
         + "'descending':false,'intervals':['1900-01-09T00:00:00.000/2992-01-10T00:00:00.000'],"
         + "'filter':{'type':'and','fields':["
         + "{'type':'bound','dimension':'product_id','lower':'1500','lowerStrict':false,'alphaNumeric':false},"
         + "{'type':'bound','dimension':'product_id','upper':'1502','upperStrict':false,'alphaNumeric':false}]},"
+        + "'dimensions':['product_id','brand_name','product_name','SKU','SRP','gross_weight','net_weight',"
+        + "'recyclable_package','low_fat','units_per_case','cases_per_pallet','shelf_width','shelf_height',"
+        + "'shelf_depth','product_class_id','product_subcategory','product_category','product_department',"
+        + "'product_family','customer_id','account_num','lname','fname','mi','address1','address2','address3',"
+        + "'address4','city','state_province','postal_code','country','customer_region_id','phone1','phone2',"
+        + "'birthdate','marital_status','yearly_income','gender','total_children','num_children_at_home',"
+        + "'education','date_accnt_opened','member_card','occupation','houseowner','num_cars_owned',"
+        + "'fullname','promotion_id','promotion_district_id','promotion_name','media_type','cost','start_date',"
+        + "'end_date','store_id','store_type','region_id','store_name','store_number','store_street_address',"
+        + "'store_city','store_state','store_postal_code','store_country','store_manager','store_phone',"
+        + "'store_fax','first_opened_date','last_remodel_date','store_sqft','grocery_sqft','frozen_sqft',"
+        + "'meat_sqft','coffee_bar','video_store','salad_bar','prepared_food','florist','time_id','the_day',"
+        + "'the_month','the_year','day_of_month','week_of_year','month_of_year','quarter','fiscal_period'],"
+        + "'metrics':['unit_sales','store_sales','store_cost'],'granularity':'all',"
+        + "'pagingSpec':{'threshold':16384,'fromNext':true},'context':{'druid.query.fetch':false}}";
+    sql(sql)
+        .limit(4)
+        .returns(
+            new Function<ResultSet, Void>() {
+              public Void apply(ResultSet resultSet) {
+                try {
+                  for (int i = 0; i < 4; i++) {
+                    assertTrue(resultSet.next());
+                    assertThat(resultSet.getString("product_name"),
+                        is("Fort West Dried Apricots"));
+                  }
+                  assertFalse(resultSet.next());
+                  return null;
+                } catch (SQLException e) {
+                  throw new RuntimeException(e);
+                }
+              }
+            })
+        .queryContains(druidChecker(druidQuery));
+  }
+
+  /** Tests a query that contains no GROUP BY and is therefore executed as a
+   * Druid "select" query. */
+  @Test public void testFilterSortDesc2() {
+    final String sql = "select * from \"foodmart\"\n"
+        + "where \"product_id\" BETWEEN 1500 AND 1502\n"
+        + "order by \"state_province\" desc, \"product_id\"";
+    final String druidQuery = "{'queryType':'select','dataSource':'foodmart',"
+        + "'descending':false,'intervals':['1900-01-09T00:00:00.000/2992-01-10T00:00:00.000'],"
+        + "'filter':{'type':'and','fields':["
+        + "{'type':'bound','dimension':'product_id','lower':'1500','lowerStrict':false,'alphaNumeric':true},"
+        + "{'type':'bound','dimension':'product_id','upper':'1502','upperStrict':false,'alphaNumeric':true}]},"
         + "'dimensions':['product_id','brand_name','product_name','SKU','SRP','gross_weight','net_weight',"
         + "'recyclable_package','low_fat','units_per_case','cases_per_pallet','shelf_width','shelf_height',"
         + "'shelf_depth','product_class_id','product_subcategory','product_category','product_department',"
