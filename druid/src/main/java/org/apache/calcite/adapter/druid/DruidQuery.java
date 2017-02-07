@@ -54,6 +54,8 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.schema.ScannableTable;
+import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Litmus;
@@ -190,6 +192,10 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
   }
 
   boolean isValidFilter(RexNode e) {
+    return isValidFilter(e, false);
+  }
+
+  boolean isValidFilter(RexNode e, boolean boundedComparator) {
     switch (e.getKind()) {
     case INPUT_REF:
     case LITERAL:
@@ -199,26 +205,50 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
     case NOT:
     case EQUALS:
     case NOT_EQUALS:
+    case IN:
+      return areValidFilters(((RexCall) e).getOperands(), false);
     case LESS_THAN:
     case LESS_THAN_OR_EQUAL:
     case GREATER_THAN:
     case GREATER_THAN_OR_EQUAL:
     case BETWEEN:
-    case IN:
+      return areValidFilters(((RexCall) e).getOperands(), true);
     case CAST:
-      return areValidFilters(((RexCall) e).getOperands());
+      return isValidCast((RexCall) e, boundedComparator);
     default:
       return false;
     }
   }
 
-  private boolean areValidFilters(List<RexNode> es) {
+  private boolean areValidFilters(List<RexNode> es, boolean boundedComparator) {
     for (RexNode e : es) {
-      if (!isValidFilter(e)) {
+      if (!isValidFilter(e, boundedComparator)) {
         return false;
       }
     }
     return true;
+  }
+
+  private boolean isValidCast(RexCall e, boolean boundedComparator) {
+    assert e.isA(SqlKind.CAST);
+    if (e.getOperands().get(0).isA(SqlKind.INPUT_REF)
+        && e.getType().getFamily() == SqlTypeFamily.CHARACTER) {
+      // CAST of input to character type
+      return true;
+    }
+    if (e.getOperands().get(0).isA(SqlKind.INPUT_REF)
+        && e.getType().getFamily() == SqlTypeFamily.NUMERIC
+        && boundedComparator) {
+      // CAST of input to numeric type, it is part of a bounded comparison
+      return true;
+    }
+    if (e.getOperands().get(0).isA(SqlKind.LITERAL)
+        && e.getType().getFamily() == SqlTypeFamily.TIMESTAMP) {
+      // CAST of literal to timestamp type
+      return true;
+    }
+    // Currently other CAST operations cannot be pushed to Druid
+    return false;
   }
 
   /** Returns whether a signature represents an sequence of relational operators
@@ -873,16 +903,16 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
               ImmutableList.of(new JsonSelector("selector", tr(e, posRef), tr(e, posConstant))));
         case GREATER_THAN:
           return new JsonBound("bound", tr(e, posRef), tr(e, posConstant), true, null, false,
-              false);
+              call.getOperands().get(posRef).getType().getFamily() == SqlTypeFamily.NUMERIC);
         case GREATER_THAN_OR_EQUAL:
           return new JsonBound("bound", tr(e, posRef), tr(e, posConstant), false, null, false,
-              false);
+              call.getOperands().get(posRef).getType().getFamily() == SqlTypeFamily.NUMERIC);
         case LESS_THAN:
           return new JsonBound("bound", tr(e, posRef), null, false, tr(e, posConstant), true,
-              false);
+              call.getOperands().get(posRef).getType().getFamily() == SqlTypeFamily.NUMERIC);
         case LESS_THAN_OR_EQUAL:
           return new JsonBound("bound", tr(e, posRef), null, false, tr(e, posConstant), false,
-              false);
+              call.getOperands().get(posRef).getType().getFamily() == SqlTypeFamily.NUMERIC);
         }
         break;
       case AND:
