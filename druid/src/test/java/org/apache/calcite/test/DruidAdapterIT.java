@@ -678,7 +678,7 @@ public class DruidAdapterIT {
 
   /** Tests a query that contains no GROUP BY and is therefore executed as a
    * Druid "select" query. */
-  @Test public void testFilterSortDesc1() {
+  @Test public void testFilterSortDesc() {
     final String sql = "select * from \"foodmart\"\n"
         + "where \"product_id\" BETWEEN '1500' AND '1502'\n"
         + "order by \"state_province\" desc, \"product_id\"";
@@ -723,9 +723,8 @@ public class DruidAdapterIT {
         .queryContains(druidChecker(druidQuery));
   }
 
-  /** Tests a query that contains no GROUP BY and is therefore executed as a
-   * Druid "select" query. */
-  @Test public void testFilterSortDesc2() {
+  /** As {@link #testFilterSortDesc()} but the bounds are numeric. */
+  @Test public void testFilterSortDescNumeric() {
     final String sql = "select * from \"foodmart\"\n"
         + "where \"product_id\" BETWEEN 1500 AND 1502\n"
         + "order by \"state_province\" desc, \"product_id\"";
@@ -803,8 +802,8 @@ public class DruidAdapterIT {
         .queryContains(druidChecker(druidQuery));
   }
 
-  /** As {@link #testFilterSortDesc} but with a filter that cannot be pushed
-   * down to Druid. */
+  /** As {@link #testFilterSortDescNumeric()} but with a filter that cannot
+   * be pushed down to Druid. */
   @Test public void testNonPushableFilterSortDesc() {
     final String sql = "select * from \"foodmart\"\n"
         + "where cast(\"product_id\" as integer) - 1500 BETWEEN 0 AND 2\n"
