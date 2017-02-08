@@ -18,6 +18,7 @@ package org.apache.calcite.adapter.druid;
 
 import org.apache.calcite.avatica.AvaticaUtils;
 import org.apache.calcite.avatica.ColumnMetaData;
+import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.interpreter.Row;
 import org.apache.calcite.interpreter.Sink;
 import org.apache.calcite.linq4j.AbstractEnumerable;
@@ -36,6 +37,7 @@ import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.type.CollectionType;
+
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -68,7 +70,7 @@ class DruidConnectionImpl implements DruidConnection {
   private static final SimpleDateFormat UTC_TIMESTAMP_FORMAT;
 
   static {
-    final TimeZone utc = TimeZone.getTimeZone("UTC");
+    final TimeZone utc = DateTimeUtils.GMT_ZONE;
     UTC_TIMESTAMP_FORMAT = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
     UTC_TIMESTAMP_FORMAT.setTimeZone(utc);
   }

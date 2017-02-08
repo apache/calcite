@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.sql;
 
+import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.rel.RelFieldCollation;
 
@@ -26,7 +27,6 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
 import java.util.List;
-import java.util.TimeZone;
 import java.util.regex.Pattern;
 
 /**
@@ -471,7 +471,7 @@ public class SqlDialect {
     final SimpleDateFormat format =
         new SimpleDateFormat(
             "'TIMESTAMP' ''yyyy-MM-DD HH:mm:SS''");
-    format.setTimeZone(TimeZone.getTimeZone("GMT"));
+    format.setTimeZone(DateTimeUtils.GMT_ZONE);
     return format.format(timestamp);
   }
 

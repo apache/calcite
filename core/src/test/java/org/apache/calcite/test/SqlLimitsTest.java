@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.test;
 
+import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
@@ -38,7 +39,6 @@ import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.List;
 import java.util.Locale;
-import java.util.TimeZone;
 
 /**
  * Unit test for SQL limits.
@@ -195,7 +195,7 @@ public class SqlLimitsTest {
     } else if (o instanceof Calendar) {
       Calendar calendar = (Calendar) o;
       DateFormat dateFormat = getDateFormat(type.getSqlTypeName());
-      dateFormat.setTimeZone(TimeZone.getTimeZone("GMT"));
+      dateFormat.setTimeZone(DateTimeUtils.GMT_ZONE);
       s = dateFormat.format(calendar.getTime());
     } else {
       s = o.toString();

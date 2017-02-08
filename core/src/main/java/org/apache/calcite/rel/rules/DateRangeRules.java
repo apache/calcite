@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.rel.rules;
 
+import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
@@ -53,7 +54,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.TimeZone;
 
 /**
  * Collection of planner rules that convert
@@ -251,7 +251,7 @@ public abstract class DateRangeRules {
         final Calendar c;
         switch (timeUnit) {
         case YEAR:
-          c = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
+          c = Calendar.getInstance(DateTimeUtils.GMT_ZONE);
           c.clear();
           c.set(v, Calendar.JANUARY, 1);
           s2.add(baz(timeUnit, comparison, c));

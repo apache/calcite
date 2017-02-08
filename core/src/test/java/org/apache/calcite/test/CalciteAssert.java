@@ -20,6 +20,7 @@ import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.clone.CloneSchema;
 import org.apache.calcite.adapter.java.ReflectiveSchema;
 import org.apache.calcite.adapter.jdbc.JdbcSchema;
+import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.config.CalciteConnectionProperty;
 import org.apache.calcite.config.Lex;
 import org.apache.calcite.jdbc.CalciteConnection;
@@ -123,7 +124,7 @@ public class CalciteAssert {
   private static final DateFormat UTC_TIME_FORMAT;
   private static final DateFormat UTC_TIMESTAMP_FORMAT;
   static {
-    final TimeZone utc = TimeZone.getTimeZone("UTC");
+    final TimeZone utc = DateTimeUtils.GMT_ZONE;
     UTC_DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd");
     UTC_DATE_FORMAT.setTimeZone(utc);
     UTC_TIME_FORMAT = new SimpleDateFormat("HH:mm:ss");

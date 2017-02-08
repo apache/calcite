@@ -57,7 +57,7 @@ class CsvEnumerator<E> implements Enumerator<E> {
   private static final FastDateFormat TIME_FORMAT_TIMESTAMP;
 
   static {
-    TimeZone gmt = TimeZone.getTimeZone("GMT");
+    final TimeZone gmt = TimeZone.getTimeZone("GMT");
     TIME_FORMAT_DATE = FastDateFormat.getInstance("yyyy-MM-dd", gmt);
     TIME_FORMAT_TIME = FastDateFormat.getInstance("HH:mm:ss", gmt);
     TIME_FORMAT_TIMESTAMP =
