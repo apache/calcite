@@ -48,8 +48,10 @@ info.setProperty("lex", "JAVA");
 Connection connection = DriverManager.getConnection("jdbc:calcite:", info);
 CalciteConnection calciteConnection =
     connection.unwrap(CalciteConnection.class);
-ReflectiveSchema.create(calciteConnection,
-    calciteConnection.getRootSchema(), "hr", new HrSchema());
+SchemaPlus rootSchema = calciteConnection.getRootSchema();
+Schema schema = ReflectiveSchema.create(calciteConnection,
+    rootSchema, "hr", new HrSchema());
+rootSchema.add("hr", schema);
 Statement statement = calciteConnection.createStatement();
 ResultSet resultSet = statement.executeQuery(
     "select d.deptno, min(e.empid)\n"
@@ -76,8 +78,8 @@ library. But Calcite can also process data in other data formats, such
 as JDBC. In the first example, replace
 
 {% highlight java %}
-ReflectiveSchema.create(calciteConnection,
-    calciteConnection.getRootSchema(), "hr", new HrSchema());
+Schema schema = ReflectiveSchema.create(calciteConnection,
+    rootSchema, "hr", new HrSchema());
 {% endhighlight %}
 
 with
@@ -88,8 +90,8 @@ BasicDataSource dataSource = new BasicDataSource();
 dataSource.setUrl("jdbc:mysql://localhost");
 dataSource.setUsername("username");
 dataSource.setPassword("password");
-JdbcSchema.create(calciteConnection.getRootSchema(), "name", dataSource,
-    null, "hr");
+Schema schema = JdbcSchema.create(rootSchema, "hr", dataSource,
+    null, "name");
 {% endhighlight %}
 
 and Calcite will execute the same query in JDBC. To the application,
