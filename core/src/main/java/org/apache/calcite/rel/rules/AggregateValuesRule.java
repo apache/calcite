@@ -79,7 +79,8 @@ public class AggregateValuesRule extends RelOptRule {
       case MIN:
       case MAX:
       case SUM:
-        literals.add(rexBuilder.constantNull());
+        literals.add((RexLiteral) rexBuilder.makeCast(
+            aggregateCall.getType(), rexBuilder.constantNull()));
         break;
 
       default:

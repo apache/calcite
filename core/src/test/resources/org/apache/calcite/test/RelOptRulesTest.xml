@@ -4184,6 +4184,28 @@ LogicalProject(DEPTNO=[$0])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testCastInAggregateReduceFunctions">
+        <Resource name="sql">
+            <![CDATA[select name, stddev_pop(deptno), avg(deptno), stddev_samp(deptno),var_pop(deptno), var_samp(deptno)
+            from sales.dept group by name]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalAggregate(group=[{0}], EXPR$1=[STDDEV_POP($1)], EXPR$2=[AVG($1)], EXPR$3=[STDDEV_SAMP($1)], EXPR$4=[VAR_POP($1)], EXPR$5=[VAR_SAMP($1)])
+  LogicalProject(NAME=[$1], DEPTNO=[$0])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject(NAME=[$0], EXPR$1=[CAST(POWER(/(-($1, /(*($2, $2), $3)), $3), 0.5)):INTEGER NOT NULL], EXPR$2=[CAST(/($2, $3)):INTEGER NOT NULL], EXPR$3=[CAST(POWER(/(-($4, /(*($2, $2), $3)), CASE(=($3, 1), null, -($3, 1))), 0.5)):INTEGER NOT NULL], EXPR$4=[CAST(/(-($5, /(*($2, $2), $3)), $3)):INTEGER NOT NULL], EXPR$5=[CAST(/(-($6, /(*($2, $2), $3)), CASE(=($3, 1), null, -($3, 1)))):INTEGER NOT NULL])
+  LogicalAggregate(group=[{0}], agg#0=[$SUM0($2)], agg#1=[$SUM0($1)], agg#2=[COUNT()], agg#3=[$SUM0($3)], agg#4=[$SUM0($4)], agg#5=[$SUM0($5)])
+    LogicalProject(NAME=[$0], DEPTNO=[$1], $f2=[*($1, $1)], $f3=[*($1, $1)], $f4=[*($1, $1)], $f5=[*($1, $1)])
+      LogicalProject(NAME=[$1], DEPTNO=[$0])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testAggregateProjectMerge">
         <Resource name="sql">
             <![CDATA[select x, sum(z), y from (
@@ -6665,6 +6687,32 @@ LogicalAggregate(group=[{0}], EXPR$1=[SUM($2)], EXPR$2=[AVG($1)])
       LogicalJoin(condition=[=($7, $9)], joinType=[inner])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
         LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testCastInAggregateExpandDistinctAggregatesRule">
+        <Resource name="sql">
+            <![CDATA[select name, sum(distinct cn), sum(distinct sm)
+from (select name, count(dept.deptno) as cn,sum(dept.deptno) as sm from sales.dept group by name)
+group by name]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalAggregate(group=[{0}], EXPR$1=[SUM(DISTINCT $1)], EXPR$2=[SUM(DISTINCT $2)])
+  LogicalAggregate(group=[{0}], CN=[COUNT()], SM=[SUM($1)])
+    LogicalProject(NAME=[$1], DEPTNO=[$0])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject(NAME=[$0], EXPR$1=[CAST($1):BIGINT NOT NULL], EXPR$2=[CAST($2):INTEGER NOT NULL])
+  LogicalAggregate(group=[{0}], EXPR$1=[SUM($1) FILTER $6], EXPR$2=[SUM($2) FILTER $7])
+    LogicalProject(NAME=[$0], CN=[$1], SM=[$2], i$NAME=[$3], i$CN=[$4], i$SM=[$5], $i0_1=[=(+(+(CASE($3, 0, 1), CASE($4, 0, 2)), CASE($5, 0, 4)), 3)], $i0_2=[=(+(+(CASE($3, 0, 1), CASE($4, 0, 2)), CASE($5, 0, 4)), 5)], $i0=[=(+(+(CASE($3, 0, 1), CASE($4, 0, 2)), CASE($5, 0, 4)), 1)])
+      LogicalAggregate(group=[{0, 1, 2}], groups=[[{0, 1}, {0, 2}, {0}]], indicator=[true])
+        LogicalAggregate(group=[{0}], CN=[COUNT()], SM=[SUM($1)])
+          LogicalProject(NAME=[$1], DEPTNO=[$0])
+            LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
         </Resource>
     </TestCase>

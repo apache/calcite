@@ -722,6 +722,20 @@ public class RelOptRulesTest extends RelOptTestBase {
             + " from sales.dept group by name");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1621">[CALCITE-1621]
+   * Adding a cast around the null literal in aggregate rules</a>. */
+  @Test public void testCastInAggregateReduceFunctions() {
+    final HepProgram program =
+        HepProgram.builder()
+            .addRuleInstance(AggregateReduceFunctionsRule.INSTANCE)
+            .build();
+    final String sql = "select name, stddev_pop(deptno), avg(deptno),"
+        + " stddev_samp(deptno),var_pop(deptno), var_samp(deptno)\n"
+        + "from sales.dept group by name";
+    sql(sql).with(program).check();
+  }
+
   @Test public void testDistinctCount1() {
     final HepProgram program = HepProgram.builder()
         .addRuleInstance(AggregateExpandDistinctAggregatesRule.INSTANCE)
@@ -838,6 +852,21 @@ public class RelOptRulesTest extends RelOptTestBase {
         + "group by emp.empno";
     final HepProgram program = HepProgram.builder()
         .addRuleInstance(AggregateExpandDistinctAggregatesRule.JOIN)
+        .build();
+    sql(sql).with(program).check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1621">[CALCITE-1621]
+   * Adding a cast around the null literal in aggregate rules</a>. */
+  @Test public void testCastInAggregateExpandDistinctAggregatesRule() {
+    final String sql = "select name, sum(distinct cn), sum(distinct sm)\n"
+        + "from (\n"
+        + "  select name, count(dept.deptno) as cn,sum(dept.deptno) as sm\n"
+        + "  from sales.dept group by name)\n"
+        + "group by name";
+    final HepProgram program = HepProgram.builder()
+        .addRuleInstance(AggregateExpandDistinctAggregatesRule.INSTANCE)
         .build();
     sql(sql).with(program).check();
   }
