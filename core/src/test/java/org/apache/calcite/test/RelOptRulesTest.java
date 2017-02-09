@@ -514,7 +514,7 @@ public class RelOptRulesTest extends RelOptTestBase {
             .build();
     final HepProgram program =
         HepProgram.builder()
-            .addRuleInstance(SemiJoinRule.INSTANCE)
+            .addRuleInstance(SemiJoinRule.PROJECT)
             .build();
     final String sql = "select * from dept where exists (\n"
         + "  select * from emp\n"
@@ -537,7 +537,7 @@ public class RelOptRulesTest extends RelOptTestBase {
             .build();
     final HepProgram program =
         HepProgram.builder()
-            .addRuleInstance(SemiJoinRule.INSTANCE)
+            .addRuleInstance(SemiJoinRule.PROJECT)
             .build();
     final String sql = "select dept.* from dept join (\n"
         + "  select distinct deptno from emp\n"
@@ -562,7 +562,7 @@ public class RelOptRulesTest extends RelOptTestBase {
             .build();
     final HepProgram program =
         HepProgram.builder()
-            .addRuleInstance(SemiJoinRule.INSTANCE)
+            .addRuleInstance(SemiJoinRule.PROJECT)
             .build();
     final String sql = "select dept.* from dept right join (\n"
         + "  select distinct deptno from emp\n"
@@ -585,7 +585,7 @@ public class RelOptRulesTest extends RelOptTestBase {
             .build();
     final HepProgram program =
         HepProgram.builder()
-            .addRuleInstance(SemiJoinRule.INSTANCE)
+            .addRuleInstance(SemiJoinRule.PROJECT)
             .build();
     final String sql = "select dept.* from dept full join (\n"
         + "  select distinct deptno from emp\n"
@@ -608,7 +608,7 @@ public class RelOptRulesTest extends RelOptTestBase {
             .build();
     final HepProgram program =
         HepProgram.builder()
-            .addRuleInstance(SemiJoinRule.INSTANCE)
+            .addRuleInstance(SemiJoinRule.PROJECT)
             .build();
     final String sql = "select name from dept left join (\n"
         + "  select distinct deptno from emp\n"
@@ -627,7 +627,7 @@ public class RelOptRulesTest extends RelOptTestBase {
   @Test public void testPushFilterThroughSemiJoin() {
     final HepProgram preProgram =
         HepProgram.builder()
-            .addRuleInstance(SemiJoinRule.INSTANCE)
+            .addRuleInstance(SemiJoinRule.PROJECT)
             .build();
 
     final HepProgram program =
@@ -654,7 +654,7 @@ public class RelOptRulesTest extends RelOptTestBase {
    * condition</a>. */
   @Test public void testSemiJoinReduceConstants() {
     final HepProgram preProgram = HepProgram.builder()
-        .addRuleInstance(SemiJoinRule.INSTANCE)
+        .addRuleInstance(SemiJoinRule.PROJECT)
         .build();
     final HepProgram program = HepProgram.builder()
         .addRuleInstance(ReduceExpressionsRule.JOIN_INSTANCE)
@@ -700,7 +700,7 @@ public class RelOptRulesTest extends RelOptTestBase {
             .addRuleInstance(FilterProjectTransposeRule.INSTANCE)
             .addRuleInstance(FilterJoinRule.FILTER_ON_JOIN)
             .addRuleInstance(ProjectMergeRule.INSTANCE)
-            .addRuleInstance(SemiJoinRule.INSTANCE)
+            .addRuleInstance(SemiJoinRule.PROJECT)
             .build();
 
     HepPlanner planner = new HepPlanner(program);

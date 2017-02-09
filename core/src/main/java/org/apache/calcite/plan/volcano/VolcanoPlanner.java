@@ -920,7 +920,8 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     addRule(FilterJoinRule.JOIN);
     addRule(AbstractConverter.ExpandConversionRule.INSTANCE);
     addRule(JoinCommuteRule.INSTANCE);
-    addRule(SemiJoinRule.INSTANCE);
+    addRule(SemiJoinRule.PROJECT);
+    addRule(SemiJoinRule.JOIN);
     if (CalcitePrepareImpl.COMMUTE) {
       addRule(JoinAssociateRule.INSTANCE);
     }

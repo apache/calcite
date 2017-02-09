@@ -127,7 +127,8 @@ public class Programs {
           EnumerableRules.ENUMERABLE_TABLE_MODIFICATION_RULE,
           EnumerableRules.ENUMERABLE_VALUES_RULE,
           EnumerableRules.ENUMERABLE_WINDOW_RULE,
-          SemiJoinRule.INSTANCE,
+          SemiJoinRule.PROJECT,
+          SemiJoinRule.JOIN,
           TableScanRule.INSTANCE,
           CalcitePrepareImpl.COMMUTE
               ? JoinAssociateRule.INSTANCE
