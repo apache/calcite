@@ -1,6 +1,6 @@
 ---
 layout: docs
-title: Powered By Calcite
+title: Powered by Calcite
 permalink: /docs/powered_by.html
 ---
 <!--
@@ -24,7 +24,18 @@ limitations under the License.
 
 The following companies and projects are powered by Apache Calcite.
 
-*[Add your company](https://github.com/apache/calcite/blob/master/site/_docs/powered_by.md).*
+![Companies and projects]({{ site.baseurl }}/img/powered-by.png)
+
+* TOC
+{:toc}
+
+Is your company or project powered by Calcite?
+[Add it to this page](https://github.com/apache/calcite/blob/master/site/_docs/powered_by.md)
+and then use the "powered by Apache Calcite" logo
+([140 px]({{ site.baseurl }}/img/pb-calcite-140.png)
+or [240 px]({{ site.baseurl }}/img/pb-calcite-240.png))
+on your site.
+
 
 ![Powered By]({{ site.baseurl }}/img/pb-calcite-240.png)
 
@@ -87,15 +98,6 @@ It uses Calcite to transparently rewrite queries to use materialized views.
 
 <a href="https://github.com/twilmes/sql-gremlin">SQL-Gremlin</a>
 is a SQL interface to a
-<a href="http://tinkerpop.incubator.apache.org/">Apache TinkerPop</a>-enabled
+<a href="http://tinkerpop.apache.org/">Apache TinkerPop</a>-enabled
 graph database.
-
-## Add your company
-
-Is your company or project powered by Calcite?
-[Add it to this page](https://github.com/apache/calcite/blob/master/site/_docs/powered_by.md)
-and then use the "powered by Apache Calcite" logo
-([140 px]({{ site.baseurl }}/img/pb-calcite-140.png)
-or [240 px]({{ site.baseurl }}/img/pb-calcite-240.png))
-on your site.
 
