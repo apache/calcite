@@ -60,8 +60,8 @@ public abstract class SemiJoinRule extends RelOptRule {
 
   /* Tests if an Aggregate always produces 1 row and 0 columns. */
   private static final Predicate<Aggregate> IS_EMPTY_AGGREGATE =
-      new Predicate<Aggregate>() {
-        public boolean apply(Aggregate input) {
+      new PredicateImpl<Aggregate>() {
+        public boolean test(Aggregate input) {
           return input.getRowType().getFieldCount() == 0;
         }
       };
