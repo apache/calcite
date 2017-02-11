@@ -88,6 +88,12 @@ uses Calcite for parsing streaming SQL and query optimization.
 <a href="https://github.com/Cascading/lingual">Lingual</a>
 component provides a SQL interface to Cascading.
 
+### MapD
+
+<a href="https://www.mapd.com">MapD</a>
+is GPU-powered database and visual analytics platform for
+interactive exploration of large datasets.
+
 ### Qubole Quark
 
 [Quark](https://github.com/qubole/quark)
