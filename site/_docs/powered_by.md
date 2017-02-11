@@ -90,6 +90,12 @@ is a SQL interface to a
 <a href="http://tinkerpop.incubator.apache.org/">Apache TinkerPop</a>-enabled
 graph database.
 
+### MapD
+
+<a href="https://www.mapd.com">MapD</a>
+is GPU-powered database and visual analytics platform for 
+interactive exploration of large datasets.
+
 ## Add your company
 
 Is your company or project powered by Calcite?
