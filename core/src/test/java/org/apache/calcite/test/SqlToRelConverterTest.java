@@ -731,6 +731,17 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).expand(false).ok();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-365">[CALCITE-365]
+   * AssertionError while translating query with WITH and correlated
+   * sub-query</a>. */
+  @Test public void testWithExists() {
+    final String sql = "with t (a, b) as (select * from (values (1, 2)))\n"
+        + "select * from t where exists (\n"
+        + "  select 1 from emp where deptno = t.a)";
+    sql(sql).ok();
+  }
+
   @Test public void testTableExtend() {
     final String sql = "select * from dept extend (x varchar(5) not null)";
     sql(sql).ok();

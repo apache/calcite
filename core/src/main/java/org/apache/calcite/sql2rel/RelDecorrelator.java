@@ -707,7 +707,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
 
       final RelNode oldInput = getCorRel(corVar);
       assert oldInput != null;
-      final Frame frame = map.get(oldInput);
+      final Frame frame = getFrame(oldInput, true);
       assert frame != null;
       final RelNode newInput = frame.r;
 
@@ -741,7 +741,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
     for (Correlation corVar : correlations) {
       final RelNode oldInput = getCorRel(corVar);
       assert oldInput != null;
-      final RelNode newInput = map.get(oldInput).r;
+      final RelNode newInput = getFrame(oldInput, true).r;
       assert newInput != null;
 
       if (!joinedInputRelSet.contains(newInput)) {
@@ -776,7 +776,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
       // the correlated variables.
       final RelNode oldInput = getCorRel(corVar);
       assert oldInput != null;
-      final Frame frame = map.get(oldInput);
+      final Frame frame = getFrame(oldInput, true);
       final RelNode newInput = frame.r;
       assert newInput != null;
 
@@ -800,6 +800,15 @@ public class RelDecorrelator implements ReflectiveVisitor {
     }
 
     return r;
+  }
+
+  private Frame getFrame(RelNode r, boolean safe) {
+    final Frame frame = map.get(r);
+    if (frame == null && safe) {
+      return new Frame(r, ImmutableSortedMap.<Correlation, Integer>of(),
+          identityMap(r.getRowType().getFieldCount()));
+    }
+    return frame;
   }
 
   private RelNode getCorRel(Correlation corVar) {

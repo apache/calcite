@@ -3940,4 +3940,26 @@ LogicalProject(EMPNO=[$0])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testWithExists">
+        <Resource name="sql">
+            <![CDATA[with t (a, b) as (select * from (values (1, 2)))
+select * from t where exists (
+  select 1 from emp where deptno = t.a)]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(A=[$0], B=[$1])
+  LogicalProject(EXPR$0=[$0], EXPR$1=[$1], $f0=[$2])
+    LogicalFilter(condition=[IS NOT NULL($2)])
+      LogicalCorrelate(correlation=[$cor0], joinType=[LEFT], requiredColumns=[{0}])
+        LogicalProject(EXPR$0=[$0], EXPR$1=[$1])
+          LogicalValues(tuples=[[{ 1, 2 }]])
+        LogicalAggregate(group=[{}], agg#0=[MIN($0)])
+          LogicalProject($f0=[true])
+            LogicalProject(EXPR$0=[1])
+              LogicalFilter(condition=[=($7, $cor0.A)])
+                LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
 </Root>

@@ -3984,7 +3984,8 @@ public class SqlToRelConverter {
             builder.addAll(c.getRowType().getFieldList());
             if (i == resolve.path.steps().get(0).i) {
               for (RelDataTypeField field : c.getRowType().getFieldList()) {
-                fields.put(field.getName(), field.getIndex() + offset);
+                fields.put(c.translate(field.getName()),
+                    field.getIndex() + offset);
               }
             }
             ++i;
