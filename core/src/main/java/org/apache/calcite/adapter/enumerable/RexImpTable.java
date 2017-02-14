@@ -2137,9 +2137,9 @@ public class RexImpTable {
       case INTERVAL_SECOND:
         switch (call.getKind()) {
         case MINUS:
-          return Expressions.subtract(trop0, trop1);
+          return normalize(typeName, Expressions.subtract(trop0, trop1));
         default:
-          return Expressions.add(trop0, trop1);
+          return normalize(typeName, Expressions.add(trop0, trop1));
         }
 
       default:
@@ -2160,8 +2160,19 @@ public class RexImpTable {
                   (Class) long.class),
               fromUnit.multiplier, toUnit.multiplier);
         default:
-          return Expressions.add(trop0, trop1);
+          throw new AssertionError(call);
         }
+      }
+    }
+
+    /** Normalizes a TIME value into 00:00:00..23:59:39. */
+    private Expression normalize(SqlTypeName typeName, Expression e) {
+      switch (typeName) {
+      case TIME:
+        return Expressions.call(BuiltInMethod.FLOOR_MOD.method, e,
+            Expressions.constant(DateTimeUtils.MILLIS_PER_DAY));
+      default:
+        return e;
       }
     }
   }

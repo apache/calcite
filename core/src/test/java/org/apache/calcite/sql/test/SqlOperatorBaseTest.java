@@ -2545,9 +2545,43 @@ public abstract class SqlOperatorBaseTest {
         "time '12:03:01' - interval '1:1' hour to minute",
         "11:02:01",
         "TIME(0) NOT NULL");
+    // Per [CALCITE-1632] Return types of datetime + interval
+    // make sure that TIME values say in range
+    tester.checkScalar(
+        "time '12:03:01' - interval '1' day",
+        "12:03:01",
+        "TIME(0) NOT NULL");
+    tester.checkScalar(
+        "time '12:03:01' - interval '25' hour",
+        "11:03:01",
+        "TIME(0) NOT NULL");
+    tester.checkScalar(
+        "time '12:03:03' - interval '25:0:1' hour to second",
+        "11:03:02",
+        "TIME(0) NOT NULL");
     tester.checkScalar(
         "date '2005-03-02' - interval '5' day",
         "2005-02-25",
+        "DATE NOT NULL");
+    tester.checkScalar(
+        "date '2005-03-02' - interval '5' day",
+        "2005-02-25",
+        "DATE NOT NULL");
+    tester.checkScalar(
+        "date '2005-03-02' - interval '5' hour",
+        "2005-03-02",
+        "DATE NOT NULL");
+    tester.checkScalar(
+        "date '2005-03-02' - interval '25' hour",
+        "2005-03-01",
+        "DATE NOT NULL");
+    tester.checkScalar(
+        "date '2005-03-02' - interval '25:45' hour to minute",
+        "2005-03-01",
+        "DATE NOT NULL");
+    tester.checkScalar(
+        "date '2005-03-02' - interval '25:45:54' hour to second",
+        "2005-03-01",
         "DATE NOT NULL");
     tester.checkScalar(
         "timestamp '2003-08-02 12:54:01' - interval '-4 2:4' day to minute",
@@ -2902,9 +2936,43 @@ public abstract class SqlOperatorBaseTest {
         "time '12:03:01' + interval '1:1' hour to minute",
         "13:04:01",
         "TIME(0) NOT NULL");
+    // Per [CALCITE-1632] Return types of datetime + interval
+    // make sure that TIME values say in range
+    tester.checkScalar(
+        "time '12:03:01' + interval '1' day",
+        "12:03:01",
+        "TIME(0) NOT NULL");
+    tester.checkScalar(
+        "time '12:03:01' + interval '25' hour",
+        "13:03:01",
+        "TIME(0) NOT NULL");
+    tester.checkScalar(
+        "time '12:03:01' + interval '25:0:1' hour to second",
+        "13:03:02",
+        "TIME(0) NOT NULL");
     tester.checkScalar(
         "interval '5' day + date '2005-03-02'",
         "2005-03-07",
+        "DATE NOT NULL");
+    tester.checkScalar(
+        "date '2005-03-02' + interval '5' day",
+        "2005-03-07",
+        "DATE NOT NULL");
+    tester.checkScalar(
+        "date '2005-03-02' + interval '5' hour",
+        "2005-03-02",
+        "DATE NOT NULL");
+    tester.checkScalar(
+        "date '2005-03-02' + interval '25' hour",
+        "2005-03-03",
+        "DATE NOT NULL");
+    tester.checkScalar(
+        "date '2005-03-02' + interval '25:45' hour to minute",
+        "2005-03-03",
+        "DATE NOT NULL");
+    tester.checkScalar(
+        "date '2005-03-02' + interval '25:45:54' hour to second",
+        "2005-03-03",
         "DATE NOT NULL");
     tester.checkScalar(
         "timestamp '2003-08-02 12:54:01' + interval '-4 2:4' day to minute",
@@ -2918,6 +2986,10 @@ public abstract class SqlOperatorBaseTest {
         "DATE NOT NULL");
     tester.checkScalar(
         "timestamp '2003-08-02 12:54:01' + interval '5-3' year to month",
+        "2008-11-02 12:54:01",
+        "TIMESTAMP(0) NOT NULL");
+    tester.checkScalar(
+        "interval '5-3' year to month + timestamp '2003-08-02 12:54:01'",
         "2008-11-02 12:54:01",
         "TIMESTAMP(0) NOT NULL");
   }
