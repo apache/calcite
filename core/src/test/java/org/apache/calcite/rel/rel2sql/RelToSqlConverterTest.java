@@ -318,6 +318,20 @@ public class RelToSqlConverterTest {
     sql(query).ok(expected);
   }
 
+  @Test public void testSelfJoin() {
+    String query = "select t1.\"customer_id\", t2.\"customer_id\" \n"
+        + "from (select \"customer_id\" from \"sales_fact_1997\") as t1 \n"
+        + "inner join (select \"customer_id\" from \"sales_fact_1997\") t2 \n"
+        + "on t1.\"customer_id\" = t2.\"customer_id\"";
+    final String expected = "SELECT *\n"
+        + "FROM (SELECT sales_fact_1997.customer_id\n"
+        + "FROM foodmart.sales_fact_1997 AS sales_fact_1997) AS t\n"
+        + "INNER JOIN (SELECT sales_fact_19970.customer_id\n"
+        + "FROM foodmart.sales_fact_1997 AS sales_fact_19970) AS t0 ON t.customer_id = t0.customer_id";
+
+    sql(query).dialect(DatabaseProduct.DB2.getDialect()).ok(expected);
+  }
+
   @Test public void testCartesianProduct() {
     String query = "select * from \"department\" , \"employee\"";
     String expected = "SELECT *\n"
