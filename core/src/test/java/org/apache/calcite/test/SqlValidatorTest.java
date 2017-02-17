@@ -8859,6 +8859,39 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "  tumble(timestamp '1990-03-04 12:34:56', interval '2' hour)^")
         .fails(STR_AGG_REQUIRES_MONO);
   }
+
+  @Test public void testStreamHop() {
+    // HOP
+    sql("select stream\n"
+        + "  hop_start(rowtime, interval '1' hour, interval '3' hour) as rowtime,\n"
+        + "  count(*) as c\n"
+        + "from orders\n"
+        + "group by hop(rowtime, interval '1' hour, interval '3' hour)").ok();
+    sql("select stream\n"
+        + "  ^hop_start(rowtime, interval '1' hour, interval '2' hour)^,\n"
+        + "  count(*) as c\n"
+        + "from orders\n"
+        + "group by hop(rowtime, interval '1' hour, interval '3' hour)")
+        .fails("Call to auxiliary group function 'HOP_START' must have "
+            + "matching call to group function 'HOP' in GROUP BY clause");
+    // HOP with align
+    sql("select stream\n"
+        + "  hop_start(rowtime, interval '1' hour, interval '3' hour,\n"
+        + "    time '12:34:56') as rowtime,\n"
+        + "  count(*) as c\n"
+        + "from orders\n"
+        + "group by hop(rowtime, interval '1' hour, interval '3' hour,\n"
+        + "    time '12:34:56')").ok();
+  }
+
+  @Test public void testStreamSession() {
+    // SESSION
+    sql("select stream session_start(rowtime, interval '1' hour) as rowtime,\n"
+        + "  session_end(rowtime, interval '1' hour),\n"
+        + "  count(*) as c\n"
+        + "from orders\n"
+        + "group by session(rowtime, interval '1' hour)").ok();
+  }
 }
 
 // End SqlValidatorTest.java

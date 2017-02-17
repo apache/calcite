@@ -564,7 +564,8 @@ public class SqlValidatorUtil {
   /** Analyzes an expression in a GROUP BY clause.
    *
    * <p>It may be an expression, an empty list (), or a call to
-   * {@code GROUPING SETS}, {@code CUBE}, {@code ROLLUP} or {@code TUMBLE}.
+   * {@code GROUPING SETS}, {@code CUBE}, {@code ROLLUP},
+   * {@code TUMBLE}, {@code HOP} or {@code SESSION}.
    *
    * <p>Each group item produces a list of group sets, which are written to
    * {@code topBuilder}. To find the grouping sets of the query, we will take
@@ -600,7 +601,9 @@ public class SqlValidatorUtil {
         return;
       }
       // fall through
+    case HOP:
     case TUMBLE:
+    case SESSION:
     case GROUPING_SETS:
     default:
       builder = ImmutableList.builder();
@@ -728,7 +731,9 @@ public class SqlValidatorUtil {
     }
 
     switch (expr.getKind()) {
+    case HOP:
     case TUMBLE:
+    case SESSION:
       groupAnalyzer.extraExprs.add(expr);
       break;
     }

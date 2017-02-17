@@ -786,6 +786,28 @@ public enum SqlKind {
    * the {@link #TUMBLE} function. */
   TUMBLE_END,
 
+  /** The {@code HOP} group function. */
+  HOP,
+
+  /** The {@code HOP_START} auxiliary function of
+   * the {@link #HOP} function. */
+  HOP_START,
+
+  /** The {@code HOP_END} auxiliary function of
+   * the {@link #HOP} function. */
+  HOP_END,
+
+  /** The {@code SESSION} group function. */
+  SESSION,
+
+  /** The {@code SESSION_START} auxiliary function of
+   * the {@link #SESSION} function. */
+  SESSION_START,
+
+  /** The {@code SESSION_END} auxiliary function of
+   * the {@link #SESSION} function. */
+  SESSION_END,
+
   // DDL and session control statements follow. The list is not exhaustive: feel
   // free to add more.
 
