@@ -1279,6 +1279,36 @@ Not implemented:
 | GROUP_ID()           | Returns an integer that uniquely identifies the combination of grouping keys
 | GROUPING_ID(expression [, expression ] * ) | Synonym for `GROUPING`
 
+### Grouped window functions
+
+Grouped window functions occur in the `GROUP BY` clause and define a key value
+that represents a window containing several rows.
+
+In some window functions, a row may belong to more than one window.
+For example, if a query is grouped using
+`HOP(t, INTERVAL '2' HOUR, INTERVAL '1' HOUR)`, a row with timestamp '10:15:00'
+ will occur in both the 10:00 - 11:00 and 11:00 - 12:00 totals.
+
+| Operator syntax      | Description
+|:-------------------- |:-----------
+| HOP(dateTime, slide, size [, time ]) | Indicates a hopping window for *dateTime*, covering rows within the interval of *size*, shifting every *slide*, and optionally aligned at *time*
+| SESSION(dateTime, interval [, time ]) | Indicates a session window of *interval* for *dateTime*, optionally aligned at *time*
+| TUMBLE(dateTime, interval [, time ]) | Indicates a tumbling window of *interval* for *dateTime*, optionally aligned at *time*
+
+### Grouped auxiliary functions
+
+Grouped auxiliary functions allow you to access properties of a window defined
+by a grouped window function.
+
+| Operator syntax      | Description
+|:-------------------- |:-----------
+| HOP_END(expression, slide, size [, time ]) | Returns the value of *expression* at the end of the window defined by a `HOP` function call
+| HOP_START(expression, slide, size [, time ]) | Returns the value of *expression* at the beginning of the window defined by a `HOP` function call
+| SESSION_END(expression, interval [, time]) | Returns the value of *expression* at the end of the window defined by a `SESSION` function call
+| SESSION_START(expression, interval [, time]) | Returns the value of *expression* at the beginning of the window defined by a `SESSION` function call
+| TUMBLE_END(expression, interval [, time ]) | Returns the value of *expression* at the end of the window defined by a `TUMBLE` function call
+| TUMBLE_START(expression, interval [, time ]) | Returns the value of *expression* at the beginning of the window defined by a `TUMBLE` function call
+
 ### User-defined functions
 
 Calcite is extensible. You can define each kind of function using user code.
