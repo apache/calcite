@@ -92,8 +92,9 @@ public class RexProgramTest {
     rexBuilder = new RexBuilder(typeFactory);
     trueLiteral = rexBuilder.makeLiteral(true);
     falseLiteral = rexBuilder.makeLiteral(false);
-    nullLiteral = rexBuilder.makeNullLiteral(SqlTypeName.INTEGER);
-    unknownLiteral = rexBuilder.makeNullLiteral(SqlTypeName.BOOLEAN);
+    final RelDataType intType = typeFactory.createSqlType(SqlTypeName.INTEGER);
+    nullLiteral = rexBuilder.makeNullLiteral(intType);
+    unknownLiteral = rexBuilder.makeNullLiteral(trueLiteral.getType());
   }
 
   private void checkCnf(RexNode node, String expected) {
@@ -1121,7 +1122,7 @@ public class RexProgramTest {
     final RexInputRef i2 = rexBuilder.makeInputRef(intType, 2);
     final RexInputRef i3 = rexBuilder.makeInputRef(intType, 3);
     final RexLiteral one = rexBuilder.makeExactLiteral(BigDecimal.ONE);
-    final RexNode null_ = rexBuilder.makeNullLiteral(SqlTypeName.INTEGER);
+    final RexLiteral null_ = rexBuilder.makeNullLiteral(intType);
     checkSimplify(isNotNull(lt(i0, i1)),
         "AND(IS NOT NULL($0), IS NOT NULL($1))");
     checkSimplify(isNotNull(lt(i0, i2)), "IS NOT NULL($0)");
