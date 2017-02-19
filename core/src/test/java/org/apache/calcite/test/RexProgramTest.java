@@ -1309,6 +1309,71 @@ public class RexProgramTest {
         "1970-01-01 00:00:00"); // different from Hive
   }
 
+  @Test public void testSimplifyLiterals() {
+    final RexLiteral literalAbc = rexBuilder.makeLiteral("abc");
+    final RexLiteral literalDef = rexBuilder.makeLiteral("def");
+
+    final RexLiteral literalZero = rexBuilder.makeExactLiteral(BigDecimal.ZERO);
+    final RexLiteral literalOne = rexBuilder.makeExactLiteral(BigDecimal.ONE);
+    final RexLiteral literalOneDotZero = rexBuilder.makeExactLiteral(new BigDecimal(1.0));
+
+    // Check string comparison
+    checkSimplify(eq(literalAbc, literalAbc), "true");
+    checkSimplify(eq(literalAbc, literalDef), "false");
+    checkSimplify(ne(literalAbc, literalAbc), "false");
+    checkSimplify(ne(literalAbc, literalDef), "true");
+    checkSimplify(gt(literalAbc, literalDef), "false");
+    checkSimplify(gt(literalDef, literalAbc), "true");
+    checkSimplify(gt(literalDef, literalDef), "false");
+    checkSimplify(ge(literalAbc, literalDef), "false");
+    checkSimplify(ge(literalDef, literalAbc), "true");
+    checkSimplify(ge(literalDef, literalDef), "true");
+    checkSimplify(lt(literalAbc, literalDef), "true");
+    checkSimplify(lt(literalAbc, literalDef), "true");
+    checkSimplify(lt(literalDef, literalDef), "false");
+    checkSimplify(le(literalAbc, literalDef), "true");
+    checkSimplify(le(literalDef, literalAbc), "false");
+    checkSimplify(le(literalDef, literalDef), "true");
+
+    // Check whole number comparison
+    checkSimplify(eq(literalZero, literalOne), "false");
+    checkSimplify(eq(literalOne, literalZero), "false");
+    checkSimplify(ne(literalZero, literalOne), "true");
+    checkSimplify(ne(literalOne, literalZero), "true");
+    checkSimplify(gt(literalZero, literalOne), "false");
+    checkSimplify(gt(literalOne, literalZero), "true");
+    checkSimplify(gt(literalOne, literalOne), "false");
+    checkSimplify(ge(literalZero, literalOne), "false");
+    checkSimplify(ge(literalOne, literalZero), "true");
+    checkSimplify(ge(literalOne, literalOne), "true");
+    checkSimplify(lt(literalZero, literalOne), "true");
+    checkSimplify(lt(literalOne, literalZero), "false");
+    checkSimplify(lt(literalOne, literalOne), "false");
+    checkSimplify(le(literalZero, literalOne), "true");
+    checkSimplify(le(literalOne, literalZero), "false");
+    checkSimplify(le(literalOne, literalOne), "true");
+
+    // Check decimal equality comparison
+    checkSimplify(eq(literalOne, literalOneDotZero), "true");
+    checkSimplify(eq(literalOneDotZero, literalOne), "true");
+    checkSimplify(ne(literalOne, literalOneDotZero), "false");
+    checkSimplify(ne(literalOneDotZero, literalOne), "false");
+
+    // Check different types shouldn't change simplification
+    checkSimplifyUnchanged(eq(literalZero, literalAbc));
+    checkSimplifyUnchanged(eq(literalAbc, literalZero));
+    checkSimplifyUnchanged(ne(literalZero, literalAbc));
+    checkSimplifyUnchanged(ne(literalAbc, literalZero));
+    checkSimplifyUnchanged(gt(literalZero, literalAbc));
+    checkSimplifyUnchanged(gt(literalAbc, literalZero));
+    checkSimplifyUnchanged(ge(literalZero, literalAbc));
+    checkSimplifyUnchanged(ge(literalAbc, literalZero));
+    checkSimplifyUnchanged(lt(literalZero, literalAbc));
+    checkSimplifyUnchanged(lt(literalAbc, literalZero));
+    checkSimplifyUnchanged(le(literalZero, literalAbc));
+    checkSimplifyUnchanged(le(literalAbc, literalZero));
+  }
+
   private Calendar cal(int y, int m, int d, int h, int mm, int s) {
     final Calendar c = Calendar.getInstance(DateTimeUtils.GMT_ZONE);
     c.set(Calendar.YEAR, y);
