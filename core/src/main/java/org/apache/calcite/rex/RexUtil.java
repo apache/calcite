@@ -1641,33 +1641,74 @@ public class RexUtil {
     case LESS_THAN:
     case LESS_THAN_OR_EQUAL:
     case NOT_EQUALS:
-      final List<RexNode> operands = ((RexCall) e).getOperands();
-      if (RexUtil.eq(operands.get(0), operands.get(1))
-          && (unknownAsFalse
-          || (!operands.get(0).getType().isNullable()
-              && !operands.get(1).getType().isNullable()))) {
-        switch (e.getKind()) {
-        case EQUALS:
-        case GREATER_THAN_OR_EQUAL:
-        case LESS_THAN_OR_EQUAL:
-          // "x = x" simplifies to "x is not null" (similarly <= and >=)
-          return simplify(rexBuilder,
-              rexBuilder.makeCall(SqlStdOperatorTable.IS_NOT_NULL,
-                  operands.get(0)));
-        default:
-          // "x != x" simplifies to "false" (similarly < and >)
-          return rexBuilder.makeLiteral(false);
-        }
-      }
-      return simplifyCall(rexBuilder, (RexCall) e);
+      return simplifyComparison(rexBuilder, (RexCall) e, unknownAsFalse);
     default:
       return e;
     }
   }
 
-  private static RexNode simplifyCall(RexBuilder rexBuilder, RexCall e) {
+  // e must be a comparison (=, >, >=, <, <=, !=)
+  private static RexNode simplifyComparison(RexBuilder rexBuilder, RexCall e,
+      boolean unknownAsFalse) {
     final List<RexNode> operands = new ArrayList<>(e.operands);
     simplifyList(rexBuilder, operands);
+
+    // Simplify "x <op> x"
+    final RexNode o0 = operands.get(0);
+    final RexNode o1 = operands.get(1);
+    if (RexUtil.eq(o0, o1)
+        && (unknownAsFalse
+            || (!o0.getType().isNullable()
+                && !o1.getType().isNullable()))) {
+      switch (e.getKind()) {
+      case EQUALS:
+      case GREATER_THAN_OR_EQUAL:
+      case LESS_THAN_OR_EQUAL:
+        // "x = x" simplifies to "x is not null" (similarly <= and >=)
+        return simplify(rexBuilder,
+            rexBuilder.makeCall(SqlStdOperatorTable.IS_NOT_NULL, o0));
+      default:
+        // "x != x" simplifies to "false" (similarly < and >)
+        return rexBuilder.makeLiteral(false);
+      }
+    }
+
+    // Simplify "<literal1> <op> <literal2>"
+    // For example, "1 = 2" becomes FALSE;
+    // "1 != 1" becomes FALSE;
+    // "1 != NULL" becomes UNKNOWN (or FALSE if unknownAsFalse);
+    // "1 != '1'" is unchanged because the types are not the same.
+    if (o0.isA(SqlKind.LITERAL)
+        && o1.isA(SqlKind.LITERAL)
+        && o0.getType().equals(o1.getType())) {
+      final Comparable v0 = ((RexLiteral) o0).getValue();
+      final Comparable v1 = ((RexLiteral) o1).getValue();
+      if (v0 == null || v1 == null) {
+        return unknownAsFalse
+            ? rexBuilder.makeLiteral(false)
+            : rexBuilder.makeNullLiteral(e.getType());
+      }
+      @SuppressWarnings("unchecked")
+      final int comparisonResult = v0.compareTo(v1);
+      switch (e.getKind()) {
+      case EQUALS:
+        return rexBuilder.makeLiteral(comparisonResult == 0);
+      case GREATER_THAN:
+        return rexBuilder.makeLiteral(comparisonResult > 0);
+      case GREATER_THAN_OR_EQUAL:
+        return rexBuilder.makeLiteral(comparisonResult >= 0);
+      case LESS_THAN:
+        return rexBuilder.makeLiteral(comparisonResult < 0);
+      case LESS_THAN_OR_EQUAL:
+        return rexBuilder.makeLiteral(comparisonResult <= 0);
+      case NOT_EQUALS:
+        return rexBuilder.makeLiteral(comparisonResult != 0);
+      default:
+        throw new AssertionError();
+      }
+    }
+
+    // If none of the arguments were simplified, return the call unchanged.
     if (operands.equals(e.operands)) {
       return e;
     }
