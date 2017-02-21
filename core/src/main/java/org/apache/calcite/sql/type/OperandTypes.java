@@ -407,7 +407,8 @@ public abstract class OperandTypes {
 
   public static final SqlSingleOperandTypeChecker ANY_ANY =
       family(SqlTypeFamily.ANY, SqlTypeFamily.ANY);
-
+  public static final SqlSingleOperandTypeChecker ANY_NUMERIC =
+    family(SqlTypeFamily.ANY, SqlTypeFamily.NUMERIC);
   /**
    * Parameter type-checking strategy type must a nullable time interval,
    * nullable time interval

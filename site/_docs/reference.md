@@ -359,6 +359,7 @@ DECADE,
 DEFAULTS,
 DEFERRABLE,
 DEFERRED,
+**DEFINE**,
 DEFINED,
 DEFINER,
 DEGREE,
@@ -495,6 +496,7 @@ M,
 MAP,
 **MATCH**,
 MATCHED,
+**MATCH_RECOGNIZE**,
 **MAX**,
 MAXVALUE,
 **MEMBER**,
@@ -572,9 +574,11 @@ PARTIAL,
 PASCAL,
 PASSTHROUGH,
 PATH,
+**PATTERN**,
 **PERCENTILE_CONT**,
 **PERCENTILE_DISC**,
 **PERCENT_RANK**,
+**PERMUTE**,
 PLACING,
 PLAN,
 PLI,
@@ -584,6 +588,7 @@ PRECEDING,
 **PRECISION**,
 **PREPARE**,
 PRESERVE,
+**PREV**,
 **PRIMARY**,
 PRIOR,
 PRIVILEGES,
@@ -635,6 +640,7 @@ ROUTINE_SCHEMA,
 **ROWS**,
 ROW_COUNT,
 **ROW_NUMBER**,
+**RUNNING**,
 **SAVEPOINT**,
 SCALE,
 SCHEMA,
@@ -1395,4 +1401,91 @@ Here are some examples:
 * `f(c => 3, d => 1, a => 0)` is equivalent to `f(0, NULL, 3, 1, NULL)`;
 * `f(c => 3, d => 1)` is not legal, because you have not specified a value for
   `a` and `a` is not optional.
+```
 
+### MATCH_RECOGNIZE functions(not fully implemented)
+#### MATCH_RECOGNIZE syntax
+```sql
+MatchRecognizeOpt :
+  MATCH_RECOGNIZE 
+  "("
+    [match_recognize_partition_by_clause]
+    [match_recognize_order_by_clause]
+    [match_recognize_measures_clause]
+    [match_recognize_rows_per_match_clause]
+    [match_recognize_skip_to_clause]
+    PATTERN "(" match_recognize_pattern_clause ")"
+    [match_recognize_subset_clause]
+    DEFINE [match_recognize_define_clause]    
+  ")"  
+
+match_recognize_partition_by_clause :
+  PARTITION BY expressionCommaList
+
+match_recognize_order_by_clause :
+  ORDER By orderbyList
+
+match_recognize_measures_clause :
+  MEASURES measureColumnCommaList
+
+match_recognize_rows_per_match_clause :
+  ON ROW PER MATCH
+  |
+  ALL ROWS PER MATCH
+
+match_recognize_skip_to_clause :
+  AFTER MATCH
+  {
+    SKIP TO NEXT ROW
+    |
+    SKIP PAST LAST ROW
+    |
+    SKIP TO FIRST variable_name
+    |
+    SKIP TO LAST variable_name
+    |
+    SKIP TO variable_name
+  }
+
+match_recognize_pattern_clause :
+  match_recognize_pattern_term ("|" match_recognize_pattern_term)*
+
+match_recognize_pattern_term :
+   match_recognize_pattern_factor (match_recognize_pattern_factor)*
+
+match_recognize_pattern_factor :
+  match_recognize_pattern_primary [match_recognize_pattern_quantifier]
+
+match_recognize_pattern_primary:
+  variable_name
+  | $
+  | ^
+  | ( [match_recognize_pattern_clause] )
+  | "{-" match_recognize_pattern_clause "-}"
+  | match_recognize_pattern_permute_clause
+
+match_recognize_pattern_permute_clause :
+  PERMUTE (match_recognize_pattern_clause [, match_recognize_pattern_clause] *)  
+
+match_recognize_pattern_quantifier :
+    * [?]
+  | + [?]
+  | ? [?]
+  | "{" { integer, integer } "}" [?]
+  | "{" integer "}"
+
+
+match_recognize_subset_clause :
+  SUBSET variable_name [, variable_name]*
+
+match_recognize_define_clause :
+  variable_name as condition
+```
+NOT implemented
+
+* match_recognize_partition_by_clause
+* match_recognize_order_by_clause
+* match_recognize_measures_clause
+* match_recognize_rows_per_match_clause
+* match_recognize_skip_to_clause
+* match_recognize_subset_clause

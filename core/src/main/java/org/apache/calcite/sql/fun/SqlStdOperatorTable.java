@@ -30,6 +30,8 @@ import org.apache.calcite.sql.SqlInternalOperator;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlLateralOperator;
 import org.apache.calcite.sql.SqlLiteral;
+import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlNumericLiteral;
 import org.apache.calcite.sql.SqlOperandCountRange;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlOperatorBinding;
@@ -1387,6 +1389,49 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
       new SqlBaseContextVariable("PI", ReturnTypes.DOUBLE,
           SqlFunctionCategory.NUMERIC);
 
+  public static final SqlFunction FINAL = new SqlFunction("FINAL",
+    SqlKind.FINAL,
+    ReturnTypes.ARG0_NULLABLE,
+    null,
+    OperandTypes.ANY,
+    SqlFunctionCategory.MATCH_RECOGNIZE);
+
+  public static final SqlFunction RUNNING = new SqlFunction("RUNNING",
+    SqlKind.RUNNING,
+    ReturnTypes.ARG0_NULLABLE,
+    null,
+    OperandTypes.ANY,
+    SqlFunctionCategory.MATCH_RECOGNIZE);
+
+  public static final SqlFunction FIRST = new SqlFunction("FIRST",
+    SqlKind.FIRST,
+    ReturnTypes.ARG0_NULLABLE,
+    null,
+    OperandTypes.ANY_NUMERIC,
+    SqlFunctionCategory.MATCH_RECOGNIZE);
+
+  public static final SqlFunction LAST = new SqlFunction("LAST",
+    SqlKind.LAST,
+    ReturnTypes.ARG0_NULLABLE,
+    null,
+    OperandTypes.ANY_NUMERIC,
+    SqlFunctionCategory.MATCH_RECOGNIZE);
+
+  public static final SqlFunction PREV = new SqlFunction("PREV",
+    SqlKind.PREV,
+    ReturnTypes.ARG0_NULLABLE,
+    null,
+    OperandTypes.ANY_NUMERIC,
+    SqlFunctionCategory.MATCH_RECOGNIZE);
+
+
+  public static final SqlFunction NEXT = new SqlFunction("NEXT",
+    SqlKind.NEXT,
+    ReturnTypes.ARG0_NULLABLE,
+    null,
+    OperandTypes.ANY_NUMERIC,
+    SqlFunctionCategory.MATCH_RECOGNIZE);
+
   public static final SqlFunction NULLIF = new SqlNullifFunction();
 
   /**
@@ -1855,6 +1900,71 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   /** The TUMBLE_END auxiliary function of the TUMBLE group function. */
   public static final SqlFunction TUMBLE_END =
       TUMBLE.auxiliary(SqlKind.TUMBLE_END);
+
+  public static final SqlBinaryOperator PATTERN_ALTER = new SqlBinaryOperator("|",
+    SqlKind.PATTERN_ALTER, 70, true, null, null, null);
+
+  public static final SqlBinaryOperator PATTERN_CONCAT = new SqlBinaryOperator("",
+    SqlKind.PATTERN_CONCAT, 80, true, null, null, null);
+
+  public static final SqlSpecialOperator PATTERN_QUANTIFIER = new SqlSpecialOperator(
+    "PATTERN_QUANTIFIER", SqlKind.PATTERN_QUANTIFIER, 90) {
+    @Override public void unparse(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+      call.operand(0).unparse(writer, this.getLeftPrec(), this.getRightPrec());
+      int startNum = ((SqlNumericLiteral) call.operand(1)).intValue(true);
+      SqlNumericLiteral endRepNum = call.operand(2);
+      boolean isReluctant = ((SqlLiteral) call.operand(3)).booleanValue();
+      int endNum = endRepNum.intValue(true);
+      if (startNum == endNum) {
+        writer.keyword("{ " + startNum + " }");
+      } else {
+        if (endNum == -1) {
+          if (startNum == 0) {
+            writer.keyword("*");
+          } else if (startNum == 1) {
+            writer.keyword("+");
+          } else {
+            writer.keyword("{ " + startNum + ", }");
+          }
+        } else {
+          if (startNum == 0 && endNum == 1) {
+            writer.keyword("?");
+          } else {
+            writer.keyword("{ " + startNum + ", " + endNum + " }");
+          }
+        }
+        if (isReluctant) {
+          writer.keyword("?");
+        }
+      }
+    }
+  };
+
+  public static final SqlSpecialOperator PATTERN_PERMUTE = new SqlSpecialOperator("PATTERN_PERMUTE",
+    SqlKind.PATTERN_PERMUTE, 100) {
+    @Override public void unparse(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+      writer.keyword("PERMUTE");
+      SqlWriter.Frame frame = writer.startList("(", ")");
+      for (int i = 0; i < call.getOperandList().size(); i++) {
+        SqlNode pattern = call.getOperandList().get(i);
+        pattern.unparse(writer, 0, 0);
+        if (i != call.getOperandList().size() - 1) {
+          writer.print(",");
+        }
+      }
+      writer.endList(frame);
+    }
+  };
+
+  public static final SqlSpecialOperator PATTERN_EXCLUDE = new SqlSpecialOperator("PATTERN_EXCLUDE",
+    SqlKind.PATTERN_EXCLUDED, 100) {
+    @Override public void unparse(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+      SqlWriter.Frame frame = writer.startList("{-", "-}");
+      SqlNode node = call.getOperandList().get(0);
+      node.unparse(writer, 0, 0);
+      writer.endList(frame);
+    }
+  };
 
   //~ Methods ----------------------------------------------------------------
 

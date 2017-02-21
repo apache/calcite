@@ -226,6 +226,10 @@ public enum SqlKind {
    */
   TABLESAMPLE,
 
+  /**
+   * MATCH_RECOGNIZE clause
+   */
+  MATCH_RECOGNIZE,
   // binary operators
 
   /**
@@ -251,6 +255,16 @@ public enum SqlKind {
    * @see #MINUS_PREFIX
    */
   MINUS,
+
+  /**
+   * the alternation operator in a pattern expression within a match_recognize clause
+   */
+  PATTERN_ALTER,
+
+  /**
+   * the concatenation operator in a pattern expression within a match_recognize clause
+   */
+  PATTERN_CONCAT,
 
   // comparison operators
 
@@ -434,6 +448,26 @@ public enum SqlKind {
    */
   NEW_SPECIFICATION,
 
+
+  /**
+   * Special Functions in MatchRecognize
+   */
+  FINAL,
+
+  RUNNING,
+
+  PREV,
+
+  NEXT,
+
+  FIRST,
+
+  LAST,
+
+  CLASSIFIER,
+
+  MATCH_NUMBER,
+
   // postfix operators
 
   /**
@@ -527,6 +561,11 @@ public enum SqlKind {
    * <p>(Only used at the RexNode level.)</p>
    */
   CORREL_VARIABLE,
+
+  /**
+   * the repetition quantifier of a pattern factor in a match_recognize clause.
+   */
+  PATTERN_QUANTIFIER,
 
   // functions
 
@@ -689,6 +728,16 @@ public enum SqlKind {
 
   /** The internal {@code GROUP_ID()} function. */
   GROUP_ID,
+
+  /**
+   * the internal permute function in match_recognize cluse
+   */
+  PATTERN_PERMUTE,
+
+  /**
+   * the special patterns to exclude enclosing pattern from output in match_recognize clause
+   */
+  PATTERN_EXCLUDED,
 
   // Aggregate functions
 
