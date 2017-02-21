@@ -351,7 +351,7 @@ public class AggregateReduceFunctionsRule extends RelOptRule {
     return rexBuilder.makeCall(SqlStdOperatorTable.CASE,
         rexBuilder.makeCall(SqlStdOperatorTable.EQUALS,
             countRef, rexBuilder.makeExactLiteral(BigDecimal.ZERO)),
-        rexBuilder.constantNull(),
+        rexBuilder.makeCast(sumZeroRef.getType(), rexBuilder.constantNull()),
         sumZeroRef);
   }
 
@@ -469,7 +469,7 @@ public class AggregateReduceFunctionsRule extends RelOptRule {
       final RexLiteral one =
           rexBuilder.makeExactLiteral(BigDecimal.ONE);
       final RexNode nul =
-          rexBuilder.makeNullLiteral(countArg.getType().getSqlTypeName());
+          rexBuilder.makeCast(countArg.getType(), rexBuilder.constantNull());
       final RexNode countMinusOne =
           rexBuilder.makeCall(
               SqlStdOperatorTable.MINUS, countArg, one);
