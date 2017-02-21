@@ -46,6 +46,7 @@ import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlJoin;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlLiteral;
+import org.apache.calcite.sql.SqlMatchRecognize;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlOperator;
@@ -61,6 +62,7 @@ import org.apache.calcite.sql.type.BasicSqlType;
 import org.apache.calcite.sql.type.InferTypes;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
+import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
@@ -471,6 +473,7 @@ public abstract class SqlImplementor {
   SqlSelect wrapSelect(SqlNode node) {
     assert node instanceof SqlJoin
         || node instanceof SqlIdentifier
+        || node instanceof SqlMatchRecognize
         || node instanceof SqlCall
             && (((SqlCall) node).getOperator() instanceof SqlSetOperator
                 || ((SqlCall) node).getOperator() == SqlStdOperatorTable.AS)
@@ -810,6 +813,29 @@ public abstract class SqlImplementor {
 
   public Context joinContext(Context leftContext, Context rightContext) {
     return new JoinContext(leftContext, rightContext);
+  }
+
+  public Context matchRecognizeContext(Context context) {
+    return new MatchRecognizeContext(((AliasContext) context).aliases);
+  }
+
+  /**
+   * Context for translating MATCH_RECOGNIZE clause
+   */
+  public class MatchRecognizeContext extends AliasContext {
+    protected MatchRecognizeContext(Map<String, RelDataType> aliases) {
+      super(aliases, false);
+    }
+
+    @Override public SqlNode toSql(RexProgram program, RexNode rex) {
+      if (rex.getKind() == SqlKind.LITERAL) {
+        final RexLiteral literal = (RexLiteral) rex;
+        if (literal.getTypeName().getFamily() == SqlTypeFamily.CHARACTER) {
+          return new SqlIdentifier(RexLiteral.stringValue(literal), POS);
+        }
+      }
+      return super.toSql(program, rex);
+    }
   }
 
   /** Implementation of Context that precedes field references with their
