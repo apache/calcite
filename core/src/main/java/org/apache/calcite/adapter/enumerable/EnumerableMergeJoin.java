@@ -16,9 +16,12 @@
  */
 package org.apache.calcite.adapter.enumerable;
 
+import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.linq4j.tree.BlockBuilder;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
+import org.apache.calcite.linq4j.tree.ParameterExpression;
+import org.apache.calcite.linq4j.tree.Types;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPlanner;
@@ -34,14 +37,18 @@ import org.apache.calcite.rel.core.JoinInfo;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.metadata.RelMdCollation;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
+import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.ImmutableIntList;
+import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
+import java.lang.reflect.Type;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
@@ -124,20 +131,39 @@ public class EnumerableMergeJoin extends EquiJoin implements EnumerableRel {
     BlockBuilder builder = new BlockBuilder();
     final Result leftResult =
         implementor.visitChild(this, 0, (EnumerableRel) left, pref);
-    Expression leftExpression =
-        builder.append(
-            "left", leftResult.block);
+    final Expression leftExpression =
+        builder.append("left", leftResult.block);
+    final ParameterExpression left_ =
+        Expressions.parameter(leftResult.physType.getJavaRowType(), "left");
     final Result rightResult =
         implementor.visitChild(this, 1, (EnumerableRel) right, pref);
-    Expression rightExpression =
-        builder.append(
-            "right", rightResult.block);
+    final Expression rightExpression =
+        builder.append("right", rightResult.block);
+    final ParameterExpression right_ =
+        Expressions.parameter(rightResult.physType.getJavaRowType(), "right");
+    final JavaTypeFactory typeFactory = implementor.getTypeFactory();
     final PhysType physType =
-        PhysTypeImpl.of(
-            implementor.getTypeFactory(), getRowType(), pref.preferArray());
-    final PhysType keyPhysType =
-        leftResult.physType.project(
-            leftKeys, JavaRowFormat.LIST);
+        PhysTypeImpl.of(typeFactory, getRowType(), pref.preferArray());
+    final List<Expression> leftExpressions = new ArrayList<>();
+    final List<Expression> rightExpressions = new ArrayList<>();
+    for (Pair<Integer, Integer> pair : Pair.zip(leftKeys, rightKeys)) {
+      final RelDataType keyType =
+          typeFactory.leastRestrictive(
+              ImmutableList.of(
+                  left.getRowType().getFieldList().get(pair.left).getType(),
+                  right.getRowType().getFieldList().get(pair.right).getType()));
+      final Type keyClass = typeFactory.getJavaClass(keyType);
+      leftExpressions.add(
+         Types.castIfNecessary(keyClass,
+             leftResult.physType.fieldReference(left_, pair.left)));
+      rightExpressions.add(
+         Types.castIfNecessary(keyClass,
+             rightResult.physType.fieldReference(right_, pair.right)));
+    }
+    final PhysType leftKeyPhysType =
+        leftResult.physType.project(leftKeys, JavaRowFormat.LIST);
+    final PhysType rightKeyPhysType =
+        rightResult.physType.project(rightKeys, JavaRowFormat.LIST);
     return implementor.result(
         physType,
         builder.append(
@@ -146,8 +172,10 @@ public class EnumerableMergeJoin extends EquiJoin implements EnumerableRel {
                 Expressions.list(
                     leftExpression,
                     rightExpression,
-                    leftResult.physType.generateAccessor(leftKeys),
-                    rightResult.physType.generateAccessor(rightKeys),
+                    Expressions.lambda(
+                        leftKeyPhysType.record(leftExpressions), left_),
+                    Expressions.lambda(
+                        rightKeyPhysType.record(rightExpressions), right_),
                     EnumUtils.joinSelector(joinType,
                         physType,
                         ImmutableList.of(
