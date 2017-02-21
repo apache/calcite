@@ -25,13 +25,14 @@ import org.apache.calcite.sql.type.ReturnTypes;
  * The {@code GROUPING} function.
  *
  * <p>This function is defined in the SQL standard.
+ * {@code GROUPING_ID} is a non-standard synonym.
  *
  * <p>Some examples are in {@code agg.iq}.
  */
 class SqlGroupingFunction extends SqlAbstractGroupFunction {
-  public SqlGroupingFunction() {
-    super("GROUPING", SqlKind.GROUPING, ReturnTypes.INTEGER, null,
-        OperandTypes.ANY, SqlFunctionCategory.SYSTEM);
+  public SqlGroupingFunction(String name) {
+    super(name, SqlKind.GROUPING, ReturnTypes.BIGINT, null,
+        OperandTypes.ONE_OR_MORE, SqlFunctionCategory.SYSTEM);
   }
 }
 

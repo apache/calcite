@@ -5002,12 +5002,17 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
 
   @Test public void testGrouping() {
     sql("select deptno, grouping(deptno) from emp group by deptno").ok();
+    sql("select deptno, grouping(deptno, deptno) from emp group by deptno")
+        .ok();
     sql("select deptno / 2, grouping(deptno / 2),\n"
         + " ^grouping(deptno / 2, empno)^\n"
         + "from emp group by deptno / 2, empno")
-        .fails(
-            "Invalid number of arguments to function 'GROUPING'. Was expecting 1 arguments");
+        .ok();
     sql("select deptno, grouping(^empno^) from emp group by deptno")
+        .fails("Argument to GROUPING operator must be a grouped expression");
+    sql("select deptno, grouping(deptno, ^empno^) from emp group by deptno")
+        .fails("Argument to GROUPING operator must be a grouped expression");
+    sql("select deptno, grouping(^empno^, deptno) from emp group by deptno")
         .fails("Argument to GROUPING operator must be a grouped expression");
     sql("select deptno, grouping(^deptno + 1^) from emp group by deptno")
         .fails("Argument to GROUPING operator must be a grouped expression");
@@ -5059,6 +5064,8 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
 
   @Test public void testGroupingId() {
     sql("select deptno, grouping_id(deptno) from emp group by deptno").ok();
+    sql("select deptno, grouping_id(deptno, deptno) from emp group by deptno")
+        .ok();
     sql("select deptno / 2, grouping_id(deptno / 2),\n"
         + " ^grouping_id(deptno / 2, empno)^\n"
         + "from emp group by deptno / 2, empno")

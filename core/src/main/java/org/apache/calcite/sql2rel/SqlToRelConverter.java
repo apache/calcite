@@ -4674,7 +4674,6 @@ public class SqlToRelConverter {
 
       switch (call.getKind()) {
       case GROUPING:
-      case GROUPING_ID:
       case GROUP_ID:
         final RelDataType type = validator.getValidatedNodeType(call);
         if (!aggregatingSelectScope.resolved.get().indicator) {
@@ -4708,8 +4707,6 @@ public class SqlToRelConverter {
     private int effectiveArgCount(SqlCall call) {
       switch (call.getKind()) {
       case GROUPING:
-        return 1;
-      case GROUPING_ID:
         return call.operandCount();
       case GROUP_ID:
         return groupExprs.size();

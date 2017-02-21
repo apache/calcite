@@ -1275,9 +1275,9 @@ Not implemented:
 
 | Operator syntax      | Description
 |:-------------------- |:-----------
-| GROUPING(expression) | Returns 1 if expression is rolled up in the current row's grouping set, 0 otherwise
+| GROUPING(expression [, expression ] * ) | Returns a bit vector of the given grouping expressions
 | GROUP_ID()           | Returns an integer that uniquely identifies the combination of grouping keys
-| GROUPING_ID(expression [, expression ] * ) | Returns a bit vector of the given grouping expressions
+| GROUPING_ID(expression [, expression ] * ) | Synonym for `GROUPING`
 
 ### User-defined functions
 

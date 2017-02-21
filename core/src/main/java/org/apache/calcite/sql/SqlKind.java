@@ -681,13 +681,14 @@ public enum SqlKind {
    * {@code GROUP BY} clause. */
   GROUPING_SETS,
 
-  /** The internal {@code GROUPING(e)} function. */
+  /** The {@code GROUPING(e, ...)} function. */
   GROUPING,
 
-  /** The internal {@code GROUPING_ID(e, ...)} function. */
+  /** @deprecated Use {@link #GROUPING}. */
+  @Deprecated // to be removed before 2.0
   GROUPING_ID,
 
-  /** The internal {@code GROUP_ID()} function. */
+  /** The {@code GROUP_ID()} function. */
   GROUP_ID,
 
   // Aggregate functions
