@@ -946,6 +946,35 @@ public class MaterializationTest {
     }
   }
 
+  @Test public void testTableModify() {
+    final String m = "select \"deptno\", \"empid\", \"name\""
+        + "from \"emps\" where \"deptno\" = 10";
+    final String q = "upsert into \"dependents\""
+        + "select \"empid\" + 1 as x, \"name\""
+        + "from \"emps\" where \"deptno\" = 10";
+
+    final List<List<List<String>>> substitutedNames = new ArrayList<>();
+    try (final TryThreadLocal.Memo ignored = Prepare.THREAD_TRIM.push(true)) {
+      MaterializationService.setThreadLocal();
+      CalciteAssert.that()
+          .withMaterializations(JdbcTest.HR_MODEL,
+              "m0", m)
+          .query(q)
+          .withHook(Hook.SUB,
+              new Function<RelNode, Void>() {
+                public Void apply(RelNode input) {
+                  substitutedNames.add(new TableNameVisitor().run(input));
+                  return null;
+                }
+              })
+          .enableMaterializations(true)
+          .explainContains("hr, m0");
+    } catch (Exception e) {
+      // Table "dependents" not modifiable.
+    }
+    assertThat(substitutedNames, is(list3(new String[][][]{{{"hr", "m0"}}})));
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-761">[CALCITE-761]
    * Pre-populated materializations</a>. */
