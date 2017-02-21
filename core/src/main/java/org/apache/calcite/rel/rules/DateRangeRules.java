@@ -39,6 +39,7 @@ import org.apache.calcite.util.Bug;
 
 import com.google.common.base.Predicate;
 import com.google.common.collect.BoundType;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableRangeSet;
 import com.google.common.collect.ImmutableSet;
@@ -47,8 +48,10 @@ import com.google.common.collect.RangeSet;
 import com.google.common.collect.TreeRangeSet;
 
 import java.math.BigDecimal;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Deque;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
@@ -189,6 +192,7 @@ public abstract class DateRangeRules {
     private final RexBuilder rexBuilder;
     private final TimeUnitRange timeUnit;
     private final Map<String, RangeSet<Calendar>> operandRanges;
+    private final Deque<RexCall> calls = new ArrayDeque<>();
 
     public ExtractShuttle(RexBuilder rexBuilder, TimeUnitRange timeUnit,
         Map<String, RangeSet<Calendar>> operandRanges) {
@@ -222,8 +226,43 @@ public abstract class DateRangeRules {
                 (RexLiteral) op1);
           }
         }
+      default:
+        calls.push(call);
+        try {
+          return super.visitCall(call);
+        } finally {
+          calls.pop();
+        }
       }
-      return super.visitCall(call);
+    }
+
+    @Override protected List<RexNode> visitList(List<? extends RexNode> exprs,
+        boolean[] update) {
+      if (exprs.isEmpty()) {
+        return ImmutableList.of(); // a bit more efficient
+      }
+      switch (calls.peek().getKind()) {
+      case AND:
+        return super.visitList(exprs, update);
+      default:
+        final Map<String, RangeSet<Calendar>> save =
+            ImmutableMap.copyOf(operandRanges);
+        final ImmutableList.Builder<RexNode> clonedOperands =
+            ImmutableList.builder();
+        for (RexNode operand : exprs) {
+          RexNode clonedOperand = operand.accept(this);
+          if ((clonedOperand != operand) && (update != null)) {
+            update[0] = true;
+          }
+          clonedOperands.add(clonedOperand);
+
+          // Restore the state. For an operator such as "OR", an argument
+          // cannot inherit the previous argument's state.
+          operandRanges.clear();
+          operandRanges.putAll(save);
+        }
+        return clonedOperands.build();
+      }
     }
 
     boolean isExtractCall(RexNode e) {
