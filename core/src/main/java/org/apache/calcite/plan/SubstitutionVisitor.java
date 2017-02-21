@@ -402,7 +402,7 @@ public class SubstitutionVisitor {
     for (MutableRel targetDescendant : targetDescendants) {
       MutableRel queryDescendant = map.get(targetDescendant);
       if (queryDescendant != null) {
-        assert queryDescendant.getRowType().equals(targetDescendant.getRowType());
+        assert queryDescendant.rowType.equals(targetDescendant.rowType);
         equivalents.put(queryDescendant, targetDescendant);
       }
     }
@@ -449,7 +449,7 @@ public class SubstitutionVisitor {
                     equivalents.remove(slots[i], equi.iterator().next());
                   }
                 }
-                assert result.result.getRowType().equals(result.call.query.getRowType())
+                assert result.result.rowType.equals(result.call.query.rowType)
                     : Pair.of(result.result, result.call.query);
                 equivalents.put(result.result, result.call.query);
                 if (targetDescendant == target) {
@@ -903,17 +903,16 @@ public class SubstitutionVisitor {
         return null;
       }
       final RexShuttle shuttle = getRexShuttle(target);
-      final RexBuilder rexBuilder = target.getCluster().getRexBuilder();
+      final RexBuilder rexBuilder = target.cluster.getRexBuilder();
       final List<RexNode> newProjects;
       try {
         newProjects = (List<RexNode>)
-            shuttle.apply(rexBuilder.identityProjects(query.getRowType()));
+            shuttle.apply(rexBuilder.identityProjects(query.rowType));
       } catch (MatchFailed e) {
         return null;
       }
       final MutableProject newProject =
-          MutableProject.of(
-              query.getRowType(), target, newProjects);
+          MutableProject.of(query.rowType, target, newProjects);
       final MutableRel newProject2 = MutableRels.strip(newProject);
       return call.result(newProject2);
     }
@@ -941,8 +940,7 @@ public class SubstitutionVisitor {
         return null;
       }
       final MutableProject newProject =
-          MutableProject.of(
-              query.getRowType(), target, newProjects);
+          MutableProject.of(query.rowType, target, newProjects);
       final MutableRel newProject2 = MutableRels.strip(newProject);
       return call.result(newProject2);
     }
@@ -994,7 +992,7 @@ public class SubstitutionVisitor {
       LOGGER.trace("SubstitutionVisitor: invert:\nprojects: {}\ninput: {}\nproject: {}\n",
           namedProjects, input, shuttle);
       final List<RexNode> exprList = new ArrayList<>();
-      final RexBuilder rexBuilder = input.getCluster().getRexBuilder();
+      final RexBuilder rexBuilder = input.cluster.getRexBuilder();
       final List<RexNode> projects = Pair.left(namedProjects);
       for (RexNode expr : projects) {
         exprList.add(rexBuilder.makeZeroLiteral(expr.getType()));
@@ -1013,12 +1011,12 @@ public class SubstitutionVisitor {
         MutableProject project) {
       LOGGER.trace("SubstitutionVisitor: invert:\nmodel: {}\ninput: {}\nproject: {}\n",
           model, input, project);
-      if (project.projects.size() < model.getRowType().getFieldCount()) {
+      if (project.projects.size() < model.rowType.getFieldCount()) {
         throw MatchFailed.INSTANCE;
       }
       final List<RexNode> exprList = new ArrayList<>();
-      final RexBuilder rexBuilder = model.getCluster().getRexBuilder();
-      for (RelDataTypeField field : model.getRowType().getFieldList()) {
+      final RexBuilder rexBuilder = model.cluster.getRexBuilder();
+      for (RelDataTypeField field : model.rowType.getFieldList()) {
         exprList.add(rexBuilder.makeZeroLiteral(field.getType()));
       }
       for (Ord<RexNode> expr : Ord.zip(project.projects)) {
@@ -1026,13 +1024,13 @@ public class SubstitutionVisitor {
           final int target = ((RexInputRef) expr.e).getIndex();
           exprList.set(target,
               rexBuilder.ensureType(expr.e.getType(),
-                  RexInputRef.of(expr.i, input.getRowType()),
+                  RexInputRef.of(expr.i, input.rowType),
                   false));
         } else {
           throw MatchFailed.INSTANCE;
         }
       }
-      return MutableProject.of(model.getRowType(), input, exprList);
+      return MutableProject.of(model.rowType, input, exprList);
     }
   }
 
@@ -1066,7 +1064,7 @@ public class SubstitutionVisitor {
 
     MutableFilter createFilter(MutableFilter query, MutableFilter target) {
       final RexNode newCondition =
-          splitFilter(query.getCluster().getRexBuilder(), query.condition,
+          splitFilter(query.cluster.getRexBuilder(), query.condition,
               target.condition);
       if (newCondition == null) {
         // Could not map query onto target.
@@ -1214,7 +1212,7 @@ public class SubstitutionVisitor {
       result = MutableAggregate.of(target, false, groupSet.build(), null,
           aggregateCalls);
     }
-    return MutableRels.createCastRel(result, query.getRowType(), true);
+    return MutableRels.createCastRel(result, query.rowType, true);
   }
 
   /** Implementation of {@link UnifyRule} that matches a
@@ -1307,7 +1305,7 @@ public class SubstitutionVisitor {
       return false;
     }
 
-    if (!rel.getRowType().equals(rel0.getRowType())) {
+    if (!rel.rowType.equals(rel0.rowType)) {
       return false;
     }
 
@@ -1319,10 +1317,10 @@ public class SubstitutionVisitor {
     }
 
     RexExecutorImpl rexImpl =
-        (RexExecutorImpl) (rel.getCluster().getPlanner().getExecutor());
-    RexImplicationChecker rexImplicationChecker = new RexImplicationChecker(
-        rel.getCluster().getRexBuilder(),
-        rexImpl, rel.getRowType());
+        (RexExecutorImpl) (rel.cluster.getPlanner().getExecutor());
+    RexImplicationChecker rexImplicationChecker =
+        new RexImplicationChecker(
+            rel.cluster.getRexBuilder(), rexImpl, rel.rowType);
 
     return rexImplicationChecker.implies(((MutableFilter) rel0).condition,
         ((MutableFilter) rel).condition);
@@ -1331,8 +1329,7 @@ public class SubstitutionVisitor {
   /** Returns whether two relational expressions have the same row-type. */
   public static boolean equalType(String desc0, MutableRel rel0, String desc1,
       MutableRel rel1, Litmus litmus) {
-    return RelOptUtil.equal(desc0, rel0.getRowType(),
-        desc1, rel1.getRowType(), litmus);
+    return RelOptUtil.equal(desc0, rel0.rowType, desc1, rel1.rowType, litmus);
   }
 
   /** Operand to a {@link UnifyRule}. */

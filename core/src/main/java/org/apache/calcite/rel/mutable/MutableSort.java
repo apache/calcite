@@ -29,12 +29,21 @@ public class MutableSort extends MutableSingleRel {
 
   private MutableSort(MutableRel input, RelCollation collation,
       RexNode offset, RexNode fetch) {
-    super(MutableRelType.SORT, input.getRowType(), input);
+    super(MutableRelType.SORT, input.rowType, input);
     this.collation = collation;
     this.offset = offset;
     this.fetch = fetch;
   }
 
+  /**
+   * Creates a MutableSort.
+   *
+   * @param input     Input relational expression
+   * @param collation Array of sort specifications
+   * @param offset    Expression for number of rows to discard before returning
+   *                  first row
+   * @param fetch     Expression for number of rows to fetch
+   */
   public static MutableSort of(MutableRel input, RelCollation collation,
       RexNode offset, RexNode fetch) {
     return new MutableSort(input, collation, offset, fetch);

@@ -20,8 +20,7 @@ import org.apache.calcite.rel.type.RelDataType;
 
 import java.util.Objects;
 
-/** Mutable equivalent of
- * {@link org.apache.calcite.rel.core.Collect}. */
+/** Mutable equivalent of {@link org.apache.calcite.rel.core.Collect}. */
 public class MutableCollect extends MutableSingleRel {
   public final String fieldName;
 
@@ -31,6 +30,13 @@ public class MutableCollect extends MutableSingleRel {
     this.fieldName = fieldName;
   }
 
+  /**
+   * Creates a MutableCollect.
+   *
+   * @param rowType   Row type
+   * @param input     Input relational expression
+   * @param fieldName Name of the sole output field
+   */
   public static MutableCollect of(RelDataType rowType,
       MutableRel input, String fieldName) {
     return new MutableCollect(rowType, input, fieldName);

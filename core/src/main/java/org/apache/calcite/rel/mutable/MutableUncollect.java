@@ -20,8 +20,7 @@ import org.apache.calcite.rel.type.RelDataType;
 
 import java.util.Objects;
 
-/** Mutable equivalent of
- * {@link org.apache.calcite.rel.core.Uncollect}. */
+/** Mutable equivalent of {@link org.apache.calcite.rel.core.Uncollect}. */
 public class MutableUncollect extends MutableSingleRel {
   public final boolean withOrdinality;
 
@@ -31,6 +30,14 @@ public class MutableUncollect extends MutableSingleRel {
     this.withOrdinality = withOrdinality;
   }
 
+  /**
+   * Creates a MutableUncollect.
+   *
+   * @param rowType         Row type
+   * @param input           Input relational expression
+   * @param withOrdinality  Whether the output contains an extra
+   *                        {@code ORDINALITY} column
+   */
   public static MutableUncollect of(RelDataType rowType,
       MutableRel input, boolean withOrdinality) {
     return new MutableUncollect(rowType, input, withOrdinality);

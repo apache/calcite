@@ -16,31 +16,29 @@
  */
 package org.apache.calcite.rel.mutable;
 
-import org.apache.calcite.rel.type.RelDataType;
-
-/** Implementation of {@link MutableRel} whose only purpose is to have a
- * child. Used as the root of a tree. */
-public class Holder extends MutableSingleRel {
-  private Holder(RelDataType rowType, MutableRel input) {
-    super(MutableRelType.HOLDER, rowType, input);
-  }
-
-  /**
-   * Creates a Holder.
-   *
-   * @param input Input relational expression
-   */
-  public static Holder of(MutableRel input) {
-    return new Holder(input.rowType, input);
-  }
-
-  @Override public StringBuilder digest(StringBuilder buf) {
-    return buf.append("Holder");
-  }
-
-  @Override public MutableRel clone() {
-    return Holder.of(input.clone());
-  }
+/** Type of {@code MutableRel}. */
+enum MutableRelType {
+  AGGREGATE,
+  CALC,
+  COLLECT,
+  CORRELATE,
+  EXCHANGE,
+  FILTER,
+  INTERSECT,
+  JOIN,
+  MINUS,
+  PROJECT,
+  SAMPLE,
+  SEMIJOIN,
+  SORT,
+  TABLE_FUNCTION_SCAN,
+  TABLE_MODIFY,
+  TABLE_SCAN,
+  UNCOLLECT,
+  UNION,
+  VALUES,
+  WINDOW,
+  HOLDER
 }
 
-// End Holder.java
+// End MutableRelType.java

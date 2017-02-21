@@ -129,8 +129,7 @@ public abstract class MutableRels {
    * {@link org.apache.calcite.rel.rules.ProjectRemoveRule#isTrivial(org.apache.calcite.rel.core.Project)}. */
   public static boolean isTrivial(MutableProject project) {
     MutableRel child = project.getInput();
-    final RelDataType childRowType = child.getRowType();
-    return RexUtil.isIdentity(project.projects, childRowType);
+    return RexUtil.isIdentity(project.projects, child.rowType);
   }
 
   /** Equivalent to
@@ -138,7 +137,7 @@ public abstract class MutableRels {
    * for {@link MutableRel}. */
   public static MutableRel createProject(final MutableRel child,
       final List<Integer> posList) {
-    final RelDataType rowType = child.getRowType();
+    final RelDataType rowType = child.rowType;
     if (Mappings.isIdentity(posList, rowType.getFieldCount())) {
       return child;
     }
@@ -162,7 +161,7 @@ public abstract class MutableRels {
    * for {@link MutableRel}. */
   public static MutableRel createCastRel(MutableRel rel,
       RelDataType castRowType, boolean rename) {
-    RelDataType rowType = rel.getRowType();
+    RelDataType rowType = rel.rowType;
     if (RelOptUtil.areRowTypesEqual(rowType, castRowType, rename)) {
       // nothing to do
       return rel;
@@ -182,8 +181,8 @@ public abstract class MutableRels {
       return ((MutableLeafRel) node).rel;
     case PROJECT:
       final MutableProject project = (MutableProject) node;
-      return LogicalProject.create(fromMutable(project.input),
-          project.projects, project.getRowType());
+      return LogicalProject.create(
+          fromMutable(project.input), project.projects, project.rowType);
     case FILTER:
       final MutableFilter filter = (MutableFilter) node;
       return LogicalFilter.create(fromMutable(filter.input),
@@ -217,8 +216,8 @@ public abstract class MutableRels {
     case WINDOW: {
       final MutableWindow window = (MutableWindow) node;
       final RelNode child = fromMutable(window.getInput());
-      return LogicalWindow.create(child.getTraitSet(), child,
-          window.constants, window.getRowType(), window.groups);
+      return LogicalWindow.create(child.getTraitSet(),
+          child, window.constants, window.rowType, window.groups);
     }
     case TABLE_MODIFY:
       final MutableTableModify modify = (MutableTableModify) node;
@@ -227,11 +226,10 @@ public abstract class MutableRels {
           modify.sourceExpressionList, modify.flattened);
     case SAMPLE:
       final MutableSample sample = (MutableSample) node;
-      return new Sample(sample.getCluster(),
-          fromMutable(sample.getInput()), sample.params);
+      return new Sample(sample.cluster, fromMutable(sample.getInput()), sample.params);
     case TABLE_FUNCTION_SCAN:
       final MutableTableFunctionScan tableFunctionScan = (MutableTableFunctionScan) node;
-      return LogicalTableFunctionScan.create(tableFunctionScan.getCluster(),
+      return LogicalTableFunctionScan.create(tableFunctionScan.cluster,
           fromMutables(tableFunctionScan.getInputs()), tableFunctionScan.rexCall,
           tableFunctionScan.elementType, tableFunctionScan.rowType,
           tableFunctionScan.columnMappings);
@@ -347,6 +345,8 @@ public abstract class MutableRels {
           tableFunctionScan.getRowType(), inputs, tableFunctionScan.getCall(),
           tableFunctionScan.getElementType(), tableFunctionScan.getColumnMappings());
     }
+    // It is necessary that SemiJoin is placed in front of Join here, since SemiJoin
+    // is a sub-class of Join.
     if (rel instanceof SemiJoin) {
       final SemiJoin semiJoin = (SemiJoin) rel;
       final MutableRel left = toMutable(semiJoin.getLeft());

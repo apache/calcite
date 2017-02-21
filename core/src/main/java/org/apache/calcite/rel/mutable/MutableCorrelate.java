@@ -23,8 +23,7 @@ import org.apache.calcite.util.ImmutableBitSet;
 
 import java.util.Objects;
 
-/** Mutable equivalent of
- * {@link org.apache.calcite.rel.logical.LogicalCorrelate}. */
+/** Mutable equivalent of {@link org.apache.calcite.rel.core.Correlate}. */
 public class MutableCorrelate extends MutableBiRel {
   public final CorrelationId correlationId;
   public final ImmutableBitSet requiredColumns;
@@ -43,6 +42,16 @@ public class MutableCorrelate extends MutableBiRel {
     this.joinType = joinType;
   }
 
+  /**
+   * Creates a MutableCorrelate.
+   *
+   * @param rowType         Row type
+   * @param left            Left input relational expression
+   * @param right           Right input relational expression
+   * @param correlationId   Variable name for the row of left input
+   * @param requiredColumns Required columns
+   * @param joinType        Join type
+   */
   public static MutableCorrelate of(RelDataType rowType, MutableRel left,
       MutableRel right, CorrelationId correlationId,
       ImmutableBitSet requiredColumns, SemiJoinType joinType) {

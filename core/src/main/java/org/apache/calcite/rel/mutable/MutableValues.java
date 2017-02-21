@@ -24,8 +24,13 @@ public class MutableValues extends MutableLeafRel {
     super(MutableRelType.VALUES, rel);
   }
 
-  public static MutableValues of(Values rel) {
-    return new MutableValues(rel);
+  /**
+   * Creates a MutableValue.
+   *
+   * @param values  The underlying Values object
+   */
+  public static MutableValues of(Values values) {
+    return new MutableValues(values);
   }
 
   @Override public boolean equals(Object obj) {

@@ -25,7 +25,7 @@ import org.apache.calcite.rex.RexNode;
 import java.util.List;
 import java.util.Objects;
 
-/** Mutable equivalent of {@link org.apache.calcite.rel.logical.LogicalTableModify}. */
+/** Mutable equivalent of {@link org.apache.calcite.rel.core.TableModify}. */
 public class MutableTableModify extends MutableSingleRel {
   public final Prepare.CatalogReader catalogReader;
   public final RelOptTable table;
@@ -47,6 +47,20 @@ public class MutableTableModify extends MutableSingleRel {
     this.flattened = flattened;
   }
 
+  /**
+   * Creates a MutableTableModify.
+   *
+   * @param rowType               Row type
+   * @param input                 Input relational expression
+   * @param table                 Target table to modify
+   * @param catalogReader         Accessor to the table metadata
+   * @param operation             Modify operation (INSERT, UPDATE, DELETE)
+   * @param updateColumnList      List of column identifiers to be updated
+   *                              (e.g. ident1, ident2); null if not UPDATE
+   * @param sourceExpressionList  List of value expressions to be set
+   *                              (e.g. exp1, exp2); null if not UPDATE
+   * @param flattened             Whether set flattens the input row type
+   */
   public static MutableTableModify of(RelDataType rowType,
       MutableRel input, RelOptTable table,
       Prepare.CatalogReader catalogReader,

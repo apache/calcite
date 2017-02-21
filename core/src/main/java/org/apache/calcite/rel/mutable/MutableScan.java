@@ -18,15 +18,19 @@ package org.apache.calcite.rel.mutable;
 
 import org.apache.calcite.rel.core.TableScan;
 
-/** Mutable equivalent of
- * {@link org.apache.calcite.rel.logical.LogicalTableScan}. */
+/** Mutable equivalent of {@link org.apache.calcite.rel.core.TableScan}. */
 public class MutableScan extends MutableLeafRel {
   private MutableScan(TableScan rel) {
     super(MutableRelType.TABLE_SCAN, rel);
   }
 
-  public static MutableScan of(TableScan rel) {
-    return new MutableScan(rel);
+  /**
+   * Creates a MutableScan.
+   *
+   * @param scan  The underlying TableScan object
+   */
+  public static MutableScan of(TableScan scan) {
+    return new MutableScan(scan);
   }
 
   @Override public boolean equals(Object obj) {

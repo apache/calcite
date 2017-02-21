@@ -21,14 +21,21 @@ import org.apache.calcite.rel.type.RelDataType;
 
 import java.util.List;
 
-/** Mutable equivalent of
- * {@link org.apache.calcite.rel.logical.LogicalIntersect}. */
+/** Mutable equivalent of {@link org.apache.calcite.rel.core.Intersect}. */
 public class MutableIntersect extends MutableSetOp {
   private MutableIntersect(RelOptCluster cluster, RelDataType rowType,
       List<MutableRel> inputs, boolean all) {
     super(cluster, rowType, MutableRelType.INTERSECT, inputs, all);
   }
 
+  /**
+   * Creates a MutableIntersect.
+   *
+   * @param rowType Row type
+   * @param inputs  Input relational expressions
+   * @param all     Whether to perform a multiset intersection or a set
+   *                intersection
+   */
   public static MutableIntersect of(
       RelDataType rowType, List<MutableRel> inputs, boolean all) {
     assert inputs.size() >= 2;

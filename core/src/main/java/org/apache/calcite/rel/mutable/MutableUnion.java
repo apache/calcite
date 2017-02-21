@@ -21,14 +21,21 @@ import org.apache.calcite.rel.type.RelDataType;
 
 import java.util.List;
 
-/** Mutable equivalent of
- * {@link org.apache.calcite.rel.logical.LogicalUnion}. */
+/** Mutable equivalent of {@link org.apache.calcite.rel.core.Union}. */
 public class MutableUnion extends MutableSetOp {
   private MutableUnion(RelOptCluster cluster, RelDataType rowType,
       List<MutableRel> inputs, boolean all) {
     super(cluster, rowType, MutableRelType.UNION, inputs, all);
   }
 
+  /**
+   * Creates a MutableUnion.
+   *
+   * @param rowType Row type
+   * @param inputs  Input relational expressions
+   * @param all     Whether the union result should include all rows or
+   *                eliminate duplicates from input relational expressions
+   */
   public static MutableUnion of(
       RelDataType rowType, List<MutableRel> inputs, boolean all) {
     assert inputs.size() >= 2;

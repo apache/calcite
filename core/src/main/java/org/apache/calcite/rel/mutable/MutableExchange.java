@@ -20,16 +20,21 @@ import org.apache.calcite.rel.RelDistribution;
 
 import java.util.Objects;
 
-/** Mutable equivalent of
- * {@link org.apache.calcite.rel.logical.LogicalExchange}. */
+/** Mutable equivalent of {@link org.apache.calcite.rel.core.Exchange}. */
 public class MutableExchange extends MutableSingleRel {
   public final RelDistribution distribution;
 
   private MutableExchange(MutableRel input, RelDistribution distribution) {
-    super(MutableRelType.EXCHANGE, input.getRowType(), input);
+    super(MutableRelType.EXCHANGE, input.rowType, input);
     this.distribution = distribution;
   }
 
+  /**
+   * Creates a MutableExchange.
+   *
+   * @param input         Input relational expression
+   * @param distribution  Distribution specification
+   */
   public static MutableExchange of(MutableRel input, RelDistribution distribution) {
     return new MutableExchange(input, distribution);
   }

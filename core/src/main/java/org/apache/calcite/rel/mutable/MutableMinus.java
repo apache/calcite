@@ -21,14 +21,21 @@ import org.apache.calcite.rel.type.RelDataType;
 
 import java.util.List;
 
-/** Mutable equivalent of
- * {@link org.apache.calcite.rel.logical.LogicalMinus}. */
+/** Mutable equivalent of {@link org.apache.calcite.rel.core.Minus}. */
 public class MutableMinus extends MutableSetOp {
   private MutableMinus(RelOptCluster cluster, RelDataType rowType,
       List<MutableRel> inputs, boolean all) {
     super(cluster, rowType, MutableRelType.MINUS, inputs, all);
   }
 
+  /**
+   * Creates a MutableMinus.
+   *
+   * @param rowType Row type
+   * @param inputs  Input relational expressions
+   * @param all     Whether to perform a multiset subtraction or a set
+   *                subtraction
+   */
   public static MutableMinus of(
       RelDataType rowType, List<MutableRel> inputs, boolean all) {
     assert inputs.size() >= 2;

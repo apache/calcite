@@ -20,16 +20,21 @@ import org.apache.calcite.plan.RelOptSamplingParameters;
 
 import java.util.Objects;
 
-/** Mutable equivalent of
- * {@link org.apache.calcite.rel.core.Sample}. */
+/** Mutable equivalent of {@link org.apache.calcite.rel.core.Sample}. */
 public class MutableSample extends MutableSingleRel {
   public final RelOptSamplingParameters params;
 
   private MutableSample(MutableRel input, RelOptSamplingParameters params) {
-    super(MutableRelType.SAMPLE, input.getRowType(), input);
+    super(MutableRelType.SAMPLE, input.rowType, input);
     this.params = params;
   }
 
+  /**
+   * Creates a MutableSample.
+   *
+   * @param input   Input relational expression
+   * @param params  parameters necessary to produce a sample of a relation
+   */
   public static MutableSample of(
       MutableRel input, RelOptSamplingParameters params) {
     return new MutableSample(input, params);

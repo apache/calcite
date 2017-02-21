@@ -27,7 +27,7 @@ import java.util.Objects;
 import java.util.Set;
 
 /** Mutable equivalent of
- * {@link org.apache.calcite.rel.logical.LogicalTableFunctionScan}. */
+ * {@link org.apache.calcite.rel.core.TableFunctionScan}. */
 public class MutableTableFunctionScan extends MutableMultiRel {
   public final RexNode rexCall;
   public final Type elementType;
@@ -42,6 +42,17 @@ public class MutableTableFunctionScan extends MutableMultiRel {
     this.columnMappings = columnMappings;
   }
 
+  /**
+   * Creates a MutableTableFunctionScan.
+   *
+   * @param cluster         Cluster that this relational expression belongs to
+   * @param rowType         Row type
+   * @param inputs          Input relational expressions
+   * @param rexCall         Function invocation expression
+   * @param elementType     Element type of the collection that will implement
+   *                        this table
+   * @param columnMappings  Column mappings associated with this function
+   */
   public static MutableTableFunctionScan of(RelOptCluster cluster,
       RelDataType rowType, List<MutableRel> inputs, RexNode rexCall,
       Type elementType, Set<RelColumnMapping> columnMappings) {

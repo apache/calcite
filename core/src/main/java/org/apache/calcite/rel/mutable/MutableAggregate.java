@@ -26,8 +26,7 @@ import com.google.common.collect.ImmutableList;
 import java.util.List;
 import java.util.Objects;
 
-/** Mutable equivalent of
- * {@link org.apache.calcite.rel.logical.LogicalAggregate}. */
+/** Mutable equivalent of {@link org.apache.calcite.rel.core.Aggregate}. */
 public class MutableAggregate extends MutableSingleRel {
   public final boolean indicator;
   public final ImmutableBitSet groupSet;
@@ -46,12 +45,23 @@ public class MutableAggregate extends MutableSingleRel {
     this.aggCalls = aggCalls;
   }
 
+  /**
+   * Creates a MutableAggregate.
+   *
+   * @param input     Input relational expression
+   * @param indicator Whether row type should include indicator fields to
+   *                  indicate which grouping set is active; must be true if
+   *                  aggregate is not simple
+   * @param groupSet  Bit set of grouping fields
+   * @param groupSets List of all grouping sets; null for just {@code groupSet}
+   * @param aggCalls  Collection of calls to aggregate functions
+   */
   public static MutableAggregate of(MutableRel input, boolean indicator,
       ImmutableBitSet groupSet, ImmutableList<ImmutableBitSet> groupSets,
       List<AggregateCall> aggCalls) {
     RelDataType rowType =
         Aggregate.deriveRowType(input.cluster.getTypeFactory(),
-            input.getRowType(), indicator, groupSet, groupSets, aggCalls);
+            input.rowType, indicator, groupSet, groupSets, aggCalls);
     return new MutableAggregate(input, rowType, indicator, groupSet,
         groupSets, aggCalls);
   }

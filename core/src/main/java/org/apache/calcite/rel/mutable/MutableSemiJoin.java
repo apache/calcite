@@ -22,8 +22,7 @@ import org.apache.calcite.util.ImmutableIntList;
 
 import java.util.Objects;
 
-/** Mutable equivalent of
- * {@link org.apache.calcite.rel.core.SemiJoin}. */
+/** Mutable equivalent of {@link org.apache.calcite.rel.core.SemiJoin}. */
 public class MutableSemiJoin extends MutableBiRel {
   public final RexNode condition;
   public final ImmutableIntList leftKeys;
@@ -42,6 +41,16 @@ public class MutableSemiJoin extends MutableBiRel {
     this.rightKeys = rightKeys;
   }
 
+  /**
+   * Creates a MutableSemiJoin.
+   *
+   * @param rowType   Row type
+   * @param left      Left input relational expression
+   * @param right     Right input relational expression
+   * @param condition Join condition
+   * @param leftKeys  Left join keys
+   * @param rightKeys Right join keys
+   */
   public static MutableSemiJoin of(RelDataType rowType, MutableRel left,
       MutableRel right, RexNode condition, ImmutableIntList leftKeys,
       ImmutableIntList rightKeys) {

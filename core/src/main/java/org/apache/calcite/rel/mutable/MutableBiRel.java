@@ -23,7 +23,7 @@ import com.google.common.collect.ImmutableList;
 
 import java.util.List;
 
-/** Base Class for relations with two inputs */
+/** Mutable equivalent of {@link org.apache.calcite.rel.BiRel}. */
 abstract class MutableBiRel extends MutableRel {
   protected MutableRel left;
   protected MutableRel right;

@@ -20,8 +20,7 @@ import org.apache.calcite.rex.RexProgram;
 
 import java.util.Objects;
 
-/** Mutable equivalent of
- * {@link org.apache.calcite.rel.logical.LogicalCalc}. */
+/** Mutable equivalent of {@link org.apache.calcite.rel.core.Calc}. */
 public class MutableCalc extends MutableSingleRel {
   public final RexProgram program;
 
@@ -30,6 +29,12 @@ public class MutableCalc extends MutableSingleRel {
     this.program = program;
   }
 
+  /**
+   * Creates a MutableCalc
+   *
+   * @param input   Input relational expression
+   * @param program Calc program
+   */
   public static MutableCalc of(MutableRel input, RexProgram program) {
     return new MutableCalc(input, program);
   }

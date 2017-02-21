@@ -20,16 +20,22 @@ import org.apache.calcite.rex.RexNode;
 
 import java.util.Objects;
 
-/** Mutable equivalent of
- * {@link org.apache.calcite.rel.logical.LogicalFilter}. */
+/** Mutable equivalent of {@link org.apache.calcite.rel.core.Filter}. */
 public class MutableFilter extends MutableSingleRel {
   public final RexNode condition;
 
   private MutableFilter(MutableRel input, RexNode condition) {
-    super(MutableRelType.FILTER, input.getRowType(), input);
+    super(MutableRelType.FILTER, input.rowType, input);
     this.condition = condition;
   }
 
+  /**
+   * Creates a MutableFilter.
+   *
+   * @param input     Input relational expression
+   * @param condition Boolean expression which determines whether a row is
+   *                  allowed to pass
+   */
   public static MutableFilter of(MutableRel input, RexNode condition) {
     return new MutableFilter(input, condition);
   }

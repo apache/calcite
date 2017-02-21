@@ -16,14 +16,13 @@
  */
 package org.apache.calcite.rel.mutable;
 
-import org.apache.calcite.rel.SingleRel;
 import org.apache.calcite.rel.type.RelDataType;
 
 import com.google.common.collect.ImmutableList;
 
 import java.util.List;
 
-/** Mutable equivalent of {@link SingleRel}. */
+/** Mutable equivalent of {@link org.apache.calcite.rel.SingleRel}. */
 abstract class MutableSingleRel extends MutableRel {
   protected MutableRel input;
 

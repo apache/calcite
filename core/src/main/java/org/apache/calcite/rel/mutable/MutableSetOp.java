@@ -22,7 +22,7 @@ import org.apache.calcite.rel.type.RelDataType;
 import java.util.List;
 import java.util.Objects;
 
-/** Base class for set-operations. */
+/** Mutable equivalent of {@link org.apache.calcite.rel.core.SetOp}. */
 abstract class MutableSetOp extends MutableMultiRel {
   protected final boolean all;
 

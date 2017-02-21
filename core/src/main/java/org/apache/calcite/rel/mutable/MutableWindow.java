@@ -23,8 +23,7 @@ import org.apache.calcite.rex.RexLiteral;
 import java.util.List;
 import java.util.Objects;
 
-/** Mutable equivalent of
- * {@link org.apache.calcite.rel.logical.LogicalWindow}. */
+/** Mutable equivalent of {@link org.apache.calcite.rel.core.Window}. */
 public class MutableWindow extends MutableSingleRel {
   public final List<Group> groups;
   public final List<RexLiteral> constants;
@@ -36,6 +35,14 @@ public class MutableWindow extends MutableSingleRel {
     this.constants = constants;
   }
 
+  /**
+   * Creates a MutableWindow.
+   *
+   * @param rowType   Row type
+   * @param input     Input relational expression
+   * @param groups    Window groups
+   * @param constants List of constants that are additional inputs
+   */
   public static MutableWindow of(RelDataType rowType,
       MutableRel input, List<Group> groups, List<RexLiteral> constants) {
     return new MutableWindow(rowType, input, groups, constants);

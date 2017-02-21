@@ -22,6 +22,7 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
 
 import com.google.common.base.Equivalence;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
 import java.util.List;
@@ -39,31 +40,6 @@ import java.util.List;
  * operations, and transcribe back to {@code RelNode} when you are done.</p>
  */
 public abstract class MutableRel {
-
-  /** Type of {@code MutableRel}. */
-  enum MutableRelType {
-    AGGREGATE,
-    CALC,
-    COLLECT,
-    CORRELATE,
-    EXCHANGE,
-    FILTER,
-    INTERSECT,
-    JOIN,
-    MINUS,
-    PROJECT,
-    SAMPLE,
-    SEMIJOIN,
-    SORT,
-    TABLE_FUNCTION_SCAN,
-    TABLE_MODIFY,
-    TABLE_SCAN,
-    UNCOLLECT,
-    UNION,
-    VALUES,
-    WINDOW,
-    HOLDER
-  }
 
   /** Equivalence that compares objects by their {@link Object#toString()}
    * method. */
@@ -84,26 +60,18 @@ public abstract class MutableRel {
   protected static final Equivalence<List<?>> PAIRWISE_STRING_EQUIVALENCE =
       (Equivalence) STRING_EQUIVALENCE.pairwise();
 
+  public final RelOptCluster cluster;
+  public final RelDataType rowType;
   protected final MutableRelType type;
-  protected final RelOptCluster cluster;
-  protected final RelDataType rowType;
 
   protected MutableRel parent;
   protected int ordinalInParent;
 
   protected MutableRel(RelOptCluster cluster,
       RelDataType rowType, MutableRelType type) {
-    this.cluster = cluster;
-    this.rowType = rowType;
-    this.type = type;
-  }
-
-  public RelOptCluster getCluster() {
-    return cluster;
-  }
-
-  public RelDataType getRowType() {
-    return rowType;
+    this.cluster = Preconditions.checkNotNull(cluster);
+    this.rowType = Preconditions.checkNotNull(rowType);
+    this.type = Preconditions.checkNotNull(type);
   }
 
   public MutableRel getParent() {

@@ -80,9 +80,9 @@ public class MaterializedViewSubstitutionVisitor extends SubstitutionVisitor {
       final MutableProject query = (MutableProject) call.query;
 
       final List<RelDataTypeField> oldFieldList =
-          query.getInput().getRowType().getFieldList();
+          query.getInput().rowType.getFieldList();
       final List<RelDataTypeField> newFieldList =
-          call.target.getRowType().getFieldList();
+          call.target.rowType.getFieldList();
       List<RexNode> newProjects;
       try {
         newProjects = transformRex(query.projects, oldFieldList, newFieldList);
@@ -91,8 +91,7 @@ public class MaterializedViewSubstitutionVisitor extends SubstitutionVisitor {
       }
 
       final MutableProject newProject =
-          MutableProject.of(
-              query.getRowType(), call.target, newProjects);
+          MutableProject.of(query.rowType, call.target, newProjects);
 
       final MutableRel newProject2 = MutableRels.strip(newProject);
       return call.result(newProject2);
@@ -114,8 +113,8 @@ public class MaterializedViewSubstitutionVisitor extends SubstitutionVisitor {
             RexNode newCondition;
             try {
               newCondition = transformRex(innerFilter.condition,
-                  innerFilter.getInput().getRowType().getFieldList(),
-                  target.getRowType().getFieldList());
+                  innerFilter.getInput().rowType.getFieldList(),
+                  target.rowType.getFieldList());
             } catch (MatchFailed e) {
               return null;
             }
@@ -207,22 +206,21 @@ public class MaterializedViewSubstitutionVisitor extends SubstitutionVisitor {
       final MutableRel query = call.query;
 
       final List<RelDataTypeField> oldFieldList =
-          query.getRowType().getFieldList();
+          query.rowType.getFieldList();
       final List<RelDataTypeField> newFieldList =
-          call.target.getRowType().getFieldList();
+          call.target.rowType.getFieldList();
       List<RexNode> newProjects;
       try {
         newProjects = transformRex(
             (List<RexNode>) call.getCluster().getRexBuilder().identityProjects(
-                query.getRowType()),
+                query.rowType),
             oldFieldList, newFieldList);
       } catch (MatchFailed e) {
         return null;
       }
 
       final MutableProject newProject =
-          MutableProject.of(
-              query.getRowType(), call.target, newProjects);
+          MutableProject.of(query.rowType, call.target, newProjects);
 
       final MutableRel newProject2 = MutableRels.strip(newProject);
       return call.result(newProject2);
@@ -239,8 +237,8 @@ public class MaterializedViewSubstitutionVisitor extends SubstitutionVisitor {
             RexNode newCondition;
             try {
               newCondition = transformRex(filter.condition,
-                  filter.getInput().getRowType().getFieldList(),
-                  target.getRowType().getFieldList());
+                  filter.getInput().rowType.getFieldList(),
+                  target.rowType.getFieldList());
             } catch (MatchFailed e) {
               return null;
             }

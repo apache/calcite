@@ -209,7 +209,7 @@ public class MutableRelTest {
     // Check if the mutable rel's row-type is identical to the original
     // rel's row-type.
     final RelDataType origRelType = origRel.getRowType();
-    final RelDataType mutableRelType = mutableRel.getRowType();
+    final RelDataType mutableRelType = mutableRel.rowType;
     final String msg2 =
         "Mutable rel's row type does not match with the original rel.\n"
         + "Original rel type: " + origRelType

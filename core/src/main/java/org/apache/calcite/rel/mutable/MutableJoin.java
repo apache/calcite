@@ -24,8 +24,7 @@ import org.apache.calcite.rex.RexNode;
 import java.util.Objects;
 import java.util.Set;
 
-/** Mutable equivalent of
- * {@link org.apache.calcite.rel.logical.LogicalJoin}. */
+/** Mutable equivalent of {@link org.apache.calcite.rel.core.Join}. */
 public class MutableJoin extends MutableBiRel {
   public final RexNode condition;
   public final Set<CorrelationId> variablesSet;
@@ -44,6 +43,18 @@ public class MutableJoin extends MutableBiRel {
     this.joinType = joinType;
   }
 
+  /**
+   * Creates a MutableJoin.
+   *
+   * @param rowType           Row type
+   * @param left              Left input relational expression
+   * @param right             Right input relational expression
+   * @param condition         Join condition
+   * @param joinType          Join type
+   * @param variablesStopped  Set of variables that are set by the LHS and
+   *                          used by the RHS and are not available to
+   *                          nodes above this join in the tree
+   */
   public static MutableJoin of(RelDataType rowType, MutableRel left,
       MutableRel right, RexNode condition, JoinRelType joinType,
       Set<CorrelationId> variablesStopped) {
