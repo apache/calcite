@@ -27,7 +27,7 @@ import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.SqlUnresolvedFunction;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.validate.SqlConformance;
-import org.apache.calcite.util.Util;
+import org.apache.calcite.util.Glossary;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -339,8 +339,9 @@ public abstract class SqlAbstractParserImpl {
   //~ Methods ----------------------------------------------------------------
 
   /**
-   * @return immutable set of all reserved words defined by SQL-92
-   * @sql.92 Section 5.2
+   * Returns immutable set of all reserved words defined by SQL-92.
+   *
+   * @see Glossary#SQL92 SQL-92 Section 5.2
    */
   public static Set<String> getSql92ReservedWords() {
     return SQL_92_RESERVED_WORD_SET;
@@ -589,8 +590,7 @@ public abstract class SqlAbstractParserImpl {
       parserImpl.ReInit(new StringReader("1"));
       try {
         Object o = virtualCall(parserImpl, name);
-        Util.discard(o);
-        throw Util.newInternal("expected call to fail");
+        throw new AssertionError("expected call to fail, got " + o);
       } catch (SqlParseException parseException) {
         // First time through, build the list of all tokens.
         final String[] tokenImages = parseException.getTokenImages();
@@ -617,9 +617,7 @@ public abstract class SqlAbstractParserImpl {
           }
         }
       } catch (Throwable e) {
-        throw Util.newInternal(
-            e,
-            "Unexpected error while building token lists");
+        throw new RuntimeException("While building token lists", e);
       }
     }
 
@@ -638,10 +636,6 @@ public abstract class SqlAbstractParserImpl {
       try {
         final Method method = clazz.getMethod(name, (Class[]) null);
         return method.invoke(parserImpl, (Object[]) null);
-      } catch (NoSuchMethodException e) {
-        throw Util.newInternal(e);
-      } catch (IllegalAccessException e) {
-        throw Util.newInternal(e);
       } catch (InvocationTargetException e) {
         Throwable cause = e.getCause();
         throw parserImpl.normalizeException(cause);

@@ -61,6 +61,8 @@ import static org.hamcrest.CoreMatchers.endsWith;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
+import static org.hamcrest.CoreMatchers.sameInstance;
+import static org.hamcrest.core.IsNot.not;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
@@ -733,9 +735,10 @@ public class Linq4jTest {
 
   @SuppressWarnings("UnnecessaryBoxing")
   @Test public void testIdentityEqualityComparer() {
-    final Integer one = new Integer(1);
-    final Integer one2 = new Integer(1);
-    final Integer two = new Integer(2);
+    final Integer one = 1000;
+    final Integer one2 = Integer.valueOf(one.toString());
+    assertThat(one, not(sameInstance(one2)));
+    final Integer two = 2;
     final EqualityComparer<Integer> idComparer = Functions.identityComparer();
     assertTrue(idComparer.equal(one, one));
     assertTrue(idComparer.equal(one, one2));

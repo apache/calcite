@@ -19,7 +19,6 @@ package org.apache.calcite.avatica.remote;
 import org.apache.calcite.avatica.AvaticaUtils;
 import org.apache.calcite.avatica.Meta;
 import org.apache.calcite.avatica.Meta.ExecuteBatchResult;
-import org.apache.calcite.avatica.MetaImpl;
 import org.apache.calcite.avatica.MissingResultsException;
 import org.apache.calcite.avatica.NoSuchStatementException;
 import org.apache.calcite.avatica.metrics.MetricsSystem;
@@ -28,7 +27,6 @@ import org.apache.calcite.avatica.metrics.Timer.Context;
 import org.apache.calcite.avatica.metrics.noop.NoopMetricsSystem;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
@@ -125,8 +123,6 @@ public class LocalService implements Service {
         }
       }
     } else {
-      //noinspection unchecked
-      list = (List<Object>) (List) list2(resultSet);
       cursorFactory = Meta.CursorFactory.LIST;
     }
 
@@ -136,16 +132,6 @@ public class LocalService implements Service {
 
     return new ResultSetResponse(resultSet.connectionId, resultSet.statementId,
         resultSet.ownStatement, signature, frame, updateCount, serverLevelRpcMetadata);
-  }
-
-  private List<List<Object>> list2(Meta.MetaResultSet resultSet) {
-    final Meta.StatementHandle h = new Meta.StatementHandle(
-        resultSet.connectionId, resultSet.statementId, null);
-    final List<TypedValue> parameterValues = Collections.emptyList();
-    final Iterable<Object> iterable = meta.createIterable(h, null,
-        resultSet.signature, parameterValues, resultSet.firstFrame);
-    final List<List<Object>> list = new ArrayList<>();
-    return MetaImpl.collect(resultSet.signature.cursorFactory, iterable, list);
   }
 
   public ResultSetResponse apply(CatalogsRequest request) {
@@ -202,7 +188,7 @@ public class LocalService implements Service {
   }
 
   public PrepareResponse apply(PrepareRequest request) {
-    try (final Context ctx = prepareTimer.start()) {
+    try (final Context ignore = prepareTimer.start()) {
       final Meta.ConnectionHandle ch =
           new Meta.ConnectionHandle(request.connectionId);
       final Meta.StatementHandle h =
@@ -212,7 +198,7 @@ public class LocalService implements Service {
   }
 
   public ExecuteResponse apply(PrepareAndExecuteRequest request) {
-    try (final Context ctx = prepareAndExecuteTimer.start()) {
+    try (final Context ignore = prepareAndExecuteTimer.start()) {
       final Meta.StatementHandle sh =
           new Meta.StatementHandle(request.connectionId, request.statementId, null);
       try {
@@ -263,7 +249,7 @@ public class LocalService implements Service {
   }
 
   public ExecuteResponse apply(ExecuteRequest request) {
-    try (final Context ctx = executeTimer.start()) {
+    try (final Context ignore = executeTimer.start()) {
       try {
         final Meta.ExecuteResult executeResult = meta.execute(request.statementHandle,
             request.parameterValues, AvaticaUtils.toSaturatedInt(request.maxRowCount));
@@ -308,7 +294,7 @@ public class LocalService implements Service {
   }
 
   public ConnectionSyncResponse apply(ConnectionSyncRequest request) {
-    try (final Context ctx = connectionSyncTimer.start()) {
+    try (final Context ignore = connectionSyncTimer.start()) {
       final Meta.ConnectionHandle ch =
           new Meta.ConnectionHandle(request.connectionId);
       final Meta.ConnectionProperties connProps =
@@ -340,7 +326,7 @@ public class LocalService implements Service {
   }
 
   public CommitResponse apply(CommitRequest request) {
-    try (final Context ctx = commitTimer.start()) {
+    try (final Context ignore = commitTimer.start()) {
       meta.commit(new Meta.ConnectionHandle(request.connectionId));
 
       // If commit() errors, let the ErrorResponse be sent back via an uncaught Exception.

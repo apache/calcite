@@ -49,6 +49,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Multimap;
 
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -62,7 +63,7 @@ import java.util.Map;
  */
 public class ReflectiveSchema
     extends AbstractSchema {
-  final Class clazz;
+  private final Class clazz;
   private Object target;
 
   /**
@@ -148,7 +149,7 @@ public class ReflectiveSchema
     }
     @SuppressWarnings("unchecked")
     final Enumerable<T> enumerable = toEnumerable(o);
-    return new FieldTable<T>(field, elementType, enumerable);
+    return new FieldTable<>(field, elementType, enumerable);
   }
 
   /** Deduces the element type of a collection;
@@ -185,7 +186,7 @@ public class ReflectiveSchema
     private final Type elementType;
     private final Enumerable enumerable;
 
-    public ReflectiveTable(Type elementType, Enumerable enumerable) {
+    ReflectiveTable(Type elementType, Enumerable enumerable) {
       super(elementType);
       this.elementType = elementType;
       this.enumerable = enumerable;
@@ -254,7 +255,7 @@ public class ReflectiveSchema
   public static class Factory implements SchemaFactory {
     public Schema create(SchemaPlus parentSchema, String name,
         Map<String, Object> operand) {
-      Class clazz;
+      Class<?> clazz;
       Object target;
       final Object className = operand.get("class");
       if (className != null) {
@@ -277,7 +278,8 @@ public class ReflectiveSchema
         }
       } else {
         try {
-          target = clazz.newInstance();
+          final Constructor<?> constructor = clazz.getConstructor();
+          target = constructor.newInstance();
         } catch (Exception e) {
           throw new RuntimeException("Error instantiating class " + className,
               e);
@@ -292,7 +294,7 @@ public class ReflectiveSchema
       implements TableMacro {
     private final ReflectiveSchema schema;
 
-    public MethodTableMacro(ReflectiveSchema schema, Method method) {
+    MethodTableMacro(ReflectiveSchema schema, Method method) {
       super(method);
       this.schema = schema;
       assert TranslatableTable.class.isAssignableFrom(method.getReturnType())
@@ -308,9 +310,7 @@ public class ReflectiveSchema
       try {
         final Object o = method.invoke(schema.getTarget(), arguments.toArray());
         return (TranslatableTable) o;
-      } catch (IllegalAccessException e) {
-        throw new RuntimeException(e);
-      } catch (InvocationTargetException e) {
+      } catch (IllegalAccessException | InvocationTargetException e) {
         throw new RuntimeException(e);
       }
     }
@@ -320,7 +320,7 @@ public class ReflectiveSchema
   private static class FieldTable<T> extends ReflectiveTable {
     private final Field field;
 
-    public FieldTable(Field field, Type elementType, Enumerable<T> enumerable) {
+    FieldTable(Field field, Type elementType, Enumerable<T> enumerable) {
       super(elementType, enumerable);
       this.field = field;
     }
@@ -341,7 +341,7 @@ public class ReflectiveSchema
   private static class FieldSelector implements Function1<Object, Object[]> {
     private final Field[] fields;
 
-    public FieldSelector(Class elementType) {
+    FieldSelector(Class elementType) {
       this.fields = elementType.getFields();
     }
 

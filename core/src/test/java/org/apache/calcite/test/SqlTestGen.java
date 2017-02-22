@@ -24,7 +24,6 @@ import org.apache.calcite.sql.test.SqlTester;
 import org.apache.calcite.sql.test.SqlTesterImpl;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.util.BarfingInvocationHandler;
-import org.apache.calcite.util.Util;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -51,38 +50,20 @@ public class SqlTestGen {
   }
 
   private void genValidatorTest() {
-    FileOutputStream fos = null;
-    PrintWriter pw = null;
-    try {
-      File file = new File("validatorTest.sql");
-      fos = new FileOutputStream(file);
-      pw = new PrintWriter(fos);
+    final File file = new File("validatorTest.sql");
+    try (FileOutputStream fos = new FileOutputStream(file);
+         PrintWriter pw = new PrintWriter(fos)) {
       Method[] methods = getJunitMethods(SqlValidatorSpooler.class);
       for (Method method : methods) {
         final SqlValidatorSpooler test = new SqlValidatorSpooler(pw);
         final Object result = method.invoke(test);
         assert result == null;
       }
-    } catch (IOException e) {
-      throw Util.newInternal(e);
-    } catch (IllegalAccessException e) {
-      throw Util.newInternal(e);
-    } catch (IllegalArgumentException e) {
-      throw Util.newInternal(e);
+    } catch (IOException | IllegalAccessException
+        | IllegalArgumentException e) {
+      throw new RuntimeException(e);
     } catch (InvocationTargetException e) {
-      e.printStackTrace();
-      throw Util.newInternal(e);
-    } finally {
-      if (pw != null) {
-        pw.flush();
-      }
-      if (fos != null) {
-        try {
-          fos.close();
-        } catch (IOException e) {
-          throw Util.newInternal(e);
-        }
-      }
+      throw new RuntimeException(e.getCause());
     }
   }
 
@@ -90,7 +71,7 @@ public class SqlTestGen {
    * Returns a list of all of the Junit methods in a given class.
    */
   private static Method[] getJunitMethods(Class<SqlValidatorSpooler> clazz) {
-    List<Method> list = new ArrayList<Method>();
+    List<Method> list = new ArrayList<>();
     for (Method method : clazz.getMethods()) {
       if (method.getName().startsWith("test")
           && Modifier.isPublic(method.getModifiers())

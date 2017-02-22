@@ -909,7 +909,7 @@ public interface Meta {
     }
 
     @JsonCreator
-    public static Frame create(@JsonProperty("offset") int offset,
+    public static Frame create(@JsonProperty("offset") long offset,
         @JsonProperty("done") boolean done,
         @JsonProperty("rows") List<Object> rows) {
       if (offset == 0 && done && rows.isEmpty()) {

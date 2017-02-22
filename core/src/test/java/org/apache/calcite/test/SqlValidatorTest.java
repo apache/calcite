@@ -4430,6 +4430,36 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .fails("Column 'DEPTNO' is ambiguous");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1535">[CALCITE-1535]
+   * Give error if column referenced in ORDER BY is ambiguous</a>. */
+  @Test public void testOrderByColumn() {
+    sql("select emp.deptno from emp, dept order by emp.deptno")
+        .ok();
+    // Not ambiguous. There are two columns which could be referenced as
+    // "deptno", but the one in the SELECT clause takes priority.
+    sql("select emp.deptno from emp, dept order by deptno")
+        .ok();
+    sql("select emp.deptno as deptno from emp, dept order by deptno")
+        .ok();
+    sql("select emp.empno as deptno from emp, dept order by deptno")
+        .ok();
+    sql("select emp.deptno as n, dept.deptno as n from emp, dept order by ^n^")
+        .fails("Column 'N' is ambiguous");
+    sql("select emp.empno as deptno, dept.deptno from emp, dept\n"
+        + "order by ^deptno^")
+        .fails("Column 'DEPTNO' is ambiguous");
+    sql("select emp.empno as deptno, dept.deptno from emp, dept\n"
+        + "order by emp.deptno")
+        .ok();
+    sql("select emp.empno as deptno, dept.deptno from emp, dept order by 1, 2")
+        .ok();
+    sql("select empno as \"deptno\", deptno from emp order by deptno")
+        .ok();
+    sql("select empno as \"deptno\", deptno from emp order by \"deptno\"")
+        .ok();
+  }
+
   @Test public void testWindowNegative() {
     // Do not fail when window has negative size. Allow
     final String negSize = null;
@@ -4661,7 +4691,11 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
    */
   @Test public void testStarInFromFails() {
     sql("select emp.empno AS x from ^sales.*^")
-        .fails("Table 'SALES.\\*' not found");
+        .fails("Object '\\*' not found within 'SALES'");
+    sql("select * from ^emp.*^")
+        .fails("Object '\\*' not found within 'SALES.EMP'");
+    sql("select emp.empno AS x from ^emp.*^")
+        .fails("Object '\\*' not found within 'SALES.EMP'");
     sql("select emp.empno from emp where emp.^*^ is not null")
         .fails("Unknown field '\\*'");
   }
@@ -5552,14 +5586,14 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         "with emp3 as (select * from ^emp2^),\n"
             + " emp2 as (select * from emp)\n"
             + "select * from emp3",
-        "Table 'EMP2' not found");
+        "Object 'EMP2' not found");
 
     // forward reference in with-item not used; should still fail
     checkFails(
         "with emp3 as (select * from ^emp2^),\n"
             + " emp2 as (select * from emp)\n"
             + "select * from emp2",
-        "Table 'EMP2' not found");
+        "Object 'EMP2' not found");
 
     // table not used is ok
     checkResultType(
@@ -5572,11 +5606,11 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     checkFails("with emp2 as (select * from emp),\n"
             + " emp3 as (select * from ^emp3^)\n"
             + "values (1)",
-        "Table 'EMP3' not found");
+        "Object 'EMP3' not found");
 
     // self-reference not ok
     checkFails("with emp2 as (select * from ^emp2^)\n"
-        + "select * from emp2 where false", "Table 'EMP2' not found");
+        + "select * from emp2 where false", "Object 'EMP2' not found");
 
     // refer to 2 previous tables, not just immediately preceding
     checkResultType("with emp2 as (select * from emp),\n"
@@ -7097,7 +7131,10 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
             + " BOOLEAN NOT NULL SLACKER) NOT NULL";
     checkResultType("select * from (table emp)", empRecordType);
     checkResultType("table emp", empRecordType);
-    checkFails("table ^nonexistent^", "Table 'NONEXISTENT' not found");
+    checkFails("table ^nonexistent^", "Object 'NONEXISTENT' not found");
+    checkFails("table ^sales.nonexistent^",
+        "Object 'NONEXISTENT' not found within 'SALES'");
+    checkFails("table ^nonexistent.foo^", "Object 'NONEXISTENT' not found");
   }
 
   @Test public void testCollectionTable() {
@@ -7162,7 +7199,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         "RecordType(VARCHAR(1024) NOT NULL NAME) NOT NULL");
     checkFails(
         "select * from table(dedup(cursor(select * from ^bloop^),'ename'))",
-        "Table 'BLOOP' not found");
+        "Object 'BLOOP' not found");
   }
 
   @Test public void testScalarSubQuery() {
@@ -7368,9 +7405,9 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   @Test public void testRewriteWithColumnReferenceExpansion() {
-    // NOTE jvs 9-Apr-2007:  This tests illustrates that
-    // ORDER BY is still a special case.  Update expected
-    // output if that gets fixed in the future.
+    // The names in the ORDER BY clause are not qualified.
+    // This is because ORDER BY references columns in the SELECT clause
+    // in preference to columns in tables in the FROM clause.
 
     SqlValidator validator = tester.getValidator();
     validator.setIdentifierExpansion(true);
@@ -7388,25 +7425,27 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   @Test public void testRewriteWithColumnReferenceExpansionAndFromAlias() {
-    // NOTE jvs 9-Apr-2007:  This tests illustrates that
-    // ORDER BY is still a special case.  Update expected
-    // output if that gets fixed in the future.
+    // In the ORDER BY clause, 'ename' is not qualified but 'deptno' and 'sal'
+    // are. This is because 'ename' appears as an alias in the SELECT clause.
+    // 'sal' is qualified in the ORDER BY clause, so remains qualified.
 
     SqlValidator validator = tester.getValidator();
     validator.setIdentifierExpansion(true);
     validator.setColumnReferenceExpansion(true);
     tester.checkRewrite(
         validator,
-        "select name from (select * from dept)"
-            + " where name = 'Moonracer' group by name"
-            + " having sum(deptno) > 3 order by name",
-        "SELECT `EXPR$0`.`NAME`\n"
-            + "FROM (SELECT `DEPT`.`DEPTNO`, `DEPT`.`NAME`\n"
-            + "FROM `CATALOG`.`SALES`.`DEPT` AS `DEPT`) AS `EXPR$0`\n"
-            + "WHERE `EXPR$0`.`NAME` = 'Moonracer'\n"
-            + "GROUP BY `EXPR$0`.`NAME`\n"
-            + "HAVING SUM(`EXPR$0`.`DEPTNO`) > 3\n"
-            + "ORDER BY `NAME`");
+        "select ename, sal from (select * from emp) as e"
+            + " where ename = 'Moonracer' group by ename, deptno, sal"
+            + " having sum(deptno) > 3 order by ename, deptno, e.sal",
+        "SELECT `E`.`ENAME`, `E`.`SAL`\n"
+            + "FROM (SELECT `EMP`.`EMPNO`, `EMP`.`ENAME`, `EMP`.`JOB`,"
+            + " `EMP`.`MGR`, `EMP`.`HIREDATE`, `EMP`.`SAL`, `EMP`.`COMM`,"
+            + " `EMP`.`DEPTNO`, `EMP`.`SLACKER`\n"
+            + "FROM `CATALOG`.`SALES`.`EMP` AS `EMP`) AS `E`\n"
+            + "WHERE `E`.`ENAME` = 'Moonracer'\n"
+            + "GROUP BY `E`.`ENAME`, `E`.`DEPTNO`, `E`.`SAL`\n"
+            + "HAVING SUM(`E`.`DEPTNO`) > 3\n"
+            + "ORDER BY `ENAME`, `E`.`DEPTNO`, `E`.`SAL`");
   }
 
   @Test public void testCoalesceWithoutRewrite() {
@@ -7483,11 +7522,16 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
 
     tester1.checkQueryFails(
         "select ^e^.EMPNO from [EMP] as [e]",
-        "Table 'E' not found");
+        "Table 'E' not found; did you mean 'e'\\?");
 
     tester1.checkQueryFails(
         "select ^x^ from (\n"
             + "  select [e].EMPNO as [x] from [EMP] as [e])",
+        "Column 'X' not found in any table; did you mean 'x'\\?");
+
+    tester1.checkQueryFails(
+        "select ^x^ from (\n"
+            + "  select [e].EMPNO as [x ] from [EMP] as [e])",
         "Column 'X' not found in any table");
 
     tester1.checkQueryFails("select EMP.^\"x\"^ from EMP",
@@ -7506,15 +7550,20 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
 
     tester1.checkQueryFails(
         "select ^e^.EMPNO from EMP as E",
-        "Table 'e' not found");
+        "Table 'e' not found; did you mean 'E'\\?");
 
     tester1.checkQueryFails(
         "select ^E^.EMPNO from EMP as e",
-        "Table 'E' not found");
+        "Table 'E' not found; did you mean 'e'\\?");
 
     tester1.checkQueryFails(
         "select ^x^ from (\n"
             + "  select e.EMPNO as X from EMP as e)",
+        "Column 'x' not found in any table; did you mean 'X'\\?");
+
+    tester1.checkQueryFails(
+        "select ^x^ from (\n"
+            + "  select e.EMPNO as Xx from EMP as e)",
         "Column 'x' not found in any table");
 
     // double-quotes are not valid in this lexical convention
@@ -7546,15 +7595,15 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         "RecordType(INTEGER NOT NULL path, INTEGER NOT NULL x) NOT NULL");
     tester1.checkFails(
         "select ^PATH^ from (select 1 as path from (values (true)))",
-        "Column 'PATH' not found in any table",
+        "Column 'PATH' not found in any table; did you mean 'path'\\?",
         false);
     tester1.checkFails(
         "select t.^PATH^ from (select 1 as path from (values (true))) as t",
-        "Column 'PATH' not found in table 't'",
+        "Column 'PATH' not found in table 't'; did you mean 'path'\\?",
         false);
     tester1.checkQueryFails(
         "select t.x, t.^PATH^ from (values (true, 1)) as t(path, x)",
-        "Column 'PATH' not found in table 't'");
+        "Column 'PATH' not found in table 't'; did you mean 'path'\\?");
 
     // Built-in functions can be written in any case, even those with no args,
     // and regardless of spaces between function name and open parenthesis.
@@ -7598,7 +7647,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     tester2.checkQueryFails(
         "select * from emp as [e] where exists (\n"
             + "select 1 from dept where dept.deptno = ^[E]^.deptno)",
-        "(?s).*Table 'E' not found");
+        "(?s).*Table 'E' not found; did you mean 'e'\\?");
 
     checkFails("select count(1), ^empno^ from emp",
         "Expression 'EMPNO' is not being grouped");
@@ -7641,6 +7690,91 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "  select 1 from dept\n"
         + "  group by eMp.deptno)");
     tester1.checkQuery("select deptno, count(*) from EMP group by DEPTNO");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1549">[CALCITE-1549]
+   * Improve error message when table or column not found</a>. */
+  @Test public void testTableNotFoundDidYouMean() {
+    // No table in default schema
+    tester.checkQueryFails("select * from ^unknownTable^",
+        "Object 'UNKNOWNTABLE' not found");
+
+    // Similar table exists in default schema
+    tester.checkQueryFails("select * from ^\"Emp\"^",
+        "Object 'Emp' not found within 'SALES'; did you mean 'EMP'\\?");
+
+    // Schema correct, but no table in specified schema
+    tester.checkQueryFails("select * from ^sales.unknownTable^",
+        "Object 'UNKNOWNTABLE' not found within 'SALES'");
+    // Similar table exists in specified schema
+    tester.checkQueryFails("select * from ^sales.\"Emp\"^",
+        "Object 'Emp' not found within 'SALES'; did you mean 'EMP'\\?");
+
+    // No schema found
+    tester.checkQueryFails("select * from ^unknownSchema.unknownTable^",
+        "Object 'UNKNOWNSCHEMA' not found");
+    // Similar schema found
+    tester.checkQueryFails("select * from ^\"sales\".emp^",
+        "Object 'sales' not found; did you mean 'SALES'\\?");
+    tester.checkQueryFails("select * from ^\"saLes\".\"eMp\"^",
+        "Object 'saLes' not found; did you mean 'SALES'\\?");
+
+    // Spurious after table
+    tester.checkQueryFails("select * from ^emp.foo^",
+        "Object 'FOO' not found within 'SALES\\.EMP'");
+    tester.checkQueryFails("select * from ^sales.emp.foo^",
+        "Object 'FOO' not found within 'SALES\\.EMP'");
+
+    // Alias not found
+    tester.checkQueryFails("select ^aliAs^.\"name\"\n"
+            + "from sales.emp as \"Alias\"",
+        "Table 'ALIAS' not found; did you mean 'Alias'\\?");
+    // Alias not found, fully-qualified
+    tester.checkQueryFails("select ^sales.\"emp\"^.\"name\" from sales.emp",
+        "Table 'SALES\\.emp' not found; did you mean 'EMP'\\?");
+  }
+
+  @Test public void testColumnNotFoundDidYouMean() {
+    // Column not found
+    tester.checkQueryFails("select ^\"unknownColumn\"^ from emp",
+        "Column 'unknownColumn' not found in any table");
+    // Similar column in table, unqualified table name
+    tester.checkQueryFails("select ^\"empNo\"^ from emp",
+        "Column 'empNo' not found in any table; did you mean 'EMPNO'\\?");
+    // Similar column in table, table name qualified with schema
+    tester.checkQueryFails("select ^\"empNo\"^ from sales.emp",
+        "Column 'empNo' not found in any table; did you mean 'EMPNO'\\?");
+    // Similar column in table, table name qualified with catalog and schema
+    tester.checkQueryFails("select ^\"empNo\"^ from catalog.sales.emp",
+        "Column 'empNo' not found in any table; did you mean 'EMPNO'\\?");
+    // With table alias
+    tester.checkQueryFails("select e.^\"empNo\"^ from catalog.sales.emp as e",
+        "Column 'empNo' not found in table 'E'; did you mean 'EMPNO'\\?");
+    // With fully-qualified table alias
+    tester.checkQueryFails("select catalog.sales.emp.^\"empNo\"^\n"
+            + "from catalog.sales.emp",
+        "Column 'empNo' not found in table 'CATALOG\\.SALES\\.EMP'; "
+            + "did you mean 'EMPNO'\\?");
+    // Similar column in table; multiple tables
+    tester.checkQueryFails("select ^\"name\"^ from emp, dept",
+        "Column 'name' not found in any table; did you mean 'NAME'\\?");
+    // Similar column in table; table and a query
+    tester.checkQueryFails("select ^\"name\"^ from emp,\n"
+            + "  (select * from dept) as d",
+        "Column 'name' not found in any table; did you mean 'NAME'\\?");
+    // Similar column in table; table and an un-aliased query
+    tester.checkQueryFails("select ^\"name\"^ from emp, (select * from dept)",
+        "Column 'name' not found in any table; did you mean 'NAME'\\?");
+    // Similar column in table, multiple tables
+    tester.checkQueryFails("select ^\"deptno\"^ from emp,\n"
+            + "  (select deptno as \"deptNo\" from dept)",
+        "Column 'deptno' not found in any table; "
+            + "did you mean 'DEPTNO', 'deptNo'\\?");
+    tester.checkQueryFails("select ^\"deptno\"^ from emp,\n"
+            + "  (select * from dept) as t(\"deptNo\", name)",
+        "Column 'deptno' not found in any table; "
+            + "did you mean 'DEPTNO', 'deptNo'\\?");
   }
 
   /** Tests matching of built-in operator names. */
@@ -7931,40 +8065,89 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   @Test public void testInsert() {
-    tester.checkQuery("insert into emp (empno, deptno) values (1, 1)");
-    tester.checkQuery("insert into emp (empno, deptno)\n"
-        + "select 1, 1 from (values 'a')");
+    tester.checkQuery("insert into empnullables (empno, ename)\n"
+        + "values (1, 'Ambrosia')");
+    tester.checkQuery("insert into empnullables (empno, ename)\n"
+        + "select 1, 'Ardy' from (values 'a')");
+    final String sql = "insert into emp\n"
+        + "values (1, 'nom', 'job', 0, timestamp '1970-01-01 00:00:00', 1, 1,\n"
+        + "  1, false)";
+    tester.checkQuery(sql);
+    final String sql2 = "insert into emp (empno, ename, job, mgr, hiredate,\n"
+        + "  sal, comm, deptno, slacker)\n"
+        + "select 1, 'nom', 'job', 0, timestamp '1970-01-01 00:00:00',\n"
+        + "  1, 1, 1, false\n"
+        + "from (values 'a')";
+    tester.checkQuery(sql2);
+    tester.checkQuery("insert into empnullables (ename, empno, deptno)\n"
+        + "values ('Pat', 1, null)");
+
+    final String sql3 = "insert into empnullables (\n"
+        + "  empno, ename, job, hiredate)\n"
+        + "values (1, 'Jim', 'Baker', timestamp '1970-01-01 00:00:00')";
+    tester.checkQuery(sql3);
+
+    tester.checkQuery("insert into empnullables (empno, ename)\n"
+        + "select 1, 'b' from (values 'a')");
+
+    tester.checkQuery("insert into empnullables (empno, ename)\n"
+        + "values (1, 'Karl')");
+  }
+
+  @Test public void testInsertSubset() {
+    final SqlTester pragmaticTester =
+        tester.withConformance(SqlConformanceEnum.PRAGMATIC_2003);
+    final String sql1 = "insert into empnullables\n"
+        + "values (1, 'nom', 'job', 0, timestamp '1970-01-01 00:00:00')";
+    pragmaticTester.checkQuery(sql1);
+    final String sql2 = "insert into empnullables\n"
+        + "values (1, 'nom', null, 0, null)";
+    pragmaticTester.checkQuery(sql2);
+  }
+
+  @Test public void testInsertView() {
+    tester.checkQuery("insert into empnullables_20 (ename, empno, comm)\n"
+        + "values ('Karl', 1, 1)");
+  }
+
+  @Test public void testInsertSubsetView() {
+    final SqlTester pragmaticTester =
+        tester.withConformance(SqlConformanceEnum.PRAGMATIC_2003);
+    pragmaticTester.checkQuery("insert into empnullables_20\n"
+        + "values (1, 'Karl')");
   }
 
   @Test public void testInsertBind() {
     // VALUES
-    sql("insert into emp (empno, deptno) values (?, ?)")
-        .ok()
-        .bindType("RecordType(INTEGER ?0, INTEGER ?1)");
+    final String sql0 = "insert into empnullables (empno, ename, deptno)\n"
+        + "values (?, ?, ?)";
+    sql(sql0).ok()
+        .bindType("RecordType(INTEGER ?0, VARCHAR(20) ?1, INTEGER ?2)");
 
     // multiple VALUES
-    sql("insert into emp (empno, deptno) values (?, 1), (2, ?), (3, null)")
-        .ok()
-        .bindType("RecordType(INTEGER ?0, INTEGER ?1)");
+    final String sql1 = "insert into empnullables (empno, ename, deptno)\n"
+        + "values (?, 'Pat', 1), (2, ?, ?), (3, 'Tod', ?), (4, 'Arthur', null)";
+    sql(sql1).ok()
+        .bindType("RecordType(INTEGER ?0, VARCHAR(20) ?1, INTEGER ?2, INTEGER ?3)");
 
     // VALUES with expression
-    sql("insert into emp (ename, deptno) values (?, ? + 1)")
+    sql("insert into empnullables (ename, empno) values (?, ? + 1)")
         .ok()
         .bindType("RecordType(VARCHAR(20) ?0, INTEGER ?1)");
 
     // SELECT
-    sql("insert into emp (ename, deptno) select ?, ? from (values (1))")
-        .ok()
-        .bindType("RecordType(VARCHAR(20) ?0, INTEGER ?1)");
+    sql("insert into empnullables (ename, empno) select ?, ? from (values (1))")
+        .ok().bindType("RecordType(VARCHAR(20) ?0, INTEGER ?1)");
 
     // WITH
-    final String sql = "insert into emp (ename, deptno)\n"
+    final String sql3 = "insert into empnullables (ename, empno)\n"
         + "with v as (values ('a'))\n"
         + "select ?, ? from (values (1))";
-    sql(sql).ok().bindType("RecordType(VARCHAR(20) ?0, INTEGER ?1)");
+    sql(sql3).ok()
+        .bindType("RecordType(VARCHAR(20) ?0, INTEGER ?1)");
 
     // UNION
-    final String sql2 = "insert into emp (ename, deptno)\n"
+    final String sql2 = "insert into empnullables (ename, empno)\n"
         + "select ?, ? from (values (1))\n"
         + "union all\n"
         + "select ?, ? from (values (time '1:2:3'))";
@@ -7973,7 +8156,188 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     sql(sql2).ok().bindType(expected2);
   }
 
+  @Test public void testInsertBindSubset() {
+    final SqlTester pragmaticTester =
+        tester.withConformance(SqlConformanceEnum.PRAGMATIC_2003);
+    // VALUES
+    final String sql0 = "insert into empnullables \n"
+        + "values (?, ?, ?)";
+    sql(sql0).tester(pragmaticTester).ok()
+        .bindType("RecordType(INTEGER ?0, VARCHAR(20) ?1, VARCHAR(10) ?2)");
+
+    // multiple VALUES
+    final String sql1 = "insert into empnullables\n"
+        + "values (?, 'Pat', 'Tailor'), (2, ?, ?),\n"
+        + " (3, 'Tod', ?), (4, 'Arthur', null)";
+    sql(sql1).tester(pragmaticTester).ok()
+        .bindType("RecordType(INTEGER ?0, VARCHAR(20) ?1, VARCHAR(10) ?2, VARCHAR(10) ?3)");
+
+    // VALUES with expression
+    sql("insert into empnullables values (? + 1, ?)")
+        .tester(pragmaticTester)
+        .ok()
+        .bindType("RecordType(INTEGER ?0, VARCHAR(20) ?1)");
+
+    // SELECT
+    sql("insert into empnullables select ?, ? from (values (1))")
+        .tester(pragmaticTester)
+        .ok()
+        .bindType("RecordType(INTEGER ?0, VARCHAR(20) ?1)");
+
+    // WITH
+    final String sql3 = "insert into empnullables \n"
+        + "with v as (values ('a'))\n"
+        + "select ?, ? from (values (1))";
+    sql(sql3).tester(pragmaticTester).ok()
+        .bindType("RecordType(INTEGER ?0, VARCHAR(20) ?1)");
+
+    // UNION
+    final String sql2 = "insert into empnullables \n"
+        + "select ?, ? from (values (1))\n"
+        + "union all\n"
+        + "select ?, ? from (values (time '1:2:3'))";
+    final String expected2 = "RecordType(INTEGER ?0, VARCHAR(20) ?1,"
+        + " INTEGER ?2, VARCHAR(20) ?3)";
+    sql(sql2).tester(pragmaticTester).ok().bindType(expected2);
+  }
+
+  @Test public void testInsertFailNullability() {
+    tester.checkQueryFails(
+        "insert into ^empnullables^ (ename) values ('Kevin')",
+        "Column 'EMPNO' has no default value and does not allow NULLs");
+    tester.checkQueryFails(
+        "insert into ^empnullables^ (empno) values (10)",
+        "Column 'ENAME' has no default value and does not allow NULLs");
+    tester.checkQueryFails(
+        "insert into empnullables (empno, ename, deptno) ^values (5, null, 5)^",
+        "Column 'ENAME' has no default value and does not allow NULLs");
+  }
+
+  @Test public void testInsertSubsetFailNullability() {
+    final SqlTester pragmaticTester =
+        tester.withConformance(SqlConformanceEnum.PRAGMATIC_2003);
+    pragmaticTester.checkQueryFails("insert into ^empnullables^ values (1)",
+        "Column 'ENAME' has no default value and does not allow NULLs");
+    pragmaticTester.checkQueryFails("insert into empnullables ^values (null, 'Liam')^",
+        "Column 'EMPNO' has no default value and does not allow NULLs");
+    pragmaticTester.checkQueryFails("insert into empnullables ^values (45, null, 5)^",
+        "Column 'ENAME' has no default value and does not allow NULLs");
+  }
+
+  @Test public void testInsertViewFailNullability() {
+    tester.checkQueryFails(
+        "insert into ^empnullables_20^ (ename) values ('Jake')",
+        "Column 'EMPNO' has no default value and does not allow NULLs");
+    tester.checkQueryFails(
+        "insert into ^empnullables_20^ (empno) values (9)",
+        "Column 'ENAME' has no default value and does not allow NULLs");
+    tester.checkQueryFails(
+        "insert into empnullables_20 (empno, ename, mgr) ^values (5, null, 5)^",
+        "Column 'ENAME' has no default value and does not allow NULLs");
+  }
+
+  @Test public void testInsertSubsetViewFailNullability() {
+    final SqlTester pragmaticTester =
+        tester.withConformance(SqlConformanceEnum.PRAGMATIC_2003);
+    pragmaticTester.checkQueryFails("insert into ^empnullables_20^ values (1)",
+        "Column 'ENAME' has no default value and does not allow NULLs");
+    pragmaticTester.checkQueryFails("insert into empnullables_20 ^values (null, 'Liam')^",
+        "Column 'EMPNO' has no default value and does not allow NULLs");
+    pragmaticTester.checkQueryFails("insert into empnullables_20 ^values (45, null)^",
+        "Column 'ENAME' has no default value and does not allow NULLs");
+  }
+
+  @Test public void testInsertBindFailNullability() {
+    tester.checkQueryFails("insert into ^emp^ (ename) values (?)",
+        "Column 'EMPNO' has no default value and does not allow NULLs");
+    tester.checkQueryFails(
+        "insert into ^emp^ (empno) values (?)",
+        "Column 'ENAME' has no default value and does not allow NULLs");
+    tester.checkQueryFails(
+        "insert into emp (empno, ename, deptno) ^values (?, null, 5)^",
+        "Column 'ENAME' has no default value and does not allow NULLs");
+  }
+
+  @Test public void testInsertBindSubsetFailNullability() {
+    final SqlTester pragmaticTester =
+        tester.withConformance(SqlConformanceEnum.PRAGMATIC_2003);
+    pragmaticTester.checkQueryFails("insert into ^empnullables^ values (?)",
+        "Column 'ENAME' has no default value and does not allow NULLs");
+    pragmaticTester.checkQueryFails("insert into empnullables ^values (null, ?)^",
+        "Column 'EMPNO' has no default value and does not allow NULLs");
+    pragmaticTester.checkQueryFails("insert into empnullables ^values (?, null)^",
+        "Column 'ENAME' has no default value and does not allow NULLs");
+  }
+
+  @Test public void testInsertSubsetDisallowed() {
+    tester.checkQueryFails("insert into ^emp^ values (1)",
+        "Number of INSERT target columns \\(9\\) does not equal number of source items \\(1\\)");
+    tester.checkQueryFails("insert into ^emp^ values (null)",
+        "Number of INSERT target columns \\(9\\) does not equal number of source items \\(1\\)");
+    tester.checkQueryFails("insert into ^emp^ values (1, 'Kevin')",
+        "Number of INSERT target columns \\(9\\) does not equal number of source items \\(2\\)");
+  }
+
+  @Test public void testInsertSubsetViewDisallowed() {
+    tester.checkQueryFails("insert into ^emp_20^ values (1)",
+        "Number of INSERT target columns \\(8\\) does not equal number of source items \\(1\\)");
+    tester.checkQueryFails("insert into ^emp_20^ values (null)",
+        "Number of INSERT target columns \\(8\\) does not equal number of source items \\(1\\)");
+    tester.checkQueryFails("insert into ^emp_20^ values (?, ?)",
+        "Number of INSERT target columns \\(8\\) does not equal number of source items \\(2\\)");
+  }
+
+  @Test public void testInsertBindSubsetDisallowed() {
+    tester.checkQueryFails("insert into ^emp^ values (?)",
+        "Number of INSERT target columns \\(9\\) does not equal number of source items \\(1\\)");
+    tester.checkQueryFails("insert into ^emp^ values (?, ?)",
+        "Number of INSERT target columns \\(9\\) does not equal number of source items \\(2\\)");
+  }
+
+  @Test public void testInsertWithCustomInitializerExpressionFactory() {
+    tester.checkQuery("insert into empdefaults (deptno) values (1)");
+    tester.checkQuery("insert into empdefaults (ename, empno) values ('Quan', 50)");
+    tester.checkQueryFails("insert into empdefaults (ename, deptno) ^values (null, 1)^",
+        "Column 'ENAME' has no default value and does not allow NULLs");
+    tester.checkQueryFails("insert into ^empdefaults^ values (null, 'Tod')",
+        "Number of INSERT target columns \\(9\\) does not equal number of source items \\(2\\)");
+  }
+
+  @Test public void testInsertSubsetWithCustomInitializerExpressionFactory() {
+    final SqlTester pragmaticTester =
+        tester.withConformance(SqlConformanceEnum.PRAGMATIC_2003);
+    pragmaticTester.checkQuery("insert into empdefaults values (101)");
+    pragmaticTester.checkQuery("insert into empdefaults values (101, 'Coral')");
+    pragmaticTester.checkQueryFails("insert into empdefaults ^values (null, 'Tod')^",
+        "Column 'EMPNO' has no default value and does not allow NULLs");
+    pragmaticTester.checkQueryFails("insert into empdefaults ^values (78, null)^",
+        "Column 'ENAME' has no default value and does not allow NULLs");
+  }
+
+  @Test public void testInsertBindWithCustomInitializerExpressionFactory() {
+    sql("insert into empdefaults (deptno) values (?)").ok()
+        .bindType("RecordType(INTEGER ?0)");
+    sql("insert into empdefaults (ename, empno) values (?, ?)").ok()
+        .bindType("RecordType(VARCHAR(20) ?0, INTEGER ?1)");
+    tester.checkQueryFails("insert into empdefaults (ename, deptno) ^values (null, ?)^",
+        "Column 'ENAME' has no default value and does not allow NULLs");
+    tester.checkQueryFails("insert into ^empdefaults^ values (null, ?)",
+        "Number of INSERT target columns \\(9\\) does not equal number of source items \\(2\\)");
+  }
+
+  @Test public void testInsertBindSubsetWithCustomInitializerExpressionFactory() {
+    final SqlTester pragmaticTester =
+        tester.withConformance(SqlConformanceEnum.PRAGMATIC_2003);
+    sql("insert into empdefaults values (101, ?)").tester(pragmaticTester).ok()
+        .bindType("RecordType(VARCHAR(20) ?0)");
+    pragmaticTester.checkQueryFails("insert into empdefaults ^values (null, ?)^",
+        "Column 'EMPNO' has no default value and does not allow NULLs");
+  }
+
   @Test public void testInsertBindWithCustomColumnResolving() {
+    final SqlTester pragmaticTester =
+        tester.withConformance(SqlConformanceEnum.PRAGMATIC_2003);
+
     final String sql = "insert into struct.t\n"
         + "values (?, ?, ?, ?, ?, ?, ?, ?, ?)";
     final String expected = "RecordType(VARCHAR(20) ?0, VARCHAR(20) ?1,"
@@ -7982,24 +8346,30 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     sql(sql).ok().bindType(expected);
 
     final String sql2 =
-        "insert into struct.t (c0, c2, c1) values (?, ?, ?)";
+        "insert into struct.t_nullables (c0, c2, c1) values (?, ?, ?)";
     final String expected2 =
         "RecordType(INTEGER ?0, INTEGER ?1, VARCHAR(20) ?2)";
-    sql(sql2).ok().bindType(expected2);
+    sql(sql2).tester(pragmaticTester).ok().bindType(expected2);
 
     final String sql3 =
-        "insert into struct.t (f1.c0, f1.c2, f0.c1) values (?, ?, ?)";
+        "insert into struct.t_nullables (f1.c0, f1.c2, f0.c1) values (?, ?, ?)";
     final String expected3 =
         "RecordType(INTEGER ?0, INTEGER ?1, INTEGER ?2)";
-    sql(sql3).ok().bindType(expected3);
+    sql(sql3).tester(pragmaticTester).ok().bindType(expected3);
 
-    sql("insert into struct.t (c0, ^c4^, c1) values (?, ?, ?)")
+    sql("insert into struct.t_nullables (c0, ^c4^, c1) values (?, ?, ?)")
+        .tester(pragmaticTester)
         .fails("Unknown target column 'C4'");
-    sql("insert into struct.t (^a0^, c2, c1) values (?, ?, ?)")
+    sql("insert into struct.t_nullables (^a0^, c2, c1) values (?, ?, ?)")
+        .tester(pragmaticTester)
         .fails("Unknown target column 'A0'");
-    sql("insert into struct.t (f1.c0, ^f0.a0^, f0.c1) values (?, ?, ?)")
+    final String sql4 = "insert into struct.t_nullables (\n"
+        + "  f1.c0, ^f0.a0^, f0.c1) values (?, ?, ?)";
+    sql(sql4).tester(pragmaticTester)
         .fails("Unknown target column 'F0.A0'");
-    sql("insert into struct.t (f1.c0, f1.c2, ^f1.c0^) values (?, ?, ?)")
+    final String sql5 = "insert into struct.t_nullables (\n"
+        + "  f1.c0, f1.c2, ^f1.c0^) values (?, ?, ?)";
+    sql(sql5).tester(pragmaticTester)
         .fails("Target column '\"F1\".\"C0\"' is assigned more than once");
   }
 
@@ -8441,6 +8811,53 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "  select *, NATION.N_NATION + 100 as newid\n"
         + "  from \"DYNAMIC\".NATION, \"DYNAMIC\".CUSTOMER)";
     sql(sql).type("RecordType(ANY NEWID) NOT NULL");
+  }
+
+  @Test public void testStreamTumble() {
+    // TUMBLE
+    sql("select stream tumble_end(rowtime, interval '2' hour) as rowtime\n"
+        + "from orders\n"
+        + "group by tumble(rowtime, interval '2' hour), productId").ok();
+    sql("select stream ^tumble(rowtime, interval '2' hour)^ as rowtime\n"
+        + "from orders\n"
+        + "group by tumble(rowtime, interval '2' hour), productId")
+        .fails("Group function 'TUMBLE' can only appear in GROUP BY clause");
+    // TUMBLE with align argument
+    sql("select stream\n"
+        + "  tumble_end(rowtime, interval '2' hour, time '00:12:00') as rowtime\n"
+        + "from orders\n"
+        + "group by tumble(rowtime, interval '2' hour, time '00:12:00')").ok();
+    // TUMBLE_END without corresponding TUMBLE
+    sql("select stream\n"
+        + "  ^tumble_end(rowtime, interval '2' hour, time '00:13:00')^ as rowtime\n"
+        + "from orders\n"
+        + "group by floor(rowtime to hour)")
+        .fails("Call to auxiliary group function 'TUMBLE_END' must have "
+            + "matching call to group function 'TUMBLE' in GROUP BY clause");
+    // Arguments to TUMBLE_END are slightly different to arguments to TUMBLE
+    sql("select stream\n"
+        + "  ^tumble_start(rowtime, interval '2' hour, time '00:13:00')^ as rowtime\n"
+        + "from orders\n"
+        + "group by tumble(rowtime, interval '2' hour, time '00:12:00')")
+        .fails("Call to auxiliary group function 'TUMBLE_START' must have "
+            + "matching call to group function 'TUMBLE' in GROUP BY clause");
+    // Even though align defaults to TIME '00:00:00', we need structural
+    // equivalence, not semantic equivalence.
+    sql("select stream\n"
+        + "  ^tumble_end(rowtime, interval '2' hour, time '00:00:00')^ as rowtime\n"
+        + "from orders\n"
+        + "group by tumble(rowtime, interval '2' hour)")
+        .fails("Call to auxiliary group function 'TUMBLE_END' must have "
+            + "matching call to group function 'TUMBLE' in GROUP BY clause");
+    // TUMBLE query produces no monotonic column - OK
+    sql("select stream productId\n"
+        + "from orders\n"
+        + "group by tumble(rowtime, interval '2' hour), productId").ok();
+    sql("select stream productId\n"
+        + "from orders\n"
+        + "^group by productId,\n"
+        + "  tumble(timestamp '1990-03-04 12:34:56', interval '2' hour)^")
+        .fails(STR_AGG_REQUIRES_MONO);
   }
 }
 

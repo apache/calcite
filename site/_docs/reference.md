@@ -175,6 +175,11 @@ windowSpec:
       ')'
 {% endhighlight %}
 
+In *insert*, if the INSERT or UPSERT statement does not specify a
+list of target columns, the query must have the same number of
+columns as the target table, except in certain
+[conformance levels]({{ site.apiRoot }}/org/apache/calcite/sql/validate/SqlConformance.html#isInsertSubsetColumnsAllowed--).
+
 In *merge*, at least one of the WHEN MATCHED and WHEN NOT MATCHED clauses must
 be present.
 
@@ -961,10 +966,24 @@ The operator precedence and associativity, highest to lowest.
 | LN(numeric)               | Returns the natural logarithm (base *e*) of *numeric*
 | LOG10(numeric)            | Returns the base 10 logarithm of *numeric*
 | EXP(numeric)              | Returns *e* raised to the power of *numeric*
-| CEIL(numeric)             | Rounds *numeric* up, and returns the smallest number that is greater than or equal to *numeric*
-| FLOOR(numeric)            | Rounds *numeric* down, and returns the largest number that is less than or equal to *numeric*
+| CEIL(numeric)             | Rounds *numeric* up, returning the smallest integer that is greater than or equal to *numeric*
+| FLOOR(numeric)            | Rounds *numeric* down, returning the largest integer that is less than or equal to *numeric*
 | RAND([seed])              | Generates a random double between 0 and 1 inclusive, optionally initializing the random number generator with *seed*
 | RAND_INTEGER([seed, ] numeric) | Generates a random integer between 0 and *numeric* - 1 inclusive, optionally initializing the random number generator with *seed*
+| ACOS(numeric)             | Returns the arc cosine of *numeric*
+| ASIN(numeric)             | Returns the arc sine of *numeric*
+| ATAN(numeric)             | Returns the arc tangent of *numeric*
+| ATAN2(numeric, numeric)   | Returns the arc tangent of the *numeric* coordinates
+| COS(numeric)              | Returns the cosine of *numeric*
+| COT(numeric)              | Returns the cotangent of *numeric*
+| DEGREES(numeric)          | Converts *numeric* from radians to degrees
+| PI()                      | Returns a value that is closer than any other value to *pi*
+| RADIANS(numeric)          | Converts *numeric* from degrees to radians
+| ROUND(numeric1, numeric2) | Rounds *numeric1* to *numeric2* places right to the decimal point
+| SIGN(numeric)             | Returns the signum of *numeric*
+| SIN(numeric)              | Returns the sine of *numeric*
+| TAN(numeric)              | Returns the tangent of *numeric*
+| TRUNCATE(numeric1, numeric2) | Truncates *numeric1* to *numeric2* places right to the decimal point
 
 ### Character string operators and functions
 
@@ -1012,6 +1031,16 @@ Not implemented:
 | EXTRACT(timeUnit FROM datetime) | Extracts and returns the value of a specified datetime field from a datetime value expression
 | FLOOR(datetime TO timeUnit) | Rounds *datetime* down to *timeUnit*
 | CEIL(datetime TO timeUnit) | Rounds *datetime* up to *timeUnit*
+| YEAR(date)                | Equivalent to `EXTRACT(YEAR FROM date)`. Returns an integer.
+| QUARTER(date)             | Equivalent to `EXTRACT(QUARTER FROM date)`. Returns an integer between 1 and 4.
+| MONTH(date)               | Equivalent to `EXTRACT(MONTH FROM date)`. Returns an integer between 1 and 12.
+| WEEK(date)                | Equivalent to `EXTRACT(WEEK FROM date)`. Returns an integer between 1 and 53.
+| DAYOFYEAR(date)           | Equivalent to `EXTRACT(DOY FROM date)`. Returns an integer between 1 and 366.
+| DAYOFMONTH(date)          | Equivalent to `EXTRACT(DAY FROM date)`. Returns an integer between 1 and 31.
+| DAYOFWEEK(date)           | Equivalent to `EXTRACT(DOW FROM date)`. Returns an integer between 1 and 7.
+| HOUR(date)                | Equivalent to `EXTRACT(HOUR FROM date)`. Returns an integer between 0 and 23.
+| MINUTE(date)              | Equivalent to `EXTRACT(MINUTE FROM date)`. Returns an integer between 0 and 59.
+| SECOND(date)              | Equivalent to `EXTRACT(SECOND FROM date)`. Returns an integer between 0 and 59.
 
 Not implemented:
 
@@ -1078,35 +1107,32 @@ See also: UNNEST relational operator converts a collection to a relation.
 
 #### Numeric
 
-| Operator syntax                | Description
-|:------------------------------ |:-----------
-| {fn ABS(numeric)}              | Returns the absolute value of *numeric*
-| {fn EXP(numeric)}              | Returns *e* raised to the power of *numeric*
-| {fn LOG(numeric)}              | Returns the natural logarithm (base *e*) of *numeric*
-| {fn LOG10(numeric)}            | Returns the base-10 logarithm of *numeric*
-| {fn MOD(numeric1, numeric2)}   | Returns the remainder (modulus) of *numeric1* divided by *numeric2*. The result is negative only if *numeric1* is negative
-| {fn POWER(numeric1, numeric2)} | Returns *numeric1* raised to the power of *numeric2*
-
-Not implemented:
-
-* {fn ACOS(numeric)} - Returns the arc cosine of *numeric*
-* {fn ASIN(numeric)} - Returns the arc sine of *numeric*
-* {fn ATAN(numeric)} - Returns the arc tangent of *numeric*
-* {fn ATAN2(numeric, numeric)}
-* {fn CEILING(numeric)} - Rounds *numeric* up, and returns the smallest number that is greater than or equal to *numeric*
-* {fn COS(numeric)} - Returns the cosine of *numeric*
-* {fn COT(numeric)}
-* {fn DEGREES(numeric)} - Converts *numeric* from radians to degrees
-* {fn FLOOR(numeric)} - Rounds *numeric* down, and returns the largest number that is less than or equal to *numeric*
-* {fn PI()} - Returns a value that is closer than any other value to *pi*
-* {fn RADIANS(numeric)} - Converts *numeric* from degrees to radians
-* {fn RAND(numeric)}
-* {fn ROUND(numeric, numeric)}
-* {fn SIGN(numeric)}
-* {fn SIN(numeric)} - Returns the sine of *numeric*
-* {fn SQRT(numeric)} - Returns the square root of *numeric*
-* {fn TAN(numeric)} - Returns the tangent of *numeric*
-* {fn TRUNCATE(numeric, numeric)}
+| Operator syntax                   | Description
+|:--------------------------------- |:-----------
+| {fn ABS(numeric)}                 | Returns the absolute value of *numeric*
+| {fn ACOS(numeric)}                | Returns the arc cosine of *numeric*
+| {fn ASIN(numeric)}                | Returns the arc sine of *numeric*
+| {fn ATAN(numeric)}                | Returns the arc tangent of *numeric*
+| {fn ATAN2(numeric, numeric)}      | Returns the arc tangent of the *numeric* coordinates
+| {fn CEILING(numeric)}             | Rounds *numeric* up, and returns the smallest number that is greater than or equal to *numeric*
+| {fn COS(numeric)}                 | Returns the cosine of *numeric*
+| {fn COT(numeric)}                 | Returns the cotangent of *numeric*
+| {fn DEGREES(numeric)}             | Converts *numeric* from radians to degrees
+| {fn EXP(numeric)}                 | Returns *e* raised to the power of *numeric*
+| {fn FLOOR(numeric)}               | Rounds *numeric* down, and returns the largest number that is less than or equal to *numeric*
+| {fn LOG(numeric)}                 | Returns the natural logarithm (base *e*) of *numeric*
+| {fn LOG10(numeric)}               | Returns the base-10 logarithm of *numeric*
+| {fn MOD(numeric1, numeric2)}      | Returns the remainder (modulus) of *numeric1* divided by *numeric2*. The result is negative only if *numeric1* is negative
+| {fn PI()}                         | Returns a value that is closer than any other value to *pi*
+| {fn POWER(numeric1, numeric2)}    | Returns *numeric1* raised to the power of *numeric2*
+| {fn RADIANS(numeric)}             | Converts *numeric* from degrees to radians
+| {fn RAND(numeric)}                | Returns a random double using *numeric* as the seed value
+| {fn ROUND(numeric1, numeric2)}    | Rounds *numeric1* to *numeric2* places right to the decimal point
+| {fn SIGN(numeric)}                | Returns the signum of *numeric*
+| {fn SIN(numeric)}                 | Returns the sine of *numeric*
+| {fn SQRT(numeric)}                | Returns the square root of *numeric*
+| {fn TAN(numeric)}                 | Returns the tangent of *numeric*
+| {fn TRUNCATE(numeric1, numeric2)} | Truncates *numeric1* to *numeric2* places right to the decimal point
 
 #### String
 
@@ -1121,6 +1147,7 @@ Not implemented:
 | {fn RTRIM(string)} | Returns *string* with trailing space characters removed
 | {fn SUBSTRING(string, offset, length)} | Returns a character string that consists of *length* characters from *string* starting at the *offset* position
 | {fn UCASE(string)} | Returns a string in which all alphabetic characters in *string* have been converted to upper case
+| {fn REPLACE(string, search, replacement)} | Returns a string in which all the occurrences of *search* in *string* are replaced with *replacement*; if *replacement* is the empty string, the occurrences of *search* are removed
 
 Not implemented:
 
@@ -1129,7 +1156,6 @@ Not implemented:
 * {fn DIFFERENCE(string, string)}
 * {fn LEFT(string, integer)}
 * {fn REPEAT(string, integer)}
-* {fn REPLACE(string, string, string)}
 * {fn RIGHT(string, integer)}
 * {fn SOUNDEX(string)}
 * {fn SPACE(integer)}
@@ -1141,31 +1167,31 @@ Not implemented:
 | {fn CURDATE()}  | Equivalent to `CURRENT_DATE`
 | {fn CURTIME()}  | Equivalent to `LOCALTIME`
 | {fn NOW()}      | Equivalent to `LOCALTIMESTAMP`
+| {fn YEAR(date)} | Equivalent to `EXTRACT(YEAR FROM date)`. Returns an integer.
 | {fn QUARTER(date)} | Equivalent to `EXTRACT(QUARTER FROM date)`. Returns an integer between 1 and 4.
+| {fn MONTH(date)} | Equivalent to `EXTRACT(MONTH FROM date)`. Returns an integer between 1 and 12.
+| {fn WEEK(date)} | Equivalent to `EXTRACT(WEEK FROM date)`. Returns an integer between 1 and 53.
+| {fn DAYOFYEAR(date)} | Equivalent to `EXTRACT(DOY FROM date)`. Returns an integer between 1 and 366.
+| {fn DAYOFMONTH(date)} | Equivalent to `EXTRACT(DAY FROM date)`. Returns an integer between 1 and 31.
+| {fn DAYOFWEEK(date)} | Equivalent to `EXTRACT(DOW FROM date)`. Returns an integer between 1 and 7.
+| {fn HOUR(date)} | Equivalent to `EXTRACT(HOUR FROM date)`. Returns an integer between 0 and 23.
+| {fn MINUTE(date)} | Equivalent to `EXTRACT(MINUTE FROM date)`. Returns an integer between 0 and 59.
+| {fn SECOND(date)} | Equivalent to `EXTRACT(SECOND FROM date)`. Returns an integer between 0 and 59.
 | {fn TIMESTAMPADD(timeUnit, count, timestamp)} | Adds an interval of *count* *timeUnit*s to a timestamp
 | {fn TIMESTAMPDIFF(timeUnit, timestamp1, timestamp2)} | Subtracts *timestamp1* from *timestamp2* and returns the result in *timeUnit*s
 
 Not implemented:
 
 * {fn DAYNAME(date)}
-* {fn DAYOFMONTH(date)}
-* {fn DAYOFWEEK(date)}
-* {fn DAYOFYEAR(date)}
-* {fn HOUR(time)}
-* {fn MINUTE(time)}
-* {fn MONTH(date)}
 * {fn MONTHNAME(date)}
-* {fn SECOND(time)}
-* {fn WEEK(date)}
-* {fn YEAR(date)}
 
 #### System
 
-Not implemented:
-
-* {fn DATABASE()}
-* {fn IFNULL(value, value)}
-* {fn USER(value, value)}
+| Operator syntax | Description
+|:--------------- |:-----------
+| {fn DATABASE()} | Equivalent to `CURRENT_CATALOG`
+| {fn IFNULL(value1, value2)} | Returns value2 if value1 is null
+| {fn USER()}     | Equivalent to `CURRENT_USER`
 
 #### Conversion
 

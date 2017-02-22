@@ -32,8 +32,9 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Matchers.any;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.nullable;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -68,7 +69,7 @@ public class KerberosConnectionTest {
     LoginContext context = mock(LoginContext.class);
 
     // Call the real login(LoginContext, Configuration, Subject) method
-    when(krbUtil.login(any(LoginContext.class), any(Configuration.class), any(Subject.class)))
+    when(krbUtil.login(nullable(LoginContext.class), any(Configuration.class), any(Subject.class)))
         .thenCallRealMethod();
     // Return a fake LoginContext
     when(krbUtil.createLoginContext(conf)).thenReturn(context);

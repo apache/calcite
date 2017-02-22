@@ -105,7 +105,7 @@ public class LogicVisitor implements RexBiVisitor<Logic, Logic> {
       case AND:
         break;
       default:
-        logic = Logic.TRUE_FALSE;
+        logic = Logic.TRUE_FALSE_UNKNOWN;
       }
     }
     for (RexNode operand : call.operands) {

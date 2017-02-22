@@ -116,7 +116,7 @@ public interface SaffronProperties {
           try {
             properties.load(new FileInputStream(file));
           } catch (IOException e) {
-            throw Util.newInternal(e, "while reading from " + file);
+            throw new RuntimeException("while reading from " + file, e);
           }
         }
       } catch (AccessControlException e) {

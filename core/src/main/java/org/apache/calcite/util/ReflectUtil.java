@@ -258,19 +258,13 @@ public abstract class ReflectUtil {
           visitor,
           visitee);
     } catch (IllegalAccessException ex) {
-      throw Util.newInternal(ex);
+      throw new RuntimeException(ex);
     } catch (InvocationTargetException ex) {
       // visit methods aren't allowed to have throws clauses,
       // so the only exceptions which should come
       // to us are RuntimeExceptions and Errors
-      Throwable t = ex.getTargetException();
-      if (t instanceof RuntimeException) {
-        throw (RuntimeException) t;
-      } else if (t instanceof Error) {
-        throw (Error) t;
-      } else {
-        throw new AssertionError(t.getClass().getName());
-      }
+      Util.throwIfUnchecked(ex.getTargetException());
+      throw new RuntimeException(ex.getTargetException());
     }
     return true;
   }
@@ -531,8 +525,8 @@ public abstract class ReflectUtil {
           final Object o = method.invoke(visitor, args);
           return returnClazz.cast(o);
         } catch (IllegalAccessException | InvocationTargetException e) {
-          throw Util.newInternal(e,
-              "While invoking method '" + method + "'");
+          throw new RuntimeException("While invoking method '" + method + "'",
+              e);
         }
       }
 

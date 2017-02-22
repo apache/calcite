@@ -23,6 +23,7 @@ import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
+import org.apache.calcite.runtime.PredicateImpl;
 
 import com.google.common.base.Predicate;
 
@@ -42,8 +43,8 @@ import java.util.List;
 public class ProjectRemoveRule extends RelOptRule {
   //~ Static fields/initializers ---------------------------------------------
   private static final Predicate<Project> PREDICATE =
-      new Predicate<Project>() {
-        public boolean apply(Project input) {
+      new PredicateImpl<Project>() {
+        public boolean test(Project input) {
           return isTrivial(input);
         }
       };

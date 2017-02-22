@@ -690,10 +690,65 @@ public class DateTimeUtils {
     switch (range) {
     case YEAR:
       return year;
+    case QUARTER:
+      return (month + 2) / 3;
     case MONTH:
       return month;
     case DAY:
       return day;
+    case DOW:
+      return (int) floorMod(julian + 1, 7) + 1; // sun=1, sat=7
+    case WEEK:
+      long fmofw = firstMondayOfFirstWeek(year);
+      if (julian < fmofw) {
+        fmofw = firstMondayOfFirstWeek(year - 1);
+      }
+      return (int) (julian - fmofw) / 7 + 1;
+    case DOY:
+      final long janFirst = ymdToJulian(year, 1, 1);
+      return (int) (julian - janFirst) + 1;
+    case CENTURY:
+      return year > 0
+          ? (year + 99) / 100
+          : (year - 99) / 100;
+    case MILLENNIUM:
+      return year > 0
+          ? (year + 999) / 1000
+          : (year - 999) / 1000;
+    default:
+      throw new AssertionError(range);
+    }
+  }
+
+  /** Returns the first day of the first week of a year.
+   * Per ISO-8601 it is the Monday of the week that contains Jan 4,
+   * or equivalently, it is a Monday between Dec 29 and Jan 4.
+   * Sometimes it is in the year before the given year. */
+  private static long firstMondayOfFirstWeek(int year) {
+    final long janFirst = ymdToJulian(year, 1, 1);
+    final long janFirstDow = floorMod(janFirst + 1, 7); // sun=0, sat=6
+    return janFirst + (11 - janFirstDow) % 7 - 3;
+  }
+
+  /** Extracts a time unit from a UNIX date (milliseconds since epoch). */
+  public static int unixTimestampExtract(TimeUnitRange range,
+      long timestamp) {
+    return unixTimeExtract(range, (int) floorMod(timestamp, MILLIS_PER_DAY));
+  }
+
+  /** Extracts a time unit from a time value (milliseconds since midnight). */
+  public static int unixTimeExtract(TimeUnitRange range, int time) {
+    assert time >= 0;
+    assert time < MILLIS_PER_DAY;
+    switch (range) {
+    case HOUR:
+      return time / (int) MILLIS_PER_HOUR;
+    case MINUTE:
+      final int minutes = time / (int) MILLIS_PER_MINUTE;
+      return minutes % 60;
+    case SECOND:
+      final int seconds = time / (int) MILLIS_PER_SECOND;
+      return seconds % 60;
     default:
       throw new AssertionError(range);
     }
@@ -798,6 +853,93 @@ public class DateTimeUtils {
         + (long) hour * MILLIS_PER_HOUR
         + (long) minute * MILLIS_PER_MINUTE
         + (long) second * MILLIS_PER_SECOND;
+  }
+
+  /** Adds a given number of months to a timestamp, represented as the number
+   * of milliseconds since the epoch. */
+  public static long addMonths(long timestamp, int m) {
+    final long millis =
+        DateTimeUtils.floorMod(timestamp, DateTimeUtils.MILLIS_PER_DAY);
+    timestamp -= millis;
+    final long x =
+        addMonths((int) (timestamp / DateTimeUtils.MILLIS_PER_DAY), m);
+    return x * DateTimeUtils.MILLIS_PER_DAY + millis;
+  }
+
+  /** Adds a given number of months to a date, represented as the number of
+   * days since the epoch. */
+  public static int addMonths(int date, int m) {
+    int y0 = (int) DateTimeUtils.unixDateExtract(TimeUnitRange.YEAR, date);
+    int m0 = (int) DateTimeUtils.unixDateExtract(TimeUnitRange.MONTH, date);
+    int d0 = (int) DateTimeUtils.unixDateExtract(TimeUnitRange.DAY, date);
+    int y = m / 12;
+    y0 += y;
+    m0 += m - y * 12;
+    int last = lastDay(y0, m0);
+    if (d0 > last) {
+      d0 = 1;
+      if (++m0 > 12) {
+        m0 = 1;
+        ++y0;
+      }
+    }
+    return DateTimeUtils.ymdToUnixDate(y0, m0, d0);
+  }
+
+  private static int lastDay(int y, int m) {
+    switch (m) {
+    case 2:
+      return y % 4 == 0
+          && (y % 100 != 0
+          || y % 400 == 0)
+          ? 29 : 28;
+    case 4:
+    case 6:
+    case 9:
+    case 11:
+      return 30;
+    default:
+      return 31;
+    }
+  }
+
+  /** Finds the number of months between two dates, each represented as the
+   * number of days since the epoch. */
+  public static int subtractMonths(int date0, int date1) {
+    if (date0 < date1) {
+      return -subtractMonths(date1, date0);
+    }
+    // Start with an estimate.
+    // Since no month has more than 31 days, the estimate is <= the true value.
+    int m = (date0 - date1) / 31;
+    for (;;) {
+      int date2 = addMonths(date1, m);
+      if (date2 >= date0) {
+        return m;
+      }
+      int date3 = addMonths(date1, m + 1);
+      if (date3 > date0) {
+        return m;
+      }
+      ++m;
+    }
+  }
+
+  public static int subtractMonths(long t0, long t1) {
+    final long millis0 =
+        DateTimeUtils.floorMod(t0, DateTimeUtils.MILLIS_PER_DAY);
+    final int d0 = (int) DateTimeUtils.floorDiv(t0 - millis0,
+        DateTimeUtils.MILLIS_PER_DAY);
+    final long millis1 =
+        DateTimeUtils.floorMod(t1, DateTimeUtils.MILLIS_PER_DAY);
+    final int d1 = (int) DateTimeUtils.floorDiv(t1 - millis1,
+        DateTimeUtils.MILLIS_PER_DAY);
+    int x = subtractMonths(d0, d1);
+    final long d2 = addMonths(d1, x);
+    if (d2 == d0 && millis0 < millis1) {
+      --x;
+    }
+    return x;
   }
 
   /** Divide, rounding towards negative infinity. */

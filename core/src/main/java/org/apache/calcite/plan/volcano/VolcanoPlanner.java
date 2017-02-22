@@ -23,12 +23,12 @@ import org.apache.calcite.plan.AbstractRelOptPlanner;
 import org.apache.calcite.plan.Context;
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.ConventionTraitDef;
-import org.apache.calcite.plan.MaterializedViewSubstitutionVisitor;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptCostFactory;
 import org.apache.calcite.plan.RelOptLattice;
 import org.apache.calcite.plan.RelOptListener;
 import org.apache.calcite.plan.RelOptMaterialization;
+import org.apache.calcite.plan.RelOptMaterializations;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
@@ -39,9 +39,6 @@ import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTrait;
 import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.plan.RelTraitSet;
-import org.apache.calcite.plan.hep.HepPlanner;
-import org.apache.calcite.plan.hep.HepProgram;
-import org.apache.calcite.plan.hep.HepProgramBuilder;
 import org.apache.calcite.prepare.CalcitePrepareImpl;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelVisitor;
@@ -55,10 +52,8 @@ import org.apache.calcite.rel.rules.AggregateProjectMergeRule;
 import org.apache.calcite.rel.rules.AggregateRemoveRule;
 import org.apache.calcite.rel.rules.CalcRemoveRule;
 import org.apache.calcite.rel.rules.FilterJoinRule;
-import org.apache.calcite.rel.rules.FilterProjectTransposeRule;
 import org.apache.calcite.rel.rules.JoinAssociateRule;
 import org.apache.calcite.rel.rules.JoinCommuteRule;
-import org.apache.calcite.rel.rules.ProjectMergeRule;
 import org.apache.calcite.rel.rules.ProjectRemoveRule;
 import org.apache.calcite.rel.rules.SemiJoinRule;
 import org.apache.calcite.rel.rules.SortRemoveRule;
@@ -70,17 +65,8 @@ import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.SaffronProperties;
 import org.apache.calcite.util.Util;
-import org.apache.calcite.util.graph.DefaultDirectedGraph;
-import org.apache.calcite.util.graph.DefaultEdge;
-import org.apache.calcite.util.graph.DirectedGraph;
-import org.apache.calcite.util.graph.Graphs;
-import org.apache.calcite.util.graph.TopologicalOrderIterator;
 
-import com.google.common.base.Function;
-import com.google.common.base.Supplier;
-import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.LinkedListMultimap;
 import com.google.common.collect.Lists;
@@ -116,13 +102,6 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
   //~ Static fields/initializers ---------------------------------------------
 
   protected static final double COST_IMPROVEMENT = .5;
-
-  private static final Function<RelOptTable, List<String>> GET_QUALIFIED_NAME =
-      new Function<RelOptTable, List<String>>() {
-        public List<String> apply(RelOptTable relOptTable) {
-          return relOptTable.getQualifiedName();
-        }
-      };
 
   //~ Instance fields --------------------------------------------------------
 
@@ -359,30 +338,33 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     return latticeByName.get(table.getQualifiedName());
   }
 
-  private void useLattice(RelOptLattice lattice, RelNode rel) {
-    Hook.SUB.run(rel);
-    registerImpl(rel, root.set);
-  }
-
-  private List<RelNode> useMaterialization(RelNode root,
-      RelOptMaterialization materialization, boolean firstRun) {
-    // Try to rewrite the original root query in terms of the materialized
-    // query. If that is possible, register the remnant query as equivalent
-    // to the root.
-    //
-
-    // This call modifies originalRoot. Doesn't look like originalRoot should be mutable though.
-    // Need to check.
-    List<RelNode> sub = substitute(root, materialization);
-    if (!sub.isEmpty()) {
-      for (RelNode rel : sub) {
-        Hook.SUB.run(rel);
-        registerImpl(rel, this.root.set);
-      }
-      return sub;
+  private void registerMaterializations() {
+    // Avoid using materializations while populating materializations!
+    final CalciteConnectionConfig config =
+        context.unwrap(CalciteConnectionConfig.class);
+    if (config == null || !config.materializationsEnabled()) {
+      return;
     }
 
-    if (firstRun) {
+    // Register rels using materialized views.
+    final List<Pair<RelNode, List<RelOptMaterialization>>> materializationUses =
+        RelOptMaterializations.useMaterializedViews(originalRoot, materializations);
+    for (Pair<RelNode, List<RelOptMaterialization>> use : materializationUses) {
+      RelNode rel = use.left;
+      Hook.SUB.run(rel);
+      registerImpl(rel, root.set);
+    }
+
+    // Register table rels of materialized views that cannot find a substitution
+    // in root rel transformation but can potentially be useful.
+    final Set<RelOptMaterialization> applicableMaterializations =
+        new HashSet<>(
+            RelOptMaterializations.getApplicableMaterializations(
+                originalRoot, materializations));
+    for (Pair<RelNode, List<RelOptMaterialization>> use : materializationUses) {
+      applicableMaterializations.removeAll(use.right);
+    }
+    for (RelOptMaterialization materialization : applicableMaterializations) {
       RelSubset subset = registerImpl(materialization.queryRel, null);
       RelNode tableRel2 =
           RelOptUtil.createCastRel(
@@ -391,157 +373,16 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
               true);
       registerImpl(tableRel2, subset.set);
     }
-    return ImmutableList.of();
-  }
 
-  private List<RelNode> substitute(
-      RelNode root, RelOptMaterialization materialization) {
-    // First, if the materialization is in terms of a star table, rewrite
-    // the query in terms of the star table.
-    if (materialization.starTable != null) {
-      RelNode newRoot = RelOptMaterialization.tryUseStar(root,
-          materialization.starRelOptTable);
-      if (newRoot != null) {
-        root = newRoot;
-      }
-    }
-
-    // Push filters to the bottom, and combine projects on top.
-    RelNode target = materialization.queryRel;
-    HepProgram program =
-        new HepProgramBuilder()
-            .addRuleInstance(FilterProjectTransposeRule.INSTANCE)
-            .addRuleInstance(ProjectMergeRule.INSTANCE)
-            .addRuleInstance(ProjectRemoveRule.INSTANCE)
-            .build();
-
-    final HepPlanner hepPlanner = new HepPlanner(program, getContext());
-    hepPlanner.setRoot(target);
-    target = hepPlanner.findBestExp();
-
-    hepPlanner.setRoot(root);
-    root = hepPlanner.findBestExp();
-
-    return new MaterializedViewSubstitutionVisitor(target, root)
-            .go(materialization.tableRel);
-  }
-
-  // Register all possible combinations of materialization substitution.
-  // Useful for big queries, e.g.
-  //   (t1 group by c1) join (t2 group by c2).
-  private void useMaterializations(RelNode root,
-      List<RelOptMaterialization> materializations) {
-    List<RelNode> applied = Lists.newArrayList(root);
-    for (RelOptMaterialization m : materializations) {
-      int count = applied.size();
-      for (int i = 0; i < count; i++) {
-        List<RelNode> sub = useMaterialization(applied.get(i), m, i == 0);
-        applied.addAll(sub);
-      }
-    }
-  }
-
-  private void useApplicableMaterializations() {
-    // Avoid using materializations while populating materializations!
-    final CalciteConnectionConfig config =
-        context.unwrap(CalciteConnectionConfig.class);
-    if (config == null || !config.materializationsEnabled()) {
-      return;
-    }
-
-    // Given materializations:
-    //   T = Emps Join Depts
-    //   T2 = T Group by C1
-    // graph will contain
-    //   (T, Emps), (T, Depts), (T2, T)
-    // and therefore we can deduce T2 uses Emps.
-    final List<RelOptMaterialization> applicableMaterializations =
-        getApplicableMaterializations(originalRoot, materializations);
-    useMaterializations(originalRoot, applicableMaterializations);
-    final Set<RelOptTable> queryTables = RelOptUtil.findTables(originalRoot);
-
-    // Use a lattice if the query uses at least the central (fact) table of the
-    // lattice.
-    final List<Pair<RelOptLattice, RelNode>> latticeUses = Lists.newArrayList();
-    final Set<List<String>> queryTableNames =
-        Sets.newHashSet(Iterables.transform(queryTables, GET_QUALIFIED_NAME));
-    // Remember leaf-join form of root so we convert at most once.
-    final Supplier<RelNode> leafJoinRoot = Suppliers.memoize(
-        new Supplier<RelNode>() {
-          public RelNode get() {
-            return RelOptMaterialization.toLeafJoinForm(originalRoot);
-          }
-        });
-    for (RelOptLattice lattice : latticeByName.values()) {
-      if (queryTableNames.contains(lattice.rootTable().getQualifiedName())) {
-        RelNode rel2 = lattice.rewrite(leafJoinRoot.get());
-        if (rel2 != null) {
-          if (CalcitePrepareImpl.DEBUG) {
-            System.out.println("use lattice:\n"
-                + RelOptUtil.toString(rel2));
-          }
-          latticeUses.add(Pair.of(lattice, rel2));
-        }
-      }
-    }
+    // Register rels using lattices.
+    final List<Pair<RelNode, RelOptLattice>> latticeUses =
+        RelOptMaterializations.useLattices(
+            originalRoot, ImmutableList.copyOf(latticeByName.values()));
     if (!latticeUses.isEmpty()) {
-      useLattice(latticeUses.get(0).left, latticeUses.get(0).right);
+      RelNode rel = latticeUses.get(0).left;
+      Hook.SUB.run(rel);
+      registerImpl(rel, root.set);
     }
-  }
-
-  public static List<RelOptMaterialization> getApplicableMaterializations(RelNode root,
-      List<RelOptMaterialization> materializations) {
-    DirectedGraph<List<String>, DefaultEdge> usesGraph =
-        DefaultDirectedGraph.create();
-    final Map<List<String>, RelOptMaterialization> qnameMap = new HashMap<>();
-    for (RelOptMaterialization materialization : materializations) {
-      // If materialization is a tile in a lattice, we will deal with it shortly.
-      if (materialization.table != null
-          && materialization.starTable == null) {
-        final List<String> qname = materialization.table.getQualifiedName();
-        qnameMap.put(qname, materialization);
-        for (RelOptTable usedTable
-            : RelOptUtil.findTables(materialization.queryRel)) {
-          usesGraph.addVertex(qname);
-          usesGraph.addVertex(usedTable.getQualifiedName());
-          usesGraph.addEdge(usedTable.getQualifiedName(), qname);
-        }
-      }
-    }
-
-    // Use a materialization if uses at least one of the tables are used by
-    // the query. (Simple rule that includes some materializations we won't
-    // actually use.)
-    final Graphs.FrozenGraph<List<String>, DefaultEdge> frozenGraph =
-        Graphs.makeImmutable(usesGraph);
-    final Set<RelOptTable> queryTablesUsed = RelOptUtil.findTables(root);
-    final List<RelOptMaterialization> applicableMaterializations = Lists.newArrayList();
-    for (List<String> qname : TopologicalOrderIterator.of(usesGraph)) {
-      RelOptMaterialization materialization = qnameMap.get(qname);
-      if (materialization != null
-          && usesTable(materialization.table, queryTablesUsed, frozenGraph)) {
-        applicableMaterializations.add(materialization);
-      }
-    }
-    return applicableMaterializations;
-  }
-
-  /**
-   * Returns whether {@code table} uses one or more of the tables in
-   * {@code usedTables}.
-   */
-  private static boolean usesTable(
-      RelOptTable table,
-      Set<RelOptTable> usedTables,
-      Graphs.FrozenGraph<List<String>, DefaultEdge> usesGraph) {
-    for (RelOptTable queryTable : usedTables) {
-      if (usesGraph.getShortestPath(
-          queryTable.getQualifiedName(),
-          table.getQualifiedName()) != null) {
-        return true;
-      }
-    }
-    return false;
   }
 
   /**
@@ -598,6 +439,12 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     this.relImportances.clear();
     this.ruleQueue.clear();
     this.ruleNames.clear();
+    this.materializations.clear();
+    this.latticeByName.clear();
+  }
+
+  public List<RelOptRule> getRules() {
+    return ImmutableList.copyOf(ruleSet);
   }
 
   public boolean addRule(RelOptRule rule) {
@@ -742,7 +589,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
    */
   public RelNode findBestExp() {
     ensureRootConverters();
-    useApplicableMaterializations();
+    registerMaterializations();
     int cumulativeTicks = 0;
     for (VolcanoPlannerPhase phase : VolcanoPlannerPhase.values()) {
       setInitialImportance();
@@ -1073,7 +920,8 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     addRule(FilterJoinRule.JOIN);
     addRule(AbstractConverter.ExpandConversionRule.INSTANCE);
     addRule(JoinCommuteRule.INSTANCE);
-    addRule(SemiJoinRule.INSTANCE);
+    addRule(SemiJoinRule.PROJECT);
+    addRule(SemiJoinRule.JOIN);
     if (CalcitePrepareImpl.COMMUTE) {
       addRule(JoinAssociateRule.INSTANCE);
     }
@@ -1093,9 +941,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
       try {
         schema.registerRules(this);
       } catch (Exception e) {
-        throw Util.newInternal(
-            e,
-            "Error while registering schema " + schema);
+        throw new AssertionError("While registering schema " + schema, e);
       }
     }
   }
@@ -1600,7 +1446,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     if (p != null) {
       p = p.equivalentSet;
       if (p == s) {
-        throw Util.newInternal("cycle in equivalence tree");
+        throw new AssertionError("cycle in equivalence tree");
       }
     }
     return p;
@@ -1626,9 +1472,8 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
 
     assert !isRegistered(rel) : "already been registered: " + rel;
     if (rel.getCluster().getPlanner() != this) {
-      throw Util.newInternal("Relational expression " + rel
-          + " belongs to a different planner than is currently being"
-          + " used.");
+      throw new AssertionError("Relational expression " + rel
+          + " belongs to a different planner than is currently being used.");
     }
 
     // Now is a good time to ensure that the relational expression
@@ -1638,17 +1483,15 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     assert convention != null;
     if (!convention.getInterface().isInstance(rel)
         && !(rel instanceof Converter)) {
-      throw Util.newInternal(
-          "Relational expression " + rel
-              + " has calling-convention " + convention
-              + " but does not implement the required interface '"
-              + convention.getInterface() + "' of that convention");
+      throw new AssertionError("Relational expression " + rel
+          + " has calling-convention " + convention
+          + " but does not implement the required interface '"
+          + convention.getInterface() + "' of that convention");
     }
     if (traits.size() != traitDefs.size()) {
-      throw Util.newInternal(
-          "Relational expression " + rel
-          + " does not have the correct number of traits "
-          + traits.size() + " != " + traitDefs.size());
+      throw new AssertionError("Relational expression " + rel
+          + " does not have the correct number of traits: " + traits.size()
+          + " != " + traitDefs.size());
     }
 
     // Ensure that its sub-expressions are registered.

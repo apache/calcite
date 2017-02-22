@@ -46,6 +46,7 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
+import java.io.FilenameFilter;
 import java.lang.reflect.Method;
 import java.net.URL;
 import java.sql.Connection;
@@ -111,7 +112,8 @@ public class QuidemTest {
     final File firstFile = new File(x);
     final File dir = firstFile.getParentFile();
     final List<String> paths = new ArrayList<>();
-    for (File f : dir.listFiles(new PatternFilenameFilter(".*\\.iq$"))) {
+    final FilenameFilter filter = new PatternFilenameFilter(".*\\.iq$");
+    for (File f : Util.first(dir.listFiles(filter), new File[0])) {
       assert f.getAbsolutePath().startsWith(base)
           : "f: " + f.getAbsolutePath() + "; base: " + base;
       paths.add(f.getAbsolutePath().substring(base.length()));
@@ -246,7 +248,8 @@ public class QuidemTest {
   }
 
   /** Quidem connection factory for Calcite's built-in test schemas. */
-  private static class QuidemConnectionFactory implements Quidem.NewConnectionFactory {
+  private static class QuidemConnectionFactory
+      implements Quidem.ConnectionFactory {
     public Connection connect(String name) throws Exception {
       return connect(name, false);
     }

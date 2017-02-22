@@ -79,18 +79,19 @@ public abstract class ListScope extends DelegatingScope {
     return Lists.transform(children, ScopeChild.NAME_FN);
   }
 
-  private int findChild(List<String> names) {
+  private ScopeChild findChild(List<String> names,
+      SqlNameMatcher nameMatcher) {
     for (ScopeChild child : children) {
       String lastName = Util.last(names);
       if (child.name != null) {
-        if (!validator.catalogReader.matches(child.name, lastName)) {
+        if (!nameMatcher.matches(child.name, lastName)) {
           // Alias does not match last segment. Don't consider the
           // fully-qualified name. E.g.
           //    SELECT sales.emp.name FROM sales.emp AS otherAlias
           continue;
         }
         if (names.size() == 1) {
-          return child.ordinal;
+          return child;
         }
       }
 
@@ -98,15 +99,18 @@ public abstract class ListScope extends DelegatingScope {
       // catalog & schema and the other is not.
       final SqlValidatorTable table = child.namespace.getTable();
       if (table != null) {
-        final SqlValidatorTable table2 =
-            validator.catalogReader.getTable(names);
-        if (table2 != null
-            && table.getQualifiedName().equals(table2.getQualifiedName())) {
-          return child.ordinal;
+        final ResolvedImpl resolved = new ResolvedImpl();
+        resolveTable(names, nameMatcher, Path.EMPTY, resolved);
+        if (resolved.count() == 1
+            && resolved.only().remainingNames.isEmpty()
+            && resolved.only().namespace instanceof TableNamespace
+            && resolved.only().namespace.getTable().getQualifiedName().equals(
+                table.getQualifiedName())) {
+          return child;
         }
       }
     }
-    return -1;
+    return null;
   }
 
   public void findAllColumnNames(List<SqlMoniker> result) {
@@ -123,9 +127,12 @@ public abstract class ListScope extends DelegatingScope {
     parent.findAliases(result);
   }
 
+  @SuppressWarnings("deprecation")
   @Override public Pair<String, SqlValidatorNamespace>
   findQualifyingTableName(final String columnName, SqlNode ctx) {
-    final Map<String, ScopeChild> map = findQualifyingTables(columnName);
+    final SqlNameMatcher nameMatcher = validator.catalogReader.nameMatcher();
+    final Map<String, ScopeChild> map =
+        findQualifyingTables(columnName, nameMatcher);
     switch (map.size()) {
     case 0:
       return parent.findQualifyingTableName(columnName, ctx);
@@ -140,11 +147,25 @@ public abstract class ListScope extends DelegatingScope {
   }
 
   @Override public Map<String, ScopeChild>
-  findQualifyingTables(String columnName) {
+  findQualifyingTableNames(String columnName, SqlNode ctx,
+      SqlNameMatcher nameMatcher) {
+    final Map<String, ScopeChild> map =
+        findQualifyingTables(columnName, nameMatcher);
+    switch (map.size()) {
+    case 0:
+      return parent.findQualifyingTableNames(columnName, ctx, nameMatcher);
+    default:
+      return map;
+    }
+  }
+
+  @Override public Map<String, ScopeChild>
+  findQualifyingTables(String columnName, SqlNameMatcher nameMatcher) {
     final Map<String, ScopeChild> map = new HashMap<>();
     for (ScopeChild child : children) {
       final ResolvedImpl resolved = new ResolvedImpl();
-      resolve(ImmutableList.of(child.name, columnName), true, resolved);
+      resolve(ImmutableList.of(child.name, columnName), nameMatcher, true,
+          resolved);
       if (resolved.count() > 0) {
         map.put(child.name, child);
       }
@@ -152,15 +173,15 @@ public abstract class ListScope extends DelegatingScope {
     return map;
   }
 
-  @Override public void resolve(List<String> names, boolean deep,
-      Resolved resolved) {
+  @Override public void resolve(List<String> names, SqlNameMatcher nameMatcher,
+      boolean deep, Resolved resolved) {
     // First resolve by looking through the child namespaces.
-    final int i = findChild(names);
-    if (i >= 0) {
+    final ScopeChild child0 = findChild(names, nameMatcher);
+    if (child0 != null) {
       final Step path =
-          resolved.emptyPath().add(null, i, StructKind.FULLY_QUALIFIED);
-      final ScopeChild child = children.get(i);
-      resolved.found(child.namespace, child.nullable, this, path);
+          Path.EMPTY.plus(child0.namespace.getRowType(), child0.ordinal,
+              child0.name, StructKind.FULLY_QUALIFIED);
+      resolved.found(child0.namespace, child0.nullable, this, path, null);
       return;
     }
 
@@ -170,11 +191,11 @@ public abstract class ListScope extends DelegatingScope {
       for (ScopeChild child : children) {
         // If identifier starts with table alias, remove the alias.
         final List<String> names2 =
-            validator.catalogReader.matches(child.name, names.get(0))
+            nameMatcher.matches(child.name, names.get(0))
                 ? names.subList(1, names.size())
                 : names;
-        resolveInNamespace(child.namespace, child.nullable, names2,
-            resolved.emptyPath(), resolved);
+        resolveInNamespace(child.namespace, child.nullable, names2, nameMatcher,
+            Path.EMPTY, resolved);
       }
       if (resolved.count() > 0) {
         return;
@@ -183,17 +204,18 @@ public abstract class ListScope extends DelegatingScope {
 
     // Then call the base class method, which will delegate to the
     // parent scope.
-    super.resolve(names, deep, resolved);
+    super.resolve(names, nameMatcher, deep, resolved);
   }
 
   public RelDataType resolveColumn(String columnName, SqlNode ctx) {
+    final SqlNameMatcher nameMatcher = validator.catalogReader.nameMatcher();
     int found = 0;
     RelDataType type = null;
     for (ScopeChild child : children) {
       SqlValidatorNamespace childNs = child.namespace;
       final RelDataType childRowType = childNs.getRowType();
       final RelDataTypeField field =
-          validator.catalogReader.field(childRowType, columnName);
+          nameMatcher.field(childRowType, columnName);
       if (field != null) {
         found++;
         type = field.getType();

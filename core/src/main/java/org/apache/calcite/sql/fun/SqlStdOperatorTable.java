@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.sql.fun;
 
+import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.SqlAggFunction;
@@ -1121,6 +1122,13 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    */
   public static final SqlFunction SUBSTRING = new SqlSubstringFunction();
 
+  /** The {@code REPLACE(string, search, replace)} function. Not standard SQL,
+   * but in Oracle and Postgres. */
+  public static final SqlFunction REPLACE =
+      new SqlFunction("REPLACE", SqlKind.OTHER_FUNCTION,
+          ReturnTypes.ARG0_NULLABLE_VARYING, null,
+          OperandTypes.STRING_STRING_STRING, SqlFunctionCategory.STRING);
+
   public static final SqlFunction CONVERT =
       new SqlConvertFunction("CONVERT");
 
@@ -1248,6 +1256,69 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           OperandTypes.NUMERIC_OR_INTERVAL,
           SqlFunctionCategory.NUMERIC);
 
+  public static final SqlFunction ACOS =
+      new SqlFunction(
+          "ACOS",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.DOUBLE_NULLABLE,
+          null,
+          OperandTypes.NUMERIC,
+          SqlFunctionCategory.NUMERIC);
+
+  public static final SqlFunction ASIN =
+      new SqlFunction(
+          "ASIN",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.DOUBLE_NULLABLE,
+          null,
+          OperandTypes.NUMERIC,
+          SqlFunctionCategory.NUMERIC);
+
+  public static final SqlFunction ATAN =
+      new SqlFunction(
+          "ATAN",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.DOUBLE_NULLABLE,
+          null,
+          OperandTypes.NUMERIC,
+          SqlFunctionCategory.NUMERIC);
+
+  public static final SqlFunction ATAN2 =
+      new SqlFunction(
+          "ATAN2",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.DOUBLE_NULLABLE,
+          null,
+          OperandTypes.NUMERIC_NUMERIC,
+          SqlFunctionCategory.NUMERIC);
+
+  public static final SqlFunction COS =
+      new SqlFunction(
+          "COS",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.DOUBLE_NULLABLE,
+          null,
+          OperandTypes.NUMERIC,
+          SqlFunctionCategory.NUMERIC);
+
+  public static final SqlFunction COT =
+      new SqlFunction(
+          "COT",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.DOUBLE_NULLABLE,
+          null,
+          OperandTypes.NUMERIC,
+          SqlFunctionCategory.NUMERIC);
+
+  public static final SqlFunction DEGREES =
+      new SqlFunction(
+          "DEGREES",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.DOUBLE_NULLABLE,
+          null,
+          OperandTypes.NUMERIC,
+          SqlFunctionCategory.NUMERIC);
+
   public static final SqlFunction EXP =
       new SqlFunction(
           "EXP",
@@ -1255,6 +1326,65 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           ReturnTypes.DOUBLE_NULLABLE,
           null,
           OperandTypes.NUMERIC,
+          SqlFunctionCategory.NUMERIC);
+
+  public static final SqlFunction RADIANS =
+      new SqlFunction(
+          "RADIANS",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.DOUBLE_NULLABLE,
+          null,
+          OperandTypes.NUMERIC,
+          SqlFunctionCategory.NUMERIC);
+
+  public static final SqlFunction ROUND =
+      new SqlFunction(
+          "ROUND",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.ARG0,
+          null,
+          OperandTypes.NUMERIC_INTEGER,
+          SqlFunctionCategory.NUMERIC);
+
+  public static final SqlFunction SIGN =
+      new SqlFunction(
+          "SIGN",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.ARG0,
+          null,
+          OperandTypes.NUMERIC,
+          SqlFunctionCategory.NUMERIC);
+
+  public static final SqlFunction SIN =
+      new SqlFunction(
+          "SIN",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.DOUBLE_NULLABLE,
+          null,
+          OperandTypes.NUMERIC,
+          SqlFunctionCategory.NUMERIC);
+
+
+  public static final SqlFunction TAN =
+      new SqlFunction(
+          "TAN",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.DOUBLE_NULLABLE,
+          null,
+          OperandTypes.NUMERIC,
+          SqlFunctionCategory.NUMERIC);
+
+  public static final SqlFunction TRUNCATE =
+      new SqlFunction(
+          "TRUNCATE",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.ARG0,
+          null,
+          OperandTypes.NUMERIC_INTEGER,
+          SqlFunctionCategory.NUMERIC);
+
+  public static final SqlFunction PI =
+      new SqlBaseContextVariable("PI", ReturnTypes.DOUBLE,
           SqlFunctionCategory.NUMERIC);
 
   public static final SqlFunction NULLIF = new SqlNullifFunction();
@@ -1405,12 +1535,94 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   public static final SqlFunction EXTRACT = new SqlExtractFunction();
 
   /**
+   * The SQL <code>YEAR</code> operator. Returns the Year
+   * from a DATETIME  E.g.<br>
+   * <code>YEAR(date '2008-9-23')</code> returns <code>
+   * 2008</code>
+   */
+  public static final SqlDatePartFunction YEAR =
+      new SqlDatePartFunction("YEAR", TimeUnit.YEAR);
+
+  /**
    * The SQL <code>QUARTER</code> operator. Returns the Quarter
    * from a DATETIME  E.g.<br>
    * <code>QUARTER(date '2008-9-23')</code> returns <code>
    * 3</code>
    */
-  public static final SqlQuarterFunction QUARTER = new SqlQuarterFunction();
+  public static final SqlDatePartFunction QUARTER =
+      new SqlDatePartFunction("QUARTER", TimeUnit.QUARTER);
+
+  /**
+   * The SQL <code>MONTH</code> operator. Returns the Month
+   * from a DATETIME  E.g.<br>
+   * <code>MONTH(date '2008-9-23')</code> returns <code>
+   * 9</code>
+   */
+  public static final SqlDatePartFunction MONTH =
+      new SqlDatePartFunction("MONTH", TimeUnit.MONTH);
+
+  /**
+   * The SQL <code>WEEK</code> operator. Returns the Week
+   * from a DATETIME  E.g.<br>
+   * <code>WEEK(date '2008-9-23')</code> returns <code>
+   * 39</code>
+   */
+  public static final SqlDatePartFunction WEEK =
+      new SqlDatePartFunction("WEEK", TimeUnit.WEEK);
+
+  /**
+   * The SQL <code>DAYOFYEAR</code> operator. Returns the DOY
+   * from a DATETIME  E.g.<br>
+   * <code>DAYOFYEAR(date '2008-9-23')</code> returns <code>
+   * 267</code>
+   */
+  public static final SqlDatePartFunction DAYOFYEAR =
+      new SqlDatePartFunction("DAYOFYEAR", TimeUnit.DOY);
+
+  /**
+   * The SQL <code>DAYOFMONTH</code> operator. Returns the Day
+   * from a DATETIME  E.g.<br>
+   * <code>DAYOFMONTH(date '2008-9-23')</code> returns <code>
+   * 23</code>
+   */
+  public static final SqlDatePartFunction DAYOFMONTH =
+      new SqlDatePartFunction("DAYOFMONTH", TimeUnit.DAY);
+
+  /**
+   * The SQL <code>DAYOFWEEK</code> operator. Returns the DOW
+   * from a DATETIME  E.g.<br>
+   * <code>DAYOFWEEK(date '2008-9-23')</code> returns <code>
+   * 2</code>
+   */
+  public static final SqlDatePartFunction DAYOFWEEK =
+      new SqlDatePartFunction("DAYOFWEEK", TimeUnit.DOW);
+
+  /**
+   * The SQL <code>HOUR</code> operator. Returns the Hour
+   * from a DATETIME  E.g.<br>
+   * <code>HOUR(timestamp '2008-9-23 01:23:45')</code> returns <code>
+   * 1</code>
+   */
+  public static final SqlDatePartFunction HOUR =
+      new SqlDatePartFunction("HOUR", TimeUnit.HOUR);
+
+  /**
+   * The SQL <code>MINUTE</code> operator. Returns the Minute
+   * from a DATETIME  E.g.<br>
+   * <code>MINUTE(timestamp '2008-9-23 01:23:45')</code> returns <code>
+   * 23</code>
+   */
+  public static final SqlDatePartFunction MINUTE =
+      new SqlDatePartFunction("MINUTE", TimeUnit.MINUTE);
+
+  /**
+   * The SQL <code>SECOND</code> operator. Returns the Second
+   * from a DATETIME  E.g.<br>
+   * <code>SECOND(timestamp '2008-9-23 01:23:45')</code> returns <code>
+   * 45</code>
+   */
+  public static final SqlDatePartFunction SECOND =
+      new SqlDatePartFunction("SECOND", TimeUnit.SECOND);
 
   /**
    * The ELEMENT operator, used to convert a multiset with only one item to a
@@ -1631,6 +1843,19 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
         }
       };
 
+  public static final SqlGroupFunction TUMBLE =
+      new SqlGroupFunction(SqlKind.TUMBLE, null,
+          OperandTypes.or(OperandTypes.DATETIME_INTERVAL,
+              OperandTypes.DATETIME_INTERVAL_TIME));
+
+  /** The TUMBLE_START auxiliary function of the TUMBLE group function. */
+  public static final SqlFunction TUMBLE_START =
+      TUMBLE.auxiliary(SqlKind.TUMBLE_START);
+
+  /** The TUMBLE_END auxiliary function of the TUMBLE group function. */
+  public static final SqlFunction TUMBLE_END =
+      TUMBLE.auxiliary(SqlKind.TUMBLE_END);
+
   //~ Methods ----------------------------------------------------------------
 
   /**
@@ -1645,6 +1870,18 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
       instance.init();
     }
     return instance;
+  }
+
+  /** Returns the group function for which a given kind is an auxiliary
+   * function, or null if it is not an auxiliary function. */
+  public static SqlGroupFunction auxiliaryToGroup(SqlKind kind) {
+    switch (kind) {
+    case TUMBLE_START:
+    case TUMBLE_END:
+      return TUMBLE;
+    default:
+      return null;
+    }
   }
 }
 

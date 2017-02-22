@@ -16,45 +16,18 @@
  */
 package org.apache.calcite.sql.fun;
 
-import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
-import org.apache.calcite.sql.SqlKind;
-import org.apache.calcite.sql.SqlOperatorBinding;
-import org.apache.calcite.sql.SqlSyntax;
-import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
-import org.apache.calcite.sql.validate.SqlMonotonicity;
 
 /**
- * Base class for functions such as "USER", "CURRENT_ROLE", and "CURRENT_PATH".
+ * Base class for string functions such as "USER", "CURRENT_ROLE", and
+ * "CURRENT_PATH".
  */
-public class SqlStringContextVariable extends SqlFunction {
+public class SqlStringContextVariable extends SqlBaseContextVariable {
   //~ Constructors -----------------------------------------------------------
 
   protected SqlStringContextVariable(String name) {
-    super(
-        name,
-        SqlKind.OTHER_FUNCTION,
-        ReturnTypes.VARCHAR_2000,
-        null,
-        OperandTypes.NILADIC,
-        SqlFunctionCategory.SYSTEM);
-  }
-
-  //~ Methods ----------------------------------------------------------------
-
-  public SqlSyntax getSyntax() {
-    return SqlSyntax.FUNCTION_ID;
-  }
-
-  // All of the string constants are monotonic.
-  @Override public SqlMonotonicity getMonotonicity(SqlOperatorBinding call) {
-    return SqlMonotonicity.CONSTANT;
-  }
-
-  // Plans referencing context variables should never be cached
-  public boolean isDynamicFunction() {
-    return true;
+    super(name, ReturnTypes.VARCHAR_2000, SqlFunctionCategory.SYSTEM);
   }
 }
 

@@ -20,7 +20,6 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
-import org.apache.calcite.util.Util;
 
 import static org.apache.calcite.util.Static.RESOURCE;
 
@@ -107,7 +106,7 @@ public class SetopNamespace extends AbstractNamespace {
           scope,
           call);
     default:
-      throw Util.newInternal("Not a query: " + call.getKind());
+      throw new AssertionError("Not a query: " + call.getKind());
     }
   }
 }

@@ -28,6 +28,7 @@ import org.apache.calcite.sql.util.SqlBasicVisitor;
 import org.apache.calcite.sql.util.SqlVisitor;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
 import org.apache.calcite.sql.validate.SqlValidator;
+import org.apache.calcite.sql.validate.SqlValidatorImpl;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.util.Litmus;
@@ -434,7 +435,7 @@ public abstract class SqlOperator {
 
     // Now infer the result type.
     RelDataType ret = inferReturnType(opBinding);
-    validator.setValidatedNodeType(call, ret);
+    ((SqlValidatorImpl) validator).setValidatedNodeType(call, ret);
     return ret;
   }
 
@@ -581,7 +582,7 @@ public abstract class SqlOperator {
       } else {
         nodeType = validator.deriveType(operandScope, operand);
       }
-      validator.setValidatedNodeType(operand, nodeType);
+      ((SqlValidatorImpl) validator).setValidatedNodeType(operand, nodeType);
       argTypeBuilder.add(nodeType);
     }
 
@@ -788,6 +789,32 @@ public abstract class SqlOperator {
    */
   public boolean allowsFraming() {
     return true;
+  }
+
+  /**
+   * Returns whether this is a group function.
+   *
+   * <p>Group functions can only appear in the GROUP BY clause.
+   *
+   * <p>Examples are {@code HOP}, {@code TUMBLE}, {@code SESSION}.
+   *
+   * <p>Group functions have auxiliary functions, e.g. {@code HOP_START}, but
+   * these are not group functions.
+   */
+  public boolean isGroup() {
+    return false;
+  }
+
+  /**
+   * Returns whether this is an group auxiliary function.
+   *
+   * <p>Examples are {@code HOP_START} and {@code HOP_END} (both auxiliary to
+   * {@code HOP}).
+   *
+   * @see #isGroup()
+   */
+  public boolean isGroupAuxiliary() {
+    return false;
   }
 
   /**

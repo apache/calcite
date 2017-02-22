@@ -16,8 +16,16 @@
  */
 package org.apache.calcite.rel.rel2sql;
 
+import org.apache.calcite.plan.RelOptLattice;
+import org.apache.calcite.plan.RelOptMaterialization;
+import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelTraitDef;
+import org.apache.calcite.plan.hep.HepPlanner;
+import org.apache.calcite.plan.hep.HepProgram;
+import org.apache.calcite.plan.hep.HepProgramBuilder;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.rules.UnionMergeRule;
+import org.apache.calcite.runtime.FlatLists;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlDialect.DatabaseProduct;
@@ -28,9 +36,13 @@ import org.apache.calcite.tools.FrameworkConfig;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.Planner;
 import org.apache.calcite.tools.Program;
+import org.apache.calcite.tools.Programs;
+import org.apache.calcite.tools.RuleSet;
+import org.apache.calcite.tools.RuleSets;
 import org.apache.calcite.util.Util;
 
-import com.google.common.base.Throwables;
+import com.google.common.base.Function;
+import com.google.common.collect.ImmutableList;
 
 import org.junit.Test;
 
@@ -46,7 +58,7 @@ public class RelToSqlConverterTest {
   /** Initiates a test case with a given SQL query. */
   private Sql sql(String sql) {
     return new Sql(CalciteAssert.SchemaSpec.JDBC_FOODMART, sql,
-        SqlDialect.CALCITE);
+        SqlDialect.CALCITE, ImmutableList.<Function<RelNode, RelNode>>of());
   }
 
   private static Planner getPlanner(List<RelTraitDef> traitDefs,
@@ -306,6 +318,31 @@ public class RelToSqlConverterTest {
     sql(query).ok(expected);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1636">[CALCITE-1636]
+   * JDBC adapter generates wrong SQL for self join with sub-query</a>. */
+  @Test public void testSubQueryAlias() {
+    String query = "select t1.\"customer_id\", t2.\"customer_id\" \n"
+        + "from (select \"customer_id\" from \"sales_fact_1997\") as t1 \n"
+        + "inner join (select \"customer_id\" from \"sales_fact_1997\") t2 \n"
+        + "on t1.\"customer_id\" = t2.\"customer_id\"";
+    final String expected = "SELECT *\n"
+        + "FROM (SELECT sales_fact_1997.customer_id\n"
+        + "FROM foodmart.sales_fact_1997 AS sales_fact_1997) AS t\n"
+        + "INNER JOIN (SELECT sales_fact_19970.customer_id\n"
+        + "FROM foodmart.sales_fact_1997 AS sales_fact_19970) AS t0 ON t.customer_id = t0.customer_id";
+
+    sql(query).dialect(DatabaseProduct.DB2.getDialect()).ok(expected);
+  }
+
+  @Test public void testCartesianProduct() {
+    String query = "select * from \"department\" , \"employee\"";
+    String expected = "SELECT *\n"
+        + "FROM \"foodmart\".\"department\",\n"
+        + "\"foodmart\".\"employee\"";
+    sql(query).ok(expected);
+  }
+
   @Test public void testSimpleIn() {
     String query = "select * from \"department\" where \"department_id\" in (\n"
         + "  select \"department_id\" from \"employee\"\n"
@@ -510,24 +547,62 @@ public class RelToSqlConverterTest {
     sql(query).ok(expected);
   }
 
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1586">[CALCITE-1586]
+   * JDBC adapter generates wrong SQL if UNION has more than two inputs</a>. */
+  @Test public void testThreeQueryUnion() {
+    String query = "SELECT \"product_id\" FROM \"product\" "
+        + " UNION ALL "
+        + "SELECT \"product_id\" FROM \"sales_fact_1997\" "
+        + " UNION ALL "
+        + "SELECT \"product_class_id\" AS product_id FROM \"product_class\"";
+    String expected = "SELECT \"product_id\"\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "UNION ALL\n"
+        + "SELECT \"product_id\"\n"
+        + "FROM \"foodmart\".\"sales_fact_1997\"\n"
+        + "UNION ALL\n"
+        + "SELECT \"product_class_id\" AS \"PRODUCT_ID\"\n"
+        + "FROM \"foodmart\".\"product_class\"";
+
+    final HepProgram program =
+        new HepProgramBuilder().addRuleClass(UnionMergeRule.class).build();
+    final RuleSet rules = RuleSets.ofList(UnionMergeRule.INSTANCE);
+    sql(query)
+        .optimize(rules, new HepPlanner(program))
+        .ok(expected);
+  }
+
   /** Fluid interface to run tests. */
   private static class Sql {
     private CalciteAssert.SchemaSpec schemaSpec;
     private final String sql;
     private final SqlDialect dialect;
+    private final List<Function<RelNode, RelNode>> transforms;
 
-    Sql(CalciteAssert.SchemaSpec schemaSpec, String sql, SqlDialect dialect) {
+    Sql(CalciteAssert.SchemaSpec schemaSpec, String sql, SqlDialect dialect,
+        List<Function<RelNode, RelNode>> transforms) {
       this.schemaSpec = schemaSpec;
       this.sql = sql;
       this.dialect = dialect;
+      this.transforms = ImmutableList.copyOf(transforms);
     }
 
     Sql dialect(SqlDialect dialect) {
-      return new Sql(schemaSpec, sql, dialect);
+      return new Sql(schemaSpec, sql, dialect, transforms);
     }
 
-    Sql planner(Planner planner) {
-      return new Sql(schemaSpec, sql, dialect);
+    Sql optimize(final RuleSet ruleSet, final RelOptPlanner relOptPlanner) {
+      return new Sql(schemaSpec, sql, dialect,
+          FlatLists.append(transforms, new Function<RelNode, RelNode>() {
+            public RelNode apply(RelNode r) {
+              Program program = Programs.of(ruleSet);
+              return program.run(relOptPlanner, r, r.getTraitSet(),
+                  ImmutableList.<RelOptMaterialization>of(),
+                  ImmutableList.<RelOptLattice>of());
+            }
+          }));
     }
 
     Sql ok(String expectedQuery) {
@@ -537,19 +612,24 @@ public class RelToSqlConverterTest {
         SqlNode parse = planner.parse(sql);
         SqlNode validate = planner.validate(parse);
         RelNode rel = planner.rel(validate).rel;
+        for (Function<RelNode, RelNode> transform : transforms) {
+          rel = transform.apply(rel);
+        }
         final RelToSqlConverter converter =
             new RelToSqlConverter(dialect);
         final SqlNode sqlNode = converter.visitChild(0, rel).asStatement();
         assertThat(Util.toLinux(sqlNode.toSqlString(dialect).getSql()),
             is(expectedQuery));
+      } catch (RuntimeException e) {
+        throw e;
       } catch (Exception e) {
-        throw Throwables.propagate(e);
+        throw new RuntimeException(e);
       }
       return this;
     }
 
     public Sql schema(CalciteAssert.SchemaSpec schemaSpec) {
-      return new Sql(schemaSpec, sql, dialect);
+      return new Sql(schemaSpec, sql, dialect, transforms);
     }
   }
 }

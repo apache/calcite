@@ -48,11 +48,13 @@ import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
 import com.google.common.base.Function;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
 import java.math.BigDecimal;
 import java.math.MathContext;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
@@ -168,8 +170,7 @@ public class RexBuilder {
     final RelDataTypeField field =
         type.getField(fieldName, caseSensitive, false);
     if (field == null) {
-      throw Util.newInternal(
-          "Type '" + type + "' has no field '"
+      throw new AssertionError("Type '" + type + "' has no field '"
           + fieldName + "'");
     }
     return makeFieldAccessInternal(expr, field);
@@ -189,7 +190,7 @@ public class RexBuilder {
     final RelDataType type = expr.getType();
     final List<RelDataTypeField> fields = type.getFieldList();
     if ((i < 0) || (i >= fields.size())) {
-      throw Util.newInternal("Field ordinal " + i + " is invalid for "
+      throw new AssertionError("Field ordinal " + i + " is invalid for "
           + " type '" + type + "'");
     }
     return makeFieldAccessInternal(expr, fields.get(i));
@@ -374,7 +375,7 @@ public class RexBuilder {
           makeCast(type, constantNull()));
     }
     if (!allowPartial) {
-      Util.permAssert(physical, "DISALLOW PARTIAL over RANGE");
+      Preconditions.checkArgument(physical, "DISALLOW PARTIAL over RANGE");
       final RelDataType bigintType = getTypeFactory().createSqlType(
           SqlTypeName.BIGINT);
       // todo: read bound
@@ -536,7 +537,7 @@ public class RexBuilder {
             final BigDecimal divider =
                 literal.getTypeName().getEndUnit().multiplier;
             value = value2.multiply(multiplier)
-                .divide(divider, 0, BigDecimal.ROUND_HALF_DOWN);
+                .divide(divider, 0, RoundingMode.HALF_DOWN);
           }
 
           // Not all types are allowed for literals
@@ -630,7 +631,7 @@ public class RexBuilder {
     return makeCall(toType,
         SqlStdOperatorTable.CASE,
         ImmutableList.of(makeCall(SqlStdOperatorTable.IS_NOT_NULL, exp),
-            casted, makeNullLiteral(toType.getSqlTypeName())));
+            casted, makeNullLiteral(toType)));
   }
 
   private RexNode makeCastIntervalToExact(RelDataType toType, RexNode exp) {
@@ -663,12 +664,12 @@ public class RexBuilder {
       // E.g. multiplyDivide(e, 1000, 10) ==> e * 100
       return makeCall(SqlStdOperatorTable.MULTIPLY, e,
           makeExactLiteral(
-              multiplier.divide(divider, BigDecimal.ROUND_UNNECESSARY)));
+              multiplier.divide(divider, RoundingMode.UNNECESSARY)));
     case -1:
       // E.g. multiplyDivide(e, 10, 1000) ==> e / 100
       return makeCall(SqlStdOperatorTable.DIVIDE_INTEGER, e,
           makeExactLiteral(
-              divider.divide(multiplier, BigDecimal.ROUND_UNNECESSARY)));
+              divider.divide(multiplier, RoundingMode.UNNECESSARY)));
     default:
       throw new AssertionError(multiplier + "/" + divider);
     }
@@ -1115,22 +1116,6 @@ public class RexBuilder {
   }
 
   /**
-   * Creates an expression corresponding to a null literal, cast to a specific
-   * type and precision
-   *
-   * @param typeName  name of the type that the null will be cast to
-   * @param precision precision of the type
-   * @return created expression
-   */
-  public RexNode makeNullLiteral(SqlTypeName typeName, int precision) {
-    RelDataType type =
-        typeFactory.createTypeWithNullability(
-            typeFactory.createSqlType(typeName, precision),
-            true);
-    return makeCast(type, constantNull());
-  }
-
-  /**
    * Creates a literal whose value is NULL, with a particular type.
    *
    * <p>The typing is necessary because RexNodes are strictly typed. For
@@ -1138,15 +1123,26 @@ public class RexBuilder {
    * SUBSTRING(NULL FROM 2 FOR 4)</code> must have a valid VARCHAR type so
    * that the result type can be determined.
    *
-   * @param typeName Type to cast NULL to
+   * @param type Type to cast NULL to
    * @return NULL literal of given type
    */
+  public RexLiteral makeNullLiteral(RelDataType type) {
+    if (!type.isNullable()) {
+      type = typeFactory.createTypeWithNullability(type, true);
+    }
+    return (RexLiteral) makeCast(type, constantNull());
+  }
+
+  /** @deprecated Use {@link #makeNullLiteral(RelDataType)} */
+  @Deprecated // to be removed before 2.0
+  public RexNode makeNullLiteral(SqlTypeName typeName, int precision) {
+    return makeNullLiteral(typeFactory.createSqlType(typeName, precision));
+  }
+
+  /** @deprecated Use {@link #makeNullLiteral(RelDataType)} */
+  @Deprecated // to be removed before 2.0
   public RexNode makeNullLiteral(SqlTypeName typeName) {
-    RelDataType type =
-        typeFactory.createTypeWithNullability(
-            typeFactory.createSqlType(typeName),
-            true);
-    return makeCast(type, constantNull());
+    return makeNullLiteral(typeFactory.createSqlType(typeName));
   }
 
   /**

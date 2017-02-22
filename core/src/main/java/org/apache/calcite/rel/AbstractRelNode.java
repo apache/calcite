@@ -140,6 +140,7 @@ public abstract class AbstractRelNode implements RelNode {
     return collection.get(0);
   }
 
+  @SuppressWarnings("deprecation")
   public List<RexNode> getChildExps() {
     return ImmutableList.of();
   }
@@ -160,11 +161,13 @@ public abstract class AbstractRelNode implements RelNode {
     return null;
   }
 
+  @SuppressWarnings("deprecation")
   public boolean isDistinct() {
     final RelMetadataQuery mq = RelMetadataQuery.instance();
     return Boolean.TRUE.equals(mq.areRowsUnique(this));
   }
 
+  @SuppressWarnings("deprecation")
   public boolean isKey(ImmutableBitSet columns) {
     final RelMetadataQuery mq = RelMetadataQuery.instance();
     return Boolean.TRUE.equals(mq.areColumnsUnique(this, columns));
@@ -179,6 +182,7 @@ public abstract class AbstractRelNode implements RelNode {
     return inputs.get(i);
   }
 
+  @SuppressWarnings("deprecation")
   public final RelOptQuery getQuery() {
     return getCluster().getQuery();
   }
@@ -204,6 +208,7 @@ public abstract class AbstractRelNode implements RelNode {
     return litmus.succeed();
   }
 
+  @SuppressWarnings("deprecation")
   public boolean isValid(boolean fail) {
     return isValid(Litmus.THROW, null);
   }
@@ -236,6 +241,7 @@ public abstract class AbstractRelNode implements RelNode {
     return Collections.emptyList();
   }
 
+  @SuppressWarnings("deprecation")
   public final double getRows() {
     return estimateRowCount(RelMetadataQuery.instance());
   }
@@ -244,6 +250,7 @@ public abstract class AbstractRelNode implements RelNode {
     return 1.0;
   }
 
+  @SuppressWarnings("deprecation")
   public final Set<String> getVariablesStopped() {
     return CorrelationId.names(getVariablesSet());
   }
@@ -276,6 +283,7 @@ public abstract class AbstractRelNode implements RelNode {
     return this;
   }
 
+  @SuppressWarnings("deprecation")
   public final RelOptCost computeSelfCost(RelOptPlanner planner) {
     return computeSelfCost(planner, RelMetadataQuery.instance());
   }
@@ -361,7 +369,7 @@ public abstract class AbstractRelNode implements RelNode {
   public void replaceInput(
       int ordinalInParent,
       RelNode p) {
-    throw Util.newInternal("replaceInput called on " + this);
+    throw new UnsupportedOperationException("replaceInput called on " + this);
   }
 
   public String toString() {

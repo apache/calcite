@@ -24,6 +24,7 @@ import org.apache.calcite.rel.RelRoot;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.schema.Wrapper;
 import org.apache.calcite.util.ImmutableBitSet;
 
 import java.util.List;
@@ -32,7 +33,7 @@ import java.util.List;
  * Represents a relational dataset in a {@link RelOptSchema}. It has methods to
  * describe and implement itself.
  */
-public interface RelOptTable {
+public interface RelOptTable extends Wrapper {
   //~ Methods ----------------------------------------------------------------
 
   /**
@@ -95,11 +96,6 @@ public interface RelOptTable {
    * @return Whether the given columns are a key or a superset of a key
    */
   boolean isKey(ImmutableBitSet columns);
-
-  /**
-   * Finds an interface implemented by this table.
-   */
-  <T> T unwrap(Class<T> clazz);
 
   /**
    * Generates code for this table.

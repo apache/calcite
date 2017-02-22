@@ -22,6 +22,7 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
 import java.util.List;
@@ -78,12 +79,10 @@ abstract class AbstractNamespace implements SqlValidatorNamespace {
     case UNVALIDATED:
       try {
         status = SqlValidatorImpl.Status.IN_PROGRESS;
-        Util.permAssert(
-            rowType == null,
+        Preconditions.checkArgument(rowType == null,
             "Namespace.rowType must be null before validate has been called");
         RelDataType type = validateImpl(targetRowType);
-        Util.permAssert(
-            type != null,
+        Preconditions.checkArgument(type != null,
             "validateImpl() returned null");
         setType(type);
       } finally {
@@ -91,7 +90,7 @@ abstract class AbstractNamespace implements SqlValidatorNamespace {
       }
       break;
     case IN_PROGRESS:
-      throw Util.newInternal("todo: Cycle detected during type-checking");
+      throw new AssertionError("Cycle detected during type-checking");
     case VALID:
       break;
     default:
@@ -114,7 +113,7 @@ abstract class AbstractNamespace implements SqlValidatorNamespace {
   public RelDataType getRowType() {
     if (rowType == null) {
       validator.validateNamespace(this, validator.unknownType);
-      Util.permAssert(rowType != null, "validate must set rowType");
+      Preconditions.checkArgument(rowType != null, "validate must set rowType");
     }
     return rowType;
   }
@@ -149,7 +148,7 @@ abstract class AbstractNamespace implements SqlValidatorNamespace {
 
   public boolean fieldExists(String name) {
     final RelDataType rowType = getRowType();
-    return validator.catalogReader.field(rowType, name) != null;
+    return validator.catalogReader.nameMatcher().field(rowType, name) != null;
   }
 
   public List<Pair<SqlNode, SqlMonotonicity>> getMonotonicExprs() {
@@ -160,6 +159,7 @@ abstract class AbstractNamespace implements SqlValidatorNamespace {
     return SqlMonotonicity.NOT_MONOTONIC;
   }
 
+  @SuppressWarnings("deprecation")
   public void makeNullable() {
   }
 

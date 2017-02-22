@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.rel.rules;
 
+import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
@@ -28,6 +29,7 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.rex.RexVisitorImpl;
+import org.apache.calcite.runtime.PredicateImpl;
 import org.apache.calcite.sql.SqlBinaryOperator;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
@@ -52,7 +54,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.TimeZone;
 
 /**
  * Collection of planner rules that convert
@@ -77,8 +78,8 @@ public abstract class DateRangeRules {
   private DateRangeRules() {}
 
   private static final Predicate<Filter> FILTER_PREDICATE =
-      new Predicate<Filter>() {
-        @Override public boolean apply(Filter filter) {
+      new PredicateImpl<Filter>() {
+        @Override public boolean test(Filter filter) {
           final ExtractFinder finder = ExtractFinder.THREAD_INSTANCES.get();
           assert finder.timeUnits.isEmpty() : "previous user did not clean up";
           try {
@@ -250,7 +251,7 @@ public abstract class DateRangeRules {
         final Calendar c;
         switch (timeUnit) {
         case YEAR:
-          c = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
+          c = Calendar.getInstance(DateTimeUtils.GMT_ZONE);
           c.clear();
           c.set(v, Calendar.JANUARY, 1);
           s2.add(baz(timeUnit, comparison, c));

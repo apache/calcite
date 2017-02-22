@@ -20,7 +20,6 @@ import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.rel.RelNode;
 
 import com.google.common.base.Preconditions;
-import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Multimap;
 
@@ -141,8 +140,7 @@ public class CachingRelMetadataProvider implements RelMetadataProvider {
         }
         return result;
       } catch (InvocationTargetException e) {
-        Throwables.propagateIfPossible(e.getCause());
-        throw e;
+        throw e.getCause();
       }
     }
   }

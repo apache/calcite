@@ -19,6 +19,7 @@ package org.apache.calcite.sql.parser;
 import org.apache.calcite.avatica.util.Casing;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.runtime.CalciteContextException;
+import org.apache.calcite.runtime.PredicateImpl;
 import org.apache.calcite.sql.SqlBinaryOperator;
 import org.apache.calcite.sql.SqlIntervalLiteral;
 import org.apache.calcite.sql.SqlIntervalQualifier;
@@ -37,6 +38,7 @@ import org.apache.calcite.util.SaffronProperties;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.trace.CalciteTrace;
 
+import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 
 import org.slf4j.Logger;
@@ -154,8 +156,7 @@ public final class SqlParserUtil {
   public static long intervalToMillis(
       String literal,
       SqlIntervalQualifier intervalQualifier) {
-    Util.permAssert(
-        !intervalQualifier.isYearMonth(),
+    Preconditions.checkArgument(!intervalQualifier.isYearMonth(),
         "interval must be day time");
     int[] ret;
     try {
@@ -163,8 +164,8 @@ public final class SqlParserUtil {
           intervalQualifier.getParserPosition(), RelDataTypeSystem.DEFAULT);
       assert ret != null;
     } catch (CalciteContextException e) {
-      throw Util.newInternal(
-          e, "while parsing day-to-second interval " + literal);
+      throw new RuntimeException("while parsing day-to-second interval "
+          + literal, e);
     }
     long l = 0;
     long[] conv = new long[5];
@@ -196,8 +197,7 @@ public final class SqlParserUtil {
   public static long intervalToMonths(
       String literal,
       SqlIntervalQualifier intervalQualifier) {
-    Util.permAssert(
-        intervalQualifier.isYearMonth(),
+    Preconditions.checkArgument(intervalQualifier.isYearMonth(),
         "interval must be year month");
     int[] ret;
     try {
@@ -205,8 +205,8 @@ public final class SqlParserUtil {
           intervalQualifier.getParserPosition(), RelDataTypeSystem.DEFAULT);
       assert ret != null;
     } catch (CalciteContextException e) {
-      throw Util.newInternal(
-          e, "error parsing year-to-month interval " + literal);
+      throw new RuntimeException("Error while parsing year-to-month interval "
+          + literal, e);
     }
 
     long l = 0;
@@ -541,8 +541,8 @@ public final class SqlParserUtil {
       int start,
       int end,
       T o) {
-    Util.pre(list != null, "list != null");
-    Util.pre(start < end, "start < end");
+    Preconditions.checkNotNull(list);
+    Preconditions.checkArgument(start < end);
     for (int i = end - 1; i > start; --i) {
       list.remove(i);
     }
@@ -585,8 +585,8 @@ public final class SqlParserUtil {
   public static SqlNode toTreeEx(SqlSpecialOperator.TokenSequence list,
       int start, final int minPrec, final SqlKind stopperKind) {
     final Predicate<PrecedenceClimbingParser.Token> predicate =
-        new Predicate<PrecedenceClimbingParser.Token>() {
-          public boolean apply(PrecedenceClimbingParser.Token t) {
+        new PredicateImpl<PrecedenceClimbingParser.Token>() {
+          public boolean test(PrecedenceClimbingParser.Token t) {
             if (t instanceof PrecedenceClimbingParser.Op) {
               final SqlOperator op = ((ToTreeListItem) t.o).op;
               return stopperKind != SqlKind.OTHER

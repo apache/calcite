@@ -16,8 +16,6 @@
  */
 package org.apache.calcite.util;
 
-import com.google.common.base.Throwables;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -40,8 +38,10 @@ public final class Closer implements AutoCloseable {
     for (AutoCloseable closeable : list) {
       try {
         closeable.close();
+      } catch (RuntimeException e) {
+        throw e;
       } catch (Exception e) {
-        throw Throwables.propagate(e);
+        throw new RuntimeException(e);
       }
     }
   }

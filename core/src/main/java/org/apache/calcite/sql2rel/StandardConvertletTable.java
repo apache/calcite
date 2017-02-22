@@ -60,7 +60,6 @@ import org.apache.calcite.sql.fun.SqlMapValueConstructor;
 import org.apache.calcite.sql.fun.SqlMultisetQueryConstructor;
 import org.apache.calcite.sql.fun.SqlMultisetValueConstructor;
 import org.apache.calcite.sql.fun.SqlOverlapsOperator;
-import org.apache.calcite.sql.fun.SqlQuarterFunction;
 import org.apache.calcite.sql.fun.SqlRowOperator;
 import org.apache.calcite.sql.fun.SqlSequenceValueOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
@@ -78,6 +77,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -202,7 +202,7 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
             if (operands.size() % 2 == 0) {
               exprs.add(Util.last(operands));
             } else {
-              exprs.add(rexBuilder.makeNullLiteral(type.getSqlTypeName()));
+              exprs.add(rexBuilder.makeNullLiteral(type));
             }
             return rexBuilder.makeCall(type, SqlStdOperatorTable.CASE, exprs);
           }
@@ -743,37 +743,6 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
     return res;
   }
 
-  /**
-   * Converts a call to the {@code QUARTER} function.
-   *
-   * <p>Called automatically via reflection.
-   */
-  public RexNode convertQuarter(
-      SqlRexContext cx,
-      SqlQuarterFunction op,
-      SqlCall call) {
-    final List<SqlNode> operands = call.getOperandList();
-    assert operands.size() == 1;
-    RexNode x = cx.convertExpression(operands.get(0));
-    final RexBuilder rexBuilder = cx.getRexBuilder();
-    final RelDataTypeFactory typeFactory = cx.getTypeFactory();
-    final RelDataType resType =
-        typeFactory.createTypeWithNullability(
-            typeFactory.createSqlType(SqlTypeName.BIGINT),
-            x.getType().isNullable());
-    RexNode res =
-        rexBuilder.makeCall(
-            resType,
-            SqlStdOperatorTable.EXTRACT_DATE,
-            ImmutableList.of(rexBuilder.makeFlag(TimeUnitRange.MONTH), x));
-    res = rexBuilder.makeCall(SqlStdOperatorTable.MINUS, res,
-        rexBuilder.makeExactLiteral(BigDecimal.ONE));
-    res = divide(rexBuilder, res, TimeUnit.QUARTER.multiplier);
-    res = rexBuilder.makeCall(SqlStdOperatorTable.PLUS, res,
-        rexBuilder.makeExactLiteral(BigDecimal.ONE));
-    return res;
-  }
-
   private static BigDecimal getFactor(TimeUnit unit) {
     switch (unit) {
     case DAY:
@@ -818,7 +787,7 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
         && val.signum() == 1) {
       try {
         final BigDecimal reciprocal =
-            BigDecimal.ONE.divide(val, BigDecimal.ROUND_UNNECESSARY);
+            BigDecimal.ONE.divide(val, RoundingMode.UNNECESSARY);
         return rexBuilder.makeCall(SqlStdOperatorTable.MULTIPLY, res,
             rexBuilder.makeExactLiteral(reciprocal));
       } catch (ArithmeticException e) {
@@ -931,7 +900,7 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
         ImmutableList.builder();
     for (int i = 0; i < n; ++i) {
       initializationExprs.add(
-          cx.getDefaultValueFactory().newAttributeInitializer(
+          cx.getInitializerExpressionFactory().newAttributeInitializer(
               type, constructor, i, exprs));
     }
 
@@ -1478,7 +1447,7 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
         orList.add(rexBuilder.makeCall(SqlStdOperatorTable.IS_NULL, expr));
       }
       list.add(RexUtil.composeDisjunction(rexBuilder, orList, false));
-      list.add(rexBuilder.makeNullLiteral(type.getSqlTypeName()));
+      list.add(rexBuilder.makeNullLiteral(type));
       for (int i = 0; i < exprs.size() - 1; i++) {
         RexNode expr = exprs.get(i);
         final List<RexNode> andList = new ArrayList<>();

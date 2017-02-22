@@ -25,6 +25,7 @@ import org.apache.calcite.rel.core.Calc;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Intersect;
 import org.apache.calcite.rel.core.Join;
+import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Minus;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.Sort;
@@ -38,6 +39,7 @@ import org.apache.calcite.rex.RexLocalRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.sql.JoinConditionType;
+import org.apache.calcite.sql.JoinType;
 import org.apache.calcite.sql.SqlDelete;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlIdentifier;
@@ -99,22 +101,29 @@ public class RelToSqlConverter extends SqlImplementor
 
   /** @see #dispatch */
   public Result visit(Join e) {
-    final Result leftResult = visitChild(0, e.getLeft());
-    final Result rightResult = visitChild(1, e.getRight());
+    final Result leftResult = visitChild(0, e.getLeft()).resetAlias();
+    final Result rightResult = visitChild(1, e.getRight()).resetAlias();
     final Context leftContext = leftResult.qualifiedContext();
-    final Context rightContext =
-        rightResult.qualifiedContext();
-    SqlNode sqlCondition = convertConditionToSqlNode(e.getCondition(),
-        leftContext,
-        rightContext,
-        e.getLeft().getRowType().getFieldCount());
+    final Context rightContext = rightResult.qualifiedContext();
+    SqlNode sqlCondition = null;
+    SqlLiteral condType = JoinConditionType.ON.symbol(POS);
+    JoinType joinType = joinType(e.getJoinType());
+    if (e.getJoinType() == JoinRelType.INNER && e.getCondition().isAlwaysTrue()) {
+      joinType = JoinType.COMMA;
+      condType = JoinConditionType.NONE.symbol(POS);
+    } else {
+      sqlCondition = convertConditionToSqlNode(e.getCondition(),
+          leftContext,
+          rightContext,
+          e.getLeft().getRowType().getFieldCount());
+    }
     SqlNode join =
         new SqlJoin(POS,
             leftResult.asFrom(),
             SqlLiteral.createBoolean(false, POS),
-            joinType(e.getJoinType()).symbol(POS),
+            joinType.symbol(POS),
             rightResult.asFrom(),
-            JoinConditionType.ON.symbol(POS),
+            condType,
             sqlCondition);
     return result(join, leftResult, rightResult);
   }

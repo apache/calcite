@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.sql.validate;
 
+import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.sql.SqlIdentifier;
@@ -35,10 +36,17 @@ public interface SqlValidatorCatalogReader {
   //~ Methods ----------------------------------------------------------------
 
   /**
-   * Finds a table with the given name, possibly qualified.
+   * Finds a table or schema with the given name, possibly qualified.
    *
-   * @param names Qualified name of table
-   * @return named table, or null if not found
+   * <p>Uses the case-sensitivity policy of the catalog reader.
+   *
+   * <p>If not found, returns null. If you want a more descriptive error
+   * message or to override the case-sensitivity of the match, use
+   * {@link SqlValidatorScope#resolveTable}.
+   *
+   * @param names Name of table, may be qualified or fully-qualified
+   *
+   * @return Table with the given name, or null
    */
   SqlValidatorTable getTable(List<String> names);
 
@@ -68,24 +76,37 @@ public interface SqlValidatorCatalogReader {
   List<SqlMoniker> getAllSchemaObjectNames(List<String> names);
 
   /**
-   * Returns the name of the current schema.
+   * Returns the paths of all schemas to look in for tables.
    *
-   * @return name of the current schema
+   * @return paths of current schema and root schema
    */
-  List<String> getSchemaName();
+  List<List<String>> getSchemaPaths();
 
-  /**
-   * Finds a field with a given name, using the case-sensitivity of the current
-   * session.
-   */
+  /** @deprecated Use
+   * {@link #nameMatcher()}.{@link SqlNameMatcher#field(RelDataType, String)} */
+  @Deprecated // to be removed before 2.0
   RelDataTypeField field(RelDataType rowType, String alias);
 
+  /** Returns an implementation of
+   * {@link org.apache.calcite.sql.validate.SqlNameMatcher}
+   * that matches the case-sensitivity policy. */
+  SqlNameMatcher nameMatcher();
+
+  /** @deprecated Use
+   * {@link #nameMatcher()}.{@link SqlNameMatcher#matches(String, String)} */
+  @Deprecated // to be removed before 2.0
   boolean matches(String string, String name);
 
   RelDataType createTypeFromProjection(RelDataType type,
       List<String> columnNameList);
 
+  /** @deprecated Use
+   * {@link #nameMatcher()}.{@link SqlNameMatcher#isCaseSensitive()} */
+  @Deprecated // to be removed before 2.0
   boolean isCaseSensitive();
+
+  /** Returns the root namespace for name resolution. */
+  CalciteSchema getRootSchema();
 }
 
 // End SqlValidatorCatalogReader.java

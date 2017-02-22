@@ -45,6 +45,7 @@ public class DefaultRelMetadataProvider extends ChainedRelMetadataProvider {
             RelMdColumnOrigins.SOURCE,
             RelMdRowCount.SOURCE,
             RelMdMaxRowCount.SOURCE,
+            RelMdMinRowCount.SOURCE,
             RelMdUniqueKeys.SOURCE,
             RelMdColumnUniqueness.SOURCE,
             RelMdPopulationSize.SOURCE,

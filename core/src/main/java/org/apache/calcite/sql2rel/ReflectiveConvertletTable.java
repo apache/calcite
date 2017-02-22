@@ -21,7 +21,8 @@ import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.parser.SqlParserPos;
-import org.apache.calcite.util.Util;
+
+import com.google.common.base.Preconditions;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -38,7 +39,7 @@ import java.util.Map;
 public class ReflectiveConvertletTable implements SqlRexConvertletTable {
   //~ Instance fields --------------------------------------------------------
 
-  private final Map<Object, Object> map = new HashMap<Object, Object>();
+  private final Map<Object, Object> map = new HashMap<>();
 
   //~ Constructors -----------------------------------------------------------
 
@@ -77,25 +78,16 @@ public class ReflectiveConvertletTable implements SqlRexConvertletTable {
     if (!SqlNode.class.isAssignableFrom(parameterType)) {
       return;
     }
-    map.put(
-        parameterType,
+    map.put(parameterType,
         new SqlRexConvertlet() {
           public RexNode convertCall(
               SqlRexContext cx,
               SqlCall call) {
             try {
-              return (RexNode) method.invoke(
-                  ReflectiveConvertletTable.this,
-                  cx,
-                  call);
-            } catch (IllegalAccessException e) {
-              throw Util.newInternal(
-                  e,
-                  "while converting " + call);
-            } catch (InvocationTargetException e) {
-              throw Util.newInternal(
-                  e,
-                  "while converting " + call);
+              return (RexNode) method.invoke(ReflectiveConvertletTable.this,
+                  cx, call);
+            } catch (IllegalAccessException | InvocationTargetException e) {
+              throw new RuntimeException("while converting " + call, e);
             }
           }
         });
@@ -132,26 +124,14 @@ public class ReflectiveConvertletTable implements SqlRexConvertletTable {
     if (!SqlCall.class.isAssignableFrom(parameterType)) {
       return;
     }
-    map.put(
-        opClass,
+    map.put(opClass,
         new SqlRexConvertlet() {
-          public RexNode convertCall(
-              SqlRexContext cx,
-              SqlCall call) {
+          public RexNode convertCall(SqlRexContext cx, SqlCall call) {
             try {
-              return (RexNode) method.invoke(
-                  ReflectiveConvertletTable.this,
-                  cx,
-                  call.getOperator(),
-                  call);
-            } catch (IllegalAccessException e) {
-              throw Util.newInternal(
-                  e,
-                  "while converting " + call);
-            } catch (InvocationTargetException e) {
-              throw Util.newInternal(
-                  e,
-                  "while converting " + call);
+              return (RexNode) method.invoke(ReflectiveConvertletTable.this,
+                  cx, call.getOperator(), call);
+            } catch (IllegalAccessException | InvocationTargetException e) {
+              throw new RuntimeException("while converting " + call, e);
             }
           }
         });
@@ -170,7 +150,7 @@ public class ReflectiveConvertletTable implements SqlRexConvertletTable {
 
     // Is there a convertlet for this class of operator
     // (e.g. SqlBinaryOperator)?
-    Class<? extends Object> clazz = op.getClass();
+    Class<?> clazz = op.getClass();
     while (clazz != null) {
       convertlet = (SqlRexConvertlet) map.get(clazz);
       if (convertlet != null) {
@@ -216,13 +196,10 @@ public class ReflectiveConvertletTable implements SqlRexConvertletTable {
           public RexNode convertCall(
               SqlRexContext cx,
               SqlCall call) {
-            Util.permAssert(
-                call.getOperator() == alias,
+            Preconditions.checkArgument(call.getOperator() == alias,
                 "call to wrong operator");
             final SqlCall newCall =
-                target.createCall(
-                    SqlParserPos.ZERO,
-                    call.getOperandList());
+                target.createCall(SqlParserPos.ZERO, call.getOperandList());
             return cx.convertExpression(newCall);
           }
         });

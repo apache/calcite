@@ -217,7 +217,7 @@ public class DiffRepository {
             + "', but found '" + root.getNodeName() + "'");
       }
     } catch (ParserConfigurationException | SAXException e) {
-      throw Util.newInternal(e, "error while creating xml parser");
+      throw new RuntimeException("error while creating xml parser", e);
     }
     indent = logFile.getPath().contains("RelOptRulesTest")
         || logFile.getPath().contains("SqlToRelConverterTest")
@@ -523,23 +523,15 @@ public class DiffRepository {
    * Flushes the reference document to the file system.
    */
   private void flushDoc() {
-    FileWriter w = null;
     try {
       boolean b = logFile.getParentFile().mkdirs();
       Util.discard(b);
-      w = new FileWriter(logFile);
-      write(doc, w, indent);
-    } catch (IOException e) {
-      throw Util.newInternal(e,
-          "error while writing test reference log '" + logFile + "'");
-    } finally {
-      if (w != null) {
-        try {
-          w.close();
-        } catch (IOException e) {
-          // ignore
-        }
+      try (FileWriter w = new FileWriter(logFile)) {
+        write(doc, w, indent);
       }
+    } catch (IOException e) {
+      throw new RuntimeException("error while writing test reference log '"
+          + logFile + "'", e);
     }
   }
 

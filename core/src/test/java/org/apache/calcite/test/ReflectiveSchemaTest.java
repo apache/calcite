@@ -37,7 +37,6 @@ import org.apache.calcite.util.Smalls;
 import org.apache.calcite.util.Util;
 
 import com.google.common.base.Function;
-import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 
 import org.junit.Assert;
@@ -347,7 +346,7 @@ public class ReflectiveSchemaTest {
                       ++n;
                     }
                   } catch (SQLException e) {
-                    throw Throwables.propagate(e);
+                    throw new RuntimeException(e);
                   }
                   assertThat(n, equalTo(1));
                   return null;
@@ -580,7 +579,7 @@ public class ReflectiveSchemaTest {
                     buf.append(input.getInt(2)).append("\n");
                   }
                 } catch (SQLException e) {
-                  throw Throwables.propagate(e);
+                  throw new RuntimeException(e);
                 }
                 assertThat(buf.toString(), equalTo("0\n2147483647\n"));
                 return null;
@@ -621,7 +620,7 @@ public class ReflectiveSchemaTest {
     // BitSet is not a valid relation type. It's as if "bitSet" field does
     // not exist.
     with.query("select * from \"s\".\"bitSet\"")
-        .throws_("Table 's.bitSet' not found");
+        .throws_("Object 'bitSet' not found within 's'");
     // Enumerable field returns 3 records with 0 fields
     with.query("select * from \"s\".\"enumerable\"")
         .returns("\n"
@@ -703,6 +702,26 @@ public class ReflectiveSchemaTest {
         .withSchema("s", CATCHALL)
         .query("select \"value\"*2 \"value\" from \"s\".\"primesCustomBoxed\"")
         .returnsUnordered("value=2", "value=6", "value=10");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1569">[CALCITE-1569]
+   * Date condition can generates Integer == Integer, which is always
+   * false</a>. */
+  @Test public void testDateCanCompare() {
+    final String sql = "select a.v\n"
+        + "from (select \"sqlDate\" v\n"
+        + "  from \"s\".\"everyTypes\" "
+        + "  group by \"sqlDate\") a,"
+        + "    (select \"sqlDate\" v\n"
+        + "  from \"s\".\"everyTypes\"\n"
+        + "  group by \"sqlDate\") b\n"
+        + "where a.v >= b.v\n"
+        + "group by a.v";
+    CalciteAssert.that()
+        .withSchema("s", CATCHALL)
+        .query(sql)
+        .returnsUnordered("V=1970-01-01");
   }
 
   /** Extension to {@link Employee} with a {@code hireDate} column. */

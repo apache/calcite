@@ -31,7 +31,7 @@ public class AvaticaConnectionTest {
   public void testNumExecuteRetries() {
     AvaticaConnection statement = Mockito.mock(AvaticaConnection.class);
 
-    Mockito.when(statement.getNumStatementRetries(Mockito.any(Properties.class)))
+    Mockito.when(statement.getNumStatementRetries(Mockito.nullable(Properties.class)))
       .thenCallRealMethod();
 
     // Bad argument should throw an exception

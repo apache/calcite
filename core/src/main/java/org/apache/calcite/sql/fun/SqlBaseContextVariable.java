@@ -16,48 +16,44 @@
  */
 package org.apache.calcite.sql.fun;
 
-import org.apache.calcite.sql.SqlCallBinding;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlKind;
-import org.apache.calcite.sql.SqlOperandCountRange;
-import org.apache.calcite.sql.type.InferTypes;
+import org.apache.calcite.sql.SqlOperatorBinding;
+import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.type.OperandTypes;
-import org.apache.calcite.sql.type.ReturnTypes;
-import org.apache.calcite.sql.type.SqlOperandCountRanges;
+import org.apache.calcite.sql.type.SqlReturnTypeInference;
+import org.apache.calcite.sql.validate.SqlMonotonicity;
 
 /**
- * SqlQuarterFunction represents the SQL:1999 standard {@code QUARTER}
- * function. Determines Quarter (1,2,3,4) of a given date.
+ * Base class for functions such as "PI", "USER", "CURRENT_ROLE", and
+ * "CURRENT_PATH".
  */
-public class SqlQuarterFunction extends SqlFunction {
+public class SqlBaseContextVariable extends SqlFunction {
   //~ Constructors -----------------------------------------------------------
 
-  public SqlQuarterFunction() {
-    super("QUARTER",
-        SqlKind.OTHER,
-        ReturnTypes.BIGINT_NULLABLE,
-        InferTypes.FIRST_KNOWN,
-        OperandTypes.DATETIME,
-        SqlFunctionCategory.TIMEDATE);
+  /** Creates a SqlBaseContextVariable. */
+  protected SqlBaseContextVariable(String name,
+      SqlReturnTypeInference returnType, SqlFunctionCategory category) {
+    super(name, SqlKind.OTHER_FUNCTION, returnType, null, OperandTypes.NILADIC,
+        category);
   }
 
   //~ Methods ----------------------------------------------------------------
 
-  public SqlOperandCountRange getOperandCountRange() {
-    return SqlOperandCountRanges.of(1);
+  public SqlSyntax getSyntax() {
+    return SqlSyntax.FUNCTION_ID;
   }
 
-  public String getSignatureTemplate(int operandsCount) {
-    assert 1 == operandsCount;
-    return "{0}({1})";
+  // All of the string constants are monotonic.
+  @Override public SqlMonotonicity getMonotonicity(SqlOperatorBinding call) {
+    return SqlMonotonicity.CONSTANT;
   }
 
-  public boolean checkOperandTypes(SqlCallBinding callBinding,
-      boolean throwOnFailure) {
-    return OperandTypes.DATETIME.checkSingleOperandType(callBinding,
-        callBinding.operand(0), 0, throwOnFailure);
+  // Plans referencing context variables should never be cached
+  public boolean isDynamicFunction() {
+    return true;
   }
 }
 
-// End SqlQuarterFunction.java
+// End SqlBaseContextVariable.java

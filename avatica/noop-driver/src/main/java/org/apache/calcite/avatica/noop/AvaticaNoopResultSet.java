@@ -105,6 +105,7 @@ public class AvaticaNoopResultSet implements ResultSet {
     throw unsupported();
   }
 
+  @SuppressWarnings("deprecation")
   @Override public BigDecimal getBigDecimal(int columnIndex, int scale) throws SQLException {
     throw unsupported();
   }
@@ -129,6 +130,7 @@ public class AvaticaNoopResultSet implements ResultSet {
     throw unsupported();
   }
 
+  @SuppressWarnings("deprecation")
   @Override public InputStream getUnicodeStream(int columnIndex) throws SQLException {
     throw unsupported();
   }
@@ -169,6 +171,7 @@ public class AvaticaNoopResultSet implements ResultSet {
     throw unsupported();
   }
 
+  @SuppressWarnings("deprecation")
   @Override public BigDecimal getBigDecimal(String columnLabel, int scale) throws SQLException {
     throw unsupported();
   }
@@ -193,6 +196,7 @@ public class AvaticaNoopResultSet implements ResultSet {
     throw unsupported();
   }
 
+  @SuppressWarnings("deprecation")
   @Override public InputStream getUnicodeStream(String columnLabel) throws SQLException {
     throw unsupported();
   }

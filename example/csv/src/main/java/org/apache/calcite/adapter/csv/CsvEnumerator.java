@@ -26,8 +26,6 @@ import org.apache.commons.lang3.time.FastDateFormat;
 
 import au.com.bytecode.opencsv.CSVReader;
 
-import com.google.common.base.Throwables;
-
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileReader;
@@ -59,7 +57,7 @@ class CsvEnumerator<E> implements Enumerator<E> {
   private static final FastDateFormat TIME_FORMAT_TIMESTAMP;
 
   static {
-    TimeZone gmt = TimeZone.getTimeZone("GMT");
+    final TimeZone gmt = TimeZone.getTimeZone("GMT");
     TIME_FORMAT_DATE = FastDateFormat.getInstance("yyyy-MM-dd", gmt);
     TIME_FORMAT_TIME = FastDateFormat.getInstance("HH:mm:ss", gmt);
     TIME_FORMAT_TIMESTAMP =
@@ -201,7 +199,7 @@ class CsvEnumerator<E> implements Enumerator<E> {
             try {
               Thread.sleep(CsvStreamReader.DEFAULT_MONITOR_DELAY);
             } catch (InterruptedException e) {
-              throw Throwables.propagate(e);
+              throw new RuntimeException(e);
             }
             continue;
           }

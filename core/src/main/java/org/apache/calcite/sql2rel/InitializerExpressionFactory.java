@@ -24,13 +24,9 @@ import org.apache.calcite.sql.SqlFunction;
 import java.util.List;
 
 /**
- * DefaultValueFactory supplies default values for INSERT, UPDATE, and NEW.
- *
- * <p>TODO jvs 26-Feb-2005: rename this to InitializerExpressionFactory, since
- * it is in the process of being generalized to handle constructor invocations
- * and eventually generated columns.
+ * InitializerExpressionFactory supplies default values for INSERT, UPDATE, and NEW.
  */
-public interface DefaultValueFactory {
+public interface InitializerExpressionFactory {
   //~ Methods ----------------------------------------------------------------
 
   /**
@@ -70,4 +66,4 @@ public interface DefaultValueFactory {
       List<RexNode> constructorArgs);
 }
 
-// End DefaultValueFactory.java
+// End InitializerExpressionFactory.java

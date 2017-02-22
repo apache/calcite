@@ -98,7 +98,8 @@ public class MongoRules {
           @Override public int size() {
             return rowType.getFieldCount();
           }
-        });
+        },
+        SqlValidatorUtil.EXPR_SUGGESTER, true);
   }
 
   static String maybeQuote(String s) {

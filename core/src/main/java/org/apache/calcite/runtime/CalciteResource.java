@@ -151,6 +151,9 @@ public interface CalciteResource {
   @BaseMessage("Number of INSERT target columns ({0,number}) does not equal number of source items ({1,number})")
   ExInst<SqlValidatorException> unmatchInsertColumn(int a0, int a1);
 
+  @BaseMessage("Column ''{0}'' has no default value and does not allow NULLs")
+  ExInst<SqlValidatorException> columnNotNullable(String a0);
+
   @BaseMessage("Cannot assign to target field ''{0}'' of type {1} from source field ''{2}'' of type {3}")
   ExInst<SqlValidatorException> typeNotAssignable(String a0, String a1,
       String a2, String a3);
@@ -158,14 +161,43 @@ public interface CalciteResource {
   @BaseMessage("Table ''{0}'' not found")
   ExInst<SqlValidatorException> tableNameNotFound(String a0);
 
+  @BaseMessage("Table ''{0}'' not found; did you mean ''{1}''?")
+  ExInst<SqlValidatorException> tableNameNotFoundDidYouMean(String a0,
+      String a1);
+
+  /** Same message as {@link #tableNameNotFound(String)} but a different kind
+   * of exception, so it can be used in {@code RelBuilder}. */
+  @BaseMessage("Table ''{0}'' not found")
+  ExInst<CalciteException> tableNotFound(String tableName);
+
+  @BaseMessage("Object ''{0}'' not found")
+  ExInst<SqlValidatorException> objectNotFound(String a0);
+
+  @BaseMessage("Object ''{0}'' not found within ''{1}''")
+  ExInst<SqlValidatorException> objectNotFoundWithin(String a0, String a1);
+
+  @BaseMessage("Object ''{0}'' not found; did you mean ''{1}''?")
+  ExInst<SqlValidatorException> objectNotFoundDidYouMean(String a0, String a1);
+
+  @BaseMessage("Object ''{0}'' not found within ''{1}''; did you mean ''{2}''?")
+  ExInst<SqlValidatorException> objectNotFoundWithinDidYouMean(String a0,
+      String a1, String a2);
+
   @BaseMessage("Table ''{0}'' is not a sequence")
   ExInst<SqlValidatorException> notASequence(String a0);
 
   @BaseMessage("Column ''{0}'' not found in any table")
   ExInst<SqlValidatorException> columnNotFound(String a0);
 
+  @BaseMessage("Column ''{0}'' not found in any table; did you mean ''{1}''?")
+  ExInst<SqlValidatorException> columnNotFoundDidYouMean(String a0, String a1);
+
   @BaseMessage("Column ''{0}'' not found in table ''{1}''")
   ExInst<SqlValidatorException> columnNotFoundInTable(String a0, String a1);
+
+  @BaseMessage("Column ''{0}'' not found in table ''{1}''; did you mean ''{2}''?")
+  ExInst<SqlValidatorException> columnNotFoundInTableDidYouMean(String a0,
+      String a1, String a2);
 
   @BaseMessage("Column ''{0}'' is ambiguous")
   ExInst<SqlValidatorException> columnAmbiguous(String a0);
@@ -610,9 +642,6 @@ public interface CalciteResource {
   @BaseMessage("View is not modifiable. No value is supplied for NOT NULL column ''{0}'' of base table ''{1}''")
   ExInst<SqlValidatorException> noValueSuppliedForViewColumn(String columnName, String tableName);
 
-  @BaseMessage("Table ''{0}'' not found")
-  ExInst<CalciteException> tableNotFound(String tableName);
-
   @BaseMessage("Not a record type. The ''*'' operator requires a record")
   ExInst<SqlValidatorException> starRequiresRecordType();
 
@@ -628,6 +657,11 @@ public interface CalciteResource {
   @BaseMessage("SELECT must have a FROM clause")
   ExInst<SqlValidatorException> selectMissingFrom();
 
+  @BaseMessage("Group function ''{0}'' can only appear in GROUP BY clause")
+  ExInst<SqlValidatorException> groupFunctionMustAppearInGroupByClause(String funcName);
+
+  @BaseMessage("Call to auxiliary group function ''{0}'' must have matching call to group function ''{1}'' in GROUP BY clause")
+  ExInst<SqlValidatorException> auxiliaryWithoutMatchingGroupCall(String func1, String func2);
 }
 
 // End CalciteResource.java

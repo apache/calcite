@@ -36,6 +36,7 @@ import org.apache.calcite.util.Bug;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.math.MathContext;
+import java.math.RoundingMode;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.text.DecimalFormat;
@@ -723,12 +724,12 @@ public class SqlFunctions {
 
   public static int divide(int b0, BigDecimal b1) {
     return BigDecimal.valueOf(b0)
-        .divide(b1, BigDecimal.ROUND_HALF_DOWN).intValue();
+        .divide(b1, RoundingMode.HALF_DOWN).intValue();
   }
 
   public static long divide(long b0, BigDecimal b1) {
     return BigDecimal.valueOf(b0)
-        .divide(b1, BigDecimal.ROUND_HALF_DOWN).longValue();
+        .divide(b1, RoundingMode.HALF_DOWN).longValue();
   }
 
   // *
@@ -807,6 +808,10 @@ public class SqlFunctions {
     return Math.exp(b0);
   }
 
+  public static double exp(BigDecimal b0) {
+    return Math.exp(b0.doubleValue());
+  }
+
   public static double exp(long b0) {
     return Math.exp(b0);
   }
@@ -820,6 +825,10 @@ public class SqlFunctions {
 
   public static double power(long b0, long b1) {
     return Math.pow(b0, b1);
+  }
+
+  public static double power(BigDecimal b0, BigDecimal b1) {
+    return Math.pow(b0.doubleValue(), b1.doubleValue());
   }
 
   public static double power(long b0, BigDecimal b1) {
@@ -908,7 +917,7 @@ public class SqlFunctions {
   }
 
   public static BigDecimal floor(BigDecimal b0) {
-    return b0.setScale(0, BigDecimal.ROUND_FLOOR);
+    return b0.setScale(0, RoundingMode.FLOOR);
   }
 
   /** SQL <code>FLOOR</code> operator applied to byte values. */
@@ -969,7 +978,7 @@ public class SqlFunctions {
   }
 
   public static BigDecimal ceil(BigDecimal b0) {
-    return b0.setScale(0, BigDecimal.ROUND_CEILING);
+    return b0.setScale(0, RoundingMode.CEILING);
   }
 
   /** SQL <code>CEIL</code> operator applied to byte values. */
@@ -1050,6 +1059,236 @@ public class SqlFunctions {
   /** SQL <code>ABS</code> operator applied to BigDecimal values. */
   public static BigDecimal abs(BigDecimal b0) {
     return b0.abs();
+  }
+
+  // ACOS
+  /** SQL <code>ACOS</code> operator applied to long values. */
+  public static double acos(long b0) {
+    return Math.acos(b0);
+  }
+
+  /** SQL <code>ACOS</code> operator applied to BigDecimal values. */
+  public static double acos(BigDecimal b0) {
+    return Math.acos(b0.doubleValue());
+  }
+
+  /** SQL <code>ACOS</code> operator applied to double values. */
+  public static double acos(double b0) {
+    return Math.acos(b0);
+  }
+
+  // ASIN
+  /** SQL <code>ASIN</code> operator applied to long values. */
+  public static double asin(long b0) {
+    return Math.asin(b0);
+  }
+
+  /** SQL <code>ASIN</code> operator applied to BigDecimal values. */
+  public static double asin(BigDecimal b0) {
+    return Math.asin(b0.doubleValue());
+  }
+
+  /** SQL <code>ASIN</code> operator applied to double values. */
+  public static double asin(double b0) {
+    return Math.asin(b0);
+  }
+
+  // ATAN
+  /** SQL <code>ATAN</code> operator applied to long values. */
+  public static double atan(long b0) {
+    return Math.atan(b0);
+  }
+
+  /** SQL <code>ATAN</code> operator applied to BigDecimal values. */
+  public static double atan(BigDecimal b0) {
+    return Math.atan(b0.doubleValue());
+  }
+
+  /** SQL <code>ATAN</code> operator applied to double values. */
+  public static double atan(double b0) {
+    return Math.atan(b0);
+  }
+
+  // ATAN2
+  /** SQL <code>ATAN2</code> operator applied to long values. */
+  public static double atan2(long b0, long b1) {
+    return Math.atan2(b0, b1);
+  }
+
+  /** SQL <code>ATAN2</code> operator applied to long/BigDecimal values. */
+  public static double atan2(long b0, BigDecimal b1) {
+    return Math.atan2(b0, b1.doubleValue());
+  }
+
+  /** SQL <code>ATAN2</code> operator applied to BigDecimal values. */
+  public static double atan2(BigDecimal b0, BigDecimal b1) {
+    return Math.atan2(b0.doubleValue(), b1.doubleValue());
+  }
+
+  /** SQL <code>ATAN2</code> operator applied to double values. */
+  public static double atan2(double b0, double b1) {
+    return Math.atan2(b0, b1);
+  }
+
+  // COS
+  /** SQL <code>COS</code> operator applied to long values. */
+  public static double cos(long b0) {
+    return Math.cos(b0);
+  }
+
+  /** SQL <code>COS</code> operator applied to BigDecimal values. */
+  public static double cos(BigDecimal b0) {
+    return Math.cos(b0.doubleValue());
+  }
+
+  /** SQL <code>COS</code> operator applied to double values. */
+  public static double cos(double b0) {
+    return Math.cos(b0);
+  }
+
+  // COT
+  /** SQL <code>COT</code> operator applied to long values. */
+  public static double cot(long b0) {
+    return 1.0d / Math.tan(b0);
+  }
+
+  /** SQL <code>COT</code> operator applied to BigDecimal values. */
+  public static double cot(BigDecimal b0) {
+    return 1.0d / Math.tan(b0.doubleValue());
+  }
+
+  /** SQL <code>COT</code> operator applied to double values. */
+  public static double cot(double b0) {
+    return 1.0d / Math.tan(b0);
+  }
+
+  // DEGREES
+  /** SQL <code>DEGREES</code> operator applied to long values. */
+  public static double degrees(long b0) {
+    return Math.toDegrees(b0);
+  }
+
+  /** SQL <code>DEGREES</code> operator applied to BigDecimal values. */
+  public static double degrees(BigDecimal b0) {
+    return Math.toDegrees(b0.doubleValue());
+  }
+
+  /** SQL <code>DEGREES</code> operator applied to double values. */
+  public static double degrees(double b0) {
+    return Math.toDegrees(b0);
+  }
+
+  // RADIANS
+  /** SQL <code>RADIANS</code> operator applied to long values. */
+  public static double radians(long b0) {
+    return Math.toRadians(b0);
+  }
+
+  /** SQL <code>RADIANS</code> operator applied to BigDecimal values. */
+  public static double radians(BigDecimal b0) {
+    return Math.toRadians(b0.doubleValue());
+  }
+
+  /** SQL <code>RADIANS</code> operator applied to double values. */
+  public static double radians(double b0) {
+    return Math.toRadians(b0);
+  }
+
+  // SQL ROUND
+  /** SQL <code>ROUND</code> operator applied to long values. */
+  public static int sround(int b0, int b1) {
+    return sround(BigDecimal.valueOf(b0), b1).intValue();
+  }
+
+  /** SQL <code>ROUND</code> operator applied to long values. */
+  public static long sround(long b0, int b1) {
+    return sround(BigDecimal.valueOf(b0), b1).longValue();
+  }
+
+  /** SQL <code>ROUND</code> operator applied to BigDecimal values. */
+  public static BigDecimal sround(BigDecimal b0, int b1) {
+    return b0.movePointRight(b1)
+        .setScale(0, RoundingMode.HALF_UP).movePointLeft(b1);
+  }
+
+  /** SQL <code>ROUND</code> operator applied to double values. */
+  public static double sround(double b0, int b1) {
+    return sround(BigDecimal.valueOf(b0), b1).doubleValue();
+  }
+
+  // SQL TRUNCATE
+  /** SQL <code>TRUNCATE</code> operator applied to int values. */
+  public static int struncate(int b0, int b1) {
+    return struncate(BigDecimal.valueOf(b0), b1).intValue();
+  }
+
+  /** SQL <code>TRUNCATE</code> operator applied to long values. */
+  public static long struncate(long b0, int b1) {
+    return struncate(BigDecimal.valueOf(b0), b1).longValue();
+  }
+
+  /** SQL <code>TRUNCATE</code> operator applied to BigDecimal values. */
+  public static BigDecimal struncate(BigDecimal b0, int b1) {
+    return b0.movePointRight(b1)
+        .setScale(0, RoundingMode.DOWN).movePointLeft(b1);
+  }
+
+  /** SQL <code>TRUNCATE</code> operator applied to double values. */
+  public static double struncate(double b0, int b1) {
+    return struncate(BigDecimal.valueOf(b0), b1).doubleValue();
+  }
+
+  // SIGN
+  /** SQL <code>SIGN</code> operator applied to int values. */
+  public static int sign(int b0) {
+    return Integer.signum(b0);
+  }
+
+  /** SQL <code>SIGN</code> operator applied to long values. */
+  public static long sign(long b0) {
+    return Long.signum(b0);
+  }
+
+  /** SQL <code>SIGN</code> operator applied to BigDecimal values. */
+  public static BigDecimal sign(BigDecimal b0) {
+    return BigDecimal.valueOf(b0.signum());
+  }
+
+  /** SQL <code>SIGN</code> operator applied to double values. */
+  public static double sign(double b0) {
+    return Math.signum(b0);
+  }
+
+  // SIN
+  /** SQL <code>SIN</code> operator applied to long values. */
+  public static double sin(long b0) {
+    return Math.sin(b0);
+  }
+
+  /** SQL <code>SIN</code> operator applied to BigDecimal values. */
+  public static double sin(BigDecimal b0) {
+    return Math.sin(b0.doubleValue());
+  }
+
+  /** SQL <code>SIN</code> operator applied to double values. */
+  public static double sin(double b0) {
+    return Math.sin(b0);
+  }
+
+  // TAN
+  /** SQL <code>TAN</code> operator applied to long values. */
+  public static double tan(long b0) {
+    return Math.tan(b0);
+  }
+
+  /** SQL <code>TAN</code> operator applied to BigDecimal values. */
+  public static double tan(BigDecimal b0) {
+    return Math.tan(b0.doubleValue());
+  }
+
+  /** SQL <code>TAN</code> operator applied to double values. */
+  public static double tan(double b0) {
+    return Math.tan(b0);
   }
 
   // Helpers
@@ -1298,6 +1537,7 @@ public class SqlFunctions {
     return o instanceof Integer ? (Integer) o
         : o instanceof Number ? toInt((Number) o)
         : o instanceof String ? toInt((String) o)
+        : o instanceof java.util.Date ? toInt((java.util.Date) o)
         : (Integer) cannotConvert(o, int.class);
   }
 
@@ -1591,6 +1831,11 @@ public class SqlFunctions {
    * function. */
   public static String translate3(String s, String search, String replacement) {
     return org.apache.commons.lang3.StringUtils.replaceChars(s, search, replacement);
+  }
+
+  /** SQL {@code REPLACE(string, search, replacement)} function. */
+  public static String replace(String s, String search, String replacement) {
+    return s.replace(search, replacement);
   }
 
   /** Helper for "array element reference". Caller has already ensured that
@@ -1933,7 +2178,7 @@ public class SqlFunctions {
         i += a.length;
       }
       if (withOrdinality) {
-        flatElements[i] = (E) new Integer(++ordinality); // 1-based
+        flatElements[i] = (E) Integer.valueOf(++ordinality); // 1-based
       }
       return FlatLists.ofComparable(list);
     }

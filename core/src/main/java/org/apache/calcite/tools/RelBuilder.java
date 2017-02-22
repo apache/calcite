@@ -36,6 +36,7 @@ import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.core.Values;
+import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
@@ -64,7 +65,6 @@ import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.Pair;
-import org.apache.calcite.util.Static;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.mapping.Mapping;
 import org.apache.calcite.util.mapping.Mappings;
@@ -90,6 +90,8 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
+
+import static org.apache.calcite.util.Static.RESOURCE;
 
 /**
  * Builder for relational expressions.
@@ -513,8 +515,12 @@ public class RelBuilder {
 
   /** Creates a call to a scalar operator. */
   public RexNode call(SqlOperator operator, RexNode... operands) {
+    return call(operator, ImmutableList.copyOf(operands));
+  }
+
+  /** Creates a call to a scalar operator. */
+  private RexNode call(SqlOperator operator, List<RexNode> operandList) {
     final RexBuilder builder = cluster.getRexBuilder();
-    final List<RexNode> operandList = ImmutableList.copyOf(operands);
     final RelDataType type = builder.deriveReturnType(operator, operandList);
     if (type == null) {
       throw new IllegalArgumentException("cannot derive type: " + operator
@@ -526,8 +532,7 @@ public class RelBuilder {
   /** Creates a call to a scalar operator. */
   public RexNode call(SqlOperator operator,
       Iterable<? extends RexNode> operands) {
-    return cluster.getRexBuilder().makeCall(operator,
-        ImmutableList.copyOf(operands));
+    return call(operator, ImmutableList.copyOf(operands));
   }
 
   /** Creates an AND. */
@@ -697,7 +702,7 @@ public class RelBuilder {
       RexNode filter, String alias, Iterable<? extends RexNode> operands) {
     if (filter != null) {
       if (filter.getType().getSqlTypeName() != SqlTypeName.BOOLEAN) {
-        throw Static.RESOURCE.filterMustBeBoolean().ex();
+        throw RESOURCE.filterMustBeBoolean().ex();
       }
       if (filter.getType().isNullable()) {
         filter = call(SqlStdOperatorTable.IS_TRUE, filter);
@@ -755,7 +760,7 @@ public class RelBuilder {
     final List<String> names = ImmutableList.copyOf(tableNames);
     final RelOptTable relOptTable = relOptSchema.getTableForMember(names);
     if (relOptTable == null) {
-      throw Static.RESOURCE.tableNotFound(Joiner.on(".").join(names)).ex();
+      throw RESOURCE.tableNotFound(Joiner.on(".").join(names)).ex();
     }
     final RelNode scan = scanFactory.createScan(cluster, relOptTable);
     push(scan);
@@ -975,6 +980,28 @@ public class RelBuilder {
     final GroupKeyImpl groupKey_ = (GroupKeyImpl) groupKey;
     final ImmutableBitSet groupSet =
         ImmutableBitSet.of(registerExpressions(extraNodes, groupKey_.nodes));
+  label:
+    if (Iterables.isEmpty(aggCalls) && !groupKey_.indicator) {
+      final RelMetadataQuery mq = RelMetadataQuery.instance();
+      if (groupSet.isEmpty()) {
+        final Double minRowCount = mq.getMinRowCount(peek());
+        if (minRowCount == null || minRowCount < 1D) {
+          // We can't remove "GROUP BY ()" if there's a chance the rel could be
+          // empty.
+          break label;
+        }
+      }
+      final Boolean unique = mq.areColumnsUnique(peek(), groupSet);
+      if (unique != null && unique) {
+        // Rel is already unique. Nothing to do.
+        return this;
+      }
+      final Double maxRowCount = mq.getMaxRowCount(peek());
+      if (maxRowCount != null && maxRowCount <= 1D) {
+        // If there is at most one row, rel is already unique.
+        return this;
+      }
+    }
     final ImmutableList<ImmutableBitSet> groupSets;
     if (groupKey_.nodeLists != null) {
       final int sizeBefore = extraNodes.size();
@@ -1538,12 +1565,13 @@ public class RelBuilder {
         if (project.getInput() instanceof Sort) {
           final Sort sort2 = (Sort) project.getInput();
           if (sort2.offset == null && sort2.fetch == null) {
-            replaceTop(sort2.getInput());
             final RelNode sort =
-                sortFactory.createSort(peek(), sort2.collation,
+                sortFactory.createSort(sort2.getInput(), sort2.collation,
                     offsetNode, fetchNode);
-            replaceTop(sort);
-            project(project.getProjects());
+            replaceTop(
+                projectFactory.createProject(sort,
+                    project.getProjects(),
+                    Pair.right(project.getNamedProjects())));
             return this;
           }
         }

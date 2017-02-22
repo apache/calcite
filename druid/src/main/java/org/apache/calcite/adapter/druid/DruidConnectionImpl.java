@@ -18,6 +18,7 @@ package org.apache.calcite.adapter.druid;
 
 import org.apache.calcite.avatica.AvaticaUtils;
 import org.apache.calcite.avatica.ColumnMetaData;
+import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.interpreter.Row;
 import org.apache.calcite.interpreter.Sink;
 import org.apache.calcite.linq4j.AbstractEnumerable;
@@ -26,6 +27,7 @@ import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.prepare.CalcitePrepareImpl;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.Holder;
+import org.apache.calcite.util.Util;
 
 import static org.apache.calcite.runtime.HttpUtils.post;
 
@@ -35,12 +37,10 @@ import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.type.CollectionType;
+
 import com.google.common.base.Preconditions;
-import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-
-import org.joda.time.Interval;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -70,7 +70,7 @@ class DruidConnectionImpl implements DruidConnection {
   private static final SimpleDateFormat UTC_TIMESTAMP_FORMAT;
 
   static {
-    final TimeZone utc = TimeZone.getTimeZone("UTC");
+    final TimeZone utc = DateTimeUtils.GMT_ZONE;
     UTC_TIMESTAMP_FORMAT = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
     UTC_TIMESTAMP_FORMAT.setTimeZone(utc);
   }
@@ -120,7 +120,7 @@ class DruidConnectionImpl implements DruidConnection {
         System.out.println("Response: " + new String(bytes));
         in = new ByteArrayInputStream(bytes);
       } catch (IOException e) {
-        throw Throwables.propagate(e);
+        throw new RuntimeException(e);
       }
     }
 
@@ -239,7 +239,7 @@ class DruidConnectionImpl implements DruidConnection {
         }
       }
     } catch (IOException | InterruptedException e) {
-      throw Throwables.propagate(e);
+      throw new RuntimeException(e);
     }
   }
 
@@ -410,6 +410,7 @@ class DruidConnectionImpl implements DruidConnection {
             enumerator.done.set(true);
           }
 
+          @SuppressWarnings("deprecation")
           public void setSourceEnumerable(Enumerable<Row> enumerable)
               throws InterruptedException {
             for (Row row : enumerable) {
@@ -438,7 +439,8 @@ class DruidConnectionImpl implements DruidConnection {
   }
 
   /** Reads segment metadata, and populates a list of columns and metrics. */
-  void metadata(String dataSourceName, String timestampColumnName, List<Interval> intervals,
+  void metadata(String dataSourceName, String timestampColumnName,
+      List<LocalInterval> intervals,
       Map<String, SqlTypeName> fieldBuilder, Set<String> metricNameBuilder) {
     final String url = this.url + "/druid/v2/?pretty";
     final Map<String, String> requestHeaders =
@@ -483,7 +485,7 @@ class DruidConnectionImpl implements DruidConnection {
         }
       }
     } catch (IOException e) {
-      throw Throwables.propagate(e);
+      throw new RuntimeException(e);
     }
   }
 
@@ -505,7 +507,7 @@ class DruidConnectionImpl implements DruidConnection {
       final List<String> list = mapper.readValue(in, listType);
       return ImmutableSet.copyOf(list);
     } catch (IOException e) {
-      throw Throwables.propagate(e);
+      throw new RuntimeException(e);
     }
   }
 
@@ -517,7 +519,7 @@ class DruidConnectionImpl implements DruidConnection {
         System.out.println("Response: " + new String(bytes));
         in = new ByteArrayInputStream(bytes);
       } catch (IOException e) {
-        throw Throwables.propagate(e);
+        throw new RuntimeException(e);
       }
     }
     return in;
@@ -559,10 +561,11 @@ class DruidConnectionImpl implements DruidConnection {
     public void reset() {}
 
     public void close() {
-      final Throwable throwable = throwableHolder.get();
-      if (throwable != null) {
+      final Throwable e = throwableHolder.get();
+      if (e != null) {
         throwableHolder.set(null);
-        throw Throwables.propagate(throwable);
+        Util.throwIfUnchecked(e);
+        throw new RuntimeException(e);
       }
     }
   }

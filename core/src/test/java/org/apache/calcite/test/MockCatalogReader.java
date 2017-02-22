@@ -16,13 +16,14 @@
  */
 package org.apache.calcite.test;
 
+import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.linq4j.QueryProvider;
 import org.apache.calcite.linq4j.Queryable;
 import org.apache.calcite.linq4j.tree.Expression;
-import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptSchema;
 import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.prepare.CalciteCatalogReader;
 import org.apache.calcite.prepare.Prepare;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollations;
@@ -54,25 +55,26 @@ import org.apache.calcite.schema.Path;
 import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.Schemas;
+import org.apache.calcite.schema.Statistic;
+import org.apache.calcite.schema.StreamableTable;
 import org.apache.calcite.schema.Table;
+import org.apache.calcite.schema.Wrapper;
+import org.apache.calcite.schema.impl.AbstractSchema;
 import org.apache.calcite.sql.SqlAccessType;
 import org.apache.calcite.sql.SqlCollation;
-import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlIntervalQualifier;
-import org.apache.calcite.sql.SqlOperator;
-import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.ObjectSqlType;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlModality;
-import org.apache.calcite.sql.validate.SqlMoniker;
-import org.apache.calcite.sql.validate.SqlMonikerImpl;
-import org.apache.calcite.sql.validate.SqlMonikerType;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
+import org.apache.calcite.sql.validate.SqlNameMatcher;
+import org.apache.calcite.sql.validate.SqlNameMatchers;
 import org.apache.calcite.sql.validate.SqlValidatorCatalogReader;
-import org.apache.calcite.sql.validate.SqlValidatorUtil;
+import org.apache.calcite.sql2rel.InitializerExpressionFactory;
+import org.apache.calcite.sql2rel.NullInitializerExpressionFactory;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.Litmus;
@@ -82,7 +84,6 @@ import org.apache.calcite.util.Util;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.google.common.collect.Ordering;
 import com.google.common.collect.Sets;
 
 import java.lang.reflect.Type;
@@ -105,22 +106,15 @@ import java.util.Set;
  * Also two streams "ORDERS", "SHIPMENTS";
  * and a view "EMP_20".
  */
-public class MockCatalogReader implements Prepare.CatalogReader {
+public class MockCatalogReader extends CalciteCatalogReader {
   //~ Static fields/initializers ---------------------------------------------
 
-  protected static final String DEFAULT_CATALOG = "CATALOG";
-  protected static final String DEFAULT_SCHEMA = "SALES";
-
-  public static final Ordering<Iterable<String>>
-  CASE_INSENSITIVE_LIST_COMPARATOR =
-      Ordering.from(String.CASE_INSENSITIVE_ORDER).lexicographical();
+  static final String DEFAULT_CATALOG = "CATALOG";
+  static final String DEFAULT_SCHEMA = "SALES";
+  static final List<String> PREFIX = ImmutableList.of(DEFAULT_SCHEMA);
 
   //~ Instance fields --------------------------------------------------------
 
-  protected final RelDataTypeFactory typeFactory;
-  private final boolean caseSensitive;
-  private final Map<List<String>, MockTable> tables;
-  protected final Map<String, MockSchema> schemas;
   private RelDataType addressType;
 
   //~ Constructors -----------------------------------------------------------
@@ -134,70 +128,26 @@ public class MockCatalogReader implements Prepare.CatalogReader {
    */
   public MockCatalogReader(RelDataTypeFactory typeFactory,
       boolean caseSensitive) {
-    this.typeFactory = typeFactory;
-    this.caseSensitive = caseSensitive;
-    if (caseSensitive) {
-      tables = Maps.newHashMap();
-      schemas = Maps.newHashMap();
-    } else {
-      tables = Maps.newTreeMap(CASE_INSENSITIVE_LIST_COMPARATOR);
-      schemas = Maps.newTreeMap(String.CASE_INSENSITIVE_ORDER);
-    }
+    super(CalciteSchema.createRootSchema(false, true, DEFAULT_CATALOG),
+        SqlNameMatchers.withCaseSensitive(caseSensitive),
+        ImmutableList.of(PREFIX, ImmutableList.<String>of()),
+        typeFactory);
   }
 
   @Override public boolean isCaseSensitive() {
-    return caseSensitive;
+    return nameMatcher.isCaseSensitive();
+  }
+
+  public SqlNameMatcher nameMatcher() {
+    return nameMatcher;
   }
 
   /**
    * Initializes this catalog reader.
    */
   public MockCatalogReader init() {
-    final RelDataType intType =
-        typeFactory.createSqlType(SqlTypeName.INTEGER);
-    final RelDataType intTypeNull =
-        typeFactory.createTypeWithNullability(intType, true);
-    final RelDataType varchar10Type =
-        typeFactory.createSqlType(SqlTypeName.VARCHAR, 10);
-    final RelDataType varchar20Type =
-        typeFactory.createSqlType(SqlTypeName.VARCHAR, 20);
-    final RelDataType timestampType =
-        typeFactory.createSqlType(SqlTypeName.TIMESTAMP);
-    final RelDataType dateType =
-        typeFactory.createSqlType(SqlTypeName.DATE);
-    final RelDataType booleanType =
-        typeFactory.createSqlType(SqlTypeName.BOOLEAN);
-    final RelDataType rectilinearCoordType =
-        typeFactory.builder()
-            .add("X", intType)
-            .add("Y", intType)
-            .build();
-    final RelDataType rectilinearPeekCoordType =
-        typeFactory.builder()
-            .add("X", intType)
-            .add("Y", intType)
-            .kind(StructKind.PEEK_FIELDS)
-            .build();
-    final RelDataType empRecordType =
-        typeFactory.builder()
-            .add("EMPNO", intType)
-            .add("ENAME", varchar10Type).build();
-    final RelDataType empListType =
-        typeFactory.createArrayType(empRecordType, -1);
-
-    // TODO jvs 12-Feb-2005: register this canonical instance with type
-    // factory
-    addressType =
-        new ObjectSqlType(
-            SqlTypeName.STRUCTURED,
-            new SqlIdentifier("ADDRESS", SqlParserPos.ZERO),
-            false,
-            Arrays.asList(
-                new RelDataTypeFieldImpl("STREET", 0, varchar20Type),
-                new RelDataTypeFieldImpl("CITY", 1, varchar20Type),
-                new RelDataTypeFieldImpl("ZIP", 2, intType),
-                new RelDataTypeFieldImpl("STATE", 3, varchar20Type)),
-            RelDataTypeComparability.NONE);
+    final Fixture f = new Fixture();
+    addressType = f.addressType;
 
     // Register "SALES" schema.
     MockSchema salesSchema = new MockSchema("SALES");
@@ -206,67 +156,115 @@ public class MockCatalogReader implements Prepare.CatalogReader {
     // Register "EMP" table.
     final MockTable empTable =
         MockTable.create(this, salesSchema, "EMP", false, 14);
-    empTable.addColumn("EMPNO", intType, true);
-    empTable.addColumn("ENAME", varchar20Type);
-    empTable.addColumn("JOB", varchar10Type);
-    empTable.addColumn("MGR", intTypeNull);
-    empTable.addColumn("HIREDATE", timestampType);
-    empTable.addColumn("SAL", intType);
-    empTable.addColumn("COMM", intType);
-    empTable.addColumn("DEPTNO", intType);
-    empTable.addColumn("SLACKER", booleanType);
+    empTable.addColumn("EMPNO", f.intType, true);
+    empTable.addColumn("ENAME", f.varchar20Type);
+    empTable.addColumn("JOB", f.varchar10Type);
+    empTable.addColumn("MGR", f.intTypeNull);
+    empTable.addColumn("HIREDATE", f.timestampType);
+    empTable.addColumn("SAL", f.intType);
+    empTable.addColumn("COMM", f.intType);
+    empTable.addColumn("DEPTNO", f.intType);
+    empTable.addColumn("SLACKER", f.booleanType);
     registerTable(empTable);
+
+    // Register "EMPNULLABLES" table with nullable columns.
+    final MockTable empNullablesTable =
+        MockTable.create(this, salesSchema, "EMPNULLABLES", false, 14);
+    empNullablesTable.addColumn("EMPNO", f.intType, true);
+    empNullablesTable.addColumn("ENAME", f.varchar20Type);
+    empNullablesTable.addColumn("JOB", f.varchar10TypeNull);
+    empNullablesTable.addColumn("MGR", f.intTypeNull);
+    empNullablesTable.addColumn("HIREDATE", f.timestampTypeNull);
+    empNullablesTable.addColumn("SAL", f.intTypeNull);
+    empNullablesTable.addColumn("COMM", f.intTypeNull);
+    empNullablesTable.addColumn("DEPTNO", f.intTypeNull);
+    empNullablesTable.addColumn("SLACKER", f.booleanTypeNull);
+    registerTable(empNullablesTable);
+
+    // Register "EMPDEFAULTS" table with default values for some columns.
+    final InitializerExpressionFactory empInitializerExpressionFactory =
+        new NullInitializerExpressionFactory(typeFactory) {
+          @Override public RexNode newColumnDefaultValue(RelOptTable table,
+              int iColumn) {
+            final RexBuilder rexBuilder = new RexBuilder(typeFactory);
+            switch (iColumn) {
+            case 0:
+              return rexBuilder.makeExactLiteral(new BigDecimal(123),
+                  typeFactory.createSqlType(SqlTypeName.INTEGER));
+            case 1:
+              return rexBuilder.makeLiteral("Bob");
+            case 5:
+              return rexBuilder.makeExactLiteral(new BigDecimal(555),
+                  typeFactory.createSqlType(SqlTypeName.INTEGER));
+            default:
+              return rexBuilder.constantNull();
+            }
+          }
+        };
+    final MockTable empDefaultsTable =
+        MockTable.create(this, salesSchema, "EMPDEFAULTS", false, 14, null,
+            empInitializerExpressionFactory);
+    empDefaultsTable.addColumn("EMPNO", f.intType, true);
+    empDefaultsTable.addColumn("ENAME", f.varchar20Type);
+    empDefaultsTable.addColumn("JOB", f.varchar10TypeNull);
+    empDefaultsTable.addColumn("MGR", f.intTypeNull);
+    empDefaultsTable.addColumn("HIREDATE", f.timestampTypeNull);
+    empDefaultsTable.addColumn("SAL", f.intTypeNull);
+    empDefaultsTable.addColumn("COMM", f.intTypeNull);
+    empDefaultsTable.addColumn("DEPTNO", f.intTypeNull);
+    empDefaultsTable.addColumn("SLACKER", f.booleanTypeNull);
+    registerTable(empDefaultsTable);
 
     // Register "EMP_B" table. As "EMP", birth with a "BIRTHDATE" column.
     final MockTable empBTable =
         MockTable.create(this, salesSchema, "EMP_B", false, 14);
-    empBTable.addColumn("EMPNO", intType, true);
-    empBTable.addColumn("ENAME", varchar20Type);
-    empBTable.addColumn("JOB", varchar10Type);
-    empBTable.addColumn("MGR", intTypeNull);
-    empBTable.addColumn("HIREDATE", timestampType);
-    empBTable.addColumn("SAL", intType);
-    empBTable.addColumn("COMM", intType);
-    empBTable.addColumn("DEPTNO", intType);
-    empBTable.addColumn("SLACKER", booleanType);
-    empBTable.addColumn("BIRTHDATE", dateType);
+    empBTable.addColumn("EMPNO", f.intType, true);
+    empBTable.addColumn("ENAME", f.varchar20Type);
+    empBTable.addColumn("JOB", f.varchar10Type);
+    empBTable.addColumn("MGR", f.intTypeNull);
+    empBTable.addColumn("HIREDATE", f.timestampType);
+    empBTable.addColumn("SAL", f.intType);
+    empBTable.addColumn("COMM", f.intType);
+    empBTable.addColumn("DEPTNO", f.intType);
+    empBTable.addColumn("SLACKER", f.booleanType);
+    empBTable.addColumn("BIRTHDATE", f.dateType);
     registerTable(empBTable);
 
     // Register "DEPT" table.
     MockTable deptTable = MockTable.create(this, salesSchema, "DEPT", false, 4);
-    deptTable.addColumn("DEPTNO", intType, true);
-    deptTable.addColumn("NAME", varchar10Type);
+    deptTable.addColumn("DEPTNO", f.intType, true);
+    deptTable.addColumn("NAME", f.varchar10Type);
     registerTable(deptTable);
 
     // Register "DEPT_NESTED" table.
     MockTable deptNestedTable =
         MockTable.create(this, salesSchema, "DEPT_NESTED", false, 4);
-    deptNestedTable.addColumn("DEPTNO", intType, true);
-    deptNestedTable.addColumn("NAME", varchar10Type);
-    deptNestedTable.addColumn("EMPLOYEES", empListType);
+    deptNestedTable.addColumn("DEPTNO", f.intType, true);
+    deptNestedTable.addColumn("NAME", f.varchar10Type);
+    deptNestedTable.addColumn("EMPLOYEES", f.empListType);
     registerTable(deptNestedTable);
 
     // Register "BONUS" table.
     MockTable bonusTable =
         MockTable.create(this, salesSchema, "BONUS", false, 0);
-    bonusTable.addColumn("ENAME", varchar20Type);
-    bonusTable.addColumn("JOB", varchar10Type);
-    bonusTable.addColumn("SAL", intType);
-    bonusTable.addColumn("COMM", intType);
+    bonusTable.addColumn("ENAME", f.varchar20Type);
+    bonusTable.addColumn("JOB", f.varchar10Type);
+    bonusTable.addColumn("SAL", f.intType);
+    bonusTable.addColumn("COMM", f.intType);
     registerTable(bonusTable);
 
     // Register "SALGRADE" table.
     MockTable salgradeTable =
         MockTable.create(this, salesSchema, "SALGRADE", false, 5);
-    salgradeTable.addColumn("GRADE", intType, true);
-    salgradeTable.addColumn("LOSAL", intType);
-    salgradeTable.addColumn("HISAL", intType);
+    salgradeTable.addColumn("GRADE", f.intType, true);
+    salgradeTable.addColumn("LOSAL", f.intType);
+    salgradeTable.addColumn("HISAL", f.intType);
     registerTable(salgradeTable);
 
     // Register "EMP_ADDRESS" table
     MockTable contactAddressTable =
         MockTable.create(this, salesSchema, "EMP_ADDRESS", false, 26);
-    contactAddressTable.addColumn("EMPNO", intType, true);
+    contactAddressTable.addColumn("EMPNO", f.intType, true);
     contactAddressTable.addColumn("HOME_ADDRESS", addressType);
     contactAddressTable.addColumn("MAILING_ADDRESS", addressType);
     registerTable(contactAddressTable);
@@ -292,128 +290,183 @@ public class MockCatalogReader implements Prepare.CatalogReader {
     // Register "CONTACT" table.
     MockTable contactTable = MockTable.create(this, customerSchema, "CONTACT",
         false, 1000);
-    contactTable.addColumn("CONTACTNO", intType);
-    contactTable.addColumn("FNAME", varchar10Type);
-    contactTable.addColumn("LNAME", varchar10Type);
-    contactTable.addColumn("EMAIL", varchar20Type);
-    contactTable.addColumn("COORD", rectilinearCoordType);
+    contactTable.addColumn("CONTACTNO", f.intType);
+    contactTable.addColumn("FNAME", f.varchar10Type);
+    contactTable.addColumn("LNAME", f.varchar10Type);
+    contactTable.addColumn("EMAIL", f.varchar20Type);
+    contactTable.addColumn("COORD", f.rectilinearCoordType);
     registerTable(contactTable);
 
     // Register "CONTACT_PEEK" table. The
     MockTable contactPeekTable =
         MockTable.create(this, customerSchema, "CONTACT_PEEK", false, 1000);
-    contactPeekTable.addColumn("CONTACTNO", intType);
-    contactPeekTable.addColumn("FNAME", varchar10Type);
-    contactPeekTable.addColumn("LNAME", varchar10Type);
-    contactPeekTable.addColumn("EMAIL", varchar20Type);
-    contactPeekTable.addColumn("COORD", rectilinearPeekCoordType);
+    contactPeekTable.addColumn("CONTACTNO", f.intType);
+    contactPeekTable.addColumn("FNAME", f.varchar10Type);
+    contactPeekTable.addColumn("LNAME", f.varchar10Type);
+    contactPeekTable.addColumn("EMAIL", f.varchar20Type);
+    contactPeekTable.addColumn("COORD", f.rectilinearPeekCoordType);
     registerTable(contactPeekTable);
 
     // Register "ACCOUNT" table.
     MockTable accountTable = MockTable.create(this, customerSchema, "ACCOUNT",
         false, 457);
-    accountTable.addColumn("ACCTNO", intType);
-    accountTable.addColumn("TYPE", varchar20Type);
-    accountTable.addColumn("BALANCE", intType);
+    accountTable.addColumn("ACCTNO", f.intType);
+    accountTable.addColumn("TYPE", f.varchar20Type);
+    accountTable.addColumn("BALANCE", f.intType);
     registerTable(accountTable);
 
     // Register "ORDERS" stream.
     MockTable ordersStream = MockTable.create(this, salesSchema, "ORDERS",
         true, Double.POSITIVE_INFINITY);
-    ordersStream.addColumn("ROWTIME", timestampType);
+    ordersStream.addColumn("ROWTIME", f.timestampType);
     ordersStream.addMonotonic("ROWTIME");
-    ordersStream.addColumn("PRODUCTID", intType);
-    ordersStream.addColumn("ORDERID", intType);
+    ordersStream.addColumn("PRODUCTID", f.intType);
+    ordersStream.addColumn("ORDERID", f.intType);
     registerTable(ordersStream);
 
     // Register "SHIPMENTS" stream.
     MockTable shipmentsStream = MockTable.create(this, salesSchema, "SHIPMENTS",
         true, Double.POSITIVE_INFINITY);
-    shipmentsStream.addColumn("ROWTIME", timestampType);
+    shipmentsStream.addColumn("ROWTIME", f.timestampType);
     shipmentsStream.addMonotonic("ROWTIME");
-    shipmentsStream.addColumn("ORDERID", intType);
+    shipmentsStream.addColumn("ORDERID", f.intType);
     registerTable(shipmentsStream);
 
     // Register "PRODUCTS" table.
     MockTable productsTable = MockTable.create(this, salesSchema, "PRODUCTS",
         false, 200D);
-    productsTable.addColumn("PRODUCTID", intType);
-    productsTable.addColumn("NAME", varchar20Type);
-    productsTable.addColumn("SUPPLIERID", intType);
+    productsTable.addColumn("PRODUCTID", f.intType);
+    productsTable.addColumn("NAME", f.varchar20Type);
+    productsTable.addColumn("SUPPLIERID", f.intType);
     registerTable(productsTable);
 
     // Register "SUPPLIERS" table.
     MockTable suppliersTable = MockTable.create(this, salesSchema, "SUPPLIERS",
         false, 10D);
-    suppliersTable.addColumn("SUPPLIERID", intType);
-    suppliersTable.addColumn("NAME", varchar20Type);
-    suppliersTable.addColumn("CITY", intType);
+    suppliersTable.addColumn("SUPPLIERID", f.intType);
+    suppliersTable.addColumn("NAME", f.varchar20Type);
+    suppliersTable.addColumn("CITY", f.intType);
     registerTable(suppliersTable);
 
-    // Register "EMP_20" view.
-    // Same columns as "EMP",
+    // Register "EMP_20" and "EMPNULLABLES_20 views.
+    // Same columns as "EMP" amd "EMPNULLABLES",
     // but "DEPTNO" not visible and set to 20 by default
     // and "SAL" is visible but must be greater than 1000,
     // which is the equivalent of:
     //   SELECT EMPNO, ENAME, JOB, MGR, HIREDATE, SAL, COMM, SLACKER
     //   FROM EMP
     //   WHERE DEPTNO = 20 AND SAL > 1000
-    MockTable emp20View = new MockViewTable(this, salesSchema.getCatalogName(),
-        salesSchema.name, "EMP_20", false, 600, empTable,
-        ImmutableIntList.of(0, 1, 2, 3, 4, 5, 6, 8), null) {
-
-      @Override public RexNode getConstraint(RexBuilder rexBuilder,
-          RelDataType tableRowType) {
-        final RelDataTypeField deptnoField =
-            tableRowType.getFieldList().get(7);
-        final RelDataTypeField salField =
-            tableRowType.getFieldList().get(5);
-        final List<RexNode> nodes = Arrays.asList(
-            rexBuilder.makeCall(SqlStdOperatorTable.EQUALS,
-                rexBuilder.makeInputRef(deptnoField.getType(),
-                    deptnoField.getIndex()),
-                rexBuilder.makeExactLiteral(BigDecimal.valueOf(20L),
-                    deptnoField.getType())),
-            rexBuilder.makeCall(SqlStdOperatorTable.GREATER_THAN,
-                rexBuilder.makeInputRef(salField.getType(),
-                    salField.getIndex()),
-                rexBuilder.makeExactLiteral(BigDecimal.valueOf(1000L),
-                    salField.getType())));
-        return RexUtil.composeConjunction(rexBuilder, nodes, false);
-      }
-    };
+    final NullInitializerExpressionFactory nullInitializerFactory =
+        new NullInitializerExpressionFactory(this.typeFactory);
+    final ImmutableIntList m0 = ImmutableIntList.of(0, 1, 2, 3, 4, 5, 6, 8);
+    MockTable emp20View =
+        new MockViewTable(this, salesSchema.getCatalogName(), salesSchema.name,
+            "EMP_20", false, 600, empTable, m0, null, nullInitializerFactory) {
+          public RexNode getConstraint(RexBuilder rexBuilder,
+              RelDataType tableRowType) {
+            final RelDataTypeField deptnoField =
+                tableRowType.getFieldList().get(7);
+            final RelDataTypeField salField =
+                tableRowType.getFieldList().get(5);
+            final List<RexNode> nodes = Arrays.asList(
+                rexBuilder.makeCall(SqlStdOperatorTable.EQUALS,
+                    rexBuilder.makeInputRef(deptnoField.getType(),
+                        deptnoField.getIndex()),
+                    rexBuilder.makeExactLiteral(BigDecimal.valueOf(20L),
+                        deptnoField.getType())),
+                rexBuilder.makeCall(SqlStdOperatorTable.GREATER_THAN,
+                    rexBuilder.makeInputRef(salField.getType(),
+                        salField.getIndex()),
+                    rexBuilder.makeExactLiteral(BigDecimal.valueOf(1000L),
+                        salField.getType())));
+            return RexUtil.composeConjunction(rexBuilder, nodes, false);
+          }
+        };
     salesSchema.addTable(Util.last(emp20View.getQualifiedName()));
-    emp20View.addColumn("EMPNO", intType);
-    emp20View.addColumn("ENAME", varchar20Type);
-    emp20View.addColumn("JOB", varchar10Type);
-    emp20View.addColumn("MGR", intTypeNull);
-    emp20View.addColumn("HIREDATE", timestampType);
-    emp20View.addColumn("SAL", intType);
-    emp20View.addColumn("COMM", intType);
-    emp20View.addColumn("SLACKER", booleanType);
+    emp20View.addColumn("EMPNO", f.intType);
+    emp20View.addColumn("ENAME", f.varchar20Type);
+    emp20View.addColumn("JOB", f.varchar10Type);
+    emp20View.addColumn("MGR", f.intTypeNull);
+    emp20View.addColumn("HIREDATE", f.timestampType);
+    emp20View.addColumn("SAL", f.intType);
+    emp20View.addColumn("COMM", f.intType);
+    emp20View.addColumn("SLACKER", f.booleanType);
     registerTable(emp20View);
+
+    MockTable empNullables20View =
+        new MockViewTable(this, salesSchema.getCatalogName(), salesSchema.name,
+            "EMPNULLABLES_20", false, 600, empNullablesTable, m0, null,
+            nullInitializerFactory) {
+          public RexNode getConstraint(RexBuilder rexBuilder,
+              RelDataType tableRowType) {
+            final RelDataTypeField deptnoField =
+                tableRowType.getFieldList().get(7);
+            final RelDataTypeField salField =
+                tableRowType.getFieldList().get(5);
+            final List<RexNode> nodes = Arrays.asList(
+                rexBuilder.makeCall(SqlStdOperatorTable.EQUALS,
+                    rexBuilder.makeInputRef(deptnoField.getType(),
+                        deptnoField.getIndex()),
+                    rexBuilder.makeExactLiteral(BigDecimal.valueOf(20L),
+                        deptnoField.getType())),
+                rexBuilder.makeCall(SqlStdOperatorTable.GREATER_THAN,
+                    rexBuilder.makeInputRef(salField.getType(),
+                        salField.getIndex()),
+                    rexBuilder.makeExactLiteral(BigDecimal.valueOf(1000L),
+                        salField.getType())));
+            return RexUtil.composeConjunction(rexBuilder, nodes, false);
+          }
+        };
+    salesSchema.addTable(Util.last(empNullables20View.getQualifiedName()));
+    empNullables20View.addColumn("EMPNO", f.intType);
+    empNullables20View.addColumn("ENAME", f.varchar20Type);
+    empNullables20View.addColumn("JOB", f.varchar10TypeNull);
+    empNullables20View.addColumn("MGR", f.intTypeNull);
+    empNullables20View.addColumn("HIREDATE", f.timestampTypeNull);
+    empNullables20View.addColumn("SAL", f.intTypeNull);
+    empNullables20View.addColumn("COMM", f.intTypeNull);
+    empNullables20View.addColumn("SLACKER", f.booleanTypeNull);
+    registerTable(empNullables20View);
 
     MockSchema structTypeSchema = new MockSchema("STRUCT");
     registerSchema(structTypeSchema);
     final List<CompoundNameColumn> columns = Arrays.asList(
-        new CompoundNameColumn("", "K0", varchar20Type),
-        new CompoundNameColumn("", "C1", varchar20Type),
-        new CompoundNameColumn("F1", "A0", intType),
-        new CompoundNameColumn("F2", "A0", booleanType),
-        new CompoundNameColumn("F0", "C0", intType),
-        new CompoundNameColumn("F1", "C0", intTypeNull),
-        new CompoundNameColumn("F0", "C1", intType),
-        new CompoundNameColumn("F1", "C2", intType),
-        new CompoundNameColumn("F2", "C3", intType));
+        new CompoundNameColumn("", "K0", f.varchar20Type),
+        new CompoundNameColumn("", "C1", f.varchar20Type),
+        new CompoundNameColumn("F1", "A0", f.intType),
+        new CompoundNameColumn("F2", "A0", f.booleanType),
+        new CompoundNameColumn("F0", "C0", f.intType),
+        new CompoundNameColumn("F1", "C0", f.intTypeNull),
+        new CompoundNameColumn("F0", "C1", f.intType),
+        new CompoundNameColumn("F1", "C2", f.intType),
+        new CompoundNameColumn("F2", "C3", f.intType));
     final CompoundNameColumnResolver structTypeTableResolver =
         new CompoundNameColumnResolver(columns, "F0");
-    final MockTable structTypeTable = new MockTable(this,
-        structTypeSchema.getCatalogName(), structTypeSchema.name,
-        "T", false, 100, structTypeTableResolver);
+    final MockTable structTypeTable =
+        MockTable.create(this, structTypeSchema, "T", false, 100,
+            structTypeTableResolver);
     for (CompoundNameColumn column : columns) {
       structTypeTable.addColumn(column.getName(), column.type);
     }
     registerTable(structTypeTable);
+
+    final List<CompoundNameColumn> columnsNullable = Arrays.asList(
+        new CompoundNameColumn("", "K0", f.varchar20TypeNull),
+        new CompoundNameColumn("", "C1", f.varchar20TypeNull),
+        new CompoundNameColumn("F1", "A0", f.intTypeNull),
+        new CompoundNameColumn("F2", "A0", f.booleanTypeNull),
+        new CompoundNameColumn("F0", "C0", f.intTypeNull),
+        new CompoundNameColumn("F1", "C0", f.intTypeNull),
+        new CompoundNameColumn("F0", "C1", f.intTypeNull),
+        new CompoundNameColumn("F1", "C2", f.intType),
+        new CompoundNameColumn("F2", "C3", f.intTypeNull));
+    final MockTable structNullableTypeTable =
+        MockTable.create(this, structTypeSchema, "T_NULLABLES", false, 100,
+            structTypeTableResolver);
+    for (CompoundNameColumn column : columnsNullable) {
+      structNullableTypeTable.addColumn(column.getName(), column.type);
+    }
+    registerTable(structNullableTypeTable);
 
     // Register "STRUCT.T_10" view.
     // Same columns as "STRUCT.T",
@@ -422,23 +475,22 @@ public class MockCatalogReader implements Prepare.CatalogReader {
     //   SELECT *
     //   FROM T
     //   WHERE F0.C0 = 10
-    MockTable struct10View = new MockViewTable(this,
-        structTypeSchema.getCatalogName(),
-        structTypeSchema.name, "T_10", false, 20,
-        structTypeTable, ImmutableIntList.of(0, 1, 2, 3, 4, 5, 6, 7, 8),
-        structTypeTableResolver) {
-
-      @Override public RexNode getConstraint(RexBuilder rexBuilder,
-          RelDataType tableRowType) {
-        final RelDataTypeField c0Field =
-            tableRowType.getFieldList().get(4);
-        return rexBuilder.makeCall(SqlStdOperatorTable.EQUALS,
-            rexBuilder.makeInputRef(c0Field.getType(),
-                c0Field.getIndex()),
-            rexBuilder.makeExactLiteral(BigDecimal.valueOf(10L),
-                c0Field.getType()));
-      }
-    };
+    final ImmutableIntList m1 = ImmutableIntList.of(0, 1, 2, 3, 4, 5, 6, 7, 8);
+    MockTable struct10View =
+        new MockViewTable(this, structTypeSchema.getCatalogName(),
+            structTypeSchema.name, "T_10", false, 20, structTypeTable,
+            m1, structTypeTableResolver, nullInitializerFactory) {
+          @Override public RexNode getConstraint(RexBuilder rexBuilder,
+              RelDataType tableRowType) {
+            final RelDataTypeField c0Field =
+                tableRowType.getFieldList().get(4);
+            return rexBuilder.makeCall(SqlStdOperatorTable.EQUALS,
+                rexBuilder.makeInputRef(c0Field.getType(),
+                    c0Field.getIndex()),
+                rexBuilder.makeExactLiteral(BigDecimal.valueOf(10L),
+                    c0Field.getType()));
+          }
+        };
     structTypeSchema.addTable(Util.last(struct10View.getQualifiedName()));
     for (CompoundNameColumn column : columns) {
       struct10View.addColumn(column.getName(), column.type);
@@ -449,55 +501,26 @@ public class MockCatalogReader implements Prepare.CatalogReader {
 
   //~ Methods ----------------------------------------------------------------
 
-  public void lookupOperatorOverloads(SqlIdentifier opName,
-      SqlFunctionCategory category, SqlSyntax syntax,
-      List<SqlOperator> operatorList) {
-  }
-
-  public List<SqlOperator> getOperatorList() {
-    return ImmutableList.of();
-  }
-
-  public Prepare.CatalogReader withSchemaPath(List<String> schemaPath) {
-    return this;
-  }
-
-  public Prepare.PreparingTable getTableForMember(List<String> names) {
-    return getTable(names);
-  }
-
-  public RelDataTypeFactory getTypeFactory() {
-    return typeFactory;
-  }
-
-  public void registerRules(RelOptPlanner planner) {
-  }
-
-  protected void registerTable(MockTable table) {
+  protected void registerTable(final MockTable table) {
     table.onRegister(typeFactory);
-    tables.put(table.getQualifiedName(), table);
+    assert table.names.get(0).equals(DEFAULT_CATALOG);
+    final CalciteSchema schema =
+        rootSchema.getSubSchema(table.names.get(1), true);
+    final WrapperTable wrapperTable = new WrapperTable(table);
+    if (table.stream) {
+      schema.add(table.names.get(2),
+          new StreamableWrapperTable(table) {
+            public Table stream() {
+              return wrapperTable;
+            }
+          });
+    } else {
+      schema.add(table.names.get(2), wrapperTable);
+    }
   }
 
   protected void registerSchema(MockSchema schema) {
-    schemas.put(schema.name, schema);
-  }
-
-  public Prepare.PreparingTable getTable(final List<String> names) {
-    switch (names.size()) {
-    case 1:
-      // assume table in SALES schema (the original default)
-      // if it's not supplied, because SqlValidatorTest is effectively
-      // using SALES as its default schema.
-      return tables.get(
-          ImmutableList.of(DEFAULT_CATALOG, DEFAULT_SCHEMA, names.get(0)));
-    case 2:
-      return tables.get(
-          ImmutableList.of(DEFAULT_CATALOG, names.get(0), names.get(1)));
-    case 3:
-      return tables.get(names);
-    default:
-      return null;
-    }
+    rootSchema.add(schema.name, new AbstractSchema());
   }
 
   public RelDataType getNamedType(SqlIdentifier typeName) {
@@ -506,65 +529,6 @@ public class MockCatalogReader implements Prepare.CatalogReader {
     } else {
       return null;
     }
-  }
-
-  public List<SqlMoniker> getAllSchemaObjectNames(List<String> names) {
-    List<SqlMoniker> result;
-    switch (names.size()) {
-    case 0:
-      // looking for catalog and schema names
-      return ImmutableList.<SqlMoniker>builder()
-          .add(new SqlMonikerImpl(DEFAULT_CATALOG, SqlMonikerType.CATALOG))
-          .addAll(getAllSchemaObjectNames(ImmutableList.of(DEFAULT_CATALOG)))
-          .build();
-    case 1:
-      // looking for schema names
-      result = Lists.newArrayList();
-      for (MockSchema schema : schemas.values()) {
-        final String catalogName = names.get(0);
-        if (schema.getCatalogName().equals(catalogName)) {
-          final ImmutableList<String> names1 =
-              ImmutableList.of(catalogName, schema.name);
-          result.add(new SqlMonikerImpl(names1, SqlMonikerType.SCHEMA));
-        }
-      }
-      return result;
-    case 2:
-      // looking for table names in the given schema
-      MockSchema schema = schemas.get(names.get(1));
-      if (schema == null) {
-        return Collections.emptyList();
-      }
-      result = Lists.newArrayList();
-      for (String tableName : schema.tableNames) {
-        result.add(
-            new SqlMonikerImpl(
-                ImmutableList.of(schema.getCatalogName(), schema.name,
-                    tableName),
-                SqlMonikerType.TABLE));
-      }
-      return result;
-    default:
-      return Collections.emptyList();
-    }
-  }
-
-  public List<String> getSchemaName() {
-    return ImmutableList.of(DEFAULT_CATALOG, DEFAULT_SCHEMA);
-  }
-
-  public RelDataTypeField field(RelDataType rowType, String alias) {
-    return SqlValidatorUtil.lookupField(caseSensitive, rowType, alias);
-  }
-
-  public boolean matches(String string, String name) {
-    return Util.matches(caseSensitive, string, name);
-  }
-
-  public RelDataType createTypeFromProjection(final RelDataType type,
-      final List<String> columnNameList) {
-    return SqlValidatorUtil.createTypeFromProjection(type, columnNameList,
-        typeFactory, caseSensitive);
   }
 
   private static List<RelCollation> deduceMonotonicity(
@@ -624,7 +588,7 @@ public class MockCatalogReader implements Prepare.CatalogReader {
    * Mock implementation of
    * {@link org.apache.calcite.prepare.Prepare.PreparingTable}.
    */
-  public static class MockTable implements Prepare.PreparingTable {
+  public static class MockTable extends Prepare.AbstractPreparingTable {
     protected final MockCatalogReader catalogReader;
     private final boolean stream;
     private final double rowCount;
@@ -637,20 +601,23 @@ public class MockCatalogReader implements Prepare.CatalogReader {
     private final Set<String> monotonicColumnSet = Sets.newHashSet();
     private StructKind kind = StructKind.FULLY_QUALIFIED;
     protected final ColumnResolver resolver;
+    private final InitializerExpressionFactory initializerFactory;
 
     public MockTable(MockCatalogReader catalogReader, String catalogName,
         String schemaName, String name, boolean stream, double rowCount,
-        ColumnResolver resolver) {
+        ColumnResolver resolver,
+        InitializerExpressionFactory initializerFactory) {
       this.catalogReader = catalogReader;
       this.stream = stream;
       this.rowCount = rowCount;
       this.names = ImmutableList.of(catalogName, schemaName, name);
       this.resolver = resolver;
+      this.initializerFactory = initializerFactory;
     }
 
     /** Implementation of AbstractModifiableTable. */
-    private class ModifiableTable extends JdbcTest.AbstractModifiableTable {
-
+    private class ModifiableTable extends JdbcTest.AbstractModifiableTable
+        implements Wrapper {
       protected ModifiableTable(String tableName) {
         super(tableName);
       }
@@ -678,6 +645,13 @@ public class MockCatalogReader implements Prepare.CatalogReader {
           String tableName, Class clazz) {
         return null;
       }
+
+      @Override public <C> C unwrap(Class<C> aClass) {
+        if (aClass.isInstance(initializerFactory)) {
+          return aClass.cast(initializerFactory);
+        }
+        return null;
+      }
     }
 
     /**
@@ -685,7 +659,7 @@ public class MockCatalogReader implements Prepare.CatalogReader {
      * CustomColumnResolvingTable.
      */
     private class ModifiableTableWithCustomColumnResolving
-        extends ModifiableTable implements CustomColumnResolvingTable {
+        extends ModifiableTable implements CustomColumnResolvingTable, Wrapper {
 
       protected ModifiableTableWithCustomColumnResolving(String tableName) {
         super(tableName);
@@ -696,13 +670,33 @@ public class MockCatalogReader implements Prepare.CatalogReader {
         return resolver.resolveColumn(rowType, typeFactory, names);
       }
 
+      @Override public <C> C unwrap(Class<C> aClass) {
+        if (aClass.isInstance(initializerFactory)) {
+          return aClass.cast(initializerFactory);
+        }
+        return null;
+      }
     }
 
     public static MockTable create(MockCatalogReader catalogReader,
         MockSchema schema, String name, boolean stream, double rowCount) {
+      return create(catalogReader, schema, name, stream, rowCount, null);
+    }
+
+    public static MockTable create(MockCatalogReader catalogReader,
+        MockSchema schema, String name, boolean stream, double rowCount,
+        ColumnResolver resolver) {
+      return create(catalogReader, schema, name, stream, rowCount, resolver,
+          new NullInitializerExpressionFactory(catalogReader.typeFactory));
+    }
+
+    public static MockTable create(MockCatalogReader catalogReader,
+        MockSchema schema, String name, boolean stream, double rowCount,
+        ColumnResolver resolver,
+        InitializerExpressionFactory initializerExpressionFactory) {
       MockTable table =
           new MockTable(catalogReader, schema.getCatalogName(), schema.name,
-              name, stream, rowCount, null);
+              name, stream, rowCount, resolver, initializerExpressionFactory);
       schema.addTable(name);
       return table;
     }
@@ -795,7 +789,8 @@ public class MockCatalogReader implements Prepare.CatalogReader {
 
     public RelOptTable extend(List<RelDataTypeField> extendedFields) {
       final MockTable table = new MockTable(catalogReader, names.get(0),
-          names.get(1), names.get(2), stream, rowCount, resolver);
+          names.get(1), names.get(2), stream, rowCount, resolver,
+          initializerFactory);
       table.columnList.addAll(columnList);
       table.columnList.addAll(extendedFields);
       table.onRegister(catalogReader.typeFactory);
@@ -822,17 +817,18 @@ public class MockCatalogReader implements Prepare.CatalogReader {
 
     MockViewTable(MockCatalogReader catalogReader, String catalogName,
         String schemaName, String name, boolean stream, double rowCount,
-        MockTable fromTable, ImmutableIntList mapping, ColumnResolver resolver) {
-      super(catalogReader, catalogName,
-          schemaName, name, stream, rowCount, resolver);
+        MockTable fromTable, ImmutableIntList mapping, ColumnResolver resolver,
+        NullInitializerExpressionFactory initializerFactory) {
+      super(catalogReader, catalogName, schemaName, name, stream, rowCount,
+          resolver, initializerFactory);
       this.fromTable = fromTable;
       this.table = fromTable.unwrap(Table.class);
       this.mapping = mapping;
     }
 
     /** Implementation of AbstractModifiableView. */
-    private class ModifiableView extends JdbcTest.AbstractModifiableView {
-
+    private class ModifiableView extends JdbcTest.AbstractModifiableView
+        implements Wrapper {
       @Override public Table getTable() {
         return fromTable.unwrap(Table.class);
       }
@@ -870,6 +866,13 @@ public class MockCatalogReader implements Prepare.CatalogReader {
               }
             });
       }
+
+      @Override public <C> C unwrap(Class<C> aClass) {
+        if (table instanceof Wrapper) {
+          return ((Wrapper) table).unwrap(aClass);
+        }
+        return null;
+      }
     }
 
     /**
@@ -877,11 +880,18 @@ public class MockCatalogReader implements Prepare.CatalogReader {
      * CustomColumnResolvingTable.
      */
     private class ModifiableViewWithCustomColumnResolving
-      extends ModifiableView implements CustomColumnResolvingTable {
+      extends ModifiableView implements CustomColumnResolvingTable, Wrapper {
 
       @Override public List<Pair<RelDataTypeField, List<String>>> resolveColumn(
           RelDataType rowType, RelDataTypeFactory typeFactory, List<String> names) {
         return resolver.resolveColumn(rowType, typeFactory, names);
+      }
+
+      @Override public <C> C unwrap(Class<C> aClass) {
+        if (table instanceof Wrapper) {
+          return ((Wrapper) table).unwrap(aClass);
+        }
+        return null;
       }
     }
 
@@ -934,7 +944,8 @@ public class MockCatalogReader implements Prepare.CatalogReader {
   public static class MockDynamicTable extends MockTable {
     MockDynamicTable(MockCatalogReader catalogReader, String catalogName,
         String schemaName, String name, boolean stream, double rowCount) {
-      super(catalogReader, catalogName, schemaName, name, stream, rowCount, null);
+      super(catalogReader, catalogName, schemaName, name, stream, rowCount,
+          null, new NullInitializerExpressionFactory(catalogReader.typeFactory));
     }
 
     public void onRegister(RelDataTypeFactory typeFactory) {
@@ -1196,6 +1207,119 @@ public class MockCatalogReader implements Prepare.CatalogReader {
             }
           });
     }
+  }
+
+  /** Wrapper around a {@link MockTable}, giving it a {@link Table} interface.
+   * You can get the {@code MockTable} by calling {@link #unwrap(Class)}. */
+  private static class WrapperTable implements Table, Wrapper {
+    private final MockTable table;
+
+    WrapperTable(MockTable table) {
+      this.table = table;
+    }
+
+    public <C> C unwrap(Class<C> aClass) {
+      return aClass.isInstance(this) ? aClass.cast(this)
+          : aClass.isInstance(table) ? aClass.cast(table)
+          : null;
+    }
+
+    public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+      return table.getRowType();
+    }
+
+    public Statistic getStatistic() {
+      return new Statistic() {
+        public Double getRowCount() {
+          return table.rowCount;
+        }
+
+        public boolean isKey(ImmutableBitSet columns) {
+          return table.isKey(columns);
+        }
+
+        public List<RelCollation> getCollations() {
+          return table.collationList;
+        }
+
+        public RelDistribution getDistribution() {
+          return table.getDistribution();
+        }
+      };
+    }
+
+    public Schema.TableType getJdbcTableType() {
+      return table.stream ? Schema.TableType.STREAM : Schema.TableType.TABLE;
+    }
+  }
+
+  /** Wrapper around a {@link MockTable}, giving it a {@link StreamableTable}
+   * interface. */
+  private static class StreamableWrapperTable extends WrapperTable
+      implements StreamableTable {
+    StreamableWrapperTable(MockTable table) {
+      super(table);
+    }
+
+    public Table stream() {
+      return this;
+    }
+  }
+
+  /** Types used during initialization. */
+  private class Fixture {
+    final RelDataType intType =
+        typeFactory.createSqlType(SqlTypeName.INTEGER);
+    final RelDataType intTypeNull =
+        typeFactory.createTypeWithNullability(intType, true);
+    final RelDataType varchar10Type =
+        typeFactory.createSqlType(SqlTypeName.VARCHAR, 10);
+    final RelDataType varchar10TypeNull =
+        typeFactory.createTypeWithNullability(varchar10Type, true);
+    final RelDataType varchar20Type =
+        typeFactory.createSqlType(SqlTypeName.VARCHAR, 20);
+    final RelDataType varchar20TypeNull =
+        typeFactory.createTypeWithNullability(varchar20Type, true);
+    final RelDataType timestampType =
+        typeFactory.createSqlType(SqlTypeName.TIMESTAMP);
+    final RelDataType timestampTypeNull =
+        typeFactory.createTypeWithNullability(timestampType, true);
+    final RelDataType dateType =
+        typeFactory.createSqlType(SqlTypeName.DATE);
+    final RelDataType booleanType =
+        typeFactory.createSqlType(SqlTypeName.BOOLEAN);
+    final RelDataType booleanTypeNull =
+        typeFactory.createTypeWithNullability(booleanType, true);
+    final RelDataType rectilinearCoordType =
+        typeFactory.builder()
+            .add("X", intType)
+            .add("Y", intType)
+            .build();
+    final RelDataType rectilinearPeekCoordType =
+        typeFactory.builder()
+            .add("X", intType)
+            .add("Y", intType)
+            .kind(StructKind.PEEK_FIELDS)
+            .build();
+    final RelDataType empRecordType =
+        typeFactory.builder()
+            .add("EMPNO", intType)
+            .add("ENAME", varchar10Type).build();
+    final RelDataType empListType =
+        typeFactory.createArrayType(empRecordType, -1);
+
+    // TODO jvs 12-Feb-2005: register this canonical instance with type
+    // factory
+    final ObjectSqlType addressType =
+        new ObjectSqlType(SqlTypeName.STRUCTURED,
+            new SqlIdentifier("ADDRESS", SqlParserPos.ZERO),
+            false,
+            Arrays.asList(
+                new RelDataTypeFieldImpl("STREET", 0, varchar20Type),
+                new RelDataTypeFieldImpl("CITY", 1, varchar20Type),
+                new RelDataTypeFieldImpl("ZIP", 2, intType),
+                new RelDataTypeFieldImpl("STATE", 3, varchar20Type)),
+            RelDataTypeComparability.NONE);
   }
 }
 

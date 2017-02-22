@@ -47,8 +47,7 @@ import java.util.Set;
 public class SqlAdvisorValidator extends SqlValidatorImpl {
   //~ Instance fields --------------------------------------------------------
 
-  private final Set<SqlValidatorNamespace> activeNamespaces =
-      new HashSet<SqlValidatorNamespace>();
+  private final Set<SqlValidatorNamespace> activeNamespaces = new HashSet<>();
 
   private final RelDataType emptyStructType =
       SqlTypeUtil.createEmptyStructType(typeFactory);
@@ -69,15 +68,12 @@ public class SqlAdvisorValidator extends SqlValidatorImpl {
       RelDataTypeFactory typeFactory,
       SqlConformance conformance) {
     super(opTab, catalogReader, typeFactory, conformance);
-    assert opTab != null;
-    assert catalogReader != null;
-    assert typeFactory != null;
   }
 
   //~ Methods ----------------------------------------------------------------
 
   /**
-   * Registers the identifier and its scope into a map keyed by ParserPostion.
+   * Registers the identifier and its scope into a map keyed by ParserPosition.
    */
   public void validateIdentifier(SqlIdentifier id, SqlValidatorScope scope) {
     registerId(id, scope);
@@ -124,11 +120,7 @@ public class SqlAdvisorValidator extends SqlValidatorImpl {
     // Util.permAssert that throws Error
     try {
       return super.deriveType(scope, operand);
-    } catch (CalciteException e) {
-      return unknownType;
-    } catch (UnsupportedOperationException e) {
-      return unknownType;
-    } catch (Error e) {
+    } catch (CalciteException | UnsupportedOperationException | Error e) {
       return unknownType;
     }
   }

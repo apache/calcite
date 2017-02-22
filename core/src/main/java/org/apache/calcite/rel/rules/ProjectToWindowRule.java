@@ -37,16 +37,17 @@ import org.apache.calcite.rex.RexOver;
 import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.rex.RexWindow;
+import org.apache.calcite.runtime.PredicateImpl;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.Pair;
-import org.apache.calcite.util.Util;
 import org.apache.calcite.util.graph.DefaultDirectedGraph;
 import org.apache.calcite.util.graph.DefaultEdge;
 import org.apache.calcite.util.graph.DirectedGraph;
 import org.apache.calcite.util.graph.TopologicalOrderIterator;
 
 import com.google.common.base.Function;
+import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -76,15 +77,15 @@ public abstract class ProjectToWindowRule extends RelOptRule {
   //~ Static fields/initializers ---------------------------------------------
 
   private static final Predicate<Calc> PREDICATE =
-      new Predicate<Calc>() {
-        public boolean apply(Calc calc) {
+      new PredicateImpl<Calc>() {
+        public boolean test(Calc calc) {
           return RexOver.containsOver(calc.getProgram());
         }
       };
 
   private static final Predicate<Project> PREDICATE2 =
-      new Predicate<Project>() {
-        public boolean apply(Project project) {
+      new PredicateImpl<Project>() {
+        public boolean test(Project project) {
           return RexOver.containsOver(project.getProjects(), null);
         }
       };
@@ -225,7 +226,7 @@ public abstract class ProjectToWindowRule extends RelOptRule {
 
         protected RelNode makeRel(RelOptCluster cluster, RelTraitSet traitSet,
             RelBuilder relBuilder, RelNode input, RexProgram program) {
-          Util.permAssert(program.getCondition() == null,
+          Preconditions.checkArgument(program.getCondition() == null,
               "WindowedAggregateRel cannot accept a condition");
           return LogicalWindow.create(cluster, traitSet, relBuilder, input,
               program);

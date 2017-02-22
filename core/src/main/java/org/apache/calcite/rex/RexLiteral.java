@@ -35,6 +35,8 @@ import org.apache.calcite.util.ZonelessDatetime;
 import org.apache.calcite.util.ZonelessTime;
 import org.apache.calcite.util.ZonelessTimestamp;
 
+import com.google.common.base.Preconditions;
+
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.math.BigDecimal;
@@ -169,13 +171,12 @@ public class RexLiteral extends RexNode {
       Comparable value,
       RelDataType type,
       SqlTypeName typeName) {
-    assert type != null;
-    assert value == null || valueMatchesType(value, typeName, true);
-    assert (value == null) == type.isNullable();
-    assert typeName != SqlTypeName.ANY;
     this.value = value;
-    this.type = type;
-    this.typeName = typeName;
+    this.type = Preconditions.checkNotNull(type);
+    this.typeName = Preconditions.checkNotNull(typeName);
+    Preconditions.checkArgument(valueMatchesType(value, typeName, true));
+    Preconditions.checkArgument((value == null) == type.isNullable());
+    Preconditions.checkArgument(typeName != SqlTypeName.ANY);
     this.digest = toJavaString(value, typeName);
   }
 
@@ -214,7 +215,8 @@ public class RexLiteral extends RexNode {
     case DATE:
     case TIME:
     case TIMESTAMP:
-      return value instanceof Calendar;
+      return value instanceof Calendar
+          && ((Calendar) value).getTimeZone().equals(DateTimeUtils.GMT_ZONE);
     case INTERVAL_YEAR:
     case INTERVAL_YEAR_MONTH:
     case INTERVAL_MONTH:
@@ -532,16 +534,15 @@ public class RexLiteral extends RexNode {
         }
       }
       if (cal == null) {
-        throw Util.newInternal(
-            "fromJdbcString: invalid date/time value '"
-                + literal + "'");
+        throw new AssertionError("fromJdbcString: invalid date/time value '"
+            + literal + "'");
       }
       return new RexLiteral(cal, type, typeName);
     case SYMBOL:
 
       // Symbols are for internal use
     default:
-      throw Util.newInternal("fromJdbcString: unsupported type");
+      throw new AssertionError("fromJdbcString: unsupported type");
     }
   }
 
@@ -554,7 +555,7 @@ public class RexLiteral extends RexNode {
     case TIMESTAMP:
       return DateTimeUtils.TIMESTAMP_FORMAT_STRING;
     default:
-      throw Util.newInternal("getCalendarFormat: unknown type");
+      throw new AssertionError("getCalendarFormat: unknown type");
     }
   }
 
@@ -676,7 +677,7 @@ public class RexLiteral extends RexNode {
         return value.negate();
       }
     }
-    throw Util.newInternal("not a literal: " + node);
+    throw new AssertionError("not a literal: " + node);
   }
 
   public static boolean isNullLiteral(RexNode node) {

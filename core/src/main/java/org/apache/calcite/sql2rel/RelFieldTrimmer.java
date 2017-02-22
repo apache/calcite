@@ -909,7 +909,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
     if (!inputMapping.isIdentity()) {
       // We asked for all fields. Can't believe that the child decided
       // to permute them!
-      throw Util.newInternal(
+      throw new AssertionError(
           "Expected identity mapping, got " + inputMapping);
     }
 

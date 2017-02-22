@@ -64,6 +64,71 @@ group by "hr"."emps"."empid";
 
 !ok
 
+# Case-sensitive errors
+select empid from "hr"."emps";
+Column 'EMPID' not found in any table; did you mean 'empid'?
+!error
+
+select empid from "hr".emps;
+Object 'EMPS' not found within 'hr'; did you mean 'emps'?
+!error
+
+select empid from hr.emps;
+Object 'HR' not found; did you mean 'hr'?
+!error
+
+select empid from bad_schema.bad_table;
+Object 'BAD_SCHEMA' not found
+!error
+
+select empid from bad_cat.bad_schema.bad_table;
+Object 'BAD_CAT' not found
+!error
+
+select empid from "catalog".bad_schema.bad_table;
+Object 'catalog' not found
+!error
+
+select empid from catalog.bad_schema.bad_table;
+Object 'CATALOG' not found
+!error
+
+select empid from catalog.HR.bad_table;
+Object 'CATALOG' not found
+!error
+
+select empid from catalog."hr".bad_table;
+Object 'CATALOG' not found
+!error
+
+select empid from catalog."hr".emp;
+Object 'CATALOG' not found
+!error
+
+select empid from HR.bad_table;
+Object 'HR' not found; did you mean 'hr'?
+!error
+
+select empid from "HR".bad_table;
+Object 'HR' not found; did you mean 'hr'?
+!error
+
+select empid from HR."emps";
+Object 'HR' not found; did you mean 'hr'?
+!error
+
+select empid from "hr".bad_table;
+Object 'BAD_TABLE' not found within 'hr'
+!error
+
+select empid from "hr".emps;
+Object 'EMPS' not found within 'hr'; did you mean 'emps'?
+!error
+
+select empid from "hr";
+Object 'hr' not found
+!error
+
 # [CALCITE-307] CAST(timestamp AS DATE) gives ClassCastException
 # Based on [DRILL-1051]
 with data(c_row, c_timestamp) as (select * from (values
@@ -628,7 +693,6 @@ EnumerableCalc(expr#0..1=[{inputs}], expr#2=[1], expr#3=[=($t0, $t2)], proj#0..1
 
 # [HIVE-5873] Semi-join to count sub-query
 # [CALCITE-365] AssertionError while translating query with WITH and correlated sub-query
-!if (false) {
 with parts (PNum, OrderOnHand)
      as (select * from (values (3, 6), (10, 1), (8, 0)) as t(PNum, OrderOnHand)),
   supply (PNum, Qty)
@@ -642,11 +706,11 @@ where orderOnHand
 | PNUM |
 +------+
 |    8 |
+|   10 |
 +------+
-(1 row)
+(2 rows)
 
 !ok
-!}
 
 # [HIVE-7362]
 # Just checking that HAVING-EXISTS works.
@@ -1717,6 +1781,48 @@ from (values 1, 2, 3, 4, 5) as t(i);
 | 5 |  0.5532616835728703 |
 +---+---------------------+
 (5 rows)
+
+!ok
+
+# PI function
+values pi;
++-------------------+
+| PI                |
++-------------------+
+| 3.141592653589793 |
++-------------------+
+(1 row)
+
+!ok
+
+# DEGREES function
+values (degrees(pi), degrees(-pi / 2));
++--------+--------+
+| EXPR$0 | EXPR$1 |
++--------+--------+
+|  180.0 |  -90.0 |
++--------+--------+
+(1 row)
+
+!ok
+
+# [CALCITE-1592] SqlToRelConverter throws UnsupportedOperationException if query has NOT ... NOT IN
+select * from "scott".emp where not (ename not in ('Fred'));
++-------+-------+-----+-----+----------+-----+------+--------+
+| EMPNO | ENAME | JOB | MGR | HIREDATE | SAL | COMM | DEPTNO |
++-------+-------+-----+-----+----------+-----+------+--------+
++-------+-------+-----+-----+----------+-----+------+--------+
+(0 rows)
+
+!ok
+
+select count(*) as c from "scott".emp where not (ename in ('Fred'));
++----+
+| C  |
++----+
+| 14 |
++----+
+(1 row)
 
 !ok
 

@@ -678,16 +678,53 @@ public class RelBuilderTest {
 
   @Test public void testDistinct() {
     // Equivalent SQL:
-    //   SELECT DISTINCT *
-    //   FROM dept
+    //   SELECT DISTINCT deptno
+    //   FROM emp
+    final RelBuilder builder = RelBuilder.create(config().build());
+    RelNode root =
+        builder.scan("EMP")
+            .project(builder.field("DEPTNO"))
+            .distinct()
+            .build();
+    final String expected = "LogicalAggregate(group=[{0}])\n"
+        + "  LogicalProject(DEPTNO=[$7])\n"
+        + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(str(root),
+        is(expected));
+  }
+
+  @Test public void testDistinctAlready() {
+    // DEPT is already distinct
     final RelBuilder builder = RelBuilder.create(config().build());
     RelNode root =
         builder.scan("DEPT")
             .distinct()
             .build();
     assertThat(str(root),
-        is("LogicalAggregate(group=[{0, 1, 2}])\n"
-                + "  LogicalTableScan(table=[[scott, DEPT]])\n"));
+        is("LogicalTableScan(table=[[scott, DEPT]])\n"));
+  }
+
+  @Test public void testDistinctEmpty() {
+    // Is a relation with zero columns distinct?
+    // What about if we know there are zero rows?
+    // It is a matter of definition: there are no duplicate rows,
+    // but applying "select ... group by ()" to it would change the result.
+    // In theory, we could omit the distinct if we know there is precisely one
+    // row, but we don't currently.
+    final RelBuilder builder = RelBuilder.create(config().build());
+    RelNode root =
+        builder.scan("EMP")
+            .filter(
+                builder.call(SqlStdOperatorTable.IS_NULL,
+                    builder.field("COMM")))
+            .project()
+            .distinct()
+            .build();
+    final String expected = "LogicalAggregate(group=[{}])\n"
+        + "  LogicalProject\n"
+        + "    LogicalFilter(condition=[IS NULL($6)])\n"
+        + "      LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(str(root), is(expected));
   }
 
   @Test public void testUnion() {
@@ -995,7 +1032,7 @@ public class RelBuilderTest {
     // Note that the join filter gets pushed to the right-hand input of
     // LogicalCorrelate
     final String expected = ""
-        + "LogicalCorrelate(correlation=[$cor0], joinType=[LEFT], requiredColumns=[{7}])\n"
+        + "LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{7}])\n"
         + "  LogicalTableScan(table=[[scott, EMP]])\n"
         + "  LogicalFilter(condition=[=($cor0.SAL, 1000)])\n"
         + "    LogicalFilter(condition=[=($0, $cor0.DEPTNO)])\n"
@@ -1518,6 +1555,32 @@ public class RelBuilderTest {
     assertThat(str(root), is(expected));
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1610">[CALCITE-1610]
+   * RelBuilder sort-combining optimization treats aliases incorrectly</a>. */
+  @Test public void testSortOverProjectSort() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    builder.scan("EMP")
+        .sort(0)
+        .project(builder.field(1))
+        // was throwing exception here when attempting to apply to
+        // inner sort node
+        .limit(0, 1)
+        .build();
+    RelNode r = builder.scan("EMP")
+        .sort(0)
+        .project(Lists.newArrayList(builder.field(1)),
+            Lists.newArrayList("F1"))
+        .limit(0, 1)
+        // make sure we can still access the field by alias
+        .project(builder.field("F1"))
+        .build();
+    String expected = "LogicalProject(F1=[$1])\n"
+        + "  LogicalSort(sort0=[$0], dir0=[ASC], fetch=[1])\n"
+        + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(str(r), is(expected));
+  }
+
   /** Tests that a sort on a field followed by a limit gives the same
    * effect as calling sortLimit.
    *
@@ -1611,6 +1674,31 @@ public class RelBuilderTest {
           + "EMPNO=7876; ENAME=ADAMS; JOB=CLERK; MGR=7788; HIREDATE=1987-05-23; SAL=1100.00; COMM=null; DEPTNO=20\n"
           + "EMPNO=7902; ENAME=FORD; JOB=ANALYST; MGR=7566; HIREDATE=1981-12-03; SAL=3000.00; COMM=null; DEPTNO=20\n";
       assertThat(s, is(result));
+    }
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1595">[CALCITE-1595]
+   * RelBuilder.call throws NullPointerException if argument types are
+   * invalid</a>. */
+  @Test public void testTypeInferenceValidation() throws Exception {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    // test for a) call(operator, Iterable<RexNode>)
+    final RexNode arg0 = builder.literal(0);
+    final RexNode arg1 = builder.literal("xyz");
+    try {
+      builder.call(SqlStdOperatorTable.PLUS, Lists.newArrayList(arg0, arg1));
+      fail("Invalid combination of parameter types");
+    } catch (IllegalArgumentException e) {
+      assertThat(e.getMessage(), containsString("cannot derive type"));
+    }
+
+    // test for b) call(operator, RexNode...)
+    try {
+      builder.call(SqlStdOperatorTable.PLUS, arg0, arg1);
+      fail("Invalid combination of parameter types");
+    } catch (IllegalArgumentException e) {
+      assertThat(e.getMessage(), containsString("cannot derive type"));
     }
   }
 }

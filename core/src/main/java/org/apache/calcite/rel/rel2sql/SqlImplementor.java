@@ -232,12 +232,15 @@ public abstract class SqlImplementor {
   }
 
   public Result setOpToSql(SqlSetOperator operator, RelNode rel) {
-    List<SqlNode> list = Expressions.list();
+    SqlNode node = null;
     for (Ord<RelNode> input : Ord.zip(rel.getInputs())) {
       final Result result = visitChild(input.i, input.e);
-      list.add(result.asSelect());
+      if (node == null) {
+        node = result.asSelect();
+      } else {
+        node = operator.createCall(POS, node, result.asSelect());
+      }
     }
-    final SqlCall node = operator.createCall(new SqlNodeList(list, POS));
     final List<Clause> clauses =
         Expressions.list(Clause.SET_OP);
     return result(node, clauses, rel, null);
@@ -423,7 +426,7 @@ public abstract class SqlImplementor {
         && !aliases.isEmpty()
         && (!dialect.hasImplicitTableAlias()
           || aliases.size() > 1)) {
-      return new Result(node, clauses, alias4, aliases);
+      return new Result(node, clauses, alias4, rel.getRowType(), aliases);
     }
     final String alias5;
     if (alias2 == null
@@ -433,7 +436,7 @@ public abstract class SqlImplementor {
     } else {
       alias5 = null;
     }
-    return new Result(node, clauses, alias5,
+    return new Result(node, clauses, alias5, rel.getRowType(),
         ImmutableMap.of(alias4, rel.getRowType()));
   }
 
@@ -445,7 +448,7 @@ public abstract class SqlImplementor {
     collectAliases(builder, join,
         Iterables.concat(leftResult.aliases.values(),
             rightResult.aliases.values()).iterator());
-    return new Result(join, Expressions.list(Clause.FROM), null,
+    return new Result(join, Expressions.list(Clause.FROM), null, null,
         builder.build());
   }
 
@@ -870,13 +873,15 @@ public abstract class SqlImplementor {
   public class Result {
     final SqlNode node;
     private final String neededAlias;
+    private final RelDataType neededType;
     private final Map<String, RelDataType> aliases;
     final Expressions.FluentList<Clause> clauses;
 
     public Result(SqlNode node, Collection<Clause> clauses, String neededAlias,
-        Map<String, RelDataType> aliases) {
+        RelDataType neededType, Map<String, RelDataType> aliases) {
       this.node = node;
       this.neededAlias = neededAlias;
+      this.neededType = neededType;
       this.aliases = aliases;
       this.clauses = Expressions.list(clauses);
     }
@@ -1027,6 +1032,19 @@ public abstract class SqlImplementor {
      * a join condition that qualifies column names to disambiguate them. */
     public Context qualifiedContext() {
       return aliasContext(aliases, true);
+    }
+
+    /**
+     * In join, when the left and right nodes have been generated,
+     * update their alias with 'neededAlias' if not null.
+     */
+    public Result resetAlias() {
+      if (neededAlias == null) {
+        return this;
+      } else {
+        return new Result(node, clauses, neededAlias, neededType,
+            ImmutableMap.<String, RelDataType>of(neededAlias, neededType));
+      }
     }
   }
 

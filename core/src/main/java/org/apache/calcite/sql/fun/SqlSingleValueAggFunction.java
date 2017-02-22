@@ -57,10 +57,12 @@ public class SqlSingleValueAggFunction extends SqlAggFunction {
 
   //~ Methods ----------------------------------------------------------------
 
+  @SuppressWarnings("deprecation")
   public List<RelDataType> getParameterTypes(RelDataTypeFactory typeFactory) {
     return ImmutableList.of(type);
   }
 
+  @SuppressWarnings("deprecation")
   public RelDataType getReturnType(RelDataTypeFactory typeFactory) {
     return type;
   }

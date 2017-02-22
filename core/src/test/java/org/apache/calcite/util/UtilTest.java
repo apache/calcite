@@ -371,24 +371,24 @@ public class UtilTest {
    */
   @Test public void testCastingList() {
     final List<Number> numberList = new ArrayList<>();
-    numberList.add(new Integer(1));
+    numberList.add(1);
     numberList.add(null);
-    numberList.add(new Integer(2));
+    numberList.add(2);
     List<Integer> integerList = Util.cast(numberList, Integer.class);
     assertEquals(3, integerList.size());
-    assertEquals(new Integer(2), integerList.get(2));
+    assertEquals(Integer.valueOf(2), integerList.get(2));
 
     // Nulls are OK.
     assertNull(integerList.get(1));
 
     // Can update the underlying list.
     integerList.set(1, 345);
-    assertEquals(new Integer(345), integerList.get(1));
+    assertEquals(Integer.valueOf(345), integerList.get(1));
     integerList.set(1, null);
     assertNull(integerList.get(1));
 
     // Can add a member of the wrong type to the underlying list.
-    numberList.add(new Double(3.1415));
+    numberList.add(3.1415D);
     assertEquals(4, integerList.size());
 
     // Access a member which is of the wrong type.
@@ -1285,6 +1285,23 @@ public class UtilTest {
     assertFalse(Util.isDistinct(Arrays.asList("a", null, "b", null)));
   }
 
+  /** Unit test for
+   * {@link Util#intersects(java.util.Collection, java.util.Collection)}. */
+  @Test public void testIntersects() {
+    final List<String> empty = Collections.emptyList();
+    final List<String> listA = Collections.singletonList("a");
+    final List<String> listC = Collections.singletonList("c");
+    final List<String> listD = Collections.singletonList("d");
+    final List<String> listAbc = Arrays.asList("a", "b", "c");
+    assertThat(Util.intersects(empty, listA), is(false));
+    assertThat(Util.intersects(empty, empty), is(false));
+    assertThat(Util.intersects(listA, listAbc), is(true));
+    assertThat(Util.intersects(listAbc, listAbc), is(true));
+    assertThat(Util.intersects(listAbc, listC), is(true));
+    assertThat(Util.intersects(listAbc, listD), is(false));
+    assertThat(Util.intersects(listC, listD), is(false));
+  }
+
   /**
    * Unit test for {@link org.apache.calcite.util.JsonBuilder}.
    */
@@ -1453,11 +1470,12 @@ public class UtilTest {
   }
 
   public void checkHash(double v) {
-    assertThat(new Double(v).hashCode(), is(Utilities.hashCode(v)));
+    assertThat(Double.valueOf(v).hashCode(), is(Utilities.hashCode(v)));
     final long long_ = (long) v;
-    assertThat(new Long(long_).hashCode(), is(Utilities.hashCode(long_)));
+    assertThat(Long.valueOf(long_).hashCode(), is(Utilities.hashCode(long_)));
     final float float_ = (float) v;
-    assertThat(new Float(float_).hashCode(), is(Utilities.hashCode(float_)));
+    assertThat(Float.valueOf(float_).hashCode(),
+        is(Utilities.hashCode(float_)));
     final boolean boolean_ = v != 0;
     assertThat(Boolean.valueOf(boolean_).hashCode(),
         is(Utilities.hashCode(boolean_)));
@@ -1682,6 +1700,42 @@ public class UtilTest {
 
   }
 
+  /** Tests {@link Util#immutableCopy(Iterable)}. */
+  @Test public void testImmutableCopy() {
+    final List<Integer> list3 = Arrays.asList(1, 2, 3);
+    final List<Integer> immutableList3 = ImmutableList.copyOf(list3);
+    final List<Integer> list0 = Arrays.asList();
+    final List<Integer> immutableList0 = ImmutableList.copyOf(list0);
+    final List<Integer> list1 = Arrays.asList(1);
+    final List<Integer> immutableList1 = ImmutableList.copyOf(list1);
+
+    final List<List<Integer>> list301 = Arrays.asList(list3, list0, list1);
+    final List<List<Integer>> immutableList301 = Util.immutableCopy(list301);
+    assertThat(immutableList301.size(), is(3));
+    assertThat(immutableList301, is(list301));
+    assertThat(immutableList301, not(sameInstance(list301)));
+    for (List<Integer> list : immutableList301) {
+      assertThat(list, isA((Class) ImmutableList.class));
+    }
+
+    // if you copy the copy, you get the same instance
+    final List<List<Integer>> immutableList301b =
+        Util.immutableCopy(immutableList301);
+    assertThat(immutableList301b, sameInstance(immutableList301));
+    assertThat(immutableList301b, not(sameInstance(list301)));
+
+    // if the elements of the list are immutable lists, they are not copied
+    final List<List<Integer>> list301c =
+        Arrays.asList(immutableList3, immutableList0, immutableList1);
+    final List<List<Integer>> list301d = Util.immutableCopy(list301c);
+    assertThat(list301d.size(), is(3));
+    assertThat(list301d, is(list301));
+    assertThat(list301d, not(sameInstance(list301)));
+    assertThat(list301d.get(0), sameInstance(immutableList3));
+    assertThat(list301d.get(1), sameInstance(immutableList0));
+    assertThat(list301d.get(2), sameInstance(immutableList1));
+  }
+
   @Test public void testAsIndexView() {
     final List<String> values  = Lists.newArrayList("abCde", "X", "y");
     final Map<String, String> map = Util.asIndexMap(values,
@@ -1817,6 +1871,129 @@ public class UtilTest {
     } else {
       return litmus.succeed();
     }
+  }
+
+  /** Unit test for {@link org.apache.calcite.util.NameSet}. */
+  @Test public void testNameSet() {
+    final NameSet names = new NameSet();
+    assertThat(names.contains("foo", true), is(false));
+    assertThat(names.contains("foo", false), is(false));
+    names.add("baz");
+    assertThat(names.contains("foo", true), is(false));
+    assertThat(names.contains("foo", false), is(false));
+    assertThat(names.contains("baz", true), is(true));
+    assertThat(names.contains("baz", false), is(true));
+    assertThat(names.contains("BAZ", true), is(false));
+    assertThat(names.contains("BAZ", false), is(true));
+    assertThat(names.contains("bAz", false), is(true));
+    assertThat(names.range("baz", true).size(), is(1));
+    assertThat(names.range("baz", false).size(), is(1));
+    assertThat(names.range("BAZ", true).size(), is(0));
+    assertThat(names.range("BaZ", true).size(), is(0));
+    assertThat(names.range("BaZ", false).size(), is(1));
+    assertThat(names.range("BAZ", false).size(), is(1));
+
+    assertThat(names.contains("bAzinga", false), is(false));
+    assertThat(names.range("bAzinga", true).size(), is(0));
+    assertThat(names.range("bAzinga", false).size(), is(0));
+
+    assertThat(names.contains("zoo", true), is(false));
+    assertThat(names.contains("zoo", false), is(false));
+    assertThat(names.range("zoo", true).size(), is(0));
+
+    assertThat(Iterables.size(names.iterable()), is(1));
+    names.add("Baz");
+    names.add("Abcde");
+    names.add("Zymurgy");
+    assertThat(Iterables.size(names.iterable()), is(4));
+    assertThat(names.range("baz", false).size(), is(2));
+    assertThat(names.range("baz", true).size(), is(1));
+    assertThat(names.range("BAZ", true).size(), is(0));
+    assertThat(names.range("Baz", true).size(), is(1));
+  }
+
+  /** Unit test for {@link org.apache.calcite.util.NameMap}. */
+  @Test public void testNameMap() {
+    final NameMap<Integer> map = new NameMap<>();
+    assertThat(map.containsKey("foo", true), is(false));
+    assertThat(map.containsKey("foo", false), is(false));
+    map.put("baz", 0);
+    assertThat(map.containsKey("foo", true), is(false));
+    assertThat(map.containsKey("foo", false), is(false));
+    assertThat(map.containsKey("baz", true), is(true));
+    assertThat(map.containsKey("baz", false), is(true));
+    assertThat(map.containsKey("BAZ", true), is(false));
+    assertThat(map.containsKey("BAZ", false), is(true));
+    assertThat(map.containsKey("bAz", false), is(true));
+    assertThat(map.range("baz", true).size(), is(1));
+    assertThat(map.range("baz", false).size(), is(1));
+    assertThat(map.range("BAZ", true).size(), is(0));
+    assertThat(map.range("BaZ", true).size(), is(0));
+    assertThat(map.range("BaZ", false).size(), is(1));
+    assertThat(map.range("BAZ", false).size(), is(1));
+
+    assertThat(map.containsKey("bAzinga", false), is(false));
+    assertThat(map.range("bAzinga", true).size(), is(0));
+    assertThat(map.range("bAzinga", false).size(), is(0));
+
+    assertThat(map.containsKey("zoo", true), is(false));
+    assertThat(map.containsKey("zoo", false), is(false));
+    assertThat(map.range("zoo", true).size(), is(0));
+
+    assertThat(map.map().size(), is(1));
+    map.put("Baz", 1);
+    map.put("Abcde", 2);
+    map.put("Zymurgy", 3);
+    assertThat(map.map().size(), is(4));
+    assertThat(map.map().entrySet().size(), is(4));
+    assertThat(map.map().keySet().size(), is(4));
+    assertThat(map.range("baz", false).size(), is(2));
+    assertThat(map.range("baz", true).size(), is(1));
+    assertThat(map.range("BAZ", true).size(), is(0));
+    assertThat(map.range("Baz", true).size(), is(1));
+  }
+
+  /** Unit test for {@link org.apache.calcite.util.NameMultimap}. */
+  @Test public void testNameMultimap() {
+    final NameMultimap<Integer> map = new NameMultimap<>();
+    assertThat(map.containsKey("foo", true), is(false));
+    assertThat(map.containsKey("foo", false), is(false));
+    map.put("baz", 0);
+    map.put("baz", 0);
+    map.put("BAz", 0);
+    assertThat(map.containsKey("foo", true), is(false));
+    assertThat(map.containsKey("foo", false), is(false));
+    assertThat(map.containsKey("baz", true), is(true));
+    assertThat(map.containsKey("baz", false), is(true));
+    assertThat(map.containsKey("BAZ", true), is(false));
+    assertThat(map.containsKey("BAZ", false), is(true));
+    assertThat(map.containsKey("bAz", false), is(true));
+    assertThat(map.range("baz", true).size(), is(2));
+    assertThat(map.range("baz", false).size(), is(3));
+    assertThat(map.range("BAZ", true).size(), is(0));
+    assertThat(map.range("BaZ", true).size(), is(0));
+    assertThat(map.range("BaZ", false).size(), is(3));
+    assertThat(map.range("BAZ", false).size(), is(3));
+
+    assertThat(map.containsKey("bAzinga", false), is(false));
+    assertThat(map.range("bAzinga", true).size(), is(0));
+    assertThat(map.range("bAzinga", false).size(), is(0));
+
+    assertThat(map.containsKey("zoo", true), is(false));
+    assertThat(map.containsKey("zoo", false), is(false));
+    assertThat(map.range("zoo", true).size(), is(0));
+
+    assertThat(map.map().size(), is(2));
+    map.put("Baz", 1);
+    map.put("Abcde", 2);
+    map.put("Zymurgy", 3);
+    assertThat(map.map().size(), is(5));
+    assertThat(map.map().entrySet().size(), is(5));
+    assertThat(map.map().keySet().size(), is(5));
+    assertThat(map.range("baz", false).size(), is(4));
+    assertThat(map.range("baz", true).size(), is(2));
+    assertThat(map.range("BAZ", true).size(), is(0));
+    assertThat(map.range("Baz", true).size(), is(1));
   }
 }
 

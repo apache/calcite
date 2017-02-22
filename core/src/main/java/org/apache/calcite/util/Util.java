@@ -29,6 +29,8 @@ import org.apache.calcite.sql.fun.SqlRowOperator;
 import org.apache.calcite.sql.util.SqlBasicVisitor;
 
 import com.google.common.base.Function;
+import com.google.common.base.Preconditions;
+import com.google.common.base.Throwables;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
@@ -87,6 +89,8 @@ import java.util.jar.JarFile;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.annotation.Nullable;
+
+import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * Miscellaneous utility functions.
@@ -456,7 +460,7 @@ public class Util {
         try {
           val = field.get(o);
         } catch (IllegalAccessException e) {
-          throw newInternal(e);
+          throw new RuntimeException(e);
         }
         print(pw, val, indent + 1);
       }
@@ -772,29 +776,44 @@ public class Util {
     return DEFAULT_CHARSET;
   }
 
+  /** @deprecated Throw new {@link AssertionError} */
+  @Deprecated // to be removed before 2.0
   public static Error newInternal() {
-    return newInternal("(unknown cause)");
+    return new AssertionError("(unknown cause)");
   }
 
+  /** @deprecated Throw new {@link AssertionError} */
+  @Deprecated // to be removed before 2.0
   public static Error newInternal(String s) {
-    return new AssertionError("Internal error: " + s);
+    return new AssertionError(s);
   }
 
+  /** @deprecated Throw new {@link RuntimeException} if checked; throw raw
+   * exception if unchecked or {@link Error} */
+  @Deprecated // to be removed before 2.0
   public static Error newInternal(Throwable e) {
-    return newInternal(e, "(unknown cause)");
+    return new AssertionError(e);
   }
 
+  /** @deprecated Throw new {@link AssertionError} if applicable;
+   * or {@link RuntimeException} if e is checked;
+   * or raw exception if e is unchecked or {@link Error}. */
   public static Error newInternal(Throwable e, String s) {
-    String message = "Internal error: " + s;
-    if (false) {
-      // TODO re-enable this code when we're no longer throwing spurious
-      //   internal errors (which should be parse errors, for example)
-      System.err.println(message);
-      e.printStackTrace(System.err);
+    return new AssertionError("Internal error: " + s, e);
+  }
+
+  /** As {@link Throwables}{@code .throwIfUnchecked(Throwable)},
+   * which was introduced in Guava 20,
+   * but we don't require Guava version 20 yet. */
+  public static void throwIfUnchecked(Throwable throwable) {
+    Bug.upgrade("Remove when minimum Guava version is 20");
+    checkNotNull(throwable);
+    if (throwable instanceof RuntimeException) {
+      throw (RuntimeException) throwable;
     }
-    AssertionError ae = new AssertionError(message);
-    ae.initCause(e);
-    return ae;
+    if (throwable instanceof Error) {
+      throw (Error) throwable;
+    }
   }
 
   /**
@@ -836,60 +855,29 @@ public class Util {
     return sw.toString();
   }
 
-  /**
-   * Checks a pre-condition.
-   *
-   * <p>For example,
-   *
-   * <pre>
-   * /**
-   *   * @ pre x != 0
-   *   * /
-   * void foo(int x) {
-   *     Util.pre(x != 0, "x != 0");
-   * }</pre>
-   *
-   * @param b           Result of evaluating the pre-condition.
-   * @param description Description of the pre-condition.
-   */
+  /** @deprecated Use {@link Preconditions#checkArgument}
+   * or {@link Preconditions#checkNotNull(Object)} */
+  @Deprecated // to be removed before 2.0
   public static void pre(boolean b, String description) {
     if (!b) {
-      throw newInternal("pre-condition failed: " + description);
+      throw new AssertionError("pre-condition failed: " + description);
     }
   }
 
-  /**
-   * Checks a post-condition.
-   *
-   * <p>For example,
-   *
-   * <pre>
-   * /**
-   *   * @ post return != 0
-   *   * /
-   * void foo(int x) {
-   *     int res = bar(x);
-   *     Util.post(res != 0, "return != 0");
-   * }</pre>
-   *
-   * @param b           Result of evaluating the pre-condition.
-   * @param description Description of the pre-condition.
-   */
+  /** @deprecated Use {@link Preconditions#checkArgument}
+   * or {@link Preconditions#checkNotNull(Object)} */
+  @Deprecated // to be removed before 2.0
   public static void post(boolean b, String description) {
     if (!b) {
-      throw newInternal("post-condition failed: " + description);
+      throw new AssertionError("post-condition failed: " + description);
     }
   }
 
-  /**
-   * Checks an invariant.
-   *
-   * <p>This is similar to <code>assert</code> keyword, except that the
-   * condition is always evaluated even if asserts are disabled.
-   */
+  /** @deprecated Use {@link Preconditions#checkArgument} */
+  @Deprecated // to be removed before 2.0
   public static void permAssert(boolean b, String description) {
     if (!b) {
-      throw newInternal("invariant violated: " + description);
+      throw new AssertionError("invariant violated: " + description);
     }
   }
 
@@ -1533,8 +1521,7 @@ public class Util {
     case 3:
       return new Locale(strings[0], strings[1], strings[2]);
     default:
-      throw newInternal(
-          "bad locale string '" + localeString + "'");
+      throw new AssertionError("bad locale string '" + localeString + "'");
     }
   }
 
@@ -2121,6 +2108,16 @@ public class Util {
     return -1;
   }
 
+  /** Returns whether two collections have any elements in common. */
+  public static <E> boolean intersects(Collection<E> c0, Collection<E> c1) {
+    for (E e : c1) {
+      if (c0.contains(e)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   /** Looks for a string within a list of strings, using a given
    * case-sensitivity policy, and returns the position at which the first match
    * is found, or -1 if there are no matches. */
@@ -2346,6 +2343,29 @@ public class Util {
       return defaultValue;
     }
     return "".equals(v) || "true".equalsIgnoreCase(v);
+  }
+
+  /** Returns a copy of a list of lists, making the component lists immutable if
+   * they are not already. */
+  public static <E> List<List<E>>
+  immutableCopy(Iterable<? extends Iterable<E>> lists) {
+    int n = 0;
+    for (Iterable<E> list : lists) {
+      if (!(list instanceof ImmutableList)) {
+        ++n;
+      }
+    }
+    if (n == 0) {
+      // Lists are already immutable. Furthermore, if the outer list is
+      // immutable we will just return "lists" unchanged.
+      return ImmutableList.copyOf((Iterable) lists);
+    }
+    final ImmutableList.Builder<List<E>> builder =
+        ImmutableList.builder();
+    for (Iterable<E> list : lists) {
+      builder.add(ImmutableList.copyOf(list));
+    }
+    return builder.build();
   }
 
   //~ Inner Classes ----------------------------------------------------------

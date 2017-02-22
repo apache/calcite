@@ -75,6 +75,7 @@ import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.rex.RexSubQuery;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.rex.RexVisitorImpl;
+import org.apache.calcite.runtime.PredicateImpl;
 import org.apache.calcite.sql.SqlExplainFormat;
 import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.sql.SqlKind;
@@ -126,8 +127,8 @@ public abstract class RelOptUtil {
   /** Predicate for whether a filter contains multisets or windowed
    * aggregates. */
   public static final Predicate<Filter> FILTER_PREDICATE =
-      new Predicate<Filter>() {
-        public boolean apply(Filter filter) {
+      new PredicateImpl<Filter>() {
+        public boolean test(Filter filter) {
           return !(B
               && RexMultisetUtil.containsMultiset(filter.getCondition(), true)
               || RexOver.containsOver(filter.getCondition()));
@@ -137,8 +138,8 @@ public abstract class RelOptUtil {
   /** Predicate for whether a project contains multisets or windowed
    * aggregates. */
   public static final Predicate<Project> PROJECT_PREDICATE =
-      new Predicate<Project>() {
-        public boolean apply(Project project) {
+      new PredicateImpl<Project>() {
+        public boolean test(Project project) {
           return !(B
               && RexMultisetUtil.containsMultiset(project.getProjects(), true)
               || RexOver.containsOver(project.getProjects(), null));
@@ -148,8 +149,8 @@ public abstract class RelOptUtil {
   /** Predicate for whether a calc contains multisets or windowed
    * aggregates. */
   public static final Predicate<Calc> CALC_PREDICATE =
-      new Predicate<Calc>() {
-        public boolean apply(Calc calc) {
+      new PredicateImpl<Calc>() {
+        public boolean test(Calc calc) {
           return !(B
               && RexMultisetUtil.containsMultiset(calc.getProgram())
               || calc.getProgram().containsAggs());
@@ -307,8 +308,8 @@ public abstract class RelOptUtil {
       RelNode p) {
     try {
       visitor.go(p);
-    } catch (Throwable e) {
-      throw Util.newInternal(e, "while visiting tree");
+    } catch (Exception e) {
+      throw new RuntimeException("while visiting tree", e);
     }
   }
 
@@ -381,7 +382,38 @@ public abstract class RelOptUtil {
         + "\nexpression type is " + actualRowType.getFullTypeString()
         + "\nset is " + equivalenceClass.toString()
         + "\nexpression is " + newRel.toString();
-    throw Util.newInternal(s);
+    throw new AssertionError(s);
+  }
+
+  /**
+   * Returns a permutation describing where output fields come from. In
+   * the returned map, value of {@code map.getTargetOpt(i)} is {@code n} if
+   * field {@code i} projects input field {@code n} or applies a cast on
+   * {@code n}, -1 if it is another expression.
+   */
+  public static Mappings.TargetMapping permutationIgnoreCast(
+      List<RexNode> nodes,
+      RelDataType inputRowType) {
+    final Mappings.TargetMapping mapping =
+        Mappings.create(
+            MappingType.PARTIAL_FUNCTION,
+            nodes.size(),
+            inputRowType.getFieldCount());
+    for (Ord<RexNode> node : Ord.zip(nodes)) {
+      if (node.e instanceof RexInputRef) {
+        mapping.set(
+            node.i,
+            ((RexInputRef) node.e).getIndex());
+      } else if (node.e.isA(SqlKind.CAST)) {
+        final RexNode operand = ((RexCall) node.e).getOperands().get(0);
+        if (operand instanceof RexInputRef) {
+          mapping.set(
+            node.i,
+            ((RexInputRef) operand).getIndex());
+        }
+      }
+    }
+    return mapping;
   }
 
   /**
@@ -403,13 +435,6 @@ public abstract class RelOptUtil {
         mapping.set(
             node.i,
             ((RexInputRef) node.e).getIndex());
-      } else if (node.e.isA(SqlKind.CAST)) {
-        RexNode operand = ((RexCall) node.e).getOperands().get(0);
-        if (operand instanceof RexInputRef) {
-          mapping.set(
-              node.i,
-              ((RexInputRef) operand).getIndex());
-        }
       }
     }
     return mapping;
@@ -742,13 +767,8 @@ public abstract class RelOptUtil {
         ImmutableBitSet.of(), null, aggCalls);
   }
 
-  /**
-   * Creates a LogicalAggregate that removes all duplicates from the result of
-   * an underlying relational expression.
-   *
-   * @param rel underlying rel
-   * @return rel implementing DISTINCT
-   */
+  /** @deprecated Use {@link RelBuilder#distinct()}. */
+  @Deprecated // to be removed before 2.0
   public static RelNode createDistinctRel(RelNode rel) {
     return LogicalAggregate.create(rel, false,
         ImmutableBitSet.range(rel.getRowType().getFieldCount()), null,
@@ -1127,10 +1147,9 @@ public abstract class RelOptUtil {
                     ImmutableList.of(leftKeyType, rightKeyType));
 
             if (targetKeyType == null) {
-              throw Util.newInternal(
-                  "Cannot find common type for join keys "
-                  + leftKey + " (type " + leftKeyType + ") and "
-                  + rightKey + " (type " + rightKeyType + ")");
+              throw new AssertionError("Cannot find common type for join keys "
+                  + leftKey + " (type " + leftKeyType + ") and " + rightKey
+                  + " (type " + rightKeyType + ")");
             }
 
             if (leftKeyType != targetKeyType) {

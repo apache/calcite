@@ -19,6 +19,7 @@ package org.apache.calcite.schema.impl;
 import org.apache.calcite.schema.TableMacro;
 import org.apache.calcite.schema.TranslatableTable;
 
+import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -74,7 +75,9 @@ public class TableMacroImpl extends ReflectiveFunctionBase
     try {
       Object o = null;
       if (!Modifier.isStatic(method.getModifiers())) {
-        o = method.getDeclaringClass().newInstance();
+        final Constructor<?> constructor =
+            method.getDeclaringClass().getConstructor();
+        o = constructor.newInstance();
       }
       //noinspection unchecked
       return (TranslatableTable) method.invoke(o, arguments.toArray());
@@ -83,11 +86,8 @@ public class TableMacroImpl extends ReflectiveFunctionBase
           + Arrays.toString(method.getParameterTypes()) + " actual "
           + arguments,
           e);
-    } catch (IllegalAccessException e) {
-      throw new RuntimeException(e);
-    } catch (InvocationTargetException e) {
-      throw new RuntimeException(e);
-    } catch (InstantiationException e) {
+    } catch (IllegalAccessException | InvocationTargetException
+        | NoSuchMethodException | InstantiationException e) {
       throw new RuntimeException(e);
     }
   }

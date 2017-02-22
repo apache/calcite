@@ -28,6 +28,7 @@ import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.runtime.PredicateImpl;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.ImmutableBitSet;
@@ -43,10 +44,10 @@ import java.util.List;
  * {@link org.apache.calcite.rel.core.Join} on top of a
  * {@link org.apache.calcite.rel.logical.LogicalAggregate}.
  */
-public class SemiJoinRule extends RelOptRule {
+public abstract class SemiJoinRule extends RelOptRule {
   private static final Predicate<Join> IS_LEFT_OR_INNER =
-      new Predicate<Join>() {
-        public boolean apply(Join input) {
+      new PredicateImpl<Join>() {
+        public boolean test(Join input) {
           switch (input.getJoinType()) {
           case LEFT:
           case INNER:
@@ -57,12 +58,23 @@ public class SemiJoinRule extends RelOptRule {
         }
       };
 
-  public static final SemiJoinRule INSTANCE =
-      new SemiJoinRule(Project.class, Join.class, Aggregate.class,
-          RelFactories.LOGICAL_BUILDER, "SemiJoinRule");
+  /* Tests if an Aggregate always produces 1 row and 0 columns. */
+  private static final Predicate<Aggregate> IS_EMPTY_AGGREGATE =
+      new PredicateImpl<Aggregate>() {
+        public boolean test(Aggregate input) {
+          return input.getRowType().getFieldCount() == 0;
+        }
+      };
 
-  /** Creates a SemiJoinRule. */
-  public SemiJoinRule(Class<Project> projectClass, Class<Join> joinClass,
+  public static final SemiJoinRule PROJECT =
+      new ProjectToSemiJoinRule(Project.class, Join.class, Aggregate.class,
+          RelFactories.LOGICAL_BUILDER, "SemiJoinRule:project");
+
+  public static final SemiJoinRule JOIN =
+      new JoinToSemiJoinRule(Join.class, Aggregate.class,
+          RelFactories.LOGICAL_BUILDER, "SemiJoinRule:join");
+
+  protected SemiJoinRule(Class<Project> projectClass, Class<Join> joinClass,
       Class<Aggregate> aggregateClass, RelBuilderFactory relBuilderFactory,
       String description) {
     super(
@@ -74,20 +86,28 @@ public class SemiJoinRule extends RelOptRule {
         relBuilderFactory, description);
   }
 
-  @Override public void onMatch(RelOptRuleCall call) {
-    final Project project = call.rel(0);
-    final Join join = call.rel(1);
-    final RelNode left = call.rel(2);
-    final Aggregate aggregate = call.rel(3);
+  protected SemiJoinRule(Class<Join> joinClass, Class<Aggregate> aggregateClass,
+      RelBuilderFactory relBuilderFactory, String description) {
+    super(
+        operand(joinClass, null, IS_LEFT_OR_INNER,
+            some(operand(RelNode.class, any()),
+                operand(aggregateClass, null, IS_EMPTY_AGGREGATE, any()))),
+        relBuilderFactory, description);
+  }
+
+  protected void perform(RelOptRuleCall call, Project project,
+      Join join, RelNode left, Aggregate aggregate) {
     final RelOptCluster cluster = join.getCluster();
     final RexBuilder rexBuilder = cluster.getRexBuilder();
-    final ImmutableBitSet bits =
-        RelOptUtil.InputFinder.bits(project.getProjects(), null);
-    final ImmutableBitSet rightBits =
-        ImmutableBitSet.range(left.getRowType().getFieldCount(),
-            join.getRowType().getFieldCount());
-    if (bits.intersects(rightBits)) {
-      return;
+    if (project != null) {
+      final ImmutableBitSet bits =
+          RelOptUtil.InputFinder.bits(project.getProjects(), null);
+      final ImmutableBitSet rightBits =
+          ImmutableBitSet.range(left.getRowType().getFieldCount(),
+              join.getRowType().getFieldCount());
+      if (bits.intersects(rightBits)) {
+        return;
+      }
     }
     final JoinInfo joinInfo = join.analyzeCondition();
     if (!joinInfo.rightSet().equals(
@@ -126,8 +146,50 @@ public class SemiJoinRule extends RelOptRule {
     default:
       throw new AssertionError(join.getJoinType());
     }
-    relBuilder.project(project.getProjects(), project.getRowType().getFieldNames());
+    if (project != null) {
+      relBuilder.project(project.getProjects(), project.getRowType().getFieldNames());
+    }
     call.transformTo(relBuilder.build());
+  }
+
+  /** SemiJoinRule that matches a Project on top of a Join with an Aggregate
+   * as its right child. */
+  public static class ProjectToSemiJoinRule extends SemiJoinRule {
+
+    /** Creates a ProjectToSemiJoinRule. */
+    public ProjectToSemiJoinRule(Class<Project> projectClass,
+        Class<Join> joinClass, Class<Aggregate> aggregateClass,
+        RelBuilderFactory relBuilderFactory, String description) {
+      super(projectClass, joinClass, aggregateClass,
+          relBuilderFactory, description);
+    }
+
+    @Override public void onMatch(RelOptRuleCall call) {
+      final Project project = call.rel(0);
+      final Join join = call.rel(1);
+      final RelNode left = call.rel(2);
+      final Aggregate aggregate = call.rel(3);
+      perform(call, project, join, left, aggregate);
+    }
+  }
+
+  /** SemiJoinRule that matches a Join with an empty Aggregate as its right
+   * child. */
+  public static class JoinToSemiJoinRule extends SemiJoinRule {
+
+    /** Creates a JoinToSemiJoinRule. */
+    public JoinToSemiJoinRule(
+        Class<Join> joinClass, Class<Aggregate> aggregateClass,
+        RelBuilderFactory relBuilderFactory, String description) {
+      super(joinClass, aggregateClass, relBuilderFactory, description);
+    }
+  }
+
+  @Override public void onMatch(RelOptRuleCall call) {
+    final Join join = call.rel(0);
+    final RelNode left = call.rel(1);
+    final Aggregate aggregate = call.rel(2);
+    perform(call, null, join, left, aggregate);
   }
 }
 

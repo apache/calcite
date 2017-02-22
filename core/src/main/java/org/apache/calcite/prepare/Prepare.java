@@ -39,6 +39,8 @@ import org.apache.calcite.rex.RexExecutorImpl;
 import org.apache.calcite.runtime.Bindable;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.runtime.Typed;
+import org.apache.calcite.schema.Table;
+import org.apache.calcite.schema.Wrapper;
 import org.apache.calcite.schema.impl.StarTable;
 import org.apache.calcite.sql.SqlExplain;
 import org.apache.calcite.sql.SqlExplainFormat;
@@ -46,14 +48,15 @@ import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperatorTable;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorCatalogReader;
 import org.apache.calcite.sql.validate.SqlValidatorTable;
+import org.apache.calcite.sql2rel.InitializerExpressionFactory;
 import org.apache.calcite.sql2rel.SqlToRelConverter;
 import org.apache.calcite.tools.Program;
 import org.apache.calcite.tools.Programs;
 import org.apache.calcite.util.Holder;
-import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.TryThreadLocal;
 import org.apache.calcite.util.trace.CalciteTimingTracer;
 import org.apache.calcite.util.trace.CalciteTrace;
@@ -64,6 +67,7 @@ import com.google.common.collect.ImmutableList;
 import org.slf4j.Logger;
 
 import java.lang.reflect.Type;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -127,35 +131,32 @@ public abstract class Prepare {
       final List<CalciteSchema.LatticeEntry> lattices) {
     final RelOptPlanner planner = root.rel.getCluster().getPlanner();
 
-    // Add a project to the root. Even if the project is trivial, it informs
-    // rules firing on the relational expression below it which of the fields
-    // are used. SemiJoinRule, for instance.
-    planner.setRoot(root.project(true));
-
-    final RelTraitSet desiredTraits = getDesiredRootTraitSet(root);
-    final Program program = getProgram();
-
     final DataContext dataContext = context.getDataContext();
     planner.setExecutor(new RexExecutorImpl(dataContext));
 
+    final List<RelOptMaterialization> materializationList = new ArrayList<>();
     for (Materialization materialization : materializations) {
-      planner.addMaterialization(
+      materializationList.add(
           new RelOptMaterialization(materialization.tableRel,
               materialization.queryRel,
               materialization.starRelOptTable));
     }
 
+    final List<RelOptLattice> latticeList = new ArrayList<>();
     for (CalciteSchema.LatticeEntry lattice : lattices) {
       final CalciteSchema.TableEntry starTable = lattice.getStarTable();
       final JavaTypeFactory typeFactory = context.getTypeFactory();
       final RelOptTableImpl starRelOptTable =
           RelOptTableImpl.create(catalogReader,
               starTable.getTable().getRowType(typeFactory), starTable, null);
-      planner.addLattice(
+      latticeList.add(
           new RelOptLattice(lattice.getLattice(), starRelOptTable));
     }
 
-    final RelNode rootRel4 = program.run(planner, root.rel, desiredTraits);
+    final RelTraitSet desiredTraits = getDesiredRootTraitSet(root);
+    final Program program = getProgram();
+    final RelNode rootRel4 = program.run(
+        planner, root.rel, desiredTraits, materializationList, latticeList);
     if (LOGGER.isDebugEnabled()) {
       LOGGER.debug("Plan after physical tweaks: {}",
           RelOptUtil.toString(rootRel4, SqlExplainLevel.ALL_ATTRIBUTES));
@@ -164,11 +165,10 @@ public abstract class Prepare {
     return root.withRel(rootRel4);
   }
 
-  private Program getProgram() {
+  protected Program getProgram() {
     // Allow a test to override the default program.
-    final List<Materialization> materializations = ImmutableList.of();
     final Holder<Program> holder = Holder.of(null);
-    Hook.PROGRAM.run(Pair.of(materializations, holder));
+    Hook.PROGRAM.run(holder);
     if (holder.get() != null) {
       return holder.get();
     }
@@ -388,7 +388,7 @@ public abstract class Prepare {
      * different schema path. */
     CatalogReader withSchemaPath(List<String> schemaPath);
 
-    PreparingTable getTable(List<String> names);
+    @Override PreparingTable getTable(List<String> names);
 
     ThreadLocal<CatalogReader> THREAD_LOCAL = new ThreadLocal<>();
   }
@@ -396,6 +396,28 @@ public abstract class Prepare {
   /** Definition of a table, for the purposes of the validator and planner. */
   public interface PreparingTable
       extends RelOptTable, SqlValidatorTable {
+  }
+
+  /** Abstract implementation of {@link PreparingTable} with an implementation
+   * for {@link #columnHasDefaultValue}. */
+  public abstract static class AbstractPreparingTable
+      implements PreparingTable {
+    public boolean columnHasDefaultValue(RelDataType rowType, int ordinal) {
+      final Table table = this.unwrap(Table.class);
+      if (table != null && table instanceof Wrapper) {
+        final InitializerExpressionFactory initializerExpressionFactory =
+            ((Wrapper) table).unwrap(InitializerExpressionFactory.class);
+        if (initializerExpressionFactory != null) {
+          return !initializerExpressionFactory
+              .newColumnDefaultValue(this, ordinal)
+              .getType().getSqlTypeName().equals(SqlTypeName.NULL);
+        }
+      }
+      if (ordinal >= rowType.getFieldList().size()) {
+        return true;
+      }
+      return !rowType.getFieldList().get(ordinal).getType().isNullable();
+    }
   }
 
   /**

@@ -51,7 +51,6 @@ import org.apache.calcite.test.SqlLimitsTest;
 import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.Holder;
 import org.apache.calcite.util.Pair;
-import org.apache.calcite.util.Util;
 
 import com.google.common.base.Function;
 import com.google.common.base.Throwables;
@@ -1410,10 +1409,10 @@ public abstract class SqlOperatorBaseTest {
           return cal;
 
         default:
-          throw Util.newInternal("unexpected time unit " + timeUnit);
+          throw new AssertionError("unexpected time unit: " + timeUnit);
         }
       } catch (InterruptedException e) {
-        throw Util.newInternal(e);
+        throw new RuntimeException(e);
       }
     }
   }
@@ -1606,42 +1605,22 @@ public abstract class SqlOperatorBaseTest {
     // not implemented or is broken.
 
     // Numeric Functions
-    if (!enable) {
-//      return;
-    }
     tester.checkScalar("{fn ABS(-3)}", 3, "INTEGER NOT NULL");
-    if (false) {
-      tester.checkScalar("{fn ACOS(float)}", null, "");
-    }
-    if (false) {
-      tester.checkScalar("{fn ASIN(float)}", null, "");
-    }
-    if (false) {
-      tester.checkScalar("{fn ATAN(float)}", null, "");
-    }
-    if (false) {
-      tester.checkScalar("{fn ATAN2(float1, float2)}", null, "");
-    }
-    if (false) {
-      tester.checkScalar("{fn CEILING(-2.6)}", 2, "");
-    }
-    if (false) {
-      tester.checkScalar("{fn COS(float)}", null, "");
-    }
-    if (false) {
-      tester.checkScalar("{fn COT(float)}", null, "");
-    }
-    if (false) {
-      tester.checkScalar("{fn DEGREES(number)}", null, "");
-    }
+    tester.checkScalarApprox("{fn ACOS(0.2)}", "DOUBLE NOT NULL", 1.36943, 0.001);
+    tester.checkScalarApprox("{fn ASIN(0.2)}", "DOUBLE NOT NULL", 0.20135, 0.001);
+    tester.checkScalarApprox("{fn ATAN(0.2)}", "DOUBLE NOT NULL", 0.19739, 0.001);
+    tester.checkScalarApprox("{fn ATAN2(-2, 2)}", "DOUBLE NOT NULL", -0.78539, 0.001);
+    tester.checkScalar("{fn CEILING(-2.6)}", -2, "DECIMAL(2, 0) NOT NULL");
+    tester.checkScalarApprox("{fn COS(0.2)}", "DOUBLE NOT NULL", 0.98007, 0.001);
+    tester.checkScalarApprox("{fn COT(0.2)}", "DOUBLE NOT NULL", 4.93315, 0.001);
+    tester.checkScalarApprox("{fn DEGREES(-1)}", "DOUBLE NOT NULL", -57.29578, 0.001);
+
     tester.checkScalarApprox(
         "{fn EXP(2)}",
         "DOUBLE NOT NULL",
         7.389,
         0.001);
-    if (false) {
-      tester.checkScalar("{fn FLOOR(2.6)}", 2, "DOUBLE NOT NULL");
-    }
+    tester.checkScalar("{fn FLOOR(2.6)}", 2, "DECIMAL(2, 0) NOT NULL");
     tester.checkScalarApprox(
         "{fn LOG(10)}",
         "DOUBLE NOT NULL",
@@ -1653,34 +1632,17 @@ public abstract class SqlOperatorBaseTest {
         2,
         0);
     tester.checkScalar("{fn MOD(19, 4)}", 3, "INTEGER NOT NULL");
-    if (false) {
-      tester.checkScalar("{fn PI()}", null, "");
-    }
-    tester.checkScalar("{fn POWER(2, 3)}", 8.0, "DOUBLE NOT NULL");
-    if (false) {
-      tester.checkScalar("{fn RADIANS(number)}", null, "");
-    }
-    if (false) {
-      tester.checkScalar("{fn RAND(integer)}", null, "");
-    }
-    if (false) {
-      tester.checkScalar("{fn ROUND(number, places)}", null, "");
-    }
-    if (false) {
-      tester.checkScalar("{fn SIGN(number)}", null, "");
-    }
-    if (false) {
-      tester.checkScalar("{fn SIN(float)}", null, "");
-    }
-    if (false) {
-      tester.checkScalar("{fn SQRT(float)}", null, "");
-    }
-    if (false) {
-      tester.checkScalar("{fn TAN(float)}", null, "");
-    }
-    if (false) {
-      tester.checkScalar("{fn TRUNCATE(number, places)}", null, "");
-    }
+    tester.checkScalarApprox("{fn PI()}", "DOUBLE NOT NULL", 3.14159, 0.0001);
+    tester.checkScalarApprox("{fn POWER(2, 3)}", "DOUBLE NOT NULL", 8.0, 0.001);
+    tester.checkScalarApprox("{fn RADIANS(90)}", "DOUBLE NOT NULL", 1.57080, 0.001);
+    tester.checkScalarApprox("{fn RAND(42)}", "DOUBLE NOT NULL", 0.63708, 0.001);
+    tester.checkScalar("{fn ROUND(1251, -2)}", 1300, "INTEGER NOT NULL");
+    tester.checkScalar("{fn SIGN(-1)}", -1, "INTEGER NOT NULL");
+    tester.checkScalarApprox("{fn SIN(0.2)}", "DOUBLE NOT NULL", 0.19867, 0.001);
+    tester.checkScalarApprox("{fn SQRT(4.2)}", "DOUBLE NOT NULL", 2.04939, 0.001);
+    tester.checkScalarApprox("{fn TAN(0.2)}", "DOUBLE NOT NULL", 0.20271, 0.001);
+    tester.checkScalar("{fn TRUNCATE(12.34, 1)}", 12.3, "DECIMAL(4, 2) NOT NULL");
+    tester.checkScalar("{fn TRUNCATE(-12.34, -1)}", -10, "DECIMAL(4, 2) NOT NULL");
 
     // String Functions
     if (false) {
@@ -1733,12 +1695,23 @@ public abstract class SqlOperatorBaseTest {
     if (false) {
       tester.checkScalar("{fn REPEAT(string, count)}", null, "");
     }
-    if (false) {
-      tester.checkScalar(
-          "{fn REPLACE(string1, string2, string3)}",
-          null,
-          "");
-    }
+
+    tester.checkString("{fn REPLACE('JACK and JUE','J','BL')}",
+        "BLACK and BLUE", "VARCHAR(12) NOT NULL");
+
+    // REPLACE returns NULL in Oracle but not in Postgres or in Calcite.
+    // When [CALCITE-815] is implemented and SqlConformance#emptyStringIsNull is
+    // enabled, it will return empty string as NULL.
+    tester.checkString("{fn REPLACE('ciao', 'ciao', '')}", "",
+        "VARCHAR(4) NOT NULL");
+
+    tester.checkString("{fn REPLACE('hello world', 'o', '')}", "hell wrld",
+        "VARCHAR(11) NOT NULL");
+
+    tester.checkNull("{fn REPLACE(cast(null as varchar(5)), 'ciao', '')}");
+    tester.checkNull("{fn REPLACE('ciao', cast(null as varchar(3)), 'zz')}");
+    tester.checkNull("{fn REPLACE('ciao', 'bella', cast(null as varchar(3)))}");
+
     if (false) {
       tester.checkScalar("{fn RIGHT(string, count)}", null, "");
     }
@@ -1766,56 +1739,43 @@ public abstract class SqlOperatorBaseTest {
     if (false) {
       tester.checkScalar("{fn DAYNAME(date)}", null, "");
     }
-    if (false) {
-      tester.checkScalar("{fn DAYOFMONTH(date)}", null, "");
-    }
-    if (false) {
-      tester.checkScalar("{fn DAYOFWEEK(date)}", null, "");
-    }
-    if (false) {
-      tester.checkScalar("{fn DAYOFYEAR(date)}", null, "");
-    }
-    if (false) {
-      tester.checkScalar("{fn HOUR(time)}", null, "");
-    }
-    if (false) {
-      tester.checkScalar("{fn MINUTE(time)}", null, "");
-    }
-    if (false) {
-      tester.checkScalar("{fn MONTH(date)}", null, "");
-    }
+    tester.checkScalar("{fn DAYOFMONTH(DATE '2014-12-10')}", 10,
+        "BIGINT NOT NULL");
+    tester.checkFails("{fn DAYOFWEEK(DATE '2014-12-10')}",
+        "cannot translate call EXTRACT.*",
+        true);
+    tester.checkFails("{fn DAYOFYEAR(DATE '2014-12-10')}",
+        "cannot translate call EXTRACT.*",
+        true);
+    tester.checkScalar("{fn HOUR(TIMESTAMP '2014-12-10 12:34:56')}", 12,
+        "BIGINT NOT NULL");
+    tester.checkScalar("{fn MINUTE(TIMESTAMP '2014-12-10 12:34:56')}", 34,
+        "BIGINT NOT NULL");
+    tester.checkScalar("{fn MONTH(DATE '2014-12-10')}", 12, "BIGINT NOT NULL");
     if (false) {
       tester.checkScalar("{fn MONTHNAME(date)}", null, "");
     }
     tester.checkType("{fn NOW()}", "TIMESTAMP(0) NOT NULL");
     tester.checkScalar("{fn QUARTER(DATE '2014-12-10')}", "4",
         "BIGINT NOT NULL");
-    if (false) {
-      tester.checkScalar("{fn SECOND(time)}", null, "");
-    }
+    tester.checkScalar("{fn SECOND(TIMESTAMP '2014-12-10 12:34:56')}", 56,
+        "BIGINT NOT NULL");
     tester.checkScalar("{fn TIMESTAMPADD(HOUR, 5,"
         + " TIMESTAMP '2014-03-29 12:34:56')}",
         "2014-03-29 17:34:56", "TIMESTAMP(0) NOT NULL");
     tester.checkScalar("{fn TIMESTAMPDIFF(HOUR,"
         + " TIMESTAMP '2014-03-29 12:34:56',"
         + " TIMESTAMP '2014-03-29 12:34:56')}", "0", "INTEGER NOT NULL");
-    if (false) {
-      tester.checkScalar("{fn WEEK(date)}", null, "");
-    }
-    if (false) {
-      tester.checkScalar("{fn YEAR(date)}", null, "");
-    }
+    tester.checkFails("{fn WEEK(DATE '2014-12-10')}",
+        "cannot translate call EXTRACT.*",
+        true);
+    tester.checkScalar("{fn YEAR(DATE '2014-12-10')}", 2014, "BIGINT NOT NULL");
 
     // System Functions
-    if (false) {
-      tester.checkScalar("{fn DATABASE()}", null, "");
-    }
-    if (false) {
-      tester.checkScalar("{fn IFNULL(expression, value)}", null, "");
-    }
-    if (false) {
-      tester.checkScalar("{fn USER()}", null, "");
-    }
+    tester.checkType("{fn DATABASE()}", "VARCHAR(2000) NOT NULL");
+    tester.checkString("{fn IFNULL('a', 'b')}", "a", "CHAR(1) NOT NULL");
+    tester.checkString("{fn USER()}", "sa", "VARCHAR(2000) NOT NULL");
+
 
     // Conversion Functions
     // Legacy JDBC style
@@ -2585,9 +2545,43 @@ public abstract class SqlOperatorBaseTest {
         "time '12:03:01' - interval '1:1' hour to minute",
         "11:02:01",
         "TIME(0) NOT NULL");
+    // Per [CALCITE-1632] Return types of datetime + interval
+    // make sure that TIME values say in range
+    tester.checkScalar(
+        "time '12:03:01' - interval '1' day",
+        "12:03:01",
+        "TIME(0) NOT NULL");
+    tester.checkScalar(
+        "time '12:03:01' - interval '25' hour",
+        "11:03:01",
+        "TIME(0) NOT NULL");
+    tester.checkScalar(
+        "time '12:03:03' - interval '25:0:1' hour to second",
+        "11:03:02",
+        "TIME(0) NOT NULL");
     tester.checkScalar(
         "date '2005-03-02' - interval '5' day",
         "2005-02-25",
+        "DATE NOT NULL");
+    tester.checkScalar(
+        "date '2005-03-02' - interval '5' day",
+        "2005-02-25",
+        "DATE NOT NULL");
+    tester.checkScalar(
+        "date '2005-03-02' - interval '5' hour",
+        "2005-03-02",
+        "DATE NOT NULL");
+    tester.checkScalar(
+        "date '2005-03-02' - interval '25' hour",
+        "2005-03-01",
+        "DATE NOT NULL");
+    tester.checkScalar(
+        "date '2005-03-02' - interval '25:45' hour to minute",
+        "2005-03-01",
+        "DATE NOT NULL");
+    tester.checkScalar(
+        "date '2005-03-02' - interval '25:45:54' hour to second",
+        "2005-03-01",
         "DATE NOT NULL");
     tester.checkScalar(
         "timestamp '2003-08-02 12:54:01' - interval '-4 2:4' day to minute",
@@ -2942,9 +2936,43 @@ public abstract class SqlOperatorBaseTest {
         "time '12:03:01' + interval '1:1' hour to minute",
         "13:04:01",
         "TIME(0) NOT NULL");
+    // Per [CALCITE-1632] Return types of datetime + interval
+    // make sure that TIME values say in range
+    tester.checkScalar(
+        "time '12:03:01' + interval '1' day",
+        "12:03:01",
+        "TIME(0) NOT NULL");
+    tester.checkScalar(
+        "time '12:03:01' + interval '25' hour",
+        "13:03:01",
+        "TIME(0) NOT NULL");
+    tester.checkScalar(
+        "time '12:03:01' + interval '25:0:1' hour to second",
+        "13:03:02",
+        "TIME(0) NOT NULL");
     tester.checkScalar(
         "interval '5' day + date '2005-03-02'",
         "2005-03-07",
+        "DATE NOT NULL");
+    tester.checkScalar(
+        "date '2005-03-02' + interval '5' day",
+        "2005-03-07",
+        "DATE NOT NULL");
+    tester.checkScalar(
+        "date '2005-03-02' + interval '5' hour",
+        "2005-03-02",
+        "DATE NOT NULL");
+    tester.checkScalar(
+        "date '2005-03-02' + interval '25' hour",
+        "2005-03-03",
+        "DATE NOT NULL");
+    tester.checkScalar(
+        "date '2005-03-02' + interval '25:45' hour to minute",
+        "2005-03-03",
+        "DATE NOT NULL");
+    tester.checkScalar(
+        "date '2005-03-02' + interval '25:45:54' hour to second",
+        "2005-03-03",
         "DATE NOT NULL");
     tester.checkScalar(
         "timestamp '2003-08-02 12:54:01' + interval '-4 2:4' day to minute",
@@ -2958,6 +2986,10 @@ public abstract class SqlOperatorBaseTest {
         "DATE NOT NULL");
     tester.checkScalar(
         "timestamp '2003-08-02 12:54:01' + interval '5-3' year to month",
+        "2008-11-02 12:54:01",
+        "TIMESTAMP(0) NOT NULL");
+    tester.checkScalar(
+        "interval '5-3' year to month + timestamp '2003-08-02 12:54:01'",
         "2008-11-02 12:54:01",
         "TIMESTAMP(0) NOT NULL");
   }
@@ -3611,6 +3643,17 @@ public abstract class SqlOperatorBaseTest {
         "INTEGER NOT NULL");
   }
 
+  @Test public void testReplaceFunc() {
+    tester.setFor(SqlStdOperatorTable.REPLACE);
+    tester.checkString("REPLACE('ciao', 'ciao', '')", "",
+        "VARCHAR(4) NOT NULL");
+    tester.checkString("REPLACE('hello world', 'o', '')", "hell wrld",
+        "VARCHAR(11) NOT NULL");
+    tester.checkNull("REPLACE(cast(null as varchar(5)), 'ciao', '')");
+    tester.checkNull("REPLACE('ciao', cast(null as varchar(3)), 'zz')");
+    tester.checkNull("REPLACE('ciao', 'bella', cast(null as varchar(3)))");
+  }
+
   @Test public void testCharLengthFunc() {
     tester.setFor(SqlStdOperatorTable.CHAR_LENGTH);
     tester.checkScalarExact("char_length('abc')", "3");
@@ -3695,6 +3738,11 @@ public abstract class SqlOperatorBaseTest {
         false);
     tester.checkScalarApprox(
         "sqrt(2)",
+        "DOUBLE NOT NULL",
+        1.4142d,
+        0.0001d);
+    tester.checkScalarApprox(
+        "sqrt(cast(2 as decimal(2, 0)))",
         "DOUBLE NOT NULL",
         1.4142d,
         0.0001d);
@@ -3894,6 +3942,336 @@ public abstract class SqlOperatorBaseTest {
     tester.checkNull("abs(cast(null as interval hour))");
   }
 
+  @Test public void testAcosFunc() {
+    tester.setFor(
+        SqlStdOperatorTable.ACOS);
+    tester.checkType("acos(0)", "DOUBLE NOT NULL");
+    tester.checkType("acos(cast(1 as float))", "DOUBLE NOT NULL");
+    tester.checkType(
+        "acos(case when false then 0.5 else null end)", "DOUBLE");
+    tester.checkFails(
+        "^acos('abc')^",
+        "Cannot apply 'ACOS' to arguments of type 'ACOS\\(<CHAR\\(3\\)>\\)'\\. Supported form\\(s\\): 'ACOS\\(<NUMERIC>\\)'",
+        false);
+    tester.checkScalarApprox(
+        "acos(0.5)",
+        "DOUBLE NOT NULL",
+        1.0472d,
+        0.0001d);
+    tester.checkScalarApprox(
+        "acos(cast(0.5 as decimal(1, 1)))",
+        "DOUBLE NOT NULL",
+        1.0472d,
+        0.0001d);
+    tester.checkNull("acos(cast(null as integer))");
+    tester.checkNull("acos(cast(null as double))");
+  }
+
+  @Test public void testAsinFunc() {
+    tester.setFor(
+        SqlStdOperatorTable.ASIN);
+    tester.checkType("asin(0)", "DOUBLE NOT NULL");
+    tester.checkType("asin(cast(1 as float))", "DOUBLE NOT NULL");
+    tester.checkType(
+        "asin(case when false then 0.5 else null end)", "DOUBLE");
+    tester.checkFails(
+        "^asin('abc')^",
+        "Cannot apply 'ASIN' to arguments of type 'ASIN\\(<CHAR\\(3\\)>\\)'\\. Supported form\\(s\\): 'ASIN\\(<NUMERIC>\\)'",
+        false);
+    tester.checkScalarApprox(
+        "asin(0.5)",
+        "DOUBLE NOT NULL",
+        0.5236d,
+        0.0001d);
+    tester.checkScalarApprox(
+        "asin(cast(0.5 as decimal(1, 1)))",
+        "DOUBLE NOT NULL",
+        0.5236d,
+        0.0001d);
+    tester.checkNull("asin(cast(null as integer))");
+    tester.checkNull("asin(cast(null as double))");
+  }
+
+  @Test public void testAtanFunc() {
+    tester.setFor(
+        SqlStdOperatorTable.ATAN);
+    tester.checkType("atan(2)", "DOUBLE NOT NULL");
+    tester.checkType("atan(cast(2 as float))", "DOUBLE NOT NULL");
+    tester.checkType(
+        "atan(case when false then 2 else null end)", "DOUBLE");
+    tester.checkFails(
+        "^atan('abc')^",
+        "Cannot apply 'ATAN' to arguments of type 'ATAN\\(<CHAR\\(3\\)>\\)'\\. Supported form\\(s\\): 'ATAN\\(<NUMERIC>\\)'",
+        false);
+    tester.checkScalarApprox(
+        "atan(2)",
+        "DOUBLE NOT NULL",
+        1.1071d,
+        0.0001d);
+    tester.checkScalarApprox(
+        "atan(cast(2 as decimal(1, 0)))",
+        "DOUBLE NOT NULL",
+        1.1071d,
+        0.0001d);
+    tester.checkNull("atan(cast(null as integer))");
+    tester.checkNull("atan(cast(null as double))");
+  }
+
+  @Test public void testAtan2Func() {
+    tester.setFor(
+        SqlStdOperatorTable.ATAN2);
+    tester.checkType("atan2(2, -2)", "DOUBLE NOT NULL");
+    tester.checkType("atan2(cast(1 as float), -1)", "DOUBLE NOT NULL");
+    tester.checkType(
+        "atan2(case when false then 0.5 else null end, -1)", "DOUBLE");
+    tester.checkFails(
+        "^atan2('abc', 'def')^",
+        "Cannot apply 'ATAN2' to arguments of type 'ATAN2\\(<CHAR\\(3\\)>, <CHAR\\(3\\)>\\)'\\. Supported form\\(s\\): 'ATAN2\\(<NUMERIC>, <NUMERIC>\\)'",
+        false);
+    tester.checkScalarApprox(
+        "atan2(0.5, -0.5)",
+        "DOUBLE NOT NULL",
+        2.3562d,
+        0.0001d);
+    tester.checkScalarApprox(
+        "atan2(cast(0.5 as decimal(1, 1)), cast(-0.5 as decimal(1, 1)))",
+        "DOUBLE NOT NULL",
+        2.3562d,
+        0.0001d);
+    tester.checkNull("atan2(cast(null as integer), -1)");
+    tester.checkNull("atan2(1, cast(null as double))");
+  }
+
+  @Test public void testCosFunc() {
+    tester.setFor(
+        SqlStdOperatorTable.COS);
+    tester.checkType("cos(1)", "DOUBLE NOT NULL");
+    tester.checkType("cos(cast(1 as float))", "DOUBLE NOT NULL");
+    tester.checkType(
+        "cos(case when false then 1 else null end)", "DOUBLE");
+    tester.checkFails(
+        "^cos('abc')^",
+        "Cannot apply 'COS' to arguments of type 'COS\\(<CHAR\\(3\\)>\\)'\\. Supported form\\(s\\): 'COS\\(<NUMERIC>\\)'",
+        false);
+    tester.checkScalarApprox(
+        "cos(1)",
+        "DOUBLE NOT NULL",
+        0.5403d,
+        0.0001d);
+    tester.checkScalarApprox(
+        "cos(cast(1 as decimal(1, 0)))",
+        "DOUBLE NOT NULL",
+        0.5403d,
+        0.0001d);
+    tester.checkNull("cos(cast(null as integer))");
+    tester.checkNull("cos(cast(null as double))");
+  }
+
+  @Test public void testCotFunc() {
+    tester.setFor(
+        SqlStdOperatorTable.COT);
+    tester.checkType("cot(1)", "DOUBLE NOT NULL");
+    tester.checkType("cot(cast(1 as float))", "DOUBLE NOT NULL");
+    tester.checkType(
+        "cot(case when false then 1 else null end)", "DOUBLE");
+    tester.checkFails(
+        "^cot('abc')^",
+        "Cannot apply 'COT' to arguments of type 'COT\\(<CHAR\\(3\\)>\\)'\\. Supported form\\(s\\): 'COT\\(<NUMERIC>\\)'",
+        false);
+    tester.checkScalarApprox(
+        "cot(1)",
+        "DOUBLE NOT NULL",
+        0.6421d,
+        0.0001d);
+    tester.checkScalarApprox(
+        "cot(cast(1 as decimal(1, 0)))",
+        "DOUBLE NOT NULL",
+        0.6421d,
+        0.0001d);
+    tester.checkNull("cot(cast(null as integer))");
+    tester.checkNull("cot(cast(null as double))");
+  }
+
+  @Test public void testDegreesFunc() {
+    tester.setFor(
+        SqlStdOperatorTable.DEGREES);
+    tester.checkType("degrees(1)", "DOUBLE NOT NULL");
+    tester.checkType("degrees(cast(1 as float))", "DOUBLE NOT NULL");
+    tester.checkType(
+        "degrees(case when false then 1 else null end)", "DOUBLE");
+    tester.checkFails(
+        "^degrees('abc')^",
+        "Cannot apply 'DEGREES' to arguments of type 'DEGREES\\(<CHAR\\(3\\)>\\)'\\. Supported form\\(s\\): 'DEGREES\\(<NUMERIC>\\)'",
+        false);
+    tester.checkScalarApprox(
+        "degrees(1)",
+        "DOUBLE NOT NULL",
+        57.2958d,
+        0.0001d);
+    tester.checkScalarApprox(
+        "degrees(cast(1 as decimal(1, 0)))",
+        "DOUBLE NOT NULL",
+        57.2958d,
+        0.0001d);
+    tester.checkNull("degrees(cast(null as integer))");
+    tester.checkNull("degrees(cast(null as double))");
+  }
+
+  @Test public void testPiFunc() {
+    tester.setFor(SqlStdOperatorTable.PI);
+    tester.checkScalarApprox("PI", "DOUBLE NOT NULL", 3.1415d, 0.0001d);
+    tester.checkFails("^PI()^",
+        "No match found for function signature PI\\(\\)", false);
+  }
+
+  @Test public void testRadiansFunc() {
+    tester.setFor(
+        SqlStdOperatorTable.RADIANS);
+    tester.checkType("radians(42)", "DOUBLE NOT NULL");
+    tester.checkType("radians(cast(42 as float))", "DOUBLE NOT NULL");
+    tester.checkType(
+        "radians(case when false then 42 else null end)", "DOUBLE");
+    tester.checkFails(
+        "^radians('abc')^",
+        "Cannot apply 'RADIANS' to arguments of type 'RADIANS\\(<CHAR\\(3\\)>\\)'\\. Supported form\\(s\\): 'RADIANS\\(<NUMERIC>\\)'",
+        false);
+    tester.checkScalarApprox(
+        "radians(42)",
+        "DOUBLE NOT NULL",
+        0.7330d,
+        0.0001d);
+    tester.checkScalarApprox(
+        "radians(cast(42 as decimal(2, 0)))",
+        "DOUBLE NOT NULL",
+        0.7330d,
+        0.0001d);
+    tester.checkNull("radians(cast(null as integer))");
+    tester.checkNull("radians(cast(null as double))");
+  }
+
+
+  @Test public void testRoundFunc() {
+    tester.setFor(
+        SqlStdOperatorTable.ROUND);
+    tester.checkType("round(42, -1)", "INTEGER NOT NULL");
+    tester.checkType("round(cast(42 as float), 1)", "FLOAT NOT NULL");
+    tester.checkType(
+        "round(case when false then 42 else null end, -1)", "INTEGER");
+    tester.checkFails(
+        "^round('abc', 'def')^",
+        "Cannot apply 'ROUND' to arguments of type 'ROUND\\(<CHAR\\(3\\)>, <CHAR\\(3\\)>\\)'\\. Supported form\\(s\\): 'ROUND\\(<NUMERIC>, <INTEGER>\\)'",
+        false);
+    tester.checkScalar(
+        "round(42, -1)",
+        40,
+        "INTEGER NOT NULL");
+    tester.checkScalar(
+        "round(cast(42.346 as decimal(2, 3)), 2)",
+        BigDecimal.valueOf(4235, 2),
+        "DECIMAL(2, 3) NOT NULL");
+    tester.checkNull("round(cast(null as integer), 1)");
+    tester.checkNull("round(cast(null as double), 1)");
+  }
+  @Test public void testSignFunc() {
+    tester.setFor(
+        SqlStdOperatorTable.SIGN);
+    tester.checkType("sign(1)", "INTEGER NOT NULL");
+    tester.checkType("sign(cast(1 as float))", "FLOAT NOT NULL");
+    tester.checkType(
+        "sign(case when false then 1 else null end)", "INTEGER");
+    tester.checkFails(
+        "^sign('abc')^",
+        "Cannot apply 'SIGN' to arguments of type 'SIGN\\(<CHAR\\(3\\)>\\)'\\. Supported form\\(s\\): 'SIGN\\(<NUMERIC>\\)'",
+        false);
+    tester.checkScalar(
+        "sign(1)",
+        1,
+        "INTEGER NOT NULL");
+    tester.checkScalar(
+        "sign(cast(-1 as decimal(1, 0)))",
+        BigDecimal.valueOf(-1),
+        "DECIMAL(1, 0) NOT NULL");
+    tester.checkScalar(
+        "sign(cast(0 as float))",
+        0d,
+        "FLOAT NOT NULL");
+    tester.checkNull("sign(cast(null as integer))");
+    tester.checkNull("sign(cast(null as double))");
+  }
+
+  @Test public void testSinFunc() {
+    tester.setFor(
+        SqlStdOperatorTable.SIN);
+    tester.checkType("sin(1)", "DOUBLE NOT NULL");
+    tester.checkType("sin(cast(1 as float))", "DOUBLE NOT NULL");
+    tester.checkType(
+        "sin(case when false then 1 else null end)", "DOUBLE");
+    tester.checkFails(
+        "^sin('abc')^",
+        "Cannot apply 'SIN' to arguments of type 'SIN\\(<CHAR\\(3\\)>\\)'\\. Supported form\\(s\\): 'SIN\\(<NUMERIC>\\)'",
+        false);
+    tester.checkScalarApprox(
+        "sin(1)",
+        "DOUBLE NOT NULL",
+        0.8415d,
+        0.0001d);
+    tester.checkScalarApprox(
+        "sin(cast(1 as decimal(1, 0)))",
+        "DOUBLE NOT NULL",
+        0.8415d,
+        0.0001d);
+    tester.checkNull("sin(cast(null as integer))");
+    tester.checkNull("sin(cast(null as double))");
+  }
+
+  @Test public void testTanFunc() {
+    tester.setFor(
+        SqlStdOperatorTable.TAN);
+    tester.checkType("tan(1)", "DOUBLE NOT NULL");
+    tester.checkType("tan(cast(1 as float))", "DOUBLE NOT NULL");
+    tester.checkType(
+        "tan(case when false then 1 else null end)", "DOUBLE");
+    tester.checkFails(
+        "^tan('abc')^",
+        "Cannot apply 'TAN' to arguments of type 'TAN\\(<CHAR\\(3\\)>\\)'\\. Supported form\\(s\\): 'TAN\\(<NUMERIC>\\)'",
+        false);
+    tester.checkScalarApprox(
+        "tan(1)",
+        "DOUBLE NOT NULL",
+        1.5574d,
+        0.0001d);
+    tester.checkScalarApprox(
+        "tan(cast(1 as decimal(1, 0)))",
+        "DOUBLE NOT NULL",
+        1.5574d,
+        0.0001d);
+    tester.checkNull("tan(cast(null as integer))");
+    tester.checkNull("tan(cast(null as double))");
+  }
+
+  @Test public void testTruncateFunc() {
+    tester.setFor(
+        SqlStdOperatorTable.TRUNCATE);
+    tester.checkType("truncate(42, -1)", "INTEGER NOT NULL");
+    tester.checkType("truncate(cast(42 as float), 1)", "FLOAT NOT NULL");
+    tester.checkType(
+        "truncate(case when false then 42 else null end, -1)", "INTEGER");
+    tester.checkFails(
+        "^truncate('abc', 'def')^",
+        "Cannot apply 'TRUNCATE' to arguments of type 'TRUNCATE\\(<CHAR\\(3\\)>, <CHAR\\(3\\)>\\)'\\. Supported form\\(s\\): 'TRUNCATE\\(<NUMERIC>, <INTEGER>\\)'",
+        false);
+    tester.checkScalar(
+        "truncate(42, -1)",
+        40,
+        "INTEGER NOT NULL");
+    tester.checkScalar(
+        "truncate(cast(42.345 as decimal(2, 3)), 2)",
+        BigDecimal.valueOf(4234, 2),
+        "DECIMAL(2, 3) NOT NULL");
+    tester.checkNull("truncate(cast(null as integer), 1)");
+    tester.checkNull("truncate(cast(null as double), 1)");
+  }
+
   @Test public void testNullifFunc() {
     tester.setFor(SqlStdOperatorTable.NULLIF, VM_EXPAND);
     tester.checkNull("nullif(1,1)");
@@ -4001,6 +4379,13 @@ public abstract class SqlOperatorBaseTest {
     // By default, the CURRENT_ROLE function returns
     // the empty string because a role has to be set explicitly.
     tester.checkString("CURRENT_ROLE", "", "VARCHAR(2000) NOT NULL");
+  }
+
+  @Test public void testCurrentCatalogFunc() {
+    tester.setFor(SqlStdOperatorTable.CURRENT_CATALOG, VM_FENNEL);
+    // By default, the CURRENT_CATALOG function returns
+    // the empty string because a catalog has to be set explicitly.
+    tester.checkString("CURRENT_CATALOG", "", "VARCHAR(2000) NOT NULL");
   }
 
   @Test public void testLocalTimeFunc() {
@@ -4429,6 +4814,19 @@ public abstract class SqlOperatorBaseTest {
     tester.setFor(SqlStdOperatorTable.FUSION, VM_FENNEL, VM_JAVA);
   }
 
+  @Test public void testYear() {
+    tester.setFor(
+        SqlStdOperatorTable.YEAR,
+        VM_FENNEL,
+        VM_JAVA);
+
+    tester.checkScalar(
+        "year(date '2008-1-23')",
+        "2008",
+        "BIGINT NOT NULL");
+    tester.checkNull("year(cast(null as date))");
+  }
+
   @Test public void testQuarter() {
     tester.setFor(
         SqlStdOperatorTable.QUARTER,
@@ -4484,6 +4882,117 @@ public abstract class SqlOperatorBaseTest {
         "4",
         "BIGINT NOT NULL");
     tester.checkNull("quarter(cast(null as date))");
+  }
+
+  @Test public void testMonth() {
+    tester.setFor(
+        SqlStdOperatorTable.MONTH,
+        VM_FENNEL,
+        VM_JAVA);
+
+    tester.checkScalar(
+        "month(date '2008-1-23')",
+        "1",
+        "BIGINT NOT NULL");
+    tester.checkNull("month(cast(null as date))");
+  }
+
+  @Test public void testWeek() {
+    tester.setFor(
+        SqlStdOperatorTable.WEEK,
+        VM_FENNEL,
+        VM_JAVA);
+    // TODO: Not implemented in operator test execution code
+    tester.checkFails(
+        "week(date '2008-1-23')",
+        "cannot translate call EXTRACT.*",
+        true);
+    tester.checkFails(
+        "week(cast(null as date))",
+        "cannot translate call EXTRACT.*",
+        true);
+  }
+
+  @Test public void testDayOfYear() {
+    tester.setFor(
+        SqlStdOperatorTable.DAYOFYEAR,
+        VM_FENNEL,
+        VM_JAVA);
+    // TODO: Not implemented in operator test execution code
+    tester.checkFails(
+        "dayofyear(date '2008-1-23')",
+        "cannot translate call EXTRACT.*",
+        true);
+    tester.checkFails(
+        "dayofyear(cast(null as date))",
+        "cannot translate call EXTRACT.*",
+        true);
+  }
+
+  @Test public void testDayOfMonth() {
+    tester.setFor(
+        SqlStdOperatorTable.DAYOFMONTH,
+        VM_FENNEL,
+        VM_JAVA);
+    tester.checkScalar(
+        "dayofmonth(date '2008-1-23')",
+        "23",
+        "BIGINT NOT NULL");
+    tester.checkNull("dayofmonth(cast(null as date))");
+  }
+
+  @Test public void testDayOfWeek() {
+    tester.setFor(
+        SqlStdOperatorTable.DAYOFWEEK,
+        VM_FENNEL,
+        VM_JAVA);
+    // TODO: Not implemented in operator test execution code
+    tester.checkFails(
+        "dayofweek(date '2008-1-23')",
+        "cannot translate call EXTRACT.*",
+        true);
+    tester.checkFails("dayofweek(cast(null as date))",
+        "cannot translate call EXTRACT.*",
+        true);
+  }
+
+  @Test public void testHour() {
+    tester.setFor(
+        SqlStdOperatorTable.HOUR,
+        VM_FENNEL,
+        VM_JAVA);
+
+    tester.checkScalar(
+        "hour(timestamp '2008-1-23 12:34:56')",
+        "12",
+        "BIGINT NOT NULL");
+    tester.checkNull("hour(cast(null as timestamp))");
+  }
+
+  @Test public void testMinute() {
+    tester.setFor(
+        SqlStdOperatorTable.MINUTE,
+        VM_FENNEL,
+        VM_JAVA);
+
+    tester.checkScalar(
+        "minute(timestamp '2008-1-23 12:34:56')",
+        "34",
+        "BIGINT NOT NULL");
+    tester.checkNull("minute(cast(null as timestamp))");
+  }
+
+  @Test public void testSecond() {
+    tester.setFor(
+        SqlStdOperatorTable.SECOND,
+        VM_FENNEL,
+        VM_JAVA);
+
+    tester.checkScalar(
+        "second(timestamp '2008-1-23 12:34:56')",
+        "56",
+        "BIGINT NOT NULL");
+    tester.checkNull("second(cast(null as timestamp))");
   }
 
   @Test public void testExtractIntervalYearMonth() {
@@ -6090,8 +6599,10 @@ public abstract class SqlOperatorBaseTest {
         final ResultSet resultSet =
             statement.executeQuery(query);
         resultChecker.checkResult(resultSet);
+      } catch (RuntimeException e) {
+        throw e;
       } catch (Exception e) {
-        throw Throwables.propagate(e);
+        throw new RuntimeException(e);
       }
     }
 

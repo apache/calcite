@@ -173,6 +173,7 @@ public abstract class Sort extends SingleRel {
     return collation;
   }
 
+  @SuppressWarnings("deprecation")
   @Override public List<RelCollation> getCollationList() {
     return Collections.singletonList(getCollation());
   }

@@ -65,7 +65,7 @@ import java.util.Set;
 /**
  * Implementation of {@link org.apache.calcite.plan.RelOptTable}.
  */
-public class RelOptTableImpl implements Prepare.PreparingTable {
+public class RelOptTableImpl extends Prepare.AbstractPreparingTable {
   private final RelOptSchema schema;
   private final RelDataType rowType;
   private final Table table;
@@ -326,11 +326,11 @@ public class RelOptTableImpl implements Prepare.PreparingTable {
     return SqlAccessType.ALL;
   }
 
-  /** Im0plementation of {@link SchemaPlus} that wraps a regular schema and knows
+  /** Implementation of {@link SchemaPlus} that wraps a regular schema and knows
    * its name and parent.
    *
    * <p>It is read-only, and functionality is limited in other ways, it but
-   * allows table expressions to be genenerated. */
+   * allows table expressions to be generated. */
   private static class MySchemaPlus implements SchemaPlus {
     private final SchemaPlus parent;
     private final String name;

@@ -206,6 +206,29 @@ public abstract class BuiltInMetadata {
     }
   }
 
+  /** Metadata about the minimum number of rows returned by a relational
+   * expression. */
+  public interface MinRowCount extends Metadata {
+    MetadataDef<MinRowCount> DEF = MetadataDef.of(MinRowCount.class,
+        MinRowCount.Handler.class, BuiltInMethod.MIN_ROW_COUNT.method);
+
+    /**
+     * Estimates the minimum number of rows which will be returned by a
+     * relational expression.
+     *
+     * <p>The default implementation for this query returns 0,
+     * but metadata providers can override this with their own cost models.
+     *
+     * @return lower bound on the number of rows returned
+     */
+    Double getMinRowCount();
+
+    /** Handler API. */
+    interface Handler extends MetadataHandler<MinRowCount> {
+      Double getMinRowCount(RelNode r, RelMetadataQuery mq);
+    }
+  }
+
   /** Metadata about the number of distinct rows returned by a set of columns
    * in a relational expression. */
   public interface DistinctRowCount extends Metadata {

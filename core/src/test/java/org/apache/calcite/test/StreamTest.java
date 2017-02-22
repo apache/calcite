@@ -37,7 +37,6 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.ImmutableBitSet;
 
 import com.google.common.base.Function;
-import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 
@@ -348,7 +347,7 @@ public class StreamTest {
           }
           return null;
         } catch (SQLException e) {
-          throw Throwables.propagate(e);
+          throw new RuntimeException(e);
         }
       }
     };

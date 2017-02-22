@@ -155,6 +155,10 @@ public class HepPlanner extends AbstractRelOptPlanner {
     return root;
   }
 
+  public List<RelOptRule> getRules() {
+    return ImmutableList.copyOf(allRules);
+  }
+
   // implement RelOptPlanner
   public boolean addRule(RelOptRule rule) {
     boolean added = allRules.add(rule);
@@ -924,9 +928,8 @@ public class HepPlanner extends AbstractRelOptPlanner {
       return;
     }
 
-    throw Util.newInternal(
-        "Query graph cycle detected in HepPlanner:  "
-            + cyclicVertices);
+    throw new AssertionError("Query graph cycle detected in HepPlanner: "
+        + cyclicVertices);
   }
 
   private void dumpGraph() {

@@ -16,8 +16,6 @@
  */
 package org.apache.calcite.sql.type;
 
-import org.apache.calcite.util.Util;
-
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -318,12 +316,11 @@ public class SqlTypeAssignmentRules {
       return true;
     }
 
-    Set<SqlTypeName> rule = ruleset.get(to);
-    if (null == rule) {
+    final Set<SqlTypeName> rule = ruleset.get(to);
+    if (rule == null) {
       // if you hit this assert, see the constructor of this class on how
       // to add new rule
-      throw Util.newInternal(
-          "No assign rules for " + to + " defined");
+      throw new AssertionError("No assign rules for " + to + " defined");
     }
 
     return rule.contains(from);

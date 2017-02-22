@@ -98,8 +98,9 @@ import org.apache.calcite.util.TryThreadLocal;
 import org.apache.calcite.util.Util;
 
 import com.google.common.base.Function;
-import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.LinkedListMultimap;
+import com.google.common.collect.Multimap;
 
 import org.hsqldb.jdbcDriver;
 
@@ -144,6 +145,7 @@ import static org.apache.calcite.util.Static.RESOURCE;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.hasItem;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
@@ -312,7 +314,7 @@ public class JdbcTest {
                 statement.close();
                 return null;
               } catch (SQLException e) {
-                throw Throwables.propagate(e);
+                throw new RuntimeException(e);
               }
             }
           });
@@ -4677,7 +4679,7 @@ public class JdbcTest {
   @Test public void testNotExistsCorrelated() {
     final String plan = "PLAN="
         + "EnumerableCalc(expr#0..5=[{inputs}], expr#6=[IS NULL($t5)], proj#0..4=[{exprs}], $condition=[$t6])\n"
-        + "  EnumerableCorrelate(correlation=[$cor0], joinType=[LEFT], requiredColumns=[{1}])\n"
+        + "  EnumerableCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{1}])\n"
         + "    EnumerableTableScan(table=[[hr, emps]])\n"
         + "    EnumerableAggregate(group=[{0}])\n"
         + "      EnumerableCalc(expr#0..3=[{inputs}], expr#4=[true], expr#5=[$cor0], expr#6=[$t5.deptno], expr#7=[=($t6, $t0)], i=[$t4], $condition=[$t7])\n"
@@ -5189,7 +5191,7 @@ public class JdbcTest {
             + "empid=150; deptno=10; name=Sebastian; salary=7000.0; commission=null\n"
             + "empid=110; deptno=10; name=Theodore; salary=11500.0; commission=250\n");
     that.query("select * from \"adhoc\".EMPLOYEES")
-        .throws_("Table 'adhoc.EMPLOYEES' not found");
+        .throws_("Object 'EMPLOYEES' not found within 'adhoc'");
   }
 
   /** Test case for
@@ -6110,7 +6112,30 @@ public class JdbcTest {
     final CalciteAssert.AssertThat with2 =
         CalciteAssert.that().with(Lex.JAVA);
     with2.query("select COUNT(*) as c from `metaData`.`tAbles`")
-        .throws_("Table 'metaData.tAbles' not found");
+        .throws_("Object 'metaData' not found; did you mean 'metadata'?");
+    with2.query("select COUNT(*) as c from `metaData`.`TABLES`")
+        .throws_("Object 'metaData' not found; did you mean 'metadata'?");
+    with2.query("select COUNT(*) as c from `metaData`.`tables`")
+        .throws_("Object 'metaData' not found; did you mean 'metadata'?");
+    with2.query("select COUNT(*) as c from `metaData`.`nonExistent`")
+        .throws_("Object 'metaData' not found; did you mean 'metadata'?");
+    with2.query("select COUNT(*) as c from `metadata`.`tAbles`")
+        .throws_("Object 'tAbles' not found within 'metadata'; did you mean 'TABLES'?");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1563">[CALCITE-1563]
+   * In case-insensitive connection, non-existent tables use alphabetically
+   * preceding table</a>. */
+  @Test public void testLexCaseInsensitiveFindsNonexistentTable() {
+    final CalciteAssert.AssertThat with =
+        CalciteAssert.that().with(Lex.MYSQL);
+    // With [CALCITE-1563], the following query succeeded; it queried
+    // metadata.tables.
+    with.query("select COUNT(*) as c from `metaData`.`zoo`")
+        .throws_("Object 'zoo' not found within 'metadata'");
+    with.query("select COUNT(*) as c from `metaData`.`tAbLes`")
+        .returns("c=2\n");
   }
 
   /** Tests case-insensitive resolution of sub-query columns.
@@ -6255,6 +6280,42 @@ public class JdbcTest {
     aSubSchemaMap.put("b", new AbstractSchema());
     // explicit should win implicit.
     assertThat(aSchema.getSubSchemaNames().size(), is(2));
+  }
+
+  @Test public void testSimpleCalciteSchemaWithView() throws Exception {
+    final SchemaPlus rootSchema = CalciteSchema.createRootSchema(false, false).plus();
+
+    final Multimap<String, org.apache.calcite.schema.Function> functionMap =
+        LinkedListMultimap.create();
+    // create schema "/a"
+    final SchemaPlus aSchema = rootSchema.add("a",
+        new AbstractSchema() {
+          @Override protected Multimap<String, org.apache.calcite.schema.Function>
+          getFunctionMultimap() {
+            return functionMap;
+          }
+        });
+    // add view definition
+    final String viewName = "V";
+    final org.apache.calcite.schema.Function view =
+        ViewTable.viewMacro(rootSchema.getSubSchema("a"),
+            "values('1', '2')", null, null, false);
+    functionMap.put(viewName, view);
+
+    final CalciteSchema calciteSchema = CalciteSchema.from(aSchema);
+    assertThat(
+        calciteSchema.getTableBasedOnNullaryFunction(viewName, true), notNullValue());
+    assertThat(
+        calciteSchema.getTableBasedOnNullaryFunction(viewName, false), notNullValue());
+    assertThat(
+        calciteSchema.getTableBasedOnNullaryFunction("V1", true), nullValue());
+    assertThat(
+        calciteSchema.getTableBasedOnNullaryFunction("V1", false), nullValue());
+
+    assertThat(calciteSchema.getFunctions(viewName, true), hasItem(view));
+    assertThat(calciteSchema.getFunctions(viewName, false), hasItem(view));
+    assertThat(calciteSchema.getFunctions("V1", true), not(hasItem(view)));
+    assertThat(calciteSchema.getFunctions("V1", false), not(hasItem(view)));
   }
 
   @Test public void testSchemaCaching() throws Exception {
@@ -6535,7 +6596,7 @@ public class JdbcTest {
                   }
                   return null;
                 } catch (SQLException e) {
-                  throw Throwables.propagate(e);
+                  throw new RuntimeException(e);
                 }
               }
             });

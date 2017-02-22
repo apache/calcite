@@ -35,10 +35,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
-import org.joda.time.DateTime;
-import org.joda.time.Interval;
-import org.joda.time.chrono.ISOChronology;
-
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -49,15 +45,14 @@ import java.util.Set;
 public class DruidTable extends AbstractTable implements TranslatableTable {
 
   public static final String DEFAULT_TIMESTAMP_COLUMN = "__time";
-  public static final Interval DEFAULT_INTERVAL =
-      new Interval(new DateTime("1900-01-01", ISOChronology.getInstanceUTC()),
-          new DateTime("3000-01-01", ISOChronology.getInstanceUTC()));
+  public static final LocalInterval DEFAULT_INTERVAL =
+      LocalInterval.create("1900-01-01", "3000-01-01");
 
   final DruidSchema schema;
   final String dataSource;
   final RelProtoDataType protoRowType;
   final ImmutableSet<String> metricFieldNames;
-  final ImmutableList<Interval> intervals;
+  final ImmutableList<LocalInterval> intervals;
   final String timestampFieldName;
 
   /**
@@ -72,7 +67,7 @@ public class DruidTable extends AbstractTable implements TranslatableTable {
    */
   public DruidTable(DruidSchema schema, String dataSource,
       RelProtoDataType protoRowType, Set<String> metricFieldNames,
-      String timestampFieldName, List<Interval> intervals) {
+      String timestampFieldName, List<LocalInterval> intervals) {
     this.timestampFieldName = Preconditions.checkNotNull(timestampFieldName);
     this.schema = Preconditions.checkNotNull(schema);
     this.dataSource = Preconditions.checkNotNull(dataSource);
@@ -80,9 +75,6 @@ public class DruidTable extends AbstractTable implements TranslatableTable {
     this.metricFieldNames = ImmutableSet.copyOf(metricFieldNames);
     this.intervals = intervals != null ? ImmutableList.copyOf(intervals)
         : ImmutableList.of(DEFAULT_INTERVAL);
-    for (Interval interval : this.intervals) {
-      assert interval.getChronology() == ISOChronology.getInstanceUTC();
-    }
   }
 
   /** Creates a {@link DruidTable}
@@ -100,7 +92,7 @@ public class DruidTable extends AbstractTable implements TranslatableTable {
    * @return A table
    */
   static Table create(DruidSchema druidSchema, String dataSourceName,
-      List<Interval> intervals, Map<String, SqlTypeName> fieldMap,
+      List<LocalInterval> intervals, Map<String, SqlTypeName> fieldMap,
       Set<String> metricNameSet, String timestampColumnName,
       DruidConnectionImpl connection) {
     if (connection != null) {
