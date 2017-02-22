@@ -16,7 +16,6 @@
  */
 package org.apache.calcite.rel.rules;
 
-import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptPredicateList;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
@@ -38,6 +37,7 @@ import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexCorrelVariable;
 import org.apache.calcite.rex.RexDynamicParam;
+import org.apache.calcite.rex.RexExecutor;
 import org.apache.calcite.rex.RexFieldAccess;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
@@ -462,7 +462,8 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
     boolean reduced = reduceExpressionsInternal(rel, expList, predicates);
 
     // Simplify preds in place
-    ExprSimplifier simplifier = new ExprSimplifier(rexBuilder, unknownAsFalse);
+    RexExecutor executor = rel.getCluster().getPlanner().getExecutor();
+    ExprSimplifier simplifier = new ExprSimplifier(rexBuilder, unknownAsFalse, executor);
     boolean simplified = false;
     for (int i = 0; i < expList.size(); i++) {
       RexNode expr2 = simplifier.apply(expList.get(i));
@@ -532,7 +533,7 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
     }
 
     // Compute the values they reduce to.
-    RelOptPlanner.Executor executor =
+    RexExecutor executor =
         rel.getCluster().getPlanner().getExecutor();
     if (executor == null) {
       // Cannot reduce expressions: caller has not set an executor in their

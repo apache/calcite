@@ -33,6 +33,7 @@ import org.apache.calcite.rel.RelRoot;
 import org.apache.calcite.rel.metadata.CachingRelMetadataProvider;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexExecutor;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperatorTable;
@@ -78,7 +79,7 @@ public class PlannerImpl implements Planner {
   private SchemaPlus defaultSchema;
   private JavaTypeFactory typeFactory;
   private RelOptPlanner planner;
-  private RelOptPlanner.Executor executor;
+  private RexExecutor executor;
 
   // set in STATE_4_VALIDATE
   private CalciteSqlValidator validator;
