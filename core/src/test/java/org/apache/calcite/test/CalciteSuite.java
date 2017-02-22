@@ -137,6 +137,7 @@ import org.junit.runners.Suite;
     CollationConversionTest.class,
     TraitConversionTest.class,
     ComboRuleTest.class,
+    MutableRelTest.class,
 
     // slow tests (above 1s)
     UdfTest.class,

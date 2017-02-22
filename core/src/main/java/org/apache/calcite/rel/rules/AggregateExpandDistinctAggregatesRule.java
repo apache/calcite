@@ -906,7 +906,9 @@ public final class AggregateExpandDistinctAggregatesRule extends RelOptRule {
             rexBuilder.makeCall(SqlStdOperatorTable.CASE, filterRef,
                 argRef.left,
                 rexBuilder.ensureType(argRef.left.getType(),
-                    rexBuilder.constantNull(), true));
+                    rexBuilder.makeCast(argRef.left.getType(),
+                        rexBuilder.constantNull()),
+                    true));
         sourceOf.put(arg, projects.size());
         projects.add(Pair.of(condition, "i$" + argRef.right));
         continue;

@@ -981,7 +981,7 @@ public class RelBuilder {
     final ImmutableBitSet groupSet =
         ImmutableBitSet.of(registerExpressions(extraNodes, groupKey_.nodes));
   label:
-    if (Iterables.isEmpty(aggCalls)) {
+    if (Iterables.isEmpty(aggCalls) && !groupKey_.indicator) {
       final RelMetadataQuery mq = RelMetadataQuery.instance();
       if (groupSet.isEmpty()) {
         final Double minRowCount = mq.getMinRowCount(peek());

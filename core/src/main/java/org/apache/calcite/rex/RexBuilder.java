@@ -631,7 +631,7 @@ public class RexBuilder {
     return makeCall(toType,
         SqlStdOperatorTable.CASE,
         ImmutableList.of(makeCall(SqlStdOperatorTable.IS_NOT_NULL, exp),
-            casted, makeNullLiteral(toType.getSqlTypeName())));
+            casted, makeNullLiteral(toType)));
   }
 
   private RexNode makeCastIntervalToExact(RelDataType toType, RexNode exp) {
@@ -1116,22 +1116,6 @@ public class RexBuilder {
   }
 
   /**
-   * Creates an expression corresponding to a null literal, cast to a specific
-   * type and precision
-   *
-   * @param typeName  name of the type that the null will be cast to
-   * @param precision precision of the type
-   * @return created expression
-   */
-  public RexNode makeNullLiteral(SqlTypeName typeName, int precision) {
-    RelDataType type =
-        typeFactory.createTypeWithNullability(
-            typeFactory.createSqlType(typeName, precision),
-            true);
-    return makeCast(type, constantNull());
-  }
-
-  /**
    * Creates a literal whose value is NULL, with a particular type.
    *
    * <p>The typing is necessary because RexNodes are strictly typed. For
@@ -1139,15 +1123,26 @@ public class RexBuilder {
    * SUBSTRING(NULL FROM 2 FOR 4)</code> must have a valid VARCHAR type so
    * that the result type can be determined.
    *
-   * @param typeName Type to cast NULL to
+   * @param type Type to cast NULL to
    * @return NULL literal of given type
    */
+  public RexLiteral makeNullLiteral(RelDataType type) {
+    if (!type.isNullable()) {
+      type = typeFactory.createTypeWithNullability(type, true);
+    }
+    return (RexLiteral) makeCast(type, constantNull());
+  }
+
+  /** @deprecated Use {@link #makeNullLiteral(RelDataType)} */
+  @Deprecated // to be removed before 2.0
+  public RexNode makeNullLiteral(SqlTypeName typeName, int precision) {
+    return makeNullLiteral(typeFactory.createSqlType(typeName, precision));
+  }
+
+  /** @deprecated Use {@link #makeNullLiteral(RelDataType)} */
+  @Deprecated // to be removed before 2.0
   public RexNode makeNullLiteral(SqlTypeName typeName) {
-    RelDataType type =
-        typeFactory.createTypeWithNullability(
-            typeFactory.createSqlType(typeName),
-            true);
-    return makeCast(type, constantNull());
+    return makeNullLiteral(typeFactory.createSqlType(typeName));
   }
 
   /**

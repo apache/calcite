@@ -1243,7 +1243,7 @@ public class SqlToRelConverter {
       final RexLiteral trueLiteral = rexBuilder.makeLiteral(true);
       final RexLiteral falseLiteral = rexBuilder.makeLiteral(false);
       final RexNode unknownLiteral =
-          rexBuilder.makeNullLiteral(SqlTypeName.BOOLEAN);
+          rexBuilder.makeNullLiteral(trueLiteral.getType());
 
       final ImmutableList.Builder<RexNode> args = ImmutableList.builder();
       args.add(rexBuilder.makeCall(SqlStdOperatorTable.EQUALS, cRef, zero),
@@ -2984,7 +2984,7 @@ public class SqlToRelConverter {
     for (RelDataTypeField field : delegateRowType.getFieldList()) {
       RexNode node = projectMap.get(field.getIndex());
       if (node == null) {
-        node = rexBuilder.makeNullLiteral(field.getType().getSqlTypeName());
+        node = rexBuilder.makeNullLiteral(field.getType());
       }
       projects.add(
           Pair.of(rexBuilder.ensureType(field.getType(), node, false),

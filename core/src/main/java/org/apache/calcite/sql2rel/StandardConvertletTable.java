@@ -202,7 +202,7 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
             if (operands.size() % 2 == 0) {
               exprs.add(Util.last(operands));
             } else {
-              exprs.add(rexBuilder.makeNullLiteral(type.getSqlTypeName()));
+              exprs.add(rexBuilder.makeNullLiteral(type));
             }
             return rexBuilder.makeCall(type, SqlStdOperatorTable.CASE, exprs);
           }
@@ -1447,7 +1447,7 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
         orList.add(rexBuilder.makeCall(SqlStdOperatorTable.IS_NULL, expr));
       }
       list.add(RexUtil.composeDisjunction(rexBuilder, orList, false));
-      list.add(rexBuilder.makeNullLiteral(type.getSqlTypeName()));
+      list.add(rexBuilder.makeNullLiteral(type));
       for (int i = 0; i < exprs.size() - 1; i++) {
         RexNode expr = exprs.get(i);
         final List<RexNode> andList = new ArrayList<>();

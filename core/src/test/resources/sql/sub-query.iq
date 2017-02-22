@@ -442,7 +442,7 @@ where sal + 100 not in (
 with t (a, b) as (select * from (values (1, 2)))
 select * from t where exists (select 1 from "scott".emp where deptno = t.a);
 EnumerableCalc(expr#0..2=[{inputs}], proj#0..1=[{exprs}])
-  EnumerableCorrelate(correlation=[$cor0], joinType=[INNER], requiredColumns=[{0}])
+  EnumerableCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{0}])
     EnumerableValues(tuples=[[{ 1, 2 }]])
     EnumerableAggregate(group=[{0}])
       EnumerableCalc(expr#0..7=[{inputs}], expr#8=[true], expr#9=[CAST($t7):INTEGER], expr#10=[$cor0], expr#11=[$t10.A], expr#12=[=($t9, $t11)], i=[$t8], $condition=[$t12])
@@ -453,7 +453,7 @@ EnumerableCalc(expr#0..2=[{inputs}], proj#0..1=[{exprs}])
 with t as (select * from (values (1, 2)) as t(a, b))
 select * from t where exists (select 1 from "scott".emp where deptno = t.a);
 EnumerableCalc(expr#0..2=[{inputs}], proj#0..1=[{exprs}])
-  EnumerableCorrelate(correlation=[$cor0], joinType=[INNER], requiredColumns=[{0}])
+  EnumerableCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{0}])
     EnumerableValues(tuples=[[{ 1, 2 }]])
     EnumerableAggregate(group=[{0}])
       EnumerableCalc(expr#0..7=[{inputs}], expr#8=[true], expr#9=[CAST($t7):INTEGER], expr#10=[$cor0], expr#11=[$t10.A], expr#12=[=($t9, $t11)], i=[$t8], $condition=[$t12])
@@ -463,9 +463,11 @@ EnumerableCalc(expr#0..2=[{inputs}], proj#0..1=[{exprs}])
 # Uncorrelated
 with t (a, b) as (select * from (values (60, 'b')))
 select * from t where a in (select deptno from "scott".dept);
-EnumerableSemiJoin(condition=[=($0, $2)], joinType=[inner])
-  EnumerableValues(tuples=[[{ 60, 'b' }]])
-  EnumerableTableScan(table=[[scott, DEPT]])
+EnumerableCalc(expr#0..2=[{inputs}], EXPR$0=[$t1], EXPR$1=[$t2])
+  EnumerableMergeJoin(condition=[=($0, $1)], joinType=[inner])
+    EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
+      EnumerableTableScan(table=[[scott, DEPT]])
+    EnumerableValues(tuples=[[{ 60, 'b' }]])
 !plan
 +---+---+
 | A | B |
