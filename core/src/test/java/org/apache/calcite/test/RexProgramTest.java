@@ -120,6 +120,11 @@ public class RexProgramTest {
     checkSimplify2(node, expected, expected);
   }
 
+  /** Simplifies an expression and checks that the result is unchanged. */
+  private void checkSimplifyUnchanged(RexNode node) {
+    checkSimplify(node, node.toString());
+  }
+
   /** Simplifies an expression and checks the result if unknowns remain
    * unknown, or if unknown becomes false. If the result is the same, use
    * {@link #checkSimplify(RexNode, String)}.
@@ -189,6 +194,10 @@ public class RexProgramTest {
 
   private RexNode case_(RexNode... nodes) {
     return rexBuilder.makeCall(SqlStdOperatorTable.CASE, nodes);
+  }
+
+  private RexNode cast(RexNode e, RelDataType type) {
+    return rexBuilder.makeCast(type, e);
   }
 
   private RexNode eq(RexNode n1, RexNode n2) {
@@ -1272,6 +1281,32 @@ public class RexProgramTest {
         }
       }
     }
+  }
+
+  @Test public void testSimplifyCastLiteral2() {
+    final RexLiteral literalAbc = rexBuilder.makeLiteral("abc");
+    final RexLiteral literalOne = rexBuilder.makeExactLiteral(BigDecimal.ONE);
+    final RelDataType intType = typeFactory.createSqlType(SqlTypeName.INTEGER);
+    final RelDataType varcharType =
+        typeFactory.createSqlType(SqlTypeName.VARCHAR, 10);
+    final RelDataType booleanType =
+        typeFactory.createSqlType(SqlTypeName.BOOLEAN);
+    final RelDataType dateType = typeFactory.createSqlType(SqlTypeName.DATE);
+    final RelDataType timestampType =
+        typeFactory.createSqlType(SqlTypeName.TIMESTAMP);
+    checkSimplifyUnchanged(cast(literalAbc, intType));
+    checkSimplify(cast(literalOne, intType), "1");
+    checkSimplify(cast(literalAbc, varcharType), "'abc'");
+    checkSimplify(cast(literalOne, varcharType), "'1'");
+    checkSimplifyUnchanged(cast(literalAbc, booleanType));
+    checkSimplify(cast(literalOne, booleanType),
+        "false"); // different from Hive
+    checkSimplifyUnchanged(cast(literalAbc, dateType));
+    checkSimplify(cast(literalOne, dateType),
+        "1970-01-02"); // different from Hive
+    checkSimplifyUnchanged(cast(literalAbc, timestampType));
+    checkSimplify(cast(literalOne, timestampType),
+        "1970-01-01 00:00:00"); // different from Hive
   }
 
   private Calendar cal(int y, int m, int d, int h, int mm, int s) {
