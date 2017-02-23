@@ -864,7 +864,8 @@ public class RelBuilder {
     final Iterator<String> nameIterator = fieldNames.iterator();
     for (RexNode node : nodes) {
       if (simplify) {
-        node = RexUtil.simplifyPreservingType(getRexBuilder(), node);
+        node = RexUtil.simplifyPreservingType(getRexBuilder(), node,
+          cluster.getPlanner().getExecutor());
       }
       exprList.add(node);
       String name = nameIterator.hasNext() ? nameIterator.next() : null;

@@ -18,7 +18,6 @@ package org.apache.calcite.rex;
 
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.linq4j.function.Predicate1;
-import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.Strong;
 import org.apache.calcite.rel.RelCollation;
@@ -74,6 +73,7 @@ import java.util.Set;
  * Utility methods concerning row-expressions.
  */
 public class RexUtil {
+
   private static final Function<? super RexNode, ? extends RexNode> ADD_NOT =
       new Function<RexNode, RexNode>() {
         public RexNode apply(RexNode input) {
@@ -110,9 +110,8 @@ public class RexUtil {
         }
       };
 
-  /** Executor for a bit of constant reduction. Ideally we'd use the user's
-   * preferred executor, but that isn't available. */
-  private static final RelOptPlanner.Executor EXECUTOR =
+  /** Executor for a bit of constant reduction. The user can pass in another executor. */
+  private static final RexExecutor EXECUTOR =
       new RexExecutorImpl(Schemas.createDataContext(null));
 
   private RexUtil() {
@@ -1561,8 +1560,9 @@ public class RexUtil {
    * <p>This is useful if you are simplifying expressions in a
    * {@link Project}. */
   public static RexNode simplifyPreservingType(RexBuilder rexBuilder,
-      RexNode e) {
-    final RexNode e2 = simplify(rexBuilder, e, false);
+      RexNode e,
+      RexExecutor executor) {
+    final RexNode e2 = simplify(rexBuilder, e, false, executor);
     if (e2.getType() == e.getType()) {
       return e2;
     }
@@ -1585,11 +1585,17 @@ public class RexUtil {
    * </ul>
    */
   public static RexNode simplify(RexBuilder rexBuilder, RexNode e) {
-    return simplify(rexBuilder, e, false);
+    return simplify(rexBuilder, e, false, EXECUTOR);
   }
 
   public static RexNode simplify(RexBuilder rexBuilder, RexNode e,
-      boolean unknownAsFalse) {
+    boolean unknownAsFalse) {
+    return simplify(rexBuilder, e, unknownAsFalse, EXECUTOR);
+  }
+
+  public static RexNode simplify(RexBuilder rexBuilder, RexNode e,
+    boolean unknownAsFalse,
+    RexExecutor executor) {
     switch (e.getKind()) {
     case AND:
       return simplifyAnd(rexBuilder, (RexCall) e, unknownAsFalse);
@@ -1600,7 +1606,7 @@ public class RexUtil {
     case CASE:
       return simplifyCase(rexBuilder, (RexCall) e, unknownAsFalse);
     case CAST:
-      return simplifyCast(rexBuilder, (RexCall) e);
+      return simplifyCast(rexBuilder, (RexCall) e, executor);
     case IS_NULL:
     case IS_NOT_NULL:
     case IS_TRUE:
@@ -2215,7 +2221,7 @@ public class RexUtil {
     for (RexNode notDisjunction : notTerms) {
       terms.add(
           simplify(rexBuilder,
-              rexBuilder.makeCall(SqlStdOperatorTable.NOT, notDisjunction), true));
+              rexBuilder.makeCall(SqlStdOperatorTable.NOT, notDisjunction), true, null));
     }
     // The negated terms: only deterministic expressions
     for (String negatedTerm : negatedTerms) {
@@ -2348,7 +2354,8 @@ public class RexUtil {
         && (call.operands.size() - i) % 2 == 1;
   }
 
-  private static RexNode simplifyCast(RexBuilder rexBuilder, RexCall e) {
+  private static RexNode simplifyCast(RexBuilder rexBuilder, RexCall e,
+        RexExecutor executor) {
     final RexNode operand = e.getOperands().get(0);
     switch (operand.getKind()) {
     case LITERAL:
@@ -2373,7 +2380,10 @@ public class RexUtil {
         }
       }
       final List<RexNode> reducedValues = new ArrayList<>();
-      EXECUTOR.reduce(rexBuilder, ImmutableList.<RexNode>of(e), reducedValues);
+      if (executor == null) {
+        executor = EXECUTOR;
+      }
+      executor.reduce(rexBuilder, ImmutableList.<RexNode>of(e), reducedValues);
       return Preconditions.checkNotNull(
           Iterables.getOnlyElement(reducedValues));
     default:
@@ -2941,11 +2951,14 @@ public class RexUtil {
   /** Deep expressions simplifier. */
   public static class ExprSimplifier extends RexShuttle {
     private final RexBuilder rexBuilder;
+    private final RexExecutor executor;
     private final boolean unknownAsFalse;
     private final Map<RexNode, Boolean> unknownAsFalseMap;
 
-    public ExprSimplifier(RexBuilder rexBuilder, boolean unknownAsFalse) {
+    public ExprSimplifier(RexBuilder rexBuilder, boolean unknownAsFalse,
+        RexExecutor executor) {
       this.rexBuilder = rexBuilder;
+      this.executor = executor;
       this.unknownAsFalse = unknownAsFalse;
       this.unknownAsFalseMap = new HashMap<>();
     }
@@ -2970,7 +2983,7 @@ public class RexUtil {
         }
       }
       RexNode node = super.visitCall(call);
-      RexNode simplifiedNode = simplify(rexBuilder, node, unknownAsFalseCall);
+      RexNode simplifiedNode = simplify(rexBuilder, node, unknownAsFalseCall, executor);
       if (node == simplifiedNode) {
         return node;
       }
