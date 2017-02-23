@@ -22,6 +22,7 @@ import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.util.Litmus;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
 import java.util.List;
@@ -55,14 +56,10 @@ public class RexCall extends RexNode {
       RelDataType type,
       SqlOperator op,
       List<? extends RexNode> operands) {
-    assert type != null : "precondition: type != null";
-    assert op != null : "precondition: op != null";
-    assert operands != null : "precondition: operands != null";
-    this.type = type;
-    this.op = op;
+    this.type = Preconditions.checkNotNull(type);
+    this.op = Preconditions.checkNotNull(op);
     this.operands = ImmutableList.copyOf(operands);
     assert op.getKind() != null : op;
-
     assert op.validRexOperands(operands.size(), Litmus.THROW) : this;
   }
 

@@ -1826,4 +1826,18 @@ select count(*) as c from "scott".emp where not (ename in ('Fred'));
 
 !ok
 
+# [CALCITE-1638] Simplify "$x = $x" to "$x is not null"
+select count(*) as c from "scott".emp where deptno > deptno;
++---+
+| C |
++---+
+| 0 |
++---+
+(1 row)
+
+!ok
+EnumerableAggregate(group=[{}], C=[COUNT()])
+  EnumerableValues(tuples=[[]])
+!plan
+
 # End misc.iq

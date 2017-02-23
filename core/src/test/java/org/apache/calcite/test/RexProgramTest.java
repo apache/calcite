@@ -195,6 +195,10 @@ public class RexProgramTest {
     return rexBuilder.makeCall(SqlStdOperatorTable.EQUALS, n1, n2);
   }
 
+  private RexNode ne(RexNode n1, RexNode n2) {
+    return rexBuilder.makeCall(SqlStdOperatorTable.NOT_EQUALS, n1, n2);
+  }
+
   private RexNode le(RexNode n1, RexNode n2) {
     return rexBuilder.makeCall(SqlStdOperatorTable.LESS_THAN_OR_EQUAL, n1, n2);
   }
@@ -850,6 +854,8 @@ public class RexProgramTest {
     final RelDataType booleanType =
         typeFactory.createSqlType(SqlTypeName.BOOLEAN);
     final RelDataType intType = typeFactory.createSqlType(SqlTypeName.INTEGER);
+    final RelDataType intNullableType =
+        typeFactory.createTypeWithNullability(intType, true);
     final RelDataType rowType = typeFactory.builder()
         .add("a", booleanType)
         .add("b", booleanType)
@@ -859,6 +865,7 @@ public class RexProgramTest {
         .add("f", booleanType)
         .add("g", booleanType)
         .add("h", intType)
+        .add("i", intNullableType)
         .build();
 
     final RexDynamicParam range = rexBuilder.makeDynamicParam(rowType, 0);
@@ -867,6 +874,8 @@ public class RexProgramTest {
     final RexNode cRef = rexBuilder.makeFieldAccess(range, 2);
     final RexNode dRef = rexBuilder.makeFieldAccess(range, 3);
     final RexNode eRef = rexBuilder.makeFieldAccess(range, 4);
+    final RexNode hRef = rexBuilder.makeFieldAccess(range, 7);
+    final RexNode iRef = rexBuilder.makeFieldAccess(range, 8);
     final RexLiteral literal1 = rexBuilder.makeExactLiteral(BigDecimal.ONE);
 
     // and: remove duplicates
@@ -985,6 +994,42 @@ public class RexProgramTest {
         or(lt(aRef, literal1),
             and(trueLiteral, or(falseLiteral, falseLiteral))),
         "<(?0.a, 1)");
+
+    // "x = x" simplifies to "x is not null"
+    checkSimplify(eq(literal1, literal1), "true");
+    checkSimplify(eq(hRef, hRef), "true");
+    checkSimplify2(eq(iRef, iRef), "=(?0.i, ?0.i)", "IS NOT NULL(?0.i)");
+    checkSimplify(eq(iRef, hRef), "=(?0.i, ?0.h)");
+
+    // "x <= x" simplifies to "x is not null"
+    checkSimplify(le(literal1, literal1), "true");
+    checkSimplify(le(hRef, hRef), "true");
+    checkSimplify2(le(iRef, iRef), "<=(?0.i, ?0.i)", "IS NOT NULL(?0.i)");
+    checkSimplify(le(iRef, hRef), "<=(?0.i, ?0.h)");
+
+    // "x >= x" simplifies to "x is not null"
+    checkSimplify(ge(literal1, literal1), "true");
+    checkSimplify(ge(hRef, hRef), "true");
+    checkSimplify2(ge(iRef, iRef), ">=(?0.i, ?0.i)", "IS NOT NULL(?0.i)");
+    checkSimplify(ge(iRef, hRef), ">=(?0.i, ?0.h)");
+
+    // "x != x" simplifies to "false"
+    checkSimplify(ne(literal1, literal1), "false");
+    checkSimplify(ne(hRef, hRef), "false");
+    checkSimplify2(ne(iRef, iRef), "<>(?0.i, ?0.i)", "false");
+    checkSimplify(ne(iRef, hRef), "<>(?0.i, ?0.h)");
+
+    // "x < x" simplifies to "false"
+    checkSimplify(lt(literal1, literal1), "false");
+    checkSimplify(lt(hRef, hRef), "false");
+    checkSimplify2(lt(iRef, iRef), "<(?0.i, ?0.i)", "false");
+    checkSimplify(lt(iRef, hRef), "<(?0.i, ?0.h)");
+
+    // "x > x" simplifies to "false"
+    checkSimplify(gt(literal1, literal1), "false");
+    checkSimplify(gt(hRef, hRef), "false");
+    checkSimplify2(gt(iRef, iRef), ">(?0.i, ?0.i)", "false");
+    checkSimplify(gt(iRef, hRef), ">(?0.i, ?0.h)");
   }
 
   @Test public void testSimplifyFilter() {

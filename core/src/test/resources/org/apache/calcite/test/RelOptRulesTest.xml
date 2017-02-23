@@ -3913,8 +3913,7 @@ ProjectRel(EXPR$0=[1])
             <![CDATA[
 LogicalProject(EXPR$0=[1])
   LogicalJoin(condition=[=($7, $16)], joinType=[inner])
-    LogicalFilter(condition=[=(1, 1)])
-      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
@@ -3922,8 +3921,7 @@ LogicalProject(EXPR$0=[1])
             <![CDATA[
 LogicalProject(EXPR$0=[1])
   LogicalJoin(condition=[=($7, $16)], joinType=[inner])
-    LogicalFilter(condition=[=(1, 1)])
-      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
@@ -4187,7 +4185,7 @@ LogicalProject(DEPTNO=[$0])
     <TestCase name="testCastInAggregateReduceFunctions">
         <Resource name="sql">
             <![CDATA[select name, stddev_pop(deptno), avg(deptno), stddev_samp(deptno),var_pop(deptno), var_samp(deptno)
-            from sales.dept group by name]]>
+from sales.dept group by name]]>
         </Resource>
         <Resource name="planBefore">
             <![CDATA[
@@ -6693,7 +6691,9 @@ LogicalAggregate(group=[{0}], EXPR$1=[SUM($2)], EXPR$2=[AVG($1)])
     <TestCase name="testCastInAggregateExpandDistinctAggregatesRule">
         <Resource name="sql">
             <![CDATA[select name, sum(distinct cn), sum(distinct sm)
-from (select name, count(dept.deptno) as cn,sum(dept.deptno) as sm from sales.dept group by name)
+from (
+  select name, count(dept.deptno) as cn,sum(dept.deptno) as sm
+  from sales.dept group by name)
 group by name]]>
         </Resource>
         <Resource name="planBefore">

@@ -1615,6 +1615,24 @@ public class RexUtil {
     case LESS_THAN:
     case LESS_THAN_OR_EQUAL:
     case NOT_EQUALS:
+      final List<RexNode> operands = ((RexCall) e).getOperands();
+      if (RexUtil.eq(operands.get(0), operands.get(1))
+          && (unknownAsFalse
+          || (!operands.get(0).getType().isNullable()
+              && !operands.get(1).getType().isNullable()))) {
+        switch (e.getKind()) {
+        case EQUALS:
+        case GREATER_THAN_OR_EQUAL:
+        case LESS_THAN_OR_EQUAL:
+          // "x = x" simplifies to "x is not null" (similarly <= and >=)
+          return simplify(rexBuilder,
+              rexBuilder.makeCall(SqlStdOperatorTable.IS_NOT_NULL,
+                  operands.get(0)));
+        default:
+          // "x != x" simplifies to "false" (similarly < and >)
+          return rexBuilder.makeLiteral(false);
+        }
+      }
       return simplifyCall(rexBuilder, (RexCall) e);
     default:
       return e;
