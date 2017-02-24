@@ -39,8 +39,8 @@ Unpack the source distribution `.tar.gz` or `.zip` file,
 then build using maven:
 
 {% highlight bash %}
-$ tar xvfz calcite-1.11.0-source.tar.gz
-$ cd calcite-1.11.0
+$ tar xvfz calcite-1.12.0-source.tar.gz
+$ cd calcite-1.12.0
 $ mvn install
 {% endhighlight %}
 
@@ -404,7 +404,7 @@ the `KEYS` file.
 Before you start:
 
 * Set up signing keys as described above.
-* Make sure you are using JDK 1.7 (not 1.8).
+* Make sure you are using JDK 1.8 (not 1.6 or 9).
 * Make sure build and tests succeed with `-Dcalcite.test.db=hsqldb` (the default)
 
 {% highlight bash %}
