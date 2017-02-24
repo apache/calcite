@@ -36,6 +36,7 @@ import org.apache.calcite.sql.validate.SqlDelegatingConformance;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
+import org.apache.calcite.test.MockCatalogReader.CustomInitializerExpressionFactory;
 import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.ImmutableBitSet;
 
@@ -61,6 +62,7 @@ import java.util.Objects;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
@@ -8110,6 +8112,17 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     final String sql2 = "insert into empnullables\n"
         + "values (1, 'nom', null, 0, null)";
     pragmaticTester.checkQuery(sql2);
+  }
+
+  @Test public void testInsertShouldNotCheckForDefaultValue() {
+    CustomInitializerExpressionFactory.methodCalled = false;
+    final SqlTester pragmaticTester =
+        tester.withConformance(SqlConformanceEnum.PRAGMATIC_2003);
+    final String sql1 = "insert into emp values(1, 'nom', 'job', 0, "
+        + "timestamp '1970-01-01 00:00:00', 1, 1, 1, false)";
+    pragmaticTester.checkQuery(sql1);
+    assertFalse("Should not check for default value when column value present in insert.",
+        CustomInitializerExpressionFactory.methodCalled);
   }
 
   @Test public void testInsertView() {

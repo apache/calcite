@@ -62,6 +62,7 @@ import org.apache.calcite.schema.Wrapper;
 import org.apache.calcite.schema.impl.AbstractSchema;
 import org.apache.calcite.sql.SqlAccessType;
 import org.apache.calcite.sql.SqlCollation;
+import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
@@ -153,9 +154,15 @@ public class MockCatalogReader extends CalciteCatalogReader {
     MockSchema salesSchema = new MockSchema("SALES");
     registerSchema(salesSchema);
 
+    // Register "EMP" table with customer InitializerExpressionFactory
+    // to check whether newDefaultValue method called or not.
+    final InitializerExpressionFactory customInitializerExpressionFactory =
+        new CustomInitializerExpressionFactory(typeFactory);
+
     // Register "EMP" table.
     final MockTable empTable =
-        MockTable.create(this, salesSchema, "EMP", false, 14);
+        MockTable.create(this, salesSchema, "EMP", false, 14, null,
+            customInitializerExpressionFactory);
     empTable.addColumn("EMPNO", f.intType, true);
     empTable.addColumn("ENAME", f.varchar20Type);
     empTable.addColumn("JOB", f.varchar10Type);
@@ -1320,6 +1327,28 @@ public class MockCatalogReader extends CalciteCatalogReader {
                 new RelDataTypeFieldImpl("ZIP", 2, intType),
                 new RelDataTypeFieldImpl("STATE", 3, varchar20Type)),
             RelDataTypeComparability.NONE);
+  }
+
+  /** To check whether newColumnDefaultValue is called or not. */
+  public static class CustomInitializerExpressionFactory extends NullInitializerExpressionFactory {
+    public static boolean methodCalled = false;
+
+    public CustomInitializerExpressionFactory(RelDataTypeFactory typeFactory) {
+      super(typeFactory);
+    }
+
+    @Override public RexNode newColumnDefaultValue(RelOptTable table, int iColumn) {
+      methodCalled = true;
+      return super.newColumnDefaultValue(table, iColumn);
+    }
+
+    @Override public RexNode newAttributeInitializer(RelDataType type,
+        SqlFunction constructor, int iAttribute,
+        List<RexNode> constructorArgs) {
+      methodCalled = true;
+      return super.newAttributeInitializer(type, constructor, iAttribute,
+         constructorArgs);
+    }
   }
 }
 
