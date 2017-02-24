@@ -8112,6 +8112,42 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     pragmaticTester.checkQuery(sql2);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1510">[CALCITE-1510]
+   * INSERT/UPSERT should allow fewer values than columns</a>,
+   * check for default value only when target field is null. */
+  @Test public void testInsertShouldNotCheckForDefaultValue() {
+    final int c =
+        MockCatalogReader.CountingFactory.THREAD_CALL_COUNT.get().get();
+    final SqlTester pragmaticTester =
+        tester.withConformance(SqlConformanceEnum.PRAGMATIC_2003);
+    final String sql1 = "insert into emp values(1, 'nom', 'job', 0, "
+        + "timestamp '1970-01-01 00:00:00', 1, 1, 1, false)";
+    pragmaticTester.checkQuery(sql1);
+    assertThat("Should not check for default value if column is in INSERT",
+        MockCatalogReader.CountingFactory.THREAD_CALL_COUNT.get().get(), is(c));
+
+    // Now add a list of target columns, keeping the query otherwise the same.
+    final String sql2 = "insert into emp (empno, ename, job, mgr, hiredate,\n"
+        + "  sal, comm, deptno, slacker)\n"
+        + "values(1, 'nom', 'job', 0,\n"
+        + "  timestamp '1970-01-01 00:00:00', 1, 1, 1, false)";
+    pragmaticTester.checkQuery(sql2);
+    assertThat("Should not check for default value if column is in INSERT",
+        MockCatalogReader.CountingFactory.THREAD_CALL_COUNT.get().get(), is(c));
+
+    // Now remove SLACKER, which is NOT NULL, from the target list.
+    final String sql3 = "insert into ^emp^ (empno, ename, job, mgr, hiredate,\n"
+        + "  sal, comm, deptno)\n"
+        + "values(1, 'nom', 'job', 0,\n"
+        + "  timestamp '1970-01-01 00:00:00', 1, 1, 1)";
+    pragmaticTester.checkQueryFails(sql3,
+        "Column 'SLACKER' has no default value and does not allow NULLs");
+    assertThat("Missing non-NULL column generates a call to factory",
+        MockCatalogReader.CountingFactory.THREAD_CALL_COUNT.get().get(),
+        is(c + 1));
+  }
+
   @Test public void testInsertView() {
     tester.checkQuery("insert into empnullables_20 (ename, empno, comm)\n"
         + "values ('Karl', 1, 1)");
