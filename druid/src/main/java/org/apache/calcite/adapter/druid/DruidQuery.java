@@ -883,6 +883,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
       case GREATER_THAN_OR_EQUAL:
       case LESS_THAN:
       case LESS_THAN_OR_EQUAL:
+      case IN:
         call = (RexCall) e;
         int posRef;
         int posConstant;
@@ -913,6 +914,12 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
         case LESS_THAN_OR_EQUAL:
           return new JsonBound("bound", tr(e, posRef), null, false, tr(e, posConstant), false,
               call.getOperands().get(posRef).getType().getFamily() == SqlTypeFamily.NUMERIC);
+        case IN:
+          ImmutableList.Builder listBuilder = ImmutableList.builder();
+          for (RexNode rexNode: call.operands) {
+            listBuilder.add(rexNode.toString());
+          }
+          return new JsonInFilter("in", tr(e, posRef), listBuilder.build());
         }
         break;
       case AND:
@@ -1178,6 +1185,26 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
       default:
         writeField(generator, "fields", fields);
       }
+      generator.writeEndObject();
+    }
+  }
+
+  /** IN filter. */
+  private static class JsonInFilter extends JsonFilter {
+    private final String dimension;
+    private final List<String> values;
+
+    private JsonInFilter(String type, String dimension, List<String> values) {
+      super(type);
+      this.dimension = dimension;
+      this.values = values;
+    }
+
+    public void write(JsonGenerator generator) throws IOException {
+      generator.writeStartObject();
+      generator.writeStringField("type", type);
+      generator.writeStringField("dimension", dimension);
+      writeField(generator, "values", values);
       generator.writeEndObject();
     }
   }
