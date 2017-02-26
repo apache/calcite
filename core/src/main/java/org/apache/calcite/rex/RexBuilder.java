@@ -474,6 +474,21 @@ public class RexBuilder {
   }
 
   /**
+   * rounds a timestamp value to the given precision
+   *
+   * @param timestamp The value to be rounded, will change in place
+   * @param precision the desired precision
+   */
+  private void roundTimestampToPrecision(Calendar timestamp, long precision) {
+    if (precision == RelDataType.PRECISION_NOT_SPECIFIED) {
+      precision = 0;
+    }
+    final long pow = DateTimeUtils.powerX(10, 3 - precision);
+    final long timeMs = SqlFunctions.round(timestamp.getTimeInMillis(), pow);
+    timestamp.setTimeInMillis(timeMs);
+  }
+
+  /**
    * Creates a call to the CAST operator, expanding if possible, and optionally
    * also preserving nullability.
    *
@@ -502,14 +517,7 @@ public class RexBuilder {
         case TIME:
           assert value instanceof Calendar;
           final Calendar calendar = (Calendar) value;
-          int scale = type.getScale();
-          if (scale == RelDataType.SCALE_NOT_SPECIFIED) {
-            scale = 0;
-          }
-          calendar.setTimeInMillis(
-              SqlFunctions.round(
-                  calendar.getTimeInMillis(),
-                  DateTimeUtils.powerX(10, 3 - scale)));
+          roundTimestampToPrecision(calendar, type.getPrecision());
           break;
         case INTERVAL_DAY:
         case INTERVAL_DAY_HOUR:
@@ -1073,6 +1081,7 @@ public class RexBuilder {
       Calendar timestamp,
       int precision) {
     assert timestamp != null;
+    roundTimestampToPrecision(timestamp, precision);
     return makeLiteral(
         timestamp,
         typeFactory.createSqlType(SqlTypeName.TIMESTAMP, precision),
