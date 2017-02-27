@@ -439,6 +439,9 @@ GRANTED,
 **HAVING**,
 HIERARCHY,
 **HOLD**,
+HOP,
+HOP_END,
+HOP_START,
 **HOUR**,
 **IDENTITY**,
 IMMEDIATE,
@@ -656,6 +659,8 @@ SERIALIZABLE,
 SERVER,
 SERVER_NAME,
 SESSION,
+SESSION_END,
+SESSION_START,
 **SESSION_USER**,
 **SET**,
 SETS,
@@ -771,6 +776,9 @@ TRIGGER_NAME,
 TRIGGER_SCHEMA,
 **TRIM**,
 **TRUE**,
+TUMBLE,
+TUMBLE_END,
+TUMBLE_START,
 TYPE,
 **UESCAPE**,
 UNBOUNDED,
@@ -1278,6 +1286,26 @@ Not implemented:
 | GROUPING(expression [, expression ] * ) | Returns a bit vector of the given grouping expressions
 | GROUP_ID()           | Returns an integer that uniquely identifies the combination of grouping keys
 | GROUPING_ID(expression [, expression ] * ) | Synonym for `GROUPING`
+
+### Grouped window functions
+
+| Operator syntax      | Description
+|:-------------------- |:-----------
+| TUMBLE(dateTime, interval [, time ]) | Indicate a tumbling window of *interval* for *dateTime*. The window is aligned at *time*.
+| HOP(dateTime, slide, size, [, time ]) | Indicate a hopping window for *dateTime*. The window covers rows within the interval of *size*. It shifts for every *slide* and is aligned at *time*.
+| SESSION(dateTime, interval, [, time]) | Indicate a session window of *interval* for *dateTime*. The window is aligned at *time*.
+
+### Grouped auxiliary functions
+
+| Operator syntax      | Description
+|:-------------------- |:-----------
+| TUMBLE_START(expression, interval [, time ]) | Return the value of the *expression* at the beginning of the window.
+| TUMBLE_END(expression, interval [, time ]) | Return the value of the *expression* at the end of the window.
+| HOP_START(expression, slide, size, [, time ]) | Return the value of the *expression* at the beginning of the window.
+| HOP_END(expression, slide, size, [, time ]) | Return the value of the *expression* at the end of the window.
+| SESSION_START(expression, interval, [, time]) | Return the value of the *expression* at the beginning of the window.
+| SESSION_END(expression, interval, [, time]) | Return the value of the *expression* at the end of the window.
+
 
 ### User-defined functions
 

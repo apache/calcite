@@ -2395,6 +2395,41 @@ LogicalDelta
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testHopTable">
+        <Resource name="sql">
+            <![CDATA[select stream hop_start(rowtime, interval '1' hour, interval '3' hour) as rowtime,
+count(*) as c
+from orders
+group by hop(rowtime, interval '1' hour, interval '3' hour)]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalDelta
+  LogicalProject(ROWTIME=[HOP_START($0, 3600000, 10800000)], C=[$1])
+    LogicalAggregate(group=[{0}], C=[COUNT()])
+      LogicalProject($f0=[HOP($0, 3600000, 10800000)])
+        LogicalTableScan(table=[[STREAM_JOINS, ORDERS]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testSessionTable">
+        <Resource name="sql">
+            <![CDATA[select stream session_start(rowtime, interval '1' hour) as rowtime,
+session_end(rowtime, interval '1' hour),
+count(*) as c
+from orders
+group by session(rowtime, interval '1' hour)]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalDelta
+  LogicalProject(ROWTIME=[SESSION_START($0, 3600000)], EXPR$1=[SESSION_END($0, 3600000)], C=[$1])
+    LogicalAggregate(group=[{0}], C=[COUNT()])
+      LogicalProject($f0=[SESSION($0, 3600000)])
+        LogicalTableScan(table=[[STREAMS, ORDERS]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testGroupByCaseIn">
         <Resource name="sql">
             <![CDATA[select

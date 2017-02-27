@@ -5757,6 +5757,9 @@ String CommonNonReservedKeyWord() :
         | <GOTO>
         | <GRANTED>
         | <HIERARCHY>
+        | <HOP : "HOP" >
+        | <HOP_END : "HOP_END">
+        | <HOP_START : "HOP_START">
         | <IMMEDIATE>
         | <IMPLEMENTATION>
         | <INCLUDING>
@@ -5857,6 +5860,8 @@ String CommonNonReservedKeyWord() :
         | <SERVER>
         | <SERVER_NAME>
         | <SESSION>
+        | <SESSION_END : "SESSION_END">
+        | <SESSION_START : "SESSION_START">
         | <SETS>
         | <SIMPLE>
         | <SIZE>
@@ -5933,6 +5938,9 @@ String CommonNonReservedKeyWord() :
         | <TRIGGER_CATALOG>
         | <TRIGGER_NAME>
         | <TRIGGER_SCHEMA>
+        | <TUMBLE : "TUMBLE" >
+        | <TUMBLE_END : "TUMBLE_END">
+        | <TUMBLE_START : "TUMBLE_START">
         | <TYPE>
         | <UNBOUNDED>
         | <UNCOMMITTED>

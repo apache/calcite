@@ -50,6 +50,8 @@ data: {
 
     # List of keywords from "keywords" section that are not reserved.
     nonReservedKeywords: [
+      "HOP", "HOP_END", "HOP_START", "SESSION_END", "SESSION_START",
+      "TUMBLE", "TUMBLE_END", "TUMBLE_START"
     ]
 
     # List of methods for parsing custom SQL statements.
