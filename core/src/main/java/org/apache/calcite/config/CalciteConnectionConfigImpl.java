@@ -56,6 +56,11 @@ public class CalciteConnectionConfigImpl extends ConnectionConfigImpl
         .getBoolean();
   }
 
+  public boolean approximateDecimal() {
+    return CalciteConnectionProperty.APPROXIMATE_DECIMAL.wrap(properties)
+        .getBoolean();
+  }
+
   public boolean autoTemp() {
     return CalciteConnectionProperty.AUTO_TEMP.wrap(properties).getBoolean();
   }

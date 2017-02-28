@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.adapter.druid;
 
+import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
@@ -39,6 +40,7 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.runtime.PredicateImpl;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
@@ -46,7 +48,6 @@ import org.apache.calcite.util.trace.CalciteTrace;
 
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 
 import org.slf4j.Logger;
@@ -74,19 +75,42 @@ public class DruidRules {
       PROJECT, AGGREGATE, PROJECT_SORT, SORT, SORT_PROJECT);
 
   /** Predicate that returns whether Druid can not handle an aggregate. */
-  private static final Predicate<AggregateCall> BAD_AGG =
-      new PredicateImpl<AggregateCall>() {
-        public boolean test(AggregateCall aggregateCall) {
-          switch (aggregateCall.getAggregation().getKind()) {
-          case COUNT:
-          case SUM:
-          case SUM0:
-          case MIN:
-          case MAX:
-            return false;
-          default:
-            return true;
+  private static final Predicate<Aggregate> BAD_AGG =
+      new PredicateImpl<Aggregate>() {
+        public boolean test(Aggregate aggregate) {
+          final CalciteConnectionConfig config =
+                  aggregate.getCluster().getPlanner().getContext()
+                      .unwrap(CalciteConnectionConfig.class);
+          for (AggregateCall aggregateCall : aggregate.getAggCallList()) {
+            switch (aggregateCall.getAggregation().getKind()) {
+            case COUNT:
+            case SUM:
+            case SUM0:
+            case MIN:
+            case MAX:
+              switch (aggregateCall.getType().getSqlTypeName().getFamily()) {
+              case APPROXIMATE_NUMERIC:
+              case INTEGER:
+                continue;
+              case EXACT_NUMERIC:
+                // Decimal
+                RelDataType type = aggregateCall.getType();
+                assert type.getSqlTypeName() == SqlTypeName.DECIMAL;
+                if (type.getScale() == 0 || config.approximateDecimal()) {
+                  // If scale is zero or we allow approximating decimal, we can proceed
+                  continue;
+                }
+                return true;
+              default:
+                // Cannot handle this aggregate function
+                return true;
+              }
+            default:
+              // Cannot handle this aggregate function
+              return true;
+            }
           }
+          return false;
         }
       };
 
@@ -292,7 +316,7 @@ public class DruidRules {
       }
       if (aggregate.indicator
               || aggregate.getGroupSets().size() != 1
-              || Iterables.any(aggregate.getAggCallList(), BAD_AGG)
+              || BAD_AGG.apply(aggregate)
               || !validAggregate(aggregate, query)) {
         return;
       }
@@ -333,7 +357,7 @@ public class DruidRules {
       }
       if (aggregate.indicator
               || aggregate.getGroupSets().size() != 1
-              || Iterables.any(aggregate.getAggCallList(), BAD_AGG)
+              || BAD_AGG.apply(aggregate)
               || !validAggregate(aggregate, timestampIdx)) {
         return;
       }

@@ -42,6 +42,10 @@ public enum CalciteConnectionProperty implements ConnectionProperty {
    * ({@code ORDER BY aggFun DESC LIMIT n}) are acceptable. */
   APPROXIMATE_TOP_N("approximateTopN", Type.BOOLEAN, false, false),
 
+  /** Whether approximate results from aggregate functions on
+   * DECIMAL types are acceptable. */
+  APPROXIMATE_DECIMAL("approximateDecimal", Type.BOOLEAN, false, false),
+
   /** Whether to store query results in temporary tables. */
   AUTO_TEMP("autoTemp", Type.BOOLEAN, false, false),
 
