@@ -7110,6 +7110,236 @@ public class SqlParserTest {
             + "VALUES (ROW(1, (CURRENT VALUE FOR `MY_SEQ`)))");
   }
 
+  @Test public void testMatchRecognizePatternExpression() {
+    sql("select * \n"
+      + "  from t match_recognize \n"
+      + "  (\n"
+      + "    pattern (strt down+ up+)\n"
+      + "    define \n"
+      + "      down as down.price < PREV(down.price),\n"
+      + "      up as up.price > prev(up.price)\n"
+      + "  ) mr")
+      .ok("SELECT *\n"
+        + "FROM `T` MATCH_RECOGNIZE(\n"
+        + "PATTERN (((`STRT` (`DOWN` +)) (`UP` +)))\n"
+        + "DEFINE "
+        + "`DOWN` AS (`DOWN`.`PRICE` < (PREV(`DOWN`.`PRICE`, 1))), "
+        + "`UP` AS (`UP`.`PRICE` > (PREV(`UP`.`PRICE`, 1)))"
+        + ") AS `MR`");
+    sql("select * \n"
+      + "  from t match_recognize \n"
+      + "  (\n"
+      + "    pattern (strt down+ up+$)\n"
+      + "    define \n"
+      + "      down as down.price < PREV(down.price),\n"
+      + "      up as up.price > prev(up.price)\n"
+      + "  ) mr")
+      .ok("SELECT *\n"
+        + "FROM `T` MATCH_RECOGNIZE(\n"
+        + "PATTERN (((`STRT` (`DOWN` +)) (`UP` +)) $)\n"
+        + "DEFINE "
+        + "`DOWN` AS (`DOWN`.`PRICE` < (PREV(`DOWN`.`PRICE`, 1))), "
+        + "`UP` AS (`UP`.`PRICE` > (PREV(`UP`.`PRICE`, 1)))"
+        + ") AS `MR`");
+
+    sql("select * \n"
+      + "  from t match_recognize \n"
+      + "  (\n"
+      + "    pattern (^strt down+ up+)\n"
+      + "    define \n"
+      + "      down as down.price < PREV(down.price),\n"
+      + "      up as up.price > prev(up.price)\n"
+      + "  ) mr")
+      .ok("SELECT *\n"
+        + "FROM `T` MATCH_RECOGNIZE(\n"
+        + "PATTERN (^ ((`STRT` (`DOWN` +)) (`UP` +)))\n"
+        + "DEFINE "
+        + "`DOWN` AS (`DOWN`.`PRICE` < (PREV(`DOWN`.`PRICE`, 1))), "
+        + "`UP` AS (`UP`.`PRICE` > (PREV(`UP`.`PRICE`, 1)))"
+        + ") AS `MR`");
+
+    sql("select * \n"
+      + "  from t match_recognize \n"
+      + "  (\n"
+      + "    pattern (^strt down+ up+$)\n"
+      + "    define \n"
+      + "      down as down.price < PREV(down.price),\n"
+      + "      up as up.price > prev(up.price)\n"
+      + "  ) mr")
+      .ok("SELECT *\n"
+        + "FROM `T` MATCH_RECOGNIZE(\n"
+        + "PATTERN (^ ((`STRT` (`DOWN` +)) (`UP` +)) $)\n"
+        + "DEFINE "
+        + "`DOWN` AS (`DOWN`.`PRICE` < (PREV(`DOWN`.`PRICE`, 1))), "
+        + "`UP` AS (`UP`.`PRICE` > (PREV(`UP`.`PRICE`, 1)))"
+        + ") AS `MR`");
+
+    sql("select * \n"
+      + "  from t match_recognize \n"
+      + "  (\n"
+      + "    pattern (strt down* up?)\n"
+      + "    define \n"
+      + "      down as down.price < PREV(down.price),\n"
+      + "      up as up.price > prev(up.price)\n"
+      + "  ) mr")
+      .ok("SELECT *\n"
+        + "FROM `T` MATCH_RECOGNIZE(\n"
+        + "PATTERN (((`STRT` (`DOWN` *)) (`UP` ?)))\n"
+        + "DEFINE "
+        + "`DOWN` AS (`DOWN`.`PRICE` < (PREV(`DOWN`.`PRICE`, 1))), "
+        + "`UP` AS (`UP`.`PRICE` > (PREV(`UP`.`PRICE`, 1)))"
+        + ") AS `MR`");
+
+    sql("select * \n"
+      + "  from t match_recognize \n"
+      + "  (\n"
+      + "    pattern (strt {-down-} up?)\n"
+      + "    define \n"
+      + "      down as down.price < PREV(down.price),\n"
+      + "      up as up.price > prev(up.price)\n"
+      + "  ) mr")
+      .ok("SELECT *\n"
+        + "FROM `T` MATCH_RECOGNIZE(\n"
+        + "PATTERN (((`STRT` ({- `DOWN` -})) (`UP` ?)))\n"
+        + "DEFINE "
+        + "`DOWN` AS (`DOWN`.`PRICE` < (PREV(`DOWN`.`PRICE`, 1))), "
+        + "`UP` AS (`UP`.`PRICE` > (PREV(`UP`.`PRICE`, 1)))"
+        + ") AS `MR`");
+
+    sql("select * \n"
+      + "  from t match_recognize \n"
+      + "  (\n"
+      + "    pattern (strt down{2} up{3,})\n"
+      + "    define \n"
+      + "      down as down.price < PREV(down.price),\n"
+      + "      up as up.price > prev(up.price)\n"
+      + "  ) mr")
+      .ok("SELECT *\n"
+        + "FROM `T` MATCH_RECOGNIZE(\n"
+        + "PATTERN (((`STRT` (`DOWN` { 2 })) (`UP` { 3, })))\n"
+        + "DEFINE "
+        + "`DOWN` AS (`DOWN`.`PRICE` < (PREV(`DOWN`.`PRICE`, 1))), "
+        + "`UP` AS (`UP`.`PRICE` > (PREV(`UP`.`PRICE`, 1)))"
+        + ") AS `MR`");
+
+    sql("select * \n"
+      + "  from t match_recognize \n"
+      + "  (\n"
+      + "    pattern (strt down{,2} up{3,5})\n"
+      + "    define \n"
+      + "      down as down.price < PREV(down.price),\n"
+      + "      up as up.price > prev(up.price)\n"
+      + "  ) mr")
+      .ok("SELECT *\n"
+        + "FROM `T` MATCH_RECOGNIZE(\n"
+        + "PATTERN (((`STRT` (`DOWN` { , 2 })) (`UP` { 3, 5 })))\n"
+        + "DEFINE "
+        + "`DOWN` AS (`DOWN`.`PRICE` < (PREV(`DOWN`.`PRICE`, 1))), "
+        + "`UP` AS (`UP`.`PRICE` > (PREV(`UP`.`PRICE`, 1)))"
+        + ") AS `MR`");
+
+    sql("select * \n"
+      + "  from t match_recognize \n"
+      + "  (\n"
+      + "    pattern (strt {-down+-} {-up*-})\n"
+      + "    define \n"
+      + "      down as down.price < PREV(down.price),\n"
+      + "      up as up.price > prev(up.price)\n"
+      + "  ) mr")
+      .ok("SELECT *\n"
+        + "FROM `T` MATCH_RECOGNIZE(\n"
+        + "PATTERN (((`STRT` ({- (`DOWN` +) -})) ({- (`UP` *) -})))\n"
+        + "DEFINE "
+        + "`DOWN` AS (`DOWN`.`PRICE` < (PREV(`DOWN`.`PRICE`, 1))), "
+        + "`UP` AS (`UP`.`PRICE` > (PREV(`UP`.`PRICE`, 1)))"
+        + ") AS `MR`");
+
+    sql("select * \n"
+      + "  from t match_recognize \n"
+      + "  (\n"
+      + "    pattern ( A B C | A C B | B A C | B C A | C A B | C B A)\n"
+      + "    define \n"
+      + "      A as A.price > PREV(A.price),\n"
+      + "      B as B.price < prev(B.price),\n"
+      + "      C as C.price > prev(C.price)\n"
+      + "  ) mr")
+      .ok("SELECT *\n"
+        + "FROM `T` MATCH_RECOGNIZE(\n"
+        + "PATTERN ((((((((`A` `B`) `C`) | ((`A` `C`) `B`)) | ((`B` `A`) `C`)) "
+        + "| ((`B` `C`) `A`)) | ((`C` `A`) `B`)) | ((`C` `B`) `A`)))\n"
+        + "DEFINE "
+        + "`A` AS (`A`.`PRICE` > (PREV(`A`.`PRICE`, 1))), "
+        + "`B` AS (`B`.`PRICE` < (PREV(`B`.`PRICE`, 1))), "
+        + "`C` AS (`C`.`PRICE` > (PREV(`C`.`PRICE`, 1)))"
+        + ") AS `MR`");
+  }
+
+  @Test public void testMatchRecognizeDefineClause() {
+    sql("select * \n"
+      + "  from t match_recognize \n"
+      + "  (\n"
+      + "    pattern (strt down+ up+)\n"
+      + "    define \n"
+      + "      down as down.price < PREV(down.price),\n"
+      + "      up as up.price > NEXT(up.price)\n"
+      + "  ) mr")
+      .ok("SELECT *\n"
+        + "FROM `T` MATCH_RECOGNIZE(\n"
+        + "PATTERN (((`STRT` (`DOWN` +)) (`UP` +)))\n"
+        + "DEFINE "
+        + "`DOWN` AS (`DOWN`.`PRICE` < (PREV(`DOWN`.`PRICE`, 1))), "
+        + "`UP` AS (`UP`.`PRICE` > (NEXT(`UP`.`PRICE`, 1)))"
+        + ") AS `MR`");
+
+    sql("select * \n"
+      + "  from t match_recognize \n"
+      + "  (\n"
+      + "    pattern (strt down+ up+)\n"
+      + "    define \n"
+      + "      down as down.price < FIRST(down.price),\n"
+      + "      up as up.price > LAST(up.price)\n"
+      + "  ) mr")
+      .ok("SELECT *\n"
+        + "FROM `T` MATCH_RECOGNIZE(\n"
+        + "PATTERN (((`STRT` (`DOWN` +)) (`UP` +)))\n"
+        + "DEFINE "
+        + "`DOWN` AS (`DOWN`.`PRICE` < (FIRST(`DOWN`.`PRICE`, 0))), "
+        + "`UP` AS (`UP`.`PRICE` > (LAST(`UP`.`PRICE`, 0)))"
+        + ") AS `MR`");
+
+    sql("select * \n"
+      + "  from t match_recognize \n"
+      + "  (\n"
+      + "    pattern (strt down+ up+)\n"
+      + "    define \n"
+      + "      down as down.price < PREV(down.price,1),\n"
+      + "      up as up.price > LAST(up.price + up.TAX)\n"
+      + "  ) mr")
+      .ok("SELECT *\n"
+        + "FROM `T` MATCH_RECOGNIZE(\n"
+        + "PATTERN (((`STRT` (`DOWN` +)) (`UP` +)))\n"
+        + "DEFINE "
+        + "`DOWN` AS (`DOWN`.`PRICE` < (PREV(`DOWN`.`PRICE`, 1))), "
+        + "`UP` AS (`UP`.`PRICE` > (LAST((`UP`.`PRICE` + `UP`.`TAX`), 0)))"
+        + ") AS `MR`");
+
+    sql("select * \n"
+      + "  from t match_recognize \n"
+      + "  (\n"
+      + "    pattern (strt down+ up+)\n"
+      + "    define \n"
+      + "      down as down.price < PREV(down.price,1),\n"
+      + "      up as up.price > PREV(LAST(up.price + up.TAX),3)\n"
+      + "  ) mr")
+      .ok("SELECT *\n"
+        + "FROM `T` MATCH_RECOGNIZE(\n"
+        + "PATTERN (((`STRT` (`DOWN` +)) (`UP` +)))\n"
+        + "DEFINE "
+        + "`DOWN` AS (`DOWN`.`PRICE` < (PREV(`DOWN`.`PRICE`, 1))), "
+        + "`UP` AS (`UP`.`PRICE` > (PREV((LAST((`UP`.`PRICE` + `UP`.`TAX`), 0)), 3)))"
+        + ") AS `MR`");
+  }
+
   //~ Inner Interfaces -------------------------------------------------------
 
   /**

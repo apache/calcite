@@ -26,6 +26,7 @@ import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Intersect;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
+import org.apache.calcite.rel.core.MatchRecognize;
 import org.apache.calcite.rel.core.Minus;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.Sort;
@@ -46,6 +47,7 @@ import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlInsert;
 import org.apache.calcite.sql.SqlJoin;
 import org.apache.calcite.sql.SqlLiteral;
+import org.apache.calcite.sql.SqlMatchRecognize;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlSelect;
@@ -353,6 +355,37 @@ public class RelToSqlConverter extends SqlImplementor
                 return new SqlIdentifier(name, POS);
               }
             }), POS);
+  }
+
+  /**
+   * @see #dispatch
+   */
+  public Result visit(MatchRecognize e) {
+    final RelNode input = e.getInput();
+    final Result x = visitChild(0, input);
+    final Context context = matchRecognizeContext(x.qualifiedContext());
+
+    SqlNode tableRef = x.asQueryOrValues();
+
+    RexNode rexPattern = e.getPattern();
+    final SqlNode pattern = context.toSql(null, rexPattern);
+    final SqlLiteral isStrictStarts = SqlLiteral.createBoolean(e.isStrictStarts(), POS);
+    final SqlLiteral isStrictEnds = SqlLiteral.createBoolean(e.isStrictEnds(), POS);
+
+    List<SqlNode> list = Lists.newArrayList();
+    for (Map.Entry<String, RexNode> entry : e.getPatternDefinitions().entrySet()) {
+      String alias = entry.getKey();
+      SqlNode sqlNode = context.toSql(null, entry.getValue());
+      sqlNode = SqlStdOperatorTable.PATTERN_DEFINE_AS.createCall(POS,
+        sqlNode, new SqlIdentifier(alias, POS));
+      list.add(sqlNode);
+    }
+
+    final SqlNodeList patternDefList = new SqlNodeList(list, POS);
+
+    final SqlNode matchRecognize = new SqlMatchRecognize(POS, tableRef,
+      pattern, isStrictStarts, isStrictEnds, patternDefList);
+    return result(matchRecognize, Expressions.list(Clause.FROM), e, null);
   }
 
   @Override public void addSelect(List<SqlNode> selectList, SqlNode node,

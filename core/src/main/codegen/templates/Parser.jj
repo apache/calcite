@@ -439,6 +439,13 @@ SqlNode PatternFactor() :
                 ]
                 <RBRACE>
                 |
+                {
+                    startNum = SqlLiteral.createExactNumeric("-1", SqlParserPos.ZERO);
+                }
+                <COMMA>
+                endNum = UnsignedNumericLiteral()
+                <RBRACE>
+                |
                 <MINUS> extra = PatternExpression() <MINUS> <RBRACE>
                 {
                     extra = SqlStdOperatorTable.PATTERN_EXCLUDE.createCall(extra.getParserPosition().plus(getPos()), extra);
@@ -545,7 +552,7 @@ SqlNode PatternDefinition() :
     <AS>
     e = Expression(ExprContext.ACCEPT_SUBQUERY)
     {
-        return SqlStdOperatorTable.AS.createCall(var.getParserPosition().plus(getPos()), e, var);
+        return SqlStdOperatorTable.PATTERN_DEFINE_AS.createCall(var.getParserPosition().plus(getPos()), e, var);
     }
 }
 

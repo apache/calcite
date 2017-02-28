@@ -27,6 +27,7 @@ import org.apache.calcite.rel.logical.LogicalCorrelate;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalIntersect;
 import org.apache.calcite.rel.logical.LogicalJoin;
+import org.apache.calcite.rel.logical.LogicalMatchRecognize;
 import org.apache.calcite.rel.logical.LogicalMinus;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.logical.LogicalSort;
@@ -46,6 +47,7 @@ import org.apache.calcite.util.ImmutableBitSet;
 import com.google.common.collect.ImmutableList;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -81,6 +83,9 @@ public class RelFactories {
 
   public static final TableScanFactory DEFAULT_TABLE_SCAN_FACTORY =
       new TableScanFactoryImpl();
+
+  public static final MatchRecognizeFactory DEFAULT_MATCH_RECOGNIZE_FACTORY =
+    new MatchRecognizeFactoryImpl();
 
   /** A {@link RelBuilderFactory} that creates a {@link RelBuilder} that will
    * create logical relational expressions for everything. */
@@ -379,6 +384,35 @@ public class RelFactories {
   private static class TableScanFactoryImpl implements TableScanFactory {
     public RelNode createScan(RelOptCluster cluster, RelOptTable table) {
       return LogicalTableScan.create(cluster, table);
+    }
+  }
+
+  /**
+   * Can convert a {@link MatchRecognize} of
+   * the appropriate type of a rule's calling convertion
+   */
+  public interface MatchRecognizeFactory {
+    RelNode createMatchRecognize(RelNode input,
+      RexNode pattern,
+      boolean isStrictStarts,
+      boolean isStrictEnds,
+      Map<String, RexNode> defns,
+      RelDataType rowType);
+  }
+
+  /**
+   * Implementation of {@Link MatchRecognizeFactory} that returns a {@link LogicalMatchRecognize}
+   */
+  private static class MatchRecognizeFactoryImpl implements MatchRecognizeFactory {
+
+    @Override public RelNode createMatchRecognize(RelNode input,
+      RexNode pattern,
+      boolean isStrictStarts,
+      boolean isStrictEnds,
+      Map<String, RexNode> defns,
+      RelDataType rowType) {
+      return LogicalMatchRecognize.create(input, pattern,
+        isStrictStarts, isStrictEnds, defns, rowType);
     }
   }
 }

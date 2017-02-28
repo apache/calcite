@@ -1793,6 +1793,36 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     return true;
   }
 
+  private void registerMatchRecognize(
+    SqlValidatorScope parentScope,
+    SqlValidatorScope usingScope,
+    SqlMatchRecognize call,
+    SqlNode enclosingNode,
+    String alias,
+    boolean forceNullable) {
+
+    final MatchRecognizeNamespace matchRecognizeNamespace =
+      createMatchRecognizeNameSpace(call, enclosingNode);
+    registerNamespace(usingScope, alias, matchRecognizeNamespace, forceNullable);
+
+    final MatchRecognizeScope matchRecognizeScope = new MatchRecognizeScope(parentScope, call);
+    scopes.put(call, matchRecognizeScope);
+
+    //parse input query
+    SqlNode expr = call.getTableRef();
+    SqlNode newExpr = registerFrom(usingScope, matchRecognizeScope, expr,
+      expr, null, null, forceNullable);
+    if (expr != newExpr) {
+      call.setOperand(0, newExpr);
+    }
+  }
+
+  protected MatchRecognizeNamespace createMatchRecognizeNameSpace(
+      SqlMatchRecognize call,
+      SqlNode enclosingNode) {
+    return new MatchRecognizeNamespace(this, call, enclosingNode);
+  }
+
   /**
    * Registers a new namespace, and adds it as a child of its parent scope.
    * Derived class can override this method to tinker with namespaces as they
@@ -1877,6 +1907,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       case UNNEST:
       case OTHER_FUNCTION:
       case COLLECTION_TABLE:
+      case MATCH_RECOGNIZE:
 
         // give this anonymous construct a name since later
         // query processing stages rely on it
@@ -1930,7 +1961,10 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
             false);
       }
       return node;
-
+    case MATCH_RECOGNIZE:
+      registerMatchRecognize(parentScope, usingScope,
+        (SqlMatchRecognize) node, enclosingNode, alias, forceNullable);
+      return node;
     case TABLESAMPLE:
       call = (SqlCall) node;
       expr = call.operand(0);
@@ -4256,14 +4290,13 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     final MatchRecognizeNamespace ns = getNamespace(call).unwrap(MatchRecognizeNamespace.class);
     assert ns.rowType == null;
 
-    final List<Map.Entry<String, RelDataType>> fields = new ArrayList<>();
-
     // retrieve pattern variables used in pattern and subset
     SqlNode pattern = matchRecognize.getPattern();
     PatternVarVisitor visitor = new PatternVarVisitor(scope);
     pattern.accept(visitor);
 
     validateDefinitions(matchRecognize, scope);
+    ns.setType(getNamespace(matchRecognize.getTableRef()).getRowType());
   }
 
   public void validateDefinitions(SqlMatchRecognize mr, MatchRecognizeScope scope) {

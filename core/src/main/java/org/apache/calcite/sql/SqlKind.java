@@ -548,6 +548,12 @@ public enum SqlKind {
   INPUT_REF,
 
   /**
+   * Reference to an input field, with pattern var as modifier
+   *
+   * <p>(Only used at the RexNode level.)</p>
+   */
+  PATTERN_INPUT_REF,
+  /**
    * Reference to a sub-expression computed within the current relational
    * operator.
    *
