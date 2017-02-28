@@ -36,6 +36,11 @@
   githubId: F21
   org: Boostport
   role: Committer
+- name: Gian Merlino
+  apacheId: gian
+  githubId: gianm
+  org: Imply
+  role: Committer
 - name: James R. Taylor
   apacheId: jamestaylor
   githubId: JamesRTaylor
@@ -46,6 +51,11 @@
   githubId: jacques-n
   org: Dremio
   role: PMC
+- name: Jess Balint
+  apacheId: jbalint
+  githubId: jbalint
+  org: Stardog
+  role: Committer
 - name: Jesús Camacho Rodríguez
   apacheId: jcamacho
   githubId: jcamachor
@@ -72,6 +82,11 @@
   org: Hortonworks
   role: PMC
   homepage: http://people.apache.org/~jhyde
+- name: Laurent Goujon
+  apacheId: laurent
+  githubId: laurentgo
+  org: Dremio
+  role: Committer
 - name: Maryann Xue
   apacheId: maryannxue
   githubId: maryannxue
@@ -99,7 +114,7 @@
 - name: Nick Dimiduk
   apacheId: ndimiduk
   githubId: ndimiduk
-  org: Hortonworks
+  org:
   role: PMC
   homepage: http://www.n10k.com
 - name: Steven Noels

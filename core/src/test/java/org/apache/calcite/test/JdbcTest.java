@@ -4707,11 +4707,7 @@ public class JdbcTest {
         + "    EnumerableTableScan(table=[[hr, emps]])\n"
         + "    EnumerableCalc(expr#0=[{inputs}], expr#1=[true], proj#0..1=[{exprs}])\n"
         + "      EnumerableAggregate(group=[{0}])\n"
-        + "        EnumerableJoin(condition=[=($0, $1)], joinType=[inner])\n"
-        + "          EnumerableAggregate(group=[{1}])\n"
-        + "            EnumerableTableScan(table=[[hr, emps]])\n"
-        + "          EnumerableCalc(expr#0..3=[{inputs}], deptno=[$t0])\n"
-        + "            EnumerableTableScan(table=[[hr, depts]])";
+        + "        EnumerableTableScan(table=[[hr, depts]])";
     CalciteAssert.hr()
         .query(sql)
         .explainContains(explain)
@@ -4777,6 +4773,32 @@ public class JdbcTest {
         .with(Lex.JAVA)
         .query(sql)
         .returnsCount(599);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-685">[CALCITE-685]
+   * Correlated scalar sub-query in SELECT clause throws</a>. */
+  @Ignore("[CALCITE-685]")
+  @Test public void testCorrelatedScalarSubQuery() throws SQLException {
+    final String sql = "select e.department_id, sum(e.employee_id),\n"
+        + "       ( select sum(e2.employee_id)\n"
+        + "         from  employee e2\n"
+        + "         where e.department_id = e2.department_id\n"
+        + "       )\n"
+        + "from employee e\n"
+        + "group by e.department_id\n";
+    final String explain = "EnumerableJoin(condition=[true], joinType=[left])\n"
+        + "  EnumerableAggregate(group=[{7}], EXPR$1=[$SUM0($0)])\n"
+        + "    EnumerableTableScan(table=[[foodmart2, employee]])\n"
+        + "  EnumerableAggregate(group=[{}], EXPR$0=[SUM($0)])\n"
+        + "    EnumerableCalc(expr#0..16=[{inputs}], expr#17=[$cor0], expr#18=[$t17.department_id], expr#19=[=($t18, $t7)], employee_id=[$t0], department_id=[$t7], $condition=[$t19])\n"
+        + "      EnumerableTableScan(table=[[foodmart2, employee]])\n";
+    CalciteAssert.that()
+        .with(CalciteAssert.Config.FOODMART_CLONE)
+        .with(Lex.JAVA)
+        .query(sql)
+        .explainContains(explain)
+        .returnsCount(0);
   }
 
   @Test public void testLeftJoin() {

@@ -422,11 +422,7 @@ where exists (
 !ok
 EnumerableSemiJoin(condition=[=($1, $5)], joinType=[inner])
   EnumerableTableScan(table=[[hr, emps]])
-  EnumerableJoin(condition=[=($0, $1)], joinType=[inner])
-    EnumerableAggregate(group=[{1}])
-      EnumerableTableScan(table=[[hr, emps]])
-    EnumerableCalc(expr#0..3=[{inputs}], deptno=[$t0])
-      EnumerableTableScan(table=[[hr, depts]])
+  EnumerableTableScan(table=[[hr, depts]])
 !plan
 
 # NOT EXISTS
@@ -446,12 +442,8 @@ EnumerableCalc(expr#0..6=[{inputs}], expr#7=[IS NULL($t6)], proj#0..4=[{exprs}],
   EnumerableJoin(condition=[=($1, $5)], joinType=[left])
     EnumerableTableScan(table=[[hr, emps]])
     EnumerableAggregate(group=[{1}], agg#0=[MIN($0)])
-      EnumerableCalc(expr#0..1=[{inputs}], expr#2=[true], $f0=[$t2], deptno0=[$t0])
-        EnumerableJoin(condition=[=($0, $1)], joinType=[inner])
-          EnumerableAggregate(group=[{1}])
-            EnumerableTableScan(table=[[hr, emps]])
-          EnumerableCalc(expr#0..3=[{inputs}], deptno=[$t0])
-            EnumerableTableScan(table=[[hr, depts]])
+      EnumerableCalc(expr#0..3=[{inputs}], expr#4=[true], $f0=[$t4], deptno=[$t0])
+        EnumerableTableScan(table=[[hr, depts]])
 !plan
 
 # NOT EXISTS .. OR NOT EXISTS
@@ -478,20 +470,11 @@ EnumerableCalc(expr#0..7=[{inputs}], expr#8=[IS NULL($t5)], expr#9=[IS NULL($t7)
       EnumerableJoin(condition=[=($1, $5)], joinType=[left])
         EnumerableTableScan(table=[[hr, emps]])
         EnumerableAggregate(group=[{1}], agg#0=[MIN($0)])
-          EnumerableCalc(expr#0..1=[{inputs}], expr#2=[true], $f0=[$t2], deptno0=[$t0])
-            EnumerableJoin(condition=[=($0, $1)], joinType=[inner])
-              EnumerableAggregate(group=[{1}])
-                EnumerableTableScan(table=[[hr, emps]])
-              EnumerableCalc(expr#0..3=[{inputs}], deptno=[$t0])
-                EnumerableTableScan(table=[[hr, depts]])
-    EnumerableAggregate(group=[{1}], agg#0=[MIN($0)])
-      EnumerableCalc(expr#0..3=[{inputs}], expr#4=[true], $f0=[$t4], empid=[$t0])
-        EnumerableJoin(condition=[=($1, $3)], joinType=[inner])
-          EnumerableCalc(expr#0=[{inputs}], expr#1=[CAST($t0):INTEGER NOT NULL], proj#0..1=[{exprs}])
-            EnumerableAggregate(group=[{0}])
-              EnumerableTableScan(table=[[hr, emps]])
-          EnumerableCalc(expr#0..3=[{inputs}], expr#4=[90], expr#5=[+($t0, $t4)], deptno=[$t0], $f1=[$t5])
+          EnumerableCalc(expr#0..3=[{inputs}], expr#4=[true], $f0=[$t4], deptno=[$t0])
             EnumerableTableScan(table=[[hr, depts]])
+    EnumerableAggregate(group=[{1}], agg#0=[MIN($0)])
+      EnumerableCalc(expr#0..3=[{inputs}], expr#4=[true], expr#5=[90], expr#6=[+($t0, $t5)], expr#7=[CAST($t6):INTEGER NOT NULL], expr#8=[=($t6, $t7)], $f0=[$t4], $f4=[$t6], $condition=[$t8])
+        EnumerableTableScan(table=[[hr, depts]])
 !plan
 
 # Left join to a relation with one row is recognized as a trivial semi-join
@@ -1633,65 +1616,104 @@ EnumerableCalc(expr#0=[{inputs}], expr#1=['TR'], expr#2=['UE'], expr#3=[||($t1, 
   EnumerableValues(tuples=[[{ 0 }]])
 !plan
 
-!if (fixed.calcite1439) {
+# In the following, that we get an error at run time,
+# and that the plan shows that the expression has not been reduced.
 values cast('null' as boolean);
+Invalid character for cast
 !error
+EnumerableCalc(expr#0=[{inputs}], expr#1=['null'], expr#2=[CAST($t1):BOOLEAN NOT NULL], EXPR$0=[$t2])
+  EnumerableValues(tuples=[[{ 0 }]])
 !plan
 
+# The following throw give an error (good!)
+# but throw java.lang.ExceptionInInitializerError (not great).
 values cast('' as date);
+Caused by: java.lang.NumberFormatException: For input string: ""
 !error
 
 values cast('' as timestamp);
+Caused by: java.lang.NumberFormatException: For input string: ""
 !error
 
 values cast('' as integer);
+Caused by: java.lang.NumberFormatException: For input string: ""
 !error
 
 values cast('' as boolean);
+Caused by: java.lang.RuntimeException: Invalid character for cast
 !error
 
 values cast('' as double);
+Caused by: java.lang.NumberFormatException: empty String
 !error
 
 # Postgres fails:
 #  ERROR:  invalid input syntax for integer: "1.56"
 values cast('15.6' as integer);
+Caused by: java.lang.NumberFormatException: For input string: "15.6"
 !error
 
 # Postgres fails:
 #  ERROR:  invalid input syntax for integer: " - 5 "
 values cast(' - 5 ' as double);
+Caused by: java.lang.NumberFormatException: For input string: "- 5"
 !error
 
 # Out of TINYINT range (max 127)
 values cast('200' as tinyint);
+Caused by: java.lang.NumberFormatException: Value out of range. Value:"200" Radix:10
 !error
 
 # Out of SMALLINT range (max 32767)
 values cast('50000' as smallint);
+Caused by: java.lang.NumberFormatException: Value out of range. Value:"50000" Radix:10
 !error
 
 # Out of INTEGER range (max 2.1e9)
 values cast('4567891234' as integer);
+Caused by: java.lang.NumberFormatException: For input string: "4567891234"
 !error
 
 # Out of BIGINT range (max 9.2e18)
 values cast('12345678901234567890' as bigint);
+Caused by: java.lang.NumberFormatException: For input string: "12345678901234567890"
 !error
 
 # Out of REAL range
+# (Should give an error, not infinity.)
 values cast('12.34e56' as real);
-!error
++----------+
+| EXPR$0   |
++----------+
+| Infinity |
++----------+
+(1 row)
+
+!ok
 
 # Out of FLOAT range
+# (Should give an error, not infinity.)
 values cast('12.34e5678' as float);
-!error
++----------+
+| EXPR$0   |
++----------+
+| Infinity |
++----------+
+(1 row)
+
+!ok
 
 # Out of DOUBLE range
+# (Should give an error, not infinity.)
 values cast('12.34e5678' as double);
-!error
++----------+
+| EXPR$0   |
++----------+
+| Infinity |
++----------+
+(1 row)
 
-!}
+!ok
 
 # Postgres succeeds
 values cast(' -5 ' as double);
@@ -1822,6 +1844,60 @@ select count(*) as c from "scott".emp where not (ename in ('Fred'));
 +----+
 | 14 |
 +----+
+(1 row)
+
+!ok
+
+# [CALCITE-1638] Simplify "$x = $x" to "$x is not null"
+select count(*) as c from "scott".emp where deptno > deptno;
++---+
+| C |
++---+
+| 0 |
++---+
+(1 row)
+
+!ok
+EnumerableAggregate(group=[{}], C=[COUNT()])
+  EnumerableValues(tuples=[[]])
+!plan
+
+# [CALCITE-1659] Simplifying CAST('YYYY-MM-DD hh:mm:ss.SSS' as TIMESTAMP)
+# should round the sub-second fraction
+select TIMESTAMP '2016-02-26 19:06:00.123456789',
+  CAST('2016-02-26 19:06:00.123' as TIMESTAMP),
+  CAST('2016-02-26 19:06:00.123' as TIMESTAMP(0)),
+  CAST('2016-02-26 19:06:00.123' as TIMESTAMP(1)),
+  CAST('2016-02-26 19:06:00.123' as TIMESTAMP(2)),
+  CAST('2016-02-26 19:06:00.123' as TIMESTAMP(3)),
+  CAST('2016-02-26 19:06:00.123' as TIMESTAMP(6)),
+  CAST('2016-02-26 19:06:00.123' as TIMESTAMP(9));
++---------------------+---------------------+---------------------+---------------------+---------------------+---------------------+---------------------+---------------------+
+| EXPR$0              | EXPR$1              | EXPR$2              | EXPR$3              | EXPR$4              | EXPR$5              | EXPR$6              | EXPR$7              |
++---------------------+---------------------+---------------------+---------------------+---------------------+---------------------+---------------------+---------------------+
+| 2016-02-26 19:06:00 | 2016-02-26 19:06:00 | 2016-02-26 19:06:00 | 2016-02-26 19:06:00 | 2016-02-26 19:06:00 | 2016-02-26 19:06:00 | 2016-02-26 19:06:00 | 2016-02-26 19:06:00 |
++---------------------+---------------------+---------------------+---------------------+---------------------+---------------------+---------------------+---------------------+
+(1 row)
+
+!ok
+EnumerableCalc(expr#0=[{inputs}], expr#1=[2016-02-26 19:06:00.123], expr#2=[2016-02-26 19:06:00], expr#3=[2016-02-26 19:06:00.1], expr#4=[2016-02-26 19:06:00.12], expr#5=[2016-02-26 19:06:00.123], expr#6=[2016-02-26 19:06:00.123], EXPR$0=[$t1], EXPR$1=[$t2], EXPR$2=[$t2], EXPR$3=[$t3], EXPR$4=[$t4], EXPR$5=[$t1], EXPR$6=[$t5], EXPR$7=[$t6])
+  EnumerableValues(tuples=[[{ 0 }]])
+!plan
+
+# [CALCITE-1664] CAST('<string>' as TIMESTAMP) adds part of sub-second fraction to the value
+# The following output is incorrect (i.e. demonstrates the bug), but will become
+# correct when we upgrade to Avatica-1.10 (where the bug is fixed).
+select
+  TIMESTAMP '2016-02-26 19:06:00.12345678',
+  CAST('2016-02-26 19:06:00.12345678' as TIMESTAMP),
+  TIMESTAMPDIFF(SECOND,
+    TIMESTAMP '2016-02-26 19:06:00.123456789',
+    CAST('2016-02-26 19:06:00.123456789' as TIMESTAMP));
++---------------------+---------------------+--------+
+| EXPR$0              | EXPR$1              | EXPR$2 |
++---------------------+---------------------+--------+
+| 2016-02-26 19:06:00 | 2016-02-26 22:31:46 | 123456 |
++---------------------+---------------------+--------+
 (1 row)
 
 !ok

@@ -1245,7 +1245,7 @@ public class SqlToRelConverter {
       final RexLiteral trueLiteral = rexBuilder.makeLiteral(true);
       final RexLiteral falseLiteral = rexBuilder.makeLiteral(false);
       final RexNode unknownLiteral =
-          rexBuilder.makeNullLiteral(SqlTypeName.BOOLEAN);
+          rexBuilder.makeNullLiteral(trueLiteral.getType());
 
       final ImmutableList.Builder<RexNode> args = ImmutableList.builder();
       args.add(rexBuilder.makeCall(SqlStdOperatorTable.EQUALS, cRef, zero),
@@ -3056,7 +3056,7 @@ public class SqlToRelConverter {
     for (RelDataTypeField field : delegateRowType.getFieldList()) {
       RexNode node = projectMap.get(field.getIndex());
       if (node == null) {
-        node = rexBuilder.makeNullLiteral(field.getType().getSqlTypeName());
+        node = rexBuilder.makeNullLiteral(field.getType());
       }
       projects.add(
           Pair.of(rexBuilder.ensureType(field.getType(), node, false),
@@ -4757,7 +4757,6 @@ public class SqlToRelConverter {
 
       switch (call.getKind()) {
       case GROUPING:
-      case GROUPING_ID:
       case GROUP_ID:
         final RelDataType type = validator.getValidatedNodeType(call);
         if (!aggregatingSelectScope.resolved.get().indicator) {
@@ -4791,8 +4790,6 @@ public class SqlToRelConverter {
     private int effectiveArgCount(SqlCall call) {
       switch (call.getKind()) {
       case GROUPING:
-        return 1;
-      case GROUPING_ID:
         return call.operandCount();
       case GROUP_ID:
         return groupExprs.size();

@@ -92,8 +92,9 @@ public class RexProgramTest {
     rexBuilder = new RexBuilder(typeFactory);
     trueLiteral = rexBuilder.makeLiteral(true);
     falseLiteral = rexBuilder.makeLiteral(false);
-    nullLiteral = rexBuilder.makeNullLiteral(SqlTypeName.INTEGER);
-    unknownLiteral = rexBuilder.makeNullLiteral(SqlTypeName.BOOLEAN);
+    final RelDataType intType = typeFactory.createSqlType(SqlTypeName.INTEGER);
+    nullLiteral = rexBuilder.makeNullLiteral(intType);
+    unknownLiteral = rexBuilder.makeNullLiteral(trueLiteral.getType());
   }
 
   private void checkCnf(RexNode node, String expected) {
@@ -117,6 +118,11 @@ public class RexProgramTest {
   /** Simplifies an expression and checks that the result is as expected. */
   private void checkSimplify(RexNode node, String expected) {
     checkSimplify2(node, expected, expected);
+  }
+
+  /** Simplifies an expression and checks that the result is unchanged. */
+  private void checkSimplifyUnchanged(RexNode node) {
+    checkSimplify(node, node.toString());
   }
 
   /** Simplifies an expression and checks the result if unknowns remain
@@ -190,8 +196,16 @@ public class RexProgramTest {
     return rexBuilder.makeCall(SqlStdOperatorTable.CASE, nodes);
   }
 
+  private RexNode cast(RexNode e, RelDataType type) {
+    return rexBuilder.makeCast(type, e);
+  }
+
   private RexNode eq(RexNode n1, RexNode n2) {
     return rexBuilder.makeCall(SqlStdOperatorTable.EQUALS, n1, n2);
+  }
+
+  private RexNode ne(RexNode n1, RexNode n2) {
+    return rexBuilder.makeCall(SqlStdOperatorTable.NOT_EQUALS, n1, n2);
   }
 
   private RexNode le(RexNode n1, RexNode n2) {
@@ -849,6 +863,8 @@ public class RexProgramTest {
     final RelDataType booleanType =
         typeFactory.createSqlType(SqlTypeName.BOOLEAN);
     final RelDataType intType = typeFactory.createSqlType(SqlTypeName.INTEGER);
+    final RelDataType intNullableType =
+        typeFactory.createTypeWithNullability(intType, true);
     final RelDataType rowType = typeFactory.builder()
         .add("a", booleanType)
         .add("b", booleanType)
@@ -858,6 +874,7 @@ public class RexProgramTest {
         .add("f", booleanType)
         .add("g", booleanType)
         .add("h", intType)
+        .add("i", intNullableType)
         .build();
 
     final RexDynamicParam range = rexBuilder.makeDynamicParam(rowType, 0);
@@ -866,6 +883,8 @@ public class RexProgramTest {
     final RexNode cRef = rexBuilder.makeFieldAccess(range, 2);
     final RexNode dRef = rexBuilder.makeFieldAccess(range, 3);
     final RexNode eRef = rexBuilder.makeFieldAccess(range, 4);
+    final RexNode hRef = rexBuilder.makeFieldAccess(range, 7);
+    final RexNode iRef = rexBuilder.makeFieldAccess(range, 8);
     final RexLiteral literal1 = rexBuilder.makeExactLiteral(BigDecimal.ONE);
 
     // and: remove duplicates
@@ -984,6 +1003,42 @@ public class RexProgramTest {
         or(lt(aRef, literal1),
             and(trueLiteral, or(falseLiteral, falseLiteral))),
         "<(?0.a, 1)");
+
+    // "x = x" simplifies to "x is not null"
+    checkSimplify(eq(literal1, literal1), "true");
+    checkSimplify(eq(hRef, hRef), "true");
+    checkSimplify2(eq(iRef, iRef), "=(?0.i, ?0.i)", "IS NOT NULL(?0.i)");
+    checkSimplify(eq(iRef, hRef), "=(?0.i, ?0.h)");
+
+    // "x <= x" simplifies to "x is not null"
+    checkSimplify(le(literal1, literal1), "true");
+    checkSimplify(le(hRef, hRef), "true");
+    checkSimplify2(le(iRef, iRef), "<=(?0.i, ?0.i)", "IS NOT NULL(?0.i)");
+    checkSimplify(le(iRef, hRef), "<=(?0.i, ?0.h)");
+
+    // "x >= x" simplifies to "x is not null"
+    checkSimplify(ge(literal1, literal1), "true");
+    checkSimplify(ge(hRef, hRef), "true");
+    checkSimplify2(ge(iRef, iRef), ">=(?0.i, ?0.i)", "IS NOT NULL(?0.i)");
+    checkSimplify(ge(iRef, hRef), ">=(?0.i, ?0.h)");
+
+    // "x != x" simplifies to "false"
+    checkSimplify(ne(literal1, literal1), "false");
+    checkSimplify(ne(hRef, hRef), "false");
+    checkSimplify2(ne(iRef, iRef), "<>(?0.i, ?0.i)", "false");
+    checkSimplify(ne(iRef, hRef), "<>(?0.i, ?0.h)");
+
+    // "x < x" simplifies to "false"
+    checkSimplify(lt(literal1, literal1), "false");
+    checkSimplify(lt(hRef, hRef), "false");
+    checkSimplify2(lt(iRef, iRef), "<(?0.i, ?0.i)", "false");
+    checkSimplify(lt(iRef, hRef), "<(?0.i, ?0.h)");
+
+    // "x > x" simplifies to "false"
+    checkSimplify(gt(literal1, literal1), "false");
+    checkSimplify(gt(hRef, hRef), "false");
+    checkSimplify2(gt(iRef, iRef), ">(?0.i, ?0.i)", "false");
+    checkSimplify(gt(iRef, hRef), ">(?0.i, ?0.h)");
   }
 
   @Test public void testSimplifyFilter() {
@@ -1121,7 +1176,7 @@ public class RexProgramTest {
     final RexInputRef i2 = rexBuilder.makeInputRef(intType, 2);
     final RexInputRef i3 = rexBuilder.makeInputRef(intType, 3);
     final RexLiteral one = rexBuilder.makeExactLiteral(BigDecimal.ONE);
-    final RexNode null_ = rexBuilder.makeNullLiteral(SqlTypeName.INTEGER);
+    final RexLiteral null_ = rexBuilder.makeNullLiteral(intType);
     checkSimplify(isNotNull(lt(i0, i1)),
         "AND(IS NOT NULL($0), IS NOT NULL($1))");
     checkSimplify(isNotNull(lt(i0, i2)), "IS NOT NULL($0)");
@@ -1226,6 +1281,32 @@ public class RexProgramTest {
         }
       }
     }
+  }
+
+  @Test public void testSimplifyCastLiteral2() {
+    final RexLiteral literalAbc = rexBuilder.makeLiteral("abc");
+    final RexLiteral literalOne = rexBuilder.makeExactLiteral(BigDecimal.ONE);
+    final RelDataType intType = typeFactory.createSqlType(SqlTypeName.INTEGER);
+    final RelDataType varcharType =
+        typeFactory.createSqlType(SqlTypeName.VARCHAR, 10);
+    final RelDataType booleanType =
+        typeFactory.createSqlType(SqlTypeName.BOOLEAN);
+    final RelDataType dateType = typeFactory.createSqlType(SqlTypeName.DATE);
+    final RelDataType timestampType =
+        typeFactory.createSqlType(SqlTypeName.TIMESTAMP);
+    checkSimplifyUnchanged(cast(literalAbc, intType));
+    checkSimplify(cast(literalOne, intType), "1");
+    checkSimplify(cast(literalAbc, varcharType), "'abc'");
+    checkSimplify(cast(literalOne, varcharType), "'1'");
+    checkSimplifyUnchanged(cast(literalAbc, booleanType));
+    checkSimplify(cast(literalOne, booleanType),
+        "false"); // different from Hive
+    checkSimplifyUnchanged(cast(literalAbc, dateType));
+    checkSimplify(cast(literalOne, dateType),
+        "1970-01-02"); // different from Hive
+    checkSimplifyUnchanged(cast(literalAbc, timestampType));
+    checkSimplify(cast(literalOne, timestampType),
+        "1970-01-01 00:00:00"); // different from Hive
   }
 
   private Calendar cal(int y, int m, int d, int h, int mm, int s) {

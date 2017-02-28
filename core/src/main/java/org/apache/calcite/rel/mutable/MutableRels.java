@@ -1,0 +1,400 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to you under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.calcite.rel.mutable;
+
+import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.Aggregate;
+import org.apache.calcite.rel.core.Calc;
+import org.apache.calcite.rel.core.Collect;
+import org.apache.calcite.rel.core.Correlate;
+import org.apache.calcite.rel.core.Exchange;
+import org.apache.calcite.rel.core.Filter;
+import org.apache.calcite.rel.core.Intersect;
+import org.apache.calcite.rel.core.Join;
+import org.apache.calcite.rel.core.Minus;
+import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.core.Sample;
+import org.apache.calcite.rel.core.SemiJoin;
+import org.apache.calcite.rel.core.Sort;
+import org.apache.calcite.rel.core.TableFunctionScan;
+import org.apache.calcite.rel.core.TableModify;
+import org.apache.calcite.rel.core.TableScan;
+import org.apache.calcite.rel.core.Uncollect;
+import org.apache.calcite.rel.core.Union;
+import org.apache.calcite.rel.core.Values;
+import org.apache.calcite.rel.core.Window;
+import org.apache.calcite.rel.logical.LogicalAggregate;
+import org.apache.calcite.rel.logical.LogicalCalc;
+import org.apache.calcite.rel.logical.LogicalCorrelate;
+import org.apache.calcite.rel.logical.LogicalExchange;
+import org.apache.calcite.rel.logical.LogicalFilter;
+import org.apache.calcite.rel.logical.LogicalIntersect;
+import org.apache.calcite.rel.logical.LogicalJoin;
+import org.apache.calcite.rel.logical.LogicalMinus;
+import org.apache.calcite.rel.logical.LogicalProject;
+import org.apache.calcite.rel.logical.LogicalSort;
+import org.apache.calcite.rel.logical.LogicalTableFunctionScan;
+import org.apache.calcite.rel.logical.LogicalTableModify;
+import org.apache.calcite.rel.logical.LogicalUnion;
+import org.apache.calcite.rel.logical.LogicalWindow;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rex.RexInputRef;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexUtil;
+import org.apache.calcite.util.Util;
+import org.apache.calcite.util.mapping.Mappings;
+
+import com.google.common.base.Function;
+import com.google.common.collect.Lists;
+
+import java.util.AbstractList;
+import java.util.ArrayList;
+import java.util.List;
+
+/** Utilities for dealing with {@link MutableRel}s. */
+public abstract class MutableRels {
+
+  public static boolean contains(MutableRel ancestor,
+      final MutableRel target) {
+    if (ancestor.equals(target)) {
+      // Short-cut common case.
+      return true;
+    }
+    try {
+      new MutableRelVisitor() {
+        @Override public void visit(MutableRel node) {
+          if (node.equals(target)) {
+            throw Util.FoundOne.NULL;
+          }
+          super.visit(node);
+        }
+        // CHECKSTYLE: IGNORE 1
+      }.go(ancestor);
+      return false;
+    } catch (Util.FoundOne e) {
+      return true;
+    }
+  }
+
+  public static MutableRel preOrderTraverseNext(MutableRel node) {
+    MutableRel parent = node.getParent();
+    int ordinal = node.ordinalInParent + 1;
+    while (parent != null) {
+      if (parent.getInputs().size() > ordinal) {
+        return parent.getInputs().get(ordinal);
+      }
+      node = parent;
+      parent = node.getParent();
+      ordinal = node.ordinalInParent + 1;
+    }
+    return null;
+  }
+
+  public static List<MutableRel> descendants(MutableRel query) {
+    final List<MutableRel> list = new ArrayList<>();
+    descendantsRecurse(list, query);
+    return list;
+  }
+
+  private static void descendantsRecurse(List<MutableRel> list,
+      MutableRel rel) {
+    list.add(rel);
+    for (MutableRel input : rel.getInputs()) {
+      descendantsRecurse(list, input);
+    }
+  }
+
+  /** Based on
+   * {@link org.apache.calcite.rel.rules.ProjectRemoveRule#strip}. */
+  public static MutableRel strip(MutableProject project) {
+    return isTrivial(project) ? project.getInput() : project;
+  }
+
+  /** Based on
+   * {@link org.apache.calcite.rel.rules.ProjectRemoveRule#isTrivial(org.apache.calcite.rel.core.Project)}. */
+  public static boolean isTrivial(MutableProject project) {
+    MutableRel child = project.getInput();
+    return RexUtil.isIdentity(project.projects, child.rowType);
+  }
+
+  /** Equivalent to
+   * {@link RelOptUtil#createProject(org.apache.calcite.rel.RelNode, java.util.List)}
+   * for {@link MutableRel}. */
+  public static MutableRel createProject(final MutableRel child,
+      final List<Integer> posList) {
+    final RelDataType rowType = child.rowType;
+    if (Mappings.isIdentity(posList, rowType.getFieldCount())) {
+      return child;
+    }
+    return MutableProject.of(
+        RelOptUtil.permute(child.cluster.getTypeFactory(), rowType,
+            Mappings.bijection(posList)),
+        child,
+        new AbstractList<RexNode>() {
+          public int size() {
+            return posList.size();
+          }
+
+          public RexNode get(int index) {
+            final int pos = posList.get(index);
+            return RexInputRef.of(pos, rowType);
+          }
+        });
+  }
+
+  /** Equivalence to {@link org.apache.calcite.plan.RelOptUtil#createCastRel}
+   * for {@link MutableRel}. */
+  public static MutableRel createCastRel(MutableRel rel,
+      RelDataType castRowType, boolean rename) {
+    RelDataType rowType = rel.rowType;
+    if (RelOptUtil.areRowTypesEqual(rowType, castRowType, rename)) {
+      // nothing to do
+      return rel;
+    }
+    List<RexNode> castExps =
+        RexUtil.generateCastExpressions(rel.cluster.getRexBuilder(),
+            castRowType, rowType);
+    final List<String> fieldNames =
+        rename ? castRowType.getFieldNames() : rowType.getFieldNames();
+    return MutableProject.of(rel, castExps, fieldNames);
+  }
+
+  public static RelNode fromMutable(MutableRel node) {
+    switch (node.type) {
+    case TABLE_SCAN:
+    case VALUES:
+      return ((MutableLeafRel) node).rel;
+    case PROJECT:
+      final MutableProject project = (MutableProject) node;
+      return LogicalProject.create(
+          fromMutable(project.input), project.projects, project.rowType);
+    case FILTER:
+      final MutableFilter filter = (MutableFilter) node;
+      return LogicalFilter.create(fromMutable(filter.input),
+          filter.condition);
+    case AGGREGATE:
+      final MutableAggregate aggregate = (MutableAggregate) node;
+      return LogicalAggregate.create(fromMutable(aggregate.input),
+          aggregate.indicator, aggregate.groupSet, aggregate.groupSets,
+          aggregate.aggCalls);
+    case SORT:
+      final MutableSort sort = (MutableSort) node;
+      return LogicalSort.create(fromMutable(sort.input), sort.collation,
+          sort.offset, sort.fetch);
+    case CALC:
+      final MutableCalc calc = (MutableCalc) node;
+      return LogicalCalc.create(fromMutable(calc.input), calc.program);
+    case EXCHANGE:
+      final MutableExchange exchange = (MutableExchange) node;
+      return LogicalExchange.create(
+          fromMutable(exchange.getInput()), exchange.distribution);
+    case COLLECT: {
+      final MutableCollect collect = (MutableCollect) node;
+      final RelNode child = fromMutable(collect.getInput());
+      return new Collect(collect.cluster, child.getTraitSet(), child, collect.fieldName);
+    }
+    case UNCOLLECT: {
+      final MutableUncollect uncollect = (MutableUncollect) node;
+      final RelNode child = fromMutable(uncollect.getInput());
+      return Uncollect.create(child.getTraitSet(), child, uncollect.withOrdinality);
+    }
+    case WINDOW: {
+      final MutableWindow window = (MutableWindow) node;
+      final RelNode child = fromMutable(window.getInput());
+      return LogicalWindow.create(child.getTraitSet(),
+          child, window.constants, window.rowType, window.groups);
+    }
+    case TABLE_MODIFY:
+      final MutableTableModify modify = (MutableTableModify) node;
+      return LogicalTableModify.create(modify.table, modify.catalogReader,
+          fromMutable(modify.getInput()), modify.operation, modify.updateColumnList,
+          modify.sourceExpressionList, modify.flattened);
+    case SAMPLE:
+      final MutableSample sample = (MutableSample) node;
+      return new Sample(sample.cluster, fromMutable(sample.getInput()), sample.params);
+    case TABLE_FUNCTION_SCAN:
+      final MutableTableFunctionScan tableFunctionScan = (MutableTableFunctionScan) node;
+      return LogicalTableFunctionScan.create(tableFunctionScan.cluster,
+          fromMutables(tableFunctionScan.getInputs()), tableFunctionScan.rexCall,
+          tableFunctionScan.elementType, tableFunctionScan.rowType,
+          tableFunctionScan.columnMappings);
+    case JOIN:
+      final MutableJoin join = (MutableJoin) node;
+      return LogicalJoin.create(fromMutable(join.getLeft()), fromMutable(join.getRight()),
+          join.condition, join.variablesSet, join.joinType);
+    case SEMIJOIN:
+      final MutableSemiJoin semiJoin = (MutableSemiJoin) node;
+      return SemiJoin.create(fromMutable(semiJoin.getLeft()),
+          fromMutable(semiJoin.getRight()), semiJoin.condition,
+          semiJoin.leftKeys, semiJoin.rightKeys);
+    case CORRELATE:
+      final MutableCorrelate correlate = (MutableCorrelate) node;
+      return LogicalCorrelate.create(fromMutable(correlate.getLeft()),
+          fromMutable(correlate.getRight()), correlate.correlationId,
+          correlate.requiredColumns, correlate.joinType);
+    case UNION:
+      final MutableUnion union = (MutableUnion) node;
+      return LogicalUnion.create(MutableRels.fromMutables(union.inputs), union.all);
+    case MINUS:
+      final MutableMinus minus = (MutableMinus) node;
+      return LogicalMinus.create(MutableRels.fromMutables(minus.inputs), minus.all);
+    case INTERSECT:
+      final MutableIntersect intersect = (MutableIntersect) node;
+      return LogicalIntersect.create(MutableRels.fromMutables(intersect.inputs), intersect.all);
+    default:
+      throw new AssertionError(node.deep());
+    }
+  }
+
+  private static List<RelNode> fromMutables(List<MutableRel> nodes) {
+    return Lists.transform(nodes,
+        new Function<MutableRel, RelNode>() {
+          public RelNode apply(MutableRel mutableRel) {
+            return fromMutable(mutableRel);
+          }
+        });
+  }
+
+  public static MutableRel toMutable(RelNode rel) {
+    if (rel instanceof TableScan) {
+      return MutableScan.of((TableScan) rel);
+    }
+    if (rel instanceof Values) {
+      return MutableValues.of((Values) rel);
+    }
+    if (rel instanceof Project) {
+      final Project project = (Project) rel;
+      final MutableRel input = toMutable(project.getInput());
+      return MutableProject.of(input, project.getProjects(),
+          project.getRowType().getFieldNames());
+    }
+    if (rel instanceof Filter) {
+      final Filter filter = (Filter) rel;
+      final MutableRel input = toMutable(filter.getInput());
+      return MutableFilter.of(input, filter.getCondition());
+    }
+    if (rel instanceof Aggregate) {
+      final Aggregate aggregate = (Aggregate) rel;
+      final MutableRel input = toMutable(aggregate.getInput());
+      return MutableAggregate.of(input, aggregate.indicator,
+          aggregate.getGroupSet(), aggregate.getGroupSets(),
+          aggregate.getAggCallList());
+    }
+    if (rel instanceof Sort) {
+      final Sort sort = (Sort) rel;
+      final MutableRel input = toMutable(sort.getInput());
+      return MutableSort.of(input, sort.getCollation(), sort.offset, sort.fetch);
+    }
+    if (rel instanceof Calc) {
+      final Calc calc = (Calc) rel;
+      final MutableRel input = toMutable(calc.getInput());
+      return MutableCalc.of(input, calc.getProgram());
+    }
+    if (rel instanceof Exchange) {
+      final Exchange exchange = (Exchange) rel;
+      final MutableRel input = toMutable(exchange.getInput());
+      return MutableExchange.of(input, exchange.getDistribution());
+    }
+    if (rel instanceof Collect) {
+      final Collect collect = (Collect) rel;
+      final MutableRel input = toMutable(collect.getInput());
+      return MutableCollect.of(collect.getRowType(), input, collect.getFieldName());
+    }
+    if (rel instanceof Uncollect) {
+      final Uncollect uncollect = (Uncollect) rel;
+      final MutableRel input = toMutable(uncollect.getInput());
+      return MutableUncollect.of(uncollect.getRowType(), input, uncollect.withOrdinality);
+    }
+    if (rel instanceof Window) {
+      final Window window = (Window) rel;
+      final MutableRel input = toMutable(window.getInput());
+      return MutableWindow.of(window.getRowType(),
+          input, window.groups, window.getConstants());
+    }
+    if (rel instanceof TableModify) {
+      final TableModify modify = (TableModify) rel;
+      final MutableRel input = toMutable(modify.getInput());
+      return MutableTableModify.of(modify.getRowType(), input, modify.getTable(),
+          modify.getCatalogReader(), modify.getOperation(), modify.getUpdateColumnList(),
+          modify.getSourceExpressionList(), modify.isFlattened());
+    }
+    if (rel instanceof Sample) {
+      final Sample sample = (Sample) rel;
+      final MutableRel input = toMutable(sample.getInput());
+      return MutableSample.of(input, sample.getSamplingParameters());
+    }
+    if (rel instanceof TableFunctionScan) {
+      final TableFunctionScan tableFunctionScan = (TableFunctionScan) rel;
+      final List<MutableRel> inputs = toMutables(tableFunctionScan.getInputs());
+      return MutableTableFunctionScan.of(tableFunctionScan.getCluster(),
+          tableFunctionScan.getRowType(), inputs, tableFunctionScan.getCall(),
+          tableFunctionScan.getElementType(), tableFunctionScan.getColumnMappings());
+    }
+    // It is necessary that SemiJoin is placed in front of Join here, since SemiJoin
+    // is a sub-class of Join.
+    if (rel instanceof SemiJoin) {
+      final SemiJoin semiJoin = (SemiJoin) rel;
+      final MutableRel left = toMutable(semiJoin.getLeft());
+      final MutableRel right = toMutable(semiJoin.getRight());
+      return MutableSemiJoin.of(semiJoin.getRowType(), left, right,
+          semiJoin.getCondition(), semiJoin.getLeftKeys(), semiJoin.getRightKeys());
+    }
+    if (rel instanceof Join) {
+      final Join join = (Join) rel;
+      final MutableRel left = toMutable(join.getLeft());
+      final MutableRel right = toMutable(join.getRight());
+      return MutableJoin.of(join.getRowType(), left, right,
+          join.getCondition(), join.getJoinType(), join.getVariablesSet());
+    }
+    if (rel instanceof Correlate) {
+      final Correlate correlate = (Correlate) rel;
+      final MutableRel left = toMutable(correlate.getLeft());
+      final MutableRel right = toMutable(correlate.getRight());
+      return MutableCorrelate.of(correlate.getRowType(), left, right,
+          correlate.getCorrelationId(), correlate.getRequiredColumns(),
+          correlate.getJoinType());
+    }
+    if (rel instanceof Union) {
+      final Union union = (Union) rel;
+      final List<MutableRel> inputs = toMutables(union.getInputs());
+      return MutableUnion.of(union.getRowType(), inputs, union.all);
+    }
+    if (rel instanceof Minus) {
+      final Minus minus = (Minus) rel;
+      final List<MutableRel> inputs = toMutables(minus.getInputs());
+      return MutableMinus.of(minus.getRowType(), inputs, minus.all);
+    }
+    if (rel instanceof Intersect) {
+      final Intersect intersect = (Intersect) rel;
+      final List<MutableRel> inputs = toMutables(intersect.getInputs());
+      return MutableIntersect.of(intersect.getRowType(), inputs, intersect.all);
+    }
+    throw new RuntimeException("cannot translate " + rel + " to MutableRel");
+  }
+
+  private static List<MutableRel> toMutables(List<RelNode> nodes) {
+    return Lists.transform(nodes,
+        new Function<RelNode, MutableRel>() {
+          public MutableRel apply(RelNode relNode) {
+            return toMutable(relNode);
+          }
+        });
+  }
+}
+
+// End MutableRels.java

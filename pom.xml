@@ -90,16 +90,22 @@ limitations under the License.
     <jcip-annotations.version>1.0-1</jcip-annotations.version>
     <jetty.version>9.2.15.v20160210</jetty.version>
     <jmh.version>1.12</jmh.version>
+    <jsoup.version>1.10.2</jsoup.version>
     <junit.version>4.12</junit.version>
     <maven-checkstyle-plugin.version>2.12.1</maven-checkstyle-plugin.version>
     <maven-dependency-plugin.version>2.10</maven-dependency-plugin.version>
+    <!-- Apache 18 has 3.0.1, but need 3.0.2 for [MSOURCES-94]. -->
+    <maven-jar-plugin.version>3.0.2</maven-jar-plugin.version>
     <!-- Apache 18 has 2.10.3, but need 2.10.4 for [MJAVADOC-442]. -->
     <maven-javadoc-plugin.version>2.10.4</maven-javadoc-plugin.version>
     <maven-scm-provider.version>1.9.4</maven-scm-provider.version>
     <maven-shade-plugin.version>2.1</maven-shade-plugin.version>
+    <!-- Apache 18 has 3.0.0, but need 3.0.1 for [MSOURCES-94]. -->
+    <maven-source-plugin.version>3.0.1</maven-source-plugin.version>
     <mockito-all.version>1.10.19</mockito-all.version>
     <mongo-java-driver.version>2.12.3</mongo-java-driver.version>
     <mysql-driver.version>5.1.20</mysql-driver.version>
+    <natty.version>0.13</natty.version>
     <opencsv.version>2.3</opencsv.version>
     <oracle-jdbc6-driver.version>11.2.0.2.0</oracle-jdbc6-driver.version>
     <aggdesigner.version>6.0</aggdesigner.version>
@@ -133,6 +139,7 @@ limitations under the License.
     <module>druid</module>
     <module>elasticsearch</module>
     <module>example</module>
+    <module>file</module>
     <module>linq4j</module>
     <module>mongodb</module>
     <module>piglet</module>
@@ -169,6 +176,11 @@ limitations under the License.
         <groupId>org.apache.calcite</groupId>
         <artifactId>calcite-core</artifactId>
         <type>test-jar</type>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.calcite</groupId>
+        <artifactId>calcite-example-csv</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
@@ -222,6 +234,11 @@ limitations under the License.
         <groupId>com.google.guava</groupId>
         <artifactId>guava</artifactId>
         <version>${guava.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.joestelmach</groupId>
+        <artifactId>natty</artifactId>
+        <version>${natty.version}</version>
       </dependency>
       <dependency>
         <groupId>com.oracle</groupId>
@@ -307,6 +324,11 @@ limitations under the License.
         <groupId>org.apache.httpcomponents</groupId>
         <artifactId>httpcore</artifactId>
         <version>${httpcore.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.jsoup</groupId>
+        <artifactId>jsoup</artifactId>
+        <version>${jsoup.version}</version>
       </dependency>
       <dependency>
         <groupId>org.mockito</groupId>
@@ -681,7 +703,7 @@ limitations under the License.
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-jar-plugin</artifactId>
-          <version>3.0.2</version>
+          <version>${maven-jar-plugin.version}</version>
           <configuration>
             <archive>
               <manifest>
@@ -699,7 +721,7 @@ limitations under the License.
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-source-plugin</artifactId>
-          <version>3.0.1</version>
+          <version>${maven-source-plugin.version}</version>
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>

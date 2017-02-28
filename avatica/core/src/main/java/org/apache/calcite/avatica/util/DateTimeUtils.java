@@ -265,6 +265,10 @@ public class DateTimeUtils {
 
   /** Helper for CAST({timestamp} AS VARCHAR(n)). */
   public static String unixTimestampToString(long timestamp) {
+    return unixTimestampToString(timestamp, 0);
+  }
+
+  public static String unixTimestampToString(long timestamp, int precision) {
     final StringBuilder buf = new StringBuilder(17);
     int date = (int) (timestamp / MILLIS_PER_DAY);
     int time = (int) (timestamp % MILLIS_PER_DAY);
@@ -274,18 +278,23 @@ public class DateTimeUtils {
     }
     unixDateToString(buf, date);
     buf.append(' ');
-    unixTimeToString(buf, time);
+    unixTimeToString(buf, time, precision);
     return buf.toString();
   }
 
   /** Helper for CAST({timestamp} AS VARCHAR(n)). */
   public static String unixTimeToString(int time) {
+    return unixTimeToString(time, 0);
+  }
+
+  public static String unixTimeToString(int time, int precision) {
     final StringBuilder buf = new StringBuilder(8);
-    unixTimeToString(buf, time);
+    unixTimeToString(buf, time, precision);
     return buf.toString();
   }
 
-  private static void unixTimeToString(StringBuilder buf, int time) {
+  private static void unixTimeToString(StringBuilder buf, int time,
+      int precision) {
     int h = time / 3600000;
     int time2 = time % 3600000;
     int m = time2 / 60000;
@@ -297,6 +306,15 @@ public class DateTimeUtils {
     int2(buf, m);
     buf.append(':');
     int2(buf, s);
+    if (precision > 0) {
+      buf.append('.');
+      while (precision > 0) {
+        buf.append((char) ('0' + (ms / 100)));
+        ms = ms % 100;
+        ms = ms * 10;
+        --precision;
+      }
+    }
   }
 
   private static void int2(StringBuilder buf, int i) {
@@ -635,7 +653,7 @@ public class DateTimeUtils {
           milli = 0;
         } else {
           second = Integer.parseInt(v.substring(colon2 + 1, dot).trim());
-          milli = Integer.parseInt(v.substring(dot + 1).trim());
+          milli = parseFraction(v.substring(dot + 1).trim(), 100);
         }
       }
     }
@@ -643,6 +661,30 @@ public class DateTimeUtils {
         + minute * (int) MILLIS_PER_MINUTE
         + second * (int) MILLIS_PER_SECOND
         + milli;
+  }
+
+  /** Parses a fraction, multiplying the first character by {@code multiplier},
+   * the second character by {@code multiplier / 10},
+   * the third character by {@code multiplier / 100}, and so forth.
+   *
+   * <p>For example, {@code parseFraction("1234", 100)} yields {@code 123}. */
+  private static int parseFraction(String v, int multiplier) {
+    int r = 0;
+    for (int i = 0; i < v.length(); i++) {
+      char c = v.charAt(i);
+      int x = c < '0' || c > '9' ? 0 : (c - '0');
+      r += multiplier * x;
+      if (multiplier < 10) {
+        // We're at the last digit. Check for rounding.
+        if (i + 1 < v.length()
+            && v.charAt(i + 1) >= '5') {
+          ++r;
+        }
+        break;
+      }
+      multiplier /= 10;
+    }
+    return r;
   }
 
   public static long timestampStringToUnixDate(String s) {

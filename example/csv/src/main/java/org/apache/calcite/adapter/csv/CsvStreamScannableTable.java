@@ -27,8 +27,8 @@ import org.apache.calcite.rel.type.RelProtoDataType;
 import org.apache.calcite.schema.ScannableTable;
 import org.apache.calcite.schema.StreamableTable;
 import org.apache.calcite.schema.Table;
+import org.apache.calcite.util.Source;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -41,8 +41,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class CsvStreamScannableTable extends CsvScannableTable
     implements StreamableTable {
   /** Creates a CsvScannableTable. */
-  CsvStreamScannableTable(File file, RelProtoDataType protoRowType) {
-    super(file, protoRowType);
+  CsvStreamScannableTable(Source source, RelProtoDataType protoRowType) {
+    super(source, protoRowType);
   }
 
   public RelDataType getRowType(RelDataTypeFactory typeFactory) {
@@ -51,9 +51,9 @@ public class CsvStreamScannableTable extends CsvScannableTable
     }
     if (fieldTypes == null) {
       fieldTypes = new ArrayList<>();
-      return CsvEnumerator.deduceRowType((JavaTypeFactory) typeFactory, file, fieldTypes, true);
+      return CsvEnumerator.deduceRowType((JavaTypeFactory) typeFactory, source, fieldTypes, true);
     } else {
-      return CsvEnumerator.deduceRowType((JavaTypeFactory) typeFactory, file, null, true);
+      return CsvEnumerator.deduceRowType((JavaTypeFactory) typeFactory, source, null, true);
     }
   }
 
@@ -66,7 +66,7 @@ public class CsvStreamScannableTable extends CsvScannableTable
     final AtomicBoolean cancelFlag = DataContext.Variable.CANCEL_FLAG.get(root);
     return new AbstractEnumerable<Object[]>() {
       public Enumerator<Object[]> enumerator() {
-        return new CsvEnumerator<>(file, cancelFlag, true, null,
+        return new CsvEnumerator<>(source, cancelFlag, true, null,
             new CsvEnumerator.ArrayRowConverter(fieldTypes, fields, true));
       }
     };

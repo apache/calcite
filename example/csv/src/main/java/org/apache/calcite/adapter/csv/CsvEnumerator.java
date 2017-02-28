@@ -21,16 +21,13 @@ import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.Pair;
+import org.apache.calcite.util.Source;
 
 import org.apache.commons.lang3.time.FastDateFormat;
 
 import au.com.bytecode.opencsv.CSVReader;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.io.Reader;
 import java.text.ParseException;
 import java.util.ArrayList;
@@ -38,8 +35,6 @@ import java.util.Date;
 import java.util.List;
 import java.util.TimeZone;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.zip.GZIPInputStream;
-
 
 /** Enumerator that reads from a CSV file.
  *
@@ -64,28 +59,28 @@ class CsvEnumerator<E> implements Enumerator<E> {
         FastDateFormat.getInstance("yyyy-MM-dd HH:mm:ss", gmt);
   }
 
-  public CsvEnumerator(File file, AtomicBoolean cancelFlag,
+  public CsvEnumerator(Source source, AtomicBoolean cancelFlag,
       List<CsvFieldType> fieldTypes) {
-    this(file, cancelFlag, fieldTypes, identityList(fieldTypes.size()));
+    this(source, cancelFlag, fieldTypes, identityList(fieldTypes.size()));
   }
 
-  public CsvEnumerator(File file, AtomicBoolean cancelFlag,
+  public CsvEnumerator(Source source, AtomicBoolean cancelFlag,
       List<CsvFieldType> fieldTypes, int[] fields) {
     //noinspection unchecked
-    this(file, cancelFlag, false, null,
+    this(source, cancelFlag, false, null,
         (RowConverter<E>) converter(fieldTypes, fields));
   }
 
-  public CsvEnumerator(File file, AtomicBoolean cancelFlag, boolean stream,
+  public CsvEnumerator(Source source, AtomicBoolean cancelFlag, boolean stream,
       String[] filterValues, RowConverter<E> rowConverter) {
     this.cancelFlag = cancelFlag;
     this.rowConverter = rowConverter;
     this.filterValues = filterValues;
     try {
       if (stream) {
-        this.reader = new CsvStreamReader(file);
+        this.reader = new CsvStreamReader(source);
       } else {
-        this.reader = openCsv(file);
+        this.reader = openCsv(source);
       }
       this.reader.readNext(); // skip header row
     } catch (IOException e) {
@@ -103,14 +98,16 @@ class CsvEnumerator<E> implements Enumerator<E> {
     }
   }
 
-  static RelDataType deduceRowType(JavaTypeFactory typeFactory, File file,
+  /** Deduces the names and types of a table's columns by reading the first line
+   * of a CSV file. */
+  static RelDataType deduceRowType(JavaTypeFactory typeFactory, Source source,
       List<CsvFieldType> fieldTypes) {
-    return deduceRowType(typeFactory, file, fieldTypes, false);
+    return deduceRowType(typeFactory, source, fieldTypes, false);
   }
 
   /** Deduces the names and types of a table's columns by reading the first line
   * of a CSV file. */
-  static RelDataType deduceRowType(JavaTypeFactory typeFactory, File file,
+  static RelDataType deduceRowType(JavaTypeFactory typeFactory, Source source,
       List<CsvFieldType> fieldTypes, Boolean stream) {
     final List<RelDataType> types = new ArrayList<>();
     final List<String> names = new ArrayList<>();
@@ -120,7 +117,7 @@ class CsvEnumerator<E> implements Enumerator<E> {
       types.add(typeFactory.createSqlType(SqlTypeName.TIMESTAMP));
     }
     try {
-      reader = openCsv(file);
+      reader = openCsv(source);
       final String[] strings = reader.readNext();
       for (String string : strings) {
         final String name;
@@ -132,7 +129,7 @@ class CsvEnumerator<E> implements Enumerator<E> {
           fieldType = CsvFieldType.of(typeString);
           if (fieldType == null) {
             System.out.println("WARNING: Found unknown type: "
-              + typeString + " in file: " + file.getAbsolutePath()
+              + typeString + " in file: " + source.path()
               + " for column: " + name
               + ". Will assume the type of column is string");
           }
@@ -170,15 +167,8 @@ class CsvEnumerator<E> implements Enumerator<E> {
     return typeFactory.createStructType(Pair.zip(names, types));
   }
 
-  public static CSVReader openCsv(File file) throws IOException {
-    final Reader fileReader;
-    if (file.getName().endsWith(".gz")) {
-      final GZIPInputStream inputStream =
-          new GZIPInputStream(new FileInputStream(file));
-      fileReader = new InputStreamReader(inputStream);
-    } else {
-      fileReader = new FileReader(file);
-    }
+  public static CSVReader openCsv(Source source) throws IOException {
+    final Reader fileReader = source.reader();
     return new CSVReader(fileReader);
   }
 

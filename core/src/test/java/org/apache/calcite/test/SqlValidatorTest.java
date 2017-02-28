@@ -5002,12 +5002,17 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
 
   @Test public void testGrouping() {
     sql("select deptno, grouping(deptno) from emp group by deptno").ok();
+    sql("select deptno, grouping(deptno, deptno) from emp group by deptno")
+        .ok();
     sql("select deptno / 2, grouping(deptno / 2),\n"
         + " ^grouping(deptno / 2, empno)^\n"
         + "from emp group by deptno / 2, empno")
-        .fails(
-            "Invalid number of arguments to function 'GROUPING'. Was expecting 1 arguments");
+        .ok();
     sql("select deptno, grouping(^empno^) from emp group by deptno")
+        .fails("Argument to GROUPING operator must be a grouped expression");
+    sql("select deptno, grouping(deptno, ^empno^) from emp group by deptno")
+        .fails("Argument to GROUPING operator must be a grouped expression");
+    sql("select deptno, grouping(^empno^, deptno) from emp group by deptno")
         .fails("Argument to GROUPING operator must be a grouped expression");
     sql("select deptno, grouping(^deptno + 1^) from emp group by deptno")
         .fails("Argument to GROUPING operator must be a grouped expression");
@@ -5059,6 +5064,8 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
 
   @Test public void testGroupingId() {
     sql("select deptno, grouping_id(deptno) from emp group by deptno").ok();
+    sql("select deptno, grouping_id(deptno, deptno) from emp group by deptno")
+        .ok();
     sql("select deptno / 2, grouping_id(deptno / 2),\n"
         + " ^grouping_id(deptno / 2, empno)^\n"
         + "from emp group by deptno / 2, empno")
@@ -8113,6 +8120,42 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     pragmaticTester.checkQuery(sql2);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1510">[CALCITE-1510]
+   * INSERT/UPSERT should allow fewer values than columns</a>,
+   * check for default value only when target field is null. */
+  @Test public void testInsertShouldNotCheckForDefaultValue() {
+    final int c =
+        MockCatalogReader.CountingFactory.THREAD_CALL_COUNT.get().get();
+    final SqlTester pragmaticTester =
+        tester.withConformance(SqlConformanceEnum.PRAGMATIC_2003);
+    final String sql1 = "insert into emp values(1, 'nom', 'job', 0, "
+        + "timestamp '1970-01-01 00:00:00', 1, 1, 1, false)";
+    pragmaticTester.checkQuery(sql1);
+    assertThat("Should not check for default value if column is in INSERT",
+        MockCatalogReader.CountingFactory.THREAD_CALL_COUNT.get().get(), is(c));
+
+    // Now add a list of target columns, keeping the query otherwise the same.
+    final String sql2 = "insert into emp (empno, ename, job, mgr, hiredate,\n"
+        + "  sal, comm, deptno, slacker)\n"
+        + "values(1, 'nom', 'job', 0,\n"
+        + "  timestamp '1970-01-01 00:00:00', 1, 1, 1, false)";
+    pragmaticTester.checkQuery(sql2);
+    assertThat("Should not check for default value if column is in INSERT",
+        MockCatalogReader.CountingFactory.THREAD_CALL_COUNT.get().get(), is(c));
+
+    // Now remove SLACKER, which is NOT NULL, from the target list.
+    final String sql3 = "insert into ^emp^ (empno, ename, job, mgr, hiredate,\n"
+        + "  sal, comm, deptno)\n"
+        + "values(1, 'nom', 'job', 0,\n"
+        + "  timestamp '1970-01-01 00:00:00', 1, 1, 1)";
+    pragmaticTester.checkQueryFails(sql3,
+        "Column 'SLACKER' has no default value and does not allow NULLs");
+    assertThat("Missing non-NULL column generates a call to factory",
+        MockCatalogReader.CountingFactory.THREAD_CALL_COUNT.get().get(),
+        is(c + 1));
+  }
+
   @Test public void testInsertView() {
     tester.checkQuery("insert into empnullables_20 (ename, empno, comm)\n"
         + "values ('Karl', 1, 1)");
@@ -8898,6 +8941,40 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
       + "      up as up.sal > PREV(up.sal)\n"
       + "  ) mr";
     sql(sql2).ok();
+  }
+
+  @Test public void testStreamHop() {
+    // HOP
+    sql("select stream\n"
+        + "  hop_start(rowtime, interval '1' hour, interval '3' hour) as rowtime,\n"
+        + "  count(*) as c\n"
+        + "from orders\n"
+        + "group by hop(rowtime, interval '1' hour, interval '3' hour)").ok();
+    sql("select stream\n"
+        + "  "
+        + "^hop_start(rowtime, interval '1' hour, interval '2' hour)^,\n"
+        + "  count(*) as c\n"
+        + "from orders\n"
+        + "group by hop(rowtime, interval '1' hour, interval '3' hour)")
+        .fails("Call to auxiliary group function 'HOP_START' must have "
+            + "matching call to group function 'HOP' in GROUP BY clause");
+    // HOP with align
+    sql("select stream\n"
+        + "  hop_start(rowtime, interval '1' hour, interval '3' hour,\n"
+        + "    time '12:34:56') as rowtime,\n"
+        + "  count(*) as c\n"
+        + "from orders\n"
+        + "group by hop(rowtime, interval '1' hour, interval '3' hour,\n"
+        + "    time '12:34:56')").ok();
+  }
+
+  @Test public void testStreamSession() {
+    // SESSION
+    sql("select stream session_start(rowtime, interval '1' hour) as rowtime,\n"
+        + "  session_end(rowtime, interval '1' hour),\n"
+        + "  count(*) as c\n"
+        + "from orders\n"
+        + "group by session(rowtime, interval '1' hour)").ok();
   }
 }
 

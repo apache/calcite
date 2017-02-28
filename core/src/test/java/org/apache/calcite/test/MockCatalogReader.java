@@ -62,6 +62,7 @@ import org.apache.calcite.schema.Wrapper;
 import org.apache.calcite.schema.impl.AbstractSchema;
 import org.apache.calcite.sql.SqlAccessType;
 import org.apache.calcite.sql.SqlCollation;
+import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
@@ -99,6 +100,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Mock implementation of {@link SqlValidatorCatalogReader} which returns tables
@@ -153,9 +155,15 @@ public class MockCatalogReader extends CalciteCatalogReader {
     MockSchema salesSchema = new MockSchema("SALES");
     registerSchema(salesSchema);
 
+    // Register "EMP" table with customer InitializerExpressionFactory
+    // to check whether newDefaultValue method called or not.
+    final InitializerExpressionFactory countingInitializerExpressionFactory =
+        new CountingFactory(typeFactory);
+
     // Register "EMP" table.
     final MockTable empTable =
-        MockTable.create(this, salesSchema, "EMP", false, 14);
+        MockTable.create(this, salesSchema, "EMP", false, 14, null,
+            countingInitializerExpressionFactory);
     empTable.addColumn("EMPNO", f.intType, true);
     empTable.addColumn("ENAME", f.varchar20Type);
     empTable.addColumn("JOB", f.varchar10Type);
@@ -1320,6 +1328,35 @@ public class MockCatalogReader extends CalciteCatalogReader {
                 new RelDataTypeFieldImpl("ZIP", 2, intType),
                 new RelDataTypeFieldImpl("STATE", 3, varchar20Type)),
             RelDataTypeComparability.NONE);
+  }
+
+  /** To check whether {@link #newColumnDefaultValue} is called. */
+  public static class CountingFactory
+      extends NullInitializerExpressionFactory {
+    static final ThreadLocal<AtomicInteger> THREAD_CALL_COUNT =
+        new ThreadLocal<AtomicInteger>() {
+          protected AtomicInteger initialValue() {
+            return new AtomicInteger();
+          }
+        };
+
+    CountingFactory(RelDataTypeFactory typeFactory) {
+      super(typeFactory);
+    }
+
+    @Override public RexNode newColumnDefaultValue(RelOptTable table,
+        int iColumn) {
+      THREAD_CALL_COUNT.get().incrementAndGet();
+      return super.newColumnDefaultValue(table, iColumn);
+    }
+
+    @Override public RexNode newAttributeInitializer(RelDataType type,
+        SqlFunction constructor, int iAttribute,
+        List<RexNode> constructorArgs) {
+      THREAD_CALL_COUNT.get().incrementAndGet();
+      return super.newAttributeInitializer(type, constructor, iAttribute,
+         constructorArgs);
+    }
   }
 }
 

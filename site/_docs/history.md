@@ -38,6 +38,21 @@ Guava versions 14.0 to 21.0;
 Druid version 0.9.1.1;
 other software versions as specified in `pom.xml`.
 
+### New features
+
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-884">CALCITE-884</a>]
+  File adapter (Henry Olson)
+  * Allow multiple Calcite columns to be derived from one HTML column,
+    e.g. Location &rarr; Lat, Lon
+  * Improved pattern match: added `matchSeq` to allow selection of
+    <i>n</i>th match
+  * Add replace patterns to cell parsing logic
+  * Add handling for tables without `&lt;TH&gt;` elements
+  * Unit tests using local files; URL tests are contingent on network
+    access
+  * Ability to parse HTML from local files
+  * Derived from CSV adapter
+
 ## <a href="https://github.com/apache/calcite/releases/tag/calcite-1.11.0">1.11.0</a> / 2017-01-09
 {: #v1-11-0}
 

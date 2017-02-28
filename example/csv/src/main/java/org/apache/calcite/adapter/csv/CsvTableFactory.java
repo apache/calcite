@@ -22,6 +22,8 @@ import org.apache.calcite.rel.type.RelDataTypeImpl;
 import org.apache.calcite.rel.type.RelProtoDataType;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.TableFactory;
+import org.apache.calcite.util.Source;
+import org.apache.calcite.util.Sources;
 
 import java.io.File;
 import java.util.Map;
@@ -30,7 +32,7 @@ import java.util.Map;
  * Factory that creates a {@link CsvTranslatableTable}.
  *
  * <p>Allows a CSV table to be included in a model.json file, even in a
- * schema that is not based upon {@link CsvSchema}.</p>
+ * schema that is not based upon {@link CsvSchema}.
  */
 @SuppressWarnings("UnusedDeclaration")
 public class CsvTableFactory implements TableFactory<CsvTable> {
@@ -41,15 +43,12 @@ public class CsvTableFactory implements TableFactory<CsvTable> {
   public CsvTable create(SchemaPlus schema, String name,
       Map<String, Object> operand, RelDataType rowType) {
     String fileName = (String) operand.get("file");
-    File file = new File(fileName);
     final File base =
         (File) operand.get(ModelHandler.ExtraOperand.BASE_DIRECTORY.camelName);
-    if (base != null && !file.isAbsolute()) {
-      file = new File(base, fileName);
-    }
+    final Source source = Sources.file(base, fileName);
     final RelProtoDataType protoRowType =
         rowType != null ? RelDataTypeImpl.proto(rowType) : null;
-    return new CsvScannableTable(file, protoRowType);
+    return new CsvScannableTable(source, protoRowType);
   }
 }
 

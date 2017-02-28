@@ -85,7 +85,11 @@ public class ZonelessTimestamp extends ZonelessDatetime {
     // Remove trailing '.0' so that format is consistent with SQL spec for
     // CAST(TIMESTAMP(0) TO VARCHAR). E.g. "1969-12-31 16:00:00.0"
     // becomes "1969-12-31 16:00:00"
-    return ts.toString().substring(0, 19);
+    String sts = ts.toString();
+    if (sts.length() > 19 && ts.getNanos() == 0) {
+      sts = sts.substring(0, 19);
+    }
+    return sts;
   }
 
   /**

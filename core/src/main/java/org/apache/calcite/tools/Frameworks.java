@@ -21,12 +21,12 @@ import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.plan.Context;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCostFactory;
-import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptSchema;
 import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.prepare.CalcitePrepareImpl;
 import org.apache.calcite.prepare.PlannerImpl;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
+import org.apache.calcite.rex.RexExecutor;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.server.CalciteServerStatement;
 import org.apache.calcite.sql.SqlOperatorTable;
@@ -180,7 +180,7 @@ public class Frameworks {
     private SqlParser.Config parserConfig =
         SqlParser.Config.DEFAULT;
     private SchemaPlus defaultSchema;
-    private RelOptPlanner.Executor executor;
+    private RexExecutor executor;
     private RelOptCostFactory costFactory;
     private RelDataTypeSystem typeSystem = RelDataTypeSystem.DEFAULT;
 
@@ -197,7 +197,7 @@ public class Frameworks {
       return this;
     }
 
-    public ConfigBuilder executor(RelOptPlanner.Executor executor) {
+    public ConfigBuilder executor(RexExecutor executor) {
       Preconditions.checkNotNull(executor);
       this.executor = executor;
       return this;
@@ -281,7 +281,7 @@ public class Frameworks {
     private final SchemaPlus defaultSchema;
     private final RelOptCostFactory costFactory;
     private final RelDataTypeSystem typeSystem;
-    private final RelOptPlanner.Executor executor;
+    private final RexExecutor executor;
 
     public StdFrameworkConfig(Context context,
         SqlRexConvertletTable convertletTable,
@@ -292,7 +292,7 @@ public class Frameworks {
         SchemaPlus defaultSchema,
         RelOptCostFactory costFactory,
         RelDataTypeSystem typeSystem,
-        RelOptPlanner.Executor executor) {
+        RexExecutor executor) {
       this.context = context;
       this.convertletTable = convertletTable;
       this.operatorTable = operatorTable;
@@ -313,7 +313,7 @@ public class Frameworks {
       return defaultSchema;
     }
 
-    public RelOptPlanner.Executor getExecutor() {
+    public RexExecutor getExecutor() {
       return executor;
     }
 

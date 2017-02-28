@@ -25,18 +25,17 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.schema.ScannableTable;
 import org.apache.calcite.schema.impl.AbstractTable;
 import org.apache.calcite.sql.type.SqlTypeName;
-
-import java.io.File;
+import org.apache.calcite.util.Source;
 
 /**
  * Table based on a JSON file.
  */
 public class JsonTable extends AbstractTable implements ScannableTable {
-  private final File file;
+  private final Source source;
 
   /** Creates a JsonTable. */
-  JsonTable(File file) {
-    this.file = file;
+  public JsonTable(Source source) {
+    this.source = source;
   }
 
   public String toString() {
@@ -54,7 +53,7 @@ public class JsonTable extends AbstractTable implements ScannableTable {
   public Enumerable<Object[]> scan(DataContext root) {
     return new AbstractEnumerable<Object[]>() {
       public Enumerator<Object[]> enumerator() {
-        return new JsonEnumerator(file);
+        return new JsonEnumerator(source);
       }
     };
   }

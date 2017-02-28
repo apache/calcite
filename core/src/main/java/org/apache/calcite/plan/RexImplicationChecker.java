@@ -32,6 +32,7 @@ import org.apache.calcite.sql.fun.SqlCastFunction;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.trace.CalciteLogger;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
@@ -69,9 +70,9 @@ public class RexImplicationChecker {
       RexBuilder builder,
       RexExecutorImpl executor,
       RelDataType rowType) {
-    this.builder = builder;
-    this.executor = executor;
-    this.rowType = rowType;
+    this.builder = Preconditions.checkNotNull(builder);
+    this.executor = Preconditions.checkNotNull(executor);
+    this.rowType = Preconditions.checkNotNull(rowType);
   }
 
   /**

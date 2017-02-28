@@ -18,7 +18,6 @@ package org.apache.calcite.rex;
 
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.linq4j.function.Predicate1;
-import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.Strong;
 import org.apache.calcite.rel.RelCollation;
@@ -74,6 +73,7 @@ import java.util.Set;
  * Utility methods concerning row-expressions.
  */
 public class RexUtil {
+
   private static final Function<? super RexNode, ? extends RexNode> ADD_NOT =
       new Function<RexNode, RexNode>() {
         public RexNode apply(RexNode input) {
@@ -110,9 +110,8 @@ public class RexUtil {
         }
       };
 
-  /** Executor for a bit of constant reduction. Ideally we'd use the user's
-   * preferred executor, but that isn't available. */
-  private static final RelOptPlanner.Executor EXECUTOR =
+  /** Executor for a bit of constant reduction. The user can pass in another executor. */
+  public static final RexExecutor EXECUTOR =
       new RexExecutorImpl(Schemas.createDataContext(null));
 
   private RexUtil() {
@@ -396,10 +395,7 @@ public class RexUtil {
       right = operands.get(1);
     } else {
       left = operands.get(0);
-      SqlTypeName typeName = left.getType().getSqlTypeName();
-      right = typeName.allowsPrec()
-          ? rexBuilder.makeNullLiteral(typeName, left.getType().getPrecision())
-          : rexBuilder.makeNullLiteral(typeName);
+      right = rexBuilder.makeNullLiteral(left.getType());
     }
     // Note that literals are immutable too, and they can only be compared
     // through values.
@@ -1457,6 +1453,9 @@ public class RexUtil {
    * Shifts every {@link RexInputRef} in an expression by {@code offset}.
    */
   public static RexNode shift(RexNode node, final int offset) {
+    if (offset == 0) {
+      return node;
+    }
     return node.accept(new RexShiftShuttle(offset));
   }
 
@@ -1568,8 +1567,8 @@ public class RexUtil {
    * <p>This is useful if you are simplifying expressions in a
    * {@link Project}. */
   public static RexNode simplifyPreservingType(RexBuilder rexBuilder,
-      RexNode e) {
-    final RexNode e2 = simplify(rexBuilder, e, false);
+      RexNode e, RexExecutor executor) {
+    final RexNode e2 = simplify(rexBuilder, e, false, executor);
     if (e2.getType() == e.getType()) {
       return e2;
     }
@@ -1578,6 +1577,23 @@ public class RexUtil {
       return e;
     }
     return e3;
+  }
+
+  /**
+   * Simplifies a boolean expression, leaving UNKNOWN values as UNKNOWN, and
+   * using the default executor.
+   */
+  public static RexNode simplify(RexBuilder rexBuilder, RexNode e) {
+    return simplify(rexBuilder, e, false, EXECUTOR);
+  }
+
+  /**
+   * Simplifies a boolean expression,
+   * using the default executor.
+   */
+  public static RexNode simplify(RexBuilder rexBuilder, RexNode e,
+      boolean unknownAsFalse) {
+    return simplify(rexBuilder, e, unknownAsFalse, EXECUTOR);
   }
 
   /**
@@ -1590,13 +1606,20 @@ public class RexUtil {
    * <li>{@code simplify(x = 1 AND FALSE)}
    * returns {@code FALSE}</li>
    * </ul>
+   *
+   * <p>If the expression is a predicate in a WHERE clause, UNKNOWN values have
+   * the same effect as FALSE. In situations like this, specify
+   * {@code unknownAsFalse = true}, so and we can switch from 3-valued logic to
+   * simpler 2-valued logic and make more optimizations.
+   *
+   * @param rexBuilder Rex builder
+   * @param e Expression to simplify
+   * @param unknownAsFalse Whether to convert UNKNOWN values to FALSE
+   * @param executor Executor for constant reduction, not null
    */
-  public static RexNode simplify(RexBuilder rexBuilder, RexNode e) {
-    return simplify(rexBuilder, e, false);
-  }
-
   public static RexNode simplify(RexBuilder rexBuilder, RexNode e,
-      boolean unknownAsFalse) {
+      boolean unknownAsFalse, RexExecutor executor) {
+    Preconditions.checkNotNull(executor);
     switch (e.getKind()) {
     case AND:
       return simplifyAnd(rexBuilder, (RexCall) e, unknownAsFalse);
@@ -1607,7 +1630,7 @@ public class RexUtil {
     case CASE:
       return simplifyCase(rexBuilder, (RexCall) e, unknownAsFalse);
     case CAST:
-      return simplifyCast(rexBuilder, (RexCall) e);
+      return simplifyCast(rexBuilder, (RexCall) e, executor);
     case IS_NULL:
     case IS_NOT_NULL:
     case IS_TRUE:
@@ -1622,6 +1645,24 @@ public class RexUtil {
     case LESS_THAN:
     case LESS_THAN_OR_EQUAL:
     case NOT_EQUALS:
+      final List<RexNode> operands = ((RexCall) e).getOperands();
+      if (RexUtil.eq(operands.get(0), operands.get(1))
+          && (unknownAsFalse
+          || (!operands.get(0).getType().isNullable()
+              && !operands.get(1).getType().isNullable()))) {
+        switch (e.getKind()) {
+        case EQUALS:
+        case GREATER_THAN_OR_EQUAL:
+        case LESS_THAN_OR_EQUAL:
+          // "x = x" simplifies to "x is not null" (similarly <= and >=)
+          return simplify(rexBuilder,
+              rexBuilder.makeCall(SqlStdOperatorTable.IS_NOT_NULL,
+                  operands.get(0)));
+        default:
+          // "x != x" simplifies to "false" (similarly < and >)
+          return rexBuilder.makeLiteral(false);
+        }
+      }
       return simplifyCall(rexBuilder, (RexCall) e);
     default:
       return e;
@@ -2033,6 +2074,7 @@ public class RexUtil {
    * UNKNOWN it will be interpreted as FALSE. */
   public static RexNode simplifyAnd2ForUnknownAsFalse(RexBuilder rexBuilder,
       List<RexNode> terms, List<RexNode> notTerms) {
+    final RexExecutor executor = EXECUTOR;
     for (RexNode term : terms) {
       if (term.isAlwaysFalse()) {
         return rexBuilder.makeLiteral(false);
@@ -2202,9 +2244,9 @@ public class RexUtil {
     }
     // Add the NOT disjunctions back in.
     for (RexNode notDisjunction : notTerms) {
-      terms.add(
-          simplify(rexBuilder,
-              rexBuilder.makeCall(SqlStdOperatorTable.NOT, notDisjunction), true));
+      final RexNode call =
+          rexBuilder.makeCall(SqlStdOperatorTable.NOT, notDisjunction);
+      terms.add(simplify(rexBuilder, call, true, executor));
     }
     // The negated terms: only deterministic expressions
     for (String negatedTerm : negatedTerms) {
@@ -2337,7 +2379,9 @@ public class RexUtil {
         && (call.operands.size() - i) % 2 == 1;
   }
 
-  private static RexNode simplifyCast(RexBuilder rexBuilder, RexCall e) {
+  private static RexNode simplifyCast(RexBuilder rexBuilder, RexCall e,
+      RexExecutor executor) {
+    Preconditions.checkNotNull(executor);
     final RexNode operand = e.getOperands().get(0);
     switch (operand.getKind()) {
     case LITERAL:
@@ -2362,7 +2406,7 @@ public class RexUtil {
         }
       }
       final List<RexNode> reducedValues = new ArrayList<>();
-      EXECUTOR.reduce(rexBuilder, ImmutableList.<RexNode>of(e), reducedValues);
+      executor.reduce(rexBuilder, ImmutableList.<RexNode>of(e), reducedValues);
       return Preconditions.checkNotNull(
           Iterables.getOnlyElement(reducedValues));
     default:
@@ -2930,11 +2974,14 @@ public class RexUtil {
   /** Deep expressions simplifier. */
   public static class ExprSimplifier extends RexShuttle {
     private final RexBuilder rexBuilder;
+    private final RexExecutor executor;
     private final boolean unknownAsFalse;
     private final Map<RexNode, Boolean> unknownAsFalseMap;
 
-    public ExprSimplifier(RexBuilder rexBuilder, boolean unknownAsFalse) {
-      this.rexBuilder = rexBuilder;
+    public ExprSimplifier(RexBuilder rexBuilder, boolean unknownAsFalse,
+        RexExecutor executor) {
+      this.rexBuilder = Preconditions.checkNotNull(rexBuilder);
+      this.executor = Preconditions.checkNotNull(executor);
       this.unknownAsFalse = unknownAsFalse;
       this.unknownAsFalseMap = new HashMap<>();
     }
@@ -2959,7 +3006,8 @@ public class RexUtil {
         }
       }
       RexNode node = super.visitCall(call);
-      RexNode simplifiedNode = simplify(rexBuilder, node, unknownAsFalseCall);
+      RexNode simplifiedNode =
+          simplify(rexBuilder, node, unknownAsFalseCall, executor);
       if (node == simplifiedNode) {
         return node;
       }

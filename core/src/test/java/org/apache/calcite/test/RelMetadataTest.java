@@ -1111,10 +1111,12 @@ public class RelMetadataTest extends SqlToRelTestBase {
   private void addRow(ImmutableList.Builder<ImmutableList<RexLiteral>> builder,
       RexBuilder rexBuilder, Object... values) {
     ImmutableList.Builder<RexLiteral> b = ImmutableList.builder();
+    final RelDataType varcharType =
+        rexBuilder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR);
     for (Object value : values) {
       final RexLiteral literal;
       if (value == null) {
-        literal = (RexLiteral) rexBuilder.makeNullLiteral(SqlTypeName.VARCHAR);
+        literal = rexBuilder.makeNullLiteral(varcharType);
       } else if (value instanceof Integer) {
         literal = rexBuilder.makeExactLiteral(
             BigDecimal.valueOf((Integer) value));

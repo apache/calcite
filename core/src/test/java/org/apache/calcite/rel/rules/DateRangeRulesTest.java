@@ -95,6 +95,30 @@ public class DateRangeRulesTest {
             + " >=($8, 2014-06-01), <($8, 2014-07-01))"));
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1601">[CALCITE-1601]
+   * DateRangeRules loses OR filters</a>. */
+  @Test public void testExtractYearAndMonthFromDateColumn2() {
+    final Fixture2 f = new Fixture2();
+    final String s1 = "AND("
+        + "AND(>=($8, 2000-01-01), <($8, 2001-01-01)),"
+        + " OR("
+        + "AND(>=($8, 2000-02-01), <($8, 2000-03-01)), "
+        + "AND(>=($8, 2000-03-01), <($8, 2000-04-01)), "
+        + "AND(>=($8, 2000-05-01), <($8, 2000-06-01))))";
+    final String s2 = "AND(>=($8, 2000-01-01), <($8, 2001-01-01),"
+        + " OR("
+        + "AND(>=($8, 2000-02-01), <($8, 2000-03-01)), "
+        + "AND(>=($8, 2000-03-01), <($8, 2000-04-01)), "
+        + "AND(>=($8, 2000-05-01), <($8, 2000-06-01))))";
+    final RexNode e =
+        f.and(f.eq(f.exYear, f.literal(2000)),
+            f.or(f.eq(f.exMonth, f.literal(2)),
+                f.eq(f.exMonth, f.literal(3)),
+                f.eq(f.exMonth, f.literal(5))));
+    checkDateRange(f, e, is(s1), is(s2));
+  }
+
   @Test public void testExtractYearAndDayFromDateColumn() {
     final Fixture2 f = new Fixture2();
     checkDateRange(f,

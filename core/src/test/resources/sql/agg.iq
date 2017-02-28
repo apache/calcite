@@ -508,6 +508,31 @@ group by deptno, gender;
 
 !ok
 
+# GROUPING accepts multiple arguments, gives same result as GROUPING_ID
+select count(*) as c,
+  grouping(deptno) as gd,
+  grouping_id(deptno) as gid,
+  grouping(deptno, gender, deptno) as gdgd,
+  grouping_id(deptno, gender, deptno) as gidgd
+from emp
+group by deptno, gender
+having grouping(deptno) <= grouping_id(deptno, gender, deptno);
++---+----+-----+------+-------+
+| C | GD | GID | GDGD | GIDGD |
++---+----+-----+------+-------+
+| 1 |  1 |   1 |    7 |     7 |
+| 1 |  1 |   1 |    7 |     7 |
+| 1 |  1 |   1 |    7 |     7 |
+| 1 |  1 |   1 |    7 |     7 |
+| 1 |  1 |   1 |    7 |     7 |
+| 1 |  1 |   1 |    7 |     7 |
+| 1 |  1 |   1 |    7 |     7 |
+| 2 |  1 |   1 |    7 |     7 |
++---+----+-----+------+-------+
+(8 rows)
+
+!ok
+
 # GROUPING in ORDER BY clause
 select count(*) as c
 from emp

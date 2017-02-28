@@ -28,7 +28,6 @@ import org.apache.calcite.linq4j.tree.IndexExpression;
 import org.apache.calcite.linq4j.tree.MethodCallExpression;
 import org.apache.calcite.linq4j.tree.MethodDeclaration;
 import org.apache.calcite.linq4j.tree.ParameterExpression;
-import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.prepare.CalcitePrepareImpl;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
@@ -44,7 +43,7 @@ import java.util.List;
 /**
 * Evaluates a {@link RexNode} expression.
 */
-public class RexExecutorImpl implements RelOptPlanner.Executor {
+public class RexExecutorImpl implements RexExecutor {
 
   private final DataContext dataContext;
 

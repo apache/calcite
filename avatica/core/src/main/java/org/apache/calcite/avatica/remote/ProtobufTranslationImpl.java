@@ -296,7 +296,10 @@ public class ProtobufTranslationImpl implements ProtobufTranslation {
     UnsynchronizedBuffer out = threadLocalBuffer.get();
     try {
       Message responseMsg = response.serialize();
-      LOG.trace("Serializing response '{}'", TextFormat.shortDebugString(responseMsg));
+      // Serialization of the response may be large
+      if (LOG.isTraceEnabled()) {
+        LOG.trace("Serializing response '{}'", TextFormat.shortDebugString(responseMsg));
+      }
       serializeMessage(out, responseMsg);
       return out.toArray();
     } finally {
@@ -309,7 +312,10 @@ public class ProtobufTranslationImpl implements ProtobufTranslation {
     UnsynchronizedBuffer out = threadLocalBuffer.get();
     try {
       Message requestMsg = request.serialize();
-      LOG.trace("Serializing request '{}'", TextFormat.shortDebugString(requestMsg));
+      // Serialization of the request may be large
+      if (LOG.isTraceEnabled()) {
+        LOG.trace("Serializing request '{}'", TextFormat.shortDebugString(requestMsg));
+      }
       serializeMessage(out, requestMsg);
       return out.toArray();
     } finally {
@@ -361,7 +367,9 @@ public class ProtobufTranslationImpl implements ProtobufTranslation {
       // The ByteString should be logical offsets into the original byte array
       return translator.transform(wireMsg.getWrappedMessage());
     } catch (RuntimeException e) {
-      LOG.debug("Failed to parse request message '{}'", TextFormat.shortDebugString(wireMsg));
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("Failed to parse request message '{}'", TextFormat.shortDebugString(wireMsg));
+      }
       throw e;
     }
   }
@@ -380,7 +388,9 @@ public class ProtobufTranslationImpl implements ProtobufTranslation {
 
       return translator.transform(wireMsg.getWrappedMessage());
     } catch (RuntimeException e) {
-      LOG.debug("Failed to parse response message '{}'", TextFormat.shortDebugString(wireMsg));
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("Failed to parse response message '{}'", TextFormat.shortDebugString(wireMsg));
+      }
       throw e;
     }
   }

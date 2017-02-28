@@ -20,6 +20,7 @@ import org.apache.calcite.plan.volcano.RelSubset;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.metadata.RelMetadataProvider;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
+import org.apache.calcite.rex.RexExecutor;
 import org.apache.calcite.runtime.PredicateImpl;
 import org.apache.calcite.util.CancelFlag;
 
@@ -70,7 +71,7 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
   /** External context. Never null. */
   protected final Context context;
 
-  private Executor executor;
+  private RexExecutor executor;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -269,11 +270,11 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
     return ImmutableList.of();
   }
 
-  public void setExecutor(Executor executor) {
+  public void setExecutor(RexExecutor executor) {
     this.executor = executor;
   }
 
-  public Executor getExecutor() {
+  public RexExecutor getExecutor() {
     return executor;
   }
 

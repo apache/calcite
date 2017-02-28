@@ -908,21 +908,20 @@ public class MaterializationTest {
 
   @Test public void testJoinMaterialization3() {
     String q = "select \"empid\" \"deptno\" from \"emps\"\n"
-            + "join \"depts\" using (\"deptno\") where \"empid\" = 1";
+        + "join \"depts\" using (\"deptno\") where \"empid\" = 1";
     final String m = "select \"empid\" \"deptno\" from \"emps\"\n"
-            + "join \"depts\" using (\"deptno\")";
+        + "join \"depts\" using (\"deptno\")";
     RuleSet rules = RuleSets.ofList(MaterializedViewJoinRule.INSTANCE_PROJECT,
-                                    MaterializedViewJoinRule.INSTANCE_TABLE_SCAN);
+        MaterializedViewJoinRule.INSTANCE_TABLE_SCAN);
     checkMaterializeWithRules(m, q, rules);
   }
 
   @Test public void testSubQuery() {
     String q = "select \"empid\", \"deptno\", \"salary\" from \"emps\" e1\n"
-            + "where \"empid\" = (\n"
-            + "  select max(\"empid\") from \"emps\"\n"
-            + "  where \"deptno\" = e1.\"deptno\")";
-    final String m = "select \"empid\", \"deptno\" from \"emps\"\n"
-            + "";
+        + "where \"empid\" = (\n"
+        + "  select max(\"empid\") from \"emps\"\n"
+        + "  where \"deptno\" = e1.\"deptno\")";
+    final String m = "select \"empid\", \"deptno\" from \"emps\"\n";
     try (final TryThreadLocal.Memo ignored = Prepare.THREAD_TRIM.push(true)) {
       MaterializationService.setThreadLocal();
       CalciteAssert.that()
@@ -934,8 +933,8 @@ public class MaterializationTest {
               try {
                 final String actual = Util.toLinux(CalciteAssert.toString(s));
                 final String scan = "EnumerableTableScan(table=[[hr, m0]])";
-                assertTrue(actual + " should have had two occurrences of " + scan,
-                    StringUtils.countMatches(actual, scan) == 2);
+                assertTrue(actual + " should have 1 occurrence of " + scan,
+                    StringUtils.countMatches(actual, scan) == 1);
                 return null;
               } catch (SQLException e) {
                 throw new RuntimeException(e);
@@ -944,6 +943,35 @@ public class MaterializationTest {
           })
           .sameResultWithMaterializationsDisabled();
     }
+  }
+
+  @Test public void testTableModify() {
+    final String m = "select \"deptno\", \"empid\", \"name\""
+        + "from \"emps\" where \"deptno\" = 10";
+    final String q = "upsert into \"dependents\""
+        + "select \"empid\" + 1 as x, \"name\""
+        + "from \"emps\" where \"deptno\" = 10";
+
+    final List<List<List<String>>> substitutedNames = new ArrayList<>();
+    try (final TryThreadLocal.Memo ignored = Prepare.THREAD_TRIM.push(true)) {
+      MaterializationService.setThreadLocal();
+      CalciteAssert.that()
+          .withMaterializations(JdbcTest.HR_MODEL,
+              "m0", m)
+          .query(q)
+          .withHook(Hook.SUB,
+              new Function<RelNode, Void>() {
+                public Void apply(RelNode input) {
+                  substitutedNames.add(new TableNameVisitor().run(input));
+                  return null;
+                }
+              })
+          .enableMaterializations(true)
+          .explainContains("hr, m0");
+    } catch (Exception e) {
+      // Table "dependents" not modifiable.
+    }
+    assertThat(substitutedNames, is(list3(new String[][][]{{{"hr", "m0"}}})));
   }
 
   /** Test case for
