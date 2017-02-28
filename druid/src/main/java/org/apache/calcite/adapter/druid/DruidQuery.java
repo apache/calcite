@@ -696,7 +696,28 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
       list.add(fieldNames.get(arg));
     }
     final String only = Iterables.getFirst(list, null);
-    final boolean b = aggCall.getType().getSqlTypeName() == SqlTypeName.DOUBLE;
+    final boolean fractional;
+    switch (aggCall.getType().getSqlTypeName().getFamily()) {
+    case APPROXIMATE_NUMERIC:
+      fractional = true;
+      break;
+    case INTEGER:
+      fractional = false;
+      break;
+    case EXACT_NUMERIC:
+      // Decimal
+      RelDataType type = aggCall.getType();
+      assert type.getSqlTypeName() == SqlTypeName.DECIMAL;
+      if (type.getScale() == 0) {
+        fractional = false;
+      } else {
+        fractional = true;
+      }
+      break;
+    default:
+      // Cannot handle this aggregate function type
+      throw new AssertionError("unknown aggregate type " + aggCall.getType());
+    }
     switch (aggCall.getAggregation().getKind()) {
     case COUNT:
       if (aggCall.isDistinct()) {
@@ -705,11 +726,11 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
       return new JsonAggregation("count", name, only);
     case SUM:
     case SUM0:
-      return new JsonAggregation(b ? "doubleSum" : "longSum", name, only);
+      return new JsonAggregation(fractional ? "doubleSum" : "longSum", name, only);
     case MIN:
-      return new JsonAggregation(b ? "doubleMin" : "longMin", name, only);
+      return new JsonAggregation(fractional ? "doubleMin" : "longMin", name, only);
     case MAX:
-      return new JsonAggregation(b ? "doubleMax" : "longMax", name, only);
+      return new JsonAggregation(fractional ? "doubleMax" : "longMax", name, only);
     default:
       throw new AssertionError("unknown aggregate " + aggCall);
     }
