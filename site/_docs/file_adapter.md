@@ -1,7 +1,7 @@
 ---
 layout: docs
 title: File adapter
-permalink: /docs/file.html
+permalink: /docs/file_adapter.html
 ---
 <!--
 {% comment %}
@@ -88,7 +88,7 @@ chooses the largest table on the page.
 
 `EMPS.html` contains a single HTML table:
 
-{% highllight xml %}
+{% highlight xml %}
 <html>
   <body>
     <table>

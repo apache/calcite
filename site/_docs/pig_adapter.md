@@ -1,7 +1,7 @@
 ---
 layout: docs
 title: Pig adapter
-permalink: /docs/pig.html
+permalink: /docs/pig_adapter.html
 ---
 <!--
 {% comment %}
