@@ -1942,31 +1942,14 @@ public class SqlToRelConverter {
       return;
 
     case IDENTIFIER:
-      final SqlValidatorNamespace fromNamespace =
-          validator.getNamespace(from).resolve();
-      if (fromNamespace.getNode() != null) {
-        convertFrom(bb, fromNamespace.getNode());
-        return;
-      }
-      final String datasetName =
-          datasetStack.isEmpty() ? null : datasetStack.peek();
-      boolean[] usedDataset = {false};
-      RelOptTable table =
-          SqlValidatorUtil.getRelOptTable(
-              fromNamespace,
-              catalogReader,
-              datasetName,
-              usedDataset);
-      final RelNode tableRel;
-      if (config.isConvertTableAccess()) {
-        tableRel = toRel(table);
-      } else {
-        tableRel = LogicalTableScan.create(cluster, table);
-      }
-      bb.setRoot(tableRel, true);
-      if (usedDataset[0]) {
-        bb.setDataset(datasetName);
-      }
+      convertIdentifier(bb, (SqlIdentifier) from, null);
+      return;
+
+    case EXTEND:
+      call = (SqlCall) from;
+      SqlIdentifier id = (SqlIdentifier) call.getOperandList().get(0);
+      SqlNodeList extendedColumns = (SqlNodeList) call.getOperandList().get(1);
+      convertIdentifier(bb, id, extendedColumns);
       return;
 
     case JOIN:
@@ -2072,6 +2055,44 @@ public class SqlToRelConverter {
 
     default:
       throw new AssertionError("not a join operator " + from);
+    }
+  }
+
+  private void convertIdentifier(
+      Blackboard bb,
+      SqlIdentifier id,
+      SqlNodeList extendedColumns
+  ) {
+    final SqlValidatorNamespace fromNamespace =
+        validator.getNamespace(id).resolve();
+    if (fromNamespace.getNode() != null) {
+      convertFrom(bb, fromNamespace.getNode());
+      return;
+    }
+    final String datasetName =
+        datasetStack.isEmpty() ? null : datasetStack.peek();
+    final boolean[] usedDataset = {false};
+    RelOptTable table =
+        SqlValidatorUtil.getRelOptTable(
+            fromNamespace,
+            catalogReader,
+            datasetName,
+            usedDataset);
+    if (extendedColumns != null && extendedColumns.size() > 0) {
+      final List<RelDataTypeField> extendedFields =
+          SqlValidatorUtil.getExtendedColumns(
+              validator, table.unwrap(SqlValidatorTable.class), extendedColumns);
+      table = table.extend(extendedFields);
+    }
+    final RelNode tableRel;
+    if (config.isConvertTableAccess()) {
+      tableRel = toRel(table);
+    } else {
+      tableRel = LogicalTableScan.create(cluster, table);
+    }
+    bb.setRoot(tableRel, true);
+    if (usedDataset[0]) {
+      bb.setDataset(datasetName);
     }
   }
 

@@ -358,7 +358,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
       }
       return new AnalyzeViewResult(this, validator, sql, sqlNode,
           validator.getValidatedNodeType(sqlNode), root, null, null, null,
-          null);
+          null, true);
     }
     final RelOptTable targetRelTable = scan.getTable();
     final RelDataType targetRowType = targetRelTable.getRowType();
@@ -384,7 +384,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
             }
             return new AnalyzeViewResult(this, validator, sql, sqlNode,
                 validator.getValidatedNodeType(sqlNode), root, null, null, null,
-                null);
+                null, true);
           }
           projectMap.put(index, rexBuilder.makeInputRef(viewRel, node.i));
           columnMapping.add(index);
@@ -400,7 +400,20 @@ public class CalcitePrepareImpl implements CalcitePrepare {
       constraint = rexBuilder.makeLiteral(true);
     }
     final List<RexNode> filters = new ArrayList<>();
+    // If we put a constraint in projectMap above, then filters will not be empty despite
+    // being a modifiable view.
+    final List<RexNode> filters2 = new ArrayList<>();
+    boolean retry = false;
     RelOptUtil.inferViewPredicates(projectMap, filters, constraint);
+    if (fail && !filters.isEmpty()) {
+      final Map<Integer, RexNode> projectMap2 = new HashMap<>();
+      RelOptUtil.inferViewPredicates(projectMap2, filters2, constraint);
+      if (!filters2.isEmpty()) {
+        throw validator.newValidationError(sqlNode,
+            RESOURCE.modifiableViewMustHaveOnlyEqualityPredicates());
+      }
+      retry = true;
+    }
 
     // Check that all columns that are not projected have a constant value
     for (RelDataTypeField field : targetRowType.getFieldList()) {
@@ -423,13 +436,15 @@ public class CalcitePrepareImpl implements CalcitePrepare {
       }
       return new AnalyzeViewResult(this, validator, sql, sqlNode,
           validator.getValidatedNodeType(sqlNode), root, null, null, null,
-          null);
+          null,
+          filters.isEmpty() || retry && filters2.isEmpty());
     }
 
     return new AnalyzeViewResult(this, validator, sql, sqlNode,
         validator.getValidatedNodeType(sqlNode), root, table,
         ImmutableList.copyOf(tablePath),
-        constraint, ImmutableIntList.copyOf(columnMapping));
+        constraint, ImmutableIntList.copyOf(columnMapping),
+        filters.isEmpty() || retry && filters2.isEmpty());
   }
 
   @Override public void executeDdl(Context context, SqlNode node) {

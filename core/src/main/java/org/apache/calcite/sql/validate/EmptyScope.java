@@ -17,6 +17,7 @@
 package org.apache.calcite.sql.validate;
 
 import org.apache.calcite.jdbc.CalciteSchema;
+import org.apache.calcite.plan.RelOptSchema;
 import org.apache.calcite.prepare.Prepare;
 import org.apache.calcite.prepare.RelOptTableImpl;
 import org.apache.calcite.rel.type.RelDataType;
@@ -154,7 +155,7 @@ class EmptyScope implements SqlValidatorScope {
           table2 = ((Wrapper) table).unwrap(Prepare.PreparingTable.class);
         }
         if (table2 == null) {
-          table2 = RelOptTableImpl.create(null,
+          table2 = RelOptTableImpl.create(validator.catalogReader.unwrap(RelOptSchema.class),
               table.getRowType(validator.typeFactory), schema.add(name2, table),
               null);
         }

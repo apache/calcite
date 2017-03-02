@@ -35,12 +35,15 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelRoot;
 import org.apache.calcite.rel.logical.LogicalTableModify;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexExecutorImpl;
 import org.apache.calcite.runtime.Bindable;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.runtime.Typed;
+import org.apache.calcite.schema.ExtensibleTable;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.Wrapper;
+import org.apache.calcite.schema.impl.ModifiableViewTable;
 import org.apache.calcite.schema.impl.StarTable;
 import org.apache.calcite.sql.SqlExplain;
 import org.apache.calcite.sql.SqlExplainFormat;
@@ -418,6 +421,31 @@ public abstract class Prepare {
       }
       return !rowType.getFieldList().get(ordinal).getType().isNullable();
     }
+
+    public RelOptTable extend(List<RelDataTypeField> extendedFields) {
+      final Table table = unwrap(Table.class);
+      if (table != null && table instanceof ExtensibleTable) {
+        return extend((ExtensibleTable) table, extendedFields);
+      } else if (table instanceof ModifiableViewTable) {
+        final Table underlying = ((Wrapper) table).unwrap(Table.class);
+        if (underlying instanceof ExtensibleTable) {
+          return extend((ExtensibleTable) underlying, extendedFields);
+        }
+      }
+      throw new RuntimeException("Cannot extend " + table); // TODO: user error
+    }
+
+    private RelOptTable extend(ExtensibleTable table, List<RelDataTypeField> extendedFields) {
+      final Table extendedTable =
+          table.extend(extendedFields);
+      return extend(extendedTable);
+    }
+
+    /**
+     * Implementation-specific code to instantiate a new RelOptTable based on a Table that has been
+     * extended.
+     */
+    protected abstract RelOptTable extend(Table extendedTable);
   }
 
   /**
