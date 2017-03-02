@@ -21,7 +21,7 @@ import org.apache.calcite.sql.SqlMatchRecognize;
 import org.apache.calcite.sql.SqlNode;
 
 /**
- * MatchRecognize Namespace
+ * Match Namespace
  */
 public class MatchRecognizeNamespace extends AbstractNamespace {
   //~ Instance fields

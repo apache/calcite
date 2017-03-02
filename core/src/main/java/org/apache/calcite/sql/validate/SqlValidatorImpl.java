@@ -4309,7 +4309,9 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       SqlNode item = defns.get(i);
       assert item instanceof SqlCall;
       String alias = ((SqlIdentifier) ((SqlCall) item).getOperandList().get(1)).getSimple();
-      Preconditions.checkArgument(!aliases.contains(alias), alias + " has already been defined!");
+      if (aliases.contains(alias)) {
+        throw newValidationError(item, Static.RESOURCE.PatternVarAlreadyDefined(alias));
+      }
       aliases.add(alias);
       scope.addPatternVar(alias);
     }
@@ -4520,6 +4522,28 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       List<RelDataType> argTypes,
       List<SqlNode> operands) {
     throw new UnsupportedOperationException();
+  }
+
+  private boolean isPhysicNavigation(SqlKind kind) {
+    return kind == SqlKind.PREV || kind == SqlKind.NEXT;
+  }
+
+  private boolean isLogicNavigation(SqlKind kind) {
+    return kind == SqlKind.FIRST || kind == SqlKind.LAST;
+  }
+
+  private boolean isAggregation(SqlKind kind) {
+    return kind == SqlKind.SUM || kind == SqlKind.SUM0
+      || kind == SqlKind.AVG || kind == SqlKind.COUNT
+      || kind == SqlKind.MAX || kind == SqlKind.MIN;
+  }
+
+  private boolean isRunningOrFinal(SqlKind kind) {
+    return kind == SqlKind.RUNNING || kind == SqlKind.FINAL;
+  }
+
+  private boolean isSingleVarRequired(SqlKind kind) {
+    return isPhysicNavigation(kind) || isLogicNavigation(kind) || isAggregation(kind);
   }
 
   //~ Inner Classes ----------------------------------------------------------
@@ -4978,50 +5002,6 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     }
   }
 
-  //~ Enums ------------------------------------------------------------------
-
-  /**
-   * Validation status.
-   */
-  public enum Status {
-    /**
-     * Validation has not started for this scope.
-     */
-    UNVALIDATED,
-
-    /**
-     * Validation is in progress for this scope.
-     */
-    IN_PROGRESS,
-
-    /**
-     * Validation has completed (perhaps unsuccessfully).
-     */
-    VALID
-  }
-
-  private boolean isPhysicNavigation(SqlKind kind) {
-    return kind == SqlKind.PREV || kind == SqlKind.NEXT;
-  }
-
-  private boolean isLogicNavigation(SqlKind kind) {
-    return kind == SqlKind.FIRST || kind == SqlKind.LAST;
-  }
-
-  private boolean isAggregation(SqlKind kind) {
-    return kind == SqlKind.SUM || kind == SqlKind.SUM0
-      || kind == SqlKind.AVG || kind == SqlKind.COUNT
-      || kind == SqlKind.MAX || kind == SqlKind.MIN;
-  }
-
-  private boolean isRunningOrFinal(SqlKind kind) {
-    return kind == SqlKind.RUNNING || kind == SqlKind.FINAL;
-  }
-
-  private boolean isSingleVarRequired(SqlKind kind) {
-    return isPhysicNavigation(kind) || isLogicNavigation(kind) || isAggregation(kind);
-  }
-
   /**
    * Modify the nodes in navigation function
    * such as FIRST, LAST, PREV AND NEXT.
@@ -5183,31 +5163,43 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       if (isSingleVarRequired(kind)) {
         isSingle = true;
         if (isPhysicNavigation(kind)) {
-          Preconditions.checkArgument(!isMeasure,
-            "Cannot use PREV/NEXT in MEASURE: " + call.toString());
-          Preconditions.checkArgument(firstLastC == 0,
-            "Cannot nest PREV/NEXT under LAST/FIRST: " + call.toString());
+          if (isMeasure) {
+            throw newValidationError(call,
+              Static.RESOURCE.PatternPrevFunctionInMeasure(call.toString()));
+          }
+          if (firstLastC != 0) {
+            throw newValidationError(call,
+              Static.RESOURCE.PatternPrevFunctionOrder(call.toString()));
+          }
           prevNextC++;
         } else if (isLogicNavigation(kind)) {
-          Preconditions.checkArgument(firstLastC == 0,
-            "Cannot nest PREV/NEXT under LAST/FIRST: " + call.toString());
+          if (firstLastC != 0) {
+            throw newValidationError(call,
+              Static.RESOURCE.PatternPrevFunctionOrder(call.toString()));
+          }
           firstLastC++;
         } else if (isAggregation(kind)) {
           // cannot apply aggregation in PREV/NEXT, FIRST/LAST
-          Preconditions.checkArgument(firstLastC == 0 && prevNextC == 0,
-            "Cannot use Aggregation in Navigation: " + call.toString());
-
-          if (kind == SqlKind.COUNT) {
-            Preconditions.checkArgument(call.getOperandList().size() <= 1,
-              "Invalid Parameter in COUNT: " + call.toString());
+          if (firstLastC != 0 || prevNextC != 0) {
+            throw newValidationError(call,
+              Static.RESOURCE.PatternAggregationInNavigation(call.toString()));
           }
+          if (kind == SqlKind.COUNT) {
+            if (call.getOperandList().size() > 1) {
+              throw newValidationError(call,
+                Static.RESOURCE.PatternCountFunctionArg(call.toString()));
+            }
+          }
+
           aggrC++;
         }
       }
 
       if (isRunningOrFinal(kind)) {
-        Preconditions.checkArgument(isMeasure,
-          "Cannot use RUNNING/FINAL in DEFINE: " + call.toString());
+        if (isMeasure) {
+          throw newValidationError(call,
+            Static.RESOURCE.PatternRunningFunctionInDefine(call.toString()));
+        }
       }
 
       for (SqlNode node : operands) {
@@ -5216,11 +5208,15 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
       if (isSingle) {
         if (kind != SqlKind.COUNT) {
-          Preconditions.checkArgument(vars.size() == 1,
-            "Only ONE pattern variable allowed in : " + call.toString());
+          if (vars.size() != 1) {
+            throw newValidationError(call,
+              Static.RESOURCE.PatternCountFunctionArg(call.toString()));
+          }
         } else {
-          Preconditions.checkArgument(vars.size() <= 1,
-            "Multiple pattern variables in : " + call.toString());
+          if (vars.size() > 1) {
+            throw newValidationError(call,
+              Static.RESOURCE.PatternFunctionVariableCheck(call.toString()));
+          }
         }
       }
       return vars;
@@ -5250,6 +5246,28 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     @Override public Set<String> visit(SqlDynamicParam param) {
       return new HashSet<>();
     }
+  }
+
+  //~ Enums ------------------------------------------------------------------
+
+  /**
+   * Validation status.
+   */
+  public enum Status {
+    /**
+     * Validation has not started for this scope.
+     */
+    UNVALIDATED,
+
+    /**
+     * Validation is in progress for this scope.
+     */
+    IN_PROGRESS,
+
+    /**
+     * Validation has completed (perhaps unsuccessfully).
+     */
+    VALID
   }
 }
 

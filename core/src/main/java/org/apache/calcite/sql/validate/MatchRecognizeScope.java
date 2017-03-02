@@ -29,7 +29,7 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * MatchRecognize scope, define variables and use them as prefix of columns reference
+ * Match scope, define variables and use them as prefix of columns reference
  */
 public class MatchRecognizeScope extends ListScope {
   private static final String STAR = "*";

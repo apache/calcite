@@ -46,7 +46,7 @@ import java.util.Set;
  *
  * <p>Each out put row has columns defined in the measure statments</p>
  */
-public abstract class MatchRecognize extends SingleRel {
+public abstract class Match extends SingleRel {
   //~ Instance fields ---------------------------------------------
   protected final ImmutableMap<String, RexNode> measures;
   protected final RexNode pattern;
@@ -58,17 +58,17 @@ public abstract class MatchRecognize extends SingleRel {
   //`~ Constructors -----------------------------------------------
 
   /**
-   * create a MatchRecognize
+   * create a Match
    * @param cluster cluster
    * @param traits trait set
-   * @param input input to MatchRecognize
+   * @param input input to Match
    * @param pattern Regular Expression defining pattern variables
    * @param isStrictStarts Whether it is a strict start pattern
    * @param isStrictEnds Whether it is a strict end pattern
    * @param defns pattern definitions
    * @param rowType rowType
    */
-  protected  MatchRecognize(
+  protected Match(
     RelOptCluster cluster,
     RelTraitSet traits,
     RelNode input,
@@ -124,7 +124,7 @@ public abstract class MatchRecognize extends SingleRel {
     return patternDefinitions;
   }
 
-  public abstract MatchRecognize copy(
+  public abstract Match copy(
     RelNode input,
     RexNode pattern,
     boolean isStrictStarts,
@@ -279,4 +279,4 @@ public abstract class MatchRecognize extends SingleRel {
   }
 }
 
-// End MatchRecognize.java
+// End Match.java

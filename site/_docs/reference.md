@@ -1458,6 +1458,12 @@ match_recognize_order_by_clause :
 match_recognize_measures_clause :
   MEASURES measureColumnCommaList
 
+measureColumnCommaList :
+  measureColumn [','measureColumn]*
+
+measureColumn :
+  expression AS alias
+
 match_recognize_rows_per_match_clause :
   ON ROW PER MATCH
   |
@@ -1503,7 +1509,6 @@ match_recognize_pattern_quantifier :
   | ? [?]
   | "{" { integer, integer } "}" [?]
   | "{" integer "}"
-
 
 match_recognize_subset_clause :
   SUBSET variable_name [, variable_name]*

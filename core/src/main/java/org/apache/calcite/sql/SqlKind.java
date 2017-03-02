@@ -450,7 +450,7 @@ public enum SqlKind {
 
 
   /**
-   * Special Functions in MatchRecognize
+   * Special Functions in Match
    */
   FINAL,
 

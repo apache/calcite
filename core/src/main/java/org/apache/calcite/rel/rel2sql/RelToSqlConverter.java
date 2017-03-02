@@ -26,7 +26,7 @@ import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Intersect;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
-import org.apache.calcite.rel.core.MatchRecognize;
+import org.apache.calcite.rel.core.Match;
 import org.apache.calcite.rel.core.Minus;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.Sort;
@@ -359,7 +359,7 @@ public class RelToSqlConverter extends SqlImplementor
   /**
    * @see #dispatch
    */
-  public Result visit(MatchRecognize e) {
+  public Result visit(Match e) {
     final RelNode input = e.getInput();
     final Result x = visitChild(0, input);
     final Context context = matchRecognizeContext(x.qualifiedContext());

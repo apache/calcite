@@ -27,7 +27,7 @@ import org.apache.calcite.rel.logical.LogicalCorrelate;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalIntersect;
 import org.apache.calcite.rel.logical.LogicalJoin;
-import org.apache.calcite.rel.logical.LogicalMatchRecognize;
+import org.apache.calcite.rel.logical.LogicalMatch;
 import org.apache.calcite.rel.logical.LogicalMinus;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.logical.LogicalSort;
@@ -388,7 +388,7 @@ public class RelFactories {
   }
 
   /**
-   * Can convert a {@link MatchRecognize} of
+   * Can convert a {@link Match} of
    * the appropriate type of a rule's calling convertion
    */
   public interface MatchRecognizeFactory {
@@ -401,7 +401,7 @@ public class RelFactories {
   }
 
   /**
-   * Implementation of {@Link MatchRecognizeFactory} that returns a {@link LogicalMatchRecognize}
+   * Implementation of {@Link MatchRecognizeFactory} that returns a {@link LogicalMatch}
    */
   private static class MatchRecognizeFactoryImpl implements MatchRecognizeFactory {
 
@@ -411,7 +411,7 @@ public class RelFactories {
       boolean isStrictEnds,
       Map<String, RexNode> defns,
       RelDataType rowType) {
-      return LogicalMatchRecognize.create(input, pattern,
+      return LogicalMatch.create(input, pattern,
         isStrictStarts, isStrictEnds, defns, rowType);
     }
   }

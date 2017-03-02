@@ -1399,6 +1399,9 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
       new SqlBaseContextVariable("PI", ReturnTypes.DOUBLE,
           SqlFunctionCategory.NUMERIC);
 
+  /**
+   * {@code FINAL} funcition in expression clause and can be used in match recognize
+   */
   public static final SqlFunction FINAL = new SqlFunction("FINAL",
     SqlKind.FINAL,
     ReturnTypes.ARG0_NULLABLE,
@@ -1406,6 +1409,9 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
     OperandTypes.ANY,
     SqlFunctionCategory.MATCH_RECOGNIZE);
 
+  /**
+   * {@code FINAL} function in expression clause and can be used in match recognize
+   */
   public static final SqlFunction RUNNING = new SqlFunction("RUNNING",
     SqlKind.RUNNING,
     ReturnTypes.ARG0_NULLABLE,
@@ -1413,6 +1419,9 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
     OperandTypes.ANY,
     SqlFunctionCategory.MATCH_RECOGNIZE);
 
+  /**
+   * {@code FIRST} function in expression clause and can be used in match recognize
+   */
   public static final SqlFunction FIRST = new SqlFunction("FIRST",
     SqlKind.FIRST,
     ReturnTypes.ARG0_NULLABLE,
@@ -1420,6 +1429,9 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
     OperandTypes.ANY_NUMERIC,
     SqlFunctionCategory.MATCH_RECOGNIZE);
 
+  /**
+   * {@code LAST} function in expression clause and can be used in match recognize
+   */
   public static final SqlFunction LAST = new SqlFunction("LAST",
     SqlKind.LAST,
     ReturnTypes.ARG0_NULLABLE,
@@ -1427,6 +1439,9 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
     OperandTypes.ANY_NUMERIC,
     SqlFunctionCategory.MATCH_RECOGNIZE);
 
+  /**
+   * {@code PREV} function in expression clause and can be used in match recognize
+   */
   public static final SqlFunction PREV = new SqlFunction("PREV",
     SqlKind.PREV,
     ReturnTypes.ARG0_NULLABLE,
@@ -1434,7 +1449,9 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
     OperandTypes.ANY_NUMERIC,
     SqlFunctionCategory.MATCH_RECOGNIZE);
 
-
+  /**
+   * {@code NEXT} function in expression clause and can be used in match recognize
+   */
   public static final SqlFunction NEXT = new SqlFunction("NEXT",
     SqlKind.NEXT,
     ReturnTypes.ARG0_NULLABLE,
@@ -1914,12 +1931,21 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   public static final SqlFunction TUMBLE_END =
       TUMBLE.auxiliary(SqlKind.TUMBLE_END);
 
+  /**
+   * The {@code ALTER} expression for match recognize pattern clause
+   */
   public static final SqlBinaryOperator PATTERN_ALTER = new SqlBinaryOperator("|",
     SqlKind.PATTERN_ALTER, 70, true, null, null, null);
 
+  /**
+   * The {@code CONCAT} expression for match recognize pattern clause
+   */
   public static final SqlBinaryOperator PATTERN_CONCAT = new SqlBinaryOperator("",
     SqlKind.PATTERN_CONCAT, 80, true, null, null, null);
 
+  /**
+   * The {@code QUANTIFIER} expression for match recognize pattern clause
+   */
   public static final SqlSpecialOperator PATTERN_QUANTIFIER = new SqlSpecialOperator(
     "PATTERN_QUANTIFIER", SqlKind.PATTERN_QUANTIFIER, 90) {
     @Override public void unparse(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
@@ -1955,6 +1981,9 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
     }
   };
 
+  /**
+   * The {@code PERMUTE} expression for match recognize pattern clause
+   */
   public static final SqlSpecialOperator PATTERN_PERMUTE = new SqlSpecialOperator("PATTERN_PERMUTE",
     SqlKind.PATTERN_PERMUTE, 100) {
     @Override public void unparse(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
@@ -1971,6 +2000,9 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
     }
   };
 
+  /**
+   * The {@code EXCLUDE} expression for match recognize pattern clause
+   */
   public static final SqlSpecialOperator PATTERN_EXCLUDE = new SqlSpecialOperator("PATTERN_EXCLUDE",
     SqlKind.PATTERN_EXCLUDED, 100) {
     @Override public void unparse(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
@@ -1981,6 +2013,10 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
     }
   };
 
+  /**
+   * AS function only used in match recognize for unparser.
+   * operands order will be change when unparse.
+   */
   public static final SqlSpecialOperator PATTERN_DEFINE_AS = new SqlAsOperator(
     "PATTERN_DEFINE_AS",
     SqlKind.AS,

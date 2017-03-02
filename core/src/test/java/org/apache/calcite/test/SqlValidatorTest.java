@@ -8911,38 +8911,6 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .fails(STR_AGG_REQUIRES_MONO);
   }
 
-  @Test public void testMatchRecognizeDefines() throws Exception {
-    final String sql0 = "select * \n"
-      + "  from emp match_recognize \n"
-      + "  (\n"
-      + "    pattern (strt down+ up+)\n"
-      + "    define \n"
-      + "      down as down.sal < PREV(down.sal),\n"
-      + "      up as up.sal > PREV(up.sal)\n"
-      + "  ) mr";
-    sql(sql0).ok();
-
-    final String sql1 = "select * \n"
-      + "  from t match_recognize \n"
-      + "  (\n"
-      + "    pattern (strt down+ up+)\n"
-      + "    define \n"
-      + "      down as down.price < PREV(down.price),\n"
-      + "      down as up.price > PREV(up.price)\n"
-      + "  ) mr";
-    sql(sql1).fails("DOWN has already been defined!");
-
-    final String sql2 = "select * \n"
-      + "  from emp match_recognize \n"
-      + "  (\n"
-      + "    pattern (strt down+up+)\n"
-      + "    define \n"
-      + "      down as down.sal < PREV(down.sal),\n"
-      + "      up as up.sal > PREV(up.sal)\n"
-      + "  ) mr";
-    sql(sql2).ok();
-  }
-
   @Test public void testStreamHop() {
     // HOP
     sql("select stream\n"
@@ -8975,6 +8943,68 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "  count(*) as c\n"
         + "from orders\n"
         + "group by session(rowtime, interval '1' hour)").ok();
+  }
+
+  @Test public void testMatchRecognizeDefines() throws Exception {
+    String sql = "select * \n"
+      + "  from emp match_recognize \n"
+      + "  (\n"
+      + "    pattern (strt down+ up+)\n"
+      + "    define \n"
+      + "      down as down.sal < PREV(down.sal),\n"
+      + "      up as up.sal > PREV(up.sal)\n"
+      + "  ) mr";
+    sql(sql).ok();
+
+    sql = "select * \n"
+      + "  from t match_recognize \n"
+      + "  (\n"
+      + "    pattern (strt down+ up+)\n"
+      + "    define \n"
+      + "      down as down.price < PREV(down.price),\n"
+      + "      ^down as up.price > PREV(up.price)^\n"
+      + "  ) mr";
+    sql(sql).fails("Pattern variable 'DOWN' has already been defined");
+
+    sql = "select * \n"
+      + "  from emp match_recognize \n"
+      + "  (\n"
+      + "    pattern (strt down+up+)\n"
+      + "    define \n"
+      + "      down as down.sal < PREV(down.sal),\n"
+      + "      up as up.sal > PREV(up.sal)\n"
+      + "  ) mr";
+    sql(sql).ok();
+
+    sql = "select * \n"
+      + "  from emp match_recognize \n"
+      + "  (\n"
+      + "    pattern (strt down+ up+)\n"
+      + "    define \n"
+      + "      down as down.sal < PREV(down.sal),\n"
+      + "      up as up.sal > FIRST(^PREV(up.sal)^)\n"
+      + "  ) mr";
+    sql(sql).fails("Can not nest PREV/NEXT under LAST/FIRST 'PREV\\(`UP`\\.`SAL`, 1\\)'");
+
+    sql = "select * \n"
+      + "  from emp match_recognize \n"
+      + "  (\n"
+      + "    pattern (strt down+ up+)\n"
+      + "    define \n"
+      + "      down as down.sal < PREV(down.sal),\n"
+      + "      up as up.sal > FIRST(^FIRST(up.sal)^)\n"
+      + "  ) mr";
+    sql(sql).fails("Can not nest PREV/NEXT under LAST/FIRST 'FIRST\\(`UP`\\.`SAL`, 0\\)'");
+
+    sql = "select * \n"
+      + "  from emp match_recognize \n"
+      + "  (\n"
+      + "    pattern (strt down+ up+)\n"
+      + "    define \n"
+      + "      down as down.sal < PREV(down.sal),\n"
+      + "      up as up.sal > ^COUNT(down.sal, up.sal)^\n"
+      + "  ) mr";
+    sql(sql).fails("Invalid Parameter in COUNT 'COUNT\\(`DOWN`\\.`SAL`, `UP`\\.`SAL`\\)'");
   }
 }
 
