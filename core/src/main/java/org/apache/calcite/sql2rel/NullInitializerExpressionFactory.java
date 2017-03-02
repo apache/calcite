@@ -29,7 +29,7 @@ import java.util.List;
  * An implementation of {@link InitializerExpressionFactory} that always supplies NULL.
  */
 public class NullInitializerExpressionFactory implements InitializerExpressionFactory {
-  private final RexBuilder rexBuilder;
+  protected final RexBuilder rexBuilder;
 
   public NullInitializerExpressionFactory(RelDataTypeFactory typeFactory) {
     this.rexBuilder = new RexBuilder(typeFactory);

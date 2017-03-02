@@ -16,9 +16,12 @@
  */
 package org.apache.calcite.sql.validate;
 
+import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.schema.ExtensibleTable;
+import org.apache.calcite.schema.Table;
 import org.apache.calcite.sql.SqlNode;
 
 import com.google.common.base.Preconditions;
@@ -76,6 +79,17 @@ class TableNamespace extends AbstractNamespace {
    * be present if you ask for them. Phoenix uses them, for instance, to access
    * rarely used fields in the underlying HBase table. */
   public TableNamespace extend(List<RelDataTypeField> extendedFields) {
+    final Table schemaTable = table.unwrap(Table.class);
+    if (schemaTable != null
+        && table instanceof RelOptTable
+        && schemaTable instanceof ExtensibleTable) {
+      final SqlValidatorTable validatorTable =
+          ((RelOptTable) table).extend(ImmutableList.copyOf(
+              Iterables.concat(this.extendedFields, extendedFields)))
+          .unwrap(SqlValidatorTable.class);
+      return new TableNamespace(
+          validator, validatorTable, ImmutableList.<RelDataTypeField>of());
+    }
     return new TableNamespace(validator, table,
         ImmutableList.copyOf(
             Iterables.concat(this.extendedFields, extendedFields)));

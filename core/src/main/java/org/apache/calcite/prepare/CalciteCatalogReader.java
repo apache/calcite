@@ -404,6 +404,13 @@ public class CalciteCatalogReader implements Prepare.CatalogReader {
   public SqlNameMatcher nameMatcher() {
     return nameMatcher;
   }
+
+  @Override public <C> C unwrap(Class<C> aClass) {
+    if (aClass.isInstance(this)) {
+      return aClass.cast(this);
+    }
+    return null;
+  }
 }
 
 // End CalciteCatalogReader.java
