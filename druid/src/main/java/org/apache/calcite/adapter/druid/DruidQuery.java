@@ -346,7 +346,28 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
 
   @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
       RelMetadataQuery mq) {
-    return Util.last(rels).computeSelfCost(planner, mq).multiplyBy(.1);
+    return Util.last(rels)
+               .computeSelfCost(planner, mq)
+               // Cost is directly proportional to number of fields queried.
+               // A plan where all extra columns are pruned will be preferred.
+               .multiplyBy(querySpec.fieldNames.size())
+               .multiplyBy(getQueryTypeCostMultiplier());
+  }
+
+  private double getQueryTypeCostMultiplier() {
+    // Cost of Select > GroupBy > Timeseries > TopN
+    switch (querySpec.queryType) {
+    case SELECT:
+      return .1;
+    case GROUP_BY:
+      return .08;
+    case TIMESERIES:
+      return .06;
+    case TOP_N:
+      return .04;
+    default:
+      return .2;
+    }
   }
 
   @Override public void register(RelOptPlanner planner) {
