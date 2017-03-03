@@ -274,6 +274,12 @@ public interface SqlValidator {
       SqlCall call);
 
   /**
+   * Validate the MATCH_RECOGNIZE clause
+   * @param pattern MATCH_RECOGNIZE clause
+   */
+  void validateMatchRecognize(SqlCall pattern);
+
+  /**
    * Validates a call to an operator.
    *
    * @param call  Operator call
@@ -552,6 +558,13 @@ public interface SqlValidator {
    * @return naming scope for ORDER BY clause
    */
   SqlValidatorScope getOrderScope(SqlSelect select);
+
+  /**
+   * returns a scope  match recognize clause.
+   * @param node sql node
+   * @return naming scope for Match recognize clause
+   */
+  SqlValidatorScope getMatchRecognizeScope(SqlNode node);
 
   /**
    * Declares a SELECT expression as a cursor.

@@ -67,6 +67,7 @@ import org.apache.calcite.sql.SqlJdbcFunctionCall;
 import org.apache.calcite.sql.SqlJoin;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlLiteral;
+import org.apache.calcite.sql.SqlMatchRecognize;
 import org.apache.calcite.sql.SqlMerge;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
@@ -319,8 +320,6 @@ SqlNode FloorCeilOptions(SqlParserPos pos, boolean floorFlag) :
         return node;
     }
 }
-
-
 
 // End Parser.jj
 
@@ -1822,6 +1821,14 @@ SqlNode TableRef2(boolean lateral) :
                     pos, tableRef, over);
             }
         }
+        [
+            over = MatchRecognizeOpt(tableRef)
+            {
+                if (over != null) {
+                    tableRef = over;
+                }
+            }
+        ]
     |
         [ <LATERAL> { lateral = true; } ]
         tableRef = ParenthesizedExpression(ExprContext.ACCEPT_QUERY)
@@ -1837,6 +1844,14 @@ SqlNode TableRef2(boolean lateral) :
                     getPos(), tableRef);
             }
         }
+        (
+            [ over = MatchRecognizeOpt(tableRef) ]
+            {
+                if (over != null) {
+                    tableRef = over;
+                }
+            }
+        )
     |
         <UNNEST> { pos = getPos(); }
         args = ParenthesizedQueryOrCommaList(ExprContext.ACCEPT_SUB_QUERY)
@@ -4470,6 +4485,8 @@ SqlNode BuiltinFunctionCall() :
     node = TimestampDiffFunctionCall() { return node; }
     |
     node = ExtendedBuiltinFunctionCall() { return node; }
+    |
+    node = MatchRecognizeFunctionCall() { return node; }
 }
 
 /**
@@ -4527,6 +4544,337 @@ SqlCall TimestampDiffFunctionCall() :
     <RPAREN> {
         return SqlStdOperatorTable.TIMESTAMP_DIFF.createCall(
             pos.plus(getPos()), SqlParserUtil.toNodeArray(args));
+    }
+}
+
+/**
+ * A MATCH_RECOGNIZE clause folowing a table expression.
+ **/
+SqlMatchRecognize MatchRecognizeOpt(SqlNode tableRef) :
+{
+    SqlParserPos startPos;
+    SqlParserPos pos = null;
+    SqlNode pattern;
+    SqlNodeList patternDefList;
+    SqlLiteral isStrictStarts = SqlLiteral.createBoolean(false, getPos());
+    SqlLiteral isStrictEnds = SqlLiteral.createBoolean(false, getPos());
+    SqlNode var = null;
+}
+{
+    <MATCH_RECOGNIZE> {startPos = getPos();} <LPAREN>
+    <PATTERN>
+    <LPAREN>
+    [
+        <CARET>
+        { isStrictStarts = SqlLiteral.createBoolean(true, getPos()); }
+    ]
+    pattern = PatternExpression()
+    [
+        <DOLLAR>
+        { isStrictEnds = SqlLiteral.createBoolean(true, getPos());}
+    ]
+    <RPAREN>
+    <DEFINE> { pos = getPos(); }
+    patternDefList = PatternDefinitionCommaList(pos)
+    <RPAREN>
+    {
+        return new SqlMatchRecognize(startPos.plus(getPos()), tableRef, pattern, isStrictStarts, isStrictEnds, patternDefList);
+    }
+}
+
+SqlNode PatternExpression() :
+{
+    SqlNode left = null;
+    SqlNode right;
+}
+{
+    left = PatternTerm()
+    (
+        <VERTICAL_BAR>
+        right = PatternTerm()
+        {
+            left = SqlStdOperatorTable.PATTERN_ALTER.createCall(left.getParserPosition().plus(getPos()),
+                left, right);
+        }
+    ) *
+    {
+        return left;
+    }
+}
+
+SqlNode PatternTerm() :
+{
+    SqlNode left = null;
+    SqlNode right;
+}
+{
+    left = PatternFactor()
+    (
+        right = PatternFactor()
+        {
+            left = SqlStdOperatorTable.PATTERN_CONCAT.createCall(left.getParserPosition().plus(getPos()),
+                left, right);
+        }
+    ) *
+    {
+        return left;
+    }
+}
+
+SqlNode PatternFactor() :
+{
+    SqlNode e;
+    SqlNode extra;
+    SqlLiteral startNum = null;
+    SqlLiteral endNum = null;
+    SqlLiteral reluctant = SqlLiteral.createBoolean(false, SqlParserPos.ZERO);
+}
+{
+    e = PatternPrimary()
+    [
+        (
+            <STAR>
+            {
+                startNum = SqlLiteral.createExactNumeric("0", SqlParserPos.ZERO);
+                endNum = SqlLiteral.createExactNumeric("-1", SqlParserPos.ZERO);
+            }
+            |
+            <PLUS>
+            {
+                startNum = SqlLiteral.createExactNumeric("1", SqlParserPos.ZERO);
+                endNum = SqlLiteral.createExactNumeric("-1", SqlParserPos.ZERO);
+            }
+            |
+            <HOOK>
+            {
+                startNum = SqlLiteral.createExactNumeric("0", SqlParserPos.ZERO);
+                endNum = SqlLiteral.createExactNumeric("1", SqlParserPos.ZERO);
+            }
+            |
+            <LBRACE>
+            (
+                startNum = UnsignedNumericLiteral() { endNum = startNum; }
+                [
+                    <COMMA>
+                    {
+                        endNum = SqlLiteral.createExactNumeric("-1", SqlParserPos.ZERO);
+                    }
+                    [
+                        endNum = UnsignedNumericLiteral()
+                    ]
+                ]
+                <RBRACE>
+                |
+                {
+                    startNum = SqlLiteral.createExactNumeric("-1", SqlParserPos.ZERO);
+                }
+                <COMMA>
+                endNum = UnsignedNumericLiteral()
+                <RBRACE>
+                |
+                <MINUS> extra = PatternExpression() <MINUS> <RBRACE>
+                {
+                    extra = SqlStdOperatorTable.PATTERN_EXCLUDE.createCall(extra.getParserPosition().plus(getPos()), extra);
+                    e = SqlStdOperatorTable.PATTERN_CONCAT.createCall(e.getParserPosition().plus(getPos()), e, extra);
+                    return e;
+                }
+            )
+        )
+        [
+            <HOOK>
+            {
+                if (startNum.intValue(true) != endNum.intValue(true)) {
+                    reluctant = SqlLiteral.createBoolean(true, SqlParserPos.ZERO);
+                }
+            }
+        ]
+    ]
+    {
+        if (startNum == null) {
+            return e;
+        } else {
+            return SqlStdOperatorTable.PATTERN_QUANTIFIER.createCall(e.getParserPosition().plus(getPos()),
+                e, startNum, endNum, reluctant);
+        }
+    }
+}
+
+SqlNode PatternPrimary() :
+{
+    SqlParserPos pos;
+    SqlNode e = null;
+    List<SqlNode> eList;
+}
+{
+    (
+        e = SimpleIdentifier()
+        |
+        <LPAREN> e = PatternExpression() <RPAREN>
+        |
+        <LBRACE> { pos = getPos(); } <MINUS> e = PatternExpression() <MINUS> <RBRACE>
+        {
+            e = SqlStdOperatorTable.PATTERN_EXCLUDE.createCall(pos.plus(getPos()), e);
+        }
+        |
+        (
+            <PERMUTE> { pos = getPos(); }
+            <LPAREN>
+            e = PatternExpression()
+            {
+                eList = new ArrayList<SqlNode>();
+                eList.add(e);
+            }
+            (
+                <COMMA>
+                e = PatternExpression()
+                {
+                    eList.add(e);
+                }
+            ) *
+            <RPAREN>
+            {
+                e = SqlStdOperatorTable.PATTERN_PERMUTE.createCall(pos.plus(getPos()), eList);
+            }
+        )
+    )
+    {
+        return e;
+    }
+}
+
+SqlNodeList PatternDefinitionCommaList(SqlParserPos pos) :
+{
+    SqlNode e;
+    List<SqlNode> eList;
+}
+{
+    e = PatternDefinition()
+    {
+        if (pos == null) {
+            pos = e.getParserPosition();
+        }
+        eList = new ArrayList<SqlNode>();
+        eList.add(e);
+    }
+    (
+        <COMMA>
+        e = PatternDefinition()
+        {
+            eList.add(e);
+        }
+    ) *
+    {
+        return new SqlNodeList(eList, pos.plus(getPos()));
+    }
+}
+
+SqlNode PatternDefinition() :
+{
+    SqlNode var;
+    SqlNode e;
+}
+{
+    var = SimpleIdentifier()
+    <AS>
+    e = Expression(ExprContext.ACCEPT_SUBQUERY)
+    {
+        return SqlStdOperatorTable.PATTERN_DEFINE_AS.createCall(var.getParserPosition().plus(getPos()), e, var);
+    }
+}
+
+SqlCall MatchRecognizeFunctionCall() :
+{
+    SqlParserPos pos = null;
+    SqlCall func;
+}
+{
+    func = MatchRecognizeNavigationLogical() { return func; }
+    |
+    func = MatchRecognizeNavigationPhysical() { return func; }
+    |
+    func = MatchRecognizeCallWithModifier() { return func; }
+}
+
+SqlCall MatchRecognizeCallWithModifier() :
+{
+    SqlParserPos pos = null;
+    SqlOperator runningOp = null;
+    SqlNode func = null;
+}
+{
+    (
+        <RUNNING> { pos = getPos(); runningOp = SqlStdOperatorTable.RUNNING; }
+        |
+        <FINAL> {pos = getPos(); runningOp = SqlStdOperatorTable.FINAL; }
+    )
+    func = NamedFunctionCall()
+    {
+        return runningOp.createCall(pos.plus(getPos()), func);
+    }
+}
+
+SqlCall MatchRecognizeNavigationLogical() :
+{
+    SqlParserPos pos = null;
+    SqlCall func;
+    SqlOperator funcOp = null;
+    SqlOperator runningOp = null;
+    SqlNode arg0 ;
+    SqlNode arg1 = SqlLiteral.createExactNumeric("0", SqlParserPos.ZERO);
+}
+{
+    [
+        <RUNNING> { pos = getPos(); runningOp = SqlStdOperatorTable.RUNNING; }
+        |
+        <FINAL> { pos = getPos(); runningOp = SqlStdOperatorTable.FINAL; }
+    ]
+    (
+        <FIRST>
+        {
+            if (pos == null) { pos = getPos(); }
+            funcOp = SqlStdOperatorTable.FIRST;
+        }
+        |
+        <LAST>
+        {
+            if (pos == null) { pos = getPos(); }
+            funcOp = SqlStdOperatorTable.LAST;
+        }
+    )
+    <LPAREN>
+    arg0 = Expression(ExprContext.ACCEPT_SUBQUERY)
+    [ <COMMA> arg1 = NumericLiteral() ]
+    <RPAREN>
+    {
+        func = funcOp.createCall(pos.plus(getPos()), arg0, arg1);
+        if (runningOp != null) {
+            return runningOp.createCall(pos.plus(getPos()), func);
+        } else {
+            return func;
+        }
+    }
+}
+
+SqlCall MatchRecognizeNavigationPhysical() :
+{
+    SqlParserPos pos = null;
+    SqlCall func;
+    SqlOperator funcOp;
+    SqlNode arg0;
+    SqlNode arg1 = SqlLiteral.createExactNumeric("1", SqlParserPos.ZERO);
+}
+{
+    (
+        <PREV> { pos = getPos(); funcOp = SqlStdOperatorTable.PREV; }
+        |
+        <NEXT> { pos = getPos(); funcOp = SqlStdOperatorTable.NEXT; }
+    )
+    <LPAREN>
+    arg0 = Expression(ExprContext.ACCEPT_SUBQUERY)
+    [ <COMMA> arg1 = NumericLiteral() ]
+    <RPAREN>
+    {
+        return funcOp.createCall(pos.plus(getPos()), arg0, arg1);
     }
 }
 
@@ -5178,6 +5526,7 @@ SqlPostfixOperator PostfixRowOperator() :
     | < DEFAULTS: "DEFAULTS" >
     | < DEFERRABLE: "DEFERRABLE" >
     | < DEFERRED: "DEFERRED" >
+    | < DEFINE: "DEFINE" >
     | < DEFINED: "DEFINED" >
     | < DEFINER: "DEFINER" >
     | < DEGREE: "DEGREE" >
@@ -5314,6 +5663,7 @@ SqlPostfixOperator PostfixRowOperator() :
     | < MAP: "MAP" >
     | < MATCH: "MATCH" >
     | < MATCHED: "MATCHED" >
+    | < MATCH_RECOGNIZE: "MATCH_RECOGNIZE">
     | < MAX: "MAX" >
     | < MAXVALUE: "MAXVALUE" >
     | < MEMBER: "MEMBER" >
@@ -5390,6 +5740,8 @@ SqlPostfixOperator PostfixRowOperator() :
     | < PASCAL: "PASCAL" >
     | < PASSTHROUGH: "PASSTHROUGH" >
     | < PATH: "PATH" >
+    | < PATTERN: "PATTERN" >
+    | < PERMUTE: "PERMUTE" >
     | < PERCENT_RANK: "PERCENT_RANK" >
     | < PERCENTILE_CONT: "PERCENTILE_CONT" >
     | < PERCENTILE_DISC: "PERCENTILE_DISC" >
@@ -5402,6 +5754,7 @@ SqlPostfixOperator PostfixRowOperator() :
     | < PRECISION: "PRECISION" >
     | < PREPARE: "PREPARE" >
     | < PRESERVE: "PRESERVE" >
+    | < PREV: "PREV" >
     | < PRIMARY: "PRIMARY" >
     | < PRIOR: "PRIOR" >
     | < PRIVILEGES: "PRIVILEGES" >
@@ -5453,6 +5806,7 @@ SqlPostfixOperator PostfixRowOperator() :
     | < ROW_COUNT: "ROW_COUNT" >
     | < ROW_NUMBER: "ROW_NUMBER" >
     | < ROWS: "ROWS" >
+    | < RUNNING: "RUNNING" >
     | < SAVEPOINT: "SAVEPOINT" >
     | < SCALE: "SCALE" >
     | < SCHEMA: "SCHEMA" >
@@ -6051,6 +6405,9 @@ String CommonNonReservedKeyWord() :
     | < DOUBLE_PERIOD: ".." >
     | < QUOTE: "'" >
     | < DOUBLE_QUOTE: "\"" >
+    | < VERTICAL_BAR: "|" >
+    | < CARET: "^" >
+    | < DOLLAR: "$" >
 }
 
 

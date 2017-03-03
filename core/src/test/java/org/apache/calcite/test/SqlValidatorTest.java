@@ -7936,11 +7936,18 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "DEFAULT -\n"
         + "ITEM -\n"
         + "NEXT_VALUE -\n"
+        + "PATTERN_EXCLUDE -\n"
+        + "PATTERN_PERMUTE -\n"
         + "\n"
+        + "PATTERN_QUANTIFIER -\n"
+        + "\n"
+        + " left\n"
         + "$LiteralChain -\n"
         + "+ pre\n"
         + "- pre\n"
         + ". left\n"
+        + "\n"
+        + "| left\n"
         + "\n"
         + "* left\n"
         + "/ left\n"
@@ -7997,6 +8004,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "AS -\n"
         + "DESC post\n"
         + "OVER left\n"
+        + "PATTERN_DEFINE_AS -\n"
         + "TABLESAMPLE -\n"
         + "\n"
         + "INTERSECT left\n"
@@ -8911,7 +8919,8 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "from orders\n"
         + "group by hop(rowtime, interval '1' hour, interval '3' hour)").ok();
     sql("select stream\n"
-        + "  ^hop_start(rowtime, interval '1' hour, interval '2' hour)^,\n"
+        + "  "
+        + "^hop_start(rowtime, interval '1' hour, interval '2' hour)^,\n"
         + "  count(*) as c\n"
         + "from orders\n"
         + "group by hop(rowtime, interval '1' hour, interval '3' hour)")
@@ -8934,6 +8943,68 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "  count(*) as c\n"
         + "from orders\n"
         + "group by session(rowtime, interval '1' hour)").ok();
+  }
+
+  @Test public void testMatchRecognizeDefines() throws Exception {
+    String sql = "select * \n"
+      + "  from emp match_recognize \n"
+      + "  (\n"
+      + "    pattern (strt down+ up+)\n"
+      + "    define \n"
+      + "      down as down.sal < PREV(down.sal),\n"
+      + "      up as up.sal > PREV(up.sal)\n"
+      + "  ) mr";
+    sql(sql).ok();
+
+    sql = "select * \n"
+      + "  from t match_recognize \n"
+      + "  (\n"
+      + "    pattern (strt down+ up+)\n"
+      + "    define \n"
+      + "      down as down.price < PREV(down.price),\n"
+      + "      ^down as up.price > PREV(up.price)^\n"
+      + "  ) mr";
+    sql(sql).fails("Pattern variable 'DOWN' has already been defined");
+
+    sql = "select * \n"
+      + "  from emp match_recognize \n"
+      + "  (\n"
+      + "    pattern (strt down+up+)\n"
+      + "    define \n"
+      + "      down as down.sal < PREV(down.sal),\n"
+      + "      up as up.sal > PREV(up.sal)\n"
+      + "  ) mr";
+    sql(sql).ok();
+
+    sql = "select * \n"
+      + "  from emp match_recognize \n"
+      + "  (\n"
+      + "    pattern (strt down+ up+)\n"
+      + "    define \n"
+      + "      down as down.sal < PREV(down.sal),\n"
+      + "      up as up.sal > FIRST(^PREV(up.sal)^)\n"
+      + "  ) mr";
+    sql(sql).fails("Can not nest PREV/NEXT under LAST/FIRST 'PREV\\(`UP`\\.`SAL`, 1\\)'");
+
+    sql = "select * \n"
+      + "  from emp match_recognize \n"
+      + "  (\n"
+      + "    pattern (strt down+ up+)\n"
+      + "    define \n"
+      + "      down as down.sal < PREV(down.sal),\n"
+      + "      up as up.sal > FIRST(^FIRST(up.sal)^)\n"
+      + "  ) mr";
+    sql(sql).fails("Can not nest PREV/NEXT under LAST/FIRST 'FIRST\\(`UP`\\.`SAL`, 0\\)'");
+
+    sql = "select * \n"
+      + "  from emp match_recognize \n"
+      + "  (\n"
+      + "    pattern (strt down+ up+)\n"
+      + "    define \n"
+      + "      down as down.sal < PREV(down.sal),\n"
+      + "      up as up.sal > ^COUNT(down.sal, up.sal)^\n"
+      + "  ) mr";
+    sql(sql).fails("Invalid Parameter in COUNT 'COUNT\\(`DOWN`\\.`SAL`, `UP`\\.`SAL`\\)'");
   }
 }
 
