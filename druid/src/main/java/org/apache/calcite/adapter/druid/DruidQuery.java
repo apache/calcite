@@ -697,26 +697,23 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
     }
     final String only = Iterables.getFirst(list, null);
     final boolean fractional;
-    switch (aggCall.getType().getSqlTypeName().getFamily()) {
-    case APPROXIMATE_NUMERIC:
+    final RelDataType type = aggCall.getType();
+    final SqlTypeName sqlTypeName = type.getSqlTypeName();
+    if (SqlTypeFamily.APPROXIMATE_NUMERIC.getTypeNames().contains(sqlTypeName)) {
       fractional = true;
-      break;
-    case INTEGER:
+    } else if (SqlTypeFamily.INTEGER.getTypeNames().contains(sqlTypeName)) {
       fractional = false;
-      break;
-    case EXACT_NUMERIC:
+    } else if (SqlTypeFamily.EXACT_NUMERIC.getTypeNames().contains(sqlTypeName)) {
       // Decimal
-      RelDataType type = aggCall.getType();
-      assert type.getSqlTypeName() == SqlTypeName.DECIMAL;
+      assert sqlTypeName == SqlTypeName.DECIMAL;
       if (type.getScale() == 0) {
         fractional = false;
       } else {
         fractional = true;
       }
-      break;
-    default:
+    } else {
       // Cannot handle this aggregate function type
-      throw new AssertionError("unknown aggregate type " + aggCall.getType());
+      throw new AssertionError("unknown aggregate type " + type);
     }
     switch (aggCall.getAggregation().getKind()) {
     case COUNT:
