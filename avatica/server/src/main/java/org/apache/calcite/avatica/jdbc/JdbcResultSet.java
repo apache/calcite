@@ -77,7 +77,7 @@ class JdbcResultSet extends Meta.MetaResultSet {
   public static JdbcResultSet create(String connectionId, int statementId,
       ResultSet resultSet, int maxRowCount, Meta.Signature signature) {
     try {
-      final Calendar calendar = Calendar.getInstance(DateTimeUtils.GMT_ZONE);
+      final Calendar calendar = DateTimeUtils.calendar();
       final int fetchRowCount;
       if (maxRowCount == JdbcMeta.UNLIMITED_COUNT) {
         fetchRowCount = -1;

@@ -30,6 +30,7 @@ import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Types;
 import java.util.List;
+import java.util.Locale;
 
 import static org.junit.Assert.assertEquals;
 
@@ -624,21 +625,21 @@ public class MetaResultSetTest {
   private static void assertColumn(ResultSetMetaData rsMeta, int column, String name, int type,
       int nullable) throws SQLException {
     assertEquals(
-        String.format(
+        String.format(Locale.ROOT,
             "Expected column %d to be named '%s', was '%s'.",
             column, name, rsMeta.getColumnName(column)),
         name,
         rsMeta.getColumnName(column));
 
     assertEquals(
-        String.format(
+        String.format(Locale.ROOT,
             "Expected column %d type to be '%d', was '%d'.",
             column, type, rsMeta.getColumnType(column)),
         type,
         rsMeta.getColumnType(column));
 
     assertEquals(
-        String.format(
+        String.format(Locale.ROOT,
             "Expected column %d nullability to be '%d', was '%d'.",
             column, nullable, rsMeta.isNullable(column)),
         nullable,

@@ -792,7 +792,7 @@ public abstract class AbstractCursor implements Cursor {
       if (obj instanceof ByteString) {
         return ((ByteString) obj).getBytes();
       } else if (obj instanceof String) {
-        return ((String) obj).getBytes();
+        return ((String) obj).getBytes(StandardCharsets.UTF_8);
       } else if (obj instanceof byte[]) {
         return (byte[]) obj;
       } else {

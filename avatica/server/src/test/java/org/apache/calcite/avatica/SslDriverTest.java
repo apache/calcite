@@ -20,6 +20,7 @@ import org.apache.calcite.avatica.jdbc.JdbcMeta;
 import org.apache.calcite.avatica.remote.Driver;
 import org.apache.calcite.avatica.remote.LocalService;
 import org.apache.calcite.avatica.server.HttpServer;
+import org.apache.calcite.avatica.util.DateTimeUtils;
 
 import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.asn1.x500.style.IETFUtils;
@@ -195,8 +196,8 @@ public class SslDriverTest {
         PublicKey signerPublicKey, PrivateKey signerPrivateKey) throws IOException,
         CertIOException, OperatorCreationException, CertificateException,
         NoSuchAlgorithmException {
-      Calendar startDate = Calendar.getInstance();
-      Calendar endDate = Calendar.getInstance();
+      Calendar startDate = DateTimeUtils.calendar();
+      Calendar endDate = DateTimeUtils.calendar();
       endDate.add(Calendar.YEAR, 100);
 
       BigInteger serialNumber = BigInteger.valueOf(startDate.getTimeInMillis());

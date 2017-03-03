@@ -24,6 +24,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.net.HttpURLConnection;
+import java.nio.charset.StandardCharsets;
 
 import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServletRequest;
@@ -72,7 +73,7 @@ public class AbstractAvaticaHandlerTest {
       }
 
       @Override public boolean matches(Object item) {
-        String msg = new String((byte[]) item);
+        String msg = new String((byte[]) item, StandardCharsets.UTF_8);
         return msg.contains("User is not authenticated");
       }
 

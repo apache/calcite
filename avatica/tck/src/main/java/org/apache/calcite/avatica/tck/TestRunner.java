@@ -77,7 +77,7 @@ public class TestRunner implements Runnable {
 
     if (null == driver) {
       LOG.error("Failed to find driver for {}", jdbcUrl);
-      System.exit(TestRunnerExitCodes.NO_SUCH_DRIVER.ordinal());
+      Unsafe.systemExit(TestRunnerExitCodes.NO_SUCH_DRIVER.ordinal());
       return;
     }
 
@@ -98,10 +98,10 @@ public class TestRunner implements Runnable {
 
     if (globalResults.numFailed > 0) {
       // Tests failed, don't exit normally
-      System.exit(TestRunnerExitCodes.FAILED_TESTS.ordinal());
+      Unsafe.systemExit(TestRunnerExitCodes.FAILED_TESTS.ordinal());
     } else {
       // Exited normally
-      System.exit(TestRunnerExitCodes.NORMAL.ordinal());
+      Unsafe.systemExit(TestRunnerExitCodes.NORMAL.ordinal());
     }
   }
 
@@ -132,7 +132,7 @@ public class TestRunner implements Runnable {
       return testClasses;
     } catch (Exception e) {
       LOG.error("Failed to instantiate test classes", e);
-      System.exit(TestRunnerExitCodes.TEST_CASE_INSTANTIATION.ordinal());
+      Unsafe.systemExit(TestRunnerExitCodes.TEST_CASE_INSTANTIATION.ordinal());
       // Unreachable..
       return null;
     }
@@ -146,10 +146,10 @@ public class TestRunner implements Runnable {
       driver = DriverManager.getDriver(driverUrl);
     } catch (SQLException e) {
       LOG.error("Could not instantiate JDBC Driver with URL: '{}'", jdbcUrl, e);
-      System.exit(TestRunnerExitCodes.BAD_JDBC_URL.ordinal());
+      Unsafe.systemExit(TestRunnerExitCodes.BAD_JDBC_URL.ordinal());
     } catch (ClassNotFoundException e) {
       LOG.error("Could not load Avatica Driver class", e);
-      System.exit(TestRunnerExitCodes.MISSING_DRIVER_CLASS.ordinal());
+      Unsafe.systemExit(TestRunnerExitCodes.MISSING_DRIVER_CLASS.ordinal());
     }
   }
 

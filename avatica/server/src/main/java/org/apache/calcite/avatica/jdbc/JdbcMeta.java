@@ -35,6 +35,7 @@ import org.apache.calcite.avatica.proto.Common;
 import org.apache.calcite.avatica.proto.Requests;
 import org.apache.calcite.avatica.remote.ProtobufMeta;
 import org.apache.calcite.avatica.remote.TypedValue;
+import org.apache.calcite.avatica.util.Unsafe;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
@@ -85,7 +86,7 @@ public class JdbcMeta implements ProtobufMeta {
 
   // End of constants, start of member variables
 
-  final Calendar calendar = Calendar.getInstance();
+  final Calendar calendar = Unsafe.localCalendar();
 
   /** Generates ids for statements. The ids are unique across all connections
    * created by this JdbcMeta. */

@@ -35,6 +35,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 import java.util.Properties;
 
 /**
@@ -184,7 +185,8 @@ public class Driver extends UnregisteredDriver {
     Serialization serializationType = Serialization.JSON;
     if (null != serializationStr) {
       try {
-        serializationType = Serialization.valueOf(serializationStr.toUpperCase());
+        serializationType =
+            Serialization.valueOf(serializationStr.toUpperCase(Locale.ROOT));
       } catch (Exception e) {
         // Log a warning instead of failing harshly? Intentionally no loggers available?
         throw new RuntimeException(e);

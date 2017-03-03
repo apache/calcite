@@ -18,6 +18,7 @@ package org.apache.calcite.avatica;
 
 import org.apache.calcite.avatica.ColumnMetaData.AvaticaType;
 import org.apache.calcite.avatica.remote.TypedValue;
+import org.apache.calcite.avatica.util.DateTimeUtils;
 
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -43,7 +44,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
-import java.util.TimeZone;
 
 import static org.hamcrest.CoreMatchers.isA;
 import static org.junit.Assert.assertEquals;
@@ -913,8 +913,7 @@ public class AvaticaResultSetConversionsTest {
     }
   }
 
-  private static final Calendar DEFAULT_CALENDAR = Calendar
-      .getInstance(TimeZone.getTimeZone("GMT"));
+  private static final Calendar DEFAULT_CALENDAR = DateTimeUtils.calendar();
 
   private static Connection connection = null;
   private static ResultSet resultSet = null;

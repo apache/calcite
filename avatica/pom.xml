@@ -58,6 +58,7 @@ limitations under the License.
     <build-helper-maven-plugin.version>1.9</build-helper-maven-plugin.version>
     <checksum-maven-plugin.version>1.2</checksum-maven-plugin.version>
     <dropwizard-metrics3.version>3.1.2</dropwizard-metrics3.version>
+    <forbiddenapis.version>2.3</forbiddenapis.version>
     <freemarker.version>2.3.19</freemarker.version>
     <git-commit-id-plugin.version>2.1.9</git-commit-id-plugin.version>
     <!-- We support guava versions as old as 14.0.1 (the version used by Hive)
@@ -300,6 +301,39 @@ limitations under the License.
     </extensions>
     <plugins>
       <plugin>
+        <groupId>de.thetaphi</groupId>
+        <artifactId>forbiddenapis</artifactId>
+        <configuration>
+          <!-- if the used Java version is too new, don't fail, just do nothing: -->
+          <failOnUnsupportedJava>false</failOnUnsupportedJava>
+          <bundledSignatures>
+            <!--
+              This will automatically choose the right
+              signatures based on 'maven.compiler.target':
+            -->
+            <bundledSignature>jdk-unsafe</bundledSignature>
+            <bundledSignature>jdk-deprecated</bundledSignature>
+            <!-- disallow undocumented classes like sun.misc.Unsafe: -->
+            <bundledSignature>jdk-non-portable</bundledSignature>
+          </bundledSignatures>
+          <signaturesFiles>
+            <signaturesFile>${top.dir}/src/main/config/forbidden-apis/signatures.txt</signaturesFile>
+          </signaturesFiles>
+          <excludes>
+            <exclude>**/org/apache/calcite/avatica/tck/Unsafe.class</exclude>
+            <exclude>**/org/apache/calcite/avatica/util/Unsafe.class</exclude>
+          </excludes>
+        </configuration>
+        <executions>
+          <execution>
+            <goals>
+              <goal>check</goal>
+              <goal>testCheck</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
         <groupId>org.apache.rat</groupId>
         <artifactId>apache-rat-plugin</artifactId>
         <configuration>
@@ -484,6 +518,11 @@ limitations under the License.
               <version>${freemarker.version}</version>
             </dependency>
           </dependencies>
+        </plugin>
+        <plugin>
+          <groupId>de.thetaphi</groupId>
+          <artifactId>forbiddenapis</artifactId>
+          <version>${forbiddenapis.version}</version>
         </plugin>
         <plugin>
           <groupId>net.hydromatic</groupId>

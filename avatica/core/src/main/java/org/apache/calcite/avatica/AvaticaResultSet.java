@@ -40,6 +40,7 @@ import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.Calendar;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.TimeZone;
 
@@ -87,7 +88,7 @@ public class AvaticaResultSet implements ResultSet, ArrayImpl.Factory {
     this.fetchSize = statement.getFetchSize();
     this.fetchDirection = statement.getFetchDirection();
     this.resultSetMetaData = resultSetMetaData;
-    this.localCalendar = Calendar.getInstance(timeZone);
+    this.localCalendar = Calendar.getInstance(timeZone, Locale.ROOT);
   }
 
   private int findColumn0(String columnLabel) throws SQLException {

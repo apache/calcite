@@ -20,6 +20,7 @@ import org.apache.calcite.avatica.jdbc.JdbcMeta;
 import org.apache.calcite.avatica.remote.Driver.Serialization;
 import org.apache.calcite.avatica.remote.LocalService;
 import org.apache.calcite.avatica.server.HttpServer;
+import org.apache.calcite.avatica.util.Unsafe;
 
 import com.beust.jcommander.IStringConverter;
 import com.beust.jcommander.JCommander;
@@ -29,6 +30,8 @@ import net.hydromatic.scott.data.hsqldb.ScottHsqldb;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.Locale;
 
 /**
  * An Avatica server for HSQLDB.
@@ -49,7 +52,7 @@ public class HsqldbServer {
   public void start() {
     if (null != server) {
       LOG.error("The server was already started");
-      System.exit(ExitCodes.ALREADY_STARTED.ordinal());
+      Unsafe.systemExit(ExitCodes.ALREADY_STARTED.ordinal());
       return;
     }
 
@@ -71,7 +74,7 @@ public class HsqldbServer {
           serialization);
     } catch (Exception e) {
       LOG.error("Failed to start Avatica server", e);
-      System.exit(ExitCodes.START_FAILED.ordinal());
+      Unsafe.systemExit(ExitCodes.START_FAILED.ordinal());
     }
   }
 
@@ -117,7 +120,7 @@ public class HsqldbServer {
    */
   public static class SerializationConverter implements IStringConverter<Serialization> {
     @Override public Serialization convert(String value) {
-      return Serialization.valueOf(value.toUpperCase());
+      return Serialization.valueOf(value.toUpperCase(Locale.ROOT));
     }
   }
 
