@@ -1334,11 +1334,11 @@ public class DruidAdapterIT {
         + "and extract(month from \"timestamp\") in (4, 6)\n";
     final String explain = "EnumerableInterpreter\n"
         + "  BindableAggregate(group=[{}], C=[COUNT()])\n"
-        + "    BindableFilter(condition=[AND(>=(/INT(Reinterpret($0), 86400000), 1997-01-01), <(/INT(Reinterpret($0), 86400000), 1998-01-01), >=(/INT(Reinterpret($0), 86400000), 1997-04-01), <(/INT(Reinterpret($0), 86400000), 1997-05-01))])\n"
+        + "    BindableFilter(condition=[AND(>=(/INT(Reinterpret($0), 86400000), 1997-01-01), <(/INT(Reinterpret($0), 86400000), 1998-01-01), OR(AND(>=(/INT(Reinterpret($0), 86400000), 1997-04-01), <(/INT(Reinterpret($0), 86400000), 1997-05-01)), AND(>=(/INT(Reinterpret($0), 86400000), 1997-06-01), <(/INT(Reinterpret($0), 86400000), 1997-07-01))))])\n"
         + "      DruidQuery(table=[[foodmart, foodmart]], intervals=[[1900-01-09T00:00:00.000/2992-01-10T00:00:00.000]])";
     sql(sql)
         .explainContains(explain)
-        .returnsUnordered("C=6588");
+        .returnsUnordered("C=13500");
   }
 
   @Test public void testFilterSwapped() {
