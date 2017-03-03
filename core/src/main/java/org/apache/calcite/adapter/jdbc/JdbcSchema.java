@@ -46,6 +46,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Collection;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import javax.sql.DataSource;
@@ -210,7 +211,7 @@ public class JdbcSchema implements Schema {
         final String tableTypeName2 =
             tableTypeName == null
             ? null
-            : tableTypeName.toUpperCase().replace(' ', '_');
+            : tableTypeName.toUpperCase(Locale.ROOT).replace(' ', '_');
         final TableType tableType =
             Util.enumVal(TableType.OTHER, tableTypeName2);
         if (tableType == TableType.OTHER  && tableTypeName2 != null) {

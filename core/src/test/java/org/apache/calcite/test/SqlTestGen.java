@@ -24,9 +24,9 @@ import org.apache.calcite.sql.test.SqlTester;
 import org.apache.calcite.sql.test.SqlTesterImpl;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.util.BarfingInvocationHandler;
+import org.apache.calcite.util.Util;
 
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.lang.reflect.InvocationTargetException;
@@ -51,8 +51,7 @@ public class SqlTestGen {
 
   private void genValidatorTest() {
     final File file = new File("validatorTest.sql");
-    try (FileOutputStream fos = new FileOutputStream(file);
-         PrintWriter pw = new PrintWriter(fos)) {
+    try (PrintWriter pw = Util.printWriter(file)) {
       Method[] methods = getJunitMethods(SqlValidatorSpooler.class);
       for (Method method : methods) {
         final SqlValidatorSpooler test = new SqlValidatorSpooler(pw);

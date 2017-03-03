@@ -18,6 +18,7 @@ package org.apache.calcite.sql;
 
 import java.util.Collection;
 import java.util.EnumSet;
+import java.util.Locale;
 import java.util.Set;
 
 /**
@@ -1005,6 +1006,9 @@ public enum SqlKind {
           IN, EQUALS, NOT_EQUALS,
           LESS_THAN, GREATER_THAN,
           GREATER_THAN_OR_EQUAL, LESS_THAN_OR_EQUAL);
+
+  /** Lower-case name. */
+  public final String lowerName = name().toLowerCase(Locale.ROOT);
 
   /** Returns the kind that corresponds to this operator but in the opposite
    * direction. Or returns this, if this kind is not reversible.

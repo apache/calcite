@@ -1402,14 +1402,14 @@ public class RexBuilder {
       if (o instanceof Calendar) {
         return o;
       }
-      calendar = Calendar.getInstance(DateTimeUtils.GMT_ZONE);
+      calendar = Util.calendar();
       calendar.setTimeInMillis((Integer) o);
       return calendar;
     case DATE:
       if (o instanceof Calendar) {
         return o;
       }
-      calendar = Calendar.getInstance(DateTimeUtils.GMT_ZONE);
+      calendar = Util.calendar();
       calendar.setTimeInMillis(0);
       calendar.add(Calendar.DAY_OF_YEAR, (Integer) o);
       return calendar;
@@ -1417,7 +1417,7 @@ public class RexBuilder {
       if (o instanceof Calendar) {
         return o;
       }
-      calendar = Calendar.getInstance(DateTimeUtils.GMT_ZONE);
+      calendar = Util.calendar();
       calendar.setTimeInMillis((Long) o);
       return calendar;
     default:

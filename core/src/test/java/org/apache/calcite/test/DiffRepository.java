@@ -34,7 +34,6 @@ import org.w3c.dom.Text;
 import org.xml.sax.SAXException;
 
 import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.Writer;
 import java.net.URL;
@@ -526,7 +525,7 @@ public class DiffRepository {
     try {
       boolean b = logFile.getParentFile().mkdirs();
       Util.discard(b);
-      try (FileWriter w = new FileWriter(logFile)) {
+      try (Writer w = Util.printWriter(logFile)) {
         write(doc, w, indent);
       }
     } catch (IOException e) {

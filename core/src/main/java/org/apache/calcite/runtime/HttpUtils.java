@@ -25,6 +25,7 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLConnection;
 import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.HttpsURLConnection;
@@ -67,8 +68,8 @@ public class HttpUtils {
         if (i++ != 0) {
           out.append("&");
         }
-        out.append(URLEncoder.encode(me.getKey(), "UTF-8"));
-        out.append("=")
+        out.append(URLEncoder.encode(me.getKey(), "UTF-8"))
+            .append("=")
             .append(URLEncoder.encode(me.getValue(), "UTF-8"));
       }
     } catch (UnsupportedEncodingException ignore) {
@@ -136,7 +137,8 @@ public class HttpUtils {
       return conn.getInputStream();
     }
     conn.setDoOutput(true);
-    try (Writer w = new OutputStreamWriter(conn.getOutputStream())) {
+    try (Writer w = new OutputStreamWriter(conn.getOutputStream(),
+        StandardCharsets.UTF_8)) {
       w.write(data.toString());
       w.flush(); // Get the response
       return conn.getInputStream();

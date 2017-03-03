@@ -45,11 +45,13 @@ import com.google.common.collect.ImmutableSet;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Set;
@@ -71,7 +73,8 @@ class DruidConnectionImpl implements DruidConnection {
 
   static {
     final TimeZone utc = DateTimeUtils.GMT_ZONE;
-    UTC_TIMESTAMP_FORMAT = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+    UTC_TIMESTAMP_FORMAT =
+        new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.ROOT);
     UTC_TIMESTAMP_FORMAT.setTimeZone(utc);
   }
 
@@ -117,7 +120,8 @@ class DruidConnectionImpl implements DruidConnection {
     if (CalcitePrepareImpl.DEBUG) {
       try {
         final byte[] bytes = AvaticaUtils.readFullyToBytes(in);
-        System.out.println("Response: " + new String(bytes));
+        System.out.println("Response: "
+            + new String(bytes, StandardCharsets.UTF_8));
         in = new ByteArrayInputStream(bytes);
       } catch (IOException e) {
         throw new RuntimeException(e);
@@ -516,7 +520,8 @@ class DruidConnectionImpl implements DruidConnection {
       try {
         final byte[] bytes = AvaticaUtils.readFullyToBytes(in);
         in.close();
-        System.out.println("Response: " + new String(bytes));
+        System.out.println("Response: "
+            + new String(bytes, StandardCharsets.UTF_8));
         in = new ByteArrayInputStream(bytes);
       } catch (IOException e) {
         throw new RuntimeException(e);

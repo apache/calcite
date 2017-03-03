@@ -115,6 +115,7 @@ import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 
 import static org.apache.calcite.util.Static.RESOURCE;
 
@@ -3036,7 +3037,8 @@ SqlSetOption SqlSetOption(SqlParserPos pos, String scope) :
         |
             <ON> {
                 // OFF is handled by SimpleIdentifier, ON handled here.
-                val = new SqlIdentifier(token.image.toUpperCase(), getPos());
+                val = new SqlIdentifier(token.image.toUpperCase(Locale.ROOT),
+                    getPos());
             }
         )
         {
@@ -3050,7 +3052,8 @@ SqlSetOption SqlSetOption(SqlParserPos pos, String scope) :
             name = CompoundIdentifier()
         |
             <ALL> {
-                name = new SqlIdentifier(token.image.toUpperCase(), getPos());
+                name = new SqlIdentifier(token.image.toUpperCase(Locale.ROOT),
+                    getPos());
             }
         )
         {
@@ -3092,7 +3095,7 @@ String Scope() :
 {
 }
 {
-    ( <SYSTEM> | <SESSION> ) { return token.image.toUpperCase(); }
+    ( <SYSTEM> | <SESSION> ) { return token.image.toUpperCase(Locale.ROOT); }
 }
 
 <#if parser.createStatementParserMethods?size != 0>

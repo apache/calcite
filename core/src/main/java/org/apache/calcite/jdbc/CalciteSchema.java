@@ -40,6 +40,7 @@ import com.google.common.collect.Lists;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.NavigableMap;
 import java.util.NavigableSet;
@@ -347,14 +348,16 @@ public abstract class CalciteSchema {
   protected static <V> NavigableMap<String, V> find(NavigableMap<String, V> map,
       String s) {
     assert map.comparator() == NameSet.COMPARATOR;
-    return map.subMap(s.toUpperCase(), true, s.toLowerCase(), true);
+    return map.subMap(s.toUpperCase(Locale.ROOT), true,
+        s.toLowerCase(Locale.ROOT), true);
   }
 
   /** Returns a subset of a set whose values match the given string
    * case-insensitively. */
   protected static Iterable<String> find(NavigableSet<String> set, String name) {
     assert set.comparator() == NameSet.COMPARATOR;
-    return set.subSet(name.toUpperCase(), true, name.toLowerCase(), true);
+    return set.subSet(name.toUpperCase(Locale.ROOT), true,
+        name.toLowerCase(Locale.ROOT), true);
   }
 
   /** Creates a root schema.

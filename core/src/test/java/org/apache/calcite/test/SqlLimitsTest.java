@@ -211,11 +211,11 @@ public class SqlLimitsTest {
   private DateFormat getDateFormat(SqlTypeName typeName) {
     switch (typeName) {
     case DATE:
-      return new SimpleDateFormat("MMM d, yyyy");
+      return new SimpleDateFormat("MMM d, yyyy", Locale.ROOT);
     case TIME:
-      return new SimpleDateFormat("hh:mm:ss a");
+      return new SimpleDateFormat("hh:mm:ss a", Locale.ROOT);
     default:
-      return new SimpleDateFormat("MMM d, yyyy hh:mm:ss a");
+      return new SimpleDateFormat("MMM d, yyyy hh:mm:ss a", Locale.ROOT);
     }
   }
 }

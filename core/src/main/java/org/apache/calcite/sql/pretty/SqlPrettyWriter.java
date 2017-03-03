@@ -22,6 +22,7 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.util.SqlBuilder;
 import org.apache.calcite.sql.util.SqlString;
+import org.apache.calcite.util.Unsafe;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.trace.CalciteLogger;
 
@@ -37,6 +38,7 @@ import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
@@ -275,7 +277,7 @@ public class SqlPrettyWriter implements SqlWriter {
 
   public void reset() {
     pw.flush();
-    sw.getBuffer().setLength(0);
+    Unsafe.clear(sw);
     setNeedWhitespace(false);
     nextWhitespace = " ";
   }
@@ -821,7 +823,9 @@ public class SqlPrettyWriter implements SqlWriter {
   public void keyword(String s) {
     maybeWhitespace(s);
     pw.print(
-        isKeywordsLowerCase() ? s.toLowerCase() : s.toUpperCase());
+        isKeywordsLowerCase()
+            ? s.toLowerCase(Locale.ROOT)
+            : s.toUpperCase(Locale.ROOT));
     charCount += s.length();
     if (!s.equals("")) {
       setNeedWhitespace(needWhitespaceAfter(s));
@@ -1148,7 +1152,7 @@ public class SqlPrettyWriter implements SqlWriter {
     }
 
     private String stripPrefix(String name, int offset) {
-      return name.substring(offset, offset + 1).toLowerCase()
+      return name.substring(offset, offset + 1).toLowerCase(Locale.ROOT)
           + name.substring(offset + 1);
     }
 

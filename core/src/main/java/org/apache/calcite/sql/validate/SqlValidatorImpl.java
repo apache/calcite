@@ -111,6 +111,7 @@ import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
@@ -3073,7 +3074,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       names = Lists.transform(names,
           new Function<String, String>() {
             public String apply(String s) {
-              return s.toUpperCase();
+              return s.toUpperCase(Locale.ROOT);
             }
           });
     }

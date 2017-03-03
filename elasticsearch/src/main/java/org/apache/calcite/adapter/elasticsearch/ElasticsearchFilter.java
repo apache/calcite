@@ -39,6 +39,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 
@@ -93,7 +94,8 @@ public class ElasticsearchFilter extends Filter implements ElasticsearchRel {
       final Map<String, Object> map = builder.map();
       map.put("constant_score", filterMap);
 
-      return "\"query\" : " + builder.toJsonString(map).replaceAll("\\s+", "").toLowerCase();
+      return "\"query\" : " + builder.toJsonString(map).replaceAll("\\s+", "")
+          .toLowerCase(Locale.ROOT);
     }
 
     private Object translateOr(RexNode condition) {

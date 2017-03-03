@@ -17,6 +17,7 @@
 package org.apache.calcite.sql;
 
 import java.util.EnumSet;
+import java.util.Locale;
 
 /**
  * SqlAccessType is represented by a set of allowed access types
@@ -54,10 +55,9 @@ public class SqlAccessType {
   public static SqlAccessType create(String[] accessNames) {
     assert accessNames != null;
     EnumSet<SqlAccessEnum> enumSet = EnumSet.noneOf(SqlAccessEnum.class);
-    for (int i = 0; i < accessNames.length; i++) {
+    for (String accessName : accessNames) {
       enumSet.add(
-          SqlAccessEnum.valueOf(
-              accessNames[i].trim().toUpperCase()));
+          SqlAccessEnum.valueOf(accessName.trim().toUpperCase(Locale.ROOT)));
     }
     return new SqlAccessType(enumSet);
   }

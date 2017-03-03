@@ -3637,7 +3637,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
 
     for (String interval : tsi) {
       for (String function : functions) {
-        checkExp(String.format(function, interval));
+        checkExp(String.format(Locale.ROOT, function, interval));
       }
     }
 
@@ -7844,7 +7844,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
       case INTERNAL:
         break;
       default:
-        assertThat(name.toUpperCase(), equalTo(name));
+        assertThat(name.toUpperCase(Locale.ROOT), equalTo(name));
         break;
       }
     }

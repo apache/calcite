@@ -18,7 +18,6 @@ package org.apache.calcite.test;
 
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.avatica.util.ByteString;
-import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
 import org.apache.calcite.plan.Strong;
 import org.apache.calcite.rel.type.RelDataType;
@@ -1310,7 +1309,7 @@ public class RexProgramTest {
   }
 
   private Calendar cal(int y, int m, int d, int h, int mm, int s) {
-    final Calendar c = Calendar.getInstance(DateTimeUtils.GMT_ZONE);
+    final Calendar c = Util.calendar();
     c.set(Calendar.YEAR, y);
     c.set(Calendar.MONTH, m);
     c.set(Calendar.DAY_OF_MONTH, d);

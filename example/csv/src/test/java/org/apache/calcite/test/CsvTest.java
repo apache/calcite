@@ -31,7 +31,6 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.File;
-import java.io.FileWriter;
 import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.net.URL;
@@ -582,7 +581,7 @@ public class CsvTest {
 
     try (final Connection connection =
              DriverManager.getConnection("jdbc:calcite:model=inline:" + model);
-         final PrintWriter pw = new PrintWriter(new FileWriter(file));
+         final PrintWriter pw = Util.printWriter(file);
          final Worker<Void> worker = new Worker<>()) {
       final Thread thread = new Thread(worker);
       thread.start();

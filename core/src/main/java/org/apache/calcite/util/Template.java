@@ -86,7 +86,7 @@ public class Template extends MessageFormat {
    * @throws IllegalArgumentException if the pattern is invalid
    */
   public static Template of(String pattern, Locale locale) {
-    final List<String> parameterNames = new ArrayList<String>();
+    final List<String> parameterNames = new ArrayList<>();
     final String processedPattern = process(pattern, parameterNames);
     return new Template(processedPattern, parameterNames, locale);
   }
@@ -110,9 +110,9 @@ public class Template extends MessageFormat {
    * @return Pattern with named parameters substituted with ordinals
    */
   private static String process(String pattern, List<String> parameterNames) {
-    StringBuffer[] segments = new StringBuffer[4];
+    StringBuilder[] segments = new StringBuilder[4];
     for (int i = 0; i < segments.length; ++i) {
-      segments[i] = new StringBuffer();
+      segments[i] = new StringBuilder();
     }
     int part = 0;
     boolean inQuote = false;
@@ -184,7 +184,7 @@ public class Template extends MessageFormat {
    * @param parameterNames List of parameter names seen so far
    */
   private static void makeFormat(
-      StringBuffer[] segments,
+      StringBuilder[] segments,
       List<String> parameterNames) {
     final String parameterName = segments[1].toString();
     final int parameterOrdinal = parameterNames.size();

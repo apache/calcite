@@ -84,6 +84,7 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
@@ -831,7 +832,7 @@ public abstract class SqlImplementor {
         if (ordinal < fields.size()) {
           RelDataTypeField field = fields.get(ordinal);
           final SqlNode mappedSqlNode =
-              ordinalMap.get(field.getName().toLowerCase());
+              ordinalMap.get(field.getName().toLowerCase(Locale.ROOT));
           if (mappedSqlNode != null) {
             return mappedSqlNode;
           }

@@ -46,7 +46,6 @@ import org.junit.Test;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileOutputStream;
-import java.io.FileReader;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.URL;
@@ -6595,8 +6594,9 @@ public class SqlParserTest {
     for (Map.Entry<String, List<String>> intervalGroup : tsi.entrySet()) {
       for (String function : functions) {
         for (String interval : intervalGroup.getValue()) {
-          checkExp(String.format(function, interval, ""),
-              String.format(function, intervalGroup.getKey(), "`").toUpperCase());
+          checkExp(String.format(Locale.ROOT, function, interval, ""),
+              String.format(Locale.ROOT, function, intervalGroup.getKey(), "`")
+                  .toUpperCase(Locale.ROOT));
         }
       }
     }
@@ -6819,9 +6819,9 @@ public class SqlParserTest {
     final File inFile = new File(base, "site/_docs/reference.md");
     final File outFile = new File(base, "core/target/surefire/reference.md");
     outFile.getParentFile().mkdirs();
-    try (BufferedReader r = new BufferedReader(new FileReader(inFile));
+    try (BufferedReader r = Util.reader(inFile);
          FileOutputStream fos = new FileOutputStream(outFile);
-         PrintWriter w = new PrintWriter(fos)) {
+         PrintWriter w = Util.printWriter(outFile)) {
       String line;
       int stage = 0;
       while ((line = r.readLine()) != null) {

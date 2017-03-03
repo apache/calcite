@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.util.trace;
 
+import org.apache.calcite.util.NumberUtil;
+
 import org.slf4j.Logger;
 
 import java.text.DecimalFormat;
@@ -28,7 +30,7 @@ public class CalciteTimingTracer {
   //~ Static fields/initializers ---------------------------------------------
 
   private static final DecimalFormat DECIMAL_FORMAT =
-      new DecimalFormat("###,###,###,###,###");
+      NumberUtil.decimalFormat("###,###,###,###,###");
 
   //~ Instance fields --------------------------------------------------------
 

@@ -42,11 +42,10 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
-import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileReader;
-import java.io.FileWriter;
 import java.io.FilenameFilter;
+import java.io.Reader;
+import java.io.Writer;
 import java.lang.reflect.Method;
 import java.net.URL;
 import java.sql.Connection;
@@ -148,11 +147,10 @@ public class QuidemTest {
       outFile = new File(base, u2n("/surefire/") + path);
     }
     Util.discard(outFile.getParentFile().mkdirs());
-    try (final FileReader fileReader = new FileReader(inFile);
-         final BufferedReader bufferedReader = new BufferedReader(fileReader);
-         final FileWriter writer = new FileWriter(outFile);
+    try (final Reader reader = Util.reader(inFile);
+         final Writer writer = Util.printWriter(outFile);
          final Closer closer = new Closer()) {
-      new Quidem(bufferedReader, writer, env(), new QuidemConnectionFactory())
+      new Quidem(reader, writer, env(), new QuidemConnectionFactory())
           .withPropertyHandler(new Quidem.PropertyHandler() {
             public void onSet(String propertyName, Object value) {
               if (propertyName.equals("bindable")) {

@@ -51,6 +51,7 @@ import org.apache.calcite.test.SqlLimitsTest;
 import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.Holder;
 import org.apache.calcite.util.Pair;
+import org.apache.calcite.util.Util;
 
 import com.google.common.base.Function;
 import com.google.common.base.Throwables;
@@ -72,6 +73,7 @@ import java.util.Calendar;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 import java.util.TimeZone;
 import java.util.regex.Pattern;
 
@@ -1202,7 +1204,7 @@ public abstract class SqlOperatorBaseTest {
     // is guaranteed to be good for at least 2 minutes, which should give
     // us time to run the rest of the tests.
     final String today =
-        new SimpleDateFormat("yyyy-MM-dd").format(
+        new SimpleDateFormat("yyyy-MM-dd", Locale.ROOT).format(
             getCalendarNotTooNear(Calendar.DAY_OF_MONTH).getTime());
 
     tester.checkScalar(
@@ -1384,7 +1386,7 @@ public abstract class SqlOperatorBaseTest {
    * @return calendar
    */
   protected static Calendar getCalendarNotTooNear(int timeUnit) {
-    final Calendar cal = Calendar.getInstance();
+    final Calendar cal = Util.calendar();
     while (true) {
       cal.setTimeInMillis(System.currentTimeMillis());
       try {
@@ -4517,7 +4519,7 @@ public abstract class SqlOperatorBaseTest {
         public void close() {}
       };
     } else {
-      calendar = Calendar.getInstance();
+      calendar = Util.calendar();
       calendar.set(Calendar.YEAR, 2014);
       calendar.set(Calendar.MONTH, 8);
       calendar.set(Calendar.DATE, 7);
@@ -4535,7 +4537,7 @@ public abstract class SqlOperatorBaseTest {
           });
     }
 
-    SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:");
+    SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:", Locale.ROOT);
     sdf.setTimeZone(tz);
     return Pair.of(sdf.format(calendar.getTime()), closeable);
   }
@@ -6662,7 +6664,7 @@ public abstract class SqlOperatorBaseTest {
       case VARCHAR:
         return SqlLiteral.createCharString(value.toString(), SqlParserPos.ZERO);
       case TIMESTAMP:
-        Calendar calendar = Calendar.getInstance();
+        Calendar calendar = Util.calendar();
         calendar.setTimeInMillis((Long) value);
         return SqlLiteral.createTimestamp(calendar, type.getPrecision(),
             SqlParserPos.ZERO);

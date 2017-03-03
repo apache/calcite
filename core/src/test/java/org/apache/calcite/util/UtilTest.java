@@ -762,10 +762,10 @@ public class UtilTest {
    */
   @Test public void testTemplate() {
     // Regular java message format.
-    assertEquals(
-        "Hello, world, what a nice day.",
-        MessageFormat.format(
-            "Hello, {0}, what a nice {1}.", "world", "day"));
+    assertThat(
+        new MessageFormat("Hello, {0}, what a nice {1}.", Locale.ROOT)
+            .format(new Object[]{"world", "day"}),
+        is("Hello, world, what a nice day."));
 
     // Our extended message format. First, just strings.
     final HashMap<Object, Object> map = new HashMap<>();
@@ -1513,8 +1513,8 @@ public class UtilTest {
 
     final Comparator<String> comparator = new Comparator<String>() {
       public int compare(String o1, String o2) {
-        String u1 = o1.toUpperCase();
-        String u2 = o2.toUpperCase();
+        String u1 = o1.toUpperCase(Locale.ROOT);
+        String u2 = o2.toUpperCase(Locale.ROOT);
         int c = u1.compareTo(u2);
         if (c == 0) {
           c = o1.compareTo(o2);
@@ -1545,7 +1545,8 @@ public class UtilTest {
   }
 
   private NavigableSet<String> checkNav(NavigableSet<String> set, String s) {
-    return set.subSet(s.toUpperCase(), true, s.toLowerCase(), true);
+    return set.subSet(s.toUpperCase(Locale.ROOT), true,
+        s.toLowerCase(Locale.ROOT), true);
   }
 
   /** Test for {@link org.apache.calcite.util.ImmutableNullableList}. */
@@ -1741,7 +1742,7 @@ public class UtilTest {
     final Map<String, String> map = Util.asIndexMap(values,
         new Function<String, String>() {
           public String apply(@Nullable String input) {
-            return input.toUpperCase();
+            return input.toUpperCase(Locale.ROOT);
           }
         });
     assertThat(map.size(), equalTo(values.size()));

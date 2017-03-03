@@ -30,6 +30,7 @@ import org.apache.calcite.prepare.CalcitePrepareImpl;
 import org.apache.calcite.test.CalciteAssert;
 import org.apache.calcite.test.JdbcFrontLinqBackTest;
 import org.apache.calcite.test.JdbcTest;
+import org.apache.calcite.util.Util;
 
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
@@ -42,11 +43,12 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import java.io.ByteArrayOutputStream;
-import java.io.PrintStream;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.sql.Array;
 import java.sql.Blob;
 import java.sql.Clob;
@@ -70,6 +72,7 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -85,9 +88,9 @@ import static org.junit.Assert.assertThat;
 public class CalciteRemoteDriverTest {
   public static final String LJS = Factory2.class.getName();
 
-  private final PrintStream out =
-      CalcitePrepareImpl.DEBUG ? System.out
-          : new PrintStream(new ByteArrayOutputStream());
+  private final PrintWriter out =
+      CalcitePrepareImpl.DEBUG ? Util.printWriter(System.out)
+          : new PrintWriter(new StringWriter());
 
   private static final CalciteAssert.ConnectionFactory
   REMOTE_CONNECTION_FACTORY =
@@ -429,9 +432,10 @@ public class CalciteRemoteDriverTest {
       SqlType.NCHAR, SqlType.NVARCHAR, SqlType.LONGNVARCHAR, SqlType.NCLOB,
       SqlType.SQLXML
     };
-    final PrintStream out =
-        CalcitePrepareImpl.DEBUG ? System.out
-            : new PrintStream(new ByteArrayOutputStream());
+    final PrintWriter out =
+        CalcitePrepareImpl.DEBUG
+            ? Util.printWriter(System.out)
+            : new PrintWriter(new StringWriter());
     for (SqlType.Method row : SqlType.Method.values()) {
       out.print(pad(row.methodName));
       for (SqlType column : columns) {
@@ -632,7 +636,7 @@ public class CalciteRemoteDriverTest {
           // string
           "", "foo", " foo! Baz ",
           // byte[]
-          new byte[0], "hello".getBytes());
+          new byte[0], "hello".getBytes(StandardCharsets.UTF_8));
 
   private static List<Object> values(Class clazz) {
     final List<Object> list = Lists.newArrayList();
@@ -659,7 +663,7 @@ public class CalciteRemoteDriverTest {
     }
     if (clazz == byte[].class) {
       if (o instanceof String) {
-        return ((String) o).getBytes();
+        return ((String) o).getBytes(StandardCharsets.UTF_8);
       }
     }
     if (clazz == Timestamp.class) {
@@ -679,12 +683,15 @@ public class CalciteRemoteDriverTest {
     }
     if (clazz == java.util.Date.class) {
       if (o instanceof String) {
-        return DateFormat.getInstance().parse((String) o);
+        final DateFormat dateFormat =
+            DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT,
+                Locale.ROOT);
+        return dateFormat.parse((String) o);
       }
     }
     if (clazz == Calendar.class) {
       if (o instanceof String) {
-        return Calendar.getInstance(); // TODO:
+        return Util.calendar(); // TODO:
       }
     }
     if (o instanceof Boolean) {

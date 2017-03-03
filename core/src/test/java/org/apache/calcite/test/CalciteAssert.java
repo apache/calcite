@@ -77,6 +77,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
@@ -114,7 +115,7 @@ public class CalciteAssert {
   public static final DatabaseInstance DB =
       DatabaseInstance.valueOf(
           Util.first(System.getProperty("calcite.test.db"), "HSQLDB")
-              .toUpperCase());
+              .toUpperCase(Locale.ROOT));
 
   /** Whether to enable slow tests. Default is false. */
   public static final boolean ENABLE_SLOW =
@@ -125,11 +126,12 @@ public class CalciteAssert {
   private static final DateFormat UTC_TIMESTAMP_FORMAT;
   static {
     final TimeZone utc = DateTimeUtils.GMT_ZONE;
-    UTC_DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd");
+    UTC_DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd", Locale.ROOT);
     UTC_DATE_FORMAT.setTimeZone(utc);
-    UTC_TIME_FORMAT = new SimpleDateFormat("HH:mm:ss");
+    UTC_TIME_FORMAT = new SimpleDateFormat("HH:mm:ss", Locale.ROOT);
     UTC_TIME_FORMAT.setTimeZone(utc);
-    UTC_TIMESTAMP_FORMAT = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
+    UTC_TIMESTAMP_FORMAT =
+        new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.ROOT);
     UTC_TIMESTAMP_FORMAT.setTimeZone(utc);
   }
 
@@ -1418,7 +1420,8 @@ public class CalciteAssert {
       boolean save = materializationsEnabled;
       try {
         materializationsEnabled = false;
-        final boolean ordered = sql.toUpperCase().contains("ORDER BY");
+        final boolean ordered =
+            sql.toUpperCase(Locale.ROOT).contains("ORDER BY");
         final Function<ResultSet, Void> checker = consistentResult(ordered);
         returns(checker);
         materializationsEnabled = true;

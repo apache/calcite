@@ -156,7 +156,7 @@ public abstract class Correlate extends BiRel {
   @Override public RelWriter explainTerms(RelWriter pw) {
     return super.explainTerms(pw)
         .item("correlation", correlationId)
-        .item("joinType", joinType.name().toLowerCase())
+        .item("joinType", joinType.lowerName)
         .item("requiredColumns", requiredColumns.toString());
   }
 

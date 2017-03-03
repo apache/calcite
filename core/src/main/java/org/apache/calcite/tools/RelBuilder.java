@@ -87,6 +87,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.Set;
 import java.util.SortedSet;
@@ -431,7 +432,7 @@ public class RelBuilder {
           return field(inputCount, inputCount - 1 - inputOrdinal, p.i);
         }
         fields.add(
-            String.format("{aliases=%s,fieldName=%s}", p.e.left,
+            String.format(Locale.ROOT, "{aliases=%s,fieldName=%s}", p.e.left,
                 p.e.right.getName()));
       }
     }

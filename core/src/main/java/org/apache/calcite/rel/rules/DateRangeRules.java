@@ -16,7 +16,6 @@
  */
 package org.apache.calcite.rel.rules;
 
-import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
@@ -36,6 +35,7 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.Bug;
+import org.apache.calcite.util.Util;
 
 import com.google.common.base.Predicate;
 import com.google.common.collect.BoundType;
@@ -290,7 +290,7 @@ public abstract class DateRangeRules {
         final Calendar c;
         switch (timeUnit) {
         case YEAR:
-          c = Calendar.getInstance(DateTimeUtils.GMT_ZONE);
+          c = Util.calendar();
           c.clear();
           c.set(v, Calendar.JANUARY, 1);
           s2.add(baz(timeUnit, comparison, c));

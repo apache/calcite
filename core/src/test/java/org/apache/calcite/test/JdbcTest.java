@@ -108,7 +108,6 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.Reader;
@@ -132,6 +131,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Objects;
@@ -5233,8 +5233,7 @@ public class JdbcTest {
   private void checkCustomSchemaInFileInPwd(String fileName)
       throws SQLException {
     final File file = new File(fileName);
-    try (final FileWriter fw = new FileWriter(file);
-         final PrintWriter pw = new PrintWriter(fw)) {
+    try (final PrintWriter pw = Util.printWriter(file)) {
       file.deleteOnExit();
       pw.println("{\n"
           + "  version: '1.0',\n"
@@ -5673,6 +5672,8 @@ public class JdbcTest {
   @Test public void testGetTimestamp() throws Exception {
     CalciteAssert.that()
         .with("timezone", "GMT+1:00")
+        // Workaround, until [CALCITE-1667] is fixed in Avatica
+        .with("TIME_ZONE", "GMT+1:00")
         .doWithConnection(
             new Function<CalciteConnection, Void>() {
               public Void apply(CalciteConnection connection) {
@@ -5707,10 +5708,10 @@ public class JdbcTest {
     TimeZone tzGmt05 = TimeZone.getTimeZone("GMT-05"); // -0500 always
     TimeZone tzGmt13 = TimeZone.getTimeZone("GMT+13"); // +1000 always
 
-    Calendar cUtc   = Calendar.getInstance(tzUtc);
-    Calendar cGmt03 = Calendar.getInstance(tzGmt03);
-    Calendar cGmt05 = Calendar.getInstance(tzGmt05);
-    Calendar cGmt13 = Calendar.getInstance(tzGmt13);
+    Calendar cUtc   = Calendar.getInstance(tzUtc, Locale.ROOT);
+    Calendar cGmt03 = Calendar.getInstance(tzGmt03, Locale.ROOT);
+    Calendar cGmt05 = Calendar.getInstance(tzGmt05, Locale.ROOT);
+    Calendar cGmt13 = Calendar.getInstance(tzGmt13, Locale.ROOT);
 
     Timestamp ts;
     String s;
