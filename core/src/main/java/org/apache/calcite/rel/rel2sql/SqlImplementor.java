@@ -1106,6 +1106,11 @@ public abstract class SqlImplementor {
       select.setGroupBy(nodeList);
     }
 
+    public void setHaving(SqlNode node) {
+      assert clauses.contains(Clause.HAVING);
+      select.setHaving(node);
+    }
+
     public void setOrderBy(SqlNodeList nodeList) {
       assert clauses.contains(Clause.ORDER_BY);
       select.setOrderBy(nodeList);
