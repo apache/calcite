@@ -1667,6 +1667,14 @@ public class SqlFunctions {
     return v == null ? null : internalToTimestamp(v.longValue());
   }
 
+  public static java.sql.Timestamp internalToTimestamp(Object v) {
+    if (v == null ) {
+      return null;
+    } else if ( v instanceof Timestamp ) {
+      return (Timestamp)v;
+    }
+    throw new RuntimeException(" Cannot convert " + v + " to " + Timestamp.class.getName());
+  }
   // Don't need shortValueOf etc. - Short.valueOf is sufficient.
 
   /** Helper for CAST(... AS VARCHAR(maxLength)). */
