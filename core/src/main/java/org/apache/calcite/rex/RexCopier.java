@@ -29,7 +29,7 @@ import org.apache.calcite.rel.type.RelDataType;
  *
  * @see RexBuilder#copy(RexNode)
  */
-class RexCopier extends RexShuttle {
+public class RexCopier extends RexShuttle {
   //~ Instance fields --------------------------------------------------------
 
   private final RexBuilder builder;
@@ -41,7 +41,7 @@ class RexCopier extends RexShuttle {
    *
    * @param builder Builder
    */
-  RexCopier(RexBuilder builder) {
+  public RexCopier(RexBuilder builder) {
     this.builder = builder;
   }
 
