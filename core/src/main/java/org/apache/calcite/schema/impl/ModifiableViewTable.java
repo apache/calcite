@@ -90,7 +90,7 @@ public class ModifiableViewTable extends ViewTable
   }
 
   /**
-   * Initialize columns based on the view constraint.
+   * Initializes columns based on the view constraint.
    */
   private class ModifiableViewTableInitializerExpressionFactory extends
       NullInitializerExpressionFactory {

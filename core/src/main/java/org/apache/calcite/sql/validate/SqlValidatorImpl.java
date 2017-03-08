@@ -86,6 +86,7 @@ import org.apache.calcite.sql.util.SqlShuttle;
 import org.apache.calcite.sql.util.SqlVisitor;
 import org.apache.calcite.util.BitString;
 import org.apache.calcite.util.Bug;
+import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.ImmutableNullableList;
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Pair;
@@ -3826,41 +3827,33 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   }
 
   /**
-   * Validate insert values against the constraint of a modifiable view.
-   * @param table                The table wrapping the modifiable view.
-   * @param source               The values being inserted.
-   * @param logicalTargetRowType The target type.
+   * Validates insert values against the constraint of a modifiable view.
+   * @param table         The SqlValidatorTable which may wrap a ModifiableViewTable.
+   * @param source        The values being inserted.
+   * @param targetRowType The target type for the view.
    */
   private void checkConstraint(
       SqlValidatorTable table,
       SqlNode source,
-      RelDataType logicalTargetRowType) {
+      RelDataType targetRowType) {
     final ModifiableViewTable modifiableViewTable = table.unwrap(ModifiableViewTable.class);
     if (modifiableViewTable != null && source instanceof SqlCall) {
       final Map<Integer, RexNode> projectMap =
-          getConstraintForModifiableView(modifiableViewTable, logicalTargetRowType);
+          getConstraintForModifiableView(modifiableViewTable, targetRowType);
+      final ImmutableBitSet targetColumns =
+          getOrdinalBitSet(modifiableViewTable, targetRowType);
       final List<SqlNode> values = ((SqlCall) source).getOperandList();
-      for (SqlNode row : values) {
-        for (Map.Entry<Integer, RexNode> entry : projectMap.entrySet()) {
-          Integer projectedOrdinal = null;
-          for (Integer ordinal : modifiableViewTable.getColumnMapping()) {
-            if (entry.getKey().intValue() == ordinal.intValue()) {
-              projectedOrdinal = ordinal;
-              break;
-            }
-          }
-          if (projectedOrdinal == null) {
-            // The constrained column was not projected in the view definition.
-            continue;
-          }
+      for (Map.Entry<Integer, RexNode> entry : projectMap.entrySet()) {
+        if (!targetColumns.get(entry.getKey())) {
+          // The constrained column was not targeted for insert.
+          continue;
+        }
+        for (SqlNode row : values) {
           final String colName = modifiableViewTable.getRowType(typeFactory)
-              .getFieldList().get(projectedOrdinal).getName();
+              .getFieldList().get(entry.getKey()).getName();
           final RelDataTypeField targetField =
-              logicalTargetRowType.getField(colName, true, false);
-          if (targetField == null) {
-            // The constrained column is not targeted.
-            continue;
-          }
+              targetRowType.getField(colName, true, false);
+          assert targetField != null;
           final SqlNode sourceValue = ((SqlCall) row).getOperandList().get(targetField.getIndex());
           checkConstraint(table, colName, sourceValue, entry.getValue());
         }
@@ -3869,17 +3862,35 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   }
 
   /**
-   * Return a mapping of the column ordinal in the underlying table to a column constraint
-   * of the modifiable view.
-   * @param modifiableViewTable  The modifiable view which has a constraint.
-   * @param logicalTargetRowType The target type.
-   * @return
+   * Gets the bit-set to the column ordinals in the target table for the targeted columns.
+   * @param modifiableViewTable The target modifiable view table.
+   * @param targetRowType       The target row-type.
+   */
+  private ImmutableBitSet getOrdinalBitSet(
+      ModifiableViewTable modifiableViewTable, RelDataType targetRowType) {
+    final Table table = modifiableViewTable.unwrap(Table.class);
+    final List<Integer> ordinalBitSet = new ArrayList<>(targetRowType.getFieldCount());
+    for (RelDataTypeField target : targetRowType.getFieldList()) {
+      final RelDataTypeField tableField =
+          table.getRowType(typeFactory).getField(target.getName(), true, false);
+      if (tableField != null) {
+        ordinalBitSet.add(tableField.getIndex());
+      }
+    }
+    return ImmutableBitSet.of(ordinalBitSet);
+  }
+
+  /**
+   * Returns a mapping of the column ordinal in the underlying table to a column constraint of the
+   * modifiable view.
+   * @param modifiableViewTable The modifiable view which has a constraint.
+   * @param targetRowType       The target type.
    */
   private Map<Integer, RexNode> getConstraintForModifiableView(
-      ModifiableViewTable modifiableViewTable, RelDataType logicalTargetRowType) {
+      ModifiableViewTable modifiableViewTable, RelDataType targetRowType) {
     final RexBuilder rexBuilder = new RexBuilder(typeFactory);
     final RexNode constraint =
-        modifiableViewTable.getConstraint(rexBuilder, logicalTargetRowType);
+        modifiableViewTable.getConstraint(rexBuilder, targetRowType);
     final Map<Integer, RexNode> projectMap = Maps.newHashMap();
     final List<RexNode> filters = new ArrayList<>();
     RelOptUtil.inferViewPredicates(projectMap, filters, constraint);
@@ -3888,19 +3899,19 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   }
 
   /**
-   * Validate updates against the constraint of a modifiable view.
-   * @param table                The target table wrapping the modifiable view.
-   * @param update               The update parse node.
-   * @param logicalTargetRowType The target type.
+   * Validates updates against the constraint of a modifiable view.
+   * @param table         The SqlValidatorTable which may wrap a ModifiableViewTable.
+   * @param update        The update parse node.
+   * @param targetRowType The target type.
    */
   private void checkConstraint(
       SqlValidatorTable table,
       SqlUpdate update,
-      RelDataType logicalTargetRowType) {
+      RelDataType targetRowType) {
     final ModifiableViewTable modifiableViewTable = table.unwrap(ModifiableViewTable.class);
     if (modifiableViewTable != null) {
       final Map<Integer, RexNode> projectMap =
-          getConstraintForModifiableView(modifiableViewTable, logicalTargetRowType);
+          getConstraintForModifiableView(modifiableViewTable, targetRowType);
       for (Pair<SqlNode, SqlNode> column : Pair.zip(update.getTargetColumnList().getList(),
           update.getSourceExpressionList().getList())) {
         final String columnName = ((SqlIdentifier) column.left).getSimple();
@@ -3914,7 +3925,11 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   }
 
   /**
-   * Ensure that a source value does not violate the constraint of the target column.
+   * Ensures that a source value does not violate the constraint of the target column.
+   * @param table            The SqlValidatorTable which wraps a ModifiableViewTable.
+   * @param columnName       The target column name.
+   * @param sourceValue      The insert value being validated.
+   * @param targetConstraint The constraint applied to sourceValue for validation.
    */
   private void checkConstraint(
       SqlValidatorTable table, String columnName,

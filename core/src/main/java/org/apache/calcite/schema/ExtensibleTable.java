@@ -42,7 +42,7 @@ public interface ExtensibleTable extends Table {
   Table extend(List<RelDataTypeField> fields);
 
   /**
-   * Return the starting offset of the first extended column, which may differ from the field count
+   * Returns the starting offset of the first extended column, which may differ from the field count
    * when columns are projected.
    */
   int getExtendedColumnOffset();
