@@ -510,9 +510,6 @@ public final class Schemas {
       return PathImpl.EMPTY;
     }
     if (!rootSchema.name.isEmpty()) {
-      // TODO: empty strings in the path are not given in names
-      // but the actual path may contain empty-string schemas.
-      // can do `schema.getSubSchema("")` until we get the first match
       assert rootSchema.name.equals(iterator.next());
     }
     for (;;) {

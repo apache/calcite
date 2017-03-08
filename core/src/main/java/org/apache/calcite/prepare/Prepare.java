@@ -432,7 +432,7 @@ public abstract class Prepare {
           return extend((ExtensibleTable) underlying, extendedFields);
         }
       }
-      throw new RuntimeException("Cannot extend " + table); // TODO: user error
+      throw new RuntimeException("Cannot extend " + table);
     }
 
     private RelOptTable extend(ExtensibleTable table, List<RelDataTypeField> extendedFields) {

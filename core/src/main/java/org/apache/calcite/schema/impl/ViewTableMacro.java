@@ -42,6 +42,14 @@ public class ViewTableMacro implements TableMacro {
   protected final List<String> schemaPath;
   protected final List<String> viewPath;
 
+  /**
+   * Create a ViewTableMacro.
+   * @param schema     The root schema.
+   * @param viewSql    The SQL defining the view.
+   * @param schemaPath The schema path relative to the root schema.
+   * @param viewPath   The view path relative to the schema path.
+   * @param modifiable Request that a view is modifiable (dependant on analysis of viewSql).
+   */
   public ViewTableMacro(CalciteSchema schema, String viewSql, List<String> schemaPath,
       List<String> viewPath, Boolean modifiable) {
     this.viewSql = viewSql;

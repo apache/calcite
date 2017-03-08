@@ -58,7 +58,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -113,29 +112,38 @@ public class SqlValidatorUtil {
   }
 
   /**
-   * Get a list of extended columns with field indices to the underlying table.
+   * Gets a list of extended columns with field indices to the underlying table.
    */
   public static List<RelDataTypeField> getExtendedColumns(
       SqlValidator validator, SqlValidatorTable table, SqlNodeList extendedColumns) {
     final ImmutableList.Builder<RelDataTypeField> extendedFields = ImmutableList.builder();
-    final Iterator<SqlNode> exColIt = extendedColumns.getList().iterator();
     final ExtensibleTable extTable = table.unwrap(ExtensibleTable.class);
     int extendedFieldOffset =
         extTable == null
             ? table.getRowType().getFieldCount()
             : extTable.getExtendedColumnOffset();
-    while (exColIt.hasNext()) {
-      final SqlIdentifier identifier = (SqlIdentifier) exColIt.next();
-      final SqlDataTypeSpec type = (SqlDataTypeSpec) exColIt.next();
-      final RelDataTypeField field = new RelDataTypeFieldImpl(
-          identifier.getSimple(),
-          extendedFieldOffset++,
-          type.deriveType(validator)
-      );
-      extendedFields.add(field);
+    for (Pair<SqlIdentifier, SqlDataTypeSpec> pair : pairs(extendedColumns)) {
+      final SqlIdentifier identifier = pair.left;
+      final SqlDataTypeSpec type = pair.right;
+      extendedFields.add(
+          new RelDataTypeFieldImpl(identifier.getSimple(),
+              extendedFieldOffset++,
+              type.deriveType(validator)));
     }
     return extendedFields.build();
   }
+
+  /** Converts a list of extended columns
+   * (of the form [name0, type0, name1, type1, ...])
+   * into a list of (name, type) pairs. */
+  private static List<Pair<SqlIdentifier, SqlDataTypeSpec>> pairs(
+      SqlNodeList extendedColumns) {
+    final List list = extendedColumns.getList();
+    //noinspection unchecked
+    return Pair.zip(Util.quotientList(list, 2, 0),
+        Util.quotientList(list, 2, 1));
+  }
+
 
   @Deprecated // to be removed before 2.0
   public static RelDataTypeField lookupField(boolean caseSensitive,

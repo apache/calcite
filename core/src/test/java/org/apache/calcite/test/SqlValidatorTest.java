@@ -8290,7 +8290,6 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
             + " values (^21^, 100, 'Lex')",
         "Modifiable view constraint is not satisfied"
             + " for column 'DEPTNO' of base table 'EMP_MODIFIABLEVIEW2'");
-    // TODO: support expressions.
     tester.checkQueryFails(
         "insert into EMP_MODIFIABLEVIEW2 (deptno, empno, ename)"
             + " values (^19+1^, 100, 'Lex')",
@@ -8314,7 +8313,6 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
             + " where ename = 'Lex'",
         "Modifiable view constraint is not satisfied"
             + " for column 'DEPTNO' of base table 'EMP_MODIFIABLEVIEW2'");
-    // TODO: support expressions.
     tester.checkQueryFails(
         "update EMP_MODIFIABLEVIEW2"
             + " set deptno = ^19 + 1^, empno = 99"
