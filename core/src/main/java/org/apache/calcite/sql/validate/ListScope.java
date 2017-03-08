@@ -159,7 +159,7 @@ public abstract class ListScope extends DelegatingScope {
     }
   }
 
-  @Override public Map<String, ScopeChild>
+  protected Map<String, ScopeChild>
   findQualifyingTables(String columnName, SqlNameMatcher nameMatcher) {
     final Map<String, ScopeChild> map = new HashMap<>();
     for (ScopeChild child : children) {
