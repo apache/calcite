@@ -1668,10 +1668,10 @@ public class SqlFunctions {
   }
 
   public static java.sql.Timestamp internalToTimestamp(Object v) {
-    if (v == null ) {
+    if (v == null) {
       return null;
-    } else if ( v instanceof Timestamp ) {
-      return (Timestamp)v;
+    } else if (v instanceof Timestamp) {
+      return (Timestamp) v;
     }
     throw new RuntimeException(" Cannot convert " + v + " to " + Timestamp.class.getName());
   }

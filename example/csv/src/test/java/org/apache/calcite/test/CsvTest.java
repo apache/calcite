@@ -519,15 +519,16 @@ public class CsvTest {
 
   /** Test case for
    * https://issues.apache.org/jira/browse/CALCITE-1673 [CALCITE-1673]
-   * CSV adapter incorrectly parses TIMESTAMP values after noon</a>. */
+   * CSV adapter incorrectly parses TIMESTAMP values after noon. */
   @Test public void testTimestampGroupBy() throws SQLException {
     Properties info = new Properties();
     info.put("model", jsonPath("bug"));
     try (Connection connection
-                 = DriverManager.getConnection("jdbc:calcite:", info)) {
+        = DriverManager.getConnection("jdbc:calcite:", info)) {
       Statement statement = connection.createStatement();
       ResultSet resultSet =
-              statement.executeQuery("select \"EMPNO\", \"JOINTIMES\"  from \"DATE\" group by \"EMPNO\",\"JOINTIMES\"");
+              statement.executeQuery(
+               "select \"EMPNO\", \"JOINTIMES\"  from \"DATE\" group by \"EMPNO\",\"JOINTIMES\"");
       assertTrue(resultSet.next());
       // timestamp
       Assert.assertEquals(java.sql.Timestamp.class,
@@ -541,15 +542,15 @@ public class CsvTest {
 
   /** Test case for
    * https://issues.apache.org/jira/browse/CALCITE-1673 [CALCITE-1673]
-   * CSV adapter incorrectly parses TIMESTAMP values after noon</a>. */
+   * CSV adapter incorrectly parses TIMESTAMP values after noon. */
   @Test public void testTimestampOrderBy() throws SQLException {
     Properties info = new Properties();
     info.put("model", jsonPath("bug"));
     try (Connection connection
-                 = DriverManager.getConnection("jdbc:calcite:", info)) {
+        = DriverManager.getConnection("jdbc:calcite:", info)) {
       Statement statement = connection.createStatement();
-      ResultSet resultSet =
-              statement.executeQuery("select \"EMPNO\",\"JOINTIMES\"  from \"DATE\" order by \"JOINTIMES\"");
+      ResultSet resultSet = statement.executeQuery(
+              "select \"EMPNO\",\"JOINTIMES\"  from \"DATE\" order by \"JOINTIMES\"");
       assertTrue(resultSet.next());
       // timestamp
       Assert.assertEquals(java.sql.Timestamp.class,
@@ -563,15 +564,15 @@ public class CsvTest {
 
   /** Test case for
    * https://issues.apache.org/jira/browse/CALCITE-1673 [CALCITE-1673]
-   * CSV adapter incorrectly parses TIMESTAMP values after noon</a>. */
+   * CSV adapter incorrectly parses TIMESTAMP values after noon. */
   @Test public void testTimestampGroupByAndOrderBy() throws SQLException {
     Properties info = new Properties();
     info.put("model", jsonPath("bug"));
-    try (Connection connection
-                 = DriverManager.getConnection("jdbc:calcite:", info)) {
+    try (Connection connection = DriverManager.getConnection("jdbc:calcite:", info)) {
       Statement statement = connection.createStatement();
       ResultSet resultSet =
-              statement.executeQuery("select \"EMPNO\", \"JOINTIMES\"  from \"DATE\" group by  \"EMPNO\",\"JOINTIMES\" order by \"JOINTIMES\"");
+          statement.executeQuery(
+          "select \"EMPNO\", \"JOINTIMES\" from \"DATE\" group by \"EMPNO\",\"JOINTIMES\" order by \"JOINTIMES\"");
       assertTrue(resultSet.next());
       // timestamp
       Assert.assertEquals(java.sql.Timestamp.class,
