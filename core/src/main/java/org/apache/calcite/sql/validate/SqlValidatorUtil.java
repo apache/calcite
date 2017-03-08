@@ -116,7 +116,8 @@ public class SqlValidatorUtil {
    */
   public static List<RelDataTypeField> getExtendedColumns(
       SqlValidator validator, SqlValidatorTable table, SqlNodeList extendedColumns) {
-    final ImmutableList.Builder<RelDataTypeField> extendedFields = ImmutableList.builder();
+    final ImmutableList.Builder<RelDataTypeField> extendedFields =
+        ImmutableList.builder();
     final ExtensibleTable extTable = table.unwrap(ExtensibleTable.class);
     int extendedFieldOffset =
         extTable == null

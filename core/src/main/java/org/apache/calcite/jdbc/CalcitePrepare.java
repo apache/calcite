@@ -46,6 +46,7 @@ import org.apache.calcite.util.ImmutableIntList;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
 import java.lang.reflect.InvocationTargetException;
@@ -283,6 +284,7 @@ public interface CalcitePrepare {
       this.constraint = constraint;
       this.columnMapping = columnMapping;
       this.modifiable = modifiable;
+      Preconditions.checkArgument((table != null) == modifiable);
     }
   }
 

@@ -3871,9 +3871,10 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
   /**
    * Validates insert values against the constraint of a modifiable view.
-   * @param table         The SqlValidatorTable which may wrap a ModifiableViewTable.
-   * @param source        The values being inserted.
-   * @param targetRowType The target type for the view.
+   *
+   * @param table         Table that may wrap a ModifiableViewTable
+   * @param source        The values being inserted
+   * @param targetRowType The target type for the view
    */
   private void checkConstraint(
       SqlValidatorTable table,
@@ -3905,9 +3906,11 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   }
 
   /**
-   * Gets the bit-set to the column ordinals in the target table for the targeted columns.
-   * @param modifiableViewTable The target modifiable view table.
-   * @param targetRowType       The target row-type.
+   * Gets the bit-set to the column ordinals in the target table for the
+   * targeted columns.
+   *
+   * @param modifiableViewTable The target modifiable view table
+   * @param targetRowType       The target row-type
    */
   private ImmutableBitSet getOrdinalBitSet(
       ModifiableViewTable modifiableViewTable, RelDataType targetRowType) {
@@ -3924,10 +3927,11 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   }
 
   /**
-   * Returns a mapping of the column ordinal in the underlying table to a column constraint of the
-   * modifiable view.
-   * @param modifiableViewTable The modifiable view which has a constraint.
-   * @param targetRowType       The target type.
+   * Returns a mapping of the column ordinal in the underlying table to a column
+   * constraint of the modifiable view.
+   *
+   * @param modifiableViewTable The modifiable view which has a constraint
+   * @param targetRowType       The target type
    */
   private Map<Integer, RexNode> getConstraintForModifiableView(
       ModifiableViewTable modifiableViewTable, RelDataType targetRowType) {

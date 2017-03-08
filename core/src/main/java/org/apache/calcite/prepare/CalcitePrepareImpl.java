@@ -436,8 +436,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
       }
       return new AnalyzeViewResult(this, validator, sql, sqlNode,
           validator.getValidatedNodeType(sqlNode), root, null, null, null,
-          null,
-          filters.isEmpty() || retry && filters2.isEmpty());
+          null, filters.isEmpty() || retry && filters2.isEmpty());
     }
 
     return new AnalyzeViewResult(this, validator, sql, sqlNode,

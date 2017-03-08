@@ -43,15 +43,17 @@ public class ViewTableMacro implements TableMacro {
   protected final List<String> viewPath;
 
   /**
-   * Create a ViewTableMacro.
-   * @param schema     The root schema.
-   * @param viewSql    The SQL defining the view.
-   * @param schemaPath The schema path relative to the root schema.
-   * @param viewPath   The view path relative to the schema path.
-   * @param modifiable Request that a view is modifiable (dependant on analysis of viewSql).
+   * Creates a ViewTableMacro.
+   *
+   * @param schema     Root schema
+   * @param viewSql    SQL defining the view
+   * @param schemaPath Schema path relative to the root schema
+   * @param viewPath   View path relative to the schema path
+   * @param modifiable Request that a view is modifiable (dependent on analysis
+   *                   of {@code viewSql})
    */
-  public ViewTableMacro(CalciteSchema schema, String viewSql, List<String> schemaPath,
-      List<String> viewPath, Boolean modifiable) {
+  public ViewTableMacro(CalciteSchema schema, String viewSql,
+      List<String> schemaPath, List<String> viewPath, Boolean modifiable) {
     this.viewSql = viewSql;
     this.schema = schema;
     this.viewPath = viewPath == null ? null : ImmutableList.copyOf(viewPath);
@@ -70,18 +72,20 @@ public class ViewTableMacro implements TableMacro {
             schema, schemaPath, viewSql, modifiable != null && modifiable);
     final List<String> schemaPath1 =
         schemaPath != null ? schemaPath : schema.path(null);
-    if ((modifiable == null || modifiable) && parsed.modifiable && parsed.table != null) {
+    if ((modifiable == null || modifiable)
+        && parsed.modifiable
+        && parsed.table != null) {
       return modifiableViewTable(parsed, viewSql, schemaPath1, viewPath, schema);
     } else {
       return viewTable(parsed, viewSql, schemaPath1, viewPath);
     }
   }
 
-  /**
-   * Allow a subclass to return an extension of ModifiableViewTable by overriding this method.
-   */
+  /** Allows a sub-class to return an extension of {@link ModifiableViewTable}
+   * by overriding this method. */
   protected ModifiableViewTable modifiableViewTable(CalcitePrepare.AnalyzeViewResult parsed,
-      String viewSql, List<String> schemaPath, List<String> viewPath, CalciteSchema schema) {
+      String viewSql, List<String> schemaPath, List<String> viewPath,
+      CalciteSchema schema) {
     final JavaTypeFactory typeFactory = (JavaTypeFactory) parsed.typeFactory;
     final Type elementType = typeFactory.getJavaClass(parsed.rowType);
     return new ModifiableViewTable(elementType,
@@ -90,11 +94,10 @@ public class ViewTableMacro implements TableMacro {
         parsed.constraint, parsed.columnMapping, parsed.typeFactory);
   }
 
-  /**
-   * Allow a subclass to return an extension of ViewTable by overriding this method.
-   */
-  protected ViewTable viewTable(CalcitePrepare.AnalyzeViewResult parsed, String viewSql,
-      List<String> schemaPath, List<String> viewPath) {
+  /** Allows a sub-class to return an extension of {@link ViewTable} by
+   * overriding this method. */
+  protected ViewTable viewTable(CalcitePrepare.AnalyzeViewResult parsed,
+      String viewSql, List<String> schemaPath, List<String> viewPath) {
     final JavaTypeFactory typeFactory = (JavaTypeFactory) parsed.typeFactory;
     final Type elementType = typeFactory.getJavaClass(parsed.rowType);
     return new ViewTable(elementType,
