@@ -65,6 +65,7 @@ limitations under the License.
     <fmpp-maven-plugin.version>1.0</fmpp-maven-plugin.version>
     <foodmart-data-hsqldb.version>0.3</foodmart-data-hsqldb.version>
     <foodmart-queries.version>0.4.1</foodmart-queries.version>
+    <forbiddenapis.version>2.3</forbiddenapis.version>
     <freemarker.version>2.3.25-incubating</freemarker.version>
     <git-commit-id-plugin.version>2.1.9</git-commit-id-plugin.version>
 
@@ -74,7 +75,7 @@ limitations under the License.
     <guava.version>20.0</guava.version>
     <joda.version>2.8.1</joda.version>
     <h2.version>1.4.185</h2.version>
-    <hadoop.version>2.6.0</hadoop.version>
+    <hadoop.version>2.7.0</hadoop.version>
     <hamcrest.version>1.3</hamcrest.version>
     <hppc.version>0.7.1</hppc.version>
     <hsqldb.version>2.3.1</hsqldb.version>
@@ -90,18 +91,25 @@ limitations under the License.
     <jcip-annotations.version>1.0-1</jcip-annotations.version>
     <jetty.version>9.2.15.v20160210</jetty.version>
     <jmh.version>1.12</jmh.version>
+    <jsoup.version>1.10.2</jsoup.version>
     <junit.version>4.12</junit.version>
     <maven-checkstyle-plugin.version>2.12.1</maven-checkstyle-plugin.version>
     <maven-dependency-plugin.version>2.10</maven-dependency-plugin.version>
+    <!-- Apache 18 has 3.0.1, but need 3.0.2 for [MSOURCES-94]. -->
+    <maven-jar-plugin.version>3.0.2</maven-jar-plugin.version>
     <!-- Apache 18 has 2.10.3, but need 2.10.4 for [MJAVADOC-442]. -->
     <maven-javadoc-plugin.version>2.10.4</maven-javadoc-plugin.version>
     <maven-scm-provider.version>1.9.4</maven-scm-provider.version>
     <maven-shade-plugin.version>2.1</maven-shade-plugin.version>
-    <mockito-all.version>1.10.19</mockito-all.version>
+    <!-- Apache 18 has 3.0.0, but need 3.0.1 for [MSOURCES-94]. -->
+    <maven-source-plugin.version>3.0.1</maven-source-plugin.version>
+    <mockito.version>2.5.5</mockito.version>
     <mongo-java-driver.version>2.12.3</mongo-java-driver.version>
     <mysql-driver.version>5.1.20</mysql-driver.version>
+    <natty.version>0.13</natty.version>
     <opencsv.version>2.3</opencsv.version>
     <oracle-jdbc6-driver.version>11.2.0.2.0</oracle-jdbc6-driver.version>
+    <pig.version>0.16.0</pig.version>
     <aggdesigner.version>6.0</aggdesigner.version>
     <postgresql.version>9.3-1102-jdbc3</postgresql.version>
     <quidem.version>0.8</quidem.version>
@@ -133,8 +141,10 @@ limitations under the License.
     <module>druid</module>
     <module>elasticsearch</module>
     <module>example</module>
+    <module>file</module>
     <module>linq4j</module>
     <module>mongodb</module>
+    <module>pig</module>
     <module>piglet</module>
     <module>plus</module>
     <module>spark</module>
@@ -169,6 +179,11 @@ limitations under the License.
         <groupId>org.apache.calcite</groupId>
         <artifactId>calcite-core</artifactId>
         <type>test-jar</type>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.calcite</groupId>
+        <artifactId>calcite-example-csv</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
@@ -222,6 +237,11 @@ limitations under the License.
         <groupId>com.google.guava</groupId>
         <artifactId>guava</artifactId>
         <version>${guava.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.joestelmach</groupId>
+        <artifactId>natty</artifactId>
+        <version>${natty.version}</version>
       </dependency>
       <dependency>
         <groupId>com.oracle</groupId>
@@ -299,6 +319,11 @@ limitations under the License.
         <version>${hadoop.version}</version>
       </dependency>
       <dependency>
+        <groupId>org.apache.hadoop</groupId>
+        <artifactId>hadoop-client</artifactId>
+        <version>${hadoop.version}</version>
+      </dependency>
+      <dependency>
         <groupId>org.apache.httpcomponents</groupId>
         <artifactId>httpclient</artifactId>
         <version>${httpclient.version}</version>
@@ -309,9 +334,26 @@ limitations under the License.
         <version>${httpcore.version}</version>
       </dependency>
       <dependency>
+        <groupId>org.apache.pig</groupId>
+        <artifactId>pig</artifactId>
+        <version>${pig.version}</version>
+        <classifier>h2</classifier>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.pig</groupId>
+        <artifactId>pigunit</artifactId>
+        <version>${pig.version}</version>
+        <scope>test</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.jsoup</groupId>
+        <artifactId>jsoup</artifactId>
+        <version>${jsoup.version}</version>
+      </dependency>
+      <dependency>
         <groupId>org.mockito</groupId>
-        <artifactId>mockito-all</artifactId>
-        <version>${mockito-all.version}</version>
+        <artifactId>mockito-core</artifactId>
+        <version>${mockito.version}</version>
       </dependency>
       <dependency>
         <groupId>org.postgresql</groupId>
@@ -419,6 +461,43 @@ limitations under the License.
 
   <build>
     <plugins>
+      <plugin>
+        <groupId>de.thetaphi</groupId>
+        <artifactId>forbiddenapis</artifactId>
+        <configuration>
+          <!-- if the used Java version is too new, don't fail, just do nothing: -->
+          <failOnUnsupportedJava>false</failOnUnsupportedJava>
+          <bundledSignatures>
+            <!--
+              This will automatically choose the right
+              signatures based on 'maven.compiler.target':
+            -->
+            <bundledSignature>jdk-unsafe</bundledSignature>
+            <bundledSignature>jdk-deprecated</bundledSignature>
+            <!-- disallow undocumented classes like sun.misc.Unsafe: -->
+            <bundledSignature>jdk-non-portable</bundledSignature>
+          </bundledSignatures>
+          <signaturesFiles>
+            <signaturesFile>${top.dir}/src/main/config/forbidden-apis/signatures.txt</signaturesFile>
+          </signaturesFiles>
+          <excludes>
+            <exclude>**/ParseException.class</exclude>
+            <exclude>**/SimpleCharStream.class</exclude>
+            <exclude>**/*TokenManager.class</exclude>
+            <exclude>**/TokenMgrError.class</exclude>
+            <exclude>**/org/apache/calcite/runtime/Resources$Inst.class</exclude>
+            <exclude>**/org/apache/calcite/util/Unsafe.class</exclude>
+          </excludes>
+        </configuration>
+        <executions>
+          <execution>
+            <goals>
+              <goal>check</goal>
+              <goal>testCheck</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
       <plugin>
         <groupId>org.apache.rat</groupId>
         <artifactId>apache-rat-plugin</artifactId>
@@ -633,6 +712,11 @@ limitations under the License.
           </dependencies>
         </plugin>
         <plugin>
+          <groupId>de.thetaphi</groupId>
+          <artifactId>forbiddenapis</artifactId>
+          <version>${forbiddenapis.version}</version>
+        </plugin>
+        <plugin>
           <groupId>net.hydromatic</groupId>
           <artifactId>hydromatic-resource-maven-plugin</artifactId>
           <version>${hydromatic-resource.version}</version>
@@ -681,7 +765,7 @@ limitations under the License.
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-jar-plugin</artifactId>
-          <version>3.0.2</version>
+          <version>${maven-jar-plugin.version}</version>
           <configuration>
             <archive>
               <manifest>
@@ -699,7 +783,7 @@ limitations under the License.
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-source-plugin</artifactId>
-          <version>3.0.1</version>
+          <version>${maven-source-plugin.version}</version>
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
@@ -708,7 +792,19 @@ limitations under the License.
             <threadCount>1</threadCount>
             <perCoreThreadCount>true</perCoreThreadCount>
             <parallel>both</parallel>
-            <argLine>-Xmx1536m -XX:MaxPermSize=256m -Duser.timezone=${user.timezone}</argLine>
+            <forkMode>once</forkMode>
+            <systemProperties>
+              <systemProperty>
+                <name>user.language</name>
+                <value>TR</value>
+              </systemProperty>
+              <systemProperty>
+                <name>user.country</name>
+                <value>tr</value>
+              </systemProperty>
+            </systemProperties>
+            <!--<argLine>-Xmx1536m -XX:MaxPermSize=256m -Duser.timezone=${user.timezone} -Duser.country=${user.country} -Duser.language=${user.language}</argLine>-->
+            <argLine>-Xmx1536m -XX:MaxPermSize=256m</argLine>
           </configuration>
         </plugin>
         <plugin>

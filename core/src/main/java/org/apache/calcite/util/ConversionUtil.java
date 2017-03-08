@@ -18,6 +18,7 @@ package org.apache.calcite.util;
 
 import java.nio.ByteOrder;
 import java.text.NumberFormat;
+import java.util.Locale;
 
 import static org.apache.calcite.util.Static.RESOURCE;
 
@@ -68,14 +69,12 @@ public class ConversionUtil {
     }
 
     int trick = radix * radix;
-    StringBuffer ret = new StringBuffer();
-    for (int i = 0; i < value.length; i++) {
-      ret.append(
-          Integer.toString(trick | (0x0ff & value[i]), radix).substring(
-              1));
+    StringBuilder ret = new StringBuilder();
+    for (byte b : value) {
+      ret.append(Integer.toString(trick | (0x0ff & b), radix).substring(1));
     }
 
-    return ret.toString().toUpperCase();
+    return ret.toString().toUpperCase(Locale.ROOT);
   }
 
   /**

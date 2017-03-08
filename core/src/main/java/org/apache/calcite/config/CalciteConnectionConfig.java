@@ -30,6 +30,8 @@ public interface CalciteConnectionConfig extends ConnectionConfig {
   boolean approximateDistinctCount();
   /** @see CalciteConnectionProperty#APPROXIMATE_TOP_N */
   boolean approximateTopN();
+  /** @see CalciteConnectionProperty#APPROXIMATE_DECIMAL */
+  boolean approximateDecimal();
   /** @see CalciteConnectionProperty#AUTO_TEMP */
   boolean autoTemp();
   /** @see CalciteConnectionProperty#MATERIALIZATIONS_ENABLED */

@@ -20,6 +20,8 @@ import org.apache.calcite.linq4j.CorrelateJoinType;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.sql.parser.SqlParserPos;
 
+import java.util.Locale;
+
 /**
  * Enumeration representing different join types used in correlation
  * relations.
@@ -47,6 +49,9 @@ public enum SemiJoinType {
    * <p>Note: if B.b is nullable and B has nulls, no rows must be returned</p>
    */
   ANTI;
+
+  /** Lower-case name. */
+  public final String lowerName = name().toLowerCase(Locale.ROOT);
 
   /**
    * Creates a parse-tree node representing an occurrence of this

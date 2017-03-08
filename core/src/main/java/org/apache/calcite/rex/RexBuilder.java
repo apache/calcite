@@ -474,6 +474,21 @@ public class RexBuilder {
   }
 
   /**
+   * Rounds the time part of a TIME or TIMESTAMP value to the given precision.
+   *
+   * @param timestamp The value to be rounded, will change in place
+   * @param precision the desired precision
+   */
+  private void roundTime(Calendar timestamp, long precision) {
+    if (precision == RelDataType.PRECISION_NOT_SPECIFIED) {
+      precision = 0;
+    }
+    final long pow = DateTimeUtils.powerX(10, 3 - precision);
+    final long timeMs = SqlFunctions.round(timestamp.getTimeInMillis(), pow);
+    timestamp.setTimeInMillis(timeMs);
+  }
+
+  /**
    * Creates a call to the CAST operator, expanding if possible, and optionally
    * also preserving nullability.
    *
@@ -498,19 +513,6 @@ public class RexBuilder {
       SqlTypeName typeName = literal.getTypeName();
       if (canRemoveCastFromLiteral(type, value, typeName)) {
         switch (typeName) {
-        case TIMESTAMP:
-        case TIME:
-          assert value instanceof Calendar;
-          final Calendar calendar = (Calendar) value;
-          int scale = type.getScale();
-          if (scale == RelDataType.SCALE_NOT_SPECIFIED) {
-            scale = 0;
-          }
-          calendar.setTimeInMillis(
-              SqlFunctions.round(
-                  calendar.getTimeInMillis(),
-                  DateTimeUtils.powerX(10, 3 - scale)));
-          break;
         case INTERVAL_DAY:
         case INTERVAL_DAY_HOUR:
         case INTERVAL_DAY_MINUTE:
@@ -845,7 +847,8 @@ public class RexBuilder {
       SqlTypeName typeName) {
     // All literals except NULL have NOT NULL types.
     type = typeFactory.createTypeWithNullability(type, o == null);
-    if (typeName == SqlTypeName.CHAR) {
+    switch (typeName) {
+    case CHAR:
       // Character literals must have a charset and collation. Populate
       // from the type if necessary.
       assert o instanceof NlsString;
@@ -860,6 +863,10 @@ public class RexBuilder {
             type.getCharset().name(),
             type.getCollation());
       }
+      break;
+    case TIME:
+    case TIMESTAMP:
+      roundTime((Calendar) o, type.getPrecision());
     }
     return new RexLiteral(o, type, typeName);
   }
@@ -1395,14 +1402,14 @@ public class RexBuilder {
       if (o instanceof Calendar) {
         return o;
       }
-      calendar = Calendar.getInstance(DateTimeUtils.GMT_ZONE);
+      calendar = Util.calendar();
       calendar.setTimeInMillis((Integer) o);
       return calendar;
     case DATE:
       if (o instanceof Calendar) {
         return o;
       }
-      calendar = Calendar.getInstance(DateTimeUtils.GMT_ZONE);
+      calendar = Util.calendar();
       calendar.setTimeInMillis(0);
       calendar.add(Calendar.DAY_OF_YEAR, (Integer) o);
       return calendar;
@@ -1410,7 +1417,7 @@ public class RexBuilder {
       if (o instanceof Calendar) {
         return o;
       }
-      calendar = Calendar.getInstance(DateTimeUtils.GMT_ZONE);
+      calendar = Util.calendar();
       calendar.setTimeInMillis((Long) o);
       return calendar;
     default:

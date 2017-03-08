@@ -20,12 +20,12 @@ import org.apache.calcite.avatica.ColumnMetaData.Rep;
 import org.apache.calcite.avatica.proto.Common;
 import org.apache.calcite.avatica.util.Base64;
 import org.apache.calcite.avatica.util.ByteString;
+import org.apache.calcite.avatica.util.DateTimeUtils;
 
 import org.junit.Test;
 
 import java.math.BigDecimal;
 import java.util.Calendar;
-import java.util.GregorianCalendar;
 
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
@@ -123,7 +123,8 @@ public class TypedValueTest {
     assertEquals(new ByteString(bytes).toBase64String(), (String) deserializedObj);
 
     // But we should get a non-b64 byte array as the JDBC representation
-    deserializedObj = TypedValue.protoToJdbc(proto, GregorianCalendar.getInstance());
+    deserializedObj =
+        TypedValue.protoToJdbc(proto, DateTimeUtils.calendar());
     assertThat(deserializedObj, is(instanceOf(byte[].class)));
     assertArrayEquals(bytes, (byte[]) deserializedObj);
   }
@@ -151,7 +152,7 @@ public class TypedValueTest {
 
   @Test public void testLegacyDecimalParsing() {
     final BigDecimal decimal = new BigDecimal("123451234512345");
-    final Calendar calendar = GregorianCalendar.getInstance();
+    final Calendar calendar = DateTimeUtils.calendar();
 
     // CALCITE-1103 Decimals were (incorrectly) getting serialized as normal "numbers" which
     // caused them to use the numberValue field. TypedValue should still be able to handle
@@ -169,7 +170,7 @@ public class TypedValueTest {
     final byte[] b64Bytes = Base64.encodeBytes(bytes).getBytes(UTF_8);
     TypedValue tv = TypedValue.ofLocal(Rep.BYTE_STRING, new ByteString(bytes));
     // JSON encodes it as base64
-    assertEquals(new String(b64Bytes), tv.value);
+    assertEquals(new String(b64Bytes, UTF_8), tv.value);
 
     // Get the protobuf variant
     Common.TypedValue protoTv = tv.toProto();
@@ -182,7 +183,8 @@ public class TypedValueTest {
     assertArrayEquals(bytes, protoByteString.toByteArray());
 
     // We should have the b64 string as a backwards compatibility feature
-    assertEquals(new String(b64Bytes), protoTv.getStringValue());
+    assertEquals(new String(b64Bytes, UTF_8),
+        protoTv.getStringValue());
   }
 
   @Test public void testLegacyBase64StringEncodingForBytes() {

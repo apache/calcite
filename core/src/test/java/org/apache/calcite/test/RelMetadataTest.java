@@ -60,6 +60,7 @@ import org.apache.calcite.rel.metadata.MetadataHandler;
 import org.apache.calcite.rel.metadata.ReflectiveRelMetadataProvider;
 import org.apache.calcite.rel.metadata.RelColumnOrigin;
 import org.apache.calcite.rel.metadata.RelMdCollation;
+import org.apache.calcite.rel.metadata.RelMdUtil;
 import org.apache.calcite.rel.metadata.RelMetadataProvider;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
@@ -1468,6 +1469,16 @@ public class RelMetadataTest extends SqlToRelTestBase {
     final RelMetadataQuery mq = RelMetadataQuery.instance();
     RelDistribution d = mq.getDistribution(exchange);
     assertThat(d, is(dist));
+  }
+
+  /** Unit test for {@link RelMdUtil#linear(int, int, int, double, double)}. */
+  @Test public void testLinear() {
+    assertThat(RelMdUtil.linear(0, 0, 10, 100, 200), is(100d));
+    assertThat(RelMdUtil.linear(5, 0, 10, 100, 200), is(150d));
+    assertThat(RelMdUtil.linear(6, 0, 10, 100, 200), is(160d));
+    assertThat(RelMdUtil.linear(10, 0, 10, 100, 200), is(200d));
+    assertThat(RelMdUtil.linear(-2, 0, 10, 100, 200), is(100d));
+    assertThat(RelMdUtil.linear(12, 0, 10, 100, 200), is(200d));
   }
 
   /**

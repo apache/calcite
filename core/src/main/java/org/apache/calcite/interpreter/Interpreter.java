@@ -49,6 +49,7 @@ import com.google.common.collect.Maps;
 import java.math.BigDecimal;
 import java.util.ArrayDeque;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.NoSuchElementException;
 
@@ -211,7 +212,7 @@ public class Interpreter extends AbstractEnumerable<Object[]>
                 if (s0 == null) {
                   return null;
                 }
-                return s0.toUpperCase();
+                return s0.toUpperCase(Locale.ROOT);
               }
               if (call.getOperator() == SqlStdOperatorTable.SUBSTRING) {
                 argScalar.execute(context, args);

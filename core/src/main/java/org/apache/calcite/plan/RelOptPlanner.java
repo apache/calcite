@@ -20,8 +20,7 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.metadata.CachingRelMetadataProvider;
 import org.apache.calcite.rel.metadata.RelMetadataProvider;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
-import org.apache.calcite.rex.RexBuilder;
-import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexExecutor;
 import org.apache.calcite.util.CancelFlag;
 import org.apache.calcite.util.trace.CalciteTrace;
 
@@ -326,21 +325,17 @@ public interface RelOptPlanner {
   RelTraitSet emptyTraitSet();
 
   /** Sets the object that can execute scalar expressions. */
-  void setExecutor(Executor executor);
+  void setExecutor(RexExecutor executor);
 
   /** Returns the executor used to evaluate constant expressions. */
-  Executor getExecutor();
+  RexExecutor getExecutor();
 
   /** Called when a relational expression is copied to a similar expression. */
   void onCopy(RelNode rel, RelNode newRel);
 
-  /** Can reduce expressions, writing a literal for each into a list. */
-  interface Executor {
-    /**
-     * Reduces expressions, and writes their results into {@code reducedValues}.
-     */
-    void reduce(RexBuilder rexBuilder, List<RexNode> constExps,
-        List<RexNode> reducedValues);
+  /** @deprecated Use {@link RexExecutor} */
+  @Deprecated // to be removed before 2.0
+  interface Executor extends RexExecutor {
   }
 
   /**

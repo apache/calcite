@@ -56,6 +56,7 @@ import org.apache.calcite.util.PartiallyOrderedSetTest;
 import org.apache.calcite.util.PermutationTestCase;
 import org.apache.calcite.util.PrecedenceClimbingParserTest;
 import org.apache.calcite.util.ReflectVisitorTest;
+import org.apache.calcite.util.SourceTest;
 import org.apache.calcite.util.UtilTest;
 import org.apache.calcite.util.graph.DirectedGraphTest;
 import org.apache.calcite.util.mapping.MappingTest;
@@ -84,6 +85,7 @@ import org.junit.runners.Suite;
     RelCollationTest.class,
     UtilTest.class,
     PrecedenceClimbingParserTest.class,
+    SourceTest.class,
     MappingTest.class,
     CalciteResourceTest.class,
     FilteratorTest.class,

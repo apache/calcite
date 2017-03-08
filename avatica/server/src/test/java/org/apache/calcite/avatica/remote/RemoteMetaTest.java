@@ -66,6 +66,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Random;
@@ -319,14 +320,15 @@ public class RemoteMetaTest {
       AvaticaConnection conn = (AvaticaConnection) DriverManager.getConnection(url);
       Statement statement = conn.createStatement();
       final String create =
-          String.format("create table if not exists %s ("
+          String.format(Locale.ROOT, "create table if not exists %s ("
               + "  id int not null, msg varchar(255) not null)", t);
       int status = statement.executeUpdate(create);
       assertEquals(status, 0);
 
       statement = conn.createStatement();
-      final String update = String.format("insert into %s values ('%d', '%s')",
-          t, RANDOM.nextInt(Integer.MAX_VALUE), UUID.randomUUID());
+      final String update =
+          String.format(Locale.ROOT, "insert into %s values ('%d', '%s')",
+              t, RANDOM.nextInt(Integer.MAX_VALUE), UUID.randomUUID());
       status = statement.executeUpdate(update);
       assertEquals(status, 1);
     } finally {
@@ -584,26 +586,35 @@ public class RemoteMetaTest {
       assertFalse(stmt.execute("DROP TABLE IF EXISTS " + productTable));
       assertFalse(
           stmt.execute(
-              String.format("CREATE TABLE %s(id integer, stock integer)", productTable)));
+              String.format(Locale.ROOT,
+                  "CREATE TABLE %s(id integer, stock integer)",
+                  productTable)));
       assertFalse(stmt.execute("DROP TABLE IF EXISTS " + salesTable));
       assertFalse(
           stmt.execute(
-              String.format("CREATE TABLE %s(id integer, units_sold integer)", salesTable)));
+              String.format(Locale.ROOT,
+                  "CREATE TABLE %s(id integer, units_sold integer)",
+                  salesTable)));
 
       final int productId = 1;
       // No products and no sales
       assertFalse(
           stmt.execute(
-              String.format("INSERT INTO %s VALUES(%d, 0)", productTable, productId)));
+              String.format(Locale.ROOT, "INSERT INTO %s VALUES(%d, 0)",
+                  productTable, productId)));
       assertFalse(
           stmt.execute(
-              String.format("INSERT INTO %s VALUES(%d, 0)", salesTable, productId)));
+              String.format(Locale.ROOT, "INSERT INTO %s VALUES(%d, 0)",
+                  salesTable, productId)));
 
       conn.setAutoCommit(false);
       PreparedStatement productStmt = conn.prepareStatement(
-          String.format("UPDATE %s SET stock = stock + ? WHERE id = ?", productTable));
+          String.format(Locale.ROOT,
+              "UPDATE %s SET stock = stock + ? WHERE id = ?", productTable));
       PreparedStatement salesStmt = conn.prepareStatement(
-          String.format("UPDATE %s SET units_sold = units_sold + ? WHERE id = ?", salesTable));
+          String.format(Locale.ROOT,
+              "UPDATE %s SET units_sold = units_sold + ? WHERE id = ?",
+              salesTable));
 
       // No stock
       assertEquals(0, getInventory(conn, productTable, productId));
@@ -651,7 +662,8 @@ public class RemoteMetaTest {
   private int getInventory(Connection conn, String productTable, int productId) throws Exception {
     try (Statement stmt = conn.createStatement()) {
       ResultSet results = stmt.executeQuery(
-          String.format("SELECT stock FROM %s WHERE id = %d", productTable, productId));
+          String.format(Locale.ROOT, "SELECT stock FROM %s WHERE id = %d",
+              productTable, productId));
       assertTrue(results.next());
       return results.getInt(1);
     }
@@ -660,7 +672,8 @@ public class RemoteMetaTest {
   private int getSales(Connection conn, String salesTable, int productId) throws Exception {
     try (Statement stmt = conn.createStatement()) {
       ResultSet results = stmt.executeQuery(
-          String.format("SELECT units_sold FROM %s WHERE id = %d", salesTable, productId));
+          String.format(Locale.ROOT, "SELECT units_sold FROM %s WHERE id = %d",
+              salesTable, productId));
       assertTrue(results.next());
       return results.getInt(1);
     }

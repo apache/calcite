@@ -22,6 +22,7 @@ import com.google.common.collect.ImmutableSortedSet;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Locale;
 import java.util.NavigableSet;
 import java.util.Set;
 import java.util.TreeSet;
@@ -77,7 +78,8 @@ public class NameSet {
         return ImmutableList.of();
       }
     } else {
-      return names.subSet(name.toUpperCase(), true, name.toLowerCase(), true);
+      return names.subSet(name.toUpperCase(Locale.ROOT), true,
+          name.toLowerCase(Locale.ROOT), true);
     }
   }
 
@@ -88,7 +90,7 @@ public class NameSet {
       return true;
     }
     if (!caseSensitive) {
-      final String s = names.ceiling(name.toLowerCase());
+      final String s = names.ceiling(name.toLowerCase(Locale.ROOT));
       return s != null
           && s.equalsIgnoreCase(name);
     }

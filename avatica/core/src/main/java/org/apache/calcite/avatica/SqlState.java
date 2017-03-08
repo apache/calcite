@@ -16,7 +16,10 @@
  */
 package org.apache.calcite.avatica;
 
+import java.io.BufferedWriter;
+import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -1810,7 +1813,9 @@ public enum SqlState {
 
   /** Validates the data, and generates the HTML table. */
   private static void main(String[] args) {
-    PrintWriter pw = new PrintWriter(System.out);
+    PrintWriter pw = new PrintWriter(
+        new BufferedWriter(
+            new OutputStreamWriter(System.out, StandardCharsets.UTF_8)));
     pw.println(" * <table>");
     SqlState parent = null;
     for (SqlState s : values()) {

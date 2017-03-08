@@ -18,6 +18,7 @@ package org.apache.calcite.util;
 
 import com.google.common.collect.ImmutableSortedMap;
 
+import java.util.Locale;
 import java.util.Map;
 import java.util.NavigableMap;
 import java.util.TreeMap;
@@ -62,7 +63,8 @@ public class NameMap<V> {
         return ImmutableSortedMap.of();
       }
     } else {
-      return map.subMap(name.toUpperCase(), true, name.toLowerCase(), true);
+      return map.subMap(name.toUpperCase(Locale.ROOT), true,
+          name.toLowerCase(Locale.ROOT), true);
     }
   }
 

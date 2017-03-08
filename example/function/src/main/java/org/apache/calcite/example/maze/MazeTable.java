@@ -27,6 +27,7 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.schema.ScannableTable;
 import org.apache.calcite.schema.impl.AbstractTable;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.util.Util;
 
 import java.io.PrintWriter;
 import java.util.Random;
@@ -88,7 +89,7 @@ public class MazeTable extends AbstractTable implements ScannableTable {
   public Enumerable<Object[]> scan(DataContext root) {
     final Random random = seed >= 0 ? new Random(seed) : new Random();
     final Maze maze = new Maze(width, height);
-    final PrintWriter pw = new PrintWriter(System.out);
+    final PrintWriter pw = Util.printWriter(System.out);
     maze.layout(random, pw);
     if (Maze.DEBUG) {
       maze.print(pw, true);

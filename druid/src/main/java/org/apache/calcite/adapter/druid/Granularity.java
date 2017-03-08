@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.adapter.druid;
 
+import java.util.Locale;
+
 /** Granularity of a Druid query. */
 public enum Granularity {
   ALL,
@@ -30,7 +32,7 @@ public enum Granularity {
   NONE;
 
   /** JSON attribute value in a Druid query. */
-  public final String value = name().toLowerCase();
+  public final String value = name().toLowerCase(Locale.ROOT);
 }
 
 // End Granularity.java

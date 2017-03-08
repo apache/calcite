@@ -24,6 +24,7 @@ import org.codehaus.janino.util.resource.ResourceFinder;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -67,7 +68,7 @@ public class JaninoCompiler implements JavaCompiler {
     Map<String, byte[]> sourceMap = new HashMap<String, byte[]>();
     sourceMap.put(
         ClassFile.getSourceResourceName(args.fullClassName),
-        args.source.getBytes());
+        args.source.getBytes(StandardCharsets.UTF_8));
     MapResourceFinder sourceFinder = new MapResourceFinder(sourceMap);
 
     classLoader =

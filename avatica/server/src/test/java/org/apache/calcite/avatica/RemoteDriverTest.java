@@ -26,6 +26,7 @@ import org.apache.calcite.avatica.remote.ProtobufTranslation;
 import org.apache.calcite.avatica.remote.ProtobufTranslationImpl;
 import org.apache.calcite.avatica.remote.Service;
 import org.apache.calcite.avatica.remote.TypedValue;
+import org.apache.calcite.avatica.util.DateTimeUtils;
 
 import com.google.common.cache.Cache;
 
@@ -59,6 +60,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
 import java.util.TimeZone;
@@ -363,10 +365,11 @@ public class RemoteDriverTest {
   @Test public void testInsertDrop() throws Exception {
     final String t = AvaticaUtils.unique("TEST_TABLE2");
     final String create =
-        String.format("create table if not exists %s ("
+        String.format(Locale.ROOT, "create table if not exists %s ("
             + "id int not null, "
             + "msg varchar(3) not null)", t);
-    final String insert = String.format("insert into %s values(1, 'foo')", t);
+    final String insert = String.format(Locale.ROOT,
+        "insert into %s values(1, 'foo')", t);
     Connection connection = ljs();
     Statement statement = connection.createStatement();
     statement.execute(create);
@@ -558,14 +561,17 @@ public class RemoteDriverTest {
   @Test public void testCreateInsertUpdateDrop() throws Exception {
     ConnectionSpec.getDatabaseLock().lock();
     final String t = AvaticaUtils.unique("TEST_TABLE");
-    final String drop = String.format("drop table %s if exists", t);
-    final String create = String.format("create table %s("
-        + "id int not null, "
-        + "msg varchar(3) not null)",
-        t);
-    final String insert = String.format("insert into %s values(1, 'foo')", t);
+    final String drop =
+        String.format(Locale.ROOT, "drop table %s if exists", t);
+    final String create =
+        String.format(Locale.ROOT, "create table %s("
+                + "id int not null, "
+                + "msg varchar(3) not null)",
+            t);
+    final String insert = String.format(Locale.ROOT,
+        "insert into %s values(1, 'foo')", t);
     final String update =
-        String.format("update %s set msg='bar' where id=1", t);
+        String.format(Locale.ROOT, "update %s set msg='bar' where id=1", t);
     try (Connection connection = getLocalConnection();
         Statement statement = connection.createStatement();
         PreparedStatement pstmt = connection.prepareStatement("values 1")) {
@@ -681,9 +687,11 @@ public class RemoteDriverTest {
   private void assertResultSetsEqual(Statement s1, Statement s2)
       throws SQLException {
     final TimeZone moscowTz = TimeZone.getTimeZone("Europe/Moscow");
-    final Calendar moscowCalendar = Calendar.getInstance(moscowTz);
+    final Calendar moscowCalendar =
+        Calendar.getInstance(moscowTz, Locale.ROOT);
     final TimeZone alaskaTz = TimeZone.getTimeZone("America/Anchorage");
-    final Calendar alaskaCalendar = Calendar.getInstance(alaskaTz);
+    final Calendar alaskaCalendar =
+        Calendar.getInstance(alaskaTz, Locale.ROOT);
     try (ResultSet rs1 = s1.getResultSet();
         ResultSet rs2 = s2.getResultSet()) {
       assertEquals(rs1.getMetaData().getColumnCount(),
@@ -1058,12 +1066,14 @@ public class RemoteDriverTest {
     try (Statement stmt = conn.createStatement()) {
       final String tableName = AvaticaUtils.unique("BATCH_EXECUTE");
       LOG.info("Creating table {}", tableName);
-      final String createCommand = String.format("create table if not exists %s ("
-          + "id int not null, "
-          + "msg varchar(10) not null)", tableName);
+      final String createCommand = String.format(Locale.ROOT,
+          "create table if not exists %s ("
+              + "id int not null, "
+              + "msg varchar(10) not null)", tableName);
       assertFalse("Failed to create table", stmt.execute(createCommand));
 
-      final String updatePrefix = String.format("INSERT INTO %s values(", tableName);
+      final String updatePrefix =
+          String.format(Locale.ROOT, "INSERT INTO %s values(", tableName);
       for (int i = 0; i < numRows;  i++) {
         stmt.addBatch(updatePrefix + i + ", '" + Integer.toString(i) + "')");
       }
@@ -1104,13 +1114,15 @@ public class RemoteDriverTest {
     final String tableName = AvaticaUtils.unique("PREPARED_BATCH_EXECUTE");
     LOG.info("Creating table {}", tableName);
     try (Statement stmt = conn.createStatement()) {
-      final String createCommand = String.format("create table if not exists %s ("
-          + "id int not null, "
-          + "msg varchar(10) not null)", tableName);
+      final String createCommand =
+          String.format(Locale.ROOT, "create table if not exists %s ("
+              + "id int not null, "
+              + "msg varchar(10) not null)", tableName);
       assertFalse("Failed to create table", stmt.execute(createCommand));
     }
 
-    final String insertSql = String.format("INSERT INTO %s values(?, ?)", tableName);
+    final String insertSql =
+        String.format(Locale.ROOT, "INSERT INTO %s values(?, ?)", tableName);
     try (PreparedStatement pstmt = conn.prepareStatement(insertSql)) {
       // Add batches with the prepared statement
       for (int i = 0; i < numRows; i++) {
@@ -1157,13 +1169,15 @@ public class RemoteDriverTest {
     final String tableName = AvaticaUtils.unique("PREPARED_INSERT_EXECUTE");
     LOG.info("Creating table {}", tableName);
     try (Statement stmt = conn.createStatement()) {
-      final String createCommand = String.format("create table if not exists %s ("
-          + "id int not null, "
-          + "msg varchar(10) not null)", tableName);
+      final String createCommand =
+          String.format(Locale.ROOT, "create table if not exists %s ("
+              + "id int not null, "
+              + "msg varchar(10) not null)", tableName);
       assertFalse("Failed to create table", stmt.execute(createCommand));
     }
 
-    final String insertSql = String.format("INSERT INTO %s values(?, ?)", tableName);
+    final String insertSql =
+        String.format(Locale.ROOT, "INSERT INTO %s values(?, ?)", tableName);
     try (PreparedStatement pstmt = conn.prepareStatement(insertSql)) {
       // Add batches with the prepared statement
       for (int i = 0; i < numRows; i++) {
@@ -1204,13 +1218,15 @@ public class RemoteDriverTest {
     final String tableName = AvaticaUtils.unique("PREPARED_INSERT_EXECUTE_NULLS");
     LOG.info("Creating table {}", tableName);
     try (Statement stmt = conn.createStatement()) {
-      final String createCommand = String.format("create table if not exists %s ("
-          + "id int not null, "
-          + "msg varchar(10))", tableName);
+      final String createCommand =
+          String.format(Locale.ROOT, "create table if not exists %s ("
+              + "id int not null, "
+              + "msg varchar(10))", tableName);
       assertFalse("Failed to create table", stmt.execute(createCommand));
     }
 
-    final String insertSql = String.format("INSERT INTO %s values(?, ?)", tableName);
+    final String insertSql =
+        String.format(Locale.ROOT, "INSERT INTO %s values(?, ?)", tableName);
     try (PreparedStatement pstmt = conn.prepareStatement(insertSql)) {
       // Add batches with the prepared statement
       for (int i = 0; i < numRows; i++) {
@@ -1260,13 +1276,15 @@ public class RemoteDriverTest {
     final String tableName = AvaticaUtils.unique("BATCH_INSERT_EXECUTE_NULLS");
     LOG.info("Creating table {}", tableName);
     try (Statement stmt = conn.createStatement()) {
-      final String createCommand = String.format("create table if not exists %s ("
-          + "id int not null, "
-          + "msg varchar(10))", tableName);
+      final String createCommand =
+          String.format(Locale.ROOT, "create table if not exists %s ("
+              + "id int not null, "
+              + "msg varchar(10))", tableName);
       assertFalse("Failed to create table", stmt.execute(createCommand));
     }
 
-    final String insertSql = String.format("INSERT INTO %s values(?, ?)", tableName);
+    final String insertSql =
+        String.format(Locale.ROOT, "INSERT INTO %s values(?, ?)", tableName);
     try (PreparedStatement pstmt = conn.prepareStatement(insertSql)) {
       // Add batches with the prepared statement
       for (int i = 0; i < numRows; i++) {
@@ -1367,22 +1385,25 @@ public class RemoteDriverTest {
   }
 
   private void executeBatchInsertWithDates(Connection conn) throws Exception {
-    final Calendar calendar = Calendar.getInstance();
+    final Calendar calendar = DateTimeUtils.calendar();
     long now = calendar.getTime().getTime();
     final int numRows = 10;
     final String tableName = AvaticaUtils.unique("BATCH_INSERT_EXECUTE_DATES");
     LOG.info("Creating table {}", tableName);
     try (Statement stmt = conn.createStatement()) {
-      final String dropCommand = String.format("drop table if exists %s", tableName);
+      final String dropCommand =
+          String.format(Locale.ROOT, "drop table if exists %s", tableName);
       assertFalse("Failed to drop table", stmt.execute(dropCommand));
-      final String createCommand = String.format("create table %s ("
-          + "id char(15) not null, "
-          + "created_date date not null, "
-          + "val_string varchar)", tableName);
+      final String createCommand =
+          String.format(Locale.ROOT, "create table %s ("
+              + "id char(15) not null, "
+              + "created_date date not null, "
+              + "val_string varchar)", tableName);
       assertFalse("Failed to create table", stmt.execute(createCommand));
     }
 
-    final String insertSql = String.format("INSERT INTO %s values(?, ?, ?)", tableName);
+    final String insertSql =
+        String.format(Locale.ROOT, "INSERT INTO %s values(?, ?, ?)", tableName);
     try (PreparedStatement pstmt = conn.prepareStatement(insertSql)) {
       // Add batches with the prepared statement
       for (int i = 0; i < numRows; i++) {
@@ -1472,7 +1493,7 @@ public class RemoteDriverTest {
       assertNotNull(metadata);
       String actualColumnName = metadata.getColumnName(1);
       // HSQLDB is going to upper-case the column name
-      assertEquals(columnName.toUpperCase(), actualColumnName);
+      assertEquals(columnName.toUpperCase(Locale.ROOT), actualColumnName);
     } finally {
       ConnectionSpec.getDatabaseLock().unlock();
     }
@@ -1521,13 +1542,15 @@ public class RemoteDriverTest {
     final String tableName = AvaticaUtils.unique("BATCH_CLEARS");
     LOG.info("Creating table {}", tableName);
     try (Statement stmt = conn.createStatement()) {
-      final String createCommand = String.format("create table if not exists %s ("
-          + "id int not null, "
-          + "msg varchar(10) not null)", tableName);
+      final String createCommand =
+          String.format(Locale.ROOT, "create table if not exists %s ("
+              + "id int not null, "
+              + "msg varchar(10) not null)", tableName);
       assertFalse("Failed to create table", stmt.execute(createCommand));
     }
 
-    final String insertSql = String.format("INSERT INTO %s values(?, ?)", tableName);
+    final String insertSql =
+        String.format(Locale.ROOT, "INSERT INTO %s values(?, ?)", tableName);
     try (PreparedStatement pstmt = conn.prepareStatement(insertSql)) {
       // Add batches with the prepared statement
       for (int i = 0; i < numRows; i++) {
@@ -1579,12 +1602,14 @@ public class RemoteDriverTest {
     try (Statement stmt = conn.createStatement()) {
       final String tableName = AvaticaUtils.unique("BATCH_EXECUTE");
       LOG.info("Creating table {}", tableName);
-      final String createCommand = String.format("create table if not exists %s ("
-          + "id int not null, "
-          + "msg varchar(10) not null)", tableName);
+      final String createCommand =
+          String.format(Locale.ROOT, "create table if not exists %s ("
+              + "id int not null, "
+              + "msg varchar(10) not null)", tableName);
       assertFalse("Failed to create table", stmt.execute(createCommand));
 
-      final String updatePrefix = String.format("INSERT INTO %s values(", tableName);
+      final String updatePrefix =
+          String.format(Locale.ROOT, "INSERT INTO %s values(", tableName);
       for (int i = 0; i < numRows;  i++) {
         stmt.addBatch(updatePrefix + i + ", '" + Integer.toString(i) + "')");
         if (numRows / 2 - 1 == i) {
@@ -1688,7 +1713,7 @@ public class RemoteDriverTest {
       String sql = "CREATE TABLE " + tableName + " (keycolumn VARCHAR(5), column1 date)";
       assertFalse(stmt.execute(sql));
       TimeZone tzUtc = TimeZone.getTimeZone("UTC");
-      Calendar cUtc = Calendar.getInstance(tzUtc);
+      Calendar cUtc = Calendar.getInstance(tzUtc, Locale.ROOT);
       cUtc.set(Calendar.YEAR, 1970);
       cUtc.set(Calendar.MONTH, Calendar.JANUARY);
       cUtc.set(Calendar.DAY_OF_MONTH, 1);
@@ -1726,7 +1751,7 @@ public class RemoteDriverTest {
       String sql = "CREATE TABLE " + tableName + " (keycolumn VARCHAR(5), column1 date)";
       assertFalse(stmt.execute(sql));
       TimeZone tzUtc = TimeZone.getTimeZone("GMT+8");
-      Calendar cUtc = Calendar.getInstance(tzUtc);
+      Calendar cUtc = Calendar.getInstance(tzUtc, Locale.ROOT);
       cUtc.set(Calendar.YEAR, 1970);
       cUtc.set(Calendar.MONTH, Calendar.JANUARY);
       cUtc.set(Calendar.DAY_OF_MONTH, 1);

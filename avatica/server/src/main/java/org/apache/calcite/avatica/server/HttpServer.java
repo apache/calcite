@@ -49,6 +49,7 @@ import java.security.Principal;
 import java.security.PrivilegedAction;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -246,7 +247,8 @@ public class HttpServer {
 
     final int port = connector.getLocalPort();
 
-    return new RpcMetadataResponse(String.format("%s:%d", host, port));
+    return new RpcMetadataResponse(
+        String.format(Locale.ROOT, "%s:%d", host, port));
   }
 
   /**
@@ -804,7 +806,9 @@ public class HttpServer {
         options.put("doNotPrompt", "true");
         options.put("useKeyTab", "true");
         options.put("isInitiator", "false");
-        options.put("debug", System.getProperty("sun.security.krb5.debug", "false").toLowerCase());
+        options.put("debug",
+            System.getProperty("sun.security.krb5.debug", "false")
+                .toLowerCase(Locale.ROOT));
 
         return new AppConfigurationEntry[] {new AppConfigurationEntry(getKrb5LoginModuleName(),
             AppConfigurationEntry.LoginModuleControlFlag.REQUIRED, options)};

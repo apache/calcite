@@ -44,6 +44,7 @@ import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.TableScan;
+import org.apache.calcite.rel.metadata.RelMdUtil;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
@@ -65,6 +66,7 @@ import org.apache.calcite.util.Util;
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
@@ -346,7 +348,31 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
 
   @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
       RelMetadataQuery mq) {
-    return Util.last(rels).computeSelfCost(planner, mq).multiplyBy(.1);
+    return Util.last(rels)
+        .computeSelfCost(planner, mq)
+        // Cost increases with the number of fields queried.
+        // A plan returning 100 or more columns will have 2x the cost of a
+        // plan returning 2 columns.
+        // A plan where all extra columns are pruned will be preferred.
+        .multiplyBy(
+            RelMdUtil.linear(querySpec.fieldNames.size(), 2, 100, 1d, 2d))
+        .multiplyBy(getQueryTypeCostMultiplier());
+  }
+
+  private double getQueryTypeCostMultiplier() {
+    // Cost of Select > GroupBy > Timeseries > TopN
+    switch (querySpec.queryType) {
+    case SELECT:
+      return .1;
+    case GROUP_BY:
+      return .08;
+    case TIMESERIES:
+      return .06;
+    case TOP_N:
+      return .04;
+    default:
+      return .2;
+    }
   }
 
   @Override public void register(RelOptPlanner planner) {
@@ -696,7 +722,25 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
       list.add(fieldNames.get(arg));
     }
     final String only = Iterables.getFirst(list, null);
-    final boolean b = aggCall.getType().getSqlTypeName() == SqlTypeName.DOUBLE;
+    final boolean fractional;
+    final RelDataType type = aggCall.getType();
+    final SqlTypeName sqlTypeName = type.getSqlTypeName();
+    if (SqlTypeFamily.APPROXIMATE_NUMERIC.getTypeNames().contains(sqlTypeName)) {
+      fractional = true;
+    } else if (SqlTypeFamily.INTEGER.getTypeNames().contains(sqlTypeName)) {
+      fractional = false;
+    } else if (SqlTypeFamily.EXACT_NUMERIC.getTypeNames().contains(sqlTypeName)) {
+      // Decimal
+      assert sqlTypeName == SqlTypeName.DECIMAL;
+      if (type.getScale() == 0) {
+        fractional = false;
+      } else {
+        fractional = true;
+      }
+    } else {
+      // Cannot handle this aggregate function type
+      throw new AssertionError("unknown aggregate type " + type);
+    }
     switch (aggCall.getAggregation().getKind()) {
     case COUNT:
       if (aggCall.isDistinct()) {
@@ -705,11 +749,11 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
       return new JsonAggregation("count", name, only);
     case SUM:
     case SUM0:
-      return new JsonAggregation(b ? "doubleSum" : "longSum", name, only);
+      return new JsonAggregation(fractional ? "doubleSum" : "longSum", name, only);
     case MIN:
-      return new JsonAggregation(b ? "doubleMin" : "longMin", name, only);
+      return new JsonAggregation(fractional ? "doubleMin" : "longMin", name, only);
     case MAX:
-      return new JsonAggregation(b ? "doubleMax" : "longMax", name, only);
+      return new JsonAggregation(fractional ? "doubleMax" : "longMax", name, only);
     default:
       throw new AssertionError("unknown aggregate " + aggCall);
     }
@@ -822,7 +866,8 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
   }
 
   /** Translates scalar expressions to Druid field references. */
-  private static class Translator {
+  @VisibleForTesting
+  protected static class Translator {
     final List<String> dimensions = new ArrayList<>();
     final List<String> metrics = new ArrayList<>();
     final DruidTable druidTable;
@@ -874,7 +919,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
       }
     }
 
-    @SuppressWarnings("incomplete-switch") private JsonFilter translateFilter(RexNode e) {
+    private JsonFilter translateFilter(RexNode e) {
       final RexCall call;
       switch (e.getKind()) {
       case EQUALS:
@@ -883,6 +928,8 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
       case GREATER_THAN_OR_EQUAL:
       case LESS_THAN:
       case LESS_THAN_OR_EQUAL:
+      case IN:
+      case BETWEEN:
         call = (RexCall) e;
         int posRef;
         int posConstant;
@@ -895,34 +942,50 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
         } else {
           throw new AssertionError("it is not a valid comparison: " + e);
         }
+        final boolean numeric =
+            call.getOperands().get(posRef).getType().getFamily()
+                == SqlTypeFamily.NUMERIC;
         switch (e.getKind()) {
         case EQUALS:
           return new JsonSelector("selector", tr(e, posRef), tr(e, posConstant));
         case NOT_EQUALS:
           return new JsonCompositeFilter("not",
-              ImmutableList.of(new JsonSelector("selector", tr(e, posRef), tr(e, posConstant))));
+              new JsonSelector("selector", tr(e, posRef), tr(e, posConstant)));
         case GREATER_THAN:
-          return new JsonBound("bound", tr(e, posRef), tr(e, posConstant), true, null, false,
-              call.getOperands().get(posRef).getType().getFamily() == SqlTypeFamily.NUMERIC);
+          return new JsonBound("bound", tr(e, posRef), tr(e, posConstant),
+              true, null, false, numeric);
         case GREATER_THAN_OR_EQUAL:
-          return new JsonBound("bound", tr(e, posRef), tr(e, posConstant), false, null, false,
-              call.getOperands().get(posRef).getType().getFamily() == SqlTypeFamily.NUMERIC);
+          return new JsonBound("bound", tr(e, posRef), tr(e, posConstant),
+              false, null, false, numeric);
         case LESS_THAN:
-          return new JsonBound("bound", tr(e, posRef), null, false, tr(e, posConstant), true,
-              call.getOperands().get(posRef).getType().getFamily() == SqlTypeFamily.NUMERIC);
+          return new JsonBound("bound", tr(e, posRef), null, false,
+              tr(e, posConstant), true, numeric);
         case LESS_THAN_OR_EQUAL:
-          return new JsonBound("bound", tr(e, posRef), null, false, tr(e, posConstant), false,
-              call.getOperands().get(posRef).getType().getFamily() == SqlTypeFamily.NUMERIC);
+          return new JsonBound("bound", tr(e, posRef), null, false,
+              tr(e, posConstant), false, numeric);
+        case IN:
+          ImmutableList.Builder<String> listBuilder = ImmutableList.builder();
+          for (RexNode rexNode: call.getOperands()) {
+            if (rexNode.getKind() == SqlKind.LITERAL) {
+              listBuilder.add(((RexLiteral) rexNode).getValue2().toString());
+            }
+          }
+          return new JsonInFilter("in", tr(e, posRef), listBuilder.build());
+        case BETWEEN:
+          return new JsonBound("bound", tr(e, posRef), tr(e, 2), false,
+              tr(e, 3), false, numeric);
+        default:
+          throw new AssertionError();
         }
-        break;
       case AND:
       case OR:
       case NOT:
         call = (RexCall) e;
-        return new JsonCompositeFilter(e.getKind().toString().toLowerCase(),
+        return new JsonCompositeFilter(e.getKind().lowerName,
             translateFilters(call.getOperands()));
+      default:
+        throw new AssertionError("cannot translate filter: " + e);
       }
-      throw new AssertionError("cannot translate filter: " + e);
     }
 
     private String tr(RexNode call, int index) {
@@ -1121,7 +1184,8 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
   }
 
   /** Bound filter. */
-  private static class JsonBound extends JsonFilter {
+  @VisibleForTesting
+  protected static class JsonBound extends JsonFilter {
     private final String dimension;
     private final String lower;
     private final boolean lowerStrict;
@@ -1163,9 +1227,13 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
     private final List<? extends JsonFilter> fields;
 
     private JsonCompositeFilter(String type,
-        List<? extends JsonFilter> fields) {
+        Iterable<? extends JsonFilter> fields) {
       super(type);
-      this.fields = fields;
+      this.fields = ImmutableList.copyOf(fields);
+    }
+
+    private JsonCompositeFilter(String type, JsonFilter... fields) {
+      this(type, ImmutableList.copyOf(fields));
     }
 
     public void write(JsonGenerator generator) throws IOException {
@@ -1178,6 +1246,26 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
       default:
         writeField(generator, "fields", fields);
       }
+      generator.writeEndObject();
+    }
+  }
+
+  /** IN filter. */
+  protected static class JsonInFilter extends JsonFilter {
+    private final String dimension;
+    private final List<String> values;
+
+    private JsonInFilter(String type, String dimension, List<String> values) {
+      super(type);
+      this.dimension = dimension;
+      this.values = values;
+    }
+
+    public void write(JsonGenerator generator) throws IOException {
+      generator.writeStartObject();
+      generator.writeStringField("type", type);
+      generator.writeStringField("dimension", dimension);
+      writeField(generator, "values", values);
       generator.writeEndObject();
     }
   }

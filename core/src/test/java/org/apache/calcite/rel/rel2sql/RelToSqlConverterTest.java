@@ -574,6 +574,356 @@ public class RelToSqlConverterTest {
         .ok(expected);
   }
 
+  @Test public void testMatchRecognizePatternExpression() {
+    String sql = "select *\n"
+        + "  from \"product\" match_recognize\n"
+        + "  (\n"
+        + "    pattern (strt down+ up+)\n"
+        + "    define\n"
+        + "      down as down.\"net_weight\" < PREV(down.\"net_weight\"),\n"
+        + "      up as up.\"net_weight\" > prev(up.\"net_weight\")\n"
+        + "  ) mr";
+    String expected = "SELECT *\n"
+        + "FROM (SELECT *\n"
+        + "FROM \"foodmart\".\"product\") MATCH_RECOGNIZE(\n"
+        + "PATTERN (\"STRT\" \"DOWN\" + \"UP\" +)\n"
+        + "DEFINE "
+        + "\"DOWN\" AS PREV(\"net_weight\", 0) < PREV(\"net_weight\", 1), "
+        + "\"UP\" AS PREV(\"net_weight\", 0) > PREV(\"net_weight\", 1))";
+    sql(sql).ok(expected);
+  }
+
+  @Test public void testMatchRecognizePatternExpression2() {
+    final String sql = "select *\n"
+        + "  from \"product\" match_recognize\n"
+        + "  (\n"
+        + "    pattern (strt down+ up+$)\n"
+        + "    define\n"
+        + "      down as down.\"net_weight\" < PREV(down.\"net_weight\"),\n"
+        + "      up as up.\"net_weight\" > prev(up.\"net_weight\")\n"
+        + "  ) mr";
+    final String expected = "SELECT *\n"
+        + "FROM (SELECT *\n"
+        + "FROM \"foodmart\".\"product\") MATCH_RECOGNIZE(\n"
+        + "PATTERN (\"STRT\" \"DOWN\" + \"UP\" + $)\n"
+        + "DEFINE "
+        + "\"DOWN\" AS PREV(\"net_weight\", 0) < PREV(\"net_weight\", 1), "
+        + "\"UP\" AS PREV(\"net_weight\", 0) > PREV(\"net_weight\", 1))";
+    sql(sql).ok(expected);
+  }
+
+  @Test public void testMatchRecognizePatternExpression3() {
+    final String sql = "select *\n"
+        + "  from \"product\" match_recognize\n"
+        + "  (\n"
+        + "    pattern (^strt down+ up+)\n"
+        + "    define\n"
+        + "      down as down.\"net_weight\" < PREV(down.\"net_weight\"),\n"
+        + "      up as up.\"net_weight\" > prev(up.\"net_weight\")\n"
+        + "  ) mr";
+    final String expected = "SELECT *\n"
+        + "FROM (SELECT *\n"
+        + "FROM \"foodmart\".\"product\") MATCH_RECOGNIZE(\n"
+        + "PATTERN (^ \"STRT\" \"DOWN\" + \"UP\" +)\n"
+        + "DEFINE "
+        + "\"DOWN\" AS PREV(\"net_weight\", 0) < PREV(\"net_weight\", 1), "
+        + "\"UP\" AS PREV(\"net_weight\", 0) > PREV(\"net_weight\", 1))";
+    sql(sql).ok(expected);
+  }
+
+  @Test public void testMatchRecognizePatternExpression4() {
+    final String sql = "select *\n"
+        + "  from \"product\" match_recognize\n"
+        + "  (\n"
+        + "    pattern (^strt down+ up+$)\n"
+        + "    define\n"
+        + "      down as down.\"net_weight\" < PREV(down.\"net_weight\"),\n"
+        + "      up as up.\"net_weight\" > prev(up.\"net_weight\")\n"
+        + "  ) mr";
+    final String expected = "SELECT *\n"
+        + "FROM (SELECT *\n"
+        + "FROM \"foodmart\".\"product\") MATCH_RECOGNIZE(\n"
+        + "PATTERN (^ \"STRT\" \"DOWN\" + \"UP\" + $)\n"
+        + "DEFINE "
+        + "\"DOWN\" AS PREV(\"net_weight\", 0) < PREV(\"net_weight\", 1), "
+        + "\"UP\" AS PREV(\"net_weight\", 0) > PREV(\"net_weight\", 1))";
+    sql(sql).ok(expected);
+  }
+
+  @Test public void testMatchRecognizePatternExpression5() {
+    final String sql = "select *\n"
+        + "  from \"product\" match_recognize\n"
+        + "  (\n"
+        + "    pattern (strt down* up?)\n"
+        + "    define\n"
+        + "      down as down.\"net_weight\" < PREV(down.\"net_weight\"),\n"
+        + "      up as up.\"net_weight\" > prev(up.\"net_weight\")\n"
+        + "  ) mr";
+    final String expected = "SELECT *\n"
+        + "FROM (SELECT *\n"
+        + "FROM \"foodmart\".\"product\") MATCH_RECOGNIZE(\n"
+        + "PATTERN (\"STRT\" \"DOWN\" * \"UP\" ?)\n"
+        + "DEFINE "
+        + "\"DOWN\" AS PREV(\"net_weight\", 0) < PREV(\"net_weight\", 1), "
+        + "\"UP\" AS PREV(\"net_weight\", 0) > PREV(\"net_weight\", 1))";
+    sql(sql).ok(expected);
+  }
+
+  @Test public void testMatchRecognizePatternExpression6() {
+    final String sql = "select *\n"
+        + "  from \"product\" match_recognize\n"
+        + "  (\n"
+        + "    pattern (strt {-down-} up?)\n"
+        + "    define\n"
+        + "      down as down.\"net_weight\" < PREV(down.\"net_weight\"),\n"
+        + "      up as up.\"net_weight\" > prev(up.\"net_weight\")\n"
+        + "  ) mr";
+    final String expected = "SELECT *\n"
+        + "FROM (SELECT *\n"
+        + "FROM \"foodmart\".\"product\") MATCH_RECOGNIZE(\n"
+        + "PATTERN (\"STRT\" {- \"DOWN\" -} \"UP\" ?)\n"
+        + "DEFINE "
+        + "\"DOWN\" AS PREV(\"net_weight\", 0) < PREV(\"net_weight\", 1), "
+        + "\"UP\" AS PREV(\"net_weight\", 0) > PREV(\"net_weight\", 1))";
+
+    sql(sql).ok(expected);
+  }
+
+  @Test public void testMatchRecognizePatternExpression7() {
+    final String sql = "select *\n"
+        + "  from \"product\" match_recognize\n"
+        + "  (\n"
+        + "    pattern (strt down{2} up{3,})\n"
+        + "    define\n"
+        + "      down as down.\"net_weight\" < PREV(down.\"net_weight\"),\n"
+        + "      up as up.\"net_weight\" > prev(up.\"net_weight\")\n"
+        + "  ) mr";
+    final String expected = "SELECT *\n"
+        + "FROM (SELECT *\n"
+        + "FROM \"foodmart\".\"product\") MATCH_RECOGNIZE(\n"
+        + "PATTERN (\"STRT\" \"DOWN\" { 2 } \"UP\" { 3, })\n"
+        + "DEFINE "
+        + "\"DOWN\" AS PREV(\"net_weight\", 0) < PREV(\"net_weight\", 1), "
+        + "\"UP\" AS PREV(\"net_weight\", 0) > PREV(\"net_weight\", 1))";
+    sql(sql).ok(expected);
+  }
+
+  @Test public void testMatchRecognizePatternExpression8() {
+    final String sql = "select *\n"
+        + "  from \"product\" match_recognize\n"
+        + "  (\n"
+        + "    pattern (strt down{,2} up{3,5})\n"
+        + "    define\n"
+        + "      down as down.\"net_weight\" < PREV(down.\"net_weight\"),\n"
+        + "      up as up.\"net_weight\" > prev(up.\"net_weight\")\n"
+        + "  ) mr";
+    final String expected = "SELECT *\n"
+        + "FROM (SELECT *\n"
+        + "FROM \"foodmart\".\"product\") MATCH_RECOGNIZE(\n"
+        + "PATTERN (\"STRT\" \"DOWN\" { , 2 } \"UP\" { 3, 5 })\n"
+        + "DEFINE "
+        + "\"DOWN\" AS PREV(\"net_weight\", 0) < PREV(\"net_weight\", 1), "
+        + "\"UP\" AS PREV(\"net_weight\", 0) > PREV(\"net_weight\", 1))";
+    sql(sql).ok(expected);
+  }
+
+  @Test public void testMatchRecognizePatternExpression9() {
+    final String sql = "select *\n"
+        + "  from \"product\" match_recognize\n"
+        + "  (\n"
+        + "    pattern (strt {-down+-} {-up*-})\n"
+        + "    define\n"
+        + "      down as down.\"net_weight\" < PREV(down.\"net_weight\"),\n"
+        + "      up as up.\"net_weight\" > prev(up.\"net_weight\")\n"
+        + "  ) mr";
+    final String expected = "SELECT *\n"
+        + "FROM (SELECT *\n"
+        + "FROM \"foodmart\".\"product\") MATCH_RECOGNIZE(\n"
+        + "PATTERN (\"STRT\" {- \"DOWN\" + -} {- \"UP\" * -})\n"
+        + "DEFINE "
+        + "\"DOWN\" AS PREV(\"net_weight\", 0) < PREV(\"net_weight\", 1), "
+        + "\"UP\" AS PREV(\"net_weight\", 0) > PREV(\"net_weight\", 1))";
+    sql(sql).ok(expected);
+  }
+
+  @Test public void testMatchRecognizePatternExpression10() {
+    final String sql = "select *\n"
+        + "  from \"product\" match_recognize\n"
+        + "  (\n"
+        + "    pattern (A B C | A C B | B A C | B C A | C A B | C B A)\n"
+        + "    define\n"
+        + "      A as A.\"net_weight\" < PREV(A.\"net_weight\"),\n"
+        + "      B as B.\"net_weight\" > PREV(B.\"net_weight\"),\n"
+        + "      C as C.\"net_weight\" < PREV(C.\"net_weight\")\n"
+        + "  ) mr";
+    final String expected = "SELECT *\n"
+        + "FROM (SELECT *\n"
+        + "FROM \"foodmart\".\"product\") MATCH_RECOGNIZE(\n"
+        + "PATTERN (\"A\" \"B\" \"C\" | \"A\" \"C\" \"B\" "
+        + "| \"B\" \"A\" \"C\" | \"B\" \"C\" \"A\" "
+        + "| \"C\" \"A\" \"B\" | \"C\" \"B\" \"A\")\n"
+        + "DEFINE "
+        + "\"A\" AS PREV(\"net_weight\", 0) < PREV(\"net_weight\", 1), "
+        + "\"B\" AS PREV(\"net_weight\", 0) > PREV(\"net_weight\", 1), "
+        + "\"C\" AS PREV(\"net_weight\", 0) < PREV(\"net_weight\", 1))";
+    sql(sql).ok(expected);
+  }
+
+  @Test public void testMatchRecognizePatternExpression11() {
+    final String sql = "select *\n"
+        + "  from (select * from \"product\") match_recognize\n"
+        + "  (\n"
+        + "    pattern (strt down+ up+)\n"
+        + "    define\n"
+        + "      down as down.\"net_weight\" < PREV(down.\"net_weight\"),\n"
+        + "      up as up.\"net_weight\" > prev(up.\"net_weight\")\n"
+        + "  ) mr";
+    final String expected = "SELECT *\n"
+        + "FROM (SELECT *\n"
+        + "FROM \"foodmart\".\"product\") MATCH_RECOGNIZE(\n"
+        + "PATTERN (\"STRT\" \"DOWN\" + \"UP\" +)\n"
+        + "DEFINE "
+        + "\"DOWN\" AS PREV(\"net_weight\", 0) < PREV(\"net_weight\", 1), "
+        + "\"UP\" AS PREV(\"net_weight\", 0) > PREV(\"net_weight\", 1))";
+    sql(sql).ok(expected);
+  }
+
+  @Test public void testMatchRecognizePatternExpression12() {
+    final String sql = "select *\n"
+        + "  from \"product\" match_recognize\n"
+        + "  (\n"
+        + "    pattern (strt down+ up+)\n"
+        + "    define\n"
+        + "      down as down.\"net_weight\" < PREV(down.\"net_weight\"),\n"
+        + "      up as up.\"net_weight\" > prev(up.\"net_weight\")\n"
+        + "  ) mr order by MR.\"net_weight\"";
+    final String expected = "SELECT *\n"
+        + "FROM (SELECT *\n"
+        + "FROM \"foodmart\".\"product\") MATCH_RECOGNIZE(\n"
+        + "PATTERN (\"STRT\" \"DOWN\" + \"UP\" +)\n"
+        + "DEFINE "
+        + "\"DOWN\" AS PREV(\"net_weight\", 0) < PREV(\"net_weight\", 1), "
+        + "\"UP\" AS PREV(\"net_weight\", 0) > PREV(\"net_weight\", 1))\n"
+        + "ORDER BY \"net_weight\"";
+    sql(sql).ok(expected);
+  }
+
+  @Test public void testMatchRecognizePatternExpression13() {
+    final String sql = "select *\n"
+        + "  from (\n"
+        + "select *\n"
+        + "from \"sales_fact_1997\" as s\n"
+        + "join \"customer\" as c using (\"customer_id\")\n"
+        + "join \"product\" as p using (\"product_id\")\n"
+        + "join \"product_class\" as pc using (\"product_class_id\")\n"
+        + "where c.\"city\" = 'San Francisco'\n"
+        + "and pc.\"product_department\" = 'Snacks'"
+        + ") match_recognize\n"
+        + "  (\n"
+        + "    pattern (strt down+ up+)\n"
+        + "    define\n"
+        + "      down as down.\"net_weight\" < PREV(down.\"net_weight\"),\n"
+        + "      up as up.\"net_weight\" > prev(up.\"net_weight\")\n"
+        + "  ) mr order by MR.\"net_weight\"";
+    final String expected = "SELECT *\n"
+        + "FROM (SELECT *\n"
+        + "FROM \"foodmart\".\"sales_fact_1997\"\n"
+        + "INNER JOIN \"foodmart\".\"customer\" "
+        + "ON \"sales_fact_1997\".\"customer_id\" = \"customer\".\"customer_id\"\n"
+        + "INNER JOIN \"foodmart\".\"product\" "
+        + "ON \"sales_fact_1997\".\"product_id\" = \"product\".\"product_id\"\n"
+        + "INNER JOIN \"foodmart\".\"product_class\" "
+        + "ON \"product\".\"product_class_id\" = \"product_class\".\"product_class_id\"\n"
+        + "WHERE \"customer\".\"city\" = 'San Francisco' "
+        + "AND \"product_class\".\"product_department\" = 'Snacks') "
+        + "MATCH_RECOGNIZE(\n"
+        + "PATTERN (\"STRT\" \"DOWN\" + \"UP\" +)\n"
+        + "DEFINE "
+        + "\"DOWN\" AS PREV(\"net_weight\", 0) < PREV(\"net_weight\", 1), "
+        + "\"UP\" AS PREV(\"net_weight\", 0) > PREV(\"net_weight\", 1))\n"
+        + "ORDER BY \"net_weight\"";
+    sql(sql).ok(expected);
+  }
+
+  @Test public void testMatchRecognizeDefineClause() {
+    final String sql = "select *\n"
+        + "  from \"product\" match_recognize\n"
+        + "  (\n"
+        + "    pattern (strt down+ up+)\n"
+        + "    define\n"
+        + "      down as down.\"net_weight\" < PREV(down.\"net_weight\"),\n"
+        + "      up as up.\"net_weight\" > NEXT(up.\"net_weight\")\n"
+        + "  ) mr";
+    final String expected = "SELECT *\n"
+        + "FROM (SELECT *\n"
+        + "FROM \"foodmart\".\"product\") MATCH_RECOGNIZE(\n"
+        + "PATTERN (\"STRT\" \"DOWN\" + \"UP\" +)\n"
+        + "DEFINE "
+        + "\"DOWN\" AS PREV(\"net_weight\", 0) < PREV(\"net_weight\", 1), "
+        + "\"UP\" AS PREV(\"net_weight\", 0) > NEXT(PREV(\"net_weight\", 0), 1))";
+    sql(sql).ok(expected);
+  }
+
+  @Test public void testMatchRecognizeDefineClause2() {
+    final String sql = "select *\n"
+        + "  from \"product\" match_recognize\n"
+        + "  (\n"
+        + "    pattern (strt down+ up+)\n"
+        + "    define\n"
+        + "      down as down.\"net_weight\" < FIRST(down.\"net_weight\"),\n"
+        + "      up as up.\"net_weight\" > LAST(up.\"net_weight\")\n"
+        + "  ) mr";
+    final String expected = "SELECT *\n"
+        + "FROM (SELECT *\n"
+        + "FROM \"foodmart\".\"product\") MATCH_RECOGNIZE(\n"
+        + "PATTERN (\"STRT\" \"DOWN\" + \"UP\" +)\n"
+        + "DEFINE "
+        + "\"DOWN\" AS PREV(\"net_weight\", 0) < FIRST(\"net_weight\", 0), "
+        + "\"UP\" AS PREV(\"net_weight\", 0) > LAST(\"net_weight\", 0))";
+    sql(sql).ok(expected);
+  }
+
+  @Test public void testMatchRecognizeDefineClause3() {
+    final String sql = "select *\n"
+        + "  from \"product\" match_recognize\n"
+        + "  (\n"
+        + "    pattern (strt down+ up+)\n"
+        + "    define\n"
+        + "      down as down.\"net_weight\" < PREV(down.\"net_weight\",1),\n"
+        + "      up as up.\"net_weight\" > LAST(up.\"net_weight\" + up.\"gross_weight\")\n"
+        + "  ) mr";
+    final String expected = "SELECT *\n"
+        + "FROM (SELECT *\n"
+        + "FROM \"foodmart\".\"product\") MATCH_RECOGNIZE(\n"
+        + "PATTERN (\"STRT\" \"DOWN\" + \"UP\" +)\n"
+        + "DEFINE "
+        + "\"DOWN\" AS PREV(\"net_weight\", 0) < PREV(\"net_weight\", 1), "
+        + "\"UP\" AS PREV(\"net_weight\", 0) > "
+        + "LAST(\"net_weight\", 0) + LAST(\"gross_weight\", 0))";
+    sql(sql).ok(expected);
+  }
+
+  @Test public void testMatchRecognizeDefineClause4() {
+    final String sql = "select *\n"
+        + "  from \"product\" match_recognize\n"
+        + "  (\n"
+        + "    pattern (strt down+ up+)\n"
+        + "    define\n"
+        + "      down as down.\"net_weight\" < PREV(down.\"net_weight\",1),\n"
+        + "      up as up.\"net_weight\" > "
+        + "PREV(LAST(up.\"net_weight\" + up.\"gross_weight\"),3)\n"
+        + "  ) mr";
+    final String expected = "SELECT *\n"
+        + "FROM (SELECT *\n"
+        + "FROM \"foodmart\".\"product\") MATCH_RECOGNIZE(\n"
+        + "PATTERN (\"STRT\" \"DOWN\" + \"UP\" +)\n"
+        + "DEFINE "
+        + "\"DOWN\" AS PREV(\"net_weight\", 0) < PREV(\"net_weight\", 1), "
+        + "\"UP\" AS PREV(\"net_weight\", 0) > "
+        + "LAST(\"net_weight\", 0) + LAST(\"gross_weight\", 0))";
+    sql(sql).ok(expected);
+  }
+
   /** Fluid interface to run tests. */
   private static class Sql {
     private CalciteAssert.SchemaSpec schemaSpec;

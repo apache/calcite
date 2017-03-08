@@ -19,7 +19,6 @@ package org.apache.calcite.rex;
 import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.avatica.util.ByteString;
-import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.linq4j.QueryProvider;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptSchema;
@@ -38,6 +37,7 @@ import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.util.NlsString;
+import org.apache.calcite.util.Util;
 
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
@@ -159,7 +159,7 @@ public class RexExecutorTest {
     checkConstant(true,
         new Function<RexBuilder, RexNode>() {
           public RexNode apply(RexBuilder rexBuilder) {
-            Calendar calendar = Calendar.getInstance(DateTimeUtils.GMT_ZONE);
+            Calendar calendar = Util.calendar();
             return rexBuilder.makeCall(SqlStdOperatorTable.LESS_THAN_OR_EQUAL,
                 rexBuilder.makeDateLiteral(calendar),
                 rexBuilder.makeDateLiteral(calendar));
@@ -169,7 +169,7 @@ public class RexExecutorTest {
     checkConstant(false,
         new Function<RexBuilder, RexNode>() {
           public RexNode apply(RexBuilder rexBuilder) {
-            Calendar calendar = Calendar.getInstance(DateTimeUtils.GMT_ZONE);
+            Calendar calendar = Util.calendar();
             return rexBuilder.makeCall(SqlStdOperatorTable.LESS_THAN,
                 rexBuilder.makeDateLiteral(calendar),
                 rexBuilder.makeDateLiteral(calendar));

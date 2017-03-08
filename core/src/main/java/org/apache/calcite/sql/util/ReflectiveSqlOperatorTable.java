@@ -32,6 +32,7 @@ import com.google.common.collect.Multimap;
 import java.lang.reflect.Field;
 import java.util.Collection;
 import java.util.List;
+import java.util.Locale;
 
 /**
  * ReflectiveSqlOperatorTable implements the {@link SqlOperatorTable} interface
@@ -145,7 +146,7 @@ public abstract class ReflectiveSqlOperatorTable implements SqlOperatorTable {
    * store case-insensitively, even in a case-sensitive session. */
   private static class Key extends Pair<String, SqlSyntax> {
     Key(String name, SqlSyntax syntax) {
-      super(name.toUpperCase(), normalize(syntax));
+      super(name.toUpperCase(Locale.ROOT), normalize(syntax));
     }
 
     private static SqlSyntax normalize(SqlSyntax syntax) {

@@ -18,6 +18,7 @@ package org.apache.calcite.sql;
 
 import java.util.Collection;
 import java.util.EnumSet;
+import java.util.Locale;
 import java.util.Set;
 
 /**
@@ -226,6 +227,10 @@ public enum SqlKind {
    */
   TABLESAMPLE,
 
+  /**
+   * MATCH_RECOGNIZE clause
+   */
+  MATCH_RECOGNIZE,
   // binary operators
 
   /**
@@ -251,6 +256,16 @@ public enum SqlKind {
    * @see #MINUS_PREFIX
    */
   MINUS,
+
+  /**
+   * the alternation operator in a pattern expression within a match_recognize clause
+   */
+  PATTERN_ALTER,
+
+  /**
+   * the concatenation operator in a pattern expression within a match_recognize clause
+   */
+  PATTERN_CONCAT,
 
   // comparison operators
 
@@ -434,6 +449,26 @@ public enum SqlKind {
    */
   NEW_SPECIFICATION,
 
+
+  /**
+   * Special functions in MATCH_RECOGNIZE.
+   */
+  FINAL,
+
+  RUNNING,
+
+  PREV,
+
+  NEXT,
+
+  FIRST,
+
+  LAST,
+
+  CLASSIFIER,
+
+  MATCH_NUMBER,
+
   // postfix operators
 
   /**
@@ -514,6 +549,12 @@ public enum SqlKind {
   INPUT_REF,
 
   /**
+   * Reference to an input field, with pattern var as modifier
+   *
+   * <p>(Only used at the RexNode level.)</p>
+   */
+  PATTERN_INPUT_REF,
+  /**
    * Reference to a sub-expression computed within the current relational
    * operator.
    *
@@ -527,6 +568,11 @@ public enum SqlKind {
    * <p>(Only used at the RexNode level.)</p>
    */
   CORREL_VARIABLE,
+
+  /**
+   * the repetition quantifier of a pattern factor in a match_recognize clause.
+   */
+  PATTERN_QUANTIFIER,
 
   // functions
 
@@ -681,14 +727,25 @@ public enum SqlKind {
    * {@code GROUP BY} clause. */
   GROUPING_SETS,
 
-  /** The internal {@code GROUPING(e)} function. */
+  /** The {@code GROUPING(e, ...)} function. */
   GROUPING,
 
-  /** The internal {@code GROUPING_ID(e, ...)} function. */
+  /** @deprecated Use {@link #GROUPING}. */
+  @Deprecated // to be removed before 2.0
   GROUPING_ID,
 
-  /** The internal {@code GROUP_ID()} function. */
+  /** The {@code GROUP_ID()} function. */
   GROUP_ID,
+
+  /**
+   * the internal permute function in match_recognize cluse
+   */
+  PATTERN_PERMUTE,
+
+  /**
+   * the special patterns to exclude enclosing pattern from output in match_recognize clause
+   */
+  PATTERN_EXCLUDED,
 
   // Aggregate functions
 
@@ -779,12 +836,34 @@ public enum SqlKind {
   TUMBLE,
 
   /** The {@code TUMBLE_START} auxiliary function of
-   * the {@link #TUMBLE} function. */
+   * the {@link #TUMBLE} group function. */
   TUMBLE_START,
 
   /** The {@code TUMBLE_END} auxiliary function of
-   * the {@link #TUMBLE} function. */
+   * the {@link #TUMBLE} group function. */
   TUMBLE_END,
+
+  /** The {@code HOP} group function. */
+  HOP,
+
+  /** The {@code HOP_START} auxiliary function of
+   * the {@link #HOP} group function. */
+  HOP_START,
+
+  /** The {@code HOP_END} auxiliary function of
+   * the {@link #HOP} group function. */
+  HOP_END,
+
+  /** The {@code SESSION} group function. */
+  SESSION,
+
+  /** The {@code SESSION_START} auxiliary function of
+   * the {@link #SESSION} group function. */
+  SESSION_START,
+
+  /** The {@code SESSION_END} auxiliary function of
+   * the {@link #SESSION} group function. */
+  SESSION_END,
 
   // DDL and session control statements follow. The list is not exhaustive: feel
   // free to add more.
@@ -982,6 +1061,9 @@ public enum SqlKind {
           IN, EQUALS, NOT_EQUALS,
           LESS_THAN, GREATER_THAN,
           GREATER_THAN_OR_EQUAL, LESS_THAN_OR_EQUAL);
+
+  /** Lower-case name. */
+  public final String lowerName = name().toLowerCase(Locale.ROOT);
 
   /** Returns the kind that corresponds to this operator but in the opposite
    * direction. Or returns this, if this kind is not reversible.

@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.test.concurrent;
 
+import org.apache.calcite.util.Unsafe;
+
 import java.io.PrintStream;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -288,13 +290,13 @@ class ConcurrentTestCommandExecutor extends Thread {
     synchronized void waitForOthers() throws InterruptedException {
       if (++numWaiting == numThreads) {
         numWaiting = 0;
-        notifyAll();
+        Unsafe.notifyAll(this);
       } else {
         // REVIEW: SZ 6/17/2004: Need a timeout here --
         // otherwise a test case will hang forever if there's
         // a deadlock.  The question is, how long should the
         // timeout be to avoid falsely detecting deadlocks?
-        wait();
+        Unsafe.wait(this);
       }
     }
   }

@@ -208,6 +208,20 @@ public class RelBuilderTest {
         is("LogicalTableScan(table=[[scott, EMP]])\n"));
   }
 
+  @Test public void testScanFilterTriviallyFalse() {
+    // Equivalent SQL:
+    //   SELECT *
+    //   FROM emp
+    //   WHERE 1 = 2
+    final RelBuilder builder = RelBuilder.create(config().build());
+    RelNode root =
+        builder.scan("EMP")
+            .filter(builder.equals(builder.literal(1), builder.literal(2)))
+            .build();
+    assertThat(str(root),
+        is("LogicalValues(tuples=[[]])\n"));
+  }
+
   @Test public void testScanFilterEquals() {
     // Equivalent SQL:
     //   SELECT *

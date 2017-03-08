@@ -30,6 +30,8 @@ import org.apache.calcite.sql.SqlInternalOperator;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlLateralOperator;
 import org.apache.calcite.sql.SqlLiteral;
+import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlNumericLiteral;
 import org.apache.calcite.sql.SqlOperandCountRange;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlOperatorBinding;
@@ -55,6 +57,7 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.util.ReflectiveSqlOperatorTable;
 import org.apache.calcite.sql.validate.SqlModality;
 import org.apache.calcite.util.Litmus;
+import org.apache.calcite.util.Util;
 
 /**
  * Implementation of {@link org.apache.calcite.sql.SqlOperatorTable} containing
@@ -189,15 +192,24 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    * function ({@code SELECT}, {@code HAVING} clause, etc. of an aggregate
    * query), but not technically an aggregate function. */
   public static final SqlGroupingFunction GROUPING =
-      new SqlGroupingFunction();
+      new SqlGroupingFunction("GROUPING");
 
   /** {@code GROUP_ID} function. */
   public static final SqlGroupIdFunction GROUP_ID =
       new SqlGroupIdFunction();
 
-  /** {@code GROUPING_ID} function. */
-  public static final SqlGroupingIdFunction GROUPING_ID =
-      new SqlGroupingIdFunction();
+  /** {@code GROUP_ID} function is a synonym for {@code GROUPING}.
+   *
+   * <p>Some history. The {@code GROUPING} function is in the SQL standard,
+   * and originally supported only one argument. The {@code GROUP_ID} is not
+   * standard (though supported in Oracle and SQL Server) and supports zero or
+   * more arguments.
+   *
+   * <p>The SQL standard has changed to allow {@code GROUPING} to have multiple
+   * arguments. It is now equivalent to {@code GROUP_ID}, so we made
+   * {@code GROUP_ID} a synonym for {@code GROUPING}. */
+  public static final SqlGroupingFunction GROUPING_ID =
+      new SqlGroupingFunction("GROUPING_ID");
 
   /** {@code EXTEND} operator. */
   public static final SqlInternalOperator EXTEND = new SqlExtendOperator();
@@ -1387,6 +1399,36 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
       new SqlBaseContextVariable("PI", ReturnTypes.DOUBLE,
           SqlFunctionCategory.NUMERIC);
 
+  /** {@code FINAL} function to be used within {@code MATCH_RECOGNIZE}. */
+  public static final SqlFunction FINAL =
+      new SqlFunction("FINAL", SqlKind.FINAL, ReturnTypes.ARG0_NULLABLE, null,
+          OperandTypes.ANY, SqlFunctionCategory.MATCH_RECOGNIZE);
+
+  /** {@code RUNNING} function to be used within {@code MATCH_RECOGNIZE}. */
+  public static final SqlFunction RUNNING =
+      new SqlFunction("RUNNING", SqlKind.RUNNING, ReturnTypes.ARG0_NULLABLE,
+          null, OperandTypes.ANY, SqlFunctionCategory.MATCH_RECOGNIZE);
+
+  /** {@code FIRST} function to be used within {@code MATCH_RECOGNIZE}. */
+  public static final SqlFunction FIRST =
+      new SqlFunction("FIRST", SqlKind.FIRST, ReturnTypes.ARG0_NULLABLE,
+          null, OperandTypes.ANY_NUMERIC, SqlFunctionCategory.MATCH_RECOGNIZE);
+
+  /** {@code LAST} function to be used within {@code MATCH_RECOGNIZE}. */
+  public static final SqlFunction LAST =
+      new SqlFunction("LAST", SqlKind.LAST, ReturnTypes.ARG0_NULLABLE,
+          null, OperandTypes.ANY_NUMERIC, SqlFunctionCategory.MATCH_RECOGNIZE);
+
+  /** {@code PREV} function to be used within {@code MATCH_RECOGNIZE}. */
+  public static final SqlFunction PREV =
+      new SqlFunction("PREV", SqlKind.PREV, ReturnTypes.ARG0_NULLABLE,
+          null, OperandTypes.ANY_NUMERIC, SqlFunctionCategory.MATCH_RECOGNIZE);
+
+  /** {@code NEXT} function to be used within {@code MATCH_RECOGNIZE}. */
+  public static final SqlFunction NEXT =
+      new SqlFunction("NEXT", SqlKind.NEXT, ReturnTypes.ARG0_NULLABLE, null,
+          OperandTypes.ANY_NUMERIC, SqlFunctionCategory.MATCH_RECOGNIZE);
+
   public static final SqlFunction NULLIF = new SqlNullifFunction();
 
   /**
@@ -1843,18 +1885,178 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
         }
       };
 
+  /** The {@code TUMBLE} group function. */
   public static final SqlGroupFunction TUMBLE =
       new SqlGroupFunction(SqlKind.TUMBLE, null,
           OperandTypes.or(OperandTypes.DATETIME_INTERVAL,
               OperandTypes.DATETIME_INTERVAL_TIME));
 
-  /** The TUMBLE_START auxiliary function of the TUMBLE group function. */
+  /** The {@code TUMBLE_START} auxiliary function of
+   * the {@code TUMBLE} group function. */
   public static final SqlFunction TUMBLE_START =
       TUMBLE.auxiliary(SqlKind.TUMBLE_START);
 
-  /** The TUMBLE_END auxiliary function of the TUMBLE group function. */
+  /** The {@code TUMBLE_END} auxiliary function of
+   * the {@code TUMBLE} group function. */
   public static final SqlFunction TUMBLE_END =
       TUMBLE.auxiliary(SqlKind.TUMBLE_END);
+
+  /** The {@code HOP} group function. */
+  public static final SqlGroupFunction HOP =
+      new SqlGroupFunction(SqlKind.HOP, null,
+          OperandTypes.or(OperandTypes.DATETIME_INTERVAL_INTERVAL,
+              OperandTypes.DATETIME_INTERVAL_INTERVAL_TIME));
+
+  /** The {@code HOP_START} auxiliary function of
+   * the {@code HOP} group function. */
+  public static final SqlFunction HOP_START =
+      HOP.auxiliary(SqlKind.HOP_START);
+
+  /** The {@code HOP_END} auxiliary function of
+   * the {@code HOP} group function. */
+  public static final SqlFunction HOP_END =
+      HOP.auxiliary(SqlKind.HOP_END);
+
+  /** The {@code SESSION} group function. */
+  public static final SqlGroupFunction SESSION =
+      new SqlGroupFunction(SqlKind.SESSION, null,
+          OperandTypes.or(OperandTypes.DATETIME_INTERVAL,
+              OperandTypes.DATETIME_INTERVAL_TIME));
+
+  /** The {@code SESSION_START} auxiliary function of
+   * the {@code SESSION} group function. */
+  public static final SqlFunction SESSION_START =
+      SESSION.auxiliary(SqlKind.SESSION_START);
+
+  /** The {@code SESSION_END} auxiliary function of
+   * the {@code SESSION} group function. */
+  public static final SqlFunction SESSION_END =
+      SESSION.auxiliary(SqlKind.SESSION_END);
+
+  /** {@code |} operator to create alternate patterns
+   * within {@code MATCH_RECOGNIZE}.
+   *
+   * <p>If {@code p1} and {@code p2} are patterns then {@code p1 | p2} is a
+   * pattern that matches {@code p1} or {@code p2}. */
+  public static final SqlBinaryOperator PATTERN_ALTER =
+      new SqlBinaryOperator("|", SqlKind.PATTERN_ALTER, 70, true, null, null, null);
+
+  /** Operator to concatenate patterns within {@code MATCH_RECOGNIZE}.
+   *
+   * <p>If {@code p1} and {@code p2} are patterns then {@code p1 p2} is a
+   * pattern that matches {@code p1} followed by {@code p2}. */
+  public static final SqlBinaryOperator PATTERN_CONCAT =
+      new SqlBinaryOperator("", SqlKind.PATTERN_CONCAT, 80, true, null, null, null);
+
+  /** Operator to quantify patterns within {@code MATCH_RECOGNIZE}.
+   *
+   * <p>If {@code p} is a pattern then {@code p{3, 5}} is a
+   * pattern that matches between 3 and 5 occurrences of {@code p}. */
+  public static final SqlSpecialOperator PATTERN_QUANTIFIER =
+      new SqlSpecialOperator("PATTERN_QUANTIFIER", SqlKind.PATTERN_QUANTIFIER,
+          90) {
+        @Override public void unparse(SqlWriter writer, SqlCall call,
+            int leftPrec, int rightPrec) {
+          call.operand(0).unparse(writer, this.getLeftPrec(), this.getRightPrec());
+          int startNum = ((SqlNumericLiteral) call.operand(1)).intValue(true);
+          SqlNumericLiteral endRepNum = call.operand(2);
+          boolean isReluctant = ((SqlLiteral) call.operand(3)).booleanValue();
+          int endNum = endRepNum.intValue(true);
+          if (startNum == endNum) {
+            writer.keyword("{ " + startNum + " }");
+          } else {
+            if (endNum == -1) {
+              if (startNum == 0) {
+                writer.keyword("*");
+              } else if (startNum == 1) {
+                writer.keyword("+");
+              } else {
+                writer.keyword("{ " + startNum + ", }");
+              }
+            } else {
+              if (startNum == 0 && endNum == 1) {
+                writer.keyword("?");
+              } else if (startNum == -1) {
+                writer.keyword("{ , " + endNum + " }");
+              } else {
+                writer.keyword("{ " + startNum + ", " + endNum + " }");
+              }
+            }
+            if (isReluctant) {
+              writer.keyword("?");
+            }
+          }
+        }
+      };
+
+  /** {@code PERMUTE} operator to combine patterns within
+   * {@code MATCH_RECOGNIZE}.
+   *
+   * <p>If {@code p1} and {@code p2} are patterns then {@code PERMUTE (p1, p2)}
+   * is a pattern that matches all permutations of {@code p1} and
+   * {@code p2}. */
+  public static final SqlSpecialOperator PATTERN_PERMUTE =
+      new SqlSpecialOperator("PATTERN_PERMUTE", SqlKind.PATTERN_PERMUTE, 100) {
+        @Override public void unparse(SqlWriter writer, SqlCall call,
+            int leftPrec, int rightPrec) {
+          writer.keyword("PERMUTE");
+          SqlWriter.Frame frame = writer.startList("(", ")");
+          for (int i = 0; i < call.getOperandList().size(); i++) {
+            SqlNode pattern = call.getOperandList().get(i);
+            pattern.unparse(writer, 0, 0);
+            if (i != call.getOperandList().size() - 1) {
+              writer.print(",");
+            }
+          }
+          writer.endList(frame);
+        }
+      };
+
+  /** {@code EXCLUDE} operator within {@code MATCH_RECOGNIZE}.
+   *
+   * <p>If {@code p} is a pattern then {@code {- p -} }} is a
+   * pattern that excludes {@code p} from the output. */
+  public static final SqlSpecialOperator PATTERN_EXCLUDE =
+      new SqlSpecialOperator("PATTERN_EXCLUDE", SqlKind.PATTERN_EXCLUDED,
+          100) {
+        @Override public void unparse(SqlWriter writer, SqlCall call,
+            int leftPrec, int rightPrec) {
+          SqlWriter.Frame frame = writer.startList("{-", "-}");
+          SqlNode node = call.getOperandList().get(0);
+          node.unparse(writer, 0, 0);
+          writer.endList(frame);
+        }
+      };
+
+  /** {@code AS} function that defines a measure inside {@code MATCH_RECOGNIZE}.
+   * The order of operands will change when the expression is unparsed. */
+  public static final SqlSpecialOperator PATTERN_DEFINE_AS =
+      new SqlAsOperator("PATTERN_DEFINE_AS", SqlKind.AS, 20, true,
+          ReturnTypes.ARG0, InferTypes.RETURN_TYPE, OperandTypes.ANY_ANY) {
+        @Override public void unparse(SqlWriter writer, SqlCall call,
+            int leftPrec, int rightPrec) {
+          assert call.operandCount() >= 2;
+          final SqlWriter.Frame frame =
+              writer.startList(
+                  SqlWriter.FrameTypeEnum.SIMPLE);
+          call.operand(1).unparse(writer, leftPrec, getLeftPrec());
+          final boolean needsSpace = true;
+          writer.setNeedWhitespace(needsSpace);
+          writer.sep("AS");
+          writer.setNeedWhitespace(needsSpace);
+          call.operand(0).unparse(writer, getRightPrec(), rightPrec);
+          if (call.operandCount() > 2) {
+            final SqlWriter.Frame frame1 =
+                writer.startList(SqlWriter.FrameTypeEnum.SIMPLE, "(", ")");
+            for (SqlNode operand : Util.skip(call.getOperandList(), 2)) {
+              writer.sep(",", false);
+              operand.unparse(writer, 0, 0);
+            }
+            writer.endList(frame1);
+          }
+          writer.endList(frame);
+        }
+      };
 
   //~ Methods ----------------------------------------------------------------
 
@@ -1879,6 +2081,12 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
     case TUMBLE_START:
     case TUMBLE_END:
       return TUMBLE;
+    case HOP_START:
+    case HOP_END:
+      return HOP;
+    case SESSION_START:
+    case SESSION_END:
+      return SESSION;
     default:
       return null;
     }

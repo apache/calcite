@@ -25,6 +25,7 @@ import org.apache.calcite.rel.logical.LogicalExchange;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalIntersect;
 import org.apache.calcite.rel.logical.LogicalJoin;
+import org.apache.calcite.rel.logical.LogicalMatch;
 import org.apache.calcite.rel.logical.LogicalMinus;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.logical.LogicalSort;
@@ -72,6 +73,10 @@ public class RelShuttleImpl implements RelShuttle {
 
   public RelNode visit(LogicalAggregate aggregate) {
     return visitChild(aggregate, 0, aggregate.getInput());
+  }
+
+  public RelNode visit(LogicalMatch match) {
+    return visitChild(match, 0, match.getInput());
   }
 
   public RelNode visit(TableScan scan) {

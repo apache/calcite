@@ -662,6 +662,27 @@ public interface CalciteResource {
 
   @BaseMessage("Call to auxiliary group function ''{0}'' must have matching call to group function ''{1}'' in GROUP BY clause")
   ExInst<SqlValidatorException> auxiliaryWithoutMatchingGroupCall(String func1, String func2);
+
+  @BaseMessage("Pattern variable ''{0}'' has already been defined")
+  ExInst<SqlValidatorException> PatternVarAlreadyDefined(String varName);
+
+  @BaseMessage("Cannot use PREV/NEXT in MEASURE ''{0}''")
+  ExInst<SqlValidatorException> PatternPrevFunctionInMeasure(String call);
+
+  @BaseMessage("Cannot nest PREV/NEXT under LAST/FIRST ''{0}''")
+  ExInst<SqlValidatorException> PatternPrevFunctionOrder(String call);
+
+  @BaseMessage("Cannot use aggregation in navigation ''{0}''")
+  ExInst<SqlValidatorException> PatternAggregationInNavigation(String call);
+
+  @BaseMessage("Invalid number of parameters to COUNT method")
+  ExInst<SqlValidatorException> PatternCountFunctionArg();
+
+  @BaseMessage("Cannot use RUNNING/FINAL in DEFINE ''{0}''")
+  ExInst<SqlValidatorException> PatternRunningFunctionInDefine(String call);
+
+  @BaseMessage("Multiple pattern variables in ''{0}''")
+  ExInst<SqlValidatorException> PatternFunctionVariableCheck(String call);
 }
 
 // End CalciteResource.java

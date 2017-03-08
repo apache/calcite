@@ -108,7 +108,6 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.Reader;
@@ -132,6 +131,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Objects;
@@ -4707,11 +4707,7 @@ public class JdbcTest {
         + "    EnumerableTableScan(table=[[hr, emps]])\n"
         + "    EnumerableCalc(expr#0=[{inputs}], expr#1=[true], proj#0..1=[{exprs}])\n"
         + "      EnumerableAggregate(group=[{0}])\n"
-        + "        EnumerableJoin(condition=[=($0, $1)], joinType=[inner])\n"
-        + "          EnumerableAggregate(group=[{1}])\n"
-        + "            EnumerableTableScan(table=[[hr, emps]])\n"
-        + "          EnumerableCalc(expr#0..3=[{inputs}], deptno=[$t0])\n"
-        + "            EnumerableTableScan(table=[[hr, depts]])";
+        + "        EnumerableTableScan(table=[[hr, depts]])";
     CalciteAssert.hr()
         .query(sql)
         .explainContains(explain)
@@ -4777,6 +4773,32 @@ public class JdbcTest {
         .with(Lex.JAVA)
         .query(sql)
         .returnsCount(599);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-685">[CALCITE-685]
+   * Correlated scalar sub-query in SELECT clause throws</a>. */
+  @Ignore("[CALCITE-685]")
+  @Test public void testCorrelatedScalarSubQuery() throws SQLException {
+    final String sql = "select e.department_id, sum(e.employee_id),\n"
+        + "       ( select sum(e2.employee_id)\n"
+        + "         from  employee e2\n"
+        + "         where e.department_id = e2.department_id\n"
+        + "       )\n"
+        + "from employee e\n"
+        + "group by e.department_id\n";
+    final String explain = "EnumerableJoin(condition=[true], joinType=[left])\n"
+        + "  EnumerableAggregate(group=[{7}], EXPR$1=[$SUM0($0)])\n"
+        + "    EnumerableTableScan(table=[[foodmart2, employee]])\n"
+        + "  EnumerableAggregate(group=[{}], EXPR$0=[SUM($0)])\n"
+        + "    EnumerableCalc(expr#0..16=[{inputs}], expr#17=[$cor0], expr#18=[$t17.department_id], expr#19=[=($t18, $t7)], employee_id=[$t0], department_id=[$t7], $condition=[$t19])\n"
+        + "      EnumerableTableScan(table=[[foodmart2, employee]])\n";
+    CalciteAssert.that()
+        .with(CalciteAssert.Config.FOODMART_CLONE)
+        .with(Lex.JAVA)
+        .query(sql)
+        .explainContains(explain)
+        .returnsCount(0);
   }
 
   @Test public void testLeftJoin() {
@@ -5211,8 +5233,7 @@ public class JdbcTest {
   private void checkCustomSchemaInFileInPwd(String fileName)
       throws SQLException {
     final File file = new File(fileName);
-    try (final FileWriter fw = new FileWriter(file);
-         final PrintWriter pw = new PrintWriter(fw)) {
+    try (final PrintWriter pw = Util.printWriter(file)) {
       file.deleteOnExit();
       pw.println("{\n"
           + "  version: '1.0',\n"
@@ -5651,6 +5672,8 @@ public class JdbcTest {
   @Test public void testGetTimestamp() throws Exception {
     CalciteAssert.that()
         .with("timezone", "GMT+1:00")
+        // Workaround, until [CALCITE-1667] is fixed in Avatica
+        .with("TIME_ZONE", "GMT+1:00")
         .doWithConnection(
             new Function<CalciteConnection, Void>() {
               public Void apply(CalciteConnection connection) {
@@ -5685,10 +5708,10 @@ public class JdbcTest {
     TimeZone tzGmt05 = TimeZone.getTimeZone("GMT-05"); // -0500 always
     TimeZone tzGmt13 = TimeZone.getTimeZone("GMT+13"); // +1000 always
 
-    Calendar cUtc   = Calendar.getInstance(tzUtc);
-    Calendar cGmt03 = Calendar.getInstance(tzGmt03);
-    Calendar cGmt05 = Calendar.getInstance(tzGmt05);
-    Calendar cGmt13 = Calendar.getInstance(tzGmt13);
+    Calendar cUtc   = Calendar.getInstance(tzUtc, Locale.ROOT);
+    Calendar cGmt03 = Calendar.getInstance(tzGmt03, Locale.ROOT);
+    Calendar cGmt05 = Calendar.getInstance(tzGmt05, Locale.ROOT);
+    Calendar cGmt13 = Calendar.getInstance(tzGmt13, Locale.ROOT);
 
     Timestamp ts;
     String s;

@@ -31,12 +31,18 @@ presenting the data as tables within a schema.
 * CSV adapter (<a href="{{ site.apiRoot }}/org/apache/calcite/adapter/csv/package-summary.html">example/csv</a>)
 * [Druid adapter](druid_adapter.html) (<a href="{{ site.apiRoot }}/org/apache/calcite/adapter/druid/package-summary.html">calcite-druid</a>)
 * [Elasticsearch adapter](elasticsearch_adapter.html) (<a href="{{ site.apiRoot }}/org/apache/calcite/adapter/elasticsearch/package-summary.html">calcite-elasticsearch</a>)
+* [File adapter](file_adapter.html) (<a href="{{ site.apiRoot }}/org/apache/calcite/adapter/file/package-summary.html">calcite-file</a>)
 * JDBC adapter (part of <a href="{{ site.apiRoot }}/org/apache/calcite/adapter/jdbc/package-summary.html">calcite-core</a>)
 * MongoDB adapter (<a href="{{ site.apiRoot }}/org/apache/calcite/adapter/mongodb/package-summary.html">calcite-mongodb</a>)
+* [Pig adapter](pig_adapter.html) (<a href="{{ site.apiRoot }}/org/apache/calcite/adapter/pig/package-summary.html">calcite-pig</a>)
 * Solr cloud adapter (<a href="https://github.com/bluejoe2008/solr-sql">solr-sql</a>)
 * Spark adapter (<a href="{{ site.apiRoot }}/org/apache/calcite/adapter/spark/package-summary.html">calcite-spark</a>)
 * Splunk adapter (<a href="{{ site.apiRoot }}/org/apache/calcite/adapter/splunk/package-summary.html">calcite-splunk</a>)
 * Eclipse Memory Analyzer (MAT) adapter (<a href="https://github.com/vlsi/mat-calcite-plugin">mat-calcite-plugin</a>)
+
+### Other language interfaces
+
+* Piglet (<a href="{{ site.apiRoot }}/org/apache/calcite/piglet/package-summary.html">calcite-piglet</a>) runs queries in a subset of <a href="https://pig.apache.org/docs/r0.7.0/piglatin_ref1.html">Pig Latin</a>
 
 ## Engines
 
@@ -69,6 +75,7 @@ as implemented by Avatica's
 
 | Property | Description |
 |:-------- |:------------|
+| <a href="{{ site.apiRoot }}/org/apache/calcite/config/CalciteConnectionProperty.html#APPROXIMATE_DECIMAL">approximateDecimal</a> | Whether approximate results from aggregate functions on `DECIMAL` types are acceptable
 | <a href="{{ site.apiRoot }}/org/apache/calcite/config/CalciteConnectionProperty.html#APPROXIMATE_DISTINCT_COUNT">approximateDistinctCount</a> | Whether approximate results from `COUNT(DISTINCT ...)` aggregate functions are acceptable
 | <a href="{{ site.apiRoot }}/org/apache/calcite/config/CalciteConnectionProperty.html#APPROXIMATE_TOP_N">approximateTopN</a> | Whether approximate results from "Top N" queries * (`ORDER BY aggFun() DESC LIMIT n`) are acceptable
 | <a href="{{ site.apiRoot }}/org/apache/calcite/config/CalciteConnectionProperty.html#CASE_SENSITIVE">caseSensitive</a> | Whether identifiers are matched case-sensitively. If not specified, value from `lex` is used.

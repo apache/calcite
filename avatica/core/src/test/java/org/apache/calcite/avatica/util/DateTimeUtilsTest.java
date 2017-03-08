@@ -145,8 +145,14 @@ public class DateTimeUtilsTest {
   }
 
   @Test public void testTimeToString() {
-    checkTimeString("00:00:00", 0);
-    checkTimeString("23:59:59", 86400000 - 1000);
+    checkTimeString("00:00:00", 0, 0);
+    checkTimeString("23:59:59", 0, 86400000 - 1000);
+    checkTimeString("23:59:59.1", 1, 86400000 - 1000 + 100);
+    checkTimeString("23:59:59.01", 2, 86400000 - 1000 + 10);
+    checkTimeString("23:59:59.1234", 3, 86400000 - 1000 + 123);
+    checkTimeString("23:59:59.1236", 3, 86400000 - 1000 + 124);
+    checkTimeString("23:59:59.123456789012345678901234567890", 3,
+        86400000 - 1000 + 123);
   }
 
   @Test public void testTimestampExtract() {
@@ -183,19 +189,28 @@ public class DateTimeUtilsTest {
     assertThat(unixTimeExtract(TimeUnitRange.SECOND, 86399999), is(59));
   }
 
-  private void checkTimeString(String s, int d) {
-    assertThat(unixTimeToString(d), is(s));
+  private void checkTimeString(String s, int p, int d) {
+    int digitsAfterPoint = s.indexOf('.') >= 0
+        ? s.length() - s.indexOf('.') - 1
+        : 0;
+    if (digitsAfterPoint == p) {
+      assertThat(unixTimeToString(d, p), is(s));
+    }
     assertThat(timeStringToUnixDate(s), is(d));
   }
 
   @Test public void testTimestampToString() {
     // ISO format would be "1970-01-01T00:00:00" but SQL format is different
-    checkTimestampString("1970-01-01 00:00:00", 0L);
-    checkTimestampString("1970-02-01 23:59:59", 86400000L * 32L - 1000L);
+    checkTimestampString("1970-01-01 00:00:00", 0, 0L);
+    checkTimestampString("1970-02-01 23:59:59", 0, 86400000L * 32L - 1000L);
+    checkTimestampString("1970-02-01 23:59:59.123", 3,
+        86400000L * 32L - 1000L + 123);
+    checkTimestampString("1970-02-01 23:59:59.04", 2,
+        86400000L * 32L - 1000L + 40);
   }
 
-  private void checkTimestampString(String s, long d) {
-    assertThat(unixTimestampToString(d), is(s));
+  private void checkTimestampString(String s, int p, long d) {
+    assertThat(unixTimestampToString(d, p), is(s));
     assertThat(timestampStringToUnixDate(s), is(d));
   }
 

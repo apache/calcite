@@ -162,6 +162,10 @@ public class LogicVisitor implements RexBiVisitor<Logic, Logic> {
     }
     return end(subQuery, arg);
   }
+
+  @Override public Logic visitPatternFieldRef(RexPatternFieldRef ref, Logic arg) {
+    return end(ref, arg);
+  }
 }
 
 // End LogicVisitor.java

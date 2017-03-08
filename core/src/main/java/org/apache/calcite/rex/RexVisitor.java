@@ -47,6 +47,8 @@ public interface RexVisitor<R> {
   R visitFieldAccess(RexFieldAccess fieldAccess);
 
   R visitSubQuery(RexSubQuery subQuery);
+
+  R visitPatternFieldRef(RexPatternFieldRef fieldRef);
 }
 
 // End RexVisitor.java

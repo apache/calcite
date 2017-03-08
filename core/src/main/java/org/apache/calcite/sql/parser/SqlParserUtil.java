@@ -135,7 +135,7 @@ public final class SqlParserUtil {
    * @param pattern {@link SimpleDateFormat}  pattern
    */
   public static void checkDateFormat(String pattern) {
-    SimpleDateFormat df = new SimpleDateFormat(pattern);
+    SimpleDateFormat df = new SimpleDateFormat(pattern, Locale.ROOT);
     Util.discard(df);
   }
 
@@ -279,9 +279,9 @@ public final class SqlParserUtil {
     }
     switch (casing) {
     case TO_UPPER:
-      return s.toUpperCase();
+      return s.toUpperCase(Locale.ROOT);
     case TO_LOWER:
-      return s.toLowerCase();
+      return s.toLowerCase(Locale.ROOT);
     default:
       return s;
     }

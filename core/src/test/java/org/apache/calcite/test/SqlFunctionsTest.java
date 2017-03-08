@@ -88,11 +88,11 @@ public class SqlFunctionsTest {
   }
 
   @Test public void testLower() {
-    assertEquals("a bcd", lower("A bCd"));
+    assertEquals("a bcd iijk", lower("A bCd Iijk"));
   }
 
   @Test public void testUpper() {
-    assertEquals("A BCD", upper("A bCd"));
+    assertEquals("A BCD IIJK", upper("A bCd iIjk"));
   }
 
   @Test public void testInitcap() {

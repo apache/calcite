@@ -26,6 +26,7 @@ import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Intersect;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
+import org.apache.calcite.rel.core.Match;
 import org.apache.calcite.rel.core.Minus;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.Sort;
@@ -46,6 +47,7 @@ import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlInsert;
 import org.apache.calcite.sql.SqlJoin;
 import org.apache.calcite.sql.SqlLiteral;
+import org.apache.calcite.sql.SqlMatchRecognize;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlSelect;
@@ -65,6 +67,7 @@ import com.google.common.collect.Lists;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 /**
@@ -354,13 +357,45 @@ public class RelToSqlConverter extends SqlImplementor
             }), POS);
   }
 
+  /**
+   * @see #dispatch
+   */
+  public Result visit(Match e) {
+    final RelNode input = e.getInput();
+    final Result x = visitChild(0, input);
+    final Context context = matchRecognizeContext(x.qualifiedContext());
+
+    SqlNode tableRef = x.asQueryOrValues();
+
+    RexNode rexPattern = e.getPattern();
+    final SqlNode pattern = context.toSql(null, rexPattern);
+    final SqlLiteral isStrictStarts = SqlLiteral.createBoolean(e.isStrictStart(), POS);
+    final SqlLiteral isStrictEnds = SqlLiteral.createBoolean(e.isStrictEnd(), POS);
+
+    List<SqlNode> list = Lists.newArrayList();
+    for (Map.Entry<String, RexNode> entry : e.getPatternDefinitions().entrySet()) {
+      String alias = entry.getKey();
+      SqlNode sqlNode = context.toSql(null, entry.getValue());
+      sqlNode = SqlStdOperatorTable.PATTERN_DEFINE_AS.createCall(POS,
+        sqlNode, new SqlIdentifier(alias, POS));
+      list.add(sqlNode);
+    }
+
+    final SqlNodeList patternDefList = new SqlNodeList(list, POS);
+
+    final SqlNode matchRecognize = new SqlMatchRecognize(POS, tableRef,
+      pattern, isStrictStarts, isStrictEnds, patternDefList);
+    return result(matchRecognize, Expressions.list(Clause.FROM), e, null);
+  }
+
   @Override public void addSelect(List<SqlNode> selectList, SqlNode node,
       RelDataType rowType) {
     String name = rowType.getFieldNames().get(selectList.size());
     String alias = SqlValidatorUtil.getAlias(node, -1);
-    if (name.toLowerCase().startsWith("expr$")) {
-      //Put it in ordinalMap
-      ordinalMap.put(name.toLowerCase(), node);
+    final String lowerName = name.toLowerCase(Locale.ROOT);
+    if (lowerName.startsWith("expr$")) {
+      // Put it in ordinalMap
+      ordinalMap.put(lowerName, node);
     } else if (alias == null || !alias.equals(name)) {
       node = SqlStdOperatorTable.AS.createCall(
           POS, node, new SqlIdentifier(name, POS));

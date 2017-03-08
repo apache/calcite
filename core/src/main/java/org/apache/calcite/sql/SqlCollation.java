@@ -88,7 +88,8 @@ public class SqlCollation implements Serializable {
     this.wrappedCharset = SerializableCharset.forCharset(charset);
     locale = parseValues.getLocale();
     strength = parseValues.getStrength();
-    String c = charset.name().toUpperCase() + "$" + locale.toString();
+    String c =
+        charset.name().toUpperCase(Locale.ROOT) + "$" + locale.toString();
     if ((strength != null) && (strength.length() > 0)) {
       c += "$" + strength;
     }

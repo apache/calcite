@@ -22,6 +22,7 @@ import org.apache.calcite.avatica.remote.Service;
 import java.io.File;
 import java.math.BigDecimal;
 import java.util.LinkedHashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
 
@@ -121,7 +122,7 @@ public class ConnectionConfigImpl implements ConnectionConfig {
         new LinkedHashMap<ConnectionProperty, String>();
     for (String name : properties.stringPropertyNames()) {
       final ConnectionProperty connectionProperty =
-          nameToProps.get(name.toUpperCase());
+          nameToProps.get(name.toUpperCase(Locale.ROOT));
       if (connectionProperty == null) {
         // For now, don't throw. It messes up sub-projects.
         //throw new RuntimeException("Unknown property '" + name + "'");

@@ -40,20 +40,20 @@ EnumerableCalc(expr#0..4=[{inputs}], expr#5=[0], expr#6=[=($t1, $t5)], expr#7=[f
           EnumerableValues(tuples=[[{ 0 }]])
         EnumerableCalc(expr#0=[{inputs}], expr#1=[2], EXPR$0=[$t1])
           EnumerableValues(tuples=[[{ 0 }]])
-        EnumerableCalc(expr#0=[{inputs}], expr#1=[1], expr#2=[=($t1, $t1)], expr#3=[null], expr#4=[3], expr#5=[CASE($t2, $t3, $t4)], EXPR$0=[$t5])
+        EnumerableCalc(expr#0=[{inputs}], expr#1=[true], expr#2=[null], expr#3=[3], expr#4=[CASE($t1, $t2, $t3)], EXPR$0=[$t4])
           EnumerableValues(tuples=[[{ 0 }]])
       EnumerableAggregate(group=[{}], c=[COUNT()], ck=[COUNT($0)])
         EnumerableUnion(all=[true])
           EnumerableCalc(expr#0=[{inputs}], expr#1=[1], EXPR$0=[$t1])
             EnumerableValues(tuples=[[{ 0 }]])
-          EnumerableCalc(expr#0=[{inputs}], expr#1=[1], expr#2=[=($t1, $t1)], expr#3=[null], expr#4=[3], expr#5=[CASE($t2, $t3, $t4)], EXPR$0=[$t5])
+          EnumerableCalc(expr#0=[{inputs}], expr#1=[true], expr#2=[null], expr#3=[3], expr#4=[CASE($t1, $t2, $t3)], EXPR$0=[$t4])
             EnumerableValues(tuples=[[{ 0 }]])
     EnumerableAggregate(group=[{0, 1}])
       EnumerableCalc(expr#0=[{inputs}], expr#1=[true], proj#0..1=[{exprs}])
         EnumerableUnion(all=[true])
           EnumerableCalc(expr#0=[{inputs}], expr#1=[1], EXPR$0=[$t1])
             EnumerableValues(tuples=[[{ 0 }]])
-          EnumerableCalc(expr#0=[{inputs}], expr#1=[1], expr#2=[=($t1, $t1)], expr#3=[null], expr#4=[3], expr#5=[CASE($t2, $t3, $t4)], EXPR$0=[$t5])
+          EnumerableCalc(expr#0=[{inputs}], expr#1=[true], expr#2=[null], expr#3=[3], expr#4=[CASE($t1, $t2, $t3)], EXPR$0=[$t4])
             EnumerableValues(tuples=[[{ 0 }]])
 !plan
 
@@ -582,5 +582,49 @@ from "scott".dept as d;
 
 !ok
 !}
+
+# [CALCITE-1494] Inefficient plan for correlated sub-queries
+# Plan must have only one scan each of emp and dept.
+select sal
+from "scott".emp
+where empno IN (
+  select deptno
+  from "scott".dept
+  where emp.job = dept.dname);
++-----+
+| SAL |
++-----+
++-----+
+(0 rows)
+
+!ok
+EnumerableCalc(expr#0..4=[{inputs}], SAL=[$t4])
+  EnumerableJoin(condition=[AND(=($1, $3), =($0, $2))], joinType=[inner])
+    EnumerableCalc(expr#0..2=[{inputs}], expr#3=[CAST($t1):VARCHAR(14) CHARACTER SET "ISO-8859-1" COLLATE "ISO-8859-1$en_US$primary"], expr#4=[=($t3, $t1)], proj#0..1=[{exprs}], $condition=[$t4])
+      EnumerableTableScan(table=[[scott, DEPT]])
+    EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], JOB=[$t2], SAL=[$t5])
+      EnumerableTableScan(table=[[scott, EMP]])
+!plan
+
+# As above, but for EXISTS
+select *
+from "scott".dept as d
+where exists (
+  select 0 from "scott".emp
+  where deptno = d.deptno
+  and ename = 'SMITH');
++--------+----------+--------+
+| DEPTNO | DNAME    | LOC    |
++--------+----------+--------+
+|     20 | RESEARCH | DALLAS |
++--------+----------+--------+
+(1 row)
+
+!ok
+EnumerableSemiJoin(condition=[=($0, $10)], joinType=[inner])
+  EnumerableTableScan(table=[[scott, DEPT]])
+  EnumerableCalc(expr#0..7=[{inputs}], expr#8=[=($t7, $t7)], expr#9=['SMITH'], expr#10=[=($t1, $t9)], expr#11=[AND($t8, $t10)], proj#0..7=[{exprs}], $condition=[$t11])
+    EnumerableTableScan(table=[[scott, EMP]])
+!plan
 
 # End sub-query.iq

@@ -39,6 +39,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.List;
+import java.util.Locale;
 
 /**
  * Implementation of {@link java.sql.PreparedStatement}
@@ -115,7 +116,7 @@ public abstract class AvaticaPreparedStatement
    */
   protected synchronized Calendar getCalendar() {
     if (calendar == null) {
-      calendar = Calendar.getInstance(connection.getTimeZone());
+      calendar = Calendar.getInstance(connection.getTimeZone(), Locale.ROOT);
     }
     return calendar;
   }

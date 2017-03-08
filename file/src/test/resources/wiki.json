@@ -1,0 +1,128 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to you under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+{
+/*
+ * Example calcite-file schema using wikipedia pages for us states and
+ * cities.
+ */
+  "version": "1.0",
+  "defaultSchema": "WIKI",
+  /*
+   * Schema Definition
+   *
+   * Schemata are defined as a list of tables, each containing,
+   * minimally a table name and a url.  Optionally, table definitions
+   * may also include a selector and index to specify the desired
+   * table for those pages with many.  Absent a table specification,
+   * calcite-file will choose the largest table on the page.
+   * calcite-file uses Jsoup (http://jsoup.org/) for HTML DOM
+   * navigation and selectors for both tables and fields follow the
+   * Jsoup selector specification
+   * (http://jsoup.org/cookbook/extracting-data/selector-syntax).
+   *
+   * Also optional is the definition of a list of fields for the table
+   * which can increase the usability of the table (note the
+   * difference between RawCities and Cities below).  Field
+   * definitions may be used to rename or skip source fields, to
+   * select and condition the cell contents and to set a data type.
+   *
+   * Parsing Cell Contents
+   *
+   * calcite-file includes the capability to select DOM nodes within a
+   * cell, to replace text within the selected element, to match
+   * within the selected text, and choose a data type for the
+   * resulting database column.  Processing steps are applied in the
+   * order described and replace and match patterns are based on Java
+   * Pattern syntax see:
+   * (http://docs.oracle.com/javase/7/docs/api/java/util/regex/Pattern.html).
+   *
+   */
+  "schemas": [ {
+    "name": "WIKI",
+    "type": "custom",
+    "factory": "org.apache.calcite.adapter.file.FileSchemaFactory",
+    "operand": {
+      "tables": [ {
+        "name": "RawCities",
+        "url": "http://en.wikipedia.org/wiki/List_of_United_States_cities_by_population",
+        "selector": "#mw-content-text > table.wikitable.sortable",
+        "index": 0
+      }, {
+        "name": "Cities",
+        "url": "http://en.wikipedia.org/wiki/List_of_United_States_cities_by_population",
+        "selector": "#mw-content-text > table.wikitable.sortable",
+        "index": 0,
+        "fields": [
+          // note the use of a pattern match in the following
+          // matchSeq is optional and defaults to 0
+          {"th": "2012 rank", "name": "Rank", "type": "int", "match": "\\d+", "matchSeq": 0},
+          {"th": "City", "selector": "a", "selectedElement": 0},
+          {"th": "State[5]", "name": "State", "selector": "a:eq(0)"},
+          {"th": "2012 estimate", "name": "Population", "type": "double"},
+          // NB: we're skipping the following two fields
+          {"th": "2010 Census", "skip": "true"},
+          {"th": "Change", "skip": "true"},
+          // here, we're using a selector to navigate the dom inside the table cell
+          {"th": "2012 land area", "name": "Land Area", "type": "double", "selector": ":not(span)"},
+          {"th": "2012 population density", "skip": "true"},
+          // eliminate the degree symbol from the location field
+          // note - it's now possible to create multiple columns from one HTML column
+          {"th": "Location", "name": "Latitude", "replace": "\u00B0", "replaceWith": " ",
+              "match": "\\d+\\.\\d+", "type": "double"},
+          {"th": "Location", "name": "Longitude", "replace": "\u00B0", "replaceWith": " ",
+              "match": "\\d+\\.\\d+", "matchSeq": 1, "type": "double"},
+          // note that field definitions do not need to be in HTML table order - just makes it easier
+          {"th": "ANSI", "skip": "true"}
+        ]
+      }, {
+        "name": "States",
+        "url": "http://en.wikipedia.org/wiki/List_of_states_and_territories_of_the_United_States",
+        "selector": "#mw-content-text > table.wikitable.sortable",
+        "index": 0,
+        "fields": [
+          {"th": "State & abbreviation", "name": "State", "selector": "a", "selectedElement": 0},
+          {"th": "Statehood[A]", "name": "Statehood", "type": "Date"},
+          {"th": "Largest city[A][10]", "name": "Largest City"},
+          {"th": "Population (2013 est)[11]", "name": "Population", "type": "double"},
+          {"th": "Total area in mi2 (km2)[C][12]", "name": "Total Area", "type": "double"},
+          {"th": "Land area in mi2 (km2)[C][12]", "name": "Land Area", "type": "double"},
+          {"th": "Water area in mi2 (km2)[C][12]", "name": "Water Area",
+              "type": "double"}
+        ]
+      }, {
+        // Historic snapshot of "states" page, to ensure test stability.
+        "name": "States_as_of",
+        "url": "https://en.wikipedia.org/w/index.php?title=List_of_states_and_territories_of_the_United_States&oldid=713721917",
+        "selector": "#mw-content-text > table.wikitable.sortable",
+        "index": 0,
+        "fields": [
+          {"th": "State", "selector": "a", "selectedElement": 0},
+          {"th": "Capital"},
+          {"th": "Abbr.", "name": "Abbreviation"},
+          {"th": "Largest city[A][10]", "name": "Largest City"},
+          {"th": "Statehood[B]", "name": "Statehood", "type": "Date"},
+          {"th": "Population (2013 est)[11]", "name": "Population", "type": "double"},
+          {"th": "Total area in mi2 (km2)[C][12]", "name": "Total Area", "type": "double"},
+          {"th": "Land area in mi2 (km2)[C][12]", "name": "Land Area", "type": "double"},
+          {"th": "Water area in mi2 (km2)[C][12]", "name": "Water Area",
+              "type": "double"},
+          {"th": "House seat(s)", "name": "House seats", "type": "double"}
+        ]
+      } ]
+    }
+  } ]
+}

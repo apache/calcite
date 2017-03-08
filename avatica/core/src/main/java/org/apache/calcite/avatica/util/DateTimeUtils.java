@@ -20,6 +20,7 @@ import java.text.NumberFormat;
 import java.text.ParsePosition;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
+import java.util.Locale;
 import java.util.TimeZone;
 
 /**
@@ -48,8 +49,14 @@ public class DateTimeUtils {
   public static final String TIMESTAMP_FORMAT_STRING =
       DATE_FORMAT_STRING + " " + TIME_FORMAT_STRING;
 
-  /** The GMT time zone. */
+  /** The GMT time zone.
+   *
+   * @deprecated Use {@link #UTC_ZONE} */
+  @Deprecated // to be removed before 2.0
   public static final TimeZone GMT_ZONE = TimeZone.getTimeZone("GMT");
+
+  /** The UTC time zone. */
+  public static final TimeZone UTC_ZONE = TimeZone.getTimeZone("UTC");
 
   /** The Java default time zone. */
   public static final TimeZone DEFAULT_ZONE = TimeZone.getDefault();
@@ -85,14 +92,9 @@ public class DateTimeUtils {
   public static final Calendar ZERO_CALENDAR;
 
   static {
-    ZERO_CALENDAR = Calendar.getInstance(DateTimeUtils.GMT_ZONE);
+    ZERO_CALENDAR = Calendar.getInstance(DateTimeUtils.GMT_ZONE, Locale.ROOT);
     ZERO_CALENDAR.setTimeInMillis(0);
   }
-
-  /**
-   * Calendar set to local time.
-   */
-  private static final Calendar LOCAL_CALENDAR = Calendar.getInstance();
 
   //~ Methods ----------------------------------------------------------------
 
@@ -117,11 +119,11 @@ public class DateTimeUtils {
       TimeZone tz,
       ParsePosition pp) {
     assert pattern != null;
-    SimpleDateFormat df = new SimpleDateFormat(pattern);
+    SimpleDateFormat df = new SimpleDateFormat(pattern, Locale.ROOT);
     if (tz == null) {
       tz = DEFAULT_ZONE;
     }
-    Calendar ret = Calendar.getInstance(tz);
+    Calendar ret = Calendar.getInstance(tz, Locale.ROOT);
     df.setCalendar(ret);
     df.setLenient(false);
 
@@ -204,7 +206,7 @@ public class DateTimeUtils {
         if (!secFraction.matches("\\d+")) {
           return null;
         }
-        NumberFormat nf = NumberFormat.getIntegerInstance();
+        NumberFormat nf = NumberFormat.getIntegerInstance(Locale.ROOT);
         Number num = nf.parse(s, pp);
         if ((num == null) || (pp.getIndex() != s.length())) {
           // Invalid decimal portion
@@ -248,7 +250,7 @@ public class DateTimeUtils {
    * @throws IllegalArgumentException if the given pattern is invalid
    */
   public static void checkDateFormat(String pattern) {
-    new SimpleDateFormat(pattern);
+    new SimpleDateFormat(pattern, Locale.ROOT);
   }
 
   /**
@@ -258,13 +260,17 @@ public class DateTimeUtils {
    * @param format {@link SimpleDateFormat}  pattern
    */
   public static SimpleDateFormat newDateFormat(String format) {
-    SimpleDateFormat sdf = new SimpleDateFormat(format);
+    SimpleDateFormat sdf = new SimpleDateFormat(format, Locale.ROOT);
     sdf.setLenient(false);
     return sdf;
   }
 
   /** Helper for CAST({timestamp} AS VARCHAR(n)). */
   public static String unixTimestampToString(long timestamp) {
+    return unixTimestampToString(timestamp, 0);
+  }
+
+  public static String unixTimestampToString(long timestamp, int precision) {
     final StringBuilder buf = new StringBuilder(17);
     int date = (int) (timestamp / MILLIS_PER_DAY);
     int time = (int) (timestamp % MILLIS_PER_DAY);
@@ -274,18 +280,23 @@ public class DateTimeUtils {
     }
     unixDateToString(buf, date);
     buf.append(' ');
-    unixTimeToString(buf, time);
+    unixTimeToString(buf, time, precision);
     return buf.toString();
   }
 
   /** Helper for CAST({timestamp} AS VARCHAR(n)). */
   public static String unixTimeToString(int time) {
+    return unixTimeToString(time, 0);
+  }
+
+  public static String unixTimeToString(int time, int precision) {
     final StringBuilder buf = new StringBuilder(8);
-    unixTimeToString(buf, time);
+    unixTimeToString(buf, time, precision);
     return buf.toString();
   }
 
-  private static void unixTimeToString(StringBuilder buf, int time) {
+  private static void unixTimeToString(StringBuilder buf, int time,
+      int precision) {
     int h = time / 3600000;
     int time2 = time % 3600000;
     int m = time2 / 60000;
@@ -297,6 +308,15 @@ public class DateTimeUtils {
     int2(buf, m);
     buf.append(':');
     int2(buf, s);
+    if (precision > 0) {
+      buf.append('.');
+      while (precision > 0) {
+        buf.append((char) ('0' + (ms / 100)));
+        ms = ms % 100;
+        ms = ms * 10;
+        --precision;
+      }
+    }
   }
 
   private static void int2(StringBuilder buf, int i) {
@@ -635,7 +655,7 @@ public class DateTimeUtils {
           milli = 0;
         } else {
           second = Integer.parseInt(v.substring(colon2 + 1, dot).trim());
-          milli = Integer.parseInt(v.substring(dot + 1).trim());
+          milli = parseFraction(v.substring(dot + 1).trim(), 100);
         }
       }
     }
@@ -643,6 +663,30 @@ public class DateTimeUtils {
         + minute * (int) MILLIS_PER_MINUTE
         + second * (int) MILLIS_PER_SECOND
         + milli;
+  }
+
+  /** Parses a fraction, multiplying the first character by {@code multiplier},
+   * the second character by {@code multiplier / 10},
+   * the third character by {@code multiplier / 100}, and so forth.
+   *
+   * <p>For example, {@code parseFraction("1234", 100)} yields {@code 123}. */
+  private static int parseFraction(String v, int multiplier) {
+    int r = 0;
+    for (int i = 0; i < v.length(); i++) {
+      char c = v.charAt(i);
+      int x = c < '0' || c > '9' ? 0 : (c - '0');
+      r += multiplier * x;
+      if (multiplier < 10) {
+        // We're at the last digit. Check for rounding.
+        if (i + 1 < v.length()
+            && v.charAt(i + 1) >= '5') {
+          ++r;
+        }
+        break;
+      }
+      multiplier /= 10;
+    }
+    return r;
   }
 
   public static long timestampStringToUnixDate(String s) {
@@ -955,6 +999,12 @@ public class DateTimeUtils {
   /** Modulo, always returning a non-negative result. */
   public static long floorMod(long x, long y) {
     return x - floorDiv(x, y) * y;
+  }
+
+  /** Creates an instance of {@link Calendar} in the root locale and UTC time
+   * zone. */
+  public static Calendar calendar() {
+    return Calendar.getInstance(UTC_ZONE, Locale.ROOT);
   }
 
   //~ Inner Classes ----------------------------------------------------------

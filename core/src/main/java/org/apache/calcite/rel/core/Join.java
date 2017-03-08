@@ -204,7 +204,7 @@ public abstract class Join extends BiRel {
   @Override public RelWriter explainTerms(RelWriter pw) {
     return super.explainTerms(pw)
         .item("condition", condition)
-        .item("joinType", joinType.name().toLowerCase())
+        .item("joinType", joinType.lowerName)
         .itemIf(
             "systemFields",
             getSystemFieldList(),

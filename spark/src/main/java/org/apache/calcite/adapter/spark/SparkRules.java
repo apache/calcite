@@ -72,6 +72,7 @@ import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 import java.util.Random;
 
 /**
@@ -445,7 +446,7 @@ public abstract class SparkRules {
                   return Collections.emptyList();
                 }
                 return Collections.singletonList(
-                    Pair.of(x.toUpperCase(), x.length()));
+                    Pair.of(x.toUpperCase(Locale.ROOT), x.length()));
               }
             })
             .take(5)
