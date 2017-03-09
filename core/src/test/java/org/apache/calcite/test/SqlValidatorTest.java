@@ -8953,20 +8953,18 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .fails("No match found for function signature .*");
     sql("values ^\"|\"(1, 2)^")
         .fails("No match found for function signature .*");
-    if (TODO) {
       // FINAL and other functions should not be visible outside of
       // MATCH_RECOGNIZE
-      sql("values ^\"FINAL\"(1, 2)^")
-          .fails("No match found for function signature .*");
-      sql("values ^\"RUNNING\"(1, 2)^")
-          .fails("No match found for function signature .*");
-      sql("values ^\"FIRST\"(1, 2)^")
-          .fails("No match found for function signature .*");
-      sql("values ^\"LAST\"(1, 2)^")
-          .fails("No match found for function signature .*");
-      sql("values ^\"PREV\"(1, 2)^")
-          .fails("No match found for function signature .*");
-    }
+    sql("values ^\"FINAL\"(1, 2)^")
+        .fails("Function 'FINAL\\(1, 2\\)' only can be used in MATCH_RECOGNIZE");
+    sql("values ^\"RUNNING\"(1, 2)^")
+        .fails("Function 'RUNNING\\(1, 2\\)' only can be used in MATCH_RECOGNIZE");
+    sql("values ^\"FIRST\"(1, 2)^")
+        .fails("Function 'FIRST\\(1, 2\\)' only can be used in MATCH_RECOGNIZE");
+    sql("values ^\"LAST\"(1, 2)^")
+        .fails("Function 'LAST\\(1, 2\\)' only can be used in MATCH_RECOGNIZE");
+    sql("values ^\"PREV\"(1, 2)^")
+        .fails("Function 'PREV\\(1, 2\\)' only can be used in MATCH_RECOGNIZE");
   }
 
   @Test public void testMatchRecognizeDefines() throws Exception {
