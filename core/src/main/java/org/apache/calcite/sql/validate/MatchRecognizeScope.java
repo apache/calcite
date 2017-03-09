@@ -65,7 +65,8 @@ public class MatchRecognizeScope extends ListScope {
   }
 
   @Override public Map<String, ScopeChild>
-  findQualifyingTables(String columnName, SqlNameMatcher nameMatcher) {
+  findQualifyingTableNames(String columnName, SqlNode ctx,
+      SqlNameMatcher nameMatcher) {
     final Map<String, ScopeChild> map = new HashMap<>();
     for (ScopeChild child : children) {
       final RelDataType rowType = child.namespace.getRowType();
@@ -73,7 +74,12 @@ public class MatchRecognizeScope extends ListScope {
         map.put(STAR, child);
       }
     }
-    return map;
+    switch (map.size()) {
+    case 0:
+      return parent.findQualifyingTableNames(columnName, ctx, nameMatcher);
+    default:
+      return map;
+    }
   }
 
   @Override public void resolve(List<String> names, SqlNameMatcher nameMatcher,
