@@ -916,9 +916,9 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
 
   @Test public void testCastTypeToType() {
     checkExpType("cast(123 as char)", "CHAR(1) NOT NULL");
-    checkExpType("cast(123 as varchar)", "VARCHAR(1) NOT NULL");
+    checkExpType("cast(123 as varchar)", "VARCHAR NOT NULL");
     checkExpType("cast(x'1234' as binary)", "BINARY(1) NOT NULL");
-    checkExpType("cast(x'1234' as varbinary)", "VARBINARY(1) NOT NULL");
+    checkExpType("cast(x'1234' as varbinary)", "VARBINARY NOT NULL");
     checkExpType("cast(123 as varchar(3))", "VARCHAR(3) NOT NULL");
     checkExpType("cast(123 as char(3))", "CHAR(3) NOT NULL");
     checkExpType("cast('123' as integer)", "INTEGER NOT NULL");
@@ -5318,6 +5318,20 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     checkFails(
         "select * from emp join dept using (deptno, ^comm^)",
         "Column 'COMM' not found in any table");
+
+    checkFails("select * from emp join dept using (^empno^)",
+        "Column 'EMPNO' not found in any table");
+
+    checkFails("select * from dept join emp using (^empno^)",
+        "Column 'EMPNO' not found in any table");
+
+    // not on either side
+    checkFails("select * from dept join emp using (^abc^)",
+        "Column 'ABC' not found in any table");
+
+    // column exists, but wrong case
+    checkFails("select * from dept join emp using (^\"deptno\"^)",
+        "Column 'deptno' not found in any table");
 
     // ok to repeat (ok in Oracle10g too)
     check("select * from emp join dept using (deptno, deptno)");

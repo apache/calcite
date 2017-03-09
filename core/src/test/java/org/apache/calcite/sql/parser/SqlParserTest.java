@@ -6577,6 +6577,13 @@ public class SqlParserTest {
         "CAST(INTERVAL '3-2' YEAR TO MONTH AS CHAR(5))");
   }
 
+  @Test public void testCastToVarchar() {
+    checkExp("cast(x as varchar(5))", "CAST(`X` AS VARCHAR(5))");
+    checkExp("cast(x as varchar)", "CAST(`X` AS VARCHAR)");
+    checkExp("cast(x as varBINARY(5))", "CAST(`X` AS VARBINARY(5))");
+    checkExp("cast(x as varbinary)", "CAST(`X` AS VARBINARY)");
+  }
+
   @Test public void testTimestampAddAndDiff() {
     Map<String, List<String>> tsi = ImmutableMap.<String, List<String>>builder()
         .put("MICROSECOND",

@@ -77,13 +77,17 @@ public abstract class SqlTests {
   public static String getTypeString(RelDataType sqlType) {
     switch (sqlType.getSqlTypeName()) {
     case VARCHAR:
-      String actual = "VARCHAR(" + sqlType.getPrecision() + ")";
-      return sqlType.isNullable() ? actual : (actual + " NOT NULL");
     case CHAR:
-      actual = "CHAR(" + sqlType.getPrecision() + ")";
-      return sqlType.isNullable() ? actual : (actual + " NOT NULL");
-    default:
+      String actual = sqlType.getSqlTypeName().name();
+      if (sqlType.getPrecision() != RelDataType.PRECISION_NOT_SPECIFIED) {
+        actual = actual + "(" + sqlType.getPrecision() + ")";
+      }
+      if (!sqlType.isNullable()) {
+        actual += " NOT NULL";
+      }
+      return actual;
 
+    default:
       // Get rid of the verbose charset/collation stuff.
       // TODO: There's probably a better way to do this.
       final String s = sqlType.getFullTypeString();

@@ -69,7 +69,7 @@ public class PigRelBuilderStyleTest extends AbstractPigTest {
   }
 
   @Test
-  public void testImplWithMltipleFilters() {
+  public void testImplWithMultipleFilters() {
     final SchemaPlus schema = createTestSchema();
     final RelBuilder builder = createRelBuilder(schema);
     final RelNode node = builder.scan("t")
