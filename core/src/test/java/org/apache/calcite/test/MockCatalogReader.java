@@ -538,7 +538,7 @@ public class MockCatalogReader extends CalciteCatalogReader {
         salesSchema.getCatalogName(), salesSchema.name, "EMP_MODIFIABLEVIEW2");
     TableMacro empModifiableViewMacro2 = MockModifiableViewRelOptTable.viewMacro(rootSchema,
         "select ENAME, EMPNO, JOB, DEPTNO, SLACKER, SAL, EXTRA, HIREDATE, MGR, COMM"
-            + " from EMPDEFAULTS extend (extra boolean)"
+            + " from EMPDEFAULTS extend (EXTRA boolean)"
             + " where DEPTNO = 20", empModifiableViewNames2.subList(0, 2),
         ImmutableList.of(empModifiableViewNames.get(2)), true);
     TranslatableTable empModifiableView2 = empModifiableViewMacro2.apply(ImmutableList.of());
