@@ -3183,6 +3183,10 @@ public abstract class SqlOperatorBaseTest {
   @Test public void testNotLikeOperator() {
     tester.setFor(SqlStdOperatorTable.NOT_LIKE, VM_EXPAND);
     tester.checkBoolean("'abc' not like '_b_'", Boolean.FALSE);
+    tester.checkBoolean("'ab\ncd' not like 'ab%'", Boolean.FALSE);
+    tester.checkBoolean("'123\n\n45\n' not like '%'", Boolean.FALSE);
+    tester.checkBoolean("'ab\ncd\nef' not like '%cd%'", Boolean.FALSE);
+    tester.checkBoolean("'ab\ncd\nef' not like '%cde%'", Boolean.TRUE);
   }
 
   @Test public void testLikeEscape() {
@@ -3220,6 +3224,11 @@ public abstract class SqlOperatorBaseTest {
     tester.checkBoolean("'ab'   like '_b'", Boolean.TRUE);
     tester.checkBoolean("'abcd' like '_d'", Boolean.FALSE);
     tester.checkBoolean("'abcd' like '%d'", Boolean.TRUE);
+    tester.checkBoolean("'ab\ncd' like 'ab%'", Boolean.TRUE);
+    tester.checkBoolean("'abc\ncd' like 'ab%'", Boolean.TRUE);
+    tester.checkBoolean("'123\n\n45\n' like '%'", Boolean.TRUE);
+    tester.checkBoolean("'ab\ncd\nef' like '%cd%'", Boolean.TRUE);
+    tester.checkBoolean("'ab\ncd\nef' like '%cde%'", Boolean.FALSE);
   }
 
   @Test public void testNotSimilarToOperator() {
@@ -3255,6 +3264,11 @@ public abstract class SqlOperatorBaseTest {
     tester.checkBoolean("'ab'   similar to '_b'", Boolean.TRUE);
     tester.checkBoolean("'abcd' similar to '_d'", Boolean.FALSE);
     tester.checkBoolean("'abcd' similar to '%d'", Boolean.TRUE);
+    tester.checkBoolean("'ab\ncd' similar to 'ab%'", Boolean.TRUE);
+    tester.checkBoolean("'abc\ncd' similar to 'ab%'", Boolean.TRUE);
+    tester.checkBoolean("'123\n\n45\n' similar to '%'", Boolean.TRUE);
+    tester.checkBoolean("'ab\ncd\nef' similar to '%cd%'", Boolean.TRUE);
+    tester.checkBoolean("'ab\ncd\nef' similar to '%cde%'", Boolean.FALSE);
 
     // simple regular expressions
     // ab*c+d matches acd, abcd, acccd, abcccd but not abd, aabc

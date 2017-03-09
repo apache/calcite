@@ -116,7 +116,8 @@ public class SqlValidatorUtil {
    */
   public static List<RelDataTypeField> getExtendedColumns(
       SqlValidator validator, SqlValidatorTable table, SqlNodeList extendedColumns) {
-    final ImmutableList.Builder<RelDataTypeField> extendedFields = ImmutableList.builder();
+    final ImmutableList.Builder<RelDataTypeField> extendedFields =
+        ImmutableList.builder();
     final ExtensibleTable extTable = table.unwrap(ExtensibleTable.class);
     int extendedFieldOffset =
         extTable == null
@@ -145,11 +146,11 @@ public class SqlValidatorUtil {
   }
 
   /**
-   * Gets a map of indexes from the source to fields in the target for the intersecting set of
-   * source and target fields.
-   * @param output       The output map.
-   * @param sourceFields The source of column names.
-   * @param targetFields The target fields to be indexed.
+   * Gets a map of indexes from the source to fields in the target for the
+   * intersecting set of source and target fields.
+   * @param output       The output map
+   * @param sourceFields The source of column names
+   * @param targetFields The target fields to be indexed
    */
   public static void getIndexToFieldMap(
       Map<Integer, RelDataTypeField> output,
@@ -164,9 +165,10 @@ public class SqlValidatorUtil {
   }
 
   /**
-   * Gets the bit-set to the column ordinals in the source for columns that intersect in the target.
-   * @param sourceRowType The source upon which to ordinate the bit set.
-   * @param targetRowType The target to overlay on the source to create the bit set.
+   * Gets the bit-set to the column ordinals in the source for columns that
+   * intersect in the target.
+   * @param sourceRowType The source upon which to ordinate the bit set
+   * @param targetRowType The target to overlay on the source to create the bit set
    */
   public static ImmutableBitSet getOrdinalBitSet(
       RelDataType sourceRowType, RelDataType targetRowType) {
@@ -176,9 +178,10 @@ public class SqlValidatorUtil {
   }
 
   /**
-   * Gets the bit-set to the column ordinals in the source for columns that intersect in the target.
-   * @param sourceRowType The source upon which to ordinate the bit set.
-   * @param indexToField  The map of ordinals to target fields.
+   * Gets the bit-set to the column ordinals in the source for columns that
+   * intersect in the target.
+   * @param sourceRowType The source upon which to ordinate the bit set
+   * @param indexToField  The map of ordinals to target fields
    */
   public static ImmutableBitSet getOrdinalBitSet(
       RelDataType sourceRowType,

@@ -435,16 +435,15 @@ public abstract class Prepare {
       throw new RuntimeException("Cannot extend " + table);
     }
 
-    private RelOptTable extend(ExtensibleTable table, List<RelDataTypeField> extendedFields) {
+    private RelOptTable extend(ExtensibleTable table,
+        List<RelDataTypeField> extendedFields) {
       final Table extendedTable =
           table.extend(extendedFields);
       return extend(extendedTable);
     }
 
-    /**
-     * Implementation-specific code to instantiate a new RelOptTable based on a Table that has been
-     * extended.
-     */
+    /** Implementation-specific code to instantiate a new {@link RelOptTable}
+     * based on a {@link Table} that has been extended. */
     protected abstract RelOptTable extend(Table extendedTable);
   }
 

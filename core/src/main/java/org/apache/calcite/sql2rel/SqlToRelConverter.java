@@ -2064,44 +2064,6 @@ public class SqlToRelConverter {
     }
   }
 
-  private void convertIdentifier(
-      Blackboard bb,
-      SqlIdentifier id,
-      SqlNodeList extendedColumns
-  ) {
-    final SqlValidatorNamespace fromNamespace =
-        validator.getNamespace(id).resolve();
-    if (fromNamespace.getNode() != null) {
-      convertFrom(bb, fromNamespace.getNode());
-      return;
-    }
-    final String datasetName =
-        datasetStack.isEmpty() ? null : datasetStack.peek();
-    final boolean[] usedDataset = {false};
-    RelOptTable table =
-        SqlValidatorUtil.getRelOptTable(
-            fromNamespace,
-            catalogReader,
-            datasetName,
-            usedDataset);
-    if (extendedColumns != null && extendedColumns.size() > 0) {
-      final List<RelDataTypeField> extendedFields =
-          SqlValidatorUtil.getExtendedColumns(
-              validator, table.unwrap(SqlValidatorTable.class), extendedColumns);
-      table = table.extend(extendedFields);
-    }
-    final RelNode tableRel;
-    if (config.isConvertTableAccess()) {
-      tableRel = toRel(table);
-    } else {
-      tableRel = LogicalTableScan.create(cluster, table);
-    }
-    bb.setRoot(tableRel, true);
-    if (usedDataset[0]) {
-      bb.setDataset(datasetName);
-    }
-  }
-
   protected void convertMatchRecognize(Blackboard bb, SqlCall call) {
     final SqlMatchRecognize matchRecognize = (SqlMatchRecognize) call;
     final SqlValidatorNamespace ns = validator.getNamespace(matchRecognize);
@@ -2168,6 +2130,41 @@ public class SqlToRelConverter {
             definitionNodes.build(),
             rowType);
     bb.setRoot(rel, false);
+  }
+
+  private void convertIdentifier(Blackboard bb, SqlIdentifier id,
+      SqlNodeList extendedColumns) {
+    final SqlValidatorNamespace fromNamespace =
+        validator.getNamespace(id).resolve();
+    if (fromNamespace.getNode() != null) {
+      convertFrom(bb, fromNamespace.getNode());
+      return;
+    }
+    final String datasetName =
+        datasetStack.isEmpty() ? null : datasetStack.peek();
+    final boolean[] usedDataset = {false};
+    RelOptTable table =
+        SqlValidatorUtil.getRelOptTable(fromNamespace, catalogReader,
+            datasetName, usedDataset);
+    if (extendedColumns != null && extendedColumns.size() > 0) {
+      assert table != null;
+      final SqlValidatorTable validatorTable =
+          table.unwrap(SqlValidatorTable.class);
+      final List<RelDataTypeField> extendedFields =
+          SqlValidatorUtil.getExtendedColumns(validator, validatorTable,
+              extendedColumns);
+      table = table.extend(extendedFields);
+    }
+    final RelNode tableRel;
+    if (config.isConvertTableAccess()) {
+      tableRel = toRel(table);
+    } else {
+      tableRel = LogicalTableScan.create(cluster, table);
+    }
+    bb.setRoot(tableRel, true);
+    if (usedDataset[0]) {
+      bb.setDataset(datasetName);
+    }
   }
 
   protected void convertCollectionTable(

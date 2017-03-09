@@ -200,7 +200,8 @@ public class IdentifierNamespace extends AbstractNamespace {
       }
       final List<RelDataTypeField> extendedFields =
           SqlValidatorUtil.getExtendedColumns(validator, getTable(), extendList);
-      resolvedNamespace = ((TableNamespace) resolvedNamespace).extend(extendedFields);
+      resolvedNamespace =
+          ((TableNamespace) resolvedNamespace).extend(extendedFields);
       rowType = resolvedNamespace.getRowType();
     }
 

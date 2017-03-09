@@ -40,7 +40,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-
 /** Extension to {@link ViewTable} that is modifiable. */
 public class ModifiableViewTable extends ViewTable
     implements ModifiableView, Wrapper {
@@ -48,8 +47,9 @@ public class ModifiableViewTable extends ViewTable
   private final Path tablePath;
   private final RexNode constraint;
   private final ImmutableIntList columnMapping;
-  private final ModifiableViewTableInitializerExpressionFactory initializerExpressionFactory;
+  private final InitializerExpressionFactory initializerExpressionFactory;
 
+  /** Creates a ModifiableViewTable. */
   public ModifiableViewTable(Type elementType, RelProtoDataType rowType,
       String viewSql, List<String> schemaPath, List<String> viewPath,
       Table table, Path tablePath, RexNode constraint,
@@ -92,14 +92,12 @@ public class ModifiableViewTable extends ViewTable
   /**
    * Initializes columns based on the view constraint.
    */
-  private class ModifiableViewTableInitializerExpressionFactory extends
-      NullInitializerExpressionFactory {
-    private final RelDataTypeFactory typeFactory;
+  private class ModifiableViewTableInitializerExpressionFactory
+      extends NullInitializerExpressionFactory {
     private final ImmutableMap<Integer, RexNode> projectMap;
 
     private ModifiableViewTableInitializerExpressionFactory(RelDataTypeFactory typeFactory) {
       super(typeFactory);
-      this.typeFactory = typeFactory;
       final Map<Integer, RexNode> projectMap = Maps.newHashMap();
       final List<RexNode> filters = new ArrayList<>();
       RelOptUtil.inferViewPredicates(projectMap, filters, constraint);
@@ -114,17 +112,15 @@ public class ModifiableViewTable extends ViewTable
 
     @Override public RexNode newColumnDefaultValue(RelOptTable table, int iColumn) {
       final ModifiableViewTable viewTable = table.unwrap(ModifiableViewTable.class);
-      final RelDataType viewType = viewTable.getRowType(typeFactory);
+      final RelDataType viewType =
+          viewTable.getRowType(rexBuilder.getTypeFactory());
       final RelDataType iType = viewType.getFieldList().get(iColumn).getType();
 
       // Use the view constraint to generate the default value if the column is constrained.
       final int mappedOrdinal = viewTable.columnMapping.get(iColumn);
       final RexNode viewConstraint = projectMap.get(mappedOrdinal);
       if (viewConstraint != null) {
-        return rexBuilder.ensureType(
-            iType,
-            viewConstraint,
-            true);
+        return rexBuilder.ensureType(iType, viewConstraint, true);
       }
 
       // Otherwise use the default value of the underlying table.
@@ -135,10 +131,7 @@ public class ModifiableViewTable extends ViewTable
         if (initializerExpressionFactory != null) {
           final RexNode tableConstraint =
               initializerExpressionFactory.newColumnDefaultValue(table, iColumn);
-          return rexBuilder.ensureType(
-              iType,
-              tableConstraint,
-              true);
+          return rexBuilder.ensureType(iType, tableConstraint, true);
         }
       }
 

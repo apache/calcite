@@ -3871,9 +3871,10 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
   /**
    * Validates insert values against the constraint of a modifiable view.
-   * @param validatorTable The SqlValidatorTable which may wrap a ModifiableViewTable.
-   * @param source         The values being inserted.
-   * @param targetRowType  The target type for the view.
+   *
+   * @param validatorTable SqlValidatorTable that may wrap a ModifiableViewTable
+   * @param source         The values being inserted
+   * @param targetRowType  The target type for the view
    */
   private void checkConstraint(
       SqlValidatorTable validatorTable,
@@ -3885,13 +3886,13 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       final Map<Integer, RexNode> projectMap =
           getConstraintForModifiableView(modifiableViewTable, targetRowType);
       final Table table = modifiableViewTable.unwrap(Table.class);
-      final List<SqlNode> values = ((SqlCall) source).getOperandList();
       final List<RelDataTypeField> tableFields = table.getRowType(typeFactory).getFieldList();
       Map<Integer, RelDataTypeField> indexToField = new HashMap<>();
       SqlValidatorUtil.getIndexToFieldMap(
           indexToField, tableFields, targetRowType);
       final ImmutableBitSet targetColumns =
           SqlValidatorUtil.getOrdinalBitSet(table.getRowType(typeFactory), indexToField);
+      final List<SqlNode> values = ((SqlCall) source).getOperandList();
       for (Map.Entry<Integer, RexNode> entry : projectMap.entrySet()) {
         if (!targetColumns.get(entry.getKey())) {
           // The constrained column was not targeted for insert.
@@ -3909,10 +3910,11 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   }
 
   /**
-   * Returns a mapping of the column ordinal in the underlying table to a column constraint of the
-   * modifiable view.
-   * @param modifiableViewTable The modifiable view which has a constraint.
-   * @param targetRowType       The target type.
+   * Returns a mapping of the column ordinal in the underlying table to a column
+   * constraint of the modifiable view.
+   *
+   * @param modifiableViewTable The modifiable view that has a constraint
+   * @param targetRowType       The target type
    */
   private Map<Integer, RexNode> getConstraintForModifiableView(
       ModifiableViewTable modifiableViewTable, RelDataType targetRowType) {
@@ -3928,9 +3930,10 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
   /**
    * Validates updates against the constraint of a modifiable view.
-   * @param validatorTable The SqlValidatorTable which may wrap a ModifiableViewTable.
-   * @param update         The update parse node.
-   * @param targetRowType  The target type.
+   *
+   * @param validatorTable SqlValidatorTable that may wrap a ModifiableViewTable
+   * @param update         The update parse node
+   * @param targetRowType  The target type
    */
   private void checkConstraint(
       SqlValidatorTable validatorTable,
@@ -3957,19 +3960,20 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
   /**
    * Ensures that a source value does not violate the constraint of the target column.
-   * @param table            The SqlValidatorTable which wraps a ModifiableViewTable.
-   * @param columnName       The target column name.
-   * @param sourceValue      The insert value being validated.
-   * @param targetConstraint The constraint applied to sourceValue for validation.
+   *
+   * @param validatorTable   SqlValidatorTable that may wrap a ModifiableViewTable
+   * @param columnName       The target column name
+   * @param sourceValue      The insert value being validated
+   * @param targetConstraint The constraint applied to sourceValue for validation
    */
   private void checkConstraint(
-      SqlValidatorTable table, String columnName,
+      SqlValidatorTable validatorTable, String columnName,
       SqlNode sourceValue, RexNode targetConstraint) {
     if (!(sourceValue instanceof SqlLiteral)) {
       // We cannot guarantee that the value satisfies the constraint.
       throw newValidationError(sourceValue,
           RESOURCE.viewConstraintNotSatisfied(
-              columnName, Util.last(table.getQualifiedName())));
+              columnName, Util.last(validatorTable.getQualifiedName())));
     }
     final SqlLiteral insertValue = (SqlLiteral) sourceValue;
     final RexLiteral columnConstraint = (RexLiteral) targetConstraint;
@@ -3985,7 +3989,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       // The value does not satisfy the constraint.
       throw newValidationError(sourceValue,
           RESOURCE.viewConstraintNotSatisfied(
-              columnName, Util.last(table.getQualifiedName())));
+              columnName, Util.last(validatorTable.getQualifiedName())));
     }
   }
 
