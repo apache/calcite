@@ -683,6 +683,9 @@ public interface CalciteResource {
 
   @BaseMessage("Multiple pattern variables in ''{0}''")
   ExInst<SqlValidatorException> PatternFunctionVariableCheck(String call);
+
+  @BaseMessage("Function ''{0}'' can only be used in MATCH_RECOGNIZE")
+  ExInst<SqlValidatorException> FunctionMatchRecognizeOnly(String call);
 }
 
 // End CalciteResource.java

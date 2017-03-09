@@ -6992,7 +6992,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     checkFails("select ^fusion(deptno)^ from emp",
         "(?s).*Cannot apply 'FUSION' to arguments of type 'FUSION.<INTEGER>.'.*");
     check("select fusion(multiset[3]) from emp");
-    // todo. FUSION is an aggregate function. test that validator only can
+    // todo. FUSION is an aggregate function. test that validator can only
     // take set operators in its select list once aggregation support is
     // complete
   }
@@ -8953,20 +8953,18 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .fails("No match found for function signature .*");
     sql("values ^\"|\"(1, 2)^")
         .fails("No match found for function signature .*");
-    if (TODO) {
       // FINAL and other functions should not be visible outside of
       // MATCH_RECOGNIZE
-      sql("values ^\"FINAL\"(1, 2)^")
-          .fails("No match found for function signature .*");
-      sql("values ^\"RUNNING\"(1, 2)^")
-          .fails("No match found for function signature .*");
-      sql("values ^\"FIRST\"(1, 2)^")
-          .fails("No match found for function signature .*");
-      sql("values ^\"LAST\"(1, 2)^")
-          .fails("No match found for function signature .*");
-      sql("values ^\"PREV\"(1, 2)^")
-          .fails("No match found for function signature .*");
-    }
+    sql("values ^\"FINAL\"(1, 2)^")
+        .fails("Function 'FINAL\\(1, 2\\)' can only be used in MATCH_RECOGNIZE");
+    sql("values ^\"RUNNING\"(1, 2)^")
+        .fails("Function 'RUNNING\\(1, 2\\)' can only be used in MATCH_RECOGNIZE");
+    sql("values ^\"FIRST\"(1, 2)^")
+        .fails("Function 'FIRST\\(1, 2\\)' can only be used in MATCH_RECOGNIZE");
+    sql("values ^\"LAST\"(1, 2)^")
+        .fails("Function 'LAST\\(1, 2\\)' can only be used in MATCH_RECOGNIZE");
+    sql("values ^\"PREV\"(1, 2)^")
+        .fails("Function 'PREV\\(1, 2\\)' can only be used in MATCH_RECOGNIZE");
   }
 
   @Test public void testMatchRecognizeDefines() throws Exception {
