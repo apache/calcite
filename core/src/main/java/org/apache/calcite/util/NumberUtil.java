@@ -20,10 +20,12 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.math.RoundingMode;
 import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
 import java.text.NumberFormat;
+import java.util.Locale;
 
 /**
- * Utility functions for working with numbers This class is JDK 1.4 compatible.
+ * Utility functions for working with numbers.
  */
 public class NumberUtil {
   private NumberUtil() {}
@@ -39,12 +41,10 @@ public class NumberUtil {
   static {
     // TODO: DecimalFormat uses ROUND_HALF_EVEN, not ROUND_HALF_UP
     // Float: precision of 7 (6 digits after .)
-    FLOAT_FORMATTER = new DecimalFormat();
-    FLOAT_FORMATTER.applyPattern("0.######E0");
+    FLOAT_FORMATTER = decimalFormat("0.######E0");
 
     // Double: precision of 16 (15 digits after .)
-    DOUBLE_FORMATTER = new DecimalFormat();
-    DOUBLE_FORMATTER.applyPattern("0.###############E0");
+    DOUBLE_FORMATTER = decimalFormat("0.###############E0");
 
     BIG_INT_TEN_POW = new BigInteger[20];
     BIG_INT_MIN_UNSCALED = new BigInteger[20];
@@ -63,6 +63,12 @@ public class NumberUtil {
   }
 
   //~ Methods ----------------------------------------------------------------
+
+  /** Creates a format. Locale-independent. */
+  public static DecimalFormat decimalFormat(String pattern) {
+    return new DecimalFormat(pattern,
+        DecimalFormatSymbols.getInstance(Locale.ROOT));
+  }
 
   public static BigInteger powTen(int exponent) {
     if ((exponent >= 0) && (exponent < BIG_INT_TEN_POW.length)) {

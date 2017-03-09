@@ -36,6 +36,7 @@ import io.airlift.tpch.TpchTable;
 
 import java.sql.Date;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 /** Schema that provides TPC-H tables, populated according to a
@@ -57,7 +58,7 @@ public class TpchSchema extends AbstractSchema {
 
     final ImmutableMap.Builder<String, Table> builder = ImmutableMap.builder();
     for (TpchTable<?> tpchTable : TpchTable.getTables()) {
-      builder.put(tpchTable.getTableName().toUpperCase(),
+      builder.put(tpchTable.getTableName().toUpperCase(Locale.ROOT),
           new TpchQueryableTable(tpchTable));
     }
     this.tableMap = builder.build();
@@ -140,12 +141,14 @@ public class TpchSchema extends AbstractSchema {
       final RelDataTypeFactory.FieldInfoBuilder builder = typeFactory.builder();
       String prefix = "";
       if (columnPrefix) {
-        prefix = columnPrefixes.get(tpchTable.getTableName().toUpperCase());
-        assert prefix != null : tpchTable.getTableName().toUpperCase();
+        final String t = tpchTable.getTableName().toUpperCase(Locale.ROOT);
+        prefix = columnPrefixes.get(t);
+        assert prefix != null : t;
       }
       for (TpchColumn<E> column : tpchTable.getColumns()) {
-        builder.add((prefix + column.getColumnName()).toUpperCase(),
-            typeFactory.createJavaType(realType(column)));
+        final String c = (prefix + column.getColumnName())
+            .toUpperCase(Locale.ROOT);
+        builder.add(c, typeFactory.createJavaType(realType(column)));
       }
       return builder.build();
     }

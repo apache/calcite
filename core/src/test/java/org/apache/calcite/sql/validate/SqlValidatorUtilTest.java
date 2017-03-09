@@ -22,6 +22,7 @@ import org.junit.Test;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 import static org.hamcrest.CoreMatchers.anyOf;
 import static org.hamcrest.CoreMatchers.is;
@@ -48,14 +49,15 @@ public class SqlValidatorUtilTest {
     // Make sure each name is unique
     List<String> copyResultList  = new ArrayList<>(resultList.size());
     for (String result : resultList) {
-      copyResultList.add(result.toLowerCase());
+      copyResultList.add(result.toLowerCase(Locale.ROOT));
     }
 
     for (String result : resultList) {
-      assertThat(copyResultList.contains(result.toLowerCase()), is(true));
-      copyResultList.remove(result.toLowerCase());
+      final String lowerResult = result.toLowerCase(Locale.ROOT);
+      assertThat(copyResultList.contains(lowerResult), is(true));
+      copyResultList.remove(lowerResult);
       if (!caseSensitive) {
-        assertThat(copyResultList.contains(result.toLowerCase()), is(false));
+        assertThat(copyResultList.contains(lowerResult), is(false));
       }
     }
     assertThat(copyResultList.size(), is(0));

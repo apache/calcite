@@ -107,6 +107,7 @@ import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.SqlJoin;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlLiteral;
+import org.apache.calcite.sql.SqlMatchRecognize;
 import org.apache.calcite.sql.SqlMerge;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
@@ -185,6 +186,7 @@ import java.util.Collections;
 import java.util.Deque;
 import java.util.EnumSet;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -1903,6 +1905,10 @@ public class SqlToRelConverter {
     final SqlCall call;
     final SqlNode[] operands;
     switch (from.getKind()) {
+    case MATCH_RECOGNIZE:
+      convertMatchRecognize(bb, (SqlCall) from);
+      return;
+
     case AS:
       convertFrom(bb, ((SqlCall) from).operand(0));
       return;
@@ -2094,6 +2100,74 @@ public class SqlToRelConverter {
     if (usedDataset[0]) {
       bb.setDataset(datasetName);
     }
+  }
+
+  protected void convertMatchRecognize(Blackboard bb, SqlCall call) {
+    final SqlMatchRecognize matchRecognize = (SqlMatchRecognize) call;
+    final SqlValidatorNamespace ns = validator.getNamespace(matchRecognize);
+    final SqlValidatorScope scope = validator.getMatchRecognizeScope(matchRecognize);
+
+    final Blackboard mrBlackBoard = createBlackboard(scope, null, false);
+    final RelDataType rowType = ns.getRowType();
+    // convert inner query, could be a table name or a derived table
+    SqlNode expr = matchRecognize.getTableRef();
+    convertFrom(mrBlackBoard, expr);
+    final RelNode input = mrBlackBoard.root;
+
+    // convert pattern
+    final Set<String> patternVarsSet = new HashSet<>();
+    SqlNode pattern = matchRecognize.getPattern();
+    final SqlBasicVisitor<RexNode> patternVarVisitor =
+      new SqlBasicVisitor<RexNode>() {
+        @Override public RexNode visit(SqlCall call) {
+          List<SqlNode> operands = call.getOperandList();
+          List<RexNode> newOperands = Lists.newArrayList();
+          for (SqlNode node : operands) {
+            newOperands.add(node.accept(this));
+          }
+          return rexBuilder.makeCall(
+            validator.getUnknownType(), call.getOperator(), newOperands);
+        }
+
+        @Override public RexNode visit(SqlIdentifier id) {
+          assert id.isSimple();
+          patternVarsSet.add(id.getSimple());
+          return rexBuilder.makeLiteral(id.getSimple());
+        }
+
+        @Override public RexNode visit(SqlLiteral literal) {
+          if (literal instanceof SqlNumericLiteral) {
+            return rexBuilder.makeExactLiteral(BigDecimal.valueOf(literal.intValue(true)));
+          } else {
+            return rexBuilder.makeLiteral(literal.booleanValue());
+          }
+        }
+      };
+    final RexNode patternNode = pattern.accept(patternVarVisitor);
+
+    mrBlackBoard.setPatternVarRef(true);
+
+    // convert definitions
+    final ImmutableMap.Builder<String, RexNode> definitionNodes =
+        ImmutableMap.builder();
+    for (SqlNode def : matchRecognize.getPatternDefList()) {
+      List<SqlNode> operands = ((SqlCall) def).getOperandList();
+      String alias = ((SqlIdentifier) operands.get(1)).getSimple();
+      RexNode rex = mrBlackBoard.convertExpression(operands.get(0));
+      definitionNodes.put(alias, rex);
+    }
+
+    mrBlackBoard.setPatternVarRef(false);
+
+    final RelFactories.MatchFactory factory =
+        RelFactories.DEFAULT_MATCH_FACTORY;
+    final RelNode rel =
+        factory.createMatchRecognize(input, patternNode,
+            matchRecognize.getStrictStart().booleanValue(),
+            matchRecognize.getStrictEnd().booleanValue(),
+            definitionNodes.build(),
+            rowType);
+    bb.setRoot(rel, false);
   }
 
   protected void convertCollectionTable(
@@ -3323,6 +3397,11 @@ public class SqlToRelConverter {
       return bb.convertExpression(call);
     }
 
+    String pv = null;
+    if (bb.isPatternVarRef && identifier.names.size() > 1) {
+      pv = identifier.names.get(0);
+    }
+
     final SqlQualified qualified;
     if (bb.scope != null) {
       qualified = bb.scope.fullyQualify(identifier);
@@ -3716,6 +3795,8 @@ public class SqlToRelConverter {
     private final Map<CorrelationId, RexFieldAccess> mapCorrelateToRex =
         new HashMap<>();
 
+    private boolean isPatternVarRef = false;
+
     final List<RelNode> cursors = new ArrayList<>();
 
     /**
@@ -3768,6 +3849,10 @@ public class SqlToRelConverter {
       this.scope = scope;
       this.nameToNodeMap = nameToNodeMap;
       this.top = top;
+    }
+
+    public void setPatternVarRef(boolean isVarRef) {
+      this.isPatternVarRef = isVarRef;
     }
 
     public RexNode register(

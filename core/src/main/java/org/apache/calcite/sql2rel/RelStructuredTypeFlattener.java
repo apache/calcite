@@ -35,6 +35,7 @@ import org.apache.calcite.rel.logical.LogicalCorrelate;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalIntersect;
 import org.apache.calcite.rel.logical.LogicalJoin;
+import org.apache.calcite.rel.logical.LogicalMatch;
 import org.apache.calcite.rel.logical.LogicalMinus;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.logical.LogicalSort;
@@ -670,6 +671,10 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
   }
 
   public void rewriteRel(LogicalChi rel) {
+    rewriteGeneric(rel);
+  }
+
+  public void rewriteRel(LogicalMatch rel) {
     rewriteGeneric(rel);
   }
 

@@ -54,6 +54,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 import static org.apache.calcite.util.Static.RESOURCE;
@@ -743,8 +744,8 @@ public abstract class SqlUtil {
         if (i > 0) {
           ret.append(", ");
         }
-        ret.append("<").append(
-            typeList.get(i).toString().toUpperCase()).append(">");
+        final String t = typeList.get(i).toString().toUpperCase(Locale.ROOT);
+        ret.append("<").append(t).append(">");
       }
       ret.append(")'");
     } else {
@@ -752,9 +753,10 @@ public abstract class SqlUtil {
       values[0] = opName;
       ret.append("'");
       for (int i = 0; i < typeList.size(); i++) {
-        values[i + 1] = "<" + typeList.get(i).toString().toUpperCase() + ">";
+        final String t = typeList.get(i).toString().toUpperCase(Locale.ROOT);
+        values[i + 1] = "<" + t + ">";
       }
-      ret.append(MessageFormat.format(template, values));
+      ret.append(new MessageFormat(template, Locale.ROOT).format(values));
       ret.append("'");
       assert (typeList.size() + 1) == values.length;
     }

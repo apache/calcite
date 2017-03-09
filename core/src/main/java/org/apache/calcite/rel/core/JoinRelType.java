@@ -16,11 +16,16 @@
  */
 package org.apache.calcite.rel.core;
 
+import java.util.Locale;
+
 /**
  * Enumeration of join types.
  */
 public enum JoinRelType {
   INNER, LEFT, RIGHT, FULL;
+
+  /** Lower-case name. */
+  public final String lowerName = name().toLowerCase(Locale.ROOT);
 
   /**
    * Returns whether a join of this type may generate NULL values on the

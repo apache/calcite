@@ -38,6 +38,7 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.security.Principal;
 import java.security.PrivilegedExceptionAction;
 import java.util.Set;
@@ -220,7 +221,8 @@ public class HttpServerSpnegoWithJaasTest {
 
     // We should get a response which is "OK" with our client's name
     assertNotNull(response);
-    assertEquals("OK " + SpnegoTestUtil.CLIENT_PRINCIPAL, new String(response));
+    assertEquals("OK " + SpnegoTestUtil.CLIENT_PRINCIPAL,
+        new String(response, StandardCharsets.UTF_8));
   }
 }
 

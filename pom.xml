@@ -65,6 +65,7 @@ limitations under the License.
     <fmpp-maven-plugin.version>1.0</fmpp-maven-plugin.version>
     <foodmart-data-hsqldb.version>0.3</foodmart-data-hsqldb.version>
     <foodmart-queries.version>0.4.1</foodmart-queries.version>
+    <forbiddenapis.version>2.3</forbiddenapis.version>
     <freemarker.version>2.3.25-incubating</freemarker.version>
     <git-commit-id-plugin.version>2.1.9</git-commit-id-plugin.version>
 
@@ -102,7 +103,7 @@ limitations under the License.
     <maven-shade-plugin.version>2.1</maven-shade-plugin.version>
     <!-- Apache 18 has 3.0.0, but need 3.0.1 for [MSOURCES-94]. -->
     <maven-source-plugin.version>3.0.1</maven-source-plugin.version>
-    <mockito-all.version>1.10.19</mockito-all.version>
+    <mockito.version>2.5.5</mockito.version>
     <mongo-java-driver.version>2.12.3</mongo-java-driver.version>
     <mysql-driver.version>5.1.20</mysql-driver.version>
     <natty.version>0.13</natty.version>
@@ -351,8 +352,8 @@ limitations under the License.
       </dependency>
       <dependency>
         <groupId>org.mockito</groupId>
-        <artifactId>mockito-all</artifactId>
-        <version>${mockito-all.version}</version>
+        <artifactId>mockito-core</artifactId>
+        <version>${mockito.version}</version>
       </dependency>
       <dependency>
         <groupId>org.postgresql</groupId>
@@ -460,6 +461,43 @@ limitations under the License.
 
   <build>
     <plugins>
+      <plugin>
+        <groupId>de.thetaphi</groupId>
+        <artifactId>forbiddenapis</artifactId>
+        <configuration>
+          <!-- if the used Java version is too new, don't fail, just do nothing: -->
+          <failOnUnsupportedJava>false</failOnUnsupportedJava>
+          <bundledSignatures>
+            <!--
+              This will automatically choose the right
+              signatures based on 'maven.compiler.target':
+            -->
+            <bundledSignature>jdk-unsafe</bundledSignature>
+            <bundledSignature>jdk-deprecated</bundledSignature>
+            <!-- disallow undocumented classes like sun.misc.Unsafe: -->
+            <bundledSignature>jdk-non-portable</bundledSignature>
+          </bundledSignatures>
+          <signaturesFiles>
+            <signaturesFile>${top.dir}/src/main/config/forbidden-apis/signatures.txt</signaturesFile>
+          </signaturesFiles>
+          <excludes>
+            <exclude>**/ParseException.class</exclude>
+            <exclude>**/SimpleCharStream.class</exclude>
+            <exclude>**/*TokenManager.class</exclude>
+            <exclude>**/TokenMgrError.class</exclude>
+            <exclude>**/org/apache/calcite/runtime/Resources$Inst.class</exclude>
+            <exclude>**/org/apache/calcite/util/Unsafe.class</exclude>
+          </excludes>
+        </configuration>
+        <executions>
+          <execution>
+            <goals>
+              <goal>check</goal>
+              <goal>testCheck</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
       <plugin>
         <groupId>org.apache.rat</groupId>
         <artifactId>apache-rat-plugin</artifactId>
@@ -674,6 +712,11 @@ limitations under the License.
           </dependencies>
         </plugin>
         <plugin>
+          <groupId>de.thetaphi</groupId>
+          <artifactId>forbiddenapis</artifactId>
+          <version>${forbiddenapis.version}</version>
+        </plugin>
+        <plugin>
           <groupId>net.hydromatic</groupId>
           <artifactId>hydromatic-resource-maven-plugin</artifactId>
           <version>${hydromatic-resource.version}</version>
@@ -749,7 +792,19 @@ limitations under the License.
             <threadCount>1</threadCount>
             <perCoreThreadCount>true</perCoreThreadCount>
             <parallel>both</parallel>
-            <argLine>-Xmx1536m -XX:MaxPermSize=256m -Duser.timezone=${user.timezone}</argLine>
+            <forkMode>once</forkMode>
+            <systemProperties>
+              <systemProperty>
+                <name>user.language</name>
+                <value>TR</value>
+              </systemProperty>
+              <systemProperty>
+                <name>user.country</name>
+                <value>tr</value>
+              </systemProperty>
+            </systemProperties>
+            <!--<argLine>-Xmx1536m -XX:MaxPermSize=256m -Duser.timezone=${user.timezone} -Duser.country=${user.country} -Duser.language=${user.language}</argLine>-->
+            <argLine>-Xmx1536m -XX:MaxPermSize=256m</argLine>
           </configuration>
         </plugin>
         <plugin>

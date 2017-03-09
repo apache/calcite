@@ -19,6 +19,7 @@ package org.apache.calcite.avatica.remote;
 import org.apache.calcite.avatica.ConnectionProperty;
 
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
 
@@ -42,7 +43,7 @@ public enum AvaticaRemoteConnectionProperty implements ConnectionProperty {
     NAME_TO_PROPS = new HashMap<>();
     for (AvaticaRemoteConnectionProperty p
         : AvaticaRemoteConnectionProperty.values()) {
-      NAME_TO_PROPS.put(p.camelName.toUpperCase(), p);
+      NAME_TO_PROPS.put(p.camelName.toUpperCase(Locale.ROOT), p);
       NAME_TO_PROPS.put(p.name(), p);
     }
   }

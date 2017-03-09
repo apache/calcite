@@ -36,6 +36,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
@@ -54,6 +55,16 @@ class FileRowConverter {
 
   // row parser configuration
   private final List<FieldDef> fields = new ArrayList<>();
+
+  /** Format for parsing numbers. Not thread-safe, but we assume that only
+   * one thread uses this converter at a time. */
+  private final NumberFormat numberFormat =
+      NumberFormat.getInstance(Locale.ROOT);
+
+  /** Format for parsing integers. Not thread-safe, but we assume that only
+   * one thread uses this converter at a time. */
+  private final NumberFormat integerFormat =
+      NumberFormat.getIntegerInstance(Locale.ROOT);
 
   /** Creates a FileRowConverter. */
   FileRowConverter(FileReader fileReader,
@@ -340,43 +351,36 @@ class FileRowConverter {
         return Byte.parseByte(string);
 
       case SHORT:
-
         try {
-          return NumberFormat.getIntegerInstance().parse(string)
-              .shortValue();
+          return integerFormat.parse(string).shortValue();
         } catch (ParseException e) {
           return null;
         }
 
       case INT:
-
         try {
-          return NumberFormat.getIntegerInstance().parse(string)
-              .intValue();
+          return integerFormat.parse(string).intValue();
         } catch (ParseException e) {
           return null;
         }
 
       case LONG:
-
         try {
-          return NumberFormat.getInstance().parse(string).longValue();
+          return numberFormat.parse(string).longValue();
         } catch (ParseException e) {
           return null;
         }
 
       case FLOAT:
-
         try {
-          return NumberFormat.getInstance().parse(string).floatValue();
+          return numberFormat.parse(string).floatValue();
         } catch (ParseException e) {
           return null;
         }
 
       case DOUBLE:
-
         try {
-          return NumberFormat.getInstance().parse(string).doubleValue();
+          return numberFormat.parse(string).doubleValue();
         } catch (ParseException e) {
           return null;
         }

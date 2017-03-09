@@ -27,6 +27,7 @@ import java.nio.charset.CharsetEncoder;
 import java.nio.charset.IllegalCharsetNameException;
 import java.nio.charset.UnsupportedCharsetException;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 
 import static org.apache.calcite.util.Static.RESOURCE;
@@ -63,7 +64,7 @@ public class NlsString implements Comparable<NlsString> {
       SqlCollation collation) {
     assert value != null;
     if (null != charsetName) {
-      charsetName = charsetName.toUpperCase();
+      charsetName = charsetName.toUpperCase(Locale.ROOT);
       this.charsetName = charsetName;
       String javaCharsetName =
           SqlUtil.translateCharacterSetName(charsetName);

@@ -20,6 +20,7 @@ import java.text.NumberFormat;
 import java.text.ParsePosition;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
+import java.util.Locale;
 import java.util.TimeZone;
 
 /**
@@ -48,8 +49,14 @@ public class DateTimeUtils {
   public static final String TIMESTAMP_FORMAT_STRING =
       DATE_FORMAT_STRING + " " + TIME_FORMAT_STRING;
 
-  /** The GMT time zone. */
+  /** The GMT time zone.
+   *
+   * @deprecated Use {@link #UTC_ZONE} */
+  @Deprecated // to be removed before 2.0
   public static final TimeZone GMT_ZONE = TimeZone.getTimeZone("GMT");
+
+  /** The UTC time zone. */
+  public static final TimeZone UTC_ZONE = TimeZone.getTimeZone("UTC");
 
   /** The Java default time zone. */
   public static final TimeZone DEFAULT_ZONE = TimeZone.getDefault();
@@ -85,14 +92,9 @@ public class DateTimeUtils {
   public static final Calendar ZERO_CALENDAR;
 
   static {
-    ZERO_CALENDAR = Calendar.getInstance(DateTimeUtils.GMT_ZONE);
+    ZERO_CALENDAR = Calendar.getInstance(DateTimeUtils.GMT_ZONE, Locale.ROOT);
     ZERO_CALENDAR.setTimeInMillis(0);
   }
-
-  /**
-   * Calendar set to local time.
-   */
-  private static final Calendar LOCAL_CALENDAR = Calendar.getInstance();
 
   //~ Methods ----------------------------------------------------------------
 
@@ -117,11 +119,11 @@ public class DateTimeUtils {
       TimeZone tz,
       ParsePosition pp) {
     assert pattern != null;
-    SimpleDateFormat df = new SimpleDateFormat(pattern);
+    SimpleDateFormat df = new SimpleDateFormat(pattern, Locale.ROOT);
     if (tz == null) {
       tz = DEFAULT_ZONE;
     }
-    Calendar ret = Calendar.getInstance(tz);
+    Calendar ret = Calendar.getInstance(tz, Locale.ROOT);
     df.setCalendar(ret);
     df.setLenient(false);
 
@@ -204,7 +206,7 @@ public class DateTimeUtils {
         if (!secFraction.matches("\\d+")) {
           return null;
         }
-        NumberFormat nf = NumberFormat.getIntegerInstance();
+        NumberFormat nf = NumberFormat.getIntegerInstance(Locale.ROOT);
         Number num = nf.parse(s, pp);
         if ((num == null) || (pp.getIndex() != s.length())) {
           // Invalid decimal portion
@@ -248,7 +250,7 @@ public class DateTimeUtils {
    * @throws IllegalArgumentException if the given pattern is invalid
    */
   public static void checkDateFormat(String pattern) {
-    new SimpleDateFormat(pattern);
+    new SimpleDateFormat(pattern, Locale.ROOT);
   }
 
   /**
@@ -258,7 +260,7 @@ public class DateTimeUtils {
    * @param format {@link SimpleDateFormat}  pattern
    */
   public static SimpleDateFormat newDateFormat(String format) {
-    SimpleDateFormat sdf = new SimpleDateFormat(format);
+    SimpleDateFormat sdf = new SimpleDateFormat(format, Locale.ROOT);
     sdf.setLenient(false);
     return sdf;
   }
@@ -997,6 +999,12 @@ public class DateTimeUtils {
   /** Modulo, always returning a non-negative result. */
   public static long floorMod(long x, long y) {
     return x - floorDiv(x, y) * y;
+  }
+
+  /** Creates an instance of {@link Calendar} in the root locale and UTC time
+   * zone. */
+  public static Calendar calendar() {
+    return Calendar.getInstance(UTC_ZONE, Locale.ROOT);
   }
 
   //~ Inner Classes ----------------------------------------------------------

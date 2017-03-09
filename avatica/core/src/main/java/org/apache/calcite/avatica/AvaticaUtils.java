@@ -37,6 +37,7 @@ import java.util.Set;
 
 /** Avatica utilities. */
 public class AvaticaUtils {
+
   private static final Map<Class, Class> BOX;
 
   private static final MethodHandle SET_LARGE_MAX_ROWS =

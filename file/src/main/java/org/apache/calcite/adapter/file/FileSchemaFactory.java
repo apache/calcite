@@ -43,7 +43,15 @@ public class FileSchemaFactory implements SchemaFactory {
         (List) operand.get("tables");
     final File baseDirectory =
         (File) operand.get(ModelHandler.ExtraOperand.BASE_DIRECTORY.camelName);
-    return new FileSchema(parentSchema, name, baseDirectory, tables);
+    File directoryFile = baseDirectory;
+    final String directory = (String) operand.get("directory");
+    if (baseDirectory != null && directory != null) {
+      directoryFile = new File(directory);
+      if (!directoryFile.isAbsolute()) {
+        directoryFile = new File(baseDirectory, directory);
+      }
+    }
+    return new FileSchema(parentSchema, name, directoryFile, tables);
   }
 }
 

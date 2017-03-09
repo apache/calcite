@@ -1334,11 +1334,11 @@ public class DruidAdapterIT {
         + "and extract(month from \"timestamp\") in (4, 6)\n";
     final String explain = "EnumerableInterpreter\n"
         + "  BindableAggregate(group=[{}], C=[COUNT()])\n"
-        + "    BindableFilter(condition=[AND(>=(/INT(Reinterpret($0), 86400000), 1997-01-01), <(/INT(Reinterpret($0), 86400000), 1998-01-01), >=(/INT(Reinterpret($0), 86400000), 1997-04-01), <(/INT(Reinterpret($0), 86400000), 1997-05-01))])\n"
-        + "      DruidQuery(table=[[foodmart, foodmart]], intervals=[[1900-01-09T00:00:00.000/2992-01-10T00:00:00.000]])";
+        + "    BindableFilter(condition=[AND(>=(/INT(Reinterpret($0), 86400000), 1997-01-01), <(/INT(Reinterpret($0), 86400000), 1998-01-01), OR(AND(>=(/INT(Reinterpret($0), 86400000), 1997-04-01), <(/INT(Reinterpret($0), 86400000), 1997-05-01)), AND(>=(/INT(Reinterpret($0), 86400000), 1997-06-01), <(/INT(Reinterpret($0), 86400000), 1997-07-01))))])\n"
+        + "      DruidQuery(table=[[foodmart, foodmart]], intervals=[[1900-01-09T00:00:00.000/2992-01-10T00:00:00.000]], projects=[[$0]])";
     sql(sql)
         .explainContains(explain)
-        .returnsUnordered("C=6588");
+        .returnsUnordered("C=13500");
   }
 
   @Test public void testFilterSwapped() {
@@ -1368,6 +1368,45 @@ public class DruidAdapterIT {
     sql(sql, WIKI)
         .returnsCount(9);
   }
+
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1656">[CALCITE-1656]
+   * Improve cost function in DruidQuery to encourage early column
+   * pruning</a>. */
+  @Test public void testFieldBasedCostColumnPruning() {
+    // A query where filter cannot be pushed to Druid but
+    // the project can still be pushed in order to prune extra columns.
+    String sql = "select \"countryName\", floor(\"time\" to DAY),\n"
+        + "  cast(count(*) as integer) as c\n"
+        + "from \"wiki\"\n"
+        + "where floor(\"time\" to DAY) >= '1997-01-01 00:00:00'\n"
+        + "and floor(\"time\" to DAY) < '1997-09-01 00:00:00'\n"
+        + "group by \"countryName\", floor(\"time\" TO DAY)\n"
+        + "order by c limit 5";
+
+    String plan = "BindableProject(countryName=[$0], EXPR$1=[$1], C=[CAST($2):INTEGER NOT NULL])\n"
+        + "    BindableSort(sort0=[$2], dir0=[ASC], fetch=[5])\n"
+        + "      BindableAggregate(group=[{0, 1}], agg#0=[COUNT()])\n"
+        + "        BindableProject(countryName=[$1], EXPR$1=[FLOOR($0, FLAG(DAY))])\n"
+        + "          BindableFilter(condition=[AND(>=(FLOOR($0, FLAG(DAY)), 1997-01-01 00:00:00), <(FLOOR($0, FLAG(DAY)), 1997-09-01 00:00:00))])\n"
+        + "            DruidQuery(table=[[wiki, wiki]], intervals=[[1900-01-09T00:00:00.000/2992-01-10T00:00:00.000]], projects=[[$0, $5]])";
+
+    // NOTE: Druid query only has countryName as the dimension
+    // being queried after project is pushed to druid query.
+    String druidQuery = "{\"queryType\":\"select\","
+        + "\"dataSource\":\"wikiticker\","
+        + "\"descending\":false,"
+        + "\"intervals\":[\"1900-01-09T00:00:00.000/2992-01-10T00:00:00.000\"],"
+        + "\"dimensions\":[\"countryName\"],"
+        + "\"metrics\":[],"
+        + "\"granularity\":\"all\","
+        + "\"pagingSpec\":{\"threshold\":16384,\"fromNext\":true},"
+        + "\"context\":{\"druid.query.fetch\":false}}";
+    sql(sql, WIKI).explainContains(plan);
+    sql(sql, WIKI).queryContains(druidChecker(druidQuery));
+  }
+
 }
 
 // End DruidAdapterIT.java

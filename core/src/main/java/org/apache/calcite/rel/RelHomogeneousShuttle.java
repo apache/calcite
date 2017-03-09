@@ -24,6 +24,7 @@ import org.apache.calcite.rel.logical.LogicalExchange;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalIntersect;
 import org.apache.calcite.rel.logical.LogicalJoin;
+import org.apache.calcite.rel.logical.LogicalMatch;
 import org.apache.calcite.rel.logical.LogicalMinus;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.logical.LogicalSort;
@@ -37,6 +38,10 @@ import org.apache.calcite.rel.logical.LogicalValues;
 public class RelHomogeneousShuttle extends RelShuttleImpl {
   @Override public RelNode visit(LogicalAggregate aggregate) {
     return visit((RelNode) aggregate);
+  }
+
+  @Override public RelNode visit(LogicalMatch match) {
+    return visit((RelNode) match);
   }
 
   @Override public RelNode visit(TableScan scan) {

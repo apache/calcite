@@ -37,6 +37,7 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.util.Holder;
 import org.apache.calcite.util.NlsString;
+import org.apache.calcite.util.Util;
 
 import org.junit.Ignore;
 import org.junit.Test;
@@ -177,7 +178,7 @@ public class RexImplicationCheckerTest {
   @Ignore("work in progress")
   @Test public void testSimpleDate() {
     final Fixture f = new Fixture();
-    final Calendar instance = Calendar.getInstance();
+    final Calendar instance = Util.calendar();
     final RexNode node1 = f.ge(f.dt, f.rexBuilder.makeDateLiteral(instance));
     final RexNode node2 = f.eq(f.dt, f.rexBuilder.makeDateLiteral(instance));
 
@@ -188,7 +189,7 @@ public class RexImplicationCheckerTest {
   @Ignore("work in progress")
   @Test public void testSimpleTimeStamp() {
     final Fixture f = new Fixture();
-    final Calendar calendar = Calendar.getInstance();
+    final Calendar calendar = Util.calendar();
     final RexNode node1 = f.le(f.ts, f.timestampLiteral(calendar));
     final RexNode node2 = f.le(f.ts, f.timestampLiteral(calendar));
 
@@ -199,7 +200,7 @@ public class RexImplicationCheckerTest {
   @Ignore("work in progress")
   @Test public void testSimpleTime() {
     final Fixture f = new Fixture();
-    final Calendar calendar = Calendar.getInstance();
+    final Calendar calendar = Util.calendar();
     final RexNode node1 = f.le(f.ts, f.timeLiteral(calendar));
     final RexNode node2 = f.le(f.ts, f.timeLiteral(calendar));
 

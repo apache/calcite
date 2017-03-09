@@ -46,7 +46,8 @@ public enum SqlFunctionCategory {
       USER_DEFINED, TABLE_FUNCTION),
   USER_DEFINED_TABLE_SPECIFIC_FUNCTION("TABLE_UDF_SPECIFIC",
       "User-defined table function with SPECIFIC name", USER_DEFINED,
-      TABLE_FUNCTION, SPECIFIC);
+      TABLE_FUNCTION, SPECIFIC),
+  MATCH_RECOGNIZE("MATCH_RECOGNIZE", "MATCH_RECOGNIZE function", TABLE_FUNCTION);
 
   private final EnumSet<Property> properties;
 

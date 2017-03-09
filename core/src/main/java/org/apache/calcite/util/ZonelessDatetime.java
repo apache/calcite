@@ -21,6 +21,7 @@ import org.apache.calcite.avatica.util.DateTimeUtils;
 import java.io.Serializable;
 import java.text.DateFormat;
 import java.util.Calendar;
+import java.util.Locale;
 import java.util.TimeZone;
 
 /**
@@ -171,7 +172,7 @@ public abstract class ZonelessDatetime implements BasicDatetime, Serializable {
    */
   protected Calendar getCalendar(TimeZone zone) {
     if (tempCal == null) {
-      tempCal = Calendar.getInstance(zone);
+      tempCal = Calendar.getInstance(zone, Locale.ROOT);
     } else {
       tempCal.setTimeZone(zone);
     }

@@ -32,9 +32,11 @@ import org.eclipse.jetty.server.handler.DefaultHandler;
 
 import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileWriter;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStreamWriter;
 import java.net.ServerSocket;
+import java.nio.charset.StandardCharsets;
 import java.security.AccessController;
 import java.security.Principal;
 import java.security.PrivilegedAction;
@@ -99,7 +101,11 @@ public class SpnegoTestUtil {
    */
   public static void writeSpnegoConf(File configFile, File serverKeytab)
       throws Exception {
-    try (BufferedWriter writer = new BufferedWriter(new FileWriter(configFile))) {
+    try (BufferedWriter writer =
+             new BufferedWriter(
+                 new OutputStreamWriter(
+                     new FileOutputStream(configFile),
+                     StandardCharsets.UTF_8))) {
       // Server login
       writer.write("com.sun.security.jgss.accept {\n");
       writer.write(" com.sun.security.auth.module.Krb5LoginModule required\n");

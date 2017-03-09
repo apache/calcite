@@ -36,8 +36,8 @@ You can then write a query like:
 
 {% highlight sql %}
 select
-	count(*) "City Count",
-	sum(100 * c."Population" / s."Population") "Pct State Population"
+    count(*) "City Count",
+    sum(100 * c."Population" / s."Population") "Pct State Population"
 from "Cities" c, "States" s
 where c."State" = s."State" and s."State" = 'California';
 {% endhighlight %}
@@ -148,7 +148,7 @@ sqlline> select * from sales.emps;
 | 120   | 20     | Wilma |
 | 130   | 40     | Alice |
 +-------+--------+------+
-5 rows selected 
+5 rows selected
 {% endhighlight %}
 
 # Mapping tables
@@ -162,8 +162,8 @@ Tables can be simply defined for immediate gratification:
 
 {% highlight json %}
 {
-	tableName: "RawCities",
-	url: "http://en.wikipedia.org/wiki/List_of_United_States_cities_by_population"
+  tableName: "RawCities",
+  url: "http://en.wikipedia.org/wiki/List_of_United_States_cities_by_population"
 }
 {% endhighlight %}
 
@@ -171,21 +171,21 @@ And subsequently refined for better usability / querying:
 
 {% highlight json %}
 {
-	tableName: "Cities",
-	url: "http://en.wikipedia.org/wiki/List_of_United_States_cities_by_population",
-	path: "#mw-content-text > table.wikitable.sortable",
-	index: 0,
-	fieldDefs: [
-	  {th: "2012 rank", name: "Rank", type: "int", pattern: "(\\d+)", matchGroup: 0},
-	  {th: "City", selector: "a", selectedElement: 0},
-	  {th: "State[5]", name: "State", selector: "a:eq(0)"},
-	  {th: "2012 estimate", name: "Population", type: "double"},
-	  {th: "2010 Census", skip: "true"},
-	  {th: "Change", skip: "true"},
-	  {th: "2012 land area", name: "Land Area (sq mi)", type: "double", selector: ":not(span)"},
-	  {th: "2012 population density", skip: "true"},
-	  {th: "ANSI", skip: "true"}
-	]
+  tableName: "Cities",
+  url: "http://en.wikipedia.org/wiki/List_of_United_States_cities_by_population",
+  path: "#mw-content-text > table.wikitable.sortable",
+  index: 0,
+  fieldDefs: [
+    {th: "2012 rank", name: "Rank", type: "int", pattern: "(\\d+)", matchGroup: 0},
+    {th: "City", selector: "a", selectedElement: 0},
+    {th: "State[5]", name: "State", selector: "a:eq(0)"},
+    {th: "2012 estimate", name: "Population", type: "double"},
+    {th: "2010 Census", skip: "true"},
+    {th: "Change", skip: "true"},
+    {th: "2012 land area", name: "Land Area (sq mi)", type: "double", selector: ":not(span)"},
+    {th: "2012 population density", skip: "true"},
+    {th: "ANSI", skip: "true"}
+  ]
 }
 {% endhighlight %}
 

@@ -21,6 +21,7 @@ import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.NavigableMap;
 import java.util.TreeMap;
@@ -75,7 +76,8 @@ public class NameMultimap<V> {
       final ImmutableList.Builder<Map.Entry<String, V>> builder =
           ImmutableList.builder();
       NavigableMap<String, List<V>> m =
-          map.subMap(name.toUpperCase(), true, name.toLowerCase(), true);
+          map.subMap(name.toUpperCase(Locale.ROOT), true,
+              name.toLowerCase(Locale.ROOT), true);
       for (Map.Entry<String, List<V>> entry : m.entrySet()) {
         for (V v : entry.getValue()) {
           builder.add(Pair.of(entry.getKey(), v));

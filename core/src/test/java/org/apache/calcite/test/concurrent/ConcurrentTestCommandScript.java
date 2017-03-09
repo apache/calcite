@@ -17,14 +17,13 @@
 package org.apache.calcite.test.concurrent;
 
 import org.apache.calcite.jdbc.SqlTimeoutException;
+import org.apache.calcite.util.Unsafe;
 import org.apache.calcite.util.Util;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileReader;
 import java.io.IOException;
-import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.io.StringReader;
 import java.io.StringWriter;
@@ -43,6 +42,7 @@ import java.util.Arrays;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
 import java.util.StringTokenizer;
@@ -440,12 +440,13 @@ public class ConcurrentTestCommandScript
    * translates argument of !set force etc.
    */
   private boolean asBoolValue(String s) {
-    s = s.toLowerCase();
-    return s.equals("true") || s.equals("yes") || s.equals("on");
+    return s.equalsIgnoreCase("true")
+        || s.equalsIgnoreCase("yes")
+        || s.equalsIgnoreCase("on");
   }
 
   /**
-   * Determines if a block of SQL is a select statment or not.
+   * Determines whether a block of SQL is a SELECT statement.
    */
   private boolean isSelect(String sql) {
     BufferedReader rdr = new BufferedReader(new StringReader(sql));
@@ -453,7 +454,7 @@ public class ConcurrentTestCommandScript
     try {
       String line;
       while ((line = rdr.readLine()) != null) {
-        line = line.trim().toLowerCase();
+        line = line.trim().toLowerCase(Locale.ROOT);
         if (isComment(line)) {
           continue;
         }
@@ -520,11 +521,11 @@ public class ConcurrentTestCommandScript
     }
   }
 
-  public void printResults(BufferedWriter out) throws IOException {
+  public void printResults(PrintWriter out) throws IOException {
     final Map<Integer, String[]> results = collectResults();
     if (verbose) {
       out.write(
-          String.format(
+          String.format(Locale.ROOT,
               "script execution started at %tc (%d)%n",
               new Timestamp(scriptStartTime), scriptStartTime));
     }
@@ -538,18 +539,18 @@ public class ConcurrentTestCommandScript
     printThreadResults(out, results.get(CLEANUP_THREAD_ID));
   }
 
-  private void printThreadResults(BufferedWriter out, String[] threadResult)
+  private void printThreadResults(PrintWriter out, String[] threadResult)
       throws IOException {
     if (threadResult == null) {
       return;
     }
     String threadName = threadResult[0];
     out.write("-- " + threadName);
-    out.newLine();
+    out.println();
     out.write(threadResult[1]);
     out.write("-- end of " + threadName);
-    out.newLine();
-    out.newLine();
+    out.println();
+    out.println();
     out.flush();
   }
 
@@ -848,7 +849,7 @@ public class ConcurrentTestCommandScript
     private void load(String scriptFileName) throws IOException {
       File scriptFile = new File(currentDirectory.peek(), scriptFileName);
       currentDirectory.push(scriptDirectory = scriptFile.getParentFile());
-      try (BufferedReader in = new BufferedReader(new FileReader(scriptFile))) {
+      try (BufferedReader in = Util.reader(scriptFile)) {
         String line;
         while ((line = in.readLine()) != null) {
           line = line.trim();
@@ -1891,8 +1892,7 @@ public class ConcurrentTestCommandScript
           out.println();
         }
         if (verbose) {
-          out.printf(
-              "fetch started at %tc %d, %s at %tc %d%n",
+          out.printf(Locale.ROOT, "fetch started at %tc %d, %s at %tc %d%n",
               startTime, startTime,
               timedOut ? "timeout" : "eos",
               endTime, endTime);
@@ -1903,20 +1903,19 @@ public class ConcurrentTestCommandScript
             dt -= timeout;
           }
           assert dt >= 0;
-          out.printf(
-              "fetched %d rows in %d msecs %s%n",
+          out.printf(Locale.ROOT, "fetched %d rows in %d msecs %s%n",
               rowCount, dt, timedOut ? "(timeout)" : "(end)");
         }
       }
     }
 
     private void printRowCount(int count) {
-      out.printf("(%06d) ", count);
+      out.printf(Locale.ROOT, "(%06d) ", count);
     }
 
     private void printTimestamp(long time) {
       time -= baseTime;
-      out.printf("(% 4d.%03d) ", time / 1000, time % 1000);
+      out.printf(Locale.ROOT, "(% 4d.%03d) ", time / 1000, time % 1000);
     }
 
     // indent a heading or separator line to match a row-values line
@@ -2003,7 +2002,7 @@ public class ConcurrentTestCommandScript
 
     // returns 0 on success, 1 on error, 2 on bad invocation.
     public int run(String[] args) {
-      try {
+      try (final PrintWriter w = Util.printWriter(System.out)) {
         if (!parseCommand(args)) {
           usage();
           return 2;
@@ -2018,8 +2017,6 @@ public class ConcurrentTestCommandScript
           jdbcProps.setProperty("password", password);
         }
 
-        BufferedWriter cout =
-            new BufferedWriter(new OutputStreamWriter(System.out));
         for (String file : files) {
           ConcurrentTestCommandScript script =
               new ConcurrentTestCommandScript();
@@ -2032,7 +2029,7 @@ public class ConcurrentTestCommandScript
             script.execute();
           } finally {
             if (!quiet) {
-              script.printResults(cout);
+              script.printResults(w);
             }
           }
         }
@@ -2109,7 +2106,7 @@ public class ConcurrentTestCommandScript
    */
   public static void main(String[] args) {
     int status = new Tool().run(args);
-    System.exit(status);
+    Unsafe.systemExit(status);
   }
 }
 

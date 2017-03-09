@@ -139,6 +139,7 @@ joinCondition:
 
 tableReference:
       tablePrimary
+      [ matchRecognize ]
       [ [ AS ] alias [ '(' columnAlias [, columnAlias ]* ')' ] ]
 
 tablePrimary:
@@ -359,6 +360,7 @@ DECADE,
 DEFAULTS,
 DEFERRABLE,
 DEFERRED,
+**DEFINE**,
 DEFINED,
 DEFINER,
 DEGREE,
@@ -495,6 +497,7 @@ M,
 MAP,
 **MATCH**,
 MATCHED,
+**MATCH_RECOGNIZE**,
 **MAX**,
 MAXVALUE,
 **MEMBER**,
@@ -572,9 +575,11 @@ PARTIAL,
 PASCAL,
 PASSTHROUGH,
 PATH,
+**PATTERN**,
 **PERCENTILE_CONT**,
 **PERCENTILE_DISC**,
 **PERCENT_RANK**,
+**PERMUTE**,
 PLACING,
 PLAN,
 PLI,
@@ -584,6 +589,7 @@ PRECEDING,
 **PRECISION**,
 **PREPARE**,
 PRESERVE,
+**PREV**,
 **PRIMARY**,
 PRIOR,
 PRIVILEGES,
@@ -635,6 +641,7 @@ ROUTINE_SCHEMA,
 **ROWS**,
 ROW_COUNT,
 **ROW_NUMBER**,
+**RUNNING**,
 **SAVEPOINT**,
 SCALE,
 SCHEMA,
@@ -929,8 +936,8 @@ The operator precedence and associativity, highest to lowest.
 | string1 NOT LIKE string2 [ ESCAPE string3 ]       | Whether *string1* does not match pattern *string2*
 | string1 SIMILAR TO string2 [ ESCAPE string3 ]     | Whether *string1* matches regular expression *string2*
 | string1 NOT SIMILAR TO string2 [ ESCAPE string3 ] | Whether *string1* does not match regular expression *string2*
-| value IN (value [, value]* )                      | Whether *value* is equal to a value in a list
-| value NOT IN (value [, value]* )                  | Whether *value* is not equal to every value in a list
+| value IN (value [, value]*)                       | Whether *value* is equal to a value in a list
+| value NOT IN (value [, value]*)                   | Whether *value* is not equal to every value in a list
 | value IN (sub-query)                              | Whether *value* is equal to a row returned by *sub-query*
 | value NOT IN (sub-query)                          | Whether *value* is not equal to every row returned by *sub-query*
 | EXISTS (sub-query)                                | Whether *sub-query* returns at least one row
@@ -1075,7 +1082,7 @@ Not implemented:
 | CASE value<br/>WHEN value1 [, value11 ]* THEN result1<br/>[ WHEN valueN [, valueN1 ]* THEN resultN ]*<br/>[ ELSE resultZ ]<br/> END | Simple case
 | CASE<br/>WHEN condition1 THEN result1<br/>[ WHEN conditionN THEN resultN ]*<br/>[ ELSE resultZ ]<br/>END | Searched case
 | NULLIF(value, value) | Returns NULL if the values are the same.<br/><br/>For example, <code>NULLIF(5, 5)</code> returns NULL; <code>NULLIF(5, 0)</code> returns 5.
-| COALESCE(value, value [, value ]* ) | Provides a value if the first value is null.<br/><br/>For example, <code>COALESCE(NULL, 5)</code> returns 5.
+| COALESCE(value, value [, value ]*) | Provides a value if the first value is null.<br/><br/>For example, <code>COALESCE(NULL, 5)</code> returns 5.
 
 ### Type conversion
 
@@ -1087,8 +1094,8 @@ Not implemented:
 
 | Operator syntax | Description
 |:--------------- |:-----------
-| ROW (value [, value]* ) | Creates a row from a list of values.
-| (value [, value]* )     | Creates a row from a list of values.
+| ROW (value [, value ]*)  | Creates a row from a list of values.
+| (value [, value ]* )     | Creates a row from a list of values.
 | map '[' key ']'     | Returns the element of a map with a particular key.
 | array '[' index ']' | Returns the element at a particular location in an array.
 | ARRAY '[' value [, value ]* ']' | Creates an array from a list of values.
@@ -1205,8 +1212,8 @@ Syntax:
 
 {% highlight sql %}
 aggregateCall:
-        agg( [ DISTINCT ] value [, value]* ) [ FILTER ( WHERE condition ) ]
-    |   agg(*) [ FILTER ( WHERE condition ) ]
+        agg( [ ALL | DISTINCT ] value [, value ]*) [ FILTER (WHERE condition) ]
+    |   agg(*) [ FILTER (WHERE condition) ]
 {% endhighlight %}
 
 If `FILTER` is present, the aggregate function only considers rows for which
@@ -1217,17 +1224,17 @@ passed to the aggregate function.
 
 | Operator syntax                    | Description
 |:---------------------------------- |:-----------
-| COLLECT( [ DISTINCT ] value)       | Returns a multiset of the values
-| COUNT( [ DISTINCT ] value [, value]* ) | Returns the number of input rows for which *value* is not null (wholly not null if *value* is composite)
+| COLLECT( [ ALL &#124; DISTINCT ] value)       | Returns a multiset of the values
+| COUNT( [ ALL &#124; DISTINCT ] value [, value ]*) | Returns the number of input rows for which *value* is not null (wholly not null if *value* is composite)
 | COUNT(*)                           | Returns the number of input rows
-| AVG( [ DISTINCT ] numeric)         | Returns the average (arithmetic mean) of *numeric* across all input values
-| SUM( [ DISTINCT ] numeric)         | Returns the sum of *numeric* across all input values
-| MAX( [ DISTINCT ] value)           | Returns the maximum value of *value* across all input values
-| MIN( [ DISTINCT ] value)           | Returns the minimum value of *value* across all input values
-| STDDEV_POP( [ DISTINCT ] numeric)  | Returns the population standard deviation of *numeric* across all input values
-| STDDEV_SAMP( [ DISTINCT ] numeric) | Returns the sample standard deviation of *numeric* across all input values
-| VAR_POP( [ DISTINCT ] value)       | Returns the population variance (square of the population standard deviation) of *numeric* across all input values
-| VAR_SAMP( [ DISTINCT ] numeric)    | Returns the sample variance (square of the sample standard deviation) of *numeric* across all input values
+| AVG( [ ALL &#124; DISTINCT ] numeric)         | Returns the average (arithmetic mean) of *numeric* across all input values
+| SUM( [ ALL &#124; DISTINCT ] numeric)         | Returns the sum of *numeric* across all input values
+| MAX( [ ALL &#124; DISTINCT ] value)           | Returns the maximum value of *value* across all input values
+| MIN( [ ALL &#124; DISTINCT ] value)           | Returns the minimum value of *value* across all input values
+| STDDEV_POP( [ ALL &#124; DISTINCT ] numeric)  | Returns the population standard deviation of *numeric* across all input values
+| STDDEV_SAMP( [ ALL &#124; DISTINCT ] numeric) | Returns the sample standard deviation of *numeric* across all input values
+| VAR_POP( [ ALL &#124; DISTINCT ] value)       | Returns the population variance (square of the population standard deviation) of *numeric* across all input values
+| VAR_SAMP( [ ALL &#124; DISTINCT ] numeric)    | Returns the sample variance (square of the sample standard deviation) of *numeric* across all input values
 | COVAR_POP(numeric1, numeric2)      | Returns the population covariance of the pair (*numeric1*, *numeric2*) across all input values
 | COVAR_SAMP(numeric1, numeric2)     | Returns the sample covariance of the pair (*numeric1*, *numeric2*) across all input values
 | REGR_SXX(numeric1, numeric2)       | Returns the sum of squares of the dependent expression in a linear regression model
@@ -1247,7 +1254,7 @@ Not implemented:
 
 | Operator syntax                           | Description
 |:----------------------------------------- |:-----------
-| COUNT(value [, value ]* ) OVER window     | Returns the number of rows in *window* for which *value* is not null (wholly not null if *value* is composite)
+| COUNT(value [, value ]*) OVER window     | Returns the number of rows in *window* for which *value* is not null (wholly not null if *value* is composite)
 | COUNT(*) OVER window                      | Returns the number of rows in *window*
 | AVG(numeric) OVER window                  | Returns the average (arithmetic mean) of *numeric* across all values in *window*
 | SUM(numeric) OVER window                  | Returns the sum of *numeric* across all values in *window*
@@ -1275,9 +1282,9 @@ Not implemented:
 
 | Operator syntax      | Description
 |:-------------------- |:-----------
-| GROUPING(expression [, expression ] * ) | Returns a bit vector of the given grouping expressions
+| GROUPING(expression [, expression ]*) | Returns a bit vector of the given grouping expressions
 | GROUP_ID()           | Returns an integer that uniquely identifies the combination of grouping keys
-| GROUPING_ID(expression [, expression ] * ) | Synonym for `GROUPING`
+| GROUPING_ID(expression [, expression ]*) | Synonym for `GROUPING`
 
 ### Grouped window functions
 
@@ -1425,4 +1432,75 @@ Here are some examples:
 * `f(c => 3, d => 1, a => 0)` is equivalent to `f(0, NULL, 3, 1, NULL)`;
 * `f(c => 3, d => 1)` is not legal, because you have not specified a value for
   `a` and `a` is not optional.
+```
 
+### MATCH_RECOGNIZE
+
+`MATCH_RECOGNIZE` is a SQL extension for recognizing sequences of
+events in complex event processing (CEP).
+
+It is experimental in Calcite, and yet not fully implemented.
+
+#### Syntax
+
+{% highlight sql %}
+matchRecognize:
+      MATCH_RECOGNIZE '('
+      [ PARTITION BY expression [, expression ]* ]
+      [ ORDER BY orderItem [, orderItem ]* ]
+      [ MEASURES measureColumn [, measureColumn ]* ]
+      [ ON ROW PER MATCH | ALL ROWS PER MATCH ]
+      [ AFTER MATCH
+            ( SKIP TO NEXT ROW
+            | SKIP PAST LAST ROW
+            | SKIP TO FIRST variable
+            | SKIP TO LAST variable
+            | SKIP TO variable )
+      ]
+      PATTERN '(' pattern ')'
+      [ SUBSET variable [, variable ]* ]
+      DEFINE variable AS condition [, variable AS condition ]*
+      ')'
+
+measureColumn:
+      expression AS alias
+
+pattern:
+      patternTerm ['|' patternTerm ]*
+
+patternTerm:
+      patternFactor [ patternFactor ]*
+
+patternFactor:
+      patternPrimary [ patternQuantifier ]
+
+patternPrimary:
+      variable
+  |   '$'
+  |   '^'
+  |   '(' [ pattern ] ')'
+  |   '{-' pattern '-}'
+  |   PERMUTE '(' pattern [, pattern ]* ')'
+
+patternQuantifier:
+      '*'
+  |   '*?'
+  |   '+'
+  |   '+?'
+  |   '?'
+  |   '??'
+  |   '{' { [ minRepeat ], [ maxRepeat ] } '}' ['?']
+  |   '{' repeat '}'
+{% endhighlight %}
+
+In *patternQuantifier*, *repeat* is a positive integer,
+and *minRepeat* and *maxRepeat* are non-negative integers.
+
+The following clauses are not implemented:
+
+* `PARTITION BY`
+* `ORDER BY`
+* `MEASURES`
+* `ON ROW PER MATCH`, `ALL ROWS PER MATCH`
+* `AFTER MATCH`
+* `SUBSET`

@@ -118,7 +118,10 @@ class CsvEnumerator<E> implements Enumerator<E> {
     }
     try {
       reader = openCsv(source);
-      final String[] strings = reader.readNext();
+      String[] strings = reader.readNext();
+      if (strings == null) {
+        strings = new String[] {"EmptyFileHasNoColumns:boolean"};
+      }
       for (String string : strings) {
         final String name;
         final CsvFieldType fieldType;

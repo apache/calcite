@@ -27,6 +27,7 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
 import java.util.List;
+import java.util.Locale;
 import java.util.regex.Pattern;
 
 /**
@@ -183,7 +184,8 @@ public class SqlDialect {
   public static DatabaseProduct getProduct(
       String productName,
       String productVersion) {
-    final String upperProductName = productName.toUpperCase().trim();
+    final String upperProductName =
+        productName.toUpperCase(Locale.ROOT).trim();
     switch (upperProductName) {
     case "ACCESS":
       return DatabaseProduct.ACCESS;
@@ -470,7 +472,8 @@ public class SqlDialect {
   public String quoteTimestampLiteral(Timestamp timestamp) {
     final SimpleDateFormat format =
         new SimpleDateFormat(
-            "'TIMESTAMP' ''yyyy-MM-DD HH:mm:SS''");
+            "'TIMESTAMP' ''yyyy-MM-DD HH:mm:SS''",
+            Locale.ROOT);
     format.setTimeZone(DateTimeUtils.GMT_ZONE);
     return format.format(timestamp);
   }

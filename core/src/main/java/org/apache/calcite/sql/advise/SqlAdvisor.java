@@ -44,6 +44,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 
 /**
  * An assistant which offers hints and corrections to a partially-formed SQL
@@ -54,7 +55,8 @@ public class SqlAdvisor {
 
   public static final Logger LOGGER = CalciteTrace.PARSER_LOGGER;
   private static final String HINT_TOKEN = "_suggest_";
-  private static final String UPPER_HINT_TOKEN = HINT_TOKEN.toUpperCase();
+  private static final String UPPER_HINT_TOKEN =
+      HINT_TOKEN.toUpperCase(Locale.ROOT);
 
   //~ Instance fields --------------------------------------------------------
 

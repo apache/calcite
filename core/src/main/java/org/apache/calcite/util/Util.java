@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.util;
 
+import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.avatica.util.Spaces;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.runtime.CalciteException;
@@ -43,10 +44,16 @@ import org.slf4j.Logger;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.io.OutputStreamWriter;
 import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.io.Reader;
@@ -60,6 +67,7 @@ import java.math.BigDecimal;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -70,6 +78,7 @@ import java.util.AbstractMap;
 import java.util.AbstractSet;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Calendar;
 import java.util.Collection;
 import java.util.Enumeration;
 import java.util.HashMap;
@@ -619,7 +628,8 @@ public class Util {
    */
   @Deprecated // to be removed before 2.0
   public static String getFileTimestamp() {
-    SimpleDateFormat sdf = new SimpleDateFormat(FILE_TIMESTAMP_FORMAT);
+    SimpleDateFormat sdf =
+        new SimpleDateFormat(FILE_TIMESTAMP_FORMAT, Locale.ROOT);
     return sdf.format(new java.util.Date());
   }
 
@@ -1304,13 +1314,13 @@ public class Util {
    */
   public static String toPosix(TimeZone tz, boolean verbose) {
     StringBuilder buf = new StringBuilder();
-    buf.append(tz.getDisplayName(false, TimeZone.SHORT));
+    buf.append(tz.getDisplayName(false, TimeZone.SHORT, Locale.ROOT));
     appendPosixTime(buf, tz.getRawOffset());
     final int dstSavings = tz.getDSTSavings();
     if (dstSavings == 0) {
       return buf.toString();
     }
-    buf.append(tz.getDisplayName(true, TimeZone.SHORT));
+    buf.append(tz.getDisplayName(true, TimeZone.SHORT, Locale.ROOT));
     if (verbose || (dstSavings != 3600000)) {
       // POSIX allows us to omit DST offset if it is 1:00:00
       appendPosixTime(buf, dstSavings);
@@ -2366,6 +2376,48 @@ public class Util {
       builder.add(ImmutableList.copyOf(list));
     }
     return builder.build();
+  }
+
+  /** Creates a {@link PrintWriter} to a given output stream using UTF-8
+   * character set.
+   *
+   * <p>Does not use the default character set. */
+  public static PrintWriter printWriter(OutputStream out) {
+    return new PrintWriter(
+        new BufferedWriter(
+            new OutputStreamWriter(out, StandardCharsets.UTF_8)));
+  }
+
+  /** Creates a {@link PrintWriter} to a given file using UTF-8
+   * character set.
+   *
+   * <p>Does not use the default character set. */
+  public static PrintWriter printWriter(File file)
+      throws FileNotFoundException {
+    return printWriter(new FileOutputStream(file));
+  }
+
+  /** Creates a {@link BufferedReader} to a given input stream using UTF-8
+   * character set.
+   *
+   * <p>Does not use the default character set. */
+  public static BufferedReader reader(InputStream in) {
+    return new BufferedReader(
+        new InputStreamReader(in, StandardCharsets.UTF_8));
+  }
+
+  /** Creates a {@link BufferedReader} to read a given file using UTF-8
+   * character set.
+   *
+   * <p>Does not use the default character set. */
+  public static BufferedReader reader(File file) throws FileNotFoundException {
+    return reader(new FileInputStream(file));
+  }
+
+  /** Creates a {@link Calendar} in the GMT time zone and root locale.
+   * Does not use the time zone or locale. */
+  public static Calendar calendar() {
+    return Calendar.getInstance(DateTimeUtils.GMT_ZONE, Locale.ROOT);
   }
 
   //~ Inner Classes ----------------------------------------------------------

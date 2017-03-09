@@ -40,6 +40,7 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.runtime.PredicateImpl;
+import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Pair;
@@ -88,23 +89,21 @@ public class DruidRules {
             case SUM0:
             case MIN:
             case MAX:
-              switch (aggregateCall.getType().getSqlTypeName().getFamily()) {
-              case APPROXIMATE_NUMERIC:
-              case INTEGER:
+              final RelDataType type = aggregateCall.getType();
+              final SqlTypeName sqlTypeName = type.getSqlTypeName();
+              if (SqlTypeFamily.APPROXIMATE_NUMERIC.getTypeNames().contains(sqlTypeName)
+                      || SqlTypeFamily.INTEGER.getTypeNames().contains(sqlTypeName)) {
                 continue;
-              case EXACT_NUMERIC:
+              } else if (SqlTypeFamily.EXACT_NUMERIC.getTypeNames().contains(sqlTypeName)) {
                 // Decimal
-                RelDataType type = aggregateCall.getType();
-                assert type.getSqlTypeName() == SqlTypeName.DECIMAL;
+                assert sqlTypeName == SqlTypeName.DECIMAL;
                 if (type.getScale() == 0 || config.approximateDecimal()) {
                   // If scale is zero or we allow approximating decimal, we can proceed
                   continue;
                 }
-                return true;
-              default:
-                // Cannot handle this aggregate function
-                return true;
               }
+              // Cannot handle this aggregate function
+              return true;
             default:
               // Cannot handle this aggregate function
               return true;

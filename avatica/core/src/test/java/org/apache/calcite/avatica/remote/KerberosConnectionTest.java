@@ -22,6 +22,7 @@ import org.junit.Test;
 import org.mockito.Mockito;
 
 import java.io.File;
+import java.util.Locale;
 import java.util.Map.Entry;
 
 import javax.security.auth.Subject;
@@ -135,7 +136,8 @@ public class KerberosConnectionTest {
     end = start + 1000 * 60 * 60 * 24;
     // Ten minutes prior to expiration
     now = end - 1000 * 60 * 10;
-    assertTrue(String.format("start=%d, end=%d, now=%d", start, end, now),
+    assertTrue(
+        String.format(Locale.ROOT, "start=%d, end=%d, now=%d", start, end, now),
         renewal.shouldRenew(start, end, now));
   }
 }

@@ -20,6 +20,7 @@ import org.apache.calcite.avatica.remote.AvaticaHttpClientFactoryImpl;
 
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
@@ -90,7 +91,7 @@ public enum BuiltInConnectionProperty implements ConnectionProperty {
   static {
     NAME_TO_PROPS = new HashMap<>();
     for (BuiltInConnectionProperty p : BuiltInConnectionProperty.values()) {
-      NAME_TO_PROPS.put(p.camelName.toUpperCase(), p);
+      NAME_TO_PROPS.put(p.camelName.toUpperCase(Locale.ROOT), p);
       NAME_TO_PROPS.put(p.name(), p);
     }
 

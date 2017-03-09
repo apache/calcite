@@ -88,6 +88,10 @@ public class RexShuttle implements RexVisitor<RexNode> {
     }
   }
 
+  @Override public RexNode visitPatternFieldRef(RexPatternFieldRef fieldRef) {
+    return fieldRef;
+  }
+
   public RexNode visitCall(final RexCall call) {
     boolean[] update = {false};
     List<RexNode> clonedOperands = visitList(call.operands, update);

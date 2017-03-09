@@ -58,6 +58,7 @@ import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.SqlJoin;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlLiteral;
+import org.apache.calcite.sql.SqlMatchRecognize;
 import org.apache.calcite.sql.SqlMerge;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
@@ -82,6 +83,7 @@ import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlOperandTypeInference;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
+import org.apache.calcite.sql.util.SqlBasicVisitor;
 import org.apache.calcite.sql.util.SqlShuttle;
 import org.apache.calcite.sql.util.SqlVisitor;
 import org.apache.calcite.util.BitString;
@@ -99,6 +101,7 @@ import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -121,6 +124,7 @@ import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
@@ -973,6 +977,10 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     return orderScopes.get(select);
   }
 
+  public SqlValidatorScope getMatchRecognizeScope(SqlMatchRecognize node) {
+    return scopes.get(node);
+  }
+
   public SqlValidatorScope getJoinScope(SqlNode node) {
     return scopes.get(stripAs(node));
   }
@@ -1816,6 +1824,37 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     return true;
   }
 
+  private void registerMatchRecognize(
+      SqlValidatorScope parentScope,
+      SqlValidatorScope usingScope,
+      SqlMatchRecognize call,
+      SqlNode enclosingNode,
+      String alias,
+      boolean forceNullable) {
+
+    final MatchRecognizeNamespace matchRecognizeNamespace =
+        createMatchRecognizeNameSpace(call, enclosingNode);
+    registerNamespace(usingScope, alias, matchRecognizeNamespace, forceNullable);
+
+    final MatchRecognizeScope matchRecognizeScope =
+        new MatchRecognizeScope(parentScope, call);
+    scopes.put(call, matchRecognizeScope);
+
+    // parse input query
+    SqlNode expr = call.getTableRef();
+    SqlNode newExpr = registerFrom(usingScope, matchRecognizeScope, expr,
+        expr, null, null, forceNullable);
+    if (expr != newExpr) {
+      call.setOperand(0, newExpr);
+    }
+  }
+
+  protected MatchRecognizeNamespace createMatchRecognizeNameSpace(
+      SqlMatchRecognize call,
+      SqlNode enclosingNode) {
+    return new MatchRecognizeNamespace(this, call, enclosingNode);
+  }
+
   /**
    * Registers a new namespace, and adds it as a child of its parent scope.
    * Derived class can override this method to tinker with namespaces as they
@@ -1900,6 +1939,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       case UNNEST:
       case OTHER_FUNCTION:
       case COLLECTION_TABLE:
+      case MATCH_RECOGNIZE:
 
         // give this anonymous construct a name since later
         // query processing stages rely on it
@@ -1953,7 +1993,10 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
             false);
       }
       return node;
-
+    case MATCH_RECOGNIZE:
+      registerMatchRecognize(parentScope, usingScope,
+        (SqlMatchRecognize) node, enclosingNode, alias, forceNullable);
+      return node;
     case TABLESAMPLE:
       call = (SqlCall) node;
       expr = call.operand(0);
@@ -3105,7 +3148,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       names = Lists.transform(names,
           new Function<String, String>() {
             public String apply(String s) {
-              return s.toUpperCase();
+              return s.toUpperCase(Locale.ROOT);
             }
           });
     }
@@ -4413,6 +4456,85 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     inWindow = false;
   }
 
+  @Override public void validateMatchRecognize(SqlCall call) {
+    SqlMatchRecognize matchRecognize = (SqlMatchRecognize) call;
+    final MatchRecognizeScope scope =
+        (MatchRecognizeScope) getMatchRecognizeScope(matchRecognize);
+
+    final MatchRecognizeNamespace ns =
+        getNamespace(call).unwrap(MatchRecognizeNamespace.class);
+    assert ns.rowType == null;
+
+    // retrieve pattern variables used in pattern and subset
+    SqlNode pattern = matchRecognize.getPattern();
+    PatternVarVisitor visitor = new PatternVarVisitor(scope);
+    pattern.accept(visitor);
+
+    validateDefinitions(matchRecognize, scope);
+    ns.setType(getNamespace(matchRecognize.getTableRef()).getRowType());
+  }
+
+  private void validateDefinitions(SqlMatchRecognize mr,
+      MatchRecognizeScope scope) {
+    final Set<String> aliases = new HashSet<>();
+    for (SqlNode item : mr.getPatternDefList().getList()) {
+      final String alias = alias(item);
+      if (!aliases.add(alias)) {
+        throw newValidationError(item,
+            Static.RESOURCE.PatternVarAlreadyDefined(alias));
+      }
+      scope.addPatternVar(alias);
+    }
+
+    final List<SqlNode> sqlNodes = new ArrayList<>();
+    for (SqlNode item : mr.getPatternDefList().getList()) {
+      final String alias = alias(item);
+      SqlNode expand = expand(item, scope);
+      expand = navigationInDefine(expand, alias);
+      setOriginal(expand, item);
+
+      inferUnknownTypes(booleanType, scope, expand);
+      expand.validate(this, scope);
+
+      // Some extra work need required here.
+      // In PREV, NEXT, FINAL and LAST, only one pattern variable is allowed.
+      sqlNodes.add(
+          SqlStdOperatorTable.AS.createCall(SqlParserPos.ZERO, expand,
+              new SqlIdentifier(alias, SqlParserPos.ZERO)));
+
+      final RelDataType type = deriveType(scope, expand);
+      if (!SqlTypeUtil.inBooleanFamily(type)) {
+        throw newValidationError(expand, RESOURCE.condMustBeBoolean("DEFINE"));
+      }
+      setValidatedNodeType(item, type);
+    }
+
+    SqlNodeList list =
+        new SqlNodeList(sqlNodes, mr.getPatternDefList().getParserPosition());
+    inferUnknownTypes(unknownType, scope, list);
+    for (SqlNode node : list) {
+      validateExpr(node, scope);
+    }
+    mr.setOperand(SqlMatchRecognize.OPERAND_PATTERN_DEFINES, list);
+  }
+
+  private static String alias(SqlNode item) {
+    assert item instanceof SqlCall;
+    final SqlIdentifier identifier = ((SqlCall) item).operand(1);
+    return identifier.getSimple();
+  }
+
+  /**
+   * check all pattern var within one function is the same
+   */
+  private SqlNode navigationInDefine(SqlNode node, String alpha) {
+    Set<String> prefix = node.accept(new PatternValidator(false));
+    Util.discard(prefix);
+    node = new NavigationExpander().go(node);
+    node = new NavigationReplacer(alpha).go(node);
+    return node;
+  }
+
   public void validateAggregateParams(SqlCall aggCall, SqlNode filter,
       SqlValidatorScope scope) {
     // For "agg(expr)", expr cannot itself contain aggregate function
@@ -4580,6 +4702,30 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     throw new UnsupportedOperationException();
   }
 
+  private static boolean isPhysicalNavigation(SqlKind kind) {
+    return kind == SqlKind.PREV || kind == SqlKind.NEXT;
+  }
+
+  private static boolean isLogicalNavigation(SqlKind kind) {
+    return kind == SqlKind.FIRST || kind == SqlKind.LAST;
+  }
+
+  private static boolean isAggregation(SqlKind kind) {
+    return kind == SqlKind.SUM || kind == SqlKind.SUM0
+        || kind == SqlKind.AVG || kind == SqlKind.COUNT
+        || kind == SqlKind.MAX || kind == SqlKind.MIN;
+  }
+
+  private static boolean isRunningOrFinal(SqlKind kind) {
+    return kind == SqlKind.RUNNING || kind == SqlKind.FINAL;
+  }
+
+  private static boolean isSingleVarRequired(SqlKind kind) {
+    return isPhysicalNavigation(kind)
+        || isLogicalNavigation(kind)
+        || isAggregation(kind);
+  }
+
   //~ Inner Classes ----------------------------------------------------------
 
   /**
@@ -4657,6 +4803,49 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
     public SqlMerge getNode() {
       return node;
+    }
+  }
+
+  /**
+   * retrieve pattern variables defined
+   */
+  private class PatternVarVisitor implements SqlVisitor<Void> {
+    private MatchRecognizeScope scope;
+    public PatternVarVisitor(MatchRecognizeScope scope) {
+      this.scope = scope;
+    }
+
+    @Override public Void visit(SqlLiteral literal) {
+      return null;
+    }
+
+    @Override public Void visit(SqlCall call) {
+      for (int i = 0; i < call.getOperandList().size(); i++) {
+        call.getOperandList().get(i).accept(this);
+      }
+      return null;
+    }
+
+    @Override public Void visit(SqlNodeList nodeList) {
+      throw Util.needToImplement(nodeList);
+    }
+
+    @Override public Void visit(SqlIdentifier id) {
+      Preconditions.checkArgument(id.isSimple());
+      scope.addPatternVar(id.getSimple());
+      return null;
+    }
+
+    @Override public Void visit(SqlDataTypeSpec type) {
+      throw Util.needToImplement(type);
+    }
+
+    @Override public Void visit(SqlDynamicParam param) {
+      throw Util.needToImplement(param);
+    }
+
+    @Override public Void visit(SqlIntervalQualifier intervalQualifier) {
+      throw Util.needToImplement(intervalQualifier);
     }
   }
 
@@ -4990,6 +5179,256 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     public FunctionParamInfo() {
       cursorPosToSelectMap = new HashMap<>();
       columnListParamToParentCursorMap = new HashMap<>();
+    }
+  }
+
+  /**
+   * Modify the nodes in navigation function
+   * such as FIRST, LAST, PREV AND NEXT.
+   */
+  private class NavigationModifier extends SqlBasicVisitor<SqlNode> {
+    @Override public SqlNode visit(SqlLiteral literal) {
+      return literal;
+    }
+
+    @Override public SqlNode visit(SqlIntervalQualifier intervalQualifier) {
+      return intervalQualifier;
+    }
+
+    @Override public SqlNode visit(SqlDataTypeSpec type) {
+      return type;
+    }
+
+    @Override public SqlNode visit(SqlDynamicParam param) {
+      return param;
+    }
+
+    public SqlNode go(SqlNode node) {
+      return node.accept(this);
+    }
+  }
+
+  /**
+   * Expand navigation expression :
+   * eg: PREV(A.price + A.amount) to PREV(A.price) + PREV(A.amount)
+   * eg: FIRST(A.price * 2) to FIST(A.PRICE) * 2
+   */
+  private class NavigationExpander extends NavigationModifier {
+    SqlOperator currentOperator;
+    SqlNode currentOffset;
+
+    public NavigationExpander() {
+
+    }
+
+    public NavigationExpander(SqlOperator operator, SqlNode offset) {
+      this.currentOffset = offset;
+      this.currentOperator = operator;
+    }
+
+    @Override public SqlNode visit(SqlCall call) {
+      SqlKind kind = call.getKind();
+      List<SqlNode> operands = call.getOperandList();
+      List<SqlNode> newOperands = new ArrayList<>();
+      if (isLogicalNavigation(kind) || isPhysicalNavigation(kind)) {
+        SqlNode inner = operands.get(0);
+        SqlNode offset = operands.get(1);
+
+        // merge two straight prev/next, update offset
+        if (isPhysicalNavigation(kind)) {
+          SqlKind innerKind = inner.getKind();
+          if (isPhysicalNavigation(innerKind)) {
+            List<SqlNode> innerOperands = ((SqlCall) inner).getOperandList();
+            SqlNode innerOffset = innerOperands.get(1);
+            SqlOperator newOperator = innerKind == kind
+              ? SqlStdOperatorTable.PLUS : SqlStdOperatorTable.MINUS;
+            offset = newOperator.createCall(SqlParserPos.ZERO,
+              offset, innerOffset);
+            inner = call.getOperator().createCall(SqlParserPos.ZERO,
+              innerOperands.get(0), offset);
+          }
+        }
+        return inner.accept(new NavigationExpander(call.getOperator(), offset));
+      }
+
+      for (SqlNode node : operands) {
+        SqlNode newNode = node.accept(new NavigationExpander());
+        if (currentOperator != null) {
+          newNode = currentOperator.createCall(SqlParserPos.ZERO, newNode, currentOffset);
+        }
+        newOperands.add(newNode);
+      }
+      return call.getOperator().createCall(SqlParserPos.ZERO, newOperands);
+    }
+
+    @Override public SqlNode visit(SqlIdentifier id) {
+      if (currentOperator == null) {
+        return id;
+      } else {
+        return currentOperator.createCall(SqlParserPos.ZERO, id, currentOffset);
+      }
+    }
+  }
+
+  /**
+   * Replace {@code A as A.price > PREV(B.price)}
+   * with {@code PREV(A.price, 0) > last(B.price, 0)}.
+   */
+  private class NavigationReplacer extends NavigationModifier {
+    private final String alpha;
+
+    public NavigationReplacer(String alpha) {
+      this.alpha = alpha;
+    }
+
+    @Override public SqlNode visit(SqlCall call) {
+      SqlKind kind = call.getKind();
+      if (isLogicalNavigation(kind)
+          || isAggregation(kind)
+          || isRunningOrFinal(kind)) {
+        return call;
+      }
+
+      List<SqlNode> operands = call.getOperandList();
+      switch (kind) {
+      case PREV:
+        String name = ((SqlIdentifier) operands.get(0)).names.get(0);
+        return name.equals(alpha) ? call
+          : SqlStdOperatorTable.LAST.createCall(SqlParserPos.ZERO, operands);
+      default:
+        List<SqlNode> newOperands = new ArrayList<>();
+        for (SqlNode op : operands) {
+          newOperands.add(op.accept(this));
+        }
+        return call.getOperator().createCall(SqlParserPos.ZERO, newOperands);
+      }
+    }
+
+    @Override public SqlNode visit(SqlIdentifier id) {
+      if (id.isSimple()) {
+        return id;
+      }
+      SqlOperator operator = id.names.get(0).equals(alpha)
+        ? SqlStdOperatorTable.PREV : SqlStdOperatorTable.LAST;
+
+      return operator.createCall(SqlParserPos.ZERO, id,
+        SqlLiteral.createExactNumeric("0", SqlParserPos.ZERO));
+    }
+  }
+
+  /**
+   * Within one navigation function, the pattern var should be same
+   */
+  private class PatternValidator extends SqlBasicVisitor<Set<String>> {
+    private final boolean isMeasure;
+    int firstLastCount;
+    int prevNextCount;
+    int aggregateCount;
+
+    PatternValidator(boolean isMeasure) {
+      this(isMeasure, 0, 0, 0);
+    }
+
+    PatternValidator(boolean isMeasure, int firstLastCount, int prevNextCount,
+        int aggregateCount) {
+      this.isMeasure = isMeasure;
+      this.firstLastCount = firstLastCount;
+      this.prevNextCount = prevNextCount;
+      this.aggregateCount = aggregateCount;
+    }
+
+    @Override public Set<String> visit(SqlCall call) {
+      boolean isSingle = false;
+      Set<String> vars = new HashSet<>();
+      SqlKind kind = call.getKind();
+      List<SqlNode> operands = call.getOperandList();
+
+      if (isSingleVarRequired(kind)) {
+        isSingle = true;
+        if (isPhysicalNavigation(kind)) {
+          if (isMeasure) {
+            throw newValidationError(call,
+                Static.RESOURCE.PatternPrevFunctionInMeasure(call.toString()));
+          }
+          if (firstLastCount != 0) {
+            throw newValidationError(call,
+                Static.RESOURCE.PatternPrevFunctionOrder(call.toString()));
+          }
+          prevNextCount++;
+        } else if (isLogicalNavigation(kind)) {
+          if (firstLastCount != 0) {
+            throw newValidationError(call,
+                Static.RESOURCE.PatternPrevFunctionOrder(call.toString()));
+          }
+          firstLastCount++;
+        } else if (isAggregation(kind)) {
+          // cannot apply aggregation in PREV/NEXT, FIRST/LAST
+          if (firstLastCount != 0 || prevNextCount != 0) {
+            throw newValidationError(call,
+                Static.RESOURCE.PatternAggregationInNavigation(call.toString()));
+          }
+          if (kind == SqlKind.COUNT && call.getOperandList().size() > 1) {
+            throw newValidationError(call,
+                Static.RESOURCE.PatternCountFunctionArg());
+          }
+          aggregateCount++;
+        }
+      }
+
+      if (isRunningOrFinal(kind) && isMeasure) {
+        throw newValidationError(call,
+            Static.RESOURCE.PatternRunningFunctionInDefine(call.toString()));
+      }
+
+      for (SqlNode node : operands) {
+        vars.addAll(
+            node.accept(
+                new PatternValidator(isMeasure, firstLastCount, prevNextCount,
+                    aggregateCount)));
+      }
+
+      if (isSingle) {
+        switch (kind) {
+        case COUNT:
+          if (vars.size() > 1) {
+            throw newValidationError(call,
+                Static.RESOURCE.PatternFunctionVariableCheck(call.toString()));
+          }
+          break;
+        default:
+          if (vars.size() != 1) {
+            throw newValidationError(call,
+                Static.RESOURCE.PatternCountFunctionArg());
+          }
+          break;
+        }
+      }
+      return vars;
+    }
+
+    @Override public Set<String> visit(SqlIdentifier identifier) {
+      boolean check = prevNextCount > 0 || firstLastCount > 0 || aggregateCount > 0;
+      Set<String> vars = new HashSet<>();
+      if (identifier.names.size() > 1 && check) {
+        vars.add(identifier.names.get(0));
+      }
+      return vars;
+    }
+
+    @Override public Set<String> visit(SqlLiteral literal) {
+      return ImmutableSet.of();
+    }
+
+    @Override public Set<String> visit(SqlIntervalQualifier qualifier) {
+      return ImmutableSet.of();
+    }
+
+    @Override public Set<String> visit(SqlDataTypeSpec type) {
+      return ImmutableSet.of();
+    }
+
+    @Override public Set<String> visit(SqlDynamicParam param) {
+      return ImmutableSet.of();
     }
   }
 

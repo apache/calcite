@@ -21,6 +21,7 @@ import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.ListIterator;
+import java.util.Locale;
 import java.util.Map;
 
 /**
@@ -379,7 +380,7 @@ public class SqlSimpleParser {
               }
             }
             String name = sql.substring(start, pos);
-            TokenType tokenType = map.get(name.toUpperCase());
+            TokenType tokenType = map.get(name.toUpperCase(Locale.ROOT));
             if (tokenType == null) {
               return new IdToken(TokenType.ID, name);
             } else {

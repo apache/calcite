@@ -49,6 +49,7 @@ import java.lang.reflect.Method;
 import java.util.AbstractList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.hamcrest.CoreMatchers.is;
@@ -427,7 +428,7 @@ public class Smalls {
     private MultipleFunction() {}
 
     // Three overloads
-    public static String fun1(String x) { return x.toLowerCase(); }
+    public static String fun1(String x) { return x.toLowerCase(Locale.ROOT); }
     public static int fun1(int x) { return x * 2; }
     public static int fun1(int x, int y) { return x + y; }
 
@@ -615,19 +616,24 @@ public class Smalls {
     }
 
     public static ScannableTable generate(int width, int height, int seed) {
-      return new MazeTable(String.format("generate(w=%d, h=%d, s=%d)", width, height, seed));
+      return new MazeTable(
+          String.format(Locale.ROOT, "generate(w=%d, h=%d, s=%d)", width,
+              height, seed));
     }
 
     public static ScannableTable generate2(
         @Parameter(name = "WIDTH") int width,
         @Parameter(name = "HEIGHT") int height,
         @Parameter(name = "SEED", optional = true) Integer seed) {
-      return new MazeTable(String.format("generate2(w=%d, h=%d, s=%d)", width, height, seed));
+      return new MazeTable(
+          String.format(Locale.ROOT, "generate2(w=%d, h=%d, s=%d)", width,
+              height, seed));
     }
 
     public static ScannableTable generate3(
         @Parameter(name = "FOO") String foo) {
-      return new MazeTable(String.format("generate3(foo=%s)", foo));
+      return new MazeTable(
+          String.format(Locale.ROOT, "generate3(foo=%s)", foo));
     }
 
     public RelDataType getRowType(RelDataTypeFactory typeFactory) {

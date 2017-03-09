@@ -34,6 +34,7 @@ import org.apache.calcite.rel.logical.LogicalExchange;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalIntersect;
 import org.apache.calcite.rel.logical.LogicalJoin;
+import org.apache.calcite.rel.logical.LogicalMatch;
 import org.apache.calcite.rel.logical.LogicalMinus;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.logical.LogicalSort;
@@ -144,7 +145,7 @@ class CalciteMaterializer extends CalcitePrepareImpl.CalcitePreparingStmt {
   }
 
   /** Implementation of {@link RelShuttle} that returns each relational
-   * expression unchanged. It does not visit children. */
+   * expression unchanged. It does not visit inputs. */
   static class RelNullShuttle implements RelShuttle {
     public RelNode visit(TableScan scan) {
       return scan;
@@ -178,6 +179,9 @@ class CalciteMaterializer extends CalcitePrepareImpl.CalcitePreparingStmt {
     }
     public RelNode visit(LogicalAggregate aggregate) {
       return aggregate;
+    }
+    public RelNode visit(LogicalMatch match) {
+      return match;
     }
     public RelNode visit(LogicalSort sort) {
       return sort;

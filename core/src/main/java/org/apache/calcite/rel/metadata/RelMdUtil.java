@@ -44,6 +44,7 @@ import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.NumberUtil;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
 import java.math.BigDecimal;
@@ -717,6 +718,36 @@ public class RelMdUtil {
       RelMetadataQuery mq) {
     return mq.getRowCount(child)
         * mq.getSelectivity(child, condition);
+  }
+
+  /** Returns a point on a line.
+   *
+   * <p>The result is always a value between {@code minY} and {@code maxY},
+   * even if {@code x} is not between {@code minX} and {@code maxX}.
+   *
+   * <p>Examples:<ul>
+   *   <li>{@code linear(0, 0, 10, 100, 200}} returns 100 because 0 is minX
+   *   <li>{@code linear(5, 0, 10, 100, 200}} returns 150 because 5 is
+   *   mid-way between minX and maxX
+   *   <li>{@code linear(5, 0, 10, 100, 200}} returns 160
+   *   <li>{@code linear(10, 0, 10, 100, 200}} returns 200 because 10 is maxX
+   *   <li>{@code linear(-2, 0, 10, 100, 200}} returns 100 because -2 is
+   *   less than minX and is therefore treated as minX
+   *   <li>{@code linear(12, 0, 10, 100, 200}} returns 100 because 12 is
+   *   greater than maxX and is therefore treated as maxX
+   * </ul>
+   */
+  public static double linear(int x, int minX, int maxX, double minY, double
+      maxY) {
+    Preconditions.checkArgument(minX < maxX);
+    Preconditions.checkArgument(minY < maxY);
+    if (x < minX) {
+      return minY;
+    }
+    if (x > maxX) {
+      return maxY;
+    }
+    return minY + (double) (x - minX) / (double) (maxX - minX) * (maxY - minY);
   }
 
   //~ Inner Classes ----------------------------------------------------------

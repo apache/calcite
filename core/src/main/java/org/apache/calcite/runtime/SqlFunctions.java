@@ -32,6 +32,7 @@ import org.apache.calcite.linq4j.function.NonDeterministic;
 import org.apache.calcite.linq4j.tree.Primitive;
 import org.apache.calcite.runtime.FlatLists.ComparableList;
 import org.apache.calcite.util.Bug;
+import org.apache.calcite.util.NumberUtil;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -45,6 +46,7 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.TimeZone;
@@ -66,7 +68,7 @@ import java.util.regex.Pattern;
 @Deterministic
 public class SqlFunctions {
   private static final DecimalFormat DOUBLE_FORMAT =
-      new DecimalFormat("0.0E0");
+      NumberUtil.decimalFormat("0.0E0");
 
   private static final TimeZone LOCAL_TZ = TimeZone.getDefault();
 
@@ -138,12 +140,12 @@ public class SqlFunctions {
 
   /** SQL UPPER(string) function. */
   public static String upper(String s) {
-    return s.toUpperCase();
+    return s.toUpperCase(Locale.ROOT);
   }
 
   /** SQL LOWER(string) function. */
   public static String lower(String s) {
-    return s.toLowerCase();
+    return s.toLowerCase(Locale.ROOT);
   }
 
   /** SQL INITCAP(string) function. */
