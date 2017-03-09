@@ -29,6 +29,7 @@ import org.apache.calcite.rel.type.RelDataTypeFieldImpl;
 import org.apache.calcite.schema.CustomColumnResolvingTable;
 import org.apache.calcite.schema.ExtensibleTable;
 import org.apache.calcite.schema.Table;
+import org.apache.calcite.schema.impl.ModifiableViewTable;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlDynamicParam;
@@ -142,6 +143,55 @@ public class SqlValidatorUtil {
     //noinspection unchecked
     return Pair.zip(Util.quotientList(list, 2, 0),
         Util.quotientList(list, 2, 1));
+  }
+
+  /**
+   * Gets a map of indexes from the source to fields in the target for the intersecting set of source
+   * and target fields.
+   * @param output       The output map.
+   * @param sourceFields The source of column names.
+   * @param targetFields The target fields to be indexed.
+   */
+  public static void getIndexToFieldMap(
+      Map<Integer, RelDataTypeField> output,
+      List<RelDataTypeField> sourceFields,
+      RelDataType targetFields) {
+    for (RelDataTypeField source : sourceFields) {
+      final RelDataTypeField target = targetFields.getField(source.getName(), true, false);
+      if (target != null) {
+        output.put(source.getIndex(), target);
+      }
+    }
+  }
+
+  /**
+   * Gets the bit-set to the column ordinals in the source for columns that intersect in the target.
+   * @param sourceRowType The source upon which to ordinate the bit set.
+   * @param targetRowType The target to overlay on the source to create the bit set.
+   */
+  public static ImmutableBitSet getOrdinalBitSet(
+      RelDataType sourceRowType, RelDataType targetRowType) {
+    Map<Integer, RelDataTypeField> indexToField = new HashMap<>();
+    getIndexToFieldMap(indexToField, sourceRowType.getFieldList(), targetRowType);
+    return getOrdinalBitSet(sourceRowType, indexToField);
+  }
+
+  /**
+   * Gets the bit-set to the column ordinals in the source for columns that intersect in the target.
+   * @param sourceRowType The source upon which to ordinate the bit set.
+   * @param indexToField  The map of ordinals to target fields.
+   */
+  public static ImmutableBitSet getOrdinalBitSet(
+      RelDataType sourceRowType,
+      Map<Integer, RelDataTypeField> indexToField) {
+    final List<Integer> ordinalBitSet = new ArrayList<>(sourceRowType.getFieldCount());
+    for (RelDataTypeField source : sourceRowType.getFieldList()) {
+      final RelDataTypeField target = indexToField.get(source.getIndex());
+      if (target != null) {
+        ordinalBitSet.add(source.getIndex());
+      }
+    }
+    return ImmutableBitSet.of(ordinalBitSet);
   }
 
 

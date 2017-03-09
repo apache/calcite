@@ -3871,58 +3871,40 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
   /**
    * Validates insert values against the constraint of a modifiable view.
-   * @param table         The SqlValidatorTable which may wrap a ModifiableViewTable.
-   * @param source        The values being inserted.
-   * @param targetRowType The target type for the view.
+   * @param validatorTable The SqlValidatorTable which may wrap a ModifiableViewTable.
+   * @param source         The values being inserted.
+   * @param targetRowType  The target type for the view.
    */
   private void checkConstraint(
-      SqlValidatorTable table,
+      SqlValidatorTable validatorTable,
       SqlNode source,
       RelDataType targetRowType) {
-    final ModifiableViewTable modifiableViewTable = table.unwrap(ModifiableViewTable.class);
+    final ModifiableViewTable modifiableViewTable = validatorTable.unwrap(ModifiableViewTable.class);
     if (modifiableViewTable != null && source instanceof SqlCall) {
       final Map<Integer, RexNode> projectMap =
           getConstraintForModifiableView(modifiableViewTable, targetRowType);
-      final ImmutableBitSet targetColumns =
-          getOrdinalBitSet(modifiableViewTable, targetRowType);
+      final Table table = modifiableViewTable.unwrap(Table.class);
       final List<SqlNode> values = ((SqlCall) source).getOperandList();
+      final List<RelDataTypeField> tableFields = table.getRowType(typeFactory).getFieldList();
+      Map<Integer, RelDataTypeField> indexToField = new HashMap<>();
+      SqlValidatorUtil.getIndexToFieldMap(
+          indexToField, tableFields, targetRowType);
+      final ImmutableBitSet targetColumns =
+          SqlValidatorUtil.getOrdinalBitSet(table.getRowType(typeFactory), indexToField);
       for (Map.Entry<Integer, RexNode> entry : projectMap.entrySet()) {
         if (!targetColumns.get(entry.getKey())) {
           // The constrained column was not targeted for insert.
           continue;
         }
-        final List<RelDataTypeField> viewFields =
-            modifiableViewTable.getRowType(typeFactory).getFieldList();
         for (SqlNode row : values) {
-          final String colName = viewFields.get(entry.getKey()).getName();
-          final RelDataTypeField targetField =
-              targetRowType.getField(colName, true, false);
+          final String colName = tableFields.get(entry.getKey()).getName();
+          final RelDataTypeField targetField = indexToField.get(entry.getKey());
           assert targetField != null;
           final SqlNode sourceValue = ((SqlCall) row).getOperandList().get(targetField.getIndex());
-          checkConstraint(table, colName, sourceValue, entry.getValue());
+          checkConstraint(validatorTable, colName, sourceValue, entry.getValue());
         }
       }
     }
-  }
-
-  /**
-   * Gets the bit-set to the column ordinals in the target table for the targeted columns.
-   * @param modifiableViewTable The target modifiable view table.
-   * @param targetRowType       The target row-type.
-   */
-  private ImmutableBitSet getOrdinalBitSet(
-      ModifiableViewTable modifiableViewTable, RelDataType targetRowType) {
-    final Table table = modifiableViewTable.unwrap(Table.class);
-    final List<Integer> ordinalBitSet = new ArrayList<>(targetRowType.getFieldCount());
-    final RelDataType tableType = table.getRowType(typeFactory);
-    for (RelDataTypeField target : targetRowType.getFieldList()) {
-      final RelDataTypeField tableField =
-          tableType.getField(target.getName(), true, false);
-      if (tableField != null) {
-        ordinalBitSet.add(tableField.getIndex());
-      }
-    }
-    return ImmutableBitSet.of(ordinalBitSet);
   }
 
   /**
