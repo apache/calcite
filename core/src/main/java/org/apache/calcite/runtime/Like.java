@@ -92,8 +92,7 @@ public class Like {
       } else if (c == '_') {
         javaPattern.append('.');
       } else if (c == '%') {
-        javaPattern.append(".");
-        javaPattern.append('*');
+        javaPattern.append("(?s:.*)");
       } else {
         javaPattern.append(c);
       }
@@ -264,8 +263,7 @@ public class Like {
           javaPattern.append('.');
           break;
         case '%':
-          javaPattern.append('.');
-          javaPattern.append('*');
+          javaPattern.append("(?s:.*)");
           break;
         case '[':
           javaPattern.append('[');

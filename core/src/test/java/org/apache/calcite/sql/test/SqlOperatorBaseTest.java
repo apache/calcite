@@ -3220,6 +3220,8 @@ public abstract class SqlOperatorBaseTest {
     tester.checkBoolean("'ab'   like '_b'", Boolean.TRUE);
     tester.checkBoolean("'abcd' like '_d'", Boolean.FALSE);
     tester.checkBoolean("'abcd' like '%d'", Boolean.TRUE);
+    tester.checkBoolean("'ab\ncd' like 'ab%'", Boolean.TRUE);
+    tester.checkBoolean("'123\n\n45\n' like '%'", Boolean.TRUE);
   }
 
   @Test public void testNotSimilarToOperator() {
