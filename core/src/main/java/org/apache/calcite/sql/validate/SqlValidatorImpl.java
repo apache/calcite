@@ -3879,7 +3879,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       SqlValidatorTable validatorTable,
       SqlNode source,
       RelDataType targetRowType) {
-    final ModifiableViewTable modifiableViewTable = validatorTable.unwrap(ModifiableViewTable.class);
+    final ModifiableViewTable modifiableViewTable =
+        validatorTable.unwrap(ModifiableViewTable.class);
     if (modifiableViewTable != null && source instanceof SqlCall) {
       final Map<Integer, RexNode> projectMap =
           getConstraintForModifiableView(modifiableViewTable, targetRowType);
@@ -3927,25 +3928,28 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
   /**
    * Validates updates against the constraint of a modifiable view.
-   * @param table         The SqlValidatorTable which may wrap a ModifiableViewTable.
-   * @param update        The update parse node.
-   * @param targetRowType The target type.
+   * @param validatorTable The SqlValidatorTable which may wrap a ModifiableViewTable.
+   * @param update         The update parse node.
+   * @param targetRowType  The target type.
    */
   private void checkConstraint(
-      SqlValidatorTable table,
+      SqlValidatorTable validatorTable,
       SqlUpdate update,
       RelDataType targetRowType) {
-    final ModifiableViewTable modifiableViewTable = table.unwrap(ModifiableViewTable.class);
+    final ModifiableViewTable modifiableViewTable =
+        validatorTable.unwrap(ModifiableViewTable.class);
     if (modifiableViewTable != null) {
+      final Table table = modifiableViewTable.unwrap(Table.class);
       final Map<Integer, RexNode> projectMap =
           getConstraintForModifiableView(modifiableViewTable, targetRowType);
       for (Pair<SqlNode, SqlNode> column : Pair.zip(update.getTargetColumnList().getList(),
           update.getSourceExpressionList().getList())) {
         final String columnName = ((SqlIdentifier) column.left).getSimple();
-        final int columnIndex = table.getRowType().getField(columnName, true, false).getIndex();
+        final int columnIndex =
+            table.getRowType(typeFactory).getField(columnName, true, false).getIndex();
         final RexNode columnConstraint = projectMap.get(columnIndex);
         if (columnConstraint != null) {
-          checkConstraint(table, columnName, column.right, columnConstraint);
+          checkConstraint(validatorTable, columnName, column.right, columnConstraint);
         }
       }
     }

@@ -8178,11 +8178,11 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   @Test public void testInsertSubsetModifiableView() {
     final SqlTester pragmaticTester =
         tester.withConformance(SqlConformanceEnum.PRAGMATIC_2003);
-    pragmaticTester.checkQuery("insert into EMP_MODIFIABLEVIEW\n"
-        + "values (1, 'Arthur')");
+    pragmaticTester.checkQuery("insert into EMP_MODIFIABLEVIEW2\n"
+        + "values ('Arthur', 1)");
     tester.checkQuery("insert into EMP_MODIFIABLEVIEW2\n"
-        + "values (1, 'Arthur', 'Knight', 100, timestamp '1370-01-01 00:00:00',"
-        + " 99999, 1, 20, false, false)");
+        + "values ('Arthur', 1, 'Knight', 20, false, 99999, true, timestamp '1370-01-01 00:00:00',"
+        + " 1, 100)");
   }
 
   @Test public void testInsertBind() {
@@ -8280,7 +8280,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + " values (20, 100, 'Lex', true)").ok();
     sql("insert into EMP_MODIFIABLEVIEW2 (empno, ename, extra)"
         + " values (100, 'Lex', true)").ok();
-    sql("insert into EMP_MODIFIABLEVIEW2 values (20, 'Edward')")
+    sql("insert into EMP_MODIFIABLEVIEW2 values ('Edward', 20)")
         .tester(tester.withConformance(SqlConformanceEnum.PRAGMATIC_2003)).ok();
   }
 
@@ -8293,6 +8293,11 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     tester.checkQueryFails(
         "insert into EMP_MODIFIABLEVIEW2 (deptno, empno, ename)"
             + " values (^19+1^, 100, 'Lex')",
+        "Modifiable view constraint is not satisfied"
+            + " for column 'DEPTNO' of base table 'EMP_MODIFIABLEVIEW2'");
+    tester.checkQueryFails("insert into EMP_MODIFIABLEVIEW2\n"
+        + "values ('Arthur', 1, 'Knight', ^27^, false, 99999, true,"
+            + "timestamp '1370-01-01 00:00:00', 1, 100)",
         "Modifiable view constraint is not satisfied"
             + " for column 'DEPTNO' of base table 'EMP_MODIFIABLEVIEW2'");
   }

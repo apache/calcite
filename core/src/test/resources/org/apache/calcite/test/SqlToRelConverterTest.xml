@@ -2343,8 +2343,8 @@ LogicalProject(EXPR$0=[+($0, $9)])
         </Resource>
         <Resource name="plan">
             <![CDATA[
-LogicalProject(DEPTNO=[$7])
-  LogicalFilter(condition=[=($7, ?0)])
+LogicalProject(DEPTNO=[$3])
+  LogicalFilter(condition=[=($3, ?0)])
     LogicalTableScan(table=[[CATALOG, SALES, EMP_MODIFIABLEVIEW2]])
 ]]>
         </Resource>
@@ -2355,7 +2355,7 @@ LogicalProject(DEPTNO=[$7])
         </Resource>
         <Resource name="plan">
             <![CDATA[
-LogicalProject(EXTRA=[$9])
+LogicalProject(EXTRA=[$6])
   LogicalTableScan(table=[[CATALOG, SALES, EMP_MODIFIABLEVIEW2]])
 ]]>
         </Resource>

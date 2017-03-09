@@ -29,7 +29,6 @@ import org.apache.calcite.rel.type.RelDataTypeFieldImpl;
 import org.apache.calcite.schema.CustomColumnResolvingTable;
 import org.apache.calcite.schema.ExtensibleTable;
 import org.apache.calcite.schema.Table;
-import org.apache.calcite.schema.impl.ModifiableViewTable;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlDynamicParam;
@@ -146,8 +145,8 @@ public class SqlValidatorUtil {
   }
 
   /**
-   * Gets a map of indexes from the source to fields in the target for the intersecting set of source
-   * and target fields.
+   * Gets a map of indexes from the source to fields in the target for the intersecting set of
+   * source and target fields.
    * @param output       The output map.
    * @param sourceFields The source of column names.
    * @param targetFields The target fields to be indexed.
