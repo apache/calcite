@@ -1905,6 +1905,10 @@ public abstract class SqlOperatorBaseTest {
         " x'fe'||x'df' ",
         "fedf",
         "BINARY(2) NOT NULL");
+    tester.checkString(
+        " cast('fe' as char(2)) || cast('df' as varchar)",
+        "fedf",
+        "VARCHAR(2147483647) NOT NULL");
     tester.checkNull("x'ff' || cast(null as varbinary)");
     tester.checkNull(" cast(null as ANY) || cast(null as ANY) ");
   }
@@ -3641,7 +3645,7 @@ public abstract class SqlOperatorBaseTest {
 
     tester.checkScalar(
         "position(cast('a' as char) in cast('bca' as varchar))",
-        0,
+        3,
         "INTEGER NOT NULL");
   }
 
