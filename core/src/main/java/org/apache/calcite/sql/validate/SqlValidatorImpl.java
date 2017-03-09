@@ -3848,9 +3848,10 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
           // The constrained column was not targeted for insert.
           continue;
         }
+        final List<RelDataTypeField> viewFields =
+            modifiableViewTable.getRowType(typeFactory).getFieldList();
         for (SqlNode row : values) {
-          final String colName = modifiableViewTable.getRowType(typeFactory)
-              .getFieldList().get(entry.getKey()).getName();
+          final String colName = viewFields.get(entry.getKey()).getName();
           final RelDataTypeField targetField =
               targetRowType.getField(colName, true, false);
           assert targetField != null;
@@ -3870,9 +3871,10 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       ModifiableViewTable modifiableViewTable, RelDataType targetRowType) {
     final Table table = modifiableViewTable.unwrap(Table.class);
     final List<Integer> ordinalBitSet = new ArrayList<>(targetRowType.getFieldCount());
+    final RelDataType tableType = table.getRowType(typeFactory);
     for (RelDataTypeField target : targetRowType.getFieldList()) {
       final RelDataTypeField tableField =
-          table.getRowType(typeFactory).getField(target.getName(), true, false);
+          tableType.getField(target.getName(), true, false);
       if (tableField != null) {
         ordinalBitSet.add(tableField.getIndex());
       }
