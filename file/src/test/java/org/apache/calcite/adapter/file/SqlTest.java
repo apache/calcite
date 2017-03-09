@@ -26,9 +26,12 @@ import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.Types;
 import java.util.Properties;
 
+import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
 
 /**
  * System test of the Calcite file adapter, which can also read and parse
@@ -162,6 +165,56 @@ public class SqlTest {
         "DEPTNO=10; NAME=Sales",
         "DEPTNO=20; NAME=Marketing",
         "DEPTNO=30; NAME=Accounts");
+  }
+
+  /** Reads the DEPTS table from the CSV schema. */
+  @Test public void testCsvSalesDepts() throws SQLException {
+    final String sql = "select * from sales.depts";
+    checkSql("sales-csv", sql,
+        "DEPTNO=10; NAME=Sales",
+        "DEPTNO=20; NAME=Marketing",
+        "DEPTNO=30; NAME=Accounts");
+  }
+
+  /** Reads the EMPS table from the CSV schema. */
+  @Test public void testCsvSalesEmps() throws SQLException {
+    final String sql = "select * from sales.emps";
+    checkSql("sales-csv", sql,
+        "EMPNO=100; NAME=Fred; DEPTNO=10; GENDER=; CITY=; EMPID=30; AGE=25; SLACKER=true; MANAGER=false; JOINEDAT=1996-08-03",
+        "EMPNO=110; NAME=Eric; DEPTNO=20; GENDER=M; CITY=San Francisco; EMPID=3; AGE=80; SLACKER=null; MANAGER=false; JOINEDAT=2001-01-01",
+        "EMPNO=110; NAME=John; DEPTNO=40; GENDER=M; CITY=Vancouver; EMPID=2; AGE=null; SLACKER=false; MANAGER=true; JOINEDAT=2002-05-03",
+        "EMPNO=120; NAME=Wilma; DEPTNO=20; GENDER=F; CITY=; EMPID=1; AGE=5; SLACKER=null; MANAGER=true; JOINEDAT=2005-09-07",
+        "EMPNO=130; NAME=Alice; DEPTNO=40; GENDER=F; CITY=Vancouver; EMPID=2; AGE=null; SLACKER=false; MANAGER=true; JOINEDAT=2007-01-01");
+  }
+
+  /** Reads the HEADER_ONLY table from the CSV schema. The CSV file has one
+   * line - the column headers - but no rows of data. */
+  @Test public void testCsvSalesHeaderOnly() throws SQLException {
+    final String sql = "select * from sales.header_only";
+    checkSql("sales-csv", sql);
+  }
+
+  /** Reads the EMPTY table from the CSV schema. The CSV file has no lines,
+   * therefore the table has a system-generated column called
+   * "EmptyFileHasNoColumns". */
+  @Test public void testCsvSalesEmpty() throws SQLException {
+    final String sql = "select * from sales.empty";
+    checkSql(sql, "sales-csv", new Function<ResultSet, Void>() {
+      public Void apply(ResultSet resultSet) {
+        try {
+          assertThat(resultSet.getMetaData().getColumnCount(), is(1));
+          assertThat(resultSet.getMetaData().getColumnName(1),
+              is("EmptyFileHasNoColumns"));
+          assertThat(resultSet.getMetaData().getColumnType(1),
+              is(Types.BOOLEAN));
+          String actual = SqlTest.toString(resultSet);
+          assertThat(actual, is(""));
+        } catch (SQLException e) {
+          throw new RuntimeException(e);
+        }
+        return null;
+      }
+    });
   }
 
 }

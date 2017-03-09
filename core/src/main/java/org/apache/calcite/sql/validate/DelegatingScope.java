@@ -34,7 +34,6 @@ import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -180,11 +179,6 @@ public abstract class DelegatingScope implements SqlValidatorScope {
     return parent.findQualifyingTableName(columnName, ctx);
   }
 
-  protected Map<String, ScopeChild> findQualifyingTables(String columnName,
-      SqlNameMatcher nameMatcher) {
-    return ImmutableMap.of();
-  }
-
   public Map<String, ScopeChild> findQualifyingTableNames(String columnName,
       SqlNode ctx, SqlNameMatcher nameMatcher) {
     return parent.findQualifyingTableNames(columnName, ctx, nameMatcher);
@@ -328,7 +322,7 @@ public abstract class DelegatingScope implements SqlValidatorScope {
         // Look for a column not qualified by a table alias.
         columnName = identifier.names.get(0);
         final Map<String, ScopeChild> map =
-            findQualifyingTables(columnName, nameMatcher);
+            findQualifyingTableNames(columnName, identifier, nameMatcher);
         switch (map.size()) {
         default:
           final SqlIdentifier prefix1 = identifier.skipLast(1);

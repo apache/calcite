@@ -132,10 +132,11 @@ public abstract class ListScope extends DelegatingScope {
   findQualifyingTableName(final String columnName, SqlNode ctx) {
     final SqlNameMatcher nameMatcher = validator.catalogReader.nameMatcher();
     final Map<String, ScopeChild> map =
-        findQualifyingTables(columnName, nameMatcher);
+        findQualifyingTableNames(columnName, ctx, nameMatcher);
     switch (map.size()) {
     case 0:
-      return parent.findQualifyingTableName(columnName, ctx);
+      throw validator.newValidationError(ctx,
+          RESOURCE.columnNotFound(columnName));
     case 1:
       final Map.Entry<String, ScopeChild> entry =
           map.entrySet().iterator().next();
@@ -149,18 +150,6 @@ public abstract class ListScope extends DelegatingScope {
   @Override public Map<String, ScopeChild>
   findQualifyingTableNames(String columnName, SqlNode ctx,
       SqlNameMatcher nameMatcher) {
-    final Map<String, ScopeChild> map =
-        findQualifyingTables(columnName, nameMatcher);
-    switch (map.size()) {
-    case 0:
-      return parent.findQualifyingTableNames(columnName, ctx, nameMatcher);
-    default:
-      return map;
-    }
-  }
-
-  @Override public Map<String, ScopeChild>
-  findQualifyingTables(String columnName, SqlNameMatcher nameMatcher) {
     final Map<String, ScopeChild> map = new HashMap<>();
     for (ScopeChild child : children) {
       final ResolvedImpl resolved = new ResolvedImpl();
@@ -170,7 +159,12 @@ public abstract class ListScope extends DelegatingScope {
         map.put(child.name, child);
       }
     }
-    return map;
+    switch (map.size()) {
+    case 0:
+      return parent.findQualifyingTableNames(columnName, ctx, nameMatcher);
+    default:
+      return map;
+    }
   }
 
   @Override public void resolve(List<String> names, SqlNameMatcher nameMatcher,
