@@ -124,7 +124,7 @@ public class SqlValidatorUtil {
         extTable == null
             ? table.getRowType().getFieldCount()
             : extTable.getExtendedColumnOffset();
-    for (Pair<SqlIdentifier, SqlDataTypeSpec> pair : pairs(extendedColumns)) {
+    for (final Pair<SqlIdentifier, SqlDataTypeSpec> pair : pairs(extendedColumns)) {
       final SqlIdentifier identifier = pair.left;
       final SqlDataTypeSpec type = pair.right;
       extendedFields.add(
@@ -149,7 +149,7 @@ public class SqlValidatorUtil {
   /**
    * Gets a map of indexes from the source to fields in the target for the
    * intersecting set of source and target fields.
-   * @param sourceFields The source of column names
+   * @param sourceFields The source of column names that determine indexes
    * @param targetFields The target fields to be indexed
    */
   public static ImmutableMap<Integer, RelDataTypeField> getIndexToFieldMap(
@@ -157,7 +157,7 @@ public class SqlValidatorUtil {
       RelDataType targetFields) {
     final ImmutableMap.Builder<Integer, RelDataTypeField> output =
         ImmutableMap.builder();
-    for (RelDataTypeField source : sourceFields) {
+    for (final RelDataTypeField source : sourceFields) {
       final RelDataTypeField target = targetFields.getField(source.getName(), true, false);
       if (target != null) {
         output.put(source.getIndex(), target);
@@ -188,8 +188,8 @@ public class SqlValidatorUtil {
   public static ImmutableBitSet getOrdinalBitSet(
       RelDataType sourceRowType,
       Map<Integer, RelDataTypeField> indexToField) {
-    ImmutableBitSet source =
-        ImmutableBitSet.of(Lists.transform(
+    ImmutableBitSet source = ImmutableBitSet.of(
+        Lists.transform(
             sourceRowType.getFieldList(),
             new RelDataTypeField.GetFieldListKeys()));
     ImmutableBitSet target =

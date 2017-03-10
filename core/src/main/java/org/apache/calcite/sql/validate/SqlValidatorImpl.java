@@ -3883,27 +3883,34 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     final ModifiableViewTable modifiableViewTable =
         validatorTable.unwrap(ModifiableViewTable.class);
     if (modifiableViewTable != null && source instanceof SqlCall) {
-      final Map<Integer, RexNode> projectMap =
-          getConstraintForModifiableView(modifiableViewTable, targetRowType);
       final Table table = modifiableViewTable.unwrap(Table.class);
       final RelDataType tableRowType = table.getRowType(typeFactory);
       final List<RelDataTypeField> tableFields = tableRowType.getFieldList();
-      Map<Integer, RelDataTypeField> indexToField =
+
+      // Get the mapping from column indexes of the underlying table
+      // to the target columns and view constraints.
+      final Map<Integer, RelDataTypeField> tableIndexToTargetField =
           SqlValidatorUtil.getIndexToFieldMap(tableFields, targetRowType);
+      final Map<Integer, RexNode> projectMap =
+          getConstraintForModifiableView(modifiableViewTable, targetRowType);
+
+      // Determine columns (indexed to the underlying table) that need
+      // to be validated against the view constraint.
       final ImmutableBitSet targetColumns =
-          SqlValidatorUtil.getOrdinalBitSet(tableRowType, indexToField);
+          ImmutableBitSet.of(tableIndexToTargetField.keySet());
+      final ImmutableBitSet constrainedColumns =
+          ImmutableBitSet.of(projectMap.keySet());
+      final ImmutableBitSet constrainedTargetColumns =
+          targetColumns.intersect(constrainedColumns);
+
+      // Validate insert values against the view constraint.
       final List<SqlNode> values = ((SqlCall) source).getOperandList();
-      for (Map.Entry<Integer, RexNode> entry : projectMap.entrySet()) {
-        if (!targetColumns.get(entry.getKey())) {
-          // The constrained column was not targeted for insert.
-          continue;
-        }
+      for (final int colIndex : constrainedTargetColumns.asList()) {
+        final String colName = tableFields.get(colIndex).getName();
+        final RelDataTypeField targetField = tableIndexToTargetField.get(colIndex);
         for (SqlNode row : values) {
-          final String colName = tableFields.get(entry.getKey()).getName();
-          assert indexToField.containsKey(entry.getKey());
-          final RelDataTypeField targetField = indexToField.get(entry.getKey());
           final SqlNode sourceValue = ((SqlCall) row).getOperandList().get(targetField.getIndex());
-          checkConstraint(validatorTable, colName, sourceValue, entry.getValue());
+          checkConstraint(validatorTable, colName, sourceValue, projectMap.get(colIndex));
         }
       }
     }
@@ -3946,13 +3953,14 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       final RelDataType tableRowType = table.getRowType(typeFactory);
       final Map<Integer, RexNode> projectMap =
           getConstraintForModifiableView(modifiableViewTable, targetRowType);
-      for (Pair<SqlNode, SqlNode> column : Pair.zip(update.getTargetColumnList().getList(),
+      for (final Pair<SqlNode, SqlNode> column : Pair.zip(update.getTargetColumnList().getList(),
           update.getSourceExpressionList().getList())) {
-        final String columnName = ((SqlIdentifier) column.left).getSimple();
+        final String columnName =
+            ((SqlIdentifier) column.left).getSimple();
         final int columnIndex =
             tableRowType.getField(columnName, true, false).getIndex();
-        final RexNode columnConstraint = projectMap.get(columnIndex);
-        if (columnConstraint != null) {
+        if (projectMap.containsKey(columnIndex)) {
+          final RexNode columnConstraint = projectMap.get(columnIndex);
           checkConstraint(validatorTable, columnName, column.right, columnConstraint);
         }
       }
