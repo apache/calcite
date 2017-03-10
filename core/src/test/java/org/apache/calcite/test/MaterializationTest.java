@@ -40,9 +40,6 @@ import org.apache.calcite.tools.RuleSet;
 import org.apache.calcite.tools.RuleSets;
 import org.apache.calcite.util.JsonBuilder;
 import org.apache.calcite.util.TryThreadLocal;
-import org.apache.calcite.util.Util;
-
-import org.apache.commons.lang3.StringUtils;
 
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
@@ -53,7 +50,6 @@ import org.junit.Test;
 
 import java.math.BigDecimal;
 import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -916,33 +912,24 @@ public class MaterializationTest {
     checkMaterializeWithRules(m, q, rules);
   }
 
+  @Test public void testUnionAll() {
+    String q = "select * from \"emps\" where \"empid\" > 300\n"
+        + "union all select * from \"emps\" where \"empid\" < 200";
+    String m = "select * from \"emps\" where \"empid\" < 500";
+    checkMaterialize(m, q, JdbcTest.HR_MODEL,
+        CalciteAssert.checkResultContains(
+            "EnumerableTableScan(table=[[hr, m0]])", 1));
+  }
+
   @Test public void testSubQuery() {
     String q = "select \"empid\", \"deptno\", \"salary\" from \"emps\" e1\n"
         + "where \"empid\" = (\n"
         + "  select max(\"empid\") from \"emps\"\n"
         + "  where \"deptno\" = e1.\"deptno\")";
     final String m = "select \"empid\", \"deptno\" from \"emps\"\n";
-    try (final TryThreadLocal.Memo ignored = Prepare.THREAD_TRIM.push(true)) {
-      MaterializationService.setThreadLocal();
-      CalciteAssert.that()
-          .withMaterializations(JdbcTest.HR_MODEL, "m0", m)
-          .query(q)
-          .enableMaterializations(true)
-          .explainMatches("", new Function<ResultSet, Void>() {
-            public Void apply(ResultSet s) {
-              try {
-                final String actual = Util.toLinux(CalciteAssert.toString(s));
-                final String scan = "EnumerableTableScan(table=[[hr, m0]])";
-                assertTrue(actual + " should have 1 occurrence of " + scan,
-                    StringUtils.countMatches(actual, scan) == 1);
-                return null;
-              } catch (SQLException e) {
-                throw new RuntimeException(e);
-              }
-            }
-          })
-          .sameResultWithMaterializationsDisabled();
-    }
+    checkMaterialize(m, q, JdbcTest.HR_MODEL,
+        CalciteAssert.checkResultContains(
+            "EnumerableTableScan(table=[[hr, m0]])", 1));
   }
 
   @Test public void testTableModify() {
@@ -1046,28 +1033,10 @@ public class MaterializationTest {
     String q = "select *\n"
         + "from (select * from \"emps\" where \"empid\" < 300)\n"
         + "join (select * from \"emps\" where \"empid\" < 200) using (\"empid\")";
-    try (final TryThreadLocal.Memo ignored = Prepare.THREAD_TRIM.push(true)) {
-      MaterializationService.setThreadLocal();
-      CalciteAssert.that()
-          .withMaterializations(JdbcTest.HR_MODEL,
-              "m0", "select * from \"emps\" where \"empid\" < 500")
-          .query(q)
-          .enableMaterializations(true)
-          .explainMatches("", new Function<ResultSet, Void>() {
-            public Void apply(ResultSet s) {
-              try {
-                final String actual = Util.toLinux(CalciteAssert.toString(s));
-                final String scan = "EnumerableTableScan(table=[[hr, m0]])";
-                assertTrue(actual + " should have had two occurrences of " + scan,
-                    StringUtils.countMatches(actual, scan) == 2);
-                return null;
-              } catch (SQLException e) {
-                throw new RuntimeException(e);
-              }
-            }
-          })
-          .sameResultWithMaterializationsDisabled();
-    }
+    String m = "select * from \"emps\" where \"empid\" < 500";
+    checkMaterialize(m, q, JdbcTest.HR_MODEL,
+        CalciteAssert.checkResultContains(
+            "EnumerableTableScan(table=[[hr, m0]])", 2));
   }
 
   @Test public void testMultiMaterializationMultiUsage() {

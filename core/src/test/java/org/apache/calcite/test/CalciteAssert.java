@@ -40,6 +40,8 @@ import org.apache.calcite.util.JsonBuilder;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
+import org.apache.commons.lang3.StringUtils;
+
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
 import com.google.common.base.Joiner;
@@ -403,6 +405,23 @@ public class CalciteAssert {
         try {
           final String actual = Util.toLinux(CalciteAssert.toString(s));
           assertThat(actual, containsString(expected));
+          return null;
+        } catch (SQLException e) {
+          throw new RuntimeException(e);
+        }
+      }
+    };
+  }
+
+  public static Function<ResultSet, Void> checkResultContains(
+      final String expected, final int count) {
+    return new Function<ResultSet, Void>() {
+      public Void apply(ResultSet s) {
+        try {
+          final String actual = Util.toLinux(CalciteAssert.toString(s));
+          assertTrue(
+              actual + " should have " + count + " occurrence of " + expected,
+              StringUtils.countMatches(actual, expected) == count);
           return null;
         } catch (SQLException e) {
           throw new RuntimeException(e);
