@@ -36,9 +36,13 @@ import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
 
+import org.apache.hadoop.fs.Path;
+import org.apache.pig.pigunit.Cluster;
 import org.apache.pig.pigunit.PigTest;
+import org.apache.pig.test.Util;
 
 import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
 import static org.apache.calcite.rel.rules.FilterJoinRule.TRUE_PREDICATE;
@@ -62,7 +66,7 @@ public class PigRelBuilderStyleTest extends AbstractPigTest {
         .filter(builder.call(GREATER_THAN, builder.field("tc0"), builder.literal("abc"))).build();
     final RelNode optimized = optimizeWithVolcano(node);
     assertScriptAndResults("t", getPigScript(optimized, schema),
-        "t = LOAD '" + getFullPathForTestDataFile("data.txt")
+        "t = LOAD 'data.txt"
             + "' USING PigStorage() AS (tc0:chararray, tc1:chararray);\n"
             + "t = FILTER t BY (tc0 > 'abc');",
         new String[] { "(b,2)", "(c,3)" });
@@ -79,7 +83,7 @@ public class PigRelBuilderStyleTest extends AbstractPigTest {
         .build();
     final RelNode optimized = optimizeWithVolcano(node);
     assertScriptAndResults("t", getPigScript(optimized, schema),
-        "t = LOAD '" + getFullPathForTestDataFile("data.txt")
+        "t = LOAD 'data.txt"
             + "' USING PigStorage() AS (tc0:chararray, tc1:chararray);\n"
             + "t = FILTER t BY (tc0 > 'abc') AND (tc1 == '3');",
         new String[] { "(c,3)" });
@@ -94,7 +98,7 @@ public class PigRelBuilderStyleTest extends AbstractPigTest {
         .build();
     final RelNode optimized = optimizeWithVolcano(node);
     assertScriptAndResults("t", getPigScript(optimized, schema),
-        "t = LOAD '" + getFullPathForTestDataFile("data.txt")
+        "t = LOAD 'data.txt"
             + "' USING PigStorage() AS (tc0:chararray, tc1:chararray);\n"
             + "t = GROUP t BY (tc0);\n"
             + "t = FOREACH t {\n"
@@ -111,7 +115,7 @@ public class PigRelBuilderStyleTest extends AbstractPigTest {
         .aggregate(builder.groupKey(), builder.count(false, "c", builder.field("tc0"))).build();
     final RelNode optimized = optimizeWithVolcano(node);
     assertScriptAndResults("t", getPigScript(optimized, schema),
-        "t = LOAD '" + getFullPathForTestDataFile("data.txt")
+        "t = LOAD 'data.txt"
             + "' USING PigStorage() AS (tc0:chararray, tc1:chararray);\n"
             + "t = GROUP t ALL;\n"
             + "t = FOREACH t {\n"
@@ -129,7 +133,7 @@ public class PigRelBuilderStyleTest extends AbstractPigTest {
         .build();
     final RelNode optimized = optimizeWithVolcano(node);
     assertScriptAndResults("t", getPigScript(optimized, schema),
-        "t = LOAD '" + getFullPathForTestDataFile("data.txt")
+        "t = LOAD 'data.txt"
             + "' USING PigStorage() AS (tc0:chararray, tc1:chararray);\n"
             + "t = GROUP t BY (tc0, tc1);\n"
             + "t = FOREACH t {\n"
@@ -147,7 +151,7 @@ public class PigRelBuilderStyleTest extends AbstractPigTest {
         .build();
     final RelNode optimized = optimizeWithVolcano(node);
     assertScriptAndResults("t", getPigScript(optimized, schema),
-        "t = LOAD '" + getFullPathForTestDataFile("data.txt")
+        "t = LOAD 'data.txt"
             + "' USING PigStorage() AS (tc0:chararray, tc1:chararray);\n"
             + "t = GROUP t BY (tc0, tc1);\n"
             + "t = FOREACH t {\n"
@@ -167,11 +171,10 @@ public class PigRelBuilderStyleTest extends AbstractPigTest {
         .filter(builder.call(GREATER_THAN, builder.field("tc0"), builder.literal("a"))).build();
     final RelNode optimized = optimizeWithVolcano(node);
     assertScriptAndResults("t", getPigScript(optimized, schema),
-        "t = LOAD '" + getFullPathForTestDataFile("data.txt")
+        "t = LOAD 'data.txt"
             + "' USING PigStorage() AS (tc0:chararray, tc1:chararray);\n"
             + "t = FILTER t BY (tc0 > 'a');\n"
-            + "s = LOAD '"
-            + getFullPathForTestDataFile("data2.txt")
+            + "s = LOAD 'data2.txt"
             + "' USING PigStorage() AS (sc0:chararray, sc1:chararray);\n"
             + "t = JOIN t BY tc1 , s BY sc0;",
         new String[] { "(b,2,2,label2)" });
@@ -189,11 +192,10 @@ public class PigRelBuilderStyleTest extends AbstractPigTest {
         .build();
     final RelNode optimized = optimizeWithVolcano(node);
     assertScriptAndResults("t", getPigScript(optimized, schema),
-        "t = LOAD '" + getFullPathForTestDataFile("data.txt")
+        "t = LOAD 'data.txt"
             + "' USING PigStorage() AS (tc0:chararray, tc1:chararray);\n"
             + "t = FILTER t BY (tc0 > 'abc');\n"
-            + "s = LOAD '"
-            + getFullPathForTestDataFile("data2.txt")
+            + "s = LOAD 'data2.txt"
             + "' USING PigStorage() AS (sc0:chararray, sc1:chararray);\n"
             + "t = JOIN t BY tc1 LEFT, s BY sc0;\n"
             + "t = GROUP t BY (tc1);\n"
@@ -206,10 +208,10 @@ public class PigRelBuilderStyleTest extends AbstractPigTest {
   private SchemaPlus createTestSchema() {
     SchemaPlus result = Frameworks.createRootSchema(false);
     result.add("t",
-        new PigTable(getFullPathForTestDataFile("data.txt"),
+        new PigTable("data.txt",
         new String[] { "tc0", "tc1" }));
     result.add("s",
-        new PigTable(getFullPathForTestDataFile("data2.txt"),
+        new PigTable("data2.txt",
         new String[] { "sc0", "sc1" }));
     return result;
   }
@@ -242,8 +244,8 @@ public class PigRelBuilderStyleTest extends AbstractPigTest {
     return planner;
   }
 
-  private void assertScriptAndResults(String relAliasForStore, String script, String expectedScript,
-      String[] expectedResults) {
+  private void assertScriptAndResults(String relAliasForStore, String script,
+      String expectedScript, String[] expectedResults) {
     try {
       assertEquals(expectedScript, script);
       script = script + "\nSTORE " + relAliasForStore + " INTO 'myoutput';";
@@ -263,6 +265,19 @@ public class PigRelBuilderStyleTest extends AbstractPigTest {
   @After
   public void shutdownPigServer() {
     PigTest.getPigServer().shutdown();
+  }
+
+  @Before
+  public void setupDataFilesForPigServer() throws Exception {
+    System.getProperties().setProperty("pigunit.exectype",
+        Util.getLocalTestMode().toString());
+    Cluster cluster = PigTest.getCluster();
+    cluster.update(
+        new Path(getFullPathForTestDataFile("data.txt")),
+        new Path("data.txt"));
+    cluster.update(
+        new Path(getFullPathForTestDataFile("data2.txt")),
+        new Path("data2.txt"));
   }
 }
 
