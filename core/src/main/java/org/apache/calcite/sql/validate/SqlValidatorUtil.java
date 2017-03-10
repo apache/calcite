@@ -191,10 +191,27 @@ public class SqlValidatorUtil {
     ImmutableBitSet source = ImmutableBitSet.of(
         Lists.transform(
             sourceRowType.getFieldList(),
-            new RelDataTypeField.GetFieldListKeys()));
+            new RelDataTypeField.ToFieldIndex()));
     ImmutableBitSet target =
         ImmutableBitSet.of(indexToField.keySet());
     return source.intersect(target);
+  }
+
+  /**
+   * Gets a map from field names to indexes.
+   */
+  public static Map<String, Integer> mapNameToIndex(List<RelDataTypeField> fields) {
+    List<String> names = Lists.transform(
+        fields,
+        new RelDataTypeField.ToFieldName());
+    List<Integer> indexes = Lists.transform(
+        fields,
+        new RelDataTypeField.ToFieldIndex());
+    ImmutableMap.Builder<String, Integer> output = ImmutableMap.builder();
+    for (Pair<String, Integer> nameIndex : Pair.zip(names, indexes)) {
+      output.put(nameIndex);
+    }
+    return output.build();
   }
 
 

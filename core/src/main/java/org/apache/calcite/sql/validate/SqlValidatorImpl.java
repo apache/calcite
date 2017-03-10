@@ -3951,14 +3951,17 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     if (modifiableViewTable != null) {
       final Table table = modifiableViewTable.unwrap(Table.class);
       final RelDataType tableRowType = table.getRowType(typeFactory);
+
       final Map<Integer, RexNode> projectMap =
           getConstraintForModifiableView(modifiableViewTable, targetRowType);
+      final Map<String, Integer> nameToIndex =
+          SqlValidatorUtil.mapNameToIndex(tableRowType.getFieldList());
+
+      // Validate update values against the view constraint.
       for (final Pair<SqlNode, SqlNode> column : Pair.zip(update.getTargetColumnList().getList(),
           update.getSourceExpressionList().getList())) {
-        final String columnName =
-            ((SqlIdentifier) column.left).getSimple();
-        final int columnIndex =
-            tableRowType.getField(columnName, true, false).getIndex();
+        final String columnName = ((SqlIdentifier) column.left).getSimple();
+        final Integer columnIndex = nameToIndex.get(columnName);
         if (projectMap.containsKey(columnIndex)) {
           final RexNode columnConstraint = projectMap.get(columnIndex);
           checkConstraint(validatorTable, columnName, column.right, columnConstraint);
