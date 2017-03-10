@@ -369,9 +369,7 @@ public class RelToSqlConverter extends SqlImplementor
             }), POS);
   }
 
-  /**
-   * @see #dispatch
-   */
+  /** @see #dispatch */
   public Result visit(Match e) {
     final RelNode input = e.getInput();
     final Result x = visitChild(0, input);
@@ -381,22 +379,20 @@ public class RelToSqlConverter extends SqlImplementor
 
     RexNode rexPattern = e.getPattern();
     final SqlNode pattern = context.toSql(null, rexPattern);
-    final SqlLiteral isStrictStarts = SqlLiteral.createBoolean(e.isStrictStart(), POS);
-    final SqlLiteral isStrictEnds = SqlLiteral.createBoolean(e.isStrictEnd(), POS);
+    final SqlLiteral strictStart = SqlLiteral.createBoolean(e.isStrictStart(), POS);
+    final SqlLiteral strictEnd = SqlLiteral.createBoolean(e.isStrictEnd(), POS);
 
-    List<SqlNode> list = Lists.newArrayList();
+    final SqlNodeList patternDefList = new SqlNodeList(POS);
     for (Map.Entry<String, RexNode> entry : e.getPatternDefinitions().entrySet()) {
       String alias = entry.getKey();
       SqlNode sqlNode = context.toSql(null, entry.getValue());
-      sqlNode = SqlStdOperatorTable.PATTERN_DEFINE_AS.createCall(POS,
-        sqlNode, new SqlIdentifier(alias, POS));
-      list.add(sqlNode);
+      patternDefList.add(
+          SqlStdOperatorTable.AS.createCall(POS, sqlNode,
+              new SqlIdentifier(alias, POS)));
     }
 
-    final SqlNodeList patternDefList = new SqlNodeList(list, POS);
-
-    final SqlNode matchRecognize = new SqlMatchRecognize(POS, tableRef,
-      pattern, isStrictStarts, isStrictEnds, patternDefList);
+    final SqlNode matchRecognize = new SqlMatchRecognize(POS, tableRef, pattern,
+        strictStart, strictEnd, patternDefList);
     return result(matchRecognize, Expressions.list(Clause.FROM), e, null);
   }
 

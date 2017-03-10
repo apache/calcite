@@ -204,10 +204,17 @@ public class SqlMatchRecognize extends SqlCall {
       writer.newlineAndIndent();
       writer.sep("DEFINE");
 
-      SqlWriter.Frame patternDefFrame = writer.startList("", "");
-      pattern.patternDefList.unparse(writer, 0, 0);
+      final SqlWriter.Frame patternDefFrame = writer.startList("", "");
+      final SqlNodeList newDefineList = new SqlNodeList(SqlParserPos.ZERO);
+      for (SqlNode node : pattern.getPatternDefList()) {
+        final SqlCall call2 = (SqlCall) node;
+        // swap the position of alias position in AS operator
+        newDefineList.add(
+            call2.getOperator().createCall(SqlParserPos.ZERO, call2.operand(1),
+                call2.operand(0)));
+      }
+      newDefineList.unparse(writer, 0, 0);
       writer.endList(patternDefFrame);
-
       writer.endList(mrFrame);
     }
   }
