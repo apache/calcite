@@ -916,9 +916,9 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
 
   @Test public void testCastTypeToType() {
     checkExpType("cast(123 as char)", "CHAR(1) NOT NULL");
-    checkExpType("cast(123 as varchar)", "VARCHAR(1) NOT NULL");
+    checkExpType("cast(123 as varchar)", "VARCHAR(2147483647) NOT NULL");
     checkExpType("cast(x'1234' as binary)", "BINARY(1) NOT NULL");
-    checkExpType("cast(x'1234' as varbinary)", "VARBINARY(1) NOT NULL");
+    checkExpType("cast(x'1234' as varbinary)", "VARBINARY(2147483647) NOT NULL");
     checkExpType("cast(123 as varchar(3))", "VARCHAR(3) NOT NULL");
     checkExpType("cast(123 as char(3))", "CHAR(3) NOT NULL");
     checkExpType("cast('123' as integer)", "INTEGER NOT NULL");

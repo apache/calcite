@@ -614,12 +614,13 @@ public abstract class ReturnTypes {
           int typePrecision;
           if (argType0.getPrecision()
               == RelDataType.PRECISION_NOT_SPECIFIED
-                  && argType1.getPrecision()
+                  || argType1.getPrecision()
                       == RelDataType.PRECISION_NOT_SPECIFIED) {
             typePrecision = RelDataType.PRECISION_NOT_SPECIFIED;
           } else {
             typePrecision =
                 argType0.getPrecision() + argType1.getPrecision();
+            typePrecision = typePrecision < 0 ? Integer.MAX_VALUE : typePrecision;
           }
 
           ret = opBinding.getTypeFactory()
