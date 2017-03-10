@@ -3886,12 +3886,12 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       final Map<Integer, RexNode> projectMap =
           getConstraintForModifiableView(modifiableViewTable, targetRowType);
       final Table table = modifiableViewTable.unwrap(Table.class);
-      final List<RelDataTypeField> tableFields = table.getRowType(typeFactory).getFieldList();
-      Map<Integer, RelDataTypeField> indexToField = new HashMap<>();
-      SqlValidatorUtil.getIndexToFieldMap(
-          indexToField, tableFields, targetRowType);
+      final RelDataType tableRowType = table.getRowType(typeFactory);
+      final List<RelDataTypeField> tableFields = tableRowType.getFieldList();
+      Map<Integer, RelDataTypeField> indexToField =
+          SqlValidatorUtil.getIndexToFieldMap(tableFields, targetRowType);
       final ImmutableBitSet targetColumns =
-          SqlValidatorUtil.getOrdinalBitSet(table.getRowType(typeFactory), indexToField);
+          SqlValidatorUtil.getOrdinalBitSet(tableRowType, indexToField);
       final List<SqlNode> values = ((SqlCall) source).getOperandList();
       for (Map.Entry<Integer, RexNode> entry : projectMap.entrySet()) {
         if (!targetColumns.get(entry.getKey())) {
@@ -3900,8 +3900,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         }
         for (SqlNode row : values) {
           final String colName = tableFields.get(entry.getKey()).getName();
+          assert indexToField.containsKey(entry.getKey());
           final RelDataTypeField targetField = indexToField.get(entry.getKey());
-          assert targetField != null;
           final SqlNode sourceValue = ((SqlCall) row).getOperandList().get(targetField.getIndex());
           checkConstraint(validatorTable, colName, sourceValue, entry.getValue());
         }
@@ -3943,13 +3943,14 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         validatorTable.unwrap(ModifiableViewTable.class);
     if (modifiableViewTable != null) {
       final Table table = modifiableViewTable.unwrap(Table.class);
+      final RelDataType tableRowType = table.getRowType(typeFactory);
       final Map<Integer, RexNode> projectMap =
           getConstraintForModifiableView(modifiableViewTable, targetRowType);
       for (Pair<SqlNode, SqlNode> column : Pair.zip(update.getTargetColumnList().getList(),
           update.getSourceExpressionList().getList())) {
         final String columnName = ((SqlIdentifier) column.left).getSimple();
         final int columnIndex =
-            table.getRowType(typeFactory).getField(columnName, true, false).getIndex();
+            tableRowType.getField(columnName, true, false).getIndex();
         final RexNode columnConstraint = projectMap.get(columnIndex);
         if (columnConstraint != null) {
           checkConstraint(validatorTable, columnName, column.right, columnConstraint);

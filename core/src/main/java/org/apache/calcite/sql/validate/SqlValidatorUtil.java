@@ -49,6 +49,7 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
@@ -148,20 +149,21 @@ public class SqlValidatorUtil {
   /**
    * Gets a map of indexes from the source to fields in the target for the
    * intersecting set of source and target fields.
-   * @param output       The output map
    * @param sourceFields The source of column names
    * @param targetFields The target fields to be indexed
    */
-  public static void getIndexToFieldMap(
-      Map<Integer, RelDataTypeField> output,
+  public static ImmutableMap<Integer, RelDataTypeField> getIndexToFieldMap(
       List<RelDataTypeField> sourceFields,
       RelDataType targetFields) {
+    final ImmutableMap.Builder<Integer, RelDataTypeField> output =
+        ImmutableMap.builder();
     for (RelDataTypeField source : sourceFields) {
       final RelDataTypeField target = targetFields.getField(source.getName(), true, false);
       if (target != null) {
         output.put(source.getIndex(), target);
       }
     }
+    return output.build();
   }
 
   /**
@@ -172,8 +174,8 @@ public class SqlValidatorUtil {
    */
   public static ImmutableBitSet getOrdinalBitSet(
       RelDataType sourceRowType, RelDataType targetRowType) {
-    Map<Integer, RelDataTypeField> indexToField = new HashMap<>();
-    getIndexToFieldMap(indexToField, sourceRowType.getFieldList(), targetRowType);
+    Map<Integer, RelDataTypeField> indexToField =
+        getIndexToFieldMap(sourceRowType.getFieldList(), targetRowType);
     return getOrdinalBitSet(sourceRowType, indexToField);
   }
 
@@ -186,14 +188,13 @@ public class SqlValidatorUtil {
   public static ImmutableBitSet getOrdinalBitSet(
       RelDataType sourceRowType,
       Map<Integer, RelDataTypeField> indexToField) {
-    final List<Integer> ordinalBitSet = new ArrayList<>(sourceRowType.getFieldCount());
-    for (RelDataTypeField source : sourceRowType.getFieldList()) {
-      final RelDataTypeField target = indexToField.get(source.getIndex());
-      if (target != null) {
-        ordinalBitSet.add(source.getIndex());
-      }
-    }
-    return ImmutableBitSet.of(ordinalBitSet);
+    ImmutableBitSet source =
+        ImmutableBitSet.of(Lists.transform(
+            sourceRowType.getFieldList(),
+            new RelDataTypeField.GetFieldListKeys()));
+    ImmutableBitSet target =
+        ImmutableBitSet.of(indexToField.keySet());
+    return source.intersect(target);
   }
 
 

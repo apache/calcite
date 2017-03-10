@@ -16,6 +16,9 @@
  */
 package org.apache.calcite.rel.type;
 
+import com.google.common.base.Function;
+
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -28,6 +31,17 @@ import java.util.Map;
  * and {@link #getValue()} must be equivalent to {@link #getType()}.
  */
 public interface RelDataTypeField extends Map.Entry<String, RelDataType> {
+
+  /**
+   * Function to transform {@link List<RelDataTypeField>} to
+   * {@link List<Integer>} of the field keys.
+   */
+  class GetFieldListKeys implements Function<RelDataTypeField, Integer> {
+    @Override public Integer apply(RelDataTypeField o) {
+      return o.getIndex();
+    }
+  }
+
   //~ Methods ----------------------------------------------------------------
 
   /**
