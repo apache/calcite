@@ -48,6 +48,8 @@ public interface RexVisitor<R> {
 
   R visitSubQuery(RexSubQuery subQuery);
 
+  R visitTableInputRef(RexTableInputRef fieldRef);
+
   R visitPatternFieldRef(RexPatternFieldRef fieldRef);
 }
 

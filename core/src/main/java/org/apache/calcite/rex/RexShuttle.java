@@ -89,6 +89,10 @@ public class RexShuttle implements RexVisitor<RexNode> {
     }
   }
 
+  @Override public RexNode visitTableInputRef(RexTableInputRef ref) {
+    return ref;
+  }
+
   @Override public RexNode visitPatternFieldRef(RexPatternFieldRef fieldRef) {
     return fieldRef;
   }

@@ -561,6 +561,13 @@ public enum SqlKind {
   INPUT_REF,
 
   /**
+   * Reference to an input field, with a qualified name and an identifier
+   *
+   * <p>(Only used at the RexNode level.)</p>
+   */
+  TABLE_INPUT_REF,
+
+  /**
    * Reference to an input field, with pattern var as modifier
    *
    * <p>(Only used at the RexNode level.)</p>

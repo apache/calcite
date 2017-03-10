@@ -843,6 +843,7 @@ public class RelMdUtil {
     }
     return alreadySorted && alreadySmaller;
   }
+
 }
 
 // End RelMdUtil.java

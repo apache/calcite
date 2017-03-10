@@ -27,6 +27,7 @@ import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.ImmutableBitSet;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Multimap;
 
 import java.util.List;
 import java.util.Set;
@@ -157,6 +158,22 @@ public abstract class BuiltInMetadata {
     /** Handler API. */
     interface Handler extends MetadataHandler<Distribution> {
       RelDistribution distribution(RelNode r, RelMetadataQuery mq);
+    }
+  }
+
+  /** Metadata about the node types and count in a relational expression. */
+  public interface NodeTypes extends Metadata {
+    MetadataDef<NodeTypes> DEF = MetadataDef.of(NodeTypes.class,
+        NodeTypes.Handler.class, BuiltInMethod.NODE_TYPES.method);
+
+    /**
+     *
+     */
+    Multimap<Class<? extends RelNode>, RelNode> getNodeTypes();
+
+    /** Handler API. */
+    interface Handler extends MetadataHandler<NodeTypes> {
+      Multimap<Class<? extends RelNode>, RelNode> getNodeTypes(RelNode r, RelMetadataQuery mq);
     }
   }
 
@@ -370,6 +387,23 @@ public abstract class BuiltInMetadata {
     }
   }
 
+  /** Metadata about the origins of expressions. */
+  public interface ExpressionLineage extends Metadata {
+    MetadataDef<ExpressionLineage> DEF = MetadataDef.of(ExpressionLineage.class,
+        ExpressionLineage.Handler.class, BuiltInMethod.EXPRESSION_LINEAGE.method);
+
+    /**
+     *
+     */
+    Set<RexNode> getExpressionLineage(RexNode expression);
+
+    /** Handler API. */
+    interface Handler extends MetadataHandler<ExpressionLineage> {
+      Set<RexNode> getExpressionLineage(RelNode r, RelMetadataQuery mq,
+          RexNode expression);
+    }
+  }
+
   /** Metadata about the cost of evaluating a relational expression, including
    * all of its inputs. */
   public interface CumulativeCost extends Metadata {
@@ -461,6 +495,26 @@ public abstract class BuiltInMetadata {
     }
   }
 
+  /** Metadata about the predicates that hold in the rows emitted from a
+   * relational expression. */
+  public interface AllPredicates extends Metadata {
+    MetadataDef<AllPredicates> DEF = MetadataDef.of(AllPredicates.class,
+            AllPredicates.Handler.class, BuiltInMethod.ALL_PREDICATES.method);
+
+    /**
+     * Derives the predicates that hold on rows emitted from a relational
+     * expression.
+     *
+     * @return Predicate list
+     */
+    RelOptPredicateList getAllPredicates();
+
+    /** Handler API. */
+    interface Handler extends MetadataHandler<AllPredicates> {
+      RelOptPredicateList getAllPredicates(RelNode r, RelMetadataQuery mq);
+    }
+  }
+
   /** Metadata about the degree of parallelism of a relational expression, and
    * how its operators are assigned to processes with independent resource
    * pools. */
@@ -547,7 +601,8 @@ public abstract class BuiltInMetadata {
   /** The built-in forms of metadata. */
   interface All extends Selectivity, UniqueKeys, RowCount, DistinctRowCount,
       PercentageOriginalRows, ColumnUniqueness, ColumnOrigin, Predicates,
-      Collation, Distribution, Size, Parallelism, Memory {
+      Collation, Distribution, Size, Parallelism, Memory, AllPredicates,
+      ExpressionLineage, NodeTypes {
   }
 }
 

@@ -29,6 +29,7 @@ import org.apache.calcite.util.ImmutableBitSet;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Multimap;
 
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
@@ -84,6 +85,7 @@ public class RelMetadataQuery {
 
   private BuiltInMetadata.Collation.Handler collationHandler;
   private BuiltInMetadata.ColumnOrigin.Handler columnOriginHandler;
+  private BuiltInMetadata.ExpressionLineage.Handler expressionLineageHandler;
   private BuiltInMetadata.ColumnUniqueness.Handler columnUniquenessHandler;
   private BuiltInMetadata.CumulativeCost.Handler cumulativeCostHandler;
   private BuiltInMetadata.DistinctRowCount.Handler distinctRowCountHandler;
@@ -97,6 +99,8 @@ public class RelMetadataQuery {
   private BuiltInMetadata.PercentageOriginalRows.Handler percentageOriginalRowsHandler;
   private BuiltInMetadata.PopulationSize.Handler populationSizeHandler;
   private BuiltInMetadata.Predicates.Handler predicatesHandler;
+  private BuiltInMetadata.AllPredicates.Handler allPredicatesHandler;
+  private BuiltInMetadata.NodeTypes.Handler nodeTypesHandler;
   private BuiltInMetadata.RowCount.Handler rowCountHandler;
   private BuiltInMetadata.Selectivity.Handler selectivityHandler;
   private BuiltInMetadata.Size.Handler sizeHandler;
@@ -114,6 +118,7 @@ public class RelMetadataQuery {
     this.metadataProvider = Preconditions.checkNotNull(metadataProvider);
     this.collationHandler = prototype.collationHandler;
     this.columnOriginHandler = prototype.columnOriginHandler;
+    this.expressionLineageHandler = prototype.expressionLineageHandler;
     this.columnUniquenessHandler = prototype.columnUniquenessHandler;
     this.cumulativeCostHandler = prototype.cumulativeCostHandler;
     this.distinctRowCountHandler = prototype.distinctRowCountHandler;
@@ -127,6 +132,8 @@ public class RelMetadataQuery {
     this.percentageOriginalRowsHandler = prototype.percentageOriginalRowsHandler;
     this.populationSizeHandler = prototype.populationSizeHandler;
     this.predicatesHandler = prototype.predicatesHandler;
+    this.allPredicatesHandler = prototype.allPredicatesHandler;
+    this.nodeTypesHandler = prototype.nodeTypesHandler;
     this.rowCountHandler = prototype.rowCountHandler;
     this.selectivityHandler = prototype.selectivityHandler;
     this.sizeHandler = prototype.sizeHandler;
@@ -162,6 +169,7 @@ public class RelMetadataQuery {
     this.metadataProvider = null;
     this.collationHandler = initialHandler(BuiltInMetadata.Collation.Handler.class);
     this.columnOriginHandler = initialHandler(BuiltInMetadata.ColumnOrigin.Handler.class);
+    this.expressionLineageHandler = initialHandler(BuiltInMetadata.ExpressionLineage.Handler.class);
     this.columnUniquenessHandler = initialHandler(BuiltInMetadata.ColumnUniqueness.Handler.class);
     this.cumulativeCostHandler = initialHandler(BuiltInMetadata.CumulativeCost.Handler.class);
     this.distinctRowCountHandler = initialHandler(BuiltInMetadata.DistinctRowCount.Handler.class);
@@ -176,6 +184,8 @@ public class RelMetadataQuery {
         initialHandler(BuiltInMetadata.PercentageOriginalRows.Handler.class);
     this.populationSizeHandler = initialHandler(BuiltInMetadata.PopulationSize.Handler.class);
     this.predicatesHandler = initialHandler(BuiltInMetadata.Predicates.Handler.class);
+    this.allPredicatesHandler = initialHandler(BuiltInMetadata.AllPredicates.Handler.class);
+    this.nodeTypesHandler = initialHandler(BuiltInMetadata.NodeTypes.Handler.class);
     this.rowCountHandler = initialHandler(BuiltInMetadata.RowCount.Handler.class);
     this.selectivityHandler = initialHandler(BuiltInMetadata.Selectivity.Handler.class);
     this.sizeHandler = initialHandler(BuiltInMetadata.Size.Handler.class);
@@ -187,6 +197,24 @@ public class RelMetadataQuery {
   protected <M extends Metadata, H extends MetadataHandler<M>> H
   revise(Class<? extends RelNode> class_, MetadataDef<M> def) {
     return metadataProvider.revise(class_, def);
+  }
+
+  /**
+   * Returns the
+   * {@link BuiltInMetadata.NodeTypeCount#getNodeTypeCount()}
+   * statistic.
+   *
+   * @param rel the relational expression
+   * @return
+   */
+  public Multimap<Class<? extends RelNode>, RelNode> getNodeTypes(RelNode rel) {
+    for (;;) {
+      try {
+        return nodeTypesHandler.getNodeTypes(rel, this);
+      } catch (JaninoRelMetadataProvider.NoHandler e) {
+        nodeTypesHandler = revise(e.relClass, BuiltInMetadata.NodeTypes.DEF);
+      }
+    }
   }
 
   /**
@@ -349,6 +377,20 @@ public class RelMetadataQuery {
     }
     final RelColumnOrigin origin = Iterables.getOnlyElement(origins);
     return origin.isDerived() ? null : origin;
+  }
+
+  /**
+   * Determines the origin of a column.
+   */
+  public Set<RexNode> getExpressionLineage(RelNode rel, RexNode expression) {
+    for (;;) {
+      try {
+        return expressionLineageHandler.getExpressionLineage(rel, this, expression);
+      } catch (JaninoRelMetadataProvider.NoHandler e) {
+        expressionLineageHandler =
+            revise(e.relClass, BuiltInMetadata.ExpressionLineage.DEF);
+      }
+    }
   }
 
   /**
@@ -743,6 +785,24 @@ public class RelMetadataQuery {
         return predicatesHandler.getPredicates(rel, this);
       } catch (JaninoRelMetadataProvider.NoHandler e) {
         predicatesHandler = revise(e.relClass, BuiltInMetadata.Predicates.DEF);
+      }
+    }
+  }
+
+  /**
+   * Returns the
+   * {@link BuiltInMetadata.AllPredicates#getAllPredicates()}
+   * statistic.
+   *
+   * @param rel the relational expression
+   * @return All predicates within and below this RelNode
+   */
+  public RelOptPredicateList getAllPredicates(RelNode rel) {
+    for (;;) {
+      try {
+        return allPredicatesHandler.getAllPredicates(rel, this);
+      } catch (JaninoRelMetadataProvider.NoHandler e) {
+        allPredicatesHandler = revise(e.relClass, BuiltInMetadata.AllPredicates.DEF);
       }
     }
   }

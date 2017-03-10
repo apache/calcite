@@ -118,10 +118,12 @@ import java.io.StringWriter;
 import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.BitSet;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -224,17 +226,29 @@ public abstract class RelOptUtil {
    * Returns a list of all tables used by this expression or its children
    */
   public static List<RelOptTable> findAllTables(RelNode rel) {
+    final Multimap<Class<? extends RelNode>, RelNode> nodes =
+        RelMetadataQuery.instance().getNodeTypes(rel);
     final List<RelOptTable> usedTables = new ArrayList<>();
-    new RelVisitor() {
-      @Override public void visit(RelNode node, int ordinal, RelNode parent) {
-        if (node instanceof TableScan) {
+    for (Entry<Class<? extends RelNode>, Collection<RelNode>> e : nodes.asMap().entrySet()) {
+      if (TableScan.class.isAssignableFrom(e.getKey())) {
+        for (RelNode node : e.getValue()) {
           usedTables.add(node.getTable());
         }
-        super.visit(node, ordinal, parent);
       }
-      // CHECKSTYLE: IGNORE 1
-    }.go(rel);
+    }
     return usedTables;
+  }
+
+  /**
+   * Returns a list of all tables used by this expression or its children
+   */
+  public static List<String> findAllTableQualifiedNames(RelNode rel) {
+    return Lists.transform(findAllTables(rel),
+        new Function<RelOptTable, String>() {
+          @Override public String apply(RelOptTable arg0) {
+            return arg0.getQualifiedName().toString();
+          }
+        });
   }
 
   /**

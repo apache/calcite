@@ -24,6 +24,7 @@ import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.metadata.RelTableRef;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeFamily;
@@ -490,6 +491,10 @@ public class RexUtil {
       return false;
     }
 
+    @Override public Boolean visitTableInputRef(RexTableInputRef ref) {
+      return false;
+    }
+
     @Override public Boolean visitPatternFieldRef(RexPatternFieldRef fieldRef) {
       return false;
     }
@@ -819,6 +824,28 @@ public class RexUtil {
       }
     }
     return false;
+  }
+
+  /**
+   * Returns whether a given tree contains any {link RexTableInputRef} nodes.
+   *
+   * @param node a RexNode tree
+   * @return first such node found or null if it there is no such node
+   */
+  public static RexTableInputRef containsTableInputRef(RexNode node) {
+    try {
+      RexVisitor<Void> visitor =
+          new RexVisitorImpl<Void>(true) {
+            public Void visitTableInputRef(RexTableInputRef inputRef) {
+              throw new Util.FoundOne(inputRef);
+            }
+          };
+      node.accept(visitor);
+      return null;
+    } catch (Util.FoundOne e) {
+      Util.swallow(e, null);
+      return (RexTableInputRef) e.getNode();
+    }
   }
 
   public static boolean isAtomic(RexNode expr) {
@@ -1838,6 +1865,61 @@ public class RexUtil {
     } catch (Util.FoundOne e) {
       return true;
     }
+  }
+
+  public static RexNode swapTableReferences(final RexBuilder rexBuilder,
+      final RexNode node, final Map<RelTableRef, RelTableRef> tableMapping) {
+    return swapTableColumnReferences(rexBuilder, node, tableMapping, null);
+  }
+
+  public static RexNode swapColumnReferences(final RexBuilder rexBuilder,
+      final RexNode node, final Map<RexTableInputRef, Set<RexTableInputRef>> ec) {
+    return swapTableColumnReferences(rexBuilder, node, null, ec);
+  }
+
+  public static RexNode swapTableColumnReferences(final RexBuilder rexBuilder,
+      final RexNode node, final Map<RelTableRef, RelTableRef> tableMapping,
+      final Map<RexTableInputRef, Set<RexTableInputRef>> ec) {
+    RexShuttle visitor =
+        new RexShuttle() {
+          @Override public RexNode visitTableInputRef(RexTableInputRef inputRef) {
+            if (tableMapping != null) {
+              inputRef = new RexTableInputRef(
+                  tableMapping.get(inputRef.getTableRef()),
+                  inputRef.getIndex(),
+                  inputRef.getType());
+            }
+            if (ec != null) {
+              Set<RexTableInputRef> s = ec.get(inputRef);
+              if (s != null) {
+                inputRef = s.iterator().next();
+              }
+            }
+            return inputRef;
+          }
+        };
+    return visitor.apply(node);
+  }
+
+  /**
+   * Gather all table references in input expressions.
+   *
+   * @param nodes expressions
+   * @return set of table references
+   */
+  public static Set<RelTableRef> gatherTableReferences(final List<RexNode> nodes) {
+    final Set<RelTableRef> occurrences = new HashSet<>();
+    RexVisitor<Void> visitor =
+      new RexVisitorImpl<Void>(true) {
+        @Override public Void visitTableInputRef(RexTableInputRef ref) {
+          occurrences.add(ref.getTableRef());
+          return super.visitTableInputRef(ref);
+        }
+      };
+    for (RexNode e : nodes) {
+      e.accept(visitor);
+    }
+    return occurrences;
   }
 
   //~ Inner Classes ----------------------------------------------------------
