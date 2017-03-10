@@ -1143,14 +1143,6 @@ public abstract class SqlImplementor {
     public Result result() {
       return SqlImplementor.this.result(select, clauses, rel, aliases);
     }
-
-    public Result result(boolean useInputAlias) {
-      if (useInputAlias && context instanceof AliasContext) {
-        return SqlImplementor.this.result(select, clauses, rel,
-          ((AliasContext) context).aliases);
-      }
-      return SqlImplementor.this.result(select, clauses, rel, aliases);
-    }
   }
 
   /** Clauses in a SQL query. Ordered by evaluation order.

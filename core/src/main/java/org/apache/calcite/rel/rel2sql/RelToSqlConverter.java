@@ -148,11 +148,7 @@ public class RelToSqlConverter extends SqlImplementor
     } else {
       final Builder builder = x.builder(e, Clause.WHERE);
       builder.setWhere(builder.context.toSql(null, e.getCondition()));
-      if (input instanceof Join) {
-        return builder.result(true);
-      } else {
-        return builder.result();
-      }
+      return builder.result();
     }
   }
 
