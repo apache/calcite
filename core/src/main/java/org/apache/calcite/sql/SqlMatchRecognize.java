@@ -23,6 +23,8 @@ import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.util.ImmutableNullableList;
 
+import com.google.common.collect.Lists;
+
 import java.util.List;
 
 /**
@@ -205,7 +207,19 @@ public class SqlMatchRecognize extends SqlCall {
       writer.sep("DEFINE");
 
       SqlWriter.Frame patternDefFrame = writer.startList("", "");
-      pattern.patternDefList.unparse(writer, 0, 0);
+      //swap the position of alias position in as function
+      List<SqlNode> newSqlNodeList = Lists.newArrayList();
+      for (SqlNode node : pattern.getPatternDefList()) {
+        SqlCall callNode = (SqlCall) node;
+        SqlOperator operator = callNode.getOperator();
+        List<SqlNode> operands = callNode.getOperandList();
+        SqlNode first = operands.get(0);
+        SqlNode second = operands.get(1);
+        newSqlNodeList.add(operator.createCall(SqlParserPos.ZERO, second, first));
+      }
+      SqlNodeList newDefineList = new SqlNodeList(newSqlNodeList, SqlParserPos.ZERO);
+      newDefineList.unparse(writer, 0, 0);
+
       writer.endList(patternDefFrame);
 
       writer.endList(mrFrame);

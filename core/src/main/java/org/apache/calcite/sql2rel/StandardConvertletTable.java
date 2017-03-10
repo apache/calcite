@@ -257,14 +257,6 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
             return cx.convertExpression(expanded);
           }
         });
-    registerOp(
-      SqlStdOperatorTable.PATTERN_DEFINE_AS,
-      new SqlRexConvertlet() {
-        public RexNode convertCall(SqlRexContext cx, SqlCall call) {
-          SqlNode expanded = call.operand(0);
-          return cx.convertExpression(expanded);
-        }
-      });
     // "SQRT(x)" is equivalent to "POWER(x, .5)"
     registerOp(
         SqlStdOperatorTable.SQRT,

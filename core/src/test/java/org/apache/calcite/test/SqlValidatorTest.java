@@ -8004,7 +8004,6 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "AS -\n"
         + "DESC post\n"
         + "OVER left\n"
-        + "PATTERN_DEFINE_AS -\n"
         + "TABLESAMPLE -\n"
         + "\n"
         + "INTERSECT left\n"
@@ -8947,8 +8946,6 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   /** Tries to create a calls to some internal operators in
    * MATCH_RECOGNIZE. Should fail. */
   @Test public void testMatchRecognizeInternals() throws Exception {
-    sql("values ^pattern_define_as(1, 2)^")
-        .fails("No match found for function signature .*");
     sql("values ^pattern_exclude(1, 2)^")
         .fails("No match found for function signature .*");
     sql("values ^\"|\"(1, 2)^")
