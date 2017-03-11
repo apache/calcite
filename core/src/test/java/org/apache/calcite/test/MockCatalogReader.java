@@ -751,6 +751,10 @@ public class MockCatalogReader extends CalciteCatalogReader {
           }
         };
       }
+
+      @Override public int getExtendedColumnOffset() {
+        return rowType.getFieldCount();
+      }
     }
 
     @Override protected RelOptTable extend(final Table extendedTable) {
