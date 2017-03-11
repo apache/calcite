@@ -123,7 +123,7 @@ public class SqlValidatorUtil {
     int extendedFieldOffset =
         extTable == null
             ? table.getRowType().getFieldCount()
-            : extTable.getExtendedColumnOffset();
+            : extTable.getRowType(validator.getTypeFactory()).getFieldCount();
     for (final Pair<SqlIdentifier, SqlDataTypeSpec> pair : pairs(extendedColumns)) {
       final SqlIdentifier identifier = pair.left;
       final SqlDataTypeSpec type = pair.right;
