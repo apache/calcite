@@ -41,6 +41,7 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.sql.JoinConditionType;
 import org.apache.calcite.sql.JoinType;
+import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDelete;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlIdentifier;
@@ -382,18 +383,28 @@ public class RelToSqlConverter extends SqlImplementor
     final SqlLiteral strictStart = SqlLiteral.createBoolean(e.isStrictStart(), POS);
     final SqlLiteral strictEnd = SqlLiteral.createBoolean(e.isStrictEnd(), POS);
 
-    final SqlNodeList patternDefList = new SqlNodeList(POS);
-    for (Map.Entry<String, RexNode> entry : e.getPatternDefinitions().entrySet()) {
-      String alias = entry.getKey();
-      SqlNode sqlNode = context.toSql(null, entry.getValue());
-      patternDefList.add(
-          SqlStdOperatorTable.AS.createCall(POS, sqlNode,
-              new SqlIdentifier(alias, POS)));
+    final SqlNodeList measureList = new SqlNodeList(POS);
+    for (Map.Entry<String, RexNode> entry : e.getMeasures().entrySet()) {
+      final String alias = entry.getKey();
+      final SqlNode sqlNode = context.toSql(null, entry.getValue());
+      measureList.add(as(sqlNode, alias));
     }
 
-    final SqlNode matchRecognize = new SqlMatchRecognize(POS, tableRef, pattern,
-        strictStart, strictEnd, patternDefList);
+    final SqlNodeList patternDefList = new SqlNodeList(POS);
+    for (Map.Entry<String, RexNode> entry : e.getPatternDefinitions().entrySet()) {
+      final String alias = entry.getKey();
+      final SqlNode sqlNode = context.toSql(null, entry.getValue());
+      patternDefList.add(as(sqlNode, alias));
+    }
+
+    final SqlNode matchRecognize = new SqlMatchRecognize(POS, tableRef,
+      pattern, strictStart, strictEnd, patternDefList, measureList);
     return result(matchRecognize, Expressions.list(Clause.FROM), e, null);
+  }
+
+  private SqlCall as(SqlNode e, String alias) {
+    return SqlStdOperatorTable.AS.createCall(POS, e,
+        new SqlIdentifier(alias, POS));
   }
 
   @Override public void addSelect(List<SqlNode> selectList, SqlNode node,
@@ -405,8 +416,7 @@ public class RelToSqlConverter extends SqlImplementor
       // Put it in ordinalMap
       ordinalMap.put(lowerName, node);
     } else if (alias == null || !alias.equals(name)) {
-      node = SqlStdOperatorTable.AS.createCall(
-          POS, node, new SqlIdentifier(name, POS));
+      node = as(node, name);
     }
     selectList.add(node);
   }

@@ -23,7 +23,10 @@ import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.util.ImmutableNullableList;
 
+import com.google.common.base.Preconditions;
+
 import java.util.List;
+import javax.annotation.Nonnull;
 
 /**
  * SqlNode for Match_recognize clause
@@ -34,6 +37,7 @@ public class SqlMatchRecognize extends SqlCall {
   public static final int OPERAND_STRICT_START = 2;
   public static final int OPERAND_STRICT_END = 3;
   public static final int OPERAND_PATTERN_DEFINES = 4;
+  public static final int OPERAND_MEASURES = 5;
 
   //~ Instance fields -------------------------------------------
 
@@ -42,20 +46,20 @@ public class SqlMatchRecognize extends SqlCall {
   private SqlLiteral strictStart;
   private SqlLiteral strictEnd;
   private SqlNodeList patternDefList;
+  private SqlNodeList measureList;
 
   /** Creates a SqlMatchRecognize. */
   public SqlMatchRecognize(SqlParserPos pos, SqlNode tableRef, SqlNode pattern,
-      SqlLiteral strictStart, SqlLiteral strictEnd, SqlNodeList patternDefList) {
+      SqlLiteral strictStart, SqlLiteral strictEnd, SqlNodeList patternDefList,
+      SqlNodeList measureList) {
     super(pos);
-    this.tableRef = tableRef;
-    this.pattern = pattern;
+    this.tableRef = Preconditions.checkNotNull(tableRef);
+    this.pattern = Preconditions.checkNotNull(pattern);
     this.strictStart = strictStart;
     this.strictEnd = strictEnd;
-    this.patternDefList = patternDefList;
-
-    assert tableRef != null;
-    assert pattern != null;
-    assert patternDefList != null && patternDefList.size() > 0;
+    this.patternDefList = Preconditions.checkNotNull(patternDefList);
+    Preconditions.checkArgument(patternDefList.size() > 0);
+    this.measureList = Preconditions.checkNotNull(measureList);
   }
 
   // ~ Methods
@@ -70,7 +74,7 @@ public class SqlMatchRecognize extends SqlCall {
 
   @Override public List<SqlNode> getOperandList() {
     return ImmutableNullableList.of(tableRef, pattern, strictStart, strictEnd,
-        patternDefList);
+        patternDefList, measureList);
   }
 
   @Override public void unparse(SqlWriter writer, int leftPrec,
@@ -85,7 +89,7 @@ public class SqlMatchRecognize extends SqlCall {
   @Override public void setOperand(int i, SqlNode operand) {
     switch (i) {
     case OPERAND_TABLE_REF:
-      tableRef = operand;
+      tableRef = Preconditions.checkNotNull(operand);
       break;
     case OPERAND_PATTERN:
       pattern = operand;
@@ -97,14 +101,18 @@ public class SqlMatchRecognize extends SqlCall {
       strictEnd = (SqlLiteral) operand;
       break;
     case OPERAND_PATTERN_DEFINES:
-      patternDefList = (SqlNodeList) operand;
+      patternDefList = Preconditions.checkNotNull((SqlNodeList) operand);
+      Preconditions.checkArgument(patternDefList.size() > 0);
+      break;
+    case OPERAND_MEASURES:
+      measureList = Preconditions.checkNotNull((SqlNodeList) operand);
       break;
     default:
       throw new AssertionError(i);
     }
   }
 
-  public SqlNode getTableRef() {
+  @Nonnull public SqlNode getTableRef() {
     return tableRef;
   }
 
@@ -120,8 +128,12 @@ public class SqlMatchRecognize extends SqlCall {
     return strictEnd;
   }
 
-  public SqlNodeList getPatternDefList() {
+  @Nonnull public SqlNodeList getPatternDefList() {
     return patternDefList;
+  }
+
+  @Nonnull public SqlNodeList getMeasureList() {
+    return measureList;
   }
 
   /**
@@ -144,11 +156,11 @@ public class SqlMatchRecognize extends SqlCall {
         SqlParserPos pos,
         SqlNode... operands) {
       assert functionQualifier == null;
-      assert operands.length == 5;
+      assert operands.length == 6;
 
       return new SqlMatchRecognize(pos, operands[0], operands[1],
           (SqlLiteral) operands[2], (SqlLiteral) operands[3],
-          (SqlNodeList) operands[4]);
+          (SqlNodeList) operands[4], (SqlNodeList) operands[5]);
     }
 
     @Override public <R> void acceptCall(
@@ -187,6 +199,14 @@ public class SqlMatchRecognize extends SqlCall {
 
       pattern.tableRef.unparse(writer, 0, 0);
       final SqlWriter.Frame mrFrame = writer.startFunCall("MATCH_RECOGNIZE");
+
+      if (pattern.measureList != null && pattern.measureList.size() > 0) {
+        writer.newlineAndIndent();
+        writer.sep("MEASURES");
+        final SqlWriter.Frame measureFrame = writer.startList("", "");
+        pattern.measureList.unparse(writer, 0, 0);
+        writer.endList(measureFrame);
+      }
 
       writer.newlineAndIndent();
       writer.sep("PATTERN");
