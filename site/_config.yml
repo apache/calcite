@@ -47,4 +47,7 @@ jdkApiRoot: https://docs.oracle.com/javase/8/docs/api/
 # The base path where the website is deployed
 baseurl:
 
+gems:
+    - jekyll-redirect-from
+
 # End _config.yml
