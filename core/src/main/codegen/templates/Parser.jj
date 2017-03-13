@@ -2495,6 +2495,7 @@ SqlMatchRecognize MatchRecognizeOpt(SqlNode tableRef) :
 {
     final SqlParserPos startPos;
     SqlParserPos pos;
+    SqlNodeList measureList = SqlNodeList.EMPTY;
     SqlNode pattern;
     SqlNodeList patternDefList;
     SqlLiteral isStrictStarts = SqlLiteral.createBoolean(false, getPos());
@@ -2502,6 +2503,10 @@ SqlMatchRecognize MatchRecognizeOpt(SqlNode tableRef) :
 }
 {
     <MATCH_RECOGNIZE> { startPos = getPos(); } <LPAREN>
+    [
+        <MEASURES> { pos = getPos(); }
+        measureList = MeasureColumnCommaList(pos)
+    ]
     <PATTERN>
     <LPAREN>
     (
@@ -2520,7 +2525,47 @@ SqlMatchRecognize MatchRecognizeOpt(SqlNode tableRef) :
     patternDefList = PatternDefinitionCommaList(pos)
     <RPAREN> {
         return new SqlMatchRecognize(startPos.plus(getPos()), tableRef,
-            pattern, isStrictStarts, isStrictEnds, patternDefList);
+            pattern, isStrictStarts, isStrictEnds, patternDefList, measureList);
+    }
+}
+
+SqlNodeList MeasureColumnCommaList(SqlParserPos pos) :
+{
+    SqlNode e;
+    List<SqlNode> eList;
+}
+{
+    e = MeasureColumn()
+    {
+        if (pos == null) {
+            pos = e.getParserPosition();
+        }
+        eList = new ArrayList<SqlNode>();
+        eList.add(e);
+    }
+    (
+        <COMMA>
+        e = MeasureColumn()
+        {
+            eList.add(e);
+        }
+    ) *
+    {
+        return new SqlNodeList(eList, pos.plus(getPos()));
+    }
+}
+
+SqlNode MeasureColumn() :
+{
+    SqlNode e;
+    SqlIdentifier alias;
+}
+{
+    e = Expression(ExprContext.ACCEPT_NON_QUERY)
+    <AS>
+    alias = SimpleIdentifier()
+    {
+        return SqlStdOperatorTable.AS.createCall(e.getParserPosition().plus(getPos()), e, alias);
     }
 }
 
@@ -5676,6 +5721,7 @@ SqlPostfixOperator PostfixRowOperator() :
     | < MATCH_RECOGNIZE: "MATCH_RECOGNIZE">
     | < MAX: "MAX" >
     | < MAXVALUE: "MAXVALUE" >
+    | < MEASURES: "MEASURES" >
     | < MEMBER: "MEMBER" >
     | < MERGE: "MERGE" >
     | < MESSAGE_LENGTH: "MESSAGE_LENGTH" >

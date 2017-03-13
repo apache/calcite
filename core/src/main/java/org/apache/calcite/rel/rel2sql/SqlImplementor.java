@@ -31,6 +31,7 @@ import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexLocalRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexOver;
+import org.apache.calcite.rex.RexPatternFieldRef;
 import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.rex.RexWindow;
 import org.apache.calcite.rex.RexWindowBound;
@@ -514,7 +515,17 @@ public abstract class SqlImplementor {
 
       case INPUT_REF:
         return field(((RexInputRef) rex).getIndex());
-
+      case PATTERN_INPUT_REF:
+        String pv = ((RexPatternFieldRef) rex).getAlpha();
+        SqlNode refNode = field(((RexInputRef) rex).getIndex());
+        assert refNode instanceof SqlIdentifier;
+        List<String> names = ((SqlIdentifier) refNode).names;
+        if (names.size() > 1) {
+          return ((SqlIdentifier) refNode).setName(0, pv);
+        } else {
+          names = ImmutableList.of(pv, names.get(0));
+          return new SqlIdentifier(names, POS);
+        }
       case LITERAL:
         final RexLiteral literal = (RexLiteral) rex;
         if (literal.getTypeName() == SqlTypeName.SYMBOL) {

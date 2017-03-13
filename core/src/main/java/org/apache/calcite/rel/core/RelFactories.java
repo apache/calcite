@@ -394,9 +394,13 @@ public class RelFactories {
    */
   public interface MatchFactory {
     /** Creates a {@link Match}. */
-    RelNode createMatchRecognize(RelNode input, RexNode pattern,
-        boolean strictStarts, boolean strictEnds,
-        Map<String, RexNode> patternDefinitions, RelDataType rowType);
+    RelNode createMatchRecognize(RelNode input,
+        RexNode pattern,
+        boolean strictStarts,
+        boolean strictEnds,
+        Map<String, RexNode> patternDefinitions,
+        Map<String, RexNode> measures,
+        RelDataType rowType);
   }
 
   /**
@@ -404,11 +408,15 @@ public class RelFactories {
    * that returns a {@link LogicalMatch}.
    */
   private static class MatchFactoryImpl implements MatchFactory {
-    public RelNode createMatchRecognize(RelNode input, RexNode pattern,
-        boolean strictStarts, boolean strictEnds,
-        Map<String, RexNode> patternDefinitions, RelDataType rowType) {
+    public RelNode createMatchRecognize(RelNode input,
+        RexNode pattern,
+        boolean strictStarts,
+        boolean strictEnds,
+        Map<String, RexNode> patternDefinitions,
+        Map<String, RexNode> measures,
+        RelDataType rowType) {
       return LogicalMatch.create(input, pattern, strictStarts, strictEnds,
-          patternDefinitions, rowType);
+          patternDefinitions, measures, rowType);
     }
   }
 }

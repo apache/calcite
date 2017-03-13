@@ -42,35 +42,49 @@ public class LogicalMatch extends Match {
    * @param strictStart Whether it is a strict start pattern
    * @param strictEnd Whether it is a strict end pattern
    * @param patternDefinitions Pattern definitions
+   * @param measures measures RexNode as output of Match Recognize
    * @param rowType Row type
    */
-  public LogicalMatch(RelOptCluster cluster, RelTraitSet traitSet,
-      RelNode input, RexNode pattern, boolean strictStart, boolean strictEnd,
-      Map<String, RexNode> patternDefinitions, RelDataType rowType) {
+  public LogicalMatch(RelOptCluster cluster,
+      RelTraitSet traitSet,
+      RelNode input, RexNode pattern,
+      boolean strictStart,
+      boolean strictEnd,
+      Map<String, RexNode> patternDefinitions,
+      Map<String, RexNode> measures,
+      RelDataType rowType) {
     super(cluster, traitSet, input, pattern, strictStart, strictEnd,
-        patternDefinitions, rowType);
+        patternDefinitions, measures, rowType);
   }
 
   /**
    * Creates a LogicalMatch.
    */
-  public static LogicalMatch create(RelNode input, RexNode pattern,
-      boolean strictStart, boolean strictEnd,
-      Map<String, RexNode> patternDefinitions, RelDataType rowType) {
+  public static LogicalMatch create(RelNode input,
+      RexNode pattern,
+      boolean strictStart,
+      boolean strictEnd,
+      Map<String, RexNode> patternDefinitions,
+      Map<String, RexNode> measures,
+      RelDataType rowType) {
     final RelOptCluster cluster = input.getCluster();
     final RelTraitSet traitSet = cluster.traitSetOf(Convention.NONE);
     return new LogicalMatch(cluster, traitSet, input, pattern,
-        strictStart, strictEnd, patternDefinitions, rowType);
+        strictStart, strictEnd, patternDefinitions, measures, rowType);
   }
 
   //~ Methods ------------------------------------------------------
 
-  @Override public Match copy(RelNode input, RexNode pattern,
-      boolean strictStart, boolean strictEnd,
-      Map<String, RexNode> patternDefinitions, RelDataType rowType) {
+  @Override public Match copy(RelNode input,
+      RexNode pattern,
+      boolean strictStart,
+      boolean strictEnd,
+      Map<String, RexNode> patternDefinitions,
+      Map<String, RexNode> measures,
+      RelDataType rowType) {
     final RelTraitSet traitSet = getCluster().traitSetOf(Convention.NONE);
     return new LogicalMatch(getCluster(), traitSet,
-        input, pattern, strictStart, strictEnd, patternDefinitions, rowType);
+        input, pattern, strictStart, strictEnd, patternDefinitions, measures, rowType);
   }
 }
 
