@@ -54,7 +54,6 @@ import static org.hamcrest.CoreMatchers.anyOf;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 /**
@@ -518,69 +517,62 @@ public class CsvTest {
   }
 
   /** Test case for
-   * https://issues.apache.org/jira/browse/CALCITE-1673 [CALCITE-1673]
-   * CSV adapter incorrectly parses TIMESTAMP values after noon. */
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1673">[CALCITE-1673]
+   * Query with ORDER BY or GROUP BY on TIMESTAMP column throws
+   * CompileException</a>. */
   @Test public void testTimestampGroupBy() throws SQLException {
     Properties info = new Properties();
     info.put("model", jsonPath("bug"));
-    try (Connection connection
-        = DriverManager.getConnection("jdbc:calcite:", info)) {
-      Statement statement = connection.createStatement();
-      ResultSet resultSet =
-              statement.executeQuery(
-               "select \"EMPNO\", \"JOINTIMES\"  from \"DATE\" group by \"EMPNO\",\"JOINTIMES\"");
-      assertTrue(resultSet.next());
-      // timestamp
-      Assert.assertEquals(java.sql.Timestamp.class,
-              resultSet.getTimestamp(2).getClass());
-      Assert.assertEquals(java.sql.Timestamp.valueOf("2002-05-03 00:00:00.0"),
-              resultSet.getTimestamp(2));
-      resultSet.close();
-      statement.close();
+    // Use LIMIT to ensure that results are deterministic without ORDER BY
+    final String sql = "select \"EMPNO\", \"JOINTIMES\"\n"
+        + "from (select * from \"DATE\" limit 1)\n"
+        + "group by \"EMPNO\",\"JOINTIMES\"";
+    try (Connection connection =
+             DriverManager.getConnection("jdbc:calcite:", info);
+         Statement statement = connection.createStatement();
+         ResultSet resultSet = statement.executeQuery(sql)) {
+      assertThat(resultSet.next(), is(true));
+      final Timestamp timestamp = resultSet.getTimestamp(2);
+      Assert.assertThat(timestamp, isA(java.sql.Timestamp.class));
+      // Note: This logic is time zone specific, but the same time zone is
+      // used in the CSV adapter and this test, so they should cancel out.
+      Assert.assertThat(timestamp,
+          is(java.sql.Timestamp.valueOf("1996-08-03 00:01:02.0")));
     }
   }
 
-  /** Test case for
-   * https://issues.apache.org/jira/browse/CALCITE-1673 [CALCITE-1673]
-   * CSV adapter incorrectly parses TIMESTAMP values after noon. */
+  /** As {@link #testTimestampGroupBy()} but with ORDER BY. */
   @Test public void testTimestampOrderBy() throws SQLException {
     Properties info = new Properties();
     info.put("model", jsonPath("bug"));
-    try (Connection connection
-        = DriverManager.getConnection("jdbc:calcite:", info)) {
-      Statement statement = connection.createStatement();
-      ResultSet resultSet = statement.executeQuery(
-              "select \"EMPNO\",\"JOINTIMES\"  from \"DATE\" order by \"JOINTIMES\"");
-      assertTrue(resultSet.next());
-      // timestamp
-      Assert.assertEquals(java.sql.Timestamp.class,
-              resultSet.getTimestamp(2).getClass());
-      Assert.assertEquals(java.sql.Timestamp.valueOf("1996-08-03 00:01:02"),
-              resultSet.getTimestamp(2));
-      resultSet.close();
-      statement.close();
+    final String sql = "select \"EMPNO\",\"JOINTIMES\" from \"DATE\"\n"
+        + "order by \"JOINTIMES\"";
+    try (Connection connection =
+             DriverManager.getConnection("jdbc:calcite:", info);
+         Statement statement = connection.createStatement();
+         ResultSet resultSet = statement.executeQuery(sql)) {
+      assertThat(resultSet.next(), is(true));
+      final Timestamp timestamp = resultSet.getTimestamp(2);
+      Assert.assertThat(timestamp,
+          is(java.sql.Timestamp.valueOf("1996-08-03 00:01:02")));
     }
   }
 
-  /** Test case for
-   * https://issues.apache.org/jira/browse/CALCITE-1673 [CALCITE-1673]
-   * CSV adapter incorrectly parses TIMESTAMP values after noon. */
+  /** As {@link #testTimestampGroupBy()} but with ORDER BY as well as GROUP
+   * BY. */
   @Test public void testTimestampGroupByAndOrderBy() throws SQLException {
     Properties info = new Properties();
     info.put("model", jsonPath("bug"));
-    try (Connection connection = DriverManager.getConnection("jdbc:calcite:", info)) {
-      Statement statement = connection.createStatement();
-      ResultSet resultSet =
-          statement.executeQuery(
-          "select \"EMPNO\", \"JOINTIMES\" from \"DATE\" group by \"EMPNO\",\"JOINTIMES\" order by \"JOINTIMES\"");
-      assertTrue(resultSet.next());
-      // timestamp
-      Assert.assertEquals(java.sql.Timestamp.class,
-              resultSet.getTimestamp(2).getClass());
-      Assert.assertEquals(java.sql.Timestamp.valueOf("1996-08-03 00:01:02"),
-              resultSet.getTimestamp(2));
-      resultSet.close();
-      statement.close();
+    final String sql = "select \"EMPNO\", \"JOINTIMES\" from \"DATE\"\n"
+        + "group by \"EMPNO\",\"JOINTIMES\" order by \"JOINTIMES\"";
+    try (Connection connection =
+             DriverManager.getConnection("jdbc:calcite:", info);
+         Statement statement = connection.createStatement();
+         ResultSet resultSet = statement.executeQuery(sql)) {
+      assertThat(resultSet.next(), is(true));
+      final Timestamp timestamp = resultSet.getTimestamp(2);
+      Assert.assertThat(timestamp,
+          is(java.sql.Timestamp.valueOf("1996-08-03 00:01:02")));
     }
   }
 

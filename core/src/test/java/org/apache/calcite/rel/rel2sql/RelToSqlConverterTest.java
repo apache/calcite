@@ -186,10 +186,53 @@ public class RelToSqlConverterTest {
     String query = "select count(*) from \"product\" group by \"product_class_id\","
         + " \"product_id\"  having \"product_id\"  > 10";
     final String expected = "SELECT COUNT(*)\n"
-        + "FROM (SELECT \"product_class_id\", \"product_id\", COUNT(*)\n"
         + "FROM \"foodmart\".\"product\"\n"
-        + "GROUP BY \"product_class_id\", \"product_id\") AS \"t0\"\n"
-        + "WHERE \"product_id\" > 10";
+        + "GROUP BY \"product_class_id\", \"product_id\"\n"
+        + "HAVING \"product_id\" > 10";
+    sql(query).ok(expected);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1665">[CALCITE-1665]
+   * Aggregates and having cannot be combined</a>. */
+  @Test public void testSelectQueryWithGroupByHaving2() {
+    String query = " select \"product\".\"product_id\",\n"
+        + "    min(\"sales_fact_1997\".\"store_id\")\n"
+        + "    from \"product\"\n"
+        + "    inner join \"sales_fact_1997\"\n"
+        + "    on \"product\".\"product_id\" = \"sales_fact_1997\".\"product_id\"\n"
+        + "    group by \"product\".\"product_id\"\n"
+        + "    having count(*) > 1";
+
+    String expected = "SELECT \"product\".\"product_id\", "
+        + "MIN(\"sales_fact_1997\".\"store_id\")\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "INNER JOIN \"foodmart\".\"sales_fact_1997\" "
+        + "ON \"product\".\"product_id\" = \"sales_fact_1997\".\"product_id\"\n"
+        + "GROUP BY \"product\".\"product_id\"\n"
+        + "HAVING COUNT(*) > 1";
+    sql(query).ok(expected);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1665">[CALCITE-1665]
+   * Aggregates and having cannot be combined</a>. */
+  @Test public void testSelectQueryWithGroupByHaving3() {
+    String query = " select * from (select \"product\".\"product_id\",\n"
+        + "    min(\"sales_fact_1997\".\"store_id\")\n"
+        + "    from \"product\"\n"
+        + "    inner join \"sales_fact_1997\"\n"
+        + "    on \"product\".\"product_id\" = \"sales_fact_1997\".\"product_id\"\n"
+        + "    group by \"product\".\"product_id\"\n"
+        + "    having count(*) > 1) where \"product_id\" > 100";
+
+    String expected = "SELECT *\n"
+        + "FROM (SELECT \"product\".\"product_id\", MIN(\"sales_fact_1997\".\"store_id\")\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "INNER JOIN \"foodmart\".\"sales_fact_1997\" ON \"product\".\"product_id\" = \"sales_fact_1997\".\"product_id\"\n"
+        + "GROUP BY \"product\".\"product_id\"\n"
+        + "HAVING COUNT(*) > 1) AS \"t2\"\n"
+        + "WHERE \"t2\".\"product_id\" > 100";
     sql(query).ok(expected);
   }
 
@@ -458,11 +501,9 @@ public class RelToSqlConverterTest {
         + "group by \"product_class_id\", \"product_id\" "
         + "having \"product_id\"  > 10";
     final String expected = "SELECT COUNT(*)\n"
-        + "FROM (SELECT product.product_class_id, product.product_id, COUNT"
-        + "(*)\n"
         + "FROM foodmart.product AS product\n"
-        + "GROUP BY product.product_class_id, product.product_id) AS t0\n"
-        + "WHERE t0.product_id > 10";
+        + "GROUP BY product.product_class_id, product.product_id\n"
+        + "HAVING product.product_id > 10";
     sql(query).dialect(DatabaseProduct.DB2.getDialect()).ok(expected);
   }
 

@@ -2846,6 +2846,32 @@ LogicalProject(C2=[$7])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testCustomColumnResolving4">
+        <Resource name="sql">
+            <![CDATA[select c1 from struct.t order by f0.c1]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(C1=[$0])
+  LogicalSort(sort0=[$1], dir0=[ASC])
+    LogicalProject(C1=[$1], "F0"."C1"=[$6])
+      LogicalTableScan(table=[[CATALOG, STRUCT, T]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testCustomColumnResolving5">
+        <Resource name="sql">
+            <![CDATA[select count(c1) from struct.t group by f0.c1]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(EXPR$0=[$1])
+  LogicalAggregate(group=[{0}], EXPR$0=[COUNT()])
+    LogicalProject("F0"."C1"=[$6], "C1"=[$1])
+      LogicalTableScan(table=[[CATALOG, STRUCT, T]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testCustomColumnResolvingWithSelectStar">
         <Resource name="sql">
             <![CDATA[select * from struct.t]]>
