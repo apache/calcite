@@ -692,6 +692,9 @@ public interface CalciteResource {
 
   @BaseMessage("Function ''{0}'' can only be used in MATCH_RECOGNIZE")
   ExInst<SqlValidatorException> FunctionMatchRecognizeOnly(String call);
+
+  @BaseMessage("Null parameters in ''{0}''")
+  ExInst<SqlValidatorException> PatternFunctionNullCheck(String call);
 }
 
 // End CalciteResource.java

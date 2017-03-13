@@ -52,6 +52,7 @@ import org.apache.calcite.rel.logical.LogicalCorrelate;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalIntersect;
 import org.apache.calcite.rel.logical.LogicalJoin;
+import org.apache.calcite.rel.logical.LogicalMatch;
 import org.apache.calcite.rel.logical.LogicalMinus;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.logical.LogicalSort;
@@ -78,6 +79,7 @@ import org.apache.calcite.rex.RexFieldCollation;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexPatternFieldRef;
 import org.apache.calcite.rex.RexRangeRef;
 import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.rex.RexSubQuery;
@@ -141,6 +143,7 @@ import org.apache.calcite.sql.validate.AggregatingSelectScope;
 import org.apache.calcite.sql.validate.CollectNamespace;
 import org.apache.calcite.sql.validate.DelegatingScope;
 import org.apache.calcite.sql.validate.ListScope;
+import org.apache.calcite.sql.validate.MatchRecognizeScope;
 import org.apache.calcite.sql.validate.ParameterScope;
 import org.apache.calcite.sql.validate.SelectScope;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
@@ -2109,6 +2112,16 @@ public class SqlToRelConverter {
 
     mrBlackBoard.setPatternVarRef(true);
 
+    // convert measures
+    final ImmutableMap.Builder<String, RexNode> measureNodes =
+        ImmutableMap.builder();
+    for (SqlNode measure : matchRecognize.getMeasureList()) {
+      List<SqlNode> operands = ((SqlCall) measure).getOperandList();
+      String alias = ((SqlIdentifier) operands.get(1)).getSimple();
+      RexNode rex = mrBlackBoard.convertExpression(operands.get(0));
+      measureNodes.put(alias, rex);
+    }
+
     // convert definitions
     final ImmutableMap.Builder<String, RexNode> definitionNodes =
         ImmutableMap.builder();
@@ -2128,6 +2141,7 @@ public class SqlToRelConverter {
             matchRecognize.getStrictStart().booleanValue(),
             matchRecognize.getStrictEnd().booleanValue(),
             definitionNodes.build(),
+            measureNodes.build(),
             rowType);
     bb.setRoot(rel, false);
   }
@@ -3424,12 +3438,19 @@ public class SqlToRelConverter {
         e = rexBuilder.makeFieldAccess(e, i);
       } else {
         final boolean caseSensitive = true; // name already fully-qualified
-        e = rexBuilder.makeFieldAccess(e, name, caseSensitive);
+        if (identifier.isStar() && bb.scope instanceof MatchRecognizeScope) {
+          e = rexBuilder.makeFieldAccess(e, 0);
+        } else {
+          e = rexBuilder.makeFieldAccess(e, name, caseSensitive);
+        }
       }
     }
     if (e instanceof RexInputRef) {
       // adjust the type to account for nulls introduced by outer joins
       e = adjustInputRef(bb, (RexInputRef) e);
+      if (pv != null) {
+        e = RexPatternFieldRef.of(pv, (RexInputRef) e);
+      }
     }
 
     if (e0.left instanceof RexCorrelVariable) {
@@ -4149,7 +4170,7 @@ public class SqlToRelConverter {
         int[] start,
         List<Pair<RelNode, Integer>> relOffsetList) {
       for (RelNode rel : rels) {
-        if (leaves.contains(rel)) {
+        if (leaves.contains(rel) || rel instanceof LogicalMatch) {
           relOffsetList.add(
               Pair.of(rel, start[0]));
           start[0] += rel.getRowType().getFieldCount();

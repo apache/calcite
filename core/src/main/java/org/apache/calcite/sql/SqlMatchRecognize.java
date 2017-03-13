@@ -34,6 +34,7 @@ public class SqlMatchRecognize extends SqlCall {
   public static final int OPERAND_STRICT_START = 2;
   public static final int OPERAND_STRICT_END = 3;
   public static final int OPERAND_PATTERN_DEFINES = 4;
+  public static final int OPERAND_MEASURES = 5;
 
   //~ Instance fields -------------------------------------------
 
@@ -42,16 +43,19 @@ public class SqlMatchRecognize extends SqlCall {
   private SqlLiteral strictStart;
   private SqlLiteral strictEnd;
   private SqlNodeList patternDefList;
+  private SqlNodeList measureList;
 
   /** Creates a SqlMatchRecognize. */
   public SqlMatchRecognize(SqlParserPos pos, SqlNode tableRef, SqlNode pattern,
-      SqlLiteral strictStart, SqlLiteral strictEnd, SqlNodeList patternDefList) {
+      SqlLiteral strictStart, SqlLiteral strictEnd, SqlNodeList patternDefList,
+      SqlNodeList measureList) {
     super(pos);
     this.tableRef = tableRef;
     this.pattern = pattern;
     this.strictStart = strictStart;
     this.strictEnd = strictEnd;
     this.patternDefList = patternDefList;
+    this.measureList = measureList;
 
     assert tableRef != null;
     assert pattern != null;
@@ -70,7 +74,7 @@ public class SqlMatchRecognize extends SqlCall {
 
   @Override public List<SqlNode> getOperandList() {
     return ImmutableNullableList.of(tableRef, pattern, strictStart, strictEnd,
-        patternDefList);
+        patternDefList, measureList);
   }
 
   @Override public void unparse(SqlWriter writer, int leftPrec,
@@ -99,6 +103,9 @@ public class SqlMatchRecognize extends SqlCall {
     case OPERAND_PATTERN_DEFINES:
       patternDefList = (SqlNodeList) operand;
       break;
+    case OPERAND_MEASURES:
+      measureList = (SqlNodeList) operand;
+      break;
     default:
       throw new AssertionError(i);
     }
@@ -124,6 +131,10 @@ public class SqlMatchRecognize extends SqlCall {
     return patternDefList;
   }
 
+  public SqlNodeList getMeasureList() {
+    return measureList;
+  }
+
   /**
    * An operator describing a MATCH_RECOGNIZE specification.
    */
@@ -144,11 +155,14 @@ public class SqlMatchRecognize extends SqlCall {
         SqlParserPos pos,
         SqlNode... operands) {
       assert functionQualifier == null;
-      assert operands.length == 5;
+      assert operands.length == 6;
 
-      return new SqlMatchRecognize(pos, operands[0], operands[1],
-          (SqlLiteral) operands[2], (SqlLiteral) operands[3],
-          (SqlNodeList) operands[4]);
+      return new SqlMatchRecognize(pos,
+        operands[0], operands[1],
+        (SqlLiteral) operands[2],
+        (SqlLiteral) operands[3],
+        (SqlNodeList) operands[4],
+        (SqlNodeList) operands[5]);
     }
 
     @Override public <R> void acceptCall(
@@ -187,6 +201,14 @@ public class SqlMatchRecognize extends SqlCall {
 
       pattern.tableRef.unparse(writer, 0, 0);
       final SqlWriter.Frame mrFrame = writer.startFunCall("MATCH_RECOGNIZE");
+
+      if (pattern.measureList != null && pattern.measureList.size() > 0) {
+        writer.newlineAndIndent();
+        writer.sep("MEASURES");
+        final SqlWriter.Frame measureFrame = writer.startList("", "");
+        pattern.measureList.unparse(writer, 0, 0);
+        writer.endList(measureFrame);
+      }
 
       writer.newlineAndIndent();
       writer.sep("PATTERN");

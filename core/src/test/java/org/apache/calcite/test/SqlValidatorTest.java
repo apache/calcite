@@ -9649,6 +9649,23 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         "Duplicate name 'EXTRA' in column list");
   }
 
+  @Test public void testMatchRecognizeMeasures1() throws Exception {
+    final String sql = "select *\n"
+        + "  from emp match_recognize\n"
+        + "  (\n"
+        + "   measures "
+        + "   STRT.sal as start_sal,"
+        + "   ^LAST(null)^ as bottom_sal,"
+        + "   LAST(up.ts) as end_sal"
+        + "    pattern (strt down+ up+)\n"
+        + "    define\n"
+        + "      down as down.sal < PREV(down.sal),\n"
+        + "      up as up.sal > prev(up.sal)\n"
+        + "  ) mr";
+    sql(sql)
+      .fails("Null parameters in 'LAST\\(NULL, 0\\)'");
+  }
+
 }
 
 // End SqlValidatorTest.java
