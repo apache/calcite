@@ -358,7 +358,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
       }
       return new AnalyzeViewResult(this, validator, sql, sqlNode,
           validator.getValidatedNodeType(sqlNode), root, null, null, null,
-          null, true);
+          null, false);
     }
     final RelOptTable targetRelTable = scan.getTable();
     final RelDataType targetRowType = targetRelTable.getRowType();
@@ -384,7 +384,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
             }
             return new AnalyzeViewResult(this, validator, sql, sqlNode,
                 validator.getValidatedNodeType(sqlNode), root, null, null, null,
-                null, true);
+                null, false);
           }
           projectMap.put(index, rexBuilder.makeInputRef(viewRel, node.i));
           columnMapping.add(index);
@@ -436,14 +436,15 @@ public class CalcitePrepareImpl implements CalcitePrepare {
       }
       return new AnalyzeViewResult(this, validator, sql, sqlNode,
           validator.getValidatedNodeType(sqlNode), root, null, null, null,
-          null, filters.isEmpty() || retry && filters2.isEmpty());
+          null, false);
     }
 
+    final boolean modifiable = filters.isEmpty() || retry && filters2.isEmpty();
     return new AnalyzeViewResult(this, validator, sql, sqlNode,
-        validator.getValidatedNodeType(sqlNode), root, table,
+        validator.getValidatedNodeType(sqlNode), root, modifiable ? table : null,
         ImmutableList.copyOf(tablePath),
         constraint, ImmutableIntList.copyOf(columnMapping),
-        filters.isEmpty() || retry && filters2.isEmpty());
+        modifiable);
   }
 
   @Override public void executeDdl(Context context, SqlNode node) {
