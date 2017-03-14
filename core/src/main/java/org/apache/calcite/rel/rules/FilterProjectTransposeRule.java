@@ -18,6 +18,7 @@ package org.apache.calcite.rel.rules;
 
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.plan.RelOptRuleOperand;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Filter;
@@ -62,12 +63,10 @@ public class FilterProjectTransposeRule extends RelOptRule {
       Class<? extends Project> projectClass,
       boolean copyFilter, boolean copyProject,
       RelBuilderFactory relBuilderFactory) {
-    super(
+    this(
         operand(filterClass,
             operand(projectClass, any())),
-        relBuilderFactory, null);
-    this.copyFilter = copyFilter;
-    this.copyProject = copyProject;
+        copyFilter, copyProject, relBuilderFactory);
   }
 
   @Deprecated // to be removed before 2.0
@@ -79,6 +78,16 @@ public class FilterProjectTransposeRule extends RelOptRule {
     this(filterClass, projectClass, filterFactory == null,
         projectFactory == null,
         RelBuilder.proto(filterFactory, projectFactory));
+  }
+
+  protected FilterProjectTransposeRule(
+      RelOptRuleOperand operand,
+      boolean copyFilter,
+      boolean copyProject,
+      RelBuilderFactory relBuilderFactory) {
+    super(operand, relBuilderFactory, null);
+    this.copyFilter = copyFilter;
+    this.copyProject = copyProject;
   }
 
   //~ Methods ----------------------------------------------------------------

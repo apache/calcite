@@ -19,6 +19,7 @@ package org.apache.calcite.rel.rules;
 import org.apache.calcite.plan.Contexts;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.plan.RelOptRuleOperand;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
@@ -64,10 +65,15 @@ public class FilterAggregateTransposeRule extends RelOptRule {
       Class<? extends Filter> filterClass,
       RelBuilderFactory builderFactory,
       Class<? extends Aggregate> aggregateClass) {
-    super(
+    this(
         operand(filterClass,
             operand(aggregateClass, any())),
-        builderFactory, null);
+        builderFactory);
+  }
+
+  protected FilterAggregateTransposeRule(RelOptRuleOperand operand,
+      RelBuilderFactory builderFactory) {
+    super(operand, builderFactory, null);
   }
 
   @Deprecated // to be removed before 2.0
