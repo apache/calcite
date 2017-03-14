@@ -65,7 +65,6 @@ import org.apache.calcite.util.Util;
 
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
-
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
@@ -275,8 +274,9 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
   /** Extends a DruidQuery. */
   public static DruidQuery extendQuery(DruidQuery query, RelNode r) {
     final ImmutableList.Builder<RelNode> builder = ImmutableList.builder();
-    return DruidQuery.create(query.getCluster(), r.getTraitSet(), query.getTable(),
-        query.druidTable, query.intervals, builder.addAll(query.rels).add(r).build());
+    return DruidQuery.create(query.getCluster(), r.getTraitSet().replace(query.getConvention()),
+        query.getTable(), query.druidTable, query.intervals,
+        builder.addAll(query.rels).add(r).build());
   }
 
   /** Extends a DruidQuery. */

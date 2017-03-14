@@ -1207,10 +1207,18 @@ public class DruidAdapterIT {
         + "EnumerableInterpreter\n"
         + "  BindableSort(sort0=[$1], dir0=[DESC], fetch=[2])\n"
         + "    BindableProject(state_province=[$0], CDC=[FLOOR($1)])\n"
-        + "      BindableAggregate(group=[{1}], agg#0=[COUNT($0)])\n"
-        + "        DruidQuery(table=[[foodmart, foodmart]], intervals=[[1900-01-09T00:00:00.000/2992-01-10T00:00:00.000]], groups=[{29, 30}], aggs=[[]])";
+        + "      DruidQuery(table=[[foodmart, foodmart]], intervals=[[1900-01-09T00:00:00.000/2992-01-10T00:00:00.000]], groups=[{30}], aggs=[[COUNT(DISTINCT $29)]])\n";
+
+    final String druidQuery = "{\"queryType\":\"groupBy\","
+                        + "\"dataSource\":\"foodmart\","
+                        + "\"granularity\":\"all\","
+                        + "\"dimensions\":[\"state_province\"],"
+                        + "\"limitSpec\":{\"type\":\"default\"},"
+                        + "\"aggregations\":[{\"type\":\"cardinality\",\"name\":\"$f1\",\"fieldNames\":[\"city\"]}],"
+                        + "\"intervals\":[\"1900-01-09T00:00:00.000/2992-01-10T00:00:00.000\"]}";
     sql(sql)
         .explainContains(explain)
+        .queryContains(druidChecker(druidQuery))
         .returnsUnordered("state_province=CA; CDC=45",
             "state_province=WA; CDC=22");
   }

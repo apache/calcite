@@ -18,16 +18,19 @@ package org.apache.calcite.rel.rules;
 
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.plan.RelOptRuleOperand;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.SubstitutionVisitor;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.Filter;
+import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.SqlAggFunction;
+import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.mapping.Mappings;
 
@@ -57,9 +60,15 @@ public class AggregateFilterTransposeRule extends RelOptRule {
       new AggregateFilterTransposeRule();
 
   private AggregateFilterTransposeRule() {
-    super(
+    this(
         operand(Aggregate.class,
-            operand(Filter.class, any())));
+            operand(Filter.class, any())),
+        RelFactories.LOGICAL_BUILDER);
+  }
+
+  protected AggregateFilterTransposeRule(RelOptRuleOperand operand,
+      RelBuilderFactory relBuilderFactory) {
+    super(operand, relBuilderFactory, null);
   }
 
   public void onMatch(RelOptRuleCall call) {
