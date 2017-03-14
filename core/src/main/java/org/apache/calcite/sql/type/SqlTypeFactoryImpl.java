@@ -290,10 +290,8 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
         SqlCollation collation2 = resultType.getCollation();
 
         // TODO:  refine collation combination rules
-        int precision =
-            Math.max(
-                resultType.getPrecision(),
-                type.getPrecision());
+        final int precision = maxPrecision(resultType.getPrecision(),
+            type.getPrecision());
 
         // If either type is LOB, then result is LOB with no precision.
         // Otherwise, if either is variable width, result is variable
@@ -484,6 +482,12 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
       resultType = createTypeWithNullability(resultType, true);
     }
     return resultType;
+  }
+
+  /** Returns the larger of two precisions, treating
+   * {@link RelDataType#PRECISION_NOT_SPECIFIED} as infinity. */
+  private int maxPrecision(int p0, int p1) {
+    return (p0 == RelDataType.PRECISION_NOT_SPECIFIED || p0 >= p1) ? p0 : p1;
   }
 
   /**

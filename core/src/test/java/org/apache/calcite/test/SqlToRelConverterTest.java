@@ -1964,6 +1964,16 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  @Test public void testCustomColumnResolving4() {
+    final String sql = "select c1 from struct.t order by f0.c1";
+    sql(sql).ok();
+  }
+
+  @Test public void testCustomColumnResolving5() {
+    final String sql = "select count(c1) from struct.t group by f0.c1";
+    sql(sql).ok();
+  }
+
   @Test public void testCustomColumnResolvingWithSelectStar() {
     final String sql = "select * from struct.t";
     sql(sql).ok();

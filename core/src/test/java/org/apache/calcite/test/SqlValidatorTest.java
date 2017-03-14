@@ -916,9 +916,9 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
 
   @Test public void testCastTypeToType() {
     checkExpType("cast(123 as char)", "CHAR(1) NOT NULL");
-    checkExpType("cast(123 as varchar)", "VARCHAR(1) NOT NULL");
+    checkExpType("cast(123 as varchar)", "VARCHAR NOT NULL");
     checkExpType("cast(x'1234' as binary)", "BINARY(1) NOT NULL");
-    checkExpType("cast(x'1234' as varbinary)", "VARBINARY(1) NOT NULL");
+    checkExpType("cast(x'1234' as varbinary)", "VARBINARY NOT NULL");
     checkExpType("cast(123 as varchar(3))", "VARCHAR(3) NOT NULL");
     checkExpType("cast(123 as char(3))", "CHAR(3) NOT NULL");
     checkExpType("cast('123' as integer)", "INTEGER NOT NULL");
@@ -5319,6 +5319,20 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         "select * from emp join dept using (deptno, ^comm^)",
         "Column 'COMM' not found in any table");
 
+    checkFails("select * from emp join dept using (^empno^)",
+        "Column 'EMPNO' not found in any table");
+
+    checkFails("select * from dept join emp using (^empno^)",
+        "Column 'EMPNO' not found in any table");
+
+    // not on either side
+    checkFails("select * from dept join emp using (^abc^)",
+        "Column 'ABC' not found in any table");
+
+    // column exists, but wrong case
+    checkFails("select * from dept join emp using (^\"deptno\"^)",
+        "Column 'deptno' not found in any table");
+
     // ok to repeat (ok in Oracle10g too)
     check("select * from emp join dept using (deptno, deptno)");
 
@@ -6992,7 +7006,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     checkFails("select ^fusion(deptno)^ from emp",
         "(?s).*Cannot apply 'FUSION' to arguments of type 'FUSION.<INTEGER>.'.*");
     check("select fusion(multiset[3]) from emp");
-    // todo. FUSION is an aggregate function. test that validator only can
+    // todo. FUSION is an aggregate function. test that validator can only
     // take set operators in its select list once aggregation support is
     // complete
   }
@@ -9045,20 +9059,18 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .fails("No match found for function signature .*");
     sql("values ^\"|\"(1, 2)^")
         .fails("No match found for function signature .*");
-    if (TODO) {
       // FINAL and other functions should not be visible outside of
       // MATCH_RECOGNIZE
-      sql("values ^\"FINAL\"(1, 2)^")
-          .fails("No match found for function signature .*");
-      sql("values ^\"RUNNING\"(1, 2)^")
-          .fails("No match found for function signature .*");
-      sql("values ^\"FIRST\"(1, 2)^")
-          .fails("No match found for function signature .*");
-      sql("values ^\"LAST\"(1, 2)^")
-          .fails("No match found for function signature .*");
-      sql("values ^\"PREV\"(1, 2)^")
-          .fails("No match found for function signature .*");
-    }
+    sql("values ^\"FINAL\"(1, 2)^")
+        .fails("Function 'FINAL\\(1, 2\\)' can only be used in MATCH_RECOGNIZE");
+    sql("values ^\"RUNNING\"(1, 2)^")
+        .fails("Function 'RUNNING\\(1, 2\\)' can only be used in MATCH_RECOGNIZE");
+    sql("values ^\"FIRST\"(1, 2)^")
+        .fails("Function 'FIRST\\(1, 2\\)' can only be used in MATCH_RECOGNIZE");
+    sql("values ^\"LAST\"(1, 2)^")
+        .fails("Function 'LAST\\(1, 2\\)' can only be used in MATCH_RECOGNIZE");
+    sql("values ^\"PREV\"(1, 2)^")
+        .fails("Function 'PREV\\(1, 2\\)' can only be used in MATCH_RECOGNIZE");
   }
 
   @Test public void testMatchRecognizeDefines() throws Exception {

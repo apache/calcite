@@ -525,7 +525,9 @@ public class CsvTest {
   @Test public void testTimestampGroupBy() throws SQLException {
     Properties info = new Properties();
     info.put("model", jsonPath("bug"));
-    final String sql = "select \"EMPNO\", \"JOINTIMES\" from \"DATE\"\n"
+    // Use LIMIT to ensure that results are deterministic without ORDER BY
+    final String sql = "select \"EMPNO\", \"JOINTIMES\"\n"
+        + "from (select * from \"DATE\" limit 1)\n"
         + "group by \"EMPNO\",\"JOINTIMES\"";
     try (Connection connection =
              DriverManager.getConnection("jdbc:calcite:", info);
@@ -537,7 +539,7 @@ public class CsvTest {
       // Note: This logic is time zone specific, but the same time zone is
       // used in the CSV adapter and this test, so they should cancel out.
       Assert.assertThat(timestamp,
-          is(java.sql.Timestamp.valueOf("2002-05-03 00:00:00.0")));
+          is(java.sql.Timestamp.valueOf("1996-08-03 00:01:02.0")));
     }
   }
 

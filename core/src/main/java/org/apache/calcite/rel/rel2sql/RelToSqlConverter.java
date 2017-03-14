@@ -133,11 +133,23 @@ public class RelToSqlConverter extends SqlImplementor
 
   /** @see #dispatch */
   public Result visit(Filter e) {
-    Result x = visitChild(0, e.getInput());
-    final Builder builder =
-        x.builder(e, Clause.WHERE);
-    builder.setWhere(builder.context.toSql(null, e.getCondition()));
-    return builder.result();
+    final RelNode input = e.getInput();
+    Result x = visitChild(0, input);
+    if (input instanceof Aggregate) {
+      final Builder builder;
+      if (((Aggregate) input).getInput() instanceof Project) {
+        builder = x.builder(e);
+        builder.clauses.add(Clause.HAVING);
+      } else {
+        builder = x.builder(e, Clause.HAVING);
+      }
+      builder.setHaving(builder.context.toSql(null, e.getCondition()));
+      return builder.result();
+    } else {
+      final Builder builder = x.builder(e, Clause.WHERE);
+      builder.setWhere(builder.context.toSql(null, e.getCondition()));
+      return builder.result();
+    }
   }
 
   /** @see #dispatch */

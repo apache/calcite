@@ -4590,6 +4590,13 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
     SqlValidatorScope operandScope = scope.getOperandScope(call);
 
+    if (operator instanceof SqlFunction
+        && ((SqlFunction) operator).getFunctionType()
+            == SqlFunctionCategory.MATCH_RECOGNIZE
+        && !(operandScope instanceof MatchRecognizeScope)) {
+      throw newValidationError(call,
+          Static.RESOURCE.FunctionMatchRecognizeOnly(call.toString()));
+    }
     // Delegate validation to the operator.
     operator.validateCall(call, this, scope, operandScope);
   }
