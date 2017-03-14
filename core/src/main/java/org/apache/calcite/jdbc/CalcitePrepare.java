@@ -278,10 +278,11 @@ public interface CalcitePrepare {
         ImmutableList<String> tablePath, RexNode constraint,
         ImmutableIntList columnMapping) {
       super(prepare, validator, sql, sqlNode, rowType, root);
+      final boolean modifiable = constraint != null;
+      Preconditions.checkArgument((table != null) == modifiable);
+      Preconditions.checkArgument((tablePath != null) == modifiable);
       this.columnMapping = columnMapping;
       this.constraint = constraint;
-      Preconditions.checkArgument((table != null) == isModifiable());
-      Preconditions.checkArgument((tablePath != null) == isModifiable());
       this.table = table;
       this.tablePath = tablePath;
     }
