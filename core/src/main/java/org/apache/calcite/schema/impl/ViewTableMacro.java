@@ -73,8 +73,7 @@ public class ViewTableMacro implements TableMacro {
     final List<String> schemaPath1 =
         schemaPath != null ? schemaPath : schema.path(null);
     if ((modifiable == null || modifiable)
-        && parsed.modifiable
-        && parsed.table != null) {
+        && parsed.isModifiable()) {
       return modifiableViewTable(parsed, viewSql, schemaPath1, viewPath, schema);
     } else {
       return viewTable(parsed, viewSql, schemaPath1, viewPath);

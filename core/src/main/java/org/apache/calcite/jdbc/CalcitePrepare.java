@@ -266,25 +266,29 @@ public interface CalcitePrepare {
 
   /** The result of analyzing a view. */
   class AnalyzeViewResult extends ConvertResult {
-    /** Not null if and only if the view is modifiable. */
+    public final ImmutableIntList columnMapping;
+    /** The following are not null if and only if the view is modifiable. */
     public final Table table;
     public final ImmutableList<String> tablePath;
     public final RexNode constraint;
-    public final ImmutableIntList columnMapping;
-    public final boolean modifiable;
 
     public AnalyzeViewResult(CalcitePrepareImpl prepare,
         SqlValidator validator, String sql, SqlNode sqlNode,
         RelDataType rowType, RelRoot root, Table table,
         ImmutableList<String> tablePath, RexNode constraint,
-        ImmutableIntList columnMapping, boolean modifiable) {
+        ImmutableIntList columnMapping) {
       super(prepare, validator, sql, sqlNode, rowType, root);
+      this.columnMapping = columnMapping;
+      final boolean modifiable = constraint != null;
+      Preconditions.checkArgument((table != null) == modifiable);
+      Preconditions.checkArgument((tablePath != null) == modifiable);
       this.table = table;
       this.tablePath = tablePath;
       this.constraint = constraint;
-      this.columnMapping = columnMapping;
-      this.modifiable = modifiable;
-      Preconditions.checkArgument((table != null) == modifiable);
+    }
+
+    public boolean isModifiable() {
+      return constraint != null;
     }
   }
 

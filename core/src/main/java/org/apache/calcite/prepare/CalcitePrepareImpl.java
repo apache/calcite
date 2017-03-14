@@ -357,8 +357,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
             RESOURCE.modifiableViewMustBeBasedOnSingleTable());
       }
       return new AnalyzeViewResult(this, validator, sql, sqlNode,
-          validator.getValidatedNodeType(sqlNode), root, null, null, null,
-          null, false);
+          validator.getValidatedNodeType(sqlNode), root, null, null, null, null);
     }
     final RelOptTable targetRelTable = scan.getTable();
     final RelDataType targetRowType = targetRelTable.getRowType();
@@ -383,8 +382,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
                       Util.last(tablePath)));
             }
             return new AnalyzeViewResult(this, validator, sql, sqlNode,
-                validator.getValidatedNodeType(sqlNode), root, null, null, null,
-                null, false);
+                validator.getValidatedNodeType(sqlNode), root, null, null, null, null);
           }
           projectMap.put(index, rexBuilder.makeInputRef(viewRel, node.i));
           columnMapping.add(index);
@@ -400,20 +398,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
       constraint = rexBuilder.makeLiteral(true);
     }
     final List<RexNode> filters = new ArrayList<>();
-    // If we put a constraint in projectMap above, then filters will not be empty despite
-    // being a modifiable view.
-    final List<RexNode> filters2 = new ArrayList<>();
-    boolean retry = false;
     RelOptUtil.inferViewPredicates(projectMap, filters, constraint);
-    if (fail && !filters.isEmpty()) {
-      final Map<Integer, RexNode> projectMap2 = new HashMap<>();
-      RelOptUtil.inferViewPredicates(projectMap2, filters2, constraint);
-      if (!filters2.isEmpty()) {
-        throw validator.newValidationError(sqlNode,
-            RESOURCE.modifiableViewMustHaveOnlyEqualityPredicates());
-      }
-      retry = true;
-    }
 
     // Check that all columns that are not projected have a constant value
     for (RelDataTypeField field : targetRowType.getFieldList()) {
@@ -435,16 +420,27 @@ public class CalcitePrepareImpl implements CalcitePrepare {
                 Util.last(tablePath)));
       }
       return new AnalyzeViewResult(this, validator, sql, sqlNode,
-          validator.getValidatedNodeType(sqlNode), root, null, null, null,
-          null, false);
+          validator.getValidatedNodeType(sqlNode), root, null, null, null, null);
     }
 
-    final boolean modifiable = filters.isEmpty() || retry && filters2.isEmpty();
+    boolean modifiable = filters.isEmpty();
+    if (!modifiable) {
+      final Map<Integer, RexNode> projectMap2 = new HashMap<>();
+      final List<RexNode> filters2 = new ArrayList<>();
+      RelOptUtil.inferViewPredicates(projectMap2, filters2, constraint);
+      if (fail && !filters2.isEmpty()) {
+        throw validator.newValidationError(sqlNode,
+            RESOURCE.modifiableViewMustHaveOnlyEqualityPredicates());
+      }
+      modifiable = filters2.isEmpty();
+    }
+
     return new AnalyzeViewResult(this, validator, sql, sqlNode,
-        validator.getValidatedNodeType(sqlNode), root, modifiable ? table : null,
-        ImmutableList.copyOf(tablePath),
-        constraint, ImmutableIntList.copyOf(columnMapping),
-        modifiable);
+        validator.getValidatedNodeType(sqlNode), root,
+        modifiable ? table : null,
+        modifiable ? ImmutableList.copyOf(tablePath) : null,
+        modifiable ? constraint : null,
+        ImmutableIntList.copyOf(columnMapping));
   }
 
   @Override public void executeDdl(Context context, SqlNode node) {
