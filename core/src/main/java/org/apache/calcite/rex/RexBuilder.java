@@ -91,6 +91,7 @@ public class RexBuilder {
   private final RexLiteral charEmpty;
   private final RexLiteral constantNull;
   private final SqlStdOperatorTable opTab = SqlStdOperatorTable.instance();
+  private RexExecutor executor;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -121,6 +122,23 @@ public class RexBuilder {
             null,
             typeFactory.createSqlType(SqlTypeName.NULL),
             SqlTypeName.NULL);
+  }
+
+  /**
+   * Gets the RexExecutor carried by this builder
+   * @return the executor
+   */
+  public RexExecutor getExecutor() {
+    return executor;
+  }
+
+  /**
+   * Sets the RexExecutor carried by this builder.
+   * The executor is used in RexUtil.simplifyXxx for evaluating constants
+   * @param executor the executor
+   */
+  public void setExecutor(RexExecutor executor) {
+    this.executor = executor;
   }
 
   /** Creates a list of {@link org.apache.calcite.rex.RexInputRef} expressions,

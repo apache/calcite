@@ -1567,8 +1567,8 @@ public class RexUtil {
    * <p>This is useful if you are simplifying expressions in a
    * {@link Project}. */
   public static RexNode simplifyPreservingType(RexBuilder rexBuilder,
-      RexNode e, RexExecutor executor) {
-    final RexNode e2 = simplify(rexBuilder, e, false, executor);
+    RexNode e) {
+    final RexNode e2 = simplify(rexBuilder, e, false);
     if (e2.getType() == e.getType()) {
       return e2;
     }
@@ -1584,16 +1584,7 @@ public class RexUtil {
    * using the default executor.
    */
   public static RexNode simplify(RexBuilder rexBuilder, RexNode e) {
-    return simplify(rexBuilder, e, false, EXECUTOR);
-  }
-
-  /**
-   * Simplifies a boolean expression,
-   * using the default executor.
-   */
-  public static RexNode simplify(RexBuilder rexBuilder, RexNode e,
-      boolean unknownAsFalse) {
-    return simplify(rexBuilder, e, unknownAsFalse, EXECUTOR);
+    return simplify(rexBuilder, e, false);
   }
 
   /**
@@ -1615,11 +1606,9 @@ public class RexUtil {
    * @param rexBuilder Rex builder
    * @param e Expression to simplify
    * @param unknownAsFalse Whether to convert UNKNOWN values to FALSE
-   * @param executor Executor for constant reduction, not null
    */
   public static RexNode simplify(RexBuilder rexBuilder, RexNode e,
-      boolean unknownAsFalse, RexExecutor executor) {
-    Preconditions.checkNotNull(executor);
+      boolean unknownAsFalse) {
     switch (e.getKind()) {
     case AND:
       return simplifyAnd(rexBuilder, (RexCall) e, unknownAsFalse);
@@ -1630,7 +1619,7 @@ public class RexUtil {
     case CASE:
       return simplifyCase(rexBuilder, (RexCall) e, unknownAsFalse);
     case CAST:
-      return simplifyCast(rexBuilder, (RexCall) e, executor);
+      return simplifyCast(rexBuilder, (RexCall) e);
     case IS_NULL:
     case IS_NOT_NULL:
     case IS_TRUE:
@@ -2115,7 +2104,6 @@ public class RexUtil {
    * UNKNOWN it will be interpreted as FALSE. */
   public static RexNode simplifyAnd2ForUnknownAsFalse(RexBuilder rexBuilder,
       List<RexNode> terms, List<RexNode> notTerms) {
-    final RexExecutor executor = EXECUTOR;
     for (RexNode term : terms) {
       if (term.isAlwaysFalse()) {
         return rexBuilder.makeLiteral(false);
@@ -2287,7 +2275,7 @@ public class RexUtil {
     for (RexNode notDisjunction : notTerms) {
       final RexNode call =
           rexBuilder.makeCall(SqlStdOperatorTable.NOT, notDisjunction);
-      terms.add(simplify(rexBuilder, call, true, executor));
+      terms.add(simplify(rexBuilder, call, true));
     }
     // The negated terms: only deterministic expressions
     for (String negatedTerm : negatedTerms) {
@@ -2420,9 +2408,7 @@ public class RexUtil {
         && (call.operands.size() - i) % 2 == 1;
   }
 
-  private static RexNode simplifyCast(RexBuilder rexBuilder, RexCall e,
-      RexExecutor executor) {
-    Preconditions.checkNotNull(executor);
+  private static RexNode simplifyCast(RexBuilder rexBuilder, RexCall e) {
     final RexNode operand = e.getOperands().get(0);
     switch (operand.getKind()) {
     case LITERAL:
@@ -2447,6 +2433,11 @@ public class RexUtil {
         }
       }
       final List<RexNode> reducedValues = new ArrayList<>();
+
+      // The rexBuilder may carry a custom executor that has to be used
+      // instead of the default one
+      final RexExecutor executor = Util.first(
+        rexBuilder.getExecutor(), EXECUTOR);
       executor.reduce(rexBuilder, ImmutableList.<RexNode>of(e), reducedValues);
       return Preconditions.checkNotNull(
           Iterables.getOnlyElement(reducedValues));
@@ -3015,14 +3006,11 @@ public class RexUtil {
   /** Deep expressions simplifier. */
   public static class ExprSimplifier extends RexShuttle {
     private final RexBuilder rexBuilder;
-    private final RexExecutor executor;
     private final boolean unknownAsFalse;
     private final Map<RexNode, Boolean> unknownAsFalseMap;
 
-    public ExprSimplifier(RexBuilder rexBuilder, boolean unknownAsFalse,
-        RexExecutor executor) {
+    public ExprSimplifier(RexBuilder rexBuilder, boolean unknownAsFalse) {
       this.rexBuilder = Preconditions.checkNotNull(rexBuilder);
-      this.executor = Preconditions.checkNotNull(executor);
       this.unknownAsFalse = unknownAsFalse;
       this.unknownAsFalseMap = new HashMap<>();
     }
@@ -3048,7 +3036,7 @@ public class RexUtil {
       }
       RexNode node = super.visitCall(call);
       RexNode simplifiedNode =
-          simplify(rexBuilder, node, unknownAsFalseCall, executor);
+          simplify(rexBuilder, node, unknownAsFalseCall);
       if (node == simplifiedNode) {
         return node;
       }
