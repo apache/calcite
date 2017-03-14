@@ -1714,9 +1714,44 @@ public class RexUtil {
 
     // If none of the arguments were simplified, return the call unchanged.
     if (operands.equals(e.operands)) {
-      return e;
+      return simplifyLiteralComparison(rexBuilder, e);
     }
     return rexBuilder.makeCall(e.op, operands);
+  }
+
+  /**
+   * Simplifies comparison of literal expression
+   */
+  private static RexNode simplifyLiteralComparison(RexBuilder rexBuilder, RexCall e) {
+    if (2 == e.operands.size()) {
+      RexNode firstOperand = e.operands.get(0);
+      RexNode secondOperand = e.operands.get(1);
+      if (firstOperand.getType().equals(secondOperand.getType())
+              && firstOperand.isA(SqlKind.LITERAL) && secondOperand.isA(SqlKind.LITERAL)) {
+        Comparable firstValue = ((RexLiteral) firstOperand).getValue();
+        Comparable secondValue = ((RexLiteral) secondOperand).getValue();
+        if (firstValue != null && secondValue != null) {
+          // Use .compareTo instead of .equals() because we want to compare value
+          // BigDecimal checks scale too with .equals
+          int comparisonResult = firstValue.compareTo(secondValue);
+          switch (e.getKind()) {
+          case EQUALS:
+            return rexBuilder.makeLiteral(comparisonResult == 0);
+          case GREATER_THAN:
+            return rexBuilder.makeLiteral(comparisonResult > 0);
+          case GREATER_THAN_OR_EQUAL:
+            return rexBuilder.makeLiteral(comparisonResult >= 0);
+          case LESS_THAN:
+            return rexBuilder.makeLiteral(comparisonResult < 0);
+          case LESS_THAN_OR_EQUAL:
+            return rexBuilder.makeLiteral(comparisonResult <= 0);
+          case NOT_EQUALS:
+            return rexBuilder.makeLiteral(comparisonResult != 0);
+          }
+        }
+      }
+    }
+    return e;
   }
 
   /**
