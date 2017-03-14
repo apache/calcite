@@ -39,17 +39,35 @@ limitations under the License.
     <dependency>
       <groupId>org.apache.calcite</groupId>
       <artifactId>calcite-core</artifactId>
-      <type>jar</type>
+      <exclusions>
+        <!-- exclude the non-shaded Avatica artifact -->
+        <exclusion>
+          <groupId>org.apache.calcite.avatica</groupId>
+          <artifactId>avatica-core</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
     <dependency>
       <groupId>org.apache.calcite</groupId>
       <artifactId>calcite-core</artifactId>
       <type>test-jar</type>
       <scope>test</scope>
+      <exclusions>
+        <!-- exclude the non-shaded Avatica artifact -->
+        <exclusion>
+          <groupId>org.apache.calcite.avatica</groupId>
+          <artifactId>avatica-core</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
     <dependency>
       <groupId>org.apache.calcite</groupId>
       <artifactId>calcite-linq4j</artifactId>
+    </dependency>
+    <!-- Pull in the shaded Avatica artifact to avoid classpath pollution -->
+    <dependency>
+      <groupId>org.apache.calcite.avatica</groupId>
+      <artifactId>avatica</artifactId>
     </dependency>
     <dependency>
       <groupId>org.apache.hadoop</groupId>
@@ -107,9 +125,10 @@ limitations under the License.
               <failOnWarning>true</failOnWarning>
               <!-- ignore "unused but declared" warnings -->
               <ignoredUnusedDeclaredDependencies>
+                <ignoredUnusedDeclaredDependency>org.apache.calcite.avatica:avatica</ignoredUnusedDeclaredDependency>
+                <ignoredUnusedDeclaredDependency>org.apache.hadoop:hadoop-client</ignoredUnusedDeclaredDependency>
                 <ignoredUnusedDeclaredDependency>org.slf4j:slf4j-api</ignoredUnusedDeclaredDependency>
                 <ignoredUnusedDeclaredDependency>org.slf4j:slf4j-log4j12</ignoredUnusedDeclaredDependency>
-                <ignoredUnusedDeclaredDependency>org.apache.hadoop:hadoop-client</ignoredUnusedDeclaredDependency>
               </ignoredUnusedDeclaredDependencies>
             </configuration>
           </execution>
