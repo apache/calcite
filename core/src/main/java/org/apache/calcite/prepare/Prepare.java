@@ -427,9 +427,10 @@ public abstract class Prepare {
       if (table != null && table instanceof ExtensibleTable) {
         return extend((ExtensibleTable) table, extendedFields);
       } else if (table instanceof ModifiableViewTable) {
-        final Table underlying = ((Wrapper) table).unwrap(Table.class);
-        if (underlying instanceof ExtensibleTable) {
-          return extend((ExtensibleTable) underlying, extendedFields);
+        final ExtensibleTable underlyingExtensibleTable =
+            ((Wrapper) table).unwrap(ExtensibleTable.class);
+        if (underlyingExtensibleTable != null) {
+          return extend(underlyingExtensibleTable, extendedFields);
         }
       }
       throw new RuntimeException("Cannot extend " + table);

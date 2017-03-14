@@ -348,7 +348,8 @@ public class JdbcTest {
           true)
           .query("select \"name\" from \"adhoc\".V order by \"name\"")
           .throws_(
-              "View is not modifiable. No value is supplied for NOT NULL column 'deptno' of base table 'MUTABLE_EMPLOYEES");
+              "View is not modifiable. No value is supplied for NOT NULL " +
+                  "column 'deptno' of base table 'MUTABLE_EMPLOYEES");
 
       // Deduce "deptno = 10" from the constraint, and add a further
       // condition "deptno < 20 OR commission > 1000".
