@@ -19,6 +19,7 @@ package org.apache.calcite.rel.metadata;
 import org.apache.calcite.linq4j.Linq4j;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.linq4j.function.Predicate1;
+import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptPredicateList;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.Strong;
@@ -37,10 +38,12 @@ import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexExecutor;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexPermuteInputsShuttle;
+import org.apache.calcite.rex.RexSimplify;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.sql.SqlKind;
@@ -265,7 +268,7 @@ public class RelMdPredicates
         }
       }
       if (!list.isEmpty()) {
-        return RexUtil.composeDisjunction(rexBuilder, list, false);
+        return RexUtil.composeDisjunction(rexBuilder, list);
       }
     }
     // Cannot weaken to anything non-trivial
@@ -412,7 +415,11 @@ public class RelMdPredicates
     }
 
     List<RexNode> preds = new ArrayList<>(finalPreds.values());
-    RexNode disjPred = RexUtil.simplifyOrs(rB, finalResidualPreds);
+    final RelOptCluster cluster = union.getCluster();
+    final RexExecutor executor =
+        Util.first(cluster.getPlanner().getExecutor(), RexUtil.EXECUTOR);
+    final RexSimplify simplify = new RexSimplify(rB, true, executor);
+    RexNode disjPred = simplify.simplifyOrs(finalResidualPreds);
     if (!disjPred.isAlwaysTrue()) {
       preds.add(disjPred);
     }

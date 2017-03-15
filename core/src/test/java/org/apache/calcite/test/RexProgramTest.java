@@ -32,6 +32,7 @@ import org.apache.calcite.rex.RexLocalRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.rex.RexProgramBuilder;
+import org.apache.calcite.rex.RexSimplify;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
@@ -75,6 +76,7 @@ public class RexProgramTest {
   private RexLiteral falseLiteral;
   private RexNode nullLiteral;
   private RexNode unknownLiteral;
+  private RexSimplify simplify;
 
   //~ Methods ----------------------------------------------------------------
 
@@ -89,6 +91,7 @@ public class RexProgramTest {
   public void setUp() {
     typeFactory = new JavaTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
     rexBuilder = new RexBuilder(typeFactory);
+    simplify = new RexSimplify(rexBuilder, false, RexUtil.EXECUTOR);
     trueLiteral = rexBuilder.makeLiteral(true);
     falseLiteral = rexBuilder.makeLiteral(false);
     final RelDataType intType = typeFactory.createSqlType(SqlTypeName.INTEGER);
@@ -135,16 +138,16 @@ public class RexProgramTest {
    */
   private void checkSimplify2(RexNode node, String expected,
       String expectedFalse) {
-    assertThat(RexUtil.simplify(rexBuilder, node).toString(),
+    assertThat(simplify.simplify(node).toString(),
         equalTo(expected));
     if (node.getType().getSqlTypeName() == SqlTypeName.BOOLEAN) {
-      assertThat(RexUtil.simplify(rexBuilder, node, true).toString(),
+      assertThat(simplify.withUnknownAsFalse(true).simplify(node).toString(),
           equalTo(expectedFalse));
     }
   }
 
   private void checkSimplifyFilter(RexNode node, String expected) {
-    assertThat(RexUtil.simplify(rexBuilder, node, true).toString(),
+    assertThat(simplify.withUnknownAsFalse(true).simplify(node).toString(),
         equalTo(expected));
   }
 
@@ -239,7 +242,7 @@ public class RexProgramTest {
     // Normalize the program using the RexProgramBuilder.normalize API.
     // Note that unused expression '77' is eliminated, input refs (e.g. $0)
     // become local refs (e.g. $t0), and constants are assigned to locals.
-    final RexProgram normalizedProgram = program.normalize(rexBuilder, false);
+    final RexProgram normalizedProgram = program.normalize(rexBuilder, null);
     final String normalizedProgramString = normalizedProgram.toString();
     TestUtil.assertEqualsVerbose(
         "(expr#0..1=[{inputs}], expr#2=[+($t0, $t1)], expr#3=[1], "
@@ -296,7 +299,7 @@ public class RexProgramTest {
             + "expr#13=[null], expr#14=[CASE($t9, $t10, $t11, $t12, $t13)], "
             + "expr#15=[NOT($t14)], a=[$t7], b=[$t6], $condition=[$t15])"));
 
-    assertThat(program.normalize(rexBuilder, true).toString(),
+    assertThat(program.normalize(rexBuilder, simplify).toString(),
         is("(expr#0..1=[{inputs}], expr#2=[+($t0, $t1)], expr#3=[1], "
             + "expr#4=[+($t0, $t3)], expr#5=[+($t2, $t4)], "
             + "expr#6=[+($t0, $t4)], expr#7=[5], expr#8=[>($t4, $t7)], "
@@ -318,7 +321,7 @@ public class RexProgramTest {
             + "expr#15=[NOT($t14)], expr#16=[IS TRUE($t15)], a=[$t7], b=[$t6], "
             + "$condition=[$t16])"));
 
-    assertThat(program.normalize(rexBuilder, true).toString(),
+    assertThat(program.normalize(rexBuilder, simplify).toString(),
         is("(expr#0..1=[{inputs}], expr#2=[+($t0, $t1)], expr#3=[1], "
             + "expr#4=[+($t0, $t3)], expr#5=[+($t2, $t4)], "
             + "expr#6=[+($t0, $t4)], expr#7=[5], expr#8=[>($t4, $t7)], "
@@ -1104,7 +1107,7 @@ public class RexProgramTest {
         rexBuilder.makeLiteral("S"));
     RexCall caseNode = (RexCall) case_(condition, trueLiteral, falseLiteral);
 
-    RexCall result = (RexCall) RexUtil.simplify(rexBuilder, caseNode, false);
+    RexCall result = (RexCall) simplify.simplify(caseNode);
     assertThat(result.getType().isNullable(), is(false));
     assertThat(result.getType().getSqlTypeName(), is(SqlTypeName.BOOLEAN));
     assertThat(result.getOperator(), is((SqlOperator) SqlStdOperatorTable.CASE));
@@ -1123,7 +1126,7 @@ public class RexProgramTest {
         rexBuilder.makeLiteral("S"));
     RexCall caseNode = (RexCall) case_(condition, trueLiteral, falseLiteral);
 
-    RexCall result = (RexCall) RexUtil.simplify(rexBuilder, caseNode, false);
+    RexCall result = (RexCall) simplify.simplify(caseNode);
     assertThat(result.getType().isNullable(), is(false));
     assertThat(result.getType().getSqlTypeName(), is(SqlTypeName.BOOLEAN));
     assertThat(result, is(condition));
@@ -1141,7 +1144,7 @@ public class RexProgramTest {
     RexCall caseNode = (RexCall) case_(condition, aLiteral, bLiteral);
 
 
-    RexCall result = (RexCall) RexUtil.simplify(rexBuilder, caseNode, false);
+    RexCall result = (RexCall) simplify.simplify(caseNode);
     assertThat(result.getType().isNullable(), is(false));
     assertThat(result.getType().getSqlTypeName(), is(SqlTypeName.CHAR));
     assertThat(result, is(caseNode));
@@ -1158,7 +1161,7 @@ public class RexProgramTest {
         and(rexBuilder.makeInputRef(booleanNotNullableType, 0),
             rexBuilder.makeInputRef(booleanNullableType, 1),
             rexBuilder.makeInputRef(booleanNotNullableType, 2));
-    RexNode result = RexUtil.simplify(rexBuilder, andCondition, false);
+    RexNode result = simplify.simplify(andCondition);
     assertThat(result.getType().isNullable(), is(true));
     assertThat(result.getType().getSqlTypeName(), is(SqlTypeName.BOOLEAN));
   }
@@ -1261,7 +1264,7 @@ public class RexProgramTest {
               assertThat(cast.getType(), is(toType));
               continue; // makeCast already simplified
             }
-            final RexNode simplified = RexUtil.simplify(rexBuilder, cast);
+            final RexNode simplified = simplify.simplify(cast);
             boolean expectedSimplify =
                 literal.getTypeName() != toType.getSqlTypeName()
                 || (literal.getTypeName() == SqlTypeName.CHAR

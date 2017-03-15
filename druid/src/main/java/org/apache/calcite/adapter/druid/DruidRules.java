@@ -40,10 +40,12 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexExecutor;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexShuttle;
+import org.apache.calcite.rex.RexSimplify;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.runtime.PredicateImpl;
 import org.apache.calcite.sql.type.SqlTypeFamily;
@@ -159,10 +161,12 @@ public class DruidRules {
           break;
         }
       }
+      final RexExecutor executor =
+          Util.first(cluster.getPlanner().getExecutor(), RexUtil.EXECUTOR);
+      final RexSimplify simplify = new RexSimplify(rexBuilder, true, executor);
       final Pair<List<RexNode>, List<RexNode>> pair =
           splitFilters(rexBuilder, query,
-              RexUtil.simplify(rexBuilder, filter.getCondition(), true),
-              timestampFieldIdx);
+              simplify.simplify(filter.getCondition()), timestampFieldIdx);
       if (pair == null) {
         // We can't push anything useful to Druid.
         return;
@@ -170,8 +174,8 @@ public class DruidRules {
       List<LocalInterval> intervals = null;
       if (!pair.left.isEmpty()) {
         intervals = DruidDateTimeUtils.createInterval(
-                query.getRowType().getFieldList().get(timestampFieldIdx).getType(),
-                RexUtil.composeConjunction(rexBuilder, pair.left, false));
+            query.getRowType().getFieldList().get(timestampFieldIdx).getType(),
+            RexUtil.composeConjunction(rexBuilder, pair.left, false));
         if (intervals == null) {
           // We can't push anything useful to Druid.
           return;
