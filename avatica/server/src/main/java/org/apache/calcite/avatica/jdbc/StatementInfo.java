@@ -20,7 +20,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
 import java.sql.Statement;
-import java.util.Objects;
 
 /**
  * All we know about a statement. Encapsulates a {@link ResultSet}.
@@ -37,7 +36,8 @@ public class StatementInfo {
   private boolean resultsInitialized = false;
 
   public StatementInfo(Statement statement) {
-    this.statement = Objects.requireNonNull(statement);
+    // May be null when coming from a DatabaseMetaData call
+    this.statement = statement;
   }
 
   // Visible for testing
