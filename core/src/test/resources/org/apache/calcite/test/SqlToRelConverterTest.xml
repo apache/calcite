@@ -2249,6 +2249,28 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testTableSubset">
+        <Resource name="sql">
+            <![CDATA[select deptno, name from dept]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(DEPTNO=[$0], NAME=[$1])
+  LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testTableExpression">
+        <Resource name="sql">
+            <![CDATA[select deptno + deptno from dept]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(EXPR$0=[+($0, $0)])
+  LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testTableExtend">
         <Resource name="sql">
             <![CDATA[select * from dept extend (x varchar(5) not null)]]>
@@ -2257,6 +2279,84 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
             <![CDATA[
 LogicalProject(DEPTNO=[$0], NAME=[$1], X=[$2])
   LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testTableExtendSubset">
+        <Resource name="sql">
+            <![CDATA[select deptno, x from dept extend (x int)]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(DEPTNO=[$0], X=[$2])
+  LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testTableExtendExpression">
+        <Resource name="sql">
+            <![CDATA[select deptno + x from dept extend (x int not null)]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(EXPR$0=[+($0, $2)])
+  LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testModifiableViewExtend">
+        <Resource name="sql">
+            <![CDATA[select * from EMP_MODIFIABLEVIEW extend (x varchar(5) not null)]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], SLACKER=[$8], X=[$9])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP_MODIFIABLEVIEW]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testModifiableViewExtendSubset">
+        <Resource name="sql">
+            <![CDATA[select x, empno from EMP_MODIFIABLEVIEW extend (x varchar(5) not null)]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(X=[$9], EMPNO=[$0])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP_MODIFIABLEVIEW]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testModifiableViewExtendExpression">
+        <Resource name="sql">
+            <![CDATA[select empno + x from EMP_MODIFIABLEVIEW extend (x int not null)]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(EXPR$0=[+($0, $9)])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP_MODIFIABLEVIEW]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testSelectModifiableViewConstraint">
+        <Resource name="sql">
+            <![CDATA[select deptno from EMP_MODIFIABLEVIEW2 where deptno = ?]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(DEPTNO=[$3])
+  LogicalFilter(condition=[=($3, ?0)])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP_MODIFIABLEVIEW2]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testModifiableViewDDLExtend">
+        <Resource name="sql">
+            <![CDATA[select extra from EMP_MODIFIABLEVIEW2]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(EXTRA=[$6])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP_MODIFIABLEVIEW2]])
 ]]>
         </Resource>
     </TestCase>
@@ -2705,6 +2805,60 @@ LogicalTableModify(table=[[CATALOG, SALES, EMPNULLABLES]], operation=[INSERT], f
     LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[20], SLACKER=[$7])
       LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[null], MGR=[null], HIREDATE=[null], SAL=[null], COMM=[null], SLACKER=[null])
         LogicalValues(tuples=[[{ 10, 'Fred' }]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testInsertModifiableView">
+        <Resource name="sql">
+            <![CDATA[insert into EMP_MODIFIABLEVIEW (EMPNO, ENAME, JOB) values (34625, 'nom', 'accountant')]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalTableModify(table=[[SALES, EMPDEFAULTS]], operation=[INSERT], flattened=[true])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[CAST($5):INTEGER], COMM=[$6], DEPTNO=[20], SLACKER=[$7])
+    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[null], HIREDATE=[null], SAL=[555], COMM=[null], SLACKER=[null])
+      LogicalValues(tuples=[[{ 34625, 'nom', 'accountant' }]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testInsertSubsetModifiableView">
+        <Resource name="sql">
+            <![CDATA[insert into EMP_MODIFIABLEVIEW values (10, 'Fred')]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalTableModify(table=[[SALES, EMPDEFAULTS]], operation=[INSERT], flattened=[true])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[CAST($5):INTEGER], COMM=[$6], DEPTNO=[20], SLACKER=[$7])
+    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[null], MGR=[null], HIREDATE=[null], SAL=[555], COMM=[null], SLACKER=[null])
+      LogicalValues(tuples=[[{ 10, 'Fred' }]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testInsertBindModifiableView">
+        <Resource name="sql">
+            <![CDATA[insert into EMP_MODIFIABLEVIEW (empno, job) values (?, ?)]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalTableModify(table=[[SALES, EMPDEFAULTS]], operation=[INSERT], flattened=[true])
+  LogicalProject(EMPNO=[CAST($0):INTEGER NOT NULL], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[CAST($5):INTEGER], COMM=[$6], DEPTNO=[20], SLACKER=[$7])
+    LogicalProject(EMPNO=[$0], ENAME=['Bob'], JOB=[$1], MGR=[null], HIREDATE=[null], SAL=[555], COMM=[null], SLACKER=[null])
+      LogicalProject(EXPR$0=[?0], EXPR$1=[?1])
+        LogicalValues(tuples=[[{ 0 }]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testInsertBindSubsetModifiableView">
+        <Resource name="sql">
+            <![CDATA[insert into EMP_MODIFIABLEVIEW values (?, ?)]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalTableModify(table=[[SALES, EMPDEFAULTS]], operation=[INSERT], flattened=[true])
+  LogicalProject(EMPNO=[CAST($0):INTEGER NOT NULL], ENAME=[CAST($1):VARCHAR(20) CHARACTER SET "ISO-8859-1" COLLATE "ISO-8859-1$en_US$primary" NOT NULL], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[CAST($5):INTEGER], COMM=[$6], DEPTNO=[20], SLACKER=[$7])
+    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[null], MGR=[null], HIREDATE=[null], SAL=[555], COMM=[null], SLACKER=[null])
+      LogicalProject(EXPR$0=[?0], EXPR$1=[?1])
+        LogicalValues(tuples=[[{ 0 }]])
 ]]>
         </Resource>
     </TestCase>

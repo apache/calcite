@@ -46,6 +46,7 @@ import org.apache.calcite.util.ImmutableIntList;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
 import java.lang.reflect.InvocationTargetException;
@@ -265,11 +266,11 @@ public interface CalcitePrepare {
 
   /** The result of analyzing a view. */
   class AnalyzeViewResult extends ConvertResult {
-    /** Not null if and only if the view is modifiable. */
+    public final ImmutableIntList columnMapping;
+    /** The following are not null if and only if the view is modifiable. */
     public final Table table;
     public final ImmutableList<String> tablePath;
     public final RexNode constraint;
-    public final ImmutableIntList columnMapping;
 
     public AnalyzeViewResult(CalcitePrepareImpl prepare,
         SqlValidator validator, String sql, SqlNode sqlNode,
@@ -277,10 +278,17 @@ public interface CalcitePrepare {
         ImmutableList<String> tablePath, RexNode constraint,
         ImmutableIntList columnMapping) {
       super(prepare, validator, sql, sqlNode, rowType, root);
+      final boolean modifiable = constraint != null;
+      Preconditions.checkArgument((table != null) == modifiable);
+      Preconditions.checkArgument((tablePath != null) == modifiable);
+      this.columnMapping = columnMapping;
+      this.constraint = constraint;
       this.table = table;
       this.tablePath = tablePath;
-      this.constraint = constraint;
-      this.columnMapping = columnMapping;
+    }
+
+    public boolean isModifiable() {
+      return constraint != null;
     }
   }
 

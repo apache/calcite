@@ -357,8 +357,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
             RESOURCE.modifiableViewMustBeBasedOnSingleTable());
       }
       return new AnalyzeViewResult(this, validator, sql, sqlNode,
-          validator.getValidatedNodeType(sqlNode), root, null, null, null,
-          null);
+          validator.getValidatedNodeType(sqlNode), root, null, null, null, null);
     }
     final RelOptTable targetRelTable = scan.getTable();
     final RelDataType targetRowType = targetRelTable.getRowType();
@@ -383,8 +382,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
                       Util.last(tablePath)));
             }
             return new AnalyzeViewResult(this, validator, sql, sqlNode,
-                validator.getValidatedNodeType(sqlNode), root, null, null, null,
-                null);
+                validator.getValidatedNodeType(sqlNode), root, null, null, null, null);
           }
           projectMap.put(index, rexBuilder.makeInputRef(viewRel, node.i));
           columnMapping.add(index);
@@ -422,14 +420,27 @@ public class CalcitePrepareImpl implements CalcitePrepare {
                 Util.last(tablePath)));
       }
       return new AnalyzeViewResult(this, validator, sql, sqlNode,
-          validator.getValidatedNodeType(sqlNode), root, null, null, null,
-          null);
+          validator.getValidatedNodeType(sqlNode), root, null, null, null, null);
+    }
+
+    boolean modifiable = filters.isEmpty();
+    if (!modifiable) {
+      final Map<Integer, RexNode> projectMap2 = new HashMap<>();
+      final List<RexNode> filters2 = new ArrayList<>();
+      RelOptUtil.inferViewPredicates(projectMap2, filters2, constraint);
+      if (fail && !filters2.isEmpty()) {
+        throw validator.newValidationError(sqlNode,
+            RESOURCE.modifiableViewMustHaveOnlyEqualityPredicates());
+      }
+      modifiable = filters2.isEmpty();
     }
 
     return new AnalyzeViewResult(this, validator, sql, sqlNode,
-        validator.getValidatedNodeType(sqlNode), root, table,
-        ImmutableList.copyOf(tablePath),
-        constraint, ImmutableIntList.copyOf(columnMapping));
+        validator.getValidatedNodeType(sqlNode), root,
+        modifiable ? table : null,
+        modifiable ? ImmutableList.copyOf(tablePath) : null,
+        modifiable ? constraint : null,
+        ImmutableIntList.copyOf(columnMapping));
   }
 
   @Override public void executeDdl(Context context, SqlNode node) {

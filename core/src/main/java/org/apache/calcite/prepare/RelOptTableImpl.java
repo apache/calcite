@@ -30,10 +30,8 @@ import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.logical.LogicalTableScan;
 import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rel.type.RelRecordType;
 import org.apache.calcite.runtime.Hook;
-import org.apache.calcite.schema.ExtensibleTable;
 import org.apache.calcite.schema.FilterableTable;
 import org.apache.calcite.schema.ModifiableTable;
 import org.apache.calcite.schema.Path;
@@ -200,16 +198,11 @@ public class RelOptTableImpl extends Prepare.AbstractPreparingTable {
     return expressionFunction.apply(clazz);
   }
 
-  public RelOptTable extend(List<RelDataTypeField> extendedFields) {
-    if (table instanceof ExtensibleTable) {
-      final Table extendedTable =
-          ((ExtensibleTable) table).extend(extendedFields);
-      final RelDataType extendedRowType =
-          extendedTable.getRowType(schema.getTypeFactory());
-      return new RelOptTableImpl(schema, extendedRowType, names, extendedTable,
-          expressionFunction, rowCount);
-    }
-    throw new RuntimeException("Cannot extend " + table); // TODO: user error
+  @Override protected RelOptTable extend(Table extendedTable) {
+    final RelDataType extendedRowType =
+        extendedTable.getRowType(getRelOptSchema().getTypeFactory());
+    return new RelOptTableImpl(getRelOptSchema(), extendedRowType, getQualifiedName(),
+        extendedTable, expressionFunction, getRowCount());
   }
 
   @Override public boolean equals(Object obj) {
