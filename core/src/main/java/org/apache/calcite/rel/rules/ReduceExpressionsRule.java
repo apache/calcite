@@ -461,13 +461,8 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
 
     boolean reduced = reduceExpressionsInternal(rel, expList, predicates);
 
-    // Simplify predicates in place
-    RexExecutor executor = rel.getCluster().getPlanner().getExecutor();
-    if (executor == null) {
-      executor = RexUtil.EXECUTOR;
-    }
     ExprSimplifier simplifier =
-        new ExprSimplifier(rexBuilder, unknownAsFalse, executor);
+        new ExprSimplifier(rexBuilder, unknownAsFalse);
     boolean simplified = false;
     for (int i = 0; i < expList.size(); i++) {
       RexNode expr2 = simplifier.apply(expList.get(i));

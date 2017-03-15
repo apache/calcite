@@ -133,7 +133,6 @@ public class RelBuilder {
   private final RelFactories.TableScanFactory scanFactory;
   private final Deque<Frame> stack = new ArrayDeque<>();
   private final boolean simplify;
-  private final RexExecutor executor;
 
   protected RelBuilder(Context context, RelOptCluster cluster,
       RelOptSchema relOptSchema) {
@@ -173,9 +172,9 @@ public class RelBuilder {
     this.scanFactory =
         Util.first(context.unwrap(RelFactories.TableScanFactory.class),
             RelFactories.DEFAULT_TABLE_SCAN_FACTORY);
-    this.executor =
+    this.getRexBuilder().setExecutor(
         Util.first(context.unwrap(RexExecutor.class),
-            Util.first(cluster.getPlanner().getExecutor(), RexUtil.EXECUTOR));
+            Util.first(cluster.getPlanner().getExecutor(), RexUtil.EXECUTOR)));
   }
 
   /** Creates a RelBuilder. */
@@ -870,7 +869,7 @@ public class RelBuilder {
     final Iterator<String> nameIterator = fieldNames.iterator();
     for (RexNode node : nodes) {
       if (simplify) {
-        node = RexUtil.simplifyPreservingType(getRexBuilder(), node, executor);
+        node = RexUtil.simplifyPreservingType(getRexBuilder(), node);
       }
       exprList.add(node);
       String name = nameIterator.hasNext() ? nameIterator.next() : null;
