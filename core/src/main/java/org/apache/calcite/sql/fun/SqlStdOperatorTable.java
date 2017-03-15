@@ -57,7 +57,6 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.util.ReflectiveSqlOperatorTable;
 import org.apache.calcite.sql.validate.SqlModality;
 import org.apache.calcite.util.Litmus;
-import org.apache.calcite.util.Util;
 
 /**
  * Implementation of {@link org.apache.calcite.sql.SqlOperatorTable} containing
@@ -2027,37 +2026,6 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           writer.endList(frame);
         }
       };
-
-  /** {@code AS} function that defines a measure inside {@code MATCH_RECOGNIZE}.
-   * The order of operands will change when the expression is unparsed. */
-  public static final SqlSpecialOperator PATTERN_DEFINE_AS =
-      new SqlAsOperator("PATTERN_DEFINE_AS", SqlKind.AS, 20, true,
-          ReturnTypes.ARG0, InferTypes.RETURN_TYPE, OperandTypes.ANY_ANY) {
-        @Override public void unparse(SqlWriter writer, SqlCall call,
-            int leftPrec, int rightPrec) {
-          assert call.operandCount() >= 2;
-          final SqlWriter.Frame frame =
-              writer.startList(
-                  SqlWriter.FrameTypeEnum.SIMPLE);
-          call.operand(1).unparse(writer, leftPrec, getLeftPrec());
-          final boolean needsSpace = true;
-          writer.setNeedWhitespace(needsSpace);
-          writer.sep("AS");
-          writer.setNeedWhitespace(needsSpace);
-          call.operand(0).unparse(writer, getRightPrec(), rightPrec);
-          if (call.operandCount() > 2) {
-            final SqlWriter.Frame frame1 =
-                writer.startList(SqlWriter.FrameTypeEnum.SIMPLE, "(", ")");
-            for (SqlNode operand : Util.skip(call.getOperandList(), 2)) {
-              writer.sep(",", false);
-              operand.unparse(writer, 0, 0);
-            }
-            writer.endList(frame1);
-          }
-          writer.endList(frame);
-        }
-      };
-
   //~ Methods ----------------------------------------------------------------
 
   /**

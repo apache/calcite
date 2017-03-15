@@ -388,7 +388,7 @@ public class RelToSqlConverter extends SqlImplementor
     for (Map.Entry<String, RexNode> entry : e.getPatternDefinitions().entrySet()) {
       String alias = entry.getKey();
       SqlNode sqlNode = context.toSql(null, entry.getValue());
-      sqlNode = SqlStdOperatorTable.PATTERN_DEFINE_AS.createCall(POS,
+      sqlNode = SqlStdOperatorTable.AS.createCall(POS,
         sqlNode, new SqlIdentifier(alias, POS));
       list.add(sqlNode);
     }
