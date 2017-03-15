@@ -37,7 +37,8 @@ public class StatementInfo {
   private boolean resultsInitialized = false;
 
   public StatementInfo(Statement statement) {
-    this.statement = Objects.requireNonNull(statement);
+    // May be null
+    this.statement = statement;
   }
 
   // Visible for testing
