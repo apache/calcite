@@ -16,10 +16,10 @@
  */
 
 /**
- * Avatica Server for HSQLDB.
+ * Avatica Server without any authentication for any JDBC driver.
  */
 @PackageMarker
-package org.apache.calcite.avatica.hsqldb;
+package org.apache.calcite.avatica.server;
 
 import org.apache.calcite.avatica.util.PackageMarker;
 
