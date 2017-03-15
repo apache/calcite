@@ -513,8 +513,11 @@ limitations under the License.
                  license notices. -->
             <exclude>src/main/resources/META-INF/services/java.sql.Driver</exclude>
             <exclude>**/src/test/resources/**/*.csv</exclude>
+            <exclude>**/src/test/resources/**/*.txt</exclude>
             <exclude>**/src/test/resources/bug/archers.json</exclude>
             <exclude>**/src/test/resources/foodmart-schema.spec</exclude>
+            <exclude>**/data.txt</exclude>
+            <exclude>**/data2.txt</exclude>
 
             <!-- Exclude all of avatica, RAT is run in Avatica -->
             <exclude>avatica/**</exclude>
