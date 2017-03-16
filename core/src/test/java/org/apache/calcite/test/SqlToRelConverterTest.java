@@ -742,8 +742,53 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  @Test public void testTableSubset() {
+    final String sql = "select deptno, name from dept";
+    sql(sql).ok();
+  }
+
+  @Test public void testTableExpression() {
+    final String sql = "select deptno + deptno from dept";
+    sql(sql).ok();
+  }
+
   @Test public void testTableExtend() {
     final String sql = "select * from dept extend (x varchar(5) not null)";
+    sql(sql).ok();
+  }
+
+  @Test public void testTableExtendSubset() {
+    final String sql = "select deptno, x from dept extend (x int)";
+    sql(sql).ok();
+  }
+
+  @Test public void testTableExtendExpression() {
+    final String sql = "select deptno + x from dept extend (x int not null)";
+    sql(sql).ok();
+  }
+
+  @Test public void testModifiableViewExtend() {
+    final String sql = "select * from EMP_MODIFIABLEVIEW extend (x varchar(5) not null)";
+    sql(sql).ok();
+  }
+
+  @Test public void testModifiableViewExtendSubset() {
+    final String sql = "select x, empno from EMP_MODIFIABLEVIEW extend (x varchar(5) not null)";
+    sql(sql).ok();
+  }
+
+  @Test public void testModifiableViewExtendExpression() {
+    final String sql = "select empno + x from EMP_MODIFIABLEVIEW extend (x int not null)";
+    sql(sql).ok();
+  }
+
+  @Test public void testSelectModifiableViewConstraint() {
+    final String sql = "select deptno from EMP_MODIFIABLEVIEW2 where deptno = ?";
+    sql(sql).ok();
+  }
+
+  @Test public void testModifiableViewDDLExtend() {
+    final String sql = "select extra from EMP_MODIFIABLEVIEW2";
     sql(sql).ok();
   }
 
@@ -1588,6 +1633,30 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     final String sql = "insert into empnullables_20 (empno, ename)\n"
         + "values (150, 'Fred')";
     sql(sql).ok();
+  }
+
+  @Test public void testInsertModifiableView() {
+    final String sql = "insert into EMP_MODIFIABLEVIEW (EMPNO, ENAME, JOB)"
+        + " values (34625, 'nom', 'accountant')";
+    sql(sql).ok();
+  }
+
+  @Test public void testInsertSubsetModifiableView() {
+    final String sql = "insert into EMP_MODIFIABLEVIEW "
+        + "values (10, 'Fred')";
+    sql(sql).conformance(SqlConformanceEnum.PRAGMATIC_2003).ok();
+  }
+
+  @Test public void testInsertBindModifiableView() {
+    final String sql = "insert into EMP_MODIFIABLEVIEW (empno, job)"
+        + " values (?, ?)";
+    sql(sql).ok();
+  }
+
+  @Test public void testInsertBindSubsetModifiableView() {
+    final String sql = "insert into EMP_MODIFIABLEVIEW"
+        + " values (?, ?)";
+    sql(sql).conformance(SqlConformanceEnum.PRAGMATIC_2003).ok();
   }
 
   @Test public void testInsertWithCustomColumnResolving() {

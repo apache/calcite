@@ -162,6 +162,11 @@ limitations under the License.
       <!-- Sorted by groupId, artifactId; calcite (and avatica) dependencies first. -->
       <dependency>
         <groupId>org.apache.calcite.avatica</groupId>
+        <artifactId>avatica</artifactId>
+        <version>${avatica.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.calcite.avatica</groupId>
         <artifactId>avatica-core</artifactId>
         <version>${avatica.version}</version>
       </dependency>

@@ -49,6 +49,7 @@ import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexShuttle;
+import org.apache.calcite.rex.RexSimplify;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.schema.SchemaPlus;
@@ -133,7 +134,8 @@ public class RelBuilder {
   private final RelFactories.TableScanFactory scanFactory;
   private final Deque<Frame> stack = new ArrayDeque<>();
   private final boolean simplify;
-  private final RexExecutor executor;
+  private final RexSimplify simplifier;
+  private final RexSimplify simplifierUnknownAsFalse;
 
   protected RelBuilder(Context context, RelOptCluster cluster,
       RelOptSchema relOptSchema) {
@@ -173,9 +175,12 @@ public class RelBuilder {
     this.scanFactory =
         Util.first(context.unwrap(RelFactories.TableScanFactory.class),
             RelFactories.DEFAULT_TABLE_SCAN_FACTORY);
-    this.executor =
+    final RexExecutor executor =
         Util.first(context.unwrap(RexExecutor.class),
             Util.first(cluster.getPlanner().getExecutor(), RexUtil.EXECUTOR));
+    this.simplifier = new RexSimplify(cluster.getRexBuilder(), false, executor);
+    this.simplifierUnknownAsFalse =
+        new RexSimplify(cluster.getRexBuilder(), true, executor);
   }
 
   /** Creates a RelBuilder. */
@@ -552,7 +557,7 @@ public class RelBuilder {
    * {@code e AND TRUE} becomes {@code e};
    * {@code e AND e2 AND NOT e} becomes {@code e2}. */
   public RexNode and(Iterable<? extends RexNode> operands) {
-    return RexUtil.simplifyAnds(cluster.getRexBuilder(), operands);
+    return simplifier.simplifyAnds(operands);
   }
 
   /** Creates an OR. */
@@ -562,7 +567,7 @@ public class RelBuilder {
 
   /** Creates an OR. */
   public RexNode or(Iterable<? extends RexNode> operands) {
-    return RexUtil.composeDisjunction(cluster.getRexBuilder(), operands, false);
+    return RexUtil.composeDisjunction(cluster.getRexBuilder(), operands);
   }
 
   /** Creates a NOT. */
@@ -803,7 +808,7 @@ public class RelBuilder {
    * and optimized in a similar way to the {@link #and} method.
    * If the result is TRUE no filter is created. */
   public RelBuilder filter(Iterable<? extends RexNode> predicates) {
-    final RexNode x = RexUtil.simplifyAnds(cluster.getRexBuilder(), predicates, true);
+    final RexNode x = simplifierUnknownAsFalse.simplifyAnds(predicates);
     if (x.isAlwaysFalse()) {
       return empty();
     }
@@ -870,7 +875,7 @@ public class RelBuilder {
     final Iterator<String> nameIterator = fieldNames.iterator();
     for (RexNode node : nodes) {
       if (simplify) {
-        node = RexUtil.simplifyPreservingType(getRexBuilder(), node, executor);
+        node = simplifier.simplifyPreservingType(node);
       }
       exprList.add(node);
       String name = nameIterator.hasNext() ? nameIterator.next() : null;

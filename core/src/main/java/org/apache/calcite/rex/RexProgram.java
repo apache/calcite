@@ -753,7 +753,7 @@ public class RexProgram {
    * @return whether in canonical form
    */
   public boolean isNormalized(Litmus litmus, RexBuilder rexBuilder) {
-    final RexProgram normalizedProgram = normalize(rexBuilder, false);
+    final RexProgram normalizedProgram = normalize(rexBuilder, null);
     String normalized = normalizedProgram.toString();
     String string = toString();
     if (!normalized.equals(string)) {
@@ -769,10 +769,11 @@ public class RexProgram {
    * Creates a simplified/normalized copy of this program.
    *
    * @param rexBuilder Rex builder
-   * @param simplify Whether to simplify (in addition to normalizing)
+   * @param simplify Simplifier to simplify (in addition to normalizing),
+   *     or null to not simplify
    * @return Normalized program
    */
-  public RexProgram normalize(RexBuilder rexBuilder, boolean simplify) {
+  public RexProgram normalize(RexBuilder rexBuilder, RexSimplify simplify) {
     // Normalize program by creating program builder from the program, then
     // converting to a program. getProgram does not need to normalize
     // because the builder was normalized on creation.
@@ -781,6 +782,12 @@ public class RexProgram {
         RexProgramBuilder.create(rexBuilder, inputRowType, exprs, projects,
             condition, outputRowType, true, simplify);
     return builder.getProgram(false);
+  }
+
+  @Deprecated // to be removed before 2.0
+  public RexProgram normalize(RexBuilder rexBuilder, boolean simplify) {
+    return normalize(rexBuilder,
+        simplify ? new RexSimplify(rexBuilder, false, RexUtil.EXECUTOR) : null);
   }
 
   //~ Inner Classes ----------------------------------------------------------

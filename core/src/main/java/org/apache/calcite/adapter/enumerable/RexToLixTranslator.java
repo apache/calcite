@@ -385,15 +385,17 @@ public class RexToLixTranslator {
         case VARBINARY:
           // If this is a widening cast, no need to truncate.
           final int sourcePrecision = sourceType.getPrecision();
-          if (sourcePrecision < 0
-              || sourcePrecision >= 0
-              && sourcePrecision <= targetPrecision) {
+          if (sourcePrecision >= 0
+              && (sourcePrecision <= targetPrecision
+                  || targetPrecision
+                      == RelDataType.PRECISION_NOT_SPECIFIED)) {
             truncate = false;
           }
           // If this is a widening cast, no need to pad.
-          if (sourcePrecision < 0
+          if (sourcePrecision == RelDataType.PRECISION_NOT_SPECIFIED
               || sourcePrecision >= 0
-              && sourcePrecision >= targetPrecision) {
+              && sourcePrecision >= targetPrecision
+              && targetPrecision != RelDataType.PRECISION_NOT_SPECIFIED) {
             pad = false;
           }
           // fall through

@@ -55,6 +55,10 @@ public abstract class DelegatingSqlValidatorCatalogReader
   public List<List<String>> getSchemaPaths() {
     return catalogReader.getSchemaPaths();
   }
+
+  @Override public <C> C unwrap(Class<C> aClass) {
+    return catalogReader.unwrap(aClass);
+  }
 }
 
 // End DelegatingSqlValidatorCatalogReader.java

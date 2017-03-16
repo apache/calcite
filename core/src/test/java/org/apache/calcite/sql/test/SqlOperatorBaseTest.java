@@ -1905,6 +1905,19 @@ public abstract class SqlOperatorBaseTest {
         " x'fe'||x'df' ",
         "fedf",
         "BINARY(2) NOT NULL");
+    tester.checkString(
+        " cast('fe' as char(2)) || cast('df' as varchar)",
+        "fedf",
+        "VARCHAR NOT NULL");
+    // Precision is larger than VARCHAR allows, so result is unbounded
+    tester.checkString(
+        " cast('fe' as char(2)) || cast('df' as varchar(65535))",
+        "fedf",
+        "VARCHAR NOT NULL");
+    tester.checkString(
+        " cast('fe' as char(2)) || cast('df' as varchar(33333))",
+        "fedf",
+        "VARCHAR(33335) NOT NULL");
     tester.checkNull("x'ff' || cast(null as varbinary)");
     tester.checkNull(" cast(null as ANY) || cast(null as ANY) ");
   }
@@ -3655,7 +3668,7 @@ public abstract class SqlOperatorBaseTest {
 
     tester.checkScalar(
         "position(cast('a' as char) in cast('bca' as varchar))",
-        0,
+        3,
         "INTEGER NOT NULL");
   }
 
@@ -6391,10 +6404,18 @@ public abstract class SqlOperatorBaseTest {
     tester.checkScalar("CAST('ABCD' AS CHAR(2))", "AB", "CHAR(2) NOT NULL");
     tester.checkScalar("CAST('ABCD' AS VARCHAR(2))", "AB",
         "VARCHAR(2) NOT NULL");
+    tester.checkScalar("CAST('ABCD' AS VARCHAR)", "ABCD", "VARCHAR NOT NULL");
+    tester.checkScalar("CAST(CAST('ABCD' AS VARCHAR) AS VARCHAR(3))", "ABC",
+        "VARCHAR(3) NOT NULL");
+
     tester.checkScalar("CAST(x'ABCDEF12' AS BINARY(2))", "abcd",
         "BINARY(2) NOT NULL");
     tester.checkScalar("CAST(x'ABCDEF12' AS VARBINARY(2))", "abcd",
         "VARBINARY(2) NOT NULL");
+    tester.checkScalar("CAST(x'ABCDEF12' AS VARBINARY)", "abcdef12",
+        "VARBINARY NOT NULL");
+    tester.checkScalar("CAST(CAST(x'ABCDEF12' AS VARBINARY) AS VARBINARY(3))",
+        "abcdef", "VARBINARY(3) NOT NULL");
 
     if (!enable) {
       return;

@@ -35,9 +35,9 @@ import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexCorrelVariable;
 import org.apache.calcite.rex.RexFieldAccess;
-import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexSlot;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlOperator;
@@ -316,8 +316,10 @@ public class RelJson {
       }
       return value2;
     case INPUT_REF:
+    case LOCAL_REF:
       map = jsonBuilder.map();
-      map.put("input", ((RexInputRef) node).getIndex());
+      map.put("input", ((RexSlot) node).getIndex());
+      map.put("name", ((RexSlot) node).getName());
       return map;
     case CORREL_VARIABLE:
       map = jsonBuilder.map();

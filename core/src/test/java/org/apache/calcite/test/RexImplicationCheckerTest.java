@@ -29,6 +29,7 @@ import org.apache.calcite.rex.RexExecutorImpl;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexSimplify;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.Schemas;
 import org.apache.calcite.server.CalciteServerStatement;
@@ -357,6 +358,7 @@ public class RexImplicationCheckerTest {
     public final RexImplicationChecker checker;
     public final RelDataType rowType;
     public final RexExecutorImpl executor;
+    public final RexSimplify simplify;
 
     public Fixture() {
       typeFactory = new JavaTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
@@ -417,6 +419,7 @@ public class RexImplicationCheckerTest {
           });
 
       executor = holder.get();
+      simplify = new RexSimplify(rexBuilder, false, executor);
       checker = new RexImplicationChecker(rexBuilder, executor, rowType);
     }
 

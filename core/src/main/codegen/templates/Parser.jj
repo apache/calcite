@@ -2700,7 +2700,7 @@ SqlNode PatternDefinition() :
     var = SimpleIdentifier()
     <AS>
     e = Expression(ExprContext.ACCEPT_SUB_QUERY) {
-        return SqlStdOperatorTable.PATTERN_DEFINE_AS.createCall(
+        return SqlStdOperatorTable.AS.createCall(
             var.getParserPosition().plus(getPos()), e, var);
     }
 }

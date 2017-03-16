@@ -18,9 +18,7 @@ package org.apache.calcite.sql.validate;
 
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
-import org.apache.calcite.rel.type.RelDataTypeFieldImpl;
 import org.apache.calcite.sql.SqlCall;
-import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
@@ -29,11 +27,9 @@ import org.apache.calcite.util.Pair;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.List;
 import javax.annotation.Nullable;
 
@@ -199,20 +195,13 @@ public class IdentifierNamespace extends AbstractNamespace {
     RelDataType rowType = resolvedNamespace.getRowType();
 
     if (extendList != null) {
-      final List<RelDataTypeField> fields = Lists.newArrayList();
-      final Iterator<SqlNode> extendIterator = extendList.iterator();
-      while (extendIterator.hasNext()) {
-        SqlIdentifier id = (SqlIdentifier) extendIterator.next();
-        SqlDataTypeSpec type = (SqlDataTypeSpec) extendIterator.next();
-        fields.add(
-            new RelDataTypeFieldImpl(id.getSimple(), fields.size(),
-                type.deriveType(validator)));
-      }
-
       if (!(resolvedNamespace instanceof TableNamespace)) {
         throw new RuntimeException("cannot convert");
       }
-      resolvedNamespace = ((TableNamespace) resolvedNamespace).extend(fields);
+      final List<RelDataTypeField> extendedFields =
+          SqlValidatorUtil.getExtendedColumns(validator, getTable(), extendList);
+      resolvedNamespace =
+          ((TableNamespace) resolvedNamespace).extend(extendedFields);
       rowType = resolvedNamespace.getRowType();
     }
 

@@ -155,7 +155,7 @@ public abstract class DateRangeRules {
       final RelBuilder relBuilder =
           relBuilderFactory.create(filter.getCluster(), null);
       relBuilder.push(filter.getInput())
-          .filter(RexUtil.simplify(rexBuilder, condition, true));
+          .filter(condition);
       call.transformTo(relBuilder.build());
     }
   }
@@ -316,7 +316,7 @@ public abstract class DateRangeRules {
       for (Range<Calendar> r : s2.asRanges()) {
         nodes.add(toRex(operand, r));
       }
-      return RexUtil.composeDisjunction(rexBuilder, nodes, false);
+      return RexUtil.composeDisjunction(rexBuilder, nodes);
     }
 
     private boolean next(Calendar c, TimeUnitRange timeUnit, int v,

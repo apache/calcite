@@ -33,6 +33,7 @@ import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexSimplify;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
@@ -40,9 +41,6 @@ import org.apache.calcite.tools.RuleSet;
 import org.apache.calcite.tools.RuleSets;
 import org.apache.calcite.util.JsonBuilder;
 import org.apache.calcite.util.TryThreadLocal;
-import org.apache.calcite.util.Util;
-
-import org.apache.commons.lang3.StringUtils;
 
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
@@ -53,7 +51,6 @@ import org.junit.Test;
 
 import java.math.BigDecimal;
 import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -90,7 +87,9 @@ public class MaterializationTest {
 
   final JavaTypeFactoryImpl typeFactory =
       new JavaTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
-  final RexBuilder rexBuilder = new RexBuilder(typeFactory);
+  private final RexBuilder rexBuilder = new RexBuilder(typeFactory);
+  private final RexSimplify simplify =
+      new RexSimplify(rexBuilder, false, RexUtil.EXECUTOR);
 
   @Test public void testScan() {
     CalciteAssert.that()
@@ -720,13 +719,13 @@ public class MaterializationTest {
 
   private void checkNotSatisfiable(RexNode e) {
     assertFalse(SubstitutionVisitor.mayBeSatisfiable(e));
-    final RexNode simple = RexUtil.simplify(rexBuilder, e);
+    final RexNode simple = simplify.simplify(e);
     assertFalse(RexLiteral.booleanValue(simple));
   }
 
   private void checkSatisfiable(RexNode e, String s) {
     assertTrue(SubstitutionVisitor.mayBeSatisfiable(e));
-    final RexNode simple = RexUtil.simplify(rexBuilder, e);
+    final RexNode simple = simplify.simplify(e);
     assertEquals(s, simple.toString());
   }
 
@@ -759,7 +758,7 @@ public class MaterializationTest {
     //   target:    x = 1 or z = 3
     // yields
     //   residue:   not (z = 3)
-    newFilter = SubstitutionVisitor.splitFilter(rexBuilder,
+    newFilter = SubstitutionVisitor.splitFilter(simplify,
         x_eq_1,
         rexBuilder.makeCall(SqlStdOperatorTable.OR, x_eq_1, z_eq_3));
     assertThat(newFilter.toString(), equalTo("NOT(=($2, 3))"));
@@ -769,7 +768,7 @@ public class MaterializationTest {
     //   target:    x = 1 or y = 2 or z = 3
     // yields
     //   residue:   not (z = 3)
-    newFilter = SubstitutionVisitor.splitFilter(rexBuilder,
+    newFilter = SubstitutionVisitor.splitFilter(simplify,
         rexBuilder.makeCall(SqlStdOperatorTable.OR, x_eq_1, y_eq_2),
         rexBuilder.makeCall(SqlStdOperatorTable.OR, x_eq_1, y_eq_2, z_eq_3));
     assertThat(newFilter.toString(), equalTo("NOT(=($2, 3))"));
@@ -779,7 +778,7 @@ public class MaterializationTest {
     //   target:    x = 1 or y = 2 or z = 3
     // yields
     //   residue:   not (y = 2) and not (z = 3)
-    newFilter = SubstitutionVisitor.splitFilter(rexBuilder,
+    newFilter = SubstitutionVisitor.splitFilter(simplify,
         x_eq_1,
         rexBuilder.makeCall(SqlStdOperatorTable.OR, x_eq_1, y_eq_2, z_eq_3));
     assertThat(newFilter.toString(),
@@ -790,7 +789,7 @@ public class MaterializationTest {
     //   target:    y = 2 or x = 1
     // yields
     //   residue:   true
-    newFilter = SubstitutionVisitor.splitFilter(rexBuilder,
+    newFilter = SubstitutionVisitor.splitFilter(simplify,
         rexBuilder.makeCall(SqlStdOperatorTable.OR, x_eq_1, y_eq_2),
         rexBuilder.makeCall(SqlStdOperatorTable.OR, y_eq_2, x_eq_1));
     assertThat(newFilter.isAlwaysTrue(), equalTo(true));
@@ -800,7 +799,7 @@ public class MaterializationTest {
     //   target:    x = 1 (different object)
     // yields
     //   residue:   true
-    newFilter = SubstitutionVisitor.splitFilter(rexBuilder, x_eq_1, x_eq_1_b);
+    newFilter = SubstitutionVisitor.splitFilter(simplify, x_eq_1, x_eq_1_b);
     assertThat(newFilter.isAlwaysTrue(), equalTo(true));
 
     // 2f.
@@ -916,33 +915,24 @@ public class MaterializationTest {
     checkMaterializeWithRules(m, q, rules);
   }
 
+  @Test public void testUnionAll() {
+    String q = "select * from \"emps\" where \"empid\" > 300\n"
+        + "union all select * from \"emps\" where \"empid\" < 200";
+    String m = "select * from \"emps\" where \"empid\" < 500";
+    checkMaterialize(m, q, JdbcTest.HR_MODEL,
+        CalciteAssert.checkResultContains(
+            "EnumerableTableScan(table=[[hr, m0]])", 1));
+  }
+
   @Test public void testSubQuery() {
     String q = "select \"empid\", \"deptno\", \"salary\" from \"emps\" e1\n"
         + "where \"empid\" = (\n"
         + "  select max(\"empid\") from \"emps\"\n"
         + "  where \"deptno\" = e1.\"deptno\")";
     final String m = "select \"empid\", \"deptno\" from \"emps\"\n";
-    try (final TryThreadLocal.Memo ignored = Prepare.THREAD_TRIM.push(true)) {
-      MaterializationService.setThreadLocal();
-      CalciteAssert.that()
-          .withMaterializations(JdbcTest.HR_MODEL, "m0", m)
-          .query(q)
-          .enableMaterializations(true)
-          .explainMatches("", new Function<ResultSet, Void>() {
-            public Void apply(ResultSet s) {
-              try {
-                final String actual = Util.toLinux(CalciteAssert.toString(s));
-                final String scan = "EnumerableTableScan(table=[[hr, m0]])";
-                assertTrue(actual + " should have 1 occurrence of " + scan,
-                    StringUtils.countMatches(actual, scan) == 1);
-                return null;
-              } catch (SQLException e) {
-                throw new RuntimeException(e);
-              }
-            }
-          })
-          .sameResultWithMaterializationsDisabled();
-    }
+    checkMaterialize(m, q, JdbcTest.HR_MODEL,
+        CalciteAssert.checkResultContains(
+            "EnumerableTableScan(table=[[hr, m0]])", 1));
   }
 
   @Test public void testTableModify() {
@@ -1046,28 +1036,10 @@ public class MaterializationTest {
     String q = "select *\n"
         + "from (select * from \"emps\" where \"empid\" < 300)\n"
         + "join (select * from \"emps\" where \"empid\" < 200) using (\"empid\")";
-    try (final TryThreadLocal.Memo ignored = Prepare.THREAD_TRIM.push(true)) {
-      MaterializationService.setThreadLocal();
-      CalciteAssert.that()
-          .withMaterializations(JdbcTest.HR_MODEL,
-              "m0", "select * from \"emps\" where \"empid\" < 500")
-          .query(q)
-          .enableMaterializations(true)
-          .explainMatches("", new Function<ResultSet, Void>() {
-            public Void apply(ResultSet s) {
-              try {
-                final String actual = Util.toLinux(CalciteAssert.toString(s));
-                final String scan = "EnumerableTableScan(table=[[hr, m0]])";
-                assertTrue(actual + " should have had two occurrences of " + scan,
-                    StringUtils.countMatches(actual, scan) == 2);
-                return null;
-              } catch (SQLException e) {
-                throw new RuntimeException(e);
-              }
-            }
-          })
-          .sameResultWithMaterializationsDisabled();
-    }
+    String m = "select * from \"emps\" where \"empid\" < 500";
+    checkMaterialize(m, q, JdbcTest.HR_MODEL,
+        CalciteAssert.checkResultContains(
+            "EnumerableTableScan(table=[[hr, m0]])", 2));
   }
 
   @Test public void testMultiMaterializationMultiUsage() {

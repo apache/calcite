@@ -40,6 +40,11 @@ public interface ExtensibleTable extends Table {
   /** Returns a table that has the row type of this table plus the given
    * fields. */
   Table extend(List<RelDataTypeField> fields);
+
+  /** Returns the starting offset of the first extended column, which may differ
+   * from the field count when the table stores metadata columns that are not
+   * counted in the row-type field count. */
+  int getExtendedColumnOffset();
 }
 
 // End ExtensibleTable.java

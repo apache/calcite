@@ -199,7 +199,7 @@ public abstract class ProjectToWindowRule extends RelOptRule {
         protected RelNode makeRel(RelOptCluster cluster, RelTraitSet traitSet,
             RelBuilder relBuilder, RelNode input, RexProgram program) {
           assert !program.containsAggs();
-          program = program.normalize(cluster.getRexBuilder(), false);
+          program = program.normalize(cluster.getRexBuilder(), null);
           return super.makeRel(cluster, traitSet, relBuilder, input, program);
         }
       },

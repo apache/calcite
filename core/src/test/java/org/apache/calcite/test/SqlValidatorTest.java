@@ -916,9 +916,9 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
 
   @Test public void testCastTypeToType() {
     checkExpType("cast(123 as char)", "CHAR(1) NOT NULL");
-    checkExpType("cast(123 as varchar)", "VARCHAR(1) NOT NULL");
+    checkExpType("cast(123 as varchar)", "VARCHAR NOT NULL");
     checkExpType("cast(x'1234' as binary)", "BINARY(1) NOT NULL");
-    checkExpType("cast(x'1234' as varbinary)", "VARBINARY(1) NOT NULL");
+    checkExpType("cast(x'1234' as varbinary)", "VARBINARY NOT NULL");
     checkExpType("cast(123 as varchar(3))", "VARCHAR(3) NOT NULL");
     checkExpType("cast(123 as char(3))", "CHAR(3) NOT NULL");
     checkExpType("cast('123' as integer)", "INTEGER NOT NULL");
@@ -5319,6 +5319,20 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         "select * from emp join dept using (deptno, ^comm^)",
         "Column 'COMM' not found in any table");
 
+    checkFails("select * from emp join dept using (^empno^)",
+        "Column 'EMPNO' not found in any table");
+
+    checkFails("select * from dept join emp using (^empno^)",
+        "Column 'EMPNO' not found in any table");
+
+    // not on either side
+    checkFails("select * from dept join emp using (^abc^)",
+        "Column 'ABC' not found in any table");
+
+    // column exists, but wrong case
+    checkFails("select * from dept join emp using (^\"deptno\"^)",
+        "Column 'deptno' not found in any table");
+
     // ok to repeat (ok in Oracle10g too)
     check("select * from emp join dept using (deptno, deptno)");
 
@@ -8004,7 +8018,6 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "AS -\n"
         + "DESC post\n"
         + "OVER left\n"
-        + "PATTERN_DEFINE_AS -\n"
         + "TABLESAMPLE -\n"
         + "\n"
         + "INTERSECT left\n"
@@ -8168,6 +8181,23 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "values (1, 'Karl')");
   }
 
+  @Test public void testInsertModifiableView() {
+    tester.checkQuery("insert into EMP_MODIFIABLEVIEW (empno, ename, job)\n"
+        + "values (1, 'Arthur', 'clown')");
+    tester.checkQuery("insert into EMP_MODIFIABLEVIEW2 (empno, ename, job, extra)\n"
+        + "values (1, 'Arthur', 'clown', true)");
+  }
+
+  @Test public void testInsertSubsetModifiableView() {
+    final SqlTester pragmaticTester =
+        tester.withConformance(SqlConformanceEnum.PRAGMATIC_2003);
+    pragmaticTester.checkQuery("insert into EMP_MODIFIABLEVIEW2\n"
+        + "values ('Arthur', 1)");
+    tester.checkQuery("insert into EMP_MODIFIABLEVIEW2\n"
+        + "values ('Arthur', 1, 'Knight', 20, false, 99999, true, timestamp '1370-01-01 00:00:00',"
+        + " 1, 100)");
+  }
+
   @Test public void testInsertBind() {
     // VALUES
     final String sql0 = "insert into empnullables (empno, ename, deptno)\n"
@@ -8250,6 +8280,63 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     final String expected2 = "RecordType(INTEGER ?0, VARCHAR(20) ?1,"
         + " INTEGER ?2, VARCHAR(20) ?3)";
     sql(sql2).tester(pragmaticTester).ok().bindType(expected2);
+  }
+
+  @Test public void testInsertBindView() {
+    final String sql = "insert into EMP_MODIFIABLEVIEW (mgr, empno, ename)"
+        + " values (?, ?, ?)";
+    sql(sql).ok().bindType("RecordType(INTEGER ?0, INTEGER ?1, VARCHAR(20) ?2)");
+  }
+
+  @Test public void testInsertModifiableViewPassConstraint() {
+    sql("insert into EMP_MODIFIABLEVIEW2 (deptno, empno, ename, extra)"
+        + " values (20, 100, 'Lex', true)").ok();
+    sql("insert into EMP_MODIFIABLEVIEW2 (empno, ename, extra)"
+        + " values (100, 'Lex', true)").ok();
+    sql("insert into EMP_MODIFIABLEVIEW2 values ('Edward', 20)")
+        .tester(tester.withConformance(SqlConformanceEnum.PRAGMATIC_2003)).ok();
+  }
+
+  @Test public void testInsertModifiableViewFailConstraint() {
+    tester.checkQueryFails(
+        "insert into EMP_MODIFIABLEVIEW2 (deptno, empno, ename)"
+            + " values (^21^, 100, 'Lex')",
+        "Modifiable view constraint is not satisfied"
+            + " for column 'DEPTNO' of base table 'EMP_MODIFIABLEVIEW2'");
+    tester.checkQueryFails(
+        "insert into EMP_MODIFIABLEVIEW2 (deptno, empno, ename)"
+            + " values (^19+1^, 100, 'Lex')",
+        "Modifiable view constraint is not satisfied"
+            + " for column 'DEPTNO' of base table 'EMP_MODIFIABLEVIEW2'");
+    tester.checkQueryFails("insert into EMP_MODIFIABLEVIEW2\n"
+        + "values ('Arthur', 1, 'Knight', ^27^, false, 99999, true,"
+            + "timestamp '1370-01-01 00:00:00', 1, 100)",
+        "Modifiable view constraint is not satisfied"
+            + " for column 'DEPTNO' of base table 'EMP_MODIFIABLEVIEW2'");
+  }
+
+  @Test public void testUpdateModifiableViewPassConstraint() {
+    sql("update EMP_MODIFIABLEVIEW2"
+        + " set deptno = 20, empno = 99"
+        + " where ename = 'Lex'").ok();
+    sql("update EMP_MODIFIABLEVIEW2"
+        + " set empno = 99"
+        + " where ename = 'Lex'").ok();
+  }
+
+  @Test public void testUpdateModifiableViewFailConstraint() {
+    tester.checkQueryFails(
+        "update EMP_MODIFIABLEVIEW2"
+            + " set deptno = ^21^, empno = 99"
+            + " where ename = 'Lex'",
+        "Modifiable view constraint is not satisfied"
+            + " for column 'DEPTNO' of base table 'EMP_MODIFIABLEVIEW2'");
+    tester.checkQueryFails(
+        "update EMP_MODIFIABLEVIEW2"
+            + " set deptno = ^19 + 1^, empno = 99"
+            + " where ename = 'Lex'",
+        "Modifiable view constraint is not satisfied"
+            + " for column 'DEPTNO' of base table 'EMP_MODIFIABLEVIEW2'");
   }
 
   @Test public void testInsertFailNullability() {
@@ -8343,6 +8430,24 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         "Number of INSERT target columns \\(9\\) does not equal number of source items \\(1\\)");
     tester.checkQueryFails("insert into ^emp^ values (?, ?)",
         "Number of INSERT target columns \\(9\\) does not equal number of source items \\(2\\)");
+  }
+
+  @Test public void testSelectViewFailExcludedColumn() {
+    tester.checkQueryFails("select ^deptno^, empno from EMP_MODIFIABLEVIEW",
+        "Column 'DEPTNO' not found in any table");
+  }
+
+  @Test public void testInsertFailExcludedColumn() {
+    tester.checkQueryFails("insert into EMP_MODIFIABLEVIEW (empno, ename, ^deptno^)"
+        + " values (45, 'Jake', 5)",
+        "Unknown target column 'DEPTNO'");
+  }
+
+  @Test public void testInsertBindViewFailExcludedColumn() {
+    final String sql = "insert into EMP_MODIFIABLEVIEW (empno, ename, ^deptno^)"
+        + " values (?, ?, ?)";
+    tester.checkQueryFails(sql,
+        "Unknown target column 'DEPTNO'");
   }
 
   @Test public void testInsertWithCustomInitializerExpressionFactory() {
@@ -8947,8 +9052,6 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   /** Tries to create a calls to some internal operators in
    * MATCH_RECOGNIZE. Should fail. */
   @Test public void testMatchRecognizeInternals() throws Exception {
-    sql("values ^pattern_define_as(1, 2)^")
-        .fails("No match found for function signature .*");
     sql("values ^pattern_exclude(1, 2)^")
         .fails("No match found for function signature .*");
     sql("values ^\"|\"(1, 2)^")

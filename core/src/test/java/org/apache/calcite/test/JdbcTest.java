@@ -348,8 +348,7 @@ public class JdbcTest {
           true)
           .query("select \"name\" from \"adhoc\".V order by \"name\"")
           .throws_(
-              "View is not modifiable. No value is supplied for NOT NULL "
-                  + "column 'deptno' of base table 'MUTABLE_EMPLOYEES'");
+              "Modifiable view must be predicated only on equality expressions");
 
       // Deduce "deptno = 10" from the constraint, and add a further
       // condition "deptno < 20 OR commission > 1000".
@@ -358,10 +357,15 @@ public class JdbcTest {
               + "where \"deptno\" = 10 AND (\"deptno\" < 20 OR \"commission\" > 1000)",
           true)
           .query("insert into \"adhoc\".v values ('n',1,2)")
-          .explainContains(""
-              + "EnumerableTableModify(table=[[adhoc, MUTABLE_EMPLOYEES]], operation=[INSERT], flattened=[false])\n"
-              + "  EnumerableCalc(expr#0..2=[{inputs}], expr#3=[CAST($t1):JavaType(int) NOT NULL], expr#4=[10], expr#5=[CAST($t0):JavaType(class java.lang.String)], expr#6=[CAST($t2):JavaType(float) NOT NULL], expr#7=[null], expr#8=[20], expr#9=[<($t4, $t8)], expr#10=[1000], expr#11=[>($t7, $t10)], expr#12=[OR($t9, $t11)], empid=[$t3], deptno=[$t4], name=[$t5], salary=[$t6], commission=[$t7], $condition=[$t12])\n"
-              + "    EnumerableValues(tuples=[[{ 'n', 1, 2 }]])");
+          .throws_(
+              "Modifiable view must be predicated only on equality expressions");
+      modelWithView("select \"name\", \"empid\" as e, \"salary\" "
+              + "from \"MUTABLE_EMPLOYEES\"\n"
+              + "where \"deptno\" = 10 AND (\"deptno\" > 20 AND \"commission\" > 1000)",
+          true)
+          .query("insert into \"adhoc\".v values ('n',1,2)")
+          .throws_(
+              "Modifiable view must be predicated only on equality expressions");
 
       modelWithView(
           "select \"name\", \"empid\" as e, \"salary\" "
