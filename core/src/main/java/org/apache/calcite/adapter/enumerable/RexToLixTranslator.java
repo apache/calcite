@@ -893,9 +893,18 @@ public class RexToLixTranslator {
       // generate "SqlFunctions.internalToTimestamp".
       if (isA(fromType, Primitive.LONG)) {
         return Expressions.call(BuiltInMethod.INTERNAL_TO_TIMESTAMP.method,
-            operand);
+                operand);
       } else {
         return Expressions.convert_(operand, java.sql.Timestamp.class);
+      }
+    } else if (fromType == java.sql.Timestamp.class) {
+      // E.g. from "long" or "Long" to "java.sql.Timestamp",
+      // generate "SqlFunctions.internalToTimestamp".
+      if (isA(fromType, Primitive.LONG)) {
+        return Expressions.call(BuiltInMethod.INTERNAL_TO_TIMESTAMP.method,
+            operand);
+      } else {
+        return Expressions.convert_(operand, toType);
       }
     } else if (toType == BigDecimal.class) {
       if (fromBox != null) {
