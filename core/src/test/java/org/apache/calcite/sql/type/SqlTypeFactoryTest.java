@@ -61,6 +61,29 @@ public class SqlTypeFactoryTest {
     assertThat(leastRestrictive.isNullable(), is(true));
   }
 
+  /** Unit test for {@link SqlTypeUtil#comparePrecision(int, int)}
+   * and  {@link SqlTypeUtil#maxPrecision(int, int)}. */
+  @Test public void testMaxPrecision() {
+    final int un = RelDataType.PRECISION_NOT_SPECIFIED;
+    checkPrecision(1, 1, 1, 0);
+    checkPrecision(2, 1, 2, 1);
+    checkPrecision(2, 100, 100, -1);
+    checkPrecision(2, un, un, -1);
+    checkPrecision(un, 2, un, 1);
+    checkPrecision(un, un, un, 0);
+  }
+
+  private void checkPrecision(int p0, int p1, int expectedMax,
+      int expectedComparison) {
+    assertThat(SqlTypeUtil.maxPrecision(p0, p1), is(expectedMax));
+    assertThat(SqlTypeUtil.maxPrecision(p1, p0), is(expectedMax));
+    assertThat(SqlTypeUtil.maxPrecision(p0, p0), is(p0));
+    assertThat(SqlTypeUtil.maxPrecision(p1, p1), is(p1));
+    assertThat(SqlTypeUtil.comparePrecision(p0, p1), is(expectedComparison));
+    assertThat(SqlTypeUtil.comparePrecision(p0, p0), is(0));
+    assertThat(SqlTypeUtil.comparePrecision(p1, p1), is(0));
+  }
+
   /** Sets up data needed by a test. */
   private static class Fixture {
     SqlTypeFactoryImpl typeFactory = new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);

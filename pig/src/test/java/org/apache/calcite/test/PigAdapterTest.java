@@ -58,7 +58,7 @@ public class PigAdapterTest extends AbstractPigTest {
       .query("select * from \"t\" where \"tc0\" > 'abc' and \"tc1\" = '3'")
       .explainContains(
           "PigToEnumerableConverter\n"
-            + "  PigFilter(condition=[AND(>($0, 'abc'), =($1, CAST('3'):VARCHAR CHARACTER SET \"ISO-8859-1\" COLLATE \"ISO-8859-1$en_US$primary\" NOT NULL))])\n"
+            + "  PigFilter(condition=[AND(>($0, 'abc'), =($1, '3'))])\n"
             + "    PigTableScan(table=[[PIG, t]])")
       .runs()
       .queryContains(

@@ -45,6 +45,7 @@ import org.apache.calcite.runtime.SqlFunctions;
 import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.ControlFlowException;
 import org.apache.calcite.util.NlsString;
@@ -385,16 +386,13 @@ public class RexToLixTranslator {
         case VARBINARY:
           // If this is a widening cast, no need to truncate.
           final int sourcePrecision = sourceType.getPrecision();
-          if (sourcePrecision >= 0
-              && (sourcePrecision <= targetPrecision
-                  || targetPrecision
-                      == RelDataType.PRECISION_NOT_SPECIFIED)) {
+          if (SqlTypeUtil.comparePrecision(sourcePrecision, targetPrecision)
+              <= 0) {
             truncate = false;
           }
           // If this is a widening cast, no need to pad.
-          if (sourcePrecision == RelDataType.PRECISION_NOT_SPECIFIED
-              || sourcePrecision >= 0
-              && sourcePrecision >= targetPrecision
+          if (SqlTypeUtil.comparePrecision(sourcePrecision, targetPrecision)
+              >= 0
               && targetPrecision != RelDataType.PRECISION_NOT_SPECIFIED) {
             pad = false;
           }

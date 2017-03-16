@@ -1259,10 +1259,10 @@ public class DruidAdapterIT {
         + "'intervals':['1900-01-09T00:00:00.000/2992-01-10T00:00:00.000']}";
     final String explain = "PLAN=EnumerableInterpreter\n"
         + "  DruidQuery(table=[[foodmart, foodmart]], intervals=[[1900-01-09T00:00:00.000/2992-01-10T00:00:00.000]],"
-        + " filter=[AND(=(CAST($3):VARCHAR(24) CHARACTER SET \"ISO-8859-1\" COLLATE \"ISO-8859-1$en_US$primary\", 'High Top Dried Mushrooms'),"
+        + " filter=[AND(=($3, 'High Top Dried Mushrooms'),"
         + " OR(=($87, 'Q2'),"
         + " =($87, 'Q3')),"
-        + " =(CAST($30):VARCHAR(2) CHARACTER SET \"ISO-8859-1\" COLLATE \"ISO-8859-1$en_US$primary\", 'WA'))],"
+        + " =($30, 'WA'))],"
         + " projects=[[$30, $29, $3]], groups=[{0, 1, 2}], aggs=[[]])\n";
     sql(sql)
         .queryContains(druidChecker(druidQuery))

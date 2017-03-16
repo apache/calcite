@@ -101,8 +101,8 @@ public class PigFilter extends Filter implements PigRel {
   private String getSingleFilterCondition(Implementor implementor, String op, RexCall call) {
     final String fieldName;
     final String literal;
-    final RexNode left = strip(call.operands.get(0));
-    final RexNode right = strip(call.operands.get(1));
+    final RexNode left = call.operands.get(0);
+    final RexNode right = call.operands.get(1);
     if (left.getKind() == LITERAL) {
       if (right.getKind() != INPUT_REF) {
         throw new IllegalArgumentException(
@@ -125,17 +125,6 @@ public class PigFilter extends Filter implements PigRel {
     }
 
     return '(' + fieldName + ' ' + op + ' ' + literal + ')';
-  }
-
-  private RexNode strip(RexNode e) {
-    switch (e.getKind()) {
-    case CAST:
-      final RexNode e2 = ((RexCall) e).operands.get(0);
-      if (e2.getKind() == LITERAL) {
-        return e2;
-      }
-    }
-    return e;
   }
 
   private boolean containsOnlyConjunctions(RexNode condition) {

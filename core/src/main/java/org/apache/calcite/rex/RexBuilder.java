@@ -595,9 +595,9 @@ public class RexBuilder {
       final int length = ((NlsString) value).getValue().length();
       switch (toType.getSqlTypeName()) {
       case CHAR:
-        return toType.getPrecision() == length;
+        return SqlTypeUtil.comparePrecision(toType.getPrecision(), length) == 0;
       case VARCHAR:
-        return toType.getPrecision() >= length;
+        return SqlTypeUtil.comparePrecision(toType.getPrecision(), length) >= 0;
       default:
         throw new AssertionError(toType);
       }
@@ -606,9 +606,9 @@ public class RexBuilder {
       final int length = ((ByteString) value).length();
       switch (toType.getSqlTypeName()) {
       case BINARY:
-        return toType.getPrecision() == length;
+        return SqlTypeUtil.comparePrecision(toType.getPrecision(), length) == 0;
       case VARBINARY:
-        return toType.getPrecision() >= length;
+        return SqlTypeUtil.comparePrecision(toType.getPrecision(), length) >= 0;
       default:
         throw new AssertionError(toType);
       }
