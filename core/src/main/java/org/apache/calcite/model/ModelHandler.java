@@ -236,13 +236,15 @@ public class ModelHandler {
           builder.put(extraOperand.camelName, modelUri);
           break;
         case BASE_DIRECTORY:
+          File f = null;
           if (!modelUri.startsWith("inline:")) {
             final File file = new File(modelUri);
-            final File parentFile = file.getParentFile();
-            if (parentFile != null) {
-              builder.put(extraOperand.camelName, parentFile);
-            }
+            f = file.getParentFile();
           }
+          if (f == null) {
+            f = new File("");
+          }
+          builder.put(extraOperand.camelName, f);
           break;
         case TABLES:
           if (jsonSchema instanceof JsonCustomSchema) {
