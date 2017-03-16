@@ -648,6 +648,9 @@ public class PhysTypeImpl implements PhysType {
       fieldType = null;
     } else {
       fieldType = fieldClass(field);
+      if (fieldType == java.sql.Timestamp.class) {
+        storageType = fieldClass(field);
+      }
       if (fieldType != java.sql.Date.class) {
         fieldType = null;
       }

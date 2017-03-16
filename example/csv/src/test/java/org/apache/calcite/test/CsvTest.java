@@ -41,6 +41,7 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
@@ -52,6 +53,7 @@ import java.util.concurrent.Callable;
 
 import static org.hamcrest.CoreMatchers.anyOf;
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.isA;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
@@ -555,6 +557,88 @@ public class CsvTest {
       final Timestamp timestamp = resultSet.getTimestamp(2);
       Assert.assertThat(timestamp,
           is(java.sql.Timestamp.valueOf("1996-08-03 00:01:02")));
+    }
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1703">[CALCITE-1703]
+   * Query with BETWEEN or AGGREGATE functions on TIMESTAMP column throws ClassCastException
+   * </a>. */
+  @Test public void testTimestampNotNull() throws SQLException {
+    Properties info = new Properties();
+    info.put("model", jsonPath("bug"));
+    final String sql = "select \"JOINTIMES\" from \"DATE\" where  \"JOINTIMES\" is not Null";
+    try (Connection connection =
+                 DriverManager.getConnection("jdbc:calcite:", info);
+         Statement statement = connection.createStatement();
+         ResultSet resultSet = statement.executeQuery(sql)) {
+      assertThat(resultSet.next(), is(true));
+      final Timestamp timestamp = resultSet.getTimestamp(1);
+      Assert.assertThat(timestamp,
+              is(java.sql.Timestamp.valueOf("1996-08-03 00:01:02")));
+    }
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1703">[CALCITE-1703]
+   * Query with BETWEEN or AGGREGATE functions on TIMESTAMP column throws ClassCastException
+   * </a>. */
+  @Test public void testTimestampAggregateFunc() throws SQLException {
+    Properties info = new Properties();
+    info.put("model", jsonPath("bug"));
+    final String sql = "select Max(\"JOINTIMES\") as \"Max_JOINTIMES\","
+            + "Min(\"JOINTIMES\") as \"Min_JOINTIMES\" from \"DATE\"";
+    try (Connection connection =
+                 DriverManager.getConnection("jdbc:calcite:", info);
+         Statement statement = connection.createStatement();
+         ResultSet resultSet = statement.executeQuery(sql)) {
+      assertThat(resultSet.next(), is(true));
+      final Timestamp timestamp = resultSet.getTimestamp(2);
+      Assert.assertThat(timestamp,
+              is(java.sql.Timestamp.valueOf("1996-08-03 00:01:02")));
+    }
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1703">[CALCITE-1703]
+   * Query with BETWEEN or AGGREGATE functions on TIMESTAMP column throws ClassCastException
+   * </a>. */
+  @Test
+  public void testTimestampGTCheck() throws SQLException {
+
+    final Timestamp timestamp = new Timestamp(System.currentTimeMillis() - 60 * 2 * 1000);
+
+    Properties info = new Properties();
+    info.put("model", jsonPath("bug"));
+    final String sql = "select * from \"DATE\" where \"JOINTIMES\" < '" + timestamp + "'";
+    try (Connection connection =
+                 DriverManager.getConnection("jdbc:calcite:", info);
+         Statement statement = connection.createStatement();
+         ResultSet resultSet = statement.executeQuery(sql)) {
+      assertThat(resultSet.next(), is(true));
+      final Timestamp timestampValue = resultSet.getTimestamp(4);
+      Assert.assertThat(timestampValue,
+              is(java.sql.Timestamp.valueOf("1996-08-03 00:01:02")));
+    }
+  }
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1703">[CALCITE-1703]
+   * Query with BETWEEN or AGGREGATE functions on TIMESTAMP column throws ClassCastException
+   * </a>. */
+  @Test public void testTimestampBetween() throws SQLException {
+
+    final Timestamp from = new Timestamp(System.currentTimeMillis() - 60 * 2 * 1000);
+    final Timestamp to = new Timestamp(System.currentTimeMillis());
+
+    Properties info = new Properties();
+    info.put("model", jsonPath("bug"));
+    final String sql = "select * from \"DATE\" where \"JOINTIMES\""
+            + " BETWEEN '" + from + "' and '" + to + "'";
+    try (Connection connection =
+                 DriverManager.getConnection("jdbc:calcite:", info);
+         Statement statement = connection.createStatement();
+         ResultSet resultSet = statement.executeQuery(sql)) {
+      assertThat(resultSet.next(), is(false));
     }
   }
 
