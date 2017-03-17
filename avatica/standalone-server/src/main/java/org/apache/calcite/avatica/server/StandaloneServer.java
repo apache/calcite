@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.avatica.hsqldb;
+package org.apache.calcite.avatica.server;
 
 import org.apache.calcite.avatica.jdbc.JdbcMeta;
 import org.apache.calcite.avatica.remote.Driver.Serialization;
@@ -26,18 +26,20 @@ import com.beust.jcommander.IStringConverter;
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
 
-import net.hydromatic.scott.data.hsqldb.ScottHsqldb;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Locale;
 
 /**
- * An Avatica server for HSQLDB.
+ * An Avatica server for arbitrary JDBC drivers.
  */
-public class HsqldbServer {
-  private static final Logger LOG = LoggerFactory.getLogger(HsqldbServer.class);
+public class StandaloneServer {
+  private static final Logger LOG = LoggerFactory.getLogger(StandaloneServer.class);
+
+  @Parameter(names = { "-u", "--url" }, required = true,
+      description = "JDBC driver url for the server")
+  private String url;
 
   @Parameter(names = { "-p", "--port" }, required = false,
       description = "Port the server should bind")
@@ -57,8 +59,7 @@ public class HsqldbServer {
     }
 
     try {
-      // Set up Julian's ScottDB for HSQLDB
-      JdbcMeta meta = new JdbcMeta(ScottHsqldb.URI, ScottHsqldb.USER, ScottHsqldb.PASSWORD);
+      JdbcMeta meta = new JdbcMeta(url);
       LocalService service = new LocalService(meta);
 
       // Construct the server
@@ -90,7 +91,7 @@ public class HsqldbServer {
   }
 
   public static void main(String[] args) {
-    final HsqldbServer server = new HsqldbServer();
+    final StandaloneServer server = new StandaloneServer();
     new JCommander(server, args);
 
     server.start();
