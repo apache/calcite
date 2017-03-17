@@ -92,10 +92,18 @@ public class DruidRules {
   public static final DruidFilterAggregateTransposeRule FILTER_AGGREGATE_TRANSPOSE_RULE =
       new DruidFilterAggregateTransposeRule();
 
-  public static final List<RelOptRule> RULES = ImmutableList.of(FILTER,
-      PROJECT_FILTER_TRANSPOSE_RULE, AGGREGATE_FILTER_TRANSPOSE_RULE, PROJECT_AGGREGATE,
-      PROJECT, AGGREGATE, FILTER_AGGREGATE_TRANSPOSE_RULE, FILTER_PROJECT_TRANSPOSE_RULE,
-      PROJECT_SORT, SORT, SORT_PROJECT);
+  public static final List<RelOptRule> RULES =
+      ImmutableList.of(FILTER,
+          PROJECT_FILTER_TRANSPOSE_RULE,
+          // Disabled, per
+          //   [CALCITE-1706] DruidAggregateFilterTransposeRule
+          //   causes very fine-grained aggregations to be pushed to Druid
+          // AGGREGATE_FILTER_TRANSPOSE_RULE,
+          PROJECT_AGGREGATE,
+          PROJECT, AGGREGATE,
+          FILTER_AGGREGATE_TRANSPOSE_RULE,
+          FILTER_PROJECT_TRANSPOSE_RULE,
+          PROJECT_SORT, SORT, SORT_PROJECT);
 
   /** Predicate that returns whether Druid can not handle an aggregate. */
   private static final Predicate<Aggregate> BAD_AGG =
