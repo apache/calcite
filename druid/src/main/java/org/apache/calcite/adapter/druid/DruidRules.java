@@ -595,7 +595,8 @@ public class DruidRules {
   private static class DruidProjectFilterTransposeRule extends ProjectFilterTransposeRule {
     private DruidProjectFilterTransposeRule() {
       super(
-          operand(Project.class, operand(Filter.class, any())), PushProjector.ExprCondition.FALSE,
+          operand(Project.class, operand(Filter.class, operand(DruidQuery.class, none()))),
+          PushProjector.ExprCondition.FALSE,
           RelFactories.LOGICAL_BUILDER);
     }
   }
