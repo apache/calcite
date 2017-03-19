@@ -14,11 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.avatica.server;
+package org.apache.calcite.avatica.standalone;
 
 import org.apache.calcite.avatica.jdbc.JdbcMeta;
 import org.apache.calcite.avatica.remote.Driver.Serialization;
 import org.apache.calcite.avatica.remote.LocalService;
+import org.apache.calcite.avatica.server.HttpServer;
 import org.apache.calcite.avatica.util.Unsafe;
 
 import com.beust.jcommander.IStringConverter;

@@ -28,6 +28,7 @@ limitations under the License.
 
   <properties>
     <top.dir>${project.basedir}/..</top.dir>
+    <shaded.pkg>org.apache.calcite.avatica.standalone.shaded</shaded.pkg>
   </properties>
 
   <dependencies>
@@ -44,14 +45,6 @@ limitations under the License.
     <dependency>
       <groupId>com.beust</groupId>
       <artifactId>jcommander</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>net.hydromatic</groupId>
-      <artifactId>scott-data-hsqldb</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.hsqldb</groupId>
-      <artifactId>hsqldb</artifactId>
     </dependency>
     <dependency>
       <groupId>org.slf4j</groupId>
@@ -124,8 +117,6 @@ limitations under the License.
               <failOnWarning>true</failOnWarning>
               <!-- ignore "unused but declared" warnings -->
               <ignoredUnusedDeclaredDependencies>
-                <ignoredUnusedDeclaredDependency>net.hydromatic:scott-data-hsqldb</ignoredUnusedDeclaredDependency>
-                <ignoredUnusedDeclaredDependency>org.hsqldb:hsqldb</ignoredUnusedDeclaredDependency>
                 <ignoredUnusedDeclaredDependency>org.slf4j:slf4j-log4j12</ignoredUnusedDeclaredDependency>
                 <ignoredUnusedDeclaredDependency>org.slf4j:slf4j-api</ignoredUnusedDeclaredDependency>
               </ignoredUnusedDeclaredDependencies>
@@ -148,51 +139,43 @@ limitations under the License.
               <relocations>
                 <relocation>
                   <pattern>com.beust</pattern>
-                  <shadedPattern>org.apache.calcite.avatica.hsqldb.shaded.com.beust</shadedPattern>
+                  <shadedPattern>${shaded.pkg}.com.beust</shadedPattern>
                 </relocation>
                 <relocation>
                   <pattern>com.fasterxml</pattern>
-                  <shadedPattern>org.apache.calcite.avatica.hsqldb.shaded.com.fasterxml</shadedPattern>
+                  <shadedPattern>${shaded.pkg}.com.fasterxml</shadedPattern>
                 </relocation>
                 <relocation>
                   <pattern>com.google.common</pattern>
-                  <shadedPattern>org.apache.calcite.avatica.hsqldb.shaded.com.google.common</shadedPattern>
+                  <shadedPattern>${shaded.pkg}.com.google.common</shadedPattern>
                 </relocation>
                 <relocation>
                   <pattern>com.google.protobuf</pattern>
-                  <shadedPattern>org.apache.calcite.avatica.hsqldb.shaded.com.google.protobuf</shadedPattern>
+                  <shadedPattern>${shaded.pkg}.com.google.protobuf</shadedPattern>
                 </relocation>
                 <relocation>
                   <pattern>javax.servlet</pattern>
-                  <shadedPattern>org.apache.calcite.avatica.hsqldb.shaded.javax.servlet</shadedPattern>
-                </relocation>
-                <relocation>
-                  <pattern>net.hydromatic</pattern>
-                  <shadedPattern>org.apache.calcite.avatica.hsqldb.shaded.net.hydromatic</shadedPattern>
+                  <shadedPattern>${shaded.pkg}.javax.servlet</shadedPattern>
                 </relocation>
                 <relocation>
                   <pattern>org.apache.log4j</pattern>
-                  <shadedPattern>org.apache.calcite.avatica.hsqldb.shaded.org.apache.log4j</shadedPattern>
+                  <shadedPattern>${shaded.pkg}.org.apache.log4j</shadedPattern>
                 </relocation>
                 <relocation>
                   <pattern>org.eclipse.jetty</pattern>
-                  <shadedPattern>org.apache.calcite.avatica.hsqldb.shaded.org.eclipse.jetty</shadedPattern>
-                </relocation>
-                <relocation>
-                  <pattern>org.hsqldb</pattern>
-                  <shadedPattern>org.apache.calcite.avatica.hsqldb.shaded.org.hsqldb</shadedPattern>
+                  <shadedPattern>${shaded.pkg}.org.eclipse.jetty</shadedPattern>
                 </relocation>
                 <relocation>
                   <pattern>org.slf4j</pattern>
-                  <shadedPattern>org.apache.calcite.avatica.hsqldb.shaded.org.slf4j</shadedPattern>
+                  <shadedPattern>${shaded.pkg}.org.slf4j</shadedPattern>
                 </relocation>
                 <relocation>
                   <pattern>org.apache.http</pattern>
-                  <shadedPattern>org.apache.calcite.avatica.hsqldb.shaded.org.apache.http</shadedPattern>
+                  <shadedPattern>${shaded.pkg}.org.apache.http</shadedPattern>
                 </relocation>
                 <relocation>
                   <pattern>org.apache.commons</pattern>
-                  <shadedPattern>org.apache.calcite.avatica.hsqldb.shaded.org.apache.commons</shadedPattern>
+                  <shadedPattern>${shaded.pkg}.org.apache.commons</shadedPattern>
                 </relocation>
               </relocations>
               <shadedArtifactAttached>true</shadedArtifactAttached>
@@ -208,7 +191,7 @@ limitations under the License.
                   </resources>
                 </transformer>
                 <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-                  <mainClass>org.apache.calcite.avatica.hsqldb.HsqldbServer</mainClass>
+                  <mainClass>org.apache.calcite.avatica.server.StandaloneServer</mainClass>
                 </transformer>
                 <!-- Use a custom LICENSE file -->
                 <transformer implementation="org.apache.maven.plugins.shade.resource.IncludeResourceTransformer">
