@@ -411,6 +411,60 @@ public class DruidAdapterIT {
         .explainContains(explain);
   }
 
+  @Test public void testGroupbyMetric() {
+    final String sql = "select  \"store_sales\" ,\"product_id\" from \"foodmart\" "
+            + "where \"product_id\" = 1020" + "group by \"store_sales\" ,\"product_id\" ";
+    final String plan = "PLAN=EnumerableInterpreter\n  BindableAggregate(group=[{0, 1}])\n"
+            + "    DruidQuery(table=[[foodmart, foodmart]], "
+            + "intervals=[[1900-01-09T00:00:00.000/2992-01-10T00:00:00.000]], filter=[=($1, 1020)],"
+            + " projects=[[$90, $1]])\n";
+    sql(sql).explainContains(plan).
+    queryContains(
+            druidChecker("{\"queryType\":\"select\",\"dataSource\":\"foodmart\","
+                    + "\"descending\":false,"
+                    + "\"intervals\":[\"1900-01-09T00:00:00.000/2992-01-10T00:00:00.000"
+                    + "\"],\"filter\":{\"type\":\"selector\",\"dimension\":\"product_id\","
+                    + "\"value\":\"1020\"},\"dimensions\":[\"product_id\"],"
+                    + "\"metrics\":[\"store_sales\"],\"granularity\":\"all\","
+                    + "\"pagingSpec\":{\"threshold\":16384,\"fromNext\":true},"
+                    + "\"context\":{\"druid.query.fetch\":false}}")
+    )
+    .returnsUnordered("store_sales=0.5099999904632568; product_id=1020",
+                    "store_sales=1.0199999809265137; product_id=1020",
+                    "store_sales=1.5299999713897705; product_id=1020",
+                    "store_sales=2.0399999618530273; product_id=1020",
+                    "store_sales=2.549999952316284; product_id=1020"
+    );
+  }
+
+  @Test public void testPushSimpleGroupBy() {
+    final String sql = "select \"product_id\" from \"foodmart\" where "
+            + "\"product_id\" = 1020 group by \"product_id\"";
+    final String druidQuery = "{\"queryType\":\"groupBy\",\"dataSource\":\"foodmart\","
+            + "\"granularity\":\"all\",\"dimensions\":[\"product_id\"],"
+            + "\"limitSpec\":{\"type\":\"default\"},\"filter\":{\"type\":\"selector\","
+            + "\"dimension\":\"product_id\",\"value\":\"1020\"},"
+            + "\"aggregations\":[{\"type\":\"longSum\",\"name\":\"dummy_agg\","
+            + "\"fieldName\":\"dummy_agg\"}],"
+            + "\"intervals\":[\"1900-01-09T00:00:00.000/2992-01-10T00:00:00.000\"]}";
+    sql(sql).queryContains(druidChecker(druidQuery)).returnsUnordered("product_id=1020");
+  }
+
+  @Test public void testComplexPushGroupBy() {
+    final String innerQuery = "select \"product_id\" as \"id\" from \"foodmart\" where "
+            + "\"product_id\" = 1020";
+    final String sql = "select \"id\" from (" + innerQuery + ") group by \"id\"";
+
+    sql(sql).returnsUnordered("id=1020")
+            .queryContains(
+                    druidChecker("{\"queryType\":\"groupBy"
+            + "\",\"dataSource\":\"foodmart\",\"granularity\":\"all\","
+            + "\"dimensions\":[\"product_id\"],\"limitSpec\":{\"type\":\"default\"},"
+            + "\"filter\":{\"type\":\"selector\",\"dimension\":\"product_id\","
+            + "\"value\":\"1020\"},\"aggregations\":[{\"type\":\"longSum\","
+            + "\"name\":\"dummy_agg\",\"fieldName\":\"dummy_agg\"}],"
+            + "\"intervals\":[\"1900-01-09T00:00:00.000/2992-01-10T00:00:00.000\"]}"));
+  }
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1281">[CALCITE-1281]
    * Druid adapter wrongly returns all numeric values as int or float</a>. */
@@ -928,6 +982,20 @@ public class DruidAdapterIT {
         .queryContains(druidChecker("'queryType':'groupBy'"));
   }
 
+  @Test public void testGroupByTimeAndOneMetricNotProjected() {
+    final String sql =
+            "select count(*) as \"c\", floor(\"timestamp\" to MONTH) as \"month\", floor"
+                    + "(\"store_sales\") as sales\n"
+                    + "from \"foodmart\"\n"
+                    + "group by floor(\"timestamp\" to MONTH), \"state_province\", floor"
+                    + "(\"store_sales\")\n"
+                    + "order by \"c\" desc limit 3";
+    sql(sql).returnsOrdered("c=494; month=1997-11-01 00:00:00; SALES=5.0",
+            "c=475; month=1997-12-01 00:00:00; SALES=5.0",
+            "c=468; month=1997-03-01 00:00:00; SALES=5.0"
+    ).queryContains(druidChecker("'queryType':'select'"));
+  }
+
   @Test public void testGroupByTimeAndOneColumnNotProjected() {
     final String sql = "select count(*) as \"c\",\n"
         + "  floor(\"timestamp\" to MONTH) as \"month\"\n"
@@ -1418,6 +1486,14 @@ public class DruidAdapterIT {
         + "\"context\":{\"druid.query.fetch\":false}}";
     sql(sql, WIKI).explainContains(plan);
     sql(sql, WIKI).queryContains(druidChecker(druidQuery));
+  }
+
+  @Test public void testGroupByMetricAndExtractTime() {
+    final String sql = "SELECT count(*), floor(\"timestamp\" to DAY), \"store_sales\" "
+            + "FROM \"foodmart\"\n"
+            + "GROUP BY \"store_sales\", floor(\"timestamp\" to DAY)\n ORDER BY \"store_sales\" DESC\n"
+            + "LIMIT 10\n";
+    sql(sql).queryContains(druidChecker("{\"queryType\":\"select\""));
   }
 
 }

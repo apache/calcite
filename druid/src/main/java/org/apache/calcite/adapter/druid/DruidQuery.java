@@ -509,7 +509,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
           final String s = fieldNames.get(groupKey);
           final RexNode project = projects.get(groupKey);
           if (project instanceof RexInputRef) {
-            // Reference, it could be to the timestamp column or any other dimension
+            // Reference could be to the timestamp or druid dimension but no druid metric
             final RexInputRef ref = (RexInputRef) project;
             final String origin = druidTable.getRowType(getCluster().getTypeFactory())
                 .getFieldList().get(ref.getIndex()).getName();
@@ -563,7 +563,6 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
       }
 
       fieldNames = builder.build();
-
       ImmutableList<JsonCollation> collations = null;
       boolean sortsMetric = false;
       if (collationIndexes != null) {
