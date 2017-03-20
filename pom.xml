@@ -55,7 +55,7 @@ limitations under the License.
     <airlift-tpch.version>0.1</airlift-tpch.version>
     <avatica.version>1.9.0</avatica.version>
     <build-helper-maven-plugin.version>1.9</build-helper-maven-plugin.version>
-    <cassandra-driver-core.version>3.0.0</cassandra-driver-core.version>
+    <cassandra-driver-core.version>3.1.4</cassandra-driver-core.version>
     <checksum-maven-plugin.version>1.2</checksum-maven-plugin.version>
     <commons-dbcp.version>1.4</commons-dbcp.version>
     <commons-lang3.version>3.2</commons-lang3.version>
@@ -72,7 +72,7 @@ limitations under the License.
     <!-- We support (and test against) Guava versions between
          14.0.1 (Hive) and 21.0 (most recent; supports only JDK8 and up).
          Override with your preferred version and it should work. -->
-    <guava.version>20.0</guava.version>
+    <guava.version>19.0</guava.version>
     <joda.version>2.8.1</joda.version>
     <h2.version>1.4.185</h2.version>
     <hadoop.version>2.7.0</hadoop.version>
