@@ -71,7 +71,7 @@ public class CassandraAdapterIT {
         .returns("username=!PUBLIC!; time=e8754000-80b8-1fe9-8e73-e3698c967ddd; "
             + "tweet_id=f3c329de-d05b-11e5-b58b-90e2ba530b12\n")
         .explainContains("PLAN=CassandraToEnumerableConverter\n"
-           + "  CassandraFilter(condition=[=(CAST($0):VARCHAR(8) CHARACTER SET \"ISO-8859-1\" COLLATE \"ISO-8859-1$en_US$primary\", '!PUBLIC!')])\n"
+           + "  CassandraFilter(condition=[=($0, '!PUBLIC!')])\n"
            + "    CassandraTableScan(table=[[twissandra, userline]]");
   }
 
@@ -96,7 +96,7 @@ public class CassandraAdapterIT {
         .returnsCount(146)
         .explainContains("PLAN=CassandraToEnumerableConverter\n"
             + "  CassandraSort(sort0=[$1], dir0=[DESC])\n"
-            + "    CassandraFilter(condition=[=(CAST($0):VARCHAR(8) CHARACTER SET \"ISO-8859-1\" COLLATE \"ISO-8859-1$en_US$primary\", '!PUBLIC!')])\n");
+            + "    CassandraFilter(condition=[=($0, '!PUBLIC!')])\n");
   }
 
   @Test public void testProject() {
@@ -109,7 +109,7 @@ public class CassandraAdapterIT {
         .explainContains("PLAN=CassandraToEnumerableConverter\n"
                 + "  CassandraLimit(fetch=[2])\n"
                 + "    CassandraProject(tweet_id=[$2])\n"
-                + "      CassandraFilter(condition=[=(CAST($0):VARCHAR(8) CHARACTER SET \"ISO-8859-1\" COLLATE \"ISO-8859-1$en_US$primary\", '!PUBLIC!')])\n");
+                + "      CassandraFilter(condition=[=($0, '!PUBLIC!')])\n");
   }
 
   @Test public void testProjectAlias() {
