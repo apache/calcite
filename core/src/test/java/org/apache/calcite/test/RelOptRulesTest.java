@@ -81,6 +81,7 @@ import org.apache.calcite.rel.rules.SemiJoinJoinTransposeRule;
 import org.apache.calcite.rel.rules.SemiJoinProjectTransposeRule;
 import org.apache.calcite.rel.rules.SemiJoinRemoveRule;
 import org.apache.calcite.rel.rules.SemiJoinRule;
+import org.apache.calcite.rel.rules.SortCollapseRule;
 import org.apache.calcite.rel.rules.SortJoinTransposeRule;
 import org.apache.calcite.rel.rules.SortProjectTransposeRule;
 import org.apache.calcite.rel.rules.SortUnionTransposeRule;
@@ -503,6 +504,32 @@ public class RelOptRulesTest extends RelOptTestBase {
         + "select b.name from dept b\n"
         + "order by name limit 0";
     checkPlanning(program, sql);
+  }
+
+  @Test public void testSortCollapse() {
+    final HepProgram preProgram =
+        HepProgram.builder()
+                  .addRuleInstance(ProjectRemoveRule.INSTANCE)
+                  .build();
+    final HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(SortCollapseRule.INSTANCE)
+        .build();
+
+    checkPlanning(tester, preProgram, new HepPlanner(program),
+                  "select * from (select distinct deptno from emp order by deptno) limit 1");
+  }
+
+  @Test public void testSortCollapse2() {
+    final HepProgram preProgram =
+        HepProgram.builder()
+                  .addRuleInstance(ProjectRemoveRule.INSTANCE)
+                  .build();
+    final HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(SortCollapseRule.INSTANCE)
+        .build();
+
+    checkPlanning(tester, preProgram, new HepPlanner(program),
+                  "select * from (select distinct deptno from emp order by deptno limit 3 offset 1) limit 3 offset 1");
   }
 
   @Test public void testSemiJoinRuleExists() {

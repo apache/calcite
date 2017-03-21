@@ -5587,6 +5587,50 @@ LogicalProject(EMPNO=[$0], D=[$9])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testSortCollapse">
+        <Resource name="sql">
+            <![CDATA[select * from (select distinct deptno from emp order by deptno) limit 1]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalSort(fetch=[1])
+  LogicalSort(sort0=[$0], dir0=[ASC])
+    LogicalAggregate(group=[{0}])
+      LogicalProject(DEPTNO=[$7])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalSort(sort0=[$0], dir0=[ASC], fetch=[1])
+  LogicalAggregate(group=[{0}])
+    LogicalProject(DEPTNO=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testSortCollapse2">
+        <Resource name="sql">
+            <![CDATA[select * from (select distinct deptno from emp order by deptno limit 3 offset 1) limit 3 offset 1]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalSort(offset=[1], fetch=[3])
+  LogicalSort(sort0=[$0], dir0=[ASC], offset=[1], fetch=[3])
+    LogicalAggregate(group=[{0}])
+      LogicalProject(DEPTNO=[$7])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalSort(sort0=[$0], dir0=[ASC], offset=[2], fetch=[2])
+  LogicalAggregate(group=[{0}])
+    LogicalProject(DEPTNO=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testSortJoinTranspose2">
         <Resource name="sql">
             <![CDATA[select * from sales.emp e right join (
