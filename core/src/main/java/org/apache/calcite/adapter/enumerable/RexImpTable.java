@@ -53,6 +53,7 @@ import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.SqlUserDefinedAggFunction;
 import org.apache.calcite.sql.validate.SqlUserDefinedFunction;
 import org.apache.calcite.util.BuiltInMethod;
+import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.Util;
 
 import com.google.common.base.Supplier;
@@ -129,6 +130,9 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.FIRST_VALUE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.FLOOR;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.GREATER_THAN;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.GREATER_THAN_OR_EQUAL;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.GROUPING;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.GROUPING_ID;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.GROUP_ID;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.INITCAP;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_FALSE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_NOT_FALSE;
@@ -410,6 +414,11 @@ public class RexImpTable {
     aggMap.put(MAX, minMax);
     aggMap.put(SINGLE_VALUE, constructorSupplier(SingleValueImplementor.class));
     aggMap.put(COLLECT, constructorSupplier(CollectImplementor.class));
+    final Supplier<GroupingImplementor> grouping =
+        constructorSupplier(GroupingImplementor.class);
+    aggMap.put(GROUPING, grouping);
+    aggMap.put(GROUP_ID, grouping);
+    aggMap.put(GROUPING_ID, grouping);
     winAggMap.put(RANK, constructorSupplier(RankImplementor.class));
     winAggMap.put(DENSE_RANK, constructorSupplier(DenseRankImplementor.class));
     winAggMap.put(ROW_NUMBER, constructorSupplier(RowNumberImplementor.class));
@@ -1226,6 +1235,57 @@ public class RexImpTable {
               Expressions.call(add.accumulator().get(0),
                   BuiltInMethod.COLLECTION_ADD.method,
                   add.arguments().get(0))));
+    }
+  }
+
+  /** Implementor for the {@code GROUPING} aggregate function. */
+  static class GroupingImplementor implements AggImplementor {
+    public List<Type> getStateType(AggContext info) {
+      return ImmutableList.of();
+    }
+
+    public void implementReset(AggContext info, AggResetContext reset) {
+    }
+
+    public void implementAdd(AggContext info, AggAddContext add) {
+    }
+
+    public Expression implementResult(AggContext info,
+        AggResultContext result) {
+      final List<Integer> keys;
+      switch (info.aggregation().kind) {
+      case GROUPING: // "GROUPING(e, ...)", also "GROUPING_ID(e, ...)"
+        keys = result.call().getArgList();
+        break;
+      case GROUP_ID: // "GROUP_ID()"
+        // We don't implement GROUP_ID properly. In most circumstances, it
+        // returns 0, so we always return 0. Logged
+        // [CALCITE-1824] GROUP_ID returns wrong result
+        keys = ImmutableIntList.of();
+        break;
+      default:
+        throw new AssertionError();
+      }
+      Expression e = null;
+      if (info.groupSets().size() > 1) {
+        final List<Integer> keyOrdinals = info.keyOrdinals();
+        long x = 1L << (keys.size() - 1);
+        for (int k : keys) {
+          final int i = keyOrdinals.indexOf(k);
+          assert i >= 0;
+          final Expression e2 =
+              Expressions.condition(result.keyField(keyOrdinals.size() + i),
+                  Expressions.constant(x),
+                  Expressions.constant(0L));
+          if (e == null) {
+            e = e2;
+          } else {
+            e = Expressions.add(e, e2);
+          }
+          x >>= 1;
+        }
+      }
+      return e != null ? e : Expressions.constant(0, info.returnType());
     }
   }
 

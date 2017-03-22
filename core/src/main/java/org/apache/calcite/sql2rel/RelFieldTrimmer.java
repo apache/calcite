@@ -873,8 +873,8 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
       ++j;
     }
 
-    final RelBuilder.GroupKey groupKey = relBuilder.groupKey(newGroupSet,
-        aggregate.indicator, newGroupSets);
+    final RelBuilder.GroupKey groupKey =
+        relBuilder.groupKey(newGroupSet, newGroupSets);
     relBuilder.aggregate(groupKey, newAggCallList);
 
     return result(relBuilder.build(), mapping);

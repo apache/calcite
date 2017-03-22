@@ -17,8 +17,11 @@
 package org.apache.calcite.adapter.enumerable.impl;
 
 import org.apache.calcite.adapter.enumerable.AggResultContext;
+import org.apache.calcite.adapter.enumerable.PhysType;
 import org.apache.calcite.linq4j.tree.BlockBuilder;
 import org.apache.calcite.linq4j.tree.Expression;
+import org.apache.calcite.linq4j.tree.ParameterExpression;
+import org.apache.calcite.rel.core.AggregateCall;
 
 import java.util.List;
 
@@ -28,15 +31,38 @@ import java.util.List;
  */
 public class AggResultContextImpl extends AggResetContextImpl
     implements AggResultContext {
+  private final AggregateCall call;
+  private final ParameterExpression key;
+  private final PhysType keyPhysType;
+
   /**
-   * Creates aggregate result context
-   * @param block code block that will contain the result calculation statements
-   * @param accumulator accumulator variables that store the intermediate
+   * Creates aggregate result context.
+   *
+   * @param block Code block that will contain the result calculation statements
+   * @param call Aggregate call
+   * @param accumulator Accumulator variables that store the intermediate
    *                    aggregate state
+   * @param key Key
    */
-  public AggResultContextImpl(BlockBuilder block,
-      List<Expression> accumulator) {
+  public AggResultContextImpl(BlockBuilder block, AggregateCall call,
+      List<Expression> accumulator, ParameterExpression key,
+      PhysType keyPhysType) {
     super(block, accumulator);
+    this.call = call;
+    this.key = key;
+    this.keyPhysType = keyPhysType;
+  }
+
+  public Expression key() {
+    return key;
+  }
+
+  public Expression keyField(int i) {
+    return keyPhysType.fieldReference(key, i);
+  }
+
+  @Override public AggregateCall call() {
+    return call;
   }
 }
 

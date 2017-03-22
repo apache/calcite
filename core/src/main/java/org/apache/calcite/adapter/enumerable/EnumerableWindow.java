@@ -49,6 +49,7 @@ import org.apache.calcite.rex.RexWindowBound;
 import org.apache.calcite.runtime.SortedMultiMap;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.util.BuiltInMethod;
+import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
@@ -787,6 +788,22 @@ public class EnumerableWindow extends Window implements EnumerableRel {
             public List<? extends RelDataType> parameterRelTypes() {
               return EnumUtils.fieldRowTypes(result.physType.getRowType(),
                   constants, agg.call.getArgList());
+            }
+
+            public List<ImmutableBitSet> groupSets() {
+              throw new UnsupportedOperationException();
+            }
+
+            public List<Integer> keyOrdinals() {
+              throw new UnsupportedOperationException();
+            }
+
+            public List<? extends RelDataType> keyRelTypes() {
+              throw new UnsupportedOperationException();
+            }
+
+            public List<? extends Type> keyTypes() {
+              throw new UnsupportedOperationException();
             }
           };
       String aggName = "a" + agg.aggIdx;

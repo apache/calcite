@@ -22,7 +22,10 @@ import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 
 /**
- * The {@code GROUP_ID} function.
+ * The {@code GROUP_ID()} function.
+ *
+ * <p>Accepts no arguments. If the query has {@code GROUP BY x, y, z} then
+ * {@code GROUP_ID()} is the same as {@code GROUPING(x, y, z)}.
  *
  * <p>This function is not defined in the SQL standard; our implementation is
  * consistent with Oracle.

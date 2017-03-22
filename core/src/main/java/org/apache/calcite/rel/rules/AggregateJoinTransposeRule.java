@@ -253,7 +253,7 @@ public class AggregateJoinTransposeRule extends RelOptRule {
           }
         }
         side.newInput = relBuilder.push(joinInput)
-            .aggregate(relBuilder.groupKey(belowAggregateKey, false, null),
+            .aggregate(relBuilder.groupKey(belowAggregateKey, null),
                 belowAggCalls)
             .build();
       }
@@ -336,7 +336,7 @@ public class AggregateJoinTransposeRule extends RelOptRule {
     if (!aggConvertedToProjects) {
       relBuilder.aggregate(
           relBuilder.groupKey(Mappings.apply(mapping, aggregate.getGroupSet()),
-              aggregate.indicator, Mappings.apply2(mapping, aggregate.getGroupSets())),
+              Mappings.apply2(mapping, aggregate.getGroupSets())),
           newAggCalls);
     }
 

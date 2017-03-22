@@ -1053,7 +1053,7 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
                         relBuilder.peek(), aggregate.getGroupCount() + i))));
       }
       RelNode result = relBuilder
-          .aggregate(relBuilder.groupKey(groupSet, false, null), aggregateCalls)
+          .aggregate(relBuilder.groupKey(groupSet, null), aggregateCalls)
           .build();
       if (topProject != null) {
         // Top project
@@ -1274,7 +1274,7 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
         }
         result = relBuilder
             .push(result)
-            .aggregate(relBuilder.groupKey(groupSet, false, null), aggregateCalls)
+            .aggregate(relBuilder.groupKey(groupSet, null), aggregateCalls)
             .build();
         // We introduce a project on top, as group by columns order is lost
         List<RexNode> projects = new ArrayList<>();

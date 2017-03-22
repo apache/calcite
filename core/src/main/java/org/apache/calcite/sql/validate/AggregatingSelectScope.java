@@ -248,7 +248,6 @@ public class AggregatingSelectScope
     public final ImmutableList<SqlNode> groupExprList;
     public final ImmutableBitSet groupSet;
     public final ImmutableList<ImmutableBitSet> groupSets;
-    public final boolean indicator;
     public final Map<Integer, Integer> groupExprProjection;
 
     Resolved(List<SqlNode> extraExprList, List<SqlNode> groupExprList,
@@ -258,7 +257,6 @@ public class AggregatingSelectScope
       this.groupExprList = ImmutableList.copyOf(groupExprList);
       this.groupSet = ImmutableBitSet.range(groupExprList.size());
       this.groupSets = ImmutableList.copyOf(groupSets);
-      this.indicator = !this.groupSets.equals(ImmutableList.of(groupSet));
       this.groupExprProjection = ImmutableMap.copyOf(groupExprProjection);
     }
 

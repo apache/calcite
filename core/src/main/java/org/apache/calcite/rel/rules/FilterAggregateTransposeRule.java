@@ -137,7 +137,7 @@ public class FilterAggregateTransposeRule extends RelOptRule {
       return false;
     }
 
-    if (aggregate.indicator) {
+    if (aggregate.getGroupSets().size() > 1) {
       // If grouping sets are used, the filter can be pushed if
       // the columns referenced in the predicate are present in
       // all the grouping sets.

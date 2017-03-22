@@ -578,11 +578,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
     }
 
     relBuilder.push(
-        LogicalAggregate.create(newProject,
-            false,
-            newGroupSet,
-            null,
-            newAggCalls));
+        LogicalAggregate.create(newProject, newGroupSet, null, newAggCalls));
 
     if (!omittedConstants.isEmpty()) {
       final List<RexNode> postProjects = new ArrayList<>(relBuilder.fields());
@@ -2311,12 +2307,8 @@ public class RelDecorrelator implements ReflectiveVisitor {
       ImmutableBitSet groupSet =
           ImmutableBitSet.range(groupCount);
       LogicalAggregate newAggregate =
-          LogicalAggregate.create(joinOutputProject,
-              false,
-              groupSet,
-              null,
+          LogicalAggregate.create(joinOutputProject, groupSet, null,
               newAggCalls);
-
       List<RexNode> newAggOutputProjectList = Lists.newArrayList();
       for (int i : groupSet) {
         newAggOutputProjectList.add(

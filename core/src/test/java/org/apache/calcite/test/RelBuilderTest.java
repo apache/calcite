@@ -487,6 +487,64 @@ public class RelBuilderTest {
     assertThat(str(root), is(expected));
   }
 
+  @Test public void testRename() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+
+    // No rename necessary (null name is ignored)
+    RelNode root =
+        builder.scan("DEPT")
+            .rename(Arrays.asList("DEPTNO", null))
+            .build();
+    final String expected = "LogicalTableScan(table=[[scott, DEPT]])\n";
+    assertThat(str(root), is(expected));
+
+    // No rename necessary (prefix matches)
+    root =
+        builder.scan("DEPT")
+            .rename(ImmutableList.of("DEPTNO"))
+            .build();
+    assertThat(str(root), is(expected));
+
+    // Add project to rename fields
+    root =
+        builder.scan("DEPT")
+            .rename(Arrays.asList("NAME", null, "DEPTNO"))
+            .build();
+    final String expected2 = ""
+        + "LogicalProject(NAME=[$0], DNAME=[$1], DEPTNO=[$2])\n"
+        + "  LogicalTableScan(table=[[scott, DEPT]])\n";
+    assertThat(str(root), is(expected2));
+
+    // If our requested list has non-unique names, we might get the same field
+    // names we started with. Don't add a useless project.
+    root =
+        builder.scan("DEPT")
+            .rename(Arrays.asList("DEPTNO", null, "DEPTNO"))
+            .build();
+    final String expected3 = ""
+        + "LogicalProject(DEPTNO=[$0], DNAME=[$1], DEPTNO0=[$2])\n"
+        + "  LogicalTableScan(table=[[scott, DEPT]])\n";
+    assertThat(str(root), is(expected3));
+    root =
+        builder.scan("DEPT")
+            .rename(Arrays.asList("DEPTNO", null, "DEPTNO"))
+            .rename(Arrays.asList("DEPTNO", null, "DEPTNO"))
+            .build();
+    // No extra Project
+    assertThat(str(root), is(expected3));
+
+    // Name list too long
+    try {
+      root =
+          builder.scan("DEPT")
+              .rename(ImmutableList.of("NAME", "DEPTNO", "Y", "Z"))
+              .build();
+      fail("expected error, got " + root);
+    } catch (IllegalArgumentException e) {
+      assertThat(e.getMessage(), is("More names than fields"));
+    }
+  }
+
   @Test public void testPermute() {
     final RelBuilder builder = RelBuilder.create(config().build());
     RelNode root =
@@ -587,7 +645,7 @@ public class RelBuilderTest {
     RelNode root =
         builder.scan("EMP")
             .aggregate(
-                builder.groupKey(ImmutableBitSet.of(7), true,
+                builder.groupKey(ImmutableBitSet.of(7),
                     ImmutableList.of(ImmutableBitSet.of(7),
                         ImmutableBitSet.of())),
                 builder.aggregateCall(SqlStdOperatorTable.COUNT, false,
@@ -595,7 +653,7 @@ public class RelBuilderTest {
                         builder.field("EMPNO"), builder.literal(100)), "C"))
             .build();
     final String expected = ""
-        + "LogicalAggregate(group=[{7}], groups=[[{7}, {}]], indicator=[true], C=[COUNT() FILTER $8])\n"
+        + "LogicalAggregate(group=[{7}], groups=[[{7}, {}]], C=[COUNT() FILTER $8])\n"
         + "  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], $f8=[>($0, 100)])\n"
         + "    LogicalTableScan(table=[[scott, EMP]])\n";
     assertThat(str(root), is(expected));
@@ -649,7 +707,7 @@ public class RelBuilderTest {
     try {
       RelNode root =
           builder.scan("EMP")
-              .aggregate(builder.groupKey(ImmutableBitSet.of(17), false, null))
+              .aggregate(builder.groupKey(ImmutableBitSet.of(17), null))
               .build();
       fail("expected error, got " + root);
     } catch (IllegalArgumentException e) {
@@ -663,7 +721,7 @@ public class RelBuilderTest {
       RelNode root =
           builder.scan("EMP")
               .aggregate(
-                  builder.groupKey(ImmutableBitSet.of(7), true,
+                  builder.groupKey(ImmutableBitSet.of(7),
                       ImmutableList.of(ImmutableBitSet.of(4),
                           ImmutableBitSet.of())))
               .build();
@@ -679,15 +737,59 @@ public class RelBuilderTest {
     RelNode root =
         builder.scan("EMP")
             .aggregate(
-                builder.groupKey(ImmutableBitSet.of(7, 6), true,
+                builder.groupKey(ImmutableBitSet.of(7, 6),
                     ImmutableList.of(ImmutableBitSet.of(7),
                         ImmutableBitSet.of(6),
                         ImmutableBitSet.of(7))))
             .build();
     final String expected = ""
-        + "LogicalAggregate(group=[{6, 7}], groups=[[{6}, {7}]], indicator=[true])\n"
+        + "LogicalAggregate(group=[{6, 7}], groups=[[{6}, {7}]])\n"
         + "  LogicalTableScan(table=[[scott, EMP]])\n";
     assertThat(str(root), is(expected));
+  }
+
+  @Test public void testAggregateGrouping() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    RelNode root =
+        builder.scan("EMP")
+            .aggregate(builder.groupKey(6, 7),
+                builder.aggregateCall(SqlStdOperatorTable.GROUPING, false, null,
+                    "g", builder.field("DEPTNO")))
+            .build();
+    final String expected = ""
+        + "LogicalAggregate(group=[{6, 7}], g=[GROUPING($7)])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(str(root), is(expected));
+  }
+
+  @Test public void testAggregateGroupingWithDistinctFails() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    try {
+      RelNode root =
+          builder.scan("EMP")
+              .aggregate(builder.groupKey(6, 7),
+                  builder.aggregateCall(SqlStdOperatorTable.GROUPING, true, null,
+                      "g", builder.field("DEPTNO")))
+              .build();
+      fail("expected error, got " + root);
+    } catch (IllegalArgumentException e) {
+      assertThat(e.getMessage(), is("DISTINCT not allowed"));
+    }
+  }
+
+  @Test public void testAggregateGroupingWithFilterFails() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    try {
+      RelNode root =
+          builder.scan("EMP")
+              .aggregate(builder.groupKey(6, 7),
+                  builder.aggregateCall(SqlStdOperatorTable.GROUPING, false,
+                      builder.literal(true), "g", builder.field("DEPTNO")))
+              .build();
+      fail("expected error, got " + root);
+    } catch (IllegalArgumentException e) {
+      assertThat(e.getMessage(), is("FILTER not allowed"));
+    }
   }
 
   @Test public void testDistinct() {

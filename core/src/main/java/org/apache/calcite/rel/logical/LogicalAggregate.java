@@ -86,6 +86,21 @@ public final class LogicalAggregate extends Aggregate {
 
   /** Creates a LogicalAggregate. */
   public static LogicalAggregate create(final RelNode input,
+      ImmutableBitSet groupSet, List<ImmutableBitSet> groupSets,
+      List<AggregateCall> aggCalls) {
+    return create_(input, false, groupSet, groupSets, aggCalls);
+  }
+
+  @Deprecated // to be removed before 2.0
+  public static LogicalAggregate create(final RelNode input,
+      boolean indicator,
+      ImmutableBitSet groupSet,
+      List<ImmutableBitSet> groupSets,
+      List<AggregateCall> aggCalls) {
+    return create_(input, indicator, groupSet, groupSets, aggCalls);
+  }
+
+  private static LogicalAggregate create_(final RelNode input,
       boolean indicator,
       ImmutableBitSet groupSet,
       List<ImmutableBitSet> groupSets,

@@ -483,16 +483,51 @@ group by deptno;
 +---+---+
 | C | G |
 +---+---+
-| 1 | 1 |
-| 1 | 1 |
-| 1 | 1 |
-| 2 | 1 |
-| 2 | 1 |
-| 2 | 1 |
+| 1 | 0 |
+| 1 | 0 |
+| 1 | 0 |
+| 2 | 0 |
+| 2 | 0 |
+| 2 | 0 |
 +---+---+
 (6 rows)
 
 !ok
+
+!use scott
+
+# GROUPING in SELECT clause of CUBE query
+select deptno, job, count(*) as c, grouping(deptno) as d,
+  grouping(job) j, grouping(deptno, job) as x
+from "scott".emp
+group by cube(deptno, job);
++--------+-----------+----+---+---+---+
+| DEPTNO | JOB       | C  | D | J | X |
++--------+-----------+----+---+---+---+
+|     10 | CLERK     |  1 | 0 | 0 | 0 |
+|     10 | MANAGER   |  1 | 0 | 0 | 0 |
+|     10 | PRESIDENT |  1 | 0 | 0 | 0 |
+|     10 |           |  3 | 0 | 1 | 1 |
+|     20 | ANALYST   |  2 | 0 | 0 | 0 |
+|     20 | CLERK     |  2 | 0 | 0 | 0 |
+|     20 | MANAGER   |  1 | 0 | 0 | 0 |
+|     20 |           |  5 | 0 | 1 | 1 |
+|     30 | CLERK     |  1 | 0 | 0 | 0 |
+|     30 | MANAGER   |  1 | 0 | 0 | 0 |
+|     30 | SALESMAN  |  4 | 0 | 0 | 0 |
+|     30 |           |  6 | 0 | 1 | 1 |
+|        | ANALYST   |  2 | 1 | 0 | 2 |
+|        | CLERK     |  4 | 1 | 0 | 2 |
+|        | MANAGER   |  3 | 1 | 0 | 2 |
+|        | PRESIDENT |  1 | 1 | 0 | 2 |
+|        | SALESMAN  |  4 | 1 | 0 | 2 |
+|        |           | 14 | 1 | 1 | 3 |
++--------+-----------+----+---+---+---+
+(18 rows)
+
+!ok
+
+!use post
 
 # GROUPING, GROUP_ID, GROUPING_ID in SELECT clause of GROUP BY query
 select count(*) as c,
@@ -501,22 +536,29 @@ select count(*) as c,
   grouping_id(deptno) as gd,
   grouping_id(gender) as gg,
   grouping_id(gender, deptno) as ggd,
-  grouping_id(gender, deptno) as gdg
+  grouping_id(deptno, gender) as gdg
 from emp
-group by deptno, gender;
+group by rollup(deptno, gender);
 +---+---+-----+----+----+-----+-----+
 | C | G | GID | GD | GG | GGD | GDG |
 +---+---+-----+----+----+-----+-----+
-| 1 | 1 |   3 |  1 |  1 |   3 |   3 |
-| 1 | 1 |   3 |  1 |  1 |   3 |   3 |
-| 1 | 1 |   3 |  1 |  1 |   3 |   3 |
-| 1 | 1 |   3 |  1 |  1 |   3 |   3 |
-| 1 | 1 |   3 |  1 |  1 |   3 |   3 |
-| 1 | 1 |   3 |  1 |  1 |   3 |   3 |
-| 1 | 1 |   3 |  1 |  1 |   3 |   3 |
-| 2 | 1 |   3 |  1 |  1 |   3 |   3 |
+| 1 | 0 |   0 |  0 |  0 |   0 |   0 |
+| 1 | 0 |   0 |  0 |  0 |   0 |   0 |
+| 1 | 0 |   0 |  0 |  0 |   0 |   0 |
+| 1 | 0 |   0 |  0 |  0 |   0 |   0 |
+| 1 | 0 |   0 |  0 |  0 |   0 |   0 |
+| 1 | 0 |   0 |  0 |  0 |   0 |   0 |
+| 1 | 0 |   0 |  0 |  0 |   0 |   0 |
+| 2 | 0 |   0 |  0 |  0 |   0 |   0 |
+| 9 | 1 |   0 |  1 |  1 |   3 |   3 |
+| 1 | 0 |   0 |  0 |  1 |   2 |   1 |
+| 1 | 0 |   0 |  0 |  1 |   2 |   1 |
+| 1 | 0 |   0 |  0 |  1 |   2 |   1 |
+| 2 | 0 |   0 |  0 |  1 |   2 |   1 |
+| 2 | 0 |   0 |  0 |  1 |   2 |   1 |
+| 2 | 0 |   0 |  0 |  1 |   2 |   1 |
 +---+---+-----+----+----+-----+-----+
-(8 rows)
+(15 rows)
 
 !ok
 
@@ -527,40 +569,48 @@ select count(*) as c,
   grouping(deptno, gender, deptno) as gdgd,
   grouping_id(deptno, gender, deptno) as gidgd
 from emp
-group by deptno, gender
+group by rollup(deptno, gender)
 having grouping(deptno) <= grouping_id(deptno, gender, deptno);
 +---+----+-----+------+-------+
 | C | GD | GID | GDGD | GIDGD |
 +---+----+-----+------+-------+
-| 1 |  1 |   1 |    7 |     7 |
-| 1 |  1 |   1 |    7 |     7 |
-| 1 |  1 |   1 |    7 |     7 |
-| 1 |  1 |   1 |    7 |     7 |
-| 1 |  1 |   1 |    7 |     7 |
-| 1 |  1 |   1 |    7 |     7 |
-| 1 |  1 |   1 |    7 |     7 |
-| 2 |  1 |   1 |    7 |     7 |
+| 1 |  0 |   0 |    0 |     0 |
+| 1 |  0 |   0 |    0 |     0 |
+| 1 |  0 |   0 |    0 |     0 |
+| 1 |  0 |   0 |    0 |     0 |
+| 1 |  0 |   0 |    0 |     0 |
+| 1 |  0 |   0 |    0 |     0 |
+| 1 |  0 |   0 |    0 |     0 |
+| 2 |  0 |   0 |    0 |     0 |
+| 1 |  0 |   0 |    2 |     2 |
+| 1 |  0 |   0 |    2 |     2 |
+| 1 |  0 |   0 |    2 |     2 |
+| 2 |  0 |   0 |    2 |     2 |
+| 2 |  0 |   0 |    2 |     2 |
+| 2 |  0 |   0 |    2 |     2 |
+| 9 |  1 |   1 |    7 |     7 |
 +---+----+-----+------+-------+
-(8 rows)
+(15 rows)
 
 !ok
 
 # GROUPING in ORDER BY clause
 select count(*) as c
 from emp
-group by deptno
-order by grouping(deptno);
+group by rollup(deptno)
+order by grouping(deptno), c;
 +---+
 | C |
 +---+
 | 1 |
-| 2 |
+| 1 |
 | 1 |
 | 2 |
-| 1 |
 | 2 |
+| 2 |
+| 9 |
 +---+
-(6 rows)
+(7 rows)
 
 !ok
 
@@ -605,27 +655,28 @@ group by rollup(deptno);
 select deptno, gender, grouping(deptno) gd, grouping(gender) gg,
   grouping_id(deptno, gender) dg, grouping_id(gender, deptno) gd,
   group_id() gid, count(*) c
-from emp group by cube(deptno, gender);
+from emp
+group by cube(deptno, gender);
 +--------+--------+----+----+----+----+-----+---+
 | DEPTNO | GENDER | GD | GG | DG | GD | GID | C |
 +--------+--------+----+----+----+----+-----+---+
 |     10 | F      |  0 |  0 |  0 |  0 |   0 | 1 |
 |     10 | M      |  0 |  0 |  0 |  0 |   0 | 1 |
-|     10 |        |  0 |  1 |  1 |  2 |   1 | 2 |
 |     20 | M      |  0 |  0 |  0 |  0 |   0 | 1 |
-|     20 |        |  0 |  1 |  1 |  2 |   1 | 1 |
 |     30 | F      |  0 |  0 |  0 |  0 |   0 | 2 |
-|     30 |        |  0 |  1 |  1 |  2 |   1 | 2 |
 |     50 | F      |  0 |  0 |  0 |  0 |   0 | 1 |
 |     50 | M      |  0 |  0 |  0 |  0 |   0 | 1 |
-|     50 |        |  0 |  1 |  1 |  2 |   1 | 2 |
 |     60 | F      |  0 |  0 |  0 |  0 |   0 | 1 |
-|     60 |        |  0 |  1 |  1 |  2 |   1 | 1 |
 |        | F      |  0 |  0 |  0 |  0 |   0 | 1 |
-|        | F      |  1 |  0 |  2 |  1 |   2 | 6 |
-|        | M      |  1 |  0 |  2 |  1 |   2 | 3 |
-|        |        |  0 |  1 |  1 |  2 |   1 | 1 |
-|        |        |  1 |  1 |  3 |  3 |   3 | 9 |
+|        |        |  1 |  1 |  3 |  3 |   0 | 9 |
+|     10 |        |  0 |  1 |  1 |  2 |   0 | 2 |
+|     20 |        |  0 |  1 |  1 |  2 |   0 | 1 |
+|     30 |        |  0 |  1 |  1 |  2 |   0 | 2 |
+|     50 |        |  0 |  1 |  1 |  2 |   0 | 2 |
+|     60 |        |  0 |  1 |  1 |  2 |   0 | 1 |
+|        | F      |  1 |  0 |  2 |  1 |   0 | 6 |
+|        | M      |  1 |  0 |  2 |  1 |   0 | 3 |
+|        |        |  0 |  1 |  1 |  2 |   0 | 1 |
 +--------+--------+----+----+----+----+-----+---+
 (17 rows)
 
@@ -719,6 +770,142 @@ group by rollup(1);
 !ok
 
 !use scott
+
+# When
+#   [CALCITE-1824] GROUP_ID returns wrong result
+# is fixed, there will be an extra row (null, 1, 14).
+select deptno, group_id() as g, count(*) as c
+from "scott".emp
+group by grouping sets (deptno, (), ());
+
++--------+---+----+
+| DEPTNO | G | C  |
++--------+---+----+
+|     10 | 0 |  3 |
+|     20 | 0 |  5 |
+|     30 | 0 |  6 |
+|        | 0 | 14 |
++--------+---+----+
+(4 rows)
+
+!ok
+
+# From http://rwijk.blogspot.com/2008/12/groupid.html
+select deptno
+       , job
+       , empno
+       , ename
+       , sum(sal) sumsal
+       , case grouping_id(deptno,job,empno)
+           when 0 then 'grouped by deptno,job,empno,ename'
+           when 1 then 'grouped by deptno,job'
+           when 3 then 'grouped by deptno'
+           when 7 then 'grouped by ()'
+         end gr_text
+    from "scott".emp
+   group by rollup(deptno,job,(empno,ename))
+   order by deptno
+       , job
+       , empno;
+
++--------+-----------+-------+--------+----------+-----------------------------------+
+| DEPTNO | JOB       | EMPNO | ENAME  | SUMSAL   | GR_TEXT                           |
++--------+-----------+-------+--------+----------+-----------------------------------+
+|     10 | CLERK     |  7934 | MILLER |  1300.00 | grouped by deptno,job,empno,ename |
+|     10 | CLERK     |       |        |  1300.00 | grouped by deptno,job             |
+|     10 | MANAGER   |  7782 | CLARK  |  2450.00 | grouped by deptno,job,empno,ename |
+|     10 | MANAGER   |       |        |  2450.00 | grouped by deptno,job             |
+|     10 | PRESIDENT |  7839 | KING   |  5000.00 | grouped by deptno,job,empno,ename |
+|     10 | PRESIDENT |       |        |  5000.00 | grouped by deptno,job             |
+|     10 |           |       |        |  8750.00 | grouped by deptno                 |
+|     20 | ANALYST   |  7788 | SCOTT  |  3000.00 | grouped by deptno,job,empno,ename |
+|     20 | ANALYST   |  7902 | FORD   |  3000.00 | grouped by deptno,job,empno,ename |
+|     20 | ANALYST   |       |        |  6000.00 | grouped by deptno,job             |
+|     20 | CLERK     |  7369 | SMITH  |   800.00 | grouped by deptno,job,empno,ename |
+|     20 | CLERK     |  7876 | ADAMS  |  1100.00 | grouped by deptno,job,empno,ename |
+|     20 | CLERK     |       |        |  1900.00 | grouped by deptno,job             |
+|     20 | MANAGER   |  7566 | JONES  |  2975.00 | grouped by deptno,job,empno,ename |
+|     20 | MANAGER   |       |        |  2975.00 | grouped by deptno,job             |
+|     20 |           |       |        | 10875.00 | grouped by deptno                 |
+|     30 | CLERK     |  7900 | JAMES  |   950.00 | grouped by deptno,job,empno,ename |
+|     30 | CLERK     |       |        |   950.00 | grouped by deptno,job             |
+|     30 | MANAGER   |  7698 | BLAKE  |  2850.00 | grouped by deptno,job,empno,ename |
+|     30 | MANAGER   |       |        |  2850.00 | grouped by deptno,job             |
+|     30 | SALESMAN  |  7499 | ALLEN  |  1600.00 | grouped by deptno,job,empno,ename |
+|     30 | SALESMAN  |  7521 | WARD   |  1250.00 | grouped by deptno,job,empno,ename |
+|     30 | SALESMAN  |  7654 | MARTIN |  1250.00 | grouped by deptno,job,empno,ename |
+|     30 | SALESMAN  |  7844 | TURNER |  1500.00 | grouped by deptno,job,empno,ename |
+|     30 | SALESMAN  |       |        |  5600.00 | grouped by deptno,job             |
+|     30 |           |       |        |  9400.00 | grouped by deptno                 |
+|        |           |       |        | 29025.00 | grouped by ()                     |
++--------+-----------+-------+--------+----------+-----------------------------------+
+(27 rows)
+
+!ok
+
+# From http://rwijk.blogspot.com/2008/12/groupid.html
+# (replacing "to_char(...)" with "cast(... as varchar)")
+# The current results are incorrect. When
+#   [CALCITE-1824] GROUP_ID returns wrong result
+# is fixed, there will be 4 more rows.
+select deptno
+       , job
+       , empno
+       , ename
+       , sum(sal) sumsal
+       , case grouping_id(deptno,job,empno)
+           when 0 then 'grouped by deptno,job,empno,ename'
+           when 1 then 'grouped by deptno,job'
+           when 3 then 'grouped by deptno, grouping set ' || cast(3+group_id() as varchar)
+           when 7 then 'grouped by (), grouping set ' || cast(5+group_id() as varchar)
+         end gr_text
+    from "scott".emp
+   group by grouping sets
+         ( (deptno,job,empno,ename)
+         , (deptno,job)
+         , deptno
+         , deptno
+         , ()
+         , ()
+         )
+   order by deptno
+       , job
+       , empno;
+
++--------+-----------+-------+--------+----------+-----------------------------------+
+| DEPTNO | JOB       | EMPNO | ENAME  | SUMSAL   | GR_TEXT                           |
++--------+-----------+-------+--------+----------+-----------------------------------+
+|     10 | CLERK     |  7934 | MILLER |  1300.00 | grouped by deptno,job,empno,ename |
+|     10 | CLERK     |       |        |  1300.00 | grouped by deptno,job             |
+|     10 | MANAGER   |  7782 | CLARK  |  2450.00 | grouped by deptno,job,empno,ename |
+|     10 | MANAGER   |       |        |  2450.00 | grouped by deptno,job             |
+|     10 | PRESIDENT |  7839 | KING   |  5000.00 | grouped by deptno,job,empno,ename |
+|     10 | PRESIDENT |       |        |  5000.00 | grouped by deptno,job             |
+|     10 |           |       |        |  8750.00 | grouped by deptno, grouping set 3 |
+|     20 | ANALYST   |  7788 | SCOTT  |  3000.00 | grouped by deptno,job,empno,ename |
+|     20 | ANALYST   |  7902 | FORD   |  3000.00 | grouped by deptno,job,empno,ename |
+|     20 | ANALYST   |       |        |  6000.00 | grouped by deptno,job             |
+|     20 | CLERK     |  7369 | SMITH  |   800.00 | grouped by deptno,job,empno,ename |
+|     20 | CLERK     |  7876 | ADAMS  |  1100.00 | grouped by deptno,job,empno,ename |
+|     20 | CLERK     |       |        |  1900.00 | grouped by deptno,job             |
+|     20 | MANAGER   |  7566 | JONES  |  2975.00 | grouped by deptno,job,empno,ename |
+|     20 | MANAGER   |       |        |  2975.00 | grouped by deptno,job             |
+|     20 |           |       |        | 10875.00 | grouped by deptno, grouping set 3 |
+|     30 | CLERK     |  7900 | JAMES  |   950.00 | grouped by deptno,job,empno,ename |
+|     30 | CLERK     |       |        |   950.00 | grouped by deptno,job             |
+|     30 | MANAGER   |  7698 | BLAKE  |  2850.00 | grouped by deptno,job,empno,ename |
+|     30 | MANAGER   |       |        |  2850.00 | grouped by deptno,job             |
+|     30 | SALESMAN  |  7499 | ALLEN  |  1600.00 | grouped by deptno,job,empno,ename |
+|     30 | SALESMAN  |  7521 | WARD   |  1250.00 | grouped by deptno,job,empno,ename |
+|     30 | SALESMAN  |  7654 | MARTIN |  1250.00 | grouped by deptno,job,empno,ename |
+|     30 | SALESMAN  |  7844 | TURNER |  1500.00 | grouped by deptno,job,empno,ename |
+|     30 | SALESMAN  |       |        |  5600.00 | grouped by deptno,job             |
+|     30 |           |       |        |  9400.00 | grouped by deptno, grouping set 3 |
+|        |           |       |        | 29025.00 | grouped by (), grouping set 5     |
++--------+-----------+-------+--------+----------+-----------------------------------+
+(27 rows)
+
+!ok
 
 # [KYLIN-751] Max on negative double values is not working
 # [CALCITE-735] Primitive.DOUBLE.min should be large and negative
@@ -1834,9 +2021,9 @@ select count(distinct EMPNO), COUNT(SAL), MIN(SAL), MAX(SAL) from "scott".emp;
 !ok
 
 EnumerableCalc(expr#0..3=[{inputs}], expr#4=[CAST($t1):BIGINT NOT NULL], EXPR$0=[$t0], EXPR$1=[$t4], EXPR$2=[$t2], EXPR$3=[$t3])
-  EnumerableAggregate(group=[{}], EXPR$0=[COUNT($0) FILTER $5], EXPR$1=[MIN($2) FILTER $6], EXPR$2=[MIN($3) FILTER $6], EXPR$3=[MIN($4) FILTER $6])
-    EnumerableCalc(expr#0..4=[{inputs}], expr#5=[0], expr#6=[1], expr#7=[CASE($t1, $t5, $t6)], expr#8=[=($t7, $t6)], expr#9=[=($t7, $t5)], proj#0..4=[{exprs}], $i0=[$t8], $=[$t9])
-      EnumerableAggregate(group=[{0}], groups=[[{0}, {}]], indicator=[true], EXPR$1=[COUNT($5)], EXPR$2=[MIN($5)], EXPR$3=[MAX($5)])
+  EnumerableAggregate(group=[{}], EXPR$0=[COUNT($0) FILTER $4], EXPR$1=[MIN($1) FILTER $5], EXPR$2=[MIN($2) FILTER $5], EXPR$3=[MIN($3) FILTER $5])
+    EnumerableCalc(expr#0..4=[{inputs}], expr#5=[0], expr#6=[=($t4, $t5)], expr#7=[1], expr#8=[=($t4, $t7)], proj#0..3=[{exprs}], $g_0=[$t6], $g_1=[$t8])
+      EnumerableAggregate(group=[{0}], groups=[[{0}, {}]], EXPR$1=[COUNT($5)], EXPR$2=[MIN($5)], EXPR$3=[MAX($5)], $g=[GROUPING($0)])
         EnumerableTableScan(table=[[scott, EMP]])
 !plan
 
@@ -1852,9 +2039,9 @@ select count(distinct DEPTNO), COUNT(JOB), MIN(SAL), MAX(SAL) from "scott".emp;
 !ok
 
 EnumerableCalc(expr#0..3=[{inputs}], expr#4=[CAST($t1):BIGINT NOT NULL], EXPR$0=[$t0], EXPR$1=[$t4], EXPR$2=[$t2], EXPR$3=[$t3])
-  EnumerableAggregate(group=[{}], EXPR$0=[COUNT($0) FILTER $5], EXPR$1=[MIN($2) FILTER $6], EXPR$2=[MIN($3) FILTER $6], EXPR$3=[MIN($4) FILTER $6])
-    EnumerableCalc(expr#0..4=[{inputs}], expr#5=[0], expr#6=[1], expr#7=[CASE($t1, $t5, $t6)], expr#8=[=($t7, $t6)], expr#9=[=($t7, $t5)], proj#0..4=[{exprs}], $i0=[$t8], $=[$t9])
-      EnumerableAggregate(group=[{7}], groups=[[{7}, {}]], indicator=[true], EXPR$1=[COUNT($2)], EXPR$2=[MIN($5)], EXPR$3=[MAX($5)])
+  EnumerableAggregate(group=[{}], EXPR$0=[COUNT($0) FILTER $4], EXPR$1=[MIN($1) FILTER $5], EXPR$2=[MIN($2) FILTER $5], EXPR$3=[MIN($3) FILTER $5])
+    EnumerableCalc(expr#0..4=[{inputs}], expr#5=[0], expr#6=[=($t4, $t5)], expr#7=[1], expr#8=[=($t4, $t7)], proj#0..3=[{exprs}], $g_0=[$t6], $g_1=[$t8])
+      EnumerableAggregate(group=[{7}], groups=[[{7}, {}]], EXPR$1=[COUNT($2)], EXPR$2=[MIN($5)], EXPR$3=[MAX($5)], $g=[GROUPING($7)])
         EnumerableTableScan(table=[[scott, EMP]])
 !plan
 
@@ -1876,9 +2063,9 @@ select MGR, count(distinct DEPTNO), COUNT(JOB), MIN(SAL), MAX(SAL) from "scott".
 !ok
 
 EnumerableCalc(expr#0..4=[{inputs}], expr#5=[CAST($t2):BIGINT NOT NULL], proj#0..1=[{exprs}], EXPR$2=[$t5], EXPR$3=[$t3], EXPR$4=[$t4])
-  EnumerableAggregate(group=[{0}], EXPR$1=[COUNT($1) FILTER $7], EXPR$2=[MIN($4) FILTER $8], EXPR$3=[MIN($5) FILTER $8], EXPR$4=[MIN($6) FILTER $8])
-    EnumerableCalc(expr#0..6=[{inputs}], expr#7=[0], expr#8=[1], expr#9=[CASE($t2, $t7, $t8)], expr#10=[2], expr#11=[CASE($t3, $t7, $t10)], expr#12=[+($t9, $t11)], expr#13=[3], expr#14=[=($t12, $t13)], expr#15=[=($t12, $t8)], proj#0..6=[{exprs}], $i0_1=[$t14], $i0=[$t15])
-      EnumerableAggregate(group=[{3, 7}], groups=[[{3, 7}, {3}]], indicator=[true], EXPR$2=[COUNT($2)], EXPR$3=[MIN($5)], EXPR$4=[MAX($5)])
+  EnumerableAggregate(group=[{0}], EXPR$1=[COUNT($1) FILTER $5], EXPR$2=[MIN($2) FILTER $6], EXPR$3=[MIN($3) FILTER $6], EXPR$4=[MIN($4) FILTER $6])
+    EnumerableCalc(expr#0..5=[{inputs}], expr#6=[0], expr#7=[=($t5, $t6)], expr#8=[1], expr#9=[=($t5, $t8)], proj#0..4=[{exprs}], $g_0=[$t7], $g_1=[$t9])
+      EnumerableAggregate(group=[{3, 7}], groups=[[{3, 7}, {3}]], EXPR$2=[COUNT($2)], EXPR$3=[MIN($5)], EXPR$4=[MAX($5)], $g=[GROUPING($3, $7)])
         EnumerableTableScan(table=[[scott, EMP]])
 !plan
 
@@ -1899,9 +2086,9 @@ select MGR, count(distinct DEPTNO, JOB), MIN(SAL), MAX(SAL) from "scott".emp gro
 
 !ok
 
-EnumerableAggregate(group=[{1}], EXPR$1=[COUNT($2, $0) FILTER $8], EXPR$2=[MIN($6) FILTER $9], EXPR$3=[MIN($7) FILTER $9])
-  EnumerableCalc(expr#0..7=[{inputs}], expr#8=[0], expr#9=[1], expr#10=[CASE($t3, $t8, $t9)], expr#11=[2], expr#12=[CASE($t4, $t8, $t11)], expr#13=[+($t10, $t12)], expr#14=[4], expr#15=[CASE($t5, $t8, $t14)], expr#16=[+($t13, $t15)], expr#17=[7], expr#18=[=($t16, $t17)], expr#19=[=($t16, $t11)], proj#0..7=[{exprs}], $i2_3_7=[$t18], $i3=[$t19])
-    EnumerableAggregate(group=[{2, 3, 7}], groups=[[{2, 3, 7}, {3}]], indicator=[true], EXPR$2=[MIN($5)], EXPR$3=[MAX($5)])
+EnumerableAggregate(group=[{1}], EXPR$1=[COUNT($2, $0) FILTER $5], EXPR$2=[MIN($3) FILTER $6], EXPR$3=[MIN($4) FILTER $6])
+  EnumerableCalc(expr#0..5=[{inputs}], expr#6=[0], expr#7=[=($t5, $t6)], expr#8=[5], expr#9=[=($t5, $t8)], proj#0..4=[{exprs}], $g_0=[$t7], $g_5=[$t9])
+    EnumerableAggregate(group=[{2, 3, 7}], groups=[[{2, 3, 7}, {3}]], EXPR$2=[MIN($5)], EXPR$3=[MAX($5)], $g=[GROUPING($2, $3, $7)])
       EnumerableTableScan(table=[[scott, EMP]])
 !plan
 

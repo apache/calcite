@@ -16,8 +16,8 @@
  */
 package org.apache.calcite.sql.fun;
 
+import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlCall;
-import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
@@ -37,7 +37,7 @@ import org.apache.calcite.util.Static;
  * Base class for grouping functions {@code GROUP_ID}, {@code GROUPING_ID},
  * {@code GROUPING}.
  */
-public class SqlAbstractGroupFunction extends SqlFunction {
+public class SqlAbstractGroupFunction extends SqlAggFunction {
   /**
    * Creates a SqlAbstractGroupFunction.
    *
@@ -54,8 +54,8 @@ public class SqlAbstractGroupFunction extends SqlFunction {
       SqlOperandTypeInference operandTypeInference,
       SqlOperandTypeChecker operandTypeChecker,
       SqlFunctionCategory category) {
-    super(name, kind, returnTypeInference, operandTypeInference,
-        operandTypeChecker, category);
+    super(name, null, kind, returnTypeInference, operandTypeInference,
+        operandTypeChecker, category, false, false);
   }
 
   @Override public void validateCall(SqlCall call, SqlValidator validator,
@@ -87,6 +87,14 @@ public class SqlAbstractGroupFunction extends SqlFunction {
             Static.RESOURCE.groupingArgument(getName()));
       }
     }
+  }
+
+  @Override public boolean isQuantifierAllowed() {
+    return false;
+  }
+
+  @Override public boolean allowsFilter() {
+    return false;
   }
 }
 

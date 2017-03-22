@@ -101,10 +101,6 @@ public abstract class DelegatingNamespace implements SqlValidatorNamespace {
   public void makeNullable() {
   }
 
-  public String translate(String name) {
-    return namespace.translate(name);
-  }
-
   public <T> T unwrap(Class<T> clazz) {
     if (clazz.isInstance(this)) {
       return clazz.cast(this);

@@ -560,7 +560,6 @@ public class AggregateReduceFunctionsRule extends RelOptRule {
       List<AggregateCall> newCalls) {
     relBuilder.aggregate(
         relBuilder.groupKey(oldAggregate.getGroupSet(),
-            oldAggregate.indicator,
             oldAggregate.getGroupSets()),
         newCalls);
   }

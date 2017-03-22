@@ -20,6 +20,7 @@ import org.apache.calcite.adapter.enumerable.AggResetContext;
 import org.apache.calcite.adapter.enumerable.NestedBlockBuilderImpl;
 import org.apache.calcite.linq4j.tree.BlockBuilder;
 import org.apache.calcite.linq4j.tree.Expression;
+import org.apache.calcite.rel.core.AggregateCall;
 
 import java.util.List;
 
@@ -27,14 +28,15 @@ import java.util.List;
  * Implementation of
  * {@link org.apache.calcite.adapter.enumerable.AggResetContext}
  */
-public class AggResetContextImpl extends NestedBlockBuilderImpl
+public abstract class AggResetContextImpl extends NestedBlockBuilderImpl
     implements AggResetContext {
   private final List<Expression> accumulator;
 
   /**
-   * Creates aggregate reset context
-   * @param block code block that will contain the added initialization
-   * @param accumulator accumulator variables that store the intermediate
+   * Creates aggregate reset context.
+   *
+   * @param block Code block that will contain the added initialization
+   * @param accumulator Accumulator variables that store the intermediate
    *                    aggregate state
    */
   public AggResetContextImpl(BlockBuilder block, List<Expression> accumulator) {
@@ -44,6 +46,10 @@ public class AggResetContextImpl extends NestedBlockBuilderImpl
 
   public List<Expression> accumulator() {
     return accumulator;
+  }
+
+  public AggregateCall call() {
+    throw new UnsupportedOperationException();
   }
 }
 
