@@ -59,8 +59,7 @@ public class SortCollapseRule extends RelOptRule {
             0,
             Math.min(
                 RexLiteral.intValue(first.fetch) - secondOffset,
-                RexLiteral.intValue(second.fetch))
-        );
+                RexLiteral.intValue(second.fetch)));
       }
 
       final RelNode combined = call

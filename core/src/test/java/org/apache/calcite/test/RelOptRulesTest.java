@@ -509,27 +509,40 @@ public class RelOptRulesTest extends RelOptTestBase {
   @Test public void testSortCollapse() {
     final HepProgram preProgram =
         HepProgram.builder()
-                  .addRuleInstance(ProjectRemoveRule.INSTANCE)
-                  .build();
-    final HepProgram program = new HepProgramBuilder()
-        .addRuleInstance(SortCollapseRule.INSTANCE)
-        .build();
-
-    checkPlanning(tester, preProgram, new HepPlanner(program),
-                  "select * from (select distinct deptno from emp order by deptno) limit 1");
+            .addRuleInstance(ProjectRemoveRule.INSTANCE)
+            .build();
+    final HepProgram program =
+        HepProgram.builder()
+            .addRuleInstance(SortCollapseRule.INSTANCE)
+            .build();
+    final String sql = "select * from (\n"
+                       + "select distinct deptno from emp\n"
+                       + "order by deptno)\n"
+                       + "limit 1";
+    sql(sql)
+        .withPre(preProgram)
+        .with(program)
+        .check();
   }
 
   @Test public void testSortCollapse2() {
     final HepProgram preProgram =
         HepProgram.builder()
-                  .addRuleInstance(ProjectRemoveRule.INSTANCE)
-                  .build();
-    final HepProgram program = new HepProgramBuilder()
-        .addRuleInstance(SortCollapseRule.INSTANCE)
-        .build();
-
-    checkPlanning(tester, preProgram, new HepPlanner(program),
-                  "select * from (select distinct deptno from emp order by deptno limit 3 offset 1) limit 3 offset 1");
+            .addRuleInstance(ProjectRemoveRule.INSTANCE)
+            .build();
+    final HepProgram program =
+        HepProgram.builder()
+            .addRuleInstance(SortCollapseRule.INSTANCE)
+            .build();
+    final String sql = "select * from (\n"
+                       + "select distinct deptno from emp\n"
+                       + "order by deptno\n"
+                       + "limit 3 offset 1)\n"
+                       + "limit 3 offset 1";
+    sql(sql)
+        .withPre(preProgram)
+        .with(program)
+        .check();
   }
 
   @Test public void testSemiJoinRuleExists() {
