@@ -3793,7 +3793,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     if (groupList == null) {
       return;
     }
-    validateNoAggs(aggOrOverFinder, groupList, "GROUP BY");
+    final String clause = "GROUP BY";
+    validateNoAggs(aggOrOverFinder, groupList, clause);
     final SqlValidatorScope groupScope = getGroupScope(select);
     inferUnknownTypes(unknownType, groupScope, groupList);
 
@@ -3842,7 +3843,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
     SqlNode agg = aggFinder.findAgg(groupList);
     if (agg != null) {
-      throw newValidationError(agg, RESOURCE.aggregateIllegalInGroupBy());
+      throw newValidationError(agg, RESOURCE.aggregateIllegalInClause(clause));
     }
   }
 
@@ -3886,8 +3887,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   protected void validateWhereOrOn(
       SqlValidatorScope scope,
       SqlNode condition,
-      String keyword) {
-    validateNoAggs(aggOrOverOrGroupFinder, condition, keyword);
+      String clause) {
+    validateNoAggs(aggOrOverOrGroupFinder, condition, clause);
     inferUnknownTypes(
         booleanType,
         scope,
@@ -3896,7 +3897,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
     final RelDataType type = deriveType(scope, condition);
     if (!SqlTypeUtil.inBooleanFamily(type)) {
-      throw newValidationError(condition, RESOURCE.condMustBeBoolean(keyword));
+      throw newValidationError(condition, RESOURCE.condMustBeBoolean(clause));
     }
   }
 

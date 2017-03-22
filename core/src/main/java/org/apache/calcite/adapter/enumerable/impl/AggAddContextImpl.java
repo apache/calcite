@@ -29,7 +29,7 @@ import java.util.List;
 public abstract class AggAddContextImpl extends AggResultContextImpl
     implements AggAddContext {
   public AggAddContextImpl(BlockBuilder block, List<Expression> accumulator) {
-    super(block, accumulator);
+    super(block, null, accumulator, null, null);
   }
 
   public final List<Expression> arguments() {

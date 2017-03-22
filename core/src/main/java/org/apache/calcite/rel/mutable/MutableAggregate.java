@@ -28,16 +28,14 @@ import java.util.Objects;
 
 /** Mutable equivalent of {@link org.apache.calcite.rel.core.Aggregate}. */
 public class MutableAggregate extends MutableSingleRel {
-  public final boolean indicator;
   public final ImmutableBitSet groupSet;
   public final ImmutableList<ImmutableBitSet> groupSets;
   public final List<AggregateCall> aggCalls;
 
   private MutableAggregate(MutableRel input, RelDataType rowType,
-      boolean indicator, ImmutableBitSet groupSet,
+      ImmutableBitSet groupSet,
       List<ImmutableBitSet> groupSets, List<AggregateCall> aggCalls) {
     super(MutableRelType.AGGREGATE, rowType, input);
-    this.indicator = indicator;
     this.groupSet = groupSet;
     this.groupSets = groupSets == null
         ? ImmutableList.of(groupSet)
@@ -49,20 +47,16 @@ public class MutableAggregate extends MutableSingleRel {
    * Creates a MutableAggregate.
    *
    * @param input     Input relational expression
-   * @param indicator Whether row type should include indicator fields to
-   *                  indicate which grouping set is active; must be true if
-   *                  aggregate is not simple
    * @param groupSet  Bit set of grouping fields
    * @param groupSets List of all grouping sets; null for just {@code groupSet}
    * @param aggCalls  Collection of calls to aggregate functions
    */
-  public static MutableAggregate of(MutableRel input, boolean indicator,
-      ImmutableBitSet groupSet, ImmutableList<ImmutableBitSet> groupSets,
-      List<AggregateCall> aggCalls) {
+  public static MutableAggregate of(MutableRel input, ImmutableBitSet groupSet,
+      ImmutableList<ImmutableBitSet> groupSets, List<AggregateCall> aggCalls) {
     RelDataType rowType =
         Aggregate.deriveRowType(input.cluster.getTypeFactory(),
-            input.rowType, indicator, groupSet, groupSets, aggCalls);
-    return new MutableAggregate(input, rowType, indicator, groupSet,
+            input.rowType, false, groupSet, groupSets, aggCalls);
+    return new MutableAggregate(input, rowType, groupSet,
         groupSets, aggCalls);
   }
 
@@ -89,8 +83,7 @@ public class MutableAggregate extends MutableSingleRel {
   }
 
   @Override public MutableRel clone() {
-    return MutableAggregate.of(input.clone(),
-        indicator, groupSet, groupSets, aggCalls);
+    return MutableAggregate.of(input.clone(), groupSet, groupSets, aggCalls);
   }
 }
 

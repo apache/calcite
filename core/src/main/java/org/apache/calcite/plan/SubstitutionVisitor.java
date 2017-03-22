@@ -1204,8 +1204,7 @@ public class SubstitutionVisitor {
         Mappings.apply2(mapping, aggregate.groupSets);
     List<AggregateCall> aggregateCalls =
         apply(mapping, aggregate.aggCalls);
-    return MutableAggregate.of(input, aggregate.indicator, groupSet, groupSets,
-        aggregateCalls);
+    return MutableAggregate.of(input, groupSet, groupSets, aggregateCalls);
   }
 
   private static List<AggregateCall> apply(final Mapping mapping,
@@ -1267,7 +1266,7 @@ public class SubstitutionVisitor {
                 ImmutableList.of(target.groupSet.cardinality() + i), -1,
                 aggregateCall.type, aggregateCall.name));
       }
-      result = MutableAggregate.of(target, false, groupSet.build(), null,
+      result = MutableAggregate.of(target, groupSet.build(), null,
           aggregateCalls);
     }
     return MutableRels.createCastRel(result, query.rowType, true);

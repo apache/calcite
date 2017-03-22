@@ -162,11 +162,6 @@ public interface SqlValidatorNamespace {
   void makeNullable();
 
   /**
-   * Translates a field name to the name in the underlying namespace.
-   */
-  String translate(String name);
-
-  /**
    * Returns this namespace, or a wrapped namespace, cast to a particular
    * class.
    *

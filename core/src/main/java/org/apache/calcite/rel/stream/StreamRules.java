@@ -108,7 +108,7 @@ public class StreamRules {
     private DeltaAggregateTransposeRule() {
       super(
           operand(Delta.class,
-              operand(Aggregate.class, any())));
+              operand(Aggregate.class, null, Aggregate.NO_INDICATOR, any())));
     }
 
     @Override public void onMatch(RelOptRuleCall call) {
@@ -118,9 +118,8 @@ public class StreamRules {
       final LogicalDelta newDelta =
           LogicalDelta.create(aggregate.getInput());
       final LogicalAggregate newAggregate =
-          LogicalAggregate.create(newDelta, aggregate.indicator,
-              aggregate.getGroupSet(), aggregate.groupSets,
-              aggregate.getAggCallList());
+          LogicalAggregate.create(newDelta, aggregate.getGroupSet(),
+              aggregate.groupSets, aggregate.getAggCallList());
       call.transformTo(newAggregate);
     }
   }

@@ -246,10 +246,6 @@ public class IdentifierNamespace extends AbstractNamespace {
     return resolvedNamespace.resolve();
   }
 
-  @Override public String translate(String name) {
-    return resolvedNamespace.translate(name);
-  }
-
   @Override public SqlValidatorTable getTable() {
     return resolvedNamespace == null ? null : resolve().getTable();
   }
