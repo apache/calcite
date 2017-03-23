@@ -103,7 +103,7 @@ public class DruidQueryFilterTest {
     Assert.assertThat(sw.toString(),
         is("{\"type\":\"bound\",\"dimension\":\"dimensionName\",\"lower\":\"lower-bound\","
             + "\"lowerStrict\":false,\"upper\":\"upper-bound\",\"upperStrict\":false,"
-            + "\"alphaNumeric\":false}"));
+            + "\"ordering\":\"lexicographic\"}"));
   }
 
   /** Everything a test needs for a healthy, active life. */
