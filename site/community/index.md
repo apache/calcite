@@ -26,7 +26,13 @@ limitations under the License.
 
 # Upcoming talks
 
-* 2016/11/14 <a href="http://events.linuxfoundation.org/events/apache-big-data-europe/program/schedule">Apache: Big Data</a>, Seville &mdash; talks by Alan Gates (Apache Hive), Jesús Camacho Rodríguez (Apache Hive and Druid) and Atri Sharma (streaming)
+* 2017/04/04 [Apex Big Data World 2017](http://www.apexbigdata.com/mountain-view.html) (Mountain View, USA)
+  * [Streaming SQL](http://www.apexbigdata.com/platform-track-2.html) &mdash; Julian Hyde
+* 2017/05/16&ndash;18 [Apache: Big Data North America 2017](http://events.linuxfoundation.org/events/apache-big-data-north-america) (Miami, USA)
+  * [Data Profiling in Apache Calcite](https://apachebigdata2017.sched.com/event/A00j) &mdash; Julian Hyde
+  * [A Smarter Pig](https://apachebigdata2017.sched.com/event/A02J) &mdash; Eli Levine and Julian Hyde
+* 2017/06/13&ndash;15 [DataWorks Summit 2017](https://dataworkssummit.com/san-jose-2017/) (San Jose, USA)
+  * [Data Profiling in Apache Calcite](https://dataworkssummit.com/san-jose-2017/agenda/) &mdash; Julian Hyde
 
 # Project Members
 
@@ -39,11 +45,11 @@ Name (Apache ID) | Github | Org | Role
 
 There are several mailing lists for Calcite:
 
-* [dev@calcite.apache.org](mailto:dev@calcite.apache.org) - Development discussions
+* [dev@calcite.apache.org](mailto:dev@calcite.apache.org) &mdash; Development discussions
   [[archive](https://mail-archives.apache.org/mod_mbox/calcite-dev/)]
-* [issues@calcite.apache.org](mailto:issues@calcite.apache.org) - Bug tracking
+* [issues@calcite.apache.org](mailto:issues@calcite.apache.org) &mdash; Bug tracking
   [[archive](https://mail-archives.apache.org/mod_mbox/calcite-issues/)]
-* [commits@calcite.apache.org](mailto:commits@calcite.apache.org) - Git tracking
+* [commits@calcite.apache.org](mailto:commits@calcite.apache.org) &mdash; Git tracking
   [[archive](https://mail-archives.apache.org/mod_mbox/calcite-commits/)]
 
 You can subscribe to the lists by sending email to

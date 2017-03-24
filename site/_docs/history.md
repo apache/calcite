@@ -31,7 +31,8 @@ Downloads are available on the
 ## <a href="https://github.com/apache/calcite/releases/tag/calcite-1.12.0">1.12.0</a> / 2017-03-24
 {: #v1-12-0}
 
-Features of note this release are JDK9 support,
+[Features of note](../news/2017/03/24/release-1.12.0) this release are
+JDK 9 support,
 the new file/web and Apache Pig adapters,
 general improvements to the Druid adapter,
 more helpful error messages if you get a table or column name wrong,
