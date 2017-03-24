@@ -289,6 +289,48 @@ public class DruidDateTimeUtils {
     }
   }
 
+  public static TimeUnitRange getTimeUniteFromExtractCall(RexNode e) {
+    final RexCall call = (RexCall) e;
+    final RexLiteral flag = (RexLiteral) call.operands.get(0);
+    final TimeUnitRange timeUnit = (TimeUnitRange) flag.getValue();
+    return timeUnit;
+  }
+
+  public static boolean isValidExtractTimeUnit(RexNode e) {
+    final RexCall call = (RexCall) e;
+    final RexLiteral flag = (RexLiteral) call.operands.get(0);
+    final TimeUnitRange timeUnit = (TimeUnitRange) flag.getValue();
+    switch (timeUnit) {
+    case MONTH:
+      return true;
+    case DAY:
+      return true;
+    case YEAR:
+      return true;
+    default:
+      return false;
+    }
+  }
+
+  public static DruidQuery.JsonTimeExtractionFn getExtractionFilter(RexNode e) {
+    TimeUnitRange timeUnitRange = DruidDateTimeUtils.getTimeUniteFromExtractCall(e);
+    String format;
+    switch (timeUnitRange) {
+    case MONTH:
+      format = "M";
+      break;
+    case DAY:
+      format = "d";
+      break;
+    case YEAR:
+      format = "y";
+      break;
+    default:
+      throw new AssertionError(
+              "can only accept month, year, day and got -> " + timeUnitRange.toString());
+    }
+    return new DruidQuery.JsonTimeExtractionFn(format);
+  }
 }
 
 // End DruidDateTimeUtils.java
