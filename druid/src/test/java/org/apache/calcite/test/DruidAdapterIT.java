@@ -691,8 +691,8 @@ public class DruidAdapterIT {
     final String druidQuery = "{'queryType':'select','dataSource':'foodmart',"
         + "'descending':false,'intervals':['1900-01-09T00:00:00.000/2992-01-10T00:00:00.000'],"
         + "'filter':{'type':'and','fields':["
-        + "{'type':'bound','dimension':'product_id','lower':'1500','lowerStrict':false,'alphaNumeric':false},"
-        + "{'type':'bound','dimension':'product_id','upper':'1502','upperStrict':false,'alphaNumeric':false}]},"
+        + "{'type':'bound','dimension':'product_id','lower':'1500','lowerStrict':false,'ordering':'lexicographic'},"
+        + "{'type':'bound','dimension':'product_id','upper':'1502','upperStrict':false,'ordering':'lexicographic'}]},"
         + "'dimensions':['product_id','brand_name','product_name','SKU','SRP','gross_weight','net_weight',"
         + "'recyclable_package','low_fat','units_per_case','cases_per_pallet','shelf_width','shelf_height',"
         + "'shelf_depth','product_class_id','product_subcategory','product_category','product_department',"
@@ -737,8 +737,8 @@ public class DruidAdapterIT {
     final String druidQuery = "{'queryType':'select','dataSource':'foodmart',"
         + "'descending':false,'intervals':['1900-01-09T00:00:00.000/2992-01-10T00:00:00.000'],"
         + "'filter':{'type':'and','fields':["
-        + "{'type':'bound','dimension':'product_id','lower':'1500','lowerStrict':false,'alphaNumeric':true},"
-        + "{'type':'bound','dimension':'product_id','upper':'1502','upperStrict':false,'alphaNumeric':true}]},"
+        + "{'type':'bound','dimension':'product_id','lower':'1500','lowerStrict':false,'ordering':'numeric'},"
+        + "{'type':'bound','dimension':'product_id','upper':'1502','upperStrict':false,'ordering':'numeric'}]},"
         + "'dimensions':['product_id','brand_name','product_name','SKU','SRP','gross_weight','net_weight',"
         + "'recyclable_package','low_fat','units_per_case','cases_per_pallet','shelf_width','shelf_height',"
         + "'shelf_depth','product_class_id','product_subcategory','product_category','product_department',"
@@ -1420,6 +1420,16 @@ public class DruidAdapterIT {
     sql(sql, WIKI).queryContains(druidChecker(druidQuery));
   }
 
+  @Test public void testFilterOnDouble() {
+    String sql = "select \"product_id\" from \"foodmart\" where cast(\"product_id\" as double) < "
+            + "0.41024 and \"product_id\" < 12223";
+    sql(sql).queryContains(druidChecker
+      (
+            "\"type\":\"bound\",\"dimension\":\"product_id\"," + "\"upper\":\"0.41024\"",
+            "\"upper\":\"12223\""
+      )
+    );
+  }
 }
 
 // End DruidAdapterIT.java
