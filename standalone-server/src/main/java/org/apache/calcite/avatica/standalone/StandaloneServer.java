@@ -49,6 +49,10 @@ public class StandaloneServer {
       description = "Serialization method to use", converter = SerializationConverter.class)
   private Serialization serialization = Serialization.PROTOBUF;
 
+  @Parameter(names = { "-h", "-help", "--help" }, required = false, help = true,
+      description = "Print the help message")
+  private boolean help = false;
+
   private HttpServer server;
 
   public void start() {
@@ -92,7 +96,12 @@ public class StandaloneServer {
 
   public static void main(String[] args) {
     final StandaloneServer server = new StandaloneServer();
-    new JCommander(server, args);
+    JCommander jc = new JCommander(server, args);
+    if (server.help) {
+      jc.usage();
+      Unsafe.systemExit(ExitCodes.USAGE.ordinal());
+      return;
+    }
 
     server.start();
 
@@ -131,7 +140,8 @@ public class StandaloneServer {
   private enum ExitCodes {
     NORMAL,
     ALREADY_STARTED, // 1
-    START_FAILED;    // 2
+    START_FAILED,    // 2
+    USAGE;           // 3
   }
 }
 

@@ -103,6 +103,7 @@ limitations under the License.
 
   <modules>
     <module>core</module>
+    <module>docker</module>
     <module>metrics</module>
     <module>metrics-dropwizardmetrics3</module>
     <module>noop-driver</module>
@@ -148,6 +149,11 @@ limitations under the License.
       <dependency>
         <groupId>org.apache.calcite.avatica</groupId>
         <artifactId>avatica-server</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.calcite.avatica</groupId>
+        <artifactId>avatica-standalone-server</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
@@ -520,6 +526,11 @@ limitations under the License.
           </dependencies>
         </plugin>
         <plugin>
+          <groupId>com.spotify</groupId>
+          <artifactId>docker-maven-plugin</artifactId>
+          <version>0.4.13</version>
+        </plugin>
+        <plugin>
           <groupId>de.thetaphi</groupId>
           <artifactId>forbiddenapis</artifactId>
           <version>${forbiddenapis.version}</version>
@@ -589,6 +600,11 @@ limitations under the License.
           <groupId>org.codehaus.mojo</groupId>
           <artifactId>build-helper-maven-plugin</artifactId>
           <version>${build-helper-maven-plugin.version}</version>
+        </plugin>
+        <plugin>
+          <groupId>org.codehaus.gmaven</groupId>
+          <artifactId>groovy-maven-plugin</artifactId>
+          <version>2.0</version>
         </plugin>
         <plugin>
           <groupId>org.codehaus.mojo</groupId>

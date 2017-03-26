@@ -12,28 +12,23 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-#
-# Data that defines menu structure
-#
-- title: Overview
-  docs:
-  - index
-  - roadmap
 
-- title: Reference
-  docs:
-  - client_reference
-  - json_reference
-  - protobuf_reference
-  - howto
-  - security
-  - compatibility
-  - custom_client_artifacts
-  - docker
-
-- title: Meta
-  docs:
-  - history
-  - api
-  - testapi
-# End docs.yml
+version: '2'
+services:
+  avatica:
+    ports:
+      - "8765:8765"
+    links:
+      - mysql
+    build: ./
+    image: avatica-mysql-server
+    command: "-u 'jdbc:mysql://mysql:3306/avatica'"
+    depends_on:
+      - mysql
+  mysql:
+    image: mysql:5.7
+    environment:
+      MYSQL_ROOT_PASSWORD: avatica
+      MYSQL_DATABASE: avatica
+      MYSQL_USER: user
+      MYSQL_PASSWORD: password

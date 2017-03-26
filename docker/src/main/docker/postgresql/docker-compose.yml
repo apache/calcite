@@ -12,28 +12,23 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-#
-# Data that defines menu structure
-#
-- title: Overview
-  docs:
-  - index
-  - roadmap
 
-- title: Reference
-  docs:
-  - client_reference
-  - json_reference
-  - protobuf_reference
-  - howto
-  - security
-  - compatibility
-  - custom_client_artifacts
-  - docker
-
-- title: Meta
-  docs:
-  - history
-  - api
-  - testapi
-# End docs.yml
+version: '2'
+services:
+  avatica:
+    ports:
+      - "8765:8765"
+    links:
+      - postgresql
+    build: ./
+    image: avatica-postgresql-server
+    # Default port for the docker image
+    command: "-u 'jdbc:postgresql://postgresql:5432/avatica'"
+    depends_on:
+      - postgresql
+  postgresql:
+    image: postgres:9.6
+    environment:
+      POSTGRES_DB: avatica
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password

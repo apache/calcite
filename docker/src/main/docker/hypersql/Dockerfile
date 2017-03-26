@@ -12,28 +12,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-#
-# Data that defines menu structure
-#
-- title: Overview
-  docs:
-  - index
-  - roadmap
 
-- title: Reference
-  docs:
-  - client_reference
-  - json_reference
-  - protobuf_reference
-  - howto
-  - security
-  - compatibility
-  - custom_client_artifacts
-  - docker
+FROM avatica-server:latest
+MAINTAINER Apache Avatica <dev@calcite.apache.org>
 
-- title: Meta
-  docs:
-  - history
-  - api
-  - testapi
-# End docs.yml
+ARG HSQLDB_VERSION="2.3.1"
+
+# Dependencies
+ADD https://repo1.maven.org/maven2/net/hydromatic/scott-data-hsqldb/0.1/scott-data-hsqldb-0.1.jar /home/avatica/classpath/
+ADD https://repo1.maven.org/maven2/org/hsqldb/hsqldb/${HSQLDB_VERSION}/hsqldb-${HSQLDB_VERSION}.jar /home/avatica/classpath/
+
+# Add on to avatica-server's entrypoint
+CMD ["-u", "jdbc:hsqldb:res:scott"]

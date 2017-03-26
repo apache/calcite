@@ -12,28 +12,25 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-#
-# Data that defines menu structure
-#
-- title: Overview
-  docs:
-  - index
-  - roadmap
 
-- title: Reference
-  docs:
-  - client_reference
-  - json_reference
-  - protobuf_reference
-  - howto
-  - security
-  - compatibility
-  - custom_client_artifacts
-  - docker
+FROM openjdk:8-jre-alpine
+MAINTAINER Apache Avatica <dev@calcite.apache.org>
 
-- title: Meta
-  docs:
-  - history
-  - api
-  - testapi
-# End docs.yml
+# Create an avatica user
+RUN addgroup -S avatica && adduser -S -G avatica avatica
+RUN mkdir -p /home/avatica/classpath
+
+# Dependencies
+ADD avatica-standalone-server-*-shaded.jar /home/avatica/classpath
+
+# Make sure avatica owns its files
+RUN chown -R avatica: /home/avatica
+
+# Expose the default port as a convenience
+EXPOSE 8765
+
+# Switch off of the root user
+# TODO Would like to do this, but screws up downstream due to https://github.com/docker/docker/issues/6119
+# USER avatica
+
+ENTRYPOINT ["/usr/bin/java", "-cp", "/home/avatica/classpath/*", "org.apache.calcite.avatica.standalone.StandaloneServer", "-p", "8765"]

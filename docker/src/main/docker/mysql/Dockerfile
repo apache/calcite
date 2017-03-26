@@ -12,28 +12,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-#
-# Data that defines menu structure
-#
-- title: Overview
-  docs:
-  - index
-  - roadmap
 
-- title: Reference
-  docs:
-  - client_reference
-  - json_reference
-  - protobuf_reference
-  - howto
-  - security
-  - compatibility
-  - custom_client_artifacts
-  - docker
+FROM avatica-server:latest
+MAINTAINER Apache Avatica <dev@calcite.apache.org>
 
-- title: Meta
-  docs:
-  - history
-  - api
-  - testapi
-# End docs.yml
+ARG MYSQL_VERSION="5.1.41"
+
+# Dependencies
+ADD https://repo1.maven.org/maven2/mysql/mysql-connector-java/${MYSQL_VERSION}/mysql-connector-java-${MYSQL_VERSION}.jar /home/avatica/classpath/
+RUN chown -R avatica: /home/avatica
+
+USER avatica

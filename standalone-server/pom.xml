@@ -23,8 +23,8 @@ limitations under the License.
     <version>1.10.0-SNAPSHOT</version>
   </parent>
   <artifactId>avatica-standalone-server</artifactId>
-  <name>Avatica Standalone Server</name>
-  <description>A Stadnalone Avatica Server Implementation</description>
+  <name>Apache Calcite Avatica Standalone Server</name>
+  <description>A Standalone Avatica Server Implementation</description>
 
   <properties>
     <top.dir>${project.basedir}/..</top.dir>
