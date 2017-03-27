@@ -644,7 +644,8 @@ public class DruidRules {
     private DruidProjectFilterTransposeRule() {
       super(
           operand(Project.class,
-              operand(Filter.class, any())),
+              operand(Filter.class,
+                  operand(DruidQuery.class, none()))),
           PushProjector.ExprCondition.FALSE,
           RelFactories.LOGICAL_BUILDER);
     }
