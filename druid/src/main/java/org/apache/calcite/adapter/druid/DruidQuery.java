@@ -906,7 +906,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
         return tr(e, 0, set);
 
       case LITERAL:
-        return ((RexLiteral) e).getValue2().toString();
+        return ((RexLiteral) e).getValue3().toString();
 
       case FLOOR:
         final RexCall call = (RexCall) e;

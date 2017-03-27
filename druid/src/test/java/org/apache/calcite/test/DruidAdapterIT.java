@@ -1496,6 +1496,14 @@ public class DruidAdapterIT {
     sql(sql).queryContains(druidChecker("{\"queryType\":\"select\""));
   }
 
+  @Test public void testFilterOnDouble() {
+    String sql = "select \"product_id\" from \"foodmart\"\n"
+        + "where cast(\"product_id\" as double) < 0.41024 and \"product_id\" < 12223";
+    sql(sql).queryContains(
+        druidChecker("\"type\":\"bound\",\"dimension\":\"product_id\",\"upper\":\"0.41024\"",
+            "\"upper\":\"12223\""));
+  }
+
 }
 
 // End DruidAdapterIT.java
