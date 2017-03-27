@@ -47,6 +47,9 @@ jdkApiRoot: https://docs.oracle.com/javase/8/docs/api/
 # The base path where the website is deployed
 baseurl:
 
+# The base path where the Avatica's website is deployed
+avaticaBaseurl: /avatica
+
 gems:
     - jekyll-redirect-from
 
