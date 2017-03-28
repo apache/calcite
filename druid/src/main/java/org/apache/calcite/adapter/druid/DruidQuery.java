@@ -201,6 +201,11 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
     case INPUT_REF:
     case LITERAL:
       return true;
+    case REINTERPRET:
+      return true;
+    // This case where Calcite wraps the date column as /INT(Reinterpret($0), 86400000)
+    case DIVIDE:
+      return areValidFilters(((RexCall) e).getOperands(), boundedComparator);
     case AND:
     case OR:
     case NOT:
