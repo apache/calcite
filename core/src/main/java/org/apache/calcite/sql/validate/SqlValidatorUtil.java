@@ -48,6 +48,7 @@ import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
@@ -64,6 +65,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
+
+import static org.apache.calcite.util.Static.RESOURCE;
 
 /**
  * Utility methods related to validation.
@@ -90,11 +93,35 @@ public class SqlValidatorUtil {
       Prepare.CatalogReader catalogReader,
       String datasetName,
       boolean[] usedDataset) {
-    if (!namespace.isWrapperFor(TableNamespace.class)) {
-      return null;
+    if (namespace.isWrapperFor(TableNamespace.class)) {
+      final TableNamespace tableNamespace =
+          namespace.unwrap(TableNamespace.class);
+      return getRelOptTable(tableNamespace, catalogReader, datasetName, usedDataset,
+          tableNamespace.extendedFields);
+    } else if (namespace.isWrapperFor(SqlValidatorImpl.DmlNamespace.class)) {
+      final SqlValidatorImpl.DmlNamespace dmlNamespace = namespace.unwrap(
+          SqlValidatorImpl.DmlNamespace.class);
+      final SqlValidatorNamespace resolvedNamespace = dmlNamespace.resolve();
+      if (resolvedNamespace.isWrapperFor(TableNamespace.class)) {
+        final TableNamespace tableNamespace = resolvedNamespace.unwrap(TableNamespace.class);
+        final SqlValidatorTable validatorTable = tableNamespace.getTable();
+        final RelDataTypeFactory typeFactory = catalogReader.getTypeFactory();
+        final List<RelDataTypeField> extendedFields = dmlNamespace.extendList == null
+            ? ImmutableList.<RelDataTypeField>of()
+            : getExtendedColumns(typeFactory, validatorTable, dmlNamespace.extendList);
+        return getRelOptTable(
+            tableNamespace, catalogReader, datasetName, usedDataset, extendedFields);
+      }
     }
-    final TableNamespace tableNamespace =
-        namespace.unwrap(TableNamespace.class);
+    return null;
+  }
+
+  private static RelOptTable getRelOptTable(
+      TableNamespace tableNamespace,
+      Prepare.CatalogReader catalogReader,
+      String datasetName,
+      boolean[] usedDataset,
+      List<RelDataTypeField> extendedFields) {
     final List<String> names = tableNamespace.getTable().getQualifiedName();
     RelOptTable table;
     if (datasetName != null
@@ -106,8 +133,8 @@ public class SqlValidatorUtil {
       // Schema does not support substitution. Ignore the data set, if any.
       table = catalogReader.getTableForMember(names);
     }
-    if (!tableNamespace.extendedFields.isEmpty()) {
-      table = table.extend(tableNamespace.extendedFields);
+    if (!extendedFields.isEmpty()) {
+      table = table.extend(extendedFields);
     }
     return table;
   }
@@ -116,7 +143,7 @@ public class SqlValidatorUtil {
    * Gets a list of extended columns with field indices to the underlying table.
    */
   public static List<RelDataTypeField> getExtendedColumns(
-      SqlValidator validator, SqlValidatorTable table, SqlNodeList extendedColumns) {
+      RelDataTypeFactory typeFactory, SqlValidatorTable table, SqlNodeList extendedColumns) {
     final ImmutableList.Builder<RelDataTypeField> extendedFields =
         ImmutableList.builder();
     final ExtensibleTable extTable = table.unwrap(ExtensibleTable.class);
@@ -130,7 +157,7 @@ public class SqlValidatorUtil {
       extendedFields.add(
           new RelDataTypeFieldImpl(identifier.getSimple(),
               extendedFieldOffset++,
-              type.deriveType(validator)));
+              type.deriveType(typeFactory)));
     }
     return extendedFields.build();
   }
@@ -199,7 +226,7 @@ public class SqlValidatorUtil {
   }
 
   /** Returns a map from field names to indexes. */
-  static Map<String, Integer> mapNameToIndex(List<RelDataTypeField> fields) {
+  public static Map<String, Integer> mapNameToIndex(List<RelDataTypeField> fields) {
     ImmutableMap.Builder<String, Integer> output = ImmutableMap.builder();
     for (RelDataTypeField field : fields) {
       output.put(field.getName(), field.getIndex());
@@ -231,6 +258,24 @@ public class SqlValidatorUtil {
               + colCharset.name() + "'");
         }
       }
+    }
+  }
+
+  /**
+   * Checks that there are no duplicates in a list of {@link SqlIdentifier}.
+   */
+  public static void checkIdentifierListForDuplicates(List<SqlNode> columnList,
+      SqlValidatorImpl.ValidationErrorFunction validationErrorFunction) {
+    final List<String> names = Lists.transform(columnList,
+        new Function<SqlNode, String>() {
+          public String apply(SqlNode o) {
+            return ((SqlIdentifier) o).getSimple();
+          }
+        });
+    final int i = Util.firstDuplicate(names);
+    if (i >= 0) {
+      throw validationErrorFunction.apply(columnList.get(i),
+          RESOURCE.duplicateNameInColumnList(names.get(i)));
     }
   }
 

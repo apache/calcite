@@ -403,10 +403,11 @@ public abstract class SqlToRelTestBase {
       }
 
       public RelOptTable extend(List<RelDataTypeField> extendedFields) {
-        final RelDataType extendedRowType = typeFactory.builder()
-            .addAll(rowType.getFieldList())
-            .addAll(extendedFields)
-            .build();
+        final RelDataType extendedRowType =
+            getRelOptSchema().getTypeFactory().builder()
+                .addAll(rowType.getFieldList())
+                .addAll(extendedFields)
+                .build();
         return new MockColumnSet(names, extendedRowType, collationList);
       }
     }

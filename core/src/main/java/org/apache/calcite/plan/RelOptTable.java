@@ -104,7 +104,12 @@ public interface RelOptTable extends Wrapper {
    */
   Expression getExpression(Class clazz);
 
-  /** Returns a table with the given extra fields. */
+  /** Returns a table with the given extra fields.
+   *
+   * <p>The extended table includes the fields of this base table plus the
+   * extended fields that do not have the same name as a field in the base
+   * table.
+   */
   RelOptTable extend(List<RelDataTypeField> extendedFields);
 
   /** Can expand a view into relational expressions. */

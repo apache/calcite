@@ -18,8 +18,6 @@ package org.apache.calcite.sql2rel;
 
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.rel.type.RelDataTypeFactory;
-import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlFunction;
 
@@ -29,23 +27,23 @@ import java.util.List;
  * An implementation of {@link InitializerExpressionFactory} that always supplies NULL.
  */
 public class NullInitializerExpressionFactory implements InitializerExpressionFactory {
-  protected final RexBuilder rexBuilder;
 
-  public NullInitializerExpressionFactory(RelDataTypeFactory typeFactory) {
-    this.rexBuilder = new RexBuilder(typeFactory);
+  public NullInitializerExpressionFactory() {
   }
 
   public boolean isGeneratedAlways(RelOptTable table, int iColumn) {
     return false;
   }
 
-  public RexNode newColumnDefaultValue(RelOptTable table, int iColumn) {
-    return rexBuilder.constantNull();
+  public RexNode newColumnDefaultValue(RelOptTable table, int iColumn,
+      InitializerContext context) {
+    return context.getRexBuilder().constantNull();
   }
 
   public RexNode newAttributeInitializer(RelDataType type,
-      SqlFunction constructor, int iAttribute, List<RexNode> constructorArgs) {
-    return rexBuilder.constantNull();
+      SqlFunction constructor, int iAttribute, List<RexNode> constructorArgs,
+      InitializerContext context) {
+    return context.getRexBuilder().constantNull();
   }
 }
 

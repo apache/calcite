@@ -93,6 +93,11 @@ public class ViewTable
     return schemaPath;
   }
 
+  /** Returns the the path of the view. */
+  public List<String> getViewPath() {
+    return viewPath;
+  }
+
   @Override public Schema.TableType getJdbcTableType() {
     return Schema.TableType.VIEW;
   }

@@ -18,8 +18,10 @@ package org.apache.calcite.sql.validate;
 
 import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.linq4j.Ord;
+import org.apache.calcite.linq4j.function.Function2;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.prepare.Prepare;
 import org.apache.calcite.rel.type.DynamicRecordType;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
@@ -86,6 +88,7 @@ import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.util.SqlBasicVisitor;
 import org.apache.calcite.sql.util.SqlShuttle;
 import org.apache.calcite.sql.util.SqlVisitor;
+import org.apache.calcite.sql2rel.InitializerContext;
 import org.apache.calcite.util.BitString;
 import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.ImmutableBitSet;
@@ -268,6 +271,9 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   private boolean validatingSqlMerge;
 
   private boolean inWindow;                        // Allow nested aggregates
+
+  private final SqlValidatorImpl.ValidationErrorFunction validationErrorFunction =
+      new SqlValidatorImpl.ValidationErrorFunction();
 
   //~ Constructors -----------------------------------------------------------
 
@@ -3391,17 +3397,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         throw newValidationError(withItem.columnList,
             RESOURCE.columnCountMismatch());
       }
-      final List<String> names = Lists.transform(withItem.columnList.getList(),
-          new Function<SqlNode, String>() {
-            public String apply(SqlNode o) {
-              return ((SqlIdentifier) o).getSimple();
-            }
-          });
-      final int i = Util.firstDuplicate(names);
-      if (i >= 0) {
-        throw newValidationError(withItem.columnList.get(i),
-            RESOURCE.duplicateNameInColumnList(names.get(i)));
-      }
+      SqlValidatorUtil.checkIdentifierListForDuplicates(
+          withItem.columnList.getList(), validationErrorFunction);
     } else {
       // Luckily, field names have not been make unique yet.
       final List<String> fieldNames =
@@ -3826,25 +3823,29 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   }
 
   public void validateInsert(SqlInsert insert) {
-    SqlValidatorNamespace targetNamespace = getNamespace(insert);
+    final SqlValidatorNamespace targetNamespace = getNamespace(insert);
     validateNamespace(targetNamespace, unknownType);
-    SqlValidatorTable table = targetNamespace.getTable();
+    final RelOptTable relOptTable = SqlValidatorUtil.getRelOptTable(
+        targetNamespace, catalogReader.unwrap(Prepare.CatalogReader.class), null, null);
+    final SqlValidatorTable table = relOptTable == null
+        ? targetNamespace.getTable()
+        : relOptTable.unwrap(SqlValidatorTable.class);
 
     // INSERT has an optional column name list.  If present then
     // reduce the rowtype to the columns specified.  If not present
     // then the entire target rowtype is used.
-    RelDataType targetRowType =
+    final RelDataType targetRowType =
         createTargetRowType(
             table,
             insert.getTargetColumnList(),
             false);
 
-    SqlNode source = insert.getSource();
+    final SqlNode source = insert.getSource();
     if (source instanceof SqlSelect) {
-      SqlSelect sqlSelect = (SqlSelect) source;
+      final SqlSelect sqlSelect = (SqlSelect) source;
       validateSelect(sqlSelect, targetRowType);
     } else {
-      SqlValidatorScope scope = scopes.get(source);
+      final SqlValidatorScope scope = scopes.get(source);
       validateQuery(source, scope, targetRowType);
     }
 
@@ -3853,11 +3854,11 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     // from validateSelect above).  It would be better if that information
     // were used here so that we never saw any untyped nulls during
     // checkTypeAssignment.
-    RelDataType sourceRowType = getNamespace(source).getRowType();
-    RelDataType logicalTargetRowType =
+    final RelDataType sourceRowType = getNamespace(source).getRowType();
+    final RelDataType logicalTargetRowType =
         getLogicalTargetRowType(targetRowType, insert);
     setValidatedNodeType(insert, logicalTargetRowType);
-    RelDataType logicalSourceRowType =
+    final RelDataType logicalSourceRowType =
         getLogicalSourceRowType(sourceRowType, insert);
 
     checkFieldCount(insert, table, logicalSourceRowType, logicalTargetRowType);
@@ -4019,13 +4020,19 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
           RESOURCE.unmatchInsertColumn(targetFieldCount, sourceFieldCount));
     }
     // Ensure that non-nullable fields are targeted.
+    final InitializerContext rexBuilder =
+        new InitializerContext() {
+          public RexBuilder getRexBuilder() {
+            return new RexBuilder(typeFactory);
+          }
+        };
     for (final RelDataTypeField field : table.getRowType().getFieldList()) {
       if (!field.getType().isNullable()) {
         final RelDataTypeField targetField =
             logicalTargetRowType.getField(field.getName(), true, false);
         if (targetField == null
             && !table.columnHasDefaultValue(table.getRowType(),
-                field.getIndex())) {
+                field.getIndex(), rexBuilder)) {
           throw newValidationError(node,
               RESOURCE.columnNotNullable(field.getName()));
         }
@@ -4150,35 +4157,35 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   }
 
   public void validateDelete(SqlDelete call) {
-    SqlSelect sqlSelect = call.getSourceSelect();
+    final SqlSelect sqlSelect = call.getSourceSelect();
     validateSelect(sqlSelect, unknownType);
 
-    IdentifierNamespace targetNamespace =
-        getNamespace(call.getTargetTable()).unwrap(
-            IdentifierNamespace.class);
+    final SqlValidatorNamespace targetNamespace = getNamespace(call);
     validateNamespace(targetNamespace, unknownType);
-    SqlValidatorTable table = targetNamespace.getTable();
+    final SqlValidatorTable table = targetNamespace.getTable();
 
     validateAccess(call.getTargetTable(), table, SqlAccessEnum.DELETE);
   }
 
   public void validateUpdate(SqlUpdate call) {
-    IdentifierNamespace targetNamespace =
-        getNamespace(call.getTargetTable()).unwrap(
-            IdentifierNamespace.class);
+    final SqlValidatorNamespace targetNamespace = getNamespace(call);
     validateNamespace(targetNamespace, unknownType);
-    SqlValidatorTable table = targetNamespace.getTable();
+    final RelOptTable relOptTable = SqlValidatorUtil.getRelOptTable(
+        targetNamespace, catalogReader.unwrap(Prepare.CatalogReader.class), null, null);
+    final SqlValidatorTable table = relOptTable == null
+        ? targetNamespace.getTable()
+        : relOptTable.unwrap(SqlValidatorTable.class);
 
-    RelDataType targetRowType =
+    final RelDataType targetRowType =
         createTargetRowType(
             table,
             call.getTargetColumnList(),
             true);
 
-    SqlSelect select = call.getSourceSelect();
+    final SqlSelect select = call.getSourceSelect();
     validateSelect(select, targetRowType);
 
-    RelDataType sourceRowType = getNamespace(select).getRowType();
+    final RelDataType sourceRowType = getNamespace(call).getRowType();
     checkTypeAssignment(sourceRowType, targetRowType, call);
 
     checkConstraint(table, call, targetRowType);
@@ -4354,6 +4361,22 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   }
 
   public void validateDynamicParam(SqlDynamicParam dynamicParam) {
+  }
+
+  /**
+   * Throws a validator exception.
+   */
+  public class ValidationErrorFunction
+      implements Function2<SqlNode, Resources.ExInst<SqlValidatorException>,
+            CalciteContextException> {
+    @Override public CalciteContextException apply(
+        SqlNode v0, Resources.ExInst<SqlValidatorException> v1) {
+      return newValidationError(v0, v1);
+    }
+  }
+
+  public ValidationErrorFunction getValidationErrorFunction() {
+    return validationErrorFunction;
   }
 
   public CalciteContextException newValidationError(SqlNode node,

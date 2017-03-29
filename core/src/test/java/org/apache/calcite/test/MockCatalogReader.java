@@ -81,6 +81,7 @@ import org.apache.calcite.sql.validate.SqlMonotonicity;
 import org.apache.calcite.sql.validate.SqlNameMatcher;
 import org.apache.calcite.sql.validate.SqlNameMatchers;
 import org.apache.calcite.sql.validate.SqlValidatorCatalogReader;
+import org.apache.calcite.sql2rel.InitializerContext;
 import org.apache.calcite.sql2rel.InitializerExpressionFactory;
 import org.apache.calcite.sql2rel.NullInitializerExpressionFactory;
 import org.apache.calcite.util.ImmutableBitSet;
@@ -199,8 +200,10 @@ public class MockCatalogReader extends CalciteCatalogReader {
 
     // Register "EMPDEFAULTS" table with default values for some columns.
     final InitializerExpressionFactory empInitializerExpressionFactory =
-        new NullInitializerExpressionFactory(typeFactory) {
-          @Override public RexNode newColumnDefaultValue(RelOptTable table, int iColumn) {
+        new NullInitializerExpressionFactory() {
+          @Override public RexNode newColumnDefaultValue(RelOptTable table,
+              int iColumn, InitializerContext context) {
+            final RexBuilder rexBuilder = context.getRexBuilder();
             switch (iColumn) {
             case 0:
               return rexBuilder.makeExactLiteral(new BigDecimal(123),
@@ -371,7 +374,7 @@ public class MockCatalogReader extends CalciteCatalogReader {
     //   FROM EMP
     //   WHERE DEPTNO = 20 AND SAL > 1000
     final NullInitializerExpressionFactory nullInitializerFactory =
-        new NullInitializerExpressionFactory(this.typeFactory);
+        new NullInitializerExpressionFactory();
     final ImmutableIntList m0 = ImmutableIntList.of(0, 1, 2, 3, 4, 5, 6, 8);
     MockTable emp20View =
         new MockViewTable(this, salesSchema.getCatalogName(), salesSchema.name,
@@ -548,6 +551,20 @@ public class MockCatalogReader extends CalciteCatalogReader {
         empModifiableViewNames2.get(2), false, 20, null);
     registerTable(mockEmpViewTable2);
 
+    // Same as "EMP_MODIFIABLEVIEW" except that comm is not in the view.
+    List<String> empModifiableViewNames3 = ImmutableList.of(
+        salesSchema.getCatalogName(), salesSchema.name, "EMP_MODIFIABLEVIEW3");
+    TableMacro empModifiableViewMacro3 = MockModifiableViewRelOptTable.viewMacro(rootSchema,
+        "select EMPNO, ENAME, JOB, MGR, HIREDATE, SAL, SLACKER from EMPDEFAULTS"
+            + " where DEPTNO = 20", empModifiableViewNames3.subList(0, 2),
+        ImmutableList.of(empModifiableViewNames3.get(2)), true);
+    TranslatableTable empModifiableView3 = empModifiableViewMacro3.apply(ImmutableList.of());
+    MockModifiableViewRelOptTable mockEmpViewTable3 = MockModifiableViewRelOptTable.create(
+        (MockModifiableViewRelOptTable.MockModifiableViewTable) empModifiableView3, this,
+        empModifiableViewNames3.get(0), empModifiableViewNames3.get(1),
+        empModifiableViewNames3.get(2), false, 20, null);
+    registerTable(mockEmpViewTable3);
+
     return this;
   }
 
@@ -707,9 +724,8 @@ public class MockCatalogReader extends CalciteCatalogReader {
         super(tableName);
       }
 
-      @Override public RelDataType
-      getRowType(RelDataTypeFactory typeFactory) {
-        return typeFactory.createStructType(rowType.getFieldList());
+      @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+        return typeFactory.createStructType(MockTable.this.getRowType().getFieldList());
       }
 
       @Override public Collection getModifiableCollection() {
@@ -745,7 +761,7 @@ public class MockCatalogReader extends CalciteCatalogReader {
           @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
             ImmutableList<RelDataTypeField> allFields = ImmutableList.copyOf(
                 Iterables.concat(
-                    rowType.getFieldList(),
+                    ModifiableTable.this.getRowType(typeFactory).getFieldList(),
                     fields));
             return typeFactory.createStructType(allFields);
           }
@@ -791,7 +807,7 @@ public class MockCatalogReader extends CalciteCatalogReader {
         MockSchema schema, String name, boolean stream, double rowCount,
         ColumnResolver resolver) {
       return create(catalogReader, schema, name, stream, rowCount, resolver,
-          new NullInitializerExpressionFactory(catalogReader.typeFactory));
+          new NullInitializerExpressionFactory());
     }
 
     public static MockTable create(MockCatalogReader catalogReader,
@@ -891,16 +907,6 @@ public class MockCatalogReader extends CalciteCatalogReader {
       assert Pair.left(columnList).contains(name);
     }
 
-    public RelOptTable extend(List<RelDataTypeField> extendedFields) {
-      final MockTable table = new MockTable(catalogReader, names.get(0),
-          names.get(1), names.get(2), stream, rowCount, resolver,
-          initializerFactory);
-      table.columnList.addAll(columnList);
-      table.columnList.addAll(extendedFields);
-      table.onRegister(catalogReader.typeFactory);
-      return table;
-    }
-
     public void setKind(StructKind kind) {
       this.kind = kind;
     }
@@ -947,10 +953,10 @@ public class MockCatalogReader extends CalciteCatalogReader {
       final InitializerExpressionFactory maybeInitializerExpressionFactory =
           underlying != null && underlying instanceof Wrapper
               ? ((Wrapper) underlying).unwrap(InitializerExpressionFactory.class)
-              : new NullInitializerExpressionFactory(catalogReader.typeFactory);
+              : new NullInitializerExpressionFactory();
       final InitializerExpressionFactory initializerExpressionFactory =
           maybeInitializerExpressionFactory == null
-              ? new NullInitializerExpressionFactory(catalogReader.typeFactory)
+              ? new NullInitializerExpressionFactory()
               : maybeInitializerExpressionFactory;
       return new MockModifiableViewRelOptTable(modifiableViewTable, catalogReader, catalogName,
           schemaName, name, stream, rowCount, resolver, initializerExpressionFactory);
@@ -965,19 +971,10 @@ public class MockCatalogReader extends CalciteCatalogReader {
       return modifiableViewTable.getRowType(catalogReader.typeFactory);
     }
 
-    @Override public RelOptTable extend(List<RelDataTypeField> extendedFields) {
-      final ExtensibleTable table = modifiableViewTable.unwrap(ExtensibleTable.class);
-      final Table extendedTable = table.extend(extendedFields);
-      final MockModifiableViewTable mockModifiableViewTableExtended =
-          new MockModifiableViewTable(modifiableViewTable.elementType,
-              RelDataTypeImpl.proto(extendedTable.getRowType(modifiableViewTable.typeFactory)),
-              modifiableViewTable.viewSql, modifiableViewTable.schemaPath,
-              modifiableViewTable.viewPath, extendedTable, modifiableViewTable.tablePath,
-              modifiableViewTable.constraint, modifiableViewTable.columnMapping,
-              modifiableViewTable.typeFactory);
-      return new MockModifiableViewRelOptTable(mockModifiableViewTableExtended, catalogReader,
-          stream, rowCount, columnList, keyList, rowType, collationList, names, monotonicColumnSet,
-          kind, resolver, initializerFactory);
+    @Override protected RelOptTable extend(Table extendedTable) {
+      return new MockModifiableViewRelOptTable((MockModifiableViewTable) extendedTable,
+          catalogReader, stream, rowCount, columnList, keyList, rowType, collationList, names,
+          monotonicColumnSet, kind, resolver, initializerFactory);
     }
 
     @Override public <T> T unwrap(Class<T> clazz) {
@@ -1004,7 +1001,7 @@ public class MockCatalogReader extends CalciteCatalogReader {
         return new MockModifiableViewTable(elementType,
             RelDataTypeImpl.proto(parsed.rowType), viewSql, schemaPath, viewPath,
             parsed.table, Schemas.path(schema.root(), parsed.tablePath),
-            parsed.constraint, parsed.columnMapping, parsed.typeFactory);
+            parsed.constraint, parsed.columnMapping);
       }
     }
 
@@ -1012,32 +1009,24 @@ public class MockCatalogReader extends CalciteCatalogReader {
      * A mock of ModifiableViewTable that can unwrap a mock RelOptTable.
      */
     private static class MockModifiableViewTable extends ModifiableViewTable {
-      private final Type elementType;
-      private final String viewSql;
-      private final List<String> schemaPath;
-      private final List<String> viewPath;
-      private final Path tablePath;
       private final RexNode constraint;
-      private final ImmutableIntList columnMapping;
-      private final RelDataTypeFactory typeFactory;
 
       MockModifiableViewTable(Type elementType, RelProtoDataType rowType,
           String viewSql, List<String> schemaPath, List<String> viewPath,
           Table table, Path tablePath, RexNode constraint,
-          ImmutableIntList columnMapping, RelDataTypeFactory typeFactory) {
+          ImmutableIntList columnMapping) {
         super(elementType, rowType, viewSql, schemaPath, viewPath, table,
-            tablePath, constraint, columnMapping, typeFactory);
-        this.elementType = elementType;
-        this.viewSql = viewSql;
-        this.schemaPath = schemaPath;
-        this.viewPath = viewPath;
-        this.tablePath = tablePath;
+            tablePath, constraint, columnMapping);
         this.constraint = constraint;
-        this.columnMapping = columnMapping;
-        this.typeFactory = typeFactory;
+      }
+
+      @Override public ModifiableViewTable extend(Table extendedTable,
+          RelProtoDataType protoRowType, ImmutableIntList newColumnMapping) {
+        return new MockModifiableViewTable(getElementType(), protoRowType,
+            getViewSql(), getSchemaPath(), getViewPath(), extendedTable,
+            getTablePath(), constraint, newColumnMapping);
       }
     }
-
   }
 
   /**
@@ -1179,7 +1168,7 @@ public class MockCatalogReader extends CalciteCatalogReader {
     MockDynamicTable(MockCatalogReader catalogReader, String catalogName,
         String schemaName, String name, boolean stream, double rowCount) {
       super(catalogReader, catalogName, schemaName, name, stream, rowCount,
-          null, new NullInitializerExpressionFactory(catalogReader.typeFactory));
+          null, new NullInitializerExpressionFactory());
     }
 
     public void onRegister(RelDataTypeFactory typeFactory) {
@@ -1556,9 +1545,9 @@ public class MockCatalogReader extends CalciteCatalogReader {
             RelDataTypeComparability.NONE);
   }
 
-  /** To check whether {@link #newColumnDefaultValue} is called. */
-  public static class CountingFactory
-      extends NullInitializerExpressionFactory {
+  /** To check whether
+   * {@link InitializerExpressionFactory#newColumnDefaultValue} is called. */
+  public static class CountingFactory extends NullInitializerExpressionFactory {
     static final ThreadLocal<AtomicInteger> THREAD_CALL_COUNT =
         new ThreadLocal<AtomicInteger>() {
           protected AtomicInteger initialValue() {
@@ -1567,21 +1556,21 @@ public class MockCatalogReader extends CalciteCatalogReader {
         };
 
     CountingFactory(RelDataTypeFactory typeFactory) {
-      super(typeFactory);
+      super();
     }
 
     @Override public RexNode newColumnDefaultValue(RelOptTable table,
-        int iColumn) {
+        int iColumn, InitializerContext context) {
       THREAD_CALL_COUNT.get().incrementAndGet();
-      return super.newColumnDefaultValue(table, iColumn);
+      return super.newColumnDefaultValue(table, iColumn, context);
     }
 
     @Override public RexNode newAttributeInitializer(RelDataType type,
         SqlFunction constructor, int iAttribute,
-        List<RexNode> constructorArgs) {
+        List<RexNode> constructorArgs, InitializerContext context) {
       THREAD_CALL_COUNT.get().incrementAndGet();
       return super.newAttributeInitializer(type, constructor, iAttribute,
-         constructorArgs);
+         constructorArgs, context);
     }
   }
 }

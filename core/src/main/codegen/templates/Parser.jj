@@ -1265,7 +1265,8 @@ SqlNode NamedRoutineCall(
 SqlNode SqlInsert() :
 {
     final List<SqlLiteral> keywords = Lists.newArrayList();
-    SqlIdentifier table;
+    SqlNode table;
+    SqlNodeList extendList = null;
     SqlNode source;
     SqlNodeList columnList = null;
     SqlParserPos pos;
@@ -1278,6 +1279,13 @@ SqlNode SqlInsert() :
     )
     SqlInsertKeywords(keywords)
     <INTO> table = CompoundIdentifier()
+    [
+        LOOKAHEAD(3)
+        [ <EXTEND> ]
+        extendList = ExtendList() {
+            table = extend(table, extendList);
+        }
+    ]
     {
         pos = getPos();
     }
@@ -1980,14 +1988,19 @@ void ColumnType(List<SqlNode> list) :
 {
     SqlIdentifier name;
     SqlDataTypeSpec type;
+    boolean nullable = true;
 }
 {
     name = SimpleIdentifier()
     type = DataType()
-    [ <NOT> <NULL> { type = type.withNullable(false); } ]
+    [
+        <NOT> <NULL> {
+            nullable = false;
+        }
+    ]
     {
         list.add(name);
-        list.add(type);
+        list.add(type.withNullable(nullable));
     }
 }
 

@@ -55,6 +55,7 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorCatalogReader;
 import org.apache.calcite.sql.validate.SqlValidatorTable;
+import org.apache.calcite.sql2rel.InitializerContext;
 import org.apache.calcite.sql2rel.InitializerExpressionFactory;
 import org.apache.calcite.sql2rel.SqlToRelConverter;
 import org.apache.calcite.tools.Program;
@@ -405,14 +406,15 @@ public abstract class Prepare {
    * for {@link #columnHasDefaultValue}. */
   public abstract static class AbstractPreparingTable
       implements PreparingTable {
-    public boolean columnHasDefaultValue(RelDataType rowType, int ordinal) {
+    public boolean columnHasDefaultValue(RelDataType rowType, int ordinal,
+        InitializerContext initializerContext) {
       final Table table = this.unwrap(Table.class);
       if (table != null && table instanceof Wrapper) {
         final InitializerExpressionFactory initializerExpressionFactory =
             ((Wrapper) table).unwrap(InitializerExpressionFactory.class);
         if (initializerExpressionFactory != null) {
           return !initializerExpressionFactory
-              .newColumnDefaultValue(this, ordinal)
+              .newColumnDefaultValue(this, ordinal, initializerContext)
               .getType().getSqlTypeName().equals(SqlTypeName.NULL);
         }
       }
@@ -422,23 +424,30 @@ public abstract class Prepare {
       return !rowType.getFieldList().get(ordinal).getType().isNullable();
     }
 
-    public RelOptTable extend(List<RelDataTypeField> extendedFields) {
+    public final RelOptTable extend(List<RelDataTypeField> extendedFields) {
       final Table table = unwrap(Table.class);
+
+      // Get the set of extended columns that do not have the same name as a column
+      // in the base table.
+      final List<RelDataTypeField> baseColumns = getRowType().getFieldList();
+      final List<RelDataTypeField> dedupedFields =
+          RelOptUtil.deduplicateColumns(baseColumns, extendedFields);
+      final List<RelDataTypeField> dedupedExtendedFields =
+          dedupedFields.subList(baseColumns.size(), dedupedFields.size());
+
       if (table instanceof ExtensibleTable) {
-        return extend((ExtensibleTable) table, extendedFields);
+        final Table extendedTable =
+                ((ExtensibleTable) table).extend(dedupedExtendedFields);
+        return extend(extendedTable);
       } else if (table instanceof ModifiableViewTable) {
-        final Table underlying = ((Wrapper) table).unwrap(Table.class);
-        if (underlying instanceof ExtensibleTable) {
-          return extend((ExtensibleTable) underlying, extendedFields);
-        }
+        final ModifiableViewTable modifiableViewTable =
+                (ModifiableViewTable) table;
+        final ModifiableViewTable extendedView =
+            modifiableViewTable.extend(dedupedExtendedFields,
+                getRelOptSchema().getTypeFactory());
+        return extend(extendedView);
       }
       throw new RuntimeException("Cannot extend " + table);
-    }
-
-    private RelOptTable extend(ExtensibleTable table,
-        List<RelDataTypeField> extendedFields) {
-      final Table extendedTable = table.extend(extendedFields);
-      return extend(extendedTable);
     }
 
     /** Implementation-specific code to instantiate a new {@link RelOptTable}

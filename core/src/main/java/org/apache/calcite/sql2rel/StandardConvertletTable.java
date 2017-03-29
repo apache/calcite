@@ -897,10 +897,15 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
     int n = type.getFieldCount();
     ImmutableList.Builder<RexNode> initializationExprs =
         ImmutableList.builder();
+    final InitializerContext initializerContext = new InitializerContext() {
+      public RexBuilder getRexBuilder() {
+        return rexBuilder;
+      }
+    };
     for (int i = 0; i < n; ++i) {
       initializationExprs.add(
           cx.getInitializerExpressionFactory().newAttributeInitializer(
-              type, constructor, i, exprs));
+              type, constructor, i, exprs, initializerContext));
     }
 
     List<RexNode> defaultCasts =

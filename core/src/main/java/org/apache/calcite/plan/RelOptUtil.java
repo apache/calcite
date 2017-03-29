@@ -99,6 +99,7 @@ import org.apache.calcite.util.mapping.Mappings;
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
@@ -2001,6 +2002,23 @@ public abstract class RelOptUtil {
     }
     pw.flush();
     return sw.toString();
+  }
+
+  /**
+   * Returns the set of columns with unique names, with prior columns taking
+   * precedence over columns that appear later in the list.
+   */
+  public static List<RelDataTypeField> deduplicateColumns(
+      List<RelDataTypeField> baseColumns, List<RelDataTypeField> extendedColumns) {
+    final Set<String> dedupedFieldNames = new HashSet<>();
+    final ImmutableList.Builder<RelDataTypeField> dedupedFields =
+        ImmutableList.builder();
+    for (RelDataTypeField f : Iterables.concat(baseColumns, extendedColumns)) {
+      if (dedupedFieldNames.add(f.getName())) {
+        dedupedFields.add(f);
+      }
+    }
+    return dedupedFields.build();
   }
 
   /**
