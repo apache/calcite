@@ -959,7 +959,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
         }
         final boolean numeric =
                 call.getOperands().get(posRef).getType().getFamily() == SqlTypeFamily.NUMERIC;
-        final String dimName;
+        String dimName;
         JsonExtractionFn extractionFn = null;
 
         if (call.getOperands().get(posRef).isA(SqlKind.EXTRACT)) {
@@ -975,6 +975,10 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
           extractionFn = DruidDateTimeUtils.getExtractionFilter(extractionCall);
         } else {
           dimName = tr(e, posRef);
+        }
+
+        if ("timestamp".equals(dimName)) {
+          dimName = "__time";
         }
         switch (e.getKind()) {
         case EQUALS:

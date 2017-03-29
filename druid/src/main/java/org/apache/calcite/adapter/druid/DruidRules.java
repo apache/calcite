@@ -30,6 +30,7 @@ import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.rules.AggregateFilterTransposeRule;
+import org.apache.calcite.rel.rules.DateRangeRules;
 import org.apache.calcite.rel.rules.FilterAggregateTransposeRule;
 import org.apache.calcite.rel.rules.FilterProjectTransposeRule;
 import org.apache.calcite.rel.rules.ProjectFilterTransposeRule;
@@ -48,7 +49,6 @@ import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.rex.RexSimplify;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.runtime.PredicateImpl;
-import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.ImmutableBitSet;
@@ -224,8 +224,7 @@ public class DruidRules {
             // Complex predicate, transformation currently not supported
             return null;
           }
-          if (((RexCall) conj).getOperands().get(0).getKind().equals(SqlKind.EXTRACT)
-                  || ((RexCall) conj).getOperands().get(1).getKind().equals(SqlKind.EXTRACT)) {
+          if (!DateRangeRules.extractTimeUnits(conj).isEmpty()) {
             //case extraction on time will be added as filter
             otherNodes.add(conj);
           } else {

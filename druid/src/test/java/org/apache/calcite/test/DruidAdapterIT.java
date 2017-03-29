@@ -1415,16 +1415,13 @@ public class DruidAdapterIT {
         + "and extract(month from \"timestamp\") in (4, 6)\n";
     final String explain = "PLAN=EnumerableInterpreter\n"
             + "  DruidQuery(table=[[foodmart, foodmart]], "
-            + "intervals=[[1997-04-01T00:00:00.000/1997-05-01T00:00:00.000, "
-            + "1997-06-01T00:00:00.000/1997-07-01T00:00:00.000]], projects=[[]], groups=[{}], "
-            + "aggs=[[COUNT()]])";
+            + "intervals=[[1900-01-09T00:00:00.000/2992-01-10T00:00:00.000]], filter=[AND(="
+            + "(EXTRACT_DATE(FLAG(YEAR), /INT(Reinterpret($0), 86400000)), 1997), OR(="
+            + "(EXTRACT_DATE(FLAG(MONTH), /INT(Reinterpret($0), 86400000)), 4), =(EXTRACT_DATE"
+            + "(FLAG(MONTH), /INT(Reinterpret($0), 86400000)), 6)))], groups=[{}], aggs=[[COUNT()"
+            + "]])";
     sql(sql)
-
         .explainContains(explain)
-        .queryContains(
-             druidChecker("'queryType':'timeseries'", "\"intervals\":[\"1997-04-01T00"
-             + ":00:00.000/1997-05-01T00:00:00.000\","
-             + "\"1997-06-01T00:00:00.000/1997-07-01T00:00:00.000\"]"))
         .returnsUnordered("C=13500");
   }
 
@@ -1513,19 +1510,25 @@ public class DruidAdapterIT {
 
   @Test public void testExtractWithMonthOnly() {
     final String sql = "Select \"product_id\" from \"foodmart\" where extract(month from "
-            + "\"timestamp\") > 9 and \"product_id\" = '1024' group by \"product_id\"";
-    final String explain = "PLAN=EnumerableInterpreter\n" + "  BindableAggregate(group=[{1}])\n"
-            + "    BindableFilter(condition=[AND(>(EXTRACT_DATE(FLAG(MONTH), /INT(Reinterpret($0)"
-            + ", 86400000)), 9), =($1, '1024'))])\n"
-            + "      DruidQuery(table=[[foodmart, foodmart]], "
-            + "intervals=[[1900-01-09T00:00:00.000/2992-01-10T00:00:00.000]], projects=[[$0, $1]])";
-    sql(sql).explainContains(explain).returnsUnordered("product_id=1024")
-            .queryContains(druidChecker("select"));
-    //@TODO not sure why we can not push the filter on product_id to druid.
-    // As followup one can investigate can we push partial filter to druid,
-    // in case some like extract not pushable
+            + "\"timestamp\") > 9 and \"product_id\" = 1024 group by \"product_id\"";
+    final String explain = "PLAN=EnumerableInterpreter\n"
+            + "  DruidQuery(table=[[foodmart, foodmart]], "
+            + "intervals=[[1900-01-09T00:00:00.000/2992-01-10T00:00:00.000]], filter=[AND(>"
+            + "(EXTRACT_DATE(FLAG(MONTH), /INT(Reinterpret($0), 86400000)), 9), =($1, 1024))], "
+            + "groups=[{1}], aggs=[[]])";
+    sql(sql).explainContains(explain).queryContains(
+            druidChecker(
+            "{\"queryType\":\"groupBy\",\"dataSource\":\"foodmart\","
+                    + "\"granularity\":\"all\",\"dimensions\":[\"product_id\"],"
+                    + "\"limitSpec\":{\"type\":\"default\"},\"filter\":{\"type\":\"and\","
+                    + "\"fields\":[{\"type\":\"bound\",\"dimension\":\"__time\",\"lower\":\"9\","
+                    + "\"lowerStrict\":true,\"alphaNumeric\":true,"
+                    + "\"extractionFn\":{\"type\":\"timeFormat\",\"format\":\"M\"}},"
+                    + "{\"type\":\"selector\",\"dimension\":\"product_id\",\"value\":\"1024\"}]},"
+                    + "\"aggregations\":[{\"type\":\"longSum\",\"name\":\"dummy_agg\","
+                    + "\"fieldName\":\"dummy_agg\"}],"
+                    + "\"intervals\":[\"1900-01-09T00:00:00.000/2992-01-10T00:00:00.000\"]}"));
   }
->>>>>>> 0595e63... add bail in case no year is present
 }
 
 // End DruidAdapterIT.java
