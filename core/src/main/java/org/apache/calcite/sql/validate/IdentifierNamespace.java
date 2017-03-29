@@ -44,7 +44,7 @@ public class IdentifierNamespace extends AbstractNamespace {
 
   private final SqlIdentifier id;
   private final SqlValidatorScope parentScope;
-  private final SqlNodeList extendList;
+  public final SqlNodeList extendList;
 
   /**
    * The underlying namespace. Often a {@link TableNamespace}.
@@ -198,10 +198,9 @@ public class IdentifierNamespace extends AbstractNamespace {
       if (!(resolvedNamespace instanceof TableNamespace)) {
         throw new RuntimeException("cannot convert");
       }
-      final List<RelDataTypeField> extendedFields =
-          SqlValidatorUtil.getExtendedColumns(validator, getTable(), extendList);
       resolvedNamespace =
-          ((TableNamespace) resolvedNamespace).extend(extendedFields);
+          ((TableNamespace) resolvedNamespace).extend(extendList,
+              validator.getTypeFactory());
       rowType = resolvedNamespace.getRowType();
     }
 

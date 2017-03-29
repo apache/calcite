@@ -23,6 +23,7 @@ import org.apache.calcite.rel.RelDistributions;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.logical.LogicalTableScan;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.util.ImmutableBitSet;
 
@@ -102,7 +103,7 @@ public abstract class RelOptAbstractTable implements RelOptTable {
     throw new UnsupportedOperationException();
   }
 
-  public RelOptTable extend(List<RelDataTypeField> extendedFields) {
+  public RelOptTable extend(List<RelDataTypeField> extendedFields, RelDataTypeFactory typeFactory) {
     throw new UnsupportedOperationException();
   }
 }

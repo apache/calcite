@@ -22,13 +22,21 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.schema.ExtensibleTable;
 import org.apache.calcite.schema.Table;
+import org.apache.calcite.schema.impl.ModifiableViewTable;
+import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlNodeList;
+import org.apache.calcite.util.Util;
 
 import com.google.common.base.Preconditions;
+import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 
 import java.util.List;
+import java.util.Map;
+
+import static org.apache.calcite.util.Static.RESOURCE;
 
 /** Namespace based on a table from the catalog. */
 class TableNamespace extends AbstractNamespace {
@@ -78,21 +86,88 @@ class TableNamespace extends AbstractNamespace {
    * <p>Extended fields are "hidden" or undeclared fields that may nevertheless
    * be present if you ask for them. Phoenix uses them, for instance, to access
    * rarely used fields in the underlying HBase table. */
-  public TableNamespace extend(List<RelDataTypeField> extendedFields) {
+  public TableNamespace extend(SqlNodeList extendList,
+      RelDataTypeFactory typeFactory) {
+    final List<SqlNode> identifierList = Util.quotientList(extendList.getList(), 2, 0);
+    SqlValidatorUtil.checkIdentifierListForDuplicates(
+        identifierList, validator.getValidationErrorFunction());
+    final List<RelDataTypeField> extendedFields =
+        SqlValidatorUtil.getExtendedColumns(validator.getTypeFactory(), getTable(), extendList);
     final Table schemaTable = table.unwrap(Table.class);
     if (schemaTable != null
         && table instanceof RelOptTable
-        && schemaTable instanceof ExtensibleTable) {
-      final SqlValidatorTable validatorTable =
+        && (schemaTable instanceof ExtensibleTable
+          || schemaTable instanceof ModifiableViewTable)) {
+      checkExtendedColumnTypes(extendList);
+      final RelOptTable relOptTable =
           ((RelOptTable) table).extend(ImmutableList.copyOf(
-              Iterables.concat(this.extendedFields, extendedFields)))
-          .unwrap(SqlValidatorTable.class);
+              Iterables.concat(this.extendedFields, extendedFields)),
+              typeFactory);
+      final SqlValidatorTable validatorTable = relOptTable.unwrap(SqlValidatorTable.class);
       return new TableNamespace(
           validator, validatorTable, ImmutableList.<RelDataTypeField>of());
     }
     return new TableNamespace(validator, table,
         ImmutableList.copyOf(
             Iterables.concat(this.extendedFields, extendedFields)));
+  }
+
+  /**
+   * Gets the data-type of all columns in a table (for a view table: including
+   * columns of the underlying table)
+   */
+  private RelDataType getBaseRowType() {
+    final Table schemaTable = table.unwrap(Table.class);
+    if (schemaTable instanceof ModifiableViewTable) {
+      final Table underlying =
+          ((ModifiableViewTable) schemaTable).unwrap(Table.class);
+      assert underlying != null;
+      return underlying.getRowType(validator.typeFactory);
+    }
+    return schemaTable.getRowType(validator.typeFactory);
+  }
+
+  /**
+   * Ensures that extended columns that have the same name as a base column also
+   * have the same data-type.
+   */
+  private void checkExtendedColumnTypes(SqlNodeList extendList) {
+    final List<RelDataTypeField> extendedFields =
+        SqlValidatorUtil.getExtendedColumns(
+            validator.getTypeFactory(), table, extendList);
+    final List<RelDataTypeField> baseFields =
+        getBaseRowType().getFieldList();
+    final Map<String, Integer> nameToIndex =
+        SqlValidatorUtil.mapNameToIndex(baseFields);
+
+    for (final RelDataTypeField extendedField : extendedFields) {
+      final String extFieldName = extendedField.getName();
+      if (nameToIndex.containsKey(extFieldName)) {
+        final Integer baseIndex = nameToIndex.get(extFieldName);
+        final RelDataType baseType = baseFields.get(baseIndex).getType();
+        final RelDataType extType = extendedField.getType();
+
+        if (!extType.equals(baseType)) {
+          // Get the extended column node that failed validation.
+          final Predicate<SqlNode> nameMatches = new Predicate<SqlNode>() {
+            @Override public boolean apply(SqlNode sqlNode) {
+              if (sqlNode instanceof SqlIdentifier) {
+                final SqlIdentifier identifier = (SqlIdentifier) sqlNode;
+                return Util.last(identifier.names).equals(extendedField.getName());
+              }
+              return false;
+            }
+          };
+          final SqlNode extColNode =
+              Iterables.find(extendList.getList(), nameMatches);
+
+          throw validator.getValidationErrorFunction().apply(extColNode,
+              RESOURCE.typeNotAssignable(
+                  baseFields.get(baseIndex).getName(), baseType.getFullTypeString(),
+                  extendedField.getName(), extType.getFullTypeString()));
+        }
+      }
+    }
   }
 }
 
