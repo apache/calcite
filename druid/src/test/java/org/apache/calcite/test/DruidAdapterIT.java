@@ -1494,6 +1494,7 @@ public class DruidAdapterIT {
     sql(sql, WIKI).queryContains(druidChecker(druidQuery));
   }
 
+
   @Test public void testGroupByMetricAndExtractTime() {
     final String sql = "SELECT count(*), floor(\"timestamp\" to DAY), \"store_sales\" "
             + "FROM \"foodmart\"\n"
@@ -1510,6 +1511,21 @@ public class DruidAdapterIT {
             "\"upper\":\"12223\""));
   }
 
+  @Test public void testExtractWithMonthOnly() {
+    final String sql = "Select \"product_id\" from \"foodmart\" where extract(month from "
+            + "\"timestamp\") > 9 and \"product_id\" = '1024' group by \"product_id\"";
+    final String explain = "PLAN=EnumerableInterpreter\n" + "  BindableAggregate(group=[{1}])\n"
+            + "    BindableFilter(condition=[AND(>(EXTRACT_DATE(FLAG(MONTH), /INT(Reinterpret($0)"
+            + ", 86400000)), 9), =($1, '1024'))])\n"
+            + "      DruidQuery(table=[[foodmart, foodmart]], "
+            + "intervals=[[1900-01-09T00:00:00.000/2992-01-10T00:00:00.000]], projects=[[$0, $1]])";
+    sql(sql).explainContains(explain).returnsUnordered("product_id=1024")
+            .queryContains(druidChecker("select"));
+    //@TODO not sure why we can not push the filter on product_id to druid.
+    // As followup one can investigate can we push partial filter to druid,
+    // in case some like extract not pushable
+  }
+>>>>>>> 0595e63... add bail in case no year is present
 }
 
 // End DruidAdapterIT.java
