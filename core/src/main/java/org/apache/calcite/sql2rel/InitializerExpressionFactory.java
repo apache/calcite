@@ -18,6 +18,7 @@ package org.apache.calcite.sql2rel;
 
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlFunction;
 
@@ -47,7 +48,8 @@ public interface InitializerExpressionFactory {
    */
   RexNode newColumnDefaultValue(
       RelOptTable table,
-      int iColumn);
+      int iColumn,
+      RexBuilder rexBuilder);
 
   /**
    * Creates an expression which evaluates to the initializer expression for a
@@ -63,7 +65,8 @@ public interface InitializerExpressionFactory {
       RelDataType type,
       SqlFunction constructor,
       int iAttribute,
-      List<RexNode> constructorArgs);
+      List<RexNode> constructorArgs,
+      RexBuilder rexBuilder);
 }
 
 // End InitializerExpressionFactory.java

@@ -900,7 +900,7 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
     for (int i = 0; i < n; ++i) {
       initializationExprs.add(
           cx.getInitializerExpressionFactory().newAttributeInitializer(
-              type, constructor, i, exprs));
+              type, constructor, i, exprs, rexBuilder));
     }
 
     List<RexNode> defaultCasts =

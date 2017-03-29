@@ -402,7 +402,8 @@ public abstract class SqlToRelTestBase {
         return null;
       }
 
-      public RelOptTable extend(List<RelDataTypeField> extendedFields) {
+      public RelOptTable extend(List<RelDataTypeField> extendedFields,
+          RelDataTypeFactory typeFactory) {
         final RelDataType extendedRowType = typeFactory.builder()
             .addAll(rowType.getFieldList())
             .addAll(extendedFields)
@@ -431,8 +432,9 @@ public abstract class SqlToRelTestBase {
       return parent.getExpression(clazz);
     }
 
-    public RelOptTable extend(List<RelDataTypeField> extendedFields) {
-      return parent.extend(extendedFields);
+    public RelOptTable extend(List<RelDataTypeField> extendedFields,
+        RelDataTypeFactory typeFactory) {
+      return parent.extend(extendedFields, typeFactory);
     }
 
     public List<String> getQualifiedName() {

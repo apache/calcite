@@ -3197,6 +3197,59 @@ public class SqlParserTest {
         .ok(expected);
   }
 
+  @Test public void testInsertCaseSensitiveColumnList() {
+    final String expected = "INSERT INTO `emps` (`x`, `y`)\n"
+        + "(SELECT *\n"
+        + "FROM `EMPS`)";
+    sql("insert into \"emps\"(\"x\",\"y\") select * from emps")
+        .ok(expected);
+  }
+
+  @Test public void testInsertExtendedColumnList() {
+    final String expected = "INSERT INTO `EMPS` EXTEND (`Z` BOOLEAN) (`X`, `Y`)\n"
+        + "(SELECT *\n"
+        + "FROM `EMPS`)";
+    sql("insert into emps(z boolean)(x,y) select * from emps")
+        .ok(expected);
+  }
+
+  @Test public void testUpdateExtendedColumnList() {
+    final String expected = "UPDATE `EMPDEFAULTS` EXTEND (`EXTRA` BOOLEAN, `NOTE` VARCHAR)"
+        + " SET `DEPTNO` = 1\n"
+        + ", `EXTRA` = TRUE\n"
+        + ", `EMPNO` = 20\n"
+        + ", `ENAME` = 'Bob'\n"
+        + ", `NOTE` = 'legion'\n"
+        + "WHERE (`DEPTNO` = 10)";
+    sql("update empdefaults(extra BOOLEAN, note VARCHAR)"
+        + " set deptno = 1, extra = true, empno = 20, ename = 'Bob', note = 'legion'"
+        + " where deptno = 10")
+        .ok(expected);
+  }
+
+
+  @Test public void testUpdateCaseSensitiveExtendedColumnList() {
+    final String expected = "UPDATE `EMPDEFAULTS` EXTEND (`extra` BOOLEAN, `NOTE` VARCHAR)"
+        + " SET `DEPTNO` = 1\n"
+        + ", `extra` = TRUE\n"
+        + ", `EMPNO` = 20\n"
+        + ", `ENAME` = 'Bob'\n"
+        + ", `NOTE` = 'legion'\n"
+        + "WHERE (`DEPTNO` = 10)";
+    sql("update empdefaults(\"extra\" BOOLEAN, note VARCHAR)"
+        + " set deptno = 1, \"extra\" = true, empno = 20, ename = 'Bob', note = 'legion'"
+        + " where deptno = 10")
+        .ok(expected);
+  }
+
+  @Test public void testInsertCaseSensitiveExtendedColumnList() {
+    final String expected = "INSERT INTO `emps` EXTEND (`z` BOOLEAN) (`x`, `y`)\n"
+        + "(SELECT *\n"
+        + "FROM `EMPS`)";
+    sql("insert into \"emps\"(\"z\" boolean)(\"x\",\"y\") select * from emps")
+        .ok(expected);
+  }
+
   @Test public void testExplainInsert() {
     final String expected = "EXPLAIN PLAN INCLUDING ATTRIBUTES"
         + " WITH IMPLEMENTATION FOR\n"

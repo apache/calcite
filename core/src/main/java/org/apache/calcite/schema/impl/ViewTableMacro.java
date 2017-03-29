@@ -91,7 +91,7 @@ public class ViewTableMacro implements TableMacro {
     return new ModifiableViewTable(elementType,
         RelDataTypeImpl.proto(parsed.rowType), viewSql, schemaPath, viewPath,
         parsed.table, Schemas.path(schema.root(), parsed.tablePath),
-        parsed.constraint, parsed.columnMapping, parsed.typeFactory);
+        parsed.constraint, parsed.columnMapping);
   }
 
   /** Allows a sub-class to return an extension of {@link ViewTable} by
