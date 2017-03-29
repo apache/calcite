@@ -60,6 +60,7 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
@@ -743,6 +744,8 @@ public class MaterializationTest {
         rexBuilder.makeCall(SqlStdOperatorTable.EQUALS, x, i1); // $0 = 1
     final RexNode x_eq_1_b =
         rexBuilder.makeCall(SqlStdOperatorTable.EQUALS, x, i1); // $0 = 1 again
+    final RexNode x_eq_2 =
+        rexBuilder.makeCall(SqlStdOperatorTable.EQUALS, x, i2); // $0 = 2
     final RexNode y_eq_2 =
         rexBuilder.makeCall(SqlStdOperatorTable.EQUALS, y, i2); // $1 = 2
     final RexNode z_eq_3 =
@@ -757,32 +760,32 @@ public class MaterializationTest {
     //   condition: x = 1,
     //   target:    x = 1 or z = 3
     // yields
-    //   residue:   not (z = 3)
+    //   residue:   x = 1
     newFilter = SubstitutionVisitor.splitFilter(simplify,
         x_eq_1,
         rexBuilder.makeCall(SqlStdOperatorTable.OR, x_eq_1, z_eq_3));
-    assertThat(newFilter.toString(), equalTo("NOT(=($2, 3))"));
+    assertThat(newFilter.toString(), equalTo("=($0, 1)"));
 
     // 2b.
     //   condition: x = 1 or y = 2
     //   target:    x = 1 or y = 2 or z = 3
     // yields
-    //   residue:   not (z = 3)
+    //   residue:   x = 1 or y = 2
     newFilter = SubstitutionVisitor.splitFilter(simplify,
         rexBuilder.makeCall(SqlStdOperatorTable.OR, x_eq_1, y_eq_2),
         rexBuilder.makeCall(SqlStdOperatorTable.OR, x_eq_1, y_eq_2, z_eq_3));
-    assertThat(newFilter.toString(), equalTo("NOT(=($2, 3))"));
+    assertThat(newFilter.toString(), equalTo("OR(=($0, 1), =($1, 2))"));
 
     // 2c.
     //   condition: x = 1
     //   target:    x = 1 or y = 2 or z = 3
     // yields
-    //   residue:   not (y = 2) and not (z = 3)
+    //   residue:   x = 1
     newFilter = SubstitutionVisitor.splitFilter(simplify,
         x_eq_1,
         rexBuilder.makeCall(SqlStdOperatorTable.OR, x_eq_1, y_eq_2, z_eq_3));
     assertThat(newFilter.toString(),
-        equalTo("AND(NOT(=($1, 2)), NOT(=($2, 3)))"));
+        equalTo("=($0, 1)"));
 
     // 2d.
     //   condition: x = 1 or y = 2
@@ -807,16 +810,59 @@ public class MaterializationTest {
     //   target:    x = 1
     // yields
     //   residue:   null
-    // TODO:
+    newFilter = SubstitutionVisitor.splitFilter(simplify,
+        rexBuilder.makeCall(SqlStdOperatorTable.OR, x_eq_1, y_eq_2),
+        x_eq_1);
+    assertNull(newFilter);
 
     // Example 3.
     // Condition [x = 1 and y = 2],
     // target [y = 2 and x = 1] yields
     // residue [true].
-    // TODO:
+    newFilter = SubstitutionVisitor.splitFilter(simplify,
+        rexBuilder.makeCall(SqlStdOperatorTable.AND, x_eq_1, y_eq_2),
+        rexBuilder.makeCall(SqlStdOperatorTable.AND, y_eq_2, x_eq_1));
+    assertThat(newFilter.isAlwaysTrue(), equalTo(true));
 
     // Example 4.
-    // TODO:
+    //   condition: x = 1 and y = 2
+    //   target:    y = 2
+    // yields
+    //   residue:   x = 1
+    newFilter = SubstitutionVisitor.splitFilter(simplify,
+        rexBuilder.makeCall(SqlStdOperatorTable.AND, x_eq_1, y_eq_2),
+        y_eq_2);
+    assertThat(newFilter.toString(), equalTo("=($0, 1)"));
+
+    // Example 5.
+    //   condition: x = 1
+    //   target:    x = 1 and y = 2
+    // yields
+    //   residue:   null
+    newFilter = SubstitutionVisitor.splitFilter(simplify,
+        x_eq_1,
+        rexBuilder.makeCall(SqlStdOperatorTable.AND, x_eq_1, y_eq_2));
+    assertNull(newFilter);
+
+    // Example 6.
+    //   condition: x = 1
+    //   target:    y = 2
+    // yields
+    //   residue:   null
+    newFilter = SubstitutionVisitor.splitFilter(simplify,
+        x_eq_1,
+        y_eq_2);
+    assertNull(newFilter);
+
+    // Example 7.
+    //   condition: x = 1
+    //   target:    x = 2
+    // yields
+    //   residue:   null
+    newFilter = SubstitutionVisitor.splitFilter(simplify,
+        x_eq_1,
+        x_eq_2);
+    assertNull(newFilter);
   }
 
   /** Tests a complicated star-join query on a complicated materialized
@@ -922,6 +968,287 @@ public class MaterializationTest {
     checkMaterialize(m, q, JdbcTest.HR_MODEL,
         CalciteAssert.checkResultContains(
             "EnumerableTableScan(table=[[hr, m0]])", 1));
+  }
+
+  @Test public void testAggregateMaterializationNoAggregateFuncs1() {
+    checkMaterialize(
+      "select \"empid\", \"deptno\" from \"emps\" group by \"empid\", \"deptno\"",
+      "select \"empid\", \"deptno\" from \"emps\" group by \"empid\", \"deptno\"",
+      JdbcTest.HR_MODEL,
+      CalciteAssert.checkResultContains(
+          "EnumerableTableScan(table=[[hr, m0]])"));
+  }
+
+  @Test public void testAggregateMaterializationNoAggregateFuncs2() {
+    checkMaterialize(
+      "select \"empid\", \"deptno\" from \"emps\" group by \"empid\", \"deptno\"",
+      "select \"deptno\" from \"emps\" group by \"deptno\"",
+      JdbcTest.HR_MODEL,
+      CalciteAssert.checkResultContains(
+          "EnumerableAggregate(group=[{1}])\n"
+              + "  EnumerableTableScan(table=[[hr, m0]])"));
+  }
+
+  @Test public void testAggregateMaterializationNoAggregateFuncs3() {
+    checkNoMaterialize(
+      "select \"deptno\" from \"emps\" group by \"deptno\"",
+      "select \"empid\", \"deptno\" from \"emps\" group by \"empid\", \"deptno\"",
+      JdbcTest.HR_MODEL);
+  }
+
+  @Test public void testAggregateMaterializationNoAggregateFuncs4() {
+    checkMaterialize(
+      "select \"empid\", \"deptno\" from \"emps\" where \"deptno\" = 10 group by \"empid\", \"deptno\"",
+      "select \"deptno\" from \"emps\" where \"deptno\" = 10 group by \"deptno\"",
+      JdbcTest.HR_MODEL,
+      CalciteAssert.checkResultContains(
+          "EnumerableAggregate(group=[{1}])\n"
+              + "  EnumerableTableScan(table=[[hr, m0]])"));
+  }
+
+  @Test public void testAggregateMaterializationNoAggregateFuncs5() {
+    checkNoMaterialize(
+      "select \"empid\", \"deptno\" from \"emps\" where \"deptno\" = 5 group by \"empid\", \"deptno\"",
+      "select \"deptno\" from \"emps\" where \"deptno\" = 10 group by \"deptno\"",
+      JdbcTest.HR_MODEL);
+  }
+
+  @Test public void testAggregateMaterializationNoAggregateFuncs6() {
+    checkMaterialize(
+      "select \"empid\", \"deptno\" from \"emps\" where \"deptno\" > 5 group by \"empid\", \"deptno\"",
+      "select \"deptno\" from \"emps\" where \"deptno\" > 10 group by \"deptno\"",
+      JdbcTest.HR_MODEL,
+      CalciteAssert.checkResultContains(
+          "EnumerableAggregate(group=[{1}])\n"
+              + "  EnumerableCalc(expr#0..1=[{inputs}], expr#2=[10], expr#3=[>($t1, $t2)], "
+              + "proj#0..1=[{exprs}], $condition=[$t3])\n"
+              + "    EnumerableTableScan(table=[[hr, m0]])"));
+  }
+
+  @Test public void testAggregateMaterializationNoAggregateFuncs7() {
+    checkNoMaterialize(
+      "select \"empid\", \"deptno\" from \"emps\" where \"deptno\" > 5 group by \"empid\", \"deptno\"",
+      "select \"deptno\" from \"emps\" where \"deptno\" < 10 group by \"deptno\"",
+      JdbcTest.HR_MODEL);
+  }
+
+  @Test public void testAggregateMaterializationNoAggregateFuncs8() {
+    checkNoMaterialize(
+      "select \"empid\" from \"emps\" group by \"empid\", \"deptno\"",
+      "select \"deptno\" from \"emps\" group by \"deptno\"",
+      JdbcTest.HR_MODEL);
+  }
+
+  @Test public void testAggregateMaterializationNoAggregateFuncs9() {
+    checkNoMaterialize(
+      "select \"empid\", \"deptno\" from \"emps\"\n"
+          + "where \"salary\" > 1000 group by \"name\", \"empid\", \"deptno\"",
+      "select \"empid\" from \"emps\"\n"
+          + "where \"salary\" > 2000 group by \"name\", \"empid\"",
+      JdbcTest.HR_MODEL);
+  }
+
+  @Test public void testAggregateMaterializationAggregateFuncs1() {
+    checkMaterialize(
+      "select \"empid\", \"deptno\", count(*) as c, sum(\"empid\") as s\n"
+          + "from \"emps\" group by \"empid\", \"deptno\"",
+      "select \"deptno\" from \"emps\" group by \"deptno\"",
+      JdbcTest.HR_MODEL,
+      CalciteAssert.checkResultContains(
+          "EnumerableAggregate(group=[{1}])\n"
+              + "  EnumerableTableScan(table=[[hr, m0]])"));
+  }
+
+  @Test public void testAggregateMaterializationAggregateFuncs2() {
+    checkMaterialize(
+      "select \"empid\", \"deptno\", count(*) as c, sum(\"empid\") as s\n"
+          + "from \"emps\" group by \"empid\", \"deptno\"",
+      "select \"deptno\", count(*) as c, sum(\"empid\") as s\n"
+          + "from \"emps\" group by \"deptno\"",
+      JdbcTest.HR_MODEL,
+      CalciteAssert.checkResultContains(
+          "EnumerableAggregate(group=[{1}], C=[$SUM0($2)], S=[$SUM0($3)])\n"
+              + "  EnumerableTableScan(table=[[hr, m0]])"));
+  }
+
+  @Test public void testAggregateMaterializationAggregateFuncs3() {
+    checkMaterialize(
+      "select \"empid\", \"deptno\", count(*) as c, sum(\"empid\") as s\n"
+          + "from \"emps\" group by \"empid\", \"deptno\"",
+      "select \"deptno\", \"empid\", sum(\"empid\") as s, count(*) as c\n"
+          + "from \"emps\" group by \"empid\", \"deptno\"",
+      JdbcTest.HR_MODEL,
+      CalciteAssert.checkResultContains(
+          "EnumerableCalc(expr#0..3=[{inputs}], deptno=[$t1], empid=[$t0], "
+              + "S=[$t3], C=[$t2])\n"
+              + "  EnumerableTableScan(table=[[hr, m0]])"));
+  }
+
+  @Test public void testAggregateMaterializationAggregateFuncs4() {
+    checkMaterialize(
+      "select \"empid\", \"deptno\", count(*) as c, sum(\"empid\") as s\n"
+          + "from \"emps\" where \"deptno\" >= 10 group by \"empid\", \"deptno\"",
+      "select \"deptno\", sum(\"empid\") as s\n"
+          + "from \"emps\" where \"deptno\" > 10 group by \"deptno\"",
+      JdbcTest.HR_MODEL,
+      CalciteAssert.checkResultContains(
+          "EnumerableAggregate(group=[{1}], S=[$SUM0($3)])\n"
+              + "  EnumerableCalc(expr#0..3=[{inputs}], expr#4=[10], expr#5=[>($t1, $t4)], "
+              + "proj#0..3=[{exprs}], $condition=[$t5])\n"
+              + "    EnumerableTableScan(table=[[hr, m0]])"));
+  }
+
+  @Test public void testAggregateMaterializationAggregateFuncs5() {
+    checkMaterialize(
+      "select \"empid\", \"deptno\", count(*) + 1 as c, sum(\"empid\") as s\n"
+          + "from \"emps\" where \"deptno\" >= 10 group by \"empid\", \"deptno\"",
+      "select \"deptno\", sum(\"empid\") + 1 as s\n"
+          + "from \"emps\" where \"deptno\" > 10 group by \"deptno\"",
+      JdbcTest.HR_MODEL,
+      CalciteAssert.checkResultContains(
+          "EnumerableCalc(expr#0..1=[{inputs}], expr#2=[1], expr#3=[+($t1, $t2)], "
+              + "deptno=[$t0], S=[$t3])\n"
+              + "  EnumerableAggregate(group=[{1}], agg#0=[$SUM0($3)])\n"
+              + "    EnumerableCalc(expr#0..3=[{inputs}], expr#4=[10], expr#5=[>($t1, $t4)], "
+              + "proj#0..3=[{exprs}], $condition=[$t5])\n"
+              + "      EnumerableTableScan(table=[[hr, m0]])"));
+  }
+
+  @Test public void testAggregateMaterializationAggregateFuncs6() {
+    checkNoMaterialize(
+      "select \"empid\", \"deptno\", count(*) + 1 as c, sum(\"empid\") + 2 as s\n"
+          + "from \"emps\" where \"deptno\" >= 10 group by \"empid\", \"deptno\"",
+      "select \"deptno\", sum(\"empid\") + 1 as s\n"
+          + "from \"emps\" where \"deptno\" > 10 group by \"deptno\"",
+      JdbcTest.HR_MODEL);
+  }
+
+  @Test public void testAggregateMaterializationAggregateFuncs7() {
+    checkMaterialize(
+      "select \"empid\", \"deptno\", count(*) + 1 as c, sum(\"empid\") as s\n"
+          + "from \"emps\" where \"deptno\" >= 10 group by \"empid\", \"deptno\"",
+      "select \"deptno\" + 1, sum(\"empid\") + 1 as s\n"
+          + "from \"emps\" where \"deptno\" > 10 group by \"deptno\"",
+      JdbcTest.HR_MODEL,
+      CalciteAssert.checkResultContains(
+          "EnumerableCalc(expr#0..1=[{inputs}], expr#2=[1], expr#3=[+($t0, $t2)], "
+              + "expr#4=[+($t1, $t2)], EXPR$0=[$t3], S=[$t4])\n"
+              + "  EnumerableAggregate(group=[{1}], agg#0=[$SUM0($3)])\n"
+              + "    EnumerableCalc(expr#0..3=[{inputs}], expr#4=[10], expr#5=[>($t1, $t4)], "
+              + "proj#0..3=[{exprs}], $condition=[$t5])\n"
+              + "      EnumerableTableScan(table=[[hr, m0]])"));
+  }
+
+  @Ignore
+  @Test public void testAggregateMaterializationAggregateFuncs8() {
+    // TODO: It should work, but top project in the query is not matched by the planner.
+    // It needs further checking.
+    checkMaterialize(
+      "select \"empid\", \"deptno\" + 1, count(*) + 1 as c, sum(\"empid\") as s\n"
+          + "from \"emps\" where \"deptno\" >= 10 group by \"empid\", \"deptno\"",
+      "select \"deptno\" + 1, sum(\"empid\") + 1 as s\n"
+          + "from \"emps\" where \"deptno\" > 10 group by \"deptno\"");
+  }
+
+  @Test public void testJoinAggregateMaterializationNoAggregateFuncs1() {
+    checkMaterialize(
+      "select \"empid\", \"depts\".\"deptno\" from \"emps\"\n"
+          + "join \"depts\" using (\"deptno\") where \"depts\".\"deptno\" > 10\n"
+          + "group by \"empid\", \"depts\".\"deptno\"",
+      "select \"empid\" from \"emps\"\n"
+          + "join \"depts\" using (\"deptno\") where \"depts\".\"deptno\" > 20\n"
+          + "group by \"empid\", \"depts\".\"deptno\"",
+      JdbcTest.HR_MODEL,
+      CalciteAssert.checkResultContains(
+          "EnumerableCalc(expr#0..1=[{inputs}], expr#2=[20], expr#3=[>($t1, $t2)], "
+              + "empid=[$t0], $condition=[$t3])\n"
+              + "  EnumerableTableScan(table=[[hr, m0]])"));
+  }
+
+  @Test public void testJoinAggregateMaterializationNoAggregateFuncs2() {
+    checkMaterialize(
+      "select \"depts\".\"deptno\", \"empid\" from \"depts\"\n"
+          + "join \"emps\" using (\"deptno\") where \"depts\".\"deptno\" > 10\n"
+          + "group by \"empid\", \"depts\".\"deptno\"",
+      "select \"empid\" from \"emps\"\n"
+          + "join \"depts\" using (\"deptno\") where \"depts\".\"deptno\" > 20\n"
+          + "group by \"empid\", \"depts\".\"deptno\"",
+      JdbcTest.HR_MODEL,
+      CalciteAssert.checkResultContains(
+          "EnumerableCalc(expr#0..1=[{inputs}], expr#2=[20], expr#3=[>($t0, $t2)], "
+              + "empid=[$t1], $condition=[$t3])\n"
+              + "  EnumerableTableScan(table=[[hr, m0]])"));
+  }
+
+  @Test public void testJoinAggregateMaterializationNoAggregateFuncs3() {
+    // It does not match, Project on top of query
+    checkNoMaterialize(
+      "select \"empid\" from \"emps\"\n"
+          + "join \"depts\" using (\"deptno\") where \"depts\".\"deptno\" > 10\n"
+          + "group by \"empid\", \"depts\".\"deptno\"",
+      "select \"empid\" from \"emps\"\n"
+          + "join \"depts\" using (\"deptno\") where \"depts\".\"deptno\" > 20\n"
+          + "group by \"empid\", \"depts\".\"deptno\"",
+      JdbcTest.HR_MODEL);
+  }
+
+  @Test public void testJoinAggregateMaterializationNoAggregateFuncs4() {
+    checkMaterialize(
+      "select \"empid\", \"depts\".\"deptno\" from \"emps\"\n"
+          + "join \"depts\" using (\"deptno\") where \"emps\".\"deptno\" > 10\n"
+          + "group by \"empid\", \"depts\".\"deptno\"",
+      "select \"empid\" from \"emps\"\n"
+          + "join \"depts\" using (\"deptno\") where \"depts\".\"deptno\" > 20\n"
+          + "group by \"empid\", \"depts\".\"deptno\"",
+      JdbcTest.HR_MODEL,
+      CalciteAssert.checkResultContains(
+          "EnumerableCalc(expr#0..1=[{inputs}], expr#2=[20], expr#3=[>($t1, $t2)], "
+              + "empid=[$t0], $condition=[$t3])\n"
+              + "  EnumerableTableScan(table=[[hr, m0]])"));
+  }
+
+  @Test public void testJoinAggregateMaterializationNoAggregateFuncs5() {
+    checkMaterialize(
+      "select \"depts\".\"deptno\", \"emps\".\"empid\" from \"depts\"\n"
+          + "join \"emps\" using (\"deptno\") where \"emps\".\"empid\" > 10\n"
+          + "group by \"depts\".\"deptno\", \"emps\".\"empid\"",
+      "select \"depts\".\"deptno\" from \"depts\"\n"
+          + "join \"emps\" using (\"deptno\") where \"emps\".\"empid\" > 15\n"
+          + "group by \"depts\".\"deptno\", \"emps\".\"empid\"",
+      JdbcTest.HR_MODEL,
+      CalciteAssert.checkResultContains(
+          "EnumerableCalc(expr#0..1=[{inputs}], expr#2=[15], expr#3=[>($t1, $t2)], "
+              + "deptno=[$t0], $condition=[$t3])\n"
+              + "  EnumerableTableScan(table=[[hr, m0]])"));
+  }
+
+  @Test public void testJoinAggregateMaterializationNoAggregateFuncs6() {
+    checkMaterialize(
+      "select \"depts\".\"deptno\", \"emps\".\"empid\" from \"depts\"\n"
+          + "join \"emps\" using (\"deptno\") where \"emps\".\"empid\" > 10\n"
+          + "group by \"depts\".\"deptno\", \"emps\".\"empid\"",
+      "select \"depts\".\"deptno\" from \"depts\"\n"
+          + "join \"emps\" using (\"deptno\") where \"emps\".\"empid\" > 15\n"
+          + "group by \"depts\".\"deptno\"",
+      JdbcTest.HR_MODEL,
+      CalciteAssert.checkResultContains(
+          "EnumerableAggregate(group=[{0}])\n"
+              + "  EnumerableCalc(expr#0..1=[{inputs}], expr#2=[15], expr#3=[>($t1, $t2)], "
+              + "proj#0..1=[{exprs}], $condition=[$t3])\n"
+              + "    EnumerableTableScan(table=[[hr, m0]])"));
+  }
+
+  @Test public void testJoinMaterialization4() {
+    checkMaterialize(
+      "select \"empid\" \"deptno\" from \"emps\"\n"
+          + "join \"depts\" using (\"deptno\")",
+      "select \"empid\" \"deptno\" from \"emps\"\n"
+          + "join \"depts\" using (\"deptno\") where \"empid\" = 1",
+      JdbcTest.HR_MODEL,
+      CalciteAssert.checkResultContains(
+          "EnumerableCalc(expr#0=[{inputs}], expr#1=[CAST($t0):INTEGER NOT NULL], expr#2=[1], "
+              + "expr#3=[=($t1, $t2)], deptno=[$t0], $condition=[$t3])\n"
+              + "  EnumerableTableScan(table=[[hr, m0]])"));
   }
 
   @Test public void testSubQuery() {

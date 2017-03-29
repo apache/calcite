@@ -24,11 +24,11 @@ import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.Project;
-import org.apache.calcite.rel.metadata.RelTableRef;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeFamily;
 import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.rex.RexTableInputRef.RelTableRef;
 import org.apache.calcite.runtime.PredicateImpl;
 import org.apache.calcite.schema.Schemas;
 import org.apache.calcite.sql.SqlAggFunction;
@@ -1867,16 +1867,31 @@ public class RexUtil {
     }
   }
 
+  /**
+   * Given an expression, it will swap the table references contained in its
+   * {@link RexTableInputRef} using the contents in the map.
+   */
   public static RexNode swapTableReferences(final RexBuilder rexBuilder,
       final RexNode node, final Map<RelTableRef, RelTableRef> tableMapping) {
     return swapTableColumnReferences(rexBuilder, node, tableMapping, null);
   }
 
+  /**
+   * Given an expression, it will swap its column references {@link RexTableInputRef}
+   * using the contents in the map (in particular, the first element of the set in the
+   * map value).
+   */
   public static RexNode swapColumnReferences(final RexBuilder rexBuilder,
       final RexNode node, final Map<RexTableInputRef, Set<RexTableInputRef>> ec) {
     return swapTableColumnReferences(rexBuilder, node, null, ec);
   }
 
+  /**
+   * Given an expression, it will swap the table references contained in its
+   * {@link RexTableInputRef} using the contents in the first map, and then
+   * it will swap the column references {@link RexTableInputRef} using the contents
+   * in the second map (in particular, the first element of the set in the map value).
+   */
   public static RexNode swapTableColumnReferences(final RexBuilder rexBuilder,
       final RexNode node, final Map<RelTableRef, RelTableRef> tableMapping,
       final Map<RexTableInputRef, Set<RexTableInputRef>> ec) {
@@ -1884,7 +1899,7 @@ public class RexUtil {
         new RexShuttle() {
           @Override public RexNode visitTableInputRef(RexTableInputRef inputRef) {
             if (tableMapping != null) {
-              inputRef = new RexTableInputRef(
+              inputRef = RexTableInputRef.of(
                   tableMapping.get(inputRef.getTableRef()),
                   inputRef.getIndex(),
                   inputRef.getType());

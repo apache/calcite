@@ -153,7 +153,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
 
   private static final double DEPT_SIZE = 4d;
 
-  private static final String EMP_QNAME = "[CATALOG, SALES, EMP]";
+  private static final List<String> EMP_QNAME = ImmutableList.of("CATALOG", "SALES", "EMP");
 
   //~ Methods ----------------------------------------------------------------
 
@@ -1513,7 +1513,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
     final String inputRef = RexInputRef.of(4, tableRel.getRowType().getFieldList()).toString();
     assertThat(r.size(), is(1));
     final String resultString = r.iterator().next().toString();
-    assertThat(resultString, startsWith(EMP_QNAME));
+    assertThat(resultString, startsWith(EMP_QNAME.toString()));
     assertThat(resultString, endsWith(inputRef));
   }
 
@@ -1527,14 +1527,14 @@ public class RelMetadataTest extends SqlToRelTestBase {
     final Set<RexNode> r1 = mq.getExpressionLineage(rel, ref1);
     assertThat(r1.size(), is(1));
     final RexTableInputRef result1 = (RexTableInputRef) r1.iterator().next();
-    assertThat(result1.getQualifiedName(), is(EMP_QNAME));
+    assertTrue(result1.getQualifiedName().equals(EMP_QNAME));
     assertThat(result1.getIndex(), is(3));
 
     final RexNode ref2 = RexInputRef.of(1, rel.getRowType().getFieldList());
     final Set<RexNode> r2 = mq.getExpressionLineage(rel, ref2);
     assertThat(r2.size(), is(1));
     final RexTableInputRef result2 = (RexTableInputRef) r2.iterator().next();
-    assertThat(result2.getQualifiedName(), is(EMP_QNAME));
+    assertTrue(result2.getQualifiedName().equals(EMP_QNAME));
     assertThat(result2.getIndex(), is(7));
 
     assertThat(result1.getIdentifier(), is(result2.getIdentifier()));
@@ -1550,14 +1550,14 @@ public class RelMetadataTest extends SqlToRelTestBase {
     final Set<RexNode> r1 = mq.getExpressionLineage(rel, ref1);
     assertThat(r1.size(), is(1));
     final RexTableInputRef result1 = (RexTableInputRef) r1.iterator().next();
-    assertThat(result1.getQualifiedName(), is(EMP_QNAME));
+    assertTrue(result1.getQualifiedName().equals(EMP_QNAME));
     assertThat(result1.getIndex(), is(7));
 
     final RexNode ref2 = RexInputRef.of(1, rel.getRowType().getFieldList());
     final Set<RexNode> r2 = mq.getExpressionLineage(rel, ref2);
     assertThat(r2.size(), is(1));
     final RexTableInputRef result2 = (RexTableInputRef) r2.iterator().next();
-    assertThat(result2.getQualifiedName(), is(EMP_QNAME));
+    assertTrue(result2.getQualifiedName().equals(EMP_QNAME));
     assertThat(result2.getIndex(), is(3));
 
     assertThat(result1.getIdentifier(), is(result2.getIdentifier()));
@@ -1578,10 +1578,10 @@ public class RelMetadataTest extends SqlToRelTestBase {
     final RexCall call = (RexCall) result;
     assertThat(call.getOperands().size(), is(2));
     final RexTableInputRef inputRef1 = (RexTableInputRef) call.getOperands().get(0);
-    assertThat(inputRef1.getQualifiedName(), is(EMP_QNAME));
+    assertTrue(inputRef1.getQualifiedName().equals(EMP_QNAME));
     assertThat(inputRef1.getIndex(), is(0));
     final RexTableInputRef inputRef2 = (RexTableInputRef) call.getOperands().get(1);
-    assertThat(inputRef2.getQualifiedName(), is(EMP_QNAME));
+    assertTrue(inputRef2.getQualifiedName().equals(EMP_QNAME));
     assertThat(inputRef2.getIndex(), is(7));
     assertThat(inputRef1.getIdentifier(), is(inputRef2.getIdentifier()));
   }
@@ -1595,7 +1595,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
     final Set<RexNode> r = mq.getExpressionLineage(rel, ref);
     assertThat(r.size(), is(1));
     final RexTableInputRef result = (RexTableInputRef) r.iterator().next();
-    assertThat(result.getQualifiedName(), is(EMP_QNAME));
+    assertTrue(result.getQualifiedName().equals(EMP_QNAME));
     assertThat(result.getIndex(), is(1));
   }
 
@@ -1608,7 +1608,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
     final Set<RexNode> r = mq.getExpressionLineage(rel, ref);
     assertThat(r.size(), is(1));
     final RexTableInputRef result = (RexTableInputRef) r.iterator().next();
-    assertThat(result.getQualifiedName(), is("[CATALOG, SALES, BONUS]"));
+    assertTrue(result.getQualifiedName().equals(ImmutableList.of("CATALOG", "SALES", "BONUS")));
     assertThat(result.getIndex(), is(0));
   }
 
@@ -1626,7 +1626,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
     final String inputRef1 = RexInputRef.of(7, tableRel.getRowType().getFieldList()).toString();
     assertThat(r1.size(), is(1));
     final String resultString1 = r1.iterator().next().toString();
-    assertThat(resultString1, startsWith(EMP_QNAME));
+    assertThat(resultString1, startsWith(EMP_QNAME.toString()));
     assertThat(resultString1, endsWith(inputRef1));
 
     final RexNode ref2 = RexInputRef.of(1, rel.getRowType().getFieldList());
@@ -1634,7 +1634,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
     final String inputRef2 = RexInputRef.of(5, tableRel.getRowType().getFieldList()).toString();
     assertThat(r2.size(), is(1));
     final String resultString2 = r2.iterator().next().toString();
-    assertThat(resultString2, startsWith(EMP_QNAME));
+    assertThat(resultString2, startsWith(EMP_QNAME.toString()));
     assertThat(resultString2, endsWith(inputRef2));
 
     assertThat(((RexTableInputRef) r1.iterator().next()).getIdentifier(),
@@ -1663,7 +1663,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
     final String inputRef = RexInputRef.of(1, tableRel.getRowType().getFieldList()).toString();
     assertThat(r.size(), is(1));
     final String resultString = r.iterator().next().toString();
-    assertThat(resultString, startsWith(EMP_QNAME));
+    assertThat(resultString, startsWith(EMP_QNAME.toString()));
     assertThat(resultString, endsWith(inputRef));
   }
 
@@ -1679,7 +1679,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
     final String inputRef = RexInputRef.of(7, tableRel.getRowType().getFieldList()).toString();
     assertThat(r.size(), is(1));
     final String resultString = r.iterator().next().toString();
-    assertThat(resultString, startsWith(EMP_QNAME));
+    assertThat(resultString, startsWith(EMP_QNAME.toString()));
     assertThat(resultString, endsWith(inputRef));
   }
 
@@ -1708,7 +1708,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
     assertThat(r.size(), is(2));
     for (RexNode result : r) {
       final String resultString = result.toString();
-      assertThat(resultString, startsWith(EMP_QNAME));
+      assertThat(resultString, startsWith(EMP_QNAME.toString()));
       assertThat(resultString, endsWith(inputRef));
     }
 
@@ -1733,19 +1733,19 @@ public class RelMetadataTest extends SqlToRelTestBase {
     // With the union, we should get two origins
     // The first one should be the same one: join
     // The second should come from each union input
-    final Set<String> set = new HashSet<>();
+    final Set<List<String>> set = new HashSet<>();
     assertThat(r.size(), is(2));
     for (RexNode result : r) {
       assertThat(result.getKind(), is(SqlKind.PLUS));
       final RexCall call = (RexCall) result;
       assertThat(call.getOperands().size(), is(2));
       final RexTableInputRef inputRef1 = (RexTableInputRef) call.getOperands().get(0);
-      assertThat(inputRef1.getQualifiedName(), is(EMP_QNAME));
+      assertTrue(inputRef1.getQualifiedName().equals(EMP_QNAME));
       // Add join alpha to set
       set.add(inputRef1.getQualifiedName());
       assertThat(inputRef1.getIndex(), is(0));
       final RexTableInputRef inputRef2 = (RexTableInputRef) call.getOperands().get(1);
-      assertThat(inputRef2.getQualifiedName(), is(EMP_QNAME));
+      assertTrue(inputRef2.getQualifiedName().equals(EMP_QNAME));
       assertThat(inputRef2.getIndex(), is(5));
       assertThat(inputRef1.getIdentifier(), not(inputRef2.getIdentifier()));
     }
@@ -1800,7 +1800,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
     RexCall call = (RexCall) predicates.pulledUpPredicates.get(0);
     assertThat(call.getOperands().size(), is(2));
     RexTableInputRef inputRef1 = (RexTableInputRef) call.getOperands().get(0);
-    assertThat(inputRef1.getQualifiedName(), is(EMP_QNAME));
+    assertTrue(inputRef1.getQualifiedName().equals(EMP_QNAME));
     assertThat(inputRef1.getIndex(), is(0));
 
     final LogicalTableScan deptScan =
@@ -1819,16 +1819,16 @@ public class RelMetadataTest extends SqlToRelTestBase {
     call = (RexCall) predicates.pulledUpPredicates.get(0);
     assertThat(call.getOperands().size(), is(2));
     inputRef1 = (RexTableInputRef) call.getOperands().get(0);
-    assertThat(inputRef1.getQualifiedName(), is(EMP_QNAME));
+    assertTrue(inputRef1.getQualifiedName().equals(EMP_QNAME));
     assertThat(inputRef1.getIndex(), is(0));
     // From Join
     call = (RexCall) predicates.pulledUpPredicates.get(1);
     assertThat(call.getOperands().size(), is(2));
     inputRef1 = (RexTableInputRef) call.getOperands().get(0);
-    assertThat(inputRef1.getQualifiedName(), is(EMP_QNAME));
+    assertTrue(inputRef1.getQualifiedName().equals(EMP_QNAME));
     assertThat(inputRef1.getIndex(), is(7));
     RexTableInputRef inputRef2 = (RexTableInputRef) call.getOperands().get(1);
-    assertThat(inputRef2.getQualifiedName(), is("[CATALOG, SALES, DEPT]"));
+    assertTrue(inputRef2.getQualifiedName().equals(ImmutableList.of("CATALOG", "SALES", "DEPT")));
     assertThat(inputRef2.getIndex(), is(0));
   }
 
@@ -1844,7 +1844,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
     RexCall call = (RexCall) pulledUpPredicates.get(0);
     assertThat(call.getOperands().size(), is(2));
     final RexTableInputRef inputRef1 = (RexTableInputRef) call.getOperands().get(0);
-    assertThat(inputRef1.getQualifiedName(), is(EMP_QNAME));
+    assertTrue(inputRef1.getQualifiedName().equals(EMP_QNAME));
     assertThat(inputRef1.getIndex(), is(0));
     final RexLiteral constant = (RexLiteral) call.getOperands().get(1);
     assertThat(constant.toString(), is("5"));
@@ -1863,7 +1863,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
     RexCall call = (RexCall) pulledUpPredicates.get(0);
     assertThat(call.getOperands().size(), is(2));
     final RexTableInputRef inputRef1 = (RexTableInputRef) call.getOperands().get(0);
-    assertThat(inputRef1.getQualifiedName(), is(EMP_QNAME));
+    assertTrue(inputRef1.getQualifiedName().equals(EMP_QNAME));
     assertThat(inputRef1.getIndex(), is(0));
     final RexLiteral constant = (RexLiteral) call.getOperands().get(1);
     assertThat(constant.toString(), is("5"));

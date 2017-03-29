@@ -240,7 +240,8 @@ public abstract class RelOptUtil {
   }
 
   /**
-   * Returns a list of all tables used by this expression or its children
+   * Returns a list of all table qualified names used by this expression
+   * or its children.
    */
   public static List<String> findAllTableQualifiedNames(RelNode rel) {
     return Lists.transform(findAllTables(rel),

@@ -16,18 +16,35 @@
  */
 package org.apache.calcite.rex;
 
-import org.apache.calcite.rel.metadata.RelTableRef;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlKind;
 
+import com.google.common.collect.ImmutableList;
+
+import java.util.List;
+
 /**
- * Variable which references a field of an input relational expression
+ * Variable which references a column of a table occurrence in a relational plan.
+ *
+ * <p>This object is used by:
+ * - {@link {@link org.apache.calcite.rel.metadata.BuiltInMetadata.ExpressionLineage}, and
+ * - {@link {@link org.apache.calcite.rel.metadata.BuiltInMetadata.AllPredicates}.
+ *
+ * <p>Given a relational expression, its purpose is to be able to reference uniquely
+ * the provenance of a given expression. For that, it uses a unique table reference
+ * (contained in a {@link RelTableRef}) and an column index within the table.
+ *
+ * <p>For example, {@code A.#0.$3 + 2} column {@code $3} in the {@code 0} occurrence of
+ * table {@code A} in the plan.
+ *
+ * Note that this kind of {@link RexNode} is an auxiliary data structure with a very
+ * specific purpose and should not be used in relational expressions.
  */
 public class RexTableInputRef extends RexInputRef {
 
   private final RelTableRef tableRef;
 
-  public RexTableInputRef(RelTableRef tableRef, int index, RelDataType type) {
+  private RexTableInputRef(RelTableRef tableRef, int index, RelDataType type) {
     super(index, type);
     this.tableRef = tableRef;
     this.digest = tableRef.toString() + ".$" + index;
@@ -50,12 +67,12 @@ public class RexTableInputRef extends RexInputRef {
     return tableRef;
   }
 
-  public String getQualifiedName() {
+  public List<String> getQualifiedName() {
     return tableRef.getQualifiedName();
   }
 
   public int getIdentifier() {
-    return tableRef.getIdentifier();
+    return tableRef.getEntityNumber();
   }
 
   public static RexTableInputRef of(RelTableRef tableRef, int index, RelDataType type) {
@@ -76,6 +93,49 @@ public class RexTableInputRef extends RexInputRef {
 
   @Override public SqlKind getKind() {
     return SqlKind.TABLE_INPUT_REF;
+  }
+
+  /** Identifies uniquely a table by its qualified name and its entity number (occurrence) */
+  public static class RelTableRef {
+
+    private final List<String> qualifiedName;
+    private final int entityNumber;
+    private final String digest;
+
+    private RelTableRef(List<String> qualifiedName, int entityNumber) {
+      this.qualifiedName = ImmutableList.copyOf(qualifiedName);
+      this.entityNumber = entityNumber;
+      this.digest = qualifiedName + ".#" + entityNumber;
+    }
+
+    //~ Methods ----------------------------------------------------------------
+
+    @Override public boolean equals(Object obj) {
+      return this == obj
+          || obj instanceof RelTableRef
+          && qualifiedName.equals(((RelTableRef) obj).qualifiedName)
+          && entityNumber == ((RelTableRef) obj).entityNumber;
+    }
+
+    @Override public int hashCode() {
+      return digest.hashCode();
+    }
+
+    public List<String> getQualifiedName() {
+      return qualifiedName;
+    }
+
+    public int getEntityNumber() {
+      return entityNumber;
+    }
+
+    @Override public String toString() {
+      return digest;
+    }
+
+    public static RelTableRef of(List<String> qualifiedName, int entityNumber) {
+      return new RelTableRef(qualifiedName, entityNumber);
+    }
   }
 }
 

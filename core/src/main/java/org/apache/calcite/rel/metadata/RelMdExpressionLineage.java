@@ -35,6 +35,7 @@ import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.rex.RexTableInputRef;
+import org.apache.calcite.rex.RexTableInputRef.RelTableRef;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.ImmutableBitSet;
@@ -65,7 +66,7 @@ import java.util.Set;
  *
  * The output expressions might contain references to columns produced by TableScan
  * operators ({@link RexTableInputRef}). In turn, each TableScan operator is identified
- * uniquely by its qualified name and an identifier contained in .
+ * uniquely by a {@link RelTableRef} containing its qualified name and an identifier.
  *
  * If the lineage cannot be inferred, we return null.
  */
@@ -122,7 +123,7 @@ public class RelMdExpressionLineage
     final Map<RexInputRef, Set<RexNode>> mapping = new LinkedHashMap<>();
     for (int idx : inputFieldsUsed) {
       final RexNode inputRef = RexTableInputRef.of(
-          new RelTableRef(rel.getTable().getQualifiedName().toString(), 0),
+          RelTableRef.of(rel.getTable().getQualifiedName(), 0),
           RexInputRef.of(idx, rel.getRowType().getFieldList()));
       final Set<RexNode> originalExprs = Sets.newHashSet(inputRef);
       final RexInputRef ref = RexInputRef.of(idx, rel.getRowType().getFieldList());
@@ -193,7 +194,7 @@ public class RelMdExpressionLineage
     final int nLeftColumns = leftInput.getRowType().getFieldList().size();
 
     // Infer column origin expressions for given references
-    final Multimap<String, RelTableRef> qualifiedNamesToRefs = HashMultimap.create();
+    final Multimap<List<String>, RelTableRef> qualifiedNamesToRefs = HashMultimap.create();
     final Map<RelTableRef, RelTableRef> currentTablesMapping = new HashMap<>();
     final Map<RexInputRef, Set<RexNode>> mapping = new LinkedHashMap<>();
     for (int idx = 0; idx < rel.getRowType().getFieldList().size(); idx++) {
@@ -232,7 +233,7 @@ public class RelMdExpressionLineage
             shift = lRefs.size();
           }
           currentTablesMapping.put(rightRef,
-              new RelTableRef(rightRef.getQualifiedName(), shift + rightRef.getIdentifier()));
+              RelTableRef.of(rightRef.getQualifiedName(), shift + rightRef.getEntityNumber()));
         }
         final Set<RexNode> updatedExprs = Sets.newHashSet(
             Iterables.transform(
@@ -262,7 +263,7 @@ public class RelMdExpressionLineage
     final RexBuilder rexBuilder = rel.getCluster().getRexBuilder();
 
     // Infer column origin expressions for given references
-    final Multimap<String, RelTableRef> qualifiedNamesToRefs = HashMultimap.create();
+    final Multimap<List<String>, RelTableRef> qualifiedNamesToRefs = HashMultimap.create();
     final Map<RexInputRef, Set<RexNode>> mapping = new LinkedHashMap<>();
     for (RelNode input : rel.getInputs()) {
       final Map<RelTableRef, RelTableRef> currentTablesMapping = new HashMap<>();
@@ -287,7 +288,7 @@ public class RelMdExpressionLineage
             shift = lRefs.size();
           }
           currentTablesMapping.put(tableRef,
-              new RelTableRef(tableRef.getQualifiedName(), shift + tableRef.getIdentifier()));
+              RelTableRef.of(tableRef.getQualifiedName(), shift + tableRef.getEntityNumber()));
         }
         final Set<RexNode> updatedExprs = Sets.newHashSet(
             Iterables.transform(
@@ -387,6 +388,11 @@ public class RelMdExpressionLineage
     final RelOptUtil.InputFinder inputFinder = new RelOptUtil.InputFinder(inputExtraFields);
     expr.accept(inputFinder);
     final ImmutableBitSet predFieldsUsed = inputFinder.inputBitSet.build();
+
+    if (predFieldsUsed.isEmpty()) {
+      // The unique expression is the input expression
+      return Sets.newHashSet(expr);
+    }
 
     return createAllPossibleExpressions(rexBuilder, expr, predFieldsUsed, mapping,
         new HashMap<RexInputRef, RexNode>());

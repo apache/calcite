@@ -72,6 +72,7 @@ import org.slf4j.Logger;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -229,7 +230,7 @@ public class SubstitutionVisitor {
    * <ul>
    * <li>condition: x = 1</li>
    * <li>target: x = 1 OR z = 3</li>
-   * <li>residue: NOT (z = 3)</li>
+   * <li>residue: x = 1</li>
    * </ul>
    *
    * <p>Example #3: condition and target are equivalent</p>
@@ -258,32 +259,63 @@ public class SubstitutionVisitor {
     // First, try splitting into ORs.
     // Given target    c1 OR c2 OR c3 OR c4
     // and condition   c2 OR c4
-    // residue is      NOT c1 AND NOT c3
+    // residue is      c2 OR c4
     // Also deals with case target [x] condition [x] yields residue [true].
     RexNode z = splitOr(simplify.rexBuilder, condition, target);
     if (z != null) {
       return z;
     }
 
+    if (isEquivalent(simplify.rexBuilder, condition, target)) {
+      return simplify.rexBuilder.makeLiteral(true);
+    }
+
     RexNode x = andNot(simplify.rexBuilder, target, condition);
     if (mayBeSatisfiable(x)) {
-      RexNode x2 = andNot(simplify.rexBuilder, condition, target);
-      return simplify.simplify(x2);
+      RexNode x2 = RexUtil.composeConjunction(simplify.rexBuilder,
+          ImmutableList.of(condition, target), false);
+      RexNode r = simplify.withUnknownAsFalse(true).simplify(x2);
+      if (!r.isAlwaysFalse() && isEquivalent(simplify.rexBuilder, condition, r)) {
+        List<RexNode> conjs = RelOptUtil.conjunctions(r);
+        for (RexNode e : RelOptUtil.conjunctions(target)) {
+          removeAll(conjs, e);
+        }
+        return RexUtil.composeConjunction(simplify.rexBuilder, conjs, false);
+      }
     }
     return null;
   }
 
   private static RexNode splitOr(
       final RexBuilder rexBuilder, RexNode condition, RexNode target) {
-    List<RexNode> targets = RelOptUtil.disjunctions(target);
-    for (RexNode e : RelOptUtil.disjunctions(condition)) {
-      boolean found = removeAll(targets, e);
-      if (!found) {
-        return null;
-      }
+    List<RexNode> conditions = RelOptUtil.disjunctions(condition);
+    int conditionsLength = conditions.size();
+    int targetsLength = 0;
+    for (RexNode e : RelOptUtil.disjunctions(target)) {
+      removeAll(conditions, e);
+      targetsLength++;
     }
-    return RexUtil.composeConjunction(rexBuilder,
-        Lists.transform(targets, RexUtil.notFn(rexBuilder)), false);
+    if (conditions.isEmpty() && conditionsLength == targetsLength) {
+      return rexBuilder.makeLiteral(true);
+    } else if (conditions.isEmpty()) {
+      return condition;
+    }
+    return null;
+  }
+
+  private static boolean isEquivalent(RexBuilder rexBuilder, RexNode condition, RexNode target) {
+    // Example:
+    //  e: x = 1 AND y = 2 AND z = 3 AND NOT (x = 1 AND y = 2)
+    //  disjunctions: {x = 1, y = 2, z = 3}
+    //  notDisjunctions: {x = 1 AND y = 2}
+    final Set<String> conditionDisjunctions = new HashSet<>(
+        RexUtil.strings(RelOptUtil.conjunctions(condition)));
+    final Set<String> targetDisjunctions = new HashSet<>(
+        RexUtil.strings(RelOptUtil.conjunctions(target)));
+    if (conditionDisjunctions.equals(targetDisjunctions)) {
+      return true;
+    }
+    return false;
   }
 
   /**
@@ -1137,6 +1169,9 @@ public class SubstitutionVisitor {
       //   target: SELECT x, y, SUM(a) AS s, COUNT(b) AS cb FROM t GROUP BY x, y
       // transforms to
       //   result: SELECT x, SUM(cb) FROM (target) GROUP BY x
+      if (query.getInput() != target.getInput()) {
+        return null;
+      }
       if (!target.groupSet.contains(query.groupSet)) {
         return null;
       }

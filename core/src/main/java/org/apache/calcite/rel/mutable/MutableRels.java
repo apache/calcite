@@ -17,6 +17,8 @@
 package org.apache.calcite.rel.mutable;
 
 import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.plan.hep.HepRelVertex;
+import org.apache.calcite.plan.volcano.RelSubset;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.Calc;
@@ -271,6 +273,13 @@ public abstract class MutableRels {
   }
 
   public static MutableRel toMutable(RelNode rel) {
+    if (rel instanceof HepRelVertex) {
+      return toMutable(((HepRelVertex) rel).getCurrentRel());
+    }
+    if (rel instanceof RelSubset) {
+      return toMutable(
+          Util.first(((RelSubset) rel).getBest(), ((RelSubset) rel).getOriginal()));
+    }
     if (rel instanceof TableScan) {
       return MutableScan.of((TableScan) rel);
     }

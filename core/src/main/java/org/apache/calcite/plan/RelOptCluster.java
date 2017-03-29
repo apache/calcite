@@ -37,7 +37,6 @@ import java.util.concurrent.atomic.AtomicInteger;
  * optimization of a query.
  */
 public class RelOptCluster {
-
   //~ Instance fields --------------------------------------------------------
 
   private final RelDataTypeFactory typeFactory;

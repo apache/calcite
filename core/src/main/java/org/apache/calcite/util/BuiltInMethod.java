@@ -64,6 +64,7 @@ import org.apache.calcite.rel.metadata.BuiltInMetadata.Predicates;
 import org.apache.calcite.rel.metadata.BuiltInMetadata.RowCount;
 import org.apache.calcite.rel.metadata.BuiltInMetadata.Selectivity;
 import org.apache.calcite.rel.metadata.BuiltInMetadata.Size;
+import org.apache.calcite.rel.metadata.BuiltInMetadata.TableReferences;
 import org.apache.calcite.rel.metadata.BuiltInMetadata.UniqueKeys;
 import org.apache.calcite.rel.metadata.Metadata;
 import org.apache.calcite.rex.RexNode;
@@ -376,6 +377,7 @@ public enum BuiltInMethod {
       ImmutableBitSet.class),
   COLUMN_ORIGIN(ColumnOrigin.class, "getColumnOrigins", int.class),
   EXPRESSION_LINEAGE(ExpressionLineage.class, "getExpressionLineage", RexNode.class),
+  TABLE_REFERENCES(TableReferences.class, "getTableReferences"),
   CUMULATIVE_COST(CumulativeCost.class, "getCumulativeCost"),
   NON_CUMULATIVE_COST(NonCumulativeCost.class, "getNonCumulativeCost"),
   PREDICATES(Predicates.class, "getPredicates"),

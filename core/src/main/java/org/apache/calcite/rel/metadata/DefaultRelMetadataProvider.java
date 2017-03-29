@@ -44,6 +44,7 @@ public class DefaultRelMetadataProvider extends ChainedRelMetadataProvider {
             RelMdPercentageOriginalRows.SOURCE,
             RelMdColumnOrigins.SOURCE,
             RelMdExpressionLineage.SOURCE,
+            RelMdTableReferences.SOURCE,
             RelMdNodeTypes.SOURCE,
             RelMdRowCount.SOURCE,
             RelMdMaxRowCount.SOURCE,

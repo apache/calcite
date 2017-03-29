@@ -23,6 +23,7 @@ import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelDistribution;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexTableInputRef.RelTableRef;
 import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.util.ImmutableBitSet;
 
@@ -86,6 +87,7 @@ public class RelMetadataQuery {
   private BuiltInMetadata.Collation.Handler collationHandler;
   private BuiltInMetadata.ColumnOrigin.Handler columnOriginHandler;
   private BuiltInMetadata.ExpressionLineage.Handler expressionLineageHandler;
+  private BuiltInMetadata.TableReferences.Handler tableReferencesHandler;
   private BuiltInMetadata.ColumnUniqueness.Handler columnUniquenessHandler;
   private BuiltInMetadata.CumulativeCost.Handler cumulativeCostHandler;
   private BuiltInMetadata.DistinctRowCount.Handler distinctRowCountHandler;
@@ -119,6 +121,7 @@ public class RelMetadataQuery {
     this.collationHandler = prototype.collationHandler;
     this.columnOriginHandler = prototype.columnOriginHandler;
     this.expressionLineageHandler = prototype.expressionLineageHandler;
+    this.tableReferencesHandler = prototype.tableReferencesHandler;
     this.columnUniquenessHandler = prototype.columnUniquenessHandler;
     this.cumulativeCostHandler = prototype.cumulativeCostHandler;
     this.distinctRowCountHandler = prototype.distinctRowCountHandler;
@@ -170,6 +173,7 @@ public class RelMetadataQuery {
     this.collationHandler = initialHandler(BuiltInMetadata.Collation.Handler.class);
     this.columnOriginHandler = initialHandler(BuiltInMetadata.ColumnOrigin.Handler.class);
     this.expressionLineageHandler = initialHandler(BuiltInMetadata.ExpressionLineage.Handler.class);
+    this.tableReferencesHandler = initialHandler(BuiltInMetadata.TableReferences.Handler.class);
     this.columnUniquenessHandler = initialHandler(BuiltInMetadata.ColumnUniqueness.Handler.class);
     this.cumulativeCostHandler = initialHandler(BuiltInMetadata.CumulativeCost.Handler.class);
     this.distinctRowCountHandler = initialHandler(BuiltInMetadata.DistinctRowCount.Handler.class);
@@ -389,6 +393,20 @@ public class RelMetadataQuery {
       } catch (JaninoRelMetadataProvider.NoHandler e) {
         expressionLineageHandler =
             revise(e.relClass, BuiltInMetadata.ExpressionLineage.DEF);
+      }
+    }
+  }
+
+  /**
+   * Determines the tables used by a plan.
+   */
+  public Set<RelTableRef> getTableReferences(RelNode rel) {
+    for (;;) {
+      try {
+        return tableReferencesHandler.getTableReferences(rel, this);
+      } catch (JaninoRelMetadataProvider.NoHandler e) {
+        tableReferencesHandler =
+            revise(e.relClass, BuiltInMetadata.TableReferences.DEF);
       }
     }
   }
