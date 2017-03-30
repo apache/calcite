@@ -237,6 +237,40 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     sql("select deptno from emp group by deptno").ok();
   }
 
+  @Test public void testGroupByAlias() {
+    sql("select empno as d from emp group by d")
+        .conformance(SqlConformanceEnum.LENIENT).ok();
+  }
+
+  @Test public void testGroupByAliasOfSubExpressionsInProject() {
+    final String sql = "select deptno+empno as d, deptno+empno+mgr\n"
+        + "from emp group by d,mgr";
+    sql(sql)
+        .conformance(SqlConformanceEnum.LENIENT).ok();
+  }
+
+  @Test public void testGroupByAliasEqualToColumnName() {
+    sql("select empno, ename as deptno from emp group by empno, deptno")
+        .conformance(SqlConformanceEnum.LENIENT).ok();
+  }
+
+  @Test public void testGroupByOrdinal() {
+    sql("select empno from emp group by 1")
+        .conformance(SqlConformanceEnum.LENIENT).ok();
+  }
+
+  @Test public void testGroupByContainsLiterals() {
+    final String sql = "select count(*) from (\n"
+        + "  select 1 from emp group by substring(ename from 2 for 3))";
+    sql(sql)
+        .conformance(SqlConformanceEnum.LENIENT).ok();
+  }
+
+  @Test public void testAliasInHaving() {
+    sql("select count(empno) as e from emp having e > 1")
+        .conformance(SqlConformanceEnum.LENIENT).ok();
+  }
+
   @Test public void testGroupJustOneAgg() {
     // just one agg
     final String sql =

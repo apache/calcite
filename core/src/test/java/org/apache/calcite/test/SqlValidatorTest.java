@@ -6116,6 +6116,197 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   /**
+   * Tests validation of the aliases in GROUP BY.
+   *
+   * <p>Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1306">[CALCITE-1306]
+   * Allow GROUP BY and HAVING to reference SELECT expressions by ordinal and
+   * alias</a>.
+   *
+   * @see SqlConformance#isGroupByAlias()
+   */
+  @Test public void testAliasInGroupBy() {
+    final SqlTester lenient =
+        tester.withConformance(SqlConformanceEnum.LENIENT);
+    final SqlTester strict =
+        tester.withConformance(SqlConformanceEnum.STRICT_2003);
+
+    // Group by
+    sql("select empno as e from emp group by ^e^")
+        .tester(strict).fails("Column 'E' not found in any table")
+        .tester(lenient).sansCarets().ok();
+    sql("select empno as e from emp group by ^e^")
+        .tester(strict).fails("Column 'E' not found in any table")
+        .tester(lenient).sansCarets().ok();
+    sql("select emp.empno as e from emp group by ^e^")
+        .tester(strict).fails("Column 'E' not found in any table")
+        .tester(lenient).sansCarets().ok();
+    sql("select e.empno from emp as e group by e.empno")
+        .tester(strict).ok()
+        .tester(lenient).ok();
+    sql("select e.empno as eno from emp as e group by ^eno^")
+        .tester(strict).fails("Column 'ENO' not found in any table")
+        .tester(lenient).sansCarets().ok();
+    sql("select deptno as dno from emp group by cube(^dno^)")
+        .tester(strict).fails("Column 'DNO' not found in any table")
+        .tester(lenient).sansCarets().ok();
+    sql("select deptno as dno, ename name, sum(sal) from emp\n"
+        + "group by grouping sets ((^dno^), (name, deptno))")
+        .tester(strict).fails("Column 'DNO' not found in any table")
+        .tester(lenient).sansCarets().ok();
+    sql("select ename as deptno from emp as e join dept as d on "
+        + "e.deptno = d.deptno group by ^deptno^")
+        .tester(lenient).sansCarets().ok();
+    sql("select t.e, count(*) from (select empno as e from emp) t group by e")
+        .tester(strict).ok()
+        .tester(lenient).ok();
+
+    // The following 2 tests have the same SQL but fail for different reasons.
+    sql("select t.e, count(*) as c from "
+        + " (select empno as e from emp) t group by e,^c^")
+        .tester(strict).fails("Column 'C' not found in any table");
+    sql("select t.e, ^count(*)^ as c from "
+        + " (select empno as e from emp) t group by e,c")
+        .tester(lenient).fails(ERR_AGG_IN_GROUP_BY);
+
+    sql("select t.e, e + ^count(*)^ as c from "
+        + " (select empno as e from emp) t group by e,c")
+        .tester(lenient).fails(ERR_AGG_IN_GROUP_BY);
+    sql("select t.e, e + ^count(*)^ as c from "
+        + " (select empno as e from emp) t group by e,2")
+        .tester(lenient).fails(ERR_AGG_IN_GROUP_BY)
+        .tester(strict).sansCarets().ok();
+
+    sql("select deptno,(select empno + 1 from emp) eno\n"
+        + "from dept group by deptno,^eno^")
+        .tester(strict).fails("Column 'ENO' not found in any table")
+        .tester(lenient).sansCarets().ok();
+    sql("select empno as e, deptno as e\n"
+            + "from emp group by ^e^")
+        .tester(lenient).fails("Column 'E' is ambiguous");
+    sql("select empno, ^count(*)^ c from emp group by empno, c")
+        .tester(lenient).fails(ERR_AGG_IN_GROUP_BY);
+    sql("select deptno + empno as d, deptno + empno + mgr from emp"
+        + " group by d,mgr")
+        .tester(lenient).sansCarets().ok();
+    // When alias is equal to one or more columns in the query then giving
+    // priority to alias. But Postgres may throw ambiguous column error or give
+    // priority to column name.
+    sql("select count(*) from (\n"
+        + "  select ename AS deptno FROM emp GROUP BY deptno) t")
+        .tester(lenient).sansCarets().ok();
+    sql("select count(*) from "
+        + "(select ename AS deptno FROM emp, dept GROUP BY deptno) t")
+        .tester(lenient).sansCarets().ok();
+    sql("select empno + deptno AS \"z\" FROM emp GROUP BY \"Z\"")
+        .tester(lenient.withCaseSensitive(false)).sansCarets().ok();
+    sql("select empno + deptno as c, ^c^ + mgr as d from emp group by c, d")
+        .tester(lenient).fails("Column 'C' not found in any table");
+    // Group by alias with strict conformance should fail.
+    sql("select empno as e from emp group by ^e^")
+        .tester(strict).fails("Column 'E' not found in any table");
+  }
+
+  /**
+   * Tests validation of ordinals in GROUP BY.
+   *
+   * @see SqlConformance#isGroupByOrdinal()
+   */
+  @Test public void testOrdinalInGroupBy() {
+    final SqlTester lenient =
+        tester.withConformance(SqlConformanceEnum.LENIENT);
+    final SqlTester strict =
+        tester.withConformance(SqlConformanceEnum.STRICT_2003);
+
+    sql("select ^empno^,deptno from emp group by 1, deptno")
+        .tester(strict).fails("Expression 'EMPNO' is not being grouped")
+        .tester(lenient).sansCarets().ok();
+    sql("select ^emp.empno^ as e from emp group by 1")
+        .tester(strict).fails("Expression 'EMP.EMPNO' is not being grouped")
+        .tester(lenient).sansCarets().ok();
+    sql("select 2 + ^emp.empno^ + 3 as e from emp group by 1")
+        .tester(strict).fails("Expression 'EMP.EMPNO' is not being grouped")
+        .tester(lenient).sansCarets().ok();
+    sql("select ^e.empno^ from emp as e group by 1")
+        .tester(strict).fails("Expression 'E.EMPNO' is not being grouped")
+        .tester(lenient).sansCarets().ok();
+    sql("select e.empno from emp as e group by 1, empno")
+        .tester(strict).ok()
+        .tester(lenient).sansCarets().ok();
+    sql("select ^e.empno^ as eno from emp as e group by 1")
+        .tester(strict).fails("Expression 'E.EMPNO' is not being grouped")
+        .tester(lenient).sansCarets().ok();
+    sql("select ^deptno^ as dno from emp group by cube(1)")
+        .tester(strict).fails("Expression 'DEPTNO' is not being grouped")
+        .tester(lenient).sansCarets().ok();
+    sql("select 1 as dno from emp group by cube(1)")
+        .tester(strict).ok()
+        .tester(lenient).sansCarets().ok();
+    sql("select deptno as dno, ename name, sum(sal) from emp\n"
+        + "group by grouping sets ((1), (^name^, deptno))")
+        .tester(strict).fails("Column 'NAME' not found in any table")
+        .tester(lenient).sansCarets().ok();
+    sql("select ^e.deptno^ from emp as e\n"
+        + "join dept as d on e.deptno = d.deptno group by 1")
+        .tester(strict).fails("Expression 'E.DEPTNO' is not being grouped")
+        .tester(lenient).sansCarets().ok();
+    sql("select ^deptno^,(select empno from emp) eno from dept"
+        + " group by 1,2")
+        .tester(strict).fails("Expression 'DEPTNO' is not being grouped")
+        .tester(lenient).sansCarets().ok();
+    sql("select count(*) from (select 1 from emp"
+        + " group by substring(ename from 2 for 3))")
+        .tester(strict).ok()
+        .tester(lenient).sansCarets().ok();
+    sql("select deptno from emp group by deptno, ^100^")
+        .tester(lenient).fails("Ordinal out of range")
+        .tester(strict).sansCarets().ok();
+    // Calcite considers integers in GROUP BY to be constants, so test passes.
+    // Postgres considers them ordinals and throws out of range position error.
+    sql("select deptno from emp group by ^100^, deptno")
+        .tester(lenient).fails("Ordinal out of range")
+        .tester(strict).sansCarets().ok();
+  }
+
+  /**
+   * Tests validation of the aliases in HAVING.
+   *
+   * @see SqlConformance#isHavingAlias()
+   */
+  @Test public void testAliasInHaving() {
+    final SqlTester lenient =
+        tester.withConformance(SqlConformanceEnum.LENIENT);
+    final SqlTester strict =
+        tester.withConformance(SqlConformanceEnum.STRICT_2003);
+
+    sql("select count(empno) as e from emp having ^e^ > 10")
+        .tester(strict).fails("Column 'E' not found in any table")
+        .tester(lenient).sansCarets().ok();
+    sql("select emp.empno as e from emp group by ^e^ having e > 10")
+        .tester(strict).fails("Column 'E' not found in any table")
+        .tester(lenient).sansCarets().ok();
+    sql("select emp.empno as e from emp group by empno having ^e^ > 10")
+        .tester(strict).fails("Column 'E' not found in any table")
+        .tester(lenient).sansCarets().ok();
+    sql("select e.empno from emp as e group by 1 having ^e.empno^ > 10")
+        .tester(strict).fails("Expression 'E.EMPNO' is not being grouped")
+        .tester(lenient).sansCarets().ok();
+    // When alias is equal to one or more columns in the query then giving
+    // priority to alias, but PostgreSQL throws ambiguous column error or gives
+    // priority to column name.
+    sql("select count(empno) as deptno from emp having ^deptno^ > 10")
+        .tester(strict).fails("Expression 'DEPTNO' is not being grouped")
+        .tester(lenient).sansCarets().ok();
+    // Alias in aggregate is not allowed.
+    sql("select empno as e from emp having max(^e^) > 10")
+        .tester(strict).fails("Column 'E' not found in any table")
+        .tester(lenient).fails("Column 'E' not found in any table");
+    sql("select count(empno) as e from emp having ^e^ > 10")
+        .tester(strict).fails("Column 'E' not found in any table")
+        .tester(lenient).sansCarets().ok();
+  }
+
+  /**
    * Tests validation of the ORDER BY clause when DISTINCT is present.
    */
   @Test public void testOrderDistinct() {
@@ -7247,9 +7438,16 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     check("SELECT deptno FROM emp GROUP BY deptno HAVING deptno > 55");
     check("SELECT DISTINCT deptno, 33 FROM emp\n"
         + "GROUP BY deptno HAVING deptno > 55");
-    checkFails(
-        "SELECT DISTINCT deptno, 33 FROM emp HAVING ^deptno^ > 55",
-        "Expression 'DEPTNO' is not being grouped");
+    sql("SELECT DISTINCT deptno, 33 FROM emp HAVING ^deptno^ > 55")
+        .fails("Expression 'DEPTNO' is not being grouped");
+    // same query under a different conformance finds a different error first
+    sql("SELECT DISTINCT ^deptno^, 33 FROM emp HAVING deptno > 55")
+        .tester(tester.withConformance(SqlConformanceEnum.LENIENT))
+        .fails("Expression 'DEPTNO' is not being grouped");
+    sql("SELECT DISTINCT 33 FROM emp HAVING ^deptno^ > 55")
+        .fails("Expression 'DEPTNO' is not being grouped")
+        .tester(tester.withConformance(SqlConformanceEnum.LENIENT))
+        .fails("Expression 'DEPTNO' is not being grouped");
     check("SELECT DISTINCT * from emp");
     checkFails(
         "SELECT DISTINCT ^*^ from emp GROUP BY deptno",

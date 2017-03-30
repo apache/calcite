@@ -6168,7 +6168,7 @@ public class JdbcTest {
   /** Tests case-insensitive resolution of sub-query columns.
    *
    * <p>Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-555">[CALCITE-555]
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-550">[CALCITE-550]
    * Case-insensitive matching of sub-query columns fails</a>. */
   @Test public void testLexCaseInsensitiveSubQueryField() {
     CalciteAssert.that()
