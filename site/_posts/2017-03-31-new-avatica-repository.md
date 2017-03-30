@@ -1,9 +1,7 @@
 ---
 layout: news_item
-title: "Splitting Avatica from Calcite"
-date: "2016-03-03 23:57:33 -0500"
+date: "2017-03-31 17:00:00 +0000"
 author: elserj
-categories: [milestones]
 ---
 <!--
 {% comment %}
@@ -24,11 +22,15 @@ limitations under the License.
 {% endcomment %}
 -->
 
-This marks the separation of Avatica from its previous location as a sub-module
-of Apache Calcite's Maven build.
+The [Apache Calcite PMC]({{ site.baseurl }})
+is pleased to announce further growth of its sub-project, Avatica.
 
-This separation is not to remove Avatica from
-the governance of the Apache Calcite project, but to allow for even more rapid
-releases from both the Avatica and Calcite projects. We can confidently make new
-releases of each without having to worry about the current state of development
-features in the other.
+Avatica has been slowly growing inside of Calcite for many years (dating back
+to Optiq-0.4.x!). The team has taken the next step to hoist the Avatica code
+out of the Calcite repository into its own. The team felt like this was the
+next logical step given the maturity of the project.
+
+The previous "/avatica" directory in the Calcite repository has been removed, so
+further contributions should be submitted agains the new repository. The de-facto
+repository can be found at the ASF's [Git hosting](https://git-wip-us.apache.org/repos/asf/calcite-avatica.git),
+with a mirrored-copy also available on Github at [apache/calcite-avatica](https://github.com/apache/calcite-avatica).

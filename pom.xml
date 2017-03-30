@@ -519,9 +519,6 @@ limitations under the License.
             <exclude>**/data.txt</exclude>
             <exclude>**/data2.txt</exclude>
 
-            <!-- Exclude all of avatica, RAT is run in Avatica -->
-            <exclude>avatica/**</exclude>
-
             <!-- Do not exclude site/target; it should not exist
                  in any sandbox from which you are making a
                  release. Also, do not exclude site/.sass-cache. -->
