@@ -28,10 +28,8 @@ branches:
     - /^branch-.*$/
     - /^[0-9]+-.*$/
 install:
-  - cd avatica && mvn install -DskipTests=true -Dmaven.javadoc.skip=true -B -V && cd ..
   - mvn install -DskipTests=true -Dmaven.javadoc.skip=true -B -V
 script:
-  - cd avatica && mvn -Dsurefire.useFile=false test && cd ..
   - mvn -Dsurefire.useFile=false test
 git:
   depth: 10000
