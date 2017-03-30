@@ -238,7 +238,6 @@ public interface SqlConformance {
    * false otherwise.
    */
   boolean allowNiladicParentheses();
-
 }
 
 // End SqlConformance.java

@@ -6212,9 +6212,6 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     sql("select ^e.empno^ as eno from emp as e group by 1")
         .fails("Expression 'E.EMPNO' is not being grouped")
         .tester(lenientTester).sansCarets().ok();
-    sql("select deptno as dno from emp group by cube(1)")
-        .ok()
-        .tester(lenientTester).sansCarets().ok();
     sql("select deptno as dno, ename name, sum(sal) from emp\n"
         + "group by grouping sets ((1), (^name^, deptno))")
         .fails("Column 'NAME' not found in any table")

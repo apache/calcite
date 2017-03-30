@@ -70,7 +70,6 @@ public abstract class SqlAbstractConformance implements SqlConformance {
   public boolean allowNiladicParentheses() {
     return SqlConformanceEnum.DEFAULT.allowNiladicParentheses();
   }
-
 }
 
 // End SqlAbstractConformance.java

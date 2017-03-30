@@ -188,7 +188,6 @@ public enum SqlConformanceEnum implements SqlConformance {
       return false;
     }
   }
-
 }
 
 // End SqlConformanceEnum.java
