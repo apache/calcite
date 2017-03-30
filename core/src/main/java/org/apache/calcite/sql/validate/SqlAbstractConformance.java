@@ -59,6 +59,18 @@ public abstract class SqlAbstractConformance implements SqlConformance {
     return SqlConformanceEnum.DEFAULT.allowNiladicParentheses();
   }
 
+  public boolean isGroupByAliasAllowed() {
+    return SqlConformanceEnum.DEFAULT.isGroupByAliasAllowed();
+  }
+
+  public boolean isGroupByOrdinalAllowed() {
+    return SqlConformanceEnum.DEFAULT.isGroupByOrdinalAllowed();
+  }
+
+  public boolean isHavingAliasAllowed() {
+    return SqlConformanceEnum.DEFAULT.isHavingAliasAllowed();
+  }
+
 }
 
 // End SqlAbstractConformance.java

@@ -181,6 +181,12 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       new IdentityHashMap<>();
 
   /**
+   * Maps a {@link SqlSelect} node to the scope used by its GROUP BY clause.
+   */
+  private final Map<SqlSelect, SqlValidatorScope> groupByScopes =
+      new IdentityHashMap<>();
+
+  /**
    * Maps a {@link SqlSelect} node to the scope used by its SELECT and HAVING
    * clauses.
    */
@@ -968,7 +974,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
   public SqlValidatorScope getGroupScope(SqlSelect select) {
     // Yes, it's the same as getWhereScope
-    return whereScopes.get(select);
+    return groupByScopes.get(select);
   }
 
   public SqlValidatorScope getFromScope(SqlSelect select) {
@@ -2332,7 +2338,12 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       } else {
         selectScopes.put(select, selectScope);
       }
-      registerSubQueries(selectScope, select.getGroup());
+      if (select.getGroup() != null) {
+        GroupByScope groupByScope =
+            new GroupByScope(selectScope, select.getGroup(), select);
+        groupByScopes.put(select, groupByScope);
+        registerSubQueries(groupByScope, select.getGroup());
+      }
       registerOperandSubQueries(
           aggScope,
           select,
@@ -3472,6 +3483,17 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   }
 
   /**
+   * Validates an item in the GROUP BY clause of a SELECT statement.
+   *
+   * @param select Select statement
+   * @param groupByItem GROUP BY clause item
+   */
+  private void validateGroupByItem(SqlSelect select, SqlNode groupByItem) {
+    final SqlValidatorScope groupByScope = getGroupScope(select);
+    groupByScope.validateExpr(groupByItem);
+  }
+
+  /**
    * Validates an item in the ORDER BY clause of a SELECT statement.
    *
    * @param select Select statement
@@ -3519,11 +3541,14 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     // expand the expression in group list.
     List<SqlNode> expandedList = new ArrayList<>();
     for (SqlNode groupItem : groupList) {
-      SqlNode expandedItem = expand(groupItem, groupScope);
+      SqlNode expandedItem = expandGroupByOrHavingExpr(groupItem, groupScope, select, false);
       expandedList.add(expandedItem);
     }
     groupList = new SqlNodeList(expandedList, groupList.getParserPosition());
     select.setGroupBy(groupList);
+    for (SqlNode groupItem : expandedList) {
+      validateGroupByItem(select, groupItem);
+    }
 
     // Nodes in the GROUP BY clause are expressions except if they are calls
     // to the GROUPING SETS, ROLLUP or CUBE operators; this operators are not
@@ -3620,12 +3645,19 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     // For example, in "SELECT empno FROM emp WHERE empno = 10 GROUP BY
     // deptno HAVING empno = 10", the reference to 'empno' in the HAVING
     // clause is illegal.
-    final SqlNode having = select.getHaving();
+    SqlNode having = select.getHaving();
     if (having == null) {
       return;
     }
     final AggregatingScope havingScope =
         (AggregatingScope) getSelectScope(select);
+    if (getConformance().isHavingAliasAllowed()) {
+      SqlNode newExpr = expandGroupByOrHavingExpr(having, havingScope, select, true);
+      if (having != newExpr) {
+        having = newExpr;
+        select.setHaving(newExpr);
+      }
+    }
     havingScope.checkAggregateExpr(having, true);
     inferUnknownTypes(
         booleanType,
@@ -4699,6 +4731,16 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     return newExpr;
   }
 
+  public SqlNode expandGroupByOrHavingExpr(SqlNode expr, SqlValidatorScope scope, SqlSelect select,
+      boolean havingExpression) {
+    final Expander expander = new ExtendedExpander(this, scope, select, expr, havingExpression);
+    SqlNode newExpr = expr.accept(expander);
+    if (expr != newExpr) {
+      setOriginal(newExpr, expr);
+    }
+    return newExpr;
+  }
+
   public boolean isSystemField(RelDataTypeField field) {
     return false;
   }
@@ -5226,6 +5268,103 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         return call;
       }
       return super.visitScoped(call);
+    }
+  }
+
+  /**
+   * Shuttle which walks over an expression in the GROUP BY/HAVING clause, replacing
+   * usages of aliases or ordinals with the underlying expression.
+   */
+  class ExtendedExpander extends Expander {
+
+    final SqlSelect select;
+    final SqlValidatorImpl validator;
+    final SqlNode root;
+    final boolean havingExpr;
+
+    ExtendedExpander(SqlValidatorImpl validator,
+        SqlValidatorScope scope, SqlSelect select, SqlNode root, boolean havingExpr) {
+      super(validator, scope);
+      this.select = select;
+      this.validator = validator;
+      this.root = root;
+      this.havingExpr = havingExpr;
+    }
+
+    @Override public SqlNode visit(SqlIdentifier id) {
+      if (id.isSimple()
+        && (havingExpr ? getConformance().isHavingAliasAllowed()
+          : getConformance().isGroupByAliasAllowed())) {
+        String name = id.getSimple();
+        SqlNode expr = null;
+        final SqlNameMatcher nameMatcher = catalogReader.nameMatcher();
+        int n = 0;
+        for (SqlNode s : select.getSelectList()) {
+          final String alias = SqlValidatorUtil.getAlias(s, -1);
+          if (alias != null && nameMatcher.matches(alias, name)) {
+            expr = s;
+            n++;
+          }
+        }
+        if (n == 0) {
+          return super.visit(id);
+        } else if (n > 1) {
+          // More than one column has this alias.
+          throw validator.newValidationError(id,
+              RESOURCE.columnAmbiguous(name));
+        }
+        if (havingExpr && isAggregate(root)) {
+          return super.visit(id);
+        }
+        expr = stripAs(expr);
+        if (expr instanceof SqlIdentifier) {
+          expr = getScope().fullyQualify((SqlIdentifier) expr).identifier;
+        }
+        return expr;
+      }
+      return super.visit(id);
+    }
+
+    public SqlNode visit(SqlLiteral literal) {
+      if (havingExpr || !getConformance().isGroupByOrdinalAllowed()) {
+        return super.visit(literal);
+      }
+      boolean isOrdinalLiteral = literal == root;
+      switch (root.getKind()) {
+      case GROUPING_SETS:
+      case ROLLUP:
+      case CUBE:
+        if (root instanceof SqlBasicCall) {
+          List<SqlNode> operandList = ((SqlBasicCall) root).getOperandList();
+          for (SqlNode node: operandList) {
+            if (node.equals(literal)) {
+              isOrdinalLiteral = true;
+              break;
+            }
+          }
+        }
+        break;
+      }
+      if (isOrdinalLiteral) {
+        switch (literal.getTypeName()) {
+        case DECIMAL:
+        case DOUBLE:
+          final int intValue = literal.intValue(false);
+          if (intValue >= 0) {
+            if (intValue < 1 || intValue > select.getSelectList().size()) {
+              throw newValidationError(
+                  literal, RESOURCE.orderByOrdinalOutOfRange());
+            }
+
+            // SQL ordinals are 1-based, but Sort's are 0-based
+            int ordinal = intValue - 1;
+            return select.getSelectList().get(ordinal);
+          }
+          break;
+        }
+      }
+
+      return super.visit(literal);
     }
   }
 

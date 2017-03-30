@@ -162,6 +162,35 @@ public enum SqlConformanceEnum implements SqlConformance {
     }
   }
 
+  public boolean isGroupByAliasAllowed() {
+    switch (this) {
+    case PRAGMATIC_99:
+    case PRAGMATIC_2003:
+      return true;
+    default:
+      return false;
+    }
+  }
+
+  public boolean isGroupByOrdinalAllowed() {
+    switch (this) {
+    case PRAGMATIC_99:
+    case PRAGMATIC_2003:
+      return true;
+    default:
+      return false;
+    }
+  }
+
+  public boolean isHavingAliasAllowed() {
+    switch (this) {
+    case PRAGMATIC_99:
+    case PRAGMATIC_2003:
+      return true;
+    default:
+      return false;
+    }
+  }
 }
 
 // End SqlConformanceEnum.java

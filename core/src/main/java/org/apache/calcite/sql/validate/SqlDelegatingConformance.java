@@ -60,6 +60,19 @@ public class SqlDelegatingConformance extends SqlAbstractConformance {
   @Override public boolean allowNiladicParentheses() {
     return delegate.allowNiladicParentheses();
   }
+
+  @Override public boolean isGroupByAliasAllowed() {
+    return delegate.isGroupByAliasAllowed();
+  }
+
+  @Override public boolean isGroupByOrdinalAllowed() {
+    return delegate.isGroupByOrdinalAllowed();
+  }
+
+  @Override public boolean isHavingAliasAllowed() {
+    return delegate.isGroupByAliasAllowed();
+  }
+
 }
 
 // End SqlDelegatingConformance.java

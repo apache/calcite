@@ -6090,6 +6090,93 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   /**
+   * Tests validation of the aliases in GROUP BY.
+   */
+  @Test public void testAliasInGroupBy() {
+    final SqlTester pragmaticTester =
+        tester.withConformance(SqlConformanceEnum.PRAGMATIC_2003);
+    // Group by
+    pragmaticTester.checkQuery("select empno as e from emp group by e");
+    pragmaticTester.checkQuery("select emp.empno as e from emp group by e");
+    pragmaticTester.checkQuery("select e.empno from emp as e group by e.empno");
+    pragmaticTester.checkQuery("select e.empno as eno from emp as e group by eno");
+    pragmaticTester.checkQuery("select deptno as dno from emp group by cube(dno)");
+    pragmaticTester.checkQuery("select deptno as dno, ename name, sum(sal) from emp\n"
+        + "group by grouping sets ((dno), (name, deptno))");
+    pragmaticTester.checkQuery("select ename as deptno from emp as e join dept as d on "
+        + "e.deptno = d.deptno group by ^deptno^");
+    pragmaticTester.checkQuery("select t.e, count(*) from (select empno as e from emp) t"
+        + " group by e");
+    pragmaticTester.checkQueryFails("select t.e, ^count(*)^ as c from "
+        + " (select empno as e from emp) t group by e,c", ERR_AGG_IN_GROUP_BY);
+    pragmaticTester.checkQuery("select deptno,(select empno + 1 from emp) eno from dept"
+        + " group by deptno,eno");
+    pragmaticTester.checkQueryFails("select empno as e, deptno as e from emp group by ^e^",
+        "Column 'E' is ambiguous");
+    pragmaticTester.checkQueryFails("select empno, ^count(*)^ c from emp group by empno, c",
+        ERR_AGG_IN_GROUP_BY);
+    pragmaticTester.checkQuery("select deptno + empno as d, deptno + empno + mgr from emp"
+        + " group by d,mgr");
+    // When alias is equal to one or more columns in the query then giving priority to alias.
+    // but Postgres may throw ambigious column error or give priority to column name.
+    pragmaticTester.checkQuery("select count(*) from "
+        + "(select ename AS deptno FROM emp GROUP BY deptno) t");
+    pragmaticTester.checkQuery("select count(*) from "
+        + "(select ename AS deptno FROM emp, dept GROUP BY deptno) t");
+    pragmaticTester.withCaseSensitive(false).checkQuery("select empno + deptno AS \"z\" FROM"
+        + " emp GROUP BY \"Z\"");
+    pragmaticTester.checkQueryFails("select empno + deptno as c, ^c^ + mgr as d from emp"
+        + " group by c, d", "Column 'C' not found in any table");
+    // Group by alias with default conformance should fail.
+    checkFails("select empno as e from emp group by ^e^", "Column 'E' not found in any table");
+  }
+
+  /**
+   * Tests validation of the ordinals in GROUP BY.
+   */
+  @Test public void testOrdinalInGroupBy() {
+    final SqlTester pragmaticTester =
+        tester.withConformance(SqlConformanceEnum.PRAGMATIC_2003);
+    pragmaticTester.checkQuery("select empno,deptno from emp group by 1, deptno");
+    pragmaticTester.checkQuery("select emp.empno as e from emp group by 1");
+    pragmaticTester.checkQuery("select e.empno from emp as e group by 1");
+    pragmaticTester.checkQuery("select e.empno as eno from emp as e group by 1");
+    pragmaticTester.checkQuery("select deptno as dno from emp group by cube(1)");
+    pragmaticTester.checkQuery("select deptno as dno, ename name, sum(sal) from emp\n"
+            + "group by grouping sets ((1), (name, deptno))");
+    pragmaticTester.checkQuery("select e.deptno from emp as e join dept as d on "
+        + "e.deptno = d.deptno group by 1");
+    pragmaticTester.checkQuery("select deptno,(select empno from emp) eno from dept"
+        + " group by 1,2");
+    pragmaticTester.checkQuery("select count(*) from (select 1 from emp"
+        + " group by substring(ename from 2 for 3))");
+    pragmaticTester.checkQueryFails("select deptno from emp group by deptno, ^100^"
+        , "Ordinal out of range");
+    // Integers in group by considered as constants so the test will pass.
+    // Postgres always consider as ordiner and throw out of range position error.
+    check("select deptno from emp group by 100, deptno");
+  }
+
+  /**
+   * Tests validation of the aliases in HAVING.
+   */
+  @Test public void testAliasInHaving() {
+    final SqlTester pragmaticTester =
+        tester.withConformance(SqlConformanceEnum.PRAGMATIC_2003);
+    pragmaticTester.checkQuery("select count(empno) as e from emp having e > 10");
+    pragmaticTester.checkQuery("select emp.empno as e from emp group by e having e > 10");
+    pragmaticTester.checkQuery("select e.empno from emp as e group by 1 having e.empno > 10");
+    // When alias is equal to one or more columns in the query then giving priority to alias.
+    // but Postgres throwing ambigious column error or give priority to column name.
+    pragmaticTester.checkQuery("select count(empno) as deptno from emp having deptno > 10");
+    // Alias in aggregate is not allowed.
+    pragmaticTester.checkQueryFails("select empno as e from emp having max(^e^) > 10",
+        "Column 'E' not found in any table");
+    checkFails("select count(empno) as e from emp having ^e^ > 10",
+            "Column 'E' not found in any table");
+  }
+
+  /**
    * Tests validation of the ORDER BY clause when DISTINCT is present.
    */
   @Test public void testOrderDistinct() {
