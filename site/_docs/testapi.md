@@ -1,7 +1,7 @@
 ---
 title: Test API
 layout: external
-external_url: /testapidocs
+external_url: /avatica/testapidocs
 ---
 {% comment %}
 Ideally, we want to use {{ site.apiRoot }} instead of hardcoding

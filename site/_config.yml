@@ -17,40 +17,30 @@ markdown: kramdown
 permalink: /news/:year/:month/:day/:title/
 excerpt_separator: ""
 
-repository: https://github.com/apache/calcite
-destination: target
+repository: https://github.com/apache/calcite-avatica
+destination: site/target/avatica
 exclude: [README.md,Gemfile*]
-keep_files: [".git", ".svn", "apidocs", "testapidocs", "avatica", "docs/cassandra.html"]
+keep_files: [".git", ".svn", "apidocs", "testapidocs"]
 
 collections:
   docs:
     output: true
 
 # The URL where the code can be found
-sourceRoot: https://github.com/apache/calcite/blob/master
+sourceRoot: https://github.com/apache/calcite-avatica/tree/master
 
-# The URL where Javadocs are located
-apiRoot: /apidocs
-# apiRoot: http://calcite.apache.org/apidocs
+# The URL where Avatica Javadocs are located
+apiRoot: /avatica/apidocs
+# apiRoot: http://calcite.apache.org/avatica/apidocs
 
 # The URL where Test Javadocs are located
-testApiRoot: /testapidocs
-# testApiRoot: http://calcite.apache.org/testapidocs
-
-# The URL where Avatica's Javadocs are located
-avaticaApiRoot: /avatica/apidocs
-# avaticaApiRoot: http://calcite.apache.org/avatica/apidocs
+testApiRoot: /avatica/testapidocs
+# testApiRoot: http://calcite.apache.org/avatica/testapidocs
 
 # The URL where the JDK's Javadocs are located
 jdkApiRoot: https://docs.oracle.com/javase/8/docs/api/
 
 # The base path where the website is deployed
-baseurl:
-
-# The base path where the Avatica's website is deployed
-avaticaBaseurl: /avatica
-
-gems:
-    - jekyll-redirect-from
+baseurl: /avatica
 
 # End _config.yml

@@ -25,7 +25,7 @@ limitations under the License.
     <!-- main project directory structure -->
     <fileSet>
       <directory>.</directory>
-      <outputDirectory/>
+      <outputDirectory>/</outputDirectory>
       <useDefaultExcludes>true</useDefaultExcludes>
       <excludes>
         <!-- build output -->
@@ -84,23 +84,20 @@ limitations under the License.
         </exclude>
         <exclude>%regex[(?!((?!${project.build.directory}/)[^/]+/)*src/)(.*/)?release\.properties]
         </exclude>
-
-        <!-- Avatica -->
-        <exclude>avatica/**</exclude>
       </excludes>
     </fileSet>
     <!-- LICENSE, NOTICE, DEPENDENCIES, git.properties, etc. calculated at build time -->
     <fileSet>
       <directory>${project.build.directory}/maven-shared-archive-resources/META-INF
       </directory>
-      <outputDirectory/>
+      <outputDirectory>/</outputDirectory>
     </fileSet>
     <fileSet>
       <directory>${project.build.directory}</directory>
       <includes>
         <include>git.properties</include>
       </includes>
-      <outputDirectory/>
+      <outputDirectory>/</outputDirectory>
     </fileSet>
   </fileSets>
 </assembly>

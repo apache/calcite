@@ -23,8 +23,7 @@ limitations under the License.
 {% endcomment %}
 -->
 
-Here's some miscellaneous documentation about using Calcite and its various
-adapters.
+Here's some miscellaneous documentation about using Avatica.
 
 * TOC
 {:toc}
@@ -32,15 +31,15 @@ adapters.
 ## Building from a source distribution
 
 Prerequisites are maven (3.2.1 or later)
-and Java (JDK 7, 8 or 9) on your path.
+and Java (JDK 1.7 or later, 1.8 preferred) on your path.
 
 Unpack the source distribution `.tar.gz` or `.zip` file,
 `cd` to the root directory of the unpacked source,
 then build using maven:
 
 {% highlight bash %}
-$ tar xvfz calcite-1.12.0-source.tar.gz
-$ cd calcite-1.12.0
+$ tar xvfz apache-calcite-avatica-1.9.0-src.tar.gz
+$ cd apache-calcite-avatica-1.9.0-src
 $ mvn install
 {% endhighlight %}
 
@@ -50,32 +49,16 @@ tests.
 ## Building from git
 
 Prerequisites are git, maven (3.2.1 or later)
-and Java (JDK 7 or later, 8 preferred) on your path.
+and Java (JDK 1.7 or later, 1.8 preferred) on your path.
 
 Create a local copy of the github repository,
 `cd` to its root directory,
 then build using maven:
 
 {% highlight bash %}
-$ git clone git://github.com/apache/calcite.git
-$ cd calcite
+$ git clone git://github.com/apache/calcite-avatica.git avatica
+$ cd avatica
 $ mvn install
-{% endhighlight %}
-
-Calcite includes a number of machine-generated codes. By default, these are
-regenerated on every build, but this has the negative side-effect of causing
-a re-compilation of the entire project when the non-machine-generated code
-has not changed. To make sure incremental compilation still works as intended,
-provide the `skipGenerate` command line option with your maven command.
-If you invoke the `clean` lifecycle phase, you must not specify the
-`skipGenerate` option as it will not recompile the necessary code for the build
-to succeed.
-
-{% highlight bash %}
-$ mvn clean
-$ mvn package
-... hacks ...
-$ mvn package -DskipGenerate
 {% endhighlight %}
 
 [Running tests](#running-tests) describes how to run more or fewer
@@ -87,90 +70,12 @@ The test suite will run by default when you build, unless you specify
 `-DskipTests`:
 
 {% highlight bash %}
-$ mvn -DskipTests clean install
-$ mvn test
+$ mvn clean verify -Dcheckstyle.skip
 {% endhighlight %}
 
-There are other options that control which tests are run, and in what
-environment, as follows.
-
-* `-Dcalcite.test.db=DB` (where db is `h2`, `hsqldb`, `mysql`, or `postgresql`) allows you
-  to change the JDBC data source for the test suite. Calcite's test
-  suite requires a JDBC data source populated with the foodmart data
-  set.
-   * `hsqldb`, the default, uses an in-memory hsqldb database.
-   * All others access a test virtual machine
-     (see [integration tests](#running-integration-tests) below).
-     `mysql` and `postgresql` might be somewhat faster than hsqldb, but you need
-     to populate it (i.e. provision a VM).
-* `-Dcalcite.debug` prints extra debugging information to stdout.
-* `-Dcalcite.test.slow` enables tests that take longer to execute. For
-  example, there are tests that create virtual TPC-H and TPC-DS schemas
-  in-memory and run tests from those benchmarks.
-* `-Dcalcite.test.splunk` enables tests that run against Splunk.
-  Splunk must be installed and running.
-
-## Running integration tests
-
-For testing Calcite's external adapters, a test virtual machine should be used.
-The VM includes Cassandra, Druid, H2, HSQLDB, MySQL, MongoDB, and PostgreSQL.
-
-Test VM requires 5GiB of disk space and it takes 30 minutes to build.
-
-Note: you can use [calcite-test-dataset](https://github.com/vlsi/calcite-test-dataset)
- to populate your own database, however it is recommended to use test VM so the test environment can be reproduced.
-
-### VM preparation
-
-0) Install dependencies: [Vagrant](https://www.vagrantup.com/) and [VirtualBox](https://www.virtualbox.org/)
-
-1) Clone https://github.com/vlsi/calcite-test-dataset.git at the same level as calcite repository.
-For instance:
-
-{% highlight bash %}
-code
-  +-- calcite
-  +-- calcite-test-dataset
-{% endhighlight %}
-
-Note: integration tests search for ../calcite-test-dataset or ../../calcite-test-dataset.
- You can specify full path via calcite.test.dataset system property.
-
-2) Build and start the VM:
-
-{% highlight bash %}
-cd calcite-test-dataset && mvn install
-{% endhighlight %}
-
-### VM management
-
-Test VM is provisioned by Vagrant, so regular Vagrant `vagrant up` and `vagrant halt` should be used to start and stop the VM.
-The connection strings for different databases are listed in [calcite-test-dataset](https://github.com/vlsi/calcite-test-dataset) readme.
-
-### Suggested test flow
-
-Note: test VM should be started before you launch integration tests. Calcite itself does not start/stop the VM.
-
-Command line:
-
-* Executing regular unit tests (does not require external data): no change. `mvn test` or `mvn install`.
-* Executing all tests, for all the DBs: `mvn verify -Pit`. `it` stands for "integration-test". `mvn install -Pit` works as well.
-* Executing just tests for external DBs, excluding unit tests: `mvn -Dtest=foo -DfailIfNoTests=false -Pit verify`
-* Executing just MongoDB tests: `cd mongo; mvn verify -Pit`
-
-From within IDE:
-
-* Executing regular unit tests: no change.
-* Executing MongoDB tests: run `MongoAdapterIT.java` as usual (no additional properties are required)
-* Executing MySQL tests: run `JdbcTest` and `JdbcAdapterTest` with setting `-Dcalcite.test.db=mysql`
-* Executing PostgreSQL tests: run `JdbcTest` and `JdbcAdapterTest` with setting `-Dcalcite.test.db=postgresql`
-
-### Integration tests technical details
-
-Tests with external data are executed at maven's integration-test phase.
-We do not currently use pre-integration-test/post-integration-test, however we could use that in future.
-The verification of build pass/failure is performed at verify phase.
-Integration tests should be named `...IT.java`, so they are not picked up on unit test execution.
+By default, invoking the `verify` Maven lifecycle phase will also cause checkstyle
+rules to be run. It is expected that contributions pass the checkstyle rules; however,
+it is common to ignore these while working on a feature/bug and fix them at the end.
 
 ## Contributing
 
@@ -180,179 +85,11 @@ See the [developers guide]({{ site.baseurl }}/develop/#contributing).
 
 See the [developers guide]({{ site.baseurl }}/develop/#getting-started).
 
-## Tracing
-
-To enable tracing, add the following flags to the java command line:
-
-`-Dcalcite.debug=true`
-
-The first flag causes Calcite to print the Java code it generates
-(to execute queries) to stdout. It is especially useful if you are debugging
-mysterious problems like this:
-
-`Exception in thread "main" java.lang.ClassCastException: Integer cannot be cast to Long
-  at Baz$1$1.current(Unknown Source)`
-
-By default, Calcite uses the Log4j bindings for SLF4J. There is a provided configuration
-file which outputs logging at the INFO level to the console in `core/src/test/resources/log4j.properties`.
-You can modify the level for the rootLogger to increase verbosity or change the level
-for a specific class if you so choose.
-
-{% highlight properties %}
-# Change rootLogger level to WARN
-log4j.rootLogger=WARN, A1
-# Increase level to DEBUG for RelOptPlanner
-log4j.logger.org.apache.calcite.plan.RelOptPlanner=DEBUG
-# Increase level to TRACE for HepPlanner
-log4j.logger.org.apache.calcite.plan.hep.HepPlanner=TRACE
-{% endhighlight %}
-
-## CSV adapter
-
-See the [tutorial]({{ site.baseurl }}/docs/tutorial.html).
-
-## MongoDB adapter
-
-First, download and install Calcite,
-and <a href="http://www.mongodb.org/downloads">install MongoDB</a>.
-
-Note: you can use MongoDB from integration test virtual machine above.
-
-Import MongoDB's zipcode data set into MongoDB:
-
-{% highlight bash %}
-$ curl -o /tmp/zips.json http://media.mongodb.org/zips.json
-$ mongoimport --db test --collection zips --file /tmp/zips.json
-Tue Jun  4 16:24:14.190 check 9 29470
-Tue Jun  4 16:24:14.469 imported 29470 objects
-{% endhighlight %}
-
-Log into MongoDB to check it's there:
-
-{% highlight bash %}
-$ mongo
-MongoDB shell version: 2.4.3
-connecting to: test
-> db.zips.find().limit(3)
-{ "city" : "ACMAR", "loc" : [ -86.51557, 33.584132 ], "pop" : 6055, "state" : "AL", "_id" : "35004" }
-{ "city" : "ADAMSVILLE", "loc" : [ -86.959727, 33.588437 ], "pop" : 10616, "state" : "AL", "_id" : "35005" }
-{ "city" : "ADGER", "loc" : [ -87.167455, 33.434277 ], "pop" : 3205, "state" : "AL", "_id" : "35006" }
-> exit
-bye
-{% endhighlight %}
-
-Connect using the
-[mongo-zips-model.json]({{ site.sourceRoot }}/mongodb/src/test/resources/mongo-zips-model.json)
-Calcite model:
-
-{% highlight bash %}
-$ ./sqlline
-sqlline> !connect jdbc:calcite:model=mongodb/target/test-classes/mongo-zips-model.json admin admin
-Connecting to jdbc:calcite:model=mongodb/target/test-classes/mongo-zips-model.json
-Connected to: Calcite (version 1.x.x)
-Driver: Calcite JDBC Driver (version 1.x.x)
-Autocommit status: true
-Transaction isolation: TRANSACTION_REPEATABLE_READ
-sqlline> !tables
-+------------+--------------+-----------------+---------------+
-| TABLE_CAT  | TABLE_SCHEM  |   TABLE_NAME    |  TABLE_TYPE   |
-+------------+--------------+-----------------+---------------+
-| null       | mongo_raw    | zips            | TABLE         |
-| null       | mongo_raw    | system.indexes  | TABLE         |
-| null       | mongo        | ZIPS            | VIEW          |
-| null       | metadata     | COLUMNS         | SYSTEM_TABLE  |
-| null       | metadata     | TABLES          | SYSTEM_TABLE  |
-+------------+--------------+-----------------+---------------+
-sqlline> select count(*) from zips;
-+---------+
-| EXPR$0  |
-+---------+
-| 29467   |
-+---------+
-1 row selected (0.746 seconds)
-sqlline> !quit
-Closing: org.apache.calcite.jdbc.FactoryJdbc41$CalciteConnectionJdbc41
-$
-{% endhighlight %}
-
-## Splunk adapter
-
-To run the test suite and sample queries against Splunk,
-load Splunk's `tutorialdata.zip` data set as described in
-<a href="http://docs.splunk.com/Documentation/Splunk/6.0.2/PivotTutorial/GetthetutorialdataintoSplunk">the Splunk tutorial</a>.
-
-(This step is optional, but it provides some interesting data for the sample
-queries. It is also necessary if you intend to run the test suite, using
-`-Dcalcite.test.splunk=true`.)
-
-## Implementing an adapter
-
-New adapters can be created by implementing `CalcitePrepare.Context`:
-
-{% highlight java %}
-import org.apache.calcite.adapter.java.JavaTypeFactory;
-import org.apache.calcite.jdbc.CalcitePrepare;
-import org.apache.calcite.jdbc.CalciteSchema;
-
-public class AdapterContext implements CalcitePrepare.Context {
-  @Override
-  public JavaTypeFactory getTypeFactory() {
-    // adapter implementation
-    return typeFactory;
-  }
-
-  @Override
-  public CalciteSchema getRootSchema() {
-    // adapter implementation
-    return rootSchema;
-  }
-}
-{% endhighlight %}
-
-### Testing adapter in Java
-
-The example below shows how SQL query can be submitted to
-`CalcitePrepare` with a custom context (`AdapterContext` in this
-case). Calcite prepares and implements the query execution, using the
-resources provided by the `Context`. `CalcitePrepare.PrepareResult`
-provides access to the underlying enumerable and methods for
-enumeration. The enumerable itself can naturally be some adapter
-specific implementation.
-
-{% highlight java %}
-import org.apache.calcite.jdbc.CalcitePrepare;
-import org.apache.calcite.prepare.CalcitePrepareImpl;
-import org.junit.Test;
-
-public class AdapterContextTest {
-  @Test
-  public void testSelectAllFromTable() {
-    AdapterContext ctx = new AdapterContext();
-    String sql = "SELECT * FROM TABLENAME";
-    Class elementType = Object[].class;
-    CalcitePrepare.PrepareResult<Object> prepared =
-        new CalcitePrepareImpl().prepareSql(ctx, sql, null, elementType, -1);
-    Object enumerable = prepared.getExecutable();
-    // etc.
-  }
-}
-{% endhighlight %}
-
 # Advanced topics for developers
 
 The following sections might be of interest if you are adding features
 to particular parts of the code base. You don't need to understand
 these topics if you are just building from source and running tests.
-
-## JavaTypeFactory
-
-When Calcite compares types (instances of `RelDataType`), it requires them to be the same
-object. If there are two distinct type instances that refer to the
-same Java type, Calcite may fail to recognize that they match.  It is
-recommended to:
-
-* Use a single instance of `JavaTypeFactory` within the calcite context;
-* Store the types so that the same object is always returned for the same type.
 
 ## Rebuilding generated Protocol Buffer code
 
@@ -368,11 +105,11 @@ objects.
 Typically, the code generated by the Protocol Buffers library doesn't
 need to be re-generated only every build, only when the schema changes.
 
-First, install Protobuf 3.0:
+First, install Protobuf 3.1:
 
 {% highlight bash %}
-$ wget https://github.com/google/protobuf/releases/download/v3.0.0-beta-1/protobuf-java-3.0.0-beta-1.tar.gz
-$ tar xf protobuf-java-3.0.0-beta-1.tar.gz && cd protobuf-3.0.0-beta-1
+$ wget https://github.com/google/protobuf/releases/download/v3.1.0/protobuf-java-3.1.0.tar.gz
+$ tar xf protobuf-java-3.1.0.tar.gz && cd protobuf-3.1.0
 $ ./configure
 $ make
 $ sudo make install
@@ -399,23 +136,47 @@ create a key pair. (On Mac OS X, I did `brew install gpg` and
 Add your public key to the `KEYS` file by following instructions in
 the `KEYS` file.
 
+## Run a GPG agent
+
+By default, Maven plugins which require you to unlock a GPG secret key
+will prompt you in the terminal. To prevent you from having to enter
+this password numerous times, it is highly recommended to install and
+run `gpg-agent`.
+
+This can be started automatically via an `~/.xsession` on Linux or some
+scripting in your shell's configuration script of choice (e.g. `~/.bashrc` or `~/.zshrc`)
+
+{% highlight bash %}
+GPG_AGENT=$(which gpg-agent)
+GPG_TTY=`tty`
+export GPG_TTY
+if [[ -f "$GPG_AGENT" ]]; then
+  envfile="${HOME}/.gnupg/gpg-agent.env"
+
+  if test -f "$envfile" && kill -0 $(grep GPG_AGENT_INFO "$envfile" | cut -d: -f 2) 2>/dev/null; then
+      source "$envfile"
+  else
+      eval "$(gpg-agent --daemon --log-file=~/.gpg/gpg.log --write-env-file "$envfile")"
+  fi
+  export GPG_AGENT_INFO  # the env file does not contain the export statement
+fi
+{% endhighlight %}
+
+Also, ensure that `default-cache-ttl 6000` is set in `~/.gnupg/gpg-agent.conf`
+to guarantee that your credentials will be cached for the duration of the build.
+
 ## Making a snapshot (for Calcite committers)
 
 Before you start:
 
 * Set up signing keys as described above.
-* Make sure you are using JDK 8 (not 7 or 9).
-* Make sure build and tests succeed with `-Dcalcite.test.db=hsqldb` (the default)
+* Make sure you are using JDK 1.7 (not 1.8).
 
 {% highlight bash %}
-# Set passphrase variable without putting it into shell history
-read -s GPG_PASSPHRASE
-
 # Make sure that there are no junk files in the sandbox
 git clean -xn
-mvn clean
 
-mvn -Papache-release -Dgpg.passphrase=${GPG_PASSPHRASE} install
+mvn -Papache-release clean install
 {% endhighlight %}
 
 When the dry-run has succeeded, change `install` to `deploy`.
@@ -425,43 +186,25 @@ When the dry-run has succeeded, change `install` to `deploy`.
 Before you start:
 
 * Set up signing keys as described above.
-* Make sure you are using JDK 8 (not 7 or 9).
+* Make sure you are using JDK 1.7 (not 1.8).
 * Check that `README` and `site/_docs/howto.md` have the correct version number.
-* Check that `NOTICE` has the current copyright year.
 * Set `version.major` and `version.minor` in `pom.xml`.
-* Make sure build and tests succeed, including with `-P it,it-oracle`.
-* Make sure that `mvn javadoc:javadoc javadoc:test-javadoc` succeeds
-  (i.e. gives no errors; warnings are OK)
-* Make sure that `mvn apache-rat:check` succeeds. (It will be run as part of
-  the release, but it's better to trouble-shoot early.)
-* Decide the supported configurations of JDK, operating system and
-  Guava.  These will probably be the same as those described in the
-  release notes of the previous release.  Document them in the release
-  notes.  To test Guava version x.y, specify `-Dguava.version=x.y`
-* Optional extra tests:
-  * `-Dcalcite.test.db=mysql`
-  * `-Dcalcite.test.db=hsqldb`
-  * `-Dcalcite.test.slow`
-  * `-Dcalcite.test.mongodb`
-  * `-Dcalcite.test.splunk`
 * Trigger a
   <a href="https://scan.coverity.com/projects/2966">Coverity scan</a>
   by merging the latest code into the `julianhyde/coverity_scan` branch,
   and when it completes, make sure that there are no important issues.
-* Add release notes to `site/_docs/history.md`. Include the commit history,
-  and say which versions of Java, Guava and operating systems the release is
-  tested against.
 * Make sure that
   <a href="https://issues.apache.org/jira/issues/?jql=project%20%3D%20CALCITE%20AND%20status%20%3D%20Resolved%20and%20fixVersion%20is%20null">
   every "resolved" JIRA case</a> (including duplicates) has
   a fix version assigned (most likely the version we are
   just about to release)
 
-Create a release branch named after the release, e.g. `branch-1.1`, and push it to Apache.
+Create a release branch named after the release, e.g.
+`branch-avatica-1.9`, and push it to Apache.
 
 {% highlight bash %}
-$ git checkout -b branch-X.Y
-$ git push -u origin branch-X.Y
+$ git checkout -b branch-avatica-X.Y
+$ git push -u origin branch-avatica-X.Y
 {% endhighlight %}
 
 We will use the branch for the entire the release process. Meanwhile,
@@ -480,54 +223,52 @@ If any of the steps fail, clean up (see below), fix the problem, and
 start again from the top.
 
 {% highlight bash %}
-# Set passphrase variable without putting it into shell history
-read -s GPG_PASSPHRASE
-
 # Make sure that there are no junk files in the sandbox
 git clean -xn
-mvn clean
 
-# Do a dry run of the release:prepare step, which sets version numbers
-mvn -DdryRun=true -DskipTests -DreleaseVersion=X.Y.Z -DdevelopmentVersion=X.Y+1.Z-SNAPSHOT -Papache-release -Darguments="-Dgpg.passphrase=${GPG_PASSPHRASE}" release:prepare 2>&1 | tee /tmp/prepare-dry.log
+# Do a dry run of the release:prepare step, which sets version numbers.
+mvn -DdryRun=true -DreleaseVersion=X.Y.Z -DdevelopmentVersion=X.Y.Z+1-SNAPSHOT -Dtag=calcite-avatica-X.Y.Z-rcN -Papache-release -Duser.name=${asf.username} release:prepare
 {% endhighlight %}
 
 Check the artifacts:
 
 * In the `target` directory should be these 8 files, among others:
-  * apache-calcite-X.Y.Z-src.tar.gz
-  * apache-calcite-X.Y.Z-src.tar.gz.asc
-  * apache-calcite-X.Y.Z-src.tar.gz.md5
-  * apache-calcite-X.Y.Z-src.tar.gz.sha1
-  * apache-calcite-X.Y.Z-src.zip
-  * apache-calcite-X.Y.Z-src.zip.asc
-  * apache-calcite-X.Y.Z-src.zip.md5
-  * apache-calcite-X.Y.Z-src.zip.sha1
-* Note that the file names start `apache-calcite-`.
+  * apache-calcite-avatica-X.Y.Z-src.tar.gz
+  * apache-calcite-avatica-X.Y.Z-src.tar.gz.asc
+  * apache-calcite-avatica-X.Y.Z-src.tar.gz.md5
+  * apache-calcite-avatica-X.Y.Z-src.tar.gz.sha1
+  * apache-calcite-avatica-X.Y.Z-src.zip
+  * apache-calcite-avatica-X.Y.Z-src.zip.asc
+  * apache-calcite-avatica-X.Y.Z-src.zip.md5
+  * apache-calcite-avatica-X.Y.Z-src.zip.sha1
+* Note that the file names start `apache-calcite-avatica-`.
 * In the two source distros `.tar.gz` and `.zip` (currently there is
   no binary distro), check that all files belong to a directory called
-  `apache-calcite-X.Y.Z-src`.
+  `apache-calcite-avatica-X.Y.Z-src`.
 * That directory must contain files `NOTICE`, `LICENSE`,
   `README`, `README.md`
   * Check that the version in `README` is correct
-  * Check that the copyright year in `NOTICE` is correct
-* In each .jar (for example
-  `core/target/calcite-core-X.Y.Z.jar` and
-  `mongodb/target/calcite-mongodb-X.Y.Z-sources.jar`), check
-  that the `META-INF` directory contains `DEPENDENCIES`, `LICENSE`,
-  `NOTICE` and `git.properties`
-* In `core/target/calcite-core-X.Y.Z.jar`,
-  check that `org-apache-calcite-jdbc.properties` is
-  present and does not contain un-substituted `${...}` variables
+* For each .jar, verify that the `META-INF` directory contains the correct
+  contents for `DEPENDENCIES`, `LICENSE` and `NOTICE` per the
+  source/classes contained. Refer to the ASF licensing documentation on
+  what is required.
 * Check PGP, per [this](https://httpd.apache.org/dev/verification.html)
 
-Now, remove the `-DdryRun` flag and run the release for real.
+If something is not correct, you can invoke the `release:clean` mojo to remove the
+generated files from your workspace:
 
 {% highlight bash %}
-# Prepare sets the version numbers, creates a tag, and pushes it to git
-mvn -DdryRun=false -DskipTests -DreleaseVersion=X.Y.Z -DdevelopmentVersion=X.Y+1.Z-SNAPSHOT -Papache-release -Darguments="-Dgpg.passphrase=${GPG_PASSPHRASE}" release:prepare 2>&1 | tee /tmp/prepare.log
+mvn release:clean
+{% endhighlight %}
+
+If successful, remove the `-DdryRun` flag and run the release for real.
+
+{% highlight bash %}
+# Prepare sets the version numbers, creates a tag, and pushes it to git.
+mvn -DreleaseVersion=X.Y.Z -DdevelopmentVersion=X.Y.Z+1-SNAPSHOT -Dtag=calcite-avatica-X.Y.Z-rc0 -Papache-release -Duser.name=${asf.username} release:prepare
 
 # Perform checks out the tagged version, builds, and deploys to the staging repository
-mvn -DskipTests -Papache-release -Darguments="-Dgpg.passphrase=${GPG_PASSPHRASE}" release:perform 2>&1 | tee /tmp/perform.log
+mvn -Papache-release -Duser.name=${asf.username} release:perform -Darguments="-DskipTests"
 {% endhighlight %}
 
 Verify the staged artifacts in the Nexus repository:
@@ -542,7 +283,7 @@ Verify the staged artifacts in the Nexus repository:
   (or a similar URL)
 
 Upload the artifacts via subversion to a staging area,
-https://dist.apache.org/repos/dist/dev/calcite/apache-calcite-X.Y.Z-rcN:
+https://dist.apache.org/repos/dist/dev/calcite/apache-calcite-avatica-X.Y.Z-rcN:
 
 {% highlight bash %}
 # Create a subversion workspace, if you haven't already
@@ -551,20 +292,14 @@ pushd ~/dist/dev
 svn co https://dist.apache.org/repos/dist/dev/calcite
 popd
 
-# Replace digest files with a single digest
-cd target
-for f in *.tar.gz *.zip; do
-  rm ${f}.md5 ${f}.sha1
-  gpg --print-mds ${f} > ${f}.mds
-done
-
 # Move the files into a directory
-mkdir ~/dist/dev/calcite/apache-calcite-X.Y.Z-rcN
-mv apache-calcite-* ~/dist/dev/calcite/apache-calcite-X.Y.Z-rcN
+cd target
+mkdir ~/dist/dev/calcite/apache-calcite-avatica-X.Y.Z-rcN
+mv apache-calcite-avatica-* ~/dist/dev/calcite/apache-calcite-avatica-X.Y.Z-rcN
 
 # Check in
 cd ~/dist/dev/calcite
-svn add apache-calcite-X.Y.Z-rcN
+svn add apache-calcite-avatica-X.Y.Z-rcN
 svn ci
 {% endhighlight %}
 
@@ -576,8 +311,8 @@ svn ci
 git tag
 
 # If the tag exists, delete it locally and remotely
-git tag -d calcite-X.Y.Z
-git push origin :refs/tags/calcite-X.Y.Z
+git tag -d apache-calcite-avatica-X.Y.Z
+git push origin :refs/tags/apache-calcite-avatica-X.Y.Z
 
 # Remove modified files
 mvn release:clean
@@ -591,7 +326,7 @@ git reset --hard HEAD
 ## Validate a release
 
 {% highlight bash %}
-# Check that the signing key (e.g. DDB6E9812AD3FAE3) is pushed
+# Check that the signing key (e.g. 2AD3FAE3) is pushed
 gpg --recv-keys key
 
 # Check keys
@@ -627,7 +362,7 @@ function checkHash() {
     fi
   done
 }
-checkHash apache-calcite-X.Y.Z-rcN
+checkHash apache-calcite-avatica-X.Y.Z-rcN
 {% endhighlight %}
 
 ## Get approval for a release via Apache voting process (for Calcite committers)
@@ -636,15 +371,15 @@ Release vote on dev list
 
 {% highlight text %}
 To: dev@calcite.apache.org
-Subject: [VOTE] Release apache-calcite-X.Y.Z (release candidate N)
+Subject: [VOTE] Release apache-calcite-avatica-X.Y.Z (release candidate N)
 
 Hi all,
 
-I have created a build for Apache Calcite X.Y.Z, release candidate N.
+I have created a build for Apache Calcite Avatica X.Y.Z, release candidate N.
 
 Thanks to everyone who has contributed to this release.
 <Further details about release.> You can read the release notes here:
-https://github.com/apache/calcite/blob/XXXX/site/_docs/history.md
+https://github.com/apache/calcite-avatica/blob/XXXX/site/_docs/history.md
 
 The commit to be voted upon:
 http://git-wip-us.apache.org/repos/asf/calcite/commit/NNNNNN
@@ -652,7 +387,7 @@ http://git-wip-us.apache.org/repos/asf/calcite/commit/NNNNNN
 Its hash is XXXX.
 
 The artifacts to be voted on are located here:
-https://dist.apache.org/repos/dist/dev/calcite/apache-calcite-X.Y.Z-rcN/
+https://dist.apache.org/repos/dist/dev/calcite/apache-calcite-avatica-X.Y.Z-rcN/
 
 The hashes of the artifacts are as follows:
 src.tar.gz.md5 XXXX
@@ -666,7 +401,7 @@ https://repository.apache.org/content/repositories/orgapachecalcite-NNNN
 Release artifacts are signed with the following key:
 https://people.apache.org/keys/committer/jhyde.asc
 
-Please vote on releasing this package as Apache Calcite X.Y.Z.
+Please vote on releasing this package as Apache Calcite Avatica X.Y.Z.
 
 The vote is open for the next 72 hours and passes if a majority of
 at least three +1 PMC votes are cast.
@@ -686,7 +421,7 @@ Julian
 After vote finishes, send out the result:
 
 {% highlight text %}
-Subject: [RESULT] [VOTE] Release apache-calcite-X.Y.Z (release candidate N)
+Subject: [RESULT] [VOTE] Release apache-calcite-avatica-X.Y.Z (release candidate N)
 To: dev@calcite.apache.org
 
 Thanks to everyone who has tested the release candidate and given
@@ -703,7 +438,7 @@ N non-binding +1s:
 No 0s or -1s.
 
 Therefore I am delighted to announce that the proposal to release
-Apache Calcite X.Y.Z has passed.
+Apache Calcite Avatica X.Y.Z has passed.
 
 Thanks everyone. We’ll now roll the release out to the mirrors.
 
@@ -758,8 +493,8 @@ mkdir -p ~/dist/release
 cd ~/dist/release
 svn co https://dist.apache.org/repos/dist/release/calcite
 cd calcite
-cp -rp ../../dev/calcite/apache-calcite-X.Y.Z-rcN apache-calcite-X.Y.Z
-svn add apache-calcite-X.Y.Z
+cp -rp ../../dev/calcite/apache-calcite-avatica-X.Y.Z-rcN apache-calcite-avatica-X.Y.Z
+svn add apache-calcite-avatica-X.Y.Z
 
 # Check in.
 svn ci
@@ -773,7 +508,7 @@ If there are now more than 2 releases, clear out the oldest ones:
 
 {% highlight bash %}
 cd ~/dist/release/calcite
-svn rm apache-calcite-X.Y.Z
+svn rm apache-calcite-avatica-X.Y.Z
 svn ci
 {% endhighlight %}
 
@@ -781,15 +516,15 @@ The old releases will remain available in the
 [release archive](http://archive.apache.org/dist/calcite/).
 
 Add a release note by copying
-[site/_posts/2016-10-12-release-1.10.0.md]({{ site.sourceRoot }}/site/_posts/2016-10-12-release-1.10.0.md),
-generate the javadoc using `mvn site` and copy to `site/target/apidocs` and `site/target/testapidocs`,
+[site/_posts/2015-11-10-release-1.5.0.md]({{ site.sourceRoot }}/site/_posts/2015-11-10-release-1.5.0.md),
+generate the javadoc and copy to `site/target/apidocs` and `site/target/testapidocs`,
 [publish the site](#publish-the-web-site),
 and check that it appears in the contents in [news](http://localhost:4000/news/).
 
 After 24 hours, announce the release by sending an email to
 [announce@apache.org](https://mail-archives.apache.org/mod_mbox/www-announce/).
 You can use
-[the 1.10.0 announcement](https://mail-archives.apache.org/mod_mbox/calcite-dev/201610.mbox/%3C11A13D1A-8364-4A34-A11B-A8E5EA57A740%40apache.org%3E)
+[the 1.6.0 announcement](https://mail-archives.apache.org/mod_mbox/www-announce/201601.mbox/%3C8DB4C1E5-B322-4A33-8E8F-9858FA6A1119%40apache.org%3E)
 as a template. Be sure to include a brief description of the project.
 
 ## Publishing the web site (for Calcite committers)

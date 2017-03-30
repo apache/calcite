@@ -35,20 +35,20 @@ or from source control.
 Calcite uses git for version control.  The canonical source is in
 [Apache](https://git-wip-us.apache.org/repos/asf/calcite.git),
 but most people find the
-[Github mirror](https://github.com/apache/calcite) more
+[Github mirror](https://github.com/apache/calcite-avatica) more
 user-friendly.
 
 ## Download source, build, and run tests
 
-Prerequisites are git, maven (3.2.1 or later) and Java (JDK 7 or
-later, 8 preferred) on your path.
+Prerequisites are git, maven (3.2.1 or later) and Java (JDK 1.7 or
+later, 1.8 preferred) on your path.
 
 Create a local copy of the git repository, `cd` to its root directory,
 then build using maven:
 
 {% highlight bash %}
-$ git clone git://github.com/apache/calcite.git
-$ cd calcite
+$ git clone git://github.com/apache/calcite-avatica.git avatica
+$ cd avatica
 $ mvn install
 {% endhighlight %}
 
@@ -91,7 +91,7 @@ changes.
 
 Calcite has a collection of Jenkins jobs on ASF-hosted infrastructure.
 They are all organized in a single view and available at
-[https://builds.apache.org/view/A-D/view/Calcite/](https://builds.apache.org/view/A-D/view/Calcite/).
+[https://builds.apache.org/view/A-D/view/Calcite-Avatica/](https://builds.apache.org/view/A-D/view/Calcite-Avatica/).
 
 ## Getting started
 
@@ -114,4 +114,3 @@ We value all contributions that help to build a vibrant community, not just code
 You can contribute by testing the code, helping verify a release,
 writing documentation or the web site,
 or just by answering questions on the list.
-

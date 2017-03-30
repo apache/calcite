@@ -23,29 +23,20 @@ limitations under the License.
 <section class="intro">
   <div class="grid">
     <div class="unit whole center-on-mobiles">
-      <p class="first">The foundation for your next high-performance database.</p>
+      <p class="first">Avatica is a framework for building database drivers.</p>
     </div>
   </div>
 </section>
 <section class="features">
   <div class="grid">
-    <div class="unit one-third">
-      <h2>Standard SQL</h2>
-      <p>Industry-standard SQL parser, validator and JDBC driver.</p>
-      <a href="{{ site.baseurl }}/docs/reference.html">SQL &rarr;</a>
+    <div class="unit whole center-on-mobiles">
+      <p>Avatica is defined by a wire API between a client and a server. The Avatica server is
+      an HTTP server, the Avatica client is a JDBC driver, and the wire API is defined by
+      JSON or Protobuf Buffers. The flexibility of the wire API and HTTP transport allows
+      other Avatica clients to be built in any language, implementing any client specification.</p>
+      <p>Avatica is a sub-project of the <a href="{{ site.baseurl }}/..">Apache Calcite project</a>.
+      Please refer to Calcite for information about the project as a whole.</p>
     </div>
-    <div class="unit one-third">
-      <h2>Query optimization</h2>
-      <p>Represent your query in relational algebra, transform using
-        planning rules, and optimize according to a cost model.</p>
-      <a href="{{ site.baseurl }}/docs/algebra.html">Relational algebra &rarr;</a>
-    </div>
-    <div class="unit one-third">
-      <h2>Any data, anywhere</h2>
-      <p>Connect to third-party data sources, browse metadata, and optimize by pushing the computation to the data.</p>
-      <a href="{{ site.baseurl }}/docs/adapter.html">Adapters &rarr;</a>
-    </div>
-    <div class="clear"></div>
   </div>
 </section>
 <section class="resources">
@@ -70,36 +61,6 @@ limitations under the License.
           <li><a href="http://www.apache.org">Website</a></li>
         </ul>
       </summary>
-    </div>
-    <div class="unit one-third">
-      <summary>
-        <h3>Sub-Projects</h3>
-        <ul>
-          <li><a href="{{ site.avaticaBaseurl }}">Avatica</a></li>
-        </ul>
-      </summary>
-    </div>
-  </div>
-</section>
-<section class="resources">
-  <div class="grid">
-    <div class="unit one-third">
-      <a href="http://www.apache.org/foundation/contributing.html">
-        <img src="http://apache.org/images/SupportApache-small.png" width="300" height="300" alt="Support Apache">
-      </a>
-    </div>
-    <div class="unit two-thirds">
-      <h2>Support Apache</h2>
-        <p>Apache is
-          <a href="https://blogs.apache.org/foundation/entry/the-apache-software-foundation-announces6">celebrating
-              its 18th anniversary</a>. From one project with 21 members to
-        <a href="https://projects.apache.org/statistics.html">300+ projects,
-          620 members, and 300 new code contributors every month</a>.</p>
-      <p>The <a href="https://www.apache.org/foundation/how-it-works.html">Apache
-          Software Foundation is a non-profit organization</a>,
-        funded only by donations. Support the ASF today by
-        <a href="http://www.apache.org/foundation/contributing.html">making a
-          donation</a>.</p>
     </div>
   </div>
 </section>

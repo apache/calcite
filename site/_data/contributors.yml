@@ -36,11 +36,6 @@
   githubId: F21
   org: Boostport
   role: Committer
-- name: Gian Merlino
-  apacheId: gian
-  githubId: gianm
-  org: Imply
-  role: Committer
 - name: James R. Taylor
   apacheId: jamestaylor
   githubId: JamesRTaylor
@@ -51,11 +46,6 @@
   githubId: jacques-n
   org: Dremio
   role: PMC
-- name: Jess Balint
-  apacheId: jbalint
-  githubId: jbalint
-  org: Stardog
-  role: Committer
 - name: Jesús Camacho Rodríguez
   apacheId: jcamacho
   githubId: jcamachor
@@ -82,16 +72,11 @@
   org: Hortonworks
   role: PMC
   homepage: http://people.apache.org/~jhyde
-- name: Laurent Goujon
-  apacheId: laurent
-  githubId: laurentgo
-  org: Dremio
-  role: Committer
 - name: Maryann Xue
   apacheId: maryannxue
   githubId: maryannxue
   org: Intel
-  role: PMC
+  role: Committer
 - name: Michael Mior
   apacheId: mmior
   githubId: michaelmior
@@ -114,7 +99,7 @@
 - name: Nick Dimiduk
   apacheId: ndimiduk
   githubId: ndimiduk
-  org:
+  org: Hortonworks
   role: PMC
   homepage: http://www.n10k.com
 - name: Steven Noels
@@ -127,7 +112,7 @@
   githubId: tdunning
   org: MapR
   role: PMC
-  avatar: https://mapr.com/blog/author/ted-dunning/assets/tdunning-panama.jpg
+  avatar: https://www.mapr.com/sites/default/files/otherpageimages/ted-circle-80.png
 - name: Vladimir Sitnikov
   apacheId: vladimirsitnikov
   githubId: vlsi

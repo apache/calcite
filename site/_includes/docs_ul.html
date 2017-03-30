@@ -20,12 +20,8 @@
     {% endcomment %}{% else %}{% comment %}
       {% endcomment %}{% assign anchor_text = p.title %}{% comment %}
     {% endcomment %}{% endif %}{% comment %}
-    {% endcomment %}{% if p_url == item_url %}{% comment %}
+    {% endcomment %}{% if p_url == item_url or p_url == item_url2 %}{% comment %}
       {% endcomment %}<li class="{{ c }}"><a href="{{ p_url }}">{{ anchor_text }}</a></li>{% comment %}
-      {% endcomment %}{% break %}{% comment %}
-    {% endcomment %}{% endif %}{% comment %}
-    {% endcomment %}{% if p_url == item_url2 %}{% comment %}
-      {% endcomment %}<li class="{{ c }}"><a href="{{ p.external_url }}">{{ anchor_text }}</a></li>{% comment %}
       {% endcomment %}{% break %}{% comment %}
     {% endcomment %}{% endif %}{% comment %}
   {% endcomment %}{% endfor %}

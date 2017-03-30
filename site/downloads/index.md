@@ -32,37 +32,26 @@ Release          | Date       | Commit   | Download
 {% endcomment %}{% if post.fullVersion %}{% comment %}
 {% endcomment %}{% assign v = post.fullVersion %}{% comment %}
 {% endcomment %}{% else %}{% comment %}
-{% endcomment %}{% capture v %}apache-calcite-{{ post.version }}{% endcapture %}{% comment %}
+{% endcomment %}{% capture v %}apache-calcite-avatica-{{ post.version }}{% endcapture %}{% comment %}
 {% endcomment %}{% endif %}{% comment %}
 {% endcomment %}{% if forloop.index0 < 1 %}{% comment %}
 {% endcomment %}{% capture p %}http://www.apache.org/dyn/closer.lua?filename=calcite/{{ v }}{% endcapture %}{% comment %}
 {% endcomment %}{% assign q = "&action=download" %}{% comment %}
 {% endcomment %}{% assign d = "https://www.apache.org/dist" %}{% comment %}
-{% endcomment %}{% elsif forloop.rindex < 8 %}{% comment %}
-{% endcomment %}{% capture p %}http://archive.apache.org/dist/incubator/calcite/{{ v }}{% endcapture %}{% comment %}
-{% endcomment %}{% assign q = "" %}{% comment %}
-{% endcomment %}{% assign d = "https://archive.apache.org/dist/incubator" %}{% comment %}
 {% endcomment %}{% else %}{% comment %}
 {% endcomment %}{% capture p %}http://archive.apache.org/dist/calcite/{{ v }}{% endcapture %}{% comment %}
 {% endcomment %}{% assign q = "" %}{% comment %}
 {% endcomment %}{% assign d = "https://archive.apache.org/dist" %}{% comment %}
 {% endcomment %}{% endif %}{% comment %}
-{% endcomment %}{% capture d1 %}{{ post.date | date: "%F"}}{% endcapture %}{% comment %}
-{% endcomment %}{% capture d2 %}2016-06-13{% endcapture %}{% comment %}
-{% endcomment %}{% if d1 > d2 %}{% comment %}
-{% endcomment %}{% assign digest = "mds" %}{% comment %}
-{% endcomment %}{% else %}{% comment %}
-{% endcomment %}{% assign digest = "md5" %}{% comment %}
-{% endcomment %}{% endif %}{% comment %}
 {% endcomment %}<a href="{{ site.baseurl }}/docs/history.html#{{ post.tag }}">{{ post.version }}</a>{% comment %}
 {% endcomment %} | {{ post.date | date_to_string }}{% comment %}
-{% endcomment %} | <a href="https://github.com/apache/calcite/commit/{{ post.sha }}">{{ post.sha }}</a>{% comment %}
+{% endcomment %} | <a href="https://github.com/apache/calcite-avatica/commit/{{ post.sha }}">{{ post.sha }}</a>{% comment %}
 {% endcomment %} | <a href="{{ p }}/{{ v }}-src.tar.gz{{ q }}">tar</a>{% comment %}
-{% endcomment %} (<a href="{{ d }}/calcite/{{ v }}/{{ v }}-src.tar.gz.{{ digest }}">digest</a>{% comment %}
+{% endcomment %} (<a href="{{ d }}/calcite/{{ v }}/{{ v }}-src.tar.gz.md5">md5</a>{% comment %}
 {% endcomment %} <a href="{{ d }}/calcite/{{ v }}/{{ v }}-src.tar.gz.asc">pgp</a>){% comment %}
 {% endcomment %} {% raw %}<br>{% endraw %}{% comment %}
 {% endcomment %} <a href="{{ p }}/{{ v }}-src.zip{{ q }}">zip</a>{% comment %}
-{% endcomment %} (<a href="{{ d }}/calcite/{{ v }}/{{ v }}-src.zip.{{ digest }}">digest</a>{% comment %}
+{% endcomment %} (<a href="{{ d }}/calcite/{{ v }}/{{ v }}-src.zip.md5">md5</a>{% comment %}
 {% endcomment %} <a href="{{ d }}/calcite/{{ v }}/{{ v }}-src.zip.asc">pgp</a>){% comment %}
 {% endcomment %}
 {% endfor %}
@@ -71,13 +60,12 @@ Choose a source distribution in either *tar* or *zip* format,
 and [verify](http://www.apache.org/dyn/closer.cgi#verify)
 using the corresponding *pgp* signature (using the committer file in
 [KEYS](http://www.apache.org/dist/calcite/KEYS)).
-If you cannot do that, use the *digest* file
-to check that the download has completed OK.
+If you cannot do that, the *md5* hash file may be used to check that the
+download has completed OK.
 
 For fast downloads, current source distributions are hosted on mirror servers;
 older source distributions are in the
-[archive](http://archive.apache.org/dist/calcite/)
-or [incubator archive](http://archive.apache.org/dist/incubator/calcite/).
+[archive](http://archive.apache.org/dist/calcite/).
 If a download from a mirror fails, retry, and the second download will likely
 succeed.
 
@@ -95,13 +83,26 @@ Add the following to the dependencies section of your `pom.xml` file:
 {% highlight xml %}
 <dependencies>
   <dependency>
-    <groupId>org.apache.calcite</groupId>
-    <artifactId>calcite-core</artifactId>
+    <groupId>org.apache.calcite.avatica</groupId>
+    <artifactId>avatica</artifactId>
+    <version>{{ current_release.version }}</version>
+  </dependency>
+  <dependency>
+    <groupId>org.apache.calcite.avatica</groupId>
+    <artifactId>avatica-server</artifactId>
     <version>{{ current_release.version }}</version>
   </dependency>
 </dependencies>
 {% endhighlight %}
 
-Also include `<dependency>` elements for any extension modules you
-need: `calcite-mongodb`, `calcite-spark`, `calcite-splunk`, and so
-forth.
+As of Apache Calcite Avatica 1.9.0, the following un-shaded client artifact is also available:
+
+{% highlight xml %}
+<dependencies>
+  <dependency>
+    <groupId>org.apache.calcite.avatica</groupId>
+    <artifactId>avatica-core</artifactId>
+    <version>{{ current_release.version }}</version>
+  </dependency>
+</dependencies>
+{% endhighlight %}

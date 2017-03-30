@@ -1,5 +1,5 @@
 # Configuration file for Travis continuous integration.
-# See https://travis-ci.org/apache/calcite
+# See https://travis-ci.org/apache/calcite-avatica
 #
 # Licensed to the Apache Software Foundation (ASF) under one or more
 # contributor license agreements.  See the NOTICE file distributed with
@@ -28,11 +28,11 @@ branches:
     - /^branch-.*$/
     - /^[0-9]+-.*$/
 install:
-  - cd avatica && mvn install -DskipTests=true -Dmaven.javadoc.skip=true -B -V && cd ..
-  - mvn install -DskipTests=true -Dmaven.javadoc.skip=true -B -V
+  # Print the Maven version, skip tests and javadoc
+  - mvn -V install -DskipTests -Dmaven.javadoc.skip=true
 script:
-  - cd avatica && mvn -Dsurefire.useFile=false test && cd ..
-  - mvn -Dsurefire.useFile=false test
+  # Print surefire output to the console instead of files
+  - mvn -Dsurefire.useFile=false verify
 git:
   depth: 10000
 sudo: false

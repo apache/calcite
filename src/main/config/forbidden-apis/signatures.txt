@@ -26,9 +26,6 @@ java.lang.Object#wait(long,int)
 java.lang.Object#notify()
 java.lang.Object#notifyAll()
 
-@defaultMessage Use StringBuilder; it is more efficient
-java.lang.StringBuffer
-
 @defaultMessage Please do not try to stop the world
 java.lang.System#gc()
 
@@ -36,7 +33,7 @@ java.lang.System#gc()
 java.lang.System#exit(int)
 java.lang.Runtime#exit(int)
 
-@defaultMessage Don't interrupt threads use FutureUtils#cancel(Future<T>) instead
+@defaultMessage Don't interrupt threads; use FutureUtils#cancel(Future<T>) instead
 java.util.concurrent.Future#cancel(boolean)
 
 # End signatures.txt
