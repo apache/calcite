@@ -892,6 +892,14 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     sql("select * from dept, lateral table(ramp(deptno))").ok();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1732">[CALCITE-1732]
+   * IndexOutOfBoundsException when using LATERAL TABLE with more than one
+   * field</a>. */
+  @Test public void testCollectionTableWithLateral3() {
+    sql("select * from dept, lateral table(DEDUP(dept.deptno, dept.name))").ok();
+  }
+
   @Test public void testSample() {
     final String sql =
         "select * from emp tablesample substitute('DATASET1') where empno > 5";

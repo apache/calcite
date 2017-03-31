@@ -2377,9 +2377,11 @@ public class SqlToRelConverter {
     RelNode r = r0;
     if (correlNames.size() > 1) {
       // The same table was referenced more than once.
-      // So we deduplicate
+      // So we deduplicate.
       r = DeduplicateCorrelateVariables.go(rexBuilder, correlNames.get(0),
           Util.skip(correlNames), r0);
+      // Add new node to leaves.
+      leaves.add(r);
     }
     return new CorrelationUse(correlNames.get(0), requiredColumns.build(), r);
   }
