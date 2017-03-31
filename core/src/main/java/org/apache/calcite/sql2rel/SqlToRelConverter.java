@@ -2380,6 +2380,8 @@ public class SqlToRelConverter {
       // So we deduplicate
       r = DeduplicateCorrelateVariables.go(rexBuilder, correlNames.get(0),
           Util.skip(correlNames), r0);
+      // Add new node to leaves
+      leaves.add(r);
     }
     return new CorrelationUse(correlNames.get(0), requiredColumns.build(), r);
   }

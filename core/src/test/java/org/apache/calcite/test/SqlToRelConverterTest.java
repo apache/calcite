@@ -892,6 +892,10 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     sql("select * from dept, lateral table(ramp(deptno))").ok();
   }
 
+  @Test public void testCollectionTableWithLateral3() {
+    sql("select * from dept, lateral table(DEDUP(dept.deptno, dept.name))").ok();
+  }
+
   @Test public void testSample() {
     final String sql =
         "select * from emp tablesample substitute('DATASET1') where empno > 5";

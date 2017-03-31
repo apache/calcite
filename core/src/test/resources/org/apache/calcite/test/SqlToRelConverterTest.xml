@@ -150,6 +150,19 @@ LogicalProject(DEPTNO=[$0], NAME=[$1], I=[$2])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testCollectionTableWithLateral3">
+        <Resource name="sql">
+            <![CDATA[select * from dept, lateral table(DEDUP(dept.deptno, dept.name))]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(DEPTNO=[$0], NAME=[$1], NAME0=[$2])
+  LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{0, 1}])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalTableFunctionScan(invocation=[DEDUP($cor0.DEPTNO, $cor0.NAME)], rowType=[RecordType(VARCHAR(1024) NAME)])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testCorrelatedSubQueryInAggregate">
         <Resource name="sql">
             <![CDATA[SELECT SUM(
