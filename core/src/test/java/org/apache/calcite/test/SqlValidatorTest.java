@@ -7960,6 +7960,8 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "+ pre\n"
         + "- pre\n"
         + ". left\n"
+        + "FINAL pre\n"
+        + "RUNNING pre\n"
         + "\n"
         + "| left\n"
         + "\n"
@@ -9178,9 +9180,9 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
       // FINAL and other functions should not be visible outside of
       // MATCH_RECOGNIZE
     sql("values ^\"FINAL\"(1, 2)^")
-        .fails("Function 'FINAL\\(1, 2\\)' can only be used in MATCH_RECOGNIZE");
+        .fails("No match found for function signature FINAL\\(<NUMERIC>, <NUMERIC>\\)");
     sql("values ^\"RUNNING\"(1, 2)^")
-        .fails("Function 'RUNNING\\(1, 2\\)' can only be used in MATCH_RECOGNIZE");
+        .fails("No match found for function signature RUNNING\\(<NUMERIC>, <NUMERIC>\\)");
     sql("values ^\"FIRST\"(1, 2)^")
         .fails("Function 'FIRST\\(1, 2\\)' can only be used in MATCH_RECOGNIZE");
     sql("values ^\"LAST\"(1, 2)^")

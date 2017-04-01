@@ -16,7 +16,6 @@
  */
 package org.apache.calcite.sql.parser;
 
-import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -35,11 +34,11 @@ public class SqlUnParserTest extends SqlParserTest {
     return new UnparsingTesterImpl();
   }
 
-  @Ignore @Override @Test public void testMatchRecognizeMeasures3() {
+  @Override @Test public void testMatchRecognizeMeasures3() {
     super.testMatchRecognizeMeasures3();
   }
 
-  @Ignore @Override @Test public void testMatchRecognizeMeasures4() {
+  @Override @Test public void testMatchRecognizeMeasures4() {
     super.testMatchRecognizeMeasures4();
   }
 }
