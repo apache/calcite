@@ -4510,30 +4510,28 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
   private List<Map.Entry<String, RelDataType>> validateMeasure(SqlMatchRecognize mr,
       MatchRecognizeScope scope) {
-    final List<String> aliases = Lists.newArrayList();
-    final List<SqlNode> sqlNodes = Lists.newArrayList();
+    final List<String> aliases = new ArrayList<>();
+    final List<SqlNode> sqlNodes = new ArrayList<>();
     final SqlNodeList measures = mr.getMeasureList();
-    final List<Map.Entry<String, RelDataType>> fields = Lists.newArrayList();
+    final List<Map.Entry<String, RelDataType>> fields = new ArrayList<>();
 
-    for (int i = 0; i < measures.size(); i++) {
-      SqlNode item = measures.get(i);
-
-      assert item instanceof  SqlCall;
-      String alias = deriveAlias(item, aliases.size());
+    for (SqlNode measure : measures) {
+      assert measure instanceof SqlCall;
+      final String alias = deriveAlias(measure, aliases.size());
       aliases.add(alias);
 
-      SqlNode expand = expand(item, scope);
+      SqlNode expand = expand(measure, scope);
       expand = navigationInMeasure(expand);
-      setOriginal(expand, item);
+      setOriginal(expand, measure);
 
       inferUnknownTypes(unknownType, scope, expand);
       final RelDataType type = deriveType(scope, expand);
-      setValidatedNodeType(item, type);
+      setValidatedNodeType(measure, type);
 
       fields.add(Pair.of(alias, type));
-      SqlNode newNode = SqlStdOperatorTable.AS.createCall(SqlParserPos.ZERO, expand,
-        new SqlIdentifier(aliases.get(i), SqlParserPos.ZERO));
-      sqlNodes.add(newNode);
+      sqlNodes.add(
+          SqlStdOperatorTable.AS.createCall(SqlParserPos.ZERO, expand,
+              new SqlIdentifier(alias, SqlParserPos.ZERO)));
     }
 
     SqlNodeList list = new SqlNodeList(sqlNodes, measures.getParserPosition());
@@ -4554,7 +4552,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     List<SqlNode> ops = ((SqlCall) node).getOperandList();
 
     SqlOperator defaultOp = SqlStdOperatorTable.FINAL;
-    if (!isRunningOrFinal(ops.get(0).getKind()) || ops.get(0).getKind() == SqlKind.RUNNING) {
+    if (!isRunningOrFinal(ops.get(0).getKind())
+        || ops.get(0).getKind() == SqlKind.RUNNING) {
       SqlNode newNode = defaultOp.createCall(SqlParserPos.ZERO, ops.get(0));
       node = SqlStdOperatorTable.AS.createCall(SqlParserPos.ZERO, newNode, ops.get(1));
     }

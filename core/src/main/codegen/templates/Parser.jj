@@ -2494,7 +2494,6 @@ SqlNode OrderItem() :
 SqlMatchRecognize MatchRecognizeOpt(SqlNode tableRef) :
 {
     final SqlParserPos startPos;
-    SqlParserPos pos;
     SqlNodeList measureList = SqlNodeList.EMPTY;
     SqlNode pattern;
     SqlNodeList patternDefList;
@@ -2504,8 +2503,8 @@ SqlMatchRecognize MatchRecognizeOpt(SqlNode tableRef) :
 {
     <MATCH_RECOGNIZE> { startPos = getPos(); } <LPAREN>
     [
-        <MEASURES> { pos = getPos(); }
-        measureList = MeasureColumnCommaList(pos)
+        <MEASURES>
+        measureList = MeasureColumnCommaList(getPos())
     ]
     <PATTERN>
     <LPAREN>
@@ -2521,8 +2520,8 @@ SqlMatchRecognize MatchRecognizeOpt(SqlNode tableRef) :
         { isStrictEnds = SqlLiteral.createBoolean(false, getPos()); }
     )
     <RPAREN>
-    <DEFINE> { pos = getPos(); }
-    patternDefList = PatternDefinitionCommaList(pos)
+    <DEFINE>
+    patternDefList = PatternDefinitionCommaList(getPos())
     <RPAREN> {
         return new SqlMatchRecognize(startPos.plus(getPos()), tableRef,
             pattern, isStrictStarts, isStrictEnds, patternDefList, measureList);
@@ -2532,26 +2531,20 @@ SqlMatchRecognize MatchRecognizeOpt(SqlNode tableRef) :
 SqlNodeList MeasureColumnCommaList(SqlParserPos pos) :
 {
     SqlNode e;
-    List<SqlNode> eList;
+    final List<SqlNode> eList = new ArrayList<SqlNode>();
 }
 {
-    e = MeasureColumn()
-    {
-        if (pos == null) {
-            pos = e.getParserPosition();
-        }
-        eList = new ArrayList<SqlNode>();
+    e = MeasureColumn() {
         eList.add(e);
     }
     (
         <COMMA>
-        e = MeasureColumn()
-        {
+        e = MeasureColumn() {
             eList.add(e);
         }
-    ) *
+    )*
     {
-        return new SqlNodeList(eList, pos.plus(getPos()));
+        return new SqlNodeList(eList, pos.plusAll(eList));
     }
 }
 
@@ -2733,9 +2726,6 @@ SqlNodeList PatternDefinitionCommaList(SqlParserPos pos) :
 }
 {
     e = PatternDefinition() {
-        if (pos == null) {
-            pos = e.getParserPosition();
-        }
         eList.add(e);
     }
     (
@@ -2745,7 +2735,7 @@ SqlNodeList PatternDefinitionCommaList(SqlParserPos pos) :
         }
     )*
     {
-        return new SqlNodeList(eList, pos.plus(getPos()));
+        return new SqlNodeList(eList, pos.plusAll(eList));
     }
 }
 

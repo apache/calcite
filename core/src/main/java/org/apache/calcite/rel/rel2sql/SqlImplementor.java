@@ -515,17 +515,18 @@ public abstract class SqlImplementor {
 
       case INPUT_REF:
         return field(((RexInputRef) rex).getIndex());
+
       case PATTERN_INPUT_REF:
-        String pv = ((RexPatternFieldRef) rex).getAlpha();
-        SqlNode refNode = field(((RexInputRef) rex).getIndex());
-        assert refNode instanceof SqlIdentifier;
-        List<String> names = ((SqlIdentifier) refNode).names;
-        if (names.size() > 1) {
-          return ((SqlIdentifier) refNode).setName(0, pv);
+        final RexPatternFieldRef ref = (RexPatternFieldRef) rex;
+        String pv = ref.getAlpha();
+        SqlNode refNode = field(ref.getIndex());
+        final SqlIdentifier id = (SqlIdentifier) refNode;
+        if (id.names.size() > 1) {
+          return id.setName(0, pv);
         } else {
-          names = ImmutableList.of(pv, names.get(0));
-          return new SqlIdentifier(names, POS);
+          return new SqlIdentifier(ImmutableList.of(pv, id.names.get(0)), POS);
         }
+
       case LITERAL:
         final RexLiteral literal = (RexLiteral) rex;
         if (literal.getTypeName() == SqlTypeName.SYMBOL) {
@@ -562,6 +563,7 @@ public abstract class SqlImplementor {
         default:
           throw new AssertionError(literal + ": " + literal.getTypeName());
         }
+
       case CASE:
         final RexCall caseCall = (RexCall) rex;
         final List<SqlNode> caseNodeList =

@@ -307,7 +307,7 @@ public class SqlParserTest {
       "MATCH_RECOGNIZE",                                                "c",
       "MAX",                                "92",               "2011", "c",
       "MAX_CARDINALITY",                                        "2011",
-      "MEASURES",                                                        "c",
+      "MEASURES",                                                       "c",
       "MEMBER",                                         "2003", "2011", "c",
       "MERGE",                                          "2003", "2011", "c",
       "METHOD",                                   "99", "2003", "2011", "c",
@@ -543,7 +543,7 @@ public class SqlParserTest {
   /**
    * fix the tester instance confusion with unParserTest bug
    */
-  private Tester getTester() {
+  protected Tester getTester() {
     return new TesterImpl();
   }
 
@@ -7187,8 +7187,8 @@ public class SqlParserTest {
         + "FROM `T` MATCH_RECOGNIZE(\n"
         + "PATTERN (((`STRT` (`DOWN` +)) (`UP` +)))\n"
         + "DEFINE "
-        + "`DOWN` AS (`DOWN`.`PRICE` < (PREV(`DOWN`.`PRICE`, 1))), "
-        + "`UP` AS (`UP`.`PRICE` > (PREV(`UP`.`PRICE`, 1)))"
+        + "`DOWN` AS (`DOWN`.`PRICE` < PREV(`DOWN`.`PRICE`, 1)), "
+        + "`UP` AS (`UP`.`PRICE` > PREV(`UP`.`PRICE`, 1))"
         + ") AS `MR`";
     sql(sql).ok(expected);
   }
@@ -7206,8 +7206,8 @@ public class SqlParserTest {
         + "FROM `T` MATCH_RECOGNIZE(\n"
         + "PATTERN (((`STRT` (`DOWN` +)) (`UP` +)) $)\n"
         + "DEFINE "
-        + "`DOWN` AS (`DOWN`.`PRICE` < (PREV(`DOWN`.`PRICE`, 1))), "
-        + "`UP` AS (`UP`.`PRICE` > (PREV(`UP`.`PRICE`, 1)))"
+        + "`DOWN` AS (`DOWN`.`PRICE` < PREV(`DOWN`.`PRICE`, 1)), "
+        + "`UP` AS (`UP`.`PRICE` > PREV(`UP`.`PRICE`, 1))"
         + ") AS `MR`";
     sql(sql).ok(expected);
   }
@@ -7225,8 +7225,8 @@ public class SqlParserTest {
         + "FROM `T` MATCH_RECOGNIZE(\n"
         + "PATTERN (^ ((`STRT` (`DOWN` +)) (`UP` +)))\n"
         + "DEFINE "
-        + "`DOWN` AS (`DOWN`.`PRICE` < (PREV(`DOWN`.`PRICE`, 1))), "
-        + "`UP` AS (`UP`.`PRICE` > (PREV(`UP`.`PRICE`, 1)))"
+        + "`DOWN` AS (`DOWN`.`PRICE` < PREV(`DOWN`.`PRICE`, 1)), "
+        + "`UP` AS (`UP`.`PRICE` > PREV(`UP`.`PRICE`, 1))"
         + ") AS `MR`";
     sql(sql).ok(expected);
   }
@@ -7244,8 +7244,8 @@ public class SqlParserTest {
         + "FROM `T` MATCH_RECOGNIZE(\n"
         + "PATTERN (^ ((`STRT` (`DOWN` +)) (`UP` +)) $)\n"
         + "DEFINE "
-        + "`DOWN` AS (`DOWN`.`PRICE` < (PREV(`DOWN`.`PRICE`, 1))), "
-        + "`UP` AS (`UP`.`PRICE` > (PREV(`UP`.`PRICE`, 1)))"
+        + "`DOWN` AS (`DOWN`.`PRICE` < PREV(`DOWN`.`PRICE`, 1)), "
+        + "`UP` AS (`UP`.`PRICE` > PREV(`UP`.`PRICE`, 1))"
         + ") AS `MR`";
     sql(sql).ok(expected);
   }
@@ -7263,8 +7263,8 @@ public class SqlParserTest {
         + "FROM `T` MATCH_RECOGNIZE(\n"
         + "PATTERN (((`STRT` (`DOWN` *)) (`UP` ?)))\n"
         + "DEFINE "
-        + "`DOWN` AS (`DOWN`.`PRICE` < (PREV(`DOWN`.`PRICE`, 1))), "
-        + "`UP` AS (`UP`.`PRICE` > (PREV(`UP`.`PRICE`, 1)))"
+        + "`DOWN` AS (`DOWN`.`PRICE` < PREV(`DOWN`.`PRICE`, 1)), "
+        + "`UP` AS (`UP`.`PRICE` > PREV(`UP`.`PRICE`, 1))"
         + ") AS `MR`";
     sql(sql).ok(expected);
   }
@@ -7282,8 +7282,8 @@ public class SqlParserTest {
         + "FROM `T` MATCH_RECOGNIZE(\n"
         + "PATTERN (((`STRT` ({- `DOWN` -})) (`UP` ?)))\n"
         + "DEFINE "
-        + "`DOWN` AS (`DOWN`.`PRICE` < (PREV(`DOWN`.`PRICE`, 1))), "
-        + "`UP` AS (`UP`.`PRICE` > (PREV(`UP`.`PRICE`, 1)))"
+        + "`DOWN` AS (`DOWN`.`PRICE` < PREV(`DOWN`.`PRICE`, 1)), "
+        + "`UP` AS (`UP`.`PRICE` > PREV(`UP`.`PRICE`, 1))"
         + ") AS `MR`";
     sql(sql).ok(expected);
   }
@@ -7301,8 +7301,8 @@ public class SqlParserTest {
         + "FROM `T` MATCH_RECOGNIZE(\n"
         + "PATTERN (((`STRT` (`DOWN` { 2 })) (`UP` { 3, })))\n"
         + "DEFINE "
-        + "`DOWN` AS (`DOWN`.`PRICE` < (PREV(`DOWN`.`PRICE`, 1))), "
-        + "`UP` AS (`UP`.`PRICE` > (PREV(`UP`.`PRICE`, 1)))"
+        + "`DOWN` AS (`DOWN`.`PRICE` < PREV(`DOWN`.`PRICE`, 1)), "
+        + "`UP` AS (`UP`.`PRICE` > PREV(`UP`.`PRICE`, 1))"
         + ") AS `MR`";
     sql(sql).ok(expected);
   }
@@ -7320,8 +7320,8 @@ public class SqlParserTest {
         + "FROM `T` MATCH_RECOGNIZE(\n"
         + "PATTERN (((`STRT` (`DOWN` { , 2 })) (`UP` { 3, 5 })))\n"
         + "DEFINE "
-        + "`DOWN` AS (`DOWN`.`PRICE` < (PREV(`DOWN`.`PRICE`, 1))), "
-        + "`UP` AS (`UP`.`PRICE` > (PREV(`UP`.`PRICE`, 1)))"
+        + "`DOWN` AS (`DOWN`.`PRICE` < PREV(`DOWN`.`PRICE`, 1)), "
+        + "`UP` AS (`UP`.`PRICE` > PREV(`UP`.`PRICE`, 1))"
         + ") AS `MR`";
     sql(sql).ok(expected);
   }
@@ -7339,8 +7339,8 @@ public class SqlParserTest {
         + "FROM `T` MATCH_RECOGNIZE(\n"
         + "PATTERN (((`STRT` ({- (`DOWN` +) -})) ({- (`UP` *) -})))\n"
         + "DEFINE "
-        + "`DOWN` AS (`DOWN`.`PRICE` < (PREV(`DOWN`.`PRICE`, 1))), "
-        + "`UP` AS (`UP`.`PRICE` > (PREV(`UP`.`PRICE`, 1)))"
+        + "`DOWN` AS (`DOWN`.`PRICE` < PREV(`DOWN`.`PRICE`, 1)), "
+        + "`UP` AS (`UP`.`PRICE` > PREV(`UP`.`PRICE`, 1))"
         + ") AS `MR`";
     sql(sql).ok(expected);
   }
@@ -7360,9 +7360,9 @@ public class SqlParserTest {
         + "PATTERN ((((((((`A` `B`) `C`) | ((`A` `C`) `B`)) | ((`B` `A`) `C`)) "
         + "| ((`B` `C`) `A`)) | ((`C` `A`) `B`)) | ((`C` `B`) `A`)))\n"
         + "DEFINE "
-        + "`A` AS (`A`.`PRICE` > (PREV(`A`.`PRICE`, 1))), "
-        + "`B` AS (`B`.`PRICE` < (PREV(`B`.`PRICE`, 1))), "
-        + "`C` AS (`C`.`PRICE` > (PREV(`C`.`PRICE`, 1)))"
+        + "`A` AS (`A`.`PRICE` > PREV(`A`.`PRICE`, 1)), "
+        + "`B` AS (`B`.`PRICE` < PREV(`B`.`PRICE`, 1)), "
+        + "`C` AS (`C`.`PRICE` > PREV(`C`.`PRICE`, 1))"
         + ") AS `MR`";
     sql(sql).ok(expected);
   }
@@ -7378,7 +7378,7 @@ public class SqlParserTest {
     final String expected = "SELECT *\n"
         + "FROM `T` MATCH_RECOGNIZE(\n"
         + "PATTERN ((`a` `b c`))\n"
-        + "DEFINE `A` AS (`A`.`PRICE` > (PREV(`A`.`PRICE`, 1))),"
+        + "DEFINE `A` AS (`A`.`PRICE` > PREV(`A`.`PRICE`, 1)),"
         + " `b c` AS `b c`.`FOO`) AS `MR` (`C1`, `C2`)\n"
         + "INNER JOIN `E` AS `X` ON (`FOO` = `BAZ`)";
     sql(sql).ok(expected);
@@ -7397,8 +7397,8 @@ public class SqlParserTest {
         + "FROM `T` MATCH_RECOGNIZE(\n"
         + "PATTERN (((`STRT` (`DOWN` +)) (`UP` +)))\n"
         + "DEFINE "
-        + "`DOWN` AS (`DOWN`.`PRICE` < (PREV(`DOWN`.`PRICE`, 1))), "
-        + "`UP` AS (`UP`.`PRICE` > (NEXT(`UP`.`PRICE`, 1)))"
+        + "`DOWN` AS (`DOWN`.`PRICE` < PREV(`DOWN`.`PRICE`, 1)), "
+        + "`UP` AS (`UP`.`PRICE` > NEXT(`UP`.`PRICE`, 1))"
         + ") AS `MR`";
     sql(sql).ok(expected);
   }
@@ -7415,9 +7415,8 @@ public class SqlParserTest {
     final String expected = "SELECT *\n"
         + "FROM `T` MATCH_RECOGNIZE(\n"
         + "PATTERN (((`STRT` (`DOWN` +)) (`UP` +)))\n"
-        + "DEFINE "
-        + "`DOWN` AS (`DOWN`.`PRICE` < (FIRST(`DOWN`.`PRICE`, 0))), "
-        + "`UP` AS (`UP`.`PRICE` > (LAST(`UP`.`PRICE`, 0)))"
+        + "DEFINE `DOWN` AS (`DOWN`.`PRICE` < FIRST(`DOWN`.`PRICE`, 0)), "
+        + "`UP` AS (`UP`.`PRICE` > LAST(`UP`.`PRICE`, 0))"
         + ") AS `MR`";
     sql(sql).ok(expected);
   }
@@ -7435,8 +7434,8 @@ public class SqlParserTest {
         + "FROM `T` MATCH_RECOGNIZE(\n"
         + "PATTERN (((`STRT` (`DOWN` +)) (`UP` +)))\n"
         + "DEFINE "
-        + "`DOWN` AS (`DOWN`.`PRICE` < (PREV(`DOWN`.`PRICE`, 1))), "
-        + "`UP` AS (`UP`.`PRICE` > (LAST((`UP`.`PRICE` + `UP`.`TAX`), 0)))"
+        + "`DOWN` AS (`DOWN`.`PRICE` < PREV(`DOWN`.`PRICE`, 1)), "
+        + "`UP` AS (`UP`.`PRICE` > LAST((`UP`.`PRICE` + `UP`.`TAX`), 0))"
         + ") AS `MR`";
     sql(sql).ok(expected);
   }
@@ -7453,9 +7452,8 @@ public class SqlParserTest {
     final String expected = "SELECT *\n"
         + "FROM `T` MATCH_RECOGNIZE(\n"
         + "PATTERN (((`STRT` (`DOWN` +)) (`UP` +)))\n"
-        + "DEFINE "
-        + "`DOWN` AS (`DOWN`.`PRICE` < (PREV(`DOWN`.`PRICE`, 1))), "
-        + "`UP` AS (`UP`.`PRICE` > (PREV((LAST((`UP`.`PRICE` + `UP`.`TAX`), 0)), 3)))"
+        + "DEFINE `DOWN` AS (`DOWN`.`PRICE` < PREV(`DOWN`.`PRICE`, 1)), "
+        + "`UP` AS (`UP`.`PRICE` > PREV(LAST((`UP`.`PRICE` + `UP`.`TAX`), 0), 3))"
         + ") AS `MR`";
     sql(sql).ok(expected);
   }
@@ -7471,18 +7469,15 @@ public class SqlParserTest {
         + "    define\n"
         + "      down as down.price < PREV(down.price),\n"
         + "      up as up.price > prev(up.price)\n"
-      + "  ) mr";
+        + "  ) mr";
     final String expected = "SELECT *\n"
         + "FROM `T` MATCH_RECOGNIZE(\n"
-        + "MEASURES "
-        + "`STRT`.`TS` AS `START_TS`, "
-        + "(LAST(`DOWN`.`TS`, 0)) AS `BOTTOM_TS`, "
-        + "(LAST(`UP`.`TS`, 0)) AS `END_TS`\n"
-        + "PATTERN "
-        + "(((`STRT` (`DOWN` +)) (`UP` +)))\n"
-        + "DEFINE "
-        + "`DOWN` AS (`DOWN`.`PRICE` < (PREV(`DOWN`.`PRICE`, 1))), "
-        + "`UP` AS (`UP`.`PRICE` > (PREV(`UP`.`PRICE`, 1)))"
+        + "MEASURES `STRT`.`TS` AS `START_TS`, "
+        + "LAST(`DOWN`.`TS`, 0) AS `BOTTOM_TS`, "
+        + "LAST(`UP`.`TS`, 0) AS `END_TS`\n"
+        + "PATTERN (((`STRT` (`DOWN` +)) (`UP` +)))\n"
+        + "DEFINE `DOWN` AS (`DOWN`.`PRICE` < PREV(`DOWN`.`PRICE`, 1)), "
+        + "`UP` AS (`UP`.`PRICE` > PREV(`UP`.`PRICE`, 1))"
         + ") AS `MR`";
     sql(sql).ok(expected);
   }
@@ -7501,15 +7496,12 @@ public class SqlParserTest {
         + "  ) mr";
     final String expected = "SELECT *\n"
         + "FROM `T` MATCH_RECOGNIZE(\n"
-        + "MEASURES "
-        + "`STRT`.`TS` AS `START_TS`, "
-        + "(FINAL((LAST(`DOWN`.`TS`, 0)))) AS `BOTTOM_TS`, "
-        + "(LAST(`UP`.`TS`, 0)) AS `END_TS`\n"
-        + "PATTERN "
-        + "(((`STRT` (`DOWN` +)) (`UP` +)))\n"
-        + "DEFINE "
-        + "`DOWN` AS (`DOWN`.`PRICE` < (PREV(`DOWN`.`PRICE`, 1))), "
-        + "`UP` AS (`UP`.`PRICE` > (PREV(`UP`.`PRICE`, 1)))"
+        + "MEASURES `STRT`.`TS` AS `START_TS`, "
+        + "FINAL LAST(`DOWN`.`TS`, 0) AS `BOTTOM_TS`, "
+        + "LAST(`UP`.`TS`, 0) AS `END_TS`\n"
+        + "PATTERN (((`STRT` (`DOWN` +)) (`UP` +)))\n"
+        + "DEFINE `DOWN` AS (`DOWN`.`PRICE` < PREV(`DOWN`.`PRICE`, 1)), "
+        + "`UP` AS (`UP`.`PRICE` > PREV(`UP`.`PRICE`, 1))"
         + ") AS `MR`";
     sql(sql).ok(expected);
   }
@@ -7529,12 +7521,11 @@ public class SqlParserTest {
     final String expected = "SELECT *\n"
         + "FROM `T` MATCH_RECOGNIZE(\n"
         + "MEASURES `STRT`.`TS` AS `START_TS`, "
-        + "(RUNNING((LAST(`DOWN`.`TS`, 0)))) AS `BOTTOM_TS`, "
-        + "(LAST(`UP`.`TS`, 0)) AS `END_TS`\n"
+        + "RUNNING LAST(`DOWN`.`TS`, 0) AS `BOTTOM_TS`, "
+        + "LAST(`UP`.`TS`, 0) AS `END_TS`\n"
         + "PATTERN (((`STRT` (`DOWN` +)) (`UP` +)))\n"
-        + "DEFINE "
-        + "`DOWN` AS (`DOWN`.`PRICE` < (PREV(`DOWN`.`PRICE`, 1))), "
-        + "`UP` AS (`UP`.`PRICE` > (PREV(`UP`.`PRICE`, 1)))"
+        + "DEFINE `DOWN` AS (`DOWN`.`PRICE` < PREV(`DOWN`.`PRICE`, 1)), "
+        + "`UP` AS (`UP`.`PRICE` > PREV(`UP`.`PRICE`, 1))"
         + ") AS `MR`";
     sql(sql).ok(expected);
   }
@@ -7555,17 +7546,13 @@ public class SqlParserTest {
         + "  ) mr";
     final String expected = "SELECT *\n"
         + "FROM `T` MATCH_RECOGNIZE(\n"
-        + "MEASURES "
-        + "(FINAL(COUNT(`UP`.`TS`))) AS `UP_TS`, "
-        + "(FINAL(COUNT(`TS`))) AS `TOTAL_TS`, "
-        + "(RUNNING(COUNT(`TS`))) AS `CNT_TS`, "
+        + "MEASURES FINAL COUNT(`UP`.`TS`) AS `UP_TS`, "
+        + "FINAL COUNT(`TS`) AS `TOTAL_TS`, "
+        + "RUNNING COUNT(`TS`) AS `CNT_TS`, "
         + "(`PRICE` - `STRT`.`PRICE`) AS `PRICE_DIF`\n"
-        + "PATTERN "
-        + "(((`STRT` (`DOWN` +)) (`UP` +)))\n"
-        + "DEFINE "
-        + "`DOWN` AS (`DOWN`.`PRICE` < (PREV(`DOWN`.`PRICE`, 1))), "
-        + "`UP` AS (`UP`.`PRICE` > (PREV(`UP`.`PRICE`, 1)))"
-        + ") AS `MR`";
+        + "PATTERN (((`STRT` (`DOWN` +)) (`UP` +)))\n"
+        + "DEFINE `DOWN` AS (`DOWN`.`PRICE` < PREV(`DOWN`.`PRICE`, 1)), "
+        + "`UP` AS (`UP`.`PRICE` > PREV(`UP`.`PRICE`, 1))) AS `MR`";
     sql(sql).ok(expected);
   }
 
@@ -7584,15 +7571,12 @@ public class SqlParserTest {
         + "  ) mr";
     final String expected = "SELECT *\n"
         + "FROM `T` MATCH_RECOGNIZE(\n"
-        + "MEASURES "
-        + "(FIRST(`STRT`.`TS`, 0)) AS `STRT_TS`, "
-        + "(LAST(`DOWN`.`TS`, 0)) AS `DOWN_TS`, "
+        + "MEASURES FIRST(`STRT`.`TS`, 0) AS `STRT_TS`, "
+        + "LAST(`DOWN`.`TS`, 0) AS `DOWN_TS`, "
         + "AVG(`DOWN`.`TS`) AS `AVG_DOWN_TS`\n"
-        + "PATTERN "
-        + "(((`STRT` (`DOWN` +)) (`UP` +)))\n"
-        + "DEFINE "
-        + "`DOWN` AS (`DOWN`.`PRICE` < (PREV(`DOWN`.`PRICE`, 1))), "
-        + "`UP` AS (`UP`.`PRICE` > (PREV(`UP`.`PRICE`, 1)))"
+        + "PATTERN (((`STRT` (`DOWN` +)) (`UP` +)))\n"
+        + "DEFINE `DOWN` AS (`DOWN`.`PRICE` < PREV(`DOWN`.`PRICE`, 1)), "
+        + "`UP` AS (`UP`.`PRICE` > PREV(`UP`.`PRICE`, 1))"
         + ") AS `MR`";
     sql(sql).ok(expected);
   }
@@ -7612,15 +7596,12 @@ public class SqlParserTest {
         + "  ) mr";
     final String expected = "SELECT *\n"
         + "FROM `T` MATCH_RECOGNIZE(\n"
-        + "MEASURES "
-        + "(FIRST(`STRT`.`TS`, 0)) AS `STRT_TS`, "
-        + "(LAST(`DOWN`.`TS`, 0)) AS `DOWN_TS`, "
-        + "(FINAL(SUM(`DOWN`.`TS`))) AS `SUM_DOWN_TS`\n"
-        + "PATTERN "
-        + "(((`STRT` (`DOWN` +)) (`UP` +)))\n"
-        + "DEFINE "
-        + "`DOWN` AS (`DOWN`.`PRICE` < (PREV(`DOWN`.`PRICE`, 1))), "
-        + "`UP` AS (`UP`.`PRICE` > (PREV(`UP`.`PRICE`, 1)))"
+        + "MEASURES FIRST(`STRT`.`TS`, 0) AS `STRT_TS`, "
+        + "LAST(`DOWN`.`TS`, 0) AS `DOWN_TS`, "
+        + "FINAL SUM(`DOWN`.`TS`) AS `SUM_DOWN_TS`\n"
+        + "PATTERN (((`STRT` (`DOWN` +)) (`UP` +)))\n"
+        + "DEFINE `DOWN` AS (`DOWN`.`PRICE` < PREV(`DOWN`.`PRICE`, 1)), "
+        + "`UP` AS (`UP`.`PRICE` > PREV(`UP`.`PRICE`, 1))"
         + ") AS `MR`";
     sql(sql).ok(expected);
   }

@@ -2112,8 +2112,9 @@ public class SqlToRelConverter {
 
     mrBlackBoard.setPatternVarRef(true);
 
-    //convert measures
-    final ImmutableMap.Builder<String, RexNode> measureNodes = ImmutableMap.builder();
+    // convert measures
+    final ImmutableMap.Builder<String, RexNode> measureNodes =
+        ImmutableMap.builder();
     for (SqlNode measure : matchRecognize.getMeasureList()) {
       List<SqlNode> operands = ((SqlCall) measure).getOperandList();
       String alias = ((SqlIdentifier) operands.get(1)).getSimple();
