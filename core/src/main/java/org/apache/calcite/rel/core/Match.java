@@ -36,6 +36,7 @@ import org.apache.calcite.sql.fun.SqlSumEmptyIsZeroAggFunction;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.ImmutableSortedSet;
 
 import java.util.HashSet;
@@ -43,6 +44,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedSet;
+import java.util.TreeMap;
 import java.util.TreeSet;
 
 /**
@@ -52,12 +54,14 @@ import java.util.TreeSet;
  */
 public abstract class Match extends SingleRel {
   //~ Instance fields ---------------------------------------------
+  private static final String STAR = "*";
   protected final ImmutableMap<String, RexNode> measures;
   protected final RexNode pattern;
   protected final boolean strictStart;
   protected final boolean strictEnd;
   protected final ImmutableMap<String, RexNode> patternDefinitions;
   protected final Set<RexMRAggCall> aggregateCalls;
+  protected final Map<String, SortedSet<RexMRAggCall>> aggregateCallsPreVar;
 
   //~ Constructors -----------------------------------------------
 
@@ -71,11 +75,18 @@ public abstract class Match extends SingleRel {
    * @param strictStart Whether it is a strict start pattern
    * @param strictEnd Whether it is a strict end pattern
    * @param patternDefinitions Pattern definitions
+   * @param measures Measure definitions
    * @param rowType Row type
    */
-  protected Match(RelOptCluster cluster, RelTraitSet traitSet,
-      RelNode input, RexNode pattern, boolean strictStart, boolean strictEnd,
-      Map<String, RexNode> patternDefinitions, RelDataType rowType) {
+  protected Match(RelOptCluster cluster,
+      RelTraitSet traitSet,
+      RelNode input,
+      RexNode pattern,
+      boolean strictStart,
+      boolean strictEnd,
+      Map<String, RexNode> patternDefinitions,
+      Map<String, RexNode> measures,
+      RelDataType rowType) {
     super(cluster, traitSet, input);
     this.pattern = Preconditions.checkNotNull(pattern);
     Preconditions.checkArgument(patternDefinitions.size() > 0);
@@ -83,7 +94,7 @@ public abstract class Match extends SingleRel {
     this.strictEnd = strictEnd;
     this.patternDefinitions = ImmutableMap.copyOf(patternDefinitions);
     this.rowType = rowType;
-    this.measures = ImmutableMap.of();
+    this.measures = ImmutableMap.copyOf(measures);
 
     final AggregateFinder aggregateFinder = new AggregateFinder();
     for (RexNode rex : this.patternDefinitions.values()) {
@@ -91,14 +102,30 @@ public abstract class Match extends SingleRel {
         aggregateFinder.go((RexCall) rex);
       }
     }
+
+    for (RexNode rex : this.measures.values()) {
+      if (rex instanceof RexCall) {
+        aggregateFinder.go((RexCall) rex);
+      }
+    }
+
     aggregateCalls = ImmutableSortedSet.copyOf(aggregateFinder.aggregateCalls);
+    aggregateCallsPreVar =
+        copy(aggregateFinder.aggregateCallsPerVar);
+  }
+
+  /** Creates an immutable copy of a map of sorted sets. */
+  private static <K extends Comparable<K>, V>
+  ImmutableSortedMap<K, SortedSet<V>> copy(Map<K, SortedSet<V>> map) {
+    final ImmutableSortedMap.Builder<K, SortedSet<V>> b =
+        ImmutableSortedMap.naturalOrder();
+    for (Map.Entry<K, SortedSet<V>> e : map.entrySet()) {
+      b.put(e.getKey(), ImmutableSortedSet.copyOf(e.getValue()));
+    }
+    return b.build();
   }
 
   //~ Methods --------------------------------------------------
-
-  public Set<RexMRAggCall> getAggregateCalls() {
-    return aggregateCalls;
-  }
 
   public ImmutableMap<String, RexNode> getMeasures() {
     return measures;
@@ -122,21 +149,17 @@ public abstract class Match extends SingleRel {
 
   public abstract Match copy(RelNode input, RexNode pattern,
       boolean strictStart, boolean strictEnd,
-      Map<String, RexNode> patternDefinitions, RelDataType rowType);
+      Map<String, RexNode> patternDefinitions, Map<String, RexNode> measures,
+      RelDataType rowType);
 
-  @Override public RelNode copy(
-      RelTraitSet traitSet,
-      List<RelNode> inputs) {
+  @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
     if (getInputs().equals(inputs)
         && traitSet == getTraitSet()) {
       return this;
     }
 
-    return copy(
-        inputs.get(0),
-        pattern, strictStart, strictEnd,
-        patternDefinitions,
-        rowType);
+    return copy(inputs.get(0), pattern, strictStart, strictEnd,
+        patternDefinitions, measures, rowType);
   }
 
   @Override public RelWriter explainTerms(RelWriter pw) {
@@ -156,12 +179,13 @@ public abstract class Match extends SingleRel {
     return pw;
   }
 
-
   /**
    * Find aggregate functions in operands.
    */
   private static class AggregateFinder extends RexVisitorImpl {
     final SortedSet<RexMRAggCall> aggregateCalls = new TreeSet<>();
+    final Map<String, SortedSet<RexMRAggCall>> aggregateCallsPerVar =
+        new TreeMap<>();
 
     AggregateFinder() {
       super(true);
@@ -193,6 +217,28 @@ public abstract class Match extends SingleRel {
             call.getType(), call.getOperands(), aggregateCalls.size());
         aggregateCalls.add(aggCall);
         Set<String> pv = new PatternVarFinder().go(call.getOperands());
+        if (pv.size() == 0) {
+          pv.add(STAR);
+        }
+        for (String alpha : pv) {
+          final SortedSet<RexMRAggCall> set;
+          if (aggregateCallsPerVar.containsKey(alpha)) {
+            set = aggregateCallsPerVar.get(alpha);
+          } else {
+            set = new TreeSet<>();
+            aggregateCallsPerVar.put(alpha, set);
+          }
+          boolean update = true;
+          for (RexMRAggCall rex : set) {
+            if (rex.toString().equals(aggCall.toString())) {
+              update = false;
+              break;
+            }
+          }
+          if (update) {
+            set.add(aggCall);
+          }
+        }
       }
       return null;
     }
@@ -241,32 +287,21 @@ public abstract class Match extends SingleRel {
   /**
    * Aggregate calls in match recognize.
    */
-  public static class RexMRAggCall extends RexCall implements Comparable<RexMRAggCall> {
+  public static final class RexMRAggCall extends RexCall
+      implements Comparable<RexMRAggCall> {
     public final int ordinal;
-    public RexMRAggCall(
-        SqlAggFunction aggFun,
+
+    RexMRAggCall(SqlAggFunction aggFun,
         RelDataType type,
         List<RexNode> operands,
         int ordinal) {
       super(type, aggFun, operands);
       this.ordinal = ordinal;
-      digest = computeDigest();
-    }
-
-    public String computeDigest() {
-      return super.computeDigest(false);
+      digest = toString(); // can compute here because class is final
     }
 
     @Override public int compareTo(RexMRAggCall o) {
-      if (o.computeDigest() == null) {
-        return 0;
-      }
-
-      if (computeDigest() == null) {
-        return 1;
-      }
-
-      return o.computeDigest().compareTo(computeDigest());
+      return toString().compareTo(o.toString());
     }
   }
 }

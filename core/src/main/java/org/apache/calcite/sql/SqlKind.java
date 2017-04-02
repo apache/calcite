@@ -1025,7 +1025,7 @@ public enum SqlKind {
                   TIMESTAMP_ADD, TIMESTAMP_DIFF, EXTRACT,
                   LITERAL_CHAIN, JDBC_FN, PRECEDING, FOLLOWING, ORDER_BY,
                   NULLS_FIRST, NULLS_LAST, COLLECTION_TABLE, TABLESAMPLE,
-                  VALUES, WITH, WITH_ITEM),
+                  VALUES, WITH, WITH_ITEM, RUNNING, FINAL, LAST, FIRST, PREV, NEXT),
               AGGREGATE, DML, DDL));
 
   /**

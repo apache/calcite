@@ -727,6 +727,26 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           null,
           null);
 
+  /** {@code FINAL} function to be used within {@code MATCH_RECOGNIZE}. */
+  public static final SqlPrefixOperator FINAL =
+      new SqlPrefixOperator(
+          "FINAL",
+          SqlKind.FINAL,
+          80,
+          ReturnTypes.ARG0_NULLABLE,
+          null,
+          OperandTypes.ANY);
+
+  /** {@code RUNNING} function to be used within {@code MATCH_RECOGNIZE}. */
+  public static final SqlPrefixOperator RUNNING =
+      new SqlPrefixOperator(
+          "RUNNING",
+          SqlKind.RUNNING,
+          80,
+          ReturnTypes.ARG0_NULLABLE,
+          null,
+          OperandTypes.ANY);
+
   //-------------------------------------------------------------
   // AGGREGATE OPERATORS
   //-------------------------------------------------------------
@@ -1397,16 +1417,6 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   public static final SqlFunction PI =
       new SqlBaseContextVariable("PI", ReturnTypes.DOUBLE,
           SqlFunctionCategory.NUMERIC);
-
-  /** {@code FINAL} function to be used within {@code MATCH_RECOGNIZE}. */
-  public static final SqlFunction FINAL =
-      new SqlFunction("FINAL", SqlKind.FINAL, ReturnTypes.ARG0_NULLABLE, null,
-          OperandTypes.ANY, SqlFunctionCategory.MATCH_RECOGNIZE);
-
-  /** {@code RUNNING} function to be used within {@code MATCH_RECOGNIZE}. */
-  public static final SqlFunction RUNNING =
-      new SqlFunction("RUNNING", SqlKind.RUNNING, ReturnTypes.ARG0_NULLABLE,
-          null, OperandTypes.ANY, SqlFunctionCategory.MATCH_RECOGNIZE);
 
   /** {@code FIRST} function to be used within {@code MATCH_RECOGNIZE}. */
   public static final SqlFunction FIRST =

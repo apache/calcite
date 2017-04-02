@@ -42,13 +42,15 @@ public class LogicalMatch extends Match {
    * @param strictStart Whether it is a strict start pattern
    * @param strictEnd Whether it is a strict end pattern
    * @param patternDefinitions Pattern definitions
+   * @param measures Measure definitions
    * @param rowType Row type
    */
   public LogicalMatch(RelOptCluster cluster, RelTraitSet traitSet,
       RelNode input, RexNode pattern, boolean strictStart, boolean strictEnd,
-      Map<String, RexNode> patternDefinitions, RelDataType rowType) {
+      Map<String, RexNode> patternDefinitions, Map<String, RexNode> measures,
+      RelDataType rowType) {
     super(cluster, traitSet, input, pattern, strictStart, strictEnd,
-        patternDefinitions, rowType);
+        patternDefinitions, measures, rowType);
   }
 
   /**
@@ -56,21 +58,24 @@ public class LogicalMatch extends Match {
    */
   public static LogicalMatch create(RelNode input, RexNode pattern,
       boolean strictStart, boolean strictEnd,
-      Map<String, RexNode> patternDefinitions, RelDataType rowType) {
+      Map<String, RexNode> patternDefinitions, Map<String, RexNode> measures,
+      RelDataType rowType) {
     final RelOptCluster cluster = input.getCluster();
     final RelTraitSet traitSet = cluster.traitSetOf(Convention.NONE);
     return new LogicalMatch(cluster, traitSet, input, pattern,
-        strictStart, strictEnd, patternDefinitions, rowType);
+        strictStart, strictEnd, patternDefinitions, measures, rowType);
   }
 
   //~ Methods ------------------------------------------------------
 
   @Override public Match copy(RelNode input, RexNode pattern,
       boolean strictStart, boolean strictEnd,
-      Map<String, RexNode> patternDefinitions, RelDataType rowType) {
+      Map<String, RexNode> patternDefinitions, Map<String, RexNode> measures,
+      RelDataType rowType) {
     final RelTraitSet traitSet = getCluster().traitSetOf(Convention.NONE);
     return new LogicalMatch(getCluster(), traitSet,
-        input, pattern, strictStart, strictEnd, patternDefinitions, rowType);
+        input, pattern, strictStart, strictEnd, patternDefinitions, measures,
+        rowType);
   }
 }
 
