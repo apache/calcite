@@ -44,7 +44,7 @@ public class DigestAuthHttpServerTest extends HttpAuthBase {
 
   @BeforeClass public static void startServer() throws Exception {
     final String userPropertiesFile = BasicAuthHttpServerTest.class
-        .getResource("/auth-users.properties").getFile();
+        .getResource("/auth-users.properties").getFile().replace("%20", " ");
     assertNotNull("Could not find properties file for digest auth users", userPropertiesFile);
 
     // Create a LocalService around HSQLDB

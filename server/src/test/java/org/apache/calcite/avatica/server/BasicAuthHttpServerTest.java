@@ -44,7 +44,7 @@ public class BasicAuthHttpServerTest extends HttpAuthBase {
 
   @BeforeClass public static void startServer() throws Exception {
     final String userPropertiesFile = BasicAuthHttpServerTest.class
-        .getResource("/auth-users.properties").getFile();
+        .getResource("/auth-users.properties").getFile().replace("%20", " ");
     assertNotNull("Could not find properties file for basic auth users", userPropertiesFile);
 
     // Create a LocalService around HSQLDB
