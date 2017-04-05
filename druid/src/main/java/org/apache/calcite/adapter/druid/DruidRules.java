@@ -440,7 +440,7 @@ public class DruidRules {
             }
             final RexInputRef ref = (RexInputRef) call.getOperands().get(0);
             if (!(checkTimestampRefOnQuery(ImmutableBitSet.of(ref.getIndex()), query.getTopNode(),
-                    query
+                query
             ))) {
               return -1;
             }
