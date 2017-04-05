@@ -164,7 +164,7 @@ public class DruidAdapterIT {
         + "filter=[=($17, 'Jeremy Corbyn')], groups=[{7}], aggs=[[]])\n";
     final String druidQuery = "{'queryType':'groupBy',"
         + "'dataSource':'wikiticker','granularity':'all',"
-        + "'dimensions':[{\"type\":\"default\",\"dimension\":\"countryName\"}],'limitSpec':{'type':'default'},"
+        + "'dimensions':[{'type':'default','dimension':'countryName'}],'limitSpec':{'type':'default'},"
         + "'filter':{'type':'selector','dimension':'page','value':'Jeremy Corbyn'},"
         + "'aggregations':[{'type':'longSum','name':'dummy_agg','fieldName':'dummy_agg'}],"
         + "'intervals':['1900-01-01T00:00:00.000/3000-01-01T00:00:00.000']}";
@@ -1514,86 +1514,97 @@ public class DruidAdapterIT {
   }
 
   @Test public void testPushAggragateOnTime() {
-    String sql = "select \"product_id\", \"timestamp\" as \"time\" from \"foodmart\" where \"product_id\" = 1016 and "
-            + "\"timestamp\" < cast('1997-01-03' as timestamp) and \"timestamp\" > cast"
-            + "('1990-01-01' as timestamp)"
-            + " group by"
-            + "\"timestamp\", \"product_id\" ";
+    String sql =
+            "select \"product_id\", \"timestamp\" as \"time\" from \"foodmart\" where "
+                    + "\"product_id\" = 1016 and "
+                    + "\"timestamp\" < cast('1997-01-03' as timestamp) and \"timestamp\" > cast"
+                    + "('1990-01-01' as timestamp)" + " group by"
+                    + "\"timestamp\", \"product_id\" ";
 
     String druidQuery = "{\"queryType\":\"groupBy\",\"dataSource\":\"foodmart\","
             + "\"granularity\":\"all\",\"dimensions\":[{\"type\":\"extraction\","
             + "\"dimension\":\"__time\",\"outputName\":\"timestamp\","
             + "\"extractionFn\":{\"type\":\"timeFormat\",\"format\":\"yyyy-MM-dd";
-    sql(sql).returnsUnordered("product_id=1016; time=1997-01-02 00:00:00").queryContains(druidChecker(druidQuery));
+    sql(sql).returnsUnordered("product_id=1016; time=1997-01-02 00:00:00")
+            .queryContains(druidChecker(druidQuery));
   }
-
 
   @Test public void testPushAggragateOnTimeWithExtractYear() {
-    String sql = "select EXTRACT( year from \"timestamp\") as \"year\",\"product_id\"  from \"foodmart\" where \"product_id\" = 1016 and "
-            + "\"timestamp\" < cast('1999-01-02' as timestamp) and \"timestamp\" > cast"
-            + "('1997-01-01' as timestamp)"
-            + " group by "
-            + " EXTRACT( year from \"timestamp\"), \"product_id\" ";
+    String sql =
+            "select EXTRACT( year from \"timestamp\") as \"year\",\"product_id\"  from "
+                    + "\"foodmart\" where \"product_id\" = 1016 and "
+                    + "\"timestamp\" < cast('1999-01-02' as timestamp) and \"timestamp\" > cast"
+                    + "('1997-01-01' as timestamp)" + " group by "
+                    + " EXTRACT( year from \"timestamp\"), \"product_id\" ";
 
-    sql(sql).queryContains(
-            druidChecker(",\"granularity\":\"all\"", "{\"type\":\"extraction\","
-                    + "\"dimension\":\"__time\",\"outputName\":\"year\","
-                    + "\"extractionFn\":{\"type\":\"timeFormat\",\"format\":\"yyyy\","
-                    + "\"timeZone\":\"UTC\"}}")).returnsUnordered("year=1997; product_id=1016");
+    sql(sql).queryContains(druidChecker
+      (",\"granularity\":\"all\"", "{\"type\":\"extraction\","
+              + "\"dimension\":\"__time\",\"outputName\":\"year\","
+              + "\"extractionFn\":{\"type\":\"timeFormat\",\"format\":\"yyyy\","
+              + "\"timeZone\":\"UTC\"}}"
+      )
+    ).returnsUnordered("year=1997; product_id=1016");
   }
 
-
   @Test public void testPushAggragateOnTimeWithExtractMonth() {
-    String sql = "select EXTRACT( month from \"timestamp\") as \"month\",\"product_id\"  from \"foodmart\" where \"product_id\" = 1016 and "
-            + "\"timestamp\" < cast('1997-06-02' as timestamp) and \"timestamp\" > cast"
-            + "('1997-01-01' as timestamp)"
-            + " group by "
-            + " EXTRACT( month from \"timestamp\"), \"product_id\" ";
+    String sql =
+            "select EXTRACT( month from \"timestamp\") as \"month\",\"product_id\"  from "
+                    + "\"foodmart\" where \"product_id\" = 1016 and "
+                    + "\"timestamp\" < cast('1997-06-02' as timestamp) and \"timestamp\" > cast"
+                    + "('1997-01-01' as timestamp)" + " group by "
+                    + " EXTRACT( month from \"timestamp\"), \"product_id\" ";
 
-    sql(sql).queryContains(
-            druidChecker(",\"granularity\":\"all\"", "{\"type\":\"extraction\","
-                    + "\"dimension\":\"__time\",\"outputName\":\"monthOfYear\","
-                    + "\"extractionFn\":{\"type\":\"timeFormat\",\"format\":\"MM\","
-                    + "\"timeZone\":\"UTC\"}}"))
-            .returnsUnordered("month=01; product_id=1016", "month=02; product_id=1016",
-                    "month=03; product_id=1016", "month=04; product_id=1016", "month=05; product_id=1016"
-            );
+    sql(sql).queryContains(druidChecker
+      (",\"granularity\":\"all\"", "{\"type\":\"extraction\","
+              + "\"dimension\":\"__time\",\"outputName\":\"monthOfYear\","
+              + "\"extractionFn\":{\"type\":\"timeFormat\",\"format\":\"MM\","
+              + "\"timeZone\":\"UTC\"}}"
+      )
+    ).returnsUnordered("month=01; product_id=1016", "month=02; product_id=1016",
+            "month=03; product_id=1016", "month=04; product_id=1016", "month=05; product_id=1016"
+    );
   }
 
   @Test public void testPushAggragateOnTimeWithExtractDay() {
-    String sql = "select EXTRACT( day from \"timestamp\") as \"day\",\"product_id\"  from \"foodmart\" where \"product_id\" = 1016 and "
-            + "\"timestamp\" < cast('1997-01-20' as timestamp) and \"timestamp\" > cast"
-            + "('1997-01-01' as timestamp)"
-            + " group by "
-            + " EXTRACT( day from \"timestamp\"), \"product_id\" ";
+    String sql =
+            "select EXTRACT( day from \"timestamp\") as \"day\",\"product_id\"  from \"foodmart\""
+                    + " where \"product_id\" = 1016 and "
+                    + "\"timestamp\" < cast('1997-01-20' as timestamp) and \"timestamp\" > cast"
+                    + "('1997-01-01' as timestamp)" + " group by "
+                    + " EXTRACT( day from \"timestamp\"), \"product_id\" ";
 
-    sql(sql).queryContains(
-            druidChecker(",\"granularity\":\"all\"", "{\"type\":\"extraction\","
-                    + "\"dimension\":\"__time\",\"outputName\":\"dayOfMonth\","
-                    + "\"extractionFn\":{\"type\":\"timeFormat\",\"format\":\"dd\","
-                    + "\"timeZone\":\"UTC\"}}"))
-            .returnsUnordered("day=02; product_id=1016", "day=10; product_id=1016",
-                    "day=13; product_id=1016", "day=16; product_id=1016");
+    sql(sql).queryContains(druidChecker
+      (",\"granularity\":\"all\"", "{\"type\":\"extraction\","
+              + "\"dimension\":\"__time\",\"outputName\":\"dayOfMonth\","
+              + "\"extractionFn\":{\"type\":\"timeFormat\",\"format\":\"dd\","
+              + "\"timeZone\":\"UTC\"}}"
+      )
+    ).returnsUnordered("day=02; product_id=1016", "day=10; product_id=1016",
+            "day=13; product_id=1016", "day=16; product_id=1016"
+    );
   }
 
-  //Calcite rewrite this push as rel#85:BindableProject.BINDABLE.[](input=rel#69:Subset#1.BINDABLE.[],hourOfDay=/INT(MOD(Reinterpret($0), 86400000), 3600000),product_id=$1)
+  //Calcite rewrite this push as
+  // rel#85:BindableProject.BINDABLE.[](input=rel#69:Subset#1.BINDABLE.[],
+  // hourOfDay=/INT(MOD(Reinterpret($0), 86400000), 3600000),product_id=$1)
   // hence not sure if that is valid for hive as well.
-  @Ignore
-  @Test public void testPushAggragateOnTimeWithExtractHourOfDay() {
-    String sql = "select EXTRACT( hour from \"timestamp\") as \"hourOfDay\",\"product_id\"  from \"foodmart\" where \"product_id\" = 1016 and "
-            + "\"timestamp\" < cast('1997-06-02' as timestamp) and \"timestamp\" > cast"
-            + "('1997-01-01' as timestamp)"
-            + " group by "
-            + " EXTRACT( hour from \"timestamp\"), \"product_id\" ";
+  @Ignore @Test public void testPushAggragateOnTimeWithExtractHourOfDay() {
+    String sql =
+            "select EXTRACT( hour from \"timestamp\") as \"hourOfDay\",\"product_id\"  from "
+                    + "\"foodmart\" where \"product_id\" = 1016 and "
+                    + "\"timestamp\" < cast('1997-06-02' as timestamp) and \"timestamp\" > cast"
+                    + "('1997-01-01' as timestamp)" + " group by "
+                    + " EXTRACT( hour from \"timestamp\"), \"product_id\" ";
 
-    sql(sql).queryContains(
-            druidChecker(",\"granularity\":\"all\"", "{\"type\":\"extraction\","
-                    + "\"dimension\":\"__time\",\"outputName\":\"monthOfYear\","
-                    + "\"extractionFn\":{\"type\":\"timeFormat\",\"format\":\"MM\","
-                    + "\"timeZone\":\"UTC\"}}"))
-            .returnsUnordered("month=01; product_id=1016", "month=02; product_id=1016",
-                    "month=03; product_id=1016", "month=04; product_id=1016", "month=05; product_id=1016"
-            );
+    sql(sql).queryContains(druidChecker
+      (",\"granularity\":\"all\"", "{\"type\":\"extraction\","
+              + "\"dimension\":\"__time\",\"outputName\":\"monthOfYear\","
+              + "\"extractionFn\":{\"type\":\"timeFormat\",\"format\":\"MM\","
+              + "\"timeZone\":\"UTC\"}}"
+      )
+    ).returnsUnordered("month=01; product_id=1016", "month=02; product_id=1016",
+            "month=03; product_id=1016", "month=04; product_id=1016", "month=05; product_id=1016"
+    );
   }
 
   @Test public void testPushAggragateOnTimeWithExtractYearMonthDay() {
@@ -1616,11 +1627,50 @@ public class DruidAdapterIT {
                     + "\"timeZone\":\"UTC\"}}", "{\"type\":\"extraction\","
                     + "\"dimension\":\"__time\",\"outputName\":\"year\","
                     + "\"extractionFn\":{\"type\":\"timeFormat\",\"format\":\"yyyy\","
-                    + "\"timeZone\":\"UTC\"}}"))
-            .explainContains("PLAN=EnumerableInterpreter\n"
-            + "  DruidQuery(table=[[foodmart, foodmart]], intervals=[[1997-01-01T00:00:00.001/1997-01-20T00:00:00.000]], filter=[=($1, 1016)], projects=[[EXTRACT_DATE(FLAG(DAY), /INT(Reinterpret($0), 86400000)), EXTRACT_DATE(FLAG(MONTH), /INT(Reinterpret($0), 86400000)), EXTRACT_DATE(FLAG(YEAR), /INT(Reinterpret($0), 86400000)), $1]], groups=[{0, 1, 2, 3}], aggs=[[]])\n")
-            .returnsUnordered("day=02; month=01; year=1997; product_id=1016", "day=10; month=01; year=1997; product_id=1016",
-                    "day=13; month=01; year=1997; product_id=1016", "day=16; month=01; year=1997; product_id=1016");
+                    + "\"timeZone\":\"UTC\"}}")).explainContains("PLAN=EnumerableInterpreter\n"
+            + "  DruidQuery(table=[[foodmart, foodmart]], "
+            + "intervals=[[1997-01-01T00:00:00.001/1997-01-20T00:00:00.000]], filter=[=($1, 1016)"
+            + "], projects=[[EXTRACT_DATE(FLAG(DAY), /INT(Reinterpret($0), 86400000)), "
+            + "EXTRACT_DATE(FLAG(MONTH), /INT(Reinterpret($0), 86400000)), EXTRACT_DATE(FLAG"
+            + "(YEAR), /INT(Reinterpret($0), 86400000)), $1]], groups=[{0, 1, 2, 3}], aggs=[[]])\n")
+            .returnsUnordered("day=02; month=01; year=1997; product_id=1016",
+                    "day=10; month=01; year=1997; product_id=1016",
+                    "day=13; month=01; year=1997; product_id=1016",
+                    "day=16; month=01; year=1997; product_id=1016"
+    );
+  }
+
+  @Test public void testPushAggragateOnTimeWithExtractYearMonthDayWithOutRenaming() {
+    String sql = "select EXTRACT( day from \"timestamp\"), EXTRACT( month from "
+            + "\"timestamp\"),  EXTRACT( year from \"timestamp\"),\""
+            + "product_id\"  from \"foodmart\" where \"product_id\" = 1016 and "
+            + "\"timestamp\" < cast('1997-01-20' as timestamp) and \"timestamp\" > cast"
+            + "('1997-01-01' as timestamp)"
+            + " group by "
+            + " EXTRACT( day from \"timestamp\"), EXTRACT( month from \"timestamp\"),"
+            + " EXTRACT( year from \"timestamp\"), \"product_id\" ";
+
+    sql(sql).queryContains(
+            druidChecker(",\"granularity\":\"all\"", "{\"type\":\"extraction\","
+                    + "\"dimension\":\"__time\",\"outputName\":\"dayOfMonth\","
+                    + "\"extractionFn\":{\"type\":\"timeFormat\",\"format\":\"dd\","
+                    + "\"timeZone\":\"UTC\"}}", "{\"type\":\"extraction\","
+                    + "\"dimension\":\"__time\",\"outputName\":\"monthOfYear\","
+                    + "\"extractionFn\":{\"type\":\"timeFormat\",\"format\":\"MM\","
+                    + "\"timeZone\":\"UTC\"}}", "{\"type\":\"extraction\","
+                    + "\"dimension\":\"__time\",\"outputName\":\"year\","
+                    + "\"extractionFn\":{\"type\":\"timeFormat\",\"format\":\"yyyy\","
+                    + "\"timeZone\":\"UTC\"}}")).explainContains("PLAN=EnumerableInterpreter\n"
+            + "  DruidQuery(table=[[foodmart, foodmart]], "
+            + "intervals=[[1997-01-01T00:00:00.001/1997-01-20T00:00:00.000]], filter=[=($1, 1016)"
+            + "], projects=[[EXTRACT_DATE(FLAG(DAY), /INT(Reinterpret($0), 86400000)), "
+            + "EXTRACT_DATE(FLAG(MONTH), /INT(Reinterpret($0), 86400000)), EXTRACT_DATE(FLAG"
+            + "(YEAR), /INT(Reinterpret($0), 86400000)), $1]], groups=[{0, 1, 2, 3}], aggs=[[]])\n")
+            .returnsUnordered("day=02; month=01; year=1997; product_id=1016",
+                    "day=10; month=01; year=1997; product_id=1016",
+                    "day=13; month=01; year=1997; product_id=1016",
+                    "day=16; month=01; year=1997; product_id=1016"
+    );
   }
 }
 

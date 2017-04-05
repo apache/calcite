@@ -16,27 +16,10 @@
  */
 package org.apache.calcite.adapter.druid;
 
-import com.fasterxml.jackson.core.JsonGenerator;
-
-import java.io.IOException;
-
 /**
- * Default implementation of Dimension spec
+ * Extraction Function interface
  */
-public class DefaultDimensionSpec implements DimensionSpec {
-
-  private final String dimension;
-
-  public DefaultDimensionSpec(String dimension) {
-    this.dimension = dimension;
-  }
-
-  @Override public void write(JsonGenerator generator) throws IOException {
-    generator.writeStartObject();
-    generator.writeStringField("type", "default");
-    generator.writeStringField("dimension", dimension);
-    generator.writeEndObject();
-  }
+public interface ExtractionFunction extends DruidQuery.Json {
 }
 
-// End DefaultDimensionSpec.java
+// End ExtractionFunction.java

@@ -16,6 +16,10 @@
  */
 package org.apache.calcite.adapter.druid;
 
-
+/**
+ * Druid dimension spec interface
+ */
 public interface DimensionSpec extends DruidQuery.Json {
 }
+
+// End DimensionSpec.java

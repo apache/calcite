@@ -561,7 +561,6 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
             timeExtractionDimensionSpec = TimeExtractionDimensionSpec.makeFullTimeExtract();
             builder.add(DruidConnectionImpl.DEFAULT_RESPONSE_TIMESTAMP_COLUMN);
             dimensions.add(timeExtractionDimensionSpec);
-            //@TODO remove this assert cause we can have multiple extract on time column
             assert timePositionIdx == -1;
             timePositionIdx = groupKey;
           } else {

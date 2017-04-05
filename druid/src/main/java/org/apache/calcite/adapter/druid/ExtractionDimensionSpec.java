@@ -22,6 +22,9 @@ import java.io.IOException;
 
 import static org.apache.calcite.adapter.druid.DruidQuery.writeFieldIf;
 
+/**
+ * Extraction function dimension spec implementation
+ */
 public class ExtractionDimensionSpec implements DimensionSpec {
   private final String dimension;
   private final ExtractionFunction extractionFunction;
@@ -45,6 +48,6 @@ public class ExtractionDimensionSpec implements DimensionSpec {
     generator.writeEndObject();
   }
 
-  public interface ExtractionFunction extends DruidQuery.Json{
-  }
 }
+
+// End ExtractionDimensionSpec.java
