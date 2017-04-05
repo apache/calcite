@@ -442,7 +442,8 @@ public class DruidAdapterIT {
     final String sql = "select \"product_id\" from \"foodmart\" where "
             + "\"product_id\" = 1020 group by \"product_id\"";
     final String druidQuery = "{\"queryType\":\"groupBy\",\"dataSource\":\"foodmart\","
-            + "\"granularity\":\"all\",\"dimensions\":[\"product_id\"],"
+            + "\"granularity\":\"all\",\"dimensions\":[{\"type\":\"default\","
+            + "\"dimension\":\"product_id\"}],"
             + "\"limitSpec\":{\"type\":\"default\"},\"filter\":{\"type\":\"selector\","
             + "\"dimension\":\"product_id\",\"value\":\"1020\"},"
             + "\"aggregations\":[{\"type\":\"longSum\",\"name\":\"dummy_agg\","
@@ -460,7 +461,8 @@ public class DruidAdapterIT {
             .queryContains(
                     druidChecker("{\"queryType\":\"groupBy"
             + "\",\"dataSource\":\"foodmart\",\"granularity\":\"all\","
-            + "\"dimensions\":[\"product_id\"],\"limitSpec\":{\"type\":\"default\"},"
+            + "\"dimensions\":[{\"type\":\"default\",\"dimension\":\"product_id\"}],"
+            + "\"limitSpec\":{\"type\":\"default\"},"
             + "\"filter\":{\"type\":\"selector\",\"dimension\":\"product_id\","
             + "\"value\":\"1020\"},\"aggregations\":[{\"type\":\"longSum\","
             + "\"name\":\"dummy_agg\",\"fieldName\":\"dummy_agg\"}],"
@@ -1666,10 +1668,10 @@ public class DruidAdapterIT {
             + "], projects=[[EXTRACT_DATE(FLAG(DAY), /INT(Reinterpret($0), 86400000)), "
             + "EXTRACT_DATE(FLAG(MONTH), /INT(Reinterpret($0), 86400000)), EXTRACT_DATE(FLAG"
             + "(YEAR), /INT(Reinterpret($0), 86400000)), $1]], groups=[{0, 1, 2, 3}], aggs=[[]])\n")
-            .returnsUnordered("day=02; month=01; year=1997; product_id=1016",
-                    "day=10; month=01; year=1997; product_id=1016",
-                    "day=13; month=01; year=1997; product_id=1016",
-                    "day=16; month=01; year=1997; product_id=1016"
+            .returnsUnordered("EXPR$0=02; EXPR$1=01; EXPR$2=1997; product_id=1016",
+                    "EXPR$0=10; EXPR$1=01; EXPR$2=1997; product_id=1016",
+                    "EXPR$0=13; EXPR$1=01; EXPR$2=1997; product_id=1016",
+                    "EXPR$0=16; EXPR$1=01; EXPR$2=1997; product_id=1016"
     );
   }
 }

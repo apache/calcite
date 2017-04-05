@@ -631,12 +631,8 @@ public class DruidRules {
       final Project project = (Project) topProject;
       for (int index : set) {
         RexNode node = project.getProjects().get(index);
-        if (node instanceof RexInputRef) {
-          newSet.set(((RexInputRef) node).getIndex());
-        } else if (node instanceof RexCall) {
-          RexCall call = (RexCall) node;
-          newSet.set(((RexInputRef) call.getOperands().get(0)).getIndex());
-        }
+        ImmutableBitSet setOfBits = RelOptUtil.InputFinder.bits(node);
+        newSet.addAll(setOfBits);
       }
       set = newSet.build();
     }
