@@ -45,6 +45,7 @@ import org.apache.calcite.runtime.SqlFunctions;
 import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.ControlFlowException;
 import org.apache.calcite.util.NlsString;
@@ -385,15 +386,14 @@ public class RexToLixTranslator {
         case VARBINARY:
           // If this is a widening cast, no need to truncate.
           final int sourcePrecision = sourceType.getPrecision();
-          if (sourcePrecision < 0
-              || sourcePrecision >= 0
-              && sourcePrecision <= targetPrecision) {
+          if (SqlTypeUtil.comparePrecision(sourcePrecision, targetPrecision)
+              <= 0) {
             truncate = false;
           }
           // If this is a widening cast, no need to pad.
-          if (sourcePrecision < 0
-              || sourcePrecision >= 0
-              && sourcePrecision >= targetPrecision) {
+          if (SqlTypeUtil.comparePrecision(sourcePrecision, targetPrecision)
+              >= 0
+              && targetPrecision != RelDataType.PRECISION_NOT_SPECIFIED) {
             pad = false;
           }
           // fall through
@@ -873,9 +873,7 @@ public class RexToLixTranslator {
     } else if (toType == java.sql.Date.class) {
       // E.g. from "int" or "Integer" to "java.sql.Date",
       // generate "SqlFunctions.internalToDate".
-      Boolean isPrimitiveInt = fromPrimitive == Primitive.INT;
-      Boolean isBoxInt = fromBox == Primitive.INT;
-      if (isPrimitiveInt || isBoxInt) {
+      if (isA(fromType, Primitive.INT)) {
         return Expressions.call(BuiltInMethod.INTERNAL_TO_DATE.method, operand);
       } else {
         return Expressions.convert_(operand, java.sql.Date.class);
@@ -883,12 +881,20 @@ public class RexToLixTranslator {
     } else if (toType == java.sql.Time.class) {
       // E.g. from "int" or "Integer" to "java.sql.Time",
       // generate "SqlFunctions.internalToTime".
-      return Expressions.call(BuiltInMethod.INTERNAL_TO_TIME.method, operand);
+      if (isA(fromType, Primitive.INT)) {
+        return Expressions.call(BuiltInMethod.INTERNAL_TO_TIME.method, operand);
+      } else {
+        return Expressions.convert_(operand, java.sql.Time.class);
+      }
     } else if (toType == java.sql.Timestamp.class) {
       // E.g. from "long" or "Long" to "java.sql.Timestamp",
       // generate "SqlFunctions.internalToTimestamp".
-      return Expressions.call(BuiltInMethod.INTERNAL_TO_TIMESTAMP.method,
-          operand);
+      if (isA(fromType, Primitive.LONG)) {
+        return Expressions.call(BuiltInMethod.INTERNAL_TO_TIMESTAMP.method,
+            operand);
+      } else {
+        return Expressions.convert_(operand, java.sql.Timestamp.class);
+      }
     } else if (toType == BigDecimal.class) {
       if (fromBox != null) {
         // E.g. from "Integer" to "BigDecimal".
@@ -956,6 +962,11 @@ public class RexToLixTranslator {
       }
     }
     return Expressions.convert_(operand, toType);
+  }
+
+  static boolean isA(Type fromType, Primitive primitive) {
+    return Primitive.of(fromType) == primitive
+        || Primitive.ofBox(fromType) == primitive;
   }
 
   public Expression translateConstructor(

@@ -3,6 +3,7 @@ layout: docs
 title: Avatica Roadmap
 sidebar_title: Roadmap
 permalink: /docs/avatica_roadmap.html
+redirect_to: /avatica/docs/roadmap.html
 ---
 
 <!--
@@ -23,29 +24,3 @@ See the License for the specific language governing permissions and
 limitations under the License.
 {% endcomment %}
 -->
-
-## Status
-
-### Implemented
-
-* Create connection, create statement, metadata, prepare, bind, execute, fetch
-* RPC using JSON over HTTP
-* Local implementation
-* Implementation over an existing JDBC driver
-* Composite RPCs (combining several requests into one round trip)
-  * Execute-Fetch
-  * Metadata-Fetch (metadata calls such as getTables return all rows)
-
-### Not implemented
-
-* ODBC
-* RPCs
-  * CloseStatement
-  * CloseConnection
-* Composite RPCs
-  * CreateStatement-Prepare
-  * CloseStatement-CloseConnection
-  * Prepare-Execute-Fetch (Statement.executeQuery should fetch first N rows)
-* Remove statements from statement table
-* DML (INSERT, UPDATE, DELETE)
-* Statement.execute applied to SELECT statement

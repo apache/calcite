@@ -14,23 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.sql.parser;
+package org.apache.calcite.sql2rel;
+
+import org.apache.calcite.rex.RexBuilder;
 
 /**
- * Extension to {@link SqlParserTest} which ensures that every expression can
- * un-parse successfully.
+ * Provides context for {@link InitializerExpressionFactory} methods.
  */
-public class SqlUnParserTest extends SqlParserTest {
-  //~ Constructors -----------------------------------------------------------
-
-  public SqlUnParserTest() {
-  }
-
-  //~ Methods ----------------------------------------------------------------
-
-  @Override protected Tester getTester() {
-    return new UnparsingTesterImpl();
-  }
+public interface InitializerContext {
+  RexBuilder getRexBuilder();
 }
 
-// End SqlUnParserTest.java
+// End InitializerContext.java

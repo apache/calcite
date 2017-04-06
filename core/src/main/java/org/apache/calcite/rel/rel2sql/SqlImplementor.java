@@ -31,6 +31,7 @@ import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexLocalRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexOver;
+import org.apache.calcite.rex.RexPatternFieldRef;
 import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.rex.RexWindow;
 import org.apache.calcite.rex.RexWindowBound;
@@ -515,6 +516,17 @@ public abstract class SqlImplementor {
       case INPUT_REF:
         return field(((RexInputRef) rex).getIndex());
 
+      case PATTERN_INPUT_REF:
+        final RexPatternFieldRef ref = (RexPatternFieldRef) rex;
+        String pv = ref.getAlpha();
+        SqlNode refNode = field(ref.getIndex());
+        final SqlIdentifier id = (SqlIdentifier) refNode;
+        if (id.names.size() > 1) {
+          return id.setName(0, pv);
+        } else {
+          return new SqlIdentifier(ImmutableList.of(pv, id.names.get(0)), POS);
+        }
+
       case LITERAL:
         final RexLiteral literal = (RexLiteral) rex;
         if (literal.getTypeName() == SqlTypeName.SYMBOL) {
@@ -551,6 +563,7 @@ public abstract class SqlImplementor {
         default:
           throw new AssertionError(literal + ": " + literal.getTypeName());
         }
+
       case CASE:
         final RexCall caseCall = (RexCall) rex;
         final List<SqlNode> caseNodeList =
@@ -1104,6 +1117,11 @@ public abstract class SqlImplementor {
     public void setGroupBy(SqlNodeList nodeList) {
       assert clauses.contains(Clause.GROUP_BY);
       select.setGroupBy(nodeList);
+    }
+
+    public void setHaving(SqlNode node) {
+      assert clauses.contains(Clause.HAVING);
+      select.setHaving(node);
     }
 
     public void setOrderBy(SqlNodeList nodeList) {

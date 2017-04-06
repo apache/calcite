@@ -916,9 +916,9 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
 
   @Test public void testCastTypeToType() {
     checkExpType("cast(123 as char)", "CHAR(1) NOT NULL");
-    checkExpType("cast(123 as varchar)", "VARCHAR(1) NOT NULL");
+    checkExpType("cast(123 as varchar)", "VARCHAR NOT NULL");
     checkExpType("cast(x'1234' as binary)", "BINARY(1) NOT NULL");
-    checkExpType("cast(x'1234' as varbinary)", "VARBINARY(1) NOT NULL");
+    checkExpType("cast(x'1234' as varbinary)", "VARBINARY NOT NULL");
     checkExpType("cast(123 as varchar(3))", "VARCHAR(3) NOT NULL");
     checkExpType("cast(123 as char(3))", "CHAR(3) NOT NULL");
     checkExpType("cast('123' as integer)", "INTEGER NOT NULL");
@@ -5319,6 +5319,20 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         "select * from emp join dept using (deptno, ^comm^)",
         "Column 'COMM' not found in any table");
 
+    checkFails("select * from emp join dept using (^empno^)",
+        "Column 'EMPNO' not found in any table");
+
+    checkFails("select * from dept join emp using (^empno^)",
+        "Column 'EMPNO' not found in any table");
+
+    // not on either side
+    checkFails("select * from dept join emp using (^abc^)",
+        "Column 'ABC' not found in any table");
+
+    // column exists, but wrong case
+    checkFails("select * from dept join emp using (^\"deptno\"^)",
+        "Column 'deptno' not found in any table");
+
     // ok to repeat (ok in Oracle10g too)
     check("select * from emp join dept using (deptno, deptno)");
 
@@ -6992,7 +7006,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     checkFails("select ^fusion(deptno)^ from emp",
         "(?s).*Cannot apply 'FUSION' to arguments of type 'FUSION.<INTEGER>.'.*");
     check("select fusion(multiset[3]) from emp");
-    // todo. FUSION is an aggregate function. test that validator only can
+    // todo. FUSION is an aggregate function. test that validator can only
     // take set operators in its select list once aggregation support is
     // complete
   }
@@ -7946,6 +7960,8 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "+ pre\n"
         + "- pre\n"
         + ". left\n"
+        + "FINAL pre\n"
+        + "RUNNING pre\n"
         + "\n"
         + "| left\n"
         + "\n"
@@ -8004,7 +8020,6 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "AS -\n"
         + "DESC post\n"
         + "OVER left\n"
-        + "PATTERN_DEFINE_AS -\n"
         + "TABLESAMPLE -\n"
         + "\n"
         + "INTERSECT left\n"
@@ -8168,6 +8183,23 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "values (1, 'Karl')");
   }
 
+  @Test public void testInsertModifiableView() {
+    tester.checkQuery("insert into EMP_MODIFIABLEVIEW (empno, ename, job)\n"
+        + "values (1, 'Arthur', 'clown')");
+    tester.checkQuery("insert into EMP_MODIFIABLEVIEW2 (empno, ename, job, extra)\n"
+        + "values (1, 'Arthur', 'clown', true)");
+  }
+
+  @Test public void testInsertSubsetModifiableView() {
+    final SqlTester pragmaticTester =
+        tester.withConformance(SqlConformanceEnum.PRAGMATIC_2003);
+    pragmaticTester.checkQuery("insert into EMP_MODIFIABLEVIEW2\n"
+        + "values ('Arthur', 1)");
+    tester.checkQuery("insert into EMP_MODIFIABLEVIEW2\n"
+        + "values ('Arthur', 1, 'Knight', 20, false, 99999, true, timestamp '1370-01-01 00:00:00',"
+        + " 1, 100)");
+  }
+
   @Test public void testInsertBind() {
     // VALUES
     final String sql0 = "insert into empnullables (empno, ename, deptno)\n"
@@ -8250,6 +8282,63 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     final String expected2 = "RecordType(INTEGER ?0, VARCHAR(20) ?1,"
         + " INTEGER ?2, VARCHAR(20) ?3)";
     sql(sql2).tester(pragmaticTester).ok().bindType(expected2);
+  }
+
+  @Test public void testInsertBindView() {
+    final String sql = "insert into EMP_MODIFIABLEVIEW (mgr, empno, ename)"
+        + " values (?, ?, ?)";
+    sql(sql).ok().bindType("RecordType(INTEGER ?0, INTEGER ?1, VARCHAR(20) ?2)");
+  }
+
+  @Test public void testInsertModifiableViewPassConstraint() {
+    sql("insert into EMP_MODIFIABLEVIEW2 (deptno, empno, ename, extra)"
+        + " values (20, 100, 'Lex', true)").ok();
+    sql("insert into EMP_MODIFIABLEVIEW2 (empno, ename, extra)"
+        + " values (100, 'Lex', true)").ok();
+    sql("insert into EMP_MODIFIABLEVIEW2 values ('Edward', 20)")
+        .tester(tester.withConformance(SqlConformanceEnum.PRAGMATIC_2003)).ok();
+  }
+
+  @Test public void testInsertModifiableViewFailConstraint() {
+    tester.checkQueryFails(
+        "insert into EMP_MODIFIABLEVIEW2 (deptno, empno, ename)"
+            + " values (^21^, 100, 'Lex')",
+        "Modifiable view constraint is not satisfied"
+            + " for column 'DEPTNO' of base table 'EMP_MODIFIABLEVIEW2'");
+    tester.checkQueryFails(
+        "insert into EMP_MODIFIABLEVIEW2 (deptno, empno, ename)"
+            + " values (^19+1^, 100, 'Lex')",
+        "Modifiable view constraint is not satisfied"
+            + " for column 'DEPTNO' of base table 'EMP_MODIFIABLEVIEW2'");
+    tester.checkQueryFails("insert into EMP_MODIFIABLEVIEW2\n"
+        + "values ('Arthur', 1, 'Knight', ^27^, false, 99999, true,"
+            + "timestamp '1370-01-01 00:00:00', 1, 100)",
+        "Modifiable view constraint is not satisfied"
+            + " for column 'DEPTNO' of base table 'EMP_MODIFIABLEVIEW2'");
+  }
+
+  @Test public void testUpdateModifiableViewPassConstraint() {
+    sql("update EMP_MODIFIABLEVIEW2"
+        + " set deptno = 20, empno = 99"
+        + " where ename = 'Lex'").ok();
+    sql("update EMP_MODIFIABLEVIEW2"
+        + " set empno = 99"
+        + " where ename = 'Lex'").ok();
+  }
+
+  @Test public void testUpdateModifiableViewFailConstraint() {
+    tester.checkQueryFails(
+        "update EMP_MODIFIABLEVIEW2"
+            + " set deptno = ^21^, empno = 99"
+            + " where ename = 'Lex'",
+        "Modifiable view constraint is not satisfied"
+            + " for column 'DEPTNO' of base table 'EMP_MODIFIABLEVIEW2'");
+    tester.checkQueryFails(
+        "update EMP_MODIFIABLEVIEW2"
+            + " set deptno = ^19 + 1^, empno = 99"
+            + " where ename = 'Lex'",
+        "Modifiable view constraint is not satisfied"
+            + " for column 'DEPTNO' of base table 'EMP_MODIFIABLEVIEW2'");
   }
 
   @Test public void testInsertFailNullability() {
@@ -8343,6 +8432,143 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         "Number of INSERT target columns \\(9\\) does not equal number of source items \\(1\\)");
     tester.checkQueryFails("insert into ^emp^ values (?, ?)",
         "Number of INSERT target columns \\(9\\) does not equal number of source items \\(2\\)");
+  }
+
+  @Test public void testSelectExtendedColumnDuplicate() {
+    sql("select deptno, extra from emp (extra int, \"extra\" boolean)").ok();
+    sql("select deptno, extra from emp (extra int, \"extra\" int)").ok();
+    tester.checkQueryFails("select deptno, extra from emp (extra int, ^extra^ int)",
+        "Duplicate name 'EXTRA' in column list");
+    tester.checkQueryFails("select deptno, extra from emp (extra int, ^extra^ boolean)",
+        "Duplicate name 'EXTRA' in column list");
+    tester.checkQueryFails("select deptno, extra from EMP_MODIFIABLEVIEW (extra int, ^extra^ int)",
+        "Duplicate name 'EXTRA' in column list");
+    tester.checkQueryFails("select deptno, extra from EMP_MODIFIABLEVIEW"
+            + " (extra int, ^extra^ boolean)",
+        "Duplicate name 'EXTRA' in column list");
+  }
+
+  @Test public void testSelectViewFailExcludedColumn() {
+    tester.checkQueryFails("select ^deptno^, empno from EMP_MODIFIABLEVIEW",
+        "Column 'DEPTNO' not found in any table");
+  }
+
+  @Test public void testSelectViewExtendedColumnCollision() {
+    sql("select ENAME, EMPNO, JOB, SLACKER, SAL, HIREDATE, MGR\n"
+        + " from EMP_MODIFIABLEVIEW3 extend (SAL int)\n"
+        + " where SAL = 20").ok();
+    sql("select ENAME, EMPNO, JOB, SLACKER, SAL, \"Sal\", HIREDATE, MGR\n"
+        + " from EMP_MODIFIABLEVIEW3 extend (\"Sal\" VARCHAR)\n"
+        + " where SAL = 20").ok();
+  }
+
+  @Test public void testSelectViewExtendedColumnExtendedCollision() {
+    sql("select ENAME, EMPNO, JOB, SLACKER, SAL, HIREDATE, MGR, EXTRA\n"
+        + " from EMP_MODIFIABLEVIEW2 extend (EXTRA boolean)\n"
+        + " where SAL = 20").ok();
+    sql("select ENAME, EMPNO, JOB, SLACKER, SAL, HIREDATE, MGR, EXTRA, \"EXtra\"\n"
+        + " from EMP_MODIFIABLEVIEW2 extend (\"EXtra\" VARCHAR)\n"
+        + " where SAL = 20").ok();
+  }
+
+  @Test public void testSelectViewExtendedColumnUnderlyingCollision() {
+    sql("select ENAME, EMPNO, JOB, SLACKER, SAL, HIREDATE, MGR, COMM\n"
+        + " from EMP_MODIFIABLEVIEW3 extend (COMM int)\n"
+        + " where SAL = 20").ok();
+    sql("select ENAME, EMPNO, JOB, SLACKER, SAL, HIREDATE, MGR, \"comM\"\n"
+        + " from EMP_MODIFIABLEVIEW3 extend (\"comM\" BOOLEAN)\n"
+        + " where SAL = 20").ok();
+  }
+
+  @Test public void testSelectExtendedColumnCollision() {
+    sql("select ENAME, EMPNO, JOB, SLACKER, SAL, HIREDATE, MGR, COMM\n"
+            + " from EMPDEFAULTS extend (COMM int)\n"
+            + " where SAL = 20").ok();
+    sql("select ENAME, EMPNO, JOB, SLACKER, SAL, HIREDATE, MGR, COMM, \"ComM\"\n"
+        + " from EMPDEFAULTS extend (\"ComM\" int)\n"
+        + " where SAL = 20").ok();
+  }
+
+  @Test public void testSelectExtendedColumnFailCollision() {
+    tester.checkQueryFails("select ENAME, EMPNO, JOB, SLACKER, SAL, HIREDATE, MGR, COMM\n"
+            + " from EMPDEFAULTS extend (^COMM^ boolean)\n"
+            + " where SAL = 20",
+        "Cannot assign to target field 'COMM' of type INTEGER from source field 'COMM' of type BOOLEAN");
+    tester.checkQueryFails("select ENAME, EMPNO, JOB, SLACKER, SAL, HIREDATE, MGR, COMM\n"
+            + " from EMPDEFAULTS extend (^EMPNO^ integer)\n"
+            + " where SAL = 20",
+        "Cannot assign to target field 'EMPNO' of type INTEGER NOT NULL from source field 'EMPNO' of type INTEGER");
+    tester.checkQueryFails("select ENAME, EMPNO, JOB, SLACKER, SAL, HIREDATE, MGR, COMM\n"
+            + " from EMPDEFAULTS extend (^\"EMPNO\"^ integer)\n"
+            + " where SAL = 20",
+        "Cannot assign to target field 'EMPNO' of type INTEGER NOT NULL from source field 'EMPNO' of type INTEGER");
+  }
+
+  @Test public void testSelectViewExtendedColumnFailCollision() {
+    tester.checkQueryFails("select ENAME, EMPNO, JOB, SLACKER, SAL, HIREDATE, MGR, EXTRA\n"
+            + " from EMP_MODIFIABLEVIEW2 extend (^SLACKER^ integer)\n"
+            + " where SAL = 20",
+        "Cannot assign to target field 'SLACKER' of type BOOLEAN from source field 'SLACKER' of type INTEGER");
+    tester.checkQueryFails("select ENAME, EMPNO, JOB, SLACKER, SAL, HIREDATE, MGR, COMM\n"
+            + " from EMP_MODIFIABLEVIEW2 extend (^EMPNO^ integer)\n"
+            + " where SAL = 20",
+        "Cannot assign to target field 'EMPNO' of type INTEGER NOT NULL from source field 'EMPNO' of type INTEGER");
+  }
+
+  @Test public void testSelectViewExtendedColumnFailExtendedCollision() {
+    tester.checkQueryFails("select ENAME, EMPNO, JOB, SLACKER, SAL, HIREDATE, MGR, EXTRA\n"
+            + " from EMP_MODIFIABLEVIEW2 extend (^EXTRA^ integer)\n"
+            + " where SAL = 20",
+        "Cannot assign to target field 'EXTRA' of type BOOLEAN from source field 'EXTRA' of type INTEGER");
+    tester.checkQueryFails("select ENAME, EMPNO, JOB, SLACKER, SAL, HIREDATE, MGR, EXTRA\n"
+            + " from EMP_MODIFIABLEVIEW2 extend (^\"EXTRA\"^ integer)\n"
+            + " where SAL = 20",
+        "Cannot assign to target field 'EXTRA' of type BOOLEAN from source field 'EXTRA' of type INTEGER");
+  }
+
+  @Test public void testSelectViewExtendedColumnFailUnderlyingCollision() {
+    tester.checkQueryFails("select ENAME, EMPNO, JOB, SLACKER, SAL, HIREDATE, MGR, COMM\n"
+            + " from EMP_MODIFIABLEVIEW3 extend (^COMM^ boolean)\n"
+            + " where SAL = 20",
+        "Cannot assign to target field 'COMM' of type INTEGER from source field 'COMM' of type BOOLEAN");
+    tester.checkQueryFails("select ENAME, EMPNO, JOB, SLACKER, SAL, HIREDATE, MGR, COMM\n"
+            + " from EMP_MODIFIABLEVIEW3 extend (^\"COMM\"^ boolean)\n"
+            + " where SAL = 20",
+        "Cannot assign to target field 'COMM' of type INTEGER from source field 'COMM' of type BOOLEAN");
+  }
+
+  @Test public void testSelectFailCaseSensitivity() {
+    tester.checkQueryFails("select ^\"empno\"^, ename, deptno from EMP",
+        "Column 'empno' not found in any table; did you mean 'EMPNO'\\?");
+    tester.checkQueryFails("select ^\"extra\"^, ename, deptno from EMP (extra boolean)",
+        "Column 'extra' not found in any table; did you mean 'EXTRA'\\?");
+    tester.checkQueryFails("select ^extra^, ename, deptno from EMP (\"extra\" boolean)",
+        "Column 'EXTRA' not found in any table; did you mean 'extra'\\?");
+  }
+
+  @Test public void testInsertFailCaseSensitivity() {
+    tester.checkQueryFails("insert into EMP_MODIFIABLEVIEW (^\"empno\"^, ename, deptno)"
+            + " values (45, 'Jake', 5)",
+        "Unknown target column 'empno'");
+    tester.checkQueryFails("insert into EMP_MODIFIABLEVIEW (\"extra\" int) (^extra^, ename, deptno)"
+            + " values (45, 'Jake', 5)",
+        "Unknown target column 'EXTRA'");
+    tester.checkQueryFails("insert into EMP_MODIFIABLEVIEW (extra int) (^\"extra\"^, ename, deptno)"
+            + " values (45, 'Jake', 5)",
+        "Unknown target column 'extra'");
+  }
+
+  @Test public void testInsertFailExcludedColumn() {
+    tester.checkQueryFails("insert into EMP_MODIFIABLEVIEW (empno, ename, ^deptno^)"
+        + " values (45, 'Jake', 5)",
+        "Unknown target column 'DEPTNO'");
+  }
+
+  @Test public void testInsertBindViewFailExcludedColumn() {
+    final String sql = "insert into EMP_MODIFIABLEVIEW (empno, ename, ^deptno^)"
+        + " values (?, ?, ?)";
+    tester.checkQueryFails(sql,
+        "Unknown target column 'DEPTNO'");
   }
 
   @Test public void testInsertWithCustomInitializerExpressionFactory() {
@@ -8947,26 +9173,22 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   /** Tries to create a calls to some internal operators in
    * MATCH_RECOGNIZE. Should fail. */
   @Test public void testMatchRecognizeInternals() throws Exception {
-    sql("values ^pattern_define_as(1, 2)^")
-        .fails("No match found for function signature .*");
     sql("values ^pattern_exclude(1, 2)^")
         .fails("No match found for function signature .*");
     sql("values ^\"|\"(1, 2)^")
         .fails("No match found for function signature .*");
-    if (TODO) {
       // FINAL and other functions should not be visible outside of
       // MATCH_RECOGNIZE
-      sql("values ^\"FINAL\"(1, 2)^")
-          .fails("No match found for function signature .*");
-      sql("values ^\"RUNNING\"(1, 2)^")
-          .fails("No match found for function signature .*");
-      sql("values ^\"FIRST\"(1, 2)^")
-          .fails("No match found for function signature .*");
-      sql("values ^\"LAST\"(1, 2)^")
-          .fails("No match found for function signature .*");
-      sql("values ^\"PREV\"(1, 2)^")
-          .fails("No match found for function signature .*");
-    }
+    sql("values ^\"FINAL\"(1, 2)^")
+        .fails("No match found for function signature FINAL\\(<NUMERIC>, <NUMERIC>\\)");
+    sql("values ^\"RUNNING\"(1, 2)^")
+        .fails("No match found for function signature RUNNING\\(<NUMERIC>, <NUMERIC>\\)");
+    sql("values ^\"FIRST\"(1, 2)^")
+        .fails("Function 'FIRST\\(1, 2\\)' can only be used in MATCH_RECOGNIZE");
+    sql("values ^\"LAST\"(1, 2)^")
+        .fails("Function 'LAST\\(1, 2\\)' can only be used in MATCH_RECOGNIZE");
+    sql("values ^\"PREV\"(1, 2)^")
+        .fails("Function 'PREV\\(1, 2\\)' can only be used in MATCH_RECOGNIZE");
   }
 
   @Test public void testMatchRecognizeDefines() throws Exception {
@@ -9040,6 +9262,412 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     sql(sql)
         .fails("Invalid number of parameters to COUNT method");
   }
+
+  @Test public void testInsertExtendedColumn() {
+    sql("insert into empdefaults(extra BOOLEAN, note VARCHAR)"
+        + " (deptno, empno, ename, extra, note) values (1, 10, '2', true, 'ok')").ok();
+    sql("insert into emp(\"rank\" INT, extra BOOLEAN)"
+        + " values (1, 'nom', 'job', 0, timestamp '1970-01-01 00:00:00', 1, 1,"
+        + "  1, false, 100, false)").ok();
+  }
+
+  @Test public void testInsertBindExtendedColumn() {
+    sql("insert into empdefaults(extra BOOLEAN, note VARCHAR)"
+        + " (deptno, empno, ename, extra, note) values (1, 10, '2', ?, 'ok')").ok();
+    sql("insert into emp(\"rank\" INT, extra BOOLEAN)"
+        + " values (1, 'nom', 'job', 0, timestamp '1970-01-01 00:00:00', 1, 1,"
+        + "  1, false, ?, ?)").ok();
+  }
+
+  @Test public void testInsertExtendedColumnModifiableView() {
+    sql("insert into EMP_MODIFIABLEVIEW2(extra2 BOOLEAN, note VARCHAR)"
+        + " (deptno, empno, ename, extra2, note) values (20, 10, '2', true, 'ok')").ok();
+    sql("insert into EMP_MODIFIABLEVIEW2(\"rank\" INT, extra2 BOOLEAN)"
+        + " values ('nom', 1, 'job', 20, true, 0, false, timestamp '1970-01-01 00:00:00', 1, 1,"
+        + "  1, false)").ok();
+  }
+
+  @Test public void testInsertBindExtendedColumnModifiableView() {
+    sql("insert into EMP_MODIFIABLEVIEW2(extra2 BOOLEAN, note VARCHAR)"
+        + " (deptno, empno, ename, extra2, note) values (20, 10, '2', true, ?)").ok();
+    sql("insert into EMP_MODIFIABLEVIEW2(\"rank\" INT, extra2 BOOLEAN)"
+        + " values ('nom', 1, 'job', 20, true, 0, false, timestamp '1970-01-01 00:00:00', 1, 1,"
+        + "  ?, false)").ok();
+  }
+
+  @Test public void testInsertExtendedColumnModifiableViewFailConstraint() {
+    tester.checkQueryFails("insert into EMP_MODIFIABLEVIEW2(extra2 BOOLEAN, note VARCHAR)"
+        + " (deptno, empno, ename, extra2, note) values (^1^, 10, '2', true, 'ok')",
+        "Modifiable view constraint is not satisfied"
+            + " for column 'DEPTNO' of base table 'EMP_MODIFIABLEVIEW2'");
+    tester.checkQueryFails("insert into EMP_MODIFIABLEVIEW2(extra2 BOOLEAN, note VARCHAR)"
+            + " (deptno, empno, ename, extra2, note) values (^?^, 10, '2', true, 'ok')",
+        "Modifiable view constraint is not satisfied"
+            + " for column 'DEPTNO' of base table 'EMP_MODIFIABLEVIEW2'");
+    tester.checkQueryFails("insert into EMP_MODIFIABLEVIEW2(\"rank\" INT, extra2 BOOLEAN)"
+        + " values ('nom', 1, 'job', ^0^, true, 0, false, timestamp '1970-01-01 00:00:00', 1, 1,"
+            + "  1, false)",
+        "Modifiable view constraint is not satisfied"
+            + " for column 'DEPTNO' of base table 'EMP_MODIFIABLEVIEW2'");
+  }
+
+  @Test public void testInsertExtendedColumnModifiableViewFailColumnCount() {
+    tester.checkQueryFails("insert into EMP_MODIFIABLEVIEW2(\"rank\" INT, extra2 BOOLEAN^)^"
+            + " values ('nom', 1, 'job', 0, true, 0, false, timestamp '1970-01-01 00:00:00', 1, 1,"
+            + "  1)",
+        "Number of INSERT target columns \\(12\\) does not equal number of source items \\(11\\)");
+    tester.checkQueryFails("insert into EMP_MODIFIABLEVIEW2(\"rank\" INT, extra2 BOOLEAN^)^"
+            + " (deptno, empno, ename, extra2, \"rank\") values (?, 10, '2', true)",
+        "Number of INSERT target columns \\(5\\) does not equal number of source items \\(4\\)");
+  }
+
+  @Test public void testInsertExtendedColumnFailDuplicate() {
+    tester.checkQueryFails("insert into EMP_MODIFIABLEVIEW2(extcol INT, ^extcol^ BOOLEAN)"
+            + " values ('nom', 1, 'job', 0, true, 0, false, timestamp '1970-01-01 00:00:00', 1, 1,"
+            + "  1)",
+        "Duplicate name 'EXTCOL' in column list");
+    tester.checkQueryFails("insert into EMP_MODIFIABLEVIEW2(extcol INT, ^extcol^ BOOLEAN)"
+            + " (extcol) values (1)",
+        "Duplicate name 'EXTCOL' in column list");
+    tester.checkQueryFails("insert into EMP_MODIFIABLEVIEW2(extcol INT, ^extcol^ BOOLEAN)"
+            + " (extcol) values (false)",
+        "Duplicate name 'EXTCOL' in column list");
+    tester.checkQueryFails("insert into EMP(extcol INT, ^extcol^ BOOLEAN)"
+            + " (extcol) values (1)",
+        "Duplicate name 'EXTCOL' in column list");
+    tester.checkQueryFails("insert into EMP(extcol INT, ^extcol^ BOOLEAN)"
+            + " (extcol) values (false)",
+        "Duplicate name 'EXTCOL' in column list");
+  }
+
+  @Test public void testUpdateExtendedColumn() {
+    sql("update empdefaults(extra BOOLEAN, note VARCHAR)"
+        + " set deptno = 1, extra = true, empno = 20, ename = 'Bob', note = 'legion'"
+        + " where deptno = 10").ok();
+    sql("update empdefaults(extra BOOLEAN)"
+        + " set extra = true, deptno = 1, ename = 'Bob'"
+        + " where deptno = 10").ok();
+    sql("update empdefaults(\"empNo\" VARCHAR)"
+        + " set \"empNo\" = '5', deptno = 1, ename = 'Bob'"
+        + " where deptno = 10").ok();
+  }
+
+  @Test public void testInsertFailDataType() {
+    tester.withConformance(SqlConformanceEnum.PRAGMATIC_2003).checkQueryFails(
+        "insert into empnullables ^values ('5', 'bob')^",
+        "Cannot assign to target field 'EMPNO' of type INTEGER"
+            + " from source field 'EXPR\\$0' of type CHAR\\(1\\)");
+    tester.withConformance(SqlConformanceEnum.PRAGMATIC_2003).checkQueryFails(
+        "insert into empnullables (^empno^, ename) values ('5', 'bob')",
+        "Cannot assign to target field 'EMPNO' of type INTEGER"
+            + " from source field 'EXPR\\$0' of type CHAR\\(1\\)");
+    tester.withConformance(SqlConformanceEnum.PRAGMATIC_2003).checkQueryFails(
+        "insert into empnullables(extra BOOLEAN)"
+            + " (empno, ename, ^extra^) values (5, 'bob', 'true')",
+        "Cannot assign to target field 'EXTRA' of type BOOLEAN"
+            + " from source field 'EXPR\\$2' of type CHAR\\(4\\)");
+  }
+
+  @Ignore("CALCITE-1727")
+  @Test public void testUpdateFailDataType() {
+    tester.checkQueryFails("update emp"
+            + " set ^empNo^ = '5', deptno = 1, ename = 'Bob'"
+            + " where deptno = 10",
+        "Cannot assign to target field 'EMPNO' of type INTEGER"
+            + " from source field 'EXPR$0' of type CHAR(1)");
+    tester.checkQueryFails("update emp(extra boolean)"
+            + " set ^extra^ = '5', deptno = 1, ename = 'Bob'"
+            + " where deptno = 10",
+        "Cannot assign to target field 'EXTRA' of type BOOLEAN"
+            + " from source field 'EXPR$0' of type CHAR(1)");
+  }
+
+  @Ignore("CALCITE-1727")
+  @Test public void testUpdateFailCaseSensitivity() {
+    tester.checkQueryFails("update empdefaults"
+            + " set empNo = '5', deptno = 1, ename = 'Bob'"
+            + " where deptno = 10",
+        "Column 'empno' not found in any table; did you mean 'EMPNO'\\?");
+  }
+
+  @Test public void testUpdateExtendedColumnFailCaseSensitivity() {
+    tester.checkQueryFails("update empdefaults(\"extra\" BOOLEAN)"
+            + " set ^extra^ = true, deptno = 1, ename = 'Bob'"
+            + " where deptno = 10",
+        "Unknown target column 'EXTRA'");
+    tester.checkQueryFails("update empdefaults(extra BOOLEAN)"
+            + " set ^\"extra\"^ = true, deptno = 1, ename = 'Bob'"
+            + " where deptno = 10",
+        "Unknown target column 'extra'");
+  }
+
+  @Test public void testUpdateBindExtendedColumn() {
+    sql("update empdefaults(extra BOOLEAN, note VARCHAR)"
+        + " set deptno = 1, extra = true, empno = 20, ename = 'Bob', note = ?"
+        + " where deptno = 10").ok();
+    sql("update empdefaults(extra BOOLEAN)"
+        + " set extra = ?, deptno = 1, ename = 'Bob'"
+        + " where deptno = 10").ok();
+  }
+
+  @Test public void testUpdateExtendedColumnModifiableView() {
+    sql("update EMP_MODIFIABLEVIEW2(extra2 BOOLEAN, note VARCHAR)"
+        + " set deptno = 20, extra2 = true, empno = 20, ename = 'Bob', note = 'legion'"
+        + " where ename = 'Jane'").ok();
+    sql("update EMP_MODIFIABLEVIEW2(extra2 BOOLEAN)"
+        + " set extra2 = true, ename = 'Bob'"
+        + " where ename = 'Jane'").ok();
+  }
+
+  @Test public void testUpdateBindExtendedColumnModifiableView() {
+    sql("update EMP_MODIFIABLEVIEW2(extra2 BOOLEAN, note VARCHAR)"
+        + " set deptno = 20, extra2 = true, empno = 20, ename = 'Bob', note = ?"
+        + " where ename = 'Jane'").ok();
+    sql("update EMP_MODIFIABLEVIEW2(extra2 BOOLEAN)"
+        + " set extra2 = ?, ename = 'Bob'"
+        + " where ename = 'Jane'").ok();
+  }
+
+  @Test public void testUpdateExtendedColumnModifiableViewFailConstraint() {
+    tester.checkQueryFails("update EMP_MODIFIABLEVIEW2(extra2 BOOLEAN, note VARCHAR)"
+            + " set deptno = ^1^, extra2 = true, empno = 20, ename = 'Bob', note = 'legion'"
+            + " where ename = 'Jane'",
+        "Modifiable view constraint is not satisfied"
+            + " for column 'DEPTNO' of base table 'EMP_MODIFIABLEVIEW2'");
+    tester.checkQueryFails("update EMP_MODIFIABLEVIEW2(extra2 BOOLEAN)"
+            + " set extra2 = true, deptno = ^1^, ename = 'Bob'"
+            + " where ename = 'Jane'",
+        "Modifiable view constraint is not satisfied"
+            + " for column 'DEPTNO' of base table 'EMP_MODIFIABLEVIEW2'");
+  }
+
+  @Test public void testUpdateExtendedColumnCollision() {
+    sql("update empdefaults(empno INTEGER NOT NULL, deptno INTEGER)"
+        + " set deptno = 1, empno = 20, ename = 'Bob'"
+        + " where deptno = 10").ok();
+  }
+
+  @Test public void testUpdateExtendedColumnModifiableViewCollision() {
+    sql("update EMP_MODIFIABLEVIEW3(empno INTEGER NOT NULL, deptno INTEGER)"
+        + " set deptno = 20, empno = 20, ename = 'Bob'"
+        + " where empno = 10").ok();
+    sql("update EMP_MODIFIABLEVIEW3(empno INTEGER NOT NULL, \"deptno\" BOOLEAN)"
+        + " set \"deptno\" = true, empno = 20, ename = 'Bob'"
+        + " where empno = 10").ok();
+  }
+
+  @Test public void testUpdateExtendedColumnFailCollision() {
+    tester.checkQueryFails("update empdefaults(^empno^ BOOLEAN, deptno INTEGER)"
+            + " set deptno = 1, empno = false, ename = 'Bob'"
+            + " where deptno = 10",
+        "Cannot assign to target field 'EMPNO' of type INTEGER NOT NULL from source field 'EMPNO' of type BOOLEAN");
+  }
+
+  @Ignore("CALCITE-1727")
+  @Test public void testUpdateExtendedColumnFailCollision2() {
+    tester.checkQueryFails("update empdefaults(^\"deptno\"^ BOOLEAN)"
+            + " set \"deptno\" = 1, empno = 1, ename = 'Bob'"
+            + " where deptno = 10",
+        "Cannot assign to target field 'deptno' of type BOOLEAN NOT NULL from source field 'deptno' of type INTEGER");
+  }
+
+  @Test public void testUpdateExtendedColumnModifiableViewFailCollision() {
+    tester.checkQueryFails("update EMP_MODIFIABLEVIEW3(^empno^ BOOLEAN, deptno INTEGER)"
+            + " set deptno = 1, empno = false, ename = 'Bob'"
+            + " where deptno = 10",
+        "Cannot assign to target field 'EMPNO' of type INTEGER NOT NULL from source field 'EMPNO' of type BOOLEAN");
+  }
+
+  @Test public void testUpdateExtendedColumnModifiableViewFailExtendedCollision() {
+    tester.checkQueryFails("update EMP_MODIFIABLEVIEW2(^extra^ INTEGER, deptno INTEGER)"
+            + " set deptno = 20, empno = 20, ename = 'Bob', extra = 5"
+            + " where empno = 10",
+        "Cannot assign to target field 'EXTRA' of type BOOLEAN from source field 'EXTRA' of type INTEGER");
+  }
+
+  @Test public void testUpdateExtendedColumnModifiableViewFailUnderlyingCollision() {
+    tester.checkQueryFails("update EMP_MODIFIABLEVIEW3(^comm^ BOOLEAN, deptno INTEGER)"
+            + " set deptno = 1, empno = 20, ename = 'Bob', comm = true"
+            + " where deptno = 10",
+        "Cannot assign to target field 'COMM' of type INTEGER from source field 'COMM' of type BOOLEAN");
+  }
+
+  @Test public void testUpdateExtendedColumnFailDuplicate() {
+    tester.checkQueryFails("update emp(comm BOOLEAN, ^comm^ INTEGER)"
+            + " set deptno = 1, empno = 20, ename = 'Bob', comm = 1"
+            + " where deptno = 10",
+        "Duplicate name 'COMM' in column list");
+    tester.checkQueryFails("update EMP_MODIFIABLEVIEW3(comm BOOLEAN, ^comm^ INTEGER)"
+        + " set deptno = 1, empno = 20, ename = 'Bob', comm = true"
+        + " where deptno = 10",
+        "Duplicate name 'COMM' in column list");
+  }
+
+  @Test public void testInsertExtendedColumnCollision() {
+    sql("insert into EMPDEFAULTS(^comm^ INTEGER) (empno, ename, job, comm)\n"
+            + "values (1, 'Arthur', 'clown', 5)").ok();
+  }
+
+  @Test public void testInsertExtendedColumnModifiableViewCollision() {
+    sql("insert into EMP_MODIFIABLEVIEW3(^sal^ INTEGER) (empno, ename, job, sal)\n"
+        + "values (1, 'Arthur', 'clown', 5)").ok();
+  }
+
+  @Test public void testInsertExtendedColumnModifiableViewExtendedCollision() {
+    sql("insert into EMP_MODIFIABLEVIEW2(^extra^ BOOLEAN) (empno, ename, job, extra)\n"
+        + "values (1, 'Arthur', 'clown', true)").ok();
+  }
+
+  @Test public void testInsertExtendedColumnModifiableViewUnderlyingCollision() {
+    sql("insert into EMP_MODIFIABLEVIEW3(^comm^ INTEGER) (empno, ename, job, comm)\n"
+        + "values (1, 'Arthur', 'clown', 5)").ok();
+  }
+
+  @Test public void testInsertExtendedColumnFailCollision() {
+    tester.checkQueryFails("insert into EMPDEFAULTS(^comm^ BOOLEAN)"
+            + " (empno, ename, job, comm)\n"
+            + "values (1, 'Arthur', 'clown', true)",
+        "Cannot assign to target field 'COMM' of type INTEGER"
+            + " from source field 'COMM' of type BOOLEAN");
+    tester.checkQueryFails("insert into EMPDEFAULTS(\"comm\" BOOLEAN)"
+            + " (empno, ename, job, ^comm^)\n"
+            + "values (1, 'Arthur', 'clown', true)",
+        "Cannot assign to target field 'COMM' of type INTEGER"
+            + " from source field 'EXPR\\$3' of type BOOLEAN");
+    tester.checkQueryFails("insert into EMPDEFAULTS(\"comm\" BOOLEAN)"
+            + " (empno, ename, job, ^\"comm\"^)\n"
+            + "values (1, 'Arthur', 'clown', 1)",
+        "Cannot assign to target field 'comm' of type BOOLEAN"
+            + " from source field 'EXPR\\$3' of type INTEGER");
+  }
+
+  @Test public void testInsertExtendedColumnModifiableViewFailCollision() {
+    tester.checkQueryFails("insert into EMP_MODIFIABLEVIEW2(^slacker^ INTEGER)"
+            + " (empno, ename, job, slacker) values (1, 'Arthur', 'clown', true)",
+        "Cannot assign to target field 'SLACKER' of type BOOLEAN from source field 'SLACKER' of type INTEGER");
+    tester.checkQueryFails("insert into EMP_MODIFIABLEVIEW2(\"slacker\" INTEGER)"
+            + " (empno, ename, job, ^slacker^) values (1, 'Arthur', 'clown', 1)",
+        "Cannot assign to target field 'SLACKER' of type BOOLEAN from source field 'EXPR\\$3' of type INTEGER");
+    tester.checkQueryFails("insert into EMP_MODIFIABLEVIEW2(\"slacker\" INTEGER)"
+            + " (empno, ename, job, ^\"slacker\"^) values (1, 'Arthur', 'clown', true)",
+        "Cannot assign to target field 'slacker' of type INTEGER from source field 'EXPR\\$3' of type BOOLEAN");
+  }
+
+  @Test public void testInsertExtendedColumnModifiableViewFailExtendedCollision() {
+    tester.checkQueryFails("insert into EMP_MODIFIABLEVIEW2(^extra^ INTEGER)"
+            + " (empno, ename, job, extra) values (1, 'Arthur', 'clown', true)",
+        "Cannot assign to target field 'EXTRA' of type BOOLEAN from source field 'EXTRA' of type INTEGER");
+    tester.checkQueryFails("insert into EMP_MODIFIABLEVIEW2(\"extra\" INTEGER)"
+            + " (empno, ename, job, ^extra^) values (1, 'Arthur', 'clown', 1)",
+        "Cannot assign to target field 'EXTRA' of type BOOLEAN from source field 'EXPR\\$3' of type INTEGER");
+    tester.checkQueryFails("insert into EMP_MODIFIABLEVIEW2(\"extra\" INTEGER)"
+            + " (empno, ename, job, ^\"extra\"^) values (1, 'Arthur', 'clown', true)",
+        "Cannot assign to target field 'extra' of type INTEGER from source field 'EXPR\\$3' of type BOOLEAN");
+  }
+
+  @Test public void testInsertExtendedColumnModifiableViewFailUnderlyingCollision() {
+    tester.checkQueryFails("insert into EMP_MODIFIABLEVIEW3(^comm^ BOOLEAN)"
+            + " (empno, ename, job, comm) values (1, 'Arthur', 'clown', true)",
+        "Cannot assign to target field 'COMM' of type INTEGER from source field 'COMM' of type BOOLEAN");
+    tester.checkQueryFails("insert into EMP_MODIFIABLEVIEW3(\"comm\" BOOLEAN)"
+            + " (empno, ename, job, ^comm^) values (1, 'Arthur', 'clown', 5)",
+        "Unknown target column 'COMM'");
+    tester.checkQueryFails("insert into EMP_MODIFIABLEVIEW3(\"comm\" BOOLEAN)"
+            + " (empno, ename, job, ^\"comm\"^) values (1, 'Arthur', 'clown', 1)",
+        "Cannot assign to target field 'comm' of type BOOLEAN from source field 'EXPR\\$3' of type INTEGER");
+  }
+
+  @Test public void testDelete() {
+    sql("delete from empdefaults where deptno = 10").ok();
+  }
+
+  @Test public void testDeleteExtendedColumn() {
+    sql("delete from empdefaults(extra BOOLEAN) where deptno = 10").ok();
+    sql("delete from empdefaults(extra BOOLEAN) where extra = false").ok();
+  }
+
+  @Test public void testDeleteBindExtendedColumn() {
+    sql("delete from empdefaults(extra BOOLEAN) where deptno = ?").ok();
+    sql("delete from empdefaults(extra BOOLEAN) where extra = ?").ok();
+  }
+
+  @Test public void testDeleteModifiableView() {
+    sql("delete from EMP_MODIFIABLEVIEW2 where deptno = 10").ok();
+    sql("delete from EMP_MODIFIABLEVIEW2 where deptno = 20").ok();
+    sql("delete from EMP_MODIFIABLEVIEW2 where empno = 30").ok();
+  }
+
+  @Test public void testDeleteExtendedColumnModifiableView() {
+    sql("delete from EMP_MODIFIABLEVIEW2(extra BOOLEAN) where sal > 10").ok();
+    sql("delete from EMP_MODIFIABLEVIEW2(note BOOLEAN) where note = 'fired'").ok();
+  }
+
+  @Test public void testDeleteExtendedColumnCollision() {
+    sql("delete from emp(empno INTEGER NOT NULL) where sal > 10").ok();
+  }
+
+  @Test public void testDeleteExtendedColumnModifiableViewCollision() {
+    sql("delete from EMP_MODIFIABLEVIEW2(empno INTEGER NOT NULL) where sal > 10").ok();
+    sql("delete from EMP_MODIFIABLEVIEW2(\"empno\" INTEGER) where sal > 10").ok();
+    sql("delete from EMP_MODIFIABLEVIEW2(extra BOOLEAN) where sal > 10").ok();
+    sql("delete from EMP_MODIFIABLEVIEW2(\"extra\" VARCHAR) where sal > 10").ok();
+    sql("delete from EMP_MODIFIABLEVIEW3(comm INTEGER) where sal > 10").ok();
+    sql("delete from EMP_MODIFIABLEVIEW3(\"comm\" BIGINT) where sal > 10").ok();
+  }
+
+  @Test public void testDeleteExtendedColumnFailCollision() {
+    tester.checkQueryFails("delete from EMP_MODIFIABLEVIEW2(^empno^ BOOLEAN) where sal > 10",
+        "Cannot assign to target field 'EMPNO' of type INTEGER NOT NULL from source field 'EMPNO' of type BOOLEAN");
+    tester.checkQueryFails("delete from EMP_MODIFIABLEVIEW2(^empno^ INTEGER) where sal > 10",
+        "Cannot assign to target field 'EMPNO' of type INTEGER NOT NULL from source field 'EMPNO' of type INTEGER");
+    tester.checkQueryFails("delete from EMP_MODIFIABLEVIEW2(^\"EMPNO\"^ INTEGER) where sal > 10",
+        "Cannot assign to target field 'EMPNO' of type INTEGER NOT NULL from source field 'EMPNO' of type INTEGER");
+    tester.checkQueryFails("delete from EMP_MODIFIABLEVIEW2(^empno^ INTEGER) where sal > 10",
+        "Cannot assign to target field 'EMPNO' of type INTEGER NOT NULL from source field 'EMPNO' of type INTEGER");
+  }
+
+  @Test public void testDeleteExtendedColumnModifiableViewFailCollision() {
+    tester.checkQueryFails("delete from EMP_MODIFIABLEVIEW(^deptno^ BOOLEAN) where sal > 10",
+        "Cannot assign to target field 'DEPTNO' of type INTEGER from source field 'DEPTNO' of type BOOLEAN");
+    tester.checkQueryFails("delete from EMP_MODIFIABLEVIEW(^\"DEPTNO\"^ BOOLEAN) where sal > 10",
+        "Cannot assign to target field 'DEPTNO' of type INTEGER from source field 'DEPTNO' of type BOOLEAN");
+  }
+
+  @Test public void testDeleteExtendedColumnModifiableViewFailExtendedCollision() {
+    tester.checkQueryFails("delete from EMP_MODIFIABLEVIEW(^slacker^ INTEGER) where sal > 10",
+        "Cannot assign to target field 'SLACKER' of type BOOLEAN from source field 'SLACKER' of type INTEGER");
+    tester.checkQueryFails("delete from EMP_MODIFIABLEVIEW(^\"SLACKER\"^ INTEGER) where sal > 10",
+        "Cannot assign to target field 'SLACKER' of type BOOLEAN from source field 'SLACKER' of type INTEGER");
+  }
+
+  @Test public void testDeleteExtendedColumnFailDuplicate() {
+    tester.checkQueryFails("delete from emp (extra VARCHAR, ^extra^ VARCHAR)",
+        "Duplicate name 'EXTRA' in column list");
+    tester.checkQueryFails("delete from EMP_MODIFIABLEVIEW (extra VARCHAR, ^extra^ VARCHAR)"
+            + " where extra = 'test'",
+        "Duplicate name 'EXTRA' in column list");
+    tester.checkQueryFails("delete from EMP_MODIFIABLEVIEW (extra VARCHAR, ^\"EXTRA\"^ VARCHAR)"
+            + " where extra = 'test'",
+        "Duplicate name 'EXTRA' in column list");
+  }
+
+  @Test public void testMatchRecognizeMeasures1() throws Exception {
+    final String sql = "select *\n"
+        + "  from emp match_recognize\n"
+        + "  (\n"
+        + "   measures "
+        + "   STRT.sal as start_sal,"
+        + "   ^LAST(null)^ as bottom_sal,"
+        + "   LAST(up.ts) as end_sal"
+        + "    pattern (strt down+ up+)\n"
+        + "    define\n"
+        + "      down as down.sal < PREV(down.sal),\n"
+        + "      up as up.sal > prev(up.sal)\n"
+        + "  ) mr";
+    sql(sql)
+      .fails("Null parameters in 'LAST\\(NULL, 0\\)'");
+  }
+
 }
 
 // End SqlValidatorTest.java

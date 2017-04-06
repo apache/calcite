@@ -25,7 +25,9 @@ import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.rel.type.RelDataTypeFieldImpl;
 import org.apache.calcite.schema.CustomColumnResolvingTable;
+import org.apache.calcite.schema.ExtensibleTable;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDataTypeSpec;
@@ -46,7 +48,9 @@ import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
@@ -61,6 +65,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
+
+import static org.apache.calcite.util.Static.RESOURCE;
 
 /**
  * Utility methods related to validation.
@@ -87,11 +93,35 @@ public class SqlValidatorUtil {
       Prepare.CatalogReader catalogReader,
       String datasetName,
       boolean[] usedDataset) {
-    if (!namespace.isWrapperFor(TableNamespace.class)) {
-      return null;
+    if (namespace.isWrapperFor(TableNamespace.class)) {
+      final TableNamespace tableNamespace =
+          namespace.unwrap(TableNamespace.class);
+      return getRelOptTable(tableNamespace, catalogReader, datasetName, usedDataset,
+          tableNamespace.extendedFields);
+    } else if (namespace.isWrapperFor(SqlValidatorImpl.DmlNamespace.class)) {
+      final SqlValidatorImpl.DmlNamespace dmlNamespace = namespace.unwrap(
+          SqlValidatorImpl.DmlNamespace.class);
+      final SqlValidatorNamespace resolvedNamespace = dmlNamespace.resolve();
+      if (resolvedNamespace.isWrapperFor(TableNamespace.class)) {
+        final TableNamespace tableNamespace = resolvedNamespace.unwrap(TableNamespace.class);
+        final SqlValidatorTable validatorTable = tableNamespace.getTable();
+        final RelDataTypeFactory typeFactory = catalogReader.getTypeFactory();
+        final List<RelDataTypeField> extendedFields = dmlNamespace.extendList == null
+            ? ImmutableList.<RelDataTypeField>of()
+            : getExtendedColumns(typeFactory, validatorTable, dmlNamespace.extendList);
+        return getRelOptTable(
+            tableNamespace, catalogReader, datasetName, usedDataset, extendedFields);
+      }
     }
-    final TableNamespace tableNamespace =
-        namespace.unwrap(TableNamespace.class);
+    return null;
+  }
+
+  private static RelOptTable getRelOptTable(
+      TableNamespace tableNamespace,
+      Prepare.CatalogReader catalogReader,
+      String datasetName,
+      boolean[] usedDataset,
+      List<RelDataTypeField> extendedFields) {
     final List<String> names = tableNamespace.getTable().getQualifiedName();
     RelOptTable table;
     if (datasetName != null
@@ -103,10 +133,105 @@ public class SqlValidatorUtil {
       // Schema does not support substitution. Ignore the data set, if any.
       table = catalogReader.getTableForMember(names);
     }
-    if (!tableNamespace.extendedFields.isEmpty()) {
-      table = table.extend(tableNamespace.extendedFields);
+    if (!extendedFields.isEmpty()) {
+      table = table.extend(extendedFields);
     }
     return table;
+  }
+
+  /**
+   * Gets a list of extended columns with field indices to the underlying table.
+   */
+  public static List<RelDataTypeField> getExtendedColumns(
+      RelDataTypeFactory typeFactory, SqlValidatorTable table, SqlNodeList extendedColumns) {
+    final ImmutableList.Builder<RelDataTypeField> extendedFields =
+        ImmutableList.builder();
+    final ExtensibleTable extTable = table.unwrap(ExtensibleTable.class);
+    int extendedFieldOffset =
+        extTable == null
+            ? table.getRowType().getFieldCount()
+            : extTable.getExtendedColumnOffset();
+    for (final Pair<SqlIdentifier, SqlDataTypeSpec> pair : pairs(extendedColumns)) {
+      final SqlIdentifier identifier = pair.left;
+      final SqlDataTypeSpec type = pair.right;
+      extendedFields.add(
+          new RelDataTypeFieldImpl(identifier.getSimple(),
+              extendedFieldOffset++,
+              type.deriveType(typeFactory)));
+    }
+    return extendedFields.build();
+  }
+
+  /** Converts a list of extended columns
+   * (of the form [name0, type0, name1, type1, ...])
+   * into a list of (name, type) pairs. */
+  private static List<Pair<SqlIdentifier, SqlDataTypeSpec>> pairs(
+      SqlNodeList extendedColumns) {
+    final List list = extendedColumns.getList();
+    //noinspection unchecked
+    return Pair.zip(Util.quotientList(list, 2, 0),
+        Util.quotientList(list, 2, 1));
+  }
+
+  /**
+   * Gets a map of indexes from the source to fields in the target for the
+   * intersecting set of source and target fields.
+   *
+   * @param sourceFields The source of column names that determine indexes
+   * @param targetFields The target fields to be indexed
+   */
+  public static ImmutableMap<Integer, RelDataTypeField> getIndexToFieldMap(
+      List<RelDataTypeField> sourceFields,
+      RelDataType targetFields) {
+    final ImmutableMap.Builder<Integer, RelDataTypeField> output =
+        ImmutableMap.builder();
+    for (final RelDataTypeField source : sourceFields) {
+      final RelDataTypeField target = targetFields.getField(source.getName(), true, false);
+      if (target != null) {
+        output.put(source.getIndex(), target);
+      }
+    }
+    return output.build();
+  }
+
+  /**
+   * Gets the bit-set to the column ordinals in the source for columns that intersect in the target.
+   * @param sourceRowType The source upon which to ordinate the bit set.
+   * @param targetRowType The target to overlay on the source to create the bit set.
+   */
+  public static ImmutableBitSet getOrdinalBitSet(
+      RelDataType sourceRowType, RelDataType targetRowType) {
+    Map<Integer, RelDataTypeField> indexToField =
+        getIndexToFieldMap(sourceRowType.getFieldList(), targetRowType);
+    return getOrdinalBitSet(sourceRowType, indexToField);
+  }
+
+  /**
+   * Gets the bit-set to the column ordinals in the source for columns that
+   * intersect in the target.
+   *
+   * @param sourceRowType The source upon which to ordinate the bit set.
+   * @param indexToField  The map of ordinals to target fields.
+   */
+  public static ImmutableBitSet getOrdinalBitSet(
+      RelDataType sourceRowType,
+      Map<Integer, RelDataTypeField> indexToField) {
+    ImmutableBitSet source = ImmutableBitSet.of(
+        Lists.transform(
+            sourceRowType.getFieldList(),
+            new RelDataTypeField.ToFieldIndex()));
+    ImmutableBitSet target =
+        ImmutableBitSet.of(indexToField.keySet());
+    return source.intersect(target);
+  }
+
+  /** Returns a map from field names to indexes. */
+  public static Map<String, Integer> mapNameToIndex(List<RelDataTypeField> fields) {
+    ImmutableMap.Builder<String, Integer> output = ImmutableMap.builder();
+    for (RelDataTypeField field : fields) {
+      output.put(field.getName(), field.getIndex());
+    }
+    return output.build();
   }
 
   @Deprecated // to be removed before 2.0
@@ -133,6 +258,24 @@ public class SqlValidatorUtil {
               + colCharset.name() + "'");
         }
       }
+    }
+  }
+
+  /**
+   * Checks that there are no duplicates in a list of {@link SqlIdentifier}.
+   */
+  public static void checkIdentifierListForDuplicates(List<SqlNode> columnList,
+      SqlValidatorImpl.ValidationErrorFunction validationErrorFunction) {
+    final List<String> names = Lists.transform(columnList,
+        new Function<SqlNode, String>() {
+          public String apply(SqlNode o) {
+            return ((SqlIdentifier) o).getSimple();
+          }
+        });
+    final int i = Util.firstDuplicate(names);
+    if (i >= 0) {
+      throw validationErrorFunction.apply(columnList.get(i),
+          RESOURCE.duplicateNameInColumnList(names.get(i)));
     }
   }
 

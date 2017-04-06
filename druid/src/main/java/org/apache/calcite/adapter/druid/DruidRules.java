@@ -27,17 +27,25 @@ import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.Sort;
+import org.apache.calcite.rel.rules.AggregateFilterTransposeRule;
+import org.apache.calcite.rel.rules.FilterAggregateTransposeRule;
+import org.apache.calcite.rel.rules.FilterProjectTransposeRule;
+import org.apache.calcite.rel.rules.ProjectFilterTransposeRule;
 import org.apache.calcite.rel.rules.ProjectSortTransposeRule;
+import org.apache.calcite.rel.rules.PushProjector;
 import org.apache.calcite.rel.rules.SortProjectTransposeRule;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexExecutor;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexShuttle;
+import org.apache.calcite.rex.RexSimplify;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.runtime.PredicateImpl;
 import org.apache.calcite.sql.type.SqlTypeFamily;
@@ -67,13 +75,37 @@ public class DruidRules {
   public static final DruidFilterRule FILTER = new DruidFilterRule();
   public static final DruidProjectRule PROJECT = new DruidProjectRule();
   public static final DruidAggregateRule AGGREGATE = new DruidAggregateRule();
-  public static final DruidProjectAggregateRule PROJECT_AGGREGATE = new DruidProjectAggregateRule();
+  public static final DruidAggregateProjectRule AGGREGATE_PROJECT =
+      new DruidAggregateProjectRule();
   public static final DruidSortRule SORT = new DruidSortRule();
-  public static final DruidProjectSortRule PROJECT_SORT = new DruidProjectSortRule();
-  public static final DruidSortProjectRule SORT_PROJECT = new DruidSortProjectRule();
+  public static final DruidSortProjectTransposeRule SORT_PROJECT_TRANSPOSE =
+      new DruidSortProjectTransposeRule();
+  public static final DruidProjectSortTransposeRule PROJECT_SORT_TRANSPOSE =
+      new DruidProjectSortTransposeRule();
+  public static final DruidProjectFilterTransposeRule PROJECT_FILTER_TRANSPOSE =
+      new DruidProjectFilterTransposeRule();
+  public static final DruidFilterProjectTransposeRule FILTER_PROJECT_TRANSPOSE =
+      new DruidFilterProjectTransposeRule();
+  public static final DruidAggregateFilterTransposeRule AGGREGATE_FILTER_TRANSPOSE =
+      new DruidAggregateFilterTransposeRule();
+  public static final DruidFilterAggregateTransposeRule FILTER_AGGREGATE_TRANSPOSE =
+      new DruidFilterAggregateTransposeRule();
 
-  public static final List<RelOptRule> RULES = ImmutableList.of(FILTER, PROJECT_AGGREGATE,
-      PROJECT, AGGREGATE, PROJECT_SORT, SORT, SORT_PROJECT);
+  public static final List<RelOptRule> RULES =
+      ImmutableList.of(FILTER,
+          PROJECT_FILTER_TRANSPOSE,
+          // Disabled, per
+          //   [CALCITE-1706] DruidAggregateFilterTransposeRule
+          //   causes very fine-grained aggregations to be pushed to Druid
+          // AGGREGATE_FILTER_TRANSPOSE,
+          AGGREGATE_PROJECT,
+          PROJECT,
+          AGGREGATE,
+          FILTER_AGGREGATE_TRANSPOSE,
+          FILTER_PROJECT_TRANSPOSE,
+          PROJECT_SORT_TRANSPOSE,
+          SORT,
+          SORT_PROJECT_TRANSPOSE);
 
   /** Predicate that returns whether Druid can not handle an aggregate. */
   private static final Predicate<Aggregate> BAD_AGG =
@@ -139,10 +171,12 @@ public class DruidRules {
           break;
         }
       }
+      final RexExecutor executor =
+          Util.first(cluster.getPlanner().getExecutor(), RexUtil.EXECUTOR);
+      final RexSimplify simplify = new RexSimplify(rexBuilder, true, executor);
       final Pair<List<RexNode>, List<RexNode>> pair =
           splitFilters(rexBuilder, query,
-              RexUtil.simplify(rexBuilder, filter.getCondition(), true),
-              timestampFieldIdx);
+              simplify.simplify(filter.getCondition()), timestampFieldIdx);
       if (pair == null) {
         // We can't push anything useful to Druid.
         return;
@@ -150,8 +184,8 @@ public class DruidRules {
       List<LocalInterval> intervals = null;
       if (!pair.left.isEmpty()) {
         intervals = DruidDateTimeUtils.createInterval(
-                query.getRowType().getFieldList().get(timestampFieldIdx).getType(),
-                RexUtil.composeConjunction(rexBuilder, pair.left, false));
+            query.getRowType().getFieldList().get(timestampFieldIdx).getType(),
+            RexUtil.composeConjunction(rexBuilder, pair.left, false));
         if (intervals == null) {
           // We can't push anything useful to Druid.
           return;
@@ -169,10 +203,10 @@ public class DruidRules {
       call.transformTo(newDruidQuery);
     }
 
-    /* Splits the filter condition in two groups: those that filter on the timestamp column
-     * and those that filter on other fields */
+    /** Splits the filter condition in two groups: those that filter on the timestamp column
+     * and those that filter on other fields. */
     private static Pair<List<RexNode>, List<RexNode>> splitFilters(final RexBuilder rexBuilder,
-            final DruidQuery input, RexNode cond, final int timestampFieldIdx) {
+        final DruidQuery input, RexNode cond, final int timestampFieldIdx) {
       final List<RexNode> timeRangeNodes = new ArrayList<>();
       final List<RexNode> otherNodes = new ArrayList<>();
       List<RexNode> conjs = RelOptUtil.conjunctions(cond);
@@ -330,6 +364,9 @@ public class DruidRules {
       for (AggregateCall aggCall : aggregate.getAggCallList()) {
         builder.addAll(aggCall.getArgList());
       }
+      if (checkAggregateOnMetric(aggregate.getGroupSet(), aggregate, query)) {
+        return false;
+      }
       return !checkTimestampRefOnQuery(builder.build(), query.getTopNode(), query);
     }
   }
@@ -338,9 +375,12 @@ public class DruidRules {
    * Rule to push an {@link org.apache.calcite.rel.core.Aggregate} and
    * {@link org.apache.calcite.rel.core.Project} into a {@link DruidQuery}.
    */
-  private static class DruidProjectAggregateRule extends RelOptRule {
-    private DruidProjectAggregateRule() {
-      super(operand(Aggregate.class, operand(Project.class, operand(DruidQuery.class, none()))));
+  private static class DruidAggregateProjectRule extends RelOptRule {
+    private DruidAggregateProjectRule() {
+      super(
+          operand(Aggregate.class,
+              operand(Project.class,
+                  operand(DruidQuery.class, none()))));
     }
 
     public void onMatch(RelOptRuleCall call) {
@@ -358,6 +398,10 @@ public class DruidRules {
               || aggregate.getGroupSets().size() != 1
               || BAD_AGG.apply(aggregate)
               || !validAggregate(aggregate, timestampIdx)) {
+        return;
+      }
+
+      if (checkAggregateOnMetric(aggregate.getGroupSet(), project, query)) {
         return;
       }
 
@@ -433,9 +477,12 @@ public class DruidRules {
    * {@link org.apache.calcite.rel.core.Project}. Useful to transform
    * to complex Druid queries.
    */
-  private static class DruidProjectSortRule extends SortProjectTransposeRule {
-    private DruidProjectSortRule() {
-      super(operand(Sort.class, operand(Project.class, operand(DruidQuery.class, none()))));
+  private static class DruidSortProjectTransposeRule
+      extends SortProjectTransposeRule {
+    private DruidSortProjectTransposeRule() {
+      super(
+          operand(Sort.class,
+              operand(Project.class, operand(DruidQuery.class, none()))));
     }
   }
 
@@ -444,14 +491,18 @@ public class DruidRules {
    * {@link org.apache.calcite.rel.core.Sort}. Useful if after pushing Sort,
    * we could not push it inside DruidQuery.
    */
-  private static class DruidSortProjectRule extends ProjectSortTransposeRule {
-    private DruidSortProjectRule() {
-      super(operand(Project.class, operand(Sort.class, operand(DruidQuery.class, none()))));
+  private static class DruidProjectSortTransposeRule
+      extends ProjectSortTransposeRule {
+    private DruidProjectSortTransposeRule() {
+      super(
+          operand(Project.class,
+              operand(Sort.class, operand(DruidQuery.class, none()))));
     }
   }
 
   /**
-   * Rule to push an {@link org.apache.calcite.rel.core.Aggregate} into a {@link DruidQuery}.
+   * Rule to push a {@link org.apache.calcite.rel.core.Sort}
+   * into a {@link DruidQuery}.
    */
   private static class DruidSortRule extends RelOptRule {
     private DruidSortRule() {
@@ -478,7 +529,7 @@ public class DruidRules {
       call.transformTo(DruidQuery.extendQuery(query, newSort));
     }
 
-    /* Check sort valid */
+    /** Checks whether sort is valid. */
     private static boolean validSortLimit(Sort sort, DruidQuery query) {
       if (sort.offset != null && RexLiteral.intValue(sort.offset) != 0) {
         // offset not supported by Druid
@@ -525,7 +576,7 @@ public class DruidRules {
     }
   }
 
-  /* Check if any of the references leads to the timestamp column */
+  /** Checks whether any of the references leads to the timestamp column. */
   private static boolean checkTimestampRefOnQuery(ImmutableBitSet set, RelNode top,
       DruidQuery query) {
     if (top instanceof Project) {
@@ -555,6 +606,99 @@ public class DruidRules {
 
     return false;
   }
+
+  /** Checks whether any of the references leads to a metric column. */
+  private static boolean checkAggregateOnMetric(ImmutableBitSet set, RelNode topProject,
+      DruidQuery query) {
+    if (topProject instanceof Project) {
+      ImmutableBitSet.Builder newSet = ImmutableBitSet.builder();
+      final Project project = (Project) topProject;
+      for (int index : set) {
+        RexNode node = project.getProjects().get(index);
+        if (node instanceof RexInputRef) {
+          newSet.set(((RexInputRef) node).getIndex());
+        } else if (node instanceof RexCall) {
+          RexCall call = (RexCall) node;
+          newSet.set(((RexInputRef) call.getOperands().get(0)).getIndex());
+        }
+      }
+      set = newSet.build();
+    }
+    for (int index : set) {
+      if (query.druidTable.metricFieldNames
+              .contains(query.getTopNode().getRowType().getFieldNames().get(index))) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  /**
+   * Rule to push a {@link org.apache.calcite.rel.core.Project}
+   * past a {@link org.apache.calcite.rel.core.Filter}
+   * when {@code Filter} is on top of a {@link DruidQuery}.
+   */
+  private static class DruidProjectFilterTransposeRule
+      extends ProjectFilterTransposeRule {
+    private DruidProjectFilterTransposeRule() {
+      super(
+          operand(Project.class,
+              operand(Filter.class,
+                  operand(DruidQuery.class, none()))),
+          PushProjector.ExprCondition.FALSE,
+          RelFactories.LOGICAL_BUILDER);
+    }
+  }
+
+  /**
+   * Rule to push a {@link org.apache.calcite.rel.core.Filter}
+   * past a {@link org.apache.calcite.rel.core.Project}
+   * when {@code Project} is on top of a {@link DruidQuery}.
+   */
+  private static class DruidFilterProjectTransposeRule
+      extends FilterProjectTransposeRule {
+    private DruidFilterProjectTransposeRule() {
+      super(
+          operand(Filter.class,
+              operand(Project.class,
+                  operand(DruidQuery.class, none()))),
+          true, true, RelFactories.LOGICAL_BUILDER);
+    }
+  }
+
+  /**
+   * Rule to push an {@link org.apache.calcite.rel.core.Aggregate}
+   * past a {@link org.apache.calcite.rel.core.Filter}
+   * when {@code Filter} is on top of a {@link DruidQuery}.
+   */
+  private static class DruidAggregateFilterTransposeRule
+      extends AggregateFilterTransposeRule {
+    private DruidAggregateFilterTransposeRule() {
+      super(
+          operand(Aggregate.class,
+              operand(Filter.class,
+                  operand(DruidQuery.class, none()))),
+          RelFactories.LOGICAL_BUILDER);
+    }
+  }
+
+  /**
+   * Rule to push an {@link org.apache.calcite.rel.core.Filter}
+   * past an {@link org.apache.calcite.rel.core.Aggregate}
+   * when {@code Aggregate} is on top of a {@link DruidQuery}.
+   */
+  private static class DruidFilterAggregateTransposeRule
+      extends FilterAggregateTransposeRule {
+    private DruidFilterAggregateTransposeRule() {
+      super(
+          operand(Filter.class,
+              operand(Aggregate.class,
+                  operand(DruidQuery.class, none()))),
+          RelFactories.LOGICAL_BUILDER);
+    }
+  }
+
 }
 
 // End DruidRules.java

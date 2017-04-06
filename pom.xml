@@ -27,7 +27,7 @@ limitations under the License.
   <groupId>org.apache.calcite</groupId>
   <artifactId>calcite</artifactId>
   <packaging>pom</packaging>
-  <version>1.12.0-SNAPSHOT</version>
+  <version>1.13.0-SNAPSHOT</version>
 
   <!-- More project information. -->
   <name>Calcite</name>
@@ -49,13 +49,13 @@ limitations under the License.
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <top.dir>${project.basedir}</top.dir>
     <version.major>1</version.major>
-    <version.minor>11</version.minor>
+    <version.minor>12</version.minor>
 
     <!-- This list is in alphabetical order. -->
     <airlift-tpch.version>0.1</airlift-tpch.version>
     <avatica.version>1.9.0</avatica.version>
     <build-helper-maven-plugin.version>1.9</build-helper-maven-plugin.version>
-    <cassandra-driver-core.version>3.0.0</cassandra-driver-core.version>
+    <cassandra-driver-core.version>3.1.4</cassandra-driver-core.version>
     <checksum-maven-plugin.version>1.2</checksum-maven-plugin.version>
     <commons-dbcp.version>1.4</commons-dbcp.version>
     <commons-lang3.version>3.2</commons-lang3.version>
@@ -72,7 +72,7 @@ limitations under the License.
     <!-- We support (and test against) Guava versions between
          14.0.1 (Hive) and 21.0 (most recent; supports only JDK8 and up).
          Override with your preferred version and it should work. -->
-    <guava.version>20.0</guava.version>
+    <guava.version>19.0</guava.version>
     <joda.version>2.8.1</joda.version>
     <h2.version>1.4.185</h2.version>
     <hadoop.version>2.7.0</hadoop.version>
@@ -160,6 +160,11 @@ limitations under the License.
   <dependencyManagement>
     <dependencies>
       <!-- Sorted by groupId, artifactId; calcite (and avatica) dependencies first. -->
+      <dependency>
+        <groupId>org.apache.calcite.avatica</groupId>
+        <artifactId>avatica</artifactId>
+        <version>${avatica.version}</version>
+      </dependency>
       <dependency>
         <groupId>org.apache.calcite.avatica</groupId>
         <artifactId>avatica-core</artifactId>
@@ -508,11 +513,11 @@ limitations under the License.
                  license notices. -->
             <exclude>src/main/resources/META-INF/services/java.sql.Driver</exclude>
             <exclude>**/src/test/resources/**/*.csv</exclude>
+            <exclude>**/src/test/resources/**/*.txt</exclude>
             <exclude>**/src/test/resources/bug/archers.json</exclude>
             <exclude>**/src/test/resources/foodmart-schema.spec</exclude>
-
-            <!-- Exclude all of avatica, RAT is run in Avatica -->
-            <exclude>avatica/**</exclude>
+            <exclude>**/data.txt</exclude>
+            <exclude>**/data2.txt</exclude>
 
             <!-- Do not exclude site/target; it should not exist
                  in any sandbox from which you are making a

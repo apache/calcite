@@ -1905,6 +1905,19 @@ public abstract class SqlOperatorBaseTest {
         " x'fe'||x'df' ",
         "fedf",
         "BINARY(2) NOT NULL");
+    tester.checkString(
+        " cast('fe' as char(2)) || cast('df' as varchar)",
+        "fedf",
+        "VARCHAR NOT NULL");
+    // Precision is larger than VARCHAR allows, so result is unbounded
+    tester.checkString(
+        " cast('fe' as char(2)) || cast('df' as varchar(65535))",
+        "fedf",
+        "VARCHAR NOT NULL");
+    tester.checkString(
+        " cast('fe' as char(2)) || cast('df' as varchar(33333))",
+        "fedf",
+        "VARCHAR(33335) NOT NULL");
     tester.checkNull("x'ff' || cast(null as varbinary)");
     tester.checkNull(" cast(null as ANY) || cast(null as ANY) ");
   }
@@ -3183,6 +3196,10 @@ public abstract class SqlOperatorBaseTest {
   @Test public void testNotLikeOperator() {
     tester.setFor(SqlStdOperatorTable.NOT_LIKE, VM_EXPAND);
     tester.checkBoolean("'abc' not like '_b_'", Boolean.FALSE);
+    tester.checkBoolean("'ab\ncd' not like 'ab%'", Boolean.FALSE);
+    tester.checkBoolean("'123\n\n45\n' not like '%'", Boolean.FALSE);
+    tester.checkBoolean("'ab\ncd\nef' not like '%cd%'", Boolean.FALSE);
+    tester.checkBoolean("'ab\ncd\nef' not like '%cde%'", Boolean.TRUE);
   }
 
   @Test public void testLikeEscape() {
@@ -3220,6 +3237,11 @@ public abstract class SqlOperatorBaseTest {
     tester.checkBoolean("'ab'   like '_b'", Boolean.TRUE);
     tester.checkBoolean("'abcd' like '_d'", Boolean.FALSE);
     tester.checkBoolean("'abcd' like '%d'", Boolean.TRUE);
+    tester.checkBoolean("'ab\ncd' like 'ab%'", Boolean.TRUE);
+    tester.checkBoolean("'abc\ncd' like 'ab%'", Boolean.TRUE);
+    tester.checkBoolean("'123\n\n45\n' like '%'", Boolean.TRUE);
+    tester.checkBoolean("'ab\ncd\nef' like '%cd%'", Boolean.TRUE);
+    tester.checkBoolean("'ab\ncd\nef' like '%cde%'", Boolean.FALSE);
   }
 
   @Test public void testNotSimilarToOperator() {
@@ -3255,6 +3277,11 @@ public abstract class SqlOperatorBaseTest {
     tester.checkBoolean("'ab'   similar to '_b'", Boolean.TRUE);
     tester.checkBoolean("'abcd' similar to '_d'", Boolean.FALSE);
     tester.checkBoolean("'abcd' similar to '%d'", Boolean.TRUE);
+    tester.checkBoolean("'ab\ncd' similar to 'ab%'", Boolean.TRUE);
+    tester.checkBoolean("'abc\ncd' similar to 'ab%'", Boolean.TRUE);
+    tester.checkBoolean("'123\n\n45\n' similar to '%'", Boolean.TRUE);
+    tester.checkBoolean("'ab\ncd\nef' similar to '%cd%'", Boolean.TRUE);
+    tester.checkBoolean("'ab\ncd\nef' similar to '%cde%'", Boolean.FALSE);
 
     // simple regular expressions
     // ab*c+d matches acd, abcd, acccd, abcccd but not abd, aabc
@@ -3641,7 +3668,7 @@ public abstract class SqlOperatorBaseTest {
 
     tester.checkScalar(
         "position(cast('a' as char) in cast('bca' as varchar))",
-        0,
+        3,
         "INTEGER NOT NULL");
   }
 
@@ -6377,10 +6404,18 @@ public abstract class SqlOperatorBaseTest {
     tester.checkScalar("CAST('ABCD' AS CHAR(2))", "AB", "CHAR(2) NOT NULL");
     tester.checkScalar("CAST('ABCD' AS VARCHAR(2))", "AB",
         "VARCHAR(2) NOT NULL");
+    tester.checkScalar("CAST('ABCD' AS VARCHAR)", "ABCD", "VARCHAR NOT NULL");
+    tester.checkScalar("CAST(CAST('ABCD' AS VARCHAR) AS VARCHAR(3))", "ABC",
+        "VARCHAR(3) NOT NULL");
+
     tester.checkScalar("CAST(x'ABCDEF12' AS BINARY(2))", "abcd",
         "BINARY(2) NOT NULL");
     tester.checkScalar("CAST(x'ABCDEF12' AS VARBINARY(2))", "abcd",
         "VARBINARY(2) NOT NULL");
+    tester.checkScalar("CAST(x'ABCDEF12' AS VARBINARY)", "abcdef12",
+        "VARBINARY NOT NULL");
+    tester.checkScalar("CAST(CAST(x'ABCDEF12' AS VARBINARY) AS VARBINARY(3))",
+        "abcdef", "VARBINARY(3) NOT NULL");
 
     if (!enable) {
       return;

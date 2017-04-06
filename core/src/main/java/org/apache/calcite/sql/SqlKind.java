@@ -1020,6 +1020,7 @@ public enum SqlKind {
       EnumSet.complementOf(
           concat(
               EnumSet.of(AS, ARGUMENT_ASSIGNMENT, DEFAULT,
+                  RUNNING, FINAL, LAST, FIRST, PREV, NEXT,
                   DESCENDING, CUBE, ROLLUP, GROUPING_SETS, EXTEND, LATERAL,
                   SELECT, JOIN, OTHER_FUNCTION, CAST, TRIM, FLOOR, CEIL,
                   TIMESTAMP_ADD, TIMESTAMP_DIFF, EXTRACT,

@@ -3,9 +3,9 @@
     <option value="">Navigate the blog…</option>
     <option value="{{ site.baseurl }}/news/">Home</option>
     <optgroup label="v1.x">
-      {% for post in site.posts %}
-      <option value="{{ post.url }}">{{ post.title }}</option>
-      {% endfor %}
+      {% for post in site.posts %}{% comment %}
+{% endcomment %}      <option value="{{ post.url }}">{{ post.title }}</option>
+{% endfor %}
     </optgroup>
   </select>
 </div>

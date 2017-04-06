@@ -636,11 +636,17 @@ public interface CalciteResource {
   @BaseMessage("Modifiable view must be based on a single table")
   ExInst<SqlValidatorException> modifiableViewMustBeBasedOnSingleTable();
 
+  @BaseMessage("Modifiable view must be predicated only on equality expressions")
+  ExInst<SqlValidatorException> modifiableViewMustHaveOnlyEqualityPredicates();
+
   @BaseMessage("View is not modifiable. More than one expression maps to column ''{0}'' of base table ''{1}''")
   ExInst<SqlValidatorException> moreThanOneMappedColumn(String columnName, String tableName);
 
   @BaseMessage("View is not modifiable. No value is supplied for NOT NULL column ''{0}'' of base table ''{1}''")
   ExInst<SqlValidatorException> noValueSuppliedForViewColumn(String columnName, String tableName);
+
+  @BaseMessage("Modifiable view constraint is not satisfied for column ''{0}'' of base table ''{1}''")
+  ExInst<SqlValidatorException> viewConstraintNotSatisfied(String columnName, String tableName);
 
   @BaseMessage("Not a record type. The ''*'' operator requires a record")
   ExInst<SqlValidatorException> starRequiresRecordType();
@@ -683,6 +689,12 @@ public interface CalciteResource {
 
   @BaseMessage("Multiple pattern variables in ''{0}''")
   ExInst<SqlValidatorException> PatternFunctionVariableCheck(String call);
+
+  @BaseMessage("Function ''{0}'' can only be used in MATCH_RECOGNIZE")
+  ExInst<SqlValidatorException> FunctionMatchRecognizeOnly(String call);
+
+  @BaseMessage("Null parameters in ''{0}''")
+  ExInst<SqlValidatorException> PatternFunctionNullCheck(String call);
 }
 
 // End CalciteResource.java

@@ -52,6 +52,7 @@ import org.apache.calcite.rel.logical.LogicalCorrelate;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalIntersect;
 import org.apache.calcite.rel.logical.LogicalJoin;
+import org.apache.calcite.rel.logical.LogicalMatch;
 import org.apache.calcite.rel.logical.LogicalMinus;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.logical.LogicalSort;
@@ -78,6 +79,7 @@ import org.apache.calcite.rex.RexFieldCollation;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexPatternFieldRef;
 import org.apache.calcite.rex.RexRangeRef;
 import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.rex.RexSubQuery;
@@ -141,6 +143,7 @@ import org.apache.calcite.sql.validate.AggregatingSelectScope;
 import org.apache.calcite.sql.validate.CollectNamespace;
 import org.apache.calcite.sql.validate.DelegatingScope;
 import org.apache.calcite.sql.validate.ListScope;
+import org.apache.calcite.sql.validate.MatchRecognizeScope;
 import org.apache.calcite.sql.validate.ParameterScope;
 import org.apache.calcite.sql.validate.SelectScope;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
@@ -1948,31 +1951,14 @@ public class SqlToRelConverter {
       return;
 
     case IDENTIFIER:
-      final SqlValidatorNamespace fromNamespace =
-          validator.getNamespace(from).resolve();
-      if (fromNamespace.getNode() != null) {
-        convertFrom(bb, fromNamespace.getNode());
-        return;
-      }
-      final String datasetName =
-          datasetStack.isEmpty() ? null : datasetStack.peek();
-      boolean[] usedDataset = {false};
-      RelOptTable table =
-          SqlValidatorUtil.getRelOptTable(
-              fromNamespace,
-              catalogReader,
-              datasetName,
-              usedDataset);
-      final RelNode tableRel;
-      if (config.isConvertTableAccess()) {
-        tableRel = toRel(table);
-      } else {
-        tableRel = LogicalTableScan.create(cluster, table);
-      }
-      bb.setRoot(tableRel, true);
-      if (usedDataset[0]) {
-        bb.setDataset(datasetName);
-      }
+      convertIdentifier(bb, (SqlIdentifier) from, null);
+      return;
+
+    case EXTEND:
+      call = (SqlCall) from;
+      SqlIdentifier id = (SqlIdentifier) call.getOperandList().get(0);
+      SqlNodeList extendedColumns = (SqlNodeList) call.getOperandList().get(1);
+      convertIdentifier(bb, id, extendedColumns);
       return;
 
     case JOIN:
@@ -2126,6 +2112,16 @@ public class SqlToRelConverter {
 
     mrBlackBoard.setPatternVarRef(true);
 
+    // convert measures
+    final ImmutableMap.Builder<String, RexNode> measureNodes =
+        ImmutableMap.builder();
+    for (SqlNode measure : matchRecognize.getMeasureList()) {
+      List<SqlNode> operands = ((SqlCall) measure).getOperandList();
+      String alias = ((SqlIdentifier) operands.get(1)).getSimple();
+      RexNode rex = mrBlackBoard.convertExpression(operands.get(0));
+      measureNodes.put(alias, rex);
+    }
+
     // convert definitions
     final ImmutableMap.Builder<String, RexNode> definitionNodes =
         ImmutableMap.builder();
@@ -2145,8 +2141,44 @@ public class SqlToRelConverter {
             matchRecognize.getStrictStart().booleanValue(),
             matchRecognize.getStrictEnd().booleanValue(),
             definitionNodes.build(),
+            measureNodes.build(),
             rowType);
     bb.setRoot(rel, false);
+  }
+
+  private void convertIdentifier(Blackboard bb, SqlIdentifier id,
+      SqlNodeList extendedColumns) {
+    final SqlValidatorNamespace fromNamespace =
+        validator.getNamespace(id).resolve();
+    if (fromNamespace.getNode() != null) {
+      convertFrom(bb, fromNamespace.getNode());
+      return;
+    }
+    final String datasetName =
+        datasetStack.isEmpty() ? null : datasetStack.peek();
+    final boolean[] usedDataset = {false};
+    RelOptTable table =
+        SqlValidatorUtil.getRelOptTable(fromNamespace, catalogReader,
+            datasetName, usedDataset);
+    if (extendedColumns != null && extendedColumns.size() > 0) {
+      assert table != null;
+      final SqlValidatorTable validatorTable =
+          table.unwrap(SqlValidatorTable.class);
+      final List<RelDataTypeField> extendedFields =
+          SqlValidatorUtil.getExtendedColumns(validator.getTypeFactory(), validatorTable,
+              extendedColumns);
+      table = table.extend(extendedFields);
+    }
+    final RelNode tableRel;
+    if (config.isConvertTableAccess()) {
+      tableRel = toRel(table);
+    } else {
+      tableRel = LogicalTableScan.create(cluster, table);
+    }
+    bb.setRoot(tableRel, true);
+    if (usedDataset[0]) {
+      bb.setDataset(datasetName);
+    }
   }
 
   protected void convertCollectionTable(
@@ -2359,9 +2391,11 @@ public class SqlToRelConverter {
     RelNode r = r0;
     if (correlNames.size() > 1) {
       // The same table was referenced more than once.
-      // So we deduplicate
+      // So we deduplicate.
       r = DeduplicateCorrelateVariables.go(rexBuilder, correlNames.get(0),
           Util.skip(correlNames), r0);
+      // Add new node to leaves.
+      leaves.add(r);
     }
     return new CorrelationUse(correlNames.get(0), requiredColumns.build(), r);
   }
@@ -3094,8 +3128,14 @@ public class SqlToRelConverter {
   }
 
   protected RelOptTable getTargetTable(SqlNode call) {
-    SqlValidatorNamespace targetNs = validator.getNamespace(call).resolve();
-    return SqlValidatorUtil.getRelOptTable(targetNs, catalogReader, null, null);
+    final SqlValidatorNamespace targetNs = validator.getNamespace(call);
+    if (targetNs.isWrapperFor(SqlValidatorImpl.DmlNamespace.class)) {
+      final SqlValidatorImpl.DmlNamespace dmlNamespace =
+          targetNs.unwrap(SqlValidatorImpl.DmlNamespace.class);
+      return SqlValidatorUtil.getRelOptTable(dmlNamespace, catalogReader, null, null);
+    }
+    final SqlValidatorNamespace resolvedNamespace = targetNs.resolve();
+    return SqlValidatorUtil.getRelOptTable(resolvedNamespace, catalogReader, null, null);
   }
 
   /**
@@ -3161,7 +3201,12 @@ public class SqlToRelConverter {
         continue;
       }
       sourceExps.set(i,
-          initializerFactory.newColumnDefaultValue(targetTable, i));
+          initializerFactory.newColumnDefaultValue(targetTable, i,
+              new InitializerContext() {
+                public RexBuilder getRexBuilder() {
+                  return rexBuilder;
+                }
+              }));
 
       // bare nulls are dangerous in the wrong hands
       sourceExps.set(i,
@@ -3182,7 +3227,7 @@ public class SqlToRelConverter {
         return f;
       }
     }
-    return new NullInitializerExpressionFactory(typeFactory);
+    return new NullInitializerExpressionFactory();
   }
 
   private static <T> T unwrap(Object o, Class<T> clazz) {
@@ -3395,12 +3440,19 @@ public class SqlToRelConverter {
         e = rexBuilder.makeFieldAccess(e, i);
       } else {
         final boolean caseSensitive = true; // name already fully-qualified
-        e = rexBuilder.makeFieldAccess(e, name, caseSensitive);
+        if (identifier.isStar() && bb.scope instanceof MatchRecognizeScope) {
+          e = rexBuilder.makeFieldAccess(e, 0);
+        } else {
+          e = rexBuilder.makeFieldAccess(e, name, caseSensitive);
+        }
       }
     }
     if (e instanceof RexInputRef) {
       // adjust the type to account for nulls introduced by outer joins
       e = adjustInputRef(bb, (RexInputRef) e);
+      if (pv != null) {
+        e = RexPatternFieldRef.of(pv, (RexInputRef) e);
+      }
     }
 
     if (e0.left instanceof RexCorrelVariable) {
@@ -3810,7 +3862,7 @@ public class SqlToRelConverter {
     final boolean top;
 
     private final InitializerExpressionFactory initializerExpressionFactory =
-        new NullInitializerExpressionFactory(typeFactory);
+        new NullInitializerExpressionFactory();
 
     /**
      * Creates a Blackboard.
@@ -4120,7 +4172,7 @@ public class SqlToRelConverter {
         int[] start,
         List<Pair<RelNode, Integer>> relOffsetList) {
       for (RelNode rel : rels) {
-        if (leaves.contains(rel)) {
+        if (leaves.contains(rel) || rel instanceof LogicalMatch) {
           relOffsetList.add(
               Pair.of(rel, start[0]));
           start[0] += rel.getRowType().getFieldCount();

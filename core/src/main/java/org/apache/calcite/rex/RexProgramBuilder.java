@@ -23,6 +23,8 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Pair;
 
+import com.google.common.base.Preconditions;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -46,19 +48,27 @@ public class RexProgramBuilder {
   private final List<RexLocalRef> localRefList = new ArrayList<>();
   private final List<RexLocalRef> projectRefList = new ArrayList<>();
   private final List<String> projectNameList = new ArrayList<>();
+  private final RexSimplify simplify;
   private RexLocalRef conditionRef = null;
   private boolean validating;
 
   //~ Constructors -----------------------------------------------------------
 
   /**
-   * Creates a program-builder.
+   * Creates a program-builder that will not simplify.
    */
   public RexProgramBuilder(RelDataType inputRowType, RexBuilder rexBuilder) {
-    assert inputRowType != null;
-    assert rexBuilder != null;
-    this.inputRowType = inputRowType;
-    this.rexBuilder = rexBuilder;
+    this(inputRowType, rexBuilder, null);
+  }
+
+  /**
+   * Creates a program-builder.
+   */
+  private RexProgramBuilder(RelDataType inputRowType, RexBuilder rexBuilder,
+      RexSimplify simplify) {
+    this.inputRowType = Preconditions.checkNotNull(inputRowType);
+    this.rexBuilder = Preconditions.checkNotNull(rexBuilder);
+    this.simplify = simplify; // may be null
     this.validating = assertionsAreEnabled();
 
     // Pre-create an expression for each input field.
@@ -80,7 +90,7 @@ public class RexProgramBuilder {
    * @param condition      Condition, or null
    * @param outputRowType  Output row type
    * @param normalize      Whether to normalize
-   * @param simplify       Whether to simplify
+   * @param simplify       Simplifier, or null to not simplify
    */
   private RexProgramBuilder(
       RexBuilder rexBuilder,
@@ -90,8 +100,8 @@ public class RexProgramBuilder {
       RexNode condition,
       final RelDataType outputRowType,
       boolean normalize,
-      boolean simplify) {
-    this(inputRowType, rexBuilder);
+      RexSimplify simplify) {
+    this(inputRowType, rexBuilder, simplify);
 
     // Create a shuttle for registering input expressions.
     final RexShuttle shuttle =
@@ -114,8 +124,8 @@ public class RexProgramBuilder {
     for (Pair<? extends RexNode, RelDataTypeField> pair
         : Pair.zip(projectList, fieldList)) {
       final RexNode project;
-      if (simplify) {
-        project = RexUtil.simplify(rexBuilder, pair.left.accept(expander));
+      if (simplify != null) {
+        project = simplify.simplify(pair.left.accept(expander));
       } else {
         project = pair.left;
       }
@@ -126,8 +136,8 @@ public class RexProgramBuilder {
 
     // Register the condition, if there is one.
     if (condition != null) {
-      if (simplify) {
-        condition = RexUtil.simplify(rexBuilder,
+      if (simplify != null) {
+        condition = simplify.simplify(
             rexBuilder.makeCall(SqlStdOperatorTable.IS_TRUE,
                 condition.accept(expander)));
         if (condition.isAlwaysTrue()) {
@@ -313,7 +323,7 @@ public class RexProgramBuilder {
    *              sub-expression exists.
    */
   private RexLocalRef registerInternal(RexNode expr, boolean force) {
-    expr = RexUtil.simplify(rexBuilder, expr);
+    expr = new RexSimplify(rexBuilder, false, RexUtil.EXECUTOR).simplify(expr);
 
     RexLocalRef ref;
     final Pair<String, String> key;
@@ -519,7 +529,7 @@ public class RexProgramBuilder {
       final RexNode condition,
       final RelDataType outputRowType,
       boolean normalize,
-      boolean simplify) {
+      RexSimplify simplify) {
     return new RexProgramBuilder(rexBuilder, inputRowType, exprList,
         projectList, condition, outputRowType, normalize, simplify);
   }
@@ -532,9 +542,24 @@ public class RexProgramBuilder {
       final List<? extends RexNode> projectList,
       final RexNode condition,
       final RelDataType outputRowType,
+      boolean normalize,
+      boolean simplify) {
+    return new RexProgramBuilder(rexBuilder, inputRowType, exprList,
+        projectList, condition, outputRowType, normalize,
+        simplify ? new RexSimplify(rexBuilder, false, RexUtil.EXECUTOR) : null);
+  }
+
+  @Deprecated // to be removed before 2.0
+  public static RexProgramBuilder create(
+      RexBuilder rexBuilder,
+      final RelDataType inputRowType,
+      final List<RexNode> exprList,
+      final List<? extends RexNode> projectList,
+      final RexNode condition,
+      final RelDataType outputRowType,
       boolean normalize) {
     return create(rexBuilder, inputRowType, exprList, projectList, condition,
-        outputRowType, normalize, false);
+        outputRowType, normalize, null);
   }
 
   /**
@@ -580,7 +605,7 @@ public class RexProgramBuilder {
   public static RexProgram normalize(
       RexBuilder rexBuilder,
       RexProgram program) {
-    return program.normalize(rexBuilder, false);
+    return program.normalize(rexBuilder, null);
   }
 
   /**

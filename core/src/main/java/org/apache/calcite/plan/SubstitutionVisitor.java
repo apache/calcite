@@ -35,11 +35,13 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexExecutor;
 import org.apache.calcite.rex.RexExecutorImpl;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexShuttle;
+import org.apache.calcite.rex.RexSimplify;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.runtime.PredicateImpl;
 import org.apache.calcite.sql.SqlAggFunction;
@@ -76,7 +78,6 @@ import java.util.Set;
 
 import static org.apache.calcite.rex.RexUtil.andNot;
 import static org.apache.calcite.rex.RexUtil.removeAll;
-import static org.apache.calcite.rex.RexUtil.simplify;
 
 /**
  * Substitutes part of a tree of relational expressions with another tree.
@@ -129,6 +130,7 @@ public class SubstitutionVisitor {
   private final Map<Pair<Class, Class>, List<UnifyRule>> ruleMap =
       new HashMap<>();
   private final RelOptCluster cluster;
+  private final RexSimplify simplify;
   private final Holder query;
   private final MutableRel target;
 
@@ -161,6 +163,9 @@ public class SubstitutionVisitor {
   public SubstitutionVisitor(RelNode target_, RelNode query_,
       ImmutableList<UnifyRule> rules) {
     this.cluster = target_.getCluster();
+    final RexExecutor executor =
+        Util.first(cluster.getPlanner().getExecutor(), RexUtil.EXECUTOR);
+    this.simplify = new RexSimplify(cluster.getRexBuilder(), false, executor);
     this.rules = rules;
     this.query = Holder.of(MutableRels.toMutable(query_));
     this.target = MutableRels.toMutable(target_);
@@ -248,22 +253,22 @@ public class SubstitutionVisitor {
    * problem.</p>
    */
   @VisibleForTesting
-  public static RexNode splitFilter(
-      final RexBuilder rexBuilder, RexNode condition, RexNode target) {
+  public static RexNode splitFilter(final RexSimplify simplify,
+      RexNode condition, RexNode target) {
     // First, try splitting into ORs.
     // Given target    c1 OR c2 OR c3 OR c4
     // and condition   c2 OR c4
     // residue is      NOT c1 AND NOT c3
     // Also deals with case target [x] condition [x] yields residue [true].
-    RexNode z = splitOr(rexBuilder, condition, target);
+    RexNode z = splitOr(simplify.rexBuilder, condition, target);
     if (z != null) {
       return z;
     }
 
-    RexNode x = andNot(rexBuilder, target, condition);
+    RexNode x = andNot(simplify.rexBuilder, target, condition);
     if (mayBeSatisfiable(x)) {
-      RexNode x2 = andNot(rexBuilder, condition, target);
-      return simplify(rexBuilder, x2);
+      RexNode x2 = andNot(simplify.rexBuilder, condition, target);
+      return simplify.simplify(x2);
     }
     return null;
   }
@@ -795,6 +800,10 @@ public class SubstitutionVisitor {
     public RelOptCluster getCluster() {
       return cluster;
     }
+
+    public RexSimplify getSimplify() {
+      return simplify;
+    }
   }
 
   /**
@@ -1055,16 +1064,17 @@ public class SubstitutionVisitor {
       final MutableFilter query = (MutableFilter) call.query;
       final MutableFilter target = (MutableFilter) call.target;
       final MutableFilter newFilter =
-          createFilter(query, target);
+          createFilter(call, query, target);
       if (newFilter == null) {
         return null;
       }
       return call.result(newFilter);
     }
 
-    MutableFilter createFilter(MutableFilter query, MutableFilter target) {
+    MutableFilter createFilter(UnifyRuleCall call, MutableFilter query,
+        MutableFilter target) {
       final RexNode newCondition =
-          splitFilter(query.cluster.getRexBuilder(), query.condition,
+          splitFilter(call.getSimplify(), query.condition,
               target.condition);
       if (newCondition == null) {
         // Could not map query onto target.
@@ -1094,8 +1104,7 @@ public class SubstitutionVisitor {
         final MutableFilter query = (MutableFilter) in2.query;
         final MutableFilter target = (MutableFilter) in2.target;
         final MutableFilter newFilter =
-            FilterToFilterUnifyRule.INSTANCE.createFilter(
-                query, target);
+            FilterToFilterUnifyRule.INSTANCE.createFilter(call, query, target);
         if (newFilter == null) {
           return null;
         }

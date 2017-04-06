@@ -1285,6 +1285,29 @@ public abstract class SqlTypeUtil {
     }
     return charset.name().startsWith("UTF");
   }
+
+  /** Returns the larger of two precisions, treating
+   * {@link RelDataType#PRECISION_NOT_SPECIFIED} as infinity. */
+  public static int maxPrecision(int p0, int p1) {
+    return (p0 == RelDataType.PRECISION_NOT_SPECIFIED
+        || p0 >= p1
+        && p1 != RelDataType.PRECISION_NOT_SPECIFIED) ? p0 : p1;
+  }
+
+  /** Returns whether a precision is greater or equal than another,
+   * treating {@link RelDataType#PRECISION_NOT_SPECIFIED} as infinity. */
+  public static int comparePrecision(int p0, int p1) {
+    if (p0 == p1) {
+      return 0;
+    }
+    if (p0 == RelDataType.PRECISION_NOT_SPECIFIED) {
+      return 1;
+    }
+    if (p1 == RelDataType.PRECISION_NOT_SPECIFIED) {
+      return -1;
+    }
+    return Integer.compare(p0, p1);
+  }
 }
 
 // End SqlTypeUtil.java

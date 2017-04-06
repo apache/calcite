@@ -18,7 +18,6 @@ package org.apache.calcite.rel.rules;
 
 import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.test.RexImplicationCheckerTest.Fixture;
 
@@ -204,7 +203,7 @@ public class DateRangeRulesTest {
               operandRanges));
     }
     assertThat(e.toString(), matcher);
-    final RexNode e2 = RexUtil.simplify(f.rexBuilder, e);
+    final RexNode e2 = f.simplify.simplify(e);
     assertThat(e2.toString(), simplifyMatcher);
   }
 

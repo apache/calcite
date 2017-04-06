@@ -52,7 +52,7 @@ public class PigAdapterTest extends AbstractPigTest {
   }
 
   @Test
-  public void testImplWithMltipleFilters() {
+  public void testImplWithMultipleFilters() {
     CalciteAssert.that()
       .with(MODEL)
       .query("select * from \"t\" where \"tc0\" > 'abc' and \"tc1\" = '3'")

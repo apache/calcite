@@ -186,10 +186,53 @@ public class RelToSqlConverterTest {
     String query = "select count(*) from \"product\" group by \"product_class_id\","
         + " \"product_id\"  having \"product_id\"  > 10";
     final String expected = "SELECT COUNT(*)\n"
-        + "FROM (SELECT \"product_class_id\", \"product_id\", COUNT(*)\n"
         + "FROM \"foodmart\".\"product\"\n"
-        + "GROUP BY \"product_class_id\", \"product_id\") AS \"t0\"\n"
-        + "WHERE \"product_id\" > 10";
+        + "GROUP BY \"product_class_id\", \"product_id\"\n"
+        + "HAVING \"product_id\" > 10";
+    sql(query).ok(expected);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1665">[CALCITE-1665]
+   * Aggregates and having cannot be combined</a>. */
+  @Test public void testSelectQueryWithGroupByHaving2() {
+    String query = " select \"product\".\"product_id\",\n"
+        + "    min(\"sales_fact_1997\".\"store_id\")\n"
+        + "    from \"product\"\n"
+        + "    inner join \"sales_fact_1997\"\n"
+        + "    on \"product\".\"product_id\" = \"sales_fact_1997\".\"product_id\"\n"
+        + "    group by \"product\".\"product_id\"\n"
+        + "    having count(*) > 1";
+
+    String expected = "SELECT \"product\".\"product_id\", "
+        + "MIN(\"sales_fact_1997\".\"store_id\")\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "INNER JOIN \"foodmart\".\"sales_fact_1997\" "
+        + "ON \"product\".\"product_id\" = \"sales_fact_1997\".\"product_id\"\n"
+        + "GROUP BY \"product\".\"product_id\"\n"
+        + "HAVING COUNT(*) > 1";
+    sql(query).ok(expected);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1665">[CALCITE-1665]
+   * Aggregates and having cannot be combined</a>. */
+  @Test public void testSelectQueryWithGroupByHaving3() {
+    String query = " select * from (select \"product\".\"product_id\",\n"
+        + "    min(\"sales_fact_1997\".\"store_id\")\n"
+        + "    from \"product\"\n"
+        + "    inner join \"sales_fact_1997\"\n"
+        + "    on \"product\".\"product_id\" = \"sales_fact_1997\".\"product_id\"\n"
+        + "    group by \"product\".\"product_id\"\n"
+        + "    having count(*) > 1) where \"product_id\" > 100";
+
+    String expected = "SELECT *\n"
+        + "FROM (SELECT \"product\".\"product_id\", MIN(\"sales_fact_1997\".\"store_id\")\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "INNER JOIN \"foodmart\".\"sales_fact_1997\" ON \"product\".\"product_id\" = \"sales_fact_1997\".\"product_id\"\n"
+        + "GROUP BY \"product\".\"product_id\"\n"
+        + "HAVING COUNT(*) > 1) AS \"t2\"\n"
+        + "WHERE \"t2\".\"product_id\" > 100";
     sql(query).ok(expected);
   }
 
@@ -458,11 +501,9 @@ public class RelToSqlConverterTest {
         + "group by \"product_class_id\", \"product_id\" "
         + "having \"product_id\"  > 10";
     final String expected = "SELECT COUNT(*)\n"
-        + "FROM (SELECT product.product_class_id, product.product_id, COUNT"
-        + "(*)\n"
         + "FROM foodmart.product AS product\n"
-        + "GROUP BY product.product_class_id, product.product_id) AS t0\n"
-        + "WHERE t0.product_id > 10";
+        + "GROUP BY product.product_class_id, product.product_id\n"
+        + "HAVING product.product_id > 10";
     sql(query).dialect(DatabaseProduct.DB2.getDialect()).ok(expected);
   }
 
@@ -588,8 +629,10 @@ public class RelToSqlConverterTest {
         + "FROM \"foodmart\".\"product\") MATCH_RECOGNIZE(\n"
         + "PATTERN (\"STRT\" \"DOWN\" + \"UP\" +)\n"
         + "DEFINE "
-        + "\"DOWN\" AS PREV(\"net_weight\", 0) < PREV(\"net_weight\", 1), "
-        + "\"UP\" AS PREV(\"net_weight\", 0) > PREV(\"net_weight\", 1))";
+        + "\"DOWN\" AS PREV(\"DOWN\".\"net_weight\", 0) < "
+        + "PREV(\"DOWN\".\"net_weight\", 1), "
+        + "\"UP\" AS PREV(\"UP\".\"net_weight\", 0) > "
+        + "PREV(\"UP\".\"net_weight\", 1))";
     sql(sql).ok(expected);
   }
 
@@ -607,8 +650,10 @@ public class RelToSqlConverterTest {
         + "FROM \"foodmart\".\"product\") MATCH_RECOGNIZE(\n"
         + "PATTERN (\"STRT\" \"DOWN\" + \"UP\" + $)\n"
         + "DEFINE "
-        + "\"DOWN\" AS PREV(\"net_weight\", 0) < PREV(\"net_weight\", 1), "
-        + "\"UP\" AS PREV(\"net_weight\", 0) > PREV(\"net_weight\", 1))";
+        + "\"DOWN\" AS PREV(\"DOWN\".\"net_weight\", 0) < "
+        + "PREV(\"DOWN\".\"net_weight\", 1), "
+        + "\"UP\" AS PREV(\"UP\".\"net_weight\", 0) > "
+        + "PREV(\"UP\".\"net_weight\", 1))";
     sql(sql).ok(expected);
   }
 
@@ -626,8 +671,10 @@ public class RelToSqlConverterTest {
         + "FROM \"foodmart\".\"product\") MATCH_RECOGNIZE(\n"
         + "PATTERN (^ \"STRT\" \"DOWN\" + \"UP\" +)\n"
         + "DEFINE "
-        + "\"DOWN\" AS PREV(\"net_weight\", 0) < PREV(\"net_weight\", 1), "
-        + "\"UP\" AS PREV(\"net_weight\", 0) > PREV(\"net_weight\", 1))";
+        + "\"DOWN\" AS PREV(\"DOWN\".\"net_weight\", 0) < "
+        + "PREV(\"DOWN\".\"net_weight\", 1), "
+        + "\"UP\" AS PREV(\"UP\".\"net_weight\", 0) > "
+        + "PREV(\"UP\".\"net_weight\", 1))";
     sql(sql).ok(expected);
   }
 
@@ -645,8 +692,10 @@ public class RelToSqlConverterTest {
         + "FROM \"foodmart\".\"product\") MATCH_RECOGNIZE(\n"
         + "PATTERN (^ \"STRT\" \"DOWN\" + \"UP\" + $)\n"
         + "DEFINE "
-        + "\"DOWN\" AS PREV(\"net_weight\", 0) < PREV(\"net_weight\", 1), "
-        + "\"UP\" AS PREV(\"net_weight\", 0) > PREV(\"net_weight\", 1))";
+        + "\"DOWN\" AS PREV(\"DOWN\".\"net_weight\", 0) < "
+        + "PREV(\"DOWN\".\"net_weight\", 1), "
+        + "\"UP\" AS PREV(\"UP\".\"net_weight\", 0) > "
+        + "PREV(\"UP\".\"net_weight\", 1))";
     sql(sql).ok(expected);
   }
 
@@ -664,8 +713,10 @@ public class RelToSqlConverterTest {
         + "FROM \"foodmart\".\"product\") MATCH_RECOGNIZE(\n"
         + "PATTERN (\"STRT\" \"DOWN\" * \"UP\" ?)\n"
         + "DEFINE "
-        + "\"DOWN\" AS PREV(\"net_weight\", 0) < PREV(\"net_weight\", 1), "
-        + "\"UP\" AS PREV(\"net_weight\", 0) > PREV(\"net_weight\", 1))";
+        + "\"DOWN\" AS PREV(\"DOWN\".\"net_weight\", 0) < "
+        + "PREV(\"DOWN\".\"net_weight\", 1), "
+        + "\"UP\" AS PREV(\"UP\".\"net_weight\", 0) > "
+        + "PREV(\"UP\".\"net_weight\", 1))";
     sql(sql).ok(expected);
   }
 
@@ -683,8 +734,10 @@ public class RelToSqlConverterTest {
         + "FROM \"foodmart\".\"product\") MATCH_RECOGNIZE(\n"
         + "PATTERN (\"STRT\" {- \"DOWN\" -} \"UP\" ?)\n"
         + "DEFINE "
-        + "\"DOWN\" AS PREV(\"net_weight\", 0) < PREV(\"net_weight\", 1), "
-        + "\"UP\" AS PREV(\"net_weight\", 0) > PREV(\"net_weight\", 1))";
+        + "\"DOWN\" AS PREV(\"DOWN\".\"net_weight\", 0) < "
+        + "PREV(\"DOWN\".\"net_weight\", 1), "
+        + "\"UP\" AS PREV(\"UP\".\"net_weight\", 0) > "
+        + "PREV(\"UP\".\"net_weight\", 1))";
 
     sql(sql).ok(expected);
   }
@@ -703,8 +756,10 @@ public class RelToSqlConverterTest {
         + "FROM \"foodmart\".\"product\") MATCH_RECOGNIZE(\n"
         + "PATTERN (\"STRT\" \"DOWN\" { 2 } \"UP\" { 3, })\n"
         + "DEFINE "
-        + "\"DOWN\" AS PREV(\"net_weight\", 0) < PREV(\"net_weight\", 1), "
-        + "\"UP\" AS PREV(\"net_weight\", 0) > PREV(\"net_weight\", 1))";
+        + "\"DOWN\" AS PREV(\"DOWN\".\"net_weight\", 0) < "
+        + "PREV(\"DOWN\".\"net_weight\", 1), "
+        + "\"UP\" AS PREV(\"UP\".\"net_weight\", 0) > "
+        + "PREV(\"UP\".\"net_weight\", 1))";
     sql(sql).ok(expected);
   }
 
@@ -722,8 +777,10 @@ public class RelToSqlConverterTest {
         + "FROM \"foodmart\".\"product\") MATCH_RECOGNIZE(\n"
         + "PATTERN (\"STRT\" \"DOWN\" { , 2 } \"UP\" { 3, 5 })\n"
         + "DEFINE "
-        + "\"DOWN\" AS PREV(\"net_weight\", 0) < PREV(\"net_weight\", 1), "
-        + "\"UP\" AS PREV(\"net_weight\", 0) > PREV(\"net_weight\", 1))";
+        + "\"DOWN\" AS PREV(\"DOWN\".\"net_weight\", 0) < "
+        + "PREV(\"DOWN\".\"net_weight\", 1), "
+        + "\"UP\" AS PREV(\"UP\".\"net_weight\", 0) > "
+        + "PREV(\"UP\".\"net_weight\", 1))";
     sql(sql).ok(expected);
   }
 
@@ -741,8 +798,10 @@ public class RelToSqlConverterTest {
         + "FROM \"foodmart\".\"product\") MATCH_RECOGNIZE(\n"
         + "PATTERN (\"STRT\" {- \"DOWN\" + -} {- \"UP\" * -})\n"
         + "DEFINE "
-        + "\"DOWN\" AS PREV(\"net_weight\", 0) < PREV(\"net_weight\", 1), "
-        + "\"UP\" AS PREV(\"net_weight\", 0) > PREV(\"net_weight\", 1))";
+        + "\"DOWN\" AS PREV(\"DOWN\".\"net_weight\", 0) < "
+        + "PREV(\"DOWN\".\"net_weight\", 1), "
+        + "\"UP\" AS PREV(\"UP\".\"net_weight\", 0) > "
+        + "PREV(\"UP\".\"net_weight\", 1))";
     sql(sql).ok(expected);
   }
 
@@ -759,13 +818,13 @@ public class RelToSqlConverterTest {
     final String expected = "SELECT *\n"
         + "FROM (SELECT *\n"
         + "FROM \"foodmart\".\"product\") MATCH_RECOGNIZE(\n"
-        + "PATTERN (\"A\" \"B\" \"C\" | \"A\" \"C\" \"B\" "
-        + "| \"B\" \"A\" \"C\" | \"B\" \"C\" \"A\" "
-        + "| \"C\" \"A\" \"B\" | \"C\" \"B\" \"A\")\n"
+        + "PATTERN "
+        + "(\"A\" \"B\" \"C\" | \"A\" \"C\" \"B\" | \"B\" \"A\" \"C\" "
+        + "| \"B\" \"C\" \"A\" | \"C\" \"A\" \"B\" | \"C\" \"B\" \"A\")\n"
         + "DEFINE "
-        + "\"A\" AS PREV(\"net_weight\", 0) < PREV(\"net_weight\", 1), "
-        + "\"B\" AS PREV(\"net_weight\", 0) > PREV(\"net_weight\", 1), "
-        + "\"C\" AS PREV(\"net_weight\", 0) < PREV(\"net_weight\", 1))";
+        + "\"A\" AS PREV(\"A\".\"net_weight\", 0) < PREV(\"A\".\"net_weight\", 1), "
+        + "\"B\" AS PREV(\"B\".\"net_weight\", 0) > PREV(\"B\".\"net_weight\", 1), "
+        + "\"C\" AS PREV(\"C\".\"net_weight\", 0) < PREV(\"C\".\"net_weight\", 1))";
     sql(sql).ok(expected);
   }
 
@@ -783,8 +842,10 @@ public class RelToSqlConverterTest {
         + "FROM \"foodmart\".\"product\") MATCH_RECOGNIZE(\n"
         + "PATTERN (\"STRT\" \"DOWN\" + \"UP\" +)\n"
         + "DEFINE "
-        + "\"DOWN\" AS PREV(\"net_weight\", 0) < PREV(\"net_weight\", 1), "
-        + "\"UP\" AS PREV(\"net_weight\", 0) > PREV(\"net_weight\", 1))";
+        + "\"DOWN\" AS PREV(\"DOWN\".\"net_weight\", 0) < "
+        + "PREV(\"DOWN\".\"net_weight\", 1), "
+        + "\"UP\" AS PREV(\"UP\".\"net_weight\", 0) > "
+        + "PREV(\"UP\".\"net_weight\", 1))";
     sql(sql).ok(expected);
   }
 
@@ -802,8 +863,10 @@ public class RelToSqlConverterTest {
         + "FROM \"foodmart\".\"product\") MATCH_RECOGNIZE(\n"
         + "PATTERN (\"STRT\" \"DOWN\" + \"UP\" +)\n"
         + "DEFINE "
-        + "\"DOWN\" AS PREV(\"net_weight\", 0) < PREV(\"net_weight\", 1), "
-        + "\"UP\" AS PREV(\"net_weight\", 0) > PREV(\"net_weight\", 1))\n"
+        + "\"DOWN\" AS PREV(\"DOWN\".\"net_weight\", 0) < "
+        + "PREV(\"DOWN\".\"net_weight\", 1), "
+        + "\"UP\" AS PREV(\"UP\".\"net_weight\", 0) > "
+        + "PREV(\"UP\".\"net_weight\", 1))\n"
         + "ORDER BY \"net_weight\"";
     sql(sql).ok(expected);
   }
@@ -839,8 +902,10 @@ public class RelToSqlConverterTest {
         + "MATCH_RECOGNIZE(\n"
         + "PATTERN (\"STRT\" \"DOWN\" + \"UP\" +)\n"
         + "DEFINE "
-        + "\"DOWN\" AS PREV(\"net_weight\", 0) < PREV(\"net_weight\", 1), "
-        + "\"UP\" AS PREV(\"net_weight\", 0) > PREV(\"net_weight\", 1))\n"
+        + "\"DOWN\" AS PREV(\"DOWN\".\"net_weight\", 0) < "
+        + "PREV(\"DOWN\".\"net_weight\", 1), "
+        + "\"UP\" AS PREV(\"UP\".\"net_weight\", 0) > "
+        + "PREV(\"UP\".\"net_weight\", 1))\n"
         + "ORDER BY \"net_weight\"";
     sql(sql).ok(expected);
   }
@@ -859,8 +924,10 @@ public class RelToSqlConverterTest {
         + "FROM \"foodmart\".\"product\") MATCH_RECOGNIZE(\n"
         + "PATTERN (\"STRT\" \"DOWN\" + \"UP\" +)\n"
         + "DEFINE "
-        + "\"DOWN\" AS PREV(\"net_weight\", 0) < PREV(\"net_weight\", 1), "
-        + "\"UP\" AS PREV(\"net_weight\", 0) > NEXT(PREV(\"net_weight\", 0), 1))";
+        + "\"DOWN\" AS PREV(\"DOWN\".\"net_weight\", 0)"
+        + " < PREV(\"DOWN\".\"net_weight\", 1), "
+        + "\"UP\" AS PREV(\"UP\".\"net_weight\", 0)"
+        + " > NEXT(PREV(\"UP\".\"net_weight\", 0), 1))";
     sql(sql).ok(expected);
   }
 
@@ -878,8 +945,10 @@ public class RelToSqlConverterTest {
         + "FROM \"foodmart\".\"product\") MATCH_RECOGNIZE(\n"
         + "PATTERN (\"STRT\" \"DOWN\" + \"UP\" +)\n"
         + "DEFINE "
-        + "\"DOWN\" AS PREV(\"net_weight\", 0) < FIRST(\"net_weight\", 0), "
-        + "\"UP\" AS PREV(\"net_weight\", 0) > LAST(\"net_weight\", 0))";
+        + "\"DOWN\" AS PREV(\"DOWN\".\"net_weight\", 0) "
+        + "< FIRST(\"DOWN\".\"net_weight\", 0), "
+        + "\"UP\" AS PREV(\"UP\".\"net_weight\", 0) "
+        + "> LAST(\"UP\".\"net_weight\", 0))";
     sql(sql).ok(expected);
   }
 
@@ -897,9 +966,10 @@ public class RelToSqlConverterTest {
         + "FROM \"foodmart\".\"product\") MATCH_RECOGNIZE(\n"
         + "PATTERN (\"STRT\" \"DOWN\" + \"UP\" +)\n"
         + "DEFINE "
-        + "\"DOWN\" AS PREV(\"net_weight\", 0) < PREV(\"net_weight\", 1), "
-        + "\"UP\" AS PREV(\"net_weight\", 0) > "
-        + "LAST(\"net_weight\", 0) + LAST(\"gross_weight\", 0))";
+        + "\"DOWN\" AS PREV(\"DOWN\".\"net_weight\", 0) < "
+        + "PREV(\"DOWN\".\"net_weight\", 1), "
+        + "\"UP\" AS PREV(\"UP\".\"net_weight\", 0) > "
+        + "LAST(\"UP\".\"net_weight\", 0) + LAST(\"UP\".\"gross_weight\", 0))";
     sql(sql).ok(expected);
   }
 
@@ -918,9 +988,225 @@ public class RelToSqlConverterTest {
         + "FROM \"foodmart\".\"product\") MATCH_RECOGNIZE(\n"
         + "PATTERN (\"STRT\" \"DOWN\" + \"UP\" +)\n"
         + "DEFINE "
-        + "\"DOWN\" AS PREV(\"net_weight\", 0) < PREV(\"net_weight\", 1), "
-        + "\"UP\" AS PREV(\"net_weight\", 0) > "
-        + "LAST(\"net_weight\", 0) + LAST(\"gross_weight\", 0))";
+        + "\"DOWN\" AS PREV(\"DOWN\".\"net_weight\", 0) < "
+        + "PREV(\"DOWN\".\"net_weight\", 1), "
+        + "\"UP\" AS PREV(\"UP\".\"net_weight\", 0) > "
+        + "LAST(\"UP\".\"net_weight\", 0) + LAST(\"UP\".\"gross_weight\", 0))";
+    sql(sql).ok(expected);
+  }
+
+  @Test public void testMatchRecognizeMeasures1() {
+    final String sql = "select *\n"
+        + "  from \"product\" match_recognize\n"
+        + "  (\n"
+        + "   measures STRT.\"net_weight\" as start_nw,"
+        + "   LAST(DOWN.\"net_weight\") as bottom_nw,"
+        + "   LAST(up.\"net_weight\") as end_nw"
+        + "    pattern (strt down+ up+)\n"
+        + "    define\n"
+        + "      down as down.\"net_weight\" < PREV(down.\"net_weight\"),\n"
+        + "      up as up.\"net_weight\" > prev(up.\"net_weight\")\n"
+        + "  ) mr";
+
+    final String expected = "SELECT *\n"
+        + "FROM (SELECT *\n"
+        + "FROM \"foodmart\".\"product\") "
+        + "MATCH_RECOGNIZE(\n"
+        + "MEASURES "
+        + "FINAL \"STRT\".\"net_weight\" AS \"START_NW\", "
+        + "FINAL LAST(\"DOWN\".\"net_weight\", 0) AS \"BOTTOM_NW\", "
+        + "FINAL LAST(\"UP\".\"net_weight\", 0) AS \"END_NW\"\n"
+        + "PATTERN (\"STRT\" \"DOWN\" + \"UP\" +)\n"
+        + "DEFINE "
+        + "\"DOWN\" AS PREV(\"DOWN\".\"net_weight\", 0) < "
+        + "PREV(\"DOWN\".\"net_weight\", 1), "
+        + "\"UP\" AS PREV(\"UP\".\"net_weight\", 0) > "
+        + "PREV(\"UP\".\"net_weight\", 1))";
+    sql(sql).ok(expected);
+  }
+
+  @Test public void testMatchRecognizeMeasures2() {
+    final String sql = "select *\n"
+        + "  from \"product\" match_recognize\n"
+        + "  (\n"
+        + "   measures STRT.\"net_weight\" as start_nw,"
+        + "   FINAL LAST(DOWN.\"net_weight\") as bottom_nw,"
+        + "   LAST(up.\"net_weight\") as end_nw"
+        + "    pattern (strt down+ up+)\n"
+        + "    define\n"
+        + "      down as down.\"net_weight\" < PREV(down.\"net_weight\"),\n"
+        + "      up as up.\"net_weight\" > prev(up.\"net_weight\")\n"
+        + "  ) mr";
+
+    final String expected = "SELECT *\n"
+        + "FROM (SELECT *\n"
+        + "FROM \"foodmart\".\"product\") "
+        + "MATCH_RECOGNIZE(\n"
+        + "MEASURES "
+        + "FINAL \"STRT\".\"net_weight\" AS \"START_NW\", "
+        + "FINAL LAST(\"DOWN\".\"net_weight\", 0) AS \"BOTTOM_NW\", "
+        + "FINAL LAST(\"UP\".\"net_weight\", 0) AS \"END_NW\"\n"
+        + "PATTERN (\"STRT\" \"DOWN\" + \"UP\" +)\n"
+        + "DEFINE "
+        + "\"DOWN\" AS PREV(\"DOWN\".\"net_weight\", 0) < "
+        + "PREV(\"DOWN\".\"net_weight\", 1), "
+        + "\"UP\" AS PREV(\"UP\".\"net_weight\", 0) > "
+        + "PREV(\"UP\".\"net_weight\", 1))";
+    sql(sql).ok(expected);
+  }
+
+  @Test public void testMatchRecognizeMeasures3() {
+    final String sql = "select *\n"
+        + "  from \"product\" match_recognize\n"
+        + "  (\n"
+        + "   measures STRT.\"net_weight\" as start_nw,"
+        + "   RUNNING LAST(DOWN.\"net_weight\") as bottom_nw,"
+        + "   LAST(up.\"net_weight\") as end_nw"
+        + "    pattern (strt down+ up+)\n"
+        + "    define\n"
+        + "      down as down.\"net_weight\" < PREV(down.\"net_weight\"),\n"
+        + "      up as up.\"net_weight\" > prev(up.\"net_weight\")\n"
+        + "  ) mr";
+
+    final String expected = "SELECT *\n"
+        + "FROM (SELECT *\n"
+        + "FROM \"foodmart\".\"product\") "
+        + "MATCH_RECOGNIZE(\n"
+        + "MEASURES "
+        + "FINAL \"STRT\".\"net_weight\" AS \"START_NW\", "
+        + "FINAL (RUNNING LAST(\"DOWN\".\"net_weight\", 0)) AS \"BOTTOM_NW\", "
+        + "FINAL LAST(\"UP\".\"net_weight\", 0) AS \"END_NW\"\n"
+        + "PATTERN (\"STRT\" \"DOWN\" + \"UP\" +)\n"
+        + "DEFINE "
+        + "\"DOWN\" AS PREV(\"DOWN\".\"net_weight\", 0) < "
+        + "PREV(\"DOWN\".\"net_weight\", 1), "
+        + "\"UP\" AS PREV(\"UP\".\"net_weight\", 0) > "
+        + "PREV(\"UP\".\"net_weight\", 1))";
+    sql(sql).ok(expected);
+  }
+
+  @Test public void testMatchRecognizeMeasures4() {
+    final String sql = "select *\n"
+        + "  from \"product\" match_recognize\n"
+        + "  (\n"
+        + "   measures STRT.\"net_weight\" as start_nw,"
+        + "   FINAL COUNT(up.\"net_weight\") as up_cnt,"
+        + "   FINAL COUNT(\"net_weight\") as down_cnt,"
+        + "   RUNNING COUNT(\"net_weight\") as running_cnt"
+        + "    pattern (strt down+ up+)\n"
+        + "    define\n"
+        + "      down as down.\"net_weight\" < PREV(down.\"net_weight\"),\n"
+        + "      up as up.\"net_weight\" > prev(up.\"net_weight\")\n"
+        + "  ) mr";
+    final String expected = "SELECT *\n"
+        + "FROM (SELECT *\n"
+        + "FROM \"foodmart\".\"product\") "
+        + "MATCH_RECOGNIZE(\n"
+        + "MEASURES FINAL \"STRT\".\"net_weight\" AS \"START_NW\", "
+        + "FINAL COUNT(\"UP\".\"net_weight\") AS \"UP_CNT\", "
+        + "FINAL COUNT(\"*\".\"net_weight\") AS \"DOWN_CNT\", "
+        + "FINAL (RUNNING COUNT(\"*\".\"net_weight\")) AS \"RUNNING_CNT\"\n"
+        + "PATTERN (\"STRT\" \"DOWN\" + \"UP\" +)\n"
+        + "DEFINE "
+        + "\"DOWN\" AS PREV(\"DOWN\".\"net_weight\", 0) < "
+        + "PREV(\"DOWN\".\"net_weight\", 1), "
+        + "\"UP\" AS PREV(\"UP\".\"net_weight\", 0) > "
+        + "PREV(\"UP\".\"net_weight\", 1))";
+    sql(sql).ok(expected);
+  }
+
+  @Test public void testMatchRecognizeMeasures5() {
+    final String sql = "select *\n"
+        + "  from \"product\" match_recognize\n"
+        + "  (\n"
+        + "   measures "
+        + "   FIRST(STRT.\"net_weight\") as start_nw,"
+        + "   LAST(UP.\"net_weight\") as up_cnt,"
+        + "   AVG(DOWN.\"net_weight\") as down_cnt"
+        + "    pattern (strt down+ up+)\n"
+        + "    define\n"
+        + "      down as down.\"net_weight\" < PREV(down.\"net_weight\"),\n"
+        + "      up as up.\"net_weight\" > prev(up.\"net_weight\")\n"
+        + "  ) mr";
+
+    final String expected = "SELECT *\n"
+        + "FROM (SELECT *\n"
+        + "FROM \"foodmart\".\"product\") "
+        + "MATCH_RECOGNIZE(\n"
+        + "MEASURES "
+        + "FINAL FIRST(\"STRT\".\"net_weight\", 0) AS \"START_NW\", "
+        + "FINAL LAST(\"UP\".\"net_weight\", 0) AS \"UP_CNT\", "
+        + "FINAL (SUM(\"DOWN\".\"net_weight\") / COUNT(\"DOWN\".\"net_weight\")) "
+        + "AS \"DOWN_CNT\"\n"
+        + "PATTERN (\"STRT\" \"DOWN\" + \"UP\" +)\n"
+        + "DEFINE "
+        + "\"DOWN\" AS PREV(\"DOWN\".\"net_weight\", 0) < "
+        + "PREV(\"DOWN\".\"net_weight\", 1), "
+        + "\"UP\" AS PREV(\"UP\".\"net_weight\", 0) > "
+        + "PREV(\"UP\".\"net_weight\", 1))";
+    sql(sql).ok(expected);
+  }
+
+  @Test public void testMatchRecognizeMeasures6() {
+    final String sql = "select *\n"
+        + "  from \"product\" match_recognize\n"
+        + "  (\n"
+        + "   measures "
+        + "   FIRST(STRT.\"net_weight\") as start_nw,"
+        + "   LAST(DOWN.\"net_weight\") as up_cnt,"
+        + "   FINAL SUM(DOWN.\"net_weight\") as down_cnt"
+        + "    pattern (strt down+ up+)\n"
+        + "    define\n"
+        + "      down as down.\"net_weight\" < PREV(down.\"net_weight\"),\n"
+        + "      up as up.\"net_weight\" > prev(up.\"net_weight\")\n"
+        + "  ) mr";
+
+    final String expected = "SELECT *\n"
+        + "FROM (SELECT *\n"
+        + "FROM \"foodmart\".\"product\") MATCH_RECOGNIZE(\n"
+        + "MEASURES "
+        + "FINAL FIRST(\"STRT\".\"net_weight\", 0) AS \"START_NW\", "
+        + "FINAL LAST(\"DOWN\".\"net_weight\", 0) AS \"UP_CNT\", "
+        + "FINAL SUM(\"DOWN\".\"net_weight\") AS \"DOWN_CNT\"\n"
+        + "PATTERN "
+        + "(\"STRT\" \"DOWN\" + \"UP\" +)\n"
+        + "DEFINE "
+        + "\"DOWN\" AS PREV(\"DOWN\".\"net_weight\", 0) < "
+        + "PREV(\"DOWN\".\"net_weight\", 1), "
+        + "\"UP\" AS PREV(\"UP\".\"net_weight\", 0) > "
+        + "PREV(\"UP\".\"net_weight\", 1))";
+    sql(sql).ok(expected);
+  }
+
+  @Test public void testMatchRecognizeMeasures7() {
+    final String sql = "select *\n"
+        + "  from \"product\" match_recognize\n"
+        + "  (\n"
+        + "   measures "
+        + "   FIRST(STRT.\"net_weight\") as start_nw,"
+        + "   LAST(DOWN.\"net_weight\") as up_cnt,"
+        + "   FINAL SUM(DOWN.\"net_weight\") as down_cnt"
+        + "    pattern (strt down+ up+)\n"
+        + "    define\n"
+        + "      down as down.\"net_weight\" < PREV(down.\"net_weight\"),\n"
+        + "      up as up.\"net_weight\" > prev(up.\"net_weight\")\n"
+        + "  ) mr order by start_nw, up_cnt";
+
+    final String expected = "SELECT *\n"
+        + "FROM (SELECT *\n"
+        + "FROM \"foodmart\".\"product\") MATCH_RECOGNIZE(\n"
+        + "MEASURES "
+        + "FINAL FIRST(\"STRT\".\"net_weight\", 0) AS \"START_NW\", "
+        + "FINAL LAST(\"DOWN\".\"net_weight\", 0) AS \"UP_CNT\", "
+        + "FINAL SUM(\"DOWN\".\"net_weight\") AS \"DOWN_CNT\"\n"
+        + "PATTERN "
+        + "(\"STRT\" \"DOWN\" + \"UP\" +)\n"
+        + "DEFINE "
+        + "\"DOWN\" AS PREV(\"DOWN\".\"net_weight\", 0) < "
+        + "PREV(\"DOWN\".\"net_weight\", 1), "
+        + "\"UP\" AS PREV(\"UP\".\"net_weight\", 0) > "
+        + "PREV(\"UP\".\"net_weight\", 1))\n"
+        + "ORDER BY \"START_NW\", \"UP_CNT\"";
     sql(sql).ok(expected);
   }
 

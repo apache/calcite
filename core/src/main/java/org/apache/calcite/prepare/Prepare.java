@@ -35,12 +35,15 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelRoot;
 import org.apache.calcite.rel.logical.LogicalTableModify;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexExecutorImpl;
 import org.apache.calcite.runtime.Bindable;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.runtime.Typed;
+import org.apache.calcite.schema.ExtensibleTable;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.Wrapper;
+import org.apache.calcite.schema.impl.ModifiableViewTable;
 import org.apache.calcite.schema.impl.StarTable;
 import org.apache.calcite.sql.SqlExplain;
 import org.apache.calcite.sql.SqlExplainFormat;
@@ -52,6 +55,7 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorCatalogReader;
 import org.apache.calcite.sql.validate.SqlValidatorTable;
+import org.apache.calcite.sql2rel.InitializerContext;
 import org.apache.calcite.sql2rel.InitializerExpressionFactory;
 import org.apache.calcite.sql2rel.SqlToRelConverter;
 import org.apache.calcite.tools.Program;
@@ -402,14 +406,15 @@ public abstract class Prepare {
    * for {@link #columnHasDefaultValue}. */
   public abstract static class AbstractPreparingTable
       implements PreparingTable {
-    public boolean columnHasDefaultValue(RelDataType rowType, int ordinal) {
+    public boolean columnHasDefaultValue(RelDataType rowType, int ordinal,
+        InitializerContext initializerContext) {
       final Table table = this.unwrap(Table.class);
       if (table != null && table instanceof Wrapper) {
         final InitializerExpressionFactory initializerExpressionFactory =
             ((Wrapper) table).unwrap(InitializerExpressionFactory.class);
         if (initializerExpressionFactory != null) {
           return !initializerExpressionFactory
-              .newColumnDefaultValue(this, ordinal)
+              .newColumnDefaultValue(this, ordinal, initializerContext)
               .getType().getSqlTypeName().equals(SqlTypeName.NULL);
         }
       }
@@ -418,6 +423,36 @@ public abstract class Prepare {
       }
       return !rowType.getFieldList().get(ordinal).getType().isNullable();
     }
+
+    public final RelOptTable extend(List<RelDataTypeField> extendedFields) {
+      final Table table = unwrap(Table.class);
+
+      // Get the set of extended columns that do not have the same name as a column
+      // in the base table.
+      final List<RelDataTypeField> baseColumns = getRowType().getFieldList();
+      final List<RelDataTypeField> dedupedFields =
+          RelOptUtil.deduplicateColumns(baseColumns, extendedFields);
+      final List<RelDataTypeField> dedupedExtendedFields =
+          dedupedFields.subList(baseColumns.size(), dedupedFields.size());
+
+      if (table instanceof ExtensibleTable) {
+        final Table extendedTable =
+                ((ExtensibleTable) table).extend(dedupedExtendedFields);
+        return extend(extendedTable);
+      } else if (table instanceof ModifiableViewTable) {
+        final ModifiableViewTable modifiableViewTable =
+                (ModifiableViewTable) table;
+        final ModifiableViewTable extendedView =
+            modifiableViewTable.extend(dedupedExtendedFields,
+                getRelOptSchema().getTypeFactory());
+        return extend(extendedView);
+      }
+      throw new RuntimeException("Cannot extend " + table);
+    }
+
+    /** Implementation-specific code to instantiate a new {@link RelOptTable}
+     * based on a {@link Table} that has been extended. */
+    protected abstract RelOptTable extend(Table extendedTable);
   }
 
   /**

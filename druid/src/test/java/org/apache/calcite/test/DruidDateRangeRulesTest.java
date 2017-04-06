@@ -21,7 +21,6 @@ import org.apache.calcite.adapter.druid.LocalInterval;
 import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.rel.rules.DateRangeRules;
 import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.test.RexImplicationCheckerTest.Fixture;
 
@@ -130,7 +129,7 @@ public class DruidDateRangeRulesTest {
           new DateRangeRules.ExtractShuttle(f.rexBuilder, timeUnit,
               operandRanges));
     }
-    final RexNode e2 = RexUtil.simplify(f.rexBuilder, e);
+    final RexNode e2 = f.simplify.simplify(e);
     List<LocalInterval> intervals =
         DruidDateTimeUtils.createInterval(f.timeStampDataType, e2);
     if (intervals == null) {

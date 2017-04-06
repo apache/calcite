@@ -62,6 +62,7 @@ import org.apache.calcite.rex.LogicVisitor;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexCorrelVariable;
+import org.apache.calcite.rex.RexExecutor;
 import org.apache.calcite.rex.RexExecutorImpl;
 import org.apache.calcite.rex.RexFieldAccess;
 import org.apache.calcite.rex.RexInputRef;
@@ -98,6 +99,7 @@ import org.apache.calcite.util.mapping.Mappings;
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
@@ -2003,6 +2005,23 @@ public abstract class RelOptUtil {
   }
 
   /**
+   * Returns the set of columns with unique names, with prior columns taking
+   * precedence over columns that appear later in the list.
+   */
+  public static List<RelDataTypeField> deduplicateColumns(
+      List<RelDataTypeField> baseColumns, List<RelDataTypeField> extendedColumns) {
+    final Set<String> dedupedFieldNames = new HashSet<>();
+    final ImmutableList.Builder<RelDataTypeField> dedupedFields =
+        ImmutableList.builder();
+    for (RelDataTypeField f : Iterables.concat(baseColumns, extendedColumns)) {
+      if (dedupedFieldNames.add(f.getName())) {
+        dedupedFields.add(f);
+      }
+    }
+    return dedupedFields.build();
+  }
+
+  /**
    * Decomposes a predicate into a list of expressions that are AND'ed
    * together.
    *
@@ -3320,6 +3339,11 @@ public abstract class RelOptUtil {
    * Determines whether any of the fields in a given relational expression may
    * contain null values, taking into account constraints on the field types and
    * also deduced predicates.
+   *
+   * <p>The method is cautious: It may sometimes return {@code true} when the
+   * actual answer is {@code false}. In particular, it does this when there
+   * is no executor, or the executor is not a sub-class of
+   * {@link RexExecutorImpl}.
    */
   private static boolean containsNullableFields(RelNode r) {
     final RexBuilder rexBuilder = r.getCluster().getRexBuilder();
@@ -3343,10 +3367,14 @@ public abstract class RelOptUtil {
       // declared NULL are really NOT NULL.
       return true;
     }
-    RexExecutorImpl rexImpl =
-        (RexExecutorImpl) r.getCluster().getPlanner().getExecutor();
+    final RexExecutor executor = r.getCluster().getPlanner().getExecutor();
+    if (!(executor instanceof RexExecutorImpl)) {
+      // Cannot proceed without an executor.
+      return true;
+    }
     final RexImplicationChecker checker =
-        new RexImplicationChecker(rexBuilder, rexImpl, rowType);
+        new RexImplicationChecker(rexBuilder, (RexExecutorImpl) executor,
+            rowType);
     final RexNode first =
         RexUtil.composeConjunction(rexBuilder, predicates.pulledUpPredicates,
             false);

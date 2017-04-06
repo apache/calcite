@@ -41,6 +41,7 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.sql.JoinConditionType;
 import org.apache.calcite.sql.JoinType;
+import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDelete;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlIdentifier;
@@ -133,11 +134,23 @@ public class RelToSqlConverter extends SqlImplementor
 
   /** @see #dispatch */
   public Result visit(Filter e) {
-    Result x = visitChild(0, e.getInput());
-    final Builder builder =
-        x.builder(e, Clause.WHERE);
-    builder.setWhere(builder.context.toSql(null, e.getCondition()));
-    return builder.result();
+    final RelNode input = e.getInput();
+    Result x = visitChild(0, input);
+    if (input instanceof Aggregate) {
+      final Builder builder;
+      if (((Aggregate) input).getInput() instanceof Project) {
+        builder = x.builder(e);
+        builder.clauses.add(Clause.HAVING);
+      } else {
+        builder = x.builder(e, Clause.HAVING);
+      }
+      builder.setHaving(builder.context.toSql(null, e.getCondition()));
+      return builder.result();
+    } else {
+      final Builder builder = x.builder(e, Clause.WHERE);
+      builder.setWhere(builder.context.toSql(null, e.getCondition()));
+      return builder.result();
+    }
   }
 
   /** @see #dispatch */
@@ -357,9 +370,7 @@ public class RelToSqlConverter extends SqlImplementor
             }), POS);
   }
 
-  /**
-   * @see #dispatch
-   */
+  /** @see #dispatch */
   public Result visit(Match e) {
     final RelNode input = e.getInput();
     final Result x = visitChild(0, input);
@@ -369,23 +380,31 @@ public class RelToSqlConverter extends SqlImplementor
 
     RexNode rexPattern = e.getPattern();
     final SqlNode pattern = context.toSql(null, rexPattern);
-    final SqlLiteral isStrictStarts = SqlLiteral.createBoolean(e.isStrictStart(), POS);
-    final SqlLiteral isStrictEnds = SqlLiteral.createBoolean(e.isStrictEnd(), POS);
+    final SqlLiteral strictStart = SqlLiteral.createBoolean(e.isStrictStart(), POS);
+    final SqlLiteral strictEnd = SqlLiteral.createBoolean(e.isStrictEnd(), POS);
 
-    List<SqlNode> list = Lists.newArrayList();
-    for (Map.Entry<String, RexNode> entry : e.getPatternDefinitions().entrySet()) {
-      String alias = entry.getKey();
-      SqlNode sqlNode = context.toSql(null, entry.getValue());
-      sqlNode = SqlStdOperatorTable.PATTERN_DEFINE_AS.createCall(POS,
-        sqlNode, new SqlIdentifier(alias, POS));
-      list.add(sqlNode);
+    final SqlNodeList measureList = new SqlNodeList(POS);
+    for (Map.Entry<String, RexNode> entry : e.getMeasures().entrySet()) {
+      final String alias = entry.getKey();
+      final SqlNode sqlNode = context.toSql(null, entry.getValue());
+      measureList.add(as(sqlNode, alias));
     }
 
-    final SqlNodeList patternDefList = new SqlNodeList(list, POS);
+    final SqlNodeList patternDefList = new SqlNodeList(POS);
+    for (Map.Entry<String, RexNode> entry : e.getPatternDefinitions().entrySet()) {
+      final String alias = entry.getKey();
+      final SqlNode sqlNode = context.toSql(null, entry.getValue());
+      patternDefList.add(as(sqlNode, alias));
+    }
 
     final SqlNode matchRecognize = new SqlMatchRecognize(POS, tableRef,
-      pattern, isStrictStarts, isStrictEnds, patternDefList);
+      pattern, strictStart, strictEnd, patternDefList, measureList);
     return result(matchRecognize, Expressions.list(Clause.FROM), e, null);
+  }
+
+  private SqlCall as(SqlNode e, String alias) {
+    return SqlStdOperatorTable.AS.createCall(POS, e,
+        new SqlIdentifier(alias, POS));
   }
 
   @Override public void addSelect(List<SqlNode> selectList, SqlNode node,
@@ -397,8 +416,7 @@ public class RelToSqlConverter extends SqlImplementor
       // Put it in ordinalMap
       ordinalMap.put(lowerName, node);
     } else if (alias == null || !alias.equals(name)) {
-      node = SqlStdOperatorTable.AS.createCall(
-          POS, node, new SqlIdentifier(name, POS));
+      node = as(node, name);
     }
     selectList.add(node);
   }

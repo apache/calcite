@@ -612,18 +612,19 @@ public abstract class ReturnTypes {
 
           RelDataType ret;
           int typePrecision;
-          if (argType0.getPrecision()
-              == RelDataType.PRECISION_NOT_SPECIFIED
-                  && argType1.getPrecision()
-                      == RelDataType.PRECISION_NOT_SPECIFIED) {
+          final long x =
+              (long) argType0.getPrecision() + (long) argType1.getPrecision();
+          final RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
+          final RelDataTypeSystem typeSystem = typeFactory.getTypeSystem();
+          if (argType0.getPrecision() == RelDataType.PRECISION_NOT_SPECIFIED
+              || argType1.getPrecision() == RelDataType.PRECISION_NOT_SPECIFIED
+              || x > typeSystem.getMaxPrecision(typeName)) {
             typePrecision = RelDataType.PRECISION_NOT_SPECIFIED;
           } else {
-            typePrecision =
-                argType0.getPrecision() + argType1.getPrecision();
+            typePrecision = (int) x;
           }
 
-          ret = opBinding.getTypeFactory()
-              .createSqlType(typeName, typePrecision);
+          ret = typeFactory.createSqlType(typeName, typePrecision);
           if (null != pickedCollation) {
             RelDataType pickedType;
             if (argType0.getCollation().equals(pickedCollation)) {
@@ -634,15 +635,13 @@ public abstract class ReturnTypes {
               throw new AssertionError("should never come here");
             }
             ret =
-                opBinding.getTypeFactory()
-                    .createTypeWithCharsetAndCollation(
-                        ret,
-                        pickedType.getCharset(),
-                        pickedType.getCollation());
+                typeFactory.createTypeWithCharsetAndCollation(ret,
+                    pickedType.getCharset(), pickedType.getCollation());
           }
           return ret;
         }
       };
+
   /**
    * Same as {@link #DYADIC_STRING_SUM_PRECISION} and using
    * {@link org.apache.calcite.sql.type.SqlTypeTransforms#TO_NULLABLE},

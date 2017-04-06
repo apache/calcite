@@ -290,9 +290,8 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
         SqlCollation collation2 = resultType.getCollation();
 
         // TODO:  refine collation combination rules
-        int precision =
-            Math.max(
-                resultType.getPrecision(),
+        final int precision =
+            SqlTypeUtil.maxPrecision(resultType.getPrecision(),
                 type.getPrecision());
 
         // If either type is LOB, then result is LOB with no precision.

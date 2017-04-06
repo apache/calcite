@@ -22,7 +22,7 @@ limitations under the License.
 {% endcomment %}
 -->
 
-# Overview
+## Overview
 
 The file adapter is able to read files in a variety of formats,
 and can also read files over various protocols, such as HTTP.
@@ -53,7 +53,11 @@ comprising almost 1/2 of the state's population:
 +---------------------+----------------------+
 ```
 
-# A simple example
+For simple file formats such as CSV, the file is self-describing and
+you don't even need a model.
+See [CSV files and model-free browsing](#csv_files_and_model_free_browsing).
+
+## A simple example
 
 Let's start with a simple example. First, we need a
 [model definition]({{ site.baseurl }}/docs/model.html),
@@ -151,7 +155,7 @@ sqlline> select * from sales.emps;
 5 rows selected
 {% endhighlight %}
 
-# Mapping tables
+## Mapping tables
 
 Now for a more complex example. This time we connect to Wikipedia via
 HTTP, read pages for US states and cities, and extract data from HTML
@@ -208,7 +212,7 @@ navigation; selectors for both tables and fields follow the
 Field definitions may be used to rename or skip source fields, to
 select and condition the cell contents and to set a data type.
 
-# Parsing cell contents
+### Parsing cell contents
 
 The file adapter can select DOM nodes within a cell, replace text
 within the selected element, match within the selected text, and
@@ -217,7 +221,7 @@ steps are applied in the order described and replace and match
 patterns are based on
 [Java regular expressions](http://docs.oracle.com/javase/7/docs/api/java/util/regex/Pattern.html).
 
-# Further examples
+### Further examples
 
 There are more examples in the form of a script:
 
@@ -229,7 +233,47 @@ $ ./sqlline -f file/src/test/resources/webjoin.sql
 each query containing a join.  These are expected and do not affect
 query results.  These messages will be suppressed in the next release.)
 
-# Future improvements
+## CSV files and model-free browsing
+
+Some files are describe their own schema, and for these files, we do not need a model. For example, `DEPTS.csv` has an
+integer `DEPTNO` column and a string `NAME` column:
+
+{% highlight json %}
+DEPTNO:int,NAME:string
+10,"Sales"
+20,"Marketing"
+30,"Accounts"
+{% endhighlight %}
+
+You can launch `sqlline`, and pointing the file adapter that directory,
+and every CSV file becomes a table:
+
+{% highlight bash %}
+$ ls file/src/test/resources/sales-csv
+ -rw-r--r-- 1 jhyde jhyde  62 Mar 15 10:16 DEPTS.csv
+ -rw-r--r-- 1 jhyde jhyde 262 Mar 15 10:16 EMPS.csv.gz
+
+$ ./sqlline -u "jdbc:calcite:schemaFactory=org.apache.calcite.adapter.file.FileSchemaFactory;schema.directory=file/src/test/resources/sales-csv"
+sqlline> !tables
++-----------+-------------+------------+------------+
+| TABLE_CAT | TABLE_SCHEM | TABLE_NAME | TABLE_TYPE |
++-----------+-------------+------------+------------+
+|           | adhoc       | DEPTS      | TABLE      |
+|           | adhoc       | EMPS       | TABLE      |
++-----------+-------------+------------+------------+
+
+sqlline> select distinct deptno from depts;
++--------+
+| DEPTNO |
++--------+
+| 20     |
+| 10     |
+| 30     |
++--------+
+3 rows selected (0.985 seconds)
+{% endhighlight %}
+
+## Future improvements
 
 We are continuing to enhance the adapter, and would welcome
 contributions of new parsing capabilities (for example parsing JSON
