@@ -10822,17 +10822,26 @@ public final class Requests {
 
     /**
      * <pre>
-     * The maximum number of rows to return in the first Frame
+     * Deprecated, use the signed int instead.
      * </pre>
      *
-     * <code>optional uint64 first_frame_max_size = 3;</code>
+     * <code>optional uint64 deprecated_first_frame_max_size = 3;</code>
      */
-    long getFirstFrameMaxSize();
+    long getDeprecatedFirstFrameMaxSize();
 
     /**
      * <code>optional bool has_parameter_values = 4;</code>
      */
     boolean getHasParameterValues();
+
+    /**
+     * <pre>
+     * The maximum number of rows to return in the first Frame
+     * </pre>
+     *
+     * <code>optional int32 first_frame_max_size = 5;</code>
+     */
+    int getFirstFrameMaxSize();
   }
   /**
    * <pre>
@@ -10851,8 +10860,9 @@ public final class Requests {
     }
     private ExecuteRequest() {
       parameterValues_ = java.util.Collections.emptyList();
-      firstFrameMaxSize_ = 0L;
+      deprecatedFirstFrameMaxSize_ = 0L;
       hasParameterValues_ = false;
+      firstFrameMaxSize_ = 0;
     }
 
     @java.lang.Override
@@ -10904,12 +10914,17 @@ public final class Requests {
             }
             case 24: {
 
-              firstFrameMaxSize_ = input.readUInt64();
+              deprecatedFirstFrameMaxSize_ = input.readUInt64();
               break;
             }
             case 32: {
 
               hasParameterValues_ = input.readBool();
+              break;
+            }
+            case 40: {
+
+              firstFrameMaxSize_ = input.readInt32();
               break;
             }
           }
@@ -10995,17 +11010,17 @@ public final class Requests {
       return parameterValues_.get(index);
     }
 
-    public static final int FIRST_FRAME_MAX_SIZE_FIELD_NUMBER = 3;
-    private long firstFrameMaxSize_;
+    public static final int DEPRECATED_FIRST_FRAME_MAX_SIZE_FIELD_NUMBER = 3;
+    private long deprecatedFirstFrameMaxSize_;
     /**
      * <pre>
-     * The maximum number of rows to return in the first Frame
+     * Deprecated, use the signed int instead.
      * </pre>
      *
-     * <code>optional uint64 first_frame_max_size = 3;</code>
+     * <code>optional uint64 deprecated_first_frame_max_size = 3;</code>
      */
-    public long getFirstFrameMaxSize() {
-      return firstFrameMaxSize_;
+    public long getDeprecatedFirstFrameMaxSize() {
+      return deprecatedFirstFrameMaxSize_;
     }
 
     public static final int HAS_PARAMETER_VALUES_FIELD_NUMBER = 4;
@@ -11015,6 +11030,19 @@ public final class Requests {
      */
     public boolean getHasParameterValues() {
       return hasParameterValues_;
+    }
+
+    public static final int FIRST_FRAME_MAX_SIZE_FIELD_NUMBER = 5;
+    private int firstFrameMaxSize_;
+    /**
+     * <pre>
+     * The maximum number of rows to return in the first Frame
+     * </pre>
+     *
+     * <code>optional int32 first_frame_max_size = 5;</code>
+     */
+    public int getFirstFrameMaxSize() {
+      return firstFrameMaxSize_;
     }
 
     private byte memoizedIsInitialized = -1;
@@ -11035,11 +11063,14 @@ public final class Requests {
       for (int i = 0; i < parameterValues_.size(); i++) {
         output.writeMessage(2, parameterValues_.get(i));
       }
-      if (firstFrameMaxSize_ != 0L) {
-        output.writeUInt64(3, firstFrameMaxSize_);
+      if (deprecatedFirstFrameMaxSize_ != 0L) {
+        output.writeUInt64(3, deprecatedFirstFrameMaxSize_);
       }
       if (hasParameterValues_ != false) {
         output.writeBool(4, hasParameterValues_);
+      }
+      if (firstFrameMaxSize_ != 0) {
+        output.writeInt32(5, firstFrameMaxSize_);
       }
     }
 
@@ -11056,13 +11087,17 @@ public final class Requests {
         size += com.google.protobuf.CodedOutputStream
           .computeMessageSize(2, parameterValues_.get(i));
       }
-      if (firstFrameMaxSize_ != 0L) {
+      if (deprecatedFirstFrameMaxSize_ != 0L) {
         size += com.google.protobuf.CodedOutputStream
-          .computeUInt64Size(3, firstFrameMaxSize_);
+          .computeUInt64Size(3, deprecatedFirstFrameMaxSize_);
       }
       if (hasParameterValues_ != false) {
         size += com.google.protobuf.CodedOutputStream
           .computeBoolSize(4, hasParameterValues_);
+      }
+      if (firstFrameMaxSize_ != 0) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeInt32Size(5, firstFrameMaxSize_);
       }
       memoizedSize = size;
       return size;
@@ -11087,10 +11122,12 @@ public final class Requests {
       }
       result = result && getParameterValuesList()
           .equals(other.getParameterValuesList());
-      result = result && (getFirstFrameMaxSize()
-          == other.getFirstFrameMaxSize());
+      result = result && (getDeprecatedFirstFrameMaxSize()
+          == other.getDeprecatedFirstFrameMaxSize());
       result = result && (getHasParameterValues()
           == other.getHasParameterValues());
+      result = result && (getFirstFrameMaxSize()
+          == other.getFirstFrameMaxSize());
       return result;
     }
 
@@ -11109,12 +11146,14 @@ public final class Requests {
         hash = (37 * hash) + PARAMETER_VALUES_FIELD_NUMBER;
         hash = (53 * hash) + getParameterValuesList().hashCode();
       }
-      hash = (37 * hash) + FIRST_FRAME_MAX_SIZE_FIELD_NUMBER;
+      hash = (37 * hash) + DEPRECATED_FIRST_FRAME_MAX_SIZE_FIELD_NUMBER;
       hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
-          getFirstFrameMaxSize());
+          getDeprecatedFirstFrameMaxSize());
       hash = (37 * hash) + HAS_PARAMETER_VALUES_FIELD_NUMBER;
       hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
           getHasParameterValues());
+      hash = (37 * hash) + FIRST_FRAME_MAX_SIZE_FIELD_NUMBER;
+      hash = (53 * hash) + getFirstFrameMaxSize();
       hash = (29 * hash) + unknownFields.hashCode();
       memoizedHashCode = hash;
       return hash;
@@ -11250,9 +11289,11 @@ public final class Requests {
         } else {
           parameterValuesBuilder_.clear();
         }
-        firstFrameMaxSize_ = 0L;
+        deprecatedFirstFrameMaxSize_ = 0L;
 
         hasParameterValues_ = false;
+
+        firstFrameMaxSize_ = 0;
 
         return this;
       }
@@ -11292,8 +11333,9 @@ public final class Requests {
         } else {
           result.parameterValues_ = parameterValuesBuilder_.build();
         }
-        result.firstFrameMaxSize_ = firstFrameMaxSize_;
+        result.deprecatedFirstFrameMaxSize_ = deprecatedFirstFrameMaxSize_;
         result.hasParameterValues_ = hasParameterValues_;
+        result.firstFrameMaxSize_ = firstFrameMaxSize_;
         result.bitField0_ = to_bitField0_;
         onBuilt();
         return result;
@@ -11365,11 +11407,14 @@ public final class Requests {
             }
           }
         }
-        if (other.getFirstFrameMaxSize() != 0L) {
-          setFirstFrameMaxSize(other.getFirstFrameMaxSize());
+        if (other.getDeprecatedFirstFrameMaxSize() != 0L) {
+          setDeprecatedFirstFrameMaxSize(other.getDeprecatedFirstFrameMaxSize());
         }
         if (other.getHasParameterValues() != false) {
           setHasParameterValues(other.getHasParameterValues());
+        }
+        if (other.getFirstFrameMaxSize() != 0) {
+          setFirstFrameMaxSize(other.getFirstFrameMaxSize());
         }
         onChanged();
         return this;
@@ -11755,40 +11800,40 @@ public final class Requests {
         return parameterValuesBuilder_;
       }
 
-      private long firstFrameMaxSize_ ;
+      private long deprecatedFirstFrameMaxSize_ ;
       /**
        * <pre>
-       * The maximum number of rows to return in the first Frame
+       * Deprecated, use the signed int instead.
        * </pre>
        *
-       * <code>optional uint64 first_frame_max_size = 3;</code>
+       * <code>optional uint64 deprecated_first_frame_max_size = 3;</code>
        */
-      public long getFirstFrameMaxSize() {
-        return firstFrameMaxSize_;
+      public long getDeprecatedFirstFrameMaxSize() {
+        return deprecatedFirstFrameMaxSize_;
       }
       /**
        * <pre>
-       * The maximum number of rows to return in the first Frame
+       * Deprecated, use the signed int instead.
        * </pre>
        *
-       * <code>optional uint64 first_frame_max_size = 3;</code>
+       * <code>optional uint64 deprecated_first_frame_max_size = 3;</code>
        */
-      public Builder setFirstFrameMaxSize(long value) {
+      public Builder setDeprecatedFirstFrameMaxSize(long value) {
         
-        firstFrameMaxSize_ = value;
+        deprecatedFirstFrameMaxSize_ = value;
         onChanged();
         return this;
       }
       /**
        * <pre>
-       * The maximum number of rows to return in the first Frame
+       * Deprecated, use the signed int instead.
        * </pre>
        *
-       * <code>optional uint64 first_frame_max_size = 3;</code>
+       * <code>optional uint64 deprecated_first_frame_max_size = 3;</code>
        */
-      public Builder clearFirstFrameMaxSize() {
+      public Builder clearDeprecatedFirstFrameMaxSize() {
         
-        firstFrameMaxSize_ = 0L;
+        deprecatedFirstFrameMaxSize_ = 0L;
         onChanged();
         return this;
       }
@@ -11815,6 +11860,44 @@ public final class Requests {
       public Builder clearHasParameterValues() {
         
         hasParameterValues_ = false;
+        onChanged();
+        return this;
+      }
+
+      private int firstFrameMaxSize_ ;
+      /**
+       * <pre>
+       * The maximum number of rows to return in the first Frame
+       * </pre>
+       *
+       * <code>optional int32 first_frame_max_size = 5;</code>
+       */
+      public int getFirstFrameMaxSize() {
+        return firstFrameMaxSize_;
+      }
+      /**
+       * <pre>
+       * The maximum number of rows to return in the first Frame
+       * </pre>
+       *
+       * <code>optional int32 first_frame_max_size = 5;</code>
+       */
+      public Builder setFirstFrameMaxSize(int value) {
+        
+        firstFrameMaxSize_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <pre>
+       * The maximum number of rows to return in the first Frame
+       * </pre>
+       *
+       * <code>optional int32 first_frame_max_size = 5;</code>
+       */
+      public Builder clearFirstFrameMaxSize() {
+        
+        firstFrameMaxSize_ = 0;
         onChanged();
         return this;
       }
@@ -16432,23 +16515,24 @@ public final class Requests {
       "/\n\026CloseConnectionRequest\022\025\n\rconnection_" +
       "id\030\001 \001(\t\"Y\n\025ConnectionSyncRequest\022\025\n\rcon" +
       "nection_id\030\001 \001(\t\022)\n\nconn_props\030\002 \001(\0132\025.C" +
-      "onnectionProperties\"\236\001\n\016ExecuteRequest\022)" +
+      "onnectionProperties\"\307\001\n\016ExecuteRequest\022)" +
       "\n\017statementHandle\030\001 \001(\0132\020.StatementHandl" +
       "e\022%\n\020parameter_values\030\002 \003(\0132\013.TypedValue" +
-      "\022\034\n\024first_frame_max_size\030\003 \001(\004\022\034\n\024has_pa" +
-      "rameter_values\030\004 \001(\010\"m\n\022SyncResultsReque" +
-      "st\022\025\n\rconnection_id\030\001 \001(\t\022\024\n\014statement_i",
-      "d\030\002 \001(\r\022\032\n\005state\030\003 \001(\0132\013.QueryState\022\016\n\006o" +
-      "ffset\030\004 \001(\004\"&\n\rCommitRequest\022\025\n\rconnecti" +
-      "on_id\030\001 \001(\t\"(\n\017RollbackRequest\022\025\n\rconnec" +
-      "tion_id\030\001 \001(\t\"b\n\035PrepareAndExecuteBatchR" +
-      "equest\022\025\n\rconnection_id\030\001 \001(\t\022\024\n\014stateme" +
-      "nt_id\030\002 \001(\r\022\024\n\014sql_commands\030\003 \003(\t\"4\n\013Upd" +
-      "ateBatch\022%\n\020parameter_values\030\001 \003(\0132\013.Typ" +
-      "edValue\"a\n\023ExecuteBatchRequest\022\025\n\rconnec" +
-      "tion_id\030\001 \001(\t\022\024\n\014statement_id\030\002 \001(\r\022\035\n\007u" +
-      "pdates\030\003 \003(\0132\014.UpdateBatchB\"\n org.apache",
-      ".calcite.avatica.protob\006proto3"
+      "\022\'\n\037deprecated_first_frame_max_size\030\003 \001(" +
+      "\004\022\034\n\024has_parameter_values\030\004 \001(\010\022\034\n\024first" +
+      "_frame_max_size\030\005 \001(\005\"m\n\022SyncResultsRequ",
+      "est\022\025\n\rconnection_id\030\001 \001(\t\022\024\n\014statement_" +
+      "id\030\002 \001(\r\022\032\n\005state\030\003 \001(\0132\013.QueryState\022\016\n\006" +
+      "offset\030\004 \001(\004\"&\n\rCommitRequest\022\025\n\rconnect" +
+      "ion_id\030\001 \001(\t\"(\n\017RollbackRequest\022\025\n\rconne" +
+      "ction_id\030\001 \001(\t\"b\n\035PrepareAndExecuteBatch" +
+      "Request\022\025\n\rconnection_id\030\001 \001(\t\022\024\n\014statem" +
+      "ent_id\030\002 \001(\r\022\024\n\014sql_commands\030\003 \003(\t\"4\n\013Up" +
+      "dateBatch\022%\n\020parameter_values\030\001 \003(\0132\013.Ty" +
+      "pedValue\"a\n\023ExecuteBatchRequest\022\025\n\rconne" +
+      "ction_id\030\001 \001(\t\022\024\n\014statement_id\030\002 \001(\r\022\035\n\007",
+      "updates\030\003 \003(\0132\014.UpdateBatchB\"\n org.apach" +
+      "e.calcite.avatica.protob\006proto3"
     };
     com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner assigner =
         new com.google.protobuf.Descriptors.FileDescriptor.    InternalDescriptorAssigner() {
@@ -16564,7 +16648,7 @@ public final class Requests {
     internal_static_ExecuteRequest_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_ExecuteRequest_descriptor,
-        new java.lang.String[] { "StatementHandle", "ParameterValues", "FirstFrameMaxSize", "HasParameterValues", });
+        new java.lang.String[] { "StatementHandle", "ParameterValues", "DeprecatedFirstFrameMaxSize", "HasParameterValues", "FirstFrameMaxSize", });
     internal_static_SyncResultsRequest_descriptor =
       getDescriptor().getMessageTypes().get(16);
     internal_static_SyncResultsRequest_fieldAccessorTable = new

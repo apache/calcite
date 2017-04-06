@@ -1002,9 +1002,15 @@ public interface Service {
   class ExecuteRequest extends Request {
     private static final FieldDescriptor STATEMENT_HANDLE_DESCRIPTOR = Requests.ExecuteRequest.
         getDescriptor().findFieldByNumber(Requests.ExecuteRequest.STATEMENTHANDLE_FIELD_NUMBER);
+    private static final FieldDescriptor DEPRECATED_FIRST_FRAME_MAX_SIZE_DESCRIPTOR =
+        Requests.ExecuteRequest.getDescriptor().findFieldByNumber(
+            Requests.ExecuteRequest.DEPRECATED_FIRST_FRAME_MAX_SIZE_FIELD_NUMBER);
+    private static final FieldDescriptor FIRST_FRAME_MAX_SIZE_DESCRIPTOR = Requests.ExecuteRequest.
+        getDescriptor().findFieldByNumber(
+            Requests.ExecuteRequest.FIRST_FRAME_MAX_SIZE_FIELD_NUMBER);
     public final Meta.StatementHandle statementHandle;
     public final List<TypedValue> parameterValues;
-    public final long maxRowCount;
+    public final int maxRowCount;
 
     ExecuteRequest() {
       statementHandle = null;
@@ -1016,7 +1022,7 @@ public interface Service {
     public ExecuteRequest(
         @JsonProperty("statementHandle") Meta.StatementHandle statementHandle,
         @JsonProperty("parameterValues") List<TypedValue> parameterValues,
-        @JsonProperty("maxRowCount") long maxRowCount) {
+        @JsonProperty("maxRowCount") int maxRowCount) {
       this.statementHandle = statementHandle;
       this.parameterValues = parameterValues;
       this.maxRowCount = maxRowCount;
@@ -1043,7 +1049,16 @@ public interface Service {
         }
       }
 
-      return new ExecuteRequest(statementHandle, values, msg.getFirstFrameMaxSize());
+      // Default int value
+      int maxFrameSize = 0;
+      if (msg.hasField(FIRST_FRAME_MAX_SIZE_DESCRIPTOR)) {
+        maxFrameSize = msg.getFirstFrameMaxSize();
+      } else if (msg.hasField(DEPRECATED_FIRST_FRAME_MAX_SIZE_DESCRIPTOR)) {
+        // Truncate the long as an int
+        maxFrameSize = (int) msg.getDeprecatedFirstFrameMaxSize();
+      }
+
+      return new ExecuteRequest(statementHandle, values, maxFrameSize);
     }
 
     @Override Requests.ExecuteRequest serialize() {
@@ -1066,6 +1081,8 @@ public interface Service {
         builder.setHasParameterValues(false);
       }
 
+      // Set the old and new field
+      builder.setDeprecatedFirstFrameMaxSize(maxRowCount);
       builder.setFirstFrameMaxSize(maxRowCount);
 
       return builder.build();

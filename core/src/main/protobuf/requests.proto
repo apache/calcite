@@ -127,8 +127,9 @@ message ConnectionSyncRequest {
 message ExecuteRequest {
   StatementHandle statementHandle = 1;
   repeated TypedValue parameter_values = 2;
-  uint64 first_frame_max_size = 3; // The maximum number of rows to return in the first Frame
+  uint64 deprecated_first_frame_max_size = 3; // Deprecated, use the signed int instead.
   bool has_parameter_values = 4;
+  int32 first_frame_max_size = 5; // The maximum number of rows to return in the first Frame
 }
 
 
