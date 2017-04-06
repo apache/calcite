@@ -265,7 +265,7 @@ If successful, remove the `-DdryRun` flag and run the release for real.
 
 {% highlight bash %}
 # Prepare sets the version numbers, creates a tag, and pushes it to git.
-mvn -DreleaseVersion=X.Y.Z -DdevelopmentVersion=X.Y.Z+1-SNAPSHOT -Dtag=calcite-avatica-X.Y.Z-rc0 -Papache-release -Duser.name=${asf.username} release:prepare
+mvn -DreleaseVersion=X.Y.Z -DdevelopmentVersion=X.Y.Z+1-SNAPSHOT -Dtag=avatica-X.Y.Z-rc0 -Papache-release -Duser.name=${asf.username} release:prepare
 
 # Perform checks out the tagged version, builds, and deploys to the staging repository
 mvn -Papache-release -Duser.name=${asf.username} release:perform -Darguments="-DskipTests"
@@ -311,8 +311,8 @@ svn ci
 git tag
 
 # If the tag exists, delete it locally and remotely
-git tag -d apache-calcite-avatica-X.Y.Z
-git push origin :refs/tags/apache-calcite-avatica-X.Y.Z
+git tag -d avatica-X.Y.Z
+git push origin :refs/tags/avatica-X.Y.Z
 
 # Remove modified files
 mvn release:clean
@@ -479,6 +479,13 @@ Promote the staged nexus artifacts.
 * Under "Build Promotion" click "Staging Repositories"
 * In the line with "orgapachecalcite-xxxx", check the box
 * Press "Release" button
+
+Copy the Git tag:
+
+{% highlight bash %}
+git tag rel/avatica-X.Y.X avatica-X.Y.Z-rcN
+git push origin rel/avatica-X.Y.Z
+{% endhighlight %}
 
 Check the artifacts into svn.
 
