@@ -57,41 +57,12 @@ limitations under the License.
   </dependencies>
 
   <build>
-    <pluginManagement>
-      <plugins>
-        <plugin>
-          <groupId>org.eclipse.m2e</groupId>
-          <artifactId>lifecycle-mapping</artifactId>
-          <version>1.0.0</version>
-          <configuration>
-            <lifecycleMappingMetadata>
-              <pluginExecutions>
-                <pluginExecution>
-                  <pluginExecutionFilter>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-checkstyle-plugin</artifactId>
-                    <versionRange>[2.12.1,)</versionRange>
-                    <goals>
-                      <goal>check</goal>
-                    </goals>
-                  </pluginExecutionFilter>
-                  <action>
-                    <ignore />
-                  </action>
-                </pluginExecution>
-              </pluginExecutions>
-            </lifecycleMappingMetadata>
-          </configuration>
-        </plugin>
-      </plugins>
-    </pluginManagement>
     <plugins>
       <!-- Parent module has the same plugin and does the work of
            generating -sources.jar for each project. But without the
            plugin declared here, IDEs don't know the sources are
            available. -->
       <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-source-plugin</artifactId>
         <executions>
           <execution>
@@ -106,7 +77,6 @@ limitations under the License.
       </plugin>
       <plugin>
         <artifactId>maven-dependency-plugin</artifactId>
-        <version>${maven-dependency-plugin.version}</version>
         <executions>
           <execution>
             <id>analyze</id>
@@ -126,7 +96,6 @@ limitations under the License.
       </plugin>
       <plugin>
         <!-- Create a standalone JAR capable of running the server -->
-        <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-shade-plugin</artifactId>
         <executions>
           <execution>

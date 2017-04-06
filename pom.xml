@@ -21,32 +21,34 @@ limitations under the License.
     <groupId>org.apache</groupId>
     <artifactId>apache</artifactId>
     <version>18</version>
-    <!-- Tell Maven that it's OK that we're not attached to the parent directory -->
-    <relativePath />
   </parent>
-
-  <!-- The basics. -->
   <groupId>org.apache.calcite.avatica</groupId>
   <artifactId>avatica-parent</artifactId>
   <packaging>pom</packaging>
   <version>1.10.0-SNAPSHOT</version>
-
-  <!-- More project information. -->
   <name>Apache Calcite Avatica Project</name>
   <description>Avatica is a JDBC driver framework which is a part of Apache Calcite</description>
   <url>https://calcite.apache.org/avatica</url>
   <inceptionYear>2012</inceptionYear>
-
+  <organization>
+    <name>The Apache Software Foundation</name>
+    <url>https://www.apache.org</url>
+  </organization>
+  <licenses>
+    <license>
+      <name>Apache License, Version 2.0</name>
+      <url>https://www.apache.org/licenses/LICENSE-2.0</url>
+    </license>
+  </licenses>
   <mailingLists>
     <mailingList>
       <name>Apache Calcite developers list</name>
       <subscribe>dev-subscribe@calcite.apache.org</subscribe>
       <unsubscribe>dev-unsubscribe@calcite.apache.org</unsubscribe>
       <post>dev@calcite.apache.org</post>
-      <archive>https://mail-archives.apache.org/mod_mbox/calcite-dev</archive>
+      <archive>https://lists.apache.org/list.html?dev@calcite.apache.org</archive>
     </mailingList>
   </mailingLists>
-
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <top.dir>${project.basedir}</top.dir>
@@ -55,12 +57,10 @@ limitations under the License.
     <version.minor>9</version.minor>
     <!-- This list is in alphabetical order. -->
     <bouncycastle.version>1.55</bouncycastle.version>
-    <build-helper-maven-plugin.version>1.9</build-helper-maven-plugin.version>
+    <build-helper-maven-plugin.version>3.0.0</build-helper-maven-plugin.version>
     <checksum-maven-plugin.version>1.2</checksum-maven-plugin.version>
     <dropwizard-metrics3.version>3.1.2</dropwizard-metrics3.version>
     <forbiddenapis.version>2.3</forbiddenapis.version>
-    <freemarker.version>2.3.19</freemarker.version>
-    <git-commit-id-plugin.version>2.1.9</git-commit-id-plugin.version>
     <!-- We support guava versions as old as 14.0.1 (the version used by Hive)
          but prefer more recent versions. -->
     <guava.version>14.0.1</guava.version>
@@ -89,19 +89,20 @@ limitations under the License.
     <servlet.version>3.0.1</servlet.version>
     <slf4j.version>1.7.13</slf4j.version>
   </properties>
-
   <issueManagement>
     <system>Jira</system>
     <url>https://issues.apache.org/jira/browse/CALCITE</url>
   </issueManagement>
-
+  <ciManagement>
+    <system>Apache Jenkins</system>
+    <url>https://builds.apache.org/job/Calcite-Avatica-Master/</url>
+  </ciManagement>
   <scm>
     <connection>scm:git:https://git-wip-us.apache.org/repos/asf/calcite-avatica.git</connection>
     <developerConnection>scm:git:https://git-wip-us.apache.org/repos/asf/calcite-avatica.git</developerConnection>
     <url>https://github.com/apache/calcite-avatica</url>
     <tag>HEAD</tag>
   </scm>
-
   <modules>
     <module>core</module>
     <module>docker</module>
@@ -113,12 +114,10 @@ limitations under the License.
     <module>standalone-server</module>
     <module>shaded/core</module>
   </modules>
-
   <!-- No dependencies here. Declare dependency VERSIONS in
        dependencyManagement, below, and each dependency in the module that uses
        it. -->
   <dependencies />
-
   <dependencyManagement>
     <dependencies>
       <!-- Sorted by groupId, artifactId; avatica dependencies first. -->
@@ -297,7 +296,6 @@ limitations under the License.
       </dependency>
     </dependencies>
   </dependencyManagement>
-
   <build>
     <extensions>
       <extension>
@@ -379,7 +377,6 @@ limitations under the License.
         </configuration>
       </plugin>
       <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-source-plugin</artifactId>
         <executions>
           <execution>
@@ -393,7 +390,6 @@ limitations under the License.
         </executions>
       </plugin>
       <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
         <configuration>
           <source>1.7</source>
@@ -402,7 +398,6 @@ limitations under the License.
         </configuration>
       </plugin>
       <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-checkstyle-plugin</artifactId>
         <executions>
           <execution>
@@ -430,10 +425,7 @@ limitations under the License.
         </dependencies>
       </plugin>
       <plugin>
-        <!-- override default version 2.8 for access to additional config settings -->
-        <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-dependency-plugin</artifactId>
-        <version>${maven-dependency-plugin.version}</version>
         <executions>
           <execution>
             <id>analyze</id>
@@ -451,7 +443,6 @@ limitations under the License.
              configured strict, so that it shows errors such as broken links in
              javadoc on private methods. The configuration for "mvn site" is
              under "reporting", and is more lenient. -->
-        <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-javadoc-plugin</artifactId>
         <configuration>
           <links>
@@ -464,7 +455,6 @@ limitations under the License.
         <!-- Override apache parent POM's definition of release
              plugin. If we don't specify gitexe version, git doesn't
              commit during release process. -->
-        <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-release-plugin</artifactId>
         <dependencies>
           <dependency>
@@ -474,58 +464,10 @@ limitations under the License.
           </dependency>
         </dependencies>
       </plugin>
-      <plugin>
-        <groupId>org.codehaus.mojo</groupId>
-        <artifactId>build-helper-maven-plugin</artifactId>
-        <!-- Make sure every sub-project has LICENSE, NOTICE and
-             git.properties in its jar's META-INF directory. -->
-        <executions>
-          <execution>
-            <id>add-resource</id>
-            <phase>generate-resources</phase>
-            <goals>
-              <goal>add-resource</goal>
-              <goal>add-test-resource</goal>
-            </goals>
-            <configuration>
-              <resources>
-                <resource>
-                  <directory>${top.dir}</directory>
-                  <targetPath>META-INF</targetPath>
-                  <includes>
-                    <include>LICENSE</include>
-                    <include>NOTICE</include>
-                  </includes>
-                </resource>
-                <resource>
-                  <directory>${top.dir}/target</directory>
-                  <targetPath>META-INF</targetPath>
-                  <includes>
-                    <include>git.properties</include>
-                  </includes>
-                </resource>
-              </resources>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
     </plugins>
-
     <pluginManagement>
       <plugins>
         <!-- Sorted by groupId, artifactId. -->
-        <plugin>
-          <groupId>com.googlecode.fmpp-maven-plugin</groupId>
-          <artifactId>fmpp-maven-plugin</artifactId>
-          <version>${fmpp-maven-plugin.version}</version>
-          <dependencies>
-            <dependency>
-              <groupId>org.freemarker</groupId>
-              <artifactId>freemarker</artifactId>
-              <version>${freemarker.version}</version>
-            </dependency>
-          </dependencies>
-        </plugin>
         <plugin>
           <groupId>com.spotify</groupId>
           <artifactId>docker-maven-plugin</artifactId>
@@ -537,27 +479,24 @@ limitations under the License.
           <version>${forbiddenapis.version}</version>
         </plugin>
         <plugin>
-          <groupId>net.hydromatic</groupId>
-          <artifactId>hydromatic-resource-maven-plugin</artifactId>
-          <version>${hydromatic-resource.version}</version>
-        </plugin>
-        <plugin>
           <groupId>net.ju-n.maven.plugins</groupId>
           <artifactId>checksum-maven-plugin</artifactId>
           <version>${checksum-maven-plugin.version}</version>
         </plugin>
         <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-assembly-plugin</artifactId>
           <version>${maven-assembly-plugin.version}</version>
         </plugin>
         <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-checkstyle-plugin</artifactId>
           <version>${maven-checkstyle-plugin.version}</version>
         </plugin>
         <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
+          <!-- override default version 2.8 for access to additional config settings -->
+          <artifactId>maven-dependency-plugin</artifactId>
+          <version>${maven-dependency-plugin.version}</version>
+        </plugin>
+        <plugin>
           <artifactId>maven-failsafe-plugin</artifactId>
           <executions>
             <execution>
@@ -582,21 +521,17 @@ limitations under the License.
           </executions>
         </plugin>
         <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-javadoc-plugin</artifactId>
           <version>${maven-javadoc-plugin.version}</version>
         </plugin>
         <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-shade-plugin</artifactId>
           <version>${maven-shade-plugin.version}</version>
         </plugin>
         <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-source-plugin</artifactId>
         </plugin>
         <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-surefire-plugin</artifactId>
           <configuration>
             <argLine>-Xmx1536m -XX:MaxPermSize=256m -Duser.timezone=${user.timezone}</argLine>
@@ -613,14 +548,41 @@ limitations under the License.
           <version>2.0</version>
         </plugin>
         <plugin>
-          <groupId>org.codehaus.mojo</groupId>
-          <artifactId>javacc-maven-plugin</artifactId>
-          <version>${javacc-maven-plugin.version}</version>
-        </plugin>
-        <plugin>
-          <groupId>pl.project13.maven</groupId>
-          <artifactId>git-commit-id-plugin</artifactId>
-          <version>${git-commit-id-plugin.version}</version>
+          <groupId>org.eclipse.m2e</groupId>
+          <artifactId>lifecycle-mapping</artifactId>
+          <version>1.0.0</version>
+          <configuration>
+            <lifecycleMappingMetadata>
+              <pluginExecutions>
+                <pluginExecution>
+                  <pluginExecutionFilter>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-checkstyle-plugin</artifactId>
+                    <versionRange>[2.12.1,)</versionRange>
+                    <goals>
+                      <goal>check</goal>
+                    </goals>
+                  </pluginExecutionFilter>
+                  <action>
+                    <ignore />
+                  </action>
+                </pluginExecution>
+                <pluginExecution>
+                  <pluginExecutionFilter>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-remote-resources-plugin</artifactId>
+                    <versionRange>[1.0,)</versionRange>
+                    <goals>
+                      <goal>process</goal>
+                    </goals>
+                  </pluginExecutionFilter>
+                  <action>
+                    <ignore />
+                  </action>
+                </pluginExecution>
+              </pluginExecutions>
+            </lifecycleMappingMetadata>
+          </configuration>
         </plugin>
         <plugin>
           <groupId>org.xolstice.maven.plugins</groupId>
@@ -637,11 +599,9 @@ limitations under the License.
       </plugins>
     </pluginManagement>
   </build>
-
   <reporting>
     <plugins>
       <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-javadoc-plugin</artifactId>
         <configuration>
           <links>
@@ -653,7 +613,6 @@ limitations under the License.
       </plugin>
     </plugins>
   </reporting>
-
   <repositories>
     <repository>
       <id>central</id>
@@ -665,7 +624,6 @@ limitations under the License.
       </snapshots>
     </repository>
   </repositories>
-
   <profiles>
     <profile>
       <!-- This profile adds/overrides few features of the 'apache-release'
@@ -748,87 +706,6 @@ limitations under the License.
                 </configuration>
               </execution>
             </executions>
-          </plugin>
-        </plugins>
-      </build>
-    </profile>
-    <profile>
-      <id>it</id>
-      <build>
-        <plugins>
-          <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-failsafe-plugin</artifactId>
-          </plugin>
-        </plugins>
-      </build>
-    </profile>
-    <profile>
-      <!-- CALCITE-537: workaround for MRRESOURCES-91
-        Avoid overwrite of the destination file if the produced
-        contents is the same.
-        Apache pom overwrites NOTICE, DEPENDENCIES, and LICENSE files, however
-        we do not want recompile the module every time. -->
-      <id>skip-apache-licenses</id>
-      <activation>
-        <activeByDefault>true</activeByDefault>
-        <file><exists>target/maven-shared-archive-resources/META-INF/LICENSE</exists></file>
-      </activation>
-      <build>
-        <plugins>
-          <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-remote-resources-plugin</artifactId>
-            <configuration>
-              <skip>true</skip>
-            </configuration>
-          </plugin>
-        </plugins>
-      </build>
-    </profile>
-    <profile>
-      <!-- Generate git.properties on first build -->
-      <id>generate-git-id</id>
-      <activation>
-        <activeByDefault>false</activeByDefault>
-        <!-- Note: <missing> here does NOT support interpolation,
-        so technically, this profile is active for sub-modules.
-        It would be nice to use ${top.dir}/target/... here, but
-        it is not possible.
-        However sub-modules lack .git folder, so no git.properties
-        is generated. -->
-        <file>
-          <missing>target/git.properties</missing>
-        </file>
-      </activation>
-      <build>
-        <plugins>
-          <plugin>
-            <groupId>pl.project13.maven</groupId>
-            <artifactId>git-commit-id-plugin</artifactId>
-            <inherited>false</inherited>
-            <executions>
-              <execution>
-                <goals>
-                  <goal>revision</goal>
-                </goals>
-              </execution>
-            </executions>
-            <configuration>
-              <dateFormat>yyyy-MM-dd'T'HH:mm:ssZ</dateFormat>
-              <verbose>false</verbose>
-              <skipPoms>false</skipPoms>
-              <generateGitPropertiesFile>true</generateGitPropertiesFile>
-              <generateGitPropertiesFilename>target/git.properties</generateGitPropertiesFilename>
-              <failOnNoGitDirectory>false</failOnNoGitDirectory>
-              <gitDescribe>
-                <skip>false</skip>
-                <always>false</always>
-                <abbrev>7</abbrev>
-                <dirty>-dirty</dirty>
-                <forceLongFormat>true</forceLongFormat>
-              </gitDescribe>
-            </configuration>
           </plugin>
         </plugins>
       </build>

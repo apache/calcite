@@ -44,7 +44,6 @@ limitations under the License.
     <plugins>
       <plugin>
         <artifactId>maven-dependency-plugin</artifactId>
-        <version>${maven-dependency-plugin.version}</version>
         <executions>
           <execution>
             <id>analyze</id>
@@ -61,7 +60,6 @@ limitations under the License.
         </executions>
       </plugin>
       <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-shade-plugin</artifactId>
         <executions>
           <execution>
