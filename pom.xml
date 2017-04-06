@@ -76,6 +76,7 @@ limitations under the License.
     <jetty.version>9.2.19.v20160908</jetty.version>
     <junit.version>4.12</junit.version>
     <kerby.version>1.0.0-RC2</kerby.version>
+    <maven-assembly-plugin.version>3.0.0</maven-assembly-plugin.version>
     <maven-checkstyle-plugin.version>2.12.1</maven-checkstyle-plugin.version>
     <maven-dependency-plugin.version>2.10</maven-dependency-plugin.version>
     <!-- Apache 18 has 2.10.3, need 2.10.4 for [MJAVADOC-442]. -->
@@ -544,6 +545,11 @@ limitations under the License.
           <groupId>net.ju-n.maven.plugins</groupId>
           <artifactId>checksum-maven-plugin</artifactId>
           <version>${checksum-maven-plugin.version}</version>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-assembly-plugin</artifactId>
+          <version>${maven-assembly-plugin.version}</version>
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
