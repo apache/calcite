@@ -32,6 +32,7 @@ import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.AbstractRelNode;
 import org.apache.calcite.rel.RelFieldCollation;
@@ -77,6 +78,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Properties;
 import java.util.regex.Pattern;
+
+import static org.apache.calcite.sql.SqlKind.INPUT_REF;
 
 /**
  * Relational expression representing a scan of a Druid data set.
@@ -232,12 +235,12 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
 
   private boolean isValidCast(RexCall e, boolean boundedComparator) {
     assert e.isA(SqlKind.CAST);
-    if (e.getOperands().get(0).isA(SqlKind.INPUT_REF)
+    if (e.getOperands().get(0).isA(INPUT_REF)
         && e.getType().getFamily() == SqlTypeFamily.CHARACTER) {
       // CAST of input to character type
       return true;
     }
-    if (e.getOperands().get(0).isA(SqlKind.INPUT_REF)
+    if (e.getOperands().get(0).isA(INPUT_REF)
         && e.getType().getFamily() == SqlTypeFamily.NUMERIC
         && boundedComparator) {
       // CAST of input to numeric type, it is part of a bounded comparison
@@ -900,42 +903,40 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
     }
 
     String translate(RexNode e, boolean set) {
+      int index = -1;
       switch (e.getKind()) {
+      case LITERAL:
+          return ((RexLiteral) e).getValue3().toString();
       case INPUT_REF:
         final RexInputRef ref = (RexInputRef) e;
-        final String fieldName =
-            rowType.getFieldList().get(ref.getIndex()).getName();
-        if (set) {
-          if (druidTable.metricFieldNames.contains(fieldName)) {
-            metrics.add(fieldName);
-          } else if (!druidTable.timestampFieldName.equals(fieldName)
-              && !DruidTable.DEFAULT_TIMESTAMP_COLUMN.equals(fieldName)) {
-            dimensions.add(fieldName);
-          }
-        }
-        return fieldName;
-
+        index = ref.getIndex();
+        break;
       case CAST:
-        return tr(e, 0, set);
-
-      case LITERAL:
-        return ((RexLiteral) e).getValue3().toString();
-
+        index = RelOptUtil.InputFinder.bits(e).asList().get(0);
+        break;
       case FLOOR:
         final RexCall call = (RexCall) e;
         assert DruidDateTimeUtils.extractGranularity(call) != null;
-        return tr(call, 0, set);
+        index = RelOptUtil.InputFinder.bits(e).asList().get(0);
+        break;
       case EXTRACT:
         final RexCall extractCall = (RexCall) e;
         assert DruidDateTimeUtils.extractGranularity(extractCall) != null;
-        return tr(extractCall.getOperands().get(1), 0, set);
-      case REINTERPRET:
-        final RexCall reinterpretCall = (RexCall) e;
-        return  tr(reinterpretCall, 0, set);
-
-      default:
+        index = RelOptUtil.InputFinder.bits(e).asList().get(0);
+      }
+      if (index == -1) {
         throw new AssertionError("invalid expression " + e);
       }
+      final String fieldName = rowType.getFieldList().get(index).getName();
+      if (set) {
+        if (druidTable.metricFieldNames.contains(fieldName)) {
+          metrics.add(fieldName);
+        } else if (!druidTable.timestampFieldName.equals(fieldName)
+            && !DruidTable.DEFAULT_TIMESTAMP_COLUMN.equals(fieldName)) {
+          dimensions.add(fieldName);
+        }
+      }
+      return fieldName;
     }
 
     private JsonFilter translateFilter(RexNode e) {
