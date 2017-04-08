@@ -29,11 +29,7 @@ import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rel.type.RelRecordType;
 import org.apache.calcite.rex.RexBuilder;
-import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.rex.RexSqlStandardConvertletTable;
-import org.apache.calcite.rex.RexToSqlNodeConverter;
-import org.apache.calcite.rex.RexToSqlNodeConverterImpl;
 import org.apache.calcite.runtime.CalciteContextException;
 import org.apache.calcite.runtime.CalciteException;
 import org.apache.calcite.runtime.Feature;
@@ -103,10 +99,10 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Supplier;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import org.slf4j.Logger;
@@ -3893,7 +3889,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       final Map<Integer, RelDataTypeField> tableIndexToTargetField =
           SqlValidatorUtil.getIndexToFieldMap(tableFields, targetRowType);
       final Map<Integer, RexNode> projectMap =
-          getConstraintForModifiableView(modifiableViewTable, targetRowType);
+          RelOptUtil.getColumnConstraints(modifiableViewTable, targetRowType, typeFactory);
 
       // Determine columns (indexed to the underlying table) that need
       // to be validated against the view constraint.
@@ -3912,29 +3908,15 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         for (SqlNode row : values) {
           final SqlCall call = (SqlCall) row;
           final SqlNode sourceValue = call.operand(targetField.getIndex());
-          checkConstraint(validatorTable, colName, sourceValue, projectMap.get(colIndex));
+          final ValidationError validationError =
+              new ValidationError(sourceValue,
+                  RESOURCE.viewConstraintNotSatisfied(colName,
+                      Util.last(validatorTable.getQualifiedName())));
+          RelOptUtil.validateValueAgainstConstraint(sourceValue,
+              projectMap.get(colIndex), validationError);
         }
       }
     }
-  }
-
-  /**
-   * Returns a mapping of the column ordinal in the underlying table to a column
-   * constraint of the modifiable view.
-   *
-   * @param modifiableViewTable The modifiable view which has a constraint
-   * @param targetRowType       The target type
-   */
-  private Map<Integer, RexNode> getConstraintForModifiableView(
-      ModifiableViewTable modifiableViewTable, RelDataType targetRowType) {
-    final RexBuilder rexBuilder = new RexBuilder(typeFactory);
-    final RexNode constraint =
-        modifiableViewTable.getConstraint(rexBuilder, targetRowType);
-    final Map<Integer, RexNode> projectMap = Maps.newHashMap();
-    final List<RexNode> filters = new ArrayList<>();
-    RelOptUtil.inferViewPredicates(projectMap, filters, constraint);
-    assert filters.isEmpty();
-    return projectMap;
   }
 
   /**
@@ -3956,55 +3938,27 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       final RelDataType tableRowType = table.getRowType(typeFactory);
 
       final Map<Integer, RexNode> projectMap =
-          getConstraintForModifiableView(modifiableViewTable, targetRowType);
+          RelOptUtil.getColumnConstraints(modifiableViewTable, targetRowType,
+              typeFactory);
       final Map<String, Integer> nameToIndex =
           SqlValidatorUtil.mapNameToIndex(tableRowType.getFieldList());
 
       // Validate update values against the view constraint.
-      for (final Pair<SqlNode, SqlNode> column : Pair.zip(update.getTargetColumnList().getList(),
-          update.getSourceExpressionList().getList())) {
+      final List<SqlNode> targets = update.getTargetColumnList().getList();
+      final List<SqlNode> sources = update.getSourceExpressionList().getList();
+      for (final Pair<SqlNode, SqlNode> column : Pair.zip(targets, sources)) {
         final String columnName = ((SqlIdentifier) column.left).getSimple();
         final Integer columnIndex = nameToIndex.get(columnName);
         if (projectMap.containsKey(columnIndex)) {
           final RexNode columnConstraint = projectMap.get(columnIndex);
-          checkConstraint(validatorTable, columnName, column.right, columnConstraint);
+          final ValidationError validationError =
+              new ValidationError(column.right,
+                  RESOURCE.viewConstraintNotSatisfied(columnName,
+                      Util.last(validatorTable.getQualifiedName())));
+          RelOptUtil.validateValueAgainstConstraint(column.right,
+              columnConstraint, validationError);
         }
       }
-    }
-  }
-
-  /**
-   * Ensures that a source value does not violate the constraint of the target column.
-   *
-   * @param table            The SqlValidatorTable which wraps a ModifiableViewTable.
-   * @param columnName       The target column name.
-   * @param sourceValue      The insert value being validated.
-   * @param targetConstraint The constraint applied to sourceValue for validation.
-   */
-  private void checkConstraint(
-      SqlValidatorTable table, String columnName,
-      SqlNode sourceValue, RexNode targetConstraint) {
-    if (!(sourceValue instanceof SqlLiteral)) {
-      // We cannot guarantee that the value satisfies the constraint.
-      throw newValidationError(sourceValue,
-          RESOURCE.viewConstraintNotSatisfied(
-              columnName, Util.last(table.getQualifiedName())));
-    }
-    final SqlLiteral insertValue = (SqlLiteral) sourceValue;
-    final RexLiteral columnConstraint = (RexLiteral) targetConstraint;
-
-    final RexSqlStandardConvertletTable convertletTable =
-        new RexSqlStandardConvertletTable();
-    final RexToSqlNodeConverter sqlNodeToRexConverter =
-        new RexToSqlNodeConverterImpl(convertletTable);
-    final SqlLiteral constraintValue =
-        (SqlLiteral) sqlNodeToRexConverter.convertLiteral(columnConstraint);
-
-    if (!insertValue.equals(constraintValue)) {
-      // The value does not satisfy the constraint.
-      throw newValidationError(sourceValue,
-          RESOURCE.viewConstraintNotSatisfied(
-              columnName, Util.last(table.getQualifiedName())));
     }
   }
 
@@ -4364,9 +4318,29 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   }
 
   /**
-   * Throws a validator exception.
+   * Throws a validator exception with access to the validator context.
+   * The exception is determined when an instance is created.
    */
-  public class ValidationErrorFunction
+  private class ValidationError implements Supplier<CalciteContextException> {
+    private final SqlNode sqlNode;
+    private final Resources.ExInst<SqlValidatorException> validatorException;
+
+    ValidationError(SqlNode sqlNode,
+        Resources.ExInst<SqlValidatorException> validatorException) {
+      this.sqlNode = sqlNode;
+      this.validatorException = validatorException;
+    }
+
+    public CalciteContextException get() {
+      return newValidationError(sqlNode, validatorException);
+    }
+  }
+
+  /**
+   * Throws a validator exception with access to the validator context.
+   * The exception is determined when the function is applied.
+   */
+  class ValidationErrorFunction
       implements Function2<SqlNode, Resources.ExInst<SqlValidatorException>,
             CalciteContextException> {
     @Override public CalciteContextException apply(
