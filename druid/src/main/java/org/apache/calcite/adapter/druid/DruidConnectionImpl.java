@@ -188,36 +188,41 @@ class DruidConnectionImpl implements DruidConnection {
           if (parser.nextToken() == JsonToken.FIELD_NAME
               && parser.getCurrentName().equals("result")
               && parser.nextToken() == JsonToken.START_OBJECT) {
-            if (parser.nextToken() == JsonToken.FIELD_NAME
-                && parser.getCurrentName().equals("pagingIdentifiers")
-                && parser.nextToken() == JsonToken.START_OBJECT) {
-              JsonToken token = parser.nextToken();
-              while (parser.getCurrentToken() == JsonToken.FIELD_NAME) {
-                page.pagingIdentifier = parser.getCurrentName();
-                if (parser.nextToken() == JsonToken.VALUE_NUMBER_INT) {
-                  page.offset = parser.getIntValue();
+            while (parser.nextToken() == JsonToken.FIELD_NAME) {
+              if (parser.getCurrentName().equals("pagingIdentifiers")
+                  && parser.nextToken() == JsonToken.START_OBJECT) {
+                JsonToken token = parser.nextToken();
+                while (parser.getCurrentToken() == JsonToken.FIELD_NAME) {
+                  page.pagingIdentifier = parser.getCurrentName();
+                  if (parser.nextToken() == JsonToken.VALUE_NUMBER_INT) {
+                    page.offset = parser.getIntValue();
+                  }
+                  token = parser.nextToken();
                 }
-                token = parser.nextToken();
-              }
-              expect(token, JsonToken.END_OBJECT);
-            }
-            if (parser.nextToken() == JsonToken.FIELD_NAME
-                && parser.getCurrentName().equals("events")
-                && parser.nextToken() == JsonToken.START_ARRAY) {
-              while (parser.nextToken() == JsonToken.START_OBJECT) {
-                expectScalarField(parser, "segmentId");
-                expectScalarField(parser, "offset");
-                if (parser.nextToken() == JsonToken.FIELD_NAME
-                    && parser.getCurrentName().equals("event")
-                    && parser.nextToken() == JsonToken.START_OBJECT) {
-                  parseFields(fieldNames, fieldTypes, posTimestampField, rowBuilder, parser);
-                  sink.send(rowBuilder.build());
-                  rowBuilder.reset();
-                  page.totalRowCount += 1;
+                expect(token, JsonToken.END_OBJECT);
+              } else if (parser.getCurrentName().equals("events")
+                  && parser.nextToken() == JsonToken.START_ARRAY) {
+                while (parser.nextToken() == JsonToken.START_OBJECT) {
+                  expectScalarField(parser, "segmentId");
+                  expectScalarField(parser, "offset");
+                  if (parser.nextToken() == JsonToken.FIELD_NAME
+                      && parser.getCurrentName().equals("event")
+                      && parser.nextToken() == JsonToken.START_OBJECT) {
+                    parseFields(fieldNames, fieldTypes, posTimestampField, rowBuilder, parser);
+                    sink.send(rowBuilder.build());
+                    rowBuilder.reset();
+                    page.totalRowCount += 1;
+                  }
+                  expect(parser, JsonToken.END_OBJECT);
                 }
-                expect(parser, JsonToken.END_OBJECT);
+                parser.nextToken();
+              } else if (parser.getCurrentName().equals("dimensions")
+                  || parser.getCurrentName().equals("metrics")) {
+                expect(parser, JsonToken.START_ARRAY);
+                while (parser.nextToken() != JsonToken.END_ARRAY) {
+                  // empty
+                }
               }
-              parser.nextToken();
             }
           }
         }
