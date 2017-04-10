@@ -1252,7 +1252,11 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
         generator.writeStringField("upper", upper);
         generator.writeBooleanField("upperStrict", upperStrict);
       }
-      generator.writeBooleanField("alphaNumeric", alphaNumeric);
+      if (alphaNumeric) {
+        generator.writeStringField("ordering", "numeric");
+      } else {
+        generator.writeStringField("ordering", "lexicographic");
+      }
       generator.writeEndObject();
     }
   }
