@@ -21,7 +21,10 @@ import com.fasterxml.jackson.core.JsonGenerator;
 import java.io.IOException;
 
 /**
- * Default implementation of Dimension spec
+ * Default implementation of DimensionSpec.
+ *
+ * <p>The default implementation returns dimension values as is and optionally
+ * renames the dimension.
  */
 public class DefaultDimensionSpec implements DimensionSpec {
 

@@ -17,7 +17,7 @@
 package org.apache.calcite.adapter.druid;
 
 /**
- * Time extraction dimension spec implementation
+ * DimensionSpec implementation that uses a time format extraction function.
  */
 public class TimeExtractionDimensionSpec extends ExtractionDimensionSpec {
 
@@ -26,11 +26,28 @@ public class TimeExtractionDimensionSpec extends ExtractionDimensionSpec {
     super(DruidTable.DEFAULT_TIMESTAMP_COLUMN, extractionFunction, outputName);
   }
 
+  /**
+   * Creates a time extraction DimensionSpec that renames the '__time' column
+   * to the given name.
+   *
+   * @param outputName name of the output column
+   * @return the time extraction DimensionSpec instance
+   */
   public static TimeExtractionDimensionSpec makeFullTimeExtract(String outputName) {
     return new TimeExtractionDimensionSpec(
         TimeExtractionFunction.createDefault(), outputName);
   }
 
+  /**
+   * Creates a time extraction DimensionSpec that formats the '__time' column
+   * according to the given granularity and outputs the column with the given
+   * name. Only YEAR, MONTH, and DAY granularity are supported.
+   *
+   * @param granularity granularity to apply to the column
+   * @param outputName name of the output column
+   * @return the time extraction DimensionSpec instance or null if granularity
+   * is not supported
+   */
   public static TimeExtractionDimensionSpec makeExtract(
       Granularity granularity, String outputName) {
     switch (granularity) {
@@ -43,6 +60,7 @@ public class TimeExtractionDimensionSpec extends ExtractionDimensionSpec {
     case DAY:
       return new TimeExtractionDimensionSpec(
           TimeExtractionFunction.createFromGranularity(granularity), outputName);
+    // TODO: Support other granularities
     default:
       return null;
     }

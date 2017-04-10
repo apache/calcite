@@ -23,7 +23,13 @@ import java.io.IOException;
 import static org.apache.calcite.adapter.druid.DruidQuery.writeFieldIf;
 
 /**
- * Time extraction implementation
+ * Implementation of Druid time format extraction function.
+ *
+ * <p>These functions return the dimension value formatted according to the given format string,
+ * time zone, and locale.
+ *
+ * <p>For __time dimension values, this formats the time value bucketed by the aggregation
+ * granularity.
  */
 public class TimeExtractionFunction implements ExtractionFunction {
 
@@ -49,10 +55,22 @@ public class TimeExtractionFunction implements ExtractionFunction {
     generator.writeEndObject();
   }
 
+  /**
+   * Creates the default time format extraction function.
+   *
+   * @return the time extraction function
+   */
   public static TimeExtractionFunction createDefault() {
     return new TimeExtractionFunction("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", null, "UTC", null);
   }
 
+  /**
+   * Creates the time format extraction function for the given granularity.
+   * Only YEAR, MONTH, DAY, and HOUR granularity are supported.
+   *
+   * @param granularity granularity to apply to the column
+   * @return the time extraction function or null if granularity is not supported
+   */
   public static TimeExtractionFunction createFromGranularity(Granularity granularity) {
     switch (granularity) {
     case DAY:

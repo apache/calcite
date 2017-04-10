@@ -17,7 +17,9 @@
 package org.apache.calcite.adapter.druid;
 
 /**
- * Extraction Function interface
+ * Interface for Druid extraction functions.
+ *
+ * <p>Extraction functions define the transformation applied to each dimension value.
  */
 public interface ExtractionFunction extends DruidQuery.Json {
 }

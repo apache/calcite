@@ -23,7 +23,10 @@ import java.io.IOException;
 import static org.apache.calcite.adapter.druid.DruidQuery.writeFieldIf;
 
 /**
- * Extraction function dimension spec implementation
+ * Implementation of extraction function DimensionSpec.
+ *
+ * <p>The extraction function implementation returns dimension values transformed
+ * using the given extraction function.
  */
 public class ExtractionDimensionSpec implements DimensionSpec {
   private final String dimension;

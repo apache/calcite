@@ -17,7 +17,9 @@
 package org.apache.calcite.adapter.druid;
 
 /**
- * Druid dimension spec interface
+ * Interface for Druid DimensionSpec.
+ *
+ * <p>DimensionSpecs define how dimension values get transformed prior to aggregation.
  */
 public interface DimensionSpec extends DruidQuery.Json {
 }
