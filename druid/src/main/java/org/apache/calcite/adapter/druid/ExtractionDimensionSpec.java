@@ -31,15 +31,17 @@ public class ExtractionDimensionSpec implements DimensionSpec {
   private final String outputName;
 
   public ExtractionDimensionSpec(String dimension, ExtractionFunction extractionFunction,
-          String outputName
-  ) {
+      String outputName) {
     this.dimension = dimension;
     this.extractionFunction = extractionFunction;
     this.outputName = outputName;
   }
 
-  @Override public void write(JsonGenerator generator) throws IOException {
+  public String getOutputName() {
+    return outputName;
+  }
 
+  @Override public void write(JsonGenerator generator) throws IOException {
     generator.writeStartObject();
     generator.writeStringField("type", "extraction");
     generator.writeStringField("dimension", dimension);

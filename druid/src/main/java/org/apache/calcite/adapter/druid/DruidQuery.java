@@ -94,6 +94,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
   final ImmutableList<RelNode> rels;
 
   private static final Pattern VALID_SIG = Pattern.compile("sf?p?a?l?");
+  private static final String EXTRACT_COLUMN_NAME_PREFIX = "extract";
   protected static final String DRUID_QUERY_FETCH = "druid.query.fetch";
 
   /**
@@ -507,6 +508,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
       assert aggCalls.size() == aggNames.size();
 
       int timePositionIdx = -1;
+      int extractNumber = -1;
       final ImmutableList.Builder<String> builder = ImmutableList.builder();
       if (projects != null) {
         for (int groupKey : groupSet) {
@@ -519,9 +521,15 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
                 .getFieldList().get(ref.getIndex()).getName();
             if (origin.equals(druidTable.timestampFieldName)) {
               granularity = Granularity.ALL;
-              timeExtractionDimensionSpec = TimeExtractionDimensionSpec.makeFullTimeExtract();
+              // Generate unique name as timestampFieldName is taken
+              String extractColumnName = EXTRACT_COLUMN_NAME_PREFIX + "_" + (++extractNumber);
+              while (fieldNames.contains(extractColumnName)) {
+                extractColumnName = EXTRACT_COLUMN_NAME_PREFIX + "_" + (++extractNumber);
+              }
+              timeExtractionDimensionSpec = TimeExtractionDimensionSpec.makeFullTimeExtract(
+                  extractColumnName);
               dimensions.add(timeExtractionDimensionSpec);
-              builder.add(DruidConnectionImpl.DEFAULT_RESPONSE_TIMESTAMP_COLUMN);
+              builder.add(extractColumnName);
               assert timePositionIdx == -1;
               timePositionIdx = groupKey;
             } else {
@@ -534,15 +542,21 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
             final Granularity funcGranularity =
                 DruidDateTimeUtils.extractGranularity(call);
             if (funcGranularity != null) {
-              granularity = funcGranularity;
               if (call.getKind().equals(SqlKind.EXTRACT)) {
                 // case extract on time
-                timeExtractionDimensionSpec = TimeExtractionDimensionSpec.makeExtract(granularity);
-                builder.add(timeExtractionDimensionSpec.getOutputName());
-                dimensions.add(timeExtractionDimensionSpec);
                 granularity = Granularity.ALL;
+                // Generate unique name as timestampFieldName is taken
+                String extractColumnName = EXTRACT_COLUMN_NAME_PREFIX + "_" + (++extractNumber);
+                while (fieldNames.contains(extractColumnName)) {
+                  extractColumnName = EXTRACT_COLUMN_NAME_PREFIX + "_" + (++extractNumber);
+                }
+                timeExtractionDimensionSpec = TimeExtractionDimensionSpec.makeExtract(
+                    funcGranularity, extractColumnName);
+                dimensions.add(timeExtractionDimensionSpec);
+                builder.add(extractColumnName);
               } else {
                 // case floor by granularity
+                granularity = funcGranularity;
                 builder.add(s);
                 assert timePositionIdx == -1;
                 timePositionIdx = groupKey;
@@ -561,9 +575,15 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
           final String s = fieldNames.get(groupKey);
           if (s.equals(druidTable.timestampFieldName)) {
             granularity = Granularity.ALL;
-            timeExtractionDimensionSpec = TimeExtractionDimensionSpec.makeFullTimeExtract();
-            builder.add(DruidConnectionImpl.DEFAULT_RESPONSE_TIMESTAMP_COLUMN);
+            // Generate unique name as timestampFieldName is taken
+            String extractColumnName = EXTRACT_COLUMN_NAME_PREFIX + "_" + (++extractNumber);
+            while (fieldNames.contains(extractColumnName)) {
+              extractColumnName = EXTRACT_COLUMN_NAME_PREFIX + "_" + (++extractNumber);
+            }
+            timeExtractionDimensionSpec = TimeExtractionDimensionSpec.makeFullTimeExtract(
+                extractColumnName);
             dimensions.add(timeExtractionDimensionSpec);
+            builder.add(extractColumnName);
             assert timePositionIdx == -1;
             timePositionIdx = groupKey;
           } else {
@@ -902,7 +922,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
       }
     }
 
-    String translate(RexNode e, boolean set) {
+    @SuppressWarnings("incomplete-switch") String translate(RexNode e, boolean set) {
       int index = -1;
       switch (e.getKind()) {
       case INPUT_REF:
@@ -910,16 +930,13 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
         index = ref.getIndex();
         break;
       case CAST:
+        return tr(e, 0, set);
       case LITERAL:
         return ((RexLiteral) e).getValue3().toString();
       case FLOOR:
+      case EXTRACT:
         final RexCall call = (RexCall) e;
         assert DruidDateTimeUtils.extractGranularity(call) != null;
-        index = RelOptUtil.InputFinder.bits(e).asList().get(0);
-        break;
-      case EXTRACT:
-        final RexCall extractCall = (RexCall) e;
-        assert DruidDateTimeUtils.extractGranularity(extractCall) != null;
         index = RelOptUtil.InputFinder.bits(e).asList().get(0);
       }
       if (index == -1) {

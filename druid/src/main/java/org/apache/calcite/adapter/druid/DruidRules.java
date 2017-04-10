@@ -415,7 +415,7 @@ public class DruidRules {
     }
 
     /* To be a valid Project, we allow it to contain references, and a single call
-     * to an FLOOR function on the timestamp column OR Valid time extract on the top of time column
+     * to a FLOOR function on the timestamp column OR valid time EXTRACT on the timestamp column.
      * Returns the reference to the timestamp, if any. */
     private static int validProject(Project project, DruidQuery query) {
       List<RexNode> nodes = project.getProjects();
@@ -439,9 +439,8 @@ public class DruidRules {
               return -1;
             }
             final RexInputRef ref = (RexInputRef) call.getOperands().get(0);
-            if (!(checkTimestampRefOnQuery(ImmutableBitSet.of(ref.getIndex()), query.getTopNode(),
-                query
-            ))) {
+            if (!(checkTimestampRefOnQuery(ImmutableBitSet.of(ref.getIndex()),
+                query.getTopNode(), query))) {
               return -1;
             }
             idxTimestamp = i;

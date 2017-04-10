@@ -250,9 +250,9 @@ public class DruidDateTimeUtils {
   }
 
   /**
-   * Extracts granularity from a call {@code FLOOR(<time> TO <timeunit>)}.
-   * Timeunit specifies the granularity. Returns null if it cannot
-   * be inferred.
+   * Infers granularity from a timeunit.
+   * It support {@code FLOOR(<time> TO <timeunit>)} and {@code EXTRACT(<timeunit> FROM <time>)}.
+   * It returns null if it cannot be inferred.
    *
    * @param call the function call
    * @return the granularity, or null if it cannot be inferred
@@ -262,9 +262,13 @@ public class DruidDateTimeUtils {
             || call.getOperands().size() != 2) {
       return null;
     }
-    int flagIndex = 1;
+    int flagIndex;
     if (call.getKind() == SqlKind.EXTRACT) {
+      // EXTRACT
       flagIndex = 0;
+    } else {
+      // FLOOR
+      flagIndex = 1;
     }
     final RexLiteral flag = (RexLiteral) call.operands.get(flagIndex);
     final TimeUnitRange timeUnit = (TimeUnitRange) flag.getValue();

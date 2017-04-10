@@ -20,37 +20,29 @@ package org.apache.calcite.adapter.druid;
  * Time extraction dimension spec implementation
  */
 public class TimeExtractionDimensionSpec extends ExtractionDimensionSpec {
-  private final String outputName;
 
-  public TimeExtractionDimensionSpec(ExtractionFunction extractionFunction,
-          String outputName
-  ) {
-    super("__time", extractionFunction, outputName);
-    this.outputName = outputName;
+  public TimeExtractionDimensionSpec(
+      ExtractionFunction extractionFunction, String outputName) {
+    super(DruidTable.DEFAULT_TIMESTAMP_COLUMN, extractionFunction, outputName);
   }
 
-  public static TimeExtractionDimensionSpec makeFullTimeExtract() {
+  public static TimeExtractionDimensionSpec makeFullTimeExtract(String outputName) {
     return new TimeExtractionDimensionSpec(
-            TimeExtractionFunction.createDefault(),
-            DruidConnectionImpl.DEFAULT_RESPONSE_TIMESTAMP_COLUMN
-    );
+        TimeExtractionFunction.createDefault(), outputName);
   }
 
-  public String getOutputName() {
-    return outputName;
-  }
-
-  public static TimeExtractionDimensionSpec makeExtract(Granularity granularity) {
+  public static TimeExtractionDimensionSpec makeExtract(
+      Granularity granularity, String outputName) {
     switch (granularity) {
     case YEAR:
       return new TimeExtractionDimensionSpec(
-              TimeExtractionFunction.createFromGranularity(granularity), "year");
+          TimeExtractionFunction.createFromGranularity(granularity), outputName);
     case MONTH:
       return new TimeExtractionDimensionSpec(
-              TimeExtractionFunction.createFromGranularity(granularity), "monthOfYear");
+          TimeExtractionFunction.createFromGranularity(granularity), outputName);
     case DAY:
       return new TimeExtractionDimensionSpec(
-            TimeExtractionFunction.createFromGranularity(granularity), "dayOfMonth");
+          TimeExtractionFunction.createFromGranularity(granularity), outputName);
     default:
       return null;
     }

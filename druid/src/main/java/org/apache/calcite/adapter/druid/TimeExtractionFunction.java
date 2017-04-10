@@ -28,11 +28,8 @@ import static org.apache.calcite.adapter.druid.DruidQuery.writeFieldIf;
 public class TimeExtractionFunction implements ExtractionFunction {
 
   private final String format;
-
   private final String granularity;
-
   private final String timeZone;
-
   private final String local;
 
   public TimeExtractionFunction(String format, String granularity, String timeZone, String local) {
@@ -43,7 +40,6 @@ public class TimeExtractionFunction implements ExtractionFunction {
   }
 
   @Override public void write(JsonGenerator generator) throws IOException {
-
     generator.writeStartObject();
     generator.writeStringField("type", "timeFormat");
     writeFieldIf(generator, "format", format);
