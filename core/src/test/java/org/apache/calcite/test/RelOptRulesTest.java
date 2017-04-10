@@ -545,6 +545,26 @@ public class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
+  @Test public void testSortCollapse3() {
+    final HepProgram preProgram =
+        HepProgram.builder()
+            .addRuleInstance(ProjectRemoveRule.INSTANCE)
+            .build();
+    final HepProgram program =
+        HepProgram.builder()
+            .addRuleInstance(SortCollapseRule.INSTANCE)
+            .build();
+    final String sql = "select * from (\n"
+                       + "select distinct deptno from emp\n"
+                       + "order by deptno desc\n"
+                       + "limit 3 offset 1)\n"
+                       + "limit 3 offset 1";
+    sql(sql)
+        .withPre(preProgram)
+        .with(program)
+        .check();
+  }
+
   @Test public void testSemiJoinRuleExists() {
     final HepProgram preProgram =
         HepProgram.builder()

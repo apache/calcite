@@ -18,7 +18,6 @@ package org.apache.calcite.rel.rules;
 
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
-import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rex.RexLiteral;
 
@@ -43,6 +42,7 @@ public class SortCollapseRule extends RelOptRule {
       final int firstOffset = first.offset != null ? RexLiteral.intValue(first.offset) : 0;
       final int secondOffset = second.offset != null ? RexLiteral.intValue(second.offset) : 0;
 
+      final int offset = firstOffset + secondOffset;
       final int fetch;
 
       if (first.fetch == null && second.fetch == null) {
@@ -62,11 +62,12 @@ public class SortCollapseRule extends RelOptRule {
                 RexLiteral.intValue(second.fetch)));
       }
 
-      final RelNode combined = call
-          .builder()
-          .push(first.getInput())
-          .sortLimit(firstOffset + secondOffset, fetch, first.getChildExps())
-          .build();
+      final Sort combined = first.copy(
+          first.getTraitSet(),
+          first.getInput(),
+          first.getCollation(),
+          offset == 0 ? null : call.builder().literal(offset),
+          call.builder().literal(fetch));
 
       call.transformTo(combined);
     }
