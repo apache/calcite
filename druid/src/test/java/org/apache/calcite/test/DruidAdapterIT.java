@@ -1413,10 +1413,13 @@ public class DruidAdapterIT {
         + "from \"foodmart\"\n"
         + "where extract(year from \"timestamp\") = 1997\n"
         + "and extract(month from \"timestamp\") in (4, 6)\n";
-    final String explain = "EnumerableInterpreter\n"
-        + "  BindableAggregate(group=[{}], C=[COUNT()])\n"
-        + "    BindableFilter(condition=[AND(>=(/INT(Reinterpret($0), 86400000), 1997-01-01), <(/INT(Reinterpret($0), 86400000), 1998-01-01), OR(AND(>=(/INT(Reinterpret($0), 86400000), 1997-04-01), <(/INT(Reinterpret($0), 86400000), 1997-05-01)), AND(>=(/INT(Reinterpret($0), 86400000), 1997-06-01), <(/INT(Reinterpret($0), 86400000), 1997-07-01))))])\n"
-        + "      DruidQuery(table=[[foodmart, foodmart]], intervals=[[1900-01-09T00:00:00.000/2992-01-10T00:00:00.000]], projects=[[$0]])";
+    final String explain = "PLAN=EnumerableInterpreter\n"
+            + "  DruidQuery(table=[[foodmart, foodmart]], "
+            + "intervals=[[1900-01-09T00:00:00.000/2992-01-10T00:00:00.000]], filter=[AND(="
+            + "(EXTRACT_DATE(FLAG(YEAR), /INT(Reinterpret($0), 86400000)), 1997), OR(="
+            + "(EXTRACT_DATE(FLAG(MONTH), /INT(Reinterpret($0), 86400000)), 4), =(EXTRACT_DATE"
+            + "(FLAG(MONTH), /INT(Reinterpret($0), 86400000)), 6)))], groups=[{}], aggs=[[COUNT()"
+            + "]])";
     sql(sql)
         .explainContains(explain)
         .returnsUnordered("C=13500");
@@ -1488,6 +1491,7 @@ public class DruidAdapterIT {
     sql(sql, WIKI).queryContains(druidChecker(druidQuery));
   }
 
+
   @Test public void testGroupByMetricAndExtractTime() {
     final String sql = "SELECT count(*), floor(\"timestamp\" to DAY), \"store_sales\" "
             + "FROM \"foodmart\"\n"
@@ -1504,6 +1508,27 @@ public class DruidAdapterIT {
             "\"upper\":\"12223\""));
   }
 
+  @Test public void testExtractWithMonthOnly() {
+    final String sql = "Select \"product_id\" from \"foodmart\" where extract(month from "
+            + "\"timestamp\") > 9 and \"product_id\" = 1024 group by \"product_id\"";
+    final String explain = "PLAN=EnumerableInterpreter\n"
+            + "  DruidQuery(table=[[foodmart, foodmart]], "
+            + "intervals=[[1900-01-09T00:00:00.000/2992-01-10T00:00:00.000]], filter=[AND(>"
+            + "(EXTRACT_DATE(FLAG(MONTH), /INT(Reinterpret($0), 86400000)), 9), =($1, 1024))], "
+            + "groups=[{1}], aggs=[[]])";
+    sql(sql).explainContains(explain).queryContains(
+            druidChecker(
+            "{\"queryType\":\"groupBy\",\"dataSource\":\"foodmart\","
+                    + "\"granularity\":\"all\",\"dimensions\":[\"product_id\"],"
+                    + "\"limitSpec\":{\"type\":\"default\"},\"filter\":{\"type\":\"and\","
+                    + "\"fields\":[{\"type\":\"bound\",\"dimension\":\"__time\",\"lower\":\"9\","
+                    + "\"lowerStrict\":true,\"alphaNumeric\":true,"
+                    + "\"extractionFn\":{\"type\":\"timeFormat\",\"format\":\"M\"}},"
+                    + "{\"type\":\"selector\",\"dimension\":\"product_id\",\"value\":\"1024\"}]},"
+                    + "\"aggregations\":[{\"type\":\"longSum\",\"name\":\"dummy_agg\","
+                    + "\"fieldName\":\"dummy_agg\"}],"
+                    + "\"intervals\":[\"1900-01-09T00:00:00.000/2992-01-10T00:00:00.000\"]}"));
+  }
 }
 
 // End DruidAdapterIT.java

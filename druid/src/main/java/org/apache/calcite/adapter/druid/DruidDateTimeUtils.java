@@ -35,6 +35,7 @@ import com.google.common.collect.TreeRangeSet;
 
 import org.slf4j.Logger;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
@@ -175,11 +176,11 @@ public class DruidDateTimeUtils {
     case GREATER_THAN_OR_EQUAL:
     {
       final Calendar value;
-      if (call.getOperands().get(0) instanceof RexInputRef
-          && literalValue(call.getOperands().get(1)) != null) {
+      if ((call.getOperands().get(0) instanceof RexInputRef || call.getOperands()
+              .get(0) instanceof RexCall) && literalValue(call.getOperands().get(1)) != null) {
         value = literalValue(call.getOperands().get(1));
-      } else if (call.getOperands().get(1) instanceof RexInputRef
-          && literalValue(call.getOperands().get(0)) != null) {
+      } else if ((call.getOperands().get(1) instanceof RexInputRef || call.getOperands()
+              .get(1) instanceof RexCall) && literalValue(call.getOperands().get(0)) != null) {
         value = literalValue(call.getOperands().get(0));
       } else {
         return null;
@@ -244,7 +245,13 @@ public class DruidDateTimeUtils {
 
   private static Calendar literalValue(RexNode node) {
     if (node instanceof RexLiteral) {
-      return (Calendar) ((RexLiteral) node).getValue();
+      Object value = ((RexLiteral) node).getValue();
+      if (value instanceof BigDecimal) {
+        Calendar calendar = Util.calendar();
+        calendar.setTimeInMillis(((BigDecimal) value).longValue());
+      } else {
+        return (Calendar) value;
+      }
     }
     return null;
   }
@@ -289,6 +296,48 @@ public class DruidDateTimeUtils {
     }
   }
 
+  public static TimeUnitRange getTimeUniteFromExtractCall(RexNode e) {
+    final RexCall call = (RexCall) e;
+    final RexLiteral flag = (RexLiteral) call.operands.get(0);
+    final TimeUnitRange timeUnit = (TimeUnitRange) flag.getValue();
+    return timeUnit;
+  }
+
+  public static boolean isValidExtractTimeUnit(RexNode e) {
+    final RexCall call = (RexCall) e;
+    final RexLiteral flag = (RexLiteral) call.operands.get(0);
+    final TimeUnitRange timeUnit = (TimeUnitRange) flag.getValue();
+    switch (timeUnit) {
+    case MONTH:
+      return true;
+    case DAY:
+      return true;
+    case YEAR:
+      return true;
+    default:
+      return false;
+    }
+  }
+
+  public static DruidQuery.JsonTimeExtractionFn getExtractionFilter(RexNode e) {
+    TimeUnitRange timeUnitRange = DruidDateTimeUtils.getTimeUniteFromExtractCall(e);
+    String format;
+    switch (timeUnitRange) {
+    case MONTH:
+      format = "M";
+      break;
+    case DAY:
+      format = "d";
+      break;
+    case YEAR:
+      format = "y";
+      break;
+    default:
+      throw new AssertionError(
+              "can only accept month, year, day and got -> " + timeUnitRange.toString());
+    }
+    return new DruidQuery.JsonTimeExtractionFn(format);
+  }
 }
 
 // End DruidDateTimeUtils.java
