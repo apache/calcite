@@ -133,8 +133,12 @@ Follow instructions [here](http://www.apache.org/dev/release-signing) to
 create a key pair. (On Mac OS X, I did `brew install gpg` and
 `gpg --gen-key`.)
 
-Add your public key to the `KEYS` file by following instructions in
-the `KEYS` file.
+Add your public key to the
+[`KEYS`](https://dist.apache.org/repos/dist/release/calcite/KEYS)
+file by following instructions in the `KEYS` file.
+(The `KEYS` file is not present in the git repo or in a release tar
+ball because that would be
+[redundant](https://issues.apache.org/jira/browse/CALCITE-1746).)
 
 ## Run a GPG agent
 
@@ -248,6 +252,7 @@ Check the artifacts:
 * That directory must contain files `NOTICE`, `LICENSE`,
   `README`, `README.md`
   * Check that the version in `README` is correct
+* Make sure that there is no `KEYS` file in the source distros
 * For each .jar, verify that the `META-INF` directory contains the correct
   contents for `DEPENDENCIES`, `LICENSE` and `NOTICE` per the
   source/classes contained. Refer to the ASF licensing documentation on
