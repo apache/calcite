@@ -68,7 +68,7 @@ class DruidConnectionImpl implements DruidConnection {
   private final String url;
   private final String coordinatorUrl;
 
-  private static final String DEFAULT_RESPONSE_TIMESTAMP_COLUMN = "timestamp";
+  public static final String DEFAULT_RESPONSE_TIMESTAMP_COLUMN = "timestamp";
   private static final SimpleDateFormat UTC_TIMESTAMP_FORMAT;
 
   static {
@@ -239,7 +239,7 @@ class DruidConnectionImpl implements DruidConnection {
               if (posTimestampField != -1) {
                 rowBuilder.set(posTimestampField, timeValue);
               }
-              parseFields(fieldNames, fieldTypes, rowBuilder, parser);
+              parseFields(fieldNames, fieldTypes, posTimestampField, rowBuilder, parser);
               sink.send(rowBuilder.build());
               rowBuilder.reset();
             }
