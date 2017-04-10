@@ -396,8 +396,12 @@ Follow instructions [here](http://www.apache.org/dev/release-signing) to
 create a key pair. (On Mac OS X, I did `brew install gpg` and
 `gpg --gen-key`.)
 
-Add your public key to the `KEYS` file by following instructions in
-the `KEYS` file.
+Add your public key to the
+[`KEYS`](https://dist.apache.org/repos/dist/release/calcite/KEYS)
+file by following instructions in the `KEYS` file.
+(The `KEYS` file is not present in the git repo or in a release tar
+ball because that would be
+[redundant](https://issues.apache.org/jira/browse/CALCITE-1746).)
 
 ## Making a snapshot (for Calcite committers)
 
@@ -510,6 +514,7 @@ Check the artifacts:
   `README`, `README.md`
   * Check that the version in `README` is correct
   * Check that the copyright year in `NOTICE` is correct
+* Make sure that there is no `KEYS` file in the source distros
 * In each .jar (for example
   `core/target/calcite-core-X.Y.Z.jar` and
   `mongodb/target/calcite-mongodb-X.Y.Z-sources.jar`), check
