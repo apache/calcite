@@ -1689,6 +1689,34 @@ public class DruidAdapterIT {
         .returnsUnordered("EXPR$0=02; dayOfMonth=1016", "EXPR$0=10; dayOfMonth=1016",
             "EXPR$0=13; dayOfMonth=1016", "EXPR$0=16; dayOfMonth=1016");
   }
+
+  @Test public void testPushComplexFilter() {
+    String sql = "select sum(\"store_sales\") from \"foodmart\" "
+        + "where EXTRACT( year from \"timestamp\") = 1997 and "
+        + "\"cases_per_pallet\" >= 8 and \"cases_per_pallet\" <= 10 and "
+        + "\"units_per_case\" < 15 ";
+    String druidQuery = "{'queryType':'select','dataSource':'foodmart','descending':false,"
+        + "'intervals':['1900-01-09T00:00:00.000/2992-01-10T00:00:00.000'],"
+        + "'filter':{'type':'and',"
+        + "'fields':[{'type':'bound','dimension':'cases_per_pallet','lower':'8',"
+        + "'lowerStrict':false,'ordering':'numeric'},"
+        + "{'type':'bound','dimension':'cases_per_pallet','upper':'10','upperStrict':false,"
+        + "'ordering':'numeric'},{'type':'bound','dimension':'units_per_case','upper':'15',"
+        + "'upperStrict':true,'ordering':'numeric'}]},'dimensions':[],'metrics':['store_sales'],"
+        + "'granularity':'all','pagingSpec':{'threshold':16384,'fromNext':true},"
+        + "'context':{'druid.query.fetch':false}}";
+    sql(sql)
+        .queryContains(druidChecker(druidQuery))
+        .explainContains("PLAN=EnumerableInterpreter\n"
+             + "  BindableAggregate(group=[{}], EXPR$0=[SUM($1)])\n"
+             + "    BindableFilter(condition=[AND(>=(/INT(Reinterpret($0), 86400000), 1997-01-01), "
+             + "<(/INT(Reinterpret($0), 86400000), 1998-01-01))])\n"
+             + "      DruidQuery(table=[[foodmart, foodmart]], "
+             + "intervals=[[1900-01-09T00:00:00.000/2992-01-10T00:00:00.000]], "
+             + "filter=[AND(>=(CAST($11):BIGINT, 8), <=(CAST($11):BIGINT, 10), "
+             + "<(CAST($10):BIGINT, 15))], projects=[[$0, $90]])\n")
+        .returnsUnordered("EXPR$0=75364.09998679161");
+  }
 }
 
 // End DruidAdapterIT.java
