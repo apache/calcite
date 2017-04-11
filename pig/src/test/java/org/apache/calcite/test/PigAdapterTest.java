@@ -30,9 +30,10 @@ import static org.junit.Assert.assertEquals;
  */
 public class PigAdapterTest extends AbstractPigTest {
 
+  // Undo the %20 replacement of a space by URL
   public static final ImmutableMap<String, String> MODEL =
     ImmutableMap.of("model",
-      PigAdapterTest.class.getResource("/model.json").getPath());
+      PigAdapterTest.class.getResource("/model.json").getPath().replace("%20", " "));
 
   @Test
   public void testScanAndFilter() throws Exception {

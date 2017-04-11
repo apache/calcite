@@ -326,7 +326,8 @@ public class CsvTest {
 
   private String resourcePath(String path) {
     final URL url = CsvTest.class.getResource("/" + path);
-    String s = url.toString();
+    // URL converts a space to %20, undo that.
+    String s = url.toString().replace("%20", " ");
     if (s.startsWith("file:")) {
       s = s.substring("file:".length());
     }
