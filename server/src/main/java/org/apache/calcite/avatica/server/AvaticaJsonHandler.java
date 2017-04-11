@@ -119,7 +119,8 @@ public class AvaticaJsonHandler extends AbstractAvaticaHandler {
         HandlerResponse<String> jsonResponse;
         try {
           if (null != serverConfig && serverConfig.supportsImpersonation()) {
-            jsonResponse = serverConfig.doAsRemoteUser(request.getRemoteUser(),
+            String remoteUser = serverConfig.getRemoteUserExtractor().extract(request);
+            jsonResponse = serverConfig.doAsRemoteUser(remoteUser,
                 request.getRemoteAddr(), new Callable<HandlerResponse<String>>() {
                   @Override public HandlerResponse<String> call() {
                     return jsonHandler.apply(jsonRequest);
@@ -128,6 +129,12 @@ public class AvaticaJsonHandler extends AbstractAvaticaHandler {
           } else {
             jsonResponse = jsonHandler.apply(jsonRequest);
           }
+        } catch (RemoteUserExtractionException e) {
+          LOG.debug("Failed to extract remote user from request", e);
+          jsonResponse = jsonHandler.unauthenticatedErrorResponse(e);
+        } catch (RemoteUserDisallowedException e) {
+          LOG.debug("Remote user is not authorized", e);
+          jsonResponse = jsonHandler.unauthorizedErrorResponse(e);
         } catch (Exception e) {
           LOG.debug("Error invoking request from {}", baseRequest.getRemoteAddr(), e);
           jsonResponse = jsonHandler.convertToErrorResponse(e);

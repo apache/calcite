@@ -230,6 +230,32 @@ public class PhoenixDoAsCallback implements DoAsRemoteUserCallback {
 }
 {% endhighlight %}
 
+#### Remote user extraction
+
+In some cases, it may be desirable to execute some queries on behalf of another user. For example,
+[Apache Knox](https://knox.apache.org) has a gateway service which can act as a proxy for all requests
+to the backend Avatica server. In this case, we don't want to run the queries as the Knox user, instead
+the real user communicating with Knox.
+
+There are presently two options to extract the "real" user from HTTP requests:
+
+* The authenticated user from the HTTP request, `org.apache.calcite.avatica.server.HttpRequestRemoteUserExtractor` (default)
+* The value of a parameter in the HTTP query string, `org.apache.calcite.avatica.server.HttpQueryStringParameterRemoteUserExtractor` (e.g "doAs")
+
+Implementations of Avatica can configure this using the `AvaticaServerConfiguration` and providing
+an implementation of `RemoteUserExtractor`. There are two implementations provided as listed above.
+
+{% highlight java %}
+config = new AvaticaServerConfiguration() {
+  /* ... */
+  @Override public RemoteUserExtractor getRemoteUserExtractor() {
+    // We extract the "real" user via the "doAs" query string parameter
+    return new HttpQueryStringParameterRemoteUserExtractor("doAs");
+  }
+  /* ... */
+};
+{% endhighlight %}
+
 ## Client implementation
 
 Many HTTP client libraries, such as [Apache Commons HttpComponents](https://hc.apache.org/), already have

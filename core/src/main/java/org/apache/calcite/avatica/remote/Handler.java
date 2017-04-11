@@ -27,6 +27,8 @@ import java.util.Objects;
  */
 public interface Handler<T> {
   int HTTP_OK = 200;
+  int HTTP_UNAUTHENTICATED = 401;
+  int HTTP_UNAUTHORIZED = 403;
   int HTTP_INTERNAL_SERVER_ERROR = 500;
   String HANDLER_SERIALIZATION_METRICS_NAME = "Handler.Serialization";
 

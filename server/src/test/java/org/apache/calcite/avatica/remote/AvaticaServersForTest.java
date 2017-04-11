@@ -20,11 +20,13 @@ import org.apache.calcite.avatica.ConnectionSpec;
 import org.apache.calcite.avatica.Meta;
 import org.apache.calcite.avatica.jdbc.JdbcMeta;
 import org.apache.calcite.avatica.remote.Driver.Serialization;
+import org.apache.calcite.avatica.server.AvaticaHandler;
 import org.apache.calcite.avatica.server.AvaticaJsonHandler;
 import org.apache.calcite.avatica.server.AvaticaProtobufHandler;
+import org.apache.calcite.avatica.server.AvaticaServerConfiguration;
+import org.apache.calcite.avatica.server.HandlerFactory;
 import org.apache.calcite.avatica.server.HttpServer;
 import org.apache.calcite.avatica.server.Main;
-import org.apache.calcite.avatica.server.Main.HandlerFactory;
 
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -53,18 +55,43 @@ public class AvaticaServersForTest {
    */
   public void startServers() throws Exception {
     // Bind to '0' to pluck an ephemeral port instead of expecting a certain one to be free
-    final HttpServer jsonServer = Main.start(SERVER_ARGS, 0, new HandlerFactory() {
+    final HttpServer jsonServer = Main.start(SERVER_ARGS, 0, new Main.HandlerFactory() {
       @Override public AvaticaJsonHandler createHandler(Service service) {
         return new AvaticaJsonHandler(service);
       }
     });
     serversBySerialization.put(Serialization.JSON, jsonServer);
 
-    final HttpServer protobufServer = Main.start(SERVER_ARGS, 0, new HandlerFactory() {
+    final HttpServer protobufServer = Main.start(SERVER_ARGS, 0, new Main.HandlerFactory() {
       @Override public AvaticaProtobufHandler createHandler(Service service) {
         return new AvaticaProtobufHandler(service);
       }
     });
+    serversBySerialization.put(Serialization.PROTOBUF, protobufServer);
+  }
+
+  /**
+   * Starts Avatica servers for each serialization type with the provided {@code serverConfig}.
+   */
+  public void startServers(AvaticaServerConfiguration serverConfig) {
+    final HandlerFactory factory = new HandlerFactory();
+
+    // Construct the JSON server
+    Service jsonService = new LocalService(FullyRemoteJdbcMetaFactory.getInstance());
+    AvaticaHandler jsonHandler = factory.getHandler(jsonService, Serialization.JSON, null,
+        serverConfig);
+    final HttpServer jsonServer = new HttpServer.Builder().withHandler(jsonHandler)
+        .withPort(0).build();
+    jsonServer.start();
+    serversBySerialization.put(Serialization.JSON, jsonServer);
+
+    // Construct the Protobuf server
+    Service protobufService = new LocalService(FullyRemoteJdbcMetaFactory.getInstance());
+    AvaticaHandler protobufHandler = factory.getHandler(protobufService, Serialization.PROTOBUF,
+        null, serverConfig);
+    final HttpServer protobufServer = new HttpServer.Builder().withHandler(protobufHandler)
+        .withPort(0).build();
+    protobufServer.start();
     serversBySerialization.put(Serialization.PROTOBUF, protobufServer);
   }
 
@@ -108,10 +135,23 @@ public class AvaticaServersForTest {
    *
    * @param port The port the Avatica server is listening on.
    * @param serialization The serialization the Avatica server is using.
-   * @return A JDBC server to the local Avatica server.
+   * @return A JDBC URL to the local Avatica server.
    */
   public String getJdbcUrl(int port, Serialization serialization) {
-    return "jdbc:avatica:remote:url=http://localhost:" + port + ";serialization="
+    return getJdbcUrl(port, serialization, "");
+  }
+
+  /**
+   * Computes the JDBC url for the Avatica server running on localhost, bound to the given port,
+   * using the given serialization, with the user-provided suffix for the HTTP URL to the server.
+   *
+   * @param port The port the Avatica server is listening on.
+   * @param serialization The serialization the Avatica server is using.
+   * @param urlSuffix Extra information to apend to the HTTP URL to the Avatica server (optional).
+   * @return A JDBC URL to the local Avatica server.
+   */
+  public String getJdbcUrl(int port, Serialization serialization, String urlSuffix) {
+    return "jdbc:avatica:remote:url=http://localhost:" + port + urlSuffix + ";serialization="
         + serialization.name();
   }
 

@@ -403,6 +403,7 @@ public class HttpServer {
     private File keytab;
 
     private DoAsRemoteUserCallback remoteUserCallback;
+    private RemoteUserExtractor remoteUserExtractor = new HttpRequestRemoteUserExtractor();
 
     private String loginServiceRealm;
     private String loginServiceProperties;
@@ -553,6 +554,20 @@ public class HttpServer {
     }
 
     /**
+     * Sets a callback implementation to defer the logic on how to use the right remoteUserExtractor
+     * to extract remote user.
+     *
+     * @param remoteUserExtractor User-provided remoteUserExtractor
+     * @return <code>this</code>
+     */
+
+    public Builder withRemoteUserExtractor(RemoteUserExtractor remoteUserExtractor) {
+      this.remoteUserExtractor = Objects.requireNonNull(remoteUserExtractor);
+      return this;
+    }
+
+
+    /**
      * Configures the server to use HTTP Basic authentication. The <code>properties</code> must
      * be in a form consumable by Jetty. Invoking this method overrides any previous call which
      * configures authentication. This authentication is supplementary to the JDBC-provided user
@@ -686,6 +701,7 @@ public class HttpServer {
       final String realm = b.kerberosRealm;
       final String[] additionalAllowedRealms = b.loginServiceAllowedRoles;
       final DoAsRemoteUserCallback callback = b.remoteUserCallback;
+      final RemoteUserExtractor remoteUserExtractor = b.remoteUserExtractor;
       return new AvaticaServerConfiguration() {
 
         @Override public AuthenticationType getAuthenticationType() {
@@ -709,6 +725,10 @@ public class HttpServer {
           return callback.doAsRemoteUser(remoteUserName, remoteAddress, action);
         }
 
+        @Override public RemoteUserExtractor getRemoteUserExtractor() {
+          return remoteUserExtractor;
+        }
+
         @Override public String[] getAllowedRoles() {
           return additionalAllowedRealms;
         }
@@ -728,6 +748,7 @@ public class HttpServer {
       final String[] allowedRoles = b.loginServiceAllowedRoles;
       final String realm = b.loginServiceRealm;
       final String properties = b.loginServiceProperties;
+      final RemoteUserExtractor remoteUserExtractor = b.remoteUserExtractor;
 
       return new AvaticaServerConfiguration() {
         @Override public AuthenticationType getAuthenticationType() {
@@ -763,6 +784,10 @@ public class HttpServer {
         @Override public <T> T doAsRemoteUser(String remoteUserName, String remoteAddress,
             Callable<T> action) throws Exception {
           return null;
+        }
+
+        @Override public RemoteUserExtractor getRemoteUserExtractor() {
+          return remoteUserExtractor;
         }
       };
     }

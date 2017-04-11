@@ -47,7 +47,6 @@ public abstract class AbstractHandler<T> implements Handler<T> {
    *
    * @param response The {@link Response} to serialize.
    * @return A serialized representation of the {@link Response}.
-   * @throws IOException
    */
   abstract T encode(Response response) throws IOException;
 
@@ -107,10 +106,27 @@ public abstract class AbstractHandler<T> implements Handler<T> {
    * @return A HandlerResponse instance.
    */
   public HandlerResponse<T> convertToErrorResponse(Exception e) {
-    ErrorResponse errorResp = unwrapException(e);
+    return createErrorResponse(e, HTTP_INTERNAL_SERVER_ERROR);
+  }
 
+  /**
+   * Attempts to convert an Exception to an ErrorResponse with an HTTP status code of {@code 401}.
+   */
+  public HandlerResponse<T> unauthenticatedErrorResponse(Exception e) {
+    return createErrorResponse(e, HTTP_UNAUTHENTICATED);
+  }
+
+  /**
+   * Attempts to convert an Exception to an ErrorResponse with an HTTP stauts code of {@code 403}.
+   */
+  public HandlerResponse<T> unauthorizedErrorResponse(Exception e) {
+    return createErrorResponse(e, HTTP_UNAUTHORIZED);
+  }
+
+  private HandlerResponse<T> createErrorResponse(Exception e, int statusCode) {
+    ErrorResponse errorResp = unwrapException(e);
     try {
-      return new HandlerResponse<>(encode(errorResp), HTTP_INTERNAL_SERVER_ERROR);
+      return new HandlerResponse<>(encode(errorResp), statusCode);
     } catch (IOException e1) {
       // TODO provide a canned ErrorResponse
 
@@ -119,7 +135,6 @@ public abstract class AbstractHandler<T> implements Handler<T> {
       if (e instanceof RuntimeException) {
         throw (RuntimeException) e;
       }
-
       throw new RuntimeException(e);
     }
   }

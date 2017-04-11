@@ -113,8 +113,11 @@ public class AvaticaProtobufHandler extends AbstractAvaticaHandler {
         HandlerResponse<byte[]> handlerResponse;
         try {
           if (null != serverConfig && serverConfig.supportsImpersonation()) {
+            // If we can't extract a user, need to throw 401 in that case.
+            String remoteUser = serverConfig.getRemoteUserExtractor().extract(request);
             // Invoke the ProtobufHandler inside as doAs for the remote user.
-            handlerResponse = serverConfig.doAsRemoteUser(request.getRemoteUser(),
+            // The doAsRemoteUser call may disallow a user, need to throw 403 in that case.
+            handlerResponse = serverConfig.doAsRemoteUser(remoteUser,
               request.getRemoteAddr(), new Callable<HandlerResponse<byte[]>>() {
                 @Override public HandlerResponse<byte[]> call() {
                   return pbHandler.apply(requestBytes);
@@ -123,6 +126,12 @@ public class AvaticaProtobufHandler extends AbstractAvaticaHandler {
           } else {
             handlerResponse = pbHandler.apply(requestBytes);
           }
+        } catch (RemoteUserExtractionException e) {
+          LOG.debug("Failed to extract remote user from request", e);
+          handlerResponse = pbHandler.unauthenticatedErrorResponse(e);
+        } catch (RemoteUserDisallowedException e) {
+          LOG.debug("Remote user is not authorized", e);
+          handlerResponse = pbHandler.unauthorizedErrorResponse(e);
         } catch (Exception e) {
           LOG.debug("Error invoking request from {}", baseRequest.getRemoteAddr(), e);
           // Catch at the highest level of exceptions
