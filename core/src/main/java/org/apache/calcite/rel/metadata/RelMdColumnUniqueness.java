@@ -349,7 +349,6 @@ public class RelMdColumnUniqueness
   }
 
   public Boolean areColumnsUnique(HepRelVertex rel, RelMetadataQuery mq,
-      boolean dummy, // prevent method from being used
       ImmutableBitSet columns, boolean ignoreNulls) {
     return mq.areColumnsUnique(rel.getCurrentRel(), columns, ignoreNulls);
   }
