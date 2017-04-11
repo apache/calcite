@@ -1081,10 +1081,9 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
     }
 
     private ColumnMetaData.Rep getPrimitive(RelDataTypeField field) {
-      if (field.getName().equals(query.druidTable.timestampFieldName)) {
-        return ColumnMetaData.Rep.JAVA_SQL_TIMESTAMP;
-      }
       switch (field.getType().getSqlTypeName()) {
+      case TIMESTAMP:
+        return ColumnMetaData.Rep.JAVA_SQL_TIMESTAMP;
       case BIGINT:
         return ColumnMetaData.Rep.LONG;
       case INTEGER:

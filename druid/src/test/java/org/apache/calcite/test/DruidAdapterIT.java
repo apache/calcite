@@ -1506,18 +1506,18 @@ public class DruidAdapterIT {
   }
 
   @Test public void testPushAggregateOnTime() {
-    String sql = "select \"product_id\", \"timestamp\" as \"time\" from \"foodmart\" where "
-        + "\"product_id\" = 1016 and "
-        + "\"timestamp\" < cast('1997-01-03' as timestamp) and \"timestamp\" > cast"
-        + "('1990-01-01' as timestamp)" + " group by"
-        + "\"timestamp\", \"product_id\" ";
+    String sql = "select \"product_id\", \"timestamp\" as \"time\" from \"foodmart\" "
+        + "where \"product_id\" = 1016 "
+        + "and \"timestamp\" < cast('1997-01-03' as timestamp) "
+        + "and \"timestamp\" > cast('1990-01-01' as timestamp) "
+        + "group by \"timestamp\", \"product_id\" ";
     String druidQuery = "{'queryType':'groupBy','dataSource':'foodmart',"
         + "'granularity':'all','dimensions':[{'type':'extraction',"
-        + "'dimension':'__time','outputName':'timestamp',"
+        + "'dimension':'__time','outputName':'extract_0',"
         + "'extractionFn':{'type':'timeFormat','format':'yyyy-MM-dd";
     sql(sql)
-        .returnsUnordered("product_id=1016; time=1997-01-02 00:00:00")
-        .queryContains(druidChecker(druidQuery));
+        .queryContains(druidChecker(druidQuery))
+        .returnsUnordered("product_id=1016; time=1997-01-02 00:00:00");
   }
 
   @Test public void testPushAggregateOnTimeWithExtractYear() {

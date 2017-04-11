@@ -270,7 +270,20 @@ class DruidConnectionImpl implements DruidConnection {
 
     // Move to next token, which is name's value
     JsonToken token = parser.nextToken();
-    if (fieldName.equals(DEFAULT_RESPONSE_TIMESTAMP_COLUMN)) {
+
+    boolean isTimestampColumn = fieldName.equals(DEFAULT_RESPONSE_TIMESTAMP_COLUMN);
+    int i = fieldNames.indexOf(fieldName);
+    ColumnMetaData.Rep type = null;
+    if (i < 0) {
+      if (!isTimestampColumn) {
+        // Field not present
+        return;
+      }
+    } else {
+      type = fieldTypes.get(i);
+    }
+
+    if (isTimestampColumn || ColumnMetaData.Rep.JAVA_SQL_TIMESTAMP.equals(type)) {
       try {
         final Date parse;
         // synchronized block to avoid race condition
@@ -285,11 +298,7 @@ class DruidConnectionImpl implements DruidConnection {
       }
       return;
     }
-    int i = fieldNames.indexOf(fieldName);
-    if (i < 0) {
-      return;
-    }
-    ColumnMetaData.Rep type = fieldTypes.get(i);
+
     switch (token) {
     case VALUE_NUMBER_INT:
       if (type == null) {
