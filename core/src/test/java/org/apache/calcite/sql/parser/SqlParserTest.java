@@ -6877,7 +6877,8 @@ public class SqlParserTest {
     // inUrl = "file:/home/x/calcite/core/target/test-classes/hsqldb-model.json"
     String path = "hsqldb-model.json";
     final URL inUrl = SqlParserTest.class.getResource("/" + path);
-    String x = inUrl.getFile();
+    // URL will convert spaces to %20, undo that
+    String x = inUrl.getFile().replace("%20", " ");
     assert x.endsWith(path);
     x = x.substring(0, x.length() - path.length());
     assert x.endsWith("core/target/test-classes/");
