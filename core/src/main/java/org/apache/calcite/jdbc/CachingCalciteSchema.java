@@ -20,6 +20,8 @@ import org.apache.calcite.schema.Function;
 import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.TableMacro;
+import org.apache.calcite.util.NameMap;
+import org.apache.calcite.util.NameMultimap;
 import org.apache.calcite.util.NameSet;
 
 import com.google.common.cache.CacheBuilder;
@@ -30,6 +32,7 @@ import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.ImmutableSortedSet;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -45,7 +48,17 @@ class CachingCalciteSchema extends CalciteSchema {
 
   /** Creates a CachingCalciteSchema. */
   CachingCalciteSchema(CalciteSchema parent, Schema schema, String name) {
-    super(parent, schema, name);
+    this(parent, schema, name, null, null, null, null, null, null, null);
+  }
+
+  private CachingCalciteSchema(CalciteSchema parent, Schema schema,
+      String name, NameMap<CalciteSchema> subSchemaMap,
+      NameMap<TableEntry> tableMap, NameMap<LatticeEntry> latticeMap,
+      NameMultimap<FunctionEntry> functionMap, NameSet functionNames,
+      NameMap<FunctionEntry> nullaryFunctionMap,
+      List<? extends List<String>> path) {
+    super(parent, schema, name, subSchemaMap, tableMap, latticeMap,
+        functionMap, functionNames, nullaryFunctionMap, path);
     this.implicitSubSchemaCache =
         new AbstractCached<SubSchemaCache>() {
           public SubSchemaCache build() {
@@ -199,6 +212,17 @@ class CachingCalciteSchema extends CalciteSchema {
       }
     }
     return null;
+  }
+
+  protected CalciteSchema snapshot(CalciteSchema parent, long now) {
+    CalciteSchema snapshot = new CachingCalciteSchema(parent,
+        schema.snapshot(now), name, null, tableMap, latticeMap,
+        functionMap, functionNames, nullaryFunctionMap, getPath());
+    for (CalciteSchema subSchema : subSchemaMap.map().values()) {
+      CalciteSchema subSchemaSnapshot = subSchema.snapshot(snapshot, now);
+      snapshot.subSchemaMap.put(subSchema.name, subSchemaSnapshot);
+    }
+    return snapshot;
   }
 
   /** Strategy for caching the value of an object and re-creating it if its

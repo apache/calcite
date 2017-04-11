@@ -290,15 +290,16 @@ abstract class CalciteConnectionImpl
       throw new RuntimeException(e);
     }
     map.put(DataContext.Variable.CANCEL_FLAG.camelName, cancelFlag);
-    final DataContext dataContext = createDataContext(map);
+    final DataContext dataContext = createDataContext(map, signature.rootSchema);
     return signature.enumerable(dataContext);
   }
 
-  public DataContext createDataContext(Map<String, Object> parameterValues) {
+  public DataContext createDataContext(Map<String, Object> parameterValues,
+      CalciteSchema rootSchema) {
     if (config().spark()) {
       return new SlimDataContext();
     }
-    return new DataContextImpl(this, parameterValues);
+    return new DataContextImpl(this, parameterValues, rootSchema);
   }
 
   // do not make public
@@ -373,10 +374,10 @@ abstract class CalciteConnectionImpl
     private final JavaTypeFactory typeFactory;
 
     DataContextImpl(CalciteConnectionImpl connection,
-        Map<String, Object> parameters) {
+        Map<String, Object> parameters, CalciteSchema rootSchema) {
       this.queryProvider = connection;
       this.typeFactory = connection.getTypeFactory();
-      this.rootSchema = connection.rootSchema;
+      this.rootSchema = rootSchema;
 
       // Store the time at which the query started executing. The SQL
       // standard says that functions such as CURRENT_TIMESTAMP return the
@@ -432,7 +433,7 @@ abstract class CalciteConnectionImpl
     }
 
     public SchemaPlus getRootSchema() {
-      return rootSchema.plus();
+      return rootSchema == null ? null : rootSchema.plus();
     }
 
     public JavaTypeFactory getTypeFactory() {
@@ -447,9 +448,12 @@ abstract class CalciteConnectionImpl
   /** Implementation of Context. */
   static class ContextImpl implements CalcitePrepare.Context {
     private final CalciteConnectionImpl connection;
+    private final CalciteSchema rootSchema;
 
     ContextImpl(CalciteConnectionImpl connection) {
       this.connection = Preconditions.checkNotNull(connection);
+      long now = System.currentTimeMillis();
+      this.rootSchema = connection.rootSchema.createSnapshot(now);
     }
 
     public JavaTypeFactory getTypeFactory() {
@@ -457,7 +461,7 @@ abstract class CalciteConnectionImpl
     }
 
     public CalciteSchema getRootSchema() {
-      return connection.rootSchema;
+      return rootSchema;
     }
 
     public List<String> getDefaultSchemaPath() {
@@ -472,7 +476,8 @@ abstract class CalciteConnectionImpl
     }
 
     public DataContext getDataContext() {
-      return connection.createDataContext(ImmutableMap.<String, Object>of());
+      return connection.createDataContext(ImmutableMap.<String, Object>of(),
+          rootSchema);
     }
 
     public CalcitePrepare.SparkHandler spark() {

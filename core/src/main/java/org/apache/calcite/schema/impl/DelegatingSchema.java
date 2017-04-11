@@ -53,6 +53,10 @@ public class DelegatingSchema implements Schema {
     return schema.contentsHaveChangedSince(lastCheck, now);
   }
 
+  public Schema snapshot(long now) {
+    return schema.snapshot(now);
+  }
+
   public Expression getExpression(SchemaPlus parentSchema, String name) {
     return schema.getExpression(parentSchema, name);
   }

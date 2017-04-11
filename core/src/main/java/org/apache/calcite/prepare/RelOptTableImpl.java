@@ -434,6 +434,10 @@ public class RelOptTableImpl extends Prepare.AbstractPreparingTable {
         long now) {
       return schema.contentsHaveChangedSince(lastCheck, now);
     }
+
+    @Override public Schema snapshot(long now) {
+      throw new UnsupportedOperationException();
+    }
   }
 }
 

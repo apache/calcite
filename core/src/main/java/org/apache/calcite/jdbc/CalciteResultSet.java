@@ -83,7 +83,7 @@ public class CalciteResultSet extends AvaticaResultSet {
         new CalcitePrepare.CalciteSignature<>(signature.sql,
             signature.parameters, signature.internalParameters,
             signature.rowType, columnMetaDataList, Meta.CursorFactory.ARRAY,
-            ImmutableList.<RelCollation>of(), -1, null);
+            signature.rootSchema, ImmutableList.<RelCollation>of(), -1, null);
     ResultSetMetaData subResultSetMetaData =
         new AvaticaResultSetMetaData(statement, null, newSignature);
     final CalciteResultSet resultSet =

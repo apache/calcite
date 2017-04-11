@@ -65,6 +65,10 @@ public class AbstractSchema implements Schema {
     return false;
   }
 
+  public Schema snapshot(long now) {
+    return this;
+  }
+
   public Expression getExpression(SchemaPlus parentSchema, String name) {
     return Schemas.subSchemaExpression(parentSchema, name, getClass());
   }
