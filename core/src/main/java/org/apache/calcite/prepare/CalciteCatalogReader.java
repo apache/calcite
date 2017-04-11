@@ -182,7 +182,7 @@ public class CalciteCatalogReader implements Prepare.CatalogReader {
     return functions2;
   }
 
-  private CalciteSchema getSchema(Iterable<String> schemaNames,
+  protected CalciteSchema getSchema(Iterable<String> schemaNames,
       SqlNameMatcher nameMatcher) {
     CalciteSchema schema = rootSchema;
     for (String schemaName : schemaNames) {
