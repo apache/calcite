@@ -74,6 +74,7 @@ public class PigRelBuilderStyleTest extends AbstractPigTest {
   }
 
   @Test
+  @Ignore("CALCITE-1751")
   public void testImplWithMultipleFilters() {
     final SchemaPlus schema = createTestSchema();
     final RelBuilder builder = createRelBuilder(schema);
@@ -91,6 +92,7 @@ public class PigRelBuilderStyleTest extends AbstractPigTest {
   }
 
   @Test
+  @Ignore("CALCITE-1751")
   public void testImplWithGroupByAndCount() {
     final SchemaPlus schema = createTestSchema();
     final RelBuilder builder = createRelBuilder(schema);
@@ -126,6 +128,7 @@ public class PigRelBuilderStyleTest extends AbstractPigTest {
   }
 
   @Test
+  @Ignore("CALCITE-1751")
   public void testImplWithGroupByMultipleFields() {
     final SchemaPlus schema = createTestSchema();
     final RelBuilder builder = createRelBuilder(schema);
