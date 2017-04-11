@@ -34,6 +34,7 @@ import java.util.Map;
 public class CsvSchema extends AbstractSchema {
   private final File directoryFile;
   private final CsvTable.Flavor flavor;
+  private Map<String, Table> tableMap;
 
   /**
    * Creates a CSV schema.
@@ -66,6 +67,13 @@ public class CsvSchema extends AbstractSchema {
   }
 
   @Override protected Map<String, Table> getTableMap() {
+    if (tableMap == null) {
+      tableMap = createTableMap();
+    }
+    return tableMap;
+  }
+
+  private Map<String, Table> createTableMap() {
     // Look for files in the directory ending in ".csv", ".csv.gz", ".json",
     // ".json.gz".
     final Source baseSource = Sources.of(directoryFile);

@@ -65,6 +65,8 @@ public class ReflectiveSchema
     extends AbstractSchema {
   private final Class clazz;
   private Object target;
+  private Map<String, Table> tableMap;
+  private Multimap<String, Function> functionMap;
 
   /**
    * Creates a ReflectiveSchema.
@@ -91,6 +93,13 @@ public class ReflectiveSchema
   }
 
   @Override protected Map<String, Table> getTableMap() {
+    if (tableMap == null) {
+      tableMap = createTableMap();
+    }
+    return tableMap;
+  }
+
+  private Map<String, Table> createTableMap() {
     final ImmutableMap.Builder<String, Table> builder = ImmutableMap.builder();
     for (Field field : clazz.getFields()) {
       final String fieldName = field.getName();
@@ -104,6 +113,13 @@ public class ReflectiveSchema
   }
 
   @Override protected Multimap<String, Function> getFunctionMultimap() {
+    if (functionMap == null) {
+      functionMap = createFunctionMap();
+    }
+    return functionMap;
+  }
+
+  private Multimap<String, Function> createFunctionMap() {
     final ImmutableMultimap.Builder<String, Function> builder =
         ImmutableMultimap.builder();
     for (Method method : clazz.getMethods()) {
