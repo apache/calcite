@@ -170,6 +170,10 @@ public class RexProgramTest {
     return rexBuilder.makeCall(SqlStdOperatorTable.IS_NOT_NULL, node);
   }
 
+  private RexNode nullIf(RexNode node1, RexNode node2) {
+    return rexBuilder.makeCall(SqlStdOperatorTable.NULLIF, node1, node2);
+  }
+
   private RexNode not(RexNode node) {
     return rexBuilder.makeCall(SqlStdOperatorTable.NOT, node);
   }
@@ -537,16 +541,19 @@ public class RexProgramTest {
     final RexNode andTrueUnknown = and(trueLiteral, unknownLiteral);
     final RexNode andFalseTrue = and(falseLiteral, trueLiteral);
 
-    assertThat(Strong.isNull(andUnknownTrue, c), is(true));
-    assertThat(Strong.isNull(andTrueUnknown, c), is(true));
+    assertThat(Strong.isNull(andUnknownTrue, c), is(false));
+    assertThat(Strong.isNull(andTrueUnknown, c), is(false));
     assertThat(Strong.isNull(andFalseTrue, c), is(false));
 
     // If i0 is null, "i0 and i1 is null" is null
-    assertThat(Strong.isNull(and(i0, isNull(i1)), c0), is(true));
-    // If i1 is null, "i0 and i1 is null" is not necessarily null
+    assertThat(Strong.isNull(and(i0, isNull(i1)), c0), is(false));
+    // If i1 is null, "i0 and i1" is false
     assertThat(Strong.isNull(and(i0, isNull(i1)), c1), is(false));
-    // If i0 and i1 are both null, "i0 and i1 is null" is null
-    assertThat(Strong.isNull(and(i0, isNull(i1)), c01), is(true));
+    // If i0 and i1 are both null, "i0 and i1" is null
+    assertThat(Strong.isNull(and(i0, i1), c01), is(true));
+    assertThat(Strong.isNull(and(i0, i1), c1), is(false));
+    // If i0 and i1 are both null, "i0 and isNull(i1) is false"
+    assertThat(Strong.isNull(and(i0, isNull(i1)), c01), is(false));
     // If i0 and i1 are both null, "i0 or i1" is null
     assertThat(Strong.isNull(or(i0, i1), c01), is(true));
     // If i0 is null, "i0 or i1" is not necessarily null
@@ -563,6 +570,68 @@ public class RexProgramTest {
     RexNode notI0NotNull = not(isNotNull(i0));
     assertThat(Strong.isNull(notI0NotNull, c0), is(false));
     assertThat(Strong.isNotTrue(notI0NotNull, c0), is(false));
+
+    // NULLIF(null, null): null
+    // NULLIF(null, X): null
+    // NULLIF(X, X/Y): null or X
+    // NULLIF(X, null): X
+    assertThat(Strong.isNull(nullIf(nullLiteral, nullLiteral), c), is(true));
+    assertThat(Strong.isNull(nullIf(nullLiteral, trueLiteral), c), is(true));
+    assertThat(Strong.isNull(nullIf(trueLiteral, trueLiteral), c), is(false));
+    assertThat(Strong.isNull(nullIf(trueLiteral, falseLiteral), c), is(false));
+    assertThat(Strong.isNull(nullIf(trueLiteral, nullLiteral), c), is(false));
+
+    // ISNULL(null) is true, ISNULL(not null value) is false
+    assertThat(Strong.isNull(isNull(nullLiteral), c01), is(false));
+    assertThat(Strong.isNull(isNull(trueLiteral), c01), is(false));
+
+    // CASE ( <predicate1> <value1> <predicate2> <value2> <predicate3> <value3> ...)
+    // only definitely null if all values are null.
+    assertThat(
+        Strong.isNull(
+            case_(eq(i0, i1), nullLiteral, ge(i0, i1), nullLiteral, nullLiteral), c01),
+        is(true));
+    assertThat(
+        Strong.isNull(
+            case_(eq(i0, i1), i0, ge(i0, i1), nullLiteral, nullLiteral), c01),
+        is(true));
+    assertThat(
+        Strong.isNull(
+            case_(eq(i0, i1), i0, ge(i0, i1), nullLiteral, nullLiteral), c1),
+        is(false));
+    assertThat(
+        Strong.isNull(
+            case_(eq(i0, i1), nullLiteral, ge(i0, i1), i0, nullLiteral), c01),
+        is(true));
+    assertThat(
+        Strong.isNull(
+            case_(eq(i0, i1), nullLiteral, ge(i0, i1), i0, nullLiteral), c1),
+        is(false));
+    assertThat(
+        Strong.isNull(
+            case_(eq(i0, i1), nullLiteral, ge(i0, i1), nullLiteral, i0), c01),
+        is(true));
+    assertThat(
+        Strong.isNull(
+            case_(eq(i0, i1), nullLiteral, ge(i0, i1), nullLiteral, i0), c1),
+        is(false));
+    assertThat(
+        Strong.isNull(
+            case_(isNotNull(i0), i0, i1), c),
+        is(false));
+    assertThat(
+        Strong.isNull(
+            case_(isNotNull(i0), i0, i1), c0),
+        is(false));
+    assertThat(
+        Strong.isNull(
+            case_(isNotNull(i0), i0, i1), c1),
+        is(false));
+    assertThat(
+        Strong.isNull(
+            case_(isNotNull(i0), i0, i1), c01),
+        is(true));
+
   }
 
   /** Unit test for {@link org.apache.calcite.rex.RexUtil#toCnf}. */

@@ -85,7 +85,7 @@ public class ProjectSetOpTransposeRule extends RelOptRule {
     PushProjector pushProject =
         new PushProjector(
             origProj, null, setOp, preserveExprCondition,
-            relBuilderFactory.create(origProj.getCluster(), null));
+            call.builder());
     pushProject.locateAllRefs();
 
     List<RelNode> newSetOpInputs = new ArrayList<RelNode>();
