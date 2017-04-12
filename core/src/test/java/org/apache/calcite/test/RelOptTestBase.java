@@ -220,6 +220,10 @@ abstract class RelOptTestBase extends SqlToRelTestBase {
           transforms);
     }
 
+    public Sql withRule(RelOptRule rule) {
+      return with(HepProgram.builder().addRuleInstance(rule).build());
+    }
+
     /** Adds a transform that will be applied to {@link #tester}
      * just before running the query. */
     private Sql withTransform(Function<Tester, Tester> transform) {
@@ -296,7 +300,6 @@ abstract class RelOptTestBase extends SqlToRelTestBase {
         checkPlanning(t, preProgram, hepPlanner, sql, unchanged);
       }
     }
-
   }
 
 }
