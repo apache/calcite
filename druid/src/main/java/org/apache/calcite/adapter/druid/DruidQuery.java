@@ -18,6 +18,7 @@ package org.apache.calcite.adapter.druid;
 
 import org.apache.calcite.DataContext;
 import org.apache.calcite.avatica.ColumnMetaData;
+import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.config.CalciteConnectionProperty;
 import org.apache.calcite.interpreter.BindableRel;
@@ -86,6 +87,10 @@ import static org.apache.calcite.sql.SqlKind.INPUT_REF;
  */
 public class DruidQuery extends AbstractRelNode implements BindableRel {
 
+  private static final List<TimeUnitRange> LIST_OF_VALID_TIME_EXTRACT = ImmutableList.of(
+      TimeUnitRange.YEAR,
+      TimeUnitRange.MONTH,
+      TimeUnitRange.DAY);
   protected QuerySpec querySpec;
 
   final RelOptTable table;
@@ -220,9 +225,21 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
       return areValidFilters(((RexCall) e).getOperands(), true);
     case CAST:
       return isValidCast((RexCall) e, boundedComparator);
+    case EXTRACT:
+      return isValidExtract((RexCall) e);
     default:
       return false;
     }
+  }
+
+  private boolean isValidExtract(RexCall call) {
+    assert call.isA(SqlKind.EXTRACT);
+    final RexLiteral flag = (RexLiteral) call.operands.get(0);
+    final TimeUnitRange timeUnit = (TimeUnitRange) flag.getValue();
+    if (timeUnit != null && LIST_OF_VALID_TIME_EXTRACT.contains(timeUnit)) {
+      return true;
+    }
+    return false;
   }
 
   private boolean areValidFilters(List<RexNode> es, boolean boundedComparator) {
@@ -980,35 +997,43 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
         final boolean numeric =
             call.getOperands().get(posRef).getType().getFamily()
                 == SqlTypeFamily.NUMERIC;
+
+        final ExtractionFunction extractionFunction = ExtractionFunctionUtil.buildExtraction(call
+            .getOperands().get(posRef));
+        String dimName = tr(e, posRef);
+        if (dimName.equals(DruidConnectionImpl.DEFAULT_RESPONSE_TIMESTAMP_COLUMN)) {
+          dimName = "__time";
+        }
+
         switch (e.getKind()) {
         case EQUALS:
-          return new JsonSelector("selector", tr(e, posRef), tr(e, posConstant));
+          return new JsonSelector("selector", dimName, tr(e, posConstant), extractionFunction);
         case NOT_EQUALS:
           return new JsonCompositeFilter("not",
-              new JsonSelector("selector", tr(e, posRef), tr(e, posConstant)));
+              new JsonSelector("selector", dimName, tr(e, posConstant), extractionFunction));
         case GREATER_THAN:
-          return new JsonBound("bound", tr(e, posRef), tr(e, posConstant),
-              true, null, false, numeric);
+          return new JsonBound("bound", dimName, tr(e, posConstant),
+              true, null, false, numeric, extractionFunction);
         case GREATER_THAN_OR_EQUAL:
-          return new JsonBound("bound", tr(e, posRef), tr(e, posConstant),
-              false, null, false, numeric);
+          return new JsonBound("bound", dimName, tr(e, posConstant),
+              false, null, false, numeric, extractionFunction);
         case LESS_THAN:
-          return new JsonBound("bound", tr(e, posRef), null, false,
-              tr(e, posConstant), true, numeric);
+          return new JsonBound("bound", dimName, null, false,
+              tr(e, posConstant), true, numeric, extractionFunction);
         case LESS_THAN_OR_EQUAL:
-          return new JsonBound("bound", tr(e, posRef), null, false,
-              tr(e, posConstant), false, numeric);
+          return new JsonBound("bound", dimName, null, false,
+              tr(e, posConstant), false, numeric, extractionFunction);
         case IN:
           ImmutableList.Builder<String> listBuilder = ImmutableList.builder();
           for (RexNode rexNode: call.getOperands()) {
             if (rexNode.getKind() == SqlKind.LITERAL) {
-              listBuilder.add(((RexLiteral) rexNode).getValue2().toString());
+              listBuilder.add(((RexLiteral) rexNode).getValue3().toString());
             }
           }
-          return new JsonInFilter("in", tr(e, posRef), listBuilder.build());
+          return new JsonInFilter("in", dimName, listBuilder.build(), extractionFunction);
         case BETWEEN:
-          return new JsonBound("bound", tr(e, posRef), tr(e, 2), false,
-              tr(e, 3), false, numeric);
+          return new JsonBound("bound", dimName, tr(e, 2), false,
+              tr(e, 3), false, numeric, extractionFunction);
         default:
           throw new AssertionError();
         }
@@ -1201,11 +1226,14 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
   private static class JsonSelector extends JsonFilter {
     private final String dimension;
     private final String value;
+    private final ExtractionFunction extractionFunction;
 
-    private JsonSelector(String type, String dimension, String value) {
+    private JsonSelector(String type, String dimension, String value, ExtractionFunction
+        extractionFunction) {
       super(type);
       this.dimension = dimension;
       this.value = value;
+      this.extractionFunction = extractionFunction;
     }
 
     public void write(JsonGenerator generator) throws IOException {
@@ -1213,6 +1241,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
       generator.writeStringField("type", type);
       generator.writeStringField("dimension", dimension);
       generator.writeStringField("value", value);
+      writeFieldIf(generator, "extractionFn", extractionFunction);
       generator.writeEndObject();
     }
   }
@@ -1226,10 +1255,11 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
     private final String upper;
     private final boolean upperStrict;
     private final boolean alphaNumeric;
+    private final ExtractionFunction extractionFunction;
 
     private JsonBound(String type, String dimension, String lower,
         boolean lowerStrict, String upper, boolean upperStrict,
-        boolean alphaNumeric) {
+        boolean alphaNumeric, ExtractionFunction extractionFunction) {
       super(type);
       this.dimension = dimension;
       this.lower = lower;
@@ -1237,6 +1267,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
       this.upper = upper;
       this.upperStrict = upperStrict;
       this.alphaNumeric = alphaNumeric;
+      this.extractionFunction = extractionFunction;
     }
 
     public void write(JsonGenerator generator) throws IOException {
@@ -1256,6 +1287,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
       } else {
         generator.writeStringField("ordering", "lexicographic");
       }
+      writeFieldIf(generator, "extractionFn", extractionFunction);
       generator.writeEndObject();
     }
   }
@@ -1292,11 +1324,14 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
   protected static class JsonInFilter extends JsonFilter {
     private final String dimension;
     private final List<String> values;
+    private final ExtractionFunction extractionFunction;
 
-    private JsonInFilter(String type, String dimension, List<String> values) {
+    private JsonInFilter(String type, String dimension, List<String> values, ExtractionFunction
+        extractionFunction) {
       super(type);
       this.dimension = dimension;
       this.values = values;
+      this.extractionFunction = extractionFunction;
     }
 
     public void write(JsonGenerator generator) throws IOException {
@@ -1304,6 +1339,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
       generator.writeStringField("type", type);
       generator.writeStringField("dimension", dimension);
       writeField(generator, "values", values);
+      writeFieldIf(generator, "extractionFn", extractionFunction);
       generator.writeEndObject();
     }
   }

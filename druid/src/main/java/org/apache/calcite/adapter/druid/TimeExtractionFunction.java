@@ -19,6 +19,7 @@ package org.apache.calcite.adapter.druid;
 import com.fasterxml.jackson.core.JsonGenerator;
 
 import java.io.IOException;
+import java.util.Locale;
 
 import static org.apache.calcite.adapter.druid.DruidQuery.writeFieldIf;
 
@@ -51,7 +52,7 @@ public class TimeExtractionFunction implements ExtractionFunction {
     writeFieldIf(generator, "format", format);
     writeFieldIf(generator, "granularity", granularity);
     writeFieldIf(generator, "timeZone", timeZone);
-    writeFieldIf(generator, "local", local);
+    writeFieldIf(generator, "locale", local);
     generator.writeEndObject();
   }
 
@@ -74,13 +75,11 @@ public class TimeExtractionFunction implements ExtractionFunction {
   public static TimeExtractionFunction createFromGranularity(Granularity granularity) {
     switch (granularity) {
     case DAY:
-      return new TimeExtractionFunction("dd", null, "UTC", null);
+      return new TimeExtractionFunction("d", null, "UTC", Locale.getDefault().toLanguageTag());
     case MONTH:
-      return new TimeExtractionFunction("MM", null, "UTC", null);
+      return new TimeExtractionFunction("M", null, "UTC", Locale.getDefault().toLanguageTag());
     case YEAR:
-      return new TimeExtractionFunction("yyyy", null, "UTC", null);
-    case HOUR:
-      return new TimeExtractionFunction("hh", null, "UTC", null);
+      return new TimeExtractionFunction("yyyy", null, "UTC", Locale.getDefault().toLanguageTag());
     default:
       throw new AssertionError("Extraction " + granularity.value + " is not valid");
     }

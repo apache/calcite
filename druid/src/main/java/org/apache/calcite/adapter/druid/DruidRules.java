@@ -205,12 +205,12 @@ public class DruidRules {
         intervals = DruidDateTimeUtils.createInterval(
             query.getRowType().getFieldList().get(timestampFieldIdx).getType(),
             RexUtil.composeConjunction(rexBuilder, triple.getLeft(), false));
-        if (intervals == null) {
-          // We can't push anything useful to Druid.
-          residualPreds.addAll(triple.getLeft());
+        if (intervals == null || intervals.isEmpty()) {
+          // Case we have an filter with extract that can not be written as interval push down
+          triple.getMiddle().addAll(triple.getLeft());
         }
       }
-      if (intervals == null && triple.getMiddle().isEmpty()) {
+      if ((intervals == null || intervals.isEmpty()) && triple.getMiddle().isEmpty()) {
         // We can't push anything useful to Druid.
         return;
       }
@@ -220,7 +220,7 @@ public class DruidRules {
             RexUtil.composeConjunction(rexBuilder, triple.getMiddle(), false));
         newDruidQuery = DruidQuery.extendQuery(query, newFilter);
       }
-      if (intervals != null) {
+      if (intervals != null && !intervals.isEmpty()) {
         newDruidQuery = DruidQuery.extendQuery((DruidQuery) newDruidQuery, intervals);
       }
       if (!residualPreds.isEmpty()) {
