@@ -33,7 +33,10 @@ public final class ExtractionFunctionUtil {
   }
 
   /**
-   * @param rexNode RexNode that might contains an extraction function
+   * This method will be used to build druid extraction function out of rexNodes containing
+   * SQL extract nodes.
+   *
+   * @param rexNode RexNode that might contains an extraction function on time for instance
    *
    * @return the correspondent druid extraction function or null if it is not recognisable
    */
