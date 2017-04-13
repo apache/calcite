@@ -235,6 +235,39 @@ LogicalProject(DEPTNO=[$0], NAME=[$1])
             <![CDATA[select*from unnest(multiset(select*from dept))]]>
         </Resource>
     </TestCase>
+    <TestCase name="testSelectOverDistinct">
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(EXPR$0=[CASE(>(COUNT(DISTINCT $7) OVER (ROWS BETWEEN 10 PRECEDING AND CURRENT ROW), 0), CAST($SUM0(DISTINCT $7) OVER (ROWS BETWEEN 10 PRECEDING AND CURRENT ROW)):INTEGER, null)])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="sql">
+            <![CDATA[select SUM(DISTINCT deptno)
+over (ROWS BETWEEN 10 PRECEDING AND CURRENT ROW)
+from emp
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testSelectStreamPartitionDistinct">
+        <Resource name="plan">
+            <![CDATA[
+LogicalDelta
+  LogicalProject(C=[COUNT(DISTINCT $2) OVER (PARTITION BY $1 ORDER BY $0 RANGE BETWEEN 1000 PRECEDING AND CURRENT ROW)], C2=[COUNT(DISTINCT $2) OVER (PARTITION BY $1 ORDER BY $0 RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)], C3=[COUNT($2) OVER (PARTITION BY $1 ORDER BY $0 RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)])
+    LogicalTableScan(table=[[CATALOG, SALES, ORDERS]])
+]]>
+        </Resource>
+        <Resource name="sql">
+            <![CDATA[select stream
+  count(distinct orderId) over (partition by productId
+    order by rowtime
+    range interval '1' second preceding) as c,
+  count(distinct orderId) over w as c2,
+  count(orderId) over w as c3
+from orders
+window w as (partition by productId)]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testUnnestArray">
         <Resource name="sql">
             <![CDATA[select*from unnest(array(select*from dept))]]>
