@@ -88,6 +88,11 @@ uses Calcite for parsing streaming SQL and query optimization.
 <a href="https://github.com/Cascading/lingual">Lingual</a>
 component provides a SQL interface to Cascading.
 
+### Dremio
+
+<a href="https://www.dremio.com">Dremio</a>
+uses Calcite for SQL parsing and cost-based query optimization.
+
 ### MapD
 
 <a href="https://www.mapd.com">MapD</a>
