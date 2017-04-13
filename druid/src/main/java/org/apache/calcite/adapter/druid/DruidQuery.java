@@ -1002,7 +1002,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
             .getOperands().get(posRef));
         String dimName = tr(e, posRef);
         if (dimName.equals(DruidConnectionImpl.DEFAULT_RESPONSE_TIMESTAMP_COLUMN)) {
-          dimName = "__time";
+          dimName = DruidTable.DEFAULT_TIMESTAMP_COLUMN;
         }
 
         switch (e.getKind()) {

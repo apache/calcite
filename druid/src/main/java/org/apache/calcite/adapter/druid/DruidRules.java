@@ -210,10 +210,6 @@ public class DruidRules {
           triple.getMiddle().addAll(triple.getLeft());
         }
       }
-      if ((intervals == null || intervals.isEmpty()) && triple.getMiddle().isEmpty()) {
-        // We can't push anything useful to Druid.
-        return;
-      }
       RelNode newDruidQuery = query;
       if (!triple.getMiddle().isEmpty()) {
         final RelNode newFilter = filter.copy(filter.getTraitSet(), Util.last(query.rels),

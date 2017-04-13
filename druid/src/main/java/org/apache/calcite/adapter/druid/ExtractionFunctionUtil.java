@@ -27,7 +27,7 @@ import org.apache.calcite.sql.SqlKind;
 /**
  * Utility class for extraction function mapping between SQL and Druid
  */
-public class ExtractionFunctionUtil {
+public final class ExtractionFunctionUtil {
 
   private ExtractionFunctionUtil() {
   }
