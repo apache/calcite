@@ -244,7 +244,11 @@ public class DruidDateTimeUtils {
 
   private static Calendar literalValue(RexNode node) {
     if (node instanceof RexLiteral) {
-      return (Calendar) ((RexLiteral) node).getValue();
+      Object value = ((RexLiteral) node).getValue();
+      if (value instanceof  Calendar) {
+        return (Calendar) value;
+      }
+      return null;
     }
     return null;
   }
