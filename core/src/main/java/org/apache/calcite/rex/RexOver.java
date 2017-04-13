@@ -35,6 +35,7 @@ public class RexOver extends RexCall {
   //~ Instance fields --------------------------------------------------------
 
   private final RexWindow window;
+  private boolean isDistinct = false;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -65,6 +66,36 @@ public class RexOver extends RexCall {
     this.window = Preconditions.checkNotNull(window);
   }
 
+  /**
+   * Creates a RexOver.
+   *
+   * <p>For example, "SUM(DISTINCT x) OVER (ROWS 3 PRECEDING)" is represented as:
+   *
+   * <ul>
+   * <li>type = Integer,
+   * <li>op = {@link org.apache.calcite.sql.fun.SqlStdOperatorTable#SUM},
+   * <li>operands = { {@link RexFieldAccess}("x") }
+   * <li>window = {@link SqlWindow}(ROWS 3 PRECEDING)
+   * </ul>
+   *
+   * @param type        Result type
+   * @param op          Aggregate operator
+   * @param operands    Operands list
+   * @param window      Window specification
+   * @param isDistinct  Aggregate operator is applied on distinct elements
+   */
+  RexOver(
+      RelDataType type,
+      SqlAggFunction op,
+      List<RexNode> operands,
+      RexWindow window,
+      boolean isDistinct) {
+    super(type, op, operands);
+    Preconditions.checkArgument(op.isAggregator());
+    this.window = Preconditions.checkNotNull(window);
+    this.isDistinct = isDistinct;
+  }
+
   //~ Methods ----------------------------------------------------------------
 
   /**
@@ -76,6 +107,14 @@ public class RexOver extends RexCall {
 
   public RexWindow getWindow() {
     return window;
+  }
+
+  public boolean isDistinct() {
+    return isDistinct;
+  }
+
+  public void setDistinct(boolean distinct) {
+    this.isDistinct = distinct;
   }
 
   protected String computeDigest(boolean withType) {

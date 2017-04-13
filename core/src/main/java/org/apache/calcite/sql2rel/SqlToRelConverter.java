@@ -79,6 +79,7 @@ import org.apache.calcite.rex.RexFieldCollation;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexOver;
 import org.apache.calcite.rex.RexPatternFieldRef;
 import org.apache.calcite.rex.RexRangeRef;
 import org.apache.calcite.rex.RexShuttle;
@@ -1874,7 +1875,23 @@ public class SqlToRelConverter {
               RexWindowBound.create(window.getLowerBound(), lowerBound),
               RexWindowBound.create(window.getUpperBound(), upperBound),
               window);
-      return rexAgg.accept(visitor);
+      //set it in a recursive method?
+      RexNode overNode = rexAgg.accept(visitor);
+      if (aggCall.getFunctionQuantifier() != null
+        && aggCall.getFunctionQuantifier().getValue().equals(SqlSelectKeyword.DISTINCT)) {
+        ImmutableList<RexNode> list = ((RexCall) overNode).operands.asList();
+        for (int i = 0; i < list.size(); i++) {
+          if (list.get(i) instanceof RexCall) {
+            ImmutableList<RexNode> listOperands = ((RexCall) list.get(i)).operands;
+            for (int k = 0; k < listOperands.size(); k++) {
+              if (listOperands.get(k) instanceof RexOver) {
+                ((RexOver) listOperands.get(k)).setDistinct(true);
+              }
+            }
+          }
+        }
+      }
+      return overNode;
     } finally {
       bb.window = null;
     }

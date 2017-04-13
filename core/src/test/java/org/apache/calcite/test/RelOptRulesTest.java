@@ -92,7 +92,9 @@ import org.apache.calcite.rel.rules.UnionToDistinctRule;
 import org.apache.calcite.rel.rules.ValuesReduceRule;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexOver;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.type.SqlTypeName;
@@ -111,6 +113,8 @@ import java.util.Arrays;
 import java.util.List;
 
 import static org.junit.Assert.assertTrue;
+
+
 
 /**
  * Unit test for rules in {@code org.apache.calcite.rel} and subpackages.
@@ -3215,6 +3219,35 @@ public class RelOptRulesTest extends RelOptTestBase {
         .addRuleInstance(DateRangeRules.FILTER_INSTANCE)
         .build();
     sql(sql).with(program).check();
+  }
+
+
+  @Test public void testDistinctOverAggregates() {
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(ProjectToWindowRule.PROJECT)
+        .addRuleInstance(ProjectMergeRule.INSTANCE)
+        .addRuleInstance(ProjectWindowTransposeRule.INSTANCE)
+        .build();
+
+    final String sql = "select SUM(DISTINCT deptno) OVER ("
+        + "ROWS BETWEEN 10 PRECEDING AND CURRENT ROW) AS sumC "
+        + "from emp";
+    List<RexNode> nodes = tester.convertSqlToRel(sql).rel.getChildExps();
+    for (int i = 0; i < nodes.size(); i++) {
+      if (nodes.get(i) instanceof RexCall) {
+        List<RexNode> ops = ((RexCall) nodes.get(i)).getOperands();
+        for (int j = 0; j <  ops.size(); j++) {
+          if (ops.get(j) instanceof RexCall) {
+            List<RexNode> operands = ((RexCall) ops.get(j)).getOperands();
+            for (int k = 0; k < operands.size(); k++) {
+              if (operands.get(k) instanceof RexOver) {
+                assertTrue(((RexOver) operands.get(k)).isDistinct());
+              }
+            }
+          }
+        }
+      }
+    }
   }
 
 }
