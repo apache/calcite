@@ -90,7 +90,7 @@ component provides a SQL interface to Cascading.
 
 ### Dremio
 
-<a href="https://www.dremio.com">Dremio</a>
+<a href="http://www.dremio.com">Dremio</a>
 uses Calcite for SQL parsing and cost-based query optimization.
 
 ### MapD
