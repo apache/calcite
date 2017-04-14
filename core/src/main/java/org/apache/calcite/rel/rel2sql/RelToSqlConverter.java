@@ -35,6 +35,7 @@ import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rel.core.Values;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexLocalRef;
 import org.apache.calcite.rex.RexNode;
@@ -378,6 +379,17 @@ public class RelToSqlConverter extends SqlImplementor
 
     SqlNode tableRef = x.asQueryOrValues();
 
+    final SqlNode after;
+    if (e.getAfter() instanceof RexLiteral) {
+      SqlMatchRecognize.AfterOption value = (SqlMatchRecognize.AfterOption)
+          ((RexLiteral) e.getAfter()).getValue2();
+      after = SqlLiteral.createSymbol(value, POS);
+    } else {
+      RexCall call = (RexCall) e.getAfter();
+      String operand = RexLiteral.stringValue(call.getOperands().get(0));
+      after = call.getOperator().createCall(POS, new SqlIdentifier(operand, POS));
+    }
+
     RexNode rexPattern = e.getPattern();
     final SqlNode pattern = context.toSql(null, rexPattern);
     final SqlLiteral strictStart = SqlLiteral.createBoolean(e.isStrictStart(), POS);
@@ -398,7 +410,7 @@ public class RelToSqlConverter extends SqlImplementor
     }
 
     final SqlNode matchRecognize = new SqlMatchRecognize(POS, tableRef,
-      pattern, strictStart, strictEnd, patternDefList, measureList);
+        pattern, strictStart, strictEnd, patternDefList, measureList, after);
     return result(matchRecognize, Expressions.list(Clause.FROM), e, null);
   }
 

@@ -2082,12 +2082,12 @@ public class SqlToRelConverter {
     final SqlValidatorNamespace ns = validator.getNamespace(matchRecognize);
     final SqlValidatorScope scope = validator.getMatchRecognizeScope(matchRecognize);
 
-    final Blackboard mrBlackBoard = createBlackboard(scope, null, false);
+    final Blackboard matchBb = createBlackboard(scope, null, false);
     final RelDataType rowType = ns.getRowType();
     // convert inner query, could be a table name or a derived table
     SqlNode expr = matchRecognize.getTableRef();
-    convertFrom(mrBlackBoard, expr);
-    final RelNode input = mrBlackBoard.root;
+    convertFrom(matchBb, expr);
+    final RelNode input = matchBb.root;
 
     // convert pattern
     final Set<String> patternVarsSet = new HashSet<>();
@@ -2120,7 +2120,29 @@ public class SqlToRelConverter {
       };
     final RexNode patternNode = pattern.accept(patternVarVisitor);
 
-    mrBlackBoard.setPatternVarRef(true);
+    SqlNode afterMatch = matchRecognize.getAfter();
+    if (afterMatch == null) {
+      afterMatch =
+          SqlMatchRecognize.AfterOption.SKIP_TO_NEXT_ROW.symbol(SqlParserPos.ZERO);
+    }
+
+    final RexNode after;
+    if (afterMatch instanceof SqlCall) {
+      List<SqlNode> operands = ((SqlCall) afterMatch).getOperandList();
+      SqlOperator operator = ((SqlCall) afterMatch).getOperator();
+      assert operands.size() == 1;
+      SqlIdentifier id = (SqlIdentifier) operands.get(0);
+      assert patternVarsSet.contains(id.getSimple())
+          : id.getSimple() + " not defined in pattern";
+      RexNode rex = rexBuilder.makeLiteral(id.getSimple());
+      after =
+          rexBuilder.makeCall(validator.getUnknownType(), operator,
+              ImmutableList.of(rex));
+    } else {
+      after = matchBb.convertExpression(afterMatch);
+    }
+
+    matchBb.setPatternVarRef(true);
 
     // convert measures
     final ImmutableMap.Builder<String, RexNode> measureNodes =
@@ -2128,7 +2150,7 @@ public class SqlToRelConverter {
     for (SqlNode measure : matchRecognize.getMeasureList()) {
       List<SqlNode> operands = ((SqlCall) measure).getOperandList();
       String alias = ((SqlIdentifier) operands.get(1)).getSimple();
-      RexNode rex = mrBlackBoard.convertExpression(operands.get(0));
+      RexNode rex = matchBb.convertExpression(operands.get(0));
       measureNodes.put(alias, rex);
     }
 
@@ -2138,11 +2160,11 @@ public class SqlToRelConverter {
     for (SqlNode def : matchRecognize.getPatternDefList()) {
       List<SqlNode> operands = ((SqlCall) def).getOperandList();
       String alias = ((SqlIdentifier) operands.get(1)).getSimple();
-      RexNode rex = mrBlackBoard.convertExpression(operands.get(0));
+      RexNode rex = matchBb.convertExpression(operands.get(0));
       definitionNodes.put(alias, rex);
     }
 
-    mrBlackBoard.setPatternVarRef(false);
+    matchBb.setPatternVarRef(false);
 
     final RelFactories.MatchFactory factory =
         RelFactories.DEFAULT_MATCH_FACTORY;
@@ -2150,8 +2172,7 @@ public class SqlToRelConverter {
         factory.createMatchRecognize(input, patternNode,
             matchRecognize.getStrictStart().booleanValue(),
             matchRecognize.getStrictEnd().booleanValue(),
-            definitionNodes.build(),
-            measureNodes.build(),
+            definitionNodes.build(), measureNodes.build(), after,
             rowType);
     bb.setRoot(rel, false);
   }

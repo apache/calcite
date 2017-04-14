@@ -9225,11 +9225,10 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   @Test public void testMatchRecognizeDefines4() throws Exception {
-    final String sql = "select * \n"
-        + "  from emp match_recognize \n"
-        + "  (\n"
+    final String sql = "select *\n"
+        + "  from emp match_recognize (\n"
         + "    pattern (strt down+ up+)\n"
-        + "    define \n"
+        + "    define\n"
         + "      down as down.sal < PREV(down.sal),\n"
         + "      up as up.sal > FIRST(^PREV(up.sal)^)\n"
         + "  ) mr";
@@ -9238,11 +9237,10 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   @Test public void testMatchRecognizeDefines5() throws Exception {
-    final String sql = "select * \n"
-        + "  from emp match_recognize \n"
-        + "  (\n"
+    final String sql = "select *\n"
+        + "  from emp match_recognize (\n"
         + "    pattern (strt down+ up+)\n"
-        + "    define \n"
+        + "    define\n"
         + "      down as down.sal < PREV(down.sal),\n"
         + "      up as up.sal > FIRST(^FIRST(up.sal)^)\n"
         + "  ) mr";
@@ -9251,11 +9249,10 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   @Test public void testMatchRecognizeDefines6() throws Exception {
-    final String sql = "select * \n"
-        + "  from emp match_recognize \n"
-        + "  (\n"
+    final String sql = "select *\n"
+        + "  from emp match_recognize (\n"
         + "    pattern (strt down+ up+)\n"
-        + "    define \n"
+        + "    define\n"
         + "      down as down.sal < PREV(down.sal),\n"
         + "      up as up.sal > ^COUNT(down.sal, up.sal)^\n"
         + "  ) mr";
@@ -9653,12 +9650,10 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
 
   @Test public void testMatchRecognizeMeasures1() throws Exception {
     final String sql = "select *\n"
-        + "  from emp match_recognize\n"
-        + "  (\n"
-        + "   measures "
-        + "   STRT.sal as start_sal,"
-        + "   ^LAST(null)^ as bottom_sal,"
-        + "   LAST(up.ts) as end_sal"
+        + "  from emp match_recognize (\n"
+        + "    measures STRT.sal as start_sal,"
+        + "      ^LAST(null)^ as bottom_sal,"
+        + "      LAST(up.ts) as end_sal"
         + "    pattern (strt down+ up+)\n"
         + "    define\n"
         + "      down as down.sal < PREV(down.sal),\n"
@@ -9666,6 +9661,38 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "  ) mr";
     sql(sql)
       .fails("Null parameters in 'LAST\\(NULL, 0\\)'");
+  }
+
+  @Test public void testMatchRecognizeSkipTo1() throws Exception {
+    final String sql = "select *\n"
+        + "  from emp match_recognize (\n"
+        + "    after match skip to ^null^\n"
+        + "    measures\n"
+        + "      STRT.sal as start_sal,\n"
+        + "      LAST(up.ts) as end_sal\n"
+        + "    pattern (strt down+ up+)\n"
+        + "    define\n"
+        + "      down as down.sal < PREV(down.sal),\n"
+        + "      up as up.sal > prev(up.sal)\n"
+        + "  ) mr";
+    sql(sql)
+        .fails("(?s).*Encountered \"to null\" at .*");
+  }
+
+  @Test public void testMatchRecognizeSkipTo2() throws Exception {
+    final String sql = "select *\n"
+        + "  from emp match_recognize (\n"
+        + "    after match skip to ^no_exists^\n"
+        + "    measures\n"
+        + "      STRT.sal as start_sal,"
+        + "      LAST(up.ts) as end_sal"
+        + "    pattern (strt down+ up+)\n"
+        + "    define\n"
+        + "      down as down.sal < PREV(down.sal),\n"
+        + "      up as up.sal > prev(up.sal)\n"
+        + "  ) mr";
+    sql(sql)
+        .fails("(?s).*Encountered \"measures\" at .*");
   }
 
 }

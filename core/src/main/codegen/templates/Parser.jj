@@ -2497,6 +2497,9 @@ SqlMatchRecognize MatchRecognizeOpt(SqlNode tableRef) :
     SqlNodeList measureList = SqlNodeList.EMPTY;
     SqlNode pattern;
     SqlNodeList patternDefList;
+    final SqlNode after;
+    final SqlParserPos pos;
+    final SqlNode var;
     SqlLiteral isStrictStarts = SqlLiteral.createBoolean(false, getPos());
     SqlLiteral isStrictEnds = SqlLiteral.createBoolean(false, getPos());
 }
@@ -2506,6 +2509,36 @@ SqlMatchRecognize MatchRecognizeOpt(SqlNode tableRef) :
         <MEASURES>
         measureList = MeasureColumnCommaList(getPos())
     ]
+    (
+        <AFTER> { pos = getPos(); } <MATCH> <SKIP_>
+        (
+            <TO>
+            (
+                LOOKAHEAD(2)
+                <NEXT> <ROW> {
+                    after = SqlMatchRecognize.AfterOption.SKIP_TO_NEXT_ROW
+                        .symbol(pos.plus(getPos()));
+                }
+            |
+                <FIRST> var = SimpleIdentifier() {
+                    after = SqlMatchRecognize.SKIP_TO_FIRST.createCall(
+                        pos.plus(var.getParserPosition()), var);
+                }
+            |
+                [ <LAST> ] var = SimpleIdentifier() {
+                    after = SqlMatchRecognize.SKIP_TO_LAST.createCall(
+                        pos.plus(var.getParserPosition()), var);
+                }
+            )
+        |
+            <PAST> <LAST> <ROW> {
+                 after = SqlMatchRecognize.AfterOption.SKIP_PAST_LAST_ROW
+                     .symbol(pos.plus(getPos()));
+            }
+        )
+    |
+        { after = null; }
+    )
     <PATTERN>
     <LPAREN>
     (
@@ -2524,7 +2557,8 @@ SqlMatchRecognize MatchRecognizeOpt(SqlNode tableRef) :
     patternDefList = PatternDefinitionCommaList(getPos())
     <RPAREN> {
         return new SqlMatchRecognize(startPos.plus(getPos()), tableRef,
-            pattern, isStrictStarts, isStrictEnds, patternDefList, measureList);
+            pattern, isStrictStarts, isStrictEnds, patternDefList, measureList,
+            after);
     }
 }
 
@@ -5814,6 +5848,7 @@ SqlPostfixOperator PostfixRowOperator() :
     | < PARTITION: "PARTITION" >
     | < PASCAL: "PASCAL" >
     | < PASSTHROUGH: "PASSTHROUGH" >
+    | < PAST: "PAST" >
     | < PATH: "PATH" >
     | < PATTERN: "PATTERN" >
     | < PER: "PER" >
@@ -6261,6 +6296,7 @@ String CommonNonReservedKeyWord() :
         | <PARTIAL>
         | <PASCAL>
         | <PASSTHROUGH>
+        | <PAST>
         | <PATH>
         | <PLACING>
         | <PLAN>

@@ -7636,6 +7636,111 @@ public class SqlParserTest {
     sql(sql).ok(expected);
   }
 
+  @Test public void testMatchRecognizePatternSkip1() {
+    final String sql = "select *\n"
+        + "  from t match_recognize\n"
+        + "  (\n"
+        + "     after match skip to next row\n"
+        + "    pattern (strt down+ up+)\n"
+        + "    define\n"
+        + "      down as down.price < PREV(down.price),\n"
+        + "      up as up.price > prev(up.price)\n"
+        + "  ) mr";
+    final String expected = "SELECT *\n"
+        + "FROM `T` MATCH_RECOGNIZE(\n"
+        + "AFTER MATCH SKIP TO NEXT ROW\n"
+        + "PATTERN (((`STRT` (`DOWN` +)) (`UP` +)))\n"
+        + "DEFINE "
+        + "`DOWN` AS (`DOWN`.`PRICE` < PREV(`DOWN`.`PRICE`, 1)), "
+        + "`UP` AS (`UP`.`PRICE` > PREV(`UP`.`PRICE`, 1))"
+        + ") AS `MR`";
+    sql(sql).ok(expected);
+  }
+
+  @Test public void testMatchRecognizePatternSkip2() {
+    final String sql = "select *\n"
+        + "  from t match_recognize\n"
+        + "  (\n"
+        + "     after match skip past last row\n"
+        + "    pattern (strt down+ up+)\n"
+        + "    define\n"
+        + "      down as down.price < PREV(down.price),\n"
+        + "      up as up.price > prev(up.price)\n"
+        + "  ) mr";
+    final String expected = "SELECT *\n"
+        + "FROM `T` MATCH_RECOGNIZE(\n"
+        + "AFTER MATCH SKIP PAST LAST ROW\n"
+        + "PATTERN (((`STRT` (`DOWN` +)) (`UP` +)))\n"
+        + "DEFINE "
+        + "`DOWN` AS (`DOWN`.`PRICE` < PREV(`DOWN`.`PRICE`, 1)), "
+        + "`UP` AS (`UP`.`PRICE` > PREV(`UP`.`PRICE`, 1))"
+        + ") AS `MR`";
+    sql(sql).ok(expected);
+  }
+
+  @Test public void testMatchRecognizePatternSkip3() {
+    final String sql = "select *\n"
+        + "  from t match_recognize\n"
+        + "  (\n"
+        + "     after match skip to FIRST down\n"
+        + "    pattern (strt down+ up+)\n"
+        + "    define\n"
+        + "      down as down.price < PREV(down.price),\n"
+        + "      up as up.price > prev(up.price)\n"
+        + "  ) mr";
+    final String expected = "SELECT *\n"
+        + "FROM `T` MATCH_RECOGNIZE(\n"
+        + "AFTER MATCH SKIP TO FIRST `DOWN`\n"
+        + "PATTERN (((`STRT` (`DOWN` +)) (`UP` +)))\n"
+        + "DEFINE "
+        + "`DOWN` AS (`DOWN`.`PRICE` < PREV(`DOWN`.`PRICE`, 1)), "
+        + "`UP` AS (`UP`.`PRICE` > PREV(`UP`.`PRICE`, 1))"
+        + ") AS `MR`";
+    sql(sql).ok(expected);
+  }
+
+  @Test public void testMatchRecognizePatternSkip4() {
+    final String sql = "select *\n"
+        + "  from t match_recognize\n"
+        + "  (\n"
+        + "     after match skip to LAST down\n"
+        + "    pattern (strt down+ up+)\n"
+        + "    define\n"
+        + "      down as down.price < PREV(down.price),\n"
+        + "      up as up.price > prev(up.price)\n"
+        + "  ) mr";
+    final String expected = "SELECT *\n"
+        + "FROM `T` MATCH_RECOGNIZE(\n"
+        + "AFTER MATCH SKIP TO LAST `DOWN`\n"
+        + "PATTERN (((`STRT` (`DOWN` +)) (`UP` +)))\n"
+        + "DEFINE "
+        + "`DOWN` AS (`DOWN`.`PRICE` < PREV(`DOWN`.`PRICE`, 1)), "
+        + "`UP` AS (`UP`.`PRICE` > PREV(`UP`.`PRICE`, 1))"
+        + ") AS `MR`";
+    sql(sql).ok(expected);
+  }
+
+  @Test public void testMatchRecognizePatternSkip5() {
+    final String sql = "select *\n"
+        + "  from t match_recognize\n"
+        + "  (\n"
+        + "     after match skip to down\n"
+        + "    pattern (strt down+ up+)\n"
+        + "    define\n"
+        + "      down as down.price < PREV(down.price),\n"
+        + "      up as up.price > prev(up.price)\n"
+        + "  ) mr";
+    final String expected = "SELECT *\n"
+        + "FROM `T` MATCH_RECOGNIZE(\n"
+        + "AFTER MATCH SKIP TO LAST `DOWN`\n"
+        + "PATTERN (((`STRT` (`DOWN` +)) (`UP` +)))\n"
+        + "DEFINE "
+        + "`DOWN` AS (`DOWN`.`PRICE` < PREV(`DOWN`.`PRICE`, 1)), "
+        + "`UP` AS (`UP`.`PRICE` > PREV(`UP`.`PRICE`, 1))"
+        + ") AS `MR`";
+    sql(sql).ok(expected);
+  }
+
   //~ Inner Interfaces -------------------------------------------------------
 
   /**
