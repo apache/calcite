@@ -43,14 +43,15 @@ public class LogicalMatch extends Match {
    * @param strictEnd Whether it is a strict end pattern
    * @param patternDefinitions Pattern definitions
    * @param measures Measure definitions
+   * @param afterMatchSkipTo after match definitions
    * @param rowType Row type
    */
   public LogicalMatch(RelOptCluster cluster, RelTraitSet traitSet,
       RelNode input, RexNode pattern, boolean strictStart, boolean strictEnd,
       Map<String, RexNode> patternDefinitions, Map<String, RexNode> measures,
-      RelDataType rowType) {
+      RexNode afterMatchSkipTo, RelDataType rowType) {
     super(cluster, traitSet, input, pattern, strictStart, strictEnd,
-        patternDefinitions, measures, rowType);
+        patternDefinitions, measures, afterMatchSkipTo, rowType);
   }
 
   /**
@@ -59,11 +60,11 @@ public class LogicalMatch extends Match {
   public static LogicalMatch create(RelNode input, RexNode pattern,
       boolean strictStart, boolean strictEnd,
       Map<String, RexNode> patternDefinitions, Map<String, RexNode> measures,
-      RelDataType rowType) {
+      RexNode afterMatchSkipTo, RelDataType rowType) {
     final RelOptCluster cluster = input.getCluster();
     final RelTraitSet traitSet = cluster.traitSetOf(Convention.NONE);
     return new LogicalMatch(cluster, traitSet, input, pattern,
-        strictStart, strictEnd, patternDefinitions, measures, rowType);
+        strictStart, strictEnd, patternDefinitions, measures, afterMatchSkipTo, rowType);
   }
 
   //~ Methods ------------------------------------------------------
@@ -71,11 +72,11 @@ public class LogicalMatch extends Match {
   @Override public Match copy(RelNode input, RexNode pattern,
       boolean strictStart, boolean strictEnd,
       Map<String, RexNode> patternDefinitions, Map<String, RexNode> measures,
-      RelDataType rowType) {
+      RexNode afterMatchSkipTo, RelDataType rowType) {
     final RelTraitSet traitSet = getCluster().traitSetOf(Convention.NONE);
     return new LogicalMatch(getCluster(), traitSet,
         input, pattern, strictStart, strictEnd, patternDefinitions, measures,
-        rowType);
+        afterMatchSkipTo, rowType);
   }
 }
 

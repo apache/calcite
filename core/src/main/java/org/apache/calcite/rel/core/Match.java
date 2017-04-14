@@ -59,6 +59,7 @@ public abstract class Match extends SingleRel {
   protected final RexNode pattern;
   protected final boolean strictStart;
   protected final boolean strictEnd;
+  protected final RexNode afterMatchSkipTo;
   protected final ImmutableMap<String, RexNode> patternDefinitions;
   protected final Set<RexMRAggCall> aggregateCalls;
   protected final Map<String, SortedSet<RexMRAggCall>> aggregateCallsPreVar;
@@ -81,7 +82,7 @@ public abstract class Match extends SingleRel {
   protected Match(RelOptCluster cluster, RelTraitSet traitSet,
       RelNode input, RexNode pattern, boolean strictStart, boolean strictEnd,
       Map<String, RexNode> patternDefinitions, Map<String, RexNode> measures,
-      RelDataType rowType) {
+      RexNode afterMatchSkipTo, RelDataType rowType) {
     super(cluster, traitSet, input);
     this.pattern = Preconditions.checkNotNull(pattern);
     Preconditions.checkArgument(patternDefinitions.size() > 0);
@@ -90,6 +91,7 @@ public abstract class Match extends SingleRel {
     this.patternDefinitions = ImmutableMap.copyOf(patternDefinitions);
     this.rowType = rowType;
     this.measures = ImmutableMap.copyOf(measures);
+    this.afterMatchSkipTo = afterMatchSkipTo;
 
     final AggregateFinder aggregateFinder = new AggregateFinder();
     for (RexNode rex : this.patternDefinitions.values()) {
@@ -126,6 +128,10 @@ public abstract class Match extends SingleRel {
     return measures;
   }
 
+  public RexNode getAfterMatchSkipTo() {
+    return afterMatchSkipTo;
+  }
+
   public RexNode getPattern() {
     return pattern;
   }
@@ -145,7 +151,7 @@ public abstract class Match extends SingleRel {
   public abstract Match copy(RelNode input, RexNode pattern,
       boolean strictStart, boolean strictEnd,
       Map<String, RexNode> patternDefinitions, Map<String, RexNode> measures,
-      RelDataType rowType);
+      RexNode afterMatchSkipTo, RelDataType rowType);
 
   @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
     if (getInputs().equals(inputs)
@@ -154,7 +160,7 @@ public abstract class Match extends SingleRel {
     }
 
     return copy(inputs.get(0), pattern, strictStart, strictEnd,
-        patternDefinitions, measures, rowType);
+        patternDefinitions, measures, afterMatchSkipTo, rowType);
   }
 
   @Override public RelWriter explainTerms(RelWriter pw) {
