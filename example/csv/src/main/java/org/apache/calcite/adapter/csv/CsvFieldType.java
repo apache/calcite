@@ -66,7 +66,9 @@ enum CsvFieldType {
   }
 
   public RelDataType toType(JavaTypeFactory typeFactory) {
-    return typeFactory.createJavaType(clazz);
+    RelDataType javaType = typeFactory.createJavaType(clazz);
+    RelDataType sqlType = typeFactory.createSqlType(javaType.getSqlTypeName());
+    return typeFactory.createTypeWithNullability(sqlType, true);
   }
 
   public static CsvFieldType of(String typeString) {
