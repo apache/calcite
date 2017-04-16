@@ -376,7 +376,7 @@ public class JdbcTest {
           .runs();
 
       modelWithView(
-          "select \"name\", \"empid\" as e, \"salary\", \"empid\" + 3 as e3, 1 as one\n"
+          "select \"name\", \"empid\" as e, \"salary\", \"empid\" + 3 as e3, 1 as uno\n"
               + "from \"MUTABLE_EMPLOYEES\"\n"
               + "where \"commission\" = 100 AND \"deptno\" = 20",
           true)

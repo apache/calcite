@@ -855,7 +855,7 @@ void Arg0(List list, ExprContext exprContext) :
         name = SimpleIdentifier() <NAMED_ARGUMENT_ASSIGNMENT>
     ]
     (
-        <DEFAULT_KW> {
+        <DEFAULT_> {
             e = SqlStdOperatorTable.DEFAULT.createCall(getPos());
         }
     |
@@ -883,7 +883,7 @@ void Arg(List list, ExprContext exprContext) :
         name = SimpleIdentifier() <NAMED_ARGUMENT_ASSIGNMENT>
     ]
     (
-        <DEFAULT_KW> {
+        <DEFAULT_> {
             e = SqlStdOperatorTable.DEFAULT.createCall(getPos());
         }
     |
@@ -5132,6 +5132,8 @@ SqlIdentifier ReservedFunctionName() :
         | <FUSION>
         | <GROUPING>
         | <HOUR>
+        | <LAG>
+        | <LEAD>
         | <LAST_VALUE>
         | <LN>
         | <LOCALTIME>
@@ -5142,6 +5144,7 @@ SqlIdentifier ReservedFunctionName() :
         | <MINUTE>
         | <MOD>
         | <MONTH>
+        | <NTILE>
         | <NULLIF>
         | <OCTET_LENGTH>
         | <PERCENT_RANK>
@@ -5156,6 +5159,7 @@ SqlIdentifier ReservedFunctionName() :
         | <STDDEV_SAMP>
         | <SUM>
         | <UPPER>
+        | <TRUNCATE>
         | <USER>
         | <VAR_POP>
         | <VAR_SAMP>
@@ -5237,6 +5241,9 @@ SqlNode JdbcFunctionCall() :
         (
             // INSERT is a reserved word, but we need to handle {fn insert}
             <INSERT> { name = unquotedIdentifier(); }
+        |
+            // TRUNCATE is a reserved word, but we need to handle {fn truncate}
+            <TRUNCATE> { name = unquotedIdentifier(); }
         |
             // For cases like {fn power(1,2)} and {fn lower('a')}
             id = ReservedFunctionName() { name = id.getSimple(); }
@@ -5448,12 +5455,14 @@ SqlPostfixOperator PostfixRowOperator() :
     | < ALL: "ALL" >
     | < ALLOCATE: "ALLOCATE" >
     | < ALLOW: "ALLOW" >
-    | < ALWAYS: "ALWAYS" >
     | < ALTER: "ALTER" >
+    | < ALWAYS: "ALWAYS" >
     | < AND: "AND" >
     | < ANY: "ANY" >
+    | < APPLY: "APPLY" >
     | < ARE: "ARE" >
     | < ARRAY: "ARRAY" >
+    | < ARRAY_MAX_CARDINALITY: "ARRAY_MAX_CARDINALITY" >
     | < AS: "AS" >
     | < ASC: "ASC" >
     | < ASENSITIVE: "ASENSITIVE" >
@@ -5468,6 +5477,8 @@ SqlPostfixOperator PostfixRowOperator() :
     | < AVG: "AVG" >
     | < BEFORE: "BEFORE" >
     | < BEGIN: "BEGIN" >
+    | < BEGIN_FRAME: "BEGIN_FRAME" >
+    | < BEGIN_PARTITION: "BEGIN_PARTITION" >
     | < BERNOULLI: "BERNOULLI" >
     | < BETWEEN: "BETWEEN" >
     | < BIGINT: "BIGINT" >
@@ -5502,6 +5513,7 @@ SqlPostfixOperator PostfixRowOperator() :
     | < CHARACTERISTICS: "CHARACTERISTICS" >
     | < CHARACTERS: "CHARACTERS" >
     | < CHECK: "CHECK" >
+    | < CLASSIFIER: "CLASSIFIER" >
     | < CLASS_ORIGIN: "CLASS_ORIGIN" >
     | < CLOB: "CLOB" >
     | < CLOSE: "CLOSE" >
@@ -5531,8 +5543,8 @@ SqlPostfixOperator PostfixRowOperator() :
     | < CONSTRAINTS: "CONSTRAINTS" >
     | < CONSTRUCTOR: "CONSTRUCTOR" >
     | < CONTAINS: "CONTAINS" >
-    | < CONVERT: "CONVERT" >
     | < CONTINUE: "CONTINUE" >
+    | < CONVERT: "CONVERT" >
     | < CORR: "CORR" >
     | < CORRESPONDING: "CORRESPONDING" >
     | < COUNT: "COUNT" >
@@ -5548,6 +5560,7 @@ SqlPostfixOperator PostfixRowOperator() :
     | < CURRENT_DEFAULT_TRANSFORM_GROUP: "CURRENT_DEFAULT_TRANSFORM_GROUP" >
     | < CURRENT_PATH: "CURRENT_PATH" >
     | < CURRENT_ROLE: "CURRENT_ROLE" >
+    | < CURRENT_ROW: "CURRENT_ROW" >
     | < CURRENT_SCHEMA: "CURRENT_SCHEMA" >
     | < CURRENT_TIME: "CURRENT_TIME" >
     | < CURRENT_TIMESTAMP: "CURRENT_TIMESTAMP" >
@@ -5567,7 +5580,7 @@ SqlPostfixOperator PostfixRowOperator() :
     | < DECADE: "DECADE" >
     | < DECIMAL: "DECIMAL" >
     | < DECLARE: "DECLARE" >
-    | < DEFAULT_KW: "DEFAULT" >
+    | < DEFAULT_: "DEFAULT" >
     | < DEFAULTS: "DEFAULTS" >
     | < DEFERRABLE: "DEFERRABLE" >
     | < DEFERRED: "DEFERRED" >
@@ -5580,8 +5593,8 @@ SqlPostfixOperator PostfixRowOperator() :
     | < DEPTH: "DEPTH" >
     | < DEREF: "DEREF" >
     | < DERIVED: "DERIVED" >
-    | < DESCRIBE: "DESCRIBE" >
     | < DESC: "DESC" >
+    | < DESCRIBE: "DESCRIBE" >
     | < DESCRIPTION: "DESCRIPTION" >
     | < DESCRIPTOR: "DESCRIPTOR" >
     | < DETERMINISTIC: "DETERMINISTIC" >
@@ -5601,8 +5614,11 @@ SqlPostfixOperator PostfixRowOperator() :
     | < EACH: "EACH" >
     | < ELEMENT: "ELEMENT" >
     | < ELSE: "ELSE" >
+    | < EMPTY: "EMPTY" >
     | < END: "END" >
     | < END_EXEC: "END-EXEC" >
+    | < END_FRAME: "END_FRAME" >
+    | < END_PARTITION: "END_PARTITION" >
     | < EPOCH: "EPOCH" >
     | < EQUALS: "EQUALS" >
     | < ESCAPE: "ESCAPE" >
@@ -5616,8 +5632,8 @@ SqlPostfixOperator PostfixRowOperator() :
     | < EXISTS: "EXISTS" >
     | < EXP: "EXP" >
     | < EXPLAIN: "EXPLAIN" >
-    | < EXTERNAL: "EXTERNAL" >
     | < EXTEND: "EXTEND" >
+    | < EXTERNAL: "EXTERNAL" >
     | < EXTRACT: "EXTRACT" >
     | < FALSE: "FALSE" >
     | < FETCH: "FETCH" >
@@ -5633,6 +5649,7 @@ SqlPostfixOperator PostfixRowOperator() :
     | < FORTRAN: "FORTRAN" >
     | < FOUND: "FOUND" >
     | < FRAC_SECOND: "FRAC_SECOND" >
+    | < FRAME_ROW: "FRAME_ROW" >
     | < FREE: "FREE" >
     | < FROM: "FROM" >
     | < FULL: "FULL" >
@@ -5649,6 +5666,7 @@ SqlPostfixOperator PostfixRowOperator() :
     | < GRANTED: "GRANTED" >
     | < GROUP: "GROUP" >
     | < GROUPING: "GROUPING" >
+    | < GROUPS: "GROUPS" >
     | < HAVING: "HAVING" >
     | < HIERARCHY: "HIERARCHY" >
     | < HOLD: "HOLD" >
@@ -5658,9 +5676,10 @@ SqlPostfixOperator PostfixRowOperator() :
     | < IMPLEMENTATION: "IMPLEMENTATION" >
     | < IMPORT: "IMPORT" >
     | < IN: "IN" >
-    | < INDICATOR: "INDICATOR" >
     | < INCLUDING: "INCLUDING" >
     | < INCREMENT: "INCREMENT" >
+    | < INDICATOR: "INDICATOR" >
+    | < INITIAL: "INITIAL" >
     | < INITIALLY: "INITIALLY" >
     | < INNER: "INNER" >
     | < INOUT: "INOUT" >
@@ -5686,17 +5705,20 @@ SqlPostfixOperator PostfixRowOperator() :
     | < KEY_MEMBER: "KEY_MEMBER" >
     | < KEY_TYPE: "KEY_TYPE" >
     | < LABEL: "LABEL" >
+    | < LAG: "LAG" >
     | < LANGUAGE: "LANGUAGE" >
     | < LARGE: "LARGE" >
     | < LAST: "LAST" >
     | < LAST_VALUE: "LAST_VALUE" >
     | < LATERAL: "LATERAL" >
+    | < LEAD: "LEAD" >
     | < LEADING: "LEADING" >
     | < LEFT: "LEFT" >
     | < LENGTH: "LENGTH" >
     | < LEVEL: "LEVEL" >
     | < LIBRARY: "LIBRARY" >
     | < LIKE: "LIKE" >
+    | < LIKE_REGEX: "LIKE_REGEX" >
     | < LIMIT: "LIMIT" >
     | < LN: "LN" >
     | < LOCAL: "LOCAL" >
@@ -5708,6 +5730,8 @@ SqlPostfixOperator PostfixRowOperator() :
     | < MAP: "MAP" >
     | < MATCH: "MATCH" >
     | < MATCHED: "MATCHED" >
+    | < MATCHES: "MATCHES" >
+    | < MATCH_NUMBER: "MATCH_NUMBER">
     | < MATCH_RECOGNIZE: "MATCH_RECOGNIZE">
     | < MAX: "MAX" >
     | < MAXVALUE: "MAXVALUE" >
@@ -5727,7 +5751,7 @@ SqlPostfixOperator PostfixRowOperator() :
     | < MODIFIES: "MODIFIES" >
     | < MODULE: "MODULE" >
     | < MONTH: "MONTH" >
-    | < MORE_KW: "MORE" >
+    | < MORE_: "MORE" >
     | < MULTISET: "MULTISET" >
     | < MUMPS: "MUMPS" >
     | < NAME: "NAME" >
@@ -5744,6 +5768,8 @@ SqlPostfixOperator PostfixRowOperator() :
     | < NORMALIZE: "NORMALIZE" >
     | < NORMALIZED: "NORMALIZED" >
     | < NOT: "NOT" >
+    | < NTH_VALUE: "NTH_VALUE" >
+    | < NTILE: "NTILE" >
     | < NULL: "NULL" >
     | < NULLABLE: "NULLABLE" >
     | < NULLIF: "NULLIF" >
@@ -5751,12 +5777,15 @@ SqlPostfixOperator PostfixRowOperator() :
     | < NUMBER: "NUMBER" >
     | < NUMERIC: "NUMERIC" >
     | < OBJECT: "OBJECT" >
+    | < OCCURRENCES_REGEX: "OCCURRENCES_REGEX" >
     | < OCTET_LENGTH: "OCTET_LENGTH" >
     | < OCTETS: "OCTETS" >
     | < OF: "OF" >
     | < OFFSET: "OFFSET" >
     | < OLD: "OLD" >
+    | < OMIT: "OMIT" >
     | < ON: "ON" >
+    | < ONE: "ONE" >
     | < ONLY: "ONLY" >
     | < OPEN: "OPEN" >
     | < OPTION: "OPTION" >
@@ -5787,15 +5816,21 @@ SqlPostfixOperator PostfixRowOperator() :
     | < PASSTHROUGH: "PASSTHROUGH" >
     | < PATH: "PATH" >
     | < PATTERN: "PATTERN" >
-    | < PERMUTE: "PERMUTE" >
-    | < PERCENT_RANK: "PERCENT_RANK" >
+    | < PER: "PER" >
+    | < PERCENT: "PERCENT" >
     | < PERCENTILE_CONT: "PERCENTILE_CONT" >
     | < PERCENTILE_DISC: "PERCENTILE_DISC" >
+    | < PERCENT_RANK: "PERCENT_RANK" >
+    | < PERIOD: "PERIOD" >
+    | < PERMUTE: "PERMUTE" >
     | < PLACING: "PLACING" >
     | < PLAN: "PLAN" >
     | < PLI: "PLI" >
+    | < PORTION: "PORTION" >
     | < POSITION: "POSITION" >
+    | < POSITION_REGEX: "POSITION_REGEX" >
     | < POWER: "POWER" >
+    | < PRECEDES: "PRECEDES" >
     | < PRECEDING: "PRECEDING" >
     | < PRECISION: "PRECISION" >
     | < PREPARE: "PREPARE" >
@@ -5866,6 +5901,7 @@ SqlPostfixOperator PostfixRowOperator() :
     | < SECOND: "SECOND" >
     | < SECTION: "SECTION" >
     | < SECURITY: "SECURITY" >
+    | < SEEK: "SEEK" >
     | < SELECT: "SELECT" >
     | < SELF: "SELF" >
     | < SENSITIVE: "SENSITIVE" >
@@ -5878,9 +5914,11 @@ SqlPostfixOperator PostfixRowOperator() :
     | < SET: "SET" >
     | < SETS: "SETS" >
     | < SET_MINUS: "MINUS">
+    | < SHOW: "SHOW" >
     | < SIMILAR: "SIMILAR" >
     | < SIMPLE: "SIMPLE" >
     | < SIZE: "SIZE" >
+    | < SKIP_: "SKIP" >
     | < SMALLINT: "SMALLINT" >
     | < SOME: "SOME" >
     | < SOURCE: "SOURCE" >
@@ -5953,11 +5991,15 @@ SqlPostfixOperator PostfixRowOperator() :
     | < STYLE: "STYLE" >
     | < SUBCLASS_ORIGIN: "SUBCLASS_ORIGIN" >
     | < SUBMULTISET: "SUBMULTISET" >
-    | < SUBSTRING: "SUBSTRING" >
+    | < SUBSET: "SUBSET" >
     | < SUBSTITUTE: "SUBSTITUTE" >
+    | < SUBSTRING: "SUBSTRING" >
+    | < SUBSTRING_REGEX: "SUBSTRING_REGEX" >
+    | < SUCCEEDS: "SUCCEEDS" >
     | < SUM: "SUM" >
     | < SYMMETRIC: "SYMMETRIC" >
     | < SYSTEM: "SYSTEM" >
+    | < SYSTEM_TIME: "SYSTEM_TIME" >
     | < SYSTEM_USER: "SYSTEM_USER" >
     | < TABLE: "TABLE" >
     | < TABLE_NAME: "TABLE_NAME" >
@@ -5982,6 +6024,7 @@ SqlPostfixOperator PostfixRowOperator() :
     | < TRANSFORM: "TRANSFORM" >
     | < TRANSFORMS: "TRANSFORMS" >
     | < TRANSLATE: "TRANSLATE" >
+    | < TRANSLATE_REGEX: "TRANSLATE_REGEX" >
     | < TRANSLATION: "TRANSLATION" >
     | < TREAT: "TREAT" >
     | < TRIGGER: "TRIGGER" >
@@ -5989,7 +6032,9 @@ SqlPostfixOperator PostfixRowOperator() :
     | < TRIGGER_NAME: "TRIGGER_NAME" >
     | < TRIGGER_SCHEMA: "TRIGGER_SCHEMA" >
     | < TRIM: "TRIM" >
+    | < TRIM_ARRAY: "TRIM_ARRAY" >
     | < TRUE: "TRUE" >
+    | < TRUNCATE: "TRUNCATE" >
     | < TYPE: "TYPE" >
     | < UESCAPE: "UESCAPE" >
     | < UNBOUNDED: "UNBOUNDED" >
@@ -6012,12 +6057,14 @@ SqlPostfixOperator PostfixRowOperator() :
     | < USING: "USING" >
     | < VALUE: "VALUE" >
     | < VALUES: "VALUES" >
+    | < VALUE_OF: "VALUE_OF" >
     | < VAR_POP: "VAR_POP" >
     | < VAR_SAMP: "VAR_SAMP" >
-    | < VARCHAR: "VARCHAR" >
     | < VARBINARY: "VARBINARY" >
+    | < VARCHAR: "VARCHAR" >
     | < VARYING: "VARYING" >
     | < VERSION: "VERSION" >
+    | < VERSIONING: "VERSIONING" >
     | < VIEW: "VIEW" >
     | < WEEK: "WEEK" >
     | < WHEN: "WHEN" >
@@ -6034,7 +6081,6 @@ SqlPostfixOperator PostfixRowOperator() :
     | < XML: "XML" >
     | < YEAR: "YEAR" >
     | < ZONE: "ZONE" >
-    | < APPLY: "APPLY" >
   <#-- additional parser keywords are included here -->
   <#list parser.keywords as keyword>
     | < ${keyword}: "${keyword}" >
@@ -6113,7 +6159,6 @@ String CommonNonReservedKeyWord() :
         | <CONSTRAINT_SCHEMA>
         | <CONSTRAINTS>
         | <CONSTRUCTOR>
-        | <CONTAINS>
         | <CONTINUE>
         | <CURSOR_NAME>
         | <DATA>
@@ -6140,7 +6185,6 @@ String CommonNonReservedKeyWord() :
         | <DYNAMIC_FUNCTION>
         | <DYNAMIC_FUNCTION_CODE>
         | <EPOCH>
-        | <EQUALS>
         | <EXCEPTION>
         | <EXCLUDE>
         | <EXCLUDING>
@@ -6189,7 +6233,7 @@ String CommonNonReservedKeyWord() :
         | <MESSAGE_TEXT>
         | <MILLENNIUM>
         | <MINVALUE>
-        | <MORE_KW>
+        | <MORE_>
         | <MUMPS>
         | <NAME>
         | <NAMES>

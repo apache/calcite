@@ -256,7 +256,7 @@ public class SqlTest {
    * therefore the table has a system-generated column called
    * "EmptyFileHasNoColumns". */
   @Test public void testCsvSalesEmpty() throws SQLException {
-    final String sql = "select * from sales.empty";
+    final String sql = "select * from sales.\"EMPTY\"";
     checkSql(sql, "sales-csv", new Function<ResultSet, Void>() {
       public Void apply(ResultSet resultSet) {
         try {

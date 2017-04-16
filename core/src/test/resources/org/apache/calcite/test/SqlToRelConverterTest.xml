@@ -1247,7 +1247,7 @@ where c like 'X%']]>
             <![CDATA[
 LogicalProject(EXPR$0=[+($0, $1)])
   LogicalFilter(condition=[LIKE($2, 'X%')])
-    LogicalProject(DEPTNO=[$0], ONE=[1], NAME=[$1])
+    LogicalProject(DEPTNO=[$0], UNO=[1], NAME=[$1])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
         </Resource>

@@ -5486,7 +5486,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   @Ignore("bug: should fail if sub-query does not have alias")
   @Test public void testJoinSubQuery() {
     // Sub-queries require alias
-    checkFails("select * from (select 1 as one from emp)\n"
+    checkFails("select * from (select 1 as uno from emp)\n"
             + "join (values (1), (2)) on true",
         "require alias");
   }
@@ -5637,8 +5637,8 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     checkResultType("with emp2 as (select * from emp),\n"
             + " dept2 as (select * from dept),\n"
             + " empDept as (select emp2.empno, dept2.deptno from dept2 join emp2 using (deptno))\n"
-            + "select 1 as one from empDept",
-        "RecordType(INTEGER NOT NULL ONE) NOT NULL");
+            + "select 1 as uno from empDept",
+        "RecordType(INTEGER NOT NULL UNO) NOT NULL");
   }
 
   /** Tests the {@code WITH} clause with UNION. */
@@ -5679,8 +5679,8 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
             + "  with dept2 as (select * from dept)\n"
             + "  (\n"
             + "    with empDept as (select emp2.empno, dept2.deptno from dept2 join emp2 using (deptno))\n"
-            + "    select 1 as one from empDept))",
-        "RecordType(INTEGER NOT NULL ONE) NOT NULL");
+            + "    select 1 as uno from empDept))",
+        "RecordType(INTEGER NOT NULL UNO) NOT NULL");
 
     // WITH inside WHERE can see enclosing tables
     checkResultType("select * from emp\n"
@@ -5707,15 +5707,15 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     checkResultType("select e.empno, d.* from emp as e\n"
             + "join (\n"
             + "  with dept2 as (select * from dept where dept.deptno > 10)\n"
-            + "  select deptno, 1 as one from dept2) as d using (deptno)",
+            + "  select deptno, 1 as uno from dept2) as d using (deptno)",
         "RecordType(INTEGER NOT NULL EMPNO,"
             + " INTEGER NOT NULL DEPTNO,"
-            + " INTEGER NOT NULL ONE) NOT NULL");
+            + " INTEGER NOT NULL UNO) NOT NULL");
 
     checkFails("select ^e^.empno, d.* from emp\n"
             + "join (\n"
             + "  with dept2 as (select * from dept where dept.deptno > 10)\n"
-            + "  select deptno, 1 as one from dept2) as d using (deptno)",
+            + "  select deptno, 1 as uno from dept2) as d using (deptno)",
         "Table 'E' not found");
   }
 
@@ -7526,7 +7526,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
             + " CATALOG.SALES.DEPT.DEPTNO,"
             + " CATALOG.SALES.DEPT.NAME}");
 
-    tester.checkFieldOrigin("select distinct emp.empno, hiredate, 1 as one,\n"
+    tester.checkFieldOrigin("select distinct emp.empno, hiredate, 1 as uno,\n"
             + " emp.empno * 2 as twiceEmpno\n"
             + "from emp join dept on true",
         "{CATALOG.SALES.EMP.EMPNO,"

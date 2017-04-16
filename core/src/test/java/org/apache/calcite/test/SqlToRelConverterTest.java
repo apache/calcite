@@ -97,7 +97,7 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
 
   @Test public void testAliasList() {
     final String sql = "select a + b from (\n"
-        + "  select deptno, 1 as one, name from dept\n"
+        + "  select deptno, 1 as uno, name from dept\n"
         + ") as d(a, b, c)\n"
         + "where c like 'X%'";
     sql(sql).ok();
