@@ -25,6 +25,7 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Ordering;
 
 import org.junit.Assert;
 import org.junit.Ignore;
@@ -44,6 +45,7 @@ import java.sql.Statement;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Properties;
@@ -306,6 +308,26 @@ public class CsvTest {
     };
   }
 
+  /** Returns a function that checks the contents of a result set against an
+   * expected string. */
+  private static Function<ResultSet, Void> expectUnordered(String... expected) {
+    final List<String> expectedLines =
+        Ordering.natural().immutableSortedCopy(Arrays.asList(expected));
+    return new Function<ResultSet, Void>() {
+      public Void apply(ResultSet resultSet) {
+        try {
+          final List<String> lines = new ArrayList<>();
+          CsvTest.collect(lines, resultSet);
+          Collections.sort(lines);
+          Assert.assertEquals(expectedLines, lines);
+        } catch (SQLException e) {
+          throw new RuntimeException(e);
+        }
+        return null;
+      }
+    };
+  }
+
   private void checkSql(String sql, String model, Function<ResultSet, Void> fn)
       throws SQLException {
     Connection connection = null;
@@ -392,6 +414,33 @@ public class CsvTest {
         .ok();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1754">[CALCITE-1754]
+   * In Csv adapter, convert DATE and TIME values to int, and TIMESTAMP values
+   * to long</a>. */
+  @Test public void testGroupByTimestampAdd() throws SQLException {
+    final String sql = "select count(*) as c,\n"
+        + "  {fn timestampadd(SQL_TSI_DAY, 1, JOINEDAT) } as t\n"
+        + "from EMPS group by {fn timestampadd(SQL_TSI_DAY, 1, JOINEDAT ) } ";
+    sql("model", sql)
+        .returnsUnordered("C=1; T=1996-08-04",
+            "C=1; T=2002-05-04",
+            "C=1; T=2005-09-08",
+            "C=1; T=2007-01-02",
+            "C=1; T=2001-01-02")
+        .ok();
+
+    final String sql2 = "select count(*) as c,\n"
+        + "  {fn timestampadd(SQL_TSI_MONTH, 1, JOINEDAT) } as t\n"
+        + "from EMPS group by {fn timestampadd(SQL_TSI_MONTH, 1, JOINEDAT ) } ";
+    sql("model", sql2)
+        .returnsUnordered("C=1; T=2002-06-03",
+            "C=1; T=2005-10-07",
+            "C=1; T=2007-02-01",
+            "C=1; T=2001-02-01",
+            "C=1; T=1996-09-03")
+        .ok();
+  }
   @Test public void testBoolean() throws SQLException {
     sql("smart", "select empno, slacker from emps where slacker")
         .returns("EMPNO=100; SLACKER=true").ok();
@@ -800,6 +849,12 @@ public class CsvTest {
     /** Sets the rows that are expected to be returned from the SQL query. */
     Fluent returns(String... expectedLines) {
       return checking(expect(expectedLines));
+    }
+
+    /** Sets the rows that are expected to be returned from the SQL query,
+     * in no particular order. */
+    Fluent returnsUnordered(String... expectedLines) {
+      return checking(expectUnordered(expectedLines));
     }
   }
 }

@@ -16,8 +16,12 @@
  */
 package org.apache.calcite.adapter.file;
 
-import com.google.common.base.Function;
+import org.apache.calcite.util.Util;
 
+import com.google.common.base.Function;
+import com.google.common.collect.Ordering;
+
+import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.Test;
 
@@ -27,6 +31,10 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Types;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.Properties;
 
 import static org.hamcrest.CoreMatchers.is;
@@ -70,6 +78,44 @@ public class SqlTest {
         return null;
       }
     };
+  }
+
+  /** Returns a function that checks the contents of a result set against an
+   * expected string. */
+  private static Function<ResultSet, Void> expectUnordered(String... expected) {
+    final List<String> expectedLines =
+        Ordering.natural().immutableSortedCopy(Arrays.asList(expected));
+    return new Function<ResultSet, Void>() {
+      public Void apply(ResultSet resultSet) {
+        try {
+          final List<String> lines = new ArrayList<>();
+          SqlTest.collect(lines, resultSet);
+          Collections.sort(lines);
+          Assert.assertEquals(expectedLines, lines);
+        } catch (SQLException e) {
+          throw new RuntimeException(e);
+        }
+        return null;
+      }
+    };
+  }
+
+  private static void collect(List<String> result, ResultSet resultSet)
+      throws SQLException {
+    final StringBuilder buf = new StringBuilder();
+    while (resultSet.next()) {
+      buf.setLength(0);
+      int n = resultSet.getMetaData().getColumnCount();
+      String sep = "";
+      for (int i = 1; i <= n; i++) {
+        buf.append(sep)
+            .append(resultSet.getMetaData().getColumnLabel(i))
+            .append("=")
+            .append(resultSet.getString(i));
+        sep = "; ";
+      }
+      result.add(Util.toLinux(buf.toString()));
+    }
   }
 
   private void checkSql(String sql, String model, Function<ResultSet, Void> fn)
@@ -229,6 +275,41 @@ public class SqlTest {
     });
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1754">[CALCITE-1754]
+   * In Csv adapter, convert DATE and TIME values to int, and TIMESTAMP values
+   * to long</a>. */
+  @Test public void testGroupByTimestampAdd() throws SQLException {
+    final String sql = "select count(*) as c,\n"
+        + "  {fn timestampadd(SQL_TSI_DAY, 1, JOINEDAT) } as t\n"
+        + "from EMPS group by {fn timestampadd(SQL_TSI_DAY, 1, JOINEDAT ) } ";
+    sql("sales-csv", sql)
+        .returnsUnordered("C=1; T=1996-08-04",
+            "C=1; T=2002-05-04",
+            "C=1; T=2005-09-08",
+            "C=1; T=2007-01-02",
+            "C=1; T=2001-01-02")
+        .ok();
+    final String sql2 = "select count(*) as c,\n"
+        + "  {fn timestampadd(SQL_TSI_MONTH, 1, JOINEDAT) } as t\n"
+        + "from EMPS group by {fn timestampadd(SQL_TSI_MONTH, 1, JOINEDAT ) } ";
+    sql("sales-csv", sql2)
+        .returnsUnordered("C=1; T=2002-06-03",
+            "C=1; T=2005-10-07",
+            "C=1; T=2007-02-01",
+            "C=1; T=2001-02-01",
+            "C=1; T=1996-09-03").ok();
+    final String sql3 = "select\n"
+        + " distinct {fn timestampadd(SQL_TSI_MONTH, 1, JOINEDAT) } as t\n"
+        + "from EMPS";
+    sql("sales-csv", sql3)
+        .returnsUnordered("T=2002-06-03",
+            "T=2005-10-07",
+            "T=2007-02-01",
+            "T=2001-02-01",
+            "T=1996-09-03").ok();
+  }
+
   /** Fluent API to perform test actions. */
   private class Fluent {
     private final String model;
@@ -259,6 +340,12 @@ public class SqlTest {
     /** Sets the rows that are expected to be returned from the SQL query. */
     Fluent returns(String... expectedLines) {
       return checking(expect(expectedLines));
+    }
+
+    /** Sets the rows that are expected to be returned from the SQL query,
+     * in no particular order. */
+    Fluent returnsUnordered(String... expectedLines) {
+      return checking(expectUnordered(expectedLines));
     }
   }
 }

@@ -17,6 +17,7 @@
 package org.apache.calcite.adapter.csv;
 
 import org.apache.calcite.adapter.java.JavaTypeFactory;
+import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.type.SqlTypeName;
@@ -142,7 +143,7 @@ class CsvEnumerator<E> implements Enumerator<E> {
         }
         final RelDataType type;
         if (fieldType == null) {
-          type = typeFactory.createJavaType(String.class);
+          type = typeFactory.createSqlType(SqlTypeName.VARCHAR);
         } else {
           type = fieldType.toType(typeFactory);
         }
@@ -165,7 +166,7 @@ class CsvEnumerator<E> implements Enumerator<E> {
     }
     if (names.isEmpty()) {
       names.add("line");
-      types.add(typeFactory.createJavaType(String.class));
+      types.add(typeFactory.createSqlType(SqlTypeName.VARCHAR));
     }
     return typeFactory.createStructType(Pair.zip(names, types));
   }
@@ -289,7 +290,7 @@ class CsvEnumerator<E> implements Enumerator<E> {
         }
         try {
           Date date = TIME_FORMAT_DATE.parse(string);
-          return new java.sql.Date(date.getTime());
+          return (int) (date.getTime() / DateTimeUtils.MILLIS_PER_DAY);
         } catch (ParseException e) {
           return null;
         }
@@ -299,7 +300,7 @@ class CsvEnumerator<E> implements Enumerator<E> {
         }
         try {
           Date date = TIME_FORMAT_TIME.parse(string);
-          return new java.sql.Time(date.getTime());
+          return (int) date.getTime();
         } catch (ParseException e) {
           return null;
         }
@@ -309,7 +310,7 @@ class CsvEnumerator<E> implements Enumerator<E> {
         }
         try {
           Date date = TIME_FORMAT_TIMESTAMP.parse(string);
-          return new java.sql.Timestamp(date.getTime());
+          return date.getTime();
         } catch (ParseException e) {
           return null;
         }
