@@ -23,6 +23,7 @@ import org.apache.calcite.rel.rules.DateRangeRules;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.test.RexImplicationCheckerTest.Fixture;
+import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Ordering;
@@ -41,6 +42,23 @@ import static org.junit.Assert.assertThat;
 
 /** Unit tests for {@link DateRangeRules} algorithms. */
 public class DruidDateRangeRulesTest {
+
+  @Test public void testFilterWithCast() {
+    final Fixture2 f = new Fixture2();
+    Calendar from = Util.calendar();
+    from.clear();
+    from.set(2010, Calendar.JANUARY, 1);
+    Calendar to = Util.calendar();
+    to.clear();
+    to.set(2011, Calendar.JANUARY, 1);
+
+    // dt >= 2010-01-01 AND dt < 2011-01-01
+    checkDateRangeNoSimplify(f,
+      f.and(
+        f.ge(f.dt, f.cast(f.timeStampDataType, f.timestampLiteral(from))),
+        f.lt(f.dt, f.cast(f.timeStampDataType, f.timestampLiteral(to)))),
+      is("[2010-01-01T00:00:00.000/2011-01-01T00:00:00.000]"));
+  }
 
   @Test public void testExtractYearAndMonthFromDateColumn() {
     final Fixture2 f = new Fixture2();
@@ -114,6 +132,30 @@ public class DruidDateRangeRulesTest {
             f.eq(f.exMonthTs, f.literal(2)), f.eq(f.exDayTs, f.literal(29))),
         is("[2012-02-29T00:00:00.000/2012-03-01T00:00:00.000, "
             + "2016-02-29T00:00:00.000/2016-03-01T00:00:00.000]"));
+  }
+
+  // For testFilterWithCAST we need to no simplify the expression, which would
+  // remove the CAST, in order to match the way expressions are presented when
+  // HiveRexExecutorImpl is used in Hive
+  private void checkDateRangeNoSimplify(Fixture f, RexNode e, Matcher<String> intervalMatcher) {
+    final Map<String, RangeSet<Calendar>> operandRanges = new HashMap<>();
+    // We rely on the collection being sorted (so YEAR comes before MONTH
+    // before HOUR) and unique. A predicate on MONTH is not useful if there is
+    // no predicate on YEAR. Then when we apply the predicate on DAY it doesn't
+    // generate hundreds of ranges we'll later throw away.
+    final List<TimeUnitRange> timeUnits =
+        Ordering.natural().sortedCopy(DateRangeRules.extractTimeUnits(e));
+    for (TimeUnitRange timeUnit : timeUnits) {
+      e = e.accept(
+          new DateRangeRules.ExtractShuttle(f.rexBuilder, timeUnit,
+              operandRanges));
+    }
+    List<LocalInterval> intervals =
+        DruidDateTimeUtils.createInterval(f.timeStampDataType, e);
+    if (intervals == null) {
+      throw new AssertionError("null interval");
+    }
+    assertThat(intervals.toString(), intervalMatcher);
   }
 
   private void checkDateRange(Fixture f, RexNode e, Matcher<String> intervalMatcher) {
