@@ -2089,11 +2089,7 @@ public class SqlFunctions {
     m0 += m - y * 12;
     int last = lastDay(y0, m0);
     if (d0 > last) {
-      d0 = 1;
-      if (++m0 > 12) {
-        m0 = 1;
-        ++y0;
-      }
+      d0 = last; // https://issues.apache.org/jira/browse/CALCITE-1639
     }
     return DateTimeUtils.ymdToUnixDate(y0, m0, d0);
   }
