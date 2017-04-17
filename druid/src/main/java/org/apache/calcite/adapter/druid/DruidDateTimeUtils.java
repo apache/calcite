@@ -23,6 +23,7 @@ import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.trace.CalciteTrace;
 
@@ -243,12 +244,31 @@ public class DruidDateTimeUtils {
   }
 
   private static Calendar literalValue(RexNode node) {
-    if (node instanceof RexLiteral) {
+    switch (node.getKind()) {
+    case LITERAL:
+      assert node instanceof RexLiteral;
       Object value = ((RexLiteral) node).getValue();
       if (value instanceof  Calendar) {
         return (Calendar) value;
       }
-      return null;
+      break;
+    case CAST:
+      // Normally all CASTs are eliminated by now by constant reduction.
+      // But when HiveExecutor is used there may be a cast that changes only
+      // nullability, from TIMESTAMP NOT NULL literal to TIMESTAMP literal.
+      // We can handle that case by traversing the dummy CAST.
+      assert node instanceof RexCall;
+      final RexCall call = (RexCall) node;
+      final RexNode operand = call.getOperands().get(0);
+      final RelDataType callType = call.getType();
+      final RelDataType operandType = operand.getType();
+      if (operand.getKind() == SqlKind.LITERAL
+          && callType.getSqlTypeName() == SqlTypeName.TIMESTAMP
+          && callType.isNullable()
+          && operandType.getSqlTypeName() == SqlTypeName.TIMESTAMP
+          && !operandType.isNullable()) {
+        return literalValue(operand);
+      }
     }
     return null;
   }
