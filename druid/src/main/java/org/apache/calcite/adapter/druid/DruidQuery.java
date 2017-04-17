@@ -60,6 +60,7 @@ import org.apache.calcite.schema.ScannableTable;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Pair;
@@ -71,6 +72,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Sets;
 
 import java.io.IOException;
 import java.io.StringWriter;
@@ -78,6 +80,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Properties;
+import java.util.Set;
 import java.util.regex.Pattern;
 
 import static org.apache.calcite.sql.SqlKind.INPUT_REF;
@@ -100,6 +103,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
 
   private static final Pattern VALID_SIG = Pattern.compile("sf?p?a?l?");
   private static final String EXTRACT_COLUMN_NAME_PREFIX = "extract";
+  private static final String FLOOR_COLUMN_NAME_PREFIX = "floor";
   protected static final String DRUID_QUERY_FETCH = "druid.query.fetch";
 
   /**
@@ -377,9 +381,10 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
         // A plan where all extra columns are pruned will be preferred.
         .multiplyBy(
             RelMdUtil.linear(querySpec.fieldNames.size(), 2, 100, 1d, 2d))
-        .multiplyBy(getQueryTypeCostMultiplier());
+        .multiplyBy(getQueryTypeCostMultiplier())
+        // a plan with sort pushed to druid is better than doing sort outside of druid
+        .multiplyBy(Util.last(rels) instanceof Bindables.BindableSort ? 0.1 : 0.2);
   }
-
   private double getQueryTypeCostMultiplier() {
     // Cost of Select > GroupBy > Timeseries > TopN
     switch (querySpec.queryType) {
@@ -491,6 +496,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
     QueryType queryType = QueryType.SELECT;
     final Translator translator = new Translator(druidTable, rowType);
     List<String> fieldNames = rowType.getFieldNames();
+    Set<String> usedFieldNames = Sets.newHashSet(fieldNames);
 
     // Handle filter
     Json jsonFilter = null;
@@ -515,7 +521,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
     // executed as a Timeseries, TopN, or GroupBy in Druid
     final List<DimensionSpec> dimensions = new ArrayList<>();
     final List<JsonAggregation> aggregations = new ArrayList<>();
-    Granularity granularity = Granularity.ALL;
+    Granularity finalGranularity = Granularity.ALL;
     Direction timeSeriesDirection = null;
     JsonLimit limit = null;
     TimeExtractionDimensionSpec timeExtractionDimensionSpec = null;
@@ -525,24 +531,20 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
       assert aggCalls.size() == aggNames.size();
 
       int timePositionIdx = -1;
-      int extractNumber = -1;
       final ImmutableList.Builder<String> builder = ImmutableList.builder();
       if (projects != null) {
         for (int groupKey : groupSet) {
-          final String s = fieldNames.get(groupKey);
+          final String fieldName = fieldNames.get(groupKey);
           final RexNode project = projects.get(groupKey);
           if (project instanceof RexInputRef) {
             // Reference could be to the timestamp or druid dimension but no druid metric
             final RexInputRef ref = (RexInputRef) project;
-            final String origin = druidTable.getRowType(getCluster().getTypeFactory())
+            final String originalFieldName = druidTable.getRowType(getCluster().getTypeFactory())
                 .getFieldList().get(ref.getIndex()).getName();
-            if (origin.equals(druidTable.timestampFieldName)) {
-              granularity = Granularity.ALL;
-              // Generate unique name as timestampFieldName is taken
-              String extractColumnName = EXTRACT_COLUMN_NAME_PREFIX + "_" + (++extractNumber);
-              while (fieldNames.contains(extractColumnName)) {
-                extractColumnName = EXTRACT_COLUMN_NAME_PREFIX + "_" + (++extractNumber);
-              }
+            if (originalFieldName.equals(druidTable.timestampFieldName)) {
+              finalGranularity = Granularity.ALL;
+              String extractColumnName = SqlValidatorUtil.uniquify(EXTRACT_COLUMN_NAME_PREFIX
+                  + "_full_time", usedFieldNames, SqlValidatorUtil.EXPR_SUGGESTER);
               timeExtractionDimensionSpec = TimeExtractionDimensionSpec.makeFullTimeExtract(
                   extractColumnName);
               dimensions.add(timeExtractionDimensionSpec);
@@ -550,38 +552,46 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
               assert timePositionIdx == -1;
               timePositionIdx = groupKey;
             } else {
-              dimensions.add(new DefaultDimensionSpec(s));
-              builder.add(s);
+              dimensions.add(new DefaultDimensionSpec(fieldName));
+              builder.add(fieldName);
             }
           } else if (project instanceof RexCall) {
             // Call, check if we should infer granularity
             final RexCall call = (RexCall) project;
-            final Granularity funcGranularity =
-                DruidDateTimeUtils.extractGranularity(call);
+            final Granularity funcGranularity = DruidDateTimeUtils.extractGranularity(call);
             if (funcGranularity != null) {
               if (call.getKind().equals(SqlKind.EXTRACT)) {
-                // case extract on time
-                granularity = Granularity.ALL;
-                // Generate unique name as timestampFieldName is taken
-                String extractColumnName = EXTRACT_COLUMN_NAME_PREFIX + "_" + (++extractNumber);
-                while (fieldNames.contains(extractColumnName)) {
-                  extractColumnName = EXTRACT_COLUMN_NAME_PREFIX + "_" + (++extractNumber);
-                }
+                // case extract field from time column
+                finalGranularity = Granularity.ALL;
+                String extractColumnName = SqlValidatorUtil.uniquify(EXTRACT_COLUMN_NAME_PREFIX
+                    + "_" + funcGranularity.value, usedFieldNames, SqlValidatorUtil.EXPR_SUGGESTER);
                 timeExtractionDimensionSpec = TimeExtractionDimensionSpec.makeExtract(
                     funcGranularity, extractColumnName);
                 dimensions.add(timeExtractionDimensionSpec);
                 builder.add(extractColumnName);
               } else {
-                // case floor by granularity
-                granularity = funcGranularity;
-                builder.add(s);
+                // case floor time column
+                if (groupSet.cardinality() > 1) {
+                  // case we have more than 1 group by key -> then will have druid group by
+                  String extractColumnName = SqlValidatorUtil.uniquify(FLOOR_COLUMN_NAME_PREFIX
+                      + "_" + funcGranularity.value, usedFieldNames, SqlValidatorUtil
+                      .EXPR_SUGGESTER);
+                  dimensions.add(
+                      TimeExtractionDimensionSpec.makeFloor(funcGranularity, extractColumnName));
+                  finalGranularity = Granularity.ALL;
+                  builder.add(extractColumnName);
+                } else {
+                  // case timeseries we can not use extraction function
+                  finalGranularity = funcGranularity;
+                  builder.add(fieldName);
+                }
                 assert timePositionIdx == -1;
                 timePositionIdx = groupKey;
               }
 
             } else {
-              dimensions.add(new DefaultDimensionSpec(s));
-              builder.add(s);
+              dimensions.add(new DefaultDimensionSpec(fieldName));
+              builder.add(fieldName);
             }
           } else {
             throw new AssertionError("incompatible project expression: " + project);
@@ -591,12 +601,10 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
         for (int groupKey : groupSet) {
           final String s = fieldNames.get(groupKey);
           if (s.equals(druidTable.timestampFieldName)) {
-            granularity = Granularity.ALL;
+            finalGranularity = Granularity.ALL;
             // Generate unique name as timestampFieldName is taken
-            String extractColumnName = EXTRACT_COLUMN_NAME_PREFIX + "_" + (++extractNumber);
-            while (fieldNames.contains(extractColumnName)) {
-              extractColumnName = EXTRACT_COLUMN_NAME_PREFIX + "_" + (++extractNumber);
-            }
+            String extractColumnName = SqlValidatorUtil.uniquify(EXTRACT_COLUMN_NAME_PREFIX,
+                usedFieldNames, SqlValidatorUtil.EXPR_SUGGESTER);
             timeExtractionDimensionSpec = TimeExtractionDimensionSpec.makeFullTimeExtract(
                 extractColumnName);
             dimensions.add(timeExtractionDimensionSpec);
@@ -645,7 +653,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
         queryType = QueryType.TIMESERIES;
         assert fetch == null;
       } else if (dimensions.size() == 1
-          && granularity == Granularity.ALL
+          && finalGranularity == Granularity.ALL
           && sortsMetric
           && collations.size() == 1
           && fetch != null
@@ -680,7 +688,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
         generator.writeStringField("dataSource", druidTable.dataSource);
         generator.writeBooleanField("descending", timeSeriesDirection != null
             && timeSeriesDirection == Direction.DESCENDING);
-        generator.writeStringField("granularity", granularity.value);
+        generator.writeStringField("granularity", finalGranularity.value);
         writeFieldIf(generator, "filter", jsonFilter);
         writeField(generator, "aggregations", aggregations);
         writeFieldIf(generator, "postAggregations", null);
@@ -700,7 +708,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
 
         generator.writeStringField("queryType", "topN");
         generator.writeStringField("dataSource", druidTable.dataSource);
-        generator.writeStringField("granularity", granularity.value);
+        generator.writeStringField("granularity", finalGranularity.value);
         writeField(generator, "dimension", dimensions.get(0));
         generator.writeStringField("metric", fieldNames.get(collationIndexes.get(0)));
         writeFieldIf(generator, "filter", jsonFilter);
@@ -716,7 +724,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
         generator.writeStartObject();
         generator.writeStringField("queryType", "groupBy");
         generator.writeStringField("dataSource", druidTable.dataSource);
-        generator.writeStringField("granularity", granularity.value);
+        generator.writeStringField("granularity", finalGranularity.value);
         writeField(generator, "dimensions", dimensions);
         writeFieldIf(generator, "limitSpec", limit);
         writeFieldIf(generator, "filter", jsonFilter);
@@ -738,7 +746,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
         writeFieldIf(generator, "filter", jsonFilter);
         writeField(generator, "dimensions", translator.dimensions);
         writeField(generator, "metrics", translator.metrics);
-        generator.writeStringField("granularity", granularity.value);
+        generator.writeStringField("granularity", finalGranularity.value);
 
         generator.writeFieldName("pagingSpec");
         generator.writeStartObject();

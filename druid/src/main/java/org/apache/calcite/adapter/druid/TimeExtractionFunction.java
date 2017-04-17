@@ -34,6 +34,7 @@ import static org.apache.calcite.adapter.druid.DruidQuery.writeFieldIf;
  */
 public class TimeExtractionFunction implements ExtractionFunction {
 
+  private static final String ISO_TIME_FORMAT = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'";
   private final String format;
   private final String granularity;
   private final String timeZone;
@@ -62,17 +63,17 @@ public class TimeExtractionFunction implements ExtractionFunction {
    * @return the time extraction function
    */
   public static TimeExtractionFunction createDefault() {
-    return new TimeExtractionFunction("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", null, "UTC", null);
+    return new TimeExtractionFunction(ISO_TIME_FORMAT, null, "UTC", null);
   }
 
   /**
    * Creates the time format extraction function for the given granularity.
-   * Only YEAR, MONTH, DAY, and HOUR granularity are supported.
+   * Only YEAR, MONTH, and DAY granularity are supported.
    *
    * @param granularity granularity to apply to the column
    * @return the time extraction function or null if granularity is not supported
    */
-  public static TimeExtractionFunction createFromGranularity(Granularity granularity) {
+  public static TimeExtractionFunction createExtractFromGranularity(Granularity granularity) {
     switch (granularity) {
     case DAY:
       return new TimeExtractionFunction("d", null, "UTC", Locale.getDefault().toLanguageTag());
@@ -83,6 +84,17 @@ public class TimeExtractionFunction implements ExtractionFunction {
     default:
       throw new AssertionError("Extraction " + granularity.value + " is not valid");
     }
+  }
+
+  /**
+   * Creates time format floor time extraction function using a given granularity.
+   *
+   * @param granularity granularity to apply to the column
+   * @return the time extraction function or null if granularity is not supported
+   */
+  public static TimeExtractionFunction createFloorFromGranularity(Granularity granularity) {
+    return new TimeExtractionFunction(ISO_TIME_FORMAT, granularity.value, "UTC", Locale
+        .getDefault().toLanguageTag());
   }
 }
 
