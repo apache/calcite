@@ -145,9 +145,12 @@ public class TypedValue {
   private static final FieldDescriptor BYTES_DESCRIPTOR = Common.TypedValue.getDescriptor()
       .findFieldByNumber(Common.TypedValue.BYTES_VALUE_FIELD_NUMBER);
 
-  public static final TypedValue NULL =
+  // If the user sets a `null` Object, it's explicitly null
+  public static final TypedValue EXPLICIT_NULL =
       new TypedValue(ColumnMetaData.Rep.OBJECT, null);
-  public static final Common.TypedValue NULL_PROTO = NULL.toProto();
+  // The user might also implicitly not set a value for a parameter.
+  public static final Common.TypedValue PROTO_IMPLICIT_NULL =
+      Common.TypedValue.newBuilder().setImplicitlyNull(true).build();
 
   /** Type of the value. */
   public final ColumnMetaData.Rep type;
@@ -194,7 +197,7 @@ public class TypedValue {
   public static TypedValue create(@JsonProperty("type") String type,
       @JsonProperty("value") Object value) {
     if (value == null) {
-      return NULL;
+      return EXPLICIT_NULL;
     }
     ColumnMetaData.Rep rep = ColumnMetaData.Rep.valueOf(type);
     return ofLocal(rep, serialToLocal(rep, value));
@@ -214,7 +217,7 @@ public class TypedValue {
   public static TypedValue ofJdbc(ColumnMetaData.Rep rep, Object value,
       Calendar calendar) {
     if (value == null) {
-      return NULL;
+      return EXPLICIT_NULL;
     }
     final Object serialValue;
     if (ColumnMetaData.Rep.ARRAY == rep) {
@@ -243,7 +246,7 @@ public class TypedValue {
    * deducing its type. */
   public static TypedValue ofJdbc(Object value, Calendar calendar) {
     if (value == null) {
-      return NULL;
+      return EXPLICIT_NULL;
     }
     final ColumnMetaData.Rep rep = ColumnMetaData.Rep.of(value.getClass());
     return new TypedValue(rep, jdbcToSerial(rep, value, calendar));
@@ -485,6 +488,9 @@ public class TypedValue {
    */
   public Common.TypedValue toProto() {
     final Common.TypedValue.Builder builder = Common.TypedValue.newBuilder();
+    // This isn't a static method, therefore we have a non-null TypedValue. Thus, this message
+    // cannot be implicitly null
+    builder.setImplicitlyNull(false);
 
     Common.Rep protoRep = type.toProto();
     // Protobuf has an explicit BIG_DECIMAL representation enum value.
@@ -896,9 +902,7 @@ public class TypedValue {
       }
 
       if (null == value) {
-        if (null != other.value) {
-          return false;
-        }
+        return null == other.value;
       }
 
       return value.equals(other.value);

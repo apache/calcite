@@ -45,6 +45,7 @@ import org.apache.calcite.avatica.remote.Service.DatabasePropertyRequest;
 import org.apache.calcite.avatica.remote.Service.DatabasePropertyResponse;
 import org.apache.calcite.avatica.remote.Service.ErrorResponse;
 import org.apache.calcite.avatica.remote.Service.ExecuteBatchResponse;
+import org.apache.calcite.avatica.remote.Service.ExecuteRequest;
 import org.apache.calcite.avatica.remote.Service.ExecuteResponse;
 import org.apache.calcite.avatica.remote.Service.FetchRequest;
 import org.apache.calcite.avatica.remote.Service.FetchResponse;
@@ -222,6 +223,17 @@ public class ProtobufTranslationImplTest<T> {
 
     List<String> commands = Arrays.asList("command1", "command2", "command3");
     requests.add(new PrepareAndExecuteBatchRequest("connectionId", 12345, commands));
+
+
+    List<ColumnMetaData> columns = Collections.emptyList();
+    List<AvaticaParameter> params = Collections.emptyList();
+    Meta.CursorFactory cursorFactory = Meta.CursorFactory.create(Style.LIST, Object.class,
+        Collections.<String>emptyList());
+    Signature signature = Signature.create(columns, "sql", params, cursorFactory,
+        Meta.StatementType.SELECT);
+    Meta.StatementHandle handle = new Meta.StatementHandle("1234", 1, signature);
+    requests.add(new ExecuteRequest(handle, Arrays.<TypedValue>asList((TypedValue) null), 10));
+    requests.add(new ExecuteRequest(handle, Arrays.asList(TypedValue.EXPLICIT_NULL), 10));
 
     return requests;
   }

@@ -202,6 +202,9 @@ message TypedValue {
 
   repeated TypedValue array_value = 8; // The Array
   Rep component_type = 9; // If an Array, the representation for the array values
+
+  bool implicitly_null = 10; // Differentiate between explicitly null (user-set) and implicitly null
+                            // (un-set by the user)
 }
 
 // The severity of some unexpected outcome to an operation.
