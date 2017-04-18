@@ -401,7 +401,7 @@ public class SqlFunctionsTest {
   @Test public void testUnixTimestamp() {
     assertThat(unixTimestamp(1970, 1, 1, 0, 0, 0), is(0L));
     final long day = 86400000L;
-    assertThat(unixTimestampj(1970, 1, 2, 0, 0, 0), is(day));
+    assertThat(unixTimestamp(1970, 1, 2, 0, 0, 0), is(day));
     assertThat(unixTimestamp(1970, 1, 1, 23, 59, 59), is(86399000L));
 
     // 1900 is not a leap year
