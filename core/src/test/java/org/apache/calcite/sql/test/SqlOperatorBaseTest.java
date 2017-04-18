@@ -5709,6 +5709,14 @@ public abstract class SqlOperatorBaseTest {
         null, "TIMESTAMP(0)");
     tester.checkScalar("timestampadd(DAY, 1, cast(null as date))",
         null, "DATE");
+
+    // Round to the last day of previous month
+    tester.checkScalar("timestampadd(MONTH, 1, date '2016-05-31')",
+        "2016-06-30", "DATE NOT NULL");
+    tester.checkScalar("timestampadd(MONTH, 5, date '2016-01-31')",
+        "2016-06-30", "DATE NOT NULL");
+    tester.checkScalar("timestampadd(MONTH, -1, date '2016-03-31')",
+        "2016-02-29", "DATE NOT NULL");
   }
 
   @Test public void testTimestampDiff() {
