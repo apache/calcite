@@ -254,6 +254,7 @@ public enum BuiltInMethod {
   FLOOR_DIV(DateTimeUtils.class, "floorDiv", long.class, long.class),
   FLOOR_MOD(DateTimeUtils.class, "floorMod", long.class, long.class),
   ADD_MONTHS(SqlFunctions.class, "addMonths", long.class, int.class),
+  ADD_MONTHS_INT(SqlFunctions.class, "addMonths", int.class, int.class),
   SUBTRACT_MONTHS(SqlFunctions.class, "subtractMonths", long.class,
       long.class),
   FLOOR(SqlFunctions.class, "floor", int.class, int.class),

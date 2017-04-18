@@ -385,6 +385,14 @@ public class CsvTest {
             "joined at=2007-01-01; naME=Alice"));
   }
 
+  //https://issues.apache.org/jira/browse/CALCITE-1754
+  @Test public void testGroupbyTimestampadd() throws SQLException {
+    checkSql("model", "select count(*), {fn timestampadd(SQL_TSI_DAY, 1, JOINEDAT) } "
+        + "from EMPS group by {fn timestampadd(SQL_TSI_DAY, 1, JOINEDAT ) } ");
+    checkSql("model", "select count(*), {fn timestampadd(SQL_TSI_MONTH, 1, JOINEDAT) } "
+        + "from EMPS group by {fn timestampadd(SQL_TSI_MONTH, 1, JOINEDAT ) } ");
+  }
+
   @Test public void testBoolean() throws SQLException {
     checkSql("smart",
         "select empno, slacker from emps where slacker",

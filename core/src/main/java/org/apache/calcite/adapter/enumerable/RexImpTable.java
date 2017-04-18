@@ -193,6 +193,7 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.UNARY_MINUS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.UNARY_PLUS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.UPPER;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.USER;
+import static org.apache.calcite.sql.type.SqlTypeName.TIMESTAMP;
 
 /**
  * Contains implementations of Rex operators as Java code.
@@ -2123,7 +2124,9 @@ public class RexImpTable {
         case MINUS:
           trop1 = Expressions.negate(trop1);
         }
-        return Expressions.call(BuiltInMethod.ADD_MONTHS.method, trop0, trop1);
+        return operand0.getType().getSqlTypeName() == TIMESTAMP
+            ? Expressions.call(BuiltInMethod.ADD_MONTHS.method, trop0, trop1)
+            : Expressions.call(BuiltInMethod.ADD_MONTHS_INT.method, trop0, trop1);
 
       case INTERVAL_DAY:
       case INTERVAL_DAY_HOUR:
