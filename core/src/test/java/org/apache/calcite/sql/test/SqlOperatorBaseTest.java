@@ -2313,46 +2313,80 @@ public abstract class SqlOperatorBaseTest {
 
   @Test public void testOverlapsOperator() {
     tester.setFor(SqlStdOperatorTable.OVERLAPS, VM_EXPAND);
-    if (Bug.FRG187_FIXED) {
-      tester.checkBoolean(
-          "(date '1-2-3', date '1-2-3') overlaps (date '1-2-3', interval '1' year)",
-          Boolean.TRUE);
-      tester.checkBoolean(
-          "(date '1-2-3', date '1-2-3') overlaps (date '4-5-6', interval '1' year)",
-          Boolean.FALSE);
-      tester.checkBoolean(
-          "(date '1-2-3', date '4-5-6') overlaps (date '2-2-3', date '3-4-5')",
-          Boolean.TRUE);
-      tester.checkNull(
-          "(cast(null as date), date '1-2-3') overlaps (date '1-2-3', interval '1' year)");
-      tester.checkNull(
-          "(date '1-2-3', date '1-2-3') overlaps (date '1-2-3', cast(null as date))");
+    tester.checkBoolean(
+        "(date '1-2-3', date '1-2-3') overlaps (date '1-2-3', interval '1' year)",
+        Boolean.TRUE);
+    tester.checkBoolean(
+        "(date '1-2-3', date '1-2-3') overlaps (date '4-5-6', interval '1' year)",
+        Boolean.FALSE);
+    tester.checkBoolean(
+        "(date '1-2-3', date '4-5-6') overlaps (date '2-2-3', date '3-4-5')",
+        Boolean.TRUE);
+    tester.checkNull(
+        "(cast(null as date), date '1-2-3') overlaps (date '1-2-3', interval '1' year)");
+    tester.checkNull(
+        "(date '1-2-3', date '1-2-3') overlaps (date '1-2-3', cast(null as date))");
 
-      tester.checkBoolean(
-          "(time '1:2:3', interval '1' second) overlaps (time '23:59:59', time '1:2:3')",
-          Boolean.TRUE);
-      tester.checkBoolean(
-          "(time '1:2:3', interval '1' second) overlaps (time '23:59:59', time '1:2:2')",
-          Boolean.FALSE);
-      tester.checkBoolean(
-          "(time '1:2:3', interval '1' second) overlaps (time '23:59:59', interval '2' hour)",
-          Boolean.TRUE);
-      tester.checkNull(
-          "(time '1:2:3', cast(null as time)) overlaps (time '23:59:59', time '1:2:3')");
-      tester.checkNull(
-          "(time '1:2:3', interval '1' second) overlaps (time '23:59:59', cast(null as interval hour))");
+    tester.checkBoolean(
+        "(time '1:2:3', interval '1' second) overlaps (time '23:59:59', time '1:2:3')",
+        Boolean.TRUE);
+    tester.checkBoolean(
+        "(time '1:2:3', interval '1' second) overlaps (time '23:59:59', time '1:2:2')",
+        Boolean.TRUE);
+    tester.checkBoolean(
+        "(time '1:2:3', interval '1' second) overlaps (time '23:59:59', interval '2' hour)",
+        Boolean.FALSE);
+    tester.checkNull(
+        "(time '1:2:3', cast(null as time)) overlaps (time '23:59:59', time '1:2:3')");
+    tester.checkNull(
+        "(time '1:2:3', interval '1' second) overlaps (time '23:59:59', cast(null as interval hour))");
 
-      tester.checkBoolean(
-          "(timestamp '1-2-3 4:5:6', timestamp '1-2-3 4:5:6' ) overlaps (timestamp '1-2-3 4:5:6', interval '1 2:3:4.5' day to second)",
-          Boolean.TRUE);
-      tester.checkBoolean(
-          "(timestamp '1-2-3 4:5:6', timestamp '1-2-3 4:5:6' ) overlaps (timestamp '2-2-3 4:5:6', interval '1 2:3:4.5' day to second)",
-          Boolean.FALSE);
-      tester.checkNull(
-          "(timestamp '1-2-3 4:5:6', cast(null as interval day) ) overlaps (timestamp '1-2-3 4:5:6', interval '1 2:3:4.5' day to second)");
-      tester.checkNull(
-          "(timestamp '1-2-3 4:5:6', timestamp '1-2-3 4:5:6' ) overlaps (cast(null as timestamp), interval '1 2:3:4.5' day to second)");
-    }
+    tester.checkBoolean(
+        "(timestamp '1-2-3 4:5:6', timestamp '1-2-3 4:5:6' ) overlaps (timestamp '1-2-3 4:5:6', interval '1 2:3:4.5' day to second)",
+        Boolean.TRUE);
+    tester.checkBoolean(
+        "(timestamp '1-2-3 4:5:6', timestamp '1-2-3 4:5:6' ) overlaps (timestamp '2-2-3 4:5:6', interval '1 2:3:4.5' day to second)",
+        Boolean.FALSE);
+    tester.checkNull(
+        "(timestamp '1-2-3 4:5:6', cast(null as interval day) ) overlaps (timestamp '1-2-3 4:5:6', interval '1 2:3:4.5' day to second)");
+    tester.checkNull(
+        "(timestamp '1-2-3 4:5:6', timestamp '1-2-3 4:5:6' ) overlaps (cast(null as timestamp), interval '1 2:3:4.5' day to second)");
+  }
+
+  @Test public void testOverlapsEtc() {
+    String[] times = {
+      "TIME '01:00:00'",
+      "TIME '02:00:00'",
+      "TIME '03:00:00'",
+      "TIME '04:00:00'",
+    };
+    String[] dates = {
+      "DATE '1970-01-01'",
+      "DATE '1970-02-01'",
+      "DATE '1970-03-01'",
+      "DATE '1970-04-01'",
+    };
+    String[] timestamps = {
+      "TIMESTAMP '1970-01-01 00:00:00'",
+      "TIMESTAMP '1970-02-01 00:00:00'",
+      "TIMESTAMP '1970-03-01 00:00:00'",
+      "TIMESTAMP '1970-04-01 00:00:00'",
+    };
+    checkOverlaps(new OverlapChecker(times));
+    checkOverlaps(new OverlapChecker(dates));
+    checkOverlaps(new OverlapChecker(timestamps));
+  }
+
+  private void checkOverlaps(OverlapChecker c) {
+    c.isFalse("($0,$1) OVERLAPS ($2,$3)");
+    c.isTrue("($0,$1) OVERLAPS ($1,$2)");
+    c.isTrue("($0,$2) OVERLAPS ($1,$3)");
+    c.isTrue("($0,$2) OVERLAPS ($3,$1)");
+    c.isTrue("($2,$0) OVERLAPS ($3,$1)");
+    c.isFalse("($3,$2) OVERLAPS ($1,$0)");
+    c.isTrue("($2,$3) OVERLAPS ($0,$2)");
+    c.isTrue("($2,$3) OVERLAPS ($2,$0)");
+    c.isTrue("($3,$2) OVERLAPS ($2,$0)");
   }
 
   @Test public void testLessThanOperator() {
@@ -6741,6 +6775,30 @@ public abstract class SqlOperatorBaseTest {
         this.values.add(new ValueType(type, value));
       }
       this.values.add(new ValueType(type, null));
+    }
+  }
+
+  /** Runs an OVERLAPS test with a given set of literal values. */
+  class OverlapChecker {
+    final String[] values;
+
+    OverlapChecker(String... values) {
+      this.values = values;
+    }
+
+    public void isTrue(String s) {
+      tester.checkBoolean(sub(s), Boolean.TRUE);
+    }
+
+    public void isFalse(String s) {
+      tester.checkBoolean(sub(s), Boolean.FALSE);
+    }
+
+    private String sub(String s) {
+      return s.replace("$0", values[0])
+          .replace("$1", values[1])
+          .replace("$2", values[2])
+          .replace("$3", values[3]);
     }
   }
 }
