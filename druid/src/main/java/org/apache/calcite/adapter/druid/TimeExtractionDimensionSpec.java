@@ -31,6 +31,7 @@ public class TimeExtractionDimensionSpec extends ExtractionDimensionSpec {
    * to the given name.
    *
    * @param outputName name of the output column
+   *
    * @return the time extraction DimensionSpec instance
    */
   public static TimeExtractionDimensionSpec makeFullTimeExtract(String outputName) {
@@ -44,8 +45,9 @@ public class TimeExtractionDimensionSpec extends ExtractionDimensionSpec {
    * name. Only YEAR, MONTH, and DAY granularity are supported.
    *
    * @param granularity granularity to apply to the column
-   * @param outputName name of the output column
-   * @return the time extraction DimensionSpec instance or null if granularity
+   * @param outputName  name of the output column
+   *
+   * @return time field extraction DimensionSpec instance or null if granularity
    * is not supported
    */
   public static TimeExtractionDimensionSpec makeExtract(
@@ -53,17 +55,30 @@ public class TimeExtractionDimensionSpec extends ExtractionDimensionSpec {
     switch (granularity) {
     case YEAR:
       return new TimeExtractionDimensionSpec(
-          TimeExtractionFunction.createFromGranularity(granularity), outputName);
+          TimeExtractionFunction.createExtractFromGranularity(granularity), outputName);
     case MONTH:
       return new TimeExtractionDimensionSpec(
-          TimeExtractionFunction.createFromGranularity(granularity), outputName);
+          TimeExtractionFunction.createExtractFromGranularity(granularity), outputName);
     case DAY:
       return new TimeExtractionDimensionSpec(
-          TimeExtractionFunction.createFromGranularity(granularity), outputName);
+          TimeExtractionFunction.createExtractFromGranularity(granularity), outputName);
     // TODO: Support other granularities
     default:
       return null;
     }
+  }
+
+
+  /**
+   * Creates floor time extraction dimension spec from Granularity with a given output name
+   * @param granularity granularity to apply to the time column
+   * @param outputName name of the output column
+   *
+   * @return floor time extraction DimensionSpec instance.
+   */
+  public static TimeExtractionDimensionSpec makeFloor(Granularity granularity, String outputName) {
+    ExtractionFunction fn = TimeExtractionFunction.createFloorFromGranularity(granularity);
+    return new TimeExtractionDimensionSpec(fn, outputName);
   }
 }
 

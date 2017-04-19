@@ -51,11 +51,11 @@ public final class ExtractionFunctionUtil {
         }
         switch (timeUnit) {
         case YEAR:
-          return TimeExtractionFunction.createFromGranularity(Granularity.YEAR);
+          return TimeExtractionFunction.createExtractFromGranularity(Granularity.YEAR);
         case MONTH:
-          return TimeExtractionFunction.createFromGranularity(Granularity.MONTH);
+          return TimeExtractionFunction.createExtractFromGranularity(Granularity.MONTH);
         case DAY:
-          return TimeExtractionFunction.createFromGranularity(Granularity.DAY);
+          return TimeExtractionFunction.createExtractFromGranularity(Granularity.DAY);
         default:
           return null;
         }
