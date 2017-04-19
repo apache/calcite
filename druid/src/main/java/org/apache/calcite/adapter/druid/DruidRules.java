@@ -586,12 +586,9 @@ public class DruidRules {
       if (query.getTopNode() instanceof Aggregate) {
         final Aggregate topAgg = (Aggregate) query.getTopNode();
         final ImmutableBitSet.Builder positionsReferenced = ImmutableBitSet.builder();
-        int metricsRefs = 0;
         for (RelFieldCollation col : sort.collation.getFieldCollations()) {
           int idx = col.getFieldIndex();
-          //computes the number of metrics in the sort
           if (idx >= topAgg.getGroupCount()) {
-            metricsRefs++;
             continue;
           }
           //has the indexes of the columns used for sorts

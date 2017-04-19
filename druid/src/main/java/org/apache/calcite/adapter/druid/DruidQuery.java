@@ -383,7 +383,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
             RelMdUtil.linear(querySpec.fieldNames.size(), 2, 100, 1d, 2d))
         .multiplyBy(getQueryTypeCostMultiplier())
         // a plan with sort pushed to druid is better than doing sort outside of druid
-        .multiplyBy(Util.last(rels) instanceof Bindables.BindableSort ? 0.1 : 0.2);
+        .multiplyBy(Util.last(rels) instanceof Sort ? 0.1 : 1);
   }
   private double getQueryTypeCostMultiplier() {
     // Cost of Select > GroupBy > Timeseries > TopN
