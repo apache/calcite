@@ -621,13 +621,17 @@ JAVACODE boolean matchesPrefix(int[] seq, int[][] prefixes)
  *
  * <p>Postgres syntax for limit:
  *
+ * <blockquote><pre>
  *    [ LIMIT { count | ALL } ]
- *    [ OFFSET start ]
+ *    [ OFFSET start ]</pre>
+ * </blockquote>
  *
  * <p>SQL:2008 syntax for limit:
  *
+ * <blockquote><pre>
  *    [ OFFSET start { ROW | ROWS } ]
- *    [ FETCH { FIRST | NEXT } [ count ] { ROW | ROWS } ONLY ]
+ *    [ FETCH { FIRST | NEXT } [ count ] { ROW | ROWS } ONLY ]</pre>
+ * </blockquote>
  */
 SqlNode OrderedQueryOrExpr(ExprContext exprContext) :
 {
@@ -733,14 +737,18 @@ SqlNode ParenthesizedExpression(ExprContext exprContext) :
  * <p>REVIEW jvs 8-Feb-2004: There's a small hole in this production.  It can be
  * used to construct something like
  *
- * <code>WHERE x IN (select count(*) from t where c=d,5)</code>,
+ * <blockquote><pre>
+ * WHERE x IN (select count(*) from t where c=d,5)</pre>
+ * </blockquote>
  *
- * which should be illegal.  The above is interpreted as equivalent to
+ * <p>which should be illegal.  The above is interpreted as equivalent to
  *
- * <code>WHERE x IN ((select count(*) from t where c=d),5)</code>,
+ * <blockquote><pre>
+ * <code>WHERE x IN ((select count(*) from t where c=d),5)</pre>
+ * </blockquote>
  *
- * which is a legal use of a sub-query.  The only way to fix the hole is to be
- * able to remember whether a subexpression was parenthesized or not, which
+ * <p>which is a legal use of a sub-query.  The only way to fix the hole is to
+ * be able to remember whether a subexpression was parenthesized or not, which
  * means preserving parentheses in the SqlNode tree.  This is probably
  * desirable anyway for use in purely syntactic parsing applications (e.g. SQL
  * pretty-printer).  However, if this is done, it's important to also make
@@ -2028,7 +2036,7 @@ SqlNode TableFunctionCall(SqlParserPos pos) :
  * Abstract production:
  *    SqlNode ExtendedTableRef()
  *
- * Allows parser to be extended with new types of table references.  The
+ * <p>Allows parser to be extended with new types of table references.  The
  * default implementation of this production is empty.
  */
 
@@ -3120,14 +3128,13 @@ List<Object> Expression2(ExprContext exprContext) :
  */
 SqlNode Expression3(ExprContext exprContext) :
 {
-    SqlNode e;
-    SqlNodeList list;
-    SqlNodeList list1;
-    SqlNodeList list2;
-    SqlPrefixOperator op;
-    boolean rowSeen = false;
-    SqlParserPos pos;
-    SqlParserPos prefixRowOpPos;
+    final SqlNode e;
+    final SqlNodeList list;
+    final SqlNodeList list1;
+    final SqlNodeList list2;
+    final SqlOperator op;
+    final SqlParserPos pos;
+    SqlParserPos rowPos = null;
 }
 {
     LOOKAHEAD(2)
@@ -3152,25 +3159,22 @@ SqlNode Expression3(ExprContext exprContext) :
         return SqlStdOperatorTable.ROW.createCall(list);
     }
     |
-    {
-        pos = getPos();
-    }
     [
-        <ROW>
-        {
-            pos = getPos(); rowSeen = true;
-        }
+        <ROW> { rowPos = getPos(); }
     ]
     list1 = ParenthesizedQueryOrCommaList(exprContext) {
-        if (rowSeen) {
+        pos = list1.getParserPosition();
+        if (rowPos != null) {
             // interpret as row constructor
-            return SqlStdOperatorTable.ROW.createCall(pos, list1.toArray());
-
+            return SqlStdOperatorTable.ROW.createCall(rowPos.plus(pos),
+                list1.toArray());
         }
     }
     [
+        LOOKAHEAD(2)
+        /* TODO:
         (
-            <OVERLAPS>
+            op = periodOperator()
             list2 = ParenthesizedQueryOrCommaList(exprContext)
             {
                 if (list1.size() != 2 || list2.size() != 2) {
@@ -3182,12 +3186,13 @@ SqlNode Expression3(ExprContext exprContext) :
                 for (SqlNode node : list2) {
                     list1.add(node);
                 }
-                return SqlStdOperatorTable.OVERLAPS.createCall(
+                return op.createCall(
                     list1.getParserPosition().plus(list2.getParserPosition()),
                     list1.toArray());
             }
         )
         |
+        */
         (
             e = IntervalQualifier()
             {
@@ -3217,9 +3222,27 @@ SqlNode Expression3(ExprContext exprContext) :
             return list1.get(0);
         } else {
             // interpret as row constructor
-            return SqlStdOperatorTable.ROW.createCall(pos, list1.toArray());
+            return SqlStdOperatorTable.ROW.createCall(
+                pos.plus(list1.getParserPosition()), list1.toArray());
         }
     }
+}
+
+SqlOperator periodOperator() :
+{
+}
+{
+     <OVERLAPS> { return SqlStdOperatorTable.OVERLAPS; }
+|
+     <IMMEDIATELY> <PRECEDES> { return SqlStdOperatorTable.IMMEDIATELY_PRECEDES; }
+|
+     <PRECEDES> { return SqlStdOperatorTable.PRECEDES; }
+|
+     <IMMEDIATELY> <SUCCEEDS> { return SqlStdOperatorTable.IMMEDIATELY_SUCCEEDS; }
+|
+     <SUCCEEDS> { return SqlStdOperatorTable.SUCCEEDS; }
+|
+     <EQUALS> { return SqlStdOperatorTable.PERIOD_EQUALS; }
 }
 
 /**
@@ -3259,6 +3282,8 @@ SqlNode AtomicRowExpression() :
     e = ArrayConstructor() { return e; }
     |
     e = MapConstructor() { return e; }
+    |
+    e = PeriodConstructor() { return e; }
     |
     // NOTE jvs 18-Jan-2005:  use syntactic lookahead to discriminate
     // compound identifiers from function calls in which the function
@@ -3825,7 +3850,7 @@ SqlNode ArrayConstructor() :
     )
 }
 
-/** Parses an MAP constructor */
+/** Parses a MAP constructor */
 SqlNode MapConstructor() :
 {
     SqlNodeList args;
@@ -3858,6 +3883,23 @@ SqlNode MapConstructor() :
                 pos.plus(getPos()), SqlParserUtil.toNodeArray(args));
         }
     )
+}
+
+/** Parses a PERIOD constructor */
+SqlNode PeriodConstructor() :
+{
+    final SqlNode e0, e1;
+    final SqlParserPos pos;
+}
+{
+    <PERIOD> { pos = getPos(); }
+    <LPAREN>
+    e0 = Expression(ExprContext.ACCEPT_SUB_QUERY)
+    <COMMA>
+    e1 = Expression(ExprContext.ACCEPT_SUB_QUERY)
+    <RPAREN> {
+        return SqlStdOperatorTable.ROW.createCall(pos.plus(getPos()), e0, e1);
+    }
 }
 
 /**
@@ -5387,50 +5429,38 @@ SqlBinaryOperator BinaryRowOperator() :
     SqlBinaryOperator op;
 }
 {
-    <EQ>
-    { return SqlStdOperatorTable.EQUALS; }
-    | <GT>
-    { return SqlStdOperatorTable.GREATER_THAN; }
-    | <LT>
-    { return SqlStdOperatorTable.LESS_THAN; }
-    | <LE>
-    { return SqlStdOperatorTable.LESS_THAN_OR_EQUAL; }
-    | <GE>
-    { return SqlStdOperatorTable.GREATER_THAN_OR_EQUAL; }
-    | <NE>
-    { return SqlStdOperatorTable.NOT_EQUALS; }
-    | <NE2>
-    {
+    // <IN> is handled as a special case
+    <EQ> { return SqlStdOperatorTable.EQUALS; }
+    | <GT> { return SqlStdOperatorTable.GREATER_THAN; }
+    | <LT> { return SqlStdOperatorTable.LESS_THAN; }
+    | <LE> { return SqlStdOperatorTable.LESS_THAN_OR_EQUAL; }
+    | <GE> { return SqlStdOperatorTable.GREATER_THAN_OR_EQUAL; }
+    | <NE> { return SqlStdOperatorTable.NOT_EQUALS; }
+    | <NE2> {
         if (!this.conformance.isBangEqualAllowed()) {
             throw new ParseException(RESOURCE.bangEqualNotAllowed().str());
         }
         return SqlStdOperatorTable.NOT_EQUALS;
     }
-    | <PLUS>
-    { return SqlStdOperatorTable.PLUS; }
-    | <MINUS>
-    { return SqlStdOperatorTable.MINUS; }
-    | <STAR>
-    { return SqlStdOperatorTable.MULTIPLY; }
-    | <SLASH>
-    { return SqlStdOperatorTable.DIVIDE; }
-    | <CONCAT>
-    { return SqlStdOperatorTable.CONCAT; }
-    | <AND>
-    { return SqlStdOperatorTable.AND; }
-    | <OR>
-    { return SqlStdOperatorTable.OR; }
-    | LOOKAHEAD(2) <IS> <DISTINCT> <FROM>
-    { return SqlStdOperatorTable.IS_DISTINCT_FROM; }
-    | <IS> <NOT> <DISTINCT> <FROM>
-    { return SqlStdOperatorTable.IS_NOT_DISTINCT_FROM; }
-    // <IN> is handled as a special case
-    | <MEMBER> <OF>
-    { return SqlStdOperatorTable.MEMBER_OF; }
-    | <SUBMULTISET> <OF>
-    { return SqlStdOperatorTable.SUBMULTISET_OF; }
-    | op = BinaryMultisetOperator()
-    { return op; }
+    | <PLUS> { return SqlStdOperatorTable.PLUS; }
+    | <MINUS> { return SqlStdOperatorTable.MINUS; }
+    | <STAR> { return SqlStdOperatorTable.MULTIPLY; }
+    | <SLASH> { return SqlStdOperatorTable.DIVIDE; }
+    | <CONCAT> { return SqlStdOperatorTable.CONCAT; }
+    | <AND> { return SqlStdOperatorTable.AND; }
+    | <OR> { return SqlStdOperatorTable.OR; }
+    | LOOKAHEAD(2) <IS> <DISTINCT> <FROM> { return SqlStdOperatorTable.IS_DISTINCT_FROM; }
+    | <IS> <NOT> <DISTINCT> <FROM> { return SqlStdOperatorTable.IS_NOT_DISTINCT_FROM; }
+    | <MEMBER> <OF> { return SqlStdOperatorTable.MEMBER_OF; }
+    | <SUBMULTISET> <OF> { return SqlStdOperatorTable.SUBMULTISET_OF; }
+    | <CONTAINS> { return SqlStdOperatorTable.CONTAINS; }
+    | <OVERLAPS> { return SqlStdOperatorTable.OVERLAPS; }
+    | <EQUALS> { return SqlStdOperatorTable.PERIOD_EQUALS; }
+    | <PRECEDES> { return SqlStdOperatorTable.PRECEDES; }
+    | <SUCCEEDS> { return SqlStdOperatorTable.SUCCEEDS; }
+    | <IMMEDIATELY> <PRECEDES> { return SqlStdOperatorTable.IMMEDIATELY_PRECEDES; }
+    | <IMMEDIATELY> <SUCCEEDS> { return SqlStdOperatorTable.IMMEDIATELY_SUCCEEDS; }
+    | op = BinaryMultisetOperator() { return op; }
 }
 
 /**
@@ -5707,6 +5737,7 @@ SqlPostfixOperator PostfixRowOperator() :
     | < HOUR: "HOUR" >
     | < IDENTITY: "IDENTITY" >
     | < IMMEDIATE: "IMMEDIATE" >
+    | < IMMEDIATELY: "IMMEDIATELY" >
     | < IMPLEMENTATION: "IMPLEMENTATION" >
     | < IMPORT: "IMPORT" >
     | < IN: "IN" >
@@ -6237,6 +6268,7 @@ String CommonNonReservedKeyWord() :
         | <GRANTED>
         | <HIERARCHY>
         | <IMMEDIATE>
+        | <IMMEDIATELY>
         | <IMPLEMENTATION>
         | <INCLUDING>
         | <INCREMENT>

@@ -1048,7 +1048,25 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
       new SqlCollectionTableOperator("TABLE", SqlModality.RELATION);
 
   public static final SqlOverlapsOperator OVERLAPS =
-      new SqlOverlapsOperator();
+      new SqlOverlapsOperator(SqlKind.OVERLAPS);
+
+  public static final SqlOverlapsOperator CONTAINS =
+      new SqlOverlapsOperator(SqlKind.CONTAINS);
+
+  public static final SqlOverlapsOperator PRECEDES =
+      new SqlOverlapsOperator(SqlKind.PRECEDES);
+
+  public static final SqlOverlapsOperator IMMEDIATELY_PRECEDES =
+      new SqlOverlapsOperator(SqlKind.IMMEDIATELY_PRECEDES);
+
+  public static final SqlOverlapsOperator SUCCEEDS =
+      new SqlOverlapsOperator(SqlKind.SUCCEEDS);
+
+  public static final SqlOverlapsOperator IMMEDIATELY_SUCCEEDS =
+      new SqlOverlapsOperator(SqlKind.IMMEDIATELY_SUCCEEDS);
+
+  public static final SqlOverlapsOperator PERIOD_EQUALS =
+      new SqlOverlapsOperator(SqlKind.PERIOD_EQUALS);
 
   public static final SqlSpecialOperator VALUES =
       new SqlValuesOperator();

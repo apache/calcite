@@ -233,6 +233,12 @@ public abstract class OperandTypes {
   public static final SqlSingleOperandTypeChecker INTERVAL =
       family(SqlTypeFamily.DATETIME_INTERVAL);
 
+  public static final SqlSingleOperandTypeChecker PERIOD =
+      new PeriodOperandTypeChecker();
+
+  public static final SqlSingleOperandTypeChecker PERIOD_OR_DATETIME =
+      or(PERIOD, DATETIME);
+
   public static final FamilyOperandTypeChecker INTERVAL_INTERVAL =
       family(SqlTypeFamily.DATETIME_INTERVAL, SqlTypeFamily.DATETIME_INTERVAL);
 
@@ -621,6 +627,65 @@ public abstract class OperandTypes {
           return Consistency.NONE;
         }
       };
+
+  /** Operand type checker that accepts period types:
+   * PERIOD (DATETIME, DATETIME)
+   * PERIOD (DATETIME, INTERVAL)
+   * [ROW] (DATETIME, DATETIME)
+   * [ROW] (DATETIME, INTERVAL) */
+  private static class PeriodOperandTypeChecker
+      implements SqlSingleOperandTypeChecker {
+    public boolean checkSingleOperandType(SqlCallBinding callBinding,
+        SqlNode node, int iFormalOperand, boolean throwOnFailure) {
+      assert 0 == iFormalOperand;
+      RelDataType type =
+          callBinding.getValidator().deriveType(callBinding.getScope(), node);
+      boolean valid = false;
+      if (type.isStruct() && type.getFieldList().size() == 2) {
+        final RelDataType t0 = type.getFieldList().get(0).getType();
+        final RelDataType t1 = type.getFieldList().get(1).getType();
+        if (SqlTypeUtil.isDatetime(t0)) {
+          if (SqlTypeUtil.isDatetime(t1)) {
+            // t0 must be comparable with t1; (DATE, TIMESTAMP) is not valid
+            if (SqlTypeUtil.sameNamedType(t0, t1)) {
+              valid = true;
+            }
+          } else if (SqlTypeUtil.isInterval(t1)) {
+            valid = true;
+          }
+        }
+      }
+
+      if (!valid && throwOnFailure) {
+        throw callBinding.newValidationSignatureError();
+      }
+      return valid;
+    }
+
+    public boolean checkOperandTypes(SqlCallBinding callBinding,
+        boolean throwOnFailure) {
+      return checkSingleOperandType(callBinding, callBinding.operand(0), 0,
+          throwOnFailure);
+    }
+
+    public SqlOperandCountRange getOperandCountRange() {
+      return SqlOperandCountRanges.of(1);
+    }
+
+    public String getAllowedSignatures(SqlOperator op, String opName) {
+      return SqlUtil.getAliasedSignature(op, opName,
+          ImmutableList.of("PERIOD (DATETIME, INTERVAL)",
+              "PERIOD (DATETIME, DATETIME)"));
+    }
+
+    public boolean isOptional(int i) {
+      return false;
+    }
+
+    public Consistency getConsistency() {
+      return Consistency.NONE;
+    }
+  }
 }
 
 // End OperandTypes.java

@@ -332,9 +332,39 @@ public enum SqlKind {
   DOT,
 
   /**
-   * The "OVERLAPS" operator.
+   * The "OVERLAPS" operator for periods.
    */
   OVERLAPS,
+
+  /**
+   * The "CONTAINS" operator for periods.
+   */
+  CONTAINS,
+
+  /**
+   * The "PRECEDES" operator for periods.
+   */
+  PRECEDES,
+
+  /**
+   * The "IMMEDIATELY PRECEDES" operator for periods.
+   */
+  IMMEDIATELY_PRECEDES("IMMEDIATELY PRECEDES"),
+
+  /**
+   * The "SUCCEEDS" operator for periods.
+   */
+  SUCCEEDS,
+
+  /**
+   * The "IMMEDIATELY SUCCEEDS" operator for periods.
+   */
+  IMMEDIATELY_SUCCEEDS("IMMEDIATELY SUCCEEDS"),
+
+  /**
+   * The "EQUALS" operator for periods.
+   */
+  PERIOD_EQUALS("EQUALS"),
 
   /**
    * The "LIKE" operator.
@@ -1084,6 +1114,15 @@ public enum SqlKind {
 
   /** Lower-case name. */
   public final String lowerName = name().toLowerCase(Locale.ROOT);
+  public final String sql;
+
+  SqlKind() {
+    sql = name();
+  }
+
+  SqlKind(String sql) {
+    this.sql = sql;
+  }
 
   /** Returns the kind that corresponds to this operator but in the opposite
    * direction. Or returns this, if this kind is not reversible.

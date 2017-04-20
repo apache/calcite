@@ -2353,7 +2353,15 @@ public abstract class SqlOperatorBaseTest {
         "(timestamp '1-2-3 4:5:6', timestamp '1-2-3 4:5:6' ) overlaps (cast(null as timestamp), interval '1 2:3:4.5' day to second)");
   }
 
-  @Test public void testOverlapsEtc() {
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-715">[CALCITE-715]
+   * Add PERIOD type constructor and period operators (CONTAINS, PRECEDES,
+   * etc.)</a>.
+   *
+   * <p>Tests OVERLAP and similar period operators CONTAINS, EQUALS, PRECEDES,
+   * SUCCEEDS, IMMEDIATELY PRECEDES, IMMEDIATELY SUCCEEDS for DATE, TIME and
+   * TIMESTAMP values. */
+  @Test public void testPeriodOperators() {
     String[] times = {
       "TIME '01:00:00'",
       "TIME '02:00:00'",
@@ -2378,6 +2386,7 @@ public abstract class SqlOperatorBaseTest {
   }
 
   private void checkOverlaps(OverlapChecker c) {
+    c.isTrue("($0,$0) OVERLAPS ($0,$0)");
     c.isFalse("($0,$1) OVERLAPS ($2,$3)");
     c.isTrue("($0,$1) OVERLAPS ($1,$2)");
     c.isTrue("($0,$2) OVERLAPS ($1,$3)");
@@ -2387,6 +2396,117 @@ public abstract class SqlOperatorBaseTest {
     c.isTrue("($2,$3) OVERLAPS ($0,$2)");
     c.isTrue("($2,$3) OVERLAPS ($2,$0)");
     c.isTrue("($3,$2) OVERLAPS ($2,$0)");
+    c.isTrue("($0,$2) OVERLAPS ($2,$0)");
+    c.isTrue("($0,$3) OVERLAPS ($1,$3)");
+    c.isTrue("($0,$3) OVERLAPS ($3,$3)");
+
+    c.isTrue("($0,$0) CONTAINS ($0,$0)");
+    c.isFalse("($0,$1) CONTAINS ($2,$3)");
+    c.isFalse("($0,$1) CONTAINS ($1,$2)");
+    c.isFalse("($0,$2) CONTAINS ($1,$3)");
+    c.isFalse("($0,$2) CONTAINS ($3,$1)");
+    c.isFalse("($2,$0) CONTAINS ($3,$1)");
+    c.isFalse("($3,$2) CONTAINS ($1,$0)");
+    c.isFalse("($2,$3) CONTAINS ($0,$2)");
+    c.isFalse("($2,$3) CONTAINS ($2,$0)");
+    c.isFalse("($3,$2) CONTAINS ($2,$0)");
+    c.isTrue("($0,$2) CONTAINS ($2,$0)");
+    c.isTrue("($0,$3) CONTAINS ($1,$3)");
+    c.isTrue("($0,$3) CONTAINS ($3,$3)");
+    c.isTrue("($3,$0) CONTAINS ($3,$3)");
+    c.isTrue("($3,$0) CONTAINS ($0,$0)");
+
+    c.isTrue("($0,$0) CONTAINS $0");
+    c.isTrue("($3,$0) CONTAINS $0");
+    c.isTrue("($3,$0) CONTAINS $1");
+    c.isTrue("($3,$0) CONTAINS $2");
+    c.isTrue("($3,$0) CONTAINS $3");
+    c.isTrue("($0,$3) CONTAINS $0");
+    c.isTrue("($0,$3) CONTAINS $1");
+    c.isTrue("($0,$3) CONTAINS $2");
+    c.isTrue("($0,$3) CONTAINS $3");
+    c.isFalse("($1,$3) CONTAINS $0");
+    c.isFalse("($1,$2) CONTAINS $3");
+
+    c.isTrue("($0,$0) EQUALS ($0,$0)");
+    c.isFalse("($0,$1) EQUALS ($2,$3)");
+    c.isFalse("($0,$1) EQUALS ($1,$2)");
+    c.isFalse("($0,$2) EQUALS ($1,$3)");
+    c.isFalse("($0,$2) EQUALS ($3,$1)");
+    c.isFalse("($2,$0) EQUALS ($3,$1)");
+    c.isFalse("($3,$2) EQUALS ($1,$0)");
+    c.isFalse("($2,$3) EQUALS ($0,$2)");
+    c.isFalse("($2,$3) EQUALS ($2,$0)");
+    c.isFalse("($3,$2) EQUALS ($2,$0)");
+    c.isTrue("($0,$2) EQUALS ($2,$0)");
+    c.isFalse("($0,$3) EQUALS ($1,$3)");
+    c.isFalse("($0,$3) EQUALS ($3,$3)");
+    c.isFalse("($3,$0) EQUALS ($3,$3)");
+    c.isFalse("($3,$0) EQUALS ($0,$0)");
+
+    c.isTrue("($0,$0) PRECEDES ($0,$0)");
+    c.isTrue("($0,$1) PRECEDES ($2,$3)");
+    c.isTrue("($0,$1) PRECEDES ($1,$2)");
+    c.isFalse("($0,$2) PRECEDES ($1,$3)");
+    c.isFalse("($0,$2) PRECEDES ($3,$1)");
+    c.isFalse("($2,$0) PRECEDES ($3,$1)");
+    c.isFalse("($3,$2) PRECEDES ($1,$0)");
+    c.isFalse("($2,$3) PRECEDES ($0,$2)");
+    c.isFalse("($2,$3) PRECEDES ($2,$0)");
+    c.isFalse("($3,$2) PRECEDES ($2,$0)");
+    c.isFalse("($0,$2) PRECEDES ($2,$0)");
+    c.isFalse("($0,$3) PRECEDES ($1,$3)");
+    c.isTrue("($0,$3) PRECEDES ($3,$3)");
+    c.isTrue("($3,$0) PRECEDES ($3,$3)");
+    c.isFalse("($3,$0) PRECEDES ($0,$0)");
+
+    c.isTrue("($0,$0) SUCCEEDS ($0,$0)");
+    c.isFalse("($0,$1) SUCCEEDS ($2,$3)");
+    c.isFalse("($0,$1) SUCCEEDS ($1,$2)");
+    c.isFalse("($0,$2) SUCCEEDS ($1,$3)");
+    c.isFalse("($0,$2) SUCCEEDS ($3,$1)");
+    c.isFalse("($2,$0) SUCCEEDS ($3,$1)");
+    c.isTrue("($3,$2) SUCCEEDS ($1,$0)");
+    c.isTrue("($2,$3) SUCCEEDS ($0,$2)");
+    c.isTrue("($2,$3) SUCCEEDS ($2,$0)");
+    c.isTrue("($3,$2) SUCCEEDS ($2,$0)");
+    c.isFalse("($0,$2) SUCCEEDS ($2,$0)");
+    c.isFalse("($0,$3) SUCCEEDS ($1,$3)");
+    c.isFalse("($0,$3) SUCCEEDS ($3,$3)");
+    c.isFalse("($3,$0) SUCCEEDS ($3,$3)");
+    c.isTrue("($3,$0) SUCCEEDS ($0,$0)");
+
+    c.isTrue("($0,$0) IMMEDIATELY PRECEDES ($0,$0)");
+    c.isFalse("($0,$1) IMMEDIATELY PRECEDES ($2,$3)");
+    c.isTrue("($0,$1) IMMEDIATELY PRECEDES ($1,$2)");
+    c.isFalse("($0,$2) IMMEDIATELY PRECEDES ($1,$3)");
+    c.isFalse("($0,$2) IMMEDIATELY PRECEDES ($3,$1)");
+    c.isFalse("($2,$0) IMMEDIATELY PRECEDES ($3,$1)");
+    c.isFalse("($3,$2) IMMEDIATELY PRECEDES ($1,$0)");
+    c.isFalse("($2,$3) IMMEDIATELY PRECEDES ($0,$2)");
+    c.isFalse("($2,$3) IMMEDIATELY PRECEDES ($2,$0)");
+    c.isFalse("($3,$2) IMMEDIATELY PRECEDES ($2,$0)");
+    c.isFalse("($0,$2) IMMEDIATELY PRECEDES ($2,$0)");
+    c.isFalse("($0,$3) IMMEDIATELY PRECEDES ($1,$3)");
+    c.isTrue("($0,$3) IMMEDIATELY PRECEDES ($3,$3)");
+    c.isTrue("($3,$0) IMMEDIATELY PRECEDES ($3,$3)");
+    c.isFalse("($3,$0) IMMEDIATELY PRECEDES ($0,$0)");
+
+    c.isTrue("($0,$0) IMMEDIATELY SUCCEEDS ($0,$0)");
+    c.isFalse("($0,$1) IMMEDIATELY SUCCEEDS ($2,$3)");
+    c.isFalse("($0,$1) IMMEDIATELY SUCCEEDS ($1,$2)");
+    c.isFalse("($0,$2) IMMEDIATELY SUCCEEDS ($1,$3)");
+    c.isFalse("($0,$2) IMMEDIATELY SUCCEEDS ($3,$1)");
+    c.isFalse("($2,$0) IMMEDIATELY SUCCEEDS ($3,$1)");
+    c.isFalse("($3,$2) IMMEDIATELY SUCCEEDS ($1,$0)");
+    c.isTrue("($2,$3) IMMEDIATELY SUCCEEDS ($0,$2)");
+    c.isTrue("($2,$3) IMMEDIATELY SUCCEEDS ($2,$0)");
+    c.isTrue("($3,$2) IMMEDIATELY SUCCEEDS ($2,$0)");
+    c.isFalse("($0,$2) IMMEDIATELY SUCCEEDS ($2,$0)");
+    c.isFalse("($0,$3) IMMEDIATELY SUCCEEDS ($1,$3)");
+    c.isFalse("($0,$3) IMMEDIATELY SUCCEEDS ($3,$3)");
+    c.isFalse("($3,$0) IMMEDIATELY SUCCEEDS ($3,$3)");
+    c.isTrue("($3,$0) IMMEDIATELY SUCCEEDS ($0,$0)");
   }
 
   @Test public void testLessThanOperator() {

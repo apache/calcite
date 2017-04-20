@@ -275,7 +275,7 @@ public class SqlPrettyWriterTest {
     assertExprPrintsTo(
         true,
         "(x,xx) overlaps (y,yy) or x is not null",
-        "(`X`, `XX`) OVERLAPS (`Y`, `YY`) OR `X` IS NOT NULL");
+        "PERIOD (`X`, `XX`) OVERLAPS PERIOD (`Y`, `YY`) OR `X` IS NOT NULL");
   }
 
   @Test public void testUnion() {

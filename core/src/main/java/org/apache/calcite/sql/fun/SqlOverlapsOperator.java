@@ -17,20 +17,19 @@
 package org.apache.calcite.sql.fun;
 
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.sql.SqlBinaryOperator;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlCallBinding;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperandCountRange;
-import org.apache.calcite.sql.SqlSpecialOperator;
 import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.type.InferTypes;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlOperandCountRanges;
+import org.apache.calcite.sql.type.SqlSingleOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlTypeUtil;
-import org.apache.calcite.sql.validate.SqlValidator;
-import org.apache.calcite.sql.validate.SqlValidatorScope;
 
 import com.google.common.collect.ImmutableList;
 
@@ -38,52 +37,44 @@ import com.google.common.collect.ImmutableList;
  * SqlOverlapsOperator represents the SQL:1999 standard {@code OVERLAPS}
  * function. Determines whether two anchored time intervals overlap.
  */
-public class SqlOverlapsOperator extends SqlSpecialOperator {
-  //~ Static fields/initializers ---------------------------------------------
-
-  private static final SqlWriter.FrameType FRAME_TYPE =
-      SqlWriter.FrameTypeEnum.create("OVERLAPS");
-
+public class SqlOverlapsOperator extends SqlBinaryOperator {
   //~ Constructors -----------------------------------------------------------
 
-  public SqlOverlapsOperator() {
-    super("OVERLAPS",
-        SqlKind.OVERLAPS,
-        30,
-        true,
-        ReturnTypes.BOOLEAN_NULLABLE,
+  SqlOverlapsOperator(SqlKind kind) {
+    super(kind.sql, kind, 30, true, ReturnTypes.BOOLEAN_NULLABLE,
         InferTypes.FIRST_KNOWN,
-        null);
+        OperandTypes.sequence("'<PERIOD> " + kind.sql + " <PERIOD>'",
+            OperandTypes.PERIOD, OperandTypes.PERIOD));
   }
 
   //~ Methods ----------------------------------------------------------------
 
-  public void unparse(
-      SqlWriter writer,
-      SqlCall call,
-      int leftPrec,
+  @Override public void unparse(SqlWriter writer, SqlCall call, int leftPrec,
       int rightPrec) {
     final SqlWriter.Frame frame =
-        writer.startList(FRAME_TYPE, "(", ")");
-    call.operand(0).unparse(writer, leftPrec, rightPrec);
-    writer.sep(",", true);
-    call.operand(1).unparse(writer, leftPrec, rightPrec);
-    writer.sep(")", true);
+        writer.startList(SqlWriter.FrameTypeEnum.SIMPLE);
+    arg(writer, call, leftPrec, rightPrec, 0);
     writer.sep(getName());
-    writer.sep("(", true);
-    call.operand(2).unparse(writer, leftPrec, rightPrec);
-    writer.sep(",", true);
-    call.operand(3).unparse(writer, leftPrec, rightPrec);
+    arg(writer, call, leftPrec, rightPrec, 1);
     writer.endList(frame);
   }
 
-  public SqlOperandCountRange getOperandCountRange() {
-    return SqlOperandCountRanges.of(4);
+  void arg(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec, int i) {
+    if (SqlUtil.isCallTo(call.operand(i), SqlStdOperatorTable.ROW)) {
+      SqlCall row = call.operand(i);
+      writer.keyword("PERIOD");
+      writer.sep("(", true);
+      row.operand(0).unparse(writer, leftPrec, rightPrec);
+      writer.sep(",", true);
+      row.operand(1).unparse(writer, leftPrec, rightPrec);
+      writer.sep(")", true);
+    } else {
+      call.operand(i).unparse(writer, leftPrec, rightPrec);
+    }
   }
 
-  public String getSignatureTemplate(int operandsCount) {
-    assert 4 == operandsCount;
-    return "({1}, {2}) {0} ({3}, {4})";
+  public SqlOperandCountRange getOperandCountRange() {
+    return SqlOperandCountRanges.of(2);
   }
 
   public String getAllowedSignatures(String opName) {
@@ -108,69 +99,36 @@ public class SqlOverlapsOperator extends SqlSpecialOperator {
     return ret.toString();
   }
 
-  public boolean checkOperandTypes(
-      SqlCallBinding callBinding,
+  public boolean checkOperandTypes(SqlCallBinding callBinding,
       boolean throwOnFailure) {
-    SqlValidator validator = callBinding.getValidator();
-    SqlValidatorScope scope = callBinding.getScope();
-    if (!OperandTypes.DATETIME.checkSingleOperandType(
-        callBinding,
-        callBinding.operand(0),
-        0,
-        throwOnFailure)) {
+    if (!OperandTypes.PERIOD.checkSingleOperandType(callBinding,
+        callBinding.operand(0), 0, throwOnFailure)) {
       return false;
     }
-    if (!OperandTypes.DATETIME.checkSingleOperandType(
-        callBinding,
-        callBinding.operand(2),
-        0,
-        throwOnFailure)) {
+    final SqlSingleOperandTypeChecker rightChecker;
+    switch (kind) {
+    case CONTAINS:
+      rightChecker = OperandTypes.PERIOD_OR_DATETIME;
+      break;
+    default:
+      rightChecker = OperandTypes.PERIOD;
+      break;
+    }
+    if (!rightChecker.checkSingleOperandType(callBinding,
+        callBinding.operand(1), 0, throwOnFailure)) {
       return false;
     }
-
-    RelDataType t0 = validator.deriveType(scope, callBinding.operand(0));
-    RelDataType t1 = validator.deriveType(scope, callBinding.operand(1));
-    RelDataType t2 = validator.deriveType(scope, callBinding.operand(2));
-    RelDataType t3 = validator.deriveType(scope, callBinding.operand(3));
-
-    // t0 must be comparable with t2
-    if (!SqlTypeUtil.sameNamedType(t0, t2)) {
-      if (throwOnFailure) {
-        throw callBinding.newValidationSignatureError();
-      }
-      return false;
-    }
-
-    if (SqlTypeUtil.isDatetime(t1)) {
-      // if t1 is of DATETIME,
-      // then t1 must be comparable with t0
-      if (!SqlTypeUtil.sameNamedType(t0, t1)) {
+    final RelDataType t0 = callBinding.getOperandType(0);
+    final RelDataType t1 = callBinding.getOperandType(1);
+    if (!SqlTypeUtil.isDatetime(t1)) {
+      final RelDataType t00 = t0.getFieldList().get(0).getType();
+      final RelDataType t10 = t1.getFieldList().get(0).getType();
+      if (!SqlTypeUtil.sameNamedType(t00, t10)) {
         if (throwOnFailure) {
           throw callBinding.newValidationSignatureError();
         }
         return false;
       }
-    } else if (!SqlTypeUtil.isInterval(t1)) {
-      if (throwOnFailure) {
-        throw callBinding.newValidationSignatureError();
-      }
-      return false;
-    }
-
-    if (SqlTypeUtil.isDatetime(t3)) {
-      // if t3 is of DATETIME,
-      // then t3 must be comparable with t2
-      if (!SqlTypeUtil.sameNamedType(t2, t3)) {
-        if (throwOnFailure) {
-          throw callBinding.newValidationSignatureError();
-        }
-        return false;
-      }
-    } else if (!SqlTypeUtil.isInterval(t3)) {
-      if (throwOnFailure) {
-        throw callBinding.newValidationSignatureError();
-      }
-      return false;
     }
     return true;
   }

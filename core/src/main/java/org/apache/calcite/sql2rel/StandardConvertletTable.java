@@ -32,7 +32,6 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexRangeRef;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.SqlAggFunction;
-import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlBinaryOperator;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDataTypeSpec;
@@ -70,6 +69,7 @@ import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.SqlValidator;
+import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
@@ -363,6 +363,10 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
 
   private RexNode or(RexBuilder rexBuilder, RexNode a0, RexNode a1) {
     return rexBuilder.makeCall(SqlStdOperatorTable.OR, a0, a1);
+  }
+
+  private RexNode eq(RexBuilder rexBuilder, RexNode a0, RexNode a1) {
+    return rexBuilder.makeCall(SqlStdOperatorTable.EQUALS, a0, a1);
   }
 
   private RexNode ge(RexBuilder rexBuilder, RexNode a0, RexNode a1) {
@@ -1192,35 +1196,76 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
       SqlCall call) {
     // for intervals [t0, t1] overlaps [t2, t3], we can find if the
     // intervals overlaps by: ~(t1 < t2 or t3 < t0)
-    final SqlNode[] operands = ((SqlBasicCall) call).getOperands();
-    assert operands.length == 4;
-    final SqlParserPos pos = call.getParserPosition();
-    final RelDataType t1 = cx.getValidator().getValidatedNodeType(operands[1]);
-    if (SqlTypeUtil.isInterval(t1)) {
-      // make t1 = t0 + t1 when t1 is an interval.
-      operands[1] = plus(pos, operands[0], operands[1]);
-    }
-    final RelDataType t3 = cx.getValidator().getValidatedNodeType(operands[3]);
-    if (SqlTypeUtil.isInterval(t3)) {
-      // make t3 = t2 + t3 when t3 is an interval.
-      operands[3] = plus(pos, operands[2], operands[3]);
-    }
+    assert call.getOperandList().size() == 2;
 
-    final RexNode r0 = cx.convertExpression(operands[0]);
-    final RexNode r1 = cx.convertExpression(operands[1]);
-    final RexNode r2 = cx.convertExpression(operands[2]);
-    final RexNode r3 = cx.convertExpression(operands[3]);
+    final Pair<RexNode, RexNode> left =
+        convertOverlapsOperand(cx, call.getParserPosition(), call.operand(0));
+    final RexNode r0 = left.left;
+    final RexNode r1 = left.right;
+    final Pair<RexNode, RexNode> right =
+        convertOverlapsOperand(cx, call.getParserPosition(), call.operand(1));
+    final RexNode r2 = right.left;
+    final RexNode r3 = right.right;
 
     // Sort end points into start and end, such that (s0 <= e0) and (s1 <= e1).
     final RexBuilder rexBuilder = cx.getRexBuilder();
-    final RexNode s0 = case_(rexBuilder, le(rexBuilder, r0, r1), r0, r1);
-    final RexNode e0 = case_(rexBuilder, le(rexBuilder, r0, r1), r1, r0);
-    final RexNode s1 = case_(rexBuilder, le(rexBuilder, r2, r3), r2, r3);
-    final RexNode e1 = case_(rexBuilder, le(rexBuilder, r2, r3), r3, r2);
+    RexNode leftSwap = le(rexBuilder, r0, r1);
+    final RexNode s0 = case_(rexBuilder, leftSwap, r0, r1);
+    final RexNode e0 = case_(rexBuilder, leftSwap, r1, r0);
+    RexNode rightSwap = le(rexBuilder, r2, r3);
+    final RexNode s1 = case_(rexBuilder, rightSwap, r2, r3);
+    final RexNode e1 = case_(rexBuilder, rightSwap, r3, r2);
     // (e0 >= s1) AND (e1 >= s0)
-    return and(rexBuilder,
-        ge(rexBuilder, e0, s1),
-        ge(rexBuilder, e1, s0));
+    switch (op.kind) {
+    case OVERLAPS:
+      return and(rexBuilder,
+          ge(rexBuilder, e0, s1),
+          ge(rexBuilder, e1, s0));
+    case CONTAINS:
+      return and(rexBuilder,
+          le(rexBuilder, s0, s1),
+          ge(rexBuilder, e0, e1));
+    case PERIOD_EQUALS:
+      return and(rexBuilder,
+          eq(rexBuilder, s0, s1),
+          eq(rexBuilder, e0, e1));
+    case PRECEDES:
+      return le(rexBuilder, e0, s1);
+    case IMMEDIATELY_PRECEDES:
+      return eq(rexBuilder, e0, s1);
+    case SUCCEEDS:
+      return ge(rexBuilder, s0, e1);
+    case IMMEDIATELY_SUCCEEDS:
+      return eq(rexBuilder, s0, e1);
+    default:
+      throw new AssertionError(op);
+    }
+  }
+
+  private Pair<RexNode, RexNode> convertOverlapsOperand(SqlRexContext cx,
+      SqlParserPos pos, SqlNode operand) {
+    final SqlNode a0;
+    final SqlNode a1;
+    switch (operand.getKind()) {
+    case ROW:
+      a0 = ((SqlCall) operand).operand(0);
+      final SqlNode a10 = ((SqlCall) operand).operand(1);
+      final RelDataType t1 = cx.getValidator().getValidatedNodeType(a10);
+      if (SqlTypeUtil.isInterval(t1)) {
+        // make t1 = t0 + t1 when t1 is an interval.
+        a1 = plus(pos, a0, a10);
+      } else {
+        a1 = a10;
+      }
+      break;
+    default:
+      a0 = operand;
+      a1 = operand;
+    }
+
+    final RexNode r0 = cx.convertExpression(a0);
+    final RexNode r1 = cx.convertExpression(a1);
+    return Pair.of(r0, r1);
   }
 
   /**
