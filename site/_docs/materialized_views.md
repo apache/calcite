@@ -82,6 +82,5 @@ shortcomings that we plan to address with follow-up extensions:
 * It does not produce rewritings using Union operators, e.g., a given query could be partially answered from the
 {mv} (year = 2014) and from the query (not(year=2014)). This can be useful if {mv} is stored in a system such as
 Druid.
-* Currently query and {mv} must use the same tables.
 
 This rule is currently enabled by default.

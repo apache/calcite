@@ -534,6 +534,8 @@ public class CalcitePrepareImpl implements CalcitePrepare {
     }
     if (prepareContext.config().materializationsEnabled()) {
       planner.addRule(MaterializedViewFilterScanRule.INSTANCE);
+      planner.addRule(AbstractMaterializedViewRule.INSTANCE_PROJECT_FILTER);
+      planner.addRule(AbstractMaterializedViewRule.INSTANCE_FILTER);
       planner.addRule(AbstractMaterializedViewRule.INSTANCE_PROJECT_JOIN);
       planner.addRule(AbstractMaterializedViewRule.INSTANCE_JOIN);
       planner.addRule(AbstractMaterializedViewRule.INSTANCE_PROJECT_AGGREGATE);

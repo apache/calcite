@@ -123,7 +123,7 @@ public class RelMdExpressionLineage
     final Map<RexInputRef, Set<RexNode>> mapping = new LinkedHashMap<>();
     for (int idx : inputFieldsUsed) {
       final RexNode inputRef = RexTableInputRef.of(
-          RelTableRef.of(rel.getTable().getQualifiedName(), 0),
+          RelTableRef.of(rel.getTable(), 0),
           RexInputRef.of(idx, rel.getRowType().getFieldList()));
       final Set<RexNode> originalExprs = Sets.newHashSet(inputRef);
       final RexInputRef ref = RexInputRef.of(idx, rel.getRowType().getFieldList());
@@ -233,7 +233,7 @@ public class RelMdExpressionLineage
             shift = lRefs.size();
           }
           currentTablesMapping.put(rightRef,
-              RelTableRef.of(rightRef.getQualifiedName(), shift + rightRef.getEntityNumber()));
+              RelTableRef.of(rightRef.getTable(), shift + rightRef.getEntityNumber()));
         }
         final Set<RexNode> updatedExprs = Sets.newHashSet(
             Iterables.transform(
@@ -288,7 +288,7 @@ public class RelMdExpressionLineage
             shift = lRefs.size();
           }
           currentTablesMapping.put(tableRef,
-              RelTableRef.of(tableRef.getQualifiedName(), shift + tableRef.getEntityNumber()));
+              RelTableRef.of(tableRef.getTable(), shift + tableRef.getEntityNumber()));
         }
         final Set<RexNode> updatedExprs = Sets.newHashSet(
             Iterables.transform(

@@ -28,6 +28,7 @@ import org.apache.calcite.rel.RelDistribution;
 import org.apache.calcite.rel.RelDistributionTraitDef;
 import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelReferentialConstraint;
 import org.apache.calcite.rel.logical.LogicalTableScan;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelRecordType;
@@ -282,6 +283,13 @@ public class RelOptTableImpl extends Prepare.AbstractPreparingTable {
       return table.getStatistic().isKey(columns);
     }
     return false;
+  }
+
+  public List<RelReferentialConstraint> getReferentialConstraints() {
+    if (table != null) {
+      return table.getStatistic().getReferentialConstraints();
+    }
+    return ImmutableList.of();
   }
 
   public RelDataType getRowType() {

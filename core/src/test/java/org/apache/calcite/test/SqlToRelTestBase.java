@@ -30,6 +30,7 @@ import org.apache.calcite.rel.RelDistribution;
 import org.apache.calcite.rel.RelDistributions;
 import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelReferentialConstraint;
 import org.apache.calcite.rel.RelRoot;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.logical.LogicalTableScan;
@@ -398,6 +399,10 @@ public abstract class SqlToRelTestBase {
         return false;
       }
 
+      public List<RelReferentialConstraint> getReferentialConstraints() {
+        return ImmutableList.of();
+      }
+
       public Expression getExpression(Class clazz) {
         return null;
       }
@@ -466,6 +471,10 @@ public abstract class SqlToRelTestBase {
 
     public boolean isKey(ImmutableBitSet columns) {
       return parent.isKey(columns);
+    }
+
+    public List<RelReferentialConstraint> getReferentialConstraints() {
+      return parent.getReferentialConstraints();
     }
   }
 

@@ -4536,7 +4536,7 @@ public class JdbcTest {
             "select \"deptno\", \"employees\"[1] as e from \"hr\".\"depts\"\n").returnsUnordered(
         "deptno=10; E={100, 10, Bill, 10000.0, 1000}",
         "deptno=30; E=null",
-            "deptno=40; E={200, 20, Eric, 8000.0, 500}");
+        "deptno=40; E={200, 20, Eric, 8000.0, 500}");
   }
 
   @Test public void testVarcharEquals() {

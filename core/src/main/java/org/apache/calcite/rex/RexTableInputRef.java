@@ -16,10 +16,9 @@
  */
 package org.apache.calcite.rex;
 
+import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlKind;
-
-import com.google.common.collect.ImmutableList;
 
 import java.util.List;
 
@@ -98,14 +97,14 @@ public class RexTableInputRef extends RexInputRef {
   /** Identifies uniquely a table by its qualified name and its entity number (occurrence) */
   public static class RelTableRef {
 
-    private final List<String> qualifiedName;
+    private final RelOptTable table;
     private final int entityNumber;
     private final String digest;
 
-    private RelTableRef(List<String> qualifiedName, int entityNumber) {
-      this.qualifiedName = ImmutableList.copyOf(qualifiedName);
+    private RelTableRef(RelOptTable table, int entityNumber) {
+      this.table = table;
       this.entityNumber = entityNumber;
-      this.digest = qualifiedName + ".#" + entityNumber;
+      this.digest = table.getQualifiedName() + ".#" + entityNumber;
     }
 
     //~ Methods ----------------------------------------------------------------
@@ -113,7 +112,7 @@ public class RexTableInputRef extends RexInputRef {
     @Override public boolean equals(Object obj) {
       return this == obj
           || obj instanceof RelTableRef
-          && qualifiedName.equals(((RelTableRef) obj).qualifiedName)
+          && table.getQualifiedName().equals(((RelTableRef) obj).getQualifiedName())
           && entityNumber == ((RelTableRef) obj).entityNumber;
     }
 
@@ -121,8 +120,12 @@ public class RexTableInputRef extends RexInputRef {
       return digest.hashCode();
     }
 
+    public RelOptTable getTable() {
+      return table;
+    }
+
     public List<String> getQualifiedName() {
-      return qualifiedName;
+      return table.getQualifiedName();
     }
 
     public int getEntityNumber() {
@@ -133,8 +136,8 @@ public class RexTableInputRef extends RexInputRef {
       return digest;
     }
 
-    public static RelTableRef of(List<String> qualifiedName, int entityNumber) {
-      return new RelTableRef(qualifiedName, entityNumber);
+    public static RelTableRef of(RelOptTable table, int entityNumber) {
+      return new RelTableRef(table, entityNumber);
     }
   }
 }

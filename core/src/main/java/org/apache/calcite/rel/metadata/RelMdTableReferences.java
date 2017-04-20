@@ -88,7 +88,7 @@ public class RelMdTableReferences
    * TableScan table reference.
    */
   public Set<RelTableRef> getTableReferences(TableScan rel, RelMetadataQuery mq) {
-    return Sets.newHashSet(RelTableRef.of(rel.getTable().getQualifiedName(), 0));
+    return Sets.newHashSet(RelTableRef.of(rel.getTable(), 0));
   }
 
   /**
@@ -123,7 +123,7 @@ public class RelMdTableReferences
         shift = lRefs.size();
       }
       RelTableRef shiftTableRef = RelTableRef.of(
-          rightRef.getQualifiedName(), shift + rightRef.getEntityNumber());
+          rightRef.getTable(), shift + rightRef.getEntityNumber());
       assert !result.contains(shiftTableRef);
       result.add(shiftTableRef);
     }
@@ -152,7 +152,7 @@ public class RelMdTableReferences
           shift = lRefs.size();
         }
         RelTableRef shiftTableRef = RelTableRef.of(
-            tableRef.getQualifiedName(), shift + tableRef.getEntityNumber());
+            tableRef.getTable(), shift + tableRef.getEntityNumber());
         assert !result.contains(shiftTableRef);
         result.add(shiftTableRef);
         currentTablesMapping.put(tableRef, shiftTableRef);
