@@ -1868,13 +1868,23 @@ public class SqlToRelConverter {
       // Walk over the tree and apply 'over' to all agg functions. This is
       // necessary because the returned expression is not necessarily a call
       // to an agg function. For example, AVG(x) becomes SUM(x) / COUNT(x).
+
+      boolean isDistinct = false;
+      if (aggCall.getFunctionQuantifier() != null
+        && aggCall.getFunctionQuantifier().getValue().equals(SqlSelectKeyword.DISTINCT)) {
+        isDistinct = true;
+      }
+
       final RexShuttle visitor =
           new HistogramShuttle(
               partitionKeys.build(), orderKeys.build(),
               RexWindowBound.create(window.getLowerBound(), lowerBound),
               RexWindowBound.create(window.getUpperBound(), upperBound),
-              window);
-      return rexAgg.accept(visitor);
+              window,
+              isDistinct);
+      RexNode overNode = rexAgg.accept(visitor);
+
+      return overNode;
     } finally {
       bb.window = null;
     }
@@ -4957,17 +4967,20 @@ public class SqlToRelConverter {
     private final RexWindowBound lowerBound;
     private final RexWindowBound upperBound;
     private final SqlWindow window;
+    private final boolean distinct;
 
     HistogramShuttle(
         List<RexNode> partitionKeys,
         ImmutableList<RexFieldCollation> orderKeys,
         RexWindowBound lowerBound, RexWindowBound upperBound,
-        SqlWindow window) {
+        SqlWindow window,
+        boolean isDistinct) {
       this.partitionKeys = partitionKeys;
       this.orderKeys = orderKeys;
       this.lowerBound = lowerBound;
       this.upperBound = upperBound;
       this.window = window;
+      this.distinct = isDistinct;
     }
 
     public RexNode visitCall(RexCall call) {
@@ -5023,7 +5036,8 @@ public class SqlToRelConverter {
                 upperBound,
                 window.isRows(),
                 window.isAllowPartial(),
-                false);
+                false,
+                distinct);
 
         RexNode histogramCall =
             rexBuilder.makeCall(
@@ -5063,7 +5077,8 @@ public class SqlToRelConverter {
             upperBound,
             window.isRows(),
             window.isAllowPartial(),
-            needSum0);
+            needSum0,
+            distinct);
       }
     }
 
