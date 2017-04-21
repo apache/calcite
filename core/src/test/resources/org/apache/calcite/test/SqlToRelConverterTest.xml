@@ -235,6 +235,23 @@ LogicalProject(DEPTNO=[$0], NAME=[$1])
             <![CDATA[select*from unnest(multiset(select*from dept))]]>
         </Resource>
     </TestCase>
+        <TestCase name="testSelectOverDistinct">
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(EXPR$0=[CASE(>(COUNT($7) OVER (ROWS BETWEEN 10 PRECEDING AND CURRENT ROW), 0), CAST($SUM0($7) OVER (ROWS BETWEEN 10 PRECEDING AND CURRENT ROW)):INTEGER, null)])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+        <TestCase name="testSelectStreamPartitionDistinct">
+        <Resource name="plan">
+            <![CDATA[
+LogicalDelta
+  LogicalProject(C=[COUNT($2) OVER (PARTITION BY $1 ORDER BY $0 RANGE BETWEEN 1000 PRECEDING AND CURRENT ROW)])
+    LogicalTableScan(table=[[CATALOG, SALES, ORDERS]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testUnnestArray">
         <Resource name="sql">
             <![CDATA[select*from unnest(array(select*from dept))]]>

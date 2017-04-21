@@ -443,6 +443,26 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     sql("select distinct sal + 5 from emp").ok();
   }
 
+  @Test public void testSelectOverDistinct() {
+    // Checks to see if Aggregates(DISTINCT x) is set and preserved
+    // as a flag for the aggreagate call.
+    final String sql = "select SUM(DISTINCT deptno)\n"
+      + "over (ROWS BETWEEN 10 PRECEDING AND CURRENT ROW)\n"
+      + "from emp\n";
+    sql(sql).ok();
+  }
+
+  @Test public void testSelectStreamPartitionDistinct() {
+    // Checks to see if Aggregates(DISTINCT x) is set and preserved
+    // as a flag for the aggreagate call.
+    final String sql = "select stream "
+      + "  count(distinct orderId) over (partition by productId\n"
+      + "    order by rowtime\n"
+      + "    range interval '1' second preceding) as c\n"
+      + "from orders";
+    sql(sql).ok();
+  }
+
   @Test public void testSelectDistinctGroup() {
     sql("select distinct sum(sal) from emp group by deptno").ok();
   }

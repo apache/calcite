@@ -35,12 +35,14 @@ public class RexOver extends RexCall {
   //~ Instance fields --------------------------------------------------------
 
   private final RexWindow window;
-  private boolean isDistinct = false;
+  private final boolean distinct;
 
   //~ Constructors -----------------------------------------------------------
 
   /**
    * Creates a RexOver.
+   *
+   * @deprecated use constructor that explicitly sets the distinct field
    *
    * <p>For example, "SUM(x) OVER (ROWS 3 PRECEDING)" is represented as:
    *
@@ -56,14 +58,13 @@ public class RexOver extends RexCall {
    * @param operands Operands list
    * @param window   Window specification
    */
+  @Deprecated
   RexOver(
       RelDataType type,
       SqlAggFunction op,
       List<RexNode> operands,
       RexWindow window) {
-    super(type, op, operands);
-    Preconditions.checkArgument(op.isAggregator());
-    this.window = Preconditions.checkNotNull(window);
+    this(type, op, operands, window, false);
   }
 
   /**
@@ -93,7 +94,7 @@ public class RexOver extends RexCall {
     super(type, op, operands);
     Preconditions.checkArgument(op.isAggregator());
     this.window = Preconditions.checkNotNull(window);
-    this.isDistinct = isDistinct;
+    this.distinct = isDistinct;
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -110,11 +111,7 @@ public class RexOver extends RexCall {
   }
 
   public boolean isDistinct() {
-    return isDistinct;
-  }
-
-  public void setDistinct(boolean distinct) {
-    this.isDistinct = distinct;
+    return distinct;
   }
 
   protected String computeDigest(boolean withType) {
