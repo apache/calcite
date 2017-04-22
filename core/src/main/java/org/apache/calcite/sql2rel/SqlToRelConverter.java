@@ -2113,7 +2113,7 @@ public class SqlToRelConverter {
     RexNode afterMatchSkipTo;
     SqlNode afterMatch = matchRecognize.getSkipTo();
     if (afterMatch == null) {
-      afterMatch = SqlMatchRecognize.SKIP_TO_OPTION.SKIP_TO_NEXT_ROW.symbol(SqlParserPos.ZERO);
+      afterMatch = SqlMatchRecognize.SkipToOption.SKIP_TO_NEXT_ROW.symbol(SqlParserPos.ZERO);
     }
 
     if (afterMatch instanceof SqlCall) {

@@ -154,13 +154,13 @@ public class SqlMatchRecognize extends SqlCall {
   /**
    * SKIP TO options
    */
-  public enum SKIP_TO_OPTION {
+  public enum SkipToOption {
     SKIP_TO_NEXT_ROW("SKIP TO NEXT ROW"),
     SKIP_PAST_LAST_ROW("SKIP PAST LAST ROW");
 
     private final String sql;
 
-    SKIP_TO_OPTION(String sql) {
+    SkipToOption(String sql) {
       this.sql = sql;
     }
 

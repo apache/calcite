@@ -9668,6 +9668,40 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
       .fails("Null parameters in 'LAST\\(NULL, 0\\)'");
   }
 
+  @Test public void testMatchRecognizeSkipTo1() throws Exception {
+    final String sql = "select *\n"
+      + "  from emp match_recognize\n"
+      + "  (\n"
+      + "  after match skip to ^null^\n"
+      + "   measures "
+      + "   STRT.sal as start_sal,"
+      + "   LAST(up.ts) as end_sal"
+      + "    pattern (strt down+ up+)\n"
+      + "    define\n"
+      + "      down as down.sal < PREV(down.sal),\n"
+      + "      up as up.sal > prev(up.sal)\n"
+      + "  ) mr";
+    sql(sql)
+      .fails("(?s).*Encountered \"to null\" at .*");
+  }
+
+  @Test public void testMatchRecognizeSkipTo2() throws Exception {
+    final String sql = "select *\n"
+      + "  from emp match_recognize\n"
+      + "  (\n"
+      + "  after match skip to ^no_exists^\n"
+      + "   measures "
+      + "   STRT.sal as start_sal,"
+      + "   LAST(up.ts) as end_sal"
+      + "    pattern (strt down+ up+)\n"
+      + "    define\n"
+      + "      down as down.sal < PREV(down.sal),\n"
+      + "      up as up.sal > prev(up.sal)\n"
+      + "  ) mr";
+    sql(sql)
+      .fails("(?s).*Encountered \"measures\" at .*");
+  }
+
 }
 
 // End SqlValidatorTest.java

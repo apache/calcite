@@ -2518,7 +2518,7 @@ SqlMatchRecognize MatchRecognizeOpt(SqlNode tableRef) :
                     LOOKAHEAD(2)
                     <NEXT> <ROW>
                     {
-                        skipTo = SqlMatchRecognize.SKIP_TO_OPTION.SKIP_TO_NEXT_ROW.symbol(pos.plus(getPos()));
+                        skipTo = SqlMatchRecognize.SkipToOption.SKIP_TO_NEXT_ROW.symbol(pos.plus(getPos()));
                     }
                     |
                     <FIRST> var = SimpleIdentifier()
@@ -2535,7 +2535,7 @@ SqlMatchRecognize MatchRecognizeOpt(SqlNode tableRef) :
             |
             <PAST> <LAST> <ROW>
             {
-                 skipTo = SqlMatchRecognize.SKIP_TO_OPTION.SKIP_PAST_LAST_ROW.symbol(pos.plus(getPos()));
+                 skipTo = SqlMatchRecognize.SkipToOption.SKIP_PAST_LAST_ROW.symbol(pos.plus(getPos()));
             }
         )
     ]

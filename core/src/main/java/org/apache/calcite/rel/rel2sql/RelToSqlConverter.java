@@ -382,7 +382,7 @@ public class RelToSqlConverter extends SqlImplementor
     SqlNode skipTo;
     final RexNode afterMatchSkipTo = e.getAfterMatchSkipTo();
     if (afterMatchSkipTo instanceof RexLiteral) {
-      SqlMatchRecognize.SKIP_TO_OPTION value = (SqlMatchRecognize.SKIP_TO_OPTION)
+      SqlMatchRecognize.SkipToOption value = (SqlMatchRecognize.SkipToOption)
         ((RexLiteral) afterMatchSkipTo).getValue2();
       skipTo = SqlLiteral.createSymbol(value, POS);
     } else {
