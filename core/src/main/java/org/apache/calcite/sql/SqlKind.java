@@ -469,6 +469,16 @@ public enum SqlKind {
 
   MATCH_NUMBER,
 
+  /**
+   * The "SKIP TO FIRST" qualifier of restarting point in a match_recognize clause
+   */
+  SKIP_TO_FIRST,
+
+  /**
+   * The "SKIP TO LAST" qualifier of restarting point in a match_recognize clause
+   */
+  SKIP_TO_LAST,
+
   // postfix operators
 
   /**
@@ -1026,7 +1036,7 @@ public enum SqlKind {
                   TIMESTAMP_ADD, TIMESTAMP_DIFF, EXTRACT,
                   LITERAL_CHAIN, JDBC_FN, PRECEDING, FOLLOWING, ORDER_BY,
                   NULLS_FIRST, NULLS_LAST, COLLECTION_TABLE, TABLESAMPLE,
-                  VALUES, WITH, WITH_ITEM),
+                  VALUES, WITH, WITH_ITEM, SKIP_TO_FIRST, SKIP_TO_LAST),
               AGGREGATE, DML, DDL));
 
   /**

@@ -38,7 +38,13 @@ public class SqlMatchRecognize extends SqlCall {
   public static final int OPERAND_STRICT_END = 3;
   public static final int OPERAND_PATTERN_DEFINES = 4;
   public static final int OPERAND_MEASURES = 5;
+  public static final int OPERAND_SKIPTO = 6;
 
+  public static final SqlPrefixOperator SKIP_TO_FIRST = new SqlPrefixOperator("SKIP TO FIRST",
+    SqlKind.SKIP_TO_FIRST, 20, null, null, null);
+
+  public static final SqlPrefixOperator SKIP_TO_LAST = new SqlPrefixOperator("SKIP TO LAST",
+    SqlKind.SKIP_TO_LAST, 20, null, null, null);
   //~ Instance fields -------------------------------------------
 
   private SqlNode tableRef;
@@ -47,11 +53,12 @@ public class SqlMatchRecognize extends SqlCall {
   private SqlLiteral strictEnd;
   private SqlNodeList patternDefList;
   private SqlNodeList measureList;
+  private SqlNode skipTo;
 
   /** Creates a SqlMatchRecognize. */
   public SqlMatchRecognize(SqlParserPos pos, SqlNode tableRef, SqlNode pattern,
       SqlLiteral strictStart, SqlLiteral strictEnd, SqlNodeList patternDefList,
-      SqlNodeList measureList) {
+      SqlNodeList measureList, SqlNode skipTo) {
     super(pos);
     this.tableRef = Preconditions.checkNotNull(tableRef);
     this.pattern = Preconditions.checkNotNull(pattern);
@@ -60,6 +67,7 @@ public class SqlMatchRecognize extends SqlCall {
     this.patternDefList = Preconditions.checkNotNull(patternDefList);
     Preconditions.checkArgument(patternDefList.size() > 0);
     this.measureList = Preconditions.checkNotNull(measureList);
+    this.skipTo = skipTo;
   }
 
   // ~ Methods
@@ -74,7 +82,7 @@ public class SqlMatchRecognize extends SqlCall {
 
   @Override public List<SqlNode> getOperandList() {
     return ImmutableNullableList.of(tableRef, pattern, strictStart, strictEnd,
-        patternDefList, measureList);
+        patternDefList, measureList, skipTo);
   }
 
   @Override public void unparse(SqlWriter writer, int leftPrec,
@@ -107,6 +115,9 @@ public class SqlMatchRecognize extends SqlCall {
     case OPERAND_MEASURES:
       measureList = Preconditions.checkNotNull((SqlNodeList) operand);
       break;
+    case OPERAND_SKIPTO:
+      skipTo = operand;
+      break;
     default:
       throw new AssertionError(i);
     }
@@ -136,6 +147,32 @@ public class SqlMatchRecognize extends SqlCall {
     return measureList;
   }
 
+  public SqlNode getSkipTo() {
+    return skipTo;
+  }
+
+  /**
+   * SKIP TO options
+   */
+  public enum SkipToOption {
+    SKIP_TO_NEXT_ROW("SKIP TO NEXT ROW"),
+    SKIP_PAST_LAST_ROW("SKIP PAST LAST ROW");
+
+    private final String sql;
+
+    SkipToOption(String sql) {
+      this.sql = sql;
+    }
+
+    @Override public String toString() {
+      return sql;
+    }
+
+    public SqlLiteral symbol(SqlParserPos pos) {
+      return SqlLiteral.createSymbol(this, pos);
+    }
+  }
+
   /**
    * An operator describing a MATCH_RECOGNIZE specification.
    */
@@ -160,7 +197,7 @@ public class SqlMatchRecognize extends SqlCall {
 
       return new SqlMatchRecognize(pos, operands[0], operands[1],
           (SqlLiteral) operands[2], (SqlLiteral) operands[3],
-          (SqlNodeList) operands[4], (SqlNodeList) operands[5]);
+          (SqlNodeList) operands[4], (SqlNodeList) operands[5], operands[6]);
     }
 
     @Override public <R> void acceptCall(
@@ -206,6 +243,12 @@ public class SqlMatchRecognize extends SqlCall {
         final SqlWriter.Frame measureFrame = writer.startList("", "");
         pattern.measureList.unparse(writer, 0, 0);
         writer.endList(measureFrame);
+      }
+
+      if (pattern.skipTo != null) {
+        writer.newlineAndIndent();
+        writer.sep("AFTER MATCH");
+        pattern.skipTo.unparse(writer, 0, 0);
       }
 
       writer.newlineAndIndent();

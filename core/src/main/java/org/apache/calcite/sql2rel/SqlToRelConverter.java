@@ -2120,6 +2120,25 @@ public class SqlToRelConverter {
       };
     final RexNode patternNode = pattern.accept(patternVarVisitor);
 
+    RexNode afterMatchSkipTo;
+    SqlNode afterMatch = matchRecognize.getSkipTo();
+    if (afterMatch == null) {
+      afterMatch = SqlMatchRecognize.SkipToOption.SKIP_TO_NEXT_ROW.symbol(SqlParserPos.ZERO);
+    }
+
+    if (afterMatch instanceof SqlCall) {
+      List<SqlNode> operands = ((SqlCall) afterMatch).getOperandList();
+      SqlOperator operator = ((SqlCall) afterMatch).getOperator();
+      assert operands.size() == 1;
+      SqlIdentifier id = (SqlIdentifier) operands.get(0);
+      assert patternVarsSet.contains(id.getSimple()) : id.getSimple() + " not defined in pattern";
+      RexNode rex = rexBuilder.makeLiteral(id.getSimple());
+      afterMatchSkipTo = rexBuilder.makeCall(validator.getUnknownType(), operator,
+        ImmutableList.of(rex));
+    } else {
+      afterMatchSkipTo = mrBlackBoard.convertExpression(afterMatch);
+    }
+
     mrBlackBoard.setPatternVarRef(true);
 
     // convert measures
@@ -2152,6 +2171,7 @@ public class SqlToRelConverter {
             matchRecognize.getStrictEnd().booleanValue(),
             definitionNodes.build(),
             measureNodes.build(),
+            afterMatchSkipTo,
             rowType);
     bb.setRoot(rel, false);
   }

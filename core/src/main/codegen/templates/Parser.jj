@@ -2497,6 +2497,9 @@ SqlMatchRecognize MatchRecognizeOpt(SqlNode tableRef) :
     SqlNodeList measureList = SqlNodeList.EMPTY;
     SqlNode pattern;
     SqlNodeList patternDefList;
+    SqlNode skipTo = null;
+    SqlParserPos pos = null;
+    SqlNode var = null;
     SqlLiteral isStrictStarts = SqlLiteral.createBoolean(false, getPos());
     SqlLiteral isStrictEnds = SqlLiteral.createBoolean(false, getPos());
 }
@@ -2505,6 +2508,36 @@ SqlMatchRecognize MatchRecognizeOpt(SqlNode tableRef) :
     [
         <MEASURES>
         measureList = MeasureColumnCommaList(getPos())
+    ]
+    [
+        <AFTER> { pos = getPos(); } <MATCH> <SKIP_KW>
+        (
+            (
+                <TO>
+                (
+                    LOOKAHEAD(2)
+                    <NEXT> <ROW>
+                    {
+                        skipTo = SqlMatchRecognize.SkipToOption.SKIP_TO_NEXT_ROW.symbol(pos.plus(getPos()));
+                    }
+                    |
+                    <FIRST> var = SimpleIdentifier()
+                    {
+                        skipTo = SqlMatchRecognize.SKIP_TO_FIRST.createCall(pos.plus(var.getParserPosition()), var);
+                    }
+                    |
+                    [<LAST>] var = SimpleIdentifier()
+                    {
+                        skipTo = SqlMatchRecognize.SKIP_TO_LAST.createCall(pos.plus(var.getParserPosition()), var);
+                    }
+                )
+            )
+            |
+            <PAST> <LAST> <ROW>
+            {
+                 skipTo = SqlMatchRecognize.SkipToOption.SKIP_PAST_LAST_ROW.symbol(pos.plus(getPos()));
+            }
+        )
     ]
     <PATTERN>
     <LPAREN>
@@ -2524,7 +2557,7 @@ SqlMatchRecognize MatchRecognizeOpt(SqlNode tableRef) :
     patternDefList = PatternDefinitionCommaList(getPos())
     <RPAREN> {
         return new SqlMatchRecognize(startPos.plus(getPos()), tableRef,
-            pattern, isStrictStarts, isStrictEnds, patternDefList, measureList);
+            pattern, isStrictStarts, isStrictEnds, patternDefList, measureList, skipTo);
     }
 }
 
@@ -5785,6 +5818,7 @@ SqlPostfixOperator PostfixRowOperator() :
     | < PARTITION: "PARTITION" >
     | < PASCAL: "PASCAL" >
     | < PASSTHROUGH: "PASSTHROUGH" >
+    | < PAST: "PAST" >
     | < PATH: "PATH" >
     | < PATTERN: "PATTERN" >
     | < PERMUTE: "PERMUTE" >
@@ -5881,6 +5915,7 @@ SqlPostfixOperator PostfixRowOperator() :
     | < SIMILAR: "SIMILAR" >
     | < SIMPLE: "SIMPLE" >
     | < SIZE: "SIZE" >
+    | < SKIP_KW: "SKIP">
     | < SMALLINT: "SMALLINT" >
     | < SOME: "SOME" >
     | < SOURCE: "SOURCE" >
