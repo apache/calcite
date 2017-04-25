@@ -18,6 +18,7 @@ package org.apache.calcite.rel.rules;
 
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.plan.Strong;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.Project;
@@ -101,6 +102,12 @@ public class PushProjector {
    * otherwise.
    */
   final ImmutableBitSet rightBitmap;
+
+  /**
+   * Bitmap containing the fields that should be strong, i.e. when preserving expressions
+   * we can only preserve them if the expressions if it is null when these fields are null.
+   */
+  final ImmutableBitSet strongBitmap;
 
   /**
    * Number of fields in the RelNode that the projection is being pushed past,
@@ -224,12 +231,29 @@ public class PushProjector {
           ImmutableBitSet.range(nSysFields, nFields + nSysFields);
       rightBitmap =
           ImmutableBitSet.range(nFields + nSysFields, nChildFields);
+
+      switch (joinRel.getJoinType()) {
+      case INNER:
+        strongBitmap = ImmutableBitSet.of();
+        break;
+      case RIGHT:  // All the left-input's columns must be strong
+        strongBitmap = ImmutableBitSet.range(nSysFields, nFields + nSysFields);
+        break;
+      case LEFT: // All the right-input's columns must be strong
+        strongBitmap = ImmutableBitSet.range(nFields + nSysFields, nChildFields);
+        break;
+      case FULL:
+      default:
+        strongBitmap = ImmutableBitSet.range(nSysFields, nChildFields);
+      }
+
     } else {
       nFields = nChildFields;
       nFieldsRight = 0;
       childBitmap = ImmutableBitSet.range(nChildFields);
       rightBitmap = null;
       nSysFields = 0;
+      strongBitmap = ImmutableBitSet.of();
     }
     assert nChildFields == nSysFields + nFields + nFieldsRight;
 
@@ -341,6 +365,7 @@ public class PushProjector {
             projRefs,
             childBitmap,
             rightBitmap,
+            strongBitmap,
             preserveExprCondition,
             childPreserveExprs,
             rightPreserveExprs),
@@ -587,14 +612,18 @@ public class PushProjector {
     private final BitSet rexRefs;
     private final ImmutableBitSet leftFields;
     private final ImmutableBitSet rightFields;
+    private final ImmutableBitSet strongFields;
     private final ExprCondition preserveExprCondition;
     private final List<RexNode> preserveLeft;
     private final List<RexNode> preserveRight;
+
+    private final Strong strong;
 
     public InputSpecialOpFinder(
         BitSet rexRefs,
         ImmutableBitSet leftFields,
         ImmutableBitSet rightFields,
+        final ImmutableBitSet strongFields,
         ExprCondition preserveExprCondition,
         List<RexNode> preserveLeft,
         List<RexNode> preserveRight) {
@@ -605,6 +634,9 @@ public class PushProjector {
       this.preserveExprCondition = preserveExprCondition;
       this.preserveLeft = preserveLeft;
       this.preserveRight = preserveRight;
+
+      this.strongFields = strongFields;
+      this.strong = Strong.of(strongFields);
     }
 
     public Void visitCall(RexCall call) {
@@ -615,6 +647,16 @@ public class PushProjector {
       return null;
     }
 
+    private boolean isStrong(final ImmutableBitSet exprArgs, final RexNode call) {
+      // If the expressions do not use any of the inputs that require output to be null,
+      // no need to check.  Otherwise, check that the expression is null.
+      // For example, in an "left outer join", we don't require that expressions
+      // pushed down into the left input to be strong.  On the other hand,
+      // expressions pushed into the right input must be.  In that case,
+      // strongFields == right input fields.
+      return !strongFields.intersects(exprArgs) || strong.isNull(call);
+    }
+
     private boolean preserve(RexNode call) {
       if (preserveExprCondition.test(call)) {
         // if the arguments of the expression only reference the
@@ -622,10 +664,10 @@ public class PushProjector {
         // it only references expressions on the right
         final ImmutableBitSet exprArgs = RelOptUtil.InputFinder.bits(call);
         if (exprArgs.cardinality() > 0) {
-          if (leftFields.contains(exprArgs)) {
+          if (leftFields.contains(exprArgs) && isStrong(exprArgs, call)) {
             addExpr(preserveLeft, call);
             return true;
-          } else if (rightFields.contains(exprArgs)) {
+          } else if (rightFields.contains(exprArgs) && isStrong(exprArgs, call)) {
             assert preserveRight != null;
             addExpr(preserveRight, call);
             return true;
@@ -773,8 +815,15 @@ public class PushProjector {
      */
     ExprCondition FALSE =
         new ExprCondition() {
-          public boolean test(RexNode expr) {
+          @Override public boolean test(RexNode expr) {
             return false;
+          }
+        };
+
+    ExprCondition TRUE =
+        new ExprCondition() {
+          @Override public boolean test(RexNode expr) {
+            return true;
           }
         };
   }

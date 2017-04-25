@@ -20,12 +20,15 @@ import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.util.ImmutableBitSet;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 
+import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
@@ -103,40 +106,40 @@ public class Strong {
    * expressions, and you may override methods to test hypotheses such as
    * "if {@code x} is null, is {@code x + y} null? */
   public boolean isNull(RexNode node) {
+    final Policy policy = MAP.get(node.getKind());
+    switch (policy) {
+    case NOT_NULL:
+      return false;
+    case ANY:
+      return anyNull(((RexCall) node).getOperands());
+    default:
+      break;
+    }
+
     switch (node.getKind()) {
     case LITERAL:
       return ((RexLiteral) node).getValue() == null;
+    // We can only guarantee AND to return NULL if both inputs are NULL  (similar for OR)
+    // AND(NULL, FALSE) = FALSE
     case AND:
-    case NOT:
-    case EQUALS:
-    case NOT_EQUALS:
-    case LESS_THAN:
-    case LESS_THAN_OR_EQUAL:
-    case GREATER_THAN:
-    case GREATER_THAN_OR_EQUAL:
-    case PLUS_PREFIX:
-    case MINUS_PREFIX:
-    case PLUS:
-    case TIMESTAMP_ADD:
-    case MINUS:
-    case TIMESTAMP_DIFF:
-    case TIMES:
-    case DIVIDE:
-    case CAST:
-    case REINTERPRET:
-    case TRIM:
-    case LTRIM:
-    case RTRIM:
-    case CEIL:
-    case FLOOR:
-    case EXTRACT:
-    case GREATEST:
-    case LEAST:
-      return anyNull(((RexCall) node).getOperands());
     case OR:
+    case COALESCE:
       return allNull(((RexCall) node).getOperands());
+    case NULLIF:
+      // NULLIF(null, X) where X can be NULL, returns NULL
+      // NULLIF(X, Y) where X is not NULL, then this may return NULL if X = Y, otherwise X.
+      return allNull(ImmutableList.of(((RexCall) node).getOperands().get(0)));
     case INPUT_REF:
       return isNull((RexInputRef) node);
+    case CASE:
+      final RexCall caseCall = (RexCall) node;
+      final List<RexNode> caseValues = new ArrayList<>();
+      for (int i = 0; i < caseCall.getOperands().size(); i++) {
+        if (!RexUtil.isCasePredicate(caseCall, i)) {
+          caseValues.add(caseCall.getOperands().get(i));
+        }
+      }
+      return allNull(caseValues);
     default:
       return false;
     }
@@ -183,9 +186,11 @@ public class Strong {
     // COALESCE(NULL, 2) yields 2
     map.put(SqlKind.COALESCE, Policy.AS_IS);
     map.put(SqlKind.NVL, Policy.AS_IS);
-    // FALSE OR NULL yields FALSE
+    // FALSE AND NULL yields FALSE
+    // TRUE AND NULL yields NULL
     map.put(SqlKind.AND, Policy.AS_IS);
     // TRUE OR NULL yields TRUE
+    // FALSE OR NULL yields NULL
     map.put(SqlKind.OR, Policy.AS_IS);
 
     // Expression types with custom handlers.
@@ -215,7 +220,9 @@ public class Strong {
     map.put(SqlKind.PLUS_PREFIX, Policy.ANY);
     map.put(SqlKind.MINUS_PREFIX, Policy.ANY);
     map.put(SqlKind.PLUS, Policy.ANY);
+    map.put(SqlKind.PLUS_PREFIX, Policy.ANY);
     map.put(SqlKind.MINUS, Policy.ANY);
+    map.put(SqlKind.MINUS_PREFIX, Policy.ANY);
     map.put(SqlKind.TIMES, Policy.ANY);
     map.put(SqlKind.DIVIDE, Policy.ANY);
     map.put(SqlKind.CAST, Policy.ANY);
@@ -228,6 +235,8 @@ public class Strong {
     map.put(SqlKind.EXTRACT, Policy.ANY);
     map.put(SqlKind.GREATEST, Policy.ANY);
     map.put(SqlKind.LEAST, Policy.ANY);
+    map.put(SqlKind.TIMESTAMP_ADD, Policy.ANY);
+    map.put(SqlKind.TIMESTAMP_DIFF, Policy.ANY);
 
     // Assume that any other expressions cannot be simplified.
     for (SqlKind k
