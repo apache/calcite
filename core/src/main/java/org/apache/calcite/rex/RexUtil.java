@@ -35,6 +35,7 @@ import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
@@ -1363,6 +1364,48 @@ public class RexUtil {
         list.add(expr);
       }
     }
+  }
+
+  /**
+   * Returns whether the input is a 'lossless' casts, i.e., a cast from which the original
+   * value of the field can be certainly recovered.
+   *
+   * <p>For instance, int -> bigint is true (as you can cast back to int without loss of
+   * information), however bigint -> int is false.
+   *
+   * <p>The implementation of this method does not return false positives. However, it is
+   * not complete.
+   */
+  public static boolean isLosslessCast(RexNode node) {
+    if (!node.isA(SqlKind.CAST)) {
+      return false;
+    }
+    final RelDataType source = ((RexCall) node).getOperands().get(0).getType();
+    final SqlTypeName sourceSqlTypeName = source.getSqlTypeName();
+    final RelDataType target = node.getType();
+    final SqlTypeName targetSqlTypeName = target.getSqlTypeName();
+    // 1) Both INT numeric types
+    if (SqlTypeFamily.INTEGER.getTypeNames().contains(sourceSqlTypeName)
+        && SqlTypeFamily.INTEGER.getTypeNames().contains(targetSqlTypeName)) {
+      return targetSqlTypeName.compareTo(sourceSqlTypeName) >= 0;
+    }
+    // 2) Both CHARACTER types: it depends on the precision (length)
+    if (SqlTypeFamily.CHARACTER.getTypeNames().contains(sourceSqlTypeName)
+        && SqlTypeFamily.CHARACTER.getTypeNames().contains(targetSqlTypeName)) {
+      return targetSqlTypeName.compareTo(sourceSqlTypeName) >= 0
+          && source.getPrecision() <= target.getPrecision();
+    }
+    // 3) From NUMERIC family to CHARACTER family: it depends on the precision/scale
+    if (sourceSqlTypeName.getFamily() == SqlTypeFamily.NUMERIC
+        && targetSqlTypeName.getFamily() == SqlTypeFamily.CHARACTER) {
+      int sourceLength = source.getPrecision() + 1; // include sign
+      if (source.getScale() != -1 && source.getScale() != 0) {
+        sourceLength += source.getScale() + 1; // include decimal mark
+      }
+      return target.getPrecision() >= sourceLength;
+    }
+    // Return FALSE by default
+    return false;
   }
 
   /** Converts an expression to conjunctive normal form (CNF).

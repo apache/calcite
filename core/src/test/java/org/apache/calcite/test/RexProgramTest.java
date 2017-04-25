@@ -634,6 +634,105 @@ public class RexProgramTest {
 
   }
 
+  /** Unit test for {@link org.apache.calcite.rex.RexUtil#isLosslessCast(RexNode)}. */
+  @Test public void testLosslessCast() {
+    final RelDataType tinyIntType = typeFactory.createSqlType(SqlTypeName.TINYINT);
+    final RelDataType smallIntType = typeFactory.createSqlType(SqlTypeName.SMALLINT);
+    final RelDataType intType = typeFactory.createSqlType(SqlTypeName.INTEGER);
+    final RelDataType bigIntType = typeFactory.createSqlType(SqlTypeName.BIGINT);
+    final RelDataType floatType = typeFactory.createSqlType(SqlTypeName.FLOAT);
+    final RelDataType booleanType = typeFactory.createSqlType(SqlTypeName.BOOLEAN);
+    final RelDataType charType5 = typeFactory.createSqlType(SqlTypeName.CHAR, 5);
+    final RelDataType charType6 = typeFactory.createSqlType(SqlTypeName.CHAR, 6);
+    final RelDataType varCharType10 = typeFactory.createSqlType(SqlTypeName.VARCHAR, 10);
+    final RelDataType varCharType11 = typeFactory.createSqlType(SqlTypeName.VARCHAR, 11);
+
+    // Negative
+    assertThat(RexUtil.isLosslessCast(rexBuilder.makeInputRef(intType, 0)), is(false));
+    assertThat(
+        RexUtil.isLosslessCast(
+            rexBuilder.makeCast(
+                tinyIntType, rexBuilder.makeInputRef(smallIntType, 0))), is(false));
+    assertThat(
+        RexUtil.isLosslessCast(
+            rexBuilder.makeCast(
+                smallIntType, rexBuilder.makeInputRef(intType, 0))), is(false));
+    assertThat(
+        RexUtil.isLosslessCast(
+            rexBuilder.makeCast(
+                intType, rexBuilder.makeInputRef(bigIntType, 0))), is(false));
+    assertThat(
+        RexUtil.isLosslessCast(
+            rexBuilder.makeCast(
+                bigIntType, rexBuilder.makeInputRef(floatType, 0))), is(false));
+    assertThat(
+        RexUtil.isLosslessCast(
+            rexBuilder.makeCast(
+                booleanType, rexBuilder.makeInputRef(bigIntType, 0))), is(false));
+    assertThat(
+        RexUtil.isLosslessCast(
+            rexBuilder.makeCast(
+                intType, rexBuilder.makeInputRef(charType5, 0))), is(false));
+    assertThat(
+        RexUtil.isLosslessCast(
+            rexBuilder.makeCast(
+                intType, rexBuilder.makeInputRef(varCharType10, 0))), is(false));
+    assertThat(
+        RexUtil.isLosslessCast(
+            rexBuilder.makeCast(
+                varCharType10, rexBuilder.makeInputRef(varCharType11, 0))), is(false));
+    assertThat(
+        RexUtil.isLosslessCast(
+            rexBuilder.makeCast(
+                charType5, rexBuilder.makeInputRef(bigIntType, 0))), is(false));
+    assertThat(
+        RexUtil.isLosslessCast(
+            rexBuilder.makeCast(
+                charType5, rexBuilder.makeInputRef(smallIntType, 0))), is(false));
+    assertThat(
+        RexUtil.isLosslessCast(
+            rexBuilder.makeCast(
+                varCharType10, rexBuilder.makeInputRef(intType, 0))), is(false));
+
+    // Positive
+    assertThat(
+        RexUtil.isLosslessCast(
+            rexBuilder.makeCast(
+                smallIntType, rexBuilder.makeInputRef(tinyIntType, 0))), is(true));
+    assertThat(
+        RexUtil.isLosslessCast(
+            rexBuilder.makeCast(
+                intType, rexBuilder.makeInputRef(smallIntType, 0))), is(true));
+    assertThat(
+        RexUtil.isLosslessCast(
+            rexBuilder.makeCast(
+                bigIntType, rexBuilder.makeInputRef(intType, 0))), is(true));
+    assertThat(
+        RexUtil.isLosslessCast(
+            rexBuilder.makeCast(
+                intType, rexBuilder.makeInputRef(intType, 0))), is(true));
+    assertThat(
+        RexUtil.isLosslessCast(
+            rexBuilder.makeCast(
+                charType6, rexBuilder.makeInputRef(smallIntType, 0))), is(true));
+    assertThat(
+        RexUtil.isLosslessCast(
+            rexBuilder.makeCast(
+                varCharType10, rexBuilder.makeInputRef(smallIntType, 0))), is(true));
+    assertThat(
+        RexUtil.isLosslessCast(
+            rexBuilder.makeCast(
+                varCharType11, rexBuilder.makeInputRef(intType, 0))), is(true));
+    assertThat(
+        RexUtil.isLosslessCast(
+            rexBuilder.makeCast(
+                varCharType11, rexBuilder.makeInputRef(charType6, 0))), is(true));
+    assertThat(
+        RexUtil.isLosslessCast(
+            rexBuilder.makeCast(
+                varCharType11, rexBuilder.makeInputRef(varCharType10, 0))), is(true));
+  }
+
   /** Unit test for {@link org.apache.calcite.rex.RexUtil#toCnf}. */
   @Test public void testCnf() {
     final RelDataType booleanType =
