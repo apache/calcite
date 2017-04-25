@@ -4577,6 +4577,12 @@ public class SqlToRelConverter {
         new SqlNodeList(SqlParserPos.ZERO);
 
     /**
+     * The auxiliary group-by expressions.
+     */
+    private final Map<SqlNode, Ord<AuxiliaryConverter>> auxiliaryGroupExprs =
+        new HashMap<>();
+
+    /**
      * Input expressions for the group columns and aggregates, in
      * {@link RexNode} format. The first elements of the list correspond to the
      * elements in {@link #groupExprs}; the remaining elements are for
@@ -4643,7 +4649,26 @@ public class SqlToRelConverter {
       String name = nameMap.get(expr.toString());
       RexNode convExpr = bb.convertExpression(expr);
       addExpr(convExpr, name);
+
+      if (expr instanceof SqlCall) {
+        SqlCall call = (SqlCall) expr;
+        for (Pair<SqlNode, AuxiliaryConverter> p
+            : SqlStdOperatorTable.convertGroupToAuxiliaryCalls(call)) {
+          addAuxiliaryGroupExpr(p.left, index, p.right);
+        }
+      }
+
       return index;
+    }
+
+    void addAuxiliaryGroupExpr(SqlNode node, int index,
+        AuxiliaryConverter converter) {
+      for (SqlNode node2 : auxiliaryGroupExprs.keySet()) {
+        if (node2.equalsDeep(node, Litmus.IGNORE)) {
+          return;
+        }
+      }
+      auxiliaryGroupExprs.put(node, Ord.of(index, converter));
     }
 
     /**
@@ -4869,6 +4894,18 @@ public class SqlToRelConverter {
           return node;
         }
       }
+
+      for (Map.Entry<SqlNode, Ord<AuxiliaryConverter>> e
+          : auxiliaryGroupExprs.entrySet()) {
+        if (call.equalsDeep(e.getKey(), Litmus.IGNORE)) {
+          AuxiliaryConverter converter = e.getValue().e;
+          final int groupOrdinal = e.getValue().i;
+          return converter.convert(rexBuilder,
+              convertedInputExprs.get(groupOrdinal).left,
+              rexBuilder.makeInputRef(bb.root, groupOrdinal));
+        }
+      }
+
       return aggMapping.get(call);
     }
 

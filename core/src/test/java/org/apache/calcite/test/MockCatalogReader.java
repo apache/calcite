@@ -343,11 +343,12 @@ public class MockCatalogReader extends CalciteCatalogReader {
     registerTable(ordersStream);
 
     // Register "SHIPMENTS" stream.
+    // "ROWTIME" is not column 0, just to mix things up.
     MockTable shipmentsStream = MockTable.create(this, salesSchema, "SHIPMENTS",
         true, Double.POSITIVE_INFINITY);
+    shipmentsStream.addColumn("ORDERID", f.intType);
     shipmentsStream.addColumn("ROWTIME", f.timestampType);
     shipmentsStream.addMonotonic("ROWTIME");
-    shipmentsStream.addColumn("ORDERID", f.intType);
     registerTable(shipmentsStream);
 
     // Register "PRODUCTS" table.

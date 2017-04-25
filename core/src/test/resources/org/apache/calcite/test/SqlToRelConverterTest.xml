@@ -1239,7 +1239,7 @@ LogicalAggregate(group=[{}], EXPR$0=[COUNT()], EXPR$1=[SUM($0)])
     <TestCase name="testAliasList">
         <Resource name="sql">
             <![CDATA[select a + b from (
-  select deptno, 1 as one, name from dept
+  select deptno, 1 as uno, name from dept
 ) as d(a, b, c)
 where c like 'X%']]>
         </Resource>
@@ -2534,45 +2534,44 @@ group by tumble(rowtime, interval '2' hour), productId]]>
         <Resource name="plan">
             <![CDATA[
 LogicalDelta
-  LogicalProject(ROWTIME=[TUMBLE_END($0, 7200000)], PRODUCTID=[$1])
+  LogicalProject(ROWTIME=[+($0, 7200000)], PRODUCTID=[$1])
     LogicalAggregate(group=[{0, 1}])
-      LogicalProject($f0=[TUMBLE($0, 7200000)], PRODUCTID=[$2])
-        LogicalTableScan(table=[[STREAMS, ORDERS]])
+      LogicalProject($f0=[TUMBLE($0, 7200000)], PRODUCTID=[$1])
+        LogicalTableScan(table=[[CATALOG, SALES, ORDERS]])
 ]]>
         </Resource>
     </TestCase>
     <TestCase name="testHopTable">
         <Resource name="sql">
             <![CDATA[select stream hop_start(rowtime, interval '1' hour, interval '3' hour) as rowtime,
-count(*) as c
+  count(*) as c
 from orders
 group by hop(rowtime, interval '1' hour, interval '3' hour)]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
 LogicalDelta
-  LogicalProject(ROWTIME=[HOP_START($0, 3600000, 10800000)], C=[$1])
-    LogicalAggregate(group=[{0}], C=[COUNT()])
-      LogicalProject($f0=[HOP($0, 3600000, 10800000)])
-        LogicalTableScan(table=[[STREAM_JOINS, ORDERS]])
+  LogicalAggregate(group=[{0}], C=[COUNT()])
+    LogicalProject($f0=[HOP($0, 3600000, 10800000)])
+      LogicalTableScan(table=[[CATALOG, SALES, ORDERS]])
 ]]>
         </Resource>
     </TestCase>
     <TestCase name="testSessionTable">
         <Resource name="sql">
             <![CDATA[select stream session_start(rowtime, interval '1' hour) as rowtime,
-session_end(rowtime, interval '1' hour),
-count(*) as c
+  session_end(rowtime, interval '1' hour),
+  count(*) as c
 from orders
 group by session(rowtime, interval '1' hour)]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
 LogicalDelta
-  LogicalProject(ROWTIME=[SESSION_START($0, 3600000)], EXPR$1=[SESSION_END($0, 3600000)], C=[$1])
+  LogicalProject(ROWTIME=[$0], EXPR$1=[$0], C=[$1])
     LogicalAggregate(group=[{0}], C=[COUNT()])
       LogicalProject($f0=[SESSION($0, 3600000)])
-        LogicalTableScan(table=[[STREAMS, ORDERS]])
+        LogicalTableScan(table=[[CATALOG, SALES, ORDERS]])
 ]]>
         </Resource>
     </TestCase>
@@ -2764,7 +2763,8 @@ LogicalProject(DEPTNO=[$0], B=[>($1, $2)])
     </TestCase>
     <TestCase name="testInsert">
         <Resource name="sql">
-            <![CDATA[insert into empnullables (deptno, empno, ename) values (10, 150, 'Fred')]]>
+            <![CDATA[insert into empnullables (deptno, empno, ename)
+values (10, 150, 'Fred')]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
@@ -2776,7 +2776,8 @@ LogicalTableModify(table=[[CATALOG, SALES, EMPNULLABLES]], operation=[INSERT], f
     </TestCase>
     <TestCase name="testInsertSubset">
         <Resource name="sql">
-            <![CDATA[insert into empnullables values (10, 150, 'Fred')]]>
+            <![CDATA[insert into empnullables
+values (50, 'Fred')]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
@@ -2788,7 +2789,8 @@ LogicalTableModify(table=[[CATALOG, SALES, EMPNULLABLES]], operation=[INSERT], f
     </TestCase>
     <TestCase name="testInsertBind">
         <Resource name="sql">
-            <![CDATA[insert into empnullables (deptno, empno, ename) values (?, ?, ?)]]>
+            <![CDATA[insert into empnullables (deptno, empno, ename)
+values (?, ?, ?)]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
@@ -2801,7 +2803,8 @@ LogicalTableModify(table=[[CATALOG, SALES, EMPNULLABLES]], operation=[INSERT], f
     </TestCase>
     <TestCase name="testInsertBindSubset">
         <Resource name="sql">
-            <![CDATA[insert into empnullables values (?, ?, ?)]]>
+            <![CDATA[insert into empnullables
+values (?, ?)]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
@@ -2870,7 +2873,9 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
     </TestCase>
     <TestCase name="testSelectViewExtendedColumnCollision">
         <Resource name="sql">
-            <![CDATA[select ENAME, EMPNO, JOB, SLACKER, SAL, HIREDATE, MGR from EMP_MODIFIABLEVIEW3 extend (SAL int) where SAL = 20]]>
+            <![CDATA[select ENAME, EMPNO, JOB, SLACKER, SAL, HIREDATE, MGR
+ from EMP_MODIFIABLEVIEW3 extend (SAL int)
+ where SAL = 20]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
@@ -2882,7 +2887,9 @@ LogicalProject(ENAME=[$1], EMPNO=[$0], JOB=[$2], SLACKER=[$6], SAL=[$5], HIREDAT
     </TestCase>
     <TestCase name="testSelectViewExtendedColumnCaseSensitiveCollision">
         <Resource name="sql">
-            <![CDATA[select ENAME, EMPNO, JOB, SLACKER, "sal", HIREDATE, MGR from EMP_MODIFIABLEVIEW3 extend ("sal" boolean) where "sal" = true]]>
+            <![CDATA[select ENAME, EMPNO, JOB, SLACKER, "sal", HIREDATE, MGR
+ from EMP_MODIFIABLEVIEW3 extend ("sal" boolean)
+ where "sal" = true]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
@@ -2894,7 +2901,9 @@ LogicalProject(ENAME=[$1], EMPNO=[$0], JOB=[$2], SLACKER=[$6], sal=[$7], HIREDAT
     </TestCase>
     <TestCase name="testSelectViewExtendedColumnExtendedCollision">
         <Resource name="sql">
-            <![CDATA[select ENAME, EMPNO, JOB, SLACKER, SAL, HIREDATE, EXTRA from EMP_MODIFIABLEVIEW2 extend (EXTRA boolean) where SAL = 20]]>
+            <![CDATA[select ENAME, EMPNO, JOB, SLACKER, SAL, HIREDATE, EXTRA
+ from EMP_MODIFIABLEVIEW2 extend (EXTRA boolean)
+ where SAL = 20]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
@@ -2906,7 +2915,9 @@ LogicalProject(ENAME=[$0], EMPNO=[$1], JOB=[$2], SLACKER=[$4], SAL=[$5], HIREDAT
     </TestCase>
     <TestCase name="testSelectViewExtendedColumnCaseSensitiveExtendedCollision">
         <Resource name="sql">
-            <![CDATA[select ENAME, EMPNO, JOB, SLACKER, SAL, HIREDATE, extra from EMP_MODIFIABLEVIEW2 extend (extra boolean) where extra = false]]>
+            <![CDATA[select ENAME, EMPNO, JOB, SLACKER, SAL, HIREDATE, "extra"
+ from EMP_MODIFIABLEVIEW2 extend ("extra" boolean)
+ where "extra" = false]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
@@ -2918,7 +2929,9 @@ LogicalProject(ENAME=[$0], EMPNO=[$1], JOB=[$2], SLACKER=[$4], SAL=[$5], HIREDAT
     </TestCase>
     <TestCase name="testSelectViewExtendedColumnUnderlyingCollision">
         <Resource name="sql">
-            <![CDATA[select ENAME, EMPNO, JOB, SLACKER, SAL, HIREDATE, MGR, COMM from EMP_MODIFIABLEVIEW3 extend (COMM int) where SAL = 20]]>
+            <![CDATA[select ENAME, EMPNO, JOB, SLACKER, SAL, HIREDATE, MGR, COMM
+ from EMP_MODIFIABLEVIEW3 extend (COMM int)
+ where SAL = 20]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
@@ -2930,7 +2943,9 @@ LogicalProject(ENAME=[$1], EMPNO=[$0], JOB=[$2], SLACKER=[$6], SAL=[$5], HIREDAT
     </TestCase>
     <TestCase name="testSelectViewExtendedColumnCaseSensitiveUnderlyingCollision">
         <Resource name="sql">
-            <![CDATA[select ENAME, EMPNO, JOB, SLACKER, SAL, HIREDATE, MGR, "comm" from EMP_MODIFIABLEVIEW3 extend ("comm" int) where "comm" = 20]]>
+            <![CDATA[select ENAME, EMPNO, JOB, SLACKER, SAL, HIREDATE, MGR, "comm"
+ from EMP_MODIFIABLEVIEW3 extend ("comm" int)
+ where "comm" = 20]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
@@ -2942,7 +2957,8 @@ LogicalProject(ENAME=[$1], EMPNO=[$0], JOB=[$2], SLACKER=[$6], SAL=[$5], HIREDAT
     </TestCase>
     <TestCase name="testInsertView">
         <Resource name="sql">
-            <![CDATA[insert into empnullables_20 (empno, ename) values (150, 'Fred')]]>
+            <![CDATA[insert into empnullables_20 (empno, ename)
+values (150, 'Fred')]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
@@ -2956,7 +2972,8 @@ LogicalTableModify(table=[[CATALOG, SALES, EMPNULLABLES]], operation=[INSERT], f
     </TestCase>
     <TestCase name="testInsertSubsetView">
         <Resource name="sql">
-            <![CDATA[insert into empnullables_20 (empno, ename) values (150, 'Fred')]]>
+            <![CDATA[insert into empnullables_20
+values (10, 'Fred')]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
@@ -3048,7 +3065,7 @@ LogicalTableModify(table=[[CATALOG, SALES, EMPDEFAULTS]], operation=[INSERT], fl
     </TestCase>
     <TestCase name="testInsertBindWithCustomInitializerExpressionFactory">
         <Resource name="sql">
-            <![CDATA[nsert into empdefaults (deptno) values (?)]]>
+            <![CDATA[insert into empdefaults (deptno) values (?)]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
@@ -3590,7 +3607,7 @@ LogicalTableModify(table=[[CATALOG, SALES, EMP_MODIFIABLEVIEW3]], operation=[UPD
     </TestCase>
     <TestCase name="testUpdateExtendedColumnModifiableViewCaseSensitiveCollision">
         <Resource name="sql">
-            <![CDATA[update EMP_MODIFIABLEVIEW2("slacker" INTEGER, deptno INTEGER) set deptno = 20, \"slacker\" = 100 where ename = 'Bob']]>
+            <![CDATA[update EMP_MODIFIABLEVIEW2("slacker" INTEGER, deptno INTEGER) set deptno = 20, "slacker" = 100 where ename = 'Bob']]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
@@ -3603,7 +3620,7 @@ LogicalTableModify(table=[[CATALOG, SALES, EMP_MODIFIABLEVIEW2]], operation=[UPD
     </TestCase>
     <TestCase name="testUpdateExtendedColumnModifiableViewExtendedCollision">
         <Resource name="sql">
-            <![CDATA[update EMP_MODIFIABLEVIEW2("slacker" INTEGER, extra BOOLEAN) set deptno = 20, \"slacker\" = 100, extra = true where ename = 'Bob']]>
+            <![CDATA[update EMP_MODIFIABLEVIEW2("slacker" INTEGER, extra BOOLEAN) set deptno = 20, "slacker" = 100, extra = true where ename = 'Bob']]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
@@ -3616,7 +3633,7 @@ LogicalTableModify(table=[[CATALOG, SALES, EMP_MODIFIABLEVIEW2]], operation=[UPD
     </TestCase>
     <TestCase name="testUpdateExtendedColumnModifiableViewExtendedCaseSensitiveCollision">
         <Resource name="sql">
-            <![CDATA[update EMP_MODIFIABLEVIEW2("extra" INTEGER, extra BOOLEAN) set deptno = 20, \"extra\" = 100, extra = true where ename = 'Bob']]>
+            <![CDATA[update EMP_MODIFIABLEVIEW2("extra" INTEGER, extra BOOLEAN) set deptno = 20, "extra" = 100, extra = true where ename = 'Bob']]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
@@ -3649,6 +3666,41 @@ LogicalTableModify(table=[[CATALOG, SALES, EMP_MODIFIABLEVIEW3]], operation=[UPD
 LogicalTableModify(table=[[CATALOG, SALES, EMPDEFAULTS]], operation=[INSERT], flattened=[true])
   LogicalProject(EMPNO=[$2], ENAME=[$0], JOB=[null], MGR=[null], HIREDATE=[null], SAL=[$4], COMM=[null], DEPTNO=[$1], SLACKER=[null], UPDATED=[$3])
     LogicalValues(tuples=[[{ 'Fred', 456, 44, 2017-03-12 13:03:05, 999999 }]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testTumble">
+        <Resource name="sql">
+            <![CDATA[select STREAM
+  TUMBLE_START(rowtime, INTERVAL '1' MINUTE) AS s,
+  TUMBLE_END(rowtime, INTERVAL '1' MINUTE) AS e
+from Shipments
+GROUP BY TUMBLE(rowtime, INTERVAL '1' MINUTE)]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalDelta
+  LogicalProject(S=[$0], E=[+($0, 60000)])
+    LogicalAggregate(group=[{0}])
+      LogicalProject($f0=[TUMBLE($1, 60000)])
+        LogicalTableScan(table=[[CATALOG, SALES, SHIPMENTS]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testTumbleTableRowtimeNotFirstColumn">
+        <Resource name="sql">
+            <![CDATA[select stream
+   tumble_end(rowtime, interval '2' hour) as rowtime, orderId
+from shipments
+group by tumble(rowtime, interval '2' hour), orderId]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalDelta
+  LogicalProject(ROWTIME=[+($0, 7200000)], ORDERID=[$1])
+    LogicalAggregate(group=[{0, 1}])
+      LogicalProject($f0=[TUMBLE($1, 7200000)], ORDERID=[$0])
+        LogicalTableScan(table=[[CATALOG, SALES, SHIPMENTS]])
 ]]>
         </Resource>
     </TestCase>
