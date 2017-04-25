@@ -1394,6 +1394,12 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  @Test public void testTumble() {
+    // note that 'x not like y' becomes 'not(x like y)'
+    final String sql = "select STREAM TUMBLE_START(footime, INTERVAL '1' MINUTE) from ORDERS GROUP BY TUMBLE(footime, INTERVAL '1' MINUTE)";
+    sql(sql).ok();
+  }
+
   @Test public void testNotNotIn() {
     final String sql = "select * from EMP where not (ename not in ('Fred') )";
     sql(sql).ok();
