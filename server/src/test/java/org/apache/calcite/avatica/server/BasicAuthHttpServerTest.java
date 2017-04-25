@@ -25,6 +25,7 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import java.net.URLDecoder;
 import java.util.Properties;
 
 import static org.hamcrest.core.StringContains.containsString;
@@ -43,8 +44,8 @@ public class BasicAuthHttpServerTest extends HttpAuthBase {
   private static String url;
 
   @BeforeClass public static void startServer() throws Exception {
-    final String userPropertiesFile = BasicAuthHttpServerTest.class
-        .getResource("/auth-users.properties").getFile().replace("%20", " ");
+    final String userPropertiesFile = URLDecoder.decode(BasicAuthHttpServerTest.class
+        .getResource("/auth-users.properties").getFile(), "UTF-8");
     assertNotNull("Could not find properties file for basic auth users", userPropertiesFile);
 
     // Create a LocalService around HSQLDB
