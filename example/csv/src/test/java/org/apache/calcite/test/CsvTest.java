@@ -34,7 +34,9 @@ import org.junit.Test;
 import java.io.File;
 import java.io.PrintStream;
 import java.io.PrintWriter;
+import java.io.UnsupportedEncodingException;
 import java.net.URL;
+import java.net.URLDecoder;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -353,11 +355,15 @@ public class CsvTest {
   private String resourcePath(String path) {
     final URL url = CsvTest.class.getResource("/" + path);
     // URL converts a space to %20, undo that.
-    String s = url.toString().replace("%20", " ");
-    if (s.startsWith("file:")) {
-      s = s.substring("file:".length());
+    try {
+      String s = URLDecoder.decode(url.toString(), "UTF-8");
+      if (s.startsWith("file:")) {
+        s = s.substring("file:".length());
+      }
+      return s;
+    } catch (UnsupportedEncodingException e) {
+      throw new RuntimeException(e);
     }
-    return s;
   }
 
   private static void collect(List<String> result, ResultSet resultSet)

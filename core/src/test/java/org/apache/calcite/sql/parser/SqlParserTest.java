@@ -49,6 +49,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.URL;
+import java.net.URLDecoder;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
@@ -6910,7 +6911,7 @@ public class SqlParserTest {
     String path = "hsqldb-model.json";
     final URL inUrl = SqlParserTest.class.getResource("/" + path);
     // URL will convert spaces to %20, undo that
-    String x = inUrl.getFile().replace("%20", " ");
+    String x = URLDecoder.decode(inUrl.getFile(), "UTF-8");
     assert x.endsWith(path);
     x = x.substring(0, x.length() - path.length());
     assert x.endsWith("core/target/test-classes/");
