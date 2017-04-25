@@ -29,7 +29,6 @@ import org.apache.calcite.rel.RelReferentialConstraint;
 import org.apache.calcite.rel.RelReferentialConstraintImpl;
 import org.apache.calcite.rel.RelVisitor;
 import org.apache.calcite.rel.core.TableScan;
-import org.apache.calcite.rel.rules.MaterializedViewJoinRule;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rex.RexBuilder;
@@ -987,9 +986,7 @@ public class MaterializationTest {
         + "join \"depts\" using (\"deptno\") where \"empid\" = 1";
     final String m = "select \"empid\" \"deptno\" from \"emps\"\n"
         + "join \"depts\" using (\"deptno\")";
-    RuleSet rules = RuleSets.ofList(MaterializedViewJoinRule.INSTANCE_PROJECT,
-        MaterializedViewJoinRule.INSTANCE_TABLE_SCAN);
-    checkMaterializeWithRules(m, q, rules);
+    checkMaterialize(m, q);
   }
 
   @Test public void testUnionAll() {
