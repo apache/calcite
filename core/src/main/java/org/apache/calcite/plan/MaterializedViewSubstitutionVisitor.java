@@ -25,6 +25,7 @@ import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexShuttle;
+import org.apache.calcite.tools.RelBuilderFactory;
 
 import com.google.common.collect.ImmutableList;
 
@@ -44,6 +45,11 @@ public class MaterializedViewSubstitutionVisitor extends SubstitutionVisitor {
 
   public MaterializedViewSubstitutionVisitor(RelNode target_, RelNode query_) {
     super(target_, query_, EXTENDED_RULES);
+  }
+
+  public MaterializedViewSubstitutionVisitor(RelNode target_, RelNode query_,
+      RelBuilderFactory relBuilderFactory) {
+    super(target_, query_, EXTENDED_RULES, relBuilderFactory);
   }
 
   public List<RelNode> go(RelNode replacement_) {
