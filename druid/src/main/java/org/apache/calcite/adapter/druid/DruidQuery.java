@@ -634,9 +634,19 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
         ImmutableList.Builder<JsonCollation> colBuilder =
             ImmutableList.builder();
         for (Pair<Integer, Direction> p : Pair.zip(collationIndexes, collationDirections)) {
+          boolean isNumericSort = false;
+          //case we have an aggregator filed OR project with type family numeric
+          if (p.left > groupSet.cardinality()) {
+            isNumericSort = true;
+          } else if (projects != null && projects.get(p.left).getType().getFamily()
+              == SqlTypeFamily.NUMERIC) {
+            isNumericSort = true;
+          }
+          // default druid dimension is a string
+          final String dimensionOrder = isNumericSort ? "numeric" : "alphanumeric";
           colBuilder.add(
               new JsonCollation(fieldNames.get(p.left),
-                  p.right == Direction.DESCENDING ? "descending" : "ascending"));
+                  p.right == Direction.DESCENDING ? "descending" : "ascending", dimensionOrder));
           if (p.left >= groupSet.cardinality() && p.right == Direction.DESCENDING) {
             // Currently only support for DESC in TopN
             sortsMetric = true;
@@ -1190,16 +1200,19 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
   private static class JsonCollation implements Json {
     final String dimension;
     final String direction;
+    final String dimensionOrder;
 
-    private JsonCollation(String dimension, String direction) {
+    private JsonCollation(String dimension, String direction, String dimensionOrder) {
       this.dimension = dimension;
       this.direction = direction;
+      this.dimensionOrder = dimensionOrder;
     }
 
     public void write(JsonGenerator generator) throws IOException {
       generator.writeStartObject();
       generator.writeStringField("dimension", dimension);
       writeFieldIf(generator, "direction", direction);
+      writeFieldIf(generator, "dimensionOrder", dimensionOrder);
       generator.writeEndObject();
     }
   }

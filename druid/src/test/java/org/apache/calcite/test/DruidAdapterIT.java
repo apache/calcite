@@ -1989,6 +1989,57 @@ public class DruidAdapterIT {
         "C=6588; S=20179; EXPR$2=1997-04-01 00:00:00",
         "C=6478; S=19958; EXPR$2=1997-10-01 00:00:00");
   }
+
+  @Test public void testNumericOrderingOfOrderByOperatorFullTime() {
+    final String sqlQuery = "SELECT \"timestamp\", count(*) as c, SUM(\"unit_sales\")  "
+        + "as s FROM "
+        + "\"foodmart\" group by \"timestamp\" order by \"timestamp\" DESC, c DESC, s LIMIT 5";
+    final String druidSubQuery = "'limitSpec':{'type':'default','limit':5,"
+        + "'columns':[{'dimension':'extract','direction':'descending',"
+        + "'dimensionOrder':'alphanumeric'},{'dimension':'C',"
+        + "'direction':'descending','dimensionOrder':'numeric'},{'dimension':'S',"
+        + "'direction':'ascending','dimensionOrder':'numeric'}]},"
+        + "'aggregations':[{'type':'count','name':'C'},{'type':'longSum',"
+        + "'name':'S','fieldName':'unit_sales'}]";
+    sql(sqlQuery).returnsOrdered("timestamp=1997-12-30 00:00:00; C=22; S=36\ntimestamp=1997-12-29"
+        + " 00:00:00; C=321; S=982\ntimestamp=1997-12-28 00:00:00; C=480; "
+        + "S=1496\ntimestamp=1997-12-27 00:00:00; C=363; S=1156\ntimestamp=1997-12-26 00:00:00; "
+        + "C=144; S=420").queryContains(druidChecker(druidSubQuery));
+
+  }
+
+
+  @Test public void testNumericOrderingOfOrderByOperatorTimeExtract() {
+    final String sqlQuery = "SELECT extract(day from \"timestamp\") as d, extract(month from "
+        + "\"timestamp\") as m,  year(\"timestamp\") as y , count(*) as c, SUM(\"unit_sales\")  "
+        + "as s FROM "
+        + "\"foodmart\" group by  extract(day from \"timestamp\"), extract(month from \"timestamp\"), "
+        + "year(\"timestamp\")  order by d DESC, m ASC, y DESC LIMIT 5";
+    final String druidSubQuery = "'limitSpec':{'type':'default','limit':5,"
+        + "'columns':[{'dimension':'extract_day','direction':'descending',"
+        + "'dimensionOrder':'numeric'},{'dimension':'extract_month',"
+        + "'direction':'ascending','dimensionOrder':'numeric'},"
+        + "{'dimension':'extract_year','direction':'descending',"
+        + "'dimensionOrder':'numeric'}]}";
+    sql(sqlQuery).returnsOrdered("D=30; M=3; Y=1997; C=114; S=351\nD=30; M=5; Y=1997; "
+        + "C=24; S=34\nD=30; M=6; Y=1997; C=73; S=183\nD=30; M=7; Y=1997; C=29; S=54\nD=30; M=8; "
+        + "Y=1997; C=137; S=422").queryContains(druidChecker(druidSubQuery));
+
+  }
+
+
+  @Test public void testNumericOrderingOfOrderByOperatorStringDims() {
+    final String sqlQuery = "SELECT \"brand_name\", count(*) as c, SUM(\"unit_sales\")  "
+        + "as s FROM "
+        + "\"foodmart\" group by \"brand_name\" order by \"brand_name\"  DESC LIMIT 5";
+    final String druidSubQuery = "'limitSpec':{'type':'default','limit':5,"
+        + "'columns':[{'dimension':'brand_name','direction':'descending',"
+        + "'dimensionOrder':'alphanumeric'}]}";
+    sql(sqlQuery).returnsOrdered("brand_name=Washington; C=576; S=1775\nbrand_name=Walrus; C=457;"
+        + " S=1399\nbrand_name=Urban; C=299; S=924\nbrand_name=Tri-State; C=2339; "
+        + "S=7270\nbrand_name=Toucan; C=123; S=380").queryContains(druidChecker(druidSubQuery));
+
+  }
 }
 
 // End DruidAdapterIT.java
