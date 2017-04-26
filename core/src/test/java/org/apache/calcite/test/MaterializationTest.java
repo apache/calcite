@@ -898,12 +898,14 @@ public class MaterializationTest {
   /** Tests a complicated star-join query on a complicated materialized
    * star-join query. Some of the features:
    *
-   * 1. query joins in different order;
-   * 2. query's join conditions are in where clause;
-   * 3. query does not use all join tables (safe to omit them because they are
+   * <ol>
+   * <li>query joins in different order;
+   * <li>query's join conditions are in where clause;
+   * <li>query does not use all join tables (safe to omit them because they are
    *    many-to-mandatory-one joins);
-   * 4. query is at higher granularity, therefore needs to roll up;
-   * 5. query has a condition on one of the materialization's grouping columns.
+   * <li>query is at higher granularity, therefore needs to roll up;
+   * <li>query has a condition on one of the materialization's grouping columns.
+   * </ol>
    */
   @Ignore
   @Test public void testFilterGroupQueryOnStar() {

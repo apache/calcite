@@ -845,7 +845,7 @@ public abstract class RelOptUtil {
    * <blockquote><code>L.A = R.X AND L.B = L.C AND (L.D = 5 OR L.E =
    * R.Y)</code></blockquote>
    *
-   * returns
+   * <p>returns
    *
    * <ul>
    * <li>leftKeys = {A}

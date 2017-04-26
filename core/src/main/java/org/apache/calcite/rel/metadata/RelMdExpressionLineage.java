@@ -59,16 +59,18 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * RelMdExpressionLineage supplies a default implementation of
- * {@link RelMetadataQuery#getExpressionLineage} for the standard logical algebra.
+ * Default implementation of
+ * {@link RelMetadataQuery#getExpressionLineage} for the standard logical
+ * algebra.
  *
- * The goal of this provider is to infer the lineage for the given expression.
+ * <p>The goal of this provider is to infer the lineage for the given expression.
  *
- * The output expressions might contain references to columns produced by TableScan
- * operators ({@link RexTableInputRef}). In turn, each TableScan operator is identified
- * uniquely by a {@link RelTableRef} containing its qualified name and an identifier.
+ * <p>The output expressions might contain references to columns produced by
+ * {@link TableScan} operators ({@link RexTableInputRef}). In turn, each
+ * TableScan operator is identified uniquely by a {@link RelTableRef} containing
+ * its qualified name and an identifier.
  *
- * If the lineage cannot be inferred, we return null.
+ * <p>If the lineage cannot be inferred, we return null.
  */
 public class RelMdExpressionLineage
     implements MetadataHandler<BuiltInMetadata.ExpressionLineage> {
@@ -104,9 +106,9 @@ public class RelMdExpressionLineage
   }
 
   /**
-   * Expression lineage from TableScan.
+   * Expression lineage from {@link TableScan}.
    *
-   * We extract the fields referenced by the expression and we express them
+   * <p>We extract the fields referenced by the expression and we express them
    * using {@link RexTableInputRef}.
    */
   public Set<RexNode> getExpressionLineage(TableScan rel,
@@ -135,10 +137,10 @@ public class RelMdExpressionLineage
   }
 
   /**
-   * Expression lineage from Aggregate.
+   * Expression lineage from {@link Aggregate}.
    *
-   * If the expression references grouping sets or aggregation function results,
-   * we cannot extract the lineage and we return null.
+   * <p>If the expression references grouping sets or aggregate function
+   * results, we cannot extract the lineage and we return null.
    */
   public Set<RexNode> getExpressionLineage(Aggregate rel,
       RelMetadataQuery mq, RexNode outputExpression) {
@@ -177,9 +179,9 @@ public class RelMdExpressionLineage
   }
 
   /**
-   * Expression lineage from Join.
+   * Expression lineage from {@link Join}.
    *
-   * We only extract the lineage for INNER joins.
+   * <p>We only extract the lineage for INNER joins.
    */
   public Set<RexNode> getExpressionLineage(Join rel, RelMetadataQuery mq,
       RexNode outputExpression) {
@@ -253,9 +255,9 @@ public class RelMdExpressionLineage
   }
 
   /**
-   * Expression lineage from Union.
+   * Expression lineage from {@link Union}.
    *
-   * For Union operator, we might be able to extract multiple origins for the
+   * <p>For Union operator, we might be able to extract multiple origins for the
    * references in the given expression.
    */
   public Set<RexNode> getExpressionLineage(Union rel, RelMetadataQuery mq,

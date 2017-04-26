@@ -55,11 +55,12 @@ The following example is taken from the documentation of {SubstitutionVisitor}:
 
 Note that {result} uses the materialized view table {mv} and a simplified condition {b = 4}.
 This can accomplish a large number of rewritings.
-However, this approach is not scalable in the presence of complex views, e.g., views containing many join operators, 
-since it relies on the planner rules to create the equivalence between expressions.
+However, this approach is not scalable in the presence of complex
+views, e.g., views containing many join operators, since it relies on
+the planner rules to create the equivalence between expressions.
 
-In turn, an alternative rule that attempts to match queries to views defined using arbitrary queries 
-has been proposed.
+In turn, an alternative rule that attempts to match queries to views
+defined using arbitrary queries has been proposed.
 
 {AbstractMaterializedViewRule} builds on the ideas presented [here](http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.95.113).
 The rule can rewrite expressions containing arbitrary chains of Join, Filter, and Project operators.

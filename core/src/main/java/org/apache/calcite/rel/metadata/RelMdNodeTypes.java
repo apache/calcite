@@ -54,7 +54,7 @@ public class RelMdNodeTypes
   }
 
   /** Catch-all implementation for
-   * {@link BuiltInMetadata.NodeTypeCount#getNodeTypes()},
+   * {@link BuiltInMetadata.NodeTypes#getNodeTypes()},
    * invoked using reflection.
    *
    * @see org.apache.calcite.rel.metadata.RelMetadataQuery#getNodeTypes(RelNode)

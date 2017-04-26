@@ -6255,7 +6255,7 @@ public class SqlParserTest {
    * </li>
    * </ul>
    *
-   * A substantially identical set of tests exists in SqlValidatorTest, and
+   * <p>A substantially identical set of tests exists in SqlValidatorTest, and
    * any changes here should be synchronized there.
    */
   @Test public void testIntervalLiterals() {

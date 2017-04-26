@@ -43,17 +43,17 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * RelMdTableReferences supplies a default implementation of
- * {@link RelMetadataQuery#getTableReferences} for the standard logical algebra.
+ * Default implementation of {@link RelMetadataQuery#getTableReferences} for the
+ * standard logical algebra.
  *
- * The goal of this provider is to return all tables used by a given expression
- * identified uniquely by a {@link RelTableRef}.
+ * <p>The goal of this provider is to return all tables used by a given
+ * expression identified uniquely by a {@link RelTableRef}.
  *
- * Each unique identifier {@link RelTableRef} of a table will equal to the
- * identifier obtained running {@link RelMdExpressionLineage} over the same
- * plan node for an expression that refers to the same table.
+ * <p>Each unique identifier {@link RelTableRef} of a table will equal to the
+ * identifier obtained running {@link RelMdExpressionLineage} over the same plan
+ * node for an expression that refers to the same table.
  *
- * If tables cannot be obtained, we return null.
+ * <p>If tables cannot be obtained, we return null.
  */
 public class RelMdTableReferences
     implements MetadataHandler<BuiltInMetadata.TableReferences> {
@@ -133,9 +133,10 @@ public class RelMdTableReferences
   }
 
   /**
-   * Table references from Union.
+   * Table references from {@link Union}.
    *
-   * For Union operator, we might be able to extract multiple table references.
+   * <p>For Union operator, we might be able to extract multiple table
+   * references.
    */
   public Set<RelTableRef> getTableReferences(Union rel, RelMetadataQuery mq) {
     final Set<RelTableRef> result = new HashSet<>();

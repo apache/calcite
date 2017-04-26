@@ -1367,14 +1367,14 @@ public class RexUtil {
   }
 
   /**
-   * Returns whether the input is a 'lossless' casts, i.e., a cast from which the original
-   * value of the field can be certainly recovered.
+   * Returns whether the input is a 'loss-less' cast, that is, a cast from which
+   * the original value of the field can be certainly recovered.
    *
-   * <p>For instance, int -> bigint is true (as you can cast back to int without loss of
-   * information), however bigint -> int is false.
+   * <p>For instance, int &rarr; bigint is loss-less (as you can cast back to
+   * int without loss of information), but bigint &rarr; int is not loss-less.
    *
-   * <p>The implementation of this method does not return false positives. However, it is
-   * not complete.
+   * <p>The implementation of this method does not return false positives.
+   * However, it is not complete.
    */
   public static boolean isLosslessCast(RexNode node) {
     if (!node.isA(SqlKind.CAST)) {
@@ -1418,7 +1418,7 @@ public class RexUtil {
    *
    * <blockquote>(a AND b) OR c</blockquote>
    *
-   * but can be converted to CNF:
+   * <p>but can be converted to CNF:
    *
    * <blockquote>(a OR c) AND (b OR c)</blockquote>
    *
@@ -1426,7 +1426,7 @@ public class RexUtil {
    *
    * <blockquote>NOT (a OR NOT b)</blockquote>
    *
-   * but can be converted to CNF by applying de Morgan's theorem:
+   * <p>but can be converted to CNF by applying de Morgan's theorem:
    *
    * <blockquote>NOT a AND b</blockquote>
    *
@@ -1468,7 +1468,7 @@ public class RexUtil {
    *
    * <blockquote>(a OR b) AND c</blockquote>
    *
-   * but can be converted to DNF:
+   * <p>but can be converted to DNF:
    *
    * <blockquote>(a AND c) OR (b AND c)</blockquote>
    *
@@ -1476,7 +1476,7 @@ public class RexUtil {
    *
    * <blockquote>NOT (a OR NOT b)</blockquote>
    *
-   * but can be converted to DNF by applying de Morgan's theorem:
+   * <p>but can be converted to DNF by applying de Morgan's theorem:
    *
    * <blockquote>NOT a AND b</blockquote>
    *

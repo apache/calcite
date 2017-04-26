@@ -25,9 +25,9 @@ import java.util.List;
 /**
  * Variable which references a column of a table occurrence in a relational plan.
  *
- * <p>This object is used by:
- * - {@link {@link org.apache.calcite.rel.metadata.BuiltInMetadata.ExpressionLineage}, and
- * - {@link {@link org.apache.calcite.rel.metadata.BuiltInMetadata.AllPredicates}.
+ * <p>This object is used by
+ * {@link org.apache.calcite.rel.metadata.BuiltInMetadata.ExpressionLineage}
+ * and {@link org.apache.calcite.rel.metadata.BuiltInMetadata.AllPredicates}.
  *
  * <p>Given a relational expression, its purpose is to be able to reference uniquely
  * the provenance of a given expression. For that, it uses a unique table reference

@@ -985,11 +985,12 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
   /**
    * Classifies each of the predicates in the list into one of these three
    * categories:
+   *
    * <ul>
-   * <li> 1-l) column equality predicates, or </li>
-   * <li> 2-m) range predicates, comprising <, <=, >, >=, and = between a reference
-   * and a constant, or </li>
-   * <li> 3-r) residual predicates, all the rest</li>
+   * <li> 1-l) column equality predicates, or
+   * <li> 2-m) range predicates, comprising &lt;, &le;, &gt;, &ge;, and =
+   *      between a reference and a constant, or
+   * <li> 3-r) residual predicates, all the rest
    * </ul>
    *
    * <p>For each category, it creates the conjunction of the predicates. The

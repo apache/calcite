@@ -183,7 +183,8 @@ public abstract class BuiltInMetadata {
 
     /** Handler API. */
     interface Handler extends MetadataHandler<NodeTypes> {
-      Multimap<Class<? extends RelNode>, RelNode> getNodeTypes(RelNode r, RelMetadataQuery mq);
+      Multimap<Class<? extends RelNode>, RelNode> getNodeTypes(RelNode r,
+          RelMetadataQuery mq);
     }
   }
 
@@ -420,9 +421,10 @@ public abstract class BuiltInMetadata {
      * same table, the qualified name + occurrence will be the same.
      *
      * @param expression expression whose lineage we want to resolve
+     *
      * @return set of expressions with lineage resolved, or null if this information
      * cannot be determined (e.g. origin of an expression is an aggregation
-     * in an {@link Aggregate} operator)
+     * in an {@link org.apache.calcite.rel.core.Aggregate} operator)
      */
     Set<RexNode> getExpressionLineage(RexNode expression);
 
@@ -559,8 +561,8 @@ public abstract class BuiltInMetadata {
    * <p>The difference with respect to {@link Predicates} provider is that
    * this provider tries to extract ALL predicates even if they are not
    * applied on the output expressions of the relational expression; we rely
-   * on {@link RexTableInputRef} to reference origin columns in {@link TableScan}
-   * for the result predicates.
+   * on {@link RexTableInputRef} to reference origin columns in
+   * {@link org.apache.calcite.rel.core.TableScan} for the result predicates.
    */
   public interface AllPredicates extends Metadata {
     MetadataDef<AllPredicates> DEF = MetadataDef.of(AllPredicates.class,

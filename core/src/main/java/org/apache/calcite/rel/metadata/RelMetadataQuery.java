@@ -205,7 +205,7 @@ public class RelMetadataQuery {
 
   /**
    * Returns the
-   * {@link BuiltInMetadata.NodeTypeCount#getNodeTypeCount()}
+   * {@link BuiltInMetadata.NodeTypes#getNodeTypes()}
    * statistic.
    *
    * @param rel the relational expression
