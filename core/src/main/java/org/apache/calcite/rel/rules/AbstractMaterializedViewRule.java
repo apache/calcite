@@ -422,7 +422,7 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
             RelBuilder builder = call.builder();
             builder.push(materialization.tableRel);
             if (!compensationPred.isAlwaysTrue()) {
-              builder.filter(compensationPred);
+              builder.filter(simplify.simplify(compensationPred));
             }
             RelNode result = unify(rexBuilder, builder, builder.build(),
                 topProject, node, topViewProject, viewNode, tableMapping,
@@ -1270,9 +1270,9 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
       Map<RexTableInputRef, Set<RexTableInputRef>> equivalenceClassesMap,
       RelMetadataQuery mq) {
     Map<String, Integer> exprsLineage = new HashMap<>();
+    Map<String, Integer> exprsLineageLosslessCasts = new HashMap<>();
     for (int i = 0; i < viewExprs.size(); i++) {
-      final RexNode e = viewExprs.get(i);
-      final Set<RexNode> s = mq.getExpressionLineage(viewNode, e);
+      final Set<RexNode> s = mq.getExpressionLineage(viewNode, viewExprs.get(i));
       if (s == null) {
         // Next expression
         continue;
@@ -1281,18 +1281,18 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
       // a single expression
       assert s.size() == 1;
       // Rewrite expr to be expressed on query tables
-      exprsLineage.put(
-          RexUtil.swapTableColumnReferences(
-              rexBuilder,
-              s.iterator().next(),
-              tableMapping.inverse(),
-              equivalenceClassesMap).toString(),
-          i);
+      final RexNode e = RexUtil.swapTableColumnReferences(rexBuilder,
+          s.iterator().next(), tableMapping.inverse(), equivalenceClassesMap);
+      exprsLineage.put(e.toString(), i);
+      if (RexUtil.isLosslessCast(e)) {
+        exprsLineageLosslessCasts.put(((RexCall) e).getOperands().get(0).toString(), i);
+      }
     }
 
     List<RexNode> rewrittenExprs = new ArrayList<>(exprs.size());
     for (RexNode expr : exprs) {
-      RexNode rewrittenExpr = replaceWithOriginalReferences(rexBuilder, expr, exprsLineage);
+      RexNode rewrittenExpr = replaceWithOriginalReferences(
+          rexBuilder, viewExprs, expr, exprsLineage, exprsLineageLosslessCasts);
       if (RexUtil.containsTableInputRef(rewrittenExpr) != null) {
         // Some expressions were not present in view output
         return null;
@@ -1367,28 +1367,38 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
    * point to.
    */
   private static RexNode replaceWithOriginalReferences(final RexBuilder rexBuilder,
-      final RexNode expr, final Map<String, Integer> mapping) {
+      final List<RexNode> originalExprs, final RexNode expr, final Map<String, Integer> mapping,
+      final Map<String, Integer> mappingLosslessCasts) {
     // Currently we allow the following:
     // 1) compensation pred can be directly map to expression
     // 2) all references in compensation pred can be map to expressions
+    // We support bypassing lossless casts.
     RexShuttle visitor =
         new RexShuttle() {
           @Override public RexNode visitCall(RexCall call) {
-            Integer pos = mapping.get(call.toString());
-            if (pos != null) {
-              // Found it
-              return rexBuilder.makeInputRef(call.getType(), pos);
-            }
-            return super.visitCall(call);
+            RexNode rw = replace(call);
+            return rw != null ? rw : super.visitCall(call);
           }
 
           @Override public RexNode visitTableInputRef(RexTableInputRef inputRef) {
-            Integer pos = mapping.get(inputRef.toString());
+            RexNode rw = replace(inputRef);
+            return rw != null ? rw : super.visitTableInputRef(inputRef);
+          }
+
+          private RexNode replace(RexNode e) {
+            Integer pos = mapping.get(e.toString());
             if (pos != null) {
               // Found it
-              return rexBuilder.makeInputRef(inputRef.getType(), pos);
+              return rexBuilder.makeInputRef(e.getType(), pos);
             }
-            return super.visitTableInputRef(inputRef);
+            pos = mappingLosslessCasts.get(e.toString());
+            if (pos != null) {
+              // Found it
+              return rexBuilder.makeCast(
+                  e.getType(), rexBuilder.makeInputRef(
+                      originalExprs.get(pos).getType(), pos));
+            }
+            return null;
           }
         };
     return visitor.apply(expr);
