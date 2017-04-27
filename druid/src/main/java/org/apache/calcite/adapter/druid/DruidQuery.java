@@ -466,13 +466,14 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
       final Sort sort = (Sort) rels.get(i++);
       collationIndexes = new ArrayList<>();
       collationDirections = new ArrayList<>();
+      for (RexNode childExpr : sort.getChildExps()) {
+        if (childExpr.getType().getFamily() == SqlTypeFamily.NUMERIC) {
+          numericCollationBitSetBuilder.set(((RexInputRef) childExpr).getIndex());
+        }
+      }
       for (RelFieldCollation fCol: sort.collation.getFieldCollations()) {
         collationIndexes.add(fCol.getFieldIndex());
         collationDirections.add(fCol.getDirection());
-        if (sort.getChildExps().get(fCol.getFieldIndex()).getType().getFamily() == SqlTypeFamily
-            .NUMERIC) {
-          numericCollationBitSetBuilder.set(fCol.getFieldIndex());
-        }
       }
       fetch = sort.fetch != null ? RexLiteral.intValue(sort.fetch) : null;
     }
