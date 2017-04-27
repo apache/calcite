@@ -460,11 +460,17 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
 
     List<Integer> collationIndexes = null;
     List<Direction> collationDirections = null;
+    ImmutableBitSet.Builder numericCollationBitSetBuilder = ImmutableBitSet.builder();
     Integer fetch = null;
     if (i < rels.size() && rels.get(i) instanceof Sort) {
       final Sort sort = (Sort) rels.get(i++);
       collationIndexes = new ArrayList<>();
       collationDirections = new ArrayList<>();
+      for (RexNode childExpr : sort.getChildExps()) {
+        if (childExpr.getType().getFamily() == SqlTypeFamily.NUMERIC) {
+          numericCollationBitSetBuilder.set(((RexInputRef) childExpr).getIndex());
+        }
+      }
       for (RelFieldCollation fCol: sort.collation.getFieldCollations()) {
         collationIndexes.add(fCol.getFieldIndex());
         collationDirections.add(fCol.getDirection());
@@ -472,12 +478,14 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
       fetch = sort.fetch != null ? RexLiteral.intValue(sort.fetch) : null;
     }
 
+    ImmutableBitSet numericCollationIndexes = numericCollationBitSetBuilder.build();
+
     if (i != rels.size()) {
       throw new AssertionError("could not implement all rels");
     }
 
     return getQuery(rowType, filter, projects, groupSet, aggCalls, aggNames,
-        collationIndexes, collationDirections, fetch);
+        collationIndexes, collationDirections, fetch, numericCollationIndexes);
   }
 
   public QueryType getQueryType() {
@@ -490,7 +498,8 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
 
   protected QuerySpec getQuery(RelDataType rowType, RexNode filter, List<RexNode> projects,
       ImmutableBitSet groupSet, List<AggregateCall> aggCalls, List<String> aggNames,
-      List<Integer> collationIndexes, List<Direction> collationDirections, Integer fetch) {
+      List<Integer> collationIndexes, List<Direction> collationDirections, Integer fetch,
+      ImmutableBitSet numericCollationIndexes) {
     final CalciteConnectionConfig config =
         getCluster().getPlanner().getContext()
             .unwrap(CalciteConnectionConfig.class);
@@ -634,9 +643,11 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
         ImmutableList.Builder<JsonCollation> colBuilder =
             ImmutableList.builder();
         for (Pair<Integer, Direction> p : Pair.zip(collationIndexes, collationDirections)) {
+          final String dimensionOrder = numericCollationIndexes.get(p.left) ? "numeric"
+              : "alphanumeric";
           colBuilder.add(
               new JsonCollation(fieldNames.get(p.left),
-                  p.right == Direction.DESCENDING ? "descending" : "ascending"));
+                  p.right == Direction.DESCENDING ? "descending" : "ascending", dimensionOrder));
           if (p.left >= groupSet.cardinality() && p.right == Direction.DESCENDING) {
             // Currently only support for DESC in TopN
             sortsMetric = true;
@@ -1190,16 +1201,19 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
   private static class JsonCollation implements Json {
     final String dimension;
     final String direction;
+    final String dimensionOrder;
 
-    private JsonCollation(String dimension, String direction) {
+    private JsonCollation(String dimension, String direction, String dimensionOrder) {
       this.dimension = dimension;
       this.direction = direction;
+      this.dimensionOrder = dimensionOrder;
     }
 
     public void write(JsonGenerator generator) throws IOException {
       generator.writeStartObject();
       generator.writeStringField("dimension", dimension);
       writeFieldIf(generator, "direction", direction);
+      writeFieldIf(generator, "dimensionOrder", dimensionOrder);
       generator.writeEndObject();
     }
   }
