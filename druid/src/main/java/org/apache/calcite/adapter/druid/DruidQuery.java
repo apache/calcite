@@ -460,6 +460,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
 
     List<Integer> collationIndexes = null;
     List<Direction> collationDirections = null;
+    ImmutableBitSet.Builder numericCollationBitSetBuilder = ImmutableBitSet.builder();
     Integer fetch = null;
     if (i < rels.size() && rels.get(i) instanceof Sort) {
       final Sort sort = (Sort) rels.get(i++);
@@ -468,16 +469,22 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
       for (RelFieldCollation fCol: sort.collation.getFieldCollations()) {
         collationIndexes.add(fCol.getFieldIndex());
         collationDirections.add(fCol.getDirection());
+        if (sort.getChildExps().get(fCol.getFieldIndex()).getType().getFamily() == SqlTypeFamily
+            .NUMERIC) {
+          numericCollationBitSetBuilder.set(fCol.getFieldIndex());
+        }
       }
       fetch = sort.fetch != null ? RexLiteral.intValue(sort.fetch) : null;
     }
+
+    ImmutableBitSet numericCollationIndexes = numericCollationBitSetBuilder.build();
 
     if (i != rels.size()) {
       throw new AssertionError("could not implement all rels");
     }
 
     return getQuery(rowType, filter, projects, groupSet, aggCalls, aggNames,
-        collationIndexes, collationDirections, fetch);
+        collationIndexes, collationDirections, fetch, numericCollationIndexes);
   }
 
   public QueryType getQueryType() {
@@ -490,7 +497,8 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
 
   protected QuerySpec getQuery(RelDataType rowType, RexNode filter, List<RexNode> projects,
       ImmutableBitSet groupSet, List<AggregateCall> aggCalls, List<String> aggNames,
-      List<Integer> collationIndexes, List<Direction> collationDirections, Integer fetch) {
+      List<Integer> collationIndexes, List<Direction> collationDirections, Integer fetch,
+      ImmutableBitSet numericCollationIndexes) {
     final CalciteConnectionConfig config =
         getCluster().getPlanner().getContext()
             .unwrap(CalciteConnectionConfig.class);
@@ -634,16 +642,8 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
         ImmutableList.Builder<JsonCollation> colBuilder =
             ImmutableList.builder();
         for (Pair<Integer, Direction> p : Pair.zip(collationIndexes, collationDirections)) {
-          boolean isNumericSort = false;
-          //case we have an aggregator filed OR project with type family numeric
-          if (p.left > groupSet.cardinality()) {
-            isNumericSort = true;
-          } else if (projects != null && projects.get(p.left).getType().getFamily()
-              == SqlTypeFamily.NUMERIC) {
-            isNumericSort = true;
-          }
-          // default druid dimension is a string
-          final String dimensionOrder = isNumericSort ? "numeric" : "alphanumeric";
+          final String dimensionOrder = numericCollationIndexes.get(p.left) ? "numeric"
+              : "alphanumeric";
           colBuilder.add(
               new JsonCollation(fieldNames.get(p.left),
                   p.right == Direction.DESCENDING ? "descending" : "ascending", dimensionOrder));
