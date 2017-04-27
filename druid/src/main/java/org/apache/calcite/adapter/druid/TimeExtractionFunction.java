@@ -84,13 +84,10 @@ public class TimeExtractionFunction implements ExtractionFunction {
    * Only YEAR, MONTH, and DAY granularity are supported.
    *
    * @param granularity granularity to apply to the column
-   * @return the time extraction function or null if granularity is null or not supported see
+   * @return the time extraction function corresponding to the granularity input unit
    * {@link TimeExtractionFunction#VALID_TIME_EXTRACT} for supported granularity
    */
   public static TimeExtractionFunction createExtractFromGranularity(Granularity granularity) {
-    if (granularity == null) {
-      return null;
-    }
     switch (granularity) {
     case DAY:
       return new TimeExtractionFunction("d", null, "UTC", Locale.getDefault().toLanguageTag());
@@ -101,7 +98,7 @@ public class TimeExtractionFunction implements ExtractionFunction {
     case WEEK:
       return new TimeExtractionFunction("w", null, "UTC", Locale.getDefault().toLanguageTag());
     default:
-      return null;
+      throw new IllegalArgumentException("Granularity [" + granularity + "] is not supported");
     }
   }
 

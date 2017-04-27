@@ -42,7 +42,7 @@ public class TimeExtractionDimensionSpec extends ExtractionDimensionSpec {
   /**
    * Creates a time extraction DimensionSpec that formats the '__time' column
    * according to the given granularity and outputs the column with the given
-   * name. Only YEAR, MONTH, and DAY granularity are supported.
+   * name. See {@link TimeExtractionFunction#VALID_TIME_EXTRACT} for set of valid extract
    *
    * @param granularity granularity to apply to the column
    * @param outputName  name of the output column

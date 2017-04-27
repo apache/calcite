@@ -1000,9 +1000,13 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
         final boolean numeric =
             call.getOperands().get(posRef).getType().getFamily()
                 == SqlTypeFamily.NUMERIC;
-        final ExtractionFunction extractionFunction = TimeExtractionFunction
-            .createExtractFromGranularity(
-                DruidDateTimeUtils.extractGranularity(call.getOperands().get(posRef)));
+        final Granularity granularity = DruidDateTimeUtils.extractGranularity(call.getOperands()
+            .get(posRef));
+        // in case no extraction the field will be omitted from the serialization
+        ExtractionFunction extractionFunction = null;
+        if (granularity != null) {
+          extractionFunction = TimeExtractionFunction.createExtractFromGranularity(granularity);
+        }
         String dimName = tr(e, posRef);
         if (dimName.equals(DruidConnectionImpl.DEFAULT_RESPONSE_TIMESTAMP_COLUMN)) {
           // We need to use Druid default column name to refer to the time dimension in a filter
