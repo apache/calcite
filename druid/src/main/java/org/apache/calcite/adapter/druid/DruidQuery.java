@@ -18,7 +18,6 @@ package org.apache.calcite.adapter.druid;
 
 import org.apache.calcite.DataContext;
 import org.apache.calcite.avatica.ColumnMetaData;
-import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.config.CalciteConnectionProperty;
 import org.apache.calcite.interpreter.BindableRel;
@@ -90,10 +89,6 @@ import static org.apache.calcite.sql.SqlKind.INPUT_REF;
  */
 public class DruidQuery extends AbstractRelNode implements BindableRel {
 
-  private static final List<TimeUnitRange> LIST_OF_VALID_TIME_EXTRACT = ImmutableList.of(
-      TimeUnitRange.YEAR,
-      TimeUnitRange.MONTH,
-      TimeUnitRange.DAY);
   protected QuerySpec querySpec;
 
   final RelOptTable table;
@@ -230,20 +225,10 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
     case CAST:
       return isValidCast((RexCall) e, boundedComparator);
     case EXTRACT:
-      return isValidExtract((RexCall) e);
+      return TimeExtractionFunction.isValidTimeExtract((RexCall) e);
     default:
       return false;
     }
-  }
-
-  private boolean isValidExtract(RexCall call) {
-    assert call.isA(SqlKind.EXTRACT);
-    final RexLiteral flag = (RexLiteral) call.operands.get(0);
-    final TimeUnitRange timeUnit = (TimeUnitRange) flag.getValue();
-    if (timeUnit != null && LIST_OF_VALID_TIME_EXTRACT.contains(timeUnit)) {
-      return true;
-    }
-    return false;
   }
 
   private boolean areValidFilters(List<RexNode> es, boolean boundedComparator) {
@@ -572,7 +557,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
                 finalGranularity = Granularity.ALL;
                 String extractColumnName = SqlValidatorUtil.uniquify(EXTRACT_COLUMN_NAME_PREFIX
                     + "_" + funcGranularity.value, usedFieldNames, SqlValidatorUtil.EXPR_SUGGESTER);
-                timeExtractionDimensionSpec = TimeExtractionDimensionSpec.makeExtract(
+                timeExtractionDimensionSpec = TimeExtractionDimensionSpec.makeTimeExtract(
                     funcGranularity, extractColumnName);
                 dimensions.add(timeExtractionDimensionSpec);
                 builder.add(extractColumnName);
@@ -584,7 +569,8 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
                       + "_" + funcGranularity.value, usedFieldNames, SqlValidatorUtil
                       .EXPR_SUGGESTER);
                   dimensions.add(
-                      TimeExtractionDimensionSpec.makeFloor(funcGranularity, extractColumnName));
+                      TimeExtractionDimensionSpec.makeTimeFloor(funcGranularity,
+                          extractColumnName));
                   finalGranularity = Granularity.ALL;
                   builder.add(extractColumnName);
                 } else {
@@ -1014,9 +1000,9 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
         final boolean numeric =
             call.getOperands().get(posRef).getType().getFamily()
                 == SqlTypeFamily.NUMERIC;
-
-        final ExtractionFunction extractionFunction = ExtractionFunctionUtil.buildExtraction(call
-            .getOperands().get(posRef));
+        final ExtractionFunction extractionFunction = TimeExtractionFunction
+            .createExtractFromGranularity(
+                DruidDateTimeUtils.extractGranularity(call.getOperands().get(posRef)));
         String dimName = tr(e, posRef);
         if (dimName.equals(DruidConnectionImpl.DEFAULT_RESPONSE_TIMESTAMP_COLUMN)) {
           // We need to use Druid default column name to refer to the time dimension in a filter

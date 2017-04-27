@@ -2047,6 +2047,28 @@ public class DruidAdapterIT {
         + "S=7270\nbrand_name=Toucan; C=123; S=380").queryContains(druidChecker(druidSubQuery));
 
   }
-}
 
+  @Test public void testGroupByWeekExtract() {
+    final String sql = "SELECT extract(week from \"timestamp\") from \"foodmart\" where "
+        + "\"product_id\" = 1558 and extract(week from \"timestamp\") IN (10, 11)group by extract"
+        + "(week from \"timestamp\")";
+
+    final String druidQuery = "{'queryType':'groupBy','dataSource':'foodmart',"
+        + "'granularity':'all','dimensions':[{'type':'extraction',"
+        + "'dimension':'__time','outputName':'extract_week',"
+        + "'extractionFn':{'type':'timeFormat','format':'w','timeZone':'UTC',"
+        + "'locale':'en-US'}}],'limitSpec':{'type':'default'},"
+        + "'filter':{'type':'and','fields':[{'type':'selector',"
+        + "'dimension':'product_id','value':'1558'},{'type':'or',"
+        + "'fields':[{'type':'selector','dimension':'__time','value':'10',"
+        + "'extractionFn':{'type':'timeFormat','format':'w','timeZone':'UTC',"
+        + "'locale':'en-US'}},{'type':'selector','dimension':'__time',"
+        + "'value':'11','extractionFn':{'type':'timeFormat','format':'w',"
+        + "'timeZone':'UTC','locale':'en-US'}}]}]},"
+        + "'aggregations':[{'type':'longSum','name':'dummy_agg',"
+        + "'fieldName':'dummy_agg'}],"
+        + "'intervals':['1900-01-09T00:00:00.000/2992-01-10T00:00:00.000']}";
+    sql(sql).returnsOrdered("EXPR$0=10\nEXPR$0=11").queryContains(druidChecker(druidQuery));
+  }
+}
 // End DruidAdapterIT.java
