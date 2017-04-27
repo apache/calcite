@@ -63,8 +63,8 @@ public class TimeExtractionDimensionSpec extends ExtractionDimensionSpec {
    *
    * @return floor time extraction DimensionSpec instance.
    */
-  public static TimeExtractionDimensionSpec makeTimeFloor(Granularity granularity, String
-      outputName) {
+  public static TimeExtractionDimensionSpec makeTimeFloor(Granularity granularity,
+      String outputName) {
     ExtractionFunction fn = TimeExtractionFunction.createFloorFromGranularity(granularity);
     return new TimeExtractionDimensionSpec(fn, outputName);
   }

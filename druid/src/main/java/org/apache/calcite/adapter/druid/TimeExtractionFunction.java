@@ -22,10 +22,10 @@ import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.sql.SqlKind;
 
 import com.fasterxml.jackson.core.JsonGenerator;
-import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 
 import java.io.IOException;
-import java.util.List;
 import java.util.Locale;
 
 import static org.apache.calcite.adapter.druid.DruidQuery.writeFieldIf;
@@ -41,7 +41,7 @@ import static org.apache.calcite.adapter.druid.DruidQuery.writeFieldIf;
  */
 public class TimeExtractionFunction implements ExtractionFunction {
 
-  public static final List<TimeUnitRange> LIST_OF_VALID_TIME_EXTRACT = ImmutableList.of(
+  private static final ImmutableSet<TimeUnitRange> VALID_TIME_EXTRACT = Sets.immutableEnumSet(
       TimeUnitRange.YEAR,
       TimeUnitRange.MONTH,
       TimeUnitRange.DAY,
@@ -85,7 +85,7 @@ public class TimeExtractionFunction implements ExtractionFunction {
    *
    * @param granularity granularity to apply to the column
    * @return the time extraction function or null if granularity is null or not supported see
-   * {@link TimeExtractionFunction#LIST_OF_VALID_TIME_EXTRACT} for supported granularity
+   * {@link TimeExtractionFunction#VALID_TIME_EXTRACT} for supported granularity
    */
   public static TimeExtractionFunction createExtractFromGranularity(Granularity granularity) {
     if (granularity == null) {
@@ -117,7 +117,7 @@ public class TimeExtractionFunction implements ExtractionFunction {
   }
 
   /**
-   * Used to check if the RexCall contains a valid extract unit that we can serialize to druid
+   * Returns whether the RexCall contains a valid extract unit that we can serialize to druid or not
    * @param call Extract rexCall
    *
    * @return true if the extract unit is valid
@@ -128,7 +128,7 @@ public class TimeExtractionFunction implements ExtractionFunction {
     }
     final RexLiteral flag = (RexLiteral) call.operands.get(0);
     final TimeUnitRange timeUnit = (TimeUnitRange) flag.getValue();
-    if (timeUnit != null && LIST_OF_VALID_TIME_EXTRACT.contains(timeUnit)) {
+    if (timeUnit != null && VALID_TIME_EXTRACT.contains(timeUnit)) {
       return true;
     }
     return false;

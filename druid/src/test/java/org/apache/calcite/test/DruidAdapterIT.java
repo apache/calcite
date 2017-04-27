@@ -2070,5 +2070,19 @@ public class DruidAdapterIT {
         + "'intervals':['1900-01-09T00:00:00.000/2992-01-10T00:00:00.000']}";
     sql(sql).returnsOrdered("EXPR$0=10\nEXPR$0=11").queryContains(druidChecker(druidQuery));
   }
+
+  @Test public void testTimeExtractThatCanNotBePushed() {
+    final String sql = "SELECT extract(CENTURY from \"timestamp\") from \"foodmart\" where "
+        + "\"product_id\" = 1558 group by extract(CENTURY from \"timestamp\")";
+    final String plan = "PLAN=EnumerableInterpreter\n"
+        + "  BindableAggregate(group=[{0}])\n"
+        + "    BindableProject(EXPR$0=[/INT(EXTRACT_DATE(FLAG(YEAR), /INT(Reinterpret($0), "
+        + "86400000)), 100)])\n"
+        + "      DruidQuery(table=[[foodmart, foodmart]], "
+        + "intervals=[[1900-01-09T00:00:00.000/2992-01-10T00:00:00.000]], filter=[=($1, 1558)], "
+        + "projects=[[$0]])";
+    sql(sql).explainContains(plan).queryContains(druidChecker("'queryType':'select'"))
+        .returnsUnordered("EXPR$0=19");
+  }
 }
 // End DruidAdapterIT.java
