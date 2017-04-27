@@ -278,21 +278,24 @@ public class DruidDateTimeUtils {
    * It support {@code FLOOR(<time> TO <timeunit>)} and {@code EXTRACT(<timeunit> FROM <time>)}.
    * It returns null if it cannot be inferred.
    *
-   * @param call the function call
+   * @param node the Rex node
    * @return the granularity, or null if it cannot be inferred
    */
-  public static Granularity extractGranularity(RexCall call) {
-    if ((call.getKind() != SqlKind.FLOOR && call.getKind() != SqlKind.EXTRACT)
-            || call.getOperands().size() != 2) {
+  public static Granularity extractGranularity(RexNode node) {
+    final int flagIndex;
+    switch (node.getKind()) {
+    case EXTRACT:
+      flagIndex = 0;
+      break;
+    case FLOOR:
+      flagIndex = 1;
+      break;
+    default:
       return null;
     }
-    int flagIndex;
-    if (call.getKind() == SqlKind.EXTRACT) {
-      // EXTRACT
-      flagIndex = 0;
-    } else {
-      // FLOOR
-      flagIndex = 1;
+    final RexCall call = (RexCall) node;
+    if (call.operands.size() != 2) {
+      return null;
     }
     final RexLiteral flag = (RexLiteral) call.operands.get(flagIndex);
     final TimeUnitRange timeUnit = (TimeUnitRange) flag.getValue();

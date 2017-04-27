@@ -467,27 +467,25 @@ public class DruidRules {
             // Already one usage of timestamp column
             return -1;
           }
-          if (call.getKind() == SqlKind.FLOOR) {
+          switch (call.getKind()) {
+          case FLOOR:
             hasFloor = true;
             if (!(call.getOperands().get(0) instanceof RexInputRef)) {
               return -1;
             }
             final RexInputRef ref = (RexInputRef) call.getOperands().get(0);
             if (!(checkTimestampRefOnQuery(ImmutableBitSet.of(ref.getIndex()),
-                query.getTopNode(), query))) {
+                query.getTopNode(),
+                query))) {
               return -1;
             }
             idxTimestamp = i;
-          } else {
-            RexInputRef ref;
-            // Case extract from Calcite EXTRACT_DATE(FLAG(DAY), /INT(Reinterpret($0),86400000))
-            if (call.getOperands().get(1) instanceof RexCall) {
-              RexCall refCall = (RexCall) call.getOperands().get(1);
-              ref = (RexInputRef) ((RexCall) refCall.getOperands().get(0)).getOperands().get(0);
-            } else {
-              ref = (RexInputRef) call.getOperands().get(1);
-            }
-            idxTimestamp = ref.getIndex();
+            break;
+          case EXTRACT:
+            idxTimestamp = RelOptUtil.InputFinder.bits(call).asList().get(0);
+            break;
+          default:
+            throw new AssertionError();
           }
           continue;
         }

@@ -16,7 +16,14 @@
  */
 package org.apache.calcite.adapter.druid;
 
+import org.apache.calcite.avatica.util.TimeUnitRange;
+import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexLiteral;
+import org.apache.calcite.sql.SqlKind;
+
 import com.fasterxml.jackson.core.JsonGenerator;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 
 import java.io.IOException;
 import java.util.Locale;
@@ -33,6 +40,12 @@ import static org.apache.calcite.adapter.druid.DruidQuery.writeFieldIf;
  * granularity.
  */
 public class TimeExtractionFunction implements ExtractionFunction {
+
+  private static final ImmutableSet<TimeUnitRange> VALID_TIME_EXTRACT = Sets.immutableEnumSet(
+      TimeUnitRange.YEAR,
+      TimeUnitRange.MONTH,
+      TimeUnitRange.DAY,
+      TimeUnitRange.WEEK);
 
   private static final String ISO_TIME_FORMAT = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'";
   private final String format;
@@ -71,7 +84,8 @@ public class TimeExtractionFunction implements ExtractionFunction {
    * Only YEAR, MONTH, and DAY granularity are supported.
    *
    * @param granularity granularity to apply to the column
-   * @return the time extraction function or null if granularity is not supported
+   * @return the time extraction function corresponding to the granularity input unit
+   * {@link TimeExtractionFunction#VALID_TIME_EXTRACT} for supported granularity
    */
   public static TimeExtractionFunction createExtractFromGranularity(Granularity granularity) {
     switch (granularity) {
@@ -81,8 +95,10 @@ public class TimeExtractionFunction implements ExtractionFunction {
       return new TimeExtractionFunction("M", null, "UTC", Locale.getDefault().toLanguageTag());
     case YEAR:
       return new TimeExtractionFunction("yyyy", null, "UTC", Locale.getDefault().toLanguageTag());
+    case WEEK:
+      return new TimeExtractionFunction("w", null, "UTC", Locale.getDefault().toLanguageTag());
     default:
-      throw new AssertionError("Extraction " + granularity.value + " is not valid");
+      throw new IllegalArgumentException("Granularity [" + granularity + "] is not supported");
     }
   }
 
@@ -95,6 +111,23 @@ public class TimeExtractionFunction implements ExtractionFunction {
   public static TimeExtractionFunction createFloorFromGranularity(Granularity granularity) {
     return new TimeExtractionFunction(ISO_TIME_FORMAT, granularity.value, "UTC", Locale
         .getDefault().toLanguageTag());
+  }
+
+  /**
+   * Returns whether the RexCall contains a valid extract unit that we can
+   * serialize to Druid.
+   *
+   * @param call Extract expression
+   *
+   * @return true if the extract unit is valid
+   */
+  public static boolean isValidTimeExtract(RexCall call) {
+    if (call.getKind() != SqlKind.EXTRACT) {
+      return false;
+    }
+    final RexLiteral flag = (RexLiteral) call.operands.get(0);
+    final TimeUnitRange timeUnit = (TimeUnitRange) flag.getValue();
+    return timeUnit != null && VALID_TIME_EXTRACT.contains(timeUnit);
   }
 }
 
