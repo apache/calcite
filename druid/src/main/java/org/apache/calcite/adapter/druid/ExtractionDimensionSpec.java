@@ -17,6 +17,7 @@
 package org.apache.calcite.adapter.druid;
 
 import com.fasterxml.jackson.core.JsonGenerator;
+import com.google.common.base.Preconditions;
 
 import java.io.IOException;
 
@@ -35,8 +36,9 @@ public class ExtractionDimensionSpec implements DimensionSpec {
 
   public ExtractionDimensionSpec(String dimension, ExtractionFunction extractionFunction,
       String outputName) {
-    this.dimension = dimension;
-    this.extractionFunction = extractionFunction;
+    this.dimension = Preconditions.checkNotNull(dimension, "dimension can not be null");
+    this.extractionFunction = Preconditions.checkNotNull(extractionFunction, "Extraction Fn can "
+        + "not be null");
     this.outputName = outputName;
   }
 

@@ -278,47 +278,51 @@ public class DruidDateTimeUtils {
    * It support {@code FLOOR(<time> TO <timeunit>)} and {@code EXTRACT(<timeunit> FROM <time>)}.
    * It returns null if it cannot be inferred.
    *
-   * @param call the function call
+   * @param node the Rex node
    * @return the granularity, or null if it cannot be inferred
    */
-  public static Granularity extractGranularity(RexCall call) {
-    if ((call.getKind() != SqlKind.FLOOR && call.getKind() != SqlKind.EXTRACT)
-            || call.getOperands().size() != 2) {
-      return null;
+  public static Granularity extractGranularity(RexNode node) {
+    if (node instanceof RexCall) {
+      RexCall call = (RexCall) node;
+      if ((call.getKind() != SqlKind.FLOOR && call.getKind() != SqlKind.EXTRACT)
+          || call.getOperands().size() != 2) {
+        return null;
+      }
+      int flagIndex;
+      if (call.getKind() == SqlKind.EXTRACT) {
+        // EXTRACT
+        flagIndex = 0;
+      } else {
+        // FLOOR
+        flagIndex = 1;
+      }
+      final RexLiteral flag = (RexLiteral) call.operands.get(flagIndex);
+      final TimeUnitRange timeUnit = (TimeUnitRange) flag.getValue();
+      if (timeUnit == null) {
+        return null;
+      }
+      switch (timeUnit) {
+      case YEAR:
+        return Granularity.YEAR;
+      case QUARTER:
+        return Granularity.QUARTER;
+      case MONTH:
+        return Granularity.MONTH;
+      case WEEK:
+        return Granularity.WEEK;
+      case DAY:
+        return Granularity.DAY;
+      case HOUR:
+        return Granularity.HOUR;
+      case MINUTE:
+        return Granularity.MINUTE;
+      case SECOND:
+        return Granularity.SECOND;
+      default:
+        return null;
+      }
     }
-    int flagIndex;
-    if (call.getKind() == SqlKind.EXTRACT) {
-      // EXTRACT
-      flagIndex = 0;
-    } else {
-      // FLOOR
-      flagIndex = 1;
-    }
-    final RexLiteral flag = (RexLiteral) call.operands.get(flagIndex);
-    final TimeUnitRange timeUnit = (TimeUnitRange) flag.getValue();
-    if (timeUnit == null) {
-      return null;
-    }
-    switch (timeUnit) {
-    case YEAR:
-      return Granularity.YEAR;
-    case QUARTER:
-      return Granularity.QUARTER;
-    case MONTH:
-      return Granularity.MONTH;
-    case WEEK:
-      return Granularity.WEEK;
-    case DAY:
-      return Granularity.DAY;
-    case HOUR:
-      return Granularity.HOUR;
-    case MINUTE:
-      return Granularity.MINUTE;
-    case SECOND:
-      return Granularity.SECOND;
-    default:
-      return null;
-    }
+    return null;
   }
 
 }

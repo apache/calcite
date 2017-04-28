@@ -479,15 +479,11 @@ public class DruidRules {
             }
             idxTimestamp = i;
           } else {
-            RexInputRef ref;
-            // Case extract from Calcite EXTRACT_DATE(FLAG(DAY), /INT(Reinterpret($0),86400000))
-            if (call.getOperands().get(1) instanceof RexCall) {
-              RexCall refCall = (RexCall) call.getOperands().get(1);
-              ref = (RexInputRef) ((RexCall) refCall.getOperands().get(0)).getOperands().get(0);
-            } else {
-              ref = (RexInputRef) call.getOperands().get(1);
+            //Case Extract one or multiple fields from time column
+            if (!TimeExtractionFunction.isValidTimeExtract(call)) {
+              //return -1;
             }
-            idxTimestamp = ref.getIndex();
+            idxTimestamp = RelOptUtil.InputFinder.bits(call).asList().get(0);
           }
           continue;
         }
