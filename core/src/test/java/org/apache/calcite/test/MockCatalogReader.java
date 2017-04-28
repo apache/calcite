@@ -340,6 +340,8 @@ public class MockCatalogReader extends CalciteCatalogReader {
     ordersStream.addMonotonic("ROWTIME");
     ordersStream.addColumn("PRODUCTID", f.intType);
     ordersStream.addColumn("ORDERID", f.intType);
+    ordersStream.addColumn("FOOTIME", f.timestampType);
+    ordersStream.addMonotonic("FOOTIME");
     registerTable(ordersStream);
 
     // Register "SHIPMENTS" stream.
