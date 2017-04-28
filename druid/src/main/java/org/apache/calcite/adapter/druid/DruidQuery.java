@@ -254,8 +254,9 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
       return true;
     }
     if (e.getOperands().get(0).isA(SqlKind.LITERAL)
-        && e.getType().getFamily() == SqlTypeFamily.TIMESTAMP) {
-      // CAST of literal to timestamp type
+        && (e.getType().getFamily() == SqlTypeFamily.TIMESTAMP
+          || e.getType().getFamily() == SqlTypeFamily.NUMERIC)) {
+      // CAST of literal to timestamp type or number type
       return true;
     }
     // Currently other CAST operations cannot be pushed to Druid
