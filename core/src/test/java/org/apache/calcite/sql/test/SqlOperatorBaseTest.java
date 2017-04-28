@@ -4748,6 +4748,22 @@ public abstract class SqlOperatorBaseTest {
         "CURRENT_DATE",
         pair.left.substring(0, 10),
         "DATE NOT NULL");
+    final SqlTester tester1 =
+            tester
+                .withConformance(SqlConformanceEnum.PRAGMATIC_2003).withConnectionFactory(
+                        CalciteAssert.EMPTY_CONNECTION_FACTORY
+                        .with("conformance", SqlConformanceEnum.PRAGMATIC_2003));
+    tester1.checkBoolean("CURRENT_DATE() IS NULL", false);
+    tester1.checkBoolean("CURRENT_DATE IS NOT NULL", true);
+    tester1.checkBoolean("NOT (CURRENT_DATE() IS NULL)", true);
+    tester1.checkScalar(
+            "CAST(CURRENT_DATE AS VARCHAR(30))",
+            pair.left.substring(0, 10),
+            "VARCHAR(30) NOT NULL");
+    tester1.checkScalar(
+            "CAST(CURRENT_DATE() AS VARCHAR(30))",
+            pair.left.substring(0, 10),
+            "VARCHAR(30) NOT NULL");
     pair.right.close();
   }
 

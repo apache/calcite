@@ -178,6 +178,16 @@ public interface SqlConformance {
    * false otherwise.
    */
   boolean isInsertSubsetColumnsAllowed();
+
+  /**
+   * Whether to allow {@code FUNCTION} SYSTEM functions having no args
+   * with paranethesis
+   * <p>Among the built-in conformance levels, true in
+   * {@link SqlConformanceEnum#PRAGMATIC_99},
+   * {@link SqlConformanceEnum#PRAGMATIC_2003};
+   * false otherwise.
+   */
+  boolean isNoArgsFunctionWithParanthesisAllowed();
 }
 
 // End SqlConformance.java
