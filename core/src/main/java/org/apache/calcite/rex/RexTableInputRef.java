@@ -95,7 +95,7 @@ public class RexTableInputRef extends RexInputRef {
   }
 
   /** Identifies uniquely a table by its qualified name and its entity number (occurrence) */
-  public static class RelTableRef {
+  public static class RelTableRef implements Comparable<RelTableRef> {
 
     private final RelOptTable table;
     private final int entityNumber;
@@ -138,6 +138,10 @@ public class RexTableInputRef extends RexInputRef {
 
     public static RelTableRef of(RelOptTable table, int entityNumber) {
       return new RelTableRef(table, entityNumber);
+    }
+
+    @Override public int compareTo(RelTableRef o) {
+      return digest.compareTo(o.digest);
     }
   }
 }

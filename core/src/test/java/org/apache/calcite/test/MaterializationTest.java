@@ -1451,6 +1451,48 @@ public class MaterializationTest {
               + "  EnumerableTableScan(table=[[hr, m0]])"));
   }
 
+  @Test public void testJoinMaterializationUKFK6() {
+    checkMaterialize(
+      "select \"emps\".\"empid\", \"emps\".\"deptno\" from \"emps\"\n"
+          + "join \"depts\" \"a\" on (\"emps\".\"deptno\"=\"a\".\"deptno\")\n"
+          + "join \"depts\" \"b\" on (\"emps\".\"deptno\"=\"b\".\"deptno\")\n"
+          + "join \"dependents\" using (\"empid\")"
+          + "where \"emps\".\"empid\" = 1",
+      "select \"emps\".\"empid\" from \"emps\"\n"
+          + "join \"dependents\" using (\"empid\")\n"
+          + "where \"emps\".\"empid\" = 1",
+      HR_FKUK_MODEL,
+      CalciteAssert.checkResultContains(
+          "EnumerableCalc(expr#0..1=[{inputs}], empid=[$t0])\n"
+              + "  EnumerableTableScan(table=[[hr, m0]])"));
+  }
+
+  @Test public void testJoinMaterializationUKFK7() {
+    checkNoMaterialize(
+      "select \"emps\".\"empid\", \"emps\".\"deptno\" from \"emps\"\n"
+          + "join \"depts\" \"a\" on (\"emps\".\"name\"=\"a\".\"name\")\n"
+          + "join \"depts\" \"b\" on (\"emps\".\"name\"=\"b\".\"name\")\n"
+          + "join \"dependents\" using (\"empid\")"
+          + "where \"emps\".\"empid\" = 1",
+      "select \"emps\".\"empid\" from \"emps\"\n"
+          + "join \"dependents\" using (\"empid\")\n"
+          + "where \"emps\".\"empid\" = 1",
+      HR_FKUK_MODEL);
+  }
+
+  @Test public void testJoinMaterializationUKFK8() {
+    checkNoMaterialize(
+      "select \"emps\".\"empid\", \"emps\".\"deptno\" from \"emps\"\n"
+          + "join \"depts\" \"a\" on (\"emps\".\"deptno\"=\"a\".\"deptno\")\n"
+          + "join \"depts\" \"b\" on (\"emps\".\"name\"=\"b\".\"name\")\n"
+          + "join \"dependents\" using (\"empid\")"
+          + "where \"emps\".\"empid\" = 1",
+      "select \"emps\".\"empid\" from \"emps\"\n"
+          + "join \"dependents\" using (\"empid\")\n"
+          + "where \"emps\".\"empid\" = 1",
+      HR_FKUK_MODEL);
+  }
+
   @Test public void testSubQuery() {
     String q = "select \"empid\", \"deptno\", \"salary\" from \"emps\" e1\n"
         + "where \"empid\" = (\n"

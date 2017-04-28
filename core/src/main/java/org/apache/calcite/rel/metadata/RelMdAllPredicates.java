@@ -35,12 +35,23 @@ import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexTableInputRef;
+import org.apache.calcite.rex.RexTableInputRef.RelTableRef;
+import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Util;
 
+import com.google.common.base.Function;
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Multimap;
+
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -152,10 +163,8 @@ public class RelMdAllPredicates
 
     final RexBuilder rexBuilder = join.getCluster().getRexBuilder();
     final RexNode pred = join.getCondition();
-    final RelNode leftInput = join.getLeft();
-    final RelNode rightInput = join.getRight();
-    final int nLeftColumns = leftInput.getRowType().getFieldList().size();
 
+    final Multimap<List<String>, RelTableRef> qualifiedNamesToRefs = HashMultimap.create();
     RelOptPredicateList newPreds = RelOptPredicateList.EMPTY;
     for (RelNode input : join.getInputs()) {
       final RelOptPredicateList inputPreds = mq.getAllPredicates(input);
@@ -163,7 +172,45 @@ public class RelMdAllPredicates
         // Bail out
         return null;
       }
-      newPreds = newPreds.union(rexBuilder, inputPreds);
+      // If it does not contain table references, nothing needs to be done
+      if (!RexUtil.containsTableInputRef(inputPreds.pulledUpPredicates)) {
+        newPreds = newPreds.union(rexBuilder, inputPreds);
+        continue;
+      }
+      // Gather table references
+      final Set<RelTableRef> tableRefs = mq.getTableReferences(input);
+      if (input == join.getLeft()) {
+        // Left input references remain unchanged
+        for (RelTableRef leftRef : tableRefs) {
+          qualifiedNamesToRefs.put(leftRef.getQualifiedName(), leftRef);
+        }
+        newPreds = newPreds.union(rexBuilder, inputPreds);
+      } else {
+        // Right input references might need to be updated if there are table name
+        // clashes with left input
+        final Map<RelTableRef, RelTableRef> currentTablesMapping = new HashMap<>();
+        for (RelTableRef rightRef : tableRefs) {
+          int shift = 0;
+          Collection<RelTableRef> lRefs = qualifiedNamesToRefs.get(
+              rightRef.getQualifiedName());
+          if (lRefs != null) {
+            shift = lRefs.size();
+          }
+          currentTablesMapping.put(rightRef,
+              RelTableRef.of(rightRef.getTable(), shift + rightRef.getEntityNumber()));
+        }
+        final List<RexNode> updatedPreds = Lists.newArrayList(
+            Iterables.transform(
+                inputPreds.pulledUpPredicates,
+                new Function<RexNode, RexNode>() {
+                  @Override public RexNode apply(RexNode e) {
+                    return RexUtil.swapTableReferences(rexBuilder, e, currentTablesMapping);
+                  }
+                }
+          ));
+        newPreds = newPreds.union(rexBuilder,
+            RelOptPredicateList.of(rexBuilder, updatedPreds));
+      }
     }
 
     // Extract input fields referenced by Join condition
@@ -175,27 +222,14 @@ public class RelMdAllPredicates
     // Infer column origin expressions for given references
     final Map<RexInputRef, Set<RexNode>> mapping = new LinkedHashMap<>();
     for (int idx : inputFieldsUsed) {
-      if (idx < nLeftColumns) {
-        final RexInputRef inputRef = RexInputRef.of(idx, leftInput.getRowType().getFieldList());
-        final Set<RexNode> originalExprs = mq.getExpressionLineage(leftInput, inputRef);
-        if (originalExprs == null) {
-          // Bail out
-          return null;
-        }
-        final RexInputRef ref = RexInputRef.of(idx, join.getRowType().getFieldList());
-        mapping.put(ref, originalExprs);
-      } else {
-        // Right input.
-        final RexInputRef inputRef = RexInputRef.of(idx - nLeftColumns,
-                rightInput.getRowType().getFieldList());
-        final Set<RexNode> originalExprs = mq.getExpressionLineage(rightInput, inputRef);
-        if (originalExprs == null) {
-          // Bail out
-          return null;
-        }
-        final RexInputRef ref = RexInputRef.of(idx, join.getRowType().getFieldList());
-        mapping.put(ref, originalExprs);
+      final RexInputRef inputRef = RexInputRef.of(idx, join.getRowType().getFieldList());
+      final Set<RexNode> originalExprs = mq.getExpressionLineage(join, inputRef);
+      if (originalExprs == null) {
+        // Bail out
+        return null;
       }
+      final RexInputRef ref = RexInputRef.of(idx, join.getRowType().getFieldList());
+      mapping.put(ref, originalExprs);
     }
 
     // Replace with new expressions and return union of predicates
@@ -217,14 +251,59 @@ public class RelMdAllPredicates
   public RelOptPredicateList getAllPredicates(Union union, RelMetadataQuery mq) {
     final RexBuilder rexBuilder = union.getCluster().getRexBuilder();
 
+    final Multimap<List<String>, RelTableRef> qualifiedNamesToRefs = HashMultimap.create();
     RelOptPredicateList newPreds = RelOptPredicateList.EMPTY;
-    for (RelNode input : union.getInputs()) {
+    for (int i = 0; i < union.getInputs().size(); i++) {
+      final RelNode input = union.getInput(i);
       final RelOptPredicateList inputPreds = mq.getAllPredicates(input);
       if (inputPreds == null) {
         // Bail out
         return null;
       }
-      newPreds = newPreds.union(rexBuilder, inputPreds);
+      // If it does not contain table references, nothing needs to be done
+      if (!RexUtil.containsTableInputRef(inputPreds.pulledUpPredicates)) {
+        newPreds = newPreds.union(rexBuilder, inputPreds);
+        continue;
+      }
+      // Gather table references
+      final Set<RelTableRef> tableRefs = mq.getTableReferences(input);
+      if (i == 0) {
+        // Left input references remain unchanged
+        for (RelTableRef leftRef : tableRefs) {
+          qualifiedNamesToRefs.put(leftRef.getQualifiedName(), leftRef);
+        }
+        newPreds = newPreds.union(rexBuilder, inputPreds);
+      } else {
+        // Right input references might need to be updated if there are table name
+        // clashes with left input
+        final Map<RelTableRef, RelTableRef> currentTablesMapping = new HashMap<>();
+        for (RelTableRef rightRef : tableRefs) {
+          int shift = 0;
+          Collection<RelTableRef> lRefs = qualifiedNamesToRefs.get(
+              rightRef.getQualifiedName());
+          if (lRefs != null) {
+            shift = lRefs.size();
+          }
+          currentTablesMapping.put(rightRef,
+              RelTableRef.of(rightRef.getTable(), shift + rightRef.getEntityNumber()));
+        }
+        // Add to existing qualified names
+        for (RelTableRef newRef : currentTablesMapping.values()) {
+          qualifiedNamesToRefs.put(newRef.getQualifiedName(), newRef);
+        }
+        // Update preds
+        final List<RexNode> updatedPreds = Lists.newArrayList(
+            Iterables.transform(
+                inputPreds.pulledUpPredicates,
+                new Function<RexNode, RexNode>() {
+                  @Override public RexNode apply(RexNode e) {
+                    return RexUtil.swapTableReferences(rexBuilder, e, currentTablesMapping);
+                  }
+                }
+          ));
+        newPreds = newPreds.union(rexBuilder,
+            RelOptPredicateList.of(rexBuilder, updatedPreds));
+      }
     }
     return newPreds;
   }

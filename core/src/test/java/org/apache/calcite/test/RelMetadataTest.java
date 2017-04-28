@@ -75,6 +75,7 @@ import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexTableInputRef;
+import org.apache.calcite.rex.RexTableInputRef.RelTableRef;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
@@ -90,6 +91,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.Sets;
 
 import org.hamcrest.CoreMatchers;
 import org.hamcrest.CustomTypeSafeMatcher;
@@ -1879,6 +1881,59 @@ public class RelMetadataTest extends SqlToRelTestBase {
     RelOptPredicateList inputSet = mq.getAllPredicates(rel);
     // Filter on aggregate, we cannot infer lineage
     assertNull(inputSet);
+  }
+
+  @Test public void testAllPredicatesAndTablesJoin() {
+    final String sql = "select x.sal, y.deptno from\n"
+        + "(select a.deptno, c.sal from (select * from emp limit 7) as a\n"
+        + "cross join (select * from dept limit 1) as b\n"
+        + "inner join (select * from emp limit 2) as c\n"
+        + "on a.deptno = c.deptno) as x\n"
+        + "inner join\n"
+        + "(select a.deptno, c.sal from (select * from emp limit 7) as a\n"
+        + "cross join (select * from dept limit 1) as b\n"
+        + "inner join (select * from emp limit 2) as c\n"
+        + "on a.deptno = c.deptno) as y\n"
+        + "on x.deptno = y.deptno";
+    final RelNode rel = convertSql(sql);
+    final RelMetadataQuery mq = RelMetadataQuery.instance();
+    final RelOptPredicateList inputSet = mq.getAllPredicates(rel);
+    assertThat(inputSet.pulledUpPredicates.toString(),
+        equalTo("[true, "
+            + "=([CATALOG, SALES, EMP].#0.$7, [CATALOG, SALES, EMP].#1.$7), "
+            + "true, "
+            + "=([CATALOG, SALES, EMP].#2.$7, [CATALOG, SALES, EMP].#3.$7), "
+            + "=([CATALOG, SALES, EMP].#0.$7, [CATALOG, SALES, EMP].#2.$7)]"));
+    final Set<RelTableRef> tableReferences = Sets.newTreeSet(mq.getTableReferences(rel));
+    assertThat(tableReferences.toString(),
+        equalTo("[[CATALOG, SALES, DEPT].#0, [CATALOG, SALES, DEPT].#1, "
+            + "[CATALOG, SALES, EMP].#0, [CATALOG, SALES, EMP].#1, "
+            + "[CATALOG, SALES, EMP].#2, [CATALOG, SALES, EMP].#3]"));
+  }
+
+  @Test public void testAllPredicatesAndTableUnion() {
+    final String sql = "select a.deptno, c.sal from (select * from emp limit 7) as a\n"
+        + "cross join (select * from dept limit 1) as b\n"
+        + "inner join (select * from emp limit 2) as c\n"
+        + "on a.deptno = c.deptno\n"
+        + "union all\n"
+        + "select a.deptno, c.sal from (select * from emp limit 7) as a\n"
+        + "cross join (select * from dept limit 1) as b\n"
+        + "inner join (select * from emp limit 2) as c\n"
+        + "on a.deptno = c.deptno";
+    final RelNode rel = convertSql(sql);
+    final RelMetadataQuery mq = RelMetadataQuery.instance();
+    final RelOptPredicateList inputSet = mq.getAllPredicates(rel);
+    assertThat(inputSet.pulledUpPredicates.toString(),
+        equalTo("[true, "
+            + "=([CATALOG, SALES, EMP].#0.$7, [CATALOG, SALES, EMP].#1.$7), "
+            + "true, "
+            + "=([CATALOG, SALES, EMP].#2.$7, [CATALOG, SALES, EMP].#3.$7)]"));
+    final Set<RelTableRef> tableReferences = Sets.newTreeSet(mq.getTableReferences(rel));
+    assertThat(tableReferences.toString(),
+        equalTo("[[CATALOG, SALES, DEPT].#0, [CATALOG, SALES, DEPT].#1, "
+            + "[CATALOG, SALES, EMP].#0, [CATALOG, SALES, EMP].#1, "
+            + "[CATALOG, SALES, EMP].#2, [CATALOG, SALES, EMP].#3]"));
   }
 
   private void checkNodeTypeCount(String sql, Map<Class<? extends RelNode>, Integer> expected) {

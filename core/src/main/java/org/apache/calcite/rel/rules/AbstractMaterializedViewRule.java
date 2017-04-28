@@ -298,14 +298,15 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
             matchModality = MatchModality.COMPLETE;
           }
 
-          // 4. We map every table in the query to a view table with the same qualified
-          // name.
+          // 4. We map every table in the query to a table with the same qualified
+          // name (all query tables are contained in the view, thus this is equivalent
+          // to mapping every table in the query to a view table).
           final Multimap<RelTableRef, RelTableRef> multiMapTables = ArrayListMultimap.create();
-          for (RelTableRef queryTableRef : queryTableRefs) {
-            for (RelTableRef viewTableRef : viewTableRefs) {
-              if (queryTableRef.getQualifiedName().equals(
-                  viewTableRef.getQualifiedName())) {
-                multiMapTables.put(queryTableRef, viewTableRef);
+          for (RelTableRef queryTableRef1 : queryTableRefs) {
+            for (RelTableRef queryTableRef2 : queryTableRefs) {
+              if (queryTableRef1.getQualifiedName().equals(
+                  queryTableRef2.getQualifiedName())) {
+                multiMapTables.put(queryTableRef1, queryTableRef2);
               }
             }
           }
@@ -938,30 +939,35 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
    */
   private static List<BiMap<RelTableRef, RelTableRef>> generateTableMappings(
       Multimap<RelTableRef, RelTableRef> multiMapTables) {
-    final List<BiMap<RelTableRef, RelTableRef>> result = new ArrayList<>();
     if (multiMapTables.isEmpty()) {
-      return result;
+      return ImmutableList.of();
     }
-    result.add(HashBiMap.<RelTableRef, RelTableRef>create());
+    List<BiMap<RelTableRef, RelTableRef>> result =
+        ImmutableList.<BiMap<RelTableRef, RelTableRef>>of(
+            HashBiMap.<RelTableRef, RelTableRef>create());
     for (Entry<RelTableRef, Collection<RelTableRef>> e : multiMapTables.asMap().entrySet()) {
-      boolean added = false;
+      if (e.getValue().size() == 1) {
+        // Only one reference, we can just add it to every map
+        RelTableRef target = e.getValue().iterator().next();
+        for (BiMap<RelTableRef, RelTableRef> m : result) {
+          m.put(e.getKey(), target);
+        }
+        continue;
+      }
+      // Multiple references: flatten
+      ImmutableList.Builder<BiMap<RelTableRef, RelTableRef>> newResult =
+          ImmutableList.builder();
       for (RelTableRef target : e.getValue()) {
-        if (added) {
-          for (BiMap<RelTableRef, RelTableRef> m : result) {
+        for (BiMap<RelTableRef, RelTableRef> m : result) {
+          if (!m.containsValue(target)) {
             final BiMap<RelTableRef, RelTableRef> newM =
                 HashBiMap.<RelTableRef, RelTableRef>create(m);
             newM.put(e.getKey(), target);
-            result.add(newM);
+            newResult.add(newM);
           }
-        } else {
-          for (BiMap<RelTableRef, RelTableRef> m : result) {
-            m.put(e.getKey(), target);
-          }
-          added = true;
         }
       }
-      // Mapping needs to exist
-      assert added;
+      result = newResult.build();
     }
     return result;
   }
@@ -1103,6 +1109,7 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
             RexTableInputRef uniqueKeyColumnRef = RexTableInputRef.of(parentTRef, uniqueKeyPos,
                 parentTRef.getTable().getRowType().getFieldList().get(uniqueKeyPos).getType());
             if (!foreignKeyColumnType.isNullable()
+                && vEC.getEquivalenceClassesMap().containsKey(uniqueKeyColumnRef)
                 && vEC.getEquivalenceClassesMap().get(uniqueKeyColumnRef).contains(
                     foreignKeyColumnRef)) {
               equiColumns.put(foreignKeyColumnRef, uniqueKeyColumnRef);
@@ -1118,7 +1125,6 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
               edge = graph.addEdge(tRef, parentTRef);
             }
             edge.equiColumns.putAll(equiColumns);
-            break;
           }
         }
       }
@@ -1507,6 +1513,10 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
 
     public Edge(RelTableRef source, RelTableRef target) {
       super(source, target);
+    }
+
+    public String toString() {
+      return "{" + source + " -> " + target + "}";
     }
   }
 

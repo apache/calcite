@@ -828,6 +828,22 @@ public class RexUtil {
   }
 
   /**
+   * Returns whether any of the given expression trees contains a
+   * {link RexTableInputRef} node.
+   *
+   * @param nodes a list of RexNode trees
+   * @return true if at least one was found, otherwise false
+   */
+  public static boolean containsTableInputRef(List<RexNode> nodes) {
+    for (RexNode e : nodes) {
+      if (containsTableInputRef(e) != null) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /**
    * Returns whether a given tree contains any {link RexTableInputRef} nodes.
    *
    * @param node a RexNode tree
