@@ -1145,6 +1145,10 @@ Not implemented:
 | MINUTE(date)              | Equivalent to `EXTRACT(MINUTE FROM date)`. Returns an integer between 0 and 59.
 | SECOND(date)              | Equivalent to `EXTRACT(SECOND FROM date)`. Returns an integer between 0 and 59.
 
+Calls to niladic functions such as `CURRENT_DATE` do not accept parentheses in
+standard SQL. Calls with parentheses, such as `CURRENT_DATE()` are accepted in certain
+[conformance levels]({{ site.apiRoot }}/org/apache/calcite/sql/validate/SqlConformance.html#allowNiladicParentheses--).
+
 Not implemented:
 
 * EXTRACT(timeUnit FROM interval)

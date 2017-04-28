@@ -2942,11 +2942,7 @@ public abstract class SqlOperatorBaseTest {
         false);
     // "!=" is allowed under ORACLE_10 SQL conformance level
     final SqlTester tester1 =
-        tester
-            .withConformance(SqlConformanceEnum.ORACLE_10)
-            .withConnectionFactory(
-                CalciteAssert.EMPTY_CONNECTION_FACTORY
-                    .with("conformance", SqlConformanceEnum.ORACLE_10));
+        tester.withConformance(SqlConformanceEnum.ORACLE_10);
 
     tester1
         .checkBoolean("1 <> 1", Boolean.FALSE);
@@ -4725,6 +4721,11 @@ public abstract class SqlOperatorBaseTest {
 
   @Test public void testCurrentDateFunc() {
     tester.setFor(SqlStdOperatorTable.CURRENT_DATE, VM_FENNEL);
+
+    // A tester with a lenient conformance that allows parentheses.
+    final SqlTester tester1 = tester
+        .withConformance(SqlConformanceEnum.LENIENT);
+
     tester.checkScalar("CURRENT_DATE", DATE_PATTERN, "DATE NOT NULL");
     tester.checkScalar(
         "(CURRENT_DATE - CURRENT_DATE) DAY",
@@ -4738,17 +4739,38 @@ public abstract class SqlOperatorBaseTest {
         "No match found for function signature CURRENT_DATE\\(\\)",
         false);
 
+    tester1.checkBoolean("CURRENT_DATE() IS NULL", false);
+    tester1.checkBoolean("CURRENT_DATE IS NOT NULL", true);
+    tester1.checkBoolean("NOT (CURRENT_DATE() IS NULL)", true);
+    tester1.checkType("CURRENT_DATE", "DATE NOT NULL");
+    tester1.checkType("CURRENT_DATE()", "DATE NOT NULL");
+    tester1.checkType("CURRENT_TIMESTAMP()", "TIMESTAMP(0) NOT NULL");
+    tester1.checkType("CURRENT_TIME()", "TIME(0) NOT NULL");
+
     // Check the actual value.
     final Pair<String, Hook.Closeable> pair = currentTimeString(LOCAL_TZ);
-    tester.checkScalar(
-        "CAST(CURRENT_DATE AS VARCHAR(30))",
-        pair.left.substring(0, 10),
-        "VARCHAR(30) NOT NULL");
-    tester.checkScalar(
-        "CURRENT_DATE",
-        pair.left.substring(0, 10),
-        "DATE NOT NULL");
-    pair.right.close();
+    final String dateString = pair.left;
+    try (Hook.Closeable ignore = pair.right) {
+      tester.checkScalar("CAST(CURRENT_DATE AS VARCHAR(30))",
+          dateString.substring(0, 10),
+          "VARCHAR(30) NOT NULL");
+      tester.checkScalar("CURRENT_DATE",
+          dateString.substring(0, 10),
+          "DATE NOT NULL");
+
+      tester1.checkScalar("CAST(CURRENT_DATE AS VARCHAR(30))",
+          dateString.substring(0, 10),
+          "VARCHAR(30) NOT NULL");
+      tester1.checkScalar("CAST(CURRENT_DATE() AS VARCHAR(30))",
+          dateString.substring(0, 10),
+          "VARCHAR(30) NOT NULL");
+      tester1.checkScalar("CURRENT_DATE",
+          dateString.substring(0, 10),
+          "DATE NOT NULL");
+      tester1.checkScalar("CURRENT_DATE()",
+          dateString.substring(0, 10),
+          "DATE NOT NULL");
+    }
   }
 
   @Test public void testSubstringFunction() {

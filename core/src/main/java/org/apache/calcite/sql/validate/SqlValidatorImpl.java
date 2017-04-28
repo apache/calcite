@@ -4639,7 +4639,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     final SqlOperator operator = call.getOperator();
     if ((call.operandCount() == 0)
         && (operator.getSyntax() == SqlSyntax.FUNCTION_ID)
-        && !call.isExpanded()) {
+        && !call.isExpanded()
+        && !conformance.allowNiladicParentheses()) {
       // For example, "LOCALTIME()" is illegal. (It should be
       // "LOCALTIME", which would have been handled as a
       // SqlIdentifier.)
