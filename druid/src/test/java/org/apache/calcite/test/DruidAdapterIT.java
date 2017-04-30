@@ -2088,6 +2088,18 @@ public class DruidAdapterIT {
     sql(sql).explainContains(plan).queryContains(druidChecker("'queryType':'select'"))
         .returnsUnordered("EXPR$0=19");
   }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1770">[CALCITE-1770]
+   * Druid adapter: CAST(NULL AS ...) gives NPE</a>. */
+  @Test public void testPushCast() {
+    final String sql = "SELECT \"product_id\"\n"
+        + "from \"foodmart\"\n"
+        + "where \"product_id\" = cast(NULL as varchar)\n"
+        + "group by \"product_id\"";
+    String druidQuery = "'filter':{'type':'selector','dimension':'product_id','value':''}";
+    sql(sql).queryContains(druidChecker(druidQuery));
+  }
 }
 
 // End DruidAdapterIT.java

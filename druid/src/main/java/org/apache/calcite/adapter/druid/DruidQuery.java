@@ -959,6 +959,10 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
       case CAST:
         return tr(e, 0, set);
       case LITERAL:
+        if (((RexLiteral) e).getValue3() == null) {
+          // Druid considers null is equivalent to empty.
+          return "";
+        }
         return ((RexLiteral) e).getValue3().toString();
       case FLOOR:
       case EXTRACT:
