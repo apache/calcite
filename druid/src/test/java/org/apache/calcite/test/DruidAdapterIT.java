@@ -2092,8 +2092,8 @@ public class DruidAdapterIT {
   @Test public void testPushCast() {
     final String sql = "SELECT \"product_id\" from \"foodmart\" where \"product_id\" = cast(NULL "
         + "as varchar) group by \"product_id\"";
-    sql(sql).queryContains(druidChecker("'filter':{'type':'selector',"
-        + "'dimension':'product_id','value':''}"));
+    String druidQuery = "'filter':{'type':'selector','dimension':'product_id','value':''}";
+    sql(sql).queryContains(druidChecker(druidQuery));
   }
 }
 

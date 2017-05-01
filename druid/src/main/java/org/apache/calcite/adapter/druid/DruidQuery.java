@@ -72,7 +72,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
-import org.apache.commons.lang.ObjectUtils;
 
 import java.io.IOException;
 import java.io.StringWriter;
@@ -960,7 +959,11 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
       case CAST:
         return tr(e, 0, set);
       case LITERAL:
-        return ObjectUtils.toString(((RexLiteral) e).getValue3());
+        if (((RexLiteral) e).getValue3() == null) {
+          // Druid considers null is equivalent to empty.
+          return "";
+        }
+        return ((RexLiteral) e).getValue3().toString();
       case FLOOR:
       case EXTRACT:
         final RexCall call = (RexCall) e;
