@@ -1910,7 +1910,7 @@ select TIMESTAMP '2016-02-26 19:06:00.123456789',
 (1 row)
 
 !ok
-EnumerableCalc(expr#0=[{inputs}], expr#1=[2016-02-26 19:06:00.123], expr#2=[2016-02-26 19:06:00], expr#3=[2016-02-26 19:06:00.1], expr#4=[2016-02-26 19:06:00.12], expr#5=[2016-02-26 19:06:00.123], expr#6=[2016-02-26 19:06:00.123], EXPR$0=[$t1], EXPR$1=[$t2], EXPR$2=[$t2], EXPR$3=[$t3], EXPR$4=[$t4], EXPR$5=[$t1], EXPR$6=[$t5], EXPR$7=[$t6])
+EnumerableCalc(expr#0=[{inputs}], expr#1=[2016-02-26 19:06:00.123], expr#2=[2016-02-26 19:06:00], expr#3=[2016-02-26 19:06:00.1], expr#4=[2016-02-26 19:06:00.12], EXPR$0=[$t1], EXPR$1=[$t2], EXPR$2=[$t2], EXPR$3=[$t3], EXPR$4=[$t4], EXPR$5=[$t1], EXPR$6=[$t1], EXPR$7=[$t1])
   EnumerableValues(tuples=[[{ 0 }]])
 !plan
 

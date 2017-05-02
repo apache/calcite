@@ -36,8 +36,11 @@ import org.apache.calcite.server.CalciteServerStatement;
 import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.tools.Frameworks;
+import org.apache.calcite.util.DateString;
 import org.apache.calcite.util.Holder;
 import org.apache.calcite.util.NlsString;
+import org.apache.calcite.util.TimeString;
+import org.apache.calcite.util.TimestampString;
 import org.apache.calcite.util.Util;
 
 import org.junit.Ignore;
@@ -50,7 +53,6 @@ import java.math.BigDecimal;
 import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
-import java.util.Calendar;
 
 /**
  * Unit tests for {@link RexImplicationChecker}.
@@ -179,9 +181,9 @@ public class RexImplicationCheckerTest {
   @Ignore("work in progress")
   @Test public void testSimpleDate() {
     final Fixture f = new Fixture();
-    final Calendar instance = Util.calendar();
-    final RexNode node1 = f.ge(f.dt, f.rexBuilder.makeDateLiteral(instance));
-    final RexNode node2 = f.eq(f.dt, f.rexBuilder.makeDateLiteral(instance));
+    final DateString d = DateString.fromCalendarFields(Util.calendar());
+    final RexNode node1 = f.ge(f.dt, f.rexBuilder.makeDateLiteral(d));
+    final RexNode node2 = f.eq(f.dt, f.rexBuilder.makeDateLiteral(d));
 
     f.checkImplies(node2, node1);
     f.checkNotImplies(node1, node2);
@@ -190,9 +192,10 @@ public class RexImplicationCheckerTest {
   @Ignore("work in progress")
   @Test public void testSimpleTimeStamp() {
     final Fixture f = new Fixture();
-    final Calendar calendar = Util.calendar();
-    final RexNode node1 = f.le(f.ts, f.timestampLiteral(calendar));
-    final RexNode node2 = f.le(f.ts, f.timestampLiteral(calendar));
+    final TimestampString ts =
+        TimestampString.fromCalendarFields(Util.calendar());
+    final RexNode node1 = f.le(f.ts, f.timestampLiteral(ts));
+    final RexNode node2 = f.le(f.ts, f.timestampLiteral(ts));
 
     f.checkImplies(node1, node2);
     f.checkNotImplies(node2, node1);
@@ -201,9 +204,9 @@ public class RexImplicationCheckerTest {
   @Ignore("work in progress")
   @Test public void testSimpleTime() {
     final Fixture f = new Fixture();
-    final Calendar calendar = Util.calendar();
-    final RexNode node1 = f.le(f.ts, f.timeLiteral(calendar));
-    final RexNode node2 = f.le(f.ts, f.timeLiteral(calendar));
+    final TimeString t = TimeString.fromCalendarFields(Util.calendar());
+    final RexNode node1 = f.le(f.ts, f.timeLiteral(t));
+    final RexNode node2 = f.le(f.ts, f.timeLiteral(t));
 
     f.checkImplies(node1, node2);
     f.checkNotImplies(node2, node1);
@@ -491,14 +494,13 @@ public class RexImplicationCheckerTest {
           new NlsString(z, null, SqlCollation.COERCIBLE));
     }
 
-    public RexNode timestampLiteral(Calendar calendar) {
-      return rexBuilder.makeTimestampLiteral(
-          calendar, timeStampDataType.getPrecision());
+    public RexNode timestampLiteral(TimestampString ts) {
+      return rexBuilder.makeTimestampLiteral(ts,
+          timeStampDataType.getPrecision());
     }
 
-    public RexNode timeLiteral(Calendar calendar) {
-      return rexBuilder.makeTimestampLiteral(
-          calendar, timeDataType.getPrecision());
+    public RexNode timeLiteral(TimeString t) {
+      return rexBuilder.makeTimeLiteral(t, timeDataType.getPrecision());
     }
 
     public RexNode cast(RelDataType type, RexNode exp) {

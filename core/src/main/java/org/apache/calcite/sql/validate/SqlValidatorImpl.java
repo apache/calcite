@@ -2821,7 +2821,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     case DATE:
     case TIME:
     case TIMESTAMP:
-      Calendar calendar = (Calendar) literal.getValue();
+      Calendar calendar = literal.getValueAs(Calendar.class);
       final int year = calendar.get(Calendar.YEAR);
       final int era = calendar.get(Calendar.ERA);
       if (year < 1 || era == GregorianCalendar.BC || year > 9999) {

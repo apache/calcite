@@ -35,6 +35,7 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.Bug;
+import org.apache.calcite.util.DateString;
 import org.apache.calcite.util.Util;
 
 import com.google.common.base.Predicate;
@@ -355,7 +356,8 @@ public abstract class DateRangeRules {
             : SqlStdOperatorTable.GREATER_THAN;
         nodes.add(
             rexBuilder.makeCall(op, operand,
-                rexBuilder.makeDateLiteral(r.lowerEndpoint())));
+                rexBuilder.makeDateLiteral(
+                    DateString.fromCalendarFields(r.lowerEndpoint()))));
       }
       if (r.hasUpperBound()) {
         final SqlBinaryOperator op = r.upperBoundType() == BoundType.CLOSED
@@ -363,7 +365,8 @@ public abstract class DateRangeRules {
             : SqlStdOperatorTable.LESS_THAN;
         nodes.add(
             rexBuilder.makeCall(op, operand,
-                rexBuilder.makeDateLiteral(r.upperEndpoint())));
+                rexBuilder.makeDateLiteral(
+                    DateString.fromCalendarFields(r.upperEndpoint()))));
       }
       return RexUtil.composeConjunction(rexBuilder, nodes, false);
     }

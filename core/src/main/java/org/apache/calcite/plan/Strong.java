@@ -118,7 +118,7 @@ public class Strong {
 
     switch (node.getKind()) {
     case LITERAL:
-      return ((RexLiteral) node).getValue() == null;
+      return ((RexLiteral) node).isNull();
     // We can only guarantee AND to return NULL if both inputs are NULL  (similar for OR)
     // AND(NULL, FALSE) = FALSE
     case AND:

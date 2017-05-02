@@ -38,9 +38,12 @@ import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeAssignmentRules;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.util.DateString;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.TestUtil;
+import org.apache.calcite.util.TimeString;
+import org.apache.calcite.util.TimestampString;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
@@ -1397,12 +1400,11 @@ public class RexProgramTest {
     literals.add((RexLiteral)
         rexBuilder.makeLiteral(new ByteString(new byte[] {1, 2, -34, 0, -128}),
             typeFactory.createSqlType(SqlTypeName.BINARY, 5), false));
-    literals.add(
-        rexBuilder.makeDateLiteral(cal(1974, Calendar.AUGUST, 9, 0, 0, 0)));
-    literals.add(rexBuilder.makeTimeLiteral(cal(0, 0, 0, 1, 23, 45), 0));
+    literals.add(rexBuilder.makeDateLiteral(new DateString(1974, 8, 9)));
+    literals.add(rexBuilder.makeTimeLiteral(new TimeString(1, 23, 45), 0));
     literals.add(
         rexBuilder.makeTimestampLiteral(
-            cal(1974, Calendar.AUGUST, 9, 1, 23, 45), 0));
+            new TimestampString(1974, 8, 9, 1, 23, 45), 0));
 
     final Multimap<SqlTypeName, RexLiteral> map = LinkedHashMultimap.create();
     for (RexLiteral literal : literals) {

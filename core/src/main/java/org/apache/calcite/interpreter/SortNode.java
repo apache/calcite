@@ -25,7 +25,6 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
 
-import java.math.BigDecimal;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
@@ -43,11 +42,11 @@ public class SortNode extends AbstractSingleNode<Sort> {
     final int offset =
         rel.offset == null
             ? 0
-            : ((BigDecimal) ((RexLiteral) rel.offset).getValue()).intValue();
+            : ((RexLiteral) rel.offset).getValueAs(Integer.class);
     final int fetch =
         rel.fetch == null
             ? -1
-            : ((BigDecimal) ((RexLiteral) rel.fetch).getValue()).intValue();
+            : ((RexLiteral) rel.fetch).getValueAs(Integer.class);
     // In pure limit mode. No sort required.
     Row row;
   loop:

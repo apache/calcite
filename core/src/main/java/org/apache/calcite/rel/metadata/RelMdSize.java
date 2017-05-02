@@ -145,7 +145,8 @@ public class RelMdSize implements MetadataHandler<BuiltInMetadata.Size> {
       } else {
         d = 0;
         for (ImmutableList<RexLiteral> literals : rel.getTuples()) {
-          d += typeValueSize(field.getType(), literals.get(i).getValue());
+          d += typeValueSize(field.getType(),
+              literals.get(i).getValueAs(Comparable.class));
         }
         d /= rel.getTuples().size();
       }
@@ -372,7 +373,8 @@ public class RelMdSize implements MetadataHandler<BuiltInMetadata.Size> {
     case INPUT_REF:
       return inputColumnSizes.get(((RexInputRef) node).getIndex());
     case LITERAL:
-      return typeValueSize(node.getType(), ((RexLiteral) node).getValue());
+      return typeValueSize(node.getType(),
+          ((RexLiteral) node).getValueAs(Comparable.class));
     default:
       if (node instanceof RexCall) {
         RexCall call = (RexCall) node;

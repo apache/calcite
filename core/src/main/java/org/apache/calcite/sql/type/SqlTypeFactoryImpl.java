@@ -56,6 +56,10 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
   public RelDataType createSqlType(
       SqlTypeName typeName,
       int precision) {
+    final int maxPrecision = typeSystem.getMaxPrecision(typeName);
+    if (maxPrecision >= 0 && precision > maxPrecision) {
+      precision = maxPrecision;
+    }
     if (typeName.allowsScale()) {
       return createSqlType(typeName, precision, typeName.getDefaultScale());
     }
@@ -75,6 +79,10 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
     assertBasic(typeName);
     assert (precision >= 0)
         || (precision == RelDataType.PRECISION_NOT_SPECIFIED);
+    final int maxPrecision = typeSystem.getMaxPrecision(typeName);
+    if (maxPrecision >= 0 && precision > maxPrecision) {
+      precision = maxPrecision;
+    }
     RelDataType newType =
         new BasicSqlType(typeSystem, typeName, precision, scale);
     newType = SqlTypeUtil.addCharsetAndCollation(newType, this);

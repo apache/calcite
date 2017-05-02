@@ -48,7 +48,6 @@ import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.ControlFlowException;
-import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
@@ -59,7 +58,6 @@ import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -588,8 +586,7 @@ public class RexToLixTranslator {
       RelDataType type,
       JavaTypeFactory typeFactory,
       RexImpTable.NullAs nullAs) {
-    final Comparable value = literal.getValue();
-    if (value == null) {
+    if (literal.isNull()) {
       switch (nullAs) {
       case TRUE:
       case IS_NULL:
@@ -615,26 +612,22 @@ public class RexToLixTranslator {
     final Object value2;
     switch (literal.getType().getSqlTypeName()) {
     case DECIMAL:
+      final BigDecimal bd = literal.getValueAs(BigDecimal.class);
       if (javaClass == float.class) {
-        return Expressions.constant(value, javaClass);
+        return Expressions.constant(bd, javaClass);
       }
       assert javaClass == BigDecimal.class;
       return Expressions.new_(BigDecimal.class,
-          Expressions.constant(value.toString()));
+          Expressions.constant(bd.toString()));
     case DATE:
-      value2 = (int)
-          (((Calendar) value).getTimeInMillis() / DateTimeUtils.MILLIS_PER_DAY);
-      javaClass = int.class;
-      break;
     case TIME:
-      value2 = (int)
-          (((Calendar) value).getTimeInMillis() % DateTimeUtils.MILLIS_PER_DAY);
+    case INTERVAL_YEAR:
+    case INTERVAL_YEAR_MONTH:
+    case INTERVAL_MONTH:
+      value2 = literal.getValueAs(Integer.class);
       javaClass = int.class;
       break;
     case TIMESTAMP:
-      value2 = ((Calendar) value).getTimeInMillis();
-      javaClass = long.class;
-      break;
     case INTERVAL_DAY:
     case INTERVAL_DAY_HOUR:
     case INTERVAL_DAY_MINUTE:
@@ -645,32 +638,27 @@ public class RexToLixTranslator {
     case INTERVAL_MINUTE:
     case INTERVAL_MINUTE_SECOND:
     case INTERVAL_SECOND:
-      value2 = ((BigDecimal) value).longValue();
+      value2 = literal.getValueAs(Long.class);
       javaClass = long.class;
-      break;
-    case INTERVAL_YEAR:
-    case INTERVAL_YEAR_MONTH:
-    case INTERVAL_MONTH:
-      value2 = ((BigDecimal) value).intValue();
-      javaClass = int.class;
       break;
     case CHAR:
     case VARCHAR:
-      value2 = ((NlsString) value).getValue();
+      value2 = literal.getValueAs(String.class);
       break;
     case BINARY:
     case VARBINARY:
       return Expressions.new_(
           ByteString.class,
           Expressions.constant(
-              ((ByteString) value).getBytes(),
+              literal.getValueAs(byte[].class),
               byte[].class));
     case SYMBOL:
-      value2 = value;
-      javaClass = value.getClass();
+      value2 = literal.getValueAs(Enum.class);
+      javaClass = value2.getClass();
       break;
     default:
       final Primitive primitive = Primitive.ofBoxOr(javaClass);
+      final Comparable value = literal.getValueAs(Comparable.class);
       if (primitive != null && value instanceof Number) {
         value2 = primitive.number((Number) value);
       } else {

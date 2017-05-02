@@ -51,6 +51,7 @@ import org.apache.calcite.test.SqlLimitsTest;
 import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.Holder;
 import org.apache.calcite.util.Pair;
+import org.apache.calcite.util.TimestampString;
 import org.apache.calcite.util.Util;
 
 import com.google.common.base.Function;
@@ -6883,9 +6884,8 @@ public abstract class SqlOperatorBaseTest {
       case VARCHAR:
         return SqlLiteral.createCharString(value.toString(), SqlParserPos.ZERO);
       case TIMESTAMP:
-        Calendar calendar = Util.calendar();
-        calendar.setTimeInMillis((Long) value);
-        return SqlLiteral.createTimestamp(calendar, type.getPrecision(),
+        TimestampString ts = TimestampString.fromMillisSinceEpoch((Long) value);
+        return SqlLiteral.createTimestamp(ts, type.getPrecision(),
             SqlParserPos.ZERO);
       default:
         throw new AssertionError(type);

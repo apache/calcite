@@ -411,63 +411,6 @@ JAVACODE void checkNonQueryExpression(ExprContext exprContext)
     }
 }
 
-// The date/time parse utilities have to live here, instead of in the
-// SqlParserUtil class because ParseException is ambiguous, and
-// CommonParser has to live in multiple packages.
-
-JAVACODE SqlDateLiteral parseDateLiteral(String s, SqlParserPos pos) {
-    String dateStr = SqlParserUtil.parseString(s);
-    Calendar cal = DateTimeUtils.parseDateFormat(
-        dateStr, DateTimeUtils.DATE_FORMAT_STRING, DateTimeUtils.UTC_ZONE);
-    if (null == cal) {
-        throw SqlUtil.newContextException(pos,
-            RESOURCE.illegalLiteral("DATE", s,
-                RESOURCE.badFormat(DateTimeUtils.DATE_FORMAT_STRING).str()));
-    }
-    return SqlLiteral.createDate(cal, pos);
-}
-
-JAVACODE SqlTimeLiteral parseTimeLiteral(String s, SqlParserPos pos) {
-    String dateStr = SqlParserUtil.parseString(s);
-    DateTimeUtils.PrecisionTime pt =
-    DateTimeUtils.parsePrecisionDateTimeLiteral(
-        dateStr, DateTimeUtils.TIME_FORMAT_STRING, DateTimeUtils.UTC_ZONE);
-    if (null == pt) {
-        throw SqlUtil.newContextException(pos,
-            RESOURCE.illegalLiteral("TIME", s,
-                RESOURCE.badFormat(DateTimeUtils.TIME_FORMAT_STRING).str()));
-    }
-    return SqlLiteral.createTime(pt.getCalendar(), pt.getPrecision(), pos);
-}
-
-JAVACODE SqlTimestampLiteral parseTimestampLiteral(String s, SqlParserPos pos) {
-    String dateStr = SqlParserUtil.parseString(s);
-    DateTimeUtils.PrecisionTime pt =
-    DateTimeUtils.parsePrecisionDateTimeLiteral(
-        dateStr, DateTimeUtils.TIMESTAMP_FORMAT_STRING, DateTimeUtils.UTC_ZONE);
-    if (null == pt) {
-        throw SqlUtil.newContextException(pos,
-            RESOURCE.illegalLiteral("TIMESTAMP", s,
-                RESOURCE.badFormat(DateTimeUtils.TIMESTAMP_FORMAT_STRING).str()));
-    }
-    return SqlLiteral.createTimestamp(pt.getCalendar(), pt.getPrecision(), pos);
-}
-
-JAVACODE SqlIntervalLiteral parseIntervalLiteral(
-    SqlParserPos pos,
-    int sign,
-    String s,
-    SqlIntervalQualifier intervalQualifier) throws ParseException
-{
-    String intervalStr = SqlParserUtil.parseString(s);
-    if ("".equals(intervalStr)) {
-        throw new ParseException(
-            RESOURCE.illegalIntervalLiteral(s + " "
-                + intervalQualifier.toString(), pos.toString()).str());
-    }
-    return SqlLiteral.createInterval(sign, intervalStr, intervalQualifier, pos);
-}
-
 /**
  * Converts a ParseException (local to this particular instantiation
  * of the parser) into a SqlParseException (common to all parsers).
@@ -3693,33 +3636,33 @@ SqlLiteral DateTimeLiteral() :
         p = token.image;
     }
     <RBRACE> {
-        return parseDateLiteral(p, getPos());
+        return SqlParserUtil.parseDateLiteral(p, getPos());
     }
 |
     <LBRACE_T> <QUOTED_STRING> {
         p = token.image;
     }
     <RBRACE> {
-        return parseTimeLiteral(p, getPos());
+        return SqlParserUtil.parseTimeLiteral(p, getPos());
     }
 |
     <LBRACE_TS> { s = span(); } <QUOTED_STRING> {
         p = token.image;
     }
     <RBRACE> {
-        return parseTimestampLiteral(p, s.end(this));
+        return SqlParserUtil.parseTimestampLiteral(p, s.end(this));
     }
 |
     <DATE> { s = span(); } <QUOTED_STRING> {
-        return parseDateLiteral(token.image, s.end(this));
+        return SqlParserUtil.parseDateLiteral(token.image, s.end(this));
     }
 |
     <TIME> { s = span(); } <QUOTED_STRING> {
-        return parseTimeLiteral(token.image, s.end(this));
+        return SqlParserUtil.parseTimeLiteral(token.image, s.end(this));
     }
 |
     <TIMESTAMP> { s = span(); } <QUOTED_STRING> {
-        return parseTimestampLiteral(token.image, s.end(this));
+        return SqlParserUtil.parseTimestampLiteral(token.image, s.end(this));
     }
 }
 
@@ -3862,8 +3805,8 @@ SqlLiteral IntervalLiteral() :
     ]
     <QUOTED_STRING> { p = token.image; }
     intervalQualifier = IntervalQualifier() {
-        return parseIntervalLiteral(s.end(intervalQualifier), sign, p,
-            intervalQualifier);
+        return SqlParserUtil.parseIntervalLiteral(s.end(intervalQualifier),
+            sign, p, intervalQualifier);
     }
 }
 

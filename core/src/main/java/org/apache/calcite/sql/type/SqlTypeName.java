@@ -19,6 +19,9 @@ package org.apache.calcite.sql.type;
 import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.util.DateString;
+import org.apache.calcite.util.TimeString;
+import org.apache.calcite.util.TimestampString;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
@@ -911,11 +914,17 @@ public enum SqlTypeName {
     case BINARY:
       return SqlLiteral.createBinaryString((byte[]) o, pos);
     case DATE:
-      return SqlLiteral.createDate((Calendar) o, pos);
+      return SqlLiteral.createDate(o instanceof Calendar
+          ? DateString.fromCalendarFields((Calendar) o)
+          : (DateString) o, pos);
     case TIME:
-      return SqlLiteral.createTime((Calendar) o, 0 /* todo */, pos);
+      return SqlLiteral.createTime(o instanceof Calendar
+          ? TimeString.fromCalendarFields((Calendar) o)
+          : (TimeString) o, 0 /* todo */, pos);
     case TIMESTAMP:
-      return SqlLiteral.createTimestamp((Calendar) o, 0 /* todo */, pos);
+      return SqlLiteral.createTimestamp(o instanceof Calendar
+          ? TimestampString.fromCalendarFields((Calendar) o)
+          : (TimestampString) o, 0 /* todo */, pos);
     default:
       throw Util.unexpected(this);
     }

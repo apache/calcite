@@ -67,6 +67,9 @@ import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
+import org.apache.calcite.util.DateString;
+import org.apache.calcite.util.TimeString;
+import org.apache.calcite.util.TimestampString;
 import org.apache.calcite.util.Util;
 
 import com.google.common.base.Preconditions;
@@ -78,9 +81,9 @@ import com.google.common.collect.Iterables;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.math.BigDecimal;
 import java.util.AbstractList;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -481,7 +484,8 @@ public abstract class SqlImplementor {
         || node instanceof SqlMatchRecognize
         || node instanceof SqlCall
             && (((SqlCall) node).getOperator() instanceof SqlSetOperator
-                || ((SqlCall) node).getOperator() == SqlStdOperatorTable.AS)
+                || ((SqlCall) node).getOperator() == SqlStdOperatorTable.AS
+                || ((SqlCall) node).getOperator() == SqlStdOperatorTable.VALUES)
         : node;
     return new SqlSelect(POS, SqlNodeList.EMPTY, null, node, null, null, null,
         SqlNodeList.EMPTY, null, null, null);
@@ -542,20 +546,23 @@ public abstract class SqlImplementor {
           return SqlLiteral.createCharString((String) literal.getValue2(), POS);
         case NUMERIC:
         case EXACT_NUMERIC:
-          return SqlLiteral.createExactNumeric(literal.getValue().toString(),
-              POS);
+          return SqlLiteral.createExactNumeric(
+              literal.getValueAs(BigDecimal.class).toString(), POS);
         case APPROXIMATE_NUMERIC:
           return SqlLiteral.createApproxNumeric(
-              literal.getValue().toString(), POS);
+              literal.getValueAs(BigDecimal.class).toString(), POS);
         case BOOLEAN:
-          return SqlLiteral.createBoolean((Boolean) literal.getValue(), POS);
+          return SqlLiteral.createBoolean(literal.getValueAs(Boolean.class),
+              POS);
         case DATE:
-          return SqlLiteral.createDate((Calendar) literal.getValue(), POS);
+          return SqlLiteral.createDate(literal.getValueAs(DateString.class),
+              POS);
         case TIME:
-          return SqlLiteral.createTime((Calendar) literal.getValue(),
+          return SqlLiteral.createTime(literal.getValueAs(TimeString.class),
               literal.getType().getPrecision(), POS);
         case TIMESTAMP:
-          return SqlLiteral.createTimestamp((Calendar) literal.getValue(),
+          return SqlLiteral.createTimestamp(
+              literal.getValueAs(TimestampString.class),
               literal.getType().getPrecision(), POS);
         case ANY:
         case NULL:

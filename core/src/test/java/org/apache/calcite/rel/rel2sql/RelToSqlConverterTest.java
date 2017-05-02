@@ -659,6 +659,26 @@ public class RelToSqlConverterTest {
     sql(query).ok(expected);
   }
 
+  @Test public void testLiteral() {
+    checkLiteral("DATE '1978-05-02'");
+    checkLiteral("TIME '12:34:56'");
+    checkLiteral("TIME '12:34:56.78'");
+    checkLiteral("TIMESTAMP '1978-05-02 12:34:56.78'");
+    checkLiteral("'I can''t explain'");
+    checkLiteral("''");
+    checkLiteral("TRUE");
+    checkLiteral("123");
+    checkLiteral("123.45");
+    checkLiteral("-123.45");
+  }
+
+  private void checkLiteral(String s) {
+    sql("VALUES " + s)
+        .dialect(DatabaseProduct.HSQLDB.getDialect())
+        .ok("SELECT *\n"
+            + "FROM (VALUES  (" + s + "))");
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1798">[CALCITE-1798]
    * Generate dialect-specific SQL for FLOOR operator</a>. */

@@ -20,12 +20,7 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeName;
-import org.apache.calcite.util.ZonelessDate;
-import org.apache.calcite.util.ZonelessTime;
-import org.apache.calcite.util.ZonelessTimestamp;
-
-import java.util.Calendar;
-import java.util.TimeZone;
+import org.apache.calcite.util.TimestampString;
 
 /**
  * A SQL literal representing a DATE, TIME or TIMESTAMP value.
@@ -42,57 +37,29 @@ abstract class SqlAbstractDateTimeLiteral extends SqlLiteral {
   //~ Instance fields --------------------------------------------------------
 
   protected final boolean hasTimeZone;
-  protected final String formatString;
   protected final int precision;
 
   //~ Constructors -----------------------------------------------------------
 
   /**
-   * Constructs a datetime literal based on a Calendar. If the literal is to
-   * represent a Timestamp, the Calendar is expected to follow java.sql
-   * semantics. If the Calendar is to represent a Time or Date, the Calendar
-   * is expected to follow {@link org.apache.calcite.util.ZonelessTime}
-   * and {@link org.apache.calcite.util.ZonelessDate}
-   * semantics.
+   * Constructs a datetime literal.
    */
-  protected SqlAbstractDateTimeLiteral(
-      Calendar d,
-      boolean tz,
-      SqlTypeName typeName,
-      int precision,
-      String formatString,
-      SqlParserPos pos) {
+  protected SqlAbstractDateTimeLiteral(Object d, boolean tz,
+      SqlTypeName typeName, int precision, SqlParserPos pos) {
     super(d, typeName, pos);
     this.hasTimeZone = tz;
     this.precision = precision;
-    this.formatString = formatString;
   }
 
   //~ Methods ----------------------------------------------------------------
 
+  /** Converts this literal to a {@link TimestampString}. */
+  protected TimestampString getTimestamp() {
+    return (TimestampString) value;
+  }
+
   public int getPrec() {
     return precision;
-  }
-
-  public String toValue() {
-    return Long.toString(getCal().getTimeInMillis());
-  }
-
-  public Calendar getCal() {
-    return (Calendar) value;
-  }
-
-  /**
-   * Returns time zone component of this literal. Technically, a SQL date
-   * doesn't come with a tz, but time and ts inherit this, and the calendar
-   * object has one, so it seems harmless.
-   *
-   * @return time zone
-   */
-  public TimeZone getTimeZone() {
-    assert hasTimeZone : "Attempt to get time zone on Literal date: "
-        + getCal() + ", which has no time zone";
-    return getCal().getTimeZone();
   }
 
   /**
@@ -116,36 +83,6 @@ abstract class SqlAbstractDateTimeLiteral extends SqlLiteral {
       int leftPrec,
       int rightPrec) {
     writer.literal(this.toString());
-  }
-
-  /**
-   * Converts this literal to a
-   * {@link org.apache.calcite.util.ZonelessDate} object.
-   */
-  protected ZonelessDate getDate() {
-    ZonelessDate zd = new ZonelessDate();
-    zd.setZonelessTime(getCal().getTimeInMillis());
-    return zd;
-  }
-
-  /**
-   * Converts this literal to a
-   * {@link org.apache.calcite.util.ZonelessTime} object.
-   */
-  protected ZonelessTime getTime() {
-    ZonelessTime zt = new ZonelessTime();
-    zt.setZonelessTime(getCal().getTimeInMillis());
-    return zt;
-  }
-
-  /**
-   * Converts this literal to a
-   * {@link org.apache.calcite.util.ZonelessTimestamp} object.
-   */
-  protected ZonelessTimestamp getTimestamp() {
-    ZonelessTimestamp zt = new ZonelessTimestamp();
-    zt.setZonelessTime(getCal().getTimeInMillis());
-    return zt;
   }
 }
 
