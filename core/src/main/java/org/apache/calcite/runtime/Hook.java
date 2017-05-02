@@ -47,6 +47,12 @@ public enum Hook {
   /** Called with the SQL string and parse tree, in an array. */
   PARSE_TREE,
 
+  /** Converts a SQL string to a
+   * {@link org.apache.calcite.jdbc.CalcitePrepare.Query} object. This hook is
+   * an opportunity to execute a {@link org.apache.calcite.rel.RelNode} query
+   * plan in the JDBC driver rather than the usual SQL string. */
+  STRING_TO_QUERY,
+
   /** Called with the generated Java plan, just before it is compiled by
    * Janino. */
   JAVA_PLAN,
