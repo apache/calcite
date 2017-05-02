@@ -5312,7 +5312,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
           throw validator.newValidationError(id,
               RESOURCE.columnAmbiguous(name));
         }
-        if (havingExpr && validator.isAggregate(root)) {
+        if (havingExpr && isAggregate(root)) {
           return super.visit(id);
         }
         expr = stripAs(expr);

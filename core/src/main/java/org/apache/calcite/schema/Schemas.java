@@ -518,7 +518,10 @@ public final class Schemas {
       if (!iterator.hasNext()) {
         return path(builder.build());
       }
-      schema = schema.getSubSchema(name);
+      Schema subSchema = schema.getSubSchema(name);
+      if (subSchema != null) {
+        schema = schema.getSubSchema(name);
+      }
     }
   }
 
