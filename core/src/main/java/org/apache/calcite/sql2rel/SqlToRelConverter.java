@@ -1868,13 +1868,23 @@ public class SqlToRelConverter {
       // Walk over the tree and apply 'over' to all agg functions. This is
       // necessary because the returned expression is not necessarily a call
       // to an agg function. For example, AVG(x) becomes SUM(x) / COUNT(x).
+
+      boolean isDistinct = false;
+      if (aggCall.getFunctionQuantifier() != null
+        && aggCall.getFunctionQuantifier().getValue().equals(SqlSelectKeyword.DISTINCT)) {
+        isDistinct = true;
+      }
+
       final RexShuttle visitor =
           new HistogramShuttle(
               partitionKeys.build(), orderKeys.build(),
               RexWindowBound.create(window.getLowerBound(), lowerBound),
               RexWindowBound.create(window.getUpperBound(), upperBound),
-              window);
-      return rexAgg.accept(visitor);
+              window,
+              isDistinct);
+      RexNode overNode = rexAgg.accept(visitor);
+
+      return overNode;
     } finally {
       bb.window = null;
     }
@@ -2072,12 +2082,12 @@ public class SqlToRelConverter {
     final SqlValidatorNamespace ns = validator.getNamespace(matchRecognize);
     final SqlValidatorScope scope = validator.getMatchRecognizeScope(matchRecognize);
 
-    final Blackboard mrBlackBoard = createBlackboard(scope, null, false);
+    final Blackboard matchBb = createBlackboard(scope, null, false);
     final RelDataType rowType = ns.getRowType();
     // convert inner query, could be a table name or a derived table
     SqlNode expr = matchRecognize.getTableRef();
-    convertFrom(mrBlackBoard, expr);
-    final RelNode input = mrBlackBoard.root;
+    convertFrom(matchBb, expr);
+    final RelNode input = matchBb.root;
 
     // convert pattern
     final Set<String> patternVarsSet = new HashSet<>();
@@ -2110,7 +2120,29 @@ public class SqlToRelConverter {
       };
     final RexNode patternNode = pattern.accept(patternVarVisitor);
 
-    mrBlackBoard.setPatternVarRef(true);
+    SqlNode afterMatch = matchRecognize.getAfter();
+    if (afterMatch == null) {
+      afterMatch =
+          SqlMatchRecognize.AfterOption.SKIP_TO_NEXT_ROW.symbol(SqlParserPos.ZERO);
+    }
+
+    final RexNode after;
+    if (afterMatch instanceof SqlCall) {
+      List<SqlNode> operands = ((SqlCall) afterMatch).getOperandList();
+      SqlOperator operator = ((SqlCall) afterMatch).getOperator();
+      assert operands.size() == 1;
+      SqlIdentifier id = (SqlIdentifier) operands.get(0);
+      assert patternVarsSet.contains(id.getSimple())
+          : id.getSimple() + " not defined in pattern";
+      RexNode rex = rexBuilder.makeLiteral(id.getSimple());
+      after =
+          rexBuilder.makeCall(validator.getUnknownType(), operator,
+              ImmutableList.of(rex));
+    } else {
+      after = matchBb.convertExpression(afterMatch);
+    }
+
+    matchBb.setPatternVarRef(true);
 
     // convert measures
     final ImmutableMap.Builder<String, RexNode> measureNodes =
@@ -2118,7 +2150,7 @@ public class SqlToRelConverter {
     for (SqlNode measure : matchRecognize.getMeasureList()) {
       List<SqlNode> operands = ((SqlCall) measure).getOperandList();
       String alias = ((SqlIdentifier) operands.get(1)).getSimple();
-      RexNode rex = mrBlackBoard.convertExpression(operands.get(0));
+      RexNode rex = matchBb.convertExpression(operands.get(0));
       measureNodes.put(alias, rex);
     }
 
@@ -2128,11 +2160,11 @@ public class SqlToRelConverter {
     for (SqlNode def : matchRecognize.getPatternDefList()) {
       List<SqlNode> operands = ((SqlCall) def).getOperandList();
       String alias = ((SqlIdentifier) operands.get(1)).getSimple();
-      RexNode rex = mrBlackBoard.convertExpression(operands.get(0));
+      RexNode rex = matchBb.convertExpression(operands.get(0));
       definitionNodes.put(alias, rex);
     }
 
-    mrBlackBoard.setPatternVarRef(false);
+    matchBb.setPatternVarRef(false);
 
     final RelFactories.MatchFactory factory =
         RelFactories.DEFAULT_MATCH_FACTORY;
@@ -2140,8 +2172,7 @@ public class SqlToRelConverter {
         factory.createMatchRecognize(input, patternNode,
             matchRecognize.getStrictStart().booleanValue(),
             matchRecognize.getStrictEnd().booleanValue(),
-            definitionNodes.build(),
-            measureNodes.build(),
+            definitionNodes.build(), measureNodes.build(), after,
             rowType);
     bb.setRoot(rel, false);
   }
@@ -4546,6 +4577,12 @@ public class SqlToRelConverter {
         new SqlNodeList(SqlParserPos.ZERO);
 
     /**
+     * The auxiliary group-by expressions.
+     */
+    private final Map<SqlNode, Ord<AuxiliaryConverter>> auxiliaryGroupExprs =
+        new HashMap<>();
+
+    /**
      * Input expressions for the group columns and aggregates, in
      * {@link RexNode} format. The first elements of the list correspond to the
      * elements in {@link #groupExprs}; the remaining elements are for
@@ -4612,7 +4649,26 @@ public class SqlToRelConverter {
       String name = nameMap.get(expr.toString());
       RexNode convExpr = bb.convertExpression(expr);
       addExpr(convExpr, name);
+
+      if (expr instanceof SqlCall) {
+        SqlCall call = (SqlCall) expr;
+        for (Pair<SqlNode, AuxiliaryConverter> p
+            : SqlStdOperatorTable.convertGroupToAuxiliaryCalls(call)) {
+          addAuxiliaryGroupExpr(p.left, index, p.right);
+        }
+      }
+
       return index;
+    }
+
+    void addAuxiliaryGroupExpr(SqlNode node, int index,
+        AuxiliaryConverter converter) {
+      for (SqlNode node2 : auxiliaryGroupExprs.keySet()) {
+        if (node2.equalsDeep(node, Litmus.IGNORE)) {
+          return;
+        }
+      }
+      auxiliaryGroupExprs.put(node, Ord.of(index, converter));
     }
 
     /**
@@ -4838,6 +4894,18 @@ public class SqlToRelConverter {
           return node;
         }
       }
+
+      for (Map.Entry<SqlNode, Ord<AuxiliaryConverter>> e
+          : auxiliaryGroupExprs.entrySet()) {
+        if (call.equalsDeep(e.getKey(), Litmus.IGNORE)) {
+          AuxiliaryConverter converter = e.getValue().e;
+          final int groupOrdinal = e.getValue().i;
+          return converter.convert(rexBuilder,
+              convertedInputExprs.get(groupOrdinal).left,
+              rexBuilder.makeInputRef(bb.root, groupOrdinal));
+        }
+      }
+
       return aggMapping.get(call);
     }
 
@@ -4957,17 +5025,20 @@ public class SqlToRelConverter {
     private final RexWindowBound lowerBound;
     private final RexWindowBound upperBound;
     private final SqlWindow window;
+    private final boolean distinct;
 
     HistogramShuttle(
         List<RexNode> partitionKeys,
         ImmutableList<RexFieldCollation> orderKeys,
         RexWindowBound lowerBound, RexWindowBound upperBound,
-        SqlWindow window) {
+        SqlWindow window,
+        boolean distinct) {
       this.partitionKeys = partitionKeys;
       this.orderKeys = orderKeys;
       this.lowerBound = lowerBound;
       this.upperBound = upperBound;
       this.window = window;
+      this.distinct = distinct;
     }
 
     public RexNode visitCall(RexCall call) {
@@ -5023,7 +5094,8 @@ public class SqlToRelConverter {
                 upperBound,
                 window.isRows(),
                 window.isAllowPartial(),
-                false);
+                false,
+                distinct);
 
         RexNode histogramCall =
             rexBuilder.makeCall(
@@ -5063,7 +5135,8 @@ public class SqlToRelConverter {
             upperBound,
             window.isRows(),
             window.isAllowPartial(),
-            needSum0);
+            needSum0,
+            distinct);
       }
     }
 

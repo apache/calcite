@@ -17,6 +17,8 @@
 package org.apache.calcite.rel.mutable;
 
 import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.plan.hep.HepRelVertex;
+import org.apache.calcite.plan.volcano.RelSubset;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.Calc;
@@ -28,6 +30,7 @@ import org.apache.calcite.rel.core.Intersect;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.Minus;
 import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.Sample;
 import org.apache.calcite.rel.core.SemiJoin;
 import org.apache.calcite.rel.core.Sort;
@@ -38,24 +41,18 @@ import org.apache.calcite.rel.core.Uncollect;
 import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rel.core.Values;
 import org.apache.calcite.rel.core.Window;
-import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.logical.LogicalCalc;
 import org.apache.calcite.rel.logical.LogicalCorrelate;
 import org.apache.calcite.rel.logical.LogicalExchange;
-import org.apache.calcite.rel.logical.LogicalFilter;
-import org.apache.calcite.rel.logical.LogicalIntersect;
-import org.apache.calcite.rel.logical.LogicalJoin;
-import org.apache.calcite.rel.logical.LogicalMinus;
-import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.logical.LogicalSort;
 import org.apache.calcite.rel.logical.LogicalTableFunctionScan;
 import org.apache.calcite.rel.logical.LogicalTableModify;
-import org.apache.calcite.rel.logical.LogicalUnion;
 import org.apache.calcite.rel.logical.LogicalWindow;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
+import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.mapping.Mappings;
 
@@ -175,102 +172,126 @@ public abstract class MutableRels {
   }
 
   public static RelNode fromMutable(MutableRel node) {
+    return fromMutable(node, RelFactories.LOGICAL_BUILDER.create(node.cluster, null));
+  }
+
+  public static RelNode fromMutable(MutableRel node, RelBuilder relBuilder) {
     switch (node.type) {
     case TABLE_SCAN:
     case VALUES:
       return ((MutableLeafRel) node).rel;
     case PROJECT:
       final MutableProject project = (MutableProject) node;
-      return LogicalProject.create(
-          fromMutable(project.input), project.projects, project.rowType);
+      relBuilder.push(fromMutable(project.input, relBuilder));
+      relBuilder.project(project.projects, project.rowType.getFieldNames(), true);
+      return relBuilder.build();
     case FILTER:
       final MutableFilter filter = (MutableFilter) node;
-      return LogicalFilter.create(fromMutable(filter.input),
-          filter.condition);
+      relBuilder.push(fromMutable(filter.input, relBuilder));
+      relBuilder.filter(filter.condition);
+      return relBuilder.build();
     case AGGREGATE:
       final MutableAggregate aggregate = (MutableAggregate) node;
-      return LogicalAggregate.create(fromMutable(aggregate.input),
-          aggregate.indicator, aggregate.groupSet, aggregate.groupSets,
+      relBuilder.push(fromMutable(aggregate.input, relBuilder));
+      relBuilder.aggregate(
+          relBuilder.groupKey(aggregate.groupSet, aggregate.indicator, aggregate.groupSets),
           aggregate.aggCalls);
+      return relBuilder.build();
     case SORT:
       final MutableSort sort = (MutableSort) node;
-      return LogicalSort.create(fromMutable(sort.input), sort.collation,
+      return LogicalSort.create(fromMutable(sort.input, relBuilder), sort.collation,
           sort.offset, sort.fetch);
     case CALC:
       final MutableCalc calc = (MutableCalc) node;
-      return LogicalCalc.create(fromMutable(calc.input), calc.program);
+      return LogicalCalc.create(fromMutable(calc.input, relBuilder), calc.program);
     case EXCHANGE:
       final MutableExchange exchange = (MutableExchange) node;
       return LogicalExchange.create(
-          fromMutable(exchange.getInput()), exchange.distribution);
+          fromMutable(exchange.getInput(), relBuilder), exchange.distribution);
     case COLLECT: {
       final MutableCollect collect = (MutableCollect) node;
-      final RelNode child = fromMutable(collect.getInput());
+      final RelNode child = fromMutable(collect.getInput(), relBuilder);
       return new Collect(collect.cluster, child.getTraitSet(), child, collect.fieldName);
     }
     case UNCOLLECT: {
       final MutableUncollect uncollect = (MutableUncollect) node;
-      final RelNode child = fromMutable(uncollect.getInput());
+      final RelNode child = fromMutable(uncollect.getInput(), relBuilder);
       return Uncollect.create(child.getTraitSet(), child, uncollect.withOrdinality);
     }
     case WINDOW: {
       final MutableWindow window = (MutableWindow) node;
-      final RelNode child = fromMutable(window.getInput());
+      final RelNode child = fromMutable(window.getInput(), relBuilder);
       return LogicalWindow.create(child.getTraitSet(),
           child, window.constants, window.rowType, window.groups);
     }
     case TABLE_MODIFY:
       final MutableTableModify modify = (MutableTableModify) node;
       return LogicalTableModify.create(modify.table, modify.catalogReader,
-          fromMutable(modify.getInput()), modify.operation, modify.updateColumnList,
+          fromMutable(modify.getInput(), relBuilder), modify.operation, modify.updateColumnList,
           modify.sourceExpressionList, modify.flattened);
     case SAMPLE:
       final MutableSample sample = (MutableSample) node;
-      return new Sample(sample.cluster, fromMutable(sample.getInput()), sample.params);
+      return new Sample(sample.cluster, fromMutable(sample.getInput(), relBuilder), sample.params);
     case TABLE_FUNCTION_SCAN:
       final MutableTableFunctionScan tableFunctionScan = (MutableTableFunctionScan) node;
       return LogicalTableFunctionScan.create(tableFunctionScan.cluster,
-          fromMutables(tableFunctionScan.getInputs()), tableFunctionScan.rexCall,
+          fromMutables(tableFunctionScan.getInputs(), relBuilder), tableFunctionScan.rexCall,
           tableFunctionScan.elementType, tableFunctionScan.rowType,
           tableFunctionScan.columnMappings);
     case JOIN:
       final MutableJoin join = (MutableJoin) node;
-      return LogicalJoin.create(fromMutable(join.getLeft()), fromMutable(join.getRight()),
-          join.condition, join.variablesSet, join.joinType);
+      relBuilder.push(fromMutable(join.getLeft(), relBuilder));
+      relBuilder.push(fromMutable(join.getRight(), relBuilder));
+      relBuilder.join(join.joinType, join.condition, join.variablesSet);
+      return relBuilder.build();
     case SEMIJOIN:
       final MutableSemiJoin semiJoin = (MutableSemiJoin) node;
-      return SemiJoin.create(fromMutable(semiJoin.getLeft()),
-          fromMutable(semiJoin.getRight()), semiJoin.condition,
-          semiJoin.leftKeys, semiJoin.rightKeys);
+      relBuilder.push(fromMutable(semiJoin.getLeft(), relBuilder));
+      relBuilder.push(fromMutable(semiJoin.getRight(), relBuilder));
+      relBuilder.semiJoin(semiJoin.condition);
+      return relBuilder.build();
     case CORRELATE:
       final MutableCorrelate correlate = (MutableCorrelate) node;
-      return LogicalCorrelate.create(fromMutable(correlate.getLeft()),
-          fromMutable(correlate.getRight()), correlate.correlationId,
+      return LogicalCorrelate.create(fromMutable(correlate.getLeft(), relBuilder),
+          fromMutable(correlate.getRight(), relBuilder), correlate.correlationId,
           correlate.requiredColumns, correlate.joinType);
     case UNION:
       final MutableUnion union = (MutableUnion) node;
-      return LogicalUnion.create(MutableRels.fromMutables(union.inputs), union.all);
+      relBuilder.pushAll(MutableRels.fromMutables(union.inputs, relBuilder));
+      relBuilder.union(union.all, union.inputs.size());
+      return relBuilder.build();
     case MINUS:
       final MutableMinus minus = (MutableMinus) node;
-      return LogicalMinus.create(MutableRels.fromMutables(minus.inputs), minus.all);
+      relBuilder.pushAll(MutableRels.fromMutables(minus.inputs, relBuilder));
+      relBuilder.minus(minus.all, minus.inputs.size());
+      return relBuilder.build();
     case INTERSECT:
       final MutableIntersect intersect = (MutableIntersect) node;
-      return LogicalIntersect.create(MutableRels.fromMutables(intersect.inputs), intersect.all);
+      relBuilder.pushAll(MutableRels.fromMutables(intersect.inputs, relBuilder));
+      relBuilder.intersect(intersect.all, intersect.inputs.size());
+      return relBuilder.build();
     default:
       throw new AssertionError(node.deep());
     }
   }
 
-  private static List<RelNode> fromMutables(List<MutableRel> nodes) {
+  private static List<RelNode> fromMutables(List<MutableRel> nodes, final RelBuilder relBuilder) {
     return Lists.transform(nodes,
         new Function<MutableRel, RelNode>() {
           public RelNode apply(MutableRel mutableRel) {
-            return fromMutable(mutableRel);
+            return fromMutable(mutableRel, relBuilder);
           }
         });
   }
 
   public static MutableRel toMutable(RelNode rel) {
+    if (rel instanceof HepRelVertex) {
+      return toMutable(((HepRelVertex) rel).getCurrentRel());
+    }
+    if (rel instanceof RelSubset) {
+      return toMutable(
+          Util.first(((RelSubset) rel).getBest(), ((RelSubset) rel).getOriginal()));
+    }
     if (rel instanceof TableScan) {
       return MutableScan.of((TableScan) rel);
     }

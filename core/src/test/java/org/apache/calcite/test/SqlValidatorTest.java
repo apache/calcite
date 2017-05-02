@@ -4778,7 +4778,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     checkExpFails("false and ^1 in (date '2012-01-02', date '2012-01-04')^",
         ERR_IN_OPERANDS_INCOMPATIBLE);
     checkExpFails(
-        "1 > 5 ^or (1, 2) in (3, 4)^",
+        "1 > 5 or ^(1, 2) in (3, 4)^",
         ERR_IN_OPERANDS_INCOMPATIBLE);
   }
 
@@ -5486,7 +5486,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   @Ignore("bug: should fail if sub-query does not have alias")
   @Test public void testJoinSubQuery() {
     // Sub-queries require alias
-    checkFails("select * from (select 1 as one from emp)\n"
+    checkFails("select * from (select 1 as uno from emp)\n"
             + "join (values (1), (2)) on true",
         "require alias");
   }
@@ -5637,8 +5637,8 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     checkResultType("with emp2 as (select * from emp),\n"
             + " dept2 as (select * from dept),\n"
             + " empDept as (select emp2.empno, dept2.deptno from dept2 join emp2 using (deptno))\n"
-            + "select 1 as one from empDept",
-        "RecordType(INTEGER NOT NULL ONE) NOT NULL");
+            + "select 1 as uno from empDept",
+        "RecordType(INTEGER NOT NULL UNO) NOT NULL");
   }
 
   /** Tests the {@code WITH} clause with UNION. */
@@ -5679,8 +5679,8 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
             + "  with dept2 as (select * from dept)\n"
             + "  (\n"
             + "    with empDept as (select emp2.empno, dept2.deptno from dept2 join emp2 using (deptno))\n"
-            + "    select 1 as one from empDept))",
-        "RecordType(INTEGER NOT NULL ONE) NOT NULL");
+            + "    select 1 as uno from empDept))",
+        "RecordType(INTEGER NOT NULL UNO) NOT NULL");
 
     // WITH inside WHERE can see enclosing tables
     checkResultType("select * from emp\n"
@@ -5707,15 +5707,15 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     checkResultType("select e.empno, d.* from emp as e\n"
             + "join (\n"
             + "  with dept2 as (select * from dept where dept.deptno > 10)\n"
-            + "  select deptno, 1 as one from dept2) as d using (deptno)",
+            + "  select deptno, 1 as uno from dept2) as d using (deptno)",
         "RecordType(INTEGER NOT NULL EMPNO,"
             + " INTEGER NOT NULL DEPTNO,"
-            + " INTEGER NOT NULL ONE) NOT NULL");
+            + " INTEGER NOT NULL UNO) NOT NULL");
 
     checkFails("select ^e^.empno, d.* from emp\n"
             + "join (\n"
             + "  with dept2 as (select * from dept where dept.deptno > 10)\n"
-            + "  select deptno, 1 as one from dept2) as d using (deptno)",
+            + "  select deptno, 1 as uno from dept2) as d using (deptno)",
         "Table 'E' not found");
   }
 
@@ -6727,8 +6727,11 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   @Test public void testOverlaps() {
-    checkExpType(
-        "(date '1-2-3', date '1-2-3') overlaps (date '1-2-3', date '1-2-3')",
+    checkExpType("(date '1-2-3', date '1-2-3')\n"
+            + " overlaps (date '1-2-3', date '1-2-3')",
+        "BOOLEAN NOT NULL");
+    checkExpType("period (date '1-2-3', date '1-2-3')\n"
+            + " overlaps period (date '1-2-3', date '1-2-3')",
         "BOOLEAN NOT NULL");
     checkExp(
         "(date '1-2-3', date '1-2-3') overlaps (date '1-2-3', interval '1' year)");
@@ -6739,13 +6742,143 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
 
     checkWholeExpFails(
         "(timestamp '1-2-3 4:5:6', timestamp '1-2-3 4:5:6' ) overlaps (time '4:5:6', interval '1 2:3:4.5' day to second)",
-        "(?s).*Cannot apply 'OVERLAPS' to arguments of type '.<TIMESTAMP.0.>, <TIMESTAMP.0.>. OVERLAPS .<TIME.0.>, <INTERVAL DAY TO SECOND>.*");
+        "(?s).*Cannot apply 'OVERLAPS' to arguments of type .*");
     checkWholeExpFails(
         "(time '4:5:6', timestamp '1-2-3 4:5:6' ) overlaps (time '4:5:6', interval '1 2:3:4.5' day to second)",
-        "(?s).*Cannot apply 'OVERLAPS' to arguments of type '.<TIME.0.>, <TIMESTAMP.0.>. OVERLAPS .<TIME.0.>, <INTERVAL DAY TO SECOND>.'.*");
+        "(?s).*Cannot apply 'OVERLAPS' to arguments of type .*");
     checkWholeExpFails(
         "(time '4:5:6', time '4:5:6' ) overlaps (time '4:5:6', date '1-2-3')",
-        "(?s).*Cannot apply 'OVERLAPS' to arguments of type '.<TIME.0.>, <TIME.0.>. OVERLAPS .<TIME.0.>, <DATE>.'.*");
+        "(?s).*Cannot apply 'OVERLAPS' to arguments of type .*");
+    checkWholeExpFails("1 overlaps 2",
+        "(?s).*Cannot apply 'OVERLAPS' to arguments of type "
+            + "'<INTEGER> OVERLAPS <INTEGER>'\\. Supported form.*");
+
+    checkExpType("true\n"
+            + "or (date '1-2-3', date '1-2-3')\n"
+            + "   overlaps (date '1-2-3', date '1-2-3')\n"
+            + "or false",
+        "BOOLEAN NOT NULL");
+    // row with 3 arguments as left argument to overlaps
+    checkExpFails("true\n"
+            + "or ^(date '1-2-3', date '1-2-3', date '1-2-3')\n"
+            + "   overlaps (date '1-2-3', date '1-2-3')^\n"
+            + "or false",
+        "(?s).*Cannot apply 'OVERLAPS' to arguments of type .*");
+    // row with 3 arguments as right argument to overlaps
+    checkExpFails("true\n"
+            + "or ^(date '1-2-3', date '1-2-3')\n"
+            + "  overlaps (date '1-2-3', date '1-2-3', date '1-2-3')^\n"
+            + "or false",
+        "(?s).*Cannot apply 'OVERLAPS' to arguments of type .*");
+    checkExpFails("^period (date '1-2-3', date '1-2-3')\n"
+            + "   overlaps (date '1-2-3', date '1-2-3', date '1-2-3')^",
+        "(?s).*Cannot apply 'OVERLAPS' to arguments of type .*");
+    checkExpFails("true\n"
+            + "or ^(1, 2) overlaps (2, 3)^\n"
+            + "or false",
+        "(?s).*Cannot apply 'OVERLAPS' to arguments of type .*");
+
+    // Other operators with similar syntax
+    String[] ops = {
+      "overlaps", "contains", "equals", "precedes", "succeeds",
+      "immediately precedes", "immediately succeeds"
+    };
+    for (String op : ops) {
+      checkExpType("period (date '1-2-3', date '1-2-3')\n"
+              + " " + op + " period (date '1-2-3', date '1-2-3')",
+          "BOOLEAN NOT NULL");
+      checkExpType("(date '1-2-3', date '1-2-3')\n"
+              + " " + op + " (date '1-2-3', date '1-2-3')",
+          "BOOLEAN NOT NULL");
+    }
+  }
+
+  @Test public void testContains() {
+    final String cannotApply =
+        "(?s).*Cannot apply 'CONTAINS' to arguments of type .*";
+
+    checkExpType("(date '1-2-3', date '1-2-3')\n"
+            + " contains (date '1-2-3', date '1-2-3')",
+        "BOOLEAN NOT NULL");
+    checkExpType("period (date '1-2-3', date '1-2-3')\n"
+            + " contains period (date '1-2-3', date '1-2-3')",
+        "BOOLEAN NOT NULL");
+    checkExp("(date '1-2-3', date '1-2-3')\n"
+        + "  contains (date '1-2-3', interval '1' year)");
+    checkExp("(time '1:2:3', interval '1' second)\n"
+        + " contains (time '23:59:59', time '1:2:3')");
+    checkExp("(timestamp '1-2-3 4:5:6', timestamp '1-2-3 4:5:6')\n"
+        + " contains (timestamp '1-2-3 4:5:6', interval '1 2:3:4.5' day to second)");
+
+    // period contains point
+    checkExp("(date '1-2-3', date '1-2-3')\n"
+        + "  contains date '1-2-3'");
+    // same, with "period" keyword
+    checkExp("period (date '1-2-3', date '1-2-3')\n"
+        + "  contains date '1-2-3'");
+    // point contains period
+    checkWholeExpFails("date '1-2-3'\n"
+            + "  contains (date '1-2-3', date '1-2-3')",
+        cannotApply);
+    // same, with "period" keyword
+    checkWholeExpFails("date '1-2-3'\n"
+            + "  contains period (date '1-2-3', date '1-2-3')",
+        cannotApply);
+    // point contains point
+    checkWholeExpFails("date '1-2-3' contains date '1-2-3'",
+        cannotApply);
+
+    checkWholeExpFails("(timestamp '1-2-3 4:5:6', timestamp '1-2-3 4:5:6' )\n"
+            + " contains (time '4:5:6', interval '1 2:3:4.5' day to second)",
+        cannotApply);
+    checkWholeExpFails("(time '4:5:6', timestamp '1-2-3 4:5:6' )\n"
+            + " contains (time '4:5:6', interval '1 2:3:4.5' day to second)",
+        cannotApply);
+    checkWholeExpFails("(time '4:5:6', time '4:5:6' )\n"
+            + "  contains (time '4:5:6', date '1-2-3')",
+        cannotApply);
+    checkWholeExpFails("1 contains 2",
+        cannotApply);
+    // row with 3 arguments
+    checkExpFails("true\n"
+            + "or ^(date '1-2-3', date '1-2-3', date '1-2-3')\n"
+            + "  contains (date '1-2-3', date '1-2-3')^\n"
+            + "or false",
+        cannotApply);
+
+    checkExpType("true\n"
+            + "or (date '1-2-3', date '1-2-3')\n"
+            + "  contains (date '1-2-3', date '1-2-3')\n"
+            + "or false",
+        "BOOLEAN NOT NULL");
+    // second argument is a point
+    checkExpType("true\n"
+            + "or (date '1-2-3', date '1-2-3')\n"
+            + "  contains date '1-2-3'\n"
+            + "or false",
+        "BOOLEAN NOT NULL");
+    // first argument may be null, so result may be null
+    checkExpType("true\n"
+            + "or (date '1-2-3',\n"
+            + "     case 1 when 2 then date '1-2-3' else null end)\n"
+            + "  contains date '1-2-3'\n"
+            + "or false",
+        "BOOLEAN");
+    // second argument may be null, so result may be null
+    checkExpType("true\n"
+            + "or (date '1-2-3', date '1-2-3')\n"
+            + "  contains case 1 when 1 then date '1-2-3' else null end\n"
+            + "or false",
+        "BOOLEAN");
+    checkExpFails("true\n"
+            + "or ^period (date '1-2-3', date '1-2-3')\n"
+            + "  contains period (date '1-2-3', time '4:5:6')^\n"
+            + "or false",
+        cannotApply);
+    checkExpFails("true\n"
+            + "or ^(1, 2) contains (2, 3)^\n"
+            + "or false",
+        cannotApply);
   }
 
   @Test public void testExtract() {
@@ -7526,7 +7659,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
             + " CATALOG.SALES.DEPT.DEPTNO,"
             + " CATALOG.SALES.DEPT.NAME}");
 
-    tester.checkFieldOrigin("select distinct emp.empno, hiredate, 1 as one,\n"
+    tester.checkFieldOrigin("select distinct emp.empno, hiredate, 1 as uno,\n"
             + " emp.empno * 2 as twiceEmpno\n"
             + "from emp join dept on true",
         "{CATALOG.SALES.EMP.EMPNO,"
@@ -7994,11 +8127,17 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "= left\n"
         + "> left\n"
         + ">= left\n"
+        + "CONTAINS left\n"
+        + "EQUALS left\n"
+        + "IMMEDIATELY PRECEDES left\n"
+        + "IMMEDIATELY SUCCEEDS left\n"
         + "IS DISTINCT FROM left\n"
         + "IS NOT DISTINCT FROM left\n"
         + "MEMBER OF left\n"
-        + "OVERLAPS -\n"
+        + "OVERLAPS left\n"
+        + "PRECEDES left\n"
         + "SUBMULTISET OF left\n"
+        + "SUCCEEDS left\n"
         + "\n"
         + "IS A SET post\n"
         + "IS FALSE post\n"
@@ -9225,11 +9364,10 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   @Test public void testMatchRecognizeDefines4() throws Exception {
-    final String sql = "select * \n"
-        + "  from emp match_recognize \n"
-        + "  (\n"
+    final String sql = "select *\n"
+        + "  from emp match_recognize (\n"
         + "    pattern (strt down+ up+)\n"
-        + "    define \n"
+        + "    define\n"
         + "      down as down.sal < PREV(down.sal),\n"
         + "      up as up.sal > FIRST(^PREV(up.sal)^)\n"
         + "  ) mr";
@@ -9238,11 +9376,10 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   @Test public void testMatchRecognizeDefines5() throws Exception {
-    final String sql = "select * \n"
-        + "  from emp match_recognize \n"
-        + "  (\n"
+    final String sql = "select *\n"
+        + "  from emp match_recognize (\n"
         + "    pattern (strt down+ up+)\n"
-        + "    define \n"
+        + "    define\n"
         + "      down as down.sal < PREV(down.sal),\n"
         + "      up as up.sal > FIRST(^FIRST(up.sal)^)\n"
         + "  ) mr";
@@ -9251,11 +9388,10 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   @Test public void testMatchRecognizeDefines6() throws Exception {
-    final String sql = "select * \n"
-        + "  from emp match_recognize \n"
-        + "  (\n"
+    final String sql = "select *\n"
+        + "  from emp match_recognize (\n"
         + "    pattern (strt down+ up+)\n"
-        + "    define \n"
+        + "    define\n"
         + "      down as down.sal < PREV(down.sal),\n"
         + "      up as up.sal > ^COUNT(down.sal, up.sal)^\n"
         + "  ) mr";
@@ -9653,12 +9789,10 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
 
   @Test public void testMatchRecognizeMeasures1() throws Exception {
     final String sql = "select *\n"
-        + "  from emp match_recognize\n"
-        + "  (\n"
-        + "   measures "
-        + "   STRT.sal as start_sal,"
-        + "   ^LAST(null)^ as bottom_sal,"
-        + "   LAST(up.ts) as end_sal"
+        + "  from emp match_recognize (\n"
+        + "    measures STRT.sal as start_sal,"
+        + "      ^LAST(null)^ as bottom_sal,"
+        + "      LAST(up.ts) as end_sal"
         + "    pattern (strt down+ up+)\n"
         + "    define\n"
         + "      down as down.sal < PREV(down.sal),\n"
@@ -9666,6 +9800,38 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "  ) mr";
     sql(sql)
       .fails("Null parameters in 'LAST\\(NULL, 0\\)'");
+  }
+
+  @Test public void testMatchRecognizeSkipTo1() throws Exception {
+    final String sql = "select *\n"
+        + "  from emp match_recognize (\n"
+        + "    after match skip to ^null^\n"
+        + "    measures\n"
+        + "      STRT.sal as start_sal,\n"
+        + "      LAST(up.ts) as end_sal\n"
+        + "    pattern (strt down+ up+)\n"
+        + "    define\n"
+        + "      down as down.sal < PREV(down.sal),\n"
+        + "      up as up.sal > prev(up.sal)\n"
+        + "  ) mr";
+    sql(sql)
+        .fails("(?s).*Encountered \"to null\" at .*");
+  }
+
+  @Test public void testMatchRecognizeSkipTo2() throws Exception {
+    final String sql = "select *\n"
+        + "  from emp match_recognize (\n"
+        + "    after match skip to ^no_exists^\n"
+        + "    measures\n"
+        + "      STRT.sal as start_sal,"
+        + "      LAST(up.ts) as end_sal"
+        + "    pattern (strt down+ up+)\n"
+        + "    define\n"
+        + "      down as down.sal < PREV(down.sal),\n"
+        + "      up as up.sal > prev(up.sal)\n"
+        + "  ) mr";
+    sql(sql)
+        .fails("(?s).*Encountered \"measures\" at .*");
   }
 
 }

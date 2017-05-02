@@ -2313,46 +2313,200 @@ public abstract class SqlOperatorBaseTest {
 
   @Test public void testOverlapsOperator() {
     tester.setFor(SqlStdOperatorTable.OVERLAPS, VM_EXPAND);
-    if (Bug.FRG187_FIXED) {
-      tester.checkBoolean(
-          "(date '1-2-3', date '1-2-3') overlaps (date '1-2-3', interval '1' year)",
-          Boolean.TRUE);
-      tester.checkBoolean(
-          "(date '1-2-3', date '1-2-3') overlaps (date '4-5-6', interval '1' year)",
-          Boolean.FALSE);
-      tester.checkBoolean(
-          "(date '1-2-3', date '4-5-6') overlaps (date '2-2-3', date '3-4-5')",
-          Boolean.TRUE);
-      tester.checkNull(
-          "(cast(null as date), date '1-2-3') overlaps (date '1-2-3', interval '1' year)");
-      tester.checkNull(
-          "(date '1-2-3', date '1-2-3') overlaps (date '1-2-3', cast(null as date))");
+    tester.checkBoolean(
+        "(date '1-2-3', date '1-2-3') overlaps (date '1-2-3', interval '1' year)",
+        Boolean.TRUE);
+    tester.checkBoolean(
+        "(date '1-2-3', date '1-2-3') overlaps (date '4-5-6', interval '1' year)",
+        Boolean.FALSE);
+    tester.checkBoolean(
+        "(date '1-2-3', date '4-5-6') overlaps (date '2-2-3', date '3-4-5')",
+        Boolean.TRUE);
+    tester.checkNull(
+        "(cast(null as date), date '1-2-3') overlaps (date '1-2-3', interval '1' year)");
+    tester.checkNull(
+        "(date '1-2-3', date '1-2-3') overlaps (date '1-2-3', cast(null as date))");
 
-      tester.checkBoolean(
-          "(time '1:2:3', interval '1' second) overlaps (time '23:59:59', time '1:2:3')",
-          Boolean.TRUE);
-      tester.checkBoolean(
-          "(time '1:2:3', interval '1' second) overlaps (time '23:59:59', time '1:2:2')",
-          Boolean.FALSE);
-      tester.checkBoolean(
-          "(time '1:2:3', interval '1' second) overlaps (time '23:59:59', interval '2' hour)",
-          Boolean.TRUE);
-      tester.checkNull(
-          "(time '1:2:3', cast(null as time)) overlaps (time '23:59:59', time '1:2:3')");
-      tester.checkNull(
-          "(time '1:2:3', interval '1' second) overlaps (time '23:59:59', cast(null as interval hour))");
+    tester.checkBoolean(
+        "(time '1:2:3', interval '1' second) overlaps (time '23:59:59', time '1:2:3')",
+        Boolean.TRUE);
+    tester.checkBoolean(
+        "(time '1:2:3', interval '1' second) overlaps (time '23:59:59', time '1:2:2')",
+        Boolean.TRUE);
+    tester.checkBoolean(
+        "(time '1:2:3', interval '1' second) overlaps (time '23:59:59', interval '2' hour)",
+        Boolean.FALSE);
+    tester.checkNull(
+        "(time '1:2:3', cast(null as time)) overlaps (time '23:59:59', time '1:2:3')");
+    tester.checkNull(
+        "(time '1:2:3', interval '1' second) overlaps (time '23:59:59', cast(null as interval hour))");
 
-      tester.checkBoolean(
-          "(timestamp '1-2-3 4:5:6', timestamp '1-2-3 4:5:6' ) overlaps (timestamp '1-2-3 4:5:6', interval '1 2:3:4.5' day to second)",
-          Boolean.TRUE);
-      tester.checkBoolean(
-          "(timestamp '1-2-3 4:5:6', timestamp '1-2-3 4:5:6' ) overlaps (timestamp '2-2-3 4:5:6', interval '1 2:3:4.5' day to second)",
-          Boolean.FALSE);
-      tester.checkNull(
-          "(timestamp '1-2-3 4:5:6', cast(null as interval day) ) overlaps (timestamp '1-2-3 4:5:6', interval '1 2:3:4.5' day to second)");
-      tester.checkNull(
-          "(timestamp '1-2-3 4:5:6', timestamp '1-2-3 4:5:6' ) overlaps (cast(null as timestamp), interval '1 2:3:4.5' day to second)");
-    }
+    tester.checkBoolean(
+        "(timestamp '1-2-3 4:5:6', timestamp '1-2-3 4:5:6' ) overlaps (timestamp '1-2-3 4:5:6', interval '1 2:3:4.5' day to second)",
+        Boolean.TRUE);
+    tester.checkBoolean(
+        "(timestamp '1-2-3 4:5:6', timestamp '1-2-3 4:5:6' ) overlaps (timestamp '2-2-3 4:5:6', interval '1 2:3:4.5' day to second)",
+        Boolean.FALSE);
+    tester.checkNull(
+        "(timestamp '1-2-3 4:5:6', cast(null as interval day) ) overlaps (timestamp '1-2-3 4:5:6', interval '1 2:3:4.5' day to second)");
+    tester.checkNull(
+        "(timestamp '1-2-3 4:5:6', timestamp '1-2-3 4:5:6' ) overlaps (cast(null as timestamp), interval '1 2:3:4.5' day to second)");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-715">[CALCITE-715]
+   * Add PERIOD type constructor and period operators (CONTAINS, PRECEDES,
+   * etc.)</a>.
+   *
+   * <p>Tests OVERLAP and similar period operators CONTAINS, EQUALS, PRECEDES,
+   * SUCCEEDS, IMMEDIATELY PRECEDES, IMMEDIATELY SUCCEEDS for DATE, TIME and
+   * TIMESTAMP values. */
+  @Test public void testPeriodOperators() {
+    String[] times = {
+      "TIME '01:00:00'",
+      "TIME '02:00:00'",
+      "TIME '03:00:00'",
+      "TIME '04:00:00'",
+    };
+    String[] dates = {
+      "DATE '1970-01-01'",
+      "DATE '1970-02-01'",
+      "DATE '1970-03-01'",
+      "DATE '1970-04-01'",
+    };
+    String[] timestamps = {
+      "TIMESTAMP '1970-01-01 00:00:00'",
+      "TIMESTAMP '1970-02-01 00:00:00'",
+      "TIMESTAMP '1970-03-01 00:00:00'",
+      "TIMESTAMP '1970-04-01 00:00:00'",
+    };
+    checkOverlaps(new OverlapChecker(times));
+    checkOverlaps(new OverlapChecker(dates));
+    checkOverlaps(new OverlapChecker(timestamps));
+  }
+
+  private void checkOverlaps(OverlapChecker c) {
+    c.isTrue("($0,$0) OVERLAPS ($0,$0)");
+    c.isFalse("($0,$1) OVERLAPS ($2,$3)");
+    c.isTrue("($0,$1) OVERLAPS ($1,$2)");
+    c.isTrue("($0,$2) OVERLAPS ($1,$3)");
+    c.isTrue("($0,$2) OVERLAPS ($3,$1)");
+    c.isTrue("($2,$0) OVERLAPS ($3,$1)");
+    c.isFalse("($3,$2) OVERLAPS ($1,$0)");
+    c.isTrue("($2,$3) OVERLAPS ($0,$2)");
+    c.isTrue("($2,$3) OVERLAPS ($2,$0)");
+    c.isTrue("($3,$2) OVERLAPS ($2,$0)");
+    c.isTrue("($0,$2) OVERLAPS ($2,$0)");
+    c.isTrue("($0,$3) OVERLAPS ($1,$3)");
+    c.isTrue("($0,$3) OVERLAPS ($3,$3)");
+
+    c.isTrue("($0,$0) CONTAINS ($0,$0)");
+    c.isFalse("($0,$1) CONTAINS ($2,$3)");
+    c.isFalse("($0,$1) CONTAINS ($1,$2)");
+    c.isFalse("($0,$2) CONTAINS ($1,$3)");
+    c.isFalse("($0,$2) CONTAINS ($3,$1)");
+    c.isFalse("($2,$0) CONTAINS ($3,$1)");
+    c.isFalse("($3,$2) CONTAINS ($1,$0)");
+    c.isFalse("($2,$3) CONTAINS ($0,$2)");
+    c.isFalse("($2,$3) CONTAINS ($2,$0)");
+    c.isFalse("($3,$2) CONTAINS ($2,$0)");
+    c.isTrue("($0,$2) CONTAINS ($2,$0)");
+    c.isTrue("($0,$3) CONTAINS ($1,$3)");
+    c.isTrue("($0,$3) CONTAINS ($3,$3)");
+    c.isTrue("($3,$0) CONTAINS ($3,$3)");
+    c.isTrue("($3,$0) CONTAINS ($0,$0)");
+
+    c.isTrue("($0,$0) CONTAINS $0");
+    c.isTrue("($3,$0) CONTAINS $0");
+    c.isTrue("($3,$0) CONTAINS $1");
+    c.isTrue("($3,$0) CONTAINS $2");
+    c.isTrue("($3,$0) CONTAINS $3");
+    c.isTrue("($0,$3) CONTAINS $0");
+    c.isTrue("($0,$3) CONTAINS $1");
+    c.isTrue("($0,$3) CONTAINS $2");
+    c.isTrue("($0,$3) CONTAINS $3");
+    c.isFalse("($1,$3) CONTAINS $0");
+    c.isFalse("($1,$2) CONTAINS $3");
+
+    c.isTrue("($0,$0) EQUALS ($0,$0)");
+    c.isFalse("($0,$1) EQUALS ($2,$3)");
+    c.isFalse("($0,$1) EQUALS ($1,$2)");
+    c.isFalse("($0,$2) EQUALS ($1,$3)");
+    c.isFalse("($0,$2) EQUALS ($3,$1)");
+    c.isFalse("($2,$0) EQUALS ($3,$1)");
+    c.isFalse("($3,$2) EQUALS ($1,$0)");
+    c.isFalse("($2,$3) EQUALS ($0,$2)");
+    c.isFalse("($2,$3) EQUALS ($2,$0)");
+    c.isFalse("($3,$2) EQUALS ($2,$0)");
+    c.isTrue("($0,$2) EQUALS ($2,$0)");
+    c.isFalse("($0,$3) EQUALS ($1,$3)");
+    c.isFalse("($0,$3) EQUALS ($3,$3)");
+    c.isFalse("($3,$0) EQUALS ($3,$3)");
+    c.isFalse("($3,$0) EQUALS ($0,$0)");
+
+    c.isTrue("($0,$0) PRECEDES ($0,$0)");
+    c.isTrue("($0,$1) PRECEDES ($2,$3)");
+    c.isTrue("($0,$1) PRECEDES ($1,$2)");
+    c.isFalse("($0,$2) PRECEDES ($1,$3)");
+    c.isFalse("($0,$2) PRECEDES ($3,$1)");
+    c.isFalse("($2,$0) PRECEDES ($3,$1)");
+    c.isFalse("($3,$2) PRECEDES ($1,$0)");
+    c.isFalse("($2,$3) PRECEDES ($0,$2)");
+    c.isFalse("($2,$3) PRECEDES ($2,$0)");
+    c.isFalse("($3,$2) PRECEDES ($2,$0)");
+    c.isFalse("($0,$2) PRECEDES ($2,$0)");
+    c.isFalse("($0,$3) PRECEDES ($1,$3)");
+    c.isTrue("($0,$3) PRECEDES ($3,$3)");
+    c.isTrue("($3,$0) PRECEDES ($3,$3)");
+    c.isFalse("($3,$0) PRECEDES ($0,$0)");
+
+    c.isTrue("($0,$0) SUCCEEDS ($0,$0)");
+    c.isFalse("($0,$1) SUCCEEDS ($2,$3)");
+    c.isFalse("($0,$1) SUCCEEDS ($1,$2)");
+    c.isFalse("($0,$2) SUCCEEDS ($1,$3)");
+    c.isFalse("($0,$2) SUCCEEDS ($3,$1)");
+    c.isFalse("($2,$0) SUCCEEDS ($3,$1)");
+    c.isTrue("($3,$2) SUCCEEDS ($1,$0)");
+    c.isTrue("($2,$3) SUCCEEDS ($0,$2)");
+    c.isTrue("($2,$3) SUCCEEDS ($2,$0)");
+    c.isTrue("($3,$2) SUCCEEDS ($2,$0)");
+    c.isFalse("($0,$2) SUCCEEDS ($2,$0)");
+    c.isFalse("($0,$3) SUCCEEDS ($1,$3)");
+    c.isFalse("($0,$3) SUCCEEDS ($3,$3)");
+    c.isFalse("($3,$0) SUCCEEDS ($3,$3)");
+    c.isTrue("($3,$0) SUCCEEDS ($0,$0)");
+
+    c.isTrue("($0,$0) IMMEDIATELY PRECEDES ($0,$0)");
+    c.isFalse("($0,$1) IMMEDIATELY PRECEDES ($2,$3)");
+    c.isTrue("($0,$1) IMMEDIATELY PRECEDES ($1,$2)");
+    c.isFalse("($0,$2) IMMEDIATELY PRECEDES ($1,$3)");
+    c.isFalse("($0,$2) IMMEDIATELY PRECEDES ($3,$1)");
+    c.isFalse("($2,$0) IMMEDIATELY PRECEDES ($3,$1)");
+    c.isFalse("($3,$2) IMMEDIATELY PRECEDES ($1,$0)");
+    c.isFalse("($2,$3) IMMEDIATELY PRECEDES ($0,$2)");
+    c.isFalse("($2,$3) IMMEDIATELY PRECEDES ($2,$0)");
+    c.isFalse("($3,$2) IMMEDIATELY PRECEDES ($2,$0)");
+    c.isFalse("($0,$2) IMMEDIATELY PRECEDES ($2,$0)");
+    c.isFalse("($0,$3) IMMEDIATELY PRECEDES ($1,$3)");
+    c.isTrue("($0,$3) IMMEDIATELY PRECEDES ($3,$3)");
+    c.isTrue("($3,$0) IMMEDIATELY PRECEDES ($3,$3)");
+    c.isFalse("($3,$0) IMMEDIATELY PRECEDES ($0,$0)");
+
+    c.isTrue("($0,$0) IMMEDIATELY SUCCEEDS ($0,$0)");
+    c.isFalse("($0,$1) IMMEDIATELY SUCCEEDS ($2,$3)");
+    c.isFalse("($0,$1) IMMEDIATELY SUCCEEDS ($1,$2)");
+    c.isFalse("($0,$2) IMMEDIATELY SUCCEEDS ($1,$3)");
+    c.isFalse("($0,$2) IMMEDIATELY SUCCEEDS ($3,$1)");
+    c.isFalse("($2,$0) IMMEDIATELY SUCCEEDS ($3,$1)");
+    c.isFalse("($3,$2) IMMEDIATELY SUCCEEDS ($1,$0)");
+    c.isTrue("($2,$3) IMMEDIATELY SUCCEEDS ($0,$2)");
+    c.isTrue("($2,$3) IMMEDIATELY SUCCEEDS ($2,$0)");
+    c.isTrue("($3,$2) IMMEDIATELY SUCCEEDS ($2,$0)");
+    c.isFalse("($0,$2) IMMEDIATELY SUCCEEDS ($2,$0)");
+    c.isFalse("($0,$3) IMMEDIATELY SUCCEEDS ($1,$3)");
+    c.isFalse("($0,$3) IMMEDIATELY SUCCEEDS ($3,$3)");
+    c.isFalse("($3,$0) IMMEDIATELY SUCCEEDS ($3,$3)");
+    c.isTrue("($3,$0) IMMEDIATELY SUCCEEDS ($0,$0)");
   }
 
   @Test public void testLessThanOperator() {
@@ -2788,11 +2942,7 @@ public abstract class SqlOperatorBaseTest {
         false);
     // "!=" is allowed under ORACLE_10 SQL conformance level
     final SqlTester tester1 =
-        tester
-            .withConformance(SqlConformanceEnum.ORACLE_10)
-            .withConnectionFactory(
-                CalciteAssert.EMPTY_CONNECTION_FACTORY
-                    .with("conformance", SqlConformanceEnum.ORACLE_10));
+        tester.withConformance(SqlConformanceEnum.ORACLE_10);
 
     tester1
         .checkBoolean("1 <> 1", Boolean.FALSE);
@@ -4571,6 +4721,11 @@ public abstract class SqlOperatorBaseTest {
 
   @Test public void testCurrentDateFunc() {
     tester.setFor(SqlStdOperatorTable.CURRENT_DATE, VM_FENNEL);
+
+    // A tester with a lenient conformance that allows parentheses.
+    final SqlTester tester1 = tester
+        .withConformance(SqlConformanceEnum.LENIENT);
+
     tester.checkScalar("CURRENT_DATE", DATE_PATTERN, "DATE NOT NULL");
     tester.checkScalar(
         "(CURRENT_DATE - CURRENT_DATE) DAY",
@@ -4584,17 +4739,38 @@ public abstract class SqlOperatorBaseTest {
         "No match found for function signature CURRENT_DATE\\(\\)",
         false);
 
+    tester1.checkBoolean("CURRENT_DATE() IS NULL", false);
+    tester1.checkBoolean("CURRENT_DATE IS NOT NULL", true);
+    tester1.checkBoolean("NOT (CURRENT_DATE() IS NULL)", true);
+    tester1.checkType("CURRENT_DATE", "DATE NOT NULL");
+    tester1.checkType("CURRENT_DATE()", "DATE NOT NULL");
+    tester1.checkType("CURRENT_TIMESTAMP()", "TIMESTAMP(0) NOT NULL");
+    tester1.checkType("CURRENT_TIME()", "TIME(0) NOT NULL");
+
     // Check the actual value.
     final Pair<String, Hook.Closeable> pair = currentTimeString(LOCAL_TZ);
-    tester.checkScalar(
-        "CAST(CURRENT_DATE AS VARCHAR(30))",
-        pair.left.substring(0, 10),
-        "VARCHAR(30) NOT NULL");
-    tester.checkScalar(
-        "CURRENT_DATE",
-        pair.left.substring(0, 10),
-        "DATE NOT NULL");
-    pair.right.close();
+    final String dateString = pair.left;
+    try (Hook.Closeable ignore = pair.right) {
+      tester.checkScalar("CAST(CURRENT_DATE AS VARCHAR(30))",
+          dateString.substring(0, 10),
+          "VARCHAR(30) NOT NULL");
+      tester.checkScalar("CURRENT_DATE",
+          dateString.substring(0, 10),
+          "DATE NOT NULL");
+
+      tester1.checkScalar("CAST(CURRENT_DATE AS VARCHAR(30))",
+          dateString.substring(0, 10),
+          "VARCHAR(30) NOT NULL");
+      tester1.checkScalar("CAST(CURRENT_DATE() AS VARCHAR(30))",
+          dateString.substring(0, 10),
+          "VARCHAR(30) NOT NULL");
+      tester1.checkScalar("CURRENT_DATE",
+          dateString.substring(0, 10),
+          "DATE NOT NULL");
+      tester1.checkScalar("CURRENT_DATE()",
+          dateString.substring(0, 10),
+          "DATE NOT NULL");
+    }
   }
 
   @Test public void testSubstringFunction() {
@@ -5709,6 +5885,14 @@ public abstract class SqlOperatorBaseTest {
         null, "TIMESTAMP(0)");
     tester.checkScalar("timestampadd(DAY, 1, cast(null as date))",
         null, "DATE");
+
+    // Round to the last day of previous month
+    tester.checkScalar("timestampadd(MONTH, 1, date '2016-05-31')",
+        "2016-06-30", "DATE NOT NULL");
+    tester.checkScalar("timestampadd(MONTH, 5, date '2016-01-31')",
+        "2016-06-30", "DATE NOT NULL");
+    tester.checkScalar("timestampadd(MONTH, -1, date '2016-03-31')",
+        "2016-02-29", "DATE NOT NULL");
   }
 
   @Test public void testTimestampDiff() {
@@ -6733,6 +6917,30 @@ public abstract class SqlOperatorBaseTest {
         this.values.add(new ValueType(type, value));
       }
       this.values.add(new ValueType(type, null));
+    }
+  }
+
+  /** Runs an OVERLAPS test with a given set of literal values. */
+  class OverlapChecker {
+    final String[] values;
+
+    OverlapChecker(String... values) {
+      this.values = values;
+    }
+
+    public void isTrue(String s) {
+      tester.checkBoolean(sub(s), Boolean.TRUE);
+    }
+
+    public void isFalse(String s) {
+      tester.checkBoolean(sub(s), Boolean.FALSE);
+    }
+
+    private String sub(String s) {
+      return s.replace("$0", values[0])
+          .replace("$1", values[1])
+          .replace("$2", values[2])
+          .replace("$3", values[3]);
     }
   }
 }

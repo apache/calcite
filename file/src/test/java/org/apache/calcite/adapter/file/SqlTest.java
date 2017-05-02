@@ -16,8 +16,12 @@
  */
 package org.apache.calcite.adapter.file;
 
-import com.google.common.base.Function;
+import org.apache.calcite.util.Util;
 
+import com.google.common.base.Function;
+import com.google.common.collect.Ordering;
+
+import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.Test;
 
@@ -27,6 +31,10 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Types;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.Properties;
 
 import static org.hamcrest.CoreMatchers.is;
@@ -40,14 +48,21 @@ import static org.junit.Assert.assertThat;
 public class SqlTest {
   // helper functions
 
-  private void checkSql(String model, String sql, String... expectedLines)
-      throws SQLException {
+  private Fluent sql(String model, String sql) {
+    return new Fluent(model, sql, new Function<ResultSet, Void>() {
+      public Void apply(ResultSet input) {
+        throw new AssertionError();
+      }
+    });
+  }
+
+  private Function<ResultSet, Void> expect(String... expectedLines) {
     final StringBuilder b = new StringBuilder();
     for (String s : expectedLines) {
       b.append(s).append('\n');
     }
     final String expected = b.toString();
-    checkSql(sql, model, new Function<ResultSet, Void>() {
+    return new Function<ResultSet, Void>() {
       public Void apply(ResultSet resultSet) {
         try {
           String actual = SqlTest.toString(resultSet);
@@ -62,7 +77,45 @@ public class SqlTest {
         }
         return null;
       }
-    });
+    };
+  }
+
+  /** Returns a function that checks the contents of a result set against an
+   * expected string. */
+  private static Function<ResultSet, Void> expectUnordered(String... expected) {
+    final List<String> expectedLines =
+        Ordering.natural().immutableSortedCopy(Arrays.asList(expected));
+    return new Function<ResultSet, Void>() {
+      public Void apply(ResultSet resultSet) {
+        try {
+          final List<String> lines = new ArrayList<>();
+          SqlTest.collect(lines, resultSet);
+          Collections.sort(lines);
+          Assert.assertEquals(expectedLines, lines);
+        } catch (SQLException e) {
+          throw new RuntimeException(e);
+        }
+        return null;
+      }
+    };
+  }
+
+  private static void collect(List<String> result, ResultSet resultSet)
+      throws SQLException {
+    final StringBuilder buf = new StringBuilder();
+    while (resultSet.next()) {
+      buf.setLength(0);
+      int n = resultSet.getMetaData().getColumnCount();
+      String sep = "";
+      for (int i = 1; i <= n; i++) {
+        buf.append(sep)
+            .append(resultSet.getMetaData().getColumnLabel(i))
+            .append("=")
+            .append(resultSet.getString(i));
+        sep = "; ";
+      }
+      result.add(Util.toLinux(buf.toString()));
+    }
   }
 
   private void checkSql(String sql, String model, Function<ResultSet, Void> fn)
@@ -121,7 +174,7 @@ public class SqlTest {
   /** Reads from a local file and checks the result. */
   @Test public void testFileSelect() throws SQLException {
     final String sql = "select H1 from T1 where H0 = 'R1C0'";
-    checkSql("testModel", sql, "H1=R1C1");
+    sql("testModel", sql).returns("H1=R1C1").ok();
   }
 
   /** Reads from a local file without table headers &lt;TH&gt; and checks the
@@ -129,14 +182,14 @@ public class SqlTest {
   @Test public void testNoThSelect() throws SQLException {
     Assume.assumeTrue(FileSuite.hazNetwork());
     final String sql = "select \"col1\" from T1_NO_TH where \"col0\" like 'R0%'";
-    checkSql("testModel", sql, "col1=R0C1");
+    sql("testModel", sql).returns("col1=R0C1").ok();
   }
 
   /** Reads from a local file - finds larger table even without &lt;TH&gt;
    * elements. */
   @Test public void testFindBiggerNoTh() throws SQLException {
     final String sql = "select \"col4\" from TABLEX2 where \"col0\" like 'R1%'";
-    checkSql("testModel", sql, "col4=R1C4");
+    sql("testModel", sql).returns("col4=R1C4").ok();
   }
 
   /** Reads from a URL and checks the result. */
@@ -144,61 +197,66 @@ public class SqlTest {
     Assume.assumeTrue(FileSuite.hazNetwork());
     final String sql = "select \"State\", \"Statehood\" from \"States_as_of\"\n"
         + "where \"State\" = 'California'";
-    checkSql("wiki", sql, "State=California; Statehood=1850-09-09");
+    sql("wiki", sql).returns("State=California; Statehood=1850-09-09").ok();
   }
 
   /** Reads the EMPS table. */
   @Test public void testSalesEmps() throws SQLException {
     final String sql = "select * from sales.emps";
-    checkSql("sales", sql,
-        "EMPNO=100; NAME=Fred; DEPTNO=30",
-        "EMPNO=110; NAME=Eric; DEPTNO=20",
-        "EMPNO=110; NAME=John; DEPTNO=40",
-        "EMPNO=120; NAME=Wilma; DEPTNO=20",
-        "EMPNO=130; NAME=Alice; DEPTNO=40");
+    sql("sales", sql)
+        .returns("EMPNO=100; NAME=Fred; DEPTNO=30",
+            "EMPNO=110; NAME=Eric; DEPTNO=20",
+            "EMPNO=110; NAME=John; DEPTNO=40",
+            "EMPNO=120; NAME=Wilma; DEPTNO=20",
+            "EMPNO=130; NAME=Alice; DEPTNO=40")
+        .ok();
   }
 
   /** Reads the DEPTS table. */
   @Test public void testSalesDepts() throws SQLException {
     final String sql = "select * from sales.depts";
-    checkSql("sales", sql,
-        "DEPTNO=10; NAME=Sales",
-        "DEPTNO=20; NAME=Marketing",
-        "DEPTNO=30; NAME=Accounts");
+    sql("sales", sql)
+        .returns("DEPTNO=10; NAME=Sales",
+            "DEPTNO=20; NAME=Marketing",
+            "DEPTNO=30; NAME=Accounts")
+        .ok();
   }
 
   /** Reads the DEPTS table from the CSV schema. */
   @Test public void testCsvSalesDepts() throws SQLException {
     final String sql = "select * from sales.depts";
-    checkSql("sales-csv", sql,
-        "DEPTNO=10; NAME=Sales",
-        "DEPTNO=20; NAME=Marketing",
-        "DEPTNO=30; NAME=Accounts");
+    sql("sales-csv", sql)
+        .returns("DEPTNO=10; NAME=Sales",
+            "DEPTNO=20; NAME=Marketing",
+            "DEPTNO=30; NAME=Accounts")
+        .ok();
   }
 
   /** Reads the EMPS table from the CSV schema. */
   @Test public void testCsvSalesEmps() throws SQLException {
     final String sql = "select * from sales.emps";
-    checkSql("sales-csv", sql,
-        "EMPNO=100; NAME=Fred; DEPTNO=10; GENDER=; CITY=; EMPID=30; AGE=25; SLACKER=true; MANAGER=false; JOINEDAT=1996-08-03",
-        "EMPNO=110; NAME=Eric; DEPTNO=20; GENDER=M; CITY=San Francisco; EMPID=3; AGE=80; SLACKER=null; MANAGER=false; JOINEDAT=2001-01-01",
-        "EMPNO=110; NAME=John; DEPTNO=40; GENDER=M; CITY=Vancouver; EMPID=2; AGE=null; SLACKER=false; MANAGER=true; JOINEDAT=2002-05-03",
-        "EMPNO=120; NAME=Wilma; DEPTNO=20; GENDER=F; CITY=; EMPID=1; AGE=5; SLACKER=null; MANAGER=true; JOINEDAT=2005-09-07",
-        "EMPNO=130; NAME=Alice; DEPTNO=40; GENDER=F; CITY=Vancouver; EMPID=2; AGE=null; SLACKER=false; MANAGER=true; JOINEDAT=2007-01-01");
+    final String[] lines = {
+      "EMPNO=100; NAME=Fred; DEPTNO=10; GENDER=; CITY=; EMPID=30; AGE=25; SLACKER=true; MANAGER=false; JOINEDAT=1996-08-03",
+      "EMPNO=110; NAME=Eric; DEPTNO=20; GENDER=M; CITY=San Francisco; EMPID=3; AGE=80; SLACKER=null; MANAGER=false; JOINEDAT=2001-01-01",
+      "EMPNO=110; NAME=John; DEPTNO=40; GENDER=M; CITY=Vancouver; EMPID=2; AGE=null; SLACKER=false; MANAGER=true; JOINEDAT=2002-05-03",
+      "EMPNO=120; NAME=Wilma; DEPTNO=20; GENDER=F; CITY=; EMPID=1; AGE=5; SLACKER=null; MANAGER=true; JOINEDAT=2005-09-07",
+      "EMPNO=130; NAME=Alice; DEPTNO=40; GENDER=F; CITY=Vancouver; EMPID=2; AGE=null; SLACKER=false; MANAGER=true; JOINEDAT=2007-01-01",
+    };
+    sql("sales-csv", sql).returns(lines).ok();
   }
 
   /** Reads the HEADER_ONLY table from the CSV schema. The CSV file has one
    * line - the column headers - but no rows of data. */
   @Test public void testCsvSalesHeaderOnly() throws SQLException {
     final String sql = "select * from sales.header_only";
-    checkSql("sales-csv", sql);
+    sql("sales-csv", sql).returns().ok();
   }
 
   /** Reads the EMPTY table from the CSV schema. The CSV file has no lines,
    * therefore the table has a system-generated column called
    * "EmptyFileHasNoColumns". */
   @Test public void testCsvSalesEmpty() throws SQLException {
-    final String sql = "select * from sales.empty";
+    final String sql = "select * from sales.\"EMPTY\"";
     checkSql(sql, "sales-csv", new Function<ResultSet, Void>() {
       public Void apply(ResultSet resultSet) {
         try {
@@ -217,6 +275,79 @@ public class SqlTest {
     });
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1754">[CALCITE-1754]
+   * In Csv adapter, convert DATE and TIME values to int, and TIMESTAMP values
+   * to long</a>. */
+  @Test public void testGroupByTimestampAdd() throws SQLException {
+    final String sql = "select count(*) as c,\n"
+        + "  {fn timestampadd(SQL_TSI_DAY, 1, JOINEDAT) } as t\n"
+        + "from EMPS group by {fn timestampadd(SQL_TSI_DAY, 1, JOINEDAT ) } ";
+    sql("sales-csv", sql)
+        .returnsUnordered("C=1; T=1996-08-04",
+            "C=1; T=2002-05-04",
+            "C=1; T=2005-09-08",
+            "C=1; T=2007-01-02",
+            "C=1; T=2001-01-02")
+        .ok();
+    final String sql2 = "select count(*) as c,\n"
+        + "  {fn timestampadd(SQL_TSI_MONTH, 1, JOINEDAT) } as t\n"
+        + "from EMPS group by {fn timestampadd(SQL_TSI_MONTH, 1, JOINEDAT ) } ";
+    sql("sales-csv", sql2)
+        .returnsUnordered("C=1; T=2002-06-03",
+            "C=1; T=2005-10-07",
+            "C=1; T=2007-02-01",
+            "C=1; T=2001-02-01",
+            "C=1; T=1996-09-03").ok();
+    final String sql3 = "select\n"
+        + " distinct {fn timestampadd(SQL_TSI_MONTH, 1, JOINEDAT) } as t\n"
+        + "from EMPS";
+    sql("sales-csv", sql3)
+        .returnsUnordered("T=2002-06-03",
+            "T=2005-10-07",
+            "T=2007-02-01",
+            "T=2001-02-01",
+            "T=1996-09-03").ok();
+  }
+
+  /** Fluent API to perform test actions. */
+  private class Fluent {
+    private final String model;
+    private final String sql;
+    private final Function<ResultSet, Void> expect;
+
+    Fluent(String model, String sql, Function<ResultSet, Void> expect) {
+      this.model = model;
+      this.sql = sql;
+      this.expect = expect;
+    }
+
+    /** Runs the test. */
+    Fluent ok() {
+      try {
+        checkSql(sql, model, expect);
+        return this;
+      } catch (SQLException e) {
+        throw new RuntimeException(e);
+      }
+    }
+
+    /** Assigns a function to call to test whether output is correct. */
+    Fluent checking(Function<ResultSet, Void> expect) {
+      return new Fluent(model, sql, expect);
+    }
+
+    /** Sets the rows that are expected to be returned from the SQL query. */
+    Fluent returns(String... expectedLines) {
+      return checking(expect(expectedLines));
+    }
+
+    /** Sets the rows that are expected to be returned from the SQL query,
+     * in no particular order. */
+    Fluent returnsUnordered(String... expectedLines) {
+      return checking(expectUnordered(expectedLines));
+    }
+  }
 }
 
 // End SqlTest.java

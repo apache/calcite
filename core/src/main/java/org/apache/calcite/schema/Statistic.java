@@ -18,6 +18,7 @@ package org.apache.calcite.schema;
 
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelDistribution;
+import org.apache.calcite.rel.RelReferentialConstraint;
 import org.apache.calcite.util.ImmutableBitSet;
 
 import java.util.List;
@@ -37,6 +38,10 @@ public interface Statistic {
    * of a unique key, of the table.
    */
   boolean isKey(ImmutableBitSet columns);
+
+  /** Returns the collection of referential constraints (foreign-keys)
+   * for this table. */
+  List<RelReferentialConstraint> getReferentialConstraints();
 
   /** Returns the collections of columns on which this table is sorted. */
   List<RelCollation> getCollations();

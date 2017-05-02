@@ -23,6 +23,9 @@ public enum SqlConformanceEnum implements SqlConformance {
   /** Calcite's default SQL behavior. */
   DEFAULT,
 
+  /** Conformance value that allows just about everything. */
+  LENIENT,
+
   /** Conformance value that instructs Calcite to use SQL semantics strictly
    * consistent with the SQL:92 standard. */
   STRICT_92,
@@ -62,6 +65,7 @@ public enum SqlConformanceEnum implements SqlConformance {
   public boolean isSortByOrdinal() {
     switch (this) {
     case DEFAULT:
+    case LENIENT:
     case ORACLE_10:
     case ORACLE_12:
     case STRICT_92:
@@ -77,6 +81,7 @@ public enum SqlConformanceEnum implements SqlConformance {
   public boolean isSortByAlias() {
     switch (this) {
     case DEFAULT:
+    case LENIENT:
     case ORACLE_10:
     case ORACLE_12:
     case STRICT_92:
@@ -106,6 +111,7 @@ public enum SqlConformanceEnum implements SqlConformance {
 
   public boolean isBangEqualAllowed() {
     switch (this) {
+    case LENIENT:
     case ORACLE_10:
     case ORACLE_12:
       return true;
@@ -116,6 +122,7 @@ public enum SqlConformanceEnum implements SqlConformance {
 
   @Override public boolean isMinusAllowed() {
     switch (this) {
+    case LENIENT:
     case ORACLE_10:
     case ORACLE_12:
       return true;
@@ -126,6 +133,7 @@ public enum SqlConformanceEnum implements SqlConformance {
 
   public boolean isApplyAllowed() {
     switch (this) {
+    case LENIENT:
     case SQL_SERVER_2008:
     case ORACLE_12:
       return true;
@@ -136,8 +144,18 @@ public enum SqlConformanceEnum implements SqlConformance {
 
   public boolean isInsertSubsetColumnsAllowed() {
     switch (this) {
+    case LENIENT:
     case PRAGMATIC_99:
     case PRAGMATIC_2003:
+      return true;
+    default:
+      return false;
+    }
+  }
+
+  public boolean allowNiladicParentheses() {
+    switch (this) {
+    case LENIENT:
       return true;
     default:
       return false;

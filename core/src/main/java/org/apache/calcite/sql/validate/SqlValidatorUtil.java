@@ -264,7 +264,7 @@ public class SqlValidatorUtil {
   /**
    * Checks that there are no duplicates in a list of {@link SqlIdentifier}.
    */
-  public static void checkIdentifierListForDuplicates(List<SqlNode> columnList,
+  static void checkIdentifierListForDuplicates(List<SqlNode> columnList,
       SqlValidatorImpl.ValidationErrorFunction validationErrorFunction) {
     final List<String> names = Lists.transform(columnList,
         new Function<SqlNode, String>() {

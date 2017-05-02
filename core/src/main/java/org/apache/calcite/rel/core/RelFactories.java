@@ -397,7 +397,7 @@ public class RelFactories {
     RelNode createMatchRecognize(RelNode input, RexNode pattern,
         boolean strictStart, boolean strictEnd,
         Map<String, RexNode> patternDefinitions, Map<String, RexNode> measures,
-        RelDataType rowType);
+        RexNode after, RelDataType rowType);
   }
 
   /**
@@ -408,9 +408,9 @@ public class RelFactories {
     public RelNode createMatchRecognize(RelNode input, RexNode pattern,
         boolean strictStart, boolean strictEnd,
         Map<String, RexNode> patternDefinitions, Map<String, RexNode> measures,
-        RelDataType rowType) {
+        RexNode after, RelDataType rowType) {
       return LogicalMatch.create(input, pattern, strictStart, strictEnd,
-          patternDefinitions, measures, rowType);
+          patternDefinitions, measures, after, rowType);
     }
   }
 }

@@ -25,6 +25,7 @@ import org.apache.calcite.config.CalciteConnectionProperty;
 import org.apache.calcite.config.Lex;
 import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.jdbc.CalciteMetaImpl;
+import org.apache.calcite.jdbc.CalcitePrepare;
 import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.materialize.Lattice;
 import org.apache.calcite.plan.RelOptUtil;
@@ -35,7 +36,10 @@ import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.impl.AbstractSchema;
 import org.apache.calcite.schema.impl.ViewTable;
+import org.apache.calcite.tools.FrameworkConfig;
+import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.Closer;
+import org.apache.calcite.util.Holder;
 import org.apache.calcite.util.JsonBuilder;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
@@ -1470,6 +1474,21 @@ public class CalciteAssert {
     /** Adds a property hook. */
     public <V> AssertQuery withProperty(Hook hook, V value) {
       return withHook(hook, Hook.property(value));
+    }
+
+    /** Adds a factory to create a {@link RelNode} query. This {@code RelNode}
+     * will be used instead of the SQL string. */
+    public AssertQuery withRel(final Function<RelBuilder, RelNode> relFn) {
+      return withHook(Hook.STRING_TO_QUERY,
+          new Function<
+              Pair<FrameworkConfig, Holder<CalcitePrepare.Query>>, Void>() {
+            public Void apply(
+                Pair<FrameworkConfig, Holder<CalcitePrepare.Query>> pair) {
+              final RelBuilder b = RelBuilder.create(pair.left);
+              pair.right.set(CalcitePrepare.Query.of(relFn.apply(b)));
+              return null;
+            }
+          });
     }
   }
 

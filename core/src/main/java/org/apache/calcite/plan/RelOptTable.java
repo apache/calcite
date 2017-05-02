@@ -20,6 +20,7 @@ import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelDistribution;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelReferentialConstraint;
 import org.apache.calcite.rel.RelRoot;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
@@ -96,6 +97,12 @@ public interface RelOptTable extends Wrapper {
    * @return Whether the given columns are a key or a superset of a key
    */
   boolean isKey(ImmutableBitSet columns);
+
+  /**
+   * Returns the referential constraints existing for this table. These constraints
+   * are represented over other tables using {@link RelReferentialConstraint} nodes.
+   */
+  List<RelReferentialConstraint> getReferentialConstraints();
 
   /**
    * Generates code for this table.

@@ -100,8 +100,7 @@ public class ProjectFilterTransposeRule extends RelOptRule {
 
     PushProjector pushProjector =
         new PushProjector(
-            origProj, origFilter, rel, preserveExprCondition,
-            relBuilderFactory.create(origProj.getCluster(), null));
+            origProj, origFilter, rel, preserveExprCondition, call.builder());
     RelNode topProject = pushProjector.convertProject(null);
 
     if (topProject != null) {

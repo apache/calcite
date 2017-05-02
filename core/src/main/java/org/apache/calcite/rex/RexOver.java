@@ -35,13 +35,15 @@ public class RexOver extends RexCall {
   //~ Instance fields --------------------------------------------------------
 
   private final RexWindow window;
+  private final boolean distinct;
 
   //~ Constructors -----------------------------------------------------------
 
   /**
    * Creates a RexOver.
    *
-   * <p>For example, "SUM(x) OVER (ROWS 3 PRECEDING)" is represented as:
+   * <p>For example, "SUM(DISTINCT x) OVER (ROWS 3 PRECEDING)" is represented
+   * as:
    *
    * <ul>
    * <li>type = Integer,
@@ -54,15 +56,18 @@ public class RexOver extends RexCall {
    * @param op       Aggregate operator
    * @param operands Operands list
    * @param window   Window specification
+   * @param distinct Aggregate operator is applied on distinct elements
    */
   RexOver(
       RelDataType type,
       SqlAggFunction op,
       List<RexNode> operands,
-      RexWindow window) {
+      RexWindow window,
+      boolean distinct) {
     super(type, op, operands);
     Preconditions.checkArgument(op.isAggregator());
     this.window = Preconditions.checkNotNull(window);
+    this.distinct = distinct;
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -78,8 +83,32 @@ public class RexOver extends RexCall {
     return window;
   }
 
-  protected String computeDigest(boolean withType) {
-    return super.computeDigest(withType) + " OVER (" + window + ")";
+  public boolean isDistinct() {
+    return distinct;
+  }
+
+  @Override protected String computeDigest(boolean withType) {
+    final StringBuilder sb = new StringBuilder(op.getName());
+    sb.append("(");
+    if (distinct) {
+      sb.append("DISTINCT ");
+    }
+    for (int i = 0; i < operands.size(); i++) {
+      if (i > 0) {
+        sb.append(", ");
+      }
+      RexNode operand = operands.get(i);
+      sb.append(operand.toString());
+    }
+    sb.append(")");
+    if (withType) {
+      sb.append(":");
+      sb.append(type.getFullTypeString());
+    }
+    sb.append(" OVER (")
+        .append(window)
+        .append(")");
+    return sb.toString();
   }
 
   public <R> R accept(RexVisitor<R> visitor) {

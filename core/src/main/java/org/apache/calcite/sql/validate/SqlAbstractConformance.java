@@ -55,6 +55,10 @@ public abstract class SqlAbstractConformance implements SqlConformance {
     return SqlConformanceEnum.DEFAULT.isInsertSubsetColumnsAllowed();
   }
 
+  public boolean allowNiladicParentheses() {
+    return SqlConformanceEnum.DEFAULT.allowNiladicParentheses();
+  }
+
 }
 
 // End SqlAbstractConformance.java
