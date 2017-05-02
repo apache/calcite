@@ -621,13 +621,17 @@ JAVACODE boolean matchesPrefix(int[] seq, int[][] prefixes)
  *
  * <p>Postgres syntax for limit:
  *
+ * <blockquote><pre>
  *    [ LIMIT { count | ALL } ]
- *    [ OFFSET start ]
+ *    [ OFFSET start ]</pre>
+ * </blockquote>
  *
  * <p>SQL:2008 syntax for limit:
  *
+ * <blockquote><pre>
  *    [ OFFSET start { ROW | ROWS } ]
- *    [ FETCH { FIRST | NEXT } [ count ] { ROW | ROWS } ONLY ]
+ *    [ FETCH { FIRST | NEXT } [ count ] { ROW | ROWS } ONLY ]</pre>
+ * </blockquote>
  */
 SqlNode OrderedQueryOrExpr(ExprContext exprContext) :
 {
@@ -733,14 +737,18 @@ SqlNode ParenthesizedExpression(ExprContext exprContext) :
  * <p>REVIEW jvs 8-Feb-2004: There's a small hole in this production.  It can be
  * used to construct something like
  *
- * <code>WHERE x IN (select count(*) from t where c=d,5)</code>,
+ * <blockquote><pre>
+ * WHERE x IN (select count(*) from t where c=d,5)</pre>
+ * </blockquote>
  *
- * which should be illegal.  The above is interpreted as equivalent to
+ * <p>which should be illegal.  The above is interpreted as equivalent to
  *
- * <code>WHERE x IN ((select count(*) from t where c=d),5)</code>,
+ * <blockquote><pre>
+ * <code>WHERE x IN ((select count(*) from t where c=d),5)</pre>
+ * </blockquote>
  *
- * which is a legal use of a sub-query.  The only way to fix the hole is to be
- * able to remember whether a subexpression was parenthesized or not, which
+ * <p>which is a legal use of a sub-query.  The only way to fix the hole is to
+ * be able to remember whether a subexpression was parenthesized or not, which
  * means preserving parentheses in the SqlNode tree.  This is probably
  * desirable anyway for use in purely syntactic parsing applications (e.g. SQL
  * pretty-printer).  However, if this is done, it's important to also make
@@ -855,7 +863,7 @@ void Arg0(List list, ExprContext exprContext) :
         name = SimpleIdentifier() <NAMED_ARGUMENT_ASSIGNMENT>
     ]
     (
-        <DEFAULT_KW> {
+        <DEFAULT_> {
             e = SqlStdOperatorTable.DEFAULT.createCall(getPos());
         }
     |
@@ -883,7 +891,7 @@ void Arg(List list, ExprContext exprContext) :
         name = SimpleIdentifier() <NAMED_ARGUMENT_ASSIGNMENT>
     ]
     (
-        <DEFAULT_KW> {
+        <DEFAULT_> {
             e = SqlStdOperatorTable.DEFAULT.createCall(getPos());
         }
     |
@@ -2028,7 +2036,7 @@ SqlNode TableFunctionCall(SqlParserPos pos) :
  * Abstract production:
  *    SqlNode ExtendedTableRef()
  *
- * Allows parser to be extended with new types of table references.  The
+ * <p>Allows parser to be extended with new types of table references.  The
  * default implementation of this production is empty.
  */
 
@@ -2497,6 +2505,9 @@ SqlMatchRecognize MatchRecognizeOpt(SqlNode tableRef) :
     SqlNodeList measureList = SqlNodeList.EMPTY;
     SqlNode pattern;
     SqlNodeList patternDefList;
+    final SqlNode after;
+    final SqlParserPos pos;
+    final SqlNode var;
     SqlLiteral isStrictStarts = SqlLiteral.createBoolean(false, getPos());
     SqlLiteral isStrictEnds = SqlLiteral.createBoolean(false, getPos());
 }
@@ -2506,6 +2517,36 @@ SqlMatchRecognize MatchRecognizeOpt(SqlNode tableRef) :
         <MEASURES>
         measureList = MeasureColumnCommaList(getPos())
     ]
+    (
+        <AFTER> { pos = getPos(); } <MATCH> <SKIP_>
+        (
+            <TO>
+            (
+                LOOKAHEAD(2)
+                <NEXT> <ROW> {
+                    after = SqlMatchRecognize.AfterOption.SKIP_TO_NEXT_ROW
+                        .symbol(pos.plus(getPos()));
+                }
+            |
+                <FIRST> var = SimpleIdentifier() {
+                    after = SqlMatchRecognize.SKIP_TO_FIRST.createCall(
+                        pos.plus(var.getParserPosition()), var);
+                }
+            |
+                [ <LAST> ] var = SimpleIdentifier() {
+                    after = SqlMatchRecognize.SKIP_TO_LAST.createCall(
+                        pos.plus(var.getParserPosition()), var);
+                }
+            )
+        |
+            <PAST> <LAST> <ROW> {
+                 after = SqlMatchRecognize.AfterOption.SKIP_PAST_LAST_ROW
+                     .symbol(pos.plus(getPos()));
+            }
+        )
+    |
+        { after = null; }
+    )
     <PATTERN>
     <LPAREN>
     (
@@ -2524,7 +2565,8 @@ SqlMatchRecognize MatchRecognizeOpt(SqlNode tableRef) :
     patternDefList = PatternDefinitionCommaList(getPos())
     <RPAREN> {
         return new SqlMatchRecognize(startPos.plus(getPos()), tableRef,
-            pattern, isStrictStarts, isStrictEnds, patternDefList, measureList);
+            pattern, isStrictStarts, isStrictEnds, patternDefList, measureList,
+            after);
     }
 }
 
@@ -3086,14 +3128,13 @@ List<Object> Expression2(ExprContext exprContext) :
  */
 SqlNode Expression3(ExprContext exprContext) :
 {
-    SqlNode e;
-    SqlNodeList list;
-    SqlNodeList list1;
-    SqlNodeList list2;
-    SqlPrefixOperator op;
-    boolean rowSeen = false;
-    SqlParserPos pos;
-    SqlParserPos prefixRowOpPos;
+    final SqlNode e;
+    final SqlNodeList list;
+    final SqlNodeList list1;
+    final SqlNodeList list2;
+    final SqlOperator op;
+    final SqlParserPos pos;
+    SqlParserPos rowPos = null;
 }
 {
     LOOKAHEAD(2)
@@ -3118,25 +3159,22 @@ SqlNode Expression3(ExprContext exprContext) :
         return SqlStdOperatorTable.ROW.createCall(list);
     }
     |
-    {
-        pos = getPos();
-    }
     [
-        <ROW>
-        {
-            pos = getPos(); rowSeen = true;
-        }
+        <ROW> { rowPos = getPos(); }
     ]
     list1 = ParenthesizedQueryOrCommaList(exprContext) {
-        if (rowSeen) {
+        pos = list1.getParserPosition();
+        if (rowPos != null) {
             // interpret as row constructor
-            return SqlStdOperatorTable.ROW.createCall(pos, list1.toArray());
-
+            return SqlStdOperatorTable.ROW.createCall(rowPos.plus(pos),
+                list1.toArray());
         }
     }
     [
+        LOOKAHEAD(2)
+        /* TODO:
         (
-            <OVERLAPS>
+            op = periodOperator()
             list2 = ParenthesizedQueryOrCommaList(exprContext)
             {
                 if (list1.size() != 2 || list2.size() != 2) {
@@ -3148,12 +3186,13 @@ SqlNode Expression3(ExprContext exprContext) :
                 for (SqlNode node : list2) {
                     list1.add(node);
                 }
-                return SqlStdOperatorTable.OVERLAPS.createCall(
+                return op.createCall(
                     list1.getParserPosition().plus(list2.getParserPosition()),
                     list1.toArray());
             }
         )
         |
+        */
         (
             e = IntervalQualifier()
             {
@@ -3183,9 +3222,27 @@ SqlNode Expression3(ExprContext exprContext) :
             return list1.get(0);
         } else {
             // interpret as row constructor
-            return SqlStdOperatorTable.ROW.createCall(pos, list1.toArray());
+            return SqlStdOperatorTable.ROW.createCall(
+                pos.plus(list1.getParserPosition()), list1.toArray());
         }
     }
+}
+
+SqlOperator periodOperator() :
+{
+}
+{
+     <OVERLAPS> { return SqlStdOperatorTable.OVERLAPS; }
+|
+     <IMMEDIATELY> <PRECEDES> { return SqlStdOperatorTable.IMMEDIATELY_PRECEDES; }
+|
+     <PRECEDES> { return SqlStdOperatorTable.PRECEDES; }
+|
+     <IMMEDIATELY> <SUCCEEDS> { return SqlStdOperatorTable.IMMEDIATELY_SUCCEEDS; }
+|
+     <SUCCEEDS> { return SqlStdOperatorTable.SUCCEEDS; }
+|
+     <EQUALS> { return SqlStdOperatorTable.PERIOD_EQUALS; }
 }
 
 /**
@@ -3225,6 +3282,8 @@ SqlNode AtomicRowExpression() :
     e = ArrayConstructor() { return e; }
     |
     e = MapConstructor() { return e; }
+    |
+    e = PeriodConstructor() { return e; }
     |
     // NOTE jvs 18-Jan-2005:  use syntactic lookahead to discriminate
     // compound identifiers from function calls in which the function
@@ -3791,7 +3850,7 @@ SqlNode ArrayConstructor() :
     )
 }
 
-/** Parses an MAP constructor */
+/** Parses a MAP constructor */
 SqlNode MapConstructor() :
 {
     SqlNodeList args;
@@ -3824,6 +3883,23 @@ SqlNode MapConstructor() :
                 pos.plus(getPos()), SqlParserUtil.toNodeArray(args));
         }
     )
+}
+
+/** Parses a PERIOD constructor */
+SqlNode PeriodConstructor() :
+{
+    final SqlNode e0, e1;
+    final SqlParserPos pos;
+}
+{
+    <PERIOD> { pos = getPos(); }
+    <LPAREN>
+    e0 = Expression(ExprContext.ACCEPT_SUB_QUERY)
+    <COMMA>
+    e1 = Expression(ExprContext.ACCEPT_SUB_QUERY)
+    <RPAREN> {
+        return SqlStdOperatorTable.ROW.createCall(pos.plus(getPos()), e0, e1);
+    }
 }
 
 /**
@@ -5132,6 +5208,8 @@ SqlIdentifier ReservedFunctionName() :
         | <FUSION>
         | <GROUPING>
         | <HOUR>
+        | <LAG>
+        | <LEAD>
         | <LAST_VALUE>
         | <LN>
         | <LOCALTIME>
@@ -5142,6 +5220,7 @@ SqlIdentifier ReservedFunctionName() :
         | <MINUTE>
         | <MOD>
         | <MONTH>
+        | <NTILE>
         | <NULLIF>
         | <OCTET_LENGTH>
         | <PERCENT_RANK>
@@ -5156,6 +5235,7 @@ SqlIdentifier ReservedFunctionName() :
         | <STDDEV_SAMP>
         | <SUM>
         | <UPPER>
+        | <TRUNCATE>
         | <USER>
         | <VAR_POP>
         | <VAR_SAMP>
@@ -5237,6 +5317,9 @@ SqlNode JdbcFunctionCall() :
         (
             // INSERT is a reserved word, but we need to handle {fn insert}
             <INSERT> { name = unquotedIdentifier(); }
+        |
+            // TRUNCATE is a reserved word, but we need to handle {fn truncate}
+            <TRUNCATE> { name = unquotedIdentifier(); }
         |
             // For cases like {fn power(1,2)} and {fn lower('a')}
             id = ReservedFunctionName() { name = id.getSimple(); }
@@ -5346,50 +5429,38 @@ SqlBinaryOperator BinaryRowOperator() :
     SqlBinaryOperator op;
 }
 {
-    <EQ>
-    { return SqlStdOperatorTable.EQUALS; }
-    | <GT>
-    { return SqlStdOperatorTable.GREATER_THAN; }
-    | <LT>
-    { return SqlStdOperatorTable.LESS_THAN; }
-    | <LE>
-    { return SqlStdOperatorTable.LESS_THAN_OR_EQUAL; }
-    | <GE>
-    { return SqlStdOperatorTable.GREATER_THAN_OR_EQUAL; }
-    | <NE>
-    { return SqlStdOperatorTable.NOT_EQUALS; }
-    | <NE2>
-    {
+    // <IN> is handled as a special case
+    <EQ> { return SqlStdOperatorTable.EQUALS; }
+    | <GT> { return SqlStdOperatorTable.GREATER_THAN; }
+    | <LT> { return SqlStdOperatorTable.LESS_THAN; }
+    | <LE> { return SqlStdOperatorTable.LESS_THAN_OR_EQUAL; }
+    | <GE> { return SqlStdOperatorTable.GREATER_THAN_OR_EQUAL; }
+    | <NE> { return SqlStdOperatorTable.NOT_EQUALS; }
+    | <NE2> {
         if (!this.conformance.isBangEqualAllowed()) {
             throw new ParseException(RESOURCE.bangEqualNotAllowed().str());
         }
         return SqlStdOperatorTable.NOT_EQUALS;
     }
-    | <PLUS>
-    { return SqlStdOperatorTable.PLUS; }
-    | <MINUS>
-    { return SqlStdOperatorTable.MINUS; }
-    | <STAR>
-    { return SqlStdOperatorTable.MULTIPLY; }
-    | <SLASH>
-    { return SqlStdOperatorTable.DIVIDE; }
-    | <CONCAT>
-    { return SqlStdOperatorTable.CONCAT; }
-    | <AND>
-    { return SqlStdOperatorTable.AND; }
-    | <OR>
-    { return SqlStdOperatorTable.OR; }
-    | LOOKAHEAD(2) <IS> <DISTINCT> <FROM>
-    { return SqlStdOperatorTable.IS_DISTINCT_FROM; }
-    | <IS> <NOT> <DISTINCT> <FROM>
-    { return SqlStdOperatorTable.IS_NOT_DISTINCT_FROM; }
-    // <IN> is handled as a special case
-    | <MEMBER> <OF>
-    { return SqlStdOperatorTable.MEMBER_OF; }
-    | <SUBMULTISET> <OF>
-    { return SqlStdOperatorTable.SUBMULTISET_OF; }
-    | op = BinaryMultisetOperator()
-    { return op; }
+    | <PLUS> { return SqlStdOperatorTable.PLUS; }
+    | <MINUS> { return SqlStdOperatorTable.MINUS; }
+    | <STAR> { return SqlStdOperatorTable.MULTIPLY; }
+    | <SLASH> { return SqlStdOperatorTable.DIVIDE; }
+    | <CONCAT> { return SqlStdOperatorTable.CONCAT; }
+    | <AND> { return SqlStdOperatorTable.AND; }
+    | <OR> { return SqlStdOperatorTable.OR; }
+    | LOOKAHEAD(2) <IS> <DISTINCT> <FROM> { return SqlStdOperatorTable.IS_DISTINCT_FROM; }
+    | <IS> <NOT> <DISTINCT> <FROM> { return SqlStdOperatorTable.IS_NOT_DISTINCT_FROM; }
+    | <MEMBER> <OF> { return SqlStdOperatorTable.MEMBER_OF; }
+    | <SUBMULTISET> <OF> { return SqlStdOperatorTable.SUBMULTISET_OF; }
+    | <CONTAINS> { return SqlStdOperatorTable.CONTAINS; }
+    | <OVERLAPS> { return SqlStdOperatorTable.OVERLAPS; }
+    | <EQUALS> { return SqlStdOperatorTable.PERIOD_EQUALS; }
+    | <PRECEDES> { return SqlStdOperatorTable.PRECEDES; }
+    | <SUCCEEDS> { return SqlStdOperatorTable.SUCCEEDS; }
+    | <IMMEDIATELY> <PRECEDES> { return SqlStdOperatorTable.IMMEDIATELY_PRECEDES; }
+    | <IMMEDIATELY> <SUCCEEDS> { return SqlStdOperatorTable.IMMEDIATELY_SUCCEEDS; }
+    | op = BinaryMultisetOperator() { return op; }
 }
 
 /**
@@ -5448,12 +5519,14 @@ SqlPostfixOperator PostfixRowOperator() :
     | < ALL: "ALL" >
     | < ALLOCATE: "ALLOCATE" >
     | < ALLOW: "ALLOW" >
-    | < ALWAYS: "ALWAYS" >
     | < ALTER: "ALTER" >
+    | < ALWAYS: "ALWAYS" >
     | < AND: "AND" >
     | < ANY: "ANY" >
+    | < APPLY: "APPLY" >
     | < ARE: "ARE" >
     | < ARRAY: "ARRAY" >
+    | < ARRAY_MAX_CARDINALITY: "ARRAY_MAX_CARDINALITY" >
     | < AS: "AS" >
     | < ASC: "ASC" >
     | < ASENSITIVE: "ASENSITIVE" >
@@ -5468,6 +5541,8 @@ SqlPostfixOperator PostfixRowOperator() :
     | < AVG: "AVG" >
     | < BEFORE: "BEFORE" >
     | < BEGIN: "BEGIN" >
+    | < BEGIN_FRAME: "BEGIN_FRAME" >
+    | < BEGIN_PARTITION: "BEGIN_PARTITION" >
     | < BERNOULLI: "BERNOULLI" >
     | < BETWEEN: "BETWEEN" >
     | < BIGINT: "BIGINT" >
@@ -5502,6 +5577,7 @@ SqlPostfixOperator PostfixRowOperator() :
     | < CHARACTERISTICS: "CHARACTERISTICS" >
     | < CHARACTERS: "CHARACTERS" >
     | < CHECK: "CHECK" >
+    | < CLASSIFIER: "CLASSIFIER" >
     | < CLASS_ORIGIN: "CLASS_ORIGIN" >
     | < CLOB: "CLOB" >
     | < CLOSE: "CLOSE" >
@@ -5531,8 +5607,8 @@ SqlPostfixOperator PostfixRowOperator() :
     | < CONSTRAINTS: "CONSTRAINTS" >
     | < CONSTRUCTOR: "CONSTRUCTOR" >
     | < CONTAINS: "CONTAINS" >
-    | < CONVERT: "CONVERT" >
     | < CONTINUE: "CONTINUE" >
+    | < CONVERT: "CONVERT" >
     | < CORR: "CORR" >
     | < CORRESPONDING: "CORRESPONDING" >
     | < COUNT: "COUNT" >
@@ -5548,6 +5624,7 @@ SqlPostfixOperator PostfixRowOperator() :
     | < CURRENT_DEFAULT_TRANSFORM_GROUP: "CURRENT_DEFAULT_TRANSFORM_GROUP" >
     | < CURRENT_PATH: "CURRENT_PATH" >
     | < CURRENT_ROLE: "CURRENT_ROLE" >
+    | < CURRENT_ROW: "CURRENT_ROW" >
     | < CURRENT_SCHEMA: "CURRENT_SCHEMA" >
     | < CURRENT_TIME: "CURRENT_TIME" >
     | < CURRENT_TIMESTAMP: "CURRENT_TIMESTAMP" >
@@ -5567,7 +5644,7 @@ SqlPostfixOperator PostfixRowOperator() :
     | < DECADE: "DECADE" >
     | < DECIMAL: "DECIMAL" >
     | < DECLARE: "DECLARE" >
-    | < DEFAULT_KW: "DEFAULT" >
+    | < DEFAULT_: "DEFAULT" >
     | < DEFAULTS: "DEFAULTS" >
     | < DEFERRABLE: "DEFERRABLE" >
     | < DEFERRED: "DEFERRED" >
@@ -5580,8 +5657,8 @@ SqlPostfixOperator PostfixRowOperator() :
     | < DEPTH: "DEPTH" >
     | < DEREF: "DEREF" >
     | < DERIVED: "DERIVED" >
-    | < DESCRIBE: "DESCRIBE" >
     | < DESC: "DESC" >
+    | < DESCRIBE: "DESCRIBE" >
     | < DESCRIPTION: "DESCRIPTION" >
     | < DESCRIPTOR: "DESCRIPTOR" >
     | < DETERMINISTIC: "DETERMINISTIC" >
@@ -5601,8 +5678,11 @@ SqlPostfixOperator PostfixRowOperator() :
     | < EACH: "EACH" >
     | < ELEMENT: "ELEMENT" >
     | < ELSE: "ELSE" >
+    | < EMPTY: "EMPTY" >
     | < END: "END" >
     | < END_EXEC: "END-EXEC" >
+    | < END_FRAME: "END_FRAME" >
+    | < END_PARTITION: "END_PARTITION" >
     | < EPOCH: "EPOCH" >
     | < EQUALS: "EQUALS" >
     | < ESCAPE: "ESCAPE" >
@@ -5616,8 +5696,8 @@ SqlPostfixOperator PostfixRowOperator() :
     | < EXISTS: "EXISTS" >
     | < EXP: "EXP" >
     | < EXPLAIN: "EXPLAIN" >
-    | < EXTERNAL: "EXTERNAL" >
     | < EXTEND: "EXTEND" >
+    | < EXTERNAL: "EXTERNAL" >
     | < EXTRACT: "EXTRACT" >
     | < FALSE: "FALSE" >
     | < FETCH: "FETCH" >
@@ -5633,6 +5713,7 @@ SqlPostfixOperator PostfixRowOperator() :
     | < FORTRAN: "FORTRAN" >
     | < FOUND: "FOUND" >
     | < FRAC_SECOND: "FRAC_SECOND" >
+    | < FRAME_ROW: "FRAME_ROW" >
     | < FREE: "FREE" >
     | < FROM: "FROM" >
     | < FULL: "FULL" >
@@ -5649,18 +5730,21 @@ SqlPostfixOperator PostfixRowOperator() :
     | < GRANTED: "GRANTED" >
     | < GROUP: "GROUP" >
     | < GROUPING: "GROUPING" >
+    | < GROUPS: "GROUPS" >
     | < HAVING: "HAVING" >
     | < HIERARCHY: "HIERARCHY" >
     | < HOLD: "HOLD" >
     | < HOUR: "HOUR" >
     | < IDENTITY: "IDENTITY" >
     | < IMMEDIATE: "IMMEDIATE" >
+    | < IMMEDIATELY: "IMMEDIATELY" >
     | < IMPLEMENTATION: "IMPLEMENTATION" >
     | < IMPORT: "IMPORT" >
     | < IN: "IN" >
-    | < INDICATOR: "INDICATOR" >
     | < INCLUDING: "INCLUDING" >
     | < INCREMENT: "INCREMENT" >
+    | < INDICATOR: "INDICATOR" >
+    | < INITIAL: "INITIAL" >
     | < INITIALLY: "INITIALLY" >
     | < INNER: "INNER" >
     | < INOUT: "INOUT" >
@@ -5686,17 +5770,20 @@ SqlPostfixOperator PostfixRowOperator() :
     | < KEY_MEMBER: "KEY_MEMBER" >
     | < KEY_TYPE: "KEY_TYPE" >
     | < LABEL: "LABEL" >
+    | < LAG: "LAG" >
     | < LANGUAGE: "LANGUAGE" >
     | < LARGE: "LARGE" >
     | < LAST: "LAST" >
     | < LAST_VALUE: "LAST_VALUE" >
     | < LATERAL: "LATERAL" >
+    | < LEAD: "LEAD" >
     | < LEADING: "LEADING" >
     | < LEFT: "LEFT" >
     | < LENGTH: "LENGTH" >
     | < LEVEL: "LEVEL" >
     | < LIBRARY: "LIBRARY" >
     | < LIKE: "LIKE" >
+    | < LIKE_REGEX: "LIKE_REGEX" >
     | < LIMIT: "LIMIT" >
     | < LN: "LN" >
     | < LOCAL: "LOCAL" >
@@ -5708,6 +5795,8 @@ SqlPostfixOperator PostfixRowOperator() :
     | < MAP: "MAP" >
     | < MATCH: "MATCH" >
     | < MATCHED: "MATCHED" >
+    | < MATCHES: "MATCHES" >
+    | < MATCH_NUMBER: "MATCH_NUMBER">
     | < MATCH_RECOGNIZE: "MATCH_RECOGNIZE">
     | < MAX: "MAX" >
     | < MAXVALUE: "MAXVALUE" >
@@ -5727,7 +5816,7 @@ SqlPostfixOperator PostfixRowOperator() :
     | < MODIFIES: "MODIFIES" >
     | < MODULE: "MODULE" >
     | < MONTH: "MONTH" >
-    | < MORE_KW: "MORE" >
+    | < MORE_: "MORE" >
     | < MULTISET: "MULTISET" >
     | < MUMPS: "MUMPS" >
     | < NAME: "NAME" >
@@ -5744,6 +5833,8 @@ SqlPostfixOperator PostfixRowOperator() :
     | < NORMALIZE: "NORMALIZE" >
     | < NORMALIZED: "NORMALIZED" >
     | < NOT: "NOT" >
+    | < NTH_VALUE: "NTH_VALUE" >
+    | < NTILE: "NTILE" >
     | < NULL: "NULL" >
     | < NULLABLE: "NULLABLE" >
     | < NULLIF: "NULLIF" >
@@ -5751,12 +5842,15 @@ SqlPostfixOperator PostfixRowOperator() :
     | < NUMBER: "NUMBER" >
     | < NUMERIC: "NUMERIC" >
     | < OBJECT: "OBJECT" >
+    | < OCCURRENCES_REGEX: "OCCURRENCES_REGEX" >
     | < OCTET_LENGTH: "OCTET_LENGTH" >
     | < OCTETS: "OCTETS" >
     | < OF: "OF" >
     | < OFFSET: "OFFSET" >
     | < OLD: "OLD" >
+    | < OMIT: "OMIT" >
     | < ON: "ON" >
+    | < ONE: "ONE" >
     | < ONLY: "ONLY" >
     | < OPEN: "OPEN" >
     | < OPTION: "OPTION" >
@@ -5785,17 +5879,24 @@ SqlPostfixOperator PostfixRowOperator() :
     | < PARTITION: "PARTITION" >
     | < PASCAL: "PASCAL" >
     | < PASSTHROUGH: "PASSTHROUGH" >
+    | < PAST: "PAST" >
     | < PATH: "PATH" >
     | < PATTERN: "PATTERN" >
-    | < PERMUTE: "PERMUTE" >
-    | < PERCENT_RANK: "PERCENT_RANK" >
+    | < PER: "PER" >
+    | < PERCENT: "PERCENT" >
     | < PERCENTILE_CONT: "PERCENTILE_CONT" >
     | < PERCENTILE_DISC: "PERCENTILE_DISC" >
+    | < PERCENT_RANK: "PERCENT_RANK" >
+    | < PERIOD: "PERIOD" >
+    | < PERMUTE: "PERMUTE" >
     | < PLACING: "PLACING" >
     | < PLAN: "PLAN" >
     | < PLI: "PLI" >
+    | < PORTION: "PORTION" >
     | < POSITION: "POSITION" >
+    | < POSITION_REGEX: "POSITION_REGEX" >
     | < POWER: "POWER" >
+    | < PRECEDES: "PRECEDES" >
     | < PRECEDING: "PRECEDING" >
     | < PRECISION: "PRECISION" >
     | < PREPARE: "PREPARE" >
@@ -5866,6 +5967,7 @@ SqlPostfixOperator PostfixRowOperator() :
     | < SECOND: "SECOND" >
     | < SECTION: "SECTION" >
     | < SECURITY: "SECURITY" >
+    | < SEEK: "SEEK" >
     | < SELECT: "SELECT" >
     | < SELF: "SELF" >
     | < SENSITIVE: "SENSITIVE" >
@@ -5878,9 +5980,11 @@ SqlPostfixOperator PostfixRowOperator() :
     | < SET: "SET" >
     | < SETS: "SETS" >
     | < SET_MINUS: "MINUS">
+    | < SHOW: "SHOW" >
     | < SIMILAR: "SIMILAR" >
     | < SIMPLE: "SIMPLE" >
     | < SIZE: "SIZE" >
+    | < SKIP_: "SKIP" >
     | < SMALLINT: "SMALLINT" >
     | < SOME: "SOME" >
     | < SOURCE: "SOURCE" >
@@ -5953,11 +6057,15 @@ SqlPostfixOperator PostfixRowOperator() :
     | < STYLE: "STYLE" >
     | < SUBCLASS_ORIGIN: "SUBCLASS_ORIGIN" >
     | < SUBMULTISET: "SUBMULTISET" >
-    | < SUBSTRING: "SUBSTRING" >
+    | < SUBSET: "SUBSET" >
     | < SUBSTITUTE: "SUBSTITUTE" >
+    | < SUBSTRING: "SUBSTRING" >
+    | < SUBSTRING_REGEX: "SUBSTRING_REGEX" >
+    | < SUCCEEDS: "SUCCEEDS" >
     | < SUM: "SUM" >
     | < SYMMETRIC: "SYMMETRIC" >
     | < SYSTEM: "SYSTEM" >
+    | < SYSTEM_TIME: "SYSTEM_TIME" >
     | < SYSTEM_USER: "SYSTEM_USER" >
     | < TABLE: "TABLE" >
     | < TABLE_NAME: "TABLE_NAME" >
@@ -5982,6 +6090,7 @@ SqlPostfixOperator PostfixRowOperator() :
     | < TRANSFORM: "TRANSFORM" >
     | < TRANSFORMS: "TRANSFORMS" >
     | < TRANSLATE: "TRANSLATE" >
+    | < TRANSLATE_REGEX: "TRANSLATE_REGEX" >
     | < TRANSLATION: "TRANSLATION" >
     | < TREAT: "TREAT" >
     | < TRIGGER: "TRIGGER" >
@@ -5989,7 +6098,9 @@ SqlPostfixOperator PostfixRowOperator() :
     | < TRIGGER_NAME: "TRIGGER_NAME" >
     | < TRIGGER_SCHEMA: "TRIGGER_SCHEMA" >
     | < TRIM: "TRIM" >
+    | < TRIM_ARRAY: "TRIM_ARRAY" >
     | < TRUE: "TRUE" >
+    | < TRUNCATE: "TRUNCATE" >
     | < TYPE: "TYPE" >
     | < UESCAPE: "UESCAPE" >
     | < UNBOUNDED: "UNBOUNDED" >
@@ -6012,12 +6123,14 @@ SqlPostfixOperator PostfixRowOperator() :
     | < USING: "USING" >
     | < VALUE: "VALUE" >
     | < VALUES: "VALUES" >
+    | < VALUE_OF: "VALUE_OF" >
     | < VAR_POP: "VAR_POP" >
     | < VAR_SAMP: "VAR_SAMP" >
-    | < VARCHAR: "VARCHAR" >
     | < VARBINARY: "VARBINARY" >
+    | < VARCHAR: "VARCHAR" >
     | < VARYING: "VARYING" >
     | < VERSION: "VERSION" >
+    | < VERSIONING: "VERSIONING" >
     | < VIEW: "VIEW" >
     | < WEEK: "WEEK" >
     | < WHEN: "WHEN" >
@@ -6034,7 +6147,6 @@ SqlPostfixOperator PostfixRowOperator() :
     | < XML: "XML" >
     | < YEAR: "YEAR" >
     | < ZONE: "ZONE" >
-    | < APPLY: "APPLY" >
   <#-- additional parser keywords are included here -->
   <#list parser.keywords as keyword>
     | < ${keyword}: "${keyword}" >
@@ -6113,7 +6225,6 @@ String CommonNonReservedKeyWord() :
         | <CONSTRAINT_SCHEMA>
         | <CONSTRAINTS>
         | <CONSTRUCTOR>
-        | <CONTAINS>
         | <CONTINUE>
         | <CURSOR_NAME>
         | <DATA>
@@ -6140,7 +6251,6 @@ String CommonNonReservedKeyWord() :
         | <DYNAMIC_FUNCTION>
         | <DYNAMIC_FUNCTION_CODE>
         | <EPOCH>
-        | <EQUALS>
         | <EXCEPTION>
         | <EXCLUDE>
         | <EXCLUDING>
@@ -6158,6 +6268,7 @@ String CommonNonReservedKeyWord() :
         | <GRANTED>
         | <HIERARCHY>
         | <IMMEDIATE>
+        | <IMMEDIATELY>
         | <IMPLEMENTATION>
         | <INCLUDING>
         | <INCREMENT>
@@ -6189,7 +6300,7 @@ String CommonNonReservedKeyWord() :
         | <MESSAGE_TEXT>
         | <MILLENNIUM>
         | <MINVALUE>
-        | <MORE_KW>
+        | <MORE_>
         | <MUMPS>
         | <NAME>
         | <NAMES>
@@ -6217,6 +6328,7 @@ String CommonNonReservedKeyWord() :
         | <PARTIAL>
         | <PASCAL>
         | <PASSTHROUGH>
+        | <PAST>
         | <PATH>
         | <PLACING>
         | <PLAN>

@@ -24,11 +24,11 @@ limitations under the License.
 
 [Druid](http://druid.io/) is a fast column-oriented distributed data
 store. It allows you to execute queries via a
-[JSON-based query language](http://druid.io/docs/0.9.0/querying/querying.html),
+[JSON-based query language](http://druid.io/docs/0.9.2/querying/querying.html),
 in particular OLAP-style queries.
 Druid can be loaded in batch mode or continuously; one of Druid's key
 differentiators is its ability to
-[load from a streaming source such as Kafka](http://druid.io/docs/0.9.0/ingestion/stream-ingestion.html)
+[load from a streaming source such as Kafka](http://druid.io/docs/0.9.2/ingestion/stream-ingestion.html)
 and have the data available for query within milliseconds.
 
 Calcite's Druid adapter allows you to query the data using SQL,

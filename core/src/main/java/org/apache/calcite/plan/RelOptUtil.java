@@ -73,13 +73,20 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexOver;
 import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.rex.RexShuttle;
+import org.apache.calcite.rex.RexSqlStandardConvertletTable;
 import org.apache.calcite.rex.RexSubQuery;
+import org.apache.calcite.rex.RexToSqlNodeConverter;
+import org.apache.calcite.rex.RexToSqlNodeConverterImpl;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.rex.RexVisitorImpl;
+import org.apache.calcite.runtime.CalciteContextException;
 import org.apache.calcite.runtime.PredicateImpl;
+import org.apache.calcite.schema.ModifiableView;
 import org.apache.calcite.sql.SqlExplainFormat;
 import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlLiteral;
+import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.MultisetSqlType;
@@ -98,10 +105,12 @@ import org.apache.calcite.util.mapping.Mappings;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
+import com.google.common.base.Supplier;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 
 import java.io.PrintWriter;
@@ -109,10 +118,12 @@ import java.io.StringWriter;
 import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.BitSet;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -215,17 +226,30 @@ public abstract class RelOptUtil {
    * Returns a list of all tables used by this expression or its children
    */
   public static List<RelOptTable> findAllTables(RelNode rel) {
+    final Multimap<Class<? extends RelNode>, RelNode> nodes =
+        RelMetadataQuery.instance().getNodeTypes(rel);
     final List<RelOptTable> usedTables = new ArrayList<>();
-    new RelVisitor() {
-      @Override public void visit(RelNode node, int ordinal, RelNode parent) {
-        if (node instanceof TableScan) {
+    for (Entry<Class<? extends RelNode>, Collection<RelNode>> e : nodes.asMap().entrySet()) {
+      if (TableScan.class.isAssignableFrom(e.getKey())) {
+        for (RelNode node : e.getValue()) {
           usedTables.add(node.getTable());
         }
-        super.visit(node, ordinal, parent);
       }
-      // CHECKSTYLE: IGNORE 1
-    }.go(rel);
+    }
     return usedTables;
+  }
+
+  /**
+   * Returns a list of all table qualified names used by this expression
+   * or its children.
+   */
+  public static List<String> findAllTableQualifiedNames(RelNode rel) {
+    return Lists.transform(findAllTables(rel),
+        new Function<RelOptTable, String>() {
+          @Override public String apply(RelOptTable arg0) {
+            return arg0.getQualifiedName().toString();
+          }
+        });
   }
 
   /**
@@ -821,7 +845,7 @@ public abstract class RelOptUtil {
    * <blockquote><code>L.A = R.X AND L.B = L.C AND (L.D = 5 OR L.E =
    * R.Y)</code></blockquote>
    *
-   * returns
+   * <p>returns
    *
    * <ul>
    * <li>leftKeys = {A}
@@ -2225,6 +2249,57 @@ public abstract class RelOptUtil {
         }
       }
       filters.add(node);
+    }
+  }
+
+  /**
+   * Returns a mapping of the column ordinal in the underlying table to a column
+   * constraint of the modifiable view.
+   *
+   * @param modifiableViewTable The modifiable view which has a constraint
+   * @param targetRowType       The target type
+   */
+  public static Map<Integer, RexNode> getColumnConstraints(
+      ModifiableView modifiableViewTable, RelDataType targetRowType,
+      RelDataTypeFactory typeFactory) {
+    final RexBuilder rexBuilder = new RexBuilder(typeFactory);
+    final RexNode constraint =
+        modifiableViewTable.getConstraint(rexBuilder, targetRowType);
+    final Map<Integer, RexNode> projectMap = Maps.newHashMap();
+    final List<RexNode> filters = new ArrayList<>();
+    RelOptUtil.inferViewPredicates(projectMap, filters, constraint);
+    assert filters.isEmpty();
+    return projectMap;
+  }
+
+  /**
+   * Ensures that a source value does not violate the constraint of the target
+   * column.
+   *
+   * @param sourceValue      The insert value being validated
+   * @param targetConstraint The constraint applied to sourceValue for validation
+   * @param errorSupplier    The function to apply when validation fails
+   */
+  public static void validateValueAgainstConstraint(SqlNode sourceValue,
+      RexNode targetConstraint,
+      Supplier<CalciteContextException> errorSupplier) {
+    if (!(sourceValue instanceof SqlLiteral)) {
+      // We cannot guarantee that the value satisfies the constraint.
+      throw errorSupplier.get();
+    }
+    final SqlLiteral insertValue = (SqlLiteral) sourceValue;
+    final RexLiteral columnConstraint = (RexLiteral) targetConstraint;
+
+    final RexSqlStandardConvertletTable convertletTable =
+        new RexSqlStandardConvertletTable();
+    final RexToSqlNodeConverter sqlNodeToRexConverter =
+        new RexToSqlNodeConverterImpl(convertletTable);
+    final SqlLiteral constraintValue =
+        (SqlLiteral) sqlNodeToRexConverter.convertLiteral(columnConstraint);
+
+    if (!insertValue.equals(constraintValue)) {
+      // The value does not satisfy the constraint.
+      throw errorSupplier.get();
     }
   }
 

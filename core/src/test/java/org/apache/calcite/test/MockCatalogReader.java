@@ -33,6 +33,7 @@ import org.apache.calcite.rel.RelDistribution;
 import org.apache.calcite.rel.RelDistributions;
 import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelReferentialConstraint;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.logical.LogicalTableScan;
@@ -342,11 +343,12 @@ public class MockCatalogReader extends CalciteCatalogReader {
     registerTable(ordersStream);
 
     // Register "SHIPMENTS" stream.
+    // "ROWTIME" is not column 0, just to mix things up.
     MockTable shipmentsStream = MockTable.create(this, salesSchema, "SHIPMENTS",
         true, Double.POSITIVE_INFINITY);
+    shipmentsStream.addColumn("ORDERID", f.intType);
     shipmentsStream.addColumn("ROWTIME", f.timestampType);
     shipmentsStream.addMonotonic("ROWTIME");
-    shipmentsStream.addColumn("ORDERID", f.intType);
     registerTable(shipmentsStream);
 
     // Register "PRODUCTS" table.
@@ -669,6 +671,8 @@ public class MockCatalogReader extends CalciteCatalogReader {
     protected final List<Map.Entry<String, RelDataType>> columnList =
         new ArrayList<>();
     protected final List<Integer> keyList = new ArrayList<>();
+    protected final List<RelReferentialConstraint> referentialConstraints =
+        new ArrayList<>();
     protected RelDataType rowType;
     protected List<RelCollation> collationList;
     protected final List<String> names;
@@ -857,6 +861,10 @@ public class MockCatalogReader extends CalciteCatalogReader {
     public boolean isKey(ImmutableBitSet columns) {
       return !keyList.isEmpty()
           && columns.contains(ImmutableBitSet.of(keyList));
+    }
+
+    public List<RelReferentialConstraint> getReferentialConstraints() {
+      return referentialConstraints;
     }
 
     public RelDataType getRowType() {
@@ -1459,6 +1467,10 @@ public class MockCatalogReader extends CalciteCatalogReader {
 
         public boolean isKey(ImmutableBitSet columns) {
           return table.isKey(columns);
+        }
+
+        public List<RelReferentialConstraint> getReferentialConstraints() {
+          return table.getReferentialConstraints();
         }
 
         public List<RelCollation> getCollations() {

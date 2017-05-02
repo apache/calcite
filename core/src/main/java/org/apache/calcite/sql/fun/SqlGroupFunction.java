@@ -24,13 +24,17 @@ import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlOperandTypeChecker;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
 
+import com.google.common.collect.ImmutableList;
+
+import java.util.List;
+
 /**
  * SQL function that computes keys by which rows can be partitioned and
  * aggregated.
  *
- * <p>Group functions always occur in the GROUP BY clause. They often have
- * auxiliary functions that access information about the group. For example,
- * {@code HOP} is a group function, and its auxiliary functions are
+ * <p>Grouped window functions always occur in the GROUP BY clause. They often
+ * have auxiliary functions that access information about the group. For
+ * example, {@code HOP} is a group function, and its auxiliary functions are
  * {@code HOP_START} and {@code HOP_END}. Here they are used in a streaming
  * query:
  *
@@ -43,7 +47,8 @@ import org.apache.calcite.sql.validate.SqlMonotonicity;
  * </pre></blockquote>
  */
 class SqlGroupFunction extends SqlFunction {
-  private final SqlGroupFunction groupFunction;
+  /** The grouped function, if this an auxiliary function; null otherwise. */
+  final SqlGroupFunction groupFunction;
 
   /** Creates a SqlGroupFunction.
    *
@@ -62,9 +67,14 @@ class SqlGroupFunction extends SqlFunction {
     }
   }
 
-  /** Creates an auxiliary function from this group function. */
+  /** Creates an auxiliary function from this grouped window function. */
   SqlGroupFunction auxiliary(SqlKind kind) {
     return new SqlGroupFunction(kind, this, getOperandTypeChecker());
+  }
+
+  /** Returns a list of this grouped window function's auxiliary functions. */
+  List<SqlGroupFunction> getAuxiliaryFunctions() {
+    return ImmutableList.of();
   }
 
   @Override public boolean isGroup() {

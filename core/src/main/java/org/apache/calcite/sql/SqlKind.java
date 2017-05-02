@@ -332,9 +332,39 @@ public enum SqlKind {
   DOT,
 
   /**
-   * The "OVERLAPS" operator.
+   * The "OVERLAPS" operator for periods.
    */
   OVERLAPS,
+
+  /**
+   * The "CONTAINS" operator for periods.
+   */
+  CONTAINS,
+
+  /**
+   * The "PRECEDES" operator for periods.
+   */
+  PRECEDES,
+
+  /**
+   * The "IMMEDIATELY PRECEDES" operator for periods.
+   */
+  IMMEDIATELY_PRECEDES("IMMEDIATELY PRECEDES"),
+
+  /**
+   * The "SUCCEEDS" operator for periods.
+   */
+  SUCCEEDS,
+
+  /**
+   * The "IMMEDIATELY SUCCEEDS" operator for periods.
+   */
+  IMMEDIATELY_SUCCEEDS("IMMEDIATELY SUCCEEDS"),
+
+  /**
+   * The "EQUALS" operator for periods.
+   */
+  PERIOD_EQUALS("EQUALS"),
 
   /**
    * The "LIKE" operator.
@@ -469,6 +499,18 @@ public enum SqlKind {
 
   MATCH_NUMBER,
 
+  /**
+   * The "SKIP TO FIRST" qualifier of restarting point in a MATCH_RECOGNIZE
+   * clause.
+   */
+  SKIP_TO_FIRST,
+
+  /**
+   * The "SKIP TO LAST" qualifier of restarting point in a MATCH_RECOGNIZE
+   * clause.
+   */
+  SKIP_TO_LAST,
+
   // postfix operators
 
   /**
@@ -547,6 +589,13 @@ public enum SqlKind {
    * <p>(Only used at the RexNode level.)</p>
    */
   INPUT_REF,
+
+  /**
+   * Reference to an input field, with a qualified name and an identifier
+   *
+   * <p>(Only used at the RexNode level.)</p>
+   */
+  TABLE_INPUT_REF,
 
   /**
    * Reference to an input field, with pattern var as modifier
@@ -1026,7 +1075,7 @@ public enum SqlKind {
                   TIMESTAMP_ADD, TIMESTAMP_DIFF, EXTRACT,
                   LITERAL_CHAIN, JDBC_FN, PRECEDING, FOLLOWING, ORDER_BY,
                   NULLS_FIRST, NULLS_LAST, COLLECTION_TABLE, TABLESAMPLE,
-                  VALUES, WITH, WITH_ITEM),
+                  VALUES, WITH, WITH_ITEM, SKIP_TO_FIRST, SKIP_TO_LAST),
               AGGREGATE, DML, DDL));
 
   /**
@@ -1065,6 +1114,15 @@ public enum SqlKind {
 
   /** Lower-case name. */
   public final String lowerName = name().toLowerCase(Locale.ROOT);
+  public final String sql;
+
+  SqlKind() {
+    sql = name();
+  }
+
+  SqlKind(String sql) {
+    this.sql = sql;
+  }
 
   /** Returns the kind that corresponds to this operator but in the opposite
    * direction. Or returns this, if this kind is not reversible.

@@ -21,6 +21,8 @@ import com.google.common.collect.ImmutableMap;
 
 import org.junit.Test;
 
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
 import java.util.List;
 
 import static org.junit.Assert.assertEquals;
@@ -30,9 +32,19 @@ import static org.junit.Assert.assertEquals;
  */
 public class PigAdapterTest extends AbstractPigTest {
 
+  // Undo the %20 replacement of a space by URL
   public static final ImmutableMap<String, String> MODEL =
     ImmutableMap.of("model",
-      PigAdapterTest.class.getResource("/model.json").getPath());
+      decodeUrl(PigAdapterTest.class.getResource("/model.json").getPath()));
+
+  /** URL-decodes the given string with UTF-8 encoding */
+  private static String decodeUrl(String urlEncoded) {
+    try {
+      return URLDecoder.decode(urlEncoded, "UTF-8");
+    } catch (UnsupportedEncodingException e) {
+      throw new RuntimeException(e);
+    }
+  }
 
   @Test
   public void testScanAndFilter() throws Exception {

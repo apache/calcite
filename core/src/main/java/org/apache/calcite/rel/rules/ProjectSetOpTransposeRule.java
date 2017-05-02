@@ -84,11 +84,10 @@ public class ProjectSetOpTransposeRule extends RelOptRule {
     // locate all fields referenced in the projection
     PushProjector pushProject =
         new PushProjector(
-            origProj, null, setOp, preserveExprCondition,
-            relBuilderFactory.create(origProj.getCluster(), null));
+            origProj, null, setOp, preserveExprCondition, call.builder());
     pushProject.locateAllRefs();
 
-    List<RelNode> newSetOpInputs = new ArrayList<RelNode>();
+    List<RelNode> newSetOpInputs = new ArrayList<>();
     int[] adjustments = pushProject.getAdjustments();
 
     // push the projects completely below the setop; this

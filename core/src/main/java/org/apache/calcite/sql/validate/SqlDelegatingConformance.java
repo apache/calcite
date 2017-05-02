@@ -56,6 +56,10 @@ public class SqlDelegatingConformance extends SqlAbstractConformance {
   @Override public boolean isInsertSubsetColumnsAllowed() {
     return delegate.isInsertSubsetColumnsAllowed();
   }
+
+  @Override public boolean allowNiladicParentheses() {
+    return delegate.allowNiladicParentheses();
+  }
 }
 
 // End SqlDelegatingConformance.java

@@ -22,6 +22,61 @@ limitations under the License.
 {% endcomment %}
 -->
 
+<style>
+.container {
+  width: 400px;
+  height: 26px;
+}
+.gray {
+  width: 60px;
+  height: 26px;
+  background: gray;
+  float: left;
+}
+.r15 {
+  width: 40px;
+  height: 6px;
+  background: yellow;
+  margin-top: 4px;
+  margin-left: 10px;
+}
+.r12 {
+  width: 10px;
+  height: 6px;
+  background: yellow;
+  margin-top: 4px;
+  margin-left: 10px;
+}
+.r13 {
+  width: 20px;
+  height: 6px;
+  background: yellow;
+  margin-top: 4px;
+  margin-left: 10px;
+}
+.r2 {
+  width: 2px;
+  height: 6px;
+  background: yellow;
+  margin-top: 4px;
+  margin-left: 20px;
+}
+.r24 {
+  width: 20px;
+  height: 6px;
+  background: yellow;
+  margin-top: 4px;
+  margin-left: 20px;
+}
+.r35 {
+  width: 20px;
+  height: 6px;
+  background: yellow;
+  margin-top: 4px;
+  margin-left: 30px;
+}
+</style>
+
 The page describes the SQL dialect recognized by Calcite's default SQL parser.
 
 ## Grammar
@@ -243,6 +298,7 @@ ALWAYS,
 APPLY,
 **ARE**,
 **ARRAY**,
+**ARRAY_MAX_CARDINALITY**,
 **AS**,
 ASC,
 **ASENSITIVE**,
@@ -257,6 +313,8 @@ ATTRIBUTES,
 **AVG**,
 BEFORE,
 **BEGIN**,
+**BEGIN_FRAME**,
+**BEGIN_PARTITION**,
 BERNOULLI,
 **BETWEEN**,
 **BIGINT**,
@@ -291,6 +349,7 @@ CHARACTER_SET_NAME,
 CHARACTER_SET_SCHEMA,
 **CHAR_LENGTH**,
 **CHECK**,
+**CLASSIFIER**,
 CLASS_ORIGIN,
 **CLOB**,
 **CLOSE**,
@@ -319,7 +378,7 @@ CONSTRAINT_CATALOG,
 CONSTRAINT_NAME,
 CONSTRAINT_SCHEMA,
 CONSTRUCTOR,
-CONTAINS,
+**CONTAINS**,
 CONTINUE,
 **CONVERT**,
 **CORR**,
@@ -337,6 +396,7 @@ CONTINUE,
 **CURRENT_DEFAULT_TRANSFORM_GROUP**,
 **CURRENT_PATH**,
 **CURRENT_ROLE**,
+**CURRENT_ROW**,
 **CURRENT_SCHEMA**,
 **CURRENT_TIME**,
 **CURRENT_TIMESTAMP**,
@@ -390,10 +450,13 @@ DYNAMIC_FUNCTION_CODE,
 **EACH**,
 **ELEMENT**,
 **ELSE**,
+**EMPTY**,
 **END**,
 **END-EXEC**,
+**END_FRAME**,
+**END_PARTITION**,
 EPOCH,
-EQUALS,
+**EQUALS**,
 **ESCAPE**,
 **EVERY**,
 **EXCEPT**,
@@ -422,6 +485,7 @@ FOLLOWING,
 FORTRAN,
 FOUND,
 FRAC_SECOND,
+**FRAME_ROW**,
 **FREE**,
 **FROM**,
 **FULL**,
@@ -438,18 +502,21 @@ GOTO,
 GRANTED,
 **GROUP**,
 **GROUPING**,
+**GROUPS**,
 **HAVING**,
 HIERARCHY,
 **HOLD**,
 **HOUR**,
 **IDENTITY**,
 IMMEDIATE,
+IMMEDIATELY,
 IMPLEMENTATION,
 **IMPORT**,
 **IN**,
 INCLUDING,
 INCREMENT,
 **INDICATOR**,
+**INITIAL**,
 INITIALLY,
 **INNER**,
 **INOUT**,
@@ -475,17 +542,20 @@ KEY,
 KEY_MEMBER,
 KEY_TYPE,
 LABEL,
+**LAG**,
 **LANGUAGE**,
 **LARGE**,
 LAST,
 **LAST_VALUE**,
 **LATERAL**,
+**LEAD**,
 **LEADING**,
 **LEFT**,
 LENGTH,
 LEVEL,
 LIBRARY,
 **LIKE**,
+**LIKE_REGEX**,
 **LIMIT**,
 **LN**,
 **LOCAL**,
@@ -497,6 +567,8 @@ M,
 MAP,
 **MATCH**,
 MATCHED,
+**MATCHES**,
+**MATCH_NUMBER**,
 **MATCH_RECOGNIZE**,
 **MAX**,
 MAXVALUE,
@@ -534,6 +606,8 @@ NESTING,
 **NORMALIZE**,
 NORMALIZED,
 **NOT**,
+**NTH_VALUE**,
+**NTILE**,
 **NULL**,
 NULLABLE,
 **NULLIF**,
@@ -541,12 +615,15 @@ NULLS,
 NUMBER,
 **NUMERIC**,
 OBJECT,
+**OCCURRENCES_REGEX**,
 OCTETS,
 **OCTET_LENGTH**,
 **OF**,
 **OFFSET**,
 **OLD**,
+**OMIT**,
 **ON**,
+**ONE**,
 **ONLY**,
 **OPEN**,
 OPTION,
@@ -575,17 +652,24 @@ PARTIAL,
 **PARTITION**,
 PASCAL,
 PASSTHROUGH,
+PAST,
 PATH,
 **PATTERN**,
+**PER**,
+**PERCENT**,
 **PERCENTILE_CONT**,
 **PERCENTILE_DISC**,
 **PERCENT_RANK**,
+**PERIOD**,
 **PERMUTE**,
 PLACING,
 PLAN,
 PLI,
+**PORTION**,
 **POSITION**,
+**POSITION_REGEX**,
 **POWER**,
+**PRECEDES**,
 PRECEDING,
 **PRECISION**,
 **PREPARE**,
@@ -656,6 +740,7 @@ SCOPE_SCHEMA,
 **SECOND**,
 SECTION,
 SECURITY,
+**SEEK**,
 **SELECT**,
 SELF,
 **SENSITIVE**,
@@ -667,9 +752,11 @@ SESSION,
 **SESSION_USER**,
 **SET**,
 SETS,
+**SHOW**,
 **SIMILAR**,
 SIMPLE,
 SIZE,
+**SKIP**,
 **SMALLINT**,
 **SOME**,
 SOURCE,
@@ -742,11 +829,15 @@ STRUCTURE,
 STYLE,
 SUBCLASS_ORIGIN,
 **SUBMULTISET**,
+**SUBSET**,
 SUBSTITUTE,
 **SUBSTRING**,
+**SUBSTRING_REGEX**,
+**SUCCEEDS**,
 **SUM**,
 **SYMMETRIC**,
 **SYSTEM**,
+**SYSTEM_TIME**,
 **SYSTEM_USER**,
 **TABLE**,
 **TABLESAMPLE**,
@@ -771,6 +862,7 @@ TRANSACTIONS_ROLLED_BACK,
 TRANSFORM,
 TRANSFORMS,
 **TRANSLATE**,
+**TRANSLATE_REGEX**,
 **TRANSLATION**,
 **TREAT**,
 **TRIGGER**,
@@ -778,7 +870,9 @@ TRIGGER_CATALOG,
 TRIGGER_NAME,
 TRIGGER_SCHEMA,
 **TRIM**,
+**TRIM_ARRAY**,
 **TRUE**,
+**TRUNCATE**,
 TYPE,
 **UESCAPE**,
 UNBOUNDED,
@@ -801,12 +895,14 @@ USER_DEFINED_TYPE_SCHEMA,
 **USING**,
 **VALUE**,
 **VALUES**,
+**VALUE_OF**,
 **VARBINARY**,
 **VARCHAR**,
 **VARYING**,
 **VAR_POP**,
 **VAR_SAMP**,
 VERSION,
+**VERSIONING**,
 VIEW,
 WEEK,
 **WHEN**,
@@ -870,7 +966,6 @@ name will have been converted to upper case also.
 | TIMESTAMP [ WITHOUT TIME ZONE ] | Date and time | Example: TIMESTAMP '1969-07-20 20:17:40'
 | TIMESTAMP WITH TIME ZONE | Date and time with time zone | Example: TIMESTAMP '1969-07-20 20:17:40 America/Los Angeles'
 | INTERVAL timeUnit [ TO timeUnit ] | Date time interval | Examples: INTERVAL '1:5' YEAR TO MONTH, INTERVAL '45' DAY
-| Anchored interval | Date time interval  | Example: (DATE '1969-07-20', DATE '1972-08-29')
 
 Where:
 
@@ -909,7 +1004,7 @@ The operator precedence and associativity, highest to lowest.
 | + - (unary plus, minus)                           | right
 | * /                                               | left
 | + -                                               | left
-| BETWEEN, IN, LIKE, SIMILAR                        | -
+| BETWEEN, IN, LIKE, SIMILAR, OVERLAPS, CONTAINS etc. | -
 | < > = <= >= <> !=                                 | left
 | IS NULL, IS FALSE, IS NOT TRUE etc.               | -
 | NOT                                               | right
@@ -1050,6 +1145,10 @@ Not implemented:
 | MINUTE(date)              | Equivalent to `EXTRACT(MINUTE FROM date)`. Returns an integer between 0 and 59.
 | SECOND(date)              | Equivalent to `EXTRACT(SECOND FROM date)`. Returns an integer between 0 and 59.
 
+Calls to niladic functions such as `CURRENT_DATE` do not accept parentheses in
+standard SQL. Calls with parentheses, such as `CURRENT_DATE()` are accepted in certain
+[conformance levels]({{ site.apiRoot }}/org/apache/calcite/sql/validate/SqlConformance.html#allowNiladicParentheses--).
+
 Not implemented:
 
 * EXTRACT(timeUnit FROM interval)
@@ -1110,6 +1209,102 @@ Not implemented:
 | CARDINALITY(value) | Returns the number of elements in an array or multiset.
 
 See also: UNNEST relational operator converts a collection to a relation.
+
+### Period predicates
+
+<table>
+  <tr>
+    <th>Operator syntax</th>
+    <th>Description</th>
+  </tr>
+  <tr>
+    <td>period1 CONTAINS dateTime</td>
+    <td>
+      <div class="container">
+        <div class="gray"><div class="r15"></div><div class="r2"></div></div>
+      </div>
+    </td>
+  </tr>
+  <tr>
+    <td>period1 CONTAINS period2</td>
+    <td>
+      <div class="container">
+        <div class="gray"><div class="r15"></div><div class="r24"></div></div>
+        <div class="gray"><div class="r15"></div><div class="r13"></div></div>
+        <div class="gray"><div class="r15"></div><div class="r35"></div></div>
+        <div class="gray"><div class="r15"></div><div class="r15"></div></div>
+      </div>
+    </td>
+  </tr>
+  <tr>
+    <td>period1 OVERLAPS period2</td>
+    <td>
+      <div class="container">
+        <div class="gray"><div class="r15"></div><div class="r24"></div></div>
+        <div class="gray"><div class="r15"></div><div class="r13"></div></div>
+        <div class="gray"><div class="r15"></div><div class="r35"></div></div>
+        <div class="gray"><div class="r15"></div><div class="r15"></div></div>
+        <div class="gray"><div class="r24"></div><div class="r15"></div></div>
+        <div class="gray"><div class="r13"></div><div class="r15"></div></div>
+        <div class="gray"><div class="r35"></div><div class="r15"></div></div>
+        <div class="gray"><div class="r24"></div><div class="r13"></div></div>
+        <div class="gray"><div class="r13"></div><div class="r24"></div></div>
+      </div>
+    </td>
+  </tr>
+  <tr>
+    <td>period1 EQUALS period2</td>
+    <td>
+      <div class="container">
+        <div class="gray"><div class="r15"></div><div class="r15"></div></div>
+      </div>
+    </td>
+  </tr>
+  <tr>
+    <td>period1 PRECEDES period2</td>
+    <td>
+      <div class="container">
+        <div class="gray"><div class="r12"></div><div class="r35"></div></div>
+        <div class="gray"><div class="r13"></div><div class="r35"></div></div>
+      </div>
+    </td>
+  </tr>
+  <tr>
+    <td>period1 IMMEDIATELY PRECEDES period2</td>
+    <td>
+      <div class="container">
+        <div class="gray"><div class="r13"></div><div class="r35"></div></div>
+      </div>
+    </td>
+  </tr>
+  <tr>
+    <td>period1 SUCCEEDS period2</td>
+    <td>
+      <div class="container">
+        <div class="gray"><div class="r35"></div><div class="r12"></div></div>
+        <div class="gray"><div class="r35"></div><div class="r13"></div></div>
+      </div>
+    </td>
+  </tr>
+  <tr>
+    <td>period1 IMMEDIATELY SUCCEEDS period2</td>
+    <td>
+      <div class="container">
+        <div class="gray"><div class="r35"></div><div class="r13"></div></div>
+      </div>
+    </td>
+  </tr>
+</table>
+
+Where *period1* and *period2* are period expressions:
+
+{% highlight sql %}
+period:
+      (dateTime, dateTime)
+  |   (dateTime, interval)
+  |   PERIOD (dateTime, dateTime)
+  |   PERIOD (dateTime, interval)
+{% endhighlight %}
 
 ### JDBC function escape
 
@@ -1450,7 +1645,7 @@ matchRecognize:
       [ PARTITION BY expression [, expression ]* ]
       [ ORDER BY orderItem [, orderItem ]* ]
       [ MEASURES measureColumn [, measureColumn ]* ]
-      [ ON ROW PER MATCH | ALL ROWS PER MATCH ]
+      [ ONE ROW PER MATCH | ALL ROWS PER MATCH ]
       [ AFTER MATCH
             ( SKIP TO NEXT ROW
             | SKIP PAST LAST ROW

@@ -34,7 +34,12 @@ import org.apache.calcite.test.CalciteAssert;
 import org.apache.calcite.test.MockCatalogReader;
 import org.apache.calcite.test.MockSqlOperatorTable;
 
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
 import com.google.common.collect.ImmutableMap;
+
+import javax.annotation.Nonnull;
 
 /**
  * Default implementation of {@link SqlTestFactory}.
@@ -61,6 +66,28 @@ public class DefaultSqlTestFactory implements SqlTestFactory {
                           CalciteAssert.SchemaSpec.HR)))
           .build();
 
+  /** Caches the mock catalog.
+   * Due to view parsing, initializing a mock catalog is quite expensive.
+   * Validator is not re-entrant, so we create a new one for each test.
+   * Caching improves SqlValidatorTest from 23s to 8s,
+   * and CalciteSqlOperatorTest from 65s to 43s. */
+  private final LoadingCache<SqlTestFactory, Xyz> cache =
+      CacheBuilder.newBuilder()
+          .build(
+              new CacheLoader<SqlTestFactory, Xyz>() {
+                public Xyz load(@Nonnull SqlTestFactory factory)
+                    throws Exception {
+                  final SqlOperatorTable operatorTable =
+                      factory.createOperatorTable(factory);
+                  final boolean caseSensitive =
+                      (Boolean) factory.get("caseSensitive");
+                  final JavaTypeFactory typeFactory =
+                      new JavaTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
+                  return new Xyz(operatorTable, typeFactory,
+                      new MockCatalogReader(typeFactory, caseSensitive).init());
+                }
+              });
+
   public static final DefaultSqlTestFactory INSTANCE =
       new DefaultSqlTestFactory();
 
@@ -86,15 +113,11 @@ public class DefaultSqlTestFactory implements SqlTestFactory {
   }
 
   public SqlValidator getValidator(SqlTestFactory factory) {
-    final SqlOperatorTable operatorTable = factory.createOperatorTable(factory);
-    final boolean caseSensitive = (Boolean) factory.get("caseSensitive");
+    final Xyz xyz = cache.getUnchecked(factory);
     final SqlConformance conformance =
         (SqlConformance) factory.get("conformance");
-    final JavaTypeFactory typeFactory =
-        new JavaTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
-    return SqlValidatorUtil.newValidator(operatorTable,
-        new MockCatalogReader(typeFactory, caseSensitive).init(),
-        typeFactory, conformance);
+    return SqlValidatorUtil.newValidator(xyz.operatorTable,
+        xyz.catalogReader, xyz.typeFactory, conformance);
   }
 
   public SqlAdvisor createAdvisor(SqlValidatorWithHints validator) {
@@ -103,6 +126,20 @@ public class DefaultSqlTestFactory implements SqlTestFactory {
 
   public Object get(String name) {
     return DEFAULT_OPTIONS.get(name);
+  }
+
+  /** State that can be cached and shared among tests. */
+  private static class Xyz {
+    private final SqlOperatorTable operatorTable;
+    private final JavaTypeFactory typeFactory;
+    private final MockCatalogReader catalogReader;
+
+    Xyz(SqlOperatorTable operatorTable, JavaTypeFactory typeFactory,
+        MockCatalogReader catalogReader) {
+      this.operatorTable = operatorTable;
+      this.typeFactory = typeFactory;
+      this.catalogReader = catalogReader;
+    }
   }
 }
 

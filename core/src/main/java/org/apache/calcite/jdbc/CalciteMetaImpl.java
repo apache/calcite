@@ -43,6 +43,7 @@ import org.apache.calcite.rel.type.RelDataTypeFactoryImpl;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.runtime.FlatLists;
+import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.Table;
@@ -51,6 +52,10 @@ import org.apache.calcite.server.CalciteServerStatement;
 import org.apache.calcite.sql.SqlJdbcFunctionCall;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.tools.FrameworkConfig;
+import org.apache.calcite.tools.Frameworks;
+import org.apache.calcite.util.Holder;
+import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -569,7 +574,7 @@ public class CalciteMetaImpl extends MetaImpl {
       throw new AssertionError("missing statement", e);
     }
     h.signature =
-        calciteConnection.parseQuery(CalcitePrepare.Query.of(sql),
+        calciteConnection.parseQuery(toQuery(statement, sql),
             statement.createPrepareContext(), maxRowCount);
     statement.setSignature(h.signature);
     return h;
@@ -592,7 +597,7 @@ public class CalciteMetaImpl extends MetaImpl {
         final CalciteConnectionImpl calciteConnection = getConnection();
         CalciteServerStatement statement =
             calciteConnection.server.getStatement(h);
-        signature = calciteConnection.parseQuery(CalcitePrepare.Query.of(sql),
+        signature = calciteConnection.parseQuery(toQuery(statement, sql),
             statement.createPrepareContext(), maxRowCount);
         statement.setSignature(signature);
         callback.assign(signature, null, -1);
@@ -605,6 +610,21 @@ public class CalciteMetaImpl extends MetaImpl {
       throw new RuntimeException(e);
     }
     // TODO: share code with prepare and createIterable
+  }
+
+  /** Wraps the SQL string in a
+   * {@link org.apache.calcite.jdbc.CalcitePrepare.Query} object, giving the
+   * {@link Hook#STRING_TO_QUERY} hook chance to override. */
+  private CalcitePrepare.Query<Object> toQuery(
+      CalciteServerStatement statement, String sql) {
+    final Holder<CalcitePrepare.Query<Object>> queryHolder =
+        Holder.of(CalcitePrepare.Query.of(sql));
+    final FrameworkConfig config = Frameworks.newConfigBuilder()
+        .parserConfig(SqlParser.Config.DEFAULT)
+        .defaultSchema(statement.createPrepareContext().getRootSchema().plus())
+        .build();
+    Hook.STRING_TO_QUERY.run(Pair.of(config, queryHolder));
+    return queryHolder.get();
   }
 
   @Override public Frame fetch(StatementHandle h, long offset,

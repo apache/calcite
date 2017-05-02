@@ -97,7 +97,7 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
 
   @Test public void testAliasList() {
     final String sql = "select a + b from (\n"
-        + "  select deptno, 1 as one, name from dept\n"
+        + "  select deptno, 1 as uno, name from dept\n"
         + ") as d(a, b, c)\n"
         + "where c like 'X%'";
     sql(sql).ok();
@@ -441,6 +441,31 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
 
   @Test public void testSelectDistinct() {
     sql("select distinct sal + 5 from emp").ok();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-476">[CALCITE-476]
+   * DISTINCT flag in windowed aggregates</a>. */
+  @Test public void testSelectOverDistinct() {
+    // Checks to see if <aggregate>(DISTINCT x) is set and preserved
+    // as a flag for the aggregate call.
+    final String sql = "select SUM(DISTINCT deptno)\n"
+        + "over (ROWS BETWEEN 10 PRECEDING AND CURRENT ROW)\n"
+        + "from emp\n";
+    sql(sql).ok();
+  }
+
+  /** As {@link #testSelectOverDistinct()} but for streaming queries. */
+  @Test public void testSelectStreamPartitionDistinct() {
+    final String sql = "select stream\n"
+        + "  count(distinct orderId) over (partition by productId\n"
+        + "    order by rowtime\n"
+        + "    range interval '1' second preceding) as c,\n"
+        + "  count(distinct orderId) over w as c2,\n"
+        + "  count(orderId) over w as c3\n"
+        + "from orders\n"
+        + "window w as (partition by productId)";
+    sql(sql).ok();
   }
 
   @Test public void testSelectDistinctGroup() {
@@ -1369,6 +1394,15 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  @Test public void testTumble() {
+    final String sql = "select STREAM\n"
+        + "  TUMBLE_START(rowtime, INTERVAL '1' MINUTE) AS s,\n"
+        + "  TUMBLE_END(rowtime, INTERVAL '1' MINUTE) AS e\n"
+        + "from Shipments\n"
+        + "GROUP BY TUMBLE(rowtime, INTERVAL '1' MINUTE)";
+    sql(sql).ok();
+  }
+
   @Test public void testNotNotIn() {
     final String sql = "select * from EMP where not (ename not in ('Fred') )";
     sql(sql).ok();
@@ -1478,6 +1512,43 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
         + "  last_value(deptno) over (order by empno rows 2 following)\n"
         + "from emp\n";
     sql(sql2).ok();
+  }
+
+  @Test public void testTumbleTable() {
+    final String sql = "select stream"
+        + " tumble_end(rowtime, interval '2' hour) as rowtime, productId\n"
+        + "from orders\n"
+        + "group by tumble(rowtime, interval '2' hour), productId";
+    sql(sql).ok();
+  }
+
+  /** As {@link #testTumbleTable()} but on a table where "rowtime" is at
+   * position 1 not 0. */
+  @Test public void testTumbleTableRowtimeNotFirstColumn() {
+    final String sql = "select stream\n"
+        + "   tumble_end(rowtime, interval '2' hour) as rowtime, orderId\n"
+        + "from shipments\n"
+        + "group by tumble(rowtime, interval '2' hour), orderId";
+    sql(sql).ok();
+  }
+
+  @Test public void testHopTable() {
+    final String sql = "select stream hop_start(rowtime, interval '1' hour,"
+        + " interval '3' hour) as rowtime,\n"
+        + "  count(*) as c\n"
+        + "from orders\n"
+        + "group by hop(rowtime, interval '1' hour, interval '3' hour)";
+    sql(sql).ok();
+  }
+
+  @Test public void testSessionTable() {
+    final String sql = "select stream session_start(rowtime, interval '1' hour)"
+        + " as rowtime,\n"
+        + "  session_end(rowtime, interval '1' hour),\n"
+        + "  count(*) as c\n"
+        + "from orders\n"
+        + "group by session(rowtime, interval '1' hour)";
+    sql(sql).ok();
   }
 
   @Test public void testInterval() {
@@ -1631,7 +1702,7 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
   }
 
   @Test public void testInsertSubset() {
-    final String sql = "insert into empnullables \n"
+    final String sql = "insert into empnullables\n"
         + "values (50, 'Fred')";
     sql(sql).conformance(SqlConformanceEnum.PRAGMATIC_2003).ok();
   }
@@ -1653,7 +1724,7 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
   }
 
   @Test public void testInsertBindSubset() {
-    final String sql = "insert into empnullables \n"
+    final String sql = "insert into empnullables\n"
         + "values (?, ?)";
     sql(sql).conformance(SqlConformanceEnum.PRAGMATIC_2003).ok();
   }
@@ -1669,7 +1740,7 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
   }
 
   @Test public void testInsertSubsetView() {
-    final String sql = "insert into empnullables_20 \n"
+    final String sql = "insert into empnullables_20\n"
         + "values (10, 'Fred')";
     sql(sql).conformance(SqlConformanceEnum.PRAGMATIC_2003).ok();
   }

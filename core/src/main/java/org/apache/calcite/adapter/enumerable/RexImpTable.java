@@ -2123,7 +2123,11 @@ public class RexImpTable {
         case MINUS:
           trop1 = Expressions.negate(trop1);
         }
-        return Expressions.call(BuiltInMethod.ADD_MONTHS.method, trop0, trop1);
+        final BuiltInMethod method =
+            operand0.getType().getSqlTypeName() == SqlTypeName.TIMESTAMP
+                ? BuiltInMethod.ADD_MONTHS
+                : BuiltInMethod.ADD_MONTHS_INT;
+        return Expressions.call(method.method, trop0, trop1);
 
       case INTERVAL_DAY:
       case INTERVAL_DAY_HOUR:

@@ -111,7 +111,8 @@ public class ProjectWindowTransposeRule extends RelOptRule {
                 (SqlAggFunction) call.getOperator(),
                 call.getType(),
                 clonedOperands,
-                ((Window.RexWinAggCall) call).ordinal);
+                ((Window.RexWinAggCall) call).ordinal,
+                ((Window.RexWinAggCall) call).distinct);
           } else {
             return call;
           }

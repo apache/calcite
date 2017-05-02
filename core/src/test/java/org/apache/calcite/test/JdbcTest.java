@@ -376,7 +376,7 @@ public class JdbcTest {
           .runs();
 
       modelWithView(
-          "select \"name\", \"empid\" as e, \"salary\", \"empid\" + 3 as e3, 1 as one\n"
+          "select \"name\", \"empid\" as e, \"salary\", \"empid\" + 3 as e3, 1 as uno\n"
               + "from \"MUTABLE_EMPLOYEES\"\n"
               + "where \"commission\" = 100 AND \"deptno\" = 20",
           true)
@@ -4536,7 +4536,7 @@ public class JdbcTest {
             "select \"deptno\", \"employees\"[1] as e from \"hr\".\"depts\"\n").returnsUnordered(
         "deptno=10; E={100, 10, Bill, 10000.0, 1000}",
         "deptno=30; E=null",
-            "deptno=40; E={200, 20, Eric, 8000.0, 500}");
+        "deptno=40; E={200, 20, Eric, 8000.0, 500}");
   }
 
   @Test public void testVarcharEquals() {

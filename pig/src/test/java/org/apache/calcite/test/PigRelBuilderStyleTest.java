@@ -43,6 +43,7 @@ import org.apache.pig.test.Util;
 
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.apache.calcite.rel.rules.FilterJoinRule.TRUE_PREDICATE;
@@ -73,6 +74,7 @@ public class PigRelBuilderStyleTest extends AbstractPigTest {
   }
 
   @Test
+  @Ignore("CALCITE-1751")
   public void testImplWithMultipleFilters() {
     final SchemaPlus schema = createTestSchema();
     final RelBuilder builder = createRelBuilder(schema);
@@ -90,6 +92,7 @@ public class PigRelBuilderStyleTest extends AbstractPigTest {
   }
 
   @Test
+  @Ignore("CALCITE-1751")
   public void testImplWithGroupByAndCount() {
     final SchemaPlus schema = createTestSchema();
     final RelBuilder builder = createRelBuilder(schema);
@@ -125,6 +128,7 @@ public class PigRelBuilderStyleTest extends AbstractPigTest {
   }
 
   @Test
+  @Ignore("CALCITE-1751")
   public void testImplWithGroupByMultipleFields() {
     final SchemaPlus schema = createTestSchema();
     final RelBuilder builder = createRelBuilder(schema);
@@ -181,6 +185,7 @@ public class PigRelBuilderStyleTest extends AbstractPigTest {
   }
 
   @Test
+  @Ignore("CALCITE-1751")
   public void testImplWithJoinAndGroupBy() throws Exception {
     final SchemaPlus schema = createTestSchema();
     final RelBuilder builder = createRelBuilder(schema);

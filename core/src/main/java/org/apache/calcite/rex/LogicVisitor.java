@@ -163,6 +163,10 @@ public class LogicVisitor implements RexBiVisitor<Logic, Logic> {
     return end(subQuery, arg);
   }
 
+  @Override public Logic visitTableInputRef(RexTableInputRef ref, Logic arg) {
+    return end(ref, arg);
+  }
+
   @Override public Logic visitPatternFieldRef(RexPatternFieldRef ref, Logic arg) {
     return end(ref, arg);
   }

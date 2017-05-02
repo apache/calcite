@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.sql;
 
+import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.util.Util;
 
 /**
@@ -119,6 +120,8 @@ public enum SqlSyntax {
   /**
    * Function syntax which takes no parentheses if there are no arguments, for
    * example "CURRENTTIME".
+   *
+   * @see SqlConformance#allowNiladicParentheses()
    */
   FUNCTION_ID {
     public void unparse(

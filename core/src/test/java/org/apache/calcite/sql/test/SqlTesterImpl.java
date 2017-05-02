@@ -88,7 +88,7 @@ public class SqlTesterImpl implements SqlTester, AutoCloseable {
   /**
    * {@inheritDoc}
    *
-   * This default implementation does nothing.
+   * <p>This default implementation does nothing.
    */
   public void close() {
     // no resources to release
@@ -293,14 +293,17 @@ public class SqlTesterImpl implements SqlTester, AutoCloseable {
     if (conformance == null) {
       conformance = SqlConformanceEnum.DEFAULT;
     }
-    return with("conformance", conformance);
+    return with("conformance", conformance)
+        .withConnectionFactory(
+            CalciteAssert.EMPTY_CONNECTION_FACTORY
+                .with("conformance", conformance));
   }
 
   public SqlTester withOperatorTable(SqlOperatorTable operatorTable) {
     return with("operatorTable", operatorTable);
   }
 
-  public SqlTester withConnectionFactory(
+  public SqlTesterImpl withConnectionFactory(
       CalciteAssert.ConnectionFactory connectionFactory) {
     return with("connectionFactory", connectionFactory);
   }

@@ -501,6 +501,10 @@ public class RexImplicationCheckerTest {
           calendar, timeDataType.getPrecision());
     }
 
+    public RexNode cast(RelDataType type, RexNode exp) {
+      return rexBuilder.makeCast(type, exp, true);
+    }
+
     void checkImplies(RexNode node1, RexNode node2) {
       final String message =
           node1 + " does not imply " + node2 + " when it should";

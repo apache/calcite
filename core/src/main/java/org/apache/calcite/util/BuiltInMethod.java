@@ -43,6 +43,7 @@ import org.apache.calcite.linq4j.function.Predicate2;
 import org.apache.calcite.linq4j.tree.FunctionExpression;
 import org.apache.calcite.linq4j.tree.Primitive;
 import org.apache.calcite.linq4j.tree.Types;
+import org.apache.calcite.rel.metadata.BuiltInMetadata.AllPredicates;
 import org.apache.calcite.rel.metadata.BuiltInMetadata.Collation;
 import org.apache.calcite.rel.metadata.BuiltInMetadata.ColumnOrigin;
 import org.apache.calcite.rel.metadata.BuiltInMetadata.ColumnUniqueness;
@@ -50,9 +51,11 @@ import org.apache.calcite.rel.metadata.BuiltInMetadata.CumulativeCost;
 import org.apache.calcite.rel.metadata.BuiltInMetadata.DistinctRowCount;
 import org.apache.calcite.rel.metadata.BuiltInMetadata.Distribution;
 import org.apache.calcite.rel.metadata.BuiltInMetadata.ExplainVisibility;
+import org.apache.calcite.rel.metadata.BuiltInMetadata.ExpressionLineage;
 import org.apache.calcite.rel.metadata.BuiltInMetadata.MaxRowCount;
 import org.apache.calcite.rel.metadata.BuiltInMetadata.Memory;
 import org.apache.calcite.rel.metadata.BuiltInMetadata.MinRowCount;
+import org.apache.calcite.rel.metadata.BuiltInMetadata.NodeTypes;
 import org.apache.calcite.rel.metadata.BuiltInMetadata.NonCumulativeCost;
 import org.apache.calcite.rel.metadata.BuiltInMetadata.Parallelism;
 import org.apache.calcite.rel.metadata.BuiltInMetadata.PercentageOriginalRows;
@@ -61,6 +64,7 @@ import org.apache.calcite.rel.metadata.BuiltInMetadata.Predicates;
 import org.apache.calcite.rel.metadata.BuiltInMetadata.RowCount;
 import org.apache.calcite.rel.metadata.BuiltInMetadata.Selectivity;
 import org.apache.calcite.rel.metadata.BuiltInMetadata.Size;
+import org.apache.calcite.rel.metadata.BuiltInMetadata.TableReferences;
 import org.apache.calcite.rel.metadata.BuiltInMetadata.UniqueKeys;
 import org.apache.calcite.rel.metadata.Metadata;
 import org.apache.calcite.rex.RexNode;
@@ -254,6 +258,7 @@ public enum BuiltInMethod {
   FLOOR_DIV(DateTimeUtils.class, "floorDiv", long.class, long.class),
   FLOOR_MOD(DateTimeUtils.class, "floorMod", long.class, long.class),
   ADD_MONTHS(SqlFunctions.class, "addMonths", long.class, int.class),
+  ADD_MONTHS_INT(SqlFunctions.class, "addMonths", int.class, int.class),
   SUBTRACT_MONTHS(SqlFunctions.class, "subtractMonths", long.class,
       long.class),
   FLOOR(SqlFunctions.class, "floor", int.class, int.class),
@@ -360,6 +365,7 @@ public enum BuiltInMethod {
       ImmutableBitSet.class, boolean.class),
   COLLATIONS(Collation.class, "collations"),
   DISTRIBUTION(Distribution.class, "distribution"),
+  NODE_TYPES(NodeTypes.class, "getNodeTypes"),
   ROW_COUNT(RowCount.class, "getRowCount"),
   MAX_ROW_COUNT(MaxRowCount.class, "getMaxRowCount"),
   MIN_ROW_COUNT(MinRowCount.class, "getMinRowCount"),
@@ -370,9 +376,12 @@ public enum BuiltInMethod {
   POPULATION_SIZE(PopulationSize.class, "getPopulationSize",
       ImmutableBitSet.class),
   COLUMN_ORIGIN(ColumnOrigin.class, "getColumnOrigins", int.class),
+  EXPRESSION_LINEAGE(ExpressionLineage.class, "getExpressionLineage", RexNode.class),
+  TABLE_REFERENCES(TableReferences.class, "getTableReferences"),
   CUMULATIVE_COST(CumulativeCost.class, "getCumulativeCost"),
   NON_CUMULATIVE_COST(NonCumulativeCost.class, "getNonCumulativeCost"),
   PREDICATES(Predicates.class, "getPredicates"),
+  ALL_PREDICATES(AllPredicates.class, "getAllPredicates"),
   EXPLAIN_VISIBILITY(ExplainVisibility.class, "isVisibleInExplain",
       SqlExplainLevel.class),
   SCALAR_EXECUTE1(Scalar.class, "execute", Context.class),

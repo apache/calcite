@@ -620,11 +620,41 @@ select count(*) as c from "everyTypes" where "utilDate" = TIMESTAMP '1970-01-01 
 
 !ok
 
+# [CALCITE-715] Add PERIOD type constructor and period operators (CONTAINS, PRECEDES, etc.)
+select period("sqlDate", INTERVAL '1' YEAR) as p
+from "everyTypes";
++------------+
+| P          |
++------------+
+| {0, 12}    |
+| {null, 12} |
++------------+
+(2 rows)
+
+!ok
+
+!use foodmart
+
+select count(*) as c
+from "customer"
+where period ("birthdate", DATE '1970-02-05') contains DATE '1964-01-01';
+EnumerableAggregate(group=[{}], C=[COUNT()])
+  EnumerableCalc(expr#0..28=[{inputs}], expr#29=[1970-02-05], expr#30=[<=($t16, $t29)], expr#31=[CASE($t30, $t16, $t29)], expr#32=[1964-01-01], expr#33=[<=($t31, $t32)], expr#34=[CASE($t30, $t29, $t16)], expr#35=[>=($t34, $t32)], expr#36=[AND($t33, $t35)], proj#0..28=[{exprs}], $condition=[$t36])
+    EnumerableTableScan(table=[[foodmart2, customer]])
+!plan
++------+
+| C    |
++------+
+| 7918 |
++------+
+(1 row)
+
+!ok
+
 # [CALCITE-346] Add commutative join rule
 #
 # 3-way join that does not require bushy join.  Best plan is: sales_fact_1997 as
 # left-most leaf, then customer (with filter), then product.
-!use foodmart
 select *
 from "sales_fact_1997" as s
   join "customer" as c using ("customer_id")

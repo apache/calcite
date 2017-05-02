@@ -33,9 +33,10 @@ For details, see the [lattices documentation]({{ site.baseurl }}/docs/lattice.ht
 
 ## Expose materialized views from adapters
 
-Some adapters have their own notion of materialized views.
+Some adapters and projects that rely on Calcite have their own notion of materialized views.
 For example, Apache Cassandra allows the user to define materialized views based on existing tables which are automatically maintained.
 The Cassandra adapter automatically exposes these materialized views to Calcite.
+Another example is Apache Hive, whose integration with Calcite materialized views is ongoing.
 By understanding some tables as materialized views, Calcite has the opportunity to automatically rewrite queries to use these views.
 
 ## View-based query rewriting
@@ -53,18 +54,25 @@ The following example is taken from the documentation of {SubstitutionVisitor}:
  * Result: `SELECT a, c FROM mv WHERE b = 4`
 
 Note that {result} uses the materialized view table {mv} and a simplified condition {b = 4}.
-This can accomplish a large number of rewritings, but only those based on star schemas.
-This type of rewriting cannot be used for more complex views.
-{MaterializedViewJoinRule} attempts to match queries to views defined using arbitrary queries.
-The logic of the rule is based on [this paper](http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.95.113).
+This can accomplish a large number of rewritings.
+However, this approach is not scalable in the presence of complex
+views, e.g., views containing many join operators, since it relies on
+the planner rules to create the equivalence between expressions.
 
-There are several limitations to the current implementation:
+In turn, an alternative rule that attempts to match queries to views
+defined using arbitrary queries has been proposed.
 
-* The query defining the view must use only inner joins
-* Only equality predicates are supported
-* Predicates on tables used in the view must exactly match predicates in the query
-* Rewriting is unoptimized and will attempt to match all views against each query
+{AbstractMaterializedViewRule} builds on the ideas presented [here](http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.95.113).
+The rule can rewrite expressions containing arbitrary chains of Join, Filter, and Project operators.
+Additionally, the rule can rewrite expressions rooted at an Aggregate operator, rolling aggregations up if necessary.
 
-These limitations are not fundamental the approach however and will hopefully be removed in the future.
-Note that the rule is currently disabled by default.
-To make use of the rule, {MaterializedViewJoinRule.INSTANCE_PROJECT} and {MaterializedViewJoinRule.INSTANCE_TABLE_SCAN} need to be added to the planner.
+However, this rule still presents some limitations. In particular, the rule presents the following
+shortcomings that we plan to address with follow-up extensions:
+
+* Rewriting is unoptimized and will attempt to match all views against each query.
+* The query defining the view must use only inner joins.
+* It does not produce rewritings using Union operators, e.g., a given query could be partially answered from the
+{mv} (year = 2014) and from the query (not(year=2014)). This can be useful if {mv} is stored in a system such as
+Druid.
+
+This rule is currently enabled by default.

@@ -110,6 +110,10 @@ public class RexVisitorImpl<R> implements RexVisitor<R> {
     return r;
   }
 
+  @Override public R visitTableInputRef(RexTableInputRef ref) {
+    return null;
+  }
+
   @Override public R visitPatternFieldRef(RexPatternFieldRef fieldRef) {
     return null;
   }
