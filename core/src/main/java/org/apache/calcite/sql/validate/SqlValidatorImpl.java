@@ -4473,6 +4473,17 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
     validateDefinitions(matchRecognize, scope);
 
+    // validate AFTER ... SKIP TO
+    final SqlNode skipTo = matchRecognize.getAfter();
+    if (skipTo instanceof SqlCall) {
+      final SqlCall skipToCall = (SqlCall) skipTo;
+      final SqlIdentifier id = skipToCall.operand(0);
+      if (!scope.getPatternVars().contains(id.getSimple())) {
+        throw newValidationError(id,
+            RESOURCE.unknownPattern(id.getSimple()));
+      }
+    }
+
     List<Map.Entry<String, RelDataType>> fields =
         validateMeasure(matchRecognize, scope);
     final RelDataType rowType = typeFactory.createStructType(fields);
@@ -4537,12 +4548,14 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
   private void validateDefinitions(SqlMatchRecognize mr,
       MatchRecognizeScope scope) {
-    final Set<String> aliases = new HashSet<>();
+    final Set<String> aliases = catalogReader.nameMatcher().isCaseSensitive()
+        ? new LinkedHashSet<String>()
+        : new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
     for (SqlNode item : mr.getPatternDefList().getList()) {
       final String alias = alias(item);
       if (!aliases.add(alias)) {
         throw newValidationError(item,
-            Static.RESOURCE.PatternVarAlreadyDefined(alias));
+            Static.RESOURCE.patternVarAlreadyDefined(alias));
       }
       scope.addPatternVar(alias);
     }
@@ -4655,7 +4668,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
             == SqlFunctionCategory.MATCH_RECOGNIZE
         && !(operandScope instanceof MatchRecognizeScope)) {
       throw newValidationError(call,
-          Static.RESOURCE.FunctionMatchRecognizeOnly(call.toString()));
+          Static.RESOURCE.functionMatchRecognizeOnly(call.toString()));
     }
     // Delegate validation to the operator.
     operator.validateCall(call, this, scope, operandScope);
@@ -5417,28 +5430,28 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         if (isPhysicalNavigation(kind)) {
           if (isMeasure) {
             throw newValidationError(call,
-                Static.RESOURCE.PatternPrevFunctionInMeasure(call.toString()));
+                Static.RESOURCE.patternPrevFunctionInMeasure(call.toString()));
           }
           if (firstLastCount != 0) {
             throw newValidationError(call,
-                Static.RESOURCE.PatternPrevFunctionOrder(call.toString()));
+                Static.RESOURCE.patternPrevFunctionOrder(call.toString()));
           }
           prevNextCount++;
         } else if (isLogicalNavigation(kind)) {
           if (firstLastCount != 0) {
             throw newValidationError(call,
-                Static.RESOURCE.PatternPrevFunctionOrder(call.toString()));
+                Static.RESOURCE.patternPrevFunctionOrder(call.toString()));
           }
           firstLastCount++;
         } else if (isAggregation(kind)) {
           // cannot apply aggregation in PREV/NEXT, FIRST/LAST
           if (firstLastCount != 0 || prevNextCount != 0) {
             throw newValidationError(call,
-                Static.RESOURCE.PatternAggregationInNavigation(call.toString()));
+                Static.RESOURCE.patternAggregationInNavigation(call.toString()));
           }
           if (kind == SqlKind.COUNT && call.getOperandList().size() > 1) {
             throw newValidationError(call,
-                Static.RESOURCE.PatternCountFunctionArg());
+                Static.RESOURCE.patternCountFunctionArg());
           }
           aggregateCount++;
         }
@@ -5446,7 +5459,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
       if (isRunningOrFinal(kind) && !isMeasure) {
         throw newValidationError(call,
-            Static.RESOURCE.PatternRunningFunctionInDefine(call.toString()));
+            Static.RESOURCE.patternRunningFunctionInDefine(call.toString()));
       }
 
       for (SqlNode node : operands) {
@@ -5461,17 +5474,17 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         case COUNT:
           if (vars.size() > 1) {
             throw newValidationError(call,
-                Static.RESOURCE.PatternCountFunctionArg());
+                Static.RESOURCE.patternCountFunctionArg());
           }
           break;
         default:
           if (vars.isEmpty()) {
             throw newValidationError(call,
-              Static.RESOURCE.PatternFunctionNullCheck(call.toString()));
+              Static.RESOURCE.patternFunctionNullCheck(call.toString()));
           }
           if (vars.size() != 1) {
             throw newValidationError(call,
-                Static.RESOURCE.PatternFunctionVariableCheck(call.toString()));
+                Static.RESOURCE.patternFunctionVariableCheck(call.toString()));
           }
           break;
         }

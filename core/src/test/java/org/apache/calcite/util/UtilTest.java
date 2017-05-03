@@ -51,6 +51,7 @@ import java.io.StringWriter;
 import java.io.UnsupportedEncodingException;
 import java.lang.management.MemoryType;
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.text.MessageFormat;
@@ -1498,6 +1499,16 @@ public class UtilTest {
 
   @Test public void testResources() {
     Resources.validate(Static.RESOURCE);
+    checkResourceMethodNames(Static.RESOURCE);
+  }
+
+  private void checkResourceMethodNames(Object resource) {
+    for (Method method : resource.getClass().getMethods()) {
+      if (!Modifier.isStatic(method.getModifiers())
+          && !method.getName().matches("^[a-z][A-Za-z0-9_]*$")) {
+        fail("resource method name must be camel case: " + method.getName());
+      }
+    }
   }
 
   /** Tests that sorted sets behave the way we expect. */

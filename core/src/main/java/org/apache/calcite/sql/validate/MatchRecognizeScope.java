@@ -21,12 +21,12 @@ import org.apache.calcite.rel.type.StructKind;
 import org.apache.calcite.sql.SqlMatchRecognize;
 import org.apache.calcite.sql.SqlNode;
 
-import com.google.common.collect.Sets;
-
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
 
 /**
  * Scope for expressions in a {@code MATCH_RECOGNIZE} clause.
@@ -38,14 +38,17 @@ public class MatchRecognizeScope extends ListScope {
 
   //~ Instance fields ---------------------------------------------
   private final SqlMatchRecognize matchRecognize;
-  private Set<String> patternVars;
+  private final Set<String> patternVars;
 
   /** Creates a MatchRecognizeScope. */
   public MatchRecognizeScope(SqlValidatorScope parent,
       SqlMatchRecognize matchRecognize) {
     super(parent);
     this.matchRecognize = matchRecognize;
-    patternVars = Sets.newHashSet(STAR);
+    patternVars = validator.getCatalogReader().nameMatcher().isCaseSensitive()
+        ? new LinkedHashSet<String>()
+        : new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
+    patternVars.add(STAR);
   }
 
   @Override public SqlNode getNode() {

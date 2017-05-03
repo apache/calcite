@@ -670,31 +670,34 @@ public interface CalciteResource {
   ExInst<SqlValidatorException> auxiliaryWithoutMatchingGroupCall(String func1, String func2);
 
   @BaseMessage("Pattern variable ''{0}'' has already been defined")
-  ExInst<SqlValidatorException> PatternVarAlreadyDefined(String varName);
+  ExInst<SqlValidatorException> patternVarAlreadyDefined(String varName);
 
   @BaseMessage("Cannot use PREV/NEXT in MEASURE ''{0}''")
-  ExInst<SqlValidatorException> PatternPrevFunctionInMeasure(String call);
+  ExInst<SqlValidatorException> patternPrevFunctionInMeasure(String call);
 
   @BaseMessage("Cannot nest PREV/NEXT under LAST/FIRST ''{0}''")
-  ExInst<SqlValidatorException> PatternPrevFunctionOrder(String call);
+  ExInst<SqlValidatorException> patternPrevFunctionOrder(String call);
 
   @BaseMessage("Cannot use aggregation in navigation ''{0}''")
-  ExInst<SqlValidatorException> PatternAggregationInNavigation(String call);
+  ExInst<SqlValidatorException> patternAggregationInNavigation(String call);
 
   @BaseMessage("Invalid number of parameters to COUNT method")
-  ExInst<SqlValidatorException> PatternCountFunctionArg();
+  ExInst<SqlValidatorException> patternCountFunctionArg();
 
   @BaseMessage("Cannot use RUNNING/FINAL in DEFINE ''{0}''")
-  ExInst<SqlValidatorException> PatternRunningFunctionInDefine(String call);
+  ExInst<SqlValidatorException> patternRunningFunctionInDefine(String call);
 
   @BaseMessage("Multiple pattern variables in ''{0}''")
-  ExInst<SqlValidatorException> PatternFunctionVariableCheck(String call);
+  ExInst<SqlValidatorException> patternFunctionVariableCheck(String call);
 
   @BaseMessage("Function ''{0}'' can only be used in MATCH_RECOGNIZE")
-  ExInst<SqlValidatorException> FunctionMatchRecognizeOnly(String call);
+  ExInst<SqlValidatorException> functionMatchRecognizeOnly(String call);
 
   @BaseMessage("Null parameters in ''{0}''")
-  ExInst<SqlValidatorException> PatternFunctionNullCheck(String call);
+  ExInst<SqlValidatorException> patternFunctionNullCheck(String call);
+
+  @BaseMessage("Unknown pattern ''{0}''")
+  ExInst<SqlValidatorException> unknownPattern(String call);
 }
 
 // End CalciteResource.java

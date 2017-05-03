@@ -159,6 +159,42 @@ public class SqlValidatorMatchTest extends SqlValidatorTestCase {
         .fails("(?s).*Encountered \"measures\" at .*");
   }
 
+  @Test public void testMatchRecognizeSkipTo3() throws Exception {
+    final String sql = "select *\n"
+        + "from emp match_recognize (\n"
+        + "  measures\n"
+        + "    STRT.sal as start_sal,\n"
+        + "    LAST(up.sal) as end_sal\n"
+        + "    after match skip to ^no_exists^\n"
+        + "    pattern (strt down+ up+)\n"
+        + "    define\n"
+        + "      down as down.sal < PREV(down.sal),\n"
+        + "      up as up.sal > prev(up.sal)\n"
+        + "  ) mr";
+    sql(sql)
+        .fails("Unknown pattern 'NO_EXISTS'");
+  }
+
+  @Test public void testMatchRecognizeSkipToCaseInsensitive() throws Exception {
+    final String sql = "select *\n"
+        + "from emp match_recognize (\n"
+        + "  measures\n"
+        + "    STRT.sal as start_sal,\n"
+        + "    LAST(up.sal) as end_sal\n"
+        + "    after match skip to ^\"strt\"^\n"
+        + "    pattern (strt down+ up+)\n"
+        + "    define\n"
+        + "      down as down.sal < PREV(down.sal),\n"
+        + "      up as up.sal > prev(up.sal)\n"
+        + "  ) mr";
+    sql(sql)
+        .fails("Unknown pattern 'strt'");
+    sql(sql)
+        .tester(tester.withCaseSensitive(false))
+        .sansCarets()
+        .ok();
+  }
+
 }
 
 // End SqlValidatorMatchTest.java

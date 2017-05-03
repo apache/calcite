@@ -580,6 +580,10 @@ public class SqlValidatorTestCase {
           SqlTests.ANY_RESULT_CHECKER);
       return this;
     }
+
+    public Sql sansCarets() {
+      return new Sql(tester, sql.replace("^", ""));
+    }
   }
 }
 
