@@ -16,10 +16,12 @@
  */
 package org.apache.calcite.avatica.util;
 
+import java.text.DateFormat;
 import java.text.NumberFormat;
 import java.text.ParsePosition;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
+import java.util.Date;
 import java.util.Locale;
 import java.util.TimeZone;
 
@@ -92,7 +94,7 @@ public class DateTimeUtils {
   public static final Calendar ZERO_CALENDAR;
 
   static {
-    ZERO_CALENDAR = Calendar.getInstance(DateTimeUtils.GMT_ZONE, Locale.ROOT);
+    ZERO_CALENDAR = Calendar.getInstance(DateTimeUtils.UTC_ZONE, Locale.ROOT);
     ZERO_CALENDAR.setTimeInMillis(0);
   }
 
@@ -106,34 +108,35 @@ public class DateTimeUtils {
    * less than 31, etc.
    *
    * @param s       string to be parsed
-   * @param pattern {@link SimpleDateFormat} pattern (not null)
+   * @param dateFormat Date format
    * @param tz      time zone in which to interpret string. Defaults to the Java
    *                default time zone
    * @param pp      position to start parsing from
    * @return a Calendar initialized with the parsed value, or null if parsing
    * failed. If returned, the Calendar is configured to the GMT time zone.
    */
-  private static Calendar parseDateFormat(
-      String s,
-      String pattern,
-      TimeZone tz,
-      ParsePosition pp) {
-    assert pattern != null;
-    SimpleDateFormat df = new SimpleDateFormat(pattern, Locale.ROOT);
+  private static Calendar parseDateFormat(String s, DateFormat dateFormat,
+      TimeZone tz, ParsePosition pp) {
     if (tz == null) {
       tz = DEFAULT_ZONE;
     }
     Calendar ret = Calendar.getInstance(tz, Locale.ROOT);
-    df.setCalendar(ret);
-    df.setLenient(false);
+    dateFormat.setCalendar(ret);
+    dateFormat.setLenient(false);
 
-    java.util.Date d = df.parse(s, pp);
+    final Date d = dateFormat.parse(s, pp);
     if (null == d) {
       return null;
     }
     ret.setTime(d);
-    ret.setTimeZone(GMT_ZONE);
+    ret.setTimeZone(UTC_ZONE);
     return ret;
+  }
+
+  @Deprecated // to be removed before 2.0
+  public static Calendar parseDateFormat(String s, String pattern,
+      TimeZone tz) {
+    return parseDateFormat(s, new SimpleDateFormat(pattern, Locale.ROOT), tz);
   }
 
   /**
@@ -141,24 +144,31 @@ public class DateTimeUtils {
    * entire string must match the pattern specified.
    *
    * @param s       string to be parsed
-   * @param pattern {@link SimpleDateFormat}  pattern
+   * @param dateFormat Date format
    * @param tz      time zone in which to interpret string. Defaults to the Java
    *                default time zone
    * @return a Calendar initialized with the parsed value, or null if parsing
-   * failed. If returned, the Calendar is configured to the GMT time zone.
+   * failed. If returned, the Calendar is configured to the UTC time zone.
    */
-  public static Calendar parseDateFormat(
-      String s,
-      String pattern,
+  public static Calendar parseDateFormat(String s, DateFormat dateFormat,
       TimeZone tz) {
-    assert pattern != null;
     ParsePosition pp = new ParsePosition(0);
-    Calendar ret = parseDateFormat(s, pattern, tz, pp);
+    Calendar ret = parseDateFormat(s, dateFormat, tz, pp);
     if (pp.getIndex() != s.length()) {
       // Didn't consume entire string - not good
       return null;
     }
     return ret;
+  }
+
+  @Deprecated // to be removed before 2.0
+  public static PrecisionTime parsePrecisionDateTimeLiteral(
+      String s,
+      String pattern,
+      TimeZone tz) {
+    assert pattern != null;
+    return parsePrecisionDateTimeLiteral(s,
+        new SimpleDateFormat(pattern, Locale.ROOT), tz, 3);
   }
 
   /**
@@ -169,20 +179,17 @@ public class DateTimeUtils {
    * seconds precision (to obtain milliseconds).
    *
    * @param s       string to be parsed
-   * @param pattern {@link SimpleDateFormat}  pattern
+   * @param dateFormat Date format
    * @param tz      time zone in which to interpret string. Defaults to the
    *                local time zone
    * @return a {@link DateTimeUtils.PrecisionTime PrecisionTime} initialized
    * with the parsed value, or null if parsing failed. The PrecisionTime
    * contains a GMT Calendar and a precision.
    */
-  public static PrecisionTime parsePrecisionDateTimeLiteral(
-      String s,
-      String pattern,
-      TimeZone tz) {
-    assert pattern != null;
-    ParsePosition pp = new ParsePosition(0);
-    Calendar cal = parseDateFormat(s, pattern, tz, pp);
+  public static PrecisionTime parsePrecisionDateTimeLiteral(String s,
+      DateFormat dateFormat, TimeZone tz, int maxPrecision) {
+    final ParsePosition pp = new ParsePosition(0);
+    final Calendar cal = parseDateFormat(s, dateFormat, tz, pp);
     if (cal == null) {
       return null; // Invalid date/time format
     }
@@ -191,6 +198,7 @@ public class DateTimeUtils {
     // the decimal as milliseconds. That means 12:00:00.9 has 9
     // milliseconds and 12:00:00.9999 has 9999 milliseconds.
     int p = 0;
+    String secFraction = "";
     if (pp.getIndex() < s.length()) {
       // Check to see if rest is decimal portion
       if (s.charAt(pp.getIndex()) != '.') {
@@ -202,7 +210,7 @@ public class DateTimeUtils {
 
       // Parse decimal portion
       if (pp.getIndex() < s.length()) {
-        String secFraction = s.substring(pp.getIndex());
+        secFraction = s.substring(pp.getIndex());
         if (!secFraction.matches("\\d+")) {
           return null;
         }
@@ -215,22 +223,29 @@ public class DateTimeUtils {
 
         // Determine precision - only support prec 3 or lower
         // (milliseconds) Higher precisions are quietly rounded away
-        p = Math.min(
-            3,
-            secFraction.length());
+        p = secFraction.length();
+        if (maxPrecision >= 0) {
+          // If there is a maximum precision, ignore subsequent digits
+          p = Math.min(maxPrecision, p);
+          secFraction = secFraction.substring(0, p);
+        }
 
         // Calculate milliseconds
-        int ms =
-            (int) Math.round(
-                num.longValue()
-                * Math.pow(10, 3 - secFraction.length()));
+        String millis = secFraction;
+        if (millis.length() > 3) {
+          millis = secFraction.substring(0, 3);
+        }
+        while (millis.length() < 3) {
+          millis = millis + "0";
+        }
+
+        int ms = Integer.valueOf(millis);
         cal.add(Calendar.MILLISECOND, ms);
       }
     }
 
     assert pp.getIndex() == s.length();
-    PrecisionTime ret = new PrecisionTime(cal, p);
-    return ret;
+    return new PrecisionTime(cal, secFraction, p);
   }
 
   /**
@@ -1014,10 +1029,12 @@ public class DateTimeUtils {
    */
   public static class PrecisionTime {
     private final Calendar cal;
+    private final String fraction;
     private final int precision;
 
-    public PrecisionTime(Calendar cal, int precision) {
+    public PrecisionTime(Calendar cal, String fraction, int precision) {
       this.cal = cal;
+      this.fraction = fraction;
       this.precision = precision;
     }
 
@@ -1027,6 +1044,10 @@ public class DateTimeUtils {
 
     public int getPrecision() {
       return precision;
+    }
+
+    public String getFraction() {
+      return fraction;
     }
   }
 }

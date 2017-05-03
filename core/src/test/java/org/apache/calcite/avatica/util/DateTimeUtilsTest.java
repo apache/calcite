@@ -18,6 +18,10 @@ package org.apache.calcite.avatica.util;
 
 import org.junit.Test;
 
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.Locale;
+
 import static org.apache.calcite.avatica.util.DateTimeUtils.EPOCH_JULIAN;
 import static org.apache.calcite.avatica.util.DateTimeUtils.addMonths;
 import static org.apache.calcite.avatica.util.DateTimeUtils.dateStringToUnixDate;
@@ -44,6 +48,7 @@ import static org.apache.calcite.avatica.util.DateTimeUtils.ymdToUnixDate;
 import static org.hamcrest.CoreMatchers.anyOf;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
@@ -520,6 +525,43 @@ public class DateTimeUtilsTest {
     assertThat(unixTimestamp(2016, 2, 28, 0, 0, 0), is(y2016));
     assertThat(unixTimestamp(2016, 2, 29, 0, 0, 0), is(y2016 + day));
     assertThat(unixTimestamp(2016, 3, 1, 0, 0, 0), is(y2016 + day + day));
+  }
+
+  @Test public void testParse() {
+    final SimpleDateFormat formatD =
+        new SimpleDateFormat(DateTimeUtils.DATE_FORMAT_STRING, Locale.ROOT);
+    final Calendar c =
+        DateTimeUtils.parseDateFormat("1234-04-12", formatD,
+            DateTimeUtils.UTC_ZONE);
+    assertThat(c, notNullValue());
+    assertThat(c.get(Calendar.YEAR), is(1234));
+    assertThat(c.get(Calendar.MONTH), is(Calendar.APRIL));
+    assertThat(c.get(Calendar.DAY_OF_MONTH), is(12));
+
+    final SimpleDateFormat formatTs =
+        new SimpleDateFormat(DateTimeUtils.TIMESTAMP_FORMAT_STRING,
+            Locale.ROOT);
+    final DateTimeUtils.PrecisionTime pt =
+        DateTimeUtils.parsePrecisionDateTimeLiteral(
+            "1234-04-12 01:23:45.06789", formatTs, DateTimeUtils.UTC_ZONE, -1);
+    assertThat(pt, notNullValue());
+    assertThat(pt.getCalendar().get(Calendar.YEAR), is(1234));
+    assertThat(pt.getCalendar().get(Calendar.MONTH), is(Calendar.APRIL));
+    assertThat(pt.getCalendar().get(Calendar.DAY_OF_MONTH), is(12));
+    assertThat(pt.getCalendar().get(Calendar.HOUR_OF_DAY), is(1));
+    assertThat(pt.getCalendar().get(Calendar.MINUTE), is(23));
+    assertThat(pt.getCalendar().get(Calendar.SECOND), is(45));
+    assertThat(pt.getCalendar().get(Calendar.MILLISECOND), is(67));
+    assertThat(pt.getFraction(), is("06789"));
+    assertThat(pt.getPrecision(), is(5));
+
+    // as above, but limit to 2 fractional digits
+    final DateTimeUtils.PrecisionTime pt2 =
+        DateTimeUtils.parsePrecisionDateTimeLiteral(
+            "1234-04-12 01:23:45.06789", formatTs, DateTimeUtils.UTC_ZONE, 2);
+    assertThat(pt2, notNullValue());
+    assertThat(pt2.getCalendar().get(Calendar.MILLISECOND), is(60));
+    assertThat(pt2.getFraction(), is("06"));
   }
 }
 
