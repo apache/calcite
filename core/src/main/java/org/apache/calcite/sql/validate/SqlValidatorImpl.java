@@ -4473,6 +4473,16 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
     validateDefinitions(matchRecognize, scope);
 
+    // validate skip to
+    SqlNode skipTo = matchRecognize.getAfter();
+    if (skipTo != null && skipTo instanceof SqlCall) {
+      SqlNode operand = ((SqlCall) skipTo).getOperandList().get(0);
+      if (!scope.getPatternVars().contains(((SqlIdentifier) operand).getSimple())) {
+        throw newValidationError(skipTo,
+          RESOURCE.PatternColumnNotFound(((SqlIdentifier) operand).getSimple()));
+      }
+    }
+
     List<Map.Entry<String, RelDataType>> fields =
         validateMeasure(matchRecognize, scope);
     final RelDataType rowType = typeFactory.createStructType(fields);

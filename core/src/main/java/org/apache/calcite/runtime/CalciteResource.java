@@ -695,6 +695,9 @@ public interface CalciteResource {
 
   @BaseMessage("Null parameters in ''{0}''")
   ExInst<SqlValidatorException> PatternFunctionNullCheck(String call);
+
+  @BaseMessage("Can not found ''{0}'' in pattern clause")
+  ExInst<SqlValidatorException> PatternColumnNotFound(String call);
 }
 
 // End CalciteResource.java
