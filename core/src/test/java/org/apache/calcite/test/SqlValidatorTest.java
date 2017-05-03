@@ -9834,6 +9834,22 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .fails("(?s).*Encountered \"measures\" at .*");
   }
 
+  @Test public void testMatchRecognizeSkipTo3() throws Exception {
+    final String sql = "select *\n"
+      + "  from emp match_recognize (\n"
+      + "   measures \n"
+      + "   STRT.sal as start_sal,"
+      + "   LAST(up.sal) as end_sal"
+      + "  ^after match skip to no_exists^\n"
+      + "    pattern (strt down+ up+)\n"
+      + "    define\n"
+      + "      down as down.sal < PREV(down.sal),\n"
+      + "      up as up.sal > prev(up.sal)\n"
+      + "  ) mr";
+    sql(sql)
+      .fails("Can not found 'NO_EXISTS' in pattern clause");
+  }
+
 }
 
 // End SqlValidatorTest.java
