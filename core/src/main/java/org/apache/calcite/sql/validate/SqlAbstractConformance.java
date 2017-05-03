@@ -23,6 +23,18 @@ package org.apache.calcite.sql.validate;
  * and behaves the same as in {@link SqlConformanceEnum#DEFAULT}.
  */
 public abstract class SqlAbstractConformance implements SqlConformance {
+  public boolean isGroupByAlias() {
+    return SqlConformanceEnum.DEFAULT.isGroupByAlias();
+  }
+
+  public boolean isGroupByOrdinal() {
+    return SqlConformanceEnum.DEFAULT.isGroupByOrdinal();
+  }
+
+  public boolean isHavingAlias() {
+    return SqlConformanceEnum.DEFAULT.isHavingAlias();
+  }
+
   public boolean isSortByOrdinal() {
     return SqlConformanceEnum.DEFAULT.isSortByOrdinal();
   }
@@ -57,18 +69,6 @@ public abstract class SqlAbstractConformance implements SqlConformance {
 
   public boolean allowNiladicParentheses() {
     return SqlConformanceEnum.DEFAULT.allowNiladicParentheses();
-  }
-
-  public boolean isGroupByAliasAllowed() {
-    return SqlConformanceEnum.DEFAULT.isGroupByAliasAllowed();
-  }
-
-  public boolean isGroupByOrdinalAllowed() {
-    return SqlConformanceEnum.DEFAULT.isGroupByOrdinalAllowed();
-  }
-
-  public boolean isHavingAliasAllowed() {
-    return SqlConformanceEnum.DEFAULT.isHavingAliasAllowed();
   }
 
 }

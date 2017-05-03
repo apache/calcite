@@ -62,6 +62,36 @@ public interface SqlConformance {
   SqlConformanceEnum PRAGMATIC_2003 = SqlConformanceEnum.PRAGMATIC_2003;
 
   /**
+   * Whether to allow aliases from the {@code SELECT} clause to be used as
+   * column names in the {@code GROUP BY} clause.
+   *
+   * <p>Among the built-in conformance levels, true in
+   * {@link SqlConformanceEnum#LENIENT};
+   * false otherwise.
+   */
+  boolean isGroupByAlias();
+
+  /**
+   * Whether {@code GROUP BY 2} is interpreted to mean 'group by the 2nd column
+   * in the select list'.
+   *
+   * <p>Among the built-in conformance levels, true in
+   * {@link SqlConformanceEnum#LENIENT};
+   * false otherwise.
+   */
+  boolean isGroupByOrdinal();
+
+  /**
+   * Whether to allow aliases from the {@code SELECT} clause to be used as
+   * column names in the {@code HAVING} clause.
+   *
+   * <p>Among the built-in conformance levels, true in
+   * {@link SqlConformanceEnum#LENIENT};
+   * false otherwise.
+   */
+  boolean isHavingAlias();
+
+  /**
    * Whether '{@code ORDER BY 2}' is interpreted to mean 'sort by the 2nd
    * column in the select list'.
    *
@@ -209,38 +239,6 @@ public interface SqlConformance {
    */
   boolean allowNiladicParentheses();
 
-  /**
-   * Whether to allow aliases from the {@code SELECT} clause to be used as
-   * column names in the {@code GROUP BY} clause.
-   *
-   * <p>Among the built-in conformance levels, true in
-   * {@link SqlConformanceEnum#PRAGMATIC_99},
-   * {@link SqlConformanceEnum#PRAGMATIC_2003};
-   * false otherwise.
-   */
-  boolean isGroupByAliasAllowed();
-
-  /**
-   * Whether {@code GROUP BY 2} is interpreted to mean 'group by the 2nd column
-   * in the select list'.
-   *
-   * <p>Among the built-in conformance levels, true in
-   * {@link SqlConformanceEnum#PRAGMATIC_99},
-   * {@link SqlConformanceEnum#PRAGMATIC_2003};
-   * false otherwise.
-   */
-  boolean isGroupByOrdinalAllowed();
-
-  /**
-   * Whether to allow aliases from the {@code SELECT} clause to be used as
-   * column names in the {@code HAVING} clause.
-   *
-   * <p>Among the built-in conformance levels, true in
-   * {@link SqlConformanceEnum#PRAGMATIC_99},
-   * {@link SqlConformanceEnum#PRAGMATIC_2003};
-   * false otherwise.
-   */
-  boolean isHavingAliasAllowed();
 }
 
 // End SqlConformance.java

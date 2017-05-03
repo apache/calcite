@@ -3651,7 +3651,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     }
     final AggregatingScope havingScope =
         (AggregatingScope) getSelectScope(select);
-    if (getConformance().isHavingAliasAllowed()) {
+    if (getConformance().isHavingAlias()) {
       SqlNode newExpr = expandGroupByOrHavingExpr(having, havingScope, select, true);
       if (having != newExpr) {
         having = newExpr;
@@ -5111,7 +5111,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
    * identifiers.
    */
   private static class Expander extends SqlScopedShuttle {
-    private final SqlValidatorImpl validator;
+    protected final SqlValidatorImpl validator;
 
     Expander(SqlValidatorImpl validator, SqlValidatorScope scope) {
       super(scope);
@@ -5275,29 +5275,28 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
    * Shuttle which walks over an expression in the GROUP BY/HAVING clause, replacing
    * usages of aliases or ordinals with the underlying expression.
    */
-  class ExtendedExpander extends Expander {
-
+  static class ExtendedExpander extends Expander {
     final SqlSelect select;
-    final SqlValidatorImpl validator;
     final SqlNode root;
     final boolean havingExpr;
 
-    ExtendedExpander(SqlValidatorImpl validator,
-        SqlValidatorScope scope, SqlSelect select, SqlNode root, boolean havingExpr) {
+    ExtendedExpander(SqlValidatorImpl validator, SqlValidatorScope scope,
+        SqlSelect select, SqlNode root, boolean havingExpr) {
       super(validator, scope);
       this.select = select;
-      this.validator = validator;
       this.root = root;
       this.havingExpr = havingExpr;
     }
 
     @Override public SqlNode visit(SqlIdentifier id) {
       if (id.isSimple()
-        && (havingExpr ? getConformance().isHavingAliasAllowed()
-          : getConformance().isGroupByAliasAllowed())) {
+          && (havingExpr
+              ? validator.getConformance().isHavingAlias()
+              : validator.getConformance().isGroupByAlias())) {
         String name = id.getSimple();
         SqlNode expr = null;
-        final SqlNameMatcher nameMatcher = catalogReader.nameMatcher();
+        final SqlNameMatcher nameMatcher =
+            validator.catalogReader.nameMatcher();
         int n = 0;
         for (SqlNode s : select.getSelectList()) {
           final String alias = SqlValidatorUtil.getAlias(s, -1);
@@ -5313,7 +5312,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
           throw validator.newValidationError(id,
               RESOURCE.columnAmbiguous(name));
         }
-        if (havingExpr && isAggregate(root)) {
+        if (havingExpr && validator.isAggregate(root)) {
           return super.visit(id);
         }
         expr = stripAs(expr);
@@ -5326,7 +5325,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     }
 
     public SqlNode visit(SqlLiteral literal) {
-      if (havingExpr || !getConformance().isGroupByOrdinalAllowed()) {
+      if (havingExpr || !validator.getConformance().isGroupByOrdinal()) {
         return super.visit(literal);
       }
       boolean isOrdinalLiteral = literal == root;
@@ -5336,7 +5335,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       case CUBE:
         if (root instanceof SqlBasicCall) {
           List<SqlNode> operandList = ((SqlBasicCall) root).getOperandList();
-          for (SqlNode node: operandList) {
+          for (SqlNode node : operandList) {
             if (node.equals(literal)) {
               isOrdinalLiteral = true;
               break;
@@ -5352,8 +5351,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
           final int intValue = literal.intValue(false);
           if (intValue >= 0) {
             if (intValue < 1 || intValue > select.getSelectList().size()) {
-              throw newValidationError(
-                  literal, RESOURCE.orderByOrdinalOutOfRange());
+              throw validator.newValidationError(literal,
+                  RESOURCE.orderByOrdinalOutOfRange());
             }
 
             // SQL ordinals are 1-based, but Sort's are 0-based
