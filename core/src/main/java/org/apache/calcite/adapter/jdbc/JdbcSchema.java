@@ -65,6 +65,7 @@ public class JdbcSchema implements Schema {
   public final SqlDialect dialect;
   final JdbcConvention convention;
   private ImmutableMap<String, JdbcTable> tableMap;
+  private final boolean isSnapshot;
 
   /**
    * Creates a JDBC schema.
@@ -77,12 +78,20 @@ public class JdbcSchema implements Schema {
    */
   public JdbcSchema(DataSource dataSource, SqlDialect dialect,
       JdbcConvention convention, String catalog, String schema) {
+    this(dataSource, dialect, convention, catalog, schema, null);
+  }
+
+  private JdbcSchema(DataSource dataSource, SqlDialect dialect,
+      JdbcConvention convention, String catalog, String schema,
+      ImmutableMap<String, JdbcTable> tableMap) {
     super();
     this.dataSource = dataSource;
     this.dialect = dialect;
     this.convention = convention;
     this.catalog = catalog;
     this.schema = schema;
+    this.tableMap = tableMap;
+    this.isSnapshot = tableMap != null;
     assert dialect != null;
     assert dataSource != null;
   }
@@ -157,6 +166,11 @@ public class JdbcSchema implements Schema {
 
   public boolean contentsHaveChangedSince(long lastCheck, long now) {
     return false;
+  }
+
+  public Schema snapshot(long now) {
+    return new JdbcSchema(
+        dataSource, dialect, convention, catalog, schema, tableMap);
   }
 
   // Used by generated code.
@@ -362,7 +376,7 @@ public class JdbcSchema implements Schema {
   public Set<String> getTableNames() {
     // This method is called during a cache refresh. We can take it as a signal
     // that we need to re-build our own cache.
-    return getTableMap(true).keySet();
+    return getTableMap(!isSnapshot).keySet();
   }
 
   public Schema getSubSchema(String name) {

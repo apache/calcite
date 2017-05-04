@@ -73,7 +73,7 @@ public class RexExecutorTest {
               SchemaPlus rootSchema, CalciteServerStatement statement) {
             final RexBuilder rexBuilder = cluster.getRexBuilder();
             DataContext dataContext =
-                Schemas.createDataContext(statement.getConnection());
+                Schemas.createDataContext(statement.getConnection(), rootSchema);
             final RexExecutorImpl executor = new RexExecutorImpl(dataContext);
             action.check(rexBuilder, executor);
             return null;

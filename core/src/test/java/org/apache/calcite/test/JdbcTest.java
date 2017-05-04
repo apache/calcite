@@ -90,7 +90,6 @@ import org.apache.calcite.sql.parser.SqlParserImplFactory;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.parser.SqlParserUtil;
 import org.apache.calcite.sql.parser.impl.SqlParserImpl;
-import org.apache.calcite.test.CalciteAssert.AssertThat;
 import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.JsonBuilder;
 import org.apache.calcite.util.Pair;
@@ -6447,28 +6446,6 @@ public class JdbcTest {
     Util.discard(function);
 
     connection.close();
-  }
-
-  @Test public void testSchemaUpdate() throws Exception {
-    final Map<String, Table> tableMap = new HashMap<String, Table>();
-    AssertThat with =
-        CalciteAssert.that().withSchema("simple",
-            new AbstractSchema() {
-              protected Map<String, Table> getTableMap() {
-                return tableMap;
-              }
-            });
-    final Schema hrSchema = new ReflectiveSchema(new JdbcTest.HrSchema());
-    tableMap.put("t1", hrSchema.getTable("emps"));
-    final String q1 = "select \"empid\", \"salary\" from \"simple\".\"t1\"";
-    with.query(q1).explainContains(
-        "PLAN=EnumerableCalc(expr#0..4=[{inputs}], empid=[$t0], salary=[$t3])\n"
-            + "  EnumerableTableScan(table=[[simple, t1]])\n");
-    tableMap.put("t1", hrSchema.getTable("depts"));
-    final String q2 = "select \"deptno\", \"location\" from \"simple\".\"t1\"";
-    with.query(q2).explainContains(
-        "PLAN=EnumerableCalc(expr#0..3=[{inputs}], deptno=[$t0], location=[$t3])\n"
-            + "  EnumerableTableScan(table=[[simple, t1]])\n");
   }
 
   @Test public void testCaseSensitiveSubQueryOracle() {

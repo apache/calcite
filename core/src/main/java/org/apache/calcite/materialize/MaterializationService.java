@@ -314,7 +314,7 @@ public class MaterializationService {
     final List<Prepare.Materialization> list = new ArrayList<>();
     for (MaterializationActor.Materialization materialization
         : actor.keyMap.values()) {
-      if (materialization.rootSchema == rootSchema
+      if (materialization.rootSchema.schema == rootSchema.schema
           && materialization.materializedTable != null) {
         list.add(
             new Prepare.Materialization(materialization.materializedTable,
@@ -379,7 +379,8 @@ public class MaterializationService {
           new AbstractQueryable<Object>() {
             public Enumerator<Object> enumerator() {
               final DataContext dataContext =
-                  Schemas.createDataContext(connection);
+                  Schemas.createDataContext(
+                      connection, calciteSignature.rootSchema.plus());
               return calciteSignature.enumerable(dataContext).enumerator();
             }
 
@@ -397,7 +398,8 @@ public class MaterializationService {
 
             public Iterator<Object> iterator() {
               final DataContext dataContext =
-                  Schemas.createDataContext(connection);
+                  Schemas.createDataContext(
+                      connection, calciteSignature.rootSchema.plus());
               return calciteSignature.enumerable(dataContext).iterator();
             }
           });

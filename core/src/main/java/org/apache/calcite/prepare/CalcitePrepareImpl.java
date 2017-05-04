@@ -669,6 +669,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
         x,
         columns,
         cursorFactory,
+        context.getRootSchema(),
         ImmutableList.<RelCollation>of(),
         -1,
         new Bindable<T>() {
@@ -772,7 +773,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
             ImmutableList.<AvaticaParameter>of(),
             ImmutableMap.<String, Object>of(), null,
             ImmutableList.<ColumnMetaData>of(), Meta.CursorFactory.OBJECT,
-            ImmutableList.<RelCollation>of(), -1, bindable);
+            null, ImmutableList.<RelCollation>of(), -1, bindable);
       }
 
       final SqlValidator validator =
@@ -841,6 +842,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
         jdbcType,
         columns,
         cursorFactory,
+        context.getRootSchema(),
         preparedResult instanceof Prepare.PreparedResultImpl
             ? ((Prepare.PreparedResultImpl) preparedResult).collations
             : ImmutableList.<RelCollation>of(),
