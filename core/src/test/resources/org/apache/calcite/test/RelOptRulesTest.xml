@@ -865,8 +865,8 @@ LogicalProject(EXPR$0=[+($1, $4)])
     <TestCase name="testPushProjectPastInnerJoinStrong">
         <Resource name="sql">
             <![CDATA[select count(*), case when e.sal < 11 then -1 * e.sal else e.sal end
-            from emp e inner join bonus b on e.ename = b.ename group by
-            case when e.sal < 11 then -1 * e.sal else e.sal end]]>
+from emp e inner join bonus b on e.ename = b.ename
+group by case when e.sal < 11 then -1 * e.sal else e.sal end]]>
         </Resource>
         <Resource name="planBefore">
             <![CDATA[
@@ -894,8 +894,8 @@ LogicalProject(EXPR$0=[$1], EXPR$1=[$0])
     <TestCase name="testPushProjectPastInnerJoin">
         <Resource name="sql">
             <![CDATA[select count(*), case when e.sal < 11 then 11 else -1 * e.sal end
-            from emp e inner join bonus b on e.ename = b.ename group by
-            case when e.sal < 11 then 11 else -1 * e.sal end]]>
+from emp e inner join bonus b on e.ename = b.ename
+group by case when e.sal < 11 then 11 else -1 * e.sal end]]>
         </Resource>
         <Resource name="planBefore">
             <![CDATA[
@@ -923,8 +923,8 @@ LogicalProject(EXPR$0=[$1], EXPR$1=[$0])
     <TestCase name="testPushProjectPastLeftJoin">
         <Resource name="sql">
             <![CDATA[select count(*), case when e.sal < 11 then 11 else -1 * e.sal end
-            from emp e left outer join bonus b on e.ename = b.ename group by
-            case when e.sal < 11 then 11 else -1 * e.sal end]]>
+from emp e left outer join bonus b on e.ename = b.ename
+group by case when e.sal < 11 then 11 else -1 * e.sal end]]>
         </Resource>
         <Resource name="planBefore">
             <![CDATA[
@@ -952,8 +952,8 @@ LogicalProject(EXPR$0=[$1], EXPR$1=[$0])
     <TestCase name="testPushProjectPastLeftJoinSwap">
         <Resource name="sql">
             <![CDATA[select count(*), case when e.sal < 11 then 11 else -1 * e.sal end
-            from bonus b left outer join emp e on e.ename = b.ename group by
-            case when e.sal < 11 then 11 else -1 * e.sal end]]>
+from bonus b left outer join emp e on e.ename = b.ename
+group by case when e.sal < 11 then 11 else -1 * e.sal end]]>
         </Resource>
         <Resource name="planBefore">
             <![CDATA[
@@ -981,8 +981,8 @@ LogicalProject(EXPR$0=[$1], EXPR$1=[$0])
     <TestCase name="testPushProjectPastLeftJoinSwapStrong">
         <Resource name="sql">
             <![CDATA[select count(*), case when e.sal < 11 then -1 * e.sal else e.sal end
-            from bonus b left outer join emp e on e.ename = b.ename group by
-            case when e.sal < 11 then -1 * e.sal else e.sal end]]>
+from bonus b left outer join emp e on e.ename = b.ename
+group by case when e.sal < 11 then -1 * e.sal else e.sal end]]>
         </Resource>
         <Resource name="planBefore">
             <![CDATA[
@@ -1039,8 +1039,8 @@ LogicalProject(EXPR$0=[$1], EXPR$1=[$0])
     <TestCase name="testPushProjectPastRightJoin">
         <Resource name="sql">
             <![CDATA[select count(*), case when e.sal < 11 then 11 else -1 * e.sal end
-            from emp e right outer join bonus b on e.ename = b.ename group by
-            case when e.sal < 11 then 11 else -1 * e.sal end]]>
+from emp e right outer join bonus b on e.ename = b.ename
+group by case when e.sal < 11 then 11 else -1 * e.sal end]]>
         </Resource>
         <Resource name="planBefore">
             <![CDATA[
@@ -1067,9 +1067,10 @@ LogicalProject(EXPR$0=[$1], EXPR$1=[$0])
     </TestCase>
     <TestCase name="testPushProjectPastRightJoinStrong">
         <Resource name="sql">
-            <![CDATA[select count(*), case when e.sal < 11 then -1 * e.sal else e.sal end
-            from emp e right outer join bonus b on e.ename = b.ename group by
-            case when e.sal < 11 then -1 * e.sal else e.sal end]]>
+            <![CDATA[select count(*),
+ case when e.sal < 11 then -1 * e.sal else e.sal end
+from emp e right outer join bonus b on e.ename = b.ename
+group by case when e.sal < 11 then -1 * e.sal else e.sal end]]>
         </Resource>
         <Resource name="planBefore">
             <![CDATA[
@@ -1097,8 +1098,8 @@ LogicalProject(EXPR$0=[$1], EXPR$1=[$0])
     <TestCase name="testPushProjectPastRightJoinSwap">
         <Resource name="sql">
             <![CDATA[select count(*), case when e.sal < 11 then 11 else -1 * e.sal end
-            from bonus b right outer join emp e on e.ename = b.ename group by
-            case when e.sal < 11 then 11 else -1 * e.sal end]]>
+from bonus b right outer join emp e on e.ename = b.ename
+group by case when e.sal < 11 then 11 else -1 * e.sal end]]>
         </Resource>
         <Resource name="planBefore">
             <![CDATA[
@@ -1126,8 +1127,8 @@ LogicalProject(EXPR$0=[$1], EXPR$1=[$0])
     <TestCase name="testPushProjectPastRightJoinSwapStrong">
         <Resource name="sql">
             <![CDATA[select count(*), case when e.sal < 11 then -1 * e.sal else e.sal end
-            from bonus b right outer join emp e on e.ename = b.ename group by
-            case when e.sal < 11 then -1 * e.sal else e.sal end]]>
+from bonus b right outer join emp e on e.ename = b.ename
+group by case when e.sal < 11 then -1 * e.sal else e.sal end]]>
         </Resource>
         <Resource name="planBefore">
             <![CDATA[
@@ -1155,8 +1156,8 @@ LogicalProject(EXPR$0=[$1], EXPR$1=[$0])
     <TestCase name="testPushProjectPastFullJoin">
         <Resource name="sql">
             <![CDATA[select count(*), case when e.sal < 11 then 11 else -1 * e.sal end
-            from emp e full outer join bonus b on e.ename = b.ename group by
-            case when e.sal < 11 then 11 else -1 * e.sal end]]>
+from emp e full outer join bonus b on e.ename = b.ename
+group by case when e.sal < 11 then 11 else -1 * e.sal end]]>
         </Resource>
         <Resource name="planBefore">
             <![CDATA[
@@ -1184,8 +1185,8 @@ LogicalProject(EXPR$0=[$1], EXPR$1=[$0])
     <TestCase name="testPushProjectPastFullJoinStrong">
         <Resource name="sql">
             <![CDATA[select count(*), case when e.sal < 11 then -1 * e.sal else e.sal end
-            from emp e full outer join bonus b on e.ename = b.ename group by
-            case when e.sal < 11 then -1 * e.sal else e.sal end]]>
+from emp e full outer join bonus b on e.ename = b.ename
+group by case when e.sal < 11 then -1 * e.sal else e.sal end]]>
         </Resource>
         <Resource name="planBefore">
             <![CDATA[
@@ -3750,6 +3751,30 @@ LogicalAggregate(group=[{1}], EXPR$1=[$SUM0($2)])
   LogicalAggregate(group=[{5, 7}], EXPR$1=[COUNT()])
     LogicalFilter(condition=[>(CAST($5):BIGINT NOT NULL, 12)])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testPushProjectPastFilter2">
+        <Resource name="sql">
+            <![CDATA[select count(*)
+from emp
+where case when mgr < 10 then true else false end]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalAggregate(group=[{}], EXPR$0=[COUNT()])
+  LogicalProject($f0=[0])
+    LogicalFilter(condition=[CASE(<($3, 10), true, false)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalAggregate(group=[{}], EXPR$0=[COUNT()])
+  LogicalProject($f0=[0])
+    LogicalFilter(condition=[<($0, 10)])
+      LogicalProject(MGR=[$3])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
     </TestCase>

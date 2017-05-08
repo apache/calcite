@@ -904,6 +904,17 @@ public class RelOptRulesTest extends RelOptTestBase {
             + "and upper(ename) = 'FOO'");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1778">[CALCITE-1778]
+   * Query with "WHERE CASE" throws AssertionError "Cast for just nullability
+   * not allowed"</a>. */
+  @Test public void testPushProjectPastFilter2() {
+    final String sql = "select count(*)\n"
+        + "from emp\n"
+        + "where case when mgr < 10 then true else false end";
+    sql(sql).withRule(ProjectFilterTransposeRule.INSTANCE).check();
+  }
+
   @Test public void testPushProjectPastJoin() {
     checkPlanning(ProjectJoinTransposeRule.INSTANCE,
         "select e.sal + b.comm from emp e inner join bonus b "
@@ -911,10 +922,10 @@ public class RelOptRulesTest extends RelOptTestBase {
   }
 
   private static final String NOT_STRONG_EXPR =
-      "case when e.sal < 11 then 11 else -1 * e.sal end ";
+      "case when e.sal < 11 then 11 else -1 * e.sal end";
 
   private static final String STRONG_EXPR =
-      "case when e.sal < 11 then -1 * e.sal else e.sal end ";
+      "case when e.sal < 11 then -1 * e.sal else e.sal end";
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1753">[CALCITE-1753]

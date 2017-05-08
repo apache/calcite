@@ -170,12 +170,9 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
           || RexUtil.isNullLiteral(newConditionExp, true)) {
         call.transformTo(createEmptyRelOrEquivalent(call, filter));
       } else if (reduced) {
-        if (RexUtil.isNullabilityCast(filter.getCluster().getTypeFactory(),
-            newConditionExp)) {
-          newConditionExp = ((RexCall) newConditionExp).getOperands().get(0);
-        }
-        call.transformTo(call.builder().
-            push(filter.getInput()).filter(newConditionExp).build());
+        call.transformTo(call.builder()
+            .push(filter.getInput())
+            .filter(newConditionExp).build());
       } else {
         if (newConditionExp instanceof RexCall) {
           boolean reverse = newConditionExp.getKind() == SqlKind.NOT;

@@ -821,6 +821,16 @@ public class RexSimplify {
     }
   }
 
+  /** Removes any casts that change nullability but not type.
+   *
+   * <p>For example, {@code CAST(1 = 0 AS BOOLEAN)} becomes {@code 1 = 0}. */
+  public RexNode removeNullabilityCast(RexNode e) {
+    while (RexUtil.isNullabilityCast(rexBuilder.getTypeFactory(), e)) {
+      e = ((RexCall) e).operands.get(0);
+    }
+    return e;
+  }
+
   private static RexNode processRange(RexBuilder rexBuilder,
       List<RexNode> terms, Map<String, Pair<Range, List<RexNode>>> rangeTerms,
       RexNode term, RexNode ref, RexLiteral constant, SqlKind comparison) {

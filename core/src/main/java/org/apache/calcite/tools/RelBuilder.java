@@ -812,9 +812,15 @@ public class RelBuilder {
     if (x.isAlwaysFalse()) {
       return empty();
     }
-    if (!x.isAlwaysTrue()) {
+
+    // Remove cast of BOOLEAN NOT NULL to BOOLEAN or vice versa. Filter accepts
+    // nullable and not-nullable conditions, but a CAST might get in the way of
+    // other rewrites.
+    final RexNode x2 = simplifierUnknownAsFalse.removeNullabilityCast(x);
+
+    if (!x2.isAlwaysTrue()) {
       final Frame frame = stack.pop();
-      final RelNode filter = filterFactory.createFilter(frame.rel, x);
+      final RelNode filter = filterFactory.createFilter(frame.rel, x2);
       stack.push(new Frame(filter, frame.fields));
     }
     return this;
