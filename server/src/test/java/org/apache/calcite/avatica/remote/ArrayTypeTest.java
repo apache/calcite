@@ -445,8 +445,7 @@ public class ArrayTypeTest {
                 assertEquals(expectedMillisecond, cal.get(Calendar.MILLISECOND));
               }
             }
-          }
-      );
+          });
       // Ensure an array with a null element can be written/read
       Array arrayWithNull = createArray("TIMESTAMP", component, Arrays.asList((Timestamp) null));
       writeAndReadArrays(conn, "timestamp_array_with_null", "TIMESTAMP", component,

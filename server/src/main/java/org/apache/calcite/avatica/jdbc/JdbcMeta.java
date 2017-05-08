@@ -820,6 +820,7 @@ public class JdbcMeta implements ProtobufMeta {
     return typeList.toArray(new String[typeList.size()]);
   }
 
+  @SuppressWarnings("deprecation")
   @Override public ExecuteResult execute(StatementHandle h, List<TypedValue> parameterValues,
       long maxRowCount) throws NoSuchStatementException {
     return execute(h, parameterValues, AvaticaUtils.toSaturatedInt(maxRowCount));
