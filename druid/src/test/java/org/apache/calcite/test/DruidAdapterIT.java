@@ -2100,6 +2100,17 @@ public class DruidAdapterIT {
     String druidQuery = "'filter':{'type':'selector','dimension':'product_id','value':''}";
     sql(sql).queryContains(druidChecker(druidQuery));
   }
+
+  @Test public void testFalseFilter() {
+    String sql = "Select count(*) as c from \"foodmart\" where false";
+    sql(sql).returnsUnordered("C=0");
+  }
+
+  @Test public void testFalseFilterCaseConjectionWithTrue() {
+    String sql = "Select count(*) as c from \"foodmart\" where "
+        + "\"product_id\" = 1558 and (true or false)";
+    sql(sql).returnsUnordered("C=60").queryContains(druidChecker("'queryType':'timeseries'"));
+  }
 }
 
 // End DruidAdapterIT.java
