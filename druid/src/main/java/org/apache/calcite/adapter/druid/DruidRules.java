@@ -175,6 +175,10 @@ public class DruidRules {
           Util.first(cluster.getPlanner().getExecutor(), RexUtil.EXECUTOR);
       final RexSimplify simplify = new RexSimplify(rexBuilder, true, executor);
       final RexNode cond = simplify.simplify(filter.getCondition());
+      if (cond.isAlwaysFalse()) {
+        // nothing to push to druid anyway
+        return;
+      }
       for (RexNode e : RelOptUtil.conjunctions(cond)) {
         if (query.isValidFilter(e)) {
           validPreds.add(e);
