@@ -619,6 +619,93 @@ from emp group by cube(deptno, gender);
 
 !ok
 
+# [CALCITE-1781] Allow expression in CUBE and ROLLUP
+select deptno + 1 as d1, deptno + 1 - 1 as d0, count(*) as c
+from emp
+group by rollup(deptno + 1);
++----+----+---+
+| D1 | D0 | C |
++----+----+---+
+| 11 | 10 | 2 |
+| 21 | 20 | 1 |
+| 31 | 30 | 2 |
+| 51 | 50 | 2 |
+| 61 | 60 | 1 |
+|    |    | 1 |
+|    |    | 9 |
++----+----+---+
+(7 rows)
+
+!ok
+
+select mod(deptno, 20) as d, count(*) as c, gender as g
+from emp
+group by cube(mod(deptno, 20), gender);
++----+---+---+
+| D  | C | G |
++----+---+---+
+|  0 | 1 | F |
+|  0 | 1 | M |
+|  0 | 2 |   |
+| 10 | 2 | M |
+| 10 | 4 | F |
+| 10 | 6 |   |
+|    | 1 | F |
+|    | 1 |   |
+|    | 3 | M |
+|    | 6 | F |
+|    | 9 |   |
++----+---+---+
+(11 rows)
+
+!ok
+
+select mod(deptno, 20) as d, count(*) as c, gender as g
+from emp
+group by rollup(mod(deptno, 20), gender);
++----+---+---+
+| D  | C | G |
++----+---+---+
+|  0 | 1 | F |
+|  0 | 1 | M |
+|  0 | 2 |   |
+| 10 | 2 | M |
+| 10 | 4 | F |
+| 10 | 6 |   |
+|    | 1 | F |
+|    | 1 |   |
+|    | 9 |   |
++----+---+---+
+(9 rows)
+
+!ok
+
+select count(*) as c
+from emp
+group by cube(1);
++---+
+| C |
++---+
+| 9 |
+| 9 |
++---+
+(2 rows)
+
+!ok
+
+select count(*) as c
+from emp
+group by rollup(1);
++---+
+| C |
++---+
+| 9 |
+| 9 |
++---+
+(2 rows)
+
+!ok
+
 !use scott
 
 # [KYLIN-751] Max on negative double values is not working

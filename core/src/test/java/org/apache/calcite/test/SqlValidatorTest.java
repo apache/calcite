@@ -4928,6 +4928,32 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .fails("(?s)Cannot apply '\\+' to arguments of type.*");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1781">[CALCITE-1781]
+   * Allow expression in CUBE and ROLLUP</a>. */
+  @Test public void testCubeExpression() {
+    final String sql = "select deptno + 1\n"
+        + "from emp\n"
+        + "group by cube(deptno + 1)";
+    sql(sql).ok();
+    final String sql2 = "select deptno + 2 - 2\n"
+        + "from emp\n"
+        + "group by cube(deptno + 2, empno)";
+    sql(sql2).ok();
+    final String sql3 = "select ^deptno^\n"
+        + "from emp\n"
+        + "group by cube(deptno + 1)";
+    sql(sql3).fails("Expression 'DEPTNO' is not being grouped");
+    final String sql4 = "select ^deptno^ + 10\n"
+        + "from emp\n"
+        + "group by rollup(empno, deptno + 10 - 10)";
+    sql(sql4).fails("Expression 'DEPTNO' is not being grouped");
+    final String sql5 = "select deptno + 10\n"
+        + "from emp\n"
+        + "group by rollup(deptno + 10 - 10, deptno)";
+    sql(sql5).ok();
+  }
+
   /** Unit test for
    * {@link org.apache.calcite.sql.validate.SqlValidatorUtil#rollup}. */
   @Test public void testRollupBitSets() {
