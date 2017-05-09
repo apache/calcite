@@ -581,6 +581,9 @@ public class SqlValidatorTestCase {
       return this;
     }
 
+    /** Removes the carets from the SQL string. Useful if you want to run
+     * a test once at a conformance level where it fails, then run it again
+     * at a conformance level where it succeeds. */
     public Sql sansCarets() {
       return new Sql(tester, sql.replace("^", ""));
     }
