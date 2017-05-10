@@ -698,6 +698,7 @@ public interface CalciteResource {
 
   @BaseMessage("Unknown pattern ''{0}''")
   ExInst<SqlValidatorException> unknownPattern(String call);
+
 }
 
 // End CalciteResource.java

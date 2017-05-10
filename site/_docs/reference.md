@@ -1654,9 +1654,12 @@ matchRecognize:
             | SKIP TO variable )
       ]
       PATTERN '(' pattern ')'
-      [ SUBSET variable [, variable ]* ]
+      [ SUBSET subsetItem [, subsetItem ]* ]
       DEFINE variable AS condition [, variable AS condition ]*
       ')'
+
+subsetItem:
+      variable = '(' variable [, variable ]* ')'
 
 measureColumn:
       expression AS alias
@@ -1696,7 +1699,3 @@ The following clauses are not implemented:
 
 * `PARTITION BY`
 * `ORDER BY`
-* `MEASURES`
-* `ON ROW PER MATCH`, `ALL ROWS PER MATCH`
-* `AFTER MATCH`
-* `SUBSET`

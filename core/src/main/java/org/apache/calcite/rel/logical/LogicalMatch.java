@@ -25,6 +25,8 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexNode;
 
 import java.util.Map;
+import java.util.SortedSet;
+import java.util.TreeSet;
 
 /**
  * Sub-class of {@link Match}
@@ -44,14 +46,16 @@ public class LogicalMatch extends Match {
    * @param patternDefinitions Pattern definitions
    * @param measures Measure definitions
    * @param after After match definitions
+   * @param subsets Subset definitions
    * @param rowType Row type
    */
   public LogicalMatch(RelOptCluster cluster, RelTraitSet traitSet,
       RelNode input, RexNode pattern, boolean strictStart, boolean strictEnd,
       Map<String, RexNode> patternDefinitions, Map<String, RexNode> measures,
-      RexNode after, RelDataType rowType) {
+      RexNode after, Map<String, ? extends SortedSet<String>> subsets,
+      RelDataType rowType) {
     super(cluster, traitSet, input, pattern, strictStart, strictEnd,
-        patternDefinitions, measures, after, rowType);
+        patternDefinitions, measures, after, subsets, rowType);
   }
 
   /**
@@ -60,11 +64,11 @@ public class LogicalMatch extends Match {
   public static LogicalMatch create(RelNode input, RexNode pattern,
       boolean strictStart, boolean strictEnd,
       Map<String, RexNode> patternDefinitions, Map<String, RexNode> measures,
-      RexNode after, RelDataType rowType) {
+      RexNode after, Map<String, TreeSet<String>> subsets, RelDataType rowType) {
     final RelOptCluster cluster = input.getCluster();
     final RelTraitSet traitSet = cluster.traitSetOf(Convention.NONE);
     return new LogicalMatch(cluster, traitSet, input, pattern,
-        strictStart, strictEnd, patternDefinitions, measures, after, rowType);
+        strictStart, strictEnd, patternDefinitions, measures, after, subsets, rowType);
   }
 
   //~ Methods ------------------------------------------------------
@@ -72,11 +76,12 @@ public class LogicalMatch extends Match {
   @Override public Match copy(RelNode input, RexNode pattern,
       boolean strictStart, boolean strictEnd,
       Map<String, RexNode> patternDefinitions, Map<String, RexNode> measures,
-      RexNode after, RelDataType rowType) {
+      RexNode after, Map<String, ? extends SortedSet<String>> subsets,
+      RelDataType rowType) {
     final RelTraitSet traitSet = getCluster().traitSetOf(Convention.NONE);
     return new LogicalMatch(getCluster(), traitSet,
         input, pattern, strictStart, strictEnd, patternDefinitions, measures,
-        after, rowType);
+        after, subsets, rowType);
   }
 }
 

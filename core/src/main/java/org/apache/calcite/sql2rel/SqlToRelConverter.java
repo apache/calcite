@@ -2120,6 +2120,22 @@ public class SqlToRelConverter {
       };
     final RexNode patternNode = pattern.accept(patternVarVisitor);
 
+    // convert subset
+    final SqlNodeList subsets = matchRecognize.getSubsetList();
+    final Map<String, TreeSet<String>> subsetMap = Maps.newHashMap();
+    for (SqlNode node : subsets) {
+      List<SqlNode> operands = ((SqlCall) node).getOperandList();
+      SqlIdentifier left = (SqlIdentifier) operands.get(0);
+      patternVarsSet.add(left.getSimple());
+      SqlNodeList rights = (SqlNodeList) operands.get(1);
+      final TreeSet<String> list = new TreeSet<String>();
+      for (SqlNode right : rights) {
+        assert right instanceof SqlIdentifier;
+        list.add(((SqlIdentifier) right).getSimple());
+      }
+      subsetMap.put(left.getSimple(), list);
+    }
+
     SqlNode afterMatch = matchRecognize.getAfter();
     if (afterMatch == null) {
       afterMatch =
@@ -2173,7 +2189,7 @@ public class SqlToRelConverter {
             matchRecognize.getStrictStart().booleanValue(),
             matchRecognize.getStrictEnd().booleanValue(),
             definitionNodes.build(), measureNodes.build(), after,
-            rowType);
+            subsetMap, rowType);
     bb.setRoot(rel, false);
   }
 
