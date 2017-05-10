@@ -39,6 +39,7 @@ public class SqlMatchRecognize extends SqlCall {
   public static final int OPERAND_PATTERN_DEFINES = 4;
   public static final int OPERAND_MEASURES = 5;
   public static final int OPERAND_AFTER = 6;
+  public static final int OPERAND_SUBSET = 7;
 
   public static final SqlPrefixOperator SKIP_TO_FIRST =
       new SqlPrefixOperator("SKIP TO FIRST", SqlKind.SKIP_TO_FIRST, 20, null,
@@ -57,11 +58,12 @@ public class SqlMatchRecognize extends SqlCall {
   private SqlNodeList patternDefList;
   private SqlNodeList measureList;
   private SqlNode after;
+  private SqlNodeList subsetList;
 
   /** Creates a SqlMatchRecognize. */
   public SqlMatchRecognize(SqlParserPos pos, SqlNode tableRef, SqlNode pattern,
       SqlLiteral strictStart, SqlLiteral strictEnd, SqlNodeList patternDefList,
-      SqlNodeList measureList, SqlNode after) {
+      SqlNodeList measureList, SqlNode after, SqlNodeList subsetList) {
     super(pos);
     this.tableRef = Preconditions.checkNotNull(tableRef);
     this.pattern = Preconditions.checkNotNull(pattern);
@@ -71,6 +73,7 @@ public class SqlMatchRecognize extends SqlCall {
     Preconditions.checkArgument(patternDefList.size() > 0);
     this.measureList = Preconditions.checkNotNull(measureList);
     this.after = after;
+    this.subsetList = subsetList;
   }
 
   // ~ Methods
@@ -85,7 +88,7 @@ public class SqlMatchRecognize extends SqlCall {
 
   @Override public List<SqlNode> getOperandList() {
     return ImmutableNullableList.of(tableRef, pattern, strictStart, strictEnd,
-        patternDefList, measureList, after);
+        patternDefList, measureList, after, subsetList);
   }
 
   @Override public void unparse(SqlWriter writer, int leftPrec,
@@ -121,6 +124,9 @@ public class SqlMatchRecognize extends SqlCall {
     case OPERAND_AFTER:
       after = operand;
       break;
+    case OPERAND_SUBSET:
+      subsetList = (SqlNodeList) operand;
+      break;
     default:
       throw new AssertionError(i);
     }
@@ -152,6 +158,10 @@ public class SqlMatchRecognize extends SqlCall {
 
   public SqlNode getAfter() {
     return after;
+  }
+
+  public SqlNodeList getSubsetList() {
+    return subsetList;
   }
 
   /**
@@ -200,11 +210,12 @@ public class SqlMatchRecognize extends SqlCall {
         SqlParserPos pos,
         SqlNode... operands) {
       assert functionQualifier == null;
-      assert operands.length == 6;
+      assert operands.length == 8;
 
       return new SqlMatchRecognize(pos, operands[0], operands[1],
           (SqlLiteral) operands[2], (SqlLiteral) operands[3],
-          (SqlNodeList) operands[4], (SqlNodeList) operands[5], operands[6]);
+          (SqlNodeList) operands[4], (SqlNodeList) operands[5], operands[6],
+          (SqlNodeList) operands[7]);
     }
 
     @Override public <R> void acceptCall(
@@ -270,6 +281,14 @@ public class SqlMatchRecognize extends SqlCall {
         writer.sep("$");
       }
       writer.endList(patternFrame);
+
+      if (pattern.subsetList != null && pattern.subsetList.size() > 0) {
+        writer.newlineAndIndent();
+        writer.sep("SUBSET");
+        SqlWriter.Frame subsetFrame = writer.startList("", "");
+        pattern.subsetList.unparse(writer, 0, 0);
+        writer.endList(subsetFrame);
+      }
 
       writer.newlineAndIndent();
       writer.sep("DEFINE");

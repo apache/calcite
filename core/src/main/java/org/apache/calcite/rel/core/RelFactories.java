@@ -49,6 +49,7 @@ import com.google.common.collect.ImmutableList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
 
 /**
  * Contains factory interface and default implementation for creating various
@@ -397,7 +398,7 @@ public class RelFactories {
     RelNode createMatchRecognize(RelNode input, RexNode pattern,
         boolean strictStart, boolean strictEnd,
         Map<String, RexNode> patternDefinitions, Map<String, RexNode> measures,
-        RexNode after, RelDataType rowType);
+        RexNode after, Map<String, TreeSet<String>> subsets, RelDataType rowType);
   }
 
   /**
@@ -408,9 +409,9 @@ public class RelFactories {
     public RelNode createMatchRecognize(RelNode input, RexNode pattern,
         boolean strictStart, boolean strictEnd,
         Map<String, RexNode> patternDefinitions, Map<String, RexNode> measures,
-        RexNode after, RelDataType rowType) {
+        RexNode after, Map<String, TreeSet<String>> subsets, RelDataType rowType) {
       return LogicalMatch.create(input, pattern, strictStart, strictEnd,
-          patternDefinitions, measures, after, rowType);
+          patternDefinitions, measures, after, subsets, rowType);
     }
   }
 }

@@ -195,6 +195,31 @@ public class SqlValidatorMatchTest extends SqlValidatorTestCase {
         .ok();
   }
 
+  @Test public void testMatchRecognizeSubset() throws Exception {
+    final String sql = "select *\n"
+      + "from emp match_recognize (\n"
+      + "    pattern (strt down+ up+)\n"
+      + "    subset stdn = (^strt1^, down)\n"
+      + "    define\n"
+      + "      down as down.sal < PREV(down.sal),\n"
+      + "      up as up.sal > prev(up.sal)\n"
+      + "  ) mr";
+    sql(sql)
+      .fails("Unknown pattern 'STRT1'");
+  }
+
+  @Test public void testMatchRecognizeSubset2() throws Exception {
+    final String sql = "select *\n"
+      + "from emp match_recognize (\n"
+      + "    pattern (strt down+ up+)\n"
+      + "    subset ^strt^ = (strt, down)\n"
+      + "    define\n"
+      + "      down as down.sal < PREV(down.sal),\n"
+      + "      up as up.sal > prev(up.sal)\n"
+      + "  ) mr";
+    sql(sql)
+      .fails("Pattern variable 'STRT' has been defined");
+  }
 }
 
 // End SqlValidatorMatchTest.java
