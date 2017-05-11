@@ -98,7 +98,7 @@ public final class AggregateExpandDistinctAggregatesRule extends RelOptRule {
   //~ Constructors -----------------------------------------------------------
 
   public AggregateExpandDistinctAggregatesRule(
-      Class<? extends LogicalAggregate> clazz,
+      Class<? extends Aggregate> clazz,
       boolean useGroupingSets,
       RelBuilderFactory relBuilderFactory) {
     super(operand(clazz, any()), relBuilderFactory, null);
