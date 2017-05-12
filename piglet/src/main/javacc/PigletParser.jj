@@ -89,11 +89,11 @@ JAVACODE SqlParserPos pos() {
 }
 
 JAVACODE SqlParserPos pos2(SqlParserPos p) {
-  return pos().plus(p);
+  return p.plus(pos());
 }
 
 JAVACODE SqlParserPos pos3(Node n) {
-  return pos().plus(n.pos);
+  return n.pos.plus(pos());
 }
 
 /**

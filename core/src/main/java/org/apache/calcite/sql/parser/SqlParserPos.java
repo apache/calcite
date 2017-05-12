@@ -20,8 +20,10 @@ import org.apache.calcite.sql.SqlNode;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 
 import java.io.Serializable;
+import java.util.AbstractList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
@@ -44,6 +46,13 @@ public class SqlParserPos implements Serializable {
 
   private static final long serialVersionUID = 1L;
 
+  private static final Function<SqlNode, SqlParserPos> NODE_TO_POS =
+      new Function<SqlNode, SqlParserPos>() {
+        public SqlParserPos apply(SqlNode input) {
+          return input.getParserPosition();
+        }
+      };
+
   //~ Instance fields --------------------------------------------------------
 
   private final int lineNumber;
@@ -59,10 +68,7 @@ public class SqlParserPos implements Serializable {
   public SqlParserPos(
       int lineNumber,
       int columnNumber) {
-    this.lineNumber = lineNumber;
-    this.columnNumber = columnNumber;
-    this.endLineNumber = lineNumber;
-    this.endColumnNumber = columnNumber;
+    this(lineNumber, columnNumber, lineNumber, columnNumber);
   }
 
   /**
@@ -77,6 +83,9 @@ public class SqlParserPos implements Serializable {
     this.columnNumber = startColumnNumber;
     this.endLineNumber = endLineNumber;
     this.endColumnNumber = endColumnNumber;
+    assert startLineNumber < endLineNumber
+        || startLineNumber == endLineNumber
+        && startColumnNumber <= endColumnNumber;
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -165,34 +174,68 @@ public class SqlParserPos implements Serializable {
    * Combines the parser positions of an array of nodes to create a position
    * which spans from the beginning of the first to the end of the last.
    */
-  public static SqlParserPos sum(SqlNode[] nodes) {
-    final Iterable<SqlParserPos> poses = toPos(Arrays.asList(nodes));
-    return sum(poses, Integer.MAX_VALUE, Integer.MAX_VALUE, -1, -1);
+  public static SqlParserPos sum(final SqlNode[] nodes) {
+    return sum(toPos(nodes));
+  }
+
+  private static List<SqlParserPos> toPos(final SqlNode[] nodes) {
+    return new AbstractList<SqlParserPos>() {
+      public SqlParserPos get(int index) {
+        return nodes[index].getParserPosition();
+      }
+      public int size() {
+        return nodes.length;
+      }
+    };
   }
 
   private static Iterable<SqlParserPos> toPos(Iterable<SqlNode> nodes) {
-    return Iterables.transform(nodes,
-        new Function<SqlNode, SqlParserPos>() {
-          public SqlParserPos apply(SqlNode input) {
-            return input.getParserPosition();
-          }
-        });
+    return Iterables.transform(nodes, NODE_TO_POS);
   }
 
   /**
    * Combines the parser positions of a list of nodes to create a position
    * which spans from the beginning of the first to the end of the last.
    */
-  public static SqlParserPos sum(List<? extends SqlNode> nodes) {
-    return sum(nodes.toArray(new SqlNode[nodes.size()]));
+  public static SqlParserPos sum(final List<? extends SqlNode> nodes) {
+    return sum(Lists.transform(nodes, NODE_TO_POS));
   }
 
   /**
-   * Combines an array of parser positions to create a position which spans
+   * Combines an iterable of parser positions to create a position which spans
    * from the beginning of the first to the end of the last.
    */
   public static SqlParserPos sum(Iterable<SqlParserPos> poses) {
-    return sum(poses, Integer.MAX_VALUE, Integer.MAX_VALUE, -1, -1);
+    final List<SqlParserPos> list =
+        poses instanceof List
+            ? (List<SqlParserPos>) poses
+            : Lists.newArrayList(poses);
+    return sum_(list);
+  }
+
+  /**
+   * Combines a list of parser positions to create a position which spans
+   * from the beginning of the first to the end of the last.
+   */
+  private static SqlParserPos sum_(final List<SqlParserPos> positions) {
+    switch (positions.size()) {
+    case 0:
+      throw new AssertionError();
+    case 1:
+      return positions.get(0);
+    default:
+      final List<SqlParserPos> poses = new AbstractList<SqlParserPos>() {
+        public SqlParserPos get(int index) {
+          return positions.get(index + 1);
+        }
+        public int size() {
+          return positions.size() - 1;
+        }
+      };
+      final SqlParserPos p = positions.get(0);
+      return sum(poses, p.lineNumber, p.columnNumber, p.endLineNumber,
+          p.endColumnNumber);
+    }
   }
 
   /**

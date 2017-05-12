@@ -38,6 +38,12 @@ Guava versions 14.0 to 21.0;
 Druid version 0.10.0;
 other software versions as specified in `pom.xml`.
 
+Breaking changes:
+
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1788">CALCITE-1788</a>]
+  (Simplify handling of position in the parser)
+  Requires changes in the parameter lists of parser extension methods
+
 ## <a href="https://github.com/apache/calcite/releases/tag/calcite-1.12.0">1.12.0</a> / 2017-03-24
 {: #v1-12-0}
 

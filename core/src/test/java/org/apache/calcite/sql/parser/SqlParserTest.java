@@ -3575,8 +3575,8 @@ public class SqlParserTest {
         "nullif(v1,v2)",
         "(NULLIF(`V1`, `V2`))");
     checkExpFails(
-        "1 ^+^ nullif + 3",
-        "(?s)Encountered \"\\+ nullif \\+\" at line 1, column 3.*");
+        "1 + ^nullif^ + 3",
+        "(?s)Encountered \"nullif \\+\" at line 1, column 5.*");
   }
 
   @Test public void testCoalesce() {

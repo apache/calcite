@@ -172,12 +172,9 @@ public abstract class SqlImplementor {
       SqlCall unionAll = SqlStdOperatorTable.UNION_ALL
           .createCall(POS, unionOperand, unionOperand);
 
-      final SqlNodeList subQuery = new SqlNodeList(POS);
-      subQuery.add(unionAll);
-
       final SqlNodeList selectList2 = new SqlNodeList(POS);
       selectList2.add(nullLiteral);
-      elseExpr = SqlStdOperatorTable.SCALAR_QUERY.createCall(POS, subQuery);
+      elseExpr = SqlStdOperatorTable.SCALAR_QUERY.createCall(POS, unionAll);
       break;
 
     default:

@@ -16,7 +16,7 @@
 -->
 
 
-SqlAlter SqlUploadJarNode(SqlParserPos pos, String scope) :
+SqlAlter SqlUploadJarNode(Span s, String scope) :
 {
     SqlNode jarPath;
     final List<SqlNode> jarPathsList;
@@ -32,18 +32,18 @@ SqlAlter SqlUploadJarNode(SqlParserPos pos, String scope) :
         }
     )*
     {
-        return new SqlUploadJarNode(pos.plus(getPos()), scope, jarPathsList);
+        return new SqlUploadJarNode(s.end(this), scope, jarPathsList);
     }
 }
 
-SqlCreate SqlCreateTable(SqlParserPos pos, boolean replace) :
+SqlCreate SqlCreateTable(Span s, boolean replace) :
 {
     final SqlIdentifier id;
     final SqlNodeList columnList;
 }
 {
     <TABLE> id = CompoundIdentifier() columnList = ExtendList() {
-        return new SqlCreateTable(pos, id, columnList);
+        return new SqlCreateTable(s.end(columnList), id, columnList);
     }
 }
 

@@ -5332,7 +5332,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
 
   @Test public void testCrossJoinUsingFails() {
     checkFails(
-        "select * from emp cross join dept ^using (deptno)^",
+        "select * from emp cross join dept ^using^ (deptno)",
         "Cannot specify condition \\(NATURAL keyword, or ON or USING clause\\) following CROSS JOIN");
   }
 
@@ -5380,7 +5380,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   @Test public void testCrossJoinOnFails() {
     checkFails(
         "select * from emp cross join dept\n"
-            + " ^on emp.deptno = dept.deptno^",
+            + " ^on^ emp.deptno = dept.deptno",
         "Cannot specify condition \\(NATURAL keyword, or ON or USING clause\\) following CROSS JOIN");
   }
 
@@ -6684,7 +6684,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .fails("Expression 'EMPNO' is not being grouped");
 
     // in OVER clause with more than one level of nesting
-    checkFails("select ^avg(sum(min(sal))) OVER (partition by deptno)^\n"
+    checkFails("select ^avg(sum(min(sal)))^ OVER (partition by deptno)\n"
         + "from emp group by deptno",
         ERR_NESTED_AGG);
 
@@ -9582,12 +9582,14 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   @Test public void testInsertExtendedColumnModifiableViewFailColumnCount() {
-    tester.checkQueryFails("insert into EMP_MODIFIABLEVIEW2(\"rank\" INT, extra2 BOOLEAN^)^"
-            + " values ('nom', 1, 'job', 0, true, 0, false, timestamp '1970-01-01 00:00:00', 1, 1,"
-            + "  1)",
+    final String sql0 = "insert into ^EMP_MODIFIABLEVIEW2(\"rank\" INT, extra2 BOOLEAN)^"
+        + " values ('nom', 1, 'job', 0, true, 0, false,"
+        + " timestamp '1970-01-01 00:00:00', 1, 1,  1)";
+    tester.checkQueryFails(sql0,
         "Number of INSERT target columns \\(12\\) does not equal number of source items \\(11\\)");
-    tester.checkQueryFails("insert into EMP_MODIFIABLEVIEW2(\"rank\" INT, extra2 BOOLEAN^)^"
-            + " (deptno, empno, ename, extra2, \"rank\") values (?, 10, '2', true)",
+    final String sql1 = "insert into ^EMP_MODIFIABLEVIEW2(\"rank\" INT, extra2 BOOLEAN)^"
+        + " (deptno, empno, ename, extra2, \"rank\") values (?, 10, '2', true)";
+    tester.checkQueryFails(sql1,
         "Number of INSERT target columns \\(5\\) does not equal number of source items \\(4\\)");
   }
 
