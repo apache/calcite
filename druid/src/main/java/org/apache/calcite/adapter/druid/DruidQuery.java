@@ -207,8 +207,9 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
   boolean isValidFilter(RexNode e, boolean boundedComparator) {
     switch (e.getKind()) {
     case INPUT_REF:
-    case LITERAL:
       return true;
+    case LITERAL:
+      return ((RexLiteral) e).getValue() != null;
     case AND:
     case OR:
     case NOT:
