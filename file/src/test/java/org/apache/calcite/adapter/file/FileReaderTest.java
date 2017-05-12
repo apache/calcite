@@ -22,6 +22,7 @@ import org.apache.calcite.util.Sources;
 import org.jsoup.select.Elements;
 
 import org.junit.Assume;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.hamcrest.CoreMatchers.instanceOf;
@@ -66,6 +67,7 @@ public class FileReaderTest {
   }
 
   /** Tests {@link FileReader} URL instantiation - with path. */
+  @Ignore("[CALCITE-1789] Wikipedia format change breaks file adapter test")
   @Test public void testFileReaderUrlWithPath() throws FileReaderException {
     Assume.assumeTrue(FileSuite.hazNetwork());
     FileReader t =

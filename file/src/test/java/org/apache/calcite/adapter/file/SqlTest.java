@@ -23,6 +23,7 @@ import com.google.common.collect.Ordering;
 
 import org.junit.Assert;
 import org.junit.Assume;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.sql.Connection;
@@ -193,6 +194,7 @@ public class SqlTest {
   }
 
   /** Reads from a URL and checks the result. */
+  @Ignore("[CALCITE-1789] Wikipedia format change breaks file adapter test")
   @Test public void testUrlSelect() throws SQLException {
     Assume.assumeTrue(FileSuite.hazNetwork());
     final String sql = "select \"State\", \"Statehood\" from \"States_as_of\"\n"
