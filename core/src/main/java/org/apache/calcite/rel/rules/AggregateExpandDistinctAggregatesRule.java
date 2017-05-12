@@ -64,7 +64,7 @@ import java.util.TreeSet;
 /**
  * Planner rule that expands distinct aggregates
  * (such as {@code COUNT(DISTINCT x)}) from a
- * {@link org.apache.calcite.rel.logical.LogicalAggregate}.
+ * {@link org.apache.calcite.rel.core.Aggregate}.
  *
  * <p>How this is done depends upon the arguments to the function. If all
  * functions have the same argument
