@@ -2097,8 +2097,12 @@ public class DruidAdapterIT {
         + "from \"foodmart\"\n"
         + "where \"product_id\" = cast(NULL as varchar)\n"
         + "group by \"product_id\"";
-    String druidQuery = "'filter':{'type':'selector','dimension':'product_id','value':''}";
-    sql(sql).queryContains(druidChecker(druidQuery));
+    final String plan = "PLAN=EnumerableInterpreter\n"
+        + "  BindableAggregate(group=[{0}])\n"
+        + "    BindableFilter(condition=[=($0, null)])\n"
+        + "      DruidQuery(table=[[foodmart, foodmart]], "
+        + "intervals=[[1900-01-09T00:00:00.000/2992-01-10T00:00:00.000]], projects=[[$1]])";
+    sql(sql).explainContains(plan);
   }
 
   @Test public void testFalseFilter() {
