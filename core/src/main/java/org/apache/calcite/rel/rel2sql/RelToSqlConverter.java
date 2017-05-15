@@ -71,6 +71,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.TreeSet;
 
 /**
  * Utility to convert relational expressions to SQL abstract syntax tree.
@@ -395,6 +396,17 @@ public class RelToSqlConverter extends SqlImplementor
     final SqlLiteral strictStart = SqlLiteral.createBoolean(e.isStrictStart(), POS);
     final SqlLiteral strictEnd = SqlLiteral.createBoolean(e.isStrictEnd(), POS);
 
+    List<SqlNode> subsets = Lists.newArrayList();
+    for (Map.Entry<String, TreeSet<String>> entry : e.getSubsets().entrySet()) {
+      SqlNode left = new SqlIdentifier(entry.getKey(), POS);
+      List<SqlNode> rhl = Lists.newArrayList();
+      for (String right : entry.getValue()) {
+        rhl.add(new SqlIdentifier(right, POS));
+      }
+      subsets.add(SqlStdOperatorTable.EQUALS.createCall(POS, left, new SqlNodeList(rhl, POS)));
+    }
+    final SqlNodeList subsetLists = new SqlNodeList(subsets, POS);
+
     final SqlNodeList measureList = new SqlNodeList(POS);
     for (Map.Entry<String, RexNode> entry : e.getMeasures().entrySet()) {
       final String alias = entry.getKey();
@@ -410,7 +422,7 @@ public class RelToSqlConverter extends SqlImplementor
     }
 
     final SqlNode matchRecognize = new SqlMatchRecognize(POS, tableRef,
-        pattern, strictStart, strictEnd, patternDefList, measureList, after);
+        pattern, strictStart, strictEnd, patternDefList, measureList, after, subsetLists);
     return result(matchRecognize, Expressions.list(Clause.FROM), e, null);
   }
 

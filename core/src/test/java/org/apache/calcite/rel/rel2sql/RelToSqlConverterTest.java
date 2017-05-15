@@ -1349,6 +1349,130 @@ public class RelToSqlConverterTest {
     sql(sql).ok(expected);
   }
 
+  @Test public void testMatchRecognizeSubset1() {
+    final String sql = "select *\n"
+        + "  from \"product\" match_recognize\n"
+        + "  (\n"
+        + "    after match skip to down\n"
+        + "    pattern (strt down+ up+)\n"
+        + "    subset stdn = (strt, down)\n"
+        + "    define\n"
+        + "      down as down.\"net_weight\" < PREV(down.\"net_weight\"),\n"
+        + "      up as up.\"net_weight\" > NEXT(up.\"net_weight\")\n"
+        + "  ) mr";
+    final String expected = "SELECT *\n"
+        + "FROM (SELECT *\n"
+        + "FROM \"foodmart\".\"product\") MATCH_RECOGNIZE(\n"
+        + "AFTER MATCH SKIP TO LAST \"DOWN\"\n"
+        + "PATTERN (\"STRT\" \"DOWN\" + \"UP\" +)\n"
+        + "SUBSET \"STDN\" = (\"DOWN\", \"STRT\")\n"
+        + "DEFINE "
+        + "\"DOWN\" AS PREV(\"DOWN\".\"net_weight\", 0)"
+        + " < PREV(\"DOWN\".\"net_weight\", 1), "
+        + "\"UP\" AS PREV(\"UP\".\"net_weight\", 0)"
+        + " > NEXT(PREV(\"UP\".\"net_weight\", 0), 1))";
+    sql(sql).ok(expected);
+  }
+
+  @Test public void testMatchRecognizeSubset2() {
+    final String sql = "select *\n"
+        + "  from \"product\" match_recognize\n"
+        + "  (\n"
+        + "   measures STRT.\"net_weight\" as start_nw,"
+        + "   LAST(DOWN.\"net_weight\") as bottom_nw,"
+        + "   AVG(STDN.\"net_weight\") as avg_stdn"
+        + "    pattern (strt down+ up+)\n"
+        + "    subset stdn = (strt, down)\n"
+        + "    define\n"
+        + "      down as down.\"net_weight\" < PREV(down.\"net_weight\"),\n"
+        + "      up as up.\"net_weight\" > prev(up.\"net_weight\")\n"
+        + "  ) mr";
+
+    final String expected = "SELECT *\n"
+        + "FROM (SELECT *\n"
+        + "FROM \"foodmart\".\"product\") "
+        + "MATCH_RECOGNIZE(\n"
+        + "MEASURES "
+        + "FINAL \"STRT\".\"net_weight\" AS \"START_NW\", "
+        + "FINAL LAST(\"DOWN\".\"net_weight\", 0) AS \"BOTTOM_NW\", "
+        + "FINAL (SUM(\"STDN\".\"net_weight\") / "
+        + "COUNT(\"STDN\".\"net_weight\")) AS \"AVG_STDN\"\n"
+        + "AFTER MATCH SKIP TO NEXT ROW\n"
+        + "PATTERN (\"STRT\" \"DOWN\" + \"UP\" +)\n"
+        + "SUBSET \"STDN\" = (\"DOWN\", \"STRT\")\n"
+        + "DEFINE "
+        + "\"DOWN\" AS PREV(\"DOWN\".\"net_weight\", 0) < "
+        + "PREV(\"DOWN\".\"net_weight\", 1), "
+        + "\"UP\" AS PREV(\"UP\".\"net_weight\", 0) > "
+        + "PREV(\"UP\".\"net_weight\", 1))";
+    sql(sql).ok(expected);
+  }
+
+  @Test public void testMatchRecognizeSubset3() {
+    final String sql = "select *\n"
+        + "  from \"product\" match_recognize\n"
+        + "  (\n"
+        + "   measures STRT.\"net_weight\" as start_nw,"
+        + "   LAST(DOWN.\"net_weight\") as bottom_nw,"
+        + "   SUM(STDN.\"net_weight\") as avg_stdn"
+        + "    pattern (strt down+ up+)\n"
+        + "    subset stdn = (strt, down)\n"
+        + "    define\n"
+        + "      down as down.\"net_weight\" < PREV(down.\"net_weight\"),\n"
+        + "      up as up.\"net_weight\" > prev(up.\"net_weight\")\n"
+        + "  ) mr";
+
+    final String expected = "SELECT *\n"
+        + "FROM (SELECT *\n"
+        + "FROM \"foodmart\".\"product\") "
+        + "MATCH_RECOGNIZE(\n"
+        + "MEASURES "
+        + "FINAL \"STRT\".\"net_weight\" AS \"START_NW\", "
+        + "FINAL LAST(\"DOWN\".\"net_weight\", 0) AS \"BOTTOM_NW\", "
+        + "FINAL SUM(\"STDN\".\"net_weight\") AS \"AVG_STDN\"\n"
+        + "AFTER MATCH SKIP TO NEXT ROW\n"
+        + "PATTERN (\"STRT\" \"DOWN\" + \"UP\" +)\n"
+        + "SUBSET \"STDN\" = (\"DOWN\", \"STRT\")\n"
+        + "DEFINE "
+        + "\"DOWN\" AS PREV(\"DOWN\".\"net_weight\", 0) < "
+        + "PREV(\"DOWN\".\"net_weight\", 1), "
+        + "\"UP\" AS PREV(\"UP\".\"net_weight\", 0) > "
+        + "PREV(\"UP\".\"net_weight\", 1))";
+    sql(sql).ok(expected);
+  }
+  @Test public void testMatchRecognizeSubset4() {
+    final String sql = "select *\n"
+        + "  from \"product\" match_recognize\n"
+        + "  (\n"
+        + "   measures STRT.\"net_weight\" as start_nw,"
+        + "   LAST(DOWN.\"net_weight\") as bottom_nw,"
+        + "   SUM(STDN.\"net_weight\") as avg_stdn"
+        + "    pattern (strt down+ up+)\n"
+        + "    subset stdn = (strt, down), stdn2 = (strt, down)\n"
+        + "    define\n"
+        + "      down as down.\"net_weight\" < PREV(down.\"net_weight\"),\n"
+        + "      up as up.\"net_weight\" > prev(up.\"net_weight\")\n"
+        + "  ) mr";
+
+    final String expected = "SELECT *\n"
+        + "FROM (SELECT *\n"
+        + "FROM \"foodmart\".\"product\") "
+        + "MATCH_RECOGNIZE(\n"
+        + "MEASURES "
+        + "FINAL \"STRT\".\"net_weight\" AS \"START_NW\", "
+        + "FINAL LAST(\"DOWN\".\"net_weight\", 0) AS \"BOTTOM_NW\", "
+        + "FINAL SUM(\"STDN\".\"net_weight\") AS \"AVG_STDN\"\n"
+        + "AFTER MATCH SKIP TO NEXT ROW\n"
+        + "PATTERN (\"STRT\" \"DOWN\" + \"UP\" +)\n"
+        + "SUBSET \"STDN\" = (\"DOWN\", \"STRT\"), \"STDN2\" = (\"DOWN\", \"STRT\")\n"
+        + "DEFINE "
+        + "\"DOWN\" AS PREV(\"DOWN\".\"net_weight\", 0) < "
+        + "PREV(\"DOWN\".\"net_weight\", 1), "
+        + "\"UP\" AS PREV(\"UP\".\"net_weight\", 0) > "
+        + "PREV(\"UP\".\"net_weight\", 1))";
+    sql(sql).ok(expected);
+  }
+
   /** Fluid interface to run tests. */
   private static class Sql {
     private CalciteAssert.SchemaSpec schemaSpec;

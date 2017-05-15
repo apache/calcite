@@ -2506,8 +2506,9 @@ SqlMatchRecognize MatchRecognizeOpt(SqlNode tableRef) :
     SqlNode pattern;
     SqlNodeList patternDefList;
     final SqlNode after;
-    final SqlParserPos pos;
+    SqlParserPos pos;
     final SqlNode var;
+    SqlNodeList subsetList = SqlNodeList.EMPTY;
     SqlLiteral isStrictStarts = SqlLiteral.createBoolean(false, getPos());
     SqlLiteral isStrictEnds = SqlLiteral.createBoolean(false, getPos());
 }
@@ -2561,12 +2562,16 @@ SqlMatchRecognize MatchRecognizeOpt(SqlNode tableRef) :
         { isStrictEnds = SqlLiteral.createBoolean(false, getPos()); }
     )
     <RPAREN>
+    [
+        <SUBSET> { pos = getPos(); }
+        subsetList = SubsetDefinitionCommaList(pos)
+    ]
     <DEFINE>
     patternDefList = PatternDefinitionCommaList(getPos())
     <RPAREN> {
         return new SqlMatchRecognize(startPos.plus(getPos()), tableRef,
             pattern, isStrictStarts, isStrictEnds, patternDefList, measureList,
-            after);
+            after, subsetList);
     }
 }
 
@@ -2758,6 +2763,48 @@ SqlNode PatternPrimary() :
     )
     {
         return e;
+    }
+}
+
+SqlNodeList SubsetDefinitionCommaList(SqlParserPos pos) :
+{
+    SqlNode e;
+    List<SqlNode> eList;
+}
+{
+    e = SubsetDefinition()
+    {
+        if (pos == null) {
+            pos = e.getParserPosition();
+        }
+        eList = new ArrayList<SqlNode>();
+        eList.add(e);
+    }
+    (
+        <COMMA>
+        e = SubsetDefinition()
+        {
+            eList.add(e);
+        }
+    ) *
+    {
+        return new SqlNodeList(eList, pos.plus(getPos()));
+    }
+}
+
+SqlNode SubsetDefinition() :
+{
+    SqlNode var;
+    SqlNodeList varList;
+}
+{
+    var = SimpleIdentifier()
+    <EQ>
+    <LPAREN>
+    varList = ExpressionCommaList(null, ExprContext.ACCEPT_NON_QUERY)
+    <RPAREN>
+    {
+        return SqlStdOperatorTable.EQUALS.createCall(var.getParserPosition().plus(getPos()), var, varList);
     }
 }
 

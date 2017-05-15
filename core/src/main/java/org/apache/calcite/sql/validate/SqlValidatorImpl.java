@@ -4505,6 +4505,27 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
     validateDefinitions(matchRecognize, scope);
 
+    SqlNodeList subSets = matchRecognize.getSubsetList();
+    if (subSets != null && subSets.size() > 0) {
+      for (SqlNode node : subSets) {
+        List<SqlNode> operands = ((SqlCall) node).getOperandList();
+        String leftString = ((SqlIdentifier) operands.get(0)).getSimple();
+        if (scope.getPatternVars().contains(leftString)) {
+          throw newValidationError(operands.get(0),
+            RESOURCE.repeatPatternVar(leftString));
+        }
+        scope.addPatternVar(leftString);
+        for (SqlNode right : (SqlNodeList) operands.get(1)) {
+          SqlIdentifier id = (SqlIdentifier) right;
+          if (!scope.getPatternVars().contains(id.getSimple())) {
+            throw newValidationError(id,
+              RESOURCE.unknownPattern(id.getSimple()));
+          }
+          scope.addPatternVar(id.getSimple());
+        }
+      }
+    }
+
     // validate AFTER ... SKIP TO
     final SqlNode skipTo = matchRecognize.getAfter();
     if (skipTo instanceof SqlCall) {

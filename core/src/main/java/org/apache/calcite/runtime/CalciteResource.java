@@ -698,6 +698,10 @@ public interface CalciteResource {
 
   @BaseMessage("Unknown pattern ''{0}''")
   ExInst<SqlValidatorException> unknownPattern(String call);
+
+  @BaseMessage("Pattern variable ''{0}'' has been defined")
+  ExInst<SqlValidatorException> repeatPatternVar(String call);
+
 }
 
 // End CalciteResource.java
