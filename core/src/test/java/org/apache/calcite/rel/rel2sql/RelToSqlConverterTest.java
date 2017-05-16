@@ -378,11 +378,18 @@ public class RelToSqlConverterTest {
     sql(query).dialect(DatabaseProduct.DB2.getDialect()).ok(expected);
   }
 
-  @Test public void testCartesianProduct() {
+  @Test public void testCartesianProductWithCommaSyntax() {
     String query = "select * from \"department\" , \"employee\"";
-    String expected = "SELECT *\n"
-        + "FROM \"foodmart\".\"department\",\n"
-        + "\"foodmart\".\"employee\"";
+    String expected = "SELECT *\nFROM \"foodmart\".\"department\"\n"
+            + "INNER JOIN \"foodmart\".\"employee\" ON TRUE";
+    sql(query).ok(expected);
+  }
+
+  @Test public void testCartesianProductWithFullJoinSyntax() {
+    String query = "select * from \"department\"\n"
+            + "FULL JOIN \"employee\" ON TRUE";
+    String expected = "SELECT *\nFROM \"foodmart\".\"department\"\n"
+            + "FULL JOIN \"foodmart\".\"employee\" ON TRUE";
     sql(query).ok(expected);
   }
 

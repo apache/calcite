@@ -114,9 +114,9 @@ public class RelToSqlConverter extends SqlImplementor
     SqlNode sqlCondition = null;
     SqlLiteral condType = JoinConditionType.ON.symbol(POS);
     JoinType joinType = joinType(e.getJoinType());
-    if (e.getJoinType() == JoinRelType.INNER && e.getCondition().isAlwaysTrue()) {
-      joinType = JoinType.COMMA;
-      condType = JoinConditionType.NONE.symbol(POS);
+    if ((e.getJoinType() == JoinRelType.INNER || e.getJoinType() == JoinRelType.FULL)
+            && e.getCondition().isAlwaysTrue()) {
+      sqlCondition = SqlLiteral.createBoolean(true, POS);
     } else {
       sqlCondition = convertConditionToSqlNode(e.getCondition(),
           leftContext,
