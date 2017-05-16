@@ -407,7 +407,6 @@ public class RexSimplify {
       }
       return last;
     }
-  trueFalse:
     if (call.getType().getSqlTypeName() == SqlTypeName.BOOLEAN) {
       // Optimize CASE where every branch returns constant true or constant
       // false.
@@ -448,44 +447,66 @@ public class RexSimplify {
           return disjunction;
         }
       }
-      // 2) Another simplification
-      //   CASE
-      //   WHEN p1 THEN TRUE
-      //   WHEN p2 THEN FALSE
-      //   WHEN p3 THEN TRUE
-      //   ELSE FALSE
-      //   END
-      // if p1...pn cannot be nullable
-      for (Ord<Pair<RexNode, RexNode>> pair : Ord.zip(pairs)) {
-        if (pair.e.getKey().getType().isNullable()) {
-          break trueFalse;
+
+      if (pairs.size() < 20) {
+        // 2) Simplify generic boolean CASE into AND/OR:
+        // CASE
+        // WHEN p1 THEN e1
+        // WHEN p2 THEN e2
+        // ELSE <else>
+        // END
+        // (p1 and e1) or (!p1 and p2 and e2) or (!p1 and !p2 and <else>)
+        // p1..pn not nullable
+        // if e1..en, <else> are TRUE/FALSE they may
+        // simplify the final epxression
+        // p1..pn being TRUE/FALSE were already eliminated by now by casePairs
+
+        // We start the NOT predicates with a TRUE
+        // It will be eliminated by simplification
+        // It has the role of an empty initial expression
+        boolean successAnyExpression = true;
+
+        RexNode notPredicates = rexBuilder.makeLiteral(true);
+        final List<RexNode> terms = new ArrayList<>();
+        for (Ord<Pair<RexNode, RexNode>> pair : Ord.zip(pairs)) {
+          if (pair.e.getKey().getType().isNullable()) {
+            successAnyExpression = false;
+            break;
+          }
+          final RexNode toAdd = RexUtil.composeConjunction(rexBuilder,
+            ImmutableList.<RexNode>of(
+              notPredicates,
+              pair.e.getKey(),
+              pair.e.getValue()),
+            false);
+          terms.add(toAdd);
+          // If the value is TRUE we can skip the key from the NOT list:
+          // p1 or (!p1 and p2) => p1 or p2
+          if (!pair.e.getValue().isAlwaysTrue()) {
+            notPredicates = RexUtil.composeConjunction(rexBuilder,
+              ImmutableList.<RexNode>of(
+                notPredicates,
+                RexUtil.not(pair.e.getKey())),
+              false);
+            notPredicates = simplify(notPredicates);
+          }
         }
-        if (!pair.e.getValue().isAlwaysTrue()
-            && !pair.e.getValue().isAlwaysFalse()
-            && (!unknownAsFalse || !RexUtil.isNull(pair.e.getValue()))) {
-          break trueFalse;
+
+        if (successAnyExpression) {
+          final RexNode disjunction = simplify(RexUtil.composeDisjunction(rexBuilder, terms));
+          if (!call.getType().equals(disjunction.getType())) {
+            return rexBuilder.makeCast(call.getType(), disjunction);
+          }
+          return disjunction;
         }
       }
-      final List<RexNode> terms = new ArrayList<>();
-      final List<RexNode> notTerms = new ArrayList<>();
-      for (Ord<Pair<RexNode, RexNode>> pair : Ord.zip(pairs)) {
-        if (pair.e.getValue().isAlwaysTrue()) {
-          terms.add(RexUtil.andNot(rexBuilder, pair.e.getKey(), notTerms));
-        } else {
-          notTerms.add(pair.e.getKey());
-        }
-      }
-      final RexNode disjunction = RexUtil.composeDisjunction(rexBuilder, terms);
-      if (!call.getType().equals(disjunction.getType())) {
-        return rexBuilder.makeCast(call.getType(), disjunction);
-      }
-      return disjunction;
     }
     if (newOperands.equals(operands)) {
       return call;
     }
     return call.clone(call.getType(), newOperands);
   }
+
 
   /** Given "CASE WHEN p1 THEN v1 ... ELSE e END"
    * returns [(p1, v1), ..., (true, e)]. */
