@@ -117,6 +117,8 @@ public class RelToSqlConverter extends SqlImplementor
     if (e.getJoinType() == JoinRelType.INNER && e.getCondition().isAlwaysTrue()) {
       joinType = JoinType.COMMA;
       condType = JoinConditionType.NONE.symbol(POS);
+    } else if (e.getCondition().isAlwaysTrue()) {
+      sqlCondition = SqlLiteral.createBoolean(true, POS);
     } else {
       sqlCondition = convertConditionToSqlNode(e.getCondition(),
           leftContext,
