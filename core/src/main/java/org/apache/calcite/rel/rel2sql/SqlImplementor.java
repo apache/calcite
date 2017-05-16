@@ -262,6 +262,12 @@ public abstract class SqlImplementor {
   public static SqlNode convertConditionToSqlNode(RexNode node,
       Context leftContext,
       Context rightContext, int leftFieldCount) {
+    if (node.isAlwaysTrue()) {
+      return SqlLiteral.createBoolean(true, POS);
+    }
+    if (node.isAlwaysFalse()) {
+      return SqlLiteral.createBoolean(false, POS);
+    }
     if (!(node instanceof RexCall)) {
       throw new AssertionError(node);
     }
@@ -336,8 +342,9 @@ public abstract class SqlImplementor {
       joinContext =
           leftContext.implementor().joinContext(leftContext, rightContext);
       return joinContext.toSql(null, node);
+    default:
+      throw new AssertionError(node);
     }
-    throw new AssertionError(node);
   }
 
   /** Removes cast from string.
