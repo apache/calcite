@@ -32,6 +32,7 @@ import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Join;
+import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.TableScan;
@@ -223,8 +224,9 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
         // 3. We iterate through all applicable materializations trying to
         // rewrite the given query
         for (RelOptMaterialization materialization : applicableMaterializations) {
-          final Project topViewProject;
-          final RelNode viewNode;
+          RelNode view = materialization.tableRel;
+          Project topViewProject;
+          RelNode viewNode;
           if (materialization.queryRel instanceof Project) {
             topViewProject = (Project) materialization.queryRel;
             viewNode = topViewProject.getInput();
@@ -287,9 +289,20 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
                 continue;
               }
             } else if (queryTableRefs.containsAll(viewTableRefs)) {
-              // TODO: implement latest case
               matchModality = MatchModality.VIEW_PARTIAL;
-              continue;
+              ViewPartialRewriting partialRewritingResult = compensateViewPartial(
+                  rexBuilder, call.builder(), view,
+                  topProject, node, queryTableRefs,
+                  topViewProject, viewNode, viewTableRefs,
+                  mq);
+              if (partialRewritingResult == null) {
+                // Cannot rewrite, skip it
+                continue;
+              }
+              // Rewrite succeeded
+              view = partialRewritingResult.newView;
+              topViewProject = partialRewritingResult.newTopViewProject;
+              viewNode = partialRewritingResult.newViewNode;
             } else {
               // Skip it
               continue;
@@ -421,7 +434,7 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
             // a Project or an Aggregate operator on top of the view. It will also compute the
             // output expressions for the query.
             RelBuilder builder = call.builder();
-            builder.push(materialization.tableRel);
+            builder.push(view);
             if (!compensationPred.isAlwaysTrue()) {
               builder.filter(simplify.simplify(compensationPred));
             }
@@ -444,6 +457,19 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
 
   protected abstract List<RexNode> extractExpressions(Project topProject,
       RelNode node, RexBuilder rexBuilder);
+
+  /**
+   * It checks whether the query can be rewritten using the view even though the
+   * query uses additional tables.
+   *
+   * <p>Rules implementing the method should follow different approaches depending on the
+   * operators they rewrite.
+   */
+  protected abstract ViewPartialRewriting compensateViewPartial(RexBuilder rexBuilder,
+      RelBuilder relBuilder, RelNode input,
+      Project topProject, RelNode node, Set<RelTableRef> queryTableRefs,
+      Project topViewProject, RelNode viewNode, Set<RelTableRef> viewTableRefs,
+      RelMetadataQuery mq);
 
   /**
    * This method is responsible for rewriting the query using the given view query.
@@ -488,6 +514,81 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
         }
       }
       return viewExprs;
+    }
+
+    @Override protected ViewPartialRewriting compensateViewPartial(
+          RexBuilder rexBuilder,
+          RelBuilder relBuilder,
+          RelNode input,
+          Project topProject,
+          RelNode node,
+          Set<RelTableRef> queryTableRefs,
+          Project topViewProject,
+          RelNode viewNode,
+          Set<RelTableRef> viewTableRefs,
+          RelMetadataQuery mq) {
+      // We only create the rewriting in the minimal subtree of plan operators.
+      // Otherwise we will produce many EQUAL rewritings at different levels of
+      // the plan.
+      // View: (A JOIN B) JOIN C
+      // Query: (((A JOIN B) JOIN D) JOIN C) JOIN E
+      // We produce it at:
+      // ((A JOIN B) JOIN D) JOIN C
+      // But not at:
+      // (((A JOIN B) JOIN D) JOIN C) JOIN E
+      for (RelNode joinInput : node.getInputs()) {
+        if (mq.getTableReferences(joinInput).containsAll(viewTableRefs)) {
+          return null;
+        }
+      }
+
+      // Extract tables that are in the query and not in the view
+      final Set<RelTableRef> extraTableRefs = new HashSet<>();
+      for (RelTableRef tRef : queryTableRefs) {
+        if (!viewTableRefs.contains(tRef)) {
+          // Add to extra tables if table is not part of the view
+          extraTableRefs.add(tRef);
+        }
+      }
+
+      // Rewrite the view and the view plan. We only need to add the missing
+      // tables on top of the view and view plan using a cartesian product.
+      // Then the rest of the rewriting algorithm can be executed in the same
+      // fashion, and if there are predicates between the existing and missing
+      // tables, the rewriting algorithm will enforce them.
+      Collection<RelNode> tableScanNodes = mq.getNodeTypes(node).get(TableScan.class);
+      List<RelNode> newRels = new ArrayList<>();
+      int i;
+      for (RelTableRef tRef : extraTableRefs) {
+        i = 0;
+        for (RelNode relNode : tableScanNodes) {
+          if (tRef.getQualifiedName().equals(relNode.getTable().getQualifiedName())) {
+            if (tRef.getEntityNumber() == i++) {
+              newRels.add(relNode);
+              break;
+            }
+          }
+        }
+      }
+      assert extraTableRefs.size() == newRels.size();
+
+      relBuilder.push(input);
+      for (RelNode newRel : newRels) {
+        // Add to the view
+        relBuilder.push(newRel);
+        relBuilder.join(JoinRelType.INNER, rexBuilder.makeLiteral(true));
+      }
+      final RelNode newView = relBuilder.build();
+
+      relBuilder.push(topViewProject != null ? topViewProject : viewNode);
+      for (RelNode newRel : newRels) {
+        // Add to the view plan
+        relBuilder.push(newRel);
+        relBuilder.join(JoinRelType.INNER, rexBuilder.makeLiteral(true));
+      }
+      final RelNode newViewNode = relBuilder.build();
+
+      return ViewPartialRewriting.of(newView, null, newViewNode);
     }
 
     @Override protected RelNode unify(
@@ -627,6 +728,21 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
         }
       }
       return viewExprs;
+    }
+
+    @Override protected ViewPartialRewriting compensateViewPartial(
+        RexBuilder rexBuilder,
+        RelBuilder relBuilder,
+        RelNode input,
+        Project topProject,
+        RelNode node,
+        Set<RelTableRef> queryTableRefs,
+        Project topViewProject,
+        RelNode viewNode,
+        Set<RelTableRef> viewTableRefs,
+        RelMetadataQuery mq) {
+      // TODO: Currently we do not support view partial rewritings for Aggregate operators.
+      return null;
     }
 
     @Override protected RelNode unify(
@@ -1517,6 +1633,24 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
 
     public String toString() {
       return "{" + source + " -> " + target + "}";
+    }
+  }
+
+  /** View partitioning result */
+  private static class ViewPartialRewriting {
+    private final RelNode newView;
+    private final Project newTopViewProject;
+    private final RelNode newViewNode;
+
+    private ViewPartialRewriting(RelNode newView, Project newTopViewProject, RelNode newViewNode) {
+      this.newView = newView;
+      this.newTopViewProject = newTopViewProject;
+      this.newViewNode = newViewNode;
+    }
+
+    protected static ViewPartialRewriting of(
+        RelNode newView, Project newTopViewProject, RelNode newViewNode) {
+      return new ViewPartialRewriting(newView, newTopViewProject, newViewNode);
     }
   }
 

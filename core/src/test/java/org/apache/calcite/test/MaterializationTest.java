@@ -1344,6 +1344,28 @@ public class MaterializationTest {
               + "      EnumerableTableScan(table=[[hr, m0]])"));
   }
 
+  @Ignore
+  @Test public void testJoinAggregateMaterializationAggregateFuncs6() {
+    // This rewriting would be possible if planner generates a pre-aggregation,
+    // since the materialized view would match the subquery.
+    // Initial investigation after enabling AggregateJoinTransposeRule.EXTENDED
+    // shows that the rewriting with pre-aggregations is generated and the
+    // materialized view rewriting happens.
+    // However, we end up discarding the plan with the materialized view and still
+    // using the plan with the pre-aggregations.
+    // TODO: Explore and extend to choose best rewriting.
+    final String m = "select \"depts\".\"name\", sum(\"salary\") as s\n"
+        + "from \"emps\"\n"
+        + "join \"depts\" on (\"emps\".\"deptno\" = \"depts\".\"deptno\")\n"
+        + "group by \"depts\".\"name\"";
+    final String q = "select \"dependents\".\"empid\", sum(\"salary\") as s\n"
+        + "from \"emps\"\n"
+        + "join \"depts\" on (\"emps\".\"deptno\" = \"depts\".\"deptno\")\n"
+        + "join \"dependents\" on (\"depts\".\"name\" = \"dependents\".\"name\")\n"
+        + "group by \"dependents\".\"empid\"";
+    checkMaterialize(m, q);
+  }
+
   @Test public void testJoinMaterialization4() {
     checkMaterialize(
       "select \"empid\" \"deptno\" from \"emps\"\n"
@@ -1382,6 +1404,62 @@ public class MaterializationTest {
               + "expr#2=[CAST($t1):INTEGER NOT NULL], expr#3=[1], expr#4=[=($t2, $t3)], "
               + "EXPR$0=[$t1], $condition=[$t4])\n"
               + "  EnumerableTableScan(table=[[hr, m0]])"));
+  }
+
+  @Test public void testJoinMaterialization7() {
+    checkMaterialize(
+      "select \"depts\".\"name\"\n"
+            + "from \"emps\"\n"
+            + "join \"depts\" on (\"emps\".\"deptno\" = \"depts\".\"deptno\")",
+      "select \"dependents\".\"empid\"\n"
+            + "from \"emps\"\n"
+            + "join \"depts\" on (\"emps\".\"deptno\" = \"depts\".\"deptno\")\n"
+            + "join \"dependents\" on (\"depts\".\"name\" = \"dependents\".\"name\")",
+      HR_FKUK_MODEL,
+      CalciteAssert.checkResultContains(
+          "EnumerableCalc(expr#0..2=[{inputs}], empid0=[$t1])\n"
+              + "  EnumerableJoin(condition=[=($0, $2)], joinType=[inner])\n"
+              + "    EnumerableCalc(expr#0=[{inputs}], expr#1=[CAST($t0):VARCHAR CHARACTER SET \"ISO-8859-1\" "
+              + "COLLATE \"ISO-8859-1$en_US$primary\"], name=[$t1])\n"
+              + "      EnumerableTableScan(table=[[hr, m0]])\n"
+              + "    EnumerableCalc(expr#0..1=[{inputs}], expr#2=[CAST($t1):VARCHAR CHARACTER SET \"ISO-8859-1\" "
+              + "COLLATE \"ISO-8859-1$en_US$primary\"], empid=[$t0], name0=[$t2])\n"
+              + "      EnumerableTableScan(table=[[hr, dependents]])"));
+  }
+
+  @Test public void testJoinMaterialization8() {
+    checkMaterialize(
+      "select \"depts\".\"name\"\n"
+            + "from \"emps\"\n"
+            + "join \"depts\" on (\"emps\".\"deptno\" = \"depts\".\"deptno\")",
+      "select \"dependents\".\"empid\"\n"
+            + "from \"depts\"\n"
+            + "join \"dependents\" on (\"depts\".\"name\" = \"dependents\".\"name\")\n"
+            + "join \"emps\" on (\"emps\".\"deptno\" = \"depts\".\"deptno\")",
+      HR_FKUK_MODEL,
+      CalciteAssert.checkResultContains(
+          "EnumerableCalc(expr#0..4=[{inputs}], empid=[$t2])\n"
+              + "  EnumerableJoin(condition=[=($1, $4)], joinType=[inner])\n"
+              + "    EnumerableCalc(expr#0=[{inputs}], expr#1=[CAST($t0):VARCHAR CHARACTER SET \"ISO-8859-1\" "
+              + "COLLATE \"ISO-8859-1$en_US$primary\"], proj#0..1=[{exprs}])\n"
+              + "      EnumerableTableScan(table=[[hr, m0]])\n"
+              + "    EnumerableCalc(expr#0..1=[{inputs}], expr#2=[CAST($t1):VARCHAR CHARACTER SET \"ISO-8859-1\" "
+              + "COLLATE \"ISO-8859-1$en_US$primary\"], proj#0..2=[{exprs}])\n"
+              + "      EnumerableTableScan(table=[[hr, dependents]])"));
+  }
+
+  @Test public void testJoinMaterialization9() {
+    checkMaterialize(
+      "select \"depts\".\"name\"\n"
+            + "from \"emps\"\n"
+            + "join \"depts\" on (\"emps\".\"deptno\" = \"depts\".\"deptno\")",
+      "select \"dependents\".\"empid\"\n"
+            + "from \"depts\"\n"
+            + "join \"dependents\" on (\"depts\".\"name\" = \"dependents\".\"name\")\n"
+            + "join \"locations\" on (\"locations\".\"name\" = \"dependents\".\"name\")\n"
+            + "join \"emps\" on (\"emps\".\"deptno\" = \"depts\".\"deptno\")",
+      HR_FKUK_MODEL,
+      CONTAINS_M0);
   }
 
   @Test public void testJoinMaterializationUKFK1() {
