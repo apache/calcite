@@ -1257,6 +1257,10 @@ public class RexProgramTest {
     checkSimplifyFilter(and(eq(aRef, literal1), eq(bRef, literal10), eq(aRef, bRef)),
         "false");
 
+    // condition not satisfiable
+    checkSimplifyFilter(and(gt(aRef, literal10), ge(bRef, literal1), lt(aRef, literal10)),
+        "false");
+
     // case: trailing false and null, remove
     checkSimplifyFilter(
         case_(aRef, trueLiteral, bRef, trueLiteral, cRef, falseLiteral, dRef, falseLiteral,

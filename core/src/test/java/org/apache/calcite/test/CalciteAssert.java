@@ -403,12 +403,14 @@ public class CalciteAssert {
   }
 
   public static Function<ResultSet, Void> checkResultContains(
-      final String expected) {
+      final String... expected) {
     return new Function<ResultSet, Void>() {
       public Void apply(ResultSet s) {
         try {
           final String actual = Util.toLinux(CalciteAssert.toString(s));
-          assertThat(actual, containsString(expected));
+          for (String st : expected) {
+            assertThat(actual, containsString(st));
+          }
           return null;
         } catch (SQLException e) {
           throw new RuntimeException(e);

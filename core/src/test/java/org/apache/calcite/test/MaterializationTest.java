@@ -1268,6 +1268,71 @@ public class MaterializationTest {
               + "    EnumerableTableScan(table=[[hr, m0]])"));
   }
 
+  @Test public void testJoinAggregateMaterializationNoAggregateFuncs7() {
+    checkMaterialize(
+      "select \"depts\".\"deptno\", \"dependents\".\"empid\"\n"
+            + "from \"depts\"\n"
+            + "join \"dependents\" on (\"depts\".\"name\" = \"dependents\".\"name\")\n"
+            + "join \"locations\" on (\"locations\".\"name\" = \"dependents\".\"name\")\n"
+            + "join \"emps\" on (\"emps\".\"deptno\" = \"depts\".\"deptno\")\n"
+            + "where \"depts\".\"deptno\" > 11\n"
+            + "group by \"depts\".\"deptno\", \"dependents\".\"empid\"",
+      "select \"dependents\".\"empid\"\n"
+            + "from \"depts\"\n"
+            + "join \"dependents\" on (\"depts\".\"name\" = \"dependents\".\"name\")\n"
+            + "join \"locations\" on (\"locations\".\"name\" = \"dependents\".\"name\")\n"
+            + "join \"emps\" on (\"emps\".\"deptno\" = \"depts\".\"deptno\")\n"
+            + "where \"depts\".\"deptno\" > 10\n"
+            + "group by \"dependents\".\"empid\"",
+      HR_FKUK_MODEL,
+      CalciteAssert.checkResultContains(
+          "EnumerableUnion(all=[true])",
+          "EnumerableTableScan(table=[[hr, m0]])",
+          "expr#5=[10], expr#6=[>($t0, $t5)], expr#7=[11], expr#8=[<=($t0, $t7)]"));
+  }
+
+  @Test public void testJoinAggregateMaterializationNoAggregateFuncs8() {
+    checkNoMaterialize(
+      "select \"depts\".\"deptno\", \"dependents\".\"empid\"\n"
+            + "from \"depts\"\n"
+            + "join \"dependents\" on (\"depts\".\"name\" = \"dependents\".\"name\")\n"
+            + "join \"locations\" on (\"locations\".\"name\" = \"dependents\".\"name\")\n"
+            + "join \"emps\" on (\"emps\".\"deptno\" = \"depts\".\"deptno\")\n"
+            + "where \"depts\".\"deptno\" > 20\n"
+            + "group by \"depts\".\"deptno\", \"dependents\".\"empid\"",
+      "select \"dependents\".\"empid\"\n"
+            + "from \"depts\"\n"
+            + "join \"dependents\" on (\"depts\".\"name\" = \"dependents\".\"name\")\n"
+            + "join \"locations\" on (\"locations\".\"name\" = \"dependents\".\"name\")\n"
+            + "join \"emps\" on (\"emps\".\"deptno\" = \"depts\".\"deptno\")\n"
+            + "where \"depts\".\"deptno\" > 10 and \"depts\".\"deptno\" < 20\n"
+            + "group by \"dependents\".\"empid\"",
+      HR_FKUK_MODEL);
+  }
+
+  @Test public void testJoinAggregateMaterializationNoAggregateFuncs9() {
+    checkMaterialize(
+      "select \"depts\".\"deptno\", \"dependents\".\"empid\"\n"
+            + "from \"depts\"\n"
+            + "join \"dependents\" on (\"depts\".\"name\" = \"dependents\".\"name\")\n"
+            + "join \"locations\" on (\"locations\".\"name\" = \"dependents\".\"name\")\n"
+            + "join \"emps\" on (\"emps\".\"deptno\" = \"depts\".\"deptno\")\n"
+            + "where \"depts\".\"deptno\" > 11 and \"depts\".\"deptno\" < 19\n"
+            + "group by \"depts\".\"deptno\", \"dependents\".\"empid\"",
+      "select \"dependents\".\"empid\"\n"
+            + "from \"depts\"\n"
+            + "join \"dependents\" on (\"depts\".\"name\" = \"dependents\".\"name\")\n"
+            + "join \"locations\" on (\"locations\".\"name\" = \"dependents\".\"name\")\n"
+            + "join \"emps\" on (\"emps\".\"deptno\" = \"depts\".\"deptno\")\n"
+            + "where \"depts\".\"deptno\" > 10 and \"depts\".\"deptno\" < 20\n"
+            + "group by \"dependents\".\"empid\"",
+      HR_FKUK_MODEL,
+      CalciteAssert.checkResultContains(
+          "EnumerableUnion(all=[true])",
+          "EnumerableTableScan(table=[[hr, m0]])",
+          "expr#13=[OR($t10, $t12)], expr#14=[AND($t6, $t8, $t13)]"));
+  }
+
   @Test public void testJoinAggregateMaterializationAggregateFuncs1() {
     // This test relies on FK-UK relationship
     checkMaterialize(
@@ -1460,6 +1525,25 @@ public class MaterializationTest {
             + "join \"emps\" on (\"emps\".\"deptno\" = \"depts\".\"deptno\")",
       HR_FKUK_MODEL,
       CONTAINS_M0);
+  }
+
+  @Test public void testJoinMaterialization10() {
+    checkMaterialize(
+      "select \"depts\".\"deptno\", \"dependents\".\"empid\"\n"
+            + "from \"depts\"\n"
+            + "join \"dependents\" on (\"depts\".\"name\" = \"dependents\".\"name\")\n"
+            + "join \"emps\" on (\"emps\".\"deptno\" = \"depts\".\"deptno\")\n"
+            + "where \"depts\".\"deptno\" > 30",
+      "select \"dependents\".\"empid\"\n"
+            + "from \"depts\"\n"
+            + "join \"dependents\" on (\"depts\".\"name\" = \"dependents\".\"name\")\n"
+            + "join \"emps\" on (\"emps\".\"deptno\" = \"depts\".\"deptno\")\n"
+            + "where \"depts\".\"deptno\" > 10",
+      HR_FKUK_MODEL,
+      CalciteAssert.checkResultContains(
+          "EnumerableUnion(all=[true])",
+          "EnumerableTableScan(table=[[hr, m0]])",
+          "expr#5=[10], expr#6=[>($t0, $t5)], expr#7=[30], expr#8=[<=($t0, $t7)]"));
   }
 
   @Test public void testJoinMaterializationUKFK1() {
