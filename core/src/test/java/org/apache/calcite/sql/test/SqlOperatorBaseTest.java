@@ -1880,6 +1880,21 @@ public abstract class SqlOperatorBaseTest {
         Boolean.TRUE);
   }
 
+  @Test public void testBooleanOperatorsWithNull() {
+    tester.check(
+      "SELECT (CASE WHEN true and null then true else false end) from (VALUES(1))",
+      SqlTests.BOOLEAN_TYPE_CHECKER, Boolean.FALSE.toString(), 0);
+    tester.check(
+      "SELECT (CASE WHEN true or null then true else false end) from (VALUES(1))",
+      SqlTests.BOOLEAN_TYPE_CHECKER, Boolean.TRUE.toString(), 0);
+    tester.check(
+      "SELECT (CASE WHEN true and not null then true else false end) from (VALUES(1))",
+      SqlTests.BOOLEAN_TYPE_CHECKER, Boolean.FALSE.toString(), 0);
+    tester.check(
+      "SELECT (CASE WHEN true or not null then true else false end) from (VALUES(1))",
+      SqlTests.BOOLEAN_TYPE_CHECKER, Boolean.TRUE.toString(), 0);
+  }
+
   @Test public void testAndOperatorLazy() {
     tester.setFor(SqlStdOperatorTable.AND);
 
