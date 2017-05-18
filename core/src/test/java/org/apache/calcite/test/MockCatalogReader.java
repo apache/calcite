@@ -164,6 +164,8 @@ public class MockCatalogReader extends CalciteCatalogReader {
     // Register "SALES" schema.
     MockSchema salesSchema = new MockSchema("SALES");
     registerSchema(salesSchema);
+    // Add empty sub-schema "EMP".
+    rootSchema.getSubSchema("SALES", true).add("EMP", new AbstractSchema());
 
     // Register "EMP" table with customer InitializerExpressionFactory
     // to check whether newDefaultValue method called or not.
