@@ -72,14 +72,21 @@ public class ProjectSetOpTransposeRule extends RelOptRule {
   //~ Methods ----------------------------------------------------------------
 
   // implement RelOptRule
+  public boolean matches(RelOptRuleCall call) {
+    final LogicalProject origProj = call.rel(0);
+    final SetOp setOp = call.rel(1);
+
+    // If the LogicalProject on top of SetOp is a trivial Project,
+    // it is not useful to push this project downward
+    // Besides, cannot push project past a distinct
+    return !ProjectRemoveRule.isTrivial(origProj)
+        && setOp.all;
+  }
+
+  // implement RelOptRule
   public void onMatch(RelOptRuleCall call) {
     LogicalProject origProj = call.rel(0);
     SetOp setOp = call.rel(1);
-
-    // cannot push project past a distinct
-    if (!setOp.all) {
-      return;
-    }
 
     // locate all fields referenced in the projection
     PushProjector pushProject =
