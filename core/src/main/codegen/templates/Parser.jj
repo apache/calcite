@@ -2440,12 +2440,14 @@ SqlNode OrderItem() :
  */
 SqlMatchRecognize MatchRecognizeOpt(SqlNode tableRef) :
 {
-    final Span s, s1;
+    final Span s, s0, s1;
     SqlNodeList measureList = SqlNodeList.EMPTY;
     SqlNode pattern;
     SqlNodeList patternDefList;
     final SqlNode after;
+    SqlParserPos pos;
     final SqlNode var;
+    final SqlLiteral rowsPerMatch;
     SqlNodeList subsetList = SqlNodeList.EMPTY;
     SqlLiteral isStrictStarts = SqlLiteral.createBoolean(false, getPos());
     SqlLiteral isStrictEnds = SqlLiteral.createBoolean(false, getPos());
@@ -2456,6 +2458,19 @@ SqlMatchRecognize MatchRecognizeOpt(SqlNode tableRef) :
         <MEASURES>
         measureList = MeasureColumnCommaList(span())
     ]
+    (
+        <ONE> { s0 = span(); } <ROW> <PER> <MATCH> {
+            rowsPerMatch = SqlMatchRecognize.RowsPerMatchOption.ONE_ROW.symbol(s0.end(this));
+        }
+    |
+        <ALL> { s0 = span(); } <ROWS> <PER> <MATCH> {
+            rowsPerMatch = SqlMatchRecognize.RowsPerMatchOption.ALL_ROWS.symbol(s0.end(this));
+        }
+    |
+        {
+            rowsPerMatch = null;
+        }
+    )
     (
         <AFTER> { s1 = span(); } <MATCH> <SKIP_>
         (
@@ -2509,7 +2524,7 @@ SqlMatchRecognize MatchRecognizeOpt(SqlNode tableRef) :
     <RPAREN> {
         return new SqlMatchRecognize(s.end(this), tableRef,
             pattern, isStrictStarts, isStrictEnds, patternDefList, measureList,
-            after, subsetList);
+            after, subsetList, rowsPerMatch);
     }
 }
 

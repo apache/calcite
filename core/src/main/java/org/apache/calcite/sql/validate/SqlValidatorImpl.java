@@ -4499,6 +4499,12 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         getNamespace(call).unwrap(MatchRecognizeNamespace.class);
     assert ns.rowType == null;
 
+    // rows per match
+    final SqlLiteral rowsPerMatch = matchRecognize.getRowsPerMatch();
+    final boolean allRows = rowsPerMatch != null
+        && rowsPerMatch.getValue()
+        == SqlMatchRecognize.RowsPerMatchOption.ALL_ROWS;
+
     // retrieve pattern variables used in pattern and subset
     SqlNode pattern = matchRecognize.getPattern();
     PatternVarVisitor visitor = new PatternVarVisitor(scope);
@@ -4539,7 +4545,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     }
 
     List<Map.Entry<String, RelDataType>> fields =
-        validateMeasure(matchRecognize, scope);
+        validateMeasure(matchRecognize, scope, allRows);
     final RelDataType rowType = typeFactory.createStructType(fields);
     if (matchRecognize.getMeasureList().size() == 0) {
       ns.setType(getNamespace(matchRecognize.getTableRef()).getRowType());
@@ -4549,7 +4555,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   }
 
   private List<Map.Entry<String, RelDataType>> validateMeasure(SqlMatchRecognize mr,
-      MatchRecognizeScope scope) {
+      MatchRecognizeScope scope, boolean allRows) {
     final List<String> aliases = new ArrayList<>();
     final List<SqlNode> sqlNodes = new ArrayList<>();
     final SqlNodeList measures = mr.getMeasureList();
@@ -4561,7 +4567,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       aliases.add(alias);
 
       SqlNode expand = expand(measure, scope);
-      expand = navigationInMeasure(expand);
+      expand = navigationInMeasure(expand, allRows);
       setOriginal(expand, measure);
 
       inferUnknownTypes(unknownType, scope, expand);
@@ -4586,15 +4592,17 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     return fields;
   }
 
-  private SqlNode navigationInMeasure(SqlNode node) {
-    Set<String> prefix = node.accept(new PatternValidator(true));
+  private SqlNode navigationInMeasure(SqlNode node, boolean allRows) {
+    final Set<String> prefix = node.accept(new PatternValidator(true));
     Util.discard(prefix);
-    List<SqlNode> ops = ((SqlCall) node).getOperandList();
+    final List<SqlNode> ops = ((SqlCall) node).getOperandList();
 
-    SqlOperator defaultOp = SqlStdOperatorTable.FINAL;
-    if (!isRunningOrFinal(ops.get(0).getKind())
-        || ops.get(0).getKind() == SqlKind.RUNNING) {
-      SqlNode newNode = defaultOp.createCall(SqlParserPos.ZERO, ops.get(0));
+    final SqlOperator defaultOp =
+        allRows ? SqlStdOperatorTable.RUNNING : SqlStdOperatorTable.FINAL;
+    final SqlNode op0 = ops.get(0);
+    if (!isRunningOrFinal(op0.getKind())
+        || !allRows && op0.getKind() == SqlKind.RUNNING) {
+      SqlNode newNode = defaultOp.createCall(SqlParserPos.ZERO, op0);
       node = SqlStdOperatorTable.AS.createCall(SqlParserPos.ZERO, newNode, ops.get(1));
     }
     return node;

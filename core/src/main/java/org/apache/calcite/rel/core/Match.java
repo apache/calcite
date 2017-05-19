@@ -59,6 +59,7 @@ public abstract class Match extends SingleRel {
   protected final RexNode pattern;
   protected final boolean strictStart;
   protected final boolean strictEnd;
+  protected final boolean allRows;
   protected final RexNode after;
   protected final ImmutableMap<String, RexNode> patternDefinitions;
   protected final Set<RexMRAggCall> aggregateCalls;
@@ -69,7 +70,8 @@ public abstract class Match extends SingleRel {
 
   /**
    * Creates a Match.
-   *  @param cluster Cluster
+   *
+   * @param cluster Cluster
    * @param traitSet Trait set
    * @param input Input relational expression
    * @param pattern Regular expression that defines pattern variables
@@ -79,13 +81,14 @@ public abstract class Match extends SingleRel {
    * @param measures Measure definitions
    * @param after After match definitions
    * @param subsets Subsets of pattern variables
+   * @param allRows Whether all rows per match (false means one row per match)
    * @param rowType Row type
    */
   protected Match(RelOptCluster cluster, RelTraitSet traitSet,
       RelNode input, RexNode pattern, boolean strictStart, boolean strictEnd,
       Map<String, RexNode> patternDefinitions, Map<String, RexNode> measures,
       RexNode after, Map<String, ? extends SortedSet<String>> subsets,
-      RelDataType rowType) {
+      boolean allRows, RelDataType rowType) {
     super(cluster, traitSet, input);
     this.pattern = Preconditions.checkNotNull(pattern);
     Preconditions.checkArgument(patternDefinitions.size() > 0);
@@ -96,6 +99,7 @@ public abstract class Match extends SingleRel {
     this.measures = ImmutableMap.copyOf(measures);
     this.after = Preconditions.checkNotNull(after);
     this.subsets = copyMap(subsets);
+    this.allRows = allRows;
 
     final AggregateFinder aggregateFinder = new AggregateFinder();
     for (RexNode rex : this.patternDefinitions.values()) {
@@ -149,6 +153,10 @@ public abstract class Match extends SingleRel {
     return strictEnd;
   }
 
+  public boolean isAllRows() {
+    return allRows;
+  }
+
   public ImmutableMap<String, RexNode> getPatternDefinitions() {
     return patternDefinitions;
   }
@@ -161,7 +169,7 @@ public abstract class Match extends SingleRel {
      boolean strictStart, boolean strictEnd,
      Map<String, RexNode> patternDefinitions, Map<String, RexNode> measures,
      RexNode after, Map<String, ? extends SortedSet<String>> subsets,
-     RelDataType rowType);
+     boolean allRows, RelDataType rowType);
 
   @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
     if (getInputs().equals(inputs)
@@ -170,7 +178,7 @@ public abstract class Match extends SingleRel {
     }
 
     return copy(inputs.get(0), pattern, strictStart, strictEnd,
-        patternDefinitions, measures, after, subsets, rowType);
+        patternDefinitions, measures, after, subsets, allRows, rowType);
   }
 
   @Override public RelWriter explainTerms(RelWriter pw) {

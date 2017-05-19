@@ -40,6 +40,7 @@ public class SqlMatchRecognize extends SqlCall {
   public static final int OPERAND_MEASURES = 5;
   public static final int OPERAND_AFTER = 6;
   public static final int OPERAND_SUBSET = 7;
+  public static final int OPERAND_ROWS_PER_MATCH = 8;
 
   public static final SqlPrefixOperator SKIP_TO_FIRST =
       new SqlPrefixOperator("SKIP TO FIRST", SqlKind.SKIP_TO_FIRST, 20, null,
@@ -59,11 +60,12 @@ public class SqlMatchRecognize extends SqlCall {
   private SqlNodeList measureList;
   private SqlNode after;
   private SqlNodeList subsetList;
+  private SqlLiteral rowsPerMatch;
 
   /** Creates a SqlMatchRecognize. */
   public SqlMatchRecognize(SqlParserPos pos, SqlNode tableRef, SqlNode pattern,
       SqlLiteral strictStart, SqlLiteral strictEnd, SqlNodeList patternDefList,
-      SqlNodeList measureList, SqlNode after, SqlNodeList subsetList) {
+      SqlNodeList measureList, SqlNode after, SqlNodeList subsetList, SqlLiteral rowsPerMatch) {
     super(pos);
     this.tableRef = Preconditions.checkNotNull(tableRef);
     this.pattern = Preconditions.checkNotNull(pattern);
@@ -74,6 +76,9 @@ public class SqlMatchRecognize extends SqlCall {
     this.measureList = Preconditions.checkNotNull(measureList);
     this.after = after;
     this.subsetList = subsetList;
+    Preconditions.checkArgument(rowsPerMatch == null
+        || rowsPerMatch.value instanceof RowsPerMatchOption);
+    this.rowsPerMatch = rowsPerMatch;
   }
 
   // ~ Methods
@@ -127,6 +132,11 @@ public class SqlMatchRecognize extends SqlCall {
     case OPERAND_SUBSET:
       subsetList = (SqlNodeList) operand;
       break;
+    case OPERAND_ROWS_PER_MATCH:
+      rowsPerMatch = (SqlLiteral) operand;
+      Preconditions.checkArgument(rowsPerMatch == null
+          || rowsPerMatch.value instanceof RowsPerMatchOption);
+      break;
     default:
       throw new AssertionError(i);
     }
@@ -162,6 +172,32 @@ public class SqlMatchRecognize extends SqlCall {
 
   public SqlNodeList getSubsetList() {
     return subsetList;
+  }
+
+  public SqlLiteral getRowsPerMatch() {
+    return rowsPerMatch;
+  }
+
+  /**
+   * Options for {@code ROWS PER MATCH}.
+   */
+  public enum RowsPerMatchOption {
+    ONE_ROW("ONE ROW PER MATCH"),
+    ALL_ROWS("ALL ROWS PER MATCH");
+
+    private final String sql;
+
+    RowsPerMatchOption(String sql) {
+      this.sql = sql;
+    }
+
+    @Override public String toString() {
+      return sql;
+    }
+
+    public SqlLiteral symbol(SqlParserPos pos) {
+      return SqlLiteral.createSymbol(this, pos);
+    }
   }
 
   /**
@@ -210,12 +246,12 @@ public class SqlMatchRecognize extends SqlCall {
         SqlParserPos pos,
         SqlNode... operands) {
       assert functionQualifier == null;
-      assert operands.length == 8;
+      assert operands.length == 9;
 
       return new SqlMatchRecognize(pos, operands[0], operands[1],
           (SqlLiteral) operands[2], (SqlLiteral) operands[3],
           (SqlNodeList) operands[4], (SqlNodeList) operands[5], operands[6],
-          (SqlNodeList) operands[7]);
+          (SqlNodeList) operands[7], (SqlLiteral) operands[8]);
     }
 
     @Override public <R> void acceptCall(
@@ -261,6 +297,11 @@ public class SqlMatchRecognize extends SqlCall {
         final SqlWriter.Frame measureFrame = writer.startList("", "");
         pattern.measureList.unparse(writer, 0, 0);
         writer.endList(measureFrame);
+      }
+
+      if (pattern.rowsPerMatch != null) {
+        writer.newlineAndIndent();
+        pattern.rowsPerMatch.unparse(writer, 0, 0);
       }
 
       if (pattern.after != null) {
