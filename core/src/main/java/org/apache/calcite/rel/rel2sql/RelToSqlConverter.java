@@ -380,6 +380,10 @@ public class RelToSqlConverter extends SqlImplementor
 
     SqlNode tableRef = x.asQueryOrValues();
 
+    SqlLiteral rowsPerMatch = e.isAllRows()
+      ? SqlMatchRecognize.AfterMatchOption.ALL_ROWS.symbol(POS)
+      : SqlMatchRecognize.AfterMatchOption.ONE_ROW.symbol(POS);
+
     final SqlNode after;
     if (e.getAfter() instanceof RexLiteral) {
       SqlMatchRecognize.AfterOption value = (SqlMatchRecognize.AfterOption)
@@ -424,7 +428,7 @@ public class RelToSqlConverter extends SqlImplementor
 
     final SqlNode matchRecognize = new SqlMatchRecognize(POS, tableRef,
         pattern, strictStart, strictEnd, patternDefList, measureList, after,
-        subsetList);
+        subsetList, rowsPerMatch);
     return result(matchRecognize, Expressions.list(Clause.FROM), e, null);
   }
 
