@@ -450,11 +450,13 @@ public final class AggregateExpandDistinctAggregatesRule extends RelOptRule {
 
     final RelBuilder relBuilder = call.builder();
     relBuilder.push(aggregate.getInput());
-    relBuilder.aggregate(relBuilder.groupKey(fullGroupSet, groupSets.size() > 1, groupSets),
+    final boolean indicator = groupSets.size() > 1;
+    relBuilder.aggregate(
+        relBuilder.groupKey(fullGroupSet, indicator, groupSets),
         distinctAggCalls);
     final RelNode distinct = relBuilder.peek();
     final int groupCount = fullGroupSet.cardinality();
-    final int indicatorCount = groupSets.size() > 1 ? groupCount : 0;
+    final int indicatorCount = indicator ? groupCount : 0;
 
     final RelOptCluster cluster = aggregate.getCluster();
     final RexBuilder rexBuilder = cluster.getRexBuilder();
@@ -515,7 +517,7 @@ public final class AggregateExpandDistinctAggregatesRule extends RelOptRule {
     }
     final Registrar registrar = new Registrar();
     for (ImmutableBitSet groupSet : groupSets) {
-      filters.put(groupSet, registrar.register(groupSet));
+      filters.put(groupSet, indicator ? registrar.register(groupSet) : -1);
     }
 
     if (!predicates.isEmpty()) {

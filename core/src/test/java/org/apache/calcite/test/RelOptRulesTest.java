@@ -758,6 +758,19 @@ public class RelOptRulesTest extends RelOptTestBase {
             + " from sales.emp group by deptno");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1293">[CALCITE-1293]
+   * Bad code generated when argument to COUNT(DISTINCT) is a # GROUP BY
+   * column</a>. */
+  @Test public void testDistinctCount3() {
+    final String sql = "select count(distinct deptno), sum(sal)"
+        + " from sales.emp group by deptno";
+    final HepProgram program = HepProgram.builder()
+        .addRuleInstance(AggregateExpandDistinctAggregatesRule.INSTANCE)
+        .build();
+    sql(sql).with(program).check();
+  }
+
   /** Tests implementing multiple distinct count the old way, using a join. */
   @Test public void testDistinctCountMultipleViaJoin() {
     final HepProgram program = HepProgram.builder()
