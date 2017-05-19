@@ -389,7 +389,12 @@ public enum SqlTypeName {
    * @return corresponding SqlTypeName, or null if the type is not known
    */
   public static SqlTypeName getNameForJdbcType(int jdbcType) {
-    return JDBC_TYPE_TO_NAME.get(jdbcType);
+    SqlTypeName name = JDBC_TYPE_TO_NAME.get(jdbcType);
+    if (name == null) {
+      return ANY;
+    } else {
+      return name;
+    }
   }
 
   /**
