@@ -1976,6 +1976,36 @@ public class RexUtil {
   }
 
   /**
+   * Given an expression, it will swap the column references {@link RexTableInputRef}
+   * using the contents in the first map (in particular, the first element of the set
+   * in the map value), and then it will swap the table references contained in its
+   * {@link RexTableInputRef} using the contents in the second map.
+   */
+  public static RexNode swapColumnTableReferences(final RexBuilder rexBuilder,
+      final RexNode node, final Map<RexTableInputRef, Set<RexTableInputRef>> ec,
+      final Map<RelTableRef, RelTableRef> tableMapping) {
+    RexShuttle visitor =
+        new RexShuttle() {
+          @Override public RexNode visitTableInputRef(RexTableInputRef inputRef) {
+            if (ec != null) {
+              Set<RexTableInputRef> s = ec.get(inputRef);
+              if (s != null) {
+                inputRef = s.iterator().next();
+              }
+            }
+            if (tableMapping != null) {
+              inputRef = RexTableInputRef.of(
+                  tableMapping.get(inputRef.getTableRef()),
+                  inputRef.getIndex(),
+                  inputRef.getType());
+            }
+            return inputRef;
+          }
+        };
+    return visitor.apply(node);
+  }
+
+  /**
    * Gather all table references in input expressions.
    *
    * @param nodes expressions
