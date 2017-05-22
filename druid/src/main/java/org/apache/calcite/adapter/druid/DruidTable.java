@@ -39,6 +39,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import static org.apache.calcite.adapter.druid.DruidConnectionImpl.DruidType;
+
 /**
  * Table mapped onto a Druid table.
  */
@@ -54,6 +56,7 @@ public class DruidTable extends AbstractTable implements TranslatableTable {
   final ImmutableSet<String> metricFieldNames;
   final ImmutableList<LocalInterval> intervals;
   final String timestampFieldName;
+  final ImmutableMap<String, DruidConnectionImpl.DruidType> columnTypes;
 
   /**
    * Creates a Druid table.
@@ -67,7 +70,8 @@ public class DruidTable extends AbstractTable implements TranslatableTable {
    */
   public DruidTable(DruidSchema schema, String dataSource,
       RelProtoDataType protoRowType, Set<String> metricFieldNames,
-      String timestampFieldName, List<LocalInterval> intervals) {
+      String timestampFieldName, List<LocalInterval> intervals,
+      Map<String, DruidType> columnTypes) {
     this.timestampFieldName = Preconditions.checkNotNull(timestampFieldName);
     this.schema = Preconditions.checkNotNull(schema);
     this.dataSource = Preconditions.checkNotNull(dataSource);
@@ -75,6 +79,8 @@ public class DruidTable extends AbstractTable implements TranslatableTable {
     this.metricFieldNames = ImmutableSet.copyOf(metricFieldNames);
     this.intervals = intervals != null ? ImmutableList.copyOf(intervals)
         : ImmutableList.of(DEFAULT_INTERVAL);
+    this.columnTypes = columnTypes != null ? ImmutableMap.copyOf(columnTypes)
+        : ImmutableMap.<String, DruidType>of();
   }
 
   /** Creates a {@link DruidTable}
@@ -94,15 +100,16 @@ public class DruidTable extends AbstractTable implements TranslatableTable {
   static Table create(DruidSchema druidSchema, String dataSourceName,
       List<LocalInterval> intervals, Map<String, SqlTypeName> fieldMap,
       Set<String> metricNameSet, String timestampColumnName,
-      DruidConnectionImpl connection) {
+      DruidConnectionImpl connection, Map<String, DruidType> columnTypeMap) {
     if (connection != null) {
-      connection.metadata(dataSourceName, timestampColumnName, intervals, fieldMap, metricNameSet);
+      connection.metadata(dataSourceName, timestampColumnName, intervals,
+              fieldMap, metricNameSet, columnTypeMap);
     }
     final ImmutableMap<String, SqlTypeName> fields =
         ImmutableMap.copyOf(fieldMap);
     return new DruidTable(druidSchema, dataSourceName,
         new MapRelProtoDataType(fields), ImmutableSet.copyOf(metricNameSet),
-        timestampColumnName, intervals);
+        timestampColumnName, intervals, ImmutableMap.copyOf(columnTypeMap));
   }
 
   public RelDataType getRowType(RelDataTypeFactory typeFactory) {

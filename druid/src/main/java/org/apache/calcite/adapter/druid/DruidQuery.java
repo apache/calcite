@@ -82,6 +82,7 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.regex.Pattern;
 
+import static org.apache.calcite.adapter.druid.DruidConnectionImpl.DruidType;
 import static org.apache.calcite.sql.SqlKind.INPUT_REF;
 
 /**
@@ -807,7 +808,17 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
     switch (aggCall.getAggregation().getKind()) {
     case COUNT:
       if (aggCall.isDistinct()) {
-        return new JsonCardinalityAggregation("cardinality", name, list);
+        DruidType druidType = druidTable.columnTypes.get(only);
+        if (druidType != null) {
+          switch (druidType) {
+          case thetaSketch:
+            return new JsonAggregation("thetaSketch", name, only);
+          case hyperUnique:
+            return new JsonAggregation("hyperUnique", name, only);
+          default:
+            return new JsonCardinalityAggregation("cardinality", name, list);
+          }
+        }
       }
       return new JsonAggregation("count", name, only);
     case SUM:

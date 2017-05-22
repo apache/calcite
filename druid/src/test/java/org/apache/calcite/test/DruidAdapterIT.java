@@ -365,10 +365,10 @@ public class DruidAdapterIT {
                   }
                   // 1 timestamp, 2 float measure, 1 int measure, 88 dimensions
                   assertThat(map.keySet().size(), is(4));
-                  assertThat(map.values().size(), is(92));
+                  assertThat(map.values().size(), is(93));
                   assertThat(map.get("TIMESTAMP(0)").size(), is(1));
                   assertThat(map.get("DOUBLE").size(), is(2));
-                  assertThat(map.get("BIGINT").size(), is(1));
+                  assertThat(map.get("BIGINT").size(), is(2));
                   assertThat(map.get(VARCHAR_TYPE).size(), is(88));
                 } catch (SQLException e) {
                   throw new RuntimeException(e);
@@ -776,7 +776,7 @@ public class DruidAdapterIT {
         + "'store_fax','first_opened_date','last_remodel_date','store_sqft','grocery_sqft','frozen_sqft',"
         + "'meat_sqft','coffee_bar','video_store','salad_bar','prepared_food','florist','time_id','the_day',"
         + "'the_month','the_year','day_of_month','week_of_year','month_of_year','quarter','fiscal_period'],"
-        + "'metrics':['unit_sales','store_sales','store_cost'],'granularity':'all',"
+        + "'metrics':['unit_sales','store_sales','store_cost','user_unique'],'granularity':'all',"
         + "'pagingSpec':{'threshold':16384,'fromNext':true},'context':{'druid.query.fetch':false}}";
     sql(sql)
         .limit(4)
@@ -822,7 +822,7 @@ public class DruidAdapterIT {
         + "'store_fax','first_opened_date','last_remodel_date','store_sqft','grocery_sqft','frozen_sqft',"
         + "'meat_sqft','coffee_bar','video_store','salad_bar','prepared_food','florist','time_id','the_day',"
         + "'the_month','the_year','day_of_month','week_of_year','month_of_year','quarter','fiscal_period'],"
-        + "'metrics':['unit_sales','store_sales','store_cost'],'granularity':'all',"
+        + "'metrics':['unit_sales','store_sales','store_cost','user_unique'],'granularity':'all',"
         + "'pagingSpec':{'threshold':16384,'fromNext':true},'context':{'druid.query.fetch':false}}";
     sql(sql)
         .limit(4)
@@ -870,7 +870,7 @@ public class DruidAdapterIT {
         + "'frozen_sqft','meat_sqft','coffee_bar','video_store','salad_bar','prepared_food',"
         + "'florist','time_id','the_day','the_month','the_year','day_of_month',"
         + "'week_of_year','month_of_year','quarter','fiscal_period'],"
-        + "'metrics':['unit_sales','store_sales','store_cost'],'granularity':'all',"
+        + "'metrics':['unit_sales','store_sales','store_cost','user_unique'],'granularity':'all',"
         + "'pagingSpec':{'threshold':16384,'fromNext':true},'context':{'druid.query.fetch':false}}";
     sql(sql)
         .limit(4)
@@ -900,7 +900,7 @@ public class DruidAdapterIT {
         + "'store_fax','first_opened_date','last_remodel_date','store_sqft','grocery_sqft','frozen_sqft',"
         + "'meat_sqft','coffee_bar','video_store','salad_bar','prepared_food','florist','time_id','the_day',"
         + "'the_month','the_year','day_of_month','week_of_year','month_of_year','quarter','fiscal_period'],"
-        + "'metrics':['unit_sales','store_sales','store_cost'],'granularity':'all',"
+        + "'metrics':['unit_sales','store_sales','store_cost','user_unique'],'granularity':'all',"
         + "'pagingSpec':{'threshold':16384,'fromNext':true},'context':{'druid.query.fetch':false}}";
     sql(sql)
         .limit(4)
@@ -2123,6 +2123,51 @@ public class DruidAdapterIT {
     sql(sql).returnsUnordered("C=60").queryContains(druidChecker("'queryType':'timeseries'"));
   }
 
+  /** Tests that the aggregate in the druid query
+   * is of type hyperUnique rather than cardinality */
+  @Test public void testHyperUniqueAggregateProduced() {
+    String sql = "select count(distinct \"user_unique\") as users from \"wiki\"";
+    String aggString = "{'type':'hyperUnique','name':'USERS','fieldName':'user_unique'}";
+    sql(sql, WIKI)
+      .queryContains(druidChecker(aggString));
+  }
+
+  /** Tests that non distinct count aggregates don't use the hyperUnique type
+   * for metrics with type hyperUnique */
+  @Test public void testNonDistinctCountAggregateProducedForHU() {
+    String sql = "select count(\"user_unique\") as users from \"wiki\"";
+    String aggString = "{'type':'count','name':'USERS','fieldName':'user_unique'}";
+    sql(sql, WIKI)
+      .queryContains(druidChecker(aggString));
+  }
+
+  /** Tests that the aggregate in the druid query
+   * is indeed of type cardinality (not hyperUnique or thetaSketch) */
+  @Test public void testCardinalityAggregateProduced() {
+    String sql = "select count(distinct \"added\") as \"added\" from \"wiki\"";
+    String aggString = "{'type':'cardinality','name':'added','fieldNames':['added']}";
+    sql(sql, WIKI)
+      .queryContains(druidChecker(aggString));
+  }
+
+  /** Tests that the aggregate in the druid query
+   * is of type thetaSketch for the metric that is declared as type thetaSketch */
+  @Test public void testThetaSketchAggregateProduced() {
+    String sql = "select count(distinct \"user_unique\") as users from \"foodmart\"";
+    String aggString = "{'type':'thetaSketch','name':'USERS','fieldName':'user_unique'}";
+    sql(sql, FOODMART)
+      .queryContains(druidChecker(aggString));
+  }
+
+  /** Tests that non distinct count aggregates don't use the thetaSketch type
+   * for metrics with type thetaSketch */
+  @Test public void testNonDistinctCountAggregateProducedForTS() {
+    String sql = "select count(\"user_unique\") as users from \"foodmart\"";
+    String aggString = "{'type':'count','name':'USERS','fieldName':'user_unique'}";
+    sql(sql, FOODMART)
+            .queryContains(druidChecker(aggString));
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1769">[CALCITE-1769]
    * Druid adapter: Push down filters involving numeric cast of literals</a>. */
@@ -2174,6 +2219,32 @@ public class DruidAdapterIT {
         .queryContains(druidChecker("'queryType':'timeseries'"));
   }
 
+  /** Tests that the aggregate in the druid query
+   * is of type hyperUnique rather than cardinality */
+  @Test public void testHyperUniqueAggregateProduced() {
+    String sql = "select count(distinct \"user_unique\") as users from \"wiki\"";
+    String aggString = "{'type':'hyperUnique','name':'USERS','fieldName':'user_unique'}";
+    sql(sql, WIKI)
+      .queryContains(druidChecker(aggString));
+  }
+
+  /** Tests that non distinct count aggregates don't use the hyperUnique type
+   * for metrics with type hyperUnique */
+  @Test public void testNonDistinctCountAggregateProduced() {
+    String sql = "select count(\"user_unique\") as users from \"wiki\"";
+    String aggString = "{'type':'count','name':'USERS','fieldName':'user_unique'}";
+    sql(sql, WIKI)
+      .queryContains(druidChecker(aggString));
+  }
+
+  /** Tests that the aggregate in the druid query
+   * is indeed of type cardinality (not hyperUnique or thetaSketch) */
+  @Test public void testCardinalityAggregateProduced() {
+    String sql = "select count(distinct \"added\") as \"added\" from \"wiki\"";
+    String aggString = "{'type':'cardinality','name':'added','fieldNames':['added']}";
+    sql(sql, WIKI)
+      .queryContains(druidChecker(aggString));
+  }
 }
 
 // End DruidAdapterIT.java
