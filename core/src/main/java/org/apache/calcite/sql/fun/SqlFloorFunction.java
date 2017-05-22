@@ -16,9 +16,11 @@
  */
 package org.apache.calcite.sql.fun;
 
+import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlOperatorBinding;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.type.OperandTypes;
@@ -55,15 +57,89 @@ public class SqlFloorFunction extends SqlMonotonicUnaryFunction {
 
   @Override public void unparse(SqlWriter writer, SqlCall call, int leftPrec,
       int rightPrec) {
-    final SqlWriter.Frame frame = writer.startFunCall(getName());
     if (call.operandCount() == 2) {
-      call.operand(0).unparse(writer, 0, 100);
-      writer.sep("TO");
-      call.operand(1).unparse(writer, 100, 0);
+      unparseDatetime(writer, call);
     } else {
-      call.operand(0).unparse(writer, 0, 0);
+      unparseNumeric(writer, call);
     }
+  }
+
+  private void unparseNumeric(SqlWriter writer, SqlCall call) {
+    final SqlWriter.Frame frame = writer.startFunCall(getName());
+    call.operand(0).unparse(writer, 0, 0);
     writer.endFunCall(frame);
+  }
+
+  private void unparseDatetime(SqlWriter writer, SqlCall call) {
+    // FLOOR (not CEIL) is the only function that works in most dialects
+    if (kind != SqlKind.FLOOR) {
+      unparseDatetimeDefault(writer, call);
+      return;
+    }
+
+    switch (writer.getDialect().getDatabaseProduct()) {
+    case ORACLE:
+      unparseDatetimeFunction(writer, call, "TRUNC", true);
+      break;
+    case HSQLDB:
+      // translate timeUnit literal
+      SqlLiteral node = call.operand(1);
+      String translatedLit =
+          convertToHsqlDb((TimeUnitRange) node.getValue());
+      SqlLiteral newNode = SqlLiteral.createCharString(
+          translatedLit, null, node.getParserPosition());
+      call.setOperand(1, newNode);
+
+      unparseDatetimeFunction(writer, call, "TRUNC", true);
+      break;
+    case POSTGRESQL:
+      unparseDatetimeFunction(writer, call, "DATE_TRUNC", false);
+      break;
+    default:
+      unparseDatetimeDefault(writer, call);
+    }
+  }
+
+  private void unparseDatetimeDefault(SqlWriter writer, SqlCall call) {
+    final SqlWriter.Frame frame = writer.startFunCall(getName());
+    call.operand(0).unparse(writer, 0, 100);
+    writer.sep("TO");
+    call.operand(1).unparse(writer, 100, 0);
+    writer.endFunCall(frame);
+  }
+
+  private void unparseDatetimeFunction(SqlWriter writer, SqlCall call,
+      String funName, Boolean datetimeFirst) {
+    final SqlWriter.Frame frame = writer.startFunCall(funName);
+    Integer firstOp = datetimeFirst ? 0 : 1;
+    Integer secondOp = datetimeFirst ? 1 : 0;
+
+    call.operand(firstOp).unparse(writer, 0, 0);
+    writer.sep(",", true);
+    call.operand(secondOp).unparse(writer, 0, 0);
+    writer.endFunCall(frame);
+  }
+
+  private static String convertToHsqlDb(TimeUnitRange unit) {
+    switch (unit) {
+    case YEAR:
+      return "YYYY";
+    case MONTH:
+      return "MM";
+    case DAY:
+      return "DD";
+    case WEEK:
+      return "WW";
+    case HOUR:
+      return "HH24";
+    case MINUTE:
+      return "MI";
+    case SECOND:
+      return "SS";
+    default:
+      throw new AssertionError("could not convert time unit to an HsqlDb equivalent: "
+        + unit);
+    }
   }
 }
 

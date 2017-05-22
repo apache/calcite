@@ -636,6 +636,17 @@ public class RelToSqlConverterTest {
         .ok(expected);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1798">[CALCITE-1798]
+   * Generate dialect-specific SQL for FLOOR operator</a>. */
+  @Test public void testFloor() {
+    String query = "SELECT floor(\"hire_date\" TO MINUTE) FROM \"employee\"";
+    String expected = "SELECT TRUNC(hire_date, 'MI')\nFROM foodmart.employee";
+    sql(query)
+        .dialect(DatabaseProduct.HSQLDB.getDialect())
+        .ok(expected);
+  }
+
   @Test public void testMatchRecognizePatternExpression() {
     String sql = "select *\n"
         + "  from \"product\" match_recognize\n"
