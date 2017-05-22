@@ -28,6 +28,7 @@ import org.apache.calcite.prepare.CalcitePrepareImpl;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.Holder;
 import org.apache.calcite.util.Util;
+import org.apache.calcite.util.trace.CalciteTrace;
 
 import static org.apache.calcite.runtime.HttpUtils.post;
 
@@ -41,6 +42,8 @@ import com.fasterxml.jackson.databind.type.CollectionType;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+
+import org.slf4j.Logger;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -70,6 +73,7 @@ class DruidConnectionImpl implements DruidConnection {
 
   public static final String DEFAULT_RESPONSE_TIMESTAMP_COLUMN = "timestamp";
   private static final SimpleDateFormat UTC_TIMESTAMP_FORMAT;
+  private static final Logger LOGGER = CalciteTrace.getDruidQueryInfoTracer();
 
   static {
     final TimeZone utc = DateTimeUtils.GMT_ZONE;
@@ -98,8 +102,8 @@ class DruidConnectionImpl implements DruidConnection {
     final String url = this.url + "/druid/v2/?pretty";
     final Map<String, String> requestHeaders =
         ImmutableMap.of("Content-Type", "application/json");
-    if (CalcitePrepareImpl.DEBUG) {
-      System.out.println(data);
+    if (LOGGER.isDebugEnabled()) {
+      LOGGER.debug("Final Druid Query: " + data);
     }
     try (InputStream in0 = post(url, data, requestHeaders, 10000, 1800000);
          InputStream in = traceResponse(in0)) {
@@ -459,7 +463,8 @@ class DruidConnectionImpl implements DruidConnection {
   /** Reads segment metadata, and populates a list of columns and metrics. */
   void metadata(String dataSourceName, String timestampColumnName,
       List<LocalInterval> intervals,
-      Map<String, SqlTypeName> fieldBuilder, Set<String> metricNameBuilder) {
+      Map<String, SqlTypeName> fieldBuilder, Set<String> metricNameBuilder,
+      Map<String, DruidType> columnTypeMap) {
     final String url = this.url + "/druid/v2/?pretty";
     final Map<String, String> requestHeaders =
         ImmutableMap.of("Content-Type", "application/json");
@@ -491,6 +496,7 @@ class DruidConnectionImpl implements DruidConnection {
             continue;
           }
           fieldBuilder.put(entry.getKey(), druidType.sqlType);
+          columnTypeMap.put(entry.getKey(), druidType);
         }
         if (o.aggregators != null) {
           for (Map.Entry<String, JsonAggregator> entry
@@ -641,6 +647,9 @@ class DruidConnectionImpl implements DruidConnection {
       if (type.equals("hyperUnique")) {
         return DruidType.hyperUnique;
       }
+      if (type.equals("thetaSketch")) {
+        return DruidType.thetaSketch;
+      }
       throw new AssertionError("unknown type " + type);
     }
   }
@@ -652,7 +661,8 @@ class DruidConnectionImpl implements DruidConnection {
     // people find FLOAT confusing.
     FLOAT(SqlTypeName.DOUBLE),
     STRING(SqlTypeName.VARCHAR),
-    hyperUnique(SqlTypeName.VARBINARY);
+    hyperUnique(SqlTypeName.VARBINARY),
+    thetaSketch(SqlTypeName.VARBINARY);
 
     /** The corresponding SQL type. */
     public final SqlTypeName sqlType;

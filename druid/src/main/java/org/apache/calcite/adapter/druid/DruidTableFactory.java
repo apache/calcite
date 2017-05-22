@@ -31,6 +31,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import static org.apache.calcite.adapter.druid.DruidConnectionImpl.DruidType;
+
 /**
  * Implementation of {@link TableFactory} for Druid.
  *
@@ -49,6 +51,7 @@ public class DruidTableFactory implements TableFactory {
     final String dataSource = (String) operand.get("dataSource");
     final Set<String> metricNameBuilder = new LinkedHashSet<>();
     final Map<String, SqlTypeName> fieldBuilder = new LinkedHashMap<>();
+    final Map<String, DruidType> typeBuilder = new LinkedHashMap<>();
     final String timestampColumnName;
     if (operand.get("timestampColumn") != null) {
       timestampColumnName = (String) operand.get("timestampColumn");
@@ -62,6 +65,8 @@ public class DruidTableFactory implements TableFactory {
       final List<String> dimensions = (List<String>) dimensionsRaw;
       for (String dimension : dimensions) {
         fieldBuilder.put(dimension, SqlTypeName.VARCHAR);
+        // Druid dimensions are type STRING by default
+        typeBuilder.put(dimension, DruidType.STRING);
       }
     }
     final Object metricsRaw = operand.get("metrics");
@@ -70,20 +75,26 @@ public class DruidTableFactory implements TableFactory {
       for (Object metric : metrics) {
         final SqlTypeName sqlTypeName;
         final String metricName;
+        DruidType druidType = DruidType.LONG;
         if (metric instanceof Map) {
           Map map2 = (Map) metric;
           if (!(map2.get("name") instanceof String)) {
             throw new IllegalArgumentException("metric must have name");
           }
           metricName = (String) map2.get("name");
-
           final Object type = map2.get("type");
           if ("long".equals(type)) {
             sqlTypeName = SqlTypeName.BIGINT;
           } else if ("double".equals(type)) {
             sqlTypeName = SqlTypeName.DOUBLE;
+            druidType = DruidType.FLOAT;
           } else {
             sqlTypeName = SqlTypeName.BIGINT;
+            if ("thetaSketch".equals(type)) {
+              druidType = DruidType.thetaSketch;
+            } else if ("hyperUnique".equals(type)) {
+              druidType = DruidType.hyperUnique;
+            }
           }
         } else {
           metricName = (String) metric;
@@ -91,6 +102,7 @@ public class DruidTableFactory implements TableFactory {
         }
         fieldBuilder.put(metricName, sqlTypeName);
         metricNameBuilder.add(metricName);
+        typeBuilder.put(metricName, druidType);
       }
     }
     final String dataSourceName = Util.first(dataSource, name);
@@ -108,7 +120,7 @@ public class DruidTableFactory implements TableFactory {
       intervals = null;
     }
     return DruidTable.create(druidSchema, dataSourceName, intervals,
-        fieldBuilder, metricNameBuilder, timestampColumnName, c);
+        fieldBuilder, metricNameBuilder, timestampColumnName, c, typeBuilder);
   }
 
 }

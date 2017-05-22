@@ -33,6 +33,8 @@ import java.util.Map;
 import java.util.Set;
 import javax.annotation.Nonnull;
 
+import static org.apache.calcite.adapter.druid.DruidConnectionImpl.DruidType;
+
 /**
  * Schema mapped onto a Druid instance.
  */
@@ -70,10 +72,12 @@ public class DruidSchema extends AbstractSchema {
               public Table load(@Nonnull String tableName) throws Exception {
                 final Map<String, SqlTypeName> fieldMap = new LinkedHashMap<>();
                 final Set<String> metricNameSet = new LinkedHashSet<>();
+                final Map<String, DruidType> typeMap = new LinkedHashMap<>();
                 connection.metadata(tableName, DruidTable.DEFAULT_TIMESTAMP_COLUMN,
-                    null, fieldMap, metricNameSet);
+                    null, fieldMap, metricNameSet, typeMap);
                 return DruidTable.create(DruidSchema.this, tableName, null,
-                    fieldMap, metricNameSet, DruidTable.DEFAULT_TIMESTAMP_COLUMN, connection);
+                    fieldMap, metricNameSet, DruidTable.DEFAULT_TIMESTAMP_COLUMN, connection,
+                    typeMap);
               }
             }));
   }
