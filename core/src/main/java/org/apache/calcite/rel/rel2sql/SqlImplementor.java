@@ -987,7 +987,7 @@ public abstract class SqlImplementor {
       } else {
         boolean qualified =
             !dialect.hasImplicitTableAlias() || aliases.size() > 1;
-        if (needNew) {
+        if (needNew && !aliases.containsKey(neededAlias)) {
           newContext =
               aliasContext(ImmutableMap.of(neededAlias, rel.getRowType()),
                   qualified);
