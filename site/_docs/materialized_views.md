@@ -168,7 +168,7 @@ GROUP BY deptno
 * Query:
 
 ```SQL
-SELECT deptno, COUNT(*) AS c, SUM(empid) AS s
+SELECT deptno, COUNT(*) AS c, SUM(salary) AS s
 FROM emps
 GROUP BY deptno
 ```
@@ -176,7 +176,7 @@ GROUP BY deptno
 * Materialized view definition:  
 
 ```SQL
-SELECT empid, deptno, COUNT(*) AS c, SUM(empid) AS s
+SELECT empid, deptno, COUNT(*) AS c, SUM(salary) AS s
 FROM emps
 GROUP BY empid, deptno
 ```
@@ -197,7 +197,7 @@ Through the declared constraints, the rule can detect joins that only append col
 * Query:
 
 ```SQL
-SELECT deptno
+SELECT deptno, COUNT(*)
 FROM emps
 GROUP BY deptno
 ```
@@ -205,7 +205,7 @@ GROUP BY deptno
 * Materialized view definition:  
 
 ```SQL
-SELECT empid, depts.deptno, COUNT(*) AS c, SUM(empid) AS s
+SELECT empid, depts.deptno, COUNT(*) AS c, SUM(salary) AS s
 FROM emps
 JOIN depts USING (deptno)
 GROUP BY empid, depts.deptno
@@ -214,7 +214,7 @@ GROUP BY empid, depts.deptno
 * Rewriting:  
 
 ```SQL
-SELECT deptno
+SELECT deptno, SUM(c)
 FROM mv
 GROUP BY deptno
 ```
