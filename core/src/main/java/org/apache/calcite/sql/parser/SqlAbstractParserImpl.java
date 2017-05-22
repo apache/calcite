@@ -31,6 +31,7 @@ import org.apache.calcite.util.Glossary;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 
 import java.io.Reader;
@@ -362,6 +363,26 @@ public abstract class SqlAbstractParserImpl {
       SqlParserPos pos,
       SqlFunctionCategory funcType,
       SqlLiteral functionQualifier,
+      Iterable<? extends SqlNode> operands) {
+    return createCall(funName, pos, funcType, functionQualifier,
+        Iterables.toArray(operands, SqlNode.class));
+  }
+
+  /**
+   * Creates a call.
+   *
+   * @param funName           Name of function
+   * @param pos               Position in source code
+   * @param funcType          Type of function
+   * @param functionQualifier Qualifier
+   * @param operands          Operands to call
+   * @return Call
+   */
+  protected SqlCall createCall(
+      SqlIdentifier funName,
+      SqlParserPos pos,
+      SqlFunctionCategory funcType,
+      SqlLiteral functionQualifier,
       SqlNode[] operands) {
     SqlOperator fun = null;
 
@@ -400,6 +421,8 @@ public abstract class SqlAbstractParserImpl {
    * @return clean excn
    */
   public abstract SqlParseException normalizeException(Throwable ex);
+
+  protected abstract SqlParserPos getPos() throws Exception;
 
   /**
    * Reinitializes parser with new input.

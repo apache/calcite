@@ -26,11 +26,14 @@ import org.apache.calcite.sql.SqlOperandCountRange;
 import org.apache.calcite.sql.SqlOperatorBinding;
 import org.apache.calcite.sql.SqlSpecialOperator;
 import org.apache.calcite.sql.SqlWriter;
+import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.SqlOperandCountRanges;
 import org.apache.calcite.sql.type.SqlSingleOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
+
+import java.util.Arrays;
 
 /**
  * The item operator {@code [ ... ]}, used to access a given element of an
@@ -55,9 +58,10 @@ class SqlItemOperator extends SqlSpecialOperator {
     return new ReduceResult(ordinal - 1,
         ordinal + 2,
         createCall(
-            left.getParserPosition()
-                .plus(right.getParserPosition())
-                .plus(list.pos(ordinal)),
+            SqlParserPos.sum(
+                Arrays.asList(left.getParserPosition(),
+                    right.getParserPosition(),
+                    list.pos(ordinal))),
             left,
             right));
   }

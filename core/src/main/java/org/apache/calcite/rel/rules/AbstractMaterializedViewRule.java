@@ -295,7 +295,7 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
                     (RexTableInputRef) equiCond.getOperands().get(0),
                     (RexTableInputRef) equiCond.getOperands().get(1));
               }
-              if (!compensatePartial(viewTableRefs, vEC, queryTableRefs, false,
+              if (!compensatePartial(viewTableRefs, vEC, queryTableRefs,
                       compensationEquiColumns)) {
                 // Cannot rewrite, skip it
                 continue;
@@ -417,8 +417,9 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
               // We trigger the unifying method. This method will either create a Project
               // or an Aggregate operator on top of the view. It will also compute the
               // output expressions for the query.
-              final RelNode unionInputView = unify(call.builder(), rexBuilder, mq, view,
-                  topProject, node, topViewProject, viewNode, queryToViewTableMapping, currQEC);
+              final RelNode unionInputView = unify(call.builder(), rexBuilder, mq, matchModality,
+                  view, topProject, node, topViewProject, viewNode,
+                  queryToViewTableMapping, currQEC);
               if (unionInputView == null) {
                 // Skip it
                 continue;
@@ -500,7 +501,7 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
               if (!viewCompensationPred.isAlwaysTrue()) {
                 builder.filter(simplify.simplify(viewCompensationPred));
               }
-              RelNode result = unify(builder, rexBuilder, mq, builder.build(),
+              RelNode result = unify(builder, rexBuilder, mq, matchModality, builder.build(),
                   topProject, node, topViewProject, viewNode, queryToViewTableMapping, currQEC);
               if (result == null) {
                 // Skip it
@@ -551,7 +552,7 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
    * be produced, we will return null.
    */
   protected abstract RelNode unify(RelBuilder relBuilder, RexBuilder rexBuilder,
-      RelMetadataQuery mq, RelNode input,
+      RelMetadataQuery mq, MatchModality matchModality, RelNode input,
       Project topProject, RelNode node,
       Project topViewProject, RelNode viewNode,
       BiMap<RelTableRef, RelTableRef> queryToViewTableMapping,
@@ -704,6 +705,7 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
         RelBuilder relBuilder,
         RexBuilder rexBuilder,
         RelMetadataQuery mq,
+        MatchModality matchModality,
         RelNode input,
         Project topProject,
         RelNode node,
@@ -848,11 +850,6 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
         Project topViewProject,
         RelNode viewNode,
         Set<RelTableRef> viewTableRefs) {
-      if (!compensatePartial(queryTableRefs, queryEC, viewTableRefs, true, null)) {
-        // We cannot rewrite
-        return null;
-      }
-
       // Modify view to join with missing tables and add Project on top to reorder columns.
       // In turn, modify view plan to join with missing tables before Aggregate operator,
       // change Aggregate operator to group by previous grouping columns and columns in
@@ -1005,6 +1002,7 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
         RelBuilder relBuilder,
         RexBuilder rexBuilder,
         RelMetadataQuery mq,
+        MatchModality matchModality,
         RelNode input,
         Project topProject,
         RelNode node,
@@ -1107,7 +1105,8 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
       RelNode result = relBuilder
           .push(input)
           .build();
-      if (queryAggregate.getGroupCount() != viewAggregate.getGroupCount()) {
+      if (queryAggregate.getGroupCount() != viewAggregate.getGroupCount()
+          || matchModality == MatchModality.VIEW_PARTIAL) {
         // Target is coarser level of aggregation. Generate an aggregate.
         rewritingMapping = Mappings.create(MappingType.FUNCTION,
             topViewProject != null ? topViewProject.getRowType().getFieldCount()
@@ -1454,7 +1453,7 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
    * <ul>
    * <li> Equi-join </li>
    * <li> Between all columns in the keys </li>
-   * <li> Foreign-key columns do not allow NULL values (if {@code allowNullsFK} is false) </li>
+   * <li> Foreign-key columns do not allow NULL values </li>
    * <li> Foreign-key </li>
    * <li> Unique-key </li>
    * </ul>
@@ -1467,7 +1466,6 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
       Set<RelTableRef> sourceTableRefs,
       EquivalenceClasses sourceEC,
       Set<RelTableRef> targetTableRefs,
-      boolean allowNullsFK,
       Multimap<RexTableInputRef, RexTableInputRef> compensationEquiColumns) {
     // Create UK-FK graph with view tables
     final DirectedGraph<RelTableRef, Edge> graph =
@@ -1504,7 +1502,7 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
             int uniqueKeyPos = constraint.getColumnPairs().get(pos).target;
             RexTableInputRef uniqueKeyColumnRef = RexTableInputRef.of(parentTRef, uniqueKeyPos,
                 parentTRef.getTable().getRowType().getFieldList().get(uniqueKeyPos).getType());
-            if ((allowNullsFK || !foreignKeyColumnType.isNullable())
+            if (!foreignKeyColumnType.isNullable()
                 && sourceEC.getEquivalenceClassesMap().containsKey(uniqueKeyColumnRef)
                 && sourceEC.getEquivalenceClassesMap().get(uniqueKeyColumnRef).contains(
                     foreignKeyColumnRef)) {

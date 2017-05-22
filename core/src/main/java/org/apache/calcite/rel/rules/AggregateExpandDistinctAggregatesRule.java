@@ -64,7 +64,7 @@ import java.util.TreeSet;
 /**
  * Planner rule that expands distinct aggregates
  * (such as {@code COUNT(DISTINCT x)}) from a
- * {@link org.apache.calcite.rel.logical.LogicalAggregate}.
+ * {@link org.apache.calcite.rel.core.Aggregate}.
  *
  * <p>How this is done depends upon the arguments to the function. If all
  * functions have the same argument
@@ -98,7 +98,7 @@ public final class AggregateExpandDistinctAggregatesRule extends RelOptRule {
   //~ Constructors -----------------------------------------------------------
 
   public AggregateExpandDistinctAggregatesRule(
-      Class<? extends LogicalAggregate> clazz,
+      Class<? extends Aggregate> clazz,
       boolean useGroupingSets,
       RelBuilderFactory relBuilderFactory) {
     super(operand(clazz, any()), relBuilderFactory, null);
@@ -450,11 +450,13 @@ public final class AggregateExpandDistinctAggregatesRule extends RelOptRule {
 
     final RelBuilder relBuilder = call.builder();
     relBuilder.push(aggregate.getInput());
-    relBuilder.aggregate(relBuilder.groupKey(fullGroupSet, groupSets.size() > 1, groupSets),
+    final boolean indicator = groupSets.size() > 1;
+    relBuilder.aggregate(
+        relBuilder.groupKey(fullGroupSet, indicator, groupSets),
         distinctAggCalls);
     final RelNode distinct = relBuilder.peek();
     final int groupCount = fullGroupSet.cardinality();
-    final int indicatorCount = groupSets.size() > 1 ? groupCount : 0;
+    final int indicatorCount = indicator ? groupCount : 0;
 
     final RelOptCluster cluster = aggregate.getCluster();
     final RexBuilder rexBuilder = cluster.getRexBuilder();
@@ -515,7 +517,7 @@ public final class AggregateExpandDistinctAggregatesRule extends RelOptRule {
     }
     final Registrar registrar = new Registrar();
     for (ImmutableBitSet groupSet : groupSets) {
-      filters.put(groupSet, registrar.register(groupSet));
+      filters.put(groupSet, indicator ? registrar.register(groupSet) : -1);
     }
 
     if (!predicates.isEmpty()) {
@@ -662,16 +664,16 @@ public final class AggregateExpandDistinctAggregatesRule extends RelOptRule {
       leftFields = relBuilder.peek().getRowType().getFieldList();
     }
 
-    // LogicalAggregate(
+    // Aggregate(
     //     child,
     //     {COUNT(DISTINCT 1), SUM(DISTINCT 1), SUM(2)})
     //
     // becomes
     //
-    // LogicalAggregate(
-    //     LogicalJoin(
+    // Aggregate(
+    //     Join(
     //         child,
-    //         LogicalAggregate(child, < all columns > {}),
+    //         Aggregate(child, < all columns > {}),
     //         INNER,
     //         <f2 = f5>))
     //
@@ -839,7 +841,7 @@ public final class AggregateExpandDistinctAggregatesRule extends RelOptRule {
   }
 
   /**
-   * Given an {@link org.apache.calcite.rel.logical.LogicalAggregate}
+   * Given an {@link org.apache.calcite.rel.core.Aggregate}
    * and the ordinals of the arguments to a
    * particular call to an aggregate function, creates a 'select distinct'
    * relational expression which projects the group columns and those
@@ -852,20 +854,18 @@ public final class AggregateExpandDistinctAggregatesRule extends RelOptRule {
    * from t group by f0</pre>
    * </blockquote>
    *
-   * and the argument list
+   * <p>and the argument list
    *
    * <blockquote>{2}</blockquote>
    *
-   * returns
+   * <p>returns
    *
    * <blockquote>
    * <pre>select distinct f0, f2 from t</pre>
    * </blockquote>
    *
-   * '
-   *
    * <p>The <code>sourceOf</code> map is populated with the source of each
-   * column; in this case sourceOf.get(0) = 0, and sourceOf.get(1) = 2.</p>
+   * column; in this case sourceOf.get(0) = 0, and sourceOf.get(1) = 2.
    *
    * @param relBuilder Relational expression builder
    * @param aggregate Aggregate relational expression

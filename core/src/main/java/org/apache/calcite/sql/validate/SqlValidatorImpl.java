@@ -3889,7 +3889,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     final RelDataType logicalSourceRowType =
         getLogicalSourceRowType(sourceRowType, insert);
 
-    checkFieldCount(insert, table, logicalSourceRowType, logicalTargetRowType);
+    checkFieldCount(insert.getTargetTable(), table, logicalSourceRowType,
+        logicalTargetRowType);
 
     checkTypeAssignment(logicalSourceRowType, logicalTargetRowType, insert);
 

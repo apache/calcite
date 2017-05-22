@@ -378,11 +378,29 @@ public class RelToSqlConverterTest {
     sql(query).dialect(DatabaseProduct.DB2.getDialect()).ok(expected);
   }
 
-  @Test public void testCartesianProduct() {
+  @Test public void testCartesianProductWithCommaSyntax() {
     String query = "select * from \"department\" , \"employee\"";
     String expected = "SELECT *\n"
         + "FROM \"foodmart\".\"department\",\n"
         + "\"foodmart\".\"employee\"";
+    sql(query).ok(expected);
+  }
+
+  @Test public void testCartesianProductWithInnerJoinSyntax() {
+    String query = "select * from \"department\"\n"
+        + "INNER JOIN \"employee\" ON TRUE";
+    String expected = "SELECT *\n"
+        + "FROM \"foodmart\".\"department\",\n"
+        + "\"foodmart\".\"employee\"";
+    sql(query).ok(expected);
+  }
+
+  @Test public void testFullJoinOnTrueCondition() {
+    String query = "select * from \"department\"\n"
+        + "FULL JOIN \"employee\" ON TRUE";
+    String expected = "SELECT *\n"
+        + "FROM \"foodmart\".\"department\"\n"
+        + "FULL JOIN \"foodmart\".\"employee\" ON TRUE";
     sql(query).ok(expected);
   }
 
@@ -571,20 +589,23 @@ public class RelToSqlConverterTest {
         + "inner join \"foodmart\".\"customer\" as \"t2\"\n"
         + "on \"t1\".\"customer_id\" = \"t2\".\"customer_id\" or "
         + "(\"t1\".\"customer_id\" is null "
-        + "and \"t2\".\"customer_id\" is null)\n"
+        + "and \"t2\".\"customer_id\" is null) or\n"
+        + "\"t2\".\"occupation\" is null\n"
         + "inner join \"foodmart\".\"product\" as \"t3\"\n"
         + "on \"t1\".\"product_id\" = \"t3\".\"product_id\" or "
         + "(\"t1\".\"product_id\" is not null or "
         + "\"t3\".\"product_id\" is not null)";
+    // Some of the "IS NULL" and "IS NOT NULL" are reduced to TRUE or FALSE,
+    // but not all.
     String expected = "SELECT *\nFROM \"foodmart\".\"sales_fact_1997\"\n"
         + "INNER JOIN \"foodmart\".\"customer\" "
         + "ON \"sales_fact_1997\".\"customer_id\" = \"customer\".\"customer_id\""
-        + " OR \"sales_fact_1997\".\"customer_id\" IS NULL "
-        + "AND \"customer\".\"customer_id\" IS NULL\n"
+        + " OR FALSE AND FALSE"
+        + " OR \"customer\".\"occupation\" IS NULL\n"
         + "INNER JOIN \"foodmart\".\"product\" "
-        + "ON \"sales_fact_1997\".\"product_id\" = \"product\".\"product_id\" OR "
-        + "\"sales_fact_1997\".\"product_id\" IS NOT NULL "
-        + "OR \"product\".\"product_id\" IS NOT NULL";
+        + "ON \"sales_fact_1997\".\"product_id\" = \"product\".\"product_id\""
+        + " OR TRUE"
+        + " OR TRUE";
     sql(query).ok(expected);
   }
 
