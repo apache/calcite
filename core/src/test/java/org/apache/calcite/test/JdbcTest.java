@@ -1765,6 +1765,14 @@ public class JdbcTest {
             });
   }
 
+  @Test public void testFloorDate() {
+    CalciteAssert.that()
+        .with(CalciteAssert.Config.JDBC_FOODMART)
+        .query("select floor(timestamp '2011-9-14 19:27:23' to month) as c \n"
+            + "from \"foodmart\".\"employee\" limit 1")
+        .returns("C=2011-09-01 00:00:00\n");
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-387">[CALCITE-387]
    * CompileException when cast TRUE to nullable boolean</a>. */
