@@ -640,20 +640,29 @@ public class RelToSqlConverterTest {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1800">[CALCITE-1800]
    * JDBC adapter fails to SELECT FROM a UNION query</a>. */
   @Test public void testUnionWrappedInASelect() {
-    String query =
-              "select sum(case when \"product_id\"=0 then \"net_weight\" else 0 end) as net_weight from ( "
-            + "select \"product_id\", \"net_weight\" from \"product\" "
-            + " union all "
-            + "select \"product_id\", 0 as \"net_weight\" from \"sales_fact_1997\" "
-            + ") t0";
-    String expected =
-              "SELECT SUM(CASE WHEN \"product_id\" = 0 THEN \"net_weight\" ELSE 0 END) AS \"NET_WEIGHT\"\n"
-            + "FROM (SELECT \"product_id\", \"net_weight\"\n"
-            + "FROM \"foodmart\".\"product\"\n"
-            + "UNION ALL\n"
-            + "SELECT \"product_id\", 0 AS \"net_weight\"\n"
-            + "FROM \"foodmart\".\"sales_fact_1997\") AS \"t1\"";
+    String query = "select sum(case when \"product_id\"=0 then \"net_weight\" else 0 end) as net_weight from ( "
+        + "select \"product_id\", \"net_weight\" from \"product\" "
+        + " union all "
+        + "select \"product_id\", 0 as \"net_weight\" from \"sales_fact_1997\" "
+        + ") t0";
+    String expected = "SELECT SUM(CASE WHEN \"product_id\" = 0 THEN \"net_weight\" ELSE 0 END) AS \"NET_WEIGHT\"\n"
+        + "FROM (SELECT \"product_id\", \"net_weight\"\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "UNION ALL\n"
+        + "SELECT \"product_id\", 0 AS \"net_weight\"\n"
+        + "FROM \"foodmart\".\"sales_fact_1997\") AS \"t1\"";
     sql(query).ok(expected);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1798">[CALCITE-1798]
+   * Generate dialect-specific SQL for FLOOR operator</a>. */
+  @Test public void testFloor() {
+    String query = "SELECT floor(\"hire_date\" TO MINUTE) FROM \"employee\"";
+    String expected = "SELECT TRUNC(hire_date, 'MI')\nFROM foodmart.employee";
+    sql(query)
+        .dialect(DatabaseProduct.HSQLDB.getDialect())
+        .ok(expected);
   }
 
   @Test public void testMatchRecognizePatternExpression() {
