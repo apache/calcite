@@ -28,6 +28,7 @@ import org.apache.calcite.avatica.MetaImpl;
 import org.apache.calcite.avatica.NoSuchStatementException;
 import org.apache.calcite.avatica.QueryState;
 import org.apache.calcite.avatica.remote.TypedValue;
+import org.apache.calcite.jdbc.CalcitePrepare.Context;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.linq4j.Linq4j;
@@ -211,7 +212,7 @@ public class CalciteMetaImpl extends MetaImpl {
       final CalcitePrepare.CalciteSignature<Object> signature =
           new CalcitePrepare.CalciteSignature<Object>("",
               ImmutableList.<AvaticaParameter>of(), internalParameters, null,
-              columns, cursorFactory, ImmutableList.<RelCollation>of(), -1,
+              columns, cursorFactory, null, ImmutableList.<RelCollation>of(), -1,
               null, Meta.StatementType.SELECT) {
             @Override public Enumerable<Object> enumerable(
                 DataContext dataContext) {
@@ -573,9 +574,10 @@ public class CalciteMetaImpl extends MetaImpl {
       // Not possible. We just created a statement.
       throw new AssertionError("missing statement", e);
     }
+    final Context context = statement.createPrepareContext();
     h.signature =
-        calciteConnection.parseQuery(toQuery(statement, sql),
-            statement.createPrepareContext(), maxRowCount);
+        calciteConnection.parseQuery(
+            toQuery(context, sql), context, maxRowCount);
     statement.setSignature(h.signature);
     return h;
   }
@@ -597,8 +599,9 @@ public class CalciteMetaImpl extends MetaImpl {
         final CalciteConnectionImpl calciteConnection = getConnection();
         CalciteServerStatement statement =
             calciteConnection.server.getStatement(h);
-        signature = calciteConnection.parseQuery(toQuery(statement, sql),
-            statement.createPrepareContext(), maxRowCount);
+        final Context context = statement.createPrepareContext();
+        signature = calciteConnection.parseQuery(
+            toQuery(context, sql), context, maxRowCount);
         statement.setSignature(signature);
         callback.assign(signature, null, -1);
       }
@@ -616,12 +619,12 @@ public class CalciteMetaImpl extends MetaImpl {
    * {@link org.apache.calcite.jdbc.CalcitePrepare.Query} object, giving the
    * {@link Hook#STRING_TO_QUERY} hook chance to override. */
   private CalcitePrepare.Query<Object> toQuery(
-      CalciteServerStatement statement, String sql) {
+      Context context, String sql) {
     final Holder<CalcitePrepare.Query<Object>> queryHolder =
         Holder.of(CalcitePrepare.Query.of(sql));
     final FrameworkConfig config = Frameworks.newConfigBuilder()
         .parserConfig(SqlParser.Config.DEFAULT)
-        .defaultSchema(statement.createPrepareContext().getRootSchema().plus())
+        .defaultSchema(context.getRootSchema().plus())
         .build();
     Hook.STRING_TO_QUERY.run(Pair.of(config, queryHolder));
     return queryHolder.get();
@@ -743,7 +746,9 @@ public class CalciteMetaImpl extends MetaImpl {
   @VisibleForTesting
   public static DataContext createDataContext(CalciteConnection connection) {
     return ((CalciteConnectionImpl) connection)
-        .createDataContext(ImmutableMap.<String, Object>of());
+        .createDataContext(
+            ImmutableMap.<String, Object>of(),
+            CalciteSchema.from(connection.getRootSchema()));
   }
 
   /** A trojan-horse method, subject to change without notice. */

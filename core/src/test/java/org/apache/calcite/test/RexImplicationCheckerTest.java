@@ -412,7 +412,7 @@ public class RexImplicationCheckerTest {
                 SchemaPlus rootSchema,
                 CalciteServerStatement statement) {
               DataContext dataContext =
-                  Schemas.createDataContext(statement.getConnection());
+                  Schemas.createDataContext(statement.getConnection(), rootSchema);
               holder.set(new RexExecutorImpl(dataContext));
               return null;
             }

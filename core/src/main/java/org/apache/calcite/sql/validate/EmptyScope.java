@@ -149,7 +149,6 @@ class EmptyScope implements SqlValidatorScope {
         path = path.plus(null, -1, entry.name, StructKind.NONE);
         remainingNames = Util.skip(remainingNames);
         final Table table = entry.getTable();
-        final String name2 = entry.name;
         SqlValidatorTable table2 = null;
         if (table instanceof Wrapper) {
           table2 = ((Wrapper) table).unwrap(Prepare.PreparingTable.class);
@@ -158,8 +157,8 @@ class EmptyScope implements SqlValidatorScope {
           final RelOptSchema relOptSchema =
               validator.catalogReader.unwrap(RelOptSchema.class);
           final RelDataType rowType = table.getRowType(validator.typeFactory);
-          table2 = RelOptTableImpl.create(relOptSchema, rowType,
-              schema.add(name2, table), null);
+          table2 = RelOptTableImpl.create(
+              relOptSchema, rowType, entry, null);
         }
         namespace = new TableNamespace(validator, table2);
         resolved.found(namespace, false, this, path, remainingNames);
