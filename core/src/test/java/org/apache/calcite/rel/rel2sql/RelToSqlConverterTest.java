@@ -637,6 +637,29 @@ public class RelToSqlConverterTest {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1800">[CALCITE-1800]
+   * JDBC adapter fails to SELECT FROM a UNION query</a>. */
+  @Test public void testUnionWrappedInASelect() {
+    final String query = "select sum(\n"
+        + "  case when \"product_id\"=0 then \"net_weight\" else 0 end)"
+        + " as net_weight\n"
+        + "from (\n"
+        + "  select \"product_id\", \"net_weight\"\n"
+        + "  from \"product\"\n"
+        + "  union all\n"
+        + "  select \"product_id\", 0 as \"net_weight\"\n"
+        + "  from \"sales_fact_1997\") t0";
+    final String expected = "SELECT SUM(CASE WHEN \"product_id\" = 0"
+        + " THEN \"net_weight\" ELSE 0 END) AS \"NET_WEIGHT\"\n"
+        + "FROM (SELECT \"product_id\", \"net_weight\"\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "UNION ALL\n"
+        + "SELECT \"product_id\", 0 AS \"net_weight\"\n"
+        + "FROM \"foodmart\".\"sales_fact_1997\") AS \"t1\"";
+    sql(query).ok(expected);
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1798">[CALCITE-1798]
    * Generate dialect-specific SQL for FLOOR operator</a>. */
   @Test public void testFloor() {
