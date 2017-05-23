@@ -28,6 +28,96 @@ For a full list of releases, see
 Downloads are available on the
 [downloads page]({{ site.baseurl }}/downloads/).
 
+## <a href="https://github.com/apache/calcite-avatica/releases/tag/calcite-avatica-1.10.0">1.10.0</a> / 2017-05-30
+{: #v1-10-0}
+
+Apache Calcite Avatica 1.10.0 is the first release since
+[Avatica's git repository](https://git-wip-us.apache.org/repos/asf/calcite-avatica.git)
+separated from
+[Calcite's repository](https://git-wip-us.apache.org/repos/asf/calcite.git) in
+[[CALCITE-1717](https://issues.apache.org/jira/browse/CALCITE-1717)].
+Avatica now runs on JDK 9 (and continues to run on JDK 7 and 8),
+and there is now a Docker image for an Avatica server.
+You may now send and receive Array data via the JDBC API.
+Several improvements to date/time support in DateTimeUtils.
+
+Compatibility: This release is tested
+on Linux, macOS, Microsoft Windows;
+using Oracle JDK 7, 8, 9;
+Guava versions 14.0 to 19.0;
+other software versions as specified in `pom.xml`.
+
+Features and bug fixes
+
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1690">CALCITE-1690</a>]
+  Timestamp literals cannot express precision above millisecond
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1539">CALCITE-1539</a>]
+  Enable proxy access to Avatica server for third party on behalf of end users
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1756">CALCITE-1756</a>]
+  Differentiate between implicitly null and explicitly null `TypedValue`s
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1050">CALCITE-1050</a>]
+  Array support for Avatica
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1746">CALCITE-1746</a>]
+  Remove `KEYS` file from git and from release tarball
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1353">CALCITE-1353</a>]
+  Convert `first_frame_max_size` to an `int32`
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1744">CALCITE-1744</a>]
+  Clean up the Avatica poms
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1741">CALCITE-1741</a>]
+  Upgrade `maven-assembly-plugin` to version 3.0.0
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1364">CALCITE-1364</a>]
+  Docker images for an Avatica server
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1717">CALCITE-1717</a>]
+  Remove Calcite code and lift Avatica
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1700">CALCITE-1700</a>]
+  De-couple the `HsqldbServer` into a generic JDBC server
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1699">CALCITE-1699</a>]
+  Statement may be null
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1667">CALCITE-1667</a>]
+  Forbid calls to JDK APIs that use the default locale, time zone or character
+  set
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1664">CALCITE-1664</a>]
+  `CAST('<string>' as TIMESTAMP)` wrongly adds part of sub-second fraction to the
+  value
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1654">CALCITE-1654</a>]
+  Avoid generating a string from the Request/Response when it will not be logged
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1609">CALCITE-1609</a>]
+  In `DateTimeUtils`, implement `unixDateExtract` and `unixTimeExtract` for more
+  time units
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1608">CALCITE-1608</a>]
+  Move `addMonths` and `subtractMonths` methods from Calcite class `SqlFunctions`
+  to Avatica class `DateTimeUtils`
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1600">CALCITE-1600</a>]
+  In `Meta.Frame.create()`, change type of `offset` parameter from `int` to `long`
+  (Gian Merlino)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1602">CALCITE-1602</a>]
+  Remove uses of deprecated APIs
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1599">CALCITE-1599</a>]
+  Remove unused `createIterable` call in `LocalService` (Gian Merlino)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1576">CALCITE-1576</a>]
+  Use the `protobuf-maven-plugin`
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1567">CALCITE-1567</a>]
+  JDK9 support
+* Remove non-ASCII characters from Java source files
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1538">CALCITE-1538</a>]
+  Support `truststore` and `truststore_password` JDBC options
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1485">CALCITE-1485</a>]
+  Upgrade Avatica's Apache parent POM to version 18
+
+Tests
+
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1752">CALCITE-1752</a>]
+  Use `URLDecoder` instead of manually replacing "%20" in URLs
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1736">CALCITE-1736</a>]
+  Address test failures when the path contains spaces
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1568">CALCITE-1568</a>]
+  Upgrade `mockito` to 2.5.5
+
+Web site and documentation
+
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1743">CALCITE-1743</a>]
+  Add instructions to release docs to move git tag from `rcN` to `rel/`
+
 ## <a href="https://github.com/apache/calcite-avatica/releases/tag/calcite-avatica-1.9.0">1.9.0</a> / 2016-11-01
 {: #v1-9-0}
 

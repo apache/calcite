@@ -54,7 +54,7 @@ limitations under the License.
     <top.dir>${project.basedir}</top.dir>
     <avatica.release.version>${project.version}</avatica.release.version>
     <version.major>1</version.major>
-    <version.minor>9</version.minor>
+    <version.minor>10</version.minor>
     <!-- This list is in alphabetical order. -->
     <bouncycastle.version>1.55</bouncycastle.version>
     <build-helper-maven-plugin.version>3.0.0</build-helper-maven-plugin.version>
@@ -675,7 +675,7 @@ limitations under the License.
                 <phase>none</phase>
               </execution>
               <execution>
-                <id>source-release-assembly-calcite</id>
+                <id>source-release-assembly-avatica</id>
                 <phase>package</phase>
                 <goals>
                   <goal>single</goal>
@@ -683,7 +683,9 @@ limitations under the License.
                 <configuration>
                   <runOnlyAtExecutionRoot>true</runOnlyAtExecutionRoot>
                   <appendAssemblyId>false</appendAssemblyId>
-                  <descriptor>${top.dir}/src/main/config/assemblies/source-assembly.xml</descriptor>
+                  <descriptors>
+                    <descriptor>${top.dir}/src/main/config/assemblies/source-assembly.xml</descriptor>
+                  </descriptors>
                   <finalName>apache-calcite-avatica-${project.version}-src</finalName>
                   <tarLongFileMode>gnu</tarLongFileMode>
                 </configuration>

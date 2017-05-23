@@ -38,8 +38,8 @@ Unpack the source distribution `.tar.gz` or `.zip` file,
 then build using maven:
 
 {% highlight bash %}
-$ tar xvfz apache-calcite-avatica-1.9.0-src.tar.gz
-$ cd apache-calcite-avatica-1.9.0-src
+$ tar xvfz apache-calcite-avatica-1.10.0-src.tar.gz
+$ cd apache-calcite-avatica-1.10.0-src
 $ mvn install
 {% endhighlight %}
 
@@ -174,7 +174,7 @@ to guarantee that your credentials will be cached for the duration of the build.
 Before you start:
 
 * Set up signing keys as described above.
-* Make sure you are using JDK 1.7 (not 1.8).
+* Make sure you are using JDK 8 (not 7 or 9).
 
 {% highlight bash %}
 # Make sure that there are no junk files in the sandbox
@@ -190,13 +190,10 @@ When the dry-run has succeeded, change `install` to `deploy`.
 Before you start:
 
 * Set up signing keys as described above.
-* Make sure you are using JDK 1.7 (not 1.8).
-* Check that `README` and `site/_docs/howto.md` have the correct version number.
+* Make sure you are using JDK 8 (not 7 or 9).
+* Check that `README`, `site/_docs/howto.md`
+  and `docker/src/main/dockerhub/Dockerfile` have the correct version number.
 * Set `version.major` and `version.minor` in `pom.xml`.
-* Trigger a
-  <a href="https://scan.coverity.com/projects/2966">Coverity scan</a>
-  by merging the latest code into the `julianhyde/coverity_scan` branch,
-  and when it completes, make sure that there are no important issues.
 * Make sure that
   <a href="https://issues.apache.org/jira/issues/?jql=project%20%3D%20CALCITE%20AND%20status%20%3D%20Resolved%20and%20fixVersion%20is%20null">
   every "resolved" JIRA case</a> (including duplicates) has
@@ -230,8 +227,21 @@ start again from the top.
 # Make sure that there are no junk files in the sandbox
 git clean -xn
 
+# For the dry run, edit the docker/dockerhub/Dockerfile
+patch -p1 <<EOF
+diff --git a/docker/src/main/dockerhub/Dockerfile b/docker/src/main/dockerhub/Dockerfile
+index 4617a4e..4ccd97f 100644
+--- a/docker/src/main/dockerhub/Dockerfile
++++ b/docker/src/main/dockerhub/Dockerfile
+@@ -23,3 +23,3 @@ RUN mkdir -p /home/avatica/classpath
+# This line must be preserved. The Maven build will verify this version matches its version
+-ARG AVATICA_VERSION="1.10.0"
++ARG AVATICA_VERSION="1.10.0-SNAPSHOT"
+EOF
+
 # Do a dry run of the release:prepare step, which sets version numbers.
-mvn -DdryRun=true -DreleaseVersion=X.Y.Z -DdevelopmentVersion=X.Y.Z+1-SNAPSHOT -Dtag=calcite-avatica-X.Y.Z-rcN -Papache-release -Duser.name=${asf.username} release:prepare
+# Typically we increment minor version: If X.Y.Z is 1.10.0, X2.Y2.Z2 is 1.11.0.
+mvn -DdryRun=true -DreleaseVersion=X.Y.Z -DdevelopmentVersion=X2.Y2.Z2-SNAPSHOT -Dtag=avatica-X.Y.Z-rcN -Papache-release -Duser.name=${asf.username} release:prepare
 {% endhighlight %}
 
 Check the artifacts:
@@ -253,7 +263,9 @@ Check the artifacts:
   `README`, `README.md`
   * Check that the version in `README` is correct
 * Make sure that there is no `KEYS` file in the source distros
-* For each .jar, verify that the `META-INF` directory contains the correct
+* For each .jar (for example `core/target/avatica-core-X.Y.Z.jar`
+  and `server/target/avatica-server-X.Y.Z-sources.jar`),
+  verify that the `META-INF` directory contains the correct
   contents for `DEPENDENCIES`, `LICENSE` and `NOTICE` per the
   source/classes contained. Refer to the ASF licensing documentation on
   what is required.
@@ -270,7 +282,8 @@ If successful, remove the `-DdryRun` flag and run the release for real.
 
 {% highlight bash %}
 # Prepare sets the version numbers, creates a tag, and pushes it to git.
-mvn -DreleaseVersion=X.Y.Z -DdevelopmentVersion=X.Y.Z+1-SNAPSHOT -Dtag=avatica-X.Y.Z-rc0 -Papache-release -Duser.name=${asf.username} release:prepare
+# Typically we increment minor version: If X.Y.Z is 1.10.0, X2.Y2.Z2 is 1.11.0.
+mvn -DreleaseVersion=X.Y.Z -DdevelopmentVersion=X2.Y2.Z2-SNAPSHOT -Dtag=avatica-X.Y.Z-rcN -Papache-release -Duser.name=${asf.username} release:prepare
 
 # Perform checks out the tagged version, builds, and deploys to the staging repository
 mvn -Papache-release -Duser.name=${asf.username} release:perform -Darguments="-DskipTests"
@@ -296,6 +309,13 @@ mkdir -p ~/dist/dev
 pushd ~/dist/dev
 svn co https://dist.apache.org/repos/dist/dev/calcite
 popd
+
+# Replace digest files with a single digest
+cd target
+for f in *.tar.gz *.zip; do
+  rm ${f}.md5 ${f}.sha1
+  gpg --print-mds ${f} > ${f}.mds
+done
 
 # Move the files into a directory
 cd target
