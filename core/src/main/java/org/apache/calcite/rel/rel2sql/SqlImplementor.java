@@ -987,7 +987,13 @@ public abstract class SqlImplementor {
       } else {
         boolean qualified =
             !dialect.hasImplicitTableAlias() || aliases.size() > 1;
-        if (needNew && !aliases.containsKey(neededAlias)) {
+        // basically, we did a subSelect() since needNew is set and neededAlias is not null
+        // now, we need to make sure that we need to update the alias context.
+        // if our aliases map has a single element:  <neededAlias, rowType>,
+        // then we don't need to rewrite the alias but otherwise, it should be updated.
+        if (needNew
+                && neededAlias != null
+                && (aliases.size() != 1 || !aliases.containsKey(neededAlias))) {
           newContext =
               aliasContext(ImmutableMap.of(neededAlias, rel.getRowType()),
                   qualified);
