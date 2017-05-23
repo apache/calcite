@@ -4499,6 +4499,14 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         getNamespace(call).unwrap(MatchRecognizeNamespace.class);
     assert ns.rowType == null;
 
+    //rows per match
+    boolean isAllRows = false;
+    SqlLiteral isAllRowsPerMatch = matchRecognize.getRowsPerMatch();
+    if (isAllRowsPerMatch != null
+      && isAllRowsPerMatch.getValue() == SqlMatchRecognize.AfterMatchOption.ALL_ROWS) {
+      isAllRows = true;
+    }
+
     // retrieve pattern variables used in pattern and subset
     SqlNode pattern = matchRecognize.getPattern();
     PatternVarVisitor visitor = new PatternVarVisitor(scope);
@@ -4539,7 +4547,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     }
 
     List<Map.Entry<String, RelDataType>> fields =
-        validateMeasure(matchRecognize, scope);
+        validateMeasure(matchRecognize, scope, isAllRows);
     final RelDataType rowType = typeFactory.createStructType(fields);
     if (matchRecognize.getMeasureList().size() == 0) {
       ns.setType(getNamespace(matchRecognize.getTableRef()).getRowType());
@@ -4549,7 +4557,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   }
 
   private List<Map.Entry<String, RelDataType>> validateMeasure(SqlMatchRecognize mr,
-      MatchRecognizeScope scope) {
+      MatchRecognizeScope scope, boolean isAllRows) {
     final List<String> aliases = new ArrayList<>();
     final List<SqlNode> sqlNodes = new ArrayList<>();
     final SqlNodeList measures = mr.getMeasureList();
@@ -4561,7 +4569,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       aliases.add(alias);
 
       SqlNode expand = expand(measure, scope);
-      expand = navigationInMeasure(expand);
+      expand = navigationInMeasure(expand, isAllRows);
       setOriginal(expand, measure);
 
       inferUnknownTypes(unknownType, scope, expand);
@@ -4586,14 +4594,14 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     return fields;
   }
 
-  private SqlNode navigationInMeasure(SqlNode node) {
+  private SqlNode navigationInMeasure(SqlNode node, boolean isAllRows) {
     Set<String> prefix = node.accept(new PatternValidator(true));
     Util.discard(prefix);
     List<SqlNode> ops = ((SqlCall) node).getOperandList();
 
-    SqlOperator defaultOp = SqlStdOperatorTable.FINAL;
+    SqlOperator defaultOp = isAllRows ? SqlStdOperatorTable.RUNNING : SqlStdOperatorTable.FINAL;
     if (!isRunningOrFinal(ops.get(0).getKind())
-        || ops.get(0).getKind() == SqlKind.RUNNING) {
+        || !isAllRows && ops.get(0).getKind() == SqlKind.RUNNING) {
       SqlNode newNode = defaultOp.createCall(SqlParserPos.ZERO, ops.get(0));
       node = SqlStdOperatorTable.AS.createCall(SqlParserPos.ZERO, newNode, ops.get(1));
     }

@@ -2180,6 +2180,13 @@ public class SqlToRelConverter {
       definitionNodes.put(alias, rex);
     }
 
+    boolean allRows = false;
+    SqlLiteral isALlRowsPerMatch = matchRecognize.getRowsPerMatch();
+    if (isALlRowsPerMatch != null
+      && isALlRowsPerMatch.getValue() == SqlMatchRecognize.AfterMatchOption.ALL_ROWS) {
+      allRows = true;
+    }
+
     matchBb.setPatternVarRef(false);
 
     final RelFactories.MatchFactory factory =
@@ -2189,7 +2196,7 @@ public class SqlToRelConverter {
             matchRecognize.getStrictStart().booleanValue(),
             matchRecognize.getStrictEnd().booleanValue(),
             definitionNodes.build(), measureNodes.build(), after,
-            subsetMap, rowType);
+            subsetMap, allRows, rowType);
     bb.setRoot(rel, false);
   }
 

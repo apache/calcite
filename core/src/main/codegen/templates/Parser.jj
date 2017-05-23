@@ -2445,7 +2445,9 @@ SqlMatchRecognize MatchRecognizeOpt(SqlNode tableRef) :
     SqlNode pattern;
     SqlNodeList patternDefList;
     final SqlNode after;
+    SqlParserPos pos;
     final SqlNode var;
+    final SqlLiteral rowsPerMatch;
     SqlNodeList subsetList = SqlNodeList.EMPTY;
     SqlLiteral isStrictStarts = SqlLiteral.createBoolean(false, getPos());
     SqlLiteral isStrictEnds = SqlLiteral.createBoolean(false, getPos());
@@ -2456,6 +2458,26 @@ SqlMatchRecognize MatchRecognizeOpt(SqlNode tableRef) :
         <MEASURES>
         measureList = MeasureColumnCommaList(span())
     ]
+    
+    (
+        (
+            <ONE> { pos = getPos(); } <ROW> <PER> <MATCH>
+            {
+                rowsPerMatch = SqlMatchRecognize.AfterMatchOption.ONE_ROW.symbol(pos.plus(getPos()));
+            }
+        )
+        |
+        (
+            <ALL> { pos = getPos(); } <ROWS> <PER> <MATCH>
+            {
+                rowsPerMatch = SqlMatchRecognize.AfterMatchOption.ALL_ROWS.symbol(pos.plus(getPos()));
+            }
+        )
+        |
+        {
+            rowsPerMatch = null;  
+        }
+    )
     (
         <AFTER> { s1 = span(); } <MATCH> <SKIP_>
         (
@@ -2509,7 +2531,7 @@ SqlMatchRecognize MatchRecognizeOpt(SqlNode tableRef) :
     <RPAREN> {
         return new SqlMatchRecognize(s.end(this), tableRef,
             pattern, isStrictStarts, isStrictEnds, patternDefList, measureList,
-            after, subsetList);
+            after, subsetList, rowsPerMatch);
     }
 }
 
