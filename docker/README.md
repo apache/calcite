@@ -37,10 +37,10 @@ A number of Dockerfiles for different databases are provided. Presently, they in
 * [MySQL](https://github.com/apache/calcite-avatica/tree/master/docker/src/main/docker/mysql)
 * [PostgreSQL](https://github.com/apache/calcite-avatica/tree/master/docker/src/main/docker/postgresql)
 
-## Dockerhub
+## Docker Hub
 
 `src/main/dockerhub` contains a copy of the same `avatica-server` Dockerfile
 that is present in `src/main/docker` that is designed to be used with the
-automation around publishing Docker images to the Apache Dockerhub account.
+automation around publishing Docker images to the Apache Docker Hub account.
 
 It is not expected that users would interact with this Dockerfile.

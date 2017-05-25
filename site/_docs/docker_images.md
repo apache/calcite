@@ -34,7 +34,7 @@ or encapsulating database access for testing software that uses Avatica.
 
 ### Base "avatica-server" Docker Image
 
-Starting with the Avatica 1.10.0 release, Avatica is providing a number of Docker
+Avatica provides a number of Docker
 containers. Each of these images is based on a "parent" "avatica-server" Docker image.
 
 This Docker image has no bindings to a specific database (it has not database-specific
@@ -43,8 +43,8 @@ jar (which contains all the necessary dependencies of the Avatica server). This 
 image is not directly useful for end users; it is useful for those who want to use Avatica
 with a database of their choosing.
 
-This Docker image will be deployed to the [Apache Dockerhub account](https://hub.docker.com/r/apache/) after the release
-of 1.10.0 and will be updated for future releases of Avatica.
+This Docker image is deployed to the [Apache Docker Hub account](https://hub.docker.com/r/apache/calcite-avatica)
+and is updated for each release of Avatica.
 
 ### Database-specific Docker Images
 
@@ -70,22 +70,22 @@ file will start an instance of PostgreSQL and an instance of the Avatica server,
 exposing an Avatica server configured against a "real" PostgreSQL database.
 
 All of the `Dockerfile` and `docker-compose.yml` files are conveniently provided in an archive for
-each release, starting with 1.10.0.
+each release. Here is the layout for release 1.10.0:
 
 ```
-avatica-docker-1.10.0-SNAPSHOT/
-avatica-docker-1.10.0-SNAPSHOT/hypersql/
-avatica-docker-1.10.0-SNAPSHOT/mysql/
-avatica-docker-1.10.0-SNAPSHOT/postgresql/
-avatica-docker-1.10.0-SNAPSHOT/Dockerfile
-avatica-docker-1.10.0-SNAPSHOT/hypersql/build.sh
-avatica-docker-1.10.0-SNAPSHOT/hypersql/Dockerfile
-avatica-docker-1.10.0-SNAPSHOT/mysql/build.sh
-avatica-docker-1.10.0-SNAPSHOT/mysql/docker-compose.yml
-avatica-docker-1.10.0-SNAPSHOT/mysql/Dockerfile
-avatica-docker-1.10.0-SNAPSHOT/postgresql/build.sh
-avatica-docker-1.10.0-SNAPSHOT/postgresql/docker-compose.yml
-avatica-docker-1.10.0-SNAPSHOT/postgresql/Dockerfile
+avatica-docker-1.10.0/
+avatica-docker-1.10.0/hypersql/
+avatica-docker-1.10.0/mysql/
+avatica-docker-1.10.0/postgresql/
+avatica-docker-1.10.0/Dockerfile
+avatica-docker-1.10.0/hypersql/build.sh
+avatica-docker-1.10.0/hypersql/Dockerfile
+avatica-docker-1.10.0/mysql/build.sh
+avatica-docker-1.10.0/mysql/docker-compose.yml
+avatica-docker-1.10.0/mysql/Dockerfile
+avatica-docker-1.10.0/postgresql/build.sh
+avatica-docker-1.10.0/postgresql/docker-compose.yml
+avatica-docker-1.10.0/postgresql/Dockerfile
 ```
 
 #### Running

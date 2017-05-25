@@ -26,15 +26,21 @@ a sub-directory of the
 
 ## Setup
 
-1. Set up Calcite web site as described in its
-   [README](../site/README.md).
+Similar to the instructions to
+[set up the Calcite web site](../site/README.md).
+
+1. `cd site`
+2. `svn co https://svn.apache.org/repos/asf/calcite/site/avatica target/avatica`
+3. `sudo apt-get install rubygems ruby2.1-dev zlib1g-dev` (linux)
+4. `sudo gem install bundler github-pages jekyll jekyll-oembed`
+5. `bundle install`
 
 ## Add javadoc
 
 1. `cd avatica`
 2. `mvn -DskipTests site`
-3. `rm -rf ../site/target/avatica/apidocs ../site/target/avatica/testapidocs`
-4. `mv target/site/apidocs target/site/testapidocs ../site/target/avatica`
+3. `rm -rf site/target/avatica/apidocs site/target/avatica/testapidocs`
+4. `mv target/site/apidocs target/site/testapidocs site/target/avatica`
 
 ## Running locally
 

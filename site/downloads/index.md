@@ -22,7 +22,7 @@ limitations under the License.
 {% endcomment %}
 -->
 
-Calcite is released as a source artifact, and also through Maven.
+Avatica is released as a source artifact, and also through Maven and Docker Hub.
 
 # Source releases
 
@@ -43,15 +43,22 @@ Release          | Date       | Commit   | Download
 {% endcomment %}{% assign q = "" %}{% comment %}
 {% endcomment %}{% assign d = "https://archive.apache.org/dist" %}{% comment %}
 {% endcomment %}{% endif %}{% comment %}
+{% endcomment %}{% capture d1 %}{{ post.date | date: "%F"}}{% endcapture %}{% comment %}
+{% endcomment %}{% capture d2 %}2017-05-01{% endcapture %}{% comment %}
+{% endcomment %}{% if d1 > d2 %}{% comment %}
+{% endcomment %}{% assign digest = "mds" %}{% comment %}
+{% endcomment %}{% else %}{% comment %}
+{% endcomment %}{% assign digest = "md5" %}{% comment %}
+{% endcomment %}{% endif %}{% comment %}
 {% endcomment %}<a href="{{ site.baseurl }}/docs/history.html#{{ post.tag }}">{{ post.version }}</a>{% comment %}
 {% endcomment %} | {{ post.date | date_to_string }}{% comment %}
 {% endcomment %} | <a href="https://github.com/apache/calcite-avatica/commit/{{ post.sha }}">{{ post.sha }}</a>{% comment %}
 {% endcomment %} | <a href="{{ p }}/{{ v }}-src.tar.gz{{ q }}">tar</a>{% comment %}
-{% endcomment %} (<a href="{{ d }}/calcite/{{ v }}/{{ v }}-src.tar.gz.md5">md5</a>{% comment %}
+{% endcomment %} (<a href="{{ d }}/calcite/{{ v }}/{{ v }}-src.tar.gz.{{ digest }}">{{ digest }}</a>{% comment %}
 {% endcomment %} <a href="{{ d }}/calcite/{{ v }}/{{ v }}-src.tar.gz.asc">pgp</a>){% comment %}
 {% endcomment %} {% raw %}<br>{% endraw %}{% comment %}
 {% endcomment %} <a href="{{ p }}/{{ v }}-src.zip{{ q }}">zip</a>{% comment %}
-{% endcomment %} (<a href="{{ d }}/calcite/{{ v }}/{{ v }}-src.zip.md5">md5</a>{% comment %}
+{% endcomment %} (<a href="{{ d }}/calcite/{{ v }}/{{ v }}-src.zip.{{ digest }}">{{ digest }}</a>{% comment %}
 {% endcomment %} <a href="{{ d }}/calcite/{{ v }}/{{ v }}-src.zip.asc">pgp</a>){% comment %}
 {% endcomment %}
 {% endfor %}
@@ -106,3 +113,8 @@ As of Apache Calcite Avatica 1.9.0, the following un-shaded client artifact is a
   </dependency>
 </dependencies>
 {% endhighlight %}
+
+# Docker images
+
+From release 1.10.0 onwards, Docker images for Avatica Server are available at
+[Docker Hub](https://hub.docker.com/r/apache/calcite-avatica).

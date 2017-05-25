@@ -19,7 +19,7 @@
 import java.io.File;
 import java.nio.file.Files;
 
-System.out.println("Verifying the included version in the Dockerhub Dockerfile");
+System.out.println("Verifying the included version in the Docker Hub Dockerfile");
 
 String expectedPrefix = "ARG AVATICA_VERSION=";
 String expectedVersion = project.getVersion();
