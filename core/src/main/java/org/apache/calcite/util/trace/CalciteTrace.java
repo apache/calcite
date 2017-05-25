@@ -124,14 +124,6 @@ public abstract class CalciteTrace {
   }
 
   /**
-   * The "org.apache.calcite.adapter.druid.DruidConnectionImpl" tracer logs
-   * information about druid queries, and druid responses.
-   */
-  public static Logger getDruidQueryInfoTracer() {
-    return LoggerFactory.getLogger("org.apache.calcite.adapter.druid.DruidConnectionImpl");
-  }
-
-  /**
    * Thread-local handler that is called with dynamically generated Java code.
    * It exists for unit-testing.
    * The handler is never null; the default handler does nothing.

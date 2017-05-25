@@ -82,7 +82,6 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.regex.Pattern;
 
-import static org.apache.calcite.adapter.druid.DruidConnectionImpl.DruidType;
 import static org.apache.calcite.sql.SqlKind.INPUT_REF;
 
 /**
@@ -808,7 +807,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
     switch (aggCall.getAggregation().getKind()) {
     case COUNT:
       if (aggCall.isDistinct()) {
-        DruidType druidType = druidTable.columnTypes.get(only);
+        DruidType druidType = druidTable.getDruidType(only);
         if (druidType != null) {
           switch (druidType) {
           case thetaSketch:

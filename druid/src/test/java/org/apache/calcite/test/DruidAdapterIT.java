@@ -2132,15 +2132,6 @@ public class DruidAdapterIT {
       .queryContains(druidChecker(aggString));
   }
 
-  /** Tests that non distinct count aggregates don't use the hyperUnique type
-   * for metrics with type hyperUnique */
-  @Test public void testNonDistinctCountAggregateProducedForHU() {
-    String sql = "select count(\"user_unique\") as users from \"wiki\"";
-    String aggString = "{'type':'count','name':'USERS','fieldName':'user_unique'}";
-    sql(sql, WIKI)
-      .queryContains(druidChecker(aggString));
-  }
-
   /** Tests that the aggregate in the druid query
    * is indeed of type cardinality (not hyperUnique or thetaSketch) */
   @Test public void testCardinalityAggregateProduced() {
@@ -2157,15 +2148,6 @@ public class DruidAdapterIT {
     String aggString = "{'type':'thetaSketch','name':'USERS','fieldName':'user_unique'}";
     sql(sql, FOODMART)
       .queryContains(druidChecker(aggString));
-  }
-
-  /** Tests that non distinct count aggregates don't use the thetaSketch type
-   * for metrics with type thetaSketch */
-  @Test public void testNonDistinctCountAggregateProducedForTS() {
-    String sql = "select count(\"user_unique\") as users from \"foodmart\"";
-    String aggString = "{'type':'count','name':'USERS','fieldName':'user_unique'}";
-    sql(sql, FOODMART)
-            .queryContains(druidChecker(aggString));
   }
 
   /** Test case for
@@ -2217,15 +2199,6 @@ public class DruidAdapterIT {
         // [CALCITE-1775] "GROUP BY ()" on empty relation should return 1 row
         .returnsUnordered()
         .queryContains(druidChecker("'queryType':'timeseries'"));
-  }
-
-  /** Tests that non distinct count aggregates don't use the hyperUnique type
-   * for metrics with type hyperUnique */
-  @Test public void testNonDistinctCountAggregateProduced() {
-    String sql = "select count(\"user_unique\") as users from \"wiki\"";
-    String aggString = "{'type':'count','name':'USERS','fieldName':'user_unique'}";
-    sql(sql, WIKI)
-      .queryContains(druidChecker(aggString));
   }
 }
 

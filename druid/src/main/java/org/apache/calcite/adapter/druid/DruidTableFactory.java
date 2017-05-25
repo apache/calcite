@@ -21,6 +21,7 @@ import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.TableFactory;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
@@ -31,7 +32,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import static org.apache.calcite.adapter.druid.DruidConnectionImpl.DruidType;
 
 /**
  * Implementation of {@link TableFactory} for Druid.
@@ -50,23 +50,22 @@ public class DruidTableFactory implements TableFactory {
     // If "dataSource" operand is present it overrides the table name.
     final String dataSource = (String) operand.get("dataSource");
     final Set<String> metricNameBuilder = new LinkedHashSet<>();
-    final Map<String, SqlTypeName> fieldBuilder = new LinkedHashMap<>();
-    final Map<String, DruidType> typeBuilder = new LinkedHashMap<>();
+    final Map<String, Pair<SqlTypeName, DruidType>> fieldTypeBuilder = new LinkedHashMap<>();
     final String timestampColumnName;
     if (operand.get("timestampColumn") != null) {
       timestampColumnName = (String) operand.get("timestampColumn");
     } else {
       timestampColumnName = DruidTable.DEFAULT_TIMESTAMP_COLUMN;
     }
-    fieldBuilder.put(timestampColumnName, SqlTypeName.TIMESTAMP);
+    fieldTypeBuilder.put(timestampColumnName,
+            new Pair<>(SqlTypeName.TIMESTAMP, DruidType.STRING));
     final Object dimensionsRaw = operand.get("dimensions");
     if (dimensionsRaw instanceof List) {
       //noinspection unchecked
       final List<String> dimensions = (List<String>) dimensionsRaw;
       for (String dimension : dimensions) {
-        fieldBuilder.put(dimension, SqlTypeName.VARCHAR);
         // Druid dimensions are type STRING by default
-        typeBuilder.put(dimension, DruidType.STRING);
+        fieldTypeBuilder.put(dimension, new Pair<>(SqlTypeName.VARCHAR, DruidType.STRING));
       }
     }
     final Object metricsRaw = operand.get("metrics");
@@ -82,27 +81,25 @@ public class DruidTableFactory implements TableFactory {
             throw new IllegalArgumentException("metric must have name");
           }
           metricName = (String) map2.get("name");
-          final Object type = map2.get("type");
-          if ("long".equals(type)) {
+          // type should be non null if metric is a map
+          final String type = (String) map2.get("type");
+          assert type != null;
+          // count metrics should be queried with longSum at query time
+          if (type.startsWith("long") || type.equals("count")) {
             sqlTypeName = SqlTypeName.BIGINT;
-          } else if ("double".equals(type)) {
+          } else if (type.startsWith("double")) {
             sqlTypeName = SqlTypeName.DOUBLE;
             druidType = DruidType.FLOAT;
           } else {
             sqlTypeName = SqlTypeName.BIGINT;
-            if ("thetaSketch".equals(type)) {
-              druidType = DruidType.thetaSketch;
-            } else if ("hyperUnique".equals(type)) {
-              druidType = DruidType.hyperUnique;
-            }
+            druidType = DruidType.valueOf(type);
           }
         } else {
           metricName = (String) metric;
           sqlTypeName = SqlTypeName.BIGINT;
         }
-        fieldBuilder.put(metricName, sqlTypeName);
         metricNameBuilder.add(metricName);
-        typeBuilder.put(metricName, druidType);
+        fieldTypeBuilder.put(metricName, new Pair<>(sqlTypeName, druidType));
       }
     }
     final String dataSourceName = Util.first(dataSource, name);
@@ -120,7 +117,7 @@ public class DruidTableFactory implements TableFactory {
       intervals = null;
     }
     return DruidTable.create(druidSchema, dataSourceName, intervals,
-        fieldBuilder, metricNameBuilder, timestampColumnName, c, typeBuilder);
+        fieldTypeBuilder, metricNameBuilder, timestampColumnName, c);
   }
 
 }
