@@ -18,6 +18,8 @@ package org.apache.calcite.util;
 
 import org.junit.Test;
 
+import java.io.File;
+
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
 
@@ -29,7 +31,8 @@ public class SourceTest {
     final Source foo = Sources.file(null, "/foo");
     final Source bar = Sources.file(null, "bar");
     final Source fooBar = foo.append(bar);
-    assertThat(fooBar.file().toString(), is("/foo/bar"));
+    assertThat(fooBar.file().toString(),
+        is("/foo/bar".replace('/', File.separatorChar)));
   }
 
   @Test public void testRelative() {
