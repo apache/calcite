@@ -18,10 +18,12 @@ package org.apache.calcite.avatica;
 
 import org.junit.Test;
 
+import java.io.File;
 import java.util.Properties;
 
-import static org.junit.Assert.assertEquals;
+import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThat;
 
 /**
  * Test class for {@link ConnectionConfigImpl}.
@@ -29,17 +31,19 @@ import static org.junit.Assert.assertNull;
 public class ConnectionConfigImplTest {
 
   @Test public void testTrustStore() {
-    final String truststore = "/my/truststore.jks";
+    final String trustStore = "/my/truststore.jks";
+    final String windowsTrustStore = "C:\\my\\truststore.jks";
     final String pw = "supremelysecret";
     Properties props = new Properties();
-    props.setProperty(BuiltInConnectionProperty.TRUSTSTORE.name(), truststore);
+    props.setProperty(BuiltInConnectionProperty.TRUSTSTORE.name(), trustStore);
     props.setProperty(BuiltInConnectionProperty.TRUSTSTORE_PASSWORD.name(), pw);
     ConnectionConfigImpl config = new ConnectionConfigImpl(props);
-    assertEquals(truststore, config.truststore().getAbsolutePath());
-    assertEquals(pw, config.truststorePassword());
+    assertThat(config.truststore().getAbsolutePath(),
+        File.separatorChar == '/' ? is(trustStore) : is(windowsTrustStore));
+    assertThat(config.truststorePassword(), is(pw));
   }
 
-  @Test public void testNoTruststore() {
+  @Test public void testNoTrustStore() {
     Properties props = new Properties();
     ConnectionConfigImpl config = new ConnectionConfigImpl(props);
     assertNull(config.truststore());

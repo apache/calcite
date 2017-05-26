@@ -30,6 +30,7 @@ import org.ietf.jgss.GSSManager;
 import org.ietf.jgss.GSSName;
 import org.ietf.jgss.Oid;
 import org.junit.AfterClass;
+import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -46,6 +47,7 @@ import java.util.Set;
 import javax.security.auth.Subject;
 import javax.security.auth.kerberos.KerberosTicket;
 
+import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -182,6 +184,8 @@ public class HttpServerSpnegoWithJaasTest {
   }
 
   @Test public void testAuthenticatedClientsAllowed() throws Exception {
+    Assume.assumeThat("Test disabled on Windows", File.separatorChar, is('/'));
+
     // Create the subject for the client
     final Subject clientSubject = JaasKrbUtil.loginUsingKeytab(SpnegoTestUtil.CLIENT_PRINCIPAL,
         clientKeytab);
