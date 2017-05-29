@@ -670,6 +670,59 @@ public class RelToSqlConverterTest {
         .ok(expected);
   }
 
+  @Test public void testFloorPostgres() {
+    String query = "SELECT floor(\"hire_date\" TO MINUTE) FROM \"employee\"";
+    String expected = "SELECT DATE_TRUNC('MINUTE', \"hire_date\")\nFROM \"foodmart\".\"employee\"";
+    sql(query)
+        .dialect(DatabaseProduct.POSTGRESQL.getDialect())
+        .ok(expected);
+  }
+
+  @Test public void testFloorOracle() {
+    String query = "SELECT floor(\"hire_date\" TO MINUTE) FROM \"employee\"";
+    String expected = "SELECT TRUNC(\"hire_date\", 'MINUTE')\nFROM \"foodmart\".\"employee\"";
+    sql(query)
+        .dialect(DatabaseProduct.ORACLE.getDialect())
+        .ok(expected);
+  }
+
+  @Test public void testFloorMssqlWeek() {
+    String query = "SELECT floor(\"hire_date\" TO WEEK) FROM \"employee\"";
+    String expected = "SELECT CONVERT(DATETIME, CONVERT(VARCHAR(10), "
+        + "DATEADD(day, - (6 + DATEPART(weekday, [hire_date] )) % 7, [hire_date] ), 126))\n"
+        + "FROM [foodmart].[employee]";
+    sql(query)
+        .dialect(DatabaseProduct.MSSQL.getDialect())
+        .ok(expected);
+  }
+
+  @Test public void testFloorMssqlMonth() {
+    String query = "SELECT floor(\"hire_date\" TO MONTH) FROM \"employee\"";
+    String expected = "SELECT CONVERT(DATETIME, CONVERT(VARCHAR(7), [hire_date] , 126)+'-01')\n"
+        + "FROM [foodmart].[employee]";
+    sql(query)
+        .dialect(DatabaseProduct.MSSQL.getDialect())
+        .ok(expected);
+  }
+
+  @Test public void testFloorMysqlMonth() {
+    String query = "SELECT floor(\"hire_date\" TO MONTH) FROM \"employee\"";
+    String expected = "SELECT DATE_FORMAT(`hire_date`, '%Y-%m-01')\n"
+        + "FROM `foodmart`.`employee`";
+    sql(query)
+        .dialect(DatabaseProduct.MYSQL.getDialect())
+        .ok(expected);
+  }
+
+  @Test public void testFloorMysqlWeek() {
+    String query = "SELECT floor(\"hire_date\" TO WEEK) FROM \"employee\"";
+    String expected = "SELECT STR_TO_DATE(DATE_FORMAT(`hire_date` , '%x%v-1'), '%x%v-%w')\n"
+        + "FROM `foodmart`.`employee`";
+    sql(query)
+        .dialect(DatabaseProduct.MYSQL.getDialect())
+        .ok(expected);
+  }
+
   @Test public void testMatchRecognizePatternExpression() {
     String sql = "select *\n"
         + "  from \"product\" match_recognize\n"
