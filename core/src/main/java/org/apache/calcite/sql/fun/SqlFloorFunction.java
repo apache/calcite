@@ -23,6 +23,7 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlOperatorBinding;
 import org.apache.calcite.sql.SqlWriter;
+import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
@@ -78,28 +79,51 @@ public class SqlFloorFunction extends SqlMonotonicUnaryFunction {
     }
 
     switch (writer.getDialect().getDatabaseProduct()) {
+    case UNKNOWN:
+    case CALCITE:
+      unparseDatetimeDefault(writer, call);
+      return;
+    }
+
+    final SqlLiteral timeUnitNode = call.operand(1);
+    final TimeUnitRange timeUnit = timeUnitNode.getValueAs(TimeUnitRange.class);
+
+    switch (writer.getDialect().getDatabaseProduct()) {
     case ORACLE:
+      replaceTimeUnitOperand(call, timeUnit.name(), timeUnitNode.getParserPosition());
       unparseDatetimeFunction(writer, call, "TRUNC", true);
       break;
     case HSQLDB:
-      // translate timeUnit literal
-      SqlLiteral node = call.operand(1);
-      String translatedLit =
-          convertToHsqlDb((TimeUnitRange) node.getValue());
-      SqlLiteral newNode = SqlLiteral.createCharString(
-          translatedLit, null, node.getParserPosition());
-      call.setOperand(1, newNode);
-
+      String translatedLit = convertToHsqlDb(timeUnit);
+      replaceTimeUnitOperand(call, translatedLit, timeUnitNode.getParserPosition());
       unparseDatetimeFunction(writer, call, "TRUNC", true);
       break;
     case POSTGRESQL:
+      replaceTimeUnitOperand(call, timeUnit.name(), timeUnitNode.getParserPosition());
       unparseDatetimeFunction(writer, call, "DATE_TRUNC", false);
+      break;
+    case MSSQL:
+      unparseDatetimeMssql(writer, call);
+      break;
+    case MYSQL:
+      unparseDatetimeMysql(writer, call);
       break;
     default:
       unparseDatetimeDefault(writer, call);
     }
   }
 
+  private void replaceTimeUnitOperand(SqlCall call, String literal, SqlParserPos pos) {
+    SqlLiteral literalNode = SqlLiteral.createCharString(literal, null, pos);
+    call.setOperand(1, literalNode);
+  }
+
+  /**
+   * Default datetime unparse method if the specific dialect was not matched.
+   *
+   * @param writer SqlWriter
+   * @param call SqlCall
+   */
   private void unparseDatetimeDefault(SqlWriter writer, SqlCall call) {
     final SqlWriter.Frame frame = writer.startFunCall(getName());
     call.operand(0).unparse(writer, 0, 100);
@@ -108,16 +132,82 @@ public class SqlFloorFunction extends SqlMonotonicUnaryFunction {
     writer.endFunCall(frame);
   }
 
+  /**
+   * Most dialects that natively support datetime floor will use this.
+   * In those cases the call will look like TRUNC(datetime, 'year').
+   *
+   * @param writer SqlWriter
+   * @param call SqlCall
+   * @param funName Name of the sql function to call
+   * @param datetimeFirst Specify the order of the datetime &amp; timeUnit
+   * arguments
+   */
   private void unparseDatetimeFunction(SqlWriter writer, SqlCall call,
       String funName, Boolean datetimeFirst) {
     final SqlWriter.Frame frame = writer.startFunCall(funName);
-    Integer firstOp = datetimeFirst ? 0 : 1;
-    Integer secondOp = datetimeFirst ? 1 : 0;
-
-    call.operand(firstOp).unparse(writer, 0, 0);
+    int firstOpIndex = datetimeFirst ? 0 : 1;
+    int secondOpIndex = datetimeFirst ? 1 : 0;
+    call.operand(firstOpIndex).unparse(writer, 0, 0);
     writer.sep(",", true);
-    call.operand(secondOp).unparse(writer, 0, 0);
+    call.operand(secondOpIndex).unparse(writer, 0, 0);
     writer.endFunCall(frame);
+  }
+
+  /**
+   * Unparse datetime floor for MS SQL. There is no TRUNC function, so simulate this
+   * using calls to CONVERT.
+   *
+   * @param writer SqlWriter
+   * @param call SqlCall
+   */
+  private void unparseDatetimeMssql(SqlWriter writer, SqlCall call) {
+    SqlLiteral node = call.operand(1);
+    TimeUnitRange unit = (TimeUnitRange) node.getValue();
+
+    switch(unit) {
+    case YEAR:
+      unparseMssql(writer, call, 4, "-01-01");
+      break;
+    case MONTH:
+      unparseMssql(writer, call, 7, "-01");
+      break;
+    case WEEK:
+      writer.print("CONVERT(DATETIME, CONVERT(VARCHAR(10), "
+          + "DATEADD(day, - (6 + DATEPART(weekday, ");
+      call.operand(0).unparse(writer, 0, 0);
+      writer.print(")) % 7, ");
+      call.operand(0).unparse(writer, 0, 0);
+      writer.print("), 126))");
+      break;
+    case DAY:
+      unparseMssql(writer, call, 10, "");
+      break;
+    case HOUR:
+      unparseMssql(writer, call, 13, ":00:00");
+      break;
+    case MINUTE:
+      unparseMssql(writer, call, 16, ":00");
+      break;
+    case SECOND:
+      unparseMssql(writer, call, 19, ":00");
+      break;
+    default:
+      throw new AssertionError("MSSQL does not support FLOOR for time unit: "
+          + unit);
+    }
+  }
+
+  private void unparseMssql(SqlWriter writer, SqlCall call, Integer charLen, String offset) {
+    writer.print("CONVERT");
+    SqlWriter.Frame frame = writer.startList("(", ")");
+    writer.print("DATETIME, CONVERT(VARCHAR(" + charLen.toString() + "), ");
+    call.operand(0).unparse(writer, 0, 0);
+    writer.print(", 126)");
+
+    if (offset.length() > 0) {
+      writer.print("+'" + offset + "'");
+    }
+    writer.endList(frame);
   }
 
   private static String convertToHsqlDb(TimeUnitRange unit) {
@@ -140,6 +230,61 @@ public class SqlFloorFunction extends SqlMonotonicUnaryFunction {
       throw new AssertionError("could not convert time unit to an HsqlDb equivalent: "
         + unit);
     }
+  }
+
+  /**
+   * Unparse datetime floor for MySQL. There is no TRUNC function, so simulate this
+   * using calls to DATE_FORMAT.
+   *
+   * @param writer SqlWriter
+   * @param call SqlCall
+   */
+  private void unparseDatetimeMysql(SqlWriter writer, SqlCall call) {
+    SqlLiteral node = call.operand(1);
+    TimeUnitRange unit = (TimeUnitRange) node.getValue();
+
+    if (unit == TimeUnitRange.WEEK) {
+      writer.print("STR_TO_DATE");
+      SqlWriter.Frame frame = writer.startList("(", ")");
+
+      writer.print("DATE_FORMAT(");
+      call.operand(0).unparse(writer, 0, 0);
+      writer.print(", '%x%v-1'), '%x%v-%w'");
+      writer.endList(frame);
+      return;
+    }
+
+    String format;
+    switch(unit) {
+    case YEAR:
+      format = "%Y-01-01";
+      break;
+    case MONTH:
+      format = "%Y-%m-01";
+      break;
+    case DAY:
+      format = "%Y-%m-%d";
+      break;
+    case HOUR:
+      format = "%Y-%m-%d %k:00:00";
+      break;
+    case MINUTE:
+      format = "%Y-%m-%d %k:%i:00";
+      break;
+    case SECOND:
+      format = "%Y-%m-%d %k:%i:%s";
+      break;
+    default:
+      throw new AssertionError("MYSQL does not support FLOOR for time unit: "
+          + unit);
+    }
+
+    writer.print("DATE_FORMAT");
+    SqlWriter.Frame frame = writer.startList("(", ")");
+    call.operand(0).unparse(writer, 0, 0);
+    writer.sep(",", true);
+    writer.print("'" + format + "'");
+    writer.endList(frame);
   }
 }
 
