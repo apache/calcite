@@ -324,7 +324,7 @@ class FileRowConverter {
     }
 
     private java.util.Date parseDate(String string) {
-      Parser parser = new Parser(DateTimeUtils.GMT_ZONE);
+      Parser parser = new Parser(DateTimeUtils.UTC_ZONE);
       List<DateGroup> groups = parser.parse(string);
       DateGroup group = groups.get(0);
       return group.getDates().get(0);

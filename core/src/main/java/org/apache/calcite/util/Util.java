@@ -2417,7 +2417,7 @@ public class Util {
   /** Creates a {@link Calendar} in the GMT time zone and root locale.
    * Does not use the time zone or locale. */
   public static Calendar calendar() {
-    return Calendar.getInstance(DateTimeUtils.GMT_ZONE, Locale.ROOT);
+    return Calendar.getInstance(DateTimeUtils.UTC_ZONE, Locale.ROOT);
   }
 
   //~ Inner Classes ----------------------------------------------------------

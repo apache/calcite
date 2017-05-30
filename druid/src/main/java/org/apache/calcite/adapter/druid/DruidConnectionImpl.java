@@ -72,7 +72,7 @@ class DruidConnectionImpl implements DruidConnection {
   private static final SimpleDateFormat UTC_TIMESTAMP_FORMAT;
 
   static {
-    final TimeZone utc = DateTimeUtils.GMT_ZONE;
+    final TimeZone utc = DateTimeUtils.UTC_ZONE;
     UTC_TIMESTAMP_FORMAT =
         new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.ROOT);
     UTC_TIMESTAMP_FORMAT.setTimeZone(utc);

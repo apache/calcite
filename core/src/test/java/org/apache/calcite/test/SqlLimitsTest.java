@@ -195,7 +195,7 @@ public class SqlLimitsTest {
     } else if (o instanceof Calendar) {
       Calendar calendar = (Calendar) o;
       DateFormat dateFormat = getDateFormat(type.getSqlTypeName());
-      dateFormat.setTimeZone(DateTimeUtils.GMT_ZONE);
+      dateFormat.setTimeZone(DateTimeUtils.UTC_ZONE);
       s = dateFormat.format(calendar.getTime());
     } else {
       s = o.toString();

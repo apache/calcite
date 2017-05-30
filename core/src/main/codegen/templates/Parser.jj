@@ -418,7 +418,7 @@ JAVACODE void checkNonQueryExpression(ExprContext exprContext)
 JAVACODE SqlDateLiteral parseDateLiteral(String s, SqlParserPos pos) {
     String dateStr = SqlParserUtil.parseString(s);
     Calendar cal = DateTimeUtils.parseDateFormat(
-        dateStr, DateTimeUtils.DATE_FORMAT_STRING, DateTimeUtils.GMT_ZONE);
+        dateStr, DateTimeUtils.DATE_FORMAT_STRING, DateTimeUtils.UTC_ZONE);
     if (null == cal) {
         throw SqlUtil.newContextException(pos,
             RESOURCE.illegalLiteral("DATE", s,
@@ -431,7 +431,7 @@ JAVACODE SqlTimeLiteral parseTimeLiteral(String s, SqlParserPos pos) {
     String dateStr = SqlParserUtil.parseString(s);
     DateTimeUtils.PrecisionTime pt =
     DateTimeUtils.parsePrecisionDateTimeLiteral(
-        dateStr, DateTimeUtils.TIME_FORMAT_STRING, DateTimeUtils.GMT_ZONE);
+        dateStr, DateTimeUtils.TIME_FORMAT_STRING, DateTimeUtils.UTC_ZONE);
     if (null == pt) {
         throw SqlUtil.newContextException(pos,
             RESOURCE.illegalLiteral("TIME", s,
@@ -444,7 +444,7 @@ JAVACODE SqlTimestampLiteral parseTimestampLiteral(String s, SqlParserPos pos) {
     String dateStr = SqlParserUtil.parseString(s);
     DateTimeUtils.PrecisionTime pt =
     DateTimeUtils.parsePrecisionDateTimeLiteral(
-        dateStr, DateTimeUtils.TIMESTAMP_FORMAT_STRING, DateTimeUtils.GMT_ZONE);
+        dateStr, DateTimeUtils.TIMESTAMP_FORMAT_STRING, DateTimeUtils.UTC_ZONE);
     if (null == pt) {
         throw SqlUtil.newContextException(pos,
             RESOURCE.illegalLiteral("TIMESTAMP", s,

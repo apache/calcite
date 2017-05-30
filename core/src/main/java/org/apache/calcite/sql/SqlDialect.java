@@ -463,7 +463,7 @@ public class SqlDialect {
    * <blockquote><code>quoteTimestampLiteral(new Timestamp(0));</code>
    * </blockquote>
    *
-   * returns {@code TIMESTAMP '1970-01-01 00:00:00'}, regardless of the JVM's
+   * <p>returns {@code TIMESTAMP '1970-01-01 00:00:00'}, regardless of the JVM's
    * time zone.
    *
    * @param timestamp Timestamp
@@ -474,7 +474,7 @@ public class SqlDialect {
         new SimpleDateFormat(
             "'TIMESTAMP' ''yyyy-MM-DD HH:mm:SS''",
             Locale.ROOT);
-    format.setTimeZone(DateTimeUtils.GMT_ZONE);
+    format.setTimeZone(DateTimeUtils.UTC_ZONE);
     return format.format(timestamp);
   }
 

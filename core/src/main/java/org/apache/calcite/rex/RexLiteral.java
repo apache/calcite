@@ -216,7 +216,7 @@ public class RexLiteral extends RexNode {
     case TIME:
     case TIMESTAMP:
       return value instanceof Calendar
-          && ((Calendar) value).getTimeZone().equals(DateTimeUtils.GMT_ZONE);
+          && ((Calendar) value).getTimeZone().equals(DateTimeUtils.UTC_ZONE);
     case INTERVAL_YEAR:
     case INTERVAL_YEAR_MONTH:
     case INTERVAL_MONTH:
@@ -520,7 +520,7 @@ public class RexLiteral extends RexNode {
     case TIME:
     case TIMESTAMP:
       String format = getCalendarFormat(typeName);
-      TimeZone tz = DateTimeUtils.GMT_ZONE;
+      TimeZone tz = DateTimeUtils.UTC_ZONE;
       Calendar cal = null;
       if (typeName == SqlTypeName.DATE) {
         cal =

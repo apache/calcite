@@ -2233,10 +2233,10 @@ public class SqlParserTest {
         "TIMESTAMP '2004-06-01 15:55:55.123'");
     checkExp(
         "TIMESTAMP '2004-06-01 15:55:55.1236'",
-        "TIMESTAMP '2004-06-01 15:55:55.124'");
+        "TIMESTAMP '2004-06-01 15:55:55.123'");
     checkExp(
         "TIMESTAMP '2004-06-01 15:55:55.9999'",
-        "TIMESTAMP '2004-06-01 15:55:56.000'");
+        "TIMESTAMP '2004-06-01 15:55:55.999'");
     checkExpSame("NULL");
   }
 
@@ -3684,10 +3684,14 @@ public class SqlParserTest {
 
     // Date literals
     checkExp("DATE '2004-12-01'", "DATE '2004-12-01'");
+
+    // Time literals
     checkExp("TIME '12:01:01'", "TIME '12:01:01'");
     checkExp("TIME '12:01:01.'", "TIME '12:01:01'");
     checkExp("TIME '12:01:01.000'", "TIME '12:01:01.000'");
     checkExp("TIME '12:01:01.001'", "TIME '12:01:01.001'");
+
+    // Timestamp literals
     checkExp(
         "TIMESTAMP '2004-12-01 12:01:01'",
         "TIMESTAMP '2004-12-01 12:01:01'");
@@ -3697,7 +3701,6 @@ public class SqlParserTest {
     checkExp(
         "TIMESTAMP '2004-12-01 12:01:01.'",
         "TIMESTAMP '2004-12-01 12:01:01'");
-    checkExpSame("TIMESTAMP '2004-12-01 12:01:01.1'");
 
     // Failures.
     checkFails("^DATE '12/21/99'^", "(?s).*Illegal DATE literal.*");
