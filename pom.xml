@@ -138,7 +138,7 @@ limitations under the License.
       </dependency>
       <dependency>
         <groupId>org.apache.calcite.avatica</groupId>
-        <artifactId>avatica-noop</artifactId>
+        <artifactId>avatica-noop-driver</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
