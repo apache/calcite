@@ -7236,10 +7236,14 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     checkColumnType(
         "select*from unnest(array['1','22','333','22'])",
         "CHAR(3) NOT NULL");
+    checkColumnType(
+        "select*from unnest(array['1','22',null,'22'])",
+        "CHAR(2)");
     checkFails(
         "select*from ^unnest(1)^",
         "(?s).*Cannot apply 'UNNEST' to arguments of type 'UNNEST.<INTEGER>.'.*");
     check("select*from unnest(array(select*from dept))");
+    check("select*from unnest(array[1,null])");
     check("select c from unnest(array(select deptno from dept)) as t(c)");
     checkFails("select c from unnest(array(select * from dept)) as t(^c^)",
         "List of column aliases must have same degree as table; table has 2 columns \\('DEPTNO', 'NAME'\\), whereas alias list has 1 columns");
