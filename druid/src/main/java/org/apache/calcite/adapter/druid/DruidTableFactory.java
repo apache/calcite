@@ -91,7 +91,7 @@ public class DruidTableFactory implements TableFactory {
             sqlTypeName = SqlTypeName.DOUBLE;
             druidType = DruidType.FLOAT;
           } else {
-            sqlTypeName = SqlTypeName.BIGINT;
+            sqlTypeName = SqlTypeName.VARBINARY;
             druidType = DruidType.valueOf(type);
           }
         } else {
