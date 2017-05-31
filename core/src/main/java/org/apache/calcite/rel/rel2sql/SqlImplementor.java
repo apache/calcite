@@ -25,6 +25,7 @@ import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexDynamicParam;
 import org.apache.calcite.rex.RexFieldCollation;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
@@ -41,6 +42,7 @@ import org.apache.calcite.sql.SqlBinaryOperator;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlDialect;
+import org.apache.calcite.sql.SqlDynamicParam;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlIdentifier;
@@ -595,6 +597,10 @@ public abstract class SqlImplementor {
         elseNode = caseNodeList.get(caseNodeList.size() - 1);
         return new SqlCase(POS, valueNode, new SqlNodeList(whenList, POS),
             new SqlNodeList(thenList, POS), elseNode);
+
+      case DYNAMIC_PARAM:
+        final RexDynamicParam caseParam = (RexDynamicParam) rex;
+        return new SqlDynamicParam(caseParam.getIndex(), POS);
 
       default:
         if (rex instanceof RexOver) {

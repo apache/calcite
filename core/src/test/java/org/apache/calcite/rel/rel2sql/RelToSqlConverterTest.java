@@ -302,6 +302,17 @@ public class RelToSqlConverterTest {
     sql(query).ok(expected);
   }
 
+  @Test public void testSelectQueryWithParameters() {
+    String query = "select * from \"product\" "
+        + "where \"product_id\" = ? "
+        + "AND ? >= \"shelf_width\"";
+    final String expected = "SELECT *\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "WHERE \"product_id\" = ?"
+        + "AND ? >= \"shelf_width\"";
+    sql(query).ok(expected);
+  }
+
   @Test public void testSelectQueryWithFetchOffsetClause() {
     String query = "select \"product_id\"  from \"product\" order by \"product_id\""
         + " offset 10 rows fetch next 100 rows only";
