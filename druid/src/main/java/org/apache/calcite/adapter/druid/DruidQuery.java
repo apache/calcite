@@ -1329,7 +1329,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
       generator.writeStartObject();
       generator.writeStringField("type", type);
       switch (type) {
-      case "NOT":
+      case "not":
         writeField(generator, "field", fields.get(0));
         break;
       default:
