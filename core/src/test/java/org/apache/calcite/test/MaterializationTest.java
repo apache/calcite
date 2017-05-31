@@ -1286,7 +1286,9 @@ public class MaterializationTest {
             + "group by \"dependents\".\"empid\"",
       HR_FKUK_MODEL,
       CalciteAssert.checkResultContains(
+          "EnumerableAggregate(group=[{0}])",
           "EnumerableUnion(all=[true])",
+          "EnumerableAggregate(group=[{2}])",
           "EnumerableTableScan(table=[[hr, m0]])",
           "expr#5=[10], expr#6=[>($t0, $t5)], expr#7=[11], expr#8=[<=($t0, $t7)]"));
   }
@@ -1328,7 +1330,9 @@ public class MaterializationTest {
             + "group by \"dependents\".\"empid\"",
       HR_FKUK_MODEL,
       CalciteAssert.checkResultContains(
+          "EnumerableAggregate(group=[{0}])",
           "EnumerableUnion(all=[true])",
+          "EnumerableAggregate(group=[{2}])",
           "EnumerableTableScan(table=[[hr, m0]])",
           "expr#13=[OR($t10, $t12)], expr#14=[AND($t6, $t8, $t13)]"));
   }
@@ -1493,6 +1497,35 @@ public class MaterializationTest {
                 + "  EnumerableJoin(condition=[=($1, $3)], joinType=[inner])\n"
                 + "    EnumerableTableScan(table=[[hr, m0]])\n"
                 + "    EnumerableTableScan(table=[[hr, depts]])"));
+  }
+
+  @Test public void testJoinAggregateMaterializationAggregateFuncs9() {
+    checkMaterialize(
+        "select \"dependents\".\"empid\", \"emps\".\"deptno\", count(distinct \"salary\") as s\n"
+            + "from \"emps\"\n"
+            + "join \"dependents\" on (\"emps\".\"empid\" = \"dependents\".\"empid\")\n"
+            + "group by \"dependents\".\"empid\", \"emps\".\"deptno\"",
+        "select \"emps\".\"deptno\", count(distinct \"salary\") as s\n"
+            + "from \"emps\"\n"
+            + "join \"dependents\" on (\"emps\".\"empid\" = \"dependents\".\"empid\")\n"
+            + "group by \"dependents\".\"empid\", \"emps\".\"deptno\"",
+        HR_FKUK_MODEL,
+        CalciteAssert.checkResultContains(
+            "EnumerableCalc(expr#0..2=[{inputs}], deptno=[$t1], S=[$t2])\n"
+                + "  EnumerableTableScan(table=[[hr, m0]])"));
+  }
+
+  @Test public void testJoinAggregateMaterializationAggregateFuncs10() {
+    checkNoMaterialize(
+        "select \"dependents\".\"empid\", \"emps\".\"deptno\", count(distinct \"salary\") as s\n"
+            + "from \"emps\"\n"
+            + "join \"dependents\" on (\"emps\".\"empid\" = \"dependents\".\"empid\")\n"
+            + "group by \"dependents\".\"empid\", \"emps\".\"deptno\"",
+        "select \"emps\".\"deptno\", count(distinct \"salary\") as s\n"
+            + "from \"emps\"\n"
+            + "join \"dependents\" on (\"emps\".\"empid\" = \"dependents\".\"empid\")\n"
+            + "group by \"emps\".\"deptno\"",
+        HR_FKUK_MODEL);
   }
 
   @Test public void testJoinMaterialization4() {

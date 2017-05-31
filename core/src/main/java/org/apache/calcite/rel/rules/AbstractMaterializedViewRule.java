@@ -426,25 +426,9 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
               }
 
               // d. Generate final rewriting (union).
-              // We add a Project on top to ensure the output type of the expression.
-              RelBuilder builder = call.builder();
-              builder.push(unionInputQuery);
-              builder.push(unionInputView);
-              builder.union(true);
-              List<RexNode> exprList = new ArrayList<>(builder.peek().getRowType().getFieldCount());
-              List<String> nameList = new ArrayList<>(builder.peek().getRowType().getFieldCount());
-              for (int i = 0; i < builder.peek().getRowType().getFieldCount(); i++) {
-                // We can take unionInputQuery as it is query based.
-                RelDataTypeField field = unionInputQuery.getRowType().getFieldList().get(i);
-                exprList.add(
-                    rexBuilder.ensureType(
-                        field.getType(),
-                        rexBuilder.makeInputRef(builder.peek(), i),
-                        true));
-                nameList.add(field.getName());
-              }
-              builder.project(exprList, nameList);
-              call.transformTo(builder.build());
+              final RelNode result = createUnion(call.builder(), rexBuilder,
+                  topProject, unionInputQuery, unionInputView);
+              call.transformTo(result);
             } else if (compensationPreds != null) {
               RexNode compensationColumnsEquiPred = compensationPreds.getLeft();
               RexNode otherCompensationPred = RexUtil.composeConjunction(
@@ -543,6 +527,14 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
       Project topProject, RelNode node,
       BiMap<RelTableRef, RelTableRef> viewToQueryTableMapping,
       EquivalenceClasses viewEC, EquivalenceClasses queryEC);
+
+  /**
+   * If the view will be used in a union rewriting, this method is responsible for
+   * generating the union and any other operator needed on top of it, e.g., a Project
+   * operator.
+   */
+  protected abstract RelNode createUnion(RelBuilder relBuilder, RexBuilder rexBuilder,
+      RelNode topProject, RelNode unionInputQuery, RelNode unionInputView);
 
   /**
    * This method is responsible for rewriting the query using the given view query.
@@ -698,6 +690,27 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
       if (topProject != null) {
         return topProject.copy(topProject.getTraitSet(), ImmutableList.of(relBuilder.build()));
       }
+      return relBuilder.build();
+    }
+
+    @Override protected RelNode createUnion(RelBuilder relBuilder, RexBuilder rexBuilder,
+        RelNode topProject, RelNode unionInputQuery, RelNode unionInputView) {
+      relBuilder.push(unionInputQuery);
+      relBuilder.push(unionInputView);
+      relBuilder.union(true);
+      List<RexNode> exprList = new ArrayList<>(relBuilder.peek().getRowType().getFieldCount());
+      List<String> nameList = new ArrayList<>(relBuilder.peek().getRowType().getFieldCount());
+      for (int i = 0; i < relBuilder.peek().getRowType().getFieldCount(); i++) {
+        // We can take unionInputQuery as it is query based.
+        RelDataTypeField field = unionInputQuery.getRowType().getFieldList().get(i);
+        exprList.add(
+            rexBuilder.ensureType(
+                field.getType(),
+                rexBuilder.makeInputRef(relBuilder.peek(), i),
+                true));
+        nameList.add(field.getName());
+      }
+      relBuilder.project(exprList, nameList);
       return relBuilder.build();
     }
 
@@ -990,11 +1003,53 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
       // Generate query rewriting.
       relBuilder.push(aggregateInput);
       relBuilder.filter(simplify.simplify(queryCompensationPred));
-      RelNode result = aggregate.copy(
+      return aggregate.copy(
           aggregate.getTraitSet(), ImmutableList.of(relBuilder.build()));
+    }
+
+    @Override protected RelNode createUnion(RelBuilder relBuilder, RexBuilder rexBuilder,
+        RelNode topProject, RelNode unionInputQuery, RelNode unionInputView) {
+      // Union
+      relBuilder.push(unionInputQuery);
+      relBuilder.push(unionInputView);
+      relBuilder.union(true);
+      List<RexNode> exprList = new ArrayList<>(relBuilder.peek().getRowType().getFieldCount());
+      List<String> nameList = new ArrayList<>(relBuilder.peek().getRowType().getFieldCount());
+      for (int i = 0; i < relBuilder.peek().getRowType().getFieldCount(); i++) {
+        // We can take unionInputQuery as it is query based.
+        RelDataTypeField field = unionInputQuery.getRowType().getFieldList().get(i);
+        exprList.add(
+            rexBuilder.ensureType(
+                field.getType(),
+                rexBuilder.makeInputRef(relBuilder.peek(), i),
+                true));
+        nameList.add(field.getName());
+      }
+      relBuilder.project(exprList, nameList);
+      // Rollup aggregate
+      Aggregate aggregate = (Aggregate) unionInputQuery;
+      final ImmutableBitSet groupSet = ImmutableBitSet.range(aggregate.getGroupCount());
+      final List<AggCall> aggregateCalls = new ArrayList<>();
+      for (int i = 0; i < aggregate.getAggCallList().size(); i++) {
+        AggregateCall aggCall = aggregate.getAggCallList().get(i);
+        aggregateCalls.add(
+            relBuilder.aggregateCall(
+                SubstitutionVisitor.getRollup(aggCall.getAggregation()),
+                aggCall.isDistinct(),
+                null,
+                aggCall.name,
+                ImmutableList.of(
+                    rexBuilder.makeInputRef(
+                        relBuilder.peek(), aggregate.getGroupCount() + i))));
+      }
+      RelNode result = relBuilder
+          .aggregate(relBuilder.groupKey(groupSet, false, null), aggregateCalls)
+          .build();
       if (topProject != null) {
+        // Top project
         return topProject.copy(topProject.getTraitSet(), ImmutableList.of(result));
       }
+      // Result
       return result;
     }
 
@@ -1071,12 +1126,17 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
           return null;
         }
       }
+      boolean containsDistinctAgg = false;
       for (int idx = 0; idx < queryAggregate.getAggCallList().size(); idx++) {
         if (references != null && !references.get(queryAggregate.getGroupCount() + idx)) {
           // Ignore
           continue;
         }
         AggregateCall queryAggCall = queryAggregate.getAggCallList().get(idx);
+        if (queryAggCall.filterArg >= 0) {
+          // Not supported currently
+          return null;
+        }
         List<Integer> queryAggCallIndexes = new ArrayList<>();
         for (int aggCallIdx : queryAggCall.getArgList()) {
           queryAggCallIndexes.add(m.get(aggCallIdx).iterator().next());
@@ -1086,7 +1146,8 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
           if (queryAggCall.getAggregation() != viewAggCall.getAggregation()
               || queryAggCall.isDistinct() != viewAggCall.isDistinct()
               || queryAggCall.getArgList().size() != viewAggCall.getArgList().size()
-              || queryAggCall.getType() != viewAggCall.getType()) {
+              || queryAggCall.getType() != viewAggCall.getType()
+              || viewAggCall.filterArg >= 0) {
             // Continue
             continue;
           }
@@ -1096,6 +1157,9 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
           }
           aggregateMapping.set(queryAggregate.getGroupCount() + idx,
               viewAggregate.getGroupCount() + j);
+          if (queryAggCall.isDistinct()) {
+            containsDistinctAgg = true;
+          }
           break;
         }
       }
@@ -1107,6 +1171,10 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
           .build();
       if (queryAggregate.getGroupCount() != viewAggregate.getGroupCount()
           || matchModality == MatchModality.VIEW_PARTIAL) {
+        if (containsDistinctAgg) {
+          // Cannot rollup DISTINCT aggregate
+          return null;
+        }
         // Target is coarser level of aggregation. Generate an aggregate.
         rewritingMapping = Mappings.create(MappingType.FUNCTION,
             topViewProject != null ? topViewProject.getRowType().getFieldCount()
