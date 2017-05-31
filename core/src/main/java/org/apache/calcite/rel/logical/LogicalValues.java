@@ -82,7 +82,7 @@ public class LogicalValues extends Values {
   public static LogicalValues create(RelOptCluster cluster,
       final RelDataType rowType,
       final ImmutableList<ImmutableList<RexLiteral>> tuples) {
-    final RelMetadataQuery mq = RelMetadataQuery.instance();
+    final RelMetadataQuery mq = cluster.getMetadataQuery();
     final RelTraitSet traitSet = cluster.traitSetOf(Convention.NONE)
         .replaceIfs(
             RelCollationTraitDef.INSTANCE, new Supplier<List<RelCollation>>() {

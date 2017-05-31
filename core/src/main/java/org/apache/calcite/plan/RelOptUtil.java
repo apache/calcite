@@ -3424,6 +3424,7 @@ public abstract class RelOptUtil {
     final RexBuilder rexBuilder = r.getCluster().getRexBuilder();
     final RelDataType rowType = r.getRowType();
     final List<RexNode> list = new ArrayList<>();
+    final RelMetadataQuery mq = r.getCluster().getMetadataQuery();
     for (RelDataTypeField field : rowType.getFieldList()) {
       if (field.getType().isNullable()) {
         list.add(
@@ -3435,8 +3436,7 @@ public abstract class RelOptUtil {
       // All columns are declared NOT NULL.
       return false;
     }
-    final RelOptPredicateList predicates =
-        RelMetadataQuery.instance().getPulledUpPredicates(r);
+    final RelOptPredicateList predicates = mq.getPulledUpPredicates(r);
     if (predicates.pulledUpPredicates.isEmpty()) {
       // We have no predicates, so cannot deduce that any of the fields
       // declared NULL are really NOT NULL.

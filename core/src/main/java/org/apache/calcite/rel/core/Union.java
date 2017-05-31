@@ -53,8 +53,7 @@ public abstract class Union extends SetOp {
   //~ Methods ----------------------------------------------------------------
 
   @Override public double estimateRowCount(RelMetadataQuery mq) {
-    double dRows = RelMdUtil.getUnionAllRowCount(RelMetadataQuery.instance(),
-        this);
+    double dRows = RelMdUtil.getUnionAllRowCount(mq, this);
     if (!all) {
       dRows *= 0.5;
     }

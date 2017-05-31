@@ -61,9 +61,7 @@ public class LoptSemiJoinOptimizer {
 
   private final RexBuilder rexBuilder;
 
-  /** Not thread-safe. But should be OK, because an optimizer is only used
-   * from within one thread.*/
-  final RelMetadataQuery mq = RelMetadataQuery.instance();
+  private final RelMetadataQuery mq;
 
   /**
    * Semijoins corresponding to each join factor, if they are going to be
@@ -85,10 +83,12 @@ public class LoptSemiJoinOptimizer {
   //~ Constructors -----------------------------------------------------------
 
   public LoptSemiJoinOptimizer(
+      RelMetadataQuery mq,
       LoptMultiJoin multiJoin,
       RexBuilder rexBuilder) {
     // there are no semijoins yet, so initialize to the original
     // factors
+    this.mq = mq;
     int nJoinFactors = multiJoin.getNumJoinFactors();
     chosenSemiJoins = new RelNode[nJoinFactors];
     for (int i = 0; i < nJoinFactors; i++) {

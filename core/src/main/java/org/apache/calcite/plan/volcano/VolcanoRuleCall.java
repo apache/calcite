@@ -133,6 +133,7 @@ public class VolcanoRuleCall extends RelOptRuleCall {
             entry.getKey(), entry.getValue(), this);
       }
       volcanoPlanner.ensureRegistered(rel, rels[0], this);
+      rels[0].getCluster().invalidateMetadataQuery();
 
       if (volcanoPlanner.listener != null) {
         RelOptListener.RuleProductionEvent event =

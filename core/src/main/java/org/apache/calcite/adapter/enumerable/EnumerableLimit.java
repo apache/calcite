@@ -64,7 +64,7 @@ public class EnumerableLimit extends SingleRel implements EnumerableRel {
   public static EnumerableLimit create(final RelNode input, RexNode offset,
       RexNode fetch) {
     final RelOptCluster cluster = input.getCluster();
-    final RelMetadataQuery mq = RelMetadataQuery.instance();
+    final RelMetadataQuery mq = cluster.getMetadataQuery();
     final RelTraitSet traitSet =
         cluster.traitSetOf(EnumerableConvention.INSTANCE)
             .replaceIfs(

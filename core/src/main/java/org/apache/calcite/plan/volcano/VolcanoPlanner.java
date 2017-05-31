@@ -888,7 +888,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
    * Checks internal consistency.
    */
   protected void validate() {
-    final RelMetadataQuery mq = RelMetadataQuery.instance();
+    final RelMetadataQuery mq = root.getCluster().getMetadataQuery();
     for (RelSet set : allSets) {
       if (set.equivalentSet != null) {
         throw new AssertionError(
@@ -1169,7 +1169,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
    * @see #normalizePlan(String)
    */
   public void dump(PrintWriter pw) {
-    final RelMetadataQuery mq = RelMetadataQuery.instance();
+    final RelMetadataQuery mq = root.getCluster().getMetadataQuery();
     pw.println("Root: " + root.getDescription());
     pw.println("Original rel:");
     pw.println(originalRootString);
@@ -1653,7 +1653,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     // 100. We think this happens because the back-links to parents are
     // not established. So, give the subset another change to figure out
     // its cost.
-    final RelMetadataQuery mq = RelMetadataQuery.instance();
+    final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
     subset.propagateCostImprovements(this, mq, rel, new HashSet<RelSubset>());
 
     return subset;
@@ -1718,7 +1718,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
    * &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MockTableImplRel.FENNEL_EXEC(
    * table=[CATALOG, SALES, EMP])</blockquote>
    *
-   * becomes
+   * <p>becomes
    *
    * <blockquote>
    * FennelAggRel.FENNEL_EXEC(child=Subset#{0}.FENNEL_EXEC, groupCount=1,

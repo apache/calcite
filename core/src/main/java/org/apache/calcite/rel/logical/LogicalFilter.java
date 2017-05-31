@@ -107,7 +107,7 @@ public final class LogicalFilter extends Filter {
   public static LogicalFilter create(final RelNode input, RexNode condition,
       ImmutableSet<CorrelationId> variablesSet) {
     final RelOptCluster cluster = input.getCluster();
-    final RelMetadataQuery mq = RelMetadataQuery.instance();
+    final RelMetadataQuery mq = cluster.getMetadataQuery();
     final RelTraitSet traitSet = cluster.traitSetOf(Convention.NONE)
         .replaceIfs(RelCollationTraitDef.INSTANCE,
             new Supplier<List<RelCollation>>() {

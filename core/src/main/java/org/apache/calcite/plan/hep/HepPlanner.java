@@ -640,7 +640,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
       bestRel = call.getResults().get(0);
     } else {
       RelOptCost bestCost = null;
-      final RelMetadataQuery mq = RelMetadataQuery.instance();
+      final RelMetadataQuery mq = call.getMetadataQuery();
       for (RelNode rel : call.getResults()) {
         RelOptCost thisCost = getCost(rel, mq);
         if (LOGGER.isTraceEnabled()) {
@@ -939,7 +939,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
 
     assertNoCycles();
 
-    final RelMetadataQuery mq = RelMetadataQuery.instance();
+    final RelMetadataQuery mq = root.getCluster().getMetadataQuery();
     final StringBuilder sb = new StringBuilder();
     sb.append("\nBreadth-first from root:  {\n");
     for (HepRelVertex vertex : BreadthFirstIterator.of(graph, root)) {

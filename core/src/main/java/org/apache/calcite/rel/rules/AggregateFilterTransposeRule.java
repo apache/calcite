@@ -81,7 +81,7 @@ public class AggregateFilterTransposeRule extends RelOptRule {
     final ImmutableBitSet newGroupSet =
         aggregate.getGroupSet().union(filterColumns);
     final RelNode input = filter.getInput();
-    final RelMetadataQuery mq = RelMetadataQuery.instance();
+    final RelMetadataQuery mq = call.getMetadataQuery();
     final Boolean unique = mq.areColumnsUnique(input, newGroupSet);
     if (unique != null && unique) {
       // The input is already unique on the grouping columns, so there's little

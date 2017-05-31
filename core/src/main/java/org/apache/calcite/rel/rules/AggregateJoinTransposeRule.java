@@ -156,7 +156,7 @@ public class AggregateJoinTransposeRule extends RelOptRule {
 
     // Do the columns used by the join appear in the output of the aggregate?
     final ImmutableBitSet aggregateColumns = aggregate.getGroupSet();
-    final RelMetadataQuery mq = RelMetadataQuery.instance();
+    final RelMetadataQuery mq = call.getMetadataQuery();
     final ImmutableBitSet keyColumns = keyColumns(aggregateColumns,
         mq.getPulledUpPredicates(join).pulledUpPredicates);
     final ImmutableBitSet joinColumns =

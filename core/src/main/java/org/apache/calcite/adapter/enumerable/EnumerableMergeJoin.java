@@ -90,7 +90,7 @@ public class EnumerableMergeJoin extends EquiJoin implements EnumerableRel {
     final RelOptCluster cluster = right.getCluster();
     RelTraitSet traitSet = cluster.traitSet();
     if (traitSet.isEnabled(RelCollationTraitDef.INSTANCE)) {
-      final RelMetadataQuery mq = RelMetadataQuery.instance();
+      final RelMetadataQuery mq = cluster.getMetadataQuery();
       final List<RelCollation> collations =
           RelMdCollation.mergeJoin(mq, left, right, leftKeys, rightKeys);
       traitSet = traitSet.replace(collations);

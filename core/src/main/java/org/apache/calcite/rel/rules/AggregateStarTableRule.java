@@ -116,7 +116,7 @@ public class AggregateStarTableRule extends RelOptRule {
     final RelBuilder relBuilder = call.builder();
     final CalciteSchema.TableEntry tableEntry = pair.left;
     final TileKey tileKey = pair.right;
-    final RelMetadataQuery mq = RelMetadataQuery.instance();
+    final RelMetadataQuery mq = call.getMetadataQuery();
     final double rowCount = aggregate.estimateRowCount(mq);
     final Table aggregateTable = tableEntry.getTable();
     final RelDataType aggregateTableRowType =

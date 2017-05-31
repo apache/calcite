@@ -88,12 +88,13 @@ public class LoptOptimizeJoinRule extends RelOptRule {
   public void onMatch(RelOptRuleCall call) {
     final MultiJoin multiJoinRel = call.rel(0);
     final LoptMultiJoin multiJoin = new LoptMultiJoin(multiJoinRel);
+    final RelMetadataQuery mq = call.getMetadataQuery();
 
-    findRemovableOuterJoins(multiJoin);
+    findRemovableOuterJoins(mq, multiJoin);
 
     final RexBuilder rexBuilder = multiJoinRel.getCluster().getRexBuilder();
     final LoptSemiJoinOptimizer semiJoinOpt =
-        new LoptSemiJoinOptimizer(multiJoin, rexBuilder);
+        new LoptSemiJoinOptimizer(call.getMetadataQuery(), multiJoin, rexBuilder);
 
     // determine all possible semijoins
     semiJoinOpt.makePossibleSemiJoins(multiJoin);
@@ -116,9 +117,9 @@ public class LoptOptimizeJoinRule extends RelOptRule {
 
     multiJoin.setFactorWeights();
 
-    findRemovableSelfJoins(multiJoin);
+    findRemovableSelfJoins(mq, multiJoin);
 
-    findBestOrderings(call.builder(), multiJoin, semiJoinOpt, call);
+    findBestOrderings(mq, call.builder(), multiJoin, semiJoinOpt, call);
   }
 
   /**
@@ -128,7 +129,7 @@ public class LoptOptimizeJoinRule extends RelOptRule {
    *
    * @param multiJoin join factors being optimized
    */
-  private void findRemovableOuterJoins(LoptMultiJoin multiJoin) {
+  private void findRemovableOuterJoins(RelMetadataQuery mq, LoptMultiJoin multiJoin) {
     final List<Integer> removalCandidates = new ArrayList<>();
     for (int factIdx = 0;
         factIdx < multiJoin.getNumJoinFactors();
@@ -209,7 +210,6 @@ public class LoptOptimizeJoinRule extends RelOptRule {
         // part of an equality join condition, nulls are filtered out
         // by the join.  So, it's ok if there are nulls in the join
         // keys.
-        final RelMetadataQuery mq = RelMetadataQuery.instance();
         if (RelMdUtil.areColumnsDefinitelyUniqueWhenNullsFiltered(mq,
             multiJoin.getJoinFactor(factIdx), joinKeys)) {
           multiJoin.addRemovableOuterJoinFactor(factIdx);
@@ -286,9 +286,9 @@ public class LoptOptimizeJoinRule extends RelOptRule {
    *
    * @param multiJoin join factors being optimized
    */
-  private void findRemovableSelfJoins(LoptMultiJoin multiJoin) {
+  private void findRemovableSelfJoins(RelMetadataQuery mq, LoptMultiJoin multiJoin) {
     // Candidates for self-joins must be simple factors
-    Map<Integer, RelOptTable> simpleFactors = getSimpleFactors(multiJoin);
+    Map<Integer, RelOptTable> simpleFactors = getSimpleFactors(mq, multiJoin);
 
     // See if a simple factor is repeated and therefore potentially is
     // part of a self-join.  Restrict each factor to at most one
@@ -332,6 +332,7 @@ public class LoptOptimizeJoinRule extends RelOptRule {
       }
       if ((selfJoinFilters.size() > 0)
           && isSelfJoinFilterUnique(
+            mq,
             multiJoin,
             factor1,
             factor2,
@@ -351,7 +352,7 @@ public class LoptOptimizeJoinRule extends RelOptRule {
    * @return map consisting of the simple factors and the tables they
    * correspond
    */
-  private Map<Integer, RelOptTable> getSimpleFactors(LoptMultiJoin multiJoin) {
+  private Map<Integer, RelOptTable> getSimpleFactors(RelMetadataQuery mq, LoptMultiJoin multiJoin) {
     final Map<Integer, RelOptTable> returnList = new HashMap<>();
 
     // Loop through all join factors and locate the ones where each
@@ -361,7 +362,6 @@ public class LoptOptimizeJoinRule extends RelOptRule {
     if (multiJoin.getMultiJoinRel().isFullOuterJoin()) {
       return returnList;
     }
-    final RelMetadataQuery mq = RelMetadataQuery.instance();
     for (int factIdx = 0; factIdx < multiJoin.getNumJoinFactors(); factIdx++) {
       if (multiJoin.isNullGenerating(factIdx)
           || (multiJoin.getJoinRemovalFactor(factIdx) != null)) {
@@ -389,6 +389,7 @@ public class LoptOptimizeJoinRule extends RelOptRule {
    * @return true if the criteria are met
    */
   private boolean isSelfJoinFilterUnique(
+      RelMetadataQuery mq,
       LoptMultiJoin multiJoin,
       int leftFactor,
       int rightFactor,
@@ -422,7 +423,6 @@ public class LoptOptimizeJoinRule extends RelOptRule {
                 rightRel.getRowType().getFieldList(),
                 adjustments));
 
-    final RelMetadataQuery mq = RelMetadataQuery.instance();
     return areSelfJoinKeysUnique(mq, leftRel, rightRel, joinFilters);
   }
 
@@ -435,6 +435,7 @@ public class LoptOptimizeJoinRule extends RelOptRule {
    * @param call RelOptRuleCall associated with this rule
    */
   private void findBestOrderings(
+      RelMetadataQuery mq,
       RelBuilder relBuilder,
       LoptMultiJoin multiJoin,
       LoptSemiJoinOptimizer semiJoinOpt,
@@ -452,6 +453,7 @@ public class LoptOptimizeJoinRule extends RelOptRule {
       }
       LoptJoinTree joinTree =
           createOrdering(
+              mq,
               relBuilder,
               multiJoin,
               semiJoinOpt,
@@ -563,6 +565,7 @@ public class LoptOptimizeJoinRule extends RelOptRule {
    * @return computed cardinality
    */
   private Double computeJoinCardinality(
+      RelMetadataQuery mq,
       LoptMultiJoin multiJoin,
       LoptSemiJoinOptimizer semiJoinOpt,
       LoptJoinTree joinTree,
@@ -605,7 +608,6 @@ public class LoptOptimizeJoinRule extends RelOptRule {
     if (joinKeys.isEmpty()) {
       return null;
     } else {
-      final RelMetadataQuery mq = semiJoinOpt.mq;
       return mq.getDistinctRowCount(semiJoinOpt.getChosenSemiJoin(factor),
           joinKeys.build(), null);
     }
@@ -667,6 +669,7 @@ public class LoptOptimizeJoinRule extends RelOptRule {
    * firstFactor to appear as the first factor in the join
    */
   private LoptJoinTree createOrdering(
+      RelMetadataQuery mq,
       RelBuilder relBuilder,
       LoptMultiJoin multiJoin,
       LoptSemiJoinOptimizer semiJoinOpt,
@@ -698,6 +701,7 @@ public class LoptOptimizeJoinRule extends RelOptRule {
         } else {
           nextFactor =
               getBestNextFactor(
+                  mq,
                   multiJoin,
                   factorsToAdd,
                   factorsAdded,
@@ -718,6 +722,7 @@ public class LoptOptimizeJoinRule extends RelOptRule {
       factorsNeeded.and(factorsAdded);
       joinTree =
           addFactorToTree(
+              mq,
               relBuilder,
               multiJoin,
               semiJoinOpt,
@@ -751,6 +756,7 @@ public class LoptOptimizeJoinRule extends RelOptRule {
    * @return index of the best factor to add next
    */
   private int getBestNextFactor(
+      RelMetadataQuery mq,
       LoptMultiJoin multiJoin,
       BitSet factorsToAdd,
       BitSet factorsAdded,
@@ -801,6 +807,7 @@ public class LoptOptimizeJoinRule extends RelOptRule {
           && ((dimWeight > bestWeight) || (dimWeight == bestWeight))) {
         cardinality =
             computeJoinCardinality(
+              mq,
                 multiJoin,
                 semiJoinOpt,
                 joinTree,
@@ -860,6 +867,7 @@ public class LoptOptimizeJoinRule extends RelOptRule {
    * add the factor; otherwise, null is returned
    */
   private LoptJoinTree addFactorToTree(
+      RelMetadataQuery mq,
       RelBuilder relBuilder,
       LoptMultiJoin multiJoin,
       LoptSemiJoinOptimizer semiJoinOpt,
@@ -868,7 +876,6 @@ public class LoptOptimizeJoinRule extends RelOptRule {
       BitSet factorsNeeded,
       List<RexNode> filtersToAdd,
       boolean selfJoin) {
-    final RelMetadataQuery mq = semiJoinOpt.mq;
 
     // if the factor corresponds to the null generating factor in an outer
     // join that can be removed, then create a replacement join
@@ -914,6 +921,7 @@ public class LoptOptimizeJoinRule extends RelOptRule {
     final List<RexNode> tmpFilters = new ArrayList<>(filtersToAdd);
     LoptJoinTree topTree =
         addToTop(
+            mq,
             relBuilder,
             multiJoin,
             semiJoinOpt,
@@ -923,6 +931,7 @@ public class LoptOptimizeJoinRule extends RelOptRule {
             selfJoin);
     LoptJoinTree pushDownTree =
         pushDownFactor(
+            mq,
             relBuilder,
             multiJoin,
             semiJoinOpt,
@@ -1013,6 +1022,7 @@ public class LoptOptimizeJoinRule extends RelOptRule {
    * returned
    */
   private LoptJoinTree pushDownFactor(
+      RelMetadataQuery mq,
       RelBuilder relBuilder,
       LoptMultiJoin multiJoin,
       LoptSemiJoinOptimizer semiJoinOpt,
@@ -1082,6 +1092,7 @@ public class LoptOptimizeJoinRule extends RelOptRule {
     LoptJoinTree subTree = (childNo == 0) ? left : right;
     subTree =
         addFactorToTree(
+            mq,
             relBuilder,
             multiJoin,
             semiJoinOpt,
@@ -1136,6 +1147,7 @@ public class LoptOptimizeJoinRule extends RelOptRule {
 
     // create the new join tree with the factor pushed down
     return createJoinSubtree(
+        mq,
         relBuilder,
         multiJoin,
         left,
@@ -1162,6 +1174,7 @@ public class LoptOptimizeJoinRule extends RelOptRule {
    * @return new join tree
    */
   private LoptJoinTree addToTop(
+      RelMetadataQuery mq,
       RelBuilder relBuilder,
       LoptMultiJoin multiJoin,
       LoptSemiJoinOptimizer semiJoinOpt,
@@ -1214,6 +1227,7 @@ public class LoptOptimizeJoinRule extends RelOptRule {
     }
 
     return createJoinSubtree(
+        mq,
         relBuilder,
         multiJoin,
         joinTree,
@@ -1428,7 +1442,7 @@ public class LoptOptimizeJoinRule extends RelOptRule {
    * left factor.
    * </ul>
    *
-   * Note that this only applies if both factors in the self-join are in the
+   * <p>Note that this only applies if both factors in the self-join are in the
    * join ordering. If they are, then the left factor always precedes the
    * right factor in the join ordering.
    *
@@ -1723,6 +1737,7 @@ public class LoptOptimizeJoinRule extends RelOptRule {
    * @return created LogicalJoin
    */
   private LoptJoinTree createJoinSubtree(
+      RelMetadataQuery mq,
       RelBuilder relBuilder,
       LoptMultiJoin multiJoin,
       LoptJoinTree left,
@@ -1736,7 +1751,7 @@ public class LoptOptimizeJoinRule extends RelOptRule {
         multiJoin.getMultiJoinRel().getCluster().getRexBuilder();
 
     // swap the inputs if beneficial
-    if (swapInputs(multiJoin, left, right, selfJoin)) {
+    if (swapInputs(mq, multiJoin, left, right, selfJoin)) {
       LoptJoinTree tmp = right;
       right = left;
       left = tmp;
@@ -1850,6 +1865,7 @@ public class LoptOptimizeJoinRule extends RelOptRule {
    * @return true if swapping should be done
    */
   private boolean swapInputs(
+      RelMetadataQuery mq,
       LoptMultiJoin multiJoin,
       LoptJoinTree left,
       LoptJoinTree right,
@@ -1861,7 +1877,6 @@ public class LoptOptimizeJoinRule extends RelOptRule {
           ((LoptJoinTree.Leaf) left.getFactorTree()).getId());
     }
 
-    final RelMetadataQuery mq = RelMetadataQuery.instance();
     final Double leftRowCount = mq.getRowCount(left.getJoinTree());
     final Double rightRowCount = mq.getRowCount(right.getJoinTree());
 
@@ -1994,7 +2009,7 @@ public class LoptOptimizeJoinRule extends RelOptRule {
     }
 
     // Make sure the join is between the same simple factor
-    final RelMetadataQuery mq = RelMetadataQuery.instance();
+    final RelMetadataQuery mq = joinRel.getCluster().getMetadataQuery();
     final RelOptTable leftTable = mq.getTableOrigin(left);
     if (leftTable == null) {
       return false;

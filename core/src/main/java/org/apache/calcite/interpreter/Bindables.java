@@ -269,7 +269,7 @@ public class Bindables {
     public static BindableFilter create(final RelNode input,
         RexNode condition) {
       final RelOptCluster cluster = input.getCluster();
-      final RelMetadataQuery mq = RelMetadataQuery.instance();
+      final RelMetadataQuery mq = cluster.getMetadataQuery();
       final RelTraitSet traitSet =
           cluster.traitSetOf(BindableConvention.INSTANCE)
               .replaceIfs(RelCollationTraitDef.INSTANCE,

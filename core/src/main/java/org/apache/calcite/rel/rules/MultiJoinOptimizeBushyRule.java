@@ -88,7 +88,7 @@ public class MultiJoinOptimizeBushyRule extends RelOptRule {
     final MultiJoin multiJoinRel = call.rel(0);
     final RexBuilder rexBuilder = multiJoinRel.getCluster().getRexBuilder();
     final RelBuilder relBuilder = call.builder();
-    final RelMetadataQuery mq = RelMetadataQuery.instance();
+    final RelMetadataQuery mq = call.getMetadataQuery();
 
     final LoptMultiJoin multiJoin = new LoptMultiJoin(multiJoinRel);
 

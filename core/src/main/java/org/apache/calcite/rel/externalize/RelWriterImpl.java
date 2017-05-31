@@ -41,7 +41,6 @@ public class RelWriterImpl implements RelWriter {
   private final boolean withIdPrefix;
   protected final Spacer spacer = new Spacer();
   private final List<Pair<String, Object>> values = new ArrayList<>();
-  protected final RelMetadataQuery mq = RelMetadataQuery.instance();
 
   //~ Constructors -----------------------------------------------------------
 
@@ -62,7 +61,7 @@ public class RelWriterImpl implements RelWriter {
   protected void explain_(RelNode rel,
       List<Pair<String, Object>> values) {
     List<RelNode> inputs = rel.getInputs();
-
+    final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
     if (!mq.isVisibleInExplain(rel, detailLevel)) {
       // render children in place of this, at same level
       explainInputs(inputs);

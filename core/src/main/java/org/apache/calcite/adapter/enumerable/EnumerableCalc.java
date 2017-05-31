@@ -90,7 +90,7 @@ public class EnumerableCalc extends Calc implements EnumerableRel {
   public static EnumerableCalc create(final RelNode input,
       final RexProgram program) {
     final RelOptCluster cluster = input.getCluster();
-    final RelMetadataQuery mq = RelMetadataQuery.instance();
+    final RelMetadataQuery mq = cluster.getMetadataQuery();
     final RelTraitSet traitSet = cluster.traitSet()
         .replace(EnumerableConvention.INSTANCE)
         .replaceIfs(RelCollationTraitDef.INSTANCE,

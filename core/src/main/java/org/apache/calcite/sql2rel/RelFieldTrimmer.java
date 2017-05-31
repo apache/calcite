@@ -187,7 +187,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
     final ImmutableBitSet.Builder fieldsUsedBuilder = fieldsUsed.rebuild();
 
     // Fields that define the collation cannot be discarded.
-    final RelMetadataQuery mq = RelMetadataQuery.instance();
+    final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
     final ImmutableList<RelCollation> collations = mq.collations(input);
     for (RelCollation collation : collations) {
       for (RelFieldCollation fieldCollation : collation.getFieldCollations()) {
