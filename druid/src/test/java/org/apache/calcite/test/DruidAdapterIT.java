@@ -2155,10 +2155,9 @@ public class DruidAdapterIT {
         .queryContains(druidChecker("'queryType':'timeseries'"));
   }
 
-
   /**
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1805">[CALCITE-1805]
-   * Druid adapter can not handel count column without adding support for nested queries</a>.
+   * Druid adapter cannot handle count column without adding support for nested queries</a>.
    */
   @Test public void testCountColumn() {
 
@@ -2175,6 +2174,19 @@ public class DruidAdapterIT {
         + "intervals=[[1900-01-01T00:00:00.000/3000-01-01T00:00:00.000]], projects=[[$7]])");
   }
 
+  /**
+   * Test to make sure the "not" filter has only 1 field, rather than an array of fields.
+   */
+  @Test public void testNotFilterForm() {
+    String sql = "select count(distinct \"the_month\") from "
+            + "\"foodmart\" where \"the_month\" <> \'October\'";
+    String druidFilter = "'filter':{'type':'not',"
+            + "'field':{'type':'selector','dimension':'the_month','value':'October'}}";
+    // Check that the filter actually worked, and that druid was responsible for the filter
+    sql(sql, FOODMART)
+            .queryContains(druidChecker(druidFilter))
+            .returnsOrdered("EXPR$0=11");
+  }
 }
 
 // End DruidAdapterIT.java
