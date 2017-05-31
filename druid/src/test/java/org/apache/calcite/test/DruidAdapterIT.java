@@ -1089,15 +1089,10 @@ public class DruidAdapterIT {
         + " count(\"store_sqft\") as c\n"
         + "from \"foodmart\"\n"
         + "group by floor(\"timestamp\" to MONTH)";
-    String druidQuery = "{'queryType':'timeseries','dataSource':'foodmart',"
-        + "'descending':false,'granularity':'month',"
-        + "'aggregations':[{'type':'longSum','name':'S','fieldName':'unit_sales'},"
-        + "{'type':'count','name':'C','fieldName':'store_sqft'}],"
-        + "'intervals':['1900-01-09T00:00:00.000/2992-01-10T00:00:00.000'],"
-        + "'context':{'skipEmptyBuckets':true}}";
+    String druidQuery = "{'queryType':'select','dataSource':'foodmart'";
     sql(sql)
         .limit(3)
-        .returnsUnordered("S=20957; C=6844", "S=21628; C=7033", "S=23706; C=7710")
+        .returnsUnordered("S=21081; C=5793", "S=23763; C=6762", "S=25270; C=7026")
         .queryContains(druidChecker(druidQuery));
   }
 
@@ -1112,23 +1107,24 @@ public class DruidAdapterIT {
         + "group by floor(\"timestamp\" to MONTH)\n"
         + "order by floor(\"timestamp\" to MONTH) ASC";
     final String explain = "PLAN=EnumerableInterpreter\n"
-        + "  DruidQuery(table=[[foodmart, foodmart]], "
-        + "intervals=[[1900-01-09T00:00:00.000/2992-01-10T00:00:00.000]], projects=[[FLOOR($0, "
-        + "FLAG(MONTH)), $89, $71]], groups=[{0}], aggs=[[SUM($1), COUNT($2)]], sort0=[0], "
-        + "dir0=[ASC])";
+        + "  BindableSort(sort0=[$0], dir0=[ASC])\n"
+        + "    BindableAggregate(group=[{0}], S=[SUM($1)], C=[COUNT($2)])\n"
+        + "      BindableProject(M=[FLOOR($0, FLAG(MONTH))], unit_sales=[$2], store_sqft=[$1])\n"
+        + "        DruidQuery(table=[[foodmart, foodmart]], "
+        + "intervals=[[1900-01-09T00:00:00.000/2992-01-10T00:00:00.000]], projects=[[$0, $71, $89]])";
     sql(sql)
-        .returnsOrdered("M=1997-01-01 00:00:00; S=21628; C=7033",
-            "M=1997-02-01 00:00:00; S=20957; C=6844",
-            "M=1997-03-01 00:00:00; S=23706; C=7710",
-            "M=1997-04-01 00:00:00; S=20179; C=6588",
-            "M=1997-05-01 00:00:00; S=21081; C=6865",
-            "M=1997-06-01 00:00:00; S=21350; C=6912",
-            "M=1997-07-01 00:00:00; S=23763; C=7752",
-            "M=1997-08-01 00:00:00; S=21697; C=7038",
-            "M=1997-09-01 00:00:00; S=20388; C=6662",
-            "M=1997-10-01 00:00:00; S=19958; C=6478",
-            "M=1997-11-01 00:00:00; S=25270; C=8231",
-            "M=1997-12-01 00:00:00; S=26796; C=8716")
+        .returnsOrdered("M=1997-01-01 00:00:00; S=21628; C=5957",
+            "M=1997-02-01 00:00:00; S=20957; C=5842",
+            "M=1997-03-01 00:00:00; S=23706; C=6528",
+            "M=1997-04-01 00:00:00; S=20179; C=5523",
+            "M=1997-05-01 00:00:00; S=21081; C=5793",
+            "M=1997-06-01 00:00:00; S=21350; C=5863",
+            "M=1997-07-01 00:00:00; S=23763; C=6762",
+            "M=1997-08-01 00:00:00; S=21697; C=5915",
+            "M=1997-09-01 00:00:00; S=20388; C=5591",
+            "M=1997-10-01 00:00:00; S=19958; C=5606",
+            "M=1997-11-01 00:00:00; S=25270; C=7026",
+            "M=1997-12-01 00:00:00; S=26796; C=7338")
         .explainContains(explain);
   }
 
@@ -1139,16 +1135,16 @@ public class DruidAdapterIT {
         + "from \"foodmart\"\n"
         + "group by floor(\"timestamp\" to MONTH)\n"
         + "order by floor(\"timestamp\" to MONTH) limit 3";
-    final String explain = "PLAN=EnumerableLimit(fetch=[3])\n"
-        + "  EnumerableInterpreter\n"
-        + "    DruidQuery(table=[[foodmart, foodmart]], "
-        + "intervals=[[1900-01-09T00:00:00.000/2992-01-10T00:00:00.000]], projects=[[FLOOR($0, "
-        + "FLAG(MONTH)), $89, $71]], groups=[{0}], aggs=[[SUM($1), COUNT($2)]], sort0=[0], "
-        + "dir0=[ASC])";
+    final String explain = "PLAN=EnumerableInterpreter\n"
+        + "  BindableSort(sort0=[$0], dir0=[ASC], fetch=[3])\n"
+        + "    BindableAggregate(group=[{0}], S=[SUM($1)], C=[COUNT($2)])\n"
+        + "      BindableProject(M=[FLOOR($0, FLAG(MONTH))], unit_sales=[$2], store_sqft=[$1])\n"
+        + "        DruidQuery(table=[[foodmart, foodmart]], "
+        + "intervals=[[1900-01-09T00:00:00.000/2992-01-10T00:00:00.000]], projects=[[$0, $71, $89]])";
     sql(sql)
-        .returnsOrdered("M=1997-01-01 00:00:00; S=21628; C=7033",
-            "M=1997-02-01 00:00:00; S=20957; C=6844",
-            "M=1997-03-01 00:00:00; S=23706; C=7710")
+        .returnsOrdered("M=1997-01-01 00:00:00; S=21628; C=5957",
+            "M=1997-02-01 00:00:00; S=20957; C=5842",
+            "M=1997-03-01 00:00:00; S=23706; C=6528")
         .explainContains(explain);
   }
 
@@ -1157,15 +1153,10 @@ public class DruidAdapterIT {
         + " count(\"store_sqft\") as c\n"
         + "from \"foodmart\"\n"
         + "group by floor(\"timestamp\" to DAY)";
-    String druidQuery = "{'queryType':'timeseries','dataSource':'foodmart',"
-        + "'descending':false,'granularity':'day',"
-        + "'aggregations':[{'type':'longSum','name':'S','fieldName':'unit_sales'},"
-        + "{'type':'count','name':'C','fieldName':'store_sqft'}],"
-        + "'intervals':['1900-01-09T00:00:00.000/2992-01-10T00:00:00.000'],"
-        + "'context':{'skipEmptyBuckets':true}}";
+    String druidQuery = "{'queryType':'select','dataSource':'foodmart'";
     sql(sql)
         .limit(3)
-        .returnsUnordered("S=348; C=117", "S=589; C=189", "S=635; C=206")
+        .returnsUnordered("S=1244; C=391", "S=550; C=112", "S=580; C=171")
         .queryContains(druidChecker(druidQuery));
   }
 
@@ -1176,15 +1167,10 @@ public class DruidAdapterIT {
         + "where \"timestamp\" >= '1996-01-01 00:00:00' and "
         + " \"timestamp\" < '1998-01-01 00:00:00'\n"
         + "group by floor(\"timestamp\" to MONTH)";
-    String druidQuery = "{'queryType':'timeseries','dataSource':'foodmart',"
-        + "'descending':false,'granularity':'month',"
-        + "'aggregations':[{'type':'longSum','name':'S','fieldName':'unit_sales'},"
-        + "{'type':'count','name':'C','fieldName':'store_sqft'}],"
-        + "'intervals':['1996-01-01T00:00:00.000/1998-01-01T00:00:00.000'],"
-        + "'context':{'skipEmptyBuckets':true}}";
+    String druidQuery = "{'queryType':'select','dataSource':'foodmart'";
     sql(sql)
         .limit(3)
-        .returnsUnordered("S=20957; C=6844", "S=21628; C=7033", "S=23706; C=7710")
+        .returnsUnordered("S=21081; C=5793", "S=23763; C=6762", "S=25270; C=7026")
         .queryContains(druidChecker(druidQuery));
   }
 
@@ -1292,16 +1278,18 @@ public class DruidAdapterIT {
         + "from \"foodmart\"\n"
         + "group by \"state_province\"\n"
         + "order by 2 desc limit 2";
-    final String explain = "PLAN="
-        + "EnumerableInterpreter\n"
+    final String explain = "PLAN=EnumerableInterpreter\n"
         + "  BindableSort(sort0=[$1], dir0=[DESC], fetch=[2])\n"
         + "    BindableProject(state_province=[$0], CDC=[FLOOR($1)])\n"
-        + "      DruidQuery(table=[[foodmart, foodmart]], intervals=[[1900-01-09T00:00:00.000/2992-01-10T00:00:00.000]], groups=[{30}], aggs=[[COUNT(DISTINCT $29)]])\n";
+        + "      BindableAggregate(group=[{1}], agg#0=[COUNT($0)])\n"
+        + "        DruidQuery(table=[[foodmart, foodmart]], "
+        + "intervals=[[1900-01-09T00:00:00.000/2992-01-10T00:00:00.000]], groups=[{29, 30}], "
+        + "aggs=[[]])";
     final String druidQuery = "{'queryType':'groupBy','dataSource':'foodmart',"
-        + "'granularity':'all',"
-        + "'dimensions':[{'type':'default','dimension':'state_province'}],"
-        + "'limitSpec':{'type':'default'},"
-        + "'aggregations':[{'type':'cardinality','name':'$f1','fieldNames':['city']}],"
+        + "'granularity':'all','dimensions':[{'type':'default','dimension':'city'},"
+        + "{'type':'default','dimension':'state_province'}],"
+        + "'limitSpec':{'type':'default'},'aggregations':[{'type':'longSum',"
+        + "'name':'dummy_agg','fieldName':'dummy_agg'}],"
         + "'intervals':['1900-01-09T00:00:00.000/2992-01-10T00:00:00.000']}";
     sql(sql)
         .explainContains(explain)
@@ -2172,6 +2160,26 @@ public class DruidAdapterIT {
         // [CALCITE-1775] "GROUP BY ()" on empty relation should return 1 row
         .returnsUnordered()
         .queryContains(druidChecker("'queryType':'timeseries'"));
+  }
+
+
+  /**
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1805">[CALCITE-1805]
+   * Druid adapter can not handel count column without adding support for nested queries</a>.
+   */
+  @Test public void testCountColumn() {
+
+    final String sql = "SELECT count(\"countryName\") FROM (SELECT \"countryName\" FROM "
+        + "\"wikiticker\" WHERE \"countryName\"  IS NOT NULL) as a";
+    sql(sql, WIKI_AUTO2).returnsUnordered("EXPR$0=3799");
+
+    final String sql2 = "SELECT count(\"countryName\") FROM (SELECT \"countryName\" FROM "
+        + "\"wikiticker\") as a";
+    sql(sql2, WIKI_AUTO2).returnsUnordered("EXPR$0=3799").explainContains("PLAN"
+        + "=EnumerableInterpreter\n"
+        + "  BindableAggregate(group=[{}], EXPR$0=[COUNT($0)])\n"
+        + "    DruidQuery(table=[[wiki, wikiticker]], "
+        + "intervals=[[1900-01-01T00:00:00.000/3000-01-01T00:00:00.000]], projects=[[$7]])");
   }
 
 }
