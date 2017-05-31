@@ -64,10 +64,9 @@ limitations under the License.
       <groupId>org.apache.calcite</groupId>
       <artifactId>calcite-linq4j</artifactId>
     </dependency>
-    <!-- Pull in the shaded Avatica artifact to avoid classpath pollution -->
     <dependency>
       <groupId>org.apache.calcite.avatica</groupId>
-      <artifactId>avatica</artifactId>
+      <artifactId>avatica-core</artifactId>
     </dependency>
     <dependency>
       <groupId>org.apache.hadoop</groupId>
@@ -125,7 +124,7 @@ limitations under the License.
               <failOnWarning>true</failOnWarning>
               <!-- ignore "unused but declared" warnings -->
               <ignoredUnusedDeclaredDependencies>
-                <ignoredUnusedDeclaredDependency>org.apache.calcite.avatica:avatica</ignoredUnusedDeclaredDependency>
+                <ignoredUnusedDeclaredDependency>org.apache.calcite.avatica:avatica-core</ignoredUnusedDeclaredDependency>
                 <ignoredUnusedDeclaredDependency>org.apache.hadoop:hadoop-client</ignoredUnusedDeclaredDependency>
                 <ignoredUnusedDeclaredDependency>org.slf4j:slf4j-api</ignoredUnusedDeclaredDependency>
                 <ignoredUnusedDeclaredDependency>org.slf4j:slf4j-log4j12</ignoredUnusedDeclaredDependency>
