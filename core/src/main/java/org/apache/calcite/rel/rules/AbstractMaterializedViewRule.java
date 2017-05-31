@@ -121,16 +121,16 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
 
   /** Whether to generate rewritings containing union if the query results
    * are contained within the view results. */
-  private final boolean generateUnionRewrites;
+  private final boolean generateUnionRewriting;
 
   //~ Constructors -----------------------------------------------------------
 
   /** Creates a AbstractMaterializedViewRule. */
   protected AbstractMaterializedViewRule(RelOptRuleOperand operand,
       RelBuilderFactory relBuilderFactory, String description,
-      boolean generateUnionRewrites) {
+      boolean generateUnionRewriting) {
     super(operand, relBuilderFactory, description);
-    this.generateUnionRewrites = generateUnionRewrites;
+    this.generateUnionRewriting = generateUnionRewriting;
   }
 
   /**
@@ -382,7 +382,7 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
                 computeCompensationPredicates(rexBuilder, simplify,
                     currQEC, queryPreds, queryBasedVEC, viewPreds,
                     queryToViewTableMapping);
-            if (compensationPreds == null && generateUnionRewrites) {
+            if (compensationPreds == null && generateUnionRewriting) {
               // Attempt partial rewriting using union operator. This rewriting
               // will read some data from the view and the rest of the data from
               // the query computation. The resulting predicates are expressed
@@ -417,8 +417,8 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
               // We trigger the unifying method. This method will either create a Project
               // or an Aggregate operator on top of the view. It will also compute the
               // output expressions for the query.
-              final RelNode unionInputView = unify(call.builder(), rexBuilder, mq, matchModality,
-                  view, topProject, node, topViewProject, viewNode,
+              final RelNode unionInputView = rewriteView(call.builder(), rexBuilder, mq,
+                  matchModality, true, view, topProject, node, topViewProject, viewNode,
                   queryToViewTableMapping, currQEC);
               if (unionInputView == null) {
                 // Skip it
@@ -428,6 +428,10 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
               // d. Generate final rewriting (union).
               final RelNode result = createUnion(call.builder(), rexBuilder,
                   topProject, unionInputQuery, unionInputView);
+              if (result == null) {
+                // Skip it
+                continue;
+              }
               call.transformTo(result);
             } else if (compensationPreds != null) {
               RexNode compensationColumnsEquiPred = compensationPreds.getLeft();
@@ -485,8 +489,9 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
               if (!viewCompensationPred.isAlwaysTrue()) {
                 builder.filter(simplify.simplify(viewCompensationPred));
               }
-              RelNode result = unify(builder, rexBuilder, mq, matchModality, builder.build(),
-                  topProject, node, topViewProject, viewNode, queryToViewTableMapping, currQEC);
+              final RelNode result = rewriteView(builder, rexBuilder, mq, matchModality, false,
+                  builder.build(), topProject, node, topViewProject, viewNode,
+                  queryToViewTableMapping, currQEC);
               if (result == null) {
                 // Skip it
                 continue;
@@ -543,8 +548,8 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
    * on top. If a rewriting can be produced, we return that rewriting. If it cannot
    * be produced, we will return null.
    */
-  protected abstract RelNode unify(RelBuilder relBuilder, RexBuilder rexBuilder,
-      RelMetadataQuery mq, MatchModality matchModality, RelNode input,
+  protected abstract RelNode rewriteView(RelBuilder relBuilder, RexBuilder rexBuilder,
+      RelMetadataQuery mq, MatchModality matchModality, boolean unionRewriting, RelNode input,
       Project topProject, RelNode node,
       Project topViewProject, RelNode viewNode,
       BiMap<RelTableRef, RelTableRef> queryToViewTableMapping,
@@ -558,8 +563,8 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
     /** Creates a MaterializedViewJoinRule. */
     protected MaterializedViewJoinRule(RelOptRuleOperand operand,
         RelBuilderFactory relBuilderFactory, String description,
-        boolean generateUnionRewrites) {
-      super(operand, relBuilderFactory, description, generateUnionRewrites);
+        boolean generateUnionRewriting) {
+      super(operand, relBuilderFactory, description, generateUnionRewriting);
     }
 
     @Override protected boolean isValidPlan(Project topProject, RelNode node,
@@ -714,11 +719,12 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
       return relBuilder.build();
     }
 
-    @Override protected RelNode unify(
+    @Override protected RelNode rewriteView(
         RelBuilder relBuilder,
         RexBuilder rexBuilder,
         RelMetadataQuery mq,
         MatchModality matchModality,
+        boolean unionRewriting,
         RelNode input,
         Project topProject,
         RelNode node,
@@ -757,13 +763,13 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
   /** Rule that matches Project on Join. */
   public static class MaterializedViewProjectJoinRule extends MaterializedViewJoinRule {
     public MaterializedViewProjectJoinRule(RelBuilderFactory relBuilderFactory,
-            boolean generateUnionRewrites) {
+            boolean generateUnionRewriting) {
       super(
           operand(Project.class,
               operand(Join.class, any())),
           relBuilderFactory,
           "MaterializedViewJoinRule(Project-Join)",
-          generateUnionRewrites);
+          generateUnionRewriting);
     }
 
     @Override public void onMatch(RelOptRuleCall call) {
@@ -776,13 +782,13 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
   /** Rule that matches Project on Filter. */
   public static class MaterializedViewProjectFilterRule extends MaterializedViewJoinRule {
     public MaterializedViewProjectFilterRule(RelBuilderFactory relBuilderFactory,
-            boolean generateUnionRewrites) {
+            boolean generateUnionRewriting) {
       super(
           operand(Project.class,
               operand(Filter.class, any())),
           relBuilderFactory,
           "MaterializedViewJoinRule(Project-Filter)",
-          generateUnionRewrites);
+          generateUnionRewriting);
     }
 
     @Override public void onMatch(RelOptRuleCall call) {
@@ -795,12 +801,12 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
   /** Rule that matches Join. */
   public static class MaterializedViewOnlyJoinRule extends MaterializedViewJoinRule {
     public MaterializedViewOnlyJoinRule(RelBuilderFactory relBuilderFactory,
-            boolean generateUnionRewrites) {
+            boolean generateUnionRewriting) {
       super(
           operand(Join.class, any()),
           relBuilderFactory,
           "MaterializedViewJoinRule(Join)",
-          generateUnionRewrites);
+          generateUnionRewriting);
     }
 
     @Override public void onMatch(RelOptRuleCall call) {
@@ -812,12 +818,12 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
   /** Rule that matches Filter. */
   public static class MaterializedViewOnlyFilterRule extends MaterializedViewJoinRule {
     public MaterializedViewOnlyFilterRule(RelBuilderFactory relBuilderFactory,
-            boolean generateUnionRewrites) {
+            boolean generateUnionRewriting) {
       super(
           operand(Filter.class, any()),
           relBuilderFactory,
           "MaterializedViewJoinRule(Filter)",
-          generateUnionRewrites);
+          generateUnionRewriting);
     }
 
     @Override public void onMatch(RelOptRuleCall call) {
@@ -834,8 +840,8 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
     /** Creates a MaterializedViewAggregateRule. */
     protected MaterializedViewAggregateRule(RelOptRuleOperand operand,
         RelBuilderFactory relBuilderFactory, String description,
-        boolean generateUnionRewrites) {
-      super(operand, relBuilderFactory, description, generateUnionRewrites);
+        boolean generateUnionRewriting) {
+      super(operand, relBuilderFactory, description, generateUnionRewriting);
     }
 
     @Override protected boolean isValidPlan(Project topProject, RelNode node,
@@ -1032,6 +1038,10 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
       final List<AggCall> aggregateCalls = new ArrayList<>();
       for (int i = 0; i < aggregate.getAggCallList().size(); i++) {
         AggregateCall aggCall = aggregate.getAggCallList().get(i);
+        if (aggCall.isDistinct()) {
+          // Cannot ROLLUP distinct
+          return null;
+        }
         aggregateCalls.add(
             relBuilder.aggregateCall(
                 SubstitutionVisitor.getRollup(aggCall.getAggregation()),
@@ -1053,11 +1063,12 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
       return result;
     }
 
-    @Override protected RelNode unify(
+    @Override protected RelNode rewriteView(
         RelBuilder relBuilder,
         RexBuilder rexBuilder,
         RelMetadataQuery mq,
         MatchModality matchModality,
+        boolean unionRewriting,
         RelNode input,
         Project topProject,
         RelNode node,
@@ -1070,7 +1081,7 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
       // Get group by references and aggregate call input references needed
       ImmutableBitSet.Builder indexes = ImmutableBitSet.builder();
       ImmutableBitSet references = null;
-      if (topProject != null) {
+      if (topProject != null && !unionRewriting) {
         // We have a Project on top, gather only what is needed
         final RelOptUtil.InputFinder inputFinder =
             new RelOptUtil.InputFinder(new LinkedHashSet<RelDataTypeField>());
@@ -1289,7 +1300,7 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
       // we use the mapping to resolve the position of the expression in the
       // node.
       final List<RexNode> topExprs = new ArrayList<>();
-      if (topProject != null) {
+      if (topProject != null && !unionRewriting) {
         topExprs.addAll(topProject.getChildExps());
       } else {
         // Add all
@@ -1340,13 +1351,13 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
   /** Rule that matches Project on Aggregate. */
   public static class MaterializedViewProjectAggregateRule extends MaterializedViewAggregateRule {
     public MaterializedViewProjectAggregateRule(RelBuilderFactory relBuilderFactory,
-            boolean generateUnionRewrites) {
+            boolean generateUnionRewriting) {
       super(
           operand(Project.class,
               operand(Aggregate.class, any())),
           relBuilderFactory,
           "MaterializedViewAggregateRule(Project-Aggregate)",
-          generateUnionRewrites);
+          generateUnionRewriting);
     }
 
     @Override public void onMatch(RelOptRuleCall call) {
@@ -1359,12 +1370,12 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
   /** Rule that matches Aggregate. */
   public static class MaterializedViewOnlyAggregateRule extends MaterializedViewAggregateRule {
     public MaterializedViewOnlyAggregateRule(RelBuilderFactory relBuilderFactory,
-            boolean generateUnionRewrites) {
+            boolean generateUnionRewriting) {
       super(
           operand(Aggregate.class, any()),
           relBuilderFactory,
           "MaterializedViewAggregateRule(Aggregate)",
-          generateUnionRewrites);
+          generateUnionRewriting);
     }
 
     @Override public void onMatch(RelOptRuleCall call) {

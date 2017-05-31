@@ -1528,6 +1528,53 @@ public class MaterializationTest {
         HR_FKUK_MODEL);
   }
 
+  @Test public void testJoinAggregateMaterializationAggregateFuncs11() {
+    checkMaterialize(
+      "select \"depts\".\"deptno\", \"dependents\".\"empid\", count(\"emps\".\"salary\") as s\n"
+            + "from \"depts\"\n"
+            + "join \"dependents\" on (\"depts\".\"name\" = \"dependents\".\"name\")\n"
+            + "join \"locations\" on (\"locations\".\"name\" = \"dependents\".\"name\")\n"
+            + "join \"emps\" on (\"emps\".\"deptno\" = \"depts\".\"deptno\")\n"
+            + "where \"depts\".\"deptno\" > 11 and \"depts\".\"deptno\" < 19\n"
+            + "group by \"depts\".\"deptno\", \"dependents\".\"empid\"",
+      "select \"dependents\".\"empid\", count(\"emps\".\"salary\") + 1\n"
+            + "from \"depts\"\n"
+            + "join \"dependents\" on (\"depts\".\"name\" = \"dependents\".\"name\")\n"
+            + "join \"locations\" on (\"locations\".\"name\" = \"dependents\".\"name\")\n"
+            + "join \"emps\" on (\"emps\".\"deptno\" = \"depts\".\"deptno\")\n"
+            + "where \"depts\".\"deptno\" > 10 and \"depts\".\"deptno\" < 20\n"
+            + "group by \"dependents\".\"empid\"",
+      HR_FKUK_MODEL,
+      CalciteAssert.checkResultContains(
+          "PLAN=EnumerableCalc(expr#0..1=[{inputs}], expr#2=[1], expr#3=[+($t1, $t2)], "
+              + "empid=[$t0], EXPR$1=[$t3])\n"
+              + "  EnumerableAggregate(group=[{0}], agg#0=[$SUM0($1)])",
+          "EnumerableUnion(all=[true])",
+          "EnumerableAggregate(group=[{2}], agg#0=[COUNT()])",
+          "EnumerableAggregate(group=[{1}], agg#0=[$SUM0($2)])",
+          "EnumerableTableScan(table=[[hr, m0]])",
+          "expr#13=[OR($t10, $t12)], expr#14=[AND($t6, $t8, $t13)]"));
+  }
+
+  @Test public void testJoinAggregateMaterializationAggregateFuncs12() {
+    checkNoMaterialize(
+      "select \"depts\".\"deptno\", \"dependents\".\"empid\", count(distinct \"emps\".\"salary\") as s\n"
+            + "from \"depts\"\n"
+            + "join \"dependents\" on (\"depts\".\"name\" = \"dependents\".\"name\")\n"
+            + "join \"locations\" on (\"locations\".\"name\" = \"dependents\".\"name\")\n"
+            + "join \"emps\" on (\"emps\".\"deptno\" = \"depts\".\"deptno\")\n"
+            + "where \"depts\".\"deptno\" > 11 and \"depts\".\"deptno\" < 19\n"
+            + "group by \"depts\".\"deptno\", \"dependents\".\"empid\"",
+      "select \"dependents\".\"empid\", count(distinct \"emps\".\"salary\") + 1\n"
+            + "from \"depts\"\n"
+            + "join \"dependents\" on (\"depts\".\"name\" = \"dependents\".\"name\")\n"
+            + "join \"locations\" on (\"locations\".\"name\" = \"dependents\".\"name\")\n"
+            + "join \"emps\" on (\"emps\".\"deptno\" = \"depts\".\"deptno\")\n"
+            + "where \"depts\".\"deptno\" > 10 and \"depts\".\"deptno\" < 20\n"
+            + "group by \"dependents\".\"empid\"",
+      HR_FKUK_MODEL);
+  }
+
   @Test public void testJoinMaterialization4() {
     checkMaterialize(
       "select \"empid\" \"deptno\" from \"emps\"\n"
