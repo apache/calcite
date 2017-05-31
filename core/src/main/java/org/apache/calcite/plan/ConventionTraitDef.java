@@ -132,7 +132,7 @@ public class ConventionTraitDef extends RelTraitDef<Convention> {
       RelNode rel,
       Convention toConvention,
       boolean allowInfiniteCostConverters) {
-    final RelMetadataQuery mq = RelMetadataQuery.instance();
+    final RelMetadataQuery mq = planner.getMetadataQuery();
     final ConversionData conversionData = getConversionData(planner);
 
     final Convention fromConvention = rel.getConvention();

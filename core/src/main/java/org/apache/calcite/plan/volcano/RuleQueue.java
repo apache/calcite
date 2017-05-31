@@ -388,7 +388,7 @@ class RuleQueue {
       // The root always has importance = 1
       importance = 1.0;
     } else {
-      final RelMetadataQuery mq = RelMetadataQuery.instance();
+      final RelMetadataQuery mq = planner.getMetadataQuery();
 
       // The importance of a subset is the max of its importance to its
       // parents

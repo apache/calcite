@@ -53,8 +53,7 @@ public abstract class Union extends SetOp {
   //~ Methods ----------------------------------------------------------------
 
   @Override public double estimateRowCount(RelMetadataQuery mq) {
-    double dRows = RelMdUtil.getUnionAllRowCount(RelMetadataQuery.instance(),
-        this);
+    double dRows = RelMdUtil.getUnionAllRowCount(mq, this);
     if (!all) {
       dRows *= 0.5;
     }
@@ -63,7 +62,7 @@ public abstract class Union extends SetOp {
 
   @Deprecated // to be removed before 2.0
   public static double estimateRowCount(RelNode rel) {
-    final RelMetadataQuery mq = RelMetadataQuery.instance();
+    final RelMetadataQuery mq = rel.getCluster().getPlanner().getMetadataQuery();
     return RelMdUtil.getUnionAllRowCount(mq, (Union) rel);
   }
 }

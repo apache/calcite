@@ -73,6 +73,8 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
 
   private RexExecutor executor;
 
+  private RelMetadataQuery mq;
+
   //~ Constructors -----------------------------------------------------------
 
   /**
@@ -423,6 +425,17 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
             return clazz.isAssignableFrom(input);
           }
         });
+  }
+
+  public RelMetadataQuery getMetadataQuery() {
+    if (mq == null) {
+      mq = RelMetadataQuery.instance();
+    }
+    return mq;
+  }
+
+  public void invalidateMetadataQuery() {
+    mq = null;
   }
 }
 

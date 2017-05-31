@@ -143,7 +143,7 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
           Lists.newArrayList(filter.getCondition());
       RexNode newConditionExp;
       boolean reduced;
-      final RelMetadataQuery mq = RelMetadataQuery.instance();
+      final RelMetadataQuery mq = call.getMetadataQuery();
       final RelOptPredicateList predicates =
           mq.getPulledUpPredicates(filter.getInput());
       if (reduceExpressions(filter, expList, predicates, true)) {
@@ -259,7 +259,7 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
 
     @Override public void onMatch(RelOptRuleCall call) {
       final Project project = call.rel(0);
-      final RelMetadataQuery mq = RelMetadataQuery.instance();
+      final RelMetadataQuery mq = call.getMetadataQuery();
       final RelOptPredicateList predicates =
           mq.getPulledUpPredicates(project.getInput());
       final List<RexNode> expList =
@@ -291,7 +291,7 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
       final Join join = call.rel(0);
       final List<RexNode> expList = Lists.newArrayList(join.getCondition());
       final int fieldCount = join.getLeft().getRowType().getFieldCount();
-      final RelMetadataQuery mq = RelMetadataQuery.instance();
+      final RelMetadataQuery mq = call.getMetadataQuery();
       final RelOptPredicateList leftPredicates =
           mq.getPulledUpPredicates(join.getLeft());
       final RelOptPredicateList rightPredicates =

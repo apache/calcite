@@ -999,7 +999,7 @@ public class RelBuilder {
         ImmutableBitSet.of(registerExpressions(extraNodes, groupKey_.nodes));
   label:
     if (Iterables.isEmpty(aggCalls) && !groupKey_.indicator) {
-      final RelMetadataQuery mq = RelMetadataQuery.instance();
+      final RelMetadataQuery mq = peek().getCluster().getPlanner().getMetadataQuery();
       if (groupSet.isEmpty()) {
         final Double minRowCount = mq.getMinRowCount(peek());
         if (minRowCount == null || minRowCount < 1D) {

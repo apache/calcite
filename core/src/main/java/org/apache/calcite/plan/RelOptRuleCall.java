@@ -18,6 +18,7 @@ package org.apache.calcite.plan;
 
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Filter;
+import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.trace.CalciteTrace;
 
@@ -188,6 +189,14 @@ public abstract class RelOptRuleCall {
    */
   public RelOptPlanner getPlanner() {
     return planner;
+  }
+
+  /**
+   * Returns the current RelMetadataQuery to be used by Rule.onMatch
+   * @return mq
+   */
+  public RelMetadataQuery getMetadataQuery() {
+    return planner.getMetadataQuery();
   }
 
   /**

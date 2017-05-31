@@ -116,7 +116,7 @@ public class AggregateUnionTransposeRule extends RelOptRule {
     // create corresponding aggregates on top of each union child
     final RelBuilder relBuilder = call.builder();
     int transformCount = 0;
-    final RelMetadataQuery mq = RelMetadataQuery.instance();
+    final RelMetadataQuery mq = call.getMetadataQuery();
     for (RelNode input : union.getInputs()) {
       boolean alreadyUnique =
           RelMdUtil.areColumnsDefinitelyUnique(mq, input,
