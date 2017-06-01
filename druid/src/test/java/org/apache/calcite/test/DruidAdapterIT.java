@@ -2179,7 +2179,11 @@ public class DruidAdapterIT {
   @Test public void testNotFilterForm() {
     String sql = "select count(distinct \"the_month\") from "
             + "\"foodmart\" where \"the_month\" <> \'October\'";
+    String druidFilter = "'filter':{'type':'not',"
+            + "'field':{'type':'selector','dimension':'the_month','value':'October'}}";
+    // Check that the filter actually worked, and that druid was responsible for the filter
     sql(sql, FOODMART)
+            .queryContains(druidChecker(druidFilter))
             .returnsOrdered("EXPR$0=11");
   }
 }
