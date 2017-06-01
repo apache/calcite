@@ -72,9 +72,8 @@ public class DruidTableFactory implements TableFactory {
     if (metricsRaw instanceof List) {
       final List metrics = (List) metricsRaw;
       for (Object metric : metrics) {
-        final SqlTypeName sqlTypeName;
         final String metricName;
-        DruidType druidType = DruidType.LONG;
+        final DruidType druidType;
         if (metric instanceof Map) {
           Map map2 = (Map) metric;
           if (!(map2.get("name") instanceof String)) {
@@ -86,20 +85,18 @@ public class DruidTableFactory implements TableFactory {
           assert type != null;
           // count metrics should be queried with longSum at query time
           if (type.startsWith("long") || type.equals("count")) {
-            sqlTypeName = SqlTypeName.BIGINT;
+            druidType = DruidType.LONG;
           } else if (type.startsWith("double")) {
-            sqlTypeName = SqlTypeName.DOUBLE;
             druidType = DruidType.FLOAT;
           } else {
-            sqlTypeName = SqlTypeName.VARBINARY;
             druidType = DruidType.valueOf(type);
           }
         } else {
           metricName = (String) metric;
-          sqlTypeName = SqlTypeName.BIGINT;
+          druidType = DruidType.LONG;
         }
         metricNameBuilder.add(metricName);
-        fieldTypeBuilder.put(metricName, new Pair<>(sqlTypeName, druidType));
+        fieldTypeBuilder.put(metricName, new Pair<>(druidType.sqlType, druidType));
       }
     }
     final String dataSourceName = Util.first(dataSource, name);
