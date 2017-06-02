@@ -718,6 +718,13 @@ public class RexLiteral extends RexNode {
     case CHAR:
       if (clazz == String.class) {
         return clazz.cast(((NlsString) value).getValue());
+      } else if (clazz == Character.class) {
+        return clazz.cast(((NlsString) value).getValue().charAt(0));
+      }
+      break;
+    case VARCHAR:
+      if (clazz == String.class) {
+        return clazz.cast(((NlsString) value).getValue());
       }
       break;
     case DECIMAL:
