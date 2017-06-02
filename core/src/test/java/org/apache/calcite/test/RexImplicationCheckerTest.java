@@ -43,16 +43,15 @@ import org.apache.calcite.util.TimeString;
 import org.apache.calcite.util.TimestampString;
 import org.apache.calcite.util.Util;
 
-import org.junit.Ignore;
 import org.junit.Test;
-
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 
 import java.math.BigDecimal;
 import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
+
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 /**
  * Unit tests for {@link RexImplicationChecker}.
@@ -178,36 +177,46 @@ public class RexImplicationCheckerTest {
     f.checkImplies(node1, node1);
   }
 
-  @Ignore("work in progress")
   @Test public void testSimpleDate() {
     final Fixture f = new Fixture();
     final DateString d = DateString.fromCalendarFields(Util.calendar());
     final RexNode node1 = f.ge(f.dt, f.rexBuilder.makeDateLiteral(d));
     final RexNode node2 = f.eq(f.dt, f.rexBuilder.makeDateLiteral(d));
-
     f.checkImplies(node2, node1);
     f.checkNotImplies(node1, node2);
+
+    final DateString dBeforeEpoch1 = DateString.fromDaysSinceEpoch(-12345);
+    final DateString dBeforeEpcoh2 = DateString.fromDaysSinceEpoch(-123);
+    final RexNode nodeBe1 = f.lt(f.dt, f.rexBuilder.makeDateLiteral(dBeforeEpoch1));
+    final RexNode nodeBe2 = f.lt(f.dt, f.rexBuilder.makeDateLiteral(dBeforeEpcoh2));
+    f.checkImplies(nodeBe1, nodeBe2);
+    f.checkNotImplies(nodeBe2, nodeBe1);
   }
 
-  @Ignore("work in progress")
   @Test public void testSimpleTimeStamp() {
     final Fixture f = new Fixture();
     final TimestampString ts =
         TimestampString.fromCalendarFields(Util.calendar());
-    final RexNode node1 = f.le(f.ts, f.timestampLiteral(ts));
+    final RexNode node1 = f.lt(f.ts, f.timestampLiteral(ts));
     final RexNode node2 = f.le(f.ts, f.timestampLiteral(ts));
-
     f.checkImplies(node1, node2);
     f.checkNotImplies(node2, node1);
+
+    final TimestampString tsBeforeEpoch1 =
+        TimestampString.fromMillisSinceEpoch(-1234567890L);
+    final TimestampString tsBeforeEpoch2 =
+        TimestampString.fromMillisSinceEpoch(-1234567L);
+    final RexNode nodeBe1 = f.lt(f.ts, f.timestampLiteral(tsBeforeEpoch1));
+    final RexNode nodeBe2 = f.lt(f.ts, f.timestampLiteral(tsBeforeEpoch2));
+    f.checkImplies(nodeBe1, nodeBe2);
+    f.checkNotImplies(nodeBe2, nodeBe1);
   }
 
-  @Ignore("work in progress")
   @Test public void testSimpleTime() {
     final Fixture f = new Fixture();
     final TimeString t = TimeString.fromCalendarFields(Util.calendar());
-    final RexNode node1 = f.le(f.ts, f.timeLiteral(t));
-    final RexNode node2 = f.le(f.ts, f.timeLiteral(t));
-
+    final RexNode node1 = f.lt(f.t, f.timeLiteral(t));
+    final RexNode node2 = f.le(f.t, f.timeLiteral(t));
     f.checkImplies(node1, node2);
     f.checkNotImplies(node2, node1);
   }
