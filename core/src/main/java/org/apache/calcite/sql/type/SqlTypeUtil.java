@@ -715,6 +715,13 @@ public abstract class SqlTypeUtil {
       return true;
     }
 
+    if (fromType.getSqlTypeName() == SqlTypeName.ARRAY) {
+      if (toType.getSqlTypeName() != SqlTypeName.ARRAY) {
+        return false;
+      }
+      return canAssignFrom(toType.getComponentType(), fromType.getComponentType());
+    }
+
     if (areCharacterSetsMismatched(toType, fromType)) {
       return false;
     }
