@@ -20,6 +20,7 @@ import org.apache.calcite.avatica.util.Casing;
 import org.apache.calcite.avatica.util.Quoting;
 import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.config.Lex;
+import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.sql.SqlOperator;
@@ -27,7 +28,10 @@ import org.apache.calcite.sql.SqlSpecialOperator;
 import org.apache.calcite.sql.fun.OracleSqlOperatorTable;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.test.SqlTester;
+import org.apache.calcite.sql.type.ArraySqlType;
+import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.util.ChainedSqlOperatorTable;
 import org.apache.calcite.sql.validate.SqlAbstractConformance;
 import org.apache.calcite.sql.validate.SqlConformance;
@@ -9925,6 +9929,24 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     tester.checkQueryFails("delete from EMP_MODIFIABLEVIEW (extra VARCHAR, ^\"EXTRA\"^ VARCHAR)"
             + " where extra = 'test'",
         "Duplicate name 'EXTRA' in column list");
+  }
+
+  @Test public void testArrayAssignment() {
+    SqlTypeFactoryImpl typeFactory = new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
+    RelDataType sqlBigIntNullable = typeFactory
+        .createTypeWithNullability(typeFactory.createSqlType(SqlTypeName.BIGINT), true);
+    RelDataType sqlBigIntNotNull = typeFactory
+        .createTypeWithNullability(typeFactory.createSqlType(SqlTypeName.BIGINT), false);
+    RelDataType sqlDateNotNull = typeFactory
+        .createTypeWithNullability(typeFactory.createSqlType(SqlTypeName.DATE), false);
+    assertThat(SqlTypeUtil.canAssignFrom(sqlBigIntNullable, sqlBigIntNotNull), is(true));
+    assertThat(SqlTypeUtil.canAssignFrom(sqlBigIntNullable, sqlDateNotNull), is(false));
+    RelDataType bigIntArrayNullable = typeFactory
+        .createTypeWithNullability(typeFactory.createArrayType(sqlBigIntNullable, -1), true);
+    RelDataType bigIntArrayNotnull = new ArraySqlType(sqlBigIntNotNull, false);
+    assertThat(SqlTypeUtil.canAssignFrom(bigIntArrayNullable, bigIntArrayNotnull), is(true));
+    RelDataType dateArrayNotnull = new ArraySqlType(sqlDateNotNull, false);
+    assertThat(SqlTypeUtil.canAssignFrom(bigIntArrayNullable, dateArrayNotnull), is(false));
   }
 
 }
