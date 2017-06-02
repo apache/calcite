@@ -161,6 +161,9 @@ public class SqlTypeAssignmentRules {
     // Timestamp is assignable from ...
     rules.put(SqlTypeName.TIMESTAMP, EnumSet.of(SqlTypeName.TIMESTAMP));
 
+    // Array is assignable from ...
+    rules.put(SqlTypeName.ARRAY, EnumSet.of(SqlTypeName.ARRAY));
+
     // Any is assignable from ...
     rule = new HashSet<>();
     rule.add(SqlTypeName.TINYINT);

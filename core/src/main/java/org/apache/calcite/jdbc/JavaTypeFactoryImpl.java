@@ -44,7 +44,6 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
-import java.sql.Array;
 import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -210,8 +209,6 @@ public class JavaTypeFactoryImpl
       case BINARY:
       case VARBINARY:
         return ByteString.class;
-      case ARRAY:
-        return Array.class;
       case ANY:
         return Object.class;
       }
