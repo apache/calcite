@@ -1762,11 +1762,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
             operandTypes);
       }
       for (int i = 0; i < operands.size(); ++i) {
-        RelDataType type = operandTypes[i];
-        if (SqlTypeUtil.isArray(inferredType)) {
-          type = inferredType.getComponentType();
-        }
-        inferUnknownTypes(type, scope, operands.get(i));
+        inferUnknownTypes(operandTypes[i], scope, operands.get(i));
       }
     }
   }

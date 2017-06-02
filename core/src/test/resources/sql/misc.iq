@@ -1930,4 +1930,47 @@ select
 
 !ok
 
+# ARRAY and MULTISET
+select array[1,2] as a from (values (1));
++--------+
+| A      |
++--------+
+| [1, 2] |
++--------+
+(1 row)
+
+!ok
+
+select array[1,null,2] as a from (values (1));
++--------------+
+| A            |
++--------------+
+| [1, null, 2] |
++--------------+
+(1 row)
+
+!ok
+
+values array['a',null,'bcd'],
+  array['efgh'];
++----------------+
+| EXPR$0         |
++----------------+
+| [a, null, bcd] |
+| [efgh]         |
++----------------+
+(2 rows)
+
+!ok
+
+select multiset[1,null,2,2-1] as m from (values (1));
++-----------------+
+| M               |
++-----------------+
+| [1, 1, null, 2] |
++-----------------+
+(1 row)
+
+!ok
+
 # End misc.iq

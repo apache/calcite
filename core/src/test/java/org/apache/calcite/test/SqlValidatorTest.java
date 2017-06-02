@@ -7256,6 +7256,23 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         "Column 'C1' not found in any table");
   }
 
+  @Test public void testArrayConstructor() {
+    sql("select array[1,2] as a from (values (1))")
+        .columnType("INTEGER NOT NULL ARRAY NOT NULL");
+    sql("select array[1,cast(null as integer), 2] as a\n"
+            + "from (values (1))")
+        .columnType("INTEGER ARRAY NOT NULL");
+    sql("select array[1,null,2] as a from (values (1))")
+        .columnType("INTEGER ARRAY NOT NULL");
+    sql("select array['1',null,'234',''] as a from (values (1))")
+        .columnType("CHAR(3) ARRAY NOT NULL");
+  }
+
+  @Test public void testMultisetConstructor() {
+    sql("select multiset[1,null,2] as a from (values (1))")
+        .columnType("INTEGER MULTISET NOT NULL");
+  }
+
   @Test public void testUnnestArrayColumn() {
     final String sql = "select d.deptno, e.*\n"
         + "from dept_nested as d,\n"
@@ -9931,22 +9948,36 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         "Duplicate name 'EXTRA' in column list");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1804">[CALCITE-1804]
+   * Cannot assign NOT NULL array to nullable array</a>. */
   @Test public void testArrayAssignment() {
-    SqlTypeFactoryImpl typeFactory = new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
-    RelDataType sqlBigIntNullable = typeFactory
-        .createTypeWithNullability(typeFactory.createSqlType(SqlTypeName.BIGINT), true);
-    RelDataType sqlBigIntNotNull = typeFactory
-        .createTypeWithNullability(typeFactory.createSqlType(SqlTypeName.BIGINT), false);
-    RelDataType sqlDateNotNull = typeFactory
-        .createTypeWithNullability(typeFactory.createSqlType(SqlTypeName.DATE), false);
-    assertThat(SqlTypeUtil.canAssignFrom(sqlBigIntNullable, sqlBigIntNotNull), is(true));
-    assertThat(SqlTypeUtil.canAssignFrom(sqlBigIntNullable, sqlDateNotNull), is(false));
-    RelDataType bigIntArrayNullable = typeFactory
-        .createTypeWithNullability(typeFactory.createArrayType(sqlBigIntNullable, -1), true);
-    RelDataType bigIntArrayNotnull = new ArraySqlType(sqlBigIntNotNull, false);
-    assertThat(SqlTypeUtil.canAssignFrom(bigIntArrayNullable, bigIntArrayNotnull), is(true));
-    RelDataType dateArrayNotnull = new ArraySqlType(sqlDateNotNull, false);
-    assertThat(SqlTypeUtil.canAssignFrom(bigIntArrayNullable, dateArrayNotnull), is(false));
+    final SqlTypeFactoryImpl typeFactory =
+        new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
+    final RelDataType bigint = typeFactory.createSqlType(SqlTypeName.BIGINT);
+    final RelDataType bigintNullable =
+        typeFactory.createTypeWithNullability(bigint, true);
+    final RelDataType bigintNotNull =
+        typeFactory.createTypeWithNullability(bigint, false);
+    final RelDataType date = typeFactory.createSqlType(SqlTypeName.DATE);
+    final RelDataType dateNotNull =
+        typeFactory.createTypeWithNullability(date, false);
+    assertThat(SqlTypeUtil.canAssignFrom(bigintNullable, bigintNotNull),
+        is(true));
+    assertThat(SqlTypeUtil.canAssignFrom(bigintNullable, dateNotNull),
+        is(false));
+    final RelDataType bigintNullableArray =
+        typeFactory.createArrayType(bigintNullable, -1);
+    final RelDataType bigintArrayNullable =
+        typeFactory.createTypeWithNullability(bigintNullableArray, true);
+    final RelDataType bigintNotNullArray =
+        new ArraySqlType(bigintNotNull, false);
+    assertThat(SqlTypeUtil.canAssignFrom(bigintArrayNullable, bigintNotNullArray),
+        is(true));
+    final RelDataType dateNotNullArray =
+        new ArraySqlType(dateNotNull, false);
+    assertThat(SqlTypeUtil.canAssignFrom(bigintArrayNullable, dateNotNullArray),
+        is(false));
   }
 
 }

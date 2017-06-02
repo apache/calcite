@@ -565,6 +565,11 @@ public class SqlValidatorTestCase {
       return this;
     }
 
+    public Sql columnType(String expectedType) {
+      tester.checkColumnType(sql, expectedType);
+      return this;
+    }
+
     public Sql monotonic(SqlMonotonicity expectedMonotonicity) {
       tester.checkMonotonic(sql, expectedMonotonicity);
       return this;

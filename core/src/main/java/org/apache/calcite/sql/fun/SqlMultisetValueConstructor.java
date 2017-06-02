@@ -25,6 +25,7 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperatorBinding;
 import org.apache.calcite.sql.SqlSpecialOperator;
 import org.apache.calcite.sql.SqlWriter;
+import org.apache.calcite.sql.type.InferTypes;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlTypeUtil;
@@ -54,7 +55,7 @@ public class SqlMultisetValueConstructor extends SqlSpecialOperator {
         kind, MDX_PRECEDENCE,
         false,
         ReturnTypes.ARG0,
-        null,
+        InferTypes.FIRST_KNOWN,
         OperandTypes.VARIADIC);
   }
 
