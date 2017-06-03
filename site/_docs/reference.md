@@ -1128,6 +1128,8 @@ Not implemented:
 | LOCALTIME(precision)      | Returns the current date and time in the session time zone in a value of datatype TIME, with *precision* digits of precision
 | LOCALTIMESTAMP            | Returns the current date and time in the session time zone in a value of datatype TIMESTAMP
 | LOCALTIMESTAMP(precision) | Returns the current date and time in the session time zone in a value of datatype TIMESTAMP, with *precision* digits of precision
+| TIMESTAMPADD(timestampInterval, quantity, timestamp) | Returns a modified timestamp with the specified quantity (signed integer) timestamp interval added to the timestamp
+| TIMESTAMPDIFF(timestampInterval, timestamp, timestamp) | Returns the count (signed integer) between two timestamps in indicated timestamp interval
 | CURRENT_TIME              | Returns the current time in the session time zone, in a value of datatype TIMESTAMP WITH TIME ZONE
 | CURRENT_DATE              | Returns the current date in the session time zone, in a value of datatype DATE
 | CURRENT_TIMESTAMP         | Returns the current date and time in the session time zone, in a value of datatype TIMESTAMP WITH TIME ZONE
