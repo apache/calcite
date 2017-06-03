@@ -1144,6 +1144,8 @@ Not implemented:
 | HOUR(date)                | Equivalent to `EXTRACT(HOUR FROM date)`. Returns an integer between 0 and 23.
 | MINUTE(date)              | Equivalent to `EXTRACT(MINUTE FROM date)`. Returns an integer between 0 and 59.
 | SECOND(date)              | Equivalent to `EXTRACT(SECOND FROM date)`. Returns an integer between 0 and 59.
+| TIMESTAMPADD(timeUnit, integer, datetime) | Returns *datetime* with an interval of (signed) *integer* *timeUnit*s added. Equivalent to `datetime + INTERVAL 'integer' timeUnit`
+| TIMESTAMPDIFF(timeUnit, datetime, datetime2) | Returns the (signed) number of *timeUnit* intervals between *datetime* and *datetime2*. Equivalent to `(datetime2 - datetime) timeUnit`
 
 Calls to niladic functions such as `CURRENT_DATE` do not accept parentheses in
 standard SQL. Calls with parentheses, such as `CURRENT_DATE()` are accepted in certain
@@ -1151,18 +1153,13 @@ standard SQL. Calls with parentheses, such as `CURRENT_DATE()` are accepted in c
 
 Not implemented:
 
-* EXTRACT(timeUnit FROM interval)
 * CEIL(interval)
 * FLOOR(interval)
-* datetime - datetime timeUnit [ TO timeUnit ]
-* interval OVERLAPS interval
 * \+ interval
 * \- interval
 * interval + interval
 * interval - interval
 * interval / interval
-* datetime + interval
-* datetime - interval
 
 ### System functions
 
