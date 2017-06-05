@@ -2383,8 +2383,10 @@ SqlNode OrderItem() :
  */
 SqlMatchRecognize MatchRecognizeOpt(SqlNode tableRef) :
 {
-    final Span s, s0, s1;
+    final Span s, s0, s1, s2;
     SqlNodeList measureList = SqlNodeList.EMPTY;
+    SqlNodeList partitionList = SqlNodeList.EMPTY;
+    SqlNodeList orderList = SqlNodeList.EMPTY;
     SqlNode pattern;
     SqlNodeList patternDefList;
     final SqlNode after;
@@ -2397,6 +2399,13 @@ SqlMatchRecognize MatchRecognizeOpt(SqlNode tableRef) :
 }
 {
     <MATCH_RECOGNIZE> { s = span(); } <LPAREN>
+    [
+        <PARTITION> { s2 = span(); } <BY>
+        partitionList = ExpressionCommaList(s2, ExprContext.ACCEPT_NON_QUERY)
+    ]
+    [
+        orderList = OrderBy(true)
+    ]
     [
         <MEASURES>
         measureList = MeasureColumnCommaList(span())
@@ -2467,7 +2476,7 @@ SqlMatchRecognize MatchRecognizeOpt(SqlNode tableRef) :
     <RPAREN> {
         return new SqlMatchRecognize(s.end(this), tableRef,
             pattern, isStrictStarts, isStrictEnds, patternDefList, measureList,
-            after, subsetList, rowsPerMatch);
+            after, subsetList, rowsPerMatch, partitionList, orderList);
     }
 }
 

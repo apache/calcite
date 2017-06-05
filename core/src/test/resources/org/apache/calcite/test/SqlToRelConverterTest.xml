@@ -73,7 +73,8 @@ LogicalProject(D=[$0], EXPR$1=[+($0, $1)])
 ]]>
         </Resource>
         <Resource name="sql">
-            <![CDATA[select deptno+empno as d, deptno+empno+mgr from emp group by d,mgr]]>
+            <![CDATA[select deptno+empno as d, deptno+empno+mgr
+from emp group by d,mgr]]>
         </Resource>
     </TestCase>
     <TestCase name="testGroupByOrdinal">
@@ -100,7 +101,8 @@ LogicalAggregate(group=[{}], EXPR$0=[COUNT()])
 ]]>
         </Resource>
         <Resource name="sql">
-            <![CDATA[select count(*) from (select 1 from emp group by substring(ename from 2 for 3))]]>
+            <![CDATA[select count(*) from (
+  select 1 from emp group by substring(ename from 2 for 3))]]>
         </Resource>
     </TestCase>
     <TestCase name="testAliasInHaving">
@@ -4656,6 +4658,89 @@ LogicalProject(A=[$0], B=[$1])
             LogicalProject(EXPR$0=[1])
               LogicalFilter(condition=[=($7, $cor0.A)])
                 LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testMatchRecognize1">
+        <Resource name="sql">
+            <![CDATA[select *
+  from emp match_recognize
+  (
+    partition by job, sal
+    order by job asc, sal desc, empno
+    pattern (strt down+ up+)
+    define
+      down as down.mgr < PREV(down.mgr),
+      up as up.mgr > prev(up.mgr)
+  ) mr]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalMatch(partition=[[$2, $5]], order=[[2, 5 DESC, 0]], outputFields=[[EMPNO, ENAME, JOB, MGR, HIREDATE, SAL, COMM, DEPTNO, SLACKER]], allRows=[false], after=[FLAG(SKIP TO NEXT ROW)], pattern=[(('STRT', PATTERN_QUANTIFIER('DOWN', 1, -1, false)), PATTERN_QUANTIFIER('UP', 1, -1, false))], isStrictStarts=[false], isStrictEnds=[false], subsets=[[]], patternDefinitions=[[<(PREV(DOWN.$3, 0), PREV(DOWN.$3, 1)), >(PREV(UP.$3, 0), PREV(UP.$3, 1))]], inputFields=[[EMPNO, ENAME, JOB, MGR, HIREDATE, SAL, COMM, DEPTNO, SLACKER]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testMatchRecognizeMeasures1">
+        <Resource name="sql">
+            <![CDATA[select *
+  from emp match_recognize
+  (
+   partition by job, sal
+   order by job asc, sal desc
+   measures STRT.mgr as start_nw,   LAST(DOWN.mgr) as bottom_nw,   LAST(up.mgr) as end_nw    pattern (strt down+ up+)
+    define
+      down as down.mgr < PREV(down.mgr),
+      up as up.mgr > prev(up.mgr)
+  ) mr]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(START_NW=[$0], BOTTOM_NW=[$1], END_NW=[$2])
+  LogicalMatch(partition=[[$2, $5]], order=[[2, 5 DESC]], outputFields=[[START_NW, BOTTOM_NW, END_NW]], allRows=[false], after=[FLAG(SKIP TO NEXT ROW)], pattern=[(('STRT', PATTERN_QUANTIFIER('DOWN', 1, -1, false)), PATTERN_QUANTIFIER('UP', 1, -1, false))], isStrictStarts=[false], isStrictEnds=[false], subsets=[[]], patternDefinitions=[[<(PREV(DOWN.$3, 0), PREV(DOWN.$3, 1)), >(PREV(UP.$3, 0), PREV(UP.$3, 1))]], inputFields=[[EMPNO, ENAME, JOB, MGR, HIREDATE, SAL, COMM, DEPTNO, SLACKER]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testMatchRecognizePatternSkip1">
+        <Resource name="sql">
+            <![CDATA[select *
+  from emp match_recognize
+  (
+    after match skip to next row
+    pattern (strt down+ up+)
+    define
+      down as down.mgr < PREV(down.mgr),
+      up as up.mgr > NEXT(up.mgr)
+  ) mr]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalMatch(partition=[[]], order=[[]], outputFields=[[EMPNO, ENAME, JOB, MGR, HIREDATE, SAL, COMM, DEPTNO, SLACKER]], allRows=[false], after=[FLAG(SKIP TO NEXT ROW)], pattern=[(('STRT', PATTERN_QUANTIFIER('DOWN', 1, -1, false)), PATTERN_QUANTIFIER('UP', 1, -1, false))], isStrictStarts=[false], isStrictEnds=[false], subsets=[[]], patternDefinitions=[[<(PREV(DOWN.$3, 0), PREV(DOWN.$3, 1)), >(PREV(UP.$3, 0), NEXT(PREV(UP.$3, 0), 1))]], inputFields=[[EMPNO, ENAME, JOB, MGR, HIREDATE, SAL, COMM, DEPTNO, SLACKER]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testMatchRecognizeSubset1">
+        <Resource name="sql">
+            <![CDATA[select *
+  from emp match_recognize
+  (
+    after match skip to down
+    pattern (strt down+ up+)
+    subset stdn = (strt, down)
+    define
+      down as down.mgr < PREV(down.mgr),
+      up as up.mgr > NEXT(up.mgr)
+  ) mr]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalMatch(partition=[[]], order=[[]], outputFields=[[EMPNO, ENAME, JOB, MGR, HIREDATE, SAL, COMM, DEPTNO, SLACKER]], allRows=[false], after=[SKIP TO LAST('DOWN')], pattern=[(('STRT', PATTERN_QUANTIFIER('DOWN', 1, -1, false)), PATTERN_QUANTIFIER('UP', 1, -1, false))], isStrictStarts=[false], isStrictEnds=[false], subsets=[[[DOWN, STRT]]], patternDefinitions=[[<(PREV(DOWN.$3, 0), PREV(DOWN.$3, 1)), >(PREV(UP.$3, 0), NEXT(PREV(UP.$3, 0), 1))]], inputFields=[[EMPNO, ENAME, JOB, MGR, HIREDATE, SAL, COMM, DEPTNO, SLACKER]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
     </TestCase>

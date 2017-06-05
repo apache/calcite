@@ -4505,6 +4505,35 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         && rowsPerMatch.getValue()
         == SqlMatchRecognize.RowsPerMatchOption.ALL_ROWS;
 
+    final List<Map.Entry<String, RelDataType>> fields = new ArrayList<>();
+    if (allRows) {
+      final SqlValidatorNamespace sqlNs = getNamespace(matchRecognize.getTableRef());
+      final RelDataType inputDataType = sqlNs.getRowType();
+      fields.addAll(inputDataType.getFieldList());
+    }
+
+    // parse PARTITION BY column
+    SqlNodeList partitionBy = matchRecognize.getPartitionList();
+    if (partitionBy != null) {
+      for (SqlNode node : partitionBy) {
+        SqlIdentifier identifier = (SqlIdentifier) node;
+        identifier.validate(this, scope);
+        if (allRows) {
+          RelDataType type = deriveType(scope, identifier);
+          String name = identifier.names.get(1);
+          fields.add(Pair.of(name, type));
+        }
+      }
+    }
+
+    // parse ORDER BY column
+    SqlNodeList orderBy = matchRecognize.getOrderList();
+    if (orderBy != null) {
+      for (SqlNode node : orderBy) {
+        node.validate(this, scope);
+      }
+    }
+
     // retrieve pattern variables used in pattern and subset
     SqlNode pattern = matchRecognize.getPattern();
     PatternVarVisitor visitor = new PatternVarVisitor(scope);
@@ -4544,8 +4573,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       }
     }
 
-    List<Map.Entry<String, RelDataType>> fields =
-        validateMeasure(matchRecognize, scope, allRows);
+    fields.addAll(validateMeasure(matchRecognize, scope, allRows));
     final RelDataType rowType = typeFactory.createStructType(fields);
     if (matchRecognize.getMeasureList().size() == 0) {
       ns.setType(getNamespace(matchRecognize.getTableRef()).getRowType());

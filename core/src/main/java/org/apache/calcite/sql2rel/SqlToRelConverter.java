@@ -2089,6 +2089,42 @@ public class SqlToRelConverter {
     convertFrom(matchBb, expr);
     final RelNode input = matchBb.root;
 
+    // PARTITION BY
+    final SqlNodeList partitionList = matchRecognize.getPartitionList();
+    final List<RexNode> partitionKeys = new ArrayList<>();
+    for (SqlNode partition : partitionList) {
+      RexNode e = matchBb.convertExpression(partition);
+      partitionKeys.add(e);
+    }
+
+    // ORDER BY
+    final SqlNodeList orderList = matchRecognize.getOrderList();
+    final List<RelFieldCollation> orderKeys = new ArrayList<>();
+    for (SqlNode order : orderList) {
+      final RelFieldCollation.Direction direction;
+      switch (order.getKind()) {
+      case DESCENDING:
+        direction = RelFieldCollation.Direction.DESCENDING;
+        order = ((SqlCall) order).operand(0);
+        break;
+      case NULLS_FIRST:
+      case NULLS_LAST:
+        throw new AssertionError();
+      default:
+        direction = RelFieldCollation.Direction.ASCENDING;
+        break;
+      }
+      final RelFieldCollation.NullDirection nullDirection =
+          validator.getDefaultNullCollation().last(desc(direction))
+              ? RelFieldCollation.NullDirection.LAST
+              : RelFieldCollation.NullDirection.FIRST;
+      RexNode e = matchBb.convertExpression(order);
+      orderKeys.add(
+          new RelFieldCollation(((RexInputRef) e).getIndex(), direction,
+              nullDirection));
+    }
+    final RelCollation orders = cluster.traitSet().canonize(RelCollations.of(orderKeys));
+
     // convert pattern
     final Set<String> patternVarsSet = new HashSet<>();
     SqlNode pattern = matchRecognize.getPattern();
@@ -2193,7 +2229,7 @@ public class SqlToRelConverter {
             matchRecognize.getStrictStart().booleanValue(),
             matchRecognize.getStrictEnd().booleanValue(),
             definitionNodes.build(), measureNodes.build(), after,
-            subsetMap, allRows, rowType);
+            subsetMap, allRows, partitionKeys, orders, rowType);
     bb.setRoot(rel, false);
   }
 
