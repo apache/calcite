@@ -77,6 +77,7 @@ public class FileReaderTest {
   }
 
   /** Tests {@link FileReader} URL fetch. */
+  @Ignore("[CALCITE-1789] Wikipedia format change breaks file adapter test")
   @Test public void testFileReaderUrlFetch() throws FileReaderException {
     Assume.assumeTrue(FileSuite.hazNetwork());
     FileReader t =
