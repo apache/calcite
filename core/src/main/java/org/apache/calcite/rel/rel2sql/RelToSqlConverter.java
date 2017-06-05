@@ -25,7 +25,6 @@ import org.apache.calcite.rel.core.Calc;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Intersect;
 import org.apache.calcite.rel.core.Join;
-import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Match;
 import org.apache.calcite.rel.core.Minus;
 import org.apache.calcite.rel.core.Project;
@@ -114,9 +113,8 @@ public class RelToSqlConverter extends SqlImplementor
     SqlNode sqlCondition = null;
     SqlLiteral condType = JoinConditionType.ON.symbol(POS);
     JoinType joinType = joinType(e.getJoinType());
-    if (e.getJoinType() == JoinRelType.INNER && e.getCondition().isAlwaysTrue()) {
-      joinType = JoinType.COMMA;
-      condType = JoinConditionType.NONE.symbol(POS);
+    if (e.getCondition().isAlwaysTrue()) {
+      sqlCondition = SqlLiteral.createBoolean(true, POS);
     } else {
       sqlCondition = convertConditionToSqlNode(e.getCondition(),
           leftContext,
