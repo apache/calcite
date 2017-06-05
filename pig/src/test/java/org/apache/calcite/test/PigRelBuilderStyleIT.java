@@ -43,7 +43,6 @@ import org.apache.pig.test.Util;
 
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.apache.calcite.rel.rules.FilterJoinRule.TRUE_PREDICATE;
@@ -56,8 +55,11 @@ import static org.junit.Assert.assertEquals;
  * Tests for the {@code org.apache.calcite.adapter.pig} package that tests the
  * building of {@link PigRel} relational expressions using {@link RelBuilder} and
  * associated factories in {@link PigRelFactories}.
+ *
+ * This test is an integration test due to the fact local Pig causes intermittent test
+ * failures when run an a CI environment. See CALCITE-1561.
  */
-public class PigRelBuilderStyleTest extends AbstractPigTest {
+public class PigRelBuilderStyleIT extends AbstractPigTest {
 
   @Test
   public void testScanAndFilter() throws Exception {
@@ -74,7 +76,6 @@ public class PigRelBuilderStyleTest extends AbstractPigTest {
   }
 
   @Test
-  @Ignore("CALCITE-1751")
   public void testImplWithMultipleFilters() {
     final SchemaPlus schema = createTestSchema();
     final RelBuilder builder = createRelBuilder(schema);
@@ -92,7 +93,6 @@ public class PigRelBuilderStyleTest extends AbstractPigTest {
   }
 
   @Test
-  @Ignore("CALCITE-1751")
   public void testImplWithGroupByAndCount() {
     final SchemaPlus schema = createTestSchema();
     final RelBuilder builder = createRelBuilder(schema);
@@ -128,7 +128,6 @@ public class PigRelBuilderStyleTest extends AbstractPigTest {
   }
 
   @Test
-  @Ignore("CALCITE-1751")
   public void testImplWithGroupByMultipleFields() {
     final SchemaPlus schema = createTestSchema();
     final RelBuilder builder = createRelBuilder(schema);
@@ -185,7 +184,6 @@ public class PigRelBuilderStyleTest extends AbstractPigTest {
   }
 
   @Test
-  @Ignore("CALCITE-1751")
   public void testImplWithJoinAndGroupBy() throws Exception {
     final SchemaPlus schema = createTestSchema();
     final RelBuilder builder = createRelBuilder(schema);
@@ -286,4 +284,4 @@ public class PigRelBuilderStyleTest extends AbstractPigTest {
   }
 }
 
-// End PigRelBuilderStyleTest.java
+// End PigRelBuilderStyleIT.java
