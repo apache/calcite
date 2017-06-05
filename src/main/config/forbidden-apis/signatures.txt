@@ -39,4 +39,13 @@ java.lang.Runtime#exit(int)
 @defaultMessage Don't interrupt threads use FutureUtils#cancel(Future<T>) instead
 java.util.concurrent.Future#cancel(boolean)
 
+@defaultMessage Spawning processes is a potential security issue
+java.lang.ProcessBuilder
+java.lang.Runtime#exec(java.lang.String)
+java.lang.Runtime#exec(java.lang.String[])
+java.lang.Runtime#exec(java.lang.String, java.lang.String[])
+java.lang.Runtime#exec(java.lang.String, java.lang.String[], java.io.File)
+java.lang.Runtime#exec(java.lang.String[], java.lang.String[])
+java.lang.Runtime#exec(java.lang.String[], java.lang.String[], java.io.File)
+
 # End signatures.txt

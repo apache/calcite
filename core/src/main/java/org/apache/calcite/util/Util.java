@@ -41,8 +41,6 @@ import com.google.common.collect.ImmutableMap;
 
 import org.slf4j.Logger;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -1533,121 +1531,6 @@ public class Util {
     default:
       throw new AssertionError("bad locale string '" + localeString + "'");
     }
-  }
-
-  /**
-   * Runs an external application.
-   *
-   * @param cmdarray  command and arguments, see {@link ProcessBuilder}
-   * @param logger    if not null, command and exit status will be logged
-   * @param appInput  if not null, data will be copied to application's stdin
-   * @param appOutput if not null, data will be captured from application's
-   *                  stdout and stderr
-   * @return application process exit value
-   * @throws IOException
-   * @throws InterruptedException
-   */
-  @Deprecated // to be removed before 2.0
-  public static int runApplication(
-      String[] cmdarray,
-      Logger logger,
-      Reader appInput,
-      Writer appOutput) throws IOException, InterruptedException {
-    return runAppProcess(
-        newAppProcess(cmdarray),
-        logger,
-        appInput,
-        appOutput);
-  }
-
-  /**
-   * Constructs a {@link ProcessBuilder} to run an external application.
-   *
-   * @param cmdarray command and arguments.
-   * @return a ProcessBuilder.
-   */
-  @Deprecated // to be removed before 2.0
-  public static ProcessBuilder newAppProcess(String[] cmdarray) {
-    // Concatenate quoted words from cmdarray.
-    // REVIEW mb 2/24/09 Why is this needed?
-    StringBuilder buf = new StringBuilder();
-    for (int i = 0; i < cmdarray.length; ++i) {
-      if (i > 0) {
-        buf.append(" ");
-      }
-      buf.append('"');
-      buf.append(cmdarray[i]);
-      buf.append('"');
-    }
-    String fullcmd = buf.toString();
-    buf.setLength(0);
-    return new ProcessBuilder(cmdarray);
-  }
-
-
-  /**
-   * Runs an external application process.
-   *
-   * @param pb        ProcessBuilder for the application; might be
-   *                  returned by {@link #newAppProcess}.
-   * @param logger    if not null, command and exit status will be logged here
-   * @param appInput  if not null, data will be copied to application's stdin
-   * @param appOutput if not null, data will be captured from application's
-   *                  stdout and stderr
-   * @return application process exit value
-   * @throws IOException
-   * @throws InterruptedException
-   */
-  public static int runAppProcess(
-      ProcessBuilder pb,
-      Logger logger,
-      Reader appInput,
-      Writer appOutput) throws IOException, InterruptedException {
-    pb.redirectErrorStream(true);
-    if (logger != null) {
-      logger.info("start process: " + pb.command());
-    }
-    Process p = pb.start();
-
-    // Setup the input/output streams to the subprocess.
-    // The buffering here is arbitrary. Javadocs strongly encourage
-    // buffering, but the size needed is very dependent on the
-    // specific application being run, the size of the input
-    // provided by the caller, and the amount of output expected.
-    // Since this method is currently used only by unit tests,
-    // large-ish fixed buffer sizes have been chosen. If this
-    // method becomes used for something in production, it might
-    // be better to have the caller provide them as arguments.
-    if (appInput != null) {
-      OutputStream out =
-          new BufferedOutputStream(
-              p.getOutputStream(),
-              100 * 1024);
-      int c;
-      while ((c = appInput.read()) != -1) {
-        out.write(c);
-      }
-      out.flush();
-    }
-    if (appOutput != null) {
-      InputStream in =
-          new BufferedInputStream(
-              p.getInputStream(),
-              100 * 1024);
-      int c;
-      while ((c = in.read()) != -1) {
-        appOutput.write(c);
-      }
-      appOutput.flush();
-      in.close();
-    }
-    p.waitFor();
-
-    int status = p.exitValue();
-    if (logger != null) {
-      logger.info("exit status=" + status + " from " + pb.command());
-    }
-    return status;
   }
 
   /**

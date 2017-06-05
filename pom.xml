@@ -491,6 +491,8 @@ limitations under the License.
             <exclude>**/*TokenManager.class</exclude>
             <exclude>**/TokenMgrError.class</exclude>
             <exclude>**/org/apache/calcite/runtime/Resources$Inst.class</exclude>
+            <exclude>**/org/apache/calcite/test/concurrent/ConcurrentTestCommandScript.class</exclude>
+            <exclude>**/org/apache/calcite/test/concurrent/ConcurrentTestCommandScript$ShellCommand.class</exclude>
             <exclude>**/org/apache/calcite/util/Unsafe.class</exclude>
           </excludes>
         </configuration>
