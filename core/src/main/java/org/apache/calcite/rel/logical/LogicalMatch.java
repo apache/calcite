@@ -19,11 +19,13 @@ package org.apache.calcite.rel.logical;
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Match;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexNode;
 
+import java.util.List;
 import java.util.Map;
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -51,12 +53,12 @@ public class LogicalMatch extends Match {
    * @param rowType Row type
    */
   private LogicalMatch(RelOptCluster cluster, RelTraitSet traitSet,
-      RelNode input, RexNode pattern, boolean strictStart, boolean strictEnd,
-      Map<String, RexNode> patternDefinitions, Map<String, RexNode> measures,
-      RexNode after, Map<String, ? extends SortedSet<String>> subsets,
-      boolean allRows, RelDataType rowType) {
+       RelNode input, RexNode pattern, boolean strictStart, boolean strictEnd,
+       Map<String, RexNode> patternDefinitions, Map<String, RexNode> measures,
+       RexNode after, Map<String, ? extends SortedSet<String>> subsets,
+       boolean allRows, List<RexNode> partitionKeys, RelCollation orderKeys, RelDataType rowType) {
     super(cluster, traitSet, input, pattern, strictStart, strictEnd,
-        patternDefinitions, measures, after, subsets, allRows, rowType);
+        patternDefinitions, measures, after, subsets, allRows, partitionKeys, orderKeys, rowType);
   }
 
   /**
@@ -66,12 +68,12 @@ public class LogicalMatch extends Match {
       boolean strictStart, boolean strictEnd,
       Map<String, RexNode> patternDefinitions, Map<String, RexNode> measures,
       RexNode after, Map<String, TreeSet<String>> subsets, boolean allRows,
-      RelDataType rowType) {
+      List<RexNode> partitionKeys, RelCollation orderKeys, RelDataType rowType) {
     final RelOptCluster cluster = input.getCluster();
     final RelTraitSet traitSet = cluster.traitSetOf(Convention.NONE);
     return new LogicalMatch(cluster, traitSet, input, pattern,
         strictStart, strictEnd, patternDefinitions, measures, after, subsets,
-        allRows, rowType);
+        allRows, partitionKeys, orderKeys, rowType);
   }
 
   //~ Methods ------------------------------------------------------
@@ -80,11 +82,11 @@ public class LogicalMatch extends Match {
       boolean strictStart, boolean strictEnd,
       Map<String, RexNode> patternDefinitions, Map<String, RexNode> measures,
       RexNode after, Map<String, ? extends SortedSet<String>> subsets,
-      boolean allRows, RelDataType rowType) {
+      boolean allRows, List<RexNode> partitionKeys, RelCollation orderKeys, RelDataType rowType) {
     final RelTraitSet traitSet = getCluster().traitSetOf(Convention.NONE);
     return new LogicalMatch(getCluster(), traitSet,
         input, pattern, strictStart, strictEnd, patternDefinitions, measures,
-        after, subsets, allRows, rowType);
+        after, subsets, allRows, partitionKeys, orderKeys, rowType);
   }
 }
 

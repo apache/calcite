@@ -399,7 +399,7 @@ public class RelFactories {
         boolean strictStart, boolean strictEnd,
         Map<String, RexNode> patternDefinitions, Map<String, RexNode> measures,
         RexNode after, Map<String, TreeSet<String>> subsets, boolean allRows,
-        RelDataType rowType);
+        List<RexNode> partitionKeys, RelCollation orderKeys, RelDataType rowType);
   }
 
   /**
@@ -411,9 +411,9 @@ public class RelFactories {
         boolean strictStart, boolean strictEnd,
         Map<String, RexNode> patternDefinitions, Map<String, RexNode> measures,
         RexNode after, Map<String, TreeSet<String>> subsets, boolean allRows,
-        RelDataType rowType) {
+        List<RexNode> partitionKeys, RelCollation orderKeys, RelDataType rowType) {
       return LogicalMatch.create(input, pattern, strictStart, strictEnd,
-          patternDefinitions, measures, after, subsets, allRows, rowType);
+          patternDefinitions, measures, after, subsets, allRows, partitionKeys, orderKeys, rowType);
     }
   }
 }

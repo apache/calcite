@@ -7233,6 +7233,8 @@ public class SqlParserTest {
     final String sql = "select *\n"
         + "  from t match_recognize\n"
         + "  (\n"
+        + "    partition by type, price\n"
+        + "    order by type asc, price desc\n"
         + "    pattern (strt down+ up+)\n"
         + "    define\n"
         + "      down as down.price < PREV(down.price),\n"
@@ -7240,6 +7242,8 @@ public class SqlParserTest {
         + "  ) mr";
     final String expected = "SELECT *\n"
         + "FROM `T` MATCH_RECOGNIZE(\n"
+        + "PARTITION BY `TYPE`, `PRICE`\n"
+        + "ORDER BY `TYPE`, `PRICE` DESC\n"
         + "PATTERN (((`STRT` (`DOWN` +)) (`UP` +)))\n"
         + "DEFINE "
         + "`DOWN` AS (`DOWN`.`PRICE` < PREV(`DOWN`.`PRICE`, 1)), "

@@ -2089,6 +2089,40 @@ public class SqlToRelConverter {
     convertFrom(matchBb, expr);
     final RelNode input = matchBb.root;
 
+    //partition by
+    final SqlNodeList partitionList = matchRecognize.getPartitionList();
+    final List<RexNode> partitionKeys = Lists.newArrayList();
+    for (SqlNode partition : partitionList) {
+      RexNode e = matchBb.convertExpression(partition);
+      partitionKeys.add(e);
+    }
+
+    //order by
+    final SqlNodeList orderList = matchRecognize.getOrderList();
+    final List<RelFieldCollation> orderKeys = Lists.newArrayList();
+    RelFieldCollation.Direction direction = RelFieldCollation.Direction.ASCENDING;
+    for (SqlNode order : orderList) {
+      SqlKind orderKind = order.getKind();
+      switch(orderKind) {
+      case DESCENDING:
+        direction = RelFieldCollation.Direction.DESCENDING;
+        order = ((SqlCall) order).operand(0);
+        break;
+      case NULLS_FIRST:
+      case NULLS_LAST:
+        throw new AssertionError();
+      default:
+        break;
+      }
+      final RelFieldCollation.NullDirection nullDirection = validator.getDefaultNullCollation().
+        last(desc(direction))
+        ? RelFieldCollation.NullDirection.LAST
+        : RelFieldCollation.NullDirection.FIRST;
+      RexNode e = matchBb.convertExpression(order);
+      orderKeys.add(new RelFieldCollation(((RexInputRef) e).getIndex(), direction, nullDirection));
+    }
+    final RelCollation orders = cluster.traitSet().canonize(RelCollations.of(orderKeys));
+
     // convert pattern
     final Set<String> patternVarsSet = new HashSet<>();
     SqlNode pattern = matchRecognize.getPattern();
@@ -2193,7 +2227,7 @@ public class SqlToRelConverter {
             matchRecognize.getStrictStart().booleanValue(),
             matchRecognize.getStrictEnd().booleanValue(),
             definitionNodes.build(), measureNodes.build(), after,
-            subsetMap, allRows, rowType);
+            subsetMap, allRows, partitionKeys, orders, rowType);
     bb.setRoot(rel, false);
   }
 

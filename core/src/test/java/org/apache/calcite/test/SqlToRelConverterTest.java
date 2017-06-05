@@ -2460,6 +2460,64 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  @Test public void testMatchRecognize1() {
+    final String sql = "select *\n"
+        + "  from emp match_recognize\n"
+        + "  (\n"
+        + "    partition by job, sal\n"
+        + "    order by job asc, sal desc\n"
+        + "    pattern (strt down+ up+)\n"
+        + "    define\n"
+        + "      down as down.mgr < PREV(down.mgr),\n"
+        + "      up as up.mgr > prev(up.mgr)\n"
+        + "  ) mr";
+    sql(sql).ok();
+  }
+
+  @Test public void testMatchRecognizeMeasures1() {
+    final String sql = "select *\n"
+        + "  from emp match_recognize\n"
+        + "  (\n"
+        + "   partition by job, sal\n"
+        + "   order by job asc, sal desc\n"
+        + "   measures STRT.mgr as start_nw,"
+        + "   LAST(DOWN.mgr) as bottom_nw,"
+        + "   LAST(up.mgr) as end_nw"
+        + "    pattern (strt down+ up+)\n"
+        + "    define\n"
+        + "      down as down.mgr < PREV(down.mgr),\n"
+        + "      up as up.mgr > prev(up.mgr)\n"
+        + "  ) mr";
+    sql(sql).ok();
+  }
+
+  @Test public void testMatchRecognizePatternSkip1() {
+    final String sql = "select *\n"
+        + "  from emp match_recognize\n"
+        + "  (\n"
+        + "    after match skip to next row\n"
+        + "    pattern (strt down+ up+)\n"
+        + "    define\n"
+        + "      down as down.mgr < PREV(down.mgr),\n"
+        + "      up as up.mgr > NEXT(up.mgr)\n"
+        + "  ) mr";
+    sql(sql).ok();
+  }
+
+  @Test public void testMatchRecognizeSubset1() {
+    final String sql = "select *\n"
+        + "  from emp match_recognize\n"
+        + "  (\n"
+        + "    after match skip to down\n"
+        + "    pattern (strt down+ up+)\n"
+        + "    subset stdn = (strt, down)\n"
+        + "    define\n"
+        + "      down as down.mgr < PREV(down.mgr),\n"
+        + "      up as up.mgr > NEXT(up.mgr)\n"
+        + "  ) mr";
+    sql(sql).ok();
+  }
+
   /**
    * Visitor that checks that every {@link RelNode} in a tree is valid.
    *
