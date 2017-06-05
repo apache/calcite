@@ -27,7 +27,7 @@ where case when (sal = 1000) then
         <Resource name="planAfter">
             <![CDATA[
 LogicalProject(SAL=[$5])
-  LogicalFilter(condition=[CASE(=($5, 1000), =($5, 1000), =($5, 2000))])
+  LogicalFilter(condition=[OR(=($5, 1000), AND(<>($5, 1000), =($5, 2000)))])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
@@ -5653,7 +5653,7 @@ LogicalAggregate(group=[{}], EXPR$0=[COUNT()])
             <![CDATA[
 LogicalAggregate(group=[{}], EXPR$0=[COUNT()])
   LogicalProject($f0=[1])
-    LogicalFilter(condition=[=($7, 10)])
+    LogicalFilter(condition=[AND(<>($7, 20), =($7, 10))])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
@@ -5678,7 +5678,7 @@ LogicalAggregate(group=[{}], EXPR$0=[COUNT()])
             <![CDATA[
 LogicalAggregate(group=[{}], EXPR$0=[COUNT()])
   LogicalProject($f0=[1])
-    LogicalFilter(condition=[=($7, 10)])
+    LogicalFilter(condition=[OR(AND(<>($7, 20), =($7, 10)), AND(<>($7, 20), null))])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
@@ -5705,7 +5705,7 @@ LogicalAggregate(group=[{}], EXPR$0=[COUNT()])
             <![CDATA[
 LogicalAggregate(group=[{}], EXPR$0=[COUNT()])
   LogicalProject($f0=[1])
-    LogicalFilter(condition=[OR(=($7, 30), =($7, 10))])
+    LogicalFilter(condition=[OR(=($7, 30), AND(<>($7, 20), =($7, 10)))])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>

@@ -1103,12 +1103,12 @@ public class RexProgramTest {
 
     // case: remove false branches
     checkSimplify(case_(eq(bRef, cRef), dRef, falseLiteral, aRef, eRef),
-        "CASE(=(?0.b, ?0.c), ?0.d, ?0.e)");
+        "OR(AND(=(?0.b, ?0.c), ?0.d), AND(<>(?0.b, ?0.c), ?0.e))");
 
     // case: true branches become the last branch
     checkSimplify(
         case_(eq(bRef, cRef), dRef, trueLiteral, aRef, eq(cRef, dRef), eRef, cRef),
-        "CASE(=(?0.b, ?0.c), ?0.d, ?0.a)");
+        "OR(AND(=(?0.b, ?0.c), ?0.d), AND(<>(?0.b, ?0.c), ?0.a))");
 
     // case: singleton
     checkSimplify(case_(trueLiteral, aRef, eq(cRef, dRef), eRef, cRef), "?0.a");
@@ -1120,7 +1120,7 @@ public class RexProgramTest {
     // case: trailing false and null, no simplification
     checkSimplify2(
         case_(aRef, trueLiteral, bRef, trueLiteral, cRef, falseLiteral, unknownLiteral),
-        "CASE(?0.a, true, ?0.b, true, ?0.c, false, null)",
+        "OR(?0.a, ?0.b, AND(null, NOT(?0.c)))",
         "CAST(OR(?0.a, ?0.b)):BOOLEAN");
 
     // case: form an AND of branches that return true
@@ -1323,6 +1323,152 @@ public class RexProgramTest {
     assertThat(result.getType().isNullable(), is(false));
     assertThat(result.getType().getSqlTypeName(), is(SqlTypeName.CHAR));
     assertThat(result, is(caseNode));
+  }
+
+  @Test public void testSimplifyCaseAsAndOr() throws Exception {
+    final RelDataType intType = typeFactory.createSqlType(SqlTypeName.INTEGER);
+    final RelDataType strType = typeFactory.createSqlType(SqlTypeName.VARCHAR, 255);
+    final RelDataType rowType = typeFactory.builder()
+        .add("i", intType)
+        .add("s", strType)
+        .build();
+
+    final RexDynamicParam range = rexBuilder.makeDynamicParam(rowType, 0);
+    final RexNode intRef = rexBuilder.makeFieldAccess(range, 0);
+    final RexNode strRef = rexBuilder.makeFieldAccess(range, 1);
+    final RexNode val3 = rexBuilder.makeLiteral(3, intType, false);
+    final RexNode val5 = rexBuilder.makeLiteral(5, intType, false);
+    final RexNode val7 = rexBuilder.makeLiteral(7, intType, false);
+    final RexNode val10 = rexBuilder.makeLiteral(10, intType, false);
+    final RexNode val11 = rexBuilder.makeLiteral(11, intType, false);
+    final RexNode val13 = rexBuilder.makeLiteral(13, intType, false);
+    final RexNode val25 = rexBuilder.makeLiteral(25, intType, false);
+    final RexNode val50 = rexBuilder.makeLiteral(50, intType, false);
+    final RexNode val100 = rexBuilder.makeLiteral(100, intType, false);
+    final RexNode val200 = rexBuilder.makeLiteral(200, intType, false);
+    final RexNode valFoo = rexBuilder.makeLiteral("foo");
+    final RexNode valBar = rexBuilder.makeLiteral("bar");
+    final RexNode valFar = rexBuilder.makeLiteral("far");
+    final RexNode valCar = rexBuilder.makeLiteral("car");
+
+        // CASE
+        // WHEN i = 3 THEN TRUE
+        // WHEN i = 5 THEN TRUE
+        // ELSE FALSE
+        // END
+    checkSimplifyFilter(
+      case_(
+        eq(intRef, val3), trueLiteral,
+        eq(intRef, val5), trueLiteral,
+        falseLiteral),
+      "OR(=(?0.i, 3), =(?0.i, 5))");
+
+    // CASE
+    // WHEN $1 = 3 THEN TRUE
+    // WHEN $1 = 5 THEN TRUE
+    // ELSE TRUE
+    // END
+    checkSimplifyFilter(
+      case_(
+        eq(intRef, val3), trueLiteral,
+        eq(intRef, val5), trueLiteral,
+        trueLiteral),
+      "true");
+
+    // CASE
+    // WHEN $1 = 3 THEN $2 = foo
+    // WHEN $1 = 5 THEN $2= bar
+    // ELSE TRUE
+    // END
+    checkSimplifyFilter(
+      case_(
+        eq(intRef, val3), eq(strRef, valFoo),
+        eq(intRef, val5), eq(strRef, valBar),
+        trueLiteral),
+      "OR("
+            + "AND(=(?0.i, 3), =(?0.s, 'foo')), "
+            + "AND(<>(?0.i, 3), =(?0.i, 5), =(?0.s, 'bar')), "
+            + "AND(<>(?0.i, 3), <>(?0.i, 5)))");
+
+      // CASE
+      // WHEN $1 = 3 THEN $2 = foo
+      // WHEN $1 = 5 THEN $2= bar
+      // ELSE FALSE
+      // END
+    checkSimplifyFilter(
+      case_(
+        eq(intRef, val3), eq(strRef, valFoo),
+        eq(intRef, val5), eq(strRef, valBar),
+        falseLiteral),
+      "OR("
+        + "AND(=(?0.i, 3), =(?0.s, 'foo')), "
+        + "AND(<>(?0.i, 3), =(?0.i, 5), =(?0.s, 'bar')))");
+
+    // CASE
+    // WHEN $1 = 3 THEN $2 = foo
+    // WHEN $1 > 10 THEN
+    //  CASE
+    //    WHEN $i = 11 THEN $2 = bar
+    //    WHEN $i = 13 THEN $2 = far
+    //    ELSE ...
+    // WHEN $1 < 3 THEN $2 = car
+    // ELSE ...
+    // END
+    checkSimplifyFilter(
+      case_(
+        eq(intRef, val3), eq(strRef, valFoo),
+        gt(intRef, val10), case_(
+          eq(intRef, val11), eq(strRef, valBar),
+          eq(intRef, val13), eq(strRef, valFar),
+          falseLiteral),
+        lt(intRef, val3), eq(strRef, valCar),
+        trueLiteral),
+      "OR("
+        + "AND(=(?0.i, 3), =(?0.s, 'foo')), "
+        + "AND(<>(?0.i, 3), >(?0.i, 10), OR("
+          + "AND(=(?0.i, 11), =(?0.s, 'bar')), "
+          + "AND(<>(?0.i, 11), =(?0.i, 13), =(?0.s, 'far')))), "
+        + "AND(<>(?0.i, 3), <(?0.i, 3), =(?0.s, 'car')), "
+        + "AND(<>(?0.i, 3), <=(?0.i, 10), >=(?0.i, 3)))");
+
+    // CASE
+    // WHEN $1 = 3 THEN $2 = foo
+    // WHEN CASE
+    //    WHEN $i >100 THEN $1 < 200
+    //    WHEN $i < 50 THEN $1 > 25
+    //    ELSE ...
+    //  END THEN $2=bar
+    // WHEN $1 < 3 THEN $2 = car
+    // ELSE ...
+    // END
+    checkSimplifyFilter(
+      case_(
+        eq(intRef, val3), eq(strRef, valFoo),
+        case_(
+          gt(intRef, val100), lt(intRef, val200),
+          lt(intRef, val50), gt(intRef, val25),
+          trueLiteral), eq(strRef, valCar),
+        lt(intRef, val3), eq(strRef, valCar),
+        falseLiteral),
+      "OR("
+        + "AND(=(?0.i, 3), =(?0.s, 'foo')),"
+        + " AND(<>(?0.i, 3), OR("
+          + "AND(>(?0.i, 100), <(?0.i, 200)),"
+          + " AND(<=(?0.i, 100), <(?0.i, 50), >(?0.i, 25)),"
+          + " AND(<=(?0.i, 100), >=(?0.i, 50))"
+        + "), =(?0.s, 'car')),"
+        + " AND(<>(?0.i, 3), OR("
+          + "<=(?0.i, 100), "
+          + ">=(?0.i, 200)"
+        + "), OR("
+          + ">(?0.i, 100), "
+          + ">=(?0.i, 50), "
+          + "<=(?0.i, 25)"
+        + "), OR("
+          + ">(?0.i, 100), "
+          + "<(?0.i, 50)), "
+          + "<(?0.i, 3), "
+          + "=(?0.s, 'car')))");
   }
 
   @Test public void testSimplifyAnd() {
