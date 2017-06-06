@@ -380,6 +380,29 @@ public class RelToSqlConverter extends SqlImplementor
 
     SqlNode tableRef = x.asQueryOrValues();
 
+    List<SqlNode> partitionSqlList = Lists.newArrayList();
+    if (e.getPartitionKeys() != null) {
+      for (RexNode rex : e.getPartitionKeys()) {
+        SqlNode sqlNode = context.toSql(null, rex);
+        partitionSqlList.add(sqlNode);
+      }
+    }
+    final SqlNodeList partitionList = new SqlNodeList(partitionSqlList, POS);
+
+    List<SqlNode> orderBySqlList = Lists.newArrayList();
+    if (e.getOrderKeys() != null) {
+      for (RelFieldCollation field : e.getOrderKeys().getFieldCollations()) {
+        if (field.nullDirection != RelFieldCollation.NullDirection.UNSPECIFIED
+            && dialect.getDatabaseProduct() == SqlDialect.DatabaseProduct.MYSQL) {
+          orderBySqlList.add(ISNULL_FUNCTION.createCall(POS, context.field(field.getFieldIndex())));
+          field = new RelFieldCollation(field.getFieldIndex(), field.getDirection(),
+            RelFieldCollation.NullDirection.UNSPECIFIED);
+        }
+        orderBySqlList.add(context.toSql(field));
+      }
+    }
+    final SqlNodeList orderbyList = new SqlNodeList(orderBySqlList, SqlParserPos.ZERO);
+
     final SqlLiteral rowsPerMatch = e.isAllRows()
         ? SqlMatchRecognize.RowsPerMatchOption.ALL_ROWS.symbol(POS)
         : SqlMatchRecognize.RowsPerMatchOption.ONE_ROW.symbol(POS);
@@ -428,7 +451,7 @@ public class RelToSqlConverter extends SqlImplementor
 
     final SqlNode matchRecognize = new SqlMatchRecognize(POS, tableRef,
         pattern, strictStart, strictEnd, patternDefList, measureList, after,
-        subsetList, rowsPerMatch);
+        subsetList, rowsPerMatch, partitionList, orderbyList);
     return result(matchRecognize, Expressions.list(Clause.FROM), e, null);
   }
 

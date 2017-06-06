@@ -16,14 +16,13 @@
  */
 package org.apache.calcite.rel.core;
 
-import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.SingleRel;
 import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexPatternFieldRef;
@@ -65,6 +64,9 @@ public abstract class Match extends SingleRel {
   protected final Set<RexMRAggCall> aggregateCalls;
   protected final Map<String, SortedSet<RexMRAggCall>> aggregateCallsPreVar;
   protected final ImmutableMap<String, SortedSet<String>> subsets;
+  protected final List<RexNode> partitionKeys;
+  protected final RelCollation orderKeys;
+
 
   //~ Constructors -----------------------------------------------
 
@@ -82,13 +84,15 @@ public abstract class Match extends SingleRel {
    * @param after After match definitions
    * @param subsets Subsets of pattern variables
    * @param allRows Whether all rows per match (false means one row per match)
+   * @param partitionKeys Partition by columns
+   * @param orderKeys Order by columns
    * @param rowType Row type
    */
   protected Match(RelOptCluster cluster, RelTraitSet traitSet,
       RelNode input, RexNode pattern, boolean strictStart, boolean strictEnd,
       Map<String, RexNode> patternDefinitions, Map<String, RexNode> measures,
       RexNode after, Map<String, ? extends SortedSet<String>> subsets,
-      boolean allRows, RelDataType rowType) {
+      boolean allRows, List<RexNode> partitionKeys, RelCollation orderKeys, RelDataType rowType) {
     super(cluster, traitSet, input);
     this.pattern = Preconditions.checkNotNull(pattern);
     Preconditions.checkArgument(patternDefinitions.size() > 0);
@@ -100,6 +104,8 @@ public abstract class Match extends SingleRel {
     this.after = Preconditions.checkNotNull(after);
     this.subsets = copyMap(subsets);
     this.allRows = allRows;
+    this.partitionKeys = partitionKeys;
+    this.orderKeys = orderKeys;
 
     final AggregateFinder aggregateFinder = new AggregateFinder();
     for (RexNode rex : this.patternDefinitions.values()) {
@@ -165,11 +171,19 @@ public abstract class Match extends SingleRel {
     return subsets;
   }
 
+  public List<RexNode> getPartitionKeys() {
+    return partitionKeys;
+  }
+
+  public RelCollation getOrderKeys() {
+    return orderKeys;
+  }
+
   public abstract Match copy(RelNode input, RexNode pattern,
      boolean strictStart, boolean strictEnd,
      Map<String, RexNode> patternDefinitions, Map<String, RexNode> measures,
      RexNode after, Map<String, ? extends SortedSet<String>> subsets,
-     boolean allRows, RelDataType rowType);
+     boolean allRows, List<RexNode> partitionKeys, RelCollation orderKeys, RelDataType rowType);
 
   @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
     if (getInputs().equals(inputs)
@@ -178,23 +192,23 @@ public abstract class Match extends SingleRel {
     }
 
     return copy(inputs.get(0), pattern, strictStart, strictEnd,
-        patternDefinitions, measures, after, subsets, allRows, rowType);
+        patternDefinitions, measures, after, subsets, allRows,
+        partitionKeys, orderKeys, rowType);
   }
 
   @Override public RelWriter explainTerms(RelWriter pw) {
     super.explainTerms(pw);
-    if (pw.nest()) {
-      pw.item("fields", rowType.getFieldNames());
-      pw.item("exprs", getMeasures().values().asList());
-    } else {
-      for (Ord<RelDataTypeField> field : Ord.zip(rowType.getFieldList())) {
-        String fieldName = field.e.getName();
-        if (fieldName == null) {
-          fieldName = "Field#" + field.i;
-        }
-        pw.item(fieldName, getMeasures().get(field.i));
-      }
-    }
+    pw.item("partition", getPartitionKeys());
+    pw.item("order", getOrderKeys());
+    pw.item("outputFields", getRowType().getFieldNames());
+    pw.item("allRows", isAllRows());
+    pw.item("after", getAfter());
+    pw.item("pattern", getPattern());
+    pw.item("isStrictStarts", isStrictStart());
+    pw.item("isStrictEnds", isStrictEnd());
+    pw.item("subSets", getSubsets().values().asList());
+    pw.item("patternDefinitions", getPatternDefinitions().values().asList());
+    pw.item("inputFields", getInput().getRowType().getFieldNames());
     return pw;
   }
 

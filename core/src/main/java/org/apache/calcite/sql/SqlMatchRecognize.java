@@ -41,6 +41,8 @@ public class SqlMatchRecognize extends SqlCall {
   public static final int OPERAND_AFTER = 6;
   public static final int OPERAND_SUBSET = 7;
   public static final int OPERAND_ROWS_PER_MATCH = 8;
+  public static final int OPERAND_PARTITION_BY = 9;
+  public static final int OPERAND_ORDER_BY = 10;
 
   public static final SqlPrefixOperator SKIP_TO_FIRST =
       new SqlPrefixOperator("SKIP TO FIRST", SqlKind.SKIP_TO_FIRST, 20, null,
@@ -61,11 +63,14 @@ public class SqlMatchRecognize extends SqlCall {
   private SqlNode after;
   private SqlNodeList subsetList;
   private SqlLiteral rowsPerMatch;
+  private SqlNodeList partitionList;
+  private SqlNodeList orderList;
 
   /** Creates a SqlMatchRecognize. */
   public SqlMatchRecognize(SqlParserPos pos, SqlNode tableRef, SqlNode pattern,
       SqlLiteral strictStart, SqlLiteral strictEnd, SqlNodeList patternDefList,
-      SqlNodeList measureList, SqlNode after, SqlNodeList subsetList, SqlLiteral rowsPerMatch) {
+      SqlNodeList measureList, SqlNode after, SqlNodeList subsetList, SqlLiteral rowsPerMatch,
+                           SqlNodeList partitionList, SqlNodeList orderList) {
     super(pos);
     this.tableRef = Preconditions.checkNotNull(tableRef);
     this.pattern = Preconditions.checkNotNull(pattern);
@@ -79,6 +84,8 @@ public class SqlMatchRecognize extends SqlCall {
     Preconditions.checkArgument(rowsPerMatch == null
         || rowsPerMatch.value instanceof RowsPerMatchOption);
     this.rowsPerMatch = rowsPerMatch;
+    this.partitionList = partitionList;
+    this.orderList = orderList;
   }
 
   // ~ Methods
@@ -93,7 +100,7 @@ public class SqlMatchRecognize extends SqlCall {
 
   @Override public List<SqlNode> getOperandList() {
     return ImmutableNullableList.of(tableRef, pattern, strictStart, strictEnd,
-        patternDefList, measureList, after, subsetList);
+        patternDefList, measureList, after, subsetList, partitionList, orderList);
   }
 
   @Override public void unparse(SqlWriter writer, int leftPrec,
@@ -137,6 +144,12 @@ public class SqlMatchRecognize extends SqlCall {
       Preconditions.checkArgument(rowsPerMatch == null
           || rowsPerMatch.value instanceof RowsPerMatchOption);
       break;
+    case OPERAND_PARTITION_BY:
+      partitionList = (SqlNodeList) operand;
+      break;
+    case OPERAND_ORDER_BY:
+      orderList = (SqlNodeList) operand;
+      break;
     default:
       throw new AssertionError(i);
     }
@@ -176,6 +189,14 @@ public class SqlMatchRecognize extends SqlCall {
 
   public SqlLiteral getRowsPerMatch() {
     return rowsPerMatch;
+  }
+
+  public SqlNodeList getPartitionList() {
+    return partitionList;
+  }
+
+  public SqlNodeList getOrderList() {
+    return orderList;
   }
 
   /**
@@ -246,12 +267,13 @@ public class SqlMatchRecognize extends SqlCall {
         SqlParserPos pos,
         SqlNode... operands) {
       assert functionQualifier == null;
-      assert operands.length == 9;
+      assert operands.length == 11;
 
       return new SqlMatchRecognize(pos, operands[0], operands[1],
           (SqlLiteral) operands[2], (SqlLiteral) operands[3],
           (SqlNodeList) operands[4], (SqlNodeList) operands[5], operands[6],
-          (SqlNodeList) operands[7], (SqlLiteral) operands[8]);
+          (SqlNodeList) operands[7], (SqlLiteral) operands[8],
+          (SqlNodeList) operands[9], (SqlNodeList) operands[10]);
     }
 
     @Override public <R> void acceptCall(
@@ -290,6 +312,23 @@ public class SqlMatchRecognize extends SqlCall {
 
       pattern.tableRef.unparse(writer, 0, 0);
       final SqlWriter.Frame mrFrame = writer.startFunCall("MATCH_RECOGNIZE");
+
+      if (pattern.partitionList != null && pattern.partitionList.size() > 0) {
+        writer.newlineAndIndent();
+        writer.sep("PARTITION BY");
+        final SqlWriter.Frame partitionFrame = writer.startList("", "");
+        pattern.partitionList.unparse(writer, 0, 0);
+        writer.endList(partitionFrame);
+      }
+
+      if (pattern.orderList != null && pattern.orderList.size() > 0) {
+        writer.newlineAndIndent();
+        writer.sep("ORDER BY");
+        final SqlWriter.Frame orderFrame =
+          writer.startList(SqlWriter.FrameTypeEnum.ORDER_BY_LIST);
+        unparseListClause(writer, pattern.orderList);
+        writer.endList(orderFrame);
+      }
 
       if (pattern.measureList != null && pattern.measureList.size() > 0) {
         writer.newlineAndIndent();
