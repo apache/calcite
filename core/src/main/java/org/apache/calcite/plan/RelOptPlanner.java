@@ -333,6 +333,15 @@ public interface RelOptPlanner {
   /** Called when a relational expression is copied to a similar expression. */
   void onCopy(RelNode rel, RelNode newRel);
 
+  /** Gets the current RelMetadataQuery */
+  RelMetadataQuery getMetadataQuery();
+
+  /**
+   * Should be called whenever the current RelMetadataQuery becomes obsolete.
+   * Typically invoked from {@link RelOptRuleCall#transformTo}
+   */
+  void invalidateMetadataQuery();
+
   /** @deprecated Use {@link RexExecutor} */
   @Deprecated // to be removed before 2.0
   interface Executor extends RexExecutor {

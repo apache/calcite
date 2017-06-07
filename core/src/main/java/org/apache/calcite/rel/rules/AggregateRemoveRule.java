@@ -61,7 +61,7 @@ public class AggregateRemoveRule extends RelOptRule {
     if (!aggregate.getAggCallList().isEmpty() || aggregate.indicator) {
       return;
     }
-    final RelMetadataQuery mq = RelMetadataQuery.instance();
+    final RelMetadataQuery mq = call.getMetadataQuery();
     if (!SqlFunctions.isTrue(mq.areColumnsUnique(input, aggregate.getGroupSet()))) {
       return;
     }

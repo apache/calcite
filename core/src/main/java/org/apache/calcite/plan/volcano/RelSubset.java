@@ -126,7 +126,7 @@ public class RelSubset extends AbstractRelNode {
    */
   private void computeBestCost(RelOptPlanner planner) {
     bestCost = planner.getCostFactory().makeInfiniteCost();
-    final RelMetadataQuery mq = RelMetadataQuery.instance();
+    final RelMetadataQuery mq = planner.getMetadataQuery();
     for (RelNode rel : getRels()) {
       final RelOptCost cost = planner.getCost(rel, mq);
       if (cost.isLt(bestCost)) {
