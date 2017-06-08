@@ -2174,7 +2174,8 @@ public class DruidAdapterIT {
         .queryContains(druidChecker("'queryType':'timeseries'"));
   }
 
-  /** Test to make sure the "not" filter form is different than "or" & "and"
+  /**
+   * Test to make sure the "not" filter has only 1 field, rather than an array of fields.
    * */
   @Test public void testNotFilterForm() {
     String sql = "select count(distinct \"the_month\") from "
