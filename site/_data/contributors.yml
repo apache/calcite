@@ -82,6 +82,11 @@
   org: Hortonworks
   role: PMC
   homepage: http://people.apache.org/~jhyde
+- name: Kevin Liew
+  apacheId: kliew
+  githubId: kliewkliew
+  org:
+  role: Committer
 - name: Laurent Goujon
   apacheId: laurent
   githubId: laurentgo
@@ -117,6 +122,11 @@
   org:
   role: PMC
   homepage: http://www.n10k.com
+- name: Slim Bouguerra
+  apacheId: bslim
+  githubId: b-slim
+  org: Hortonworks
+  role: Committer
 - name: Steven Noels
   apacheId: stevenn
   githubId: stevenn
@@ -133,4 +143,9 @@
   githubId: vlsi
   org: NetCracker
   role: PMC
+- name: Zhiqiang He
+  apacheId: zhiqianghe
+  githubId: Zhiqiang-He
+  org: Huawei
+  role: Committer
 # End contributors.yml
