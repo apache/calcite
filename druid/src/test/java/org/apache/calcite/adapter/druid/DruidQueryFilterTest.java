@@ -113,7 +113,8 @@ public class DruidQueryFilterTest {
     final RexBuilder rexBuilder = new RexBuilder(typeFactory);
     final DruidTable druidTable =
         new DruidTable(Mockito.mock(DruidSchema.class), "dataSource", null,
-            ImmutableSet.<String>of(), "timestamp", null);
+            ImmutableSet.<String>of(), "timestamp", null,
+                null);
     final RelDataType varcharType =
         typeFactory.createSqlType(SqlTypeName.VARCHAR);
     final RelDataType varcharRowType = typeFactory.builder()

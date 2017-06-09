@@ -27,6 +27,7 @@ import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.prepare.CalcitePrepareImpl;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.Holder;
+import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
 import static org.apache.calcite.runtime.HttpUtils.post;
@@ -99,7 +100,7 @@ class DruidConnectionImpl implements DruidConnection {
     final Map<String, String> requestHeaders =
         ImmutableMap.of("Content-Type", "application/json");
     if (CalcitePrepareImpl.DEBUG) {
-      System.out.println(data);
+      System.out.println("Final Druid Query: " + data);
     }
     try (InputStream in0 = post(url, data, requestHeaders, 10000, 1800000);
          InputStream in = traceResponse(in0)) {
@@ -458,8 +459,9 @@ class DruidConnectionImpl implements DruidConnection {
 
   /** Reads segment metadata, and populates a list of columns and metrics. */
   void metadata(String dataSourceName, String timestampColumnName,
-      List<LocalInterval> intervals,
-      Map<String, SqlTypeName> fieldBuilder, Set<String> metricNameBuilder) {
+                List<LocalInterval> intervals,
+                Map<String, Pair<SqlTypeName, DruidType>> fieldTypeBuilder,
+                Set<String> metricNameBuilder) {
     final String url = this.url + "/druid/v2/?pretty";
     final Map<String, String> requestHeaders =
         ImmutableMap.of("Content-Type", "application/json");
@@ -476,7 +478,8 @@ class DruidConnectionImpl implements DruidConnection {
               JsonSegmentMetadata.class);
       final List<JsonSegmentMetadata> list = mapper.readValue(in, listType);
       in.close();
-      fieldBuilder.put(timestampColumnName, SqlTypeName.TIMESTAMP);
+      fieldTypeBuilder.put(timestampColumnName,
+              new Pair<>(SqlTypeName.TIMESTAMP, DruidType.STRING));
       for (JsonSegmentMetadata o : list) {
         for (Map.Entry<String, JsonColumn> entry : o.columns.entrySet()) {
           if (entry.getKey().equals(DruidTable.DEFAULT_TIMESTAMP_COLUMN)) {
@@ -490,12 +493,12 @@ class DruidConnectionImpl implements DruidConnection {
             // ignore exception; not a supported type
             continue;
           }
-          fieldBuilder.put(entry.getKey(), druidType.sqlType);
+          fieldTypeBuilder.put(entry.getKey(), new Pair<>(druidType.sqlType, druidType));
         }
         if (o.aggregators != null) {
           for (Map.Entry<String, JsonAggregator> entry
               : o.aggregators.entrySet()) {
-            if (!fieldBuilder.containsKey(entry.getKey())) {
+            if (!fieldTypeBuilder.containsKey(entry.getKey())) {
               continue;
             }
             metricNameBuilder.add(entry.getKey());
@@ -641,27 +644,12 @@ class DruidConnectionImpl implements DruidConnection {
       if (type.equals("hyperUnique")) {
         return DruidType.hyperUnique;
       }
+      if (type.equals("thetaSketch")) {
+        return DruidType.thetaSketch;
+      }
       throw new AssertionError("unknown type " + type);
     }
   }
-
-  /** Druid type. */
-  enum DruidType {
-    LONG(SqlTypeName.BIGINT),
-    // SQL DOUBLE and FLOAT types are both 64 bit, but we use DOUBLE because
-    // people find FLOAT confusing.
-    FLOAT(SqlTypeName.DOUBLE),
-    STRING(SqlTypeName.VARCHAR),
-    hyperUnique(SqlTypeName.VARBINARY);
-
-    /** The corresponding SQL type. */
-    public final SqlTypeName sqlType;
-
-    DruidType(SqlTypeName sqlType) {
-      this.sqlType = sqlType;
-    }
-  }
-
 }
 
 // End DruidConnectionImpl.java

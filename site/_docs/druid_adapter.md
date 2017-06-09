@@ -174,6 +174,27 @@ into a single Druid data set called "foodmart".
 You can access it via the
 `druid/src/test/resources/druid-foodmart-model.json` model.
 
+The foodmart data set also contains a `thetaSketch` metric called
+"user_unique". Theta sketch metrics are an alternative to `hyperUnique`
+metrics, and can quickly measure the cardinality of a set. You can learn more 
+about theta sketches in Druid [here](http://druid.io/docs/latest/development/extensions-core/datasketches-aggregators.html).
+
+As an example:
+
+{% highlight bash %}
+sqlline> select count(distinct "user_unique") as users from "foodmart";
+{% endhighlight %}
+
+Will generate a Druid query with the following aggregate:
+
+{% highlight json %}
+{
+  "type": "thetaSketch",
+  "name": "USERS",
+  "fieldName": "user_unique"
+}
+{% endhighlight %}
+
 # Simplifying the model
 
 If less metadata is provided in the model, the Druid adapter can discover

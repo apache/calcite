@@ -20,6 +20,7 @@ import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.impl.AbstractSchema;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.Compatible;
+import org.apache.calcite.util.Pair;
 
 import com.google.common.base.Preconditions;
 import com.google.common.cache.CacheBuilder;
@@ -68,12 +69,12 @@ public class DruidSchema extends AbstractSchema {
         CacheBuilder.newBuilder()
             .build(new CacheLoader<String, Table>() {
               public Table load(@Nonnull String tableName) throws Exception {
-                final Map<String, SqlTypeName> fieldMap = new LinkedHashMap<>();
                 final Set<String> metricNameSet = new LinkedHashSet<>();
+                final Map<String, Pair<SqlTypeName, DruidType>> typeMap = new LinkedHashMap<>();
                 connection.metadata(tableName, DruidTable.DEFAULT_TIMESTAMP_COLUMN,
-                    null, fieldMap, metricNameSet);
+                    null, typeMap, metricNameSet);
                 return DruidTable.create(DruidSchema.this, tableName, null,
-                    fieldMap, metricNameSet, DruidTable.DEFAULT_TIMESTAMP_COLUMN, connection);
+                    typeMap, metricNameSet, DruidTable.DEFAULT_TIMESTAMP_COLUMN, connection);
               }
             }));
   }
