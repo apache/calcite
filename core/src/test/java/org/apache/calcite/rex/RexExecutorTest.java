@@ -36,6 +36,7 @@ import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.tools.Frameworks;
+import org.apache.calcite.util.DateString;
 import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.Util;
 
@@ -47,7 +48,6 @@ import org.junit.Test;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.List;
 import java.util.Random;
 
@@ -73,7 +73,7 @@ public class RexExecutorTest {
               SchemaPlus rootSchema, CalciteServerStatement statement) {
             final RexBuilder rexBuilder = cluster.getRexBuilder();
             DataContext dataContext =
-                Schemas.createDataContext(statement.getConnection());
+                Schemas.createDataContext(statement.getConnection(), rootSchema);
             final RexExecutorImpl executor = new RexExecutorImpl(dataContext);
             action.check(rexBuilder, executor);
             return null;
@@ -159,20 +159,22 @@ public class RexExecutorTest {
     checkConstant(true,
         new Function<RexBuilder, RexNode>() {
           public RexNode apply(RexBuilder rexBuilder) {
-            Calendar calendar = Util.calendar();
+            final DateString d =
+                DateString.fromCalendarFields(Util.calendar());
             return rexBuilder.makeCall(SqlStdOperatorTable.LESS_THAN_OR_EQUAL,
-                rexBuilder.makeDateLiteral(calendar),
-                rexBuilder.makeDateLiteral(calendar));
+                rexBuilder.makeDateLiteral(d),
+                rexBuilder.makeDateLiteral(d));
           }
         });
     // date 'today' < date 'today' -> false
     checkConstant(false,
         new Function<RexBuilder, RexNode>() {
           public RexNode apply(RexBuilder rexBuilder) {
-            Calendar calendar = Util.calendar();
+            final DateString d =
+                DateString.fromCalendarFields(Util.calendar());
             return rexBuilder.makeCall(SqlStdOperatorTable.LESS_THAN,
-                rexBuilder.makeDateLiteral(calendar),
-                rexBuilder.makeDateLiteral(calendar));
+                rexBuilder.makeDateLiteral(d),
+                rexBuilder.makeDateLiteral(d));
           }
         });
   }

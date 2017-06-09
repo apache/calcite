@@ -23,6 +23,7 @@ import org.apache.calcite.rel.rules.DateRangeRules;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.test.RexImplicationCheckerTest.Fixture;
+import org.apache.calcite.util.TimestampString;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
@@ -123,12 +124,13 @@ public class DruidDateRangeRulesTest {
    * Push CAST of literals to Druid</a>. */
   @Test public void testFilterWithCast() {
     final Fixture2 f = new Fixture2();
-    Calendar from = Util.calendar();
-    from.clear();
-    from.set(2010, Calendar.JANUARY, 1);
-    Calendar to = Util.calendar();
-    to.clear();
-    to.set(2011, Calendar.JANUARY, 1);
+    final Calendar c = Util.calendar();
+    c.clear();
+    c.set(2010, Calendar.JANUARY, 1);
+    final TimestampString from = TimestampString.fromCalendarFields(c);
+    c.clear();
+    c.set(2011, Calendar.JANUARY, 1);
+    final TimestampString to = TimestampString.fromCalendarFields(c);
 
     // dt >= 2010-01-01 AND dt < 2011-01-01
     checkDateRangeNoSimplify(f,

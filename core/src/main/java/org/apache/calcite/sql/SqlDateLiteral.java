@@ -16,13 +16,11 @@
  */
 package org.apache.calcite.sql;
 
-import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeName;
-
-import java.util.Calendar;
+import org.apache.calcite.util.DateString;
 
 /**
  * A SQL literal representing a DATE value, such as <code>DATE
@@ -33,21 +31,22 @@ import java.util.Calendar;
 public class SqlDateLiteral extends SqlAbstractDateTimeLiteral {
   //~ Constructors -----------------------------------------------------------
 
-  SqlDateLiteral(Calendar d, SqlParserPos pos) {
-    super(d, false, SqlTypeName.DATE, 0, DateTimeUtils.DATE_FORMAT_STRING, pos);
-  }
-
-  SqlDateLiteral(Calendar d, String format, SqlParserPos pos) {
-    super(d, false, SqlTypeName.DATE, 0, format, pos);
+  SqlDateLiteral(DateString d, SqlParserPos pos) {
+    super(d, false, SqlTypeName.DATE, 0, pos);
   }
 
   //~ Methods ----------------------------------------------------------------
 
-  public SqlNode clone(SqlParserPos pos) {
-    return new SqlDateLiteral((Calendar) value, pos);
+  /** Converts this literal to a {@link DateString}. */
+  protected DateString getDate() {
+    return (DateString) value;
   }
 
-  public String toString() {
+  public SqlNode clone(SqlParserPos pos) {
+    return new SqlDateLiteral((DateString) value, pos);
+  }
+
+  @Override public String toString() {
     return "DATE '" + toFormattedString() + "'";
   }
 
@@ -55,7 +54,7 @@ public class SqlDateLiteral extends SqlAbstractDateTimeLiteral {
    * Returns e.g. '1969-07-21'.
    */
   public String toFormattedString() {
-    return getDate().toString(formatString);
+    return getDate().toString();
   }
 
   public RelDataType createSqlType(RelDataTypeFactory typeFactory) {

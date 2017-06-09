@@ -2180,6 +2180,10 @@ public class SqlToRelConverter {
       definitionNodes.put(alias, rex);
     }
 
+    final SqlLiteral rowsPerMatch = matchRecognize.getRowsPerMatch();
+    final boolean allRows = rowsPerMatch != null
+        && rowsPerMatch.getValue() == SqlMatchRecognize.RowsPerMatchOption.ALL_ROWS;
+
     matchBb.setPatternVarRef(false);
 
     final RelFactories.MatchFactory factory =
@@ -2189,7 +2193,7 @@ public class SqlToRelConverter {
             matchRecognize.getStrictStart().booleanValue(),
             matchRecognize.getStrictEnd().booleanValue(),
             definitionNodes.build(), measureNodes.build(), after,
-            subsetMap, rowType);
+            subsetMap, allRows, rowType);
     bb.setRoot(rel, false);
   }
 
@@ -5011,7 +5015,7 @@ public class SqlToRelConverter {
    *
    * <blockquote><code>AVG(x)</code></blockquote>
    *
-   * becomes
+   * <p>becomes
    *
    * <blockquote><code>SUM(x) / COUNT(x)</code></blockquote>
    *
@@ -5021,12 +5025,12 @@ public class SqlToRelConverter {
    *
    * <blockquote><code>MIN(x), MAX(x)</code></blockquote>
    *
-   * are converted to
+   * <p>are converted to
    *
    * <blockquote><code>$HistogramMin($Histogram(x)),
    * $HistogramMax($Histogram(x))</code></blockquote>
    *
-   * Common sub-expression elmination will ensure that only one histogram is
+   * <p>Common sub-expression elimination will ensure that only one histogram is
    * computed.
    */
   private class HistogramShuttle extends RexShuttle {

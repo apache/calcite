@@ -16,13 +16,11 @@
  */
 package org.apache.calcite.sql;
 
-import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.util.TimestampString;
 
 import com.google.common.base.Preconditions;
-
-import java.util.Calendar;
 
 /**
  * A SQL literal representing a TIMESTAMP value, for example <code>TIMESTAMP
@@ -33,34 +31,17 @@ import java.util.Calendar;
 public class SqlTimestampLiteral extends SqlAbstractDateTimeLiteral {
   //~ Constructors -----------------------------------------------------------
 
-  public SqlTimestampLiteral(
-      Calendar cal,
-      int precision,
-      boolean hasTimeZone,
-      SqlParserPos pos) {
-    this(cal, precision, hasTimeZone, DateTimeUtils.TIMESTAMP_FORMAT_STRING,
-        pos);
-  }
-
-  public SqlTimestampLiteral(
-      Calendar cal,
-      int precision,
-      boolean hasTimeZone,
-      String format,
-      SqlParserPos pos) {
-    super(cal, hasTimeZone, SqlTypeName.TIMESTAMP, precision, format, pos);
-    Preconditions.checkArgument(this.precision >= 0 && this.precision <= 3);
+  SqlTimestampLiteral(TimestampString ts, int precision,
+      boolean hasTimeZone, SqlParserPos pos) {
+    super(ts, hasTimeZone, SqlTypeName.TIMESTAMP, precision, pos);
+    Preconditions.checkArgument(this.precision >= 0);
   }
 
   //~ Methods ----------------------------------------------------------------
 
   public SqlNode clone(SqlParserPos pos) {
-    return new SqlTimestampLiteral(
-        (Calendar) value,
-        precision,
-        hasTimeZone,
-        formatString,
-        pos);
+    return new SqlTimestampLiteral((TimestampString) value, precision,
+        hasTimeZone, pos);
   }
 
   public String toString() {
@@ -71,21 +52,11 @@ public class SqlTimestampLiteral extends SqlAbstractDateTimeLiteral {
    * Returns e.g. '03:05:67.456'.
    */
   public String toFormattedString() {
-    String result = getTimestamp().toString(formatString);
-    final Calendar cal = getCal();
+    TimestampString ts = getTimestamp();
     if (precision > 0) {
-      assert precision <= 3;
-
-      // get the millisecond count.  millisecond => at most 3 digits.
-      String digits = Long.toString(cal.getTimeInMillis());
-      result =
-          result + "."
-          + digits.substring(digits.length() - 3,
-              digits.length() - 3 + precision);
-    } else {
-      assert 0 == cal.get(Calendar.MILLISECOND);
+      ts = ts.round(precision);
     }
-    return result;
+    return ts.toString(precision);
   }
 
   public void unparse(

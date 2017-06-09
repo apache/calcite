@@ -333,7 +333,9 @@ public class RelMdColumnUniqueness
     final List<Comparable> values = new ArrayList<>();
     for (ImmutableList<RexLiteral> tuple : rel.tuples) {
       for (RexLiteral literal : tuple) {
-        values.add(NullSentinel.mask(literal.getValue()));
+        values.add(literal.isNull()
+            ? NullSentinel.INSTANCE
+            : literal.getValueAs(Comparable.class));
       }
       if (!set.add(ImmutableList.copyOf(values))) {
         return false;

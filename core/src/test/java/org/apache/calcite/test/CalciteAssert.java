@@ -131,7 +131,7 @@ public class CalciteAssert {
   private static final DateFormat UTC_TIME_FORMAT;
   private static final DateFormat UTC_TIMESTAMP_FORMAT;
   static {
-    final TimeZone utc = DateTimeUtils.GMT_ZONE;
+    final TimeZone utc = DateTimeUtils.UTC_ZONE;
     UTC_DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd", Locale.ROOT);
     UTC_DATE_FORMAT.setTimeZone(utc);
     UTC_TIME_FORMAT = new SimpleDateFormat("HH:mm:ss", Locale.ROOT);

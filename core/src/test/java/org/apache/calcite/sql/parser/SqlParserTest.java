@@ -2230,13 +2230,13 @@ public class SqlParserTest {
     checkExpSame("TIMESTAMP '2004-06-01 15:55:55.900'");
     checkExp(
         "TIMESTAMP '2004-06-01 15:55:55.1234'",
-        "TIMESTAMP '2004-06-01 15:55:55.123'");
+        "TIMESTAMP '2004-06-01 15:55:55.1234'");
     checkExp(
         "TIMESTAMP '2004-06-01 15:55:55.1236'",
-        "TIMESTAMP '2004-06-01 15:55:55.124'");
+        "TIMESTAMP '2004-06-01 15:55:55.1236'");
     checkExp(
         "TIMESTAMP '2004-06-01 15:55:55.9999'",
-        "TIMESTAMP '2004-06-01 15:55:56.000'");
+        "TIMESTAMP '2004-06-01 15:55:55.9999'");
     checkExpSame("NULL");
   }
 
@@ -3684,10 +3684,15 @@ public class SqlParserTest {
 
     // Date literals
     checkExp("DATE '2004-12-01'", "DATE '2004-12-01'");
+
+    // Time literals
     checkExp("TIME '12:01:01'", "TIME '12:01:01'");
     checkExp("TIME '12:01:01.'", "TIME '12:01:01'");
     checkExp("TIME '12:01:01.000'", "TIME '12:01:01.000'");
     checkExp("TIME '12:01:01.001'", "TIME '12:01:01.001'");
+    checkExp("TIME '12:01:01.01023456789'", "TIME '12:01:01.01023456789'");
+
+    // Timestamp literals
     checkExp(
         "TIMESTAMP '2004-12-01 12:01:01'",
         "TIMESTAMP '2004-12-01 12:01:01'");
@@ -3697,7 +3702,10 @@ public class SqlParserTest {
     checkExp(
         "TIMESTAMP '2004-12-01 12:01:01.'",
         "TIMESTAMP '2004-12-01 12:01:01'");
-    checkExpSame("TIMESTAMP '2004-12-01 12:01:01.1'");
+    checkExp(
+        "TIMESTAMP  '2004-12-01 12:01:01.010234567890'",
+        "TIMESTAMP '2004-12-01 12:01:01.010234567890'");
+    checkExpSame("TIMESTAMP '2004-12-01 12:01:01.01023456789'");
 
     // Failures.
     checkFails("^DATE '12/21/99'^", "(?s).*Illegal DATE literal.*");
@@ -7807,27 +7815,83 @@ public class SqlParserTest {
 
   @Test public void testMatchRecognizeSubset3() {
     final String sql = "select *\n"
-      + "  from t match_recognize\n"
-      + "  (\n"
-      + "   measures STRT.ts as start_ts,"
-      + "   LAST(DOWN.ts) as bottom_ts,"
-      + "   AVG(stdn.price) as stdn_avg"
-      + "    pattern (strt down+ up+)\n"
-      + "    subset stdn = (strt, down), stdn2 = (strt, down)\n"
-      + "    define\n"
-      + "      down as down.price < PREV(down.price),\n"
-      + "      up as up.price > prev(up.price)\n"
-      + "  ) mr";
+        + "  from t match_recognize\n"
+        + "  (\n"
+        + "   measures STRT.ts as start_ts,"
+        + "   LAST(DOWN.ts) as bottom_ts,"
+        + "   AVG(stdn.price) as stdn_avg"
+        + "    pattern (strt down+ up+)\n"
+        + "    subset stdn = (strt, down), stdn2 = (strt, down)\n"
+        + "    define\n"
+        + "      down as down.price < PREV(down.price),\n"
+        + "      up as up.price > prev(up.price)\n"
+        + "  ) mr";
     final String expected = "SELECT *\n"
-      + "FROM `T` MATCH_RECOGNIZE(\n"
-      + "MEASURES `STRT`.`TS` AS `START_TS`, "
-      + "LAST(`DOWN`.`TS`, 0) AS `BOTTOM_TS`, "
-      + "AVG(`STDN`.`PRICE`) AS `STDN_AVG`\n"
-      + "PATTERN (((`STRT` (`DOWN` +)) (`UP` +)))\n"
-      + "SUBSET (`STDN` = (`STRT`, `DOWN`)), (`STDN2` = (`STRT`, `DOWN`))\n"
-      + "DEFINE `DOWN` AS (`DOWN`.`PRICE` < PREV(`DOWN`.`PRICE`, 1)), "
-      + "`UP` AS (`UP`.`PRICE` > PREV(`UP`.`PRICE`, 1))"
-      + ") AS `MR`";
+        + "FROM `T` MATCH_RECOGNIZE(\n"
+        + "MEASURES `STRT`.`TS` AS `START_TS`, "
+        + "LAST(`DOWN`.`TS`, 0) AS `BOTTOM_TS`, "
+        + "AVG(`STDN`.`PRICE`) AS `STDN_AVG`\n"
+        + "PATTERN (((`STRT` (`DOWN` +)) (`UP` +)))\n"
+        + "SUBSET (`STDN` = (`STRT`, `DOWN`)), (`STDN2` = (`STRT`, `DOWN`))\n"
+        + "DEFINE `DOWN` AS (`DOWN`.`PRICE` < PREV(`DOWN`.`PRICE`, 1)), "
+        + "`UP` AS (`UP`.`PRICE` > PREV(`UP`.`PRICE`, 1))"
+        + ") AS `MR`";
+    sql(sql).ok(expected);
+  }
+
+  @Test public void testMatchRecognizeRowsPerMatch1() {
+    final String sql = "select *\n"
+        + "  from t match_recognize\n"
+        + "  (\n"
+        + "   measures STRT.ts as start_ts,"
+        + "   LAST(DOWN.ts) as bottom_ts,"
+        + "   AVG(stdn.price) as stdn_avg"
+        + "   ONE ROW PER MATCH"
+        + "    pattern (strt down+ up+)\n"
+        + "    subset stdn = (strt, down), stdn2 = (strt, down)\n"
+        + "    define\n"
+        + "      down as down.price < PREV(down.price),\n"
+        + "      up as up.price > prev(up.price)\n"
+        + "  ) mr";
+    final String expected = "SELECT *\n"
+        + "FROM `T` MATCH_RECOGNIZE(\n"
+        + "MEASURES `STRT`.`TS` AS `START_TS`, "
+        + "LAST(`DOWN`.`TS`, 0) AS `BOTTOM_TS`, "
+        + "AVG(`STDN`.`PRICE`) AS `STDN_AVG`\n"
+        + "ONE ROW PER MATCH\n"
+        + "PATTERN (((`STRT` (`DOWN` +)) (`UP` +)))\n"
+        + "SUBSET (`STDN` = (`STRT`, `DOWN`)), (`STDN2` = (`STRT`, `DOWN`))\n"
+        + "DEFINE `DOWN` AS (`DOWN`.`PRICE` < PREV(`DOWN`.`PRICE`, 1)), "
+        + "`UP` AS (`UP`.`PRICE` > PREV(`UP`.`PRICE`, 1))"
+        + ") AS `MR`";
+    sql(sql).ok(expected);
+  }
+
+  @Test public void testMatchRecognizeRowsPerMatch2() {
+    final String sql = "select *\n"
+        + "  from t match_recognize\n"
+        + "  (\n"
+        + "   measures STRT.ts as start_ts,"
+        + "   LAST(DOWN.ts) as bottom_ts,"
+        + "   AVG(stdn.price) as stdn_avg"
+        + "   ALL ROWS PER MATCH"
+        + "    pattern (strt down+ up+)\n"
+        + "    subset stdn = (strt, down), stdn2 = (strt, down)\n"
+        + "    define\n"
+        + "      down as down.price < PREV(down.price),\n"
+        + "      up as up.price > prev(up.price)\n"
+        + "  ) mr";
+    final String expected = "SELECT *\n"
+        + "FROM `T` MATCH_RECOGNIZE(\n"
+        + "MEASURES `STRT`.`TS` AS `START_TS`, "
+        + "LAST(`DOWN`.`TS`, 0) AS `BOTTOM_TS`, "
+        + "AVG(`STDN`.`PRICE`) AS `STDN_AVG`\n"
+        + "ALL ROWS PER MATCH\n"
+        + "PATTERN (((`STRT` (`DOWN` +)) (`UP` +)))\n"
+        + "SUBSET (`STDN` = (`STRT`, `DOWN`)), (`STDN2` = (`STRT`, `DOWN`))\n"
+        + "DEFINE `DOWN` AS (`DOWN`.`PRICE` < PREV(`DOWN`.`PRICE`, 1)), "
+        + "`UP` AS (`UP`.`PRICE` > PREV(`UP`.`PRICE`, 1))"
+        + ") AS `MR`";
     sql(sql).ok(expected);
   }
 

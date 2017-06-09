@@ -109,7 +109,7 @@ public class RexUtil {
 
   /** Executor for a bit of constant reduction. The user can pass in another executor. */
   public static final RexExecutor EXECUTOR =
-      new RexExecutorImpl(Schemas.createDataContext(null));
+      new RexExecutorImpl(Schemas.createDataContext(null, null));
 
   private RexUtil() {
   }

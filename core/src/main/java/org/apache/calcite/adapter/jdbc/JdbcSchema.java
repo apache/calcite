@@ -35,6 +35,7 @@ import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.Util;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
@@ -65,6 +66,7 @@ public class JdbcSchema implements Schema {
   public final SqlDialect dialect;
   final JdbcConvention convention;
   private ImmutableMap<String, JdbcTable> tableMap;
+  private final boolean snapshot;
 
   /**
    * Creates a JDBC schema.
@@ -77,14 +79,20 @@ public class JdbcSchema implements Schema {
    */
   public JdbcSchema(DataSource dataSource, SqlDialect dialect,
       JdbcConvention convention, String catalog, String schema) {
+    this(dataSource, dialect, convention, catalog, schema, null);
+  }
+
+  private JdbcSchema(DataSource dataSource, SqlDialect dialect,
+      JdbcConvention convention, String catalog, String schema,
+      ImmutableMap<String, JdbcTable> tableMap) {
     super();
-    this.dataSource = dataSource;
-    this.dialect = dialect;
+    this.dataSource = Preconditions.checkNotNull(dataSource);
+    this.dialect = Preconditions.checkNotNull(dialect);
     this.convention = convention;
     this.catalog = catalog;
     this.schema = schema;
-    assert dialect != null;
-    assert dataSource != null;
+    this.tableMap = tableMap;
+    this.snapshot = tableMap != null;
   }
 
   public static JdbcSchema create(
@@ -157,6 +165,11 @@ public class JdbcSchema implements Schema {
 
   public boolean contentsHaveChangedSince(long lastCheck, long now) {
     return false;
+  }
+
+  public Schema snapshot(long now) {
+    return new JdbcSchema(dataSource, dialect, convention, catalog, schema,
+        tableMap);
   }
 
   // Used by generated code.
@@ -362,7 +375,7 @@ public class JdbcSchema implements Schema {
   public Set<String> getTableNames() {
     // This method is called during a cache refresh. We can take it as a signal
     // that we need to re-build our own cache.
-    return getTableMap(true).keySet();
+    return getTableMap(!snapshot).keySet();
   }
 
   public Schema getSubSchema(String name) {
@@ -401,27 +414,28 @@ public class JdbcSchema implements Schema {
 
   /** Schema factory that creates a
    * {@link org.apache.calcite.adapter.jdbc.JdbcSchema}.
-   * This allows you to create a jdbc schema inside a model.json file.
    *
-   * <pre>{@code
+   * <p>This allows you to create a jdbc schema inside a model.json file, like
+   * this:
+   *
+   * <blockquote><pre>
    * {
-   *   version: '1.0',
-   *   defaultSchema: 'FOODMART_CLONE',
-   *   schemas: [
+   *   "version": "1.0",
+   *   "defaultSchema": "FOODMART_CLONE",
+   *   "schemas": [
    *     {
-   *       name: 'FOODMART_CLONE',
-   *       type: 'custom',
-   *       factory: 'org.apache.calcite.adapter.jdbc.JdbcSchema$Factory',
-   *       operand: {
-   *         jdbcDriver: 'com.mysql.jdbc.Driver',
-   *         jdbcUrl: 'jdbc:mysql://localhost/foodmart',
-   *         jdbcUser: 'foodmart',
-   *         jdbcPassword: 'foodmart'
+   *       "name": "FOODMART_CLONE",
+   *       "type": "custom",
+   *       "factory": "org.apache.calcite.adapter.jdbc.JdbcSchema$Factory",
+   *       "operand": {
+   *         "jdbcDriver": "com.mysql.jdbc.Driver",
+   *         "jdbcUrl": "jdbc:mysql://localhost/foodmart",
+   *         "jdbcUser": "foodmart",
+   *         "jdbcPassword": "foodmart"
    *       }
    *     }
    *   ]
-   * }
-   * }</pre>
+   * }</pre></blockquote>
    */
   public static class Factory implements SchemaFactory {
     public static final Factory INSTANCE = new Factory();

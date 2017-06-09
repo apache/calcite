@@ -5017,7 +5017,7 @@ public class JdbcTest {
                     fail("expected error, got " + resultSet);
                   } catch (SQLException e) {
                     assertThat(e.getMessage(),
-                        equalTo(
+                        containsString(
                             "exception while executing query: unbound parameter"));
                   }
 

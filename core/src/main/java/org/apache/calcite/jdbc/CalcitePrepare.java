@@ -293,6 +293,7 @@ public interface CalcitePrepare {
    * statement directly, without an explicit prepare step. */
   class CalciteSignature<T> extends Meta.Signature {
     @JsonIgnore public final RelDataType rowType;
+    @JsonIgnore public final CalciteSchema rootSchema;
     @JsonIgnore private final List<RelCollation> collationList;
     private final long maxRowCount;
     private final Bindable<T> bindable;
@@ -300,10 +301,11 @@ public interface CalcitePrepare {
     public CalciteSignature(String sql, List<AvaticaParameter> parameterList,
         Map<String, Object> internalParameters, RelDataType rowType,
         List<ColumnMetaData> columns, Meta.CursorFactory cursorFactory,
-        List<RelCollation> collationList, long maxRowCount,
-        Bindable<T> bindable) {
+        CalciteSchema rootSchema, List<RelCollation> collationList,
+        long maxRowCount, Bindable<T> bindable) {
       super(columns, sql, parameterList, internalParameters, cursorFactory, null);
       this.rowType = rowType;
+      this.rootSchema = rootSchema;
       this.collationList = collationList;
       this.maxRowCount = maxRowCount;
       this.bindable = bindable;
@@ -315,6 +317,7 @@ public interface CalcitePrepare {
         RelDataType rowType,
         List<ColumnMetaData> columns,
         Meta.CursorFactory cursorFactory,
+        CalciteSchema rootSchema,
         List<RelCollation> collationList,
         long maxRowCount,
         Bindable<T> bindable,
@@ -322,6 +325,7 @@ public interface CalcitePrepare {
       super(columns, sql, parameterList, internalParameters, cursorFactory,
           statementType);
       this.rowType = rowType;
+      this.rootSchema = rootSchema;
       this.collationList = collationList;
       this.maxRowCount = maxRowCount;
       this.bindable = bindable;

@@ -647,9 +647,15 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
         ((SqlIntervalQualifier) operands.get(0)).getStartUnit();
     final SqlTypeName sqlTypeName = exprs.get(1).getType().getSqlTypeName();
     switch (unit) {
+    case MILLENNIUM:
+    case CENTURY:
     case YEAR:
+    case QUARTER:
     case MONTH:
     case DAY:
+    case DOW:
+    case DOY:
+    case WEEK:
       switch (sqlTypeName) {
       case INTERVAL_YEAR:
       case INTERVAL_YEAR_MONTH:
@@ -675,8 +681,6 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
         throw new AssertionError("unexpected " + sqlTypeName);
       }
       break;
-    case MILLENNIUM:
-    case CENTURY:
     case DECADE:
       switch (sqlTypeName) {
       case TIMESTAMP:
@@ -686,21 +690,6 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
         res = rexBuilder.makeCall(resType, SqlStdOperatorTable.EXTRACT_DATE,
             ImmutableList.of(rexBuilder.makeFlag(TimeUnitRange.YEAR), res));
         return divide(rexBuilder, res, unit.multiplier.divide(TimeUnit.YEAR.multiplier));
-      }
-      break;
-    case QUARTER:
-      switch (sqlTypeName) {
-      case TIMESTAMP:
-        res = divide(rexBuilder, res, TimeUnit.DAY.multiplier);
-        // fall through
-      case DATE:
-        res = rexBuilder.makeCall(resType, SqlStdOperatorTable.EXTRACT_DATE,
-            ImmutableList.of(rexBuilder.makeFlag(TimeUnitRange.MONTH), res));
-        res =
-            minus(rexBuilder, res, rexBuilder.makeExactLiteral(BigDecimal.ONE));
-        res = divide(rexBuilder, res, unit.multiplier);
-        return plus(rexBuilder, res,
-            rexBuilder.makeExactLiteral(BigDecimal.ONE));
       }
       break;
     case EPOCH:
@@ -730,32 +719,6 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
         return convertFunction(cx, (SqlFunction) call.getOperator(), call);
       }
       break;
-    case DOW:
-    case DOY:
-    case WEEK:
-      switch (sqlTypeName) {
-      case INTERVAL_YEAR:
-      case INTERVAL_YEAR_MONTH:
-      case INTERVAL_MONTH:
-      case INTERVAL_DAY:
-      case INTERVAL_DAY_HOUR:
-      case INTERVAL_DAY_MINUTE:
-      case INTERVAL_DAY_SECOND:
-      case INTERVAL_HOUR:
-      case INTERVAL_HOUR_MINUTE:
-      case INTERVAL_HOUR_SECOND:
-      case INTERVAL_MINUTE:
-      case INTERVAL_MINUTE_SECOND:
-      case INTERVAL_SECOND:
-        // TODO: is this check better to do in validation phase?
-        // Currently there is parameter on TimeUnit to identify these type of units.
-        throw new IllegalArgumentException("Extract " + unit + " from "
-            + sqlTypeName + " type data is not supported");
-      case TIMESTAMP: // fall through
-      case DATE:
-        // no convertlet conversion, pass it as extract
-        return convertFunction(cx, (SqlFunction) call.getOperator(), call);
-      }
     }
 
     res = mod(rexBuilder, resType, res, getFactor(unit));

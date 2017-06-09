@@ -86,24 +86,23 @@ public class RelMdUtil {
     RexBuilder rexBuilder = rel.getCluster().getRexBuilder();
     double selectivity =
         computeSemiJoinSelectivity(mq, rel.getLeft(), rel.getRight(), rel);
-    RexNode selec =
-        rexBuilder.makeApproxLiteral(new BigDecimal(selectivity));
-    return rexBuilder.makeCall(ARTIFICIAL_SELECTIVITY_FUNC, selec);
+    return rexBuilder.makeCall(ARTIFICIAL_SELECTIVITY_FUNC,
+        rexBuilder.makeApproxLiteral(new BigDecimal(selectivity)));
   }
 
   /**
-   * Returns the selectivity value stored in the rexnode
+   * Returns the selectivity value stored in a call.
    *
-   * @param artificialSelecFuncNode rexnode containing the selectivity value
+   * @param artificialSelectivityFuncNode Call containing the selectivity value
    * @return selectivity value
    */
-  public static double getSelectivityValue(RexNode artificialSelecFuncNode) {
-    assert artificialSelecFuncNode instanceof RexCall;
-    RexCall call = (RexCall) artificialSelecFuncNode;
+  public static double getSelectivityValue(
+      RexNode artificialSelectivityFuncNode) {
+    assert artificialSelectivityFuncNode instanceof RexCall;
+    RexCall call = (RexCall) artificialSelectivityFuncNode;
     assert call.getOperator() == ARTIFICIAL_SELECTIVITY_FUNC;
     RexNode operand = call.getOperands().get(0);
-    BigDecimal bd = (BigDecimal) ((RexLiteral) operand).getValue();
-    return bd.doubleValue();
+    return ((RexLiteral) operand).getValueAs(Double.class);
   }
 
   /**

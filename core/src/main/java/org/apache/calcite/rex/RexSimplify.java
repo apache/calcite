@@ -177,8 +177,8 @@ public class RexSimplify {
     if (o0.isA(SqlKind.LITERAL)
         && o1.isA(SqlKind.LITERAL)
         && o0.getType().equals(o1.getType())) {
-      final Comparable v0 = ((RexLiteral) o0).getValue();
-      final Comparable v1 = ((RexLiteral) o1).getValue();
+      final Comparable v0 = ((RexLiteral) o0).getValueAs(Comparable.class);
+      final Comparable v1 = ((RexLiteral) o1).getValueAs(Comparable.class);
       if (v0 == null || v1 == null) {
         return unknownAsFalse
             ? rexBuilder.makeLiteral(false)
@@ -358,7 +358,7 @@ public class RexSimplify {
     case CUSTOM:
       switch (a.getKind()) {
       case LITERAL:
-        return rexBuilder.makeLiteral(((RexLiteral) a).getValue() != null);
+        return rexBuilder.makeLiteral(!((RexLiteral) a).isNull());
       default:
         throw new AssertionError("every CUSTOM policy needs a handler, "
             + a.getKind());
@@ -793,7 +793,7 @@ public class RexSimplify {
     switch (operand.getKind()) {
     case LITERAL:
       final RexLiteral literal = (RexLiteral) operand;
-      final Comparable value = literal.getValue();
+      final Comparable value = literal.getValueAs(Comparable.class);
       final SqlTypeName typeName = literal.getTypeName();
 
       // First, try to remove the cast without changing the value.
@@ -834,7 +834,7 @@ public class RexSimplify {
   private static RexNode processRange(RexBuilder rexBuilder,
       List<RexNode> terms, Map<String, Pair<Range, List<RexNode>>> rangeTerms,
       RexNode term, RexNode ref, RexLiteral constant, SqlKind comparison) {
-    final Comparable v0 = constant.getValue();
+    final Comparable v0 = constant.getValueAs(Comparable.class);
     Pair<Range, List<RexNode>> p = rangeTerms.get(ref.toString());
     if (p == null) {
       Range r;

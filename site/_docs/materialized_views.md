@@ -78,17 +78,17 @@ To produce a larger number of rewritings, the rule relies on information exposed
 Let us illustrate with some examples the coverage of the view rewriting algorithm implemented in `AbstractMaterializedViewRule`. The examples are based on the following database schema.
 
 ```SQL
-CREATE TABLE `depts`(
+CREATE TABLE depts(
   deptno INT NOT NULL,
   deptname VARCHAR(20),
   PRIMARY KEY (deptno)
 );
-CREATE TABLE `locations`(
+CREATE TABLE locations(
   locationid INT NOT NULL,
   state CHAR(2),
   PRIMARY KEY (locationid)
 );
-CREATE TABLE `emps`(
+CREATE TABLE emps(
   empid INT NOT NULL,
   deptno INT NOT NULL,
   locationid INT NOT NULL,
@@ -281,6 +281,45 @@ SELECT empid, deptname
 FROM emps
 JOIN depts ON (emps.deptno = depts.deptno)
 WHERE salary > 10000 AND salary <= 12000
+```
+
+
+###### Union rewriting with aggregate
+
+* Query:
+
+```SQL
+SELECT empid, deptname, SUM(salary) AS s
+FROM emps
+JOIN depts ON (emps.deptno = depts.deptno)
+WHERE salary > 10000
+GROUP BY empid, deptname
+```
+
+* Materialized view definition:
+
+```SQL
+SELECT empid, deptname, SUM(salary) AS s
+FROM emps
+JOIN depts ON (emps.deptno = depts.deptno)
+WHERE salary > 12000
+GROUP BY empid, deptname
+```
+
+* Rewriting:
+
+```SQL
+SELECT empid, deptname, SUM(s)
+FROM (
+SELECT empid, deptname, s
+FROM mv
+UNION ALL
+SELECT empid, deptname, SUM(salary) AS s
+FROM emps
+JOIN depts ON (emps.deptno = depts.deptno)
+WHERE salary > 10000 AND salary <= 12000
+GROUP BY empid, deptname) subq
+GROUP BY empid, deptname
 ```
 
 

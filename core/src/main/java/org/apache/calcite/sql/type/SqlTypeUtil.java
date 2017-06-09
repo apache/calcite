@@ -1308,6 +1308,10 @@ public abstract class SqlTypeUtil {
     }
     return Integer.compare(p0, p1);
   }
+
+  public static boolean isArray(RelDataType type) {
+    return type.getSqlTypeName() == SqlTypeName.ARRAY;
+  }
 }
 
 // End SqlTypeUtil.java

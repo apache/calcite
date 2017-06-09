@@ -665,7 +665,7 @@ public class Util {
    * underscore followed by the hex code of the character; and underscores are
    * doubled.</p>
    *
-   * Examples:
+   * <p>Examples:
    *
    * <ul>
    * <li><code>toJavaId("foo")</code> returns <code>"foo"</code>
@@ -740,7 +740,7 @@ public class Util {
   /**
    * Converts a list of a string, with commas between elements.
    *
-   * For example,
+   * <p>For example,
    * <code>commaList(Arrays.asList({"a", "b"}))</code>
    * returns "a, b".
    *
@@ -944,7 +944,7 @@ public class Util {
    * <pre><code>int x = Util.deprecated(0, false);</code></pre>
    * </blockquote>
    *
-   * but the usual usage is to pass in a descriptive string.
+   * <p>but the usual usage is to pass in a descriptive string.
    *
    * <h3>Examples</h3>
    *
@@ -1265,7 +1265,7 @@ public class Util {
    * <blockquote>"std offset dst [offset],start[/time],end[/time]"
    * </blockquote>
    *
-   * where:
+   * <p>where:
    *
    * <ul>
    * <li>'std' specifies the abbrev of the time zone.
@@ -1736,7 +1736,7 @@ public class Util {
    * &nbsp;&nbsp;&nbsp;&nbsp;print(i);<br>
    * }</code></blockquote>
    *
-   * will print 1, 2, 4.
+   * <p>will print 1, 2, 4.
    *
    * @param iterable      Iterable
    * @param includeFilter Class whose instances to include
@@ -2414,10 +2414,18 @@ public class Util {
     return reader(new FileInputStream(file));
   }
 
-  /** Creates a {@link Calendar} in the GMT time zone and root locale.
+  /** Creates a {@link Calendar} in the UTC time zone and root locale.
    * Does not use the time zone or locale. */
   public static Calendar calendar() {
-    return Calendar.getInstance(DateTimeUtils.GMT_ZONE, Locale.ROOT);
+    return Calendar.getInstance(DateTimeUtils.UTC_ZONE, Locale.ROOT);
+  }
+
+  /** Creates a {@link Calendar} in the UTC time zone and root locale
+   * with a given time. */
+  public static Calendar calendar(long millis) {
+    Calendar calendar = calendar();
+    calendar.setTimeInMillis(millis);
+    return calendar;
   }
 
   //~ Inner Classes ----------------------------------------------------------

@@ -24,6 +24,8 @@ import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.util.DateString;
+import org.apache.calcite.util.TimestampString;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.trace.CalciteTrace;
 
@@ -37,9 +39,7 @@ import com.google.common.collect.TreeRangeSet;
 import org.slf4j.Logger;
 
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.List;
-import java.util.regex.Pattern;
 
 /**
  * Utilities for generating intervals from RexNode.
@@ -48,10 +48,6 @@ import java.util.regex.Pattern;
 public class DruidDateTimeUtils {
 
   protected static final Logger LOGGER = CalciteTrace.getPlannerTracer();
-
-  private static final Pattern TIMESTAMP_PATTERN =
-      Pattern.compile("[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]"
-          + " [0-9][0-9]:[0-9][0-9]:[0-9][0-9]");
 
   private DruidDateTimeUtils() {
   }
@@ -63,7 +59,7 @@ public class DruidDateTimeUtils {
    */
   public static List<LocalInterval> createInterval(RelDataType type,
       RexNode e) {
-    final List<Range<Calendar>> ranges = extractRanges(e, false);
+    final List<Range<TimestampString>> ranges = extractRanges(e, false);
     if (ranges == null) {
       // We did not succeed, bail out
       return null;
@@ -78,18 +74,18 @@ public class DruidDateTimeUtils {
     return toInterval(ImmutableList.<Range>copyOf(condensedRanges.asRanges()));
   }
 
-  protected static List<LocalInterval> toInterval(List<Range<Calendar>> ranges) {
+  protected static List<LocalInterval> toInterval(List<Range<TimestampString>> ranges) {
     List<LocalInterval> intervals = Lists.transform(ranges,
-        new Function<Range<Calendar>, LocalInterval>() {
-          public LocalInterval apply(Range<Calendar> range) {
+        new Function<Range<TimestampString>, LocalInterval>() {
+          public LocalInterval apply(Range<TimestampString> range) {
             if (!range.hasLowerBound() && !range.hasUpperBound()) {
               return DruidTable.DEFAULT_INTERVAL;
             }
             long start = range.hasLowerBound()
-                ? range.lowerEndpoint().getTime().getTime()
+                ? range.lowerEndpoint().getMillisSinceEpoch()
                 : DruidTable.DEFAULT_INTERVAL.getStartMillis();
             long end = range.hasUpperBound()
-                ? range.upperEndpoint().getTime().getTime()
+                ? range.upperEndpoint().getMillisSinceEpoch()
                 : DruidTable.DEFAULT_INTERVAL.getEndMillis();
             if (range.hasLowerBound()
                 && range.lowerBoundType() == BoundType.OPEN) {
@@ -108,7 +104,7 @@ public class DruidDateTimeUtils {
     return intervals;
   }
 
-  protected static List<Range<Calendar>> extractRanges(RexNode node,
+  protected static List<Range<TimestampString>> extractRanges(RexNode node,
       boolean withNot) {
     switch (node.getKind()) {
     case EQUALS:
@@ -125,9 +121,9 @@ public class DruidDateTimeUtils {
 
     case OR: {
       RexCall call = (RexCall) node;
-      List<Range<Calendar>> intervals = Lists.newArrayList();
+      List<Range<TimestampString>> intervals = Lists.newArrayList();
       for (RexNode child : call.getOperands()) {
-        List<Range<Calendar>> extracted = extractRanges(child, withNot);
+        List<Range<TimestampString>> extracted = extractRanges(child, withNot);
         if (extracted != null) {
           intervals.addAll(extracted);
         }
@@ -137,9 +133,9 @@ public class DruidDateTimeUtils {
 
     case AND: {
       RexCall call = (RexCall) node;
-      List<Range<Calendar>> ranges = new ArrayList<>();
+      List<Range<TimestampString>> ranges = new ArrayList<>();
       for (RexNode child : call.getOperands()) {
-        List<Range<Calendar>> extractedRanges = extractRanges(child, false);
+        List<Range<TimestampString>> extractedRanges = extractRanges(child, false);
         if (extractedRanges == null || extractedRanges.isEmpty()) {
           // We could not extract, we bail out
           return null;
@@ -148,7 +144,7 @@ public class DruidDateTimeUtils {
           ranges.addAll(extractedRanges);
           continue;
         }
-        List<Range<Calendar>> overlapped = new ArrayList<>();
+        List<Range<TimestampString>> overlapped = new ArrayList<>();
         for (Range current : ranges) {
           for (Range interval : extractedRanges) {
             if (current.isConnected(interval)) {
@@ -166,7 +162,7 @@ public class DruidDateTimeUtils {
     }
   }
 
-  protected static List<Range<Calendar>> leafToRanges(RexCall call,
+  protected static List<Range<TimestampString>> leafToRanges(RexCall call,
       boolean withNot) {
     switch (call.getKind()) {
     case EQUALS:
@@ -175,7 +171,7 @@ public class DruidDateTimeUtils {
     case GREATER_THAN:
     case GREATER_THAN_OR_EQUAL:
     {
-      final Calendar value;
+      final TimestampString value;
       if (call.getOperands().get(0) instanceof RexInputRef
           && literalValue(call.getOperands().get(1)) != null) {
         value = literalValue(call.getOperands().get(1));
@@ -203,8 +199,8 @@ public class DruidDateTimeUtils {
     }
     case BETWEEN:
     {
-      final Calendar value1;
-      final Calendar value2;
+      final TimestampString value1;
+      final TimestampString value2;
       if (literalValue(call.getOperands().get(2)) != null
           && literalValue(call.getOperands().get(3)) != null) {
         value1 = literalValue(call.getOperands().get(2));
@@ -223,9 +219,9 @@ public class DruidDateTimeUtils {
     }
     case IN:
     {
-      ImmutableList.Builder<Range<Calendar>> ranges = ImmutableList.builder();
+      ImmutableList.Builder<Range<TimestampString>> ranges = ImmutableList.builder();
       for (RexNode operand : Util.skip(call.operands)) {
-        final Calendar element = literalValue(operand);
+        final TimestampString element = literalValue(operand);
         if (element == null) {
           return null;
         }
@@ -243,13 +239,16 @@ public class DruidDateTimeUtils {
     }
   }
 
-  private static Calendar literalValue(RexNode node) {
+  private static TimestampString literalValue(RexNode node) {
     switch (node.getKind()) {
     case LITERAL:
-      assert node instanceof RexLiteral;
-      Object value = ((RexLiteral) node).getValue();
-      if (value instanceof  Calendar) {
-        return (Calendar) value;
+      switch (((RexLiteral) node).getTypeName()) {
+      case TIMESTAMP:
+        return ((RexLiteral) node).getValueAs(TimestampString.class);
+      case DATE:
+        // For uniformity, treat dates as timestamps
+        final DateString d = ((RexLiteral) node).getValueAs(DateString.class);
+        return TimestampString.fromMillisSinceEpoch(d.getMillisSinceEpoch());
       }
       break;
     case CAST:

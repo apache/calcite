@@ -238,7 +238,7 @@ public class Interpreter extends AbstractEnumerable<Object[]>
         public Object execute(Context context) {
           switch (node.getKind()) {
           case LITERAL:
-            return ((RexLiteral) node).getValue();
+            return ((RexLiteral) node).getValueAs(Comparable.class);
           case INPUT_REF:
             return context.values[((RexInputRef) node).getIndex()];
           default:

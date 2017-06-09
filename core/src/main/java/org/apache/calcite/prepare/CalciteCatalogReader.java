@@ -137,7 +137,6 @@ public class CalciteCatalogReader implements Prepare.CatalogReader {
     }
     if (entry != null) {
       final Table table = entry.getTable();
-      final String name2 = entry.name;
       if (table instanceof Wrapper) {
         final Prepare.PreparingTable relOptTable =
             ((Wrapper) table).unwrap(Prepare.PreparingTable.class);
@@ -145,8 +144,8 @@ public class CalciteCatalogReader implements Prepare.CatalogReader {
           return relOptTable;
         }
       }
-      return RelOptTableImpl.create(this, table.getRowType(typeFactory),
-          schema.add(name2, table), null);
+      return RelOptTableImpl.create(this, table.getRowType(typeFactory), entry,
+          null);
     }
     return null;
   }

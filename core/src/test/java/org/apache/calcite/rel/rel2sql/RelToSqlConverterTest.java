@@ -637,6 +637,49 @@ public class RelToSqlConverterTest {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1800">[CALCITE-1800]
+   * JDBC adapter fails to SELECT FROM a UNION query</a>. */
+  @Test public void testUnionWrappedInASelect() {
+    final String query = "select sum(\n"
+        + "  case when \"product_id\"=0 then \"net_weight\" else 0 end)"
+        + " as net_weight\n"
+        + "from (\n"
+        + "  select \"product_id\", \"net_weight\"\n"
+        + "  from \"product\"\n"
+        + "  union all\n"
+        + "  select \"product_id\", 0 as \"net_weight\"\n"
+        + "  from \"sales_fact_1997\") t0";
+    final String expected = "SELECT SUM(CASE WHEN \"product_id\" = 0"
+        + " THEN \"net_weight\" ELSE 0 END) AS \"NET_WEIGHT\"\n"
+        + "FROM (SELECT \"product_id\", \"net_weight\"\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "UNION ALL\n"
+        + "SELECT \"product_id\", 0 AS \"net_weight\"\n"
+        + "FROM \"foodmart\".\"sales_fact_1997\") AS \"t1\"";
+    sql(query).ok(expected);
+  }
+
+  @Test public void testLiteral() {
+    checkLiteral("DATE '1978-05-02'");
+    checkLiteral("TIME '12:34:56'");
+    checkLiteral("TIME '12:34:56.78'");
+    checkLiteral("TIMESTAMP '1978-05-02 12:34:56.78'");
+    checkLiteral("'I can''t explain'");
+    checkLiteral("''");
+    checkLiteral("TRUE");
+    checkLiteral("123");
+    checkLiteral("123.45");
+    checkLiteral("-123.45");
+  }
+
+  private void checkLiteral(String s) {
+    sql("VALUES " + s)
+        .dialect(DatabaseProduct.HSQLDB.getDialect())
+        .ok("SELECT *\n"
+            + "FROM (VALUES  (" + s + "))");
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1798">[CALCITE-1798]
    * Generate dialect-specific SQL for FLOOR operator</a>. */
   @Test public void testFloor() {
@@ -644,6 +687,59 @@ public class RelToSqlConverterTest {
     String expected = "SELECT TRUNC(hire_date, 'MI')\nFROM foodmart.employee";
     sql(query)
         .dialect(DatabaseProduct.HSQLDB.getDialect())
+        .ok(expected);
+  }
+
+  @Test public void testFloorPostgres() {
+    String query = "SELECT floor(\"hire_date\" TO MINUTE) FROM \"employee\"";
+    String expected = "SELECT DATE_TRUNC('MINUTE', \"hire_date\")\nFROM \"foodmart\".\"employee\"";
+    sql(query)
+        .dialect(DatabaseProduct.POSTGRESQL.getDialect())
+        .ok(expected);
+  }
+
+  @Test public void testFloorOracle() {
+    String query = "SELECT floor(\"hire_date\" TO MINUTE) FROM \"employee\"";
+    String expected = "SELECT TRUNC(\"hire_date\", 'MINUTE')\nFROM \"foodmart\".\"employee\"";
+    sql(query)
+        .dialect(DatabaseProduct.ORACLE.getDialect())
+        .ok(expected);
+  }
+
+  @Test public void testFloorMssqlWeek() {
+    String query = "SELECT floor(\"hire_date\" TO WEEK) FROM \"employee\"";
+    String expected = "SELECT CONVERT(DATETIME, CONVERT(VARCHAR(10), "
+        + "DATEADD(day, - (6 + DATEPART(weekday, [hire_date] )) % 7, [hire_date] ), 126))\n"
+        + "FROM [foodmart].[employee]";
+    sql(query)
+        .dialect(DatabaseProduct.MSSQL.getDialect())
+        .ok(expected);
+  }
+
+  @Test public void testFloorMssqlMonth() {
+    String query = "SELECT floor(\"hire_date\" TO MONTH) FROM \"employee\"";
+    String expected = "SELECT CONVERT(DATETIME, CONVERT(VARCHAR(7), [hire_date] , 126)+'-01')\n"
+        + "FROM [foodmart].[employee]";
+    sql(query)
+        .dialect(DatabaseProduct.MSSQL.getDialect())
+        .ok(expected);
+  }
+
+  @Test public void testFloorMysqlMonth() {
+    String query = "SELECT floor(\"hire_date\" TO MONTH) FROM \"employee\"";
+    String expected = "SELECT DATE_FORMAT(`hire_date`, '%Y-%m-01')\n"
+        + "FROM `foodmart`.`employee`";
+    sql(query)
+        .dialect(DatabaseProduct.MYSQL.getDialect())
+        .ok(expected);
+  }
+
+  @Test public void testFloorMysqlWeek() {
+    String query = "SELECT floor(\"hire_date\" TO WEEK) FROM \"employee\"";
+    String expected = "SELECT STR_TO_DATE(DATE_FORMAT(`hire_date` , '%x%v-1'), '%x%v-%w')\n"
+        + "FROM `foodmart`.`employee`";
+    sql(query)
+        .dialect(DatabaseProduct.MYSQL.getDialect())
         .ok(expected);
   }
 
@@ -659,6 +755,7 @@ public class RelToSqlConverterTest {
     String expected = "SELECT *\n"
         + "FROM (SELECT *\n"
         + "FROM \"foodmart\".\"product\") MATCH_RECOGNIZE(\n"
+        + "ONE ROW PER MATCH\n"
         + "AFTER MATCH SKIP TO NEXT ROW\n"
         + "PATTERN (\"STRT\" \"DOWN\" + \"UP\" +)\n"
         + "DEFINE "
@@ -681,6 +778,7 @@ public class RelToSqlConverterTest {
     final String expected = "SELECT *\n"
         + "FROM (SELECT *\n"
         + "FROM \"foodmart\".\"product\") MATCH_RECOGNIZE(\n"
+        + "ONE ROW PER MATCH\n"
         + "AFTER MATCH SKIP TO NEXT ROW\n"
         + "PATTERN (\"STRT\" \"DOWN\" + \"UP\" + $)\n"
         + "DEFINE "
@@ -703,6 +801,7 @@ public class RelToSqlConverterTest {
     final String expected = "SELECT *\n"
         + "FROM (SELECT *\n"
         + "FROM \"foodmart\".\"product\") MATCH_RECOGNIZE(\n"
+        + "ONE ROW PER MATCH\n"
         + "AFTER MATCH SKIP TO NEXT ROW\n"
         + "PATTERN (^ \"STRT\" \"DOWN\" + \"UP\" +)\n"
         + "DEFINE "
@@ -725,6 +824,7 @@ public class RelToSqlConverterTest {
     final String expected = "SELECT *\n"
         + "FROM (SELECT *\n"
         + "FROM \"foodmart\".\"product\") MATCH_RECOGNIZE(\n"
+        + "ONE ROW PER MATCH\n"
         + "AFTER MATCH SKIP TO NEXT ROW\n"
         + "PATTERN (^ \"STRT\" \"DOWN\" + \"UP\" + $)\n"
         + "DEFINE "
@@ -747,6 +847,7 @@ public class RelToSqlConverterTest {
     final String expected = "SELECT *\n"
         + "FROM (SELECT *\n"
         + "FROM \"foodmart\".\"product\") MATCH_RECOGNIZE(\n"
+        + "ONE ROW PER MATCH\n"
         + "AFTER MATCH SKIP TO NEXT ROW\n"
         + "PATTERN (\"STRT\" \"DOWN\" * \"UP\" ?)\n"
         + "DEFINE "
@@ -769,6 +870,7 @@ public class RelToSqlConverterTest {
     final String expected = "SELECT *\n"
         + "FROM (SELECT *\n"
         + "FROM \"foodmart\".\"product\") MATCH_RECOGNIZE(\n"
+        + "ONE ROW PER MATCH\n"
         + "AFTER MATCH SKIP TO NEXT ROW\n"
         + "PATTERN (\"STRT\" {- \"DOWN\" -} \"UP\" ?)\n"
         + "DEFINE "
@@ -792,6 +894,7 @@ public class RelToSqlConverterTest {
     final String expected = "SELECT *\n"
         + "FROM (SELECT *\n"
         + "FROM \"foodmart\".\"product\") MATCH_RECOGNIZE(\n"
+        + "ONE ROW PER MATCH\n"
         + "AFTER MATCH SKIP TO NEXT ROW\n"
         + "PATTERN (\"STRT\" \"DOWN\" { 2 } \"UP\" { 3, })\n"
         + "DEFINE "
@@ -814,6 +917,7 @@ public class RelToSqlConverterTest {
     final String expected = "SELECT *\n"
         + "FROM (SELECT *\n"
         + "FROM \"foodmart\".\"product\") MATCH_RECOGNIZE(\n"
+        + "ONE ROW PER MATCH\n"
         + "AFTER MATCH SKIP TO NEXT ROW\n"
         + "PATTERN (\"STRT\" \"DOWN\" { , 2 } \"UP\" { 3, 5 })\n"
         + "DEFINE "
@@ -836,6 +940,7 @@ public class RelToSqlConverterTest {
     final String expected = "SELECT *\n"
         + "FROM (SELECT *\n"
         + "FROM \"foodmart\".\"product\") MATCH_RECOGNIZE(\n"
+        + "ONE ROW PER MATCH\n"
         + "AFTER MATCH SKIP TO NEXT ROW\n"
         + "PATTERN (\"STRT\" {- \"DOWN\" + -} {- \"UP\" * -})\n"
         + "DEFINE "
@@ -859,6 +964,7 @@ public class RelToSqlConverterTest {
     final String expected = "SELECT *\n"
         + "FROM (SELECT *\n"
         + "FROM \"foodmart\".\"product\") MATCH_RECOGNIZE(\n"
+        + "ONE ROW PER MATCH\n"
         + "AFTER MATCH SKIP TO NEXT ROW\n"
         + "PATTERN "
         + "(\"A\" \"B\" \"C\" | \"A\" \"C\" \"B\" | \"B\" \"A\" \"C\" "
@@ -882,6 +988,7 @@ public class RelToSqlConverterTest {
     final String expected = "SELECT *\n"
         + "FROM (SELECT *\n"
         + "FROM \"foodmart\".\"product\") MATCH_RECOGNIZE(\n"
+        + "ONE ROW PER MATCH\n"
         + "AFTER MATCH SKIP TO NEXT ROW\n"
         + "PATTERN (\"STRT\" \"DOWN\" + \"UP\" +)\n"
         + "DEFINE "
@@ -904,6 +1011,7 @@ public class RelToSqlConverterTest {
     final String expected = "SELECT *\n"
         + "FROM (SELECT *\n"
         + "FROM \"foodmart\".\"product\") MATCH_RECOGNIZE(\n"
+        + "ONE ROW PER MATCH\n"
         + "AFTER MATCH SKIP TO NEXT ROW\n"
         + "PATTERN (\"STRT\" \"DOWN\" + \"UP\" +)\n"
         + "DEFINE "
@@ -944,6 +1052,7 @@ public class RelToSqlConverterTest {
         + "WHERE \"customer\".\"city\" = 'San Francisco' "
         + "AND \"product_class\".\"product_department\" = 'Snacks') "
         + "MATCH_RECOGNIZE(\n"
+        + "ONE ROW PER MATCH\n"
         + "AFTER MATCH SKIP TO NEXT ROW\n"
         + "PATTERN (\"STRT\" \"DOWN\" + \"UP\" +)\n"
         + "DEFINE "
@@ -967,6 +1076,7 @@ public class RelToSqlConverterTest {
     final String expected = "SELECT *\n"
         + "FROM (SELECT *\n"
         + "FROM \"foodmart\".\"product\") MATCH_RECOGNIZE(\n"
+        + "ONE ROW PER MATCH\n"
         + "AFTER MATCH SKIP TO NEXT ROW\n"
         + "PATTERN (\"STRT\" \"DOWN\" + \"UP\" +)\n"
         + "DEFINE "
@@ -989,6 +1099,7 @@ public class RelToSqlConverterTest {
     final String expected = "SELECT *\n"
         + "FROM (SELECT *\n"
         + "FROM \"foodmart\".\"product\") MATCH_RECOGNIZE(\n"
+        + "ONE ROW PER MATCH\n"
         + "AFTER MATCH SKIP TO NEXT ROW\n"
         + "PATTERN (\"STRT\" \"DOWN\" + \"UP\" +)\n"
         + "DEFINE "
@@ -1011,6 +1122,7 @@ public class RelToSqlConverterTest {
     final String expected = "SELECT *\n"
         + "FROM (SELECT *\n"
         + "FROM \"foodmart\".\"product\") MATCH_RECOGNIZE(\n"
+        + "ONE ROW PER MATCH\n"
         + "AFTER MATCH SKIP TO NEXT ROW\n"
         + "PATTERN (\"STRT\" \"DOWN\" + \"UP\" +)\n"
         + "DEFINE "
@@ -1034,6 +1146,7 @@ public class RelToSqlConverterTest {
     final String expected = "SELECT *\n"
         + "FROM (SELECT *\n"
         + "FROM \"foodmart\".\"product\") MATCH_RECOGNIZE(\n"
+        + "ONE ROW PER MATCH\n"
         + "AFTER MATCH SKIP TO NEXT ROW\n"
         + "PATTERN (\"STRT\" \"DOWN\" + \"UP\" +)\n"
         + "DEFINE "
@@ -1065,6 +1178,7 @@ public class RelToSqlConverterTest {
         + "FINAL \"STRT\".\"net_weight\" AS \"START_NW\", "
         + "FINAL LAST(\"DOWN\".\"net_weight\", 0) AS \"BOTTOM_NW\", "
         + "FINAL LAST(\"UP\".\"net_weight\", 0) AS \"END_NW\"\n"
+        + "ONE ROW PER MATCH\n"
         + "AFTER MATCH SKIP TO NEXT ROW\n"
         + "PATTERN (\"STRT\" \"DOWN\" + \"UP\" +)\n"
         + "DEFINE "
@@ -1096,6 +1210,7 @@ public class RelToSqlConverterTest {
         + "FINAL \"STRT\".\"net_weight\" AS \"START_NW\", "
         + "FINAL LAST(\"DOWN\".\"net_weight\", 0) AS \"BOTTOM_NW\", "
         + "FINAL LAST(\"UP\".\"net_weight\", 0) AS \"END_NW\"\n"
+        + "ONE ROW PER MATCH\n"
         + "AFTER MATCH SKIP TO NEXT ROW\n"
         + "PATTERN (\"STRT\" \"DOWN\" + \"UP\" +)\n"
         + "DEFINE "
@@ -1127,6 +1242,7 @@ public class RelToSqlConverterTest {
         + "FINAL \"STRT\".\"net_weight\" AS \"START_NW\", "
         + "FINAL (RUNNING LAST(\"DOWN\".\"net_weight\", 0)) AS \"BOTTOM_NW\", "
         + "FINAL LAST(\"UP\".\"net_weight\", 0) AS \"END_NW\"\n"
+        + "ONE ROW PER MATCH\n"
         + "AFTER MATCH SKIP TO NEXT ROW\n"
         + "PATTERN (\"STRT\" \"DOWN\" + \"UP\" +)\n"
         + "DEFINE "
@@ -1158,6 +1274,7 @@ public class RelToSqlConverterTest {
         + "FINAL COUNT(\"UP\".\"net_weight\") AS \"UP_CNT\", "
         + "FINAL COUNT(\"*\".\"net_weight\") AS \"DOWN_CNT\", "
         + "FINAL (RUNNING COUNT(\"*\".\"net_weight\")) AS \"RUNNING_CNT\"\n"
+        + "ONE ROW PER MATCH\n"
         + "AFTER MATCH SKIP TO NEXT ROW\n"
         + "PATTERN (\"STRT\" \"DOWN\" + \"UP\" +)\n"
         + "DEFINE "
@@ -1191,6 +1308,7 @@ public class RelToSqlConverterTest {
         + "FINAL LAST(\"UP\".\"net_weight\", 0) AS \"UP_CNT\", "
         + "FINAL (SUM(\"DOWN\".\"net_weight\") / COUNT(\"DOWN\".\"net_weight\")) "
         + "AS \"DOWN_CNT\"\n"
+        + "ONE ROW PER MATCH\n"
         + "AFTER MATCH SKIP TO NEXT ROW\n"
         + "PATTERN (\"STRT\" \"DOWN\" + \"UP\" +)\n"
         + "DEFINE "
@@ -1222,6 +1340,7 @@ public class RelToSqlConverterTest {
         + "FINAL FIRST(\"STRT\".\"net_weight\", 0) AS \"START_NW\", "
         + "FINAL LAST(\"DOWN\".\"net_weight\", 0) AS \"UP_CNT\", "
         + "FINAL SUM(\"DOWN\".\"net_weight\") AS \"DOWN_CNT\"\n"
+        + "ONE ROW PER MATCH\n"
         + "AFTER MATCH SKIP TO NEXT ROW\n"
         + "PATTERN "
         + "(\"STRT\" \"DOWN\" + \"UP\" +)\n"
@@ -1254,6 +1373,7 @@ public class RelToSqlConverterTest {
         + "FINAL FIRST(\"STRT\".\"net_weight\", 0) AS \"START_NW\", "
         + "FINAL LAST(\"DOWN\".\"net_weight\", 0) AS \"UP_CNT\", "
         + "FINAL SUM(\"DOWN\".\"net_weight\") AS \"DOWN_CNT\"\n"
+        + "ONE ROW PER MATCH\n"
         + "AFTER MATCH SKIP TO NEXT ROW\n"
         + "PATTERN "
         + "(\"STRT\" \"DOWN\" + \"UP\" +)\n"
@@ -1279,6 +1399,7 @@ public class RelToSqlConverterTest {
     final String expected = "SELECT *\n"
         + "FROM (SELECT *\n"
         + "FROM \"foodmart\".\"product\") MATCH_RECOGNIZE(\n"
+        + "ONE ROW PER MATCH\n"
         + "AFTER MATCH SKIP TO NEXT ROW\n"
         + "PATTERN (\"STRT\" \"DOWN\" + \"UP\" +)\n"
         + "DEFINE "
@@ -1302,6 +1423,7 @@ public class RelToSqlConverterTest {
     final String expected = "SELECT *\n"
         + "FROM (SELECT *\n"
         + "FROM \"foodmart\".\"product\") MATCH_RECOGNIZE(\n"
+        + "ONE ROW PER MATCH\n"
         + "AFTER MATCH SKIP PAST LAST ROW\n"
         + "PATTERN (\"STRT\" \"DOWN\" + \"UP\" +)\n"
         + "DEFINE "
@@ -1325,6 +1447,7 @@ public class RelToSqlConverterTest {
     final String expected = "SELECT *\n"
         + "FROM (SELECT *\n"
         + "FROM \"foodmart\".\"product\") MATCH_RECOGNIZE(\n"
+        + "ONE ROW PER MATCH\n"
         + "AFTER MATCH SKIP TO FIRST \"DOWN\"\n"
         + "PATTERN (\"STRT\" \"DOWN\" + \"UP\" +)\n"
         + "DEFINE "
@@ -1348,6 +1471,7 @@ public class RelToSqlConverterTest {
     final String expected = "SELECT *\n"
         + "FROM (SELECT *\n"
         + "FROM \"foodmart\".\"product\") MATCH_RECOGNIZE(\n"
+        + "ONE ROW PER MATCH\n"
         + "AFTER MATCH SKIP TO LAST \"DOWN\"\n"
         + "PATTERN (\"STRT\" \"DOWN\" + \"UP\" +)\n"
         + "DEFINE "
@@ -1371,6 +1495,7 @@ public class RelToSqlConverterTest {
     final String expected = "SELECT *\n"
         + "FROM (SELECT *\n"
         + "FROM \"foodmart\".\"product\") MATCH_RECOGNIZE(\n"
+        + "ONE ROW PER MATCH\n"
         + "AFTER MATCH SKIP TO LAST \"DOWN\"\n"
         + "PATTERN (\"STRT\" \"DOWN\" + \"UP\" +)\n"
         + "DEFINE "
@@ -1395,6 +1520,7 @@ public class RelToSqlConverterTest {
     final String expected = "SELECT *\n"
         + "FROM (SELECT *\n"
         + "FROM \"foodmart\".\"product\") MATCH_RECOGNIZE(\n"
+        + "ONE ROW PER MATCH\n"
         + "AFTER MATCH SKIP TO LAST \"DOWN\"\n"
         + "PATTERN (\"STRT\" \"DOWN\" + \"UP\" +)\n"
         + "SUBSET \"STDN\" = (\"DOWN\", \"STRT\")\n"
@@ -1429,6 +1555,7 @@ public class RelToSqlConverterTest {
         + "FINAL LAST(\"DOWN\".\"net_weight\", 0) AS \"BOTTOM_NW\", "
         + "FINAL (SUM(\"STDN\".\"net_weight\") / "
         + "COUNT(\"STDN\".\"net_weight\")) AS \"AVG_STDN\"\n"
+        + "ONE ROW PER MATCH\n"
         + "AFTER MATCH SKIP TO NEXT ROW\n"
         + "PATTERN (\"STRT\" \"DOWN\" + \"UP\" +)\n"
         + "SUBSET \"STDN\" = (\"DOWN\", \"STRT\")\n"
@@ -1462,6 +1589,7 @@ public class RelToSqlConverterTest {
         + "FINAL \"STRT\".\"net_weight\" AS \"START_NW\", "
         + "FINAL LAST(\"DOWN\".\"net_weight\", 0) AS \"BOTTOM_NW\", "
         + "FINAL SUM(\"STDN\".\"net_weight\") AS \"AVG_STDN\"\n"
+        + "ONE ROW PER MATCH\n"
         + "AFTER MATCH SKIP TO NEXT ROW\n"
         + "PATTERN (\"STRT\" \"DOWN\" + \"UP\" +)\n"
         + "SUBSET \"STDN\" = (\"DOWN\", \"STRT\")\n"
@@ -1495,6 +1623,7 @@ public class RelToSqlConverterTest {
         + "FINAL \"STRT\".\"net_weight\" AS \"START_NW\", "
         + "FINAL LAST(\"DOWN\".\"net_weight\", 0) AS \"BOTTOM_NW\", "
         + "FINAL SUM(\"STDN\".\"net_weight\") AS \"AVG_STDN\"\n"
+        + "ONE ROW PER MATCH\n"
         + "AFTER MATCH SKIP TO NEXT ROW\n"
         + "PATTERN (\"STRT\" \"DOWN\" + \"UP\" +)\n"
         + "SUBSET \"STDN\" = (\"DOWN\", \"STRT\"), \"STDN2\" = (\"DOWN\", \"STRT\")\n"
@@ -1503,6 +1632,76 @@ public class RelToSqlConverterTest {
         + "PREV(\"DOWN\".\"net_weight\", 1), "
         + "\"UP\" AS PREV(\"UP\".\"net_weight\", 0) > "
         + "PREV(\"UP\".\"net_weight\", 1))";
+    sql(sql).ok(expected);
+  }
+
+  @Test public void testMatchRecognizeRowsPerMatch1() {
+    final String sql = "select *\n"
+      + "  from \"product\" match_recognize\n"
+      + "  (\n"
+      + "   measures STRT.\"net_weight\" as start_nw,"
+      + "   LAST(DOWN.\"net_weight\") as bottom_nw,"
+      + "   SUM(STDN.\"net_weight\") as avg_stdn"
+      + "    ONE ROW PER MATCH\n"
+      + "    pattern (strt down+ up+)\n"
+      + "    subset stdn = (strt, down), stdn2 = (strt, down)\n"
+      + "    define\n"
+      + "      down as down.\"net_weight\" < PREV(down.\"net_weight\"),\n"
+      + "      up as up.\"net_weight\" > prev(up.\"net_weight\")\n"
+      + "  ) mr";
+
+    final String expected = "SELECT *\n"
+      + "FROM (SELECT *\n"
+      + "FROM \"foodmart\".\"product\") "
+      + "MATCH_RECOGNIZE(\n"
+      + "MEASURES "
+      + "FINAL \"STRT\".\"net_weight\" AS \"START_NW\", "
+      + "FINAL LAST(\"DOWN\".\"net_weight\", 0) AS \"BOTTOM_NW\", "
+      + "FINAL SUM(\"STDN\".\"net_weight\") AS \"AVG_STDN\"\n"
+      + "ONE ROW PER MATCH\n"
+      + "AFTER MATCH SKIP TO NEXT ROW\n"
+      + "PATTERN (\"STRT\" \"DOWN\" + \"UP\" +)\n"
+      + "SUBSET \"STDN\" = (\"DOWN\", \"STRT\"), \"STDN2\" = (\"DOWN\", \"STRT\")\n"
+      + "DEFINE "
+      + "\"DOWN\" AS PREV(\"DOWN\".\"net_weight\", 0) < "
+      + "PREV(\"DOWN\".\"net_weight\", 1), "
+      + "\"UP\" AS PREV(\"UP\".\"net_weight\", 0) > "
+      + "PREV(\"UP\".\"net_weight\", 1))";
+    sql(sql).ok(expected);
+  }
+
+  @Test public void testMatchRecognizeRowsPerMatch2() {
+    final String sql = "select *\n"
+      + "  from \"product\" match_recognize\n"
+      + "  (\n"
+      + "   measures STRT.\"net_weight\" as start_nw,"
+      + "   LAST(DOWN.\"net_weight\") as bottom_nw,"
+      + "   SUM(STDN.\"net_weight\") as avg_stdn"
+      + "    ALL ROWS PER MATCH\n"
+      + "    pattern (strt down+ up+)\n"
+      + "    subset stdn = (strt, down), stdn2 = (strt, down)\n"
+      + "    define\n"
+      + "      down as down.\"net_weight\" < PREV(down.\"net_weight\"),\n"
+      + "      up as up.\"net_weight\" > prev(up.\"net_weight\")\n"
+      + "  ) mr";
+
+    final String expected = "SELECT *\n"
+      + "FROM (SELECT *\n"
+      + "FROM \"foodmart\".\"product\") "
+      + "MATCH_RECOGNIZE(\n"
+      + "MEASURES "
+      + "RUNNING \"STRT\".\"net_weight\" AS \"START_NW\", "
+      + "RUNNING LAST(\"DOWN\".\"net_weight\", 0) AS \"BOTTOM_NW\", "
+      + "RUNNING SUM(\"STDN\".\"net_weight\") AS \"AVG_STDN\"\n"
+      + "ALL ROWS PER MATCH\n"
+      + "AFTER MATCH SKIP TO NEXT ROW\n"
+      + "PATTERN (\"STRT\" \"DOWN\" + \"UP\" +)\n"
+      + "SUBSET \"STDN\" = (\"DOWN\", \"STRT\"), \"STDN2\" = (\"DOWN\", \"STRT\")\n"
+      + "DEFINE "
+      + "\"DOWN\" AS PREV(\"DOWN\".\"net_weight\", 0) < "
+      + "PREV(\"DOWN\".\"net_weight\", 1), "
+      + "\"UP\" AS PREV(\"UP\".\"net_weight\", 0) > "
+      + "PREV(\"UP\".\"net_weight\", 1))";
     sql(sql).ok(expected);
   }
 
