@@ -234,7 +234,7 @@ public abstract class Linq4j {
    *
    * <blockquote><code>Linq4j.cast(list, Integer.class)</code></blockquote>
    *
-   * to convert the list of an enumerable that can be queried using the
+   * <p>to convert the list of an enumerable that can be queried using the
    * standard query operators.
    *
    * <p>If an element cannot be cast to type &lt;TResult&gt;, this method will
@@ -275,7 +275,7 @@ public abstract class Linq4j {
    *
    * <blockquote><code>Linq4j.ofType(list, Integer.class)</code></blockquote>
    *
-   * to convert the list of an enumerable that can be queried using the
+   * <p>to convert the list of an enumerable that can be queried using the
    * standard query operators.
    *
    * @see Enumerable#cast(Class)

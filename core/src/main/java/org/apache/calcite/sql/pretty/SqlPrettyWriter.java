@@ -363,22 +363,23 @@ public class SqlPrettyWriter implements SqlWriter {
    * <ul>
    * <li>If set to "false":
    *
-   * <pre>
+   * <blockquote><pre>
    * SELECT
    *     A as A
    *         B as B
    *         C as C
    *     D
-   * </pre>
+   * </pre></blockquote>
+   *
    * <li>If set to "true":
    *
-   * <pre>
+   * <blockquote><pre>
    * SELECT
    *     A as A
    *     B as B
    *     C as C
    *     D
-   * </pre>
+   * </pre></blockquote>
    * </ul>
    */
   public void setSelectListExtraIndentFlag(boolean b) {

@@ -166,11 +166,11 @@ public class RelMdPredicates
    * <li>For e.g. expression 'a + e = 9' below will not be pulled up because 'e'
    * is not in the projection list.
    *
-   * <pre>
+   * <blockquote><pre>
    * inputPullUpExprs:      {a &gt; 7, b + c &lt; 10, a + e = 9}
    * projectionExprs:       {a, b, c, e / 2}
    * projectionPullupExprs: {a &gt; 7, b + c &lt; 10}
-   * </pre>
+   * </pre></blockquote>
    *
    * </ol>
    */
@@ -331,11 +331,11 @@ public class RelMdPredicates
    * <p>Pulls up predicates that only contains references to columns in the
    * GroupSet. For e.g.
    *
-   * <pre>
+   * <blockquote><pre>
    * inputPullUpExprs : { a &gt; 7, b + c &lt; 10, a + e = 9}
    * groupSet         : { a, b}
    * pulledUpExprs    : { a &gt; 7}
-   * </pre>
+   * </pre></blockquote>
    */
   public RelOptPredicateList getPredicates(Aggregate agg, RelMetadataQuery mq) {
     final RelNode input = agg.getInput();

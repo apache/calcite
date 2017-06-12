@@ -210,7 +210,7 @@ public class CassandraSchema extends AbstractSchema {
     int i = 0;
     for (ClusteringOrder order : clusteringOrder) {
       RelFieldCollation.Direction direction;
-      switch(order) {
+      switch (order) {
       case DESC:
         direction = RelFieldCollation.Direction.DESCENDING;
         break;

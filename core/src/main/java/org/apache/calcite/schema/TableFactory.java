@@ -27,8 +27,7 @@ import java.util.Map;
  * For example, here is a model that contains a custom table that generates
  * a range of integers.</p>
  *
- * <pre>{@code
- * {
+ * <blockquote><pre>{
  *   version: '1.0',
  *   defaultSchema: 'MATH',
  *   schemas: [
@@ -48,17 +47,15 @@ import java.util.Map;
  *       ]
  *     }
  *   ]
- * }
- * }
- * </pre>
+ * }</pre></blockquote>
  *
  * <p>Given that schema, the query</p>
  *
- * <pre>{@code SELECT * FROM math.integers}</pre>
+ * <blockquote><pre>SELECT * FROM math.integers</pre></blockquote>
  *
  * <p>returns</p>
  *
- * <pre>{@code
+ * <blockquote><pre>
  * +---+
  * | N |
  * +---+
@@ -67,7 +64,7 @@ import java.util.Map;
  * | 5 |
  * | 6 |
  * +---+
- * }</pre>
+ * </pre></blockquote>
  *
  * <p>A class that implements TableFactory specified in a schema must have a
  * public default constructor.</p>

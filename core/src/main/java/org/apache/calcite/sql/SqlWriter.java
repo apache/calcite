@@ -34,24 +34,24 @@ public interface SqlWriter {
     /**
      * Julian's style of sub-query nesting. Like this:
      *
-     * <pre>SELECT *
+     * <blockquote><pre>SELECT *
      * FROM (
      *     SELECT *
      *     FROM t
      * )
-     * WHERE condition</pre>
+     * WHERE condition</pre></blockquote>
      */
     HYDE,
 
     /**
      * Damian's style of sub-query nesting. Like this:
      *
-     * <pre>SELECT *
+     * <blockquote><pre>SELECT *
      * FROM
      * (   SELECT *
      *     FROM t
      * )
-     * WHERE condition</pre>
+     * WHERE condition</pre></blockquote>
      */
     BLACK
   }

@@ -164,7 +164,7 @@ public class SqlFloorFunction extends SqlMonotonicUnaryFunction {
     SqlLiteral node = call.operand(1);
     TimeUnitRange unit = (TimeUnitRange) node.getValue();
 
-    switch(unit) {
+    switch (unit) {
     case YEAR:
       unparseMssql(writer, call, 4, "-01-01");
       break;
@@ -255,7 +255,7 @@ public class SqlFloorFunction extends SqlMonotonicUnaryFunction {
     }
 
     String format;
-    switch(unit) {
+    switch (unit) {
     case YEAR:
       format = "%Y-01-01";
       break;

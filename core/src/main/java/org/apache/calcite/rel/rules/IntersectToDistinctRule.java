@@ -51,7 +51,7 @@ import java.math.BigDecimal;
  *
  * <p><code>R4 = GB(R3 on all attributes, count(c) as cnt, min(c) as m)</code>
  *
- * Note that we do not need <code>min(c)</code> in intersect distinct.
+ * <p>Note that we do not need <code>min(c)</code> in intersect distinct.
  *
  * <p><code>R5 = Filter(cnt == #branch)</code>
  *

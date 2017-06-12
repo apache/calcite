@@ -1049,8 +1049,6 @@ public class RelOptRulesTest extends RelOptTestBase {
         .addRuleInstance(JoinExtractFilterRule.INSTANCE)
         .addRuleInstance(FilterToCalcRule.INSTANCE)
         .addRuleInstance(CalcMergeRule.INSTANCE)
-            //.addRuleInstance(FennelCalcRule.instance);
-            //.addRuleInstance(FennelCartesianJoinRule.instance);
         .addRuleInstance(ProjectToCalcRule.INSTANCE)
         .build();
 

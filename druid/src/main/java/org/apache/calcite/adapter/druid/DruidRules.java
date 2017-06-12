@@ -598,7 +598,7 @@ public class DruidRules {
           if (idx >= topAgg.getGroupCount()) {
             continue;
           }
-          //has the indexes of the columns used for sorts
+          // has the indexes of the columns used for sorts
           positionsReferenced.set(topAgg.getGroupSet().nth(idx));
         }
         // Case it is a timeseries query

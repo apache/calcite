@@ -1277,8 +1277,6 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
         // get merged.)
         final RelSubset subset = mapRel2Subset.put(rel, equivRelSubset);
         assert subset != null;
-        //boolean existed = subset.rels.remove(rel);
-        //assert existed : "rel was not known to its subset";
         boolean existed = subset.set.rels.remove(rel);
         assert existed : "rel was not known to its set";
         final RelSubset equivSubset = getSubset(equivRel);

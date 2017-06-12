@@ -21,7 +21,7 @@ package org.apache.calcite.sql;
  *
  * <p>SQL State codes are defined in
  *
- * <pre><code> &#64;sql.2003 Part 2 Section 23.1</code></pre>
+ * <blockquote><pre>&#64;sql.2003 Part 2 Section 23.1</pre></blockquote>
  *
  * @deprecated Use {@code org.apache.calcite.avatica.SqlState}
  */

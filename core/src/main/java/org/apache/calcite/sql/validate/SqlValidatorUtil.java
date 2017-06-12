@@ -242,7 +242,7 @@ public class SqlValidatorUtil {
 
   public static void checkCharsetAndCollateConsistentIfCharType(
       RelDataType type) {
-    //(every charset must have a default collation)
+    // (every charset must have a default collation)
     if (SqlTypeUtil.inCharFamily(type)) {
       Charset strCharset = type.getCharset();
       Charset colCharset = type.getCollation().getCharset();

@@ -37,7 +37,7 @@ import javax.annotation.Nullable;
  * mvn install
  * </code></blockquote>
  *
- * This will create a virtual machine with Elasticsearch and the "zips" test
+ * <p>This will create a virtual machine with Elasticsearch and the "zips" test
  * dataset.
  */
 public class ElasticsearchAdapterIT {

@@ -166,7 +166,7 @@ public interface SqlTester extends AutoCloseable, SqlValidatorTestCase.Tester {
    * <pre>checkScalarExact("TRUE AND FALSE", Boolean.TRUE);</pre>
    * </blockquote>
    *
-   * The expected result can be null:
+   * <p>The expected result can be null:
    *
    * <blockquote>
    * <pre>checkScalarExact("NOT UNKNOWN", null);</pre>
@@ -215,7 +215,7 @@ public interface SqlTester extends AutoCloseable, SqlValidatorTestCase.Tester {
    * "VARCHAR(3) NOT NULL");</code>
    * </blockquote>
    *
-   * This method checks length/precision, scale, and whether the type allows
+   * <p>This method checks length/precision, scale, and whether the type allows
    * NULL values, so is more precise than the type-checking done by methods
    * such as {@link #checkScalarExact}.
    *

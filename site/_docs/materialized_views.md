@@ -116,7 +116,7 @@ JOIN (
 ON (depts.deptno = subq.deptno)
 ```
 
-* Materialized view definition:  
+* Materialized view definition:
 
 ```SQL
 SELECT empid
@@ -124,7 +124,7 @@ FROM emps
 JOIN depts USING (deptno)
 ```
 
-* Rewriting:  
+* Rewriting:
 
 ```SQL
 SELECT empid
@@ -144,7 +144,7 @@ WHERE deptno > 10
 GROUP BY deptno
 ```
 
-* Materialized view definition:  
+* Materialized view definition:
 
 ```SQL
 SELECT empid, deptno
@@ -153,7 +153,7 @@ WHERE deptno > 5
 GROUP BY empid, deptno
 ```
 
-* Rewriting:  
+* Rewriting:
 
 ```SQL
 SELECT deptno
@@ -173,7 +173,7 @@ FROM emps
 GROUP BY deptno
 ```
 
-* Materialized view definition:  
+* Materialized view definition:
 
 ```SQL
 SELECT empid, deptno, COUNT(*) AS c, SUM(salary) AS s
@@ -181,7 +181,7 @@ FROM emps
 GROUP BY empid, deptno
 ```
 
-* Rewriting:  
+* Rewriting:
 
 ```SQL
 SELECT deptno, SUM(c), SUM(s)
@@ -202,7 +202,7 @@ FROM emps
 GROUP BY deptno
 ```
 
-* Materialized view definition:  
+* Materialized view definition:
 
 ```SQL
 SELECT empid, depts.deptno, COUNT(*) AS c, SUM(salary) AS s
@@ -211,7 +211,7 @@ JOIN depts USING (deptno)
 GROUP BY empid, depts.deptno
 ```
 
-* Rewriting:  
+* Rewriting:
 
 ```SQL
 SELECT deptno, SUM(c)
@@ -232,7 +232,7 @@ JOIN locations ON (emps.locationid = locations.locationid)
 GROUP BY deptname, state
 ```
 
-* Materialized view definition:  
+* Materialized view definition:
 
 ```SQL
 SELECT empid, deptno, state, SUM(salary) AS s
@@ -241,7 +241,7 @@ JOIN locations ON (emps.locationid = locations.locationid)
 GROUP BY empid, deptno, state
 ```
 
-* Rewriting:  
+* Rewriting:
 
 ```SQL
 SELECT deptname, state, SUM(s)
@@ -262,7 +262,7 @@ JOIN depts ON (emps.deptno = depts.deptno)
 WHERE salary > 10000
 ```
 
-* Materialized view definition:  
+* Materialized view definition:
 
 ```SQL
 SELECT empid, deptname
@@ -271,7 +271,7 @@ JOIN depts ON (emps.deptno = depts.deptno)
 WHERE salary > 12000
 ```
 
-* Rewriting:  
+* Rewriting:
 
 ```SQL
 SELECT empid, deptname

@@ -26,7 +26,7 @@ package org.apache.calcite.model;
 public class JsonColumn {
   /** Column name.
    *
-   * Required, and must be unique within the table.
+   * <p>Required, and must be unique within the table.
    */
   public String name;
 }

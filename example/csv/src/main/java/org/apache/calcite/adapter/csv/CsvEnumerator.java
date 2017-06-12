@@ -325,7 +325,7 @@ class CsvEnumerator<E> implements Enumerator<E> {
   static class ArrayRowConverter extends RowConverter<Object[]> {
     private final CsvFieldType[] fieldTypes;
     private final int[] fields;
-    //whether the row to convert is from a stream
+    // whether the row to convert is from a stream
     private final boolean stream;
 
     ArrayRowConverter(List<CsvFieldType> fieldTypes, int[] fields) {

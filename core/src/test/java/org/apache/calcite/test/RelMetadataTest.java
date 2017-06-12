@@ -2192,8 +2192,8 @@ public class RelMetadataTest extends SqlToRelTestBase {
    *
    * <p>For example:
    *
-   * <pre>List&lt;Integer&gt; ints = Arrays.asList(2, 500, 12);
-   * assertThat(ints, sortsAs("[12, 2, 500]");</pre>
+   * <blockquote><pre>List&lt;Integer&gt; ints = Arrays.asList(2, 500, 12);
+   * assertThat(ints, sortsAs("[12, 2, 500]");</pre></blockquote>
    */
   static <T> Matcher<Iterable<? extends T>> sortsAs(final String value) {
     return new CustomTypeSafeMatcher<Iterable<? extends T>>(value) {

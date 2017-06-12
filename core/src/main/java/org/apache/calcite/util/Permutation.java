@@ -145,7 +145,7 @@ public class Permutation implements Mapping, Mappings.TargetMapping {
    * </tr>
    * </table>
    *
-   * is represented by the string "[2, 0, 1, 3]".
+   * <p>is represented by the string "[2, 0, 1, 3]".
    */
   public String toString() {
     StringBuilder buf = new StringBuilder();
@@ -168,23 +168,23 @@ public class Permutation implements Mapping, Mappings.TargetMapping {
    *
    * <p>For example, given the permutation
    *
-   * <pre>[3, 2, 0, 1]</pre>
+   * <blockquote><pre>[3, 2, 0, 1]</pre></blockquote>
    *
-   * suppose we map position 2 to target 1. Position 2 currently has target 0,
-   * and the source of position 1 is position 3. We preserve the permutation
-   * property by mapping the previous source 3 to the previous target 0. The
-   * new permutation is
+   * <p>suppose we map position 2 to target 1. Position 2 currently has target
+   * 0, and the source of position 1 is position 3. We preserve the permutation
+   * property by mapping the previous source 3 to the previous target 0. The new
+   * permutation is
    *
-   * <pre>[3, 2, 1, 0].</pre>
+   * <blockquote><pre>[3, 2, 1, 0].</pre></blockquote>
    *
    * <p>Another example. Again starting from
    *
-   * <pre>[3, 2, 0, 1]</pre>
+   * <blockquote><pre>[3, 2, 0, 1]</pre></blockquote>
    *
-   * suppose we map position 2 to target 3. We map the previous source 0 to
+   * <p>suppose we map position 2 to target 3. We map the previous source 0 to
    * the previous target 0, which gives
    *
-   * <pre>[0, 2, 3, 1].</pre>
+   * <blockquote><pre>[0, 2, 3, 1].</pre></blockquote>
    *
    * @param source Source position
    * @param target Target position
@@ -205,23 +205,23 @@ public class Permutation implements Mapping, Mappings.TargetMapping {
    *
    * <p>For example, given the permutation
    *
-   * <pre>[3, 2, 0, 1]</pre>
+   * <blockquote><pre>[3, 2, 0, 1]</pre></blockquote>
    *
-   * suppose we map position 2 to target 1. Position 2 currently has target 0,
-   * and the source of position 1 is position 3. We preserve the permutation
-   * property by mapping the previous source 3 to the previous target 0. The
-   * new permutation is
+   * <p>suppose we map position 2 to target 1. Position 2 currently has target
+   * 0, and the source of position 1 is position 3. We preserve the permutation
+   * property by mapping the previous source 3 to the previous target 0. The new
+   * permutation is
    *
-   * <pre>[3, 2, 1, 0].</pre>
+   * <blockquote><pre>[3, 2, 1, 0].</pre></blockquote>
    *
    * <p>Another example. Again starting from
    *
-   * <pre>[3, 2, 0, 1]</pre>
+   * <blockquote><pre>[3, 2, 0, 1]</pre></blockquote>
    *
-   * suppose we map position 2 to target 3. We map the previous source 0 to
+   * <p>suppose we map position 2 to target 3. We map the previous source 0 to
    * the previous target 0, which gives
    *
-   * <pre>[0, 2, 3, 1].</pre>
+   * <blockquote><pre>[0, 2, 3, 1].</pre></blockquote>
    *
    * @param source      Source position
    * @param target      Target position

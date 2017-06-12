@@ -222,9 +222,9 @@ public class SubstitutionVisitor {
    *
    * <p>The terms satisfy the relation</p>
    *
-   * <pre>
-   *     {@code condition = target AND residue}
-   * </pre>
+   * <blockquote>
+   * <pre>{@code condition = target AND residue}</pre>
+   * </blockquote>
    *
    * <p>and {@code residue} must be as weak as possible.</p>
    *

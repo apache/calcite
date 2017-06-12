@@ -100,27 +100,27 @@ import java.util.SortedSet;
  * select t.c2, t.c1.a2 from t</code>. After SqlToRelConverter executes, the
  * unflattened tree looks like:
  *
- * <pre><code>
+ * <blockquote><pre><code>
  * LogicalProject(C2=[$1], A2=[$0.A2])
  *   LogicalTableScan(table=[T])
- * </code></pre>
+ * </code></pre></blockquote>
  *
- * After flattening, the resulting tree looks like
+ * <p>After flattening, the resulting tree looks like
  *
- * <pre><code>
+ * <blockquote><pre><code>
  * LogicalProject(C2=[$3], A2=[$2])
  *   FtrsIndexScanRel(table=[T], index=[clustered])
- * </code></pre>
+ * </code></pre></blockquote>
  *
- * The index scan produces a flattened row type <code>(boolean, smallint,
+ * <p>The index scan produces a flattened row type <code>(boolean, smallint,
  * bigint, double)</code> (the boolean is a null indicator for c1), and the
  * projection picks out the desired attributes (omitting <code>$0</code> and
  * <code>$1</code> altogether). After optimization, the projection might be
  * pushed down into the index scan, resulting in a final tree like
  *
- * <pre><code>
+ * <blockquote><pre><code>
  * FtrsIndexScanRel(table=[T], index=[clustered], projection=[3, 2])
- * </code></pre>
+ * </code></pre></blockquote>
  */
 public class RelStructuredTypeFlattener implements ReflectiveVisitor {
   //~ Instance fields --------------------------------------------------------
