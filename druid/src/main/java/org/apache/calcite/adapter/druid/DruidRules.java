@@ -29,6 +29,7 @@ import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.Sort;
+import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.rules.AggregateFilterTransposeRule;
 import org.apache.calcite.rel.rules.FilterAggregateTransposeRule;
 import org.apache.calcite.rel.rules.FilterProjectTransposeRule;
@@ -49,6 +50,7 @@ import org.apache.calcite.rex.RexSimplify;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.runtime.PredicateImpl;
 import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.tools.RelBuilder;
@@ -67,7 +69,10 @@ import com.google.common.collect.Lists;
 import org.slf4j.Logger;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Rules and relational operators for {@link DruidQuery}.
@@ -430,31 +435,218 @@ public class DruidRules {
     public void onMatch(RelOptRuleCall call) {
       final Aggregate aggregate = call.rel(0);
       final Project project = call.rel(1);
-      final DruidQuery query = call.rel(2);
+      DruidQuery query = call.rel(2);
       if (!DruidQuery.isValidSignature(query.signature() + 'p' + 'a')) {
         return;
       }
-      int timestampIdx;
-      if ((timestampIdx = validProject(project, query)) == -1) {
-        return;
-      }
-      if (aggregate.indicator
-              || aggregate.getGroupSets().size() != 1
-              || BAD_AGG.apply(aggregate)
-              || !validAggregate(aggregate, timestampIdx)) {
+
+      int timestampIdx = validProject(project, query);
+      List<Integer> filterRefs = getFilterRefs(aggregate.getAggCallList());
+
+      if (timestampIdx == -1 && filterRefs.size() == 0) {
         return;
       }
 
+      // Check that the filters that the Aggregate calls refer to are valid filters can be pushed
+      // into Druid
+      for (Integer i : filterRefs) {
+        RexNode filterNode = project.getProjects().get(i);
+        if (!query.isValidFilter(filterNode, project.getInput()) || filterNode.isAlwaysFalse()) {
+          return;
+        }
+      }
+
+      if (aggregate.indicator
+              || aggregate.getGroupSets().size() != 1
+              || BAD_AGG.apply(aggregate)
+              || !validAggregate(aggregate, timestampIdx, filterRefs.size())) {
+        return;
+      }
       if (checkAggregateOnMetric(aggregate.getGroupSet(), project, query)) {
         return;
       }
 
       final RelNode newProject = project.copy(project.getTraitSet(),
               ImmutableList.of(Util.last(query.rels)));
-      final DruidQuery projectDruidQuery = DruidQuery.extendQuery(query, newProject);
       final RelNode newAggregate = aggregate.copy(aggregate.getTraitSet(),
-              ImmutableList.of(Util.last(projectDruidQuery.rels)));
-      call.transformTo(DruidQuery.extendQuery(projectDruidQuery, newAggregate));
+              ImmutableList.of(newProject));
+
+      if (filterRefs.size() > 0) {
+        query = optimizeFilteredAggregations(query, (Project) newProject,
+                (Aggregate) newAggregate);
+      } else {
+        query = DruidQuery.extendQuery(DruidQuery.extendQuery(query, newProject), newAggregate);
+      }
+      call.transformTo(query);
+    }
+
+    /**
+     * Returns an array of unique filter references from
+     * the given list of {@link org.apache.calcite.rel.core.AggregateCall}
+     * */
+    private Set<Integer> getUniqueFilterRefs(List<AggregateCall> calls) {
+      Set<Integer> refs = new HashSet<>();
+      for (AggregateCall call : calls) {
+        if (call.hasFilter()) {
+          refs.add(call.filterArg);
+        }
+      }
+      return refs;
+    }
+
+    /**
+     * Attempts to optimize any aggregations with filters in the DruidQuery by
+     * 1. Trying to abstract common filters out into the "filter" field
+     * 2. Eliminating expressions that are always true or always false when possible
+     * 3. ANDing aggregate filters together with the outer filter to allow for pruning of data
+     * Should be called before pushing both the aggregate and project into Druid.
+     * Assumes that at least one aggregate call has a filter attached to it
+     * */
+    private DruidQuery optimizeFilteredAggregations(DruidQuery query, Project project,
+                                                   Aggregate aggregate) {
+      Filter filter = null;
+      RexBuilder builder = query.getCluster().getRexBuilder();
+      final RexExecutor executor =
+              Util.first(query.getCluster().getPlanner().getExecutor(), RexUtil.EXECUTOR);
+      RexSimplify simplifier = new RexSimplify(builder, true, executor);
+
+      // if the druid query originally contained a filter
+      boolean containsFilter = false;
+      for (RelNode node : query.rels) {
+        if (node instanceof Filter) {
+          filter = (Filter) node;
+          containsFilter = true;
+          break;
+        }
+      }
+
+      // if every aggregate call has a filter arg reference
+      boolean allHaveFilters = allAggregatesHaveFilters(aggregate.getAggCallList());
+
+      Set<Integer> uniqueFilterRefs = getUniqueFilterRefs(aggregate.getAggCallList());
+
+      // One of the pre-conditions for this method
+      assert uniqueFilterRefs.size() > 0;
+
+      List<AggregateCall> newCalls = new ArrayList<>();
+
+      // OR all the filters so that they can ANDed to the outer filter
+      List<RexNode> disjunctions = new ArrayList<>();
+      for (Integer i : uniqueFilterRefs) {
+        disjunctions.add(stripFilter(project.getProjects().get(i)));
+      }
+      RexNode filterNode = RexUtil.composeDisjunction(builder, disjunctions);
+
+      // Erase references to filters
+      for (AggregateCall call : aggregate.getAggCallList()) {
+        int newFilterArg = call.filterArg;
+        if (!call.hasFilter()
+                || (uniqueFilterRefs.size() == 1 && allHaveFilters) // filters get extracted
+                || project.getProjects().get(newFilterArg).isAlwaysTrue()) {
+          newFilterArg = -1;
+        }
+        newCalls.add(call.copy(call.getArgList(), newFilterArg));
+      }
+      aggregate = aggregate.copy(aggregate.getTraitSet(), aggregate.getInput(),
+              aggregate.indicator, aggregate.getGroupSet(), aggregate.getGroupSets(),
+              newCalls);
+
+      if (containsFilter) {
+        // AND the current filterNode with the filter node inside filter
+        filterNode = builder.makeCall(SqlStdOperatorTable.AND, filterNode, filter.getCondition());
+      }
+
+      // Simplify the filter as much as possible
+      RexNode tempFilterNode = filterNode;
+      filterNode = simplifier.simplify(filterNode);
+
+      // It's possible that after simplification that the expression is now always false.
+      // Druid cannot handle such a filter.
+      // This will happen when the below expression (f_n+1 may not exist):
+      // f_n+1 AND (f_1 OR f_2 OR ... OR f_n) simplifies to be something always false.
+      // f_n+1 cannot be false, since it came from a pushed filter rel node
+      // and each f_i cannot be false, since DruidAggregateProjectRule would have caught that.
+      // So, the only solution is to revert back to the un simplified version and let Druid
+      // handle a filter that is ultimately unsatisfiable.
+      if (filterNode.isAlwaysFalse()) {
+        filterNode = tempFilterNode;
+      }
+
+      filter = LogicalFilter.create(query.rels.get(0), filterNode);
+
+      boolean addNewFilter = !filter.getCondition().isAlwaysTrue() && allHaveFilters;
+      // Assumes that Filter nodes are always right after
+      // TableScan nodes (which are always present)
+      int startIndex = containsFilter && addNewFilter ? 2 : 1;
+
+      List<RelNode> newNodes = constructNewNodes(query.rels, addNewFilter, startIndex,
+              filter, project, aggregate);
+
+      return DruidQuery.create(query.getCluster(),
+             aggregate.getTraitSet().replace(query.getConvention()),
+             query.getTable(), query.druidTable, newNodes);
+    }
+
+    // Returns true if and only if every AggregateCall in calls has a filter argument.
+    private static boolean allAggregatesHaveFilters(List<AggregateCall> calls) {
+      for (AggregateCall call : calls) {
+        if (!call.hasFilter()) {
+          return false;
+        }
+      }
+      return true;
+    }
+
+    /**
+     * Returns a new List of RelNodes in the order of the given order of the oldNodes,
+     * the given {@link Filter}, and any extra nodes.
+     */
+    private static List<RelNode> constructNewNodes(List<RelNode> oldNodes,
+        boolean addFilter, int startIndex, RelNode filter, RelNode ... trailingNodes) {
+      List<RelNode> newNodes = new ArrayList<>();
+
+      // The first item should always be the Table scan, so any filter would go after that
+      newNodes.add(oldNodes.get(0));
+
+      if (addFilter) {
+        newNodes.add(filter);
+        // This is required so that each RelNode is linked to the one before it
+        if (startIndex < oldNodes.size()) {
+          RelNode next = oldNodes.get(startIndex);
+          newNodes.add(next.copy(next.getTraitSet(), Collections.singletonList(filter)));
+          startIndex++;
+        }
+      }
+
+      // Add the rest of the nodes from oldNodes
+      for (int i = startIndex; i < oldNodes.size(); i++) {
+        newNodes.add(oldNodes.get(i));
+      }
+
+      // Add the trailing nodes (need to link them)
+      for (RelNode node : trailingNodes) {
+        newNodes.add(node.copy(node.getTraitSet(), Collections.singletonList(Util.last(newNodes))));
+      }
+
+      return newNodes;
+    }
+
+    // Removes the IS_TRUE in front of RexCalls, if they exist
+    private static RexNode stripFilter(RexNode node) {
+      if (node.getKind() == SqlKind.IS_TRUE) {
+        return ((RexCall) node).getOperands().get(0);
+      }
+      return node;
+    }
+
+    private static List<Integer> getFilterRefs(List<AggregateCall> calls) {
+      List<Integer> refs = new ArrayList<>();
+      for (AggregateCall call : calls) {
+        if (call.hasFilter()) {
+          refs.add(call.filterArg);
+        }
+      }
+      return refs;
     }
 
     /* To be a valid Project, we allow it to contain references, and a single call
@@ -515,7 +707,10 @@ public class DruidRules {
       return idxTimestamp;
     }
 
-    private static boolean validAggregate(Aggregate aggregate, int idx) {
+    private static boolean validAggregate(Aggregate aggregate, int idx, int numFilterRefs) {
+      if (numFilterRefs > 0 && idx < 0) {
+        return true;
+      }
       if (!aggregate.getGroupSet().get(idx)) {
         return false;
       }

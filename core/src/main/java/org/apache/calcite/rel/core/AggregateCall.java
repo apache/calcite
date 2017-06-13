@@ -206,11 +206,18 @@ public class AggregateCall {
       buf.append(arg);
     }
     buf.append(")");
-    if (filterArg >= 0) {
+    if (hasFilter()) {
       buf.append(" FILTER $");
       buf.append(filterArg);
     }
     return buf.toString();
+  }
+
+  /**
+   * Returns true if and only if this AggregateCall has a filter argument
+   * */
+  public boolean hasFilter() {
+    return filterArg >= 0;
   }
 
   @Override public boolean equals(Object o) {
@@ -240,7 +247,7 @@ public class AggregateCall {
     return new Aggregate.AggCallBinding(
         aggregateRelBase.getCluster().getTypeFactory(), aggFunction,
         SqlTypeUtil.projectTypes(rowType, argList),
-        aggregateRelBase.getGroupCount(), filterArg >= 0);
+        aggregateRelBase.getGroupCount(), hasFilter());
   }
 
   /**
@@ -288,7 +295,7 @@ public class AggregateCall {
    * arguments. */
   public AggregateCall transform(Mappings.TargetMapping mapping) {
     return copy(Mappings.apply2((Mapping) mapping, argList),
-        filterArg < 0 ? -1 : Mappings.apply(mapping, filterArg));
+        hasFilter() ? Mappings.apply(mapping, filterArg) : -1);
   }
 }
 

@@ -177,11 +177,6 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
               || aggregate.indicator) {
             return litmus.fail("no grouping sets");
           }
-          for (AggregateCall call : aggregate.getAggCallList()) {
-            if (call.filterArg >= 0) {
-              return litmus.fail("no filtered aggregate functions");
-            }
-          }
         }
         if (r instanceof Filter) {
           final Filter filter = (Filter) r;
@@ -200,14 +195,24 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
     return true;
   }
 
-  boolean isValidFilter(RexNode e) {
-    return isValidFilter(e, false);
+  public boolean isValidFilter(RexNode e) {
+    return isValidFilter(e, false, null);
   }
 
-  boolean isValidFilter(RexNode e, boolean boundedComparator) {
+  public boolean isValidFilter(RexNode e, RelNode input) {
+    return isValidFilter(e, false, input);
+  }
+
+  public boolean isValidFilter(RexNode e, boolean boundedComparator, RelNode input) {
     switch (e.getKind()) {
     case INPUT_REF:
-      return true;
+      if (input == null) {
+        return true;
+      }
+      int nameIndex = ((RexInputRef) e).getIndex();
+      String name = input.getRowType().getFieldList().get(nameIndex).getName();
+      // Druid can't filter on metrics
+      return !druidTable.isMetric(name);
     case LITERAL:
       return ((RexLiteral) e).getValue() != null;
     case AND:
@@ -216,32 +221,34 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
     case EQUALS:
     case NOT_EQUALS:
     case IN:
-      return areValidFilters(((RexCall) e).getOperands(), false);
+      return areValidFilters(((RexCall) e).getOperands(), false, input);
     case LESS_THAN:
     case LESS_THAN_OR_EQUAL:
     case GREATER_THAN:
     case GREATER_THAN_OR_EQUAL:
     case BETWEEN:
-      return areValidFilters(((RexCall) e).getOperands(), true);
+      return areValidFilters(((RexCall) e).getOperands(), true, input);
     case CAST:
       return isValidCast((RexCall) e, boundedComparator);
     case EXTRACT:
       return TimeExtractionFunction.isValidTimeExtract((RexCall) e);
+    case IS_TRUE:
+      return isValidFilter(((RexCall) e).getOperands().get(0), boundedComparator, input);
     default:
       return false;
     }
   }
 
-  private boolean areValidFilters(List<RexNode> es, boolean boundedComparator) {
+  private boolean areValidFilters(List<RexNode> es, boolean boundedComparator, RelNode input) {
     for (RexNode e : es) {
-      if (!isValidFilter(e, boundedComparator)) {
+      if (!isValidFilter(e, boundedComparator, input)) {
         return false;
       }
     }
     return true;
   }
 
-  private boolean isValidCast(RexCall e, boolean boundedComparator) {
+  private static boolean isValidCast(RexCall e, boolean boundedComparator) {
     assert e.isA(SqlKind.CAST);
     if (e.getOperands().get(0).isA(INPUT_REF)
         && e.getType().getFamily() == SqlTypeFamily.CHARACTER) {
@@ -621,7 +628,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
 
       for (Pair<AggregateCall, String> agg : Pair.zip(aggCalls, aggNames)) {
         final JsonAggregation jsonAggregation =
-            getJsonAggregation(fieldNames, agg.right, agg.left);
+            getJsonAggregation(fieldNames, agg.right, agg.left, projects, translator);
         aggregations.add(jsonAggregation);
         builder.add(jsonAggregation.name);
       }
@@ -779,7 +786,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
   }
 
   protected JsonAggregation getJsonAggregation(List<String> fieldNames,
-      String name, AggregateCall aggCall) {
+      String name, AggregateCall aggCall, List<RexNode> projects, Translator translator) {
     final List<String> list = new ArrayList<>();
     for (Integer arg : aggCall.getArgList()) {
       list.add(fieldNames.get(arg));
@@ -804,22 +811,37 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
       // Cannot handle this aggregate function type
       throw new AssertionError("unknown aggregate type " + type);
     }
+    JsonAggregation aggregation;
     switch (aggCall.getAggregation().getKind()) {
     case COUNT:
       if (aggCall.isDistinct()) {
-        return new JsonCardinalityAggregation("cardinality", name, list);
+        aggregation = new JsonCardinalityAggregation("cardinality", name, list);
+        break;
       }
-      return new JsonAggregation("count", name, only);
+      aggregation = new JsonAggregation("count", name, only);
+      break;
     case SUM:
     case SUM0:
-      return new JsonAggregation(fractional ? "doubleSum" : "longSum", name, only);
+      aggregation = new JsonAggregation(fractional ? "doubleSum" : "longSum", name, only);
+      break;
     case MIN:
-      return new JsonAggregation(fractional ? "doubleMin" : "longMin", name, only);
+      aggregation = new JsonAggregation(fractional ? "doubleMin" : "longMin", name, only);
+      break;
     case MAX:
-      return new JsonAggregation(fractional ? "doubleMax" : "longMax", name, only);
+      aggregation = new JsonAggregation(fractional ? "doubleMax" : "longMax", name, only);
+      break;
     default:
       throw new AssertionError("unknown aggregate " + aggCall);
     }
+
+    // Check for filters
+    if (aggCall.hasFilter()) {
+      RexCall filterNode = (RexCall) projects.get(aggCall.filterArg);
+      JsonFilter filter = translator.translateFilter(filterNode.getOperands().get(0));
+      aggregation = new JsonFilteredAggregation(filter, aggregation);
+    }
+
+    return aggregation;
   }
 
   protected static void writeField(JsonGenerator generator, String fieldName,
@@ -966,6 +988,9 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
         final RexCall call = (RexCall) e;
         assert DruidDateTimeUtils.extractGranularity(call) != null;
         index = RelOptUtil.InputFinder.bits(e).asList().get(0);
+        break;
+      case IS_TRUE:
+        return ""; // the fieldName for which this is the filter will be added separately
       }
       if (index == -1) {
         throw new AssertionError("invalid expression " + e);
@@ -1228,6 +1253,30 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
       generator.writeStringField("type", type);
       generator.writeStringField("name", name);
       writeFieldIf(generator, "fieldNames", fieldNames);
+      generator.writeEndObject();
+    }
+  }
+
+  /** Aggregation element that contains a filter */
+  private static class JsonFilteredAggregation extends JsonAggregation {
+    final JsonFilter filter;
+    final JsonAggregation aggregation;
+
+    private JsonFilteredAggregation(JsonFilter filter, JsonAggregation aggregation) {
+      // Filtered aggregations don't use the "name" and "fieldName" fields directly,
+      // but rather use the ones defined in their "aggregation" field.
+      super("filtered", aggregation.name, aggregation.fieldName);
+      this.filter = filter;
+      this.aggregation = aggregation;
+      // The aggregation cannot be a JsonFilteredAggregation
+      assert !(aggregation instanceof JsonFilteredAggregation);
+    }
+
+    @Override public void write(JsonGenerator generator) throws IOException {
+      generator.writeStartObject();
+      generator.writeStringField("type", type);
+      writeField(generator, "filter", filter);
+      writeField(generator, "aggregator", aggregation);
       generator.writeEndObject();
     }
   }
