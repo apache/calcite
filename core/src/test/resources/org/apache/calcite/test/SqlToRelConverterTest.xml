@@ -2431,7 +2431,8 @@ LogicalProject(EXPR$0=[+($0, $2)])
     </TestCase>
     <TestCase name="testModifiableViewExtend">
         <Resource name="sql">
-            <![CDATA[select * from EMP_MODIFIABLEVIEW extend (x varchar(5) not null)]]>
+            <![CDATA[select *
+from EMP_MODIFIABLEVIEW extend (x varchar(5) not null)]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
@@ -2442,7 +2443,8 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
     </TestCase>
     <TestCase name="testModifiableViewExtendSubset">
         <Resource name="sql">
-            <![CDATA[select x, empno from EMP_MODIFIABLEVIEW extend (x varchar(5) not null)]]>
+            <![CDATA[select x, empno
+from EMP_MODIFIABLEVIEW extend (x varchar(5) not null)]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
@@ -2453,7 +2455,8 @@ LogicalProject(X=[$8], EMPNO=[$0])
     </TestCase>
     <TestCase name="testModifiableViewExtendExpression">
         <Resource name="sql">
-            <![CDATA[select empno + x from EMP_MODIFIABLEVIEW extend (x int not null)]]>
+            <![CDATA[select empno + x
+from EMP_MODIFIABLEVIEW extend (x int not null)]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
@@ -2464,7 +2467,8 @@ LogicalProject(EXPR$0=[+($0, $8)])
     </TestCase>
     <TestCase name="testSelectModifiableViewConstraint">
         <Resource name="sql">
-            <![CDATA[select deptno from EMP_MODIFIABLEVIEW2 where deptno = ?]]>
+            <![CDATA[select deptno from EMP_MODIFIABLEVIEW2
+where deptno = ?]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
@@ -2474,7 +2478,7 @@ LogicalProject(DEPTNO=[$3])
 ]]>
         </Resource>
     </TestCase>
-    <TestCase name="testModifiableViewDDLExtend">
+    <TestCase name="testModifiableViewDdlExtend">
         <Resource name="sql">
             <![CDATA[select extra from EMP_MODIFIABLEVIEW2]]>
         </Resource>
@@ -3597,7 +3601,8 @@ LogicalTableModify(table=[[CATALOG, SALES, EMP_MODIFIABLEVIEW2]], operation=[DEL
     </TestCase>
     <TestCase name="testDeleteBindExtendedColumnModifiableView">
         <Resource name="sql">
-            <![CDATA[delete from EMP_MODIFIABLEVIEW2(note VARCHAR) where note = ?]]>
+            <![CDATA[delete from EMP_MODIFIABLEVIEW2(note VARCHAR)
+where note = ?]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
@@ -3798,7 +3803,8 @@ LogicalTableModify(table=[[CATALOG, SALES, EMPDEFAULTS]], operation=[UPDATE], up
     </TestCase>
     <TestCase name="testUpdateModifiableView">
         <Resource name="sql">
-            <![CDATA[update EMP_MODIFIABLEVIEW2 set sal = sal + 5000 where slacker = false]]>
+            <![CDATA[update EMP_MODIFIABLEVIEW2
+set sal = sal + 5000 where slacker = false]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
@@ -3811,7 +3817,9 @@ LogicalTableModify(table=[[CATALOG, SALES, EMP_MODIFIABLEVIEW2]], operation=[UPD
     </TestCase>
     <TestCase name="testUpdateExtendedColumnModifiableView">
         <Resource name="sql">
-            <![CDATA[update EMP_MODIFIABLEVIEW2(updated TIMESTAMP) set updated = timestamp '2017-03-12 13:03:05', sal = sal + 5000 where slacker = false]]>
+            <![CDATA[update EMP_MODIFIABLEVIEW2(updated TIMESTAMP)
+set updated = timestamp '2017-03-12 13:03:05', sal = sal + 5000
+where slacker = false]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
