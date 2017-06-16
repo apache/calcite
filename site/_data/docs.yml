@@ -30,6 +30,7 @@
   - compatibility
   - custom_client_artifacts
   - docker
+  - protocol_testing
 
 - title: Meta
   docs:
