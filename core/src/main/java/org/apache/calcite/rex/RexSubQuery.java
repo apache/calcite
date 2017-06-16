@@ -21,7 +21,9 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.fun.SqlQuantifyOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeName;
 
@@ -39,10 +41,29 @@ public class RexSubQuery extends RexCall {
       ImmutableList<RexNode> operands, RelNode rel) {
     super(type, op, operands);
     this.rel = rel;
+    this.digest = computeDigest(false);
   }
 
   /** Creates an IN sub-query. */
   public static RexSubQuery in(RelNode rel, ImmutableList<RexNode> nodes) {
+    final RelDataType type = type(rel, nodes);
+    return new RexSubQuery(type, SqlStdOperatorTable.IN, nodes, rel);
+  }
+
+  /** Creates a SOME sub-query.
+   *
+   * <p>There is no ALL. For {@code x comparison ALL (sub-query)} use instead
+   * {@code NOT (x inverse-comparison SOME (sub-query))}.
+   * If {@code comparison} is {@code >}
+   * then {@code negated-comparison} is {@code <=}, and so forth. */
+  public static RexSubQuery some(RelNode rel, ImmutableList<RexNode> nodes,
+      SqlQuantifyOperator op) {
+    assert op.kind == SqlKind.SOME;
+    final RelDataType type = type(rel, nodes);
+    return new RexSubQuery(type, op, nodes, rel);
+  }
+
+  static RelDataType type(RelNode rel, ImmutableList<RexNode> nodes) {
     assert rel.getRowType().getFieldCount() == nodes.size();
     final RelDataTypeFactory typeFactory = rel.getCluster().getTypeFactory();
     boolean nullable = false;
@@ -56,10 +77,8 @@ public class RexSubQuery extends RexCall {
         nullable = true;
       }
     }
-    final RelDataType type =
-        typeFactory.createTypeWithNullability(
-            typeFactory.createSqlType(SqlTypeName.BOOLEAN), nullable);
-    return new RexSubQuery(type, SqlStdOperatorTable.IN, nodes, rel);
+    return typeFactory.createTypeWithNullability(
+        typeFactory.createSqlType(SqlTypeName.BOOLEAN), nullable);
   }
 
   /** Creates an EXISTS sub-query. */

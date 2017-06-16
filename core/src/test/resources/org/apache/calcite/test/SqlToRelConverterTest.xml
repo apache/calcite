@@ -118,6 +118,18 @@ LogicalFilter(condition=[>($0, 1)])
             <![CDATA[select count(empno) as e from emp having e > 1]]>
         </Resource>
     </TestCase>
+    <TestCase name="testAllValueList">
+        <Resource name="sql">
+            <![CDATA[select empno from emp where deptno > all (10, 20)]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(EMPNO=[$0])
+  LogicalFilter(condition=[AND(>($7, 10), >($7, 20))])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testGroupJustOneAgg">
         <Resource name="plan">
             <![CDATA[
@@ -3621,6 +3633,34 @@ LogicalTableModify(table=[[CATALOG, SALES, EMP_MODIFIABLEVIEW2]], operation=[DEL
             <![CDATA[
 LogicalProject(EXPR$0=[+(2, 2)])
   LogicalValues(tuples=[[{ 0 }]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testSome">
+        <Resource name="sql">
+            <![CDATA[select empno from emp where deptno > some (
+  select deptno from dept)]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(EMPNO=[$0])
+  LogicalFilter(condition=[> SOME($7, {
+LogicalProject(DEPTNO=[$0])
+  LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+})])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testSomeValueList">
+        <Resource name="sql">
+            <![CDATA[select empno from emp where deptno > some (10, 20)]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(EMPNO=[$0])
+  LogicalFilter(condition=[OR(>($7, 10), >($7, 20))])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
     </TestCase>

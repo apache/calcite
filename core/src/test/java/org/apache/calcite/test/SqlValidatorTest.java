@@ -4797,6 +4797,47 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         "Values passed to IN operator must have compatible types");
   }
 
+  @Test public void testAnyList() {
+    check("select * from emp where empno = any (10,20)");
+
+    check("select * from emp\n"
+        + "where empno < any (10 + deptno, cast(null as integer))");
+    checkFails(
+        "select * from emp where empno < any ^(10, '20')^",
+        ERR_IN_VALUES_INCOMPATIBLE);
+
+    checkExpType("1 < all (2, 3, 4)", "BOOLEAN NOT NULL");
+    checkExpType("cast(null as integer) < all (2, 3, 4)", "BOOLEAN");
+    checkExpType("1 > some (2, cast(null as integer) , 4)", "BOOLEAN");
+    checkExpType("1 > any (2.5, 3.14)", "BOOLEAN NOT NULL");
+    checkExpType("true = any (false, unknown)", "BOOLEAN");
+    checkExpType("true = any (false, false or unknown)", "BOOLEAN");
+    checkExpType("true <> any (false, true)", "BOOLEAN NOT NULL");
+    checkExpType("(1,2) = any ((1,2), (3,4))", "BOOLEAN NOT NULL");
+    checkExpType("(1,2) < any ((1,2), (3,4))", "BOOLEAN NOT NULL");
+    checkExpType("'abc' < any (cast(null as varchar(10)), 'bc')",
+        "BOOLEAN");
+
+    // nullability depends on nullability of both sides
+    checkColumnType("select empno < any (1, 2) from emp", "BOOLEAN NOT NULL");
+    checkColumnType(
+        "select nullif(empno,empno) > all (1, 2) from emp",
+        "BOOLEAN");
+    checkColumnType(
+        "select empno in (1, nullif(empno,empno), 2) from emp",
+        "BOOLEAN");
+
+    checkExpFails("1 = any ^(2, 'c')^",
+        ERR_IN_VALUES_INCOMPATIBLE);
+    checkExpFails("1 > all ^((2), (3,4))^",
+        ERR_IN_VALUES_INCOMPATIBLE);
+    checkExp("false and 1 = any ('b', 'c')");
+    checkExpFails("false and ^1 = any (date '2012-01-02', date '2012-01-04')^",
+        ERR_IN_OPERANDS_INCOMPATIBLE);
+    checkExpFails("1 > 5 or ^(1, 2) < any (3, 4)^",
+        ERR_IN_OPERANDS_INCOMPATIBLE);
+  }
+
   @Test public void testDoubleNoAlias() {
     check("select * from emp join dept on true");
     check("select * from emp, dept");
@@ -5854,6 +5895,14 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
 
     // Our conformance behaves like ORACLE_10 for "!=" operator.
     sql("select * from (values 1) where 1 != 2")
+        .tester(customTester)
+        .ok()
+        .tester(defaultTester)
+        .fails("Bang equal '!=' is not allowed under the current SQL conformance level")
+        .tester(oracleTester)
+        .ok();
+
+    sql("select * from (values 1) where 1 != any (2, 3)")
         .tester(customTester)
         .ok()
         .tester(defaultTester)
@@ -8369,6 +8418,18 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "DATETIME_PLUS -\n"
         + "EXISTS pre\n"
         + "\n"
+        + "< ALL left\n"
+        + "< SOME left\n"
+        + "<= ALL left\n"
+        + "<= SOME left\n"
+        + "<> ALL left\n"
+        + "<> SOME left\n"
+        + "= ALL left\n"
+        + "= SOME left\n"
+        + "> ALL left\n"
+        + "> SOME left\n"
+        + ">= ALL left\n"
+        + ">= SOME left\n"
         + "BETWEEN ASYMMETRIC -\n"
         + "BETWEEN SYMMETRIC -\n"
         + "IN left\n"

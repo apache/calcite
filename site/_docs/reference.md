@@ -1045,7 +1045,20 @@ The operator precedence and associativity, highest to lowest.
 | value NOT IN (value [, value]*)                   | Whether *value* is not equal to every value in a list
 | value IN (sub-query)                              | Whether *value* is equal to a row returned by *sub-query*
 | value NOT IN (sub-query)                          | Whether *value* is not equal to every row returned by *sub-query*
+| value comparison SOME (sub-query)                 | Whether *value* *comparison* at least one row returned by *sub-query*
+| value comparison ANY (sub-query)                  | Synonym for SOME
+| value comparison ALL (sub-query)                  | Whether *value* *comparison* every row returned by *sub-query*
 | EXISTS (sub-query)                                | Whether *sub-query* returns at least one row
+
+{% highlight sql %}
+comp:
+      =
+  |   <>
+  |   >
+  |   >=
+  |   <
+  |   <=
+{% endhighlight %}
 
 ### Logical operators
 

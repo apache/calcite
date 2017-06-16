@@ -3086,6 +3086,18 @@ public class RelOptRulesTest extends RelOptTestBase {
     checkSubQuery(sql).withLateDecorrelation(true).check();
   }
 
+  @Test public void testAll() {
+    final String sql = "select * from emp e1\n"
+        + "  where e1.empno > ALL (select deptno from dept)";
+    checkSubQuery(sql).withLateDecorrelation(true).check();
+  }
+
+  @Test public void testSome() {
+    final String sql = "select * from emp e1\n"
+        + "  where e1.empno > SOME (select deptno from dept)";
+    checkSubQuery(sql).withLateDecorrelation(true).check();
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1546">[CALCITE-1546]
    * Sub-queries connected by OR</a>. */

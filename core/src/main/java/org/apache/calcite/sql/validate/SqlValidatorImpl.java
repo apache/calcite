@@ -888,7 +888,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     SqlNode outermostNode = performUnconditionalRewrites(topNode, false);
     cursorSet.add(outermostNode);
     top = outermostNode;
-    TRACER.trace("After unconditional rewrite: " + outermostNode.toString());
+    TRACER.trace("After unconditional rewrite: {}", outermostNode);
     if (outermostNode.isA(SqlKind.TOP_LEVEL)) {
       registerQuery(scope, null, outermostNode, outermostNode, null, false);
     }
@@ -898,7 +898,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       // caller later without needing the scope
       deriveType(scope, outermostNode);
     }
-    TRACER.trace("After validation: " + outermostNode.toString());
+    TRACER.trace("After validation: {}", outermostNode);
     return outermostNode;
   }
 

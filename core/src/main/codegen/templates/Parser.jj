@@ -2963,16 +2963,21 @@ List<Object> Expression2(ExprContext exprContext) :
                     checkNonQueryExpression(exprContext);
                 }
                 (
-                    <NOT> <IN> {
-                        op = SqlStdOperatorTable.NOT_IN;
-                        s.clear().add(this);
-                    }
+                    <NOT> <IN> { op = SqlStdOperatorTable.NOT_IN; }
                 |
-                    <IN> {
-                        op = SqlStdOperatorTable.IN;
-                        s.clear().add(this);
-                    }
+                    <IN> { op = SqlStdOperatorTable.IN; }
+                |
+                    { final SqlKind k; }
+                    k = comp()
+                    (
+                        <SOME> { op = SqlStdOperatorTable.some(k); }
+                    |
+                        <ANY> { op = SqlStdOperatorTable.some(k); }
+                    |
+                        <ALL> { op = SqlStdOperatorTable.all(k); }
+                    )
                 )
+                { s.clear().add(this); }
                 nodeList = ParenthesizedQueryOrCommaList(ExprContext.ACCEPT_NONCURSOR)
                 {
                     list.add(new SqlParserUtil.ToTreeListItem(op, s.pos()));
@@ -3082,6 +3087,31 @@ List<Object> Expression2(ExprContext exprContext) :
             return list;
         }
     )
+}
+
+/** Parses a comparison operator inside a SOME / ALL predicate. */
+SqlKind comp() :
+{
+}
+{
+    <LT> { return SqlKind.LESS_THAN; }
+|
+    <LE> { return SqlKind.LESS_THAN_OR_EQUAL; }
+|
+    <GT> { return SqlKind.GREATER_THAN; }
+|
+    <GE> { return SqlKind.GREATER_THAN_OR_EQUAL; }
+|
+    <EQ> { return SqlKind.EQUALS; }
+|
+    <NE> { return SqlKind.NOT_EQUALS; }
+|
+    <NE2> {
+        if (!this.conformance.isBangEqualAllowed()) {
+            throw new ParseException(RESOURCE.bangEqualNotAllowed().str());
+        }
+        return SqlKind.NOT_EQUALS;
+    }
 }
 
 /**

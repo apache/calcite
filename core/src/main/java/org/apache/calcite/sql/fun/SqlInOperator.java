@@ -51,39 +51,32 @@ import static org.apache.calcite.util.Static.RESOURCE;
 public class SqlInOperator extends SqlBinaryOperator {
   //~ Instance fields --------------------------------------------------------
 
-  /**
-   * If true the call represents 'NOT IN'.
-   */
-  private final boolean isNotIn;
-
   //~ Constructors -----------------------------------------------------------
 
   /**
-   * Creates a SqlInOperator
+   * Creates a SqlInOperator.
    *
-   * @param isNotIn Whether this is the 'NOT IN' operator
+   * @param kind IN or NOT IN
    */
-  SqlInOperator(boolean isNotIn) {
-    super(
-        isNotIn ? "NOT IN" : "IN",
-        SqlKind.IN,
+  SqlInOperator(SqlKind kind) {
+    this(kind.sql, kind);
+    assert kind == SqlKind.IN || kind == SqlKind.NOT_IN;
+  }
+
+  protected SqlInOperator(String name, SqlKind kind) {
+    super(name, kind,
         32,
         true,
         ReturnTypes.BOOLEAN_NULLABLE,
         InferTypes.FIRST_KNOWN,
         null);
-    this.isNotIn = isNotIn;
   }
 
   //~ Methods ----------------------------------------------------------------
 
-  /**
-   * Returns whether this is the 'NOT IN' operator
-   *
-   * @return whether this is the 'NOT IN' operator
-   */
+  @Deprecated // to be removed before 2.0
   public boolean isNotIn() {
-    return isNotIn;
+    return kind == SqlKind.NOT_IN;
   }
 
   @Override public boolean validRexOperands(int count, Litmus litmus) {

@@ -275,34 +275,43 @@ public enum SqlKind {
   IN,
 
   /**
+   * The "NOT IN" operator.
+   *
+   * <p>Only occurs in SqlNode trees. Is expanded to NOT(IN ...) before
+   * entering RelNode land.
+   */
+  NOT_IN("NOT IN"),
+
+  /**
    * The less-than operator, "&lt;".
    */
-  LESS_THAN,
+  LESS_THAN("<"),
 
   /**
    * The greater-than operator, "&gt;".
    */
-  GREATER_THAN,
+  GREATER_THAN(">"),
 
   /**
    * The less-than-or-equal operator, "&lt;=".
    */
-  LESS_THAN_OR_EQUAL,
+  LESS_THAN_OR_EQUAL("<="),
 
   /**
    * The greater-than-or-equal operator, "&gt;=".
    */
-  GREATER_THAN_OR_EQUAL,
+  GREATER_THAN_OR_EQUAL(">="),
 
   /**
    * The equals operator, "=".
    */
-  EQUALS,
+  EQUALS("="),
 
   /**
    * The not-equals operator, "&#33;=" or "&lt;&gt;".
+   * The latter is standard, and preferred.
    */
-  NOT_EQUALS,
+  NOT_EQUALS("<>"),
 
   /**
    * The is-distinct-from operator.
@@ -451,6 +460,16 @@ public enum SqlKind {
    * The "EXISTS" operator.
    */
   EXISTS,
+
+  /**
+   * The "SOME" quantification operator (also called "ANY").
+   */
+  SOME,
+
+  /**
+   * The "ALL" quantification operator.
+   */
+  ALL,
 
   /**
    * The "VALUES" operator.
