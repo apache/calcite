@@ -701,7 +701,7 @@ public class LoptMultiJoin {
     // First, locate the originating column for all simple column
     // references in the left factor.
     final RelNode left = getJoinFactor(leftFactor);
-    final RelMetadataQuery mq = RelMetadataQuery.instance();
+    final RelMetadataQuery mq = left.getCluster().getMetadataQuery();
     final Map<Integer, Integer> leftFactorColMapping = new HashMap<>();
     for (int i = 0; i < left.getRowType().getFieldCount(); i++) {
       final RelColumnOrigin colOrigin = mq.getColumnOrigin(left, i);

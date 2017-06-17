@@ -35,14 +35,17 @@ public class IndexExpression extends Expression {
     this.indexExpressions = indexExpressions;
   }
 
-  @Override public Expression accept(Visitor visitor) {
-    visitor = visitor.preVisit(this);
-    Expression array = this.array.accept(visitor);
+  @Override public Expression accept(Shuttle shuttle) {
+    shuttle = shuttle.preVisit(this);
+    Expression array = this.array.accept(shuttle);
     List<Expression> indexExpressions = Expressions.acceptExpressions(
-        this.indexExpressions, visitor);
-    return visitor.visit(this, array, indexExpressions);
+        this.indexExpressions, shuttle);
+    return shuttle.visit(this, array, indexExpressions);
   }
 
+  public <R> R accept(Visitor<R> visitor) {
+    return visitor.visit(this);
+  }
 
   @Override void accept(ExpressionWriter writer, int lprec, int rprec) {
     array.accept(writer, lprec, nodeType.lprec);

@@ -207,12 +207,12 @@ public class SqlPrettyWriterTest {
     checkSimple(prettyWriter, "${desc}", "${formatted}");
   }
 
-  @Test public void testDamiansSubqueryStyle() throws Exception {
+  @Test public void testDamiansSubQueryStyle() throws Exception {
     // Note that ( is at the indent, SELECT is on the same line, and ) is
     // below it.
     final SqlPrettyWriter prettyWriter =
         new SqlPrettyWriter(SqlDialect.DUMMY);
-    prettyWriter.setSubqueryStyle(SqlWriter.SubqueryStyle.BLACK);
+    prettyWriter.setSubQueryStyle(SqlWriter.SubQueryStyle.BLACK);
     checkSimple(prettyWriter, "${desc}", "${formatted}");
   }
 
@@ -275,7 +275,7 @@ public class SqlPrettyWriterTest {
     assertExprPrintsTo(
         true,
         "(x,xx) overlaps (y,yy) or x is not null",
-        "(`X`, `XX`) OVERLAPS (`Y`, `YY`) OR `X` IS NOT NULL");
+        "PERIOD (`X`, `XX`) OVERLAPS PERIOD (`Y`, `YY`) OR `X` IS NOT NULL");
   }
 
   @Test public void testUnion() {

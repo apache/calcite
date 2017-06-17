@@ -17,8 +17,8 @@
 package org.apache.calcite.materialize;
 
 import org.apache.calcite.util.Pair;
+import org.apache.calcite.util.Util;
 
-import com.google.common.base.Throwables;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
@@ -50,7 +50,8 @@ class CachingLatticeStatisticProvider implements LatticeStatisticProvider {
     try {
       return cache.get(Pair.of(lattice, column));
     } catch (UncheckedExecutionException | ExecutionException e) {
-      throw Throwables.propagate(e.getCause());
+      Util.throwIfUnchecked(e.getCause());
+      throw new RuntimeException(e.getCause());
     }
   }
 }

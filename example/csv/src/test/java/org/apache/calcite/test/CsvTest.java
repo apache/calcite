@@ -19,23 +19,24 @@ package org.apache.calcite.test;
 import org.apache.calcite.adapter.csv.CsvSchemaFactory;
 import org.apache.calcite.adapter.csv.CsvStreamTableFactory;
 import org.apache.calcite.jdbc.CalciteConnection;
-import org.apache.calcite.linq4j.function.Function1;
 import org.apache.calcite.schema.Schema;
 import org.apache.calcite.sql2rel.SqlToRelConverter;
 import org.apache.calcite.util.Util;
 
-import com.google.common.base.Throwables;
+import com.google.common.base.Function;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Ordering;
 
 import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.File;
-import java.io.FileWriter;
 import java.io.PrintStream;
 import java.io.PrintWriter;
+import java.io.UnsupportedEncodingException;
 import java.net.URL;
+import java.net.URLDecoder;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -43,8 +44,10 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Properties;
@@ -54,6 +57,7 @@ import java.util.concurrent.Callable;
 
 import static org.hamcrest.CoreMatchers.anyOf;
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.isA;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
@@ -77,6 +81,43 @@ public class CsvTest {
         // ignore
       }
     }
+  }
+
+
+  /** Quotes a string for Java or JSON. */
+  private static String escapeString(String s) {
+    return escapeString(new StringBuilder(), s).toString();
+  }
+
+  /** Quotes a string for Java or JSON, into a builder. */
+  private static StringBuilder escapeString(StringBuilder buf, String s) {
+    buf.append('"');
+    int n = s.length();
+    char lastChar = 0;
+    for (int i = 0; i < n; ++i) {
+      char c = s.charAt(i);
+      switch (c) {
+      case '\\':
+        buf.append("\\\\");
+        break;
+      case '"':
+        buf.append("\\\"");
+        break;
+      case '\n':
+        buf.append("\\n");
+        break;
+      case '\r':
+        if (lastChar != '\n') {
+          buf.append("\\r");
+        }
+        break;
+      default:
+        buf.append(c);
+        break;
+      }
+      lastChar = c;
+    }
+    return buf.append('"');
   }
 
   /**
@@ -134,15 +175,15 @@ public class CsvTest {
    * Reads from a table.
    */
   @Test public void testSelect() throws SQLException {
-    checkSql("model", "select * from EMPS");
+    sql("model", "select * from EMPS").ok();
   }
 
   @Test public void testSelectSingleProjectGz() throws SQLException {
-    checkSql("smart", "select name from EMPS");
+    sql("smart", "select name from EMPS").ok();
   }
 
   @Test public void testSelectSingleProject() throws SQLException {
-    checkSql("smart", "select name from DEPTS");
+    sql("smart", "select name from DEPTS").ok();
   }
 
   /** Test case for
@@ -152,7 +193,7 @@ public class CsvTest {
     final String sql = "select empno * 3 as e3\n"
         + "from long_emps where empno = 100";
 
-    checkSql(sql, "bug", new Function1<ResultSet, Void>() {
+    sql("bug", sql).checking(new Function<ResultSet, Void>() {
       public Void apply(ResultSet resultSet) {
         try {
           assertThat(resultSet.next(), is(true));
@@ -161,77 +202,86 @@ public class CsvTest {
           assertThat(resultSet.next(), is(false));
           return null;
         } catch (SQLException e) {
-          throw Throwables.propagate(e);
+          throw new RuntimeException(e);
         }
       }
-    });
+    }).ok();
   }
 
   @Test public void testCustomTable() throws SQLException {
-    checkSql("model-with-custom-table", "select * from CUSTOM_TABLE.EMPS");
+    sql("model-with-custom-table", "select * from CUSTOM_TABLE.EMPS").ok();
   }
 
   @Test public void testPushDownProjectDumb() throws SQLException {
     // rule does not fire, because we're using 'dumb' tables in simple model
-    checkSql("model", "explain plan for select * from EMPS",
-        "PLAN=EnumerableInterpreter\n"
-            + "  BindableTableScan(table=[[SALES, EMPS]])\n");
+    final String sql = "explain plan for select * from EMPS";
+    final String expected = "PLAN=EnumerableInterpreter\n"
+        + "  BindableTableScan(table=[[SALES, EMPS]])\n";
+    sql("model", sql).returns(expected).ok();
   }
 
   @Test public void testPushDownProject() throws SQLException {
-    checkSql("smart", "explain plan for select * from EMPS",
-        "PLAN=CsvTableScan(table=[[SALES, EMPS]], fields=[[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]])\n");
+    final String sql = "explain plan for select * from EMPS";
+    final String expected = "PLAN=CsvTableScan(table=[[SALES, EMPS]], "
+        + "fields=[[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]])\n";
+    sql("smart", sql).returns(expected).ok();
   }
 
   @Test public void testPushDownProject2() throws SQLException {
-    checkSql("smart", "explain plan for select name, empno from EMPS",
-        "PLAN=CsvTableScan(table=[[SALES, EMPS]], fields=[[1, 0]])\n");
+    sql("smart", "explain plan for select name, empno from EMPS")
+        .returns("PLAN=CsvTableScan(table=[[SALES, EMPS]], fields=[[1, 0]])\n")
+        .ok();
     // make sure that it works...
-    checkSql("smart", "select name, empno from EMPS",
-        "NAME=Fred; EMPNO=100",
-        "NAME=Eric; EMPNO=110",
-        "NAME=John; EMPNO=110",
-        "NAME=Wilma; EMPNO=120",
-        "NAME=Alice; EMPNO=130");
+    sql("smart", "select name, empno from EMPS")
+        .returns("NAME=Fred; EMPNO=100",
+            "NAME=Eric; EMPNO=110",
+            "NAME=John; EMPNO=110",
+            "NAME=Wilma; EMPNO=120",
+            "NAME=Alice; EMPNO=130")
+        .ok();
   }
 
   @Test public void testFilterableSelect() throws SQLException {
-    checkSql("filterable-model", "select name from EMPS");
+    sql("filterable-model", "select name from EMPS").ok();
   }
 
   @Test public void testFilterableSelectStar() throws SQLException {
-    checkSql("filterable-model", "select * from EMPS");
+    sql("filterable-model", "select * from EMPS").ok();
   }
 
   /** Filter that can be fully handled by CsvFilterableTable. */
   @Test public void testFilterableWhere() throws SQLException {
-    checkSql("filterable-model",
-        "select empno, gender, name from EMPS where name = 'John'",
-        "EMPNO=110; GENDER=M; NAME=John");
+    final String sql =
+        "select empno, gender, name from EMPS where name = 'John'";
+    sql("filterable-model", sql)
+        .returns("EMPNO=110; GENDER=M; NAME=John").ok();
   }
 
   /** Filter that can be partly handled by CsvFilterableTable. */
   @Test public void testFilterableWhere2() throws SQLException {
-    checkSql("filterable-model",
-        "select empno, gender, name from EMPS where gender = 'F' and empno > 125",
-        "EMPNO=130; GENDER=F; NAME=Alice");
+    final String sql = "select empno, gender, name from EMPS\n"
+        + " where gender = 'F' and empno > 125";
+    sql("filterable-model", sql)
+        .returns("EMPNO=130; GENDER=F; NAME=Alice").ok();
   }
 
   @Test public void testJson() throws SQLException {
-    checkSql("bug", "select _MAP['id'] as id,\n"
-            + " _MAP['title'] as title,\n"
-            + " CHAR_LENGTH(CAST(_MAP['title'] AS VARCHAR(30))) as len\n"
-            + " from \"archers\"",
-        "ID=19990101; TITLE=Tractor trouble.; LEN=16",
-        "ID=19990103; TITLE=Charlie's surprise.; LEN=19");
+    final String sql = "select _MAP['id'] as id,\n"
+        + " _MAP['title'] as title,\n"
+        + " CHAR_LENGTH(CAST(_MAP['title'] AS VARCHAR(30))) as len\n"
+        + " from \"archers\"\n";
+    sql("bug", sql)
+        .returns("ID=19990101; TITLE=Tractor trouble.; LEN=16",
+            "ID=19990103; TITLE=Charlie's surprise.; LEN=19")
+        .ok();
   }
 
-  private void checkSql(String model, String sql) throws SQLException {
-    checkSql(sql, model, output());
+  private Fluent sql(String model, String sql) {
+    return new Fluent(model, sql, output());
   }
 
-  private Function1<ResultSet, Void> output() {
-    return new Function1<ResultSet, Void>() {
+  private Function<ResultSet, Void> output() {
+    return new Function<ResultSet, Void>() {
       public Void apply(ResultSet resultSet) {
         try {
           output(resultSet, System.out);
@@ -243,15 +293,10 @@ public class CsvTest {
     };
   }
 
-  private void checkSql(String model, String sql, final String... expected)
-      throws SQLException {
-    checkSql(sql, model, expect(expected));
-  }
-
   /** Returns a function that checks the contents of a result set against an
    * expected string. */
-  private static Function1<ResultSet, Void> expect(final String... expected) {
-    return new Function1<ResultSet, Void>() {
+  private static Function<ResultSet, Void> expect(final String... expected) {
+    return new Function<ResultSet, Void>() {
       public Void apply(ResultSet resultSet) {
         try {
           final List<String> lines = new ArrayList<>();
@@ -265,7 +310,27 @@ public class CsvTest {
     };
   }
 
-  private void checkSql(String sql, String model, Function1<ResultSet, Void> fn)
+  /** Returns a function that checks the contents of a result set against an
+   * expected string. */
+  private static Function<ResultSet, Void> expectUnordered(String... expected) {
+    final List<String> expectedLines =
+        Ordering.natural().immutableSortedCopy(Arrays.asList(expected));
+    return new Function<ResultSet, Void>() {
+      public Void apply(ResultSet resultSet) {
+        try {
+          final List<String> lines = new ArrayList<>();
+          CsvTest.collect(lines, resultSet);
+          Collections.sort(lines);
+          Assert.assertEquals(expectedLines, lines);
+        } catch (SQLException e) {
+          throw new RuntimeException(e);
+        }
+        return null;
+      }
+    };
+  }
+
+  private void checkSql(String sql, String model, Function<ResultSet, Void> fn)
       throws SQLException {
     Connection connection = null;
     Statement statement = null;
@@ -289,11 +354,16 @@ public class CsvTest {
 
   private String resourcePath(String path) {
     final URL url = CsvTest.class.getResource("/" + path);
-    String s = url.toString();
-    if (s.startsWith("file:")) {
-      s = s.substring("file:".length());
+    // URL converts a space to %20, undo that.
+    try {
+      String s = URLDecoder.decode(url.toString(), "UTF-8");
+      if (s.startsWith("file:")) {
+        s = s.substring("file:".length());
+      }
+      return s;
+    } catch (UnsupportedEncodingException e) {
+      throw new RuntimeException(e);
     }
-    return s;
   }
 
   private static void collect(List<String> result, ResultSet resultSet)
@@ -332,34 +402,63 @@ public class CsvTest {
   }
 
   @Test public void testJoinOnString() throws SQLException {
-    checkSql("smart",
-        "select * from emps join depts on emps.name = depts.name");
+    final String sql = "select * from emps\n"
+        + "join depts on emps.name = depts.name";
+    sql("smart", sql).ok();
   }
 
   @Test public void testWackyColumns() throws SQLException {
-    checkSql("select * from wacky_column_names where false", "bug",
-        expect());
-    checkSql(
-        "select \"joined at\", \"naME\" from wacky_column_names where \"2gender\" = 'F'",
-        "bug",
-        expect(
-            "joined at=2005-09-07; naME=Wilma",
-            "joined at=2007-01-01; naME=Alice"));
+    final String sql = "select * from wacky_column_names where false";
+    sql("bug", sql).returns().ok();
+
+    final String sql2 = "select \"joined at\", \"naME\"\n"
+        + "from wacky_column_names\n"
+        + "where \"2gender\" = 'F'";
+    sql("bug", sql2)
+        .returns("joined at=2005-09-07; naME=Wilma",
+            "joined at=2007-01-01; naME=Alice")
+        .ok();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1754">[CALCITE-1754]
+   * In Csv adapter, convert DATE and TIME values to int, and TIMESTAMP values
+   * to long</a>. */
+  @Test public void testGroupByTimestampAdd() throws SQLException {
+    final String sql = "select count(*) as c,\n"
+        + "  {fn timestampadd(SQL_TSI_DAY, 1, JOINEDAT) } as t\n"
+        + "from EMPS group by {fn timestampadd(SQL_TSI_DAY, 1, JOINEDAT ) } ";
+    sql("model", sql)
+        .returnsUnordered("C=1; T=1996-08-04",
+            "C=1; T=2002-05-04",
+            "C=1; T=2005-09-08",
+            "C=1; T=2007-01-02",
+            "C=1; T=2001-01-02")
+        .ok();
+
+    final String sql2 = "select count(*) as c,\n"
+        + "  {fn timestampadd(SQL_TSI_MONTH, 1, JOINEDAT) } as t\n"
+        + "from EMPS group by {fn timestampadd(SQL_TSI_MONTH, 1, JOINEDAT ) } ";
+    sql("model", sql2)
+        .returnsUnordered("C=1; T=2002-06-03",
+            "C=1; T=2005-10-07",
+            "C=1; T=2007-02-01",
+            "C=1; T=2001-02-01",
+            "C=1; T=1996-09-03")
+        .ok();
+  }
   @Test public void testBoolean() throws SQLException {
-    checkSql("smart",
-        "select empno, slacker from emps where slacker",
-        "EMPNO=100; SLACKER=true");
+    sql("smart", "select empno, slacker from emps where slacker")
+        .returns("EMPNO=100; SLACKER=true").ok();
   }
 
   @Test public void testReadme() throws SQLException {
-    checkSql("SELECT d.name, COUNT(*) cnt"
-            + " FROM emps AS e"
-            + " JOIN depts AS d ON e.deptno = d.deptno"
-            + " GROUP BY d.name",
-        "smart",
-        expect("NAME=Sales; CNT=1", "NAME=Marketing; CNT=2"));
+    final String sql = "SELECT d.name, COUNT(*) cnt"
+        + " FROM emps AS e"
+        + " JOIN depts AS d ON e.deptno = d.deptno"
+        + " GROUP BY d.name";
+    sql("smart", sql)
+        .returns("NAME=Sales; CNT=1", "NAME=Marketing; CNT=2").ok();
   }
 
   /** Test case for
@@ -371,12 +470,13 @@ public class CsvTest {
     final String sql = "SELECT e.name\n"
         + "FROM emps AS e\n"
         + "WHERE cast(e.empno as bigint) in ";
-    checkSql(sql + range(130, SqlToRelConverter.IN_SUBQUERY_THRESHOLD - 5),
-        "smart", expect("NAME=Alice"));
-    checkSql(sql + range(130, SqlToRelConverter.IN_SUBQUERY_THRESHOLD),
-        "smart", expect("NAME=Alice"));
-    checkSql(sql + range(130, SqlToRelConverter.IN_SUBQUERY_THRESHOLD + 1000),
-        "smart", expect("NAME=Alice"));
+    final int threshold = SqlToRelConverter.DEFAULT_IN_SUB_QUERY_THRESHOLD;
+    sql("smart", sql + range(130, threshold - 5))
+        .returns("NAME=Alice").ok();
+    sql("smart", sql + range(130, threshold))
+        .returns("NAME=Alice").ok();
+    sql("smart", sql + range(130, threshold + 1000))
+        .returns("NAME=Alice").ok();
   }
 
   /** Test case for
@@ -386,8 +486,8 @@ public class CsvTest {
     final String sql = "SELECT e.name\n"
         + "FROM emps AS e\n"
         + "WHERE e.empno in "
-        + range(130, SqlToRelConverter.IN_SUBQUERY_THRESHOLD);
-    checkSql(sql, "smart", expect("NAME=Alice"));
+        + range(130, SqlToRelConverter.DEFAULT_IN_SUB_QUERY_THRESHOLD);
+    sql("smart", sql).returns("NAME=Alice").ok();
   }
 
   private String range(int first, int count) {
@@ -483,6 +583,66 @@ public class CsvTest {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1673">[CALCITE-1673]
+   * Query with ORDER BY or GROUP BY on TIMESTAMP column throws
+   * CompileException</a>. */
+  @Test public void testTimestampGroupBy() throws SQLException {
+    Properties info = new Properties();
+    info.put("model", jsonPath("bug"));
+    // Use LIMIT to ensure that results are deterministic without ORDER BY
+    final String sql = "select \"EMPNO\", \"JOINTIMES\"\n"
+        + "from (select * from \"DATE\" limit 1)\n"
+        + "group by \"EMPNO\",\"JOINTIMES\"";
+    try (Connection connection =
+             DriverManager.getConnection("jdbc:calcite:", info);
+         Statement statement = connection.createStatement();
+         ResultSet resultSet = statement.executeQuery(sql)) {
+      assertThat(resultSet.next(), is(true));
+      final Timestamp timestamp = resultSet.getTimestamp(2);
+      Assert.assertThat(timestamp, isA(java.sql.Timestamp.class));
+      // Note: This logic is time zone specific, but the same time zone is
+      // used in the CSV adapter and this test, so they should cancel out.
+      Assert.assertThat(timestamp,
+          is(java.sql.Timestamp.valueOf("1996-08-03 00:01:02.0")));
+    }
+  }
+
+  /** As {@link #testTimestampGroupBy()} but with ORDER BY. */
+  @Test public void testTimestampOrderBy() throws SQLException {
+    Properties info = new Properties();
+    info.put("model", jsonPath("bug"));
+    final String sql = "select \"EMPNO\",\"JOINTIMES\" from \"DATE\"\n"
+        + "order by \"JOINTIMES\"";
+    try (Connection connection =
+             DriverManager.getConnection("jdbc:calcite:", info);
+         Statement statement = connection.createStatement();
+         ResultSet resultSet = statement.executeQuery(sql)) {
+      assertThat(resultSet.next(), is(true));
+      final Timestamp timestamp = resultSet.getTimestamp(2);
+      Assert.assertThat(timestamp,
+          is(java.sql.Timestamp.valueOf("1996-08-03 00:01:02")));
+    }
+  }
+
+  /** As {@link #testTimestampGroupBy()} but with ORDER BY as well as GROUP
+   * BY. */
+  @Test public void testTimestampGroupByAndOrderBy() throws SQLException {
+    Properties info = new Properties();
+    info.put("model", jsonPath("bug"));
+    final String sql = "select \"EMPNO\", \"JOINTIMES\" from \"DATE\"\n"
+        + "group by \"EMPNO\",\"JOINTIMES\" order by \"JOINTIMES\"";
+    try (Connection connection =
+             DriverManager.getConnection("jdbc:calcite:", info);
+         Statement statement = connection.createStatement();
+         ResultSet resultSet = statement.executeQuery(sql)) {
+      assertThat(resultSet.next(), is(true));
+      final Timestamp timestamp = resultSet.getTimestamp(2);
+      Assert.assertThat(timestamp,
+          is(java.sql.Timestamp.valueOf("1996-08-03 00:01:02")));
+    }
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1031">[CALCITE-1031]
    * In prepared statement, CsvScannableTable.scan is called twice</a>. To see
    * the bug, place a breakpoint in CsvScannableTable.scan, and note that it is
@@ -507,7 +667,7 @@ public class CsvTest {
 
       statement2.setString(1, "Sales");
       final ResultSet resultSet1 = statement2.executeQuery();
-      Function1<ResultSet, Void> expect = expect("DEPTNO=10; NAME=Sales");
+      Function<ResultSet, Void> expect = expect("DEPTNO=10; NAME=Sales");
       expect.apply(resultSet1);
     }
   }
@@ -530,7 +690,7 @@ public class CsvTest {
         + "            stream: true\n"
         + "          },\n"
         + "          operand: {\n"
-        + "            file: '" + file.getAbsolutePath() + "',\n"
+        + "            file: " + escapeString(file.getAbsolutePath()) + ",\n"
         + "            flavor: \"scannable\"\n"
         + "          }\n"
         + "        }\n"
@@ -547,7 +707,7 @@ public class CsvTest {
 
     try (final Connection connection =
              DriverManager.getConnection("jdbc:calcite:model=inline:" + model);
-         final PrintWriter pw = new PrintWriter(new FileWriter(file));
+         final PrintWriter pw = Util.printWriter(file);
          final Worker<Void> worker = new Worker<>()) {
       final Thread thread = new Thread(worker);
       thread.start();
@@ -662,6 +822,45 @@ public class CsvTest {
       } catch (InterruptedException e) {
         // ignore
       }
+    }
+  }
+
+  /** Fluent API to perform test actions. */
+  private class Fluent {
+    private final String model;
+    private final String sql;
+    private final Function<ResultSet, Void> expect;
+
+    Fluent(String model, String sql, Function<ResultSet, Void> expect) {
+      this.model = model;
+      this.sql = sql;
+      this.expect = expect;
+    }
+
+    /** Runs the test. */
+    Fluent ok() {
+      try {
+        checkSql(sql, model, expect);
+        return this;
+      } catch (SQLException e) {
+        throw new RuntimeException(e);
+      }
+    }
+
+    /** Assigns a function to call to test whether output is correct. */
+    Fluent checking(Function<ResultSet, Void> expect) {
+      return new Fluent(model, sql, expect);
+    }
+
+    /** Sets the rows that are expected to be returned from the SQL query. */
+    Fluent returns(String... expectedLines) {
+      return checking(expect(expectedLines));
+    }
+
+    /** Sets the rows that are expected to be returned from the SQL query,
+     * in no particular order. */
+    Fluent returnsUnordered(String... expectedLines) {
+      return checking(expectUnordered(expectedLines));
     }
   }
 }

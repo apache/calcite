@@ -17,6 +17,7 @@
 package org.apache.calcite.sql;
 
 import org.apache.calcite.sql.parser.SqlParserUtil;
+import org.apache.calcite.util.Glossary;
 import org.apache.calcite.util.SaffronProperties;
 import org.apache.calcite.util.SerializableCharset;
 import org.apache.calcite.util.Util;
@@ -50,7 +51,7 @@ public class SqlCollation implements Serializable {
    * coercibility characteristic Explicit, with the collating sequence
    * specified in the &lt;collate clause&gt;.</blockquote>
    *
-   * @sql.99 Part 2 Section 4.2.3
+   * @see Glossary#SQL99 SQL:1999 Part 2 Section 4.2.3
    */
   public enum Coercibility {
     /** Strongest coercibility. */
@@ -87,7 +88,8 @@ public class SqlCollation implements Serializable {
     this.wrappedCharset = SerializableCharset.forCharset(charset);
     locale = parseValues.getLocale();
     strength = parseValues.getStrength();
-    String c = charset.name().toUpperCase() + "$" + locale.toString();
+    String c =
+        charset.name().toUpperCase(Locale.ROOT) + "$" + locale.toString();
     if ((strength != null) && (strength.length() > 0)) {
       c += "$" + strength;
     }
@@ -102,7 +104,7 @@ public class SqlCollation implements Serializable {
    */
   public SqlCollation(Coercibility coercibility) {
     this(
-        SaffronProperties.instance().defaultCollation.get(),
+        SaffronProperties.INSTANCE.defaultCollation().get(),
         coercibility);
   }
 
@@ -127,7 +129,7 @@ public class SqlCollation implements Serializable {
    * @return the resulting collation sequence. The "no collating sequence"
    * result is returned as null.
    *
-   * @sql.99 Part 2 Section 4.2.3 Table 2
+   * @see Glossary#SQL99 SQL:1999 Part 2 Section 4.2.3 Table 2
    */
   public static SqlCollation getCoercibilityDyadicOperator(
       SqlCollation col1,
@@ -148,7 +150,7 @@ public class SqlCollation implements Serializable {
    *   {@link org.apache.calcite.runtime.CalciteResource#differentCollations}
    *   if no collating sequence can be deduced
    *
-   * @sql.99 Part 2 Section 4.2.3 Table 2
+   * @see Glossary#SQL99 SQL:1999 Part 2 Section 4.2.3 Table 2
    */
   public static SqlCollation getCoercibilityDyadicOperatorThrows(
       SqlCollation col1,
@@ -175,7 +177,7 @@ public class SqlCollation implements Serializable {
    * sequence could be deduced throws a
    * {@link org.apache.calcite.runtime.CalciteResource#invalidCompare}
    *
-   * @sql.99 Part 2 Section 4.2.3 Table 3
+   * @see Glossary#SQL99 SQL:1999 Part 2 Section 4.2.3 Table 3
    */
   public static String getCoercibilityDyadicComparison(
       SqlCollation col1,

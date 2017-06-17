@@ -1,0 +1,111 @@
+# lateral.iq - Tests for LATERAL and TABLE keywords
+#
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to you under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+!use scott
+!set outputformat mysql
+
+# Bad: LATERAL tableName
+select * from "scott".emp join lateral "scott".dept using (deptno);
+parse failed: Encountered "lateral \"scott\"" at line 1, column 32.
+Was expecting one of:
+    <IDENTIFIER> ...
+    <QUOTED_IDENTIFIER> ...
+    <BACK_QUOTED_IDENTIFIER> ...
+    <BRACKET_QUOTED_IDENTIFIER> ...
+    <UNICODE_QUOTED_IDENTIFIER> ...
+    "LATERAL" "(" ...
+    "UNNEST" ...
+    "LATERAL" "TABLE" ...
+!error
+
+# Bad: LATERAL TABLE
+select * from "scott".emp join lateral table "scott".dept using (deptno);
+parse failed: Encountered "\"scott\"" at line 1, column 46.
+Was expecting:
+    "(" ...
+!error
+
+# Good: LATERAL (subQuery)
+# OK even as first item in FROM clause
+select * from lateral (select * from "scott".emp) where deptno = 10;
++-------+--------+-----------+------+------------+---------+------+--------+
+| EMPNO | ENAME  | JOB       | MGR  | HIREDATE   | SAL     | COMM | DEPTNO |
++-------+--------+-----------+------+------------+---------+------+--------+
+|  7782 | CLARK  | MANAGER   | 7839 | 1981-06-09 | 2450.00 |      |     10 |
+|  7839 | KING   | PRESIDENT |      | 1981-11-17 | 5000.00 |      |     10 |
+|  7934 | MILLER | CLERK     | 7782 | 1982-01-23 | 1300.00 |      |     10 |
++-------+--------+-----------+------+------------+---------+------+--------+
+(3 rows)
+
+!ok
+
+select * from lateral (select * from "scott".emp) as e where deptno = 10;
++-------+--------+-----------+------+------------+---------+------+--------+
+| EMPNO | ENAME  | JOB       | MGR  | HIREDATE   | SAL     | COMM | DEPTNO |
++-------+--------+-----------+------+------------+---------+------+--------+
+|  7782 | CLARK  | MANAGER   | 7839 | 1981-06-09 | 2450.00 |      |     10 |
+|  7839 | KING   | PRESIDENT |      | 1981-11-17 | 5000.00 |      |     10 |
+|  7934 | MILLER | CLERK     | 7782 | 1982-01-23 | 1300.00 |      |     10 |
++-------+--------+-----------+------+------------+---------+------+--------+
+(3 rows)
+
+!ok
+
+# Good: Explicit TABLE in parentheses
+select * from (table "scott".emp) where deptno = 10;
++-------+--------+-----------+------+------------+---------+------+--------+
+| EMPNO | ENAME  | JOB       | MGR  | HIREDATE   | SAL     | COMM | DEPTNO |
++-------+--------+-----------+------+------------+---------+------+--------+
+|  7782 | CLARK  | MANAGER   | 7839 | 1981-06-09 | 2450.00 |      |     10 |
+|  7839 | KING   | PRESIDENT |      | 1981-11-17 | 5000.00 |      |     10 |
+|  7934 | MILLER | CLERK     | 7782 | 1982-01-23 | 1300.00 |      |     10 |
++-------+--------+-----------+------+------------+---------+------+--------+
+(3 rows)
+
+!ok
+
+# Bad: Explicit TABLE
+select * from table "scott".emp;
+parse failed: Encountered "table \"scott\"" at line 1, column 15.
+Was expecting one of:
+    <IDENTIFIER> ...
+    <QUOTED_IDENTIFIER> ...
+    <BACK_QUOTED_IDENTIFIER> ...
+    <BRACKET_QUOTED_IDENTIFIER> ...
+    <UNICODE_QUOTED_IDENTIFIER> ...
+    "LATERAL" ...
+    "(" ...
+    "UNNEST" ...
+    "TABLE" ...
+    "TABLE" "(" ...
+!error
+
+select * from lateral (select * from "scott".emp) as e
+join (table "scott".dept) using (deptno)
+where e.deptno = 10;
++-------+--------+-----------+------+------------+---------+------+--------+---------+------------+----------+
+| EMPNO | ENAME  | JOB       | MGR  | HIREDATE   | SAL     | COMM | DEPTNO | DEPTNO0 | DNAME      | LOC      |
++-------+--------+-----------+------+------------+---------+------+--------+---------+------------+----------+
+|  7782 | CLARK  | MANAGER   | 7839 | 1981-06-09 | 2450.00 |      |     10 |      10 | ACCOUNTING | NEW YORK |
+|  7839 | KING   | PRESIDENT |      | 1981-11-17 | 5000.00 |      |     10 |      10 | ACCOUNTING | NEW YORK |
+|  7934 | MILLER | CLERK     | 7782 | 1982-01-23 | 1300.00 |      |     10 |      10 | ACCOUNTING | NEW YORK |
++-------+--------+-----------+------+------------+---------+------+--------+---------+------------+----------+
+(3 rows)
+
+!ok
+
+# End lateral.iq

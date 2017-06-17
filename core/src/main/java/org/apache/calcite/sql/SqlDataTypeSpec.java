@@ -18,7 +18,6 @@ package org.apache.calcite.sql;
 
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
-import org.apache.calcite.runtime.SqlFunctions;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
@@ -28,6 +27,8 @@ import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Util;
+
+import com.google.common.base.Preconditions;
 
 import java.nio.charset.Charset;
 import java.util.Objects;
@@ -159,10 +160,14 @@ public class SqlDataTypeSpec extends SqlNode {
     return timeZone;
   }
 
+  public Boolean getNullable() {
+    return nullable;
+  }
+
   /** Returns a copy of this data type specification with a given
    * nullability. */
   public SqlDataTypeSpec withNullable(Boolean nullable) {
-    if (SqlFunctions.eq(nullable, this.nullable)) {
+    if (Objects.equals(nullable, this.nullable)) {
       return this;
     }
     return new SqlDataTypeSpec(collectionsTypeName, typeName, precision, scale,
@@ -290,9 +295,22 @@ public class SqlDataTypeSpec extends SqlNode {
    * Does not throw an error if the type is not built-in.
    */
   public RelDataType deriveType(RelDataTypeFactory typeFactory) {
-    String name = typeName.getSimple();
+    return deriveType(typeFactory, false);
+  }
 
-    SqlTypeName sqlTypeName = SqlTypeName.get(name);
+  /**
+   * Converts this type specification to a {@link RelDataType}.
+   *
+   * <p>Does not throw an error if the type is not built-in.
+   *
+   * @param nullable Whether the type is nullable if the type specification
+   *                 does not explicitly state
+   */
+  public RelDataType deriveType(RelDataTypeFactory typeFactory,
+      boolean nullable) {
+    final String name = typeName.getSimple();
+    final SqlTypeName sqlTypeName =
+        Preconditions.checkNotNull(SqlTypeName.get(name));
 
     // NOTE jvs 15-Jan-2009:  earlier validation is supposed to
     // have caught these, which is why it's OK for them
@@ -323,7 +341,8 @@ public class SqlDataTypeSpec extends SqlNode {
         charset = typeFactory.getDefaultCharset();
       } else {
         String javaCharSetName =
-            SqlUtil.translateCharacterSetName(charSetName);
+            Preconditions.checkNotNull(
+                SqlUtil.translateCharacterSetName(charSetName), charSetName);
         charset = Charset.forName(javaCharSetName);
       }
       type =
@@ -335,9 +354,9 @@ public class SqlDataTypeSpec extends SqlNode {
 
     if (null != collectionsTypeName) {
       final String collectionName = collectionsTypeName.getSimple();
-
-      SqlTypeName collectionsSqlTypeName =
-          SqlTypeName.get(collectionName);
+      final SqlTypeName collectionsSqlTypeName =
+          Preconditions.checkNotNull(SqlTypeName.get(collectionName),
+              collectionName);
 
       switch (collectionsSqlTypeName) {
       case MULTISET:
@@ -349,9 +368,10 @@ public class SqlDataTypeSpec extends SqlNode {
       }
     }
 
-    if (nullable != null) {
-      type = typeFactory.createTypeWithNullability(type, nullable);
+    if (this.nullable != null) {
+      nullable = this.nullable;
     }
+    type = typeFactory.createTypeWithNullability(type, nullable);
 
     return type;
   }

@@ -26,12 +26,14 @@ import org.apache.calcite.util.Smalls;
 
 import com.google.common.collect.ImmutableList;
 
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.Statement;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
@@ -64,6 +66,12 @@ public class UdfTest {
         + "           name: 'MY_PLUS',\n"
         + "           className: '"
         + Smalls.MyPlusFunction.class.getName()
+        + "'\n"
+        + "         },\n"
+        + "         {\n"
+        + "           name: 'MY_DET_PLUS',\n"
+        + "           className: '"
+        + Smalls.MyDeterministicPlusFunction.class.getName()
         + "'\n"
         + "         },\n"
         + "         {\n"
@@ -140,15 +148,37 @@ public class UdfTest {
     return CalciteAssert.model(model);
   }
 
-  /** Tests user-defined function. */
+  /** Tests a user-defined function that is defined in terms of a class with
+   * non-static methods. */
+  @Ignore("[CALCITE-1561] Intermittent test failures")
   @Test public void testUserDefinedFunction() throws Exception {
     final String sql = "select \"adhoc\".my_plus(\"deptno\", 100) as p\n"
         + "from \"adhoc\".EMPLOYEES";
-    final String expected = "P=110\n"
-            + "P=120\n"
-            + "P=110\n"
-            + "P=110\n";
-    withUdf().query(sql).returns(expected);
+    final AtomicInteger c = Smalls.MyPlusFunction.INSTANCE_COUNT;
+    final int before = c.get();
+    withUdf().query(sql).returnsUnordered("P=110",
+        "P=120",
+        "P=110",
+        "P=110");
+    final int after = c.get();
+    assertThat(after, is(before + 4));
+  }
+
+  /** As {@link #testUserDefinedFunction()}, but checks that the class is
+   * instantiated exactly once, per
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1548">[CALCITE-1548]
+   * Instantiate function objects once per query</a>. */
+  @Test public void testUserDefinedFunctionInstanceCount() throws Exception {
+    final String sql = "select \"adhoc\".my_det_plus(\"deptno\", 100) as p\n"
+        + "from \"adhoc\".EMPLOYEES";
+    final AtomicInteger c = Smalls.MyDeterministicPlusFunction.INSTANCE_COUNT;
+    final int before = c.get();
+    withUdf().query(sql).returnsUnordered("P=110",
+        "P=120",
+        "P=110",
+        "P=110");
+    final int after = c.get();
+    assertThat(after, is(before + 1));
   }
 
   @Test public void testUserDefinedFunctionB() throws Exception {
@@ -182,7 +212,8 @@ public class UdfTest {
         + "  POST.MY_INCREMENT(\"empid\", 10) as INCREMENTED_SALARY\n"
         + "from \"hr\".\"emps\"";
     post.add("V_EMP",
-        ViewTable.viewMacro(post, viewSql, ImmutableList.<String>of(), null));
+        ViewTable.viewMacro(post, viewSql, ImmutableList.<String>of(),
+            ImmutableList.of("POST", "V_EMP"), null));
 
     final String result = ""
         + "EMPLOYEE_ID=100; EMPLOYEE_NAME=Bill Bill; EMPLOYEE_SALARY=10000.0; INCREMENTED_SALARY=110.0\n"
@@ -437,6 +468,63 @@ public class UdfTest {
   @Test public void testUserDefinedAggregateFunction3() throws Exception {
     withBadUdf(Smalls.SumFunctionBadIAdd.class).connectThrows(
         "Caused by: java.lang.RuntimeException: In user-defined aggregate class 'org.apache.calcite.util.Smalls$SumFunctionBadIAdd', first parameter to 'add' method must be the accumulator (the return type of the 'init' method)");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1434">[CALCITE-1434]
+   * AggregateFunctionImpl doesnt work if the class implements a generic
+   * interface</a>. */
+  @Test public void testUserDefinedAggregateFunctionImplementsInterface() {
+    final String empDept = JdbcTest.EmpDeptTableFactory.class.getName();
+    final String mySum3 = Smalls.MySum3.class.getName();
+    final String model = "{\n"
+        + "  version: '1.0',\n"
+        + "   schemas: [\n"
+        + "     {\n"
+        + "       name: 'adhoc',\n"
+        + "       tables: [\n"
+        + "         {\n"
+        + "           name: 'EMPLOYEES',\n"
+        + "           type: 'custom',\n"
+        + "           factory: '" + empDept + "',\n"
+        + "           operand: {'foo': true, 'bar': 345}\n"
+        + "         }\n"
+        + "       ],\n"
+        + "       functions: [\n"
+        + "         {\n"
+        + "           name: 'MY_SUM3',\n"
+        + "           className: '" + mySum3 + "'\n"
+        + "         }\n"
+        + "       ]\n"
+        + "     }\n"
+        + "   ]\n"
+        + "}";
+    final CalciteAssert.AssertThat with = CalciteAssert.model(model)
+        .withDefaultSchema("adhoc");
+
+    with.query("select my_sum3(\"deptno\") as p from EMPLOYEES\n")
+        .returns("P=50\n");
+    with.withDefaultSchema(null)
+        .query("select \"adhoc\".my_sum3(\"deptno\") as p\n"
+            + "from \"adhoc\".EMPLOYEES\n")
+        .returns("P=50\n");
+    with.query("select my_sum3(\"empid\"), \"deptno\" as p from EMPLOYEES\n")
+        .throws_("Expression 'deptno' is not being grouped");
+    with.query("select my_sum3(\"deptno\") as p from EMPLOYEES\n")
+        .returns("P=50\n");
+    with.query("select my_sum3(\"name\") as p from EMPLOYEES\n")
+        .throws_("Cannot apply 'MY_SUM3' to arguments of type "
+            + "'MY_SUM3(<JAVATYPE(CLASS JAVA.LANG.STRING)>)'. "
+            + "Supported form(s): 'MY_SUM3(<NUMERIC>)");
+    with.query("select my_sum3(\"deptno\", 1) as p from EMPLOYEES\n")
+        .throws_("No match found for function signature "
+            + "MY_SUM3(<NUMERIC>, <NUMERIC>)");
+    with.query("select my_sum3() as p from EMPLOYEES\n")
+        .throws_("No match found for function signature MY_SUM3()");
+    with.query("select \"deptno\", my_sum3(\"deptno\") as p from EMPLOYEES\n"
+        + "group by \"deptno\"")
+        .returnsUnordered("deptno=20; P=20",
+            "deptno=10; P=30");
   }
 
   private static CalciteAssert.AssertThat withBadUdf(Class clazz) {

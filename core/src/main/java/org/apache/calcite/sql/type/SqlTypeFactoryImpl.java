@@ -23,6 +23,7 @@ import org.apache.calcite.rel.type.RelDataTypeFamily;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.sql.SqlIntervalQualifier;
+import org.apache.calcite.util.Glossary;
 import org.apache.calcite.util.Util;
 
 import java.nio.charset.Charset;
@@ -55,6 +56,10 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
   public RelDataType createSqlType(
       SqlTypeName typeName,
       int precision) {
+    final int maxPrecision = typeSystem.getMaxPrecision(typeName);
+    if (maxPrecision >= 0 && precision > maxPrecision) {
+      precision = maxPrecision;
+    }
     if (typeName.allowsScale()) {
       return createSqlType(typeName, precision, typeName.getDefaultScale());
     }
@@ -74,6 +79,10 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
     assertBasic(typeName);
     assert (precision >= 0)
         || (precision == RelDataType.PRECISION_NOT_SPECIFIED);
+    final int maxPrecision = typeSystem.getMaxPrecision(typeName);
+    if (maxPrecision >= 0 && precision > maxPrecision) {
+      precision = maxPrecision;
+    }
     RelDataType newType =
         new BasicSqlType(typeSystem, typeName, precision, scale);
     newType = SqlTypeUtil.addCharsetAndCollation(newType, this);
@@ -192,6 +201,10 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
     if (type instanceof BasicSqlType) {
       BasicSqlType sqlType = (BasicSqlType) type;
       newType = sqlType.createWithNullability(nullable);
+    } else if (type instanceof MapSqlType) {
+      newType = copyMapType(type, nullable);
+    } else if (type instanceof ArraySqlType) {
+      newType = copyArrayType(type, nullable);
     } else if (type instanceof MultisetSqlType) {
       newType = copyMultisetType(type, nullable);
     } else if (type instanceof IntervalSqlType) {
@@ -285,9 +298,8 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
         SqlCollation collation2 = resultType.getCollation();
 
         // TODO:  refine collation combination rules
-        int precision =
-            Math.max(
-                resultType.getPrecision(),
+        final int precision =
+            SqlTypeUtil.maxPrecision(resultType.getPrecision(),
                 type.getPrecision());
 
         // If either type is LOB, then result is LOB with no precision.
@@ -357,7 +369,8 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
             RelDataType type1 = types.get(i + 1);
             if (SqlTypeUtil.isDatetime(type1)) {
               resultType = type1;
-              return resultType;
+              return createTypeWithNullability(resultType,
+                  nullCount > 0 || nullableCount > 0);
             }
           }
           if (!type.equals(resultType)) {
@@ -438,7 +451,8 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
           RelDataType type1 = types.get(i + 1);
           if (SqlTypeUtil.isDatetime(type1)) {
             resultType = type1;
-            return resultType;
+            return createTypeWithNullability(resultType,
+                nullCount > 0 || nullableCount > 0);
           }
         }
 
@@ -463,7 +477,8 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
           if (SqlTypeUtil.isInterval(type1)
               || SqlTypeUtil.isIntType(type1)) {
             resultType = type;
-            return resultType;
+            return createTypeWithNullability(resultType,
+                nullCount > 0 || nullableCount > 0);
           }
         }
       } else {
@@ -484,7 +499,8 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
    *
    * @return false (the default) to provide strict SQL:2003 behavior; true to
    * provide pragmatic behavior
-   * @sql.2003 Part 2 Section 9.3 Syntax Rule 3.a.iii.3
+   *
+   * @see Glossary#SQL2003 SQL:2003 Part 2 Section 9.3 Syntax Rule 3.a.iii.3
    */
   protected boolean shouldRaggedFixedLengthValueUnionBeVariable() {
     // TODO jvs 30-Nov-2006:  implement SQL-Flagger support
@@ -515,6 +531,19 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
         nullable,
         type.getFieldList(),
         type.getComparability());
+  }
+
+  private RelDataType copyArrayType(RelDataType type, boolean nullable) {
+    ArraySqlType at = (ArraySqlType) type;
+    RelDataType elementType = copyType(at.getComponentType());
+    return new ArraySqlType(elementType, nullable);
+  }
+
+  private RelDataType copyMapType(RelDataType type, boolean nullable) {
+    MapSqlType mt = (MapSqlType) type;
+    RelDataType keyType = copyType(mt.getKeyType());
+    RelDataType valueType = copyType(mt.getValueType());
+    return new MapSqlType(keyType, valueType, nullable);
   }
 
   // override RelDataTypeFactoryImpl

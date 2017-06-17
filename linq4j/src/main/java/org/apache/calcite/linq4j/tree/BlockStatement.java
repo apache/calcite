@@ -54,11 +54,15 @@ public class BlockStatement extends Statement {
     return true;
   }
 
-  @Override public BlockStatement accept(Visitor visitor) {
-    visitor = visitor.preVisit(this);
+  @Override public BlockStatement accept(Shuttle shuttle) {
+    shuttle = shuttle.preVisit(this);
     List<Statement> newStatements = Expressions.acceptStatements(statements,
-        visitor);
-    return visitor.visit(this, newStatements);
+        shuttle);
+    return shuttle.visit(this, newStatements);
+  }
+
+  public <R> R accept(Visitor<R> visitor) {
+    return visitor.visit(this);
   }
 
   @Override void accept0(ExpressionWriter writer) {

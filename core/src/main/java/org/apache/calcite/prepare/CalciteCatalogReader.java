@@ -16,13 +16,14 @@
  */
 package org.apache.calcite.prepare;
 
-import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.jdbc.CalciteSchema;
+import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeFactoryImpl;
 import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.runtime.PredicateImpl;
 import org.apache.calcite.schema.AggregateFunction;
 import org.apache.calcite.schema.Function;
 import org.apache.calcite.schema.FunctionParameter;
@@ -30,6 +31,7 @@ import org.apache.calcite.schema.ScalarFunction;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.TableFunction;
 import org.apache.calcite.schema.TableMacro;
+import org.apache.calcite.schema.Wrapper;
 import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlOperator;
@@ -45,6 +47,8 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlMoniker;
 import org.apache.calcite.sql.validate.SqlMonikerImpl;
 import org.apache.calcite.sql.validate.SqlMonikerType;
+import org.apache.calcite.sql.validate.SqlNameMatcher;
+import org.apache.calcite.sql.validate.SqlNameMatchers;
 import org.apache.calcite.sql.validate.SqlUserDefinedAggFunction;
 import org.apache.calcite.sql.validate.SqlUserDefinedFunction;
 import org.apache.calcite.sql.validate.SqlUserDefinedTableFunction;
@@ -52,6 +56,7 @@ import org.apache.calcite.sql.validate.SqlUserDefinedTableMacro;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.util.Util;
 
+import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.Collections2;
@@ -61,6 +66,7 @@ import com.google.common.collect.Lists;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.NavigableSet;
@@ -71,80 +77,102 @@ import java.util.NavigableSet;
  * functions defined schemas.
  */
 public class CalciteCatalogReader implements Prepare.CatalogReader {
-  final CalciteSchema rootSchema;
-  final JavaTypeFactory typeFactory;
-  private final List<String> defaultSchema;
-  private final boolean elideRecord = true;
-  private final boolean caseSensitive;
+  protected final CalciteSchema rootSchema;
+  protected final RelDataTypeFactory typeFactory;
+  private final List<List<String>> schemaPaths;
+  protected final SqlNameMatcher nameMatcher;
 
-  public CalciteCatalogReader(
-      CalciteSchema rootSchema,
-      boolean caseSensitive,
-      List<String> defaultSchema,
-      JavaTypeFactory typeFactory) {
-    super();
-    assert rootSchema != defaultSchema;
-    this.rootSchema = rootSchema;
-    this.caseSensitive = caseSensitive;
-    this.defaultSchema = defaultSchema;
+  public CalciteCatalogReader(CalciteSchema rootSchema, boolean caseSensitive,
+      List<String> defaultSchema, RelDataTypeFactory typeFactory) {
+    this(rootSchema, SqlNameMatchers.withCaseSensitive(caseSensitive),
+        ImmutableList.of(Preconditions.checkNotNull(defaultSchema),
+            ImmutableList.<String>of()),
+        typeFactory);
+  }
+
+  protected CalciteCatalogReader(CalciteSchema rootSchema,
+      SqlNameMatcher nameMatcher, List<List<String>> schemaPaths,
+      RelDataTypeFactory typeFactory) {
+    this.rootSchema = Preconditions.checkNotNull(rootSchema);
+    this.nameMatcher = nameMatcher;
+    this.schemaPaths =
+        Util.immutableCopy(Util.isDistinct(schemaPaths)
+            ? schemaPaths
+            : new LinkedHashSet<>(schemaPaths));
     this.typeFactory = typeFactory;
   }
 
   public CalciteCatalogReader withSchemaPath(List<String> schemaPath) {
-    return new CalciteCatalogReader(rootSchema, caseSensitive, schemaPath,
-        typeFactory);
+    return new CalciteCatalogReader(rootSchema, nameMatcher,
+        ImmutableList.of(schemaPath, ImmutableList.<String>of()), typeFactory);
   }
 
-  public RelOptTableImpl getTable(final List<String> names) {
+  public Prepare.PreparingTable getTable(final List<String> names) {
     // First look in the default schema, if any.
-    if (defaultSchema != null) {
-      RelOptTableImpl table = getTableFrom(names, defaultSchema);
+    // If not found, look in the root schema.
+    for (List<String> schemaPath : schemaPaths) {
+      Prepare.PreparingTable table =
+          getTableFrom(names, schemaPath, nameMatcher);
       if (table != null) {
         return table;
       }
     }
-    // If not found, look in the root schema
-    return getTableFrom(names, ImmutableList.<String>of());
+    return null;
   }
 
-  private RelOptTableImpl getTableFrom(List<String> names,
-      List<String> schemaNames) {
+  private Prepare.PreparingTable getTableFrom(List<String> names,
+      List<String> schemaNames, SqlNameMatcher nameMatcher) {
     CalciteSchema schema =
-        getSchema(Iterables.concat(schemaNames, Util.skipLast(names)));
+        getSchema(Iterables.concat(schemaNames, Util.skipLast(names)),
+            nameMatcher);
     if (schema == null) {
       return null;
     }
     final String name = Util.last(names);
-    CalciteSchema.TableEntry entry = schema.getTable(name, caseSensitive);
+    CalciteSchema.TableEntry entry =
+        schema.getTable(name, nameMatcher.isCaseSensitive());
     if (entry == null) {
-      entry = schema.getTableBasedOnNullaryFunction(name, caseSensitive);
+      entry = schema.getTableBasedOnNullaryFunction(name,
+          nameMatcher.isCaseSensitive());
     }
     if (entry != null) {
       final Table table = entry.getTable();
-      final String name2 = entry.name;
-      return RelOptTableImpl.create(this, table.getRowType(typeFactory),
-          schema.add(name2, table), null);
+      if (table instanceof Wrapper) {
+        final Prepare.PreparingTable relOptTable =
+            ((Wrapper) table).unwrap(Prepare.PreparingTable.class);
+        if (relOptTable != null) {
+          return relOptTable;
+        }
+      }
+      return RelOptTableImpl.create(this, table.getRowType(typeFactory), entry,
+          null);
     }
     return null;
   }
 
   private Collection<Function> getFunctionsFrom(List<String> names) {
     final List<Function> functions2 = Lists.newArrayList();
-    final List<? extends List<String>> schemaNameList;
+    final List<List<String>> schemaNameList = new ArrayList<>();
     if (names.size() > 1) {
-      // If name is qualified, ignore path.
-      schemaNameList = ImmutableList.of(ImmutableList.<String>of());
-    } else {
-      CalciteSchema schema = getSchema(defaultSchema);
-      if (schema == null) {
-        schemaNameList = ImmutableList.of();
+      // Name qualified: ignore path. But we do look in "/catalog" and "/",
+      // the last 2 items in the path.
+      if (schemaPaths.size() > 1) {
+        schemaNameList.addAll(Util.skip(schemaPaths));
       } else {
-        schemaNameList = schema.getPath();
+        schemaNameList.addAll(schemaPaths);
+      }
+    } else {
+      for (List<String> schemaPath : schemaPaths) {
+        CalciteSchema schema = getSchema(schemaPath, nameMatcher);
+        if (schema != null) {
+          schemaNameList.addAll(schema.getPath());
+        }
       }
     }
     for (List<String> schemaNames : schemaNameList) {
       CalciteSchema schema =
-          getSchema(Iterables.concat(schemaNames, Util.skipLast(names)));
+          getSchema(Iterables.concat(schemaNames, Util.skipLast(names)),
+              nameMatcher);
       if (schema != null) {
         final String name = Util.last(names);
         functions2.addAll(schema.getFunctions(name, true));
@@ -153,10 +181,15 @@ public class CalciteCatalogReader implements Prepare.CatalogReader {
     return functions2;
   }
 
-  private CalciteSchema getSchema(Iterable<String> schemaNames) {
+  private CalciteSchema getSchema(Iterable<String> schemaNames,
+      SqlNameMatcher nameMatcher) {
     CalciteSchema schema = rootSchema;
     for (String schemaName : schemaNames) {
-      schema = schema.getSubSchema(schemaName, caseSensitive);
+      if (schema == rootSchema
+          && nameMatcher.matches(schemaName, schema.getName())) {
+        continue;
+      }
+      schema = schema.getSubSchema(schemaName, nameMatcher.isCaseSensitive());
       if (schema == null) {
         return null;
       }
@@ -169,61 +202,67 @@ public class CalciteCatalogReader implements Prepare.CatalogReader {
   }
 
   public List<SqlMoniker> getAllSchemaObjectNames(List<String> names) {
-    final CalciteSchema schema = getSchema(names);
+    final CalciteSchema schema = getSchema(names, nameMatcher);
     if (schema == null) {
       return ImmutableList.of();
     }
     final List<SqlMoniker> result = new ArrayList<>();
+
+    // Add root schema if not anonymous
+    if (!schema.name.equals("")) {
+      result.add(moniker(schema, null, SqlMonikerType.SCHEMA));
+    }
+
     final Map<String, CalciteSchema> schemaMap = schema.getSubSchemaMap();
 
     for (String subSchema : schemaMap.keySet()) {
-      result.add(
-          new SqlMonikerImpl(schema.path(subSchema), SqlMonikerType.SCHEMA));
+      result.add(moniker(schema, subSchema, SqlMonikerType.SCHEMA));
     }
 
     for (String table : schema.getTableNames()) {
-      result.add(
-          new SqlMonikerImpl(schema.path(table), SqlMonikerType.TABLE));
+      result.add(moniker(schema, table, SqlMonikerType.TABLE));
     }
 
     final NavigableSet<String> functions = schema.getFunctionNames();
     for (String function : functions) { // views are here as well
-      result.add(
-          new SqlMonikerImpl(schema.path(function), SqlMonikerType.FUNCTION));
+      result.add(moniker(schema, function, SqlMonikerType.FUNCTION));
     }
     return result;
   }
 
-  public List<String> getSchemaName() {
-    return defaultSchema;
+  private SqlMonikerImpl moniker(CalciteSchema schema, String name,
+      SqlMonikerType type) {
+    final List<String> path = schema.path(name);
+    if (path.size() == 1
+        && !schema.root().name.equals("")
+        && type == SqlMonikerType.SCHEMA) {
+      type = SqlMonikerType.CATALOG;
+    }
+    return new SqlMonikerImpl(path, type);
   }
 
-  public RelOptTableImpl getTableForMember(List<String> names) {
+  public List<List<String>> getSchemaPaths() {
+    return schemaPaths;
+  }
+
+  public Prepare.PreparingTable getTableForMember(List<String> names) {
     return getTable(names);
   }
 
+  @SuppressWarnings("deprecation")
   public RelDataTypeField field(RelDataType rowType, String alias) {
-    return SqlValidatorUtil.lookupField(caseSensitive, elideRecord, rowType,
-        alias);
+    return nameMatcher.field(rowType, alias);
   }
 
-  public int fieldOrdinal(RelDataType rowType, String alias) {
-    RelDataTypeField field = field(rowType, alias);
-    return field != null ? field.getIndex() : -1;
-  }
-
+  @SuppressWarnings("deprecation")
   public boolean matches(String string, String name) {
-    return Util.matches(caseSensitive, string, name);
-  }
-
-  public int match(List<String> strings, String name) {
-    return Util.findMatch(strings, name, caseSensitive);
+    return nameMatcher.matches(string, name);
   }
 
   public RelDataType createTypeFromProjection(final RelDataType type,
       final List<String> columnNameList) {
     return SqlValidatorUtil.createTypeFromProjection(type, columnNameList,
-        typeFactory, caseSensitive, elideRecord);
+        typeFactory, nameMatcher.isCaseSensitive());
   }
 
   public void lookupOperatorOverloads(final SqlIdentifier opName,
@@ -238,15 +277,15 @@ public class CalciteCatalogReader implements Prepare.CatalogReader {
     if (category == null) {
       predicate = Predicates.alwaysTrue();
     } else if (category.isTableFunction()) {
-      predicate = new Predicate<Function>() {
-        public boolean apply(Function function) {
+      predicate = new PredicateImpl<Function>() {
+        public boolean test(Function function) {
           return function instanceof TableMacro
               || function instanceof TableFunction;
         }
       };
     } else {
-      predicate = new Predicate<Function>() {
-        public boolean apply(Function function) {
+      predicate = new PredicateImpl<Function>() {
+        public boolean test(Function function) {
           return !(function instanceof TableMacro
               || function instanceof TableFunction);
         }
@@ -276,8 +315,8 @@ public class CalciteCatalogReader implements Prepare.CatalogReader {
           Util.first(type.getSqlTypeName().getFamily(), SqlTypeFamily.ANY));
     }
     final Predicate<Integer> optional =
-        new Predicate<Integer>() {
-          public boolean apply(Integer input) {
+        new PredicateImpl<Integer>() {
+          public boolean test(Integer input) {
             return function.getParameters().get(input).isOptional();
           }
         };
@@ -290,7 +329,7 @@ public class CalciteCatalogReader implements Prepare.CatalogReader {
     } else if (function instanceof AggregateFunction) {
       return new SqlUserDefinedAggFunction(name,
           infer((AggregateFunction) function), InferTypes.explicit(argTypes),
-          typeChecker, (AggregateFunction) function);
+          typeChecker, (AggregateFunction) function, false, false);
     } else if (function instanceof TableMacro) {
       return new SqlUserDefinedTableMacro(name, ReturnTypes.CURSOR,
           InferTypes.explicit(argTypes), typeChecker, paramTypes,
@@ -338,11 +377,15 @@ public class CalciteCatalogReader implements Prepare.CatalogReader {
       return typeFactory.createTypeWithNullability(
           typeFactory.createSqlType(SqlTypeName.ANY), true);
     }
-    return typeFactory.toSql(type);
+    return JavaTypeFactoryImpl.toSql(typeFactory, type);
   }
 
   public List<SqlOperator> getOperatorList() {
     return null;
+  }
+
+  public CalciteSchema getRootSchema() {
+    return rootSchema;
   }
 
   public RelDataTypeFactory getTypeFactory() {
@@ -352,11 +395,21 @@ public class CalciteCatalogReader implements Prepare.CatalogReader {
   public void registerRules(RelOptPlanner planner) throws Exception {
   }
 
+  @SuppressWarnings("deprecation")
   @Override public boolean isCaseSensitive() {
-    return caseSensitive;
+    return nameMatcher.isCaseSensitive();
   }
 
+  public SqlNameMatcher nameMatcher() {
+    return nameMatcher;
+  }
 
+  @Override public <C> C unwrap(Class<C> aClass) {
+    if (aClass.isInstance(this)) {
+      return aClass.cast(this);
+    }
+    return null;
+  }
 }
 
 // End CalciteCatalogReader.java

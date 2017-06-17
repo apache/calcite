@@ -33,7 +33,8 @@ public class SqlValuesOperator extends SqlSpecialOperator {
       SqlCall call,
       int leftPrec,
       int rightPrec) {
-    final SqlWriter.Frame frame = writer.startList("VALUES", "");
+    final SqlWriter.Frame frame =
+        writer.startList(SqlWriter.FrameTypeEnum.VALUES, "VALUES", "");
     for (SqlNode operand : call.getOperandList()) {
       writer.sep(",");
       operand.unparse(writer, 0, 0);

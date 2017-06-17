@@ -22,6 +22,7 @@ import org.apache.calcite.schema.SchemaFactory;
 import org.apache.calcite.schema.SchemaPlus;
 
 import java.io.File;
+import java.util.Locale;
 import java.util.Map;
 
 /**
@@ -56,7 +57,7 @@ public class CsvSchemaFactory implements SchemaFactory {
     if (flavorName == null) {
       flavor = CsvTable.Flavor.SCANNABLE;
     } else {
-      flavor = CsvTable.Flavor.valueOf(flavorName.toUpperCase());
+      flavor = CsvTable.Flavor.valueOf(flavorName.toUpperCase(Locale.ROOT));
     }
     return new CsvSchema(directoryFile, flavor);
   }

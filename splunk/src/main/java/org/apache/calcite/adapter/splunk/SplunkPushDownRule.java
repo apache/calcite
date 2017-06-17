@@ -17,6 +17,7 @@
 package org.apache.calcite.adapter.splunk;
 
 import org.apache.calcite.adapter.splunk.util.StringUtils;
+import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptRuleOperand;
@@ -25,7 +26,6 @@ import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
-import org.apache.calcite.rel.type.RelRecordType;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
@@ -189,6 +189,7 @@ public class SplunkPushDownRule
       LogicalProject bottomProj,
       RelDataType topRow,
       RelDataType bottomRow) {
+    final RelOptCluster cluster = splunkRel.getCluster();
     StringBuilder updateSearchStr = new StringBuilder(splunkRel.search);
 
     if (!toAppend.isEmpty()) {
@@ -237,7 +238,7 @@ public class SplunkPushDownRule
         if (!bottomFields.get(rif.getIndex()).getName()
             .equals(topFields.get(i).getName())) {
           renames.add(
-              new Pair<String, String>(
+              Pair.of(
                   bottomFields.get(rif.getIndex()).getName(),
                   topFields.get(i).getName()));
           field = topFields.get(i);
@@ -254,12 +255,13 @@ public class SplunkPushDownRule
       }
     }
 
-    RelDataType resultType = new RelRecordType(newFields);
+    RelDataType resultType =
+        cluster.getTypeFactory().createStructType(newFields);
     String searchWithFilter = updateSearchStr.toString();
 
     RelNode rel =
         new SplunkTableScan(
-            splunkRel.getCluster(),
+            cluster,
             splunkRel.getTable(),
             splunkRel.splunkTable,
             searchWithFilter,
@@ -267,8 +269,7 @@ public class SplunkPushDownRule
             splunkRel.latest,
             resultType.getFieldNames());
 
-    LOGGER.debug(
-        "end of appendSearchString fieldNames: {}",
+    LOGGER.debug("end of appendSearchString fieldNames: {}",
         rel.getRowType().getFieldNames());
     return rel;
   }

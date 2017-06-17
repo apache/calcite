@@ -60,9 +60,15 @@ public class SqlQualified {
     if (scope == null) {
       return identifier.names;
     }
+    final SqlNameMatcher nameMatcher =
+        scope.getValidator().getCatalogReader().nameMatcher();
     final ImmutableList.Builder<String> builder = ImmutableList.builder();
+    final SqlValidatorScope.ResolvedImpl resolved =
+        new SqlValidatorScope.ResolvedImpl();
+    final List<String> prefix = Util.skipLast(identifier.names);
+    scope.resolve(prefix, nameMatcher, false, resolved);
     SqlValidatorNamespace namespace =
-        scope.resolve(Util.skipLast(identifier.names), null, null);
+        resolved.count() == 1 ? resolved.only().namespace : null;
     builder.add(identifier.names.get(0));
     for (String name : Util.skip(identifier.names)) {
       if (namespace != null) {

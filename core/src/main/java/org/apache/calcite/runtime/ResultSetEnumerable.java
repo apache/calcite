@@ -19,6 +19,7 @@ package org.apache.calcite.runtime;
 import org.apache.calcite.linq4j.AbstractEnumerable;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.Enumerator;
+import org.apache.calcite.linq4j.Linq4j;
 import org.apache.calcite.linq4j.function.Function0;
 import org.apache.calcite.linq4j.function.Function1;
 import org.apache.calcite.linq4j.tree.Primitive;
@@ -140,10 +141,15 @@ public class ResultSetEnumerable<T> extends AbstractEnumerable<T> {
       } catch (SQLFeatureNotSupportedException e) {
         LOGGER.debug("Failed to set query timeout.");
       }
-      final ResultSet resultSet = statement.executeQuery(sql);
-      statement = null;
-      connection = null;
-      return new ResultSetEnumerator<T>(resultSet, rowBuilderFactory);
+      if (statement.execute(sql)) {
+        final ResultSet resultSet = statement.getResultSet();
+        statement = null;
+        connection = null;
+        return new ResultSetEnumerator<T>(resultSet, rowBuilderFactory);
+      } else {
+        Integer updateCount = statement.getUpdateCount();
+        return Linq4j.singletonEnumerator((T) updateCount);
+      }
     } catch (SQLException e) {
       throw new RuntimeException("while executing SQL [" + sql + "]", e);
     } finally {

@@ -35,7 +35,9 @@ public class CassandraSchemaFactory implements SchemaFactory {
     Map map = (Map) operand;
     String host = (String) map.get("host");
     String keyspace = (String) map.get("keyspace");
-    return new CassandraSchema(host, keyspace, parentSchema, name);
+    String username = (String) map.get("username");
+    String password = (String) map.get("password");
+    return new CassandraSchema(host, keyspace, username, password, parentSchema, name);
   }
 }
 

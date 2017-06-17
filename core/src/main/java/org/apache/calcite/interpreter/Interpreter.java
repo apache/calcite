@@ -49,6 +49,7 @@ import com.google.common.collect.Maps;
 import java.math.BigDecimal;
 import java.util.ArrayDeque;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.NoSuchElementException;
 
@@ -57,15 +58,17 @@ import java.util.NoSuchElementException;
  *
  * <p>Contains the context for interpreting relational expressions. In
  * particular it holds working state while the data flow graph is being
- * assembled.</p>
+ * assembled.
  */
-public class Interpreter extends AbstractEnumerable<Object[]> {
+public class Interpreter extends AbstractEnumerable<Object[]>
+    implements AutoCloseable {
   final Map<RelNode, NodeInfo> nodes = Maps.newLinkedHashMap();
   private final DataContext dataContext;
   private final RelNode rootRel;
   private final Map<RelNode, List<RelNode>> relInputs = Maps.newHashMap();
   protected final ScalarCompiler scalarCompiler;
 
+  /** Creates an Interpreter. */
   public Interpreter(DataContext dataContext, RelNode rootRel) {
     this.dataContext = Preconditions.checkNotNull(dataContext);
     this.scalarCompiler =
@@ -118,8 +121,7 @@ public class Interpreter extends AbstractEnumerable<Object[]> {
     }
   }
 
-  private void close() {
-    // TODO:
+  public void close() {
   }
 
   /** Compiles an expression to an executable form. */
@@ -210,7 +212,7 @@ public class Interpreter extends AbstractEnumerable<Object[]> {
                 if (s0 == null) {
                   return null;
                 }
-                return s0.toUpperCase();
+                return s0.toUpperCase(Locale.ROOT);
               }
               if (call.getOperator() == SqlStdOperatorTable.SUBSTRING) {
                 argScalar.execute(context, args);
@@ -236,7 +238,7 @@ public class Interpreter extends AbstractEnumerable<Object[]> {
         public Object execute(Context context) {
           switch (node.getKind()) {
           case LITERAL:
-            return ((RexLiteral) node).getValue();
+            return ((RexLiteral) node).getValueAs(Comparable.class);
           case INPUT_REF:
             return context.values[((RexInputRef) node).getIndex()];
           default:
@@ -368,6 +370,7 @@ public class Interpreter extends AbstractEnumerable<Object[]> {
     public void end() throws InterruptedException {
     }
 
+    @SuppressWarnings("deprecation")
     @Override public void setSourceEnumerable(Enumerable<Row> enumerable)
         throws InterruptedException {
       // just copy over the source into the local list

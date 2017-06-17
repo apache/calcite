@@ -39,6 +39,7 @@ import org.apache.calcite.sql.parser.SqlParserUtil;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.util.SqlShuttle;
 import org.apache.calcite.sql.validate.SqlConformance;
+import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorNamespace;
@@ -73,7 +74,7 @@ import static org.junit.Assert.fail;
  * Implementation of {@link org.apache.calcite.test.SqlValidatorTestCase.Tester}
  * that talks to a mock catalog.
  */
-public class SqlTesterImpl implements SqlTester {
+public class SqlTesterImpl implements SqlTester, AutoCloseable {
   protected final SqlTestFactory factory;
 
   public SqlTesterImpl(SqlTestFactory factory) {
@@ -87,7 +88,7 @@ public class SqlTesterImpl implements SqlTester {
   /**
    * {@inheritDoc}
    *
-   * This default implementation does nothing.
+   * <p>This default implementation does nothing.
    */
   public void close() {
     // no resources to release
@@ -113,23 +114,16 @@ public class SqlTesterImpl implements SqlTester {
     } catch (SqlParseException e) {
       String errMessage = e.getMessage();
       if (expectedMsgPattern == null) {
-        e.printStackTrace();
-        throw new AssertionError(
-            "Error while parsing query [" + sap.sql + "]");
-      } else if (
-          (null == errMessage)
-              || !errMessage.matches(expectedMsgPattern)) {
-        e.printStackTrace();
-        throw new AssertionError(
-            "Error did not match expected ["
-                + expectedMsgPattern + "] while parsing query ["
-                + sap.sql + "]");
+        throw new RuntimeException("Error while parsing query:" + sap.sql, e);
+      } else if (errMessage == null
+          || !errMessage.matches(expectedMsgPattern)) {
+        throw new RuntimeException("Error did not match expected ["
+            + expectedMsgPattern + "] while parsing query ["
+            + sap.sql + "]", e);
       }
       return;
     } catch (Throwable e) {
-      e.printStackTrace();
-      throw new AssertionError(
-          "Error while parsing query [" + sap.sql + "]");
+      throw new RuntimeException("Error while parsing query: " + sap.sql, e);
     }
 
     Throwable thrown = null;
@@ -163,11 +157,8 @@ public class SqlTesterImpl implements SqlTester {
     SqlNode sqlNode;
     try {
       sqlNode = parseQuery(sql);
-    } catch (SqlParseException e) {
-      throw new RuntimeException("Error while parsing query [" + sql + "]", e);
     } catch (Throwable e) {
-      e.printStackTrace();
-      throw new AssertionError("Error while parsing query [" + sql + "]");
+      throw new RuntimeException("Error while parsing query: " + sql, e);
     }
     return validator.validate(sqlNode);
   }
@@ -300,16 +291,19 @@ public class SqlTesterImpl implements SqlTester {
 
   public SqlTesterImpl withConformance(SqlConformance conformance) {
     if (conformance == null) {
-      conformance = SqlConformance.DEFAULT;
+      conformance = SqlConformanceEnum.DEFAULT;
     }
-    return with("conformance", conformance);
+    return with("conformance", conformance)
+        .withConnectionFactory(
+            CalciteAssert.EMPTY_CONNECTION_FACTORY
+                .with("conformance", conformance));
   }
 
   public SqlTester withOperatorTable(SqlOperatorTable operatorTable) {
     return with("operatorTable", operatorTable);
   }
 
-  public SqlTester withConnectionFactory(
+  public SqlTesterImpl withConnectionFactory(
       CalciteAssert.ConnectionFactory connectionFactory) {
     return with("connectionFactory", connectionFactory);
   }
@@ -394,11 +388,7 @@ public class SqlTesterImpl implements SqlTester {
     for (String sql : buildQueries(expression)) {
       TypeChecker typeChecker =
           new SqlTests.StringTypeChecker(expectedType);
-      check(
-          sql,
-          typeChecker,
-          new Double(expectedResult),
-          delta);
+      check(sql, typeChecker, expectedResult, delta);
     }
   }
 

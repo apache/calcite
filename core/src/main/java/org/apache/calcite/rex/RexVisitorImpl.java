@@ -110,6 +110,14 @@ public class RexVisitorImpl<R> implements RexVisitor<R> {
     return r;
   }
 
+  @Override public R visitTableInputRef(RexTableInputRef ref) {
+    return null;
+  }
+
+  @Override public R visitPatternFieldRef(RexPatternFieldRef fieldRef) {
+    return null;
+  }
+
   /**
    * <p>Visits an array of expressions, returning the logical 'and' of their
    * results.

@@ -297,7 +297,7 @@ public class JdbcToEnumerableConverter
             (JavaTypeFactory) getCluster().getTypeFactory());
     final JdbcImplementor.Result result =
         jdbcImplementor.visitChild(0, getInput());
-    return result.asQuery().toSqlString(dialect).getSql();
+    return result.asStatement().toSqlString(dialect).getSql();
   }
 
   /** Whether this JDBC driver needs you to pass a Calendar object to methods

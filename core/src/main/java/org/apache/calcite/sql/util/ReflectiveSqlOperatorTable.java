@@ -25,7 +25,6 @@ import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
-import com.google.common.base.Throwables;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Multimap;
@@ -33,6 +32,7 @@ import com.google.common.collect.Multimap;
 import java.lang.reflect.Field;
 import java.util.Collection;
 import java.util.List;
+import java.util.Locale;
 
 /**
  * ReflectiveSqlOperatorTable implements the {@link SqlOperatorTable} interface
@@ -72,7 +72,8 @@ public abstract class ReflectiveSqlOperatorTable implements SqlOperatorTable {
           register(op);
         }
       } catch (IllegalArgumentException | IllegalAccessException e) {
-        throw Throwables.propagate(e);
+        Util.throwIfUnchecked(e.getCause());
+        throw new RuntimeException(e.getCause());
       }
     }
   }
@@ -135,12 +136,6 @@ public abstract class ReflectiveSqlOperatorTable implements SqlOperatorTable {
    */
   public void register(SqlOperator op) {
     operators.put(new Key(op.getName(), op.getSyntax()), op);
-    if (op instanceof SqlFunction) {
-      SqlFunction function = (SqlFunction) op;
-      SqlFunctionCategory funcType = function.getFunctionType();
-      assert funcType != null
-          : "Function type for " + function.getName() + " not set";
-    }
   }
 
   public List<SqlOperator> getOperatorList() {
@@ -151,7 +146,7 @@ public abstract class ReflectiveSqlOperatorTable implements SqlOperatorTable {
    * store case-insensitively, even in a case-sensitive session. */
   private static class Key extends Pair<String, SqlSyntax> {
     Key(String name, SqlSyntax syntax) {
-      super(name.toUpperCase(), normalize(syntax));
+      super(name.toUpperCase(Locale.ROOT), normalize(syntax));
     }
 
     private static SqlSyntax normalize(SqlSyntax syntax) {

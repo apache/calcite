@@ -25,13 +25,15 @@ import org.apache.calcite.rel.BiRel;
 import org.apache.calcite.rel.RelInput;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelWriter;
-import org.apache.calcite.rel.logical.LogicalJoin;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.sql.SemiJoinType;
+import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Litmus;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
 import java.util.List;
@@ -75,6 +77,7 @@ public abstract class Correlate extends BiRel {
 
   /**
    * Creates a Correlate.
+   *
    * @param cluster      Cluster this relational expression belongs to
    * @param left         Left input relational expression
    * @param right        Right input relational expression
@@ -111,8 +114,8 @@ public abstract class Correlate extends BiRel {
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override public boolean isValid(Litmus litmus) {
-    return super.isValid(litmus)
+  @Override public boolean isValid(Litmus litmus, Context context) {
+    return super.isValid(litmus, context)
         && RelOptUtil.notContainsCorrelation(left, correlationId, litmus);
   }
 
@@ -138,11 +141,10 @@ public abstract class Correlate extends BiRel {
     switch (joinType) {
     case LEFT:
     case INNER:
-      // LogicalJoin is used to share the code of column names deduplication
-      final LogicalJoin join = LogicalJoin.create(left, right,
-          getCluster().getRexBuilder().makeLiteral(true),
-          ImmutableSet.<CorrelationId>of(), joinType.toJoinType());
-      return join.deriveRowType();
+      return SqlValidatorUtil.deriveJoinRowType(left.getRowType(),
+          right.getRowType(), joinType.toJoinType(),
+          getCluster().getTypeFactory(), null,
+          ImmutableList.<RelDataTypeField>of());
     case ANTI:
     case SEMI:
       return left.getRowType();
@@ -154,7 +156,7 @@ public abstract class Correlate extends BiRel {
   @Override public RelWriter explainTerms(RelWriter pw) {
     return super.explainTerms(pw)
         .item("correlation", correlationId)
-        .item("joinType", joinType)
+        .item("joinType", joinType.lowerName)
         .item("requiredColumns", requiredColumns.toString());
   }
 

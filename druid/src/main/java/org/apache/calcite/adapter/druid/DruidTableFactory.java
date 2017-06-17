@@ -48,8 +48,14 @@ public class DruidTableFactory implements TableFactory {
     // If "dataSource" operand is present it overrides the table name.
     final String dataSource = (String) operand.get("dataSource");
     final Set<String> metricNameBuilder = new LinkedHashSet<>();
-    String timestampColumnName = (String) operand.get("timestampColumn");
     final Map<String, SqlTypeName> fieldBuilder = new LinkedHashMap<>();
+    final String timestampColumnName;
+    if (operand.get("timestampColumn") != null) {
+      timestampColumnName = (String) operand.get("timestampColumn");
+    } else {
+      timestampColumnName = DruidTable.DEFAULT_TIMESTAMP_COLUMN;
+    }
+    fieldBuilder.put(timestampColumnName, SqlTypeName.TIMESTAMP);
     final Object dimensionsRaw = operand.get("dimensions");
     if (dimensionsRaw instanceof List) {
       //noinspection unchecked
@@ -87,9 +93,6 @@ public class DruidTableFactory implements TableFactory {
         metricNameBuilder.add(metricName);
       }
     }
-    if (timestampColumnName != null) {
-      fieldBuilder.put(timestampColumnName, SqlTypeName.VARCHAR);
-    }
     final String dataSourceName = Util.first(dataSource, name);
     DruidConnectionImpl c;
     if (dimensionsRaw == null || metricsRaw == null) {
@@ -98,8 +101,12 @@ public class DruidTableFactory implements TableFactory {
       c = null;
     }
     final Object interval = operand.get("interval");
-    final List<String> intervals = interval instanceof String
-        ? ImmutableList.of((String) interval) : null;
+    final List<LocalInterval> intervals;
+    if (interval instanceof String) {
+      intervals = ImmutableList.of(LocalInterval.create((String) interval));
+    } else {
+      intervals = null;
+    }
     return DruidTable.create(druidSchema, dataSourceName, intervals,
         fieldBuilder, metricNameBuilder, timestampColumnName, c);
   }

@@ -32,6 +32,7 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.validate.SqlUserDefinedTableFunction;
 import org.apache.calcite.util.Smalls;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
 import org.junit.Test;
@@ -43,6 +44,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import static org.apache.calcite.sql.SqlFunctionCategory.MATCH_RECOGNIZE;
 import static org.apache.calcite.sql.SqlFunctionCategory.USER_DEFINED_CONSTRUCTOR;
 import static org.apache.calcite.sql.SqlFunctionCategory.USER_DEFINED_FUNCTION;
 import static org.apache.calcite.sql.SqlFunctionCategory.USER_DEFINED_PROCEDURE;
@@ -94,7 +96,7 @@ public class LookupOperatorOverloadsTest {
       }
     }
     check(cats, USER_DEFINED_TABLE_FUNCTION,
-        USER_DEFINED_TABLE_SPECIFIC_FUNCTION);
+        USER_DEFINED_TABLE_SPECIFIC_FUNCTION, MATCH_RECOGNIZE);
   }
 
   @Test public void testIsSpecific() throws SQLException {
@@ -141,8 +143,8 @@ public class LookupOperatorOverloadsTest {
           statement.createPrepareContext();
       final JavaTypeFactory typeFactory = prepareContext.getTypeFactory();
       CalciteCatalogReader reader =
-          new CalciteCatalogReader(prepareContext.getRootSchema(), false, null,
-              typeFactory);
+          new CalciteCatalogReader(prepareContext.getRootSchema(), false,
+              ImmutableList.<String>of(), typeFactory);
 
       final List<SqlOperator> operatorList = new ArrayList<>();
       SqlIdentifier myFuncIdentifier =

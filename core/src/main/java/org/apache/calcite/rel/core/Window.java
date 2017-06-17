@@ -85,7 +85,7 @@ public abstract class Window extends SingleRel {
     this.groups = ImmutableList.copyOf(groups);
   }
 
-  @Override public boolean isValid(Litmus litmus) {
+  @Override public boolean isValid(Litmus litmus, Context context) {
     // In the window specifications, an aggregate call such as
     // 'SUM(RexInputRef #10)' refers to expression #10 of inputProgram.
     // (Not its projections.)
@@ -106,8 +106,7 @@ public abstract class Window extends SingleRel {
           }
         };
 
-    final RexChecker checker =
-        new RexChecker(inputTypes, litmus);
+    final RexChecker checker = new RexChecker(inputTypes, context, litmus);
     int count = 0;
     for (Group group : groups) {
       for (RexWinAggCall over : group.aggCalls) {
@@ -315,7 +314,7 @@ public abstract class Window extends SingleRel {
         public AggregateCall get(int index) {
           final RexWinAggCall aggCall = aggCalls.get(index);
           return AggregateCall.create((SqlAggFunction) aggCall.getOperator(),
-              false, getProjectOrdinals(aggCall.getOperands()), -1,
+              aggCall.distinct, getProjectOrdinals(aggCall.getOperands()), -1,
               aggCall.getType(), fieldNames.get(aggCall.ordinal));
         }
       };
@@ -337,6 +336,9 @@ public abstract class Window extends SingleRel {
      */
     public final int ordinal;
 
+   /** Whether to eliminate duplicates before applying aggregate function. */
+    public final boolean distinct;
+
     /**
      * Creates a RexWinAggCall.
      *
@@ -344,14 +346,17 @@ public abstract class Window extends SingleRel {
      * @param type     Result type
      * @param operands Operands to call
      * @param ordinal  Ordinal within its partition
+     * @param distinct Eliminate duplicates before applying aggregate function
      */
     public RexWinAggCall(
         SqlAggFunction aggFun,
         RelDataType type,
         List<RexNode> operands,
-        int ordinal) {
+        int ordinal,
+        boolean distinct) {
       super(type, aggFun, operands);
       this.ordinal = ordinal;
+      this.distinct = distinct;
     }
 
     @Override public RexCall clone(RelDataType type, List<RexNode> operands) {

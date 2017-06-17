@@ -33,12 +33,16 @@ import java.util.Objects;
  * </p>
  */
 public class ConditionalExpression extends AbstractNode {
-  private final List<Node> expressionList;
+  final List<Node> expressionList;
 
   public ConditionalExpression(List<Node> expressionList, Type type) {
     super(ExpressionType.Conditional, type);
     assert expressionList != null : "expressionList should not be null";
     this.expressionList = expressionList;
+  }
+
+  public <R> R accept(Visitor<R> visitor) {
+    return visitor.visit(this);
   }
 
   @Override void accept(ExpressionWriter writer, int lprec, int rprec) {

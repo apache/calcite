@@ -28,6 +28,7 @@ import org.apache.calcite.sql.util.SqlBasicVisitor;
 import org.apache.calcite.sql.util.SqlVisitor;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
 import org.apache.calcite.sql.validate.SqlValidator;
+import org.apache.calcite.sql.validate.SqlValidatorImpl;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.util.Litmus;
@@ -434,7 +435,7 @@ public abstract class SqlOperator {
 
     // Now infer the result type.
     RelDataType ret = inferReturnType(opBinding);
-    validator.setValidatedNodeType(call, ret);
+    ((SqlValidatorImpl) validator).setValidatedNodeType(call, ret);
     return ret;
   }
 
@@ -581,7 +582,7 @@ public abstract class SqlOperator {
       } else {
         nodeType = validator.deriveType(operandScope, operand);
       }
-      validator.setValidatedNodeType(operand, nodeType);
+      ((SqlValidatorImpl) validator).setValidatedNodeType(operand, nodeType);
       argTypeBuilder.add(nodeType);
     }
 
@@ -752,6 +753,23 @@ public abstract class SqlOperator {
     return false;
   }
 
+  /** Returns whether this is a window function that requires an OVER clause.
+   *
+   * <p>For example, returns true for {@code RANK}, {@code DENSE_RANK} and
+   * other ranking functions; returns false for {@code SUM}, {@code COUNT},
+   * {@code MIN}, {@code MAX}, {@code AVG} (they can be used as non-window
+   * aggregate functions).
+   *
+   * <p>If {@code requiresOver} returns true, then {@link #isAggregator()} must
+   * also return true.
+   *
+   * @see #allowsFraming()
+   * @see #requiresOrder()
+   */
+  public boolean requiresOver() {
+    return false;
+  }
+
   /**
    * Returns whether this is a window function that requires ordering.
    *
@@ -771,6 +789,32 @@ public abstract class SqlOperator {
    */
   public boolean allowsFraming() {
     return true;
+  }
+
+  /**
+   * Returns whether this is a group function.
+   *
+   * <p>Group functions can only appear in the GROUP BY clause.
+   *
+   * <p>Examples are {@code HOP}, {@code TUMBLE}, {@code SESSION}.
+   *
+   * <p>Group functions have auxiliary functions, e.g. {@code HOP_START}, but
+   * these are not group functions.
+   */
+  public boolean isGroup() {
+    return false;
+  }
+
+  /**
+   * Returns whether this is an group auxiliary function.
+   *
+   * <p>Examples are {@code HOP_START} and {@code HOP_END} (both auxiliary to
+   * {@code HOP}).
+   *
+   * @see #isGroup()
+   */
+  public boolean isGroupAuxiliary() {
+    return false;
   }
 
   /**
@@ -883,7 +927,7 @@ public abstract class SqlOperator {
    * be scalar (as opposed to a query).
    *
    * <p>If true (the default), the validator will attempt to convert the
-   * argument into a scalar subquery, which must have one column and return at
+   * argument into a scalar sub-query, which must have one column and return at
    * most one row.
    *
    * <p>Operators such as <code>SELECT</code> and <code>EXISTS</code> override

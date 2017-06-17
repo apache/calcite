@@ -20,9 +20,10 @@ import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeFamily;
+import org.apache.calcite.util.DateString;
 import org.apache.calcite.util.NlsString;
-
-import java.util.Calendar;
+import org.apache.calcite.util.TimeString;
+import org.apache.calcite.util.TimestampString;
 
 /**
  * Standard implementation of {@link RexToSqlNodeConverter}.
@@ -83,7 +84,7 @@ public class RexToSqlNodeConverterImpl implements RexToSqlNodeConverter {
     if (SqlTypeFamily.TIMESTAMP.getTypeNames().contains(
         literal.getTypeName())) {
       return SqlLiteral.createTimestamp(
-          (Calendar) literal.getValue(),
+          literal.getValueAs(TimestampString.class),
           0,
           SqlParserPos.ZERO);
     }
@@ -92,7 +93,16 @@ public class RexToSqlNodeConverterImpl implements RexToSqlNodeConverter {
     if (SqlTypeFamily.DATE.getTypeNames().contains(
         literal.getTypeName())) {
       return SqlLiteral.createDate(
-          (Calendar) literal.getValue(),
+          literal.getValueAs(DateString.class),
+          SqlParserPos.ZERO);
+    }
+
+    // Time
+    if (SqlTypeFamily.TIME.getTypeNames().contains(
+        literal.getTypeName())) {
+      return SqlLiteral.createTime(
+          literal.getValueAs(TimeString.class),
+          0,
           SqlParserPos.ZERO);
     }
 

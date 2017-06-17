@@ -73,9 +73,11 @@ import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.TableScan;
+import org.apache.calcite.rel.rules.AbstractMaterializedViewRule;
 import org.apache.calcite.rel.rules.AggregateExpandDistinctAggregatesRule;
 import org.apache.calcite.rel.rules.AggregateReduceFunctionsRule;
 import org.apache.calcite.rel.rules.AggregateStarTableRule;
+import org.apache.calcite.rel.rules.AggregateValuesRule;
 import org.apache.calcite.rel.rules.FilterAggregateTransposeRule;
 import org.apache.calcite.rel.rules.FilterJoinRule;
 import org.apache.calcite.rel.rules.FilterProjectTransposeRule;
@@ -110,6 +112,8 @@ import org.apache.calcite.schema.Schemas;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.server.CalciteServerStatement;
 import org.apache.calcite.sql.SqlBinaryOperator;
+import org.apache.calcite.sql.SqlExecutableStatement;
+import org.apache.calcite.sql.SqlExplainFormat;
 import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
@@ -119,10 +123,12 @@ import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParser;
+import org.apache.calcite.sql.parser.SqlParserImplFactory;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.util.ChainedSqlOperatorTable;
 import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlValidator;
+import org.apache.calcite.sql2rel.SqlRexConvertletTable;
 import org.apache.calcite.sql2rel.SqlToRelConverter;
 import org.apache.calcite.sql2rel.StandardConvertletTable;
 import org.apache.calcite.tools.Frameworks;
@@ -171,7 +177,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
 
   /** Whether the bindable convention should be the root convention of any
    * plan. If not, enumerable convention is the default. */
-  public static final boolean ENABLE_BINDABLE = false;
+  public final boolean enableBindable = Hook.ENABLE_BINDABLE.get(false);
 
   /** Whether the enumerable convention is enabled. */
   public static final boolean ENABLE_ENUMERABLE = true;
@@ -188,7 +194,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
           "values 1",
           "VALUES 1");
 
-  private static final List<RelOptRule> ENUMERABLE_RULES =
+  public static final List<RelOptRule> ENUMERABLE_RULES =
       ImmutableList.of(
           EnumerableRules.ENUMERABLE_JOIN_RULE,
           EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE,
@@ -242,7 +248,8 @@ public class CalcitePrepareImpl implements CalcitePrepare {
           ReduceExpressionsRule.JOIN_INSTANCE,
           ValuesReduceRule.FILTER_INSTANCE,
           ValuesReduceRule.PROJECT_FILTER_INSTANCE,
-          ValuesReduceRule.PROJECT_INSTANCE);
+          ValuesReduceRule.PROJECT_INSTANCE,
+          AggregateValuesRule.INSTANCE);
 
   public CalcitePrepareImpl() {
   }
@@ -293,18 +300,25 @@ public class CalcitePrepareImpl implements CalcitePrepare {
       SqlNode sqlNode1) {
     final JavaTypeFactory typeFactory = context.getTypeFactory();
     final Convention resultConvention =
-        ENABLE_BINDABLE ? BindableConvention.INSTANCE
+        enableBindable ? BindableConvention.INSTANCE
             : EnumerableConvention.INSTANCE;
     final HepPlanner planner = new HepPlanner(new HepProgramBuilder().build());
     planner.addRelTraitDef(ConventionTraitDef.INSTANCE);
+
+    final SqlToRelConverter.ConfigBuilder configBuilder =
+        SqlToRelConverter.configBuilder().withTrimUnusedFields(true);
+    if (analyze) {
+      configBuilder.withConvertTableAccess(false);
+    }
+
     final CalcitePreparingStmt preparingStmt =
         new CalcitePreparingStmt(this, context, catalogReader, typeFactory,
-            context.getRootSchema(), null, planner, resultConvention);
+            context.getRootSchema(), null, planner, resultConvention,
+            createConvertletTable());
     final SqlToRelConverter converter =
-        preparingStmt.getSqlToRelConverter(validator, catalogReader);
-    if (analyze) {
-      converter.enableTableAccessConversion(false);
-    }
+        preparingStmt.getSqlToRelConverter(validator, catalogReader,
+            configBuilder.build());
+
     final RelRoot root = converter.convertQuery(sqlNode1, false, true);
     if (analyze) {
       return analyze_(validator, sql, sqlNode1, root, fail);
@@ -345,7 +359,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
       }
       return new AnalyzeViewResult(this, validator, sql, sqlNode,
           validator.getValidatedNodeType(sqlNode), root, null, null, null,
-          null);
+          null, false);
     }
     final RelOptTable targetRelTable = scan.getTable();
     final RelDataType targetRowType = targetRelTable.getRowType();
@@ -371,7 +385,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
             }
             return new AnalyzeViewResult(this, validator, sql, sqlNode,
                 validator.getValidatedNodeType(sqlNode), root, null, null, null,
-                null);
+                null, false);
           }
           projectMap.put(index, rexBuilder.makeInputRef(viewRel, node.i));
           columnMapping.add(index);
@@ -387,7 +401,20 @@ public class CalcitePrepareImpl implements CalcitePrepare {
       constraint = rexBuilder.makeLiteral(true);
     }
     final List<RexNode> filters = new ArrayList<>();
+    // If we put a constraint in projectMap above, then filters will not be empty despite
+    // being a modifiable view.
+    final List<RexNode> filters2 = new ArrayList<>();
+    boolean retry = false;
     RelOptUtil.inferViewPredicates(projectMap, filters, constraint);
+    if (fail && !filters.isEmpty()) {
+      final Map<Integer, RexNode> projectMap2 = new HashMap<>();
+      RelOptUtil.inferViewPredicates(projectMap2, filters2, constraint);
+      if (!filters2.isEmpty()) {
+        throw validator.newValidationError(sqlNode,
+            RESOURCE.modifiableViewMustHaveOnlyEqualityPredicates());
+      }
+      retry = true;
+    }
 
     // Check that all columns that are not projected have a constant value
     for (RelDataTypeField field : targetRowType.getFieldList()) {
@@ -410,16 +437,23 @@ public class CalcitePrepareImpl implements CalcitePrepare {
       }
       return new AnalyzeViewResult(this, validator, sql, sqlNode,
           validator.getValidatedNodeType(sqlNode), root, null, null, null,
-          null);
+          null, false);
     }
 
+    final boolean modifiable = filters.isEmpty() || retry && filters2.isEmpty();
     return new AnalyzeViewResult(this, validator, sql, sqlNode,
-        validator.getValidatedNodeType(sqlNode), root, table,
+        validator.getValidatedNodeType(sqlNode), root, modifiable ? table : null,
         ImmutableList.copyOf(tablePath),
-        constraint, ImmutableIntList.copyOf(columnMapping));
+        constraint, ImmutableIntList.copyOf(columnMapping),
+        modifiable);
   }
 
   @Override public void executeDdl(Context context, SqlNode node) {
+    if (node instanceof SqlExecutableStatement) {
+      SqlExecutableStatement statement = (SqlExecutableStatement) node;
+      statement.execute(context);
+      return;
+    }
     throw new UnsupportedOperationException();
   }
 
@@ -437,6 +471,11 @@ public class CalcitePrepareImpl implements CalcitePrepare {
   /** Factory method for SQL parser configuration. */
   protected SqlParser.ConfigBuilder createParserConfig() {
     return SqlParser.configBuilder();
+  }
+
+  /** Factory method for default convertlet table. */
+  protected SqlRexConvertletTable createConvertletTable() {
+    return StandardConvertletTable.INSTANCE;
   }
 
   /** Factory method for cluster. */
@@ -495,8 +534,14 @@ public class CalcitePrepareImpl implements CalcitePrepare {
     }
     if (prepareContext.config().materializationsEnabled()) {
       planner.addRule(MaterializedViewFilterScanRule.INSTANCE);
+      planner.addRule(AbstractMaterializedViewRule.INSTANCE_PROJECT_FILTER);
+      planner.addRule(AbstractMaterializedViewRule.INSTANCE_FILTER);
+      planner.addRule(AbstractMaterializedViewRule.INSTANCE_PROJECT_JOIN);
+      planner.addRule(AbstractMaterializedViewRule.INSTANCE_JOIN);
+      planner.addRule(AbstractMaterializedViewRule.INSTANCE_PROJECT_AGGREGATE);
+      planner.addRule(AbstractMaterializedViewRule.INSTANCE_AGGREGATE);
     }
-    if (ENABLE_BINDABLE) {
+    if (enableBindable) {
       for (RelOptRule rule : Bindables.RULES) {
         planner.addRule(rule);
       }
@@ -512,7 +557,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
       planner.addRule(EnumerableInterpreterRule.INSTANCE);
     }
 
-    if (ENABLE_BINDABLE && ENABLE_ENUMERABLE) {
+    if (enableBindable && ENABLE_ENUMERABLE) {
       planner.addRule(
           EnumerableBindable.EnumerableToBindableConverterRule.INSTANCE);
     }
@@ -543,6 +588,9 @@ public class CalcitePrepareImpl implements CalcitePrepare {
           }
         });
     }
+
+    Hook.PLANNER.run(planner); // allow test to add or remove rules
+
     return planner;
   }
 
@@ -621,6 +669,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
         x,
         columns,
         cursorFactory,
+        context.getRootSchema(),
         ImmutableList.<RelCollation>of(),
         -1,
         new Bindable<T>() {
@@ -641,6 +690,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
     switch (kind) {
     case INSERT:
     case DELETE:
+    case UPDATE:
       return Meta.StatementType.IS_DML;
     default:
       return Meta.StatementType.SELECT;
@@ -676,22 +726,29 @@ public class CalcitePrepareImpl implements CalcitePrepare {
       prefer = EnumerableRel.Prefer.CUSTOM;
     }
     final Convention resultConvention =
-        ENABLE_BINDABLE ? BindableConvention.INSTANCE
+        enableBindable ? BindableConvention.INSTANCE
             : EnumerableConvention.INSTANCE;
     final CalcitePreparingStmt preparingStmt =
         new CalcitePreparingStmt(this, context, catalogReader, typeFactory,
-            context.getRootSchema(), prefer, planner, resultConvention);
+            context.getRootSchema(), prefer, planner, resultConvention,
+            createConvertletTable());
 
     final RelDataType x;
     final Prepare.PreparedResult preparedResult;
     final Meta.StatementType statementType;
     if (query.sql != null) {
       final CalciteConnectionConfig config = context.config();
-      SqlParser parser = createParser(query.sql,
-          createParserConfig()
-              .setQuotedCasing(config.quotedCasing())
-              .setUnquotedCasing(config.unquotedCasing())
-              .setQuoting(config.quoting()));
+      final SqlParser.ConfigBuilder parserConfig = createParserConfig()
+          .setQuotedCasing(config.quotedCasing())
+          .setUnquotedCasing(config.unquotedCasing())
+          .setQuoting(config.quoting())
+          .setConformance(config.conformance());
+      final SqlParserImplFactory parserFactory =
+          config.parserFactory(SqlParserImplFactory.class, null);
+      if (parserFactory != null) {
+        parserConfig.setParserFactory(parserFactory);
+      }
+      SqlParser parser = createParser(query.sql,  parserConfig);
       SqlNode sqlNode;
       try {
         sqlNode = parser.parseStmt();
@@ -716,7 +773,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
             ImmutableList.<AvaticaParameter>of(),
             ImmutableMap.<String, Object>of(), null,
             ImmutableList.<ColumnMetaData>of(), Meta.CursorFactory.OBJECT,
-            ImmutableList.<RelCollation>of(), -1, bindable);
+            null, ImmutableList.<RelCollation>of(), -1, bindable);
       }
 
       final SqlValidator validator =
@@ -729,6 +786,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
       switch (sqlNode.getKind()) {
       case INSERT:
       case DELETE:
+      case UPDATE:
       case EXPLAIN:
         // FIXME: getValidatedNodeType is wrong for DML
         x = RelOptUtil.createDmlRowType(sqlNode.getKind(), typeFactory);
@@ -771,17 +829,20 @@ public class CalcitePrepareImpl implements CalcitePrepare {
     if (preparedResult instanceof Typed) {
       resultClazz = (Class) ((Typed) preparedResult).getElementType();
     }
+    final Meta.CursorFactory cursorFactory =
+        preparingStmt.resultConvention == BindableConvention.INSTANCE
+            ? Meta.CursorFactory.ARRAY
+            : Meta.CursorFactory.deduce(columns, resultClazz);
     //noinspection unchecked
-    final Bindable<T> bindable = preparedResult.getBindable();
+    final Bindable<T> bindable = preparedResult.getBindable(cursorFactory);
     return new CalciteSignature<>(
         query.sql,
         parameters,
         preparingStmt.internalParameters,
         jdbcType,
         columns,
-        preparingStmt.resultConvention == BindableConvention.INSTANCE
-            ? Meta.CursorFactory.ARRAY
-            : Meta.CursorFactory.deduce(columns, resultClazz),
+        cursorFactory,
+        context.getRootSchema(),
         preparedResult instanceof Prepare.PreparedResultImpl
             ? ((Prepare.PreparedResultImpl) preparedResult).collations
             : ImmutableList.<RelCollation>of(),
@@ -949,7 +1010,8 @@ public class CalcitePrepareImpl implements CalcitePrepare {
               materialization.viewSchemaPath,
               context.getTypeFactory());
       final CalciteMaterializer materializer =
-          new CalciteMaterializer(this, context, catalogReader, schema, planner);
+          new CalciteMaterializer(this, context, catalogReader, schema, planner,
+              createConvertletTable());
       materializer.populate(materialization);
     } catch (Exception e) {
       throw new RuntimeException("While populating materialization "
@@ -999,6 +1061,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
     protected final CalcitePrepareImpl prepare;
     protected final CalciteSchema schema;
     protected final RelDataTypeFactory typeFactory;
+    protected final SqlRexConvertletTable convertletTable;
     private final EnumerableRel.Prefer prefer;
     private final Map<String, Object> internalParameters =
         Maps.newLinkedHashMap();
@@ -1012,13 +1075,15 @@ public class CalcitePrepareImpl implements CalcitePrepare {
         CalciteSchema schema,
         EnumerableRel.Prefer prefer,
         RelOptPlanner planner,
-        Convention resultConvention) {
+        Convention resultConvention,
+        SqlRexConvertletTable convertletTable) {
       super(context, catalogReader, resultConvention);
       this.prepare = prepare;
       this.schema = schema;
       this.prefer = prefer;
       this.planner = planner;
       this.typeFactory = typeFactory;
+      this.convertletTable = convertletTable;
       this.rexBuilder = new RexBuilder(typeFactory);
     }
 
@@ -1095,12 +1160,12 @@ public class CalcitePrepareImpl implements CalcitePrepare {
 
     @Override protected SqlToRelConverter getSqlToRelConverter(
         SqlValidator validator,
-        CatalogReader catalogReader) {
+        CatalogReader catalogReader,
+        SqlToRelConverter.Config config) {
       final RelOptCluster cluster = prepare.createCluster(planner, rexBuilder);
       SqlToRelConverter sqlToRelConverter =
           new SqlToRelConverter(this, validator, catalogReader, cluster,
-              StandardConvertletTable.INSTANCE);
-      sqlToRelConverter.setTrimUnusedFields(true);
+              convertletTable, config);
       return sqlToRelConverter;
     }
 
@@ -1120,7 +1185,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
     }
 
     @Override public RelRoot expandView(RelDataType rowType, String queryString,
-        List<String> schemaPath) {
+        List<String> schemaPath, List<String> viewPath) {
       expansionDepth++;
 
       SqlParser parser = prepare.createParser(queryString);
@@ -1135,9 +1200,10 @@ public class CalcitePrepareImpl implements CalcitePrepare {
           this.catalogReader.withSchemaPath(schemaPath);
       SqlValidator validator = createSqlValidator(catalogReader);
       SqlNode sqlNode1 = validator.validate(sqlNode);
-
+      final SqlToRelConverter.Config config = SqlToRelConverter.configBuilder()
+              .withTrimUnusedFields(true).build();
       SqlToRelConverter sqlToRelConverter =
-          getSqlToRelConverter(validator, catalogReader);
+          getSqlToRelConverter(validator, catalogReader, config);
       RelRoot root =
           sqlToRelConverter.convertQuery(sqlNode1, true, false);
 
@@ -1161,10 +1227,10 @@ public class CalcitePrepareImpl implements CalcitePrepare {
         RelDataType resultType,
         RelDataType parameterRowType,
         RelRoot root,
-        boolean explainAsXml,
+        SqlExplainFormat format,
         SqlExplainLevel detailLevel) {
-      return new CalcitePreparedExplain(
-          resultType, parameterRowType, root, explainAsXml, detailLevel);
+      return new CalcitePreparedExplain(resultType, parameterRowType, root,
+          format, detailLevel);
     }
 
     @Override protected PreparedResult implement(RelRoot root) {
@@ -1217,7 +1283,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
           throw new UnsupportedOperationException();
         }
 
-        public Bindable getBindable() {
+        public Bindable getBindable(Meta.CursorFactory cursorFactory) {
           return bindable;
         }
 
@@ -1249,16 +1315,22 @@ public class CalcitePrepareImpl implements CalcitePrepare {
         RelDataType resultType,
         RelDataType parameterRowType,
         RelRoot root,
-        boolean explainAsXml,
+        SqlExplainFormat format,
         SqlExplainLevel detailLevel) {
-      super(resultType, parameterRowType, root, explainAsXml, detailLevel);
+      super(resultType, parameterRowType, root, format, detailLevel);
     }
 
-    public Bindable getBindable() {
+    public Bindable getBindable(final Meta.CursorFactory cursorFactory) {
       final String explanation = getCode();
       return new Bindable() {
         public Enumerable bind(DataContext dataContext) {
-          return Linq4j.singletonEnumerable(explanation);
+          switch (cursorFactory.style) {
+          case ARRAY:
+            return Linq4j.singletonEnumerable(new String[] {explanation});
+          case OBJECT:
+          default:
+            return Linq4j.singletonEnumerable(explanation);
+          }
         }
       };
     }

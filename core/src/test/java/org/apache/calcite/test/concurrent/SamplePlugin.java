@@ -68,4 +68,5 @@ public class SamplePlugin extends ConcurrentTestPlugin {
     }
   }
 }
+
 // End SamplePlugin.java

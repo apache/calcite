@@ -18,7 +18,6 @@ package org.apache.calcite.adapter.enumerable;
 
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
-import org.apache.calcite.linq4j.tree.NewExpression;
 import org.apache.calcite.rex.RexCall;
 
 import java.lang.reflect.Method;
@@ -53,7 +52,7 @@ public class ReflectiveCallNotNullImplementor implements NotNullImplementor {
     } else {
       // The UDF class must have a public zero-args constructor.
       // Assume that the validator checked already.
-      final NewExpression target =
+      final Expression target =
           Expressions.new_(method.getDeclaringClass());
       return Expressions.call(target, method, translatedOperands);
     }

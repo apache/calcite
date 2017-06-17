@@ -26,6 +26,12 @@ import org.apache.calcite.sql.validate.SqlConformance;
  * a method for every property. At some point there will be similar config
  * classes for system and statement properties. */
 public interface CalciteConnectionConfig extends ConnectionConfig {
+  /** @see CalciteConnectionProperty#APPROXIMATE_DISTINCT_COUNT */
+  boolean approximateDistinctCount();
+  /** @see CalciteConnectionProperty#APPROXIMATE_TOP_N */
+  boolean approximateTopN();
+  /** @see CalciteConnectionProperty#APPROXIMATE_DECIMAL */
+  boolean approximateDecimal();
   /** @see CalciteConnectionProperty#AUTO_TEMP */
   boolean autoTemp();
   /** @see CalciteConnectionProperty#MATERIALIZATIONS_ENABLED */
@@ -48,6 +54,8 @@ public interface CalciteConnectionConfig extends ConnectionConfig {
   Casing quotedCasing();
   /** @see CalciteConnectionProperty#CASE_SENSITIVE */
   boolean caseSensitive();
+  /** @see CalciteConnectionProperty#PARSER_FACTORY */
+  <T> T parserFactory(Class<T> parserFactoryClass, T defaultParserFactory);
   /** @see CalciteConnectionProperty#SCHEMA_FACTORY */
   <T> T schemaFactory(Class<T> schemaFactoryClass, T defaultSchemaFactory);
   /** @see CalciteConnectionProperty#SCHEMA_TYPE */

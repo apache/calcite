@@ -142,6 +142,16 @@ public interface Schema {
    */
   boolean contentsHaveChangedSince(long lastCheck, long now);
 
+  /** Returns the snapshot of this schema as of the specified time. The
+   * contents of the schema snapshot should not change over time.
+   *
+   * @param now The current time in millis, as returned by
+   *   {@link System#currentTimeMillis()}
+   *
+   * @return the schema snapshot.
+   */
+  Schema snapshot(long now);
+
   /** Table type. */
   enum TableType {
     /** A regular table.

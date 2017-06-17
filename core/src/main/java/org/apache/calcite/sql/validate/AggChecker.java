@@ -23,6 +23,8 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlUtil;
+import org.apache.calcite.sql.SqlWindow;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.util.SqlBasicVisitor;
 import org.apache.calcite.util.Litmus;
 
@@ -40,6 +42,7 @@ class AggChecker extends SqlBasicVisitor<Void> {
   //~ Instance fields --------------------------------------------------------
 
   private final Deque<SqlValidatorScope> scopes = new ArrayDeque<>();
+  private final List<SqlNode> extraExprs;
   private final List<SqlNode> groupExprs;
   private boolean distinct;
   private SqlValidatorImpl validator;
@@ -59,9 +62,11 @@ class AggChecker extends SqlBasicVisitor<Void> {
   AggChecker(
       SqlValidatorImpl validator,
       AggregatingScope scope,
+      List<SqlNode> extraExprs,
       List<SqlNode> groupExprs,
       boolean distinct) {
     this.validator = validator;
+    this.extraExprs = extraExprs;
     this.groupExprs = groupExprs;
     this.distinct = distinct;
     this.scopes.push(scope);
@@ -75,17 +80,19 @@ class AggChecker extends SqlBasicVisitor<Void> {
         return true;
       }
     }
+
+    for (SqlNode extraExpr : extraExprs) {
+      if (extraExpr.equalsDeep(expr, Litmus.IGNORE)) {
+        return true;
+      }
+    }
     return false;
   }
 
   public Void visit(SqlIdentifier id) {
-    if (isGroupExpr(id)) {
+    if (isGroupExpr(id) || id.isStar()) {
+      // Star may validly occur in "SELECT COUNT(*) OVER w"
       return null;
-    }
-
-    // If it '*' or 'foo.*'?
-    if (id.isStar()) {
-      assert false : "star should have been expanded";
     }
 
     // Is it a call to a parentheses-free function?
@@ -150,16 +157,46 @@ class AggChecker extends SqlBasicVisitor<Void> {
       return null;
     }
     // Visit the operand in window function
-    if (call.getOperator().getKind() == SqlKind.OVER) {
-      SqlCall windowFunction = call.operand(0);
-      if (windowFunction.getOperandList().size() != 0) {
-        windowFunction.operand(0).accept(this);
+    if (call.getKind() == SqlKind.OVER) {
+      for (SqlNode operand : call.<SqlCall>operand(0).getOperandList()) {
+        operand.accept(this);
+      }
+      // Check the OVER clause
+      final SqlNode over = call.operand(1);
+      if (over instanceof SqlCall) {
+        over.accept(this);
+      } else if (over instanceof SqlIdentifier) {
+        // Check the corresponding SqlWindow in WINDOW clause
+        final SqlWindow window =
+            scope.lookupWindow(((SqlIdentifier) over).getSimple());
+        window.getPartitionList().accept(this);
+        window.getOrderList().accept(this);
       }
     }
     if (isGroupExpr(call)) {
       // This call matches an expression in the GROUP BY clause.
       return null;
     }
+
+    final SqlCall groupCall =
+        SqlStdOperatorTable.convertAuxiliaryToGroupCall(call);
+    if (groupCall != null) {
+      if (isGroupExpr(groupCall)) {
+        // This call is an auxiliary function that matches a group call in the
+        // GROUP BY clause.
+        //
+        // For example TUMBLE_START is an auxiliary of the TUMBLE
+        // group function, and
+        //   TUMBLE_START(rowtime, INTERVAL '1' HOUR)
+        // matches
+        //   TUMBLE(rowtime, INTERVAL '1' HOUR')
+        return null;
+      }
+      throw validator.newValidationError(groupCall,
+          RESOURCE.auxiliaryWithoutMatchingGroupCall(
+              call.getOperator().getName(), groupCall.getOperator().getName()));
+    }
+
     if (call.isA(SqlKind.QUERY)) {
       // Allow queries for now, even though they may contain
       // references to forbidden columns.
@@ -178,6 +215,7 @@ class AggChecker extends SqlBasicVisitor<Void> {
     scopes.pop();
     return null;
   }
+
 }
 
 // End AggChecker.java

@@ -22,7 +22,8 @@ import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.TableScan;
 
-import java.util.Collections;
+import com.google.common.collect.ImmutableList;
+
 import java.util.List;
 
 /**
@@ -49,7 +50,7 @@ public class JdbcTableScan extends TableScan implements JdbcRel {
 
   public JdbcImplementor.Result implement(JdbcImplementor implementor) {
     return implementor.result(jdbcTable.tableName(),
-        Collections.singletonList(JdbcImplementor.Clause.FROM), this);
+        ImmutableList.of(JdbcImplementor.Clause.FROM), this, null);
   }
 }
 

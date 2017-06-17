@@ -31,8 +31,8 @@ import org.apache.calcite.linq4j.tree.MethodCallExpression;
 import org.apache.calcite.linq4j.tree.NewExpression;
 import org.apache.calcite.linq4j.tree.Node;
 import org.apache.calcite.linq4j.tree.ParameterExpression;
+import org.apache.calcite.linq4j.tree.Shuttle;
 import org.apache.calcite.linq4j.tree.Types;
-import org.apache.calcite.linq4j.tree.Visitor;
 
 import org.junit.Test;
 
@@ -47,7 +47,9 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.TreeSet;
 
+import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
 
 /**
  * Unit test for {@link org.apache.calcite.linq4j.tree.Expression}
@@ -899,7 +901,7 @@ public class ExpressionTest {
     statements.add(Expressions.return_(null, eighteen));
     BlockStatement expression = statements.toBlock();
     assertEquals(expected, Expressions.toString(expression));
-    expression.accept(new Visitor());
+    expression.accept(new Shuttle());
   }
 
   @Test public void testBlockBuilder2() {
@@ -924,13 +926,13 @@ public class ExpressionTest {
                 "add",
                 element)));
     BlockStatement expression = statements.toBlock();
-    assertEquals(
-        "{\n"
-            + "  return new java.util.TreeSet(\n"
-            + "      (java.util.Comparator) null).add(null);\n"
-            + "}\n",
-        Expressions.toString(expression));
-    expression.accept(new Visitor());
+    final String expected = "{\n"
+        + "  final java.util.TreeSet treeSet = new java.util.TreeSet(\n"
+        + "    (java.util.Comparator) null);\n"
+        + "  return treeSet.add(null);\n"
+        + "}\n";
+    assertThat(Expressions.toString(expression), is(expected));
+    expression.accept(new Shuttle());
   }
 
   @Test public void testBlockBuilder3() {
@@ -978,7 +980,7 @@ public class ExpressionTest {
             + "  org.apache.calcite.linq4j.test.ExpressionTest.bar(1, _b, _c, _d, org.apache.calcite.linq4j.test.ExpressionTest.foo(_c));\n"
             + "}\n",
         Expressions.toString(expression));
-    expression.accept(new Visitor());
+    expression.accept(new Shuttle());
   }
 
   @Test public void testConstantExpression() {
@@ -1021,7 +1023,7 @@ public class ExpressionTest {
             + "    \"109\",\n"
             + "    null)}",
         constant.toString());
-    constant.accept(new Visitor());
+    constant.accept(new Shuttle());
   }
 
   @Test public void testClassDecl() {
@@ -1056,7 +1058,7 @@ public class ExpressionTest {
             + "  int i;\n"
             + "}",
         Expressions.toString(newExpression));
-    newExpression.accept(new Visitor());
+    newExpression.accept(new Shuttle());
   }
 
   @Test public void testReturn() {

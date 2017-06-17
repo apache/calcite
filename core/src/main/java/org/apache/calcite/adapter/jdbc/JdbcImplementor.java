@@ -22,7 +22,7 @@ import org.apache.calcite.rel.rel2sql.RelToSqlConverter;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.util.Util;
 
-import java.util.Collections;
+import com.google.common.collect.ImmutableList;
 
 /**
  * State for generating a SQL statement.
@@ -36,7 +36,7 @@ public class JdbcImplementor extends RelToSqlConverter {
   /** @see #dispatch */
   public Result visit(JdbcTableScan scan) {
     return result(scan.jdbcTable.tableName(),
-        Collections.singletonList(Clause.FROM), scan);
+        ImmutableList.of(Clause.FROM), scan, null);
   }
 
   public Result implement(RelNode node) {

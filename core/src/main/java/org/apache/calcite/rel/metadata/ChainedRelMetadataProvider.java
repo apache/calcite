@@ -17,8 +17,8 @@
 package org.apache.calcite.rel.metadata;
 
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.util.Util;
 
-import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Lists;
@@ -140,8 +140,8 @@ public class ChainedRelMetadataProvider implements RelMetadataProvider {
           if (e.getCause() instanceof CyclicMetadataException) {
             continue;
           }
-          Throwables.propagateIfPossible(e.getCause());
-          throw e;
+          Util.throwIfUnchecked(e.getCause());
+          throw new RuntimeException(e.getCause());
         }
       }
       return null;

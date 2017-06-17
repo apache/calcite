@@ -21,6 +21,7 @@ import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.ListIterator;
+import java.util.Locale;
 import java.util.Map;
 
 /**
@@ -75,7 +76,7 @@ public class SqlSimpleParser {
     },
 
     /**
-     * A token created by reducing an entire subquery.
+     * A token created by reducing an entire sub-query.
      */
     QUERY;
 
@@ -140,7 +141,7 @@ public class SqlSimpleParser {
       list.add(token);
     }
 
-    // Gather consecutive sub-sequences of tokens into subqueries.
+    // Gather consecutive sub-sequences of tokens into sub-queries.
     List<Token> outList = new ArrayList<Token>();
     consumeQuery(list.listIterator(), outList);
 
@@ -193,18 +194,18 @@ public class SqlSimpleParser {
   private void consumeSelect(ListIterator<Token> iter, List<Token> outList) {
     boolean isQuery = false;
     int start = outList.size();
-    List<Token> subqueryList = new ArrayList<Token>();
+    List<Token> subQueryList = new ArrayList<Token>();
   loop:
     while (iter.hasNext()) {
       Token token = iter.next();
-      subqueryList.add(token);
+      subQueryList.add(token);
       switch (token.type) {
       case LPAREN:
-        consumeQuery(iter, subqueryList);
+        consumeQuery(iter, subQueryList);
         break;
       case RPAREN:
         if (isQuery) {
-          subqueryList.remove(subqueryList.size() - 1);
+          subQueryList.remove(subQueryList.size() - 1);
         }
         break loop;
       case SELECT:
@@ -213,7 +214,7 @@ public class SqlSimpleParser {
       case UNION:
       case INTERSECT:
       case EXCEPT:
-        subqueryList.remove(subqueryList.size() - 1);
+        subQueryList.remove(subQueryList.size() - 1);
         iter.previous();
         break loop;
       default:
@@ -223,14 +224,14 @@ public class SqlSimpleParser {
     // Fell off end of list. Pretend we saw the required right-paren.
     if (isQuery) {
       outList.subList(start, outList.size()).clear();
-      outList.add(new Query(subqueryList));
+      outList.add(new Query(subQueryList));
       if ((outList.size() >= 2)
           && (outList.get(outList.size() - 2).type == TokenType.LPAREN)) {
         outList.add(new Token(TokenType.RPAREN));
       }
     } else {
       // not a query - just a parenthesized expr
-      outList.addAll(subqueryList);
+      outList.addAll(subQueryList);
     }
   }
 
@@ -379,7 +380,7 @@ public class SqlSimpleParser {
               }
             }
             String name = sql.substring(start, pos);
-            TokenType tokenType = map.get(name.toUpperCase());
+            TokenType tokenType = map.get(name.toUpperCase(Locale.ROOT));
             if (tokenType == null) {
               return new IdToken(TokenType.ID, name);
             } else {
@@ -479,7 +480,7 @@ public class SqlSimpleParser {
     public Query simplify(String hintToken) {
       TokenType clause = TokenType.SELECT;
       TokenType foundInClause = null;
-      Query foundInSubquery = null;
+      Query foundInSubQuery = null;
       TokenType majorClause = null;
       if (hintToken != null) {
         for (Token token : tokenList) {
@@ -511,7 +512,7 @@ public class SqlSimpleParser {
           case QUERY:
             if (((Query) token).contains(hintToken)) {
               foundInClause = clause;
-              foundInSubquery = (Query) token;
+              foundInSubQuery = (Query) token;
             }
             break;
           }
@@ -566,7 +567,7 @@ public class SqlSimpleParser {
         case QUERY:
 
           // Indicates that the expression to be simplified is
-          // outside this subquery. Preserve a simplified SELECT
+          // outside this sub-query. Preserve a simplified SELECT
           // clause.
           purgeSelectExprsKeepAliases();
           purgeWhere();
@@ -581,7 +582,7 @@ public class SqlSimpleParser {
         case QUERY: {
           Query query = (Query) token;
           query.simplify(
-              (query == foundInSubquery) ? hintToken : null);
+              (query == foundInSubQuery) ? hintToken : null);
           break;
         }
         }

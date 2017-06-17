@@ -508,6 +508,31 @@ group by deptno, gender;
 
 !ok
 
+# GROUPING accepts multiple arguments, gives same result as GROUPING_ID
+select count(*) as c,
+  grouping(deptno) as gd,
+  grouping_id(deptno) as gid,
+  grouping(deptno, gender, deptno) as gdgd,
+  grouping_id(deptno, gender, deptno) as gidgd
+from emp
+group by deptno, gender
+having grouping(deptno) <= grouping_id(deptno, gender, deptno);
++---+----+-----+------+-------+
+| C | GD | GID | GDGD | GIDGD |
++---+----+-----+------+-------+
+| 1 |  1 |   1 |    7 |     7 |
+| 1 |  1 |   1 |    7 |     7 |
+| 1 |  1 |   1 |    7 |     7 |
+| 1 |  1 |   1 |    7 |     7 |
+| 1 |  1 |   1 |    7 |     7 |
+| 1 |  1 |   1 |    7 |     7 |
+| 1 |  1 |   1 |    7 |     7 |
+| 2 |  1 |   1 |    7 |     7 |
++---+----+-----+------+-------+
+(8 rows)
+
+!ok
+
 # GROUPING in ORDER BY clause
 select count(*) as c
 from emp
@@ -591,6 +616,93 @@ from emp group by cube(deptno, gender);
 |        |        |  1 |  1 |  3 |  3 |   3 | 9 |
 +--------+--------+----+----+----+----+-----+---+
 (17 rows)
+
+!ok
+
+# [CALCITE-1781] Allow expression in CUBE and ROLLUP
+select deptno + 1 as d1, deptno + 1 - 1 as d0, count(*) as c
+from emp
+group by rollup(deptno + 1);
++----+----+---+
+| D1 | D0 | C |
++----+----+---+
+| 11 | 10 | 2 |
+| 21 | 20 | 1 |
+| 31 | 30 | 2 |
+| 51 | 50 | 2 |
+| 61 | 60 | 1 |
+|    |    | 1 |
+|    |    | 9 |
++----+----+---+
+(7 rows)
+
+!ok
+
+select mod(deptno, 20) as d, count(*) as c, gender as g
+from emp
+group by cube(mod(deptno, 20), gender);
++----+---+---+
+| D  | C | G |
++----+---+---+
+|  0 | 1 | F |
+|  0 | 1 | M |
+|  0 | 2 |   |
+| 10 | 2 | M |
+| 10 | 4 | F |
+| 10 | 6 |   |
+|    | 1 | F |
+|    | 1 |   |
+|    | 3 | M |
+|    | 6 | F |
+|    | 9 |   |
++----+---+---+
+(11 rows)
+
+!ok
+
+select mod(deptno, 20) as d, count(*) as c, gender as g
+from emp
+group by rollup(mod(deptno, 20), gender);
++----+---+---+
+| D  | C | G |
++----+---+---+
+|  0 | 1 | F |
+|  0 | 1 | M |
+|  0 | 2 |   |
+| 10 | 2 | M |
+| 10 | 4 | F |
+| 10 | 6 |   |
+|    | 1 | F |
+|    | 1 |   |
+|    | 9 |   |
++----+---+---+
+(9 rows)
+
+!ok
+
+select count(*) as c
+from emp
+group by cube(1);
++---+
+| C |
++---+
+| 9 |
+| 9 |
++---+
+(2 rows)
+
+!ok
+
+select count(*) as c
+from emp
+group by rollup(1);
++---+
+| C |
++---+
+| 9 |
+| 9 |
++---+
+(2 rows)
 
 !ok
 
@@ -846,6 +958,65 @@ group by deptno;
 |     20 |   3 |
 |     30 |   2 |
 +--------+-----+
+(3 rows)
+
+!ok
+
+# [CALCITE-1293] Bad code generated when argument to COUNT(DISTINCT) is a
+# GROUP BY column
+select count(distinct deptno) as cd, count(*) as c
+from "scott".emp
+group by deptno;
++----+---+
+| CD | C |
++----+---+
+|  1 | 3 |
+|  1 | 5 |
+|  1 | 6 |
++----+---+
+(3 rows)
+
+!ok
+
+select count(distinct deptno) as cd, count(*) as c
+from "scott".emp
+group by cube(deptno);
++----+---+
+| CD | C |
++----+---+
+|  1 | 3 |
+|  1 | 5 |
+|  1 | 6 |
+|  3 | 3 |
++----+---+
+(4 rows)
+
+!ok
+
+select deptno, count(distinct deptno) as c
+from "scott".emp
+group by deptno;
++--------+---+
+| DEPTNO | C |
++--------+---+
+|     10 | 1 |
+|     20 | 1 |
+|     30 | 1 |
++--------+---+
+(3 rows)
+
+!ok
+
+select count(distinct deptno) as c
+from "scott".emp
+group by deptno;
++---+
+| C |
++---+
+| 1 |
+| 1 |
+| 1 |
++---+
 (3 rows)
 
 !ok
@@ -1618,5 +1789,23 @@ group by grouping sets(CURRENT_USER);
 (1 row)
 
 !ok
+
+# [CALCITE-1381] SqlCall.clone should retain function quantifier
+select nullif(count(distinct '1'),0)
+from (values (1,2),(3,4));
++--------+
+| EXPR$0 |
++--------+
+|      1 |
++--------+
+(1 row)
+
+!ok
+EnumerableCalc(expr#0=[{inputs}], expr#1=[0], expr#2=[=($t0, $t1)], expr#3=[null], expr#4=[CAST($t0):BIGINT], expr#5=[CASE($t2, $t3, $t4)], EXPR$0=[$t5])
+  EnumerableAggregate(group=[{}], agg#0=[COUNT($0)])
+    EnumerableAggregate(group=[{0}])
+      EnumerableCalc(expr#0..1=[{inputs}], expr#2=['1'], $f0=[$t2])
+        EnumerableValues(tuples=[[{ 1, 2 }, { 3, 4 }]])
+!plan
 
 # End agg.iq

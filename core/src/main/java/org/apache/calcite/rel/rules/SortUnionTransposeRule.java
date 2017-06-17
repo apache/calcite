@@ -94,7 +94,7 @@ public class SortUnionTransposeRule extends RelOptRule {
     // Thus we use 'ret' as a flag to identify if we have finished pushing the
     // sort past a union.
     boolean ret = true;
-    final RelMetadataQuery mq = RelMetadataQuery.instance();
+    final RelMetadataQuery mq = call.getMetadataQuery();
     for (RelNode input : union.getInputs()) {
       if (!RelMdUtil.checkInputForCollationAndLimit(mq, input,
           sort.getCollation(), sort.offset, sort.fetch)) {

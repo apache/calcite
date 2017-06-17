@@ -22,10 +22,11 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.util.SqlBuilder;
 import org.apache.calcite.sql.util.SqlString;
+import org.apache.calcite.util.Unsafe;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.trace.CalciteLogger;
 
-import com.google.common.base.Throwables;
+import com.google.common.base.Preconditions;
 
 import org.slf4j.LoggerFactory;
 
@@ -37,6 +38,7 @@ import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
@@ -103,12 +105,12 @@ import java.util.Set;
  * <td>false</td>
  * </tr>
  * <tr>
- * <td>{@link #setSubqueryStyle SubqueryStyle}</td>
+ * <td>{@link #setSubQueryStyle SubQueryStyle}</td>
  * <td>Style for formatting sub-queries. Values are:
- * {@link org.apache.calcite.sql.SqlWriter.SubqueryStyle#HYDE Hyde},
- * {@link org.apache.calcite.sql.SqlWriter.SubqueryStyle#BLACK Black}.</td>
+ * {@link org.apache.calcite.sql.SqlWriter.SubQueryStyle#HYDE Hyde},
+ * {@link org.apache.calcite.sql.SqlWriter.SubQueryStyle#BLACK Black}.</td>
  *
- * <td>{@link org.apache.calcite.sql.SqlWriter.SubqueryStyle#HYDE Hyde}</td>
+ * <td>{@link org.apache.calcite.sql.SqlWriter.SubQueryStyle#HYDE Hyde}</td>
  * </tr>
  * <tr>
  * <td>{@link #setLineLength LineLength}</td>
@@ -153,7 +155,7 @@ public class SqlPrettyWriter implements SqlWriter {
   private boolean windowDeclListNewline;
   private boolean updateSetListNewline;
   private boolean windowNewline;
-  private SubqueryStyle subqueryStyle;
+  private SubQueryStyle subQueryStyle;
   private boolean whereListItemsOnSeparateLines;
 
   private boolean caseClausesOnNewLines;
@@ -197,11 +199,11 @@ public class SqlPrettyWriter implements SqlWriter {
   }
 
   /**
-   * Sets the subquery style. Default is
-   * {@link org.apache.calcite.sql.SqlWriter.SubqueryStyle#HYDE}.
+   * Sets the sub-query style. Default is
+   * {@link org.apache.calcite.sql.SqlWriter.SubQueryStyle#HYDE}.
    */
-  public void setSubqueryStyle(SubqueryStyle subqueryStyle) {
-    this.subqueryStyle = subqueryStyle;
+  public void setSubQueryStyle(SubQueryStyle subQueryStyle) {
+    this.subQueryStyle = subQueryStyle;
   }
 
   public void setWindowNewline(boolean windowNewline) {
@@ -266,7 +268,7 @@ public class SqlPrettyWriter implements SqlWriter {
     windowDeclListNewline = true;
     updateSetListNewline = true;
     windowNewline = false;
-    subqueryStyle = SubqueryStyle.HYDE;
+    subQueryStyle = SubQueryStyle.HYDE;
     alwaysUseParentheses = false;
     whereListItemsOnSeparateLines = false;
     lineLength = 0;
@@ -275,7 +277,7 @@ public class SqlPrettyWriter implements SqlWriter {
 
   public void reset() {
     pw.flush();
-    sw.getBuffer().setLength(0);
+    Unsafe.clear(sw);
     setNeedWhitespace(false);
     nextWhitespace = " ";
   }
@@ -454,6 +456,7 @@ public class SqlPrettyWriter implements SqlWriter {
 
       switch (frameTypeEnum) {
       case WINDOW_DECL_LIST:
+      case VALUES:
         return new FrameImpl(
             frameType,
             keyword,
@@ -511,7 +514,7 @@ public class SqlPrettyWriter implements SqlWriter {
             false);
 
       case SUB_QUERY:
-        switch (subqueryStyle) {
+        switch (subQueryStyle) {
         case BLACK:
 
           // Generate, e.g.:
@@ -558,7 +561,7 @@ public class SqlPrettyWriter implements SqlWriter {
             }
           };
         default:
-          throw Util.unexpected(subqueryStyle);
+          throw Util.unexpected(subQueryStyle);
         }
 
       case ORDER_BY:
@@ -762,10 +765,8 @@ public class SqlPrettyWriter implements SqlWriter {
 
   public void endList(Frame frame) {
     FrameImpl endedFrame = (FrameImpl) frame;
-    Util.pre(
-        frame == this.frame,
-        "Frame " + endedFrame.frameType
-            + " does not match current frame " + this.frame.frameType);
+    Preconditions.checkArgument(frame == this.frame,
+        "Frame does not match current frame");
     if (this.frame == null) {
       throw new RuntimeException("No list started");
     }
@@ -822,7 +823,9 @@ public class SqlPrettyWriter implements SqlWriter {
   public void keyword(String s) {
     maybeWhitespace(s);
     pw.print(
-        isKeywordsLowerCase() ? s.toLowerCase() : s.toUpperCase());
+        isKeywordsLowerCase()
+            ? s.toLowerCase(Locale.ROOT)
+            : s.toUpperCase(Locale.ROOT));
     charCount += s.length();
     if (!s.equals("")) {
       setNeedWhitespace(needWhitespaceAfter(s));
@@ -1149,7 +1152,7 @@ public class SqlPrettyWriter implements SqlWriter {
     }
 
     private String stripPrefix(String name, int offset) {
-      return name.substring(offset, offset + 1).toLowerCase()
+      return name.substring(offset, offset + 1).toLowerCase(Locale.ROOT)
           + name.substring(offset + 1);
     }
 
@@ -1158,7 +1161,8 @@ public class SqlPrettyWriter implements SqlWriter {
       try {
         method.invoke(o, value);
       } catch (IllegalAccessException | InvocationTargetException e) {
-        throw Throwables.propagate(e);
+        Util.throwIfUnchecked(e.getCause());
+        throw new RuntimeException(e.getCause());
       }
     }
 
@@ -1167,7 +1171,8 @@ public class SqlPrettyWriter implements SqlWriter {
       try {
         return method.invoke(o);
       } catch (IllegalAccessException | InvocationTargetException e) {
-        throw Throwables.propagate(e);
+        Util.throwIfUnchecked(e.getCause());
+        throw new RuntimeException(e.getCause());
       }
     }
 

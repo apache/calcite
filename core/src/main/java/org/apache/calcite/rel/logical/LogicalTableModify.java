@@ -23,6 +23,7 @@ import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.prepare.Prepare;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.TableModify;
+import org.apache.calcite.rex.RexNode;
 
 import java.util.List;
 
@@ -40,9 +41,10 @@ public final class LogicalTableModify extends TableModify {
    */
   public LogicalTableModify(RelOptCluster cluster, RelTraitSet traitSet,
       RelOptTable table, Prepare.CatalogReader schema, RelNode input,
-      Operation operation, List<String> updateColumnList, boolean flattened) {
+      Operation operation, List<String> updateColumnList,
+      List<RexNode> sourceExpressionList, boolean flattened) {
     super(cluster, traitSet, table, schema, input, operation, updateColumnList,
-        flattened);
+        sourceExpressionList, flattened);
   }
 
   @Deprecated // to be removed before 2.0
@@ -56,17 +58,19 @@ public final class LogicalTableModify extends TableModify {
         input,
         operation,
         updateColumnList,
+        null,
         flattened);
   }
 
   /** Creates a LogicalTableModify. */
   public static LogicalTableModify create(RelOptTable table,
       Prepare.CatalogReader schema, RelNode input,
-      Operation operation, List<String> updateColumnList, boolean flattened) {
+      Operation operation, List<String> updateColumnList,
+      List<RexNode> sourceExpressionList, boolean flattened) {
     final RelOptCluster cluster = input.getCluster();
     final RelTraitSet traitSet = cluster.traitSetOf(Convention.NONE);
     return new LogicalTableModify(cluster, traitSet, table, schema, input,
-        operation, updateColumnList, flattened);
+        operation, updateColumnList, sourceExpressionList, flattened);
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -75,7 +79,8 @@ public final class LogicalTableModify extends TableModify {
       List<RelNode> inputs) {
     assert traitSet.containsIfApplicable(Convention.NONE);
     return new LogicalTableModify(getCluster(), traitSet, table, catalogReader,
-        sole(inputs), getOperation(), getUpdateColumnList(), isFlattened());
+        sole(inputs), getOperation(), getUpdateColumnList(),
+        getSourceExpressionList(), isFlattened());
   }
 }
 

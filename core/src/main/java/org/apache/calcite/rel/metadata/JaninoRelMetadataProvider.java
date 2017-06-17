@@ -54,8 +54,8 @@ import org.apache.calcite.rel.stream.LogicalDelta;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.util.ControlFlowException;
 import org.apache.calcite.util.Pair;
+import org.apache.calcite.util.Util;
 
-import com.google.common.base.Throwables;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
@@ -228,7 +228,9 @@ public class JaninoRelMetadataProvider implements RelMetadataProvider {
           .append(";\n");
     }
     buff.append("  }\n")
-        .append("  public org.apache.calcite.rel.metadata.MetadataDef getDef() {\n")
+        .append("  public ")
+        .append(MetadataDef.class.getName())
+        .append(" getDef() {\n")
         .append("    return ")
         .append(def.metadataClass.getName())
         .append(".DEF;\n")
@@ -239,8 +241,12 @@ public class JaninoRelMetadataProvider implements RelMetadataProvider {
           .append(" ")
           .append(method.e.getName())
           .append("(\n")
-          .append("      org.apache.calcite.rel.RelNode r,\n")
-          .append("      org.apache.calcite.rel.metadata.RelMetadataQuery mq");
+          .append("      ")
+          .append(RelNode.class.getName())
+          .append(" r,\n")
+          .append("      ")
+          .append(RelMetadataQuery.class.getName())
+          .append(" mq");
       paramList(buff, method.e)
           .append(") {\n");
       buff.append("    final java.util.List key = ")
@@ -287,7 +293,7 @@ public class JaninoRelMetadataProvider implements RelMetadataProvider {
           .append("      mq.map.put(key, x);\n")
           .append("      return x;\n")
           .append("    } catch (")
-          .append(NoHandler.class.getName())
+          .append(Exception.class.getName())
           .append(" e) {\n")
           .append("      mq.map.remove(key);\n")
           .append("      throw e;\n")
@@ -299,8 +305,12 @@ public class JaninoRelMetadataProvider implements RelMetadataProvider {
           .append(" ")
           .append(method.e.getName())
           .append("_(\n")
-          .append("      org.apache.calcite.rel.RelNode r,\n")
-          .append("      org.apache.calcite.rel.metadata.RelMetadataQuery mq");
+          .append("      ")
+          .append(RelNode.class.getName())
+          .append(" r,\n")
+          .append("      ")
+          .append(RelMetadataQuery.class.getName())
+          .append(" mq");
       paramList(buff, method.e)
           .append(") {\n");
       buff.append("    switch (relClasses.indexOf(r.getClass())) {\n");
@@ -357,8 +367,8 @@ public class JaninoRelMetadataProvider implements RelMetadataProvider {
     try {
       return compile(decl, buff.toString(), def, argList);
     } catch (CompileException | IOException e) {
-      System.out.println(buff);
-      throw Throwables.propagate(e);
+      throw new RuntimeException("Error compiling:\n"
+          + buff, e);
     }
   }
 
@@ -434,7 +444,7 @@ public class JaninoRelMetadataProvider implements RelMetadataProvider {
     } catch (InstantiationException
         | IllegalAccessException
         | InvocationTargetException e) {
-      throw Throwables.propagate(e);
+      throw new RuntimeException(e);
     }
     return def.handlerClass.cast(o);
   }
@@ -447,7 +457,8 @@ public class JaninoRelMetadataProvider implements RelMetadataProvider {
       //noinspection unchecked
       return (H) HANDLERS.get(key);
     } catch (UncheckedExecutionException | ExecutionException e) {
-      throw Throwables.propagate(e.getCause());
+      Util.throwIfUnchecked(e.getCause());
+      throw new RuntimeException(e.getCause());
     }
   }
 

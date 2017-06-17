@@ -50,6 +50,7 @@ public class EnumerableTableModifyRule extends ConverterRule {
         convert(modify.getInput(), traitSet),
         modify.getOperation(),
         modify.getUpdateColumnList(),
+        modify.getSourceExpressionList(),
         modify.isFlattened());
   }
 }

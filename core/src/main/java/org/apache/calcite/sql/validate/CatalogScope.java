@@ -73,16 +73,6 @@ class CatalogScope extends DelegatingScope {
     throw new UnsupportedOperationException();
   }
 
-  public SqlValidatorNamespace resolve(List<String> names,
-      SqlValidatorScope[] ancestorOut, int[] offsetOut) {
-    final ImmutableList<String> nameList =
-        ImmutableList.<String>builder().addAll(this.names).addAll(names)
-            .build();
-    if (schemaNames.contains(nameList)) {
-      return new SchemaNamespace(validator, nameList);
-    }
-    return null;
-  }
 }
 
 // End CatalogScope.java

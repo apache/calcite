@@ -22,6 +22,7 @@ import org.apache.calcite.sql.fun.SqlTrimFunction;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.validate.SqlValidator;
+import org.apache.calcite.sql.validate.SqlValidatorImpl;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 
 import com.google.common.base.Preconditions;
@@ -383,7 +384,7 @@ public class SqlJdbcFunctionCall extends SqlFunction {
 
   /** List of all system function names defined by JDBC. */
   private static final String SYSTEM_FUNCTIONS = constructFuncList(
-      "DATABASE", "IFNULL", "USER");
+      "CONVERT", "DATABASE", "IFNULL", "USER");
 
   //~ Instance fields --------------------------------------------------------
 
@@ -433,6 +434,15 @@ public class SqlJdbcFunctionCall extends SqlFunction {
     return super.createCall(functionQualifier, pos, operands);
   }
 
+  @Override public SqlNode rewriteCall(SqlValidator validator,
+      SqlCall call) {
+    if (null == lookupMakeCallObj) {
+      throw validator.newValidationError(call,
+          RESOURCE.functionUndefined(getName()));
+    }
+    return lookupMakeCallObj.getOperator().rewriteCall(validator, call);
+  }
+
   public SqlCall getLookupCall() {
     if (null == lookupCall) {
       lookupCall =
@@ -456,7 +466,7 @@ public class SqlJdbcFunctionCall extends SqlFunction {
 
     for (SqlNode operand : call.getOperandList()) {
       RelDataType nodeType = validator.deriveType(scope, operand);
-      validator.setValidatedNodeType(operand, nodeType);
+      ((SqlValidatorImpl) validator).setValidatedNodeType(operand, nodeType);
     }
     return validateOperands(validator, scope, call);
   }
@@ -542,7 +552,7 @@ public class SqlJdbcFunctionCall extends SqlFunction {
   private interface MakeCall {
     /**
      * Creates and return a {@link SqlCall}. If the MakeCall strategy object
-     * was created with a reording specified the call will be created with
+     * was created with a reordering specified the call will be created with
      * the operands reordered, otherwise no change of ordering is applied
      *
      * @param operands Operands
@@ -656,11 +666,30 @@ public class SqlJdbcFunctionCall extends SqlFunction {
       // See also SqlOperatorTests.testJdbcFn, which contains the list.
       ImmutableMap.Builder<String, MakeCall> map = ImmutableMap.builder();
       map.put("ABS", simple(SqlStdOperatorTable.ABS));
+      map.put("ACOS", simple(SqlStdOperatorTable.ACOS));
+      map.put("ASIN", simple(SqlStdOperatorTable.ASIN));
+      map.put("ATAN", simple(SqlStdOperatorTable.ATAN));
+      map.put("ATAN2", simple(SqlStdOperatorTable.ATAN2));
+      map.put("CEILING", simple(SqlStdOperatorTable.CEIL));
+      map.put("COS", simple(SqlStdOperatorTable.COS));
+      map.put("COT", simple(SqlStdOperatorTable.COT));
+      map.put("DEGREES", simple(SqlStdOperatorTable.DEGREES));
       map.put("EXP", simple(SqlStdOperatorTable.EXP));
+      map.put("FLOOR", simple(SqlStdOperatorTable.FLOOR));
       map.put("LOG", simple(SqlStdOperatorTable.LN));
       map.put("LOG10", simple(SqlStdOperatorTable.LOG10));
       map.put("MOD", simple(SqlStdOperatorTable.MOD));
+      map.put("PI", simple(SqlStdOperatorTable.PI));
       map.put("POWER", simple(SqlStdOperatorTable.POWER));
+      map.put("RADIANS", simple(SqlStdOperatorTable.RADIANS));
+      map.put("RAND", simple(SqlStdOperatorTable.RAND));
+      map.put("ROUND", simple(SqlStdOperatorTable.ROUND));
+      map.put("SIGN", simple(SqlStdOperatorTable.SIGN));
+      map.put("SIN", simple(SqlStdOperatorTable.SIN));
+      map.put("SQRT", simple(SqlStdOperatorTable.SQRT));
+      map.put("TAN", simple(SqlStdOperatorTable.TAN));
+      map.put("TRUNCATE", simple(SqlStdOperatorTable.TRUNCATE));
+
       map.put("CONCAT", simple(SqlStdOperatorTable.CONCAT));
       map.put("INSERT",
           new PermutingMakeCall(SqlStdOperatorTable.OVERLAY, new int[]{0, 2, 3, 1}));
@@ -674,11 +703,21 @@ public class SqlJdbcFunctionCall extends SqlFunction {
               assert 1 == operands.length;
               return super.createCall(pos,
                   SqlTrimFunction.Flag.LEADING.symbol(SqlParserPos.ZERO),
-                  SqlLiteral.createCharString(" ", null),
+                  SqlLiteral.createCharString(" ", SqlParserPos.ZERO),
                   operands[0]);
             }
           });
+      map.put("YEAR", simple(SqlStdOperatorTable.YEAR));
       map.put("QUARTER", simple(SqlStdOperatorTable.QUARTER));
+      map.put("MONTH", simple(SqlStdOperatorTable.MONTH));
+      map.put("WEEK", simple(SqlStdOperatorTable.WEEK));
+      map.put("DAYOFYEAR", simple(SqlStdOperatorTable.DAYOFYEAR));
+      map.put("DAYOFMONTH", simple(SqlStdOperatorTable.DAYOFMONTH));
+      map.put("DAYOFWEEK", simple(SqlStdOperatorTable.DAYOFWEEK));
+      map.put("HOUR", simple(SqlStdOperatorTable.HOUR));
+      map.put("MINUTE", simple(SqlStdOperatorTable.MINUTE));
+      map.put("SECOND", simple(SqlStdOperatorTable.SECOND));
+
       map.put("RTRIM",
           new SimpleMakeCall(SqlStdOperatorTable.TRIM) {
             @Override public SqlCall createCall(SqlParserPos pos,
@@ -686,17 +725,43 @@ public class SqlJdbcFunctionCall extends SqlFunction {
               assert 1 == operands.length;
               return super.createCall(pos,
                   SqlTrimFunction.Flag.TRAILING.symbol(SqlParserPos.ZERO),
-                  SqlLiteral.createCharString(" ", null),
+                  SqlLiteral.createCharString(" ", SqlParserPos.ZERO),
                   operands[0]);
             }
           });
       map.put("SUBSTRING", simple(SqlStdOperatorTable.SUBSTRING));
+      map.put("REPLACE", simple(SqlStdOperatorTable.REPLACE));
       map.put("UCASE", simple(SqlStdOperatorTable.UPPER));
       map.put("CURDATE", simple(SqlStdOperatorTable.CURRENT_DATE));
       map.put("CURTIME", simple(SqlStdOperatorTable.LOCALTIME));
       map.put("NOW", simple(SqlStdOperatorTable.CURRENT_TIMESTAMP));
       map.put("TIMESTAMPADD", simple(SqlStdOperatorTable.TIMESTAMP_ADD));
       map.put("TIMESTAMPDIFF", simple(SqlStdOperatorTable.TIMESTAMP_DIFF));
+
+      map.put("DATABASE", simple(SqlStdOperatorTable.CURRENT_CATALOG));
+      map.put("IFNULL",
+          new SimpleMakeCall(SqlStdOperatorTable.COALESCE) {
+            @Override public SqlCall createCall(SqlParserPos pos,
+                SqlNode... operands) {
+              assert 2 == operands.length;
+              return super.createCall(pos, operands);
+            }
+          });
+      map.put("USER", simple(SqlStdOperatorTable.CURRENT_USER));
+      map.put("CONVERT",
+          new SimpleMakeCall(SqlStdOperatorTable.CAST) {
+            @Override public SqlCall createCall(SqlParserPos pos,
+                SqlNode... operands) {
+              assert 2 == operands.length;
+              SqlNode typeOperand = operands[1];
+              assert typeOperand.getKind() == SqlKind.LITERAL;
+
+              SqlJdbcDataTypeName jdbcType = ((SqlLiteral) typeOperand)
+                  .symbolValue(SqlJdbcDataTypeName.class);
+
+              return super.createCall(pos, operands[0], jdbcType.createDataType(typeOperand.pos));
+            }
+          });
       this.map = map.build();
     }
 

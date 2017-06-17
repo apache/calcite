@@ -40,8 +40,8 @@ user-friendly.
 
 ## Download source, build, and run tests
 
-Prerequisites are git, maven (3.2.1 or later) and Java (JDK 1.7 or
-later, 1.8 preferred) on your path.
+Prerequisites are git, maven (3.2.1 or later) and Java (JDK 7 or
+later, 8 preferred) on your path.
 
 Create a local copy of the git repository, `cd` to its root directory,
 then build using maven:

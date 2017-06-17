@@ -43,7 +43,11 @@ public class ParameterExpression extends Expression {
     this.name = name;
   }
 
-  @Override public Expression accept(Visitor visitor) {
+  @Override public Expression accept(Shuttle shuttle) {
+    return shuttle.visit(this);
+  }
+
+  public <R> R accept(Visitor<R> visitor) {
     return visitor.visit(this);
   }
 

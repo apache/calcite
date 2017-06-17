@@ -43,16 +43,19 @@ import java.util.List;
 public class SqlUserDefinedAggFunction extends SqlAggFunction {
   public final AggregateFunction function;
 
+  /** Creates a SqlUserDefinedAggFunction. */
   public SqlUserDefinedAggFunction(SqlIdentifier opName,
       SqlReturnTypeInference returnTypeInference,
       SqlOperandTypeInference operandTypeInference,
-      SqlOperandTypeChecker operandTypeChecker, AggregateFunction function) {
+      SqlOperandTypeChecker operandTypeChecker, AggregateFunction function,
+      boolean requiresOrder, boolean requiresOver) {
     super(Util.last(opName.names), opName, SqlKind.OTHER_FUNCTION,
         returnTypeInference, operandTypeInference, operandTypeChecker,
-        SqlFunctionCategory.USER_DEFINED_FUNCTION, false, false);
+        SqlFunctionCategory.USER_DEFINED_FUNCTION, requiresOrder, requiresOver);
     this.function = function;
   }
 
+  @SuppressWarnings("deprecation")
   public List<RelDataType> getParameterTypes(
       final RelDataTypeFactory typeFactory) {
     return Lists.transform(function.getParameters(),
@@ -63,6 +66,7 @@ public class SqlUserDefinedAggFunction extends SqlAggFunction {
         });
   }
 
+  @SuppressWarnings("deprecation")
   public RelDataType getReturnType(RelDataTypeFactory typeFactory) {
     return function.getReturnType(typeFactory);
   }

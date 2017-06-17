@@ -43,13 +43,17 @@ public class NewExpression extends Expression {
     this.memberDeclarations = memberDeclarations;
   }
 
-  @Override public Expression accept(Visitor visitor) {
-    visitor = visitor.preVisit(this);
+  @Override public Expression accept(Shuttle shuttle) {
+    shuttle = shuttle.preVisit(this);
     final List<Expression> arguments = Expressions.acceptExpressions(
-        this.arguments, visitor);
+        this.arguments, shuttle);
     final List<MemberDeclaration> memberDeclarations =
-        Expressions.acceptMemberDeclarations(this.memberDeclarations, visitor);
-    return visitor.visit(this, arguments, memberDeclarations);
+        Expressions.acceptMemberDeclarations(this.memberDeclarations, shuttle);
+    return shuttle.visit(this, arguments, memberDeclarations);
+  }
+
+  public <R> R accept(Visitor<R> visitor) {
+    return visitor.visit(this);
   }
 
   @Override void accept(ExpressionWriter writer, int lprec, int rprec) {

@@ -18,6 +18,7 @@ package org.apache.calcite.sql.advise;
 
 import org.apache.calcite.runtime.CalciteContextException;
 import org.apache.calcite.runtime.CalciteException;
+import org.apache.calcite.runtime.PredicateImpl;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlSelect;
@@ -33,7 +34,6 @@ import org.apache.calcite.sql.validate.SqlValidatorWithHints;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.trace.CalciteTrace;
 
-import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
@@ -44,6 +44,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 
 /**
  * An assistant which offers hints and corrections to a partially-formed SQL
@@ -54,7 +55,8 @@ public class SqlAdvisor {
 
   public static final Logger LOGGER = CalciteTrace.PARSER_LOGGER;
   private static final String HINT_TOKEN = "_suggest_";
-  private static final String UPPER_HINT_TOKEN = HINT_TOKEN.toUpperCase();
+  private static final String UPPER_HINT_TOKEN =
+      HINT_TOKEN.toUpperCase(Locale.ROOT);
 
   //~ Instance fields --------------------------------------------------------
 
@@ -238,16 +240,15 @@ public class SqlAdvisor {
   private static boolean isSelectListItem(SqlNode root,
       final SqlParserPos pos) {
     List<SqlNode> nodes = SqlUtil.getAncestry(root,
-        new Predicate<SqlNode>() {
-
-          public boolean apply(SqlNode input) {
+        new PredicateImpl<SqlNode>() {
+          public boolean test(SqlNode input) {
             return input instanceof SqlIdentifier
                 && Util.last(((SqlIdentifier) input).names)
                     .equals(UPPER_HINT_TOKEN);
           }
         },
-        new Predicate<SqlNode>() {
-          public boolean apply(SqlNode input) {
+        new PredicateImpl<SqlNode>() {
+          public boolean test(SqlNode input) {
             return input.getParserPosition().startsAt(pos);
           }
         });

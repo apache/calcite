@@ -42,6 +42,51 @@ order by sum1, sum2;
 
 !ok
 
+# [CALCITE-1540] Support multiple columns in PARTITION BY clause of window function
+select gender,deptno,
+  count(*) over (partition by gender,deptno) as count1
+from emp;
+
++--------+--------+--------+
+| GENDER | DEPTNO | COUNT1 |
++--------+--------+--------+
+| F      |     10 |      1 |
+| F      |     30 |      2 |
+| F      |     30 |      2 |
+| F      |     50 |      1 |
+| F      |     60 |      1 |
+| F      |        |      1 |
+| M      |     10 |      1 |
+| M      |     20 |      1 |
+| M      |     50 |      1 |
++--------+--------+--------+
+(9 rows)
+
+!ok
+
+# Partition by same column twice.
+# (It's degenerate, but I believe it's valid SQL.)
+select gender,deptno,
+  count(*) over (partition by gender,gender) as count1
+from emp;
+
++--------+--------+--------+
+| GENDER | DEPTNO | COUNT1 |
++--------+--------+--------+
+| F      |     10 |      6 |
+| F      |     30 |      6 |
+| F      |     30 |      6 |
+| F      |     50 |      6 |
+| F      |     60 |      6 |
+| F      |        |      6 |
+| M      |     10 |      3 |
+| M      |     20 |      3 |
+| M      |     50 |      3 |
++--------+--------+--------+
+(9 rows)
+
+!ok
+
 !if (false) {
 select *, first_value(deptno) over () from emp;
  ename | deptno | gender | first_value

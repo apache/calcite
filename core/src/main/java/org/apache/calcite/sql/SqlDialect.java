@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.sql;
 
+import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.rel.RelFieldCollation;
 
@@ -26,7 +27,7 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
 import java.util.List;
-import java.util.TimeZone;
+import java.util.Locale;
 import java.util.regex.Pattern;
 
 /**
@@ -183,7 +184,8 @@ public class SqlDialect {
   public static DatabaseProduct getProduct(
       String productName,
       String productVersion) {
-    final String upperProductName = productName.toUpperCase().trim();
+    final String upperProductName =
+        productName.toUpperCase(Locale.ROOT).trim();
     switch (upperProductName) {
     case "ACCESS":
       return DatabaseProduct.ACCESS;
@@ -417,6 +419,37 @@ public class SqlDialect {
     return getDatabaseProduct() == DatabaseProduct.POSTGRESQL;
   }
 
+  /** Returns whether a qualified table in the FROM clause has an implicit alias
+   * which consists of just the table name.
+   *
+   * <p>For example, in {@link DatabaseProduct#ORACLE}
+   *
+   * <blockquote>SELECT * FROM sales.emp</blockquote>
+   *
+   * <p>is equivalent to
+   *
+   * <blockquote>SELECT * FROM sales.emp AS emp</blockquote>
+   *
+   * <p>and therefore
+   *
+   * <blockquote>SELECT emp.empno FROM sales.emp</blockquote>
+   *
+   * <p>is valid. But {@link DatabaseProduct#DB2} does not have an implicit
+   * alias, so the previous query it not valid; you need to write
+   *
+   * <blockquote>SELECT sales.emp.empno FROM sales.emp</blockquote>
+   *
+   * <p>Returns true for all databases except DB2.
+   */
+  public boolean hasImplicitTableAlias() {
+    switch (databaseProduct) {
+    case DB2:
+      return false;
+    default:
+      return true;
+    }
+  }
+
   /**
    * Converts a timestamp to a SQL timestamp literal, e.g.
    * {@code TIMESTAMP '2009-12-17 12:34:56'}.
@@ -430,7 +463,7 @@ public class SqlDialect {
    * <blockquote><code>quoteTimestampLiteral(new Timestamp(0));</code>
    * </blockquote>
    *
-   * returns {@code TIMESTAMP '1970-01-01 00:00:00'}, regardless of the JVM's
+   * <p>returns {@code TIMESTAMP '1970-01-01 00:00:00'}, regardless of the JVM's
    * time zone.
    *
    * @param timestamp Timestamp
@@ -439,8 +472,9 @@ public class SqlDialect {
   public String quoteTimestampLiteral(Timestamp timestamp) {
     final SimpleDateFormat format =
         new SimpleDateFormat(
-            "'TIMESTAMP' ''yyyy-MM-DD HH:mm:SS''");
-    format.setTimeZone(TimeZone.getTimeZone("GMT"));
+            "'TIMESTAMP' ''yyyy-MM-DD HH:mm:SS''",
+            Locale.ROOT);
+    format.setTimeZone(DateTimeUtils.UTC_ZONE);
     return format.format(timestamp);
   }
 
@@ -460,12 +494,13 @@ public class SqlDialect {
    */
   public boolean supportsCharSet() {
     switch (databaseProduct) {
-    case MYSQL:
+    case DB2:
     case H2:
     case HSQLDB:
+    case MYSQL:
+    case ORACLE:
     case PHOENIX:
     case POSTGRESQL:
-    case ORACLE:
       return false;
     default:
       return true;

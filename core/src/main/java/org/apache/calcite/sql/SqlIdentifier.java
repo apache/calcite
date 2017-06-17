@@ -30,6 +30,7 @@ import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -140,12 +141,22 @@ public class SqlIdentifier extends SqlNode {
     return SqlKind.IDENTIFIER;
   }
 
-  public SqlNode clone(SqlParserPos pos) {
+  @Override public SqlNode clone(SqlParserPos pos) {
     return new SqlIdentifier(names, collation, pos, componentPositions);
   }
 
-  public String toString() {
-    return Util.sepList(Lists.transform(names, EMPTY_TO_STAR), ".");
+  @Override public String toString() {
+    return getString(names);
+  }
+
+  /** Converts a list of strings to a qualified identifier. */
+  public static String getString(List<String> names) {
+    return Util.sepList(toStar(names), ".");
+  }
+
+  /** Converts empty strings in a list of names to stars. */
+  public static List<String> toStar(List<String> names) {
+    return Lists.transform(names, EMPTY_TO_STAR);
   }
 
   /**
@@ -171,6 +182,21 @@ public class SqlIdentifier extends SqlNode {
     } else {
       return this;
     }
+  }
+
+  /** Returns an identifier that is the same as this except with a component
+   * added at a given position. Does not modify this identifier. */
+  public SqlIdentifier add(int i, String name, SqlParserPos pos) {
+    final List<String> names2 = new ArrayList<>(names);
+    names2.add(i, name);
+    final List<SqlParserPos> pos2;
+    if (componentPositions == null) {
+      pos2 = null;
+    } else {
+      pos2 = new ArrayList<>(componentPositions);
+      pos2.add(i, pos);
+    }
+    return new SqlIdentifier(names2, collation, pos, pos2);
   }
 
   /**
@@ -240,6 +266,16 @@ public class SqlIdentifier extends SqlNode {
       pos2 = pos;
     }
     return new SqlIdentifier(names, collation, pos2, componentPositions);
+  }
+
+  /**
+   * Creates an identifier that consists of this identifier plus a wildcard star.
+   * Does not modify this identifier.
+   */
+  public SqlIdentifier plusStar() {
+    final SqlIdentifier id = this.plus("*", SqlParserPos.ZERO);
+    return new SqlIdentifier(Lists.transform(id.names, STAR_TO_EMPTY), null, id.pos,
+        id.componentPositions);
   }
 
   /** Creates an identifier that consists of all but the last {@code n}

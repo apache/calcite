@@ -22,6 +22,8 @@ import org.apache.calcite.rel.type.RelDataTypeImpl;
 import org.apache.calcite.rel.type.RelProtoDataType;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.TableFactory;
+import org.apache.calcite.util.Source;
+import org.apache.calcite.util.Sources;
 
 import java.io.File;
 import java.util.Map;
@@ -47,9 +49,10 @@ public class CsvStreamTableFactory implements TableFactory<CsvTable> {
     if (base != null && !file.isAbsolute()) {
       file = new File(base, fileName);
     }
+    final Source source = Sources.of(file);
     final RelProtoDataType protoRowType =
         rowType != null ? RelDataTypeImpl.proto(rowType) : null;
-    return new CsvStreamScannableTable(file, protoRowType);
+    return new CsvStreamScannableTable(source, protoRowType);
   }
 }
 

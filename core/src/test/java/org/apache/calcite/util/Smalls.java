@@ -47,7 +47,10 @@ import com.google.common.collect.ImmutableList;
 
 import java.lang.reflect.Method;
 import java.util.AbstractList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
@@ -263,7 +266,7 @@ public class Smalls {
             return typeFactory.builder().add("c", SqlTypeName.INTEGER)
                 .build();
           }
-        }, "values (1), (3), " + s, ImmutableList.<String>of());
+        }, "values (1), (3), " + s, ImmutableList.<String>of(), Arrays.asList("view"));
   }
 
   public static TranslatableTable str(Object o, Object p) {
@@ -278,7 +281,7 @@ public class Smalls {
         },
         "values " + SqlDialect.CALCITE.quoteStringLiteral(o.toString())
             + ", " + SqlDialect.CALCITE.quoteStringLiteral(p.toString()),
-        ImmutableList.<String>of());
+        ImmutableList.<String>of(), Arrays.asList("view"));
   }
 
   /** Class with int and String fields. */
@@ -299,7 +302,29 @@ public class Smalls {
   /** Example of a UDF with a non-static {@code eval} method,
    * and named parameters. */
   public static class MyPlusFunction {
-    public int eval(@Parameter(name = "x") int x, @Parameter(name = "y") int y) {
+    public static final AtomicInteger INSTANCE_COUNT = new AtomicInteger(0);
+
+    // Note: Not marked @Deterministic
+    public MyPlusFunction() {
+      INSTANCE_COUNT.incrementAndGet();
+    }
+
+    public int eval(@Parameter(name = "x") int x,
+        @Parameter(name = "y") int y) {
+      return x + y;
+    }
+  }
+
+  /** As {@link MyPlusFunction} but declared to be deterministic. */
+  public static class MyDeterministicPlusFunction {
+    public static final AtomicInteger INSTANCE_COUNT = new AtomicInteger(0);
+
+    @Deterministic public MyDeterministicPlusFunction() {
+      INSTANCE_COUNT.incrementAndGet();
+    }
+
+    public int eval(@Parameter(name = "x") int x,
+        @Parameter(name = "y") int y) {
       return x + y;
     }
   }
@@ -403,7 +428,7 @@ public class Smalls {
     private MultipleFunction() {}
 
     // Three overloads
-    public static String fun1(String x) { return x.toLowerCase(); }
+    public static String fun1(String x) { return x.toLowerCase(Locale.ROOT); }
     public static int fun1(int x) { return x * 2; }
     public static int fun1(int x, int y) { return x + y; }
 
@@ -464,6 +489,38 @@ public class Smalls {
       return accumulator0 + accumulator1;
     }
     public long result(long accumulator) {
+      return accumulator;
+    }
+  }
+
+  /** A generic interface for defining user defined aggregate functions */
+  private interface MyGenericAggFunction<A, V, R> {
+    A init();
+
+    A add(A accumulator, V val);
+
+    A merge(A accumulator1, A accumulator2);
+
+    R result(A accumulator);
+  }
+
+  /** Example of a user-defined aggregate function that implements a generic
+   * interface. */
+  public static class MySum3
+      implements MyGenericAggFunction<Integer, Integer, Integer> {
+    public Integer init() {
+      return 0;
+    }
+
+    public Integer add(Integer accumulator, Integer val) {
+      return accumulator + val;
+    }
+
+    public Integer merge(Integer accumulator1, Integer accumulator2) {
+      return accumulator1 + accumulator2;
+    }
+
+    public Integer result(Integer accumulator) {
       return accumulator;
     }
   }
@@ -559,19 +616,24 @@ public class Smalls {
     }
 
     public static ScannableTable generate(int width, int height, int seed) {
-      return new MazeTable(String.format("generate(w=%d, h=%d, s=%d)", width, height, seed));
+      return new MazeTable(
+          String.format(Locale.ROOT, "generate(w=%d, h=%d, s=%d)", width,
+              height, seed));
     }
 
     public static ScannableTable generate2(
         @Parameter(name = "WIDTH") int width,
         @Parameter(name = "HEIGHT") int height,
         @Parameter(name = "SEED", optional = true) Integer seed) {
-      return new MazeTable(String.format("generate2(w=%d, h=%d, s=%d)", width, height, seed));
+      return new MazeTable(
+          String.format(Locale.ROOT, "generate2(w=%d, h=%d, s=%d)", width,
+              height, seed));
     }
 
     public static ScannableTable generate3(
         @Parameter(name = "FOO") String foo) {
-      return new MazeTable(String.format("generate3(foo=%s)", foo));
+      return new MazeTable(
+          String.format(Locale.ROOT, "generate3(foo=%s)", foo));
     }
 
     public RelDataType getRowType(RelDataTypeFactory typeFactory) {

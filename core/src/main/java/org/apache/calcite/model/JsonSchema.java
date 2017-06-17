@@ -55,8 +55,8 @@ public abstract class JsonSchema {
    *
    * <blockquote><pre>path: [ ['usr', 'lib'], 'lib' ]</pre></blockquote>
    *
-   * <p>declares a path with two elements: the schema ‘/usr/lib’ and the schema
-   * ‘/lib’. Most schemas are at the top level, and for these you can use a
+   * <p>declares a path with two elements: the schema '/usr/lib' and the schema
+   * '/lib'. Most schemas are at the top level, and for these you can use a
    * string.
    */
   public List<Object> path;
@@ -106,7 +106,6 @@ public abstract class JsonSchema {
 
   /** Built-in schema types. */
   public enum Type {
-    NONE,
     MAP,
     JDBC,
     CUSTOM

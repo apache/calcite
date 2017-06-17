@@ -45,7 +45,7 @@ public class ReflectVisitorTest {
     Number result;
 
     // verify that negater is capable of handling integers
-    result = negater.negate(new Integer(5));
+    result = negater.negate(5);
     assertEquals(
         -5,
         result.intValue());
@@ -60,7 +60,7 @@ public class ReflectVisitorTest {
 
     // verify that negater is capable of handling integers,
     // and that result comes back with same type
-    result = negater.negate(new Integer(5));
+    result = negater.negate(5);
     assertEquals(
         -5,
         result.intValue());
@@ -69,9 +69,9 @@ public class ReflectVisitorTest {
     // verify that negater is capable of handling longs;
     // even though it doesn't provide an explicit implementation,
     // it should inherit the one from CarelessNumberNegater
-    result = negater.negate(new Long(5));
+    result = negater.negate(5L);
     assertEquals(
-        -5,
+        -5L,
         result.longValue());
   }
 
@@ -84,14 +84,14 @@ public class ReflectVisitorTest {
 
     // verify that negater is capable of handling shorts,
     // and that result comes back with same type
-    result = negater.negate(new Short((short) 5));
+    result = negater.negate((short) 5);
     assertEquals(
         -5,
         result.shortValue());
     assertTrue(result instanceof Short);
 
     // verify that negater is NOT capable of handling integers
-    result = negater.negate(new Integer(5));
+    result = negater.negate(5);
     assertEquals(null, result);
   }
 
@@ -106,7 +106,7 @@ public class ReflectVisitorTest {
       result = negater.negate(new AmbiguousNumber());
     } catch (IllegalArgumentException ex) {
       // expected
-      assertTrue(ex.getMessage().indexOf("ambiguity") > -1);
+      assertTrue(ex.getMessage().contains("ambiguity"));
       return;
     }
     fail("Expected failure due to ambiguity");
@@ -207,7 +207,7 @@ public class ReflectVisitorTest {
    */
   public class CarelessNumberNegater extends NumberNegater {
     public void visit(Number n) {
-      result = new Double(-n.doubleValue());
+      result = -n.doubleValue();
     }
   }
 
@@ -219,11 +219,13 @@ public class ReflectVisitorTest {
    */
   public class CarefulNumberNegater extends CarelessNumberNegater {
     public void visit(Integer i) {
-      result = new Integer(-i.intValue());
+      result = -i;
+      assert result instanceof Integer;
     }
 
     public void visit(Short s) {
-      result = new Short((short) (-s.shortValue()));
+      result = -s;
+      assert result instanceof Short;
     }
 
     // ... imagine implementations for other Number subclasses here ...
@@ -237,11 +239,12 @@ public class ReflectVisitorTest {
    */
   public class CluelessNumberNegater extends NumberNegater {
     public void visit(Object obj) {
-      result = new Integer(42);
+      result = 42;
     }
 
     public void visit(Short s) {
-      result = new Short((short) (-s.shortValue()));
+      result = (short) -s;
+      assert result instanceof Short;
     }
   }
 
@@ -266,7 +269,8 @@ public class ReflectVisitorTest {
     }
 
     public void visit(AmbiguousNumber n) {
-      result = new Double(-n.doubleValue());
+      result = -n.doubleValue();
+      assert result instanceof Double;
     }
   }
 

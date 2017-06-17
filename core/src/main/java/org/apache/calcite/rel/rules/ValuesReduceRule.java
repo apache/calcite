@@ -21,6 +21,7 @@ import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptRuleOperand;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.Values;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.logical.LogicalValues;
@@ -56,6 +57,9 @@ import java.util.List;
  * <p>becomes</p>
  *
  * <blockquote><code>select x from (values (-2), (-4))</code></blockquote>
+ *
+ * <p>Ignores an empty {@code Values}; this is better dealt with by
+ * {@link PruneEmptyRules}.
  */
 public abstract class ValuesReduceRule extends RelOptRule {
   //~ Static fields/initializers ---------------------------------------------
@@ -69,7 +73,7 @@ public abstract class ValuesReduceRule extends RelOptRule {
   public static final ValuesReduceRule FILTER_INSTANCE =
       new ValuesReduceRule(
           operand(LogicalFilter.class,
-              operand(LogicalValues.class, none())),
+              operand(LogicalValues.class, null, Values.IS_NOT_EMPTY, none())),
           "ValuesReduceRule(Filter)") {
         public void onMatch(RelOptRuleCall call) {
           LogicalFilter filter = call.rel(0);
@@ -85,7 +89,7 @@ public abstract class ValuesReduceRule extends RelOptRule {
   public static final ValuesReduceRule PROJECT_INSTANCE =
       new ValuesReduceRule(
           operand(LogicalProject.class,
-              operand(LogicalValues.class, none())),
+              operand(LogicalValues.class, null, Values.IS_NOT_EMPTY, none())),
           "ValuesReduceRule(Project)") {
         public void onMatch(RelOptRuleCall call) {
           LogicalProject project = call.rel(0);
@@ -102,7 +106,8 @@ public abstract class ValuesReduceRule extends RelOptRule {
       new ValuesReduceRule(
           operand(LogicalProject.class,
               operand(LogicalFilter.class,
-                  operand(LogicalValues.class, none()))),
+                  operand(LogicalValues.class, null, Values.IS_NOT_EMPTY,
+                      none()))),
           "ValuesReduceRule(Project-Filter)") {
         public void onMatch(RelOptRuleCall call) {
           LogicalProject project = call.rel(0);
@@ -145,7 +150,7 @@ public abstract class ValuesReduceRule extends RelOptRule {
     RexBuilder rexBuilder = values.getCluster().getRexBuilder();
 
     // Find reducible expressions.
-    List<RexNode> reducibleExps = new ArrayList<RexNode>();
+    final List<RexNode> reducibleExps = new ArrayList<>();
     final MyRexShuttle shuttle = new MyRexShuttle();
     for (final List<RexLiteral> literalList : values.getTuples()) {
       shuttle.literalList = literalList;

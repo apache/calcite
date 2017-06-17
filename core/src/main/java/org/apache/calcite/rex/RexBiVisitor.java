@@ -47,6 +47,10 @@ public interface RexBiVisitor<R, P> {
   R visitFieldAccess(RexFieldAccess fieldAccess, P arg);
 
   R visitSubQuery(RexSubQuery subQuery, P arg);
+
+  R visitTableInputRef(RexTableInputRef ref, P arg);
+
+  R visitPatternFieldRef(RexPatternFieldRef ref, P arg);
 }
 
 // End RexBiVisitor.java

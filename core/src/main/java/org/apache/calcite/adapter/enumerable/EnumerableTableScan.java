@@ -127,6 +127,13 @@ public class EnumerableTableScan
     }
   }
 
+  public static JavaRowFormat deduceFormat(RelOptTable table) {
+    final Class elementType = deduceElementType(table.unwrap(Table.class));
+    return elementType == Object[].class
+        ? JavaRowFormat.ARRAY
+        : JavaRowFormat.CUSTOM;
+  }
+
   private Expression getExpression(PhysType physType) {
     final Expression expression = table.getExpression(Queryable.class);
     final Expression expression2 = toEnumerable(expression);
@@ -184,7 +191,8 @@ public class EnumerableTableScan
 
   private Expression fieldExpression(ParameterExpression row_, int i,
       PhysType physType, JavaRowFormat format) {
-    final Expression e = format.field(row_, i, physType.getJavaFieldType(i));
+    final Expression e =
+        format.field(row_, i, null, physType.getJavaFieldType(i));
     final RelDataType relFieldType =
         physType.getRowType().getFieldList().get(i).getType();
     switch (relFieldType.getSqlTypeName()) {

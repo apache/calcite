@@ -17,7 +17,8 @@
 package org.apache.calcite.sql.validate;
 
 import org.apache.calcite.sql.SqlIdentifier;
-import org.apache.calcite.util.Util;
+
+import com.google.common.base.Preconditions;
 
 import java.util.List;
 
@@ -36,8 +37,7 @@ public class SqlIdentifierMoniker implements SqlMoniker {
    * Creates an SqlIdentifierMoniker.
    */
   public SqlIdentifierMoniker(SqlIdentifier id) {
-    Util.pre(id != null, "id != null");
-    this.id = id;
+    this.id = Preconditions.checkNotNull(id);
   }
 
   //~ Methods ----------------------------------------------------------------

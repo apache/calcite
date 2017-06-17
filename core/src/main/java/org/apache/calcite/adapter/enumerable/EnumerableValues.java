@@ -58,7 +58,7 @@ public class EnumerableValues extends Values implements EnumerableRel {
   public static EnumerableValues create(RelOptCluster cluster,
       final RelDataType rowType,
       final ImmutableList<ImmutableList<RexLiteral>> tuples) {
-    final RelMetadataQuery mq = RelMetadataQuery.instance();
+    final RelMetadataQuery mq = cluster.getMetadataQuery();
     final RelTraitSet traitSet =
         cluster.traitSetOf(EnumerableConvention.INSTANCE)
             .replaceIfs(RelCollationTraitDef.INSTANCE,

@@ -24,27 +24,27 @@ import java.util.Map;
  * <p>A schema factory allows you to include a custom schema in a model file.
  * For example, here is a model that contains a custom schema whose tables
  * read CSV files. (See the
- * <a href="https://github.com/julianhyde/optiq-csv">optiq-csv</a> for more
- * details about this particular adapter.)</p>
+ * <a href="http://calcite.apache.org/apidocs/org/apache/calcite/adapter/csv/package-summary.html">example CSV adapter</a>
+ * for more details about this particular adapter.)
  *
  * <pre>{@code
  * {
- *   version: '1.0',
- *   defaultSchema: 'SALES',
- *   schemas: [
+ *   "version": "1.0",
+ *   "defaultSchema": "SALES",
+ *   "schemas": [
  *     {
- *       name: 'SALES',
- *       type: 'custom',
- *       factory: 'org.apache.calcite.adapter.csv.CsvSchemaFactory',
- *       mutable: true,
- *       operand: {
- *         directory: 'target/test-classes/sales'
+ *       "name": "SALES",
+ *       "type": "custom",
+ *       "factory": "org.apache.calcite.adapter.csv.CsvSchemaFactory",
+ *       "mutable": true,
+ *       "operand": {
+ *         directory: "target/test-classes/sales"
  *       },
- *       tables: [
+ *       "tables": [
  *         {
- *           name: 'FEMALE_EMPS',
- *           type: 'view',
- *           sql: 'SELECT * FROM emps WHERE gender = \'F\''
+ *           "name": "FEMALE_EMPS",
+ *           "type": "view",
+ *           "sql": "SELECT * FROM emps WHERE gender = 'F'"
  *          }
  *       ]
  *     }
@@ -55,10 +55,10 @@ import java.util.Map;
  *
  * <p>If you do not wish to allow model authors to add additional tables
  * (including views) to an instance of your schema, specify
- * 'mutable: false'.</p>
+ * 'mutable: false'.
  *
  * <p>A class that implements SchemaFactory specified in a schema must have a
- * public default constructor.</p>
+ * public default constructor.
  */
 public interface SchemaFactory {
   /** Creates a Schema.

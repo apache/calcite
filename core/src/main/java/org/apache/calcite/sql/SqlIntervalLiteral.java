@@ -84,6 +84,7 @@ public class SqlIntervalLiteral extends SqlLiteral {
     writer.keyword(interval.intervalQualifier.toString());
   }
 
+  @SuppressWarnings("deprecation")
   public int signum() {
     return ((IntervalValue) value).signum();
   }

@@ -31,9 +31,6 @@ import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlOperandCountRanges;
 import org.apache.calcite.sql.type.SqlTypeUtil;
-import org.apache.calcite.util.Util;
-
-import java.util.List;
 
 /**
  * An operator describing the <code>LIKE</code> and <code>SIMILAR</code>
@@ -76,7 +73,7 @@ public class SqlLikeOperator extends SqlSpecialOperator {
     super(
         name,
         kind,
-        30,
+        32,
         false,
         ReturnTypes.BOOLEAN_NULLABLE,
         InferTypes.FIRST_KNOWN,
@@ -121,8 +118,8 @@ public class SqlLikeOperator extends SqlSpecialOperator {
       // enforce the escape character length to be 1
       break;
     default:
-      throw Util.newInternal(
-          "unexpected number of args to " + callBinding.getCall());
+      throw new AssertionError("unexpected number of args to "
+          + callBinding.getCall() + ": " + callBinding.getOperandCount());
     }
 
     return SqlTypeUtil.isCharTypeComparable(
@@ -148,16 +145,15 @@ public class SqlLikeOperator extends SqlSpecialOperator {
     writer.endList(frame);
   }
 
-  public int reduceExpr(
+  public ReduceResult reduceExpr(
       final int opOrdinal,
-      List<Object> list) {
+      TokenSequence list) {
     // Example:
     //   a LIKE b || c ESCAPE d || e AND f
     // |  |    |      |      |      |
     //  exp0    exp1          exp2
-    SqlNode exp0 = (SqlNode) list.get(opOrdinal - 1);
-    SqlOperator op =
-        ((SqlParserUtil.ToTreeListItem) list.get(opOrdinal)).getOperator();
+    SqlNode exp0 = list.node(opOrdinal - 1);
+    SqlOperator op = list.op(opOrdinal);
     assert op instanceof SqlLikeOperator;
     SqlNode exp1 =
         SqlParserUtil.toTreeEx(
@@ -167,10 +163,8 @@ public class SqlLikeOperator extends SqlSpecialOperator {
             SqlKind.ESCAPE);
     SqlNode exp2 = null;
     if ((opOrdinal + 2) < list.size()) {
-      final Object o = list.get(opOrdinal + 2);
-      if (o instanceof SqlParserUtil.ToTreeListItem) {
-        final SqlOperator op2 =
-            ((SqlParserUtil.ToTreeListItem) o).getOperator();
+      if (list.isOp(opOrdinal + 2)) {
+        final SqlOperator op2 = list.op(opOrdinal + 2);
         if (op2.getKind() == SqlKind.ESCAPE) {
           exp2 =
               SqlParserUtil.toTreeEx(
@@ -191,8 +185,7 @@ public class SqlLikeOperator extends SqlSpecialOperator {
       end = opOrdinal + 2;
     }
     SqlCall call = createCall(SqlParserPos.ZERO, operands);
-    SqlParserUtil.replaceSublist(list, opOrdinal - 1, end, call);
-    return opOrdinal - 1;
+    return new ReduceResult(opOrdinal - 1, end, call);
   }
 }
 

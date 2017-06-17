@@ -23,14 +23,17 @@ import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.runtime.ArrayBindable;
+import org.apache.calcite.util.Util;
 import org.apache.calcite.util.javac.JaninoCompiler;
 
 import org.apache.spark.api.java.JavaSparkContext;
 
 import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.Serializable;
+import java.io.Writer;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
 import java.util.Calendar;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -61,7 +64,7 @@ public class SparkHandlerImpl implements CalcitePrepare.SparkHandler {
     // Generate a starting point for class names that is unlikely to clash with
     // previous classes. A better solution would be to clear the class directory
     // on startup.
-    final Calendar calendar = Calendar.getInstance();
+    final Calendar calendar = Util.calendar();
     classId = new AtomicInteger(
         calendar.get(Calendar.HOUR_OF_DAY) * 10000
         + calendar.get(Calendar.MINUTE) * 100
@@ -102,10 +105,9 @@ public class SparkHandlerImpl implements CalcitePrepare.SparkHandler {
   }
 
   public ArrayBindable compile(ClassDeclaration expr, String s) {
-    try {
-      String className = "CalciteProgram" + classId.getAndIncrement();
-      File file = new File(SRC_DIR, className + ".java");
-      FileWriter fileWriter = new FileWriter(file, false);
+    final String className = "CalciteProgram" + classId.getAndIncrement();
+    final File file = new File(SRC_DIR, className + ".java");
+    try (Writer w = Util.printWriter(file)) {
       String source = "public class " + className + "\n"
           + "    implements " + ArrayBindable.class.getName()
           + ", " + Serializable.class.getName()
@@ -117,23 +119,21 @@ public class SparkHandlerImpl implements CalcitePrepare.SparkHandler {
       System.out.println(source);
       System.out.println("======================");
 
-      fileWriter.write(source);
-      fileWriter.close();
+      w.write(source);
+      w.close();
       JaninoCompiler compiler = new JaninoCompiler();
       compiler.getArgs().setDestdir(CLASS_DIR.getAbsolutePath());
       compiler.getArgs().setSource(source, file.getAbsolutePath());
       compiler.getArgs().setFullClassName(className);
       compiler.compile();
-      Class<?> clazz = Class.forName(className);
-      Object o = clazz.newInstance();
-      return (ArrayBindable) o;
-    } catch (IOException e) {
-      throw new RuntimeException(e);
-    } catch (ClassNotFoundException e) {
-      throw new RuntimeException(e);
-    } catch (InstantiationException e) {
-      throw new RuntimeException(e);
-    } catch (IllegalAccessException e) {
+      @SuppressWarnings("unchecked")
+      final Class<ArrayBindable> clazz =
+          (Class<ArrayBindable>) Class.forName(className);
+      final Constructor<ArrayBindable> constructor = clazz.getConstructor();
+      return constructor.newInstance();
+    } catch (IOException | ClassNotFoundException | InstantiationException
+        | IllegalAccessException | NoSuchMethodException
+        | InvocationTargetException e) {
       throw new RuntimeException(e);
     }
   }

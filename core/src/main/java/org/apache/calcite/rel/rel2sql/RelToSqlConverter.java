@@ -25,6 +25,8 @@ import org.apache.calcite.rel.core.Calc;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Intersect;
 import org.apache.calcite.rel.core.Join;
+import org.apache.calcite.rel.core.JoinRelType;
+import org.apache.calcite.rel.core.Match;
 import org.apache.calcite.rel.core.Minus;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.Sort;
@@ -33,37 +35,51 @@ import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rel.core.Values;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexLocalRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.sql.JoinConditionType;
+import org.apache.calcite.sql.JoinType;
+import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlDelete;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlIdentifier;
+import org.apache.calcite.sql.SqlInsert;
 import org.apache.calcite.sql.SqlJoin;
 import org.apache.calcite.sql.SqlLiteral;
+import org.apache.calcite.sql.SqlMatchRecognize;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlSelect;
+import org.apache.calcite.sql.SqlUpdate;
+import org.apache.calcite.sql.fun.SqlRowOperator;
 import org.apache.calcite.sql.fun.SqlSingleValueAggFunction;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
-import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.ReflectUtil;
 import org.apache.calcite.util.ReflectiveVisitor;
 
+import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Lists;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.SortedSet;
 
 /**
  * Utility to convert relational expressions to SQL abstract syntax tree.
  */
 public class RelToSqlConverter extends SqlImplementor
     implements ReflectiveVisitor {
+  /** Similar to {@link SqlStdOperatorTable#ROW}, but does not print "ROW". */
+  private static final SqlRowOperator ANONYMOUS_ROW = new SqlRowOperator(" ");
 
   private final ReflectUtil.MethodDispatcher<Result> dispatcher;
 
@@ -91,33 +107,52 @@ public class RelToSqlConverter extends SqlImplementor
 
   /** @see #dispatch */
   public Result visit(Join e) {
-    final Result leftResult = visitChild(0, e.getLeft());
-    final Result rightResult = visitChild(1, e.getRight());
+    final Result leftResult = visitChild(0, e.getLeft()).resetAlias();
+    final Result rightResult = visitChild(1, e.getRight()).resetAlias();
     final Context leftContext = leftResult.qualifiedContext();
-    final Context rightContext =
-        rightResult.qualifiedContext();
-    SqlNode sqlCondition = convertConditionToSqlNode(e.getCondition(),
-        leftContext,
-        rightContext,
-        e.getLeft().getRowType().getFieldCount());
+    final Context rightContext = rightResult.qualifiedContext();
+    SqlNode sqlCondition = null;
+    SqlLiteral condType = JoinConditionType.ON.symbol(POS);
+    JoinType joinType = joinType(e.getJoinType());
+    if (e.getJoinType() == JoinRelType.INNER && e.getCondition().isAlwaysTrue()) {
+      joinType = JoinType.COMMA;
+      condType = JoinConditionType.NONE.symbol(POS);
+    } else {
+      sqlCondition = convertConditionToSqlNode(e.getCondition(),
+          leftContext,
+          rightContext,
+          e.getLeft().getRowType().getFieldCount());
+    }
     SqlNode join =
         new SqlJoin(POS,
             leftResult.asFrom(),
             SqlLiteral.createBoolean(false, POS),
-            joinType(e.getJoinType()).symbol(POS),
+            joinType.symbol(POS),
             rightResult.asFrom(),
-            JoinConditionType.ON.symbol(POS),
+            condType,
             sqlCondition);
     return result(join, leftResult, rightResult);
   }
 
   /** @see #dispatch */
   public Result visit(Filter e) {
-    Result x = visitChild(0, e.getInput());
-    final Builder builder =
-        x.builder(e, Clause.WHERE);
-    builder.setWhere(builder.context.toSql(null, e.getCondition()));
-    return builder.result();
+    final RelNode input = e.getInput();
+    Result x = visitChild(0, input);
+    if (input instanceof Aggregate) {
+      final Builder builder;
+      if (((Aggregate) input).getInput() instanceof Project) {
+        builder = x.builder(e);
+        builder.clauses.add(Clause.HAVING);
+      } else {
+        builder = x.builder(e, Clause.HAVING);
+      }
+      builder.setHaving(builder.context.toSql(null, e.getCondition()));
+      return builder.result();
+    } else {
+      final Builder builder = x.builder(e, Clause.WHERE);
+      builder.setWhere(builder.context.toSql(null, e.getCondition()));
+      return builder.result();
+    }
   }
 
   /** @see #dispatch */
@@ -177,7 +212,7 @@ public class RelToSqlConverter extends SqlImplementor
   public Result visit(TableScan e) {
     final SqlIdentifier identifier =
         new SqlIdentifier(e.getTable().getQualifiedName(), SqlParserPos.ZERO);
-    return result(identifier, Collections.singletonList(Clause.FROM), e);
+    return result(identifier, ImmutableList.of(Clause.FROM), e, null);
   }
 
   /** @see #dispatch */
@@ -227,35 +262,15 @@ public class RelToSqlConverter extends SqlImplementor
 
   /** @see #dispatch */
   public Result visit(Values e) {
-    final List<String> fields = e.getRowType().getFieldNames();
-    final List<Clause> clauses = Collections.singletonList(Clause.SELECT);
-    final List<Pair<String, RelDataType>> pairs = ImmutableList.of();
+    final List<Clause> clauses = ImmutableList.of(Clause.SELECT);
+    final Map<String, RelDataType> pairs = ImmutableMap.of();
     final Context context = aliasContext(pairs, false);
-    final List<SqlSelect> selects = new ArrayList<>();
+    final SqlNodeList selects = new SqlNodeList(POS);
     for (List<RexLiteral> tuple : e.getTuples()) {
-      final List<SqlNode> selectList = new ArrayList<>();
-      for (Pair<RexLiteral, String> literal : Pair.zip(tuple, fields)) {
-        selectList.add(
-            SqlStdOperatorTable.AS.createCall(
-                POS,
-                context.toSql(null, literal.left),
-                new SqlIdentifier(literal.right, POS)));
-      }
-      selects.add(
-          new SqlSelect(POS, SqlNodeList.EMPTY,
-              new SqlNodeList(selectList, POS), null, null, null,
-              null, null, null, null, null));
+      selects.add(ANONYMOUS_ROW.createCall(exprList(context, tuple)));
     }
-    SqlNode query = null;
-    for (SqlSelect select : selects) {
-      if (query == null) {
-        query = select;
-      } else {
-        query = SqlStdOperatorTable.UNION_ALL.createCall(POS, query,
-            select);
-      }
-    }
-    return result(query, clauses, e);
+    SqlNode query = SqlStdOperatorTable.VALUES.createCall(selects);
+    return result(query, clauses, e, null);
   }
 
   /** @see #dispatch */
@@ -284,20 +299,178 @@ public class RelToSqlConverter extends SqlImplementor
   }
 
   /** @see #dispatch */
-  public Result visit(TableModify e) {
-    throw new AssertionError("not implemented: " + e);
+  public Result visit(TableModify modify) {
+    final Map<String, RelDataType> pairs = ImmutableMap.of();
+    final Context context = aliasContext(pairs, false);
+
+    // Target Table Name
+    final SqlIdentifier sqlTargetTable =
+      new SqlIdentifier(modify.getTable().getQualifiedName(), POS);
+
+    switch (modify.getOperation()) {
+    case INSERT: {
+      // Convert the input to a SELECT query or keep as VALUES. Not all
+      // dialects support naked VALUES, but all support VALUES inside INSERT.
+      final SqlNode sqlSource =
+          visitChild(0, modify.getInput()).asQueryOrValues();
+
+      final SqlInsert sqlInsert =
+          new SqlInsert(POS, SqlNodeList.EMPTY, sqlTargetTable, sqlSource,
+              identifierList(modify.getInput().getRowType().getFieldNames()));
+
+      return result(sqlInsert, ImmutableList.<Clause>of(), modify, null);
+    }
+    case UPDATE: {
+      final Result input = visitChild(0, modify.getInput());
+
+      final SqlUpdate sqlUpdate =
+          new SqlUpdate(POS, sqlTargetTable,
+              identifierList(modify.getUpdateColumnList()),
+              exprList(context, modify.getSourceExpressionList()),
+              ((SqlSelect) input.node).getWhere(), input.asSelect(),
+              null);
+
+      return result(sqlUpdate, input.clauses, modify, null);
+    }
+    case DELETE: {
+      final Result input = visitChild(0, modify.getInput());
+
+      final SqlDelete sqlDelete =
+          new SqlDelete(POS, sqlTargetTable,
+              input.asSelect().getWhere(), input.asSelect(), null);
+
+      return result(sqlDelete, input.clauses, modify, null);
+    }
+    case MERGE:
+    default:
+      throw new AssertionError("not implemented: " + modify);
+    }
+  }
+
+  /** Converts a list of {@link RexNode} expressions to {@link SqlNode}
+   * expressions. */
+  private SqlNodeList exprList(final Context context,
+      List<? extends RexNode> exprs) {
+    return new SqlNodeList(
+        Lists.transform(exprs,
+            new Function<RexNode, SqlNode>() {
+              public SqlNode apply(RexNode e) {
+                return context.toSql(null, e);
+              }
+            }), POS);
+  }
+
+  /** Converts a list of names expressions to a list of single-part
+   * {@link SqlIdentifier}s. */
+  private SqlNodeList identifierList(List<String> names) {
+    return new SqlNodeList(
+        Lists.transform(names,
+            new Function<String, SqlNode>() {
+              public SqlNode apply(String name) {
+                return new SqlIdentifier(name, POS);
+              }
+            }), POS);
+  }
+
+  /** @see #dispatch */
+  public Result visit(Match e) {
+    final RelNode input = e.getInput();
+    final Result x = visitChild(0, input);
+    final Context context = matchRecognizeContext(x.qualifiedContext());
+
+    SqlNode tableRef = x.asQueryOrValues();
+
+    final List<SqlNode> partitionSqlList = new ArrayList<>();
+    if (e.getPartitionKeys() != null) {
+      for (RexNode rex : e.getPartitionKeys()) {
+        SqlNode sqlNode = context.toSql(null, rex);
+        partitionSqlList.add(sqlNode);
+      }
+    }
+    final SqlNodeList partitionList = new SqlNodeList(partitionSqlList, POS);
+
+    final List<SqlNode> orderBySqlList = new ArrayList<>();
+    if (e.getOrderKeys() != null) {
+      for (RelFieldCollation fc : e.getOrderKeys().getFieldCollations()) {
+        if (fc.nullDirection != RelFieldCollation.NullDirection.UNSPECIFIED
+            && dialect.getDatabaseProduct() == SqlDialect.DatabaseProduct.MYSQL) {
+          orderBySqlList.add(
+              ISNULL_FUNCTION.createCall(POS, context.field(fc.getFieldIndex())));
+          fc = new RelFieldCollation(fc.getFieldIndex(), fc.getDirection(),
+              RelFieldCollation.NullDirection.UNSPECIFIED);
+        }
+        orderBySqlList.add(context.toSql(fc));
+      }
+    }
+    final SqlNodeList orderByList = new SqlNodeList(orderBySqlList, SqlParserPos.ZERO);
+
+    final SqlLiteral rowsPerMatch = e.isAllRows()
+        ? SqlMatchRecognize.RowsPerMatchOption.ALL_ROWS.symbol(POS)
+        : SqlMatchRecognize.RowsPerMatchOption.ONE_ROW.symbol(POS);
+
+    final SqlNode after;
+    if (e.getAfter() instanceof RexLiteral) {
+      SqlMatchRecognize.AfterOption value = (SqlMatchRecognize.AfterOption)
+          ((RexLiteral) e.getAfter()).getValue2();
+      after = SqlLiteral.createSymbol(value, POS);
+    } else {
+      RexCall call = (RexCall) e.getAfter();
+      String operand = RexLiteral.stringValue(call.getOperands().get(0));
+      after = call.getOperator().createCall(POS, new SqlIdentifier(operand, POS));
+    }
+
+    RexNode rexPattern = e.getPattern();
+    final SqlNode pattern = context.toSql(null, rexPattern);
+    final SqlLiteral strictStart = SqlLiteral.createBoolean(e.isStrictStart(), POS);
+    final SqlLiteral strictEnd = SqlLiteral.createBoolean(e.isStrictEnd(), POS);
+
+    final SqlNodeList subsetList = new SqlNodeList(POS);
+    for (Map.Entry<String, SortedSet<String>> entry : e.getSubsets().entrySet()) {
+      SqlNode left = new SqlIdentifier(entry.getKey(), POS);
+      List<SqlNode> rhl = Lists.newArrayList();
+      for (String right : entry.getValue()) {
+        rhl.add(new SqlIdentifier(right, POS));
+      }
+      subsetList.add(
+          SqlStdOperatorTable.EQUALS.createCall(POS, left,
+              new SqlNodeList(rhl, POS)));
+    }
+
+    final SqlNodeList measureList = new SqlNodeList(POS);
+    for (Map.Entry<String, RexNode> entry : e.getMeasures().entrySet()) {
+      final String alias = entry.getKey();
+      final SqlNode sqlNode = context.toSql(null, entry.getValue());
+      measureList.add(as(sqlNode, alias));
+    }
+
+    final SqlNodeList patternDefList = new SqlNodeList(POS);
+    for (Map.Entry<String, RexNode> entry : e.getPatternDefinitions().entrySet()) {
+      final String alias = entry.getKey();
+      final SqlNode sqlNode = context.toSql(null, entry.getValue());
+      patternDefList.add(as(sqlNode, alias));
+    }
+
+    final SqlNode matchRecognize = new SqlMatchRecognize(POS, tableRef,
+        pattern, strictStart, strictEnd, patternDefList, measureList, after,
+        subsetList, rowsPerMatch, partitionList, orderByList);
+    return result(matchRecognize, Expressions.list(Clause.FROM), e, null);
+  }
+
+  private SqlCall as(SqlNode e, String alias) {
+    return SqlStdOperatorTable.AS.createCall(POS, e,
+        new SqlIdentifier(alias, POS));
   }
 
   @Override public void addSelect(List<SqlNode> selectList, SqlNode node,
       RelDataType rowType) {
     String name = rowType.getFieldNames().get(selectList.size());
     String alias = SqlValidatorUtil.getAlias(node, -1);
-    if (name.toLowerCase().startsWith("expr$")) {
-      //Put it in ordinalMap
-      ordinalMap.put(name.toLowerCase(), node);
+    final String lowerName = name.toLowerCase(Locale.ROOT);
+    if (lowerName.startsWith("expr$")) {
+      // Put it in ordinalMap
+      ordinalMap.put(lowerName, node);
     } else if (alias == null || !alias.equals(name)) {
-      node = SqlStdOperatorTable.AS.createCall(
-          POS, node, new SqlIdentifier(name, POS));
+      node = as(node, name);
     }
     selectList.add(node);
   }

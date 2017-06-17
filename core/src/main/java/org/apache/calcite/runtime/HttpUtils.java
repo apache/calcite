@@ -16,18 +16,16 @@
  */
 package org.apache.calcite.runtime;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStreamWriter;
 import java.io.UnsupportedEncodingException;
+import java.io.Writer;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLConnection;
 import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.HttpsURLConnection;
@@ -38,8 +36,6 @@ import javax.net.ssl.SSLSession;
  */
 public class HttpUtils {
   private HttpUtils() {}
-
-  private static final Logger LOGGER = LoggerFactory.getLogger(HttpUtils.class);
 
   public static HttpURLConnection getURLConnection(String url)
       throws IOException {
@@ -72,8 +68,8 @@ public class HttpUtils {
         if (i++ != 0) {
           out.append("&");
         }
-        out.append(URLEncoder.encode(me.getKey(), "UTF-8"));
-        out.append("=")
+        out.append(URLEncoder.encode(me.getKey(), "UTF-8"))
+            .append("=")
             .append(URLEncoder.encode(me.getValue(), "UTF-8"));
       }
     } catch (UnsupportedEncodingException ignore) {
@@ -105,14 +101,6 @@ public class HttpUtils {
     }
   }
 
-  public static void close(Closeable c) {
-    try {
-      c.close();
-    } catch (Exception ignore) {
-      // ignore
-    }
-  }
-
   public static InputStream post(
       String url,
       CharSequence data,
@@ -133,36 +121,27 @@ public class HttpUtils {
   public static InputStream executeMethod(
       String method, String url,
       CharSequence data, Map<String, String> headers,
-      int ctimeout, int rtimeout) throws IOException {
-    HttpURLConnection conn;
-    OutputStreamWriter wr = null;
+      int cTimeout, int rTimeout) throws IOException {
+    // NOTE: do not log "data" or "url"; may contain user name or password.
+    final HttpURLConnection conn = getURLConnection(url);
+    conn.setRequestMethod(method);
+    conn.setReadTimeout(rTimeout);
+    conn.setConnectTimeout(cTimeout);
 
-    try {
-      conn = getURLConnection(url);
-      conn.setRequestMethod(method);
-      conn.setReadTimeout(rtimeout);
-      conn.setConnectTimeout(ctimeout);
-
-      if (headers != null) {
-        for (Map.Entry<String, String> me : headers.entrySet()) {
-          conn.setRequestProperty(me.getKey(), me.getValue());
-        }
+    if (headers != null) {
+      for (Map.Entry<String, String> me : headers.entrySet()) {
+        conn.setRequestProperty(me.getKey(), me.getValue());
       }
-      if (data != null) {
-        conn.setDoOutput(true);
-        wr = new OutputStreamWriter(conn.getOutputStream());
-        wr.write(data.toString());
-        wr.flush(); // Get the response
-      }
-      InputStream in = conn.getInputStream();
-      if (wr != null) {
-        wr.close();
-      }
-
-      LOGGER.debug("url: {}, data: {}", url, String.valueOf(data));
-      return in;
-    } finally {
-      close(wr);
+    }
+    if (data == null) {
+      return conn.getInputStream();
+    }
+    conn.setDoOutput(true);
+    try (Writer w = new OutputStreamWriter(conn.getOutputStream(),
+        StandardCharsets.UTF_8)) {
+      w.write(data.toString());
+      w.flush(); // Get the response
+      return conn.getInputStream();
     }
   }
 }

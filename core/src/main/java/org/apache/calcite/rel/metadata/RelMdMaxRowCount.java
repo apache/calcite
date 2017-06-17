@@ -80,6 +80,9 @@ public class RelMdMaxRowCount
   }
 
   public Double getMaxRowCount(Filter rel, RelMetadataQuery mq) {
+    if (rel.getCondition().isAlwaysFalse()) {
+      return 0D;
+    }
     return mq.getMaxRowCount(rel.getInput());
   }
 

@@ -42,9 +42,8 @@ public class SqlCoalesceFunction extends SqlFunction {
     // rewriteCall to convert COALESCE into CASE early.  However,
     // validator rewrite can optionally be disabled, in which case these
     // strategies are used.
-    super(
-        "COALESCE",
-        SqlKind.OTHER_FUNCTION,
+    super("COALESCE",
+        SqlKind.COALESCE,
         ReturnTypes.LEAST_RESTRICTIVE,
         null,
         OperandTypes.SAME_VARIADIC,

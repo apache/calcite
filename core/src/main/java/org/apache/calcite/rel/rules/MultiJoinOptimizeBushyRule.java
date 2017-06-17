@@ -69,8 +69,9 @@ public class MultiJoinOptimizeBushyRule extends RelOptRule {
   public static final MultiJoinOptimizeBushyRule INSTANCE =
       new MultiJoinOptimizeBushyRule(RelFactories.LOGICAL_BUILDER);
 
-  private final PrintWriter pw =
-      CalcitePrepareImpl.DEBUG ? new PrintWriter(System.out, true) : null;
+  private final PrintWriter pw = CalcitePrepareImpl.DEBUG
+      ? Util.printWriter(System.out)
+      : null;
 
   /** Creates an MultiJoinOptimizeBushyRule. */
   public MultiJoinOptimizeBushyRule(RelBuilderFactory relBuilderFactory) {
@@ -87,7 +88,7 @@ public class MultiJoinOptimizeBushyRule extends RelOptRule {
     final MultiJoin multiJoinRel = call.rel(0);
     final RexBuilder rexBuilder = multiJoinRel.getCluster().getRexBuilder();
     final RelBuilder relBuilder = call.builder();
-    final RelMetadataQuery mq = RelMetadataQuery.instance();
+    final RelMetadataQuery mq = call.getMetadataQuery();
 
     final LoptMultiJoin multiJoin = new LoptMultiJoin(multiJoinRel);
 

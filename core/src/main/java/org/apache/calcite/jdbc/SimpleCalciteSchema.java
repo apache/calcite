@@ -20,22 +20,38 @@ import org.apache.calcite.schema.Function;
 import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.TableMacro;
+import org.apache.calcite.util.NameMap;
+import org.apache.calcite.util.NameMultimap;
+import org.apache.calcite.util.NameSet;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.ImmutableSortedSet;
+
+import java.util.Collection;
+import java.util.List;
 
 /**
  * A concrete implementation of {@link org.apache.calcite.jdbc.CalciteSchema}
  * that maintains minimal state.
  */
 class SimpleCalciteSchema extends CalciteSchema {
-  /** Creates a CachingCalciteSchema.
+  /** Creates a SimpleCalciteSchema.
    *
    * <p>Use {@link CalciteSchema#createRootSchema(boolean)}
    * or {@link #add(String, Schema)}. */
   SimpleCalciteSchema(CalciteSchema parent, Schema schema, String name) {
-    super(parent, schema, name);
+    this(parent, schema, name, null, null, null, null, null, null, null);
+  }
+
+  private SimpleCalciteSchema(CalciteSchema parent, Schema schema,
+      String name, NameMap<CalciteSchema> subSchemaMap,
+      NameMap<TableEntry> tableMap, NameMap<LatticeEntry> latticeMap,
+      NameMultimap<FunctionEntry> functionMap, NameSet functionNames,
+      NameMap<FunctionEntry> nullaryFunctionMap,
+      List<? extends List<String>> path) {
+    super(parent, schema, name, subSchemaMap, tableMap, latticeMap,
+        functionMap, functionNames, nullaryFunctionMap, path);
   }
 
   public void setCache(boolean cache) {
@@ -89,9 +105,12 @@ class SimpleCalciteSchema extends CalciteSchema {
     builder.addAll(schema.getTableNames());
   }
 
-  protected void addImplicitFunctionToBuilder(ImmutableList.Builder<Function> builder) {
-    for (String functionName : schema.getFunctionNames()) {
-      builder.addAll(schema.getFunctions(functionName));
+  protected void addImplicitFunctionsToBuilder(
+      ImmutableList.Builder<Function> builder,
+      String name, boolean caseSensitive) {
+    Collection<Function> functions = schema.getFunctions(name);
+    if (functions != null) {
+      builder.addAll(functions);
     }
   }
 
@@ -120,8 +139,9 @@ class SimpleCalciteSchema extends CalciteSchema {
 
   protected TableEntry getImplicitTableBasedOnNullaryFunction(String tableName,
       boolean caseSensitive) {
-    for (String s : schema.getFunctionNames()) {
-      for (Function function : schema.getFunctions(s)) {
+    Collection<Function> functions = schema.getFunctions(tableName);
+    if (functions != null) {
+      for (Function function : functions) {
         if (function instanceof TableMacro
             && function.getParameters().isEmpty()) {
           final Table table = ((TableMacro) function).apply(ImmutableList.of());
@@ -130,6 +150,17 @@ class SimpleCalciteSchema extends CalciteSchema {
       }
     }
     return null;
+  }
+
+  protected CalciteSchema snapshot(CalciteSchema parent, long now) {
+    CalciteSchema snapshot = new SimpleCalciteSchema(parent,
+        schema.snapshot(now), name, null, tableMap, latticeMap,
+        functionMap, functionNames, nullaryFunctionMap, getPath());
+    for (CalciteSchema subSchema : subSchemaMap.map().values()) {
+      CalciteSchema subSchemaSnapshot = subSchema.snapshot(snapshot, now);
+      snapshot.subSchemaMap.put(subSchema.name, subSchemaSnapshot);
+    }
+    return snapshot;
   }
 
   protected boolean isCacheEnabled() {

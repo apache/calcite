@@ -52,6 +52,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Objects;
@@ -61,6 +62,8 @@ import static org.hamcrest.CoreMatchers.endsWith;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
+import static org.hamcrest.CoreMatchers.sameInstance;
+import static org.hamcrest.core.IsNot.not;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
@@ -336,7 +339,8 @@ public class Linq4jTest {
                 return String.CASE_INSENSITIVE_ORDER.compare(v1, v2) == 0;
               }
               public int hashCode(String s) {
-                return s == null ? Objects.hashCode(null) : s.toLowerCase().hashCode();
+                return s == null ? Objects.hashCode(null)
+                    : s.toLowerCase(Locale.ROOT).hashCode();
               }
             });
     assertEquals(3, map.size());
@@ -359,7 +363,7 @@ public class Linq4jTest {
             .toMap(Functions.<String>identitySelector(),
                 new Function1<String, String>() {
                   public String apply(String x) {
-                    return x == null ? null : x.toUpperCase();
+                    return x == null ? null : x.toUpperCase(Locale.ROOT);
                   }
                 },
                 new EqualityComparer<String>() {
@@ -367,7 +371,8 @@ public class Linq4jTest {
                     return String.CASE_INSENSITIVE_ORDER.compare(v1, v2) == 0;
                   }
                   public int hashCode(String s) {
-                    return s == null ? Objects.hashCode(null) : s.toLowerCase().hashCode();
+                    return s == null ? Objects.hashCode(null)
+                        : s.toLowerCase(Locale.ROOT).hashCode();
                   }
                 });
     assertEquals(3, map.size());
@@ -733,9 +738,10 @@ public class Linq4jTest {
 
   @SuppressWarnings("UnnecessaryBoxing")
   @Test public void testIdentityEqualityComparer() {
-    final Integer one = new Integer(1);
-    final Integer one2 = new Integer(1);
-    final Integer two = new Integer(2);
+    final Integer one = 1000;
+    final Integer one2 = Integer.valueOf(one.toString());
+    assertThat(one, not(sameInstance(one2)));
+    final Integer two = 2;
     final EqualityComparer<Integer> idComparer = Functions.identityComparer();
     assertTrue(idComparer.equal(one, one));
     assertTrue(idComparer.equal(one, one2));
@@ -2158,8 +2164,7 @@ public class Linq4jTest {
             .groupBy(EMP_DEPTNO_SELECTOR)
             .select(new Function1<Grouping<Integer, Employee>, String>() {
               public String apply(Grouping<Integer, Employee> group) {
-                return String.format("%s: %s",
-                    group.getKey(),
+                return String.format(Locale.ROOT, "%s: %s", group.getKey(),
                     stringJoin("+", group.select(new Function1<Employee, String>() {
                       public String apply(Employee element) {
                         return element.name;
@@ -2187,8 +2192,7 @@ public class Linq4jTest {
             })
             .select(new Function1<Grouping<Integer, Employee>, String>() {
               public String apply(Grouping<Integer, Employee> group) {
-                return String.format("%s: %s",
-                    group.getKey(),
+                return String.format(Locale.ROOT, "%s: %s", group.getKey(),
                     stringJoin("+", group.select(new Function1<Employee, String>() {
                       public String apply(Employee element) {
                         return element.name;
@@ -2209,7 +2213,8 @@ public class Linq4jTest {
             .groupBy(EMP_DEPTNO_SELECTOR, EMP_NAME_SELECTOR)
             .select(new Function1<Grouping<Integer, String>, String>() {
               public String apply(Grouping<Integer, String> group) {
-                return String.format("%s: %s", group.getKey(), stringJoin("+", group));
+                return String.format(Locale.ROOT, "%s: %s", group.getKey(),
+                    stringJoin("+", group));
               }
             })
             .toList()
@@ -2246,7 +2251,8 @@ public class Linq4jTest {
             })
             .select(new Function1<Grouping<Integer, String>, String>() {
               public String apply(Grouping<Integer, String> group) {
-                return String.format("%s: %s", group.getKey(), stringJoin("+", group));
+                return String.format(Locale.ROOT, "%s: %s", group.getKey(),
+                    stringJoin("+", group));
               }
             })
             .toList()
@@ -2261,8 +2267,7 @@ public class Linq4jTest {
         Linq4j.asEnumerable(emps)
             .groupBy(EMP_DEPTNO_SELECTOR, new Function2<Integer, Enumerable<Employee>, String>() {
               public String apply(Integer key, Enumerable<Employee> group) {
-                return String.format("%s: %s",
-                    key,
+                return String.format(Locale.ROOT, "%s: %s", key,
                     stringJoin("+", group.select(new Function1<Employee, String>() {
                       public String apply(Employee element) {
                         return element.name;
@@ -2282,8 +2287,7 @@ public class Linq4jTest {
         Linq4j.asEnumerable(emps)
             .groupBy(EMP_DEPTNO_SELECTOR, new Function2<Integer, Enumerable<Employee>, String>() {
               public String apply(Integer key, Enumerable<Employee> group) {
-                return String.format("%s: %s",
-                    key,
+                return String.format(Locale.ROOT, "%s: %s", key,
                     stringJoin("+", group.select(new Function1<Employee, String>() {
                       public String apply(Employee element) {
                         return element.name;
@@ -2311,7 +2315,8 @@ public class Linq4jTest {
             .groupBy(EMP_DEPTNO_SELECTOR, EMP_NAME_SELECTOR,
                 new Function2<Integer, Enumerable<String>, String>() {
                   public String apply(Integer key, Enumerable<String> group) {
-                    return String.format("%s: %s", key, stringJoin("+", group));
+                    return String.format(Locale.ROOT, "%s: %s", key,
+                        stringJoin("+", group));
                   }
                 })
             .toList()
@@ -2327,7 +2332,8 @@ public class Linq4jTest {
             .groupBy(EMP_DEPTNO_SELECTOR, EMP_NAME_SELECTOR,
                 new Function2<Integer, Enumerable<String>, String>() {
                   public String apply(Integer key, Enumerable<String> group) {
-                    return String.format("%s: %s", key, stringJoin("+", group));
+                    return String.format(Locale.ROOT, "%s: %s", key,
+                        stringJoin("+", group));
                   }
                 },
                 new EqualityComparer<Integer>() {

@@ -29,6 +29,8 @@ import org.codehaus.janino.Scanner;
 import java.io.IOException;
 import java.io.Serializable;
 import java.io.StringReader;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
 import java.util.Arrays;
 import java.util.List;
 
@@ -58,9 +60,12 @@ public class RexExecutable {
       cbe.cook(new Scanner(null, new StringReader(code)));
       Class c = cbe.getClazz();
       //noinspection unchecked
-      return (Function1<DataContext, Object[]>) c.newInstance();
+      final Constructor<Function1<DataContext, Object[]>> constructor =
+          c.getConstructor();
+      return constructor.newInstance();
     } catch (CompileException | IOException | InstantiationException
-        | IllegalAccessException e) {
+        | IllegalAccessException | InvocationTargetException
+        | NoSuchMethodException e) {
       throw new RuntimeException("While compiling " + reason, e);
     }
   }
@@ -71,12 +76,20 @@ public class RexExecutable {
 
   public void reduce(RexBuilder rexBuilder, List<RexNode> constExps,
       List<RexNode> reducedValues) {
-    Object[] values = compiledFunction.apply(dataContext);
-    assert values.length == constExps.size();
-    final List<Object> valueList = Arrays.asList(values);
-    for (Pair<RexNode, Object> value : Pair.zip(constExps, valueList)) {
-      reducedValues.add(
-          rexBuilder.makeLiteral(value.right, value.left.getType(), true));
+    Object[] values;
+    try {
+      values = compiledFunction.apply(dataContext);
+      assert values.length == constExps.size();
+      final List<Object> valueList = Arrays.asList(values);
+      for (Pair<RexNode, Object> value : Pair.zip(constExps, valueList)) {
+        reducedValues.add(
+            rexBuilder.makeLiteral(value.right, value.left.getType(), true));
+      }
+    } catch (RuntimeException e) {
+      // One or more of the expressions failed.
+      // Don't reduce any of the expressions.
+      reducedValues.addAll(constExps);
+      values = new Object[constExps.size()];
     }
     Hook.EXPRESSION_REDUCER.run(Pair.of(code, values));
   }

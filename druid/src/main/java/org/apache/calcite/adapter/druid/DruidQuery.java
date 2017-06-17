@@ -17,6 +17,8 @@
 package org.apache.calcite.adapter.druid;
 
 import org.apache.calcite.DataContext;
+import org.apache.calcite.avatica.ColumnMetaData;
+import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.config.CalciteConnectionProperty;
 import org.apache.calcite.interpreter.BindableRel;
 import org.apache.calcite.interpreter.Bindables;
@@ -24,7 +26,7 @@ import org.apache.calcite.interpreter.Interpreter;
 import org.apache.calcite.interpreter.Node;
 import org.apache.calcite.interpreter.Sink;
 import org.apache.calcite.linq4j.Enumerable;
-import org.apache.calcite.linq4j.tree.Primitive;
+import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPlanner;
@@ -33,25 +35,31 @@ import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.AbstractRelNode;
+import org.apache.calcite.rel.RelFieldCollation;
+import org.apache.calcite.rel.RelFieldCollation.Direction;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.TableScan;
+import org.apache.calcite.rel.metadata.RelMdUtil;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
-import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.rex.RexShuttle;
+import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.schema.ScannableTable;
+import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Pair;
@@ -59,12 +67,11 @@ import org.apache.calcite.util.Util;
 
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
-
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
-import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 import java.io.IOException;
 import java.io.StringWriter;
@@ -72,17 +79,27 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Properties;
+import java.util.Set;
 import java.util.regex.Pattern;
+
+import static org.apache.calcite.sql.SqlKind.INPUT_REF;
 
 /**
  * Relational expression representing a scan of a Druid data set.
  */
 public class DruidQuery extends AbstractRelNode implements BindableRel {
-  private final RelOptTable table;
+
+  protected QuerySpec querySpec;
+
+  final RelOptTable table;
   final DruidTable druidTable;
+  final ImmutableList<LocalInterval> intervals;
   final ImmutableList<RelNode> rels;
 
-  private static final Pattern VALID_SIG = Pattern.compile("sf?p?a?");
+  private static final Pattern VALID_SIG = Pattern.compile("sf?p?a?l?");
+  private static final String EXTRACT_COLUMN_NAME_PREFIX = "extract";
+  private static final String FLOOR_COLUMN_NAME_PREFIX = "floor";
+  protected static final String DRUID_QUERY_FETCH = "druid.query.fetch";
 
   /**
    * Creates a DruidQuery.
@@ -91,23 +108,28 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
    * @param traitSet       Traits
    * @param table          Table
    * @param druidTable     Druid table
+   * @param intervals      Intervals for the query
    * @param rels           Internal relational expressions
    */
-  private DruidQuery(RelOptCluster cluster, RelTraitSet traitSet,
-      RelOptTable table, DruidTable druidTable, List<RelNode> rels) {
+  protected DruidQuery(RelOptCluster cluster, RelTraitSet traitSet,
+      RelOptTable table, DruidTable druidTable,
+      List<LocalInterval> intervals, List<RelNode> rels) {
     super(cluster, traitSet);
     this.table = table;
     this.druidTable = druidTable;
+    this.intervals = ImmutableList.copyOf(intervals);
     this.rels = ImmutableList.copyOf(rels);
 
-    assert isValid(Litmus.THROW);
+    assert isValid(Litmus.THROW, null);
   }
 
   /** Returns a string describing the operations inside this query.
    *
-   * <p>For example, "sfa" means {@link TableScan} (s)
+   * <p>For example, "sfpal" means {@link TableScan} (s)
    * followed by {@link Filter} (f)
-   * followed by {@link Aggregate} (a).
+   * followed by {@link Project} (p)
+   * followed by {@link Aggregate} (a)
+   * followed by {@link Sort} (l).
    *
    * @see #isValidSignature(String)
    */
@@ -116,15 +138,16 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
     for (RelNode rel : rels) {
       b.append(rel instanceof TableScan ? 's'
           : rel instanceof Project ? 'p'
-          : rel instanceof Filter ? 'f'
-          : rel instanceof Aggregate ? 'a'
-          : '!');
+              : rel instanceof Filter ? 'f'
+                  : rel instanceof Aggregate ? 'a'
+                      : rel instanceof Sort ? 'l'
+                          : '!');
     }
     return b.toString();
   }
 
-  @Override public boolean isValid(Litmus litmus) {
-    if (!super.isValid(litmus)) {
+  @Override public boolean isValid(Litmus litmus, Context context) {
+    if (!super.isValid(litmus, context)) {
       return false;
     }
     final String signature = signature();
@@ -166,38 +189,78 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
             return litmus.fail("invalid filter [{}]", filter.getCondition());
           }
         }
+        if (r instanceof Sort) {
+          final Sort sort = (Sort) r;
+          if (sort.offset != null && RexLiteral.intValue(sort.offset) != 0) {
+            return litmus.fail("offset not supported");
+          }
+        }
       }
     }
     return true;
   }
 
   boolean isValidFilter(RexNode e) {
+    return isValidFilter(e, false);
+  }
+
+  boolean isValidFilter(RexNode e, boolean boundedComparator) {
     switch (e.getKind()) {
     case INPUT_REF:
-    case LITERAL:
       return true;
+    case LITERAL:
+      return ((RexLiteral) e).getValue() != null;
     case AND:
     case OR:
+    case NOT:
     case EQUALS:
     case NOT_EQUALS:
+    case IN:
+      return areValidFilters(((RexCall) e).getOperands(), false);
     case LESS_THAN:
     case LESS_THAN_OR_EQUAL:
     case GREATER_THAN:
     case GREATER_THAN_OR_EQUAL:
+    case BETWEEN:
+      return areValidFilters(((RexCall) e).getOperands(), true);
     case CAST:
-      return areValidFilters(((RexCall) e).getOperands());
+      return isValidCast((RexCall) e, boundedComparator);
+    case EXTRACT:
+      return TimeExtractionFunction.isValidTimeExtract((RexCall) e);
     default:
       return false;
     }
   }
 
-  private boolean areValidFilters(List<RexNode> es) {
+  private boolean areValidFilters(List<RexNode> es, boolean boundedComparator) {
     for (RexNode e : es) {
-      if (!isValidFilter(e)) {
+      if (!isValidFilter(e, boundedComparator)) {
         return false;
       }
     }
     return true;
+  }
+
+  private boolean isValidCast(RexCall e, boolean boundedComparator) {
+    assert e.isA(SqlKind.CAST);
+    if (e.getOperands().get(0).isA(INPUT_REF)
+        && e.getType().getFamily() == SqlTypeFamily.CHARACTER) {
+      // CAST of input to character type
+      return true;
+    }
+    if (e.getOperands().get(0).isA(INPUT_REF)
+        && e.getType().getFamily() == SqlTypeFamily.NUMERIC
+        && boundedComparator) {
+      // CAST of input to numeric type, it is part of a bounded comparison
+      return true;
+    }
+    if (e.getOperands().get(0).isA(SqlKind.LITERAL)
+        && e.getType().getFamily() == SqlTypeFamily.TIMESTAMP) {
+      // CAST of literal to timestamp type
+      return true;
+    }
+    // Currently other CAST operations cannot be pushed to Druid
+    return false;
   }
 
   /** Returns whether a signature represents an sequence of relational operators
@@ -207,9 +270,31 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
   }
 
   /** Creates a DruidQuery. */
-  static DruidQuery create(RelOptCluster cluster, RelTraitSet traitSet,
+  public static DruidQuery create(RelOptCluster cluster, RelTraitSet traitSet,
       RelOptTable table, DruidTable druidTable, List<RelNode> rels) {
-    return new DruidQuery(cluster, traitSet, table, druidTable, rels);
+    return new DruidQuery(cluster, traitSet, table, druidTable, druidTable.intervals, rels);
+  }
+
+  /** Creates a DruidQuery. */
+  private static DruidQuery create(RelOptCluster cluster, RelTraitSet traitSet,
+      RelOptTable table, DruidTable druidTable, List<LocalInterval> intervals,
+      List<RelNode> rels) {
+    return new DruidQuery(cluster, traitSet, table, druidTable, intervals, rels);
+  }
+
+  /** Extends a DruidQuery. */
+  public static DruidQuery extendQuery(DruidQuery query, RelNode r) {
+    final ImmutableList.Builder<RelNode> builder = ImmutableList.builder();
+    return DruidQuery.create(query.getCluster(), r.getTraitSet().replace(query.getConvention()),
+        query.getTable(), query.druidTable, query.intervals,
+        builder.addAll(query.rels).add(r).build());
+  }
+
+  /** Extends a DruidQuery. */
+  public static DruidQuery extendQuery(DruidQuery query,
+      List<LocalInterval> intervals) {
+    return DruidQuery.create(query.getCluster(), query.getTraitSet(), query.getTable(),
+        query.druidTable, intervals, query.rels);
   }
 
   @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
@@ -218,19 +303,33 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
   }
 
   @Override public RelDataType deriveRowType() {
-    return Util.last(rels).getRowType();
+    return getCluster().getTypeFactory().createStructType(
+        Pair.right(Util.last(rels).getRowType().getFieldList()),
+        getQuerySpec().fieldNames);
+  }
+
+  public TableScan getTableScan() {
+    return (TableScan) rels.get(0);
+  }
+
+  public RelNode getTopNode() {
+    return Util.last(rels);
   }
 
   @Override public RelOptTable getTable() {
     return table;
   }
 
+  public DruidTable getDruidTable() {
+    return druidTable;
+  }
+
   @Override public RelWriter explainTerms(RelWriter pw) {
-    super.explainTerms(pw);
     for (RelNode rel : rels) {
       if (rel instanceof TableScan) {
         TableScan tableScan = (TableScan) rel;
         pw.item("table", tableScan.getTable().getQualifiedName());
+        pw.item("intervals", intervals);
       } else if (rel instanceof Filter) {
         pw.item("filter", ((Filter) rel).getCondition());
       } else if (rel instanceof Project) {
@@ -239,6 +338,17 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
         final Aggregate aggregate = (Aggregate) rel;
         pw.item("groups", aggregate.getGroupSet())
             .item("aggs", aggregate.getAggCallList());
+      } else if (rel instanceof Sort) {
+        final Sort sort = (Sort) rel;
+        for (Ord<RelFieldCollation> ord
+            : Ord.zip(sort.collation.getFieldCollations())) {
+          pw.item("sort" + ord.i, ord.e.getFieldIndex());
+        }
+        for (Ord<RelFieldCollation> ord
+            : Ord.zip(sort.collation.getFieldCollations())) {
+          pw.item("dir" + ord.i, ord.e.shortString());
+        }
+        pw.itemIf("fetch", sort.fetch, sort.fetch != null);
       } else {
         throw new AssertionError("rel type not supported in Druid query "
             + rel);
@@ -249,7 +359,33 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
 
   @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
       RelMetadataQuery mq) {
-    return Util.last(rels).computeSelfCost(planner, mq).multiplyBy(.1);
+    return Util.last(rels)
+        .computeSelfCost(planner, mq)
+        // Cost increases with the number of fields queried.
+        // A plan returning 100 or more columns will have 2x the cost of a
+        // plan returning 2 columns.
+        // A plan where all extra columns are pruned will be preferred.
+        .multiplyBy(
+            RelMdUtil.linear(querySpec.fieldNames.size(), 2, 100, 1d, 2d))
+        .multiplyBy(getQueryTypeCostMultiplier())
+        // a plan with sort pushed to druid is better than doing sort outside of druid
+        .multiplyBy(Util.last(rels) instanceof Sort ? 0.1 : 1.0);
+  }
+
+  private double getQueryTypeCostMultiplier() {
+    // Cost of Select > GroupBy > Timeseries > TopN
+    switch (querySpec.queryType) {
+    case SELECT:
+      return .1;
+    case GROUP_BY:
+      return .08;
+    case TIMESERIES:
+      return .06;
+    case TOP_N:
+      return .04;
+    default:
+      return .2;
+    }
   }
 
   @Override public void register(RelOptPlanner planner) {
@@ -261,19 +397,27 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
     }
   }
 
-  public Class<Object[]> getElementType() {
+  @Override public Class<Object[]> getElementType() {
     return Object[].class;
   }
 
-  public Enumerable<Object[]> bind(DataContext dataContext) {
+  @Override public Enumerable<Object[]> bind(DataContext dataContext) {
     return table.unwrap(ScannableTable.class).scan(dataContext);
   }
 
-  public Node implement(InterpreterImplementor implementor) {
+  @Override public Node implement(InterpreterImplementor implementor) {
     return new DruidQueryNode(implementor.interpreter, this);
   }
 
-  private QuerySpec getQuerySpec() {
+  public QuerySpec getQuerySpec() {
+    if (querySpec == null) {
+      querySpec = deriveQuerySpec();
+      assert querySpec != null : this;
+    }
+    return querySpec;
+  }
+
+  protected QuerySpec deriveQuerySpec() {
     final RelDataType rowType = table.getRowType();
     int i = 1;
 
@@ -288,6 +432,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
       final Project project = (Project) rels.get(i++);
       projects = project.getProjects();
     }
+
     ImmutableBitSet groupSet = null;
     List<AggregateCall> aggCalls = null;
     List<String> aggNames = null;
@@ -299,59 +444,232 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
           groupSet.cardinality());
     }
 
+    List<Integer> collationIndexes = null;
+    List<Direction> collationDirections = null;
+    ImmutableBitSet.Builder numericCollationBitSetBuilder = ImmutableBitSet.builder();
+    Integer fetch = null;
+    if (i < rels.size() && rels.get(i) instanceof Sort) {
+      final Sort sort = (Sort) rels.get(i++);
+      collationIndexes = new ArrayList<>();
+      collationDirections = new ArrayList<>();
+      for (RelFieldCollation fCol: sort.collation.getFieldCollations()) {
+        collationIndexes.add(fCol.getFieldIndex());
+        collationDirections.add(fCol.getDirection());
+        if (sort.getRowType().getFieldList().get(fCol.getFieldIndex()).getType().getFamily()
+            == SqlTypeFamily.NUMERIC) {
+          numericCollationBitSetBuilder.set(fCol.getFieldIndex());
+        }
+      }
+      fetch = sort.fetch != null ? RexLiteral.intValue(sort.fetch) : null;
+    }
+
     if (i != rels.size()) {
       throw new AssertionError("could not implement all rels");
     }
-    return getQuery(rowType, filter, projects, groupSet, aggCalls, aggNames);
+
+    return getQuery(rowType, filter, projects, groupSet, aggCalls, aggNames,
+        collationIndexes, collationDirections, numericCollationBitSetBuilder.build(), fetch);
   }
 
-  private QuerySpec getQuery(RelDataType rowType, RexNode filter,
-      List<RexNode> projects, ImmutableBitSet groupSet,
-      List<AggregateCall> aggCalls, List<String> aggNames) {
+  public QueryType getQueryType() {
+    return getQuerySpec().queryType;
+  }
+
+  public String getQueryString() {
+    return getQuerySpec().queryString;
+  }
+
+  protected QuerySpec getQuery(RelDataType rowType, RexNode filter, List<RexNode> projects,
+      ImmutableBitSet groupSet, List<AggregateCall> aggCalls, List<String> aggNames,
+      List<Integer> collationIndexes, List<Direction> collationDirections,
+      ImmutableBitSet numericCollationIndexes, Integer fetch) {
+    final CalciteConnectionConfig config =
+        getCluster().getPlanner().getContext()
+            .unwrap(CalciteConnectionConfig.class);
     QueryType queryType = QueryType.SELECT;
     final Translator translator = new Translator(druidTable, rowType);
     List<String> fieldNames = rowType.getFieldNames();
+    Set<String> usedFieldNames = Sets.newHashSet(fieldNames);
 
+    // Handle filter
     Json jsonFilter = null;
     if (filter != null) {
       jsonFilter = translator.translateFilter(filter);
-      translator.metrics.clear();
-      translator.dimensions.clear();
     }
 
+    // Then we handle project
     if (projects != null) {
+      translator.metrics.clear();
+      translator.dimensions.clear();
       final ImmutableList.Builder<String> builder = ImmutableList.builder();
       for (RexNode project : projects) {
-        builder.add(translator.translate(project));
+        builder.add(translator.translate(project, true));
       }
       fieldNames = builder.build();
     }
 
-    final List<String> dimensions = new ArrayList<>();
+    // Finally we handle aggregate and sort. Handling of these
+    // operators is more complex, since we need to extract
+    // the conditions to know whether the query will be
+    // executed as a Timeseries, TopN, or GroupBy in Druid
+    final List<DimensionSpec> dimensions = new ArrayList<>();
     final List<JsonAggregation> aggregations = new ArrayList<>();
-
+    Granularity finalGranularity = Granularity.ALL;
+    Direction timeSeriesDirection = null;
+    JsonLimit limit = null;
+    TimeExtractionDimensionSpec timeExtractionDimensionSpec = null;
     if (groupSet != null) {
       assert aggCalls != null;
       assert aggNames != null;
       assert aggCalls.size() == aggNames.size();
-      queryType = QueryType.GROUP_BY;
 
+      int timePositionIdx = -1;
       final ImmutableList.Builder<String> builder = ImmutableList.builder();
-      for (int groupKey : groupSet) {
-        final String s = fieldNames.get(groupKey);
-        dimensions.add(s);
-        builder.add(s);
+      if (projects != null) {
+        for (int groupKey : groupSet) {
+          final String fieldName = fieldNames.get(groupKey);
+          final RexNode project = projects.get(groupKey);
+          if (project instanceof RexInputRef) {
+            // Reference could be to the timestamp or druid dimension but no druid metric
+            final RexInputRef ref = (RexInputRef) project;
+            final String originalFieldName = druidTable.getRowType(getCluster().getTypeFactory())
+                .getFieldList().get(ref.getIndex()).getName();
+            if (originalFieldName.equals(druidTable.timestampFieldName)) {
+              finalGranularity = Granularity.ALL;
+              String extractColumnName = SqlValidatorUtil.uniquify(EXTRACT_COLUMN_NAME_PREFIX,
+                  usedFieldNames, SqlValidatorUtil.EXPR_SUGGESTER);
+              timeExtractionDimensionSpec = TimeExtractionDimensionSpec.makeFullTimeExtract(
+                  extractColumnName);
+              dimensions.add(timeExtractionDimensionSpec);
+              builder.add(extractColumnName);
+              assert timePositionIdx == -1;
+              timePositionIdx = groupKey;
+            } else {
+              dimensions.add(new DefaultDimensionSpec(fieldName));
+              builder.add(fieldName);
+            }
+          } else if (project instanceof RexCall) {
+            // Call, check if we should infer granularity
+            final RexCall call = (RexCall) project;
+            final Granularity funcGranularity = DruidDateTimeUtils.extractGranularity(call);
+            if (funcGranularity != null) {
+              final String extractColumnName;
+              switch (call.getKind()) {
+              case EXTRACT:
+                // case extract field from time column
+                finalGranularity = Granularity.ALL;
+                extractColumnName = SqlValidatorUtil.uniquify(EXTRACT_COLUMN_NAME_PREFIX
+                        + "_" + funcGranularity.value, usedFieldNames,
+                    SqlValidatorUtil.EXPR_SUGGESTER);
+                timeExtractionDimensionSpec = TimeExtractionDimensionSpec.makeTimeExtract(
+                    funcGranularity, extractColumnName);
+                dimensions.add(timeExtractionDimensionSpec);
+                builder.add(extractColumnName);
+                break;
+              case FLOOR:
+                // case floor time column
+                if (groupSet.cardinality() > 1) {
+                  // case we have more than 1 group by key -> then will have druid group by
+                  extractColumnName = SqlValidatorUtil.uniquify(FLOOR_COLUMN_NAME_PREFIX
+                          + "_" + funcGranularity.value, usedFieldNames,
+                      SqlValidatorUtil.EXPR_SUGGESTER);
+                  dimensions.add(
+                      TimeExtractionDimensionSpec.makeTimeFloor(funcGranularity,
+                          extractColumnName));
+                  finalGranularity = Granularity.ALL;
+                  builder.add(extractColumnName);
+                } else {
+                  // case timeseries we can not use extraction function
+                  finalGranularity = funcGranularity;
+                  builder.add(fieldName);
+                }
+                assert timePositionIdx == -1;
+                timePositionIdx = groupKey;
+                break;
+              default:
+                throw new AssertionError();
+              }
+
+            } else {
+              dimensions.add(new DefaultDimensionSpec(fieldName));
+              builder.add(fieldName);
+            }
+          } else {
+            throw new AssertionError("incompatible project expression: " + project);
+          }
+        }
+      } else {
+        for (int groupKey : groupSet) {
+          final String s = fieldNames.get(groupKey);
+          if (s.equals(druidTable.timestampFieldName)) {
+            finalGranularity = Granularity.ALL;
+            // Generate unique name as timestampFieldName is taken
+            String extractColumnName = SqlValidatorUtil.uniquify(EXTRACT_COLUMN_NAME_PREFIX,
+                usedFieldNames, SqlValidatorUtil.EXPR_SUGGESTER);
+            timeExtractionDimensionSpec = TimeExtractionDimensionSpec.makeFullTimeExtract(
+                extractColumnName);
+            dimensions.add(timeExtractionDimensionSpec);
+            builder.add(extractColumnName);
+            assert timePositionIdx == -1;
+            timePositionIdx = groupKey;
+          } else {
+            dimensions.add(new DefaultDimensionSpec(s));
+            builder.add(s);
+          }
+        }
       }
+
       for (Pair<AggregateCall, String> agg : Pair.zip(aggCalls, aggNames)) {
         final JsonAggregation jsonAggregation =
             getJsonAggregation(fieldNames, agg.right, agg.left);
         aggregations.add(jsonAggregation);
         builder.add(jsonAggregation.name);
       }
+
       fieldNames = builder.build();
+      ImmutableList<JsonCollation> collations = null;
+      boolean sortsMetric = false;
+      if (collationIndexes != null) {
+        assert collationDirections != null;
+        ImmutableList.Builder<JsonCollation> colBuilder =
+            ImmutableList.builder();
+        for (Pair<Integer, Direction> p : Pair.zip(collationIndexes, collationDirections)) {
+          final String dimensionOrder = numericCollationIndexes.get(p.left) ? "numeric"
+              : "alphanumeric";
+          colBuilder.add(
+              new JsonCollation(fieldNames.get(p.left),
+                  p.right == Direction.DESCENDING ? "descending" : "ascending", dimensionOrder));
+          if (p.left >= groupSet.cardinality() && p.right == Direction.DESCENDING) {
+            // Currently only support for DESC in TopN
+            sortsMetric = true;
+          } else if (p.left == timePositionIdx) {
+            assert timeSeriesDirection == null;
+            timeSeriesDirection = p.right;
+          }
+        }
+        collations = colBuilder.build();
+      }
+
+      limit = new JsonLimit("default", fetch, collations);
+
+      if (dimensions.isEmpty() && (collations == null || timeSeriesDirection != null)) {
+        queryType = QueryType.TIMESERIES;
+        assert fetch == null;
+      } else if (dimensions.size() == 1
+          && finalGranularity == Granularity.ALL
+          && sortsMetric
+          && collations.size() == 1
+          && fetch != null
+          && config.approximateTopN()) {
+        queryType = QueryType.TOP_N;
+      } else {
+        queryType = QueryType.GROUP_BY;
+      }
     } else {
       assert aggCalls == null;
       assert aggNames == null;
+      assert collationIndexes == null || collationIndexes.isEmpty();
+      assert collationDirections == null || collationDirections.isEmpty();
     }
 
     final StringWriter sw = new StringWriter();
@@ -359,26 +677,63 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
     try {
       final JsonGenerator generator = factory.createGenerator(sw);
 
+      if (aggregations.isEmpty()) {
+        // Druid requires at least one aggregation, otherwise gives:
+        //   Must have at least one AggregatorFactory
+        aggregations.add(
+                new JsonAggregation("longSum", "dummy_agg", "dummy_agg"));
+      }
       switch (queryType) {
-      case GROUP_BY:
+      case TIMESERIES:
         generator.writeStartObject();
 
-        if (aggregations.isEmpty()) {
-          // Druid requires at least one aggregation, otherwise gives:
-          //   Must have at least one AggregatorFactory
-          aggregations.add(
-              new JsonAggregation("longSum", "unit_sales", "unit_sales"));
-        }
-
-        generator.writeStringField("queryType", "groupBy");
+        generator.writeStringField("queryType", "timeseries");
         generator.writeStringField("dataSource", druidTable.dataSource);
-        generator.writeStringField("granularity", "all");
-        writeField(generator, "dimensions", dimensions);
-        writeFieldIf(generator, "limitSpec", null);
+        generator.writeBooleanField("descending", timeSeriesDirection != null
+            && timeSeriesDirection == Direction.DESCENDING);
+        generator.writeStringField("granularity", finalGranularity.value);
         writeFieldIf(generator, "filter", jsonFilter);
         writeField(generator, "aggregations", aggregations);
         writeFieldIf(generator, "postAggregations", null);
-        writeField(generator, "intervals", druidTable.intervals);
+        writeField(generator, "intervals", intervals);
+
+        generator.writeFieldName("context");
+        // The following field is necessary to conform with SQL semantics (CALCITE-1589)
+        generator.writeStartObject();
+        generator.writeBooleanField("skipEmptyBuckets", true);
+        generator.writeEndObject();
+
+        generator.writeEndObject();
+        break;
+
+      case TOP_N:
+        generator.writeStartObject();
+
+        generator.writeStringField("queryType", "topN");
+        generator.writeStringField("dataSource", druidTable.dataSource);
+        generator.writeStringField("granularity", finalGranularity.value);
+        writeField(generator, "dimension", dimensions.get(0));
+        generator.writeStringField("metric", fieldNames.get(collationIndexes.get(0)));
+        writeFieldIf(generator, "filter", jsonFilter);
+        writeField(generator, "aggregations", aggregations);
+        writeFieldIf(generator, "postAggregations", null);
+        writeField(generator, "intervals", intervals);
+        generator.writeNumberField("threshold", fetch);
+
+        generator.writeEndObject();
+        break;
+
+      case GROUP_BY:
+        generator.writeStartObject();
+        generator.writeStringField("queryType", "groupBy");
+        generator.writeStringField("dataSource", druidTable.dataSource);
+        generator.writeStringField("granularity", finalGranularity.value);
+        writeField(generator, "dimensions", dimensions);
+        writeFieldIf(generator, "limitSpec", limit);
+        writeFieldIf(generator, "filter", jsonFilter);
+        writeField(generator, "aggregations", aggregations);
+        writeFieldIf(generator, "postAggregations", null);
+        writeField(generator, "intervals", intervals);
         writeFieldIf(generator, "having", null);
 
         generator.writeEndObject();
@@ -389,19 +744,23 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
 
         generator.writeStringField("queryType", "select");
         generator.writeStringField("dataSource", druidTable.dataSource);
-        generator.writeStringField("descending", "false");
-        writeField(generator, "intervals", druidTable.intervals);
+        generator.writeBooleanField("descending", false);
+        writeField(generator, "intervals", intervals);
         writeFieldIf(generator, "filter", jsonFilter);
         writeField(generator, "dimensions", translator.dimensions);
         writeField(generator, "metrics", translator.metrics);
-        generator.writeStringField("granularity", "all");
+        generator.writeStringField("granularity", finalGranularity.value);
 
         generator.writeFieldName("pagingSpec");
         generator.writeStartObject();
-        final int fetch =
-            CalciteConnectionProperty.DRUID_FETCH.wrap(new Properties())
-                .getInt();
-        generator.writeNumberField("threshold", fetch);
+        generator.writeNumberField("threshold", fetch != null ? fetch
+            : CalciteConnectionProperty.DRUID_FETCH.wrap(new Properties()).getInt());
+        generator.writeBooleanField("fromNext", true);
+        generator.writeEndObject();
+
+        generator.writeFieldName("context");
+        generator.writeStartObject();
+        generator.writeBooleanField(DRUID_QUERY_FETCH, fetch != null);
         generator.writeEndObject();
 
         generator.writeEndObject();
@@ -419,14 +778,32 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
     return new QuerySpec(queryType, sw.toString(), fieldNames);
   }
 
-  private JsonAggregation getJsonAggregation(List<String> fieldNames,
+  protected JsonAggregation getJsonAggregation(List<String> fieldNames,
       String name, AggregateCall aggCall) {
     final List<String> list = new ArrayList<>();
     for (Integer arg : aggCall.getArgList()) {
       list.add(fieldNames.get(arg));
     }
     final String only = Iterables.getFirst(list, null);
-    final boolean b = aggCall.getType().getSqlTypeName() == SqlTypeName.DOUBLE;
+    final boolean fractional;
+    final RelDataType type = aggCall.getType();
+    final SqlTypeName sqlTypeName = type.getSqlTypeName();
+    if (SqlTypeFamily.APPROXIMATE_NUMERIC.getTypeNames().contains(sqlTypeName)) {
+      fractional = true;
+    } else if (SqlTypeFamily.INTEGER.getTypeNames().contains(sqlTypeName)) {
+      fractional = false;
+    } else if (SqlTypeFamily.EXACT_NUMERIC.getTypeNames().contains(sqlTypeName)) {
+      // Decimal
+      assert sqlTypeName == SqlTypeName.DECIMAL;
+      if (type.getScale() == 0) {
+        fractional = false;
+      } else {
+        fractional = true;
+      }
+    } else {
+      // Cannot handle this aggregate function type
+      throw new AssertionError("unknown aggregate type " + type);
+    }
     switch (aggCall.getAggregation().getKind()) {
     case COUNT:
       if (aggCall.isDistinct()) {
@@ -435,30 +812,30 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
       return new JsonAggregation("count", name, only);
     case SUM:
     case SUM0:
-      return new JsonAggregation(b ? "doubleSum" : "longSum", name, only);
+      return new JsonAggregation(fractional ? "doubleSum" : "longSum", name, only);
     case MIN:
-      return new JsonAggregation(b ? "doubleMin" : "longMin", name, only);
+      return new JsonAggregation(fractional ? "doubleMin" : "longMin", name, only);
     case MAX:
-      return new JsonAggregation(b ? "doubleMax" : "longMax", name, only);
+      return new JsonAggregation(fractional ? "doubleMax" : "longMax", name, only);
     default:
       throw new AssertionError("unknown aggregate " + aggCall);
     }
   }
 
-  static void writeField(JsonGenerator generator, String fieldName,
+  protected static void writeField(JsonGenerator generator, String fieldName,
       Object o) throws IOException {
     generator.writeFieldName(fieldName);
     writeObject(generator, o);
   }
 
-  private static void writeFieldIf(JsonGenerator generator, String fieldName,
+  protected static void writeFieldIf(JsonGenerator generator, String fieldName,
       Object o) throws IOException {
     if (o != null) {
       writeField(generator, fieldName, o);
     }
   }
 
-  private static void writeArray(JsonGenerator generator, List<?> elements)
+  protected static void writeArray(JsonGenerator generator, List<?> elements)
       throws IOException {
     generator.writeStartArray();
     for (Object o : elements) {
@@ -467,13 +844,18 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
     generator.writeEndArray();
   }
 
-  private static void writeObject(JsonGenerator generator, Object o)
+  protected static void writeObject(JsonGenerator generator, Object o)
       throws IOException {
     if (o instanceof String) {
       String s = (String) o;
       generator.writeString(s);
+    } else if (o instanceof LocalInterval) {
+      generator.writeString(o.toString());
+    } else if (o instanceof Integer) {
+      Integer i = (Integer) o;
+      generator.writeNumber(i);
     } else if (o instanceof List) {
-      writeArray(generator, (List) o);
+      writeArray(generator, (List<?>) o);
     } else if (o instanceof Json) {
       ((Json) o).write(generator);
     } else {
@@ -481,48 +863,9 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
     }
   }
 
-  static boolean canProjectAll(List<RexNode> nodes) {
-    for (RexNode e : nodes) {
-      if (!(e instanceof RexInputRef)) {
-        return false;
-      }
-    }
-    return true;
-  }
-
-  static Pair<List<RexNode>, List<RexNode>> splitProjects(
-      final RexBuilder rexBuilder, final RelNode input, List<RexNode> nodes) {
-    final RelOptUtil.InputReferencedVisitor visitor =
-        new RelOptUtil.InputReferencedVisitor();
-    for (RexNode node : nodes) {
-      node.accept(visitor);
-    }
-    if (visitor.inputPosReferenced.size() == input.getRowType().getFieldCount()) {
-      // All inputs are referenced
-      return null;
-    }
-    final List<RexNode> belowNodes = new ArrayList<>();
-    final List<Integer> positions =
-        Lists.newArrayList(visitor.inputPosReferenced);
-    for (int i : positions) {
-      belowNodes.add(rexBuilder.makeInputRef(input, i));
-    }
-    final List<RexNode> aboveNodes = new ArrayList<>();
-    for (RexNode node : nodes) {
-      aboveNodes.add(
-          node.accept(
-              new RexShuttle() {
-                @Override public RexNode visitInputRef(RexInputRef ref) {
-                  return rexBuilder.makeInputRef(input,
-                      positions.indexOf(ref.getIndex()));
-                }
-              }));
-    }
-    return Pair.of(aboveNodes, belowNodes);
-  }
-
   /** Generates a JSON string to query metadata about a data source. */
-  static String metadataQuery(String dataSourceName, List<String> intervals) {
+  static String metadataQuery(String dataSourceName,
+      List<LocalInterval> intervals) {
     final StringWriter sw = new StringWriter();
     final JsonFactory factory = new JsonFactory();
     try {
@@ -531,6 +874,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
       generator.writeStringField("queryType", "segmentMetadata");
       generator.writeStringField("dataSource", dataSourceName);
       generator.writeBooleanField("merge", true);
+      generator.writeBooleanField("lenientAggregatorMerge", true);
       generator.writeArrayFieldStart("analysisTypes");
       generator.writeString("aggregators");
       generator.writeEndArray();
@@ -538,7 +882,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
       generator.writeEndObject();
       generator.close();
     } catch (IOException e) {
-      throw Throwables.propagate(e);
+      throw new RuntimeException(e);
     }
     return sw.toString();
   }
@@ -546,7 +890,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
   /** Druid query specification. */
   public static class QuerySpec {
     final QueryType queryType;
-    public final String queryString;
+    final String queryString;
     final List<String> fieldNames;
 
     QuerySpec(QueryType queryType, String queryString,
@@ -574,7 +918,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
           + ", fieldNames: " + fieldNames + "}";
     }
 
-    String getQueryString(String pagingIdentifier, int offset) {
+    public String getQueryString(String pagingIdentifier, int offset) {
       if (pagingIdentifier == null) {
         return queryString;
       }
@@ -585,7 +929,8 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
   }
 
   /** Translates scalar expressions to Druid field references. */
-  private static class Translator {
+  @VisibleForTesting
+  protected static class Translator {
     final List<String> dimensions = new ArrayList<>();
     final List<String> metrics = new ArrayList<>();
     final DruidTable druidTable;
@@ -594,57 +939,125 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
     Translator(DruidTable druidTable, RelDataType rowType) {
       this.druidTable = druidTable;
       this.rowType = rowType;
+      for (RelDataTypeField f : rowType.getFieldList()) {
+        final String fieldName = f.getName();
+        if (druidTable.metricFieldNames.contains(fieldName)) {
+          metrics.add(fieldName);
+        } else if (!druidTable.timestampFieldName.equals(fieldName)
+            && !DruidTable.DEFAULT_TIMESTAMP_COLUMN.equals(fieldName)) {
+          dimensions.add(fieldName);
+        }
+      }
     }
 
-    String translate(RexNode e) {
+    @SuppressWarnings("incomplete-switch") String translate(RexNode e, boolean set) {
+      int index = -1;
       switch (e.getKind()) {
       case INPUT_REF:
         final RexInputRef ref = (RexInputRef) e;
-        final String fieldName =
-            rowType.getFieldList().get(ref.getIndex()).getName();
-        if (druidTable.metricFieldNames.contains(fieldName)) {
-          metrics.add(fieldName);
-        } else {
-          dimensions.add(fieldName);
-        }
-        return fieldName;
-
+        index = ref.getIndex();
+        break;
       case CAST:
-        return tr(e, 0);
-
+        return tr(e, 0, set);
       case LITERAL:
-        return ((RexLiteral) e).getValue2().toString();
-
-      default:
+        return ((RexLiteral) e).getValue3().toString();
+      case FLOOR:
+      case EXTRACT:
+        final RexCall call = (RexCall) e;
+        assert DruidDateTimeUtils.extractGranularity(call) != null;
+        index = RelOptUtil.InputFinder.bits(e).asList().get(0);
+      }
+      if (index == -1) {
         throw new AssertionError("invalid expression " + e);
       }
+      final String fieldName = rowType.getFieldList().get(index).getName();
+      if (set) {
+        if (druidTable.metricFieldNames.contains(fieldName)) {
+          metrics.add(fieldName);
+        } else if (!druidTable.timestampFieldName.equals(fieldName)
+            && !DruidTable.DEFAULT_TIMESTAMP_COLUMN.equals(fieldName)) {
+          dimensions.add(fieldName);
+        }
+      }
+      return fieldName;
     }
 
     private JsonFilter translateFilter(RexNode e) {
       final RexCall call;
       switch (e.getKind()) {
       case EQUALS:
-        return new JsonSelector("selector", tr(e, 0), tr(e, 1));
       case NOT_EQUALS:
-        return new JsonCompositeFilter("not",
-            ImmutableList.of(new JsonSelector("selector", tr(e, 0), tr(e, 1))));
       case GREATER_THAN:
-        return new JsonBound("bound", tr(e, 0), tr(e, 1), true, null, false,
-            false);
       case GREATER_THAN_OR_EQUAL:
-        return new JsonBound("bound", tr(e, 0), tr(e, 1), false, null, false,
-            false);
       case LESS_THAN:
-        return new JsonBound("bound", tr(e, 0), null, false, tr(e, 1), true,
-            false);
       case LESS_THAN_OR_EQUAL:
-        return new JsonBound("bound", tr(e, 0), null, false, tr(e, 1), false,
-            false);
+      case IN:
+      case BETWEEN:
+        call = (RexCall) e;
+        int posRef;
+        int posConstant;
+        if (RexUtil.isConstant(call.getOperands().get(1))) {
+          posRef = 0;
+          posConstant = 1;
+        } else if (RexUtil.isConstant(call.getOperands().get(0))) {
+          posRef = 1;
+          posConstant = 0;
+        } else {
+          throw new AssertionError("it is not a valid comparison: " + e);
+        }
+        final boolean numeric =
+            call.getOperands().get(posRef).getType().getFamily()
+                == SqlTypeFamily.NUMERIC;
+        final Granularity granularity = DruidDateTimeUtils.extractGranularity(call.getOperands()
+            .get(posRef));
+        // in case no extraction the field will be omitted from the serialization
+        ExtractionFunction extractionFunction = null;
+        if (granularity != null) {
+          extractionFunction = TimeExtractionFunction.createExtractFromGranularity(granularity);
+        }
+        String dimName = tr(e, posRef);
+        if (dimName.equals(DruidConnectionImpl.DEFAULT_RESPONSE_TIMESTAMP_COLUMN)) {
+          // We need to use Druid default column name to refer to the time dimension in a filter
+          dimName = DruidTable.DEFAULT_TIMESTAMP_COLUMN;
+        }
+
+        switch (e.getKind()) {
+        case EQUALS:
+          return new JsonSelector("selector", dimName, tr(e, posConstant), extractionFunction);
+        case NOT_EQUALS:
+          return new JsonCompositeFilter("not",
+              new JsonSelector("selector", dimName, tr(e, posConstant), extractionFunction));
+        case GREATER_THAN:
+          return new JsonBound("bound", dimName, tr(e, posConstant),
+              true, null, false, numeric, extractionFunction);
+        case GREATER_THAN_OR_EQUAL:
+          return new JsonBound("bound", dimName, tr(e, posConstant),
+              false, null, false, numeric, extractionFunction);
+        case LESS_THAN:
+          return new JsonBound("bound", dimName, null, false,
+              tr(e, posConstant), true, numeric, extractionFunction);
+        case LESS_THAN_OR_EQUAL:
+          return new JsonBound("bound", dimName, null, false,
+              tr(e, posConstant), false, numeric, extractionFunction);
+        case IN:
+          ImmutableList.Builder<String> listBuilder = ImmutableList.builder();
+          for (RexNode rexNode: call.getOperands()) {
+            if (rexNode.getKind() == SqlKind.LITERAL) {
+              listBuilder.add(((RexLiteral) rexNode).getValue3().toString());
+            }
+          }
+          return new JsonInFilter("in", dimName, listBuilder.build(), extractionFunction);
+        case BETWEEN:
+          return new JsonBound("bound", dimName, tr(e, 2), false,
+              tr(e, 3), false, numeric, extractionFunction);
+        default:
+          throw new AssertionError();
+        }
       case AND:
       case OR:
       case NOT:
         call = (RexCall) e;
-        return new JsonCompositeFilter(e.getKind().toString().toLowerCase(),
+        return new JsonCompositeFilter(e.getKind().lowerName,
             translateFilters(call.getOperands()));
       default:
         throw new AssertionError("cannot translate filter: " + e);
@@ -652,7 +1065,11 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
     }
 
     private String tr(RexNode call, int index) {
-      return translate(((RexCall) call).getOperands().get(index));
+      return tr(call, index, false);
+    }
+
+    private String tr(RexNode call, int index, boolean set) {
+      return translate(((RexCall) call).getOperands().get(index), set);
     }
 
     private List<JsonFilter> translateFilters(List<RexNode> operands) {
@@ -680,43 +1097,47 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
     }
 
     public void run() throws InterruptedException {
-      final List<Primitive> fieldTypes = new ArrayList<>();
+      final List<ColumnMetaData.Rep> fieldTypes = new ArrayList<>();
       for (RelDataTypeField field : query.getRowType().getFieldList()) {
         fieldTypes.add(getPrimitive(field));
       }
-      try {
-        final DruidConnectionImpl connection =
-            new DruidConnectionImpl(query.druidTable.schema.url,
-                query.druidTable.schema.coordinatorUrl);
-        final DruidConnectionImpl.Page page = new DruidConnectionImpl.Page();
-        int previousOffset;
-        do {
-          previousOffset = page.offset;
-          final String queryString =
-              querySpec.getQueryString(page.pagingIdentifier, page.offset);
-          connection.request(querySpec.queryType, queryString, sink,
-              querySpec.fieldNames, fieldTypes, page);
-        } while (page.pagingIdentifier != null && page.offset > previousOffset);
-      } catch (IOException e) {
-        throw Throwables.propagate(e);
-      }
+      final DruidConnectionImpl connection =
+          new DruidConnectionImpl(query.druidTable.schema.url,
+              query.druidTable.schema.coordinatorUrl);
+      final boolean limitQuery = containsLimit(querySpec);
+      final DruidConnectionImpl.Page page = new DruidConnectionImpl.Page();
+      do {
+        final String queryString =
+            querySpec.getQueryString(page.pagingIdentifier, page.offset);
+        connection.request(querySpec.queryType, queryString, sink,
+            querySpec.fieldNames, fieldTypes, page);
+      } while (!limitQuery
+          && page.pagingIdentifier != null
+          && page.totalRowCount > 0);
     }
 
-    private Primitive getPrimitive(RelDataTypeField field) {
+    private static boolean containsLimit(QuerySpec querySpec) {
+      return querySpec.queryString.contains("\"context\":{\""
+          + DRUID_QUERY_FETCH + "\":true");
+    }
+
+    private ColumnMetaData.Rep getPrimitive(RelDataTypeField field) {
       switch (field.getType().getSqlTypeName()) {
+      case TIMESTAMP:
+        return ColumnMetaData.Rep.JAVA_SQL_TIMESTAMP;
       case BIGINT:
-        return Primitive.LONG;
+        return ColumnMetaData.Rep.LONG;
       case INTEGER:
-        return Primitive.INT;
+        return ColumnMetaData.Rep.INTEGER;
       case SMALLINT:
-        return Primitive.SHORT;
+        return ColumnMetaData.Rep.SHORT;
       case TINYINT:
-        return Primitive.BYTE;
+        return ColumnMetaData.Rep.BYTE;
       case REAL:
-        return Primitive.FLOAT;
+        return ColumnMetaData.Rep.FLOAT;
       case DOUBLE:
       case FLOAT:
-        return Primitive.DOUBLE;
+        return ColumnMetaData.Rep.DOUBLE;
       default:
         return null;
       }
@@ -725,7 +1146,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
 
   /** Object that knows how to write itself to a
    * {@link com.fasterxml.jackson.core.JsonGenerator}. */
-  private interface Json {
+  public interface Json {
     void write(JsonGenerator generator) throws IOException;
   }
 
@@ -746,6 +1167,48 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
       generator.writeStringField("type", type);
       generator.writeStringField("name", name);
       writeFieldIf(generator, "fieldName", fieldName);
+      generator.writeEndObject();
+    }
+  }
+
+  /** Collation element of a Druid "groupBy" query. */
+  private static class JsonLimit implements Json {
+    final String type;
+    final Integer limit;
+    final ImmutableList<JsonCollation> collations;
+
+    private JsonLimit(String type, Integer limit, ImmutableList<JsonCollation> collations) {
+      this.type = type;
+      this.limit = limit;
+      this.collations = collations;
+    }
+
+    public void write(JsonGenerator generator) throws IOException {
+      generator.writeStartObject();
+      generator.writeStringField("type", type);
+      writeFieldIf(generator, "limit", limit);
+      writeFieldIf(generator, "columns", collations);
+      generator.writeEndObject();
+    }
+  }
+
+  /** Collation element of a Druid "groupBy" query. */
+  private static class JsonCollation implements Json {
+    final String dimension;
+    final String direction;
+    final String dimensionOrder;
+
+    private JsonCollation(String dimension, String direction, String dimensionOrder) {
+      this.dimension = dimension;
+      this.direction = direction;
+      this.dimensionOrder = dimensionOrder;
+    }
+
+    public void write(JsonGenerator generator) throws IOException {
+      generator.writeStartObject();
+      generator.writeStringField("dimension", dimension);
+      writeFieldIf(generator, "direction", direction);
+      writeFieldIf(generator, "dimensionOrder", dimensionOrder);
       generator.writeEndObject();
     }
   }
@@ -782,11 +1245,14 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
   private static class JsonSelector extends JsonFilter {
     private final String dimension;
     private final String value;
+    private final ExtractionFunction extractionFunction;
 
-    private JsonSelector(String type, String dimension, String value) {
+    private JsonSelector(String type, String dimension, String value,
+        ExtractionFunction extractionFunction) {
       super(type);
       this.dimension = dimension;
       this.value = value;
+      this.extractionFunction = extractionFunction;
     }
 
     public void write(JsonGenerator generator) throws IOException {
@@ -794,22 +1260,25 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
       generator.writeStringField("type", type);
       generator.writeStringField("dimension", dimension);
       generator.writeStringField("value", value);
+      writeFieldIf(generator, "extractionFn", extractionFunction);
       generator.writeEndObject();
     }
   }
 
   /** Bound filter. */
-  private static class JsonBound extends JsonFilter {
+  @VisibleForTesting
+  protected static class JsonBound extends JsonFilter {
     private final String dimension;
     private final String lower;
     private final boolean lowerStrict;
     private final String upper;
     private final boolean upperStrict;
     private final boolean alphaNumeric;
+    private final ExtractionFunction extractionFunction;
 
     private JsonBound(String type, String dimension, String lower,
         boolean lowerStrict, String upper, boolean upperStrict,
-        boolean alphaNumeric) {
+        boolean alphaNumeric, ExtractionFunction extractionFunction) {
       super(type);
       this.dimension = dimension;
       this.lower = lower;
@@ -817,6 +1286,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
       this.upper = upper;
       this.upperStrict = upperStrict;
       this.alphaNumeric = alphaNumeric;
+      this.extractionFunction = extractionFunction;
     }
 
     public void write(JsonGenerator generator) throws IOException {
@@ -831,7 +1301,12 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
         generator.writeStringField("upper", upper);
         generator.writeBooleanField("upperStrict", upperStrict);
       }
-      generator.writeBooleanField("alphaNumeric", alphaNumeric);
+      if (alphaNumeric) {
+        generator.writeStringField("ordering", "numeric");
+      } else {
+        generator.writeStringField("ordering", "lexicographic");
+      }
+      writeFieldIf(generator, "extractionFn", extractionFunction);
       generator.writeEndObject();
     }
   }
@@ -841,21 +1316,49 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
     private final List<? extends JsonFilter> fields;
 
     private JsonCompositeFilter(String type,
-        List<? extends JsonFilter> fields) {
+        Iterable<? extends JsonFilter> fields) {
       super(type);
-      this.fields = fields;
+      this.fields = ImmutableList.copyOf(fields);
+    }
+
+    private JsonCompositeFilter(String type, JsonFilter... fields) {
+      this(type, ImmutableList.copyOf(fields));
     }
 
     public void write(JsonGenerator generator) throws IOException {
       generator.writeStartObject();
       generator.writeStringField("type", type);
-      switch ("type") {
+      switch (type) {
       case "NOT":
         writeField(generator, "field", fields.get(0));
         break;
       default:
         writeField(generator, "fields", fields);
       }
+      generator.writeEndObject();
+    }
+  }
+
+  /** IN filter. */
+  protected static class JsonInFilter extends JsonFilter {
+    private final String dimension;
+    private final List<String> values;
+    private final ExtractionFunction extractionFunction;
+
+    private JsonInFilter(String type, String dimension, List<String> values,
+        ExtractionFunction extractionFunction) {
+      super(type);
+      this.dimension = dimension;
+      this.values = values;
+      this.extractionFunction = extractionFunction;
+    }
+
+    public void write(JsonGenerator generator) throws IOException {
+      generator.writeStartObject();
+      generator.writeStringField("type", type);
+      generator.writeStringField("dimension", dimension);
+      writeField(generator, "values", values);
+      writeFieldIf(generator, "extractionFn", extractionFunction);
       generator.writeEndObject();
     }
   }

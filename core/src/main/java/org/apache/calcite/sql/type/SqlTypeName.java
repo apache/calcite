@@ -16,10 +16,12 @@
  */
 package org.apache.calcite.sql.type;
 
-import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.util.DateString;
+import org.apache.calcite.util.TimeString;
+import org.apache.calcite.util.TimestampString;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
@@ -591,7 +593,7 @@ public enum SqlTypeName {
       return bytes;
 
     case DATE:
-      calendar = Calendar.getInstance(DateTimeUtils.GMT_ZONE);
+      calendar = Util.calendar();
       switch (limit) {
       case ZERO:
 
@@ -639,7 +641,7 @@ public enum SqlTypeName {
       if (beyond) {
         return null; // invalid values are impossible to represent
       }
-      calendar = Calendar.getInstance(DateTimeUtils.GMT_ZONE);
+      calendar = Util.calendar();
       switch (limit) {
       case ZERO:
 
@@ -664,7 +666,7 @@ public enum SqlTypeName {
       return calendar;
 
     case TIMESTAMP:
-      calendar = Calendar.getInstance(DateTimeUtils.GMT_ZONE);
+      calendar = Util.calendar();
       switch (limit) {
       case ZERO:
 
@@ -912,11 +914,17 @@ public enum SqlTypeName {
     case BINARY:
       return SqlLiteral.createBinaryString((byte[]) o, pos);
     case DATE:
-      return SqlLiteral.createDate((Calendar) o, pos);
+      return SqlLiteral.createDate(o instanceof Calendar
+          ? DateString.fromCalendarFields((Calendar) o)
+          : (DateString) o, pos);
     case TIME:
-      return SqlLiteral.createTime((Calendar) o, 0 /* todo */, pos);
+      return SqlLiteral.createTime(o instanceof Calendar
+          ? TimeString.fromCalendarFields((Calendar) o)
+          : (TimeString) o, 0 /* todo */, pos);
     case TIMESTAMP:
-      return SqlLiteral.createTimestamp((Calendar) o, 0 /* todo */, pos);
+      return SqlLiteral.createTimestamp(o instanceof Calendar
+          ? TimestampString.fromCalendarFields((Calendar) o)
+          : (TimestampString) o, 0 /* todo */, pos);
     default:
       throw Util.unexpected(this);
     }

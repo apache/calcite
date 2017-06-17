@@ -27,6 +27,7 @@ import org.apache.calcite.rel.core.Collect;
 import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.Sample;
 import org.apache.calcite.rel.core.Sort;
+import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.core.Uncollect;
 import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.logical.LogicalCalc;
@@ -34,12 +35,12 @@ import org.apache.calcite.rel.logical.LogicalCorrelate;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalIntersect;
 import org.apache.calcite.rel.logical.LogicalJoin;
+import org.apache.calcite.rel.logical.LogicalMatch;
 import org.apache.calcite.rel.logical.LogicalMinus;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.logical.LogicalSort;
 import org.apache.calcite.rel.logical.LogicalTableFunctionScan;
 import org.apache.calcite.rel.logical.LogicalTableModify;
-import org.apache.calcite.rel.logical.LogicalTableScan;
 import org.apache.calcite.rel.logical.LogicalUnion;
 import org.apache.calcite.rel.logical.LogicalValues;
 import org.apache.calcite.rel.stream.LogicalChi;
@@ -57,6 +58,7 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.rex.RexProgramBuilder;
 import org.apache.calcite.rex.RexShuttle;
+import org.apache.calcite.rex.RexSubQuery;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
@@ -124,7 +126,7 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
   //~ Instance fields --------------------------------------------------------
 
   private final RexBuilder rexBuilder;
-  private final RewriteRelVisitor visitor;
+  private final boolean restructure;
 
   private final Map<RelNode, RelNode> oldToNewRelMap = Maps.newHashMap();
   private RelNode currentRel;
@@ -137,10 +139,11 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
 
   public RelStructuredTypeFlattener(
       RexBuilder rexBuilder,
-      RelOptTable.ToRelContext toRelContext) {
+      RelOptTable.ToRelContext toRelContext,
+      boolean restructure) {
     this.rexBuilder = rexBuilder;
-    this.visitor = new RewriteRelVisitor();
     this.toRelContext = toRelContext;
+    this.restructure = restructure;
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -168,8 +171,9 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
     }
   }
 
-  public RelNode rewrite(RelNode root, boolean restructure) {
+  public RelNode rewrite(RelNode root) {
     // Perform flattening.
+    final RewriteRelVisitor visitor = new RewriteRelVisitor();
     visitor.visit(root, 0, null);
     RelNode flattened = getNewForOldRel(root);
     flattenedRootType = flattened.getRowType();
@@ -349,6 +353,7 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
             getNewForOldRel(rel.getInput()),
             rel.getOperation(),
             rel.getUpdateColumnList(),
+            rel.getSourceExpressionList(),
             true);
     setNewForOldRel(rel, newRel);
   }
@@ -648,7 +653,7 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
         || (call.isA(SqlKind.NEW_SPECIFICATION));
   }
 
-  public void rewriteRel(LogicalTableScan rel) {
+  public void rewriteRel(TableScan rel) {
     RelNode newRel = rel.getTable().toRel(toRelContext);
     if (!SqlTypeUtil.isFlat(rel.getRowType())) {
       final List<Pair<RexNode, String>> flattenedExpList = Lists.newArrayList();
@@ -666,6 +671,10 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
   }
 
   public void rewriteRel(LogicalChi rel) {
+    rewriteGeneric(rel);
+  }
+
+  public void rewriteRel(LogicalMatch rel) {
     rewriteGeneric(rel);
   }
 
@@ -767,7 +776,11 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
           iInput += getNewForOldInput(inputRef.getIndex());
           return new RexInputRef(iInput, fieldType);
         } else if (refExp instanceof RexCorrelVariable) {
-          return fieldAccess;
+          RelDataType refType =
+              SqlTypeUtil.flattenRecordType(
+                  rexBuilder.getTypeFactory(), refExp.getType(), null);
+          refExp = rexBuilder.makeCorrel(refType, ((RexCorrelVariable) refExp).id);
+          return rexBuilder.makeFieldAccess(refExp, iInput);
         } else if (refExp.isA(SqlKind.CAST)) {
           // REVIEW jvs 27-Feb-2005:  what about a cast between
           // different user-defined types (once supported)?
@@ -810,6 +823,14 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
           rexBuilder,
           rexCall.getOperator(),
           rexCall.getOperands());
+    }
+
+    @Override public RexNode visitSubQuery(RexSubQuery subQuery) {
+      subQuery = (RexSubQuery) super.visitSubQuery(subQuery);
+      RelStructuredTypeFlattener flattener =
+          new RelStructuredTypeFlattener(rexBuilder, toRelContext, restructure);
+      RelNode rel = flattener.rewrite(subQuery.rel);
+      return subQuery.clone(rel);
     }
 
     private RexNode flattenComparison(

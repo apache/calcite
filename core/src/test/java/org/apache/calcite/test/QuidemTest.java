@@ -22,11 +22,13 @@ import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.prepare.Prepare;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.impl.AbstractSchema;
 import org.apache.calcite.schema.impl.AbstractTable;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.Bug;
+import org.apache.calcite.util.Closer;
 import org.apache.calcite.util.TryThreadLocal;
 import org.apache.calcite.util.Util;
 
@@ -40,10 +42,10 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
-import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileReader;
-import java.io.FileWriter;
+import java.io.FilenameFilter;
+import java.io.Reader;
+import java.io.Writer;
 import java.lang.reflect.Method;
 import java.net.URL;
 import java.sql.Connection;
@@ -65,6 +67,17 @@ public class QuidemTest {
   public QuidemTest(String path) {
     this.path = path;
     this.method = findMethod(path);
+  }
+
+  /** Runs a test from the command line.
+   *
+   * <p>For example:
+   *
+   * <blockquote><code>java QuidemTest sql/dummy.iq</code></blockquote> */
+  public static void main(String[] args) throws Exception {
+    for (String arg : args) {
+      new QuidemTest(arg).test();
+    }
   }
 
   private Method findMethod(String path) {
@@ -90,12 +103,18 @@ public class QuidemTest {
     final URL inUrl = JdbcTest.class.getResource("/" + first);
     String x = inUrl.getFile();
     assert x.endsWith(first);
-    final String base = x.substring(0, x.length() - first.length());
+    final String base =
+        File.separatorChar == '\\'
+            ? x.substring(1, x.length() - first.length())
+                .replace('/', File.separatorChar)
+            : x.substring(0, x.length() - first.length());
     final File firstFile = new File(x);
     final File dir = firstFile.getParentFile();
     final List<String> paths = new ArrayList<>();
-    for (File f : dir.listFiles(new PatternFilenameFilter(".*\\.iq$"))) {
-      assert f.getAbsolutePath().startsWith(base);
+    final FilenameFilter filter = new PatternFilenameFilter(".*\\.iq$");
+    for (File f : Util.first(dir.listFiles(filter), new File[0])) {
+      assert f.getAbsolutePath().startsWith(base)
+          : "f: " + f.getAbsolutePath() + "; base: " + base;
       paths.add(f.getAbsolutePath().substring(base.length()));
     }
     return Lists.transform(paths, new Function<String, Object[]>() {
@@ -108,34 +127,60 @@ public class QuidemTest {
   private void checkRun(String path) throws Exception {
     final File inFile;
     final File outFile;
-    if (path.startsWith("/")) {
+    final File f = new File(path);
+    if (f.isAbsolute()) {
       // e.g. path = "/tmp/foo.iq"
-      inFile = new File(path);
+      inFile = f;
       outFile = new File(path + ".out");
     } else {
       // e.g. path = "sql/outer.iq"
       // inUrl = "file:/home/fred/calcite/core/target/test-classes/sql/outer.iq"
-      final URL inUrl = JdbcTest.class.getResource("/" + path);
-      String x = inUrl.getFile();
-      assert x.endsWith(path);
+      final URL inUrl = JdbcTest.class.getResource("/" + n2u(path));
+      String x = u2n(inUrl.getFile());
+      assert x.endsWith(path)
+          : "x: " + x + "; path: " + path;
       x = x.substring(0, x.length() - path.length());
-      assert x.endsWith("/test-classes/");
-      x = x.substring(0, x.length() - "/test-classes/".length());
+      assert x.endsWith(u2n("/test-classes/"));
+      x = x.substring(0, x.length() - u2n("/test-classes/").length());
       final File base = new File(x);
-      inFile = new File(base, "/test-classes/" + path);
-      outFile = new File(base, "/surefire/" + path);
+      inFile = new File(base, u2n("/test-classes/") + path);
+      outFile = new File(base, u2n("/surefire/") + path);
     }
     Util.discard(outFile.getParentFile().mkdirs());
-    final FileReader fileReader = new FileReader(inFile);
-    final BufferedReader bufferedReader = new BufferedReader(fileReader);
-    final FileWriter writer = new FileWriter(outFile);
-    new Quidem(bufferedReader, writer, env(), new QuidemConnectionFactory())
-        .execute();
+    try (final Reader reader = Util.reader(inFile);
+         final Writer writer = Util.printWriter(outFile);
+         final Closer closer = new Closer()) {
+      new Quidem(reader, writer, env(), new QuidemConnectionFactory())
+          .withPropertyHandler(new Quidem.PropertyHandler() {
+            public void onSet(String propertyName, Object value) {
+              if (propertyName.equals("bindable")) {
+                final boolean b = value instanceof Boolean
+                    && (Boolean) value;
+                closer.add(Hook.ENABLE_BINDABLE.addThread(Hook.property(b)));
+              }
+            }
+          })
+          .execute();
+    }
     final String diff = DiffTestCase.diff(inFile, outFile);
     if (!diff.isEmpty()) {
       fail("Files differ: " + outFile + " " + inFile + "\n"
           + diff);
     }
+  }
+
+  /** Converts a path from Unix to native. On Windows, converts
+   * forward-slashes to back-slashes; on Linux, does nothing. */
+  private static String u2n(String s) {
+    return File.separatorChar == '\\'
+        ? s.replace('/', '\\')
+        : s;
+  }
+
+  private static String n2u(String s) {
+    return File.separatorChar == '\\'
+        ? s.replace('\\', '/')
+        : s;
   }
 
   private Function<String, Object> env() {
@@ -201,7 +246,8 @@ public class QuidemTest {
   }
 
   /** Quidem connection factory for Calcite's built-in test schemas. */
-  private static class QuidemConnectionFactory implements Quidem.NewConnectionFactory {
+  private static class QuidemConnectionFactory
+      implements Quidem.ConnectionFactory {
     public Connection connect(String name) throws Exception {
       return connect(name, false);
     }
@@ -220,46 +266,48 @@ public class QuidemTest {
         }
         return null;
       }
-      if (name.equals("hr")) {
+      switch (name) {
+      case "hr":
         return CalciteAssert.hr()
             .connect();
-      }
-      if (name.equals("foodmart")) {
+      case "foodmart":
         return CalciteAssert.that()
             .with(CalciteAssert.Config.FOODMART_CLONE)
             .connect();
-      }
-      if (name.equals("scott")) {
+      case "scott":
         return CalciteAssert.that()
             .with(CalciteAssert.Config.SCOTT)
             .connect();
-      }
-      if (name.equals("jdbc_scott")) {
+      case "jdbc_scott":
         return CalciteAssert.that()
             .with(CalciteAssert.Config.JDBC_SCOTT)
             .connect();
-      }
-      if (name.equals("post")) {
+      case "post":
         return CalciteAssert.that()
             .with(CalciteAssert.Config.REGULAR)
             .with(CalciteAssert.SchemaSpec.POST)
             .withDefaultSchema("POST")
             .connect();
-      }
-      if (name.equals("catchall")) {
+      case "catchall":
         return CalciteAssert.that()
             .withSchema("s",
                 new ReflectiveSchema(
                     new ReflectiveSchemaTest.CatchallSchema()))
             .connect();
-      }
-      if (name.equals("orinoco")) {
+      case "orinoco":
         return CalciteAssert.that()
             .with(CalciteAssert.SchemaSpec.ORINOCO)
             .withDefaultSchema("ORINOCO")
             .connect();
-      }
-      if (name.equals("seq")) {
+      case "blank":
+        return CalciteAssert.that()
+            .with("parserFactory",
+                "org.apache.calcite.sql.parser.parserextensiontesting"
+                    + ".ExtensionSqlParserImpl#FACTORY")
+            .with(CalciteAssert.SchemaSpec.BLANK)
+            .withDefaultSchema("BLANK")
+            .connect();
+      case "seq":
         final Connection connection = CalciteAssert.that()
             .withSchema("s", new AbstractSchema())
             .connect();
@@ -278,10 +326,12 @@ public class QuidemTest {
                   }
                 });
         return connection;
+      default:
+        throw new RuntimeException("unknown connection '" + name + "'");
       }
-      throw new RuntimeException("unknown connection '" + name + "'");
     }
   }
+
 }
 
 // End QuidemTest.java

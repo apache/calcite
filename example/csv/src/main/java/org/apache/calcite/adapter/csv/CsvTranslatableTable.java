@@ -30,8 +30,8 @@ import org.apache.calcite.schema.QueryableTable;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.Schemas;
 import org.apache.calcite.schema.TranslatableTable;
+import org.apache.calcite.util.Source;
 
-import java.io.File;
 import java.lang.reflect.Type;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -41,8 +41,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class CsvTranslatableTable extends CsvTable
     implements QueryableTable, TranslatableTable {
   /** Creates a CsvTable. */
-  CsvTranslatableTable(File file, RelProtoDataType protoRowType) {
-    super(file, protoRowType);
+  CsvTranslatableTable(Source source, RelProtoDataType protoRowType) {
+    super(source, protoRowType);
   }
 
   public String toString() {
@@ -57,7 +57,7 @@ public class CsvTranslatableTable extends CsvTable
     final AtomicBoolean cancelFlag = DataContext.Variable.CANCEL_FLAG.get(root);
     return new AbstractEnumerable<Object>() {
       public Enumerator<Object> enumerator() {
-        return new CsvEnumerator<>(file, cancelFlag, fieldTypes, fields);
+        return new CsvEnumerator<>(source, cancelFlag, fieldTypes, fields);
       }
     };
   }

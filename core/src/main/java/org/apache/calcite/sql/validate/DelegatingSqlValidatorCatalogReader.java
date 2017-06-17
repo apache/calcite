@@ -52,8 +52,12 @@ public abstract class DelegatingSqlValidatorCatalogReader
     return catalogReader.getAllSchemaObjectNames(names);
   }
 
-  public List<String> getSchemaName() {
-    return catalogReader.getSchemaName();
+  public List<List<String>> getSchemaPaths() {
+    return catalogReader.getSchemaPaths();
+  }
+
+  @Override public <C> C unwrap(Class<C> aClass) {
+    return catalogReader.unwrap(aClass);
   }
 }
 

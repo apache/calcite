@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.adapter.csv;
 
+import org.apache.calcite.util.Source;
+
 import org.apache.commons.io.input.Tailer;
 import org.apache.commons.io.input.TailerListener;
 import org.apache.commons.io.input.TailerListenerAdapter;
@@ -23,10 +25,7 @@ import org.apache.commons.io.input.TailerListenerAdapter;
 import au.com.bytecode.opencsv.CSVParser;
 import au.com.bytecode.opencsv.CSVReader;
 
-import com.google.common.base.Throwables;
-
 import java.io.Closeable;
-import java.io.File;
 import java.io.IOException;
 import java.io.StringReader;
 import java.util.ArrayDeque;
@@ -51,8 +50,8 @@ class CsvStreamReader extends CSVReader implements Closeable {
    */
   public static final long DEFAULT_MONITOR_DELAY = 2000;
 
-  CsvStreamReader(File csvFile) {
-    this(csvFile,
+  CsvStreamReader(Source source) {
+    this(source,
       CSVParser.DEFAULT_SEPARATOR,
       CSVParser.DEFAULT_QUOTE_CHARACTER,
       CSVParser.DEFAULT_ESCAPE_CHARACTER,
@@ -64,7 +63,7 @@ class CsvStreamReader extends CSVReader implements Closeable {
   /**
    * Creates a CsvStreamReader with supplied separator and quote char.
    *
-   * @param csvFile The file to an underlying CSV source.
+   * @param source The file to an underlying CSV source
    * @param separator The delimiter to use for separating entries
    * @param quoteChar The character to use for quoted elements
    * @param escape The character to use for escaping a separator or quote
@@ -73,14 +72,14 @@ class CsvStreamReader extends CSVReader implements Closeable {
    * @param ignoreLeadingWhiteSpace If true, parser should ignore
    *  white space before a quote in a field
    */
-  private CsvStreamReader(File csvFile, char separator, char quoteChar,
+  private CsvStreamReader(Source source, char separator, char quoteChar,
       char escape, int line, boolean strictQuotes,
       boolean ignoreLeadingWhiteSpace) {
     super(new StringReader("")); // dummy call to base constructor
     contentQueue = new ArrayDeque<>();
     TailerListener listener = new CsvContentListener(contentQueue);
-    tailer = Tailer.create(csvFile, listener, DEFAULT_MONITOR_DELAY, false,
-        true, 4096);
+    tailer = Tailer.create(source.file(), listener, DEFAULT_MONITOR_DELAY,
+        false, true, 4096);
     this.parser = new CSVParser(separator, quoteChar, escape, strictQuotes,
         ignoreLeadingWhiteSpace);
     this.skipLines = line;
@@ -88,7 +87,7 @@ class CsvStreamReader extends CSVReader implements Closeable {
       // wait for tailer to capture data
       Thread.sleep(DEFAULT_MONITOR_DELAY);
     } catch (InterruptedException e) {
-      throw Throwables.propagate(e);
+      throw new RuntimeException(e);
     }
   }
 

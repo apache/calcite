@@ -21,6 +21,7 @@ import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelDistribution;
 import org.apache.calcite.rel.RelDistributions;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelReferentialConstraint;
 import org.apache.calcite.rel.logical.LogicalTableScan;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
@@ -92,6 +93,11 @@ public abstract class RelOptAbstractTable implements RelOptTable {
   // Override to define keys
   public boolean isKey(ImmutableBitSet columns) {
     return false;
+  }
+
+  // Override to define foreign keys
+  public List<RelReferentialConstraint> getReferentialConstraints() {
+    return Collections.emptyList();
   }
 
   public RelNode toRel(ToRelContext context) {

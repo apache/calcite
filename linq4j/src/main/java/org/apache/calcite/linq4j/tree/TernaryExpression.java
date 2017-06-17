@@ -38,12 +38,16 @@ public class TernaryExpression extends Expression {
     this.expression2 = expression2;
   }
 
-  @Override public Expression accept(Visitor visitor) {
-    visitor = visitor.preVisit(this);
-    Expression expression0 = this.expression0.accept(visitor);
-    Expression expression1 = this.expression1.accept(visitor);
-    Expression expression2 = this.expression2.accept(visitor);
-    return visitor.visit(this, expression0, expression1, expression2);
+  @Override public Expression accept(Shuttle shuttle) {
+    shuttle = shuttle.preVisit(this);
+    Expression expression0 = this.expression0.accept(shuttle);
+    Expression expression1 = this.expression1.accept(shuttle);
+    Expression expression2 = this.expression2.accept(shuttle);
+    return shuttle.visit(this, expression0, expression1, expression2);
+  }
+
+  public <R> R accept(Visitor<R> visitor) {
+    return visitor.visit(this);
   }
 
   void accept(ExpressionWriter writer, int lprec, int rprec) {

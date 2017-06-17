@@ -28,6 +28,7 @@ import org.apache.calcite.util.trace.CalciteTrace;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.Ordering;
 
 import org.slf4j.Logger;
 
@@ -35,7 +36,6 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
@@ -100,8 +100,8 @@ class RuleQueue {
   /**
    * Compares relexps according to their cached 'importance'.
    */
-  private final Comparator<RelSubset> relImportanceComparator =
-      new RelImportanceComparator();
+  private final Ordering<RelSubset> relImportanceOrdering =
+      Ordering.from(new RelImportanceComparator());
 
   /**
    * Maps a {@link VolcanoPlannerPhase} to a set of rule names.  Named rules
@@ -144,6 +144,9 @@ class RuleQueue {
   public void clear() {
     this.subsetImportances.clear();
     this.boostedSubsets.clear();
+    for (PhaseMatchList matchList : matchListMap.values()) {
+      matchList.clear();
+    }
   }
 
   /**
@@ -368,12 +371,12 @@ class RuleQueue {
    * node's algorithm.</li>
    * </ul>
    *
-   * The formula for the importance I of node n is:
+   * <p>The formula for the importance I of node n is:
    *
    * <blockquote>I<sub>n</sub> = Sum<sub>parents p of n</sub>{I<sub>p</sub> .
    * W <sub>n, p</sub>}</blockquote>
    *
-   * where W<sub>n, p</sub>, the weight of n within its parent p, is
+   * <p>where W<sub>n, p</sub>, the weight of n within its parent p, is
    *
    * <blockquote>W<sub>n, p</sub> = Cost<sub>n</sub> / (SelfCost<sub>p</sub> +
    * Cost<sub>n<sub>0</sub></sub> + ... + Cost<sub>n<sub>k</sub></sub>)
@@ -385,7 +388,7 @@ class RuleQueue {
       // The root always has importance = 1
       importance = 1.0;
     } else {
-      final RelMetadataQuery mq = RelMetadataQuery.instance();
+      final RelMetadataQuery mq = subset.getCluster().getMetadataQuery();
 
       // The importance of a subset is the max of its importance to its
       // parents
@@ -413,14 +416,9 @@ class RuleQueue {
   private void dump(PrintWriter pw) {
     planner.dump(pw);
     pw.print("Importances: {");
-    final RelSubset[] subsets =
-        subsetImportances.keySet().toArray(
-            new RelSubset[subsetImportances.keySet().size()]);
-    Arrays.sort(subsets, relImportanceComparator);
-    for (RelSubset subset : subsets) {
-      pw.print(
-          " " + subset.toString() + "="
-          + subsetImportances.get(subset));
+    for (RelSubset subset
+        : relImportanceOrdering.sortedCopy(subsetImportances.keySet())) {
+      pw.print(" " + subset.toString() + "=" + subsetImportances.get(subset));
     }
     pw.println("}");
   }
@@ -537,15 +535,15 @@ class RuleQueue {
    * from root of the operand tree to one of the leaves.
    *
    * <p>It is OK for a match to have duplicate subsets if they are not on the
-   * same path. For example,</p>
+   * same path. For example,
    *
-   * <pre>
+   * <blockquote><pre>
    *   Join
    *  /   \
    * X     X
-   * </pre>
+   * </pre></blockquote>
    *
-   * <p>is a valid match.</p>
+   * <p>is a valid match.
    *
    * @throws org.apache.calcite.util.Util.FoundOne on match
    */

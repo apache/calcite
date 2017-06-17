@@ -29,10 +29,14 @@ public class ThrowStatement extends Statement {
     this.expression = expression;
   }
 
-  @Override public Statement accept(Visitor visitor) {
-    visitor = visitor.preVisit(this);
-    Expression expression = this.expression.accept(visitor);
-    return visitor.visit(this, expression);
+  @Override public Statement accept(Shuttle shuttle) {
+    shuttle = shuttle.preVisit(this);
+    Expression expression = this.expression.accept(shuttle);
+    return shuttle.visit(this, expression);
+  }
+
+  public <R> R accept(Visitor<R> visitor) {
+    return visitor.visit(this);
   }
 
   @Override void accept0(ExpressionWriter writer) {

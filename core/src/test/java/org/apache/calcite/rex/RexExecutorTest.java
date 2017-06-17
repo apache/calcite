@@ -18,6 +18,7 @@ package org.apache.calcite.rex;
 
 import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
+import org.apache.calcite.avatica.util.ByteString;
 import org.apache.calcite.linq4j.QueryProvider;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptSchema;
@@ -26,10 +27,18 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.Schemas;
 import org.apache.calcite.server.CalciteServerStatement;
+import org.apache.calcite.sql.SqlBinaryOperator;
+import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.fun.SqlMonotonicBinaryOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.type.InferTypes;
+import org.apache.calcite.sql.type.OperandTypes;
+import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.tools.Frameworks;
+import org.apache.calcite.util.DateString;
 import org.apache.calcite.util.NlsString;
+import org.apache.calcite.util.Util;
 
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
@@ -39,7 +48,6 @@ import org.junit.Test;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.List;
 import java.util.Random;
 
@@ -48,6 +56,8 @@ import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
+
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 /**
  * Unit test for {@link org.apache.calcite.rex.RexExecutorImpl}.
@@ -63,7 +73,7 @@ public class RexExecutorTest {
               SchemaPlus rootSchema, CalciteServerStatement statement) {
             final RexBuilder rexBuilder = cluster.getRexBuilder();
             DataContext dataContext =
-                Schemas.createDataContext(statement.getConnection());
+                Schemas.createDataContext(statement.getConnection(), rootSchema);
             final RexExecutorImpl executor = new RexExecutorImpl(dataContext);
             action.check(rexBuilder, executor);
             return null;
@@ -149,20 +159,22 @@ public class RexExecutorTest {
     checkConstant(true,
         new Function<RexBuilder, RexNode>() {
           public RexNode apply(RexBuilder rexBuilder) {
-            Calendar calendar = Calendar.getInstance();
+            final DateString d =
+                DateString.fromCalendarFields(Util.calendar());
             return rexBuilder.makeCall(SqlStdOperatorTable.LESS_THAN_OR_EQUAL,
-                rexBuilder.makeDateLiteral(calendar),
-                rexBuilder.makeDateLiteral(calendar));
+                rexBuilder.makeDateLiteral(d),
+                rexBuilder.makeDateLiteral(d));
           }
         });
     // date 'today' < date 'today' -> false
     checkConstant(false,
         new Function<RexBuilder, RexNode>() {
           public RexNode apply(RexBuilder rexBuilder) {
-            Calendar calendar = Calendar.getInstance();
+            final DateString d =
+                DateString.fromCalendarFields(Util.calendar());
             return rexBuilder.makeCall(SqlStdOperatorTable.LESS_THAN,
-                rexBuilder.makeDateLiteral(calendar),
-                rexBuilder.makeDateLiteral(calendar));
+                rexBuilder.makeDateLiteral(d),
+                rexBuilder.makeDateLiteral(d));
           }
         });
   }
@@ -212,6 +224,87 @@ public class RexExecutorTest {
       }
     });
   }
+
+  @Test public void testBinarySubstring() throws Exception {
+    check(new Action() {
+      public void check(RexBuilder rexBuilder, RexExecutorImpl executor) {
+        final List<RexNode> reducedValues = new ArrayList<>();
+        // hello world! -> 48656c6c6f20776f726c6421
+        final RexLiteral binaryHello =
+            rexBuilder.makeBinaryLiteral(
+                new ByteString("Hello world!".getBytes(UTF_8)));
+        final RexNode plus =
+            rexBuilder.makeCall(SqlStdOperatorTable.PLUS,
+                rexBuilder.makeExactLiteral(BigDecimal.ONE),
+                rexBuilder.makeExactLiteral(BigDecimal.ONE));
+        RexLiteral four = rexBuilder.makeExactLiteral(BigDecimal.valueOf(4));
+        final RexNode substring =
+            rexBuilder.makeCall(SqlStdOperatorTable.SUBSTRING,
+                binaryHello, plus, four);
+        executor.reduce(rexBuilder, ImmutableList.of(substring, plus),
+            reducedValues);
+        assertThat(reducedValues.size(), equalTo(2));
+        assertThat(reducedValues.get(0), instanceOf(RexLiteral.class));
+        assertThat(((RexLiteral) reducedValues.get(0)).getValue2().toString(),
+            equalTo((Object) "656c6c6f")); // substring('Hello world!, 2, 4)
+        assertThat(reducedValues.get(1), instanceOf(RexLiteral.class));
+        assertThat(((RexLiteral) reducedValues.get(1)).getValue2(),
+            equalTo((Object) 2L));
+      }
+    });
+  }
+
+  @Test public void testDeterministic1() throws Exception {
+    check(new Action() {
+      public void check(RexBuilder rexBuilder, RexExecutorImpl executor) {
+        final RexNode plus =
+            rexBuilder.makeCall(SqlStdOperatorTable.PLUS,
+                rexBuilder.makeExactLiteral(BigDecimal.ONE),
+                rexBuilder.makeExactLiteral(BigDecimal.ONE));
+        assertThat(RexUtil.isDeterministic(plus), equalTo(true));
+      }
+    });
+  }
+
+  @Test public void testDeterministic2() throws Exception {
+    check(new Action() {
+      public void check(RexBuilder rexBuilder, RexExecutorImpl executor) {
+        final RexNode plus =
+            rexBuilder.makeCall(PLUS_RANDOM,
+                rexBuilder.makeExactLiteral(BigDecimal.ONE),
+                rexBuilder.makeExactLiteral(BigDecimal.ONE));
+        assertThat(RexUtil.isDeterministic(plus), equalTo(false));
+      }
+    });
+  }
+
+  @Test public void testDeterministic3() throws Exception {
+    check(new Action() {
+      public void check(RexBuilder rexBuilder, RexExecutorImpl executor) {
+        final RexNode plus =
+            rexBuilder.makeCall(SqlStdOperatorTable.PLUS,
+                rexBuilder.makeCall(PLUS_RANDOM,
+                    rexBuilder.makeExactLiteral(BigDecimal.ONE),
+                    rexBuilder.makeExactLiteral(BigDecimal.ONE)),
+                rexBuilder.makeExactLiteral(BigDecimal.ONE));
+        assertThat(RexUtil.isDeterministic(plus), equalTo(false));
+      }
+    });
+  }
+
+  private static final SqlBinaryOperator PLUS_RANDOM =
+      new SqlMonotonicBinaryOperator(
+          "+",
+          SqlKind.PLUS,
+          40,
+          true,
+          ReturnTypes.NULLABLE_SUM,
+          InferTypes.FIRST_KNOWN,
+          OperandTypes.PLUS_OPERATOR) {
+        @Override public boolean isDeterministic() {
+          return false;
+        }
+      };
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1009">[CALCITE-1009]

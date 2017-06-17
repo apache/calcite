@@ -59,11 +59,15 @@ public class ClassDeclaration extends MemberDeclaration {
     writer.newlineAndIndent();
   }
 
-  public ClassDeclaration accept(Visitor visitor) {
-    visitor = visitor.preVisit(this);
+  public ClassDeclaration accept(Shuttle shuttle) {
+    shuttle = shuttle.preVisit(this);
     final List<MemberDeclaration> members1 =
-        Expressions.acceptMemberDeclarations(memberDeclarations, visitor);
-    return visitor.visit(this, members1);
+        Expressions.acceptMemberDeclarations(memberDeclarations, shuttle);
+    return shuttle.visit(this, members1);
+  }
+
+  public <R> R accept(Visitor<R> visitor) {
+    return visitor.visit(this);
   }
 
   @Override public boolean equals(Object o) {

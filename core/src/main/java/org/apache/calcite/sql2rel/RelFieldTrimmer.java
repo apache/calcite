@@ -49,6 +49,7 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexPermuteInputsShuttle;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.rex.RexVisitor;
+import org.apache.calcite.sql.SqlExplainFormat;
 import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.tools.RelBuilder;
@@ -164,7 +165,8 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
     if (SqlToRelConverter.SQL2REL_LOGGER.isDebugEnabled()) {
       SqlToRelConverter.SQL2REL_LOGGER.debug(
           RelOptUtil.dumpPlan("Plan after trimming unused fields",
-              trimResult.left, false, SqlExplainLevel.EXPPLAN_ATTRIBUTES));
+              trimResult.left, SqlExplainFormat.TEXT,
+              SqlExplainLevel.EXPPLAN_ATTRIBUTES));
     }
     return trimResult.left;
   }
@@ -185,7 +187,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
     final ImmutableBitSet.Builder fieldsUsedBuilder = fieldsUsed.rebuild();
 
     // Fields that define the collation cannot be discarded.
-    final RelMetadataQuery mq = RelMetadataQuery.instance();
+    final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
     final ImmutableList<RelCollation> collations = mq.collations(input);
     for (RelCollation collation : collations) {
       for (RelFieldCollation fieldCollation : collation.getFieldCollations()) {
@@ -288,7 +290,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
     return trimResult;
   }
 
-  private TrimResult result(RelNode r, final Mapping mapping) {
+  protected TrimResult result(RelNode r, final Mapping mapping) {
     final RexBuilder rexBuilder = relBuilder.getRexBuilder();
     for (final CorrelationId correlation : r.getVariablesSet()) {
       r = r.accept(
@@ -422,7 +424,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
    * @param input Trimmed input
    * @return Dummy project, or null if no dummy is required
    */
-  private TrimResult dummyProject(int fieldCount, RelNode input) {
+  protected TrimResult dummyProject(int fieldCount, RelNode input) {
     final RelOptCluster cluster = input.getCluster();
     final Mapping mapping =
         Mappings.create(MappingType.INVERSE_SURJECTION, fieldCount, 1);
@@ -907,7 +909,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
     if (!inputMapping.isIdentity()) {
       // We asked for all fields. Can't believe that the child decided
       // to permute them!
-      throw Util.newInternal(
+      throw new AssertionError(
           "Expected identity mapping, got " + inputMapping);
     }
 
@@ -1008,7 +1010,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
     return result(newValues, mapping);
   }
 
-  private Mapping createMapping(ImmutableBitSet fieldsUsed, int fieldCount) {
+  protected Mapping createMapping(ImmutableBitSet fieldsUsed, int fieldCount) {
     final Mapping mapping =
         Mappings.create(
             MappingType.INVERSE_SURJECTION,

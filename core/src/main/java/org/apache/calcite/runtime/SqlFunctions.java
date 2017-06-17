@@ -31,10 +31,13 @@ import org.apache.calcite.linq4j.function.Function1;
 import org.apache.calcite.linq4j.function.NonDeterministic;
 import org.apache.calcite.linq4j.tree.Primitive;
 import org.apache.calcite.runtime.FlatLists.ComparableList;
+import org.apache.calcite.util.Bug;
+import org.apache.calcite.util.NumberUtil;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.math.MathContext;
+import java.math.RoundingMode;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.text.DecimalFormat;
@@ -43,6 +46,7 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.TimeZone;
@@ -64,7 +68,7 @@ import java.util.regex.Pattern;
 @Deterministic
 public class SqlFunctions {
   private static final DecimalFormat DOUBLE_FORMAT =
-      new DecimalFormat("0.0E0");
+      NumberUtil.decimalFormat("0.0E0");
 
   private static final TimeZone LOCAL_TZ = TimeZone.getDefault();
 
@@ -124,14 +128,24 @@ public class SqlFunctions {
     return s.substring(from - 1);
   }
 
+  /** SQL SUBSTRING(binary FROM ... FOR ...) function. */
+  public static ByteString substring(ByteString b, int from, int for_) {
+    return b.substring(from - 1, Math.min(from - 1 + for_, b.length()));
+  }
+
+  /** SQL SUBSTRING(binary FROM ...) function. */
+  public static ByteString substring(ByteString b, int from) {
+    return b.substring(from - 1);
+  }
+
   /** SQL UPPER(string) function. */
   public static String upper(String s) {
-    return s.toUpperCase();
+    return s.toUpperCase(Locale.ROOT);
   }
 
   /** SQL LOWER(string) function. */
   public static String lower(String s) {
-    return s.toLowerCase();
+    return s.toLowerCase(Locale.ROOT);
   }
 
   /** SQL INITCAP(string) function. */
@@ -337,116 +351,204 @@ public class SqlFunctions {
 
   // =
 
-  /** SQL = operator applied to Object values (including String; neither
-   * side may be null). */
-  public static boolean eq(Object b0, Object b1) {
-    return b0.equals(b1);
-  }
-
-  /** SQL = operator applied to BigDecimal values (neither may be null). */
+  /** SQL <code>=</code> operator applied to BigDecimal values (neither may be
+   * null). */
   public static boolean eq(BigDecimal b0, BigDecimal b1) {
     return b0.stripTrailingZeros().equals(b1.stripTrailingZeros());
   }
 
-  // <>
-
-  /** SQL &lt;&gt; operator applied to Object values (including String;
+  /** SQL <code>=</code> operator applied to Object values (including String;
    * neither side may be null). */
-  public static boolean ne(Object b0, Object b1) {
-    return !b0.equals(b1);
+  public static boolean eq(Object b0, Object b1) {
+    return b0.equals(b1);
   }
 
-  /** SQL &lt;&gt; operator applied to BigDecimal values. */
+  /** SQL <code>=</code> operator applied to Object values (at least one operand
+   * has ANY type; neither may be null). */
+  public static boolean eqAny(Object b0, Object b1) {
+    if (b0.getClass().equals(b1.getClass())) {
+      // The result of SqlFunctions.eq(BigDecimal, BigDecimal) makes more sense
+      // than BigDecimal.equals(BigDecimal). So if both of types are BigDecimal,
+      // we just use SqlFunctions.eq(BigDecimal, BigDecimal).
+      if (BigDecimal.class.isInstance(b0)) {
+        return eq((BigDecimal) b0, (BigDecimal) b1);
+      } else {
+        return b0.equals(b1);
+      }
+    } else if (allAssignable(Number.class, b0, b1)) {
+      return eq(toBigDecimal((Number) b0), toBigDecimal((Number) b1));
+    }
+    // We shouldn't rely on implementation even though overridden equals can
+    // handle other types which may create worse result: for example,
+    // a.equals(b) != b.equals(a)
+    return false;
+  }
+
+  /** Returns whether two objects can both be assigned to a given class. */
+  private static boolean allAssignable(Class clazz, Object o0, Object o1) {
+    return clazz.isInstance(o0) && clazz.isInstance(o1);
+  }
+
+  // <>
+
+  /** SQL <code>&lt;gt;</code> operator applied to BigDecimal values. */
   public static boolean ne(BigDecimal b0, BigDecimal b1) {
     return b0.compareTo(b1) != 0;
   }
 
+  /** SQL <code>&lt;gt;</code> operator applied to Object values (including
+   * String; neither side may be null). */
+  public static boolean ne(Object b0, Object b1) {
+    return !eq(b0, b1);
+  }
+
+  /** SQL <code>&lt;gt;</code> operator applied to Object values (at least one
+   *  operand has ANY type, including String; neither may be null). */
+  public static boolean neAny(Object b0, Object b1) {
+    return !eqAny(b0, b1);
+  }
+
   // <
 
-  /** SQL &lt; operator applied to boolean values. */
+  /** SQL <code>&lt;</code> operator applied to boolean values. */
   public static boolean lt(boolean b0, boolean b1) {
     return compare(b0, b1) < 0;
   }
 
-  /** SQL &lt; operator applied to String values. */
+  /** SQL <code>&lt;</code> operator applied to String values. */
   public static boolean lt(String b0, String b1) {
     return b0.compareTo(b1) < 0;
   }
 
-  /** SQL &lt; operator applied to ByteString values. */
+  /** SQL <code>&lt;</code> operator applied to ByteString values. */
   public static boolean lt(ByteString b0, ByteString b1) {
     return b0.compareTo(b1) < 0;
   }
 
-  /** SQL &lt; operator applied to BigDecimal values. */
+  /** SQL <code>&lt;</code> operator applied to BigDecimal values. */
   public static boolean lt(BigDecimal b0, BigDecimal b1) {
     return b0.compareTo(b1) < 0;
   }
 
+  /** SQL <code>&lt;</code> operator applied to Object values. */
+  public static boolean ltAny(Object b0, Object b1) {
+    if (b0.getClass().equals(b1.getClass())
+        && b0 instanceof Comparable) {
+      //noinspection unchecked
+      return ((Comparable) b0).compareTo(b1) < 0;
+    } else if (allAssignable(Number.class, b0, b1)) {
+      return lt(toBigDecimal((Number) b0), toBigDecimal((Number) b1));
+    }
+
+    throw notComparable("<", b0, b1);
+  }
+
   // <=
 
-  /** SQL &le; operator applied to boolean values. */
+  /** SQL <code>&le;</code> operator applied to boolean values. */
   public static boolean le(boolean b0, boolean b1) {
     return compare(b0, b1) <= 0;
   }
 
-  /** SQL &le; operator applied to String values. */
+  /** SQL <code>&le;</code> operator applied to String values. */
   public static boolean le(String b0, String b1) {
     return b0.compareTo(b1) <= 0;
   }
 
-  /** SQL &le; operator applied to ByteString values. */
+  /** SQL <code>&le;</code> operator applied to ByteString values. */
   public static boolean le(ByteString b0, ByteString b1) {
     return b0.compareTo(b1) <= 0;
   }
 
-  /** SQL &le; operator applied to BigDecimal values. */
+  /** SQL <code>&le;</code> operator applied to BigDecimal values. */
   public static boolean le(BigDecimal b0, BigDecimal b1) {
     return b0.compareTo(b1) <= 0;
   }
 
+  /** SQL <code>&le;</code> operator applied to Object values (at least one
+   * operand has ANY type; neither may be null). */
+  public static boolean leAny(Object b0, Object b1) {
+    if (b0.getClass().equals(b1.getClass())
+        && b0 instanceof Comparable) {
+      //noinspection unchecked
+      return ((Comparable) b0).compareTo(b1) <= 0;
+    } else if (allAssignable(Number.class, b0, b1)) {
+      return le(toBigDecimal((Number) b0), toBigDecimal((Number) b1));
+    }
+
+    throw notComparable("<=", b0, b1);
+  }
+
   // >
 
-  /** SQL &gt; operator applied to boolean values. */
+  /** SQL <code>&gt;</code> operator applied to boolean values. */
   public static boolean gt(boolean b0, boolean b1) {
     return compare(b0, b1) > 0;
   }
 
-  /** SQL &gt; operator applied to String values. */
+  /** SQL <code>&gt;</code> operator applied to String values. */
   public static boolean gt(String b0, String b1) {
     return b0.compareTo(b1) > 0;
   }
 
-  /** SQL &gt; operator applied to ByteString values. */
+  /** SQL <code>&gt;</code> operator applied to ByteString values. */
   public static boolean gt(ByteString b0, ByteString b1) {
     return b0.compareTo(b1) > 0;
   }
 
-  /** SQL &gt; operator applied to BigDecimal values. */
+  /** SQL <code>&gt;</code> operator applied to BigDecimal values. */
   public static boolean gt(BigDecimal b0, BigDecimal b1) {
     return b0.compareTo(b1) > 0;
   }
 
+  /** SQL <code>&gt;</code> operator applied to Object values (at least one
+   * operand has ANY type; neither may be null). */
+  public static boolean gtAny(Object b0, Object b1) {
+    if (b0.getClass().equals(b1.getClass())
+        && b0 instanceof Comparable) {
+      //noinspection unchecked
+      return ((Comparable) b0).compareTo(b1) > 0;
+    } else if (allAssignable(Number.class, b0, b1)) {
+      return gt(toBigDecimal((Number) b0), toBigDecimal((Number) b1));
+    }
+
+    throw notComparable(">", b0, b1);
+  }
+
   // >=
 
-  /** SQL &ge; operator applied to boolean values. */
+  /** SQL <code>&ge;</code> operator applied to boolean values. */
   public static boolean ge(boolean b0, boolean b1) {
     return compare(b0, b1) >= 0;
   }
 
-  /** SQL &ge; operator applied to String values. */
+  /** SQL <code>&ge;</code> operator applied to String values. */
   public static boolean ge(String b0, String b1) {
     return b0.compareTo(b1) >= 0;
   }
 
-  /** SQL &ge; operator applied to ByteString values. */
+  /** SQL <code>&ge;</code> operator applied to ByteString values. */
   public static boolean ge(ByteString b0, ByteString b1) {
     return b0.compareTo(b1) >= 0;
   }
 
-  /** SQL &ge; operator applied to BigDecimal values. */
+  /** SQL <code>&ge;</code> operator applied to BigDecimal values. */
   public static boolean ge(BigDecimal b0, BigDecimal b1) {
     return b0.compareTo(b1) >= 0;
+  }
+
+  /** SQL <code>&ge;</code> operator applied to Object values (at least one
+   * operand has ANY type; neither may be null). */
+  public static boolean geAny(Object b0, Object b1) {
+    if (b0.getClass().equals(b1.getClass())
+        && b0 instanceof Comparable) {
+      //noinspection unchecked
+      return ((Comparable) b0).compareTo(b1) >= 0;
+    } else if (allAssignable(Number.class, b0, b1)) {
+      return ge(toBigDecimal((Number) b0), toBigDecimal((Number) b1));
+    }
+
+    throw notComparable(">=", b0, b1);
   }
 
   // +
@@ -492,6 +594,20 @@ public class SqlFunctions {
     return (b0 == null || b1 == null) ? null : b0.add(b1);
   }
 
+  /** SQL <code>+</code> operator applied to Object values (at least one operand
+   * has ANY type; either may be null). */
+  public static Object plusAny(Object b0, Object b1) {
+    if (b0 == null || b1 == null) {
+      return null;
+    }
+
+    if (allAssignable(Number.class, b0, b1)) {
+      return plus(toBigDecimal((Number) b0), toBigDecimal((Number) b1));
+    }
+
+    throw notArithmetic("+", b0, b1);
+  }
+
   // -
 
   /** SQL <code>-</code> operator applied to int values. */
@@ -533,6 +649,20 @@ public class SqlFunctions {
   /** SQL <code>-</code> operator applied to BigDecimal values. */
   public static BigDecimal minus(BigDecimal b0, BigDecimal b1) {
     return (b0 == null || b1 == null) ? null : b0.subtract(b1);
+  }
+
+  /** SQL <code>-</code> operator applied to Object values (at least one operand
+   * has ANY type; either may be null). */
+  public static Object minusAny(Object b0, Object b1) {
+    if (b0 == null || b1 == null) {
+      return null;
+    }
+
+    if (allAssignable(Number.class, b0, b1)) {
+      return minus(toBigDecimal((Number) b0), toBigDecimal((Number) b1));
+    }
+
+    throw notArithmetic("-", b0, b1);
   }
 
   // /
@@ -580,14 +710,28 @@ public class SqlFunctions {
         : b0.divide(b1, MathContext.DECIMAL64);
   }
 
+  /** SQL <code>/</code> operator applied to Object values (at least one operand
+   * has ANY type; either may be null). */
+  public static Object divideAny(Object b0, Object b1) {
+    if (b0 == null || b1 == null) {
+      return null;
+    }
+
+    if (allAssignable(Number.class, b0, b1)) {
+      return divide(toBigDecimal((Number) b0), toBigDecimal((Number) b1));
+    }
+
+    throw notArithmetic("/", b0, b1);
+  }
+
   public static int divide(int b0, BigDecimal b1) {
     return BigDecimal.valueOf(b0)
-        .divide(b1, BigDecimal.ROUND_HALF_DOWN).intValue();
+        .divide(b1, RoundingMode.HALF_DOWN).intValue();
   }
 
   public static long divide(long b0, BigDecimal b1) {
     return BigDecimal.valueOf(b0)
-        .divide(b1, BigDecimal.ROUND_HALF_DOWN).longValue();
+        .divide(b1, RoundingMode.HALF_DOWN).longValue();
   }
 
   // *
@@ -633,11 +777,41 @@ public class SqlFunctions {
     return (b0 == null || b1 == null) ? null : b0.multiply(b1);
   }
 
+  /** SQL <code>*</code> operator applied to Object values (at least one operand
+   * has ANY type; either may be null). */
+  public static Object multiplyAny(Object b0, Object b1) {
+    if (b0 == null || b1 == null) {
+      return null;
+    }
+
+    if (allAssignable(Number.class, b0, b1)) {
+      return multiply(toBigDecimal((Number) b0), toBigDecimal((Number) b1));
+    }
+
+    throw notArithmetic("*", b0, b1);
+  }
+
+  private static IllegalArgumentException notArithmetic(String op, Object b0,
+      Object b1) {
+    return new IllegalArgumentException("Invalid types for arithmetic: "
+        + b0.getClass() + " " + op + " " + b1.getClass());
+  }
+
+  private static IllegalArgumentException notComparable(String op, Object b0,
+      Object b1) {
+    return new IllegalArgumentException("Invalid types for comparison: "
+        + b0.getClass() + " " + op + " " + b1.getClass());
+  }
+
   // EXP
 
   /** SQL <code>EXP</code> operator applied to double values. */
   public static double exp(double b0) {
     return Math.exp(b0);
+  }
+
+  public static double exp(BigDecimal b0) {
+    return Math.exp(b0.doubleValue());
   }
 
   public static double exp(long b0) {
@@ -653,6 +827,10 @@ public class SqlFunctions {
 
   public static double power(long b0, long b1) {
     return Math.pow(b0, b1);
+  }
+
+  public static double power(BigDecimal b0, BigDecimal b1) {
+    return Math.pow(b0.doubleValue(), b1.doubleValue());
   }
 
   public static double power(long b0, BigDecimal b1) {
@@ -741,7 +919,7 @@ public class SqlFunctions {
   }
 
   public static BigDecimal floor(BigDecimal b0) {
-    return b0.setScale(0, BigDecimal.ROUND_FLOOR);
+    return b0.setScale(0, RoundingMode.FLOOR);
   }
 
   /** SQL <code>FLOOR</code> operator applied to byte values. */
@@ -802,7 +980,7 @@ public class SqlFunctions {
   }
 
   public static BigDecimal ceil(BigDecimal b0) {
-    return b0.setScale(0, BigDecimal.ROUND_CEILING);
+    return b0.setScale(0, RoundingMode.CEILING);
   }
 
   /** SQL <code>CEIL</code> operator applied to byte values. */
@@ -883,6 +1061,236 @@ public class SqlFunctions {
   /** SQL <code>ABS</code> operator applied to BigDecimal values. */
   public static BigDecimal abs(BigDecimal b0) {
     return b0.abs();
+  }
+
+  // ACOS
+  /** SQL <code>ACOS</code> operator applied to long values. */
+  public static double acos(long b0) {
+    return Math.acos(b0);
+  }
+
+  /** SQL <code>ACOS</code> operator applied to BigDecimal values. */
+  public static double acos(BigDecimal b0) {
+    return Math.acos(b0.doubleValue());
+  }
+
+  /** SQL <code>ACOS</code> operator applied to double values. */
+  public static double acos(double b0) {
+    return Math.acos(b0);
+  }
+
+  // ASIN
+  /** SQL <code>ASIN</code> operator applied to long values. */
+  public static double asin(long b0) {
+    return Math.asin(b0);
+  }
+
+  /** SQL <code>ASIN</code> operator applied to BigDecimal values. */
+  public static double asin(BigDecimal b0) {
+    return Math.asin(b0.doubleValue());
+  }
+
+  /** SQL <code>ASIN</code> operator applied to double values. */
+  public static double asin(double b0) {
+    return Math.asin(b0);
+  }
+
+  // ATAN
+  /** SQL <code>ATAN</code> operator applied to long values. */
+  public static double atan(long b0) {
+    return Math.atan(b0);
+  }
+
+  /** SQL <code>ATAN</code> operator applied to BigDecimal values. */
+  public static double atan(BigDecimal b0) {
+    return Math.atan(b0.doubleValue());
+  }
+
+  /** SQL <code>ATAN</code> operator applied to double values. */
+  public static double atan(double b0) {
+    return Math.atan(b0);
+  }
+
+  // ATAN2
+  /** SQL <code>ATAN2</code> operator applied to long values. */
+  public static double atan2(long b0, long b1) {
+    return Math.atan2(b0, b1);
+  }
+
+  /** SQL <code>ATAN2</code> operator applied to long/BigDecimal values. */
+  public static double atan2(long b0, BigDecimal b1) {
+    return Math.atan2(b0, b1.doubleValue());
+  }
+
+  /** SQL <code>ATAN2</code> operator applied to BigDecimal values. */
+  public static double atan2(BigDecimal b0, BigDecimal b1) {
+    return Math.atan2(b0.doubleValue(), b1.doubleValue());
+  }
+
+  /** SQL <code>ATAN2</code> operator applied to double values. */
+  public static double atan2(double b0, double b1) {
+    return Math.atan2(b0, b1);
+  }
+
+  // COS
+  /** SQL <code>COS</code> operator applied to long values. */
+  public static double cos(long b0) {
+    return Math.cos(b0);
+  }
+
+  /** SQL <code>COS</code> operator applied to BigDecimal values. */
+  public static double cos(BigDecimal b0) {
+    return Math.cos(b0.doubleValue());
+  }
+
+  /** SQL <code>COS</code> operator applied to double values. */
+  public static double cos(double b0) {
+    return Math.cos(b0);
+  }
+
+  // COT
+  /** SQL <code>COT</code> operator applied to long values. */
+  public static double cot(long b0) {
+    return 1.0d / Math.tan(b0);
+  }
+
+  /** SQL <code>COT</code> operator applied to BigDecimal values. */
+  public static double cot(BigDecimal b0) {
+    return 1.0d / Math.tan(b0.doubleValue());
+  }
+
+  /** SQL <code>COT</code> operator applied to double values. */
+  public static double cot(double b0) {
+    return 1.0d / Math.tan(b0);
+  }
+
+  // DEGREES
+  /** SQL <code>DEGREES</code> operator applied to long values. */
+  public static double degrees(long b0) {
+    return Math.toDegrees(b0);
+  }
+
+  /** SQL <code>DEGREES</code> operator applied to BigDecimal values. */
+  public static double degrees(BigDecimal b0) {
+    return Math.toDegrees(b0.doubleValue());
+  }
+
+  /** SQL <code>DEGREES</code> operator applied to double values. */
+  public static double degrees(double b0) {
+    return Math.toDegrees(b0);
+  }
+
+  // RADIANS
+  /** SQL <code>RADIANS</code> operator applied to long values. */
+  public static double radians(long b0) {
+    return Math.toRadians(b0);
+  }
+
+  /** SQL <code>RADIANS</code> operator applied to BigDecimal values. */
+  public static double radians(BigDecimal b0) {
+    return Math.toRadians(b0.doubleValue());
+  }
+
+  /** SQL <code>RADIANS</code> operator applied to double values. */
+  public static double radians(double b0) {
+    return Math.toRadians(b0);
+  }
+
+  // SQL ROUND
+  /** SQL <code>ROUND</code> operator applied to long values. */
+  public static int sround(int b0, int b1) {
+    return sround(BigDecimal.valueOf(b0), b1).intValue();
+  }
+
+  /** SQL <code>ROUND</code> operator applied to long values. */
+  public static long sround(long b0, int b1) {
+    return sround(BigDecimal.valueOf(b0), b1).longValue();
+  }
+
+  /** SQL <code>ROUND</code> operator applied to BigDecimal values. */
+  public static BigDecimal sround(BigDecimal b0, int b1) {
+    return b0.movePointRight(b1)
+        .setScale(0, RoundingMode.HALF_UP).movePointLeft(b1);
+  }
+
+  /** SQL <code>ROUND</code> operator applied to double values. */
+  public static double sround(double b0, int b1) {
+    return sround(BigDecimal.valueOf(b0), b1).doubleValue();
+  }
+
+  // SQL TRUNCATE
+  /** SQL <code>TRUNCATE</code> operator applied to int values. */
+  public static int struncate(int b0, int b1) {
+    return struncate(BigDecimal.valueOf(b0), b1).intValue();
+  }
+
+  /** SQL <code>TRUNCATE</code> operator applied to long values. */
+  public static long struncate(long b0, int b1) {
+    return struncate(BigDecimal.valueOf(b0), b1).longValue();
+  }
+
+  /** SQL <code>TRUNCATE</code> operator applied to BigDecimal values. */
+  public static BigDecimal struncate(BigDecimal b0, int b1) {
+    return b0.movePointRight(b1)
+        .setScale(0, RoundingMode.DOWN).movePointLeft(b1);
+  }
+
+  /** SQL <code>TRUNCATE</code> operator applied to double values. */
+  public static double struncate(double b0, int b1) {
+    return struncate(BigDecimal.valueOf(b0), b1).doubleValue();
+  }
+
+  // SIGN
+  /** SQL <code>SIGN</code> operator applied to int values. */
+  public static int sign(int b0) {
+    return Integer.signum(b0);
+  }
+
+  /** SQL <code>SIGN</code> operator applied to long values. */
+  public static long sign(long b0) {
+    return Long.signum(b0);
+  }
+
+  /** SQL <code>SIGN</code> operator applied to BigDecimal values. */
+  public static BigDecimal sign(BigDecimal b0) {
+    return BigDecimal.valueOf(b0.signum());
+  }
+
+  /** SQL <code>SIGN</code> operator applied to double values. */
+  public static double sign(double b0) {
+    return Math.signum(b0);
+  }
+
+  // SIN
+  /** SQL <code>SIN</code> operator applied to long values. */
+  public static double sin(long b0) {
+    return Math.sin(b0);
+  }
+
+  /** SQL <code>SIN</code> operator applied to BigDecimal values. */
+  public static double sin(BigDecimal b0) {
+    return Math.sin(b0.doubleValue());
+  }
+
+  /** SQL <code>SIN</code> operator applied to double values. */
+  public static double sin(double b0) {
+    return Math.sin(b0);
+  }
+
+  // TAN
+  /** SQL <code>TAN</code> operator applied to long values. */
+  public static double tan(long b0) {
+    return Math.tan(b0);
+  }
+
+  /** SQL <code>TAN</code> operator applied to BigDecimal values. */
+  public static double tan(BigDecimal b0) {
+    return Math.tan(b0.doubleValue());
+  }
+
+  /** SQL <code>TAN</code> operator applied to double values. */
+  public static double tan(double b0) {
+    return Math.tan(b0);
   }
 
   // Helpers
@@ -1131,6 +1539,7 @@ public class SqlFunctions {
     return o instanceof Integer ? (Integer) o
         : o instanceof Number ? toInt((Number) o)
         : o instanceof String ? toInt((String) o)
+        : o instanceof java.util.Date ? toInt((java.util.Date) o)
         : (Integer) cannotConvert(o, int.class);
   }
 
@@ -1317,9 +1726,37 @@ public class SqlFunctions {
     return s.indexOf(seek) + 1;
   }
 
-  /** SQL {@code POSITION(seek IN string)} function. */
+  /** SQL {@code POSITION(seek IN string)} function for byte strings. */
   public static int position(ByteString seek, ByteString s) {
     return s.indexOf(seek) + 1;
+  }
+
+  /** SQL {@code POSITION(seek IN string FROM integer)} function. */
+  public static int position(String seek, String s, int from) {
+    final int from0 = from - 1; // 0-based
+    if (from0 > s.length() || from0 < 0) {
+      return 0;
+    }
+
+    return s.indexOf(seek, from0) + 1;
+  }
+
+  /** SQL {@code POSITION(seek IN string FROM integer)} function for byte
+   * strings. */
+  public static int position(ByteString seek, ByteString s, int from) {
+    final int from0 = from - 1;
+    if (from0 > s.length() || from0 < 0) {
+      return 0;
+    }
+
+    // ByteString doesn't have indexOf(ByteString, int) until avatica-1.9
+    // (see [CALCITE-1423]), so apply substring and find from there.
+    Bug.upgrade("in avatica-1.9, use ByteString.substring(ByteString, int)");
+    final int p = s.substring(from0).indexOf(seek);
+    if (p < 0) {
+      return 0;
+    }
+    return p + from;
   }
 
   /** Helper for rounding. Truncate(12345, 1000) returns 12000. */
@@ -1392,9 +1829,15 @@ public class SqlFunctions {
     return (int) (localTimestamp(root) % DateTimeUtils.MILLIS_PER_DAY);
   }
 
-  /** SQL TRANSLATE(string, search_chars, replacement_chars) function. */
+  /** SQL {@code TRANSLATE(string, search_chars, replacement_chars)}
+   * function. */
   public static String translate3(String s, String search, String replacement) {
     return org.apache.commons.lang3.StringUtils.replaceChars(s, search, replacement);
+  }
+
+  /** SQL {@code REPLACE(string, search, replacement)} function. */
+  public static String replace(String s, String search, String replacement) {
+    return s.replace(search, replacement);
   }
 
   /** Helper for "array element reference". Caller has already ensured that
@@ -1417,14 +1860,38 @@ public class SqlFunctions {
    */
   public static Object item(Object object, Object index) {
     if (object instanceof Map) {
-      return ((Map) object).get(index);
+      return mapItem((Map) object, index);
     }
     if (object instanceof List && index instanceof Number) {
-      List list = (List) object;
-      return list.get(((Number) index).intValue());
+      return arrayItem((List) object, ((Number) index).intValue());
     }
     return null;
   }
+
+  /** As {@link #arrayItem} method, but allows array to be nullable. */
+  public static Object arrayItemOptional(List list, int item) {
+    if (list == null) {
+      return null;
+    }
+    return arrayItem(list, item);
+  }
+
+  /** As {@link #mapItem} method, but allows map to be nullable. */
+  public static Object mapItemOptional(Map map, Object item) {
+    if (map == null) {
+      return null;
+    }
+    return mapItem(map, item);
+  }
+
+  /** As {@link #item} method, but allows object to be nullable. */
+  public static Object itemOptional(Object object, Object index) {
+    if (object == null) {
+      return null;
+    }
+    return item(object, index);
+  }
+
 
   /** NULL &rarr; FALSE, FALSE &rarr; FALSE, TRUE &rarr; TRUE. */
   public static boolean isTrue(Boolean b) {
@@ -1622,11 +2089,7 @@ public class SqlFunctions {
     m0 += m - y * 12;
     int last = lastDay(y0, m0);
     if (d0 > last) {
-      d0 = 1;
-      if (++m0 > 12) {
-        m0 = 1;
-        ++y0;
-      }
+      d0 = last;
     }
     return DateTimeUtils.ymdToUnixDate(y0, m0, d0);
   }
@@ -1650,7 +2113,7 @@ public class SqlFunctions {
 
   /** Finds the number of months between two dates, each represented as the
    * number of days since the epoch. */
-  public static long subtractMonths(int date0, int date1) {
+  public static int subtractMonths(int date0, int date1) {
     if (date0 < date1) {
       return -subtractMonths(date1, date0);
     }
@@ -1679,7 +2142,7 @@ public class SqlFunctions {
         DateTimeUtils.floorMod(t1, DateTimeUtils.MILLIS_PER_DAY);
     final int d1 = (int) DateTimeUtils.floorDiv(t1 - millis1,
         DateTimeUtils.MILLIS_PER_DAY);
-    int x = (int) subtractMonths(d0, d1);
+    int x = subtractMonths(d0, d1);
     final long d2 = addMonths(d1, x);
     if (d2 == d0 && millis0 < millis1) {
       --x;
@@ -1713,7 +2176,7 @@ public class SqlFunctions {
         i += a.length;
       }
       if (withOrdinality) {
-        flatElements[i] = (E) new Integer(++ordinality); // 1-based
+        flatElements[i] = (E) Integer.valueOf(++ordinality); // 1-based
       }
       return FlatLists.ofComparable(list);
     }

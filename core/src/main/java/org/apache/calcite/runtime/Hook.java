@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.runtime;
 
+import org.apache.calcite.util.Holder;
+
 import com.google.common.base.Function;
 
 import java.util.ArrayList;
@@ -33,8 +35,23 @@ public enum Hook {
    * in tests. */
   CURRENT_TIME,
 
+  /** Returns a boolean value, whether RelBuilder should simplify expressions.
+   * Default true. */
+  REL_BUILDER_SIMPLIFY,
+
+  /** Returns a boolean value, whether the return convention should be
+   * {@link org.apache.calcite.interpreter.BindableConvention}.
+   * Default false. */
+  ENABLE_BINDABLE,
+
   /** Called with the SQL string and parse tree, in an array. */
   PARSE_TREE,
+
+  /** Converts a SQL string to a
+   * {@link org.apache.calcite.jdbc.CalcitePrepare.Query} object. This hook is
+   * an opportunity to execute a {@link org.apache.calcite.rel.RelNode} query
+   * plan in the JDBC driver rather than the usual SQL string. */
+  STRING_TO_QUERY,
 
   /** Called with the generated Java plan, just before it is compiled by
    * Janino. */
@@ -42,6 +59,9 @@ public enum Hook {
 
   /** Called with the output of sql-to-rel-converter. */
   CONVERTED,
+
+  /** Called with the created planner. */
+  PLANNER,
 
   /** Called after de-correlation and field trimming, but before
    * optimization. */
@@ -65,12 +85,12 @@ public enum Hook {
   QUERY_PLAN;
 
   private final List<Function<Object, Object>> handlers =
-      new CopyOnWriteArrayList<Function<Object, Object>>();
+      new CopyOnWriteArrayList<>();
 
   private final ThreadLocal<List<Function<Object, Object>>> threadHandlers =
       new ThreadLocal<List<Function<Object, Object>>>() {
         protected List<Function<Object, Object>> initialValue() {
-          return new ArrayList<Function<Object, Object>>();
+          return new ArrayList<>();
         }
       };
 
@@ -119,6 +139,18 @@ public enum Hook {
     return threadHandlers.get().remove(handler);
   }
 
+  /** Returns a function that, when a hook is called, will "return" a given
+   * value. (Because of the way hooks work, it "returns" the value by writing
+   * into a {@link Holder}. */
+  public static <V> Function<Holder<V>, Void> property(final V v) {
+    return new Function<Holder<V>, Void>() {
+      public Void apply(Holder<V> holder) {
+        holder.set(v);
+        return null;
+      }
+    };
+  }
+
   /** Runs all handlers registered for this Hook, with the given argument. */
   public void run(Object arg) {
     for (Function<Object, Object> handler : handlers) {
@@ -129,20 +161,24 @@ public enum Hook {
     }
   }
 
-  /** Removes a Hook after use.
-   *
-   * <p>Note: Although it would be convenient, this interface cannot extend
-   * {@code AutoCloseable} while Calcite maintains compatibility with
-   * JDK 1.6.</p>
-   */
-  public interface Closeable /*extends AutoCloseable*/ {
+  /** Returns the value of a property hook.
+   * (Property hooks take a {@link Holder} as an argument.) */
+  public <V> V get(V defaultValue) {
+    final Holder<V> holder = Holder.of(defaultValue);
+    run(holder);
+    return holder.get();
+  }
+
+  /** Removes a Hook after use. */
+  public interface Closeable extends AutoCloseable {
     /** Closeable that does nothing. */
     Closeable EMPTY =
         new Closeable() {
           public void close() {}
         };
 
-    void close(); // override, removing "throws"
+    // override, removing "throws"
+    @Override void close();
   }
 }
 

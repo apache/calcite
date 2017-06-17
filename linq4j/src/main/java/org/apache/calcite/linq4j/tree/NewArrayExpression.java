@@ -41,14 +41,18 @@ public class NewArrayExpression extends Expression {
     this.expressions = expressions;
   }
 
-  @Override public Expression accept(Visitor visitor) {
-    visitor = visitor.preVisit(this);
+  @Override public Expression accept(Shuttle shuttle) {
+    shuttle = shuttle.preVisit(this);
     List<Expression> expressions =
         this.expressions == null
             ? null
-            : Expressions.acceptExpressions(this.expressions, visitor);
-    Expression bound = Expressions.accept(this.bound, visitor);
-    return visitor.visit(this, dimension, bound, expressions);
+            : Expressions.acceptExpressions(this.expressions, shuttle);
+    Expression bound = Expressions.accept(this.bound, shuttle);
+    return shuttle.visit(this, dimension, bound, expressions);
+  }
+
+  public <R> R accept(Visitor<R> visitor) {
+    return visitor.visit(this);
   }
 
   @Override void accept(ExpressionWriter writer, int lprec, int rprec) {

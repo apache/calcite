@@ -50,7 +50,7 @@ public interface RelDataTypeFactory {
   RelDataTypeSystem getTypeSystem();
 
   /**
-   * Creates a type which corresponds to a Java class.
+   * Creates a type that corresponds to a Java class.
    *
    * @param clazz the Java class used to define the type
    * @return canonical Java type descriptor
@@ -66,28 +66,37 @@ public interface RelDataTypeFactory {
   RelDataType createJoinType(RelDataType... types);
 
   /**
-   * Creates a type which represents a structured collection of fields, given
+   * Creates a type that represents a structured collection of fields, given
    * lists of the names and types of the fields.
    *
+   * @param  kind         Name resolution policy
    * @param typeList      types of the fields
    * @param fieldNameList names of the fields
    * @return canonical struct type descriptor
    */
+  RelDataType createStructType(StructKind kind,
+      List<RelDataType> typeList,
+      List<String> fieldNameList);
+
+  /** Creates a type that represents a structured collection of fields.
+   * Shorthand for <code>createStructType(StructKind.FULLY_QUALIFIED, typeList,
+   * fieldNameList)</code>. */
   RelDataType createStructType(
       List<RelDataType> typeList,
       List<String> fieldNameList);
 
   /**
-   * Creates a type which represents a structured collection of fields,
+   * Creates a type that represents a structured collection of fields,
    * obtaining the field information via a callback.
    *
    * @param fieldInfo callback for field information
    * @return canonical struct type descriptor
    */
+  @Deprecated // to be removed before 2.0
   RelDataType createStructType(FieldInfo fieldInfo);
 
   /**
-   * Creates a type which represents a structured collection of fieldList,
+   * Creates a type that represents a structured collection of fieldList,
    * obtaining the field information from a list of (name, type) pairs.
    *
    * @param fieldList List of (name, type) pairs
@@ -140,7 +149,7 @@ public interface RelDataTypeFactory {
   RelDataType copyType(RelDataType type);
 
   /**
-   * Creates a type which is the same as another type but with possibly
+   * Creates a type that is the same as another type but with possibly
    * different nullability. The output type may be identical to the input
    * type. For type systems without a concept of nullability, the return value
    * is always the same as the input.
@@ -156,7 +165,7 @@ public interface RelDataTypeFactory {
       boolean nullable);
 
   /**
-   * Creates a Type which is the same as another type but with possibly
+   * Creates a type that is the same as another type but with possibly
    * different charset or collation. For types without a concept of charset or
    * collation this function must throw an error.
    *
@@ -179,7 +188,7 @@ public interface RelDataTypeFactory {
   /**
    * Returns the most general of a set of types (that is, one type to which
    * they can all be cast), or null if conversion is not possible. The result
-   * may be a new type which is less restrictive than any of the input types,
+   * may be a new type that is less restrictive than any of the input types,
    * e.g. <code>leastRestrictive(INT, NUMERIC(3, 2))</code> could be
    * {@code NUMERIC(12, 2)}.
    *
@@ -288,8 +297,9 @@ public interface RelDataTypeFactory {
   //~ Inner Interfaces -------------------------------------------------------
 
   /**
-   * Callback which provides enough information to create fields.
+   * Callback that provides enough information to create fields.
    */
+  @Deprecated // to be removed before 2.0
   interface FieldInfo {
     /**
      * Returns the number of fields.
@@ -319,10 +329,11 @@ public interface RelDataTypeFactory {
    * Implementation of {@link FieldInfo} that provides a fluid API to build
    * a list of fields.
    */
+  @SuppressWarnings("deprecation")
   class FieldInfoBuilder implements FieldInfo {
     private final List<String> names = new ArrayList<>();
     private final List<RelDataType> types = new ArrayList<>();
-
+    private StructKind kind = StructKind.FULLY_QUALIFIED;
     private final RelDataTypeFactory typeFactory;
 
     /**
@@ -418,6 +429,11 @@ public interface RelDataTypeFactory {
       return this;
     }
 
+    public FieldInfoBuilder kind(StructKind kind) {
+      this.kind = kind;
+      return this;
+    }
+
     /**
      * Makes sure that field names are unique.
      */
@@ -435,7 +451,7 @@ public interface RelDataTypeFactory {
      * Creates a struct type with the current contents of this builder.
      */
     public RelDataType build() {
-      return typeFactory.createStructType(types, names);
+      return typeFactory.createStructType(kind, types, names);
     }
   }
 }

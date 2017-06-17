@@ -54,14 +54,13 @@ import org.apache.calcite.server.CalciteServerStatement;
 import org.apache.calcite.sql.advise.SqlAdvisor;
 import org.apache.calcite.sql.advise.SqlAdvisorValidator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
-import org.apache.calcite.sql.validate.SqlConformance;
+import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.sql.validate.SqlValidatorWithHints;
 import org.apache.calcite.tools.RelRunner;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.Holder;
 
 import com.google.common.base.Preconditions;
-import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
@@ -163,7 +162,7 @@ abstract class CalciteConnectionImpl
                     ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY,
                     getHoldability());
               } catch (SQLException e) {
-                throw Throwables.propagate(e);
+                throw new RuntimeException(e);
               }
             }
           });
@@ -217,6 +216,12 @@ abstract class CalciteConnectionImpl
     } finally {
       CalcitePrepare.Dummy.pop(prepareContext);
     }
+  }
+
+  @Override public AtomicBoolean getCancelFlag(Meta.StatementHandle handle)
+      throws NoSuchStatementException {
+    final CalciteServerStatement serverStatement = server.getStatement(handle);
+    return ((CalciteServerStatementImpl) serverStatement).cancelFlag;
   }
 
   // CalciteConnection methods
@@ -282,26 +287,19 @@ abstract class CalciteConnectionImpl
     try {
       cancelFlag = getCancelFlag(handle);
     } catch (NoSuchStatementException e) {
-      throw Throwables.propagate(e);
+      throw new RuntimeException(e);
     }
     map.put(DataContext.Variable.CANCEL_FLAG.camelName, cancelFlag);
-    final DataContext dataContext = createDataContext(map);
+    final DataContext dataContext = createDataContext(map, signature.rootSchema);
     return signature.enumerable(dataContext);
   }
 
-  /** Returns the flag that is used to request or check cancel for a particular
-   * statement. */
-  AtomicBoolean getCancelFlag(Meta.StatementHandle handle)
-      throws NoSuchStatementException {
-    final CalciteServerStatement serverStatement = server.getStatement(handle);
-    return ((CalciteServerStatementImpl) serverStatement).cancelFlag;
-  }
-
-  public DataContext createDataContext(Map<String, Object> parameterValues) {
+  public DataContext createDataContext(Map<String, Object> parameterValues,
+      CalciteSchema rootSchema) {
     if (config().spark()) {
       return new SlimDataContext();
     }
-    return new DataContextImpl(this, parameterValues);
+    return new DataContextImpl(this, parameterValues, rootSchema);
   }
 
   // do not make public
@@ -376,10 +374,10 @@ abstract class CalciteConnectionImpl
     private final JavaTypeFactory typeFactory;
 
     DataContextImpl(CalciteConnectionImpl connection,
-        Map<String, Object> parameters) {
+        Map<String, Object> parameters, CalciteSchema rootSchema) {
       this.queryProvider = connection;
       this.typeFactory = connection.getTypeFactory();
-      this.rootSchema = connection.rootSchema;
+      this.rootSchema = rootSchema;
 
       // Store the time at which the query started executing. The SQL
       // standard says that functions such as CURRENT_TIMESTAMP return the
@@ -430,12 +428,12 @@ abstract class CalciteConnectionImpl
           new SqlAdvisorValidator(SqlStdOperatorTable.instance(),
           new CalciteCatalogReader(rootSchema, con.config().caseSensitive(),
               schemaPath, typeFactory),
-          typeFactory, SqlConformance.DEFAULT);
+          typeFactory, SqlConformanceEnum.DEFAULT);
       return new SqlAdvisor(validator);
     }
 
     public SchemaPlus getRootSchema() {
-      return rootSchema.plus();
+      return rootSchema == null ? null : rootSchema.plus();
     }
 
     public JavaTypeFactory getTypeFactory() {
@@ -450,9 +448,12 @@ abstract class CalciteConnectionImpl
   /** Implementation of Context. */
   static class ContextImpl implements CalcitePrepare.Context {
     private final CalciteConnectionImpl connection;
+    private final CalciteSchema rootSchema;
 
     ContextImpl(CalciteConnectionImpl connection) {
       this.connection = Preconditions.checkNotNull(connection);
+      long now = System.currentTimeMillis();
+      this.rootSchema = connection.rootSchema.createSnapshot(now);
     }
 
     public JavaTypeFactory getTypeFactory() {
@@ -460,7 +461,7 @@ abstract class CalciteConnectionImpl
     }
 
     public CalciteSchema getRootSchema() {
-      return connection.rootSchema;
+      return rootSchema;
     }
 
     public List<String> getDefaultSchemaPath() {
@@ -475,7 +476,8 @@ abstract class CalciteConnectionImpl
     }
 
     public DataContext getDataContext() {
-      return connection.createDataContext(ImmutableMap.<String, Object>of());
+      return connection.createDataContext(ImmutableMap.<String, Object>of(),
+          rootSchema);
     }
 
     public CalcitePrepare.SparkHandler spark() {

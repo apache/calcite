@@ -22,6 +22,7 @@ import org.apache.calcite.rel.metadata.DefaultRelMetadataProvider;
 import org.apache.calcite.rel.metadata.MetadataFactory;
 import org.apache.calcite.rel.metadata.MetadataFactoryImpl;
 import org.apache.calcite.rel.metadata.RelMetadataProvider;
+import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
@@ -48,6 +49,7 @@ public class RelOptCluster {
   private RelMetadataProvider metadataProvider;
   private MetadataFactory metadataFactory;
   private final RelTraitSet emptyTraitSet;
+  private RelMetadataQuery mq;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -138,6 +140,27 @@ public class RelOptCluster {
 
   public MetadataFactory getMetadataFactory() {
     return metadataFactory;
+  }
+
+  /** Returns the current RelMetadataQuery.
+   *
+   * <p>This method might be changed or moved in future.
+   * If you have a {@link RelOptRuleCall} available,
+   * for example if you are in a {@link RelOptRule#onMatch(RelOptRuleCall)}
+   * method, then use {@link RelOptRuleCall#getMetadataQuery()} instead. */
+  public RelMetadataQuery getMetadataQuery() {
+    if (mq == null) {
+      mq = RelMetadataQuery.instance();
+    }
+    return mq;
+  }
+
+  /**
+   * Should be called whenever the current {@link RelMetadataQuery} becomes
+   * invalid. Typically invoked from {@link RelOptRuleCall#transformTo}.
+   */
+  public void invalidateMetadataQuery() {
+    mq = null;
   }
 
   /**

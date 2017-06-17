@@ -50,7 +50,8 @@ public class RexShuttle implements RexVisitor<RexNode> {
           over.getType(),
           over.getAggOperator(),
           clonedOperands,
-          window);
+          window,
+          over.isDistinct());
     } else {
       return over;
     }
@@ -86,6 +87,14 @@ public class RexShuttle implements RexVisitor<RexNode> {
     } else {
       return subQuery;
     }
+  }
+
+  @Override public RexNode visitTableInputRef(RexTableInputRef ref) {
+    return ref;
+  }
+
+  @Override public RexNode visitPatternFieldRef(RexPatternFieldRef fieldRef) {
+    return fieldRef;
   }
 
   public RexNode visitCall(final RexCall call) {

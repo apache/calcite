@@ -24,16 +24,16 @@
  * relational expression which participates in query planning.
  */
 {
-  version: '1.0',
-  defaultSchema: 'SALES',
-  schemas: [
+  "version": "1.0",
+  "defaultSchema": "SALES",
+  "schemas": [
     {
-      name: 'SALES',
-      type: 'custom',
-      factory: 'org.apache.calcite.adapter.csv.CsvSchemaFactory',
-      operand: {
-        directory: 'sales',
-        flavor: "TRANSLATABLE"
+      "name": "SALES",
+      "type": "custom",
+      "factory": "org.apache.calcite.adapter.csv.CsvSchemaFactory",
+      "operand": {
+        "directory": "sales",
+        "flavor": "TRANSLATABLE"
       }
     }
   ]

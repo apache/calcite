@@ -119,13 +119,13 @@ public abstract class RelDataTypeImpl
     return null;
   }
 
-  private static void getFieldRecurse(List<Slot> slots, RelDataTypeImpl type,
+  private static void getFieldRecurse(List<Slot> slots, RelDataType type,
       int depth, String fieldName, boolean caseSensitive) {
     while (slots.size() <= depth) {
       slots.add(new Slot());
     }
     final Slot slot = slots.get(depth);
-    for (RelDataTypeField field : type.fieldList) {
+    for (RelDataTypeField field : type.getFieldList()) {
       if (Util.matches(caseSensitive, field.getName(), fieldName)) {
         slot.count++;
         slot.field = field;
@@ -133,16 +133,15 @@ public abstract class RelDataTypeImpl
     }
     // No point looking to depth + 1 if there is a hit at depth.
     if (slot.count == 0) {
-      for (RelDataTypeField field : type.fieldList) {
+      for (RelDataTypeField field : type.getFieldList()) {
         if (field.getType().isStruct()) {
-          getFieldRecurse(slots, (RelDataTypeImpl) field.getType(), depth + 1,
+          getFieldRecurse(slots, field.getType(), depth + 1,
               fieldName, caseSensitive);
         }
       }
     }
   }
 
-  // implement RelDataType
   public List<RelDataTypeField> getFieldList() {
     assert isStruct();
     return fieldList;
@@ -152,13 +151,15 @@ public abstract class RelDataTypeImpl
     return Pair.left(fieldList);
   }
 
-  // implement RelDataType
   public int getFieldCount() {
     assert isStruct() : this;
     return fieldList.size();
   }
 
-  // implement RelDataType
+  public StructKind getStructKind() {
+    return isStruct() ? StructKind.FULLY_QUALIFIED : StructKind.NONE;
+  }
+
   public RelDataType getComponentType() {
     // this is not a collection type
     return null;
@@ -174,13 +175,11 @@ public abstract class RelDataTypeImpl
     return null;
   }
 
-  // implement RelDataType
   public boolean isStruct() {
     return fieldList != null;
   }
 
-  // implement RelDataType
-  public boolean equals(Object obj) {
+  @Override public boolean equals(Object obj) {
     if (obj instanceof RelDataTypeImpl) {
       final RelDataTypeImpl that = (RelDataTypeImpl) obj;
       return this.digest.equals(that.digest);
@@ -188,52 +187,42 @@ public abstract class RelDataTypeImpl
     return false;
   }
 
-  // implement RelDataType
-  public int hashCode() {
+  @Override public int hashCode() {
     return digest.hashCode();
   }
 
-  // implement RelDataType
   public String getFullTypeString() {
     return digest;
   }
 
-  // implement RelDataType
   public boolean isNullable() {
     return false;
   }
 
-  // implement RelDataType
   public Charset getCharset() {
     return null;
   }
 
-  // implement RelDataType
   public SqlCollation getCollation() {
     return null;
   }
 
-  // implement RelDataType
   public SqlIntervalQualifier getIntervalQualifier() {
     return null;
   }
 
-  // implement RelDataType
   public int getPrecision() {
     return PRECISION_NOT_SPECIFIED;
   }
 
-  // implement RelDataType
   public int getScale() {
     return SCALE_NOT_SPECIFIED;
   }
 
-  // implement RelDataType
   public SqlTypeName getSqlTypeName() {
     return null;
   }
 
-  // implement RelDataType
   public SqlIdentifier getSqlIdentifier() {
     SqlTypeName typeName = getSqlTypeName();
     if (typeName == null) {
@@ -244,7 +233,6 @@ public abstract class RelDataTypeImpl
         SqlParserPos.ZERO);
   }
 
-  // implement RelDataType
   public RelDataTypeFamily getFamily() {
     // by default, put each type into its own family
     return this;
@@ -275,14 +263,12 @@ public abstract class RelDataTypeImpl
     digest = sb.toString();
   }
 
-  // implement RelDataType
-  public String toString() {
+  @Override public String toString() {
     StringBuilder sb = new StringBuilder();
     generateTypeString(sb, false);
     return sb.toString();
   }
 
-  // implement RelDataType
   public RelDataTypePrecedenceList getPrecedenceList() {
     // by default, make each type have a precedence list containing
     // only other types in the same family
@@ -301,7 +287,6 @@ public abstract class RelDataTypeImpl
     };
   }
 
-  // implement RelDataType
   public RelDataTypeComparability getComparability() {
     return RelDataTypeComparability.ALL;
   }

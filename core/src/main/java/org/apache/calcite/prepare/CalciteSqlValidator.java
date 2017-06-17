@@ -33,12 +33,16 @@ class CalciteSqlValidator extends SqlValidatorImpl {
 
   @Override protected RelDataType getLogicalSourceRowType(
       RelDataType sourceRowType, SqlInsert insert) {
-    return ((JavaTypeFactory) typeFactory).toSql(sourceRowType);
+    final RelDataType superType =
+        super.getLogicalSourceRowType(sourceRowType, insert);
+    return ((JavaTypeFactory) typeFactory).toSql(superType);
   }
 
   @Override protected RelDataType getLogicalTargetRowType(
       RelDataType targetRowType, SqlInsert insert) {
-    return ((JavaTypeFactory) typeFactory).toSql(targetRowType);
+    final RelDataType superType =
+        super.getLogicalTargetRowType(targetRowType, insert);
+    return ((JavaTypeFactory) typeFactory).toSql(superType);
   }
 }
 

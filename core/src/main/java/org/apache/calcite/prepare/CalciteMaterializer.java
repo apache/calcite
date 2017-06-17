@@ -34,6 +34,7 @@ import org.apache.calcite.rel.logical.LogicalExchange;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalIntersect;
 import org.apache.calcite.rel.logical.LogicalJoin;
+import org.apache.calcite.rel.logical.LogicalMatch;
 import org.apache.calcite.rel.logical.LogicalMinus;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.logical.LogicalSort;
@@ -45,6 +46,7 @@ import org.apache.calcite.schema.impl.StarTable;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParser;
+import org.apache.calcite.sql2rel.SqlRexConvertletTable;
 import org.apache.calcite.sql2rel.SqlToRelConverter;
 
 import com.google.common.collect.ImmutableList;
@@ -59,10 +61,10 @@ class CalciteMaterializer extends CalcitePrepareImpl.CalcitePreparingStmt {
   public CalciteMaterializer(CalcitePrepareImpl prepare,
       CalcitePrepare.Context context,
       CatalogReader catalogReader, CalciteSchema schema,
-      RelOptPlanner planner) {
+      RelOptPlanner planner, SqlRexConvertletTable convertletTable) {
     super(prepare, context, catalogReader, catalogReader.getTypeFactory(),
-        schema,
-        EnumerableRel.Prefer.ANY, planner, BindableConvention.INSTANCE);
+        schema, EnumerableRel.Prefer.ANY, planner, BindableConvention.INSTANCE,
+        convertletTable);
   }
 
   /** Populates a materialization record, converting a table path
@@ -76,9 +78,10 @@ class CalciteMaterializer extends CalcitePrepareImpl.CalcitePreparingStmt {
     } catch (SqlParseException e) {
       throw new RuntimeException("parse failed", e);
     }
-
+    final SqlToRelConverter.Config config = SqlToRelConverter.configBuilder()
+        .withTrimUnusedFields(true).build();
     SqlToRelConverter sqlToRelConverter2 =
-        getSqlToRelConverter(getSqlValidator(), catalogReader);
+        getSqlToRelConverter(getSqlValidator(), catalogReader, config);
 
     materialization.queryRel =
         sqlToRelConverter2.convertQuery(node, true, true).rel;
@@ -142,7 +145,7 @@ class CalciteMaterializer extends CalcitePrepareImpl.CalcitePreparingStmt {
   }
 
   /** Implementation of {@link RelShuttle} that returns each relational
-   * expression unchanged. It does not visit children. */
+   * expression unchanged. It does not visit inputs. */
   static class RelNullShuttle implements RelShuttle {
     public RelNode visit(TableScan scan) {
       return scan;
@@ -176,6 +179,9 @@ class CalciteMaterializer extends CalcitePrepareImpl.CalcitePreparingStmt {
     }
     public RelNode visit(LogicalAggregate aggregate) {
       return aggregate;
+    }
+    public RelNode visit(LogicalMatch match) {
+      return match;
     }
     public RelNode visit(LogicalSort sort) {
       return sort;

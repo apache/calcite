@@ -36,11 +36,7 @@ public class EnumerableCorrelateTest {
             + "  EnumerableSemiJoin(condition=[=($1, $3)], joinType=[inner])\n"
             + "    EnumerableCalc(expr#0..4=[{inputs}], proj#0..2=[{exprs}])\n"
             + "      EnumerableTableScan(table=[[s, emps]])\n"
-            + "    EnumerableJoin(condition=[=($0, $1)], joinType=[inner])\n"
-            + "      EnumerableAggregate(group=[{1}])\n"
-            + "        EnumerableTableScan(table=[[s, emps]])\n"
-            + "      EnumerableCalc(expr#0..3=[{inputs}], deptno=[$t0])\n"
-            + "        EnumerableTableScan(table=[[s, depts]])")
+            + "    EnumerableTableScan(table=[[s, depts]])")
         .returnsUnordered(
             "empid=100; name=Bill",
             "empid=110; name=Theodore",
@@ -53,7 +49,7 @@ public class EnumerableCorrelateTest {
             "select empid, name from emps e where exists (select 1 from depts d where d.deptno=e.deptno)")
         .explainContains(""
             + "EnumerableCalc(expr#0..3=[{inputs}], empid=[$t0], name=[$t2])\n"
-            + "  EnumerableCorrelate(correlation=[$cor0], joinType=[INNER], requiredColumns=[{1}])\n"
+            + "  EnumerableCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{1}])\n"
             + "    EnumerableCalc(expr#0..4=[{inputs}], proj#0..2=[{exprs}])\n"
             + "      EnumerableTableScan(table=[[s, emps]])\n"
             + "    EnumerableAggregate(group=[{0}])\n"

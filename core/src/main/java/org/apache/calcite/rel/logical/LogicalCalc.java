@@ -91,7 +91,7 @@ public final class LogicalCalc extends Calc {
   public static LogicalCalc create(final RelNode input,
       final RexProgram program) {
     final RelOptCluster cluster = input.getCluster();
-    final RelMetadataQuery mq = RelMetadataQuery.instance();
+    final RelMetadataQuery mq = cluster.getMetadataQuery();
     final RelTraitSet traitSet = cluster.traitSet()
         .replace(Convention.NONE)
         .replaceIfs(RelCollationTraitDef.INSTANCE,

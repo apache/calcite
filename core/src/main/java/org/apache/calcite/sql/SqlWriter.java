@@ -28,11 +28,11 @@ public interface SqlWriter {
   //~ Enums ------------------------------------------------------------------
 
   /**
-   * Style of formatting subqueries.
+   * Style of formatting sub-queries.
    */
-  enum SubqueryStyle {
+  enum SubQueryStyle {
     /**
-     * Julian's style of subquery nesting. Like this:
+     * Julian's style of sub-query nesting. Like this:
      *
      * <pre>SELECT *
      * FROM (
@@ -44,7 +44,7 @@ public interface SqlWriter {
     HYDE,
 
     /**
-     * Damian's style of subquery nesting. Like this:
+     * Damian's style of sub-query nesting. Like this:
      *
      * <pre>SELECT *
      * FROM
@@ -187,6 +187,16 @@ public interface SqlWriter {
      * </ul>
      */
     SETOP,
+
+    /**
+     * VALUES clause.
+     *
+     * <p>Example:
+     *
+     * <blockquote><pre>VALUES (1, 'a'),
+     *   (2, 'b')</pre></blockquote>
+     */
+    VALUES,
 
     /**
      * FROM clause (containing various kinds of JOIN).

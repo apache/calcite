@@ -43,6 +43,7 @@ import org.apache.calcite.linq4j.function.Predicate2;
 import org.apache.calcite.linq4j.tree.FunctionExpression;
 import org.apache.calcite.linq4j.tree.Primitive;
 import org.apache.calcite.linq4j.tree.Types;
+import org.apache.calcite.rel.metadata.BuiltInMetadata.AllPredicates;
 import org.apache.calcite.rel.metadata.BuiltInMetadata.Collation;
 import org.apache.calcite.rel.metadata.BuiltInMetadata.ColumnOrigin;
 import org.apache.calcite.rel.metadata.BuiltInMetadata.ColumnUniqueness;
@@ -50,8 +51,11 @@ import org.apache.calcite.rel.metadata.BuiltInMetadata.CumulativeCost;
 import org.apache.calcite.rel.metadata.BuiltInMetadata.DistinctRowCount;
 import org.apache.calcite.rel.metadata.BuiltInMetadata.Distribution;
 import org.apache.calcite.rel.metadata.BuiltInMetadata.ExplainVisibility;
+import org.apache.calcite.rel.metadata.BuiltInMetadata.ExpressionLineage;
 import org.apache.calcite.rel.metadata.BuiltInMetadata.MaxRowCount;
 import org.apache.calcite.rel.metadata.BuiltInMetadata.Memory;
+import org.apache.calcite.rel.metadata.BuiltInMetadata.MinRowCount;
+import org.apache.calcite.rel.metadata.BuiltInMetadata.NodeTypes;
 import org.apache.calcite.rel.metadata.BuiltInMetadata.NonCumulativeCost;
 import org.apache.calcite.rel.metadata.BuiltInMetadata.Parallelism;
 import org.apache.calcite.rel.metadata.BuiltInMetadata.PercentageOriginalRows;
@@ -60,6 +64,7 @@ import org.apache.calcite.rel.metadata.BuiltInMetadata.Predicates;
 import org.apache.calcite.rel.metadata.BuiltInMetadata.RowCount;
 import org.apache.calcite.rel.metadata.BuiltInMetadata.Selectivity;
 import org.apache.calcite.rel.metadata.BuiltInMetadata.Size;
+import org.apache.calcite.rel.metadata.BuiltInMetadata.TableReferences;
 import org.apache.calcite.rel.metadata.BuiltInMetadata.UniqueKeys;
 import org.apache.calcite.rel.metadata.Metadata;
 import org.apache.calcite.rex.RexNode;
@@ -68,6 +73,7 @@ import org.apache.calcite.runtime.BinarySearch;
 import org.apache.calcite.runtime.Bindable;
 import org.apache.calcite.runtime.Enumerables;
 import org.apache.calcite.runtime.FlatLists;
+import org.apache.calcite.runtime.RandomFunction;
 import org.apache.calcite.runtime.ResultSetEnumerable;
 import org.apache.calcite.runtime.SortedMultiMap;
 import org.apache.calcite.runtime.SqlFunctions;
@@ -172,6 +178,7 @@ public enum BuiltInMethod {
   SKIP(ExtendedEnumerable.class, "skip", int.class),
   TAKE(ExtendedEnumerable.class, "take", int.class),
   SINGLETON_ENUMERABLE(Linq4j.class, "singletonEnumerable", Object.class),
+  EMPTY_ENUMERABLE(Linq4j.class, "emptyEnumerable"),
   NULLS_COMPARATOR(Functions.class, "nullsComparator", boolean.class,
       boolean.class),
   ARRAY_COMPARER(Functions.class, "arrayComparer"),
@@ -238,9 +245,9 @@ public enum BuiltInMethod {
       Object.class, int.class, int.class, Function1.class, Comparator.class),
   BINARY_SEARCH6_UPPER(BinarySearch.class, "upperBound", Object[].class,
       Object.class, int.class, int.class, Function1.class, Comparator.class),
-  ARRAY_ITEM(SqlFunctions.class, "arrayItem", List.class, int.class),
-  MAP_ITEM(SqlFunctions.class, "mapItem", Map.class, Object.class),
-  ANY_ITEM(SqlFunctions.class, "item", Object.class, Object.class),
+  ARRAY_ITEM(SqlFunctions.class, "arrayItemOptional", List.class, int.class),
+  MAP_ITEM(SqlFunctions.class, "mapItemOptional", Map.class, Object.class),
+  ANY_ITEM(SqlFunctions.class, "itemOptional", Object.class, Object.class),
   UPPER(SqlFunctions.class, "upper", String.class),
   LOWER(SqlFunctions.class, "lower", String.class),
   INITCAP(SqlFunctions.class, "initcap", String.class),
@@ -251,6 +258,7 @@ public enum BuiltInMethod {
   FLOOR_DIV(DateTimeUtils.class, "floorDiv", long.class, long.class),
   FLOOR_MOD(DateTimeUtils.class, "floorMod", long.class, long.class),
   ADD_MONTHS(SqlFunctions.class, "addMonths", long.class, int.class),
+  ADD_MONTHS_INT(SqlFunctions.class, "addMonths", int.class, int.class),
   SUBTRACT_MONTHS(SqlFunctions.class, "subtractMonths", long.class,
       long.class),
   FLOOR(SqlFunctions.class, "floor", int.class, int.class),
@@ -259,9 +267,16 @@ public enum BuiltInMethod {
   OVERLAY3(SqlFunctions.class, "overlay", String.class, String.class, int.class,
       int.class),
   POSITION(SqlFunctions.class, "position", String.class, String.class),
+  RAND(RandomFunction.class, "rand"),
+  RAND_SEED(RandomFunction.class, "randSeed", int.class),
+  RAND_INTEGER(RandomFunction.class, "randInteger", int.class),
+  RAND_INTEGER_SEED(RandomFunction.class, "randIntegerSeed", int.class,
+      int.class),
   TRUNCATE(SqlFunctions.class, "truncate", String.class, int.class),
   TRUNCATE_OR_PAD(SqlFunctions.class, "truncateOrPad", String.class, int.class),
   TRIM(SqlFunctions.class, "trim", boolean.class, boolean.class, String.class,
+      String.class),
+  REPLACE(SqlFunctions.class, "replace", String.class, String.class,
       String.class),
   TRANSLATE3(SqlFunctions.class, "translate3", String.class, String.class, String.class),
   LTRIM(SqlFunctions.class, "ltrim", String.class),
@@ -350,8 +365,10 @@ public enum BuiltInMethod {
       ImmutableBitSet.class, boolean.class),
   COLLATIONS(Collation.class, "collations"),
   DISTRIBUTION(Distribution.class, "distribution"),
+  NODE_TYPES(NodeTypes.class, "getNodeTypes"),
   ROW_COUNT(RowCount.class, "getRowCount"),
   MAX_ROW_COUNT(MaxRowCount.class, "getMaxRowCount"),
+  MIN_ROW_COUNT(MinRowCount.class, "getMinRowCount"),
   DISTINCT_ROW_COUNT(DistinctRowCount.class, "getDistinctRowCount",
       ImmutableBitSet.class, RexNode.class),
   PERCENTAGE_ORIGINAL_ROWS(PercentageOriginalRows.class,
@@ -359,9 +376,12 @@ public enum BuiltInMethod {
   POPULATION_SIZE(PopulationSize.class, "getPopulationSize",
       ImmutableBitSet.class),
   COLUMN_ORIGIN(ColumnOrigin.class, "getColumnOrigins", int.class),
+  EXPRESSION_LINEAGE(ExpressionLineage.class, "getExpressionLineage", RexNode.class),
+  TABLE_REFERENCES(TableReferences.class, "getTableReferences"),
   CUMULATIVE_COST(CumulativeCost.class, "getCumulativeCost"),
   NON_CUMULATIVE_COST(NonCumulativeCost.class, "getNonCumulativeCost"),
   PREDICATES(Predicates.class, "getPredicates"),
+  ALL_PREDICATES(AllPredicates.class, "getAllPredicates"),
   EXPLAIN_VISIBILITY(ExplainVisibility.class, "isVisibleInExplain",
       SqlExplainLevel.class),
   SCALAR_EXECUTE1(Scalar.class, "execute", Context.class),

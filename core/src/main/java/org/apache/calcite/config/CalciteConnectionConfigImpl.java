@@ -25,6 +25,7 @@ import org.apache.calcite.sql.fun.OracleSqlOperatorTable;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.util.ChainedSqlOperatorTable;
 import org.apache.calcite.sql.validate.SqlConformance;
+import org.apache.calcite.sql.validate.SqlConformanceEnum;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -43,6 +44,21 @@ public class CalciteConnectionConfigImpl extends ConnectionConfigImpl
     final Properties properties1 = new Properties(properties);
     properties1.setProperty(property.camelName(), value);
     return new CalciteConnectionConfigImpl(properties1);
+  }
+
+  public boolean approximateDistinctCount() {
+    return CalciteConnectionProperty.APPROXIMATE_DISTINCT_COUNT.wrap(properties)
+        .getBoolean();
+  }
+
+  public boolean approximateTopN() {
+    return CalciteConnectionProperty.APPROXIMATE_TOP_N.wrap(properties)
+        .getBoolean();
+  }
+
+  public boolean approximateDecimal() {
+    return CalciteConnectionProperty.APPROXIMATE_DECIMAL.wrap(properties)
+        .getBoolean();
   }
 
   public boolean autoTemp() {
@@ -119,6 +135,12 @@ public class CalciteConnectionConfigImpl extends ConnectionConfigImpl
         .getBoolean(lex().caseSensitive);
   }
 
+  public <T> T parserFactory(Class<T> parserFactoryClass,
+      T defaultParserFactory) {
+    return CalciteConnectionProperty.PARSER_FACTORY.wrap(properties)
+        .getPlugin(parserFactoryClass, defaultParserFactory);
+  }
+
   public <T> T schemaFactory(Class<T> schemaFactoryClass,
       T defaultSchemaFactory) {
     return CalciteConnectionProperty.SCHEMA_FACTORY.wrap(properties)
@@ -126,12 +148,8 @@ public class CalciteConnectionConfigImpl extends ConnectionConfigImpl
   }
 
   public JsonSchema.Type schemaType() {
-    // Avatica won't allow enum properties whose default is null, so we use
-    // NONE, which is equivalent to null.
-    final JsonSchema.Type type =
-        CalciteConnectionProperty.SCHEMA_TYPE.wrap(properties)
-            .getEnum(JsonSchema.Type.class);
-    return type == null || type == JsonSchema.Type.NONE ? null : type;
+    return CalciteConnectionProperty.SCHEMA_TYPE.wrap(properties)
+        .getEnum(JsonSchema.Type.class);
   }
 
   public boolean spark() {
@@ -150,7 +168,7 @@ public class CalciteConnectionConfigImpl extends ConnectionConfigImpl
 
   public SqlConformance conformance() {
     return CalciteConnectionProperty.CONFORMANCE.wrap(properties)
-        .getEnum(SqlConformance.class);
+        .getEnum(SqlConformanceEnum.class);
   }
 }
 

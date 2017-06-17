@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.util;
 
+import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.avatica.util.Spaces;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.runtime.CalciteException;
@@ -29,6 +30,8 @@ import org.apache.calcite.sql.fun.SqlRowOperator;
 import org.apache.calcite.sql.util.SqlBasicVisitor;
 
 import com.google.common.base.Function;
+import com.google.common.base.Preconditions;
+import com.google.common.base.Throwables;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
@@ -38,13 +41,17 @@ import com.google.common.collect.ImmutableMap;
 
 import org.slf4j.Logger;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.io.OutputStreamWriter;
 import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.io.Reader;
@@ -58,6 +65,7 @@ import java.math.BigDecimal;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -68,6 +76,7 @@ import java.util.AbstractMap;
 import java.util.AbstractSet;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Calendar;
 import java.util.Collection;
 import java.util.Enumeration;
 import java.util.HashMap;
@@ -87,6 +96,8 @@ import java.util.jar.JarFile;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.annotation.Nullable;
+
+import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * Miscellaneous utility functions.
@@ -125,6 +136,9 @@ public class Util {
    */
   private static final Pattern JAVA_ID_PATTERN =
       Pattern.compile("[a-zA-Z_$][a-zA-Z0-9$]*");
+
+  private static final Charset DEFAULT_CHARSET =
+      Charset.forName(SaffronProperties.INSTANCE.defaultCharset().get());
 
   /**
    * Maps classes to the map of their enum values. Uses a weak map so that
@@ -453,7 +467,7 @@ public class Util {
         try {
           val = field.get(o);
         } catch (IllegalAccessException e) {
-          throw newInternal(e);
+          throw new RuntimeException(e);
         }
         print(pw, val, indent + 1);
       }
@@ -612,7 +626,8 @@ public class Util {
    */
   @Deprecated // to be removed before 2.0
   public static String getFileTimestamp() {
-    SimpleDateFormat sdf = new SimpleDateFormat(FILE_TIMESTAMP_FORMAT);
+    SimpleDateFormat sdf =
+        new SimpleDateFormat(FILE_TIMESTAMP_FORMAT, Locale.ROOT);
     return sdf.format(new java.util.Date());
   }
 
@@ -648,7 +663,7 @@ public class Util {
    * underscore followed by the hex code of the character; and underscores are
    * doubled.</p>
    *
-   * Examples:
+   * <p>Examples:
    *
    * <ul>
    * <li><code>toJavaId("foo")</code> returns <code>"foo"</code>
@@ -723,7 +738,7 @@ public class Util {
   /**
    * Converts a list of a string, with commas between elements.
    *
-   * For example,
+   * <p>For example,
    * <code>commaList(Arrays.asList({"a", "b"}))</code>
    * returns "a, b".
    *
@@ -766,32 +781,47 @@ public class Util {
    *                                                      virtual machine
    */
   public static Charset getDefaultCharset() {
-    return Charset.forName(SaffronProperties.instance().defaultCharset.get());
+    return DEFAULT_CHARSET;
   }
 
+  /** @deprecated Throw new {@link AssertionError} */
+  @Deprecated // to be removed before 2.0
   public static Error newInternal() {
-    return newInternal("(unknown cause)");
+    return new AssertionError("(unknown cause)");
   }
 
+  /** @deprecated Throw new {@link AssertionError} */
+  @Deprecated // to be removed before 2.0
   public static Error newInternal(String s) {
-    return new AssertionError("Internal error: " + s);
+    return new AssertionError(s);
   }
 
+  /** @deprecated Throw new {@link RuntimeException} if checked; throw raw
+   * exception if unchecked or {@link Error} */
+  @Deprecated // to be removed before 2.0
   public static Error newInternal(Throwable e) {
-    return newInternal(e, "(unknown cause)");
+    return new AssertionError(e);
   }
 
+  /** @deprecated Throw new {@link AssertionError} if applicable;
+   * or {@link RuntimeException} if e is checked;
+   * or raw exception if e is unchecked or {@link Error}. */
   public static Error newInternal(Throwable e, String s) {
-    String message = "Internal error: " + s;
-    if (false) {
-      // TODO re-enable this code when we're no longer throwing spurious
-      //   internal errors (which should be parse errors, for example)
-      System.err.println(message);
-      e.printStackTrace(System.err);
+    return new AssertionError("Internal error: " + s, e);
+  }
+
+  /** As {@link Throwables}{@code .throwIfUnchecked(Throwable)},
+   * which was introduced in Guava 20,
+   * but we don't require Guava version 20 yet. */
+  public static void throwIfUnchecked(Throwable throwable) {
+    Bug.upgrade("Remove when minimum Guava version is 20");
+    checkNotNull(throwable);
+    if (throwable instanceof RuntimeException) {
+      throw (RuntimeException) throwable;
     }
-    AssertionError ae = new AssertionError(message);
-    ae.initCause(e);
-    return ae;
+    if (throwable instanceof Error) {
+      throw (Error) throwable;
+    }
   }
 
   /**
@@ -833,60 +863,29 @@ public class Util {
     return sw.toString();
   }
 
-  /**
-   * Checks a pre-condition.
-   *
-   * <p>For example,
-   *
-   * <pre>
-   * /**
-   *   * @ pre x != 0
-   *   * /
-   * void foo(int x) {
-   *     Util.pre(x != 0, "x != 0");
-   * }</pre>
-   *
-   * @param b           Result of evaluating the pre-condition.
-   * @param description Description of the pre-condition.
-   */
+  /** @deprecated Use {@link Preconditions#checkArgument}
+   * or {@link Preconditions#checkNotNull(Object)} */
+  @Deprecated // to be removed before 2.0
   public static void pre(boolean b, String description) {
     if (!b) {
-      throw newInternal("pre-condition failed: " + description);
+      throw new AssertionError("pre-condition failed: " + description);
     }
   }
 
-  /**
-   * Checks a post-condition.
-   *
-   * <p>For example,
-   *
-   * <pre>
-   * /**
-   *   * @ post return != 0
-   *   * /
-   * void foo(int x) {
-   *     int res = bar(x);
-   *     Util.post(res != 0, "return != 0");
-   * }</pre>
-   *
-   * @param b           Result of evaluating the pre-condition.
-   * @param description Description of the pre-condition.
-   */
+  /** @deprecated Use {@link Preconditions#checkArgument}
+   * or {@link Preconditions#checkNotNull(Object)} */
+  @Deprecated // to be removed before 2.0
   public static void post(boolean b, String description) {
     if (!b) {
-      throw newInternal("post-condition failed: " + description);
+      throw new AssertionError("post-condition failed: " + description);
     }
   }
 
-  /**
-   * Checks an invariant.
-   *
-   * <p>This is similar to <code>assert</code> keyword, except that the
-   * condition is always evaluated even if asserts are disabled.
-   */
+  /** @deprecated Use {@link Preconditions#checkArgument} */
+  @Deprecated // to be removed before 2.0
   public static void permAssert(boolean b, String description) {
     if (!b) {
-      throw newInternal("invariant violated: " + description);
+      throw new AssertionError("invariant violated: " + description);
     }
   }
 
@@ -943,7 +942,7 @@ public class Util {
    * <pre><code>int x = Util.deprecated(0, false);</code></pre>
    * </blockquote>
    *
-   * but the usual usage is to pass in a descriptive string.
+   * <p>but the usual usage is to pass in a descriptive string.
    *
    * <h3>Examples</h3>
    *
@@ -1264,7 +1263,7 @@ public class Util {
    * <blockquote>"std offset dst [offset],start[/time],end[/time]"
    * </blockquote>
    *
-   * where:
+   * <p>where:
    *
    * <ul>
    * <li>'std' specifies the abbrev of the time zone.
@@ -1313,13 +1312,13 @@ public class Util {
    */
   public static String toPosix(TimeZone tz, boolean verbose) {
     StringBuilder buf = new StringBuilder();
-    buf.append(tz.getDisplayName(false, TimeZone.SHORT));
+    buf.append(tz.getDisplayName(false, TimeZone.SHORT, Locale.ROOT));
     appendPosixTime(buf, tz.getRawOffset());
     final int dstSavings = tz.getDSTSavings();
     if (dstSavings == 0) {
       return buf.toString();
     }
-    buf.append(tz.getDisplayName(true, TimeZone.SHORT));
+    buf.append(tz.getDisplayName(true, TimeZone.SHORT, Locale.ROOT));
     if (verbose || (dstSavings != 3600000)) {
       // POSIX allows us to omit DST offset if it is 1:00:00
       appendPosixTime(buf, dstSavings);
@@ -1530,124 +1529,8 @@ public class Util {
     case 3:
       return new Locale(strings[0], strings[1], strings[2]);
     default:
-      throw newInternal(
-          "bad locale string '" + localeString + "'");
+      throw new AssertionError("bad locale string '" + localeString + "'");
     }
-  }
-
-  /**
-   * Runs an external application.
-   *
-   * @param cmdarray  command and arguments, see {@link ProcessBuilder}
-   * @param logger    if not null, command and exit status will be logged
-   * @param appInput  if not null, data will be copied to application's stdin
-   * @param appOutput if not null, data will be captured from application's
-   *                  stdout and stderr
-   * @return application process exit value
-   * @throws IOException
-   * @throws InterruptedException
-   */
-  @Deprecated // to be removed before 2.0
-  public static int runApplication(
-      String[] cmdarray,
-      Logger logger,
-      Reader appInput,
-      Writer appOutput) throws IOException, InterruptedException {
-    return runAppProcess(
-        newAppProcess(cmdarray),
-        logger,
-        appInput,
-        appOutput);
-  }
-
-  /**
-   * Constructs a {@link ProcessBuilder} to run an external application.
-   *
-   * @param cmdarray command and arguments.
-   * @return a ProcessBuilder.
-   */
-  @Deprecated // to be removed before 2.0
-  public static ProcessBuilder newAppProcess(String[] cmdarray) {
-    // Concatenate quoted words from cmdarray.
-    // REVIEW mb 2/24/09 Why is this needed?
-    StringBuilder buf = new StringBuilder();
-    for (int i = 0; i < cmdarray.length; ++i) {
-      if (i > 0) {
-        buf.append(" ");
-      }
-      buf.append('"');
-      buf.append(cmdarray[i]);
-      buf.append('"');
-    }
-    String fullcmd = buf.toString();
-    buf.setLength(0);
-    return new ProcessBuilder(cmdarray);
-  }
-
-
-  /**
-   * Runs an external application process.
-   *
-   * @param pb        ProcessBuilder for the application; might be
-   *                  returned by {@link #newAppProcess}.
-   * @param logger    if not null, command and exit status will be logged here
-   * @param appInput  if not null, data will be copied to application's stdin
-   * @param appOutput if not null, data will be captured from application's
-   *                  stdout and stderr
-   * @return application process exit value
-   * @throws IOException
-   * @throws InterruptedException
-   */
-  public static int runAppProcess(
-      ProcessBuilder pb,
-      Logger logger,
-      Reader appInput,
-      Writer appOutput) throws IOException, InterruptedException {
-    pb.redirectErrorStream(true);
-    if (logger != null) {
-      logger.info("start process: " + pb.command());
-    }
-    Process p = pb.start();
-
-    // Setup the input/output streams to the subprocess.
-    // The buffering here is arbitrary. Javadocs strongly encourage
-    // buffering, but the size needed is very dependent on the
-    // specific application being run, the size of the input
-    // provided by the caller, and the amount of output expected.
-    // Since this method is currently used only by unit tests,
-    // large-ish fixed buffer sizes have been chosen. If this
-    // method becomes used for something in production, it might
-    // be better to have the caller provide them as arguments.
-    if (appInput != null) {
-      OutputStream out =
-          new BufferedOutputStream(
-              p.getOutputStream(),
-              100 * 1024);
-      int c;
-      while ((c = appInput.read()) != -1) {
-        out.write(c);
-      }
-      out.flush();
-    }
-    if (appOutput != null) {
-      InputStream in =
-          new BufferedInputStream(
-              p.getInputStream(),
-              100 * 1024);
-      int c;
-      while ((c = in.read()) != -1) {
-        appOutput.write(c);
-      }
-      appOutput.flush();
-      in.close();
-    }
-    p.waitFor();
-
-    int status = p.exitValue();
-    if (logger != null) {
-      logger.info("exit status=" + status + " from " + pb.command());
-    }
-    return status;
   }
 
   /**
@@ -1736,7 +1619,7 @@ public class Util {
    * &nbsp;&nbsp;&nbsp;&nbsp;print(i);<br>
    * }</code></blockquote>
    *
-   * will print 1, 2, 4.
+   * <p>will print 1, 2, 4.
    *
    * @param iterable      Iterable
    * @param includeFilter Class whose instances to include
@@ -2044,7 +1927,7 @@ public class Util {
 
   /** Returns all but the first {@code n} elements of a list. */
   public static <E> List<E> skip(List<E> list, int fromIndex) {
-    return list.subList(fromIndex, list.size());
+    return fromIndex == 0 ? list : list.subList(fromIndex, list.size());
   }
 
   public static List<Integer> range(final int end) {
@@ -2116,6 +1999,16 @@ public class Util {
       }
     }
     return -1;
+  }
+
+  /** Returns whether two collections have any elements in common. */
+  public static <E> boolean intersects(Collection<E> c0, Collection<E> c1) {
+    for (E e : c1) {
+      if (c0.contains(e)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   /** Looks for a string within a list of strings, using a given
@@ -2343,6 +2236,79 @@ public class Util {
       return defaultValue;
     }
     return "".equals(v) || "true".equalsIgnoreCase(v);
+  }
+
+  /** Returns a copy of a list of lists, making the component lists immutable if
+   * they are not already. */
+  public static <E> List<List<E>>
+  immutableCopy(Iterable<? extends Iterable<E>> lists) {
+    int n = 0;
+    for (Iterable<E> list : lists) {
+      if (!(list instanceof ImmutableList)) {
+        ++n;
+      }
+    }
+    if (n == 0) {
+      // Lists are already immutable. Furthermore, if the outer list is
+      // immutable we will just return "lists" unchanged.
+      return ImmutableList.copyOf((Iterable) lists);
+    }
+    final ImmutableList.Builder<List<E>> builder =
+        ImmutableList.builder();
+    for (Iterable<E> list : lists) {
+      builder.add(ImmutableList.copyOf(list));
+    }
+    return builder.build();
+  }
+
+  /** Creates a {@link PrintWriter} to a given output stream using UTF-8
+   * character set.
+   *
+   * <p>Does not use the default character set. */
+  public static PrintWriter printWriter(OutputStream out) {
+    return new PrintWriter(
+        new BufferedWriter(
+            new OutputStreamWriter(out, StandardCharsets.UTF_8)));
+  }
+
+  /** Creates a {@link PrintWriter} to a given file using UTF-8
+   * character set.
+   *
+   * <p>Does not use the default character set. */
+  public static PrintWriter printWriter(File file)
+      throws FileNotFoundException {
+    return printWriter(new FileOutputStream(file));
+  }
+
+  /** Creates a {@link BufferedReader} to a given input stream using UTF-8
+   * character set.
+   *
+   * <p>Does not use the default character set. */
+  public static BufferedReader reader(InputStream in) {
+    return new BufferedReader(
+        new InputStreamReader(in, StandardCharsets.UTF_8));
+  }
+
+  /** Creates a {@link BufferedReader} to read a given file using UTF-8
+   * character set.
+   *
+   * <p>Does not use the default character set. */
+  public static BufferedReader reader(File file) throws FileNotFoundException {
+    return reader(new FileInputStream(file));
+  }
+
+  /** Creates a {@link Calendar} in the UTC time zone and root locale.
+   * Does not use the time zone or locale. */
+  public static Calendar calendar() {
+    return Calendar.getInstance(DateTimeUtils.UTC_ZONE, Locale.ROOT);
+  }
+
+  /** Creates a {@link Calendar} in the UTC time zone and root locale
+   * with a given time. */
+  public static Calendar calendar(long millis) {
+    Calendar calendar = calendar();
+    calendar.setTimeInMillis(millis);
+    return calendar;
   }
 
   //~ Inner Classes ----------------------------------------------------------

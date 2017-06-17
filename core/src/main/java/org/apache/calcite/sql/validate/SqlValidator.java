@@ -32,6 +32,7 @@ import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlInsert;
 import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.SqlLiteral;
+import org.apache.calcite.sql.SqlMatchRecognize;
 import org.apache.calcite.sql.SqlMerge;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
@@ -109,7 +110,7 @@ public interface SqlValidator {
 
   /**
    * Returns the dialect of SQL (SQL:2003, etc.) this validator recognizes.
-   * Default is {@link SqlConformance#DEFAULT}.
+   * Default is {@link SqlConformanceEnum#DEFAULT}.
    *
    * @return dialect of SQL this validator recognizes
    */
@@ -272,6 +273,13 @@ public interface SqlValidator {
       SqlNode windowOrId,
       SqlValidatorScope scope,
       SqlCall call);
+
+  /**
+   * Validates a MATCH_RECOGNIZE clause.
+   *
+   * @param pattern MATCH_RECOGNIZE clause
+   */
+  void validateMatchRecognize(SqlCall pattern);
 
   /**
    * Validates a call to an operator.
@@ -552,6 +560,14 @@ public interface SqlValidator {
    * @return naming scope for ORDER BY clause
    */
   SqlValidatorScope getOrderScope(SqlSelect select);
+
+  /**
+   * Returns a scope match recognize clause.
+   *
+   * @param node Match recognize
+   * @return naming scope for Match recognize clause
+   */
+  SqlValidatorScope getMatchRecognizeScope(SqlMatchRecognize node);
 
   /**
    * Declares a SELECT expression as a cursor.

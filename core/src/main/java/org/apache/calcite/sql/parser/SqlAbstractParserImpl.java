@@ -26,10 +26,12 @@ import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.SqlUnresolvedFunction;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
-import org.apache.calcite.util.Util;
+import org.apache.calcite.sql.validate.SqlConformance;
+import org.apache.calcite.util.Glossary;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 
 import java.io.Reader;
@@ -303,19 +305,25 @@ public abstract class SqlAbstractParserImpl {
     /**
      * Accept only non-query expressions in this context.
      */
-    ACCEPT_NONQUERY,
+    ACCEPT_NON_QUERY,
 
     /**
      * Accept only parenthesized queries or non-query expressions in this
      * context.
      */
-    ACCEPT_SUBQUERY,
+    ACCEPT_SUB_QUERY,
 
     /**
      * Accept only CURSOR constructors, parenthesized queries, or non-query
      * expressions in this context.
      */
-    ACCEPT_CURSOR
+    ACCEPT_CURSOR;
+
+    @Deprecated // to be removed before 2.0
+    public static final ExprContext ACCEPT_SUBQUERY = ACCEPT_SUB_QUERY;
+
+    @Deprecated // to be removed before 2.0
+    public static final ExprContext ACCEPT_NONQUERY = ACCEPT_NON_QUERY;
   }
 
   //~ Instance fields --------------------------------------------------------
@@ -332,11 +340,32 @@ public abstract class SqlAbstractParserImpl {
   //~ Methods ----------------------------------------------------------------
 
   /**
-   * @return immutable set of all reserved words defined by SQL-92
-   * @sql.92 Section 5.2
+   * Returns immutable set of all reserved words defined by SQL-92.
+   *
+   * @see Glossary#SQL92 SQL-92 Section 5.2
    */
   public static Set<String> getSql92ReservedWords() {
     return SQL_92_RESERVED_WORD_SET;
+  }
+
+  /**
+   * Creates a call.
+   *
+   * @param funName           Name of function
+   * @param pos               Position in source code
+   * @param funcType          Type of function
+   * @param functionQualifier Qualifier
+   * @param operands          Operands to call
+   * @return Call
+   */
+  protected SqlCall createCall(
+      SqlIdentifier funName,
+      SqlParserPos pos,
+      SqlFunctionCategory funcType,
+      SqlLiteral functionQualifier,
+      Iterable<? extends SqlNode> operands) {
+    return createCall(funName, pos, funcType, functionQualifier,
+        Iterables.toArray(operands, SqlNode.class));
   }
 
   /**
@@ -393,6 +422,8 @@ public abstract class SqlAbstractParserImpl {
    */
   public abstract SqlParseException normalizeException(Throwable ex);
 
+  protected abstract SqlParserPos getPos() throws Exception;
+
   /**
    * Reinitializes parser with new input.
    *
@@ -442,6 +473,11 @@ public abstract class SqlAbstractParserImpl {
    * Sets the maximum length for sql identifier.
    */
   public abstract void setIdentifierMaxLength(int identifierMaxLength);
+
+  /**
+   * Sets the SQL language conformance level.
+   */
+  public abstract void setConformance(SqlConformance conformance);
 
   /**
    * Sets the SQL text that is being parsed.
@@ -577,8 +613,7 @@ public abstract class SqlAbstractParserImpl {
       parserImpl.ReInit(new StringReader("1"));
       try {
         Object o = virtualCall(parserImpl, name);
-        Util.discard(o);
-        throw Util.newInternal("expected call to fail");
+        throw new AssertionError("expected call to fail, got " + o);
       } catch (SqlParseException parseException) {
         // First time through, build the list of all tokens.
         final String[] tokenImages = parseException.getTokenImages();
@@ -605,9 +640,7 @@ public abstract class SqlAbstractParserImpl {
           }
         }
       } catch (Throwable e) {
-        throw Util.newInternal(
-            e,
-            "Unexpected error while building token lists");
+        throw new RuntimeException("While building token lists", e);
       }
     }
 
@@ -626,10 +659,6 @@ public abstract class SqlAbstractParserImpl {
       try {
         final Method method = clazz.getMethod(name, (Class[]) null);
         return method.invoke(parserImpl, (Object[]) null);
-      } catch (NoSuchMethodException e) {
-        throw Util.newInternal(e);
-      } catch (IllegalAccessException e) {
-        throw Util.newInternal(e);
       } catch (InvocationTargetException e) {
         Throwable cause = e.getCause();
         throw parserImpl.normalizeException(cause);

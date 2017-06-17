@@ -38,7 +38,10 @@ import org.apache.calcite.rel.core.Calc;
 import org.apache.calcite.rel.metadata.RelMdCollation;
 import org.apache.calcite.rel.metadata.RelMdDistribution;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
+import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexProgram;
+import org.apache.calcite.rex.RexSimplify;
+import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
@@ -87,7 +90,7 @@ public class EnumerableCalc extends Calc implements EnumerableRel {
   public static EnumerableCalc create(final RelNode input,
       final RexProgram program) {
     final RelOptCluster cluster = input.getCluster();
-    final RelMetadataQuery mq = RelMetadataQuery.instance();
+    final RelMetadataQuery mq = cluster.getMetadataQuery();
     final RelTraitSet traitSet = cluster.traitSet()
         .replace(EnumerableConvention.INSTANCE)
         .replaceIfs(RelCollationTraitDef.INSTANCE,
@@ -146,8 +149,10 @@ public class EnumerableCalc extends Calc implements EnumerableRel {
                 BuiltInMethod.ENUMERATOR_CURRENT.method),
             inputJavaType);
 
-    final RexProgram program =
-        this.program.normalize(getCluster().getRexBuilder(), true);
+    final RexBuilder rexBuilder = getCluster().getRexBuilder();
+    final RexSimplify simplify =
+        new RexSimplify(rexBuilder, false, RexUtil.EXECUTOR);
+    final RexProgram program = this.program.normalize(rexBuilder, simplify);
 
     BlockStatement moveNextBody;
     if (program.getCondition() == null) {

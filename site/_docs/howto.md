@@ -32,15 +32,15 @@ adapters.
 ## Building from a source distribution
 
 Prerequisites are maven (3.2.1 or later)
-and Java (JDK 1.7 or later, 1.8 preferred) on your path.
+and Java (JDK 7, 8 or 9) on your path.
 
 Unpack the source distribution `.tar.gz` or `.zip` file,
 `cd` to the root directory of the unpacked source,
 then build using maven:
 
 {% highlight bash %}
-$ tar xvfz calcite-1.8.0-source.tar.gz
-$ cd calcite-1.8.0
+$ tar xvfz calcite-1.12.0-source.tar.gz
+$ cd calcite-1.12.0
 $ mvn install
 {% endhighlight %}
 
@@ -50,7 +50,7 @@ tests.
 ## Building from git
 
 Prerequisites are git, maven (3.2.1 or later)
-and Java (JDK 1.7 or later, 1.8 preferred) on your path.
+and Java (JDK 7 or later, 8 preferred) on your path.
 
 Create a local copy of the github repository,
 `cd` to its root directory,
@@ -396,15 +396,19 @@ Follow instructions [here](http://www.apache.org/dev/release-signing) to
 create a key pair. (On Mac OS X, I did `brew install gpg` and
 `gpg --gen-key`.)
 
-Add your public key to the `KEYS` file by following instructions in
-the `KEYS` file.
+Add your public key to the
+[`KEYS`](https://dist.apache.org/repos/dist/release/calcite/KEYS)
+file by following instructions in the `KEYS` file.
+(The `KEYS` file is not present in the git repo or in a release tar
+ball because that would be
+[redundant](https://issues.apache.org/jira/browse/CALCITE-1746).)
 
 ## Making a snapshot (for Calcite committers)
 
 Before you start:
 
 * Set up signing keys as described above.
-* Make sure you are using JDK 1.7 (not 1.8).
+* Make sure you are using JDK 8 (not 7 or 9).
 * Make sure build and tests succeed with `-Dcalcite.test.db=hsqldb` (the default)
 
 {% highlight bash %}
@@ -425,8 +429,9 @@ When the dry-run has succeeded, change `install` to `deploy`.
 Before you start:
 
 * Set up signing keys as described above.
-* Make sure you are using JDK 1.7 (not 1.8).
+* Make sure you are using JDK 8 (not 7 or 9).
 * Check that `README` and `site/_docs/howto.md` have the correct version number.
+* Check that `NOTICE` has the current copyright year.
 * Set `version.major` and `version.minor` in `pom.xml`.
 * Make sure build and tests succeed, including with `-P it,it-oracle`.
 * Make sure that `mvn javadoc:javadoc javadoc:test-javadoc` succeeds
@@ -486,8 +491,8 @@ read -s GPG_PASSPHRASE
 git clean -xn
 mvn clean
 
-# Do a dry run of the release:prepare step, which sets version numbers.
-mvn -DdryRun=true -DskipTests -DreleaseVersion=X.Y.Z -DdevelopmentVersion=X.Y.Z+1-SNAPSHOT -Papache-release -Darguments="-Dgpg.passphrase=${GPG_PASSPHRASE}" release:prepare 2>&1 | tee /tmp/prepare-dry.log
+# Do a dry run of the release:prepare step, which sets version numbers
+mvn -DdryRun=true -DskipTests -DreleaseVersion=X.Y.Z -DdevelopmentVersion=X.Y+1.Z-SNAPSHOT -Papache-release -Darguments="-Dgpg.passphrase=${GPG_PASSPHRASE}" release:prepare 2>&1 | tee /tmp/prepare-dry.log
 {% endhighlight %}
 
 Check the artifacts:
@@ -508,20 +513,23 @@ Check the artifacts:
 * That directory must contain files `NOTICE`, `LICENSE`,
   `README`, `README.md`
   * Check that the version in `README` is correct
+  * Check that the copyright year in `NOTICE` is correct
+* Make sure that there is no `KEYS` file in the source distros
 * In each .jar (for example
   `core/target/calcite-core-X.Y.Z.jar` and
   `mongodb/target/calcite-mongodb-X.Y.Z-sources.jar`), check
   that the `META-INF` directory contains `DEPENDENCIES`, `LICENSE`,
   `NOTICE` and `git.properties`
-* In each .jar, check that `org-apache-calcite-jdbc.properties` is
+* In `core/target/calcite-core-X.Y.Z.jar`,
+  check that `org-apache-calcite-jdbc.properties` is
   present and does not contain un-substituted `${...}` variables
 * Check PGP, per [this](https://httpd.apache.org/dev/verification.html)
 
 Now, remove the `-DdryRun` flag and run the release for real.
 
 {% highlight bash %}
-# Prepare sets the version numbers, creates a tag, and pushes it to git.
-mvn -DdryRun=false -DskipTests -DreleaseVersion=X.Y.Z -DdevelopmentVersion=X.Y.Z+1-SNAPSHOT -Papache-release -Darguments="-Dgpg.passphrase=${GPG_PASSPHRASE}" release:prepare 2>&1 | tee /tmp/prepare.log
+# Prepare sets the version numbers, creates a tag, and pushes it to git
+mvn -DdryRun=false -DskipTests -DreleaseVersion=X.Y.Z -DdevelopmentVersion=X.Y+1.Z-SNAPSHOT -Papache-release -Darguments="-Dgpg.passphrase=${GPG_PASSPHRASE}" release:prepare 2>&1 | tee /tmp/prepare.log
 
 # Perform checks out the tagged version, builds, and deploys to the staging repository
 mvn -DskipTests -Papache-release -Darguments="-Dgpg.passphrase=${GPG_PASSPHRASE}" release:perform 2>&1 | tee /tmp/perform.log
@@ -548,8 +556,14 @@ pushd ~/dist/dev
 svn co https://dist.apache.org/repos/dist/dev/calcite
 popd
 
-# Move the files into a directory
+# Replace digest files with a single digest
 cd target
+for f in *.tar.gz *.zip; do
+  rm ${f}.md5 ${f}.sha1
+  gpg --print-mds ${f} > ${f}.mds
+done
+
+# Move the files into a directory
 mkdir ~/dist/dev/calcite/apache-calcite-X.Y.Z-rcN
 mv apache-calcite-* ~/dist/dev/calcite/apache-calcite-X.Y.Z-rcN
 
@@ -567,8 +581,8 @@ svn ci
 git tag
 
 # If the tag exists, delete it locally and remotely
-git tag -d apache-calcite-X.Y.Z
-git push origin :refs/tags/apache-calcite-X.Y.Z
+git tag -d calcite-X.Y.Z
+git push origin :refs/tags/calcite-X.Y.Z
 
 # Remove modified files
 mvn release:clean
@@ -582,7 +596,7 @@ git reset --hard HEAD
 ## Validate a release
 
 {% highlight bash %}
-# Check that the signing key (e.g. 2AD3FAE3) is pushed
+# Check that the signing key (e.g. DDB6E9812AD3FAE3) is pushed
 gpg --recv-keys key
 
 # Check keys
@@ -772,15 +786,15 @@ The old releases will remain available in the
 [release archive](http://archive.apache.org/dist/calcite/).
 
 Add a release note by copying
-[site/_posts/2015-11-10-release-1.5.0.md]({{ site.sourceRoot }}/site/_posts/2015-11-10-release-1.5.0.md),
-generate the javadoc and copy to `site/target/apidocs` and `site/target/testapidocs`,
+[site/_posts/2016-10-12-release-1.10.0.md]({{ site.sourceRoot }}/site/_posts/2016-10-12-release-1.10.0.md),
+generate the javadoc using `mvn site` and copy to `site/target/apidocs` and `site/target/testapidocs`,
 [publish the site](#publish-the-web-site),
 and check that it appears in the contents in [news](http://localhost:4000/news/).
 
 After 24 hours, announce the release by sending an email to
 [announce@apache.org](https://mail-archives.apache.org/mod_mbox/www-announce/).
 You can use
-[the 1.6.0 announcement](https://mail-archives.apache.org/mod_mbox/www-announce/201601.mbox/%3C8DB4C1E5-B322-4A33-8E8F-9858FA6A1119%40apache.org%3E)
+[the 1.10.0 announcement](https://mail-archives.apache.org/mod_mbox/calcite-dev/201610.mbox/%3C11A13D1A-8364-4A34-A11B-A8E5EA57A740%40apache.org%3E)
 as a template. Be sure to include a brief description of the project.
 
 ## Publishing the web site (for Calcite committers)

@@ -32,7 +32,7 @@ public class JsonJdbcSchema extends JsonSchema {
    */
   public String jdbcDriver;
 
-  /** JDBC connect string, for example “jdbc:mysql://localhost/foodmart”.
+  /** JDBC connect string, for example "jdbc:mysql://localhost/foodmart".
    *
    * <p>Optional.
    */
@@ -44,7 +44,7 @@ public class JsonJdbcSchema extends JsonSchema {
    */
   public String jdbcUser;
 
-  /** JDBC connect string, for example “jdbc:mysql://localhost/foodmart”.
+  /** JDBC connect string, for example "jdbc:mysql://localhost/foodmart".
    *
    * <p>Optional.
    */

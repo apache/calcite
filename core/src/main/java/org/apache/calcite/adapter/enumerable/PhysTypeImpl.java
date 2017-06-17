@@ -193,7 +193,7 @@ public class PhysTypeImpl implements PhysType {
         targetPhysType.record(expressions), parameter);
   }
 
-  public Expression selector(
+  public Pair<Type, List<Expression>> selector(
       ParameterExpression parameter,
       List<Integer> fields,
       JavaRowFormat targetFormat) {
@@ -210,9 +210,11 @@ public class PhysTypeImpl implements PhysType {
         project(fields, targetFormat);
     switch (format) {
     case SCALAR:
-      return parameter;
+      return Pair.of(parameter.getType(),
+          Collections.<Expression>singletonList(parameter));
     default:
-      return targetPhysType.record(fieldReferences(parameter, fields));
+      return Pair.of(targetPhysType.getJavaRowType(),
+          fieldReferences(parameter, fields));
     }
   }
 
@@ -640,10 +642,17 @@ public class PhysTypeImpl implements PhysType {
 
   public Expression fieldReference(
       Expression expression, int field, Type storageType) {
+    Type fieldType;
     if (storageType == null) {
       storageType = fieldClass(field);
+      fieldType = null;
+    } else {
+      fieldType = fieldClass(field);
+      if (fieldType != java.sql.Date.class) {
+        fieldType = null;
+      }
     }
-    return format.field(expression, field, storageType);
+    return format.field(expression, field, fieldType, storageType);
   }
 }
 

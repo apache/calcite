@@ -28,6 +28,7 @@ import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.prepare.Prepare;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.TableModify;
+import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.schema.ModifiableTable;
 import org.apache.calcite.util.BuiltInMethod;
 
@@ -43,9 +44,10 @@ public class EnumerableTableModify extends TableModify
     implements EnumerableRel {
   public EnumerableTableModify(RelOptCluster cluster, RelTraitSet traits,
       RelOptTable table, Prepare.CatalogReader catalogReader, RelNode child,
-      Operation operation, List<String> updateColumnList, boolean flattened) {
+      Operation operation, List<String> updateColumnList,
+      List<RexNode> sourceExpressionList, boolean flattened) {
     super(cluster, traits, table, catalogReader, child, operation,
-        updateColumnList, flattened);
+        updateColumnList, sourceExpressionList, flattened);
     assert child.getConvention() instanceof EnumerableConvention;
     assert getConvention() instanceof EnumerableConvention;
     final ModifiableTable modifiableTable =
@@ -64,6 +66,7 @@ public class EnumerableTableModify extends TableModify
         sole(inputs),
         getOperation(),
         getUpdateColumnList(),
+        getSourceExpressionList(),
         isFlattened());
   }
 
@@ -98,9 +101,9 @@ public class EnumerableTableModify extends TableModify
     if (!getInput().getRowType().equals(getRowType())) {
       final JavaTypeFactory typeFactory =
           (JavaTypeFactory) getCluster().getTypeFactory();
+      final JavaRowFormat format = EnumerableTableScan.deduceFormat(table);
       PhysType physType =
-          PhysTypeImpl.of(typeFactory, table.getRowType(),
-              JavaRowFormat.CUSTOM);
+          PhysTypeImpl.of(typeFactory, table.getRowType(), format);
       List<Expression> expressionList = new ArrayList<Expression>();
       final PhysType childPhysType = result.physType;
       final ParameterExpression o_ =
@@ -164,6 +167,7 @@ public class EnumerableTableModify extends TableModify
                 ? JavaRowFormat.ARRAY : JavaRowFormat.SCALAR);
     return implementor.result(physType, builder.toBlock());
   }
+
 }
 
 // End EnumerableTableModify.java

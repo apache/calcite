@@ -46,7 +46,7 @@ public class SqlSelect extends SqlCall {
   SqlNodeList orderBy;
   SqlNode offset;
   SqlNode fetch;
-
+  SqlMatchRecognize matchRecognize;
   //~ Constructors -----------------------------------------------------------
 
   public SqlSelect(SqlParserPos pos,
@@ -160,6 +160,10 @@ public class SqlSelect extends SqlCall {
     return having;
   }
 
+  public void setHaving(SqlNode having) {
+    this.having = having;
+  }
+
   public final SqlNodeList getSelectList() {
     return selectList;
   }
@@ -204,15 +208,23 @@ public class SqlSelect extends SqlCall {
     this.fetch = fetch;
   }
 
+  public SqlMatchRecognize getMatchRecognize() {
+    return matchRecognize;
+  }
+
+  public void setMatchRecognize(SqlMatchRecognize matchRecognize) {
+    this.matchRecognize = matchRecognize;
+  }
+
   public void validate(SqlValidator validator, SqlValidatorScope scope) {
     validator.validateQuery(this, scope, validator.getUnknownType());
   }
 
-  // Override SqlCall, to introduce a subquery frame.
+  // Override SqlCall, to introduce a sub-query frame.
   @Override public void unparse(SqlWriter writer, int leftPrec, int rightPrec) {
     if (!writer.inQuery()) {
-      // If this SELECT is the topmost item in a subquery, introduce a new
-      // frame. (The topmost item in the subquery might be a UNION or
+      // If this SELECT is the topmost item in a sub-query, introduce a new
+      // frame. (The topmost item in the sub-query might be a UNION or
       // ORDER. In this case, we don't need a wrapper frame.)
       final SqlWriter.Frame frame =
           writer.startList(SqlWriter.FrameTypeEnum.SUB_QUERY, "(", ")");

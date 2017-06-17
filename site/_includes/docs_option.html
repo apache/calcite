@@ -1,11 +1,9 @@
-{% assign items = include.items %}
-
-{% for item in items %}
-  {% assign item_url = item | prepend:"{{ site.baseurl }}/docs/" | append:".html" %}
-
-  {% for p in site.docs %}
-    {% if p.url == item_url %}
-      <option value="{{ site.url }}{{ p.url }}">{{ p.title }}</option>
-    {% endif %}
-  {% endfor %}
-{% endfor %}
+{% assign items = include.items %}{% comment %}
+{% endcomment %}{% for item in items %}{% comment %}
+  {% endcomment %}{% assign item_url = item | prepend:"{{ site.baseurl }}/docs/" | append:".html" %}{% comment %}
+  {% endcomment %}{% for p in site.docs %}{% comment %}
+    {% endcomment %}{% if p.url == item_url %}{% comment %}
+      {% endcomment %}<option value="{{ site.url }}{{ p.url }}">{{ p.title }}</option>{% comment %}
+    {% endcomment %}{% endif %}{% comment %}
+  {% endcomment %}{% endfor %}{% comment %}
+{% endcomment %}{% endfor %}

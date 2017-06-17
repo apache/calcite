@@ -319,7 +319,10 @@ public class RexTransformerTest {
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-814">[CALCITE-814]
-   * RexBuilder reverses precision and scale of DECIMAL literal</a>. */
+   * RexBuilder reverses precision and scale of DECIMAL literal</a>
+   * and
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1344">[CALCITE-1344]
+   * Incorrect inferred precision when BigDecimal value is less than 1</a>. */
   @Test public void testExactLiteral() {
     final RexLiteral literal =
         rexBuilder.makeExactLiteral(new BigDecimal("-1234.56"));
@@ -336,8 +339,14 @@ public class RexTransformerTest {
     final RexLiteral literal3 =
         rexBuilder.makeExactLiteral(new BigDecimal("0.0123456"));
     assertThat(literal3.getType().getFullTypeString(),
-        is("DECIMAL(6, 7) NOT NULL"));
+        is("DECIMAL(8, 7) NOT NULL"));
     assertThat(literal3.getValue().toString(), is("0.0123456"));
+
+    final RexLiteral literal4 =
+        rexBuilder.makeExactLiteral(new BigDecimal("0.01234560"));
+    assertThat(literal4.getType().getFullTypeString(),
+        is("DECIMAL(9, 8) NOT NULL"));
+    assertThat(literal4.getValue().toString(), is("0.01234560"));
   }
 
   /** Test case for
@@ -389,9 +398,12 @@ public class RexTransformerTest {
     assertThat(deduceLogic(and(x, not(y)), x, Logic.TRUE), is(Logic.TRUE));
     assertThat(deduceLogic(and(x, not(y)), y, Logic.TRUE),
         is(Logic.UNKNOWN_AS_TRUE));
+    assertThat(deduceLogic(and(x, not(not(y))), y, Logic.TRUE),
+        is(Logic.TRUE_FALSE_UNKNOWN)); // TRUE_FALSE would be better
     assertThat(deduceLogic(and(x, not(and(y, z))), z, Logic.TRUE),
         is(Logic.UNKNOWN_AS_TRUE));
-    assertThat(deduceLogic(or(x, y), x, Logic.TRUE), is(Logic.TRUE_FALSE));
+    assertThat(deduceLogic(or(x, y), x, Logic.TRUE),
+        is(Logic.TRUE_FALSE_UNKNOWN));
   }
 
   private Logic deduceLogic(RexNode root, RexNode seek, Logic logic) {

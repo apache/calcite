@@ -22,11 +22,14 @@ import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelDistribution;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexTableInputRef;
+import org.apache.calcite.rex.RexTableInputRef.RelTableRef;
 import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.ImmutableBitSet;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Multimap;
 
 import java.util.List;
 import java.util.Set;
@@ -160,6 +163,31 @@ public abstract class BuiltInMetadata {
     }
   }
 
+  /**
+   * Metadata about the node types in a relational expression.
+   *
+   * <p>For each relational expression, it returns a multimap from the class
+   * to the nodes instantiating that class. Each node will appear in the
+   * multimap only once.
+   */
+  public interface NodeTypes extends Metadata {
+    MetadataDef<NodeTypes> DEF = MetadataDef.of(NodeTypes.class,
+        NodeTypes.Handler.class, BuiltInMethod.NODE_TYPES.method);
+
+    /**
+     * Returns a multimap from the class to the nodes instantiating that
+     * class. The default implementation for a node classifies it as a
+     * {@link RelNode}.
+     */
+    Multimap<Class<? extends RelNode>, RelNode> getNodeTypes();
+
+    /** Handler API. */
+    interface Handler extends MetadataHandler<NodeTypes> {
+      Multimap<Class<? extends RelNode>, RelNode> getNodeTypes(RelNode r,
+          RelMetadataQuery mq);
+    }
+  }
+
   /** Metadata about the number of rows returned by a relational expression. */
   public interface RowCount extends Metadata {
     MetadataDef<RowCount> DEF = MetadataDef.of(RowCount.class,
@@ -203,6 +231,29 @@ public abstract class BuiltInMetadata {
     /** Handler API. */
     interface Handler extends MetadataHandler<MaxRowCount> {
       Double getMaxRowCount(RelNode r, RelMetadataQuery mq);
+    }
+  }
+
+  /** Metadata about the minimum number of rows returned by a relational
+   * expression. */
+  public interface MinRowCount extends Metadata {
+    MetadataDef<MinRowCount> DEF = MetadataDef.of(MinRowCount.class,
+        MinRowCount.Handler.class, BuiltInMethod.MIN_ROW_COUNT.method);
+
+    /**
+     * Estimates the minimum number of rows which will be returned by a
+     * relational expression.
+     *
+     * <p>The default implementation for this query returns 0,
+     * but metadata providers can override this with their own cost models.
+     *
+     * @return lower bound on the number of rows returned
+     */
+    Double getMinRowCount();
+
+    /** Handler API. */
+    interface Handler extends MetadataHandler<MinRowCount> {
+      Double getMinRowCount(RelNode r, RelMetadataQuery mq);
     }
   }
 
@@ -347,6 +398,72 @@ public abstract class BuiltInMetadata {
     }
   }
 
+  /** Metadata about the origins of expressions. */
+  public interface ExpressionLineage extends Metadata {
+    MetadataDef<ExpressionLineage> DEF = MetadataDef.of(ExpressionLineage.class,
+        ExpressionLineage.Handler.class, BuiltInMethod.EXPRESSION_LINEAGE.method);
+
+    /**
+     * Given the input expression applied on the given {@link RelNode}, this
+     * provider returns the expression with its lineage resolved.
+     *
+     * <p>In particular, the result will be a set of nodes which might contain
+     * references to columns in TableScan operators ({@link RexTableInputRef}).
+     * An expression can have more than one lineage expression due to Union
+     * operators. However, we do not check column equality in Filter predicates.
+     * Each TableScan operator below the node is identified uniquely by its
+     * qualified name and its entity number.
+     *
+     * <p>For example, if the expression is {@code $0 + 2} and {@code $0} originated
+     * from column {@code $3} in the {@code 0} occurrence of table {@code A} in the
+     * plan, result will be: {@code A.#0.$3 + 2}. Occurrences are generated in no
+     * particular order, but it is guaranteed that if two expressions referred to the
+     * same table, the qualified name + occurrence will be the same.
+     *
+     * @param expression expression whose lineage we want to resolve
+     *
+     * @return set of expressions with lineage resolved, or null if this information
+     * cannot be determined (e.g. origin of an expression is an aggregation
+     * in an {@link org.apache.calcite.rel.core.Aggregate} operator)
+     */
+    Set<RexNode> getExpressionLineage(RexNode expression);
+
+    /** Handler API. */
+    interface Handler extends MetadataHandler<ExpressionLineage> {
+      Set<RexNode> getExpressionLineage(RelNode r, RelMetadataQuery mq,
+          RexNode expression);
+    }
+  }
+
+  /** Metadata to obtain references to tables used by a given expression. */
+  public interface TableReferences extends Metadata {
+    MetadataDef<TableReferences> DEF = MetadataDef.of(TableReferences.class,
+        TableReferences.Handler.class, BuiltInMethod.TABLE_REFERENCES.method);
+
+    /**
+     * This provider returns the tables used by a given plan.
+     *
+     * <p>In particular, the result will be a set of unique table references
+     * ({@link RelTableRef}) corresponding to each TableScan operator in the
+     * plan. These table references are composed by the table qualified name
+     * and an entity number.
+     *
+     * <p>Importantly, the table identifiers returned by this metadata provider
+     * will be consistent with the unique identifiers used by the {@link ExpressionLineage}
+     * provider, meaning that it is guaranteed that same table will use same unique
+     * identifiers in both.
+     *
+     * @return set of unique table identifiers, or null if this information
+     * cannot be determined
+     */
+    Set<RelTableRef> getTableReferences();
+
+    /** Handler API. */
+    interface Handler extends MetadataHandler<TableReferences> {
+      Set<RelTableRef> getTableReferences(RelNode r, RelMetadataQuery mq);
+    }
+  }
+
   /** Metadata about the cost of evaluating a relational expression, including
    * all of its inputs. */
   public interface CumulativeCost extends Metadata {
@@ -438,6 +555,34 @@ public abstract class BuiltInMetadata {
     }
   }
 
+  /** Metadata about the predicates that hold in the rows emitted from a
+   * relational expression.
+   *
+   * <p>The difference with respect to {@link Predicates} provider is that
+   * this provider tries to extract ALL predicates even if they are not
+   * applied on the output expressions of the relational expression; we rely
+   * on {@link RexTableInputRef} to reference origin columns in
+   * {@link org.apache.calcite.rel.core.TableScan} for the result predicates.
+   */
+  public interface AllPredicates extends Metadata {
+    MetadataDef<AllPredicates> DEF = MetadataDef.of(AllPredicates.class,
+            AllPredicates.Handler.class, BuiltInMethod.ALL_PREDICATES.method);
+
+    /**
+     * Derives the predicates that hold on rows emitted from a relational
+     * expression.
+     *
+     * @return predicate list, or null if the provider cannot infer the
+     * lineage for any of the expressions contained in any of the predicates
+     */
+    RelOptPredicateList getAllPredicates();
+
+    /** Handler API. */
+    interface Handler extends MetadataHandler<AllPredicates> {
+      RelOptPredicateList getAllPredicates(RelNode r, RelMetadataQuery mq);
+    }
+  }
+
   /** Metadata about the degree of parallelism of a relational expression, and
    * how its operators are assigned to processes with independent resource
    * pools. */
@@ -524,7 +669,8 @@ public abstract class BuiltInMetadata {
   /** The built-in forms of metadata. */
   interface All extends Selectivity, UniqueKeys, RowCount, DistinctRowCount,
       PercentageOriginalRows, ColumnUniqueness, ColumnOrigin, Predicates,
-      Collation, Distribution, Size, Parallelism, Memory {
+      Collation, Distribution, Size, Parallelism, Memory, AllPredicates,
+      ExpressionLineage, TableReferences, NodeTypes {
   }
 }
 

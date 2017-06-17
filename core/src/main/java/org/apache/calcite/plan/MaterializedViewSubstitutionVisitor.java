@@ -17,10 +17,15 @@
 package org.apache.calcite.plan;
 
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.mutable.MutableFilter;
+import org.apache.calcite.rel.mutable.MutableProject;
+import org.apache.calcite.rel.mutable.MutableRel;
+import org.apache.calcite.rel.mutable.MutableRels;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexShuttle;
+import org.apache.calcite.tools.RelBuilderFactory;
 
 import com.google.common.collect.ImmutableList;
 
@@ -42,14 +47,19 @@ public class MaterializedViewSubstitutionVisitor extends SubstitutionVisitor {
     super(target_, query_, EXTENDED_RULES);
   }
 
+  public MaterializedViewSubstitutionVisitor(RelNode target_, RelNode query_,
+      RelBuilderFactory relBuilderFactory) {
+    super(target_, query_, EXTENDED_RULES, relBuilderFactory);
+  }
+
   public List<RelNode> go(RelNode replacement_) {
     return super.go(replacement_);
   }
 
   /**
    * Implementation of {@link SubstitutionVisitor.UnifyRule} that matches a
-   * {@link SubstitutionVisitor.MutableProject} to a
-   * {@link SubstitutionVisitor.MutableProject} where the condition of the target
+   * {@link MutableProject} to a
+   * {@link MutableProject} where the condition of the target
    * relation is weaker.
    *
    * <p>Example: target has a weaker condition and contains all columns selected
@@ -76,19 +86,18 @@ public class MaterializedViewSubstitutionVisitor extends SubstitutionVisitor {
       final MutableProject query = (MutableProject) call.query;
 
       final List<RelDataTypeField> oldFieldList =
-          query.getInput().getRowType().getFieldList();
+          query.getInput().rowType.getFieldList();
       final List<RelDataTypeField> newFieldList =
-          call.target.getRowType().getFieldList();
+          call.target.rowType.getFieldList();
       List<RexNode> newProjects;
       try {
-        newProjects = transformRex(query.getProjects(), oldFieldList, newFieldList);
+        newProjects = transformRex(query.projects, oldFieldList, newFieldList);
       } catch (MatchFailed e) {
         return null;
       }
 
       final MutableProject newProject =
-          MutableProject.of(
-              query.getRowType(), call.target, newProjects);
+          MutableProject.of(query.rowType, call.target, newProjects);
 
       final MutableRel newProject2 = MutableRels.strip(newProject);
       return call.result(newProject2);
@@ -109,9 +118,9 @@ public class MaterializedViewSubstitutionVisitor extends SubstitutionVisitor {
                 (MutableFilter) queryProject.getInput();
             RexNode newCondition;
             try {
-              newCondition = transformRex(innerFilter.getCondition(),
-                  innerFilter.getInput().getRowType().getFieldList(),
-                  target.getRowType().getFieldList());
+              newCondition = transformRex(innerFilter.condition,
+                  innerFilter.getInput().rowType.getFieldList(),
+                  target.rowType.getFieldList());
             } catch (MatchFailed e) {
               return null;
             }
@@ -129,8 +138,8 @@ public class MaterializedViewSubstitutionVisitor extends SubstitutionVisitor {
 
   /**
    * Implementation of {@link SubstitutionVisitor.UnifyRule} that matches a
-   * {@link SubstitutionVisitor.MutableFilter} to a
-   * {@link SubstitutionVisitor.MutableFilter} where the condition of the target
+   * {@link MutableFilter} to a
+   * {@link MutableFilter} where the condition of the target
    * relation is weaker.
    *
    * <p>Example: target has a weaker condition</p>
@@ -153,7 +162,7 @@ public class MaterializedViewSubstitutionVisitor extends SubstitutionVisitor {
     public UnifyResult apply(UnifyRuleCall call) {
       final MutableFilter query = (MutableFilter) call.query;
       final MutableFilter target = (MutableFilter) call.target;
-      final MutableFilter newFilter = MutableFilter.of(target, query.getCondition());
+      final MutableFilter newFilter = MutableFilter.of(target, query.condition);
       return call.result(newFilter);
     }
 
@@ -173,9 +182,9 @@ public class MaterializedViewSubstitutionVisitor extends SubstitutionVisitor {
 
   /**
    * Implementation of {@link SubstitutionVisitor.UnifyRule} that matches a
-   * {@link SubstitutionVisitor.MutableFilter} to a
-   * {@link SubstitutionVisitor.MutableProject} on top of a
-   * {@link SubstitutionVisitor.MutableFilter} where the condition of the target
+   * {@link MutableFilter} to a
+   * {@link MutableProject} on top of a
+   * {@link MutableFilter} where the condition of the target
    * relation is weaker.
    *
    * <p>Example: target has a weaker condition and is a permutation projection of
@@ -203,22 +212,21 @@ public class MaterializedViewSubstitutionVisitor extends SubstitutionVisitor {
       final MutableRel query = call.query;
 
       final List<RelDataTypeField> oldFieldList =
-          query.getRowType().getFieldList();
+          query.rowType.getFieldList();
       final List<RelDataTypeField> newFieldList =
-          call.target.getRowType().getFieldList();
+          call.target.rowType.getFieldList();
       List<RexNode> newProjects;
       try {
         newProjects = transformRex(
             (List<RexNode>) call.getCluster().getRexBuilder().identityProjects(
-                query.getRowType()),
+                query.rowType),
             oldFieldList, newFieldList);
       } catch (MatchFailed e) {
         return null;
       }
 
       final MutableProject newProject =
-          MutableProject.of(
-              query.getRowType(), call.target, newProjects);
+          MutableProject.of(query.rowType, call.target, newProjects);
 
       final MutableRel newProject2 = MutableRels.strip(newProject);
       return call.result(newProject2);
@@ -234,9 +242,9 @@ public class MaterializedViewSubstitutionVisitor extends SubstitutionVisitor {
             final MutableFilter filter = (MutableFilter) query;
             RexNode newCondition;
             try {
-              newCondition = transformRex(filter.getCondition(),
-                  filter.getInput().getRowType().getFieldList(),
-                  target.getRowType().getFieldList());
+              newCondition = transformRex(filter.condition,
+                  filter.getInput().rowType.getFieldList(),
+                  target.rowType.getFieldList());
             } catch (MatchFailed e) {
               return null;
             }

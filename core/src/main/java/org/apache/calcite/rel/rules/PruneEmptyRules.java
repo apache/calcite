@@ -28,6 +28,8 @@ import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.Values;
+import org.apache.calcite.rel.logical.LogicalIntersect;
+import org.apache.calcite.rel.logical.LogicalMinus;
 import org.apache.calcite.rel.logical.LogicalUnion;
 import org.apache.calcite.rel.logical.LogicalValues;
 import org.apache.calcite.rex.RexLiteral;
@@ -76,7 +78,7 @@ public abstract class PruneEmptyRules {
               unordered(operand(Values.class, null, Values.IS_EMPTY, none()))),
           "Union") {
         public void onMatch(RelOptRuleCall call) {
-          LogicalUnion union = call.rel(0);
+          final LogicalUnion union = call.rel(0);
           final List<RelNode> inputs = call.getChildRels(union);
           assert inputs != null;
           final List<RelNode> newInputs = new ArrayList<>();
@@ -103,6 +105,83 @@ public abstract class PruneEmptyRules {
             builder.push(LogicalUnion.create(newInputs, union.all));
             break;
           }
+          call.transformTo(builder.build());
+        }
+      };
+
+  /**
+   * Rule that removes empty children of a
+   * {@link org.apache.calcite.rel.logical.LogicalMinus}.
+   *
+   * <p>Examples:
+   *
+   * <ul>
+   * <li>Minus(Rel, Empty, Rel2) becomes Minus(Rel, Rel2)
+   * <li>Minus(Empty, Rel) becomes Empty
+   * </ul>
+   */
+  public static final RelOptRule MINUS_INSTANCE =
+      new RelOptRule(
+          operand(LogicalMinus.class,
+              unordered(operand(Values.class, null, Values.IS_EMPTY, none()))),
+          "Minus") {
+        public void onMatch(RelOptRuleCall call) {
+          final LogicalMinus minus = call.rel(0);
+          final List<RelNode> inputs = call.getChildRels(minus);
+          assert inputs != null;
+          final List<RelNode> newInputs = new ArrayList<>();
+          for (RelNode input : inputs) {
+            if (!isEmpty(input)) {
+              newInputs.add(input);
+            } else if (newInputs.isEmpty()) {
+              // If the first input of Minus is empty, the whole thing is
+              // empty.
+              break;
+            }
+          }
+          assert newInputs.size() < inputs.size()
+              : "planner promised us at least one Empty child";
+          final RelBuilder builder = call.builder();
+          switch (newInputs.size()) {
+          case 0:
+            builder.push(minus).empty();
+            break;
+          case 1:
+            builder.push(
+                RelOptUtil.createCastRel(
+                    newInputs.get(0),
+                    minus.getRowType(),
+                    true));
+            break;
+          default:
+            builder.push(LogicalMinus.create(newInputs, minus.all));
+            break;
+          }
+          call.transformTo(builder.build());
+        }
+      };
+
+  /**
+   * Rule that converts a
+   * {@link org.apache.calcite.rel.logical.LogicalIntersect} to
+   * empty if any of its children are empty.
+   *
+   * <p>Examples:
+   *
+   * <ul>
+   * <li>Intersect(Rel, Empty, Rel2) becomes Empty
+   * <li>Intersect(Empty, Rel) becomes Empty
+   * </ul>
+   */
+  public static final RelOptRule INTERSECT_INSTANCE =
+      new RelOptRule(
+          operand(LogicalIntersect.class,
+              unordered(operand(Values.class, null, Values.IS_EMPTY, none()))),
+          "Intersect") {
+        public void onMatch(RelOptRuleCall call) {
+          LogicalIntersect intersect = call.rel(0);
+          final RelBuilder builder = call.builder();
+          builder.push(intersect).empty();
           call.transformTo(builder.build());
         }
       };
@@ -186,6 +265,8 @@ public abstract class PruneEmptyRules {
    * <li>{@code Aggregate(key: [], Empty)} is unchanged, because an aggregate
    * without a GROUP BY key always returns 1 row, even over empty input
    * </ul>
+   *
+   * @see AggregateValuesRule
    */
   public static final RelOptRule AGGREGATE_INSTANCE =
       new RemoveEmptySingleRule(Aggregate.class, Aggregate.IS_NOT_GRAND_TOTAL,
@@ -257,7 +338,7 @@ public abstract class PruneEmptyRules {
           description);
     }
 
-    /** Creatse a RemoveEmptySingleRule. */
+    /** Creates a RemoveEmptySingleRule. */
     public <R extends SingleRel> RemoveEmptySingleRule(Class<R> clazz,
         Predicate<R> predicate, RelBuilderFactory relBuilderFactory,
         String description) {

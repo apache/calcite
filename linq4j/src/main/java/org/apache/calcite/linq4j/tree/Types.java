@@ -251,8 +251,8 @@ public abstract class Types {
       return className(clazz.getComponentType()) + "[]";
     }
     String className = clazz.getName();
-    if (clazz.getPackage() == Package.getPackage("java.lang")
-        && !clazz.isPrimitive()) {
+    if (!clazz.isPrimitive()
+        && clazz.getPackage().getName().equals("java.lang")) {
       return className.substring("java.lang.".length());
     }
     return className.replace('$', '.');
@@ -450,6 +450,10 @@ public abstract class Types {
   public static Expression castIfNecessary(Type returnType,
       Expression expression) {
     final Type type = expression.getType();
+    if (returnType instanceof RecordType) {
+      // We can't extract Class from RecordType since mapping Java Class might not generated yet.
+      return expression;
+    }
     if (Types.isAssignableFrom(returnType, type)) {
       return expression;
     }

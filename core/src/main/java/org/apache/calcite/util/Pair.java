@@ -73,6 +73,11 @@ public class Pair<T1, T2>
     return new Pair<>(left, right);
   }
 
+  /** Creates a {@code Pair} from a {@link java.util.Map.Entry}. */
+  public static <K, V> Pair<K, V> of(Map.Entry<K, V> entry) {
+    return of(entry.getKey(), entry.getValue());
+  }
+
   //~ Methods ----------------------------------------------------------------
 
   public boolean equals(Object obj) {

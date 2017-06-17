@@ -269,7 +269,7 @@ public class Bindables {
     public static BindableFilter create(final RelNode input,
         RexNode condition) {
       final RelOptCluster cluster = input.getCluster();
-      final RelMetadataQuery mq = RelMetadataQuery.instance();
+      final RelMetadataQuery mq = cluster.getMetadataQuery();
       final RelTraitSet traitSet =
           cluster.traitSetOf(BindableConvention.INSTANCE)
               .replaceIfs(RelCollationTraitDef.INSTANCE,
@@ -378,7 +378,6 @@ public class Bindables {
         RelNode input, RelCollation collation, RexNode offset, RexNode fetch) {
       super(cluster, traitSet, input, collation, offset, fetch);
       assert getConvention() instanceof BindableConvention;
-      assert getConvention() == input.getConvention();
     }
 
     @Override public BindableSort copy(RelTraitSet traitSet, RelNode newInput,

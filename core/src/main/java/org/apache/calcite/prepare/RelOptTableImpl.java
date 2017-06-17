@@ -28,11 +28,11 @@ import org.apache.calcite.rel.RelDistribution;
 import org.apache.calcite.rel.RelDistributionTraitDef;
 import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelReferentialConstraint;
 import org.apache.calcite.rel.logical.LogicalTableScan;
 import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rel.type.RelRecordType;
-import org.apache.calcite.schema.ExtensibleTable;
+import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.schema.FilterableTable;
 import org.apache.calcite.schema.ModifiableTable;
 import org.apache.calcite.schema.Path;
@@ -64,7 +64,7 @@ import java.util.Set;
 /**
  * Implementation of {@link org.apache.calcite.plan.RelOptTable}.
  */
-public class RelOptTableImpl implements Prepare.PreparingTable {
+public class RelOptTableImpl extends Prepare.AbstractPreparingTable {
   private final RelOptSchema schema;
   private final RelDataType rowType;
   private final Table table;
@@ -199,16 +199,11 @@ public class RelOptTableImpl implements Prepare.PreparingTable {
     return expressionFunction.apply(clazz);
   }
 
-  public RelOptTable extend(List<RelDataTypeField> extendedFields) {
-    if (table instanceof ExtensibleTable) {
-      final Table extendedTable =
-          ((ExtensibleTable) table).extend(extendedFields);
-      final RelDataType extendedRowType =
-          extendedTable.getRowType(schema.getTypeFactory());
-      return new RelOptTableImpl(schema, extendedRowType, names, extendedTable,
-          expressionFunction, rowCount);
-    }
-    throw new RuntimeException("Cannot extend " + table); // TODO: user error
+  @Override protected RelOptTable extend(Table extendedTable) {
+    final RelDataType extendedRowType =
+        extendedTable.getRowType(getRelOptSchema().getTypeFactory());
+    return new RelOptTableImpl(getRelOptSchema(), extendedRowType, getQualifiedName(),
+        extendedTable, expressionFunction, getRowCount());
   }
 
   @Override public boolean equals(Object obj) {
@@ -251,7 +246,7 @@ public class RelOptTableImpl implements Prepare.PreparingTable {
       return ((TranslatableTable) table).toRel(context, this);
     }
     final RelOptCluster cluster = context.getCluster();
-    if (CalcitePrepareImpl.ENABLE_BINDABLE) {
+    if (Hook.ENABLE_BINDABLE.get(false)) {
       return LogicalTableScan.create(cluster, this);
     }
     if (CalcitePrepareImpl.ENABLE_ENUMERABLE
@@ -290,6 +285,13 @@ public class RelOptTableImpl implements Prepare.PreparingTable {
     return false;
   }
 
+  public List<RelReferentialConstraint> getReferentialConstraints() {
+    if (table != null) {
+      return table.getStatistic().getReferentialConstraints();
+    }
+    return ImmutableList.of();
+  }
+
   public RelDataType getRowType() {
     return rowType;
   }
@@ -325,11 +327,11 @@ public class RelOptTableImpl implements Prepare.PreparingTable {
     return SqlAccessType.ALL;
   }
 
-  /** Im0plementation of {@link SchemaPlus} that wraps a regular schema and knows
+  /** Implementation of {@link SchemaPlus} that wraps a regular schema and knows
    * its name and parent.
    *
    * <p>It is read-only, and functionality is limited in other ways, it but
-   * allows table expressions to be genenerated. */
+   * allows table expressions to be generated. */
   private static class MySchemaPlus implements SchemaPlus {
     private final SchemaPlus parent;
     private final String name;
@@ -431,6 +433,10 @@ public class RelOptTableImpl implements Prepare.PreparingTable {
     @Override public boolean contentsHaveChangedSince(long lastCheck,
         long now) {
       return schema.contentsHaveChangedSince(lastCheck, now);
+    }
+
+    @Override public Schema snapshot(long now) {
+      throw new UnsupportedOperationException();
     }
   }
 }

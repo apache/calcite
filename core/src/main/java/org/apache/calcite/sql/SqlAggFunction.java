@@ -78,11 +78,11 @@ public abstract class SqlAggFunction extends SqlFunction implements Context {
       SqlOperandTypeChecker operandTypeChecker,
       SqlFunctionCategory funcType,
       boolean requiresOrder,
-      boolean requireOver) {
+      boolean requiresOver) {
     super(name, sqlIdentifier, kind, returnTypeInference, operandTypeInference,
         operandTypeChecker, null, funcType);
     this.requiresOrder = requiresOrder;
-    this.requiresOver =  requireOver;
+    this.requiresOver = requiresOver;
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -112,15 +112,7 @@ public abstract class SqlAggFunction extends SqlFunction implements Context {
     return requiresOrder;
   }
 
-  /** Returns whether this is a window function that requires an OVER clause.
-   *
-   * <p>For example, {@code RANK} and {@code DENSE_RANK} require an OVER clause;
-   * {@code SUM} does not (it can be used as a non-window aggregate function).
-   *
-   * @see #allowsFraming()
-   * @see #requiresOrder()
-   */
-  public final boolean requiresOver() {
+  @Override public final boolean requiresOver() {
     return requiresOver;
   }
 

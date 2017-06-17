@@ -71,10 +71,12 @@ public class RexCallBinding extends SqlOperatorBinding {
 
   //~ Methods ----------------------------------------------------------------
 
+  @SuppressWarnings("deprecation")
   @Override public String getStringLiteralOperand(int ordinal) {
     return RexLiteral.stringValue(operands.get(ordinal));
   }
 
+  @SuppressWarnings("deprecation")
   @Override public int getIntLiteralOperand(int ordinal) {
     return RexLiteral.intValue(operands.get(ordinal));
   }
@@ -102,7 +104,7 @@ public class RexCallBinding extends SqlOperatorBinding {
     } else if (operand instanceof RexCall) {
       final RexCallBinding binding =
           RexCallBinding.create(typeFactory, (RexCall) operand, inputCollations);
-      ((RexCall) operand).getOperator().getMonotonicity(binding);
+      return ((RexCall) operand).getOperator().getMonotonicity(binding);
     }
 
     return SqlMonotonicity.NOT_MONOTONIC;

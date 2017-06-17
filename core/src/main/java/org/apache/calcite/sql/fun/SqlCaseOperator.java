@@ -35,6 +35,7 @@ import org.apache.calcite.sql.type.InferTypes;
 import org.apache.calcite.sql.type.SqlOperandCountRanges;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.SqlValidator;
+import org.apache.calcite.sql.validate.SqlValidatorImpl;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.util.Pair;
 
@@ -250,8 +251,10 @@ public class SqlCaseOperator extends SqlOperator {
     if (null == ret) {
       throw callBinding.newValidationError(RESOURCE.illegalMixingOfTypes());
     }
+    final SqlValidatorImpl validator =
+        (SqlValidatorImpl) callBinding.getValidator();
     for (SqlNode node : nullList) {
-      callBinding.getValidator().setValidatedNodeType(node, ret);
+      validator.setValidatedNodeType(node, ret);
     }
     return ret;
   }

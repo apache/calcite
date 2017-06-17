@@ -19,9 +19,13 @@ package org.apache.calcite.sql.parser;
 import org.apache.calcite.avatica.util.Casing;
 import org.apache.calcite.avatica.util.Quoting;
 import org.apache.calcite.sql.SqlDialect;
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlSetOption;
+import org.apache.calcite.sql.parser.impl.SqlParserImpl;
 import org.apache.calcite.sql.pretty.SqlPrettyWriter;
+import org.apache.calcite.sql.validate.SqlConformance;
+import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.test.DiffTestCase;
 import org.apache.calcite.test.SqlValidatorTestCase;
 import org.apache.calcite.util.Bug;
@@ -33,16 +37,19 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSortedSet;
 
+import org.hamcrest.BaseMatcher;
+import org.hamcrest.Description;
+import org.hamcrest.Matcher;
 import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileReader;
-import java.io.FileWriter;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.URL;
+import java.net.URLDecoder;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
@@ -52,14 +59,20 @@ import java.util.TreeSet;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.not;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeTrue;
 
 /**
  * A <code>SqlParserTest</code> is a unit-test for
  * {@link SqlParser the SQL parser}.
+ *
+ * <p>To reuse this test for an extension parser, implement the
+ * {@link #parserImplFactory()} method to return the extension parser
+ * implementation.
  */
 public class SqlParserTest {
   //~ Static fields/initializers ---------------------------------------------
@@ -68,434 +81,471 @@ public class SqlParserTest {
    * List of reserved keywords.
    *
    * <p>Each keyword is followed by tokens indicating whether it is reserved in
-   * the SQL:92, SQL:99, SQL:2003 standards and in Calcite.
+   * the SQL:92, SQL:99, SQL:2003, SQL:2011, SQL:2014 standards and in Calcite.
    *
    * <p>The standard keywords are derived from
-   * <a href="http://developer.mimer.com/validator/sql-reserved-words.tml">Mimer</a>.
+   * <a href="http://developer.mimer.com/validator/sql-reserved-words.tml">Mimer</a>
+   * and from the specification.
    *
    * <p>If a new <b>reserved</b> keyword is added to the parser, include it in
    * this list, flagged "c". If the keyword is not intended to be a reserved
    * keyword, add it to the non-reserved keyword list in the parser.
    */
   private static final List<String> RESERVED_KEYWORDS = ImmutableList.of(
-      "ABS",                                                    "2011", "c",
-      "ABSOLUTE",                           "92", "99",
-      "ACTION",                             "92", "99",
-      "ADD",                                "92", "99", "2003",
-      "AFTER",                                    "99",
-      "ALL",                                "92", "99", "2003", "2011", "c",
-      "ALLOCATE",                           "92", "99", "2003", "2011", "c",
-      "ALLOW",                                                          "c",
-      "ALTER",                              "92", "99", "2003", "2011", "c",
-      "AND",                                "92", "99", "2003", "2011", "c",
-      "ANY",                                "92", "99", "2003", "2011", "c",
-      "ARE",                                "92", "99", "2003", "2011", "c",
-      "ARRAY",                                    "99", "2003", "2011", "c",
-      "ARRAY_AGG",                                              "2011",
-      "AS",                                 "92", "99", "2003", "2011", "c",
-      "ASC",                                "92", "99",
-      "ASENSITIVE",                               "99", "2003", "2011", "c",
-      "ASSERTION",                          "92", "99",
-      "ASYMMETRIC",                               "99", "2003", "2011", "c",
-      "AT",                                 "92", "99", "2003", "2011", "c",
-      "ATOMIC",                                   "99", "2003", "2011", "c",
-      "AUTHORIZATION",                      "92", "99", "2003", "2011", "c",
-      "AVG",                                "92",               "2011", "c",
-      "BEFORE",                                   "99",
-      "BEGIN",                              "92", "99", "2003", "2011", "c",
-      "BETWEEN",                            "92", "99", "2003", "2011", "c",
-      "BIGINT",                                         "2003", "2011", "c",
-      "BINARY",                                   "99", "2003", "2011", "c",
-      "BIT",                                "92", "99",                 "c",
-      "BIT_LENGTH",                         "92",
-      "BLOB",                                     "99", "2003", "2011", "c",
-      "BOOLEAN",                                  "99", "2003", "2011", "c",
-      "BOTH",                               "92", "99", "2003", "2011", "c",
-      "BREADTH",                                  "99",
-      "BY",                                 "92", "99", "2003", "2011", "c",
-      "CALL",                               "92", "99", "2003", "2011", "c",
-      "CALLED",                                         "2003", "2011", "c",
-      "CARDINALITY",                                            "2011", "c",
-      "CASCADE",                            "92", "99",
-      "CASCADED",                           "92", "99", "2003", "2011", "c",
-      "CASE",                               "92", "99", "2003", "2011", "c",
-      "CAST",                               "92", "99", "2003", "2011", "c",
-      "CATALOG",                            "92", "99",
-      "CEIL",                                                   "2011", "c",
-      "CEILING",                                                "2011", "c",
-      "CHAR",                               "92", "99", "2003", "2011", "c",
-      "CHARACTER",                          "92", "99", "2003", "2011", "c",
-      "CHARACTER_LENGTH",                   "92",               "2011", "c",
-      "CHAR_LENGTH",                        "92",               "2011", "c",
-      "CHECK",                              "92", "99", "2003", "2011", "c",
-      "CLOB",                                     "99", "2003", "2011", "c",
-      "CLOSE",                              "92", "99", "2003", "2011", "c",
-      "COALESCE",                           "92",               "2011", "c",
-      "COLLATE",                            "92", "99", "2003", "2011", "c",
-      "COLLATION",                          "92", "99",
-      "COLLECT",                                                "2011", "c",
-      "COLUMN",                             "92", "99", "2003", "2011", "c",
-      "COMMIT",                             "92", "99", "2003", "2011", "c",
-      "CONDITION",                          "92", "99", "2003", "2011", "c",
-      "CONNECT",                            "92", "99", "2003", "2011", "c",
-      "CONNECTION",                         "92", "99",
-      "CONSTRAINT",                         "92", "99", "2003", "2011", "c",
-      "CONSTRAINTS",                        "92", "99",
-      "CONSTRUCTOR",                              "99",
-      "CONTAINS",                           "92",
-      "CONTINUE",                           "92", "99", "2003",
-      "CONVERT",                            "92",               "2011", "c",
-      "CORR",                                                   "2011", "c",
-      "CORRESPONDING",                      "92", "99", "2003", "2011", "c",
-      "COUNT",                              "92",               "2011", "c",
-      "COVAR_POP",                                              "2011", "c",
-      "COVAR_SAMP",                                             "2011", "c",
-      "CREATE",                             "92", "99", "2003", "2011", "c",
-      "CROSS",                              "92", "99", "2003", "2011", "c",
-      "CUBE",                                     "99", "2003", "2011", "c",
-      "CUME_DIST",                                              "2011", "c",
-      "CURRENT",                            "92", "99", "2003", "2011", "c",
-      "CURRENT_CATALOG",                                        "2011", "c",
-      "CURRENT_DATE",                       "92", "99", "2003", "2011", "c",
-      "CURRENT_DEFAULT_TRANSFORM_GROUP",          "99", "2003", "2011", "c",
-      "CURRENT_PATH",                       "92", "99", "2003", "2011", "c",
-      "CURRENT_ROLE",                             "99", "2003", "2011", "c",
-      "CURRENT_SCHEMA",                                         "2011", "c",
-      "CURRENT_TIME",                       "92", "99", "2003", "2011", "c",
-      "CURRENT_TIMESTAMP",                  "92", "99", "2003", "2011", "c",
-      "CURRENT_TRANSFORM_GROUP_FOR_TYPE",         "99", "2003", "2011", "c",
-      "CURRENT_USER",                       "92", "99", "2003", "2011", "c",
-      "CURSOR",                             "92", "99", "2003", "2011", "c",
-      "CYCLE",                                    "99", "2003", "2011", "c",
-      "DATA",                                     "99",
-      "DATE",                               "92", "99", "2003", "2011", "c",
-      "DAY",                                "92", "99", "2003", "2011", "c",
-      "DAYS",                                                   "2011",
-      "DEALLOCATE",                         "92", "99", "2003", "2011", "c",
-      "DEC",                                "92", "99", "2003", "2011", "c",
-      "DECIMAL",                            "92", "99", "2003", "2011", "c",
-      "DECLARE",                            "92", "99", "2003", "2011", "c",
-      "DEFAULT",                            "92", "99", "2003", "2011", "c",
-      "DEFERRABLE",                         "92", "99",
-      "DEFERRED",                           "92", "99",
-      "DELETE",                             "92", "99", "2003", "2011", "c",
-      "DENSE_RANK",                                             "2011", "c",
-      "DEPTH",                                    "99",
-      "DEREF",                                    "99", "2003", "2011", "c",
-      "DESC",                               "92", "99",
-      "DESCRIBE",                           "92", "99", "2003", "2011", "c",
-      "DESCRIPTOR",                         "92", "99",
-      "DETERMINISTIC",                      "92", "99", "2003", "2011", "c",
-      "DIAGNOSTICS",                        "92", "99",
-      "DISALLOW",                                                       "c",
-      "DISCONNECT",                         "92", "99", "2003", "2011", "c",
-      "DISTINCT",                           "92", "99", "2003", "2011", "c",
-      "DO",                                 "92", "99", "2003",
-      "DOMAIN",                             "92", "99",
-      "DOUBLE",                             "92", "99", "2003", "2011", "c",
-      "DROP",                               "92", "99", "2003", "2011", "c",
-      "DYNAMIC",                                  "99", "2003", "2011", "c",
-      "EACH",                                     "99", "2003", "2011", "c",
-      "ELEMENT",                                        "2003", "2011", "c",
-      "ELSE",                               "92", "99", "2003", "2011", "c",
-      "ELSEIF",                             "92", "99", "2003",
-      "END",                                "92", "99", "2003", "2011", "c",
-      "END-EXEC",                                               "2011", "c",
-      "EQUALS",                                   "99",
-      "ESCAPE",                             "92", "99", "2003", "2011", "c",
-      "EVERY",                                                  "2011", "c",
-      "EXCEPT",                             "92", "99", "2003", "2011", "c",
-      "EXCEPTION",                          "92", "99",
-      "EXEC",                               "92", "99", "2003", "2011", "c",
-      "EXECUTE",                            "92", "99", "2003", "2011", "c",
-      "EXISTS",                             "92", "99", "2003", "2011", "c",
-      "EXIT",                               "92", "99", "2003",
-      "EXP",                                                    "2011", "c",
-      "EXPLAIN",                                                        "c",
-      "EXTEND",                                                         "c",
-      "EXTERNAL",                           "92", "99", "2003", "2011", "c",
-      "EXTRACT",                            "92",               "2011", "c",
-      "FALSE",                              "92", "99", "2003", "2011", "c",
-      "FETCH",                              "92", "99", "2003", "2011", "c",
-      "FILTER",                                   "99", "2003", "2011", "c",
-      "FIRST",                              "92", "99",
-      "FIRST_VALUE",                                            "2011", "c",
-      "FLOAT",                              "92", "99", "2003", "2011", "c",
-      "FLOOR",                                                  "2011", "c",
-      "FOR",                                "92", "99", "2003", "2011", "c",
-      "FOREIGN",                            "92", "99", "2003", "2011", "c",
-      "FOREVER",                                                "2011",
-      "FOUND",                              "92", "99",
-      "FREE",                                     "99", "2003", "2011", "c",
-      "FROM",                               "92", "99", "2003", "2011", "c",
-      "FULL",                               "92", "99", "2003", "2011", "c",
-      "FUNCTION",                           "92", "99", "2003", "2011", "c",
-      "FUSION",                                                 "2011", "c",
-      "GENERAL",                                  "99",
-      "GET",                                "92", "99", "2003", "2011", "c",
-      "GLOBAL",                             "92", "99", "2003", "2011", "c",
-      "GO",                                 "92", "99",
-      "GOTO",                               "92", "99",
-      "GRANT",                              "92", "99", "2003", "2011", "c",
-      "GROUP",                              "92", "99", "2003", "2011", "c",
-      "GROUPING",                                 "99", "2003", "2011", "c",
-      "HANDLER",                            "92", "99", "2003",
-      "HAVING",                             "92", "99", "2003", "2011", "c",
-      "HOLD",                                     "99", "2003", "2011", "c",
-      "HOUR",                               "92", "99", "2003", "2011", "c",
-      "HOURS",                                                  "2011",
-      "IDENTITY",                           "92", "99", "2003", "2011", "c",
-      "IF",                                 "92", "99", "2003",
-      "IMMEDIATE",                          "92", "99", "2003",
-      "IMPORT",                                                         "c",
-      "IN",                                 "92", "99", "2003", "2011", "c",
-      "INDICATOR",                          "92", "99", "2003", "2011", "c",
-      "INITIALLY",                          "92", "99",
-      "INNER",                              "92", "99", "2003", "2011", "c",
-      "INOUT",                              "92", "99", "2003", "2011", "c",
-      "INPUT",                              "92", "99", "2003",
-      "INSENSITIVE",                        "92", "99", "2003", "2011", "c",
-      "INSERT",                             "92", "99", "2003", "2011", "c",
-      "INT",                                "92", "99", "2003", "2011", "c",
-      "INTEGER",                            "92", "99", "2003", "2011", "c",
-      "INTERSECT",                          "92", "99", "2003", "2011", "c",
-      "INTERSECTION",                                           "2011", "c",
-      "INTERVAL",                           "92", "99", "2003", "2011", "c",
-      "INTO",                               "92", "99", "2003", "2011", "c",
-      "IS",                                 "92", "99", "2003", "2011", "c",
-      "ISOLATION",                          "92", "99",
-      "ITERATE",                                  "99", "2003",
-      "JOIN",                               "92", "99", "2003", "2011", "c",
-      "KEEP",                                                   "2011",
-      "KEY",                                "92", "99",
-      "LAG",                                                    "2011",
-      "LANGUAGE",                           "92", "99", "2003", "2011", "c",
-      "LARGE",                                    "99", "2003", "2011", "c",
-      "LAST",                               "92", "99",
-      "LAST_VALUE",                                             "2011", "c",
-      "LATERAL",                                  "99", "2003", "2011", "c",
-      "LEAD",                                                   "2011",
-      "LEADING",                            "92", "99", "2003", "2011", "c",
-      "LEAVE",                              "92", "99", "2003",
-      "LEFT",                               "92", "99", "2003", "2011", "c",
-      "LEVEL",                              "92", "99",
-      "LIKE",                               "92", "99", "2003", "2011", "c",
-      "LIKE_REGEX",                                             "2011",
-      "LIMIT",                                                          "c",
-      "LN",                                                     "2011", "c",
-      "LOCAL",                              "92", "99", "2003", "2011", "c",
-      "LOCALTIME",                                "99", "2003", "2011", "c",
-      "LOCALTIMESTAMP",                           "99", "2003", "2011", "c",
-      "LOCATOR",                                  "99",
-      "LOOP",                               "92", "99", "2003",
-      "LOWER",                              "92",               "2011", "c",
-      "MAP",                                      "99",
-      "MATCH",                              "92", "99", "2003", "2011", "c",
-      "MAX",                                "92",               "2011", "c",
-      "MAX_CARDINALITY",                                        "2011",
-      "MEMBER",                                         "2003", "2011", "c",
-      "MERGE",                                          "2003", "2011", "c",
-      "METHOD",                                   "99", "2003", "2011", "c",
-      "MIN",                                "92",               "2011", "c",
-      "MINUTE",                             "92", "99", "2003", "2011", "c",
-      "MINUTES",                                                "2011",
-      "MOD",                                                    "2011", "c",
-      "MODIFIES",                                 "99", "2003", "2011", "c",
-      "MODULE",                             "92", "99", "2003", "2011", "c",
-      "MONTH",                              "92", "99", "2003", "2011", "c",
-      "MULTISET",                                       "2003", "2011", "c",
-      "NAMES",                              "92", "99",
-      "NATIONAL",                           "92", "99", "2003", "2011", "c",
-      "NATURAL",                            "92", "99", "2003", "2011", "c",
-      "NCHAR",                              "92", "99", "2003", "2011", "c",
-      "NCLOB",                                    "99", "2003", "2011", "c",
-      "NEW",                                      "99", "2003", "2011", "c",
-      "NEXT",                               "92", "99",                 "c",
-      "NO",                                 "92", "99", "2003", "2011", "c",
-      "NONE",                                     "99", "2003", "2011", "c",
-      "NORMALIZE",                                              "2011", "c",
-      "NOT",                                "92", "99", "2003", "2011", "c",
-      "NTH_VALUE",                                              "2011",
-      "NTILE",                                                  "2011",
-      "NULL",                               "92", "99", "2003", "2011", "c",
-      "NULLIF",                             "92",               "2011", "c",
-      "NUMERIC",                            "92", "99", "2003", "2011", "c",
-      "OBJECT",                                   "99",
-      "OCCURRENCES_REGEX",                                      "2011",
-      "OCTET_LENGTH",                       "92",               "2011", "c",
-      "OF",                                 "92", "99", "2003", "2011", "c",
-      "OFFSET",                                                 "2011", "c",
-      "OLD",                                      "99", "2003", "2011", "c",
-      "ON",                                 "92", "99", "2003", "2011", "c",
-      "ONLY",                               "92", "99", "2003", "2011", "c",
-      "OPEN",                               "92", "99", "2003", "2011", "c",
-      "OPTION",                             "92", "99",
-      "OR",                                 "92", "99", "2003", "2011", "c",
-      "ORDER",                              "92", "99", "2003", "2011", "c",
-      "ORDINALITY",                               "99",
-      "OUT",                                "92", "99", "2003", "2011", "c",
-      "OUTER",                              "92", "99", "2003", "2011", "c",
-      "OUTPUT",                             "92", "99", "2003",
-      "OVER",                                     "99", "2003", "2011", "c",
-      "OVERLAPS",                           "92", "99", "2003", "2011", "c",
-      "OVERLAY",                                                "2011", "c",
-      "PAD",                                "92", "99",
-      "PARAMETER",                          "92", "99", "2003", "2011", "c",
-      "PARTIAL",                            "92", "99",
-      "PARTITION",                                "99", "2003", "2011", "c",
-      "PATH",                               "92", "99",
-      "PERCENTILE_CONT",                                        "2011", "c",
-      "PERCENTILE_DISC",                                        "2011", "c",
-      "PERCENT_RANK",                                           "2011", "c",
-      "POSITION",                           "92",               "2011", "c",
-      "POSITION_REGEX",                                         "2011",
-      "POWER",                                                  "2011", "c",
-      "PRECISION",                          "92", "99", "2003", "2011", "c",
-      "PREPARE",                            "92", "99", "2003", "2011", "c",
-      "PRESERVE",                           "92", "99",
-      "PRIMARY",                            "92", "99", "2003", "2011", "c",
-      "PRIOR",                              "92", "99",
-      "PRIVILEGES",                         "92", "99",
-      "PROCEDURE",                          "92", "99", "2003", "2011", "c",
-      "PUBLIC",                             "92", "99",
-      "RANGE",                                    "99", "2003", "2011", "c",
-      "RANK",                                                   "2011", "c",
-      "READ",                               "92", "99",
-      "READS",                                    "99", "2003", "2011", "c",
-      "REAL",                               "92", "99", "2003", "2011", "c",
-      "RECURSIVE",                                "99", "2003", "2011", "c",
-      "REF",                                      "99", "2003", "2011", "c",
-      "REFERENCES",                         "92", "99", "2003", "2011", "c",
-      "REFERENCING",                              "99", "2003", "2011", "c",
-      "REGR_AVGX",                                              "2011", "c",
-      "REGR_AVGY",                                              "2011", "c",
-      "REGR_COUNT",                                             "2011", "c",
-      "REGR_INTERCEPT",                                         "2011", "c",
-      "REGR_R2",                                                "2011", "c",
-      "REGR_SLOPE",                                             "2011", "c",
-      "REGR_SXX",                                               "2011", "c",
-      "REGR_SXY",                                               "2011", "c",
-      "REGR_SYY",                                               "2011", "c",
-      "RELATIVE",                           "92", "99",
-      "RELEASE",                                  "99", "2003", "2011", "c",
-      "REPEAT",                             "92", "99", "2003",
-      "RESET",                                                          "c",
-      "RESIGNAL",                           "92", "99", "2003",
-      "RESTRICT",                           "92", "99",
-      "RESULT",                                   "99", "2003", "2011", "c",
-      "RETURN",                             "92", "99", "2003", "2011", "c",
-      "RETURNS",                            "92", "99", "2003", "2011", "c",
-      "REVOKE",                             "92", "99", "2003", "2011", "c",
-      "RIGHT",                              "92", "99", "2003", "2011", "c",
-      "ROLE",                                     "99",
-      "ROLLBACK",                           "92", "99", "2003", "2011", "c",
-      "ROLLUP",                                   "99", "2003", "2011", "c",
-      "ROUTINE",                            "92", "99",
-      "ROW",                                      "99", "2003", "2011", "c",
-      "ROWS",                               "92", "99", "2003", "2011", "c",
-      "ROW_NUMBER",                                             "2011", "c",
-      "SAVEPOINT",                                "99", "2003", "2011", "c",
-      "SCHEMA",                             "92", "99",
-      "SCOPE",                                    "99", "2003", "2011", "c",
-      "SCROLL",                             "92", "99", "2003", "2011", "c",
-      "SEARCH",                                   "99", "2003", "2011", "c",
-      "SECOND",                             "92", "99", "2003", "2011", "c",
-      "SECONDS",                                                "2011",
-      "SECTION",                            "92", "99",
-      "SELECT",                             "92", "99", "2003", "2011", "c",
-      "SENSITIVE",                                "99", "2003", "2011", "c",
-      "SESSION",                            "92", "99",
-      "SESSION_USER",                       "92", "99", "2003", "2011", "c",
-      "SET",                                "92", "99", "2003", "2011", "c",
-      "SETS",                                     "99",
-      "SIGNAL",                             "92", "99", "2003",
-      "SIMILAR",                                  "99", "2003", "2011", "c",
-      "SIZE",                               "92", "99",
-      "SMALLINT",                           "92", "99", "2003", "2011", "c",
-      "SOME",                               "92", "99", "2003", "2011", "c",
-      "SPACE",                              "92", "99",
-      "SPECIFIC",                           "92", "99", "2003", "2011", "c",
-      "SPECIFICTYPE",                             "99", "2003", "2011", "c",
-      "SQL",                                "92", "99", "2003", "2011", "c",
-      "SQLCODE",                            "92",
-      "SQLERROR",                           "92",
-      "SQLEXCEPTION",                       "92", "99", "2003", "2011", "c",
-      "SQLSTATE",                           "92", "99", "2003", "2011", "c",
-      "SQLWARNING",                         "92", "99", "2003", "2011", "c",
-      "SQRT",                                                   "2011", "c",
-      "START",                                    "99", "2003", "2011", "c",
-      "STATE",                                    "99",
-      "STATIC",                                   "99", "2003", "2011", "c",
-      "STDDEV_POP",                                             "2011", "c",
-      "STDDEV_SAMP",                                            "2011", "c",
-      "STREAM",                                                         "c",
-      "SUBMULTISET",                                    "2003", "2011", "c",
-      "SUBSTRING",                          "92",               "2011", "c",
-      "SUBSTRING_REGEX",                                        "2011",
-      "SUM",                                "92",               "2011", "c",
-      "SYMMETRIC",                                "99", "2003", "2011", "c",
-      "SYSTEM",                                   "99", "2003", "2011", "c",
-      "SYSTEM_USER",                        "92", "99", "2003", "2011", "c",
-      "TABLE",                              "92", "99", "2003", "2011", "c",
-      "TABLESAMPLE",                                    "2003", "2011", "c",
-      "TEMPORARY",                          "92", "99",
-      "THEN",                               "92", "99", "2003", "2011", "c",
-      "TIME",                               "92", "99", "2003", "2011", "c",
-      "TIMESTAMP",                          "92", "99", "2003", "2011", "c",
-      "TIMEZONE_HOUR",                      "92", "99", "2003", "2011", "c",
-      "TIMEZONE_MINUTE",                    "92", "99", "2003", "2011", "c",
-      "TINYINT",                                                        "c",
-      "TO",                                 "92", "99", "2003", "2011", "c",
-      "TRAILING",                           "92", "99", "2003", "2011", "c",
-      "TRANSACTION",                        "92", "99",
-      "TRANSLATE",                          "92",               "2011", "c",
-      "TRANSLATE_REGEX",                                        "2011",
-      "TRANSLATION",                        "92", "99", "2003", "2011", "c",
-      "TREAT",                                    "99", "2003", "2011", "c",
-      "TRIGGER",                                  "99", "2003", "2011", "c",
-      "TRIM",                               "92",               "2011", "c",
-      "TRIM_ARRAY",                                             "2011",
-      "TRUE",                               "92", "99", "2003", "2011", "c",
-      "TRUNCATE",                                               "2011",
-      "UESCAPE",                                                "2011", "c",
-      "UNDER",                                    "99",
-      "UNDO",                               "92", "99", "2003",
-      "UNION",                              "92", "99", "2003", "2011", "c",
-      "UNIQUE",                             "92", "99", "2003", "2011", "c",
-      "UNKNOWN",                            "92", "99", "2003", "2011", "c",
-      "UNNEST",                                   "99", "2003", "2011", "c",
-      "UNTIL",                              "92", "99", "2003",
-      "UPDATE",                             "92", "99", "2003", "2011", "c",
-      "UPPER",                              "92",               "2011", "c",
-      "UPSERT",                                                         "c",
-      "USAGE",                              "92", "99",
-      "USER",                               "92", "99", "2003", "2011", "c",
-      "USING",                              "92", "99", "2003", "2011", "c",
-      "VALUE",                              "92", "99", "2003", "2011", "c",
-      "VALUES",                             "92", "99", "2003", "2011", "c",
-      "VARBINARY",                                              "2011", "c",
-      "VARCHAR",                            "92", "99", "2003", "2011", "c",
-      "VARYING",                            "92", "99", "2003", "2011", "c",
-      "VAR_POP",                                                "2011", "c",
-      "VAR_SAMP",                                               "2011", "c",
-      "VERSION",                                                "2011",
-      "VERSIONING",                                             "2011",
-      "VERSIONS",                                               "2011",
-      "VIEW",                               "92", "99",
-      "WHEN",                               "92", "99", "2003", "2011", "c",
-      "WHENEVER",                           "92", "99", "2003", "2011", "c",
-      "WHERE",                              "92", "99", "2003", "2011", "c",
-      "WHILE",                              "92", "99", "2003",
-      "WIDTH_BUCKET",                                           "2011", "c",
-      "WINDOW",                                   "99", "2003", "2011", "c",
-      "WITH",                               "92", "99", "2003", "2011", "c",
-      "WITHIN",                                   "99", "2003", "2011", "c",
-      "WITHOUT",                                  "99", "2003", "2011", "c",
-      "WORK",                               "92", "99",
-      "WRITE",                              "92", "99",
-      "YEAR",                               "92", "99", "2003", "2011", "c",
-      "YEARS",                                                  "2011",
-      "ZONE",                               "92", "99");
+      "ABS",                                               "2011", "2014", "c",
+      "ABSOLUTE",                      "92", "99",
+      "ACTION",                        "92", "99",
+      "ADD",                           "92", "99", "2003",
+      "AFTER",                               "99",
+      "ALL",                           "92", "99", "2003", "2011", "2014", "c",
+      "ALLOCATE",                      "92", "99", "2003", "2011", "2014", "c",
+      "ALLOW",                                                             "c",
+      "ALTER",                         "92", "99", "2003", "2011", "2014", "c",
+      "AND",                           "92", "99", "2003", "2011", "2014", "c",
+      "ANY",                           "92", "99", "2003", "2011", "2014", "c",
+      "ARE",                           "92", "99", "2003", "2011", "2014", "c",
+      "ARRAY",                               "99", "2003", "2011", "2014", "c",
+      "ARRAY_AGG",                                         "2011",
+      "ARRAY_MAX_CARDINALITY",                                     "2014", "c",
+      "AS",                            "92", "99", "2003", "2011", "2014", "c",
+      "ASC",                           "92", "99",
+      "ASENSITIVE",                          "99", "2003", "2011", "2014", "c",
+      "ASSERTION",                     "92", "99",
+      "ASYMMETRIC",                          "99", "2003", "2011", "2014", "c",
+      "AT",                            "92", "99", "2003", "2011", "2014", "c",
+      "ATOMIC",                              "99", "2003", "2011", "2014", "c",
+      "AUTHORIZATION",                 "92", "99", "2003", "2011", "2014", "c",
+      "AVG",                           "92",               "2011", "2014", "c",
+      "BEFORE",                              "99",
+      "BEGIN",                         "92", "99", "2003", "2011", "2014", "c",
+      "BEGIN_FRAME",                                               "2014", "c",
+      "BEGIN_PARTITION",                                           "2014", "c",
+      "BETWEEN",                       "92", "99", "2003", "2011", "2014", "c",
+      "BIGINT",                                    "2003", "2011", "2014", "c",
+      "BINARY",                              "99", "2003", "2011", "2014", "c",
+      "BIT",                           "92", "99",                         "c",
+      "BIT_LENGTH",                    "92",
+      "BLOB",                                "99", "2003", "2011", "2014", "c",
+      "BOOLEAN",                             "99", "2003", "2011", "2014", "c",
+      "BOTH",                          "92", "99", "2003", "2011", "2014", "c",
+      "BREADTH",                             "99",
+      "BY",                            "92", "99", "2003", "2011", "2014", "c",
+      "CALL",                          "92", "99", "2003", "2011", "2014", "c",
+      "CALLED",                                    "2003", "2011", "2014", "c",
+      "CARDINALITY",                                       "2011", "2014", "c",
+      "CASCADE",                       "92", "99",
+      "CASCADED",                      "92", "99", "2003", "2011", "2014", "c",
+      "CASE",                          "92", "99", "2003", "2011", "2014", "c",
+      "CAST",                          "92", "99", "2003", "2011", "2014", "c",
+      "CATALOG",                       "92", "99",
+      "CEIL",                                              "2011", "2014", "c",
+      "CEILING",                                           "2011", "2014", "c",
+      "CHAR",                          "92", "99", "2003", "2011", "2014", "c",
+      "CHARACTER",                     "92", "99", "2003", "2011", "2014", "c",
+      "CHARACTER_LENGTH",              "92",               "2011", "2014", "c",
+      "CHAR_LENGTH",                   "92",               "2011", "2014", "c",
+      "CHECK",                         "92", "99", "2003", "2011", "2014", "c",
+      "CLASSIFIER",                                                "2014", "c",
+      "CLOB",                                "99", "2003", "2011", "2014", "c",
+      "CLOSE",                         "92", "99", "2003", "2011", "2014", "c",
+      "COALESCE",                      "92",               "2011", "2014", "c",
+      "COLLATE",                       "92", "99", "2003", "2011", "2014", "c",
+      "COLLATION",                     "92", "99",
+      "COLLECT",                                           "2011", "2014", "c",
+      "COLUMN",                        "92", "99", "2003", "2011", "2014", "c",
+      "COMMIT",                        "92", "99", "2003", "2011", "2014", "c",
+      "CONDITION",                     "92", "99", "2003", "2011", "2014", "c",
+      "CONNECT",                       "92", "99", "2003", "2011", "2014", "c",
+      "CONNECTION",                    "92", "99",
+      "CONSTRAINT",                    "92", "99", "2003", "2011", "2014", "c",
+      "CONSTRAINTS",                   "92", "99",
+      "CONSTRUCTOR",                         "99",
+      "CONTAINS",                      "92",               "2011", "2014", "c",
+      "CONTINUE",                      "92", "99", "2003",
+      "CONVERT",                       "92",               "2011", "2014", "c",
+      "CORR",                                              "2011", "2014", "c",
+      "CORRESPONDING",                 "92", "99", "2003", "2011", "2014", "c",
+      "COUNT",                         "92",               "2011", "2014", "c",
+      "COVAR_POP",                                         "2011", "2014", "c",
+      "COVAR_SAMP",                                        "2011", "2014", "c",
+      "CREATE",                        "92", "99", "2003", "2011", "2014", "c",
+      "CROSS",                         "92", "99", "2003", "2011", "2014", "c",
+      "CUBE",                                "99", "2003", "2011", "2014", "c",
+      "CUME_DIST",                                         "2011", "2014", "c",
+      "CURRENT",                       "92", "99", "2003", "2011", "2014", "c",
+      "CURRENT_CATALOG",                                   "2011", "2014", "c",
+      "CURRENT_DATE",                  "92", "99", "2003", "2011", "2014", "c",
+      "CURRENT_DEFAULT_TRANSFORM_GROUP",     "99", "2003", "2011", "2014", "c",
+      "CURRENT_PATH",                  "92", "99", "2003", "2011", "2014", "c",
+      "CURRENT_ROLE",                        "99", "2003", "2011", "2014", "c",
+      "CURRENT_ROW",                                               "2014", "c",
+      "CURRENT_SCHEMA",                                    "2011", "2014", "c",
+      "CURRENT_TIME",                  "92", "99", "2003", "2011", "2014", "c",
+      "CURRENT_TIMESTAMP",             "92", "99", "2003", "2011", "2014", "c",
+      "CURRENT_TRANSFORM_GROUP_FOR_TYPE",    "99", "2003", "2011", "2014", "c",
+      "CURRENT_USER",                  "92", "99", "2003", "2011", "2014", "c",
+      "CURSOR",                        "92", "99", "2003", "2011", "2014", "c",
+      "CYCLE",                               "99", "2003", "2011", "2014", "c",
+      "DATA",                                "99",
+      "DATE",                          "92", "99", "2003", "2011", "2014", "c",
+      "DAY",                           "92", "99", "2003", "2011", "2014", "c",
+      "DAYS",                                              "2011",
+      "DEALLOCATE",                    "92", "99", "2003", "2011", "2014", "c",
+      "DEC",                           "92", "99", "2003", "2011", "2014", "c",
+      "DECIMAL",                       "92", "99", "2003", "2011", "2014", "c",
+      "DECLARE",                       "92", "99", "2003", "2011", "2014", "c",
+      "DEFAULT",                       "92", "99", "2003", "2011", "2014", "c",
+      "DEFERRABLE",                    "92", "99",
+      "DEFERRED",                      "92", "99",
+      "DEFINE",                                                    "2014", "c",
+      "DELETE",                        "92", "99", "2003", "2011", "2014", "c",
+      "DENSE_RANK",                                        "2011", "2014", "c",
+      "DEPTH",                               "99",
+      "DEREF",                               "99", "2003", "2011", "2014", "c",
+      "DESC",                          "92", "99",
+      "DESCRIBE",                      "92", "99", "2003", "2011", "2014", "c",
+      "DESCRIPTOR",                    "92", "99",
+      "DETERMINISTIC",                 "92", "99", "2003", "2011", "2014", "c",
+      "DIAGNOSTICS",                   "92", "99",
+      "DISALLOW",                                                          "c",
+      "DISCONNECT",                    "92", "99", "2003", "2011", "2014", "c",
+      "DISTINCT",                      "92", "99", "2003", "2011", "2014", "c",
+      "DO",                            "92", "99", "2003",
+      "DOMAIN",                        "92", "99",
+      "DOUBLE",                        "92", "99", "2003", "2011", "2014", "c",
+      "DROP",                          "92", "99", "2003", "2011", "2014", "c",
+      "DYNAMIC",                             "99", "2003", "2011", "2014", "c",
+      "EACH",                                "99", "2003", "2011", "2014", "c",
+      "ELEMENT",                                   "2003", "2011", "2014", "c",
+      "ELSE",                          "92", "99", "2003", "2011", "2014", "c",
+      "ELSEIF",                        "92", "99", "2003",
+      "EMPTY",                                                     "2014", "c",
+      "END",                           "92", "99", "2003", "2011", "2014", "c",
+      "END-EXEC",                                          "2011", "2014", "c",
+      "END_FRAME",                                                 "2014", "c",
+      "END_PARTITION",                                             "2014", "c",
+      "EQUALS",                              "99",                 "2014", "c",
+      "ESCAPE",                        "92", "99", "2003", "2011", "2014", "c",
+      "EVERY",                                             "2011", "2014", "c",
+      "EXCEPT",                        "92", "99", "2003", "2011", "2014", "c",
+      "EXCEPTION",                     "92", "99",
+      "EXEC",                          "92", "99", "2003", "2011", "2014", "c",
+      "EXECUTE",                       "92", "99", "2003", "2011", "2014", "c",
+      "EXISTS",                        "92", "99", "2003", "2011", "2014", "c",
+      "EXIT",                          "92", "99", "2003",
+      "EXP",                                               "2011", "2014", "c",
+      "EXPLAIN",                                                           "c",
+      "EXTEND",                                                            "c",
+      "EXTERNAL",                      "92", "99", "2003", "2011", "2014", "c",
+      "EXTRACT",                       "92",               "2011", "2014", "c",
+      "FALSE",                         "92", "99", "2003", "2011", "2014", "c",
+      "FETCH",                         "92", "99", "2003", "2011", "2014", "c",
+      "FILTER",                              "99", "2003", "2011", "2014", "c",
+      "FIRST",                         "92", "99",
+      "FIRST_VALUE",                                       "2011", "2014", "c",
+      "FLOAT",                         "92", "99", "2003", "2011", "2014", "c",
+      "FLOOR",                                             "2011", "2014", "c",
+      "FOR",                           "92", "99", "2003", "2011", "2014", "c",
+      "FOREIGN",                       "92", "99", "2003", "2011", "2014", "c",
+      "FOREVER",                                           "2011",
+      "FOUND",                         "92", "99",
+      "FRAME_ROW",                                                 "2014", "c",
+      "FREE",                                "99", "2003", "2011", "2014", "c",
+      "FROM",                          "92", "99", "2003", "2011", "2014", "c",
+      "FULL",                          "92", "99", "2003", "2011", "2014", "c",
+      "FUNCTION",                      "92", "99", "2003", "2011", "2014", "c",
+      "FUSION",                                            "2011", "2014", "c",
+      "GENERAL",                             "99",
+      "GET",                           "92", "99", "2003", "2011", "2014", "c",
+      "GLOBAL",                        "92", "99", "2003", "2011", "2014", "c",
+      "GO",                            "92", "99",
+      "GOTO",                          "92", "99",
+      "GRANT",                         "92", "99", "2003", "2011", "2014", "c",
+      "GROUP",                         "92", "99", "2003", "2011", "2014", "c",
+      "GROUPING",                            "99", "2003", "2011", "2014", "c",
+      "GROUPS",                                                    "2014", "c",
+      "HANDLER",                       "92", "99", "2003",
+      "HAVING",                        "92", "99", "2003", "2011", "2014", "c",
+      "HOLD",                                "99", "2003", "2011", "2014", "c",
+      "HOUR",                          "92", "99", "2003", "2011", "2014", "c",
+      "HOURS",                                             "2011",
+      "IDENTITY",                      "92", "99", "2003", "2011", "2014", "c",
+      "IF",                            "92", "99", "2003",
+      "IMMEDIATE",                     "92", "99", "2003",
+      "IMMEDIATELY",
+      "IMPORT",                                                            "c",
+      "IN",                            "92", "99", "2003", "2011", "2014", "c",
+      "INDICATOR",                     "92", "99", "2003", "2011", "2014", "c",
+      "INITIAL",                                                   "2014", "c",
+      "INITIALLY",                     "92", "99",
+      "INNER",                         "92", "99", "2003", "2011", "2014", "c",
+      "INOUT",                         "92", "99", "2003", "2011", "2014", "c",
+      "INPUT",                         "92", "99", "2003",
+      "INSENSITIVE",                   "92", "99", "2003", "2011", "2014", "c",
+      "INSERT",                        "92", "99", "2003", "2011", "2014", "c",
+      "INT",                           "92", "99", "2003", "2011", "2014", "c",
+      "INTEGER",                       "92", "99", "2003", "2011", "2014", "c",
+      "INTERSECT",                     "92", "99", "2003", "2011", "2014", "c",
+      "INTERSECTION",                                      "2011", "2014", "c",
+      "INTERVAL",                      "92", "99", "2003", "2011", "2014", "c",
+      "INTO",                          "92", "99", "2003", "2011", "2014", "c",
+      "IS",                            "92", "99", "2003", "2011", "2014", "c",
+      "ISOLATION",                     "92", "99",
+      "ITERATE",                             "99", "2003",
+      "JOIN",                          "92", "99", "2003", "2011", "2014", "c",
+      "KEEP",                                              "2011",
+      "KEY",                           "92", "99",
+      "LAG",                                               "2011", "2014", "c",
+      "LANGUAGE",                      "92", "99", "2003", "2011", "2014", "c",
+      "LARGE",                               "99", "2003", "2011", "2014", "c",
+      "LAST",                          "92", "99",
+      "LAST_VALUE",                                        "2011", "2014", "c",
+      "LATERAL",                             "99", "2003", "2011", "2014", "c",
+      "LEAD",                                              "2011", "2014", "c",
+      "LEADING",                       "92", "99", "2003", "2011", "2014", "c",
+      "LEAVE",                         "92", "99", "2003",
+      "LEFT",                          "92", "99", "2003", "2011", "2014", "c",
+      "LEVEL",                         "92", "99",
+      "LIKE",                          "92", "99", "2003", "2011", "2014", "c",
+      "LIKE_REGEX",                                        "2011", "2014", "c",
+      "LIMIT",                                                             "c",
+      "LN",                                                "2011", "2014", "c",
+      "LOCAL",                         "92", "99", "2003", "2011", "2014", "c",
+      "LOCALTIME",                           "99", "2003", "2011", "2014", "c",
+      "LOCALTIMESTAMP",                      "99", "2003", "2011", "2014", "c",
+      "LOCATOR",                             "99",
+      "LOOP",                          "92", "99", "2003",
+      "LOWER",                         "92",               "2011", "2014", "c",
+      "MAP",                                 "99",
+      "MATCH",                         "92", "99", "2003", "2011", "2014", "c",
+      "MATCHES",                                                   "2014", "c",
+      "MATCH_NUMBER",                                              "2014", "c",
+      "MATCH_RECOGNIZE",                                           "2014", "c",
+      "MAX",                           "92",               "2011", "2014", "c",
+      "MAX_CARDINALITY",                                   "2011",
+      "MEASURES",                                                          "c",
+      "MEMBER",                                    "2003", "2011", "2014", "c",
+      "MERGE",                                     "2003", "2011", "2014", "c",
+      "METHOD",                              "99", "2003", "2011", "2014", "c",
+      "MIN",                           "92",               "2011", "2014", "c",
+      "MINUS",                                                             "c",
+      "MINUTE",                        "92", "99", "2003", "2011", "2014", "c",
+      "MINUTES",                                           "2011",
+      "MOD",                                               "2011", "2014", "c",
+      "MODIFIES",                            "99", "2003", "2011", "2014", "c",
+      "MODULE",                        "92", "99", "2003", "2011", "2014", "c",
+      "MONTH",                         "92", "99", "2003", "2011", "2014", "c",
+      "MULTISET",                                  "2003", "2011", "2014", "c",
+      "NAMES",                         "92", "99",
+      "NATIONAL",                      "92", "99", "2003", "2011", "2014", "c",
+      "NATURAL",                       "92", "99", "2003", "2011", "2014", "c",
+      "NCHAR",                         "92", "99", "2003", "2011", "2014", "c",
+      "NCLOB",                               "99", "2003", "2011", "2014", "c",
+      "NEW",                                 "99", "2003", "2011", "2014", "c",
+      "NEXT",                          "92", "99",                         "c",
+      "NO",                            "92", "99", "2003", "2011", "2014", "c",
+      "NONE",                                "99", "2003", "2011", "2014", "c",
+      "NORMALIZE",                                         "2011", "2014", "c",
+      "NOT",                           "92", "99", "2003", "2011", "2014", "c",
+      "NTH_VALUE",                                         "2011", "2014", "c",
+      "NTILE",                                             "2011", "2014", "c",
+      "NULL",                          "92", "99", "2003", "2011", "2014", "c",
+      "NULLIF",                        "92",               "2011", "2014", "c",
+      "NUMERIC",                       "92", "99", "2003", "2011", "2014", "c",
+      "OBJECT",                              "99",
+      "OCCURRENCES_REGEX",                                 "2011", "2014", "c",
+      "OCTET_LENGTH",                  "92",               "2011", "2014", "c",
+      "OF",                            "92", "99", "2003", "2011", "2014", "c",
+      "OFFSET",                                            "2011", "2014", "c",
+      "OLD",                                 "99", "2003", "2011", "2014", "c",
+      "OMIT",                                                      "2014", "c",
+      "ON",                            "92", "99", "2003", "2011", "2014", "c",
+      "ONE",                                                       "2014", "c",
+      "ONLY",                          "92", "99", "2003", "2011", "2014", "c",
+      "OPEN",                          "92", "99", "2003", "2011", "2014", "c",
+      "OPTION",                        "92", "99",
+      "OR",                            "92", "99", "2003", "2011", "2014", "c",
+      "ORDER",                         "92", "99", "2003", "2011", "2014", "c",
+      "ORDINALITY",                          "99",
+      "OUT",                           "92", "99", "2003", "2011", "2014", "c",
+      "OUTER",                         "92", "99", "2003", "2011", "2014", "c",
+      "OUTPUT",                        "92", "99", "2003",
+      "OVER",                                "99", "2003", "2011", "2014", "c",
+      "OVERLAPS",                      "92", "99", "2003", "2011", "2014", "c",
+      "OVERLAY",                                           "2011", "2014", "c",
+      "PAD",                           "92", "99",
+      "PARAMETER",                     "92", "99", "2003", "2011", "2014", "c",
+      "PARTIAL",                       "92", "99",
+      "PARTITION",                           "99", "2003", "2011", "2014", "c",
+      "PATH",                          "92", "99",
+      "PATTERN",                                                   "2014", "c",
+      "PER",                                                       "2014", "c",
+      "PERCENT",                                                   "2014", "c",
+      "PERCENTILE_CONT",                                   "2011", "2014", "c",
+      "PERCENTILE_DISC",                                   "2011", "2014", "c",
+      "PERCENT_RANK",                                      "2011", "2014", "c",
+      "PERIOD",                                                    "2014", "c",
+      "PERMUTE",                                                           "c",
+      "PORTION",                                                   "2014", "c",
+      "POSITION",                      "92",               "2011", "2014", "c",
+      "POSITION_REGEX",                                    "2011", "2014", "c",
+      "POWER",                                             "2011", "2014", "c",
+      "PRECEDES",                                                  "2014", "c",
+      "PRECISION",                     "92", "99", "2003", "2011", "2014", "c",
+      "PREPARE",                       "92", "99", "2003", "2011", "2014", "c",
+      "PRESERVE",                      "92", "99",
+      "PREV",                                                              "c",
+      "PRIMARY",                       "92", "99", "2003", "2011", "2014", "c",
+      "PRIOR",                         "92", "99",
+      "PRIVILEGES",                    "92", "99",
+      "PROCEDURE",                     "92", "99", "2003", "2011", "2014", "c",
+      "PUBLIC",                        "92", "99",
+      "RANGE",                               "99", "2003", "2011", "2014", "c",
+      "RANK",                                              "2011", "2014", "c",
+      "READ",                          "92", "99",
+      "READS",                               "99", "2003", "2011", "2014", "c",
+      "REAL",                          "92", "99", "2003", "2011", "2014", "c",
+      "RECURSIVE",                           "99", "2003", "2011", "2014", "c",
+      "REF",                                 "99", "2003", "2011", "2014", "c",
+      "REFERENCES",                    "92", "99", "2003", "2011", "2014", "c",
+      "REFERENCING",                         "99", "2003", "2011", "2014", "c",
+      "REGR_AVGX",                                         "2011", "2014", "c",
+      "REGR_AVGY",                                         "2011", "2014", "c",
+      "REGR_COUNT",                                        "2011", "2014", "c",
+      "REGR_INTERCEPT",                                    "2011", "2014", "c",
+      "REGR_R2",                                           "2011", "2014", "c",
+      "REGR_SLOPE",                                        "2011", "2014", "c",
+      "REGR_SXX",                                          "2011", "2014", "c",
+      "REGR_SXY",                                          "2011", "2014", "c",
+      "REGR_SYY",                                          "2011", "2014", "c",
+      "RELATIVE",                      "92", "99",
+      "RELEASE",                             "99", "2003", "2011", "2014", "c",
+      "REPEAT",                        "92", "99", "2003",
+      "RESET",                                                             "c",
+      "RESIGNAL",                      "92", "99", "2003",
+      "RESTRICT",                      "92", "99",
+      "RESULT",                              "99", "2003", "2011", "2014", "c",
+      "RETURN",                        "92", "99", "2003", "2011", "2014", "c",
+      "RETURNS",                       "92", "99", "2003", "2011", "2014", "c",
+      "REVOKE",                        "92", "99", "2003", "2011", "2014", "c",
+      "RIGHT",                         "92", "99", "2003", "2011", "2014", "c",
+      "ROLE",                                "99",
+      "ROLLBACK",                      "92", "99", "2003", "2011", "2014", "c",
+      "ROLLUP",                              "99", "2003", "2011", "2014", "c",
+      "ROUTINE",                       "92", "99",
+      "ROW",                                 "99", "2003", "2011", "2014", "c",
+      "ROWS",                          "92", "99", "2003", "2011", "2014", "c",
+      "ROW_NUMBER",                                        "2011", "2014", "c",
+      "RUNNING",                                                   "2014", "c",
+      "SAVEPOINT",                           "99", "2003", "2011", "2014", "c",
+      "SCHEMA",                        "92", "99",
+      "SCOPE",                               "99", "2003", "2011", "2014", "c",
+      "SCROLL",                        "92", "99", "2003", "2011", "2014", "c",
+      "SEARCH",                              "99", "2003", "2011", "2014", "c",
+      "SECOND",                        "92", "99", "2003", "2011", "2014", "c",
+      "SECONDS",                                           "2011",
+      "SECTION",                       "92", "99",
+      "SEEK",                                                      "2014", "c",
+      "SELECT",                        "92", "99", "2003", "2011", "2014", "c",
+      "SENSITIVE",                           "99", "2003", "2011", "2014", "c",
+      "SESSION",                       "92", "99",
+      "SESSION_USER",                  "92", "99", "2003", "2011", "2014", "c",
+      "SET",                           "92", "99", "2003", "2011", "2014", "c",
+      "SETS",                                "99",
+      "SHOW",                                                      "2014", "c",
+      "SIGNAL",                        "92", "99", "2003",
+      "SIMILAR",                             "99", "2003", "2011", "2014", "c",
+      "SIZE",                          "92", "99",
+      "SKIP",                                                      "2014", "c",
+      "SMALLINT",                      "92", "99", "2003", "2011", "2014", "c",
+      "SOME",                          "92", "99", "2003", "2011", "2014", "c",
+      "SPACE",                         "92", "99",
+      "SPECIFIC",                      "92", "99", "2003", "2011", "2014", "c",
+      "SPECIFICTYPE",                        "99", "2003", "2011", "2014", "c",
+      "SQL",                           "92", "99", "2003", "2011", "2014", "c",
+      "SQLCODE",                       "92",
+      "SQLERROR",                      "92",
+      "SQLEXCEPTION",                  "92", "99", "2003", "2011", "2014", "c",
+      "SQLSTATE",                      "92", "99", "2003", "2011", "2014", "c",
+      "SQLWARNING",                    "92", "99", "2003", "2011", "2014", "c",
+      "SQRT",                                              "2011", "2014", "c",
+      "START",                               "99", "2003", "2011", "2014", "c",
+      "STATE",                               "99",
+      "STATIC",                              "99", "2003", "2011", "2014", "c",
+      "STDDEV_POP",                                        "2011", "2014", "c",
+      "STDDEV_SAMP",                                       "2011", "2014", "c",
+      "STREAM",                                                            "c",
+      "SUBMULTISET",                               "2003", "2011", "2014", "c",
+      "SUBSET",                                                    "2014", "c",
+      "SUBSTRING",                     "92",               "2011", "2014", "c",
+      "SUBSTRING_REGEX",                                   "2011", "2014", "c",
+      "SUCCEEDS",                                                  "2014", "c",
+      "SUM",                           "92",               "2011", "2014", "c",
+      "SYMMETRIC",                           "99", "2003", "2011", "2014", "c",
+      "SYSTEM",                              "99", "2003", "2011", "2014", "c",
+      "SYSTEM_TIME",                                               "2014", "c",
+      "SYSTEM_USER",                   "92", "99", "2003", "2011", "2014", "c",
+      "TABLE",                         "92", "99", "2003", "2011", "2014", "c",
+      "TABLESAMPLE",                               "2003", "2011", "2014", "c",
+      "TEMPORARY",                     "92", "99",
+      "THEN",                          "92", "99", "2003", "2011", "2014", "c",
+      "TIME",                          "92", "99", "2003", "2011", "2014", "c",
+      "TIMESTAMP",                     "92", "99", "2003", "2011", "2014", "c",
+      "TIMEZONE_HOUR",                 "92", "99", "2003", "2011", "2014", "c",
+      "TIMEZONE_MINUTE",               "92", "99", "2003", "2011", "2014", "c",
+      "TINYINT",                                                           "c",
+      "TO",                            "92", "99", "2003", "2011", "2014", "c",
+      "TRAILING",                      "92", "99", "2003", "2011", "2014", "c",
+      "TRANSACTION",                   "92", "99",
+      "TRANSLATE",                     "92",               "2011", "2014", "c",
+      "TRANSLATE_REGEX",                                   "2011", "2014", "c",
+      "TRANSLATION",                   "92", "99", "2003", "2011", "2014", "c",
+      "TREAT",                               "99", "2003", "2011", "2014", "c",
+      "TRIGGER",                             "99", "2003", "2011", "2014", "c",
+      "TRIM",                          "92",               "2011", "2014", "c",
+      "TRIM_ARRAY",                                        "2011", "2014", "c",
+      "TRUE",                          "92", "99", "2003", "2011", "2014", "c",
+      "TRUNCATE",                                          "2011", "2014", "c",
+      "UESCAPE",                                           "2011", "2014", "c",
+      "UNDER",                               "99",
+      "UNDO",                          "92", "99", "2003",
+      "UNION",                         "92", "99", "2003", "2011", "2014", "c",
+      "UNIQUE",                        "92", "99", "2003", "2011", "2014", "c",
+      "UNKNOWN",                       "92", "99", "2003", "2011", "2014", "c",
+      "UNNEST",                              "99", "2003", "2011", "2014", "c",
+      "UNTIL",                         "92", "99", "2003",
+      "UPDATE",                        "92", "99", "2003", "2011", "2014", "c",
+      "UPPER",                         "92",               "2011", "2014", "c",
+      "UPSERT",                                                            "c",
+      "USAGE",                         "92", "99",
+      "USER",                          "92", "99", "2003", "2011", "2014", "c",
+      "USING",                         "92", "99", "2003", "2011", "2014", "c",
+      "VALUE",                         "92", "99", "2003", "2011", "2014", "c",
+      "VALUES",                        "92", "99", "2003", "2011", "2014", "c",
+      "VALUE_OF",                                                  "2014", "c",
+      "VARBINARY",                                         "2011", "2014", "c",
+      "VARCHAR",                       "92", "99", "2003", "2011", "2014", "c",
+      "VARYING",                       "92", "99", "2003", "2011", "2014", "c",
+      "VAR_POP",                                           "2011", "2014", "c",
+      "VAR_SAMP",                                          "2011", "2014", "c",
+      "VERSION",                                           "2011",
+      "VERSIONING",                                        "2011", "2014", "c",
+      "VERSIONS",                                          "2011",
+      "VIEW",                          "92", "99",
+      "WHEN",                          "92", "99", "2003", "2011", "2014", "c",
+      "WHENEVER",                      "92", "99", "2003", "2011", "2014", "c",
+      "WHERE",                         "92", "99", "2003", "2011", "2014", "c",
+      "WHILE",                         "92", "99", "2003",
+      "WIDTH_BUCKET",                                      "2011", "2014", "c",
+      "WINDOW",                              "99", "2003", "2011", "2014", "c",
+      "WITH",                          "92", "99", "2003", "2011", "2014", "c",
+      "WITHIN",                              "99", "2003", "2011", "2014", "c",
+      "WITHOUT",                             "99", "2003", "2011", "2014", "c",
+      "WORK",                          "92", "99",
+      "WRITE",                         "92", "99",
+      "YEAR",                          "92", "99", "2003", "2011", "2014", "c",
+      "YEARS",                                             "2011",
+      "ZONE",                          "92", "99");
 
   private static final String ANY = "(?s).*";
 
@@ -509,6 +559,7 @@ public class SqlParserTest {
   Quoting quoting = Quoting.DOUBLE_QUOTE;
   Casing unquotedCasing = Casing.TO_UPPER;
   Casing quotedCasing = Casing.UNCHANGED;
+  SqlConformance conformance = SqlConformanceEnum.DEFAULT;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -533,31 +584,29 @@ public class SqlParserTest {
     return new Sql(sql);
   }
 
-  private SqlParser getSqlParser(String sql) {
+  /**
+   * Implementors of custom parsing logic who want to reuse this test should
+   * override this method with the factory for their extension parser.
+   */
+  protected SqlParserImplFactory parserImplFactory() {
+    return SqlParserImpl.FACTORY;
+  }
+
+  protected SqlParser getSqlParser(String sql) {
     return SqlParser.create(sql,
         SqlParser.configBuilder()
+            .setParserFactory(parserImplFactory())
             .setQuoting(quoting)
             .setUnquotedCasing(unquotedCasing)
             .setQuotedCasing(quotedCasing)
+            .setConformance(conformance)
             .build());
-  }
-
-  protected SqlNode parseStmt(String sql) throws SqlParseException {
-    return getSqlParser(sql).parseStmt();
   }
 
   protected void checkExp(
       String sql,
       String expected) {
     getTester().checkExp(sql, expected);
-  }
-
-  protected SqlNode parseExpression(String sql) throws SqlParseException {
-    return getSqlParser(sql).parseExpression();
-  }
-
-  protected SqlAbstractParserImpl.Metadata getParserMetadata() {
-    return getSqlParser("").getMetadata();
   }
 
   protected void checkExpSame(String sql) {
@@ -580,6 +629,21 @@ public class SqlParserTest {
     getTester().checkExpFails(sql, expectedMsgPattern);
   }
 
+  /** Returns a {@link Matcher} that succeeds if the given {@link SqlNode} is a
+   * DDL statement. */
+  public static Matcher<SqlNode> isDdl() {
+    return new BaseMatcher<SqlNode>() {
+      public boolean matches(Object item) {
+        return item instanceof SqlNode
+            && SqlKind.DDL.contains(((SqlNode) item).getKind());
+      }
+
+      public void describeTo(Description description) {
+        description.appendText("isDdl");
+      }
+    };
+  }
+
   protected SortedSet<String> getReservedKeywords() {
     return keywords("c");
   }
@@ -594,6 +658,7 @@ public class SqlParserTest {
       case "99":
       case "2003":
       case "2011":
+      case "2014":
       case "c":
         assert r != null;
         if (dialect == null || dialect.equals(w)) {
@@ -723,6 +788,56 @@ public class SqlParserTest {
             + "WHERE (1 AND TRUE)");
   }
 
+  @Test public void testLessThanAssociativity() {
+    checkExp("NOT a = b", "(NOT (`A` = `B`))");
+
+    // comparison operators are left-associative
+    checkExp("x < y < z", "((`X` < `Y`) < `Z`)");
+    checkExp("x < y <= z = a", "(((`X` < `Y`) <= `Z`) = `A`)");
+    checkExp("a = x < y <= z = a", "((((`A` = `X`) < `Y`) <= `Z`) = `A`)");
+
+    // IS NULL has lower precedence than comparison
+    checkExp("a = x is null", "((`A` = `X`) IS NULL)");
+    checkExp("a = x is not null", "((`A` = `X`) IS NOT NULL)");
+
+    // BETWEEN, IN, LIKE have higher precedence than comparison
+    checkExp("a = x between y = b and z = c",
+        "((`A` = (`X` BETWEEN ASYMMETRIC (`Y` = `B`) AND `Z`)) = `C`)");
+    checkExp("a = x like y = b",
+        "((`A` = (`X` LIKE `Y`)) = `B`)");
+    checkExp("a = x not like y = b",
+        "((`A` = (`X` NOT LIKE `Y`)) = `B`)");
+    checkExp("a = x similar to y = b",
+        "((`A` = (`X` SIMILAR TO `Y`)) = `B`)");
+    checkExp("a = x not similar to y = b",
+        "((`A` = (`X` NOT SIMILAR TO `Y`)) = `B`)");
+    checkExp("a = x not in (y, z) = b",
+        "((`A` = (`X` NOT IN (`Y`, `Z`))) = `B`)");
+
+    // LIKE has higher precedence than IS NULL
+    checkExp("a like b is null", "((`A` LIKE `B`) IS NULL)");
+    checkExp("a not like b is not null",
+        "((`A` NOT LIKE `B`) IS NOT NULL)");
+
+    // = has higher precedence than NOT
+    checkExp("NOT a = b", "(NOT (`A` = `B`))");
+    checkExp("NOT a = NOT b", "(NOT (`A` = (NOT `B`)))");
+
+    // IS NULL has higher precedence than NOT
+    checkExp("NOT a IS NULL", "(NOT (`A` IS NULL))");
+    checkExp("NOT a = b IS NOT NULL", "(NOT ((`A` = `B`) IS NOT NULL))");
+
+    // NOT has higher precedence than AND, which  has higher precedence than OR
+    checkExp("NOT a AND NOT b", "((NOT `A`) AND (NOT `B`))");
+    checkExp("NOT a OR NOT b", "((NOT `A`) OR (NOT `B`))");
+    checkExp("NOT a = b AND NOT c = d OR NOT e = f",
+        "(((NOT (`A` = `B`)) AND (NOT (`C` = `D`))) OR (NOT (`E` = `F`)))");
+    checkExp("NOT a = b OR NOT c = d AND NOT e = f",
+        "((NOT (`A` = `B`)) OR ((NOT (`C` = `D`)) AND (NOT (`E` = `F`))))");
+    checkExp("NOT NOT a = b OR NOT NOT c = d",
+        "((NOT (NOT (`A` = `B`))) OR (NOT (NOT (`C` = `D`))))");
+  }
+
   @Test public void testIsBooleans() {
     String[] inOuts = {"NULL", "TRUE", "FALSE", "UNKNOWN"};
 
@@ -731,7 +846,7 @@ public class SqlParserTest {
           "select * from t where nOt fAlSe Is " + inOut,
           "SELECT *\n"
               + "FROM `T`\n"
-              + "WHERE ((NOT FALSE) IS " + inOut + ")");
+              + "WHERE (NOT (FALSE IS " + inOut + "))");
 
       check(
           "select * from t where c1=1.1 IS NOT " + inOut,
@@ -750,7 +865,7 @@ public class SqlParserTest {
     check("select 1 from t where not true is unknown",
         "SELECT 1\n"
             + "FROM `T`\n"
-            + "WHERE ((NOT TRUE) IS UNKNOWN)");
+            + "WHERE (NOT (TRUE IS UNKNOWN))");
 
     check(
         "select * from t where x is unknown is not unknown is false is not false"
@@ -760,11 +875,16 @@ public class SqlParserTest {
             + "WHERE ((((((((`X` IS UNKNOWN) IS NOT UNKNOWN) IS FALSE) IS NOT FALSE) IS TRUE) IS NOT TRUE) IS NULL) IS NOT NULL)");
 
     // combine IS postfix operators with infix (AND) and prefix (NOT) ops
-    check(
-        "select * from t where x is unknown is false and x is unknown is true or not y is unknown is not null",
-        "SELECT *\n"
-            + "FROM `T`\n"
-            + "WHERE ((((`X` IS UNKNOWN) IS FALSE) AND ((`X` IS UNKNOWN) IS TRUE)) OR (((NOT `Y`) IS UNKNOWN) IS NOT NULL))");
+    final String sql = "select * from t "
+        + "where x is unknown is false "
+        + "and x is unknown is true "
+        + "or not y is unknown is not null";
+    final String expected = "SELECT *\n"
+        + "FROM `T`\n"
+        + "WHERE ((((`X` IS UNKNOWN) IS FALSE)"
+        + " AND ((`X` IS UNKNOWN) IS TRUE))"
+        + " OR (NOT ((`Y` IS UNKNOWN) IS NOT NULL)))";
+    check(sql, expected);
   }
 
   @Test public void testEqualNotEqual() {
@@ -782,8 +902,9 @@ public class SqlParserTest {
     //   equals' is <> as in BASIC. There are many texts which will tell
     //   you that != is SQL's not-equals operator; those texts are false;
     //   it's one of those unstampoutable urban myths."
-    checkFails("'abc'^!^=123",
-        "Lexical error at line 1, column 6\\.  Encountered: \"!\" \\(33\\), after : \"\"");
+    // Therefore, we only support != with certain SQL conformance levels.
+    checkExpFails("'abc'!=123",
+        "Bang equal '!=' is not allowed under the current SQL conformance level");
   }
 
   @Test public void testBetween() {
@@ -850,10 +971,10 @@ public class SqlParserTest {
         "values a between b and c + 2 or d and e",
         "VALUES (ROW(((`A` BETWEEN ASYMMETRIC `B` AND (`C` + 2)) OR (`D` AND `E`))))");
 
-    // '=' and BETWEEN have same precedence, and are left-assoc
+    // '=' has slightly lower precedence than BETWEEN; both are left-assoc
     check(
         "values x = a between b and c = d = e",
-        "VALUES (ROW(((((`X` = `A`) BETWEEN ASYMMETRIC `B` AND `C`) = `D`) = `E`)))");
+        "VALUES (ROW((((`X` = (`A` BETWEEN ASYMMETRIC `B` AND `C`)) = `D`) = `E`)))");
 
     // AND doesn't match BETWEEN if it's between parentheses!
     check(
@@ -890,30 +1011,46 @@ public class SqlParserTest {
             + "FROM `SALES`.`DEPTS`) AS `T`");
   }
 
+  @Test public void testPeriod() {
+    // We don't have a PERIOD constructor currently;
+    // ROW constructor is sufficient for now.
+    checkExp("period (date '1969-01-05', interval '2-3' year to month)",
+        "(ROW(DATE '1969-01-05', INTERVAL '2-3' YEAR TO MONTH))");
+  }
+
   @Test public void testOverlaps() {
-    checkExp(
-        "(x,xx) overlaps (y,yy)",
-        "((`X`, `XX`) OVERLAPS (`Y`, `YY`))");
+    final String[] ops = {
+      "overlaps", "equals", "precedes", "succeeds",
+      "immediately precedes", "immediately succeeds"
+    };
+    final String[] periods = {"period ", ""};
+    for (String period : periods) {
+      for (String op : ops) {
+        checkPeriodPredicate(new Checker(op, period));
+      }
+    }
+  }
 
-    checkExp(
-        "(x,xx) overlaps (y,yy) or false",
-        "(((`X`, `XX`) OVERLAPS (`Y`, `YY`)) OR FALSE)");
+  void checkPeriodPredicate(Checker checker) {
+    checker.checkExp("$p(x,xx) $op $p(y,yy)",
+        "(PERIOD (`X`, `XX`) $op PERIOD (`Y`, `YY`))");
 
-    checkExp(
-        "true and not (x,xx) overlaps (y,yy) or false",
-        "((TRUE AND (NOT ((`X`, `XX`) OVERLAPS (`Y`, `YY`)))) OR FALSE)");
+    checker.checkExp(
+        "$p(x,xx) $op $p(y,yy) or false",
+        "((PERIOD (`X`, `XX`) $op PERIOD (`Y`, `YY`)) OR FALSE)");
 
-    checkExpFails(
-        "^(x,xx,xxx) overlaps (y,yy)^ or false",
-        "(?s).*Illegal overlaps expression.*");
+    checker.checkExp(
+        "true and not $p(x,xx) $op $p(y,yy) or false",
+        "((TRUE AND (NOT (PERIOD (`X`, `XX`) $op PERIOD (`Y`, `YY`)))) OR FALSE)");
 
-    checkExpFails(
-        "true or ^(x,xx,xxx) overlaps (y,yy,yyy)^ or false",
-        "(?s).*Illegal overlaps expression.*");
-
-    checkExpFails(
-        "^(x,xx) overlaps (y,yy,yyy)^ or false",
-        "(?s).*Illegal overlaps expression.*");
+    if (checker.period.isEmpty()) {
+      checker.checkExp("$p(x,xx,xxx) $op $p(y,yy) or false",
+          "((PERIOD (`X`, `XX`) $op PERIOD (`Y`, `YY`)) OR FALSE)");
+    } else {
+      // 3-argument rows are valid in the parser, rejected by the validator
+      checker.checkExpFails("$p(x,xx^,^xxx) $op $p(y,yy) or false",
+          "(?s).*Encountered \",\" at .*");
+    }
   }
 
   @Test public void testIsDistinctFrom() {
@@ -1126,7 +1263,7 @@ public class SqlParserTest {
     // LIKE has same precedence as '='; LIKE is right-assoc, '=' is left
     check(
         "values a = b like c = d",
-        "VALUES (ROW(((`A` = `B`) LIKE (`C` = `D`))))");
+        "VALUES (ROW(((`A` = (`B` LIKE `C`)) = `D`)))");
 
     // Nested LIKE
     check(
@@ -1196,7 +1333,7 @@ public class SqlParserTest {
         "values a similar to b like c similar to d escape e escape f",
         "VALUES (ROW((`A` SIMILAR TO (`B` LIKE (`C` SIMILAR TO `D` ESCAPE `E`) ESCAPE `F`))))");
 
-    // SIMILAR TO with subquery
+    // SIMILAR TO with sub-query
     check(
         "values a similar to (select * from t where a like b escape c) escape d",
         "VALUES (ROW((`A` SIMILAR TO (SELECT *\n"
@@ -1207,13 +1344,13 @@ public class SqlParserTest {
   @Test public void testFoo() {
   }
 
-  @Test public void testArthimeticOperators() {
+  @Test public void testArithmeticOperators() {
     checkExp("1-2+3*4/5/6-7", "(((1 - 2) + (((3 * 4) / 5) / 6)) - 7)");
     checkExp("power(2,3)", "POWER(2, 3)");
     checkExp("aBs(-2.3e-2)", "ABS(-2.3E-2)");
     checkExp("MOD(5             ,\t\f\r\n2)", "MOD(5, 2)");
     checkExp("ln(5.43  )", "LN(5.43)");
-    checkExp("log10(- -.2  )", "LOG10((- -0.2))");
+    checkExp("log10(- -.2  )", "LOG10(0.2)");
   }
 
   @Test public void testExists() {
@@ -1503,7 +1640,8 @@ public class SqlParserTest {
     check(
         "with v(i,c) as (values (1, 'a'), (2, 'bb'))\n"
             + "select c, i from v",
-        "WITH `V` (`I`, `C`) AS (VALUES (ROW(1, 'a')), (ROW(2, 'bb'))) (SELECT `C`, `I`\n"
+        "WITH `V` (`I`, `C`) AS (VALUES (ROW(1, 'a')),\n"
+            + "(ROW(2, 'bb'))) (SELECT `C`, `I`\n"
             + "FROM `V`)");
   }
 
@@ -1511,19 +1649,19 @@ public class SqlParserTest {
     // SQL standard does not allow WITH to contain WITH
     checkFails("with emp2 as (select * from emp)\n"
             + "^with^ dept2 as (select * from dept)\n"
-            + "select 1 as one from emp, dept",
+            + "select 1 as uno from emp, dept",
         "(?s)Encountered \"with\" at .*");
   }
 
-  @Test public void testWithNestedInSubquery() {
+  @Test public void testWithNestedInSubQuery() {
     // SQL standard does not allow sub-query to contain WITH but we do
     check("with emp2 as (select * from emp)\n"
             + "(\n"
             + "  with dept2 as (select * from dept)\n"
-            + "  select 1 as one from empDept)",
+            + "  select 1 as uno from empDept)",
         "WITH `EMP2` AS (SELECT *\n"
             + "FROM `EMP`) (WITH `DEPT2` AS (SELECT *\n"
-            + "FROM `DEPT`) (SELECT 1 AS `ONE`\n"
+            + "FROM `DEPT`) (SELECT 1 AS `UNO`\n"
             + "FROM `EMPDEPT`))");
   }
 
@@ -1749,6 +1887,45 @@ public class SqlParserTest {
             + "FROM `A`)");
   }
 
+  /** Tests MINUS, which is equivalent to EXCEPT but only supported in some
+   * conformance levels (e.g. ORACLE). */
+  @Test public void testSetMinus() {
+    final String pattern =
+        "MINUS is not allowed under the current SQL conformance level";
+    final String sql = "select col1 from table1 MINUS select col1 from table2";
+    sql(sql).fails(pattern);
+
+    conformance = SqlConformanceEnum.ORACLE_10;
+    final String expected = "(SELECT `COL1`\n"
+        + "FROM `TABLE1`\n"
+        + "EXCEPT\n"
+        + "SELECT `COL1`\n"
+        + "FROM `TABLE2`)";
+    sql(sql).ok(expected);
+
+    final String sql2 =
+        "select col1 from table1 MINUS ALL select col1 from table2";
+    final String expected2 = "(SELECT `COL1`\n"
+        + "FROM `TABLE1`\n"
+        + "EXCEPT ALL\n"
+        + "SELECT `COL1`\n"
+        + "FROM `TABLE2`)";
+    sql(sql2).ok(expected2);
+  }
+
+  /** MINUS is a <b>reserved</b> keyword in Calcite in all conformances, even
+   * in the default conformance, where it is not allowed as an alternative to
+   * EXCEPT. (It is reserved in Oracle but not in any version of the SQL
+   * standard.) */
+  @Test public void testMinusIsReserved() {
+    sql("select ^minus^ from t")
+        .fails("(?s).*Encountered \"minus from\" at .*");
+    sql("select ^minus^ select")
+        .fails("(?s).*Encountered \"minus select\" at .*");
+    sql("select * from t ^as^ minus where x < y")
+        .fails("(?s).*Encountered \"as minus\" at .*");
+  }
+
   @Test public void testIntersect() {
     check(
         "select * from a intersect select * from a",
@@ -1831,7 +2008,7 @@ public class SqlParserTest {
             + "WHERE (3 = 3)");
   }
 
-  @Test public void testSubqueryInJoin() {
+  @Test public void testSubQueryInJoin() {
     if (!Bug.TODO_FIXED) {
       return;
     }
@@ -1931,6 +2108,83 @@ public class SqlParserTest {
         "(?s).*Encountered \"[)]\" at line 1, column 31.*");
   }
 
+  /** Tests CROSS APPLY, which is equivalent to CROSS JOIN and LEFT JOIN but
+   * only supported in some conformance levels (e.g. SQL Server). */
+  @Test public void testApply() {
+    final String pattern =
+        "APPLY operator is not allowed under the current SQL conformance level";
+    final String sql = "select * from dept\n"
+        + "cross apply table(ramp(deptno)) as t(a)";
+    sql(sql).fails(pattern);
+
+    conformance = SqlConformanceEnum.SQL_SERVER_2008;
+    final String expected = "SELECT *\n"
+        + "FROM `DEPT`\n"
+        + "CROSS JOIN LATERAL TABLE(`RAMP`(`DEPTNO`)) AS `T` (`A`)";
+    sql(sql).ok(expected);
+
+    // Supported in Oracle 12 but not Oracle 10
+    conformance = SqlConformanceEnum.ORACLE_10;
+    sql(sql).fails(pattern);
+
+    conformance = SqlConformanceEnum.ORACLE_12;
+    sql(sql).ok(expected);
+  }
+
+  /** Tests OUTER APPLY. */
+  @Test public void testOuterApply() {
+    conformance = SqlConformanceEnum.SQL_SERVER_2008;
+    final String sql = "select * from dept outer apply table(ramp(deptno))";
+    final String expected = "SELECT *\n"
+        + "FROM `DEPT`\n"
+        + "LEFT JOIN LATERAL TABLE(`RAMP`(`DEPTNO`)) ON TRUE";
+    sql(sql).ok(expected);
+  }
+
+  @Test public void testOuterApplySubQuery() {
+    conformance = SqlConformanceEnum.SQL_SERVER_2008;
+    final String sql = "select * from dept\n"
+        + "outer apply (select * from emp where emp.deptno = dept.deptno)";
+    final String expected = "SELECT *\n"
+        + "FROM `DEPT`\n"
+        + "LEFT JOIN LATERAL((SELECT *\n"
+        + "FROM `EMP`\n"
+        + "WHERE (`EMP`.`DEPTNO` = `DEPT`.`DEPTNO`))) ON TRUE";
+    sql(sql).ok(expected);
+  }
+
+  @Test public void testOuterApplyValues() {
+    conformance = SqlConformanceEnum.SQL_SERVER_2008;
+    final String sql = "select * from dept\n"
+        + "outer apply (select * from emp where emp.deptno = dept.deptno)";
+    final String expected = "SELECT *\n"
+        + "FROM `DEPT`\n"
+        + "LEFT JOIN LATERAL((SELECT *\n"
+        + "FROM `EMP`\n"
+        + "WHERE (`EMP`.`DEPTNO` = `DEPT`.`DEPTNO`))) ON TRUE";
+    sql(sql).ok(expected);
+  }
+
+  /** Even in SQL Server conformance mode, we do not yet support
+   * 'function(args)' as an abbreviation for 'table(function(args)'. */
+  @Test public void testOuterApplyFunctionFails() {
+    conformance = SqlConformanceEnum.SQL_SERVER_2008;
+    final String sql = "select * from dept outer apply ramp(deptno^)^)";
+    sql(sql).fails("(?s).*Encountered \"\\)\" at .*");
+  }
+
+  @Test public void testCrossOuterApply() {
+    conformance = SqlConformanceEnum.SQL_SERVER_2008;
+    final String sql = "select * from dept\n"
+        + "cross apply table(ramp(deptno)) as t(a)\n"
+        + "outer apply table(ramp2(a))";
+    final String expected = "SELECT *\n"
+        + "FROM `DEPT`\n"
+        + "CROSS JOIN LATERAL TABLE(`RAMP`(`DEPTNO`)) AS `T` (`A`)\n"
+        + "LEFT JOIN LATERAL TABLE(`RAMP2`(`A`)) ON TRUE";
+    sql(sql).ok(expected);
+  }
+
   @Test public void testTableSample() {
     check(
         "select * from ("
@@ -1965,8 +2219,8 @@ public class SqlParserTest {
     checkExpSame("'foo'");
     checkExpSame("100");
     check(
-        "select 1 as one, 'x' as x, null as n from emp",
-        "SELECT 1 AS `ONE`, 'x' AS `X`, NULL AS `N`\n"
+        "select 1 as uno, 'x' as x, null as n from emp",
+        "SELECT 1 AS `UNO`, 'x' AS `X`, NULL AS `N`\n"
             + "FROM `EMP`");
 
     // Even though it looks like a date, it's just a string.
@@ -1976,13 +2230,13 @@ public class SqlParserTest {
     checkExpSame("TIMESTAMP '2004-06-01 15:55:55.900'");
     checkExp(
         "TIMESTAMP '2004-06-01 15:55:55.1234'",
-        "TIMESTAMP '2004-06-01 15:55:55.123'");
+        "TIMESTAMP '2004-06-01 15:55:55.1234'");
     checkExp(
         "TIMESTAMP '2004-06-01 15:55:55.1236'",
-        "TIMESTAMP '2004-06-01 15:55:55.124'");
+        "TIMESTAMP '2004-06-01 15:55:55.1236'");
     checkExp(
         "TIMESTAMP '2004-06-01 15:55:55.9999'",
-        "TIMESTAMP '2004-06-01 15:55:56.000'");
+        "TIMESTAMP '2004-06-01 15:55:55.9999'");
     checkExpSame("NULL");
   }
 
@@ -2048,6 +2302,11 @@ public class SqlParserTest {
     sql("select emp.* as foo from emp")
         .ok("SELECT `EMP`.* AS `FOO`\n"
                 + "FROM `EMP`");
+  }
+
+  @Test public void testTableStarColumnFails() {
+    sql("select emp.*^.^xx from emp")
+        .fails("(?s).*Encountered \".\" .*");
   }
 
   @Test public void testNotExists() {
@@ -2276,14 +2535,14 @@ public class SqlParserTest {
     check(
         "values (- -1\n"
             + ")",
-        "VALUES (ROW((- -1)))");
+        "VALUES (ROW(1))");
 
     check(
         "values (--1+\n"
             + "2)",
         "VALUES (ROW(2))");
 
-    // end of multiline commment without start
+    // end of multiline comment without start
     if (Bug.FRG73_FIXED) {
       checkFails("values (1 */ 2)", "xx");
     }
@@ -2359,7 +2618,7 @@ public class SqlParserTest {
     checkExp("1", "1");
     checkExp("+1.", "1");
     checkExp("-1", "-1");
-    checkExp("- -1", "(- -1)");
+    checkExp("- -1", "1");
     checkExp("1.0", "1.0");
     checkExp("-3.2", "-3.2");
     checkExp("1.", "1");
@@ -2416,7 +2675,11 @@ public class SqlParserTest {
   }
 
   @Test public void testPrecedence2() {
-    checkExp("- - 1", "(- -1)"); // two prefices
+    checkExp("- - 1", "1"); // special case for unary minus
+  }
+
+  @Test public void testPrecedence2b() {
+    checkExp("not not 1", "(NOT (NOT 1))"); // two prefixes
   }
 
   @Test public void testPrecedence3() {
@@ -2559,6 +2822,16 @@ public class SqlParserTest {
             + "FROM `EMP`");
   }
 
+  @Test public void testCompoundStar() {
+    final String sql = "select sales.emp.address.zipcode,\n"
+        + " sales.emp.address.*\n"
+        + "from sales.emp";
+    final String expected = "SELECT `SALES`.`EMP`.`ADDRESS`.`ZIPCODE`,"
+        + " `SALES`.`EMP`.`ADDRESS`.*\n"
+        + "FROM `SALES`.`EMP`";
+    sql(sql).ok(expected);
+  }
+
   @Test public void testSelectDistinct() {
     check(
         "select distinct foo from bar",
@@ -2615,7 +2888,9 @@ public class SqlParserTest {
     check(
         "select * from (values(1,'two'), 3, (4, 'five'))",
         "SELECT *\n"
-            + "FROM (VALUES (ROW(1, 'two')), (ROW(3)), (ROW(4, 'five')))");
+            + "FROM (VALUES (ROW(1, 'two')),\n"
+            + "(ROW(3)),\n"
+            + "(ROW(4, 'five')))");
   }
 
   @Test public void testFromValuesWithoutParens() {
@@ -2734,12 +3009,73 @@ public class SqlParserTest {
             + "FROM `EMPS`))), (ROW(`EMPNO`, `NAME`))))");
   }
 
+  @Test public void testLateral() {
+    // Bad: LATERAL table
+    sql("select * from ^lateral^ emp")
+        .fails("(?s)Encountered \"lateral emp\" at .*");
+    sql("select * from lateral table ^emp^ as e")
+        .fails("(?s)Encountered \"emp\" at .*");
+
+    // Bad: LATERAL TABLE schema.table
+    sql("select * from lateral table ^scott^.emp")
+        .fails("(?s)Encountered \"scott\" at .*");
+    final String expected = "SELECT *\n"
+        + "FROM LATERAL TABLE(`RAMP`(1))";
+
+    // Good: LATERAL TABLE function(arg, arg)
+    sql("select * from lateral table(ramp(1))").ok(expected);
+    sql("select * from lateral table(ramp(1)) as t")
+        .ok(expected + " AS `T`");
+    sql("select * from lateral table(ramp(1)) as t(x)")
+        .ok(expected + " AS `T` (`X`)");
+    // Bad: Parentheses make it look like a sub-query
+    sql("select * from lateral (^table^(ramp(1)))")
+        .fails("(?s)Encountered \"table \\(\" at .*");
+
+    // Good: LATERAL (subQuery)
+    final String expected2 = "SELECT *\n"
+        + "FROM LATERAL((SELECT *\n"
+        + "FROM `EMP`))";
+    sql("select * from lateral (select * from emp)").ok(expected2);
+    sql("select * from lateral (select * from emp) as t")
+        .ok(expected2 + " AS `T`");
+    sql("select * from lateral (select * from emp) as t(x)")
+        .ok(expected2 + " AS `T` (`X`)");
+  }
+
+  @Test public void testCollectionTableWithLateral() {
+    final String sql = "select * from dept, lateral table(ramp(dept.deptno))";
+    final String expected = "SELECT *\n"
+        + "FROM `DEPT`,\n"
+        + "LATERAL TABLE(`RAMP`(`DEPT`.`DEPTNO`))";
+    sql(sql).ok(expected);
+  }
+
+  @Test public void testCollectionTableWithLateral2() {
+    final String sql = "select * from dept as d\n"
+        + "cross join lateral table(ramp(dept.deptno)) as r";
+    final String expected = "SELECT *\n"
+        + "FROM `DEPT` AS `D`\n"
+        + "CROSS JOIN LATERAL TABLE(`RAMP`(`DEPT`.`DEPTNO`)) AS `R`";
+    sql(sql).ok(expected);
+  }
+
+  @Test public void testCollectionTableWithLateral3() {
+    // LATERAL before first table in FROM clause doesn't achieve anything, but
+    // it's valid.
+    final String sql = "select * from lateral table(ramp(dept.deptno)), dept";
+    final String expected = "SELECT *\n"
+        + "FROM LATERAL TABLE(`RAMP`(`DEPT`.`DEPTNO`)),\n"
+        + "`DEPT`";
+    sql(sql).ok(expected);
+  }
+
   @Test public void testIllegalCursors() {
     checkFails(
         "select ^cursor^(select * from emps) from emps",
         "CURSOR expression encountered in illegal context");
     checkFails(
-        "call p(^cursor^(select * from emps))",
+        "call list(^cursor^(select * from emps))",
         "CURSOR expression encountered in illegal context");
     checkFails(
         "select f(^cursor^(select * from emps)) from emps",
@@ -2747,11 +3083,30 @@ public class SqlParserTest {
   }
 
   @Test public void testExplain() {
-    check(
-        "explain plan for select * from emps",
-        "EXPLAIN PLAN INCLUDING ATTRIBUTES WITH IMPLEMENTATION FOR\n"
-            + "SELECT *\n"
-            + "FROM `EMPS`");
+    final String sql = "explain plan for select * from emps";
+    final String expected = "EXPLAIN PLAN"
+        + " INCLUDING ATTRIBUTES WITH IMPLEMENTATION FOR\n"
+        + "SELECT *\n"
+        + "FROM `EMPS`";
+    sql(sql).ok(expected);
+  }
+
+  @Test public void testExplainAsXml() {
+    final String sql = "explain plan as xml for select * from emps";
+    final String expected = "EXPLAIN PLAN"
+        + " INCLUDING ATTRIBUTES WITH IMPLEMENTATION AS XML FOR\n"
+        + "SELECT *\n"
+        + "FROM `EMPS`";
+    sql(sql).ok(expected);
+  }
+
+  @Test public void testExplainAsJson() {
+    final String sql = "explain plan as json for select * from emps";
+    final String expected = "EXPLAIN PLAN"
+        + " INCLUDING ATTRIBUTES WITH IMPLEMENTATION AS JSON FOR\n"
+        + "SELECT *\n"
+        + "FROM `EMPS`";
+    sql(sql).ok(expected);
   }
 
   @Test public void testExplainWithImpl() {
@@ -2840,7 +3195,7 @@ public class SqlParserTest {
     final String expected3 = ""
         + "EXPLAIN PLAN INCLUDING ATTRIBUTES WITH IMPLEMENTATION FOR\n"
         + "INSERT INTO `EMPS`\n"
-        + "(VALUES (ROW(1, 'a')))";
+        + "VALUES (ROW(1, 'a'))";
     check("describe insert into emps values (1, 'a')", expected3);
     // only allow query or DML, not explain, inside describe
     checkFails("^describe^ explain plan for select * from emps",
@@ -2849,53 +3204,117 @@ public class SqlParserTest {
         "(?s).*Encountered \"statement explain\" at .*");
   }
 
+  @Test public void testSelectIsNotDdl() {
+    sql("select 1 from t")
+        .node(not(isDdl()));
+  }
+
   @Test public void testInsertSelect() {
-    check(
-        "insert into emps select * from emps",
-        "INSERT INTO `EMPS`\n"
-            + "(SELECT *\n"
-            + "FROM `EMPS`)");
+    final String expected = "INSERT INTO `EMPS`\n"
+        + "(SELECT *\n"
+        + "FROM `EMPS`)";
+    sql("insert into emps select * from emps")
+        .ok(expected)
+        .node(not(isDdl()));
   }
 
   @Test public void testInsertUnion() {
-    check(
-        "insert into emps select * from emps1 union select * from emps2",
-        "INSERT INTO `EMPS`\n"
-            + "(SELECT *\n"
-            + "FROM `EMPS1`\n"
-            + "UNION\n"
-            + "SELECT *\n"
-            + "FROM `EMPS2`)");
+    final String expected = "INSERT INTO `EMPS`\n"
+        + "(SELECT *\n"
+        + "FROM `EMPS1`\n"
+        + "UNION\n"
+        + "SELECT *\n"
+        + "FROM `EMPS2`)";
+    sql("insert into emps select * from emps1 union select * from emps2")
+        .ok(expected);
   }
 
   @Test public void testInsertValues() {
-    check(
-        "insert into emps values (1,'Fredkin')",
-        "INSERT INTO `EMPS`\n"
-            + "(VALUES (ROW(1, 'Fredkin')))");
+    final String expected = "INSERT INTO `EMPS`\n"
+        + "VALUES (ROW(1, 'Fredkin'))";
+    sql("insert into emps values (1,'Fredkin')")
+        .ok(expected)
+        .node(not(isDdl()));
   }
 
   @Test public void testInsertColumnList() {
-    check(
-        "insert into emps(x,y) select * from emps",
-        "INSERT INTO `EMPS` (`X`, `Y`)\n"
-            + "(SELECT *\n"
-            + "FROM `EMPS`)");
+    final String expected = "INSERT INTO `EMPS` (`X`, `Y`)\n"
+        + "(SELECT *\n"
+        + "FROM `EMPS`)";
+    sql("insert into emps(x,y) select * from emps")
+        .ok(expected);
+  }
+
+  @Test public void testInsertCaseSensitiveColumnList() {
+    final String expected = "INSERT INTO `emps` (`x`, `y`)\n"
+        + "(SELECT *\n"
+        + "FROM `EMPS`)";
+    sql("insert into \"emps\"(\"x\",\"y\") select * from emps")
+        .ok(expected);
+  }
+
+  @Test public void testInsertExtendedColumnList() {
+    final String expected = "INSERT INTO `EMPS` EXTEND (`Z` BOOLEAN) (`X`, `Y`)\n"
+        + "(SELECT *\n"
+        + "FROM `EMPS`)";
+    sql("insert into emps(z boolean)(x,y) select * from emps")
+        .ok(expected);
+  }
+
+  @Test public void testUpdateExtendedColumnList() {
+    final String expected = "UPDATE `EMPDEFAULTS` EXTEND (`EXTRA` BOOLEAN, `NOTE` VARCHAR)"
+        + " SET `DEPTNO` = 1\n"
+        + ", `EXTRA` = TRUE\n"
+        + ", `EMPNO` = 20\n"
+        + ", `ENAME` = 'Bob'\n"
+        + ", `NOTE` = 'legion'\n"
+        + "WHERE (`DEPTNO` = 10)";
+    sql("update empdefaults(extra BOOLEAN, note VARCHAR)"
+        + " set deptno = 1, extra = true, empno = 20, ename = 'Bob', note = 'legion'"
+        + " where deptno = 10")
+        .ok(expected);
+  }
+
+
+  @Test public void testUpdateCaseSensitiveExtendedColumnList() {
+    final String expected = "UPDATE `EMPDEFAULTS` EXTEND (`extra` BOOLEAN, `NOTE` VARCHAR)"
+        + " SET `DEPTNO` = 1\n"
+        + ", `extra` = TRUE\n"
+        + ", `EMPNO` = 20\n"
+        + ", `ENAME` = 'Bob'\n"
+        + ", `NOTE` = 'legion'\n"
+        + "WHERE (`DEPTNO` = 10)";
+    sql("update empdefaults(\"extra\" BOOLEAN, note VARCHAR)"
+        + " set deptno = 1, \"extra\" = true, empno = 20, ename = 'Bob', note = 'legion'"
+        + " where deptno = 10")
+        .ok(expected);
+  }
+
+  @Test public void testInsertCaseSensitiveExtendedColumnList() {
+    final String expected = "INSERT INTO `emps` EXTEND (`z` BOOLEAN) (`x`, `y`)\n"
+        + "(SELECT *\n"
+        + "FROM `EMPS`)";
+    sql("insert into \"emps\"(\"z\" boolean)(\"x\",\"y\") select * from emps")
+        .ok(expected);
   }
 
   @Test public void testExplainInsert() {
-    check(
-        "explain plan for insert into emps1 select * from emps2",
-        "EXPLAIN PLAN INCLUDING ATTRIBUTES WITH IMPLEMENTATION FOR\n"
-            + "INSERT INTO `EMPS1`\n"
-            + "(SELECT *\n"
-            + "FROM `EMPS2`)");
+    final String expected = "EXPLAIN PLAN INCLUDING ATTRIBUTES"
+        + " WITH IMPLEMENTATION FOR\n"
+        + "INSERT INTO `EMPS1`\n"
+        + "(SELECT *\n"
+        + "FROM `EMPS2`)";
+    sql("explain plan for insert into emps1 select * from emps2")
+        .ok(expected)
+        .node(not(isDdl()));
   }
 
   @Test public void testUpsertValues() {
+    final String expected = "UPSERT INTO `EMPS`\n"
+        + "VALUES (ROW(1, 'Fredkin'))";
     sql("upsert into emps values (1,'Fredkin')")
-        .ok("UPSERT INTO `EMPS`\n"
-                + "(VALUES (ROW(1, 'Fredkin')))");
+        .ok(expected)
+        .node(not(isDdl()));
   }
 
   @Test public void testUpsertSelect() {
@@ -2909,11 +3328,13 @@ public class SqlParserTest {
     sql("explain plan for upsert into emps1 values (1, 2)")
         .ok("EXPLAIN PLAN INCLUDING ATTRIBUTES WITH IMPLEMENTATION FOR\n"
             + "UPSERT INTO `EMPS1`\n"
-            + "(VALUES (ROW(1, 2)))");
+            + "VALUES (ROW(1, 2))");
   }
 
   @Test public void testDelete() {
-    check("delete from emps", "DELETE FROM `EMPS`");
+    sql("delete from emps")
+        .ok("DELETE FROM `EMPS`")
+        .node(not(isDdl()));
   }
 
   @Test public void testDeleteWhere() {
@@ -2931,25 +3352,25 @@ public class SqlParserTest {
   }
 
   @Test public void testMergeSelectSource() {
-    check(
-        "merge into emps e "
-            + "using (select * from tempemps where deptno is null) t "
-            + "on e.empno = t.empno "
-            + "when matched then update "
-            + "set name = t.name, deptno = t.deptno, salary = t.salary * .1 "
-            + "when not matched then insert (name, dept, salary) "
-            + "values(t.name, 10, t.salary * .15)",
-
-        "MERGE INTO `EMPS` AS `E`\n"
-            + "USING (SELECT *\n"
-            + "FROM `TEMPEMPS`\n"
-            + "WHERE (`DEPTNO` IS NULL)) AS `T`\n"
-            + "ON (`E`.`EMPNO` = `T`.`EMPNO`)\n"
-            + "WHEN MATCHED THEN UPDATE SET `NAME` = `T`.`NAME`\n"
-            + ", `DEPTNO` = `T`.`DEPTNO`\n"
-            + ", `SALARY` = (`T`.`SALARY` * 0.1)\n"
-            + "WHEN NOT MATCHED THEN INSERT (`NAME`, `DEPT`, `SALARY`) "
-            + "(VALUES (ROW(`T`.`NAME`, 10, (`T`.`SALARY` * 0.15))))");
+    final String sql = "merge into emps e "
+        + "using (select * from tempemps where deptno is null) t "
+        + "on e.empno = t.empno "
+        + "when matched then update "
+        + "set name = t.name, deptno = t.deptno, salary = t.salary * .1 "
+        + "when not matched then insert (name, dept, salary) "
+        + "values(t.name, 10, t.salary * .15)";
+    final String expected = "MERGE INTO `EMPS` AS `E`\n"
+        + "USING (SELECT *\n"
+        + "FROM `TEMPEMPS`\n"
+        + "WHERE (`DEPTNO` IS NULL)) AS `T`\n"
+        + "ON (`E`.`EMPNO` = `T`.`EMPNO`)\n"
+        + "WHEN MATCHED THEN UPDATE SET `NAME` = `T`.`NAME`\n"
+        + ", `DEPTNO` = `T`.`DEPTNO`\n"
+        + ", `SALARY` = (`T`.`SALARY` * 0.1)\n"
+        + "WHEN NOT MATCHED THEN INSERT (`NAME`, `DEPT`, `SALARY`) "
+        + "(VALUES (ROW(`T`.`NAME`, 10, (`T`.`SALARY` * 0.15))))";
+    sql(sql).ok(expected)
+        .node(not(isDdl()));
   }
 
   @Test public void testMergeTableRefSource() {
@@ -3107,7 +3528,7 @@ public class SqlParserTest {
         "case col1 when \n1.2 then 'one' when 2 then 'two' else 'three' end",
         "(CASE WHEN (`COL1` = 1.2) THEN 'one' WHEN (`COL1` = 2) THEN 'two' ELSE 'three' END)");
 
-    // subqueries as case expression operands
+    // sub-queries as case expression operands
     checkExp(
         "case (select * from emp) when 1 then 2 end",
         "(CASE WHEN ((SELECT *\n"
@@ -3152,22 +3573,22 @@ public class SqlParserTest {
   @Test public void testNullIf() {
     checkExp(
         "nullif(v1,v2)",
-        "NULLIF(`V1`, `V2`)");
+        "(NULLIF(`V1`, `V2`))");
     checkExpFails(
-        "1 ^+^ nullif + 3",
-        "(?s)Encountered \"\\+ nullif \\+\" at line 1, column 3.*");
+        "1 + ^nullif^ + 3",
+        "(?s)Encountered \"nullif \\+\" at line 1, column 5.*");
   }
 
   @Test public void testCoalesce() {
     checkExp(
         "coalesce(v1)",
-        "COALESCE(`V1`)");
+        "(COALESCE(`V1`))");
     checkExp(
         "coalesce(v1,v2)",
-        "COALESCE(`V1`, `V2`)");
+        "(COALESCE(`V1`, `V2`))");
     checkExp(
         "coalesce(v1,v2,v3)",
-        "COALESCE(`V1`, `V2`, `V3`)");
+        "(COALESCE(`V1`, `V2`, `V3`))");
   }
 
   @Test public void testLiteralCollate() {
@@ -3207,6 +3628,10 @@ public class SqlParserTest {
     checkExp(
         "posiTion('mouse' in 'house')",
         "POSITION('mouse' IN 'house')");
+  }
+
+  @Test public void testReplace() {
+    checkExp("replace('x', 'y', 'z')", "REPLACE('x', 'y', 'z')");
   }
 
   // check date/time functions.
@@ -3259,10 +3684,15 @@ public class SqlParserTest {
 
     // Date literals
     checkExp("DATE '2004-12-01'", "DATE '2004-12-01'");
+
+    // Time literals
     checkExp("TIME '12:01:01'", "TIME '12:01:01'");
     checkExp("TIME '12:01:01.'", "TIME '12:01:01'");
     checkExp("TIME '12:01:01.000'", "TIME '12:01:01.000'");
     checkExp("TIME '12:01:01.001'", "TIME '12:01:01.001'");
+    checkExp("TIME '12:01:01.01023456789'", "TIME '12:01:01.01023456789'");
+
+    // Timestamp literals
     checkExp(
         "TIMESTAMP '2004-12-01 12:01:01'",
         "TIMESTAMP '2004-12-01 12:01:01'");
@@ -3272,7 +3702,10 @@ public class SqlParserTest {
     checkExp(
         "TIMESTAMP '2004-12-01 12:01:01.'",
         "TIMESTAMP '2004-12-01 12:01:01'");
-    checkExpSame("TIMESTAMP '2004-12-01 12:01:01.1'");
+    checkExp(
+        "TIMESTAMP  '2004-12-01 12:01:01.010234567890'",
+        "TIMESTAMP '2004-12-01 12:01:01.010234567890'");
+    checkExpSame("TIMESTAMP '2004-12-01 12:01:01.01023456789'");
 
     // Failures.
     checkFails("^DATE '12/21/99'^", "(?s).*Illegal DATE literal.*");
@@ -3322,8 +3755,8 @@ public class SqlParserTest {
     checkExp(
         "trim (coalesce(cast(null as varchar(2)))||"
             + "' '||coalesce('junk ',''))",
-        "TRIM(BOTH ' ' FROM ((COALESCE(CAST(NULL AS VARCHAR(2))) || "
-            + "' ') || COALESCE('junk ', '')))");
+        "TRIM(BOTH ' ' FROM (((COALESCE(CAST(NULL AS VARCHAR(2)))) || "
+            + "' ') || (COALESCE('junk ', ''))))");
 
     checkFails(
         "trim(^from^ 'beard')",
@@ -3360,6 +3793,35 @@ public class SqlParserTest {
     checkExp("{fN apa(*)}", "{fn APA(*) }");
     checkExp("{   FN\t\r\n apa()}", "{fn APA() }");
     checkExp("{fn insert()}", "{fn INSERT() }");
+    checkExp("{fn convert(foo, SQL_VARCHAR)}",
+        "{fn CONVERT(`FOO`, SQL_VARCHAR) }");
+    checkExp("{fn convert(log10(100), integer)}",
+        "{fn CONVERT(LOG10(100), SQL_INTEGER) }");
+    checkExp("{fn convert(1, SQL_INTERVAL_YEAR)}",
+        "{fn CONVERT(1, SQL_INTERVAL_YEAR) }");
+    checkExp("{fn convert(1, SQL_INTERVAL_YEAR_TO_MONTH)}",
+        "{fn CONVERT(1, SQL_INTERVAL_YEAR_TO_MONTH) }");
+    checkExpFails("{fn convert(1, ^sql_interval_year_to_day^)}",
+        "(?s)Encountered \"sql_interval_year_to_day\" at line 1, column 16\\.\n.*");
+    checkExp("{fn convert(1, sql_interval_day)}",
+        "{fn CONVERT(1, SQL_INTERVAL_DAY) }");
+    checkExp("{fn convert(1, sql_interval_day_to_minute)}",
+        "{fn CONVERT(1, SQL_INTERVAL_DAY_TO_MINUTE) }");
+    checkExpFails("{fn convert(^)^}", "(?s)Encountered \"\\)\" at.*");
+    checkExpFails("{fn convert(\"123\", SMALLINT^(^3)}",
+        "(?s)Encountered \"\\(\" at.*");
+    // Regular types (without SQL_) are OK for regular types, but not for
+    // intervals.
+    checkExp("{fn convert(1, INTEGER)}",
+        "{fn CONVERT(1, SQL_INTEGER) }");
+    checkExp("{fn convert(1, VARCHAR)}",
+        "{fn CONVERT(1, SQL_VARCHAR) }");
+    checkExpFails("{fn convert(1, VARCHAR^(^5))}",
+        "(?s)Encountered \"\\(\" at.*");
+    checkExpFails("{fn convert(1, ^INTERVAL^ YEAR TO MONTH)}",
+        "(?s)Encountered \"INTERVAL\" at.*");
+    checkExpFails("{fn convert(1, ^INTERVAL^ YEAR)}",
+        "(?s)Encountered \"INTERVAL\" at.*");
   }
 
   @Test public void testWindowReference() {
@@ -3371,7 +3833,7 @@ public class SqlParserTest {
         "(?s)Encountered \"w1\" at.*");
   }
 
-  @Test public void testWindowInSubquery() {
+  @Test public void testWindowInSubQuery() {
     check(
         "select * from ( select sum(x) over w, sum(y) over w from s window w as (range interval '1' minute preceding))",
         "SELECT *\n"
@@ -3416,7 +3878,7 @@ public class SqlParserTest {
         "select count(z) over w as foo from Bids window w as (order by x ^partition^ by y)",
         "(?s).*Encountered \"partition\".*");
 
-    // Cannot partition by subquery
+    // Cannot partition by sub-query
     checkFails(
         "select sum(a) over (partition by ^(^select 1 from t), x) from t2",
         "Query expression encountered in illegal context");
@@ -3514,7 +3976,8 @@ public class SqlParserTest {
     check(
         "select x from (values (1, 2), (3, 4)) as t1 (\"a\", b) where \"a\" > b",
         "SELECT `X`\n"
-            + "FROM (VALUES (ROW(1, 2)), (ROW(3, 4))) AS `T1` (`a`, `B`)\n"
+            + "FROM (VALUES (ROW(1, 2)),\n"
+            + "(ROW(3, 4))) AS `T1` (`a`, `B`)\n"
             + "WHERE (`a` > `B`)");
 
     // must have at least one column
@@ -5816,7 +6279,7 @@ public class SqlParserTest {
    * </li>
    * </ul>
    *
-   * A substantially identical set of tests exists in SqlValidatorTest, and
+   * <p>A substantially identical set of tests exists in SqlValidatorTest, and
    * any changes here should be synchronized there.
    */
   @Test public void testIntervalLiterals() {
@@ -6223,6 +6686,13 @@ public class SqlParserTest {
         "CAST(INTERVAL '3-2' YEAR TO MONTH AS CHAR(5))");
   }
 
+  @Test public void testCastToVarchar() {
+    checkExp("cast(x as varchar(5))", "CAST(`X` AS VARCHAR(5))");
+    checkExp("cast(x as varchar)", "CAST(`X` AS VARCHAR)");
+    checkExp("cast(x as varBINARY(5))", "CAST(`X` AS VARBINARY(5))");
+    checkExp("cast(x as varbinary)", "CAST(`X` AS VARBINARY)");
+  }
+
   @Test public void testTimestampAddAndDiff() {
     Map<String, List<String>> tsi = ImmutableMap.<String, List<String>>builder()
         .put("MICROSECOND",
@@ -6246,8 +6716,9 @@ public class SqlParserTest {
     for (Map.Entry<String, List<String>> intervalGroup : tsi.entrySet()) {
       for (String function : functions) {
         for (String interval : intervalGroup.getValue()) {
-          checkExp(String.format(function, interval, ""),
-              String.format(function, intervalGroup.getKey(), "`").toUpperCase());
+          checkExp(String.format(Locale.ROOT, function, interval, ""),
+              String.format(Locale.ROOT, function, intervalGroup.getKey(), "`")
+                  .toUpperCase(Locale.ROOT));
         }
       }
     }
@@ -6354,9 +6825,9 @@ public class SqlParserTest {
   }
 
   @Test public void testProcedureCall() {
-    check("call blubber(5)", "(CALL `BLUBBER`(5))");
-    check("call \"blubber\"(5)", "(CALL `blubber`(5))");
-    check("call whale.blubber(5)", "(CALL `WHALE`.`BLUBBER`(5))");
+    check("call blubber(5)", "CALL `BLUBBER`(5)");
+    check("call \"blubber\"(5)", "CALL `blubber`(5)");
+    check("call whale.blubber(5)", "CALL `WHALE`.`BLUBBER`(5)");
   }
 
   @Test public void testNewSpecification() {
@@ -6385,7 +6856,7 @@ public class SqlParserTest {
   }
 
   @Test public void testMetadata() {
-    SqlAbstractParserImpl.Metadata metadata = getParserMetadata();
+    SqlAbstractParserImpl.Metadata metadata = getSqlParser("").getMetadata();
     assertTrue(metadata.isReservedFunctionName("ABS"));
     assertFalse(metadata.isReservedFunctionName("FOO"));
 
@@ -6431,7 +6902,9 @@ public class SqlParserTest {
    * non-reserved keyword list in the parser.
    */
   @Test public void testNoUnintendedNewReservedKeywords() {
-    final SqlAbstractParserImpl.Metadata metadata = getParserMetadata();
+    assumeTrue("don't run this test for sub-classes", isNotSubclass());
+    final SqlAbstractParserImpl.Metadata metadata =
+        getSqlParser("").getMetadata();
 
     final SortedSet<String> reservedKeywords = new TreeSet<>();
     final SortedSet<String> keywords92 = keywords("92");
@@ -6447,18 +6920,22 @@ public class SqlParserTest {
       }
     }
 
-    assertThat("At least one new reserved keyword is added in parser. "
-        + "Make sure to check the new keywords are intended to be a reserved keywords.",
-        reservedKeywords, is(getReservedKeywords()));
+    final String reason = "The parser has at least one new reserved keyword. "
+        + "Are you sure it should be reserved? Difference:\n"
+        + DiffTestCase.diffLines(ImmutableList.copyOf(getReservedKeywords()),
+            ImmutableList.copyOf(reservedKeywords));
+    assertThat(reason, reservedKeywords, is(getReservedKeywords()));
   }
 
   /** Generates a copy of {@code reference.md} with the current set of key
    * words. Fails if the copy is different from the original. */
   @Test public void testGenerateKeyWords() throws IOException {
+    assumeTrue("don't run this test for sub-classes", isNotSubclass());
     // inUrl = "file:/home/x/calcite/core/target/test-classes/hsqldb-model.json"
     String path = "hsqldb-model.json";
     final URL inUrl = SqlParserTest.class.getResource("/" + path);
-    String x = inUrl.getFile();
+    // URL will convert spaces to %20, undo that
+    String x = URLDecoder.decode(inUrl.getFile(), "UTF-8");
     assert x.endsWith(path);
     x = x.substring(0, x.length() - path.length());
     assert x.endsWith("core/target/test-classes/");
@@ -6467,8 +6944,9 @@ public class SqlParserTest {
     final File inFile = new File(base, "site/_docs/reference.md");
     final File outFile = new File(base, "core/target/surefire/reference.md");
     outFile.getParentFile().mkdirs();
-    try (BufferedReader r = new BufferedReader(new FileReader(inFile));
-         PrintWriter w = new PrintWriter(new FileWriter(outFile))) {
+    try (BufferedReader r = Util.reader(inFile);
+         FileOutputStream fos = new FileOutputStream(outFile);
+         PrintWriter w = Util.printWriter(outFile)) {
       String line;
       int stage = 0;
       while ((line = r.readLine()) != null) {
@@ -6480,7 +6958,8 @@ public class SqlParserTest {
         }
         if (line.equals("{% comment %} start {% endcomment %}")) {
           ++stage;
-          SqlAbstractParserImpl.Metadata metadata = getParserMetadata();
+          SqlAbstractParserImpl.Metadata metadata =
+              getSqlParser("").getMetadata();
           int z = 0;
           for (String s : metadata.getTokens()) {
             if (z++ > 0) {
@@ -6493,6 +6972,9 @@ public class SqlParserTest {
           w.println(".");
         }
       }
+      w.flush();
+      fos.flush();
+      fos.getFD().sync();
     }
     String diff = DiffTestCase.diff(outFile, inFile);
     if (!diff.isEmpty()) {
@@ -6652,8 +7134,7 @@ public class SqlParserTest {
   }
 
   @Test public void testSqlOptions() throws SqlParseException {
-    SqlNode node =
-        SqlParser.create("alter system set schema = true").parseStmt();
+    SqlNode node = getSqlParser("alter system set schema = true").parseStmt();
     SqlSetOption opt = (SqlSetOption) node;
     assertThat(opt.getScope(), equalTo("SYSTEM"));
     SqlPrettyWriter writer = new SqlPrettyWriter(SqlDialect.CALCITE);
@@ -6664,8 +7145,9 @@ public class SqlParserTest {
     assertThat(writer.format(opt),
         equalTo("ALTER SYSTEM SET \"SCHEMA\" = TRUE"));
 
-    check("alter system set \"a number\" = 1",
-        "ALTER SYSTEM SET `a number` = 1");
+    sql("alter system set \"a number\" = 1")
+        .ok("ALTER SYSTEM SET `a number` = 1")
+        .node(isDdl());
     check("alter system set flag = false",
         "ALTER SYSTEM SET `FLAG` = FALSE");
     check("alter system set approx = -12.3450",
@@ -6680,10 +7162,11 @@ public class SqlParserTest {
 
     check("alter system set \"a\".\"number\" = 1",
       "ALTER SYSTEM SET `a`.`number` = 1");
-    check("set approx = -12.3450",
-      "SET `APPROX` = -12.3450");
+    sql("set approx = -12.3450")
+        .ok("SET `APPROX` = -12.3450")
+        .node(isDdl());
 
-    node = SqlParser.create("reset schema").parseStmt();
+    node = getSqlParser("reset schema").parseStmt();
     opt = (SqlSetOption) node;
     assertThat(opt.getScope(), equalTo(null));
     writer = new SqlPrettyWriter(SqlDialect.CALCITE);
@@ -6695,8 +7178,9 @@ public class SqlParserTest {
 
     check("alter system RESET flag",
         "ALTER SYSTEM RESET `FLAG`");
-    check("reset onOff",
-        "RESET `ONOFF`");
+    sql("reset onOff")
+        .ok("RESET `ONOFF`")
+        .node(isDdl());
     check("reset \"this\".\"is\".\"sparta\"",
         "RESET `this`.`is`.`sparta`");
     check("alter system reset all",
@@ -6738,10 +7222,681 @@ public class SqlParserTest {
                 + "FETCH NEXT 3 ROWS ONLY");
     sql("insert into t values next value for my_seq, current value for my_seq")
         .ok("INSERT INTO `T`\n"
-                + "(VALUES (ROW((NEXT VALUE FOR `MY_SEQ`))), (ROW((CURRENT VALUE FOR `MY_SEQ`))))");
+            + "VALUES (ROW((NEXT VALUE FOR `MY_SEQ`))),\n"
+            + "(ROW((CURRENT VALUE FOR `MY_SEQ`)))");
     sql("insert into t values (1, current value for my_seq)")
         .ok("INSERT INTO `T`\n"
-                + "(VALUES (ROW(1, (CURRENT VALUE FOR `MY_SEQ`))))");
+            + "VALUES (ROW(1, (CURRENT VALUE FOR `MY_SEQ`)))");
+  }
+
+  @Test public void testMatchRecognize1() {
+    final String sql = "select *\n"
+        + "  from t match_recognize\n"
+        + "  (\n"
+        + "    partition by type, price\n"
+        + "    order by type asc, price desc\n"
+        + "    pattern (strt down+ up+)\n"
+        + "    define\n"
+        + "      down as down.price < PREV(down.price),\n"
+        + "      up as up.price > prev(up.price)\n"
+        + "  ) mr";
+    final String expected = "SELECT *\n"
+        + "FROM `T` MATCH_RECOGNIZE(\n"
+        + "PARTITION BY `TYPE`, `PRICE`\n"
+        + "ORDER BY `TYPE`, `PRICE` DESC\n"
+        + "PATTERN (((`STRT` (`DOWN` +)) (`UP` +)))\n"
+        + "DEFINE "
+        + "`DOWN` AS (`DOWN`.`PRICE` < PREV(`DOWN`.`PRICE`, 1)), "
+        + "`UP` AS (`UP`.`PRICE` > PREV(`UP`.`PRICE`, 1))"
+        + ") AS `MR`";
+    sql(sql).ok(expected);
+  }
+
+  @Test public void testMatchRecognize2() {
+    final String sql = "select *\n"
+        + "  from t match_recognize\n"
+        + "  (\n"
+        + "    pattern (strt down+ up+$)\n"
+        + "    define\n"
+        + "      down as down.price < PREV(down.price),\n"
+        + "      up as up.price > prev(up.price)\n"
+        + "  ) mr";
+    final String expected = "SELECT *\n"
+        + "FROM `T` MATCH_RECOGNIZE(\n"
+        + "PATTERN (((`STRT` (`DOWN` +)) (`UP` +)) $)\n"
+        + "DEFINE "
+        + "`DOWN` AS (`DOWN`.`PRICE` < PREV(`DOWN`.`PRICE`, 1)), "
+        + "`UP` AS (`UP`.`PRICE` > PREV(`UP`.`PRICE`, 1))"
+        + ") AS `MR`";
+    sql(sql).ok(expected);
+  }
+
+  @Test public void testMatchRecognize3() {
+    final String sql = "select *\n"
+        + "  from t match_recognize\n"
+        + "  (\n"
+        + "    pattern (^strt down+ up+)\n"
+        + "    define\n"
+        + "      down as down.price < PREV(down.price),\n"
+        + "      up as up.price > prev(up.price)\n"
+        + "  ) mr";
+    final String expected = "SELECT *\n"
+        + "FROM `T` MATCH_RECOGNIZE(\n"
+        + "PATTERN (^ ((`STRT` (`DOWN` +)) (`UP` +)))\n"
+        + "DEFINE "
+        + "`DOWN` AS (`DOWN`.`PRICE` < PREV(`DOWN`.`PRICE`, 1)), "
+        + "`UP` AS (`UP`.`PRICE` > PREV(`UP`.`PRICE`, 1))"
+        + ") AS `MR`";
+    sql(sql).ok(expected);
+  }
+
+  @Test public void testMatchRecognize4() {
+    final String sql = "select *\n"
+        + "  from t match_recognize\n"
+        + "  (\n"
+        + "    pattern (^strt down+ up+$)\n"
+        + "    define\n"
+        + "      down as down.price < PREV(down.price),\n"
+        + "      up as up.price > prev(up.price)\n"
+        + "  ) mr";
+    final String expected = "SELECT *\n"
+        + "FROM `T` MATCH_RECOGNIZE(\n"
+        + "PATTERN (^ ((`STRT` (`DOWN` +)) (`UP` +)) $)\n"
+        + "DEFINE "
+        + "`DOWN` AS (`DOWN`.`PRICE` < PREV(`DOWN`.`PRICE`, 1)), "
+        + "`UP` AS (`UP`.`PRICE` > PREV(`UP`.`PRICE`, 1))"
+        + ") AS `MR`";
+    sql(sql).ok(expected);
+  }
+
+  @Test public void testMatchRecognize5() {
+    final String sql = "select *\n"
+        + "  from t match_recognize\n"
+        + "  (\n"
+        + "    pattern (strt down* up?)\n"
+        + "    define\n"
+        + "      down as down.price < PREV(down.price),\n"
+        + "      up as up.price > prev(up.price)\n"
+        + "  ) mr";
+    final String expected = "SELECT *\n"
+        + "FROM `T` MATCH_RECOGNIZE(\n"
+        + "PATTERN (((`STRT` (`DOWN` *)) (`UP` ?)))\n"
+        + "DEFINE "
+        + "`DOWN` AS (`DOWN`.`PRICE` < PREV(`DOWN`.`PRICE`, 1)), "
+        + "`UP` AS (`UP`.`PRICE` > PREV(`UP`.`PRICE`, 1))"
+        + ") AS `MR`";
+    sql(sql).ok(expected);
+  }
+
+  @Test public void testMatchRecognize6() {
+    final String sql = "select *\n"
+        + "  from t match_recognize\n"
+        + "  (\n"
+        + "    pattern (strt {-down-} up?)\n"
+        + "    define\n"
+        + "      down as down.price < PREV(down.price),\n"
+        + "      up as up.price > prev(up.price)\n"
+        + "  ) mr";
+    final String expected = "SELECT *\n"
+        + "FROM `T` MATCH_RECOGNIZE(\n"
+        + "PATTERN (((`STRT` ({- `DOWN` -})) (`UP` ?)))\n"
+        + "DEFINE "
+        + "`DOWN` AS (`DOWN`.`PRICE` < PREV(`DOWN`.`PRICE`, 1)), "
+        + "`UP` AS (`UP`.`PRICE` > PREV(`UP`.`PRICE`, 1))"
+        + ") AS `MR`";
+    sql(sql).ok(expected);
+  }
+
+  @Test public void testMatchRecognize7() {
+    final String sql = "select *\n"
+        + "  from t match_recognize\n"
+        + "  (\n"
+        + "    pattern (strt down{2} up{3,})\n"
+        + "    define\n"
+        + "      down as down.price < PREV(down.price),\n"
+        + "      up as up.price > prev(up.price)\n"
+        + "  ) mr";
+    final String expected = "SELECT *\n"
+        + "FROM `T` MATCH_RECOGNIZE(\n"
+        + "PATTERN (((`STRT` (`DOWN` { 2 })) (`UP` { 3, })))\n"
+        + "DEFINE "
+        + "`DOWN` AS (`DOWN`.`PRICE` < PREV(`DOWN`.`PRICE`, 1)), "
+        + "`UP` AS (`UP`.`PRICE` > PREV(`UP`.`PRICE`, 1))"
+        + ") AS `MR`";
+    sql(sql).ok(expected);
+  }
+
+  @Test public void testMatchRecognize8() {
+    final String sql = "select *\n"
+        + "  from t match_recognize\n"
+        + "  (\n"
+        + "    pattern (strt down{,2} up{3,5})\n"
+        + "    define\n"
+        + "      down as down.price < PREV(down.price),\n"
+        + "      up as up.price > prev(up.price)\n"
+        + "  ) mr";
+    final String expected = "SELECT *\n"
+        + "FROM `T` MATCH_RECOGNIZE(\n"
+        + "PATTERN (((`STRT` (`DOWN` { , 2 })) (`UP` { 3, 5 })))\n"
+        + "DEFINE "
+        + "`DOWN` AS (`DOWN`.`PRICE` < PREV(`DOWN`.`PRICE`, 1)), "
+        + "`UP` AS (`UP`.`PRICE` > PREV(`UP`.`PRICE`, 1))"
+        + ") AS `MR`";
+    sql(sql).ok(expected);
+  }
+
+  @Test public void testMatchRecognize9() {
+    final String sql = "select *\n"
+        + "  from t match_recognize\n"
+        + "  (\n"
+        + "    pattern (strt {-down+-} {-up*-})\n"
+        + "    define\n"
+        + "      down as down.price < PREV(down.price),\n"
+        + "      up as up.price > prev(up.price)\n"
+        + "  ) mr";
+    final String expected = "SELECT *\n"
+        + "FROM `T` MATCH_RECOGNIZE(\n"
+        + "PATTERN (((`STRT` ({- (`DOWN` +) -})) ({- (`UP` *) -})))\n"
+        + "DEFINE "
+        + "`DOWN` AS (`DOWN`.`PRICE` < PREV(`DOWN`.`PRICE`, 1)), "
+        + "`UP` AS (`UP`.`PRICE` > PREV(`UP`.`PRICE`, 1))"
+        + ") AS `MR`";
+    sql(sql).ok(expected);
+  }
+
+  @Test public void testMatchRecognize10() {
+    final String sql = "select *\n"
+        + "  from t match_recognize\n"
+        + "  (\n"
+        + "    pattern ( A B C | A C B | B A C | B C A | C A B | C B A)\n"
+        + "    define\n"
+        + "      A as A.price > PREV(A.price),\n"
+        + "      B as B.price < prev(B.price),\n"
+        + "      C as C.price > prev(C.price)\n"
+        + "  ) mr";
+    final String expected = "SELECT *\n"
+        + "FROM `T` MATCH_RECOGNIZE(\n"
+        + "PATTERN ((((((((`A` `B`) `C`) | ((`A` `C`) `B`)) | ((`B` `A`) `C`)) "
+        + "| ((`B` `C`) `A`)) | ((`C` `A`) `B`)) | ((`C` `B`) `A`)))\n"
+        + "DEFINE "
+        + "`A` AS (`A`.`PRICE` > PREV(`A`.`PRICE`, 1)), "
+        + "`B` AS (`B`.`PRICE` < PREV(`B`.`PRICE`, 1)), "
+        + "`C` AS (`C`.`PRICE` > PREV(`C`.`PRICE`, 1))"
+        + ") AS `MR`";
+    sql(sql).ok(expected);
+  }
+
+  @Test public void testMatchRecognize11() {
+    final String sql = "select *\n"
+        + "  from t match_recognize (\n"
+        + "    pattern ( \"a\" \"b c\")\n"
+        + "    define\n"
+        + "      \"A\" as A.price > PREV(A.price),\n"
+        + "      \"b c\" as \"b c\".foo\n"
+        + "  ) as mr(c1, c2) join e as x on foo = baz";
+    final String expected = "SELECT *\n"
+        + "FROM `T` MATCH_RECOGNIZE(\n"
+        + "PATTERN ((`a` `b c`))\n"
+        + "DEFINE `A` AS (`A`.`PRICE` > PREV(`A`.`PRICE`, 1)),"
+        + " `b c` AS `b c`.`FOO`) AS `MR` (`C1`, `C2`)\n"
+        + "INNER JOIN `E` AS `X` ON (`FOO` = `BAZ`)";
+    sql(sql).ok(expected);
+  }
+
+  @Test public void testMatchRecognizeDefineClause() {
+    final String sql = "select *\n"
+        + "  from t match_recognize\n"
+        + "  (\n"
+        + "    pattern (strt down+ up+)\n"
+        + "    define\n"
+        + "      down as down.price < PREV(down.price),\n"
+        + "      up as up.price > NEXT(up.price)\n"
+        + "  ) mr";
+    final String expected = "SELECT *\n"
+        + "FROM `T` MATCH_RECOGNIZE(\n"
+        + "PATTERN (((`STRT` (`DOWN` +)) (`UP` +)))\n"
+        + "DEFINE "
+        + "`DOWN` AS (`DOWN`.`PRICE` < PREV(`DOWN`.`PRICE`, 1)), "
+        + "`UP` AS (`UP`.`PRICE` > NEXT(`UP`.`PRICE`, 1))"
+        + ") AS `MR`";
+    sql(sql).ok(expected);
+  }
+
+  @Test public void testMatchRecognizeDefineClause2() {
+    final String sql = "select *\n"
+        + "  from t match_recognize\n"
+        + "  (\n"
+        + "    pattern (strt down+ up+)\n"
+        + "    define\n"
+        + "      down as down.price < FIRST(down.price),\n"
+        + "      up as up.price > LAST(up.price)\n"
+        + "  ) mr";
+    final String expected = "SELECT *\n"
+        + "FROM `T` MATCH_RECOGNIZE(\n"
+        + "PATTERN (((`STRT` (`DOWN` +)) (`UP` +)))\n"
+        + "DEFINE `DOWN` AS (`DOWN`.`PRICE` < FIRST(`DOWN`.`PRICE`, 0)), "
+        + "`UP` AS (`UP`.`PRICE` > LAST(`UP`.`PRICE`, 0))"
+        + ") AS `MR`";
+    sql(sql).ok(expected);
+  }
+
+  @Test public void testMatchRecognizeDefineClause3() {
+    final String sql = "select *\n"
+        + "  from t match_recognize\n"
+        + "  (\n"
+        + "    pattern (strt down+ up+)\n"
+        + "    define\n"
+        + "      down as down.price < PREV(down.price,1),\n"
+        + "      up as up.price > LAST(up.price + up.TAX)\n"
+        + "  ) mr";
+    final String expected = "SELECT *\n"
+        + "FROM `T` MATCH_RECOGNIZE(\n"
+        + "PATTERN (((`STRT` (`DOWN` +)) (`UP` +)))\n"
+        + "DEFINE "
+        + "`DOWN` AS (`DOWN`.`PRICE` < PREV(`DOWN`.`PRICE`, 1)), "
+        + "`UP` AS (`UP`.`PRICE` > LAST((`UP`.`PRICE` + `UP`.`TAX`), 0))"
+        + ") AS `MR`";
+    sql(sql).ok(expected);
+  }
+
+  @Test public void testMatchRecognizeDefineClause4() {
+    final String sql = "select *\n"
+        + "  from t match_recognize\n"
+        + "  (\n"
+        + "    pattern (strt down+ up+)\n"
+        + "    define\n"
+        + "      down as down.price < PREV(down.price,1),\n"
+        + "      up as up.price > PREV(LAST(up.price + up.TAX),3)\n"
+        + "  ) mr";
+    final String expected = "SELECT *\n"
+        + "FROM `T` MATCH_RECOGNIZE(\n"
+        + "PATTERN (((`STRT` (`DOWN` +)) (`UP` +)))\n"
+        + "DEFINE `DOWN` AS (`DOWN`.`PRICE` < PREV(`DOWN`.`PRICE`, 1)), "
+        + "`UP` AS (`UP`.`PRICE` > PREV(LAST((`UP`.`PRICE` + `UP`.`TAX`), 0), 3))"
+        + ") AS `MR`";
+    sql(sql).ok(expected);
+  }
+
+  @Test public void testMatchRecognizeMeasures1() {
+    final String sql = "select *\n"
+        + "  from t match_recognize\n"
+        + "  (\n"
+        + "   measures STRT.ts as start_ts,"
+        + "   LAST(DOWN.ts) as bottom_ts,"
+        + "   LAST(up.ts) as end_ts"
+        + "    pattern (strt down+ up+)\n"
+        + "    define\n"
+        + "      down as down.price < PREV(down.price),\n"
+        + "      up as up.price > prev(up.price)\n"
+        + "  ) mr";
+    final String expected = "SELECT *\n"
+        + "FROM `T` MATCH_RECOGNIZE(\n"
+        + "MEASURES `STRT`.`TS` AS `START_TS`, "
+        + "LAST(`DOWN`.`TS`, 0) AS `BOTTOM_TS`, "
+        + "LAST(`UP`.`TS`, 0) AS `END_TS`\n"
+        + "PATTERN (((`STRT` (`DOWN` +)) (`UP` +)))\n"
+        + "DEFINE `DOWN` AS (`DOWN`.`PRICE` < PREV(`DOWN`.`PRICE`, 1)), "
+        + "`UP` AS (`UP`.`PRICE` > PREV(`UP`.`PRICE`, 1))"
+        + ") AS `MR`";
+    sql(sql).ok(expected);
+  }
+
+  @Test public void testMatchRecognizeMeasures2() {
+    final String sql = "select *\n"
+        + "  from t match_recognize\n"
+        + "  (\n"
+        + "   measures STRT.ts as start_ts,"
+        + "  FINAL LAST(DOWN.ts) as bottom_ts,"
+        + "   LAST(up.ts) as end_ts"
+        + "    pattern (strt down+ up+)\n"
+        + "    define\n"
+        + "      down as down.price < PREV(down.price),\n"
+        + "      up as up.price > prev(up.price)\n"
+        + "  ) mr";
+    final String expected = "SELECT *\n"
+        + "FROM `T` MATCH_RECOGNIZE(\n"
+        + "MEASURES `STRT`.`TS` AS `START_TS`, "
+        + "FINAL LAST(`DOWN`.`TS`, 0) AS `BOTTOM_TS`, "
+        + "LAST(`UP`.`TS`, 0) AS `END_TS`\n"
+        + "PATTERN (((`STRT` (`DOWN` +)) (`UP` +)))\n"
+        + "DEFINE `DOWN` AS (`DOWN`.`PRICE` < PREV(`DOWN`.`PRICE`, 1)), "
+        + "`UP` AS (`UP`.`PRICE` > PREV(`UP`.`PRICE`, 1))"
+        + ") AS `MR`";
+    sql(sql).ok(expected);
+  }
+
+  @Test public void testMatchRecognizeMeasures3() {
+    final String sql = "select *\n"
+        + "  from t match_recognize\n"
+        + "  (\n"
+        + "   measures STRT.ts as start_ts,"
+        + "  RUNNING LAST(DOWN.ts) as bottom_ts,"
+        + "   LAST(up.ts) as end_ts"
+        + "    pattern (strt down+ up+)\n"
+        + "    define\n"
+        + "      down as down.price < PREV(down.price),\n"
+        + "      up as up.price > prev(up.price)\n"
+        + "  ) mr";
+    final String expected = "SELECT *\n"
+        + "FROM `T` MATCH_RECOGNIZE(\n"
+        + "MEASURES `STRT`.`TS` AS `START_TS`, "
+        + "RUNNING LAST(`DOWN`.`TS`, 0) AS `BOTTOM_TS`, "
+        + "LAST(`UP`.`TS`, 0) AS `END_TS`\n"
+        + "PATTERN (((`STRT` (`DOWN` +)) (`UP` +)))\n"
+        + "DEFINE `DOWN` AS (`DOWN`.`PRICE` < PREV(`DOWN`.`PRICE`, 1)), "
+        + "`UP` AS (`UP`.`PRICE` > PREV(`UP`.`PRICE`, 1))"
+        + ") AS `MR`";
+    sql(sql).ok(expected);
+  }
+
+  @Test public void testMatchRecognizeMeasures4() {
+    final String sql = "select *\n"
+        + "  from t match_recognize\n"
+        + "  (\n"
+        + "   measures "
+        + "  FINAL count(up.ts) as up_ts,"
+        + "  FINAL count(ts) as total_ts,"
+        + "  RUNNING count(ts) as cnt_ts,"
+        + "  price - strt.price as price_dif"
+        + "    pattern (strt down+ up+)\n"
+        + "    define\n"
+        + "      down as down.price < PREV(down.price),\n"
+        + "      up as up.price > prev(up.price)\n"
+        + "  ) mr";
+    final String expected = "SELECT *\n"
+        + "FROM `T` MATCH_RECOGNIZE(\n"
+        + "MEASURES FINAL COUNT(`UP`.`TS`) AS `UP_TS`, "
+        + "FINAL COUNT(`TS`) AS `TOTAL_TS`, "
+        + "RUNNING COUNT(`TS`) AS `CNT_TS`, "
+        + "(`PRICE` - `STRT`.`PRICE`) AS `PRICE_DIF`\n"
+        + "PATTERN (((`STRT` (`DOWN` +)) (`UP` +)))\n"
+        + "DEFINE `DOWN` AS (`DOWN`.`PRICE` < PREV(`DOWN`.`PRICE`, 1)), "
+        + "`UP` AS (`UP`.`PRICE` > PREV(`UP`.`PRICE`, 1))) AS `MR`";
+    sql(sql).ok(expected);
+  }
+
+  @Test public void testMatchRecognizeMeasures5() {
+    final String sql = "select *\n"
+        + "  from t match_recognize\n"
+        + "  (\n"
+        + "   measures "
+        + "  FIRST(STRT.ts) as strt_ts,"
+        + "  LAST(DOWN.ts) as down_ts,"
+        + "  AVG(DOWN.ts) as avg_down_ts"
+        + "    pattern (strt down+ up+)\n"
+        + "    define\n"
+        + "      down as down.price < PREV(down.price),\n"
+        + "      up as up.price > prev(up.price)\n"
+        + "  ) mr";
+    final String expected = "SELECT *\n"
+        + "FROM `T` MATCH_RECOGNIZE(\n"
+        + "MEASURES FIRST(`STRT`.`TS`, 0) AS `STRT_TS`, "
+        + "LAST(`DOWN`.`TS`, 0) AS `DOWN_TS`, "
+        + "AVG(`DOWN`.`TS`) AS `AVG_DOWN_TS`\n"
+        + "PATTERN (((`STRT` (`DOWN` +)) (`UP` +)))\n"
+        + "DEFINE `DOWN` AS (`DOWN`.`PRICE` < PREV(`DOWN`.`PRICE`, 1)), "
+        + "`UP` AS (`UP`.`PRICE` > PREV(`UP`.`PRICE`, 1))"
+        + ") AS `MR`";
+    sql(sql).ok(expected);
+  }
+
+  @Test public void testMatchRecognizeMeasures6() {
+    final String sql = "select *\n"
+        + "  from t match_recognize\n"
+        + "  (\n"
+        + "   measures "
+        + "  FIRST(STRT.ts) as strt_ts,"
+        + "  LAST(DOWN.ts) as down_ts,"
+        + "  FINAL SUM(DOWN.ts) as sum_down_ts"
+        + "    pattern (strt down+ up+)\n"
+        + "    define\n"
+        + "      down as down.price < PREV(down.price),\n"
+        + "      up as up.price > prev(up.price)\n"
+        + "  ) mr";
+    final String expected = "SELECT *\n"
+        + "FROM `T` MATCH_RECOGNIZE(\n"
+        + "MEASURES FIRST(`STRT`.`TS`, 0) AS `STRT_TS`, "
+        + "LAST(`DOWN`.`TS`, 0) AS `DOWN_TS`, "
+        + "FINAL SUM(`DOWN`.`TS`) AS `SUM_DOWN_TS`\n"
+        + "PATTERN (((`STRT` (`DOWN` +)) (`UP` +)))\n"
+        + "DEFINE `DOWN` AS (`DOWN`.`PRICE` < PREV(`DOWN`.`PRICE`, 1)), "
+        + "`UP` AS (`UP`.`PRICE` > PREV(`UP`.`PRICE`, 1))"
+        + ") AS `MR`";
+    sql(sql).ok(expected);
+  }
+
+  @Test public void testMatchRecognizePatternSkip1() {
+    final String sql = "select *\n"
+        + "  from t match_recognize\n"
+        + "  (\n"
+        + "     after match skip to next row\n"
+        + "    pattern (strt down+ up+)\n"
+        + "    define\n"
+        + "      down as down.price < PREV(down.price),\n"
+        + "      up as up.price > prev(up.price)\n"
+        + "  ) mr";
+    final String expected = "SELECT *\n"
+        + "FROM `T` MATCH_RECOGNIZE(\n"
+        + "AFTER MATCH SKIP TO NEXT ROW\n"
+        + "PATTERN (((`STRT` (`DOWN` +)) (`UP` +)))\n"
+        + "DEFINE "
+        + "`DOWN` AS (`DOWN`.`PRICE` < PREV(`DOWN`.`PRICE`, 1)), "
+        + "`UP` AS (`UP`.`PRICE` > PREV(`UP`.`PRICE`, 1))"
+        + ") AS `MR`";
+    sql(sql).ok(expected);
+  }
+
+  @Test public void testMatchRecognizePatternSkip2() {
+    final String sql = "select *\n"
+        + "  from t match_recognize\n"
+        + "  (\n"
+        + "     after match skip past last row\n"
+        + "    pattern (strt down+ up+)\n"
+        + "    define\n"
+        + "      down as down.price < PREV(down.price),\n"
+        + "      up as up.price > prev(up.price)\n"
+        + "  ) mr";
+    final String expected = "SELECT *\n"
+        + "FROM `T` MATCH_RECOGNIZE(\n"
+        + "AFTER MATCH SKIP PAST LAST ROW\n"
+        + "PATTERN (((`STRT` (`DOWN` +)) (`UP` +)))\n"
+        + "DEFINE "
+        + "`DOWN` AS (`DOWN`.`PRICE` < PREV(`DOWN`.`PRICE`, 1)), "
+        + "`UP` AS (`UP`.`PRICE` > PREV(`UP`.`PRICE`, 1))"
+        + ") AS `MR`";
+    sql(sql).ok(expected);
+  }
+
+  @Test public void testMatchRecognizePatternSkip3() {
+    final String sql = "select *\n"
+        + "  from t match_recognize\n"
+        + "  (\n"
+        + "     after match skip to FIRST down\n"
+        + "    pattern (strt down+ up+)\n"
+        + "    define\n"
+        + "      down as down.price < PREV(down.price),\n"
+        + "      up as up.price > prev(up.price)\n"
+        + "  ) mr";
+    final String expected = "SELECT *\n"
+        + "FROM `T` MATCH_RECOGNIZE(\n"
+        + "AFTER MATCH SKIP TO FIRST `DOWN`\n"
+        + "PATTERN (((`STRT` (`DOWN` +)) (`UP` +)))\n"
+        + "DEFINE "
+        + "`DOWN` AS (`DOWN`.`PRICE` < PREV(`DOWN`.`PRICE`, 1)), "
+        + "`UP` AS (`UP`.`PRICE` > PREV(`UP`.`PRICE`, 1))"
+        + ") AS `MR`";
+    sql(sql).ok(expected);
+  }
+
+  @Test public void testMatchRecognizePatternSkip4() {
+    final String sql = "select *\n"
+        + "  from t match_recognize\n"
+        + "  (\n"
+        + "     after match skip to LAST down\n"
+        + "    pattern (strt down+ up+)\n"
+        + "    define\n"
+        + "      down as down.price < PREV(down.price),\n"
+        + "      up as up.price > prev(up.price)\n"
+        + "  ) mr";
+    final String expected = "SELECT *\n"
+        + "FROM `T` MATCH_RECOGNIZE(\n"
+        + "AFTER MATCH SKIP TO LAST `DOWN`\n"
+        + "PATTERN (((`STRT` (`DOWN` +)) (`UP` +)))\n"
+        + "DEFINE "
+        + "`DOWN` AS (`DOWN`.`PRICE` < PREV(`DOWN`.`PRICE`, 1)), "
+        + "`UP` AS (`UP`.`PRICE` > PREV(`UP`.`PRICE`, 1))"
+        + ") AS `MR`";
+    sql(sql).ok(expected);
+  }
+
+  @Test public void testMatchRecognizePatternSkip5() {
+    final String sql = "select *\n"
+        + "  from t match_recognize\n"
+        + "  (\n"
+        + "     after match skip to down\n"
+        + "    pattern (strt down+ up+)\n"
+        + "    define\n"
+        + "      down as down.price < PREV(down.price),\n"
+        + "      up as up.price > prev(up.price)\n"
+        + "  ) mr";
+    final String expected = "SELECT *\n"
+        + "FROM `T` MATCH_RECOGNIZE(\n"
+        + "AFTER MATCH SKIP TO LAST `DOWN`\n"
+        + "PATTERN (((`STRT` (`DOWN` +)) (`UP` +)))\n"
+        + "DEFINE "
+        + "`DOWN` AS (`DOWN`.`PRICE` < PREV(`DOWN`.`PRICE`, 1)), "
+        + "`UP` AS (`UP`.`PRICE` > PREV(`UP`.`PRICE`, 1))"
+        + ") AS `MR`";
+    sql(sql).ok(expected);
+  }
+
+  @Test public void testMatchRecognizeSubset1() {
+    final String sql = "select *\n"
+        + "  from t match_recognize\n"
+        + "  (\n"
+        + "    pattern (strt down+ up+)\n"
+        + "    subset stdn = (strt, down)"
+        + "    define\n"
+        + "      down as down.price < PREV(down.price),\n"
+        + "      up as up.price > prev(up.price)\n"
+        + "  ) mr";
+    final String expected = "SELECT *\n"
+        + "FROM `T` MATCH_RECOGNIZE(\n"
+        + "PATTERN (((`STRT` (`DOWN` +)) (`UP` +)))\n"
+        + "SUBSET (`STDN` = (`STRT`, `DOWN`))\n"
+        + "DEFINE "
+        + "`DOWN` AS (`DOWN`.`PRICE` < PREV(`DOWN`.`PRICE`, 1)), "
+        + "`UP` AS (`UP`.`PRICE` > PREV(`UP`.`PRICE`, 1))"
+        + ") AS `MR`";
+    sql(sql).ok(expected);
+  }
+
+  @Test public void testMatchRecognizeSubset2() {
+    final String sql = "select *\n"
+        + "  from t match_recognize\n"
+        + "  (\n"
+        + "   measures STRT.ts as start_ts,"
+        + "   LAST(DOWN.ts) as bottom_ts,"
+        + "   AVG(stdn.price) as stdn_avg"
+        + "    pattern (strt down+ up+)\n"
+        + "    subset stdn = (strt, down)\n"
+        + "    define\n"
+        + "      down as down.price < PREV(down.price),\n"
+        + "      up as up.price > prev(up.price)\n"
+        + "  ) mr";
+    final String expected = "SELECT *\n"
+        + "FROM `T` MATCH_RECOGNIZE(\n"
+        + "MEASURES `STRT`.`TS` AS `START_TS`, "
+        + "LAST(`DOWN`.`TS`, 0) AS `BOTTOM_TS`, "
+        + "AVG(`STDN`.`PRICE`) AS `STDN_AVG`\n"
+        + "PATTERN (((`STRT` (`DOWN` +)) (`UP` +)))\n"
+        + "SUBSET (`STDN` = (`STRT`, `DOWN`))\n"
+        + "DEFINE `DOWN` AS (`DOWN`.`PRICE` < PREV(`DOWN`.`PRICE`, 1)), "
+        + "`UP` AS (`UP`.`PRICE` > PREV(`UP`.`PRICE`, 1))"
+        + ") AS `MR`";
+    sql(sql).ok(expected);
+  }
+
+  @Test public void testMatchRecognizeSubset3() {
+    final String sql = "select *\n"
+        + "  from t match_recognize\n"
+        + "  (\n"
+        + "   measures STRT.ts as start_ts,"
+        + "   LAST(DOWN.ts) as bottom_ts,"
+        + "   AVG(stdn.price) as stdn_avg"
+        + "    pattern (strt down+ up+)\n"
+        + "    subset stdn = (strt, down), stdn2 = (strt, down)\n"
+        + "    define\n"
+        + "      down as down.price < PREV(down.price),\n"
+        + "      up as up.price > prev(up.price)\n"
+        + "  ) mr";
+    final String expected = "SELECT *\n"
+        + "FROM `T` MATCH_RECOGNIZE(\n"
+        + "MEASURES `STRT`.`TS` AS `START_TS`, "
+        + "LAST(`DOWN`.`TS`, 0) AS `BOTTOM_TS`, "
+        + "AVG(`STDN`.`PRICE`) AS `STDN_AVG`\n"
+        + "PATTERN (((`STRT` (`DOWN` +)) (`UP` +)))\n"
+        + "SUBSET (`STDN` = (`STRT`, `DOWN`)), (`STDN2` = (`STRT`, `DOWN`))\n"
+        + "DEFINE `DOWN` AS (`DOWN`.`PRICE` < PREV(`DOWN`.`PRICE`, 1)), "
+        + "`UP` AS (`UP`.`PRICE` > PREV(`UP`.`PRICE`, 1))"
+        + ") AS `MR`";
+    sql(sql).ok(expected);
+  }
+
+  @Test public void testMatchRecognizeRowsPerMatch1() {
+    final String sql = "select *\n"
+        + "  from t match_recognize\n"
+        + "  (\n"
+        + "   measures STRT.ts as start_ts,"
+        + "   LAST(DOWN.ts) as bottom_ts,"
+        + "   AVG(stdn.price) as stdn_avg"
+        + "   ONE ROW PER MATCH"
+        + "    pattern (strt down+ up+)\n"
+        + "    subset stdn = (strt, down), stdn2 = (strt, down)\n"
+        + "    define\n"
+        + "      down as down.price < PREV(down.price),\n"
+        + "      up as up.price > prev(up.price)\n"
+        + "  ) mr";
+    final String expected = "SELECT *\n"
+        + "FROM `T` MATCH_RECOGNIZE(\n"
+        + "MEASURES `STRT`.`TS` AS `START_TS`, "
+        + "LAST(`DOWN`.`TS`, 0) AS `BOTTOM_TS`, "
+        + "AVG(`STDN`.`PRICE`) AS `STDN_AVG`\n"
+        + "ONE ROW PER MATCH\n"
+        + "PATTERN (((`STRT` (`DOWN` +)) (`UP` +)))\n"
+        + "SUBSET (`STDN` = (`STRT`, `DOWN`)), (`STDN2` = (`STRT`, `DOWN`))\n"
+        + "DEFINE `DOWN` AS (`DOWN`.`PRICE` < PREV(`DOWN`.`PRICE`, 1)), "
+        + "`UP` AS (`UP`.`PRICE` > PREV(`UP`.`PRICE`, 1))"
+        + ") AS `MR`";
+    sql(sql).ok(expected);
+  }
+
+  @Test public void testMatchRecognizeRowsPerMatch2() {
+    final String sql = "select *\n"
+        + "  from t match_recognize\n"
+        + "  (\n"
+        + "   measures STRT.ts as start_ts,"
+        + "   LAST(DOWN.ts) as bottom_ts,"
+        + "   AVG(stdn.price) as stdn_avg"
+        + "   ALL ROWS PER MATCH"
+        + "    pattern (strt down+ up+)\n"
+        + "    subset stdn = (strt, down), stdn2 = (strt, down)\n"
+        + "    define\n"
+        + "      down as down.price < PREV(down.price),\n"
+        + "      up as up.price > prev(up.price)\n"
+        + "  ) mr";
+    final String expected = "SELECT *\n"
+        + "FROM `T` MATCH_RECOGNIZE(\n"
+        + "MEASURES `STRT`.`TS` AS `START_TS`, "
+        + "LAST(`DOWN`.`TS`, 0) AS `BOTTOM_TS`, "
+        + "AVG(`STDN`.`PRICE`) AS `STDN_AVG`\n"
+        + "ALL ROWS PER MATCH\n"
+        + "PATTERN (((`STRT` (`DOWN` +)) (`UP` +)))\n"
+        + "SUBSET (`STDN` = (`STRT`, `DOWN`)), (`STDN2` = (`STRT`, `DOWN`))\n"
+        + "DEFINE `DOWN` AS (`DOWN`.`PRICE` < PREV(`DOWN`.`PRICE`, 1)), "
+        + "`UP` AS (`UP`.`PRICE` > PREV(`UP`.`PRICE`, 1))"
+        + ") AS `MR`";
+    sql(sql).ok(expected);
   }
 
   //~ Inner Interfaces -------------------------------------------------------
@@ -6757,6 +7912,8 @@ public class SqlParserTest {
     void checkFails(String sql, String expectedMsgPattern);
 
     void checkExpFails(String sql, String expectedMsgPattern);
+
+    void checkNode(String sql, Matcher<SqlNode> matcher);
   }
 
   //~ Inner Classes ----------------------------------------------------------
@@ -6781,13 +7938,9 @@ public class SqlParserTest {
     protected SqlNode parseStmtAndHandleEx(String sql) {
       final SqlNode sqlNode;
       try {
-        sqlNode = parseStmt(sql);
+        sqlNode = getSqlParser(sql).parseStmt();
       } catch (SqlParseException e) {
-        e.printStackTrace();
-        String message = "Received error while parsing SQL '" + sql
-            + "'; error is:\n"
-            + e.toString();
-        throw new AssertionError(message);
+        throw new RuntimeException("Error while parsing SQL: " + sql, e);
       }
       return sqlNode;
     }
@@ -6806,12 +7959,9 @@ public class SqlParserTest {
     protected SqlNode parseExpressionAndHandleEx(String sql) {
       final SqlNode sqlNode;
       try {
-        sqlNode = parseExpression(sql);
+        sqlNode = getSqlParser(sql).parseExpression();
       } catch (SqlParseException e) {
-        String message = "Received error while parsing SQL '" + sql
-            + "'; error is:\n"
-            + e.toString();
-        throw new RuntimeException(message, e);
+        throw new RuntimeException("Error while parsing expression: " + sql, e);
       }
       return sqlNode;
     }
@@ -6822,13 +7972,23 @@ public class SqlParserTest {
       SqlParserUtil.StringAndPos sap = SqlParserUtil.findPos(sql);
       Throwable thrown = null;
       try {
-        final SqlNode sqlNode = parseStmt(sap.sql);
+        final SqlNode sqlNode = getSqlParser(sap.sql).parseStmt();
         Util.discard(sqlNode);
       } catch (Throwable ex) {
         thrown = ex;
       }
 
       SqlValidatorTestCase.checkEx(thrown, expectedMsgPattern, sap);
+    }
+
+    public void checkNode(String sql, Matcher<SqlNode> matcher) {
+      SqlParserUtil.StringAndPos sap = SqlParserUtil.findPos(sql);
+      try {
+        final SqlNode sqlNode = getSqlParser(sap.sql).parseStmt();
+        assertThat(sqlNode, matcher);
+      } catch (SqlParseException e) {
+        throw new RuntimeException(e);
+      }
     }
 
     /**
@@ -6841,7 +8001,7 @@ public class SqlParserTest {
       SqlParserUtil.StringAndPos sap = SqlParserUtil.findPos(sql);
       Throwable thrown = null;
       try {
-        final SqlNode sqlNode = parseExpression(sap.sql);
+        final SqlNode sqlNode = getSqlParser(sap.sql).parseExpression();
         Util.discard(sqlNode);
       } catch (Throwable ex) {
         thrown = ex;
@@ -6851,12 +8011,16 @@ public class SqlParserTest {
     }
   }
 
+  private boolean isNotSubclass() {
+    return this.getClass().equals(SqlParserTest.class);
+  }
+
   /**
    * Implementation of {@link Tester} which makes sure that the results of
    * unparsing a query are consistent with the original query.
    */
   public class UnparsingTesterImpl extends TesterImpl {
-    public void check(String sql, String expected) {
+    @Override public void check(String sql, String expected) {
       SqlNode sqlNode = parseStmtAndHandleEx(sql);
 
       // Unparse with no dialect, always parenthesize.
@@ -6890,7 +8054,7 @@ public class SqlParserTest {
       assertEquals(expected, linux(actual2));
     }
 
-    public void checkExp(String sql, String expected) {
+    @Override public void checkExp(String sql, String expected) {
       SqlNode sqlNode = parseExpressionAndHandleEx(sql);
 
       // Unparse with no dialect, always parenthesize.
@@ -6924,11 +8088,11 @@ public class SqlParserTest {
       assertEquals(expected, linux(actual2));
     }
 
-    public void checkFails(String sql, String expectedMsgPattern) {
+    @Override public void checkFails(String sql, String expectedMsgPattern) {
       // Do nothing. We're not interested in unparsing invalid SQL
     }
 
-    public void checkExpFails(String sql, String expectedMsgPattern) {
+    @Override public void checkExpFails(String sql, String expectedMsgPattern) {
       // Do nothing. We're not interested in unparsing invalid SQL
     }
   }
@@ -6942,19 +8106,49 @@ public class SqlParserTest {
 
   /** Helper class for building fluent code such as
    * {@code sql("values 1").ok();}. */
-  private class Sql {
+  protected class Sql {
     private final String sql;
 
     Sql(String sql) {
       this.sql = sql;
     }
 
-    public void ok(String expected) {
+    public Sql ok(String expected) {
       getTester().check(sql, expected);
+      return this;
     }
 
-    public void fails(String expectedMsgPattern) {
+    public Sql fails(String expectedMsgPattern) {
       getTester().checkFails(sql, expectedMsgPattern);
+      return this;
+    }
+
+    public Sql node(Matcher<SqlNode> matcher) {
+      getTester().checkNode(sql, matcher);
+      return this;
+    }
+  }
+
+  /** Runs tests on period operators such as OVERLAPS, IMMEDIATELY PRECEDES. */
+  private class Checker {
+    final String op;
+    final String period;
+
+    Checker(String op, String period) {
+      this.op = op;
+      this.period = period;
+    }
+
+    public void checkExp(String sql, String expected) {
+      SqlParserTest.this.checkExp(
+          sql.replace("$op", op).replace("$p", period),
+          expected.replace("$op", op.toUpperCase(Locale.ROOT)));
+    }
+
+    public void checkExpFails(String sql, String expected) {
+      SqlParserTest.this.checkExpFails(
+          sql.replace("$op", op).replace("$p", period),
+          expected.replace("$op", op));
     }
   }
 }

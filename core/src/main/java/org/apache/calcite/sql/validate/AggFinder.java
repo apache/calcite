@@ -45,6 +45,10 @@ class AggFinder extends SqlBasicVisitor<Void> {
   /** Whether to find regular (non-windowed) aggregates. */
   private boolean aggregate;
 
+  /** Whether to find group functions (e.g. {@code TUMBLE})
+   * or group auxiliary functions (e.g. {@code TUMBLE_START}). */
+  private boolean group;
+
   private final AggFinder delegate;
 
   //~ Constructors -----------------------------------------------------------
@@ -56,14 +60,15 @@ class AggFinder extends SqlBasicVisitor<Void> {
    * @param over Whether to find windowed function calls {@code agg(x) OVER
    *             windowSpec}
    * @param aggregate Whether to find non-windowed aggregate calls
+   * @param group Whether to find group functions (e.g. {@code TUMBLE})
    * @param delegate Finder to which to delegate when processing the arguments
-   *                  to a non-windowed aggregate
    */
   AggFinder(SqlOperatorTable opTab, boolean over, boolean aggregate,
-      AggFinder delegate) {
+      boolean group, AggFinder delegate) {
     this.opTab = opTab;
     this.over = over;
     this.aggregate = aggregate;
+    this.group = group;
     this.delegate = delegate;
   }
 
@@ -75,17 +80,17 @@ class AggFinder extends SqlBasicVisitor<Void> {
    * @param node Parse tree to search
    * @return First aggregate function in parse tree, or null if not found
    */
-  public SqlNode findAgg(SqlNode node) {
+  public SqlCall findAgg(SqlNode node) {
     try {
       node.accept(this);
       return null;
     } catch (Util.FoundOne e) {
       Util.swallow(e, null);
-      return (SqlNode) e.getNode();
+      return (SqlCall) e.getNode();
     }
   }
 
-  public SqlNode findAgg(List<SqlNode> nodes) {
+  public SqlCall findAgg(List<SqlNode> nodes) {
     try {
       for (SqlNode node : nodes) {
         node.accept(this);
@@ -93,20 +98,23 @@ class AggFinder extends SqlBasicVisitor<Void> {
       return null;
     } catch (Util.FoundOne e) {
       Util.swallow(e, null);
-      return (SqlNode) e.getNode();
+      return (SqlCall) e.getNode();
     }
   }
 
   public Void visit(SqlCall call) {
     final SqlOperator operator = call.getOperator();
     // If nested aggregates disallowed or found an aggregate at invalid level
-    if (operator.isAggregator()) {
+    if (operator.isAggregator() && !operator.requiresOver()) {
       if (delegate != null) {
-        return call.getOperator().acceptCall(delegate, call);
+        return operator.acceptCall(delegate, call);
       }
       if (aggregate) {
         throw new Util.FoundOne(call);
       }
+    }
+    if (group && operator.isGroup()) {
+      throw new Util.FoundOne(call);
     }
     // User-defined function may not be resolved yet.
     if (operator instanceof SqlFunction) {
@@ -115,8 +123,8 @@ class AggFinder extends SqlBasicVisitor<Void> {
         final List<SqlOperator> list = Lists.newArrayList();
         opTab.lookupOperatorOverloads(sqlFunction.getSqlIdentifier(),
             sqlFunction.getFunctionType(), SqlSyntax.FUNCTION, list);
-        for (SqlOperator sqlOperator : list) {
-          if (sqlOperator.isAggregator()) {
+        for (SqlOperator operator2 : list) {
+          if (operator2.isAggregator() && !operator2.requiresOver()) {
             // If nested aggregates disallowed or found aggregate at invalid level
             if (aggregate) {
               throw new Util.FoundOne(call);

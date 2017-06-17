@@ -34,9 +34,6 @@ import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Pair;
-import org.apache.calcite.util.Permutation;
-
-import com.google.common.collect.ImmutableMap;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -109,21 +106,18 @@ public class AggregateProjectPullUpConstantsRule extends RelOptRule {
     }
 
     final RexBuilder rexBuilder = aggregate.getCluster().getRexBuilder();
-    final RelMetadataQuery mq = RelMetadataQuery.instance();
+    final RelMetadataQuery mq = call.getMetadataQuery();
     final RelOptPredicateList predicates =
         mq.getPulledUpPredicates(aggregate.getInput());
     if (predicates == null) {
       return;
     }
-    final ImmutableMap<RexNode, RexNode> constants =
-        ReduceExpressionsRule.predicateConstants(RexNode.class, rexBuilder,
-            predicates);
     final NavigableMap<Integer, RexNode> map = new TreeMap<>();
     for (int key : aggregate.getGroupSet()) {
       final RexInputRef ref =
           rexBuilder.makeInputRef(aggregate.getInput(), key);
-      if (constants.containsKey(ref)) {
-        map.put(key, constants.get(ref));
+      if (predicates.constantMap.containsKey(ref)) {
+        map.put(key, predicates.constantMap.get(ref));
       }
     }
 
@@ -151,57 +145,17 @@ public class AggregateProjectPullUpConstantsRule extends RelOptRule {
     // reduce the group count.
     final RelBuilder relBuilder = call.builder();
     relBuilder.push(input);
-    if (map.navigableKeySet().first() == newGroupCount) {
-      // Clone aggregate calls.
-      final List<AggregateCall> newAggCalls = new ArrayList<>();
-      for (AggregateCall aggCall : aggregate.getAggCallList()) {
-        newAggCalls.add(
-            aggCall.adaptTo(input, aggCall.getArgList(), aggCall.filterArg,
-                groupCount, newGroupCount));
-      }
-      relBuilder.aggregate(
-          relBuilder.groupKey(newGroupSet, false, null),
-          newAggCalls);
-    } else {
-      // Create the mapping from old field positions to new field
-      // positions.
-      final Permutation mapping =
-          new Permutation(input.getRowType().getFieldCount());
-      mapping.identity();
 
-      // Ensure that the first positions in the mapping are for the new
-      // group columns.
-      for (int i = 0, groupOrdinal = 0, constOrdinal = newGroupCount;
-          i < groupCount;
-          ++i) {
-        if (map.containsKey(i)) {
-          mapping.set(i, constOrdinal++);
-        } else {
-          mapping.set(i, groupOrdinal++);
-        }
-      }
-
-      // Adjust aggregate calls for new field positions.
-      final List<AggregateCall> newAggCalls = new ArrayList<>();
-      for (AggregateCall aggCall : aggregate.getAggCallList()) {
-        final int argCount = aggCall.getArgList().size();
-        final List<Integer> args = new ArrayList<>(argCount);
-        for (int j = 0; j < argCount; j++) {
-          final Integer arg = aggCall.getArgList().get(j);
-          args.add(mapping.getTarget(arg));
-        }
-        final int filterArg = aggCall.filterArg < 0 ? aggCall.filterArg
-            : mapping.getTarget(aggCall.filterArg);
-        newAggCalls.add(
-            aggCall.adaptTo(relBuilder.peek(), args, filterArg, groupCount,
-                newGroupCount));
-      }
-
-      // Aggregate on projection.
-      relBuilder.aggregate(
-          relBuilder.groupKey(newGroupSet, false, null),
-              newAggCalls);
+    // Clone aggregate calls.
+    final List<AggregateCall> newAggCalls = new ArrayList<>();
+    for (AggregateCall aggCall : aggregate.getAggCallList()) {
+      newAggCalls.add(
+          aggCall.adaptTo(input, aggCall.getArgList(), aggCall.filterArg,
+              groupCount, newGroupCount));
     }
+    relBuilder.aggregate(
+        relBuilder.groupKey(newGroupSet, false, null),
+        newAggCalls);
 
     // Create a projection back again.
     List<Pair<RexNode, String>> projects = new ArrayList<>();

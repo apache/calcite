@@ -28,7 +28,6 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.runtime.FlatLists;
-import org.apache.calcite.runtime.SqlFunctions;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.SqlKind;
@@ -43,15 +42,21 @@ import org.apache.calcite.sql.type.MultisetSqlType;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
+import org.apache.calcite.util.DateString;
 import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.Pair;
+import org.apache.calcite.util.TimeString;
+import org.apache.calcite.util.TimestampString;
 import org.apache.calcite.util.Util;
 
 import com.google.common.base.Function;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
 import java.math.BigDecimal;
+import java.math.MathContext;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
@@ -167,8 +172,7 @@ public class RexBuilder {
     final RelDataTypeField field =
         type.getField(fieldName, caseSensitive, false);
     if (field == null) {
-      throw Util.newInternal(
-          "Type '" + type + "' has no field '"
+      throw new AssertionError("Type '" + type + "' has no field '"
           + fieldName + "'");
     }
     return makeFieldAccessInternal(expr, field);
@@ -188,7 +192,7 @@ public class RexBuilder {
     final RelDataType type = expr.getType();
     final List<RelDataTypeField> fields = type.getFieldList();
     if ((i < 0) || (i >= fields.size())) {
-      throw Util.newInternal("Field ordinal " + i + " is invalid for "
+      throw new AssertionError("Field ordinal " + i + " is invalid for "
           + " type '" + type + "'");
     }
     return makeFieldAccessInternal(expr, fields.get(i));
@@ -333,7 +337,8 @@ public class RexBuilder {
       RexWindowBound upperBound,
       boolean physical,
       boolean allowPartial,
-      boolean nullWhenCountZero) {
+      boolean nullWhenCountZero,
+      boolean distinct) {
     assert operator != null;
     assert exprs != null;
     assert partitionKeys != null;
@@ -345,7 +350,7 @@ public class RexBuilder {
             lowerBound,
             upperBound,
             physical);
-    final RexOver over = new RexOver(type, operator, exprs, window);
+    final RexOver over = new RexOver(type, operator, exprs, window, distinct);
     RexNode result = over;
 
     // This should be correct but need time to go over test results.
@@ -361,19 +366,20 @@ public class RexBuilder {
                   bigintType,
                   SqlStdOperatorTable.COUNT,
                   exprs,
-                  window),
+                  window,
+                  distinct),
               makeLiteral(
                   BigDecimal.ZERO,
                   bigintType,
                   SqlTypeName.DECIMAL)),
           ensureType(type, // SUM0 is non-nullable, thus need a cast
               new RexOver(typeFactory.createTypeWithNullability(type, false),
-              operator, exprs, window),
+              operator, exprs, window, distinct),
               false),
           makeCast(type, constantNull()));
     }
     if (!allowPartial) {
-      Util.permAssert(physical, "DISALLOW PARTIAL over RANGE");
+      Preconditions.checkArgument(physical, "DISALLOW PARTIAL over RANGE");
       final RelDataType bigintType = getTypeFactory().createSqlType(
           SqlTypeName.BIGINT);
       // todo: read bound
@@ -386,7 +392,8 @@ public class RexBuilder {
                       bigintType,
                       SqlStdOperatorTable.COUNT,
                       ImmutableList.<RexNode>of(),
-                      window),
+                      window,
+                      distinct),
                   makeLiteral(
                       BigDecimal.valueOf(2),
                       bigintType,
@@ -492,23 +499,10 @@ public class RexBuilder {
     final SqlTypeName sqlType = type.getSqlTypeName();
     if (exp instanceof RexLiteral) {
       RexLiteral literal = (RexLiteral) exp;
-      Comparable value = literal.getValue();
+      Comparable value = literal.getValueAs(Comparable.class);
       SqlTypeName typeName = literal.getTypeName();
       if (canRemoveCastFromLiteral(type, value, typeName)) {
         switch (typeName) {
-        case TIMESTAMP:
-        case TIME:
-          assert value instanceof Calendar;
-          final Calendar calendar = (Calendar) value;
-          int scale = type.getScale();
-          if (scale == RelDataType.SCALE_NOT_SPECIFIED) {
-            scale = 0;
-          }
-          calendar.setTimeInMillis(
-              SqlFunctions.round(
-                  calendar.getTimeInMillis(),
-                  DateTimeUtils.powerX(10, 3 - scale)));
-          break;
         case INTERVAL_DAY:
         case INTERVAL_DAY_HOUR:
         case INTERVAL_DAY_MINUTE:
@@ -535,7 +529,7 @@ public class RexBuilder {
             final BigDecimal divider =
                 literal.getTypeName().getEndUnit().multiplier;
             value = value2.multiply(multiplier)
-                .divide(divider, 0, BigDecimal.ROUND_HALF_DOWN);
+                .divide(divider, 0, RoundingMode.HALF_DOWN);
           }
 
           // Not all types are allowed for literals
@@ -577,7 +571,7 @@ public class RexBuilder {
     }
   }
 
-  private boolean canRemoveCastFromLiteral(RelDataType toType, Comparable value,
+  boolean canRemoveCastFromLiteral(RelDataType toType, Comparable value,
       SqlTypeName fromTypeName) {
     final SqlTypeName sqlType = toType.getSqlTypeName();
     if (!RexLiteral.valueMatchesType(value, sqlType, false)) {
@@ -591,9 +585,9 @@ public class RexBuilder {
       final int length = ((NlsString) value).getValue().length();
       switch (toType.getSqlTypeName()) {
       case CHAR:
-        return toType.getPrecision() == length;
+        return SqlTypeUtil.comparePrecision(toType.getPrecision(), length) == 0;
       case VARCHAR:
-        return toType.getPrecision() >= length;
+        return SqlTypeUtil.comparePrecision(toType.getPrecision(), length) >= 0;
       default:
         throw new AssertionError(toType);
       }
@@ -602,9 +596,9 @@ public class RexBuilder {
       final int length = ((ByteString) value).length();
       switch (toType.getSqlTypeName()) {
       case BINARY:
-        return toType.getPrecision() == length;
+        return SqlTypeUtil.comparePrecision(toType.getPrecision(), length) == 0;
       case VARBINARY:
-        return toType.getPrecision() >= length;
+        return SqlTypeUtil.comparePrecision(toType.getPrecision(), length) >= 0;
       default:
         throw new AssertionError(toType);
       }
@@ -629,7 +623,7 @@ public class RexBuilder {
     return makeCall(toType,
         SqlStdOperatorTable.CASE,
         ImmutableList.of(makeCall(SqlStdOperatorTable.IS_NOT_NULL, exp),
-            casted, makeNullLiteral(toType.getSqlTypeName())));
+            casted, makeNullLiteral(toType)));
   }
 
   private RexNode makeCastIntervalToExact(RelDataType toType, RexNode exp) {
@@ -662,12 +656,12 @@ public class RexBuilder {
       // E.g. multiplyDivide(e, 1000, 10) ==> e * 100
       return makeCall(SqlStdOperatorTable.MULTIPLY, e,
           makeExactLiteral(
-              multiplier.divide(divider, BigDecimal.ROUND_UNNECESSARY)));
+              multiplier.divide(divider, RoundingMode.UNNECESSARY)));
     case -1:
       // E.g. multiplyDivide(e, 10, 1000) ==> e / 100
       return makeCall(SqlStdOperatorTable.DIVIDE_INTEGER, e,
           makeExactLiteral(
-              divider.divide(multiplier, BigDecimal.ROUND_UNNECESSARY)));
+              divider.divide(multiplier, RoundingMode.UNNECESSARY)));
     default:
       throw new AssertionError(multiplier + "/" + divider);
     }
@@ -829,7 +823,7 @@ public class RexBuilder {
   /**
    * Internal method to create a call to a literal. Code outside this package
    * should call one of the type-specific methods such as
-   * {@link #makeDateLiteral(Calendar)}, {@link #makeLiteral(boolean)},
+   * {@link #makeDateLiteral(DateString)}, {@link #makeLiteral(boolean)},
    * {@link #makeLiteral(String)}.
    *
    * @param o        Value of literal, must be appropriate for the type
@@ -843,7 +837,9 @@ public class RexBuilder {
       SqlTypeName typeName) {
     // All literals except NULL have NOT NULL types.
     type = typeFactory.createTypeWithNullability(type, o == null);
-    if (typeName == SqlTypeName.CHAR) {
+    int p;
+    switch (typeName) {
+    case CHAR:
       // Character literals must have a charset and collation. Populate
       // from the type if necessary.
       assert o instanceof NlsString;
@@ -858,6 +854,23 @@ public class RexBuilder {
             type.getCharset().name(),
             type.getCollation());
       }
+      break;
+    case TIME:
+      assert o instanceof TimeString;
+      p = type.getPrecision();
+      if (p == RelDataType.PRECISION_NOT_SPECIFIED) {
+        p = 0;
+      }
+      o = ((TimeString) o).round(p);
+      break;
+    case TIMESTAMP:
+      assert o instanceof TimestampString;
+      p = type.getPrecision();
+      if (p == RelDataType.PRECISION_NOT_SPECIFIED) {
+        p = 0;
+      }
+      o = ((TimestampString) o).round(p);
+      break;
     }
     return new RexLiteral(o, type, typeName);
   }
@@ -887,8 +900,15 @@ public class RexBuilder {
       }
     } else {
       int precision = bd.unscaledValue().abs().toString().length();
-      relType =
-          typeFactory.createSqlType(SqlTypeName.DECIMAL, precision, scale);
+      if (precision > scale) {
+        // bd is greater than or equal to 1
+        relType =
+            typeFactory.createSqlType(SqlTypeName.DECIMAL, precision, scale);
+      } else {
+        // bd is less than 1
+        relType =
+            typeFactory.createSqlType(SqlTypeName.DECIMAL, scale + 1, scale);
+      }
     }
     return makeExactLiteral(bd, relType);
   }
@@ -1035,37 +1055,48 @@ public class RexBuilder {
     return makeLiteral(str, type, SqlTypeName.CHAR);
   }
 
+  /** @deprecated Use {@link #makeDateLiteral(DateString)}. */
+  @Deprecated // to be removed before 2.0
+  public RexLiteral makeDateLiteral(Calendar calendar) {
+    return makeDateLiteral(DateString.fromCalendarFields(calendar));
+  }
+
   /**
    * Creates a Date literal.
    */
-  public RexLiteral makeDateLiteral(Calendar date) {
-    assert date != null;
-    return makeLiteral(
-        date, typeFactory.createSqlType(SqlTypeName.DATE), SqlTypeName.DATE);
+  public RexLiteral makeDateLiteral(DateString date) {
+    return makeLiteral(Preconditions.checkNotNull(date),
+        typeFactory.createSqlType(SqlTypeName.DATE), SqlTypeName.DATE);
+  }
+
+  /** @deprecated Use {@link #makeTimeLiteral(TimeString, int)}. */
+  @Deprecated // to be removed before 2.0
+  public RexLiteral makeTimeLiteral(Calendar calendar, int precision) {
+    return makeTimeLiteral(TimeString.fromCalendarFields(calendar), precision);
   }
 
   /**
    * Creates a Time literal.
    */
-  public RexLiteral makeTimeLiteral(
-      Calendar time,
-      int precision) {
-    assert time != null;
-    return makeLiteral(
-        time,
+  public RexLiteral makeTimeLiteral(TimeString time, int precision) {
+    return makeLiteral(Preconditions.checkNotNull(time),
         typeFactory.createSqlType(SqlTypeName.TIME, precision),
         SqlTypeName.TIME);
+  }
+
+  /** @deprecated Use {@link #makeTimestampLiteral(TimestampString, int)}. */
+  @Deprecated // to be removed before 2.0
+  public RexLiteral makeTimestampLiteral(Calendar calendar, int precision) {
+    return makeTimestampLiteral(TimestampString.fromCalendarFields(calendar),
+        precision);
   }
 
   /**
    * Creates a Timestamp literal.
    */
-  public RexLiteral makeTimestampLiteral(
-      Calendar timestamp,
+  public RexLiteral makeTimestampLiteral(TimestampString timestamp,
       int precision) {
-    assert timestamp != null;
-    return makeLiteral(
-        timestamp,
+    return makeLiteral(Preconditions.checkNotNull(timestamp),
         typeFactory.createSqlType(SqlTypeName.TIMESTAMP, precision),
         SqlTypeName.TIMESTAMP);
   }
@@ -1107,22 +1138,6 @@ public class RexBuilder {
   }
 
   /**
-   * Creates an expression corresponding to a null literal, cast to a specific
-   * type and precision
-   *
-   * @param typeName  name of the type that the null will be cast to
-   * @param precision precision of the type
-   * @return created expression
-   */
-  public RexNode makeNullLiteral(SqlTypeName typeName, int precision) {
-    RelDataType type =
-        typeFactory.createTypeWithNullability(
-            typeFactory.createSqlType(typeName, precision),
-            true);
-    return makeCast(type, constantNull());
-  }
-
-  /**
    * Creates a literal whose value is NULL, with a particular type.
    *
    * <p>The typing is necessary because RexNodes are strictly typed. For
@@ -1130,15 +1145,26 @@ public class RexBuilder {
    * SUBSTRING(NULL FROM 2 FOR 4)</code> must have a valid VARCHAR type so
    * that the result type can be determined.
    *
-   * @param typeName Type to cast NULL to
+   * @param type Type to cast NULL to
    * @return NULL literal of given type
    */
+  public RexLiteral makeNullLiteral(RelDataType type) {
+    if (!type.isNullable()) {
+      type = typeFactory.createTypeWithNullability(type, true);
+    }
+    return (RexLiteral) makeCast(type, constantNull());
+  }
+
+  /** @deprecated Use {@link #makeNullLiteral(RelDataType)} */
+  @Deprecated // to be removed before 2.0
+  public RexNode makeNullLiteral(SqlTypeName typeName, int precision) {
+    return makeNullLiteral(typeFactory.createSqlType(typeName, precision));
+  }
+
+  /** @deprecated Use {@link #makeNullLiteral(RelDataType)} */
+  @Deprecated // to be removed before 2.0
   public RexNode makeNullLiteral(SqlTypeName typeName) {
-    RelDataType type =
-        typeFactory.createTypeWithNullability(
-            typeFactory.createSqlType(typeName),
-            true);
-    return makeCast(type, constantNull());
+    return makeNullLiteral(typeFactory.createSqlType(typeName));
   }
 
   /**
@@ -1261,11 +1287,11 @@ public class RexBuilder {
     case BOOLEAN:
       return (Boolean) value ? booleanTrue : booleanFalse;
     case TIME:
-      return makeTimeLiteral((Calendar) value, type.getPrecision());
+      return makeTimeLiteral((TimeString) value, type.getPrecision());
     case DATE:
-      return makeDateLiteral((Calendar) value);
+      return makeDateLiteral((DateString) value);
     case TIMESTAMP:
-      return makeTimestampLiteral((Calendar) value, type.getPrecision());
+      return makeTimestampLiteral((TimestampString) value, type.getPrecision());
     case INTERVAL_YEAR:
     case INTERVAL_YEAR_MONTH:
     case INTERVAL_MONTH:
@@ -1343,7 +1369,6 @@ public class RexBuilder {
     if (o == null) {
       return null;
     }
-    final Calendar calendar;
     switch (type.getSqlTypeName()) {
     case TINYINT:
     case SMALLINT:
@@ -1368,12 +1393,18 @@ public class RexBuilder {
       }
       return new BigDecimal(((Number) o).longValue());
     case FLOAT:
+      if (o instanceof BigDecimal) {
+        return o;
+      }
+      return new BigDecimal(((Number) o).doubleValue(), MathContext.DECIMAL32)
+          .stripTrailingZeros();
     case REAL:
     case DOUBLE:
       if (o instanceof BigDecimal) {
         return o;
       }
-      return new BigDecimal(((Number) o).doubleValue());
+      return new BigDecimal(((Number) o).doubleValue(), MathContext.DECIMAL64)
+          .stripTrailingZeros();
     case CHAR:
     case VARCHAR:
       if (o instanceof NlsString) {
@@ -1382,27 +1413,38 @@ public class RexBuilder {
       return new NlsString((String) o, type.getCharset().name(),
           type.getCollation());
     case TIME:
-      if (o instanceof Calendar) {
+      if (o instanceof TimeString) {
         return o;
+      } else if (o instanceof Calendar) {
+        if (!((Calendar) o).getTimeZone().equals(DateTimeUtils.UTC_ZONE)) {
+          throw new AssertionError();
+        }
+        return TimeString.fromCalendarFields((Calendar) o);
+      } else {
+        return TimeString.fromMillisOfDay((Integer) o);
       }
-      calendar = Calendar.getInstance(DateTimeUtils.GMT_ZONE);
-      calendar.setTimeInMillis((Integer) o);
-      return calendar;
     case DATE:
-      if (o instanceof Calendar) {
+      if (o instanceof DateString) {
         return o;
+      } else if (o instanceof Calendar) {
+        if (!((Calendar) o).getTimeZone().equals(DateTimeUtils.UTC_ZONE)) {
+          throw new AssertionError();
+        }
+        return DateString.fromCalendarFields((Calendar) o);
+      } else {
+        return DateString.fromDaysSinceEpoch((Integer) o);
       }
-      calendar = Calendar.getInstance(DateTimeUtils.GMT_ZONE);
-      calendar.setTimeInMillis(0);
-      calendar.add(Calendar.DAY_OF_YEAR, (Integer) o);
-      return calendar;
     case TIMESTAMP:
-      if (o instanceof Calendar) {
+      if (o instanceof TimestampString) {
         return o;
+      } else if (o instanceof Calendar) {
+        if (!((Calendar) o).getTimeZone().equals(DateTimeUtils.UTC_ZONE)) {
+          throw new AssertionError();
+        }
+        return TimestampString.fromCalendarFields((Calendar) o);
+      } else {
+        return TimestampString.fromMillisSinceEpoch((Long) o);
       }
-      calendar = Calendar.getInstance(DateTimeUtils.GMT_ZONE);
-      calendar.setTimeInMillis((Long) o);
-      return calendar;
     default:
       return o;
     }

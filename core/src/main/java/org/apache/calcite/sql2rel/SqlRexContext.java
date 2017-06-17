@@ -71,7 +71,7 @@ public interface SqlRexContext {
    * @param call IN or EXISTS expression
    * @return Expression used to access current row of sub-query
    */
-  RexRangeRef getSubqueryExpr(SqlCall call);
+  RexRangeRef getSubQueryExpr(SqlCall call);
 
   /**
    * Returns the type factory.
@@ -82,7 +82,7 @@ public interface SqlRexContext {
    * Returns the factory which supplies default values for INSERT, UPDATE, and
    * NEW.
    */
-  DefaultValueFactory getDefaultValueFactory();
+  InitializerExpressionFactory getInitializerExpressionFactory();
 
   /**
    * Returns the validator.

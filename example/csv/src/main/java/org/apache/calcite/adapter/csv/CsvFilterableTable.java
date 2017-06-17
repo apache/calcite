@@ -27,8 +27,8 @@ import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.schema.FilterableTable;
 import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.util.Source;
 
-import java.io.File;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -42,8 +42,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class CsvFilterableTable extends CsvTable
     implements FilterableTable {
   /** Creates a CsvFilterableTable. */
-  CsvFilterableTable(File file, RelProtoDataType protoRowType) {
-    super(file, protoRowType);
+  public CsvFilterableTable(Source source, RelProtoDataType protoRowType) {
+    super(source, protoRowType);
   }
 
   public String toString() {
@@ -62,7 +62,7 @@ public class CsvFilterableTable extends CsvTable
     final AtomicBoolean cancelFlag = DataContext.Variable.CANCEL_FLAG.get(root);
     return new AbstractEnumerable<Object[]>() {
       public Enumerator<Object[]> enumerator() {
-        return new CsvEnumerator<>(file, cancelFlag, false, filterValues,
+        return new CsvEnumerator<>(source, cancelFlag, false, filterValues,
             new CsvEnumerator.ArrayRowConverter(fieldTypes, fields));
       }
     };

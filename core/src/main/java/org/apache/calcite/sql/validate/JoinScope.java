@@ -59,8 +59,9 @@ public class JoinScope extends ListScope {
     return join;
   }
 
-  public void addChild(SqlValidatorNamespace ns, String alias) {
-    super.addChild(ns, alias);
+  public void addChild(SqlValidatorNamespace ns, String alias,
+      boolean nullable) {
+    super.addChild(ns, alias, nullable);
     if ((usingScope != null) && (usingScope != parent)) {
       // We're looking at a join within a join. Recursively add this
       // child to its parent scope too. Example:
@@ -72,7 +73,7 @@ public class JoinScope extends ListScope {
       //
       // 'a' is a child namespace of 'a join b' and also of
       // 'a join b join c'.
-      usingScope.addChild(ns, alias);
+      usingScope.addChild(ns, alias, nullable);
     }
   }
 

@@ -81,8 +81,10 @@ public abstract class SqlCall extends SqlNode {
     return getOperandList().size();
   }
 
-  public SqlNode clone(SqlParserPos pos) {
-    return getOperator().createCall(pos, getOperandList());
+  @Override public SqlNode clone(SqlParserPos pos) {
+    final List<SqlNode> operandList = getOperandList();
+    return getOperator().createCall(getFunctionQuantifier(), pos,
+        operandList.toArray(new SqlNode[operandList.size()]));
   }
 
   public void unparse(

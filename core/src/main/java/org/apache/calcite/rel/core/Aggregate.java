@@ -31,6 +31,7 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.runtime.CalciteException;
+import org.apache.calcite.runtime.PredicateImpl;
 import org.apache.calcite.runtime.Resources;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlOperatorBinding;
@@ -73,15 +74,15 @@ public abstract class Aggregate extends SingleRel {
    * @see org.apache.calcite.util.Bug#CALCITE_461_FIXED
    */
   public static final Predicate<Aggregate> IS_SIMPLE =
-      new Predicate<Aggregate>() {
-        public boolean apply(Aggregate input) {
+      new PredicateImpl<Aggregate>() {
+        public boolean test(Aggregate input) {
           return input.getGroupType() == Group.SIMPLE;
         }
       };
 
   public static final Predicate<Aggregate> IS_NOT_GRAND_TOTAL =
-      new Predicate<Aggregate>() {
-        public boolean apply(Aggregate input) {
+      new PredicateImpl<Aggregate>() {
+        public boolean test(Aggregate input) {
           return input.getGroupCount() > 0;
         }
       };
@@ -379,8 +380,8 @@ public abstract class Aggregate extends SingleRel {
     return builder.build();
   }
 
-  public boolean isValid(Litmus litmus) {
-    return super.isValid(litmus)
+  public boolean isValid(Litmus litmus, Context context) {
+    return super.isValid(litmus, context)
         && litmus.check(Util.isDistinct(getRowType().getFieldNames()),
             "distinct field names: {}", getRowType());
   }

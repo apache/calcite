@@ -14,7 +14,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.calcite.rel.type;
 
 import org.apache.calcite.sql.type.SqlTypeName;
@@ -27,12 +26,15 @@ import java.util.List;
 /**
  * Holding the expandable list of fields for dynamic table.
  */
-public class RelDataTypeHolder {
-  List<RelDataTypeField> fields = new ArrayList<>();
+class RelDataTypeHolder {
+  private final List<RelDataTypeField> fields = new ArrayList<>();
+  private final RelDataTypeFactory typeFactory;
 
-  private RelDataTypeFactory typeFactory;
+  RelDataTypeHolder(RelDataTypeFactory typeFactory) {
+    this.typeFactory = typeFactory;
+  }
 
-  public List<RelDataTypeField> getFieldList(RelDataTypeFactory typeFactory) {
+  public List<RelDataTypeField> getFieldList() {
     return fields;
   }
 
@@ -44,15 +46,12 @@ public class RelDataTypeHolder {
    * Get field if exists, otherwise inserts a new field. The new field by default will have "any"
    * type, except for the dynamic star field.
    *
-   * @param typeFactory RelDataTypeFactory
    * @param fieldName Request field name
    * @param caseSensitive Case Sensitive
    * @return A pair of RelDataTypeField and Boolean. Boolean indicates whether a new field is added
    * to this holder.
    */
-  public Pair<RelDataTypeField, Boolean> getFieldOrInsert(RelDataTypeFactory typeFactory,
-      String fieldName, boolean caseSensitive) {
-
+  Pair<RelDataTypeField, Boolean> getFieldOrInsert(String fieldName, boolean caseSensitive) {
     // First check if this field name exists in our field list
     for (RelDataTypeField f : fields) {
       if (Util.matches(caseSensitive, f.getName(), fieldName)) {
@@ -76,16 +75,7 @@ public class RelDataTypeHolder {
   }
 
   public List<String> getFieldNames() {
-    List<String> fieldNames = new ArrayList<>();
-    for (RelDataTypeField f : fields) {
-      fieldNames.add(f.getName());
-    }
-
-    return fieldNames;
-  }
-
-  public void setRelDataTypeFactory(RelDataTypeFactory typeFactory) {
-    this.typeFactory = typeFactory;
+    return Pair.left(fields);
   }
 
 }

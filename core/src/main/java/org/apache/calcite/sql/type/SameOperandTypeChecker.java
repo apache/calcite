@@ -72,7 +72,7 @@ public class SameOperandTypeChecker implements SqlSingleOperandTypeChecker {
         : Util.range(0, nOperands);
   }
 
-  private boolean checkOperandTypesImpl(
+  protected boolean checkOperandTypesImpl(
       SqlOperatorBinding operatorBinding,
       boolean throwOnFailure,
       SqlCallBinding callBinding) {

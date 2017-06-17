@@ -15,15 +15,15 @@
  * limitations under the License.
  */
 {
-  version: '1.0',
-  defaultSchema: 'BUG',
-  schemas: [
+  "version": "1.0",
+  "defaultSchema": "BUG",
+  "schemas": [
     {
-      name: 'BUG',
-      type: 'custom',
-      factory: 'org.apache.calcite.adapter.csv.CsvSchemaFactory',
-      operand: {
-        directory: 'bug'
+      "name": "BUG",
+      "type": "custom",
+      "factory": "org.apache.calcite.adapter.csv.CsvSchemaFactory",
+      "operand": {
+        "directory": "bug"
       }
     }
   ]

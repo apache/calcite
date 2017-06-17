@@ -75,7 +75,7 @@ public class OverScope extends ListScope {
     }
 
     if (children.size() == 1) {
-      final SqlValidatorNamespace child = children.get(0).right;
+      final SqlValidatorNamespace child = children.get(0).namespace;
       final List<Pair<SqlNode, SqlMonotonicity>> monotonicExprs =
           child.getMonotonicExprs();
       for (Pair<SqlNode, SqlMonotonicity> pair : monotonicExprs) {

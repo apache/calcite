@@ -39,15 +39,18 @@ import java.util.Set;
 public interface Compatible {
   Compatible INSTANCE = new Factory().create();
 
-  /** Same as Guava {@code Maps.asMap(set, function)}. */
+  /** Same as Guava {@code Maps.asMap(set, function)} (introduced in
+   * Guava 14.0). */
   <K, V> Map<K, V> asMap(Set<K> set, Function<? super K, V> function);
 
   /** Converts a {@link com.google.common.collect.ImmutableSortedSet} to a
-   * {@link java.util.NavigableSet}. */
+   * {@link java.util.NavigableSet}.  (In Guava 12 and later, ImmutableSortedSet
+   * implements NavigableSet.) */
   <E> NavigableSet<E> navigableSet(ImmutableSortedSet<E> set);
 
   /** Converts a {@link com.google.common.collect.ImmutableSortedMap} to a
-   * {@link java.util.NavigableMap}. */
+   * {@link java.util.NavigableMap}. (In Guava 12 and later, ImmutableSortedMap
+   * implements NavigableMap.) */
   <K, V> NavigableMap<K, V> navigableMap(ImmutableSortedMap<K, V> map);
 
   /** Converts a {@link Map} to a {@link java.util.NavigableMap} that is
@@ -58,10 +61,11 @@ public interface Compatible {
    *
    * <p>This method is available in JDK 1.7 and above, and in
    * {@link org.apache.calcite.jdbc.CalciteConnection} in all JDK versions. */
-  @Deprecated // to be removed before 2.0
+  @SuppressWarnings("unused") @Deprecated // to be removed before 2.0
   void setSchema(Connection connection, String schema);
 
-  /** Calls {@link Method}.{@code getParameters()[i].getName()}. */
+  /** Calls the {@link Method}.{@code getParameters()[i].getName()} method
+   * (introduced in JDK 1.8). */
   String getParameterName(Method method, int i);
 
   /** Creates the implementation of Compatible suitable for the
@@ -77,6 +81,7 @@ public interface Compatible {
               if (method.getName().equals("asMap")) {
                 // Use the Guava implementation Maps.asMap if it is available
                 try {
+                  //noinspection ConfusingArgumentToVarargsMethod
                   final Method guavaMethod = Maps.class.getMethod(
                       method.getName(), method.getParameterTypes());
                   return guavaMethod.invoke(null, args);

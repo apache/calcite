@@ -35,9 +35,9 @@ import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexCorrelVariable;
 import org.apache.calcite.rex.RexFieldAccess;
-import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexSlot;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlOperator;
@@ -316,8 +316,10 @@ public class RelJson {
       }
       return value2;
     case INPUT_REF:
+    case LOCAL_REF:
       map = jsonBuilder.map();
-      map.put("input", ((RexInputRef) node).getIndex());
+      map.put("input", ((RexSlot) node).getIndex());
+      map.put("name", ((RexSlot) node).getName());
       return map;
     case CORREL_VARIABLE:
       map = jsonBuilder.map();
@@ -357,6 +359,7 @@ public class RelJson {
     } else if (o instanceof Map) {
       Map map = (Map) o;
       final String op = (String) map.get("op");
+      final RelDataTypeFactory typeFactory = cluster.getTypeFactory();
       if (op != null) {
         final List operands = (List) map.get("operands");
         final Object jsonType = map.get("type");
@@ -364,7 +367,7 @@ public class RelJson {
         final List<RexNode> rexOperands = toRexList(relInput, operands);
         RelDataType type;
         if (jsonType != null) {
-          type = toType(cluster.getTypeFactory(), jsonType);
+          type = toType(typeFactory, jsonType);
         } else {
           type = rexBuilder.deriveReturnType(operator, rexOperands);
         }
@@ -393,7 +396,7 @@ public class RelJson {
       final String correl = (String) map.get("correl");
       if (correl != null) {
         final Object jsonType = map.get("type");
-        RelDataType type = toType(cluster.getTypeFactory(), jsonType);
+        RelDataType type = toType(typeFactory, jsonType);
         return rexBuilder.makeCorrel(type, new CorrelationId(correl));
       }
       if (map.containsKey("literal")) {
@@ -401,7 +404,8 @@ public class RelJson {
         final SqlTypeName sqlTypeName =
             Util.enumVal(SqlTypeName.class, (String) map.get("type"));
         if (literal == null) {
-          return rexBuilder.makeNullLiteral(sqlTypeName);
+          return rexBuilder.makeNullLiteral(
+              typeFactory.createSqlType(sqlTypeName));
         }
         return toRex(relInput, literal);
       }

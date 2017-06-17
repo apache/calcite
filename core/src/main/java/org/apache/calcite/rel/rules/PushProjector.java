@@ -18,11 +18,12 @@ package org.apache.calcite.rel.rules;
 
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.plan.Strong;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Join;
+import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.SemiJoin;
 import org.apache.calcite.rel.core.SetOp;
-import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
@@ -30,12 +31,17 @@ import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.rex.RexVisitorImpl;
+import org.apache.calcite.runtime.PredicateImpl;
 import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.BitSets;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Pair;
 
+import com.google.common.base.Preconditions;
+import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 
 import java.util.ArrayList;
@@ -60,10 +66,11 @@ import java.util.Set;
 public class PushProjector {
   //~ Instance fields --------------------------------------------------------
 
-  private final LogicalProject origProj;
+  private final Project origProj;
   private final RexNode origFilter;
   private final RelNode childRel;
   private final ExprCondition preserveExprCondition;
+  private final RelBuilder relBuilder;
 
   /**
    * Original projection expressions
@@ -98,6 +105,12 @@ public class PushProjector {
    * otherwise.
    */
   final ImmutableBitSet rightBitmap;
+
+  /**
+   * Bitmap containing the fields that should be strong, i.e. when preserving expressions
+   * we can only preserve them if the expressions if it is null when these fields are null.
+   */
+  final ImmutableBitSet strongBitmap;
 
   /**
    * Number of fields in the RelNode that the projection is being pushed past,
@@ -188,15 +201,16 @@ public class PushProjector {
    *                              be preserved in the projection
    */
   public PushProjector(
-      LogicalProject origProj,
+      Project origProj,
       RexNode origFilter,
       RelNode childRel,
-      ExprCondition preserveExprCondition) {
+      ExprCondition preserveExprCondition,
+      RelBuilder relBuilder) {
     this.origProj = origProj;
     this.origFilter = origFilter;
     this.childRel = childRel;
     this.preserveExprCondition = preserveExprCondition;
-
+    this.relBuilder = Preconditions.checkNotNull(relBuilder);
     if (origProj == null) {
       origProjExprs = ImmutableList.of();
     } else {
@@ -220,12 +234,29 @@ public class PushProjector {
           ImmutableBitSet.range(nSysFields, nFields + nSysFields);
       rightBitmap =
           ImmutableBitSet.range(nFields + nSysFields, nChildFields);
+
+      switch (joinRel.getJoinType()) {
+      case INNER:
+        strongBitmap = ImmutableBitSet.of();
+        break;
+      case RIGHT:  // All the left-input's columns must be strong
+        strongBitmap = ImmutableBitSet.range(nSysFields, nFields + nSysFields);
+        break;
+      case LEFT: // All the right-input's columns must be strong
+        strongBitmap = ImmutableBitSet.range(nFields + nSysFields, nChildFields);
+        break;
+      case FULL:
+      default:
+        strongBitmap = ImmutableBitSet.range(nSysFields, nChildFields);
+      }
+
     } else {
       nFields = nChildFields;
       nFieldsRight = 0;
       childBitmap = ImmutableBitSet.range(nChildFields);
       rightBitmap = null;
       nSysFields = 0;
+      strongBitmap = ImmutableBitSet.of();
     }
     assert nChildFields == nSysFields + nFields + nFieldsRight;
 
@@ -308,7 +339,9 @@ public class PushProjector {
               origFilter,
               newProject.getRowType().getFieldList(),
               adjustments);
-      projChild = RelOptUtil.createFilter(newProject, newFilter);
+      relBuilder.push(newProject);
+      relBuilder.filter(newFilter);
+      projChild = relBuilder.build();
     } else {
       projChild = newProject;
     }
@@ -335,6 +368,7 @@ public class PushProjector {
             projRefs,
             childBitmap,
             rightBitmap,
+            strongBitmap,
             preserveExprCondition,
             childPreserveExprs,
             rightPreserveExprs),
@@ -418,7 +452,7 @@ public class PushProjector {
    *                  of a join
    * @return created projection
    */
-  public LogicalProject createProjectRefsAndExprs(
+  public Project createProjectRefsAndExprs(
       RelNode projChild,
       boolean adjust,
       boolean rightSide) {
@@ -480,10 +514,12 @@ public class PushProjector {
               ((RexCall) projExpr).getOperator().getName()));
     }
 
-    return (LogicalProject) RelOptUtil.createProject(
+    return (Project) RelOptUtil.createProject(
         projChild,
         Pair.left(newProjects),
-        Pair.right(newProjects));
+        Pair.right(newProjects),
+        false,
+        relBuilder);
   }
 
   /**
@@ -571,7 +607,8 @@ public class PushProjector {
         projChild,
         Pair.left(projects),
         Pair.right(projects),
-        true /* optimize to avoid trivial projections, as per javadoc */);
+        true /* optimize to avoid trivial projections, as per javadoc */,
+        relBuilder);
   }
 
   //~ Inner Classes ----------------------------------------------------------
@@ -584,14 +621,17 @@ public class PushProjector {
     private final BitSet rexRefs;
     private final ImmutableBitSet leftFields;
     private final ImmutableBitSet rightFields;
+    private final ImmutableBitSet strongFields;
     private final ExprCondition preserveExprCondition;
     private final List<RexNode> preserveLeft;
     private final List<RexNode> preserveRight;
+    private final Strong strong;
 
     public InputSpecialOpFinder(
         BitSet rexRefs,
         ImmutableBitSet leftFields,
         ImmutableBitSet rightFields,
+        final ImmutableBitSet strongFields,
         ExprCondition preserveExprCondition,
         List<RexNode> preserveLeft,
         List<RexNode> preserveRight) {
@@ -602,6 +642,9 @@ public class PushProjector {
       this.preserveExprCondition = preserveExprCondition;
       this.preserveLeft = preserveLeft;
       this.preserveRight = preserveRight;
+
+      this.strongFields = strongFields;
+      this.strong = Strong.of(strongFields);
     }
 
     public Void visitCall(RexCall call) {
@@ -612,6 +655,16 @@ public class PushProjector {
       return null;
     }
 
+    private boolean isStrong(final ImmutableBitSet exprArgs, final RexNode call) {
+      // If the expressions do not use any of the inputs that require output to be null,
+      // no need to check.  Otherwise, check that the expression is null.
+      // For example, in an "left outer join", we don't require that expressions
+      // pushed down into the left input to be strong.  On the other hand,
+      // expressions pushed into the right input must be.  In that case,
+      // strongFields == right input fields.
+      return !strongFields.intersects(exprArgs) || strong.isNull(call);
+    }
+
     private boolean preserve(RexNode call) {
       if (preserveExprCondition.test(call)) {
         // if the arguments of the expression only reference the
@@ -619,10 +672,10 @@ public class PushProjector {
         // it only references expressions on the right
         final ImmutableBitSet exprArgs = RelOptUtil.InputFinder.bits(call);
         if (exprArgs.cardinality() > 0) {
-          if (leftFields.contains(exprArgs)) {
+          if (leftFields.contains(exprArgs) && isStrong(exprArgs, call)) {
             addExpr(preserveLeft, call);
             return true;
-          } else if (rightFields.contains(exprArgs)) {
+          } else if (rightFields.contains(exprArgs) && isStrong(exprArgs, call)) {
             assert preserveRight != null;
             addExpr(preserveRight, call);
             return true;
@@ -756,7 +809,7 @@ public class PushProjector {
    *
    * @see org.apache.calcite.rel.rules.PushProjector.OperatorExprCondition
    */
-  public interface ExprCondition {
+  public interface ExprCondition extends Predicate<RexNode> {
     /**
      * Evaluates a condition for a given expression.
      *
@@ -769,18 +822,33 @@ public class PushProjector {
      * Constant condition that replies {@code false} for all expressions.
      */
     ExprCondition FALSE =
-        new ExprCondition() {
-          public boolean test(RexNode expr) {
+        new ExprConditionImpl() {
+          @Override public boolean test(RexNode expr) {
             return false;
           }
         };
+
+    /**
+     * Constant condition that replies {@code true} for all expressions.
+     */
+    ExprCondition TRUE =
+        new ExprConditionImpl() {
+          @Override public boolean test(RexNode expr) {
+            return true;
+          }
+        };
+  }
+
+  /** Implementation of {@link ExprCondition}. */
+  abstract static class ExprConditionImpl extends PredicateImpl<RexNode>
+      implements ExprCondition {
   }
 
   /**
    * An expression condition that evaluates to true if the expression is
    * a call to one of a set of operators.
    */
-  public static class OperatorExprCondition implements ExprCondition {
+  class OperatorExprCondition extends ExprConditionImpl {
     private final Set<SqlOperator> operatorSet;
 
     /**
@@ -788,8 +856,8 @@ public class PushProjector {
      *
      * @param operatorSet Set of operators
      */
-    public OperatorExprCondition(Set<SqlOperator> operatorSet) {
-      this.operatorSet = operatorSet;
+    public OperatorExprCondition(Iterable<? extends SqlOperator> operatorSet) {
+      this.operatorSet = ImmutableSet.copyOf(operatorSet);
     }
 
     public boolean test(RexNode expr) {

@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.materialize;
 
+import org.apache.calcite.util.Util;
+
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -59,7 +61,7 @@ public class TileSuggester {
 
   public Iterable<? extends Lattice.Tile> tiles() {
     final Algorithm algorithm = new MonteCarloAlgorithm();
-    final PrintWriter pw = new PrintWriter(System.out);
+    final PrintWriter pw = Util.printWriter(System.out);
     final Progress progress = new ArgumentUtils.TextProgress(pw);
     final StatisticsProvider statisticsProvider =
         new StatisticsProviderImpl(lattice);

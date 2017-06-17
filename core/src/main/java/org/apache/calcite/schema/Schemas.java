@@ -200,8 +200,9 @@ public final class Schemas {
     return Types.castIfNecessary(clazz, expression);
   }
 
-  public static DataContext createDataContext(Connection connection) {
-    return new DummyDataContext((CalciteConnection) connection);
+  public static DataContext createDataContext(
+      Connection connection, SchemaPlus rootSchema) {
+    return new DummyDataContext((CalciteConnection) connection, rootSchema);
   }
 
   /** Returns a {@link Queryable}, given a fully-qualified table name. */
@@ -363,7 +364,7 @@ public final class Schemas {
       final CalciteConnectionConfig config =
           mutate(connection.config(), propValues);
       return makeContext(config, connection.getTypeFactory(),
-          createDataContext(connection), schema, schemaPath);
+          createDataContext(connection, schema.root().plus()), schema, schemaPath);
     }
   }
 
@@ -504,10 +505,13 @@ public final class Schemas {
   public static Path path(CalciteSchema rootSchema, Iterable<String> names) {
     final ImmutableList.Builder<Pair<String, Schema>> builder =
         ImmutableList.builder();
-    Schema schema = rootSchema.schema;
+    Schema schema = rootSchema.plus();
     final Iterator<String> iterator = names.iterator();
     if (!iterator.hasNext()) {
       return PathImpl.EMPTY;
+    }
+    if (!rootSchema.name.isEmpty()) {
+      assert rootSchema.name.equals(iterator.next());
     }
     for (;;) {
       final String name = iterator.next();
@@ -535,16 +539,19 @@ public final class Schemas {
   /** Dummy data context that has no variables. */
   private static class DummyDataContext implements DataContext {
     private final CalciteConnection connection;
+    private final SchemaPlus rootSchema;
     private final ImmutableMap<String, Object> map;
 
-    public DummyDataContext(CalciteConnection connection) {
+    public DummyDataContext(CalciteConnection connection,
+        SchemaPlus rootSchema) {
       this.connection = connection;
+      this.rootSchema = rootSchema;
       this.map =
           ImmutableMap.<String, Object>of("timeZone", TimeZone.getDefault());
     }
 
     public SchemaPlus getRootSchema() {
-      return connection.getRootSchema();
+      return rootSchema;
     }
 
     public JavaTypeFactory getTypeFactory() {

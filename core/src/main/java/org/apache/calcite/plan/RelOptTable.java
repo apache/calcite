@@ -20,10 +20,12 @@ import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelDistribution;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelReferentialConstraint;
 import org.apache.calcite.rel.RelRoot;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.schema.Wrapper;
 import org.apache.calcite.util.ImmutableBitSet;
 
 import java.util.List;
@@ -32,7 +34,7 @@ import java.util.List;
  * Represents a relational dataset in a {@link RelOptSchema}. It has methods to
  * describe and implement itself.
  */
-public interface RelOptTable {
+public interface RelOptTable extends Wrapper {
   //~ Methods ----------------------------------------------------------------
 
   /**
@@ -97,9 +99,10 @@ public interface RelOptTable {
   boolean isKey(ImmutableBitSet columns);
 
   /**
-   * Finds an interface implemented by this table.
+   * Returns the referential constraints existing for this table. These constraints
+   * are represented over other tables using {@link RelReferentialConstraint} nodes.
    */
-  <T> T unwrap(Class<T> clazz);
+  List<RelReferentialConstraint> getReferentialConstraints();
 
   /**
    * Generates code for this table.
@@ -108,13 +111,28 @@ public interface RelOptTable {
    */
   Expression getExpression(Class clazz);
 
-  /** Returns a table with the given extra fields. */
+  /** Returns a table with the given extra fields.
+   *
+   * <p>The extended table includes the fields of this base table plus the
+   * extended fields that do not have the same name as a field in the base
+   * table.
+   */
   RelOptTable extend(List<RelDataTypeField> extendedFields);
 
   /** Can expand a view into relational expressions. */
   interface ViewExpander {
+    /**
+     * Returns a relational expression that is to be substituted for an access
+     * to a SQL view.
+     *
+     * @param rowType Row type of the view
+     * @param queryString Body of the view
+     * @param schemaPath Path of a schema wherein to find referenced tables
+     * @param viewPath Path of the view, ending with its name; may be null
+     * @return Relational expression
+     */
     RelRoot expandView(RelDataType rowType, String queryString,
-        List<String> schemaPath);
+        List<String> schemaPath, List<String> viewPath);
   }
 
   /** Contains the context needed to convert a a table into a relational

@@ -18,6 +18,8 @@ package org.apache.calcite.sql;
 
 import org.apache.calcite.sql.parser.SqlParserPos;
 
+import java.util.Locale;
+
 /**
  * Enumerates the types of join.
  */
@@ -53,6 +55,9 @@ public enum JoinType {
    * join conditions are specified in the <code>WHERE</code> clause.
    */
   COMMA;
+
+  /** Lower-case name. */
+  public final String lowerName = name().toLowerCase(Locale.ROOT);
 
   /**
    * Creates a parse-tree node representing an occurrence of this

@@ -155,6 +155,10 @@ public class HepPlanner extends AbstractRelOptPlanner {
     return root;
   }
 
+  public List<RelOptRule> getRules() {
+    return ImmutableList.copyOf(allRules);
+  }
+
   // implement RelOptPlanner
   public boolean addRule(RelOptRule rule) {
     boolean added = allRules.add(rule);
@@ -636,7 +640,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
       bestRel = call.getResults().get(0);
     } else {
       RelOptCost bestCost = null;
-      final RelMetadataQuery mq = RelMetadataQuery.instance();
+      final RelMetadataQuery mq = call.getMetadataQuery();
       for (RelNode rel : call.getResults()) {
         RelOptCost thisCost = getCost(rel, mq);
         if (LOGGER.isTraceEnabled()) {
@@ -924,9 +928,8 @@ public class HepPlanner extends AbstractRelOptPlanner {
       return;
     }
 
-    throw Util.newInternal(
-        "Query graph cycle detected in HepPlanner:  "
-            + cyclicVertices);
+    throw new AssertionError("Query graph cycle detected in HepPlanner: "
+        + cyclicVertices);
   }
 
   private void dumpGraph() {
@@ -936,7 +939,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
 
     assertNoCycles();
 
-    final RelMetadataQuery mq = RelMetadataQuery.instance();
+    final RelMetadataQuery mq = root.getCluster().getMetadataQuery();
     final StringBuilder sb = new StringBuilder();
     sb.append("\nBreadth-first from root:  {\n");
     for (HepRelVertex vertex : BreadthFirstIterator.of(graph, root)) {

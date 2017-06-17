@@ -57,12 +57,10 @@ public class EnumerableIntersect extends Intersect implements EnumerableRel {
         intersectExp = childExp;
       } else {
         intersectExp =
-            Expressions.call(
-                intersectExp,
-                all
-                    ? BuiltInMethod.CONCAT.method
-                    : BuiltInMethod.INTERSECT.method,
-                childExp);
+            Expressions.call(intersectExp,
+                BuiltInMethod.INTERSECT.method,
+                Expressions.list(childExp)
+                    .appendIfNotNull(result.physType.comparer()));
       }
 
       // Once the first input has chosen its format, ask for the same for

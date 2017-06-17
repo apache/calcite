@@ -31,6 +31,16 @@
   githubId: ashutoshc
   org: Hortonworks
   role: PMC
+- name: Francis Chuang
+  apacheId: francischuang
+  githubId: F21
+  org: Boostport
+  role: Committer
+- name: Gian Merlino
+  apacheId: gian
+  githubId: gianm
+  org: Imply
+  role: Committer
 - name: James R. Taylor
   apacheId: jamestaylor
   githubId: JamesRTaylor
@@ -41,11 +51,16 @@
   githubId: jacques-n
   org: Dremio
   role: PMC
+- name: Jess Balint
+  apacheId: jbalint
+  githubId: jbalint
+  org: Stardog
+  role: Committer
 - name: Jesús Camacho Rodríguez
   apacheId: jcamacho
   githubId: jcamachor
   org: Hortonworks
-  role: PMC
+  role: PMC Chair
 - name: Jinfeng Ni
   apacheId: jni
   githubId: jinfengni
@@ -65,24 +80,43 @@
   apacheId: jhyde
   githubId: julianhyde
   org: Hortonworks
-  role: PMC Chair
+  role: PMC
   homepage: http://people.apache.org/~jhyde
+- name: Laurent Goujon
+  apacheId: laurent
+  githubId: laurentgo
+  org: Dremio
+  role: Committer
 - name: Maryann Xue
   apacheId: maryannxue
   githubId: maryannxue
   org: Intel
-  role: Committer
+  role: PMC
 - name: Michael Mior
   apacheId: mmior
   githubId: michaelmior
   org: University of Waterloo
-  role: Committer
+  role: PMC
   homepage: http://michael.mior.ca/
+- name: Milinda Pathirage
+  apacheId: milinda
+  githubId: milinda
+  org: Indiana University
+  role: Committer
+  homepage: http://milinda.pathirage.org/
+- name: MinJi Kim
+  apacheId: minji
+  githubId: minji-kim
+  org: Dremio
+  role: Committer
+  avatar: http://web.mit.edu/minjikim/www/minji.png
+  homepage: http://web.mit.edu/minjikim/www/
 - name: Nick Dimiduk
   apacheId: ndimiduk
   githubId: ndimiduk
-  org: Hortonworks
+  org:
   role: PMC
+  homepage: http://www.n10k.com
 - name: Steven Noels
   apacheId: stevenn
   githubId: stevenn
@@ -93,7 +127,7 @@
   githubId: tdunning
   org: MapR
   role: PMC
-  avatar: https://www.mapr.com/sites/default/files/otherpageimages/ted-circle-80.png
+  avatar: https://mapr.com/blog/author/ted-dunning/assets/tdunning-panama.jpg
 - name: Vladimir Sitnikov
   apacheId: vladimirsitnikov
   githubId: vlsi

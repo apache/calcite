@@ -16,10 +16,13 @@
  */
 package org.apache.calcite.plan;
 
+import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 
 /**
  * Predicates that are known to hold in the output of a particular relational
@@ -63,7 +66,8 @@ import com.google.common.collect.ImmutableList;
 public class RelOptPredicateList {
   private static final ImmutableList<RexNode> EMPTY_LIST = ImmutableList.of();
   public static final RelOptPredicateList EMPTY =
-      new RelOptPredicateList(EMPTY_LIST, EMPTY_LIST, EMPTY_LIST);
+      new RelOptPredicateList(EMPTY_LIST, EMPTY_LIST, EMPTY_LIST,
+          ImmutableMap.<RexNode, RexNode>of());
 
   /** Predicates that can be pulled up from the relational expression and its
    * inputs. */
@@ -77,13 +81,20 @@ public class RelOptPredicateList {
    * Empty if the relational expression is not a join. */
   public final ImmutableList<RexNode> rightInferredPredicates;
 
-  private RelOptPredicateList(Iterable<RexNode> pulledUpPredicates,
-      Iterable<RexNode> leftInferredPredicates,
-      Iterable<RexNode> rightInferredPredicates) {
-    this.pulledUpPredicates = ImmutableList.copyOf(pulledUpPredicates);
-    this.leftInferredPredicates = ImmutableList.copyOf(leftInferredPredicates);
+  /** A map of each (e, constant) pair that occurs within
+   * {@link #pulledUpPredicates}. */
+  public final ImmutableMap<RexNode, RexNode> constantMap;
+
+  private RelOptPredicateList(ImmutableList<RexNode> pulledUpPredicates,
+      ImmutableList<RexNode> leftInferredPredicates,
+      ImmutableList<RexNode> rightInferredPredicates,
+      ImmutableMap<RexNode, RexNode> constantMap) {
+    this.pulledUpPredicates = Preconditions.checkNotNull(pulledUpPredicates);
+    this.leftInferredPredicates =
+        Preconditions.checkNotNull(leftInferredPredicates);
     this.rightInferredPredicates =
-        ImmutableList.copyOf(rightInferredPredicates);
+        Preconditions.checkNotNull(rightInferredPredicates);
+    this.constantMap = Preconditions.checkNotNull(constantMap);
   }
 
   /** Creates a RelOptPredicateList with only pulled-up predicates, no inferred
@@ -94,18 +105,19 @@ public class RelOptPredicateList {
    * @param pulledUpPredicates Predicates that apply to the rows returned by the
    * relational expression
    */
-  public static RelOptPredicateList of(Iterable<RexNode> pulledUpPredicates) {
+  public static RelOptPredicateList of(RexBuilder rexBuilder,
+      Iterable<RexNode> pulledUpPredicates) {
     ImmutableList<RexNode> pulledUpPredicatesList =
         ImmutableList.copyOf(pulledUpPredicates);
     if (pulledUpPredicatesList.isEmpty()) {
       return EMPTY;
     }
-    return new RelOptPredicateList(pulledUpPredicatesList, EMPTY_LIST,
-        EMPTY_LIST);
+    return of(rexBuilder, pulledUpPredicatesList, EMPTY_LIST, EMPTY_LIST);
   }
 
   /** Creates a RelOptPredicateList for a join.
    *
+   * @param rexBuilder Rex builder
    * @param pulledUpPredicates Predicates that apply to the rows returned by the
    * relational expression
    * @param leftInferredPredicates Predicates that were inferred from the right
@@ -113,7 +125,8 @@ public class RelOptPredicateList {
    * @param rightInferredPredicates Predicates that were inferred from the left
    *                                input
    */
-  public static RelOptPredicateList of(Iterable<RexNode> pulledUpPredicates,
+  public static RelOptPredicateList of(RexBuilder rexBuilder,
+      Iterable<RexNode> pulledUpPredicates,
       Iterable<RexNode> leftInferredPredicates,
       Iterable<RexNode> rightInferredPredicates) {
     final ImmutableList<RexNode> pulledUpPredicatesList =
@@ -127,15 +140,25 @@ public class RelOptPredicateList {
         && rightInferredPredicatesList.isEmpty()) {
       return EMPTY;
     }
+    final ImmutableMap<RexNode, RexNode> constantMap =
+        RexUtil.predicateConstants(RexNode.class, rexBuilder,
+            pulledUpPredicatesList);
     return new RelOptPredicateList(pulledUpPredicatesList,
-        leftInferredPredicateList, rightInferredPredicatesList);
+        leftInferredPredicateList, rightInferredPredicatesList, constantMap);
   }
 
-  public RelOptPredicateList union(RelOptPredicateList list) {
-    return RelOptPredicateList.of(
-        concat(pulledUpPredicates, list.pulledUpPredicates),
-        concat(leftInferredPredicates, list.leftInferredPredicates),
-        concat(rightInferredPredicates, list.rightInferredPredicates));
+  public RelOptPredicateList union(RexBuilder rexBuilder,
+      RelOptPredicateList list) {
+    if (this == EMPTY) {
+      return list;
+    } else if (list == EMPTY) {
+      return this;
+    } else {
+      return RelOptPredicateList.of(rexBuilder,
+          concat(pulledUpPredicates, list.pulledUpPredicates),
+          concat(leftInferredPredicates, list.leftInferredPredicates),
+          concat(rightInferredPredicates, list.rightInferredPredicates));
+    }
   }
 
   /** Concatenates two immutable lists, avoiding a copy it possible. */
@@ -150,8 +173,9 @@ public class RelOptPredicateList {
     }
   }
 
-  public RelOptPredicateList shift(int offset) {
-    return RelOptPredicateList.of(RexUtil.shift(pulledUpPredicates, offset),
+  public RelOptPredicateList shift(RexBuilder rexBuilder, int offset) {
+    return RelOptPredicateList.of(rexBuilder,
+        RexUtil.shift(pulledUpPredicates, offset),
         RexUtil.shift(leftInferredPredicates, offset),
         RexUtil.shift(rightInferredPredicates, offset));
   }

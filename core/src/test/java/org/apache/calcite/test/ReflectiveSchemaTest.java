@@ -37,7 +37,7 @@ import org.apache.calcite.util.Smalls;
 import org.apache.calcite.util.Util;
 
 import com.google.common.base.Function;
-import com.google.common.base.Throwables;
+import com.google.common.collect.ImmutableList;
 
 import org.junit.Assert;
 import org.junit.Ignore;
@@ -55,7 +55,6 @@ import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.BitSet;
-import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 
@@ -197,7 +196,7 @@ public class ReflectiveSchemaTest {
     schema.add("emps_view",
         ViewTable.viewMacro(schema,
             "select * from \"hr\".\"emps\" where \"deptno\" = 10",
-            null, null));
+            null, Arrays.asList("s", "emps_view"), null));
     rootSchema.add("hr", new ReflectiveSchema(new JdbcTest.HrSchema()));
     ResultSet resultSet = connection.createStatement().executeQuery(
         "select *\n"
@@ -223,17 +222,18 @@ public class ReflectiveSchemaTest {
     schema.add("emps",
         ViewTable.viewMacro(schema,
             "select * from \"emps\" where \"deptno\" = 10",
-            Collections.singletonList("hr"), null));
+            ImmutableList.of("hr"), ImmutableList.of("s", "emps"), null));
     schema.add("hr_emps",
         ViewTable.viewMacro(schema,
             "select * from \"emps\"",
-            Collections.singletonList("hr"), null));
+            ImmutableList.of("hr"), ImmutableList.of("s", "hr_emps"), null));
     schema.add("s_emps",
         ViewTable.viewMacro(schema,
             "select * from \"emps\"",
-            Collections.singletonList("s"), null));
+            ImmutableList.of("s"), ImmutableList.of("s", "s_emps"), null));
     schema.add("null_emps",
-        ViewTable.viewMacro(schema, "select * from \"emps\"", null, null));
+        ViewTable.viewMacro(schema, "select * from \"emps\"", null,
+            ImmutableList.of("s", "null_emps"), null));
     rootSchema.add("hr", new ReflectiveSchema(new JdbcTest.HrSchema()));
     final Statement statement = connection.createStatement();
     ResultSet resultSet;
@@ -346,7 +346,7 @@ public class ReflectiveSchemaTest {
                       ++n;
                     }
                   } catch (SQLException e) {
-                    throw Throwables.propagate(e);
+                    throw new RuntimeException(e);
                   }
                   assertThat(n, equalTo(1));
                   return null;
@@ -579,7 +579,7 @@ public class ReflectiveSchemaTest {
                     buf.append(input.getInt(2)).append("\n");
                   }
                 } catch (SQLException e) {
-                  throw Throwables.propagate(e);
+                  throw new RuntimeException(e);
                 }
                 assertThat(buf.toString(), equalTo("0\n2147483647\n"));
                 return null;
@@ -620,7 +620,7 @@ public class ReflectiveSchemaTest {
     // BitSet is not a valid relation type. It's as if "bitSet" field does
     // not exist.
     with.query("select * from \"s\".\"bitSet\"")
-        .throws_("Table 's.bitSet' not found");
+        .throws_("Object 'bitSet' not found within 's'");
     // Enumerable field returns 3 records with 0 fields
     with.query("select * from \"s\".\"enumerable\"")
         .returns("\n"
@@ -702,6 +702,26 @@ public class ReflectiveSchemaTest {
         .withSchema("s", CATCHALL)
         .query("select \"value\"*2 \"value\" from \"s\".\"primesCustomBoxed\"")
         .returnsUnordered("value=2", "value=6", "value=10");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1569">[CALCITE-1569]
+   * Date condition can generates Integer == Integer, which is always
+   * false</a>. */
+  @Test public void testDateCanCompare() {
+    final String sql = "select a.v\n"
+        + "from (select \"sqlDate\" v\n"
+        + "  from \"s\".\"everyTypes\" "
+        + "  group by \"sqlDate\") a,"
+        + "    (select \"sqlDate\" v\n"
+        + "  from \"s\".\"everyTypes\"\n"
+        + "  group by \"sqlDate\") b\n"
+        + "where a.v >= b.v\n"
+        + "group by a.v";
+    CalciteAssert.that()
+        .withSchema("s", CATCHALL)
+        .query(sql)
+        .returnsUnordered("V=1970-01-01");
   }
 
   /** Extension to {@link Employee} with a {@code hireDate} column. */

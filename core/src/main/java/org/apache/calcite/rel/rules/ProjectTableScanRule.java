@@ -25,6 +25,7 @@ import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.runtime.PredicateImpl;
 import org.apache.calcite.schema.ProjectableFilterableTable;
 import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.mapping.Mapping;
@@ -48,8 +49,8 @@ import java.util.List;
  */
 public abstract class ProjectTableScanRule extends RelOptRule {
   public static final Predicate<TableScan> PREDICATE =
-      new Predicate<TableScan>() {
-        public boolean apply(TableScan scan) {
+      new PredicateImpl<TableScan>() {
+        public boolean test(TableScan scan) {
           // We can only push projects into a ProjectableFilterableTable.
           final RelOptTable table = scan.getTable();
           return table.unwrap(ProjectableFilterableTable.class) != null;

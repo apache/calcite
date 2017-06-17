@@ -181,7 +181,7 @@ public class SelectScope extends ListScope {
       // Compute on demand first call.
       orderList = new SqlNodeList(SqlParserPos.ZERO);
       if (children.size() == 1) {
-        final SqlValidatorNamespace child = children.get(0).right;
+        final SqlValidatorNamespace child = children.get(0).namespace;
         final List<Pair<SqlNode, SqlMonotonicity>> monotonicExprs =
             child.getMonotonicExprs();
         if (monotonicExprs.size() > 0) {

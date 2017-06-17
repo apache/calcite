@@ -32,18 +32,18 @@ import java.util.Set;
  * <p>Has methods that help ensure that variable names are unique.</p>
  */
 public class BlockBuilder {
-  final List<Statement> statements = new ArrayList<Statement>();
-  final Set<String> variables = new HashSet<String>();
+  final List<Statement> statements = new ArrayList<>();
+  final Set<String> variables = new HashSet<>();
   /** Contains final-fine-to-reuse-declarations.
    * An entry to this map is added when adding final declaration of a
    * statement with optimize=true parameter. */
   final Map<Expression, DeclarationStatement> expressionForReuse =
-      new HashMap<Expression, DeclarationStatement>();
+      new HashMap<>();
 
   private final boolean optimizing;
   private final BlockBuilder parent;
 
-  private static final Visitor OPTIMIZE_VISITOR = new OptimizeVisitor();
+  private static final Shuttle OPTIMIZE_SHUTTLE = new OptimizeShuttle();
 
   /**
    * Creates a non-optimizing BlockBuilder.
@@ -111,13 +111,13 @@ public class BlockBuilder {
     }
     Expression result = null;
     final Map<ParameterExpression, Expression> replacements =
-        new IdentityHashMap<ParameterExpression, Expression>();
-    final Visitor visitor = new SubstituteVariableVisitor(replacements);
+        new IdentityHashMap<>();
+    final Shuttle shuttle = new SubstituteVariableVisitor(replacements);
     for (int i = 0; i < block.statements.size(); i++) {
       Statement statement = block.statements.get(i);
       if (!replacements.isEmpty()) {
         // Save effort, and only substitute variables if there are some.
-        statement = statement.accept(visitor);
+        statement = statement.accept(shuttle);
       }
       if (statement instanceof DeclarationStatement) {
         DeclarationStatement declaration = (DeclarationStatement) statement;
@@ -218,7 +218,8 @@ public class BlockBuilder {
   }
 
   /**
-   * Checks if experssion is simple enough for always inline
+   * Checks if expression is simple enough to always inline at zero cost.
+   *
    * @param expr expression to test
    * @return true when given expression is safe to always inline
    */
@@ -244,6 +245,10 @@ public class BlockBuilder {
       Expression expr = normalizeDeclaration(decl);
       expressionForReuse.put(expr, decl);
     }
+  }
+
+  private boolean isCostly(DeclarationStatement decl) {
+    return decl.initializer instanceof NewExpression;
   }
 
   /**
@@ -303,11 +308,11 @@ public class BlockBuilder {
       // loop. Optimize should not loop forever, however it is hard to prove if
       // it always finishes in reasonable time.
       for (int i = 0; i < 10; i++) {
-        if (!optimize(createOptimizeVisitor(), true)) {
+        if (!optimize(createOptimizeShuttle(), true)) {
           break;
         }
       }
-      optimize(createFinishingOptimizeVisitor(), false);
+      optimize(createFinishingOptimizeShuttle(), false);
     }
     return Expressions.block(statements);
   }
@@ -318,7 +323,7 @@ public class BlockBuilder {
    *
    * @return whether any optimizations were made
    */
-  private boolean optimize(Visitor optimizer, boolean performInline) {
+  private boolean optimize(Shuttle optimizer, boolean performInline) {
     int optimizeCount = 0;
     final UseCounter useCounter = new UseCounter();
     for (Statement statement : statements) {
@@ -334,12 +339,10 @@ public class BlockBuilder {
       }
     }
     final Map<ParameterExpression, Expression> subMap =
-        new IdentityHashMap<ParameterExpression, Expression>(
-            useCounter.map.size());
+        new IdentityHashMap<>(useCounter.map.size());
     final SubstituteVariableVisitor visitor = new SubstituteVariableVisitor(
         subMap);
-    final ArrayList<Statement> oldStatements = new ArrayList<Statement>(
-        statements);
+    final ArrayList<Statement> oldStatements = new ArrayList<>(statements);
     statements.clear();
 
     for (Statement oldStatement : oldStatements) {
@@ -354,6 +357,11 @@ public class BlockBuilder {
         if (!isSafeForReuse(statement)) {
           // Don't inline variables that are not final. They might be assigned
           // more than once.
+          count = 100;
+        }
+        if (isCostly(statement)) {
+          // Don't inline variables that are costly, such as "new MyFunction()".
+          // Later we will make their declarations static.
           count = 100;
         }
         if (statement.parameter.name.startsWith("_")) {
@@ -400,10 +408,10 @@ public class BlockBuilder {
               DeclarationStatement newDecl =
                   (DeclarationStatement) oldStatement;
               subMap.put(newDecl.parameter, normalizeDeclaration(newDecl));
-              oldStatement = OptimizeVisitor.EMPTY_STATEMENT;
+              oldStatement = OptimizeShuttle.EMPTY_STATEMENT;
             }
           }
-          if (oldStatement != OptimizeVisitor.EMPTY_STATEMENT) {
+          if (oldStatement != OptimizeShuttle.EMPTY_STATEMENT) {
             if (oldStatement instanceof DeclarationStatement) {
               addExpressionForReuse((DeclarationStatement) oldStatement);
             }
@@ -420,7 +428,7 @@ public class BlockBuilder {
         if (beforeOptimize != oldStatement) {
           ++optimizeCount;
         }
-        if (oldStatement != OptimizeVisitor.EMPTY_STATEMENT) {
+        if (oldStatement != OptimizeShuttle.EMPTY_STATEMENT) {
           statements.add(oldStatement);
         }
       }
@@ -429,23 +437,23 @@ public class BlockBuilder {
   }
 
   /**
-   * Creates a visitor that will be used during block optimization.
-   * Subclasses might provide more specific optimizations (e.g. partial
+   * Creates a shuttle that will be used during block optimization.
+   * Sub-classes might provide more specific optimizations (e.g. partial
    * evaluation).
    *
-   * @return visitor used to optimize the statements when converting to block
+   * @return shuttle used to optimize the statements when converting to block
    */
-  protected Visitor createOptimizeVisitor() {
-    return OPTIMIZE_VISITOR;
+  protected Shuttle createOptimizeShuttle() {
+    return OPTIMIZE_SHUTTLE;
   }
 
   /**
-   * Creates a final optimization visitor.
+   * Creates a final optimization shuttle.
    * Typically, the visitor will factor out constant expressions.
    *
-   * @return visitor that is used to finalize the optimization
+   * @return shuttle that is used to finalize the optimization
    */
-  protected Visitor createFinishingOptimizeVisitor() {
+  protected Shuttle createFinishingOptimizeShuttle() {
     return ClassDeclarationFinder.create();
   }
 
@@ -484,10 +492,10 @@ public class BlockBuilder {
   }
 
   /** Substitute Variable Visitor. */
-  private static class SubstituteVariableVisitor extends Visitor {
+  private static class SubstituteVariableVisitor extends Shuttle {
     private final Map<ParameterExpression, Expression> map;
     private final Map<ParameterExpression, Boolean> actives =
-        new IdentityHashMap<ParameterExpression, Boolean>();
+        new IdentityHashMap<>();
 
     public SubstituteVariableVisitor(Map<ParameterExpression, Expression> map) {
       this.map = map;
@@ -544,11 +552,10 @@ public class BlockBuilder {
   }
 
   /** Use counter. */
-  private static class UseCounter extends Visitor {
-    private final Map<ParameterExpression, Slot> map =
-        new IdentityHashMap<ParameterExpression, Slot>();
+  private static class UseCounter extends VisitorImpl<Void> {
+    private final Map<ParameterExpression, Slot> map = new IdentityHashMap<>();
 
-    @Override public Expression visit(ParameterExpression parameter) {
+    @Override public Void visit(ParameterExpression parameter) {
       final Slot slot = map.get(parameter);
       if (slot != null) {
         // Count use of parameter, if it's registered. It's OK if
@@ -557,6 +564,14 @@ public class BlockBuilder {
         slot.count++;
       }
       return super.visit(parameter);
+    }
+
+    @Override public Void visit(DeclarationStatement declarationStatement) {
+      // Unlike base class, do not visit declarationStatement.parameter.
+      if (declarationStatement.initializer != null) {
+        declarationStatement.initializer.accept(this);
+      }
+      return null;
     }
   }
 

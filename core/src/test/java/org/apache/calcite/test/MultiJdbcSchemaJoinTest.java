@@ -28,6 +28,7 @@ import org.junit.Test;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -168,7 +169,7 @@ public class MultiJdbcSchemaJoinTest {
     }
   }
 
-  @Test public void testSchemaCache() throws Exception {
+  @Test public void testSchemaConsistency() throws Exception {
     // Create a database
     final String db = TempDb.INSTANCE.getUrl();
     Connection c1 = DriverManager.getConnection(db, "", "");
@@ -183,9 +184,7 @@ public class MultiJdbcSchemaJoinTest {
     SchemaPlus rootSchema = calciteConnection.getRootSchema();
     final DataSource ds =
         JdbcSchema.dataSource(db, "org.hsqldb.jdbcDriver", "", "");
-    final SchemaPlus s =
-        rootSchema.add("DB",
-            JdbcSchema.create(rootSchema, "DB", ds, null, null));
+    rootSchema.add("DB", JdbcSchema.create(rootSchema, "DB", ds, null, null));
 
     Statement stmt3 = connection.createStatement();
     ResultSet rs;
@@ -196,26 +195,26 @@ public class MultiJdbcSchemaJoinTest {
       fail("expected error, got " + rs);
     } catch (SQLException e) {
       assertThat(e.getCause().getCause().getMessage(),
-          equalTo("Table 'DB.TABLE2' not found"));
+          equalTo("Object 'TABLE2' not found within 'DB'"));
     }
 
     stmt1.execute("create table table2(id varchar(10) not null primary key, "
         + "field1 varchar(10))");
     stmt1.execute("insert into table2 values('a', 'aaaa')");
 
-    // fails, table not visible due to caching
-    try {
-      rs = stmt3.executeQuery("select * from db.table2");
-      fail("expected error, got " + rs);
-    } catch (SQLException e) {
-      assertThat(e.getCause().getCause().getMessage(),
-          equalTo("Table 'DB.TABLE2' not found"));
-    }
+    PreparedStatement stmt2 =
+        connection.prepareStatement("select * from db.table2");
 
-    // disable caching and table becomes visible
-    s.setCacheEnabled(false);
-    rs = stmt3.executeQuery("select * from db.table2");
+    stmt1.execute("alter table table2 add column field2 varchar(10)");
+
+    // "field2" not visible to stmt2
+    rs = stmt2.executeQuery();
     assertThat(CalciteAssert.toString(rs), equalTo("ID=a; FIELD1=aaaa\n"));
+
+    // "field2" visible to a new query
+    rs = stmt3.executeQuery("select * from db.table2");
+    assertThat(CalciteAssert.toString(rs),
+        equalTo("ID=a; FIELD1=aaaa; FIELD2=null\n"));
     c1.close();
   }
 

@@ -54,11 +54,15 @@ public class GotoStatement extends Statement {
     }
   }
 
-  @Override public Statement accept(Visitor visitor) {
-    visitor = visitor.preVisit(this);
+  @Override public Statement accept(Shuttle shuttle) {
+    shuttle = shuttle.preVisit(this);
     Expression expression1 =
-        expression == null ? null : expression.accept(visitor);
-    return visitor.visit(this, expression1);
+        expression == null ? null : expression.accept(shuttle);
+    return shuttle.visit(this, expression1);
+  }
+
+  public <R> R accept(Visitor<R> visitor) {
+    return visitor.visit(this);
   }
 
   @Override void accept0(ExpressionWriter writer) {

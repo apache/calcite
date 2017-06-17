@@ -28,9 +28,14 @@ import org.apache.calcite.sql.type.ReturnTypes;
  * consistent with Oracle.
  *
  * <p>Some examples are in {@code agg.iq}.
+ *
+ * @deprecated Now that {@code GROUPING} has the same functionality,
+ * this function is deprecated.
  */
+@Deprecated // to be removed before 2.0
 class SqlGroupingIdFunction extends SqlAbstractGroupFunction {
   public SqlGroupingIdFunction() {
+    //noinspection deprecation
     super("GROUPING_ID", SqlKind.GROUPING_ID, ReturnTypes.BIGINT, null,
         OperandTypes.ONE_OR_MORE, SqlFunctionCategory.SYSTEM);
   }

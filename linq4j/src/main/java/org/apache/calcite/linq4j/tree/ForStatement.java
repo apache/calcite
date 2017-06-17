@@ -45,15 +45,19 @@ public class ForStatement extends Statement {
     this.body = body; // may be empty block, not null
   }
 
-  @Override public ForStatement accept(Visitor visitor) {
-    visitor = visitor.preVisit(this);
+  @Override public ForStatement accept(Shuttle shuttle) {
+    shuttle = shuttle.preVisit(this);
     List<DeclarationStatement> decls1 =
-        Expressions.acceptDeclarations(declarations, visitor);
+        Expressions.acceptDeclarations(declarations, shuttle);
     final Expression condition1 =
-        condition == null ? null : condition.accept(visitor);
-    final Expression post1 = post == null ? null : post.accept(visitor);
-    final Statement body1 = body.accept(visitor);
-    return visitor.visit(this, decls1, condition1, post1, body1);
+        condition == null ? null : condition.accept(shuttle);
+    final Expression post1 = post == null ? null : post.accept(shuttle);
+    final Statement body1 = body.accept(shuttle);
+    return shuttle.visit(this, decls1, condition1, post1, body1);
+  }
+
+  public <R> R accept(Visitor<R> visitor) {
+    return visitor.visit(this);
   }
 
   @Override void accept0(ExpressionWriter writer) {

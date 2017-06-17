@@ -25,6 +25,8 @@ import org.apache.calcite.sql.SqlSelect;
 
 import java.util.List;
 
+import static org.apache.calcite.util.Static.RESOURCE;
+
 /**
  * Represents the name-resolution context for expressions in an ORDER BY clause.
  *
@@ -69,13 +71,20 @@ public class OrderByScope extends DelegatingScope {
     // If it's a simple identifier, look for an alias.
     if (identifier.isSimple()
         && validator.getConformance().isSortByAlias()) {
-      String name = identifier.names.get(0);
+      final String name = identifier.names.get(0);
       final SqlValidatorNamespace selectNs =
           validator.getNamespace(select);
       final RelDataType rowType = selectNs.getRowType();
 
-      final RelDataTypeField field = validator.catalogReader.field(rowType, name);
-      if (field != null && !field.isDynamicStar()) {
+      final SqlNameMatcher nameMatcher = validator.catalogReader.nameMatcher();
+      final RelDataTypeField field = nameMatcher.field(rowType, name);
+      final int aliasCount = aliasCount(nameMatcher, name);
+      if (aliasCount > 1) {
+        // More than one column has this alias.
+        throw validator.newValidationError(identifier,
+            RESOURCE.columnAmbiguous(name));
+      }
+      if (field != null && !field.isDynamicStar() && aliasCount == 1) {
         // if identifier is resolved to a dynamic star, use super.fullyQualify() for such case.
         return SqlQualified.create(this, 1, selectNs, identifier);
       }
@@ -83,10 +92,25 @@ public class OrderByScope extends DelegatingScope {
     return super.fullyQualify(identifier);
   }
 
+  /** Returns the number of columns in the SELECT clause that have {@code name}
+   * as their implicit (e.g. {@code t.name}) or explicit (e.g.
+   * {@code t.c as name}) alias. */
+  private int aliasCount(SqlNameMatcher nameMatcher, String name) {
+    int n = 0;
+    for (SqlNode s : select.getSelectList()) {
+      final String alias = SqlValidatorUtil.getAlias(s, -1);
+      if (alias != null && nameMatcher.matches(alias, name)) {
+        n++;
+      }
+    }
+    return n;
+  }
+
   public RelDataType resolveColumn(String name, SqlNode ctx) {
     final SqlValidatorNamespace selectNs = validator.getNamespace(select);
     final RelDataType rowType = selectNs.getRowType();
-    final RelDataTypeField field = validator.catalogReader.field(rowType, name);
+    final SqlNameMatcher nameMatcher = validator.catalogReader.nameMatcher();
+    final RelDataTypeField field = nameMatcher.field(rowType, name);
     if (field != null) {
       return field.getType();
     }

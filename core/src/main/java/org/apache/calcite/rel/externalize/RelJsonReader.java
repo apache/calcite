@@ -46,6 +46,7 @@ import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 /**
@@ -188,7 +189,8 @@ public class RelJsonReader {
       }
 
       public <E extends Enum<E>> E getEnum(String tag, Class<E> enumClass) {
-        return Util.enumVal(enumClass, getString(tag).toUpperCase());
+        return Util.enumVal(enumClass,
+            getString(tag).toUpperCase(Locale.ROOT));
       }
 
       public List<RexNode> getExpressionList(String tag) {

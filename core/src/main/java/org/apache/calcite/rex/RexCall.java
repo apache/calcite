@@ -22,6 +22,7 @@ import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.util.Litmus;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
 import java.util.List;
@@ -55,15 +56,10 @@ public class RexCall extends RexNode {
       RelDataType type,
       SqlOperator op,
       List<? extends RexNode> operands) {
-    assert type != null : "precondition: type != null";
-    assert op != null : "precondition: op != null";
-    assert operands != null : "precondition: operands != null";
-    this.type = type;
-    this.op = op;
+    this.type = Preconditions.checkNotNull(type);
+    this.op = Preconditions.checkNotNull(op);
     this.operands = ImmutableList.copyOf(operands);
     assert op.getKind() != null : op;
-    this.digest = computeDigest(true);
-
     assert op.validRexOperands(operands.size(), Litmus.THROW) : this;
   }
 
@@ -97,11 +93,11 @@ public class RexCall extends RexNode {
   }
 
   public String toString() {
-    // REVIEW jvs 16-Jan-2005: For CAST and NEW, the type is really an
-    // operand and needs to be printed out.  But special-casing it here is
-    // ugly.
-    return computeDigest(
-        isA(SqlKind.CAST) || isA(SqlKind.NEW_SPECIFICATION));
+    if (digest == null) {
+      digest = computeDigest(
+          isA(SqlKind.CAST) || isA(SqlKind.NEW_SPECIFICATION));
+    }
+    return digest;
   }
 
   public <R> R accept(RexVisitor<R> visitor) {

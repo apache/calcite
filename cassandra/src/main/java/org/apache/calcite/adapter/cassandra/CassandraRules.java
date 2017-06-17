@@ -37,6 +37,7 @@ import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexVisitorImpl;
+import org.apache.calcite.runtime.PredicateImpl;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.util.Pair;
@@ -44,7 +45,6 @@ import org.apache.calcite.util.Pair;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 
-import java.util.AbstractList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -65,16 +65,8 @@ public class CassandraRules {
   };
 
   static List<String> cassandraFieldNames(final RelDataType rowType) {
-    return SqlValidatorUtil.uniquify(
-        new AbstractList<String>() {
-          @Override public String get(int index) {
-            return rowType.getFieldList().get(index).getName();
-          }
-
-          @Override public int size() {
-            return rowType.getFieldCount();
-          }
-        });
+    return SqlValidatorUtil.uniquify(rowType.getFieldNames(),
+        SqlValidatorUtil.EXPR_SUGGESTER, true);
   }
 
   /** Translator from {@link RexNode} to strings in Cassandra's expression
@@ -121,8 +113,8 @@ public class CassandraRules {
    */
   private static class CassandraFilterRule extends RelOptRule {
     private static final Predicate<LogicalFilter> PREDICATE =
-        new Predicate<LogicalFilter>() {
-          public boolean apply(LogicalFilter input) {
+        new PredicateImpl<LogicalFilter>() {
+          public boolean test(LogicalFilter input) {
             // TODO: Check for an equality predicate on the partition key
             // Right now this just checks if we have a single top-level AND
             return RelOptUtil.disjunctions(input.getCondition()).size() == 1;
@@ -277,15 +269,15 @@ public class CassandraRules {
    */
   private static class CassandraSortRule extends RelOptRule {
     private static final Predicate<Sort> SORT_PREDICATE =
-        new Predicate<Sort>() {
-          public boolean apply(Sort input) {
+        new PredicateImpl<Sort>() {
+          public boolean test(Sort input) {
             // Limits are handled by CassandraLimit
             return input.offset == null && input.fetch == null;
           }
         };
     private static final Predicate<CassandraFilter> FILTER_PREDICATE =
-        new Predicate<CassandraFilter>() {
-          public boolean apply(CassandraFilter input) {
+        new PredicateImpl<CassandraFilter>() {
+          public boolean test(CassandraFilter input) {
             // We can only use implicit sorting within a single partition
             return input.isSinglePartition();
           }

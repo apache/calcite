@@ -19,8 +19,13 @@ package org.apache.calcite.rel.rules;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.Intersect;
+import org.apache.calcite.rel.core.Minus;
 import org.apache.calcite.rel.core.RelFactories;
+import org.apache.calcite.rel.core.SetOp;
 import org.apache.calcite.rel.core.Union;
+import org.apache.calcite.rel.logical.LogicalIntersect;
+import org.apache.calcite.rel.logical.LogicalMinus;
 import org.apache.calcite.rel.logical.LogicalUnion;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
@@ -28,70 +33,106 @@ import org.apache.calcite.util.Util;
 
 /**
  * UnionMergeRule implements the rule for combining two
- * non-distinct {@link org.apache.calcite.rel.core.Union}s
- * into a single {@link org.apache.calcite.rel.core.Union}.
+ * non-distinct {@link org.apache.calcite.rel.core.SetOp}s
+ * into a single {@link org.apache.calcite.rel.core.SetOp}.
+ *
+ * <p>Originally written for {@link Union} (hence the name),
+ * but now also applies to {@link Intersect}.
  */
 public class UnionMergeRule extends RelOptRule {
   public static final UnionMergeRule INSTANCE =
-      new UnionMergeRule(LogicalUnion.class, RelFactories.LOGICAL_BUILDER);
+      new UnionMergeRule(LogicalUnion.class, "UnionMergeRule",
+          RelFactories.LOGICAL_BUILDER);
+  public static final UnionMergeRule INTERSECT_INSTANCE =
+      new UnionMergeRule(LogicalIntersect.class, "IntersectMergeRule",
+          RelFactories.LOGICAL_BUILDER);
+  public static final UnionMergeRule MINUS_INSTANCE =
+      new UnionMergeRule(LogicalMinus.class, "MinusMergeRule",
+          RelFactories.LOGICAL_BUILDER);
 
   //~ Constructors -----------------------------------------------------------
 
   /** Creates a UnionMergeRule. */
-  public UnionMergeRule(Class<? extends Union> unionClazz,
+  public UnionMergeRule(Class<? extends SetOp> unionClazz, String description,
       RelBuilderFactory relBuilderFactory) {
     super(
         operand(unionClazz,
             operand(RelNode.class, any()),
             operand(RelNode.class, any())),
-        relBuilderFactory, null);
+        relBuilderFactory, description);
   }
 
   @Deprecated // to be removed before 2.0
   public UnionMergeRule(Class<? extends Union> unionClazz,
       RelFactories.SetOpFactory setOpFactory) {
-    this(unionClazz, RelBuilder.proto(setOpFactory));
+    this(unionClazz, null, RelBuilder.proto(setOpFactory));
   }
 
   //~ Methods ----------------------------------------------------------------
 
   public void onMatch(RelOptRuleCall call) {
-    final Union topUnion = call.rel(0);
+    final SetOp topOp = call.rel(0);
+    @SuppressWarnings("unchecked") final Class<? extends SetOp> setOpClass =
+        (Class) operands.get(0).getMatchedClass();
 
-    // We want to combine the Union that's in the second input first.
-    // Hence, that's why the rule pattern matches on generic RelNodes
-    // rather than explicit UnionRels.  By doing so, and firing this rule
+    // For Union and Intersect, we want to combine the set-op that's in the
+    // second input first.
+    //
+    // For example, we reduce
+    //    Union(Union(a, b), Union(c, d))
+    // to
+    //    Union(Union(a, b), c, d)
+    // in preference to
+    //    Union(a, b, Union(c, d))
+    //
+    // But for Minus, we can only reduce the left input. It is not valid to
+    // reduce
+    //    Minus(a, Minus(b, c))
+    // to
+    //    Minus(a, b, c)
+    //
+    // Hence, that's why the rule pattern matches on generic RelNodes rather
+    // than explicit sub-classes of SetOp.  By doing so, and firing this rule
     // in a bottom-up order, it allows us to only specify a single
     // pattern for this rule.
-    final Union bottomUnion;
-    if (call.rel(2) instanceof Union) {
-      bottomUnion = call.rel(2);
-    } else if (call.rel(1) instanceof Union) {
-      bottomUnion = call.rel(1);
+    final SetOp bottomOp;
+    if (setOpClass.isInstance(call.rel(2))
+        && !Minus.class.isAssignableFrom(setOpClass)) {
+      bottomOp = call.rel(2);
+    } else if (setOpClass.isInstance(call.rel(1))) {
+      bottomOp = call.rel(1);
     } else {
       return;
     }
 
-    // If distincts haven't been removed yet, defer invoking this rule
-    if (!topUnion.all || !bottomUnion.all) {
+    // Can only combine (1) if all operators are ALL,
+    // or (2) top operator is DISTINCT (i.e. not ALL).
+    // In case (2), all operators become DISTINCT.
+    if (topOp.all && !bottomOp.all) {
       return;
     }
 
-    // Combine the inputs from the bottom union with the other inputs from
-    // the top union
+    // Combine the inputs from the bottom set-op with the other inputs from
+    // the top set-op.
     final RelBuilder relBuilder = call.builder();
-    if (call.rel(2) instanceof Union) {
-      assert topUnion.getInputs().size() == 2;
-      relBuilder.push(topUnion.getInput(0));
-      relBuilder.pushAll(bottomUnion.getInputs());
+    if (setOpClass.isInstance(call.rel(2))) {
+      assert topOp.getInputs().size() == 2;
+      relBuilder.push(topOp.getInput(0));
+      relBuilder.pushAll(bottomOp.getInputs());
     } else {
-      relBuilder.pushAll(bottomUnion.getInputs());
-      relBuilder.pushAll(Util.skip(topUnion.getInputs()));
+      relBuilder.pushAll(bottomOp.getInputs());
+      relBuilder.pushAll(Util.skip(topOp.getInputs()));
     }
-    int n = bottomUnion.getInputs().size()
-        + topUnion.getInputs().size()
+    int n = bottomOp.getInputs().size()
+        + topOp.getInputs().size()
         - 1;
-    relBuilder.union(true, n);
+    if (topOp instanceof Union) {
+      relBuilder.union(topOp.all, n);
+    } else if (topOp instanceof Intersect) {
+      relBuilder.intersect(topOp.all, n);
+    } else if (topOp instanceof Minus) {
+      relBuilder.minus(topOp.all, n);
+    }
     call.transformTo(relBuilder.build());
   }
 }

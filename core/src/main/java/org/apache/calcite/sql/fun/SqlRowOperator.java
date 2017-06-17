@@ -40,14 +40,14 @@ import java.util.Map;
 public class SqlRowOperator extends SqlSpecialOperator {
   //~ Constructors -----------------------------------------------------------
 
-  public SqlRowOperator() {
-    super(
-        "ROW",
+  public SqlRowOperator(String name) {
+    super(name,
         SqlKind.ROW, MDX_PRECEDENCE,
         false,
         null,
         InferTypes.RETURN_TYPE,
         OperandTypes.VARIADIC);
+    assert name.equals("ROW") || name.equals(" ");
   }
 
   //~ Methods ----------------------------------------------------------------

@@ -69,7 +69,7 @@ import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.schema.ModifiableTable;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlDialect;
-import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.trace.CalciteTrace;
@@ -109,18 +109,18 @@ public class JdbcRules {
         new JdbcValuesRule(out));
   }
 
-  static final ImmutableList<SqlAggFunction> AGG_FUNCS;
-  static final ImmutableList<SqlAggFunction> MYSQL_AGG_FUNCS;
+  static final ImmutableList<SqlKind> AGG_FUNCS;
+  static final ImmutableList<SqlKind> MYSQL_AGG_FUNCS;
 
   static {
-    ImmutableList.Builder<SqlAggFunction> builder = ImmutableList.builder();
-    builder.add(SqlStdOperatorTable.COUNT);
-    builder.add(SqlStdOperatorTable.SUM);
-    builder.add(SqlStdOperatorTable.SUM0);
-    builder.add(SqlStdOperatorTable.MIN);
-    builder.add(SqlStdOperatorTable.MAX);
+    ImmutableList.Builder<SqlKind> builder = ImmutableList.builder();
+    builder.add(SqlKind.COUNT);
+    builder.add(SqlKind.SUM);
+    builder.add(SqlKind.SUM0);
+    builder.add(SqlKind.MIN);
+    builder.add(SqlKind.MAX);
     AGG_FUNCS = builder.build();
-    builder.add(SqlStdOperatorTable.SINGLE_VALUE);
+    builder.add(SqlKind.SINGLE_VALUE);
     MYSQL_AGG_FUNCS = builder.build();
   }
 
@@ -476,13 +476,12 @@ public class JdbcRules {
 
   /** Returns whether this JDBC data source can implement a given aggregate
    * function. */
-  private static boolean canImplement(SqlAggFunction aggregation,
-      SqlDialect sqlDialect) {
+  private static boolean canImplement(SqlAggFunction aggregation, SqlDialect sqlDialect) {
     switch (sqlDialect.getDatabaseProduct()) {
     case MYSQL:
-      return MYSQL_AGG_FUNCS.contains(aggregation);
+      return MYSQL_AGG_FUNCS.contains(aggregation.getKind());
     default:
-      return AGG_FUNCS.contains(aggregation);
+      return AGG_FUNCS.contains(aggregation.getKind());
     }
   }
 
@@ -730,6 +729,7 @@ public class JdbcRules {
           convert(modify.getInput(), traitSet),
           modify.getOperation(),
           modify.getUpdateColumnList(),
+          modify.getSourceExpressionList(),
           modify.isFlattened());
     }
   }
@@ -745,9 +745,10 @@ public class JdbcRules {
         RelNode input,
         Operation operation,
         List<String> updateColumnList,
+        List<RexNode> sourceExpressionList,
         boolean flattened) {
       super(cluster, traitSet, table, catalogReader, input, operation,
-          updateColumnList, flattened);
+          updateColumnList, sourceExpressionList, flattened);
       assert input.getConvention() instanceof JdbcConvention;
       assert getConvention() instanceof JdbcConvention;
       final ModifiableTable modifiableTable =
@@ -761,11 +762,16 @@ public class JdbcRules {
       }
     }
 
+    @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
+        RelMetadataQuery mq) {
+      return super.computeSelfCost(planner, mq).multiplyBy(.1);
+    }
+
     @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
       return new JdbcTableModify(
           getCluster(), traitSet, getTable(), getCatalogReader(),
           sole(inputs), getOperation(), getUpdateColumnList(),
-          isFlattened());
+          getSourceExpressionList(), isFlattened());
     }
 
     public JdbcImplementor.Result implement(JdbcImplementor implementor) {

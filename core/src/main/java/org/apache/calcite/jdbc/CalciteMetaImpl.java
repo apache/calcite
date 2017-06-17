@@ -28,6 +28,7 @@ import org.apache.calcite.avatica.MetaImpl;
 import org.apache.calcite.avatica.NoSuchStatementException;
 import org.apache.calcite.avatica.QueryState;
 import org.apache.calcite.avatica.remote.TypedValue;
+import org.apache.calcite.jdbc.CalcitePrepare.Context;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.linq4j.Linq4j;
@@ -43,6 +44,7 @@ import org.apache.calcite.rel.type.RelDataTypeFactoryImpl;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.runtime.FlatLists;
+import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.Table;
@@ -51,6 +53,10 @@ import org.apache.calcite.server.CalciteServerStatement;
 import org.apache.calcite.sql.SqlJdbcFunctionCall;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.tools.FrameworkConfig;
+import org.apache.calcite.tools.Frameworks;
+import org.apache.calcite.util.Holder;
+import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -178,7 +184,7 @@ public class CalciteMetaImpl extends MetaImpl {
       } catch (NoSuchFieldException e) {
         throw new RuntimeException(e);
       }
-      columns.add(columnMetaData(name, index, field.getType()));
+      columns.add(columnMetaData(name, index, field.getType(), false));
       fields.add(field);
       fieldNames.add(fieldName);
     }
@@ -206,7 +212,7 @@ public class CalciteMetaImpl extends MetaImpl {
       final CalcitePrepare.CalciteSignature<Object> signature =
           new CalcitePrepare.CalciteSignature<Object>("",
               ImmutableList.<AvaticaParameter>of(), internalParameters, null,
-              columns, cursorFactory, ImmutableList.<RelCollation>of(), -1,
+              columns, cursorFactory, null, ImmutableList.<RelCollation>of(), -1,
               null, Meta.StatementType.SELECT) {
             @Override public Enumerable<Object> enumerable(
                 DataContext dataContext) {
@@ -452,7 +458,7 @@ public class CalciteMetaImpl extends MetaImpl {
 
   private ImmutableList<MetaTypeInfo> getAllDefaultType() {
     final ImmutableList.Builder<MetaTypeInfo> allTypeList =
-        new ImmutableList.Builder<>();
+        ImmutableList.builder();
     final CalciteConnectionImpl conn = (CalciteConnectionImpl) connection;
     final RelDataTypeSystem typeSystem = conn.typeFactory.getTypeSystem();
     for (SqlTypeName sqlTypeName : SqlTypeName.values()) {
@@ -463,16 +469,16 @@ public class CalciteMetaImpl extends MetaImpl {
               typeSystem.getLiteral(sqlTypeName, true),
               typeSystem.getLiteral(sqlTypeName, false),
               // All types are nullable
-              DatabaseMetaData.typeNullable,
+              (short) DatabaseMetaData.typeNullable,
               typeSystem.isCaseSensitive(sqlTypeName),
               // Making all type searchable; we may want to
               // be specific and declare under SqlTypeName
-              DatabaseMetaData.typeSearchable,
+              (short) DatabaseMetaData.typeSearchable,
               false,
               false,
               typeSystem.isAutoincrement(sqlTypeName),
-              sqlTypeName.getMinScale(),
-              typeSystem.getMaxScale(sqlTypeName),
+              (short) sqlTypeName.getMinScale(),
+              (short) typeSystem.getMaxScale(sqlTypeName),
               typeSystem.getNumTypeRadix(sqlTypeName)));
     }
     return allTypeList.build();
@@ -568,13 +574,14 @@ public class CalciteMetaImpl extends MetaImpl {
       // Not possible. We just created a statement.
       throw new AssertionError("missing statement", e);
     }
-    h.signature =
-        calciteConnection.parseQuery(CalcitePrepare.Query.of(sql),
-            statement.createPrepareContext(), maxRowCount);
+    final Context context = statement.createPrepareContext();
+    final CalcitePrepare.Query<Object> query = toQuery(context, sql);
+    h.signature = calciteConnection.parseQuery(query, context, maxRowCount);
     statement.setSignature(h.signature);
     return h;
   }
 
+  @SuppressWarnings("deprecation")
   @Override public ExecuteResult prepareAndExecute(StatementHandle h,
       String sql, long maxRowCount, PrepareCallback callback)
       throws NoSuchStatementException {
@@ -591,8 +598,9 @@ public class CalciteMetaImpl extends MetaImpl {
         final CalciteConnectionImpl calciteConnection = getConnection();
         CalciteServerStatement statement =
             calciteConnection.server.getStatement(h);
-        signature = calciteConnection.parseQuery(CalcitePrepare.Query.of(sql),
-            statement.createPrepareContext(), maxRowCount);
+        final Context context = statement.createPrepareContext();
+        final CalcitePrepare.Query<Object> query = toQuery(context, sql);
+        signature = calciteConnection.parseQuery(query, context, maxRowCount);
         statement.setSignature(signature);
         callback.assign(signature, null, -1);
       }
@@ -604,6 +612,21 @@ public class CalciteMetaImpl extends MetaImpl {
       throw new RuntimeException(e);
     }
     // TODO: share code with prepare and createIterable
+  }
+
+  /** Wraps the SQL string in a
+   * {@link org.apache.calcite.jdbc.CalcitePrepare.Query} object, giving the
+   * {@link Hook#STRING_TO_QUERY} hook chance to override. */
+  private CalcitePrepare.Query<Object> toQuery(
+      Context context, String sql) {
+    final Holder<CalcitePrepare.Query<Object>> queryHolder =
+        Holder.of(CalcitePrepare.Query.of(sql));
+    final FrameworkConfig config = Frameworks.newConfigBuilder()
+        .parserConfig(SqlParser.Config.DEFAULT)
+        .defaultSchema(context.getRootSchema().plus())
+        .build();
+    Hook.STRING_TO_QUERY.run(Pair.of(config, queryHolder));
+    return queryHolder.get();
   }
 
   @Override public Frame fetch(StatementHandle h, long offset,
@@ -629,6 +652,7 @@ public class CalciteMetaImpl extends MetaImpl {
     return new Meta.Frame(offset, done, rows1);
   }
 
+  @SuppressWarnings("deprecation")
   @Override public ExecuteResult execute(StatementHandle h,
       List<TypedValue> parameterValues, long maxRowCount)
       throws NoSuchStatementException {
@@ -721,7 +745,8 @@ public class CalciteMetaImpl extends MetaImpl {
   @VisibleForTesting
   public static DataContext createDataContext(CalciteConnection connection) {
     return ((CalciteConnectionImpl) connection)
-        .createDataContext(ImmutableMap.<String, Object>of());
+        .createDataContext(ImmutableMap.<String, Object>of(),
+            CalciteSchema.from(connection.getRootSchema()));
   }
 
   /** A trojan-horse method, subject to change without notice. */

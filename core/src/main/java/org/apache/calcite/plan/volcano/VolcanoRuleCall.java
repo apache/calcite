@@ -22,7 +22,6 @@ import org.apache.calcite.plan.RelOptRuleOperand;
 import org.apache.calcite.plan.RelTraitPropagationVisitor;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
-import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -134,6 +133,7 @@ public class VolcanoRuleCall extends RelOptRuleCall {
             entry.getKey(), entry.getValue(), this);
       }
       volcanoPlanner.ensureRegistered(rel, rels[0], this);
+      rels[0].getCluster().invalidateMetadataQuery();
 
       if (volcanoPlanner.listener != null) {
         RelOptListener.RuleProductionEvent event =
@@ -144,10 +144,9 @@ public class VolcanoRuleCall extends RelOptRuleCall {
                 false);
         volcanoPlanner.listener.ruleProductionSucceeded(event);
       }
-    } catch (Throwable e) {
-      throw Util.newInternal(
-          e,
-          "Error occurred while applying rule " + getRule());
+    } catch (Exception e) {
+      throw new RuntimeException("Error occurred while applying rule "
+          + getRule(), e);
     }
   }
 
@@ -232,20 +231,17 @@ public class VolcanoRuleCall extends RelOptRuleCall {
                 false);
         volcanoPlanner.listener.ruleAttempted(event);
       }
-    } catch (Throwable e) {
-      throw Util.newInternal(e,
-          "Error while applying rule "
-          + getRule() + ", args " + Arrays.toString(rels));
+    } catch (Exception e) {
+      throw new RuntimeException("Error while applying rule " + getRule()
+          + ", args " + Arrays.toString(rels), e);
     }
   }
 
   /**
-   * Applies this rule, with a given relexp in the first slot.
-   *
-   * @pre operand0.matches(rel)
+   * Applies this rule, with a given relational expression in the first slot.
    */
   void match(RelNode rel) {
-    assert getOperand0().matches(rel);
+    assert getOperand0().matches(rel) : "precondition";
     final int solve = 0;
     int operandOrdinal = getOperand0().solveOrder[solve];
     this.rels[operandOrdinal] = rel;
@@ -255,11 +251,11 @@ public class VolcanoRuleCall extends RelOptRuleCall {
   /**
    * Recursively matches operands above a given solve order.
    *
-   * @param solve Solver order of operand
-   * @pre solve &gt; 0
-   * @pre solve &lt;= rule.operands.length
+   * @param solve Solve order of operand (&gt; 0 and &le; the operand count)
    */
   private void matchRecurse(int solve) {
+    assert solve > 0;
+    assert solve <= rule.operands.size();
     final List<RelOptRuleOperand> operands = getRule().operands;
     if (solve == operands.size()) {
       // We have matched all operands. Now ask the rule whether it

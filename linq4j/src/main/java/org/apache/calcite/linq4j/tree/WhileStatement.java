@@ -33,11 +33,15 @@ public class WhileStatement extends Statement {
     this.body = body;
   }
 
-  @Override public Statement accept(Visitor visitor) {
-    visitor = visitor.preVisit(this);
-    final Expression condition1 = condition.accept(visitor);
-    final Statement body1 = body.accept(visitor);
-    return visitor.visit(this, condition1, body1);
+  @Override public Statement accept(Shuttle shuttle) {
+    shuttle = shuttle.preVisit(this);
+    final Expression condition1 = condition.accept(shuttle);
+    final Statement body1 = body.accept(shuttle);
+    return shuttle.visit(this, condition1, body1);
+  }
+
+  public <R> R accept(Visitor<R> visitor) {
+    return visitor.visit(this);
   }
 
   @Override void accept0(ExpressionWriter writer) {

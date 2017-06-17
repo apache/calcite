@@ -15,41 +15,41 @@
  * limitations under the License.
  */
 {
-  version: '1.0',
-  defaultSchema: 'SCOTT',
-  schemas: [ {
-    type: 'jdbc',
-    name: 'FOODMART',
-    jdbcUser: 'FOODMART',
-    jdbcPassword: 'FOODMART',
-    jdbcUrl: 'jdbc:hsqldb:res:foodmart',
-    jdbcSchema: 'foodmart'
+  "version": "1.0",
+  "defaultSchema": "SCOTT",
+  "schemas": [ {
+    "type": "jdbc",
+    "name": "FOODMART",
+    "jdbcUser": "FOODMART",
+    "jdbcPassword": "FOODMART",
+    "jdbcUrl": "jdbc:hsqldb:res:foodmart",
+    "jdbcSchema": "foodmart"
   }, {
-    type: 'jdbc',
-    name: 'SCOTT',
-    jdbcUser: 'SA',
-    jdbcPassword: '',
-    jdbcUrl: 'jdbc:hsqldb:res:scott',
-    jdbcSchema: 'SCOTT'
+    "type": "jdbc",
+    "name": "SCOTT",
+    "jdbcUser": "SA",
+    "jdbcPassword": "",
+    "jdbcUrl": "jdbc:hsqldb:res:scott",
+    "jdbcSchema": "SCOTT"
   }, {
-    type: 'custom',
-    name: 'FOODMART_CLONE',
-    factory: 'org.apache.calcite.adapter.clone.CloneSchema$Factory',
-    operand: {
-      jdbcUser: 'FOODMART',
-      jdbcPassword: 'FOODMART',
-      jdbcUrl: 'jdbc:hsqldb:res:foodmart',
-      jdbcSchema: 'foodmart'
+    "type": "custom",
+    "name": "FOODMART_CLONE",
+    "factory": "org.apache.calcite.adapter.clone.CloneSchema$Factory",
+    "operand": {
+      "jdbcUser": "FOODMART",
+      "jdbcPassword": "FOODMART",
+      "jdbcUrl": "jdbc:hsqldb:res:foodmart",
+      "jdbcSchema": "foodmart"
     }
   }, {
-    type: 'custom',
-    name: 'SCOTT_CLONE',
-    factory: 'org.apache.calcite.adapter.clone.CloneSchema$Factory',
-    operand: {
-      jdbcUser: 'SA',
-      jdbcPassword: '',
-      jdbcUrl: 'jdbc:hsqldb:res:scott',
-      jdbcSchema: 'SCOTT'
+    "type": "custom",
+    "name": "SCOTT_CLONE",
+    "factory": "org.apache.calcite.adapter.clone.CloneSchema$Factory",
+    "operand": {
+      "jdbcUser": "SA",
+      "jdbcPassword": "",
+      "jdbcUrl": "jdbc:hsqldb:res:scott",
+      "jdbcSchema": "SCOTT"
     }
   } ]
 }

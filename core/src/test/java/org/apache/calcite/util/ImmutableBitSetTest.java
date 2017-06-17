@@ -26,7 +26,9 @@ import org.junit.Test;
 import java.nio.LongBuffer;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.SortedMap;
 
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -179,18 +181,44 @@ public class ImmutableBitSetTest {
 
   /**
    * Tests the methods
-   * {@link org.apache.calcite.util.ImmutableBitSet#toList} and
-   * {@link org.apache.calcite.util.ImmutableBitSet#asList}.
+   * {@link org.apache.calcite.util.ImmutableBitSet#toList}, and
+   * {@link org.apache.calcite.util.ImmutableBitSet#asList} and
+   * {@link org.apache.calcite.util.ImmutableBitSet#asSet}.
    */
   @Test public void testAsList() {
     final List<ImmutableBitSet> list = getSortedList();
+
+    // create a set of integers in and not in the lists
+    final Set<Integer> integers = new HashSet<>();
+    for (ImmutableBitSet set : list) {
+      for (Integer integer : set) {
+        integers.add(integer);
+        integers.add(integer + 1);
+        integers.add(integer + 10);
+      }
+    }
+
     for (ImmutableBitSet bitSet : list) {
       final List<Integer> list1 = bitSet.toList();
       final List<Integer> listView = bitSet.asList();
+      final Set<Integer> setView = bitSet.asSet();
       assertThat(list1.size(), equalTo(bitSet.cardinality()));
+      assertThat(listView.size(), equalTo(bitSet.cardinality()));
+      assertThat(setView.size(), equalTo(bitSet.cardinality()));
       assertThat(list1.toString(), equalTo(listView.toString()));
+      assertThat(list1.toString(), equalTo(setView.toString()));
       assertTrue(list1.equals(listView));
       assertThat(list1.hashCode(), equalTo(listView.hashCode()));
+
+      final Set<Integer> set = new HashSet<>(list1);
+      assertThat(setView.hashCode(), is(set.hashCode()));
+      assertThat(setView, equalTo(set));
+
+      for (Integer integer : integers) {
+        final boolean b = list1.contains(integer);
+        assertThat(listView.contains(integer), is(b));
+        assertThat(setView.contains(integer), is(b));
+      }
     }
   }
 

@@ -22,9 +22,9 @@ import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
 import com.google.common.base.Function;
-import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Ordering;
 
 import org.hamcrest.CoreMatchers;
 import org.junit.Ignore;
@@ -32,6 +32,7 @@ import org.junit.Test;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -142,8 +143,8 @@ public class MongoAdapterIT {
     return new Function<ResultSet, Void>() {
       public Void apply(ResultSet resultSet) {
         try {
-          final List<String> expectedList = Lists.newArrayList(lines);
-          Collections.sort(expectedList);
+          final List<String> expectedList =
+              Ordering.natural().immutableSortedCopy(Arrays.asList(lines));
 
           final List<String> actualList = Lists.newArrayList();
           CalciteAssert.toStringList(resultSet, actualList);
@@ -154,7 +155,8 @@ public class MongoAdapterIT {
           }
           Collections.sort(actualList);
 
-          assertThat(actualList, equalTo(expectedList));
+          assertThat(Ordering.natural().immutableSortedCopy(actualList),
+              equalTo(expectedList));
           return null;
         } catch (SQLException e) {
           throw new RuntimeException(e);
@@ -830,7 +832,7 @@ public class MongoAdapterIT {
                   assertThat(input.getInt(1), CoreMatchers.is(29353));
                   return null;
                 } catch (SQLException e) {
-                  throw Throwables.propagate(e);
+                  throw new RuntimeException(e);
                 }
               }
             });

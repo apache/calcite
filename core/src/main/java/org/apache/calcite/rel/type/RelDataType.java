@@ -77,6 +77,14 @@ public interface RelDataType /*extends Type*/ {
   int getFieldCount();
 
   /**
+   * Returns the rule for resolving the fields of a structured type,
+   * or {@link StructKind#NONE} if this is not a structured type.
+   *
+   * @return the StructKind that determines how this type's fields are resolved
+   */
+  StructKind getStructKind();
+
+  /**
    * Looks up a field by name.
    *
    * <p>NOTE: Be careful choosing the value of {@code caseSensitive}:</p>
@@ -229,9 +237,10 @@ public interface RelDataType /*extends Type*/ {
   RelDataTypeComparability getComparability();
 
   /**
-   *@return whether it has dynamic structure (for "schema-on-read" table)
+   * @return whether it has dynamic structure (for "schema-on-read" table)
    */
   boolean isDynamicStruct();
+
 }
 
 // End RelDataType.java

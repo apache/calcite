@@ -71,7 +71,7 @@ public final class LogicalCorrelate extends Correlate {
         correlationId,
         requiredColumns,
         joinType);
-    assert !CalcitePrepareImpl.DEBUG || isValid(Litmus.THROW);
+    assert !CalcitePrepareImpl.DEBUG || isValid(Litmus.THROW, null);
   }
 
   @Deprecated // to be removed before 2.0

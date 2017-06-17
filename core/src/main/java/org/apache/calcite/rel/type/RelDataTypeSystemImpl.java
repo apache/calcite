@@ -61,9 +61,10 @@ public abstract class RelDataTypeSystemImpl implements RelDataTypeSystem {
     switch (typeName) {
     case CHAR:
     case BINARY:
+      return 1;
     case VARCHAR:
     case VARBINARY:
-      return 1;
+      return RelDataType.PRECISION_NOT_SPECIFIED;
     case DECIMAL:
       return getMaxNumericPrecision();
     case INTERVAL_YEAR:

@@ -227,7 +227,7 @@ limitations under the License.
     </module>
       <!-- Over time, we will revise this down -->
     <module name="MethodLength">
-      <property name="max" value="390"/>
+      <property name="max" value="370"/>
     </module>
 
     <!-- Checks for whitespace (tree walker)                 -->

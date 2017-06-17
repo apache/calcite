@@ -37,7 +37,11 @@ public class TryStatement extends Statement {
     this.fynally = fynally;
   }
 
-  @Override public Statement accept(Visitor visitor) {
+  @Override public Statement accept(Shuttle shuttle) {
+    return shuttle.visit(this);
+  }
+
+  public <R> R accept(Visitor<R> visitor) {
     return visitor.visit(this);
   }
 

@@ -33,7 +33,11 @@ public class LabelStatement extends Statement {
     this.defaultValue = defaultValue;
   }
 
-  @Override public LabelStatement accept(Visitor visitor) {
+  @Override public LabelStatement accept(Shuttle shuttle) {
+    return shuttle.visit(this);
+  }
+
+  public <R> R accept(Visitor<R> visitor) {
     return visitor.visit(this);
   }
 

@@ -36,12 +36,14 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.rex.RexSubQuery;
 import org.apache.calcite.rex.RexUtil;
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql2rel.RelDecorrelator;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Pair;
+import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -94,18 +96,25 @@ public abstract class SubQueryRemoveRule extends RelOptRule {
         public void onMatch(RelOptRuleCall call) {
           final Filter filter = call.rel(0);
           final RelBuilder builder = call.builder();
-          final RexSubQuery e =
-              RexUtil.SubQueryFinder.find(filter.getCondition());
-          assert e != null;
-          final RelOptUtil.Logic logic =
-              LogicVisitor.find(RelOptUtil.Logic.TRUE,
-                  ImmutableList.of(filter.getCondition()), e);
           builder.push(filter.getInput());
-          final int fieldCount = builder.peek().getRowType().getFieldCount();
-          final RexNode target = apply(e, filter.getVariablesSet(), logic,
-              builder, 1, fieldCount);
-          final RexShuttle shuttle = new ReplaceSubQueryShuttle(e, target);
-          builder.filter(shuttle.apply(filter.getCondition()));
+          int count = 0;
+          RexNode c = filter.getCondition();
+          for (;;) {
+            final RexSubQuery e = RexUtil.SubQueryFinder.find(c);
+            if (e == null) {
+              assert count > 0;
+              break;
+            }
+            ++count;
+            final RelOptUtil.Logic logic =
+                LogicVisitor.find(RelOptUtil.Logic.TRUE, ImmutableList.of(c),
+                    e);
+            final RexNode target = apply(e, filter.getVariablesSet(), logic,
+                builder, 1, builder.peek().getRowType().getFieldCount());
+            final RexShuttle shuttle = new ReplaceSubQueryShuttle(e, target);
+            c = c.accept(shuttle);
+          }
+          builder.filter(c);
           builder.project(fields(builder, filter.getRowType().getFieldCount()));
           call.transformTo(builder.build());
         }
@@ -148,7 +157,7 @@ public abstract class SubQueryRemoveRule extends RelOptRule {
     switch (e.getKind()) {
     case SCALAR_QUERY:
       builder.push(e.rel);
-      final RelMetadataQuery mq = RelMetadataQuery.instance();
+      final RelMetadataQuery mq = e.rel.getCluster().getMetadataQuery();
       final Boolean unique = mq.areColumnsUnique(builder.peek(),
           ImmutableBitSet.of());
       if (unique == null || !unique) {
@@ -225,20 +234,9 @@ public abstract class SubQueryRemoveRule extends RelOptRule {
       switch (logic) {
       case TRUE_FALSE_UNKNOWN:
       case UNKNOWN_AS_TRUE:
-        if (!variablesSet.isEmpty()) {
-          // We have not yet figured out how to include "ct" in a query if
-          // the source relation "e.rel" is correlated. So, dodge the issue:
-          // we pretend that the join key is NOT NULL.
-          //
-          // We will get wrong results in correlated IN where the join
-          // key has nulls. E.g.
-          //
-          //   SELECT *
-          //   FROM emp
-          //   WHERE mgr NOT IN (
-          //     SELECT mgr
-          //     FROM emp AS e2
-          //     WHERE
+        // Since EXISTS/NOT EXISTS are not affected by presence of
+        // null keys we do not need to generate count(*), count(c)
+        if (e.getKind() == SqlKind.EXISTS) {
           logic = RelOptUtil.Logic.TRUE_FALSE;
           break;
         }
@@ -247,7 +245,11 @@ public abstract class SubQueryRemoveRule extends RelOptRule {
             builder.aggregateCall(SqlStdOperatorTable.COUNT, false, null, "ck",
                 builder.fields()));
         builder.as("ct");
-        builder.join(JoinRelType.INNER, builder.literal(true), variablesSet);
+        if (!variablesSet.isEmpty()) {
+          builder.join(JoinRelType.LEFT, builder.literal(true), variablesSet);
+        } else {
+          builder.join(JoinRelType.INNER, builder.literal(true), variablesSet);
+        }
         offset += 2;
         builder.push(e.rel);
         break;
@@ -297,7 +299,7 @@ public abstract class SubQueryRemoveRule extends RelOptRule {
             builder.literal(false));
         break;
       }
-      operands.add(builder.isNotNull(builder.field("dt", "i")),
+      operands.add(builder.isNotNull(Util.last(builder.fields())),
           builder.literal(true));
       if (!keyIsNulls.isEmpty()) {
         operands.add(builder.or(keyIsNulls), builder.literal(null));

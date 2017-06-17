@@ -34,10 +34,14 @@ public class TypeBinaryExpression extends Expression {
     this.type = type;
   }
 
-  @Override public Expression accept(Visitor visitor) {
-    visitor = visitor.preVisit(this);
-    Expression expression = this.expression.accept(visitor);
-    return visitor.visit(this, expression);
+  @Override public Expression accept(Shuttle shuttle) {
+    shuttle = shuttle.preVisit(this);
+    Expression expression = this.expression.accept(shuttle);
+    return shuttle.visit(this, expression);
+  }
+
+  public <R> R accept(Visitor<R> visitor) {
+    return visitor.visit(this);
   }
 
   void accept(ExpressionWriter writer, int lprec, int rprec) {

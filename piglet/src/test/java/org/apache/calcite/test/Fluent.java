@@ -25,12 +25,12 @@ import org.apache.calcite.tools.PigRelBuilder;
 import org.apache.calcite.util.Util;
 
 import com.google.common.base.Function;
-import com.google.common.collect.Lists;
+import com.google.common.collect.Ordering;
 
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.util.ArrayList;
-import java.util.Collections;
+import java.util.Arrays;
 import java.util.List;
 
 import static org.hamcrest.CoreMatchers.is;
@@ -69,8 +69,8 @@ class Fluent {
   }
 
   public Fluent returnsUnordered(String... lines) throws ParseException {
-    final List<String> expectedLines = Lists.newArrayList(lines);
-    Collections.sort(expectedLines);
+    final List<String> expectedLines =
+        Ordering.natural().immutableSortedCopy(Arrays.asList(lines));
     return returns(
         new Function<String, Void>() {
           public Void apply(String s) {
@@ -87,8 +87,8 @@ class Fluent {
                 s = s.substring(i + 1);
               }
             }
-            Collections.sort(actualLines);
-            assertThat(actualLines, is(expectedLines));
+            assertThat(Ordering.natural().sortedCopy(actualLines),
+                is(expectedLines));
             return null;
           }
         });

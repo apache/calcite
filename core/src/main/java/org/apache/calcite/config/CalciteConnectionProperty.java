@@ -17,20 +17,37 @@
 package org.apache.calcite.config;
 
 import org.apache.calcite.avatica.ConnectionProperty;
+import org.apache.calcite.avatica.util.Casing;
+import org.apache.calcite.avatica.util.Quoting;
 import org.apache.calcite.model.JsonSchema;
-import org.apache.calcite.sql.validate.SqlConformance;
+import org.apache.calcite.sql.validate.SqlConformanceEnum;
+import org.apache.calcite.util.Bug;
 
 import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
 
 import static org.apache.calcite.avatica.ConnectionConfigImpl.PropEnv;
-import static org.apache.calcite.avatica.ConnectionConfigImpl.parse;
 
 /**
  * Properties that may be specified on the JDBC connect string.
  */
 public enum CalciteConnectionProperty implements ConnectionProperty {
+  /** Whether approximate results from {@code COUNT(DISTINCT ...)} aggregate
+   * functions are acceptable. */
+  APPROXIMATE_DISTINCT_COUNT("approximateDistinctCount", Type.BOOLEAN, false,
+      false),
+
+  /** Whether approximate results from "Top N" queries
+   * ({@code ORDER BY aggFun DESC LIMIT n}) are acceptable. */
+  APPROXIMATE_TOP_N("approximateTopN", Type.BOOLEAN, false, false),
+
+  /** Whether approximate results from aggregate functions on
+   * DECIMAL types are acceptable. */
+  APPROXIMATE_DECIMAL("approximateDecimal", Type.BOOLEAN, false, false),
+
   /** Whether to store query results in temporary tables. */
   AUTO_TEMP("autoTemp", Type.BOOLEAN, false, false),
 
@@ -44,7 +61,7 @@ public enum CalciteConnectionProperty implements ConnectionProperty {
   /** How NULL values should be sorted if neither NULLS FIRST nor NULLS LAST are
    * specified. The default, HIGH, sorts NULL values the same as Oracle. */
   DEFAULT_NULL_COLLATION("defaultNullCollation", Type.ENUM, NullCollation.HIGH,
-      true),
+      true, NullCollation.class),
 
   /** How many rows the Druid adapter should fetch at a time when executing
    * "select" queries. */
@@ -62,19 +79,25 @@ public enum CalciteConnectionProperty implements ConnectionProperty {
 
   /** How identifiers are quoted.
    *  If not specified, value from {@link #LEX} is used. */
-  QUOTING("quoting", Type.ENUM, null, false),
+  QUOTING("quoting", Type.ENUM, null, false, Quoting.class),
 
   /** How identifiers are stored if they are quoted.
    *  If not specified, value from {@link #LEX} is used. */
-  QUOTED_CASING("quotedCasing", Type.ENUM, null, false),
+  QUOTED_CASING("quotedCasing", Type.ENUM, null, false, Casing.class),
 
   /** How identifiers are stored if they are not quoted.
    *  If not specified, value from {@link #LEX} is used. */
-  UNQUOTED_CASING("unquotedCasing", Type.ENUM, null, false),
+  UNQUOTED_CASING("unquotedCasing", Type.ENUM, null, false, Casing.class),
 
   /** Whether identifiers are matched case-sensitively.
    *  If not specified, value from {@link #LEX} is used. */
   CASE_SENSITIVE("caseSensitive", Type.BOOLEAN, null, false),
+
+  /** Parser factory.
+   *
+   * <p>The name of a class that implements
+   * {@link org.apache.calcite.sql.parser.SqlParserImplFactory}. */
+  PARSER_FACTORY("parserFactory", Type.PLUGIN, null, false),
 
   /** Name of initial schema. */
   SCHEMA("schema", Type.STRING, null, false),
@@ -91,10 +114,9 @@ public enum CalciteConnectionProperty implements ConnectionProperty {
    *
    * <p>Value may be null, "MAP", "JDBC", or "CUSTOM"
    * (implicit if {@link #SCHEMA_FACTORY} is specified).
-   * The value "NONE" is converted to null.
    *
    * <p>Ignored if {@link #MODEL} is specified. */
-  SCHEMA_TYPE("schemaType", Type.ENUM, JsonSchema.Type.NONE, false),
+  SCHEMA_TYPE("schemaType", Type.ENUM, null, false, JsonSchema.Type.class),
 
   /** Specifies whether Spark should be used as the engine for processing that
    * cannot be pushed to the source system. If false (the default), Calcite
@@ -114,12 +136,13 @@ public enum CalciteConnectionProperty implements ConnectionProperty {
   TYPE_SYSTEM("typeSystem", Type.PLUGIN, null, false),
 
   /** SQL conformance level. */
-  CONFORMANCE("conformance", Type.ENUM, SqlConformance.DEFAULT, false);
+  CONFORMANCE("conformance", Type.ENUM, SqlConformanceEnum.DEFAULT, false);
 
   private final String camelName;
   private final Type type;
   private final Object defaultValue;
   private final boolean required;
+  private final Class valueClass;
 
   private static final Map<String, CalciteConnectionProperty> NAME_TO_PROPS;
 
@@ -130,18 +153,26 @@ public enum CalciteConnectionProperty implements ConnectionProperty {
   static {
     NAME_TO_PROPS = new HashMap<>();
     for (CalciteConnectionProperty p : CalciteConnectionProperty.values()) {
-      NAME_TO_PROPS.put(p.camelName.toUpperCase(), p);
+      NAME_TO_PROPS.put(p.camelName.toUpperCase(Locale.ROOT), p);
       NAME_TO_PROPS.put(p.name(), p);
     }
   }
 
   CalciteConnectionProperty(String camelName, Type type, Object defaultValue,
       boolean required) {
+    this(camelName, type, defaultValue, required, null);
+  }
+
+  CalciteConnectionProperty(String camelName, Type type, Object defaultValue,
+      boolean required, Class valueClass) {
     this.camelName = camelName;
     this.type = type;
     this.defaultValue = defaultValue;
     this.required = required;
-    assert defaultValue == null || type.valid(defaultValue);
+    this.valueClass = type.deduceValueClass(defaultValue, valueClass);
+    if (!type.valid(defaultValue, this.valueClass)) {
+      throw new AssertionError(camelName);
+    }
   }
 
   public String camelName() {
@@ -156,12 +187,36 @@ public enum CalciteConnectionProperty implements ConnectionProperty {
     return type;
   }
 
+  public Class valueClass() {
+    return valueClass;
+  }
+
   public boolean required() {
     return required;
   }
 
   public PropEnv wrap(Properties properties) {
-    return new PropEnv(parse(properties, NAME_TO_PROPS), this);
+    return new PropEnv(parse2(properties, NAME_TO_PROPS), this);
+  }
+
+  /** Fixed version of
+   * {@link org.apache.calcite.avatica.ConnectionConfigImpl#parse}
+   * until we upgrade Avatica. */
+  private static Map<ConnectionProperty, String> parse2(Properties properties,
+      Map<String, ? extends ConnectionProperty> nameToProps) {
+    Bug.upgrade("avatica-1.10");
+    final Map<ConnectionProperty, String> map = new LinkedHashMap<>();
+    for (String name : properties.stringPropertyNames()) {
+      final ConnectionProperty connectionProperty =
+          nameToProps.get(name.toUpperCase(Locale.ROOT));
+      if (connectionProperty == null) {
+        // For now, don't throw. It messes up sub-projects.
+        //throw new RuntimeException("Unknown property '" + name + "'");
+        continue;
+      }
+      map.put(connectionProperty, properties.getProperty(name));
+    }
+    return map;
   }
 
 }

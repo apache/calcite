@@ -20,9 +20,10 @@ import org.apache.calcite.plan.volcano.RelSubset;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.metadata.RelMetadataProvider;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
+import org.apache.calcite.rex.RexExecutor;
+import org.apache.calcite.runtime.PredicateImpl;
 import org.apache.calcite.util.CancelFlag;
 
-import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 
@@ -70,7 +71,7 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
   /** External context. Never null. */
   protected final Context context;
 
-  private Executor executor;
+  private RexExecutor executor;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -108,6 +109,7 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
     return costFactory;
   }
 
+  @SuppressWarnings("deprecation")
   public void setCancelFlag(CancelFlag cancelFlag) {
     // ignored
   }
@@ -242,6 +244,7 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
     return mq.getCumulativeCost(rel);
   }
 
+  @SuppressWarnings("deprecation")
   public RelOptCost getCost(RelNode rel) {
     final RelMetadataQuery mq = RelMetadataQuery.instance();
     return getCost(rel, mq);
@@ -267,11 +270,11 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
     return ImmutableList.of();
   }
 
-  public void setExecutor(Executor executor) {
+  public void setExecutor(RexExecutor executor) {
     this.executor = executor;
   }
 
-  public Executor getExecutor() {
+  public RexExecutor getExecutor() {
     return executor;
   }
 
@@ -415,8 +418,8 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
   public Iterable<Class<? extends RelNode>> subClasses(
       final Class<? extends RelNode> clazz) {
     return Iterables.filter(classes,
-        new Predicate<Class<? extends RelNode>>() {
-          public boolean apply(Class<? extends RelNode> input) {
+        new PredicateImpl<Class<? extends RelNode>>() {
+          public boolean test(Class<? extends RelNode> input) {
             return clazz.isAssignableFrom(input);
           }
         });

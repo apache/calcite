@@ -39,12 +39,12 @@ public class LinqFrontJdbcBackTest {
         CalciteAssert.that(CalciteAssert.Config.JDBC_FOODMART).connect();
     final CalciteConnection calciteConnection =
         connection.unwrap(CalciteConnection.class);
-    final SchemaPlus schema =
-        calciteConnection.getRootSchema().getSubSchema("foodmart");
+    final SchemaPlus rootSchema = calciteConnection.getRootSchema();
     ParameterExpression c =
         Expressions.parameter(JdbcTest.Customer.class, "c");
     String s =
-        Schemas.queryable(Schemas.createDataContext(connection), schema,
+        Schemas.queryable(Schemas.createDataContext(connection, rootSchema),
+            rootSchema.getSubSchema("foodmart"),
             JdbcTest.Customer.class, "customer")
             .where(
                 Expressions.<Predicate1<JdbcTest.Customer>>lambda(

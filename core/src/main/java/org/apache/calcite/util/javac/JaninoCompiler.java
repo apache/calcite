@@ -16,8 +16,6 @@
  */
 package org.apache.calcite.util.javac;
 
-import org.apache.calcite.util.Util;
-
 import org.codehaus.janino.JavaSourceClassLoader;
 import org.codehaus.janino.util.ClassFile;
 import org.codehaus.janino.util.resource.MapResourceFinder;
@@ -26,6 +24,7 @@ import org.codehaus.janino.util.resource.ResourceFinder;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -69,7 +68,7 @@ public class JaninoCompiler implements JavaCompiler {
     Map<String, byte[]> sourceMap = new HashMap<String, byte[]>();
     sourceMap.put(
         ClassFile.getSourceResourceName(args.fullClassName),
-        args.source.getBytes());
+        args.source.getBytes(StandardCharsets.UTF_8));
     MapResourceFinder sourceFinder = new MapResourceFinder(sourceMap);
 
     classLoader =
@@ -81,7 +80,7 @@ public class JaninoCompiler implements JavaCompiler {
     try {
       classLoader.loadClass(args.fullClassName);
     } catch (ClassNotFoundException ex) {
-      throw Util.newInternal(ex, "while compiling " + args.fullClassName);
+      throw new RuntimeException("while compiling " + args.fullClassName, ex);
     }
   }
 
@@ -156,12 +155,11 @@ public class JaninoCompiler implements JavaCompiler {
       return nBytes;
     }
 
-    // override JavaSourceClassLoader
-    public Map generateBytecodes(String name)
+    @Override public Map<String, byte[]> generateBytecodes(String name)
         throws ClassNotFoundException {
-      Map<String, byte[]> map = super.generateBytecodes(name);
+      final Map<String, byte[]> map = super.generateBytecodes(name);
       if (map == null) {
-        return map;
+        return null;
       }
 
       if (destDir != null) {

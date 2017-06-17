@@ -80,15 +80,15 @@ public abstract class SqlTypeUtil {
       }
 
       if (t0.getCharset() == null) {
-        throw Util.newInternal("RelDataType object should have been assigned a "
-            + "(default) charset when calling deriveType");
+        throw new AssertionError("RelDataType object should have been assigned "
+            + "a (default) charset when calling deriveType");
       } else if (!t0.getCharset().equals(t1.getCharset())) {
         return false;
       }
 
       if (t0.getCollation() == null) {
-        throw Util.newInternal("RelDataType object should have been assigned a "
-            + "(default) collation when calling deriveType");
+        throw new AssertionError("RelDataType object should have been assigned "
+            + "a (default) collation when calling deriveType");
       } else if (!t0.getCollation().getCharset().equals(
           t1.getCollation().getCharset())) {
         return false;
@@ -577,7 +577,7 @@ public abstract class SqlTypeUtil {
     case DECIMAL:
       return NumberUtil.getMinUnscaled(type.getPrecision()).longValue();
     default:
-      throw Util.newInternal("getMinValue(" + typeName + ")");
+      throw new AssertionError("getMinValue(" + typeName + ")");
     }
   }
 
@@ -599,7 +599,7 @@ public abstract class SqlTypeUtil {
     case DECIMAL:
       return NumberUtil.getMaxUnscaled(type.getPrecision()).longValue();
     default:
-      throw Util.newInternal("getMaxValue(" + typeName + ")");
+      throw new AssertionError("getMaxValue(" + typeName + ")");
     }
   }
 
@@ -713,6 +713,13 @@ public abstract class SqlTypeUtil {
       // NULL type inference guaranteed that we had already
       // assigned a real (nullable) type to every NULL literal.
       return true;
+    }
+
+    if (fromType.getSqlTypeName() == SqlTypeName.ARRAY) {
+      if (toType.getSqlTypeName() != SqlTypeName.ARRAY) {
+        return false;
+      }
+      return canAssignFrom(toType.getComponentType(), fromType.getComponentType());
     }
 
     if (areCharacterSetsMismatched(toType, fromType)) {
@@ -1284,6 +1291,33 @@ public abstract class SqlTypeUtil {
       return false;
     }
     return charset.name().startsWith("UTF");
+  }
+
+  /** Returns the larger of two precisions, treating
+   * {@link RelDataType#PRECISION_NOT_SPECIFIED} as infinity. */
+  public static int maxPrecision(int p0, int p1) {
+    return (p0 == RelDataType.PRECISION_NOT_SPECIFIED
+        || p0 >= p1
+        && p1 != RelDataType.PRECISION_NOT_SPECIFIED) ? p0 : p1;
+  }
+
+  /** Returns whether a precision is greater or equal than another,
+   * treating {@link RelDataType#PRECISION_NOT_SPECIFIED} as infinity. */
+  public static int comparePrecision(int p0, int p1) {
+    if (p0 == p1) {
+      return 0;
+    }
+    if (p0 == RelDataType.PRECISION_NOT_SPECIFIED) {
+      return 1;
+    }
+    if (p1 == RelDataType.PRECISION_NOT_SPECIFIED) {
+      return -1;
+    }
+    return Integer.compare(p0, p1);
+  }
+
+  public static boolean isArray(RelDataType type) {
+    return type.getSqlTypeName() == SqlTypeName.ARRAY;
   }
 }
 

@@ -27,7 +27,9 @@ import org.apache.calcite.sql.SqlCallBinding;
 import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.sql.SqlOperatorBinding;
 import org.apache.calcite.sql.SqlUtil;
-import org.apache.calcite.util.Util;
+import org.apache.calcite.util.Glossary;
+
+import com.google.common.base.Preconditions;
 
 import java.util.AbstractList;
 import java.util.List;
@@ -295,7 +297,7 @@ public abstract class ReturnTypes {
    * of results of aggregations". These rules are used in union, except,
    * intersect, case and other places.
    *
-   * @sql.99 Part 2 Section 9.3
+   * @see Glossary#SQL99 SQL:1999 Part 2 Section 9.3
    */
   public static final SqlReturnTypeInference LEAST_RESTRICTIVE =
       new SqlReturnTypeInference() {
@@ -496,7 +498,7 @@ public abstract class ReturnTypes {
    *
    * p and s are capped at their maximum values
    *
-   * @sql.2003 Part 2 Section 6.26
+   * @see Glossary#SQL2003 SQL:2003 Part 2 Section 6.26
    */
   public static final SqlReturnTypeInference DECIMAL_SUM =
       new SqlReturnTypeInference() {
@@ -570,11 +572,7 @@ public abstract class ReturnTypes {
    */
   public static final SqlReturnTypeInference DYADIC_STRING_SUM_PRECISION =
       new SqlReturnTypeInference() {
-        /**
-         * @pre SqlTypeUtil.sameNamedType(argTypes[0], (argTypes[1]))
-         */
-        public RelDataType inferReturnType(
-            SqlOperatorBinding opBinding) {
+        public RelDataType inferReturnType(SqlOperatorBinding opBinding) {
           final RelDataType argType0 = opBinding.getOperandType(0);
           final RelDataType argType1 = opBinding.getOperandType(1);
 
@@ -585,9 +583,8 @@ public abstract class ReturnTypes {
           if (!containsAnyType
               && !(SqlTypeUtil.inCharOrBinaryFamilies(argType0)
                   && SqlTypeUtil.inCharOrBinaryFamilies(argType1))) {
-            Util.pre(
-                SqlTypeUtil.sameNamedType(argType0, argType1),
-                "SqlTypeUtil.sameNamedType(argTypes[0], argTypes[1])");
+            Preconditions.checkArgument(
+                SqlTypeUtil.sameNamedType(argType0, argType1));
           }
           SqlCollation pickedCollation = null;
           if (!containsAnyType
@@ -615,39 +612,36 @@ public abstract class ReturnTypes {
 
           RelDataType ret;
           int typePrecision;
-          if (argType0.getPrecision()
-              == RelDataType.PRECISION_NOT_SPECIFIED
-                  && argType1.getPrecision()
-                      == RelDataType.PRECISION_NOT_SPECIFIED) {
+          final long x =
+              (long) argType0.getPrecision() + (long) argType1.getPrecision();
+          final RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
+          final RelDataTypeSystem typeSystem = typeFactory.getTypeSystem();
+          if (argType0.getPrecision() == RelDataType.PRECISION_NOT_SPECIFIED
+              || argType1.getPrecision() == RelDataType.PRECISION_NOT_SPECIFIED
+              || x > typeSystem.getMaxPrecision(typeName)) {
             typePrecision = RelDataType.PRECISION_NOT_SPECIFIED;
           } else {
-            typePrecision =
-                argType0.getPrecision() + argType1.getPrecision();
+            typePrecision = (int) x;
           }
 
-          ret = opBinding.getTypeFactory()
-              .createSqlType(typeName, typePrecision);
+          ret = typeFactory.createSqlType(typeName, typePrecision);
           if (null != pickedCollation) {
             RelDataType pickedType;
-            if (argType0.getCollation().equals(
-                pickedCollation)) {
+            if (argType0.getCollation().equals(pickedCollation)) {
               pickedType = argType0;
-            } else if (argType1.getCollation().equals(
-                pickedCollation)) {
+            } else if (argType1.getCollation().equals(pickedCollation)) {
               pickedType = argType1;
             } else {
-              throw Util.newInternal("should never come here");
+              throw new AssertionError("should never come here");
             }
             ret =
-                opBinding.getTypeFactory()
-                    .createTypeWithCharsetAndCollation(
-                        ret,
-                        pickedType.getCharset(),
-                        pickedType.getCollation());
+                typeFactory.createTypeWithCharsetAndCollation(ret,
+                    pickedType.getCharset(), pickedType.getCollation());
           }
           return ret;
         }
       };
+
   /**
    * Same as {@link #DYADIC_STRING_SUM_PRECISION} and using
    * {@link org.apache.calcite.sql.type.SqlTypeTransforms#TO_NULLABLE},

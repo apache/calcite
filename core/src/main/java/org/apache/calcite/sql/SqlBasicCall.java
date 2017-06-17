@@ -19,6 +19,8 @@ package org.apache.calcite.sql;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.util.UnmodifiableArrayList;
 
+import com.google.common.base.Preconditions;
+
 import java.util.List;
 
 /**
@@ -44,7 +46,7 @@ public class SqlBasicCall extends SqlCall {
       boolean expanded,
       SqlLiteral functionQualifier) {
     super(pos);
-    this.operator = operator;
+    this.operator = Preconditions.checkNotNull(operator);
     this.operands = operands;
     this.expanded = expanded;
     this.functionQuantifier = functionQualifier;
@@ -63,7 +65,7 @@ public class SqlBasicCall extends SqlCall {
   }
 
   public void setOperator(SqlOperator operator) {
-    this.operator = operator;
+    this.operator = Preconditions.checkNotNull(operator);
   }
 
   public SqlOperator getOperator() {
@@ -90,6 +92,11 @@ public class SqlBasicCall extends SqlCall {
   @Override public SqlLiteral getFunctionQuantifier() {
     return functionQuantifier;
   }
+
+  @Override public SqlNode clone(SqlParserPos pos) {
+    return getOperator().createCall(getFunctionQuantifier(), pos, operands);
+  }
+
 }
 
 // End SqlBasicCall.java

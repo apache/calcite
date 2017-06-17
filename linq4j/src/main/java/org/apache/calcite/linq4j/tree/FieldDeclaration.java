@@ -35,12 +35,16 @@ public class FieldDeclaration extends MemberDeclaration {
     this.initializer = initializer;
   }
 
-  @Override public MemberDeclaration accept(Visitor visitor) {
-    visitor = visitor.preVisit(this);
+  @Override public MemberDeclaration accept(Shuttle shuttle) {
+    shuttle = shuttle.preVisit(this);
     // do not visit parameter - visit may not return a ParameterExpression
     final Expression initializer =
-        this.initializer == null ? null : this.initializer.accept(visitor);
-    return visitor.visit(this, initializer);
+        this.initializer == null ? null : this.initializer.accept(shuttle);
+    return shuttle.visit(this, initializer);
+  }
+
+  public <R> R accept(Visitor<R> visitor) {
+    return visitor.visit(this);
   }
 
   public void accept(ExpressionWriter writer) {

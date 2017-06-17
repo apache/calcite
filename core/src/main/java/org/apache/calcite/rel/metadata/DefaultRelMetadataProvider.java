@@ -43,8 +43,12 @@ public class DefaultRelMetadataProvider extends ChainedRelMetadataProvider {
         ImmutableList.of(
             RelMdPercentageOriginalRows.SOURCE,
             RelMdColumnOrigins.SOURCE,
+            RelMdExpressionLineage.SOURCE,
+            RelMdTableReferences.SOURCE,
+            RelMdNodeTypes.SOURCE,
             RelMdRowCount.SOURCE,
             RelMdMaxRowCount.SOURCE,
+            RelMdMinRowCount.SOURCE,
             RelMdUniqueKeys.SOURCE,
             RelMdColumnUniqueness.SOURCE,
             RelMdPopulationSize.SOURCE,
@@ -56,6 +60,7 @@ public class DefaultRelMetadataProvider extends ChainedRelMetadataProvider {
             RelMdSelectivity.SOURCE,
             RelMdExplainVisibility.SOURCE,
             RelMdPredicates.SOURCE,
+            RelMdAllPredicates.SOURCE,
             RelMdCollation.SOURCE));
   }
 }

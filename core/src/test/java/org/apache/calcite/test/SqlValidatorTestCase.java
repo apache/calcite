@@ -565,6 +565,11 @@ public class SqlValidatorTestCase {
       return this;
     }
 
+    public Sql columnType(String expectedType) {
+      tester.checkColumnType(sql, expectedType);
+      return this;
+    }
+
     public Sql monotonic(SqlMonotonicity expectedMonotonicity) {
       tester.checkMonotonic(sql, expectedMonotonicity);
       return this;
@@ -579,6 +584,13 @@ public class SqlValidatorTestCase {
           },
           SqlTests.ANY_RESULT_CHECKER);
       return this;
+    }
+
+    /** Removes the carets from the SQL string. Useful if you want to run
+     * a test once at a conformance level where it fails, then run it again
+     * at a conformance level where it succeeds. */
+    public Sql sansCarets() {
+      return new Sql(tester, sql.replace("^", ""));
     }
   }
 }

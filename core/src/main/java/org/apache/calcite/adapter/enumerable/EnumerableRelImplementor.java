@@ -36,7 +36,7 @@ import org.apache.calcite.linq4j.tree.ParameterExpression;
 import org.apache.calcite.linq4j.tree.Primitive;
 import org.apache.calcite.linq4j.tree.Statement;
 import org.apache.calcite.linq4j.tree.Types;
-import org.apache.calcite.linq4j.tree.Visitor;
+import org.apache.calcite.linq4j.tree.VisitorImpl;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.runtime.Bindable;
 import org.apache.calcite.util.BuiltInMethod;
@@ -66,6 +66,12 @@ import java.util.Set;
  * operators of {@link EnumerableConvention} calling convention.
  */
 public class EnumerableRelImplementor extends JavaRelImplementor {
+  /** Maximum number of arguments to a constructor. See
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1097">[CALCITE-1097]
+   * Exception when executing query with too many aggregation columns</a> for
+   * details. */
+  private static final int MAX_CONSTRUCTOR_ARG_COUNT = 10;
+
   public final Map<String, Object> map;
   private final Map<String, RexToLixTranslator.InputGetter> corrVars =
       Maps.newHashMap();
@@ -458,26 +464,19 @@ public class EnumerableRelImplementor extends JavaRelImplementor {
   }
 
   /** Visitor that finds types in an {@link Expression} tree. */
-  private static class TypeFinder extends Visitor {
+  private static class TypeFinder extends VisitorImpl<Void> {
     private final Collection<Type> types;
 
     TypeFinder(Collection<Type> types) {
       this.types = types;
     }
 
-    @Override public Expression visit(
-        NewExpression newExpression,
-        List<Expression> arguments,
-        List<MemberDeclaration> memberDeclarations) {
+    @Override public Void visit(NewExpression newExpression) {
       types.add(newExpression.type);
-      return super.visit(
-          newExpression,
-          arguments,
-          memberDeclarations);
+      return super.visit(newExpression);
     }
 
-    @Override public Expression visit(NewArrayExpression newArrayExpression,
-        int dimension, Expression bound, List<Expression> expressions) {
+    @Override public Void visit(NewArrayExpression newArrayExpression) {
       Type type = newArrayExpression.type;
       for (;;) {
         final Type componentType = Types.getComponentType(type);
@@ -487,7 +486,14 @@ public class EnumerableRelImplementor extends JavaRelImplementor {
         type = componentType;
       }
       types.add(type);
-      return super.visit(newArrayExpression, dimension, bound, expressions);
+      return super.visit(newArrayExpression);
+    }
+
+    @Override public Void visit(ConstantExpression constantExpression) {
+      if (constantExpression.value instanceof Type) {
+        types.add((Type) constantExpression.value);
+      }
+      return super.visit(constantExpression);
     }
   }
 
