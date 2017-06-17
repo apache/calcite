@@ -283,10 +283,17 @@ public class RelMdPredicates
     final RexBuilder rexBuilder = filter.getCluster().getRexBuilder();
     final RelOptPredicateList inputInfo = mq.getPulledUpPredicates(input);
 
+    List<RexNode> conditions = RelOptUtil.conjunctions(filter.getCondition());
+    if (!RexUtil.isDeterministic(filter.getCondition())) {
+      conditions = Lists.newArrayList();
+      for (RexNode x : RelOptUtil.conjunctions(filter.getCondition())) {
+        if (RexUtil.isDeterministic(x)) {
+          conditions.add(x);
+        }
+      }
+    }
     return Util.first(inputInfo, RelOptPredicateList.EMPTY)
-        .union(rexBuilder,
-            RelOptPredicateList.of(rexBuilder,
-                RelOptUtil.conjunctions(filter.getCondition())));
+        .union(rexBuilder, RelOptPredicateList.of(rexBuilder, conditions));
   }
 
   /** Infers predicates for a {@link org.apache.calcite.rel.core.SemiJoin}. */
@@ -643,10 +650,19 @@ public class RelMdPredicates
                 RelOptUtil.conjunctions(leftChildPredicates),
                 leftInferredPredicates);
         } else {
+          List<RexNode> conditions = RelOptUtil.conjunctions(joinRel.getCondition());
+          if (!RexUtil.isDeterministic(joinRel.getCondition())) {
+            conditions = Lists.newArrayList();
+            for (RexNode x : RelOptUtil.conjunctions(joinRel.getCondition())) {
+              if (RexUtil.isDeterministic(x)) {
+                conditions.add(x);
+              }
+            }
+          }
           pulledUpPredicates = Iterables.concat(
                 RelOptUtil.conjunctions(leftChildPredicates),
                 RelOptUtil.conjunctions(rightChildPredicates),
-                RelOptUtil.conjunctions(joinRel.getCondition()),
+                conditions,
                 inferredPredicates);
         }
         return RelOptPredicateList.of(rexBuilder, pulledUpPredicates,
