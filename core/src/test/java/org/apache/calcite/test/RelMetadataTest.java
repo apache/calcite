@@ -78,8 +78,12 @@ import org.apache.calcite.rex.RexTableInputRef;
 import org.apache.calcite.rex.RexTableInputRef.RelTableRef;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.SqlSpecialOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.tools.FrameworkConfig;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.ImmutableBitSet;
@@ -2181,6 +2185,62 @@ public class RelMetadataTest extends SqlToRelTestBase {
     expected.put(Filter.class, 1);
     expected.put(Aggregate.class, 1);
     checkNodeTypeCount(sql, expected);
+  }
+
+  private static final SqlOperator NONDETERMINISTIC_OP = new SqlSpecialOperator(
+          "NDC",
+          SqlKind.OTHER_FUNCTION,
+          0,
+          false,
+          ReturnTypes.BOOLEAN,
+          null, null) {
+    @Override public boolean isDeterministic() {
+      return false;
+    }
+  };
+
+  @Test public void testGetPredicatesForJoin() throws Exception {
+    final FrameworkConfig config = RelBuilderTest.config().build();
+    final RelBuilder builder = RelBuilder.create(config);
+    RelNode join = builder
+        .scan("EMP")
+        .scan("DEPT")
+        .join(JoinRelType.INNER, builder.call(NONDETERMINISTIC_OP))
+        .build();
+    RelMetadataQuery mq = RelMetadataQuery.instance();
+    assertTrue(mq.getPulledUpPredicates(join).pulledUpPredicates.isEmpty());
+
+    RelNode join1 = builder
+        .scan("EMP")
+        .scan("DEPT")
+        .join(JoinRelType.INNER,
+          builder.call(SqlStdOperatorTable.EQUALS,
+            builder.field(2, 0, 0),
+            builder.field(2, 1, 0)))
+        .build();
+    assertEquals("=($0, $8)",
+        mq.getPulledUpPredicates(join1).pulledUpPredicates.get(0).toString());
+  }
+
+  @Test public void testGetPredicatesForFilter() throws Exception {
+    final FrameworkConfig config = RelBuilderTest.config().build();
+    final RelBuilder builder = RelBuilder.create(config);
+    RelNode filter = builder
+        .scan("EMP")
+        .filter(builder.call(NONDETERMINISTIC_OP))
+        .build();
+    RelMetadataQuery mq = RelMetadataQuery.instance();
+    assertTrue(mq.getPulledUpPredicates(filter).pulledUpPredicates.isEmpty());
+
+    RelNode filter1 = builder
+        .scan("EMP")
+        .filter(
+          builder.call(SqlStdOperatorTable.EQUALS,
+            builder.field(1, 0, 0),
+            builder.field(1, 0, 1)))
+        .build();
+    assertEquals("=($0, $1)",
+        mq.getPulledUpPredicates(filter1).pulledUpPredicates.get(0).toString());
   }
 
   /**
