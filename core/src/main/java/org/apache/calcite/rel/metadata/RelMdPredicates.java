@@ -286,7 +286,8 @@ public class RelMdPredicates
     return Util.first(inputInfo, RelOptPredicateList.EMPTY)
         .union(rexBuilder,
             RelOptPredicateList.of(rexBuilder,
-                RelOptUtil.conjunctions(filter.getCondition())));
+                RexUtil.retainDeterministic(
+                    RelOptUtil.conjunctions(filter.getCondition()))));
   }
 
   /** Infers predicates for a {@link org.apache.calcite.rel.core.SemiJoin}. */
@@ -646,7 +647,8 @@ public class RelMdPredicates
           pulledUpPredicates = Iterables.concat(
                 RelOptUtil.conjunctions(leftChildPredicates),
                 RelOptUtil.conjunctions(rightChildPredicates),
-                RelOptUtil.conjunctions(joinRel.getCondition()),
+                RexUtil.retainDeterministic(
+                  RelOptUtil.conjunctions(joinRel.getCondition())),
                 inferredPredicates);
         }
         return RelOptPredicateList.of(rexBuilder, pulledUpPredicates,

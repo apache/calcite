@@ -19,6 +19,7 @@ package org.apache.calcite.test;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.avatica.util.ByteString;
 import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
+import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.Strong;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
@@ -34,8 +35,11 @@ import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.rex.RexProgramBuilder;
 import org.apache.calcite.rex.RexSimplify;
 import org.apache.calcite.rex.RexUtil;
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.SqlSpecialOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlTypeAssignmentRules;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.DateString;
@@ -65,6 +69,8 @@ import java.util.TreeMap;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 
 /**
@@ -1548,6 +1554,24 @@ public class RexProgramTest {
     checkSimplifyUnchanged(lt(literalAbc, literalZero));
     checkSimplifyUnchanged(le(literalZero, literalAbc));
     checkSimplifyUnchanged(le(literalAbc, literalZero));
+  }
+
+  @Test public void testIsDeterministic() {
+    SqlOperator ndc = new SqlSpecialOperator(
+            "NDC",
+            SqlKind.OTHER_FUNCTION,
+            0,
+            false,
+            ReturnTypes.BOOLEAN,
+            null, null) {
+      @Override public boolean isDeterministic() {
+        return false;
+      }
+    };
+    RexNode n = rexBuilder.makeCall(ndc);
+    assertFalse(RexUtil.isDeterministic(n));
+    assertEquals(0,
+            RexUtil.retainDeterministic(RelOptUtil.conjunctions(n)).size());
   }
 
   private Calendar cal(int y, int m, int d, int h, int mm, int s) {
