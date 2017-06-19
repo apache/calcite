@@ -219,12 +219,13 @@ public class Ast {
   /** Parse tree node for FOREACH statement (nested).
    *
    * <p>Syntax:
+   *
    * <blockquote><code>
    * alias = FOREACH nested_alias {
    *   alias = nested_op; [alias = nested_op; ]...
    *   GENERATE expression [, expression]...
    * };<br>
-   *
+   * &nbsp;
    * nested_op ::= DISTINCT, FILTER, LIMIT, ORDER, SAMPLE
    * </code>
    * </blockquote>

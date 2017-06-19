@@ -126,6 +126,7 @@ public class DruidRules {
           for (AggregateCall aggregateCall : aggregate.getAggCallList()) {
             switch (aggregateCall.getAggregation().getKind()) {
             case COUNT:
+              return !aggregateCall.getArgList().isEmpty();
             case SUM:
             case SUM0:
             case MIN:
@@ -780,6 +781,7 @@ public class DruidRules {
         // offset not supported by Druid
         return false;
       }
+      // Use a different logic to push down Sort RelNode because the top node could be a Project now
       RelNode topNode = query.getTopNode();
       Aggregate topAgg;
       if (topNode instanceof Project && ((Project) topNode).getInput() instanceof Aggregate) {
@@ -796,6 +798,26 @@ public class DruidRules {
         int idx = col.getFieldIndex();
         if (idx >= topAgg.getGroupCount()) {
           continue;
+//=======
+//      if (query.getTopNode() instanceof Aggregate) {
+//        final Aggregate topAgg = (Aggregate) query.getTopNode();
+//        final ImmutableBitSet.Builder positionsReferenced = ImmutableBitSet.builder();
+//        for (RelFieldCollation col : sort.collation.getFieldCollations()) {
+//          int idx = col.getFieldIndex();
+//          if (idx >= topAgg.getGroupCount()) {
+//            continue;
+//          }
+//          // has the indexes of the columns used for sorts
+//          positionsReferenced.set(topAgg.getGroupSet().nth(idx));
+//        }
+//        // Case it is a timeseries query
+//        if (checkIsFlooringTimestampRefOnQuery(topAgg.getGroupSet(), topAgg.getInput(), query)
+//            && topAgg.getGroupCount() == 1) {
+//          // do not push if it has a limit or more than one sort key or we have sort by
+//          // metric/dimension
+//          return !RelOptUtil.isLimit(sort) && sort.collation.getFieldCollations().size() == 1
+//              && checkTimestampRefOnQuery(positionsReferenced.build(), topAgg.getInput(), query);
+//>>>>>>> 304eb9c54dd0565fd48006b75c715c944f82f974
         }
         //has the indexes of the columns used for sorts
         positionsReferenced.set(topAgg.getGroupSet().nth(idx));

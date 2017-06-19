@@ -21,9 +21,9 @@ package org.apache.calcite.linq4j.tree;
  * Java allows type inference for such nulls, thus "null" cannot always be
  * replaced to (Object)null and vise versa.
  *
- * ConstantExpression(null, Object.class) is not equal to ConstantUntypedNull
- * However, optimizers might treat all the nulls equal (e.g. in case of
- * comparison).
+ * <p>{@code ConstantExpression(null, Object.class)} is not equal to
+ * {@code ConstantUntypedNull} However, optimizers might treat all the nulls
+ * equal (e.g. in case of comparison).
  */
 public class ConstantUntypedNull extends ConstantExpression {
   public static final ConstantExpression INSTANCE = new ConstantUntypedNull();

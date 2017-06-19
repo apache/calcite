@@ -46,17 +46,18 @@ import java.util.List;
  * advantage of applying this rule is that it may be possible to apply
  * conditions earlier. For instance,</p>
  *
- * <pre>{@code
- * (sales as s join product_class as pc on true)
+ * <blockquote>
+ * <pre>(sales as s join product_class as pc on true)
  * join product as p
  * on s.product_id = p.product_id
- * and p.product_class_id = pc.product_class_id}</pre>
+ * and p.product_class_id = pc.product_class_id</pre></blockquote>
  *
- * becomes
+ * <p>becomes
  *
- * <pre>{@code (sales as s join product as p on s.product_id = p.product_id)
+ * <blockquote>
+ * <pre>(sales as s join product as p on s.product_id = p.product_id)
  * join product_class as pc
- * on p.product_class_id = pc.product_class_id}</pre>
+ * on p.product_class_id = pc.product_class_id</pre></blockquote>
  *
  * <p>Before the rule, one join has two conditions and the other has none
  * ({@code ON TRUE}). After the rule, each join has one condition.</p>

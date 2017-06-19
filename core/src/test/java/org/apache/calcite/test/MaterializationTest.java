@@ -1442,7 +1442,7 @@ public class MaterializationTest {
   @Ignore
   @Test public void testJoinAggregateMaterializationAggregateFuncs6() {
     // This rewriting would be possible if planner generates a pre-aggregation,
-    // since the materialized view would match the subquery.
+    // since the materialized view would match the sub-query.
     // Initial investigation after enabling AggregateJoinTransposeRule.EXTENDED
     // shows that the rewriting with pre-aggregations is generated and the
     // materialized view rewriting happens.

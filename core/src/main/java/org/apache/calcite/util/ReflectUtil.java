@@ -484,17 +484,17 @@ public abstract class ReflectUtil {
    *
    * <blockquote>String foo(Vehicle, int, List)</blockquote>
    *
-   * could be used to call the methods
+   * <p>could be used to call the methods
    *
    * <blockquote>String foo(Car, int, List)<br>
    * String foo(Bus, int, List)</blockquote>
    *
-   * (because Car and Bus are subclasses of Vehicle, and they occur in the
+   * <p>(because Car and Bus are subclasses of Vehicle, and they occur in the
    * polymorphic first argument) but not the method
    *
    * <blockquote>String foo(Car, int, ArrayList)</blockquote>
    *
-   * (only the first argument is polymorphic).
+   * <p>(only the first argument is polymorphic).
    *
    * <p>You must create an implementation of the method for the base class.
    * Otherwise throws {@link IllegalArgumentException}.

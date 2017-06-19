@@ -24,7 +24,7 @@ import java.util.List;
  * Information for a call to
  * {@link AggImplementor#implementReset(AggContext, AggResetContext)}.
  *
- * {@link AggResetContext} provides access to the accumulator variables
+ * <p>{@link AggResetContext} provides access to the accumulator variables
  * that should be reset.
  */
 public interface AggResetContext extends NestedBlockBuilder {

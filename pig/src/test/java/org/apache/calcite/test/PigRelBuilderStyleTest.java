@@ -42,14 +42,18 @@ import org.apache.pig.pigunit.PigTest;
 import org.apache.pig.test.Util;
 
 import org.junit.After;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
+
+import java.io.File;
 
 import static org.apache.calcite.rel.rules.FilterJoinRule.TRUE_PREDICATE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.EQUALS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.GREATER_THAN;
 
+import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertEquals;
 
 /**
@@ -58,6 +62,10 @@ import static org.junit.Assert.assertEquals;
  * associated factories in {@link PigRelFactories}.
  */
 public class PigRelBuilderStyleTest extends AbstractPigTest {
+
+  public PigRelBuilderStyleTest() {
+    Assume.assumeThat("Pigs don't like Windows", File.separatorChar, is('/'));
+  }
 
   @Test
   public void testScanAndFilter() throws Exception {

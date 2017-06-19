@@ -1002,12 +1002,12 @@ public class ReduceDecimalsRule extends RelOptRule {
   /**
    * Expander that rewrites floor(decimal) expressions:
    *
-   * <pre>
+   * <blockquote><pre>
    * if (value &lt; 0)
    *     (value - 0.99...) / (10^scale)
    * else
    *     value / (10 ^ scale)
-   * </pre>
+   * </pre></blockquote>
    */
   private class FloorExpander extends RexExpander {
     private FloorExpander(RexBuilder rexBuilder) {
@@ -1051,12 +1051,12 @@ public class ReduceDecimalsRule extends RelOptRule {
   /**
    * Expander that rewrites ceiling(decimal) expressions:
    *
-   * <pre>
+   * <blockquote><pre>
    * if (value &gt; 0)
    *     (value + 0.99...) / (10 ^ scale)
    * else
    *     value / (10 ^ scale)
-   * </pre>
+   * </pre></blockquote>
    */
   private class CeilExpander extends RexExpander {
     private CeilExpander(RexBuilder rexBuilder) {
@@ -1100,14 +1100,14 @@ public class ReduceDecimalsRule extends RelOptRule {
   /**
    * Expander that rewrites case expressions, in place. Starting from:
    *
-   * <pre>(when $cond then $val)+ else $default</pre>
+   * <blockquote><pre>(when $cond then $val)+ else $default</pre></blockquote>
    *
-   * this expander casts all values to the return type. If the target type is
+   * <p>this expander casts all values to the return type. If the target type is
    * a decimal, then the values are then decoded. The result of expansion is
    * that the case operator no longer deals with decimals args. (The return
    * value is encoded if necessary.)
    *
-   * <p>Note: a decimal type is returned iff arguments have decimals
+   * <p>Note: a decimal type is returned iff arguments have decimals.
    */
   private class CaseExpander extends RexExpander {
     private CaseExpander(RexBuilder rexBuilder) {

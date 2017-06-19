@@ -126,7 +126,7 @@ public class PushProjector {
    * | nSysFields | nFields | nFieldsRight |
    * </pre></blockquote>
    *
-   * The output of a single-input rel looks like this:
+   * <p>The output of a single-input rel looks like this:
    *
    * <blockquote><pre>
    * | nSysFields | nFields |

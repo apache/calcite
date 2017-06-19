@@ -355,7 +355,7 @@ public class CassandraRules {
      * @return Reverse of the input direction
      */
     private RelFieldCollation.Direction reverseDirection(RelFieldCollation.Direction direction) {
-      switch(direction) {
+      switch (direction) {
       case ASCENDING:
       case STRICTLY_ASCENDING:
         return RelFieldCollation.Direction.DESCENDING;

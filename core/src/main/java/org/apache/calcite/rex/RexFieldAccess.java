@@ -31,10 +31,10 @@ import org.apache.calcite.sql.SqlKind;
  * <pre>SELECT emp.empno FROM emp</pre>
  * </blockquote>
  *
- * but there is a specialized expression {@link RexInputRef} for this purpose.
- * So in practice, <code>RexFieldAccess</code> is usually used to access fields
- * of correlating variables, for example the expression <code>emp.deptno</code>
- * in
+ * <p>but there is a specialized expression {@link RexInputRef} for this
+ * purpose. So in practice, <code>RexFieldAccess</code> is usually used to
+ * access fields of correlating variables, for example the expression
+ * <code>emp.deptno</code> in
  *
  * <blockquote>
  * <pre>SELECT ename

@@ -43,7 +43,6 @@ import static org.apache.calcite.util.Static.RESOURCE;
  * <p>INTERVAL qualifier is defined as follows:
  *
  * <blockquote><code>
- *
  * &lt;interval qualifier&gt; ::=<br>
  * &nbsp;&nbsp; &lt;start field&gt; TO &lt;end field&gt;<br>
  * &nbsp;&nbsp;| &lt;single datetime field&gt;<br>
@@ -71,7 +70,6 @@ import static org.apache.calcite.util.Static.RESOURCE;
  * &lt;interval fractional seconds precision&gt; ::=
  * &lt;unsigned integer&gt;<br>
  * &lt;interval leading field precision&gt; ::= &lt;unsigned integer&gt;
- *
  * </code></blockquote>
  *
  * <p>Examples include:
@@ -82,7 +80,7 @@ import static org.apache.calcite.util.Static.RESOURCE;
  * <li><code>INTERVAL '1 2:3:4' DAY(4) TO SECOND(4)</code></li>
  * </ul>
  *
- * An instance of this class is immutable.
+ * <p>An instance of this class is immutable.
  */
 public class SqlIntervalQualifier extends SqlNode {
   //~ Static fields/initializers ---------------------------------------------
@@ -354,9 +352,10 @@ public class SqlIntervalQualifier extends SqlNode {
   }
 
   /**
-   * Does this interval have a single datetime field
+   * Returns whether this interval has a single datetime field.
    *
-   * Return true not of form unit TO unit.
+   * <p>Returns {@code true} if it is of the form {@code unit},
+   * {@code false} if it is of the form {@code unit TO unit}.
    */
   public boolean isSingleDatetimeField() {
     return timeUnitRange.endUnit == null;

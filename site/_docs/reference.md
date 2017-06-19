@@ -1691,8 +1691,3 @@ patternQuantifier:
 
 In *patternQuantifier*, *repeat* is a positive integer,
 and *minRepeat* and *maxRepeat* are non-negative integers.
-
-The following clauses are not implemented:
-
-* `PARTITION BY`
-* `ORDER BY`

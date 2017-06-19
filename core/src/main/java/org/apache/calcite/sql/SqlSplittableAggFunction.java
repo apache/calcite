@@ -152,8 +152,9 @@ public interface SqlSplittableAggFunction {
     /**
      * {@inheritDoc}
      *
-     * COUNT(*) and COUNT applied to all NOT NULL arguments become {@code 1};
-     * otherwise {@code CASE WHEN arg0 IS NOT NULL THEN 1 ELSE 0 END}.
+     * <p>{@code COUNT(*)}, and {@code COUNT} applied to all NOT NULL arguments,
+     * become {@code 1}; otherwise
+     * {@code CASE WHEN arg0 IS NOT NULL THEN 1 ELSE 0 END}.
      */
     public RexNode singleton(RexBuilder rexBuilder, RelDataType inputRowType,
         AggregateCall aggregateCall) {

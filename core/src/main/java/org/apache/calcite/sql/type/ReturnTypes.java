@@ -496,7 +496,7 @@ public abstract class ReturnTypes {
    * <li>p = max(p1 - s1, p2 - s2) + s + 1</li>
    * </ul>
    *
-   * p and s are capped at their maximum values
+   * <p>p and s are capped at their maximum values
    *
    * @see Glossary#SQL2003 SQL:2003 Part 2 Section 6.26
    */
@@ -563,7 +563,7 @@ public abstract class ReturnTypes {
    * <li>result is varying if either input is; otherwise fixed
    * </ul>
    *
-   * Pre-requisites:
+   * <p>Pre-requisites:
    *
    * <ul>
    * <li>input types must be of the same string type

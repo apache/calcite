@@ -1463,6 +1463,16 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
       new SqlFunction("NEXT", SqlKind.NEXT, ReturnTypes.ARG0_NULLABLE, null,
           OperandTypes.ANY_NUMERIC, SqlFunctionCategory.MATCH_RECOGNIZE);
 
+  /** {@code CLASSIFIER} function to be used within {@code MATCH_RECOGNIZE}. */
+  public static final SqlFunction CLASSIFIER =
+      new SqlFunction("CLASSIFIER", SqlKind.CLASSIFIER, ReturnTypes.VARCHAR_2000,
+          null, OperandTypes.NILADIC, SqlFunctionCategory.MATCH_RECOGNIZE);
+
+  /** {@code MATCH_NUMBER} function to be used within {@code MATCH_RECOGNIZE}. */
+  public static final SqlFunction MATCH_NUMBER =
+      new SqlFunction("MATCH_NUMBER ", SqlKind.MATCH_NUMBER, ReturnTypes.BIGINT_NULLABLE,
+          null, OperandTypes.NILADIC, SqlFunctionCategory.MATCH_RECOGNIZE);
+
   public static final SqlFunction NULLIF = new SqlNullifFunction();
 
   /**

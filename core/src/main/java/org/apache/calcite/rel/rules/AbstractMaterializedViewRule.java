@@ -358,8 +358,8 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
                     e.getKey().getIndex(), e.getKey().getType());
                 // Add to query equivalence classes and table mapping
                 currQEC.addEquivalenceClass(queryColumnRef, e.getValue());
-                queryToViewTableMapping.put(
-                    e.getValue().getTableRef(), e.getValue().getTableRef()); //identity
+                queryToViewTableMapping.put(e.getValue().getTableRef(),
+                    e.getValue().getTableRef()); // identity
               }
             }
 

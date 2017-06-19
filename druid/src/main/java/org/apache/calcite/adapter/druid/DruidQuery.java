@@ -79,6 +79,7 @@ import java.io.StringWriter;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
@@ -1148,21 +1149,21 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
 
         switch (e.getKind()) {
         case EQUALS:
-          return new JsonSelector("selector", dimName, tr(e, posConstant), extractionFunction);
+          return new JsonSelector(dimName, tr(e, posConstant), extractionFunction);
         case NOT_EQUALS:
-          return new JsonCompositeFilter("not",
-              new JsonSelector("selector", dimName, tr(e, posConstant), extractionFunction));
+          return new JsonCompositeFilter(JsonFilter.Type.NOT,
+              new JsonSelector(dimName, tr(e, posConstant), extractionFunction));
         case GREATER_THAN:
-          return new JsonBound("bound", dimName, tr(e, posConstant),
+          return new JsonBound(dimName, tr(e, posConstant),
               true, null, false, numeric, extractionFunction);
         case GREATER_THAN_OR_EQUAL:
-          return new JsonBound("bound", dimName, tr(e, posConstant),
+          return new JsonBound(dimName, tr(e, posConstant),
               false, null, false, numeric, extractionFunction);
         case LESS_THAN:
-          return new JsonBound("bound", dimName, null, false,
+          return new JsonBound(dimName, null, false,
               tr(e, posConstant), true, numeric, extractionFunction);
         case LESS_THAN_OR_EQUAL:
-          return new JsonBound("bound", dimName, null, false,
+          return new JsonBound(dimName, null, false,
               tr(e, posConstant), false, numeric, extractionFunction);
         case IN:
           ImmutableList.Builder<String> listBuilder = ImmutableList.builder();
@@ -1171,9 +1172,9 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
               listBuilder.add(((RexLiteral) rexNode).getValue3().toString());
             }
           }
-          return new JsonInFilter("in", dimName, listBuilder.build(), extractionFunction);
+          return new JsonInFilter(dimName, listBuilder.build(), extractionFunction);
         case BETWEEN:
-          return new JsonBound("bound", dimName, tr(e, 2), false,
+          return new JsonBound(dimName, tr(e, 2), false,
               tr(e, 3), false, numeric, extractionFunction);
         default:
           throw new AssertionError();
@@ -1182,7 +1183,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
       case OR:
       case NOT:
         call = (RexCall) e;
-        return new JsonCompositeFilter(e.getKind().lowerName,
+        return new JsonCompositeFilter(JsonFilter.Type.valueOf(e.getKind().name()),
             translateFilters(call.getOperands()));
       default:
         throw new AssertionError("cannot translate filter: " + e);
@@ -1359,9 +1360,25 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
 
   /** Filter element of a Druid "groupBy" or "topN" query. */
   private abstract static class JsonFilter implements Json {
-    final String type;
+    /**
+     * Supported filter types
+     * */
+    protected enum Type {
+      AND,
+      OR,
+      NOT,
+      SELECTOR,
+      IN,
+      BOUND;
 
-    private JsonFilter(String type) {
+      public String lowercase() {
+        return name().toLowerCase(Locale.ROOT);
+      }
+    }
+
+    final Type type;
+
+    private JsonFilter(Type type) {
       this.type = type;
     }
   }
@@ -1372,9 +1389,9 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
     private final String value;
     private final ExtractionFunction extractionFunction;
 
-    private JsonSelector(String type, String dimension, String value,
+    private JsonSelector(String dimension, String value,
         ExtractionFunction extractionFunction) {
-      super(type);
+      super(Type.SELECTOR);
       this.dimension = dimension;
       this.value = value;
       this.extractionFunction = extractionFunction;
@@ -1382,7 +1399,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
 
     public void write(JsonGenerator generator) throws IOException {
       generator.writeStartObject();
-      generator.writeStringField("type", type);
+      generator.writeStringField("type", type.lowercase());
       generator.writeStringField("dimension", dimension);
       generator.writeStringField("value", value);
       writeFieldIf(generator, "extractionFn", extractionFunction);
@@ -1401,10 +1418,10 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
     private final boolean alphaNumeric;
     private final ExtractionFunction extractionFunction;
 
-    private JsonBound(String type, String dimension, String lower,
+    private JsonBound(String dimension, String lower,
         boolean lowerStrict, String upper, boolean upperStrict,
         boolean alphaNumeric, ExtractionFunction extractionFunction) {
-      super(type);
+      super(Type.BOUND);
       this.dimension = dimension;
       this.lower = lower;
       this.lowerStrict = lowerStrict;
@@ -1416,7 +1433,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
 
     public void write(JsonGenerator generator) throws IOException {
       generator.writeStartObject();
-      generator.writeStringField("type", type);
+      generator.writeStringField("type", type.lowercase());
       generator.writeStringField("dimension", dimension);
       if (lower != null) {
         generator.writeStringField("lower", lower);
@@ -1440,21 +1457,21 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
   private static class JsonCompositeFilter extends JsonFilter {
     private final List<? extends JsonFilter> fields;
 
-    private JsonCompositeFilter(String type,
+    private JsonCompositeFilter(Type type,
         Iterable<? extends JsonFilter> fields) {
       super(type);
       this.fields = ImmutableList.copyOf(fields);
     }
 
-    private JsonCompositeFilter(String type, JsonFilter... fields) {
+    private JsonCompositeFilter(Type type, JsonFilter... fields) {
       this(type, ImmutableList.copyOf(fields));
     }
 
     public void write(JsonGenerator generator) throws IOException {
       generator.writeStartObject();
-      generator.writeStringField("type", type);
+      generator.writeStringField("type", type.lowercase());
       switch (type) {
-      case "NOT":
+      case NOT:
         writeField(generator, "field", fields.get(0));
         break;
       default:
@@ -1470,9 +1487,9 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
     private final List<String> values;
     private final ExtractionFunction extractionFunction;
 
-    private JsonInFilter(String type, String dimension, List<String> values,
+    private JsonInFilter(String dimension, List<String> values,
         ExtractionFunction extractionFunction) {
-      super(type);
+      super(Type.IN);
       this.dimension = dimension;
       this.values = values;
       this.extractionFunction = extractionFunction;
@@ -1480,7 +1497,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
 
     public void write(JsonGenerator generator) throws IOException {
       generator.writeStartObject();
-      generator.writeStringField("type", type);
+      generator.writeStringField("type", type.lowercase());
       generator.writeStringField("dimension", dimension);
       writeField(generator, "values", values);
       writeFieldIf(generator, "extractionFn", extractionFunction);

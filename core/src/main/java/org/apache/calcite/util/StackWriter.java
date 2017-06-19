@@ -30,7 +30,7 @@ import java.util.Deque;
  * passed straight through the PrintWriter via the write method, as in the
  * following example:
  *
- * <pre><code>
+ * <blockquote><pre><code>
  *    StringWriter sw = new StringWriter();
  *    StackWriter stackw = new StackWriter(sw, StackWriter.INDENT_SPACE4);
  *    PrintWriter pw = new PrintWriter(stackw);
@@ -46,15 +46,15 @@ import java.util.Deque;
  *    pw.write(StackWriter.OUTDENT);
  *    pw.close();
  *    System.out.println(sw.toString());
- * </code></pre>
+ * </code></pre></blockquote>
  *
- * which produces the following output:
+ * <p>which produces the following output:
  *
- * <pre><code>
+ * <blockquote><pre><code>
  *      execute remote(link_name,'
  *          select * from t where c &gt; ''alabama''
  *      ');
- * </code></pre>
+ * </code></pre></blockquote>
  */
 public class StackWriter extends FilterWriter {
   //~ Static fields/initializers ---------------------------------------------

@@ -106,9 +106,7 @@ public class NumberUtil {
       return (BigDecimal) number;
     } else if ((number instanceof Double)
         || (number instanceof Float)) {
-      // For JDK 1.4 compatibility
-      return new BigDecimal(number.doubleValue());
-      //return BigDecimal.valueOf(((Number) number).doubleValue());
+      return BigDecimal.valueOf(number.doubleValue());
     } else if (number instanceof BigInteger) {
       return new BigDecimal((BigInteger) number);
     } else {

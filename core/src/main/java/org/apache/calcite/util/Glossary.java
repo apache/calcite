@@ -510,12 +510,12 @@ public interface Glossary {
    * <li><code>ItemId</code> is a dotted path expression to the specific item
    * </ul>
    *
-   * For example,
+   * <p>For example,
    *
-   * <pre><code>&#64;sql.92 Section 11.4 Syntax Rule 7.c
-   * </code></pre>
+   * <blockquote><pre><code>&#64;sql.92 Section 11.4 Syntax Rule 7.c
+   * </code></pre></blockquote>
    *
-   * is a well-formed reference to the rule for the default character set to
+   * <p>is a well-formed reference to the rule for the default character set to
    * use for column definitions of character type.
    *
    * <p>Note that this tag is a block tag (like &#64;see) and cannot be used
@@ -539,12 +539,12 @@ public interface Glossary {
    * <li><code>ItemId</code> is a dotted path expression to the specific item
    * </ul>
    *
-   * For example,
+   * <p>For example,
    *
-   * <pre><code>&#64;sql.99 Part 2 Section 11.4 Syntax Rule 7.b
-   * </code></pre>
+   * <blockquote><pre><code>&#64;sql.99 Part 2 Section 11.4 Syntax Rule 7.b
+   * </code></pre></blockquote>
    *
-   * is a well-formed reference to the rule for the default character set to
+   * <p>is a well-formed reference to the rule for the default character set to
    * use for column definitions of character type.
    *
    * <p>Note that this tag is a block tag (like &#64;see) and cannot be used
@@ -568,12 +568,12 @@ public interface Glossary {
    * <li><code>ItemId</code> is a dotted path expression to the specific item
    * </ul>
    *
-   * For example,
+   * <p>For example,
    *
-   * <pre><code>&#64;sql.2003 Part 2 Section 11.4 Syntax Rule 10.b
-   * </code></pre>
+   * <blockquote><pre><code>&#64;sql.2003 Part 2 Section 11.4 Syntax Rule 10.b
+   * </code></pre></blockquote>
    *
-   * is a well-formed reference to the rule for the default character set to
+   * <p>is a well-formed reference to the rule for the default character set to
    * use for column definitions of character type.
    *
    * <p>Note that this tag is a block tag (like &#64;see) and cannot be used

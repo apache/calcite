@@ -63,8 +63,7 @@
  *     {@link org.apache.calcite.sql.SqlBinaryOperator},
  *     {@link org.apache.calcite.sql.SqlPrefixOperator},
  *     {@link org.apache.calcite.sql.SqlPostfixOperator}.
- *
- *     And there are singleton classes for special syntactic constructs
+ * And there are singleton classes for special syntactic constructs
  *     {@link org.apache.calcite.sql.SqlSelectOperator}
  *     and {@link org.apache.calcite.sql.SqlJoin.SqlJoinOperator}. (These
  *     special operators even have their own sub-types of

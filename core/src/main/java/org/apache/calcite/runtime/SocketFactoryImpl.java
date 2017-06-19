@@ -28,7 +28,7 @@ import javax.net.SocketFactory;
  * created sockets inherit a set of options whose values are set in the
  * SocketFactoryImpl.
  *
- * <pre>
+ * <blockquote><pre>
  * 1.  SO_KEEPALIVE          - is keepalive enabled?
  * 2.  OOBINLINE             - is out of band in-line enabled?
  * 3.  SO_REUSEADDR          - should the address be reused?
@@ -39,9 +39,7 @@ import javax.net.SocketFactory;
  * 8.  SO_CONNECT_TIMEOUT    - connect timeout (millisecs)
  * 9.  SO_LINGER             - is lingering enabled?
  * 10. LINGER                - amount of time to linger (seconds)
- *
- *
- * </pre>
+ * </pre></blockquote>
  */
 public class SocketFactoryImpl extends SocketFactory {
   /**
