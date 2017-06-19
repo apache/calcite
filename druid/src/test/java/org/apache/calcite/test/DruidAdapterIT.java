@@ -2332,10 +2332,10 @@ public class DruidAdapterIT {
     String postAggString = "'postAggregations':[{'type':'arithmetic','name':'postagg#0',"
             + "'fn':'quotient','fields':[{'type':'fieldAccess','name':'','fieldName':'$f1'}"
             + ",{'type':'fieldAccess','name':'','fieldName':'$f2'}]}]";
-    final String plan = "PLAN=EnumerableInterpreter\n" +
-            "  BindableProject(store_state=[$0], A=[$1], B=[CASE(=($2, 0), "
-            + "1.0, CAST($2):DECIMAL(19, 0))])\n" +
-            "    DruidQuery";
+    final String plan = "PLAN=EnumerableInterpreter\n"
+            + "  BindableProject(store_state=[$0], A=[$1], B=[CASE(=($2, 0), "
+            + "1.0, CAST($2):DECIMAL(19, 0))])\n"
+            + "    DruidQuery";
     sql(sqlQuery, FOODMART)
         .explainContains(plan)
         .queryContains(druidChecker(postAggString))
