@@ -2240,7 +2240,7 @@ public class DruidAdapterIT {
 
   @Test public void testRecursiveArithmeticOperation() {
     final String sqlQuery = "select \"store_state\", -1 * (a + b) as c from (select "
-        + "(sum(\"store_sales\")-sum(\"store_cost\")) / (count(\"brand_name\") * 3) "
+        + "(sum(\"store_sales\")-sum(\"store_cost\")) / (count(*) * 3) "
         + "AS a,sum(\"unit_sales\") AS b, \"store_state\"  from \"foodmart\"  group "
         + "by \"store_state\") order by c desc";
     String postAggString = "'postAggregations':[{'type':'arithmetic','name':'postagg#0',"
@@ -2263,7 +2263,10 @@ public class DruidAdapterIT {
             "store_state=WA; C=-124367.29537911131");
   }
 
-  @Test public void testHyperUniquePostAggregator() {
+  /**
+   * Skipped for now because count(distinct ) will not get pushed in because of CALC-1805
+   */
+  @Ignore @Test public void testHyperUniquePostAggregator() {
     final String sqlQuery = "select \"store_state\", sum(\"store_cost\") / count(distinct "
         + "\"brand_name\") as a from \"foodmart\"  group by \"store_state\" order by a desc";
     String postAggString = "'postAggregations':[{'type':'arithmetic','name':'postagg#0','fn':"
@@ -2304,10 +2307,10 @@ public class DruidAdapterIT {
   }
 
   @Test public void testSingleAverageFunction() {
-    final String sqlQuery = "select \"store_state\", avg(\"store_cost\") as a from "
+    final String sqlQuery = "select \"store_state\", sum(\"store_cost\") / count(*) as a from "
         + "\"foodmart\" group by \"store_state\" order by a desc";
     String postAggString = "'aggregations':[{'type':'doubleSum','name':'$f1','fieldName':"
-        + "'store_cost'},{'type':'count','name':'$f2','fieldName':'store_cost'}],"
+        + "'store_cost'},{'type':'count','name':'$f2'}],"
         + "'postAggregations':[{'type':'arithmetic','name':'postagg#0','fn':'quotient'"
         + ",'fields':[{'type':'fieldAccess','name':'','fieldName':'$f1'},"
         + "{'type':'fieldAccess','name':'','fieldName':'$f2'}]}]";
@@ -2323,25 +2326,22 @@ public class DruidAdapterIT {
   }
 
   @Test public void testPartiallyPostAggregation() {
-    final String sqlQuery = "select \"store_state\", avg(\"store_cost\")/sum(\"store_sales\") "
-        + "as a from \"foodmart\"  group by \"store_state\" order by a desc";
-    String postAggString = "'aggregations':[{'type':'doubleSum','name':'$f1','fieldName':"
-        + "'store_cost'},{'type':'count','name':'$f2','fieldName':'store_cost'},"
-        + "{'type':'doubleSum','name':'$f3','fieldName':'store_sales'},"
-        + "{'type':'count','name':'$f4','fieldName':'store_sales'}],"
-        + "'postAggregations':[{'type':'arithmetic','name':'postagg#0',"
-        + "'fn':'quotient','fields':[{'type':'fieldAccess','name':'',"
-        + "'fieldName':'$f1'},{'type':'fieldAccess','name':'','fieldName':'$f2'}]}]";
-    final String plan = "EnumerableInterpreter\n"
-        + "  BindableSort(sort0=[$1], dir0=[DESC])\n"
-        + "    BindableProject(store_state=[$0], A=[/($1, CASE(=($3, 0), null, $2))])\n"
-        + "      Druid";
+    final String sqlQuery = "select \"store_state\", sum(\"store_sales\") / sum(\"store_cost\")"
+            + " as a, case when sum(\"unit_sales\")=0 then 1.0 else sum(\"unit_sales\") "
+            + "end as b from \"foodmart\"  group by \"store_state\" order by a desc";
+    String postAggString = "'postAggregations':[{'type':'arithmetic','name':'postagg#0',"
+            + "'fn':'quotient','fields':[{'type':'fieldAccess','name':'','fieldName':'$f1'}"
+            + ",{'type':'fieldAccess','name':'','fieldName':'$f2'}]}]";
+    final String plan = "PLAN=EnumerableInterpreter\n" +
+            "  BindableProject(store_state=[$0], A=[$1], B=[CASE(=($2, 0), "
+            + "1.0, CAST($2):DECIMAL(19, 0))])\n" +
+            "    DruidQuery";
     sql(sqlQuery, FOODMART)
         .explainContains(plan)
         .queryContains(druidChecker(postAggString))
-        .returnsOrdered("store_state=OR; A=1.8464958678103866E-5",
-            "store_state=CA; A=1.6330800347228945E-5",
-            "store_state=WA; A=9.791271010158584E-6");
+        .returnsOrdered("store_state=OR; A=2.5060913241562606; B=67659",
+            "store_state=CA; A=2.505379731203625; B=74748",
+            "store_state=WA; A=2.5045805694710124; B=124366");
   }
 
   @Test public void testDuplicateReferenceOnPostAggregation() {
@@ -2424,13 +2424,9 @@ public class DruidAdapterIT {
   }
 
   @Test public void testDivideByZeroIntegerType() {
-    final String sqlQuery = "select \"store_state\", (count(\"store_cost\") - "
-        + "count(\"store_cost\")) / 0 as a from \"foodmart\"  group by \"store_state\" "
+    final String sqlQuery = "select \"store_state\", (count(*) - "
+        + "count(*)) / 0 as a from \"foodmart\"  group by \"store_state\" "
         + "order by a desc";
-    String postAggString = "'postAggregations':[{'type':'arithmetic','name':'postagg#0',"
-        + "'fn':'quotient','fields':[{'type':'arithmetic','name':'','fn':'-','fields':"
-        + "[{'type':'fieldAccess','name':'','fieldName':'$f1'},{'type':'fieldAccess'"
-        + ",'name':'','fieldName':'$f1'}]},{'type':'constant','name':'','value':0.0}]}]";
     final String plan = "PLAN=EnumerableInterpreter\n"
         + "  DruidQuery(table=[[foodmart, foodmart]], intervals="
         + "[[1900-01-09T00:00:00.000/2992-01-10T00:00:00.000]], groups=[{63}],";
