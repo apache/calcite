@@ -1071,17 +1071,11 @@ public class DruidAdapterIT {
         + "from \"foodmart\"\n"
         + "group by \"state_province\"\n"
         + "order by 1";
-    String druidQuery = "'aggregations':["
-        + "{'type':'longSum','name':'$f1','fieldName':'unit_sales'},"
-        + "{'type':'count','name':'$f2','fieldName':'unit_sales'},"
-        + "{'type':'count','name':'C','fieldName':'store_sqft'},"
-        + "{'type':'count','name':'C0'}],"
-        + "'intervals':['1900-01-09T00:00:00.000/2992-01-10T00:00:00.000']}";
     sql(sql)
         .limit(2)
-        .returnsUnordered("state_province=CA; A=3; S=74748; C=24441; C0=24441",
+        .returnsUnordered("state_province=CA; A=3; S=74748; C=16347; C0=24441",
             "state_province=OR; A=3; S=67659; C=21610; C0=21610")
-        .queryContains(druidChecker(druidQuery));
+        .queryContains(druidChecker("'queryType':'select'"));
   }
 
   @Test public void testGroupByMonthGranularity() {
@@ -2075,13 +2069,12 @@ public class DruidAdapterIT {
         + "\"product_id\" = 1558 group by extract(CENTURY from \"timestamp\")";
     final String plan = "PLAN=EnumerableInterpreter\n"
         + "  BindableAggregate(group=[{0}])\n"
-        + "    BindableProject(EXPR$0=[/INT(EXTRACT_DATE(FLAG(YEAR), /INT(Reinterpret($0), "
-        + "86400000)), 100)])\n"
+        + "    BindableProject(EXPR$0=[EXTRACT_DATE(FLAG(CENTURY), /INT(Reinterpret($0), 86400000))])\n"
         + "      DruidQuery(table=[[foodmart, foodmart]], "
         + "intervals=[[1900-01-09T00:00:00.000/2992-01-10T00:00:00.000]], filter=[=($1, 1558)], "
         + "projects=[[$0]])";
     sql(sql).explainContains(plan).queryContains(druidChecker("'queryType':'select'"))
-        .returnsUnordered("EXPR$0=19");
+        .returnsUnordered("EXPR$0=20");
   }
 
   /** Test case for

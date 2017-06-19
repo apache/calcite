@@ -118,7 +118,8 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
           return new CountAccumulator(call);
         }
       };
-    } else if (call.getAggregation() == SqlStdOperatorTable.SUM) {
+    } else if (call.getAggregation() == SqlStdOperatorTable.SUM
+        || call.getAggregation() == SqlStdOperatorTable.SUM0) {
       final Class<?> clazz;
       switch (call.type.getSqlTypeName()) {
       case DOUBLE:
@@ -134,8 +135,13 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
         clazz = LongSum.class;
         break;
       }
-      return new UdaAccumulatorFactory(
-          AggregateFunctionImpl.create(clazz), call);
+      if (call.getAggregation() == SqlStdOperatorTable.SUM) {
+        return new UdaAccumulatorFactory(
+            AggregateFunctionImpl.create(clazz), call, true);
+      } else {
+        return new UdaAccumulatorFactory(
+            AggregateFunctionImpl.create(clazz), call, false);
+      }
     } else {
       final JavaTypeFactory typeFactory =
           (JavaTypeFactory) rel.getCluster().getTypeFactory();
@@ -436,9 +442,10 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
     final AggregateFunctionImpl aggFunction;
     final int argOrdinal;
     public final Object instance;
+    public final boolean nullIfEmpty;
 
     UdaAccumulatorFactory(AggregateFunctionImpl aggFunction,
-        AggregateCall call) {
+        AggregateCall call, boolean nullIfEmpty) {
       this.aggFunction = aggFunction;
       if (call.getArgList().size() != 1) {
         throw new UnsupportedOperationException("in current implementation, "
@@ -457,6 +464,7 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
           throw new RuntimeException(e);
         }
       }
+      this.nullIfEmpty = nullIfEmpty;
     }
 
     public Accumulator get() {
@@ -468,6 +476,7 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
   private static class UdaAccumulator implements Accumulator {
     private final UdaAccumulatorFactory factory;
     private Object value;
+    private boolean empty;
 
     UdaAccumulator(UdaAccumulatorFactory factory) {
       this.factory = factory;
@@ -476,6 +485,7 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
       } catch (IllegalAccessException | InvocationTargetException e) {
         throw new RuntimeException(e);
       }
+      this.empty = true;
     }
 
     public void send(Row row) {
@@ -490,9 +500,13 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
       } catch (IllegalAccessException | InvocationTargetException e) {
         throw new RuntimeException(e);
       }
+      empty = false;
     }
 
     public Object end() {
+      if (factory.nullIfEmpty && empty) {
+        return null;
+      }
       final Object[] args = {value};
       try {
         return factory.aggFunction.resultMethod.invoke(factory.instance, args);
