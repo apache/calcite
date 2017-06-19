@@ -147,7 +147,7 @@ public class VisitorDataContext implements DataContext {
       case VARCHAR:
         return Pair.of(index, rexLiteral.getValueAs(String.class));
       default:
-        //TODO: Support few more supported cases
+        // TODO: Support few more supported cases
         LOGGER.warn("{} for value of class {} is being handled in default way",
             type.getSqlTypeName(), rexLiteral.getValue().getClass());
         if (rexLiteral.getValue() instanceof NlsString) {
@@ -158,7 +158,7 @@ public class VisitorDataContext implements DataContext {
       }
     }
 
-    //Unsupported Arguments
+    // Unsupported Arguments
     return null;
   }
 

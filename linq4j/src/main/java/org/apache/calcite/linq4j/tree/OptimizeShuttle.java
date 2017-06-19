@@ -342,7 +342,7 @@ public class OptimizeShuttle extends Shuttle {
       }
     }
     // We might have dangling "else", however if we have just single item
-    // it means we have if (false) else if(false) else if (true) {...} code.
+    // it means we have if (false) else if (false) else if (true) {...} code.
     // Then we just return statement from true branch
     if (list.size() == 1) {
       return (Statement) list.get(0);

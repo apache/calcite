@@ -564,6 +564,16 @@ public class RexUtil {
     }
   }
 
+  public static List<RexNode> retainDeterministic(List<RexNode> list) {
+    List<RexNode> conjuctions = Lists.newArrayList();
+    for (RexNode x : list) {
+      if (isDeterministic(x)) {
+        conjuctions.add(x);
+      }
+    }
+    return conjuctions;
+  }
+
    /**
    * Returns whether a given node contains a RexCall with a specified operator
    *

@@ -371,7 +371,7 @@ class RuleQueue {
    * node's algorithm.</li>
    * </ul>
    *
-   * <p>The formula for the importance I of node n is:
+   * <p>The formula for the importance <i>I</i> of node n is:
    *
    * <blockquote>I<sub>n</sub> = Sum<sub>parents p of n</sub>{I<sub>p</sub> .
    * W <sub>n, p</sub>}</blockquote>

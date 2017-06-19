@@ -28,12 +28,12 @@ package org.apache.calcite.rel.type;
  *
  * <p>SQL usually disallows a record type. For instance,
  *
- * <blockquote>SELECT address.zip FROM Emp AS e</blockquote>
+ * <blockquote><pre>SELECT address.zip FROM Emp AS e</pre></blockquote>
  *
- * is disallowed because {@code address} "looks like" a table alias. You'd have
- * to write
+ * <p>is disallowed because {@code address} "looks like" a table alias. You'd
+ * have to write
  *
- * <blockquote>SELECT e.address.zip FROM Emp AS e</blockquote>
+ * <blockquote><pre>SELECT e.address.zip FROM Emp AS e</pre></blockquote>
  *
  * <p>But if a table has one or more columns that are record-typed and are
  * labeled {@link #PEEK_FIELDS} or {@link #PEEK_FIELDS_DEFAULT} we suspend that

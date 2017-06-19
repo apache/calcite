@@ -54,18 +54,17 @@ import javax.xml.parsers.ParserConfigurationException;
  * <p>Typical usage is as follows. A test case class defines a method
  *
  * <blockquote><pre><code>
- *
  * package com.acme.test;
- *
+ * &nbsp;
  * public class MyTest extends TestCase {
  *   public DiffRepository getDiffRepos() {
  *     return DiffRepository.lookup(MyTest.class);
  *   }
- *
+ * &nbsp;
  *   &#64;Test public void testToUpper() {
  *     getDiffRepos().assertEquals("${result}", "${string}");
  *   }
- *
+ * &nbsp;
  *   &#64;Test public void testToLower() {
  *     getDiffRepos().assertEquals("Multi-line\nstring", "${string}");
  *   }
@@ -76,7 +75,6 @@ import javax.xml.parsers.ParserConfigurationException;
  * <code>src/test/resources/com/acme/test/MyTest.xml</code>:</p>
  *
  * <blockquote><pre><code>
- *
  * &lt;Root&gt;
  *     &lt;TestCase name="testToUpper"&gt;
  *         &lt;Resource name="string"&gt;

@@ -27,8 +27,7 @@ import java.util.Map;
  * <a href="http://calcite.apache.org/apidocs/org/apache/calcite/adapter/csv/package-summary.html">example CSV adapter</a>
  * for more details about this particular adapter.)
  *
- * <pre>{@code
- * {
+ * <blockquote><pre>{
  *   "version": "1.0",
  *   "defaultSchema": "SALES",
  *   "schemas": [
@@ -49,9 +48,7 @@ import java.util.Map;
  *       ]
  *     }
  *   ]
- * }
- * }
- * </pre>
+ * }</pre></blockquote>
  *
  * <p>If you do not wish to allow model authors to add additional tables
  * (including views) to an instance of your schema, specify

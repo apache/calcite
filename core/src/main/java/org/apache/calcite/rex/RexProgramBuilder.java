@@ -500,7 +500,7 @@ public class RexProgramBuilder {
    * expressions must have maximum depth 1)
    * </ul>
    *
-   * there are additional constraints:
+   * <p>there are additional constraints:
    *
    * <ul>
    * <li>Expressions appear in the left-deep order they are needed by
@@ -693,15 +693,14 @@ public class RexProgramBuilder {
    *
    * <p>All expressions become common sub-expressions. For example, the query
    *
-   * <pre>{@code
-   * SELECT x + 1 AS p, x + y AS q FROM (
+   * <blockquote><pre>SELECT x + 1 AS p, x + y AS q FROM (
    *   SELECT a + b AS x, c AS y
    *   FROM t
-   *   WHERE c = 6)}</pre>
+   *   WHERE c = 6)}</pre></blockquote>
    *
-   * would be represented as the programs
+   * <p>would be represented as the programs
    *
-   * <pre>
+   * <blockquote><pre>
    *   Calc:
    *       Projects={$2, $3},
    *       Condition=null,
@@ -710,11 +709,11 @@ public class RexProgramBuilder {
    *       Projects={$3, $2},
    *       Condition={$4}
    *       Exprs={$0, $1, $2, $0 + $1, $2 = 6}
-   * </pre>
+   * </pre></blockquote>
    *
    * <p>The merged program is
    *
-   * <pre>
+   * <blockquote><pre>
    *   Calc(
    *      Projects={$4, $5}
    *      Condition=$6
@@ -725,7 +724,7 @@ public class RexProgramBuilder {
    *             4: ($3 + 1)  // p = x + 1
    *             5: ($3 + $2) // q = x + y
    *             6: ($2 = 6)  // c = 6
-   * </pre>
+   * </pre></blockquote>
    *
    * <p>Another example:</p>
    *
@@ -738,7 +737,7 @@ public class RexProgramBuilder {
    * WHERE x = 5</pre>
    * </blockquote>
    *
-   * becomes
+   * <p>becomes
    *
    * <blockquote>
    * <pre>SELECT a + b AS x, c AS y

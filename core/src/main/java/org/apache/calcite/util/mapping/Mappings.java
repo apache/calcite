@@ -430,10 +430,10 @@ public abstract class Mappings {
    *
    * <p>For example,</p>
    *
-   * <pre>createShiftMapping(60,
+   * <blockquote><pre>createShiftMapping(60,
    *     100, 0, 3,
    *     200, 50, 5);
-   * </pre>
+   * </pre></blockquote>
    *
    * <p>creates</p>
    *
@@ -950,7 +950,7 @@ public abstract class Mappings {
      * </tr>
      * </table>
      *
-     * is represented by the string "[1:3, 2:2]".
+     * <p>is represented by the string "[1:3, 2:2]".
      *
      * <p>This method relies upon the optional method {@link #iterator()}.
      */

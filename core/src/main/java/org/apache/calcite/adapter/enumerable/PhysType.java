@@ -66,9 +66,9 @@ public interface PhysType {
   /** Generates a reference to a given field in an expression.
    *
    * <p>For example given {@code expression=employee} and {@code field=2},
-   * generates</p>
+   * generates
    *
-   * <pre>{@code employee.deptno}</pre>
+   * <blockquote><pre>{@code employee.deptno}</pre></blockquote>
    *
    * @param expression Expression
    * @param field Ordinal of field
@@ -79,12 +79,12 @@ public interface PhysType {
   /** Generates a reference to a given field in an expression.
    *
    * <p>This method optimizes for the target storage type (i.e. avoids
-   * casts).</p>
+   * casts).
    *
    * <p>For example given {@code expression=employee} and {@code field=2},
-   * generates</p>
+   * generates
    *
-   * <pre>{@code employee.deptno}</pre>
+   * <blockquote><pre>{@code employee.deptno}</pre></blockquote>
    *
    * @param expression Expression
    * @param field Ordinal of field
@@ -99,15 +99,15 @@ public interface PhysType {
    * {@link Object#equals(Object)} per that interface) and also implements
    * {@link Comparable}.
    *
-   * <p>For example:</p>
+   * <p>For example:
    *
-   * <pre>{@code
-   * new Function1<Employee, Object[]> {
+   * <blockquote><pre>
+   * new Function1&lt;Employee, Object[]&gt; {
    *    public Object[] apply(Employee v1) {
-   *        return FlatLists.of(v1.<fieldN>, v1.<fieldM>);
+   *        return FlatLists.of(v1.&lt;fieldN&gt;, v1.&lt;fieldM&gt;);
    *    }
    * }
-   * }</pre>
+   * }</pre></blockquote>
    */
   Expression generateAccessor(List<Integer> fields);
 

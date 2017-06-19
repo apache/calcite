@@ -72,10 +72,10 @@ public abstract class TestUtil {
    * <pre><code>string with "quotes" split
    * across lines</code></pre>
    *
-   * becomes
+   * <p>becomes
    *
-   * <pre><code>"string with \"quotes\" split" + NL +
-   *  "across lines"</code></pre>
+   * <blockquote><pre><code>"string with \"quotes\" split" + NL +
+   *  "across lines"</code></pre></blockquote>
    */
   public static String quoteForJava(String s) {
     s = Util.replace(s, "\\", "\\\\");
@@ -96,14 +96,14 @@ public abstract class TestUtil {
    *
    * <p>For example,</p>
    *
-   * <pre><code>string with "quotes" split
-   * across lines</code></pre>
+   * <blockquote><pre><code>string with "quotes" split
+   * across lines</code></pre></blockquote>
    *
    * <p>becomes</p>
    *
-   * <pre><code>TestUtil.fold(
+   * <blockquote><pre><code>TestUtil.fold(
    *  "string with \"quotes\" split\n",
-   *  + "across lines")</code></pre>
+   *  + "across lines")</code></pre></blockquote>
    */
   public static String toJavaString(String s) {
     // Convert [string with "quotes" split

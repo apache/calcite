@@ -36,25 +36,19 @@ import javax.annotation.Nullable;
  *
  * <blockquote>
  * <pre><code>
- *
  * CompositeOperandsTypeChecking newCompositeRule =
- *  new CompositeOperandsTypeChecking(
- *    Composition.OR,
- *    new SqlOperandTypeChecker[]{stringRule, numericRule});
- *
+ *     new CompositeOperandsTypeChecking(Composition.OR,
+ *         new SqlOperandTypeChecker[]{stringRule, numericRule});
  * </code></pre>
  * </blockquote>
  *
- * Similary a rule that would only allow a numeric literal can be done by:
+ * <p>Similarly a rule that would only allow a numeric literal can be done by:
  *
  * <blockquote>
  * <pre><code>
- *
  * CompositeOperandsTypeChecking newCompositeRule =
- *  new CompositeOperandsTypeChecking(
- *    Composition.AND,
- *    new SqlOperandTypeChecker[]{numericRule, literalRule});
- *
+ *     new CompositeOperandsTypeChecking(Composition.AND,
+ *         new SqlOperandTypeChecker[]{numericRule, literalRule});
  * </code></pre>
  * </blockquote>
  *
@@ -63,12 +57,9 @@ import javax.annotation.Nullable;
  *
  * <blockquote>
  * <pre><code>
- *
  * CompositeOperandsTypeChecking newCompositeRule =
- *  new CompositeOperandsTypeChecking(
- *    Composition.SEQUENCE,
- *    new SqlOperandTypeChecker[]{stringRule, numericRule});
- *
+ *     new CompositeOperandsTypeChecking(Composition.SEQUENCE,
+ *         new SqlOperandTypeChecker[]{stringRule, numericRule});
  * </code></pre>
  * </blockquote>
  *

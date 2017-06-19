@@ -35,7 +35,7 @@ import org.apache.calcite.util.ImmutableIntList;
  *     SELECT empno, deptno FROM emps WHERE gender = 'F';
  * </pre></blockquote>
  *
- * constraint is {@code $1 = 'F'}
+ * <p>constraint is {@code $1 = 'F'}
  * and column mapping is {@code [0, 2]}.
  *
  * <p>NOTE: The current API is inefficient and experimental. It will change
@@ -53,7 +53,7 @@ public interface ModifiableView extends Table {
 
   /** Returns the column mapping onto another table.
    *
-   * {@code mapping[i]} contains the column of the underlying table that the
+   * <p>{@code mapping[i]} contains the column of the underlying table that the
    * {@code i}th column of the view comes from, or -1 if it is based on an
    * expression.
    */

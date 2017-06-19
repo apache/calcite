@@ -2733,7 +2733,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
           if (ref instanceof RexCorrelVariable) {
             final RexCorrelVariable var = (RexCorrelVariable) ref;
             if (mapFieldAccessToCorVar.containsKey(fieldAccess)) {
-              //for cases where different Rel nodes are referring to
+              // for cases where different Rel nodes are referring to
               // same correlation var (e.g. in case of NOT IN)
               // avoid generating another correlation var
               // and record the 'rel' is using the same correlation

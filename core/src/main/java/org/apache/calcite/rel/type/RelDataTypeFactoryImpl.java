@@ -454,7 +454,7 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
    * <li>s = s1 + s2</li>
    * </ul>
    *
-   * p and s are capped at their maximum values
+   * <p>p and s are capped at their maximum values
    *
    * @see Glossary#SQL2003 SQL:2003 Part 2 Section 6.26
    */

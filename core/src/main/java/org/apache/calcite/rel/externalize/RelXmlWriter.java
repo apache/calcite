@@ -93,7 +93,6 @@ public class RelXmlWriter extends RelWriterImpl {
     xmlOutput.beginBeginTag("RelNode");
     xmlOutput.attribute("type", relType);
 
-    //xmlOutput.attribute("id", rel.getId() + "");
     xmlOutput.endBeginTag("RelNode");
 
     final List<RelNode> inputs = new ArrayList<RelNode>();
@@ -125,12 +124,12 @@ public class RelXmlWriter extends RelWriterImpl {
    * Generates specific XML (sometimes called 'attribute-oriented XML'). Like
    * this:
    *
-   * <pre>
+   * <blockquote><pre>
    * &lt;Join condition="EMP.DEPTNO = DEPT.DEPTNO"&gt;
    *   &lt;Project expr1="x + y" expr2="42"&gt;
    *   &lt;TableAccess table="SALES.EMPS"&gt;
    * &lt;/Join&gt;
-   * </pre>
+   * </pre></blockquote>
    *
    * @param rel    Relational expression
    * @param values List of term-value pairs

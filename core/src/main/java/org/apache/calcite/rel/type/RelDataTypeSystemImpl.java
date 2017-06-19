@@ -57,7 +57,7 @@ public abstract class RelDataTypeSystemImpl implements RelDataTypeSystem {
   }
 
   @Override public int getDefaultPrecision(SqlTypeName typeName) {
-    //Following BasicSqlType precision as the default
+    // Following BasicSqlType precision as the default
     switch (typeName) {
     case CHAR:
     case BINARY:
@@ -150,7 +150,7 @@ public abstract class RelDataTypeSystemImpl implements RelDataTypeSystem {
   }
 
   @Override public String getLiteral(SqlTypeName typeName, boolean isPrefix) {
-    switch(typeName) {
+    switch (typeName) {
     case VARBINARY:
     case VARCHAR:
     case CHAR:
@@ -186,7 +186,7 @@ public abstract class RelDataTypeSystemImpl implements RelDataTypeSystem {
   }
 
   @Override public boolean isCaseSensitive(SqlTypeName typeName) {
-    switch(typeName) {
+    switch (typeName) {
     case CHAR:
     case VARCHAR:
       return true;

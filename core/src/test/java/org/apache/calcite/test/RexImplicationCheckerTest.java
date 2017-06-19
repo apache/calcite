@@ -135,7 +135,7 @@ public class RexImplicationCheckerTest {
     final RexNode bEqTrue = f.eq(f.bl, f.rexBuilder.makeLiteral(true));
     final RexNode bEqFalse = f.eq(f.bl, f.rexBuilder.makeLiteral(false));
 
-    //TODO: Need to support false => true
+    // TODO: Need to support false => true
     //f.checkImplies(bEqFalse, bEqTrue);
     f.checkNotImplies(bEqTrue, bEqFalse);
   }

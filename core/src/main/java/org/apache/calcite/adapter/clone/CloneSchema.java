@@ -136,7 +136,7 @@ public class CloneSchema extends AbstractSchema {
    * {@link org.apache.calcite.adapter.clone.CloneSchema}.
    * This allows you to create a clone schema inside a model.json file.
    *
-   * <pre>{@code
+   * <blockquote><pre>
    * {
    *   version: '1.0',
    *   defaultSchema: 'FOODMART_CLONE',
@@ -153,8 +153,7 @@ public class CloneSchema extends AbstractSchema {
    *       }
    *     }
    *   ]
-   * }
-   * }</pre>
+   * }</pre></blockquote>
    */
   public static class Factory implements SchemaFactory {
     public Schema create(

@@ -25,7 +25,7 @@ import java.lang.annotation.Target;
  * Specifies that function is deterministic (i.e. returns the same output
  * given the same inputs).
  *
- * Deterministic functions can be factored out by optimizer to static fields.
+ * <p>Deterministic functions can be factored out by optimizer to static fields.
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.CONSTRUCTOR, ElementType.METHOD, ElementType.TYPE })

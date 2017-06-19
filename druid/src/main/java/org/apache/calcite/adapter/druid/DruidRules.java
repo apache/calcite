@@ -127,6 +127,7 @@ public class DruidRules {
           for (AggregateCall aggregateCall : aggregate.getAggCallList()) {
             switch (aggregateCall.getAggregation().getKind()) {
             case COUNT:
+              return !aggregateCall.getArgList().isEmpty();
             case SUM:
             case SUM0:
             case MIN:
@@ -793,7 +794,7 @@ public class DruidRules {
           if (idx >= topAgg.getGroupCount()) {
             continue;
           }
-          //has the indexes of the columns used for sorts
+          // has the indexes of the columns used for sorts
           positionsReferenced.set(topAgg.getGroupSet().nth(idx));
         }
         // Case it is a timeseries query

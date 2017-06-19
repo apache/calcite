@@ -40,7 +40,7 @@ import java.util.List;
 /**
  * Relational expression that modifies a table.
  *
- * It is similar to {@link org.apache.calcite.rel.core.TableScan},
+ * <p>It is similar to {@link org.apache.calcite.rel.core.TableScan},
  * but represents a request to modify a table rather than read from it.
  * It takes one child which produces the modified rows. Those rows are:
  *
