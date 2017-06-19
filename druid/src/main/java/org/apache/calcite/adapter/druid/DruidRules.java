@@ -122,6 +122,7 @@ public class DruidRules {
           for (AggregateCall aggregateCall : aggregate.getAggCallList()) {
             switch (aggregateCall.getAggregation().getKind()) {
             case COUNT:
+              return !aggregateCall.getArgList().isEmpty();
             case SUM:
             case SUM0:
             case MIN:
