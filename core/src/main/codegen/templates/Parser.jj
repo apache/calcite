@@ -4664,9 +4664,18 @@ SqlCall TimestampDiffFunctionCall() :
 SqlCall MatchRecognizeFunctionCall() :
 {
     final SqlCall func;
+    final Span s;
 }
 {
     (
+        <CLASSIFIER> { s = span(); } <LPAREN> <RPAREN> {
+            func = SqlStdOperatorTable.CLASSIFIER.createCall(s.end(this));
+        }
+    |
+        <MATCH_NUMBER> { s = span(); } <LPAREN> <RPAREN> {
+            func = SqlStdOperatorTable.MATCH_NUMBER.createCall(s.end(this));
+        }
+    |    
         func = MatchRecognizeNavigationLogical()
     |
         func = MatchRecognizeNavigationPhysical()
