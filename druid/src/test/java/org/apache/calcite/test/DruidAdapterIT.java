@@ -2160,18 +2160,28 @@ public class DruidAdapterIT {
    * Druid adapter cannot handle count column without adding support for nested queries</a>.
    */
   @Test public void testCountColumn() {
-
     final String sql = "SELECT count(\"countryName\") FROM (SELECT \"countryName\" FROM "
         + "\"wikiticker\" WHERE \"countryName\"  IS NOT NULL) as a";
-    sql(sql, WIKI_AUTO2).returnsUnordered("EXPR$0=3799");
+    sql(sql, WIKI_AUTO2)
+        .returnsUnordered("EXPR$0=3799");
 
     final String sql2 = "SELECT count(\"countryName\") FROM (SELECT \"countryName\" FROM "
         + "\"wikiticker\") as a";
-    sql(sql2, WIKI_AUTO2).returnsUnordered("EXPR$0=3799").explainContains("PLAN"
-        + "=EnumerableInterpreter\n"
+    final String plan2 = "PLAN=EnumerableInterpreter\n"
         + "  BindableAggregate(group=[{}], EXPR$0=[COUNT($0)])\n"
         + "    DruidQuery(table=[[wiki, wikiticker]], "
-        + "intervals=[[1900-01-01T00:00:00.000/3000-01-01T00:00:00.000]], projects=[[$7]])");
+        + "intervals=[[1900-01-01T00:00:00.000/3000-01-01T00:00:00.000]], projects=[[$7]])";
+    sql(sql2, WIKI_AUTO2)
+        .returnsUnordered("EXPR$0=3799")
+        .explainContains(plan2);
+
+    final String sql3 = "SELECT count(*), count(\"countryName\") FROM \"wikiticker\"";
+    final String plan3 = "PLAN=EnumerableInterpreter\n"
+        + "  BindableAggregate(group=[{}], EXPR$0=[COUNT()], EXPR$1=[COUNT($0)])\n"
+        + "    DruidQuery(table=[[wiki, wikiticker]], "
+        + "intervals=[[1900-01-01T00:00:00.000/3000-01-01T00:00:00.000]], projects=[[$7]])";
+    sql(sql3, WIKI_AUTO2)
+        .explainContains(plan3);
   }
 
   /**
