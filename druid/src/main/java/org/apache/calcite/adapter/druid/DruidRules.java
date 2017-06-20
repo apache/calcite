@@ -113,20 +113,36 @@ public class DruidRules {
           SORT_PROJECT_TRANSPOSE);
 
   /** Predicate that returns whether Druid can not handle an aggregate. */
-  private static final Predicate<Aggregate> BAD_AGG =
-      new PredicateImpl<Aggregate>() {
-        public boolean test(Aggregate aggregate) {
+  private static final Predicate<Pair<Aggregate, DruidTable>> BAD_AGG =
+      new PredicateImpl<Pair<Aggregate, DruidTable>>() {
+        public boolean test(Pair<Aggregate, DruidTable> pair) {
+          final Aggregate aggregate = pair.left;
+          final DruidTable druidTable = pair.right;
           final CalciteConnectionConfig config =
                   aggregate.getCluster().getPlanner().getContext()
                       .unwrap(CalciteConnectionConfig.class);
+          RelNode input = aggregate.getInput();
           for (AggregateCall aggregateCall : aggregate.getAggCallList()) {
             switch (aggregateCall.getAggregation().getKind()) {
             case COUNT:
-              if (!aggregateCall.getArgList().isEmpty()) {
-                // Cannot handle this aggregate function
+              // Druid can handle 2 scenarios:
+              // 1. count(distinct col) when approximate results
+              //    are acceptable and col is not a metric
+              // 2. count(*)
+
+              // Make sure no column name is a metric
+              for (int index : aggregateCall.getArgList()) {
+                String name = input.getRowType().getFieldNames().get(index);
+                if (druidTable.isMetric(name)) {
+                  return true;
+                }
+              }
+              if ((config.approximateDistinctCount() && aggregateCall.isDistinct())
+                      || aggregateCall.getArgList().isEmpty()) {
+                continue;
+              } else {
                 return true;
               }
-              break;
             case SUM:
             case SUM0:
             case MIN:
@@ -264,8 +280,7 @@ public class DruidRules {
         } else {
           boolean filterOnMetrics = false;
           for (Integer i : visitor.inputPosReferenced) {
-            if (input.druidTable.metricFieldNames.contains(
-                    input.getRowType().getFieldList().get(i).getName())) {
+            if (input.druidTable.isMetric(input.getRowType().getFieldList().get(i).getName())) {
               // Filter on metrics, not supported in Druid
               filterOnMetrics = true;
               break;
@@ -398,7 +413,7 @@ public class DruidRules {
       }
       if (aggregate.indicator
               || aggregate.getGroupSets().size() != 1
-              || BAD_AGG.apply(aggregate)
+              || BAD_AGG.apply(new Pair<>(aggregate, query.druidTable))
               || !validAggregate(aggregate, query)) {
         return;
       }
@@ -445,7 +460,7 @@ public class DruidRules {
       }
       if (aggregate.indicator
               || aggregate.getGroupSets().size() != 1
-              || BAD_AGG.apply(aggregate)
+              || BAD_AGG.apply(new Pair<>(aggregate, query.druidTable))
               || !validAggregate(aggregate, timestampIdx)) {
         return;
       }

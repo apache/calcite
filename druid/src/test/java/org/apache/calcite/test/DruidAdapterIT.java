@@ -2197,6 +2197,92 @@ public class DruidAdapterIT {
             .queryContains(druidChecker(druidFilter))
             .returnsOrdered("EXPR$0=11");
   }
+
+  /**
+   * Test to ensure that count(distinct ...) gets pushed to Druid when approximate results are
+   * acceptable
+   * */
+  @Test public void testDistinctCountWhenApproxResultsAccepted() {
+    String sql = "select count(distinct \"customer_id\") from \"foodmart\"";
+    String expectedSubExplain = "DruidQuery(table=[[foodmart, foodmart]], intervals=[[1900-01-09T00"
+            + ":00:00.000/2992-01-10T00:00:00.000]], groups=[{}], aggs=[[COUNT(DISTINCT $20)]])";
+    String expectedAggregate = "{'type':'cardinality','name':"
+            + "'EXPR$0','fieldNames':['customer_id']}";
+
+    testCountDistinct(true, sql, expectedSubExplain, expectedAggregate);
+  }
+
+  /**
+   * Test to ensure that count(distinct ...) doesn't get pushed to Druid when approximate results
+   * are not acceptable
+   * */
+  @Test public void testDistinctCountWhenApproxResultsNotAccepted() {
+    String sql = "select count(distinct \"customer_id\") from \"foodmart\"";
+    String expectedSubExplain =
+            "  BindableAggregate(group=[{}], EXPR$0=[COUNT($0)])\n"
+            + "    DruidQuery(table=[[foodmart, foodmart]], "
+                    + "intervals=[[1900-01-09T00:00:00.000/2992-01-10T00:00:00.000]], "
+                    + "groups=[{20}], aggs=[[]])";
+    String expectedAggregate = "";
+
+    testCountDistinct(false, sql, expectedSubExplain, expectedAggregate);
+  }
+
+  /**
+   * Test to ensure that a count distinct on metric does not get pushed into Druid
+   * */
+  @Test public void testDistinctCountOnMetric() {
+    String sql = "select count(distinct \"store_sales\") from \"foodmart\" "
+            + "where \"store_state\" = 'WA'";
+    String expectedSubExplain =
+            "  BindableAggregate(group=[{}], EXPR$0=[COUNT($0)])\n"
+                    + "    BindableAggregate(group=[{1}])";
+    String expectedAggregate = "";
+
+    testCountDistinct(true, sql, expectedSubExplain, expectedAggregate);
+    testCountDistinct(false, sql, expectedSubExplain, expectedAggregate);
+  }
+
+  /**
+   * Test to ensure that a count on a metric does not get pushed into Druid
+   * */
+  @Test public void testCountOnMetric() {
+    String sql = "select \"brand_name\", count(\"store_sales\") from \"foodmart\" "
+            + "group by \"brand_name\"";
+    String expectedSubExplain =
+            "  BindableAggregate(group=[{0}], EXPR$1=[COUNT($1)])\n"
+            + "    DruidQuery(table=[[foodmart, foodmart]], intervals=[[1900-01-09T00:00:00.000/"
+                    + "2992-01-10T00:00:00.000]], projects=[[$2, $90]])";
+    String expectedAggregate = "";
+
+    testCountDistinct(true, sql, expectedSubExplain, expectedAggregate);
+    testCountDistinct(false, sql, expectedSubExplain, expectedAggregate);
+  }
+
+  /**
+   * Test to ensure that count(*) is pushed into Druid
+   * */
+  @Test public void testCountStar() {
+    String sql = "select count(*) from \"foodmart\"";
+    String expectedSubExplain = "  DruidQuery(table=[[foodmart, foodmart]], "
+            + "intervals=[[1900-01-09T00:00:00.000/2992-01-10T00:00:00.000]], "
+            + "projects=[[]], groups=[{}], aggs=[[COUNT()]])";
+
+    sql(sql).explainContains(expectedSubExplain);
+  }
+
+  private void testCountDistinct(boolean approx, String sql,
+                                 String expectedSubExplain, String expectedAgg) {
+    CalciteAssert
+            .that()
+            .enable(enabled())
+            .with(ImmutableMap.of("model", FOODMART.getPath()))
+            .with(CalciteConnectionProperty.APPROXIMATE_DISTINCT_COUNT.camelName(), approx)
+            .query(sql)
+            .runs()
+            .explainContains(expectedSubExplain)
+            .queryContains(druidChecker(expectedAgg));
+  }
 }
 
 // End DruidAdapterIT.java
