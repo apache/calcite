@@ -463,6 +463,78 @@ public class UdfTest {
         .returnsUnordered("deptno=20; P=20", "deptno=10; P=30");
   }
 
+  /** Tests user-defined aggregate function. */
+  @Test public void testUserDefinedAggregateFunctionWithMultipleParameters() throws Exception {
+    final String empDept = JdbcTest.EmpDeptTableFactory.class.getName();
+    final String sum21 = Smalls.MyTwoParamsSumFunctionFilter1.class.getName();
+    final String sum22 = Smalls.MyTwoParamsSumFunctionFilter2.class.getName();
+    final String sum31 = Smalls.MyThreeParamsSumFunctionWithFilter1.class.getName();
+    final String sum32 = Smalls.MyThreeParamsSumFunctionWithFilter2.class.getName();
+    final CalciteAssert.AssertThat with = CalciteAssert.model("{\n"
+        + "  version: '1.0',\n"
+        + "   schemas: [\n"
+        + "     {\n"
+        + "       name: 'adhoc',\n"
+        + "       tables: [\n"
+        + "         {\n"
+        + "           name: 'EMPLOYEES',\n"
+        + "           type: 'custom',\n"
+        + "           factory: '" + empDept + "',\n"
+        + "           operand: {'foo': true, 'bar': 345}\n"
+        + "         }\n"
+        + "       ],\n"
+        + "       functions: [\n"
+        + "         {\n"
+        + "           name: 'MY_SUM2',\n"
+        + "           className: '" + sum21 + "'\n"
+        + "         },\n"
+        + "         {\n"
+        + "           name: 'MY_SUM2',\n"
+        + "           className: '" + sum22 + "'\n"
+        + "         },\n"
+        + "         {\n"
+        + "           name: 'MY_SUM3',\n"
+        + "           className: '" + sum31 + "'\n"
+        + "         },\n"
+        + "         {\n"
+        + "           name: 'MY_SUM3',\n"
+        + "           className: '" + sum32 + "'\n"
+        + "         }\n"
+        + "       ]\n"
+        + "     }\n"
+        + "   ]\n"
+        + "}")
+        .withDefaultSchema("adhoc");
+    with.withDefaultSchema(null)
+        .query(
+            "select \"adhoc\".my_sum3(\"deptno\",\"name\",'Eric') as p from \"adhoc\".EMPLOYEES\n")
+        .returns("P=20\n");
+    with.query("select \"adhoc\".my_sum3(\"empid\",\"deptno\",\"commission\") as p "
+        + "from \"adhoc\".EMPLOYEES\n")
+        .returns("P=330\n");
+    with.query("select \"adhoc\".my_sum3(\"empid\",\"deptno\",\"commission\"),\"name\" as p "
+        + "from \"adhoc\".EMPLOYEES\n")
+        .throws_("Expression 'name' is not being grouped");
+    with.query("select \"name\",\"adhoc\".my_sum3(\"empid\",\"deptno\",\"commission\") as p "
+        + "from \"adhoc\".EMPLOYEES\n"
+        + "group by \"name\"")
+        .returnsOrdered("name=Theodore; P=0", "name=Eric; P=220",
+            "name=Bill; P=110", "name=Sebastian; P=0");
+    with.query("select \"adhoc\".my_sum3(\"empid\",\"deptno\",\"salary\") as p "
+        + "from \"adhoc\".EMPLOYEES\n")
+        .throws_("No match found for function signature MY_SUM3(<NUMERIC>, "
+            + "<NUMERIC>, <APPROXIMATE_NUMERIC>)");
+    with.query("select \"adhoc\".my_sum3(\"empid\",\"deptno\",\"name\") as p "
+        + "from \"adhoc\".EMPLOYEES\n");
+    with.query("select \"adhoc\".my_sum2(\"commission\",250) as p "
+        + "from \"adhoc\".EMPLOYEES\n")
+        .returns("P=1500\n");
+    with.query("select \"adhoc\".my_sum2(\"name\",250) as p from \"adhoc\".EMPLOYEES\n")
+        .throws_("No match found for function signature MY_SUM2(<CHARACTER>, <NUMERIC>)");
+    with.query("select \"adhoc\".my_sum2(\"empid\",0.0) as p from \"adhoc\".EMPLOYEES\n")
+        .throws_("No match found for function signature MY_SUM2(<NUMERIC>, <NUMERIC>)");
+  }
+
   /** Test for
    * {@link org.apache.calcite.runtime.CalciteResource#firstParameterOfAdd(String)}. */
   @Test public void testUserDefinedAggregateFunction3() throws Exception {
