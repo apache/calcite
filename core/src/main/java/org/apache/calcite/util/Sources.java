@@ -36,7 +36,7 @@ public abstract class Sources {
   private Sources() {}
 
   public static Source of(File file) {
-    return new MySource(file);
+    return new FileSource(file);
   }
 
   public static Source file(File baseDirectory, String fileName) {
@@ -51,7 +51,7 @@ public abstract class Sources {
   public static Source url(String url) {
     try {
       URL url_ = new URL(url);
-      return new MySource(url_);
+      return new FileSource(url_);
     } catch (MalformedURLException e) {
       throw new RuntimeException("Malformed URL: '" + url + "'", e);
     }
@@ -71,11 +71,11 @@ public abstract class Sources {
   }
 
   /** Implementation of {@link Source}. */
-  private static class MySource implements Source {
+  private static class FileSource implements Source {
     private final File file;
     private final URL url;
 
-    private MySource(URL url) {
+    private FileSource(URL url) {
       this.url = Preconditions.checkNotNull(url);
       if (url.getProtocol().equals("file")) {
         this.file = new File(url.getFile());
@@ -84,7 +84,7 @@ public abstract class Sources {
       }
     }
 
-    private MySource(File file) {
+    private FileSource(File file) {
       this.file = Preconditions.checkNotNull(file);
       this.url = null;
     }
