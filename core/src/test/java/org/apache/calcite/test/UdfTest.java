@@ -463,8 +463,7 @@ public class UdfTest {
     with.query("select my_sum(\"deptno\") as p from EMPLOYEES\n")
         .returns("P=50\n");
     with.query("select my_sum(\"name\") as p from EMPLOYEES\n")
-        .throws_(
-            "Cannot apply 'MY_SUM' to arguments of type 'MY_SUM(<JAVATYPE(CLASS JAVA.LANG.STRING)>)'. Supported form(s): 'MY_SUM(<NUMERIC>)");
+        .throws_("No match found for function signature MY_SUM(<CHARACTER>)");
     with.query("select my_sum(\"deptno\", 1) as p from EMPLOYEES\n")
         .throws_(
             "No match found for function signature MY_SUM(<NUMERIC>, <NUMERIC>)");
@@ -479,6 +478,80 @@ public class UdfTest {
     with.query("select \"deptno\", my_sum2(\"deptno\") as p from EMPLOYEES\n"
         + "group by \"deptno\"")
         .returnsUnordered("deptno=20; P=20", "deptno=10; P=30");
+  }
+
+  /** Tests user-defined aggregate function. */
+  @Test public void testUserDefinedAggregateFunctionWithMultipleParameters() throws Exception {
+    final String empDept = JdbcTest.EmpDeptTableFactory.class.getName();
+    final String sum21 = Smalls.MyTwoParamsSumFunctionFilter1.class.getName();
+    final String sum22 = Smalls.MyTwoParamsSumFunctionFilter2.class.getName();
+    final String sum31 = Smalls.MyThreeParamsSumFunctionWithFilter1.class.getName();
+    final String sum32 = Smalls.MyThreeParamsSumFunctionWithFilter2.class.getName();
+    final CalciteAssert.AssertThat with = CalciteAssert.model("{\n"
+        + "  version: '1.0',\n"
+        + "   schemas: [\n"
+        + "     {\n"
+        + "       name: 'adhoc',\n"
+        + "       tables: [\n"
+        + "         {\n"
+        + "           name: 'EMPLOYEES',\n"
+        + "           type: 'custom',\n"
+        + "           factory: '" + empDept + "',\n"
+        + "           operand: {'foo': true, 'bar': 345}\n"
+        + "         }\n"
+        + "       ],\n"
+        + "       functions: [\n"
+        + "         {\n"
+        + "           name: 'MY_SUM2',\n"
+        + "           className: '" + sum21 + "'\n"
+        + "         },\n"
+        + "         {\n"
+        + "           name: 'MY_SUM2',\n"
+        + "           className: '" + sum22 + "'\n"
+        + "         },\n"
+        + "         {\n"
+        + "           name: 'MY_SUM3',\n"
+        + "           className: '" + sum31 + "'\n"
+        + "         },\n"
+        + "         {\n"
+        + "           name: 'MY_SUM3',\n"
+        + "           className: '" + sum32 + "'\n"
+        + "         }\n"
+        + "       ]\n"
+        + "     }\n"
+        + "   ]\n"
+        + "}")
+        .withDefaultSchema("adhoc");
+    with.withDefaultSchema(null)
+        .query(
+            "select \"adhoc\".my_sum3(\"deptno\",\"name\",'Eric') as p from \"adhoc\".EMPLOYEES\n")
+        .returns("P=20\n");
+    with.query("select \"adhoc\".my_sum3(\"empid\",\"deptno\",\"commission\") as p "
+        + "from \"adhoc\".EMPLOYEES\n")
+        .returns("P=330\n");
+    with.query("select \"adhoc\".my_sum3(\"empid\",\"deptno\",\"commission\"),\"name\" as p "
+        + "from \"adhoc\".EMPLOYEES\n")
+        .throws_("Expression 'name' is not being grouped");
+    with.query("select \"name\",\"adhoc\".my_sum3(\"empid\",\"deptno\",\"commission\") as p "
+        + "from \"adhoc\".EMPLOYEES\n"
+        + "group by \"name\"")
+        .returnsUnordered("name=Theodore; P=0",
+            "name=Eric; P=220",
+            "name=Bill; P=110",
+            "name=Sebastian; P=0");
+    with.query("select \"adhoc\".my_sum3(\"empid\",\"deptno\",\"salary\") as p "
+        + "from \"adhoc\".EMPLOYEES\n")
+        .throws_("No match found for function signature MY_SUM3(<NUMERIC>, "
+            + "<NUMERIC>, <APPROXIMATE_NUMERIC>)");
+    with.query("select \"adhoc\".my_sum3(\"empid\",\"deptno\",\"name\") as p "
+        + "from \"adhoc\".EMPLOYEES\n");
+    with.query("select \"adhoc\".my_sum2(\"commission\",250) as p "
+        + "from \"adhoc\".EMPLOYEES\n")
+        .returns("P=1500\n");
+    with.query("select \"adhoc\".my_sum2(\"name\",250) as p from \"adhoc\".EMPLOYEES\n")
+        .throws_("No match found for function signature MY_SUM2(<CHARACTER>, <NUMERIC>)");
+    with.query("select \"adhoc\".my_sum2(\"empid\",0.0) as p from \"adhoc\".EMPLOYEES\n")
+        .throws_("No match found for function signature MY_SUM2(<NUMERIC>, <NUMERIC>)");
   }
 
   /** Test for
@@ -531,9 +604,7 @@ public class UdfTest {
     with.query("select my_sum3(\"deptno\") as p from EMPLOYEES\n")
         .returns("P=50\n");
     with.query("select my_sum3(\"name\") as p from EMPLOYEES\n")
-        .throws_("Cannot apply 'MY_SUM3' to arguments of type "
-            + "'MY_SUM3(<JAVATYPE(CLASS JAVA.LANG.STRING)>)'. "
-            + "Supported form(s): 'MY_SUM3(<NUMERIC>)");
+        .throws_("No match found for function signature MY_SUM3(<CHARACTER>)");
     with.query("select my_sum3(\"deptno\", 1) as p from EMPLOYEES\n")
         .throws_("No match found for function signature "
             + "MY_SUM3(<NUMERIC>, <NUMERIC>)");
