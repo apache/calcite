@@ -134,6 +134,7 @@ public abstract class DelegatingScope implements SqlValidatorScope {
           switch (field.getType().getStructKind()) {
           case PEEK_FIELDS:
           case PEEK_FIELDS_DEFAULT:
+          case PEEK_FIELDS_NO_FLATTENING:
             final Step path2 = path.plus(rowType, field.getIndex(),
                 field.getName(), field.getType().getStructKind());
             final SqlValidatorNamespace ns2 = ns.lookupChild(field.getName());
@@ -344,6 +345,7 @@ public abstract class DelegatingScope implements SqlValidatorScope {
             switch (field.getType().getStructKind()) {
             case PEEK_FIELDS:
             case PEEK_FIELDS_DEFAULT:
+            case PEEK_FIELDS_NO_FLATTENING:
               columnName = field.getName(); // use resolved field name
               resolve(ImmutableList.of(tableName2), nameMatcher, false,
                   resolved);
@@ -483,6 +485,7 @@ public abstract class DelegatingScope implements SqlValidatorScope {
         switch (step.kind) {
         case PEEK_FIELDS:
         case PEEK_FIELDS_DEFAULT:
+        case PEEK_FIELDS_NO_FLATTENING:
           identifier = identifier.add(k, fieldName, SqlParserPos.ZERO);
           break;
         default:

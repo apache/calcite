@@ -78,6 +78,10 @@ public enum StructKind {
    * <p>For example, if {@code address} is labeled {@code PEEK_FIELDS}, you
    * could write {@code zipcode} as shorthand for {@code address.zipcode}. */
   PEEK_FIELDS,
+
+  /** Similar to PEEK_FIELDS, but no flattening when "select *".
+   */
+  PEEK_FIELDS_NO_FLATTENING,
 }
 
 // End StructKind.java

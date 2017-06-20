@@ -323,6 +323,7 @@ public class MockCatalogReader extends CalciteCatalogReader {
     contactPeekTable.addColumn("LNAME", f.varchar10Type);
     contactPeekTable.addColumn("EMAIL", f.varchar20Type);
     contactPeekTable.addColumn("COORD", f.rectilinearPeekCoordType);
+    contactPeekTable.addColumn("COORD_NF", f.rectilinearPeekCoordTypeNF);
     registerTable(contactPeekTable);
 
     // Register "ACCOUNT" table.
@@ -1535,6 +1536,17 @@ public class MockCatalogReader extends CalciteCatalogReader {
             .add("X", intType)
             .add("Y", intType)
             .kind(StructKind.PEEK_FIELDS)
+            .build();
+    final RelDataType rectilinearPeekCoordTypeNF =
+        typeFactory.builder()
+            .add("M", intType)
+            .add("SUB",
+                typeFactory.builder()
+                    .add("A", intType)
+                    .add("B", intType)
+                    .kind(StructKind.PEEK_FIELDS_NO_FLATTENING)
+                    .build())
+            .kind(StructKind.PEEK_FIELDS_NO_FLATTENING)
             .build();
     final RelDataType empRecordType =
         typeFactory.builder()
