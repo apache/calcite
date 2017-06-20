@@ -115,7 +115,8 @@ public class UnionMergeRule extends RelOptRule {
     // Combine the inputs from the bottom set-op with the other inputs from
     // the top set-op.
     final RelBuilder relBuilder = call.builder();
-    if (setOpClass.isInstance(call.rel(2))) {
+    if (setOpClass.isInstance(call.rel(2))
+        && !Minus.class.isAssignableFrom(setOpClass)) {
       relBuilder.push(topOp.getInput(0));
       relBuilder.pushAll(bottomOp.getInputs());
       // topOp.getInputs().size() may be more than 2

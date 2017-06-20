@@ -1100,6 +1100,36 @@ public class RelOptRulesTest extends RelOptTestBase {
                     + ") aa\n");
   }
 
+  @Test
+  public void testMinusMergeRule() throws Exception {
+    HepProgram program = new HepProgramBuilder()
+            .addRuleInstance(ProjectSetOpTransposeRule.INSTANCE)
+            .addRuleInstance(ProjectRemoveRule.INSTANCE)
+            .addRuleInstance(UnionMergeRule.MINUS_INSTANCE)
+            .build();
+
+    checkPlanning(program,
+            "select * from (\n"
+                    + "select * from (\n"
+                    + "  select name, deptno from\n"
+                    + "  (\n"
+                    + "    select name, deptno, count(1) from dept group by name, deptno\n"
+                    + "    except all\n"
+                    + "    select name, deptno, 1 from dept\n"
+                    + "  ) subq\n"
+                    + "  except all\n"
+                    + "  select name, deptno from\n"
+                    + "  (\n"
+                    + "    select name, deptno, 1 from dept\n"
+                    + "    except all\n"
+                    + "    select name, deptno, count(1) from dept group by name, deptno\n"
+                    + "  ) subq2\n"
+                    + ") a\n"
+                    + "except all\n"
+                    + "select name, deptno from dept\n"
+                    + ") aa\n");
+  }
+
   /** Tests that a filters is combined are combined if they are identical,
    * even if one of them originates in an ON clause of a JOIN. */
   @Test public void testMergeJoinFilter() throws Exception {
