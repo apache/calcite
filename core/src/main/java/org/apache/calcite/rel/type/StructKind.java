@@ -78,6 +78,11 @@ public enum StructKind {
    * <p>For example, if {@code address} is labeled {@code PEEK_FIELDS}, you
    * could write {@code zipcode} as shorthand for {@code address.zipcode}. */
   PEEK_FIELDS,
+
+  /** As {@link #PEEK_FIELDS}, but fields are not expanded in "SELECT *".
+   *
+   * <p>Used in Flink, not Phoenix. */
+  PEEK_FIELDS_NO_EXPAND,
 }
 
 // End StructKind.java
