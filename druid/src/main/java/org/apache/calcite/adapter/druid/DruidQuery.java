@@ -298,7 +298,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
 
   /** Extends a DruidQuery. */
   public static DruidQuery extendQuery(DruidQuery query,
-                                       List<LocalInterval> intervals) {
+      List<LocalInterval> intervals) {
     return DruidQuery.create(query.getCluster(), query.getTraitSet(), query.getTable(),
         query.druidTable, intervals, query.rels);
   }
@@ -338,6 +338,8 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
         pw.item("intervals", intervals);
       } else if (rel instanceof Filter) {
         pw.item("filter", ((Filter) rel).getCondition());
+      } else if (rel instanceof Project) {
+        pw.item("projects", ((Project) rel).getProjects());
       } else if (rel instanceof Aggregate) {
         final Aggregate aggregate = (Aggregate) rel;
         pw.item("groups", aggregate.getGroupSet())
@@ -353,8 +355,6 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
           pw.item("dir" + ord.i, ord.e.shortString());
         }
         pw.itemIf("fetch", sort.fetch, sort.fetch != null);
-      } else if (rel instanceof Project) {
-        pw.item("projects", ((Project) rel).getProjects());
       } else {
         throw new AssertionError("rel type not supported in Druid query "
             + rel);
