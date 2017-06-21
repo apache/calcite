@@ -2209,7 +2209,7 @@ public class DruidAdapterIT {
     String expectedAggregate = "{'type':'cardinality','name':"
             + "'EXPR$0','fieldNames':['customer_id']}";
 
-    testCountDistinct(true, sql, expectedSubExplain, expectedAggregate);
+    testCountWithApproxDistinct(true, sql, expectedSubExplain, expectedAggregate);
   }
 
   /**
@@ -2225,7 +2225,7 @@ public class DruidAdapterIT {
                     + "groups=[{20}], aggs=[[]])";
     String expectedAggregate = "";
 
-    testCountDistinct(false, sql, expectedSubExplain, expectedAggregate);
+    testCountWithApproxDistinct(false, sql, expectedSubExplain, expectedAggregate);
   }
 
   /**
@@ -2239,8 +2239,8 @@ public class DruidAdapterIT {
                     + "    BindableAggregate(group=[{1}])";
     String expectedAggregate = "";
 
-    testCountDistinct(true, sql, expectedSubExplain, expectedAggregate);
-    testCountDistinct(false, sql, expectedSubExplain, expectedAggregate);
+    testCountWithApproxDistinct(true, sql, expectedSubExplain, expectedAggregate);
+    testCountWithApproxDistinct(false, sql, expectedSubExplain, expectedAggregate);
   }
 
   /**
@@ -2255,8 +2255,8 @@ public class DruidAdapterIT {
                     + "2992-01-10T00:00:00.000]], projects=[[$2, $90]])";
     String expectedAggregate = "";
 
-    testCountDistinct(true, sql, expectedSubExplain, expectedAggregate);
-    testCountDistinct(false, sql, expectedSubExplain, expectedAggregate);
+    testCountWithApproxDistinct(true, sql, expectedSubExplain, expectedAggregate);
+    testCountWithApproxDistinct(false, sql, expectedSubExplain, expectedAggregate);
   }
 
   /**
@@ -2271,8 +2271,43 @@ public class DruidAdapterIT {
     sql(sql).explainContains(expectedSubExplain);
   }
 
-  private void testCountDistinct(boolean approx, String sql,
-                                 String expectedSubExplain, String expectedAgg) {
+  /**
+   * Test to ensure that count() aggregates with metric columns are not pushed into Druid
+   * even when the metric column has been renamed
+   * */
+  @Test public void testCountOnMetricRenamed() {
+    String sql =
+            "select \"B\", count(\"A\") from "
+            + "(select \"unit_sales\" as \"A\", \"customer_id\" as \"B\" from \"foodmart\") "
+            + "group by \"B\"";
+    String expectedSubExplain =
+            "  BindableAggregate(group=[{0}], EXPR$1=[COUNT($1)])\n"
+            + "    DruidQuery(table=[[foodmart, foodmart]], intervals=[[1900-01-09T00:00:00.000"
+            + "/2992-01-10T00:00:00.000]], projects=[[$20, $89]])\n";
+    String expectedAggregate = "";
+
+    testCountWithApproxDistinct(true, sql, expectedSubExplain, expectedAggregate);
+    testCountWithApproxDistinct(false, sql, expectedSubExplain, expectedAggregate);
+  }
+
+  @Test public void testDistinctCountOnMetricRenamed() {
+    String sql =
+            "select \"B\", count(distinct \"A\") from "
+                    + "(select \"unit_sales\" as \"A\", \"customer_id\" as \"B\" from \"foodmart\") "
+                    + "group by \"B\"";
+    String expectedSubExplain =
+            "  BindableAggregate(group=[{0}], EXPR$1=[COUNT($1)])\n"
+                    + "    DruidQuery(table=[[foodmart, foodmart]], intervals=[[1900-01-09T00:00:"
+                    + "00.000/2992-01-10T00:00:00.000]], projects=[[$20, $89]], groups=[{0, 1}], "
+                    + "aggs=[[]])";
+    String expectedAggregate = "";
+
+    testCountWithApproxDistinct(true, sql, expectedSubExplain, expectedAggregate);
+    testCountWithApproxDistinct(false, sql, expectedSubExplain, expectedAggregate);
+  }
+
+  private void testCountWithApproxDistinct(boolean approx, String sql,
+                                           String expectedSubExplain, String expectedAgg) {
     CalciteAssert
             .that()
             .enable(enabled())

@@ -113,15 +113,14 @@ public class DruidRules {
           SORT_PROJECT_TRANSPOSE);
 
   /** Predicate that returns whether Druid can not handle an aggregate. */
-  private static final Predicate<Pair<Aggregate, DruidTable>> BAD_AGG =
-      new PredicateImpl<Pair<Aggregate, DruidTable>>() {
-        public boolean test(Pair<Aggregate, DruidTable> pair) {
-          final Aggregate aggregate = pair.left;
-          final DruidTable druidTable = pair.right;
-          final CalciteConnectionConfig config =
-                  aggregate.getCluster().getPlanner().getContext()
-                      .unwrap(CalciteConnectionConfig.class);
-          RelNode input = aggregate.getInput();
+  private static final Predicate<Triple<Aggregate, RelNode, DruidQuery>> BAD_AGG =
+      new PredicateImpl<Triple<Aggregate, RelNode, DruidQuery>>() {
+        public boolean test(Triple<Aggregate, RelNode, DruidQuery> triple) {
+          final Aggregate aggregate = triple.getLeft();
+          final RelNode node = triple.getMiddle();
+          final DruidQuery query = triple.getRight();
+
+          final CalciteConnectionConfig config = query.getConnectionConfig();
           for (AggregateCall aggregateCall : aggregate.getAggCallList()) {
             switch (aggregateCall.getAggregation().getKind()) {
             case COUNT:
@@ -131,11 +130,9 @@ public class DruidRules {
               // 2. count(*)
 
               // Make sure no column name is a metric
-              for (int index : aggregateCall.getArgList()) {
-                String name = input.getRowType().getFieldNames().get(index);
-                if (druidTable.isMetric(name)) {
-                  return true;
-                }
+              if (checkAggregateOnMetric(ImmutableBitSet.of(aggregateCall.getArgList()),
+                      node, query)) {
+                return true;
               }
               if ((config.approximateDistinctCount() && aggregateCall.isDistinct())
                       || aggregateCall.getArgList().isEmpty()) {
@@ -413,7 +410,8 @@ public class DruidRules {
       }
       if (aggregate.indicator
               || aggregate.getGroupSets().size() != 1
-              || BAD_AGG.apply(new Pair<>(aggregate, query.druidTable))
+              || BAD_AGG.apply(new ImmutableTriple<Aggregate, RelNode, DruidQuery>
+              (aggregate, aggregate, query))
               || !validAggregate(aggregate, query)) {
         return;
       }
@@ -460,7 +458,8 @@ public class DruidRules {
       }
       if (aggregate.indicator
               || aggregate.getGroupSets().size() != 1
-              || BAD_AGG.apply(new Pair<>(aggregate, query.druidTable))
+              || BAD_AGG.apply(new ImmutableTriple<Aggregate, RelNode, DruidQuery>
+              (aggregate, project, query))
               || !validAggregate(aggregate, timestampIdx)) {
         return;
       }
@@ -713,8 +712,7 @@ public class DruidRules {
       set = newSet.build();
     }
     for (int index : set) {
-      if (query.druidTable.metricFieldNames
-              .contains(query.getTopNode().getRowType().getFieldNames().get(index))) {
+      if (query.druidTable.isMetric(query.getTopNode().getRowType().getFieldNames().get(index))) {
         return true;
       }
     }
