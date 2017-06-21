@@ -949,7 +949,7 @@ name will have been converted to upper case also.
 | Data type   | Description               | Range and examples   |
 |:----------- |:------------------------- |:---------------------|
 | BOOLEAN     | Logical values            | Values: TRUE, FALSE, UNKNOWN
-| TINYINT     | 1 byte signed integer     | Range is -255 to 256
+| TINYINT     | 1 byte signed integer     | Range is -128 to 127
 | SMALLINT    | 2 byte signed integer     | Range is -32768 to 32767
 | INTEGER, INT | 4 byte signed integer    | Range is -2147483648 to 2147483647
 | BIGINT      | 8 byte signed integer     | Range is -9223372036854775808 to 9223372036854775807
