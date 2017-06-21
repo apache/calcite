@@ -331,7 +331,6 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
   }
 
   @Override public RelWriter explainTerms(RelWriter pw) {
-    boolean aggregateAppeared = false;
     for (RelNode rel : rels) {
       if (rel instanceof TableScan) {
         TableScan tableScan = (TableScan) rel;
@@ -341,7 +340,6 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
         pw.item("filter", ((Filter) rel).getCondition());
       } else if (rel instanceof Aggregate) {
         final Aggregate aggregate = (Aggregate) rel;
-        aggregateAppeared = true;
         pw.item("groups", aggregate.getGroupSet())
             .item("aggs", aggregate.getAggCallList());
       } else if (rel instanceof Sort) {
@@ -880,14 +878,6 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
       default:
       }
     } else if (rexNode instanceof RexInputRef) {
-//      String inputFieldName =
-//          rel.getRowType().getFieldNames().get(((RexInputRef) rexNode).getIndex());
-//      if (inputFieldName.matches("postagg#[0-9]*")) {
-//        int idx = Integer.parseInt(inputFieldName.substring(8));
-//        JsonPostAggregation inputJson = postAggs.get(idx).copy();
-//        inputJson.setName("");
-//        return inputJson;
-//      } else {
       if (rel instanceof Aggregate) {
         Integer indexSkipGroup = ((RexInputRef) rexNode).getIndex()
             - ((Aggregate) rel).getGroupSet().cardinality();
@@ -902,7 +892,6 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
       }
       return new JsonFieldAccessor("",
           rel.getRowType().getFieldNames().get(((RexInputRef) rexNode).getIndex()));
-//      }
     } else if (rexNode instanceof RexLiteral) {
       if (((RexLiteral) rexNode).getValue3() instanceof BigDecimal) {
         return new JsonConstant("",
