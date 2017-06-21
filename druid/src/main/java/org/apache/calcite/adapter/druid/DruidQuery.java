@@ -70,7 +70,6 @@ import com.fasterxml.jackson.core.JsonGenerator;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 
@@ -80,7 +79,6 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
 import java.util.Set;
@@ -99,7 +97,6 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
   final DruidTable druidTable;
   final ImmutableList<LocalInterval> intervals;
   final ImmutableList<RelNode> rels;
-  final ImmutableMap<String, JsonPostAggregation> postAggs;
 
   private static final Pattern VALID_SIG = Pattern.compile("sf?p?(a?|ao)l?");
   private static final String EXTRACT_COLUMN_NAME_PREFIX = "extract";
@@ -124,21 +121,6 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
     this.druidTable = druidTable;
     this.intervals = ImmutableList.copyOf(intervals);
     this.rels = ImmutableList.copyOf(rels);
-    this.postAggs = ImmutableMap.of();
-
-    assert isValid(Litmus.THROW, null);
-  }
-
-  protected DruidQuery(RelOptCluster cluster, RelTraitSet traitSet,
-                       RelOptTable table, DruidTable druidTable,
-                       List<LocalInterval> intervals, List<RelNode> rels,
-                       Map<String, JsonPostAggregation> postAggs) {
-    super(cluster, traitSet);
-    this.table = table;
-    this.druidTable = druidTable;
-    this.intervals = ImmutableList.copyOf(intervals);
-    this.rels = ImmutableList.copyOf(rels);
-    this.postAggs = ImmutableMap.copyOf(postAggs);
 
     assert isValid(Litmus.THROW, null);
   }
@@ -306,41 +288,19 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
     return new DruidQuery(cluster, traitSet, table, druidTable, intervals, rels);
   }
 
-  /** Creates a DruidQuery. */
-  private static DruidQuery create(RelOptCluster cluster, RelTraitSet traitSet,
-                                   RelOptTable table, DruidTable druidTable,
-                                   List<LocalInterval> intervals, List<RelNode> rels,
-                                   ImmutableMap<String, JsonPostAggregation> postAggs) {
-    return new DruidQuery(cluster, traitSet, table, druidTable, intervals, rels, postAggs);
-  }
-
   /** Extends a DruidQuery. */
   public static DruidQuery extendQuery(DruidQuery query, RelNode r) {
     final ImmutableList.Builder<RelNode> builder = ImmutableList.builder();
     return DruidQuery.create(query.getCluster(), r.getTraitSet().replace(query.getConvention()),
         query.getTable(), query.druidTable, query.intervals,
-        builder.addAll(query.rels).add(r).build(), query.postAggs);
+        builder.addAll(query.rels).add(r).build());
   }
 
   /** Extends a DruidQuery. */
   public static DruidQuery extendQuery(DruidQuery query,
                                        List<LocalInterval> intervals) {
     return DruidQuery.create(query.getCluster(), query.getTraitSet(), query.getTable(),
-        query.druidTable, intervals, query.rels, query.postAggs);
-  }
-
-  public static DruidQuery extendQuery(DruidQuery query,
-                                       ImmutableMap<String, JsonPostAggregation> postAggs) {
-    return DruidQuery.create(query.getCluster(), query.getTraitSet(), query.getTable(),
-        query.druidTable, query.intervals, query.rels, postAggs);
-  }
-
-  public static DruidQuery reduceQuery(DruidQuery query) {
-    final ImmutableList.Builder<RelNode> builder = ImmutableList.builder();
-    return DruidQuery.create(query.getCluster(), query.getTraitSet(),
-        query.getTable(), query.druidTable, query.intervals,
-        builder.addAll(Util.skipLast(query.rels)).build(),
-        query.postAggs);
+        query.druidTable, intervals, query.rels);
   }
 
   @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
@@ -379,8 +339,6 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
         pw.item("intervals", intervals);
       } else if (rel instanceof Filter) {
         pw.item("filter", ((Filter) rel).getCondition());
-      } else if (rel instanceof Project && aggregateAppeared) {
-        pw.item("post_projects", rel.getRowType().getFieldNames());
       } else if (rel instanceof Aggregate) {
         final Aggregate aggregate = (Aggregate) rel;
         aggregateAppeared = true;
@@ -570,6 +528,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
     // executed as a Timeseries, TopN, or GroupBy in Druid
     final List<DimensionSpec> dimensions = new ArrayList<>();
     final List<JsonAggregation> aggregations = new ArrayList<>();
+    final List<JsonPostAggregation> postAggs = new ArrayList<>();
     Granularity finalGranularity = Granularity.ALL;
     Direction timeSeriesDirection = null;
     JsonLimit limit = null;
@@ -686,11 +645,19 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
 
       if (postProject != null) {
         builder = ImmutableList.builder();
-        for (String fieldName : Pair.right(postProject.getNamedProjects())) {
+        for (Pair<RexNode, String> pair : postProject.getNamedProjects()) {
+          String fieldName = pair.right;
+          RexNode rex = pair.left;
           builder.add(fieldName);
+          // Render Post JSON object when PostProject exists. In DruidPostAggregationProjectRule
+          // all check has been done to ensure all RexCall rexNode can be pushed in.
+          if (rex instanceof RexCall) {
+            DruidQuery.JsonPostAggregation jsonPost = getJsonPostAggregation(fieldName, rex,
+                    postProject.getInput());
+            postAggs.add(jsonPost);
+          }
         }
         fieldNames = builder.build();
-        postProject.recomputeDigest();
       }
 
       ImmutableList<JsonCollation> collations = null;
@@ -749,9 +716,6 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
         aggregations.add(
                 new JsonAggregation("longSum", "dummy_agg", "dummy_agg"));
       }
-      ImmutableList.Builder<JsonPostAggregation> postAggsBuilder = ImmutableList.builder();
-      postAggsBuilder.addAll(postAggs.values());
-      ImmutableList<JsonPostAggregation> postAggsList = postAggsBuilder.build();
       switch (queryType) {
       case TIMESERIES:
         generator.writeStartObject();
@@ -763,7 +727,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
         generator.writeStringField("granularity", finalGranularity.value);
         writeFieldIf(generator, "filter", jsonFilter);
         writeField(generator, "aggregations", aggregations);
-        writeFieldIf(generator, "postAggregations", postAggsList.size() > 0 ? postAggsList : null);
+        writeFieldIf(generator, "postAggregations", postAggs.size() > 0 ? postAggs : null);
         writeField(generator, "intervals", intervals);
 
         generator.writeFieldName("context");
@@ -785,7 +749,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
         generator.writeStringField("metric", fieldNames.get(collationIndexes.get(0)));
         writeFieldIf(generator, "filter", jsonFilter);
         writeField(generator, "aggregations", aggregations);
-        writeFieldIf(generator, "postAggregations", postAggsList.size() > 0 ? postAggsList : null);
+        writeFieldIf(generator, "postAggregations", postAggs.size() > 0 ? postAggs : null);
         writeField(generator, "intervals", intervals);
         generator.writeNumberField("threshold", fetch);
 
@@ -801,7 +765,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
         writeFieldIf(generator, "limitSpec", limit);
         writeFieldIf(generator, "filter", jsonFilter);
         writeField(generator, "aggregations", aggregations);
-        writeFieldIf(generator, "postAggregations", postAggsList.size() > 0 ? postAggsList : null);
+        writeFieldIf(generator, "postAggregations", postAggs.size() > 0 ? postAggs : null);
         writeField(generator, "intervals", intervals);
         writeFieldIf(generator, "having", null);
 
@@ -916,29 +880,29 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
       default:
       }
     } else if (rexNode instanceof RexInputRef) {
-      String inputFieldName =
-          rel.getRowType().getFieldNames().get(((RexInputRef) rexNode).getIndex());
-      if (inputFieldName.matches("postagg#[0-9]*")) {
-        int idx = Integer.parseInt(inputFieldName.substring(8));
-        JsonPostAggregation inputJson = postAggs.get(idx).copy();
-        inputJson.setName("");
-        return inputJson;
-      } else {
-        if (rel instanceof Aggregate) {
-          Integer indexSkipGroup = ((RexInputRef) rexNode).getIndex()
-              - ((Aggregate) rel).getGroupSet().cardinality();
-          AggregateCall aggCall = ((Aggregate) rel).getAggCallList().get(indexSkipGroup);
-          if (aggCall.isDistinct() && aggCall.getAggregation().getKind().equals(SqlKind.COUNT)) {
-            // Will be a hyper unique cardinality column.
-            // Use hyperUniqueCardinality post aggregator instead of field Accessor.
-            // TODO: Expect to change after CALC-1787
-            return new JsonHyperUniqueCardinality("",
-                rel.getRowType().getFieldNames().get(((RexInputRef) rexNode).getIndex()));
-          }
+//      String inputFieldName =
+//          rel.getRowType().getFieldNames().get(((RexInputRef) rexNode).getIndex());
+//      if (inputFieldName.matches("postagg#[0-9]*")) {
+//        int idx = Integer.parseInt(inputFieldName.substring(8));
+//        JsonPostAggregation inputJson = postAggs.get(idx).copy();
+//        inputJson.setName("");
+//        return inputJson;
+//      } else {
+      if (rel instanceof Aggregate) {
+        Integer indexSkipGroup = ((RexInputRef) rexNode).getIndex()
+            - ((Aggregate) rel).getGroupSet().cardinality();
+        AggregateCall aggCall = ((Aggregate) rel).getAggCallList().get(indexSkipGroup);
+        if (aggCall.isDistinct() && aggCall.getAggregation().getKind().equals(SqlKind.COUNT)) {
+          // Will be a hyper unique cardinality column.
+          // Use hyperUniqueCardinality post aggregator instead of field Accessor.
+          // TODO: Expect to change after CALC-1787
+          return new JsonHyperUniqueCardinality("",
+              rel.getRowType().getFieldNames().get(((RexInputRef) rexNode).getIndex()));
         }
-        return new JsonFieldAccessor("",
-            rel.getRowType().getFieldNames().get(((RexInputRef) rexNode).getIndex()));
       }
+      return new JsonFieldAccessor("",
+          rel.getRowType().getFieldNames().get(((RexInputRef) rexNode).getIndex()));
+//      }
     } else if (rexNode instanceof RexLiteral) {
       if (((RexLiteral) rexNode).getValue3() instanceof BigDecimal) {
         return new JsonConstant("",

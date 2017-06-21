@@ -2162,8 +2162,10 @@ public class DruidAdapterIT {
         + "'fields':[{'type':'fieldAccess','name':'','fieldName':'$f1'},{'type':'fieldAccess','"
         + "name':'','fieldName':'$f2'}]}]";
     final String plan = "PLAN=EnumerableInterpreter\n"
-        + "  DruidQuery(table=[[foodmart, foodmart]], intervals="
-        + "[[1900-01-09T00:00:00.000/2992-01-10T00:00:00.000]], groups=[{63}],";
+        + "  DruidQuery(table=[[foodmart, foodmart]], "
+        + "intervals=[[1900-01-09T00:00:00.000/2992-01-10T00:00:00.000]], "
+        + "groups=[{63}], aggs=[[SUM($90), SUM($91)]], projects=[[+($1, $2), $0]], "
+        + "sort0=[0], dir0=[DESC]";
     sql(sqlQuery, FOODMART)
         .explainContains(plan)
         .queryContains(druidChecker(postAggString))
@@ -2179,8 +2181,10 @@ public class DruidAdapterIT {
         + "'fn':'quotient','fields':[{'type':'fieldAccess','name':'','fieldName':'$f1'},"
         + "{'type':'fieldAccess','name':'','fieldName':'$f2'}]}]";
     final String plan = "PLAN=EnumerableInterpreter\n"
-        + "  DruidQuery(table=[[foodmart, foodmart]], intervals="
-        + "[[1900-01-09T00:00:00.000/2992-01-10T00:00:00.000]], groups=[{63}],";
+            + "  DruidQuery(table=[[foodmart, foodmart]], "
+            + "intervals=[[1900-01-09T00:00:00.000/2992-01-10T00:00:00.000]], "
+            + "groups=[{63}], aggs=[[SUM($90), SUM($91)]], projects=[[$0, /($1, $2)]], "
+            + "sort0=[1], dir0=[DESC]";
     sql(sqlQuery, FOODMART)
         .explainContains(plan)
         .queryContains(druidChecker(postAggString))
@@ -2196,8 +2200,10 @@ public class DruidAdapterIT {
         + "'fn':'*','fields':[{'type':'fieldAccess','name':'','fieldName':'$f1'},"
         + "{'type':'fieldAccess','name':'','fieldName':'$f2'}]}]";
     final String plan = "PLAN=EnumerableInterpreter\n"
-        + "  DruidQuery(table=[[foodmart, foodmart]], intervals="
-        + "[[1900-01-09T00:00:00.000/2992-01-10T00:00:00.000]], groups=[{63}],";
+            + "  DruidQuery(table=[[foodmart, foodmart]], "
+            + "intervals=[[1900-01-09T00:00:00.000/2992-01-10T00:00:00.000]], "
+            + "groups=[{63}], aggs=[[SUM($90), SUM($91)]], projects=[[$0, *($1, $2)]], "
+            + "sort0=[1], dir0=[DESC]";
     sql(sqlQuery, FOODMART)
         .explainContains(plan)
         .queryContains(druidChecker(postAggString))
@@ -2213,8 +2219,10 @@ public class DruidAdapterIT {
         + "'fn':'-','fields':[{'type':'fieldAccess','name':'','fieldName':'$f1'},"
         + "{'type':'fieldAccess','name':'','fieldName':'$f2'}]}]";
     final String plan = "PLAN=EnumerableInterpreter\n"
-        + "  DruidQuery(table=[[foodmart, foodmart]], intervals="
-        + "[[1900-01-09T00:00:00.000/2992-01-10T00:00:00.000]], groups=[{63}],";
+            + "  DruidQuery(table=[[foodmart, foodmart]], "
+            + "intervals=[[1900-01-09T00:00:00.000/2992-01-10T00:00:00.000]], "
+            + "groups=[{63}], aggs=[[SUM($90), SUM($91)]], projects=[[$0, -($1, $2)]], "
+            + "sort0=[1], dir0=[DESC]";
     sql(sqlQuery, FOODMART)
         .explainContains(plan)
         .queryContains(druidChecker(postAggString))
@@ -2228,8 +2236,10 @@ public class DruidAdapterIT {
         + "\"foodmart\"  group by \"store_state\" order by a desc";
     String postAggString = "{'type':'constant','name':'','value':100.0}";
     final String plan = "PLAN=EnumerableInterpreter\n"
-        + "  DruidQuery(table=[[foodmart, foodmart]], intervals="
-        + "[[1900-01-09T00:00:00.000/2992-01-10T00:00:00.000]], groups=[{63}],";
+            + "  DruidQuery(table=[[foodmart, foodmart]], "
+            + "intervals=[[1900-01-09T00:00:00.000/2992-01-10T00:00:00.000]], "
+            + "groups=[{63}], aggs=[[SUM($90)]], projects=[[$0, +($1, 100)]], "
+            + "sort0=[1], dir0=[DESC]";
     sql(sqlQuery, FOODMART)
         .explainContains(plan)
         .queryContains(druidChecker(postAggString))
@@ -2253,8 +2263,10 @@ public class DruidAdapterIT {
         + "{'type':'constant','name':'','value':3.0}]}]},{'type':'fieldAccess','name'"
         + ":'','fieldName':'B'}]}]}]";
     final String plan = "PLAN=EnumerableInterpreter\n"
-        + "  DruidQuery(table=[[foodmart, foodmart]], intervals="
-        + "[[1900-01-09T00:00:00.000/2992-01-10T00:00:00.000]], groups=[{63}],";
+        + "  DruidQuery(table=[[foodmart, foodmart]], "
+            + "intervals=[[1900-01-09T00:00:00.000/2992-01-10T00:00:00.000]], groups=[{63}], "
+            + "aggs=[[SUM($90), SUM($91), COUNT(), SUM($89)]], "
+            + "projects=[[$0, *(-1, +(/(-($1, $2), *($3, 3)), $4))]], sort0=[1], dir0=[DESC])";
     sql(sqlQuery, FOODMART)
         .explainContains(plan)
         .queryContains(druidChecker(postAggString))
@@ -2274,7 +2286,7 @@ public class DruidAdapterIT {
         + "{'type':'hyperUniqueCardinality','name':'','fieldName':'$f2'}]}]";
     final String plan = "PLAN=EnumerableInterpreter\n"
         + "  DruidQuery(table=[[foodmart, foodmart]], intervals="
-        + "[[1900-01-09T00:00:00.000/2992-01-10T00:00:00.000]], groups=[{63}],";
+        + "[[1900-01-09T00:00:00.000/2992-01-10T00:00:00.000]], groups=[{63}], ";
     sql(sqlQuery, FOODMART)
         .explainContains(plan)
         .queryContains(druidChecker(postAggString))
@@ -2315,8 +2327,10 @@ public class DruidAdapterIT {
         + ",'fields':[{'type':'fieldAccess','name':'','fieldName':'$f1'},"
         + "{'type':'fieldAccess','name':'','fieldName':'$f2'}]}]";
     final String plan = "PLAN=EnumerableInterpreter\n"
-        + "  DruidQuery(table=[[foodmart, foodmart]], intervals="
-        + "[[1900-01-09T00:00:00.000/2992-01-10T00:00:00.000]], groups=[{63}],";
+        + "  DruidQuery(table=[[foodmart, foodmart]], "
+        + "intervals=[[1900-01-09T00:00:00.000/2992-01-10T00:00:00.000]], "
+        + "groups=[{63}], aggs=[[SUM($91), COUNT()]], projects=[[$0, /($1, $2)]], "
+        + "sort0=[1], dir0=[DESC]";
     sql(sqlQuery, FOODMART)
         .explainContains(plan)
         .queryContains(druidChecker(postAggString))
@@ -2335,7 +2349,10 @@ public class DruidAdapterIT {
     final String plan = "PLAN=EnumerableInterpreter\n"
             + "  BindableProject(store_state=[$0], A=[$1], B=[CASE(=($2, 0), "
             + "1.0, CAST($2):DECIMAL(19, 0))])\n"
-            + "    DruidQuery";
+            + "    DruidQuery(table=[[foodmart, foodmart]], "
+            + "intervals=[[1900-01-09T00:00:00.000/2992-01-10T00:00:00.000]], "
+            + "groups=[{63}], aggs=[[SUM($90), SUM($91), SUM($89)]], "
+            + "projects=[[$0, /($1, $2), $3]], sort0=[1], dir0=[DESC]";
     sql(sqlQuery, FOODMART)
         .explainContains(plan)
         .queryContains(druidChecker(postAggString))
@@ -2356,8 +2373,10 @@ public class DruidAdapterIT {
         + "{'type':'constant','name':'','value':100.0}]},{'type':'fieldAccess',"
         + "'name':'','fieldName':'B'}]}]";
     final String plan = "PLAN=EnumerableInterpreter\n"
-        + "  DruidQuery(table=[[foodmart, foodmart]], intervals="
-        + "[[1900-01-09T00:00:00.000/2992-01-10T00:00:00.000]], groups=[{63}],";
+        + "  DruidQuery(table=[[foodmart, foodmart]], "
+        + "intervals=[[1900-01-09T00:00:00.000/2992-01-10T00:00:00.000]], groups=[{63}], "
+        + "aggs=[[SUM($90), SUM($91)]], projects=[[$0, +($1, 100), -(+($1, 100), $2)]], "
+        + "sort0=[1], dir0=[DESC]";
     sql(sqlQuery, FOODMART)
         .explainContains(plan)
         .queryContains(druidChecker(postAggString))
@@ -2373,8 +2392,9 @@ public class DruidAdapterIT {
         + "'fn':'quotient','fields':[{'type':'fieldAccess','name':'','fieldName':'$f1'},"
         + "{'type':'constant','name':'','value':0.0}]}]";
     final String plan = "PLAN=EnumerableInterpreter\n"
-        + "  DruidQuery(table=[[foodmart, foodmart]], intervals="
-        + "[[1900-01-09T00:00:00.000/2992-01-10T00:00:00.000]], groups=[{63}],";
+        + "  DruidQuery(table=[[foodmart, foodmart]], "
+        + "intervals=[[1900-01-09T00:00:00.000/2992-01-10T00:00:00.000]], "
+        + "groups=[{63}], aggs=[[SUM($91)]], projects=[[$0, /($1, 0)]]";
     sql(sqlQuery, FOODMART)
         .explainContains(plan)
         .queryContains(druidChecker(postAggString))
@@ -2393,7 +2413,8 @@ public class DruidAdapterIT {
         + "{'type':'constant','name':'','value':0.0}]}]";
     final String plan = "PLAN=EnumerableInterpreter\n"
         + "  DruidQuery(table=[[foodmart, foodmart]], "
-        + "intervals=[[1900-01-09T00:00:00.000/2992-01-10T00:00:00.000]], groups=[{63}]";
+        + "intervals=[[1900-01-09T00:00:00.000/2992-01-10T00:00:00.000]], "
+        + "groups=[{63}], aggs=[[SUM($91)]], projects=[[$0, /(*(-1.0, $1), 0)]]";
     sql(sqlQuery, FOODMART)
         .explainContains(plan)
         .queryContains(druidChecker(postAggString))
@@ -2411,8 +2432,10 @@ public class DruidAdapterIT {
         + "{'type':'fieldAccess','name':'','fieldName':'$f1'}]},"
         + "{'type':'constant','name':'','value':0.0}]}]";
     final String plan = "PLAN=EnumerableInterpreter\n"
-        + "  DruidQuery(table=[[foodmart, foodmart]], intervals="
-        + "[[1900-01-09T00:00:00.000/2992-01-10T00:00:00.000]], groups=[{63}],";
+        + "  DruidQuery(table=[[foodmart, foodmart]], "
+        + "intervals=[[1900-01-09T00:00:00.000/2992-01-10T00:00:00.000]], "
+        + "groups=[{63}], aggs=[[SUM($91)]], projects=[[$0, /(-($1, $1), 0)]], "
+        + "sort0=[1], dir0=[DESC]";
     sql(sqlQuery, FOODMART)
         .explainContains(plan)
         .queryContains(druidChecker(postAggString))
@@ -2428,8 +2451,9 @@ public class DruidAdapterIT {
         + "count(*)) / 0 as a from \"foodmart\"  group by \"store_state\" "
         + "order by a desc";
     final String plan = "PLAN=EnumerableInterpreter\n"
-        + "  DruidQuery(table=[[foodmart, foodmart]], intervals="
-        + "[[1900-01-09T00:00:00.000/2992-01-10T00:00:00.000]], groups=[{63}],";
+        + "  DruidQuery(table=[[foodmart, foodmart]], "
+        + "intervals=[[1900-01-09T00:00:00.000/2992-01-10T00:00:00.000]], "
+        + "groups=[{63}], aggs=[[COUNT()]], projects=[[$0, /(-($1, $1), 0)]]";
     sql(sqlQuery, FOODMART)
         .explainContains(plan)
         .throws_("/ by zero");
