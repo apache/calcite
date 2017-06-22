@@ -491,13 +491,15 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
     return getQuerySpec().queryString;
   }
 
+  protected CalciteConnectionConfig getConnectionConfig() {
+    return getCluster().getPlanner().getContext().unwrap(CalciteConnectionConfig.class);
+  }
+
   protected QuerySpec getQuery(RelDataType rowType, RexNode filter, List<RexNode> projects,
       ImmutableBitSet groupSet, List<AggregateCall> aggCalls, List<String> aggNames,
       List<Integer> collationIndexes, List<Direction> collationDirections,
       ImmutableBitSet numericCollationIndexes, Integer fetch, Project postProject) {
-    final CalciteConnectionConfig config =
-        getCluster().getPlanner().getContext()
-            .unwrap(CalciteConnectionConfig.class);
+    final CalciteConnectionConfig config = getConnectionConfig();
     QueryType queryType = QueryType.SELECT;
     final Translator translator = new Translator(druidTable, rowType);
     List<String> fieldNames = rowType.getFieldNames();
@@ -835,10 +837,18 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
       // Cannot handle this aggregate function type
       throw new AssertionError("unknown aggregate type " + type);
     }
+    CalciteConnectionConfig config = getConnectionConfig();
     switch (aggCall.getAggregation().getKind()) {
     case COUNT:
       if (aggCall.isDistinct()) {
-        return new JsonCardinalityAggregation("cardinality", name, list);
+        if (config.approximateDistinctCount()) {
+          return new JsonCardinalityAggregation("cardinality", name, list);
+        } else {
+          // Gets thrown if one of the rules allows a count(distinct ...) through
+          // when approximate results were not told be acceptable.
+          throw new UnsupportedOperationException("Cannot push " + aggCall
+              + " because an approximate count distinct is not acceptable.");
+        }
       }
       return new JsonAggregation("count", name, only);
     case SUM:
