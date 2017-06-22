@@ -239,6 +239,26 @@ public interface SqlConformance {
    */
   boolean allowNiladicParentheses();
 
+  /**
+   * Whether to allow mixing table columns with extended columns in
+   * {@code INSERT} (or {@code UPSERT}).
+   *
+   * <p>For example, suppose that the declaration of table {@code T} has columns
+   * {@code A} and {@code B}, and you want to insert data of column
+   * {@code C INTEGER} not present in the table declaration as an extended
+   * column. You can specify the columns in an {@code INSERT} statement as
+   * follows:
+   *
+   * <blockquote>
+   *   <code>INSERT INTO T (A, B, C INTEGER) VALUES (1, 2, 3)</code>
+   * </blockquote>
+   *
+   * <p>Among the built-in conformance levels, true in
+   * {@link SqlConformanceEnum#LENIENT};
+   * false otherwise.
+   */
+  boolean allowExtend();
+
 }
 
 // End SqlConformance.java

@@ -699,6 +699,8 @@ public interface CalciteResource {
   @BaseMessage("Unknown pattern ''{0}''")
   ExInst<SqlValidatorException> unknownPattern(String call);
 
+  @BaseMessage("Extended columns not allowed under the current SQL conformance level")
+  ExInst<SqlValidatorException> extendNotAllowed();
 }
 
 // End CalciteResource.java
