@@ -8627,6 +8627,27 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     sql(sql2).ok().bindType(expected2);
   }
 
+
+  @Test public void testInsertWithExtendedColumns() {
+    final SqlTester lenient =
+        tester.withConformance(SqlConformanceEnum.LENIENT);
+    final SqlTester strict =
+        tester.withConformance(SqlConformanceEnum.STRICT_2003);
+
+    String sql0 = "insert into empnullables (empno, ename, \"f.dc\" varchar(10))\n"
+            + "values (?, ?, ?)";
+    sql(sql0).tester(lenient).ok()
+            .bindType("RecordType(INTEGER ?0, VARCHAR(20) ?1, VARCHAR(10) ?2)")
+            .tester(strict).fails("Extended columns not allowed under "
+                + "the current SQL conformance level");
+    sql0 = "insert into empnullables (empno, ename, dynamic_column double not null)\n"
+        + "values (?, ?, ?)";
+    sql(sql0).tester(lenient).ok()
+        .bindType("RecordType(INTEGER ?0, VARCHAR(20) ?1, DOUBLE ?2)")
+        .tester(strict).fails("Extended columns not allowed under "
+            + "the current SQL conformance level");
+  }
+
   @Test public void testInsertBindSubset() {
     final SqlTester pragmaticTester =
         tester.withConformance(SqlConformanceEnum.PRAGMATIC_2003);

@@ -189,6 +189,14 @@ public enum SqlConformanceEnum implements SqlConformance {
     }
   }
 
+  public boolean allowExtend() {
+    switch (this) {
+    case LENIENT:
+      return true;
+    default:
+      return false;
+    }
+  }
 }
 
 // End SqlConformanceEnum.java
