@@ -25,6 +25,8 @@ import org.junit.Test;
 
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
+
 
 /**
  * Test for {@link SqlTypeFactoryImpl}.
@@ -73,6 +75,34 @@ public class SqlTypeFactoryTest {
     checkPrecision(un, un, un, 0);
   }
 
+  /** Unit test for {@link ArraySqlType#getPrecedenceList()}. */
+  @Test public void testArrayPrecedenceList() {
+    Fixture f = new Fixture();
+    assertThat(checkPrecendenceList(f.arrayBigInt, f.arrayBigInt, f.arrayFloat),
+        is(3));
+    assertThat(
+        checkPrecendenceList(f.arrayOfArrayBigInt, f.arrayOfArrayBigInt,
+            f.arrayOfArrayFloat), is(3));
+    assertThat(checkPrecendenceList(f.sqlBigInt, f.sqlBigInt, f.sqlFloat),
+        is(3));
+    assertThat(
+        checkPrecendenceList(f.multisetBigInt, f.multisetBigInt,
+            f.multisetFloat), is(3));
+    assertThat(
+        checkPrecendenceList(f.arrayBigInt, f.arrayBigInt,
+            f.arrayBigIntNullable), is(0));
+    try {
+      int i = checkPrecendenceList(f.arrayBigInt, f.sqlBigInt, f.sqlInt);
+      fail("Expected assert, got " + i);
+    } catch (IllegalArgumentException e) {
+      assertThat(e.getMessage(), is("must contain type: BIGINT"));
+    }
+  }
+
+  private int checkPrecendenceList(RelDataType t, RelDataType type1, RelDataType type2) {
+    return t.getPrecedenceList().compareTypePrecedence(type1, type2);
+  }
+
   private void checkPrecision(int p0, int p1, int expectedMax,
       int expectedComparison) {
     assertThat(SqlTypeUtil.maxPrecision(p0, p1), is(expectedMax));
@@ -89,6 +119,8 @@ public class SqlTypeFactoryTest {
     SqlTypeFactoryImpl typeFactory = new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
     final RelDataType sqlBigInt = typeFactory.createTypeWithNullability(
         typeFactory.createSqlType(SqlTypeName.BIGINT), false);
+    final RelDataType sqlBigIntNullable = typeFactory.createTypeWithNullability(
+        typeFactory.createSqlType(SqlTypeName.BIGINT), true);
     final RelDataType sqlInt = typeFactory.createTypeWithNullability(
         typeFactory.createSqlType(SqlTypeName.INTEGER), false);
     final RelDataType sqlVarcharNullable = typeFactory.createTypeWithNullability(
@@ -97,6 +129,22 @@ public class SqlTypeFactoryTest {
         typeFactory.createSqlType(SqlTypeName.NULL), false);
     final RelDataType sqlAny = typeFactory.createTypeWithNullability(
         typeFactory.createSqlType(SqlTypeName.ANY), false);
+    final RelDataType sqlFloat = typeFactory.createTypeWithNullability(
+        typeFactory.createSqlType(SqlTypeName.FLOAT), false);
+    final RelDataType arrayFloat = typeFactory.createTypeWithNullability(
+        typeFactory.createArrayType(sqlFloat, -1), false);
+    final RelDataType arrayBigInt = typeFactory.createTypeWithNullability(
+        typeFactory.createArrayType(sqlBigIntNullable, -1), false);
+    final RelDataType multisetFloat = typeFactory.createTypeWithNullability(
+        typeFactory.createMultisetType(sqlFloat, -1), false);
+    final RelDataType multisetBigInt = typeFactory.createTypeWithNullability(
+        typeFactory.createMultisetType(sqlBigIntNullable, -1), false);
+    final RelDataType arrayBigIntNullable = typeFactory.createTypeWithNullability(
+        typeFactory.createArrayType(sqlBigIntNullable, -1), true);
+    final RelDataType arrayOfArrayBigInt = typeFactory.createTypeWithNullability(
+        typeFactory.createArrayType(arrayBigInt, -1), false);
+    final RelDataType arrayOfArrayFloat = typeFactory.createTypeWithNullability(
+        typeFactory.createArrayType(arrayFloat, -1), false);
   }
 
 }

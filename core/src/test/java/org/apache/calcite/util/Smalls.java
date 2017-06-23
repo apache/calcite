@@ -55,6 +55,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 
+
 /**
  * Holder for various classes and functions used in tests as user-defined
  * functions and so forth.
@@ -473,6 +474,16 @@ public class Smalls {
     public static java.sql.Time toTimeFun(Long v) {
       return v == null ? null : SqlFunctions.internalToTime(v.intValue());
     }
+
+    public static List arrayAppendFun(List v, Integer i) {
+      if (v == null || i == null) {
+        return null;
+      } else {
+        v.add(i);
+        return v;
+      }
+    }
+
   }
 
   /** Example of a user-defined aggregate function (UDAF). */
