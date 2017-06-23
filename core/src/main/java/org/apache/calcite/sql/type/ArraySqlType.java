@@ -18,6 +18,7 @@ package org.apache.calcite.sql.type;
 
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFamily;
+import org.apache.calcite.rel.type.RelDataTypePrecedenceList;
 
 import com.google.common.base.Preconditions;
 
@@ -61,6 +62,28 @@ public class ArraySqlType extends AbstractSqlType {
   // implement RelDataType
   public RelDataTypeFamily getFamily() {
     return this;
+  }
+
+  @Override public RelDataTypePrecedenceList getPrecedenceList() {
+    return new RelDataTypePrecedenceList() {
+      @Override public boolean containsType(RelDataType type) {
+        if (type.getSqlTypeName() == getSqlTypeName()) {
+          if (type.getComponentType() != null) {
+            if (getComponentType().getPrecedenceList().containsType(type.getComponentType())) {
+              return true;
+            }
+          }
+        }
+        return false;
+      }
+
+      @Override public int compareTypePrecedence(RelDataType type1, RelDataType type2) {
+        assert containsType(type1);
+        assert containsType(type2);
+        return getComponentType().getPrecedenceList()
+            .compareTypePrecedence(type1.getComponentType(), type2.getComponentType());
+      }
+    };
   }
 }
 

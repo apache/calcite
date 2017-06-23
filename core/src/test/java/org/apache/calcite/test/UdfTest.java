@@ -16,12 +16,27 @@
  */
 package org.apache.calcite.test;
 
+import org.apache.calcite.adapter.enumerable.CallImplementor;
+import org.apache.calcite.adapter.enumerable.RexImpTable.NullAs;
+import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
 import org.apache.calcite.adapter.java.ReflectiveSchema;
 import org.apache.calcite.jdbc.CalciteConnection;
+import org.apache.calcite.linq4j.tree.Expression;
+import org.apache.calcite.linq4j.tree.Expressions;
+import org.apache.calcite.linq4j.tree.Types;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rel.type.RelDataTypeSystem;
+import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.schema.FunctionParameter;
+import org.apache.calcite.schema.ImplementableFunction;
+import org.apache.calcite.schema.ScalarFunction;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.impl.AbstractSchema;
 import org.apache.calcite.schema.impl.ScalarFunctionImpl;
 import org.apache.calcite.schema.impl.ViewTable;
+import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.Smalls;
 
 import com.google.common.collect.ImmutableList;
@@ -29,10 +44,13 @@ import com.google.common.collect.ImmutableList;
 import org.junit.Ignore;
 import org.junit.Test;
 
+import java.lang.reflect.Method;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.hamcrest.CoreMatchers.is;
@@ -734,6 +752,119 @@ public class UdfTest {
         + "  '1970-01-01 00:00:00',\n"
         + "  '1997-02-01 00:00:00')")
         .returnsValue("0");
+  }
+
+  /**
+   * ArrayAppendScalarFunction
+   */
+  private abstract class ArrayAppendScalarFunction
+      implements ScalarFunction, ImplementableFunction {
+    protected SqlTypeFactoryImpl typeFactory = new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
+
+    @Override public List<FunctionParameter> getParameters() {
+      List<FunctionParameter> parameters = new ArrayList<FunctionParameter>();
+      int i = 0;
+      for (final RelDataType type : getParams()) {
+        final int ordinal = i;
+        parameters.add(new FunctionParameter() {
+          public int getOrdinal() {
+            return ordinal;
+          }
+
+          public String getName() {
+            return "arg" + ordinal;
+          }
+
+          @SuppressWarnings("rawtypes")
+          public RelDataType getType(RelDataTypeFactory typeFactory) {
+            return type;
+          }
+
+          public boolean isOptional() {
+            return false;
+          }
+        });
+        i++;
+      }
+      return parameters;
+    }
+
+    protected abstract List<RelDataType> getParams();
+
+    @Override public CallImplementor getImplementor() {
+      return new CallImplementor() {
+        public Expression implement(RexToLixTranslator translator, RexCall call, NullAs nullAs) {
+          Method lookupMethod = Types.lookupMethod(Smalls.AllTypesFunction.class, "arrayAppendFun",
+              List.class, Integer.class);
+          return Expressions.call(lookupMethod,
+              translator.translateList(call.getOperands(), nullAs));
+        }
+      };
+    }
+  }
+
+  /**
+   * ArrayAppendScalarFunction for Integer Array
+   */
+  private class ArrayAppendIntegerFunction extends ArrayAppendScalarFunction {
+    @Override public RelDataType getReturnType(RelDataTypeFactory typeFactory) {
+      return typeFactory.createArrayType(typeFactory.createSqlType(SqlTypeName.INTEGER), -1);
+    }
+
+    @Override public List<RelDataType> getParams() {
+      return ImmutableList.of(
+          typeFactory.createArrayType(typeFactory.createSqlType(SqlTypeName.INTEGER), -1),
+          typeFactory.createSqlType(SqlTypeName.INTEGER));
+    }
+  }
+
+  /**
+   * ArrayAppendScalarFunction for Double Array
+   */
+  private class ArrayAppendDoubleFunction extends ArrayAppendScalarFunction {
+
+    @Override public List<RelDataType> getParams() {
+      return ImmutableList.of(
+          typeFactory.createArrayType(typeFactory.createSqlType(SqlTypeName.DOUBLE), -1),
+          typeFactory.createSqlType(SqlTypeName.INTEGER));
+    }
+
+    @Override public RelDataType getReturnType(RelDataTypeFactory typeFactory) {
+      return typeFactory.createArrayType(typeFactory.createSqlType(SqlTypeName.DOUBLE), -1);
+    }
+  }
+
+  /**
+   * Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-1834">[CALCITE-1834]
+   * User-defined function for Arrays</a>.
+   */
+  @Test public void testArrayUserDefinedFunction() throws Exception {
+    Class.forName("org.apache.calcite.jdbc.Driver");
+    Connection connection = DriverManager.getConnection("jdbc:calcite:");
+    CalciteConnection calciteConnection = connection.unwrap(CalciteConnection.class);
+    SchemaPlus rootSchema = calciteConnection.getRootSchema();
+    rootSchema.add("hr", new ReflectiveSchema(new JdbcTest.HrSchema()));
+
+    SchemaPlus post = rootSchema.add("POST", new AbstractSchema());
+    post.add("ARRAY_APPEND", new ArrayAppendDoubleFunction());
+    post.add("ARRAY_APPEND", new ArrayAppendIntegerFunction());
+    final String sql = "select \"empid\" as EMPLOYEE_ID,\n"
+        + "  \"name\" || ' ' || \"name\" as EMPLOYEE_NAME,\n"
+        + "  \"salary\" as EMPLOYEE_SALARY,\n"
+        + "  POST.ARRAY_APPEND(ARRAY[1,2,3], \"deptno\") as DEPARTMENTS from \"hr\".\"emps\"";
+
+    final String result = ""
+        + "EMPLOYEE_ID=100; EMPLOYEE_NAME=Bill Bill; EMPLOYEE_SALARY=10000.0; DEPARTMENTS=[1, 2, 3, 10]\n"
+        + "EMPLOYEE_ID=200; EMPLOYEE_NAME=Eric Eric; EMPLOYEE_SALARY=8000.0; DEPARTMENTS=[1, 2, 3, 20]\n"
+        + "EMPLOYEE_ID=150; EMPLOYEE_NAME=Sebastian Sebastian; EMPLOYEE_SALARY=7000.0; DEPARTMENTS=[1, 2, 3, 10]\n"
+        + "EMPLOYEE_ID=110; EMPLOYEE_NAME=Theodore Theodore; EMPLOYEE_SALARY=11500.0; DEPARTMENTS=[1, 2, 3, 10]\n";
+
+    Statement statement = connection.createStatement();
+    ResultSet resultSet = statement.executeQuery(sql);
+    assertThat(CalciteAssert.toString(resultSet), is(result));
+    resultSet.close();
+    statement.close();
+    connection.close();
   }
 
 }
