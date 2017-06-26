@@ -103,6 +103,7 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.util.Glossary;
 import org.apache.calcite.util.NlsString;
+import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.trace.CalciteTrace;
 
@@ -1213,7 +1214,7 @@ SqlNode SqlInsert() :
     SqlNode table;
     SqlNodeList extendList = null;
     SqlNode source;
-    SqlNodeList columnList = null;
+    Pair<SqlNodeList, SqlNodeList> columnList = null;
     final Span s;
 }
 {
@@ -1228,7 +1229,7 @@ SqlNode SqlInsert() :
     }
     <INTO> table = CompoundIdentifier()
     [
-        LOOKAHEAD(3)
+        LOOKAHEAD(5)
         [ <EXTEND> ]
         extendList = ExtendList() {
             table = extend(table, extendList);
@@ -1239,8 +1240,11 @@ SqlNode SqlInsert() :
         columnList = ParenthesizedCompoundIdentifierList()
     ]
     source = OrderedQueryOrExpr(ExprContext.ACCEPT_QUERY) {
+        if(columnList != null && !SqlNodeList.isEmptyList(columnList.getValue())) {
+            table = extend(table, columnList.getValue());
+        }
         return new SqlInsert(s.end(source), keywordList, table, source,
-            columnList);
+            (columnList!=null && !SqlNodeList.isEmptyList(columnList.getKey())) ? columnList.getKey() : null);
     }
 }
 
@@ -1911,7 +1915,7 @@ void ColumnType(List<SqlNode> list) :
     boolean nullable = true;
 }
 {
-    name = SimpleIdentifier()
+    name = CompoundIdentifier()
     type = DataType()
     [
         <NOT> <NULL> {
@@ -1921,6 +1925,38 @@ void ColumnType(List<SqlNode> list) :
     {
         list.add(name);
         list.add(type.withNullable(nullable));
+    }
+}
+
+/**
+ * Parses compound identifier with optional type
+ */
+void CompoundIdentifierType(List<SqlNode> list, List<SqlNode> extendList):
+{
+    SqlIdentifier name;
+    SqlDataTypeSpec type = null;
+    boolean nullable = true;
+}
+{
+    name = CompoundIdentifier()
+    [
+         type = DataType() {
+             if (!this.conformance.allowExtend()) {
+                 throw new ParseException(RESOURCE.extendNotAllowed().str());
+             }
+         }
+         [
+             <NOT> <NULL> {
+                 nullable = false;
+             }
+        ]
+    ]
+    {
+       if(type != null) {
+           extendList.add(name);
+           extendList.add(type.withNullable(nullable));
+       }
+       list.add(name);
     }
 }
 
@@ -4099,29 +4135,29 @@ SqlIdentifier CompoundIdentifier() :
 /**
  * Parses a comma-separated list of compound identifiers.
  */
-void CompoundIdentifierCommaList(List<SqlNode> list) :
+void CompoundIdentifierTypeCommaList(List<SqlNode> list, List<SqlNode> extendList) :
 {
-    SqlIdentifier id;
 }
 {
-    id = CompoundIdentifier() {list.add(id);}
-    (<COMMA> id = CompoundIdentifier() {list.add(id);})*
+    CompoundIdentifierType(list, extendList)
+    (<COMMA> CompoundIdentifierType(list, extendList))*
 }
 
 /**
   * List of compound identifiers in parentheses. The position extends from the
   * open parenthesis to the close parenthesis.
   */
-SqlNodeList ParenthesizedCompoundIdentifierList() :
+Pair<SqlNodeList, SqlNodeList> ParenthesizedCompoundIdentifierList() :
 {
     final Span s;
     final List<SqlNode> list = new ArrayList<SqlNode>();
+    final List<SqlNode> extendList = new ArrayList<SqlNode>();
 }
 {
     <LPAREN> { s = span(); }
-    CompoundIdentifierCommaList(list)
+    CompoundIdentifierTypeCommaList(list, extendList)
     <RPAREN> {
-        return new SqlNodeList(list, s.end(this));
+        return Pair.of(new SqlNodeList(list, s.end(this)), new SqlNodeList(extendList, s.end(this)));
     }
 }
 <#else>

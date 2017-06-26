@@ -155,7 +155,7 @@ public class SqlValidatorUtil {
       final SqlIdentifier identifier = pair.left;
       final SqlDataTypeSpec type = pair.right;
       extendedFields.add(
-          new RelDataTypeFieldImpl(identifier.getSimple(),
+          new RelDataTypeFieldImpl(identifier.toString(),
               extendedFieldOffset++,
               type.deriveType(typeFactory)));
     }
