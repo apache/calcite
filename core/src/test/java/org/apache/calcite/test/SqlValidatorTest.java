@@ -7667,14 +7667,27 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     sql("SELECT contact.coord.x, contact.coord.y FROM customer.contact")
         .type("RecordType(INTEGER NOT NULL X, INTEGER NOT NULL Y) NOT NULL");
 
-    // Because the type of CONTACT_PEEK.COORD is marked "peek", the validator
-    // can see through it.
-    sql("SELECT c.x, c.coord.y FROM customer.contact_peek as c")
-        .type("RecordType(INTEGER NOT NULL X, INTEGER NOT NULL Y) NOT NULL");
-    sql("SELECT c.coord.x, c.coord.y FROM customer.contact_peek as c")
-        .type("RecordType(INTEGER NOT NULL X, INTEGER NOT NULL Y) NOT NULL");
-    sql("SELECT x, c.coord.y FROM customer.contact_peek as c")
-        .type("RecordType(INTEGER NOT NULL X, INTEGER NOT NULL Y) NOT NULL");
+    // Because the type of CONTACT_PEEK.COORD, and CONTACT_PEEK.COORD_NF is marked "peek",
+    // the validator can see through it.
+    sql("SELECT c.x, c.coord.y, c.m, c.b FROM customer.contact_peek as c")
+        .type("RecordType(INTEGER NOT NULL X, INTEGER NOT NULL Y, INTEGER NOT NULL M,"
+            + " INTEGER NOT NULL B) NOT NULL");
+    sql("SELECT c.coord.x, c.coord.y, c.coord_nf.m FROM customer.contact_peek as c")
+        .type("RecordType(INTEGER NOT NULL X, INTEGER NOT NULL Y, INTEGER NOT NULL M) NOT NULL");
+    sql("SELECT x, a, c.coord.y FROM customer.contact_peek as c")
+        .type("RecordType(INTEGER NOT NULL X, INTEGER NOT NULL A, INTEGER NOT NULL Y) NOT NULL");
+    // Because CONTACT_PEEK.COORD_NF is marked "peek no flattening",
+    // "select *" will not flatten it.
+    sql("SELECT coord_nf.* FROM customer.contact_peek as c")
+        .type("RecordType(INTEGER NOT NULL M, "
+            + "RecordType:peek_no_flattening(INTEGER NOT NULL A, INTEGER NOT NULL B) "
+            + "NOT NULL SUB) NOT NULL");
+    sql("SELECT * FROM customer.contact_peek as c")
+        .type("RecordType(INTEGER NOT NULL CONTACTNO, VARCHAR(10) NOT NULL FNAME, "
+            + "VARCHAR(10) NOT NULL LNAME, VARCHAR(20) NOT NULL EMAIL, INTEGER NOT NULL X, "
+            + "INTEGER NOT NULL Y, RecordType:peek_no_flattening(INTEGER NOT NULL M, "
+            + "RecordType:peek_no_flattening(INTEGER NOT NULL A, INTEGER NOT NULL B) "
+            + "NOT NULL SUB) NOT NULL COORD_NF) NOT NULL");
 
     // Qualifying with schema is OK.
     final String sql = "SELECT customer.contact_peek.x,\n"
