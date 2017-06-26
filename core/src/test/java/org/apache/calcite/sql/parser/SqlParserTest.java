@@ -3254,10 +3254,16 @@ public class SqlParserTest {
   }
 
   @Test public void testInsertExtendedColumnList() {
-    final String expected = "INSERT INTO `EMPS` EXTEND (`Z` BOOLEAN) (`X`, `Y`)\n"
+    String expected = "INSERT INTO `EMPS` EXTEND (`Z` BOOLEAN) (`X`, `Y`)\n"
         + "(SELECT *\n"
         + "FROM `EMPS`)";
     sql("insert into emps(z boolean)(x,y) select * from emps")
+        .ok(expected);
+    conformance = SqlConformanceEnum.LENIENT;
+    expected = "INSERT INTO `EMPS` EXTEND (`Z` BOOLEAN) (`X`, `Y`, `Z`)\n"
+        + "(SELECT *\n"
+        + "FROM `EMPS`)";
+    sql("insert into emps(x, y, z boolean) select * from emps")
         .ok(expected);
   }
 
@@ -3291,10 +3297,16 @@ public class SqlParserTest {
   }
 
   @Test public void testInsertCaseSensitiveExtendedColumnList() {
-    final String expected = "INSERT INTO `emps` EXTEND (`z` BOOLEAN) (`x`, `y`)\n"
+    String expected = "INSERT INTO `emps` EXTEND (`z` BOOLEAN) (`x`, `y`)\n"
         + "(SELECT *\n"
         + "FROM `EMPS`)";
     sql("insert into \"emps\"(\"z\" boolean)(\"x\",\"y\") select * from emps")
+        .ok(expected);
+    conformance = SqlConformanceEnum.LENIENT;
+    expected = "INSERT INTO `emps` EXTEND (`z` BOOLEAN) (`x`, `y`, `z`)\n"
+        + "(SELECT *\n"
+        + "FROM `EMPS`)";
+    sql("insert into \"emps\"(\"x\", \"y\", \"z\" boolean) select * from emps")
         .ok(expected);
   }
 

@@ -72,7 +72,7 @@ public abstract class SqlAbstractConformance implements SqlConformance {
   }
 
   public boolean allowExtend() {
-    return SqlConformanceEnum.DEFAULT.allowNiladicParentheses();
+    return SqlConformanceEnum.DEFAULT.allowExtend();
   }
 }
 

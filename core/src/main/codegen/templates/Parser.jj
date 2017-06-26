@@ -1214,7 +1214,7 @@ SqlNode SqlInsert() :
     SqlNode table;
     SqlNodeList extendList = null;
     SqlNode source;
-    Pair<SqlNodeList,SqlNodeList> columnList = null;
+    Pair<SqlNodeList, SqlNodeList> columnList = null;
     final Span s;
 }
 {
@@ -1229,7 +1229,7 @@ SqlNode SqlInsert() :
     }
     <INTO> table = CompoundIdentifier()
     [
-        LOOKAHEAD(3)
+        LOOKAHEAD(5)
         [ <EXTEND> ]
         extendList = ExtendList() {
             table = extend(table, extendList);
@@ -1929,7 +1929,7 @@ void ColumnType(List<SqlNode> list) :
 }
 
 /**
- * Parses compound identifiers with optinal type
+ * Parses compound identifier with optional type
  */
 void CompoundIdentifierType(List<SqlNode> list, List<SqlNode> extendList):
 {
@@ -4147,7 +4147,7 @@ void CompoundIdentifierTypeCommaList(List<SqlNode> list, List<SqlNode> extendLis
   * List of compound identifiers in parentheses. The position extends from the
   * open parenthesis to the close parenthesis.
   */
-Pair<SqlNodeList,SqlNodeList> ParenthesizedCompoundIdentifierList() :
+Pair<SqlNodeList, SqlNodeList> ParenthesizedCompoundIdentifierList() :
 {
     final Span s;
     final List<SqlNode> list = new ArrayList<SqlNode>();

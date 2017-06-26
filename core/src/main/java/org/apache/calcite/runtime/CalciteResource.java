@@ -700,7 +700,7 @@ public interface CalciteResource {
   ExInst<SqlValidatorException> unknownPattern(String call);
 
   @BaseMessage("Extended columns not allowed under the current SQL conformance level")
-  ExInst<CalciteException> extendNotAllowed();
+  ExInst<SqlValidatorException> extendNotAllowed();
 }
 
 // End CalciteResource.java

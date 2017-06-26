@@ -243,9 +243,9 @@ public interface SqlConformance {
    * Whether to allow mixing table columns with extended columns in
    * {@code INSERT} (or {@code UPSERT}).
    *
-   * <p>For example,a table has columns A,B and wanted to insert data of column D(integer)
+   * <p>For example, a table has columns A, B and wanted to insert data of column D(integer)
    * not present in the table as a extended column. You can specify the columns in insert as below.
-   * <blockquote><code>INSERT INTO TABLE T(A,B,C,D INTEGER)</code></blockquote>
+   * <blockquote><code>INSERT INTO TABLE T(A, B, C, D INTEGER)</code></blockquote>
    *
    * <p>Among the built-in conformance levels, true in
    * {@link SqlConformanceEnum#LENIENT};
