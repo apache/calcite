@@ -339,7 +339,11 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
       } else if (rel instanceof Filter) {
         pw.item("filter", ((Filter) rel).getCondition());
       } else if (rel instanceof Project) {
-        pw.item("projects", ((Project) rel).getProjects());
+        if (((Project) rel).getInput() instanceof  Aggregate) {
+          pw.item("post_projects", ((Project) rel).getProjects());
+        } else {
+          pw.item("projects", ((Project) rel).getProjects());
+        }
       } else if (rel instanceof Aggregate) {
         final Aggregate aggregate = (Aggregate) rel;
         pw.item("groups", aggregate.getGroupSet())
@@ -869,7 +873,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
       for (RexNode ele : ((RexCall) rexNode).getOperands()) {
         JsonPostAggregation field = getJsonPostAggregation("", ele, rel);
         if (field == null) {
-          return null;
+          throw new RuntimeException("Unchecked types that cannot be parsed as Post Aggregator");
         }
         fields.add(field);
       }
@@ -888,27 +892,32 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
       default:
       }
     } else if (rexNode instanceof RexInputRef) {
-      if (rel instanceof Aggregate) {
-        Integer indexSkipGroup = ((RexInputRef) rexNode).getIndex()
-            - ((Aggregate) rel).getGroupSet().cardinality();
-        AggregateCall aggCall = ((Aggregate) rel).getAggCallList().get(indexSkipGroup);
-        if (aggCall.isDistinct() && aggCall.getAggregation().getKind().equals(SqlKind.COUNT)) {
-          // Will be a hyper unique cardinality column.
-          // Use hyperUniqueCardinality post aggregator instead of field Accessor.
-          // TODO: Expect to change after CALC-1787
-          return new JsonHyperUniqueCardinality("",
-              rel.getRowType().getFieldNames().get(((RexInputRef) rexNode).getIndex()));
-        }
+      // Subtract only number of grouping columns as offset because for now only Aggregates
+      // without grouping sets (i.e. indicator columns size is zero) are allowed to pushed
+      // in Druid Query.
+      Integer indexSkipGroup = ((RexInputRef) rexNode).getIndex()
+          - ((Aggregate) rel).getGroupCount();
+      AggregateCall aggCall = ((Aggregate) rel).getAggCallList().get(indexSkipGroup);
+      if (aggCall.isDistinct() && aggCall.getAggregation().getKind().equals(SqlKind.COUNT)) {
+        // Will be a hyper unique cardinality column.
+        // Use hyperUniqueCardinality post aggregator instead of field Accessor.
+        // TODO: Expect to change after CALC-1787
+        return new JsonHyperUniqueCardinality("",
+            rel.getRowType().getFieldNames().get(((RexInputRef) rexNode).getIndex()));
       }
       return new JsonFieldAccessor("",
           rel.getRowType().getFieldNames().get(((RexInputRef) rexNode).getIndex()));
     } else if (rexNode instanceof RexLiteral) {
+      // Druid constant post aggregator only supports numeric value for now.
+      // (http://druid.io/docs/0.10.0/querying/post-aggregations.html) Accordingly, all
+      // numeric type of RexLiteral can only have BigDecimal value, so filter out unsupported
+      // constant by checking the type of RexLiteral value.
       if (((RexLiteral) rexNode).getValue3() instanceof BigDecimal) {
         return new JsonConstant("",
             ((BigDecimal) ((RexLiteral) rexNode).getValue3()).doubleValue());
       }
     }
-    return null;
+    throw new RuntimeException("Unchecked types that cannot be parsed as Post Aggregator");
   }
 
   protected static void writeField(JsonGenerator generator, String fieldName,
