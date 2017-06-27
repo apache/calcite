@@ -122,6 +122,10 @@ public class DruidTable extends AbstractTable implements TranslatableTable {
         ImmutableList.<RelNode>of(scan));
   }
 
+  public boolean isMetric(String name) {
+    return metricFieldNames.contains(name);
+  }
+
   /** Creates a {@link RelDataType} from a map of
    * field names and types. */
   private static class MapRelProtoDataType implements RelProtoDataType {
