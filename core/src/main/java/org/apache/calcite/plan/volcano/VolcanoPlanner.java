@@ -888,7 +888,6 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
    * Checks internal consistency.
    */
   protected void validate() {
-    final RelMetadataQuery mq = root.getCluster().getMetadataQuery();
     for (RelSet set : allSets) {
       if (set.equivalentSet != null) {
         throw new AssertionError(
@@ -902,7 +901,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
               + "] is in wrong set [" + set + "]");
         }
         for (RelNode rel : subset.getRels()) {
-          RelOptCost relCost = getCost(rel, mq);
+          RelOptCost relCost = getCost(rel, rel.getCluster().getMetadataQuery());
           if (relCost.isLt(subset.bestCost)) {
             throw new AssertionError(
                 "rel [" + rel.getDescription()
@@ -1169,7 +1168,6 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
    * @see #normalizePlan(String)
    */
   public void dump(PrintWriter pw) {
-    final RelMetadataQuery mq = root.getCluster().getMetadataQuery();
     pw.println("Root: " + root.getDescription());
     pw.println("Original rel:");
     pw.println(originalRootString);
@@ -1222,6 +1220,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
           if (importance != null) {
             pw.print(", importance=" + importance);
           }
+          RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
           pw.print(", rowcount=" + mq.getRowCount(rel));
           pw.println(", cumulative cost=" + getCost(rel, mq));
         }
