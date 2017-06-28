@@ -488,6 +488,8 @@ public class MockCatalogReader extends CalciteCatalogReader {
     }
     registerTable(structNullableTypeTable);
 
+    registerExtendTable(f, structTypeSchema);
+
     // Register "STRUCT.T_10" view.
     // Same columns as "STRUCT.T",
     // but "F0.C0" is set to 10 by default,
@@ -522,12 +524,31 @@ public class MockCatalogReader extends CalciteCatalogReader {
     return this;
   }
 
+  private void registerExtendTable(final Fixture f, MockSchema structTypeSchema) {
+    final List<CompoundNameColumn> columnsExtended = Arrays.asList(
+        new CompoundNameColumn("", "K0", f.varchar20TypeNull),
+        new CompoundNameColumn("", "C1", f.varchar20TypeNull),
+        new CompoundNameColumn("F0", "C0", f.intType),
+        new CompoundNameColumn("F1", "C1", f.intTypeNull));
+    final List<CompoundNameColumn> extendedColumns =
+        new ArrayList<CompoundNameColumn>(columnsExtended);
+    extendedColumns.add(new CompoundNameColumn("F2", "C2", f.varchar20Type));
+    final CompoundNameColumnResolver structExtendedTableResolver =
+        new CompoundNameColumnResolver(extendedColumns, "F0");
+    final MockTable structExtendedTypeTable =
+        MockTable.create(this, structTypeSchema, "T_EXTEND", false, 100,
+            structExtendedTableResolver);
+    for (CompoundNameColumn column : columnsExtended) {
+      structExtendedTypeTable.addColumn(column.getName(), column.type);
+    }
+    registerTable(structExtendedTypeTable);
+  }
+
   /** Adds some extra tables to the mock catalog. These increase the time and
    * complexity of initializing the catalog (because they contain views whose
    * SQL needs to be parsed) and so are not used for all tests. */
   public MockCatalogReader init2() {
     MockSchema salesSchema = new MockSchema("SALES");
-
     // Same as "EMP_20" except it uses ModifiableViewTable which populates
     // constrained columns with default values on INSERT and has a single constraint on DEPTNO.
     List<String> empModifiableViewNames = ImmutableList.of(

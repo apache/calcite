@@ -269,7 +269,7 @@ public class SqlValidatorUtil {
     final List<String> names = Lists.transform(columnList,
         new Function<SqlNode, String>() {
           public String apply(SqlNode o) {
-            return ((SqlIdentifier) o).getSimple();
+            return ((SqlIdentifier) o).toString();
           }
         });
     final int i = Util.firstDuplicate(names);

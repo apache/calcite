@@ -16,11 +16,16 @@
  */
 package org.apache.calcite.sql.validate;
 
+import org.apache.calcite.sql.SqlIdentifier;
+import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.parser.SqlParserPos;
+
 import com.google.common.collect.Lists;
 
 import org.junit.Test;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 
@@ -29,6 +34,7 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.sameInstance;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
 
 /**
  * Tests for {@link SqlValidatorUtil}.
@@ -109,6 +115,16 @@ public class SqlValidatorUtilTest {
     checkChangedFieldList(nameList, resultList, false);
   }
 
+  @Test public void testCheckingDuplicatesWithCompoundIdentifiers() {
+    List<SqlNode> newList = new ArrayList<SqlNode>(2);
+    newList.add(new SqlIdentifier(Arrays.asList("f0", "c0"), SqlParserPos.ZERO));
+    newList.add(new SqlIdentifier(Arrays.asList("f1", "c1"), SqlParserPos.ZERO));
+    try {
+      SqlValidatorUtil.checkIdentifierListForDuplicates(newList, null);
+    } catch (AssertionError e) {
+      fail("Should not fail with AssertionError");
+    }
+  }
 }
 
 // End SqlValidatorUtilTest.java

@@ -8724,6 +8724,12 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .bindType("RecordType(INTEGER ?0, VARCHAR(20) ?1, DOUBLE ?2)")
         .tester(strict).fails("Extended columns not allowed under "
             + "the current SQL conformance level");
+    sql0 = "insert into struct.t_extend (f0.c0, f1.c1, "
+            + "\"F2\".\"C2\" varchar(20) not null) values (?, ?, ?)";
+    sql(sql0).tester(lenient).ok()
+            .bindType("RecordType(INTEGER ?0, INTEGER ?1, VARCHAR(20) ?2)")
+            .tester(strict).fails("Extended columns not allowed under "
+                 + "the current SQL conformance level");
   }
 
   @Test public void testInsertBindSubset() {
