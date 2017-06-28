@@ -65,23 +65,24 @@ public class SqlValidatorTestCase {
       Pattern.compile(
           "(?s)From line ([0-9]+), column ([0-9]+) to line ([0-9]+), column ([0-9]+): (.*)");
 
+  private static final SqlTestFactory EXTENDED_TEST_FACTORY =
+      new DelegatingSqlTestFactory(DefaultSqlTestFactory.INSTANCE) {
+        @Override public MockCatalogReader createCatalogReader(
+            SqlTestFactory factory, JavaTypeFactory typeFactory) {
+          return super.createCatalogReader(this, typeFactory).init2();
+        }
+      };
+
   static final SqlTesterImpl EXTENDED_CATALOG_TESTER =
-      new SqlTesterImpl(
-        new DelegatingSqlTestFactory(DefaultSqlTestFactory.INSTANCE) {
-          @Override public MockCatalogReader createCatalogReader(
-              SqlTestFactory factory, JavaTypeFactory typeFactory) {
-            return super.createCatalogReader(this, typeFactory).init2();
-          }
-        });
+      new SqlTesterImpl(EXTENDED_TEST_FACTORY);
 
   static final SqlTesterImpl EXTENDED_CATALOG_TESTER_2003 =
-      new SqlTesterImpl(
-        new DelegatingSqlTestFactory(DefaultSqlTestFactory.INSTANCE) {
-          @Override public MockCatalogReader createCatalogReader(
-              SqlTestFactory factory, JavaTypeFactory typeFactory) {
-            return super.createCatalogReader(this, typeFactory).init2();
-          }
-        }).withConformance(SqlConformanceEnum.PRAGMATIC_2003);
+      new SqlTesterImpl(EXTENDED_TEST_FACTORY)
+          .withConformance(SqlConformanceEnum.PRAGMATIC_2003);
+
+  static final SqlTesterImpl EXTENDED_CATALOG_TESTER_LENIENT =
+      new SqlTesterImpl(EXTENDED_TEST_FACTORY)
+          .withConformance(SqlConformanceEnum.LENIENT);
 
   //~ Instance fields --------------------------------------------------------
 
@@ -573,6 +574,10 @@ public class SqlValidatorTestCase {
 
     Sql withExtendedCatalog2003() {
       return tester(EXTENDED_CATALOG_TESTER_2003);
+    }
+
+    Sql withExtendedCatalogLenient() {
+      return tester(EXTENDED_CATALOG_TESTER_LENIENT);
     }
 
     Sql ok() {
