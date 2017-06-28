@@ -63,6 +63,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import javax.annotation.Nonnull;
 
@@ -433,8 +434,8 @@ public class RexUtil {
     } else {
       if (existedValue instanceof RexLiteral
           && constant instanceof RexLiteral
-          && !((RexLiteral) existedValue).getValue()
-              .equals(((RexLiteral) constant).getValue())) {
+          && !Objects.equals(((RexLiteral) existedValue).getValue(),
+              ((RexLiteral) constant).getValue())) {
         // we found conflicting values, e.g. left = 10 and left = 20
         map.remove(left);
         excludeSet.add(left);

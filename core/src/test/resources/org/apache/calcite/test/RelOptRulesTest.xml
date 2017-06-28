@@ -5535,6 +5535,35 @@ LogicalProject(EMPNO=[$0])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testReduceConstantsNull">
+        <Resource name="sql">
+            <![CDATA[select * from (
+  select *
+  from (
+    select cast(null as integer) as n
+    from emp)
+  where n is null and n is null)
+where n is null]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(N=[$0])
+  LogicalFilter(condition=[IS NULL($0)])
+    LogicalProject(N=[$0])
+      LogicalFilter(condition=[AND(IS NULL($0), IS NULL($0))])
+        LogicalProject(N=[null])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject(N=[$0])
+  LogicalProject(N=[$0])
+    LogicalProject(N=[null])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testSwapOuterJoin">
         <Resource name="sql">
             <![CDATA[select 1 from sales.dept d left outer join sales.emp e on d.deptno = e.deptno]]>
