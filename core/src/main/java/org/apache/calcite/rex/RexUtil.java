@@ -432,12 +432,16 @@ public class RexUtil {
       map.put(left, constant);
     } else {
       if (existedValue instanceof RexLiteral
-          && constant instanceof RexLiteral
-          && !((RexLiteral) existedValue).getValue()
-              .equals(((RexLiteral) constant).getValue())) {
+          && constant instanceof RexLiteral) {
         // we found conflicting values, e.g. left = 10 and left = 20
-        map.remove(left);
-        excludeSet.add(left);
+        Comparable existedComparable = ((RexLiteral) existedValue).getValue();
+        Comparable constantComparable = ((RexLiteral) constant).getValue();
+        boolean isEqual = (existedComparable == null && constantComparable == null)
+                || (existedComparable != null && existedComparable.equals(constantComparable));
+        if (!isEqual) {
+          map.remove(left);
+          excludeSet.add(left);
+        }
       }
     }
   }
