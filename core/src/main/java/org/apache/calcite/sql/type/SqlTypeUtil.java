@@ -1240,9 +1240,15 @@ public abstract class SqlTypeUtil {
       return true;
     }
 
-    // If one of the operators is of type 'ANY', return true.
+    // If one of the arguments is of type 'ANY', return true.
     if (family1 == SqlTypeFamily.ANY
         || family2 == SqlTypeFamily.ANY) {
+      return true;
+    }
+
+    // If one of the arguments is of type 'NULL', return true.
+    if (family1 == SqlTypeFamily.NULL
+        || family2 == SqlTypeFamily.NULL) {
       return true;
     }
 

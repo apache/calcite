@@ -42,7 +42,6 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
 
   //~ Methods ----------------------------------------------------------------
 
-  // implement RelDataTypeFactory
   public RelDataType createSqlType(SqlTypeName typeName) {
     if (typeName.allowsPrec()) {
       return createSqlType(typeName, typeSystem.getDefaultPrecision(typeName));
@@ -52,7 +51,6 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
     return canonize(newType);
   }
 
-  // implement RelDataTypeFactory
   public RelDataType createSqlType(
       SqlTypeName typeName,
       int precision) {
@@ -71,7 +69,6 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
     return canonize(newType);
   }
 
-  // implement RelDataTypeFactory
   public RelDataType createSqlType(
       SqlTypeName typeName,
       int precision,
@@ -89,7 +86,10 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
     return canonize(newType);
   }
 
-  // implement RelDataTypeFactory
+  public RelDataType createUnknownType() {
+    return canonize(new UnknownSqlType(this));
+  }
+
   public RelDataType createMultisetType(
       RelDataType type,
       long maxCardinality) {
@@ -113,7 +113,6 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
     return canonize(newType);
   }
 
-  // implement RelDataTypeFactory
   public RelDataType createSqlIntervalType(
       SqlIntervalQualifier intervalQualifier) {
     RelDataType newType =
@@ -121,7 +120,6 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
     return canonize(newType);
   }
 
-  // implement RelDataTypeFactory
   public RelDataType createTypeWithCharsetAndCollation(
       RelDataType type,
       Charset charset,
@@ -147,8 +145,7 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
     return canonize(newType);
   }
 
-  // implement RelDataTypeFactory
-  public RelDataType leastRestrictive(List<RelDataType> types) {
+  @Override public RelDataType leastRestrictive(List<RelDataType> types) {
     assert types != null;
     assert types.size() >= 1;
 
@@ -193,8 +190,7 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
     }
   }
 
-  // implement RelDataTypeFactory
-  public RelDataType createTypeWithNullability(
+  @Override public RelDataType createTypeWithNullability(
       final RelDataType type,
       final boolean nullable) {
     RelDataType newType;
@@ -562,6 +558,19 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
               false));
     }
     return type;
+  }
+
+  /** The unknown type. Similar to the NULL type, but is only equal to
+   * itself. */
+  private static class UnknownSqlType extends BasicSqlType {
+    UnknownSqlType(RelDataTypeFactory typeFactory) {
+      super(typeFactory.getTypeSystem(), SqlTypeName.NULL);
+    }
+
+    @Override protected void generateTypeString(StringBuilder sb,
+        boolean withDetail) {
+      sb.append("UNKNOWN");
+    }
   }
 }
 

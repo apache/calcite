@@ -891,10 +891,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     checkExp("1 in (1, null, 2)");
     checkExp("1 in (null, 1, null, 2)");
     checkExp("1 in (cast(null as integer), null)");
-
-    // Expression is illegal, but error message is not perfect.
-    checkWholeExpFails("1 in (null, null)",
-        "Values passed to IN operator must have compatible types");
+    checkExp("1 in (null, null)");
   }
 
   @Test public void testNullCast() {

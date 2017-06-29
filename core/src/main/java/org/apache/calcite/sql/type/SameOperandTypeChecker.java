@@ -85,14 +85,6 @@ public class SameOperandTypeChecker implements SqlSingleOperandTypeChecker {
     final List<Integer> operandList =
         getOperandList(operatorBinding.getOperandCount());
     for (int i : operandList) {
-      if (operatorBinding.isOperandNull(i, false)) {
-        if (throwOnFailure) {
-          throw callBinding.getValidator().newValidationError(
-              callBinding.operand(i), RESOURCE.nullIllegal());
-        } else {
-          return false;
-        }
-      }
       types[i] = operatorBinding.getOperandType(i);
     }
     int prev = -1;

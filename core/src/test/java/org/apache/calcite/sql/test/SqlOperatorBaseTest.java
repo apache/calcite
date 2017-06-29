@@ -2929,6 +2929,29 @@ public abstract class SqlOperatorBaseTest {
         "DATE NOT NULL");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1864">[CALCITE-1864]
+   * Allow NULL literal as argument</a>. */
+  @Test public void testNullOperand() {
+    checkNullOperand(tester, "=");
+    checkNullOperand(tester, ">");
+    checkNullOperand(tester, "<");
+    checkNullOperand(tester, "<=");
+    checkNullOperand(tester, ">=");
+    checkNullOperand(tester, "<>");
+
+    // "!=" is allowed under ORACLE_10 SQL conformance level
+    final SqlTester tester1 =
+        tester.withConformance(SqlConformanceEnum.ORACLE_10);
+    checkNullOperand(tester1, "<>");
+  }
+
+  private void checkNullOperand(SqlTester tester, String op) {
+    tester.checkBoolean("1 " + op + " null", null);
+    tester.checkBoolean("null " + op + " -3", null);
+    tester.checkBoolean("null " + op + " null", null);
+  }
+
   @Test public void testNotEqualsOperator() {
     tester.setFor(SqlStdOperatorTable.NOT_EQUALS);
     tester.checkBoolean("1<>1", Boolean.FALSE);
@@ -2945,10 +2968,9 @@ public abstract class SqlOperatorBaseTest {
     final SqlTester tester1 =
         tester.withConformance(SqlConformanceEnum.ORACLE_10);
 
-    tester1
-        .checkBoolean("1 <> 1", Boolean.FALSE);
-    tester1
-        .checkBoolean("1 != 1", Boolean.FALSE);
+    tester1.checkBoolean("1 <> 1", Boolean.FALSE);
+    tester1.checkBoolean("1 != 1", Boolean.FALSE);
+    tester1.checkBoolean("1 != null", null);
   }
 
   @Test public void testNotEqualsOperatorIntervals() {
