@@ -876,6 +876,30 @@ public enum SqlKind {
   /** {@code FOREIGN KEY} constraint. */
   FOREIGN_KEY,
 
+  // Spatial functions. They are registered as "user-defined functions" but it
+  // is convenient to have a "kind" so that we can quickly match them in planner
+  // rules.
+
+  /** The {@code ST_DWithin} geo-spatial function. */
+  ST_DWITHIN,
+
+  /** The {@code ST_Point} function. */
+  ST_POINT,
+
+  /** The {@code ST_Point} function that makes a 3D point. */
+  ST_POINT3,
+
+  /** The {@code ST_MakeLine} function that makes a line. */
+  ST_MAKE_LINE,
+
+  /** The {@code ST_Contains} function that tests whether one geometry contains
+   * another. */
+  ST_CONTAINS,
+
+  /** The {@code Hilbert} function that converts (x, y) to a position on a
+   * Hilbert space-filling curve. */
+  HILBERT,
+
   // DDL and session control statements follow. The list is not exhaustive: feel
   // free to add more.
 

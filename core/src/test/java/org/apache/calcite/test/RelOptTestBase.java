@@ -34,6 +34,8 @@ import org.apache.calcite.rel.metadata.DefaultRelMetadataProvider;
 import org.apache.calcite.rel.metadata.RelMetadataProvider;
 import org.apache.calcite.runtime.FlatLists;
 import org.apache.calcite.runtime.Hook;
+import org.apache.calcite.sql.test.SqlTestFactory;
+import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql2rel.RelDecorrelator;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.Closer;
@@ -238,6 +240,15 @@ abstract class RelOptTestBase extends SqlToRelTestBase {
 
     public Sql withTrim(final boolean b) {
       return withTransform(tester -> tester.withTrim(b));
+    }
+
+    public Sql withCatalogReaderFactory(
+        SqlTestFactory.MockCatalogReaderFactory factory) {
+      return withTransform(tester -> tester.withCatalogReaderFactory(factory));
+    }
+
+    public Sql withConformance(final SqlConformance conformance) {
+      return withTransform(tester -> tester.withConformance(conformance));
     }
 
     public Sql withContext(final Context context) {

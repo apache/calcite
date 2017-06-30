@@ -312,12 +312,18 @@ public abstract class MockCatalogReader extends CalciteCatalogReader {
     protected final InitializerExpressionFactory initializerFactory;
     protected final Set<String> rolledUpColumns = new HashSet<>();
 
+    /** Wrapped objects that can be obtained by calling
+     * {@link #unwrap(Class)}. Initially an immutable list, but converted to
+     * a mutable array list on first assignment. */
+    protected List<Object> wraps;
+
     public MockTable(MockCatalogReader catalogReader, String catalogName,
         String schemaName, String name, boolean stream, boolean temporal,
         double rowCount, ColumnResolver resolver,
         InitializerExpressionFactory initializerFactory) {
       this(catalogReader, ImmutableList.of(catalogName, schemaName, name),
-          stream, temporal, rowCount, resolver, initializerFactory);
+          stream, temporal, rowCount, resolver, initializerFactory,
+          ImmutableList.of());
     }
 
     public void registerRolledUpColumn(String columnName) {
@@ -327,7 +333,7 @@ public abstract class MockCatalogReader extends CalciteCatalogReader {
     private MockTable(MockCatalogReader catalogReader, List<String> names,
         boolean stream, boolean temporal, double rowCount,
         ColumnResolver resolver,
-        InitializerExpressionFactory initializerFactory) {
+        InitializerExpressionFactory initializerFactory, List<Object> wraps) {
       this.catalogReader = catalogReader;
       this.stream = stream;
       this.temporal = temporal;
@@ -335,6 +341,7 @@ public abstract class MockCatalogReader extends CalciteCatalogReader {
       this.names = names;
       this.resolver = resolver;
       this.initializerFactory = initializerFactory;
+      this.wraps = ImmutableList.copyOf(wraps);
     }
 
     /**
@@ -359,6 +366,14 @@ public abstract class MockCatalogReader extends CalciteCatalogReader {
       for (String name : monotonicColumnSet) {
         addMonotonic(name);
       }
+      this.wraps = ImmutableList.of();
+    }
+
+    void addWrap(Object wrap) {
+      if (wraps instanceof ImmutableList) {
+        wraps = new ArrayList<>(wraps);
+      }
+      wraps.add(wrap);
     }
 
     /** Implementation of AbstractModifiableTable. */
@@ -430,7 +445,7 @@ public abstract class MockCatalogReader extends CalciteCatalogReader {
 
     @Override protected RelOptTable extend(final Table extendedTable) {
       return new MockTable(catalogReader, names, stream, temporal, rowCount,
-          resolver, initializerFactory) {
+          resolver, initializerFactory, wraps) {
         @Override public RelDataType getRowType() {
           return extendedTable.getRowType(catalogReader.typeFactory);
         }
@@ -445,7 +460,7 @@ public abstract class MockCatalogReader extends CalciteCatalogReader {
     public static MockTable create(MockCatalogReader catalogReader,
         List<String> names, boolean stream, double rowCount) {
       return new MockTable(catalogReader, names, stream, false, rowCount, null,
-          NullInitializerExpressionFactory.INSTANCE);
+          NullInitializerExpressionFactory.INSTANCE, ImmutableList.of());
     }
 
     public static MockTable create(MockCatalogReader catalogReader,
@@ -480,6 +495,11 @@ public abstract class MockCatalogReader extends CalciteCatalogReader {
             ? new ModifiableTable(Util.last(names))
                 : new ModifiableTableWithCustomColumnResolving(Util.last(names));
         return clazz.cast(table);
+      }
+      for (Object handler : wraps) {
+        if (clazz.isInstance(handler)) {
+          return clazz.cast(handler);
+        }
       }
       return null;
     }
@@ -612,7 +632,8 @@ public abstract class MockCatalogReader extends CalciteCatalogReader {
         boolean stream, double rowCount, ColumnResolver resolver,
         InitializerExpressionFactory initializerExpressionFactory) {
       super(catalogReader, ImmutableList.of(catalogName, schemaName, name),
-          stream, false, rowCount, resolver, initializerExpressionFactory);
+          stream, false, rowCount, resolver, initializerExpressionFactory,
+          ImmutableList.of());
       this.modifiableViewTable = modifiableViewTable;
     }
 
@@ -724,7 +745,8 @@ public abstract class MockCatalogReader extends CalciteCatalogReader {
         boolean stream, double rowCount, ColumnResolver resolver,
         InitializerExpressionFactory initializerExpressionFactory) {
       super(catalogReader, ImmutableList.of(catalogName, schemaName, name),
-          stream, false, rowCount, resolver, initializerExpressionFactory);
+          stream, false, rowCount, resolver, initializerExpressionFactory,
+          ImmutableList.of());
       this.viewTable = viewTable;
     }
 

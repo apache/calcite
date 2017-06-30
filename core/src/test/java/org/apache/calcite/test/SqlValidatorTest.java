@@ -8111,7 +8111,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     sql("select ^sum(ramp(3))^ from (values (1))")
         .fails("Cannot apply 'SUM' to arguments of type 'SUM\\(<CURSOR>\\)'\\. "
             + "Supported form\\(s\\): 'SUM\\(<NUMERIC>\\)'");
-    sql("select * from (values (1)) group by ^ramp(3)^")
+    sql("select 0 from (values (1)) group by ^ramp(3)^")
         .fails("Cannot call table function here: 'RAMP'");
     sql("select count(*) from (values (1)) having ^ramp(3)^")
         .fails("HAVING clause must be a condition");

@@ -421,6 +421,7 @@ public interface RelDataTypeFactory {
     private final List<RelDataType> types = new ArrayList<>();
     private StructKind kind = StructKind.FULLY_QUALIFIED;
     private final RelDataTypeFactory typeFactory;
+    private boolean nullableRecord = false;
 
     /**
      * Creates a Builder with the given type factory.
@@ -547,6 +548,12 @@ public interface RelDataTypeFactory {
       return this;
     }
 
+    /** Sets whether the record type will be nullable. */
+    public Builder nullableRecord(boolean nullableRecord) {
+      this.nullableRecord = nullableRecord;
+      return this;
+    }
+
     /**
      * Makes sure that field names are unique.
      */
@@ -564,7 +571,9 @@ public interface RelDataTypeFactory {
      * Creates a struct type with the current contents of this builder.
      */
     public RelDataType build() {
-      return typeFactory.createStructType(kind, types, names);
+      return typeFactory.createTypeWithNullability(
+          typeFactory.createStructType(kind, types, names),
+          nullableRecord);
     }
 
     /** Creates a dynamic struct type with the current contents of this

@@ -27,6 +27,7 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.runtime.FlatLists;
+import org.apache.calcite.runtime.Geometries;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.sql.SqlIntervalQualifier;
@@ -1488,6 +1489,9 @@ public class RexBuilder {
       }
       return new RexLiteral((Comparable) FlatLists.of(operands), type,
           sqlTypeName);
+    case GEOMETRY:
+      return new RexLiteral((Comparable) value, guessType(value),
+          SqlTypeName.GEOMETRY);
     case ANY:
       return makeLiteral(value, guessType(value), allowCast);
     default:
@@ -1620,6 +1624,9 @@ public class RexBuilder {
     if (value instanceof ByteString) {
       return typeFactory.createSqlType(SqlTypeName.BINARY,
           ((ByteString) value).length());
+    }
+    if (value instanceof Geometries.Geom) {
+      return typeFactory.createSqlType(SqlTypeName.GEOMETRY);
     }
     throw new AssertionError("unknown type " + value.getClass());
   }

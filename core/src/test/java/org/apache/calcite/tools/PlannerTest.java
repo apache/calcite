@@ -71,8 +71,8 @@ import org.apache.calcite.sql.test.SqlTests;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlTypeName;
-import org.apache.calcite.sql.util.ChainedSqlOperatorTable;
 import org.apache.calcite.sql.util.ListSqlOperatorTable;
+import org.apache.calcite.sql.util.SqlOperatorTables;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.test.CalciteAssert;
@@ -204,7 +204,7 @@ class PlannerTest {
   @Test void testValidateUserDefinedAggregate() throws Exception {
     final SqlStdOperatorTable stdOpTab = SqlStdOperatorTable.instance();
     SqlOperatorTable opTab =
-        ChainedSqlOperatorTable.of(stdOpTab,
+        SqlOperatorTables.chain(stdOpTab,
             new ListSqlOperatorTable(
                 ImmutableList.of(new MyCountAggFunction())));
     final SchemaPlus rootSchema = Frameworks.createRootSchema(true);

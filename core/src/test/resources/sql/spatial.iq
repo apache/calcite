@@ -265,7 +265,17 @@ EXPR$0
 # Not implemented
 
 # ST_MakeEnvelope(xMin, yMin, xMax, yMax  [, srid ]) Creates a rectangular Polygon
-# Not implemented
+SELECT ST_AsText(ST_MakeEnvelope(10.0, 10.0, 11.0, 11.0, 4326));
+
+EXPR$0
+MULTIPOLYGON (((10 10, 11 10, 11 11, 10 11, 10 10)))
+!ok
+
+SELECT ST_AsText(ST_MakeEnvelope(12.0, -1.0, 6.0, 4.0, 4326));
+
+EXPR$0
+MULTIPOLYGON (((12 -1, 12 4, 6 4, 6 -1, 12 -1)))
+!ok
 
 # ST_MakeGrid(geom, deltaX, deltaY) Calculates a regular grid of polygons based on *geom*
 SELECT * FROM TABLE(ST_MakeGrid(ST_Point(13.0,22.0), 10.0, 5.0));
@@ -283,12 +293,12 @@ THE_GEOM, ID, ID_COL, ID_ROW, ABS_COL, ABS_ROW
 select "name", "latitude", "longitude", p.*
 from GEO."countries" AS c,
   lateral table(
-    ST_MakeGridPoints(ST_MakePoint("latitude", "longitude"), 10.0, 10.0)) as p
+    ST_MakeGridPoints(ST_MakePoint("longitude", "latitude"), 10.0, 10.0)) as p
 ORDER BY "latitude" DESC LIMIT 3;
 name, latitude, longitude, THE_GEOM, ID, ID_COL, ID_ROW, ABS_COL, ABS_ROW
-Svalbard and Jan Mayen, 77.553604, 23.670272, {"x":75,"y":25}, 0, 1, 1, 7, 2
-Greenland, 71.706936, -42.604303, {"x":75,"y":-45}, 0, 1, 1, 7, -5
-Iceland, 64.963051, -19.020835, {"x":65,"y":-15}, 0, 1, 1, 6, -2
+Svalbard and Jan Mayen, 77.553604, 23.670272, {"x":25,"y":75}, 0, 1, 1, 2, 7
+Greenland, 71.706936, -42.604303, {"x":-45,"y":75}, 0, 1, 1, -5, 7
+Iceland, 64.963051, -19.020835, {"x":-15,"y":65}, 0, 1, 1, -2, 6
 !ok
 
 # ST_MakeLine(point1 [, point ]*) Creates a line-string from the given points (or multi-points)
@@ -341,13 +351,13 @@ EXPR$0
 1.5
 !ok
 
-select "name", ST_MakePoint("latitude", "longitude") AS p
+select "name", ST_MakePoint("longitude", "latitude") AS p
 from GEO."countries" AS c
 ORDER BY "latitude" DESC LIMIT 3;
 name, P
 U.S.Minor Outlying Islands, null
-Svalbard and Jan Mayen, {"x":77.553604,"y":23.670272}
-Greenland, {"x":71.706936,"y":-42.604303}
+Svalbard and Jan Mayen, {"x":23.670272,"y":77.553604}
+Greenland, {"x":-42.604303,"y":71.706936}
 !ok
 
 # ST_MakePolygon(lineString [, hole ]*) Creates a polygon from *lineString* with the given holes (which are required to be closed line-strings)
@@ -697,7 +707,7 @@ true
 
 # Countries within 10 degrees of London
 select "name" from GEO."countries" AS c
-where ST_Distance(ST_MakePoint(51.5, -0.12), ST_MakePoint("latitude", "longitude")) < 10;
+where ST_Distance(ST_MakePoint(-0.12, 51.5), ST_MakePoint("longitude", "latitude")) < 10;
 name
 Andorra
 Belgium
@@ -714,7 +724,7 @@ United Kingdom
 
 # Countries within 10 degrees of London, formulated a different way
 select "name" from GEO."countries" AS c
-where ST_DWithin(ST_MakePoint(51.5, -0.12), ST_MakePoint("latitude", "longitude"), 10);
+where ST_DWithin(ST_MakePoint(-0.12, 51.5), ST_MakePoint("longitude", "latitude"), 10);
 name
 Andorra
 Belgium
@@ -834,7 +844,7 @@ EXPR$0
 SELECT ST_Buffer(
  ST_GeomFromText('POINT(100 90)'),
  50, 'quad_segs=8');
-at org.apache.calcite.runtime.GeoFunctions.todo
+at org.apache.calcite.runtime.Geometries.todo
 !error GeoFunctions
 
 # ST_BUFFER(geom, bufferSize, quadSegs) variant - not implemented
@@ -842,7 +852,7 @@ at org.apache.calcite.runtime.GeoFunctions.todo
 SELECT ST_Buffer(
  ST_GeomFromText('POINT(100 90)'),
  50, 2);
-at org.apache.calcite.runtime.GeoFunctions.todo
+at org.apache.calcite.runtime.Geometries.todo
 !error GeoFunctions
 !}
 
@@ -1233,6 +1243,29 @@ ID, Yellowstone NP
 MT, Yellowstone NP
 WY, Yellowstone NP
 CA, Yosemite NP
+!ok
+
+# Space-filling curves.
+select x, y, hilbert(ST_Point(x, y))
+from (
+  values (0.0, 0.0),
+     (0, 1),
+     (1, 0),
+     (0, -1),
+     (10, 10),
+     (20, 20)) as t(x, y);
+X, Y, EXPR$2
+0.0, -1.0, 10921
+0.0, 0.0, 10922
+0.0, 1.0, 32767
+1.0, 0.0, 54613
+10.0, 10.0, 32973
+20.0, 20.0, 33204
+!ok
+
+values hilbert(ST_Point(20.0, 20.0));
+EXPR$0
+33204
 !ok
 
 # End spatial.iq

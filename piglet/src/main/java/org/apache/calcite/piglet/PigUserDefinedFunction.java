@@ -33,6 +33,7 @@ import com.google.common.collect.ImmutableList;
 /** Pig user-defined function. */
 public class PigUserDefinedFunction extends SqlUserDefinedFunction {
   public final FuncSpec funcSpec;
+
   private PigUserDefinedFunction(SqlIdentifier opName,
       SqlReturnTypeInference returnTypeInference,
       SqlOperandTypeInference operandTypeInference,
@@ -58,5 +59,4 @@ public class PigUserDefinedFunction extends SqlUserDefinedFunction {
       SqlOperandMetadata operandMetadata, Function function) {
     this(name, returnTypeInference, operandMetadata, function, null);
   }
-
 }

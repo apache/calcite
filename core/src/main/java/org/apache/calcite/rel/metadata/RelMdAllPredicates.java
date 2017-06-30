@@ -105,7 +105,12 @@ public class RelMdAllPredicates
   /**
    * Extract predicates for a table scan.
    */
-  public RelOptPredicateList getAllPredicates(TableScan table, RelMetadataQuery mq) {
+  public RelOptPredicateList getAllPredicates(TableScan scan, RelMetadataQuery mq) {
+    final BuiltInMetadata.AllPredicates.Handler handler =
+        scan.getTable().unwrap(BuiltInMetadata.AllPredicates.Handler.class);
+    if (handler != null) {
+      return handler.getAllPredicates(scan, mq);
+    }
     return RelOptPredicateList.EMPTY;
   }
 

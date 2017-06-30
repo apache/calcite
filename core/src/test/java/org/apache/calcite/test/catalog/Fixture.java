@@ -71,7 +71,7 @@ final class Fixture extends AbstractFixture {
   final RelDataType abRecordType = typeFactory.builder()
       .add("A", varchar10Type)
       .add("B", varchar10Type)
-      .build();;
+      .build();
   final RelDataType skillRecordType = typeFactory.builder()
       .add("TYPE", varchar10Type)
       .add("DESC", varchar20Type)

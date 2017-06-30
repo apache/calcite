@@ -519,6 +519,42 @@ public class RexUtil {
     return n;
   }
 
+  /** Returns a visitor that finds nodes of a given {@link SqlKind}. */
+  public static RexFinder find(final SqlKind kind) {
+    return new RexFinder() {
+      @Override public Void visitCall(RexCall call) {
+        if (call.getKind() == kind) {
+          throw Util.FoundOne.NULL;
+        }
+        return super.visitCall(call);
+      }
+    };
+  }
+
+  /** Returns a visitor that finds nodes of given {@link SqlKind}s. */
+  public static RexFinder find(final Set<SqlKind> kinds) {
+    return new RexFinder() {
+      @Override public Void visitCall(RexCall call) {
+        if (kinds.contains(call.getKind())) {
+          throw Util.FoundOne.NULL;
+        }
+        return super.visitCall(call);
+      }
+    };
+  }
+
+  /** Returns a visitor that finds a particular {@link RexInputRef}. */
+  public static RexFinder find(final RexInputRef ref) {
+    return new RexFinder() {
+      @Override public Void visitInputRef(RexInputRef inputRef) {
+        if (ref.equals(inputRef)) {
+          throw Util.FoundOne.NULL;
+        }
+        return super.visitInputRef(inputRef);
+      }
+    };
+  }
+
   /**
    * Walks over an expression and determines whether it is constant.
    */
@@ -2747,4 +2783,54 @@ public class RexUtil {
       return simplify.rexBuilder.makeCast(call.getType(), simplifiedNode, matchNullability);
     }
   }
+
+  /** Visitor that tells whether a node matching a particular description exists
+   * in a tree. */
+  public abstract static class RexFinder extends RexVisitorImpl<Void> {
+    RexFinder() {
+      super(true);
+    }
+
+    /** Returns whether a {@link Project} contains the kind of expression we
+     * seek. */
+    public boolean inProject(Project project) {
+      return anyContain(project.getProjects());
+    }
+
+    /** Returns whether a {@link Filter} contains the kind of expression we
+     * seek. */
+    public boolean inFilter(Filter filter) {
+      return contains(filter.getCondition());
+    }
+
+    /** Returns whether a {@link Join} contains kind of expression we seek. */
+    public boolean inJoin(Join join) {
+      return contains(join.getCondition());
+    }
+
+    /** Returns whether the given expression contains what this RexFinder
+     * seeks. */
+    public boolean contains(RexNode node) {
+      try {
+        node.accept(RexFinder.this);
+        return false;
+      } catch (Util.FoundOne e) {
+        return true;
+      }
+    }
+
+    /** Returns whether any of the given expressions contain what this RexFinder
+     * seeks. */
+    public boolean anyContain(Iterable<? extends RexNode> nodes) {
+      try {
+        for (RexNode node : nodes) {
+          node.accept(RexFinder.this);
+        }
+        return false;
+      } catch (Util.FoundOne e) {
+        return true;
+      }
+    }
+  }
+
 }
