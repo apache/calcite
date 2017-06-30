@@ -19,6 +19,7 @@ package org.apache.calcite.prepare;
 import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
+import org.apache.calcite.linq4j.function.Hints;
 import org.apache.calcite.model.ModelHandler;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.rel.type.RelDataType;
@@ -333,7 +334,7 @@ public class CalciteCatalogReader implements Prepare.CatalogReader {
             i -> function.getParameters().get(i).getName(),
             i -> function.getParameters().get(i).isOptional());
 
-    final SqlKind kind = SqlKind.OTHER_FUNCTION;
+    final SqlKind kind = kind(function);
     if (function instanceof ScalarFunction) {
       final SqlReturnTypeInference returnTypeInference =
           infer((ScalarFunction) function);
@@ -355,6 +356,23 @@ public class CalciteCatalogReader implements Prepare.CatalogReader {
     } else {
       throw new AssertionError("unknown function type " + function);
     }
+  }
+
+  /** Deduces the {@link org.apache.calcite.sql.SqlKind} of a user-defined
+   * function based on a {@link Hints} annotation, if present. */
+  private static SqlKind kind(org.apache.calcite.schema.Function function) {
+    if (function instanceof ScalarFunctionImpl) {
+      Hints hints =
+          ((ScalarFunctionImpl) function).method.getAnnotation(Hints.class);
+      if (hints != null) {
+        for (String hint : hints.value()) {
+          if (hint.startsWith("SqlKind:")) {
+            return SqlKind.valueOf(hint.substring("SqlKind:".length()));
+          }
+        }
+      }
+    }
+    return SqlKind.OTHER_FUNCTION;
   }
 
   private static SqlReturnTypeInference infer(final ScalarFunction function) {
@@ -392,18 +410,18 @@ public class CalciteCatalogReader implements Prepare.CatalogReader {
   }
 
   public List<SqlOperator> getOperatorList() {
-    final ImmutableList.Builder<SqlOperator> b = ImmutableList.builder();
+    final ImmutableList.Builder<SqlOperator> builder = ImmutableList.builder();
     for (List<String> schemaPath : schemaPaths) {
       CalciteSchema schema =
           SqlValidatorUtil.getSchema(rootSchema, schemaPath, nameMatcher);
       if (schema != null) {
         for (String name : schema.getFunctionNames()) {
           schema.getFunctions(name, true).forEach(f ->
-              b.add(toOp(new SqlIdentifier(name, SqlParserPos.ZERO), f)));
+              builder.add(toOp(new SqlIdentifier(name, SqlParserPos.ZERO), f)));
         }
       }
     }
-    return b.build();
+    return builder.build();
   }
 
   public CalciteSchema getRootSchema() {

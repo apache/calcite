@@ -42,7 +42,7 @@ import java.util.List;
  * Simple catalog reader for testing.
  */
 public class MockCatalogReaderSimple extends MockCatalogReader {
-  private final Fixture fixture;
+  private final ObjectSqlType addressType;
 
   /**
    * Creates a MockCatalogReader.
@@ -55,19 +55,20 @@ public class MockCatalogReaderSimple extends MockCatalogReader {
   public MockCatalogReaderSimple(RelDataTypeFactory typeFactory,
       boolean caseSensitive) {
     super(typeFactory, caseSensitive);
-    fixture = new Fixture(typeFactory);
+
+    addressType = new Fixture(typeFactory).addressType;
   }
 
   @Override public RelDataType getNamedType(SqlIdentifier typeName) {
-    if (typeName.equalsDeep(fixture.addressType.getSqlIdentifier(), Litmus.IGNORE)) {
-      return fixture.addressType;
+    if (typeName.equalsDeep(addressType.getSqlIdentifier(), Litmus.IGNORE)) {
+      return addressType;
     } else {
       return super.getNamedType(typeName);
     }
   }
 
   @Override public MockCatalogReader init() {
-    ObjectSqlType addressType = fixture.addressType;
+    final Fixture fixture = new Fixture(typeFactory);
 
     // Register "SALES" schema.
     MockSchema salesSchema = new MockSchema("SALES");

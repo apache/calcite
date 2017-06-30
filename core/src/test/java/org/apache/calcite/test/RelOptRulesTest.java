@@ -78,6 +78,7 @@ import org.apache.calcite.rel.rules.PruneEmptyRules;
 import org.apache.calcite.rel.rules.PushProjector;
 import org.apache.calcite.rel.rules.ReduceExpressionsRule;
 import org.apache.calcite.rel.rules.ReduceExpressionsRule.ProjectReduceExpressionsRule;
+import org.apache.calcite.rel.rules.SpatialRules;
 import org.apache.calcite.rel.rules.UnionMergeRule;
 import org.apache.calcite.rel.rules.ValuesReduceRule;
 import org.apache.calcite.rel.type.RelDataType;
@@ -99,11 +100,13 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql2rel.RelDecorrelator;
 import org.apache.calcite.sql2rel.SqlToRelConverter;
 import org.apache.calcite.test.catalog.MockCatalogReader;
+import org.apache.calcite.test.catalog.MockCatalogReaderExtended;
 import org.apache.calcite.tools.Program;
 import org.apache.calcite.tools.Programs;
 import org.apache.calcite.tools.RelBuilder;
@@ -170,9 +173,10 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 class RelOptRulesTest extends RelOptTestBase {
   //~ Methods ----------------------------------------------------------------
 
-  private final PushProjector.ExprCondition skipItem = expr ->
-      expr instanceof RexCall
+  private static boolean skipItem(RexNode expr) {
+    return expr instanceof RexCall
           && "item".equalsIgnoreCase(((RexCall) expr).getOperator().getName());
+  }
 
   protected DiffRepository getDiffRepos() {
     return DiffRepository.lookup(RelOptRulesTest.class);
@@ -1534,7 +1538,7 @@ class RelOptRulesTest extends RelOptTestBase {
   @Test void testProjectCorrelateTransposeDynamic() {
     ProjectCorrelateTransposeRule customPCTrans =
         ProjectCorrelateTransposeRule.Config.DEFAULT
-            .withPreserveExprCondition(skipItem)
+            .withPreserveExprCondition(RelOptRulesTest::skipItem)
             .toRule();
 
     String sql = "select t1.c_nationkey, t2.a as fake_col2 "
@@ -1637,7 +1641,7 @@ class RelOptRulesTest extends RelOptTestBase {
   @Test void testProjectCorrelateTransposeWithExprCond() {
     ProjectCorrelateTransposeRule customPCTrans =
         ProjectCorrelateTransposeRule.Config.DEFAULT
-            .withPreserveExprCondition(skipItem)
+            .withPreserveExprCondition(RelOptRulesTest::skipItem)
             .toRule();
 
     final String sql = "select t1.name, t2.ename\n"
@@ -2661,40 +2665,40 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
-  private void checkPlanning(String query) {
-    final Tester tester1 = tester.withCatalogReaderFactory(
-        (typeFactory, caseSensitive) -> new MockCatalogReader(typeFactory, caseSensitive) {
-          @Override public MockCatalogReader init() {
-            // CREATE SCHEMA abc;
-            // CREATE TABLE a(a INT);
-            // ...
-            // CREATE TABLE j(j INT);
-            MockSchema schema = new MockSchema("SALES");
-            registerSchema(schema);
-            final RelDataType intType =
-                typeFactory.createSqlType(SqlTypeName.INTEGER);
-            for (int i = 0; i < 10; i++) {
-              String t = String.valueOf((char) ('A' + i));
-              MockTable table = MockTable.create(this, schema, t, false, 100);
-              table.addColumn(t, intType);
-              registerTable(table);
-            }
-            return this;
-          }
-          // CHECKSTYLE: IGNORE 1
-        });
+  /** Creates an environment for testing multi-join queries. */
+  private Sql multiJoin(String query) {
     HepProgram program = new HepProgramBuilder()
         .addMatchOrder(HepMatchOrder.BOTTOM_UP)
         .addRuleInstance(CoreRules.PROJECT_REMOVE)
         .addRuleInstance(CoreRules.JOIN_TO_MULTI_JOIN)
         .build();
-    sql(query).withTester(t -> tester1)
-        .with(program)
-        .check();
+    return sql(query)
+        .withCatalogReaderFactory((typeFactory, caseSensitive) ->
+            new MockCatalogReader(typeFactory, caseSensitive) {
+              @Override public MockCatalogReader init() {
+                // CREATE SCHEMA abc;
+                // CREATE TABLE a(a INT);
+                // ...
+                // CREATE TABLE j(j INT);
+                MockSchema schema = new MockSchema("SALES");
+                registerSchema(schema);
+                final RelDataType intType =
+                    typeFactory.createSqlType(SqlTypeName.INTEGER);
+                for (int i = 0; i < 10; i++) {
+                  String t = String.valueOf((char) ('A' + i));
+                  MockTable table = MockTable.create(this, schema, t, false, 100);
+                  table.addColumn(t, intType);
+                  registerTable(table);
+                }
+                return this;
+              }
+              // CHECKSTYLE: IGNORE 1
+            })
+        .with(program);
   }
 
   @Test void testConvertMultiJoinRuleOuterJoins() {
-    checkPlanning("select * from "
+    final String sql = "select * from "
         + "    (select * from "
         + "        (select * from "
         + "            (select * from A right outer join B on a = b) "
@@ -2710,25 +2714,29 @@ class RelOptRulesTest extends RelOptTestBase {
         + "        on a = e and b = f and c = g and d = h) "
         + "    inner join "
         + "    (select * from I inner join J on i = j) "
-        + "    on a = i and h = j");
+        + "    on a = i and h = j";
+    multiJoin(sql).check();
   }
 
   @Test void testConvertMultiJoinRuleOuterJoins2() {
     // in (A right join B) join C, pushing C is not allowed;
     // therefore there should be 2 MultiJoin
-    checkPlanning("select * from A right join B on a = b join C on b = c");
+    multiJoin("select * from A right join B on a = b join C on b = c")
+        .check();
   }
 
   @Test void testConvertMultiJoinRuleOuterJoins3() {
     // in (A join B) left join C, pushing C is allowed;
     // therefore there should be 1 MultiJoin
-    checkPlanning("select * from A join B on a = b left join C on b = c");
+    multiJoin("select * from A join B on a = b left join C on b = c")
+        .check();
   }
 
   @Test void testConvertMultiJoinRuleOuterJoins4() {
     // in (A join B) right join C, pushing C is not allowed;
     // therefore there should be 2 MultiJoin
-    checkPlanning("select * from A join B on a = b right join C on b = c");
+    multiJoin("select * from A join B on a = b right join C on b = c")
+        .check();
   }
 
   @Test void testPushSemiJoinPastProject() {
@@ -6099,6 +6107,87 @@ class RelOptRulesTest extends RelOptTestBase {
     diffRepos.assertEquals("planAfter", "${planAfter}", planAfter);
   }
 
+  /** Creates an environment for testing spatial queries. */
+  private Sql spatial(String sql) {
+    final HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(CoreRules.PROJECT_REDUCE_EXPRESSIONS)
+        .addRuleInstance(CoreRules.FILTER_REDUCE_EXPRESSIONS)
+        .addRuleInstance(SpatialRules.INSTANCE)
+        .build();
+    return sql(sql)
+        .withCatalogReaderFactory((typeFactory, caseSensitive) ->
+            new MockCatalogReaderExtended(typeFactory, caseSensitive).init())
+        .withConformance(SqlConformanceEnum.LENIENT)
+        .with(program);
+  }
+
+  /** Tests that a call to {@code ST_DWithin}
+   * is rewritten with an additional range predicate. */
+  @Test void testSpatialDWithinToHilbert() {
+    final String sql = "select *\n"
+        + "from GEO.Restaurants as r\n"
+        + "where ST_DWithin(ST_Point(10.0, 20.0),\n"
+        + "                 ST_Point(r.longitude, r.latitude), 10)";
+    spatial(sql).check();
+  }
+
+  /** Tests that a call to {@code ST_DWithin}
+   * is rewritten with an additional range predicate. */
+  @Test void testSpatialDWithinToHilbertZero() {
+    final String sql = "select *\n"
+        + "from GEO.Restaurants as r\n"
+        + "where ST_DWithin(ST_Point(10.0, 20.0),\n"
+        + "                 ST_Point(r.longitude, r.latitude), 0)";
+    spatial(sql).check();
+  }
+
+  @Test void testSpatialDWithinToHilbertNegative() {
+    final String sql = "select *\n"
+        + "from GEO.Restaurants as r\n"
+        + "where ST_DWithin(ST_Point(10.0, 20.0),\n"
+        + "                 ST_Point(r.longitude, r.latitude), -2)";
+    spatial(sql).check();
+  }
+
+  /** As {@link #testSpatialDWithinToHilbert()} but arguments reversed. */
+  @Test void testSpatialDWithinReversed() {
+    final String sql = "select *\n"
+        + "from GEO.Restaurants as r\n"
+        + "where ST_DWithin(ST_Point(r.longitude, r.latitude),\n"
+        + "                 ST_Point(10.0, 20.0), 6)";
+    spatial(sql).check();
+  }
+
+  /** Points within a given distance of a line. */
+  @Test void testSpatialDWithinLine() {
+    final String sql = "select *\n"
+        + "from GEO.Restaurants as r\n"
+        + "where ST_DWithin(\n"
+        + "  ST_MakeLine(ST_Point(8.0, 20.0), ST_Point(12.0, 20.0)),\n"
+        + "  ST_Point(r.longitude, r.latitude), 4)";
+    spatial(sql).check();
+  }
+
+  /** Points near a constant point, using ST_Contains and ST_Buffer. */
+  @Test void testSpatialContainsPoint() {
+    final String sql = "select *\n"
+        + "from GEO.Restaurants as r\n"
+        + "where ST_Contains(\n"
+        + "  ST_Buffer(ST_Point(10.0, 20.0), 6),\n"
+        + "  ST_Point(r.longitude, r.latitude))";
+    spatial(sql).check();
+  }
+
+  /** Constant reduction on geo-spatial expression. */
+  @Test void testSpatialReduce() {
+    final String sql = "select\n"
+        + "  ST_Buffer(ST_Point(0.0, 1.0), 2) as b\n"
+        + "from GEO.Restaurants as r";
+    spatial(sql)
+        .withProperty(Hook.REL_BUILDER_SIMPLIFY, false)
+        .check();
+  }
+
   @Test void testOversimplifiedCaseStatement() {
     String sql = "select * from emp "
         + "where MGR > 0 and "
@@ -6641,7 +6730,7 @@ class RelOptRulesTest extends RelOptTestBase {
     ProjectJoinTransposeRule projectJoinTransposeRule =
         CoreRules.PROJECT_JOIN_TRANSPOSE.config
             .withOperandFor(Project.class, Join.class)
-            .withPreserveExprCondition(skipItem)
+            .withPreserveExprCondition(RelOptRulesTest::skipItem)
             .toRule();
 
     final String sql = "select t1.c_nationkey[0], t2.c_nationkey[0]\n"

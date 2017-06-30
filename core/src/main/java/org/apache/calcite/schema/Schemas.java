@@ -515,6 +515,8 @@ public final class Schemas {
       return PathImpl.EMPTY;
     }
     if (!rootSchema.name.isEmpty()) {
+      // If path starts with the name of the root schema, ignore the first step
+      // in the path.
       Preconditions.checkState(rootSchema.name.equals(iterator.next()));
     }
     for (;;) {

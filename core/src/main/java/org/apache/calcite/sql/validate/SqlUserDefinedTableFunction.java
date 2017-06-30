@@ -27,6 +27,7 @@ import org.apache.calcite.sql.type.SqlOperandMetadata;
 import org.apache.calcite.sql.type.SqlOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlOperandTypeInference;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
+import org.apache.calcite.util.Util;
 
 import java.lang.reflect.Type;
 import java.util.List;
@@ -50,6 +51,7 @@ public class SqlUserDefinedTableFunction extends SqlUserDefinedFunction
         operandTypeInference,
         operandTypeChecker instanceof SqlOperandMetadata
             ? (SqlOperandMetadata) operandTypeChecker : null, function);
+    Util.discard(paramTypes);
   }
 
   /** Creates a user-defined table function. */

@@ -57,6 +57,7 @@ dependencies {
         apiv("com.google.code.findbugs:jsr305", "findbugs.jsr305")
         apiv("com.google.guava:guava")
         apiv("com.google.protobuf:protobuf-java", "protobuf")
+        apiv("com.google.uzaygezen:uzaygezen-core", "uzaygezen")
         apiv("com.h2database:h2")
         apiv("com.jayway.jsonpath:json-path")
         apiv("com.joestelmach:natty")

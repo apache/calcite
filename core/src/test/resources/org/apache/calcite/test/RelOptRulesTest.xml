@@ -4169,7 +4169,9 @@ LogicalProject(EXPR$0=[CAST(/($2, $3)):INTEGER NOT NULL])
     </TestCase>
     <TestCase name="testNoOversimplificationBelowIsNull">
         <Resource name="sql">
-            <![CDATA[select * from emp where ( (empno=1 and mgr=1) or (empno=null and mgr=1) ) is null]]>
+            <![CDATA[select *
+from emp
+where ( (empno=1 and mgr=1) or (empno=null and mgr=1) ) is null]]>
         </Resource>
         <Resource name="planBefore">
             <![CDATA[
@@ -8560,6 +8562,28 @@ LogicalProject(N=[$0])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testSpatialDWithinToHilbert">
+        <Resource name="sql">
+            <![CDATA[select *
+from GEO.Restaurants as r
+where ST_DWithin(ST_Point(10.0, 20.0),
+                 ST_Point(r.longitude, r.latitude), 10)]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(NAME=[$0], LATITUDE=[$1], LONGITUDE=[$2], CUISINE=[$3], HILBERT=[$4])
+  LogicalFilter(condition=[ST_DWITHIN(ST_POINT(10.0:DECIMAL(3, 1), 20.0:DECIMAL(3, 1)), ST_POINT($2, $1), 10)])
+    LogicalTableScan(table=[[CATALOG, GEO, RESTAURANTS]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject(NAME=[$0], LATITUDE=[$1], LONGITUDE=[$2], CUISINE=[$3], HILBERT=[$4])
+  LogicalFilter(condition=[AND(OR(AND(>=($4, 36556), <=($4, 36568)), AND(>=($4, 36447), <=($4, 36548)), AND(>=($4, 36442), <=($4, 36445)), AND(>=($4, 36425), <=($4, 36427)), AND(>=($4, 36421), <=($4, 36423)), AND(>=($4, 36403), <=($4, 36404)), AND(>=($4, 36392), <=($4, 36401)), AND(>=($4, 33267), <=($4, 33270)), AND(>=($4, 33231), <=($4, 33265)), AND(>=($4, 33226), <=($4, 33229)), AND(>=($4, 33209), <=($4, 33211)), AND(>=($4, 33205), <=($4, 33207)), AND(>=($4, 33187), <=($4, 33190)), AND(>=($4, 33014), <=($4, 33185)), AND(>=($4, 33009), <=($4, 33011)), AND(>=($4, 32973), <=($4, 32975)), AND(>=($4, 32955), <=($4, 32970)), AND(>=($4, 32951), <=($4, 32953)), AND(>=($4, 32942), <=($4, 32949)), AND(>=($4, 32929), <=($4, 32930)), AND(>=($4, 32526), <=($4, 32527)), AND(>=($4, 32511), <=($4, 32514)), AND(>=($4, 32506), <=($4, 32509)), AND(>=($4, 32451), <=($4, 32454)), AND(>=($4, 32446), <=($4, 32449)), AND(>=($4, 32431), <=($4, 32434)), AND(>=($4, 32426), <=($4, 32429)), AND(>=($4, 29011), <=($4, 29014)), AND(>=($4, 29006), <=($4, 29009)), AND(>=($4, 28991), <=($4, 28994)), AND(>=($4, 28988), <=($4, 28989))), ST_DWITHIN(POINT (10 20):GEOMETRY, ST_POINT($2, $1), 10))])
+    LogicalTableScan(table=[[CATALOG, GEO, RESTAURANTS]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testSwapOuterJoin">
         <Resource name="sql">
             <![CDATA[select 1 from sales.dept d left outer join sales.emp e
@@ -8585,8 +8609,9 @@ LogicalProject(EXPR$0=[1])
     </TestCase>
     <TestCase name="testDistinctCountMultipleViaJoin">
         <Resource name="sql">
-            <![CDATA[select deptno, count(distinct ename), count(distinct job, ename),
-count(distinct deptno, job), sum(sal)
+            <![CDATA[select deptno, count(distinct ename),
+  count(distinct job, ename),
+  count(distinct deptno, job), sum(sal)
 from sales.emp group by deptno]]>
         </Resource>
         <Resource name="planBefore">
@@ -8618,7 +8643,8 @@ LogicalProject(DEPTNO=[$0], EXPR$1=[$3], EXPR$2=[$5], EXPR$3=[$7], EXPR$4=[$1])
     </TestCase>
     <TestCase name="testDistinctCountMultiple">
         <Resource name="sql">
-            <![CDATA[select deptno, count(distinct ename), count(distinct job)
+            <![CDATA[select deptno, count(distinct ename),
+  count(distinct job)
 from sales.emp group by deptno]]>
         </Resource>
         <Resource name="planBefore">
@@ -8661,7 +8687,8 @@ LogicalAggregate(group=[{}], EXPR$0=[COUNT($0) FILTER $2], EXPR$1=[COUNT($1) FIL
     </TestCase>
     <TestCase name="testDistinctCountMixed">
         <Resource name="sql">
-            <![CDATA[select deptno, count(distinct deptno, job) as cddj, sum(sal) as s
+            <![CDATA[select deptno, count(distinct deptno, job) as cddj,
+  sum(sal) as s
 from sales.emp group by deptno]]>
         </Resource>
         <Resource name="planBefore">
@@ -9017,7 +9044,8 @@ LogicalAggregate(group=[{}], VOLUME=[$SUM0($0)], C1_SUM_SAL=[SUM($1)])
     </TestCase>
     <TestCase name="testPushDistinctAggregateIntoJoin">
         <Resource name="sql">
-            <![CDATA[select count(distinct sal) from sales.emp join sales.dept on job = name]]>
+            <![CDATA[select count(distinct sal) from sales.emp
+ join sales.dept on job = name]]>
         </Resource>
         <Resource name="planBefore">
             <![CDATA[
@@ -9399,6 +9427,136 @@ LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {1}, {}]], EXPR$2=[SUM($2
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testSpatialContainsPoint">
+        <Resource name="sql">
+            <![CDATA[select *
+from GEO.Restaurants as r
+where ST_Contains(
+  ST_Buffer(ST_Point(10.0, 20.0), 6),
+  ST_Point(r.longitude, r.latitude))]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(NAME=[$0], LATITUDE=[$1], LONGITUDE=[$2], CUISINE=[$3], HILBERT=[$4])
+  LogicalFilter(condition=[ST_CONTAINS(ST_BUFFER(ST_POINT(10.0:DECIMAL(3, 1), 20.0:DECIMAL(3, 1)), 6), ST_POINT($2, $1))])
+    LogicalTableScan(table=[[CATALOG, GEO, RESTAURANTS]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject(NAME=[$0], LATITUDE=[$1], LONGITUDE=[$2], CUISINE=[$3], HILBERT=[$4])
+  LogicalFilter(condition=[AND(OR(AND(>=($4, 36496), <=($4, 36520)), AND(>=($4, 36456), <=($4, 36464)), AND(>=($4, 33252), <=($4, 33254)), AND(>=($4, 33236), <=($4, 33244)), AND(>=($4, 33164), <=($4, 33176)), AND(>=($4, 33112), <=($4, 33156)), AND(>=($4, 33092), <=($4, 33100)), AND(>=($4, 33055), <=($4, 33080)), AND(>=($4, 33050), <=($4, 33053)), AND(>=($4, 33033), <=($4, 33035))), ST_CONTAINS(MULTIPOLYGON (((16 20, 15.987153539431617 20.39241877538086, 15.948669168242859 20.78315715332031, 15.884711682419379 21.17054193209677, 15.795554957734407 21.552914270615126, 15.68158077697063 21.92863679181897, 15.543277195067716 22.296100594190538, 15.381236449196127 22.65373214131401, 15.196152422706628 23, 14.98881767381527 23.333421398117615, 14.76012004174741 23.652568574052324, 14.511038844873863 23.956074890600412, 14.242640687119284 24.242640687119284, 13.956074890600412 24.511038844873866, 13.652568574052323 24.760120041747413, 13.333421398117613 24.988817673815273, 13 25.196152422706632, 12.653732141314007 25.38123644919613, 12.296100594190538 25.54327719506772, 11.928636791818969 25.681580776970634, 11.552914270615124 25.79555495773441, 11.17054193209677 25.884711682419383, 10.78315715332031 25.948669168242862, 10.392418775380857 25.98715353943162, 10 26, 9.60758122461914 25.987153539431617, 9.21684284667969 25.94866916824286, 8.82945806790323 25.88471168241938, 8.447085729384876 25.795554957734407, 8.07136320818103 25.68158077697063, 7.703899405809461 25.543277195067716, 7.346267858685993 25.381236449196127, 7 25.19615242270663, 6.666578601882387 24.98881767381527, 6.347431425947676 24.76012004174741, 6.043925109399586 24.511038844873863, 5.757359312880714 24.242640687119284, 5.488961155126135 23.956074890600412, 5.239879958252589 23.652568574052324, 5.011182326184728 23.33342139811761, 4.803847577293368 23, 4.6187635508038705 22.653732141314006, 4.45672280493228 22.296100594190538, 4.318419223029367 21.92863679181897, 4.204445042265591 21.552914270615123, 4.115288317580618 21.170541932096768, 4.051330831757139 20.78315715332031, 4.01284646056838 20.392418775380857, 4 20, 4.012846460568384 19.60758122461914, 4.051330831757142 19.21684284667969, 4.115288317580622 18.82945806790323, 4.204445042265594 18.447085729384874, 4.31841922302937 18.07136320818103, 4.456722804932283 17.703899405809462, 4.618763550803873 17.34626785868599, 4.803847577293371 17, 5.011182326184731 16.666578601882385, 5.239879958252591 16.347431425947676, 5.4889611551261375 16.043925109399588, 5.757359312880716 15.757359312880714, 6.043925109399588 15.488961155126134, 6.347431425947677 15.239879958252589, 6.666578601882387 15.011182326184727, 7.000000000000001 14.803847577293368, 7.346267858685993 14.61876355080387, 7.703899405809462 14.45672280493228, 8.071363208181031 14.318419223029366, 8.447085729384876 14.20444504226559, 8.82945806790323 14.115288317580617, 9.21684284667969 14.051330831757138, 9.607581224619143 14.01284646056838, 10 14, 10.39241877538086 14.012846460568383, 10.78315715332031 14.051330831757141, 11.17054193209677 14.115288317580621, 11.552914270615124 14.204445042265593, 11.92863679181897 14.31841922302937, 12.296100594190538 14.456722804932284, 12.653732141314007 14.618763550803873, 13 14.803847577293372, 13.333421398117613 15.01118232618473, 13.652568574052324 15.23987995825259, 13.956074890600414 15.488961155126137, 14.242640687119286 15.757359312880716, 14.511038844873866 16.043925109399588, 14.760120041747411 16.347431425947676, 14.988817673815273 16.66657860188239, 15.196152422706632 17, 15.38123644919613 17.346267858685994, 15.54327719506772 17.703899405809462, 15.681580776970634 18.07136320818103, 15.79555495773441 18.447085729384877, 15.884711682419383 18.829458067903232, 15.948669168242862 19.21684284667969, 15.98715353943162 19.607581224619143, 16 20))):GEOMETRY, ST_POINT($2, $1)))])
+    LogicalTableScan(table=[[CATALOG, GEO, RESTAURANTS]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testSpatialDWithinLine">
+        <Resource name="sql">
+            <![CDATA[select *
+from GEO.Restaurants as r
+where ST_DWithin(
+  ST_MakeLine(ST_Point(8.0, 20.0), ST_Point(12.0, 20.0)),
+  ST_Point(r.longitude, r.latitude), 4)]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(NAME=[$0], LATITUDE=[$1], LONGITUDE=[$2], CUISINE=[$3], HILBERT=[$4])
+  LogicalFilter(condition=[ST_DWITHIN(ST_MAKELINE(ST_POINT(8.0:DECIMAL(2, 1), 20.0:DECIMAL(3, 1)), ST_POINT(12.0:DECIMAL(3, 1), 20.0:DECIMAL(3, 1))), ST_POINT($2, $1), 4)])
+    LogicalTableScan(table=[[CATALOG, GEO, RESTAURANTS]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject(NAME=[$0], LATITUDE=[$1], LONGITUDE=[$2], CUISINE=[$3], HILBERT=[$4])
+  LogicalFilter(condition=[AND(OR(AND(>=($4, 36517), <=($4, 36519)), AND(>=($4, 36505), <=($4, 36507)), AND(>=($4, 36501), <=($4, 36503)), AND(>=($4, 36457), <=($4, 36459)), AND(>=($4, 33236), <=($4, 33240)), AND(>=($4, 33164), <=($4, 33176)), AND(>=($4, 33112), <=($4, 33156)), AND(>=($4, 33092), <=($4, 33100)), AND(>=($4, 33064), <=($4, 33076))), ST_DWITHIN(MULTILINESTRING ((8 20, 12 20)):GEOMETRY, ST_POINT($2, $1), 4))])
+    LogicalTableScan(table=[[CATALOG, GEO, RESTAURANTS]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testSpatialDWithinReversed">
+        <Resource name="sql">
+            <![CDATA[select *
+from GEO.Restaurants as r
+where ST_DWithin(ST_Point(r.longitude, r.latitude),
+                 ST_Point(10.0, 20.0), 6)]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(NAME=[$0], LATITUDE=[$1], LONGITUDE=[$2], CUISINE=[$3], HILBERT=[$4])
+  LogicalFilter(condition=[ST_DWITHIN(ST_POINT($2, $1), ST_POINT(10.0:DECIMAL(3, 1), 20.0:DECIMAL(3, 1)), 6)])
+    LogicalTableScan(table=[[CATALOG, GEO, RESTAURANTS]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject(NAME=[$0], LATITUDE=[$1], LONGITUDE=[$2], CUISINE=[$3], HILBERT=[$4])
+  LogicalFilter(condition=[AND(OR(AND(>=($4, 36496), <=($4, 36520)), AND(>=($4, 36456), <=($4, 36464)), AND(>=($4, 33252), <=($4, 33254)), AND(>=($4, 33236), <=($4, 33244)), AND(>=($4, 33164), <=($4, 33176)), AND(>=($4, 33112), <=($4, 33156)), AND(>=($4, 33092), <=($4, 33100)), AND(>=($4, 33055), <=($4, 33080)), AND(>=($4, 33050), <=($4, 33053)), AND(>=($4, 33033), <=($4, 33035))), ST_DWITHIN(ST_POINT($2, $1), POINT (10 20):GEOMETRY, 6))])
+    LogicalTableScan(table=[[CATALOG, GEO, RESTAURANTS]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testSpatialDWithinToHilbertNegative">
+        <Resource name="sql">
+            <![CDATA[select *
+from GEO.Restaurants as r
+where ST_DWithin(ST_Point(10.0, 20.0),
+                 ST_Point(r.longitude, r.latitude), -2)]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(NAME=[$0], LATITUDE=[$1], LONGITUDE=[$2], CUISINE=[$3], HILBERT=[$4])
+  LogicalFilter(condition=[ST_DWITHIN(ST_POINT(10.0:DECIMAL(3, 1), 20.0:DECIMAL(3, 1)), ST_POINT($2, $1), -2)])
+    LogicalTableScan(table=[[CATALOG, GEO, RESTAURANTS]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject(NAME=[$0], LATITUDE=[$1], LONGITUDE=[$2], CUISINE=[$3], HILBERT=[$4])
+  LogicalValues(tuples=[[]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testSpatialDWithinToHilbertZero">
+        <Resource name="sql">
+            <![CDATA[select *
+from GEO.Restaurants as r
+where ST_DWithin(ST_Point(10.0, 20.0),
+                 ST_Point(r.longitude, r.latitude), 0)]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(NAME=[$0], LATITUDE=[$1], LONGITUDE=[$2], CUISINE=[$3], HILBERT=[$4])
+  LogicalFilter(condition=[ST_DWITHIN(ST_POINT(10.0:DECIMAL(3, 1), 20.0:DECIMAL(3, 1)), ST_POINT($2, $1), 0)])
+    LogicalTableScan(table=[[CATALOG, GEO, RESTAURANTS]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject(NAME=[$0], LATITUDE=[$1], LONGITUDE=[$2], CUISINE=[$3], HILBERT=[$4])
+  LogicalFilter(condition=[AND(=($4, 33139), =(POINT (10 20), ST_POINT($2, $1)))])
+    LogicalTableScan(table=[[CATALOG, GEO, RESTAURANTS]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testSpatialReduce">
+        <Resource name="sql">
+            <![CDATA[select
+  ST_Buffer(ST_Point(0.0, 1.0), 2) as b
+from GEO.Restaurants as r]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(B=[ST_BUFFER(ST_POINT(0.0:DECIMAL(2, 1), 1.0:DECIMAL(2, 1)), 2)])
+  LogicalTableScan(table=[[CATALOG, GEO, RESTAURANTS]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject(B=[CAST(MULTIPOLYGON (((2 1, 1.9957178464772056 1.1308062584602858, 1.9828897227476194 1.2610523844401027, 1.9615705608064595 1.3901806440322562, 1.9318516525781353 1.517638090205041, 1.8938602589902103 1.6428789306063227, 1.8477590650225726 1.7653668647301788, 1.7937454830653756 1.8845773804380017, 1.7320508075688765 1.9999999999999991, 1.6629392246050898 2.1111404660392035, 1.5867066805824699 2.217522858017441, 1.5036796149579543 2.318691630200137, 1.4142135623730947 2.4142135623730945, 1.3186916302001375 2.5036796149579543, 1.217522858017441 2.58670668058247, 1.1111404660392044 2.66293922460509, 0.9999999999999999 2.7320508075688767, 0.8845773804380025 2.7937454830653765, 0.7653668647301795 2.847759065022573, 0.6428789306063231 2.893860258990211, 0.5176380902050415 2.9318516525781364, 0.3901806440322565 2.961570560806461, 0.26105238444010315 2.982889722747621, 0.13080625846028612 2.995717846477207, 0 3, -0.13080625846028585 2.9957178464772056, -0.2610523844401028 2.982889722747619, -0.3901806440322561 2.9615705608064595, -0.517638090205041 2.9318516525781355, -0.6428789306063226 2.8938602589902103, -0.7653668647301789 2.8477590650225726, -0.8845773804380018 2.7937454830653756, -0.9999999999999992 2.7320508075688767, -1.1111404660392037 2.66293922460509, -1.2175228580174406 2.58670668058247, -1.318691630200137 2.5036796149579543, -1.4142135623730945 2.414213562373095, -1.5036796149579543 2.3186916302001377, -1.5867066805824699 2.217522858017441, -1.66293922460509 2.1111404660392044, -1.732050807568877 2, -1.7937454830653763 1.8845773804380026, -1.8477590650225733 1.7653668647301795, -1.8938602589902112 1.6428789306063232, -1.9318516525781366 1.5176380902050415, -1.9615705608064609 1.3901806440322564, -1.9828897227476208 1.2610523844401031, -1.995717846477207 1.130806258460286, -2 1, -1.9957178464772056 0.8691937415397142, -1.9828897227476194 0.7389476155598972, -1.9615705608064595 0.6098193559677438, -1.9318516525781353 0.48236190979495897, -1.8938602589902103 0.3571210693936774, -1.8477590650225726 0.2346331352698211, -1.7937454830653756 0.11542261956199817, -1.7320508075688765 7.7715611723760960e-16, -1.6629392246050898 -0.11114046603920369, -1.5867066805824699 -0.21752285801744065, -1.5036796149579543 -0.318691630200137, -1.4142135623730947 -0.4142135623730945, -1.3186916302001375 -0.5036796149579543, -1.217522858017441 -0.5867066805824699, -1.1111404660392044 -0.66293922460509, -0.9999999999999999 -0.732050807568877, -0.8845773804380025 -0.7937454830653763, -0.7653668647301795 -0.8477590650225733, -0.6428789306063231 -0.8938602589902112, -0.5176380902050415 -0.9318516525781366, -0.3901806440322565 -0.9615705608064609, -0.26105238444010315 -0.9828897227476208, -0.13080625846028612 -0.995717846477207, 0 -1, 0.13080625846028585 -0.9957178464772056, 0.2610523844401028 -0.9828897227476194, 0.3901806440322561 -0.9615705608064595, 0.517638090205041 -0.9318516525781353, 0.6428789306063226 -0.8938602589902103, 0.7653668647301789 -0.8477590650225726, 0.8845773804380018 -0.7937454830653756, 0.9999999999999992 -0.7320508075688765, 1.1111404660392037 -0.6629392246050898, 1.2175228580174406 -0.5867066805824699, 1.318691630200137 -0.5036796149579543, 1.4142135623730945 -0.4142135623730947, 1.5036796149579543 -0.31869163020013747, 1.5867066805824699 -0.2175228580174411, 1.66293922460509 -0.11114046603920436, 1.732050807568877 1.1102230246251565e-16, 1.7937454830653763 0.11542261956199751, 1.8477590650225733 0.23463313526982055, 1.8938602589902112 0.35712106939367694, 1.9318516525781366 0.4823619097949585, 1.9615705608064609 0.6098193559677435, 1.9828897227476208 0.7389476155598969, 1.995717846477207 0.8691937415397138, 2 1))):GEOMETRY):GEOMETRY])
+  LogicalTableScan(table=[[CATALOG, GEO, RESTAURANTS]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testAggregateRemove6">
         <Resource name="sql">
             <![CDATA[select deptno, max(sal) from sales.emp group by deptno
@@ -9472,7 +9630,8 @@ LogicalAggregate(group=[{7}])
     </TestCase>
     <TestCase name="testAggregateJoinRemove2">
         <Resource name="sql">
-            <![CDATA[select e.deptno, count(distinct e.job) from sales.emp e
+            <![CDATA[select e.deptno, count(distinct e.job)
+from sales.emp e
 left outer join sales.dept d on e.deptno = d.deptno
 group by e.deptno]]>
         </Resource>
@@ -9494,7 +9653,8 @@ LogicalAggregate(group=[{7}], EXPR$1=[COUNT(DISTINCT $2)])
     </TestCase>
     <TestCase name="testAggregateJoinRemove3">
         <Resource name="sql">
-            <![CDATA[select e.deptno, count(distinct d.name) from sales.emp e
+            <![CDATA[select e.deptno, count(distinct d.name)
+from sales.emp e
 left outer join sales.dept d on e.deptno = d.deptno
 group by e.deptno]]>
         </Resource>
@@ -9518,7 +9678,8 @@ LogicalAggregate(group=[{7}], EXPR$1=[COUNT(DISTINCT $10)])
     </TestCase>
     <TestCase name="testAggregateJoinRemove4">
         <Resource name="sql">
-            <![CDATA[select distinct d.deptno from sales.emp e
+            <![CDATA[select distinct d.deptno
+from sales.emp e
 right outer join sales.dept d on e.deptno = d.deptno]]>
         </Resource>
         <Resource name="planBefore">
@@ -9539,7 +9700,8 @@ LogicalProject(DEPTNO=[$0])
     </TestCase>
     <TestCase name="testAggregateJoinRemove5">
         <Resource name="sql">
-            <![CDATA[select d.deptno, count(distinct d.name) from sales.emp e
+            <![CDATA[select d.deptno, count(distinct d.name)
+from sales.emp e
 right outer join sales.dept d on e.deptno = d.deptno
 group by d.deptno]]>
         </Resource>
@@ -9561,7 +9723,8 @@ LogicalAggregate(group=[{0}], EXPR$1=[COUNT(DISTINCT $1)])
     </TestCase>
     <TestCase name="testAggregateJoinRemove6">
         <Resource name="sql">
-            <![CDATA[select d.deptno, count(distinct e.job) from sales.emp e
+            <![CDATA[select d.deptno, count(distinct e.job)
+from sales.emp e
 right outer join sales.dept d on e.deptno = d.deptno
 group by d.deptno]]>
         </Resource>
@@ -12724,7 +12887,10 @@ LogicalAggregate(group=[{}], EXPR$0=[SUM($0)], EXPR$1=[COUNT($0)], EXPR$2=[BIT_O
     </TestCase>
     <TestCase name="testProjectJoinTransposeItem">
         <Resource name="sql">
-            <![CDATA[select t1.c_nationkey[0], t2.c_nationkey[0] from sales.customer as t1 left outer join sales.customer as t2 on t1.c_nationkey[0] = t2.c_nationkey[0]]]>
+            <![CDATA[select t1.c_nationkey[0], t2.c_nationkey[0]
+from sales.customer as t1
+left outer join sales.customer as t2
+on t1.c_nationkey[0] = t2.c_nationkey[0]]]>
         </Resource>
         <Resource name="planBefore">
             <![CDATA[
@@ -12751,7 +12917,9 @@ LogicalProject(EXPR$0=[$1], EXPR$1=[$3])
     </TestCase>
     <TestCase name="testSimplifyItemIsNotNull">
         <Resource name="sql">
-            <![CDATA[select * from sales.customer as t1 where t1.c_nationkey[0] is not null]]>
+            <![CDATA[select *
+from sales.customer as t1
+where t1.c_nationkey[0] is not null]]>
         </Resource>
         <Resource name="planBefore">
             <![CDATA[

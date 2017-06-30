@@ -23,6 +23,7 @@ import org.apache.calcite.linq4j.Linq4j;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.runtime.GeoFunctions;
+import org.apache.calcite.runtime.Geometries.Geom;
 import org.apache.calcite.schema.ScannableTable;
 import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.Statistic;
@@ -51,18 +52,18 @@ public class SqlGeoFunctions {
 
   /** Calculates a regular grid of polygons based on {@code geom}.
    *
-   * @see GeoFunctions#ST_MakeGrid */
+   * @see GeoFunctions ST_MakeGrid */
   @SuppressWarnings({"WeakerAccess", "unused"})
-  public static ScannableTable ST_MakeGrid(final GeoFunctions.Geom geom,
+  public static ScannableTable ST_MakeGrid(final Geom geom,
       final BigDecimal deltaX, final BigDecimal deltaY) {
     return new GridTable(geom, deltaX, deltaY, false);
   }
 
   /** Calculates a regular grid of points based on {@code geom}.
    *
-   * @see GeoFunctions#ST_MakeGridPoints */
+   * @see GeoFunctions ST_MakeGridPoints */
   @SuppressWarnings({"WeakerAccess", "unused"})
-  public static ScannableTable ST_MakeGridPoints(final GeoFunctions.Geom geom,
+  public static ScannableTable ST_MakeGridPoints(final Geom geom,
       final BigDecimal deltaX, final BigDecimal deltaY) {
     return new GridTable(geom, deltaX, deltaY, true);
   }
@@ -70,12 +71,12 @@ public class SqlGeoFunctions {
   /** Returns the points or rectangles in a grid that covers a given
    * geometry. */
   public static class GridTable implements ScannableTable {
-    private final GeoFunctions.Geom geom;
+    private final Geom geom;
     private final BigDecimal deltaX;
     private final BigDecimal deltaY;
     private boolean point;
 
-    GridTable(GeoFunctions.Geom geom, BigDecimal deltaX, BigDecimal deltaY,
+    GridTable(Geom geom, BigDecimal deltaX, BigDecimal deltaY,
         boolean point) {
       this.geom = geom;
       this.deltaX = deltaX;

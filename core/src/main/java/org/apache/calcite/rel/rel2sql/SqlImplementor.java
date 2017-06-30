@@ -702,50 +702,7 @@ public abstract class SqlImplementor {
         }
 
       case LITERAL:
-        final RexLiteral literal = (RexLiteral) rex;
-        if (literal.getTypeName() == SqlTypeName.SYMBOL) {
-          final Enum symbol = (Enum) literal.getValue();
-          return SqlLiteral.createSymbol(symbol, POS);
-        }
-        switch (literal.getTypeName().getFamily()) {
-        case CHARACTER:
-          return SqlLiteral.createCharString((String) literal.getValue2(), POS);
-        case NUMERIC:
-        case EXACT_NUMERIC:
-          return SqlLiteral.createExactNumeric(
-              literal.getValueAs(BigDecimal.class).toPlainString(), POS);
-        case APPROXIMATE_NUMERIC:
-          return SqlLiteral.createApproxNumeric(
-              literal.getValueAs(BigDecimal.class).toPlainString(), POS);
-        case BOOLEAN:
-          return SqlLiteral.createBoolean(literal.getValueAs(Boolean.class),
-              POS);
-        case INTERVAL_YEAR_MONTH:
-        case INTERVAL_DAY_TIME:
-          final boolean negative = literal.getValueAs(Boolean.class);
-          return SqlLiteral.createInterval(negative ? -1 : 1,
-              literal.getValueAs(String.class),
-              literal.getType().getIntervalQualifier(), POS);
-        case DATE:
-          return SqlLiteral.createDate(literal.getValueAs(DateString.class),
-              POS);
-        case TIME:
-          return SqlLiteral.createTime(literal.getValueAs(TimeString.class),
-              literal.getType().getPrecision(), POS);
-        case TIMESTAMP:
-          return SqlLiteral.createTimestamp(
-              literal.getValueAs(TimestampString.class),
-              literal.getType().getPrecision(), POS);
-        case ANY:
-        case NULL:
-          switch (literal.getTypeName()) {
-          case NULL:
-            return SqlLiteral.createNull(POS);
-          // fall through
-          }
-        default:
-          throw new AssertionError(literal + ": " + literal.getTypeName());
-        }
+        return SqlImplementor.toSql((RexLiteral) rex);
 
       case CASE:
         final RexCall caseCall = (RexCall) rex;
@@ -1200,6 +1157,53 @@ public abstract class SqlImplementor {
 
     public SqlImplementor implementor() {
       throw new UnsupportedOperationException();
+    }
+  }
+
+  /** Converts a {@link RexLiteral} to a {@link SqlLiteral}. */
+  public static SqlLiteral toSql(RexLiteral literal) {
+    if (literal.getTypeName() == SqlTypeName.SYMBOL) {
+      final Enum symbol = (Enum) literal.getValue();
+      return SqlLiteral.createSymbol(symbol, POS);
+    }
+    switch (literal.getTypeName().getFamily()) {
+    case CHARACTER:
+      return SqlLiteral.createCharString((String) literal.getValue2(), POS);
+    case NUMERIC:
+    case EXACT_NUMERIC:
+      return SqlLiteral.createExactNumeric(
+          literal.getValueAs(BigDecimal.class).toPlainString(), POS);
+    case APPROXIMATE_NUMERIC:
+      return SqlLiteral.createApproxNumeric(
+          literal.getValueAs(BigDecimal.class).toPlainString(), POS);
+    case BOOLEAN:
+      return SqlLiteral.createBoolean(literal.getValueAs(Boolean.class),
+          POS);
+    case INTERVAL_YEAR_MONTH:
+    case INTERVAL_DAY_TIME:
+      final boolean negative = literal.getValueAs(Boolean.class);
+      return SqlLiteral.createInterval(negative ? -1 : 1,
+          literal.getValueAs(String.class),
+          literal.getType().getIntervalQualifier(), POS);
+    case DATE:
+      return SqlLiteral.createDate(literal.getValueAs(DateString.class),
+          POS);
+    case TIME:
+      return SqlLiteral.createTime(literal.getValueAs(TimeString.class),
+          literal.getType().getPrecision(), POS);
+    case TIMESTAMP:
+      return SqlLiteral.createTimestamp(
+          literal.getValueAs(TimestampString.class),
+          literal.getType().getPrecision(), POS);
+    case ANY:
+    case NULL:
+      switch (literal.getTypeName()) {
+      case NULL:
+        return SqlLiteral.createNull(POS);
+      // fall through
+      }
+    default:
+      throw new AssertionError(literal + ": " + literal.getTypeName());
     }
   }
 
