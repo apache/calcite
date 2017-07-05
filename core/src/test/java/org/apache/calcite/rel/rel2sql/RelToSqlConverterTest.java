@@ -754,6 +754,19 @@ public class RelToSqlConverterTest {
         .ok(expected);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1826">[CALCITE-1826]
+   * Jdbc dialect specific FLOOR fails when in GROUP BY</a>. */
+  @Test public void testFloorWithGroupBy() {
+    String query = "SELECT floor(\"hire_date\" TO MINUTE) FROM \"employee\"\n"
+        + "GROUP BY floor(\"hire_date\" TO MINUTE)";
+    String expected = "SELECT TRUNC(hire_date, 'MI')\nFROM foodmart.employee\n"
+        + "GROUP BY TRUNC(hire_date, 'MI')";
+    sql(query)
+        .dialect(DatabaseProduct.HSQLDB.getDialect())
+        .ok(expected);
+  }
+
   @Test public void testMatchRecognizePatternExpression() {
     String sql = "select *\n"
         + "  from \"product\" match_recognize\n"
