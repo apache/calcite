@@ -136,7 +136,7 @@ public abstract class Sort extends SingleRel {
     double rowCount = mq.getRowCount(this);
     double bytesPerRow = getRowType().getFieldCount() * 4;
     return planner.getCostFactory().makeCost(
-        Util.nLogN(rowCount) * bytesPerRow, rowCount, 0);
+            rowCount, Util.nLogN(rowCount) * bytesPerRow, 0);
   }
 
   @Override public List<RexNode> getChildExps() {
