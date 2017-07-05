@@ -133,10 +133,10 @@ public abstract class Sort extends SingleRel {
       RelMetadataQuery mq) {
     // Higher cost if rows are wider discourages pushing a project through a
     // sort.
-    double rowCount = mq.getRowCount(this);
-    double bytesPerRow = getRowType().getFieldCount() * 4;
-    return planner.getCostFactory().makeCost(
-        Util.nLogN(rowCount) * bytesPerRow, rowCount, 0);
+    final double rowCount = mq.getRowCount(this);
+    final double bytesPerRow = getRowType().getFieldCount() * 4;
+    final double cpu = Util.nLogN(rowCount) * bytesPerRow;
+    return planner.getCostFactory().makeCost(rowCount, cpu, 0);
   }
 
   @Override public List<RexNode> getChildExps() {
