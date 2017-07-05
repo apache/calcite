@@ -6304,6 +6304,12 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + " group by 1,2")
         .tester(strict).fails("Expression 'DEPTNO' is not being grouped")
         .tester(lenient).sansCarets().ok();
+    sql("select ^empno^, count(*) from emp group by 1 order by 1")
+        .tester(strict).fails("Expression 'EMPNO' is not being grouped")
+        .tester(lenient).sansCarets().ok();
+    sql("select ^empno^ eno, count(*) from emp group by 1 order by 1")
+        .tester(strict).fails("Expression 'EMPNO' is not being grouped")
+        .tester(lenient).sansCarets().ok();
     sql("select count(*) from (select 1 from emp"
         + " group by substring(ename from 2 for 3))")
         .tester(strict).ok()

@@ -5415,7 +5415,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
             // SQL ordinals are 1-based, but Sort's are 0-based
             int ordinal = intValue - 1;
-            return select.getSelectList().get(ordinal);
+            return SqlUtil.stripAs(select.getSelectList().get(ordinal));
           }
           break;
         }
