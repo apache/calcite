@@ -94,7 +94,7 @@ public class SqlBasicCall extends SqlCall {
   }
 
   @Override public SqlNode clone(SqlParserPos pos) {
-    return getOperator().createCall(getFunctionQuantifier(), pos, operands);
+    return getOperator().createCall(getFunctionQuantifier(), pos, operands.clone());
   }
 
 }

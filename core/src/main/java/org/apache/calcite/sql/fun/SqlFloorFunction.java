@@ -90,17 +90,23 @@ public class SqlFloorFunction extends SqlMonotonicUnaryFunction {
 
     switch (writer.getDialect().getDatabaseProduct()) {
     case ORACLE:
-      replaceTimeUnitOperand(call, timeUnit.name(), timeUnitNode.getParserPosition());
-      unparseDatetimeFunction(writer, call, "TRUNC", true);
+      unparseDatetimeFunction(writer,
+          replaceTimeUnitOperand(call, timeUnit.name(), timeUnitNode.getParserPosition()),
+          "TRUNC",
+          true);
       break;
     case HSQLDB:
       String translatedLit = convertToHsqlDb(timeUnit);
-      replaceTimeUnitOperand(call, translatedLit, timeUnitNode.getParserPosition());
-      unparseDatetimeFunction(writer, call, "TRUNC", true);
+      unparseDatetimeFunction(writer,
+          replaceTimeUnitOperand(call, translatedLit, timeUnitNode.getParserPosition()),
+          "TRUNC",
+          true);
       break;
     case POSTGRESQL:
-      replaceTimeUnitOperand(call, timeUnit.name(), timeUnitNode.getParserPosition());
-      unparseDatetimeFunction(writer, call, "DATE_TRUNC", false);
+      unparseDatetimeFunction(writer,
+          replaceTimeUnitOperand(call, timeUnit.name(), timeUnitNode.getParserPosition()),
+          "DATE_TRUNC",
+          false);
       break;
     case MSSQL:
       unparseDatetimeMssql(writer, call);
@@ -113,9 +119,11 @@ public class SqlFloorFunction extends SqlMonotonicUnaryFunction {
     }
   }
 
-  private void replaceTimeUnitOperand(SqlCall call, String literal, SqlParserPos pos) {
+  private SqlCall replaceTimeUnitOperand(SqlCall call, String literal, SqlParserPos pos) {
     SqlLiteral literalNode = SqlLiteral.createCharString(literal, null, pos);
-    call.setOperand(1, literalNode);
+    SqlCall callWithLiteral = (SqlCall) call.clone(pos);
+    callWithLiteral.setOperand(1, literalNode);
+    return callWithLiteral;
   }
 
   /**
