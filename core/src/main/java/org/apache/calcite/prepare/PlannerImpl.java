@@ -68,6 +68,7 @@ public class PlannerImpl implements Planner {
   private final ImmutableList<RelTraitDef> traitDefs;
 
   private final SqlParser.Config parserConfig;
+  private final SqlToRelConverter.Config sqlToRelConverterConfig;
   private final SqlRexConvertletTable convertletTable;
 
   private State state;
@@ -96,6 +97,7 @@ public class PlannerImpl implements Planner {
     this.operatorTable = config.getOperatorTable();
     this.programs = config.getPrograms();
     this.parserConfig = config.getParserConfig();
+    this.sqlToRelConverterConfig = config.getSqlToRelConverterConfig();
     this.state = State.STATE_0_CLOSED;
     this.traitDefs = config.getTraitDefs();
     this.convertletTable = config.getConvertletTable();
@@ -224,7 +226,10 @@ public class PlannerImpl implements Planner {
     final RexBuilder rexBuilder = createRexBuilder();
     final RelOptCluster cluster = RelOptCluster.create(planner, rexBuilder);
     final SqlToRelConverter.Config config = SqlToRelConverter.configBuilder()
-        .withTrimUnusedFields(false).withConvertTableAccess(false).build();
+        .withConfig(sqlToRelConverterConfig)
+        .withTrimUnusedFields(false)
+        .withConvertTableAccess(false)
+        .build();
     final SqlToRelConverter sqlToRelConverter =
         new SqlToRelConverter(new ViewExpanderImpl(), validator,
             createCatalogReader(), cluster, convertletTable, config);
@@ -260,8 +265,12 @@ public class PlannerImpl implements Planner {
 
       final RexBuilder rexBuilder = createRexBuilder();
       final RelOptCluster cluster = RelOptCluster.create(planner, rexBuilder);
-      final SqlToRelConverter.Config config = SqlToRelConverter.configBuilder()
-          .withTrimUnusedFields(false).withConvertTableAccess(false).build();
+      final SqlToRelConverter.Config config = SqlToRelConverter
+          .configBuilder()
+          .withConfig(sqlToRelConverterConfig)
+          .withTrimUnusedFields(false)
+          .withConvertTableAccess(false)
+          .build();
       final SqlToRelConverter sqlToRelConverter =
           new SqlToRelConverter(new ViewExpanderImpl(), validator,
               catalogReader, cluster, convertletTable, config);
