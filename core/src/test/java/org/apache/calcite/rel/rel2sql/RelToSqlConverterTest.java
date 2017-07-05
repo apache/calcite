@@ -754,6 +754,37 @@ public class RelToSqlConverterTest {
         .ok(expected);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1826">[CALCITE-1826]
+   * JDBC dialect-specific FLOOR fails when in GROUP BY</a>. */
+  @Test public void testFloorWithGroupBy() {
+    final String query = "SELECT floor(\"hire_date\" TO MINUTE)\n"
+        + "FROM \"employee\"\n"
+        + "GROUP BY floor(\"hire_date\" TO MINUTE)";
+    final String expected = "SELECT TRUNC(hire_date, 'MI')\n"
+        + "FROM foodmart.employee\n"
+        + "GROUP BY TRUNC(hire_date, 'MI')";
+    final String expectedOracle = "SELECT TRUNC(\"hire_date\", 'MINUTE')\n"
+        + "FROM \"foodmart\".\"employee\"\n"
+        + "GROUP BY TRUNC(\"hire_date\", 'MINUTE')";
+    final String expectedPostgresql = "SELECT DATE_TRUNC('MINUTE', \"hire_date\")\n"
+        + "FROM \"foodmart\".\"employee\"\n"
+        + "GROUP BY DATE_TRUNC('MINUTE', \"hire_date\")";
+    final String expectedMysql = "SELECT"
+        + " DATE_FORMAT(`hire_date`, '%Y-%m-%d %k:%i:00')\n"
+        + "FROM `foodmart`.`employee`\n"
+        + "GROUP BY DATE_FORMAT(`hire_date`, '%Y-%m-%d %k:%i:00')";
+    sql(query)
+        .dialect(DatabaseProduct.HSQLDB.getDialect())
+        .ok(expected)
+        .dialect(DatabaseProduct.ORACLE.getDialect())
+        .ok(expectedOracle)
+        .dialect(DatabaseProduct.POSTGRESQL.getDialect())
+        .ok(expectedPostgresql)
+        .dialect(DatabaseProduct.MYSQL.getDialect())
+        .ok(expectedMysql);
+  }
+
   @Test public void testMatchRecognizePatternExpression() {
     String sql = "select *\n"
         + "  from \"product\" match_recognize\n"

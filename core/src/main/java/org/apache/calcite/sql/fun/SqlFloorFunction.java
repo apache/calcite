@@ -88,19 +88,20 @@ public class SqlFloorFunction extends SqlMonotonicUnaryFunction {
     final SqlLiteral timeUnitNode = call.operand(1);
     final TimeUnitRange timeUnit = timeUnitNode.getValueAs(TimeUnitRange.class);
 
+    final SqlCall call2;
     switch (writer.getDialect().getDatabaseProduct()) {
     case ORACLE:
-      replaceTimeUnitOperand(call, timeUnit.name(), timeUnitNode.getParserPosition());
-      unparseDatetimeFunction(writer, call, "TRUNC", true);
+      call2 = replaceTimeUnitOperand(call, timeUnit.name(), timeUnitNode.getParserPosition());
+      unparseDatetimeFunction(writer, call2, "TRUNC", true);
       break;
     case HSQLDB:
-      String translatedLit = convertToHsqlDb(timeUnit);
-      replaceTimeUnitOperand(call, translatedLit, timeUnitNode.getParserPosition());
-      unparseDatetimeFunction(writer, call, "TRUNC", true);
+      final String translatedLit = convertToHsqlDb(timeUnit);
+      call2 = replaceTimeUnitOperand(call, translatedLit, timeUnitNode.getParserPosition());
+      unparseDatetimeFunction(writer, call2, "TRUNC", true);
       break;
     case POSTGRESQL:
-      replaceTimeUnitOperand(call, timeUnit.name(), timeUnitNode.getParserPosition());
-      unparseDatetimeFunction(writer, call, "DATE_TRUNC", false);
+      call2 = replaceTimeUnitOperand(call, timeUnit.name(), timeUnitNode.getParserPosition());
+      unparseDatetimeFunction(writer, call2, "DATE_TRUNC", false);
       break;
     case MSSQL:
       unparseDatetimeMssql(writer, call);
@@ -113,9 +114,19 @@ public class SqlFloorFunction extends SqlMonotonicUnaryFunction {
     }
   }
 
-  private void replaceTimeUnitOperand(SqlCall call, String literal, SqlParserPos pos) {
+  /**
+   * Copies a {@link SqlCall}, replacing the time unit operand with the given
+   * literal.
+   *
+   * @param call Call
+   * @param literal Literal to replace time unit with
+   * @param pos Parser position
+   * @return Modified call
+   */
+  private SqlCall replaceTimeUnitOperand(SqlCall call, String literal, SqlParserPos pos) {
     SqlLiteral literalNode = SqlLiteral.createCharString(literal, null, pos);
-    call.setOperand(1, literalNode);
+    return call.getOperator().createCall(call.getFunctionQuantifier(), pos,
+        call.getOperandList().get(0), literalNode);
   }
 
   /**
