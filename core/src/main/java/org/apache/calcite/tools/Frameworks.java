@@ -33,6 +33,7 @@ import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql2rel.SqlRexConvertletTable;
+import org.apache.calcite.sql2rel.SqlToRelConverter;
 import org.apache.calcite.sql2rel.StandardConvertletTable;
 import org.apache.calcite.util.Util;
 
@@ -179,6 +180,8 @@ public class Frameworks {
     private ImmutableList<RelTraitDef> traitDefs;
     private SqlParser.Config parserConfig =
         SqlParser.Config.DEFAULT;
+    private SqlToRelConverter.Config sqlToRelConverterConfig =
+        SqlToRelConverter.Config.DEFAULT;
     private SchemaPlus defaultSchema;
     private RexExecutor executor;
     private RelOptCostFactory costFactory;
@@ -188,8 +191,8 @@ public class Frameworks {
 
     public FrameworkConfig build() {
       return new StdFrameworkConfig(context, convertletTable, operatorTable,
-          programs, traitDefs, parserConfig, defaultSchema, costFactory,
-          typeSystem, executor);
+          programs, traitDefs, parserConfig, sqlToRelConverterConfig,
+          defaultSchema, costFactory, typeSystem, executor);
     }
 
     public ConfigBuilder context(Context c) {
@@ -230,6 +233,13 @@ public class Frameworks {
 
     public ConfigBuilder parserConfig(SqlParser.Config parserConfig) {
       this.parserConfig = Preconditions.checkNotNull(parserConfig);
+      return this;
+    }
+
+    public ConfigBuilder sqlToRelConverterConfig(
+        SqlToRelConverter.Config sqlToRelConverterConfig) {
+      this.sqlToRelConverterConfig =
+          Preconditions.checkNotNull(sqlToRelConverterConfig);
       return this;
     }
 
@@ -278,6 +288,7 @@ public class Frameworks {
     private final ImmutableList<Program> programs;
     private final ImmutableList<RelTraitDef> traitDefs;
     private final SqlParser.Config parserConfig;
+    private final SqlToRelConverter.Config sqlToRelConverterConfig;
     private final SchemaPlus defaultSchema;
     private final RelOptCostFactory costFactory;
     private final RelDataTypeSystem typeSystem;
@@ -289,6 +300,7 @@ public class Frameworks {
         ImmutableList<Program> programs,
         ImmutableList<RelTraitDef> traitDefs,
         SqlParser.Config parserConfig,
+        SqlToRelConverter.Config sqlToRelConverterConfig,
         SchemaPlus defaultSchema,
         RelOptCostFactory costFactory,
         RelDataTypeSystem typeSystem,
@@ -299,6 +311,7 @@ public class Frameworks {
       this.programs = programs;
       this.traitDefs = traitDefs;
       this.parserConfig = parserConfig;
+      this.sqlToRelConverterConfig = sqlToRelConverterConfig;
       this.defaultSchema = defaultSchema;
       this.costFactory = costFactory;
       this.typeSystem = typeSystem;
@@ -307,6 +320,10 @@ public class Frameworks {
 
     public SqlParser.Config getParserConfig() {
       return parserConfig;
+    }
+
+    public SqlToRelConverter.Config getSqlToRelConverterConfig() {
+      return sqlToRelConverterConfig;
     }
 
     public SchemaPlus getDefaultSchema() {

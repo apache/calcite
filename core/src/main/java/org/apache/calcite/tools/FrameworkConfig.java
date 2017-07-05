@@ -25,6 +25,7 @@ import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql2rel.SqlRexConvertletTable;
+import org.apache.calcite.sql2rel.SqlToRelConverter;
 
 import com.google.common.collect.ImmutableList;
 
@@ -39,6 +40,11 @@ public interface FrameworkConfig {
    * The configuration of SQL parser.
    */
   SqlParser.Config getParserConfig();
+
+  /**
+   * The configuration of {@link SqlToRelConverter}.
+   */
+  SqlToRelConverter.Config getSqlToRelConverterConfig();
 
   /**
    * Returns the default schema that should be checked before looking at the
