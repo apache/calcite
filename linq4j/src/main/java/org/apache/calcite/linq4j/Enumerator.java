@@ -22,7 +22,7 @@ package org.apache.calcite.linq4j;
  * <p>Analogous to LINQ's System.Collections.Enumerator. Unlike LINQ, if the
  * underlying collection has been modified it is only optional that an
  * implementation of the Enumerator interface detects it and throws a
- * {@link java.util.ConcurrentModificationException}.</p>
+ * {@link java.util.ConcurrentModificationException}.
  *
  * @param <T> Element type
  */
@@ -34,15 +34,15 @@ public interface Enumerator<T> extends AutoCloseable {
    * called, the {@link #moveNext} method must be called to advance the
    * enumerator to the first element of the collection before reading the
    * value of the {@code current} property; otherwise, {@code current} is
-   * undefined.</p>
+   * undefined.
    *
    * <p>This method also throws {@link java.util.NoSuchElementException} if
    * the last call to {@code moveNext} returned {@code false}, which indicates
-   * the end of the collection.</p>
+   * the end of the collection.
    *
    * <p>This method does not move the position of the enumerator, and
    * consecutive calls to {@code current} return the same object until either
-   * {@code moveNext} or {@code reset} is called.</p>
+   * {@code moveNext} or {@code reset} is called.
    *
    * <p>An enumerator remains valid as long as the collection remains
    * unchanged. If changes are made to the collection, such as adding,
@@ -55,13 +55,13 @@ public interface Enumerator<T> extends AutoCloseable {
    * invalidated.
    *
    * @return Current element
-   * @throws java.util.ConcurrentModificationException
-   *          if collection has
-   *          been modified
-   * @throws java.util.NoSuchElementException
-   *          if {@code moveToNext} has not
-   *          been called, has not been called since the most recent call to
-   *          {@code reset}, or returned false
+   *
+   * @throws java.util.ConcurrentModificationException if collection
+   *          has been modified
+   *
+   * @throws java.util.NoSuchElementException if {@code moveToNext}
+   *          has not been called, has not been called since the most
+   *          recent call to {@code reset}, or returned false
    */
   T current();
 
@@ -71,20 +71,20 @@ public interface Enumerator<T> extends AutoCloseable {
    * <p>After an enumerator is created or after the {@code reset} method is
    * called, an enumerator is positioned before the first element of the
    * collection, and the first call to the {@code moveNext} method moves the
-   * enumerator over the first element of the collection.</p>
+   * enumerator over the first element of the collection.
    *
    * <p>If {@code moveNext} passes the end of the collection, the enumerator
    * is positioned after the last element in the collection and
    * {@code moveNext} returns {@code false}. When the enumerator is at this
    * position, subsequent calls to {@code moveNext} also return {@code false}
-   * until {@code #reset} is called.</p>
+   * until {@code #reset} is called.
    *
    * <p>An enumerator remains valid as long as the collection remains
    * unchanged. If changes are made to the collection, such as adding,
    * modifying, or deleting elements, the enumerator is irrecoverably
    * invalidated. The next call to {@code moveNext} or {@link #reset} may,
    * at the discretion of the implementation, throw a
-   * {@link java.util.ConcurrentModificationException}.</p>
+   * {@link java.util.ConcurrentModificationException}.
    *
    * @return {@code true} if the enumerator was successfully advanced to the
    *         next element; {@code false} if the enumerator has passed the end of
@@ -101,10 +101,10 @@ public interface Enumerator<T> extends AutoCloseable {
    * modifying, or deleting elements, the enumerator is irrecoverably
    * invalidated. The next call to {@link #moveNext} or {@code reset} may,
    * at the discretion of the implementation, throw a
-   * {@link java.util.ConcurrentModificationException}.</p>
+   * {@link java.util.ConcurrentModificationException}.
    *
    * <p>This method is optional; it may throw
-   * {@link UnsupportedOperationException}.</p>
+   * {@link UnsupportedOperationException}.
    *
    * <h3>Notes to Implementers</h3>
    *
@@ -113,7 +113,7 @@ public interface Enumerator<T> extends AutoCloseable {
    * of the collection, before the first element. This invalidates the
    * enumerator if the collection has been modified since the enumerator was
    * created, which is consistent with {@link #moveNext()} and
-   * {@link #current()}.</p>
+   * {@link #current()}.
    */
   void reset();
 
@@ -121,7 +121,7 @@ public interface Enumerator<T> extends AutoCloseable {
    * Closes this enumerable and releases resources.
    *
    * <p>This method is idempotent. Calling it multiple times has the same effect
-   * as calling it once.</p>
+   * as calling it once.
    */
   void close();
 }

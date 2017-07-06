@@ -2005,6 +2005,19 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
 
   /**
    * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1799">[CALCITE-1799]
+   * "OR .. IN" sub-query conversion wrong</a>.
+   *
+   * <p>The problem is only fixed if you have {@code expand = false}.
+   */
+  @Test public void testSubQueryOr() {
+    final String sql = "select * from emp where deptno = 10 or deptno in (\n"
+        + "    select dept.deptno from dept where deptno < 5)\n";
+    sql(sql).expand(false).ok();
+  }
+
+  /**
+   * Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-695">[CALCITE-695]
    * SqlSingleValueAggFunction is created when it may not be needed</a>.
    */

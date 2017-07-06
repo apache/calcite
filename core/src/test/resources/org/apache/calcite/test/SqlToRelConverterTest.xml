@@ -3664,6 +3664,24 @@ LogicalProject(EMPNO=[$0])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testSubQueryOr">
+        <Resource name="sql">
+            <![CDATA[select * from emp where deptno = 10 or deptno in (
+    select dept.deptno from dept where deptno < 5)
+]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalFilter(condition=[OR(=($7, 10), IN($7, {
+LogicalProject(DEPTNO=[$0])
+  LogicalFilter(condition=[<($0, 5)])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+}))])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testUpdateWhere">
         <Resource name="sql">
             <![CDATA[update emp set empno = empno + 1 where deptno = 10]]>

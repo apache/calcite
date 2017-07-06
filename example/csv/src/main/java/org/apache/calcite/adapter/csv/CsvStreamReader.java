@@ -124,8 +124,8 @@ class CsvStreamReader extends CSVReader implements Closeable {
    * Reads the next line from the file.
    *
    * @return the next line from the file without trailing newline
-   * @throws IOException
-   *             if bad things happen during the read
+   *
+   * @throws IOException if bad things happen during the read
    */
   private String getNextLine() throws IOException {
     return contentQueue.poll();
