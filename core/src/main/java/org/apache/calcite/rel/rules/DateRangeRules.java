@@ -232,6 +232,7 @@ public abstract class DateRangeRules {
                 (RexLiteral) op1);
           }
         }
+        // fall through
       default:
         calls.push(call);
         try {

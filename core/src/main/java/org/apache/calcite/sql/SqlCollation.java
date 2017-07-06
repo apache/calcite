@@ -145,7 +145,7 @@ public class SqlCollation implements Serializable {
    * @param col2 second operand for the dyadic operation
    * @return the resulting collation sequence
    *
-   * @throws org.apache.calcite.runtime.CalciteException
+   * @throws org.apache.calcite.runtime.CalciteException from
    *   {@link org.apache.calcite.runtime.CalciteResource#invalidCompare} or
    *   {@link org.apache.calcite.runtime.CalciteResource#differentCollations}
    *   if no collating sequence can be deduced

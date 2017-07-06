@@ -209,7 +209,6 @@ public class RelMetadataQuery {
    * statistic.
    *
    * @param rel the relational expression
-   * @return
    */
   public Multimap<Class<? extends RelNode>, RelNode> getNodeTypes(RelNode rel) {
     for (;;) {

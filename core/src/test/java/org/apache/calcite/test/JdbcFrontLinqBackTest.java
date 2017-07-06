@@ -326,8 +326,6 @@ public class JdbcFrontLinqBackTest {
    * Method to be shared with {@code RemoteDriverTest}.
    *
    * @param initialData record to be presented in table
-   * @return java.sql.Connection
-   * @throws Exception
    */
   public static Connection makeConnection(
         final List<JdbcTest.Employee> initialData) throws Exception {

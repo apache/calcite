@@ -4419,6 +4419,7 @@ public class SqlToRelConverter {
           throw new RuntimeException(kind
               + " is only supported if expand = false");
         }
+        // fall through
       case CURSOR:
       case IN:
       case NOT_IN:
