@@ -14,36 +14,33 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.util.graph;
+package org.apache.calcite.materialize;
 
+import org.apache.calcite.util.mapping.IntPair;
+
+import com.google.common.collect.ImmutableList;
+
+import java.util.List;
 import java.util.Objects;
 
-/**
- * Default implementation of Edge.
- */
-public class DefaultEdge {
-  public final Object source;
-  public final Object target;
+/** Non-root node in a {@link Lattice}. */
+public class LatticeChildNode extends LatticeNode {
+  public final LatticeNode parent;
+  public final ImmutableList<IntPair> link;
 
-  public DefaultEdge(Object source, Object target) {
-    this.source = Objects.requireNonNull(source);
-    this.target = Objects.requireNonNull(target);
+  LatticeChildNode(LatticeSpace space, LatticeNode parent,
+      MutableNode mutableNode) {
+    super(space, parent, mutableNode);
+    this.parent = Objects.requireNonNull(parent);
+    this.link = ImmutableList.copyOf(mutableNode.step.keys);
   }
 
-  @Override public int hashCode() {
-    return source.hashCode() * 31 + target.hashCode();
-  }
-
-  @Override public boolean equals(Object obj) {
-    return this == obj
-        || obj instanceof DefaultEdge
-        && ((DefaultEdge) obj).source.equals(source)
-        && ((DefaultEdge) obj).target.equals(target);
-  }
-
-  public static <V> DirectedGraph.EdgeFactory<V, DefaultEdge> factory() {
-    return DefaultEdge::new;
+  void use(List<LatticeNode> usedNodes) {
+    if (!usedNodes.contains(this)) {
+      parent.use(usedNodes);
+      usedNodes.add(this);
+    }
   }
 }
 
-// End DefaultEdge.java
+// End LatticeChildNode.java

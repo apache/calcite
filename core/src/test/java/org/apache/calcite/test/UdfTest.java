@@ -594,7 +594,9 @@ public class UdfTest {
         .throws_("No match found for function signature MY_SUM3(<NUMERIC>, "
             + "<NUMERIC>, <APPROXIMATE_NUMERIC>)");
     with.query("select \"adhoc\".my_sum3(\"empid\",\"deptno\",\"name\") as p "
-        + "from \"adhoc\".EMPLOYEES\n");
+        + "from \"adhoc\".EMPLOYEES\n")
+        .throws_("No match found for function signature MY_SUM3(<NUMERIC>, "
+            + "<NUMERIC>, <CHARACTER>)");
     with.query("select \"adhoc\".my_sum2(\"commission\",250) as p "
         + "from \"adhoc\".EMPLOYEES\n")
         .returns("P=1500\n");

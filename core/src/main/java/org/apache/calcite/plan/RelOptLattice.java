@@ -40,7 +40,7 @@ public class RelOptLattice {
   }
 
   public RelOptTable rootTable() {
-    return lattice.nodes.get(0).scan.getTable();
+    return lattice.rootNode.relOptTable();
   }
 
   /** Rewrites a relational expression to use a lattice.

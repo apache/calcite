@@ -14,36 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.util.graph;
+package org.apache.calcite.materialize;
 
-import java.util.Objects;
+import java.util.List;
 
 /**
- * Default implementation of Edge.
+ * Estimates row counts for tables and columns.
+ *
+ * <p>Unlike {@link LatticeStatisticProvider}, works on raw tables and columns
+ * and does not need a {@link Lattice}.
  */
-public class DefaultEdge {
-  public final Object source;
-  public final Object target;
-
-  public DefaultEdge(Object source, Object target) {
-    this.source = Objects.requireNonNull(source);
-    this.target = Objects.requireNonNull(target);
-  }
-
-  @Override public int hashCode() {
-    return source.hashCode() * 31 + target.hashCode();
-  }
-
-  @Override public boolean equals(Object obj) {
-    return this == obj
-        || obj instanceof DefaultEdge
-        && ((DefaultEdge) obj).source.equals(source)
-        && ((DefaultEdge) obj).target.equals(target);
-  }
-
-  public static <V> DirectedGraph.EdgeFactory<V, DefaultEdge> factory() {
-    return DefaultEdge::new;
-  }
+public interface SqlStatisticProvider {
+  double tableCardinality(List<String> qualifiedTableName);
 }
 
-// End DefaultEdge.java
+// End SqlStatisticProvider.java

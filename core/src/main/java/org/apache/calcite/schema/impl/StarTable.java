@@ -89,7 +89,7 @@ public class StarTable extends AbstractTable implements TranslatableTable {
     if (this.fieldCounts == null) {
       this.fieldCounts = ImmutableIntList.copyOf(fieldCounts);
     }
-    return typeFactory.createStructType(typeList, lattice.uniqueColumnNames);
+    return typeFactory.createStructType(typeList, lattice.uniqueColumnNames());
   }
 
   public RelNode toRel(RelOptTable.ToRelContext context, RelOptTable table) {

@@ -18,6 +18,8 @@ package org.apache.calcite.tools;
 
 import org.apache.calcite.config.CalciteConnectionProperty;
 import org.apache.calcite.jdbc.CalciteSchema;
+import org.apache.calcite.materialize.MapSqlStatisticProvider;
+import org.apache.calcite.materialize.SqlStatisticProvider;
 import org.apache.calcite.plan.Context;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCostFactory;
@@ -167,8 +169,19 @@ public class Frameworks {
     return CalciteSchema.createRootSchema(addMetadataSchema).plus();
   }
 
+  /** Creates a config builder with each setting initialized to its default
+   * value. */
   public static ConfigBuilder newConfigBuilder() {
     return new ConfigBuilder();
+  }
+
+  /** Creates a config builder initializing each setting from an existing
+   * config.
+   *
+   * <p>So, {@code newConfigBuilder(config).build()} will return a
+   * value equal to {@code config}. */
+  public static ConfigBuilder newConfigBuilder(FrameworkConfig config) {
+    return new ConfigBuilder(config);
   }
 
   /**
@@ -176,27 +189,54 @@ public class Frameworks {
    * where values aren't required.
    */
   public static class ConfigBuilder {
-    private SqlRexConvertletTable convertletTable =
-        StandardConvertletTable.INSTANCE;
-    private SqlOperatorTable operatorTable = SqlStdOperatorTable.instance();
-    private ImmutableList<Program> programs = ImmutableList.of();
+    private SqlRexConvertletTable convertletTable;
+    private SqlOperatorTable operatorTable;
+    private ImmutableList<Program> programs;
     private Context context;
     private ImmutableList<RelTraitDef> traitDefs;
-    private SqlParser.Config parserConfig =
-        SqlParser.Config.DEFAULT;
-    private SqlToRelConverter.Config sqlToRelConverterConfig =
-        SqlToRelConverter.Config.DEFAULT;
+    private SqlParser.Config parserConfig;
+    private SqlToRelConverter.Config sqlToRelConverterConfig;
     private SchemaPlus defaultSchema;
     private RexExecutor executor;
     private RelOptCostFactory costFactory;
-    private RelDataTypeSystem typeSystem = RelDataTypeSystem.DEFAULT;
+    private RelDataTypeSystem typeSystem;
+    private boolean evolveLattice;
+    private SqlStatisticProvider statisticProvider;
 
-    private ConfigBuilder() {}
+    /** Creates a ConfigBuilder, initializing to defaults. */
+    private ConfigBuilder() {
+      convertletTable = StandardConvertletTable.INSTANCE;
+      operatorTable = SqlStdOperatorTable.instance();
+      programs = ImmutableList.of();
+      parserConfig = SqlParser.Config.DEFAULT;
+      sqlToRelConverterConfig = SqlToRelConverter.Config.DEFAULT;
+      typeSystem = RelDataTypeSystem.DEFAULT;
+      evolveLattice = false;
+      statisticProvider = MapSqlStatisticProvider.INSTANCE;
+    }
+
+    /** Creates a ConfigBuilder, initializing from an existing config. */
+    private ConfigBuilder(FrameworkConfig config) {
+      convertletTable = config.getConvertletTable();
+      operatorTable = config.getOperatorTable();
+      programs = config.getPrograms();
+      context = config.getContext();
+      traitDefs = config.getTraitDefs();
+      parserConfig = config.getParserConfig();
+      sqlToRelConverterConfig = config.getSqlToRelConverterConfig();
+      defaultSchema = config.getDefaultSchema();
+      executor = config.getExecutor();
+      costFactory = config.getCostFactory();
+      typeSystem = config.getTypeSystem();
+      evolveLattice = config.isEvolveLattice();
+      statisticProvider = config.getStatisticProvider();
+    }
 
     public FrameworkConfig build() {
       return new StdFrameworkConfig(context, convertletTable, operatorTable,
           programs, traitDefs, parserConfig, sqlToRelConverterConfig,
-          defaultSchema, costFactory, typeSystem, executor);
+          defaultSchema, costFactory, typeSystem, executor, evolveLattice,
+          statisticProvider);
     }
 
     public ConfigBuilder context(Context c) {
@@ -278,6 +318,17 @@ public class Frameworks {
       this.typeSystem = Objects.requireNonNull(typeSystem);
       return this;
     }
+
+    public ConfigBuilder evolveLattice(boolean evolveLattice) {
+      this.evolveLattice = evolveLattice;
+      return this;
+    }
+
+    public ConfigBuilder statisticProvider(
+        SqlStatisticProvider statisticProvider) {
+      this.statisticProvider = Objects.requireNonNull(statisticProvider);
+      return this;
+    }
   }
 
   /**
@@ -296,6 +347,8 @@ public class Frameworks {
     private final RelOptCostFactory costFactory;
     private final RelDataTypeSystem typeSystem;
     private final RexExecutor executor;
+    private final boolean evolveLattice;
+    private final SqlStatisticProvider statisticProvider;
 
     StdFrameworkConfig(Context context,
         SqlRexConvertletTable convertletTable,
@@ -307,7 +360,9 @@ public class Frameworks {
         SchemaPlus defaultSchema,
         RelOptCostFactory costFactory,
         RelDataTypeSystem typeSystem,
-        RexExecutor executor) {
+        RexExecutor executor,
+        boolean evolveLattice,
+        SqlStatisticProvider statisticProvider) {
       this.context = context;
       this.convertletTable = convertletTable;
       this.operatorTable = operatorTable;
@@ -319,6 +374,8 @@ public class Frameworks {
       this.costFactory = costFactory;
       this.typeSystem = typeSystem;
       this.executor = executor;
+      this.evolveLattice = evolveLattice;
+      this.statisticProvider = statisticProvider;
     }
 
     public SqlParser.Config getParserConfig() {
@@ -363,6 +420,14 @@ public class Frameworks {
 
     public RelDataTypeSystem getTypeSystem() {
       return typeSystem;
+    }
+
+    public boolean isEvolveLattice() {
+      return evolveLattice;
+    }
+
+    public SqlStatisticProvider getStatisticProvider() {
+      return statisticProvider;
     }
   }
 }

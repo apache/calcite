@@ -112,8 +112,8 @@ FROM depts
 JOIN (
   SELECT empid, deptno
   FROM emps
-  WHERE empid = 1) subq
-ON (depts.deptno = subq.deptno)
+  WHERE empid = 1) AS subq
+ON depts.deptno = subq.deptno
 ```
 
 * Materialized view definition:
@@ -227,8 +227,8 @@ GROUP BY deptno
 ```
 SELECT deptname, state, SUM(salary) AS s
 FROM emps
-JOIN depts ON (emps.deptno = depts.deptno)
-JOIN locations ON (emps.locationid = locations.locationid)
+JOIN depts ON emps.deptno = depts.deptno
+JOIN locations ON emps.locationid = locations.locationid
 GROUP BY deptname, state
 ```
 
@@ -237,7 +237,7 @@ GROUP BY deptname, state
 ```
 SELECT empid, deptno, state, SUM(salary) AS s
 FROM emps
-JOIN locations ON (emps.locationid = locations.locationid)
+JOIN locations ON emps.locationid = locations.locationid
 GROUP BY empid, deptno, state
 ```
 
@@ -246,7 +246,7 @@ GROUP BY empid, deptno, state
 ```
 SELECT deptname, state, SUM(s)
 FROM mv
-JOIN depts ON (mv.deptno = depts.deptno)
+JOIN depts ON mv.deptno = depts.deptno
 GROUP BY deptname, state
 ```
 
@@ -258,7 +258,7 @@ GROUP BY deptname, state
 ```
 SELECT empid, deptname
 FROM emps
-JOIN depts ON (emps.deptno = depts.deptno)
+JOIN depts ON emps.deptno = depts.deptno
 WHERE salary > 10000
 ```
 
@@ -267,7 +267,7 @@ WHERE salary > 10000
 ```
 SELECT empid, deptname
 FROM emps
-JOIN depts ON (emps.deptno = depts.deptno)
+JOIN depts ON emps.deptno = depts.deptno
 WHERE salary > 12000
 ```
 
@@ -279,7 +279,7 @@ FROM mv
 UNION ALL
 SELECT empid, deptname
 FROM emps
-JOIN depts ON (emps.deptno = depts.deptno)
+JOIN depts ON emps.deptno = depts.deptno
 WHERE salary > 10000 AND salary <= 12000
 ```
 
@@ -291,7 +291,7 @@ WHERE salary > 10000 AND salary <= 12000
 ```
 SELECT empid, deptname, SUM(salary) AS s
 FROM emps
-JOIN depts ON (emps.deptno = depts.deptno)
+JOIN depts ON emps.deptno = depts.deptno
 WHERE salary > 10000
 GROUP BY empid, deptname
 ```
@@ -301,7 +301,7 @@ GROUP BY empid, deptname
 ```
 SELECT empid, deptname, SUM(salary) AS s
 FROM emps
-JOIN depts ON (emps.deptno = depts.deptno)
+JOIN depts ON emps.deptno = depts.deptno
 WHERE salary > 12000
 GROUP BY empid, deptname
 ```
@@ -311,14 +311,14 @@ GROUP BY empid, deptname
 ```
 SELECT empid, deptname, SUM(s)
 FROM (
-SELECT empid, deptname, s
-FROM mv
-UNION ALL
-SELECT empid, deptname, SUM(salary) AS s
-FROM emps
-JOIN depts ON (emps.deptno = depts.deptno)
-WHERE salary > 10000 AND salary <= 12000
-GROUP BY empid, deptname) subq
+  SELECT empid, deptname, s
+  FROM mv
+  UNION ALL
+  SELECT empid, deptname, SUM(salary) AS s
+  FROM emps
+  JOIN depts ON emps.deptno = depts.deptno
+  WHERE salary > 10000 AND salary <= 12000
+  GROUP BY empid, deptname) AS subq
 GROUP BY empid, deptname
 ```
 
@@ -327,7 +327,7 @@ GROUP BY empid, deptname
 
 This rule still presents some limitations. In particular, the rewriting rule attempts to match all views against each query. We plan to implement more refined filtering techniques such as those described in [<a href="#ref-gl01">GL01</a>].
 
-### References
+## References
 
 <ul>
 <li>[<a name="ref-gl01">GL01</a>] Jonathan Goldstein and Per-åke Larson.

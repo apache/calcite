@@ -14,36 +14,43 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.util.graph;
+package org.apache.calcite.materialize;
+
+import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.util.Util;
 
 import java.util.Objects;
+import javax.annotation.Nonnull;
 
-/**
- * Default implementation of Edge.
- */
-public class DefaultEdge {
-  public final Object source;
-  public final Object target;
+/** Table registered in the graph. */
+public class LatticeTable {
+  @Nonnull public final RelOptTable t;
+  @Nonnull public final String alias;
 
-  public DefaultEdge(Object source, Object target) {
-    this.source = Objects.requireNonNull(source);
-    this.target = Objects.requireNonNull(target);
+  LatticeTable(RelOptTable table) {
+    t = Objects.requireNonNull(table);
+    alias = Objects.requireNonNull(Util.last(table.getQualifiedName()));
   }
 
   @Override public int hashCode() {
-    return source.hashCode() * 31 + target.hashCode();
+    return t.getQualifiedName().hashCode();
   }
 
   @Override public boolean equals(Object obj) {
     return this == obj
-        || obj instanceof DefaultEdge
-        && ((DefaultEdge) obj).source.equals(source)
-        && ((DefaultEdge) obj).target.equals(target);
+        || obj instanceof LatticeTable
+        && t.getQualifiedName().equals(
+            ((LatticeTable) obj).t.getQualifiedName());
   }
 
-  public static <V> DirectedGraph.EdgeFactory<V, DefaultEdge> factory() {
-    return DefaultEdge::new;
+  @Override public String toString() {
+    return t.getQualifiedName().toString();
+  }
+
+  RelDataTypeField field(int i) {
+    return t.getRowType().getFieldList().get(i);
   }
 }
 
-// End DefaultEdge.java
+// End LatticeTable.java
