@@ -542,6 +542,88 @@ public class Smalls {
     }
   }
 
+  /** Example of a user-defined aggregate function (UDAF). */
+  public static class MyTwoParamsSumFunctionFilter1 {
+    public MyTwoParamsSumFunctionFilter1() {
+    }
+    public int init() {
+      return 0;
+    }
+    public int add(int accumulator, int v1, int v2) {
+      if (v1 > v2) {
+        return accumulator + v1;
+      }
+      return accumulator;
+    }
+    public int merge(int accumulator0, int accumulator1) {
+      return accumulator0 + accumulator1;
+    }
+    public int result(int accumulator) {
+      return accumulator;
+    }
+  }
+
+  /** Example of a user-defined aggregate function (UDAF). */
+  public static class MyTwoParamsSumFunctionFilter2 {
+    public MyTwoParamsSumFunctionFilter2() {
+    }
+    public long init() {
+      return 0L;
+    }
+    public long add(long accumulator, int v1, String v2) {
+      if (v2.equals("Eric")) {
+        return accumulator + v1;
+      }
+      return accumulator;
+    }
+    public long merge(long accumulator0, long accumulator1) {
+      return accumulator0 + accumulator1;
+    }
+    public long result(long accumulator) {
+      return accumulator;
+    }
+  }
+
+  /** Example of a user-defined aggregate function (UDAF), whose methods are
+   * static. */
+  public static class MyThreeParamsSumFunctionWithFilter1 {
+    public static long init() {
+      return 0L;
+    }
+    public static long add(long accumulator, int v1, String v2, String v3) {
+      if (v2.equals(v3)) {
+        return accumulator + v1;
+      }
+      return accumulator;
+    }
+    public static long merge(long accumulator0, long accumulator1) {
+      return accumulator0 + accumulator1;
+    }
+    public static long result(long accumulator) {
+      return accumulator;
+    }
+  }
+
+  /** Example of a user-defined aggregate function (UDAF), whose methods are
+   * static. olny for validate to get exact function by calcite*/
+  public static class MyThreeParamsSumFunctionWithFilter2 {
+    public static long init() {
+      return 0L;
+    }
+    public static long add(long accumulator, int v1, int v2, int v3) {
+      if (v3 > 250) {
+        return accumulator + v1 + v2;
+      }
+      return accumulator;
+    }
+    public static long merge(long accumulator0, long accumulator1) {
+      return accumulator0 + accumulator1;
+    }
+    public static long result(long accumulator) {
+      return accumulator;
+    }
+  }
+
   /** User-defined function. */
   public static class SumFunctionBadIAdd {
     public long init() {
