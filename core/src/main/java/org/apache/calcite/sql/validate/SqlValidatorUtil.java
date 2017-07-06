@@ -266,16 +266,16 @@ public class SqlValidatorUtil {
    */
   static void checkIdentifierListForDuplicates(List<SqlNode> columnList,
       SqlValidatorImpl.ValidationErrorFunction validationErrorFunction) {
-    final List<String> names = Lists.transform(columnList,
-        new Function<SqlNode, String>() {
-          public String apply(SqlNode o) {
-            return ((SqlIdentifier) o).toString();
+    final List<List<String>> names = Lists.transform(columnList,
+        new Function<SqlNode, List<String>>() {
+          public List<String> apply(SqlNode o) {
+            return ((SqlIdentifier) o).names;
           }
         });
     final int i = Util.firstDuplicate(names);
     if (i >= 0) {
       throw validationErrorFunction.apply(columnList.get(i),
-          RESOURCE.duplicateNameInColumnList(names.get(i)));
+          RESOURCE.duplicateNameInColumnList(Util.last(names.get(i))));
     }
   }
 
