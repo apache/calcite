@@ -2294,7 +2294,9 @@ public class DruidAdapterIT {
             + "'store_sales'}],'intervals':['1900-01-09T00:00:00.000/2992-01-10T00:00:00.000'],"
             + "'context':{'skipEmptyBuckets':true}}";
 
-    sql(sql).queryContains(druidChecker(expectedQuery));
+    sql(sql)
+        .queryContains(druidChecker(expectedQuery))
+        .returnsUnordered("EXPR$0=52644.07004201412");
   }
 
   /**
@@ -2354,7 +2356,9 @@ public class DruidAdapterIT {
             + "['1900-01-09T00:00:00.000/2992-01-10T00:00:00.000'],"
             + "'context':{'skipEmptyBuckets':true}}";
 
-    sql(sql).queryContains(druidChecker(expectedQuery));
+    sql(sql)
+        .queryContains(druidChecker(expectedQuery))
+        .returnsUnordered("EXPR$0=159167.840144217; EXPR$1=263793.2202244997");
   }
 
   /**
@@ -2378,7 +2382,9 @@ public class DruidAdapterIT {
             + "['1900-01-09T00:00:00.000/2992-01-10T00:00:00.000'],"
             + "'context':{'skipEmptyBuckets':true}}";
 
-    sql(sql).queryContains(druidChecker(expectedQuery));
+    sql(sql)
+        .queryContains(druidChecker(expectedQuery))
+        .returnsUnordered("EXPR$0=2600.0099930763245; EXPR$1=4486.439979553223");
   }
 
   /**
@@ -2406,7 +2412,8 @@ public class DruidAdapterIT {
 
     sql(sql)
         .queryContains(druidChecker(expectedQuery))
-        .explainContains(expectedAggregateExplain);
+        .explainContains(expectedAggregateExplain)
+        .returnsUnordered("EXPR$0=2600.0099930763245; EXPR$1=1013.1619997620583");
   }
 
   /**
@@ -2427,7 +2434,9 @@ public class DruidAdapterIT {
             + ",'lower':'1997','lowerStrict':true,'ordering':'numeric'},{'type':'bound',"
             + "'dimension':'the_year','upper':'1997','upperStrict':false,'ordering':'numeric'}]}";
 
-    sql(sql).queryContains(druidChecker(expectedFilter));
+    sql(sql)
+        .queryContains(druidChecker(expectedFilter))
+        .returnsUnordered("");
   }
 
   /**
