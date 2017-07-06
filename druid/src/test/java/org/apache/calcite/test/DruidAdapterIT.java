@@ -2459,56 +2459,62 @@ public class DruidAdapterIT {
             .throws_("/ by zero");
   }
 
-  @Test public void testInterleaveBetweenAggregateAndGroupOrderByOnDimension() {
-    final String sqlQuery = "select \"store_state\", sum(\"store_sales\")+sum(\"store_cost\") "
-            + "as a, \"brand_name\" from \"foodmart\" group by \"store_state\", \"brand_name\" "
-            + "order by \"brand_name\" limit 5";
-    String postAggString = "'limitSpec':{'type':'default','limit':5,'columns':[{'dimension':"
-            + "'brand_name','direction':'ascending','dimensionOrder':'alphanumeric'}]},"
-            + "'aggregations':[{'type':'doubleSum','name':'$f2','fieldName':'store_sales'},"
-            + "{'type':'doubleSum','name':'$f3','fieldName':'store_cost'}],'postAggregations':"
-            + "[{'type':'arithmetic','name':'postagg#0','fn':'+','fields':"
-            + "[{'type':'fieldAccess','name':'','fieldName':'$f2'},"
-            + "{'type':'fieldAccess','name':'','fieldName':'$f3'}]}]";
-    final String plan = "PLAN=EnumerableInterpreter\n"
-            + "  DruidQuery(table=[[foodmart, foodmart]], "
-            + "intervals=[[1900-01-09T00:00:00.000/2992-01-10T00:00:00.000]], "
-            + "groups=[{2, 63}], aggs=[[SUM($90), SUM($91)]], "
-            + "post_projects=[[$1, +($2, $3), $0]], sort0=[2], dir0=[ASC]";
-    sql(sqlQuery, FOODMART)
-            .explainContains(plan)
-            .queryContains(druidChecker(postAggString))
-            .returnsOrdered("store_state=CA; A=222.15239667892456; brand_name=ADJ",
-                    "store_state=OR; A=186.6035966873169; brand_name=ADJ",
-                    "store_state=WA; A=216.99119639396667; brand_name=ADJ",
-                    "store_state=OR; A=278.6972026824951; brand_name=Akron",
-                    "store_state=WA; A=332.43639850616455; brand_name=Akron");
-  }
-
   @Test public void testInterleaveBetweenAggregateAndGroupOrderByOnMetrics() {
-    final String sqlQuery = "select \"store_state\", sum(\"store_sales\")+sum(\"store_cost\") "
-            + "as a, \"brand_name\" from \"foodmart\" group by \"store_state\", \"brand_name\" "
-            + "order by a limit 5";
+    final String sqlQuery = "select \"store_state\", \"brand_name\", \"A\" from (\n"
+            + "  select sum(\"store_sales\")-sum(\"store_cost\") as a, \"store_state\""
+            + ", \"brand_name\"\n"
+            + "  from \"foodmart\"\n"
+            + "  group by \"store_state\", \"brand_name\" ) subq\n"
+            + "order by \"A\" limit 5";
     String postAggString = "'limitSpec':{'type':'default','limit':5,'columns':[{'dimension':"
             + "'postagg#0','direction':'ascending','dimensionOrder':'numeric'}]},"
             + "'aggregations':[{'type':'doubleSum','name':'$f2','fieldName':'store_sales'},"
             + "{'type':'doubleSum','name':'$f3','fieldName':'store_cost'}],'postAggregations':"
-            + "[{'type':'arithmetic','name':'postagg#0','fn':'+','fields':"
+            + "[{'type':'arithmetic','name':'postagg#0','fn':'-','fields':"
             + "[{'type':'fieldAccess','name':'','fieldName':'$f2'},"
             + "{'type':'fieldAccess','name':'','fieldName':'$f3'}]}]";
     final String plan = "PLAN=EnumerableInterpreter\n"
             + "  DruidQuery(table=[[foodmart, foodmart]], "
             + "intervals=[[1900-01-09T00:00:00.000/2992-01-10T00:00:00.000]], "
             + "groups=[{2, 63}], aggs=[[SUM($90), SUM($91)]], "
-            + "post_projects=[[$1, +($2, $3), $0]], sort0=[1], dir0=[ASC]";
+            + "post_projects=[[$1, $0, -($2, $3)]], sort0=[2], dir0=[ASC], fetch=[5]";
     sql(sqlQuery, FOODMART)
             .explainContains(plan)
             .queryContains(druidChecker(postAggString))
-            .returnsOrdered("store_state=CA; A=49.81679970026016; brand_name=King",
-                    "store_state=CA; A=71.81350201368332; brand_name=Toretti",
-                    "store_state=OR; A=73.4240015745163; brand_name=Symphony",
-                    "store_state=WA; A=80.22959995269775; brand_name=King",
-                    "store_state=OR; A=82.28000164031982; brand_name=Toretti");
+            .returnsOrdered("store_state=CA; brand_name=King; A=21.46319955587387",
+                    "store_state=OR; brand_name=Symphony; A=32.17600071430206",
+                    "store_state=CA; brand_name=Toretti; A=32.24650126695633",
+                    "store_state=WA; brand_name=King; A=34.61040019989014",
+                    "store_state=OR; brand_name=Toretti; A=36.300002098083496");
+  }
+
+  @Test public void testInterleaveBetweenAggregateAndGroupOrderByOnDimension() {
+    final String sqlQuery = "select \"store_state\", \"brand_name\", \"A\" from \n"
+            + "(select \"store_state\", sum(\"store_sales\")+sum(\"store_cost\") "
+            + "as a, \"brand_name\" from \"foodmart\" group by \"store_state\", \"brand_name\") "
+            + "order by \"brand_name\", \"store_state\" limit 5";
+    String postAggString = "'limitSpec':{'type':'default','limit':5,'columns':[{'dimension':"
+            + "'brand_name','direction':'ascending','dimensionOrder':'alphanumeric'},{'dimension':"
+            + "'store_state','direction':'ascending','dimensionOrder':'alphanumeric'}]},"
+            + "'aggregations':[{'type':'doubleSum','name':'$f2','fieldName':'store_sales'},"
+            + "{'type':'doubleSum','name':'$f3','fieldName':'store_cost'}],'postAggregations':"
+            + "[{'type':'arithmetic','name':'postagg#0','fn':'+','fields':"
+            + "[{'type':'fieldAccess','name':'','fieldName':'$f2'},"
+            + "{'type':'fieldAccess','name':'','fieldName':'$f3'}]}]";
+    final String plan = "PLAN=EnumerableInterpreter\n"
+            + "  DruidQuery(table=[[foodmart, foodmart]], "
+            + "intervals=[[1900-01-09T00:00:00.000/2992-01-10T00:00:00.000]], "
+            + "projects=[[$63, $2, $90, $91]], "
+            + "groups=[{0, 1}], aggs=[[SUM($2), SUM($3)]], "
+            + "post_projects=[[$0, $1, +($2, $3)]], sort0=[1], sort1=[0], dir0=[ASC], dir1=[ASC]";
+    sql(sqlQuery, FOODMART)
+            .explainContains(plan)
+            .queryContains(druidChecker(postAggString))
+            .returnsOrdered("store_state=CA; brand_name=ADJ; A=222.15239667892456",
+                    "store_state=OR; brand_name=ADJ; A=186.6035966873169",
+                    "store_state=WA; brand_name=ADJ; A=216.99119639396667",
+                    "store_state=CA; brand_name=Akron; A=250.3489989042282",
+                    "store_state=OR; brand_name=Akron; A=278.6972026824951");
   }
 
   @Test public void testOrderByOnMetricsInSelectDruidQuery() {

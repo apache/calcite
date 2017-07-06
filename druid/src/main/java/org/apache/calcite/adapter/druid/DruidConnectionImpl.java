@@ -365,6 +365,7 @@ class DruidConnectionImpl implements DruidConnection {
             rowBuilder.set(i, Double.NaN);
             break;
           }
+          //fallthrough
         default:
           rowBuilder.set(i, s);
           break;
