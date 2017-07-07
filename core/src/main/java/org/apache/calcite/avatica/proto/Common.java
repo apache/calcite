@@ -1098,12 +1098,12 @@ public final class Common {
       com.google.protobuf.MessageOrBuilder {
 
     /**
-     * <code>optional bool is_dirty = 1;</code>
+     * <code>bool is_dirty = 1;</code>
      */
     boolean getIsDirty();
 
     /**
-     * <code>optional bool auto_commit = 2;</code>
+     * <code>bool auto_commit = 2;</code>
      */
     boolean getAutoCommit();
 
@@ -1112,12 +1112,12 @@ public final class Common {
      * field is a Boolean, need to discern null and default value
      * </pre>
      *
-     * <code>optional bool has_auto_commit = 7;</code>
+     * <code>bool has_auto_commit = 7;</code>
      */
     boolean getHasAutoCommit();
 
     /**
-     * <code>optional bool read_only = 3;</code>
+     * <code>bool read_only = 3;</code>
      */
     boolean getReadOnly();
 
@@ -1126,31 +1126,31 @@ public final class Common {
      * field is a Boolean, need to discern null and default value
      * </pre>
      *
-     * <code>optional bool has_read_only = 8;</code>
+     * <code>bool has_read_only = 8;</code>
      */
     boolean getHasReadOnly();
 
     /**
-     * <code>optional uint32 transaction_isolation = 4;</code>
+     * <code>uint32 transaction_isolation = 4;</code>
      */
     int getTransactionIsolation();
 
     /**
-     * <code>optional string catalog = 5;</code>
+     * <code>string catalog = 5;</code>
      */
     java.lang.String getCatalog();
     /**
-     * <code>optional string catalog = 5;</code>
+     * <code>string catalog = 5;</code>
      */
     com.google.protobuf.ByteString
         getCatalogBytes();
 
     /**
-     * <code>optional string schema = 6;</code>
+     * <code>string schema = 6;</code>
      */
     java.lang.String getSchema();
     /**
-     * <code>optional string schema = 6;</code>
+     * <code>string schema = 6;</code>
      */
     com.google.protobuf.ByteString
         getSchemaBytes();
@@ -1274,7 +1274,7 @@ public final class Common {
     public static final int IS_DIRTY_FIELD_NUMBER = 1;
     private boolean isDirty_;
     /**
-     * <code>optional bool is_dirty = 1;</code>
+     * <code>bool is_dirty = 1;</code>
      */
     public boolean getIsDirty() {
       return isDirty_;
@@ -1283,7 +1283,7 @@ public final class Common {
     public static final int AUTO_COMMIT_FIELD_NUMBER = 2;
     private boolean autoCommit_;
     /**
-     * <code>optional bool auto_commit = 2;</code>
+     * <code>bool auto_commit = 2;</code>
      */
     public boolean getAutoCommit() {
       return autoCommit_;
@@ -1296,7 +1296,7 @@ public final class Common {
      * field is a Boolean, need to discern null and default value
      * </pre>
      *
-     * <code>optional bool has_auto_commit = 7;</code>
+     * <code>bool has_auto_commit = 7;</code>
      */
     public boolean getHasAutoCommit() {
       return hasAutoCommit_;
@@ -1305,7 +1305,7 @@ public final class Common {
     public static final int READ_ONLY_FIELD_NUMBER = 3;
     private boolean readOnly_;
     /**
-     * <code>optional bool read_only = 3;</code>
+     * <code>bool read_only = 3;</code>
      */
     public boolean getReadOnly() {
       return readOnly_;
@@ -1318,7 +1318,7 @@ public final class Common {
      * field is a Boolean, need to discern null and default value
      * </pre>
      *
-     * <code>optional bool has_read_only = 8;</code>
+     * <code>bool has_read_only = 8;</code>
      */
     public boolean getHasReadOnly() {
       return hasReadOnly_;
@@ -1327,7 +1327,7 @@ public final class Common {
     public static final int TRANSACTION_ISOLATION_FIELD_NUMBER = 4;
     private int transactionIsolation_;
     /**
-     * <code>optional uint32 transaction_isolation = 4;</code>
+     * <code>uint32 transaction_isolation = 4;</code>
      */
     public int getTransactionIsolation() {
       return transactionIsolation_;
@@ -1336,7 +1336,7 @@ public final class Common {
     public static final int CATALOG_FIELD_NUMBER = 5;
     private volatile java.lang.Object catalog_;
     /**
-     * <code>optional string catalog = 5;</code>
+     * <code>string catalog = 5;</code>
      */
     public java.lang.String getCatalog() {
       java.lang.Object ref = catalog_;
@@ -1351,7 +1351,7 @@ public final class Common {
       }
     }
     /**
-     * <code>optional string catalog = 5;</code>
+     * <code>string catalog = 5;</code>
      */
     public com.google.protobuf.ByteString
         getCatalogBytes() {
@@ -1370,7 +1370,7 @@ public final class Common {
     public static final int SCHEMA_FIELD_NUMBER = 6;
     private volatile java.lang.Object schema_;
     /**
-     * <code>optional string schema = 6;</code>
+     * <code>string schema = 6;</code>
      */
     public java.lang.String getSchema() {
       java.lang.Object ref = schema_;
@@ -1385,7 +1385,7 @@ public final class Common {
       }
     }
     /**
-     * <code>optional string schema = 6;</code>
+     * <code>string schema = 6;</code>
      */
     public com.google.protobuf.ByteString
         getSchemaBytes() {
@@ -1515,7 +1515,7 @@ public final class Common {
         return memoizedHashCode;
       }
       int hash = 41;
-      hash = (19 * hash) + getDescriptorForType().hashCode();
+      hash = (19 * hash) + getDescriptor().hashCode();
       hash = (37 * hash) + IS_DIRTY_FIELD_NUMBER;
       hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
           getIsDirty());
@@ -1542,6 +1542,17 @@ public final class Common {
       return hash;
     }
 
+    public static org.apache.calcite.avatica.proto.Common.ConnectionProperties parseFrom(
+        java.nio.ByteBuffer data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data);
+    }
+    public static org.apache.calcite.avatica.proto.Common.ConnectionProperties parseFrom(
+        java.nio.ByteBuffer data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data, extensionRegistry);
+    }
     public static org.apache.calcite.avatica.proto.Common.ConnectionProperties parseFrom(
         com.google.protobuf.ByteString data)
         throws com.google.protobuf.InvalidProtocolBufferException {
@@ -1800,13 +1811,13 @@ public final class Common {
 
       private boolean isDirty_ ;
       /**
-       * <code>optional bool is_dirty = 1;</code>
+       * <code>bool is_dirty = 1;</code>
        */
       public boolean getIsDirty() {
         return isDirty_;
       }
       /**
-       * <code>optional bool is_dirty = 1;</code>
+       * <code>bool is_dirty = 1;</code>
        */
       public Builder setIsDirty(boolean value) {
         
@@ -1815,7 +1826,7 @@ public final class Common {
         return this;
       }
       /**
-       * <code>optional bool is_dirty = 1;</code>
+       * <code>bool is_dirty = 1;</code>
        */
       public Builder clearIsDirty() {
         
@@ -1826,13 +1837,13 @@ public final class Common {
 
       private boolean autoCommit_ ;
       /**
-       * <code>optional bool auto_commit = 2;</code>
+       * <code>bool auto_commit = 2;</code>
        */
       public boolean getAutoCommit() {
         return autoCommit_;
       }
       /**
-       * <code>optional bool auto_commit = 2;</code>
+       * <code>bool auto_commit = 2;</code>
        */
       public Builder setAutoCommit(boolean value) {
         
@@ -1841,7 +1852,7 @@ public final class Common {
         return this;
       }
       /**
-       * <code>optional bool auto_commit = 2;</code>
+       * <code>bool auto_commit = 2;</code>
        */
       public Builder clearAutoCommit() {
         
@@ -1856,7 +1867,7 @@ public final class Common {
        * field is a Boolean, need to discern null and default value
        * </pre>
        *
-       * <code>optional bool has_auto_commit = 7;</code>
+       * <code>bool has_auto_commit = 7;</code>
        */
       public boolean getHasAutoCommit() {
         return hasAutoCommit_;
@@ -1866,7 +1877,7 @@ public final class Common {
        * field is a Boolean, need to discern null and default value
        * </pre>
        *
-       * <code>optional bool has_auto_commit = 7;</code>
+       * <code>bool has_auto_commit = 7;</code>
        */
       public Builder setHasAutoCommit(boolean value) {
         
@@ -1879,7 +1890,7 @@ public final class Common {
        * field is a Boolean, need to discern null and default value
        * </pre>
        *
-       * <code>optional bool has_auto_commit = 7;</code>
+       * <code>bool has_auto_commit = 7;</code>
        */
       public Builder clearHasAutoCommit() {
         
@@ -1890,13 +1901,13 @@ public final class Common {
 
       private boolean readOnly_ ;
       /**
-       * <code>optional bool read_only = 3;</code>
+       * <code>bool read_only = 3;</code>
        */
       public boolean getReadOnly() {
         return readOnly_;
       }
       /**
-       * <code>optional bool read_only = 3;</code>
+       * <code>bool read_only = 3;</code>
        */
       public Builder setReadOnly(boolean value) {
         
@@ -1905,7 +1916,7 @@ public final class Common {
         return this;
       }
       /**
-       * <code>optional bool read_only = 3;</code>
+       * <code>bool read_only = 3;</code>
        */
       public Builder clearReadOnly() {
         
@@ -1920,7 +1931,7 @@ public final class Common {
        * field is a Boolean, need to discern null and default value
        * </pre>
        *
-       * <code>optional bool has_read_only = 8;</code>
+       * <code>bool has_read_only = 8;</code>
        */
       public boolean getHasReadOnly() {
         return hasReadOnly_;
@@ -1930,7 +1941,7 @@ public final class Common {
        * field is a Boolean, need to discern null and default value
        * </pre>
        *
-       * <code>optional bool has_read_only = 8;</code>
+       * <code>bool has_read_only = 8;</code>
        */
       public Builder setHasReadOnly(boolean value) {
         
@@ -1943,7 +1954,7 @@ public final class Common {
        * field is a Boolean, need to discern null and default value
        * </pre>
        *
-       * <code>optional bool has_read_only = 8;</code>
+       * <code>bool has_read_only = 8;</code>
        */
       public Builder clearHasReadOnly() {
         
@@ -1954,13 +1965,13 @@ public final class Common {
 
       private int transactionIsolation_ ;
       /**
-       * <code>optional uint32 transaction_isolation = 4;</code>
+       * <code>uint32 transaction_isolation = 4;</code>
        */
       public int getTransactionIsolation() {
         return transactionIsolation_;
       }
       /**
-       * <code>optional uint32 transaction_isolation = 4;</code>
+       * <code>uint32 transaction_isolation = 4;</code>
        */
       public Builder setTransactionIsolation(int value) {
         
@@ -1969,7 +1980,7 @@ public final class Common {
         return this;
       }
       /**
-       * <code>optional uint32 transaction_isolation = 4;</code>
+       * <code>uint32 transaction_isolation = 4;</code>
        */
       public Builder clearTransactionIsolation() {
         
@@ -1980,7 +1991,7 @@ public final class Common {
 
       private java.lang.Object catalog_ = "";
       /**
-       * <code>optional string catalog = 5;</code>
+       * <code>string catalog = 5;</code>
        */
       public java.lang.String getCatalog() {
         java.lang.Object ref = catalog_;
@@ -1995,7 +2006,7 @@ public final class Common {
         }
       }
       /**
-       * <code>optional string catalog = 5;</code>
+       * <code>string catalog = 5;</code>
        */
       public com.google.protobuf.ByteString
           getCatalogBytes() {
@@ -2011,7 +2022,7 @@ public final class Common {
         }
       }
       /**
-       * <code>optional string catalog = 5;</code>
+       * <code>string catalog = 5;</code>
        */
       public Builder setCatalog(
           java.lang.String value) {
@@ -2024,7 +2035,7 @@ public final class Common {
         return this;
       }
       /**
-       * <code>optional string catalog = 5;</code>
+       * <code>string catalog = 5;</code>
        */
       public Builder clearCatalog() {
         
@@ -2033,7 +2044,7 @@ public final class Common {
         return this;
       }
       /**
-       * <code>optional string catalog = 5;</code>
+       * <code>string catalog = 5;</code>
        */
       public Builder setCatalogBytes(
           com.google.protobuf.ByteString value) {
@@ -2049,7 +2060,7 @@ public final class Common {
 
       private java.lang.Object schema_ = "";
       /**
-       * <code>optional string schema = 6;</code>
+       * <code>string schema = 6;</code>
        */
       public java.lang.String getSchema() {
         java.lang.Object ref = schema_;
@@ -2064,7 +2075,7 @@ public final class Common {
         }
       }
       /**
-       * <code>optional string schema = 6;</code>
+       * <code>string schema = 6;</code>
        */
       public com.google.protobuf.ByteString
           getSchemaBytes() {
@@ -2080,7 +2091,7 @@ public final class Common {
         }
       }
       /**
-       * <code>optional string schema = 6;</code>
+       * <code>string schema = 6;</code>
        */
       public Builder setSchema(
           java.lang.String value) {
@@ -2093,7 +2104,7 @@ public final class Common {
         return this;
       }
       /**
-       * <code>optional string schema = 6;</code>
+       * <code>string schema = 6;</code>
        */
       public Builder clearSchema() {
         
@@ -2102,7 +2113,7 @@ public final class Common {
         return this;
       }
       /**
-       * <code>optional string schema = 6;</code>
+       * <code>string schema = 6;</code>
        */
       public Builder setSchemaBytes(
           com.google.protobuf.ByteString value) {
@@ -2169,30 +2180,30 @@ public final class Common {
       com.google.protobuf.MessageOrBuilder {
 
     /**
-     * <code>optional string connection_id = 1;</code>
+     * <code>string connection_id = 1;</code>
      */
     java.lang.String getConnectionId();
     /**
-     * <code>optional string connection_id = 1;</code>
+     * <code>string connection_id = 1;</code>
      */
     com.google.protobuf.ByteString
         getConnectionIdBytes();
 
     /**
-     * <code>optional uint32 id = 2;</code>
+     * <code>uint32 id = 2;</code>
      */
     int getId();
 
     /**
-     * <code>optional .Signature signature = 3;</code>
+     * <code>.Signature signature = 3;</code>
      */
     boolean hasSignature();
     /**
-     * <code>optional .Signature signature = 3;</code>
+     * <code>.Signature signature = 3;</code>
      */
     org.apache.calcite.avatica.proto.Common.Signature getSignature();
     /**
-     * <code>optional .Signature signature = 3;</code>
+     * <code>.Signature signature = 3;</code>
      */
     org.apache.calcite.avatica.proto.Common.SignatureOrBuilder getSignatureOrBuilder();
   }
@@ -2291,7 +2302,7 @@ public final class Common {
     public static final int CONNECTION_ID_FIELD_NUMBER = 1;
     private volatile java.lang.Object connectionId_;
     /**
-     * <code>optional string connection_id = 1;</code>
+     * <code>string connection_id = 1;</code>
      */
     public java.lang.String getConnectionId() {
       java.lang.Object ref = connectionId_;
@@ -2306,7 +2317,7 @@ public final class Common {
       }
     }
     /**
-     * <code>optional string connection_id = 1;</code>
+     * <code>string connection_id = 1;</code>
      */
     public com.google.protobuf.ByteString
         getConnectionIdBytes() {
@@ -2325,7 +2336,7 @@ public final class Common {
     public static final int ID_FIELD_NUMBER = 2;
     private int id_;
     /**
-     * <code>optional uint32 id = 2;</code>
+     * <code>uint32 id = 2;</code>
      */
     public int getId() {
       return id_;
@@ -2334,19 +2345,19 @@ public final class Common {
     public static final int SIGNATURE_FIELD_NUMBER = 3;
     private org.apache.calcite.avatica.proto.Common.Signature signature_;
     /**
-     * <code>optional .Signature signature = 3;</code>
+     * <code>.Signature signature = 3;</code>
      */
     public boolean hasSignature() {
       return signature_ != null;
     }
     /**
-     * <code>optional .Signature signature = 3;</code>
+     * <code>.Signature signature = 3;</code>
      */
     public org.apache.calcite.avatica.proto.Common.Signature getSignature() {
       return signature_ == null ? org.apache.calcite.avatica.proto.Common.Signature.getDefaultInstance() : signature_;
     }
     /**
-     * <code>optional .Signature signature = 3;</code>
+     * <code>.Signature signature = 3;</code>
      */
     public org.apache.calcite.avatica.proto.Common.SignatureOrBuilder getSignatureOrBuilder() {
       return getSignature();
@@ -2425,7 +2436,7 @@ public final class Common {
         return memoizedHashCode;
       }
       int hash = 41;
-      hash = (19 * hash) + getDescriptorForType().hashCode();
+      hash = (19 * hash) + getDescriptor().hashCode();
       hash = (37 * hash) + CONNECTION_ID_FIELD_NUMBER;
       hash = (53 * hash) + getConnectionId().hashCode();
       hash = (37 * hash) + ID_FIELD_NUMBER;
@@ -2439,6 +2450,17 @@ public final class Common {
       return hash;
     }
 
+    public static org.apache.calcite.avatica.proto.Common.StatementHandle parseFrom(
+        java.nio.ByteBuffer data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data);
+    }
+    public static org.apache.calcite.avatica.proto.Common.StatementHandle parseFrom(
+        java.nio.ByteBuffer data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data, extensionRegistry);
+    }
     public static org.apache.calcite.avatica.proto.Common.StatementHandle parseFrom(
         com.google.protobuf.ByteString data)
         throws com.google.protobuf.InvalidProtocolBufferException {
@@ -2674,7 +2696,7 @@ public final class Common {
 
       private java.lang.Object connectionId_ = "";
       /**
-       * <code>optional string connection_id = 1;</code>
+       * <code>string connection_id = 1;</code>
        */
       public java.lang.String getConnectionId() {
         java.lang.Object ref = connectionId_;
@@ -2689,7 +2711,7 @@ public final class Common {
         }
       }
       /**
-       * <code>optional string connection_id = 1;</code>
+       * <code>string connection_id = 1;</code>
        */
       public com.google.protobuf.ByteString
           getConnectionIdBytes() {
@@ -2705,7 +2727,7 @@ public final class Common {
         }
       }
       /**
-       * <code>optional string connection_id = 1;</code>
+       * <code>string connection_id = 1;</code>
        */
       public Builder setConnectionId(
           java.lang.String value) {
@@ -2718,7 +2740,7 @@ public final class Common {
         return this;
       }
       /**
-       * <code>optional string connection_id = 1;</code>
+       * <code>string connection_id = 1;</code>
        */
       public Builder clearConnectionId() {
         
@@ -2727,7 +2749,7 @@ public final class Common {
         return this;
       }
       /**
-       * <code>optional string connection_id = 1;</code>
+       * <code>string connection_id = 1;</code>
        */
       public Builder setConnectionIdBytes(
           com.google.protobuf.ByteString value) {
@@ -2743,13 +2765,13 @@ public final class Common {
 
       private int id_ ;
       /**
-       * <code>optional uint32 id = 2;</code>
+       * <code>uint32 id = 2;</code>
        */
       public int getId() {
         return id_;
       }
       /**
-       * <code>optional uint32 id = 2;</code>
+       * <code>uint32 id = 2;</code>
        */
       public Builder setId(int value) {
         
@@ -2758,7 +2780,7 @@ public final class Common {
         return this;
       }
       /**
-       * <code>optional uint32 id = 2;</code>
+       * <code>uint32 id = 2;</code>
        */
       public Builder clearId() {
         
@@ -2771,13 +2793,13 @@ public final class Common {
       private com.google.protobuf.SingleFieldBuilderV3<
           org.apache.calcite.avatica.proto.Common.Signature, org.apache.calcite.avatica.proto.Common.Signature.Builder, org.apache.calcite.avatica.proto.Common.SignatureOrBuilder> signatureBuilder_;
       /**
-       * <code>optional .Signature signature = 3;</code>
+       * <code>.Signature signature = 3;</code>
        */
       public boolean hasSignature() {
         return signatureBuilder_ != null || signature_ != null;
       }
       /**
-       * <code>optional .Signature signature = 3;</code>
+       * <code>.Signature signature = 3;</code>
        */
       public org.apache.calcite.avatica.proto.Common.Signature getSignature() {
         if (signatureBuilder_ == null) {
@@ -2787,7 +2809,7 @@ public final class Common {
         }
       }
       /**
-       * <code>optional .Signature signature = 3;</code>
+       * <code>.Signature signature = 3;</code>
        */
       public Builder setSignature(org.apache.calcite.avatica.proto.Common.Signature value) {
         if (signatureBuilder_ == null) {
@@ -2803,7 +2825,7 @@ public final class Common {
         return this;
       }
       /**
-       * <code>optional .Signature signature = 3;</code>
+       * <code>.Signature signature = 3;</code>
        */
       public Builder setSignature(
           org.apache.calcite.avatica.proto.Common.Signature.Builder builderForValue) {
@@ -2817,7 +2839,7 @@ public final class Common {
         return this;
       }
       /**
-       * <code>optional .Signature signature = 3;</code>
+       * <code>.Signature signature = 3;</code>
        */
       public Builder mergeSignature(org.apache.calcite.avatica.proto.Common.Signature value) {
         if (signatureBuilder_ == null) {
@@ -2835,7 +2857,7 @@ public final class Common {
         return this;
       }
       /**
-       * <code>optional .Signature signature = 3;</code>
+       * <code>.Signature signature = 3;</code>
        */
       public Builder clearSignature() {
         if (signatureBuilder_ == null) {
@@ -2849,7 +2871,7 @@ public final class Common {
         return this;
       }
       /**
-       * <code>optional .Signature signature = 3;</code>
+       * <code>.Signature signature = 3;</code>
        */
       public org.apache.calcite.avatica.proto.Common.Signature.Builder getSignatureBuilder() {
         
@@ -2857,7 +2879,7 @@ public final class Common {
         return getSignatureFieldBuilder().getBuilder();
       }
       /**
-       * <code>optional .Signature signature = 3;</code>
+       * <code>.Signature signature = 3;</code>
        */
       public org.apache.calcite.avatica.proto.Common.SignatureOrBuilder getSignatureOrBuilder() {
         if (signatureBuilder_ != null) {
@@ -2868,7 +2890,7 @@ public final class Common {
         }
       }
       /**
-       * <code>optional .Signature signature = 3;</code>
+       * <code>.Signature signature = 3;</code>
        */
       private com.google.protobuf.SingleFieldBuilderV3<
           org.apache.calcite.avatica.proto.Common.Signature, org.apache.calcite.avatica.proto.Common.Signature.Builder, org.apache.calcite.avatica.proto.Common.SignatureOrBuilder> 
@@ -2961,11 +2983,11 @@ public final class Common {
         int index);
 
     /**
-     * <code>optional string sql = 2;</code>
+     * <code>string sql = 2;</code>
      */
     java.lang.String getSql();
     /**
-     * <code>optional string sql = 2;</code>
+     * <code>string sql = 2;</code>
      */
     com.google.protobuf.ByteString
         getSqlBytes();
@@ -2995,24 +3017,24 @@ public final class Common {
         int index);
 
     /**
-     * <code>optional .CursorFactory cursor_factory = 4;</code>
+     * <code>.CursorFactory cursor_factory = 4;</code>
      */
     boolean hasCursorFactory();
     /**
-     * <code>optional .CursorFactory cursor_factory = 4;</code>
+     * <code>.CursorFactory cursor_factory = 4;</code>
      */
     org.apache.calcite.avatica.proto.Common.CursorFactory getCursorFactory();
     /**
-     * <code>optional .CursorFactory cursor_factory = 4;</code>
+     * <code>.CursorFactory cursor_factory = 4;</code>
      */
     org.apache.calcite.avatica.proto.Common.CursorFactoryOrBuilder getCursorFactoryOrBuilder();
 
     /**
-     * <code>optional .StatementType statementType = 5;</code>
+     * <code>.StatementType statementType = 5;</code>
      */
     int getStatementTypeValue();
     /**
-     * <code>optional .StatementType statementType = 5;</code>
+     * <code>.StatementType statementType = 5;</code>
      */
     org.apache.calcite.avatica.proto.Common.StatementType getStatementType();
   }
@@ -3174,7 +3196,7 @@ public final class Common {
     public static final int SQL_FIELD_NUMBER = 2;
     private volatile java.lang.Object sql_;
     /**
-     * <code>optional string sql = 2;</code>
+     * <code>string sql = 2;</code>
      */
     public java.lang.String getSql() {
       java.lang.Object ref = sql_;
@@ -3189,7 +3211,7 @@ public final class Common {
       }
     }
     /**
-     * <code>optional string sql = 2;</code>
+     * <code>string sql = 2;</code>
      */
     public com.google.protobuf.ByteString
         getSqlBytes() {
@@ -3243,19 +3265,19 @@ public final class Common {
     public static final int CURSOR_FACTORY_FIELD_NUMBER = 4;
     private org.apache.calcite.avatica.proto.Common.CursorFactory cursorFactory_;
     /**
-     * <code>optional .CursorFactory cursor_factory = 4;</code>
+     * <code>.CursorFactory cursor_factory = 4;</code>
      */
     public boolean hasCursorFactory() {
       return cursorFactory_ != null;
     }
     /**
-     * <code>optional .CursorFactory cursor_factory = 4;</code>
+     * <code>.CursorFactory cursor_factory = 4;</code>
      */
     public org.apache.calcite.avatica.proto.Common.CursorFactory getCursorFactory() {
       return cursorFactory_ == null ? org.apache.calcite.avatica.proto.Common.CursorFactory.getDefaultInstance() : cursorFactory_;
     }
     /**
-     * <code>optional .CursorFactory cursor_factory = 4;</code>
+     * <code>.CursorFactory cursor_factory = 4;</code>
      */
     public org.apache.calcite.avatica.proto.Common.CursorFactoryOrBuilder getCursorFactoryOrBuilder() {
       return getCursorFactory();
@@ -3264,13 +3286,13 @@ public final class Common {
     public static final int STATEMENTTYPE_FIELD_NUMBER = 5;
     private int statementType_;
     /**
-     * <code>optional .StatementType statementType = 5;</code>
+     * <code>.StatementType statementType = 5;</code>
      */
     public int getStatementTypeValue() {
       return statementType_;
     }
     /**
-     * <code>optional .StatementType statementType = 5;</code>
+     * <code>.StatementType statementType = 5;</code>
      */
     public org.apache.calcite.avatica.proto.Common.StatementType getStatementType() {
       org.apache.calcite.avatica.proto.Common.StatementType result = org.apache.calcite.avatica.proto.Common.StatementType.valueOf(statementType_);
@@ -3367,7 +3389,7 @@ public final class Common {
         return memoizedHashCode;
       }
       int hash = 41;
-      hash = (19 * hash) + getDescriptorForType().hashCode();
+      hash = (19 * hash) + getDescriptor().hashCode();
       if (getColumnsCount() > 0) {
         hash = (37 * hash) + COLUMNS_FIELD_NUMBER;
         hash = (53 * hash) + getColumnsList().hashCode();
@@ -3389,6 +3411,17 @@ public final class Common {
       return hash;
     }
 
+    public static org.apache.calcite.avatica.proto.Common.Signature parseFrom(
+        java.nio.ByteBuffer data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data);
+    }
+    public static org.apache.calcite.avatica.proto.Common.Signature parseFrom(
+        java.nio.ByteBuffer data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data, extensionRegistry);
+    }
     public static org.apache.calcite.avatica.proto.Common.Signature parseFrom(
         com.google.protobuf.ByteString data)
         throws com.google.protobuf.InvalidProtocolBufferException {
@@ -3952,7 +3985,7 @@ public final class Common {
 
       private java.lang.Object sql_ = "";
       /**
-       * <code>optional string sql = 2;</code>
+       * <code>string sql = 2;</code>
        */
       public java.lang.String getSql() {
         java.lang.Object ref = sql_;
@@ -3967,7 +4000,7 @@ public final class Common {
         }
       }
       /**
-       * <code>optional string sql = 2;</code>
+       * <code>string sql = 2;</code>
        */
       public com.google.protobuf.ByteString
           getSqlBytes() {
@@ -3983,7 +4016,7 @@ public final class Common {
         }
       }
       /**
-       * <code>optional string sql = 2;</code>
+       * <code>string sql = 2;</code>
        */
       public Builder setSql(
           java.lang.String value) {
@@ -3996,7 +4029,7 @@ public final class Common {
         return this;
       }
       /**
-       * <code>optional string sql = 2;</code>
+       * <code>string sql = 2;</code>
        */
       public Builder clearSql() {
         
@@ -4005,7 +4038,7 @@ public final class Common {
         return this;
       }
       /**
-       * <code>optional string sql = 2;</code>
+       * <code>string sql = 2;</code>
        */
       public Builder setSqlBytes(
           com.google.protobuf.ByteString value) {
@@ -4263,13 +4296,13 @@ public final class Common {
       private com.google.protobuf.SingleFieldBuilderV3<
           org.apache.calcite.avatica.proto.Common.CursorFactory, org.apache.calcite.avatica.proto.Common.CursorFactory.Builder, org.apache.calcite.avatica.proto.Common.CursorFactoryOrBuilder> cursorFactoryBuilder_;
       /**
-       * <code>optional .CursorFactory cursor_factory = 4;</code>
+       * <code>.CursorFactory cursor_factory = 4;</code>
        */
       public boolean hasCursorFactory() {
         return cursorFactoryBuilder_ != null || cursorFactory_ != null;
       }
       /**
-       * <code>optional .CursorFactory cursor_factory = 4;</code>
+       * <code>.CursorFactory cursor_factory = 4;</code>
        */
       public org.apache.calcite.avatica.proto.Common.CursorFactory getCursorFactory() {
         if (cursorFactoryBuilder_ == null) {
@@ -4279,7 +4312,7 @@ public final class Common {
         }
       }
       /**
-       * <code>optional .CursorFactory cursor_factory = 4;</code>
+       * <code>.CursorFactory cursor_factory = 4;</code>
        */
       public Builder setCursorFactory(org.apache.calcite.avatica.proto.Common.CursorFactory value) {
         if (cursorFactoryBuilder_ == null) {
@@ -4295,7 +4328,7 @@ public final class Common {
         return this;
       }
       /**
-       * <code>optional .CursorFactory cursor_factory = 4;</code>
+       * <code>.CursorFactory cursor_factory = 4;</code>
        */
       public Builder setCursorFactory(
           org.apache.calcite.avatica.proto.Common.CursorFactory.Builder builderForValue) {
@@ -4309,7 +4342,7 @@ public final class Common {
         return this;
       }
       /**
-       * <code>optional .CursorFactory cursor_factory = 4;</code>
+       * <code>.CursorFactory cursor_factory = 4;</code>
        */
       public Builder mergeCursorFactory(org.apache.calcite.avatica.proto.Common.CursorFactory value) {
         if (cursorFactoryBuilder_ == null) {
@@ -4327,7 +4360,7 @@ public final class Common {
         return this;
       }
       /**
-       * <code>optional .CursorFactory cursor_factory = 4;</code>
+       * <code>.CursorFactory cursor_factory = 4;</code>
        */
       public Builder clearCursorFactory() {
         if (cursorFactoryBuilder_ == null) {
@@ -4341,7 +4374,7 @@ public final class Common {
         return this;
       }
       /**
-       * <code>optional .CursorFactory cursor_factory = 4;</code>
+       * <code>.CursorFactory cursor_factory = 4;</code>
        */
       public org.apache.calcite.avatica.proto.Common.CursorFactory.Builder getCursorFactoryBuilder() {
         
@@ -4349,7 +4382,7 @@ public final class Common {
         return getCursorFactoryFieldBuilder().getBuilder();
       }
       /**
-       * <code>optional .CursorFactory cursor_factory = 4;</code>
+       * <code>.CursorFactory cursor_factory = 4;</code>
        */
       public org.apache.calcite.avatica.proto.Common.CursorFactoryOrBuilder getCursorFactoryOrBuilder() {
         if (cursorFactoryBuilder_ != null) {
@@ -4360,7 +4393,7 @@ public final class Common {
         }
       }
       /**
-       * <code>optional .CursorFactory cursor_factory = 4;</code>
+       * <code>.CursorFactory cursor_factory = 4;</code>
        */
       private com.google.protobuf.SingleFieldBuilderV3<
           org.apache.calcite.avatica.proto.Common.CursorFactory, org.apache.calcite.avatica.proto.Common.CursorFactory.Builder, org.apache.calcite.avatica.proto.Common.CursorFactoryOrBuilder> 
@@ -4378,13 +4411,13 @@ public final class Common {
 
       private int statementType_ = 0;
       /**
-       * <code>optional .StatementType statementType = 5;</code>
+       * <code>.StatementType statementType = 5;</code>
        */
       public int getStatementTypeValue() {
         return statementType_;
       }
       /**
-       * <code>optional .StatementType statementType = 5;</code>
+       * <code>.StatementType statementType = 5;</code>
        */
       public Builder setStatementTypeValue(int value) {
         statementType_ = value;
@@ -4392,14 +4425,14 @@ public final class Common {
         return this;
       }
       /**
-       * <code>optional .StatementType statementType = 5;</code>
+       * <code>.StatementType statementType = 5;</code>
        */
       public org.apache.calcite.avatica.proto.Common.StatementType getStatementType() {
         org.apache.calcite.avatica.proto.Common.StatementType result = org.apache.calcite.avatica.proto.Common.StatementType.valueOf(statementType_);
         return result == null ? org.apache.calcite.avatica.proto.Common.StatementType.UNRECOGNIZED : result;
       }
       /**
-       * <code>optional .StatementType statementType = 5;</code>
+       * <code>.StatementType statementType = 5;</code>
        */
       public Builder setStatementType(org.apache.calcite.avatica.proto.Common.StatementType value) {
         if (value == null) {
@@ -4411,7 +4444,7 @@ public final class Common {
         return this;
       }
       /**
-       * <code>optional .StatementType statementType = 5;</code>
+       * <code>.StatementType statementType = 5;</code>
        */
       public Builder clearStatementType() {
         
@@ -4473,140 +4506,140 @@ public final class Common {
       com.google.protobuf.MessageOrBuilder {
 
     /**
-     * <code>optional uint32 ordinal = 1;</code>
+     * <code>uint32 ordinal = 1;</code>
      */
     int getOrdinal();
 
     /**
-     * <code>optional bool auto_increment = 2;</code>
+     * <code>bool auto_increment = 2;</code>
      */
     boolean getAutoIncrement();
 
     /**
-     * <code>optional bool case_sensitive = 3;</code>
+     * <code>bool case_sensitive = 3;</code>
      */
     boolean getCaseSensitive();
 
     /**
-     * <code>optional bool searchable = 4;</code>
+     * <code>bool searchable = 4;</code>
      */
     boolean getSearchable();
 
     /**
-     * <code>optional bool currency = 5;</code>
+     * <code>bool currency = 5;</code>
      */
     boolean getCurrency();
 
     /**
-     * <code>optional uint32 nullable = 6;</code>
+     * <code>uint32 nullable = 6;</code>
      */
     int getNullable();
 
     /**
-     * <code>optional bool signed = 7;</code>
+     * <code>bool signed = 7;</code>
      */
     boolean getSigned();
 
     /**
-     * <code>optional uint32 display_size = 8;</code>
+     * <code>uint32 display_size = 8;</code>
      */
     int getDisplaySize();
 
     /**
-     * <code>optional string label = 9;</code>
+     * <code>string label = 9;</code>
      */
     java.lang.String getLabel();
     /**
-     * <code>optional string label = 9;</code>
+     * <code>string label = 9;</code>
      */
     com.google.protobuf.ByteString
         getLabelBytes();
 
     /**
-     * <code>optional string column_name = 10;</code>
+     * <code>string column_name = 10;</code>
      */
     java.lang.String getColumnName();
     /**
-     * <code>optional string column_name = 10;</code>
+     * <code>string column_name = 10;</code>
      */
     com.google.protobuf.ByteString
         getColumnNameBytes();
 
     /**
-     * <code>optional string schema_name = 11;</code>
+     * <code>string schema_name = 11;</code>
      */
     java.lang.String getSchemaName();
     /**
-     * <code>optional string schema_name = 11;</code>
+     * <code>string schema_name = 11;</code>
      */
     com.google.protobuf.ByteString
         getSchemaNameBytes();
 
     /**
-     * <code>optional uint32 precision = 12;</code>
+     * <code>uint32 precision = 12;</code>
      */
     int getPrecision();
 
     /**
-     * <code>optional uint32 scale = 13;</code>
+     * <code>uint32 scale = 13;</code>
      */
     int getScale();
 
     /**
-     * <code>optional string table_name = 14;</code>
+     * <code>string table_name = 14;</code>
      */
     java.lang.String getTableName();
     /**
-     * <code>optional string table_name = 14;</code>
+     * <code>string table_name = 14;</code>
      */
     com.google.protobuf.ByteString
         getTableNameBytes();
 
     /**
-     * <code>optional string catalog_name = 15;</code>
+     * <code>string catalog_name = 15;</code>
      */
     java.lang.String getCatalogName();
     /**
-     * <code>optional string catalog_name = 15;</code>
+     * <code>string catalog_name = 15;</code>
      */
     com.google.protobuf.ByteString
         getCatalogNameBytes();
 
     /**
-     * <code>optional bool read_only = 16;</code>
+     * <code>bool read_only = 16;</code>
      */
     boolean getReadOnly();
 
     /**
-     * <code>optional bool writable = 17;</code>
+     * <code>bool writable = 17;</code>
      */
     boolean getWritable();
 
     /**
-     * <code>optional bool definitely_writable = 18;</code>
+     * <code>bool definitely_writable = 18;</code>
      */
     boolean getDefinitelyWritable();
 
     /**
-     * <code>optional string column_class_name = 19;</code>
+     * <code>string column_class_name = 19;</code>
      */
     java.lang.String getColumnClassName();
     /**
-     * <code>optional string column_class_name = 19;</code>
+     * <code>string column_class_name = 19;</code>
      */
     com.google.protobuf.ByteString
         getColumnClassNameBytes();
 
     /**
-     * <code>optional .AvaticaType type = 20;</code>
+     * <code>.AvaticaType type = 20;</code>
      */
     boolean hasType();
     /**
-     * <code>optional .AvaticaType type = 20;</code>
+     * <code>.AvaticaType type = 20;</code>
      */
     org.apache.calcite.avatica.proto.Common.AvaticaType getType();
     /**
-     * <code>optional .AvaticaType type = 20;</code>
+     * <code>.AvaticaType type = 20;</code>
      */
     org.apache.calcite.avatica.proto.Common.AvaticaTypeOrBuilder getTypeOrBuilder();
   }
@@ -4808,7 +4841,7 @@ public final class Common {
     public static final int ORDINAL_FIELD_NUMBER = 1;
     private int ordinal_;
     /**
-     * <code>optional uint32 ordinal = 1;</code>
+     * <code>uint32 ordinal = 1;</code>
      */
     public int getOrdinal() {
       return ordinal_;
@@ -4817,7 +4850,7 @@ public final class Common {
     public static final int AUTO_INCREMENT_FIELD_NUMBER = 2;
     private boolean autoIncrement_;
     /**
-     * <code>optional bool auto_increment = 2;</code>
+     * <code>bool auto_increment = 2;</code>
      */
     public boolean getAutoIncrement() {
       return autoIncrement_;
@@ -4826,7 +4859,7 @@ public final class Common {
     public static final int CASE_SENSITIVE_FIELD_NUMBER = 3;
     private boolean caseSensitive_;
     /**
-     * <code>optional bool case_sensitive = 3;</code>
+     * <code>bool case_sensitive = 3;</code>
      */
     public boolean getCaseSensitive() {
       return caseSensitive_;
@@ -4835,7 +4868,7 @@ public final class Common {
     public static final int SEARCHABLE_FIELD_NUMBER = 4;
     private boolean searchable_;
     /**
-     * <code>optional bool searchable = 4;</code>
+     * <code>bool searchable = 4;</code>
      */
     public boolean getSearchable() {
       return searchable_;
@@ -4844,7 +4877,7 @@ public final class Common {
     public static final int CURRENCY_FIELD_NUMBER = 5;
     private boolean currency_;
     /**
-     * <code>optional bool currency = 5;</code>
+     * <code>bool currency = 5;</code>
      */
     public boolean getCurrency() {
       return currency_;
@@ -4853,7 +4886,7 @@ public final class Common {
     public static final int NULLABLE_FIELD_NUMBER = 6;
     private int nullable_;
     /**
-     * <code>optional uint32 nullable = 6;</code>
+     * <code>uint32 nullable = 6;</code>
      */
     public int getNullable() {
       return nullable_;
@@ -4862,7 +4895,7 @@ public final class Common {
     public static final int SIGNED_FIELD_NUMBER = 7;
     private boolean signed_;
     /**
-     * <code>optional bool signed = 7;</code>
+     * <code>bool signed = 7;</code>
      */
     public boolean getSigned() {
       return signed_;
@@ -4871,7 +4904,7 @@ public final class Common {
     public static final int DISPLAY_SIZE_FIELD_NUMBER = 8;
     private int displaySize_;
     /**
-     * <code>optional uint32 display_size = 8;</code>
+     * <code>uint32 display_size = 8;</code>
      */
     public int getDisplaySize() {
       return displaySize_;
@@ -4880,7 +4913,7 @@ public final class Common {
     public static final int LABEL_FIELD_NUMBER = 9;
     private volatile java.lang.Object label_;
     /**
-     * <code>optional string label = 9;</code>
+     * <code>string label = 9;</code>
      */
     public java.lang.String getLabel() {
       java.lang.Object ref = label_;
@@ -4895,7 +4928,7 @@ public final class Common {
       }
     }
     /**
-     * <code>optional string label = 9;</code>
+     * <code>string label = 9;</code>
      */
     public com.google.protobuf.ByteString
         getLabelBytes() {
@@ -4914,7 +4947,7 @@ public final class Common {
     public static final int COLUMN_NAME_FIELD_NUMBER = 10;
     private volatile java.lang.Object columnName_;
     /**
-     * <code>optional string column_name = 10;</code>
+     * <code>string column_name = 10;</code>
      */
     public java.lang.String getColumnName() {
       java.lang.Object ref = columnName_;
@@ -4929,7 +4962,7 @@ public final class Common {
       }
     }
     /**
-     * <code>optional string column_name = 10;</code>
+     * <code>string column_name = 10;</code>
      */
     public com.google.protobuf.ByteString
         getColumnNameBytes() {
@@ -4948,7 +4981,7 @@ public final class Common {
     public static final int SCHEMA_NAME_FIELD_NUMBER = 11;
     private volatile java.lang.Object schemaName_;
     /**
-     * <code>optional string schema_name = 11;</code>
+     * <code>string schema_name = 11;</code>
      */
     public java.lang.String getSchemaName() {
       java.lang.Object ref = schemaName_;
@@ -4963,7 +4996,7 @@ public final class Common {
       }
     }
     /**
-     * <code>optional string schema_name = 11;</code>
+     * <code>string schema_name = 11;</code>
      */
     public com.google.protobuf.ByteString
         getSchemaNameBytes() {
@@ -4982,7 +5015,7 @@ public final class Common {
     public static final int PRECISION_FIELD_NUMBER = 12;
     private int precision_;
     /**
-     * <code>optional uint32 precision = 12;</code>
+     * <code>uint32 precision = 12;</code>
      */
     public int getPrecision() {
       return precision_;
@@ -4991,7 +5024,7 @@ public final class Common {
     public static final int SCALE_FIELD_NUMBER = 13;
     private int scale_;
     /**
-     * <code>optional uint32 scale = 13;</code>
+     * <code>uint32 scale = 13;</code>
      */
     public int getScale() {
       return scale_;
@@ -5000,7 +5033,7 @@ public final class Common {
     public static final int TABLE_NAME_FIELD_NUMBER = 14;
     private volatile java.lang.Object tableName_;
     /**
-     * <code>optional string table_name = 14;</code>
+     * <code>string table_name = 14;</code>
      */
     public java.lang.String getTableName() {
       java.lang.Object ref = tableName_;
@@ -5015,7 +5048,7 @@ public final class Common {
       }
     }
     /**
-     * <code>optional string table_name = 14;</code>
+     * <code>string table_name = 14;</code>
      */
     public com.google.protobuf.ByteString
         getTableNameBytes() {
@@ -5034,7 +5067,7 @@ public final class Common {
     public static final int CATALOG_NAME_FIELD_NUMBER = 15;
     private volatile java.lang.Object catalogName_;
     /**
-     * <code>optional string catalog_name = 15;</code>
+     * <code>string catalog_name = 15;</code>
      */
     public java.lang.String getCatalogName() {
       java.lang.Object ref = catalogName_;
@@ -5049,7 +5082,7 @@ public final class Common {
       }
     }
     /**
-     * <code>optional string catalog_name = 15;</code>
+     * <code>string catalog_name = 15;</code>
      */
     public com.google.protobuf.ByteString
         getCatalogNameBytes() {
@@ -5068,7 +5101,7 @@ public final class Common {
     public static final int READ_ONLY_FIELD_NUMBER = 16;
     private boolean readOnly_;
     /**
-     * <code>optional bool read_only = 16;</code>
+     * <code>bool read_only = 16;</code>
      */
     public boolean getReadOnly() {
       return readOnly_;
@@ -5077,7 +5110,7 @@ public final class Common {
     public static final int WRITABLE_FIELD_NUMBER = 17;
     private boolean writable_;
     /**
-     * <code>optional bool writable = 17;</code>
+     * <code>bool writable = 17;</code>
      */
     public boolean getWritable() {
       return writable_;
@@ -5086,7 +5119,7 @@ public final class Common {
     public static final int DEFINITELY_WRITABLE_FIELD_NUMBER = 18;
     private boolean definitelyWritable_;
     /**
-     * <code>optional bool definitely_writable = 18;</code>
+     * <code>bool definitely_writable = 18;</code>
      */
     public boolean getDefinitelyWritable() {
       return definitelyWritable_;
@@ -5095,7 +5128,7 @@ public final class Common {
     public static final int COLUMN_CLASS_NAME_FIELD_NUMBER = 19;
     private volatile java.lang.Object columnClassName_;
     /**
-     * <code>optional string column_class_name = 19;</code>
+     * <code>string column_class_name = 19;</code>
      */
     public java.lang.String getColumnClassName() {
       java.lang.Object ref = columnClassName_;
@@ -5110,7 +5143,7 @@ public final class Common {
       }
     }
     /**
-     * <code>optional string column_class_name = 19;</code>
+     * <code>string column_class_name = 19;</code>
      */
     public com.google.protobuf.ByteString
         getColumnClassNameBytes() {
@@ -5129,19 +5162,19 @@ public final class Common {
     public static final int TYPE_FIELD_NUMBER = 20;
     private org.apache.calcite.avatica.proto.Common.AvaticaType type_;
     /**
-     * <code>optional .AvaticaType type = 20;</code>
+     * <code>.AvaticaType type = 20;</code>
      */
     public boolean hasType() {
       return type_ != null;
     }
     /**
-     * <code>optional .AvaticaType type = 20;</code>
+     * <code>.AvaticaType type = 20;</code>
      */
     public org.apache.calcite.avatica.proto.Common.AvaticaType getType() {
       return type_ == null ? org.apache.calcite.avatica.proto.Common.AvaticaType.getDefaultInstance() : type_;
     }
     /**
-     * <code>optional .AvaticaType type = 20;</code>
+     * <code>.AvaticaType type = 20;</code>
      */
     public org.apache.calcite.avatica.proto.Common.AvaticaTypeOrBuilder getTypeOrBuilder() {
       return getType();
@@ -5368,7 +5401,7 @@ public final class Common {
         return memoizedHashCode;
       }
       int hash = 41;
-      hash = (19 * hash) + getDescriptorForType().hashCode();
+      hash = (19 * hash) + getDescriptor().hashCode();
       hash = (37 * hash) + ORDINAL_FIELD_NUMBER;
       hash = (53 * hash) + getOrdinal();
       hash = (37 * hash) + AUTO_INCREMENT_FIELD_NUMBER;
@@ -5424,6 +5457,17 @@ public final class Common {
       return hash;
     }
 
+    public static org.apache.calcite.avatica.proto.Common.ColumnMetaData parseFrom(
+        java.nio.ByteBuffer data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data);
+    }
+    public static org.apache.calcite.avatica.proto.Common.ColumnMetaData parseFrom(
+        java.nio.ByteBuffer data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data, extensionRegistry);
+    }
     public static org.apache.calcite.avatica.proto.Common.ColumnMetaData parseFrom(
         com.google.protobuf.ByteString data)
         throws com.google.protobuf.InvalidProtocolBufferException {
@@ -5762,13 +5806,13 @@ public final class Common {
 
       private int ordinal_ ;
       /**
-       * <code>optional uint32 ordinal = 1;</code>
+       * <code>uint32 ordinal = 1;</code>
        */
       public int getOrdinal() {
         return ordinal_;
       }
       /**
-       * <code>optional uint32 ordinal = 1;</code>
+       * <code>uint32 ordinal = 1;</code>
        */
       public Builder setOrdinal(int value) {
         
@@ -5777,7 +5821,7 @@ public final class Common {
         return this;
       }
       /**
-       * <code>optional uint32 ordinal = 1;</code>
+       * <code>uint32 ordinal = 1;</code>
        */
       public Builder clearOrdinal() {
         
@@ -5788,13 +5832,13 @@ public final class Common {
 
       private boolean autoIncrement_ ;
       /**
-       * <code>optional bool auto_increment = 2;</code>
+       * <code>bool auto_increment = 2;</code>
        */
       public boolean getAutoIncrement() {
         return autoIncrement_;
       }
       /**
-       * <code>optional bool auto_increment = 2;</code>
+       * <code>bool auto_increment = 2;</code>
        */
       public Builder setAutoIncrement(boolean value) {
         
@@ -5803,7 +5847,7 @@ public final class Common {
         return this;
       }
       /**
-       * <code>optional bool auto_increment = 2;</code>
+       * <code>bool auto_increment = 2;</code>
        */
       public Builder clearAutoIncrement() {
         
@@ -5814,13 +5858,13 @@ public final class Common {
 
       private boolean caseSensitive_ ;
       /**
-       * <code>optional bool case_sensitive = 3;</code>
+       * <code>bool case_sensitive = 3;</code>
        */
       public boolean getCaseSensitive() {
         return caseSensitive_;
       }
       /**
-       * <code>optional bool case_sensitive = 3;</code>
+       * <code>bool case_sensitive = 3;</code>
        */
       public Builder setCaseSensitive(boolean value) {
         
@@ -5829,7 +5873,7 @@ public final class Common {
         return this;
       }
       /**
-       * <code>optional bool case_sensitive = 3;</code>
+       * <code>bool case_sensitive = 3;</code>
        */
       public Builder clearCaseSensitive() {
         
@@ -5840,13 +5884,13 @@ public final class Common {
 
       private boolean searchable_ ;
       /**
-       * <code>optional bool searchable = 4;</code>
+       * <code>bool searchable = 4;</code>
        */
       public boolean getSearchable() {
         return searchable_;
       }
       /**
-       * <code>optional bool searchable = 4;</code>
+       * <code>bool searchable = 4;</code>
        */
       public Builder setSearchable(boolean value) {
         
@@ -5855,7 +5899,7 @@ public final class Common {
         return this;
       }
       /**
-       * <code>optional bool searchable = 4;</code>
+       * <code>bool searchable = 4;</code>
        */
       public Builder clearSearchable() {
         
@@ -5866,13 +5910,13 @@ public final class Common {
 
       private boolean currency_ ;
       /**
-       * <code>optional bool currency = 5;</code>
+       * <code>bool currency = 5;</code>
        */
       public boolean getCurrency() {
         return currency_;
       }
       /**
-       * <code>optional bool currency = 5;</code>
+       * <code>bool currency = 5;</code>
        */
       public Builder setCurrency(boolean value) {
         
@@ -5881,7 +5925,7 @@ public final class Common {
         return this;
       }
       /**
-       * <code>optional bool currency = 5;</code>
+       * <code>bool currency = 5;</code>
        */
       public Builder clearCurrency() {
         
@@ -5892,13 +5936,13 @@ public final class Common {
 
       private int nullable_ ;
       /**
-       * <code>optional uint32 nullable = 6;</code>
+       * <code>uint32 nullable = 6;</code>
        */
       public int getNullable() {
         return nullable_;
       }
       /**
-       * <code>optional uint32 nullable = 6;</code>
+       * <code>uint32 nullable = 6;</code>
        */
       public Builder setNullable(int value) {
         
@@ -5907,7 +5951,7 @@ public final class Common {
         return this;
       }
       /**
-       * <code>optional uint32 nullable = 6;</code>
+       * <code>uint32 nullable = 6;</code>
        */
       public Builder clearNullable() {
         
@@ -5918,13 +5962,13 @@ public final class Common {
 
       private boolean signed_ ;
       /**
-       * <code>optional bool signed = 7;</code>
+       * <code>bool signed = 7;</code>
        */
       public boolean getSigned() {
         return signed_;
       }
       /**
-       * <code>optional bool signed = 7;</code>
+       * <code>bool signed = 7;</code>
        */
       public Builder setSigned(boolean value) {
         
@@ -5933,7 +5977,7 @@ public final class Common {
         return this;
       }
       /**
-       * <code>optional bool signed = 7;</code>
+       * <code>bool signed = 7;</code>
        */
       public Builder clearSigned() {
         
@@ -5944,13 +5988,13 @@ public final class Common {
 
       private int displaySize_ ;
       /**
-       * <code>optional uint32 display_size = 8;</code>
+       * <code>uint32 display_size = 8;</code>
        */
       public int getDisplaySize() {
         return displaySize_;
       }
       /**
-       * <code>optional uint32 display_size = 8;</code>
+       * <code>uint32 display_size = 8;</code>
        */
       public Builder setDisplaySize(int value) {
         
@@ -5959,7 +6003,7 @@ public final class Common {
         return this;
       }
       /**
-       * <code>optional uint32 display_size = 8;</code>
+       * <code>uint32 display_size = 8;</code>
        */
       public Builder clearDisplaySize() {
         
@@ -5970,7 +6014,7 @@ public final class Common {
 
       private java.lang.Object label_ = "";
       /**
-       * <code>optional string label = 9;</code>
+       * <code>string label = 9;</code>
        */
       public java.lang.String getLabel() {
         java.lang.Object ref = label_;
@@ -5985,7 +6029,7 @@ public final class Common {
         }
       }
       /**
-       * <code>optional string label = 9;</code>
+       * <code>string label = 9;</code>
        */
       public com.google.protobuf.ByteString
           getLabelBytes() {
@@ -6001,7 +6045,7 @@ public final class Common {
         }
       }
       /**
-       * <code>optional string label = 9;</code>
+       * <code>string label = 9;</code>
        */
       public Builder setLabel(
           java.lang.String value) {
@@ -6014,7 +6058,7 @@ public final class Common {
         return this;
       }
       /**
-       * <code>optional string label = 9;</code>
+       * <code>string label = 9;</code>
        */
       public Builder clearLabel() {
         
@@ -6023,7 +6067,7 @@ public final class Common {
         return this;
       }
       /**
-       * <code>optional string label = 9;</code>
+       * <code>string label = 9;</code>
        */
       public Builder setLabelBytes(
           com.google.protobuf.ByteString value) {
@@ -6039,7 +6083,7 @@ public final class Common {
 
       private java.lang.Object columnName_ = "";
       /**
-       * <code>optional string column_name = 10;</code>
+       * <code>string column_name = 10;</code>
        */
       public java.lang.String getColumnName() {
         java.lang.Object ref = columnName_;
@@ -6054,7 +6098,7 @@ public final class Common {
         }
       }
       /**
-       * <code>optional string column_name = 10;</code>
+       * <code>string column_name = 10;</code>
        */
       public com.google.protobuf.ByteString
           getColumnNameBytes() {
@@ -6070,7 +6114,7 @@ public final class Common {
         }
       }
       /**
-       * <code>optional string column_name = 10;</code>
+       * <code>string column_name = 10;</code>
        */
       public Builder setColumnName(
           java.lang.String value) {
@@ -6083,7 +6127,7 @@ public final class Common {
         return this;
       }
       /**
-       * <code>optional string column_name = 10;</code>
+       * <code>string column_name = 10;</code>
        */
       public Builder clearColumnName() {
         
@@ -6092,7 +6136,7 @@ public final class Common {
         return this;
       }
       /**
-       * <code>optional string column_name = 10;</code>
+       * <code>string column_name = 10;</code>
        */
       public Builder setColumnNameBytes(
           com.google.protobuf.ByteString value) {
@@ -6108,7 +6152,7 @@ public final class Common {
 
       private java.lang.Object schemaName_ = "";
       /**
-       * <code>optional string schema_name = 11;</code>
+       * <code>string schema_name = 11;</code>
        */
       public java.lang.String getSchemaName() {
         java.lang.Object ref = schemaName_;
@@ -6123,7 +6167,7 @@ public final class Common {
         }
       }
       /**
-       * <code>optional string schema_name = 11;</code>
+       * <code>string schema_name = 11;</code>
        */
       public com.google.protobuf.ByteString
           getSchemaNameBytes() {
@@ -6139,7 +6183,7 @@ public final class Common {
         }
       }
       /**
-       * <code>optional string schema_name = 11;</code>
+       * <code>string schema_name = 11;</code>
        */
       public Builder setSchemaName(
           java.lang.String value) {
@@ -6152,7 +6196,7 @@ public final class Common {
         return this;
       }
       /**
-       * <code>optional string schema_name = 11;</code>
+       * <code>string schema_name = 11;</code>
        */
       public Builder clearSchemaName() {
         
@@ -6161,7 +6205,7 @@ public final class Common {
         return this;
       }
       /**
-       * <code>optional string schema_name = 11;</code>
+       * <code>string schema_name = 11;</code>
        */
       public Builder setSchemaNameBytes(
           com.google.protobuf.ByteString value) {
@@ -6177,13 +6221,13 @@ public final class Common {
 
       private int precision_ ;
       /**
-       * <code>optional uint32 precision = 12;</code>
+       * <code>uint32 precision = 12;</code>
        */
       public int getPrecision() {
         return precision_;
       }
       /**
-       * <code>optional uint32 precision = 12;</code>
+       * <code>uint32 precision = 12;</code>
        */
       public Builder setPrecision(int value) {
         
@@ -6192,7 +6236,7 @@ public final class Common {
         return this;
       }
       /**
-       * <code>optional uint32 precision = 12;</code>
+       * <code>uint32 precision = 12;</code>
        */
       public Builder clearPrecision() {
         
@@ -6203,13 +6247,13 @@ public final class Common {
 
       private int scale_ ;
       /**
-       * <code>optional uint32 scale = 13;</code>
+       * <code>uint32 scale = 13;</code>
        */
       public int getScale() {
         return scale_;
       }
       /**
-       * <code>optional uint32 scale = 13;</code>
+       * <code>uint32 scale = 13;</code>
        */
       public Builder setScale(int value) {
         
@@ -6218,7 +6262,7 @@ public final class Common {
         return this;
       }
       /**
-       * <code>optional uint32 scale = 13;</code>
+       * <code>uint32 scale = 13;</code>
        */
       public Builder clearScale() {
         
@@ -6229,7 +6273,7 @@ public final class Common {
 
       private java.lang.Object tableName_ = "";
       /**
-       * <code>optional string table_name = 14;</code>
+       * <code>string table_name = 14;</code>
        */
       public java.lang.String getTableName() {
         java.lang.Object ref = tableName_;
@@ -6244,7 +6288,7 @@ public final class Common {
         }
       }
       /**
-       * <code>optional string table_name = 14;</code>
+       * <code>string table_name = 14;</code>
        */
       public com.google.protobuf.ByteString
           getTableNameBytes() {
@@ -6260,7 +6304,7 @@ public final class Common {
         }
       }
       /**
-       * <code>optional string table_name = 14;</code>
+       * <code>string table_name = 14;</code>
        */
       public Builder setTableName(
           java.lang.String value) {
@@ -6273,7 +6317,7 @@ public final class Common {
         return this;
       }
       /**
-       * <code>optional string table_name = 14;</code>
+       * <code>string table_name = 14;</code>
        */
       public Builder clearTableName() {
         
@@ -6282,7 +6326,7 @@ public final class Common {
         return this;
       }
       /**
-       * <code>optional string table_name = 14;</code>
+       * <code>string table_name = 14;</code>
        */
       public Builder setTableNameBytes(
           com.google.protobuf.ByteString value) {
@@ -6298,7 +6342,7 @@ public final class Common {
 
       private java.lang.Object catalogName_ = "";
       /**
-       * <code>optional string catalog_name = 15;</code>
+       * <code>string catalog_name = 15;</code>
        */
       public java.lang.String getCatalogName() {
         java.lang.Object ref = catalogName_;
@@ -6313,7 +6357,7 @@ public final class Common {
         }
       }
       /**
-       * <code>optional string catalog_name = 15;</code>
+       * <code>string catalog_name = 15;</code>
        */
       public com.google.protobuf.ByteString
           getCatalogNameBytes() {
@@ -6329,7 +6373,7 @@ public final class Common {
         }
       }
       /**
-       * <code>optional string catalog_name = 15;</code>
+       * <code>string catalog_name = 15;</code>
        */
       public Builder setCatalogName(
           java.lang.String value) {
@@ -6342,7 +6386,7 @@ public final class Common {
         return this;
       }
       /**
-       * <code>optional string catalog_name = 15;</code>
+       * <code>string catalog_name = 15;</code>
        */
       public Builder clearCatalogName() {
         
@@ -6351,7 +6395,7 @@ public final class Common {
         return this;
       }
       /**
-       * <code>optional string catalog_name = 15;</code>
+       * <code>string catalog_name = 15;</code>
        */
       public Builder setCatalogNameBytes(
           com.google.protobuf.ByteString value) {
@@ -6367,13 +6411,13 @@ public final class Common {
 
       private boolean readOnly_ ;
       /**
-       * <code>optional bool read_only = 16;</code>
+       * <code>bool read_only = 16;</code>
        */
       public boolean getReadOnly() {
         return readOnly_;
       }
       /**
-       * <code>optional bool read_only = 16;</code>
+       * <code>bool read_only = 16;</code>
        */
       public Builder setReadOnly(boolean value) {
         
@@ -6382,7 +6426,7 @@ public final class Common {
         return this;
       }
       /**
-       * <code>optional bool read_only = 16;</code>
+       * <code>bool read_only = 16;</code>
        */
       public Builder clearReadOnly() {
         
@@ -6393,13 +6437,13 @@ public final class Common {
 
       private boolean writable_ ;
       /**
-       * <code>optional bool writable = 17;</code>
+       * <code>bool writable = 17;</code>
        */
       public boolean getWritable() {
         return writable_;
       }
       /**
-       * <code>optional bool writable = 17;</code>
+       * <code>bool writable = 17;</code>
        */
       public Builder setWritable(boolean value) {
         
@@ -6408,7 +6452,7 @@ public final class Common {
         return this;
       }
       /**
-       * <code>optional bool writable = 17;</code>
+       * <code>bool writable = 17;</code>
        */
       public Builder clearWritable() {
         
@@ -6419,13 +6463,13 @@ public final class Common {
 
       private boolean definitelyWritable_ ;
       /**
-       * <code>optional bool definitely_writable = 18;</code>
+       * <code>bool definitely_writable = 18;</code>
        */
       public boolean getDefinitelyWritable() {
         return definitelyWritable_;
       }
       /**
-       * <code>optional bool definitely_writable = 18;</code>
+       * <code>bool definitely_writable = 18;</code>
        */
       public Builder setDefinitelyWritable(boolean value) {
         
@@ -6434,7 +6478,7 @@ public final class Common {
         return this;
       }
       /**
-       * <code>optional bool definitely_writable = 18;</code>
+       * <code>bool definitely_writable = 18;</code>
        */
       public Builder clearDefinitelyWritable() {
         
@@ -6445,7 +6489,7 @@ public final class Common {
 
       private java.lang.Object columnClassName_ = "";
       /**
-       * <code>optional string column_class_name = 19;</code>
+       * <code>string column_class_name = 19;</code>
        */
       public java.lang.String getColumnClassName() {
         java.lang.Object ref = columnClassName_;
@@ -6460,7 +6504,7 @@ public final class Common {
         }
       }
       /**
-       * <code>optional string column_class_name = 19;</code>
+       * <code>string column_class_name = 19;</code>
        */
       public com.google.protobuf.ByteString
           getColumnClassNameBytes() {
@@ -6476,7 +6520,7 @@ public final class Common {
         }
       }
       /**
-       * <code>optional string column_class_name = 19;</code>
+       * <code>string column_class_name = 19;</code>
        */
       public Builder setColumnClassName(
           java.lang.String value) {
@@ -6489,7 +6533,7 @@ public final class Common {
         return this;
       }
       /**
-       * <code>optional string column_class_name = 19;</code>
+       * <code>string column_class_name = 19;</code>
        */
       public Builder clearColumnClassName() {
         
@@ -6498,7 +6542,7 @@ public final class Common {
         return this;
       }
       /**
-       * <code>optional string column_class_name = 19;</code>
+       * <code>string column_class_name = 19;</code>
        */
       public Builder setColumnClassNameBytes(
           com.google.protobuf.ByteString value) {
@@ -6516,13 +6560,13 @@ public final class Common {
       private com.google.protobuf.SingleFieldBuilderV3<
           org.apache.calcite.avatica.proto.Common.AvaticaType, org.apache.calcite.avatica.proto.Common.AvaticaType.Builder, org.apache.calcite.avatica.proto.Common.AvaticaTypeOrBuilder> typeBuilder_;
       /**
-       * <code>optional .AvaticaType type = 20;</code>
+       * <code>.AvaticaType type = 20;</code>
        */
       public boolean hasType() {
         return typeBuilder_ != null || type_ != null;
       }
       /**
-       * <code>optional .AvaticaType type = 20;</code>
+       * <code>.AvaticaType type = 20;</code>
        */
       public org.apache.calcite.avatica.proto.Common.AvaticaType getType() {
         if (typeBuilder_ == null) {
@@ -6532,7 +6576,7 @@ public final class Common {
         }
       }
       /**
-       * <code>optional .AvaticaType type = 20;</code>
+       * <code>.AvaticaType type = 20;</code>
        */
       public Builder setType(org.apache.calcite.avatica.proto.Common.AvaticaType value) {
         if (typeBuilder_ == null) {
@@ -6548,7 +6592,7 @@ public final class Common {
         return this;
       }
       /**
-       * <code>optional .AvaticaType type = 20;</code>
+       * <code>.AvaticaType type = 20;</code>
        */
       public Builder setType(
           org.apache.calcite.avatica.proto.Common.AvaticaType.Builder builderForValue) {
@@ -6562,7 +6606,7 @@ public final class Common {
         return this;
       }
       /**
-       * <code>optional .AvaticaType type = 20;</code>
+       * <code>.AvaticaType type = 20;</code>
        */
       public Builder mergeType(org.apache.calcite.avatica.proto.Common.AvaticaType value) {
         if (typeBuilder_ == null) {
@@ -6580,7 +6624,7 @@ public final class Common {
         return this;
       }
       /**
-       * <code>optional .AvaticaType type = 20;</code>
+       * <code>.AvaticaType type = 20;</code>
        */
       public Builder clearType() {
         if (typeBuilder_ == null) {
@@ -6594,7 +6638,7 @@ public final class Common {
         return this;
       }
       /**
-       * <code>optional .AvaticaType type = 20;</code>
+       * <code>.AvaticaType type = 20;</code>
        */
       public org.apache.calcite.avatica.proto.Common.AvaticaType.Builder getTypeBuilder() {
         
@@ -6602,7 +6646,7 @@ public final class Common {
         return getTypeFieldBuilder().getBuilder();
       }
       /**
-       * <code>optional .AvaticaType type = 20;</code>
+       * <code>.AvaticaType type = 20;</code>
        */
       public org.apache.calcite.avatica.proto.Common.AvaticaTypeOrBuilder getTypeOrBuilder() {
         if (typeBuilder_ != null) {
@@ -6613,7 +6657,7 @@ public final class Common {
         }
       }
       /**
-       * <code>optional .AvaticaType type = 20;</code>
+       * <code>.AvaticaType type = 20;</code>
        */
       private com.google.protobuf.SingleFieldBuilderV3<
           org.apache.calcite.avatica.proto.Common.AvaticaType, org.apache.calcite.avatica.proto.Common.AvaticaType.Builder, org.apache.calcite.avatica.proto.Common.AvaticaTypeOrBuilder> 
@@ -6682,26 +6726,26 @@ public final class Common {
       com.google.protobuf.MessageOrBuilder {
 
     /**
-     * <code>optional uint32 id = 1;</code>
+     * <code>uint32 id = 1;</code>
      */
     int getId();
 
     /**
-     * <code>optional string name = 2;</code>
+     * <code>string name = 2;</code>
      */
     java.lang.String getName();
     /**
-     * <code>optional string name = 2;</code>
+     * <code>string name = 2;</code>
      */
     com.google.protobuf.ByteString
         getNameBytes();
 
     /**
-     * <code>optional .Rep rep = 3;</code>
+     * <code>.Rep rep = 3;</code>
      */
     int getRepValue();
     /**
-     * <code>optional .Rep rep = 3;</code>
+     * <code>.Rep rep = 3;</code>
      */
     org.apache.calcite.avatica.proto.Common.Rep getRep();
 
@@ -6754,7 +6798,7 @@ public final class Common {
      * Only present when name = ARRAY
      * </pre>
      *
-     * <code>optional .AvaticaType component = 5;</code>
+     * <code>.AvaticaType component = 5;</code>
      */
     boolean hasComponent();
     /**
@@ -6762,7 +6806,7 @@ public final class Common {
      * Only present when name = ARRAY
      * </pre>
      *
-     * <code>optional .AvaticaType component = 5;</code>
+     * <code>.AvaticaType component = 5;</code>
      */
     org.apache.calcite.avatica.proto.Common.AvaticaType getComponent();
     /**
@@ -6770,7 +6814,7 @@ public final class Common {
      * Only present when name = ARRAY
      * </pre>
      *
-     * <code>optional .AvaticaType component = 5;</code>
+     * <code>.AvaticaType component = 5;</code>
      */
     org.apache.calcite.avatica.proto.Common.AvaticaTypeOrBuilder getComponentOrBuilder();
   }
@@ -6890,7 +6934,7 @@ public final class Common {
     public static final int ID_FIELD_NUMBER = 1;
     private int id_;
     /**
-     * <code>optional uint32 id = 1;</code>
+     * <code>uint32 id = 1;</code>
      */
     public int getId() {
       return id_;
@@ -6899,7 +6943,7 @@ public final class Common {
     public static final int NAME_FIELD_NUMBER = 2;
     private volatile java.lang.Object name_;
     /**
-     * <code>optional string name = 2;</code>
+     * <code>string name = 2;</code>
      */
     public java.lang.String getName() {
       java.lang.Object ref = name_;
@@ -6914,7 +6958,7 @@ public final class Common {
       }
     }
     /**
-     * <code>optional string name = 2;</code>
+     * <code>string name = 2;</code>
      */
     public com.google.protobuf.ByteString
         getNameBytes() {
@@ -6933,13 +6977,13 @@ public final class Common {
     public static final int REP_FIELD_NUMBER = 3;
     private int rep_;
     /**
-     * <code>optional .Rep rep = 3;</code>
+     * <code>.Rep rep = 3;</code>
      */
     public int getRepValue() {
       return rep_;
     }
     /**
-     * <code>optional .Rep rep = 3;</code>
+     * <code>.Rep rep = 3;</code>
      */
     public org.apache.calcite.avatica.proto.Common.Rep getRep() {
       org.apache.calcite.avatica.proto.Common.Rep result = org.apache.calcite.avatica.proto.Common.Rep.valueOf(rep_);
@@ -7008,7 +7052,7 @@ public final class Common {
      * Only present when name = ARRAY
      * </pre>
      *
-     * <code>optional .AvaticaType component = 5;</code>
+     * <code>.AvaticaType component = 5;</code>
      */
     public boolean hasComponent() {
       return component_ != null;
@@ -7018,7 +7062,7 @@ public final class Common {
      * Only present when name = ARRAY
      * </pre>
      *
-     * <code>optional .AvaticaType component = 5;</code>
+     * <code>.AvaticaType component = 5;</code>
      */
     public org.apache.calcite.avatica.proto.Common.AvaticaType getComponent() {
       return component_ == null ? org.apache.calcite.avatica.proto.Common.AvaticaType.getDefaultInstance() : component_;
@@ -7028,7 +7072,7 @@ public final class Common {
      * Only present when name = ARRAY
      * </pre>
      *
-     * <code>optional .AvaticaType component = 5;</code>
+     * <code>.AvaticaType component = 5;</code>
      */
     public org.apache.calcite.avatica.proto.Common.AvaticaTypeOrBuilder getComponentOrBuilder() {
       return getComponent();
@@ -7124,7 +7168,7 @@ public final class Common {
         return memoizedHashCode;
       }
       int hash = 41;
-      hash = (19 * hash) + getDescriptorForType().hashCode();
+      hash = (19 * hash) + getDescriptor().hashCode();
       hash = (37 * hash) + ID_FIELD_NUMBER;
       hash = (53 * hash) + getId();
       hash = (37 * hash) + NAME_FIELD_NUMBER;
@@ -7144,6 +7188,17 @@ public final class Common {
       return hash;
     }
 
+    public static org.apache.calcite.avatica.proto.Common.AvaticaType parseFrom(
+        java.nio.ByteBuffer data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data);
+    }
+    public static org.apache.calcite.avatica.proto.Common.AvaticaType parseFrom(
+        java.nio.ByteBuffer data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data, extensionRegistry);
+    }
     public static org.apache.calcite.avatica.proto.Common.AvaticaType parseFrom(
         com.google.protobuf.ByteString data)
         throws com.google.protobuf.InvalidProtocolBufferException {
@@ -7431,13 +7486,13 @@ public final class Common {
 
       private int id_ ;
       /**
-       * <code>optional uint32 id = 1;</code>
+       * <code>uint32 id = 1;</code>
        */
       public int getId() {
         return id_;
       }
       /**
-       * <code>optional uint32 id = 1;</code>
+       * <code>uint32 id = 1;</code>
        */
       public Builder setId(int value) {
         
@@ -7446,7 +7501,7 @@ public final class Common {
         return this;
       }
       /**
-       * <code>optional uint32 id = 1;</code>
+       * <code>uint32 id = 1;</code>
        */
       public Builder clearId() {
         
@@ -7457,7 +7512,7 @@ public final class Common {
 
       private java.lang.Object name_ = "";
       /**
-       * <code>optional string name = 2;</code>
+       * <code>string name = 2;</code>
        */
       public java.lang.String getName() {
         java.lang.Object ref = name_;
@@ -7472,7 +7527,7 @@ public final class Common {
         }
       }
       /**
-       * <code>optional string name = 2;</code>
+       * <code>string name = 2;</code>
        */
       public com.google.protobuf.ByteString
           getNameBytes() {
@@ -7488,7 +7543,7 @@ public final class Common {
         }
       }
       /**
-       * <code>optional string name = 2;</code>
+       * <code>string name = 2;</code>
        */
       public Builder setName(
           java.lang.String value) {
@@ -7501,7 +7556,7 @@ public final class Common {
         return this;
       }
       /**
-       * <code>optional string name = 2;</code>
+       * <code>string name = 2;</code>
        */
       public Builder clearName() {
         
@@ -7510,7 +7565,7 @@ public final class Common {
         return this;
       }
       /**
-       * <code>optional string name = 2;</code>
+       * <code>string name = 2;</code>
        */
       public Builder setNameBytes(
           com.google.protobuf.ByteString value) {
@@ -7526,13 +7581,13 @@ public final class Common {
 
       private int rep_ = 0;
       /**
-       * <code>optional .Rep rep = 3;</code>
+       * <code>.Rep rep = 3;</code>
        */
       public int getRepValue() {
         return rep_;
       }
       /**
-       * <code>optional .Rep rep = 3;</code>
+       * <code>.Rep rep = 3;</code>
        */
       public Builder setRepValue(int value) {
         rep_ = value;
@@ -7540,14 +7595,14 @@ public final class Common {
         return this;
       }
       /**
-       * <code>optional .Rep rep = 3;</code>
+       * <code>.Rep rep = 3;</code>
        */
       public org.apache.calcite.avatica.proto.Common.Rep getRep() {
         org.apache.calcite.avatica.proto.Common.Rep result = org.apache.calcite.avatica.proto.Common.Rep.valueOf(rep_);
         return result == null ? org.apache.calcite.avatica.proto.Common.Rep.UNRECOGNIZED : result;
       }
       /**
-       * <code>optional .Rep rep = 3;</code>
+       * <code>.Rep rep = 3;</code>
        */
       public Builder setRep(org.apache.calcite.avatica.proto.Common.Rep value) {
         if (value == null) {
@@ -7559,7 +7614,7 @@ public final class Common {
         return this;
       }
       /**
-       * <code>optional .Rep rep = 3;</code>
+       * <code>.Rep rep = 3;</code>
        */
       public Builder clearRep() {
         
@@ -7888,7 +7943,7 @@ public final class Common {
        * Only present when name = ARRAY
        * </pre>
        *
-       * <code>optional .AvaticaType component = 5;</code>
+       * <code>.AvaticaType component = 5;</code>
        */
       public boolean hasComponent() {
         return componentBuilder_ != null || component_ != null;
@@ -7898,7 +7953,7 @@ public final class Common {
        * Only present when name = ARRAY
        * </pre>
        *
-       * <code>optional .AvaticaType component = 5;</code>
+       * <code>.AvaticaType component = 5;</code>
        */
       public org.apache.calcite.avatica.proto.Common.AvaticaType getComponent() {
         if (componentBuilder_ == null) {
@@ -7912,7 +7967,7 @@ public final class Common {
        * Only present when name = ARRAY
        * </pre>
        *
-       * <code>optional .AvaticaType component = 5;</code>
+       * <code>.AvaticaType component = 5;</code>
        */
       public Builder setComponent(org.apache.calcite.avatica.proto.Common.AvaticaType value) {
         if (componentBuilder_ == null) {
@@ -7932,7 +7987,7 @@ public final class Common {
        * Only present when name = ARRAY
        * </pre>
        *
-       * <code>optional .AvaticaType component = 5;</code>
+       * <code>.AvaticaType component = 5;</code>
        */
       public Builder setComponent(
           org.apache.calcite.avatica.proto.Common.AvaticaType.Builder builderForValue) {
@@ -7950,7 +8005,7 @@ public final class Common {
        * Only present when name = ARRAY
        * </pre>
        *
-       * <code>optional .AvaticaType component = 5;</code>
+       * <code>.AvaticaType component = 5;</code>
        */
       public Builder mergeComponent(org.apache.calcite.avatica.proto.Common.AvaticaType value) {
         if (componentBuilder_ == null) {
@@ -7972,7 +8027,7 @@ public final class Common {
        * Only present when name = ARRAY
        * </pre>
        *
-       * <code>optional .AvaticaType component = 5;</code>
+       * <code>.AvaticaType component = 5;</code>
        */
       public Builder clearComponent() {
         if (componentBuilder_ == null) {
@@ -7990,7 +8045,7 @@ public final class Common {
        * Only present when name = ARRAY
        * </pre>
        *
-       * <code>optional .AvaticaType component = 5;</code>
+       * <code>.AvaticaType component = 5;</code>
        */
       public org.apache.calcite.avatica.proto.Common.AvaticaType.Builder getComponentBuilder() {
         
@@ -8002,7 +8057,7 @@ public final class Common {
        * Only present when name = ARRAY
        * </pre>
        *
-       * <code>optional .AvaticaType component = 5;</code>
+       * <code>.AvaticaType component = 5;</code>
        */
       public org.apache.calcite.avatica.proto.Common.AvaticaTypeOrBuilder getComponentOrBuilder() {
         if (componentBuilder_ != null) {
@@ -8017,7 +8072,7 @@ public final class Common {
        * Only present when name = ARRAY
        * </pre>
        *
-       * <code>optional .AvaticaType component = 5;</code>
+       * <code>.AvaticaType component = 5;</code>
        */
       private com.google.protobuf.SingleFieldBuilderV3<
           org.apache.calcite.avatica.proto.Common.AvaticaType, org.apache.calcite.avatica.proto.Common.AvaticaType.Builder, org.apache.calcite.avatica.proto.Common.AvaticaTypeOrBuilder> 
@@ -8086,51 +8141,51 @@ public final class Common {
       com.google.protobuf.MessageOrBuilder {
 
     /**
-     * <code>optional bool signed = 1;</code>
+     * <code>bool signed = 1;</code>
      */
     boolean getSigned();
 
     /**
-     * <code>optional uint32 precision = 2;</code>
+     * <code>uint32 precision = 2;</code>
      */
     int getPrecision();
 
     /**
-     * <code>optional uint32 scale = 3;</code>
+     * <code>uint32 scale = 3;</code>
      */
     int getScale();
 
     /**
-     * <code>optional uint32 parameter_type = 4;</code>
+     * <code>uint32 parameter_type = 4;</code>
      */
     int getParameterType();
 
     /**
-     * <code>optional string type_name = 5;</code>
+     * <code>string type_name = 5;</code>
      */
     java.lang.String getTypeName();
     /**
-     * <code>optional string type_name = 5;</code>
+     * <code>string type_name = 5;</code>
      */
     com.google.protobuf.ByteString
         getTypeNameBytes();
 
     /**
-     * <code>optional string class_name = 6;</code>
+     * <code>string class_name = 6;</code>
      */
     java.lang.String getClassName();
     /**
-     * <code>optional string class_name = 6;</code>
+     * <code>string class_name = 6;</code>
      */
     com.google.protobuf.ByteString
         getClassNameBytes();
 
     /**
-     * <code>optional string name = 7;</code>
+     * <code>string name = 7;</code>
      */
     java.lang.String getName();
     /**
-     * <code>optional string name = 7;</code>
+     * <code>string name = 7;</code>
      */
     com.google.protobuf.ByteString
         getNameBytes();
@@ -8249,7 +8304,7 @@ public final class Common {
     public static final int SIGNED_FIELD_NUMBER = 1;
     private boolean signed_;
     /**
-     * <code>optional bool signed = 1;</code>
+     * <code>bool signed = 1;</code>
      */
     public boolean getSigned() {
       return signed_;
@@ -8258,7 +8313,7 @@ public final class Common {
     public static final int PRECISION_FIELD_NUMBER = 2;
     private int precision_;
     /**
-     * <code>optional uint32 precision = 2;</code>
+     * <code>uint32 precision = 2;</code>
      */
     public int getPrecision() {
       return precision_;
@@ -8267,7 +8322,7 @@ public final class Common {
     public static final int SCALE_FIELD_NUMBER = 3;
     private int scale_;
     /**
-     * <code>optional uint32 scale = 3;</code>
+     * <code>uint32 scale = 3;</code>
      */
     public int getScale() {
       return scale_;
@@ -8276,7 +8331,7 @@ public final class Common {
     public static final int PARAMETER_TYPE_FIELD_NUMBER = 4;
     private int parameterType_;
     /**
-     * <code>optional uint32 parameter_type = 4;</code>
+     * <code>uint32 parameter_type = 4;</code>
      */
     public int getParameterType() {
       return parameterType_;
@@ -8285,7 +8340,7 @@ public final class Common {
     public static final int TYPE_NAME_FIELD_NUMBER = 5;
     private volatile java.lang.Object typeName_;
     /**
-     * <code>optional string type_name = 5;</code>
+     * <code>string type_name = 5;</code>
      */
     public java.lang.String getTypeName() {
       java.lang.Object ref = typeName_;
@@ -8300,7 +8355,7 @@ public final class Common {
       }
     }
     /**
-     * <code>optional string type_name = 5;</code>
+     * <code>string type_name = 5;</code>
      */
     public com.google.protobuf.ByteString
         getTypeNameBytes() {
@@ -8319,7 +8374,7 @@ public final class Common {
     public static final int CLASS_NAME_FIELD_NUMBER = 6;
     private volatile java.lang.Object className_;
     /**
-     * <code>optional string class_name = 6;</code>
+     * <code>string class_name = 6;</code>
      */
     public java.lang.String getClassName() {
       java.lang.Object ref = className_;
@@ -8334,7 +8389,7 @@ public final class Common {
       }
     }
     /**
-     * <code>optional string class_name = 6;</code>
+     * <code>string class_name = 6;</code>
      */
     public com.google.protobuf.ByteString
         getClassNameBytes() {
@@ -8353,7 +8408,7 @@ public final class Common {
     public static final int NAME_FIELD_NUMBER = 7;
     private volatile java.lang.Object name_;
     /**
-     * <code>optional string name = 7;</code>
+     * <code>string name = 7;</code>
      */
     public java.lang.String getName() {
       java.lang.Object ref = name_;
@@ -8368,7 +8423,7 @@ public final class Common {
       }
     }
     /**
-     * <code>optional string name = 7;</code>
+     * <code>string name = 7;</code>
      */
     public com.google.protobuf.ByteString
         getNameBytes() {
@@ -8488,7 +8543,7 @@ public final class Common {
         return memoizedHashCode;
       }
       int hash = 41;
-      hash = (19 * hash) + getDescriptorForType().hashCode();
+      hash = (19 * hash) + getDescriptor().hashCode();
       hash = (37 * hash) + SIGNED_FIELD_NUMBER;
       hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
           getSigned());
@@ -8509,6 +8564,17 @@ public final class Common {
       return hash;
     }
 
+    public static org.apache.calcite.avatica.proto.Common.AvaticaParameter parseFrom(
+        java.nio.ByteBuffer data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data);
+    }
+    public static org.apache.calcite.avatica.proto.Common.AvaticaParameter parseFrom(
+        java.nio.ByteBuffer data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data, extensionRegistry);
+    }
     public static org.apache.calcite.avatica.proto.Common.AvaticaParameter parseFrom(
         com.google.protobuf.ByteString data)
         throws com.google.protobuf.InvalidProtocolBufferException {
@@ -8762,13 +8828,13 @@ public final class Common {
 
       private boolean signed_ ;
       /**
-       * <code>optional bool signed = 1;</code>
+       * <code>bool signed = 1;</code>
        */
       public boolean getSigned() {
         return signed_;
       }
       /**
-       * <code>optional bool signed = 1;</code>
+       * <code>bool signed = 1;</code>
        */
       public Builder setSigned(boolean value) {
         
@@ -8777,7 +8843,7 @@ public final class Common {
         return this;
       }
       /**
-       * <code>optional bool signed = 1;</code>
+       * <code>bool signed = 1;</code>
        */
       public Builder clearSigned() {
         
@@ -8788,13 +8854,13 @@ public final class Common {
 
       private int precision_ ;
       /**
-       * <code>optional uint32 precision = 2;</code>
+       * <code>uint32 precision = 2;</code>
        */
       public int getPrecision() {
         return precision_;
       }
       /**
-       * <code>optional uint32 precision = 2;</code>
+       * <code>uint32 precision = 2;</code>
        */
       public Builder setPrecision(int value) {
         
@@ -8803,7 +8869,7 @@ public final class Common {
         return this;
       }
       /**
-       * <code>optional uint32 precision = 2;</code>
+       * <code>uint32 precision = 2;</code>
        */
       public Builder clearPrecision() {
         
@@ -8814,13 +8880,13 @@ public final class Common {
 
       private int scale_ ;
       /**
-       * <code>optional uint32 scale = 3;</code>
+       * <code>uint32 scale = 3;</code>
        */
       public int getScale() {
         return scale_;
       }
       /**
-       * <code>optional uint32 scale = 3;</code>
+       * <code>uint32 scale = 3;</code>
        */
       public Builder setScale(int value) {
         
@@ -8829,7 +8895,7 @@ public final class Common {
         return this;
       }
       /**
-       * <code>optional uint32 scale = 3;</code>
+       * <code>uint32 scale = 3;</code>
        */
       public Builder clearScale() {
         
@@ -8840,13 +8906,13 @@ public final class Common {
 
       private int parameterType_ ;
       /**
-       * <code>optional uint32 parameter_type = 4;</code>
+       * <code>uint32 parameter_type = 4;</code>
        */
       public int getParameterType() {
         return parameterType_;
       }
       /**
-       * <code>optional uint32 parameter_type = 4;</code>
+       * <code>uint32 parameter_type = 4;</code>
        */
       public Builder setParameterType(int value) {
         
@@ -8855,7 +8921,7 @@ public final class Common {
         return this;
       }
       /**
-       * <code>optional uint32 parameter_type = 4;</code>
+       * <code>uint32 parameter_type = 4;</code>
        */
       public Builder clearParameterType() {
         
@@ -8866,7 +8932,7 @@ public final class Common {
 
       private java.lang.Object typeName_ = "";
       /**
-       * <code>optional string type_name = 5;</code>
+       * <code>string type_name = 5;</code>
        */
       public java.lang.String getTypeName() {
         java.lang.Object ref = typeName_;
@@ -8881,7 +8947,7 @@ public final class Common {
         }
       }
       /**
-       * <code>optional string type_name = 5;</code>
+       * <code>string type_name = 5;</code>
        */
       public com.google.protobuf.ByteString
           getTypeNameBytes() {
@@ -8897,7 +8963,7 @@ public final class Common {
         }
       }
       /**
-       * <code>optional string type_name = 5;</code>
+       * <code>string type_name = 5;</code>
        */
       public Builder setTypeName(
           java.lang.String value) {
@@ -8910,7 +8976,7 @@ public final class Common {
         return this;
       }
       /**
-       * <code>optional string type_name = 5;</code>
+       * <code>string type_name = 5;</code>
        */
       public Builder clearTypeName() {
         
@@ -8919,7 +8985,7 @@ public final class Common {
         return this;
       }
       /**
-       * <code>optional string type_name = 5;</code>
+       * <code>string type_name = 5;</code>
        */
       public Builder setTypeNameBytes(
           com.google.protobuf.ByteString value) {
@@ -8935,7 +9001,7 @@ public final class Common {
 
       private java.lang.Object className_ = "";
       /**
-       * <code>optional string class_name = 6;</code>
+       * <code>string class_name = 6;</code>
        */
       public java.lang.String getClassName() {
         java.lang.Object ref = className_;
@@ -8950,7 +9016,7 @@ public final class Common {
         }
       }
       /**
-       * <code>optional string class_name = 6;</code>
+       * <code>string class_name = 6;</code>
        */
       public com.google.protobuf.ByteString
           getClassNameBytes() {
@@ -8966,7 +9032,7 @@ public final class Common {
         }
       }
       /**
-       * <code>optional string class_name = 6;</code>
+       * <code>string class_name = 6;</code>
        */
       public Builder setClassName(
           java.lang.String value) {
@@ -8979,7 +9045,7 @@ public final class Common {
         return this;
       }
       /**
-       * <code>optional string class_name = 6;</code>
+       * <code>string class_name = 6;</code>
        */
       public Builder clearClassName() {
         
@@ -8988,7 +9054,7 @@ public final class Common {
         return this;
       }
       /**
-       * <code>optional string class_name = 6;</code>
+       * <code>string class_name = 6;</code>
        */
       public Builder setClassNameBytes(
           com.google.protobuf.ByteString value) {
@@ -9004,7 +9070,7 @@ public final class Common {
 
       private java.lang.Object name_ = "";
       /**
-       * <code>optional string name = 7;</code>
+       * <code>string name = 7;</code>
        */
       public java.lang.String getName() {
         java.lang.Object ref = name_;
@@ -9019,7 +9085,7 @@ public final class Common {
         }
       }
       /**
-       * <code>optional string name = 7;</code>
+       * <code>string name = 7;</code>
        */
       public com.google.protobuf.ByteString
           getNameBytes() {
@@ -9035,7 +9101,7 @@ public final class Common {
         }
       }
       /**
-       * <code>optional string name = 7;</code>
+       * <code>string name = 7;</code>
        */
       public Builder setName(
           java.lang.String value) {
@@ -9048,7 +9114,7 @@ public final class Common {
         return this;
       }
       /**
-       * <code>optional string name = 7;</code>
+       * <code>string name = 7;</code>
        */
       public Builder clearName() {
         
@@ -9057,7 +9123,7 @@ public final class Common {
         return this;
       }
       /**
-       * <code>optional string name = 7;</code>
+       * <code>string name = 7;</code>
        */
       public Builder setNameBytes(
           com.google.protobuf.ByteString value) {
@@ -9124,20 +9190,20 @@ public final class Common {
       com.google.protobuf.MessageOrBuilder {
 
     /**
-     * <code>optional .CursorFactory.Style style = 1;</code>
+     * <code>.CursorFactory.Style style = 1;</code>
      */
     int getStyleValue();
     /**
-     * <code>optional .CursorFactory.Style style = 1;</code>
+     * <code>.CursorFactory.Style style = 1;</code>
      */
     org.apache.calcite.avatica.proto.Common.CursorFactory.Style getStyle();
 
     /**
-     * <code>optional string class_name = 2;</code>
+     * <code>string class_name = 2;</code>
      */
     java.lang.String getClassName();
     /**
-     * <code>optional string class_name = 2;</code>
+     * <code>string class_name = 2;</code>
      */
     com.google.protobuf.ByteString
         getClassNameBytes();
@@ -9392,13 +9458,13 @@ public final class Common {
     public static final int STYLE_FIELD_NUMBER = 1;
     private int style_;
     /**
-     * <code>optional .CursorFactory.Style style = 1;</code>
+     * <code>.CursorFactory.Style style = 1;</code>
      */
     public int getStyleValue() {
       return style_;
     }
     /**
-     * <code>optional .CursorFactory.Style style = 1;</code>
+     * <code>.CursorFactory.Style style = 1;</code>
      */
     public org.apache.calcite.avatica.proto.Common.CursorFactory.Style getStyle() {
       org.apache.calcite.avatica.proto.Common.CursorFactory.Style result = org.apache.calcite.avatica.proto.Common.CursorFactory.Style.valueOf(style_);
@@ -9408,7 +9474,7 @@ public final class Common {
     public static final int CLASS_NAME_FIELD_NUMBER = 2;
     private volatile java.lang.Object className_;
     /**
-     * <code>optional string class_name = 2;</code>
+     * <code>string class_name = 2;</code>
      */
     public java.lang.String getClassName() {
       java.lang.Object ref = className_;
@@ -9423,7 +9489,7 @@ public final class Common {
       }
     }
     /**
-     * <code>optional string class_name = 2;</code>
+     * <code>string class_name = 2;</code>
      */
     public com.google.protobuf.ByteString
         getClassNameBytes() {
@@ -9541,7 +9607,7 @@ public final class Common {
         return memoizedHashCode;
       }
       int hash = 41;
-      hash = (19 * hash) + getDescriptorForType().hashCode();
+      hash = (19 * hash) + getDescriptor().hashCode();
       hash = (37 * hash) + STYLE_FIELD_NUMBER;
       hash = (53 * hash) + style_;
       hash = (37 * hash) + CLASS_NAME_FIELD_NUMBER;
@@ -9555,6 +9621,17 @@ public final class Common {
       return hash;
     }
 
+    public static org.apache.calcite.avatica.proto.Common.CursorFactory parseFrom(
+        java.nio.ByteBuffer data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data);
+    }
+    public static org.apache.calcite.avatica.proto.Common.CursorFactory parseFrom(
+        java.nio.ByteBuffer data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data, extensionRegistry);
+    }
     public static org.apache.calcite.avatica.proto.Common.CursorFactory parseFrom(
         com.google.protobuf.ByteString data)
         throws com.google.protobuf.InvalidProtocolBufferException {
@@ -9797,13 +9874,13 @@ public final class Common {
 
       private int style_ = 0;
       /**
-       * <code>optional .CursorFactory.Style style = 1;</code>
+       * <code>.CursorFactory.Style style = 1;</code>
        */
       public int getStyleValue() {
         return style_;
       }
       /**
-       * <code>optional .CursorFactory.Style style = 1;</code>
+       * <code>.CursorFactory.Style style = 1;</code>
        */
       public Builder setStyleValue(int value) {
         style_ = value;
@@ -9811,14 +9888,14 @@ public final class Common {
         return this;
       }
       /**
-       * <code>optional .CursorFactory.Style style = 1;</code>
+       * <code>.CursorFactory.Style style = 1;</code>
        */
       public org.apache.calcite.avatica.proto.Common.CursorFactory.Style getStyle() {
         org.apache.calcite.avatica.proto.Common.CursorFactory.Style result = org.apache.calcite.avatica.proto.Common.CursorFactory.Style.valueOf(style_);
         return result == null ? org.apache.calcite.avatica.proto.Common.CursorFactory.Style.UNRECOGNIZED : result;
       }
       /**
-       * <code>optional .CursorFactory.Style style = 1;</code>
+       * <code>.CursorFactory.Style style = 1;</code>
        */
       public Builder setStyle(org.apache.calcite.avatica.proto.Common.CursorFactory.Style value) {
         if (value == null) {
@@ -9830,7 +9907,7 @@ public final class Common {
         return this;
       }
       /**
-       * <code>optional .CursorFactory.Style style = 1;</code>
+       * <code>.CursorFactory.Style style = 1;</code>
        */
       public Builder clearStyle() {
         
@@ -9841,7 +9918,7 @@ public final class Common {
 
       private java.lang.Object className_ = "";
       /**
-       * <code>optional string class_name = 2;</code>
+       * <code>string class_name = 2;</code>
        */
       public java.lang.String getClassName() {
         java.lang.Object ref = className_;
@@ -9856,7 +9933,7 @@ public final class Common {
         }
       }
       /**
-       * <code>optional string class_name = 2;</code>
+       * <code>string class_name = 2;</code>
        */
       public com.google.protobuf.ByteString
           getClassNameBytes() {
@@ -9872,7 +9949,7 @@ public final class Common {
         }
       }
       /**
-       * <code>optional string class_name = 2;</code>
+       * <code>string class_name = 2;</code>
        */
       public Builder setClassName(
           java.lang.String value) {
@@ -9885,7 +9962,7 @@ public final class Common {
         return this;
       }
       /**
-       * <code>optional string class_name = 2;</code>
+       * <code>string class_name = 2;</code>
        */
       public Builder clearClassName() {
         
@@ -9894,7 +9971,7 @@ public final class Common {
         return this;
       }
       /**
-       * <code>optional string class_name = 2;</code>
+       * <code>string class_name = 2;</code>
        */
       public Builder setClassNameBytes(
           com.google.protobuf.ByteString value) {
@@ -10055,12 +10132,12 @@ public final class Common {
       com.google.protobuf.MessageOrBuilder {
 
     /**
-     * <code>optional uint64 offset = 1;</code>
+     * <code>uint64 offset = 1;</code>
      */
     long getOffset();
 
     /**
-     * <code>optional bool done = 2;</code>
+     * <code>bool done = 2;</code>
      */
     boolean getDone();
 
@@ -10183,7 +10260,7 @@ public final class Common {
     public static final int OFFSET_FIELD_NUMBER = 1;
     private long offset_;
     /**
-     * <code>optional uint64 offset = 1;</code>
+     * <code>uint64 offset = 1;</code>
      */
     public long getOffset() {
       return offset_;
@@ -10192,7 +10269,7 @@ public final class Common {
     public static final int DONE_FIELD_NUMBER = 2;
     private boolean done_;
     /**
-     * <code>optional bool done = 2;</code>
+     * <code>bool done = 2;</code>
      */
     public boolean getDone() {
       return done_;
@@ -10304,7 +10381,7 @@ public final class Common {
         return memoizedHashCode;
       }
       int hash = 41;
-      hash = (19 * hash) + getDescriptorForType().hashCode();
+      hash = (19 * hash) + getDescriptor().hashCode();
       hash = (37 * hash) + OFFSET_FIELD_NUMBER;
       hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
           getOffset());
@@ -10320,6 +10397,17 @@ public final class Common {
       return hash;
     }
 
+    public static org.apache.calcite.avatica.proto.Common.Frame parseFrom(
+        java.nio.ByteBuffer data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data);
+    }
+    public static org.apache.calcite.avatica.proto.Common.Frame parseFrom(
+        java.nio.ByteBuffer data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data, extensionRegistry);
+    }
     public static org.apache.calcite.avatica.proto.Common.Frame parseFrom(
         com.google.protobuf.ByteString data)
         throws com.google.protobuf.InvalidProtocolBufferException {
@@ -10586,13 +10674,13 @@ public final class Common {
 
       private long offset_ ;
       /**
-       * <code>optional uint64 offset = 1;</code>
+       * <code>uint64 offset = 1;</code>
        */
       public long getOffset() {
         return offset_;
       }
       /**
-       * <code>optional uint64 offset = 1;</code>
+       * <code>uint64 offset = 1;</code>
        */
       public Builder setOffset(long value) {
         
@@ -10601,7 +10689,7 @@ public final class Common {
         return this;
       }
       /**
-       * <code>optional uint64 offset = 1;</code>
+       * <code>uint64 offset = 1;</code>
        */
       public Builder clearOffset() {
         
@@ -10612,13 +10700,13 @@ public final class Common {
 
       private boolean done_ ;
       /**
-       * <code>optional bool done = 2;</code>
+       * <code>bool done = 2;</code>
        */
       public boolean getDone() {
         return done_;
       }
       /**
-       * <code>optional bool done = 2;</code>
+       * <code>bool done = 2;</code>
        */
       public Builder setDone(boolean value) {
         
@@ -10627,7 +10715,7 @@ public final class Common {
         return this;
       }
       /**
-       * <code>optional bool done = 2;</code>
+       * <code>bool done = 2;</code>
        */
       public Builder clearDone() {
         
@@ -11119,7 +11207,7 @@ public final class Common {
         return memoizedHashCode;
       }
       int hash = 41;
-      hash = (19 * hash) + getDescriptorForType().hashCode();
+      hash = (19 * hash) + getDescriptor().hashCode();
       if (getValueCount() > 0) {
         hash = (37 * hash) + VALUE_FIELD_NUMBER;
         hash = (53 * hash) + getValueList().hashCode();
@@ -11129,6 +11217,17 @@ public final class Common {
       return hash;
     }
 
+    public static org.apache.calcite.avatica.proto.Common.Row parseFrom(
+        java.nio.ByteBuffer data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data);
+    }
+    public static org.apache.calcite.avatica.proto.Common.Row parseFrom(
+        java.nio.ByteBuffer data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data, extensionRegistry);
+    }
     public static org.apache.calcite.avatica.proto.Common.Row parseFrom(
         com.google.protobuf.ByteString data)
         throws com.google.protobuf.InvalidProtocolBufferException {
@@ -11672,11 +11771,11 @@ public final class Common {
       com.google.protobuf.MessageOrBuilder {
 
     /**
-     * <code>optional string name = 1;</code>
+     * <code>string name = 1;</code>
      */
     java.lang.String getName();
     /**
-     * <code>optional string name = 1;</code>
+     * <code>string name = 1;</code>
      */
     com.google.protobuf.ByteString
         getNameBytes();
@@ -11790,7 +11889,7 @@ public final class Common {
     public static final int NAME_FIELD_NUMBER = 1;
     private volatile java.lang.Object name_;
     /**
-     * <code>optional string name = 1;</code>
+     * <code>string name = 1;</code>
      */
     public java.lang.String getName() {
       java.lang.Object ref = name_;
@@ -11805,7 +11904,7 @@ public final class Common {
       }
     }
     /**
-     * <code>optional string name = 1;</code>
+     * <code>string name = 1;</code>
      */
     public com.google.protobuf.ByteString
         getNameBytes() {
@@ -11915,7 +12014,7 @@ public final class Common {
         return memoizedHashCode;
       }
       int hash = 41;
-      hash = (19 * hash) + getDescriptorForType().hashCode();
+      hash = (19 * hash) + getDescriptor().hashCode();
       hash = (37 * hash) + NAME_FIELD_NUMBER;
       hash = (53 * hash) + getName().hashCode();
       if (getFunctionsCount() > 0) {
@@ -11927,6 +12026,17 @@ public final class Common {
       return hash;
     }
 
+    public static org.apache.calcite.avatica.proto.Common.DatabaseProperty parseFrom(
+        java.nio.ByteBuffer data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data);
+    }
+    public static org.apache.calcite.avatica.proto.Common.DatabaseProperty parseFrom(
+        java.nio.ByteBuffer data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data, extensionRegistry);
+    }
     public static org.apache.calcite.avatica.proto.Common.DatabaseProperty parseFrom(
         com.google.protobuf.ByteString data)
         throws com.google.protobuf.InvalidProtocolBufferException {
@@ -12163,7 +12273,7 @@ public final class Common {
 
       private java.lang.Object name_ = "";
       /**
-       * <code>optional string name = 1;</code>
+       * <code>string name = 1;</code>
        */
       public java.lang.String getName() {
         java.lang.Object ref = name_;
@@ -12178,7 +12288,7 @@ public final class Common {
         }
       }
       /**
-       * <code>optional string name = 1;</code>
+       * <code>string name = 1;</code>
        */
       public com.google.protobuf.ByteString
           getNameBytes() {
@@ -12194,7 +12304,7 @@ public final class Common {
         }
       }
       /**
-       * <code>optional string name = 1;</code>
+       * <code>string name = 1;</code>
        */
       public Builder setName(
           java.lang.String value) {
@@ -12207,7 +12317,7 @@ public final class Common {
         return this;
       }
       /**
-       * <code>optional string name = 1;</code>
+       * <code>string name = 1;</code>
        */
       public Builder clearName() {
         
@@ -12216,7 +12326,7 @@ public final class Common {
         return this;
       }
       /**
-       * <code>optional string name = 1;</code>
+       * <code>string name = 1;</code>
        */
       public Builder setNameBytes(
           com.google.protobuf.ByteString value) {
@@ -12377,17 +12487,17 @@ public final class Common {
       com.google.protobuf.MessageOrBuilder {
 
     /**
-     * <code>optional string name = 1;</code>
+     * <code>string name = 1;</code>
      */
     java.lang.String getName();
     /**
-     * <code>optional string name = 1;</code>
+     * <code>string name = 1;</code>
      */
     com.google.protobuf.ByteString
         getNameBytes();
 
     /**
-     * <code>optional bytes wrapped_message = 2;</code>
+     * <code>bytes wrapped_message = 2;</code>
      */
     com.google.protobuf.ByteString getWrappedMessage();
   }
@@ -12473,7 +12583,7 @@ public final class Common {
     public static final int NAME_FIELD_NUMBER = 1;
     private volatile java.lang.Object name_;
     /**
-     * <code>optional string name = 1;</code>
+     * <code>string name = 1;</code>
      */
     public java.lang.String getName() {
       java.lang.Object ref = name_;
@@ -12488,7 +12598,7 @@ public final class Common {
       }
     }
     /**
-     * <code>optional string name = 1;</code>
+     * <code>string name = 1;</code>
      */
     public com.google.protobuf.ByteString
         getNameBytes() {
@@ -12507,7 +12617,7 @@ public final class Common {
     public static final int WRAPPED_MESSAGE_FIELD_NUMBER = 2;
     private com.google.protobuf.ByteString wrappedMessage_;
     /**
-     * <code>optional bytes wrapped_message = 2;</code>
+     * <code>bytes wrapped_message = 2;</code>
      */
     public com.google.protobuf.ByteString getWrappedMessage() {
       return wrappedMessage_;
@@ -12574,7 +12684,7 @@ public final class Common {
         return memoizedHashCode;
       }
       int hash = 41;
-      hash = (19 * hash) + getDescriptorForType().hashCode();
+      hash = (19 * hash) + getDescriptor().hashCode();
       hash = (37 * hash) + NAME_FIELD_NUMBER;
       hash = (53 * hash) + getName().hashCode();
       hash = (37 * hash) + WRAPPED_MESSAGE_FIELD_NUMBER;
@@ -12584,6 +12694,17 @@ public final class Common {
       return hash;
     }
 
+    public static org.apache.calcite.avatica.proto.Common.WireMessage parseFrom(
+        java.nio.ByteBuffer data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data);
+    }
+    public static org.apache.calcite.avatica.proto.Common.WireMessage parseFrom(
+        java.nio.ByteBuffer data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data, extensionRegistry);
+    }
     public static org.apache.calcite.avatica.proto.Common.WireMessage parseFrom(
         com.google.protobuf.ByteString data)
         throws com.google.protobuf.InvalidProtocolBufferException {
@@ -12805,7 +12926,7 @@ public final class Common {
 
       private java.lang.Object name_ = "";
       /**
-       * <code>optional string name = 1;</code>
+       * <code>string name = 1;</code>
        */
       public java.lang.String getName() {
         java.lang.Object ref = name_;
@@ -12820,7 +12941,7 @@ public final class Common {
         }
       }
       /**
-       * <code>optional string name = 1;</code>
+       * <code>string name = 1;</code>
        */
       public com.google.protobuf.ByteString
           getNameBytes() {
@@ -12836,7 +12957,7 @@ public final class Common {
         }
       }
       /**
-       * <code>optional string name = 1;</code>
+       * <code>string name = 1;</code>
        */
       public Builder setName(
           java.lang.String value) {
@@ -12849,7 +12970,7 @@ public final class Common {
         return this;
       }
       /**
-       * <code>optional string name = 1;</code>
+       * <code>string name = 1;</code>
        */
       public Builder clearName() {
         
@@ -12858,7 +12979,7 @@ public final class Common {
         return this;
       }
       /**
-       * <code>optional string name = 1;</code>
+       * <code>string name = 1;</code>
        */
       public Builder setNameBytes(
           com.google.protobuf.ByteString value) {
@@ -12874,13 +12995,13 @@ public final class Common {
 
       private com.google.protobuf.ByteString wrappedMessage_ = com.google.protobuf.ByteString.EMPTY;
       /**
-       * <code>optional bytes wrapped_message = 2;</code>
+       * <code>bytes wrapped_message = 2;</code>
        */
       public com.google.protobuf.ByteString getWrappedMessage() {
         return wrappedMessage_;
       }
       /**
-       * <code>optional bytes wrapped_message = 2;</code>
+       * <code>bytes wrapped_message = 2;</code>
        */
       public Builder setWrappedMessage(com.google.protobuf.ByteString value) {
         if (value == null) {
@@ -12892,7 +13013,7 @@ public final class Common {
         return this;
       }
       /**
-       * <code>optional bytes wrapped_message = 2;</code>
+       * <code>bytes wrapped_message = 2;</code>
        */
       public Builder clearWrappedMessage() {
         
@@ -13026,20 +13147,20 @@ public final class Common {
      * Is an array value set?
      * </pre>
      *
-     * <code>optional bool has_array_value = 3;</code>
+     * <code>bool has_array_value = 3;</code>
      */
     boolean getHasArrayValue();
 
     /**
-     * <code>optional .TypedValue scalar_value = 4;</code>
+     * <code>.TypedValue scalar_value = 4;</code>
      */
     boolean hasScalarValue();
     /**
-     * <code>optional .TypedValue scalar_value = 4;</code>
+     * <code>.TypedValue scalar_value = 4;</code>
      */
     org.apache.calcite.avatica.proto.Common.TypedValue getScalarValue();
     /**
-     * <code>optional .TypedValue scalar_value = 4;</code>
+     * <code>.TypedValue scalar_value = 4;</code>
      */
     org.apache.calcite.avatica.proto.Common.TypedValueOrBuilder getScalarValueOrBuilder();
   }
@@ -13252,7 +13373,7 @@ public final class Common {
      * Is an array value set?
      * </pre>
      *
-     * <code>optional bool has_array_value = 3;</code>
+     * <code>bool has_array_value = 3;</code>
      */
     public boolean getHasArrayValue() {
       return hasArrayValue_;
@@ -13261,19 +13382,19 @@ public final class Common {
     public static final int SCALAR_VALUE_FIELD_NUMBER = 4;
     private org.apache.calcite.avatica.proto.Common.TypedValue scalarValue_;
     /**
-     * <code>optional .TypedValue scalar_value = 4;</code>
+     * <code>.TypedValue scalar_value = 4;</code>
      */
     public boolean hasScalarValue() {
       return scalarValue_ != null;
     }
     /**
-     * <code>optional .TypedValue scalar_value = 4;</code>
+     * <code>.TypedValue scalar_value = 4;</code>
      */
     public org.apache.calcite.avatica.proto.Common.TypedValue getScalarValue() {
       return scalarValue_ == null ? org.apache.calcite.avatica.proto.Common.TypedValue.getDefaultInstance() : scalarValue_;
     }
     /**
-     * <code>optional .TypedValue scalar_value = 4;</code>
+     * <code>.TypedValue scalar_value = 4;</code>
      */
     public org.apache.calcite.avatica.proto.Common.TypedValueOrBuilder getScalarValueOrBuilder() {
       return getScalarValue();
@@ -13362,7 +13483,7 @@ public final class Common {
         return memoizedHashCode;
       }
       int hash = 41;
-      hash = (19 * hash) + getDescriptorForType().hashCode();
+      hash = (19 * hash) + getDescriptor().hashCode();
       if (getValueCount() > 0) {
         hash = (37 * hash) + VALUE_FIELD_NUMBER;
         hash = (53 * hash) + getValueList().hashCode();
@@ -13383,6 +13504,17 @@ public final class Common {
       return hash;
     }
 
+    public static org.apache.calcite.avatica.proto.Common.ColumnValue parseFrom(
+        java.nio.ByteBuffer data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data);
+    }
+    public static org.apache.calcite.avatica.proto.Common.ColumnValue parseFrom(
+        java.nio.ByteBuffer data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data, extensionRegistry);
+    }
     public static org.apache.calcite.avatica.proto.Common.ColumnValue parseFrom(
         com.google.protobuf.ByteString data)
         throws com.google.protobuf.InvalidProtocolBufferException {
@@ -14255,7 +14387,7 @@ public final class Common {
        * Is an array value set?
        * </pre>
        *
-       * <code>optional bool has_array_value = 3;</code>
+       * <code>bool has_array_value = 3;</code>
        */
       public boolean getHasArrayValue() {
         return hasArrayValue_;
@@ -14265,7 +14397,7 @@ public final class Common {
        * Is an array value set?
        * </pre>
        *
-       * <code>optional bool has_array_value = 3;</code>
+       * <code>bool has_array_value = 3;</code>
        */
       public Builder setHasArrayValue(boolean value) {
         
@@ -14278,7 +14410,7 @@ public final class Common {
        * Is an array value set?
        * </pre>
        *
-       * <code>optional bool has_array_value = 3;</code>
+       * <code>bool has_array_value = 3;</code>
        */
       public Builder clearHasArrayValue() {
         
@@ -14291,13 +14423,13 @@ public final class Common {
       private com.google.protobuf.SingleFieldBuilderV3<
           org.apache.calcite.avatica.proto.Common.TypedValue, org.apache.calcite.avatica.proto.Common.TypedValue.Builder, org.apache.calcite.avatica.proto.Common.TypedValueOrBuilder> scalarValueBuilder_;
       /**
-       * <code>optional .TypedValue scalar_value = 4;</code>
+       * <code>.TypedValue scalar_value = 4;</code>
        */
       public boolean hasScalarValue() {
         return scalarValueBuilder_ != null || scalarValue_ != null;
       }
       /**
-       * <code>optional .TypedValue scalar_value = 4;</code>
+       * <code>.TypedValue scalar_value = 4;</code>
        */
       public org.apache.calcite.avatica.proto.Common.TypedValue getScalarValue() {
         if (scalarValueBuilder_ == null) {
@@ -14307,7 +14439,7 @@ public final class Common {
         }
       }
       /**
-       * <code>optional .TypedValue scalar_value = 4;</code>
+       * <code>.TypedValue scalar_value = 4;</code>
        */
       public Builder setScalarValue(org.apache.calcite.avatica.proto.Common.TypedValue value) {
         if (scalarValueBuilder_ == null) {
@@ -14323,7 +14455,7 @@ public final class Common {
         return this;
       }
       /**
-       * <code>optional .TypedValue scalar_value = 4;</code>
+       * <code>.TypedValue scalar_value = 4;</code>
        */
       public Builder setScalarValue(
           org.apache.calcite.avatica.proto.Common.TypedValue.Builder builderForValue) {
@@ -14337,7 +14469,7 @@ public final class Common {
         return this;
       }
       /**
-       * <code>optional .TypedValue scalar_value = 4;</code>
+       * <code>.TypedValue scalar_value = 4;</code>
        */
       public Builder mergeScalarValue(org.apache.calcite.avatica.proto.Common.TypedValue value) {
         if (scalarValueBuilder_ == null) {
@@ -14355,7 +14487,7 @@ public final class Common {
         return this;
       }
       /**
-       * <code>optional .TypedValue scalar_value = 4;</code>
+       * <code>.TypedValue scalar_value = 4;</code>
        */
       public Builder clearScalarValue() {
         if (scalarValueBuilder_ == null) {
@@ -14369,7 +14501,7 @@ public final class Common {
         return this;
       }
       /**
-       * <code>optional .TypedValue scalar_value = 4;</code>
+       * <code>.TypedValue scalar_value = 4;</code>
        */
       public org.apache.calcite.avatica.proto.Common.TypedValue.Builder getScalarValueBuilder() {
         
@@ -14377,7 +14509,7 @@ public final class Common {
         return getScalarValueFieldBuilder().getBuilder();
       }
       /**
-       * <code>optional .TypedValue scalar_value = 4;</code>
+       * <code>.TypedValue scalar_value = 4;</code>
        */
       public org.apache.calcite.avatica.proto.Common.TypedValueOrBuilder getScalarValueOrBuilder() {
         if (scalarValueBuilder_ != null) {
@@ -14388,7 +14520,7 @@ public final class Common {
         }
       }
       /**
-       * <code>optional .TypedValue scalar_value = 4;</code>
+       * <code>.TypedValue scalar_value = 4;</code>
        */
       private com.google.protobuf.SingleFieldBuilderV3<
           org.apache.calcite.avatica.proto.Common.TypedValue, org.apache.calcite.avatica.proto.Common.TypedValue.Builder, org.apache.calcite.avatica.proto.Common.TypedValueOrBuilder> 
@@ -14461,7 +14593,7 @@ public final class Common {
      * The actual type that was serialized in the general attribute below
      * </pre>
      *
-     * <code>optional .Rep type = 1;</code>
+     * <code>.Rep type = 1;</code>
      */
     int getTypeValue();
     /**
@@ -14469,7 +14601,7 @@ public final class Common {
      * The actual type that was serialized in the general attribute below
      * </pre>
      *
-     * <code>optional .Rep type = 1;</code>
+     * <code>.Rep type = 1;</code>
      */
     org.apache.calcite.avatica.proto.Common.Rep getType();
 
@@ -14478,7 +14610,7 @@ public final class Common {
      * boolean
      * </pre>
      *
-     * <code>optional bool bool_value = 2;</code>
+     * <code>bool bool_value = 2;</code>
      */
     boolean getBoolValue();
 
@@ -14487,7 +14619,7 @@ public final class Common {
      * char/varchar
      * </pre>
      *
-     * <code>optional string string_value = 3;</code>
+     * <code>string string_value = 3;</code>
      */
     java.lang.String getStringValue();
     /**
@@ -14495,7 +14627,7 @@ public final class Common {
      * char/varchar
      * </pre>
      *
-     * <code>optional string string_value = 3;</code>
+     * <code>string string_value = 3;</code>
      */
     com.google.protobuf.ByteString
         getStringValueBytes();
@@ -14505,7 +14637,7 @@ public final class Common {
      * var-len encoding lets us shove anything from byte to long
      * </pre>
      *
-     * <code>optional sint64 number_value = 4;</code>
+     * <code>sint64 number_value = 4;</code>
      */
     long getNumberValue();
 
@@ -14514,7 +14646,7 @@ public final class Common {
      * includes numeric types and date/time types.
      * </pre>
      *
-     * <code>optional bytes bytes_value = 5;</code>
+     * <code>bytes bytes_value = 5;</code>
      */
     com.google.protobuf.ByteString getBytesValue();
 
@@ -14523,7 +14655,7 @@ public final class Common {
      * big numbers
      * </pre>
      *
-     * <code>optional double double_value = 6;</code>
+     * <code>double double_value = 6;</code>
      */
     double getDoubleValue();
 
@@ -14532,7 +14664,7 @@ public final class Common {
      * a null object
      * </pre>
      *
-     * <code>optional bool null = 7;</code>
+     * <code>bool null = 7;</code>
      */
     boolean getNull();
 
@@ -14585,7 +14717,7 @@ public final class Common {
      * If an Array, the representation for the array values
      * </pre>
      *
-     * <code>optional .Rep component_type = 9;</code>
+     * <code>.Rep component_type = 9;</code>
      */
     int getComponentTypeValue();
     /**
@@ -14593,7 +14725,7 @@ public final class Common {
      * If an Array, the representation for the array values
      * </pre>
      *
-     * <code>optional .Rep component_type = 9;</code>
+     * <code>.Rep component_type = 9;</code>
      */
     org.apache.calcite.avatica.proto.Common.Rep getComponentType();
 
@@ -14602,7 +14734,7 @@ public final class Common {
      * Differentiate between explicitly null (user-set) and implicitly null
      * </pre>
      *
-     * <code>optional bool implicitly_null = 10;</code>
+     * <code>bool implicitly_null = 10;</code>
      */
     boolean getImplicitlyNull();
   }
@@ -14750,7 +14882,7 @@ public final class Common {
      * The actual type that was serialized in the general attribute below
      * </pre>
      *
-     * <code>optional .Rep type = 1;</code>
+     * <code>.Rep type = 1;</code>
      */
     public int getTypeValue() {
       return type_;
@@ -14760,7 +14892,7 @@ public final class Common {
      * The actual type that was serialized in the general attribute below
      * </pre>
      *
-     * <code>optional .Rep type = 1;</code>
+     * <code>.Rep type = 1;</code>
      */
     public org.apache.calcite.avatica.proto.Common.Rep getType() {
       org.apache.calcite.avatica.proto.Common.Rep result = org.apache.calcite.avatica.proto.Common.Rep.valueOf(type_);
@@ -14774,7 +14906,7 @@ public final class Common {
      * boolean
      * </pre>
      *
-     * <code>optional bool bool_value = 2;</code>
+     * <code>bool bool_value = 2;</code>
      */
     public boolean getBoolValue() {
       return boolValue_;
@@ -14787,7 +14919,7 @@ public final class Common {
      * char/varchar
      * </pre>
      *
-     * <code>optional string string_value = 3;</code>
+     * <code>string string_value = 3;</code>
      */
     public java.lang.String getStringValue() {
       java.lang.Object ref = stringValue_;
@@ -14806,7 +14938,7 @@ public final class Common {
      * char/varchar
      * </pre>
      *
-     * <code>optional string string_value = 3;</code>
+     * <code>string string_value = 3;</code>
      */
     public com.google.protobuf.ByteString
         getStringValueBytes() {
@@ -14829,7 +14961,7 @@ public final class Common {
      * var-len encoding lets us shove anything from byte to long
      * </pre>
      *
-     * <code>optional sint64 number_value = 4;</code>
+     * <code>sint64 number_value = 4;</code>
      */
     public long getNumberValue() {
       return numberValue_;
@@ -14842,7 +14974,7 @@ public final class Common {
      * includes numeric types and date/time types.
      * </pre>
      *
-     * <code>optional bytes bytes_value = 5;</code>
+     * <code>bytes bytes_value = 5;</code>
      */
     public com.google.protobuf.ByteString getBytesValue() {
       return bytesValue_;
@@ -14855,7 +14987,7 @@ public final class Common {
      * big numbers
      * </pre>
      *
-     * <code>optional double double_value = 6;</code>
+     * <code>double double_value = 6;</code>
      */
     public double getDoubleValue() {
       return doubleValue_;
@@ -14868,7 +15000,7 @@ public final class Common {
      * a null object
      * </pre>
      *
-     * <code>optional bool null = 7;</code>
+     * <code>bool null = 7;</code>
      */
     public boolean getNull() {
       return null_;
@@ -14936,7 +15068,7 @@ public final class Common {
      * If an Array, the representation for the array values
      * </pre>
      *
-     * <code>optional .Rep component_type = 9;</code>
+     * <code>.Rep component_type = 9;</code>
      */
     public int getComponentTypeValue() {
       return componentType_;
@@ -14946,7 +15078,7 @@ public final class Common {
      * If an Array, the representation for the array values
      * </pre>
      *
-     * <code>optional .Rep component_type = 9;</code>
+     * <code>.Rep component_type = 9;</code>
      */
     public org.apache.calcite.avatica.proto.Common.Rep getComponentType() {
       org.apache.calcite.avatica.proto.Common.Rep result = org.apache.calcite.avatica.proto.Common.Rep.valueOf(componentType_);
@@ -14960,7 +15092,7 @@ public final class Common {
      * Differentiate between explicitly null (user-set) and implicitly null
      * </pre>
      *
-     * <code>optional bool implicitly_null = 10;</code>
+     * <code>bool implicitly_null = 10;</code>
      */
     public boolean getImplicitlyNull() {
       return implicitlyNull_;
@@ -15099,7 +15231,7 @@ public final class Common {
         return memoizedHashCode;
       }
       int hash = 41;
-      hash = (19 * hash) + getDescriptorForType().hashCode();
+      hash = (19 * hash) + getDescriptor().hashCode();
       hash = (37 * hash) + TYPE_FIELD_NUMBER;
       hash = (53 * hash) + type_;
       hash = (37 * hash) + BOOL_VALUE_FIELD_NUMBER;
@@ -15132,6 +15264,17 @@ public final class Common {
       return hash;
     }
 
+    public static org.apache.calcite.avatica.proto.Common.TypedValue parseFrom(
+        java.nio.ByteBuffer data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data);
+    }
+    public static org.apache.calcite.avatica.proto.Common.TypedValue parseFrom(
+        java.nio.ByteBuffer data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data, extensionRegistry);
+    }
     public static org.apache.calcite.avatica.proto.Common.TypedValue parseFrom(
         com.google.protobuf.ByteString data)
         throws com.google.protobuf.InvalidProtocolBufferException {
@@ -15445,7 +15588,7 @@ public final class Common {
        * The actual type that was serialized in the general attribute below
        * </pre>
        *
-       * <code>optional .Rep type = 1;</code>
+       * <code>.Rep type = 1;</code>
        */
       public int getTypeValue() {
         return type_;
@@ -15455,7 +15598,7 @@ public final class Common {
        * The actual type that was serialized in the general attribute below
        * </pre>
        *
-       * <code>optional .Rep type = 1;</code>
+       * <code>.Rep type = 1;</code>
        */
       public Builder setTypeValue(int value) {
         type_ = value;
@@ -15467,7 +15610,7 @@ public final class Common {
        * The actual type that was serialized in the general attribute below
        * </pre>
        *
-       * <code>optional .Rep type = 1;</code>
+       * <code>.Rep type = 1;</code>
        */
       public org.apache.calcite.avatica.proto.Common.Rep getType() {
         org.apache.calcite.avatica.proto.Common.Rep result = org.apache.calcite.avatica.proto.Common.Rep.valueOf(type_);
@@ -15478,7 +15621,7 @@ public final class Common {
        * The actual type that was serialized in the general attribute below
        * </pre>
        *
-       * <code>optional .Rep type = 1;</code>
+       * <code>.Rep type = 1;</code>
        */
       public Builder setType(org.apache.calcite.avatica.proto.Common.Rep value) {
         if (value == null) {
@@ -15494,7 +15637,7 @@ public final class Common {
        * The actual type that was serialized in the general attribute below
        * </pre>
        *
-       * <code>optional .Rep type = 1;</code>
+       * <code>.Rep type = 1;</code>
        */
       public Builder clearType() {
         
@@ -15509,7 +15652,7 @@ public final class Common {
        * boolean
        * </pre>
        *
-       * <code>optional bool bool_value = 2;</code>
+       * <code>bool bool_value = 2;</code>
        */
       public boolean getBoolValue() {
         return boolValue_;
@@ -15519,7 +15662,7 @@ public final class Common {
        * boolean
        * </pre>
        *
-       * <code>optional bool bool_value = 2;</code>
+       * <code>bool bool_value = 2;</code>
        */
       public Builder setBoolValue(boolean value) {
         
@@ -15532,7 +15675,7 @@ public final class Common {
        * boolean
        * </pre>
        *
-       * <code>optional bool bool_value = 2;</code>
+       * <code>bool bool_value = 2;</code>
        */
       public Builder clearBoolValue() {
         
@@ -15547,7 +15690,7 @@ public final class Common {
        * char/varchar
        * </pre>
        *
-       * <code>optional string string_value = 3;</code>
+       * <code>string string_value = 3;</code>
        */
       public java.lang.String getStringValue() {
         java.lang.Object ref = stringValue_;
@@ -15566,7 +15709,7 @@ public final class Common {
        * char/varchar
        * </pre>
        *
-       * <code>optional string string_value = 3;</code>
+       * <code>string string_value = 3;</code>
        */
       public com.google.protobuf.ByteString
           getStringValueBytes() {
@@ -15586,7 +15729,7 @@ public final class Common {
        * char/varchar
        * </pre>
        *
-       * <code>optional string string_value = 3;</code>
+       * <code>string string_value = 3;</code>
        */
       public Builder setStringValue(
           java.lang.String value) {
@@ -15603,7 +15746,7 @@ public final class Common {
        * char/varchar
        * </pre>
        *
-       * <code>optional string string_value = 3;</code>
+       * <code>string string_value = 3;</code>
        */
       public Builder clearStringValue() {
         
@@ -15616,7 +15759,7 @@ public final class Common {
        * char/varchar
        * </pre>
        *
-       * <code>optional string string_value = 3;</code>
+       * <code>string string_value = 3;</code>
        */
       public Builder setStringValueBytes(
           com.google.protobuf.ByteString value) {
@@ -15636,7 +15779,7 @@ public final class Common {
        * var-len encoding lets us shove anything from byte to long
        * </pre>
        *
-       * <code>optional sint64 number_value = 4;</code>
+       * <code>sint64 number_value = 4;</code>
        */
       public long getNumberValue() {
         return numberValue_;
@@ -15646,7 +15789,7 @@ public final class Common {
        * var-len encoding lets us shove anything from byte to long
        * </pre>
        *
-       * <code>optional sint64 number_value = 4;</code>
+       * <code>sint64 number_value = 4;</code>
        */
       public Builder setNumberValue(long value) {
         
@@ -15659,7 +15802,7 @@ public final class Common {
        * var-len encoding lets us shove anything from byte to long
        * </pre>
        *
-       * <code>optional sint64 number_value = 4;</code>
+       * <code>sint64 number_value = 4;</code>
        */
       public Builder clearNumberValue() {
         
@@ -15674,7 +15817,7 @@ public final class Common {
        * includes numeric types and date/time types.
        * </pre>
        *
-       * <code>optional bytes bytes_value = 5;</code>
+       * <code>bytes bytes_value = 5;</code>
        */
       public com.google.protobuf.ByteString getBytesValue() {
         return bytesValue_;
@@ -15684,7 +15827,7 @@ public final class Common {
        * includes numeric types and date/time types.
        * </pre>
        *
-       * <code>optional bytes bytes_value = 5;</code>
+       * <code>bytes bytes_value = 5;</code>
        */
       public Builder setBytesValue(com.google.protobuf.ByteString value) {
         if (value == null) {
@@ -15700,7 +15843,7 @@ public final class Common {
        * includes numeric types and date/time types.
        * </pre>
        *
-       * <code>optional bytes bytes_value = 5;</code>
+       * <code>bytes bytes_value = 5;</code>
        */
       public Builder clearBytesValue() {
         
@@ -15715,7 +15858,7 @@ public final class Common {
        * big numbers
        * </pre>
        *
-       * <code>optional double double_value = 6;</code>
+       * <code>double double_value = 6;</code>
        */
       public double getDoubleValue() {
         return doubleValue_;
@@ -15725,7 +15868,7 @@ public final class Common {
        * big numbers
        * </pre>
        *
-       * <code>optional double double_value = 6;</code>
+       * <code>double double_value = 6;</code>
        */
       public Builder setDoubleValue(double value) {
         
@@ -15738,7 +15881,7 @@ public final class Common {
        * big numbers
        * </pre>
        *
-       * <code>optional double double_value = 6;</code>
+       * <code>double double_value = 6;</code>
        */
       public Builder clearDoubleValue() {
         
@@ -15753,7 +15896,7 @@ public final class Common {
        * a null object
        * </pre>
        *
-       * <code>optional bool null = 7;</code>
+       * <code>bool null = 7;</code>
        */
       public boolean getNull() {
         return null_;
@@ -15763,7 +15906,7 @@ public final class Common {
        * a null object
        * </pre>
        *
-       * <code>optional bool null = 7;</code>
+       * <code>bool null = 7;</code>
        */
       public Builder setNull(boolean value) {
         
@@ -15776,7 +15919,7 @@ public final class Common {
        * a null object
        * </pre>
        *
-       * <code>optional bool null = 7;</code>
+       * <code>bool null = 7;</code>
        */
       public Builder clearNull() {
         
@@ -16103,7 +16246,7 @@ public final class Common {
        * If an Array, the representation for the array values
        * </pre>
        *
-       * <code>optional .Rep component_type = 9;</code>
+       * <code>.Rep component_type = 9;</code>
        */
       public int getComponentTypeValue() {
         return componentType_;
@@ -16113,7 +16256,7 @@ public final class Common {
        * If an Array, the representation for the array values
        * </pre>
        *
-       * <code>optional .Rep component_type = 9;</code>
+       * <code>.Rep component_type = 9;</code>
        */
       public Builder setComponentTypeValue(int value) {
         componentType_ = value;
@@ -16125,7 +16268,7 @@ public final class Common {
        * If an Array, the representation for the array values
        * </pre>
        *
-       * <code>optional .Rep component_type = 9;</code>
+       * <code>.Rep component_type = 9;</code>
        */
       public org.apache.calcite.avatica.proto.Common.Rep getComponentType() {
         org.apache.calcite.avatica.proto.Common.Rep result = org.apache.calcite.avatica.proto.Common.Rep.valueOf(componentType_);
@@ -16136,7 +16279,7 @@ public final class Common {
        * If an Array, the representation for the array values
        * </pre>
        *
-       * <code>optional .Rep component_type = 9;</code>
+       * <code>.Rep component_type = 9;</code>
        */
       public Builder setComponentType(org.apache.calcite.avatica.proto.Common.Rep value) {
         if (value == null) {
@@ -16152,7 +16295,7 @@ public final class Common {
        * If an Array, the representation for the array values
        * </pre>
        *
-       * <code>optional .Rep component_type = 9;</code>
+       * <code>.Rep component_type = 9;</code>
        */
       public Builder clearComponentType() {
         
@@ -16167,7 +16310,7 @@ public final class Common {
        * Differentiate between explicitly null (user-set) and implicitly null
        * </pre>
        *
-       * <code>optional bool implicitly_null = 10;</code>
+       * <code>bool implicitly_null = 10;</code>
        */
       public boolean getImplicitlyNull() {
         return implicitlyNull_;
@@ -16177,7 +16320,7 @@ public final class Common {
        * Differentiate between explicitly null (user-set) and implicitly null
        * </pre>
        *
-       * <code>optional bool implicitly_null = 10;</code>
+       * <code>bool implicitly_null = 10;</code>
        */
       public Builder setImplicitlyNull(boolean value) {
         
@@ -16190,7 +16333,7 @@ public final class Common {
        * Differentiate between explicitly null (user-set) and implicitly null
        * </pre>
        *
-       * <code>optional bool implicitly_null = 10;</code>
+       * <code>bool implicitly_null = 10;</code>
        */
       public Builder clearImplicitlyNull() {
         
@@ -16252,22 +16395,22 @@ public final class Common {
       com.google.protobuf.MessageOrBuilder {
 
     /**
-     * <code>optional string string_value = 1;</code>
+     * <code>string string_value = 1;</code>
      */
     java.lang.String getStringValue();
     /**
-     * <code>optional string string_value = 1;</code>
+     * <code>string string_value = 1;</code>
      */
     com.google.protobuf.ByteString
         getStringValueBytes();
 
     /**
-     * <code>optional bool bool_value = 2;</code>
+     * <code>bool bool_value = 2;</code>
      */
     boolean getBoolValue();
 
     /**
-     * <code>optional sint32 int_value = 3;</code>
+     * <code>sint32 int_value = 3;</code>
      */
     int getIntValue();
 
@@ -16304,11 +16447,11 @@ public final class Common {
     int getIntArrayValues(int index);
 
     /**
-     * <code>optional .MetaDataOperationArgument.ArgumentType type = 6;</code>
+     * <code>.MetaDataOperationArgument.ArgumentType type = 6;</code>
      */
     int getTypeValue();
     /**
-     * <code>optional .MetaDataOperationArgument.ArgumentType type = 6;</code>
+     * <code>.MetaDataOperationArgument.ArgumentType type = 6;</code>
      */
     org.apache.calcite.avatica.proto.Common.MetaDataOperationArgument.ArgumentType getType();
   }
@@ -16580,7 +16723,7 @@ public final class Common {
     public static final int STRING_VALUE_FIELD_NUMBER = 1;
     private volatile java.lang.Object stringValue_;
     /**
-     * <code>optional string string_value = 1;</code>
+     * <code>string string_value = 1;</code>
      */
     public java.lang.String getStringValue() {
       java.lang.Object ref = stringValue_;
@@ -16595,7 +16738,7 @@ public final class Common {
       }
     }
     /**
-     * <code>optional string string_value = 1;</code>
+     * <code>string string_value = 1;</code>
      */
     public com.google.protobuf.ByteString
         getStringValueBytes() {
@@ -16614,7 +16757,7 @@ public final class Common {
     public static final int BOOL_VALUE_FIELD_NUMBER = 2;
     private boolean boolValue_;
     /**
-     * <code>optional bool bool_value = 2;</code>
+     * <code>bool bool_value = 2;</code>
      */
     public boolean getBoolValue() {
       return boolValue_;
@@ -16623,7 +16766,7 @@ public final class Common {
     public static final int INT_VALUE_FIELD_NUMBER = 3;
     private int intValue_;
     /**
-     * <code>optional sint32 int_value = 3;</code>
+     * <code>sint32 int_value = 3;</code>
      */
     public int getIntValue() {
       return intValue_;
@@ -16684,13 +16827,13 @@ public final class Common {
     public static final int TYPE_FIELD_NUMBER = 6;
     private int type_;
     /**
-     * <code>optional .MetaDataOperationArgument.ArgumentType type = 6;</code>
+     * <code>.MetaDataOperationArgument.ArgumentType type = 6;</code>
      */
     public int getTypeValue() {
       return type_;
     }
     /**
-     * <code>optional .MetaDataOperationArgument.ArgumentType type = 6;</code>
+     * <code>.MetaDataOperationArgument.ArgumentType type = 6;</code>
      */
     public org.apache.calcite.avatica.proto.Common.MetaDataOperationArgument.ArgumentType getType() {
       org.apache.calcite.avatica.proto.Common.MetaDataOperationArgument.ArgumentType result = org.apache.calcite.avatica.proto.Common.MetaDataOperationArgument.ArgumentType.valueOf(type_);
@@ -16812,7 +16955,7 @@ public final class Common {
         return memoizedHashCode;
       }
       int hash = 41;
-      hash = (19 * hash) + getDescriptorForType().hashCode();
+      hash = (19 * hash) + getDescriptor().hashCode();
       hash = (37 * hash) + STRING_VALUE_FIELD_NUMBER;
       hash = (53 * hash) + getStringValue().hashCode();
       hash = (37 * hash) + BOOL_VALUE_FIELD_NUMBER;
@@ -16835,6 +16978,17 @@ public final class Common {
       return hash;
     }
 
+    public static org.apache.calcite.avatica.proto.Common.MetaDataOperationArgument parseFrom(
+        java.nio.ByteBuffer data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data);
+    }
+    public static org.apache.calcite.avatica.proto.Common.MetaDataOperationArgument parseFrom(
+        java.nio.ByteBuffer data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data, extensionRegistry);
+    }
     public static org.apache.calcite.avatica.proto.Common.MetaDataOperationArgument parseFrom(
         com.google.protobuf.ByteString data)
         throws com.google.protobuf.InvalidProtocolBufferException {
@@ -17106,7 +17260,7 @@ public final class Common {
 
       private java.lang.Object stringValue_ = "";
       /**
-       * <code>optional string string_value = 1;</code>
+       * <code>string string_value = 1;</code>
        */
       public java.lang.String getStringValue() {
         java.lang.Object ref = stringValue_;
@@ -17121,7 +17275,7 @@ public final class Common {
         }
       }
       /**
-       * <code>optional string string_value = 1;</code>
+       * <code>string string_value = 1;</code>
        */
       public com.google.protobuf.ByteString
           getStringValueBytes() {
@@ -17137,7 +17291,7 @@ public final class Common {
         }
       }
       /**
-       * <code>optional string string_value = 1;</code>
+       * <code>string string_value = 1;</code>
        */
       public Builder setStringValue(
           java.lang.String value) {
@@ -17150,7 +17304,7 @@ public final class Common {
         return this;
       }
       /**
-       * <code>optional string string_value = 1;</code>
+       * <code>string string_value = 1;</code>
        */
       public Builder clearStringValue() {
         
@@ -17159,7 +17313,7 @@ public final class Common {
         return this;
       }
       /**
-       * <code>optional string string_value = 1;</code>
+       * <code>string string_value = 1;</code>
        */
       public Builder setStringValueBytes(
           com.google.protobuf.ByteString value) {
@@ -17175,13 +17329,13 @@ public final class Common {
 
       private boolean boolValue_ ;
       /**
-       * <code>optional bool bool_value = 2;</code>
+       * <code>bool bool_value = 2;</code>
        */
       public boolean getBoolValue() {
         return boolValue_;
       }
       /**
-       * <code>optional bool bool_value = 2;</code>
+       * <code>bool bool_value = 2;</code>
        */
       public Builder setBoolValue(boolean value) {
         
@@ -17190,7 +17344,7 @@ public final class Common {
         return this;
       }
       /**
-       * <code>optional bool bool_value = 2;</code>
+       * <code>bool bool_value = 2;</code>
        */
       public Builder clearBoolValue() {
         
@@ -17201,13 +17355,13 @@ public final class Common {
 
       private int intValue_ ;
       /**
-       * <code>optional sint32 int_value = 3;</code>
+       * <code>sint32 int_value = 3;</code>
        */
       public int getIntValue() {
         return intValue_;
       }
       /**
-       * <code>optional sint32 int_value = 3;</code>
+       * <code>sint32 int_value = 3;</code>
        */
       public Builder setIntValue(int value) {
         
@@ -17216,7 +17370,7 @@ public final class Common {
         return this;
       }
       /**
-       * <code>optional sint32 int_value = 3;</code>
+       * <code>sint32 int_value = 3;</code>
        */
       public Builder clearIntValue() {
         
@@ -17387,13 +17541,13 @@ public final class Common {
 
       private int type_ = 0;
       /**
-       * <code>optional .MetaDataOperationArgument.ArgumentType type = 6;</code>
+       * <code>.MetaDataOperationArgument.ArgumentType type = 6;</code>
        */
       public int getTypeValue() {
         return type_;
       }
       /**
-       * <code>optional .MetaDataOperationArgument.ArgumentType type = 6;</code>
+       * <code>.MetaDataOperationArgument.ArgumentType type = 6;</code>
        */
       public Builder setTypeValue(int value) {
         type_ = value;
@@ -17401,14 +17555,14 @@ public final class Common {
         return this;
       }
       /**
-       * <code>optional .MetaDataOperationArgument.ArgumentType type = 6;</code>
+       * <code>.MetaDataOperationArgument.ArgumentType type = 6;</code>
        */
       public org.apache.calcite.avatica.proto.Common.MetaDataOperationArgument.ArgumentType getType() {
         org.apache.calcite.avatica.proto.Common.MetaDataOperationArgument.ArgumentType result = org.apache.calcite.avatica.proto.Common.MetaDataOperationArgument.ArgumentType.valueOf(type_);
         return result == null ? org.apache.calcite.avatica.proto.Common.MetaDataOperationArgument.ArgumentType.UNRECOGNIZED : result;
       }
       /**
-       * <code>optional .MetaDataOperationArgument.ArgumentType type = 6;</code>
+       * <code>.MetaDataOperationArgument.ArgumentType type = 6;</code>
        */
       public Builder setType(org.apache.calcite.avatica.proto.Common.MetaDataOperationArgument.ArgumentType value) {
         if (value == null) {
@@ -17420,7 +17574,7 @@ public final class Common {
         return this;
       }
       /**
-       * <code>optional .MetaDataOperationArgument.ArgumentType type = 6;</code>
+       * <code>.MetaDataOperationArgument.ArgumentType type = 6;</code>
        */
       public Builder clearType() {
         
@@ -17482,30 +17636,30 @@ public final class Common {
       com.google.protobuf.MessageOrBuilder {
 
     /**
-     * <code>optional .StateType type = 1;</code>
+     * <code>.StateType type = 1;</code>
      */
     int getTypeValue();
     /**
-     * <code>optional .StateType type = 1;</code>
+     * <code>.StateType type = 1;</code>
      */
     org.apache.calcite.avatica.proto.Common.StateType getType();
 
     /**
-     * <code>optional string sql = 2;</code>
+     * <code>string sql = 2;</code>
      */
     java.lang.String getSql();
     /**
-     * <code>optional string sql = 2;</code>
+     * <code>string sql = 2;</code>
      */
     com.google.protobuf.ByteString
         getSqlBytes();
 
     /**
-     * <code>optional .MetaDataOperation op = 3;</code>
+     * <code>.MetaDataOperation op = 3;</code>
      */
     int getOpValue();
     /**
-     * <code>optional .MetaDataOperation op = 3;</code>
+     * <code>.MetaDataOperation op = 3;</code>
      */
     org.apache.calcite.avatica.proto.Common.MetaDataOperation getOp();
 
@@ -17534,17 +17688,17 @@ public final class Common {
         int index);
 
     /**
-     * <code>optional bool has_args = 5;</code>
+     * <code>bool has_args = 5;</code>
      */
     boolean getHasArgs();
 
     /**
-     * <code>optional bool has_sql = 6;</code>
+     * <code>bool has_sql = 6;</code>
      */
     boolean getHasSql();
 
     /**
-     * <code>optional bool has_op = 7;</code>
+     * <code>bool has_op = 7;</code>
      */
     boolean getHasOp();
   }
@@ -17666,13 +17820,13 @@ public final class Common {
     public static final int TYPE_FIELD_NUMBER = 1;
     private int type_;
     /**
-     * <code>optional .StateType type = 1;</code>
+     * <code>.StateType type = 1;</code>
      */
     public int getTypeValue() {
       return type_;
     }
     /**
-     * <code>optional .StateType type = 1;</code>
+     * <code>.StateType type = 1;</code>
      */
     public org.apache.calcite.avatica.proto.Common.StateType getType() {
       org.apache.calcite.avatica.proto.Common.StateType result = org.apache.calcite.avatica.proto.Common.StateType.valueOf(type_);
@@ -17682,7 +17836,7 @@ public final class Common {
     public static final int SQL_FIELD_NUMBER = 2;
     private volatile java.lang.Object sql_;
     /**
-     * <code>optional string sql = 2;</code>
+     * <code>string sql = 2;</code>
      */
     public java.lang.String getSql() {
       java.lang.Object ref = sql_;
@@ -17697,7 +17851,7 @@ public final class Common {
       }
     }
     /**
-     * <code>optional string sql = 2;</code>
+     * <code>string sql = 2;</code>
      */
     public com.google.protobuf.ByteString
         getSqlBytes() {
@@ -17716,13 +17870,13 @@ public final class Common {
     public static final int OP_FIELD_NUMBER = 3;
     private int op_;
     /**
-     * <code>optional .MetaDataOperation op = 3;</code>
+     * <code>.MetaDataOperation op = 3;</code>
      */
     public int getOpValue() {
       return op_;
     }
     /**
-     * <code>optional .MetaDataOperation op = 3;</code>
+     * <code>.MetaDataOperation op = 3;</code>
      */
     public org.apache.calcite.avatica.proto.Common.MetaDataOperation getOp() {
       org.apache.calcite.avatica.proto.Common.MetaDataOperation result = org.apache.calcite.avatica.proto.Common.MetaDataOperation.valueOf(op_);
@@ -17767,7 +17921,7 @@ public final class Common {
     public static final int HAS_ARGS_FIELD_NUMBER = 5;
     private boolean hasArgs_;
     /**
-     * <code>optional bool has_args = 5;</code>
+     * <code>bool has_args = 5;</code>
      */
     public boolean getHasArgs() {
       return hasArgs_;
@@ -17776,7 +17930,7 @@ public final class Common {
     public static final int HAS_SQL_FIELD_NUMBER = 6;
     private boolean hasSql_;
     /**
-     * <code>optional bool has_sql = 6;</code>
+     * <code>bool has_sql = 6;</code>
      */
     public boolean getHasSql() {
       return hasSql_;
@@ -17785,7 +17939,7 @@ public final class Common {
     public static final int HAS_OP_FIELD_NUMBER = 7;
     private boolean hasOp_;
     /**
-     * <code>optional bool has_op = 7;</code>
+     * <code>bool has_op = 7;</code>
      */
     public boolean getHasOp() {
       return hasOp_;
@@ -17895,7 +18049,7 @@ public final class Common {
         return memoizedHashCode;
       }
       int hash = 41;
-      hash = (19 * hash) + getDescriptorForType().hashCode();
+      hash = (19 * hash) + getDescriptor().hashCode();
       hash = (37 * hash) + TYPE_FIELD_NUMBER;
       hash = (53 * hash) + type_;
       hash = (37 * hash) + SQL_FIELD_NUMBER;
@@ -17920,6 +18074,17 @@ public final class Common {
       return hash;
     }
 
+    public static org.apache.calcite.avatica.proto.Common.QueryState parseFrom(
+        java.nio.ByteBuffer data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data);
+    }
+    public static org.apache.calcite.avatica.proto.Common.QueryState parseFrom(
+        java.nio.ByteBuffer data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data, extensionRegistry);
+    }
     public static org.apache.calcite.avatica.proto.Common.QueryState parseFrom(
         com.google.protobuf.ByteString data)
         throws com.google.protobuf.InvalidProtocolBufferException {
@@ -18207,13 +18372,13 @@ public final class Common {
 
       private int type_ = 0;
       /**
-       * <code>optional .StateType type = 1;</code>
+       * <code>.StateType type = 1;</code>
        */
       public int getTypeValue() {
         return type_;
       }
       /**
-       * <code>optional .StateType type = 1;</code>
+       * <code>.StateType type = 1;</code>
        */
       public Builder setTypeValue(int value) {
         type_ = value;
@@ -18221,14 +18386,14 @@ public final class Common {
         return this;
       }
       /**
-       * <code>optional .StateType type = 1;</code>
+       * <code>.StateType type = 1;</code>
        */
       public org.apache.calcite.avatica.proto.Common.StateType getType() {
         org.apache.calcite.avatica.proto.Common.StateType result = org.apache.calcite.avatica.proto.Common.StateType.valueOf(type_);
         return result == null ? org.apache.calcite.avatica.proto.Common.StateType.UNRECOGNIZED : result;
       }
       /**
-       * <code>optional .StateType type = 1;</code>
+       * <code>.StateType type = 1;</code>
        */
       public Builder setType(org.apache.calcite.avatica.proto.Common.StateType value) {
         if (value == null) {
@@ -18240,7 +18405,7 @@ public final class Common {
         return this;
       }
       /**
-       * <code>optional .StateType type = 1;</code>
+       * <code>.StateType type = 1;</code>
        */
       public Builder clearType() {
         
@@ -18251,7 +18416,7 @@ public final class Common {
 
       private java.lang.Object sql_ = "";
       /**
-       * <code>optional string sql = 2;</code>
+       * <code>string sql = 2;</code>
        */
       public java.lang.String getSql() {
         java.lang.Object ref = sql_;
@@ -18266,7 +18431,7 @@ public final class Common {
         }
       }
       /**
-       * <code>optional string sql = 2;</code>
+       * <code>string sql = 2;</code>
        */
       public com.google.protobuf.ByteString
           getSqlBytes() {
@@ -18282,7 +18447,7 @@ public final class Common {
         }
       }
       /**
-       * <code>optional string sql = 2;</code>
+       * <code>string sql = 2;</code>
        */
       public Builder setSql(
           java.lang.String value) {
@@ -18295,7 +18460,7 @@ public final class Common {
         return this;
       }
       /**
-       * <code>optional string sql = 2;</code>
+       * <code>string sql = 2;</code>
        */
       public Builder clearSql() {
         
@@ -18304,7 +18469,7 @@ public final class Common {
         return this;
       }
       /**
-       * <code>optional string sql = 2;</code>
+       * <code>string sql = 2;</code>
        */
       public Builder setSqlBytes(
           com.google.protobuf.ByteString value) {
@@ -18320,13 +18485,13 @@ public final class Common {
 
       private int op_ = 0;
       /**
-       * <code>optional .MetaDataOperation op = 3;</code>
+       * <code>.MetaDataOperation op = 3;</code>
        */
       public int getOpValue() {
         return op_;
       }
       /**
-       * <code>optional .MetaDataOperation op = 3;</code>
+       * <code>.MetaDataOperation op = 3;</code>
        */
       public Builder setOpValue(int value) {
         op_ = value;
@@ -18334,14 +18499,14 @@ public final class Common {
         return this;
       }
       /**
-       * <code>optional .MetaDataOperation op = 3;</code>
+       * <code>.MetaDataOperation op = 3;</code>
        */
       public org.apache.calcite.avatica.proto.Common.MetaDataOperation getOp() {
         org.apache.calcite.avatica.proto.Common.MetaDataOperation result = org.apache.calcite.avatica.proto.Common.MetaDataOperation.valueOf(op_);
         return result == null ? org.apache.calcite.avatica.proto.Common.MetaDataOperation.UNRECOGNIZED : result;
       }
       /**
-       * <code>optional .MetaDataOperation op = 3;</code>
+       * <code>.MetaDataOperation op = 3;</code>
        */
       public Builder setOp(org.apache.calcite.avatica.proto.Common.MetaDataOperation value) {
         if (value == null) {
@@ -18353,7 +18518,7 @@ public final class Common {
         return this;
       }
       /**
-       * <code>optional .MetaDataOperation op = 3;</code>
+       * <code>.MetaDataOperation op = 3;</code>
        */
       public Builder clearOp() {
         
@@ -18604,13 +18769,13 @@ public final class Common {
 
       private boolean hasArgs_ ;
       /**
-       * <code>optional bool has_args = 5;</code>
+       * <code>bool has_args = 5;</code>
        */
       public boolean getHasArgs() {
         return hasArgs_;
       }
       /**
-       * <code>optional bool has_args = 5;</code>
+       * <code>bool has_args = 5;</code>
        */
       public Builder setHasArgs(boolean value) {
         
@@ -18619,7 +18784,7 @@ public final class Common {
         return this;
       }
       /**
-       * <code>optional bool has_args = 5;</code>
+       * <code>bool has_args = 5;</code>
        */
       public Builder clearHasArgs() {
         
@@ -18630,13 +18795,13 @@ public final class Common {
 
       private boolean hasSql_ ;
       /**
-       * <code>optional bool has_sql = 6;</code>
+       * <code>bool has_sql = 6;</code>
        */
       public boolean getHasSql() {
         return hasSql_;
       }
       /**
-       * <code>optional bool has_sql = 6;</code>
+       * <code>bool has_sql = 6;</code>
        */
       public Builder setHasSql(boolean value) {
         
@@ -18645,7 +18810,7 @@ public final class Common {
         return this;
       }
       /**
-       * <code>optional bool has_sql = 6;</code>
+       * <code>bool has_sql = 6;</code>
        */
       public Builder clearHasSql() {
         
@@ -18656,13 +18821,13 @@ public final class Common {
 
       private boolean hasOp_ ;
       /**
-       * <code>optional bool has_op = 7;</code>
+       * <code>bool has_op = 7;</code>
        */
       public boolean getHasOp() {
         return hasOp_;
       }
       /**
-       * <code>optional bool has_op = 7;</code>
+       * <code>bool has_op = 7;</code>
        */
       public Builder setHasOp(boolean value) {
         
@@ -18671,7 +18836,7 @@ public final class Common {
         return this;
       }
       /**
-       * <code>optional bool has_op = 7;</code>
+       * <code>bool has_op = 7;</code>
        */
       public Builder clearHasOp() {
         
