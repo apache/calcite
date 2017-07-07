@@ -39,26 +39,12 @@ limitations under the License.
     <dependency>
       <groupId>org.apache.calcite</groupId>
       <artifactId>calcite-core</artifactId>
-      <exclusions>
-        <!-- exclude the non-shaded Avatica artifact -->
-        <exclusion>
-          <groupId>org.apache.calcite.avatica</groupId>
-          <artifactId>avatica-core</artifactId>
-        </exclusion>
-      </exclusions>
     </dependency>
     <dependency>
       <groupId>org.apache.calcite</groupId>
       <artifactId>calcite-core</artifactId>
       <type>test-jar</type>
       <scope>test</scope>
-      <exclusions>
-        <!-- exclude the non-shaded Avatica artifact -->
-        <exclusion>
-          <groupId>org.apache.calcite.avatica</groupId>
-          <artifactId>avatica-core</artifactId>
-        </exclusion>
-      </exclusions>
     </dependency>
     <dependency>
       <groupId>org.apache.calcite</groupId>
@@ -124,6 +110,8 @@ limitations under the License.
               <failOnWarning>true</failOnWarning>
               <!-- ignore "unused but declared" warnings -->
               <ignoredUnusedDeclaredDependencies>
+                <!-- avatica-core is here because package-info.java doesn't get picked up by the maven-dependency-plugin,
+                     which seems like a bug in the plugin. -->
                 <ignoredUnusedDeclaredDependency>org.apache.calcite.avatica:avatica-core</ignoredUnusedDeclaredDependency>
                 <ignoredUnusedDeclaredDependency>org.apache.hadoop:hadoop-client</ignoredUnusedDeclaredDependency>
                 <ignoredUnusedDeclaredDependency>org.slf4j:slf4j-api</ignoredUnusedDeclaredDependency>
