@@ -264,8 +264,9 @@ This request is used to execute a PreparedStatement, optionally with values to b
 message ExecuteRequest {
   StatementHandle statementHandle = 1;
   repeated TypedValue parameter_values = 2;
-  uint64 first_frame_max_size = 3;
+  uint64 deprecated_first_frame_max_size = 3;
   bool has_parameter_values = 4;
+  int32 first_frame_max_size = 5;
 }
 {% endhighlight %}
 
@@ -273,9 +274,11 @@ message ExecuteRequest {
 
 `parameter_values` The <a href="#typedvalue">TypedValue</a> for each parameter on the prepared statement.
 
-`first_frame_max_size` The maximum number of rows returned in the response.
+`deprecated_first_frame_max_size` *Deprecated*, use `first_frame_max_size` instead. Previously, the maximum number of rows returned in the response.
 
 `has_parameter_values` A boolean which denotes if the user set a value for the `parameter_values` field.
+
+`first_frame_max_size` The maximum number of rows to return in the first `Frame`.
 
 ### FetchRequest
 
@@ -1224,6 +1227,9 @@ message TypedValue {
   bytes bytes_value = 5;
   double double_value = 6;
   bool null = 7;
+  repeated TypedValue array_value = 8;
+  Rep component_type = 9;
+  bool implicitly_null = 10;
 }
 {% endhighlight %}
 
@@ -1240,6 +1246,12 @@ message TypedValue {
 `double_value` A `double` value.
 
 `null` A boolean which denotes if the value was null.
+
+`array_value` A repetition of TypedValue messages, each of which are an element of an array_value (recursive)
+
+`component_type` When this TypedValue represents an Array, this is the Array type's representation.
+
+`implicitly_null` A boolean to differentiate between explicitly (user-set) and implicitly null (user un-set) values
 
 The following chart documents how each <a href="#rep">Rep</a> value corresponds
 to the attributes in this message:
