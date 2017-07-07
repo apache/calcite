@@ -61,7 +61,9 @@ import org.apache.calcite.avatica.util.UnsynchronizedBuffer;
 
 import com.google.protobuf.ByteString;
 import com.google.protobuf.CodedInputStream;
+import com.google.protobuf.InvalidProtocolBufferException;
 import com.google.protobuf.Message;
+import com.google.protobuf.Parser;
 import com.google.protobuf.TextFormat;
 import com.google.protobuf.UnsafeByteOperations;
 
@@ -84,6 +86,54 @@ import static java.nio.charset.StandardCharsets.UTF_8;
  */
 public class ProtobufTranslationImpl implements ProtobufTranslation {
   private static final Logger LOG = LoggerFactory.getLogger(ProtobufTranslationImpl.class);
+
+  /**
+   * Encapsulate the logic of transforming a protobuf Request message into the Avatica POJO request.
+   */
+  static class RequestTranslator {
+
+    private final Parser<? extends Message> parser;
+    private final Service.Request impl;
+
+    public RequestTranslator(Parser<? extends Message> parser, Service.Request impl) {
+      this.parser = parser;
+      this.impl = impl;
+    }
+
+    public Service.Request transform(ByteString serializedMessage) throws
+        InvalidProtocolBufferException {
+      // This should already be an aliased CodedInputStream from the WireMessage parsing.
+      Message msg = parser.parseFrom(serializedMessage.newCodedInput());
+      if (LOG.isTraceEnabled()) {
+        LOG.trace("Deserialized request '{}'", TextFormat.shortDebugString(msg));
+      }
+      return impl.deserialize(msg);
+    }
+  }
+
+  /**
+   * Encapsulate the logic of transforming a protobuf Response message into the Avatica POJO
+   * Response.
+   */
+  static class ResponseTranslator {
+
+    private final Parser<? extends Message> parser;
+    private final Service.Response impl;
+
+    public ResponseTranslator(Parser<? extends Message> parser, Service.Response impl) {
+      this.parser = parser;
+      this.impl = impl;
+    }
+
+    public Service.Response transform(ByteString serializedMessage) throws
+        InvalidProtocolBufferException {
+      Message msg = parser.parseFrom(serializedMessage);
+      if (LOG.isTraceEnabled()) {
+        LOG.trace("Deserialized response '{}'", TextFormat.shortDebugString(msg));
+      }
+      return impl.deserialize(msg);
+    }
+  }
 
   // Extremely ugly mapping of PB class name into a means to convert it to the POJO
   private static final Map<String, RequestTranslator> REQUEST_PARSERS;
