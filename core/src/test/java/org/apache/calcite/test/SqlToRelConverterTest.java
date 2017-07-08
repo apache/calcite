@@ -2569,6 +2569,39 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  @Test public void testMRPrevLast() {
+    final String sql = "SELECT *\n"
+      + "FROM emp\n"
+      + "MATCH_RECOGNIZE (\n"
+      + "  MEASURES\n"
+      + "    STRT.mgr AS start_mgr,\n"
+      + "    LAST(DOWN.mgr) AS bottom_mgr,\n"
+      + "    LAST(UP.mgr) AS end_mgr\n"
+      + "  ONE ROW PER MATCH\n"
+      + "  PATTERN (STRT DOWN+ UP+)\n"
+      + "  DEFINE\n"
+      + "    DOWN AS DOWN.mgr < PREV(DOWN.mgr),\n"
+      + "    UP AS UP.mgr > PREV(LAST(DOWN.mgr, 1), 1)\n"
+      + ") AS T";
+    sql(sql).ok();
+  }
+
+  @Test public void testMRPrevDown() {
+    final String sql = "SELECT *\n"
+        + "FROM emp\n"
+        + "MATCH_RECOGNIZE (\n"
+        + "  MEASURES\n"
+        + "    STRT.mgr AS start_mgr,\n"
+        + "    LAST(DOWN.mgr) AS up_days,\n"
+        + "    LAST(UP.mgr) AS total_days\n"
+        + "  PATTERN (STRT DOWN+ UP+)\n"
+        + "  DEFINE\n"
+        + "    DOWN AS DOWN.mgr < PREV(DOWN.mgr),\n"
+        + "    UP AS UP.mgr > PREV(DOWN.mgr)\n"
+        + ") AS T";
+    sql(sql).ok();
+  }
+
   /**
    * Visitor that checks that every {@link RelNode} in a tree is valid.
    *
