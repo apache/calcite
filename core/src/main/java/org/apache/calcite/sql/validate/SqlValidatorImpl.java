@@ -4595,7 +4595,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       aliases.add(alias);
 
       SqlNode expand = expand(measure, scope);
-      expand = navigationInMeasure(expand, allRows);
+      validateMeasures(expand, allRows);
       setOriginal(expand, measure);
 
       inferUnknownTypes(unknownType, scope, expand);
@@ -4620,20 +4620,9 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     return fields;
   }
 
-  private SqlNode navigationInMeasure(SqlNode node, boolean allRows) {
+  private void validateMeasures(SqlNode node, boolean allRows) {
     final Set<String> prefix = node.accept(new PatternValidator(true));
     Util.discard(prefix);
-    final List<SqlNode> ops = ((SqlCall) node).getOperandList();
-
-    final SqlOperator defaultOp =
-        allRows ? SqlStdOperatorTable.RUNNING : SqlStdOperatorTable.FINAL;
-    final SqlNode op0 = ops.get(0);
-    if (!isRunningOrFinal(op0.getKind())
-        || !allRows && op0.getKind() == SqlKind.RUNNING) {
-      SqlNode newNode = defaultOp.createCall(SqlParserPos.ZERO, op0);
-      node = SqlStdOperatorTable.AS.createCall(SqlParserPos.ZERO, newNode, ops.get(1));
-    }
-    return node;
   }
 
   private void validateDefinitions(SqlMatchRecognize mr,
@@ -4654,7 +4643,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     for (SqlNode item : mr.getPatternDefList().getList()) {
       final String alias = alias(item);
       SqlNode expand = expand(item, scope);
-      expand = navigationInDefine(expand, alias);
+      validateDefine(expand, alias);
       setOriginal(expand, item);
 
       inferUnknownTypes(booleanType, scope, expand);
@@ -4691,12 +4680,9 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   /**
    * check all pattern var within one function is the same
    */
-  private SqlNode navigationInDefine(SqlNode node, String alpha) {
+  private void validateDefine(SqlNode node, String alpha) {
     Set<String> prefix = node.accept(new PatternValidator(false));
     Util.discard(prefix);
-    node = new NavigationExpander().go(node);
-    node = new NavigationReplacer(alpha).go(node);
-    return node;
   }
 
   public void validateAggregateParams(SqlCall aggCall, SqlNode filter,
