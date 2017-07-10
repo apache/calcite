@@ -2467,6 +2467,65 @@ public class DruidAdapterIT {
   }
 
   /**
+   * Test to ensure that an aggregate with a nested filter clause has it's filter factored out
+   * */
+  @Test public void testNestedFilterClauseFactored() {
+    // Logically equivalent to
+    // select sum("store_sales") from "foodmart" where "store_state" in ('CA', 'OR')
+    String sql =
+            "select sum(\"store_sales\") "
+            + "filter (where \"store_state\" = 'CA' or \"store_state\" = 'OR') from \"foodmart\"";
+
+    String expectedFilterJson =
+            "filter':{'type':'or','fields':[{'type':'selector','dimension':"
+            + "'store_state','value':'CA'},{'type':'selector',"
+            + "'dimension':'store_state','value':'OR'}]}";
+
+    String expectedAggregateJson =
+            "'aggregations':[{'type':'doubleSum',"
+            + "'name':'EXPR$0','fieldName':'store_sales'}]";
+
+    sql(sql)
+            .queryContains(druidChecker(expectedFilterJson))
+            .queryContains(druidChecker(expectedAggregateJson))
+            .returnsUnordered("EXPR$0=301444.910279572");
+  }
+
+  /**
+   * Test to ensure that aggregates with nested filters have their filters factored out
+   * into the outer filter for data pruning while still holding a reference to the filter clause
+   * */
+  @Test public void testNestedFilterClauseInAggregates() {
+    String sql =
+            "select "
+            + "sum(\"store_sales\") filter "
+                    + "(where \"store_state\" = 'CA' and \"the_month\" = 'October'), "
+            + "sum(\"store_cost\") filter "
+                    + "(where \"store_state\" = 'CA' and \"the_day\" = 'Monday') "
+            + "from \"foodmart\"";
+
+    // (store_state = CA AND the_month = October) OR (store_state = CA AND the_day = Monday)
+    String expectedFilterJson = "filter':{'type':'or','fields':[{'type':'and','fields':[{'type':"
+            + "'selector','dimension':'store_state','value':'CA'},{'type':'selector','dimension':"
+            + "'the_month','value':'October'}]},{'type':'and','fields':[{'type':'selector',"
+            + "'dimension':'store_state','value':'CA'},{'type':'selector','dimension':'the_day',"
+            + "'value':'Monday'}]}]}";
+
+    String expectedAggregatesJson = "'aggregations':[{'type':'filtered','filter':{'type':'and',"
+            + "'fields':[{'type':'selector','dimension':'store_state','value':'CA'},{'type':"
+            + "'selector','dimension':'the_month','value':'October'}]},'aggregator':{'type':"
+            + "'doubleSum','name':'EXPR$0','fieldName':'store_sales'}},{'type':'filtered',"
+            + "'filter':{'type':'and','fields':[{'type':'selector','dimension':'store_state',"
+            + "'value':'CA'},{'type':'selector','dimension':'the_day','value':'Monday'}]},"
+            + "'aggregator':{'type':'doubleSum','name':'EXPR$1','fieldName':'store_cost'}}]";
+
+    sql(sql)
+            .queryContains(druidChecker(expectedFilterJson))
+            .queryContains(druidChecker(expectedAggregatesJson))
+            .returnsUnordered("EXPR$0=13077.79001301527; EXPR$1=9830.779905691743");
+  }
+
+  /**
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1805">[CALCITE-1805]
    * Druid adapter cannot handle count column without adding support for nested queries</a>.
    */
