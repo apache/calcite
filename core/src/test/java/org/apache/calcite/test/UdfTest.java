@@ -804,6 +804,32 @@ public class UdfTest {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1881">[CALCITE-1881]
+   * Can't distinguish overloaded user-defined functions that have DATE and
+   * TIMESTAMP arguments</a>. */
+  @Test public void testDateAndTimestamp() {
+    final CalciteAssert.AssertThat with = withUdf();
+    with.query("values \"adhoc\".\"toLong\"(DATE '1970-01-15')")
+        .returns("EXPR$0=1209600000\n");
+    with.query("values \"adhoc\".\"toLong\"(DATE '2002-08-11')")
+        .returns("EXPR$0=1029024000000\n");
+    with.query("values \"adhoc\".\"toLong\"(DATE '2003-04-11')")
+        .returns("EXPR$0=1050019200000\n");
+    with.query("values \"adhoc\".\"toLong\"(TIMESTAMP '2003-04-11 00:00:00')")
+        .returns("EXPR$0=1050019200000\n");
+    with.query("values \"adhoc\".\"toLong\"(TIMESTAMP '2003-04-11 00:00:06')")
+        .returns("EXPR$0=1050019206000\n");
+    with.query("values \"adhoc\".\"toLong\"(TIMESTAMP '2003-04-18 01:20:00')")
+        .returns("EXPR$0=1050628800000\n");
+    with.query("values \"adhoc\".\"toLong\"(TIME '00:20:00')")
+        .returns("EXPR$0=1200000\n");
+    with.query("values \"adhoc\".\"toLong\"(TIME '00:20:10')")
+        .returns("EXPR$0=1210000\n");
+    with.query("values \"adhoc\".\"toLong\"(TIME '01:20:00')")
+        .returns("EXPR$0=4800000\n");
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1041">[CALCITE-1041]
    * User-defined function returns DATE or TIMESTAMP value</a>. */
   @Test public void testReturnDate2() {

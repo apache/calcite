@@ -46,6 +46,9 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import com.google.common.collect.ImmutableList;
 
 import java.lang.reflect.Method;
+import java.sql.Date;
+import java.sql.Time;
+import java.sql.Timestamp;
 import java.util.AbstractList;
 import java.util.Arrays;
 import java.util.List;
@@ -482,6 +485,19 @@ public class Smalls {
         v.add(i);
         return v;
       }
+    }
+
+    /** Overloaded functions with DATE, TIMESTAMP and TIME arguments. */
+    public static long toLong(Date date) {
+      return date == null ? 0 : SqlFunctions.toLong(date);
+    }
+
+    public static long toLong(Timestamp timestamp) {
+      return timestamp == null ? 0 : SqlFunctions.toLong(timestamp);
+    }
+
+    public static long toLong(Time time) {
+      return time == null ? 0 : SqlFunctions.toLong(time);
     }
 
   }
