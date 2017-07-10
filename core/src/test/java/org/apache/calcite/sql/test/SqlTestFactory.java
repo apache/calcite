@@ -16,11 +16,13 @@
  */
 package org.apache.calcite.sql.test;
 
+import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.advise.SqlAdvisor;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorWithHints;
+import org.apache.calcite.test.MockCatalogReader;
 
 /**
 * Creates the objects needed to run a SQL parsing or validation test.
@@ -28,6 +30,8 @@ import org.apache.calcite.sql.validate.SqlValidatorWithHints;
  * @see org.apache.calcite.sql.test.SqlTester
 */
 public interface SqlTestFactory {
+  MockCatalogReader createCatalogReader(SqlTestFactory testFactory,
+      JavaTypeFactory typeFactory);
   SqlOperatorTable createOperatorTable(SqlTestFactory factory);
   SqlParser createParser(SqlTestFactory factory, String sql);
   SqlValidator getValidator(SqlTestFactory factory);

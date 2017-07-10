@@ -200,9 +200,13 @@ tableReference:
 tablePrimary:
       [ [ catalogName . ] schemaName . ] tableName
       '(' TABLE [ [ catalogName . ] schemaName . ] tableName ')'
+  |   tablePrimary [ EXTEND ] '(' columnDecl [, columnDecl ]* ')'
   |   [ LATERAL ] '(' query ')'
   |   UNNEST '(' expression ')' [ WITH ORDINALITY ]
   |   [ LATERAL ] TABLE '(' [ SPECIFIC ] functionName '(' expression [, expression ]* ')' ')'
+
+columnDecl:
+      column type [ NOT NULL ]
 
 values:
       VALUES expression [, expression ]*
@@ -238,6 +242,11 @@ columns as the target table, except in certain
 
 In *merge*, at least one of the WHEN MATCHED and WHEN NOT MATCHED clauses must
 be present.
+
+*tablePrimary* may only contain an EXTEND clause in certain
+[conformance levels]({{ site.apiRoot }}/org/apache/calcite/sql/validate/SqlConformance.html#allowExtend--);
+in those same conformance levels, any *column* in *insert* may be replaced by
+*columnDecl*, which has a similar effect to including it in an EXTEND clause.
 
 In *orderItem*, if *expression* is a positive integer *n*, it denotes
 the <em>n</em>th item in the SELECT clause.
@@ -1036,7 +1045,20 @@ The operator precedence and associativity, highest to lowest.
 | value NOT IN (value [, value]*)                   | Whether *value* is not equal to every value in a list
 | value IN (sub-query)                              | Whether *value* is equal to a row returned by *sub-query*
 | value NOT IN (sub-query)                          | Whether *value* is not equal to every row returned by *sub-query*
+| value comparison SOME (sub-query)                 | Whether *value* *comparison* at least one row returned by *sub-query*
+| value comparison ANY (sub-query)                  | Synonym for SOME
+| value comparison ALL (sub-query)                  | Whether *value* *comparison* every row returned by *sub-query*
 | EXISTS (sub-query)                                | Whether *sub-query* returns at least one row
+
+{% highlight sql %}
+comp:
+      =
+  |   <>
+  |   >
+  |   >=
+  |   <
+  |   <=
+{% endhighlight %}
 
 ### Logical operators
 

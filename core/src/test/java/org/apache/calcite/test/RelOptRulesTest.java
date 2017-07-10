@@ -1554,6 +1554,23 @@ public class RelOptRulesTest extends RelOptTestBase {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1860">[CALCITE-1860]
+   * Duplicate null predicates cause NullPointerException in RexUtil</a>. */
+  @Test public void testReduceConstantsNull() throws Exception {
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(ReduceExpressionsRule.FILTER_INSTANCE)
+        .build();
+    final String sql = "select * from (\n"
+        + "  select *\n"
+        + "  from (\n"
+        + "    select cast(null as integer) as n\n"
+        + "    from emp)\n"
+        + "  where n is null and n is null)\n"
+        + "where n is null";
+    sql(sql).with(program).check();
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-566">[CALCITE-566]
    * ReduceExpressionsRule requires planner to have an Executor</a>. */
   @Test public void testReduceConstantsRequiresExecutor() throws Exception {
@@ -3066,6 +3083,18 @@ public class RelOptRulesTest extends RelOptTestBase {
         + "  where e1.empno NOT IN\n"
         + "   (select empno from (select ename, empno, sal as r from emp) e2\n"
         + "    where r > 2 and e1.ename= e2.ename)";
+    checkSubQuery(sql).withLateDecorrelation(true).check();
+  }
+
+  @Test public void testAll() {
+    final String sql = "select * from emp e1\n"
+        + "  where e1.empno > ALL (select deptno from dept)";
+    checkSubQuery(sql).withLateDecorrelation(true).check();
+  }
+
+  @Test public void testSome() {
+    final String sql = "select * from emp e1\n"
+        + "  where e1.empno > SOME (select deptno from dept)";
     checkSubQuery(sql).withLateDecorrelation(true).check();
   }
 

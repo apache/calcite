@@ -158,6 +158,11 @@ public class QuidemTest {
                     && (Boolean) value;
                 closer.add(Hook.ENABLE_BINDABLE.addThread(Hook.property(b)));
               }
+              if (propertyName.equals("expand")) {
+                final boolean b = value instanceof Boolean
+                    && (Boolean) value;
+                closer.add(Prepare.THREAD_EXPAND.push(b));
+              }
             }
           })
           .execute();

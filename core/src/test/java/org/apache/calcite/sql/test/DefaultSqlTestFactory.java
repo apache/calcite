@@ -79,12 +79,11 @@ public class DefaultSqlTestFactory implements SqlTestFactory {
                     throws Exception {
                   final SqlOperatorTable operatorTable =
                       factory.createOperatorTable(factory);
-                  final boolean caseSensitive =
-                      (Boolean) factory.get("caseSensitive");
                   final JavaTypeFactory typeFactory =
                       new JavaTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
-                  return new Xyz(operatorTable, typeFactory,
-                      new MockCatalogReader(typeFactory, caseSensitive).init());
+                  final MockCatalogReader catalogReader =
+                      factory.createCatalogReader(factory, typeFactory);
+                  return new Xyz(operatorTable, typeFactory, catalogReader);
                 }
               });
 
@@ -92,6 +91,12 @@ public class DefaultSqlTestFactory implements SqlTestFactory {
       new DefaultSqlTestFactory();
 
   private DefaultSqlTestFactory() {
+  }
+
+  public MockCatalogReader createCatalogReader(SqlTestFactory testFactory,
+      JavaTypeFactory typeFactory) {
+    final boolean caseSensitive = (Boolean) testFactory.get("caseSensitive");
+    return new MockCatalogReader(typeFactory, caseSensitive).init();
   }
 
   public SqlOperatorTable createOperatorTable(SqlTestFactory factory) {

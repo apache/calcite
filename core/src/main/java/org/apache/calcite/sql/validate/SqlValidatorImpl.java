@@ -236,6 +236,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
   private int nextGeneratedId;
   protected final RelDataTypeFactory typeFactory;
+
+  /** The type of dynamic parameters until a type is imposed on them. */
   protected final RelDataType unknownType;
   private final RelDataType booleanType;
 
@@ -297,9 +299,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     this.typeFactory = Preconditions.checkNotNull(typeFactory);
     this.conformance = Preconditions.checkNotNull(conformance);
 
-    // NOTE jvs 23-Dec-2003:  This is used as the type for dynamic
-    // parameters and null literals until a real type is imposed for them.
-    unknownType = typeFactory.createSqlType(SqlTypeName.NULL);
+    unknownType = typeFactory.createUnknownType();
     booleanType = typeFactory.createSqlType(SqlTypeName.BOOLEAN);
 
     rewriteCalls = true;
@@ -888,7 +888,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     SqlNode outermostNode = performUnconditionalRewrites(topNode, false);
     cursorSet.add(outermostNode);
     top = outermostNode;
-    TRACER.trace("After unconditional rewrite: " + outermostNode.toString());
+    TRACER.trace("After unconditional rewrite: {}", outermostNode);
     if (outermostNode.isA(SqlKind.TOP_LEVEL)) {
       registerQuery(scope, null, outermostNode, outermostNode, null, false);
     }
@@ -898,7 +898,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       // caller later without needing the scope
       deriveType(scope, outermostNode);
     }
-    TRACER.trace("After validation: " + outermostNode.toString());
+    TRACER.trace("After validation: {}", outermostNode);
     return outermostNode;
   }
 

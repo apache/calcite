@@ -371,14 +371,57 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    * <code>IN</code> operator tests for a value's membership in a sub-query or
    * a list of values.
    */
-  public static final SqlBinaryOperator IN = new SqlInOperator(false);
+  public static final SqlBinaryOperator IN = new SqlInOperator(SqlKind.IN);
 
   /**
    * <code>NOT IN</code> operator tests for a value's membership in a sub-query
    * or a list of values.
    */
   public static final SqlBinaryOperator NOT_IN =
-      new SqlInOperator(true);
+      new SqlInOperator(SqlKind.NOT_IN);
+
+  /**
+   * The <code>&lt; SOME</code> operator (synonymous with
+   * <code>&lt; ANY</code>).
+   */
+  public static final SqlQuantifyOperator SOME_LT =
+      new SqlQuantifyOperator(SqlKind.SOME, SqlKind.LESS_THAN);
+
+  public static final SqlQuantifyOperator SOME_LE =
+      new SqlQuantifyOperator(SqlKind.SOME, SqlKind.LESS_THAN_OR_EQUAL);
+
+  public static final SqlQuantifyOperator SOME_GT =
+      new SqlQuantifyOperator(SqlKind.SOME, SqlKind.GREATER_THAN);
+
+  public static final SqlQuantifyOperator SOME_GE =
+      new SqlQuantifyOperator(SqlKind.SOME, SqlKind.GREATER_THAN_OR_EQUAL);
+
+  public static final SqlQuantifyOperator SOME_EQ =
+      new SqlQuantifyOperator(SqlKind.SOME, SqlKind.EQUALS);
+
+  public static final SqlQuantifyOperator SOME_NE =
+      new SqlQuantifyOperator(SqlKind.SOME, SqlKind.NOT_EQUALS);
+
+  /**
+   * The <code>&lt; ALL</code> operator.
+   */
+  public static final SqlQuantifyOperator ALL_LT =
+      new SqlQuantifyOperator(SqlKind.ALL, SqlKind.LESS_THAN);
+
+  public static final SqlQuantifyOperator ALL_LE =
+      new SqlQuantifyOperator(SqlKind.ALL, SqlKind.LESS_THAN_OR_EQUAL);
+
+  public static final SqlQuantifyOperator ALL_GT =
+      new SqlQuantifyOperator(SqlKind.ALL, SqlKind.GREATER_THAN);
+
+  public static final SqlQuantifyOperator ALL_GE =
+      new SqlQuantifyOperator(SqlKind.ALL, SqlKind.GREATER_THAN_OR_EQUAL);
+
+  public static final SqlQuantifyOperator ALL_EQ =
+      new SqlQuantifyOperator(SqlKind.ALL, SqlKind.EQUALS);
+
+  public static final SqlQuantifyOperator ALL_NE =
+      new SqlQuantifyOperator(SqlKind.ALL, SqlKind.NOT_EQUALS);
 
   /**
    * Logical less-than operator, '<code>&lt;</code>'.
@@ -2162,6 +2205,45 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
         call.getParserPosition());
   }
 
+  /** Returns the operator for {@code SOME comparisonKind}. */
+  public static SqlQuantifyOperator some(SqlKind comparisonKind) {
+    switch (comparisonKind) {
+    case EQUALS:
+      return SOME_EQ;
+    case NOT_EQUALS:
+      return SOME_NE;
+    case LESS_THAN:
+      return SOME_LT;
+    case LESS_THAN_OR_EQUAL:
+      return SOME_LE;
+    case GREATER_THAN:
+      return SOME_GT;
+    case GREATER_THAN_OR_EQUAL:
+      return SOME_GE;
+    default:
+      throw new AssertionError(comparisonKind);
+    }
+  }
+
+  /** Returns the operator for {@code ALL comparisonKind}. */
+  public static SqlQuantifyOperator all(SqlKind comparisonKind) {
+    switch (comparisonKind) {
+    case EQUALS:
+      return ALL_EQ;
+    case NOT_EQUALS:
+      return ALL_NE;
+    case LESS_THAN:
+      return ALL_LT;
+    case LESS_THAN_OR_EQUAL:
+      return ALL_LE;
+    case GREATER_THAN:
+      return ALL_GT;
+    case GREATER_THAN_OR_EQUAL:
+      return ALL_GE;
+    default:
+      throw new AssertionError(comparisonKind);
+    }
+  }
 }
 
 // End SqlStdOperatorTable.java

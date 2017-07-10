@@ -1030,6 +1030,17 @@ Expression 'DEPTNO' is not being grouped
 
 !use scott
 
+# [CALCITE-1864] Allow NULL literal as argument
+select count(*) as c from "scott".emp where empno > null;
++---+
+| C |
++---+
+| 0 |
++---+
+(1 row)
+
+!ok
+
 # [CALCITE-613] Implicitly convert strings in comparisons
 select * from "scott".emp where hiredate < '1981-01-02';
 +-------+-------+-------+------+------------+--------+------+--------+

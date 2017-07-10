@@ -72,9 +72,6 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
           "TABLE(CATALOG.SALES.EMPDEFAULTS)",
           "TABLE(CATALOG.SALES.EMPNULLABLES)",
           "TABLE(CATALOG.SALES.EMP_B)",
-          "TABLE(CATALOG.SALES.EMP_MODIFIABLEVIEW)",
-          "TABLE(CATALOG.SALES.EMP_MODIFIABLEVIEW2)",
-          "TABLE(CATALOG.SALES.EMP_MODIFIABLEVIEW3)",
           "TABLE(CATALOG.SALES.EMP_20)",
           "TABLE(CATALOG.SALES.EMPNULLABLES_20)",
           "TABLE(CATALOG.SALES.EMP_ADDRESS)",
@@ -212,6 +209,12 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
           "KEYWORD(VAR_POP)",
           "KEYWORD(VAR_SAMP)",
           "KEYWORD(YEAR)");
+
+  protected static final List<String> QUANTIFIERS =
+      Arrays.asList(
+          "KEYWORD(ALL)",
+          "KEYWORD(ANY)",
+          "KEYWORD(SOME)");
 
   protected static final List<String> SELECT_KEYWORDS =
       Arrays.asList(
@@ -592,7 +595,7 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
 
     // unfortunately cannot complete this case: syntax is too broken
     sql = "select a.empno, b.deptno from dummy a join sales.^ on a.deptno=";
-    assertComplete(sql, EXPR_KEYWORDS); // join
+    assertComplete(sql, QUANTIFIERS, EXPR_KEYWORDS); // join
   }
 
   @Test public void testJoinKeywords() {
@@ -619,7 +622,7 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
     sql =
         "select a.empno, b.deptno from sales.emp a join sales.dept b "
             + "on a.deptno=^b.dummy where empno=1";
-    assertHint(sql, EXPR_KEYWORDS, AB_TABLES); // on right
+    assertHint(sql, EXPR_KEYWORDS, QUANTIFIERS, AB_TABLES); // on right
 
     sql =
         "select a.empno, b.deptno from sales.emp a join sales.dept b "
@@ -638,7 +641,7 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
     sql =
         "select a.empno, b.deptno from sales.emp a, sales.dept b "
             + "where b.deptno=^a.dummy";
-    assertHint(sql, AB_TABLES, EXPR_KEYWORDS); // where list
+    assertHint(sql, AB_TABLES, EXPR_KEYWORDS, QUANTIFIERS); // where list
 
     sql =
         "select a.empno, b.deptno from sales.emp a, sales.dept b "

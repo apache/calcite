@@ -130,6 +130,7 @@ import org.apache.calcite.sql.SqlWith;
 import org.apache.calcite.sql.SqlWithItem;
 import org.apache.calcite.sql.fun.SqlCountAggFunction;
 import org.apache.calcite.sql.fun.SqlInOperator;
+import org.apache.calcite.sql.fun.SqlQuantifyOperator;
 import org.apache.calcite.sql.fun.SqlRowOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
@@ -914,7 +915,7 @@ public class SqlToRelConverter {
           SqlNode[] inOperands = childSqlCall.getOperands();
           SqlInOperator inOp =
               (SqlInOperator) childSqlCall.getOperator();
-          if (inOp.isNotIn()) {
+          if (inOp.kind == SqlKind.NOT_IN) {
             return reg(scope,
                 SqlStdOperatorTable.IN.createCall(SqlParserPos.ZERO,
                     inOperands[0], inOperands[1]));
@@ -1018,6 +1019,9 @@ public class SqlToRelConverter {
       return;
 
     case IN:
+    case NOT_IN:
+    case SOME:
+    case ALL:
       call = (SqlBasicCall) subQuery.node;
       query = call.operand(1);
       if (!config.isExpand() && !(query instanceof SqlNodeList)) {
@@ -1037,7 +1041,6 @@ public class SqlToRelConverter {
         leftKeys = ImmutableList.of(bb.convertExpression(leftKeyNode));
       }
 
-      final boolean notIn = ((SqlInOperator) call.getOperator()).isNotIn();
       if (query instanceof SqlNodeList) {
         SqlNodeList valueList = (SqlNodeList) query;
         if (!containsNullLiteral(valueList)
@@ -1048,7 +1051,7 @@ public class SqlToRelConverter {
                   bb,
                   leftKeys,
                   valueList,
-                  notIn);
+                  (SqlInOperator) call.getOperator());
           return;
         }
 
@@ -1082,6 +1085,7 @@ public class SqlToRelConverter {
       final RelDataType targetRowType =
           SqlTypeUtil.promoteToRowType(typeFactory,
               validator.getValidatedNodeType(leftKeyNode), null);
+      final boolean notIn = call.getOperator().kind == SqlKind.NOT_IN;
       converted =
           convertExists(query, RelOptUtil.SubQueryType.IN, subQuery.logic,
               notIn, targetRowType);
@@ -1383,20 +1387,27 @@ public class SqlToRelConverter {
    *
    * @param leftKeys   LHS
    * @param valuesList RHS
-   * @param isNotIn    is this a NOT IN operator
+   * @param op         The operator (IN, NOT IN, &gt; SOME, ...)
    * @return converted expression
    */
   private RexNode convertInToOr(
       final Blackboard bb,
       final List<RexNode> leftKeys,
       SqlNodeList valuesList,
-      boolean isNotIn) {
+      SqlInOperator op) {
     final List<RexNode> comparisons = new ArrayList<>();
     for (SqlNode rightVals : valuesList) {
       RexNode rexComparison;
+      final SqlOperator comparisonOp;
+      if (op instanceof SqlQuantifyOperator) {
+        comparisonOp = RelOptUtil.op(((SqlQuantifyOperator) op).comparisonKind,
+            SqlStdOperatorTable.EQUALS);
+      } else {
+        comparisonOp = SqlStdOperatorTable.EQUALS;
+      }
       if (leftKeys.size() == 1) {
         rexComparison =
-            rexBuilder.makeCall(SqlStdOperatorTable.EQUALS,
+            rexBuilder.makeCall(comparisonOp,
                 leftKeys.get(0),
                 ensureSqlType(leftKeys.get(0).getType(),
                     bb.convertExpression(rightVals)));
@@ -1412,7 +1423,7 @@ public class SqlToRelConverter {
                     Pair.zip(leftKeys, call.getOperandList()),
                     new Function<Pair<RexNode, SqlNode>, RexNode>() {
                       public RexNode apply(Pair<RexNode, SqlNode> pair) {
-                        return rexBuilder.makeCall(SqlStdOperatorTable.EQUALS,
+                        return rexBuilder.makeCall(comparisonOp,
                             pair.left,
                             ensureSqlType(pair.left.getType(),
                                 bb.convertExpression(pair.right)));
@@ -1423,18 +1434,18 @@ public class SqlToRelConverter {
       comparisons.add(rexComparison);
     }
 
-    RexNode result =
-        RexUtil.composeDisjunction(rexBuilder, comparisons, true);
-    assert result != null;
-
-    if (isNotIn) {
-      result =
-          rexBuilder.makeCall(
-              SqlStdOperatorTable.NOT,
-              result);
+    switch (op.kind) {
+    case ALL:
+      return RexUtil.composeConjunction(rexBuilder, comparisons, true);
+    case NOT_IN:
+      return rexBuilder.makeCall(SqlStdOperatorTable.NOT,
+          RexUtil.composeDisjunction(rexBuilder, comparisons, true));
+    case IN:
+    case SOME:
+      return RexUtil.composeDisjunction(rexBuilder, comparisons, true);
+    default:
+      throw new AssertionError();
     }
-
-    return result;
   }
 
   /** Ensures that an expression has a given {@link SqlTypeName}, applying a
@@ -1710,10 +1721,8 @@ public class SqlToRelConverter {
       }
       return;
     case IN:
-      if (((SqlCall) node).getOperator() == SqlStdOperatorTable.NOT_IN) {
-        logic = logic.negate();
-      }
       break;
+    case NOT_IN:
     case NOT:
       logic = logic.negate();
       break;
@@ -1723,20 +1732,18 @@ public class SqlToRelConverter {
         if (operand != null) {
           // In the case of an IN expression, locate scalar
           // sub-queries so we can convert them to constants
-          findSubQueries(
-              bb,
-              operand,
-              logic,
-              kind == SqlKind.IN || registerOnlyScalarSubQueries);
+          findSubQueries(bb, operand, logic,
+              kind == SqlKind.IN || kind == SqlKind.NOT_IN
+                  || kind == SqlKind.SOME || kind == SqlKind.ALL
+                  || registerOnlyScalarSubQueries);
         }
       }
     } else if (node instanceof SqlNodeList) {
       for (SqlNode child : (SqlNodeList) node) {
-        findSubQueries(
-            bb,
-            child,
-            logic,
-            kind == SqlKind.IN || registerOnlyScalarSubQueries);
+        findSubQueries(bb, child, logic,
+            kind == SqlKind.IN || kind == SqlKind.NOT_IN
+                || kind == SqlKind.SOME || kind == SqlKind.ALL
+                || registerOnlyScalarSubQueries);
       }
     }
 
@@ -1744,7 +1751,11 @@ public class SqlToRelConverter {
     // expression, register the IN expression itself.  We need to
     // register the scalar sub-queries first so they can be converted
     // before the IN expression is converted.
-    if (kind == SqlKind.IN) {
+    switch (kind) {
+    case IN:
+    case NOT_IN:
+    case SOME:
+    case ALL:
       switch (logic) {
       case TRUE_FALSE_UNKNOWN:
         if (validator.getValidatedNodeType(node).isNullable()) {
@@ -1757,6 +1768,7 @@ public class SqlToRelConverter {
         logic = RelOptUtil.Logic.TRUE;
       }
       bb.registerSubQuery(node, logic);
+      break;
     }
   }
 
@@ -4338,10 +4350,12 @@ public class SqlToRelConverter {
         final RelRoot root;
         switch (kind) {
         case IN:
+        case NOT_IN:
+        case SOME:
+        case ALL:
           call = (SqlCall) expr;
           query = call.operand(1);
           if (!(query instanceof SqlNodeList)) {
-            final SqlInOperator op = (SqlInOperator) call.getOperator();
             root = convertQueryRecursive(query, false, null);
             final SqlNode operand = call.operand(0);
             List<SqlNode> nodes;
@@ -4357,10 +4371,23 @@ public class SqlToRelConverter {
             for (SqlNode node : nodes) {
               builder.add(convertExpression(node));
             }
-            final RexSubQuery in = RexSubQuery.in(root.rel, builder.build());
-            return op.isNotIn()
-                ? rexBuilder.makeCall(SqlStdOperatorTable.NOT, in)
-                : in;
+            final ImmutableList<RexNode> list = builder.build();
+            switch (kind) {
+            case IN:
+              return RexSubQuery.in(root.rel, list);
+            case NOT_IN:
+              return rexBuilder.makeCall(SqlStdOperatorTable.NOT,
+                  RexSubQuery.in(root.rel, list));
+            case SOME:
+              return RexSubQuery.some(root.rel, list,
+                  (SqlQuantifyOperator) call.getOperator());
+            case ALL:
+              return rexBuilder.makeCall(SqlStdOperatorTable.NOT,
+                  RexSubQuery.some(root.rel, list,
+                      negate((SqlQuantifyOperator) call.getOperator())));
+            default:
+              throw new AssertionError(kind);
+            }
           }
           break;
 
@@ -4386,8 +4413,15 @@ public class SqlToRelConverter {
       }
 
       switch (kind) {
+      case SOME:
+      case ALL:
+        if (config.isExpand()) {
+          throw new RuntimeException(kind
+              + " is only supported if expand = false");
+        }
       case CURSOR:
       case IN:
+      case NOT_IN:
         subQuery = Preconditions.checkNotNull(getSubQuery(expr));
         rex = Preconditions.checkNotNull(subQuery.expr);
         return StandardConvertletTable.castToValidatedType(expr, rex,
@@ -4561,6 +4595,11 @@ public class SqlToRelConverter {
       return columnMonotonicities;
     }
 
+  }
+
+  private SqlQuantifyOperator negate(SqlQuantifyOperator operator) {
+    assert operator.kind == SqlKind.ALL;
+    return SqlStdOperatorTable.some(operator.comparisonKind.negateNullSafe());
   }
 
   /** Deferred lookup. */

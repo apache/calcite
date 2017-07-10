@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.test;
 
+import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.runtime.CalciteContextException;
 import org.apache.calcite.sql.SqlCollation;
@@ -23,10 +24,13 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParserUtil;
 import org.apache.calcite.sql.test.DefaultSqlTestFactory;
+import org.apache.calcite.sql.test.DelegatingSqlTestFactory;
+import org.apache.calcite.sql.test.SqlTestFactory;
 import org.apache.calcite.sql.test.SqlTester;
 import org.apache.calcite.sql.test.SqlTesterImpl;
 import org.apache.calcite.sql.test.SqlTests;
 import org.apache.calcite.sql.validate.SqlConformance;
+import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.util.TestUtil;
@@ -60,6 +64,24 @@ public class SqlValidatorTestCase {
   private static final Pattern LINE_COL_TWICE_PATTERN =
       Pattern.compile(
           "(?s)From line ([0-9]+), column ([0-9]+) to line ([0-9]+), column ([0-9]+): (.*)");
+
+  static final SqlTesterImpl EXTENDED_CATALOG_TESTER =
+      new SqlTesterImpl(
+        new DelegatingSqlTestFactory(DefaultSqlTestFactory.INSTANCE) {
+          @Override public MockCatalogReader createCatalogReader(
+              SqlTestFactory factory, JavaTypeFactory typeFactory) {
+            return super.createCatalogReader(this, typeFactory).init2();
+          }
+        });
+
+  static final SqlTesterImpl EXTENDED_CATALOG_TESTER_2003 =
+      new SqlTesterImpl(
+        new DelegatingSqlTestFactory(DefaultSqlTestFactory.INSTANCE) {
+          @Override public MockCatalogReader createCatalogReader(
+              SqlTestFactory factory, JavaTypeFactory typeFactory) {
+            return super.createCatalogReader(this, typeFactory).init2();
+          }
+        }).withConformance(SqlConformanceEnum.PRAGMATIC_2003);
 
   //~ Instance fields --------------------------------------------------------
 
@@ -539,6 +561,18 @@ public class SqlValidatorTestCase {
 
     Sql tester(SqlTester tester) {
       return new Sql(tester, sql);
+    }
+
+    public Sql sql(String sql) {
+      return new Sql(tester, sql);
+    }
+
+    Sql withExtendedCatalog() {
+      return tester(EXTENDED_CATALOG_TESTER);
+    }
+
+    Sql withExtendedCatalog2003() {
+      return tester(EXTENDED_CATALOG_TESTER_2003);
     }
 
     Sql ok() {

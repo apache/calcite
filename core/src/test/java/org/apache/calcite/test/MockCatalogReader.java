@@ -323,6 +323,7 @@ public class MockCatalogReader extends CalciteCatalogReader {
     contactPeekTable.addColumn("LNAME", f.varchar10Type);
     contactPeekTable.addColumn("EMAIL", f.varchar20Type);
     contactPeekTable.addColumn("COORD", f.rectilinearPeekCoordType);
+    contactPeekTable.addColumn("COORD_NE", f.rectilinearPeekNoExpandCoordType);
     registerTable(contactPeekTable);
 
     // Register "ACCOUNT" table.
@@ -518,10 +519,15 @@ public class MockCatalogReader extends CalciteCatalogReader {
     }
     registerTable(struct10View);
 
-    return init2(salesSchema);
+    return this;
   }
 
-  private MockCatalogReader init2(MockSchema salesSchema) {
+  /** Adds some extra tables to the mock catalog. These increase the time and
+   * complexity of initializing the catalog (because they contain views whose
+   * SQL needs to be parsed) and so are not used for all tests. */
+  public MockCatalogReader init2() {
+    MockSchema salesSchema = new MockSchema("SALES");
+
     // Same as "EMP_20" except it uses ModifiableViewTable which populates
     // constrained columns with default values on INSERT and has a single constraint on DEPTNO.
     List<String> empModifiableViewNames = ImmutableList.of(
@@ -1535,6 +1541,17 @@ public class MockCatalogReader extends CalciteCatalogReader {
             .add("X", intType)
             .add("Y", intType)
             .kind(StructKind.PEEK_FIELDS)
+            .build();
+    final RelDataType rectilinearPeekNoExpandCoordType =
+        typeFactory.builder()
+            .add("M", intType)
+            .add("SUB",
+                typeFactory.builder()
+                    .add("A", intType)
+                    .add("B", intType)
+                    .kind(StructKind.PEEK_FIELDS_NO_EXPAND)
+                    .build())
+            .kind(StructKind.PEEK_FIELDS_NO_EXPAND)
             .build();
     final RelDataType empRecordType =
         typeFactory.builder()

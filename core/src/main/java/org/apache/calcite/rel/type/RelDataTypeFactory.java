@@ -207,6 +207,14 @@ public interface RelDataTypeFactory {
   RelDataType createSqlType(SqlTypeName typeName);
 
   /**
+   * Creates a SQL type that represents the "unknown" type.
+   * It is only equal to itself, and is distinct from the NULL type.
+
+   * @return unknown type
+   */
+  RelDataType createUnknownType();
+
+  /**
    * Creates a SQL type with length (precision) but no scale.
    *
    * @param typeName  Name of the type, for example {@link SqlTypeName#VARCHAR}.

@@ -73,6 +73,7 @@ public class JavaToSqlTypeConversionRules {
           .put(ResultSet.class, SqlTypeName.CURSOR)
           .put(ColumnList.class, SqlTypeName.COLUMN_LIST)
           .put(ArrayImpl.class, SqlTypeName.ARRAY)
+          .put(List.class, SqlTypeName.ARRAY)
           .build();
 
   //~ Methods ----------------------------------------------------------------

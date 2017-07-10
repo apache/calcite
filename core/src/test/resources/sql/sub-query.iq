@@ -627,4 +627,22 @@ EnumerableSemiJoin(condition=[=($0, $10)], joinType=[inner])
     EnumerableTableScan(table=[[scott, EMP]])
 !plan
 
+# [DRILL-5644]
+select TJOIN1.RNUM, TJOIN1.C1,
+  case when 10 in ( select C1 from ( values (1) ) T(C1) ) then 'yes' else 'no' end C3
+from (
+  values (0, 10, 15),
+    (1, 20, 25),
+    (2, cast(NULL as integer), 50)) TJOIN1 (RNUM, C1, C2);
++------+----+-----+
+| RNUM | C1 | C3  |
++------+----+-----+
+|    0 | 10 | no  |
+|    1 | 20 | no  |
+|    2 |    | no  |
++------+----+-----+
+(3 rows)
+
+!ok
+
 # End sub-query.iq

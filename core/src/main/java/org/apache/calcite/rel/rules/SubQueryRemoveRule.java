@@ -37,6 +37,7 @@ import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.rex.RexSubQuery;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.fun.SqlQuantifyOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql2rel.RelDecorrelator;
 import org.apache.calcite.tools.RelBuilder;
@@ -168,12 +169,59 @@ public abstract class SubQueryRemoveRule extends RelOptRule {
       builder.join(JoinRelType.LEFT, builder.literal(true), variablesSet);
       return field(builder, inputCount, offset);
 
+    case SOME:
+      // Most general case, where the left and right keys might have nulls, and
+      // caller requires 3-valued logic return.
+      //
+      // select e.deptno, e.deptno < some (select deptno from emp) as v
+      // from emp as e
+      //
+      // becomes
+      //
+      // select e.deptno,
+      //   case
+      //   when q.c = 0 then false // sub-query is empty
+      //   when (e.deptno < q.m) is true then true
+      //   when q.c > q.d then unknown // sub-query has at least one null
+      //   else e.deptno < q.m
+      //   end as v
+      // from emp as e
+      // cross join (
+      //   select max(deptno) as m, count(*) as c, count(deptno) as d
+      //   from emp) as q
+      //
+      final SqlQuantifyOperator op = (SqlQuantifyOperator) e.op;
+      builder.push(e.rel)
+          .aggregate(builder.groupKey(),
+              op.comparisonKind == SqlKind.GREATER_THAN
+                  || op.comparisonKind == SqlKind.GREATER_THAN_OR_EQUAL
+                  ? builder.min("m", builder.field(0))
+                  : builder.max("m", builder.field(0)),
+              builder.count(false, "c"),
+              builder.count(false, "d", builder.field(0)))
+          .as("q")
+          .join(JoinRelType.INNER);
+      return builder.call(SqlStdOperatorTable.CASE,
+          builder.call(SqlStdOperatorTable.EQUALS,
+              builder.field("q", "c"), builder.literal(0)),
+          builder.literal(false),
+          builder.call(SqlStdOperatorTable.IS_TRUE,
+              builder.call(RelOptUtil.op(op.comparisonKind, null),
+                  e.operands.get(0), builder.field("q", "m"))),
+          builder.literal(true),
+          builder.call(SqlStdOperatorTable.GREATER_THAN,
+              builder.field("q", "c"), builder.field("q", "d")),
+          builder.literal(null),
+          builder.call(RelOptUtil.op(op.comparisonKind, null),
+              e.operands.get(0), builder.field("q", "m")));
+
     case IN:
     case EXISTS:
       // Most general case, where the left and right keys might have nulls, and
       // caller requires 3-valued logic return.
       //
       // select e.deptno, e.deptno in (select deptno from emp)
+      // from emp as e
       //
       // becomes
       //
@@ -185,7 +233,7 @@ public abstract class SubQueryRemoveRule extends RelOptRule {
       //   when ct.ck < ct.c then null
       //   else false
       //   end
-      // from e
+      // from emp as e
       // left join (
       //   (select count(*) as c, count(deptno) as ck from emp) as ct
       //   cross join (select distinct deptno, true as i from emp)) as dt
@@ -198,7 +246,7 @@ public abstract class SubQueryRemoveRule extends RelOptRule {
       //   when dt.i is not null then true
       //   else false
       //   end
-      // from e
+      // from emp as e
       // left join (select distinct deptno, true as i from emp) as dt
       //   on e.deptno = dt.deptno
       //
@@ -206,7 +254,7 @@ public abstract class SubQueryRemoveRule extends RelOptRule {
       //
       // select e.deptno,
       //   dt.i is not null
-      // from e
+      // from emp as e
       // left join (select distinct deptno, true as i from emp) as dt
       //   on e.deptno = dt.deptno
       //
@@ -218,7 +266,7 @@ public abstract class SubQueryRemoveRule extends RelOptRule {
       //
       // select e.deptno,
       //   true
-      // from e
+      // from emp as e
       // inner join (select distinct deptno from emp) as dt
       //   on e.deptno = dt.deptno
       //
