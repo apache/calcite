@@ -98,8 +98,8 @@ public class DruidDateTimeUtils {
             return LocalInterval.create(start, end);
           }
         });
-    if (LOGGER.isInfoEnabled()) {
-      LOGGER.info("Converted time ranges " + ranges + " to interval " + intervals);
+    if (LOGGER.isDebugEnabled()) {
+      LOGGER.debug("Converted time ranges " + ranges + " to interval " + intervals);
     }
     return intervals;
   }

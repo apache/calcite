@@ -515,8 +515,8 @@ public class DruidAdapterIT {
   }
 
   @Test public void testSortLimit() {
-    final String explain = "PLAN=EnumerableLimit(offset=[2], fetch=[3])\n"
-        + "  EnumerableInterpreter\n"
+    final String explain = "PLAN=EnumerableInterpreter\n"
+        + "  BindableSort(sort0=[$1], sort1=[$0], dir0=[ASC], dir1=[DESC], offset=[2], fetch=[3])\n"
         + "    DruidQuery(table=[[foodmart, foodmart]], "
         + "intervals=[[1900-01-09T00:00:00.000/2992-01-10T00:00:00.000]], projects=[[$39, $30]], "
         + "groups=[{0, 1}], aggs=[[]], sort0=[1], sort1=[0], dir0=[ASC], dir1=[DESC])";
@@ -1177,8 +1177,9 @@ public class DruidAdapterIT {
         + "order by s desc limit 3";
     // Cannot use a Druid "topN" query, granularity != "all";
     // have to use "groupBy" query followed by external Sort and fetch.
-    final String explain = "PLAN=EnumerableInterpreter\n"
-        + "  BindableProject(S=[$2], M=[$3], P=[$0])\n"
+    final String explain = "PLAN="
+        + "EnumerableCalc(expr#0..3=[{inputs}], S=[$t2], M=[$t3], P=[$t0])\n"
+        + "  EnumerableInterpreter\n"
         + "    DruidQuery(table=[[foodmart, foodmart]], "
         + "intervals=[[1900-01-09T00:00:00.000/2992-01-10T00:00:00.000]], projects=[[$30, FLOOR"
         + "($0, FLAG(MONTH)), $89]], groups=[{0, 1}], aggs=[[SUM($2), MAX($2)]], sort0=[2], "
@@ -1881,11 +1882,13 @@ public class DruidAdapterIT {
         + "from \"foodmart\"\n"
         + "group by floor(\"timestamp\" to MONTH)\n"
         + "order by \"floor_month\" DESC LIMIT 3";
-    sql(sql).explainContains("PLAN=EnumerableLimit(fetch=[3])\n"
-        + "  EnumerableInterpreter\n"
+    final String explain = "PLAN=EnumerableInterpreter\n"
+        + "  BindableSort(sort0=[$0], dir0=[DESC], fetch=[3])\n"
         + "    DruidQuery(table=[[foodmart, foodmart]], "
-        + "intervals=[[1900-01-09T00:00:00.000/2992-01-10T00:00:00.000]], projects=[[FLOOR($0, "
-        + "FLAG(MONTH))]], groups=[{0}], aggs=[[]], sort0=[0], dir0=[DESC])")
+        + "intervals=[[1900-01-09T00:00:00.000/2992-01-10T00:00:00.000]], "
+        + "projects=[[FLOOR($0, FLAG(MONTH))]], groups=[{0}], aggs=[[]], "
+        + "sort0=[0], dir0=[DESC])";
+    sql(sql).explainContains(explain)
         .queryContains(druidChecker("'queryType':'timeseries'", "'descending':true"))
         .returnsOrdered("floor_month=1997-12-01 00:00:00", "floor_month=1997-11-01 00:00:00",
             "floor_month=1997-10-01 00:00:00");
