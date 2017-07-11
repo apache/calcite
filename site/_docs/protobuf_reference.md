@@ -725,7 +725,7 @@ message ResultSetResponse {
 `own_statement` Whether the result set has its own dedicated statement. If true, the server must automatically close the
 statement when the result set is closed. This is used for JDBC metadata result sets, for instance.
 
-`signature` A non-optional nested object <a href="#signature">Signature</a>
+`signature` A nested object <a href="#signature">Signature</a>. This field will only be present for queries that return data.
 
 `first_frame` A optional nested object <a href="#frame">Frame</a>
 
