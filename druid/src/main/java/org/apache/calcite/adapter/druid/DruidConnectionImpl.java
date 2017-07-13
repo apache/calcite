@@ -338,8 +338,41 @@ class DruidConnectionImpl implements DruidConnection {
       break;
     case VALUE_STRING:
     default:
-      rowBuilder.set(i, parser.getText());
-      break;
+      String s = parser.getText();
+      if (type != null) {
+        switch (type) {
+        case LONG:
+        case PRIMITIVE_LONG:
+        case SHORT:
+        case PRIMITIVE_SHORT:
+        case INTEGER:
+        case PRIMITIVE_INT:
+          if (s.equals("Infinity") || s.equals("-Infinity") || s.equals("NaN")) {
+            throw new RuntimeException("/ by zero");
+          }
+        case FLOAT:
+        case PRIMITIVE_FLOAT:
+        case PRIMITIVE_DOUBLE:
+        case NUMBER:
+        case DOUBLE:
+          if (s.equals("Infinity")) {
+            rowBuilder.set(i, Double.POSITIVE_INFINITY);
+            break;
+          } else if (s.equals("-Infinity")) {
+            rowBuilder.set(i, Double.NEGATIVE_INFINITY);
+            break;
+          } else if (s.equals("NaN")) {
+            rowBuilder.set(i, Double.NaN);
+            break;
+          }
+          //fallthrough
+        default:
+          rowBuilder.set(i, s);
+          break;
+        }
+      } else {
+        rowBuilder.set(i, s);
+      }
     }
   }
 

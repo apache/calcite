@@ -75,6 +75,7 @@ import com.google.common.collect.Sets;
 
 import java.io.IOException;
 import java.io.StringWriter;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -97,7 +98,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
   final ImmutableList<LocalInterval> intervals;
   final ImmutableList<RelNode> rels;
 
-  private static final Pattern VALID_SIG = Pattern.compile("sf?p?a?l?");
+  private static final Pattern VALID_SIG = Pattern.compile("sf?p?(a?|ao)l?");
   private static final String EXTRACT_COLUMN_NAME_PREFIX = "extract";
   private static final String FLOOR_COLUMN_NAME_PREFIX = "floor";
   protected static final String DRUID_QUERY_FETCH = "druid.query.fetch";
@@ -126,23 +127,27 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
 
   /** Returns a string describing the operations inside this query.
    *
-   * <p>For example, "sfpal" means {@link TableScan} (s)
+   * <p>For example, "sfpaol" means {@link TableScan} (s)
    * followed by {@link Filter} (f)
    * followed by {@link Project} (p)
    * followed by {@link Aggregate} (a)
+   * followed by {@link Project} (o)
    * followed by {@link Sort} (l).
    *
    * @see #isValidSignature(String)
    */
   String signature() {
     final StringBuilder b = new StringBuilder();
+    boolean flag = false;
     for (RelNode rel : rels) {
       b.append(rel instanceof TableScan ? 's'
+          : (rel instanceof Project && flag) ? 'o'
+          : rel instanceof Filter ? 'f'
+          : rel instanceof Aggregate ? 'a'
+          : rel instanceof Sort ? 'l'
           : rel instanceof Project ? 'p'
-              : rel instanceof Filter ? 'f'
-                  : rel instanceof Aggregate ? 'a'
-                      : rel instanceof Sort ? 'l'
-                          : '!');
+          : '!');
+      flag = flag || rel instanceof Aggregate;
     }
     return b.toString();
   }
@@ -341,7 +346,11 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
       } else if (rel instanceof Filter) {
         pw.item("filter", ((Filter) rel).getCondition());
       } else if (rel instanceof Project) {
-        pw.item("projects", ((Project) rel).getProjects());
+        if (((Project) rel).getInput() instanceof  Aggregate) {
+          pw.item("post_projects", ((Project) rel).getProjects());
+        } else {
+          pw.item("projects", ((Project) rel).getProjects());
+        }
       } else if (rel instanceof Aggregate) {
         final Aggregate aggregate = (Aggregate) rel;
         pw.item("groups", aggregate.getGroupSet())
@@ -452,6 +461,11 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
           groupSet.cardinality());
     }
 
+    Project postProject = null;
+    if (i < rels.size() && rels.get(i) instanceof Project) {
+      postProject = (Project) rels.get(i++);
+    }
+
     List<Integer> collationIndexes = null;
     List<Direction> collationDirections = null;
     ImmutableBitSet.Builder numericCollationBitSetBuilder = ImmutableBitSet.builder();
@@ -476,7 +490,8 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
     }
 
     return getQuery(rowType, filter, projects, groupSet, aggCalls, aggNames,
-        collationIndexes, collationDirections, numericCollationBitSetBuilder.build(), fetch);
+        collationIndexes, collationDirections, numericCollationBitSetBuilder.build(), fetch,
+        postProject);
   }
 
   public QueryType getQueryType() {
@@ -494,7 +509,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
   protected QuerySpec getQuery(RelDataType rowType, RexNode filter, List<RexNode> projects,
       ImmutableBitSet groupSet, List<AggregateCall> aggCalls, List<String> aggNames,
       List<Integer> collationIndexes, List<Direction> collationDirections,
-      ImmutableBitSet numericCollationIndexes, Integer fetch) {
+      ImmutableBitSet numericCollationIndexes, Integer fetch, Project postProject) {
     final CalciteConnectionConfig config = getConnectionConfig();
     QueryType queryType = QueryType.SELECT;
     final Translator translator = new Translator(druidTable, rowType);
@@ -524,6 +539,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
     // executed as a Timeseries, TopN, or GroupBy in Druid
     final List<DimensionSpec> dimensions = new ArrayList<>();
     final List<JsonAggregation> aggregations = new ArrayList<>();
+    final List<JsonPostAggregation> postAggs = new ArrayList<>();
     Granularity finalGranularity = Granularity.ALL;
     Direction timeSeriesDirection = null;
     JsonLimit limit = null;
@@ -534,7 +550,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
       assert aggCalls.size() == aggNames.size();
 
       int timePositionIdx = -1;
-      final ImmutableList.Builder<String> builder = ImmutableList.builder();
+      ImmutableList.Builder<String> builder = ImmutableList.builder();
       if (projects != null) {
         for (int groupKey : groupSet) {
           final String fieldName = fieldNames.get(groupKey);
@@ -637,6 +653,24 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
       }
 
       fieldNames = builder.build();
+
+      if (postProject != null) {
+        builder = ImmutableList.builder();
+        for (Pair<RexNode, String> pair : postProject.getNamedProjects()) {
+          String fieldName = pair.right;
+          RexNode rex = pair.left;
+          builder.add(fieldName);
+          // Render Post JSON object when PostProject exists. In DruidPostAggregationProjectRule
+          // all check has been done to ensure all RexCall rexNode can be pushed in.
+          if (rex instanceof RexCall) {
+            DruidQuery.JsonPostAggregation jsonPost = getJsonPostAggregation(fieldName, rex,
+                    postProject.getInput());
+            postAggs.add(jsonPost);
+          }
+        }
+        fieldNames = builder.build();
+      }
+
       ImmutableList<JsonCollation> collations = null;
       boolean sortsMetric = false;
       if (collationIndexes != null) {
@@ -704,7 +738,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
         generator.writeStringField("granularity", finalGranularity.value);
         writeFieldIf(generator, "filter", jsonFilter);
         writeField(generator, "aggregations", aggregations);
-        writeFieldIf(generator, "postAggregations", null);
+        writeFieldIf(generator, "postAggregations", postAggs.size() > 0 ? postAggs : null);
         writeField(generator, "intervals", intervals);
 
         generator.writeFieldName("context");
@@ -726,7 +760,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
         generator.writeStringField("metric", fieldNames.get(collationIndexes.get(0)));
         writeFieldIf(generator, "filter", jsonFilter);
         writeField(generator, "aggregations", aggregations);
-        writeFieldIf(generator, "postAggregations", null);
+        writeFieldIf(generator, "postAggregations", postAggs.size() > 0 ? postAggs : null);
         writeField(generator, "intervals", intervals);
         generator.writeNumberField("threshold", fetch);
 
@@ -742,7 +776,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
         writeFieldIf(generator, "limitSpec", limit);
         writeFieldIf(generator, "filter", jsonFilter);
         writeField(generator, "aggregations", aggregations);
-        writeFieldIf(generator, "postAggregations", null);
+        writeFieldIf(generator, "postAggregations", postAggs.size() > 0 ? postAggs : null);
         writeField(generator, "intervals", intervals);
         writeFieldIf(generator, "having", null);
 
@@ -855,6 +889,59 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
     }
 
     return aggregation;
+  }
+
+  public JsonPostAggregation getJsonPostAggregation(String name, RexNode rexNode, RelNode rel) {
+    if (rexNode instanceof RexCall) {
+      List<JsonPostAggregation> fields = new ArrayList<>();
+      for (RexNode ele : ((RexCall) rexNode).getOperands()) {
+        JsonPostAggregation field = getJsonPostAggregation("", ele, rel);
+        if (field == null) {
+          throw new RuntimeException("Unchecked types that cannot be parsed as Post Aggregator");
+        }
+        fields.add(field);
+      }
+      switch (rexNode.getKind()) {
+      case PLUS:
+        return new JsonArithmetic(name, "+", fields, null);
+      case MINUS:
+        return new JsonArithmetic(name, "-", fields, null);
+      case DIVIDE:
+        return new JsonArithmetic(name, "quotient", fields, null);
+      case TIMES:
+        return new JsonArithmetic(name, "*", fields, null);
+      case CAST:
+        return getJsonPostAggregation(name, ((RexCall) rexNode).getOperands().get(0),
+            rel);
+      default:
+      }
+    } else if (rexNode instanceof RexInputRef) {
+      // Subtract only number of grouping columns as offset because for now only Aggregates
+      // without grouping sets (i.e. indicator columns size is zero) are allowed to pushed
+      // in Druid Query.
+      Integer indexSkipGroup = ((RexInputRef) rexNode).getIndex()
+          - ((Aggregate) rel).getGroupCount();
+      AggregateCall aggCall = ((Aggregate) rel).getAggCallList().get(indexSkipGroup);
+      if (aggCall.isDistinct() && aggCall.getAggregation().getKind().equals(SqlKind.COUNT)) {
+        // Will be a hyper unique cardinality column.
+        // Use hyperUniqueCardinality post aggregator instead of field Accessor.
+        // TODO: Expect to change after CALC-1787
+        return new JsonHyperUniqueCardinality("",
+            rel.getRowType().getFieldNames().get(((RexInputRef) rexNode).getIndex()));
+      }
+      return new JsonFieldAccessor("",
+          rel.getRowType().getFieldNames().get(((RexInputRef) rexNode).getIndex()));
+    } else if (rexNode instanceof RexLiteral) {
+      // Druid constant post aggregator only supports numeric value for now.
+      // (http://druid.io/docs/0.10.0/querying/post-aggregations.html) Accordingly, all
+      // numeric type of RexLiteral can only have BigDecimal value, so filter out unsupported
+      // constant by checking the type of RexLiteral value.
+      if (((RexLiteral) rexNode).getValue3() instanceof BigDecimal) {
+        return new JsonConstant("",
+            ((BigDecimal) ((RexLiteral) rexNode).getValue3()).doubleValue());
+      }
+    }
+    throw new RuntimeException("Unchecked types that cannot be parsed as Post Aggregator");
   }
 
   protected static void writeField(JsonGenerator generator, String fieldName,
@@ -1441,6 +1528,204 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
     }
   }
 
+  /** Post-Aggregator Post aggregator abstract writer */
+  protected abstract static class JsonPostAggregation implements Json {
+    final String type;
+    String name;
+
+    private JsonPostAggregation(String name, String type) {
+      this.type = type;
+      this.name = name;
+    }
+
+    // Expects all subclasses to write the EndObject item
+    public void write(JsonGenerator generator) throws IOException {
+      generator.writeStartObject();
+      generator.writeStringField("type", type);
+      generator.writeStringField("name", name);
+    }
+
+    public void setName(String name) {
+      this.name = name;
+    }
+
+    public abstract JsonPostAggregation copy();
+  }
+
+  /** FieldAccessor Post aggregator writer */
+  private static class JsonFieldAccessor extends JsonPostAggregation {
+    final String fieldName;
+
+    private JsonFieldAccessor(String name, String fieldName) {
+      super(name, "fieldAccess");
+      this.fieldName = fieldName;
+    }
+
+    public void write(JsonGenerator generator) throws IOException {
+      super.write(generator);
+      generator.writeStringField("fieldName", fieldName);
+      generator.writeEndObject();
+    }
+
+    /**
+     * Leaf node in Post-aggs Json Tree, return an identical leaf node.
+     */
+
+    public JsonPostAggregation copy() {
+      return new JsonFieldAccessor(this.name, this.fieldName);
+    }
+  }
+
+  /** Constant Post aggregator writer */
+  private static class JsonConstant extends JsonPostAggregation {
+    final double value;
+
+    private JsonConstant(String name, double value) {
+      super(name, "constant");
+      this.value = value;
+    }
+
+    public void write(JsonGenerator generator) throws IOException {
+      super.write(generator);
+      generator.writeNumberField("value", value);
+      generator.writeEndObject();
+    }
+
+    /**
+     * Leaf node in Post-aggs Json Tree, return an identical leaf node.
+     */
+
+    public JsonPostAggregation copy() {
+      return new JsonConstant(this.name, this.value);
+    }
+  }
+
+  /** Greatest/Leastest Post aggregator writer */
+  private static class JsonGreatestLeast extends JsonPostAggregation {
+    final List<JsonPostAggregation> fields;
+    final boolean fractional;
+    final boolean greatest;
+
+    private JsonGreatestLeast(String name, List<JsonPostAggregation> fields,
+                              boolean fractional, boolean greatest) {
+      super(name, greatest ? (fractional ? "doubleGreatest" : "longGreatest")
+          : (fractional ? "doubleLeast" : "longLeast"));
+      this.fields = fields;
+      this.fractional = fractional;
+      this.greatest = greatest;
+    }
+
+    public void write(JsonGenerator generator) throws IOException {
+      super.write(generator);
+      writeFieldIf(generator, "fields", fields);
+      generator.writeEndObject();
+    }
+
+    /**
+     * Non-leaf node in Post-aggs Json Tree, recursively copy the leaf node.
+     */
+
+    public JsonPostAggregation copy() {
+      ImmutableList.Builder<JsonPostAggregation> builder = ImmutableList.builder();
+      for (JsonPostAggregation field : fields) {
+        builder.add(field.copy());
+      }
+      return new JsonGreatestLeast(name, builder.build(), fractional, greatest);
+    }
+  }
+
+  /** Arithmetic Post aggregator writer */
+  private static class JsonArithmetic extends JsonPostAggregation {
+    final String fn;
+    final List<JsonPostAggregation> fields;
+    final String ordering;
+
+    private JsonArithmetic(String name, String fn, List<JsonPostAggregation> fields,
+                           String ordering) {
+      super(name, "arithmetic");
+      this.fn = fn;
+      this.fields = fields;
+      this.ordering = ordering;
+    }
+
+    public void write(JsonGenerator generator) throws IOException {
+      super.write(generator);
+      generator.writeStringField("fn", fn);
+      writeFieldIf(generator, "fields", fields);
+      writeFieldIf(generator, "ordering", ordering);
+      generator.writeEndObject();
+    }
+
+    /**
+     * Non-leaf node in Post-aggs Json Tree, recursively copy the leaf node.
+     */
+
+    public JsonPostAggregation copy() {
+      ImmutableList.Builder<JsonPostAggregation> builder = ImmutableList.builder();
+      for (JsonPostAggregation field : fields) {
+        builder.add(field.copy());
+      }
+      return new JsonArithmetic(name, fn, builder.build(), ordering);
+    }
+  }
+
+  /** HyperUnique Cardinality Post aggregator writer */
+  private static class JsonHyperUniqueCardinality extends JsonPostAggregation {
+    final String fieldName;
+
+    private JsonHyperUniqueCardinality(String name, String fieldName) {
+      super(name, "hyperUniqueCardinality");
+      this.fieldName = fieldName;
+    }
+
+    public void write(JsonGenerator generator) throws IOException {
+      super.write(generator);
+      generator.writeStringField("fieldName", fieldName);
+      generator.writeEndObject();
+    }
+
+    /**
+     * Leaf node in Post-aggs Json Tree, return an identical leaf node.
+     */
+
+    public JsonPostAggregation copy() {
+      return new JsonHyperUniqueCardinality(this.name, this.fieldName);
+    }
+  }
+
+  /** Thetasketch operation Post aggregator writer */
+  private static class JsonThetaSketchSetOp extends JsonPostAggregation {
+    final String func;
+    final List<JsonPostAggregation> fields;
+    final long size;
+
+    private JsonThetaSketchSetOp(String name, String func, List<JsonPostAggregation> fields,
+                                 long size) {
+      super(name, "thetaSketchSetOp");
+      this.func = func;
+      this.fields = fields;
+      this.size = size;
+    }
+
+    public void write(JsonGenerator generator) throws IOException {
+      super.write(generator);
+      writeFieldIf(generator, "fields", fields);
+      generator.writeNumberField("size", size);
+      generator.writeEndObject();
+    }
+
+    /**
+     * Non-leaf node in Post-aggs Json Tree, recursively copy the leaf node.
+     */
+
+    public JsonPostAggregation copy() {
+      ImmutableList.Builder<JsonPostAggregation> builder = ImmutableList.builder();
+      for (JsonPostAggregation field : fields) {
+        builder.add(field.copy());
+      }
+      return new JsonThetaSketchSetOp(this.name, func, builder.build(), size);
+    }
+  }
 }
 
 // End DruidQuery.java

@@ -2158,6 +2158,388 @@ public class DruidAdapterIT {
         .queryContains(druidChecker("'queryType':'timeseries'"));
   }
 
+  @Test public void testPlusArithmeticOperation() {
+    final String sqlQuery = "select sum(\"store_sales\") + sum(\"store_cost\") as a, "
+        + "\"store_state\" from \"foodmart\"  group by \"store_state\" order by a desc";
+    String postAggString = "'postAggregations':[{'type':'arithmetic','name':'postagg#0','fn':'+',"
+        + "'fields':[{'type':'fieldAccess','name':'','fieldName':'$f1'},{'type':'fieldAccess','"
+        + "name':'','fieldName':'$f2'}]}]";
+    final String plan = "PLAN=EnumerableInterpreter\n"
+        + "  DruidQuery(table=[[foodmart, foodmart]], "
+        + "intervals=[[1900-01-09T00:00:00.000/2992-01-10T00:00:00.000]], "
+        + "groups=[{63}], aggs=[[SUM($90), SUM($91)]], post_projects=[[+($1, $2), $0]], "
+        + "sort0=[0], dir0=[DESC]";
+    sql(sqlQuery, FOODMART)
+        .explainContains(plan)
+        .queryContains(druidChecker(postAggString))
+        .returnsOrdered("A=369117.525390625; store_state=WA",
+            "A=222698.26513671875; store_state=CA",
+            "A=199049.57055664062; store_state=OR");
+  }
+
+  @Test public void testDivideArithmeticOperation() {
+    final String sqlQuery = "select \"store_state\", sum(\"store_sales\") / sum(\"store_cost\") "
+        + "as a from \"foodmart\"  group by \"store_state\" order by a desc";
+    String postAggString = "'postAggregations':[{'type':'arithmetic','name':'postagg#0',"
+        + "'fn':'quotient','fields':[{'type':'fieldAccess','name':'','fieldName':'$f1'},"
+        + "{'type':'fieldAccess','name':'','fieldName':'$f2'}]}]";
+    final String plan = "PLAN=EnumerableInterpreter\n"
+            + "  DruidQuery(table=[[foodmart, foodmart]], "
+            + "intervals=[[1900-01-09T00:00:00.000/2992-01-10T00:00:00.000]], "
+            + "groups=[{63}], aggs=[[SUM($90), SUM($91)]], post_projects=[[$0, /($1, $2)]], "
+            + "sort0=[1], dir0=[DESC]";
+    sql(sqlQuery, FOODMART)
+        .explainContains(plan)
+        .queryContains(druidChecker(postAggString))
+        .returnsOrdered("store_state=OR; A=2.5060913241562606",
+            "store_state=CA; A=2.505379731203625",
+            "store_state=WA; A=2.5045805694710124");
+  }
+
+  @Test public void testMultiplyArithmeticOperation() {
+    final String sqlQuery = "select \"store_state\", sum(\"store_sales\") * sum(\"store_cost\") "
+        + "as a from \"foodmart\"  group by \"store_state\" order by a desc";
+    String postAggString = "'postAggregations':[{'type':'arithmetic','name':'postagg#0',"
+        + "'fn':'*','fields':[{'type':'fieldAccess','name':'','fieldName':'$f1'},"
+        + "{'type':'fieldAccess','name':'','fieldName':'$f2'}]}]";
+    final String plan = "PLAN=EnumerableInterpreter\n"
+            + "  DruidQuery(table=[[foodmart, foodmart]], "
+            + "intervals=[[1900-01-09T00:00:00.000/2992-01-10T00:00:00.000]], "
+            + "groups=[{63}], aggs=[[SUM($90), SUM($91)]], post_projects=[[$0, *($1, $2)]], "
+            + "sort0=[1], dir0=[DESC]";
+    sql(sqlQuery, FOODMART)
+        .explainContains(plan)
+        .queryContains(druidChecker(postAggString))
+        .returnsOrdered("store_state=WA; A=2.778383817085206E10",
+            "store_state=CA; A=1.0112000558236574E10",
+            "store_state=OR; A=8.077425009052019E9");
+  }
+
+  @Test public void testMinusArithmeticOperation() {
+    final String sqlQuery = "select \"store_state\", sum(\"store_sales\") - sum(\"store_cost\") "
+        + "as a from \"foodmart\"  group by \"store_state\" order by a desc";
+    String postAggString = "'postAggregations':[{'type':'arithmetic','name':'postagg#0',"
+        + "'fn':'-','fields':[{'type':'fieldAccess','name':'','fieldName':'$f1'},"
+        + "{'type':'fieldAccess','name':'','fieldName':'$f2'}]}]";
+    final String plan = "PLAN=EnumerableInterpreter\n"
+            + "  DruidQuery(table=[[foodmart, foodmart]], "
+            + "intervals=[[1900-01-09T00:00:00.000/2992-01-10T00:00:00.000]], "
+            + "groups=[{63}], aggs=[[SUM($90), SUM($91)]], post_projects=[[$0, -($1, $2)]], "
+            + "sort0=[1], dir0=[DESC]";
+    sql(sqlQuery, FOODMART)
+        .explainContains(plan)
+        .queryContains(druidChecker(postAggString))
+        .returnsOrdered("store_state=WA; A=158468.908203125",
+            "store_state=CA; A=95637.41455078125",
+            "store_state=OR; A=85504.57006835938");
+  }
+
+  @Test public void testConstantPostAggregator() {
+    final String sqlQuery = "select \"store_state\", sum(\"store_sales\") + 100 as a from "
+        + "\"foodmart\"  group by \"store_state\" order by a desc";
+    String postAggString = "{'type':'constant','name':'','value':100.0}";
+    final String plan = "PLAN=EnumerableInterpreter\n"
+            + "  DruidQuery(table=[[foodmart, foodmart]], "
+            + "intervals=[[1900-01-09T00:00:00.000/2992-01-10T00:00:00.000]], "
+            + "groups=[{63}], aggs=[[SUM($90)]], post_projects=[[$0, +($1, 100)]], "
+            + "sort0=[1], dir0=[DESC]";
+    sql(sqlQuery, FOODMART)
+        .explainContains(plan)
+        .queryContains(druidChecker(postAggString))
+        .returnsOrdered("store_state=WA; A=263893.216796875",
+            "store_state=CA; A=159267.83984375",
+            "store_state=OR; A=142377.0703125");
+  }
+
+  @Test public void testRecursiveArithmeticOperation() {
+    final String sqlQuery = "select \"store_state\", -1 * (a + b) as c from (select "
+        + "(sum(\"store_sales\")-sum(\"store_cost\")) / (count(*) * 3) "
+        + "AS a,sum(\"unit_sales\") AS b, \"store_state\"  from \"foodmart\"  group "
+        + "by \"store_state\") order by c desc";
+    String postAggString = "'postAggregations':[{'type':'arithmetic','name':'postagg#0',"
+        + "'fn':'*','fields':[{'type':'constant','name':'','value':-1.0},{'type':"
+        + "'arithmetic','name':'','fn':'+','fields':[{'type':'arithmetic','name':"
+        + "'','fn':'quotient','fields':[{'type':'arithmetic','name':'','fn':'-',"
+        + "'fields':[{'type':'fieldAccess','name':'','fieldName':'$f1'},{'type':"
+        + "'fieldAccess','name':'','fieldName':'$f2'}]},{'type':'arithmetic','name':"
+        + "'','fn':'*','fields':[{'type':'fieldAccess','name':'','fieldName':'$f3'},"
+        + "{'type':'constant','name':'','value':3.0}]}]},{'type':'fieldAccess','name'"
+        + ":'','fieldName':'B'}]}]}]";
+    final String plan = "PLAN=EnumerableInterpreter\n"
+        + "  DruidQuery(table=[[foodmart, foodmart]], "
+            + "intervals=[[1900-01-09T00:00:00.000/2992-01-10T00:00:00.000]], groups=[{63}], "
+            + "aggs=[[SUM($90), SUM($91), COUNT(), SUM($89)]], "
+            + "post_projects=[[$0, *(-1, +(/(-($1, $2), *($3, 3)), $4))]], sort0=[1], dir0=[DESC])";
+    sql(sqlQuery, FOODMART)
+        .explainContains(plan)
+        .queryContains(druidChecker(postAggString))
+        .returnsOrdered("store_state=OR; C=-67660.31890436632",
+            "store_state=CA; C=-74749.30433035406",
+            "store_state=WA; C=-124367.29537911131");
+  }
+
+  /**
+   * Turn on now count(distinct ) will get pushed after CALC-1853
+   */
+  @Test public void testHyperUniquePostAggregator() {
+    final String sqlQuery = "select \"store_state\", sum(\"store_cost\") / count(distinct "
+        + "\"brand_name\") as a from \"foodmart\"  group by \"store_state\" order by a desc";
+    String postAggString = "'postAggregations':[{'type':'arithmetic','name':'postagg#0','fn':"
+        + "'quotient','fields':[{'type':'fieldAccess','name':'','fieldName':'$f1'},"
+        + "{'type':'hyperUniqueCardinality','name':'','fieldName':'$f2'}]}]";
+    final String plan = "PLAN=EnumerableInterpreter\n"
+        + "  DruidQuery(table=[[foodmart, foodmart]], intervals="
+        + "[[1900-01-09T00:00:00.000/2992-01-10T00:00:00.000]], groups=[{63}], ";
+    CalciteAssert.that()
+        .enable(enabled())
+        .with(ImmutableMap.of("model", FOODMART.getPath()))
+        .with(CalciteConnectionProperty.APPROXIMATE_DISTINCT_COUNT.camelName(), true)
+        .query(sqlQuery)
+        .runs()
+        .explainContains(plan)
+        .queryContains(druidChecker(postAggString));
+  }
+
+  @Test public void testExtractFilterWorkWithPostAggregations() {
+    final String sql = "SELECT \"store_state\", \"brand_name\", sum(\"store_sales\") - "
+        + "sum(\"store_cost\") as a  from \"foodmart\" where extract (week from \"timestamp\")"
+        + " IN (10,11) and \"brand_name\"='Bird Call' group by \"store_state\", \"brand_name\"";
+
+    final String druidQuery = "'filter':{'type':'and','fields':[{'type':'selector','dimension'"
+        + ":'brand_name','value':'Bird Call'},{'type':'or','fields':[{'type':'selector',"
+        + "'dimension':'__time','value':'10','extractionFn':{'type':'timeFormat','format'"
+        + ":'w','timeZone':'UTC','locale':'en-US'}},{'type':'selector','dimension':'__time'"
+        + ",'value':'11','extractionFn':{'type':'timeFormat','format':'w','timeZone':'UTC'"
+        + ",'locale':'en-US'}}]}]},'aggregations':[{'type':'doubleSum','name':'$f2',"
+        + "'fieldName':'store_sales'},{'type':'doubleSum','name':'$f3','fieldName':"
+        + "'store_cost'}],'postAggregations':[{'type':'arithmetic','name':'postagg#0'"
+        + ",'fn':'-','fields':[{'type':'fieldAccess','name':'','fieldName':'$f2'},"
+        + "{'type':'fieldAccess','name':'','fieldName':'$f3'}]}]";
+    final String plan = "PLAN=EnumerableInterpreter\n"
+        + "  DruidQuery(table=[[foodmart, foodmart]], "
+        + "intervals=[[1900-01-09T00:00:00.000/2992-01-10T00:00:00.000]], filter=[AND(=(";
+    sql(sql, FOODMART)
+        .explainContains(plan)
+        .queryContains(druidChecker(druidQuery));
+  }
+
+  @Test public void testSingleAverageFunction() {
+    final String sqlQuery = "select \"store_state\", sum(\"store_cost\") / count(*) as a from "
+        + "\"foodmart\" group by \"store_state\" order by a desc";
+    String postAggString = "'aggregations':[{'type':'doubleSum','name':'$f1','fieldName':"
+        + "'store_cost'},{'type':'count','name':'$f2'}],"
+        + "'postAggregations':[{'type':'arithmetic','name':'postagg#0','fn':'quotient'"
+        + ",'fields':[{'type':'fieldAccess','name':'','fieldName':'$f1'},"
+        + "{'type':'fieldAccess','name':'','fieldName':'$f2'}]}]";
+    final String plan = "PLAN=EnumerableInterpreter\n"
+        + "  DruidQuery(table=[[foodmart, foodmart]], "
+        + "intervals=[[1900-01-09T00:00:00.000/2992-01-10T00:00:00.000]], "
+        + "groups=[{63}], aggs=[[SUM($91), COUNT()]], post_projects=[[$0, /($1, $2)]], "
+        + "sort0=[1], dir0=[DESC]";
+    sql(sqlQuery, FOODMART)
+        .explainContains(plan)
+        .queryContains(druidChecker(postAggString))
+        .returnsOrdered("store_state=OR; A=2.627140224161991",
+            "store_state=CA; A=2.5993382141879935",
+            "store_state=WA; A=2.5828708762997206");
+  }
+
+  @Test public void testPartiallyPostAggregation() {
+    final String sqlQuery = "select \"store_state\", sum(\"store_sales\") / sum(\"store_cost\")"
+            + " as a, case when sum(\"unit_sales\")=0 then 1.0 else sum(\"unit_sales\") "
+            + "end as b from \"foodmart\"  group by \"store_state\" order by a desc";
+    String postAggString = "'postAggregations':[{'type':'arithmetic','name':'postagg#0',"
+            + "'fn':'quotient','fields':[{'type':'fieldAccess','name':'','fieldName':'$f1'}"
+            + ",{'type':'fieldAccess','name':'','fieldName':'$f2'}]}]";
+    final String plan = "PLAN=EnumerableInterpreter\n"
+            + "  BindableProject(store_state=[$0], A=[$1], B=[CASE(=($2, 0), "
+            + "1.0, CAST($2):DECIMAL(19, 0))])\n"
+            + "    DruidQuery(table=[[foodmart, foodmart]], "
+            + "intervals=[[1900-01-09T00:00:00.000/2992-01-10T00:00:00.000]], "
+            + "groups=[{63}], aggs=[[SUM($90), SUM($91), SUM($89)]], "
+            + "post_projects=[[$0, /($1, $2), $3]], sort0=[1], dir0=[DESC]";
+    sql(sqlQuery, FOODMART)
+        .explainContains(plan)
+        .queryContains(druidChecker(postAggString))
+        .returnsOrdered("store_state=OR; A=2.5060913241562606; B=67659",
+            "store_state=CA; A=2.505379731203625; B=74748",
+            "store_state=WA; A=2.5045805694710124; B=124366");
+  }
+
+  @Test public void testDuplicateReferenceOnPostAggregation() {
+    final String sqlQuery = "select \"store_state\", a, a - b as c from (select \"store_state\", "
+        + "sum(\"store_sales\") + 100 as a, sum(\"store_cost\") as b from \"foodmart\"  group by "
+        + "\"store_state\") order by a desc";
+    String postAggString = "'postAggregations':[{'type':'arithmetic','name':'postagg#0',"
+        + "'fn':'+','fields':[{'type':'fieldAccess','name':'','fieldName':'$f1'},"
+        + "{'type':'constant','name':'','value':100.0}]},{'type':'arithmetic',"
+        + "'name':'postagg#1','fn':'-','fields':[{'type':'arithmetic','name':'',"
+        + "'fn':'+','fields':[{'type':'fieldAccess','name':'','fieldName':'$f1'},"
+        + "{'type':'constant','name':'','value':100.0}]},{'type':'fieldAccess',"
+        + "'name':'','fieldName':'B'}]}]";
+    final String plan = "PLAN=EnumerableInterpreter\n"
+        + "  DruidQuery(table=[[foodmart, foodmart]], "
+        + "intervals=[[1900-01-09T00:00:00.000/2992-01-10T00:00:00.000]], groups=[{63}], "
+        + "aggs=[[SUM($90), SUM($91)]], post_projects=[[$0, +($1, 100), -(+($1, 100), $2)]], "
+        + "sort0=[1], dir0=[DESC]";
+    sql(sqlQuery, FOODMART)
+        .explainContains(plan)
+        .queryContains(druidChecker(postAggString))
+        .returnsOrdered("store_state=WA; A=263893.216796875; C=158568.908203125",
+            "store_state=CA; A=159267.83984375; C=95737.41455078125",
+            "store_state=OR; A=142377.0703125; C=85604.57006835938");
+  }
+
+  @Test public void testDivideByZeroDoubleTypeInfinity() {
+    final String sqlQuery = "select \"store_state\", sum(\"store_cost\") / 0 as a from "
+        + "\"foodmart\"  group by \"store_state\" order by a desc";
+    String postAggString = "'postAggregations':[{'type':'arithmetic','name':'postagg#0',"
+        + "'fn':'quotient','fields':[{'type':'fieldAccess','name':'','fieldName':'$f1'},"
+        + "{'type':'constant','name':'','value':0.0}]}]";
+    final String plan = "PLAN=EnumerableInterpreter\n"
+        + "  DruidQuery(table=[[foodmart, foodmart]], "
+        + "intervals=[[1900-01-09T00:00:00.000/2992-01-10T00:00:00.000]], "
+        + "groups=[{63}], aggs=[[SUM($91)]], post_projects=[[$0, /($1, 0)]]";
+    sql(sqlQuery, FOODMART)
+        .explainContains(plan)
+        .queryContains(druidChecker(postAggString))
+        .returnsOrdered("store_state=CA; A=Infinity",
+            "store_state=OR; A=Infinity",
+            "store_state=WA; A=Infinity");
+  }
+
+  @Test public void testDivideByZeroDoubleTypeNegInfinity() {
+    final String sqlQuery = "select \"store_state\", -1.0 * sum(\"store_cost\") / 0 as "
+        + "a from \"foodmart\"  group by \"store_state\" order by a desc";
+    String postAggString = "'postAggregations':[{'type':'arithmetic','name':'postagg#0',"
+        + "'fn':'quotient','fields':[{'type':'arithmetic','name':'',"
+        + "'fn':'*','fields':[{'type':'constant','name':'','value':-1.0},"
+        + "{'type':'fieldAccess','name':'','fieldName':'$f1'}]},"
+        + "{'type':'constant','name':'','value':0.0}]}]";
+    final String plan = "PLAN=EnumerableInterpreter\n"
+        + "  DruidQuery(table=[[foodmart, foodmart]], "
+        + "intervals=[[1900-01-09T00:00:00.000/2992-01-10T00:00:00.000]], "
+        + "groups=[{63}], aggs=[[SUM($91)]], post_projects=[[$0, /(*(-1.0, $1), 0)]]";
+    sql(sqlQuery, FOODMART)
+        .explainContains(plan)
+        .queryContains(druidChecker(postAggString))
+        .returnsOrdered("store_state=CA; A=-Infinity",
+            "store_state=OR; A=-Infinity",
+            "store_state=WA; A=-Infinity");
+  }
+
+  @Test public void testDivideByZeroDoubleTypeNaN() {
+    final String sqlQuery = "select \"store_state\", (sum(\"store_cost\") - sum(\"store_cost\")) "
+        + "/ 0 as a from \"foodmart\"  group by \"store_state\" order by a desc";
+    String postAggString = "'postAggregations':[{'type':'arithmetic','name':'postagg#0',"
+        + "'fn':'quotient','fields':[{'type':'arithmetic','name':'','fn':'-',"
+        + "'fields':[{'type':'fieldAccess','name':'','fieldName':'$f1'},"
+        + "{'type':'fieldAccess','name':'','fieldName':'$f1'}]},"
+        + "{'type':'constant','name':'','value':0.0}]}]";
+    final String plan = "PLAN=EnumerableInterpreter\n"
+        + "  DruidQuery(table=[[foodmart, foodmart]], "
+        + "intervals=[[1900-01-09T00:00:00.000/2992-01-10T00:00:00.000]], "
+        + "groups=[{63}], aggs=[[SUM($91)]], post_projects=[[$0, /(-($1, $1), 0)]], "
+        + "sort0=[1], dir0=[DESC]";
+    sql(sqlQuery, FOODMART)
+        .explainContains(plan)
+        .queryContains(druidChecker(postAggString))
+        .returnsOrdered("store_state=CA; A=NaN",
+            "store_state=OR; A=NaN",
+            "store_state=WA; A=NaN");
+  }
+
+  @Test public void testDivideByZeroIntegerType() {
+    final String sqlQuery = "select \"store_state\", (count(*) - "
+            + "count(*)) / 0 as a from \"foodmart\"  group by \"store_state\" "
+            + "order by a desc";
+    final String plan = "PLAN=EnumerableInterpreter\n"
+            + "  DruidQuery(table=[[foodmart, foodmart]], "
+            + "intervals=[[1900-01-09T00:00:00.000/2992-01-10T00:00:00.000]], "
+            + "groups=[{63}], aggs=[[COUNT()]], post_projects=[[$0, /(-($1, $1), 0)]]";
+    sql(sqlQuery, FOODMART)
+            .explainContains(plan)
+            .throws_("/ by zero");
+  }
+
+  @Test public void testInterleaveBetweenAggregateAndGroupOrderByOnMetrics() {
+    final String sqlQuery = "select \"store_state\", \"brand_name\", \"A\" from (\n"
+            + "  select sum(\"store_sales\")-sum(\"store_cost\") as a, \"store_state\""
+            + ", \"brand_name\"\n"
+            + "  from \"foodmart\"\n"
+            + "  group by \"store_state\", \"brand_name\" ) subq\n"
+            + "order by \"A\" limit 5";
+    String postAggString = "'limitSpec':{'type':'default','limit':5,'columns':[{'dimension':"
+            + "'postagg#0','direction':'ascending','dimensionOrder':'numeric'}]},"
+            + "'aggregations':[{'type':'doubleSum','name':'$f2','fieldName':'store_sales'},"
+            + "{'type':'doubleSum','name':'$f3','fieldName':'store_cost'}],'postAggregations':"
+            + "[{'type':'arithmetic','name':'postagg#0','fn':'-','fields':"
+            + "[{'type':'fieldAccess','name':'','fieldName':'$f2'},"
+            + "{'type':'fieldAccess','name':'','fieldName':'$f3'}]}]";
+    final String plan = "PLAN=EnumerableInterpreter\n"
+            + "  DruidQuery(table=[[foodmart, foodmart]], "
+            + "intervals=[[1900-01-09T00:00:00.000/2992-01-10T00:00:00.000]], "
+            + "groups=[{2, 63}], aggs=[[SUM($90), SUM($91)]], "
+            + "post_projects=[[$1, $0, -($2, $3)]], sort0=[2], dir0=[ASC], fetch=[5]";
+    sql(sqlQuery, FOODMART)
+            .explainContains(plan)
+            .queryContains(druidChecker(postAggString))
+            .returnsOrdered("store_state=CA; brand_name=King; A=21.46319955587387",
+                    "store_state=OR; brand_name=Symphony; A=32.17600071430206",
+                    "store_state=CA; brand_name=Toretti; A=32.24650126695633",
+                    "store_state=WA; brand_name=King; A=34.61040019989014",
+                    "store_state=OR; brand_name=Toretti; A=36.300002098083496");
+  }
+
+  @Test public void testInterleaveBetweenAggregateAndGroupOrderByOnDimension() {
+    final String sqlQuery = "select \"store_state\", \"brand_name\", \"A\" from \n"
+            + "(select \"store_state\", sum(\"store_sales\")+sum(\"store_cost\") "
+            + "as a, \"brand_name\" from \"foodmart\" group by \"store_state\", \"brand_name\") "
+            + "order by \"brand_name\", \"store_state\" limit 5";
+    String postAggString = "'limitSpec':{'type':'default','limit':5,'columns':[{'dimension':"
+            + "'brand_name','direction':'ascending','dimensionOrder':'alphanumeric'},{'dimension':"
+            + "'store_state','direction':'ascending','dimensionOrder':'alphanumeric'}]},"
+            + "'aggregations':[{'type':'doubleSum','name':'$f2','fieldName':'store_sales'},"
+            + "{'type':'doubleSum','name':'$f3','fieldName':'store_cost'}],'postAggregations':"
+            + "[{'type':'arithmetic','name':'postagg#0','fn':'+','fields':"
+            + "[{'type':'fieldAccess','name':'','fieldName':'$f2'},"
+            + "{'type':'fieldAccess','name':'','fieldName':'$f3'}]}]";
+    final String plan = "PLAN=EnumerableInterpreter\n"
+            + "  DruidQuery(table=[[foodmart, foodmart]], "
+            + "intervals=[[1900-01-09T00:00:00.000/2992-01-10T00:00:00.000]], "
+            + "projects=[[$63, $2, $90, $91]], "
+            + "groups=[{0, 1}], aggs=[[SUM($2), SUM($3)]], "
+            + "post_projects=[[$0, $1, +($2, $3)]], sort0=[1], sort1=[0], dir0=[ASC], dir1=[ASC]";
+    sql(sqlQuery, FOODMART)
+            .explainContains(plan)
+            .queryContains(druidChecker(postAggString))
+            .returnsOrdered("store_state=CA; brand_name=ADJ; A=222.15239667892456",
+                    "store_state=OR; brand_name=ADJ; A=186.6035966873169",
+                    "store_state=WA; brand_name=ADJ; A=216.99119639396667",
+                    "store_state=CA; brand_name=Akron; A=250.3489989042282",
+                    "store_state=OR; brand_name=Akron; A=278.6972026824951");
+  }
+
+  @Test public void testOrderByOnMetricsInSelectDruidQuery() {
+    final String sqlQuery = "select \"store_sales\" as a, \"store_cost\" as b, \"store_sales\" - "
+            + "\"store_cost\" as c from \"foodmart\" where \"timestamp\" "
+            + ">= '1997-01-01 00:00:00' and \"timestamp\" < '1997-09-01 00:00:00' order by c "
+            + "limit 5";
+    String postAggString = "'queryType':'select'";
+    final String plan = "PLAN=EnumerableInterpreter\n"
+            + "  BindableSort(sort0=[$2], dir0=[ASC], fetch=[5])\n"
+            + "    BindableProject(A=[$0], B=[$1], C=[-($0, $1)])\n"
+            + "      DruidQuery(";
+    sql(sqlQuery, FOODMART)
+            .explainContains(plan)
+            .queryContains(druidChecker(postAggString))
+            .returnsOrdered("A=0.5099999904632568; B=0.24480000138282776; C=0.2651999890804291",
+                    "A=0.5099999904632568; B=0.23970000445842743; C=0.2702999860048294",
+                    "A=0.5699999928474426; B=0.2849999964237213; C=0.2849999964237213",
+                    "A=0.5; B=0.20999999344348907; C=0.2900000065565109",
+                    "A=0.5099999904632568; B=0.21930000185966492; C=0.2906999886035919");
+  }
+
   /**
    * Tests whether an aggregate with a filter clause has it's filter factored out
    * when there is no outer filter
