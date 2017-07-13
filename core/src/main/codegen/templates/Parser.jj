@@ -938,6 +938,8 @@ SqlSelect SqlSelect() :
     final SqlNode having;
     final SqlNodeList windowDecls;
     final Span s;
+    Pair<List<SqlNode>, SqlNode> selectListResult;
+    SqlNode udtfCall = null;
 }
 {
     <SELECT>
@@ -961,9 +963,12 @@ SqlSelect SqlSelect() :
     {
         keywordList = new SqlNodeList(keywords, s.addAll(keywords).pos());
     }
-    selectList = SelectList()
+    selectListResult = SelectList() {
+        selectList = selectListResult.left;
+        udtfCall = selectListResult.right;
+    }
     (
-        <FROM> fromClause = FromClause()
+        <FROM> fromClause = FromClause(udtfCall)
         where = WhereOpt()
         groupBy = GroupByOpt()
         having = HavingOpt()
@@ -1450,9 +1455,63 @@ SqlInsert WhenNotMatchedClause(SqlNode table) :
 }
 
 /**
- * Parses the select list of a SELECT statement.
+ * parser the hive like UDTF function call
  */
-List<SqlNode> SelectList() :
+Pair<List<SqlNode>, SqlNode> SelectHiveUDTF() :
+{
+    final Span s;
+    List<SqlNode> list = new ArrayList<SqlNode>();
+    SqlIdentifier id, id2;
+    SqlNode call;
+    final SqlFunctionCategory funcType = SqlFunctionCategory.USER_DEFINED_TABLE_FUNCTION;
+    SqlNode tableRef;
+    final String udtfPrefix = "UDTF$";
+    final String aliasPrefix = "s$";
+    String aliasName;
+    List<SqlNode> aliasList = new ArrayList<SqlNode>();
+    int aliasIndex = 0;
+}
+{
+    call = NamedRoutineCall(funcType, ExprContext.ACCEPT_CURSOR)
+    {
+        s = span();
+        SqlNode function = SqlStdOperatorTable.COLLECTION_TABLE.createCall(s.pos(), call);
+        tableRef = SqlStdOperatorTable.LATERAL.createCall(s.end(this), function);
+    }
+    <AS>
+    <LPAREN>
+    id = SimpleIdentifier()
+    {
+        aliasName = aliasPrefix + (aliasIndex++);
+        id2 = id.setName(0, aliasName);
+        list.add(SqlStdOperatorTable.AS.createCall(getPos(), id2, id));
+
+        aliasList.add(new SqlIdentifier(aliasName, getPos()));
+    }
+    ( <COMMA> id = SimpleIdentifier()
+        {
+            aliasName = aliasPrefix + (aliasIndex++);
+            id2 = id.setName(0, aliasName);
+            list.add(SqlStdOperatorTable.AS.createCall(getPos(), id2, id));
+            aliasList.add(new SqlIdentifier(aliasName, getPos()));
+        }
+    ) *
+    <RPAREN>
+    {
+        //create UDTF call (table function call)
+        id = new SqlIdentifier(udtfPrefix + Util.getNewUDTFAliasIndex(), getPos());
+        List<SqlNode> idList = new ArrayList<SqlNode>();
+        idList.add(tableRef);
+        idList.add(id);
+        idList.addAll(aliasList);
+        tableRef = SqlStdOperatorTable.AS.createCall(
+            Span.of(tableRef).end(this), idList);
+
+        return Pair.of(list, tableRef);
+    }
+}
+
+Pair<List<SqlNode>, SqlNode> SelectListNormal() :
 {
     final List<SqlNode> list = new ArrayList<SqlNode>();
     SqlNode item;
@@ -1467,7 +1526,30 @@ List<SqlNode> SelectList() :
         }
     )*
     {
-        return list;
+        return Pair.of(list, null);
+    }
+}
+
+/**
+ * Parses the select list of a SELECT statement.
+ */
+Pair<List<SqlNode>, SqlNode> SelectList() :
+{
+    Pair<List<SqlNode>, SqlNode> result;
+}
+{
+    (
+        LOOKAHEAD( NamedFunctionCall() <AS> <LPAREN> )
+        result = SelectHiveUDTF() {
+            if (!this.conformance.isHiveCompatible()) {
+                throw new ParseException(RESOURCE.hiveUDTFNotAllowed().str());
+            }
+        }
+        |
+        result = SelectListNormal()
+    )
+    {
+        return result;
     }
 }
 
@@ -1602,7 +1684,7 @@ SqlNode JoinTable(SqlNode e) :
  * PostgreSQL. The parser allows SELECT without FROM, but the validator fails
  * if conformance is, say, STRICT_2003.
  */
-SqlNode FromClause() :
+SqlNode FromClause(SqlNode udtfCall) :
 {
     SqlNode e, e2, condition;
     SqlLiteral natural, joinType, joinConditionType;
@@ -1702,6 +1784,16 @@ SqlNode FromClause() :
         }
     )*
     {
+        if (udtfCall != null) {
+            joinType = JoinType.CROSS.symbol(getPos());
+            e = new SqlJoin(joinType.getParserPosition(),
+                e,
+                SqlLiteral.createBoolean(false, joinType.getParserPosition()),
+                joinType,
+                udtfCall,
+                JoinConditionType.NONE.symbol(SqlParserPos.ZERO),
+                null);
+        }
         return e;
     }
 }

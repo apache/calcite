@@ -197,6 +197,17 @@ public enum SqlConformanceEnum implements SqlConformance {
       return false;
     }
   }
+
+  /** Field to indicate whether the parser should be hive compatible. */
+  private static boolean isHiveCompatible = false;
+
+  public boolean isHiveCompatible() {
+    return isHiveCompatible;
+  }
+
+  public void setHiveCompatible(boolean flag) {
+    isHiveCompatible = flag;
+  }
 }
 
 // End SqlConformanceEnum.java

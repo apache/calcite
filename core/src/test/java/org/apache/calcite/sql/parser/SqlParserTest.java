@@ -7964,6 +7964,26 @@ public class SqlParserTest {
     sql(sql).ok(expected);
   }
 
+  @Test public void testHiveLikeUDTF() {
+    String sql = "select UDTF(empid) as (a1, a2) from emps";
+    final String failedMsg = "Hive compatible is not enable yet";
+    checkFails(sql, failedMsg);
+
+    conformance.setHiveCompatible(true);
+    sql = "select UDTF(empid) as (a1, a2) from emps";
+    String expected = "SELECT `s$0` AS `A1`, `s$1` AS `A2`\n"
+            + "FROM `EMPS`\n"
+            + "CROSS JOIN LATERAL TABLE(`UDTF`(`EMPID`)) AS `UDTF$1` (`s$0`, `s$1`)";
+    sql(sql).ok(expected);
+
+    sql = "select t.a1 from (select UDTF(empid) as (a1, a2) from emps) t";
+    expected = "SELECT `T`.`A1`\n"
+            + "FROM (SELECT `s$0` AS `A1`, `s$1` AS `A2`\n"
+            + "FROM `EMPS`\n"
+            + "CROSS JOIN LATERAL TABLE(`UDTF`(`EMPID`)) AS `UDTF$2` (`s$0`, `s$1`)) AS `T`";
+    sql(sql).ok(expected);
+  }
+
   //~ Inner Interfaces -------------------------------------------------------
 
   /**

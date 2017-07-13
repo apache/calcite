@@ -74,6 +74,14 @@ public abstract class SqlAbstractConformance implements SqlConformance {
   public boolean allowExtend() {
     return SqlConformanceEnum.DEFAULT.allowExtend();
   }
+
+  public void setHiveCompatible(boolean flag) {
+    SqlConformanceEnum.DEFAULT.setHiveCompatible(flag);
+  }
+
+  public boolean isHiveCompatible() {
+    return SqlConformanceEnum.DEFAULT.isHiveCompatible();
+  }
 }
 
 // End SqlAbstractConformance.java

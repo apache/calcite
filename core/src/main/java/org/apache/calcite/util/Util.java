@@ -141,6 +141,11 @@ public class Util {
       Charset.forName(SaffronProperties.INSTANCE.defaultCharset().get());
 
   /**
+   * Field to record the udtf's alias index
+   */
+  private static long udtfAliasIndex = 0;
+
+  /**
    * Maps classes to the map of their enum values. Uses a weak map so that
    * classes are not prevented from being unloaded.
    */
@@ -2310,6 +2315,12 @@ public class Util {
     calendar.setTimeInMillis(millis);
     return calendar;
   }
+
+  /**
+   * return a new udtf alias index for udtf call
+   * @return
+   */
+  public static long getNewUDTFAliasIndex() { return udtfAliasIndex++; }
 
   //~ Inner Classes ----------------------------------------------------------
 

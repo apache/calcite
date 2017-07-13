@@ -259,6 +259,17 @@ public interface SqlConformance {
    */
   boolean allowExtend();
 
+  /**
+   * Check whether the parser is hive compatible
+   * true supported, false otherwise.
+   */
+  boolean isHiveCompatible();
+
+  /**
+   * Config whether the parser should be hive compatible
+   * @param flag true means supported, false  otherwise
+   */
+  void setHiveCompatible(boolean flag);
 }
 
 // End SqlConformance.java
