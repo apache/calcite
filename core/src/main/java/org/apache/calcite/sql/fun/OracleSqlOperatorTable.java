@@ -88,6 +88,15 @@ public class OracleSqlOperatorTable extends ReflectiveSqlOperatorTable {
               SqlTypeTransforms.TO_VARYING), null,
           OperandTypes.STRING, SqlFunctionCategory.STRING);
 
+  /** Oracle's "SUBSTR(string, position [, substringLength ])" function.
+   *
+   * <p>It has similar semantics to standard SQL's
+   * {@link SqlStdOperatorTable#SUBSTRING} function but different syntax. */
+  public static final SqlFunction SUBSTR =
+      new SqlFunction("SUBSTR", SqlKind.OTHER_FUNCTION,
+          ReturnTypes.ARG0_NULLABLE_VARYING, null, null,
+          SqlFunctionCategory.STRING);
+
   /** The "GREATEST(value, value)" function. */
   public static final SqlFunction GREATEST =
       new SqlFunction("GREATEST", SqlKind.GREATEST,
