@@ -92,14 +92,16 @@ public abstract class SqlCall extends SqlNode {
       int leftPrec,
       int rightPrec) {
     final SqlOperator operator = getOperator();
+    SqlDialect.DialectUnparser unparser = writer.getDialect().getDialectUnparser();
+
     if (leftPrec > operator.getLeftPrec()
         || (operator.getRightPrec() <= rightPrec && (rightPrec != 0))
         || writer.isAlwaysUseParentheses() && isA(SqlKind.EXPRESSION)) {
       final SqlWriter.Frame frame = writer.startList("(", ")");
-      operator.unparse(writer, this, 0, 0);
+      unparser.unparseCall(operator, writer, this, 0, 0);
       writer.endList(frame);
     } else {
-      operator.unparse(writer, this, leftPrec, rightPrec);
+      unparser.unparseCall(operator, writer, this, leftPrec, rightPrec);
     }
   }
 

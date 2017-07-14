@@ -173,6 +173,10 @@ public class SqlDialect {
 
   //~ Methods ----------------------------------------------------------------
 
+  public DialectUnparser getDialectUnparser() {
+    return databaseProduct.getDialectUnparser();
+  }
+
   /**
    * Converts a product name and version (per the JDBC driver) into a product
    * enumeration.
@@ -337,6 +341,15 @@ public class SqlDialect {
       val = FakeUtil.replace(val, "'", "''");
       return "'" + val + "'";
     }
+  }
+
+  public void unparseCall(
+      SqlOperator operator,
+      SqlWriter writer,
+      SqlCall call,
+      int leftPrec,
+      int rightPrec) {
+    getDialectUnparser().unparseCall(operator, writer, call, leftPrec, rightPrec);
   }
 
   /**
@@ -612,9 +625,9 @@ public class SqlDialect {
   public enum DatabaseProduct {
     ACCESS("Access", "\"", NullCollation.HIGH),
     CALCITE("Apache Calcite", "\"", NullCollation.HIGH),
-    MSSQL("Microsoft SQL Server", "[", NullCollation.HIGH),
-    MYSQL("MySQL", "`", NullCollation.HIGH),
-    ORACLE("Oracle", "\"", NullCollation.HIGH),
+    MSSQL("Microsoft SQL Server", "[", NullCollation.HIGH, new DialectUnparseMssql()),
+    MYSQL("MySQL", "`", NullCollation.HIGH, new DialectUnparseMysql()),
+    ORACLE("Oracle", "\"", NullCollation.HIGH, new DialectUnparseOracle()),
     DERBY("Apache Derby", null, NullCollation.HIGH),
     DB2("IBM DB2", null, NullCollation.HIGH),
     FIREBIRD("Firebird", null, NullCollation.HIGH),
@@ -625,13 +638,13 @@ public class SqlDialect {
     LUCIDDB("LucidDB", "\"", NullCollation.HIGH),
     INTERBASE("Interbase", null, NullCollation.HIGH),
     PHOENIX("Phoenix", "\"", NullCollation.HIGH),
-    POSTGRESQL("PostgreSQL", "\"", NullCollation.HIGH),
+    POSTGRESQL("PostgreSQL", "\"", NullCollation.HIGH, new DialectUnparsePostgresql()),
     NETEZZA("Netezza", "\"", NullCollation.HIGH),
     INFOBRIGHT("Infobright", "`", NullCollation.HIGH),
     NEOVIEW("Neoview", null, NullCollation.HIGH),
     SYBASE("Sybase", null, NullCollation.HIGH),
     TERADATA("Teradata", "\"", NullCollation.HIGH),
-    HSQLDB("Hsqldb", null, NullCollation.HIGH),
+    HSQLDB("Hsqldb", null, NullCollation.HIGH, new DialectUnparseHsqldb()),
     VERTICA("Vertica", "\"", NullCollation.HIGH),
     SQLSTREAM("SQLstream", "\"", NullCollation.HIGH),
 
@@ -653,12 +666,22 @@ public class SqlDialect {
     private String databaseProductName;
     private String quoteString;
     private final NullCollation nullCollation;
+    private final DialectUnparser dialectUnparser;
 
     DatabaseProduct(String databaseProductName, String quoteString,
         NullCollation nullCollation) {
+      this(databaseProductName, quoteString, nullCollation, null);
+    }
+
+    DatabaseProduct(String databaseProductName, String quoteString,
+                    NullCollation nullCollation, DialectUnparser dialectUnparser) {
       this.databaseProductName = databaseProductName;
       this.quoteString = quoteString;
       this.nullCollation = nullCollation;
+      this.dialectUnparser =
+          dialectUnparser == null
+              ? new DefaultDialectUnparser()
+              : dialectUnparser;
     }
 
     /**
@@ -679,6 +702,36 @@ public class SqlDialect {
                 nullCollation);
       }
       return dialect;
+    }
+
+    public DialectUnparser getDialectUnparser() {
+      return dialectUnparser;
+    }
+  }
+
+  /**
+   * A dialect specific unparser for operator calls.
+   */
+  public interface DialectUnparser {
+    void unparseCall(
+      SqlOperator operator,
+      SqlWriter writer,
+      SqlCall call,
+      int leftPrec,
+      int rightPrec);
+  }
+
+  /**
+   * The default dialect unparser if none is specified.
+   */
+  public static class DefaultDialectUnparser implements DialectUnparser {
+    public void unparseCall(
+        SqlOperator operator,
+        SqlWriter writer,
+        SqlCall call,
+        int leftPrec,
+        int rightPrec) {
+      operator.unparse(writer, call, leftPrec, rightPrec);
     }
   }
 }
