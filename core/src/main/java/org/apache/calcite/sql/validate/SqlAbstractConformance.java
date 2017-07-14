@@ -74,6 +74,10 @@ public abstract class SqlAbstractConformance implements SqlConformance {
   public boolean allowExtend() {
     return SqlConformanceEnum.DEFAULT.allowExtend();
   }
+
+  public boolean isLimitStartCountAllowed() {
+    return SqlConformanceEnum.DEFAULT.isLimitStartCountAllowed();
+  }
 }
 
 // End SqlAbstractConformance.java

@@ -2531,6 +2531,54 @@ public class SqlParserTest {
         .ok(expected);
   }
 
+  @Test public void testLimitStartCount() {
+    conformance = SqlConformanceEnum.DEFAULT;
+    final String error = "'LIMIT start, count' is not allowed under the "
+        + "current SQL conformance level";
+    sql("select a from foo limit 1,2")
+        .fails(error);
+
+    // "limit all" is equivalent to no limit
+    final String expected0 = "SELECT `A`\n"
+        + "FROM `FOO`";
+    sql("select a from foo limit all")
+        .ok(expected0);
+
+    final String expected1 = "SELECT `A`\n"
+        + "FROM `FOO`\n"
+        + "ORDER BY `X`";
+    sql("select a from foo order by x limit all")
+        .ok(expected1);
+
+    conformance = SqlConformanceEnum.LENIENT;
+    final String expected2 = "SELECT `A`\n"
+        + "FROM `FOO`\n"
+        + "OFFSET 2 ROWS\n"
+        + "FETCH NEXT 3 ROWS ONLY";
+    sql("select a from foo limit 2,3")
+        .ok(expected2);
+
+    // "offset 4" overrides the earlier "2"
+    final String expected3 = "SELECT `A`\n"
+        + "FROM `FOO`\n"
+        + "OFFSET 4 ROWS\n"
+        + "FETCH NEXT 3 ROWS ONLY";
+    sql("select a from foo limit 2,3 offset 4")
+        .ok(expected3);
+
+    // "fetch next 4" overrides the earlier "limit 3"
+    final String expected4 = "SELECT `A`\n"
+        + "FROM `FOO`\n"
+        + "OFFSET 2 ROWS\n"
+        + "FETCH NEXT 4 ROWS ONLY";
+    sql("select a from foo limit 2,3 fetch next 4 rows only")
+        .ok(expected4);
+
+    // "limit start, all" is not valid
+    sql("select a from foo limit 2, ^all^")
+        .fails("(?s).*Encountered \"all\" at line 1.*");
+  }
+
   @Test public void testSqlInlineComment() {
     check(
         "select 1 from t --this is a comment\n",

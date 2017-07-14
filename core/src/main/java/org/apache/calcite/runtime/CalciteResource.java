@@ -34,6 +34,9 @@ public interface CalciteResource {
   @BaseMessage("Bang equal ''!='' is not allowed under the current SQL conformance level")
   ExInst<CalciteException> bangEqualNotAllowed();
 
+  @BaseMessage("''LIMIT start, count'' is not allowed under the current SQL conformance level")
+  ExInst<CalciteException> limitStartCountNotAllowed();
+
   @BaseMessage("APPLY operator is not allowed under the current SQL conformance level")
   ExInst<CalciteException> applyNotAllowed();
 

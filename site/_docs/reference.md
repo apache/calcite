@@ -153,7 +153,7 @@ query:
       |   query INTERSECT [ ALL | DISTINCT ] query
       }
       [ ORDER BY orderItem [, orderItem ]* ]
-      [ LIMIT { count | ALL } ]
+      [ LIMIT [ start, ] { count | ALL } ]
       [ OFFSET start { ROW | ROWS } ]
       [ FETCH { FIRST | NEXT } [ count ] { ROW | ROWS } ]
 
@@ -282,6 +282,10 @@ but is not standard SQL and is only allowed in certain
 
 CROSS APPLY and OUTER APPLY are only allowed in certain
 [conformance levels]({{ site.apiRoot }}/org/apache/calcite/sql/validate/SqlConformance.html#isApplyAllowed--).
+
+"LIMIT start, count" is equivalent to "LIMIT count OFFSET start"
+but is only allowed in certain
+[conformance levels]({{ site.apiRoot }}/org/apache/calcite/sql/validate/SqlConformance.html#isLimitStartCountAllowed--).
 
 ## Keywords
 

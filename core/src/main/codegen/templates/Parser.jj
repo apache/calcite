@@ -575,6 +575,12 @@ JAVACODE boolean matchesPrefix(int[] seq, int[][] prefixes)
  *    [ OFFSET start ]</pre>
  * </blockquote>
  *
+ * <p>MySQL syntax for limit:
+ *
+ * <blockquote><pre>
+ *    [ LIMIT { count | start, count } ]</pre>
+ * </blockquote>
+ *
  * <p>SQL:2008 syntax for limit:
  *
  * <blockquote><pre>
@@ -600,11 +606,25 @@ SqlNode OrderedQueryOrExpr(ExprContext exprContext) :
     ]
     [
         // Postgres-style syntax. "LIMIT ... OFFSET ..."
-        <LIMIT> ( count = UnsignedNumericLiteral() | <ALL> )
+        <LIMIT>
+        (
+            // MySQL-style syntax. "LIMIT start, count"
+            start = UnsignedNumericLiteral()
+            <COMMA> count = UnsignedNumericLiteral() {
+                if (!this.conformance.isLimitStartCountAllowed()) {
+                    throw new ParseException(RESOURCE.limitStartCountNotAllowed().str());
+                }
+            }
+        |
+            count = UnsignedNumericLiteral()
+        |
+            <ALL>
+        )
     ]
     [
         // ROW or ROWS is required in SQL:2008 but we make it optional
         // because it is not present in Postgres-style syntax.
+        // If you specify both LIMIT start and OFFSET, OFFSET wins.
         <OFFSET> start = UnsignedNumericLiteral() [ <ROW> | <ROWS> ]
     ]
     [

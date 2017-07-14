@@ -269,6 +269,22 @@ public interface SqlConformance {
    */
   boolean allowExtend();
 
+  /**
+   * Whether to allow the SQL syntax "{@code LIMIT start, count}".
+   *
+   * <p>The equivalent syntax in standard SQL is
+   * "{@code OFFSET start ROW FETCH FIRST count ROWS ONLY}",
+   * and in PostgreSQL "{@code LIMIT count OFFSET start}".
+   *
+   * <p>MySQL and CUBRID allow this behavior.
+   *
+   * <p>Among the built-in conformance levels, true in
+   * {@link SqlConformanceEnum#LENIENT},
+   * {@link SqlConformanceEnum#MYSQL_5};
+   * false otherwise.
+   */
+
+  boolean isLimitStartCountAllowed();
 }
 
 // End SqlConformance.java
