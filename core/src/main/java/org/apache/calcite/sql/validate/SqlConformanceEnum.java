@@ -197,6 +197,15 @@ public enum SqlConformanceEnum implements SqlConformance {
       return false;
     }
   }
+
+  public boolean isLimitStartCountAllowed() {
+    switch (this) {
+    case LENIENT:
+      return true;
+    default:
+      return false;
+    }
+  }
 }
 
 // End SqlConformanceEnum.java
