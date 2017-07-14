@@ -488,8 +488,6 @@ public class MockCatalogReader extends CalciteCatalogReader {
     }
     registerTable(structNullableTypeTable);
 
-    registerExtendTable(f, structTypeSchema);
-
     // Register "STRUCT.T_10" view.
     // Same columns as "STRUCT.T",
     // but "F0.C0" is set to 10 by default,
@@ -522,26 +520,6 @@ public class MockCatalogReader extends CalciteCatalogReader {
     registerTable(struct10View);
 
     return this;
-  }
-
-  private void registerExtendTable(final Fixture f, MockSchema structTypeSchema) {
-    final List<CompoundNameColumn> columnsExtended = Arrays.asList(
-        new CompoundNameColumn("", "K0", f.varchar20TypeNull),
-        new CompoundNameColumn("", "C1", f.varchar20TypeNull),
-        new CompoundNameColumn("F0", "C0", f.intType),
-        new CompoundNameColumn("F1", "C1", f.intTypeNull));
-    final List<CompoundNameColumn> extendedColumns =
-        new ArrayList<CompoundNameColumn>(columnsExtended);
-    extendedColumns.add(new CompoundNameColumn("F2", "C2", f.varchar20Type));
-    final CompoundNameColumnResolver structExtendedTableResolver =
-        new CompoundNameColumnResolver(extendedColumns, "F0");
-    final MockTable structExtendedTypeTable =
-        MockTable.create(this, structTypeSchema, "T_EXTEND", false, 100,
-            structExtendedTableResolver);
-    for (CompoundNameColumn column : columnsExtended) {
-      structExtendedTypeTable.addColumn(column.getName(), column.type);
-    }
-    registerTable(structExtendedTypeTable);
   }
 
   /** Adds some extra tables to the mock catalog. These increase the time and
@@ -593,6 +571,27 @@ public class MockCatalogReader extends CalciteCatalogReader {
         empModifiableViewNames3.get(0), empModifiableViewNames3.get(1),
         empModifiableViewNames3.get(2), false, 20, null);
     registerTable(mockEmpViewTable3);
+
+    MockSchema structTypeSchema = new MockSchema("STRUCT");
+    registerSchema(structTypeSchema);
+    final Fixture f = new Fixture();
+    final List<CompoundNameColumn> columnsExtended = Arrays.asList(
+        new CompoundNameColumn("", "K0", f.varchar20TypeNull),
+        new CompoundNameColumn("", "C1", f.varchar20TypeNull),
+        new CompoundNameColumn("F0", "C0", f.intType),
+        new CompoundNameColumn("F1", "C1", f.intTypeNull));
+    final List<CompoundNameColumn> extendedColumns =
+        new ArrayList<CompoundNameColumn>(columnsExtended);
+    extendedColumns.add(new CompoundNameColumn("F2", "C2", f.varchar20Type));
+    final CompoundNameColumnResolver structExtendedTableResolver =
+        new CompoundNameColumnResolver(extendedColumns, "F0");
+    final MockTable structExtendedTypeTable =
+        MockTable.create(this, structTypeSchema, "T_EXTEND", false, 100,
+            structExtendedTableResolver);
+    for (CompoundNameColumn column : columnsExtended) {
+      structExtendedTypeTable.addColumn(column.getName(), column.type);
+    }
+    registerTable(structExtendedTypeTable);
 
     return this;
   }
