@@ -8707,23 +8707,25 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
 
 
   @Test public void testInsertWithExtendedColumns() {
-    final SqlTester lenient =
-        tester.withConformance(SqlConformanceEnum.LENIENT);
-    final SqlTester strict =
-        tester.withConformance(SqlConformanceEnum.STRICT_2003);
-
-    String sql0 = "insert into empnullables (empno, ename, \"f.dc\" varchar(10))\n"
+    final Sql s = sql("?").withExtendedCatalogLenient();
+    final String sql0 = "insert into empnullables (empno, ename, \"f.dc\" varchar(10))\n"
             + "values (?, ?, ?)";
-    sql(sql0).tester(lenient).ok()
+    s.sql(sql0).ok()
             .bindType("RecordType(INTEGER ?0, VARCHAR(20) ?1, VARCHAR(10) ?2)")
-            .tester(strict).fails("Extended columns not allowed under "
+            .tester(EXTENDED_CATALOG_TESTER_2003).fails("Extended columns not allowed under "
                 + "the current SQL conformance level");
-    sql0 = "insert into empnullables (empno, ename, dynamic_column double not null)\n"
-        + "values (?, ?, ?)";
-    sql(sql0).tester(lenient).ok()
+    final String sql1 = "insert into empnullables (empno, ename, "
+        + "dynamic_column double not null) values (?, ?, ?)";
+    s.sql(sql1).ok()
         .bindType("RecordType(INTEGER ?0, VARCHAR(20) ?1, DOUBLE ?2)")
-        .tester(strict).fails("Extended columns not allowed under "
+        .tester(EXTENDED_CATALOG_TESTER_2003).fails("Extended columns not allowed under "
             + "the current SQL conformance level");
+    final String sql2 = "insert into struct.t_extend (f0.c0, f1.c1, "
+            + "\"F2\".\"C2\" varchar(20) not null) values (?, ?, ?)";
+    s.sql(sql2).ok()
+            .bindType("RecordType(INTEGER ?0, INTEGER ?1, VARCHAR(20) ?2)")
+            .tester(EXTENDED_CATALOG_TESTER_2003).fails("Extended columns not allowed under "
+                 + "the current SQL conformance level");
   }
 
   @Test public void testInsertBindSubset() {

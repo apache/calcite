@@ -16,19 +16,29 @@
  */
 package org.apache.calcite.sql.validate;
 
+import org.apache.calcite.runtime.CalciteContextException;
+import org.apache.calcite.sql.SqlIdentifier;
+import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.test.DefaultSqlTestFactory;
+import org.apache.calcite.sql.test.SqlTesterImpl;
+
 import com.google.common.collect.Lists;
 
 import org.junit.Test;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 
 import static org.hamcrest.CoreMatchers.anyOf;
+import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.sameInstance;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
 
 /**
  * Tests for {@link SqlValidatorUtil}.
@@ -109,6 +119,26 @@ public class SqlValidatorUtilTest {
     checkChangedFieldList(nameList, resultList, false);
   }
 
+  @SuppressWarnings("resource")
+  @Test public void testCheckingDuplicatesWithCompoundIdentifiers() {
+    List<SqlNode> newList = new ArrayList<SqlNode>(2);
+    newList.add(new SqlIdentifier(Arrays.asList("f0", "c0"), SqlParserPos.ZERO));
+    newList.add(new SqlIdentifier(Arrays.asList("f0", "c0"), SqlParserPos.ZERO));
+    final SqlTesterImpl sqlTesterImpl = new SqlTesterImpl(DefaultSqlTestFactory.INSTANCE);
+    try {
+      SqlValidatorUtil.checkIdentifierListForDuplicates(newList,
+          ((SqlValidatorImpl) sqlTesterImpl.getValidator()).getValidationErrorFunction());
+      fail("Should fail with CalciteContextException");
+    } catch (Exception e) {
+      assertThat(e, is(instanceOf(CalciteContextException.class)));
+    }
+    newList.set(1, new SqlIdentifier(Arrays.asList("f0", "c1"), SqlParserPos.ZERO));
+    try {
+      SqlValidatorUtil.checkIdentifierListForDuplicates(newList, null);
+    } catch (Exception e) {
+      fail("should not through any exception");
+    }
+  }
 }
 
 // End SqlValidatorUtilTest.java
