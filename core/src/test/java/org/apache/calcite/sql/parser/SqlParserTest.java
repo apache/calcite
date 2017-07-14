@@ -2531,6 +2531,29 @@ public class SqlParserTest {
         .ok(expected);
   }
 
+  @Test public void testLimitStartCount() {
+    conformance = SqlConformanceEnum.DEFAULT;
+    sql("select a from foo limit 1,2")
+            .fails("'LIMIT start, count' is not allowed under the current SQL conformance level");
+
+    conformance = SqlConformanceEnum.LENIENT;
+    sql("select a from foo limit 2,3")
+            .ok("SELECT `A`\n"
+                    + "FROM `FOO`\n"
+                    + "OFFSET 2 ROWS\n"
+                    + "FETCH NEXT 3 ROWS ONLY");
+    sql("select a from foo limit 2,3 offset 4")
+            .ok("SELECT `A`\n"
+                    + "FROM `FOO`\n"
+                    + "OFFSET 4 ROWS\n"
+                    + "FETCH NEXT 3 ROWS ONLY");
+    sql("select a from foo limit 2,3 fetch next 4 rows only")
+            .ok("SELECT `A`\n"
+                    + "FROM `FOO`\n"
+                    + "OFFSET 2 ROWS\n"
+                    + "FETCH NEXT 4 ROWS ONLY");
+  }
+
   @Test public void testSqlInlineComment() {
     check(
         "select 1 from t --this is a comment\n",
