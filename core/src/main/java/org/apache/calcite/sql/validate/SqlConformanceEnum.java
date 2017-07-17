@@ -40,6 +40,10 @@ public enum SqlConformanceEnum implements SqlConformance {
   PRAGMATIC_99,
 
   /** Conformance value that instructs Calcite to use SQL semantics
+   * consistent with MySQL version 5.x. */
+  MYSQL_5,
+
+  /** Conformance value that instructs Calcite to use SQL semantics
    * consistent with Oracle version 10. */
   ORACLE_10,
 
@@ -65,6 +69,7 @@ public enum SqlConformanceEnum implements SqlConformance {
   public boolean isGroupByAlias() {
     switch (this) {
     case LENIENT:
+    case MYSQL_5:
       return true;
     default:
       return false;
@@ -74,6 +79,7 @@ public enum SqlConformanceEnum implements SqlConformance {
   public boolean isGroupByOrdinal() {
     switch (this) {
     case LENIENT:
+    case MYSQL_5:
       return true;
     default:
       return false;
@@ -83,6 +89,7 @@ public enum SqlConformanceEnum implements SqlConformance {
   public boolean isHavingAlias() {
     switch (this) {
     case LENIENT:
+    case MYSQL_5:
       return true;
     default:
       return false;
@@ -93,6 +100,7 @@ public enum SqlConformanceEnum implements SqlConformance {
     switch (this) {
     case DEFAULT:
     case LENIENT:
+    case MYSQL_5:
     case ORACLE_10:
     case ORACLE_12:
     case STRICT_92:
@@ -109,6 +117,7 @@ public enum SqlConformanceEnum implements SqlConformance {
     switch (this) {
     case DEFAULT:
     case LENIENT:
+    case MYSQL_5:
     case ORACLE_10:
     case ORACLE_12:
     case STRICT_92:
@@ -139,6 +148,7 @@ public enum SqlConformanceEnum implements SqlConformance {
   public boolean isBangEqualAllowed() {
     switch (this) {
     case LENIENT:
+    case MYSQL_5:
     case ORACLE_10:
     case ORACLE_12:
       return true;
@@ -183,6 +193,7 @@ public enum SqlConformanceEnum implements SqlConformance {
   public boolean allowNiladicParentheses() {
     switch (this) {
     case LENIENT:
+    case MYSQL_5:
       return true;
     default:
       return false;

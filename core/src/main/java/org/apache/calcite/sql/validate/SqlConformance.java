@@ -66,7 +66,8 @@ public interface SqlConformance {
    * column names in the {@code GROUP BY} clause.
    *
    * <p>Among the built-in conformance levels, true in
-   * {@link SqlConformanceEnum#LENIENT};
+   * {@link SqlConformanceEnum#LENIENT},
+   * {@link SqlConformanceEnum#MYSQL_5};
    * false otherwise.
    */
   boolean isGroupByAlias();
@@ -76,7 +77,8 @@ public interface SqlConformance {
    * in the select list'.
    *
    * <p>Among the built-in conformance levels, true in
-   * {@link SqlConformanceEnum#LENIENT};
+   * {@link SqlConformanceEnum#LENIENT},
+   * {@link SqlConformanceEnum#MYSQL_5};
    * false otherwise.
    */
   boolean isGroupByOrdinal();
@@ -86,7 +88,8 @@ public interface SqlConformance {
    * column names in the {@code HAVING} clause.
    *
    * <p>Among the built-in conformance levels, true in
-   * {@link SqlConformanceEnum#LENIENT};
+   * {@link SqlConformanceEnum#LENIENT},
+   * {@link SqlConformanceEnum#MYSQL_5};
    * false otherwise.
    */
   boolean isHavingAlias();
@@ -98,6 +101,7 @@ public interface SqlConformance {
    * <p>Among the built-in conformance levels, true in
    * {@link SqlConformanceEnum#DEFAULT},
    * {@link SqlConformanceEnum#LENIENT},
+   * {@link SqlConformanceEnum#MYSQL_5},
    * {@link SqlConformanceEnum#ORACLE_10},
    * {@link SqlConformanceEnum#ORACLE_12},
    * {@link SqlConformanceEnum#STRICT_92},
@@ -115,6 +119,7 @@ public interface SqlConformance {
    * <p>Among the built-in conformance levels, true in
    * {@link SqlConformanceEnum#DEFAULT},
    * {@link SqlConformanceEnum#LENIENT},
+   * {@link SqlConformanceEnum#MYSQL_5},
    * {@link SqlConformanceEnum#ORACLE_10},
    * {@link SqlConformanceEnum#ORACLE_12},
    * {@link SqlConformanceEnum#STRICT_92};
@@ -152,6 +157,7 @@ public interface SqlConformance {
    *
    * <p>Among the built-in conformance levels, true in
    * {@link SqlConformanceEnum#LENIENT},
+   * {@link SqlConformanceEnum#MYSQL_5},
    * {@link SqlConformanceEnum#ORACLE_10};
    * {@link SqlConformanceEnum#ORACLE_12};
    * false otherwise.
@@ -167,6 +173,9 @@ public interface SqlConformance {
    * {@link SqlConformanceEnum#ORACLE_10};
    * {@link SqlConformanceEnum#ORACLE_12};
    * false otherwise.
+   *
+   * <p>Note: MySQL does not support {@code MINUS} or {@code EXCEPT} (as of
+   * version 5.5).
    */
   boolean isMinusAllowed();
 
@@ -234,7 +243,8 @@ public interface SqlConformance {
    * not.
    *
    * <p>Among the built-in conformance levels, true in
-   * {@link SqlConformanceEnum#LENIENT};
+   * {@link SqlConformanceEnum#LENIENT},
+   * {@link SqlConformanceEnum#MYSQL_5};
    * false otherwise.
    */
   boolean allowNiladicParentheses();
