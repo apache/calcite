@@ -169,6 +169,23 @@ public class HepPlannerTest extends RelOptTestBase {
         programBuilder.build(),
         "select upper(name) from dept where deptno=20");
   }
+
+  @Test public void testGC() throws Exception {
+    HepProgramBuilder programBuilder = HepProgram.builder();
+    programBuilder.addMatchOrder(HepMatchOrder.TOP_DOWN);
+    programBuilder.addRuleInstance(CalcMergeRule.INSTANCE);
+    programBuilder.addRuleInstance(ProjectToCalcRule.INSTANCE);
+    programBuilder.addRuleInstance(FilterToCalcRule.INSTANCE);
+
+    HepPlanner planner = new HepPlanner(programBuilder.build());
+    planner.setRoot(
+        tester.convertSqlToRel("select upper(name) from dept where deptno=20").rel);
+    planner.findBestExp();
+    // Reuse of HepPlanner (should trigger GC).
+    planner.setRoot(
+        tester.convertSqlToRel("select upper(name) from dept where deptno=20").rel);
+    planner.findBestExp();
+  }
 }
 
 // End HepPlannerTest.java
