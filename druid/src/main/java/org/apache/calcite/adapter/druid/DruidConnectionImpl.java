@@ -368,6 +368,7 @@ class DruidConnectionImpl implements DruidConnection {
           }
           break;
         default:
+          rowBuilder.set(i, s);
           break;
         }
       } else {
