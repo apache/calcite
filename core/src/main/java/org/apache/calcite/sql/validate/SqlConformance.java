@@ -259,6 +259,19 @@ public interface SqlConformance {
    */
   boolean allowExtend();
 
+  /**
+   * Whether to allow 'LIMIT start, count'.
+   *
+   * <p>In standard SQL it is 'LIMIT count OFFSET start'.
+   *
+   * <p>MySQL and CUBRID allow this behavior.
+   *
+   * <p>Among the built-in conformance levels, true in
+   * {@link SqlConformanceEnum#LENIENT};
+   * false otherwise.
+   */
+
+  boolean isLimitStartCountAllowed();
 }
 
 // End SqlConformance.java
