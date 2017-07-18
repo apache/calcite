@@ -350,6 +350,8 @@ class DruidConnectionImpl implements DruidConnection {
           if (s.equals("Infinity") || s.equals("-Infinity") || s.equals("NaN")) {
             throw new RuntimeException("/ by zero");
           }
+          rowBuilder.set(i, s);
+          break;
         case FLOAT:
         case PRIMITIVE_FLOAT:
         case PRIMITIVE_DOUBLE:
@@ -357,17 +359,15 @@ class DruidConnectionImpl implements DruidConnection {
         case DOUBLE:
           if (s.equals("Infinity")) {
             rowBuilder.set(i, Double.POSITIVE_INFINITY);
-            break;
           } else if (s.equals("-Infinity")) {
             rowBuilder.set(i, Double.NEGATIVE_INFINITY);
-            break;
           } else if (s.equals("NaN")) {
             rowBuilder.set(i, Double.NaN);
-            break;
+          } else {
+            rowBuilder.set(i, s);
           }
-          //fallthrough
+          break;
         default:
-          rowBuilder.set(i, s);
           break;
         }
       } else {
