@@ -338,7 +338,7 @@ class DruidConnectionImpl implements DruidConnection {
       break;
     case VALUE_STRING:
     default:
-      String s = parser.getText();
+      final String s = parser.getText();
       if (type != null) {
         switch (type) {
         case LONG:
@@ -347,32 +347,33 @@ class DruidConnectionImpl implements DruidConnection {
         case PRIMITIVE_SHORT:
         case INTEGER:
         case PRIMITIVE_INT:
-          if (s.equals("Infinity") || s.equals("-Infinity") || s.equals("NaN")) {
+          switch (s) {
+          case "Infinity":
+          case "-Infinity":
+          case "NaN":
             throw new RuntimeException("/ by zero");
           }
+          break;
         case FLOAT:
         case PRIMITIVE_FLOAT:
         case PRIMITIVE_DOUBLE:
         case NUMBER:
         case DOUBLE:
-          if (s.equals("Infinity")) {
+          switch (s) {
+          case "Infinity":
             rowBuilder.set(i, Double.POSITIVE_INFINITY);
-            break;
-          } else if (s.equals("-Infinity")) {
+            return;
+          case "-Infinity":
             rowBuilder.set(i, Double.NEGATIVE_INFINITY);
-            break;
-          } else if (s.equals("NaN")) {
+            return;
+          case "NaN":
             rowBuilder.set(i, Double.NaN);
-            break;
+            return;
           }
-          //fallthrough
-        default:
-          rowBuilder.set(i, s);
-          break;
         }
-      } else {
-        rowBuilder.set(i, s);
       }
+      rowBuilder.set(i, s);
+      break;
     }
   }
 
