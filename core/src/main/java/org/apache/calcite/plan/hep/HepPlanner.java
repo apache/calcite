@@ -783,6 +783,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
       graph.addEdge(newVertex, (HepRelVertex) input);
     }
 
+    nTransformations++;
     return newVertex;
   }
 
