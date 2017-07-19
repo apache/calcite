@@ -17,10 +17,13 @@
 package org.apache.calcite.sql.fun;
 
 import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlLiteral;
+import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperatorBinding;
+import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.OperandTypes;
@@ -95,13 +98,22 @@ public class SqlFloorFunction extends SqlMonotonicUnaryFunction {
    */
   public static void unparseDatetimeFunction(SqlWriter writer, SqlCall call,
       String funName, Boolean datetimeFirst) {
-    final SqlWriter.Frame frame = writer.startFunCall(funName);
-    int firstOpIndex = datetimeFirst ? 0 : 1;
-    int secondOpIndex = datetimeFirst ? 1 : 0;
-    call.operand(firstOpIndex).unparse(writer, 0, 0);
-    writer.sep(",", true);
-    call.operand(secondOpIndex).unparse(writer, 0, 0);
-    writer.endFunCall(frame);
+    SqlFunction func = new SqlFunction(funName, SqlKind.OTHER_FUNCTION,
+        ReturnTypes.ARG0_NULLABLE_VARYING, null, null,
+        SqlFunctionCategory.STRING);
+
+    SqlCall call1;
+    if (datetimeFirst) {
+      call1 = call;
+    } else {
+      // switch order of operands
+      SqlNode op1 = call.operand(0);
+      SqlNode op2 = call.operand(1);
+
+      call1 = call.getOperator().createCall(call.getParserPosition(), op2, op1);
+    }
+
+    SqlUtil.unparseFunctionSyntax(func, writer, call1);
   }
 }
 

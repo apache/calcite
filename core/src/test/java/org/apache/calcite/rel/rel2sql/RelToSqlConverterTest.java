@@ -785,6 +785,50 @@ public class RelToSqlConverterTest {
         .ok(expectedMysql);
   }
 
+  @Test public void testSubstring() {
+    final String query = "select substring(\"brand_name\" from 2) "
+        + "from \"product\"\n";
+    final String expectedOracle = "SELECT SUBSTR(\"brand_name\", 2)\n"
+        + "FROM \"foodmart\".\"product\"";
+    final String expectedPostgresql = "SELECT SUBSTRING(\"brand_name\" FROM 2)\n"
+        + "FROM \"foodmart\".\"product\"";
+    final String expectedMysql = "SELECT SUBSTRING(`brand_name` FROM 2)\n"
+        + "FROM `foodmart`.`product`";
+    final String expectedMssql = "SELECT SUBSTRING([brand_name] FROM 2)\n"
+        + "FROM [foodmart].[product]";
+    sql(query)
+        .dialect(DatabaseProduct.ORACLE.getDialect())
+        .ok(expectedOracle)
+        .dialect(DatabaseProduct.POSTGRESQL.getDialect())
+        .ok(expectedPostgresql)
+        .dialect(DatabaseProduct.MYSQL.getDialect())
+        .ok(expectedMysql)
+        .dialect(DatabaseProduct.MSSQL.getDialect())
+        .ok(expectedMssql);
+  }
+
+  @Test public void testSubstringWithFor() {
+    final String query = "select substring(\"brand_name\" from 2 for 3) "
+        + "from \"product\"\n";
+    final String expectedOracle = "SELECT SUBSTR(\"brand_name\", 2, 3)\n"
+        + "FROM \"foodmart\".\"product\"";
+    final String expectedPostgresql = "SELECT SUBSTRING(\"brand_name\" FROM 2 FOR 3)\n"
+        + "FROM \"foodmart\".\"product\"";
+    final String expectedMysql = "SELECT SUBSTRING(`brand_name` FROM 2 FOR 3)\n"
+        + "FROM `foodmart`.`product`";
+    final String expectedMssql = "SELECT SUBSTRING([brand_name] FROM 2 FOR 3)\n"
+        + "FROM [foodmart].[product]";
+    sql(query)
+        .dialect(DatabaseProduct.ORACLE.getDialect())
+        .ok(expectedOracle)
+        .dialect(DatabaseProduct.POSTGRESQL.getDialect())
+        .ok(expectedPostgresql)
+        .dialect(DatabaseProduct.MYSQL.getDialect())
+        .ok(expectedMysql)
+        .dialect(DatabaseProduct.MSSQL.getDialect())
+        .ok(expectedMssql);
+  }
+
   @Test public void testMatchRecognizePatternExpression() {
     String sql = "select *\n"
         + "  from \"product\" match_recognize\n"
