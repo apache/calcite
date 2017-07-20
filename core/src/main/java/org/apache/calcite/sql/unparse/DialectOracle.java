@@ -14,19 +14,30 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.sql;
+package org.apache.calcite.sql.unparse;
 
 import org.apache.calcite.avatica.util.TimeUnitRange;
+import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlDialect;
+import org.apache.calcite.sql.SqlFunction;
+import org.apache.calcite.sql.SqlFunctionCategory;
+import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlLiteral;
+import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.SqlUtil;
+import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.fun.SqlFloorFunction;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.ReturnTypes;
 
 /**
- * <code>DialectUnparseOracle</code> defines how a <code>SqlOperator</code> should be unparsed
+ * <code>DialectOracle</code> defines how a <code>SqlOperator</code> should be unparsed
  * for execution against a Oracle database. It reverts to the unparse method of the operator
  * if this database's implementation is standard.
  */
-public class DialectUnparseOracle extends SqlDialect.DefaultDialectUnparser {
+public class DialectOracle extends SqlDialect.DefaultDialectUnparser {
+  public static final DialectOracle INSTANCE = new DialectOracle();
+
   public static final SqlFunction ORACLE_SUBSTR =
       new SqlFunction("SUBSTR", SqlKind.OTHER_FUNCTION,
           ReturnTypes.ARG0_NULLABLE_VARYING, null, null,
@@ -63,4 +74,4 @@ public class DialectUnparseOracle extends SqlDialect.DefaultDialectUnparser {
   }
 }
 
-// End DialectUnparseOracle.java
+// End DialectOracle.java

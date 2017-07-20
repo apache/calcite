@@ -19,6 +19,11 @@ package org.apache.calcite.sql;
 import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.rel.RelFieldCollation;
+import org.apache.calcite.sql.unparse.DialectHsqldb;
+import org.apache.calcite.sql.unparse.DialectMssql;
+import org.apache.calcite.sql.unparse.DialectMysql;
+import org.apache.calcite.sql.unparse.DialectOracle;
+import org.apache.calcite.sql.unparse.DialectPostgresql;
 
 import com.google.common.base.Preconditions;
 
@@ -625,9 +630,9 @@ public class SqlDialect {
   public enum DatabaseProduct {
     ACCESS("Access", "\"", NullCollation.HIGH),
     CALCITE("Apache Calcite", "\"", NullCollation.HIGH),
-    MSSQL("Microsoft SQL Server", "[", NullCollation.HIGH, new DialectUnparseMssql()),
-    MYSQL("MySQL", "`", NullCollation.HIGH, new DialectUnparseMysql()),
-    ORACLE("Oracle", "\"", NullCollation.HIGH, new DialectUnparseOracle()),
+    MSSQL("Microsoft SQL Server", "[", NullCollation.HIGH, DialectMssql.INSTANCE),
+    MYSQL("MySQL", "`", NullCollation.HIGH, DialectMysql.INSTANCE),
+    ORACLE("Oracle", "\"", NullCollation.HIGH, DialectOracle.INSTANCE),
     DERBY("Apache Derby", null, NullCollation.HIGH),
     DB2("IBM DB2", null, NullCollation.HIGH),
     FIREBIRD("Firebird", null, NullCollation.HIGH),
@@ -638,13 +643,13 @@ public class SqlDialect {
     LUCIDDB("LucidDB", "\"", NullCollation.HIGH),
     INTERBASE("Interbase", null, NullCollation.HIGH),
     PHOENIX("Phoenix", "\"", NullCollation.HIGH),
-    POSTGRESQL("PostgreSQL", "\"", NullCollation.HIGH, new DialectUnparsePostgresql()),
+    POSTGRESQL("PostgreSQL", "\"", NullCollation.HIGH, DialectPostgresql.INSTANCE),
     NETEZZA("Netezza", "\"", NullCollation.HIGH),
     INFOBRIGHT("Infobright", "`", NullCollation.HIGH),
     NEOVIEW("Neoview", null, NullCollation.HIGH),
     SYBASE("Sybase", null, NullCollation.HIGH),
     TERADATA("Teradata", "\"", NullCollation.HIGH),
-    HSQLDB("Hsqldb", null, NullCollation.HIGH, new DialectUnparseHsqldb()),
+    HSQLDB("Hsqldb", null, NullCollation.HIGH, DialectHsqldb.INSTANCE),
     VERTICA("Vertica", "\"", NullCollation.HIGH),
     SQLSTREAM("SQLstream", "\"", NullCollation.HIGH),
 
@@ -680,7 +685,7 @@ public class SqlDialect {
       this.nullCollation = nullCollation;
       this.dialectUnparser =
           dialectUnparser == null
-              ? new DefaultDialectUnparser()
+              ? DefaultDialectUnparser.INSTANCE
               : dialectUnparser;
     }
 
@@ -711,6 +716,8 @@ public class SqlDialect {
 
   /**
    * A dialect specific unparser for operator calls.
+   *
+   * Unparsers are stateless and therefore immutable.
    */
   public interface DialectUnparser {
     void unparseCall(
@@ -725,6 +732,8 @@ public class SqlDialect {
    * The default dialect unparser if none is specified.
    */
   public static class DefaultDialectUnparser implements DialectUnparser {
+    public static final DefaultDialectUnparser INSTANCE = new DefaultDialectUnparser();
+
     public void unparseCall(
         SqlOperator operator,
         SqlWriter writer,

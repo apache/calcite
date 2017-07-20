@@ -14,16 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.sql;
+package org.apache.calcite.sql.unparse;
 
 import org.apache.calcite.avatica.util.TimeUnitRange;
+import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlDialect;
+import org.apache.calcite.sql.SqlLiteral;
+import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.SqlWriter;
 
 /**
- * <code>DialectUnparseMysql</code> defines how a <code>SqlOperator</code> should be unparsed
+ * <code>DialectMysql</code> defines how a <code>SqlOperator</code> should be unparsed
  * for execution against a Mysql database. It reverts to the unparse method of the operator
  * if this database's implementation is standard.
  */
-public class DialectUnparseMysql extends SqlDialect.DefaultDialectUnparser {
+public class DialectMysql extends SqlDialect.DefaultDialectUnparser {
+  public static final DialectMysql INSTANCE = new DialectMysql();
+
   public void unparseCall(
       SqlOperator operator,
       SqlWriter writer,
@@ -101,4 +108,4 @@ public class DialectUnparseMysql extends SqlDialect.DefaultDialectUnparser {
   }
 }
 
-// End DialectUnparseMysql.java
+// End DialectMysql.java

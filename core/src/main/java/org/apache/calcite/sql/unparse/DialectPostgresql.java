@@ -14,17 +14,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.sql;
+package org.apache.calcite.sql.unparse;
 
 import org.apache.calcite.avatica.util.TimeUnitRange;
+import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlDialect;
+import org.apache.calcite.sql.SqlLiteral;
+import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.fun.SqlFloorFunction;
 
 /**
- * <code>DialectUnparseHsqldb</code> defines how a <code>SqlOperator</code> should be unparsed
- * for execution against a Hsqldb database. It reverts to the unparse method of the operator
+ * <code>DialectPostgresql</code> defines how a <code>SqlOperator</code> should be unparsed
+ * for execution against a Postgresql database. It reverts to the unparse method of the operator
  * if this database's implementation is standard.
  */
-public class DialectUnparseHsqldb extends SqlDialect.DefaultDialectUnparser {
+public class DialectPostgresql extends SqlDialect.DefaultDialectUnparser {
+  public static final DialectPostgresql INSTANCE = new DialectPostgresql();
+
   public void unparseCall(
       SqlOperator operator,
       SqlWriter writer,
@@ -41,38 +48,15 @@ public class DialectUnparseHsqldb extends SqlDialect.DefaultDialectUnparser {
       final SqlLiteral timeUnitNode = call.operand(1);
       final TimeUnitRange timeUnit = timeUnitNode.getValueAs(TimeUnitRange.class);
 
-      final String translatedLit = convertTimeUnit(timeUnit);
-      SqlCall call2 = SqlFloorFunction.replaceTimeUnitOperand(call, translatedLit,
+      SqlCall call2 = SqlFloorFunction.replaceTimeUnitOperand(call, timeUnit.name(),
           timeUnitNode.getParserPosition());
-      SqlFloorFunction.unparseDatetimeFunction(writer, call2, "TRUNC", true);
+      SqlFloorFunction.unparseDatetimeFunction(writer, call2, "DATE_TRUNC", false);
       break;
 
     default:
       super.unparseCall(operator, writer, call, leftPrec, rightPrec);
     }
   }
-
-  private static String convertTimeUnit(TimeUnitRange unit) {
-    switch (unit) {
-    case YEAR:
-      return "YYYY";
-    case MONTH:
-      return "MM";
-    case DAY:
-      return "DD";
-    case WEEK:
-      return "WW";
-    case HOUR:
-      return "HH24";
-    case MINUTE:
-      return "MI";
-    case SECOND:
-      return "SS";
-    default:
-      throw new AssertionError("could not convert time unit to an HsqlDb equivalent: "
-          + unit);
-    }
-  }
 }
 
-// End DialectUnparseHsqldb.java
+// End DialectPostgresql.java
