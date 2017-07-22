@@ -1,0 +1,44 @@
+#!/bin/bash
+# sqlsh - Script to launch SQL shell
+#
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to you under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# Example:
+# $ ./sqlsh select \* from du order by 1 limit 3
+
+# Build classpath on first call.
+# (To force rebuild, remove target/fullclasspath.txt.)
+cd $(dirname $0)
+if [ ! -f target/fullclasspath.txt ]; then
+    mvn dependency:build-classpath -Dmdep.outputFile=target/classpath.txt
+    awk -v RS=: -v ORS=: '{if (!m[$0]) {m[$0]=1; print}}' \
+        target/classpath.txt \
+        */target/classpath.txt > target/fullclasspath.txt
+fi
+
+CP=
+for module in core file plus; do
+  CP=${CP}${module}/target/classes:
+  CP=${CP}${module}/target/test-classes:
+done
+CP="${CP}$(cat target/fullclasspath.txt)"
+
+VM_OPTS=
+export JAVA_OPTS=-Djavax.xml.parsers.DocumentBuilderFactory=com.sun.org.apache.xerces.internal.jaxp.DocumentBuilderFactoryImpl
+
+exec java $VM_OPTS -cp "${CP}" $JAVA_OPTS org.apache.calcite.adapter.os.SqlShell "$@"
+
+# End sqlsh

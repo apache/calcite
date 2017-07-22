@@ -25,6 +25,8 @@ import org.apache.calcite.sql.advise.SqlAdvisor;
 
 import com.google.common.base.CaseFormat;
 
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.lang.reflect.Modifier;
 import java.util.TimeZone;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -85,6 +87,15 @@ public interface DataContext {
 
     /** Advisor that suggests completion hints for SQL statements. */
     SQL_ADVISOR("sqlAdvisor", SqlAdvisor.class),
+
+    /** Writer to the standard error (stderr). */
+    STDERR("stderr", OutputStream.class),
+
+    /** Reader on the standard input (stdin). */
+    STDIN("stdin", InputStream.class),
+
+    /** Writer to the standard output (stdout). */
+    STDOUT("stdout", OutputStream.class),
 
     /** Time zone in which the current statement is executing. Required;
      * defaults to the time zone of the JVM if the connection does not specify a

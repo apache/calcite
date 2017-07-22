@@ -391,11 +391,19 @@ abstract class CalciteConnectionImpl
       final long localOffset = timeZone.getOffset(time);
       final long currentOffset = localOffset;
 
+      // Give a hook chance to alter standard input, output, error streams.
+      final Holder<Object[]> streamHolder =
+          Holder.of(new Object[] {System.in, System.out, System.err});
+      Hook.STANDARD_STREAMS.run(streamHolder);
+
       ImmutableMap.Builder<Object, Object> builder = ImmutableMap.builder();
       builder.put(Variable.UTC_TIMESTAMP.camelName, time)
           .put(Variable.CURRENT_TIMESTAMP.camelName, time + currentOffset)
           .put(Variable.LOCAL_TIMESTAMP.camelName, time + localOffset)
-          .put(Variable.TIME_ZONE.camelName, timeZone);
+          .put(Variable.TIME_ZONE.camelName, timeZone)
+          .put(Variable.STDIN.camelName, streamHolder.get()[0])
+          .put(Variable.STDOUT.camelName, streamHolder.get()[1])
+          .put(Variable.STDERR.camelName, streamHolder.get()[2]);
       for (Map.Entry<String, Object> entry : parameters.entrySet()) {
         Object e = entry.getValue();
         if (e == null) {

@@ -35,6 +35,10 @@ public enum Hook {
    * in tests. */
   CURRENT_TIME,
 
+  /** Called to get stdin, stdout, stderr.
+   * Use this to re-assign streams in tests. */
+  STANDARD_STREAMS,
+
   /** Returns a boolean value, whether RelBuilder should simplify expressions.
    * Default true. */
   REL_BUILDER_SIMPLIFY,
