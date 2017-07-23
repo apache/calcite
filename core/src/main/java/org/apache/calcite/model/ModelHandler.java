@@ -48,6 +48,7 @@ import com.google.common.collect.ImmutableMap;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.Field;
 import java.sql.SQLException;
 import java.util.ArrayDeque;
 import java.util.Collections;
@@ -135,18 +136,36 @@ public class ModelHandler {
         + "'initAdd', 'merge' and 'result' methods.");
   }
 
-  public void visit(JsonRoot root) {
+  private void checkRequiredAttributes(Object json, String... attributeNames) {
+    for (String attributeName : attributeNames) {
+      try {
+        final Class<?> c = json.getClass();
+        final Field f = c.getField(attributeName);
+        final Object o = f.get(json);
+        if (o == null) {
+          throw new RuntimeException("Field '" + attributeName
+              + "' is required in " + c.getSimpleName());
+        }
+      } catch (NoSuchFieldException | IllegalAccessException e) {
+        throw new RuntimeException("while accessing field " + attributeName,
+            e);
+      }
+    }
+  }
+
+  public void visit(JsonRoot jsonRoot) {
+    checkRequiredAttributes(jsonRoot, "version");
     final Pair<String, SchemaPlus> pair =
         Pair.of(null, connection.getRootSchema());
     schemaStack.push(pair);
-    for (JsonSchema schema : root.schemas) {
+    for (JsonSchema schema : jsonRoot.schemas) {
       schema.accept(this);
     }
     final Pair<String, SchemaPlus> p = schemaStack.pop();
     assert p == pair;
-    if (root.defaultSchema != null) {
+    if (jsonRoot.defaultSchema != null) {
       try {
-        connection.setSchema(root.defaultSchema);
+        connection.setSchema(jsonRoot.defaultSchema);
       } catch (SQLException e) {
         throw new RuntimeException(e);
       }
@@ -154,6 +173,7 @@ public class ModelHandler {
   }
 
   public void visit(JsonMapSchema jsonSchema) {
+    checkRequiredAttributes(jsonSchema, "name");
     final SchemaPlus parentSchema = currentMutableSchema("schema");
     final SchemaPlus schema =
         parentSchema.add(jsonSchema.name, new AbstractSchema());
@@ -208,6 +228,7 @@ public class ModelHandler {
   public void visit(JsonCustomSchema jsonSchema) {
     try {
       final SchemaPlus parentSchema = currentMutableSchema("sub-schema");
+      checkRequiredAttributes(jsonSchema, "name", "factory");
       final SchemaFactory schemaFactory =
           AvaticaUtils.instantiatePlugin(SchemaFactory.class,
               jsonSchema.factory);
@@ -259,6 +280,7 @@ public class ModelHandler {
   }
 
   public void visit(JsonJdbcSchema jsonSchema) {
+    checkRequiredAttributes(jsonSchema, "name");
     final SchemaPlus parentSchema = currentMutableSchema("jdbc schema");
     final DataSource dataSource =
         JdbcSchema.dataSource(jsonSchema.jdbcUrl,
@@ -274,6 +296,7 @@ public class ModelHandler {
 
   public void visit(JsonMaterialization jsonMaterialization) {
     try {
+      checkRequiredAttributes(jsonMaterialization, "sql");
       final SchemaPlus schema = currentSchema();
       if (!schema.isMutable()) {
         throw new RuntimeException(
@@ -307,6 +330,7 @@ public class ModelHandler {
 
   public void visit(JsonLattice jsonLattice) {
     try {
+      checkRequiredAttributes(jsonLattice, "name", "sql");
       final SchemaPlus schema = currentSchema();
       if (!schema.isMutable()) {
         throw new RuntimeException("Cannot define lattice; parent schema '"
@@ -347,6 +371,7 @@ public class ModelHandler {
 
   public void visit(JsonCustomTable jsonTable) {
     try {
+      checkRequiredAttributes(jsonTable, "name", "factory");
       final SchemaPlus schema = currentMutableSchema("table");
       final TableFactory tableFactory =
           AvaticaUtils.instantiatePlugin(TableFactory.class,
@@ -354,14 +379,22 @@ public class ModelHandler {
       final Table table =
           tableFactory.create(schema, jsonTable.name,
               operandMap(null, jsonTable.operand), null);
+      for (JsonColumn column : jsonTable.columns) {
+        column.accept(this);
+      }
       schema.add(jsonTable.name, table);
     } catch (Exception e) {
       throw new RuntimeException("Error instantiating " + jsonTable, e);
     }
   }
 
+  public void visit(JsonColumn jsonColumn) {
+    checkRequiredAttributes(jsonColumn, "name");
+  }
+
   public void visit(JsonView jsonView) {
     try {
+      checkRequiredAttributes(jsonView, "name");
       final SchemaPlus schema = currentMutableSchema("view");
       final List<String> path = Util.first(jsonView.path, currentSchemaPath());
       final List<String> viewPath = ImmutableList.<String>builder().addAll(path)
@@ -396,6 +429,8 @@ public class ModelHandler {
   }
 
   public void visit(JsonFunction jsonFunction) {
+    // "name" is not required - a class can have several functions
+    checkRequiredAttributes(jsonFunction, "className");
     try {
       final SchemaPlus schema = currentMutableSchema("function");
       final List<String> path =
@@ -411,6 +446,7 @@ public class ModelHandler {
   }
 
   public void visit(JsonMeasure jsonMeasure) {
+    checkRequiredAttributes(jsonMeasure, "agg");
     assert latticeBuilder != null;
     final Lattice.Measure measure =
         latticeBuilder.resolveMeasure(jsonMeasure.agg, jsonMeasure.args);

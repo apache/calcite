@@ -29,6 +29,10 @@ public class JsonColumn {
    * <p>Required, and must be unique within the table.
    */
   public String name;
+
+  public void accept(ModelHandler handler) {
+    handler.visit(this);
+  }
 }
 
 // End JsonColumn.java
