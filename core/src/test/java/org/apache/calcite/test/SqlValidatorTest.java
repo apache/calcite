@@ -10256,6 +10256,154 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         is(false));
   }
 
+  @Test public void testSelectRolledUpColumn() {
+    final String error = "Rolled up column 'SLACKINGMIN' is not allowed in SELECT";
+
+    sql("select ^slackingmin^ from emp_r")
+            .fails(error);
+
+    sql("select a from (select ^slackingmin^ from emp_r)")
+            .fails(error);
+
+    sql("select ^slackingmin^ as b from emp_r")
+            .fails(error);
+
+    sql("select empno, ^slackingmin^ from emp_r")
+            .fails(error);
+
+    sql("select slackingmin from (select empno as slackingmin from emp_r)").ok();
+
+    sql("select ^emp_r.slackingmin^ from emp_r")
+            .fails(error);
+
+    sql("select ^sales.emp_r.slackingmin^ from sales.emp_r")
+            .fails(error);
+
+    sql("select ^sales.emp_r.slackingmin^ from emp_r")
+            .fails(error);
+
+    sql("select ^catalog.sales.emp_r.slackingmin^ from emp_r")
+            .fails(error);
+
+    sql("select (select ^slackingmin^ from emp_r), a from (select empno as a from emp_r)")
+            .fails(error);
+
+    sql("select (((^slackingmin^))) from emp_r")
+            .fails(error);
+  }
+
+  @Test public void testSelectAggregateOnRolledUpColumn() {
+    final String maxError = "Rolled up column 'SLACKINGMIN' is not allowed in MAX";
+    final String plusError = "Rolled up column 'SLACKINGMIN' is not allowed in PLUS";
+
+    sql("select max(^slackingmin^) from emp_r")
+            .fails(maxError);
+
+    sql("select count(slackingmin) from emp_r").ok();
+
+    sql("select count(empno, deptno, slackingmin) from emp_r").ok();
+
+    sql("select sum(slackingmin) from emp_r").ok();
+
+    sql("select empno, min(slackingmin) from emp_r group by empno").ok();
+
+    sql("select count(distinct slackingmin) from emp_r").ok();
+
+    sql("select sum(empno + ^slackingmin^) from emp_r")
+            .fails(plusError);
+
+    sql("select max(^slackingmin^) over t as a "
+            + "from emp_r window t as (partition by empno order by empno)")
+            .fails(maxError);
+  }
+
+  @Test public void testRolledUpColumnInWhere() {
+    final String error = "Rolled up column 'SLACKINGMIN' is not allowed in GREATER_THAN";
+
+    // Fire these slackers!!
+    sql("select empno from emp_r where slacker and ^slackingmin^ > 60")
+            .fails(error);
+
+    sql("select sum(slackingmin) filter (where slacker and ^slackingmin^ > 60) from emp_r")
+            .fails(error);
+  }
+
+  @Test public void testRolledUpColumnInHaving() {
+    final String error = "Rolled up column 'SLACKINGMIN' is not allowed in SUM";
+
+    sql("select deptno, sum(slackingmin) from emp_r group "
+            + "by deptno having sum(^slackingmin^) > 1000")
+            .fails(error);
+  }
+
+  @Test public void testRollUpInWindow() {
+    final String partitionError = "Rolled up column 'SLACKINGMIN' is not allowed in PARTITION BY";
+    final String orderByError = "Rolled up column 'SLACKINGMIN' is not allowed in ORDER BY";
+
+    sql("select empno, sum(slackingmin) over (partition by ^slackingmin^) from emp_r")
+            .fails(partitionError);
+
+    sql("select empno, sum(slackingmin) over (partition by empno, ^slackingmin^) from emp_r")
+            .fails(partitionError);
+
+    sql("select empno, sum(slackingmin) over (partition by empno order by ^slackingmin^) "
+            + "from emp_r")
+            .fails(orderByError);
+
+    sql("select empno, sum(slackingmin) over slackingmin "
+            + "from emp_r window slackingmin as (partition by ^slackingmin^)")
+            .fails(partitionError);
+
+    sql("select sum(slackingmin) over t "
+            + "from emp_r window t as (partition by empno order by ^slackingmin^, empno)")
+            .fails(orderByError);
+
+    sql("select sum(slackingmin) over t as a "
+            + "from emp_r window t as (partition by empno order by ^slackingmin^, empno)")
+            .fails(orderByError);
+  }
+
+  @Test public void testRollUpInGroupBy() {
+    final String error = "Rolled up column 'SLACKINGMIN' is not allowed in GROUP BY";
+
+    sql("select empno, count(distinct empno) from emp_r group by empno, ^slackingmin^")
+            .fails(error);
+
+    sql("select empno from emp_r group by grouping sets (empno, ^slackingmin^)")
+            .fails(error);
+  }
+
+  @Test public void testRollUpInOrderBy() {
+    final String error = "Rolled up column 'SLACKINGMIN' is not allowed in ORDER BY";
+
+    sql("select empno from emp_r order by ^slackingmin^ asc")
+            .fails(error);
+
+    sql("select slackingmin from (select empno as slackingmin from emp_r) order by slackingmin")
+            .ok();
+
+    sql("select empno, sum(slackingmin) from emp_r group by empno order by sum(slackingmin)").ok();
+  }
+
+  @Test public void testRollUpInJoin() {
+    final String onError = "Rolled up column 'SLACKINGMIN' is not allowed in ON";
+    final String usingError = "Rolled up column 'SLACKINGMIN' is not allowed in USING";
+    final String selectError = "Rolled up column 'SLACKINGMIN' is not allowed in SELECT";
+
+    sql("select * from (select deptno, ^slackingmin^ from emp_r) join dept using (deptno)")
+            .fails(selectError);
+
+    sql("select * from dept as a join (select deptno, ^slackingmin^ from emp_r) using (deptno)")
+            .fails(selectError);
+
+    sql("select * from emp_r as a join dept_r as b using (deptno, ^slackingmin^)")
+            .fails(usingError);
+
+    // Even though the emp_r.slackingmin column will be under the SqlNode for '=',
+    // The error should say it happened in 'ON' instead
+    sql("select * from emp_r join dept_r on (^emp_r.slackingmin^ = dept_r.slackingmin)")
+            .fails(onError);
+  }
 }
 
 // End SqlValidatorTest.java

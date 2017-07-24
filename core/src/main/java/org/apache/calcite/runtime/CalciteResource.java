@@ -707,6 +707,9 @@ public interface CalciteResource {
 
   @BaseMessage("Extended columns not allowed under the current SQL conformance level")
   ExInst<SqlValidatorException> extendNotAllowed();
+
+  @BaseMessage("Rolled up column ''{0}'' is not allowed in {1}")
+  ExInst<SqlValidatorException> rolledUpNotAllowed(String column, String context);
 }
 
 // End CalciteResource.java

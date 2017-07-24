@@ -17,6 +17,7 @@
 package org.apache.calcite.test;
 
 import org.apache.calcite.adapter.java.JavaTypeFactory;
+import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.jdbc.CalcitePrepare;
 import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.linq4j.Ord;
@@ -69,10 +70,13 @@ import org.apache.calcite.schema.impl.AbstractSchema;
 import org.apache.calcite.schema.impl.ModifiableViewTable;
 import org.apache.calcite.schema.impl.ViewTableMacro;
 import org.apache.calcite.sql.SqlAccessType;
+import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlIntervalQualifier;
+import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.ObjectSqlType;
@@ -106,6 +110,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -143,7 +148,7 @@ public class MockCatalogReader extends CalciteCatalogReader {
     super(CalciteSchema.createRootSchema(false, true, DEFAULT_CATALOG),
         SqlNameMatchers.withCaseSensitive(caseSensitive),
         ImmutableList.of(PREFIX, ImmutableList.<String>of()),
-        typeFactory);
+        typeFactory, null);
   }
 
   @Override public boolean isCaseSensitive() {
@@ -518,8 +523,28 @@ public class MockCatalogReader extends CalciteCatalogReader {
       struct10View.addColumn(column.getName(), column.type);
     }
     registerTable(struct10View);
-
+    registerTablesWithRollUp(salesSchema, f);
     return this;
+  }
+
+  private void registerTablesWithRollUp(MockSchema schema, Fixture f) {
+    // Register "EMP_R" table. Contains a rolled up column.
+    final MockTable empRolledTable =
+            MockTable.create(this, schema, "EMP_R", false, 14);
+    empRolledTable.addColumn("EMPNO", f.intType, true);
+    empRolledTable.addColumn("DEPTNO", f.intType);
+    empRolledTable.addColumn("SLACKER", f.booleanType);
+    empRolledTable.addColumn("SLACKINGMIN", f.intType);
+    empRolledTable.registerRolledUpColumn("SLACKINGMIN");
+    registerTable(empRolledTable);
+
+    // Register the "DEPT_R" table. Doesn't contain a rolled up column,
+    // but is useful for testing join
+    MockTable deptSlackingTable = MockTable.create(this, schema, "DEPT_R", false, 4);
+    deptSlackingTable.addColumn("DEPTNO", f.intType, true);
+    deptSlackingTable.addColumn("SLACKINGMIN", f.intType);
+    registerTable(deptSlackingTable);
+
   }
 
   /** Adds some extra tables to the mock catalog. These increase the time and
@@ -706,6 +731,7 @@ public class MockCatalogReader extends CalciteCatalogReader {
     protected StructKind kind = StructKind.FULLY_QUALIFIED;
     protected final ColumnResolver resolver;
     protected final InitializerExpressionFactory initializerFactory;
+    protected final Set<String> rolledUpColumns = new HashSet<>();
 
     public MockTable(MockCatalogReader catalogReader, String catalogName,
         String schemaName, String name, boolean stream, double rowCount,
@@ -713,6 +739,10 @@ public class MockCatalogReader extends CalciteCatalogReader {
         InitializerExpressionFactory initializerFactory) {
       this(catalogReader, ImmutableList.of(catalogName, schemaName, name), stream, rowCount,
           resolver, initializerFactory);
+    }
+
+    public void registerRolledUpColumn(String columnName) {
+      rolledUpColumns.add(columnName);
     }
 
     private MockTable(MockCatalogReader catalogReader, List<String> names, boolean stream,
@@ -1507,6 +1537,18 @@ public class MockCatalogReader extends CalciteCatalogReader {
           return table.getDistribution();
         }
       };
+    }
+
+    @Override public boolean isRolledUp(String column) {
+      return table.rolledUpColumns.contains(column);
+    }
+
+    @Override public boolean rolledUpColumnValidInsideAgg(String column,
+                                                          SqlCall call, SqlNode parent,
+                                                          CalciteConnectionConfig config) {
+      // For testing
+      return call.getKind() != SqlKind.MAX
+              && (parent.getKind() == SqlKind.SELECT || parent.getKind() == SqlKind.FILTER);
     }
 
     public Schema.TableType getJdbcTableType() {

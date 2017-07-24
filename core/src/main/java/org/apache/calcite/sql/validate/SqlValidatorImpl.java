@@ -17,6 +17,7 @@
 package org.apache.calcite.sql.validate;
 
 import org.apache.calcite.config.NullCollation;
+import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.linq4j.function.Function2;
 import org.apache.calcite.plan.RelOptTable;
@@ -168,7 +169,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
   /**
    * Maps {@link SqlNode query node} objects to the {@link SqlValidatorScope}
-   * scope created from them}.
+   * scope created from them.
    */
   protected final Map<SqlNode, SqlValidatorScope> scopes =
       new IdentityHashMap<>();
@@ -502,14 +503,17 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
                 new SqlIdentifier(
                     ImmutableList.of(child.name, columnName),
                     startPosition);
-            addOrExpandField(
-                selectItems,
-                aliases,
-                types,
-                includeSystemVars,
-                scope,
-                exp,
-                field);
+            // Don't add expanded rolled up columns
+            if (!isRolledUpColumn(exp, scope)) {
+              addOrExpandField(
+                      selectItems,
+                      aliases,
+                      types,
+                      includeSystemVars,
+                      scope,
+                      exp,
+                      field);
+            }
           }
         }
         if (child.nullable) {
@@ -2965,6 +2969,21 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     throw new AssertionError("OVER unexpected in this context");
   }
 
+  private void checkRollUpInUsing(SqlIdentifier identifier, SqlNode leftOrRight) {
+    leftOrRight = stripAs(leftOrRight);
+    // if it's not a SqlIdentifier then that's fine, it'll be validated somewhere else.
+    if (leftOrRight instanceof SqlIdentifier) {
+      SqlIdentifier from = (SqlIdentifier) leftOrRight;
+      Table table = findTable(catalogReader.getRootSchema(), Util.last(from.names),
+              catalogReader.nameMatcher().isCaseSensitive());
+      String name = Util.last(identifier.names);
+
+      if (table != null && table.isRolledUp(name)) {
+        throw newValidationError(identifier, RESOURCE.rolledUpNotAllowed(name, "USING"));
+      }
+    }
+  }
+
   protected void validateJoin(SqlJoin join, SqlValidatorScope scope) {
     SqlNode left = join.getLeft();
     SqlNode right = join.getRight();
@@ -2987,6 +3006,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       join.setOperand(5, expandedCondition);
       condition = join.getCondition();
       validateWhereOrOn(joinScope, condition, "ON");
+      checkRollUp(null, join, condition, joinScope, "ON");
       break;
     case USING:
       SqlNodeList list = (SqlNodeList) condition;
@@ -3002,6 +3022,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
               RESOURCE.naturalOrUsingColumnNotCompatible(id.getSimple(),
                   leftColType.toString(), rightColType.toString()));
         }
+        checkRollUpInUsing(id, left);
+        checkRollUpInUsing(id, right);
       }
       break;
     default:
@@ -3198,6 +3220,227 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     // dialects you can refer to columns of the select list, e.g.
     // "SELECT empno AS x FROM emp ORDER BY x"
     validateOrderList(select);
+
+    if (shouldCheckForRollUp(select.getFrom())) {
+      checkRollUpInSelectList(select);
+      checkRollUp(null, select, select.getWhere(), getWhereScope(select));
+      checkRollUp(null, select, select.getHaving(), getHavingScope(select));
+      checkRollUpInWindowDecl(select);
+      checkRollUpInGroupBy(select);
+      checkRollUpInOrderBy(select);
+    }
+  }
+
+  private void checkRollUpInSelectList(SqlSelect select) {
+    SqlValidatorScope scope = getSelectScope(select);
+    for (SqlNode item : select.getSelectList()) {
+      checkRollUp(null, select, item, scope);
+    }
+  }
+
+  private void checkRollUpInGroupBy(SqlSelect select) {
+    SqlNodeList group = select.getGroup();
+    if (group != null) {
+      for (SqlNode node : group) {
+        checkRollUp(null, select, node, getGroupScope(select), "GROUP BY");
+      }
+    }
+  }
+
+  private void checkRollUpInOrderBy(SqlSelect select) {
+    SqlNodeList orderList = select.getOrderList();
+    if (orderList != null) {
+      for (SqlNode node : orderList) {
+        checkRollUp(null, select, node, getOrderScope(select), "ORDER BY");
+      }
+    }
+  }
+
+  private void checkRollUpInWindow(SqlWindow window, SqlValidatorScope scope) {
+    if (window != null) {
+      for (SqlNode node : window.getPartitionList()) {
+        checkRollUp(null, window, node, scope, "PARTITION BY");
+      }
+
+      for (SqlNode node : window.getOrderList()) {
+        checkRollUp(null, window, node, scope, "ORDER BY");
+      }
+    }
+  }
+
+  private void checkRollUpInWindowDecl(SqlSelect select) {
+    for (SqlNode decl : select.getWindowList()) {
+      checkRollUpInWindow((SqlWindow) decl, getSelectScope(select));
+    }
+  }
+
+  private void checkRollUp(SqlNode grandParent, SqlNode parent,
+                           SqlNode current, SqlValidatorScope scope, String optionalClause) {
+    current = stripAs(current);
+    if (current instanceof SqlCall && !(current instanceof SqlSelect)) {
+      // Validate OVER separately
+      checkRollUpInWindow(getWindowInOver(current), scope);
+      current = stripOver(current);
+
+      List<SqlNode> children = ((SqlCall) current).getOperandList();
+      for (SqlNode child : children) {
+        checkRollUp(parent, current, child, scope, optionalClause);
+      }
+    } else if (current instanceof SqlIdentifier) {
+      SqlIdentifier id = (SqlIdentifier) current;
+      if (!id.isStar() && isRolledUpColumn(id, scope)) {
+        if (!isAggregation(parent.getKind())
+                || !isRolledUpColumnAllowedInAgg(id, scope, (SqlCall) parent, grandParent)) {
+          String context = optionalClause != null ? optionalClause : parent.getKind().toString();
+          throw newValidationError(id,
+                  RESOURCE.rolledUpNotAllowed(deriveAlias(id, 0), context));
+        }
+      }
+    }
+  }
+
+  private void checkRollUp(SqlNode grandParent, SqlNode parent,
+                           SqlNode current, SqlValidatorScope scope) {
+    checkRollUp(grandParent, parent, current, scope, null);
+  }
+
+  private SqlWindow getWindowInOver(SqlNode over) {
+    if (over.getKind() == SqlKind.OVER) {
+      SqlNode window = ((SqlCall) over).getOperandList().get(1);
+      if (window instanceof SqlWindow) {
+        return (SqlWindow) window;
+      }
+      // SqlIdentifier, gets validated elsewhere
+      return null;
+    }
+    return null;
+  }
+
+  private static SqlNode stripOver(SqlNode node) {
+    switch (node.getKind()) {
+    case OVER:
+      return ((SqlCall) node).getOperandList().get(0);
+    default:
+      return node;
+    }
+  }
+
+  private Pair<String, String> findTableColumnPair(SqlIdentifier identifier,
+                                                   SqlValidatorScope scope) {
+    SqlCall call = SqlUtil.makeCall(getOperatorTable(), identifier);
+    if (call != null) {
+      return null;
+    }
+    SqlQualified qualified = scope.fullyQualify(identifier);
+    List<String> names = qualified.identifier.names;
+
+    if (names.size() < 2) {
+      return null;
+    }
+
+    return new Pair<>(names.get(names.size() - 2), Util.last(names));
+  }
+
+  // Returns true iff the given column is valid inside the given aggCall.
+  private boolean isRolledUpColumnAllowedInAgg(SqlIdentifier identifier, SqlValidatorScope scope,
+                                               SqlCall aggCall, SqlNode parent) {
+    Pair<String, String> pair = findTableColumnPair(identifier, scope);
+
+    if (pair == null) {
+      return true;
+    }
+
+    String tableAlias = pair.left;
+    String columnName = pair.right;
+
+    Table table = findTable(tableAlias);
+    if (table != null) {
+      return table.rolledUpColumnValidInsideAgg(columnName, aggCall, parent,
+              catalogReader.getConfig());
+    }
+    return true;
+  }
+
+
+  // Returns true iff the given column is actually rolled up.
+  private boolean isRolledUpColumn(SqlIdentifier identifier, SqlValidatorScope scope) {
+    Pair<String, String> pair = findTableColumnPair(identifier, scope);
+
+    if (pair == null) {
+      return false;
+    }
+
+    String tableAlias = pair.left;
+    String columnName = pair.right;
+
+    Table table = findTable(tableAlias);
+    if (table != null) {
+      return table.isRolledUp(columnName);
+    }
+    return false;
+  }
+
+  private Table findTable(CalciteSchema schema, String tableName, boolean caseSensitive) {
+    CalciteSchema.TableEntry entry = schema.getTable(tableName, caseSensitive);
+    if (entry != null) {
+      return entry.getTable();
+    }
+
+    // Check sub schemas
+    for (CalciteSchema subSchema : schema.getSubSchemaMap().values()) {
+      Table table = findTable(subSchema, tableName, caseSensitive);
+      if (table != null) {
+        return table;
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * Given a table alias, find the corresponding {@link Table} associated with it
+   * */
+  private Table findTable(String alias) {
+    List<String> names = null;
+    if (tableScope == null) {
+      // no tables to find
+      return null;
+    }
+
+    for (ScopeChild child : tableScope.children) {
+      if (catalogReader.nameMatcher().matches(child.name, alias)) {
+        names = ((SqlIdentifier) child.namespace.getNode()).names;
+        break;
+      }
+    }
+    if (names == null || names.size() == 0) {
+      return null;
+    } else if (names.size() == 1) {
+      return findTable(catalogReader.getRootSchema(), names.get(0),
+              catalogReader.nameMatcher().isCaseSensitive());
+    }
+
+    String schemaName = names.get(0);
+    String tableName = names.get(1);
+
+    CalciteSchema schema = catalogReader.getRootSchema().getSubSchemaMap().get(schemaName);
+
+    if (schema == null) {
+      return null;
+    }
+
+    CalciteSchema.TableEntry entry = schema.getTable(tableName,
+            catalogReader.nameMatcher().isCaseSensitive());
+
+    return entry == null ? null : entry.getTable();
+  }
+
+  private boolean shouldCheckForRollUp(SqlNode from) {
+    if (from != null) {
+      SqlKind kind = stripAs(from).getKind();
+      return kind != SqlKind.VALUES && kind != SqlKind.SELECT;
+    }
+    return false;
   }
 
   /** Validates that a query can deliver the modality it promises. Only called
@@ -3635,6 +3878,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         scope,
         condition);
     condition.validate(this, scope);
+
     final RelDataType type = deriveType(scope, condition);
     if (!SqlTypeUtil.inBooleanFamily(type)) {
       throw newValidationError(condition, RESOURCE.condMustBeBoolean(keyword));
