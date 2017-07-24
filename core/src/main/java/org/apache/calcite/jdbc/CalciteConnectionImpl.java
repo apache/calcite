@@ -471,6 +471,10 @@ abstract class CalciteConnectionImpl
           : ImmutableList.of(schemaName);
     }
 
+    public List<String> getObjectPath() {
+      return null;
+    }
+
     public CalciteConnectionConfig config() {
       return connection.config();
     }

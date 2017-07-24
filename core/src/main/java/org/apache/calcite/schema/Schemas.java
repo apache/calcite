@@ -289,7 +289,7 @@ public final class Schemas {
     final ImmutableMap<CalciteConnectionProperty, String> propValues =
         ImmutableMap.of();
     final CalcitePrepare.Context context =
-        makeContext(connection, schema, schemaPath, propValues);
+        makeContext(connection, schema, schemaPath, null, propValues);
     CalcitePrepare.Dummy.push(context);
     try {
       return prepare.parse(context, sql);
@@ -307,7 +307,7 @@ public final class Schemas {
     final ImmutableMap<CalciteConnectionProperty, String> propValues =
         ImmutableMap.of();
     final CalcitePrepare.Context context =
-        makeContext(connection, schema, schemaPath, propValues);
+        makeContext(connection, schema, schemaPath, null, propValues);
     CalcitePrepare.Dummy.push(context);
     try {
       return prepare.convert(context, sql);
@@ -319,15 +319,16 @@ public final class Schemas {
   /** Analyzes a view. For use within Calcite only. */
   public static CalcitePrepare.AnalyzeViewResult analyzeView(
       final CalciteConnection connection, final CalciteSchema schema,
-      final List<String> schemaPath, final String sql, boolean fail) {
+      final List<String> schemaPath, final String viewSql,
+      List<String> viewPath, boolean fail) {
     final CalcitePrepare prepare = CalcitePrepare.DEFAULT_FACTORY.apply();
     final ImmutableMap<CalciteConnectionProperty, String> propValues =
         ImmutableMap.of();
     final CalcitePrepare.Context context =
-        makeContext(connection, schema, schemaPath, propValues);
+        makeContext(connection, schema, schemaPath, viewPath, propValues);
     CalcitePrepare.Dummy.push(context);
     try {
-      return prepare.analyzeView(context, sql, fail);
+      return prepare.analyzeView(context, viewSql, fail);
     } finally {
       CalcitePrepare.Dummy.pop(context);
     }
@@ -340,7 +341,7 @@ public final class Schemas {
       final ImmutableMap<CalciteConnectionProperty, String> map) {
     final CalcitePrepare prepare = CalcitePrepare.DEFAULT_FACTORY.apply();
     final CalcitePrepare.Context context =
-        makeContext(connection, schema, schemaPath, map);
+        makeContext(connection, schema, schemaPath, null, map);
     CalcitePrepare.Dummy.push(context);
     try {
       return prepare.prepareSql(context, CalcitePrepare.Query.of(sql),
@@ -350,21 +351,33 @@ public final class Schemas {
     }
   }
 
-  public static CalcitePrepare.Context makeContext(
-      final CalciteConnection connection, final CalciteSchema schema,
-      final List<String> schemaPath,
+  /**
+   * Creates a context for the purposes of preparing a statement.
+   *
+   * @param connection Connection
+   * @param schema Schema
+   * @param schemaPath Path wherein to look for functions
+   * @param objectPath Path of the object being analyzed (usually a view),
+   *                  or null
+   * @param propValues Connection properties
+   * @return Context
+   */
+  private static CalcitePrepare.Context makeContext(
+      CalciteConnection connection, CalciteSchema schema,
+      List<String> schemaPath, List<String> objectPath,
       final ImmutableMap<CalciteConnectionProperty, String> propValues) {
     if (connection == null) {
       final CalcitePrepare.Context context0 = CalcitePrepare.Dummy.peek();
       final CalciteConnectionConfig config =
           mutate(context0.config(), propValues);
       return makeContext(config, context0.getTypeFactory(),
-          context0.getDataContext(), schema, schemaPath);
+          context0.getDataContext(), schema, schemaPath, objectPath);
     } else {
       final CalciteConnectionConfig config =
           mutate(connection.config(), propValues);
       return makeContext(config, connection.getTypeFactory(),
-          createDataContext(connection, schema.root().plus()), schema, schemaPath);
+          createDataContext(connection, schema.root().plus()), schema,
+          schemaPath, objectPath);
     }
   }
 
@@ -383,7 +396,9 @@ public final class Schemas {
       final JavaTypeFactory typeFactory,
       final DataContext dataContext,
       final CalciteSchema schema,
-      final List<String> schemaPath) {
+      final List<String> schemaPath, final List<String> objectPath_) {
+    final ImmutableList<String> objectPath =
+        objectPath_ == null ? null : ImmutableList.copyOf(objectPath_);
     return new CalcitePrepare.Context() {
       public JavaTypeFactory getTypeFactory() {
         return typeFactory;
@@ -400,6 +415,10 @@ public final class Schemas {
           return schema.path(null);
         }
         return schemaPath;
+      }
+
+      public List<String> getObjectPath() {
+        return objectPath;
       }
 
       public CalciteConnectionConfig config() {
@@ -542,8 +561,7 @@ public final class Schemas {
     private final SchemaPlus rootSchema;
     private final ImmutableMap<String, Object> map;
 
-    public DummyDataContext(CalciteConnection connection,
-        SchemaPlus rootSchema) {
+    DummyDataContext(CalciteConnection connection, SchemaPlus rootSchema) {
       this.connection = connection;
       this.rootSchema = rootSchema;
       this.map =

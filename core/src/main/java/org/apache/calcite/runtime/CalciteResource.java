@@ -636,6 +636,9 @@ public interface CalciteResource {
   @BaseMessage("Cannot stream VALUES")
   ExInst<SqlValidatorException> cannotStreamValues();
 
+  @BaseMessage("Cannot resolve ''{0}''; it references view ''{1}'', whose definition is cyclic")
+  ExInst<SqlValidatorException> cyclicDefinition(String id, String view);
+
   @BaseMessage("Modifiable view must be based on a single table")
   ExInst<SqlValidatorException> modifiableViewMustBeBasedOnSingleTable();
 

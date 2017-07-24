@@ -17,6 +17,7 @@
 package org.apache.calcite.schema.impl;
 
 import org.apache.calcite.adapter.java.JavaTypeFactory;
+import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.jdbc.CalcitePrepare;
 import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.rel.type.RelDataTypeImpl;
@@ -67,9 +68,11 @@ public class ViewTableMacro implements TableMacro {
   }
 
   public TranslatableTable apply(List<Object> arguments) {
+    final CalciteConnection connection =
+        MaterializedViewTable.MATERIALIZATION_CONNECTION;
     CalcitePrepare.AnalyzeViewResult parsed =
-        Schemas.analyzeView(MaterializedViewTable.MATERIALIZATION_CONNECTION,
-            schema, schemaPath, viewSql, modifiable != null && modifiable);
+        Schemas.analyzeView(connection, schema, schemaPath, viewSql, viewPath,
+            modifiable != null && modifiable);
     final List<String> schemaPath1 =
         schemaPath != null ? schemaPath : schema.path(null);
     if ((modifiable == null || modifiable)

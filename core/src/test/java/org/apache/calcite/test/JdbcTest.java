@@ -5534,6 +5534,79 @@ public class JdbcTest {
             + "name=Theodore\n");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1900">[CALCITE-1900]
+   * Improve error message for cyclic views</a>.
+   * Previously got a {@link StackOverflowError}. */
+  @Test public void testSelfReferentialView() throws Exception {
+    final CalciteAssert.AssertThat with =
+        modelWithView("select * from \"V\"", null);
+    with.query("select \"name\" from \"adhoc\".V")
+        .throws_("Cannot resolve 'adhoc.V'; it references view 'adhoc.V', "
+            + "whose definition is cyclic");
+  }
+
+  @Test public void testSelfReferentialView2() throws Exception {
+    final String model = "{\n"
+        + "  version: '1.0',\n"
+        + "  defaultSchema: 'adhoc',\n"
+        + "  schemas: [ {\n"
+        + "    name: 'adhoc',\n"
+        + "    tables: [ {\n"
+        + "      name: 'A',\n"
+        + "      type: 'view',\n"
+        + "      sql: "
+        + new JsonBuilder().toJsonString("select * from B") + "\n"
+        + "    }, {\n"
+        + "      name: 'B',\n"
+        + "      type: 'view',\n"
+        + "      sql: "
+        + new JsonBuilder().toJsonString("select * from C") + "\n"
+        + "    }, {\n"
+        + "      name: 'C',\n"
+        + "      type: 'view',\n"
+        + "      sql: "
+        + new JsonBuilder().toJsonString("select * from D, B") + "\n"
+        + "    }, {\n"
+        + "      name: 'D',\n"
+        + "      type: 'view',\n"
+        + "      sql: "
+        + new JsonBuilder().toJsonString(
+            "select * from (values (1, 'a')) as t(x, y)") + "\n"
+        + "    } ]\n"
+        + "  } ]\n"
+        + "}";
+    final CalciteAssert.AssertThat with =
+        CalciteAssert.model(model);
+    //
+    //       +-----+
+    //       V     |
+    // A --> B --> C --> D
+    //
+    // A is not in a cycle, but depends on cyclic views
+    // B is cyclic
+    // C is cyclic
+    // D is not cyclic
+    with.query("select x from \"adhoc\".a")
+        .throws_("Cannot resolve 'adhoc.A'; it references view 'adhoc.B', "
+            + "whose definition is cyclic");
+    with.query("select x from \"adhoc\".b")
+        .throws_("Cannot resolve 'adhoc.B'; it references view 'adhoc.B', "
+            + "whose definition is cyclic");
+    // as previous, but implicit schema
+    with.query("select x from b")
+        .throws_("Cannot resolve 'B'; it references view 'adhoc.B', "
+            + "whose definition is cyclic");
+    with.query("select x from \"adhoc\".c")
+        .throws_("Cannot resolve 'adhoc.C'; it references view 'adhoc.C', "
+            + "whose definition is cyclic");
+    with.query("select x from \"adhoc\".d")
+        .returns("X=1\n");
+    with.query("select x from \"adhoc\".d except select x from \"adhoc\".a")
+        .throws_("Cannot resolve 'adhoc.A'; it references view 'adhoc.B', "
+            + "whose definition is cyclic");
+  }
+
   /** Tests saving query results into temporary tables, per
    * {@link org.apache.calcite.avatica.Handler.ResultSink}. */
   @Test public void testAutomaticTemporaryTable() throws Exception {
