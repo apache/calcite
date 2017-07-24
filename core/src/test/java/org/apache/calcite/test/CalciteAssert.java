@@ -30,12 +30,14 @@ import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.materialize.Lattice;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.runtime.CalciteException;
 import org.apache.calcite.runtime.FlatLists;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.impl.AbstractSchema;
 import org.apache.calcite.schema.impl.ViewTable;
+import org.apache.calcite.sql.validate.SqlValidatorException;
 import org.apache.calcite.tools.FrameworkConfig;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.Closer;
@@ -92,6 +94,7 @@ import java.util.TreeSet;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.sql.DataSource;
 
 import static org.hamcrest.CoreMatchers.containsString;
@@ -254,6 +257,43 @@ public class CalciteAssert {
         printWriter.flush();
         String stack = stringWriter.toString();
         assertTrue(stack, stack.contains(expected));
+        return null;
+      }
+    };
+  }
+
+  static Function<Throwable, Void> checkValidationException(final String expected) {
+    return new Function<Throwable, Void>() {
+      @Nullable @Override public Void apply(@Nullable Throwable throwable) {
+        assertNotNull("Nothing was thrown", throwable);
+
+        Exception exception = containsCorrectException(throwable);
+
+        assertTrue("Expected to fail at validation, but did not", exception != null);
+        if (expected != null) {
+          StringWriter stringWriter = new StringWriter();
+          PrintWriter printWriter = new PrintWriter(stringWriter);
+          exception.printStackTrace(printWriter);
+          printWriter.flush();
+          String stack = stringWriter.toString();
+          assertTrue(stack, stack.contains(expected));
+        }
+        return null;
+      }
+
+      private boolean isCorrectException(Throwable throwable) {
+        return throwable instanceof SqlValidatorException
+                || throwable instanceof CalciteException;
+      }
+
+      private Exception containsCorrectException(Throwable root) {
+        Throwable currentCause = root;
+        while (currentCause != null) {
+          if (isCorrectException(currentCause)) {
+            return (Exception) currentCause;
+          }
+          currentCause = currentCause.getCause();
+        }
         return null;
       }
     };
@@ -1293,6 +1333,32 @@ public class CalciteAssert {
         throw new RuntimeException(
             "exception while executing [" + sql + "]", e);
       }
+    }
+
+    /**
+     * Used to check whether a sql statement fails at the SQL Validation phase. More formally,
+     * it checks if a {@link SqlValidatorException} or {@link CalciteException} was thrown.
+     *
+     * @param optionalMessage An optional message to check for in the output stacktrace
+     * */
+    public AssertQuery failsAtValidation(String optionalMessage) {
+      try {
+        assertQuery(createConnection(), sql, limit, materializationsEnabled,
+                hooks, null, null,
+                checkValidationException(optionalMessage));
+        return this;
+      } catch (Exception e) {
+        throw new RuntimeException(
+                "exception while executing [" + sql + "]", e);
+      }
+    }
+
+    /**
+     * Utility method so that one doesn't have to call
+     * {@link #failsAtValidation} with {@code null}
+     * */
+    public AssertQuery failsAtValidation() {
+      return failsAtValidation(null);
     }
 
     public AssertQuery runs() {

@@ -290,7 +290,7 @@ public class PlannerImpl implements Planner {
         CalciteSchema.from(rootSchema),
         parserConfig.caseSensitive(),
         CalciteSchema.from(defaultSchema).path(null),
-        typeFactory);
+        typeFactory, null);
   }
 
   private static SchemaPlus rootSchema(SchemaPlus schema) {

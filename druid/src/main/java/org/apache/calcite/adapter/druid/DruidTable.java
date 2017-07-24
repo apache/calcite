@@ -16,10 +16,12 @@
  */
 package org.apache.calcite.adapter.druid;
 
+import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.interpreter.BindableConvention;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.logical.LogicalTableScan;
 import org.apache.calcite.rel.type.RelDataType;
@@ -28,6 +30,10 @@ import org.apache.calcite.rel.type.RelProtoDataType;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.TranslatableTable;
 import org.apache.calcite.schema.impl.AbstractTable;
+import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlSelectKeyword;
 import org.apache.calcite.sql.type.SqlTypeName;
 
 import com.google.common.base.Preconditions;
@@ -35,6 +41,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -54,6 +61,8 @@ public class DruidTable extends AbstractTable implements TranslatableTable {
   final ImmutableSet<String> metricFieldNames;
   final ImmutableList<LocalInterval> intervals;
   final String timestampFieldName;
+  final ImmutableMap<String, List<ComplexMetric>> complexMetrics;
+  final ImmutableMap<String, SqlTypeName> allFields;
 
   /**
    * Creates a Druid table.
@@ -67,7 +76,8 @@ public class DruidTable extends AbstractTable implements TranslatableTable {
    */
   public DruidTable(DruidSchema schema, String dataSource,
       RelProtoDataType protoRowType, Set<String> metricFieldNames,
-      String timestampFieldName, List<LocalInterval> intervals) {
+      String timestampFieldName, List<LocalInterval> intervals,
+      Map<String, List<ComplexMetric>> complexMetrics, Map<String, SqlTypeName> allFields) {
     this.timestampFieldName = Preconditions.checkNotNull(timestampFieldName);
     this.schema = Preconditions.checkNotNull(schema);
     this.dataSource = Preconditions.checkNotNull(dataSource);
@@ -75,6 +85,10 @@ public class DruidTable extends AbstractTable implements TranslatableTable {
     this.metricFieldNames = ImmutableSet.copyOf(metricFieldNames);
     this.intervals = intervals != null ? ImmutableList.copyOf(intervals)
         : ImmutableList.of(DEFAULT_INTERVAL);
+    this.complexMetrics = complexMetrics == null ? ImmutableMap.<String, List<ComplexMetric>>of()
+            : ImmutableMap.copyOf(complexMetrics);
+    this.allFields = allFields == null ? ImmutableMap.<String, SqlTypeName>of()
+            : ImmutableMap.copyOf(allFields);
   }
 
   /** Creates a {@link DruidTable}
@@ -94,15 +108,93 @@ public class DruidTable extends AbstractTable implements TranslatableTable {
   static Table create(DruidSchema druidSchema, String dataSourceName,
       List<LocalInterval> intervals, Map<String, SqlTypeName> fieldMap,
       Set<String> metricNameSet, String timestampColumnName,
-      DruidConnectionImpl connection) {
+      DruidConnectionImpl connection, Map<String, List<ComplexMetric>> complexMetrics) {
     if (connection != null) {
-      connection.metadata(dataSourceName, timestampColumnName, intervals, fieldMap, metricNameSet);
+      connection.metadata(dataSourceName, timestampColumnName, intervals,
+                          fieldMap, metricNameSet, complexMetrics);
     }
     final ImmutableMap<String, SqlTypeName> fields =
         ImmutableMap.copyOf(fieldMap);
     return new DruidTable(druidSchema, dataSourceName,
         new MapRelProtoDataType(fields), ImmutableSet.copyOf(metricNameSet),
-        timestampColumnName, intervals);
+        timestampColumnName, intervals, complexMetrics, fieldMap);
+  }
+
+  /**
+   * Returns the appropriate {@link ComplexMetric} that is mapped from the given <code>alias</code>
+   * if it exists, and is used in the expected context with the given {@link AggregateCall}.
+   * Otherwise returns <code>null</code>.
+   * */
+  public ComplexMetric resolveComplexMetric(String alias, AggregateCall call) {
+    List<ComplexMetric> potentialMetrics = getComplexMetricsFrom(alias);
+
+    // It's possible that multiple complex metrics match the AggregateCall,
+    // but for now we only return the first that matches
+    for (ComplexMetric complexMetric : potentialMetrics) {
+      if (complexMetric.canBeUsed(call)) {
+        return complexMetric;
+      }
+    }
+
+    return null;
+  }
+
+  @Override public boolean isRolledUp(String column) {
+    // The only rolled up columns we care about are Complex Metrics (aka sketches).
+    // But we also need to check if this column name is a dimension
+    return complexMetrics.get(column) != null
+            && allFields.get(column) != SqlTypeName.VARCHAR;
+  }
+
+  @Override public boolean rolledUpColumnValidInsideAgg(String column, SqlCall call,
+                                                        SqlNode parent,
+                                                        CalciteConnectionConfig config) {
+    assert isRolledUp(column);
+    // Our rolled up columns are only allowed in COUNT(DISTINCT ...) aggregate functions.
+    // We only allow this when approximate results are acceptable.
+    return config.approximateDistinctCount()
+            && isCountDistinct(call)
+            && call.getOperandList().size() == 1 // for COUNT(a_1, a_2, ... a_n). n should be 1
+            && isValidParentKind(parent);
+  }
+
+  private boolean isValidParentKind(SqlNode node) {
+    return node.getKind() == SqlKind.SELECT
+            || node.getKind() == SqlKind.FILTER
+            || isSupportedPostAggOperation(node.getKind());
+  }
+
+  private boolean isCountDistinct(SqlCall call) {
+    return call.getKind() == SqlKind.COUNT
+            && call.getFunctionQuantifier() != null
+            && call.getFunctionQuantifier().getValue() == SqlSelectKeyword.DISTINCT;
+  }
+
+  // Post aggs support +, -, /, * so we should allow the parent of a count distinct to be any one of
+  // those.
+  private boolean isSupportedPostAggOperation(SqlKind kind) {
+    return kind == SqlKind.PLUS
+            || kind == SqlKind.MINUS
+            || kind == SqlKind.DIVIDE
+            || kind == SqlKind.TIMES;
+  }
+
+  /**
+   * Returns the list of {@link ComplexMetric} that match the given <code>alias</code> if it exists,
+   * otherwise returns an empty list, never <code>null</code>
+   * */
+  public List<ComplexMetric> getComplexMetricsFrom(String alias) {
+    return complexMetrics.containsKey(alias)
+            ? complexMetrics.get(alias)
+            : new ArrayList<ComplexMetric>();
+  }
+
+  /**
+   * Returns true if and only if the given <code>alias</code> is a reference to a registered
+   * {@link ComplexMetric}
+   * */
+  public boolean isComplexMetric(String alias) {
+    return complexMetrics.get(alias) != null;
   }
 
   public RelDataType getRowType(RelDataTypeFactory typeFactory) {

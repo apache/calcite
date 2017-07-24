@@ -119,6 +119,30 @@ public class DruidAdapterIT {
     };
   }
 
+  /**
+   * Creates a query against FOODMART with approximate parameters
+   * */
+  private CalciteAssert.AssertQuery foodmartApprox(String sql) {
+    return approxQuery(FOODMART, sql);
+  }
+
+  /**
+   * Creates a query against WIKI with approximate parameters
+   * */
+  private CalciteAssert.AssertQuery wikiApprox(String sql) {
+    return approxQuery(WIKI, sql);
+  }
+
+  private CalciteAssert.AssertQuery approxQuery(URL url, String sql) {
+    return CalciteAssert.that()
+            .enable(enabled())
+            .with(ImmutableMap.of("model", url.getPath()))
+            .with(CalciteConnectionProperty.APPROXIMATE_DISTINCT_COUNT.camelName(), true)
+            .with(CalciteConnectionProperty.APPROXIMATE_TOP_N.camelName(), true)
+            .with(CalciteConnectionProperty.APPROXIMATE_DECIMAL.camelName(), true)
+            .query(sql);
+  }
+
   /** Creates a query against a data set given by a map. */
   private CalciteAssert.AssertQuery sql(String sql, URL url) {
     return CalciteAssert.that()
@@ -755,7 +779,7 @@ public class DruidAdapterIT {
   /** Tests a query that contains no GROUP BY and is therefore executed as a
    * Druid "select" query. */
   @Test public void testFilterSortDesc() {
-    final String sql = "select * from \"foodmart\"\n"
+    final String sql = "select \"product_name\" from \"foodmart\"\n"
         + "where \"product_id\" BETWEEN '1500' AND '1502'\n"
         + "order by \"state_province\" desc, \"product_id\"";
     final String druidQuery = "{'queryType':'select','dataSource':'foodmart',"
@@ -763,20 +787,8 @@ public class DruidAdapterIT {
         + "'filter':{'type':'and','fields':["
         + "{'type':'bound','dimension':'product_id','lower':'1500','lowerStrict':false,'ordering':'lexicographic'},"
         + "{'type':'bound','dimension':'product_id','upper':'1502','upperStrict':false,'ordering':'lexicographic'}]},"
-        + "'dimensions':['product_id','brand_name','product_name','SKU','SRP','gross_weight','net_weight',"
-        + "'recyclable_package','low_fat','units_per_case','cases_per_pallet','shelf_width','shelf_height',"
-        + "'shelf_depth','product_class_id','product_subcategory','product_category','product_department',"
-        + "'product_family','customer_id','account_num','lname','fname','mi','address1','address2','address3',"
-        + "'address4','city','state_province','postal_code','country','customer_region_id','phone1','phone2',"
-        + "'birthdate','marital_status','yearly_income','gender','total_children','num_children_at_home',"
-        + "'education','date_accnt_opened','member_card','occupation','houseowner','num_cars_owned',"
-        + "'fullname','promotion_id','promotion_district_id','promotion_name','media_type','cost','start_date',"
-        + "'end_date','store_id','store_type','region_id','store_name','store_number','store_street_address',"
-        + "'store_city','store_state','store_postal_code','store_country','store_manager','store_phone',"
-        + "'store_fax','first_opened_date','last_remodel_date','store_sqft','grocery_sqft','frozen_sqft',"
-        + "'meat_sqft','coffee_bar','video_store','salad_bar','prepared_food','florist','time_id','the_day',"
-        + "'the_month','the_year','day_of_month','week_of_year','month_of_year','quarter','fiscal_period'],"
-        + "'metrics':['unit_sales','store_sales','store_cost'],'granularity':'all',"
+        + "'dimensions':['product_name','state_province','product_id'],"
+        + "'metrics':[],'granularity':'all',"
         + "'pagingSpec':{'threshold':16384,'fromNext':true},'context':{'druid.query.fetch':false}}";
     sql(sql)
         .limit(4)
@@ -801,29 +813,16 @@ public class DruidAdapterIT {
 
   /** As {@link #testFilterSortDesc()} but the bounds are numeric. */
   @Test public void testFilterSortDescNumeric() {
-    final String sql = "select * from \"foodmart\"\n"
+    final String sql = "select \"product_name\" from \"foodmart\"\n"
         + "where \"product_id\" BETWEEN 1500 AND 1502\n"
         + "order by \"state_province\" desc, \"product_id\"";
-    final String druidQuery = "{'queryType':'select','dataSource':'foodmart',"
-        + "'descending':false,'intervals':['1900-01-09T00:00:00.000/2992-01-10T00:00:00.000'],"
-        + "'filter':{'type':'and','fields':["
-        + "{'type':'bound','dimension':'product_id','lower':'1500','lowerStrict':false,'ordering':'numeric'},"
-        + "{'type':'bound','dimension':'product_id','upper':'1502','upperStrict':false,'ordering':'numeric'}]},"
-        + "'dimensions':['product_id','brand_name','product_name','SKU','SRP','gross_weight','net_weight',"
-        + "'recyclable_package','low_fat','units_per_case','cases_per_pallet','shelf_width','shelf_height',"
-        + "'shelf_depth','product_class_id','product_subcategory','product_category','product_department',"
-        + "'product_family','customer_id','account_num','lname','fname','mi','address1','address2','address3',"
-        + "'address4','city','state_province','postal_code','country','customer_region_id','phone1','phone2',"
-        + "'birthdate','marital_status','yearly_income','gender','total_children','num_children_at_home',"
-        + "'education','date_accnt_opened','member_card','occupation','houseowner','num_cars_owned',"
-        + "'fullname','promotion_id','promotion_district_id','promotion_name','media_type','cost','start_date',"
-        + "'end_date','store_id','store_type','region_id','store_name','store_number','store_street_address',"
-        + "'store_city','store_state','store_postal_code','store_country','store_manager','store_phone',"
-        + "'store_fax','first_opened_date','last_remodel_date','store_sqft','grocery_sqft','frozen_sqft',"
-        + "'meat_sqft','coffee_bar','video_store','salad_bar','prepared_food','florist','time_id','the_day',"
-        + "'the_month','the_year','day_of_month','week_of_year','month_of_year','quarter','fiscal_period'],"
-        + "'metrics':['unit_sales','store_sales','store_cost'],'granularity':'all',"
-        + "'pagingSpec':{'threshold':16384,'fromNext':true},'context':{'druid.query.fetch':false}}";
+    final String druidQuery = "{'queryType':'select','dataSource':'foodmart','descending':false,"
+            + "'intervals':['1900-01-09T00:00:00.000/2992-01-10T00:00:00.000'],'filter':{'type':"
+            + "'and','fields':[{'type':'bound','dimension':'product_id','lower':'1500',"
+            + "'lowerStrict':false,'ordering':'numeric'},{'type':'bound','dimension':'product_id',"
+            + "'upper':'1502','upperStrict':false,'ordering':'numeric'}]},'dimensions':"
+            + "['product_name','state_province','product_id'],'metrics':[],'granularity':'all','pagingSpec':"
+            + "{'threshold':16384,'fromNext':true},'context':{'druid.query.fetch':false}}";
     sql(sql)
         .limit(4)
         .returns(
@@ -847,30 +846,13 @@ public class DruidAdapterIT {
 
   /** Tests a query whose filter removes all rows. */
   @Test public void testFilterOutEverything() {
-    final String sql = "select * from \"foodmart\"\n"
+    final String sql = "select \"product_name\" from \"foodmart\"\n"
         + "where \"product_id\" = -1";
     final String druidQuery = "{'queryType':'select','dataSource':'foodmart',"
         + "'descending':false,'intervals':['1900-01-09T00:00:00.000/2992-01-10T00:00:00.000'],"
         + "'filter':{'type':'selector','dimension':'product_id','value':'-1'},"
-        + "'dimensions':['product_id','brand_name','product_name','SKU','SRP',"
-        + "'gross_weight','net_weight','recyclable_package','low_fat','units_per_case',"
-        + "'cases_per_pallet','shelf_width','shelf_height','shelf_depth',"
-        + "'product_class_id','product_subcategory','product_category',"
-        + "'product_department','product_family','customer_id','account_num',"
-        + "'lname','fname','mi','address1','address2','address3','address4',"
-        + "'city','state_province','postal_code','country','customer_region_id',"
-        + "'phone1','phone2','birthdate','marital_status','yearly_income','gender',"
-        + "'total_children','num_children_at_home','education','date_accnt_opened',"
-        + "'member_card','occupation','houseowner','num_cars_owned','fullname',"
-        + "'promotion_id','promotion_district_id','promotion_name','media_type','cost',"
-        + "'start_date','end_date','store_id','store_type','region_id','store_name',"
-        + "'store_number','store_street_address','store_city','store_state',"
-        + "'store_postal_code','store_country','store_manager','store_phone',"
-        + "'store_fax','first_opened_date','last_remodel_date','store_sqft','grocery_sqft',"
-        + "'frozen_sqft','meat_sqft','coffee_bar','video_store','salad_bar','prepared_food',"
-        + "'florist','time_id','the_day','the_month','the_year','day_of_month',"
-        + "'week_of_year','month_of_year','quarter','fiscal_period'],"
-        + "'metrics':['unit_sales','store_sales','store_cost'],'granularity':'all',"
+        + "'dimensions':['product_name'],"
+        + "'metrics':[],'granularity':'all',"
         + "'pagingSpec':{'threshold':16384,'fromNext':true},'context':{'druid.query.fetch':false}}";
     sql(sql)
         .limit(4)
@@ -881,26 +863,13 @@ public class DruidAdapterIT {
   /** As {@link #testFilterSortDescNumeric()} but with a filter that cannot
    * be pushed down to Druid. */
   @Test public void testNonPushableFilterSortDesc() {
-    final String sql = "select * from \"foodmart\"\n"
+    final String sql = "select \"product_name\" from \"foodmart\"\n"
         + "where cast(\"product_id\" as integer) - 1500 BETWEEN 0 AND 2\n"
         + "order by \"state_province\" desc, \"product_id\"";
     final String druidQuery = "{'queryType':'select','dataSource':'foodmart',"
         + "'descending':false,'intervals':['1900-01-09T00:00:00.000/2992-01-10T00:00:00.000'],"
-        + "'dimensions':['product_id','brand_name','product_name','SKU','SRP','gross_weight',"
-        + "'net_weight','recyclable_package','low_fat','units_per_case','cases_per_pallet',"
-        + "'shelf_width','shelf_height','shelf_depth','product_class_id','product_subcategory',"
-        + "'product_category','product_department','product_family','customer_id','account_num',"
-        + "'lname','fname','mi','address1','address2','address3','address4','city','state_province',"
-        + "'postal_code','country','customer_region_id','phone1','phone2','birthdate','marital_status',"
-        + "'yearly_income','gender','total_children','num_children_at_home','education',"
-        + "'date_accnt_opened','member_card','occupation','houseowner','num_cars_owned','fullname',"
-        + "'promotion_id','promotion_district_id','promotion_name','media_type','cost','start_date',"
-        + "'end_date','store_id','store_type','region_id','store_name','store_number','store_street_address',"
-        + "'store_city','store_state','store_postal_code','store_country','store_manager','store_phone',"
-        + "'store_fax','first_opened_date','last_remodel_date','store_sqft','grocery_sqft','frozen_sqft',"
-        + "'meat_sqft','coffee_bar','video_store','salad_bar','prepared_food','florist','time_id','the_day',"
-        + "'the_month','the_year','day_of_month','week_of_year','month_of_year','quarter','fiscal_period'],"
-        + "'metrics':['unit_sales','store_sales','store_cost'],'granularity':'all',"
+        + "'dimensions':['product_id','product_name','state_province'],"
+        + "'metrics':[],'granularity':'all',"
         + "'pagingSpec':{'threshold':16384,'fromNext':true},'context':{'druid.query.fetch':false}}";
     sql(sql)
         .limit(4)
@@ -2279,7 +2248,7 @@ public class DruidAdapterIT {
   }
 
   /**
-   * Turn on now count(distinct ) will get pushed after CALC-1853
+   * Turn on now count(distinct )
    */
   @Test public void testHyperUniquePostAggregator() {
     final String sqlQuery = "select \"store_state\", sum(\"store_cost\") / count(distinct "
@@ -2290,11 +2259,7 @@ public class DruidAdapterIT {
     final String plan = "PLAN=EnumerableInterpreter\n"
         + "  DruidQuery(table=[[foodmart, foodmart]], intervals="
         + "[[1900-01-09T00:00:00.000/2992-01-10T00:00:00.000]], groups=[{63}], ";
-    CalciteAssert.that()
-        .enable(enabled())
-        .with(ImmutableMap.of("model", FOODMART.getPath()))
-        .with(CalciteConnectionProperty.APPROXIMATE_DISTINCT_COUNT.camelName(), true)
-        .query(sqlQuery)
+    foodmartApprox(sqlQuery)
         .runs()
         .explainContains(plan)
         .queryContains(druidChecker(postAggString));
@@ -2958,11 +2923,11 @@ public class DruidAdapterIT {
    * acceptable
    * */
   @Test public void testDistinctCountWhenApproxResultsAccepted() {
-    String sql = "select count(distinct \"customer_id\") from \"foodmart\"";
+    String sql = "select count(distinct \"store_state\") from \"foodmart\"";
     String expectedSubExplain = "DruidQuery(table=[[foodmart, foodmart]], intervals=[[1900-01-09T00"
-        + ":00:00.000/2992-01-10T00:00:00.000]], groups=[{}], aggs=[[COUNT(DISTINCT $20)]])";
+        + ":00:00.000/2992-01-10T00:00:00.000]], groups=[{}], aggs=[[COUNT(DISTINCT $63)]])";
     String expectedAggregate = "{'type':'cardinality','name':"
-        + "'EXPR$0','fieldNames':['customer_id']}";
+        + "'EXPR$0','fieldNames':['store_state']}";
 
     testCountWithApproxDistinct(true, sql, expectedSubExplain, expectedAggregate);
   }
@@ -2972,11 +2937,11 @@ public class DruidAdapterIT {
    * are not acceptable
    */
   @Test public void testDistinctCountWhenApproxResultsNotAccepted() {
-    String sql = "select count(distinct \"customer_id\") from \"foodmart\"";
+    String sql = "select count(distinct \"store_state\") from \"foodmart\"";
     String expectedSubExplain = "  BindableAggregate(group=[{}], EXPR$0=[COUNT($0)])\n"
         + "    DruidQuery(table=[[foodmart, foodmart]], "
         + "intervals=[[1900-01-09T00:00:00.000/2992-01-10T00:00:00.000]], "
-        + "groups=[{20}], aggs=[[]])";
+        + "groups=[{63}], aggs=[[]])";
 
     testCountWithApproxDistinct(false, sql, expectedSubExplain);
   }
@@ -3026,11 +2991,11 @@ public class DruidAdapterIT {
    */
   @Test public void testCountOnMetricRenamed() {
     String sql = "select \"B\", count(\"A\") from "
-        + "(select \"unit_sales\" as \"A\", \"customer_id\" as \"B\" from \"foodmart\") "
+        + "(select \"unit_sales\" as \"A\", \"store_state\" as \"B\" from \"foodmart\") "
         + "group by \"B\"";
     String expectedSubExplain = "  BindableAggregate(group=[{0}], EXPR$1=[COUNT($1)])\n"
         + "    DruidQuery(table=[[foodmart, foodmart]], intervals=[[1900-01-09T00:00:00.000"
-        + "/2992-01-10T00:00:00.000]], projects=[[$20, $89]])\n";
+        + "/2992-01-10T00:00:00.000]], projects=[[$63, $89]])\n";
 
     testCountWithApproxDistinct(true, sql, expectedSubExplain);
     testCountWithApproxDistinct(false, sql, expectedSubExplain);
@@ -3038,11 +3003,11 @@ public class DruidAdapterIT {
 
   @Test public void testDistinctCountOnMetricRenamed() {
     String sql = "select \"B\", count(distinct \"A\") from "
-        + "(select \"unit_sales\" as \"A\", \"customer_id\" as \"B\" from \"foodmart\") "
+        + "(select \"unit_sales\" as \"A\", \"store_state\" as \"B\" from \"foodmart\") "
         + "group by \"B\"";
     String expectedSubExplain = "  BindableAggregate(group=[{0}], EXPR$1=[COUNT($1)])\n"
         + "    DruidQuery(table=[[foodmart, foodmart]], intervals=[[1900-01-09T00:00:"
-        + "00.000/2992-01-10T00:00:00.000]], projects=[[$20, $89]], groups=[{0, 1}], "
+        + "00.000/2992-01-10T00:00:00.000]], projects=[[$63, $89]], groups=[{0, 1}], "
         + "aggs=[[]])";
 
     testCountWithApproxDistinct(true, sql, expectedSubExplain);
@@ -3063,6 +3028,141 @@ public class DruidAdapterIT {
         .runs()
         .explainContains(expectedExplain)
         .queryContains(druidChecker(expectedDruidQuery));
+  }
+
+  /**
+   * Tests the use of count(distinct ...) on a complex metric column in SELECT
+   * */
+  @Test public void testCountDistinctOnComplexColumn() {
+    // Because approximate distinct count has not been enabled
+    sql("select count(distinct \"user_id\") from \"wiki\"", WIKI)
+            .failsAtValidation("Rolled up column 'user_id' is not allowed in COUNT");
+
+    foodmartApprox("select count(distinct \"customer_id\") from \"foodmart\"")
+            // customer_id gets transformed into it's actual underlying sketch column,
+            // customer_id_ts. The thetaSketch aggregation is used to compute the count distinct.
+            .queryContains(
+                    druidChecker("{'queryType':'timeseries','dataSource':"
+                            + "'foodmart','descending':false,'granularity':'all','aggregations':[{'type':"
+                            + "'thetaSketch','name':'EXPR$0','fieldName':'customer_id_ts'}],"
+                            + "'intervals':['1900-01-09T00:00:00.000/2992-01-10T00:00:00.000'],"
+                            + "'context':{'skipEmptyBuckets':true}}"))
+            .returnsUnordered("EXPR$0=5581");
+
+    foodmartApprox("select sum(\"store_sales\"), "
+            + "count(distinct \"customer_id\") filter (where \"store_state\" = 'CA') "
+            + "from \"foodmart\" where \"the_month\" = 'October'")
+            // Check that filtered aggregations work correctly
+            .queryContains(
+                    druidChecker("{'type':'filtered','filter':"
+                            + "{'type':'selector','dimension':'store_state','value':'CA'},'aggregator':"
+                            + "{'type':'thetaSketch','name':'EXPR$1','fieldName':'customer_id_ts'}}]"))
+            .returnsUnordered("EXPR$0=42342.27003854513; EXPR$1=459");
+  }
+
+  /**
+   * Tests the use of other aggregations with complex columns
+   * */
+  @Test public void testAggregationsWithComplexColumns() {
+    wikiApprox("select count(\"user_id\") from \"wiki\"")
+            .failsAtValidation("Rolled up column 'user_id' is not allowed in COUNT");
+
+    wikiApprox("select sum(\"user_id\") from \"wiki\"")
+            .failsAtValidation("Cannot apply 'SUM' to arguments of type "
+                    + "'SUM(<VARBINARY>)'. Supported form(s): 'SUM(<NUMERIC>)'");
+
+    wikiApprox("select avg(\"user_id\") from \"wiki\"")
+            .failsAtValidation("Cannot apply 'AVG' to arguments of type "
+                    + "'AVG(<VARBINARY>)'. Supported form(s): 'AVG(<NUMERIC>)'");
+
+    wikiApprox("select max(\"user_id\") from \"wiki\"")
+            .failsAtValidation("Rolled up column 'user_id' is not allowed in MAX");
+
+    wikiApprox("select min(\"user_id\") from \"wiki\"")
+            .failsAtValidation("Rolled up column 'user_id' is not allowed in MIN");
+  }
+
+  /**
+   * Test post aggregation support with +, -, /, * operators
+   * */
+  @Test public void testPostAggregationWithComplexColumns() {
+    foodmartApprox("select "
+            + "(count(distinct \"customer_id\") * 2) + "
+            + "count(distinct \"customer_id\") - "
+            + "(3 * count(distinct \"customer_id\")) "
+            + "from \"foodmart\"")
+            .queryContains(
+                    druidChecker("'aggregations':[{'type':'thetaSketch','name':'$f0',"
+                            + "'fieldName':'customer_id_ts'}],'postAggregations':[{'type':"
+                            + "'arithmetic','name':'postagg#0','fn':'-','fields':[{'type':"
+                            + "'arithmetic','name':'','fn':'+','fields':[{'type':'arithmetic','"
+                            + "name':'','fn':'*','fields':[{'type':'thetaSketchEstimate','name':"
+                            + "'','field':{'type':'fieldAccess','name':'','fieldName':'$f0'}},"
+                            + "{'type':'constant','name':'','value':2.0}]},{'type':"
+                            + "'thetaSketchEstimate','name':'','field':{'type':'fieldAccess',"
+                            + "'name':'','fieldName':'$f0'}}]},{'type':'arithmetic','name':'',"
+                            + "'fn':'*','fields':[{'type':'constant','name':'','value':3.0},"
+                            + "{'type':'thetaSketchEstimate','name':'','field':{'type':"
+                            + "'fieldAccess','name':'','fieldName':'$f0'}}]}]}]"))
+            .returnsUnordered("EXPR$0=0");
+
+    foodmartApprox("select "
+            + "\"the_month\" as \"month\", "
+            + "sum(\"store_sales\") / count(distinct \"customer_id\") as \"avg$\" "
+            + "from \"foodmart\" group by \"the_month\"")
+            .queryContains(
+                    druidChecker("'aggregations':[{'type':'doubleSum','name':"
+                            + "'$f1','fieldName':'store_sales'},{'type':'thetaSketch','name':'$f2',"
+                            + "'fieldName':'customer_id_ts'}],'postAggregations':[{'type':'arithmetic',"
+                            + "'name':'postagg#0','fn':'quotient','fields':[{'type':'fieldAccess','name':"
+                            + "'','fieldName':'$f1'},{'type':'thetaSketchEstimate','name':'','field':"
+                            + "{'type':'fieldAccess','name':'','fieldName':'$f2'}}]}]"))
+            .returnsUnordered(
+                    "month=January; avg$=32.621555448603154",
+                    "month=February; avg$=33.102020332456796",
+                    "month=March; avg$=33.84970980632612",
+                    "month=April; avg$=32.55751708428246",
+                    "month=May; avg$=32.426177288475564",
+                    "month=June; avg$=33.93093597960329",
+                    "month=July; avg$=34.36859022315321",
+                    "month=August; avg$=32.81181751598012",
+                    "month=September; avg$=33.32773288973384",
+                    "month=October; avg$=32.74730822215777",
+                    "month=November; avg$=34.51727744987063",
+                    "month=December; avg$=33.62788702774498");
+
+    wikiApprox("select (count(distinct \"user_id\") + 100) - "
+            + "(count(distinct \"user_id\") * 2) from \"wiki\"")
+            .queryContains(
+                    druidChecker("'aggregations':[{'type':'hyperUnique','name':'$f0',"
+                            + "'fieldName':'user_unique'}],'postAggregations':[{'type':"
+                            + "'arithmetic','name':'postagg#0','fn':'-','fields':[{'type':"
+                            + "'arithmetic','name':'','fn':'+','fields':[{'type':"
+                            + "'hyperUniqueCardinality','name':'','fieldName':'$f0'},"
+                            + "{'type':'constant','name':'','value':100.0}]},{'type':"
+                            + "'arithmetic','name':'','fn':'*','fields':[{'type':"
+                            + "'hyperUniqueCardinality','name':'','fieldName':'$f0'},"
+                            + "{'type':'constant','name':'','value':2.0}]}]}]"))
+            .returnsUnordered("EXPR$0=-10590");
+  }
+
+  /**
+   * Test to make sure that if a complex metric is also a dimension, then
+   * {@link org.apache.calcite.adapter.druid.DruidTable} should allow it to be used like any other
+   * column.
+   * */
+  @Test public void testComplexMetricAlsoDimension() {
+    foodmartApprox("select \"customer_id\" from \"foodmart\"")
+            .runs();
+
+    foodmartApprox("select count(distinct \"the_month\"), \"customer_id\" "
+            + "from \"foodmart\" group by \"customer_id\"")
+            .queryContains(
+                    druidChecker("{'queryType':'groupBy','dataSource':'foodmart',"
+                            + "'granularity':'all','dimensions':[{'type':'default','dimension':"
+                            + "'customer_id'}],'limitSpec':{'type':'default'},'aggregations':[{"
+                            + "'type':'cardinality','name':'EXPR$0','fieldNames':['the_month']}],"
+                            + "'intervals':['1900-01-09T00:00:00.000/2992-01-10T00:00:00.000']}"));
   }
 }
 

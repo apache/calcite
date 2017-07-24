@@ -132,7 +132,15 @@
               {
                 "name": "store_cost",
                 "type": "double"
+              },
+              {
+                "name" : "customer_id_ts",
+                "type" : "thetaSketch",
+                "fieldName" : "customer_id"
               }
+            ],
+            "complexMetrics" : [
+              "customer_id"
             ]
           }
         }

@@ -78,7 +78,6 @@ A basic example of a model file is given below:
               "page",
               "regionIsoCode",
               "regionName",
-              "user"
             ],
             "metrics": [
               {
@@ -103,8 +102,11 @@ A basic example of a model file is given below:
               {
                 "name" : "user_unique",
                 "type" : "hyperUnique",
-                "fieldName" : "user"
+                "fieldName" : "user_id"
               }
+            ],
+            "complexMetrics" : [
+              "user_id"
             ]
           }
         }
@@ -164,6 +166,18 @@ That plan shows that Calcite was able to push down the `GROUP BY`
 part of the query to Druid, including the `COUNT(*)` function,
 but not the `ORDER BY ... LIMIT`. (We plan to lift this restriction;
 see [[CALCITE-1206](https://issues.apache.org/jira/browse/CALCITE-1206)].)
+
+# Complex Metrics
+Druid has special metrics that produce quick but approximate results.
+Currently there are two types:
+
+* `hyperUnique` - HyperLogLog data sketch used to estimate the cardinality of a dimension
+* `thetaSketch` - Theta sketch used to also estimate the cardinality of a dimension,
+  but can be used to perform set operations as well.
+
+In the model definition, there is an array of Strings called `complexMetrics` that declares
+the alias for each complex metric defined. The alias is used in SQL, but it's real column name
+is used when Calcite generates the JSON query for druid.
 
 # Foodmart data set
 

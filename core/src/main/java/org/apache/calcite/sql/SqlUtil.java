@@ -874,12 +874,10 @@ public abstract class SqlUtil {
   /** If a node is "AS", returns the underlying expression; otherwise returns
    * the node. */
   public static SqlNode stripAs(SqlNode node) {
-    switch (node.getKind()) {
-    case AS:
+    if (node != null && node.getKind() == SqlKind.AS) {
       return ((SqlCall) node).operand(0);
-    default:
-      return node;
     }
+    return node;
   }
 
   /** Returns a list of ancestors of {@code predicate} within a given

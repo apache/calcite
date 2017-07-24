@@ -412,7 +412,8 @@ public class TraitPropagationTest {
           new CalciteCatalogReader(prepareContext.getRootSchema(),
               prepareContext.config().caseSensitive(),
               prepareContext.getDefaultSchemaPath(),
-              typeFactory);
+              typeFactory,
+              prepareContext.config());
     final RexBuilder rexBuilder = new RexBuilder(typeFactory);
     final RelOptPlanner planner = new VolcanoPlanner(config.getCostFactory(),
         config.getContext());
