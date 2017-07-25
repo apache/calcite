@@ -39,6 +39,16 @@ The OS adapter launches processes, and is potentially a security loop-hole.
 It is included in Calcite's "plus" module, which is not enabled by default.
 You must think carefully before enabling it in a security-sensitive situation.
 
+# Compatibility
+
+We try to support all tables on every operating system, and to make sure that
+the tables have the same columns. But we rely heavily on operating system
+commands, and these differ widely. So:
+
+* These commands only work on Linux and macOS (not Windows, even with Cygwin)
+* `vmstat` has very different columns between Linux and macOS
+* `files` and `ps` have the same column names but semantics differ
+
 # A simple example
 
 Every bash hacker knows that to find the 3 largest files you type
@@ -76,11 +86,12 @@ care. Often adding a back-slash will suffice.
 # Tables and commands
 
 The OS adapter contains the following tables:
-* `du` - Disk usage
-* `ps` - Processes
+* `du` - Disk usage (based on `du` command)
+* `ps` - Processes (based on `ps` command)
 * `stdin` - Standard input
 * `files` - Files (based on the `find` command)
 * `git_commits` - Git commits (based on `git log`)
+* `vmstat` - Virtual memory (based on `vmstat` command)
 
 Most tables are implemented as views on top of table functions.
 
@@ -113,6 +124,18 @@ daemon
 {% endhighlight %}
 
 The `ps.` qualifier is necessary because USER is a SQL reserved word.
+
+# Example: vmstat
+
+{% highlight bash %}
+$ ./sqlsh -o mysql select \* from vmstat
++--------+--------+----------+----------+----------+-----------+---------+---------+-------+-------+-----------+-----------+--------+--------+--------+--------+--------+
+| proc_r | proc_b | mem_swpd | mem_free | mem_buff | mem_cache | swap_si | swap_so | io_bi | io_bo | system_in | system_cs | cpu_us | cpu_sy | cpu_id | cpu_wa | cpu_st |
++--------+--------+----------+----------+----------+-----------+---------+---------+-------+-------+-----------+-----------+--------+--------+--------+--------+--------+
+|     12 |      0 |    54220 |  5174424 |   402180 |   4402196 |       0 |       0 |    15 |    35 |         3 |         2 |      7 |      1 |     92 |      0 |      0 |
++--------+--------+----------+----------+----------+-----------+---------+---------+-------+-------+-----------+-----------+--------+--------+--------+--------+--------+
+(1 row)
+{% endhighlight %}
 
 ## Example: explain
 

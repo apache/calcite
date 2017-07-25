@@ -54,6 +54,7 @@ import static org.junit.Assert.fail;
  *   <li>./sqlsh select \* from git_commits
  *   <li>./sqlsh select \* from ps
  *   <li>(echo cats; echo and dogs) | ./sqlsh select \* from stdin
+ *   <li>./sqlsh select \* from vmstat
  * </ul>
  */
 public class OsAdapterTest {
@@ -162,6 +163,26 @@ public class OsAdapterTest {
     final String q = "select author from git_commits\n"
         + "group by 1 order by count(*) desc limit 1";
     sql(q).returnsUnordered("author=Julian Hyde <julianhyde@gmail.com>");
+  }
+
+  @Test public void testVmstat() {
+    sql("select * from vmstat")
+        .returns(
+            new Function<ResultSet, Void>() {
+              public Void apply(ResultSet r) {
+                try {
+                  assertThat(r.next(), is(true));
+                  final int c = r.getMetaData().getColumnCount();
+                  for (int i = 0; i < c; i++) {
+                    assertThat(r.getLong(i + 1), notNullValue());
+                    assertThat(r.wasNull(), is(false));
+                  }
+                  return null;
+                } catch (SQLException e) {
+                  throw new RuntimeException(e);
+                }
+              }
+            });
   }
 
   @Test public void testStdin() throws SQLException {

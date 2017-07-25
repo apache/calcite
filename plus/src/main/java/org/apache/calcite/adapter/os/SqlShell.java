@@ -78,6 +78,7 @@ public class SqlShell {
     addView(b, "git_commits", "select * from table(\"git_commits\"(true))");
     addView(b, "ps", "select * from table(\"ps\"(true))");
     addView(b, "stdin", "select * from table(\"stdin\"(true))");
+    addView(b, "vmstat", "select * from table(\"vmstat\"(true))");
     b.append("       } ],\n")
         .append("       functions: [ {\n");
     addFunction(b, "du", DuTableFunction.class);
@@ -85,6 +86,7 @@ public class SqlShell {
     addFunction(b, "git_commits", GitCommitsTableFunction.class);
     addFunction(b, "ps", PsTableFunction.class);
     addFunction(b, "stdin", StdinTableFunction.class);
+    addFunction(b, "vmstat", VmstatTableFunction.class);
     b.append("       } ]\n")
         .append("     }\n")
         .append("   ]\n")
