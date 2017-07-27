@@ -57,8 +57,9 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 
 /**
- * Tests for user-defined functions (including user-defined table functions
- * and user-defined aggregate functions).
+ * Tests for user-defined functions;
+ * includes user-defined aggregate functions
+ * but user-defined table functions are in {@link TableFunctionTest}.
  *
  * @see Smalls
  */

@@ -28,6 +28,7 @@ import org.apache.calcite.linq4j.tree.ConditionalStatement;
 import org.apache.calcite.linq4j.tree.ConstantExpression;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
+import org.apache.calcite.linq4j.tree.GotoStatement;
 import org.apache.calcite.linq4j.tree.MemberDeclaration;
 import org.apache.calcite.linq4j.tree.MethodCallExpression;
 import org.apache.calcite.linq4j.tree.NewArrayExpression;
@@ -105,7 +106,30 @@ public class EnumerableRelImplementor extends JavaRelImplementor {
 
   public ClassDeclaration implementRoot(EnumerableRel rootRel,
       EnumerableRel.Prefer prefer) {
-    final EnumerableRel.Result result = rootRel.implement(this, prefer);
+    EnumerableRel.Result result = rootRel.implement(this, prefer);
+    switch (prefer) {
+    case ARRAY:
+      if (result.physType.getFormat() == JavaRowFormat.ARRAY
+          && rootRel.getRowType().getFieldCount() == 1) {
+        BlockBuilder bb = new BlockBuilder();
+        Expression e = null;
+        for (Statement statement : result.block.statements) {
+          if (statement instanceof GotoStatement) {
+            e = bb.append("v", ((GotoStatement) statement).expression);
+          } else {
+            bb.add(statement);
+          }
+        }
+        if (e != null) {
+          bb.add(
+              Expressions.return_(null,
+                  Expressions.call(null, BuiltInMethod.SLICE0.method, e)));
+        }
+        result = new EnumerableRel.Result(bb.toBlock(), result.physType,
+            JavaRowFormat.SCALAR);
+      }
+    }
+
     final List<MemberDeclaration> memberDeclarations = new ArrayList<>();
     new TypeRegistrar(memberDeclarations).go(result);
 
