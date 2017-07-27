@@ -90,7 +90,7 @@ public class AvaticaJsonHandler extends AbstractAvaticaHandler {
       HttpServletRequest request, HttpServletResponse response)
       throws IOException, ServletException {
     try (final Context ctx = requestTimer.start()) {
-      if (!isUserPermitted(serverConfig, request, response)) {
+      if (!isUserPermitted(serverConfig, baseRequest, request, response)) {
         LOG.debug("HTTP request from {} is unauthenticated and authentication is required",
             request.getRemoteAddr());
         return;

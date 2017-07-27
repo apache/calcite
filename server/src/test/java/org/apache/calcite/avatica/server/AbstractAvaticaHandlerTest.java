@@ -18,6 +18,7 @@ package org.apache.calcite.avatica.server;
 
 import org.apache.calcite.avatica.remote.AuthenticationType;
 
+import org.eclipse.jetty.server.Request;
 import org.hamcrest.BaseMatcher;
 import org.hamcrest.Description;
 import org.junit.Before;
@@ -44,15 +45,17 @@ public class AbstractAvaticaHandlerTest {
 
   private AbstractAvaticaHandler handler;
   private AvaticaServerConfiguration config;
+  private Request baseRequest;
   private HttpServletRequest request;
   private HttpServletResponse response;
 
   @Before public void setup() throws Exception {
     handler = mock(AbstractAvaticaHandler.class);
     config = mock(AvaticaServerConfiguration.class);
+    baseRequest = new Request(null, null);
     request = mock(HttpServletRequest.class);
     response = mock(HttpServletResponse.class);
-    when(handler.isUserPermitted(config, request, response)).thenCallRealMethod();
+    when(handler.isUserPermitted(config, baseRequest, request, response)).thenCallRealMethod();
   }
 
   @Test public void disallowUnauthenticatedUsers() throws Exception {
@@ -62,8 +65,10 @@ public class AbstractAvaticaHandlerTest {
     when(request.getRemoteUser()).thenReturn(null);
     when(response.getOutputStream()).thenReturn(os);
 
-    assertFalse(handler.isUserPermitted(config, request, response));
+    assertFalse(handler.isUserPermitted(config, baseRequest, request, response));
 
+    // The request should be marked as "handled"
+    assertTrue(baseRequest.isHandled());
     verify(response).setStatus(HttpURLConnection.HTTP_UNAUTHORIZED);
     // Make sure that the serialized ErrorMessage looks reasonable
     verify(os).write(argThat(new BaseMatcher<byte[]>() {
@@ -86,16 +91,16 @@ public class AbstractAvaticaHandlerTest {
   @Test public void allowAuthenticatedUsers() throws Exception {
     when(config.getAuthenticationType()).thenReturn(AuthenticationType.SPNEGO);
     when(request.getRemoteUser()).thenReturn("user1");
-    assertTrue(handler.isUserPermitted(config, request, response));
+    assertTrue(handler.isUserPermitted(config, baseRequest, request, response));
   }
 
   @Test public void allowAllUsersWhenNoAuthenticationIsNeeded() throws Exception {
     when(config.getAuthenticationType()).thenReturn(AuthenticationType.NONE);
     when(request.getRemoteUser()).thenReturn(null);
-    assertTrue(handler.isUserPermitted(config, request, response));
+    assertTrue(handler.isUserPermitted(config, baseRequest, request, response));
 
     when(request.getRemoteUser()).thenReturn("user1");
-    assertTrue(handler.isUserPermitted(config, request, response));
+    assertTrue(handler.isUserPermitted(config, baseRequest, request, response));
   }
 }
 

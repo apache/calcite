@@ -92,7 +92,7 @@ public class AvaticaProtobufHandler extends AbstractAvaticaHandler {
       throws IOException, ServletException {
     try (final Context ctx = this.requestTimer.start()) {
       // Check if the user is OK to proceed.
-      if (!isUserPermitted(serverConfig, request, response)) {
+      if (!isUserPermitted(serverConfig, baseRequest, request, response)) {
         LOG.debug("HTTP request from {} is unauthenticated and authentication is required",
             request.getRemoteAddr());
         return;

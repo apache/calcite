@@ -20,6 +20,7 @@ import org.apache.calcite.avatica.AvaticaSeverity;
 import org.apache.calcite.avatica.remote.AuthenticationType;
 import org.apache.calcite.avatica.remote.Service.ErrorResponse;
 
+import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.handler.AbstractHandler;
 
 import java.io.IOException;
@@ -52,7 +53,7 @@ public abstract class AbstractAvaticaHandler extends AbstractHandler
    * @param response The response to the user's request
    * @return True if request can proceed, false otherwise.
    */
-  public boolean isUserPermitted(AvaticaServerConfiguration serverConfig,
+  public boolean isUserPermitted(AvaticaServerConfiguration serverConfig, Request baseRequest,
       HttpServletRequest request, HttpServletResponse response) throws IOException {
     // Make sure that we drop any unauthenticated users out first.
     if (null != serverConfig) {
@@ -61,6 +62,7 @@ public abstract class AbstractAvaticaHandler extends AbstractHandler
         if (null == remoteUser) {
           response.setStatus(HttpURLConnection.HTTP_UNAUTHORIZED);
           response.getOutputStream().write(UNAUTHORIZED_ERROR.serialize().toByteArray());
+          baseRequest.setHandled(true);
           return false;
         }
       }
