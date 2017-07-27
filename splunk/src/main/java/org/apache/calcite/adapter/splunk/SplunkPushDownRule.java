@@ -395,7 +395,7 @@ public class SplunkPushDownRule
     SqlTypeName litSqlType = literal.getTypeName();
     if (SqlTypeName.NUMERIC_TYPES.contains(litSqlType)) {
       value = literal.getValue().toString();
-    } else if (litSqlType.equals(SqlTypeName.CHAR)) {
+    } else if (litSqlType == SqlTypeName.CHAR) {
       value = ((NlsString) literal.getValue()).getValue();
       if (like) {
         value = value.replaceAll("%", "*");

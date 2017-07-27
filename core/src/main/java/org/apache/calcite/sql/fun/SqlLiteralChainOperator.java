@@ -124,7 +124,7 @@ public class SqlLiteralChainOperator extends SqlSpecialOperator {
     int size = 0;
     for (RelDataType type : opBinding.collectOperandTypes()) {
       size += type.getPrecision();
-      assert type.getSqlTypeName().equals(typeName);
+      assert type.getSqlTypeName() == typeName;
     }
     return opBinding.getTypeFactory().createSqlType(typeName, size);
   }

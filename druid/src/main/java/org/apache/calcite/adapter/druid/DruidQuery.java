@@ -922,7 +922,8 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
       Integer indexSkipGroup = ((RexInputRef) rexNode).getIndex()
           - ((Aggregate) rel).getGroupCount();
       AggregateCall aggCall = ((Aggregate) rel).getAggCallList().get(indexSkipGroup);
-      if (aggCall.isDistinct() && aggCall.getAggregation().getKind().equals(SqlKind.COUNT)) {
+      if (aggCall.isDistinct()
+          && aggCall.getAggregation().getKind() == SqlKind.COUNT) {
         // Will be a hyper unique cardinality column.
         // Use hyperUniqueCardinality post aggregator instead of field Accessor.
         // TODO: Expect to change after CALC-1787
