@@ -17,6 +17,7 @@
 package org.apache.calcite.avatica;
 
 import org.apache.calcite.avatica.remote.AvaticaHttpClientFactoryImpl;
+import org.apache.calcite.avatica.remote.HostnameVerificationConfigurable.HostnameVerification;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -73,7 +74,10 @@ public enum BuiltInConnectionProperty implements ConnectionProperty {
   TRUSTSTORE("truststore", Type.STRING, null, false),
 
   /** Password for the truststore */
-  TRUSTSTORE_PASSWORD("truststore_password", Type.STRING, null, false);
+  TRUSTSTORE_PASSWORD("truststore_password", Type.STRING, null, false),
+
+  HOSTNAME_VERIFICATION("hostname_verification", Type.ENUM, HostnameVerification.STRICT,
+      HostnameVerification.class, false);
 
   private final String camelName;
   private final Type type;

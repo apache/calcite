@@ -80,6 +80,15 @@ public class AvaticaHttpClientFactoryImpl implements AvaticaHttpClientFactory {
       LOG.debug("{} is not capable of SSL/TLS communication", client.getClass().getName());
     }
 
+    // Set the SSL hostname verification if the client supports it
+    if (client instanceof HostnameVerificationConfigurable) {
+      ((HostnameVerificationConfigurable) client)
+          .setHostnameVerification(config.hostnameVerification());
+    } else {
+      LOG.debug("{} is not capable of configurable SSL/TLS hostname verification",
+          client.getClass().getName());
+    }
+
     if (client instanceof UsernamePasswordAuthenticateable) {
       // Shortcircuit quickly if authentication wasn't provided (implies NONE)
       final String authString = config.authentication();

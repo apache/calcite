@@ -31,6 +31,7 @@ import org.apache.http.config.Lookup;
 import org.apache.http.config.RegistryBuilder;
 import org.apache.http.conn.socket.ConnectionSocketFactory;
 import org.apache.http.conn.socket.PlainConnectionSocketFactory;
+import org.apache.http.conn.ssl.NoopHostnameVerifier;
 import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
 import org.apache.http.entity.ByteArrayEntity;
 import org.apache.http.entity.ContentType;
@@ -55,6 +56,7 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.Objects;
 
+import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLContext;
 
 /**
@@ -62,7 +64,7 @@ import javax.net.ssl.SSLContext;
  * sent and received across the wire.
  */
 public class AvaticaCommonsHttpClientImpl implements AvaticaHttpClient,
-    UsernamePasswordAuthenticateable, TrustStoreConfigurable {
+    UsernamePasswordAuthenticateable, TrustStoreConfigurable, HostnameVerificationConfigurable {
   private static final Logger LOG = LoggerFactory.getLogger(AvaticaCommonsHttpClientImpl.class);
 
   // Some basic exposed configurations
@@ -84,6 +86,7 @@ public class AvaticaCommonsHttpClientImpl implements AvaticaHttpClient,
 
   protected File truststore = null;
   protected String truststorePassword = null;
+  protected HostnameVerification hostnameVerification = null;
 
   public AvaticaCommonsHttpClientImpl(URL url) {
     this.host = new HttpHost(url.getHost(), url.getPort(), url.getProtocol());
@@ -97,7 +100,10 @@ public class AvaticaCommonsHttpClientImpl implements AvaticaHttpClient,
       try {
         SSLContext sslcontext = SSLContexts.custom().loadTrustMaterial(
             truststore, truststorePassword.toCharArray()).build();
-        sslFactory = new SSLConnectionSocketFactory(sslcontext);
+
+        final HostnameVerifier verifier = getHostnameVerifier(hostnameVerification);
+
+        sslFactory = new SSLConnectionSocketFactory(sslcontext, verifier);
       } catch (Exception e) {
         throw new RuntimeException(e);
       }
@@ -126,6 +132,30 @@ public class AvaticaCommonsHttpClientImpl implements AvaticaHttpClient,
 
     // A single thread-safe HttpClient, pooling connections via the ConnectionManager
     this.client = HttpClients.custom().setConnectionManager(pool).build();
+  }
+
+  /**
+   * Creates the {@code HostnameVerifier} given the provided {@code verification}.
+   *
+   * @param verification The intended hostname verification action.
+   * @return A verifier for the request verification.
+   * @throws IllegalArgumentException if the provided verification cannot be handled.
+   */
+  HostnameVerifier getHostnameVerifier(HostnameVerification verification) {
+    // Normally, the configuration logic would give us a default of STRICT if it was not
+    // provided by the user. It's easy for us to do a double-check.
+    if (verification == null) {
+      verification = HostnameVerification.STRICT;
+    }
+    switch (verification) {
+    case STRICT:
+      return SSLConnectionSocketFactory.getDefaultHostnameVerifier();
+    case NONE:
+      return NoopHostnameVerifier.INSTANCE;
+    default:
+      throw new IllegalArgumentException("Unhandled HostnameVerification: "
+          + hostnameVerification);
+    }
   }
 
   public byte[] send(byte[] request) {
@@ -214,6 +244,11 @@ public class AvaticaCommonsHttpClientImpl implements AvaticaHttpClient,
           "Truststore is must be an existing, regular file: " + truststore);
     }
     this.truststorePassword = Objects.requireNonNull(password);
+    initializeClient();
+  }
+
+  @Override public void setHostnameVerification(HostnameVerification verification) {
+    this.hostnameVerification = Objects.requireNonNull(verification);
     initializeClient();
   }
 }

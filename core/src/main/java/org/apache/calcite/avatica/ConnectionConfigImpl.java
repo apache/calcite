@@ -17,6 +17,7 @@
 package org.apache.calcite.avatica;
 
 import org.apache.calcite.avatica.remote.AvaticaHttpClientFactory;
+import org.apache.calcite.avatica.remote.HostnameVerificationConfigurable.HostnameVerification;
 import org.apache.calcite.avatica.remote.Service;
 
 import java.io.File;
@@ -103,6 +104,11 @@ public class ConnectionConfigImpl implements ConnectionConfig {
 
   public String truststorePassword() {
     return BuiltInConnectionProperty.TRUSTSTORE_PASSWORD.wrap(properties).getString();
+  }
+
+  public HostnameVerification hostnameVerification() {
+    return BuiltInConnectionProperty.HOSTNAME_VERIFICATION.wrap(properties)
+        .getEnum(HostnameVerification.class);
   }
 
   /** Converts a {@link Properties} object containing (name, value)

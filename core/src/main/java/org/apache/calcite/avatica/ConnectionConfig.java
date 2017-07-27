@@ -17,6 +17,7 @@
 package org.apache.calcite.avatica;
 
 import org.apache.calcite.avatica.remote.AvaticaHttpClientFactory;
+import org.apache.calcite.avatica.remote.HostnameVerificationConfigurable.HostnameVerification;
 import org.apache.calcite.avatica.remote.Service;
 
 import java.io.File;
@@ -53,6 +54,8 @@ public interface ConnectionConfig {
   File truststore();
   /** @see BuiltInConnectionProperty#TRUSTSTORE_PASSWORD */
   String truststorePassword();
+  /** @see BuiltInConnectionProperty#HOSTNAME_VERIFICATION */
+  HostnameVerification hostnameVerification();
 }
 
 // End ConnectionConfig.java
