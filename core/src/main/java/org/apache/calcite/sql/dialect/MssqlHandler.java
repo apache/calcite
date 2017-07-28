@@ -19,8 +19,14 @@ package org.apache.calcite.sql.dialect;
 import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDialect;
+import org.apache.calcite.sql.SqlFunction;
+import org.apache.calcite.sql.SqlFunctionCategory;
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlLiteral;
+import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.SqlWriter;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.type.ReturnTypes;
 
 /**
  * Defines how a SQL parse tree should be unparsed to SQL
@@ -31,21 +37,32 @@ import org.apache.calcite.sql.SqlWriter;
  */
 public class MssqlHandler extends SqlDialect.BaseHandler {
   public static final MssqlHandler INSTANCE = new MssqlHandler();
+  public static final SqlFunction MSSQL_SUBSTRING =
+      new SqlFunction("SUBSTRING", SqlKind.OTHER_FUNCTION,
+          ReturnTypes.ARG0_NULLABLE_VARYING, null, null,
+          SqlFunctionCategory.STRING);
 
   @Override public void unparseCall(SqlWriter writer, SqlCall call,
       int leftPrec, int rightPrec) {
-    switch (call.getKind()) {
-    case FLOOR:
-      if (call.operandCount() != 2) {
-        super.unparseCall(writer, call, leftPrec, rightPrec);
-        return;
+    if (call.getOperator() == SqlStdOperatorTable.SUBSTRING) {
+      if (call.operandCount() != 3) {
+        throw new IllegalArgumentException("MSSQL SUBSTRING requires FROM and FOR arguments");
       }
+      SqlUtil.unparseFunctionSyntax(MSSQL_SUBSTRING, writer, call);
 
-      unparseFloor(writer, call);
-      break;
+    } else {
+      switch (call.getKind()) {
+      case FLOOR:
+        if (call.operandCount() != 2) {
+          super.unparseCall(writer, call, leftPrec, rightPrec);
+          return;
+        }
+        unparseFloor(writer, call);
+        break;
 
-    default:
-      super.unparseCall(writer, call, leftPrec, rightPrec);
+      default:
+        super.unparseCall(writer, call, leftPrec, rightPrec);
+      }
     }
   }
 
@@ -88,7 +105,7 @@ public class MssqlHandler extends SqlDialect.BaseHandler {
       unparseFloorWithUnit(writer, call, 19, ":00");
       break;
     default:
-      throw new AssertionError("MSSQL does not support FLOOR for time unit: "
+      throw new IllegalArgumentException("MSSQL does not support FLOOR for time unit: "
           + unit);
     }
   }
