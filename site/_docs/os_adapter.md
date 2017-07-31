@@ -45,9 +45,10 @@ We try to support all tables on every operating system, and to make sure that
 the tables have the same columns. But we rely heavily on operating system
 commands, and these differ widely. So:
 
-* These commands only work on Linux and macOS (not Windows, even with Cygwin)
-* `vmstat` has very different columns between Linux and macOS
-* `files` and `ps` have the same column names but semantics differ
+* These commands only work on Linux and macOS (not Windows, even with Cygwin);
+* `vmstat` has very different columns between Linux and macOS;
+* `files` and `ps` have the same column names but semantics differ;
+* Other commands work largely the same.
 
 # A simple example
 
@@ -86,6 +87,7 @@ care. Often adding a back-slash will suffice.
 # Tables and commands
 
 The OS adapter contains the following tables:
+
 * `du` - Disk usage (based on `du` command)
 * `ps` - Processes (based on `ps` command)
 * `stdin` - Standard input
@@ -99,19 +101,43 @@ New data sources are straightforward to add; please contribute yours!
 
 ## Example: du
 
+How many class files, and what is their total size? In `bash`:
+
+{% highlight bash %}
+$ du -ka . | grep '\.class$' | awk '{size+=$1} END {print FNR, size}'
+4416 27960
+{% endhighlight %}
+
+In `sqlsh`:
+
 {% highlight bash %}
 $ sqlsh select count\(\*\), sum\(size_k\) from du where path like \'%.class\'
 4416 27960
 {% endhighlight %}
 
+The back-slashes are necessary because `(`, `*`, `)`, and `'` are shell meta-characters.
+
 ## Example: files
+
+How many files and directories? In `bash`, you would use `find`:
+
+{% highlight bash %}
+$ find . -printf "%Y %p\n" | grep '/test/' | cut -d' ' -f1 | sort | uniq -c
+    143 d
+   1336 f
+{% endhighlight %}
+
+In `sqlsh`, use the `files` table:
 
 {% highlight bash %}
 $ sqlsh select type, count\(\*\) from files where path like \'%/test/%\' group by type
-4416 27960
+d 143
+f 1336
 {% endhighlight %}
 
 ## Example: ps
+
+Which users have processes running? In `sqlsh`:
 
 {% highlight bash %}
 $ sqlsh select distinct ps.\`user\` from ps
@@ -123,9 +149,26 @@ nobody
 daemon
 {% endhighlight %}
 
-The `ps.` qualifier is necessary because USER is a SQL reserved word.
+The `ps.` qualifier and back-quotes are necessary because USER is a SQL reserved word.
 
-# Example: vmstat
+Now a 'top N' problem: Which three users have the most processes? In `bash`:
+
+{% highlight bash %}
+$ ps aux | awk '{print $1}' | sort | uniq -c | sort -nr | head -3
+{% endhighlight %}
+
+In `sqlsh`:
+
+{% highlight bash %}
+$ ./sqlsh select count\(\*\), ps.\`user\` from ps group by ps.\`user\` order by 1 desc limit 3
+185 root
+69 jhyde
+2 avahi
+{% endhighlight %}
+
+## Example: vmstat
+
+How's my memory?
 
 {% highlight bash %}
 $ ./sqlsh -o mysql select \* from vmstat
@@ -139,30 +182,13 @@ $ ./sqlsh -o mysql select \* from vmstat
 
 ## Example: explain
 
-To find out what columns a table has, use {{explain}}:
+To find out what columns a table has, use `explain`:
 
 {% highlight bash %}
 $ sqlsh explain plan with type for select \* from du
 size_k BIGINT NOT NULL,
 path VARCHAR CHARACTER SET "ISO-8859-1" COLLATE "ISO-8859-1$en_US$primary" NOT NULL,
 size_b BIGINT NOT NULL
-{% endhighlight %}
-
-## Aggregation and top-N
-
-Which user has the most processes? In bash:
-
-{% highlight bash %}
-$ ps aux | awk '{print $1}' | sort | uniq -c | sort -nr | head -3
-{% endhighlight %}
-
-In `sqlsh`:
-
-{% highlight bash %}
-$ ./sqlsh select count\(\*\), ps.\`user\` from ps group by ps.\`user\` order by 1 desc limit 3
-185 root
-69 jhyde
-2 avahi
 {% endhighlight %}
 
 ## Example: git

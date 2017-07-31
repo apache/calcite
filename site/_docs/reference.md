@@ -155,7 +155,7 @@ query:
       [ ORDER BY orderItem [, orderItem ]* ]
       [ LIMIT [ start, ] { count | ALL } ]
       [ OFFSET start { ROW | ROWS } ]
-      [ FETCH { FIRST | NEXT } [ count ] { ROW | ROWS } ]
+      [ FETCH { FIRST | NEXT } [ count ] { ROW | ROWS } ONLY ]
 
 withItem:
       name
