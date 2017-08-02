@@ -18,6 +18,8 @@ package org.apache.calcite.util;
 
 import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.java.AbstractQueryableTable;
+import org.apache.calcite.config.CalciteConnectionConfig;
+import org.apache.calcite.linq4j.AbstractEnumerable;
 import org.apache.calcite.linq4j.BaseQueryable;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.Enumerator;
@@ -36,11 +38,16 @@ import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.runtime.SqlFunctions;
 import org.apache.calcite.schema.QueryableTable;
 import org.apache.calcite.schema.ScannableTable;
+import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.schema.Statistic;
+import org.apache.calcite.schema.Statistics;
 import org.apache.calcite.schema.TranslatableTable;
 import org.apache.calcite.schema.impl.AbstractTable;
 import org.apache.calcite.schema.impl.ViewTable;
+import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDialect;
+import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.type.SqlTypeName;
 
 import com.google.common.collect.ImmutableList;
@@ -77,6 +84,10 @@ public class Smalls {
   public static final Method MULTIPLICATION_TABLE_METHOD =
       Types.lookupMethod(Smalls.class, "multiplicationTable", int.class,
         int.class, Integer.class);
+  public static final Method FIBONACCI_TABLE_METHOD =
+      Types.lookupMethod(Smalls.class, "fibonacciTable");
+  public static final Method FIBONACCI2_TABLE_METHOD =
+      Types.lookupMethod(Smalls.class, "fibonacciTableWithLimit", long.class);
   public static final Method VIEW_METHOD =
       Types.lookupMethod(Smalls.class, "view", String.class);
   public static final Method STR_METHOD =
@@ -206,6 +217,72 @@ public class Smalls {
           }
         };
         return Linq4j.asEnumerable(table).asQueryable();
+      }
+    };
+  }
+
+  /** A function that generates the Fibonacci sequence.
+   * Interesting because it has one column and no arguments. */
+  public static ScannableTable fibonacciTable() {
+    return fibonacciTableWithLimit(-1L);
+  }
+
+  /** A function that generates the Fibonacci sequence.
+   * Interesting because it has one column and no arguments. */
+  public static ScannableTable fibonacciTableWithLimit(final long limit) {
+    return new ScannableTable() {
+      public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+        return typeFactory.builder().add("N", SqlTypeName.BIGINT).build();
+      }
+
+      public Enumerable<Object[]> scan(DataContext root) {
+        return new AbstractEnumerable<Object[]>() {
+          public Enumerator<Object[]> enumerator() {
+            return new Enumerator<Object[]>() {
+              private long prev = 1;
+              private long current = 0;
+
+              public Object[] current() {
+                return new Object[] {current};
+              }
+
+              public boolean moveNext() {
+                final long next = current + prev;
+                if (limit >= 0 && next > limit) {
+                  return false;
+                }
+                prev = current;
+                current = next;
+                return true;
+              }
+
+              public void reset() {
+                prev = 0;
+                current = 1;
+              }
+
+              public void close() {
+              }
+            };
+          }
+        };
+      }
+
+      public Statistic getStatistic() {
+        return Statistics.UNKNOWN;
+      }
+
+      public Schema.TableType getJdbcTableType() {
+        return Schema.TableType.TABLE;
+      }
+
+      public boolean isRolledUp(String column) {
+        return false;
+      }
+
+      public boolean rolledUpColumnValidInsideAgg(String column, SqlCall call, SqlNode parent,
+                                                            CalciteConnectionConfig config) {
+        return false;
       }
     };
   }

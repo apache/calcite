@@ -1037,7 +1037,7 @@ public class DruidRules {
         if (node instanceof RexCall) {
           RexCall call = (RexCall) node;
           assert DruidDateTimeUtils.extractGranularity(call) != null;
-          if (call.getKind().equals(SqlKind.FLOOR)) {
+          if (call.getKind() == SqlKind.FLOOR) {
             newSet.addAll(RelOptUtil.InputFinder.bits(call));
           }
         }

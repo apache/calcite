@@ -18,7 +18,6 @@ package org.apache.calcite.adapter.enumerable;
 
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.linq4j.tree.BlockBuilder;
-import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelTraitSet;
@@ -31,7 +30,6 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.schema.QueryableTable;
 import org.apache.calcite.schema.impl.TableFunctionImpl;
 import org.apache.calcite.sql.validate.SqlUserDefinedTableFunction;
-import org.apache.calcite.util.BuiltInMethod;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
@@ -66,14 +64,12 @@ public class EnumerableTableFunctionScan extends TableFunctionScan
     BlockBuilder bb = new BlockBuilder();
      // Non-array user-specified types are not supported yet
     final JavaRowFormat format;
-    boolean array = false;
     if (getElementType() == null) {
       format = JavaRowFormat.ARRAY;
     } else if (rowType.getFieldCount() == 1 && isQueryable()) {
       format = JavaRowFormat.SCALAR;
     } else if (getElementType() instanceof Class
         && Object[].class.isAssignableFrom((Class) getElementType())) {
-      array = true;
       format = JavaRowFormat.ARRAY;
     } else {
       format = JavaRowFormat.CUSTOM;
@@ -84,12 +80,7 @@ public class EnumerableTableFunctionScan extends TableFunctionScan
     RexToLixTranslator t = RexToLixTranslator.forAggregation(
         (JavaTypeFactory) getCluster().getTypeFactory(), bb, null);
     t = t.setCorrelates(implementor.allCorrelateVariables);
-    Expression translated = t.translate(getCall());
-    if (array && rowType.getFieldCount() == 1) {
-      translated =
-          Expressions.call(null, BuiltInMethod.SLICE0.method, translated);
-    }
-    bb.add(Expressions.return_(null, translated));
+    bb.add(Expressions.return_(null, t.translate(getCall())));
     return implementor.result(physType, bb.toBlock());
   }
 

@@ -437,9 +437,9 @@ public abstract class Prepare {
         final InitializerExpressionFactory initializerExpressionFactory =
             ((Wrapper) table).unwrap(InitializerExpressionFactory.class);
         if (initializerExpressionFactory != null) {
-          return !initializerExpressionFactory
+          return initializerExpressionFactory
               .newColumnDefaultValue(this, ordinal, initializerContext)
-              .getType().getSqlTypeName().equals(SqlTypeName.NULL);
+              .getType().getSqlTypeName() != SqlTypeName.NULL;
         }
       }
       if (ordinal >= rowType.getFieldList().size()) {

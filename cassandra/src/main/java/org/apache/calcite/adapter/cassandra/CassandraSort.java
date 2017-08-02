@@ -70,9 +70,13 @@ public class CassandraSort extends Sort implements CassandraRel {
       for (RelFieldCollation fieldCollation : sortCollations) {
         final String name =
             fields.get(fieldCollation.getFieldIndex()).getName();
-        String direction = "ASC";
-        if (fieldCollation.getDirection().equals(RelFieldCollation.Direction.DESCENDING)) {
+        final String direction;
+        switch (fieldCollation.getDirection()) {
+        case DESCENDING:
           direction = "DESC";
+          break;
+        default:
+          direction = "ASC";
         }
         fieldOrder.add(name + " " + direction);
       }

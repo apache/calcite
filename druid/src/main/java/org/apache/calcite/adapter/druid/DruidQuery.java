@@ -930,10 +930,10 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
       Integer indexSkipGroup = ((RexInputRef) rexNode).getIndex()
           - ((Aggregate) rel).getGroupCount();
       AggregateCall aggCall = ((Aggregate) rel).getAggCallList().get(indexSkipGroup);
-
       // Use either the hyper unique estimator, or the theta sketch one.
       // Hyper unique is used by default.
-      if (aggCall.isDistinct() && aggCall.getAggregation().getKind().equals(SqlKind.COUNT)) {
+      if (aggCall.isDistinct()
+          && aggCall.getAggregation().getKind() == SqlKind.COUNT) {
         final String fieldName = rel.getRowType().getFieldNames()
                 .get(((RexInputRef) rexNode).getIndex());
 

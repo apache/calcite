@@ -3417,6 +3417,15 @@ public abstract class SqlOperatorBaseTest {
     tester.checkBoolean("'ab\ncd\nef' like '%cde%'", Boolean.FALSE);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1898">[CALCITE-1898]
+   * LIKE must match '.' (period) literally</a>. */
+  @Test public void testLikeDot() {
+    tester.checkBoolean("'abc' like 'a.c'", Boolean.FALSE);
+    tester.checkBoolean("'abcde' like '%c.e'", Boolean.FALSE);
+    tester.checkBoolean("'abc.e' like '%c.e'", Boolean.TRUE);
+  }
+
   @Test public void testNotSimilarToOperator() {
     tester.setFor(SqlStdOperatorTable.NOT_SIMILAR_TO, VM_EXPAND);
     tester.checkBoolean("'ab' not similar to 'a_'", false);
@@ -3593,6 +3602,14 @@ public abstract class SqlOperatorBaseTest {
 
     tester.checkBoolean("'y' similar to 'x?+y'", Boolean.TRUE);
     tester.checkBoolean("'y' similar to 'x*+y'", Boolean.TRUE);
+
+    // dot is a wildcard for SIMILAR TO but not LIKE
+    tester.checkBoolean("'abc' similar to 'a.c'", Boolean.TRUE);
+    tester.checkBoolean("'a.c' similar to 'a.c'", Boolean.TRUE);
+    tester.checkBoolean("'abcd' similar to 'a.*d'", Boolean.TRUE);
+    tester.checkBoolean("'abc' like 'a.c'", Boolean.FALSE);
+    tester.checkBoolean("'a.c' like 'a.c'", Boolean.TRUE);
+    tester.checkBoolean("'abcd' like 'a.*d'", Boolean.FALSE);
 
     // The following two tests throws exception(They probably should).
     // "Dangling meta character '*' near index 2"

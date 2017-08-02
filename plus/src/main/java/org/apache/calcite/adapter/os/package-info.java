@@ -14,25 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.test;
-
-import org.apache.calcite.adapter.os.OsAdapterTest;
-import org.apache.calcite.adapter.tpcds.TpcdsTest;
-import org.apache.calcite.adapter.tpch.TpchTest;
-
-import org.junit.runner.RunWith;
-import org.junit.runners.Suite;
 
 /**
- * Suite consisting of all tests in the <code>calcite-plus</code> module.
+ * The OS adapter contains various table functions that let you query data
+ * sources in your operating system and environment.
  */
-@RunWith(Suite.class)
-@Suite.SuiteClasses({
-    OsAdapterTest.class,
-    TpcdsTest.class,
-    TpchTest.class
-})
-public class PlusSuite {
-}
+@PackageMarker
+package org.apache.calcite.adapter.os;
 
-// End PlusSuite.java
+import org.apache.calcite.avatica.util.PackageMarker;
+
+// End package-info.java

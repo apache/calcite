@@ -14,25 +14,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.test;
+package org.apache.calcite.sql.validate;
 
-import org.apache.calcite.adapter.os.OsAdapterTest;
-import org.apache.calcite.adapter.tpcds.TpcdsTest;
-import org.apache.calcite.adapter.tpch.TpchTest;
+import com.google.common.collect.ImmutableList;
 
-import org.junit.runner.RunWith;
-import org.junit.runners.Suite;
+import java.util.List;
 
-/**
- * Suite consisting of all tests in the <code>calcite-plus</code> module.
- */
-@RunWith(Suite.class)
-@Suite.SuiteClasses({
-    OsAdapterTest.class,
-    TpcdsTest.class,
-    TpchTest.class
-})
-public class PlusSuite {
+/** Thrown when an object, such as a view, is found to have a cylic
+ * definition. */
+public class CyclicDefinitionException extends RuntimeException {
+  public final int depth;
+  public final List<String> path;
+
+  /** Creates CyclicDefinitionException. */
+  public CyclicDefinitionException(int depth, List<String> path) {
+    super("Cyclic object definition: " + path);
+    this.depth = depth;
+    this.path = ImmutableList.copyOf(path);
+  }
 }
 
-// End PlusSuite.java
+// End CyclicDefinitionException.java

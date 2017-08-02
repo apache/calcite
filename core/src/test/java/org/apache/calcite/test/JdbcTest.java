@@ -61,7 +61,6 @@ import org.apache.calcite.runtime.SqlFunctions;
 import org.apache.calcite.schema.ModifiableTable;
 import org.apache.calcite.schema.ModifiableView;
 import org.apache.calcite.schema.QueryableTable;
-import org.apache.calcite.schema.ScannableTable;
 import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.SchemaFactory;
 import org.apache.calcite.schema.SchemaPlus;
@@ -73,7 +72,6 @@ import org.apache.calcite.schema.TranslatableTable;
 import org.apache.calcite.schema.impl.AbstractSchema;
 import org.apache.calcite.schema.impl.AbstractTable;
 import org.apache.calcite.schema.impl.AbstractTableQueryable;
-import org.apache.calcite.schema.impl.TableFunctionImpl;
 import org.apache.calcite.schema.impl.TableMacroImpl;
 import org.apache.calcite.schema.impl.ViewTable;
 import org.apache.calcite.sql.SqlCall;
@@ -403,254 +401,7 @@ public class JdbcTest {
     }
   }
 
-  /**
-   * Tests a table function with literal arguments.
-   */
-  @Test public void testTableFunction()
-      throws SQLException, ClassNotFoundException {
-    Connection connection =
-        DriverManager.getConnection("jdbc:calcite:");
-    CalciteConnection calciteConnection =
-        connection.unwrap(CalciteConnection.class);
-    SchemaPlus rootSchema = calciteConnection.getRootSchema();
-    SchemaPlus schema = rootSchema.add("s", new AbstractSchema());
-    final TableFunction table =
-        TableFunctionImpl.create(Smalls.GENERATE_STRINGS_METHOD);
-    schema.add("GenerateStrings", table);
-    ResultSet resultSet = connection.createStatement().executeQuery("select *\n"
-        + "from table(\"s\".\"GenerateStrings\"(5)) as t(n, c)\n"
-        + "where char_length(c) > 3");
-    assertThat(CalciteAssert.toString(resultSet),
-        equalTo("N=4; C=abcd\n"));
-  }
 
-  /**
-   * Tests a table function that implements {@link ScannableTable} and returns
-   * a single column.
-   */
-  @Test public void testScannableTableFunction()
-      throws SQLException, ClassNotFoundException {
-    Connection connection = DriverManager.getConnection("jdbc:calcite:");
-    CalciteConnection calciteConnection =
-        connection.unwrap(CalciteConnection.class);
-    SchemaPlus rootSchema = calciteConnection.getRootSchema();
-    SchemaPlus schema = rootSchema.add("s", new AbstractSchema());
-    final TableFunction table = TableFunctionImpl.create(Smalls.MAZE_METHOD);
-    schema.add("Maze", table);
-    final String sql = "select *\n"
-        + "from table(\"s\".\"Maze\"(5, 3, 1))";
-    ResultSet resultSet = connection.createStatement().executeQuery(sql);
-    final String result = "S=abcde\n"
-        + "S=xyz\n"
-        + "S=generate(w=5, h=3, s=1)\n";
-    assertThat(CalciteAssert.toString(resultSet), is(result));
-  }
-
-  /** As {@link #testScannableTableFunction()} but with named parameters. */
-  @Test public void testScannableTableFunctionWithNamedParameters()
-      throws SQLException, ClassNotFoundException {
-    Connection connection = DriverManager.getConnection("jdbc:calcite:");
-    CalciteConnection calciteConnection =
-        connection.unwrap(CalciteConnection.class);
-    SchemaPlus rootSchema = calciteConnection.getRootSchema();
-    SchemaPlus schema = rootSchema.add("s", new AbstractSchema());
-    final TableFunction table = TableFunctionImpl.create(Smalls.MAZE2_METHOD);
-    schema.add("Maze", table);
-    final String sql = "select *\n"
-        + "from table(\"s\".\"Maze\"(5, 3, 1))";
-    final Statement statement = connection.createStatement();
-    ResultSet resultSet = statement.executeQuery(sql);
-    final String result = "S=abcde\n"
-        + "S=xyz\n";
-    assertThat(CalciteAssert.toString(resultSet),
-        is(result + "S=generate2(w=5, h=3, s=1)\n"));
-
-    final String sql2 = "select *\n"
-        + "from table(\"s\".\"Maze\"(WIDTH => 5, HEIGHT => 3, SEED => 1))";
-    resultSet = statement.executeQuery(sql2);
-    assertThat(CalciteAssert.toString(resultSet),
-        is(result + "S=generate2(w=5, h=3, s=1)\n"));
-
-    final String sql3 = "select *\n"
-        + "from table(\"s\".\"Maze\"(HEIGHT => 3, WIDTH => 5))";
-    resultSet = statement.executeQuery(sql3);
-    assertThat(CalciteAssert.toString(resultSet),
-        is(result + "S=generate2(w=5, h=3, s=null)\n"));
-    connection.close();
-  }
-
-  /** As {@link #testScannableTableFunction()} but with named parameters. */
-  @Test public void testMultipleScannableTableFunctionWithNamedParameters()
-      throws SQLException, ClassNotFoundException {
-    Connection connection = DriverManager.getConnection("jdbc:calcite:");
-    CalciteConnection calciteConnection =
-        connection.unwrap(CalciteConnection.class);
-    SchemaPlus rootSchema = calciteConnection.getRootSchema();
-    SchemaPlus schema = rootSchema.add("s", new AbstractSchema());
-    final TableFunction table1 = TableFunctionImpl.create(Smalls.MAZE_METHOD);
-    schema.add("Maze", table1);
-    final TableFunction table2 = TableFunctionImpl.create(Smalls.MAZE2_METHOD);
-    schema.add("Maze", table2);
-    final TableFunction table3 = TableFunctionImpl.create(Smalls.MAZE3_METHOD);
-    schema.add("Maze", table3);
-    final String sql = "select *\n"
-        + "from table(\"s\".\"Maze\"(5, 3, 1))";
-    final Statement statement = connection.createStatement();
-    ResultSet resultSet = statement.executeQuery(sql);
-    final String result = "S=abcde\n"
-        + "S=xyz\n";
-    assertThat(CalciteAssert.toString(resultSet),
-        is(result + "S=generate(w=5, h=3, s=1)\n"));
-
-    final String sql2 = "select *\n"
-        + "from table(\"s\".\"Maze\"(WIDTH => 5, HEIGHT => 3, SEED => 1))";
-    resultSet = statement.executeQuery(sql2);
-    assertThat(CalciteAssert.toString(resultSet),
-        is(result + "S=generate2(w=5, h=3, s=1)\n"));
-
-    final String sql3 = "select *\n"
-        + "from table(\"s\".\"Maze\"(HEIGHT => 3, WIDTH => 5))";
-    resultSet = statement.executeQuery(sql3);
-    assertThat(CalciteAssert.toString(resultSet),
-        is(result + "S=generate2(w=5, h=3, s=null)\n"));
-
-    final String sql4 = "select *\n"
-        + "from table(\"s\".\"Maze\"(FOO => 'a'))";
-    resultSet = statement.executeQuery(sql4);
-    assertThat(CalciteAssert.toString(resultSet),
-        is(result + "S=generate3(foo=a)\n"));
-    connection.close();
-  }
-
-  /**
-   * Tests a table function that returns different row type based on
-   * actual call arguments.
-   */
-  @Test public void testTableFunctionDynamicStructure()
-      throws SQLException, ClassNotFoundException {
-    Connection connection = getConnectionWithMultiplyFunction();
-    final PreparedStatement ps = connection.prepareStatement("select *\n"
-        + "from table(\"s\".\"multiplication\"(4, 3, ?))\n");
-    ps.setInt(1, 100);
-    ResultSet resultSet = ps.executeQuery();
-    assertThat(CalciteAssert.toString(resultSet),
-        equalTo("row_name=row 0; c1=101; c2=102; c3=103; c4=104\n"
-            + "row_name=row 1; c1=102; c2=104; c3=106; c4=108\n"
-            + "row_name=row 2; c1=103; c2=106; c3=109; c4=112\n"));
-  }
-
-  /**
-   * Tests that non-nullable arguments of a table function must be provided
-   * as literals.
-   */
-  @Ignore("SQLException does not include message from nested exception")
-  @Test public void testTableFunctionNonNullableMustBeLiterals()
-      throws SQLException, ClassNotFoundException {
-    Connection connection = getConnectionWithMultiplyFunction();
-    try {
-      final PreparedStatement ps = connection.prepareStatement("select *\n"
-          + "from table(\"s\".\"multiplication\"(?, 3, 100))\n");
-      ps.setInt(1, 100);
-      ResultSet resultSet = ps.executeQuery();
-      fail("Should fail, got " + resultSet);
-    } catch (SQLException e) {
-      assertThat(e.getMessage(),
-          containsString("Wrong arguments for table function 'public static "
-              + "org.apache.calcite.schema.QueryableTable "
-              + "org.apache.calcite.test.JdbcTest"
-              + ".multiplicationTable(int,int,java.lang.Integer)'"
-              + " call. Expected '[int, int, class"
-              + "java.lang.Integer]', actual '[null, 3, 100]'"));
-    }
-  }
-
-  private Connection getConnectionWithMultiplyFunction()
-      throws ClassNotFoundException, SQLException {
-    Connection connection =
-        DriverManager.getConnection("jdbc:calcite:");
-    CalciteConnection calciteConnection =
-        connection.unwrap(CalciteConnection.class);
-    SchemaPlus rootSchema = calciteConnection.getRootSchema();
-    SchemaPlus schema = rootSchema.add("s", new AbstractSchema());
-    final TableFunction table =
-        TableFunctionImpl.create(Smalls.MULTIPLICATION_TABLE_METHOD);
-    schema.add("multiplication", table);
-    return connection;
-  }
-
-  /**
-   * Tests a table function that takes cursor input.
-   */
-  @Ignore("CannotPlanException: Node [rel#18:Subset#4.ENUMERABLE.[]] "
-          + "could not be implemented")
-  @Test public void testTableFunctionCursorInputs()
-      throws SQLException, ClassNotFoundException {
-    Connection connection =
-        DriverManager.getConnection("jdbc:calcite:");
-    CalciteConnection calciteConnection =
-        connection.unwrap(CalciteConnection.class);
-    SchemaPlus rootSchema = calciteConnection.getRootSchema();
-    SchemaPlus schema = rootSchema.add("s", new AbstractSchema());
-    final TableFunction table =
-        TableFunctionImpl.create(Smalls.GENERATE_STRINGS_METHOD);
-    schema.add("GenerateStrings", table);
-    final TableFunction add =
-        TableFunctionImpl.create(Smalls.PROCESS_CURSOR_METHOD);
-    schema.add("process", add);
-    final PreparedStatement ps = connection.prepareStatement("select *\n"
-        + "from table(\"s\".\"process\"(2,\n"
-        + "cursor(select * from table(\"s\".\"GenerateStrings\"(?)))\n"
-        + ")) as t(u)\n"
-        + "where u > 3");
-    ps.setInt(1, 5);
-    ResultSet resultSet = ps.executeQuery();
-    // GenerateStrings returns 0..4, then 2 is added (process function),
-    // thus 2..6, finally where u > 3 leaves just 4..6
-    assertThat(CalciteAssert.toString(resultSet),
-        equalTo("u=4\n"
-            + "u=5\n"
-            + "u=6\n"));
-  }
-
-  /**
-   * Tests a table function that takes multiple cursor inputs.
-   */
-  @Ignore("CannotPlanException: Node [rel#24:Subset#6.ENUMERABLE.[]] "
-          + "could not be implemented")
-  @Test public void testTableFunctionCursorsInputs()
-      throws SQLException, ClassNotFoundException {
-    Connection connection =
-        getConnectionWithMultiplyFunction();
-    CalciteConnection calciteConnection =
-        connection.unwrap(CalciteConnection.class);
-    SchemaPlus rootSchema = calciteConnection.getRootSchema();
-    SchemaPlus schema = rootSchema.getSubSchema("s");
-    final TableFunction table =
-        TableFunctionImpl.create(Smalls.GENERATE_STRINGS_METHOD);
-    schema.add("GenerateStrings", table);
-    final TableFunction add =
-        TableFunctionImpl.create(Smalls.PROCESS_CURSORS_METHOD);
-    schema.add("process", add);
-    final PreparedStatement ps = connection.prepareStatement("select *\n"
-        + "from table(\"s\".\"process\"(2,\n"
-        + "cursor(select * from table(\"s\".\"multiplication\"(5,5,0))),\n"
-        + "cursor(select * from table(\"s\".\"GenerateStrings\"(?)))\n"
-        + ")) as t(u)\n"
-        + "where u > 3");
-    ps.setInt(1, 5);
-    ResultSet resultSet = ps.executeQuery();
-    // GenerateStrings produce 0..4
-    // multiplication produce 1..5
-    // process sums and adds 2
-    // sum is 2 + 1..9 == 3..9
-    assertThat(CalciteAssert.toString(resultSet),
-        equalTo("u=4\n"
-            + "u=5\n"
-            + "u=6\n"
-            + "u=7\n"
-            + "u=8\n"
-            + "u=9\n"));
-  }
 
   /**
    * Tests {@link org.apache.calcite.sql.advise.SqlAdvisorGetHintsFunction}.
@@ -5532,6 +5283,79 @@ public class JdbcTest {
             + "order by \"name\"")
         .returns("name=Bill\n"
             + "name=Theodore\n");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1900">[CALCITE-1900]
+   * Improve error message for cyclic views</a>.
+   * Previously got a {@link StackOverflowError}. */
+  @Test public void testSelfReferentialView() throws Exception {
+    final CalciteAssert.AssertThat with =
+        modelWithView("select * from \"V\"", null);
+    with.query("select \"name\" from \"adhoc\".V")
+        .throws_("Cannot resolve 'adhoc.V'; it references view 'adhoc.V', "
+            + "whose definition is cyclic");
+  }
+
+  @Test public void testSelfReferentialView2() throws Exception {
+    final String model = "{\n"
+        + "  version: '1.0',\n"
+        + "  defaultSchema: 'adhoc',\n"
+        + "  schemas: [ {\n"
+        + "    name: 'adhoc',\n"
+        + "    tables: [ {\n"
+        + "      name: 'A',\n"
+        + "      type: 'view',\n"
+        + "      sql: "
+        + new JsonBuilder().toJsonString("select * from B") + "\n"
+        + "    }, {\n"
+        + "      name: 'B',\n"
+        + "      type: 'view',\n"
+        + "      sql: "
+        + new JsonBuilder().toJsonString("select * from C") + "\n"
+        + "    }, {\n"
+        + "      name: 'C',\n"
+        + "      type: 'view',\n"
+        + "      sql: "
+        + new JsonBuilder().toJsonString("select * from D, B") + "\n"
+        + "    }, {\n"
+        + "      name: 'D',\n"
+        + "      type: 'view',\n"
+        + "      sql: "
+        + new JsonBuilder().toJsonString(
+            "select * from (values (1, 'a')) as t(x, y)") + "\n"
+        + "    } ]\n"
+        + "  } ]\n"
+        + "}";
+    final CalciteAssert.AssertThat with =
+        CalciteAssert.model(model);
+    //
+    //       +-----+
+    //       V     |
+    // A --> B --> C --> D
+    //
+    // A is not in a cycle, but depends on cyclic views
+    // B is cyclic
+    // C is cyclic
+    // D is not cyclic
+    with.query("select x from \"adhoc\".a")
+        .throws_("Cannot resolve 'adhoc.A'; it references view 'adhoc.B', "
+            + "whose definition is cyclic");
+    with.query("select x from \"adhoc\".b")
+        .throws_("Cannot resolve 'adhoc.B'; it references view 'adhoc.B', "
+            + "whose definition is cyclic");
+    // as previous, but implicit schema
+    with.query("select x from b")
+        .throws_("Cannot resolve 'B'; it references view 'adhoc.B', "
+            + "whose definition is cyclic");
+    with.query("select x from \"adhoc\".c")
+        .throws_("Cannot resolve 'adhoc.C'; it references view 'adhoc.C', "
+            + "whose definition is cyclic");
+    with.query("select x from \"adhoc\".d")
+        .returns("X=1\n");
+    with.query("select x from \"adhoc\".d except select x from \"adhoc\".a")
+        .throws_("Cannot resolve 'adhoc.A'; it references view 'adhoc.B', "
+            + "whose definition is cyclic");
   }
 
   /** Tests saving query results into temporary tables, per

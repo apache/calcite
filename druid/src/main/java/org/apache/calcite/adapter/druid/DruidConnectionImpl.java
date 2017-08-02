@@ -284,7 +284,7 @@ class DruidConnectionImpl implements DruidConnection {
       type = fieldTypes.get(i);
     }
 
-    if (isTimestampColumn || ColumnMetaData.Rep.JAVA_SQL_TIMESTAMP.equals(type)) {
+    if (isTimestampColumn || ColumnMetaData.Rep.JAVA_SQL_TIMESTAMP == type) {
       try {
         final Date parse;
         // synchronized block to avoid race condition

@@ -257,8 +257,8 @@ public abstract class SqlTypeUtil {
   public static boolean isOfSameTypeName(
       SqlTypeName typeName,
       RelDataType type) {
-    return SqlTypeName.ANY.equals(typeName)
-        || typeName.equals(type.getSqlTypeName());
+    return SqlTypeName.ANY == typeName
+        || typeName == type.getSqlTypeName();
   }
 
   /**

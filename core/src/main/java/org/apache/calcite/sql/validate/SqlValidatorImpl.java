@@ -1006,18 +1006,19 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       return getNamespace(id, idScope);
     } else if (node instanceof SqlCall) {
       // Handle extended identifiers.
-      final SqlCall sqlCall = (SqlCall) node;
-      final SqlKind sqlKind = sqlCall.getOperator().getKind();
-      if (sqlKind.equals(SqlKind.EXTEND)) {
-        final SqlIdentifier id = (SqlIdentifier) sqlCall.getOperandList().get(0);
+      final SqlCall call = (SqlCall) node;
+      switch (call.getOperator().getKind()) {
+      case EXTEND:
+        final SqlIdentifier id = (SqlIdentifier) call.getOperandList().get(0);
         final DelegatingScope idScope = (DelegatingScope) scope;
         return getNamespace(id, idScope);
-      } else {
-        final SqlNode nested = sqlCall.getOperandList().get(0);
-        if (sqlKind.equals(SqlKind.AS)
-            && nested.getKind().equals(SqlKind.EXTEND)) {
+      case AS:
+        final SqlNode nested = call.getOperandList().get(0);
+        switch (nested.getKind()) {
+        case EXTEND:
           return getNamespace(nested, scope);
         }
+        break;
       }
     }
     return getNamespace(node);

@@ -16,8 +16,10 @@
  */
 package org.apache.calcite.rel.type;
 
+import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.sql.SqlIntervalQualifier;
+import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 
@@ -399,6 +401,19 @@ public interface RelDataTypeFactory {
     public FieldInfoBuilder add(
         String name, SqlTypeName typeName, int precision, int scale) {
       add(name, typeFactory.createSqlType(typeName, precision, scale));
+      return this;
+    }
+
+    /**
+     * Adds a field with an interval type.
+     */
+    public FieldInfoBuilder add(String name, TimeUnit startUnit,
+        int startPrecision, TimeUnit endUnit,
+        int fractionalSecondPrecision) {
+      final SqlIntervalQualifier q =
+          new SqlIntervalQualifier(startUnit, startPrecision, endUnit,
+              fractionalSecondPrecision, SqlParserPos.ZERO);
+      add(name, typeFactory.createSqlIntervalType(q));
       return this;
     }
 

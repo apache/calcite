@@ -105,13 +105,6 @@ public abstract class SqlImplementor {
 
   public static final SqlParserPos POS = SqlParserPos.ZERO;
 
-  /** Oracle's {@code SUBSTR} function.
-   * Oracle does not support {@link SqlStdOperatorTable#SUBSTRING}. */
-  public static final SqlFunction ORACLE_SUBSTR =
-      new SqlFunction("SUBSTR", SqlKind.OTHER_FUNCTION,
-          ReturnTypes.ARG0_NULLABLE_VARYING, null, null,
-          SqlFunctionCategory.STRING);
-
   /** MySQL specific function. */
   public static final SqlFunction ISNULL_FUNCTION =
       new SqlFunction("ISNULL", SqlKind.OTHER_FUNCTION,
@@ -631,12 +624,6 @@ public abstract class SqlImplementor {
           // SqlCall requires exactly 2. So, convert to a left-deep binary tree.
           return createLeftCall(op, nodeList);
         }
-        if (op == SqlStdOperatorTable.SUBSTRING) {
-          switch (dialect.getDatabaseProduct()) {
-          case ORACLE:
-            return ORACLE_SUBSTR.createCall(new SqlNodeList(nodeList, POS));
-          }
-        }
         return op.createCall(new SqlNodeList(nodeList, POS));
       }
     }
@@ -971,7 +958,7 @@ public abstract class SqlImplementor {
       Set<Clause> nonWrapSet = ImmutableSet.of(Clause.SELECT);
       for (Clause clause : clauses) {
         if (maxClause.ordinal() > clause.ordinal()
-            || (maxClause.equals(clause) && !nonWrapSet.contains(clause))) {
+            || (maxClause == clause && !nonWrapSet.contains(clause))) {
           needNew = true;
         }
       }

@@ -198,6 +198,37 @@ public class ModelTest {
             + "is not a SemiMutableSchema");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1899">[CALCITE-1899]
+   * When reading model, give error if mandatory JSON attributes are
+   * missing</a>.
+   *
+   * <p>Schema without name should give useful error, not
+   * NullPointerException. */
+  @Test public void testSchemaWithoutName() throws Exception {
+    final String model = "{\n"
+        + "  version: '1.0',\n"
+        + "  defaultSchema: 'adhoc',\n"
+        + "  schemas: [ {\n"
+        + "  } ]\n"
+        + "}";
+    CalciteAssert.model(model)
+        .connectThrows("Field 'name' is required in JsonMapSchema");
+  }
+
+  @Test public void testCustomSchemaWithoutFactory() throws Exception {
+    final String model = "{\n"
+        + "  version: '1.0',\n"
+        + "  defaultSchema: 'adhoc',\n"
+        + "  schemas: [ {\n"
+        + "    type: 'custom',\n"
+        + "    name: 'my_custom_schema'\n"
+        + "  } ]\n"
+        + "}";
+    CalciteAssert.model(model)
+        .connectThrows("Field 'factory' is required in JsonCustomSchema");
+  }
+
   /** Tests a model containing a lattice and some views. */
   @Test public void testReadLattice() throws IOException {
     final ObjectMapper mapper = mapper();

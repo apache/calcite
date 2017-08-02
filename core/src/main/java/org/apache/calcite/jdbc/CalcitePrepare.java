@@ -41,6 +41,7 @@ import org.apache.calcite.runtime.Bindable;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.validate.CyclicDefinitionException;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.util.ImmutableIntList;
 
@@ -118,6 +119,13 @@ public interface CalcitePrepare {
     SparkHandler spark();
 
     DataContext getDataContext();
+
+    /** Returns the path of the object being analyzed, or null.
+     *
+     * <p>The object is being analyzed is typically a view. If it is already
+     * being analyzed further up the stack, the view definition can be deduced
+     * to be cylic. */
+    List<String> getObjectPath();
   }
 
   /** Callback to register Spark as the main engine. */
@@ -175,7 +183,17 @@ public interface CalcitePrepare {
     }
 
     public static void push(Context context) {
-      THREAD_CONTEXT_STACK.get().push(context);
+      final Deque<Context> stack = THREAD_CONTEXT_STACK.get();
+      final List<String> path = context.getObjectPath();
+      if (path != null) {
+        for (Context context1 : stack) {
+          final List<String> path1 = context1.getObjectPath();
+          if (path.equals(path1)) {
+            throw new CyclicDefinitionException(stack.size(), path);
+          }
+        }
+      }
+      stack.push(context);
     }
 
     public static Context peek() {
@@ -210,6 +228,7 @@ public interface CalcitePrepare {
         throw new UnsupportedOperationException();
       }
     }
+
   }
 
   /** The result of parsing and validating a SQL query. */
