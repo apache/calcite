@@ -20,6 +20,7 @@ import org.apache.calcite.adapter.java.ReflectiveSchema;
 import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.config.Lex;
 import org.apache.calcite.jdbc.CalciteConnection;
+import org.apache.calcite.jdbc.Driver;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.Linq4j;
 import org.apache.calcite.linq4j.QueryProvider;
@@ -57,10 +58,12 @@ import java.util.Arrays;
 import java.util.BitSet;
 import java.util.Date;
 import java.util.List;
+import java.util.Properties;
 
 import static org.apache.calcite.test.JdbcTest.Employee;
 
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
@@ -722,6 +725,28 @@ public class ReflectiveSchemaTest {
         .withSchema("s", CATCHALL)
         .query(sql)
         .returnsUnordered("V=1970-01-01");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-281">[CALCITE-1919]
+   * NPE when target in ReflectiveSchema belongs to the unnamed package</a>. */
+  @Test public void testReflectiveSchemaInUnnamedPackage() throws Exception {
+    final Driver driver = new Driver();
+    try (CalciteConnection connection = (CalciteConnection)
+        driver.connect("jdbc:calcite:", new Properties())) {
+      SchemaPlus rootSchema = connection.getRootSchema();
+      final Class<?> c = Class.forName("RootHr");
+      final Object o = c.getDeclaredConstructor().newInstance();
+      rootSchema.add("hr", new ReflectiveSchema(o));
+      connection.setSchema("hr");
+      final Statement statement = connection.createStatement();
+      final String sql = "select * from \"emps\"";
+      final ResultSet resultSet = statement.executeQuery(sql);
+      final String expected = "empid=100; name=Bill\n"
+          + "empid=200; name=Eric\n"
+          + "empid=150; name=Sebastian\n";
+      assertThat(CalciteAssert.toString(resultSet), is(expected));
+    }
   }
 
   /** Extension to {@link Employee} with a {@code hireDate} column. */
