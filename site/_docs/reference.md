@@ -1015,7 +1015,7 @@ The operator precedence and associativity, highest to lowest.
 | .                                                 | left
 | [ ] (array element)                               | left
 | + - (unary plus, minus)                           | right
-| * /                                               | left
+| * / %                                             | left
 | + -                                               | left
 | BETWEEN, IN, LIKE, SIMILAR, OVERLAPS, CONTAINS etc. | -
 | < > = <= >= <> !=                                 | left
@@ -1088,6 +1088,7 @@ comp:
 | numeric1 - numeric2       | Returns *numeric1* minus *numeric2*
 | numeric1 * numeric2       | Returns *numeric1* multiplied by *numeric2*
 | numeric1 / numeric2       | Returns *numeric1* divided by *numeric2*
+| numeric1 % numeric2       | Returns the remainder (modulus) of *numeric1* divided by *numeric2*. The result is negative only if *numeric1* is negative
 | POWER(numeric1, numeric2) | Returns *numeric1* raised to the power of *numeric2*
 | ABS(numeric)              | Returns the absolute value of *numeric*
 | MOD(numeric, numeric)     | Returns the remainder (modulus) of *numeric1* divided by *numeric2*. The result is negative only if *numeric1* is negative

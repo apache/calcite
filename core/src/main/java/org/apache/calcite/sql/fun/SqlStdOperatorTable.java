@@ -246,6 +246,16 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           InferTypes.FIRST_KNOWN,
           OperandTypes.DIVISION_OPERATOR);
 
+  public static final SqlBinaryOperator REMAINDER =
+      new SqlBinaryOperator(
+          "%",
+          SqlKind.MOD,
+          60,
+          true,
+          ReturnTypes.ARG1_NULLABLE,
+          InferTypes.FIRST_KNOWN,
+          OperandTypes.REMAINDER_OPERATOR);
+
   /** The {@code RAND_INTEGER([seed, ] bound)} function, which yields a random
    * integer, optionally with seed. */
   public static final SqlRandIntegerFunction RAND_INTEGER =

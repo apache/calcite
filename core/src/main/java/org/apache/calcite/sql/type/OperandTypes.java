@@ -469,6 +469,12 @@ public abstract class OperandTypes {
   public static final SqlSingleOperandTypeChecker DIVISION_OPERATOR =
       OperandTypes.or(NUMERIC_NUMERIC, INTERVAL_NUMERIC);
 
+  /**
+   * Type checking strategy for the "%" operator
+   */
+  public static final SqlSingleOperandTypeChecker REMAINDER_OPERATOR =
+      family(SqlTypeFamily.EXACT_NUMERIC, SqlTypeFamily.EXACT_NUMERIC);
+
   public static final SqlSingleOperandTypeChecker MINUS_OPERATOR =
       // TODO:  compatibility check
       OperandTypes.or(NUMERIC_NUMERIC, INTERVAL_SAME_SAME, DATETIME_INTERVAL);

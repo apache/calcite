@@ -5276,6 +5276,7 @@ SqlBinaryOperator BinaryRowOperator() :
 |   <MINUS> { return SqlStdOperatorTable.MINUS; }
 |   <STAR> { return SqlStdOperatorTable.MULTIPLY; }
 |   <SLASH> { return SqlStdOperatorTable.DIVIDE; }
+|   <REMAINDER> { return SqlStdOperatorTable.REMAINDER; }
 |   <CONCAT> { return SqlStdOperatorTable.CONCAT; }
 |   <AND> { return SqlStdOperatorTable.AND; }
 |   <OR> { return SqlStdOperatorTable.OR; }
@@ -6388,6 +6389,7 @@ String CommonNonReservedKeyWord() :
 |   < MINUS: "-" >
 |   < STAR: "*" >
 |   < SLASH: "/" >
+|   < REMAINDER: "%" >
 |   < CONCAT: "||" >
 |   < NAMED_ARGUMENT_ASSIGNMENT: "=>" >
 |   < DOUBLE_PERIOD: ".." >
