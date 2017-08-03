@@ -794,8 +794,6 @@ public class RelToSqlConverterTest {
         + "FROM \"foodmart\".\"product\"";
     final String expectedMysql = "SELECT SUBSTRING(`brand_name` FROM 2)\n"
         + "FROM `foodmart`.`product`";
-    final String expectedMssql = "SELECT SUBSTRING([brand_name] FROM 2)\n"
-        + "FROM [foodmart].[product]";
     sql(query)
         .dialect(DatabaseProduct.ORACLE.getDialect())
         .ok(expectedOracle)
@@ -804,7 +802,8 @@ public class RelToSqlConverterTest {
         .dialect(DatabaseProduct.MYSQL.getDialect())
         .ok(expectedMysql)
         .dialect(DatabaseProduct.MSSQL.getDialect())
-        .ok(expectedMssql);
+        // mssql does not support this syntax and so should fail
+        .throws_("MSSQL SUBSTRING requires FROM and FOR arguments");
   }
 
   @Test public void testSubstringWithFor() {
@@ -816,7 +815,7 @@ public class RelToSqlConverterTest {
         + "FROM \"foodmart\".\"product\"";
     final String expectedMysql = "SELECT SUBSTRING(`brand_name` FROM 2 FOR 3)\n"
         + "FROM `foodmart`.`product`";
-    final String expectedMssql = "SELECT SUBSTRING([brand_name] FROM 2 FOR 3)\n"
+    final String expectedMssql = "SELECT SUBSTRING([brand_name], 2, 3)\n"
         + "FROM [foodmart].[product]";
     sql(query)
         .dialect(DatabaseProduct.ORACLE.getDialect())
@@ -1831,6 +1830,25 @@ public class RelToSqlConverterTest {
     }
 
     Sql ok(String expectedQuery) {
+      assertThat(exec(), is(expectedQuery));
+      return this;
+    }
+
+    Sql throws_(String errorMessage) {
+      try {
+        exec();
+      } catch (Exception e) {
+        if (!e.getMessage().equals(errorMessage)) {
+          throw e;
+        }
+        return this;
+      }
+
+      throw new RuntimeException("Expected exception with message `"
+        + errorMessage + "` but nothing was thrown");
+    }
+
+    String exec() {
       final Planner planner =
           getPlanner(null, SqlParser.Config.DEFAULT, schemaSpec);
       try {
@@ -1843,14 +1861,12 @@ public class RelToSqlConverterTest {
         final RelToSqlConverter converter =
             new RelToSqlConverter(dialect);
         final SqlNode sqlNode = converter.visitChild(0, rel).asStatement();
-        assertThat(Util.toLinux(sqlNode.toSqlString(dialect).getSql()),
-            is(expectedQuery));
+        return Util.toLinux(sqlNode.toSqlString(dialect).getSql());
       } catch (RuntimeException e) {
         throw e;
       } catch (Exception e) {
         throw new RuntimeException(e);
       }
-      return this;
     }
 
     public Sql schema(CalciteAssert.SchemaSpec schemaSpec) {
