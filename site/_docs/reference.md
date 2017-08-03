@@ -1015,7 +1015,7 @@ The operator precedence and associativity, highest to lowest.
 | .                                                 | left
 | [ ] (array element)                               | left
 | + - (unary plus, minus)                           | right
-| * /                                               | left
+| * / %                                             | left
 | + -                                               | left
 | BETWEEN, IN, LIKE, SIMILAR, OVERLAPS, CONTAINS etc. | -
 | < > = <= >= <> !=                                 | left
@@ -1083,14 +1083,15 @@ comp:
 | Operator syntax           | Description
 |:------------------------- |:-----------
 | + numeric                 | Returns *numeric*
-|:- numeric                 | Returns negative *numeric*
+| - numeric                 | Returns negative *numeric*
 | numeric1 + numeric2       | Returns *numeric1* plus *numeric2*
 | numeric1 - numeric2       | Returns *numeric1* minus *numeric2*
 | numeric1 * numeric2       | Returns *numeric1* multiplied by *numeric2*
 | numeric1 / numeric2       | Returns *numeric1* divided by *numeric2*
+| numeric1 % numeric2       | As *MOD(numeric1, numeric2)* (only in certain [conformance levels]({{ site.apiRoot }}/org/apache/calcite/sql/validate/SqlConformance.html#isPercentRemainderAllowed--))
 | POWER(numeric1, numeric2) | Returns *numeric1* raised to the power of *numeric2*
 | ABS(numeric)              | Returns the absolute value of *numeric*
-| MOD(numeric, numeric)     | Returns the remainder (modulus) of *numeric1* divided by *numeric2*. The result is negative only if *numeric1* is negative
+| MOD(numeric1, numeric2)   | Returns the remainder (modulus) of *numeric1* divided by *numeric2*. The result is negative only if *numeric1* is negative
 | SQRT(numeric)             | Returns the square root of *numeric*
 | LN(numeric)               | Returns the natural logarithm (base *e*) of *numeric*
 | LOG10(numeric)            | Returns the base 10 logarithm of *numeric*
@@ -1112,7 +1113,7 @@ comp:
 | SIGN(numeric)             | Returns the signum of *numeric*
 | SIN(numeric)              | Returns the sine of *numeric*
 | TAN(numeric)              | Returns the tangent of *numeric*
-| TRUNCATE(numeric1 [, numeric2]) | Truncates *numeric1* to optionally *numeric2* (if not specified 0) places right to the decimal point.
+| TRUNCATE(numeric1 [, numeric2]) | Truncates *numeric1* to optionally *numeric2* (if not specified 0) places right to the decimal point
 
 ### Character string operators and functions
 

@@ -5276,6 +5276,12 @@ SqlBinaryOperator BinaryRowOperator() :
 |   <MINUS> { return SqlStdOperatorTable.MINUS; }
 |   <STAR> { return SqlStdOperatorTable.MULTIPLY; }
 |   <SLASH> { return SqlStdOperatorTable.DIVIDE; }
+|   <PERCENT_REMAINDER> {
+        if (!this.conformance.isPercentRemainderAllowed()) {
+            throw new ParseException(RESOURCE.percentRemainderNotAllowed().str());
+        }
+        return SqlStdOperatorTable.PERCENT_REMAINDER;
+    }
 |   <CONCAT> { return SqlStdOperatorTable.CONCAT; }
 |   <AND> { return SqlStdOperatorTable.AND; }
 |   <OR> { return SqlStdOperatorTable.OR; }
@@ -6388,6 +6394,7 @@ String CommonNonReservedKeyWord() :
 |   < MINUS: "-" >
 |   < STAR: "*" >
 |   < SLASH: "/" >
+|   < PERCENT_REMAINDER: "%" >
 |   < CONCAT: "||" >
 |   < NAMED_ARGUMENT_ASSIGNMENT: "=>" >
 |   < DOUBLE_PERIOD: ".." >

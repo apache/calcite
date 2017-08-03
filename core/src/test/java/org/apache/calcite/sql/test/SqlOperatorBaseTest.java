@@ -1925,6 +1925,68 @@ public abstract class SqlOperatorBaseTest {
     tester.checkNull(" cast(null as ANY) || cast(null as ANY) ");
   }
 
+  @Test public void testModOperator() {
+    // "%" is allowed under MYSQL_5 SQL conformance level
+    final SqlTester tester1 = tester.withConformance(SqlConformanceEnum.MYSQL_5);
+    tester1.setFor(SqlStdOperatorTable.PERCENT_REMAINDER);
+    tester1.checkScalarExact("4%2", "0");
+    tester1.checkScalarExact("8%5", "3");
+    tester1.checkScalarExact("-12%7", "-5");
+    tester1.checkScalarExact("-12%-7", "-5");
+    tester1.checkScalarExact("12%-7", "5");
+    tester1.checkScalarExact(
+        "cast(12 as tinyint) % cast(-7 as tinyint)",
+        "TINYINT NOT NULL",
+        "5");
+    if (!DECIMAL) {
+      return;
+    }
+    tester1.checkScalarExact(
+        "cast(9 as decimal(2, 0)) % 7",
+        "INTEGER NOT NULL",
+        "2");
+    tester1.checkScalarExact(
+        "7 % cast(9 as decimal(2, 0))",
+        "DECIMAL(2, 0) NOT NULL",
+        "7");
+    tester1.checkScalarExact(
+        "cast(-9 as decimal(2, 0)) % cast(7 as decimal(1, 0))",
+        "DECIMAL(1, 0) NOT NULL",
+        "-2");
+  }
+
+  @Test public void testModPrecedence() {
+    // "%" is allowed under MYSQL_5 SQL conformance level
+    final SqlTester tester1 = tester.withConformance(SqlConformanceEnum.MYSQL_5);
+    tester1.setFor(SqlStdOperatorTable.PERCENT_REMAINDER);
+    tester1.checkScalarExact("1 + 5 % 3 % 4 * 14 % 17", "12");
+    tester1.checkScalarExact("(1 + 5 % 3) % 4 + 14 % 17", "17");
+  }
+
+  @Test public void testModOperatorNull() {
+    // "%" is allowed under MYSQL_5 SQL conformance level
+    final SqlTester tester1 = tester.withConformance(SqlConformanceEnum.MYSQL_5);
+    tester1.checkNull("cast(null as integer) % 2");
+    tester1.checkNull("4 % cast(null as tinyint)");
+    if (!DECIMAL) {
+      return;
+    }
+    tester1.checkNull("4 % cast(null as decimal(12,0))");
+  }
+
+  @Test public void testModOperatorDivByZero() {
+    // "%" is allowed under MYSQL_5 SQL conformance level
+    final SqlTester tester1 = tester.withConformance(SqlConformanceEnum.MYSQL_5);
+    // The extra CASE expression is to fool Janino.  It does constant
+    // reduction and will throw the divide by zero exception while
+    // compiling the expression.  The test frame work would then issue
+    // unexpected exception occurred during "validation".  You cannot
+    // submit as non-runtime because the janino exception does not have
+    // error position information and the framework is unhappy with that.
+    tester1.checkFails(
+            "3 % case 'a' when 'a' then 0 end", DIVISION_BY_ZERO_MESSAGE, true);
+  }
+
   @Test public void testDivideOperator() {
     tester.setFor(SqlStdOperatorTable.DIVIDE);
     tester.checkScalarExact("10 / 5", "2");

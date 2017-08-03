@@ -1348,7 +1348,7 @@ public class SqlParserTest {
     checkExp("1-2+3*4/5/6-7", "(((1 - 2) + (((3 * 4) / 5) / 6)) - 7)");
     checkExp("power(2,3)", "POWER(2, 3)");
     checkExp("aBs(-2.3e-2)", "ABS(-2.3E-2)");
-    checkExp("MOD(5             ,\t\f\r\n2)", "MOD(5, 2)");
+    checkExp("MOD(5             ,\t\f\r\n2)", "(MOD(5, 2))");
     checkExp("ln(5.43  )", "LN(5.43)");
     checkExp("log10(- -.2  )", "LOG10(0.2)");
   }
@@ -1407,7 +1407,7 @@ public class SqlParserTest {
             + "FROM `EMP`");
     checkExp(
         "log10(1)\r\n+power(2, mod(\r\n3\n\t\t\f\n,ln(4))*log10(5)-6*log10(7/abs(8)+9))*power(10,11)",
-        "(LOG10(1) + (POWER(2, ((MOD(3, LN(4)) * LOG10(5)) - (6 * LOG10(((7 / ABS(8)) + 9))))) * POWER(10, 11)))");
+        "(LOG10(1) + (POWER(2, (((MOD(3, LN(4))) * LOG10(5)) - (6 * LOG10(((7 / ABS(8)) + 9))))) * POWER(10, 11)))");
   }
 
   @Test public void testFunctionWithDistinct() {
