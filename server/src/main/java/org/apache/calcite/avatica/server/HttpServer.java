@@ -29,7 +29,6 @@ import org.eclipse.jetty.security.HashLoginService;
 import org.eclipse.jetty.security.LoginService;
 import org.eclipse.jetty.security.authentication.BasicAuthenticator;
 import org.eclipse.jetty.security.authentication.DigestAuthenticator;
-import org.eclipse.jetty.security.authentication.SpnegoAuthenticator;
 import org.eclipse.jetty.server.Connector;
 import org.eclipse.jetty.server.Handler;
 import org.eclipse.jetty.server.Server;
@@ -271,7 +270,7 @@ public class HttpServer {
     final String[] allowedRealms = getAllowedRealms(realm, config);
 
     return configureCommonAuthentication(server, connector, config, Constraint.__SPNEGO_AUTH,
-        allowedRealms, new SpnegoAuthenticator(), realm, spnegoLoginService);
+        allowedRealms, new AvaticaSpnegoAuthenticator(), realm, spnegoLoginService);
   }
 
   protected String[] getAllowedRealms(String serverRealm, AvaticaServerConfiguration config) {

@@ -57,6 +57,10 @@ limitations under the License.
     </dependency>
     <dependency>
       <groupId>org.eclipse.jetty</groupId>
+      <artifactId>jetty-http</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.eclipse.jetty</groupId>
       <artifactId>jetty-security</artifactId>
     </dependency>
     <dependency>
