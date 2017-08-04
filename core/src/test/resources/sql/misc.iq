@@ -2158,4 +2158,27 @@ where false;
 
 !ok
 
+!set outputformat csv
+
+# [CALCITE-1167] OVERLAPS should match even if operands are in (high, low) order
+values ((date '1999-12-01', date '2001-12-31') overlaps (date '2001-01-01' , date '2002-11-11'));
+EXPR$0
+true
+!ok
+
+values ((date '2001-12-31', date '1999-12-01') overlaps (date '2001-01-01' , date '2002-11-11'));
+EXPR$0
+true
+!ok
+
+values ((date '2001-12-31', date '1999-12-01') overlaps (date '2002-11-11', date '2001-01-01'));
+EXPR$0
+true
+!ok
+
+values ((date '2001-12-31', date '1999-12-01') overlaps (date '2002-01-01', date '2002-11-11'));
+EXPR$0
+false
+!ok
+
 # End misc.iq
