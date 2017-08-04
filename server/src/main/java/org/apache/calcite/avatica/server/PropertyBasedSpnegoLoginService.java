@@ -17,9 +17,22 @@
 package org.apache.calcite.avatica.server;
 
 import org.eclipse.jetty.security.SpnegoLoginService;
+import org.eclipse.jetty.security.SpnegoUserPrincipal;
+import org.eclipse.jetty.server.UserIdentity;
+import org.eclipse.jetty.util.B64Code;
+import org.ietf.jgss.GSSContext;
+import org.ietf.jgss.GSSCredential;
+import org.ietf.jgss.GSSException;
+import org.ietf.jgss.GSSManager;
+import org.ietf.jgss.GSSName;
+import org.ietf.jgss.Oid;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.lang.reflect.Field;
 import java.util.Objects;
+
+import javax.security.auth.Subject;
 
 /**
  * A customization of {@link SpnegoLoginService} which directly specifies the server's
@@ -27,6 +40,7 @@ import java.util.Objects;
  * version would require testing/inspection to ensure the logic is still sound.
  */
 public class PropertyBasedSpnegoLoginService extends SpnegoLoginService {
+  private static final Logger LOG = LoggerFactory.getLogger(PropertyBasedSpnegoLoginService.class);
 
   private static final String TARGET_NAME_FIELD_NAME = "_targetName";
   private final String serverPrincipal;
@@ -44,6 +58,55 @@ public class PropertyBasedSpnegoLoginService extends SpnegoLoginService {
     final Field targetNameField = SpnegoLoginService.class.getDeclaredField(TARGET_NAME_FIELD_NAME);
     targetNameField.setAccessible(true);
     targetNameField.set(this, serverPrincipal);
+  }
+
+  @Override public UserIdentity login(String username, Object credentials) {
+    String encodedAuthToken = (String) credentials;
+    byte[] authToken = B64Code.decode(encodedAuthToken);
+
+    GSSManager manager = GSSManager.getInstance();
+    try {
+      // http://java.sun.com/javase/6/docs/technotes/guides/security/jgss/jgss-features.html
+      Oid spnegoOid = new Oid("1.3.6.1.5.5.2");
+      Oid krb5Oid = new Oid("1.2.840.113554.1.2.2");
+      GSSName gssName = manager.createName(serverPrincipal, null);
+      // CALCITE-1922 Providing both OIDs is the bug in Jetty we're working around. By specifying
+      // only one, we're requiring that clients *must* provide us the SPNEGO OID to authenticate
+      // via Kerberos which is wrong. Best as I can tell, the SPNEGO OID is meant as another
+      // layer of indirection (essentially is equivalent to setting the Kerberos OID).
+      GSSCredential serverCreds = manager.createCredential(gssName,
+          GSSCredential.INDEFINITE_LIFETIME, new Oid[] {krb5Oid, spnegoOid},
+          GSSCredential.ACCEPT_ONLY);
+      GSSContext gContext = manager.createContext(serverCreds);
+
+      if (gContext == null) {
+        LOG.debug("SpnegoUserRealm: failed to establish GSSContext");
+      } else {
+        while (!gContext.isEstablished()) {
+          authToken = gContext.acceptSecContext(authToken, 0, authToken.length);
+        }
+        if (gContext.isEstablished()) {
+          String clientName = gContext.getSrcName().toString();
+          String role = clientName.substring(clientName.indexOf('@') + 1);
+
+          LOG.debug("SpnegoUserRealm: established a security context");
+          LOG.debug("Client Principal is: {}", gContext.getSrcName());
+          LOG.debug("Server Principal is: {}", gContext.getTargName());
+          LOG.debug("Client Default Role: {}", role);
+
+          SpnegoUserPrincipal user = new SpnegoUserPrincipal(clientName, authToken);
+
+          Subject subject = new Subject();
+          subject.getPrincipals().add(user);
+
+          return _identityService.newUserIdentity(subject, user, new String[]{role});
+        }
+      }
+    } catch (GSSException gsse) {
+      LOG.warn("Caught GSSException trying to authenticate the client", gsse);
+    }
+
+    return null;
   }
 }
 
