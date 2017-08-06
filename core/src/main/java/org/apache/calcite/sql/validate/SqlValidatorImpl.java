@@ -4507,11 +4507,6 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         == SqlMatchRecognize.RowsPerMatchOption.ALL_ROWS;
 
     final List<Map.Entry<String, RelDataType>> fields = new ArrayList<>();
-    if (allRows) {
-      final SqlValidatorNamespace sqlNs = getNamespace(matchRecognize.getTableRef());
-      final RelDataType inputDataType = sqlNs.getRowType();
-      fields.addAll(inputDataType.getFieldList());
-    }
 
     // parse PARTITION BY column
     SqlNodeList partitionBy = matchRecognize.getPartitionList();
@@ -4519,11 +4514,9 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       for (SqlNode node : partitionBy) {
         SqlIdentifier identifier = (SqlIdentifier) node;
         identifier.validate(this, scope);
-        if (allRows) {
-          RelDataType type = deriveType(scope, identifier);
-          String name = identifier.names.get(1);
-          fields.add(Pair.of(name, type));
-        }
+        RelDataType type = deriveType(scope, identifier);
+        String name = identifier.names.get(1);
+        fields.add(Pair.of(name, type));
       }
     }
 
@@ -4532,6 +4525,30 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     if (orderBy != null) {
       for (SqlNode node : orderBy) {
         node.validate(this, scope);
+        SqlIdentifier identifier = null;
+        if (node instanceof SqlBasicCall) {
+          identifier = (SqlIdentifier) ((SqlBasicCall) node).getOperands()[0];
+        } else {
+          identifier = (SqlIdentifier) node;
+        }
+
+        if (allRows) {
+          RelDataType type = deriveType(scope, identifier);
+          String name = identifier.names.get(1);
+          if (!isMatchColumnExists(fields, name)) {
+            fields.add(Pair.of(name, type));
+          }
+        }
+      }
+    }
+
+    if (allRows) {
+      final SqlValidatorNamespace sqlNs = getNamespace(matchRecognize.getTableRef());
+      final RelDataType inputDataType = sqlNs.getRowType();
+      for (RelDataTypeField fs : inputDataType.getFieldList()) {
+        if (!isMatchColumnExists(fields, fs.getName())) {
+          fields.add(fs);
+        }
       }
     }
 
@@ -4574,13 +4591,29 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       }
     }
 
-    fields.addAll(validateMeasure(matchRecognize, scope, allRows));
+    List<Map.Entry<String, RelDataType>> measureColumns =
+      validateMeasure(matchRecognize, scope, allRows);
+    for (Map.Entry<String, RelDataType> et : measureColumns) {
+      if (!isMatchColumnExists(fields, et.getKey())) {
+        fields.add(et);
+      }
+    }
+
     final RelDataType rowType = typeFactory.createStructType(fields);
     if (matchRecognize.getMeasureList().size() == 0) {
       ns.setType(getNamespace(matchRecognize.getTableRef()).getRowType());
     } else {
       ns.setType(rowType);
     }
+  }
+
+  private boolean isMatchColumnExists(List<Map.Entry<String, RelDataType>> fields, String name) {
+    for (Map.Entry<String, RelDataType> et : fields) {
+      if (et.getKey().equals(name)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   private List<Map.Entry<String, RelDataType>> validateMeasure(SqlMatchRecognize mr,
