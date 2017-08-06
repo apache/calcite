@@ -4763,8 +4763,52 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
         </Resource>
         <Resource name="plan">
             <![CDATA[
-LogicalProject(MATCH_NUM=[$0], VAR_MATCH=[$1], START_NW=[$2], BOTTOM_NW=[$3], END_NW=[$4])
-  LogicalMatch(partition=[[$2, $5]], order=[[2, 5 DESC]], outputFields=[[MATCH_NUM, VAR_MATCH, START_NW, BOTTOM_NW, END_NW]], allRows=[false], after=[FLAG(SKIP TO NEXT ROW)], pattern=[(('STRT', PATTERN_QUANTIFIER('DOWN', 1, -1, false)), PATTERN_QUANTIFIER('UP', 1, -1, false))], isStrictStarts=[false], isStrictEnds=[false], subsets=[[]], patternDefinitions=[[<(DOWN.$3, PREV(DOWN.$3, 1)), >(UP.$3, PREV(UP.$3, 1))]], inputFields=[[EMPNO, ENAME, JOB, MGR, HIREDATE, SAL, COMM, DEPTNO, SLACKER]])
+LogicalProject(JOB=[$0], SAL=[$1], MATCH_NUM=[$2], VAR_MATCH=[$3], START_NW=[$4], BOTTOM_NW=[$5], END_NW=[$6])
+  LogicalMatch(partition=[[$2, $5]], order=[[2, 5 DESC]], outputFields=[[JOB, SAL, MATCH_NUM, VAR_MATCH, START_NW, BOTTOM_NW, END_NW]], allRows=[false], after=[FLAG(SKIP TO NEXT ROW)], pattern=[(('STRT', PATTERN_QUANTIFIER('DOWN', 1, -1, false)), PATTERN_QUANTIFIER('UP', 1, -1, false))], isStrictStarts=[false], isStrictEnds=[false], subsets=[[]], patternDefinitions=[[<(DOWN.$3, PREV(DOWN.$3, 1)), >(UP.$3, PREV(UP.$3, 1))]], inputFields=[[EMPNO, ENAME, JOB, MGR, HIREDATE, SAL, COMM, DEPTNO, SLACKER]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testMatchRecognizeMeasures2">
+        <Resource name="sql">
+            <![CDATA[select *
+  from emp match_recognize
+  (
+   partition by job
+   order by sal
+   measures STRT.mgr as start_nw,   LAST(DOWN.mgr) as bottom_nw,   LAST(up.mgr) as end_nw    pattern (strt down+ up+)
+    define
+      down as down.mgr < PREV(down.mgr),
+      up as up.mgr > prev(up.mgr)
+  ) mr]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(JOB=[$0], MATCH_NUM=[$1], VAR_MATCH=[$2], START_NW=[$3], BOTTOM_NW=[$4], END_NW=[$5])
+  LogicalMatch(partition=[[$2]], order=[[5]], outputFields=[[JOB, MATCH_NUM, VAR_MATCH, START_NW, BOTTOM_NW, END_NW]], allRows=[false], after=[FLAG(SKIP TO NEXT ROW)], pattern=[(('STRT', PATTERN_QUANTIFIER('DOWN', 1, -1, false)), PATTERN_QUANTIFIER('UP', 1, -1, false))], isStrictStarts=[false], isStrictEnds=[false], subsets=[[]], patternDefinitions=[[<(DOWN.$3, PREV(DOWN.$3, 1)), >(UP.$3, PREV(UP.$3, 1))]], inputFields=[[EMPNO, ENAME, JOB, MGR, HIREDATE, SAL, COMM, DEPTNO, SLACKER]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testMatchRecognizeMeasures3">
+        <Resource name="sql">
+            <![CDATA[select *
+  from emp match_recognize
+  (
+   partition by job
+   order by sal
+   measures STRT.mgr as start_nw,   LAST(DOWN.mgr) as bottom_nw,   LAST(up.mgr) as end_nw
+   ALL ROWS PER MATCH
+   pattern (strt down+ up+)
+    define
+      down as down.mgr < PREV(down.mgr),
+      up as up.mgr > prev(up.mgr)
+  ) mr]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(JOB=[$0], SAL=[$1], EMPNO=[$2], ENAME=[$3], MGR=[$4], HIREDATE=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], MATCH_NUM=[$9], VAR_MATCH=[$10], START_NW=[$11], BOTTOM_NW=[$12], END_NW=[$13])
+  LogicalMatch(partition=[[$2]], order=[[5]], outputFields=[[JOB, SAL, EMPNO, ENAME, MGR, HIREDATE, COMM, DEPTNO, SLACKER, MATCH_NUM, VAR_MATCH, START_NW, BOTTOM_NW, END_NW]], allRows=[true], after=[FLAG(SKIP TO NEXT ROW)], pattern=[(('STRT', PATTERN_QUANTIFIER('DOWN', 1, -1, false)), PATTERN_QUANTIFIER('UP', 1, -1, false))], isStrictStarts=[false], isStrictEnds=[false], subsets=[[]], patternDefinitions=[[<(DOWN.$3, PREV(DOWN.$3, 1)), >(UP.$3, PREV(UP.$3, 1))]], inputFields=[[EMPNO, ENAME, JOB, MGR, HIREDATE, SAL, COMM, DEPTNO, SLACKER]])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>

@@ -2542,6 +2542,49 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1909">[CALCITE-1909]
+   * Output rowType of Match should include PARTITION BY and ORDER BY
+   * columns</a>. */
+  @Test public void testMatchRecognizeMeasures2() {
+    final String sql = "select *\n"
+        + "  from emp match_recognize\n"
+        + "  (\n"
+        + "   partition by job\n"
+        + "   order by sal\n"
+        + "   measures  MATCH_NUMBER() as match_num, "
+        + "   CLASSIFIER() as var_match, "
+        + "   STRT.mgr as start_nw,"
+        + "   LAST(DOWN.mgr) as bottom_nw,"
+        + "   LAST(up.mgr) as end_nw"
+        + "    pattern (strt down+ up+)\n"
+        + "    define\n"
+        + "      down as down.mgr < PREV(down.mgr),\n"
+        + "      up as up.mgr > prev(up.mgr)\n"
+        + "  ) mr";
+    sql(sql).ok();
+  }
+
+  @Test public void testMatchRecognizeMeasures3() {
+    final String sql = "select *\n"
+        + "  from emp match_recognize\n"
+        + "  (\n"
+        + "   partition by job\n"
+        + "   order by sal\n"
+        + "   measures  MATCH_NUMBER() as match_num, "
+        + "   CLASSIFIER() as var_match, "
+        + "   STRT.mgr as start_nw,"
+        + "   LAST(DOWN.mgr) as bottom_nw,"
+        + "   LAST(up.mgr) as end_nw"
+        + "   ALL ROWS PER MATCH"
+        + "    pattern (strt down+ up+)\n"
+        + "    define\n"
+        + "      down as down.mgr < PREV(down.mgr),\n"
+        + "      up as up.mgr > prev(up.mgr)\n"
+        + "  ) mr";
+    sql(sql).ok();
+  }
+
   @Test public void testMatchRecognizePatternSkip1() {
     final String sql = "select *\n"
         + "  from emp match_recognize\n"

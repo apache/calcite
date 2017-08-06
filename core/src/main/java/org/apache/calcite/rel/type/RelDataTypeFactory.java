@@ -503,6 +503,11 @@ public interface RelDataTypeFactory {
     public RelDataType build() {
       return typeFactory.createStructType(kind, types, names);
     }
+
+    /** Returns whether a field exists with the given name. */
+    public boolean nameExists(String name) {
+      return names.contains(name);
+    }
   }
 }
 

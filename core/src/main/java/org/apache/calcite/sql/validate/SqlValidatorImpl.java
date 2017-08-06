@@ -4506,12 +4506,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         && rowsPerMatch.getValue()
         == SqlMatchRecognize.RowsPerMatchOption.ALL_ROWS;
 
-    final List<Map.Entry<String, RelDataType>> fields = new ArrayList<>();
-    if (allRows) {
-      final SqlValidatorNamespace sqlNs = getNamespace(matchRecognize.getTableRef());
-      final RelDataType inputDataType = sqlNs.getRowType();
-      fields.addAll(inputDataType.getFieldList());
-    }
+    final RelDataTypeFactory.Builder typeBuilder = typeFactory.builder();
 
     // parse PARTITION BY column
     SqlNodeList partitionBy = matchRecognize.getPartitionList();
@@ -4519,11 +4514,9 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       for (SqlNode node : partitionBy) {
         SqlIdentifier identifier = (SqlIdentifier) node;
         identifier.validate(this, scope);
-        if (allRows) {
-          RelDataType type = deriveType(scope, identifier);
-          String name = identifier.names.get(1);
-          fields.add(Pair.of(name, type));
-        }
+        RelDataType type = deriveType(scope, identifier);
+        String name = identifier.names.get(1);
+        typeBuilder.add(name, type);
       }
     }
 
@@ -4532,6 +4525,31 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     if (orderBy != null) {
       for (SqlNode node : orderBy) {
         node.validate(this, scope);
+        SqlIdentifier identifier = null;
+        if (node instanceof SqlBasicCall) {
+          identifier = (SqlIdentifier) ((SqlBasicCall) node).getOperands()[0];
+        } else {
+          identifier = (SqlIdentifier) node;
+        }
+
+        if (allRows) {
+          RelDataType type = deriveType(scope, identifier);
+          String name = identifier.names.get(1);
+          if (!typeBuilder.nameExists(name)) {
+            typeBuilder.add(name, type);
+          }
+        }
+      }
+    }
+
+    if (allRows) {
+      final SqlValidatorNamespace sqlNs =
+          getNamespace(matchRecognize.getTableRef());
+      final RelDataType inputDataType = sqlNs.getRowType();
+      for (RelDataTypeField fs : inputDataType.getFieldList()) {
+        if (!typeBuilder.nameExists(fs.getName())) {
+          typeBuilder.add(fs);
+        }
       }
     }
 
@@ -4549,14 +4567,14 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         String leftString = ((SqlIdentifier) operands.get(0)).getSimple();
         if (scope.getPatternVars().contains(leftString)) {
           throw newValidationError(operands.get(0),
-            RESOURCE.patternVarAlreadyDefined(leftString));
+              RESOURCE.patternVarAlreadyDefined(leftString));
         }
         scope.addPatternVar(leftString);
         for (SqlNode right : (SqlNodeList) operands.get(1)) {
           SqlIdentifier id = (SqlIdentifier) right;
           if (!scope.getPatternVars().contains(id.getSimple())) {
             throw newValidationError(id,
-              RESOURCE.unknownPattern(id.getSimple()));
+                RESOURCE.unknownPattern(id.getSimple()));
           }
           scope.addPatternVar(id.getSimple());
         }
@@ -4574,8 +4592,15 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       }
     }
 
-    fields.addAll(validateMeasure(matchRecognize, scope, allRows));
-    final RelDataType rowType = typeFactory.createStructType(fields);
+    List<Map.Entry<String, RelDataType>> measureColumns =
+      validateMeasure(matchRecognize, scope, allRows);
+    for (Map.Entry<String, RelDataType> c : measureColumns) {
+      if (!typeBuilder.nameExists(c.getKey())) {
+        typeBuilder.add(c.getKey(), c.getValue());
+      }
+    }
+
+    final RelDataType rowType = typeBuilder.build();
     if (matchRecognize.getMeasureList().size() == 0) {
       ns.setType(getNamespace(matchRecognize.getTableRef()).getRowType());
     } else {
@@ -4776,9 +4801,10 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     return newExpr;
   }
 
-  public SqlNode expandGroupByOrHavingExpr(SqlNode expr, SqlValidatorScope scope, SqlSelect select,
-      boolean havingExpression) {
-    final Expander expander = new ExtendedExpander(this, scope, select, expr, havingExpression);
+  public SqlNode expandGroupByOrHavingExpr(SqlNode expr,
+      SqlValidatorScope scope, SqlSelect select, boolean havingExpression) {
+    final Expander expander = new ExtendedExpander(this, scope, select, expr,
+        havingExpression);
     SqlNode newExpr = expr.accept(expander);
     if (expr != newExpr) {
       setOriginal(newExpr, expr);
