@@ -100,7 +100,7 @@ public class SplunkTableScan
   }
 
   @Override public RelDataType deriveRowType() {
-    final RelDataTypeFactory.FieldInfoBuilder builder =
+    final RelDataTypeFactory.Builder builder =
         getCluster().getTypeFactory().builder();
     for (String field : fieldList) {
       // REVIEW: is case-sensitive match what we want here?

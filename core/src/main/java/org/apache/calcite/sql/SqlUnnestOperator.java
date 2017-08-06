@@ -61,7 +61,7 @@ public class SqlUnnestOperator extends SqlFunctionalOperator {
   //~ Methods ----------------------------------------------------------------
 
   @Override public RelDataType inferReturnType(SqlOperatorBinding opBinding) {
-    final RelDataTypeFactory.FieldInfoBuilder builder =
+    final RelDataTypeFactory.Builder builder =
         opBinding.getTypeFactory().builder();
     for (Integer operand : Util.range(opBinding.getOperandCount())) {
       RelDataType type = opBinding.getOperandType(operand);

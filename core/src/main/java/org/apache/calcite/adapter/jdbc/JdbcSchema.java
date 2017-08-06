@@ -277,7 +277,7 @@ public class JdbcSchema implements Schema {
     // proto-type will be copied into a real type factory.
     final RelDataTypeFactory typeFactory =
         new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
-    final RelDataTypeFactory.FieldInfoBuilder fieldInfo = typeFactory.builder();
+    final RelDataTypeFactory.Builder fieldInfo = typeFactory.builder();
     while (resultSet.next()) {
       final String columnName = resultSet.getString(4);
       final int dataType = resultSet.getInt(5);

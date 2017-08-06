@@ -153,7 +153,7 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
       final PhysType inputPhysType =
           PhysTypeImpl.of(typeFactory, rel.getInput().getRowType(),
               JavaRowFormat.ARRAY);
-      final RelDataTypeFactory.FieldInfoBuilder builder = typeFactory.builder();
+      final RelDataTypeFactory.Builder builder = typeFactory.builder();
       for (Expression expression : agg.state) {
         builder.add("a",
             typeFactory.createJavaType((Class) expression.getType()));

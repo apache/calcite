@@ -41,7 +41,7 @@ class WithItemNamespace extends AbstractNamespace {
     if (withItem.columnList == null) {
       return rowType;
     }
-    final RelDataTypeFactory.FieldInfoBuilder builder =
+    final RelDataTypeFactory.Builder builder =
         validator.getTypeFactory().builder();
     for (Pair<SqlNode, RelDataTypeField> pair
         : Pair.zip(withItem.columnList, rowType.getFieldList())) {

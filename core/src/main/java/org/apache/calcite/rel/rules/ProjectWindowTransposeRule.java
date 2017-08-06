@@ -75,7 +75,7 @@ public class ProjectWindowTransposeRule extends RelOptRule {
 
     // Put a DrillProjectRel below LogicalWindow
     final List<RexNode> exps = new ArrayList<>();
-    final RelDataTypeFactory.FieldInfoBuilder builder =
+    final RelDataTypeFactory.Builder builder =
         cluster.getTypeFactory().builder();
 
     // Keep only the fields which are referred
@@ -123,7 +123,7 @@ public class ProjectWindowTransposeRule extends RelOptRule {
     };
 
     int aggCallIndex = windowInputColumn;
-    final RelDataTypeFactory.FieldInfoBuilder outputBuilder =
+    final RelDataTypeFactory.Builder outputBuilder =
         cluster.getTypeFactory().builder();
     outputBuilder.addAll(projectBelowWindow.getRowType().getFieldList());
     for (Window.Group group : window.groups) {

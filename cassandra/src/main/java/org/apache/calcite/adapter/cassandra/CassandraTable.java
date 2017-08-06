@@ -115,7 +115,7 @@ public class CassandraTable extends AbstractQueryableTable
     // Build the type of the resulting row based on the provided fields
     final RelDataTypeFactory typeFactory =
         new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
-    final RelDataTypeFactory.FieldInfoBuilder fieldInfo = typeFactory.builder();
+    final RelDataTypeFactory.Builder fieldInfo = typeFactory.builder();
     final RelDataType rowType = getRowType(typeFactory);
 
     Function1<String, Void> addField = new Function1<String, Void>() {

@@ -113,7 +113,7 @@ public class SqlCreateTable extends SqlCreate
       schema = schema.getSubSchema(p, true);
     }
     final JavaTypeFactory typeFactory = new JavaTypeFactoryImpl();
-    final RelDataTypeFactory.FieldInfoBuilder builder = typeFactory.builder();
+    final RelDataTypeFactory.Builder builder = typeFactory.builder();
     for (Pair<SqlIdentifier, SqlDataTypeSpec> pair : nameTypes()) {
       builder.add(pair.left.getSimple(),
           pair.right.deriveType(typeFactory, true));

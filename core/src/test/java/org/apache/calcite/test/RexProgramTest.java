@@ -942,7 +942,7 @@ public class RexProgramTest {
   private void checkExponentialCnf(int n) {
     final RelDataType booleanType =
         typeFactory.createSqlType(SqlTypeName.BOOLEAN);
-    final RelDataTypeFactory.FieldInfoBuilder builder = typeFactory.builder();
+    final RelDataTypeFactory.Builder builder = typeFactory.builder();
     for (int i = 0; i < n; i++) {
       builder.add("x" + i, booleanType)
           .add("y" + i, booleanType);

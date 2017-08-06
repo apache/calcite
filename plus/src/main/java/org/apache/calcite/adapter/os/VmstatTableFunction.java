@@ -21,7 +21,6 @@ import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.function.Function1;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
-import org.apache.calcite.rel.type.RelDataTypeFactory.FieldInfoBuilder;
 import org.apache.calcite.schema.ScannableTable;
 import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.Statistic;
@@ -96,7 +95,7 @@ public class VmstatTableFunction {
 
       public RelDataType getRowType(RelDataTypeFactory typeFactory) {
         final String osName = System.getProperty("os.name");
-        final FieldInfoBuilder builder = typeFactory.builder();
+        final RelDataTypeFactory.Builder builder = typeFactory.builder();
         switch (osName) {
         case "Mac OS X":
           return builder

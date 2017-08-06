@@ -212,8 +212,7 @@ public class EnumerableWindow extends Window implements EnumerableRel {
       }
 
       // The output from this stage is the input plus the aggregate functions.
-      final RelDataTypeFactory.FieldInfoBuilder typeBuilder =
-          typeFactory.builder();
+      final RelDataTypeFactory.Builder typeBuilder = typeFactory.builder();
       typeBuilder.addAll(inputPhysType.getRowType().getFieldList());
       for (AggImpState agg : aggs) {
         typeBuilder.add(agg.call.name, agg.call.type);

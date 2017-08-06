@@ -192,7 +192,7 @@ public class RelJson {
     if (o instanceof List) {
       @SuppressWarnings("unchecked")
       final List<Map<String, Object>> jsonList = (List<Map<String, Object>>) o;
-      final RelDataTypeFactory.FieldInfoBuilder builder = typeFactory.builder();
+      final RelDataTypeFactory.Builder builder = typeFactory.builder();
       for (Map<String, Object> jsonMap : jsonList) {
         builder.add((String) jsonMap.get("name"), toType(typeFactory, jsonMap));
       }

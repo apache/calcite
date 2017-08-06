@@ -136,7 +136,7 @@ public class DruidTable extends AbstractTable implements TranslatableTable {
     }
 
     public RelDataType apply(RelDataTypeFactory typeFactory) {
-      final RelDataTypeFactory.FieldInfoBuilder builder = typeFactory.builder();
+      final RelDataTypeFactory.Builder builder = typeFactory.builder();
       for (Map.Entry<String, SqlTypeName> field : fields.entrySet()) {
         builder.add(field.getKey(), field.getValue()).nullable(true);
       }

@@ -926,8 +926,7 @@ public class RexUtil {
       names = SqlValidatorUtil.uniquify(names, suggester,
           typeFactory.getTypeSystem().isSchemaCaseSensitive());
     }
-    final RelDataTypeFactory.FieldInfoBuilder builder =
-        typeFactory.builder();
+    final RelDataTypeFactory.Builder builder = typeFactory.builder();
     for (int i = 0; i < exprs.size(); i++) {
       String name;
       if (names == null || (name = names.get(i)) == null) {

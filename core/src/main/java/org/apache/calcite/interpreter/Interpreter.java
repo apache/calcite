@@ -133,7 +133,7 @@ public class Interpreter extends AbstractEnumerable<Object[]>
   }
 
   RelDataType combinedRowType(List<RelNode> inputs) {
-    final RelDataTypeFactory.FieldInfoBuilder builder =
+    final RelDataTypeFactory.Builder builder =
         dataContext.getTypeFactory().builder();
     for (RelNode input : inputs) {
       builder.addAll(input.getRowType().getFieldList());

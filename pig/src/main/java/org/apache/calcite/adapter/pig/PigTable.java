@@ -50,7 +50,7 @@ public class PigTable extends AbstractTable implements TranslatableTable {
   }
 
   @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
-    final RelDataTypeFactory.FieldInfoBuilder builder = typeFactory.builder();
+    final RelDataTypeFactory.Builder builder = typeFactory.builder();
     for (String fieldName : fieldNames) {
       // only supports CHARARRAY types for now
       final RelDataType relDataType = typeFactory

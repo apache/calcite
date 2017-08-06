@@ -134,7 +134,7 @@ public class CassandraSchema extends AbstractSchema {
     // proto-type will be copied into a real type factory.
     final RelDataTypeFactory typeFactory =
         new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
-    final RelDataTypeFactory.FieldInfoBuilder fieldInfo = typeFactory.builder();
+    final RelDataTypeFactory.Builder fieldInfo = typeFactory.builder();
     for (ColumnMetadata column : columns) {
       final String columnName = column.getName();
       final DataType type = column.getType();
