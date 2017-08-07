@@ -2449,6 +2449,7 @@ SqlMatchRecognize MatchRecognizeOpt(SqlNode tableRef) :
     SqlNodeList partitionList = SqlNodeList.EMPTY;
     SqlNodeList orderList = SqlNodeList.EMPTY;
     SqlNode pattern;
+    SqlLiteral interval;
     SqlNodeList patternDefList;
     final SqlNode after;
     SqlParserPos pos;
@@ -2528,6 +2529,11 @@ SqlMatchRecognize MatchRecognizeOpt(SqlNode tableRef) :
         { isStrictEnds = SqlLiteral.createBoolean(false, getPos()); }
     )
     <RPAREN>
+    (
+        <WITHIN> interval = IntervalLiteral()
+    |
+        { interval = null; }
+    )
     [
         <SUBSET>
         subsetList = SubsetDefinitionCommaList(span())
@@ -2537,7 +2543,7 @@ SqlMatchRecognize MatchRecognizeOpt(SqlNode tableRef) :
     <RPAREN> {
         return new SqlMatchRecognize(s.end(this), tableRef,
             pattern, isStrictStarts, isStrictEnds, patternDefList, measureList,
-            after, subsetList, rowsPerMatch, partitionList, orderList);
+            after, subsetList, rowsPerMatch, partitionList, orderList, interval);
     }
 }
 

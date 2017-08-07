@@ -1676,7 +1676,7 @@ matchRecognize:
             | SKIP TO LAST variable
             | SKIP TO variable )
       ]
-      PATTERN '(' pattern ')'
+      PATTERN '(' pattern ')' WITHIN INTERVAL 'intervalStr' intervalUnit
       [ SUBSET subsetItem [, subsetItem ]* ]
       DEFINE variable AS condition [, variable AS condition ]*
       ')'
@@ -1713,6 +1713,37 @@ patternQuantifier:
   |   '??'
   |   '{' { [ minRepeat ], [ maxRepeat ] } '}' ['?']
   |   '{' repeat '}'
+
+intervalStr:
+        YY
+  |     YY-MM
+  |     MM
+  |     DD
+  |     DD HH
+  |     DD HH:MM
+  |     DD HH:MM:SS
+  |     DD HH:MM:SS.SSS
+  |     HH
+  |     HH:MM
+  |     HH:MM:SS
+  |     HH:MM:SS.SSS
+  |     MM
+  |     MM:SS
+  |     MM:SS.SSS
+
+intervalUnit:
+        YEAR
+  |     YEAR TO MONTH
+  |     MONTH
+  |     DAY
+  |     DAY TO HOUR
+  |     DAY TO MINUTE
+  |     DAY TO SECOND
+  |     HOUR
+  |     HOUR TO MINUTE
+  |     HOUR TO SECOND
+  |     MINUTE
+  |     MINUTE TO SECOND
 {% endhighlight %}
 
 In *patternQuantifier*, *repeat* is a positive integer,

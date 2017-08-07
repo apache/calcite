@@ -1898,6 +1898,41 @@ public class RelToSqlConverterTest {
     sql(sql).ok(expected);
   }
 
+  @Test public void testMatchRecognizeWithin() {
+    final String sql = "select *\n"
+        + "  from \"product\" match_recognize\n"
+        + "  (\n"
+        + "   measures STRT.\"net_weight\" as start_nw,"
+        + "   LAST(DOWN.\"net_weight\") as bottom_nw,"
+        + "   SUM(STDN.\"net_weight\") as avg_stdn"
+        + "    ALL ROWS PER MATCH\n"
+        + "    pattern (strt down+ up+) within interval '3:12:22.123' hour to second\n"
+        + "    subset stdn = (strt, down), stdn2 = (strt, down)\n"
+        + "    define\n"
+        + "      down as down.\"net_weight\" < PREV(down.\"net_weight\"),\n"
+        + "      up as up.\"net_weight\" > prev(up.\"net_weight\")\n"
+        + "  ) mr";
+
+    final String expected = "SELECT *\n"
+        + "FROM (SELECT *\n"
+        + "FROM \"foodmart\".\"product\") "
+        + "MATCH_RECOGNIZE(\n"
+        + "MEASURES "
+        + "\"STRT\".\"net_weight\" AS \"START_NW\", "
+        + "LAST(\"DOWN\".\"net_weight\", 0) AS \"BOTTOM_NW\", "
+        + "SUM(\"STDN\".\"net_weight\") AS \"AVG_STDN\"\n"
+        + "ALL ROWS PER MATCH\n"
+        + "AFTER MATCH SKIP TO NEXT ROW\n"
+        + "PATTERN (\"STRT\" \"DOWN\" + \"UP\" +) WITHIN INTERVAL '3:12:22.123' HOUR TO SECOND\n"
+        + "SUBSET \"STDN\" = (\"DOWN\", \"STRT\"), \"STDN2\" = (\"DOWN\", \"STRT\")\n"
+        + "DEFINE "
+        + "\"DOWN\" AS \"DOWN\".\"net_weight\" < "
+        + "PREV(\"DOWN\".\"net_weight\", 1), "
+        + "\"UP\" AS \"UP\".\"net_weight\" > "
+        + "PREV(\"UP\".\"net_weight\", 1))";
+    sql(sql).ok(expected);
+  }
+
   /** Fluid interface to run tests. */
   private static class Sql {
     private CalciteAssert.SchemaSpec schemaSpec;

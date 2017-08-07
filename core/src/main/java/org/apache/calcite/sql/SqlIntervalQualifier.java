@@ -37,6 +37,8 @@ import java.util.regex.Pattern;
 
 import static org.apache.calcite.util.Static.RESOURCE;
 
+import static java.math.BigDecimal.ROUND_UNNECESSARY;
+
 /**
  * Represents an INTERVAL qualifier.
  *
@@ -89,6 +91,18 @@ public class SqlIntervalQualifier extends SqlNode {
   private static final BigDecimal THOUSAND = BigDecimal.valueOf(1000);
   private static final BigDecimal INT_MAX_VALUE_PLUS_ONE =
       BigDecimal.valueOf(Integer.MAX_VALUE).add(BigDecimal.ONE);
+
+  private static final long[] CONV = new long[7];
+  static {
+    CONV[6] = 1; // months
+    CONV[5] = CONV[6] * 12; // years
+
+    CONV[4] = 1; // millisecond
+    CONV[3] = CONV[4] * 1000; // second
+    CONV[2] = CONV[3] * 60; // minute
+    CONV[1] = CONV[2] * 60; // hour
+    CONV[0] = CONV[1] * 24; // day
+  }
 
   //~ Instance fields --------------------------------------------------------
 
@@ -368,7 +382,7 @@ public class SqlIntervalQualifier extends SqlNode {
   /**
    * @return 1 or -1
    */
-  private int getIntervalSign(String value) {
+  public int getIntervalSign(String value) {
     int sign = 1; // positive until proven otherwise
 
     if (!Util.isNullOrEmpty(value)) {
@@ -1192,6 +1206,112 @@ public class SqlIntervalQualifier extends SqlNode {
     default:
       throw invalidValueException(pos, value0);
     }
+  }
+
+  public String convertAsDay(BigDecimal value) {
+    return value.divide(BigDecimal.valueOf(CONV[0]), ROUND_UNNECESSARY).toString();
+  }
+
+  public String convertAsDayToHour(BigDecimal value) {
+    BigDecimal[] result = value.divideAndRemainder(BigDecimal.valueOf(CONV[0]));
+    BigDecimal day = result[0];
+    BigDecimal hour = result[1].divide(BigDecimal.valueOf(CONV[1]), ROUND_UNNECESSARY);
+    return day + " " + hour;
+  }
+
+  public String convertAsDayToMinute(BigDecimal value) {
+    BigDecimal[] result = value.divideAndRemainder(BigDecimal.valueOf(CONV[0]));
+    BigDecimal day = result[0];
+    result = result[1].divideAndRemainder(BigDecimal.valueOf(CONV[1]));
+    BigDecimal hour = result[0];
+    BigDecimal minute = result[1].divide(BigDecimal.valueOf(CONV[2]), ROUND_UNNECESSARY);
+    return day + " " + hour + ":" + minute;
+  }
+
+  public String convertAsDayToSecond(BigDecimal value) {
+    BigDecimal[] result = value.divideAndRemainder(BigDecimal.valueOf(CONV[0]));
+    BigDecimal day = result[0];
+    result = result[1].divideAndRemainder(BigDecimal.valueOf(CONV[1]));
+    BigDecimal hour = result[0];
+    result = result[1].divideAndRemainder(BigDecimal.valueOf(CONV[2]));
+    BigDecimal minute = result[0];
+    result = result[1].divideAndRemainder(BigDecimal.valueOf(CONV[3]));
+    BigDecimal second = result[0];
+    if (result[1].compareTo(BigDecimal.ZERO) == 0) {
+      return day + " " + hour + ":" + minute + ":" + second;
+    } else {
+      BigDecimal secondFrac = result[1];
+      return day + " " + hour + ":" + minute + ":" + second + "." + secondFrac;
+    }
+  }
+
+  public String convertAsHour(BigDecimal value) {
+    return value.divide(BigDecimal.valueOf(CONV[1]), ROUND_UNNECESSARY).toString();
+  }
+
+  public String convertAsHourToMinute(BigDecimal value) {
+    BigDecimal[] result = value.divideAndRemainder(BigDecimal.valueOf(CONV[1]));
+    BigDecimal hour = result[0];
+    BigDecimal minute = result[1].divide(BigDecimal.valueOf(CONV[2]), ROUND_UNNECESSARY);
+    return hour + ":" + minute;
+  }
+
+  public String convertAsHourToSecond(BigDecimal value) {
+    BigDecimal[] result = value.divideAndRemainder(BigDecimal.valueOf(CONV[1]));
+    BigDecimal hour = result[0];
+    result = result[1].divideAndRemainder(BigDecimal.valueOf(CONV[2]));
+    BigDecimal minute = result[0];
+    result = result[1].divideAndRemainder(BigDecimal.valueOf(CONV[3]));
+    BigDecimal second = result[0];
+    if (result[1].compareTo(BigDecimal.ZERO) == 0) {
+      return hour + ":" + minute + ":" + second;
+    } else {
+      BigDecimal secondFrac = result[1];
+      return hour + ":" + minute + ":" + second + "." + secondFrac;
+    }
+  }
+
+  public String convertAsMinute(BigDecimal value) {
+    return value.divide(BigDecimal.valueOf(CONV[2]), ROUND_UNNECESSARY).toString();
+  }
+
+  public String convertAsMinuteToSecond(BigDecimal value) {
+    BigDecimal[] result = value.divideAndRemainder(BigDecimal.valueOf(CONV[2]));
+    BigDecimal minute = result[0];
+    result = result[1].divideAndRemainder(BigDecimal.valueOf(CONV[3]));
+    BigDecimal second = result[0];
+    if (result[1].compareTo(BigDecimal.ZERO) == 0) {
+      return minute + ":" + second;
+    } else {
+      BigDecimal secondFrac = result[1];
+      return minute + ":" + second + "." + secondFrac;
+    }
+  }
+
+  public String convertAsSecond(BigDecimal value) {
+    BigDecimal[] result = value.divideAndRemainder(BigDecimal.valueOf(CONV[3]));
+    BigDecimal second = result[0];
+    if (result[1].compareTo(BigDecimal.ZERO) == 0) {
+      return second.toString();
+    } else {
+      BigDecimal secondFrac = result[1];
+      return second + "." + secondFrac;
+    }
+  }
+
+  public String convertAsYear(BigDecimal value) {
+    return value.divide(BigDecimal.valueOf(CONV[5]), ROUND_UNNECESSARY).toString();
+  }
+
+  public String convertAsYearToMonth(BigDecimal value) {
+    BigDecimal[] result = value.divideAndRemainder(BigDecimal.valueOf(CONV[5]));
+    BigDecimal year = result[0];
+    BigDecimal month = result[1];
+    return year + "-" + month;
+  }
+
+  public String convertAsMonth(BigDecimal value) {
+    return value.toString();
   }
 
   private BigDecimal parseField(Matcher m, int i) {

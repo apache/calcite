@@ -53,16 +53,17 @@ public class LogicalMatch extends Match {
    * @param partitionKeys Partition by columns
    * @param orderKeys Order by columns
    * @param rowType Row type
+   * @param interval interval definition
    */
   private LogicalMatch(RelOptCluster cluster, RelTraitSet traitSet,
       RelNode input, RexNode pattern, boolean strictStart, boolean strictEnd,
       Map<String, RexNode> patternDefinitions, Map<String, RexNode> measures,
       RexNode after, Map<String, ? extends SortedSet<String>> subsets,
       boolean allRows, List<RexNode> partitionKeys, RelCollation orderKeys,
-      RelDataType rowType) {
+      RelDataType rowType, RexNode interval) {
     super(cluster, traitSet, input, pattern, strictStart, strictEnd,
         patternDefinitions, measures, after, subsets, allRows, partitionKeys,
-        orderKeys, rowType);
+        orderKeys, rowType, interval);
   }
 
   /**
@@ -72,12 +73,13 @@ public class LogicalMatch extends Match {
       boolean strictStart, boolean strictEnd,
       Map<String, RexNode> patternDefinitions, Map<String, RexNode> measures,
       RexNode after, Map<String, TreeSet<String>> subsets, boolean allRows,
-      List<RexNode> partitionKeys, RelCollation orderKeys, RelDataType rowType) {
+      List<RexNode> partitionKeys, RelCollation orderKeys, RelDataType rowType,
+      RexNode interval) {
     final RelOptCluster cluster = input.getCluster();
     final RelTraitSet traitSet = cluster.traitSetOf(Convention.NONE);
     return new LogicalMatch(cluster, traitSet, input, pattern,
         strictStart, strictEnd, patternDefinitions, measures, after, subsets,
-        allRows, partitionKeys, orderKeys, rowType);
+        allRows, partitionKeys, orderKeys, rowType, interval);
   }
 
   //~ Methods ------------------------------------------------------
@@ -86,11 +88,12 @@ public class LogicalMatch extends Match {
       boolean strictStart, boolean strictEnd,
       Map<String, RexNode> patternDefinitions, Map<String, RexNode> measures,
       RexNode after, Map<String, ? extends SortedSet<String>> subsets,
-      boolean allRows, List<RexNode> partitionKeys, RelCollation orderKeys, RelDataType rowType) {
+      boolean allRows, List<RexNode> partitionKeys, RelCollation orderKeys, RelDataType rowType,
+      RexNode interval) {
     final RelTraitSet traitSet = getCluster().traitSetOf(Convention.NONE);
     return new LogicalMatch(getCluster(), traitSet,
         input, pattern, strictStart, strictEnd, patternDefinitions, measures,
-        after, subsets, allRows, partitionKeys, orderKeys, rowType);
+        after, subsets, allRows, partitionKeys, orderKeys, rowType, interval);
   }
 }
 

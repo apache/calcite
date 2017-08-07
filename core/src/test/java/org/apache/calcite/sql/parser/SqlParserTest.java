@@ -8012,6 +8012,32 @@ public class SqlParserTest {
     sql(sql).ok(expected);
   }
 
+  @Test public void testMatchRecognizeWithin() {
+    final String sql = "select *\n"
+        + "  from t match_recognize\n"
+        + "  (\n"
+        + "   measures STRT.ts as start_ts,"
+        + "   LAST(DOWN.ts) as bottom_ts,"
+        + "   AVG(stdn.price) as stdn_avg"
+        + "    pattern (strt down+ up+) within interval '3' second\n"
+        + "    subset stdn = (strt, down), stdn2 = (strt, down)\n"
+        + "    define\n"
+        + "      down as down.price < PREV(down.price),\n"
+        + "      up as up.price > prev(up.price)\n"
+        + "  ) mr";
+    final String expected = "SELECT *\n"
+        + "FROM `T` MATCH_RECOGNIZE(\n"
+        + "MEASURES `STRT`.`TS` AS `START_TS`, "
+        + "LAST(`DOWN`.`TS`, 0) AS `BOTTOM_TS`, "
+        + "AVG(`STDN`.`PRICE`) AS `STDN_AVG`\n"
+        + "PATTERN (((`STRT` (`DOWN` +)) (`UP` +))) WITHIN INTERVAL '3' SECOND\n"
+        + "SUBSET (`STDN` = (`STRT`, `DOWN`)), (`STDN2` = (`STRT`, `DOWN`))\n"
+        + "DEFINE `DOWN` AS (`DOWN`.`PRICE` < PREV(`DOWN`.`PRICE`, 1)), "
+        + "`UP` AS (`UP`.`PRICE` > PREV(`UP`.`PRICE`, 1))"
+        + ") AS `MR`";
+    sql(sql).ok(expected);
+  }
+
   //~ Inner Interfaces -------------------------------------------------------
 
   /**

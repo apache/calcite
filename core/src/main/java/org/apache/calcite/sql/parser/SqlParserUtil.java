@@ -19,6 +19,7 @@ package org.apache.calcite.sql.parser;
 import org.apache.calcite.avatica.util.Casing;
 import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
+import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.runtime.CalciteContextException;
 import org.apache.calcite.runtime.PredicateImpl;
 import org.apache.calcite.sql.SqlBinaryOperator;
@@ -38,6 +39,7 @@ import org.apache.calcite.sql.SqlTimeLiteral;
 import org.apache.calcite.sql.SqlTimestampLiteral;
 import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.DateString;
 import org.apache.calcite.util.PrecedenceClimbingParser;
 import org.apache.calcite.util.SaffronProperties;
@@ -62,6 +64,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.StringTokenizer;
 
+import static org.apache.calcite.sql.type.SqlTypeFamily.INTERVAL_DAY_TIME;
+import static org.apache.calcite.sql.type.SqlTypeFamily.INTERVAL_YEAR_MONTH;
 import static org.apache.calcite.util.Static.RESOURCE;
 
 /**
@@ -284,6 +288,76 @@ public final class SqlParserUtil {
       l += conv[i - 1] * ret[i];
     }
     return ret[0] * l;
+  }
+
+  public static String millisToInterval(
+      RexLiteral intervalLiteral) {
+    return millisToInterval(
+        intervalLiteral.getValueAs(BigDecimal.class),
+        intervalLiteral.getType().getSqlTypeName(),
+        intervalLiteral.getType().getIntervalQualifier());
+  }
+
+  public static String millisToInterval(
+      BigDecimal value,
+      SqlTypeName dataType,
+      SqlIntervalQualifier sqlIntervalQualifier) {
+    Preconditions.checkArgument(dataType.getFamily() == INTERVAL_DAY_TIME,
+        "interval must be day time");
+
+    switch (dataType) {
+    case INTERVAL_DAY:
+      return sqlIntervalQualifier.convertAsDay(value);
+    case INTERVAL_DAY_HOUR:
+      return sqlIntervalQualifier.convertAsDayToHour(value);
+    case INTERVAL_DAY_MINUTE:
+      return sqlIntervalQualifier.convertAsDayToMinute(value);
+    case INTERVAL_DAY_SECOND:
+      return sqlIntervalQualifier.convertAsDayToSecond(value);
+    case INTERVAL_HOUR:
+      return sqlIntervalQualifier.convertAsHour(value);
+    case INTERVAL_HOUR_MINUTE:
+      return sqlIntervalQualifier.convertAsHourToMinute(value);
+    case INTERVAL_HOUR_SECOND:
+      return sqlIntervalQualifier.convertAsHourToSecond(value);
+    case INTERVAL_MINUTE:
+      return sqlIntervalQualifier.convertAsMinute(value);
+    case INTERVAL_MINUTE_SECOND:
+      return sqlIntervalQualifier.convertAsMinuteToSecond(value);
+    case INTERVAL_SECOND:
+      return sqlIntervalQualifier.convertAsSecond(value);
+    default:
+      // should never reach here
+      return null;
+    }
+  }
+
+  public static String monthsToInterval(
+      RexLiteral intervalLiteral) {
+    return monthsToInterval(
+        intervalLiteral.getValueAs(BigDecimal.class),
+        intervalLiteral.getType().getSqlTypeName(),
+        intervalLiteral.getType().getIntervalQualifier());
+  }
+
+  public static String monthsToInterval(
+      BigDecimal value,
+      SqlTypeName dataType,
+      SqlIntervalQualifier sqlIntervalQualifier) {
+    Preconditions.checkArgument(dataType.getFamily() == INTERVAL_YEAR_MONTH,
+        "interval must be year month");
+
+    switch (dataType) {
+    case INTERVAL_YEAR:
+      return sqlIntervalQualifier.convertAsYear(value);
+    case INTERVAL_YEAR_MONTH:
+      return sqlIntervalQualifier.convertAsYearToMonth(value);
+    case INTERVAL_MONTH:
+      return sqlIntervalQualifier.convertAsMonth(value);
+    default:
+      // should never reach here
+      return null;
+    }
   }
 
   /**

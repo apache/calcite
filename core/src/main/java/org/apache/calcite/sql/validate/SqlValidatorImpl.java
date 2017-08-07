@@ -4558,6 +4558,19 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     PatternVarVisitor visitor = new PatternVarVisitor(scope);
     pattern.accept(visitor);
 
+    SqlLiteral interval = matchRecognize.getInterval();
+    if (interval != null) {
+      interval.validate(this, scope);
+      if (((SqlIntervalLiteral) interval).signum() <= 0) {
+        throw newValidationError(interval,
+          RESOURCE.intervalMustBePositive(interval.toValue()));
+      }
+
+      SqlNode expand = expand(interval, scope);
+      RelDataType type = deriveType(scope, expand);
+      setValidatedNodeType(interval, type);
+    }
+
     validateDefinitions(matchRecognize, scope);
 
     SqlNodeList subsets = matchRecognize.getSubsetList();

@@ -220,6 +220,18 @@ public class SqlValidatorMatchTest extends SqlValidatorTestCase {
     sql(sql)
       .fails("Pattern variable 'STRT' has already been defined");
   }
+
+  @Test public void testMatchRecognizeWithin() throws Exception {
+    final String sql = "select *\n"
+      + "from emp match_recognize (\n"
+      + "    pattern (strt down+ up+) within interval '-3' minute\n"
+      + "    define\n"
+      + "      down as down.sal < PREV(down.sal),\n"
+      + "      up as up.sal > prev(up.sal)\n"
+      + "  ) mr";
+    sql(sql)
+      .fails("Illegal interval literal format '3:100' for INTERVAL MINUTE TO SECOND");
+  }
 }
 
 // End SqlValidatorMatchTest.java
