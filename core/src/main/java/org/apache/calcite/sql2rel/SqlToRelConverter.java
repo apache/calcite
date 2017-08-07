@@ -2168,6 +2168,12 @@ public class SqlToRelConverter {
       };
     final RexNode patternNode = pattern.accept(patternVarVisitor);
 
+    SqlLiteral interval = matchRecognize.getInterval();
+    RexNode intervalNode = null;
+    if (interval != null) {
+      intervalNode = matchBb.convertLiteral(interval);
+    }
+
     // convert subset
     final SqlNodeList subsets = matchRecognize.getSubsetList();
     final Map<String, TreeSet<String>> subsetMap = Maps.newHashMap();
@@ -2238,10 +2244,10 @@ public class SqlToRelConverter {
         RelFactories.DEFAULT_MATCH_FACTORY;
     final RelNode rel =
         factory.createMatchRecognize(input, patternNode,
-            matchRecognize.getStrictStart().booleanValue(),
+            rowType, matchRecognize.getStrictStart().booleanValue(),
             matchRecognize.getStrictEnd().booleanValue(),
             definitionNodes.build(), measureNodes.build(), after,
-            subsetMap, allRows, partitionKeys, orders, rowType);
+            subsetMap, allRows, partitionKeys, orders, intervalNode);
     bb.setRoot(rel, false);
   }
 

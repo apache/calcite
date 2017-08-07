@@ -368,7 +368,7 @@ public class SqlIntervalQualifier extends SqlNode {
   /**
    * @return 1 or -1
    */
-  private int getIntervalSign(String value) {
+  public int getIntervalSign(String value) {
     int sign = 1; // positive until proven otherwise
 
     if (!Util.isNullOrEmpty(value)) {

@@ -396,10 +396,10 @@ public class RelFactories {
   public interface MatchFactory {
     /** Creates a {@link Match}. */
     RelNode createMatchRecognize(RelNode input, RexNode pattern,
-        boolean strictStart, boolean strictEnd,
+        RelDataType rowType, boolean strictStart, boolean strictEnd,
         Map<String, RexNode> patternDefinitions, Map<String, RexNode> measures,
         RexNode after, Map<String, TreeSet<String>> subsets, boolean allRows,
-        List<RexNode> partitionKeys, RelCollation orderKeys, RelDataType rowType);
+        List<RexNode> partitionKeys, RelCollation orderKeys, RexNode interval);
   }
 
   /**
@@ -408,12 +408,13 @@ public class RelFactories {
    */
   private static class MatchFactoryImpl implements MatchFactory {
     public RelNode createMatchRecognize(RelNode input, RexNode pattern,
-        boolean strictStart, boolean strictEnd,
+        RelDataType rowType, boolean strictStart, boolean strictEnd,
         Map<String, RexNode> patternDefinitions, Map<String, RexNode> measures,
         RexNode after, Map<String, TreeSet<String>> subsets, boolean allRows,
-        List<RexNode> partitionKeys, RelCollation orderKeys, RelDataType rowType) {
-      return LogicalMatch.create(input, pattern, strictStart, strictEnd,
-          patternDefinitions, measures, after, subsets, allRows, partitionKeys, orderKeys, rowType);
+        List<RexNode> partitionKeys, RelCollation orderKeys, RexNode interval) {
+      return LogicalMatch.create(input, rowType, pattern, strictStart,
+          strictEnd, patternDefinitions, measures, after, subsets, allRows,
+          partitionKeys, orderKeys, interval);
     }
   }
 }

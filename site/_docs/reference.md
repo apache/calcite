@@ -959,8 +959,8 @@ name will have been converted to upper case also.
 
 ### Scalar types
 
-| Data type   | Description               | Range and examples   |
-|:----------- |:------------------------- |:---------------------|
+| Data type   | Description               | Range and example literals
+|:----------- |:------------------------- |:--------------------------
 | BOOLEAN     | Logical values            | Values: TRUE, FALSE, UNKNOWN
 | TINYINT     | 1 byte signed integer     | Range is -128 to 127
 | SMALLINT    | 2 byte signed integer     | Range is -32768 to 32767
@@ -978,7 +978,7 @@ name will have been converted to upper case also.
 | TIME        | Time of day               | Example: TIME '20:17:40'
 | TIMESTAMP [ WITHOUT TIME ZONE ] | Date and time | Example: TIMESTAMP '1969-07-20 20:17:40'
 | TIMESTAMP WITH TIME ZONE | Date and time with time zone | Example: TIMESTAMP '1969-07-20 20:17:40 America/Los Angeles'
-| INTERVAL timeUnit [ TO timeUnit ] | Date time interval | Examples: INTERVAL '1:5' YEAR TO MONTH, INTERVAL '45' DAY
+| INTERVAL timeUnit [ TO timeUnit ] | Date time interval | Examples: INTERVAL '1-5' YEAR TO MONTH, INTERVAL '45' DAY, INTERVAL '1 2:34:56.789' DAY TO SECOND
 
 Where:
 
@@ -1678,6 +1678,7 @@ matchRecognize:
             | SKIP TO variable )
       ]
       PATTERN '(' pattern ')'
+      [ WITHIN intervalLiteral ]
       [ SUBSET subsetItem [, subsetItem ]* ]
       DEFINE variable AS condition [, variable AS condition ]*
       ')'
@@ -1714,6 +1715,9 @@ patternQuantifier:
   |   '??'
   |   '{' { [ minRepeat ], [ maxRepeat ] } '}' ['?']
   |   '{' repeat '}'
+
+intervalLiteral:
+      INTERVAL 'string' timeUnit [ TO timeUnit ]
 {% endhighlight %}
 
 In *patternQuantifier*, *repeat* is a positive integer,

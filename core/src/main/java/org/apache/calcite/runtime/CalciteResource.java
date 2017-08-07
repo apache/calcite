@@ -708,6 +708,15 @@ public interface CalciteResource {
   @BaseMessage("Unknown pattern ''{0}''")
   ExInst<SqlValidatorException> unknownPattern(String call);
 
+  @BaseMessage("Interval must be non-negative ''{0}''")
+  ExInst<SqlValidatorException> intervalMustBeNonNegative(String call);
+
+  @BaseMessage("Must contain an ORDER BY clause when WITHIN is used")
+  ExInst<SqlValidatorException> cannotUseWithinWithoutOrderBy();
+
+  @BaseMessage("First column of ORDER BY must be of type TIMESTAMP")
+  ExInst<SqlValidatorException> firstColumnOfOrderByMustBeTimestamp();
+
   @BaseMessage("Extended columns not allowed under the current SQL conformance level")
   ExInst<SqlValidatorException> extendNotAllowed();
 

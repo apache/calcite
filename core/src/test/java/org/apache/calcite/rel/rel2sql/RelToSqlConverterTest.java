@@ -690,22 +690,67 @@ public class RelToSqlConverterTest {
 
   @Test public void testLiteral() {
     checkLiteral("DATE '1978-05-02'");
+    checkLiteral2("DATE '1978-5-2'", "DATE '1978-05-02'");
     checkLiteral("TIME '12:34:56'");
     checkLiteral("TIME '12:34:56.78'");
+    checkLiteral2("TIME '1:4:6.080'", "TIME '01:04:06.080'");
     checkLiteral("TIMESTAMP '1978-05-02 12:34:56.78'");
+    checkLiteral2("TIMESTAMP '1978-5-2 2:4:6.80'",
+        "TIMESTAMP '1978-05-02 02:04:06.80'");
     checkLiteral("'I can''t explain'");
     checkLiteral("''");
     checkLiteral("TRUE");
     checkLiteral("123");
     checkLiteral("123.45");
     checkLiteral("-123.45");
+    checkLiteral("INTERVAL '1-2' YEAR TO MONTH");
+    checkLiteral("INTERVAL -'1-2' YEAR TO MONTH");
+    checkLiteral("INTERVAL '12-11' YEAR TO MONTH");
+    checkLiteral("INTERVAL '1' YEAR");
+    checkLiteral("INTERVAL '1' MONTH");
+    checkLiteral("INTERVAL '12' DAY");
+    checkLiteral("INTERVAL -'12' DAY");
+    checkLiteral2("INTERVAL '1 2' DAY TO HOUR",
+        "INTERVAL '1 02' DAY TO HOUR");
+    checkLiteral2("INTERVAL '1 2:10' DAY TO MINUTE",
+        "INTERVAL '1 02:10' DAY TO MINUTE");
+    checkLiteral2("INTERVAL '1 2:00' DAY TO MINUTE",
+        "INTERVAL '1 02:00' DAY TO MINUTE");
+    checkLiteral2("INTERVAL '1 2:34:56' DAY TO SECOND",
+        "INTERVAL '1 02:34:56' DAY TO SECOND");
+    checkLiteral2("INTERVAL '1 2:34:56.789' DAY TO SECOND",
+        "INTERVAL '1 02:34:56.789' DAY TO SECOND");
+    checkLiteral2("INTERVAL '1 2:34:56.78' DAY TO SECOND",
+        "INTERVAL '1 02:34:56.78' DAY TO SECOND");
+    checkLiteral2("INTERVAL '1 2:34:56.078' DAY TO SECOND",
+        "INTERVAL '1 02:34:56.078' DAY TO SECOND");
+    checkLiteral2("INTERVAL -'1 2:34:56.078' DAY TO SECOND",
+        "INTERVAL -'1 02:34:56.078' DAY TO SECOND");
+    checkLiteral2("INTERVAL '1 2:3:5.070' DAY TO SECOND",
+        "INTERVAL '1 02:03:05.07' DAY TO SECOND");
+    checkLiteral("INTERVAL '1:23' HOUR TO MINUTE");
+    checkLiteral("INTERVAL '1:02' HOUR TO MINUTE");
+    checkLiteral("INTERVAL -'1:02' HOUR TO MINUTE");
+    checkLiteral("INTERVAL '1:23:45' HOUR TO SECOND");
+    checkLiteral("INTERVAL '1:03:05' HOUR TO SECOND");
+    checkLiteral("INTERVAL '1:23:45.678' HOUR TO SECOND");
+    checkLiteral("INTERVAL '1:03:05.06' HOUR TO SECOND");
+    checkLiteral("INTERVAL '12' MINUTE");
+    checkLiteral("INTERVAL '12:34' MINUTE TO SECOND");
+    checkLiteral("INTERVAL '12:34.567' MINUTE TO SECOND");
+    checkLiteral("INTERVAL '12' SECOND");
+    checkLiteral("INTERVAL '12.345' SECOND");
   }
 
-  private void checkLiteral(String s) {
-    sql("VALUES " + s)
+  private void checkLiteral(String expression) {
+    checkLiteral2(expression, expression);
+  }
+
+  private void checkLiteral2(String expression, String expected) {
+    sql("VALUES " + expression)
         .dialect(DatabaseProduct.HSQLDB.getDialect())
         .ok("SELECT *\n"
-            + "FROM (VALUES  (" + s + "))");
+            + "FROM (VALUES  (" + expected + "))");
   }
 
   /** Test case for
@@ -1895,6 +1940,34 @@ public class RelToSqlConverterTest {
         + "PREV(\"DOWN\".\"net_weight\", 1), "
         + "\"UP\" AS \"UP\".\"net_weight\" > "
         + "PREV(\"UP\".\"net_weight\", 1))";
+    sql(sql).ok(expected);
+  }
+
+  @Test public void testMatchRecognizeWithin() {
+    final String sql = "select *\n"
+        + "  from \"employee\" match_recognize\n"
+        + "  (\n"
+        + "   order by \"hire_date\"\n"
+        + "   ALL ROWS PER MATCH\n"
+        + "   pattern (strt down+ up+) within interval '3:12:22.123' hour to second\n"
+        + "   define\n"
+        + "     down as down.\"salary\" < PREV(down.\"salary\"),\n"
+        + "     up as up.\"salary\" > prev(up.\"salary\")\n"
+        + "  ) mr";
+
+    final String expected = "SELECT *\n"
+        + "FROM (SELECT *\n"
+        + "FROM \"foodmart\".\"employee\") "
+        + "MATCH_RECOGNIZE(\n"
+        + "ORDER BY \"hire_date\"\n"
+        + "ALL ROWS PER MATCH\n"
+        + "AFTER MATCH SKIP TO NEXT ROW\n"
+        + "PATTERN (\"STRT\" \"DOWN\" + \"UP\" +) WITHIN INTERVAL '3:12:22.123' HOUR TO SECOND\n"
+        + "DEFINE "
+        + "\"DOWN\" AS \"DOWN\".\"salary\" < "
+        + "PREV(\"DOWN\".\"salary\", 1), "
+        + "\"UP\" AS \"UP\".\"salary\" > "
+        + "PREV(\"UP\".\"salary\", 1))";
     sql(sql).ok(expected);
   }
 
