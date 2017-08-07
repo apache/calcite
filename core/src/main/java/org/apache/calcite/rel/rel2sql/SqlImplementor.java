@@ -21,11 +21,14 @@ import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.AggregateCall;
+import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexCorrelVariable;
 import org.apache.calcite.rex.RexDynamicParam;
+import org.apache.calcite.rex.RexFieldAccess;
 import org.apache.calcite.rex.RexFieldCollation;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
@@ -34,6 +37,7 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexOver;
 import org.apache.calcite.rex.RexPatternFieldRef;
 import org.apache.calcite.rex.RexProgram;
+import org.apache.calcite.rex.RexSubQuery;
 import org.apache.calcite.rex.RexWindow;
 import org.apache.calcite.rex.RexWindowBound;
 import org.apache.calcite.sql.JoinType;
@@ -114,6 +118,8 @@ public abstract class SqlImplementor {
   public final SqlDialect dialect;
   protected final Set<String> aliasSet = new LinkedHashSet<>();
   protected final Map<String, SqlNode> ordinalMap = new HashMap<>();
+
+  protected final Map<CorrelationId, Context> correlTableMap = new HashMap<>();
 
   protected SqlImplementor(SqlDialect dialect) {
     this.dialect = Preconditions.checkNotNull(dialect);
@@ -519,6 +525,12 @@ public abstract class SqlImplementor {
       case INPUT_REF:
         return field(((RexInputRef) rex).getIndex());
 
+      case FIELD_ACCESS:
+        RexFieldAccess access = (RexFieldAccess) rex;
+        Context aliasContext =
+          correlTableMap.get(((RexCorrelVariable) access.getReferenceExpr()).id);
+        return aliasContext.field(access.getField().getIndex());
+
       case PATTERN_INPUT_REF:
         final RexPatternFieldRef ref = (RexPatternFieldRef) rex;
         String pv = ref.getAlpha();
@@ -597,11 +609,45 @@ public abstract class SqlImplementor {
         elseNode = caseNodeList.get(caseNodeList.size() - 1);
         return new SqlCase(POS, valueNode, new SqlNodeList(whenList, POS),
             new SqlNodeList(thenList, POS), elseNode);
-
       case DYNAMIC_PARAM:
         final RexDynamicParam caseParam = (RexDynamicParam) rex;
         return new SqlDynamicParam(caseParam.getIndex(), POS);
-
+      case IN:
+        assert rex instanceof RexSubQuery;
+        RexSubQuery rexSubQueryIn = (RexSubQuery) rex;
+        SqlNode sqlSubQuery = visitChild(0, rexSubQueryIn.rel).asQueryOrValues();
+        List<RexNode> operands = rexSubQueryIn.operands;
+        SqlNode op0;
+        if (operands.size() == 1) {
+          op0 = toSql(program, operands.get(0));
+        } else {
+          final List<SqlNode> cols = toSql(program, operands);
+          op0 = new SqlNodeList(cols, POS);
+        }
+        return rexSubQueryIn.getOperator().createCall(POS, op0, sqlSubQuery);
+      case EXISTS:
+      case SCALAR_QUERY:
+        assert rex instanceof RexSubQuery;
+        RexSubQuery rexSubQuery = (RexSubQuery) rex;
+        SqlNode sqlSubQueryExists = visitChild(0, rexSubQuery.rel).asQueryOrValues();
+        return rexSubQuery.getOperator().createCall(POS, sqlSubQueryExists);
+      case NOT:
+        assert rex instanceof RexCall;
+        RexNode operand = ((RexCall) rex).operands.get(0);
+        final SqlNode node = toSql(program, operand);
+        switch (operand.getKind()) {
+        case IN:
+          return SqlStdOperatorTable.NOT_IN
+            .createCall(POS, ((SqlCall) node).getOperandList());
+        case LIKE:
+          return SqlStdOperatorTable.NOT_LIKE
+            .createCall(POS, ((SqlCall) node).getOperandList());
+        case SIMILAR:
+          return SqlStdOperatorTable.NOT_SIMILAR_TO
+            .createCall(POS, ((SqlCall) node).getOperandList());
+        default:
+          return SqlStdOperatorTable.NOT.createCall(POS, node);
+        }
       default:
         if (rex instanceof RexOver) {
           return toSql(program, (RexOver) rex);
