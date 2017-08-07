@@ -17,6 +17,14 @@
 package org.apache.calcite.util;
 
 
+import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
+import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.sql.type.SqlTypeName;
+
+import com.google.common.collect.ImmutableList;
+
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -151,6 +159,29 @@ public class PermutationTestCase {
     } catch (ArrayIndexOutOfBoundsException e) {
       // success
     }
+  }
+
+  @Test public void testProjectPermutation() {
+    final RelDataTypeFactory typeFactory = new JavaTypeFactoryImpl();
+    final RexBuilder builder = new RexBuilder(typeFactory);
+    // A project with [1, 1] is not a permutation, so should return null
+    final Permutation perm = Project.getPermutation(2,
+        ImmutableList.of(builder.makeInputRef(typeFactory.createSqlType(SqlTypeName.DOUBLE), 1),
+            builder.makeInputRef(typeFactory.createSqlType(SqlTypeName.DOUBLE), 1)));
+    assertEquals(perm, null);
+
+    // A project with [0, 1, 0] is not a permutation, so should return null
+    final Permutation perm1 = Project.getPermutation(2,
+        ImmutableList.of(builder.makeInputRef(typeFactory.createSqlType(SqlTypeName.DOUBLE), 0),
+            builder.makeInputRef(typeFactory.createSqlType(SqlTypeName.DOUBLE), 1),
+            builder.makeInputRef(typeFactory.createSqlType(SqlTypeName.DOUBLE), 0)));
+    assertEquals(perm1, null);
+
+    // A project of [1, 0] is a valid permutation!
+    final Permutation perm2 = Project.getPermutation(2,
+        ImmutableList.of(builder.makeInputRef(typeFactory.createSqlType(SqlTypeName.DOUBLE), 1),
+            builder.makeInputRef(typeFactory.createSqlType(SqlTypeName.DOUBLE), 0)));
+    assertEquals(perm2, new Permutation(new int[]{1, 0}));
   }
 }
 
