@@ -350,6 +350,51 @@ public interface RelDataTypeFactory {
     public FieldInfoBuilder(RelDataTypeFactory typeFactory) {
       super(typeFactory);
     }
+
+    @Override public FieldInfoBuilder add(String name, RelDataType type) {
+      return (FieldInfoBuilder) super.add(name, type);
+    }
+
+    @Override public FieldInfoBuilder add(String name, SqlTypeName typeName) {
+      return (FieldInfoBuilder) super.add(name, typeName);
+    }
+
+    @Override public FieldInfoBuilder add(String name, SqlTypeName typeName,
+        int precision) {
+      return (FieldInfoBuilder) super.add(name, typeName, precision);
+    }
+
+    @Override public FieldInfoBuilder add(String name, SqlTypeName typeName,
+        int precision, int scale) {
+      return (FieldInfoBuilder) super.add(name, typeName, precision, scale);
+    }
+
+    @Override public FieldInfoBuilder add(String name, TimeUnit startUnit,
+        int startPrecision, TimeUnit endUnit, int fractionalSecondPrecision) {
+      return (FieldInfoBuilder) super.add(name, startUnit, startPrecision,
+          endUnit, fractionalSecondPrecision);
+    }
+
+    @Override public FieldInfoBuilder nullable(boolean nullable) {
+      return (FieldInfoBuilder) super.nullable(nullable);
+    }
+
+    @Override public FieldInfoBuilder add(RelDataTypeField field) {
+      return (FieldInfoBuilder) super.add(field);
+    }
+
+    @Override public FieldInfoBuilder addAll(
+        Iterable<? extends Map.Entry<String, RelDataType>> fields) {
+      return (FieldInfoBuilder) super.addAll(fields);
+    }
+
+    @Override public FieldInfoBuilder kind(StructKind kind) {
+      return (FieldInfoBuilder) super.kind(kind);
+    }
+
+    @Override public FieldInfoBuilder uniquify() {
+      return (FieldInfoBuilder) super.uniquify();
+    }
   }
 
   /** Fluid API to build a list of fields. */
