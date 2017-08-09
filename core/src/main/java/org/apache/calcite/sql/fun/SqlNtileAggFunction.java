@@ -32,7 +32,7 @@ public class SqlNtileAggFunction extends SqlAggFunction {
         "NTILE",
         null,
         SqlKind.NTILE,
-        ReturnTypes.INTEGER,
+        ReturnTypes.RANK,
         null,
         OperandTypes.POSITIVE_INTEGER_LITERAL,
         SqlFunctionCategory.NUMERIC,

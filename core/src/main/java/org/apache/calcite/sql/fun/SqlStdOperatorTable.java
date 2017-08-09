@@ -983,31 +983,31 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    * <code>CUME_DIST</code> window function.
    */
   public static final SqlRankFunction CUME_DIST =
-      new SqlRankFunction(true, SqlKind.CUME_DIST);
+      new SqlRankFunction(true, ReturnTypes.FRACTIONAL_RANK, SqlKind.CUME_DIST);
 
   /**
    * <code>DENSE_RANK</code> window function.
    */
   public static final SqlRankFunction DENSE_RANK =
-      new SqlRankFunction(true, SqlKind.DENSE_RANK);
+      new SqlRankFunction(true, ReturnTypes.RANK, SqlKind.DENSE_RANK);
 
   /**
    * <code>PERCENT_RANK</code> window function.
    */
   public static final SqlRankFunction PERCENT_RANK =
-      new SqlRankFunction(true, SqlKind.PERCENT_RANK);
+      new SqlRankFunction(true, ReturnTypes.FRACTIONAL_RANK, SqlKind.PERCENT_RANK);
 
   /**
    * <code>RANK</code> window function.
    */
   public static final SqlRankFunction RANK =
-      new SqlRankFunction(true, SqlKind.RANK);
+      new SqlRankFunction(true, ReturnTypes.RANK, SqlKind.RANK);
 
   /**
    * <code>ROW_NUMBER</code> window function.
    */
   public static final SqlRankFunction ROW_NUMBER =
-      new SqlRankFunction(false, SqlKind.ROW_NUMBER);
+      new SqlRankFunction(false, ReturnTypes.RANK, SqlKind.ROW_NUMBER);
 
   //-------------------------------------------------------------
   //                   SPECIAL OPERATORS
