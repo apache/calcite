@@ -161,44 +161,44 @@ public class TableFunctionTest {
   /** As {@link #testScannableTableFunction()} but with named parameters. */
   @Test public void testMultipleScannableTableFunctionWithNamedParameters()
       throws SQLException, ClassNotFoundException {
-    Connection connection = DriverManager.getConnection("jdbc:calcite:");
-    CalciteConnection calciteConnection =
-        connection.unwrap(CalciteConnection.class);
-    SchemaPlus rootSchema = calciteConnection.getRootSchema();
-    SchemaPlus schema = rootSchema.add("s", new AbstractSchema());
-    final TableFunction table1 = TableFunctionImpl.create(Smalls.MAZE_METHOD);
-    schema.add("Maze", table1);
-    final TableFunction table2 = TableFunctionImpl.create(Smalls.MAZE2_METHOD);
-    schema.add("Maze", table2);
-    final TableFunction table3 = TableFunctionImpl.create(Smalls.MAZE3_METHOD);
-    schema.add("Maze", table3);
-    final String sql = "select *\n"
-        + "from table(\"s\".\"Maze\"(5, 3, 1))";
-    final Statement statement = connection.createStatement();
-    ResultSet resultSet = statement.executeQuery(sql);
-    final String result = "S=abcde\n"
-        + "S=xyz\n";
-    assertThat(CalciteAssert.toString(resultSet),
-        is(result + "S=generate(w=5, h=3, s=1)\n"));
+    try (Connection connection = DriverManager.getConnection("jdbc:calcite:");
+         Statement statement = connection.createStatement()) {
+      CalciteConnection calciteConnection =
+          connection.unwrap(CalciteConnection.class);
+      SchemaPlus rootSchema = calciteConnection.getRootSchema();
+      SchemaPlus schema = rootSchema.add("s", new AbstractSchema());
+      final TableFunction table1 = TableFunctionImpl.create(Smalls.MAZE_METHOD);
+      schema.add("Maze", table1);
+      final TableFunction table2 = TableFunctionImpl.create(Smalls.MAZE2_METHOD);
+      schema.add("Maze", table2);
+      final TableFunction table3 = TableFunctionImpl.create(Smalls.MAZE3_METHOD);
+      schema.add("Maze", table3);
+      final String sql = "select *\n"
+          + "from table(\"s\".\"Maze\"(5, 3, 1))";
+      ResultSet resultSet = statement.executeQuery(sql);
+      final String result = "S=abcde\n"
+          + "S=xyz\n";
+      assertThat(CalciteAssert.toString(resultSet),
+          is(result + "S=generate(w=5, h=3, s=1)\n"));
 
-    final String sql2 = "select *\n"
-        + "from table(\"s\".\"Maze\"(WIDTH => 5, HEIGHT => 3, SEED => 1))";
-    resultSet = statement.executeQuery(sql2);
-    assertThat(CalciteAssert.toString(resultSet),
-        is(result + "S=generate2(w=5, h=3, s=1)\n"));
+      final String sql2 = "select *\n"
+          + "from table(\"s\".\"Maze\"(WIDTH => 5, HEIGHT => 3, SEED => 1))";
+      resultSet = statement.executeQuery(sql2);
+      assertThat(CalciteAssert.toString(resultSet),
+          is(result + "S=generate2(w=5, h=3, s=1)\n"));
 
-    final String sql3 = "select *\n"
-        + "from table(\"s\".\"Maze\"(HEIGHT => 3, WIDTH => 5))";
-    resultSet = statement.executeQuery(sql3);
-    assertThat(CalciteAssert.toString(resultSet),
-        is(result + "S=generate2(w=5, h=3, s=null)\n"));
+      final String sql3 = "select *\n"
+          + "from table(\"s\".\"Maze\"(HEIGHT => 3, WIDTH => 5))";
+      resultSet = statement.executeQuery(sql3);
+      assertThat(CalciteAssert.toString(resultSet),
+          is(result + "S=generate2(w=5, h=3, s=null)\n"));
 
-    final String sql4 = "select *\n"
-        + "from table(\"s\".\"Maze\"(FOO => 'a'))";
-    resultSet = statement.executeQuery(sql4);
-    assertThat(CalciteAssert.toString(resultSet),
-        is(result + "S=generate3(foo=a)\n"));
-    connection.close();
+      final String sql4 = "select *\n"
+          + "from table(\"s\".\"Maze\"(FOO => 'a'))";
+      resultSet = statement.executeQuery(sql4);
+      assertThat(CalciteAssert.toString(resultSet),
+          is(result + "S=generate3(foo=a)\n"));
+    }
   }
 
   /**
@@ -264,31 +264,32 @@ public class TableFunctionTest {
       + "could not be implemented")
   @Test public void testTableFunctionCursorInputs()
       throws SQLException, ClassNotFoundException {
-    Connection connection =
-        DriverManager.getConnection("jdbc:calcite:");
-    CalciteConnection calciteConnection =
-        connection.unwrap(CalciteConnection.class);
-    SchemaPlus rootSchema = calciteConnection.getRootSchema();
-    SchemaPlus schema = rootSchema.add("s", new AbstractSchema());
-    final TableFunction table =
-        TableFunctionImpl.create(Smalls.GENERATE_STRINGS_METHOD);
-    schema.add("GenerateStrings", table);
-    final TableFunction add =
-        TableFunctionImpl.create(Smalls.PROCESS_CURSOR_METHOD);
-    schema.add("process", add);
-    final PreparedStatement ps = connection.prepareStatement("select *\n"
-        + "from table(\"s\".\"process\"(2,\n"
-        + "cursor(select * from table(\"s\".\"GenerateStrings\"(?)))\n"
-        + ")) as t(u)\n"
-        + "where u > 3");
-    ps.setInt(1, 5);
-    ResultSet resultSet = ps.executeQuery();
-    // GenerateStrings returns 0..4, then 2 is added (process function),
-    // thus 2..6, finally where u > 3 leaves just 4..6
-    assertThat(CalciteAssert.toString(resultSet),
-        equalTo("u=4\n"
-            + "u=5\n"
-            + "u=6\n"));
+    try (Connection connection =
+             DriverManager.getConnection("jdbc:calcite:")) {
+      CalciteConnection calciteConnection =
+          connection.unwrap(CalciteConnection.class);
+      SchemaPlus rootSchema = calciteConnection.getRootSchema();
+      SchemaPlus schema = rootSchema.add("s", new AbstractSchema());
+      final TableFunction table =
+          TableFunctionImpl.create(Smalls.GENERATE_STRINGS_METHOD);
+      schema.add("GenerateStrings", table);
+      final TableFunction add =
+          TableFunctionImpl.create(Smalls.PROCESS_CURSOR_METHOD);
+      schema.add("process", add);
+      final PreparedStatement ps = connection.prepareStatement("select *\n"
+          + "from table(\"s\".\"process\"(2,\n"
+          + "cursor(select * from table(\"s\".\"GenerateStrings\"(?)))\n"
+          + ")) as t(u)\n"
+          + "where u > 3");
+      ps.setInt(1, 5);
+      ResultSet resultSet = ps.executeQuery();
+      // GenerateStrings returns 0..4, then 2 is added (process function),
+      // thus 2..6, finally where u > 3 leaves just 4..6
+      assertThat(CalciteAssert.toString(resultSet),
+          equalTo("u=4\n"
+              + "u=5\n"
+              + "u=6\n"));
+    }
   }
 
   /**
@@ -298,37 +299,37 @@ public class TableFunctionTest {
       + "could not be implemented")
   @Test public void testTableFunctionCursorsInputs()
       throws SQLException, ClassNotFoundException {
-    Connection connection =
-        getConnectionWithMultiplyFunction();
-    CalciteConnection calciteConnection =
-        connection.unwrap(CalciteConnection.class);
-    SchemaPlus rootSchema = calciteConnection.getRootSchema();
-    SchemaPlus schema = rootSchema.getSubSchema("s");
-    final TableFunction table =
-        TableFunctionImpl.create(Smalls.GENERATE_STRINGS_METHOD);
-    schema.add("GenerateStrings", table);
-    final TableFunction add =
-        TableFunctionImpl.create(Smalls.PROCESS_CURSORS_METHOD);
-    schema.add("process", add);
-    final PreparedStatement ps = connection.prepareStatement("select *\n"
-        + "from table(\"s\".\"process\"(2,\n"
-        + "cursor(select * from table(\"s\".\"multiplication\"(5,5,0))),\n"
-        + "cursor(select * from table(\"s\".\"GenerateStrings\"(?)))\n"
-        + ")) as t(u)\n"
-        + "where u > 3");
-    ps.setInt(1, 5);
-    ResultSet resultSet = ps.executeQuery();
-    // GenerateStrings produce 0..4
-    // multiplication produce 1..5
-    // process sums and adds 2
-    // sum is 2 + 1..9 == 3..9
-    assertThat(CalciteAssert.toString(resultSet),
-        equalTo("u=4\n"
-            + "u=5\n"
-            + "u=6\n"
-            + "u=7\n"
-            + "u=8\n"
-            + "u=9\n"));
+    try (Connection connection = getConnectionWithMultiplyFunction()) {
+      CalciteConnection calciteConnection =
+          connection.unwrap(CalciteConnection.class);
+      SchemaPlus rootSchema = calciteConnection.getRootSchema();
+      SchemaPlus schema = rootSchema.getSubSchema("s");
+      final TableFunction table =
+          TableFunctionImpl.create(Smalls.GENERATE_STRINGS_METHOD);
+      schema.add("GenerateStrings", table);
+      final TableFunction add =
+          TableFunctionImpl.create(Smalls.PROCESS_CURSORS_METHOD);
+      schema.add("process", add);
+      final PreparedStatement ps = connection.prepareStatement("select *\n"
+          + "from table(\"s\".\"process\"(2,\n"
+          + "cursor(select * from table(\"s\".\"multiplication\"(5,5,0))),\n"
+          + "cursor(select * from table(\"s\".\"GenerateStrings\"(?)))\n"
+          + ")) as t(u)\n"
+          + "where u > 3");
+      ps.setInt(1, 5);
+      ResultSet resultSet = ps.executeQuery();
+      // GenerateStrings produce 0..4
+      // multiplication produce 1..5
+      // process sums and adds 2
+      // sum is 2 + 1..9 == 3..9
+      assertThat(CalciteAssert.toString(resultSet),
+          equalTo("u=4\n"
+              + "u=5\n"
+              + "u=6\n"
+              + "u=7\n"
+              + "u=8\n"
+              + "u=9\n"));
+    }
   }
 
   @Test public void testUserDefinedTableFunction() {

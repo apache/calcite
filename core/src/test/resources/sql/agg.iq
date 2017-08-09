@@ -62,6 +62,73 @@ select count(deptno, ename, 1, deptno) as c from emp;
 
 !ok
 
+# DISTINCT and GROUP BY
+select distinct deptno, count(*) as c from emp group by deptno;
++--------+---+
+| DEPTNO | C |
++--------+---+
+|     10 | 2 |
+|     20 | 1 |
+|     30 | 2 |
+|     50 | 2 |
+|     60 | 1 |
+|        | 1 |
++--------+---+
+(6 rows)
+
+!ok
+
+select distinct deptno from emp group by deptno;
++--------+
+| DEPTNO |
++--------+
+|     10 |
+|     20 |
+|     30 |
+|     50 |
+|     60 |
+|        |
++--------+
+(6 rows)
+
+!ok
+
+select distinct count(*) as c from emp group by deptno;
++---+
+| C |
++---+
+| 1 |
+| 2 |
++---+
+(2 rows)
+
+!ok
+
+select distinct count(*) as c from emp group by deptno having count(*) > 1;
++---+
+| C |
++---+
+| 2 |
++---+
+(1 row)
+
+!ok
+
+select distinct count(*) as c from emp group by deptno order by deptno desc;
+Expression 'DEPTNO' is not in the select clause
+!error
+
+select distinct count(*) as c from emp group by deptno order by 1 desc;
++---+
+| C |
++---+
+| 2 |
+| 1 |
++---+
+(2 rows)
+
+!ok
+
 # [CALCITE-998] Exception when calling STDDEV_SAMP, STDDEV_POP
 # stddev_samp
 select stddev_samp(deptno) as s from emp;

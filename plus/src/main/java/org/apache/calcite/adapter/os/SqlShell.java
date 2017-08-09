@@ -121,12 +121,10 @@ public class SqlShell {
         + "default), 'csv',\n"
         + "             'headers', 'json', 'mysql'\n"
         + "  -h --help  Print this help";
-    try (Connection connection = DriverManager.getConnection(url);
-         Statement s = connection.createStatement()) {
-      final StringBuilder b = new StringBuilder();
-      final Enumerator<String> args =
-          Linq4j.asEnumerable(this.args).enumerator();
-      Format format = Format.SPACED;
+    final StringBuilder b = new StringBuilder();
+    Format format = Format.SPACED;
+    try (Enumerator<String> args =
+             Linq4j.asEnumerable(this.args).enumerator()) {
       while (args.moveNext()) {
         if (args.current().equals("-o")) {
           if (args.moveNext()) {
@@ -150,6 +148,11 @@ public class SqlShell {
           b.append(args.current());
         }
       }
+    }
+    try (Connection connection = DriverManager.getConnection(url);
+         Statement s = connection.createStatement();
+         Enumerator<String> args =
+             Linq4j.asEnumerable(this.args).enumerator()) {
       final ResultSet r = s.executeQuery(b.toString());
       format.output(out, r);
       r.close();

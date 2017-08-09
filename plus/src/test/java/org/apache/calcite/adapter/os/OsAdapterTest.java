@@ -22,10 +22,12 @@ import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.test.CalciteAssert;
 import org.apache.calcite.util.Holder;
+import org.apache.calcite.util.Util;
 
 import com.google.common.base.Function;
 
 import org.hamcrest.CoreMatchers;
+import org.junit.Assume;
 import org.junit.Test;
 
 import java.io.ByteArrayInputStream;
@@ -58,6 +60,10 @@ import static org.junit.Assert.fail;
  * </ul>
  */
 public class OsAdapterTest {
+  private static boolean isWindows() {
+    return System.getProperty("os.name").startsWith("Windows");
+  }
+
   @Test public void testDu() {
     sql("select * from du")
         .returns(
@@ -98,12 +104,16 @@ public class OsAdapterTest {
   }
 
   @Test public void testFiles() {
+    Assume.assumeFalse("Skip: the 'files' table does not work on Windows",
+        isWindows());
     sql("select distinct type from files")
         .returnsUnordered("type=d",
             "type=f");
   }
 
   @Test public void testPs() {
+    Assume.assumeFalse("Skip: the 'ps' table does not work on Windows",
+        isWindows());
     sql("select * from ps")
         .returns(
             new Function<ResultSet, Void>() {
@@ -126,6 +136,8 @@ public class OsAdapterTest {
   }
 
   @Test public void testPsDistinct() {
+    Assume.assumeFalse("Skip: the 'ps' table does not work on Windows",
+        isWindows());
     sql("select distinct `user` from ps")
         .returns(
             new Function<ResultSet, Void>() {
@@ -166,6 +178,8 @@ public class OsAdapterTest {
   }
 
   @Test public void testVmstat() {
+    Assume.assumeFalse("Skip: the 'files' table does not work on Windows",
+        isWindows());
     sql("select * from vmstat")
         .returns(
             new Function<ResultSet, Void>() {
@@ -304,7 +318,7 @@ public class OsAdapterTest {
     final StringWriter errSw = new StringWriter();
     final PrintWriter err = new PrintWriter(errSw);
     new SqlShell(in, out, err, args).run();
-    return outSw.toString();
+    return Util.toLinux(outSw.toString());
   }
 
   @Test public void testSqlShellHelp() throws SQLException {
