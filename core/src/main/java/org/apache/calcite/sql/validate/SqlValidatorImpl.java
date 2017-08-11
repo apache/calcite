@@ -4561,9 +4561,26 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     SqlLiteral interval = matchRecognize.getInterval();
     if (interval != null) {
       interval.validate(this, scope);
-      if (((SqlIntervalLiteral) interval).signum() <= 0) {
+      if (((SqlIntervalLiteral) interval).signum() < 0) {
         throw newValidationError(interval,
-          RESOURCE.intervalMustBePositive(interval.toValue()));
+          RESOURCE.intervalMustBeNonNegative(interval.toValue()));
+      }
+      if (orderBy == null || orderBy.size() == 0) {
+        throw newValidationError(interval,
+          RESOURCE.cannotUseWithinWithoutOrderBy());
+      }
+
+      SqlNode firstOrderByColumn = orderBy.getList().get(0);
+      SqlIdentifier identifier;
+      if (firstOrderByColumn instanceof SqlBasicCall) {
+        identifier = (SqlIdentifier) ((SqlBasicCall) firstOrderByColumn).getOperands()[0];
+      } else {
+        identifier = (SqlIdentifier) firstOrderByColumn;
+      }
+      RelDataType firstOrderByColumnType = deriveType(scope, identifier);
+      if (firstOrderByColumnType.getSqlTypeName() != SqlTypeName.TIMESTAMP) {
+        throw newValidationError(interval,
+          RESOURCE.firstColumnOfOrderByMustBeTimestamp());
       }
 
       SqlNode expand = expand(interval, scope);

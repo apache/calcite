@@ -92,18 +92,6 @@ public class SqlIntervalQualifier extends SqlNode {
   private static final BigDecimal INT_MAX_VALUE_PLUS_ONE =
       BigDecimal.valueOf(Integer.MAX_VALUE).add(BigDecimal.ONE);
 
-  private static final long[] CONV = new long[7];
-  static {
-    CONV[6] = 1; // months
-    CONV[5] = CONV[6] * 12; // years
-
-    CONV[4] = 1; // millisecond
-    CONV[3] = CONV[4] * 1000; // second
-    CONV[2] = CONV[3] * 60; // minute
-    CONV[1] = CONV[2] * 60; // hour
-    CONV[0] = CONV[1] * 24; // day
-  }
-
   //~ Instance fields --------------------------------------------------------
 
   private final int startPrecision;
@@ -1209,33 +1197,33 @@ public class SqlIntervalQualifier extends SqlNode {
   }
 
   public String convertAsDay(BigDecimal value) {
-    return value.divide(BigDecimal.valueOf(CONV[0]), ROUND_UNNECESSARY).toString();
+    return value.divide(TimeUnit.DAY.multiplier, ROUND_UNNECESSARY).toString();
   }
 
   public String convertAsDayToHour(BigDecimal value) {
-    BigDecimal[] result = value.divideAndRemainder(BigDecimal.valueOf(CONV[0]));
+    BigDecimal[] result = value.divideAndRemainder(TimeUnit.DAY.multiplier);
     BigDecimal day = result[0];
-    BigDecimal hour = result[1].divide(BigDecimal.valueOf(CONV[1]), ROUND_UNNECESSARY);
+    BigDecimal hour = result[1].divide(TimeUnit.HOUR.multiplier, ROUND_UNNECESSARY);
     return day + " " + hour;
   }
 
   public String convertAsDayToMinute(BigDecimal value) {
-    BigDecimal[] result = value.divideAndRemainder(BigDecimal.valueOf(CONV[0]));
+    BigDecimal[] result = value.divideAndRemainder(TimeUnit.DAY.multiplier);
     BigDecimal day = result[0];
-    result = result[1].divideAndRemainder(BigDecimal.valueOf(CONV[1]));
+    result = result[1].divideAndRemainder(TimeUnit.HOUR.multiplier);
     BigDecimal hour = result[0];
-    BigDecimal minute = result[1].divide(BigDecimal.valueOf(CONV[2]), ROUND_UNNECESSARY);
+    BigDecimal minute = result[1].divide(TimeUnit.MINUTE.multiplier, ROUND_UNNECESSARY);
     return day + " " + hour + ":" + minute;
   }
 
   public String convertAsDayToSecond(BigDecimal value) {
-    BigDecimal[] result = value.divideAndRemainder(BigDecimal.valueOf(CONV[0]));
+    BigDecimal[] result = value.divideAndRemainder(TimeUnit.DAY.multiplier);
     BigDecimal day = result[0];
-    result = result[1].divideAndRemainder(BigDecimal.valueOf(CONV[1]));
+    result = result[1].divideAndRemainder(TimeUnit.HOUR.multiplier);
     BigDecimal hour = result[0];
-    result = result[1].divideAndRemainder(BigDecimal.valueOf(CONV[2]));
+    result = result[1].divideAndRemainder(TimeUnit.MINUTE.multiplier);
     BigDecimal minute = result[0];
-    result = result[1].divideAndRemainder(BigDecimal.valueOf(CONV[3]));
+    result = result[1].divideAndRemainder(TimeUnit.SECOND.multiplier);
     BigDecimal second = result[0];
     if (result[1].compareTo(BigDecimal.ZERO) == 0) {
       return day + " " + hour + ":" + minute + ":" + second;
@@ -1246,22 +1234,22 @@ public class SqlIntervalQualifier extends SqlNode {
   }
 
   public String convertAsHour(BigDecimal value) {
-    return value.divide(BigDecimal.valueOf(CONV[1]), ROUND_UNNECESSARY).toString();
+    return value.divide(TimeUnit.HOUR.multiplier, ROUND_UNNECESSARY).toString();
   }
 
   public String convertAsHourToMinute(BigDecimal value) {
-    BigDecimal[] result = value.divideAndRemainder(BigDecimal.valueOf(CONV[1]));
+    BigDecimal[] result = value.divideAndRemainder(TimeUnit.HOUR.multiplier);
     BigDecimal hour = result[0];
-    BigDecimal minute = result[1].divide(BigDecimal.valueOf(CONV[2]), ROUND_UNNECESSARY);
+    BigDecimal minute = result[1].divide(TimeUnit.MINUTE.multiplier, ROUND_UNNECESSARY);
     return hour + ":" + minute;
   }
 
   public String convertAsHourToSecond(BigDecimal value) {
-    BigDecimal[] result = value.divideAndRemainder(BigDecimal.valueOf(CONV[1]));
+    BigDecimal[] result = value.divideAndRemainder(TimeUnit.HOUR.multiplier);
     BigDecimal hour = result[0];
-    result = result[1].divideAndRemainder(BigDecimal.valueOf(CONV[2]));
+    result = result[1].divideAndRemainder(TimeUnit.MINUTE.multiplier);
     BigDecimal minute = result[0];
-    result = result[1].divideAndRemainder(BigDecimal.valueOf(CONV[3]));
+    result = result[1].divideAndRemainder(TimeUnit.SECOND.multiplier);
     BigDecimal second = result[0];
     if (result[1].compareTo(BigDecimal.ZERO) == 0) {
       return hour + ":" + minute + ":" + second;
@@ -1272,13 +1260,13 @@ public class SqlIntervalQualifier extends SqlNode {
   }
 
   public String convertAsMinute(BigDecimal value) {
-    return value.divide(BigDecimal.valueOf(CONV[2]), ROUND_UNNECESSARY).toString();
+    return value.divide(TimeUnit.MINUTE.multiplier, ROUND_UNNECESSARY).toString();
   }
 
   public String convertAsMinuteToSecond(BigDecimal value) {
-    BigDecimal[] result = value.divideAndRemainder(BigDecimal.valueOf(CONV[2]));
+    BigDecimal[] result = value.divideAndRemainder(TimeUnit.MINUTE.multiplier);
     BigDecimal minute = result[0];
-    result = result[1].divideAndRemainder(BigDecimal.valueOf(CONV[3]));
+    result = result[1].divideAndRemainder(TimeUnit.SECOND.multiplier);
     BigDecimal second = result[0];
     if (result[1].compareTo(BigDecimal.ZERO) == 0) {
       return minute + ":" + second;
@@ -1289,7 +1277,7 @@ public class SqlIntervalQualifier extends SqlNode {
   }
 
   public String convertAsSecond(BigDecimal value) {
-    BigDecimal[] result = value.divideAndRemainder(BigDecimal.valueOf(CONV[3]));
+    BigDecimal[] result = value.divideAndRemainder(TimeUnit.SECOND.multiplier);
     BigDecimal second = result[0];
     if (result[1].compareTo(BigDecimal.ZERO) == 0) {
       return second.toString();
@@ -1300,11 +1288,11 @@ public class SqlIntervalQualifier extends SqlNode {
   }
 
   public String convertAsYear(BigDecimal value) {
-    return value.divide(BigDecimal.valueOf(CONV[5]), ROUND_UNNECESSARY).toString();
+    return value.divide(TimeUnit.YEAR.multiplier, ROUND_UNNECESSARY).toString();
   }
 
   public String convertAsYearToMonth(BigDecimal value) {
-    BigDecimal[] result = value.divideAndRemainder(BigDecimal.valueOf(CONV[5]));
+    BigDecimal[] result = value.divideAndRemainder(TimeUnit.YEAR.multiplier);
     BigDecimal year = result[0];
     BigDecimal month = result[1];
     return year + "-" + month;

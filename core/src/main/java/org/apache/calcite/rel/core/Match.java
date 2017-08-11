@@ -88,7 +88,7 @@ public abstract class Match extends SingleRel {
    * @param partitionKeys Partition by columns
    * @param orderKeys Order by columns
    * @param rowType Row type
-   * @param interval interval definition
+   * @param interval interval definition, null if WITHIN clause is not defined
    */
   protected Match(RelOptCluster cluster, RelTraitSet traitSet,
       RelNode input, RexNode pattern, boolean strictStart, boolean strictEnd,
@@ -215,7 +215,7 @@ public abstract class Match extends SingleRel {
         .item("pattern", getPattern())
         .item("isStrictStarts", isStrictStart())
         .item("isStrictEnds", isStrictEnd())
-        .item("interval", getInterval())
+        .itemIf("interval", getInterval(), getInterval() != null)
         .item("subsets", getSubsets().values().asList())
         .item("patternDefinitions", getPatternDefinitions().values().asList())
         .item("inputFields", getInput().getRowType().getFieldNames());

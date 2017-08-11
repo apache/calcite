@@ -21,6 +21,7 @@ import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelShuttle;
 import org.apache.calcite.rel.core.Match;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexNode;
@@ -53,7 +54,7 @@ public class LogicalMatch extends Match {
    * @param partitionKeys Partition by columns
    * @param orderKeys Order by columns
    * @param rowType Row type
-   * @param interval interval definition
+   * @param interval interval definition, null if WITHIN clause is not defined
    */
   private LogicalMatch(RelOptCluster cluster, RelTraitSet traitSet,
       RelNode input, RexNode pattern, boolean strictStart, boolean strictEnd,
@@ -94,6 +95,10 @@ public class LogicalMatch extends Match {
     return new LogicalMatch(getCluster(), traitSet,
         input, pattern, strictStart, strictEnd, patternDefinitions, measures,
         after, subsets, allRows, partitionKeys, orderKeys, rowType, interval);
+  }
+
+  @Override public RelNode accept(RelShuttle shuttle) {
+    return shuttle.visit(this);
   }
 }
 

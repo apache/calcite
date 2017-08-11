@@ -1900,36 +1900,197 @@ public class RelToSqlConverterTest {
 
   @Test public void testMatchRecognizeWithin() {
     final String sql = "select *\n"
-        + "  from \"product\" match_recognize\n"
+        + "  from \"employee\" match_recognize\n"
         + "  (\n"
-        + "   measures STRT.\"net_weight\" as start_nw,"
-        + "   LAST(DOWN.\"net_weight\") as bottom_nw,"
-        + "   SUM(STDN.\"net_weight\") as avg_stdn"
-        + "    ALL ROWS PER MATCH\n"
-        + "    pattern (strt down+ up+) within interval '3:12:22.123' hour to second\n"
-        + "    subset stdn = (strt, down), stdn2 = (strt, down)\n"
-        + "    define\n"
-        + "      down as down.\"net_weight\" < PREV(down.\"net_weight\"),\n"
-        + "      up as up.\"net_weight\" > prev(up.\"net_weight\")\n"
+        + "   order by \"hire_date\"\n"
+        + "   ALL ROWS PER MATCH\n"
+        + "   pattern (strt down+ up+) within interval '3:12:22.123' hour to second\n"
+        + "   define\n"
+        + "     down as down.\"salary\" < PREV(down.\"salary\"),\n"
+        + "     up as up.\"salary\" > prev(up.\"salary\")\n"
         + "  ) mr";
 
     final String expected = "SELECT *\n"
         + "FROM (SELECT *\n"
-        + "FROM \"foodmart\".\"product\") "
+        + "FROM \"foodmart\".\"employee\") "
         + "MATCH_RECOGNIZE(\n"
-        + "MEASURES "
-        + "\"STRT\".\"net_weight\" AS \"START_NW\", "
-        + "LAST(\"DOWN\".\"net_weight\", 0) AS \"BOTTOM_NW\", "
-        + "SUM(\"STDN\".\"net_weight\") AS \"AVG_STDN\"\n"
+        + "ORDER BY \"hire_date\"\n"
         + "ALL ROWS PER MATCH\n"
         + "AFTER MATCH SKIP TO NEXT ROW\n"
         + "PATTERN (\"STRT\" \"DOWN\" + \"UP\" +) WITHIN INTERVAL '3:12:22.123' HOUR TO SECOND\n"
-        + "SUBSET \"STDN\" = (\"DOWN\", \"STRT\"), \"STDN2\" = (\"DOWN\", \"STRT\")\n"
         + "DEFINE "
-        + "\"DOWN\" AS \"DOWN\".\"net_weight\" < "
-        + "PREV(\"DOWN\".\"net_weight\", 1), "
-        + "\"UP\" AS \"UP\".\"net_weight\" > "
-        + "PREV(\"UP\".\"net_weight\", 1))";
+        + "\"DOWN\" AS \"DOWN\".\"salary\" < "
+        + "PREV(\"DOWN\".\"salary\", 1), "
+        + "\"UP\" AS \"UP\".\"salary\" > "
+        + "PREV(\"UP\".\"salary\", 1))";
+    sql(sql).ok(expected);
+  }
+
+  @Test public void testMatchRecognizeWithin2() {
+    final String sql = "select *\n"
+        + "  from \"employee\" match_recognize\n"
+        + "  (\n"
+        + "   order by \"hire_date\"\n"
+        + "   ALL ROWS PER MATCH\n"
+        + "   pattern (strt down+ up+) within interval '1-2' year to month\n"
+        + "   define\n"
+        + "     down as down.\"salary\" < PREV(down.\"salary\"),\n"
+        + "     up as up.\"salary\" > prev(up.\"salary\")\n"
+        + "  ) mr";
+
+    final String expected = "SELECT *\n"
+         + "FROM (SELECT *\n"
+         + "FROM \"foodmart\".\"employee\") "
+         + "MATCH_RECOGNIZE(\n"
+         + "ORDER BY \"hire_date\"\n"
+         + "ALL ROWS PER MATCH\n"
+         + "AFTER MATCH SKIP TO NEXT ROW\n"
+         + "PATTERN (\"STRT\" \"DOWN\" + \"UP\" +) WITHIN INTERVAL '1-2' YEAR TO MONTH\n"
+         + "DEFINE "
+         + "\"DOWN\" AS \"DOWN\".\"salary\" < "
+         + "PREV(\"DOWN\".\"salary\", 1), "
+         + "\"UP\" AS \"UP\".\"salary\" > "
+         + "PREV(\"UP\".\"salary\", 1))";
+    sql(sql).ok(expected);
+  }
+
+  @Test public void testMatchRecognizeWithin3() {
+    final String sql = "select *\n"
+         + "  from \"employee\" match_recognize\n"
+         + "  (\n"
+         + "   order by \"hire_date\"\n"
+         + "   ALL ROWS PER MATCH\n"
+         + "   pattern (strt down+ up+) within interval '1 2' day to hour\n"
+         + "   define\n"
+         + "     down as down.\"salary\" < PREV(down.\"salary\"),\n"
+         + "     up as up.\"salary\" > prev(up.\"salary\")\n"
+         + "  ) mr";
+
+    final String expected = "SELECT *\n"
+         + "FROM (SELECT *\n"
+         + "FROM \"foodmart\".\"employee\") "
+         + "MATCH_RECOGNIZE(\n"
+         + "ORDER BY \"hire_date\"\n"
+         + "ALL ROWS PER MATCH\n"
+         + "AFTER MATCH SKIP TO NEXT ROW\n"
+         + "PATTERN (\"STRT\" \"DOWN\" + \"UP\" +) WITHIN INTERVAL '1 2' DAY TO HOUR\n"
+         + "DEFINE "
+         + "\"DOWN\" AS \"DOWN\".\"salary\" < "
+         + "PREV(\"DOWN\".\"salary\", 1), "
+         + "\"UP\" AS \"UP\".\"salary\" > "
+         + "PREV(\"UP\".\"salary\", 1))";
+    sql(sql).ok(expected);
+  }
+
+  @Test public void testMatchRecognizeWithin4() {
+    final String sql = "select *\n"
+         + "  from \"employee\" match_recognize\n"
+         + "  (\n"
+         + "   order by \"hire_date\"\n"
+         + "   ALL ROWS PER MATCH\n"
+         + "   pattern (strt down+ up+) within interval '1 2:10' day to minute\n"
+         + "   define\n"
+         + "     down as down.\"salary\" < PREV(down.\"salary\"),\n"
+         + "     up as up.\"salary\" > prev(up.\"salary\")\n"
+         + "  ) mr";
+
+    final String expected = "SELECT *\n"
+         + "FROM (SELECT *\n"
+         + "FROM \"foodmart\".\"employee\") "
+         + "MATCH_RECOGNIZE(\n"
+         + "ORDER BY \"hire_date\"\n"
+         + "ALL ROWS PER MATCH\n"
+         + "AFTER MATCH SKIP TO NEXT ROW\n"
+         + "PATTERN (\"STRT\" \"DOWN\" + \"UP\" +) WITHIN INTERVAL '1 2:10' DAY TO MINUTE\n"
+         + "DEFINE "
+         + "\"DOWN\" AS \"DOWN\".\"salary\" < "
+         + "PREV(\"DOWN\".\"salary\", 1), "
+         + "\"UP\" AS \"UP\".\"salary\" > "
+         + "PREV(\"UP\".\"salary\", 1))";
+    sql(sql).ok(expected);
+  }
+
+  @Test public void testMatchRecognizeWithin5() {
+    final String sql = "select *\n"
+         + "  from \"employee\" match_recognize\n"
+         + "  (\n"
+         + "   order by \"hire_date\"\n"
+         + "   ALL ROWS PER MATCH\n"
+         + "   pattern (strt down+ up+) within interval '1 2:10:23.123' day to second\n"
+         + "   define\n"
+         + "     down as down.\"salary\" < PREV(down.\"salary\"),\n"
+         + "     up as up.\"salary\" > prev(up.\"salary\")\n"
+         + "  ) mr";
+
+    final String expected = "SELECT *\n"
+         + "FROM (SELECT *\n"
+         + "FROM \"foodmart\".\"employee\") "
+         + "MATCH_RECOGNIZE(\n"
+         + "ORDER BY \"hire_date\"\n"
+         + "ALL ROWS PER MATCH\n"
+         + "AFTER MATCH SKIP TO NEXT ROW\n"
+         + "PATTERN (\"STRT\" \"DOWN\" + \"UP\" +) WITHIN INTERVAL '1 2:10:23.123' DAY TO SECOND\n"
+         + "DEFINE "
+         + "\"DOWN\" AS \"DOWN\".\"salary\" < "
+         + "PREV(\"DOWN\".\"salary\", 1), "
+         + "\"UP\" AS \"UP\".\"salary\" > "
+         + "PREV(\"UP\".\"salary\", 1))";
+    sql(sql).ok(expected);
+  }
+
+  @Test public void testMatchRecognizeWithin6() {
+    final String sql = "select *\n"
+         + "  from \"employee\" match_recognize\n"
+         + "  (\n"
+         + "   order by \"hire_date\"\n"
+         + "   ALL ROWS PER MATCH\n"
+         + "   pattern (strt down+ up+) within interval '10:23' minute to second\n"
+         + "   define\n"
+         + "     down as down.\"salary\" < PREV(down.\"salary\"),\n"
+         + "     up as up.\"salary\" > prev(up.\"salary\")\n"
+         + "  ) mr";
+
+    final String expected = "SELECT *\n"
+         + "FROM (SELECT *\n"
+         + "FROM \"foodmart\".\"employee\") "
+         + "MATCH_RECOGNIZE(\n"
+         + "ORDER BY \"hire_date\"\n"
+         + "ALL ROWS PER MATCH\n"
+         + "AFTER MATCH SKIP TO NEXT ROW\n"
+         + "PATTERN (\"STRT\" \"DOWN\" + \"UP\" +) WITHIN INTERVAL '10:23' MINUTE TO SECOND\n"
+         + "DEFINE "
+         + "\"DOWN\" AS \"DOWN\".\"salary\" < "
+         + "PREV(\"DOWN\".\"salary\", 1), "
+         + "\"UP\" AS \"UP\".\"salary\" > "
+         + "PREV(\"UP\".\"salary\", 1))";
+    sql(sql).ok(expected);
+  }
+
+  @Test public void testMatchRecognizeWithin7() {
+    final String sql = "select *\n"
+         + "  from \"employee\" match_recognize\n"
+         + "  (\n"
+         + "   order by \"hire_date\"\n"
+         + "   ALL ROWS PER MATCH\n"
+         + "   pattern (strt down+ up+) within interval '23' second\n"
+         + "   define\n"
+         + "     down as down.\"salary\" < PREV(down.\"salary\"),\n"
+         + "     up as up.\"salary\" > prev(up.\"salary\")\n"
+         + "  ) mr";
+
+    final String expected = "SELECT *\n"
+         + "FROM (SELECT *\n"
+         + "FROM \"foodmart\".\"employee\") "
+         + "MATCH_RECOGNIZE(\n"
+         + "ORDER BY \"hire_date\"\n"
+         + "ALL ROWS PER MATCH\n"
+         + "AFTER MATCH SKIP TO NEXT ROW\n"
+         + "PATTERN (\"STRT\" \"DOWN\" + \"UP\" +) WITHIN INTERVAL '23' SECOND\n"
+         + "DEFINE "
+         + "\"DOWN\" AS \"DOWN\".\"salary\" < "
+         + "PREV(\"DOWN\".\"salary\", 1), "
+         + "\"UP\" AS \"UP\".\"salary\" > "
+         + "PREV(\"UP\".\"salary\", 1))";
     sql(sql).ok(expected);
   }
 
