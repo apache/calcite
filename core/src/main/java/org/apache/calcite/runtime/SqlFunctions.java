@@ -1197,14 +1197,29 @@ public class SqlFunctions {
   }
 
   // SQL ROUND
-  /** SQL <code>ROUND</code> operator applied to long values. */
+  /** SQL <code>ROUND</code> operator applied to int values. */
+  public static int sround(int b0) {
+    return sround(b0, 0);
+  }
+
+  /** SQL <code>ROUND</code> operator applied to int values. */
   public static int sround(int b0, int b1) {
     return sround(BigDecimal.valueOf(b0), b1).intValue();
   }
 
   /** SQL <code>ROUND</code> operator applied to long values. */
+  public static long sround(long b0) {
+    return sround(b0, 0);
+  }
+
+  /** SQL <code>ROUND</code> operator applied to long values. */
   public static long sround(long b0, int b1) {
     return sround(BigDecimal.valueOf(b0), b1).longValue();
+  }
+
+  /** SQL <code>ROUND</code> operator applied to BigDecimal values. */
+  public static BigDecimal sround(BigDecimal b0) {
+    return sround(b0, 0);
   }
 
   /** SQL <code>ROUND</code> operator applied to BigDecimal values. */
@@ -1214,28 +1229,45 @@ public class SqlFunctions {
   }
 
   /** SQL <code>ROUND</code> operator applied to double values. */
+  public static double sround(double b0) {
+    return sround(b0, 0);
+  }
+
+  /** SQL <code>ROUND</code> operator applied to double values. */
   public static double sround(double b0, int b1) {
     return sround(BigDecimal.valueOf(b0), b1).doubleValue();
   }
 
   // SQL TRUNCATE
   /** SQL <code>TRUNCATE</code> operator applied to int values. */
+  public static int struncate(int b0) {
+    return struncate(b0, 0);
+  }
   public static int struncate(int b0, int b1) {
     return struncate(BigDecimal.valueOf(b0), b1).intValue();
   }
 
   /** SQL <code>TRUNCATE</code> operator applied to long values. */
+  public static long struncate(long b0) {
+    return struncate(b0, 0);
+  }
   public static long struncate(long b0, int b1) {
     return struncate(BigDecimal.valueOf(b0), b1).longValue();
   }
 
   /** SQL <code>TRUNCATE</code> operator applied to BigDecimal values. */
+  public static BigDecimal struncate(BigDecimal b0) {
+    return struncate(b0, 0);
+  }
   public static BigDecimal struncate(BigDecimal b0, int b1) {
     return b0.movePointRight(b1)
         .setScale(0, RoundingMode.DOWN).movePointLeft(b1);
   }
 
   /** SQL <code>TRUNCATE</code> operator applied to double values. */
+  public static double struncate(double b0) {
+    return struncate(b0, 0);
+  }
   public static double struncate(double b0, int b1) {
     return struncate(BigDecimal.valueOf(b0), b1).doubleValue();
   }

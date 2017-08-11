@@ -1108,11 +1108,11 @@ comp:
 | DEGREES(numeric)          | Converts *numeric* from radians to degrees
 | PI()                      | Returns a value that is closer than any other value to *pi*
 | RADIANS(numeric)          | Converts *numeric* from degrees to radians
-| ROUND(numeric1, numeric2) | Rounds *numeric1* to *numeric2* places right to the decimal point
+| ROUND(numeric1 [, numeric2]) | Rounds *numeric1* to optionally *numeric2* (if not specified 0) places right to the decimal point
 | SIGN(numeric)             | Returns the signum of *numeric*
 | SIN(numeric)              | Returns the sine of *numeric*
 | TAN(numeric)              | Returns the tangent of *numeric*
-| TRUNCATE(numeric1, numeric2) | Truncates *numeric1* to *numeric2* places right to the decimal point
+| TRUNCATE(numeric1 [, numeric2]) | Truncates *numeric1* to optionally *numeric2* (if not specified 0) places right to the decimal point.
 
 ### Character string operators and functions
 
