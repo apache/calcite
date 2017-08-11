@@ -97,6 +97,10 @@ class JdbcTable extends AbstractQueryableTable
     return "JdbcTable {" + jdbcTableName + "}";
   }
 
+  public String getJdbcTableName() {
+    return jdbcTableName;
+  }
+
   @Override public Schema.TableType getJdbcTableType() {
     return jdbcTableType;
   }

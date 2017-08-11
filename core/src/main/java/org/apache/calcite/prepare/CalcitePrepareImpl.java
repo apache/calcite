@@ -26,6 +26,7 @@ import org.apache.calcite.adapter.enumerable.EnumerableRel;
 import org.apache.calcite.adapter.enumerable.EnumerableRules;
 import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
+import org.apache.calcite.adapter.jdbc.JdbcSchema;
 import org.apache.calcite.avatica.AvaticaParameter;
 import org.apache.calcite.avatica.ColumnMetaData;
 import org.apache.calcite.avatica.Meta;
@@ -108,10 +109,12 @@ import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.runtime.Bindable;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.runtime.Typed;
+import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.Schemas;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.server.CalciteServerStatement;
 import org.apache.calcite.sql.SqlBinaryOperator;
+import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlExecutableStatement;
 import org.apache.calcite.sql.SqlExplainFormat;
 import org.apache.calcite.sql.SqlExplainLevel;
@@ -783,8 +786,27 @@ public class CalcitePrepareImpl implements CalcitePrepare {
       validator.setIdentifierExpansion(true);
       validator.setDefaultNullCollation(config.defaultNullCollation());
 
+      // Find out the target schema to determine the SqlDialect
+      Schema targetSchema = null;
+      for (List<String> schemaPath : catalogReader.getSchemaPaths()) {
+        CalciteSchema schema = catalogReader.rootSchema;
+        for (String schemaName : schemaPath) {
+          schema = schema.getSubSchema(schemaName, true);
+        }
+        if (schema != null && schema.schema != null) {
+          targetSchema = schema.schema;
+          break;
+        }
+      }
+
+      // If this is a JdbcSchema we grab it's dialect
+      SqlDialect sqlDialect = null;
+      if (targetSchema != null && targetSchema instanceof JdbcSchema) {
+        sqlDialect = ((JdbcSchema) targetSchema).dialect;
+      }
+
       preparedResult = preparingStmt.prepareSql(
-          sqlNode, Object.class, validator, true);
+          sqlDialect, sqlNode, Object.class, validator, true);
       switch (sqlNode.getKind()) {
       case INSERT:
       case DELETE:

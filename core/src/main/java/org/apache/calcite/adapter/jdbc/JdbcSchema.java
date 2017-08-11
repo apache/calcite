@@ -227,9 +227,28 @@ public class JdbcSchema implements Schema {
         if (tableType == TableType.OTHER  && tableTypeName2 != null) {
           System.out.println("Unknown table type: " + tableTypeName2);
         }
-        final JdbcTable table =
-            new JdbcTable(this, catalogName, schemaName, tableName, tableType);
+        final JdbcTable table;
+        if (tableType == TableType.SEQUENCE || tableType == TableType.TEMPORARY_SEQUENCE) {
+          table =
+              new JdbcSequence(this, catalogName, schemaName, tableName, SqlTypeName.BIGINT, 1);
+        } else {
+          table = new JdbcTable(this, catalogName, schemaName, tableName, tableType);
+        }
         builder.put(tableName, table);
+      }
+
+      Collection<SqlDialect.SequenceInformation> sequenceInformations =
+              dialect.getSequenceInformation(connection, catalog, schema);
+      for (SqlDialect.SequenceInformation sequenceInformation : sequenceInformations) {
+        final JdbcTable table =
+                new JdbcSequence(
+                        this,
+                        sequenceInformation.getCatalog(),
+                        sequenceInformation.getSchema(),
+                        sequenceInformation.getName(),
+                        sequenceInformation.getType(),
+                        sequenceInformation.getIncrement());
+        builder.put(sequenceInformation.getName(), table);
       }
       return builder.build();
     } catch (SQLException e) {

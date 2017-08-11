@@ -19,18 +19,28 @@ package org.apache.calcite.sql;
 import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.rel.RelFieldCollation;
+import org.apache.calcite.sql.dialect.DB2SequenceSupport;
 import org.apache.calcite.sql.dialect.HsqldbHandler;
+import org.apache.calcite.sql.dialect.HsqldbSequenceSupport;
+import org.apache.calcite.sql.dialect.MSSQLSequenceSupportResolver;
 import org.apache.calcite.sql.dialect.MssqlHandler;
 import org.apache.calcite.sql.dialect.MysqlHandler;
 import org.apache.calcite.sql.dialect.OracleHandler;
+import org.apache.calcite.sql.dialect.OracleSequenceSupport;
+import org.apache.calcite.sql.dialect.PhoenixSequenceSupport;
 import org.apache.calcite.sql.dialect.PostgresqlHandler;
+import org.apache.calcite.sql.dialect.PostgresqlSequenceSupport;
+import org.apache.calcite.sql.type.SqlTypeName;
 
 import com.google.common.base.Preconditions;
 
+import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.regex.Pattern;
@@ -71,6 +81,7 @@ public class SqlDialect {
   private final DatabaseProduct databaseProduct;
   private final NullCollation nullCollation;
   private final Handler handler;
+  private final SequenceSupport sequenceSupport;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -122,22 +133,34 @@ public class SqlDialect {
       throw new IllegalArgumentException("cannot deduce null collation", e);
     }
     Handler handler = chooseHandler(databaseProduct);
+    SequenceSupport sequenceSupport;
+    if (databaseProduct.sequenceSupportResolver != null) {
+      try {
+        sequenceSupport =
+                databaseProduct.sequenceSupportResolver.resolveExtractor(
+                  databaseMetaData);
+      } catch (SQLException e) {
+        throw FakeUtil.newInternal(e, "while resolving sequence information extractor");
+      }
+    } else {
+      sequenceSupport = null;
+    }
     return new SqlDialect(databaseProduct, databaseProductName,
-        identifierQuoteString, nullCollation, handler);
+        identifierQuoteString, nullCollation, handler, sequenceSupport);
   }
 
   @Deprecated // to be removed before 2.0
   public SqlDialect(DatabaseProduct databaseProduct, String databaseProductName,
       String identifierQuoteString) {
     this(databaseProduct, databaseProductName, identifierQuoteString,
-        NullCollation.HIGH, DEFAULT_HANDLER);
+        NullCollation.HIGH, DEFAULT_HANDLER, null);
   }
 
   @Deprecated // to be removed before 2.0
   public SqlDialect(DatabaseProduct databaseProduct, String databaseProductName,
       String identifierQuoteString, NullCollation nullCollation) {
     this(databaseProduct, databaseProductName, identifierQuoteString,
-        nullCollation, DEFAULT_HANDLER);
+        nullCollation, DEFAULT_HANDLER, null);
   }
 
   /**
@@ -153,11 +176,12 @@ public class SqlDialect {
    */
   public SqlDialect(DatabaseProduct databaseProduct, String databaseProductName,
       String identifierQuoteString, NullCollation nullCollation,
-      Handler handler) {
+      Handler handler, SequenceSupport sequenceSupport) {
     this.nullCollation = Preconditions.checkNotNull(nullCollation);
     Preconditions.checkNotNull(databaseProductName);
     this.databaseProduct = Preconditions.checkNotNull(databaseProduct);
     this.handler = Preconditions.checkNotNull(handler);
+    this.sequenceSupport = sequenceSupport;
     if (identifierQuoteString != null) {
       identifierQuoteString = identifierQuoteString.trim();
       if (identifierQuoteString.equals("")) {
@@ -552,6 +576,16 @@ public class SqlDialect {
     }
   }
 
+  public Collection<SequenceInformation> getSequenceInformation(
+          Connection connection,
+          String catalog,
+          String schema) throws SQLException {
+    if (sequenceSupport == null) {
+      return Collections.emptyList();
+    }
+    return sequenceSupport.extract(connection, catalog, schema);
+  }
+
   /** Returns how NULL values are sorted if an ORDER BY item does not contain
    * NULLS ASCENDING or NULLS DESCENDING. */
   public NullCollation getNullCollation() {
@@ -576,6 +610,13 @@ public class SqlDialect {
     default:
       return RelFieldCollation.NullDirection.UNSPECIFIED;
     }
+  }
+
+  public void unparseSequenceVal(SqlWriter writer, SqlKind kind, SqlNode sequenceNode) {
+    if (sequenceSupport == null) {
+      throw new IllegalStateException("Sequences not supported on target database platform!");
+    }
+    sequenceSupport.unparseSequenceVal(writer, kind, sequenceNode);
   }
 
   /**
@@ -637,35 +678,40 @@ public class SqlDialect {
    * whether the database allows expressions to appear in the GROUP BY clause.
    */
   public enum DatabaseProduct {
-    ACCESS("Access", "\"", NullCollation.HIGH),
-    CALCITE("Apache Calcite", "\"", NullCollation.HIGH),
-    MSSQL("Microsoft SQL Server", "[", NullCollation.HIGH),
-    MYSQL("MySQL", "`", NullCollation.HIGH),
-    ORACLE("Oracle", "\"", NullCollation.HIGH),
-    DERBY("Apache Derby", null, NullCollation.HIGH),
-    DB2("IBM DB2", null, NullCollation.HIGH),
-    FIREBIRD("Firebird", null, NullCollation.HIGH),
-    H2("H2", "\"", NullCollation.HIGH),
-    HIVE("Apache Hive", null, NullCollation.HIGH),
-    INFORMIX("Informix", null, NullCollation.HIGH),
-    INGRES("Ingres", null, NullCollation.HIGH),
-    LUCIDDB("LucidDB", "\"", NullCollation.HIGH),
-    INTERBASE("Interbase", null, NullCollation.HIGH),
-    PHOENIX("Phoenix", "\"", NullCollation.HIGH),
-    POSTGRESQL("PostgreSQL", "\"", NullCollation.HIGH),
-    NETEZZA("Netezza", "\"", NullCollation.HIGH),
-    INFOBRIGHT("Infobright", "`", NullCollation.HIGH),
-    NEOVIEW("Neoview", null, NullCollation.HIGH),
-    SYBASE("Sybase", null, NullCollation.HIGH),
-    TERADATA("Teradata", "\"", NullCollation.HIGH),
-    HSQLDB("Hsqldb", null, NullCollation.HIGH),
-    VERTICA("Vertica", "\"", NullCollation.HIGH),
-    SQLSTREAM("SQLstream", "\"", NullCollation.HIGH),
+    ACCESS("Access", "\"", null, NullCollation.HIGH),
+    CALCITE("Apache Calcite", "\"", null, NullCollation.HIGH),
+    MSSQL("Microsoft SQL Server", "[",
+      MSSQLSequenceSupportResolver.INSTANCE, NullCollation.HIGH),
+    MYSQL("MySQL", "`", null, NullCollation.HIGH),
+    ORACLE("Oracle", "\"", OracleSequenceSupport.INSTANCE, NullCollation.HIGH),
+    DERBY("Apache Derby", null, null, NullCollation.HIGH),
+    DB2("IBM DB2", null, DB2SequenceSupport.INSTANCE, NullCollation.HIGH),
+    FIREBIRD("Firebird", null, null, NullCollation.HIGH),
+    // H2 uses the same nextval and currval functions as Postgresql
+    H2("H2", "\"", PostgresqlSequenceSupport.INSTANCE, NullCollation.HIGH),
+    HIVE("Apache Hive", null, null, NullCollation.HIGH),
+    INFORMIX("Informix", null, null, NullCollation.HIGH),
+    INGRES("Ingres", null, null, NullCollation.HIGH),
+    LUCIDDB("LucidDB", "\"", null, NullCollation.HIGH),
+    INTERBASE("Interbase", null, null, NullCollation.HIGH),
+    PHOENIX("Phoenix", "\"", PhoenixSequenceSupport.INSTANCE, NullCollation.HIGH),
+    POSTGRESQL("PostgreSQL", "\"",
+      PostgresqlSequenceSupport.INSTANCE, NullCollation.HIGH),
+    NETEZZA("Netezza", "\"", null, NullCollation.HIGH),
+    INFOBRIGHT("Infobright", "`", null, NullCollation.HIGH),
+    NEOVIEW("Neoview", null, null, NullCollation.HIGH),
+    SYBASE("Sybase", null, null, NullCollation.HIGH),
+    TERADATA("Teradata", "\"", null, NullCollation.HIGH),
+    HSQLDB("Hsqldb", null,
+      HsqldbSequenceSupport.INSTANCE, NullCollation.HIGH),
+    VERTICA("Vertica", "\"", null, NullCollation.HIGH),
+    SQLSTREAM("SQLstream", "\"", null, NullCollation.HIGH),
 
     /** Paraccel, now called Actian Matrix. Redshift is based on this, so
      * presumably the dialect capabilities are similar. */
-    PARACCEL("Paraccel", "\"", NullCollation.HIGH),
-    REDSHIFT("Redshift", "\"", NullCollation.HIGH),
+    PARACCEL("Paraccel", "\"", null, NullCollation.HIGH),
+    REDSHIFT("Redshift", "\"",
+      PostgresqlSequenceSupport.INSTANCE, NullCollation.HIGH),
 
     /**
      * Placeholder for the unknown database.
@@ -674,18 +720,21 @@ public class SqlDialect {
      * do something database-specific like quoting identifiers, don't rely
      * on this dialect to do what you want.
      */
-    UNKNOWN("Unknown", "`", NullCollation.HIGH);
+    UNKNOWN("Unknown", "`", null, NullCollation.HIGH);
 
     private SqlDialect dialect = null;
     private String databaseProductName;
     private String quoteString;
+    private final SequenceSupportResolver sequenceSupportResolver;
     private final NullCollation nullCollation;
 
     DatabaseProduct(String databaseProductName, String quoteString,
+        SequenceSupportResolver sequenceSupportResolver,
         NullCollation nullCollation) {
       this.databaseProductName =
           Preconditions.checkNotNull(databaseProductName);
       this.quoteString = quoteString;
+      this.sequenceSupportResolver = sequenceSupportResolver;
       this.nullCollation = Preconditions.checkNotNull(nullCollation);
     }
 
@@ -703,9 +752,18 @@ public class SqlDialect {
     public SqlDialect getDialect() {
       if (dialect == null) {
         final Handler handler = chooseHandler(this);
-        dialect =
-            new SqlDialect(this, databaseProductName, quoteString,
-                nullCollation, handler);
+        try {
+          SequenceSupport sequenceSupport = null;
+          if (sequenceSupportResolver != null) {
+            sequenceSupport =
+                sequenceSupportResolver.resolveExtractor(null);
+          }
+          dialect =
+              new SqlDialect(this, databaseProductName, quoteString,
+                  nullCollation, handler, sequenceSupport);
+        } catch (SQLException e) {
+          FakeUtil.newInternal(e, " while resolving extractor");
+        }
       }
       return dialect;
     }
@@ -729,6 +787,38 @@ public class SqlDialect {
       call.getOperator().unparse(writer, call, leftPrec, rightPrec);
     }
   }
+
+  /**
+   * Information about a sequence.
+   */
+  public interface SequenceInformation {
+    String getCatalog();
+    String getSchema();
+    String getName();
+    SqlTypeName getType();
+    int getIncrement();
+  }
+
+  /**
+   * Resolver for a sequence information extractor.
+   */
+  public interface SequenceSupportResolver {
+    SequenceSupport resolveExtractor(DatabaseMetaData metaData) throws SQLException;
+  }
+
+  /**
+   * An extractor for querying sequence information.
+   */
+  public interface SequenceSupport {
+    Collection<SequenceInformation> extract(
+      Connection connection,
+      String catalog,
+      String schema) throws SQLException;
+
+    void unparseSequenceVal(SqlWriter writer, SqlKind kind, SqlNode sequenceNode);
+
+  }
+
 }
 
 // End SqlDialect.java

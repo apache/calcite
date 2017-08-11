@@ -42,6 +42,7 @@ import org.apache.calcite.sql.SqlUpdate;
 import org.apache.calcite.sql.SqlWindow;
 import org.apache.calcite.sql.SqlWith;
 import org.apache.calcite.sql.SqlWithItem;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.Util;
 
 import java.util.List;
@@ -759,7 +760,7 @@ public interface SqlValidator {
 
   void validateWithItem(SqlWithItem withItem);
 
-  void validateSequenceValue(SqlValidatorScope scope, SqlIdentifier id);
+  SqlTypeName validateSequenceValue(SqlValidatorScope scope, SqlIdentifier id);
 
   SqlValidatorScope getWithScope(SqlNode withItem);
 }

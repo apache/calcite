@@ -48,6 +48,7 @@ import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.Wrapper;
 import org.apache.calcite.schema.impl.ModifiableViewTable;
 import org.apache.calcite.schema.impl.StarTable;
+import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlExplain;
 import org.apache.calcite.sql.SqlExplainFormat;
 import org.apache.calcite.sql.SqlExplainLevel;
@@ -223,11 +224,13 @@ public abstract class Prepare {
   protected abstract PreparedResult implement(RelRoot root);
 
   public PreparedResult prepareSql(
+      SqlDialect sqlDialect,
       SqlNode sqlQuery,
       Class runtimeContextClass,
       SqlValidator validator,
       boolean needsValidation) {
     return prepareSql(
+        sqlDialect,
         sqlQuery,
         sqlQuery,
         runtimeContextClass,
@@ -236,12 +239,13 @@ public abstract class Prepare {
   }
 
   public PreparedResult prepareSql(
+      SqlDialect sqlDialect,
       SqlNode sqlQuery,
       SqlNode sqlNodeOriginal,
       Class runtimeContextClass,
       SqlValidator validator,
       boolean needsValidation) {
-    queryString = sqlQuery.toString();
+    queryString = sqlQuery.toSqlString(sqlDialect).getSql();
 
     init(runtimeContextClass);
 
