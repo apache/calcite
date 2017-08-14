@@ -20,6 +20,7 @@ import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.schema.Function;
 import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.schema.SchemaVersion;
 import org.apache.calcite.schema.Table;
 
 import java.util.Collection;
@@ -53,8 +54,8 @@ public class DelegatingSchema implements Schema {
     return schema.contentsHaveChangedSince(lastCheck, now);
   }
 
-  public Schema snapshot(long now) {
-    return schema.snapshot(now);
+  public Schema snapshot(SchemaVersion version) {
+    return schema.snapshot(version);
   }
 
   public Expression getExpression(SchemaPlus parentSchema, String name) {

@@ -28,6 +28,7 @@ import org.apache.calcite.schema.Function;
 import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.SchemaFactory;
 import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.schema.SchemaVersion;
 import org.apache.calcite.schema.Schemas;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.sql.SqlDialect;
@@ -167,7 +168,7 @@ public class JdbcSchema implements Schema {
     return false;
   }
 
-  public Schema snapshot(long now) {
+  public Schema snapshot(SchemaVersion version) {
     return new JdbcSchema(dataSource, dialect, convention, catalog, schema,
         tableMap);
   }

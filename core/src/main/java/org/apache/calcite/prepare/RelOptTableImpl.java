@@ -41,6 +41,7 @@ import org.apache.calcite.schema.QueryableTable;
 import org.apache.calcite.schema.ScannableTable;
 import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.schema.SchemaVersion;
 import org.apache.calcite.schema.Schemas;
 import org.apache.calcite.schema.StreamableTable;
 import org.apache.calcite.schema.Table;
@@ -435,7 +436,7 @@ public class RelOptTableImpl extends Prepare.AbstractPreparingTable {
       return schema.contentsHaveChangedSince(lastCheck, now);
     }
 
-    @Override public Schema snapshot(long now) {
+    @Override public Schema snapshot(SchemaVersion version) {
       throw new UnsupportedOperationException();
     }
   }

@@ -21,6 +21,7 @@ import org.apache.calcite.materialize.Lattice;
 import org.apache.calcite.schema.Function;
 import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.schema.SchemaVersion;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.TableMacro;
 import org.apache.calcite.schema.impl.MaterializedViewTable;
@@ -144,7 +145,8 @@ public abstract class CalciteSchema {
       ImmutableSortedMap.Builder<String, Table> builder);
 
   /** Returns a snapshot representation of this CalciteSchema. */
-  protected abstract CalciteSchema snapshot(CalciteSchema parent, long now);
+  protected abstract CalciteSchema snapshot(
+      CalciteSchema parent, SchemaVersion version);
 
   protected abstract boolean isCacheEnabled();
 
@@ -380,21 +382,20 @@ public abstract class CalciteSchema {
   /** Creates a snapshot of this CalciteSchema as of the specified time. All
    * explicit objects in this CalciteSchema will be copied into the snapshot
    * CalciteSchema, while the contents of the snapshot of the underlying schema
-   * should not change as specified in {@link Schema#snapshot(long)}. Snapshots
-   * of explicit sub schemas will be created and copied recursively.
+   * should not change as specified in {@link Schema#snapshot(SchemaVersion)}.
+   * Snapshots of explicit sub schemas will be created and copied recursively.
    *
    * <p>Currently, to accommodate the requirement of creating tables on the fly
    * for materializations, the snapshot will still use the same table map and
    * lattice map as in the original CalciteSchema instead of making copies.</p>
    *
-   * @param now The current time in millis, as returned by
-   *   {@link System#currentTimeMillis()}
+   * @param version The current schema version
    *
    * @return the schema snapshot.
    */
-  public CalciteSchema createSnapshot(long now) {
+  public CalciteSchema createSnapshot(SchemaVersion version) {
     Preconditions.checkArgument(this.isRoot(), "must be root schema");
-    return snapshot(null, now);
+    return snapshot(null, version);
   }
 
   /** Returns a subset of a map whose keys match the given string
@@ -552,7 +553,7 @@ public abstract class CalciteSchema {
       return schema.contentsHaveChangedSince(lastCheck, now);
     }
 
-    public Schema snapshot(long now) {
+    public Schema snapshot(SchemaVersion version) {
       throw new UnsupportedOperationException();
     }
 

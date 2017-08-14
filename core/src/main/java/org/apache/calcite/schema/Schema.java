@@ -145,12 +145,11 @@ public interface Schema {
   /** Returns the snapshot of this schema as of the specified time. The
    * contents of the schema snapshot should not change over time.
    *
-   * @param now The current time in millis, as returned by
-   *   {@link System#currentTimeMillis()}
+   * @param version The current schema version
    *
    * @return the schema snapshot.
    */
-  Schema snapshot(long now);
+  Schema snapshot(SchemaVersion version);
 
   /** Table type. */
   enum TableType {
