@@ -78,6 +78,10 @@ public abstract class SqlAbstractConformance implements SqlConformance {
   public boolean isLimitStartCountAllowed() {
     return SqlConformanceEnum.DEFAULT.isLimitStartCountAllowed();
   }
+
+  public boolean isPercentRemainderAllowed() {
+    return SqlConformanceEnum.DEFAULT.isPercentRemainderAllowed();
+  }
 }
 
 // End SqlAbstractConformance.java

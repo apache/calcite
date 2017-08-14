@@ -165,6 +165,17 @@ public interface SqlConformance {
   boolean isBangEqualAllowed();
 
   /**
+   * Whether the % is allowed as an alternative to mod in
+   * the parser.
+   *
+   * <p>Among the built-in conformance levels, true in
+   * {@link SqlConformanceEnum#LENIENT},
+   * {@link SqlConformanceEnum#MYSQL_5};
+   * false otherwise.
+   *
+   */
+  boolean isPercentRemainderAllowed();
+  /**
    * Whether {@code MINUS} is allowed as an alternative to {@code EXCEPT} in
    * the parser.
    *

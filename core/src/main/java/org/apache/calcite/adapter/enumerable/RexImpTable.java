@@ -81,7 +81,6 @@ import static org.apache.calcite.linq4j.tree.ExpressionType.GreaterThan;
 import static org.apache.calcite.linq4j.tree.ExpressionType.GreaterThanOrEqual;
 import static org.apache.calcite.linq4j.tree.ExpressionType.LessThan;
 import static org.apache.calcite.linq4j.tree.ExpressionType.LessThanOrEqual;
-import static org.apache.calcite.linq4j.tree.ExpressionType.Mod;
 import static org.apache.calcite.linq4j.tree.ExpressionType.Multiply;
 import static org.apache.calcite.linq4j.tree.ExpressionType.Negate;
 import static org.apache.calcite.linq4j.tree.ExpressionType.Not;
@@ -164,6 +163,7 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.NOT_SIMILAR_TO;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.NTILE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.OR;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.OVERLAY;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.PERCENT_REMAINDER;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.PI;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.PLUS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.POSITION;
@@ -173,7 +173,6 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.RAND;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.RAND_INTEGER;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.RANK;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.REINTERPRET;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.REMAINDER;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.REPLACE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ROUND;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ROW;
@@ -256,7 +255,6 @@ public class RexImpTable {
     defineBinary(MINUS, Subtract, NullPolicy.STRICT, "minus");
     defineBinary(MULTIPLY, Multiply, NullPolicy.STRICT, "multiply");
     defineBinary(DIVIDE, Divide, NullPolicy.STRICT, "divide");
-    defineBinary(REMAINDER, Mod, NullPolicy.STRICT, "mod");
     defineBinary(DIVIDE_INTEGER, Divide, NullPolicy.STRICT, "divide");
     defineUnary(UNARY_MINUS, Negate, NullPolicy.STRICT);
     defineUnary(UNARY_PLUS, UnaryPlus, NullPolicy.STRICT);
@@ -267,6 +265,12 @@ public class RexImpTable {
     defineMethod(LN, "ln", NullPolicy.STRICT);
     defineMethod(LOG10, "log10", NullPolicy.STRICT);
     defineMethod(ABS, "abs", NullPolicy.STRICT);
+
+    defineImplementor(
+        PERCENT_REMAINDER,
+        NullPolicy.STRICT,
+        new MethodNameImplementor("mod"),
+        false);
 
     defineImplementor(RAND, NullPolicy.STRICT,
         new NotNullImplementor() {

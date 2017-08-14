@@ -141,7 +141,7 @@ public enum ExpressionType {
   Divide(" / ", false, 3, false),
 
   /**
-   * A mod operation, such as (a % b), for numeric
+   * A percent remainder operation, such as (a % b), for numeric
    * operands.
    */
   Mod(" % ", false, 3, false),
