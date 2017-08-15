@@ -18,6 +18,7 @@ package org.apache.calcite.sql.type;
 
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeComparability;
+import org.apache.calcite.runtime.PredicateImpl;
 import org.apache.calcite.sql.SqlCallBinding;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
@@ -199,6 +200,16 @@ public abstract class OperandTypes {
 
   public static final SqlSingleOperandTypeChecker NUMERIC =
       family(SqlTypeFamily.NUMERIC);
+
+
+  public static final SqlSingleOperandTypeChecker NUMERIC_OPTIONAL_INTEGER =
+      family(ImmutableList.of(SqlTypeFamily.NUMERIC, SqlTypeFamily.INTEGER),
+          // Second operand optional (operand index 0, 1)
+          new PredicateImpl<Integer>() {
+            public boolean test(Integer number) {
+              return number == 1;
+            }
+          });
 
   public static final SqlSingleOperandTypeChecker NUMERIC_INTEGER =
       family(SqlTypeFamily.NUMERIC, SqlTypeFamily.INTEGER);

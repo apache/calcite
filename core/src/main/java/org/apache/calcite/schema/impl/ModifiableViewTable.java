@@ -113,7 +113,7 @@ public class ModifiableViewTable extends ViewTable
     final ExtensibleTable underlying = unwrap(ExtensibleTable.class);
     assert underlying != null;
 
-    final RelDataTypeFactory.FieldInfoBuilder builder = typeFactory.builder();
+    final RelDataTypeFactory.Builder builder = typeFactory.builder();
     final RelDataType rowType = getRowType(typeFactory);
     for (RelDataTypeField column : rowType.getFieldList()) {
       builder.add(column);

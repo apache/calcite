@@ -339,7 +339,7 @@ public abstract class Aggregate extends SingleRel {
       final List<AggregateCall> aggCalls) {
     final List<Integer> groupList = groupSet.asList();
     assert groupList.size() == groupSet.cardinality();
-    final RelDataTypeFactory.FieldInfoBuilder builder = typeFactory.builder();
+    final RelDataTypeFactory.Builder builder = typeFactory.builder();
     final List<RelDataTypeField> fieldList = inputRowType.getFieldList();
     final Set<String> containedNames = Sets.newHashSet();
     for (int groupKey : groupList) {

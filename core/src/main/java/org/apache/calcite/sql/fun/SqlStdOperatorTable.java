@@ -983,31 +983,33 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    * <code>CUME_DIST</code> window function.
    */
   public static final SqlRankFunction CUME_DIST =
-      new SqlRankFunction(true, SqlKind.CUME_DIST);
+      new SqlRankFunction(SqlKind.CUME_DIST, ReturnTypes.FRACTIONAL_RANK, true);
 
   /**
    * <code>DENSE_RANK</code> window function.
    */
   public static final SqlRankFunction DENSE_RANK =
-      new SqlRankFunction(true, SqlKind.DENSE_RANK);
+      new SqlRankFunction(SqlKind.DENSE_RANK, ReturnTypes.RANK, true);
 
   /**
    * <code>PERCENT_RANK</code> window function.
    */
   public static final SqlRankFunction PERCENT_RANK =
-      new SqlRankFunction(true, SqlKind.PERCENT_RANK);
+      new SqlRankFunction(SqlKind.PERCENT_RANK,
+          ReturnTypes.FRACTIONAL_RANK,
+          true);
 
   /**
    * <code>RANK</code> window function.
    */
   public static final SqlRankFunction RANK =
-      new SqlRankFunction(true, SqlKind.RANK);
+      new SqlRankFunction(SqlKind.RANK, ReturnTypes.RANK, true);
 
   /**
    * <code>ROW_NUMBER</code> window function.
    */
   public static final SqlRankFunction ROW_NUMBER =
-      new SqlRankFunction(false, SqlKind.ROW_NUMBER);
+      new SqlRankFunction(SqlKind.ROW_NUMBER, ReturnTypes.RANK, false);
 
   //-------------------------------------------------------------
   //                   SPECIAL OPERATORS
@@ -1440,9 +1442,9 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
       new SqlFunction(
           "ROUND",
           SqlKind.OTHER_FUNCTION,
-          ReturnTypes.ARG0,
+          ReturnTypes.ARG0_NULLABLE,
           null,
-          OperandTypes.NUMERIC_INTEGER,
+          OperandTypes.NUMERIC_OPTIONAL_INTEGER,
           SqlFunctionCategory.NUMERIC);
 
   public static final SqlFunction SIGN =
@@ -1477,9 +1479,9 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
       new SqlFunction(
           "TRUNCATE",
           SqlKind.OTHER_FUNCTION,
-          ReturnTypes.ARG0,
+          ReturnTypes.ARG0_NULLABLE,
           null,
-          OperandTypes.NUMERIC_INTEGER,
+          OperandTypes.NUMERIC_OPTIONAL_INTEGER,
           SqlFunctionCategory.NUMERIC);
 
   public static final SqlFunction PI =

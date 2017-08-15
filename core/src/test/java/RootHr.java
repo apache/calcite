@@ -14,32 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.sql.fun;
 
-import org.apache.calcite.sql.SqlAggFunction;
-import org.apache.calcite.sql.SqlFunctionCategory;
-import org.apache.calcite.sql.SqlKind;
-import org.apache.calcite.sql.type.OperandTypes;
-import org.apache.calcite.sql.type.ReturnTypes;
-
-/**
- * <code>NTILE</code> aggregate function
- * return the value of given expression evaluated at given offset.
- */
-public class SqlNtileAggFunction extends SqlAggFunction {
-  public SqlNtileAggFunction() {
-    super(
-        "NTILE",
-        null,
-        SqlKind.NTILE,
-        ReturnTypes.RANK,
-        null,
-        OperandTypes.POSITIVE_INTEGER_LITERAL,
-        SqlFunctionCategory.NUMERIC,
-        false,
-        true);
-  }
-
+/** Equivalent to
+ * {@link org.apache.calcite.examples.foodmart.java.JdbcExample.Hr}, but
+ * belongs to the unnamed (root) package. */
+public class RootHr {
+  public final RootEmployee[] emps = {
+    new RootEmployee(100, "Bill"),
+    new RootEmployee(200, "Eric"),
+    new RootEmployee(150, "Sebastian"),
+  };
 }
 
-// End SqlNtileAggFunction.java
+// End RootHr.java

@@ -23,6 +23,8 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 
+import com.google.common.base.Preconditions;
+
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
@@ -301,7 +303,10 @@ public interface RelDataTypeFactory {
   /**
    * Creates a
    * {@link org.apache.calcite.rel.type.RelDataTypeFactory.FieldInfoBuilder}.
+   * But since {@code FieldInfoBuilder} is deprecated, we recommend that you use
+   * its base class {@link Builder}, which is not deprecated.
    */
+  @SuppressWarnings("deprecation")
   FieldInfoBuilder builder();
 
   //~ Inner Interfaces -------------------------------------------------------
@@ -339,29 +344,98 @@ public interface RelDataTypeFactory {
    * Implementation of {@link FieldInfo} that provides a fluid API to build
    * a list of fields.
    */
+  @Deprecated
   @SuppressWarnings("deprecation")
-  class FieldInfoBuilder implements FieldInfo {
+  class FieldInfoBuilder extends Builder implements FieldInfo {
+    public FieldInfoBuilder(RelDataTypeFactory typeFactory) {
+      super(typeFactory);
+    }
+
+    @Override public FieldInfoBuilder add(String name, RelDataType type) {
+      return (FieldInfoBuilder) super.add(name, type);
+    }
+
+    @Override public FieldInfoBuilder add(String name, SqlTypeName typeName) {
+      return (FieldInfoBuilder) super.add(name, typeName);
+    }
+
+    @Override public FieldInfoBuilder add(String name, SqlTypeName typeName,
+        int precision) {
+      return (FieldInfoBuilder) super.add(name, typeName, precision);
+    }
+
+    @Override public FieldInfoBuilder add(String name, SqlTypeName typeName,
+        int precision, int scale) {
+      return (FieldInfoBuilder) super.add(name, typeName, precision, scale);
+    }
+
+    @Override public FieldInfoBuilder add(String name, TimeUnit startUnit,
+        int startPrecision, TimeUnit endUnit, int fractionalSecondPrecision) {
+      return (FieldInfoBuilder) super.add(name, startUnit, startPrecision,
+          endUnit, fractionalSecondPrecision);
+    }
+
+    @Override public FieldInfoBuilder nullable(boolean nullable) {
+      return (FieldInfoBuilder) super.nullable(nullable);
+    }
+
+    @Override public FieldInfoBuilder add(RelDataTypeField field) {
+      return (FieldInfoBuilder) super.add(field);
+    }
+
+    @Override public FieldInfoBuilder addAll(
+        Iterable<? extends Map.Entry<String, RelDataType>> fields) {
+      return (FieldInfoBuilder) super.addAll(fields);
+    }
+
+    @Override public FieldInfoBuilder kind(StructKind kind) {
+      return (FieldInfoBuilder) super.kind(kind);
+    }
+
+    @Override public FieldInfoBuilder uniquify() {
+      return (FieldInfoBuilder) super.uniquify();
+    }
+  }
+
+  /** Fluid API to build a list of fields. */
+  class Builder {
     private final List<String> names = new ArrayList<>();
     private final List<RelDataType> types = new ArrayList<>();
     private StructKind kind = StructKind.FULLY_QUALIFIED;
     private final RelDataTypeFactory typeFactory;
 
     /**
-     * Creates a FieldInfoBuilder with the given type factory.
+     * Creates a Builder with the given type factory.
      */
-    public FieldInfoBuilder(RelDataTypeFactory typeFactory) {
-      this.typeFactory = typeFactory;
-      assert typeFactory != null;
+    public Builder(RelDataTypeFactory typeFactory) {
+      this.typeFactory = Preconditions.checkNotNull(typeFactory);
     }
 
+    /**
+     * Returns the number of fields.
+     *
+     * @return number of fields
+     */
     public int getFieldCount() {
       return names.size();
     }
 
+    /**
+     * Returns the name of a given field.
+     *
+     * @param index Ordinal of field
+     * @return Name of given field
+     */
     public String getFieldName(int index) {
       return names.get(index);
     }
 
+    /**
+     * Returns the type of a given field.
+     *
+     * @param index Ordinal of field
+     * @return Type of given field
+     */
     public RelDataType getFieldType(int index) {
       return types.get(index);
     }
@@ -369,7 +443,7 @@ public interface RelDataTypeFactory {
     /**
      * Adds a field with given name and type.
      */
-    public FieldInfoBuilder add(String name, RelDataType type) {
+    public Builder add(String name, RelDataType type) {
       names.add(name);
       types.add(type);
       return this;
@@ -379,7 +453,7 @@ public interface RelDataTypeFactory {
      * Adds a field with a type created using
      * {@link org.apache.calcite.rel.type.RelDataTypeFactory#createSqlType(org.apache.calcite.sql.type.SqlTypeName)}.
      */
-    public FieldInfoBuilder add(String name, SqlTypeName typeName) {
+    public Builder add(String name, SqlTypeName typeName) {
       add(name, typeFactory.createSqlType(typeName));
       return this;
     }
@@ -388,8 +462,7 @@ public interface RelDataTypeFactory {
      * Adds a field with a type created using
      * {@link org.apache.calcite.rel.type.RelDataTypeFactory#createSqlType(org.apache.calcite.sql.type.SqlTypeName, int)}.
      */
-    public FieldInfoBuilder add(
-        String name, SqlTypeName typeName, int precision) {
+    public Builder add(String name, SqlTypeName typeName, int precision) {
       add(name, typeFactory.createSqlType(typeName, precision));
       return this;
     }
@@ -398,8 +471,8 @@ public interface RelDataTypeFactory {
      * Adds a field with a type created using
      * {@link org.apache.calcite.rel.type.RelDataTypeFactory#createSqlType(org.apache.calcite.sql.type.SqlTypeName, int, int)}.
      */
-    public FieldInfoBuilder add(
-        String name, SqlTypeName typeName, int precision, int scale) {
+    public Builder add(String name, SqlTypeName typeName, int precision,
+        int scale) {
       add(name, typeFactory.createSqlType(typeName, precision, scale));
       return this;
     }
@@ -407,9 +480,8 @@ public interface RelDataTypeFactory {
     /**
      * Adds a field with an interval type.
      */
-    public FieldInfoBuilder add(String name, TimeUnit startUnit,
-        int startPrecision, TimeUnit endUnit,
-        int fractionalSecondPrecision) {
+    public Builder add(String name, TimeUnit startUnit, int startPrecision,
+        TimeUnit endUnit, int fractionalSecondPrecision) {
       final SqlIntervalQualifier q =
           new SqlIntervalQualifier(startUnit, startPrecision, endUnit,
               fractionalSecondPrecision, SqlParserPos.ZERO);
@@ -423,7 +495,7 @@ public interface RelDataTypeFactory {
      * @throws java.lang.IndexOutOfBoundsException if no fields have been
      *                                             added
      */
-    public FieldInfoBuilder nullable(boolean nullable) {
+    public Builder nullable(boolean nullable) {
       RelDataType lastType = types.get(types.size() - 1);
       if (lastType.isNullable() != nullable) {
         final RelDataType type =
@@ -436,7 +508,7 @@ public interface RelDataTypeFactory {
     /**
      * Adds a field. Field's ordinal is ignored.
      */
-    public FieldInfoBuilder add(RelDataTypeField field) {
+    public Builder add(RelDataTypeField field) {
       add(field.getName(), field.getType());
       return this;
     }
@@ -444,7 +516,7 @@ public interface RelDataTypeFactory {
     /**
      * Adds all fields in a collection.
      */
-    public FieldInfoBuilder addAll(
+    public Builder addAll(
         Iterable<? extends Map.Entry<String, RelDataType>> fields) {
       for (Map.Entry<String, RelDataType> field : fields) {
         add(field.getKey(), field.getValue());
@@ -452,7 +524,7 @@ public interface RelDataTypeFactory {
       return this;
     }
 
-    public FieldInfoBuilder kind(StructKind kind) {
+    public Builder kind(StructKind kind) {
       this.kind = kind;
       return this;
     }
@@ -460,7 +532,7 @@ public interface RelDataTypeFactory {
     /**
      * Makes sure that field names are unique.
      */
-    public FieldInfoBuilder uniquify() {
+    public Builder uniquify() {
       final List<String> uniqueNames = SqlValidatorUtil.uniquify(names,
           typeFactory.getTypeSystem().isSchemaCaseSensitive());
       if (uniqueNames != names) {
@@ -475,6 +547,11 @@ public interface RelDataTypeFactory {
      */
     public RelDataType build() {
       return typeFactory.createStructType(kind, types, names);
+    }
+
+    /** Returns whether a field exists with the given name. */
+    public boolean nameExists(String name) {
+      return names.contains(name);
     }
   }
 }

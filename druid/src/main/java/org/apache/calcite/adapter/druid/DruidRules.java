@@ -339,7 +339,7 @@ public class DruidRules {
       }
       final List<RexNode> above = pair.left;
       final List<RexNode> below = pair.right;
-      final RelDataTypeFactory.FieldInfoBuilder builder =
+      final RelDataTypeFactory.Builder builder =
           cluster.getTypeFactory().builder();
       final RelNode input = Util.last(query.rels);
       for (RexNode e : below) {
@@ -450,14 +450,15 @@ public class DruidRules {
      * @return Triple object contains inner project, outer project and required
      *         Json Post Aggregation objects to be pushed down into Druid Query.
      */
-    public Pair<Project, Project> splitProject(
-            final RexBuilder rexBuilder, DruidQuery query,
-            Project project, ImmutableMap<String, String> nameMap, final RelOptCluster cluster) {
+    public Pair<Project, Project> splitProject(final RexBuilder rexBuilder,
+        DruidQuery query, Project project, ImmutableMap<String, String> nameMap,
+        final RelOptCluster cluster) {
       //Visit & Build Inner Project
       final List<RexNode> innerRex = new ArrayList<>();
-      final RelDataTypeFactory.FieldInfoBuilder typeBuilder =
-              cluster.getTypeFactory().builder();
-      final RelOptUtil.InputReferencedVisitor visitor = new RelOptUtil.InputReferencedVisitor();
+      final RelDataTypeFactory.Builder typeBuilder =
+          cluster.getTypeFactory().builder();
+      final RelOptUtil.InputReferencedVisitor visitor =
+          new RelOptUtil.InputReferencedVisitor();
       final List<Integer> positions = new ArrayList<>();
       final List<RelDataType> innerTypes = new ArrayList<>();
       // Similar logic to splitProject in DruidProject Rule
@@ -487,50 +488,51 @@ public class DruidRules {
         innerTypes.add(node.getType());
       }
       Project innerProject = project.copy(project.getTraitSet(), Util.last(query.rels), innerRex,
-              typeBuilder.build());
+          typeBuilder.build());
       // When no input get visited, it means all project can be treated as post-aggregation.
       // Then the whole project can be get pushed in.
       if (visitor.inputPosReferenced.size() == 0) {
         return new Pair<>(innerProject, null);
       }
-      //Build outer Project when some projects are left in outer project.
+      // Build outer Project when some projects are left in outer project.
       offset = 0;
       final List<RexNode> outerRex = new ArrayList<>();
-      List<Pair<RexNode, String>> namedProjectsList = project.getNamedProjects();
-      for (int idx = 0; idx < namedProjectsList.size(); idx++) {
-        Pair<RexNode, String> pair = namedProjectsList.get(idx);
+      for (Pair<RexNode, String> pair : project.getNamedProjects()) {
         RexNode rex = pair.left;
         String name = pair.right;
         if (!nameMap.containsKey(name)) {
           outerRex.add(
-            rex.accept(
-              new RexShuttle() {
-                @Override public RexNode visitInputRef(RexInputRef ref) {
-                  final int index = positions.indexOf(ref.getIndex());
-                  return rexBuilder.makeInputRef(innerTypes.get(index), index);
-                }
-              }));
+              rex.accept(
+                  new RexShuttle() {
+                    @Override public RexNode visitInputRef(RexInputRef ref) {
+                      final int j = positions.indexOf(ref.getIndex());
+                      return rexBuilder.makeInputRef(innerTypes.get(j), j);
+                    }
+                  }));
         } else {
           outerRex.add(
-                  rexBuilder.makeInputRef(project.getRowType().getFieldList().get(idx).getType(),
-                          positions.indexOf(offset++)));
+              rexBuilder.makeInputRef(rex.getType(),
+                  positions.indexOf(offset++)));
         }
       }
-      Project outerProject = project.copy(project.getTraitSet(), innerProject, outerRex,
-              project.getRowType());
+      Project outerProject = project.copy(project.getTraitSet(), innerProject,
+          outerRex, project.getRowType());
       return new Pair<>(innerProject, outerProject);
     }
 
     /**
-     * scan the project takes Druid Query as input to figure out which expression can be pushed
-     * down. Also return a map to show the correct field name in Druid Query for columns get pushed
-     * in.
+     * Scans the project.
+     *
+     * <p>Takes Druid Query as input to figure out which expression can be
+     * pushed down. Also returns a map to show the correct field name in Druid
+     * Query for columns get pushed in.
+     *
      * @param query matched Druid Query
      * @param project Matched project that takes in Druid Query
      * @return Pair that shows how name map with each other.
      */
     public Pair<ImmutableMap<String, String>, Boolean> scanProject(
-            DruidQuery query, Project project) {
+        DruidQuery query, Project project) {
       List<String> aggNamesWithGroup = query.getRowType().getFieldNames();
       final ImmutableMap.Builder<String, String> mapBuilder = ImmutableMap.builder();
       int j = 0;

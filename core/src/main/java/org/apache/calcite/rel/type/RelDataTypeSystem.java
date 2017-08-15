@@ -59,20 +59,29 @@ public interface RelDataTypeSystem {
   /** Returns the LITERAL string for the type, either PREFIX/SUFFIX. */
   String getLiteral(SqlTypeName typeName, boolean isPrefix);
 
-  /** Returns if the type is case sensitive true or not (false) */
+  /** Returns whether the type is case sensitive. */
   boolean isCaseSensitive(SqlTypeName typeName);
 
-  /** Returns if the type can be auto increment true or not (false) */
+  /** Returns whether the type can be auto increment. */
   boolean isAutoincrement(SqlTypeName typeName);
 
-  /** Returns the numeric type Radix, 2 or 10. 0 represent not applicable*/
+  /** Returns the numeric type radix, typically 2 or 10.
+   * 0 means "not applicable". */
   int getNumTypeRadix(SqlTypeName typeName);
 
   /**
-   * Returns the return type of SUM aggregate function inferred from its
-   * argument type.
+   * Returns the return type of a call to the {@code SUM} aggregate function
+   * inferred from its argument type.
    */
   RelDataType deriveSumType(RelDataTypeFactory typeFactory, RelDataType argumentType);
+
+  /** Returns the return type of the {@code CUME_DIST} and {@code PERCENT_RANK}
+   * aggregate functions. */
+  RelDataType deriveFractionalRankType(RelDataTypeFactory typeFactory);
+
+  /** Returns the return type of the {@code NTILE}, {@code RANK},
+   * {@code DENSE_RANK}, and {@code ROW_NUMBER} aggregate functions. */
+  RelDataType deriveRankType(RelDataTypeFactory typeFactory);
 
   /** Whether two record types are considered distinct if their field names
    * are the same but in different cases. */

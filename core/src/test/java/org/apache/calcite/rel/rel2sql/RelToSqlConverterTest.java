@@ -31,6 +31,7 @@ import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlDialect.DatabaseProduct;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.parser.SqlParser;
+import org.apache.calcite.sql2rel.SqlToRelConverter;
 import org.apache.calcite.test.CalciteAssert;
 import org.apache.calcite.tools.FrameworkConfig;
 import org.apache.calcite.tools.Frameworks;
@@ -48,6 +49,8 @@ import org.junit.Test;
 
 import java.util.List;
 
+import junit.framework.AssertionFailedError;
+
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 
@@ -55,20 +58,35 @@ import static org.junit.Assert.assertThat;
  * Tests for {@link RelToSqlConverter}.
  */
 public class RelToSqlConverterTest {
+  static final SqlToRelConverter.Config DEFAULT_REL_CONFIG =
+      SqlToRelConverter.configBuilder()
+          .withTrimUnusedFields(false)
+          .withConvertTableAccess(false)
+          .build();
+
+  static final SqlToRelConverter.Config NO_EXPAND_CONFIG =
+      SqlToRelConverter.configBuilder()
+          .withTrimUnusedFields(false)
+          .withConvertTableAccess(false)
+          .withExpand(false)
+          .build();
+
   /** Initiates a test case with a given SQL query. */
   private Sql sql(String sql) {
     return new Sql(CalciteAssert.SchemaSpec.JDBC_FOODMART, sql,
-        SqlDialect.CALCITE, ImmutableList.<Function<RelNode, RelNode>>of());
+        SqlDialect.CALCITE, DEFAULT_REL_CONFIG,
+        ImmutableList.<Function<RelNode, RelNode>>of());
   }
 
   private static Planner getPlanner(List<RelTraitDef> traitDefs,
       SqlParser.Config parserConfig, CalciteAssert.SchemaSpec schemaSpec,
-      Program... programs) {
+      SqlToRelConverter.Config sqlToRelConf, Program... programs) {
     final SchemaPlus rootSchema = Frameworks.createRootSchema(true);
     final FrameworkConfig config = Frameworks.newConfigBuilder()
         .parserConfig(parserConfig)
         .defaultSchema(CalciteAssert.addSchema(rootSchema, schemaSpec))
         .traitDefs(traitDefs)
+        .sqlToRelConverterConfig(sqlToRelConf)
         .programs(programs)
         .build();
     return Frameworks.getPlanner(config);
@@ -794,7 +812,28 @@ public class RelToSqlConverterTest {
         + "FROM \"foodmart\".\"product\"";
     final String expectedMysql = "SELECT SUBSTRING(`brand_name` FROM 2)\n"
         + "FROM `foodmart`.`product`";
-    final String expectedMssql = "SELECT SUBSTRING([brand_name] FROM 2)\n"
+    sql(query)
+        .dialect(DatabaseProduct.ORACLE.getDialect())
+        .ok(expectedOracle)
+        .dialect(DatabaseProduct.POSTGRESQL.getDialect())
+        .ok(expectedPostgresql)
+        .dialect(DatabaseProduct.MYSQL.getDialect())
+        .ok(expectedMysql)
+        .dialect(DatabaseProduct.MSSQL.getDialect())
+        // mssql does not support this syntax and so should fail
+        .throws_("MSSQL SUBSTRING requires FROM and FOR arguments");
+  }
+
+  @Test public void testSubstringWithFor() {
+    final String query = "select substring(\"brand_name\" from 2 for 3) "
+        + "from \"product\"\n";
+    final String expectedOracle = "SELECT SUBSTR(\"brand_name\", 2, 3)\n"
+        + "FROM \"foodmart\".\"product\"";
+    final String expectedPostgresql = "SELECT SUBSTRING(\"brand_name\" FROM 2 FOR 3)\n"
+        + "FROM \"foodmart\".\"product\"";
+    final String expectedMysql = "SELECT SUBSTRING(`brand_name` FROM 2 FOR 3)\n"
+        + "FROM `foodmart`.`product`";
+    final String expectedMssql = "SELECT SUBSTRING([brand_name], 2, 3)\n"
         + "FROM [foodmart].[product]";
     sql(query)
         .dialect(DatabaseProduct.ORACLE.getDialect())
@@ -807,26 +846,86 @@ public class RelToSqlConverterTest {
         .ok(expectedMssql);
   }
 
-  @Test public void testSubstringWithFor() {
-    final String query = "select substring(\"brand_name\" from 2 for 3) "
-        + "from \"product\"\n";
-    final String expectedOracle = "SELECT SUBSTR(\"brand_name\", 2, 3)\n"
-        + "FROM \"foodmart\".\"product\"";
-    final String expectedPostgresql = "SELECT SUBSTRING(\"brand_name\" FROM 2 FOR 3)\n"
-        + "FROM \"foodmart\".\"product\"";
-    final String expectedMysql = "SELECT SUBSTRING(`brand_name` FROM 2 FOR 3)\n"
-        + "FROM `foodmart`.`product`";
-    final String expectedMssql = "SELECT SUBSTRING([brand_name] FROM 2 FOR 3)\n"
-        + "FROM [foodmart].[product]";
-    sql(query)
-        .dialect(DatabaseProduct.ORACLE.getDialect())
-        .ok(expectedOracle)
-        .dialect(DatabaseProduct.POSTGRESQL.getDialect())
-        .ok(expectedPostgresql)
-        .dialect(DatabaseProduct.MYSQL.getDialect())
-        .ok(expectedMysql)
-        .dialect(DatabaseProduct.MSSQL.getDialect())
-        .ok(expectedMssql);
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1849">[CALCITE-1849]
+   * Support sub-queries (RexSubQuery) in RelToSqlConverter</a>. */
+  @Test public void testExistsWithExpand() {
+    String query = "select \"product_name\" from \"product\" a "
+        + "where exists (select count(*) "
+        + "from \"sales_fact_1997\"b "
+        + "where b.\"product_id\" = a.\"product_id\")";
+    String expected = "SELECT \"product_name\"\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "WHERE EXISTS (SELECT COUNT(*)\n"
+        + "FROM \"foodmart\".\"sales_fact_1997\"\n"
+        + "WHERE \"product_id\" = \"product\".\"product_id\")";
+    sql(query).config(NO_EXPAND_CONFIG).ok(expected);
+  }
+
+  @Test public void testNotExistsWithExpand() {
+    String query = "select \"product_name\" from \"product\" a "
+        + "where not exists (select count(*) "
+        + "from \"sales_fact_1997\"b "
+        + "where b.\"product_id\" = a.\"product_id\")";
+    String expected = "SELECT \"product_name\"\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "WHERE NOT EXISTS (SELECT COUNT(*)\n"
+        + "FROM \"foodmart\".\"sales_fact_1997\"\n"
+        + "WHERE \"product_id\" = \"product\".\"product_id\")";
+    sql(query).config(NO_EXPAND_CONFIG).ok(expected);
+  }
+
+  @Test public void testSubQueryInWithExpand() {
+    String query = "select \"product_name\" from \"product\" a "
+        + "where \"product_id\" in (select \"product_id\" "
+        + "from \"sales_fact_1997\"b "
+        + "where b.\"product_id\" = a.\"product_id\")";
+    String expected = "SELECT \"product_name\"\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "WHERE \"product_id\" IN (SELECT \"product_id\"\n"
+        + "FROM \"foodmart\".\"sales_fact_1997\"\n"
+        + "WHERE \"product_id\" = \"product\".\"product_id\")";
+    sql(query).config(NO_EXPAND_CONFIG).ok(expected);
+  }
+
+  @Test public void testSubQueryInWithExpand2() {
+    String query = "select \"product_name\" from \"product\" a "
+        + "where \"product_id\" in (1, 2)";
+    String expected = "SELECT \"product_name\"\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "WHERE \"product_id\" = 1 OR \"product_id\" = 2";
+    sql(query).config(NO_EXPAND_CONFIG).ok(expected);
+  }
+
+  @Test public void testSubQueryNotInWithExpand() {
+    String query = "select \"product_name\" from \"product\" a "
+        + "where \"product_id\" not in (select \"product_id\" "
+        + "from \"sales_fact_1997\"b "
+        + "where b.\"product_id\" = a.\"product_id\")";
+    String expected = "SELECT \"product_name\"\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "WHERE \"product_id\" NOT IN (SELECT \"product_id\"\n"
+        + "FROM \"foodmart\".\"sales_fact_1997\"\n"
+        + "WHERE \"product_id\" = \"product\".\"product_id\")";
+    sql(query).config(NO_EXPAND_CONFIG).ok(expected);
+  }
+
+  @Test public void testLike() {
+    String query = "select \"product_name\" from \"product\" a "
+        + "where \"product_name\" like 'abc'";
+    String expected = "SELECT \"product_name\"\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "WHERE \"product_name\" LIKE 'abc'";
+    sql(query).ok(expected);
+  }
+
+  @Test public void testNotLike() {
+    String query = "select \"product_name\" from \"product\" a "
+        + "where \"product_name\" not like 'abc'";
+    String expected = "SELECT \"product_name\"\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "WHERE \"product_name\" NOT LIKE 'abc'";
+    sql(query).ok(expected);
   }
 
   @Test public void testMatchRecognizePatternExpression() {
@@ -1805,21 +1904,28 @@ public class RelToSqlConverterTest {
     private final String sql;
     private final SqlDialect dialect;
     private final List<Function<RelNode, RelNode>> transforms;
+    private final SqlToRelConverter.Config config;
 
     Sql(CalciteAssert.SchemaSpec schemaSpec, String sql, SqlDialect dialect,
+        SqlToRelConverter.Config config,
         List<Function<RelNode, RelNode>> transforms) {
       this.schemaSpec = schemaSpec;
       this.sql = sql;
       this.dialect = dialect;
       this.transforms = ImmutableList.copyOf(transforms);
+      this.config = config;
     }
 
     Sql dialect(SqlDialect dialect) {
-      return new Sql(schemaSpec, sql, dialect, transforms);
+      return new Sql(schemaSpec, sql, dialect, config, transforms);
+    }
+
+    Sql config(SqlToRelConverter.Config config) {
+      return new Sql(schemaSpec, sql, dialect, config, transforms);
     }
 
     Sql optimize(final RuleSet ruleSet, final RelOptPlanner relOptPlanner) {
-      return new Sql(schemaSpec, sql, dialect,
+      return new Sql(schemaSpec, sql, dialect, config,
           FlatLists.append(transforms, new Function<RelNode, RelNode>() {
             public RelNode apply(RelNode r) {
               Program program = Programs.of(ruleSet);
@@ -1831,8 +1937,24 @@ public class RelToSqlConverterTest {
     }
 
     Sql ok(String expectedQuery) {
+      assertThat(exec(), is(expectedQuery));
+      return this;
+    }
+
+    Sql throws_(String errorMessage) {
+      try {
+        final String s = exec();
+        throw new AssertionFailedError("Expected exception with message `"
+            + errorMessage + "` but nothing was thrown; got " + s);
+      } catch (Exception e) {
+        assertThat(e.getMessage(), is(errorMessage));
+        return this;
+      }
+    }
+
+    String exec() {
       final Planner planner =
-          getPlanner(null, SqlParser.Config.DEFAULT, schemaSpec);
+          getPlanner(null, SqlParser.Config.DEFAULT, schemaSpec, config);
       try {
         SqlNode parse = planner.parse(sql);
         SqlNode validate = planner.validate(parse);
@@ -1843,18 +1965,16 @@ public class RelToSqlConverterTest {
         final RelToSqlConverter converter =
             new RelToSqlConverter(dialect);
         final SqlNode sqlNode = converter.visitChild(0, rel).asStatement();
-        assertThat(Util.toLinux(sqlNode.toSqlString(dialect).getSql()),
-            is(expectedQuery));
+        return Util.toLinux(sqlNode.toSqlString(dialect).getSql());
       } catch (RuntimeException e) {
         throw e;
       } catch (Exception e) {
         throw new RuntimeException(e);
       }
-      return this;
     }
 
     public Sql schema(CalciteAssert.SchemaSpec schemaSpec) {
-      return new Sql(schemaSpec, sql, dialect, transforms);
+      return new Sql(schemaSpec, sql, dialect, config, transforms);
     }
   }
 }

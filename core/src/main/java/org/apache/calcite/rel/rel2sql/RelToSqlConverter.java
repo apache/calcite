@@ -22,6 +22,7 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.Calc;
+import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Intersect;
 import org.apache.calcite.rel.core.Join;
@@ -138,6 +139,7 @@ public class RelToSqlConverter extends SqlImplementor
   public Result visit(Filter e) {
     final RelNode input = e.getInput();
     Result x = visitChild(0, input);
+    parseCorrelTable(e, x);
     if (input instanceof Aggregate) {
       final Builder builder;
       if (((Aggregate) input).getInput() instanceof Project) {
@@ -158,6 +160,7 @@ public class RelToSqlConverter extends SqlImplementor
   /** @see #dispatch */
   public Result visit(Project e) {
     Result x = visitChild(0, e.getInput());
+    parseCorrelTable(e, x);
     if (isStar(e.getChildExps(), e.getInput().getRowType())) {
       return x;
     }
@@ -239,6 +242,7 @@ public class RelToSqlConverter extends SqlImplementor
   /** @see #dispatch */
   public Result visit(Calc e) {
     Result x = visitChild(0, e.getInput());
+    parseCorrelTable(e, x);
     final RexProgram program = e.getProgram();
     Builder builder =
         program.getCondition() != null
@@ -473,6 +477,12 @@ public class RelToSqlConverter extends SqlImplementor
       node = as(node, name);
     }
     selectList.add(node);
+  }
+
+  private void parseCorrelTable(RelNode relNode, Result x) {
+    for (CorrelationId id : relNode.getVariablesSet()) {
+      correlTableMap.put(id, x.qualifiedContext());
+    }
   }
 }
 

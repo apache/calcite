@@ -257,7 +257,7 @@ public class TableScanNode implements Node {
         final Mapping mapping = Mappings.target(acceptedProjects,
             rel.getTable().getRowType().getFieldCount());
         filter2 = RexUtil.apply(mapping, filter);
-        final RelDataTypeFactory.FieldInfoBuilder builder =
+        final RelDataTypeFactory.Builder builder =
             rel.getCluster().getTypeFactory().builder();
         final List<RelDataTypeField> fieldList =
             rel.getTable().getRowType().getFieldList();

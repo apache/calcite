@@ -123,7 +123,7 @@ public class Uncollect extends SingleRel {
     RelDataType inputType = rel.getRowType();
     assert inputType.isStruct() : inputType + " is not a struct";
     final List<RelDataTypeField> fields = inputType.getFieldList();
-    final RelDataTypeFactory.FieldInfoBuilder builder =
+    final RelDataTypeFactory.Builder builder =
         rel.getCluster().getTypeFactory().builder();
     for (RelDataTypeField field : fields) {
       if (field.getType() instanceof MapSqlType) {

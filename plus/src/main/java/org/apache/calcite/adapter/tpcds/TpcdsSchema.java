@@ -165,7 +165,7 @@ public class TpcdsSchema extends AbstractSchema {
     }
 
     public RelDataType getRowType(RelDataTypeFactory typeFactory) {
-      final RelDataTypeFactory.FieldInfoBuilder builder = typeFactory.builder();
+      final RelDataTypeFactory.Builder builder = typeFactory.builder();
       for (TpcdsColumn<E> column : tpcdsTable.getColumns()) {
         builder.add(column.getColumnName().toUpperCase(Locale.ROOT),
             typeFactory.createJavaType(realType(column)));

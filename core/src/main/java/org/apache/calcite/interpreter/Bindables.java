@@ -198,7 +198,7 @@ public class Bindables {
     }
 
     @Override public RelDataType deriveRowType() {
-      final RelDataTypeFactory.FieldInfoBuilder builder =
+      final RelDataTypeFactory.Builder builder =
           getCluster().getTypeFactory().builder();
       final List<RelDataTypeField> fieldList =
           table.getRowType().getFieldList();

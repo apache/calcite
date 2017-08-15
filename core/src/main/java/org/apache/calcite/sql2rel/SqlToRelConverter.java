@@ -4209,8 +4209,7 @@ public class SqlToRelConverter {
         if (resolve.path.steps().get(0).i < 0) {
           return Pair.of(rexBuilder.makeCorrel(rowType, correlId), null);
         } else {
-          final RelDataTypeFactory.FieldInfoBuilder builder =
-              typeFactory.builder();
+          final RelDataTypeFactory.Builder builder = typeFactory.builder();
           final ListScope ancestorScope1 = (ListScope) resolve.scope;
           final ImmutableMap.Builder<String, Integer> fields =
               ImmutableMap.builder();

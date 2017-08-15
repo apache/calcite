@@ -302,7 +302,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
                   && v.getType().getFieldCount() == mapping.getSourceCount()) {
                 final int old = fieldAccess.getField().getIndex();
                 final int new_ = mapping.getTarget(old);
-                final RelDataTypeFactory.FieldInfoBuilder typeBuilder =
+                final RelDataTypeFactory.Builder typeBuilder =
                     relBuilder.getTypeFactory().builder();
                 for (int target : Util.range(mapping.getTargetCount())) {
                   typeBuilder.add(

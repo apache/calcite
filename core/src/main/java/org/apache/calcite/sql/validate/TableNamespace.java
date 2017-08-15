@@ -60,7 +60,7 @@ class TableNamespace extends AbstractNamespace {
     if (extendedFields.isEmpty()) {
       return table.getRowType();
     }
-    final RelDataTypeFactory.FieldInfoBuilder builder =
+    final RelDataTypeFactory.Builder builder =
         validator.getTypeFactory().builder();
     builder.addAll(table.getRowType().getFieldList());
     builder.addAll(extendedFields);

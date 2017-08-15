@@ -190,8 +190,7 @@ public class Smalls {
     final int offs = offset == null ? 0 : offset;
     return new AbstractQueryableTable(Object[].class) {
       public RelDataType getRowType(RelDataTypeFactory typeFactory) {
-        final RelDataTypeFactory.FieldInfoBuilder builder =
-            typeFactory.builder();
+        final RelDataTypeFactory.Builder builder = typeFactory.builder();
         builder.add("row_name", typeFactory.createJavaType(String.class));
         final RelDataType int_ = typeFactory.createJavaType(int.class);
         for (int i = 1; i <= ncol; i++) {

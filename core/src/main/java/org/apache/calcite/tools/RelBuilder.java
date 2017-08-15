@@ -1371,12 +1371,12 @@ public class RelBuilder {
     }
     final ImmutableList<ImmutableList<RexLiteral>> tupleList =
         tupleList(fieldNames.length, values);
-    final RelDataTypeFactory.FieldInfoBuilder rowTypeBuilder =
-        cluster.getTypeFactory().builder();
+    final RelDataTypeFactory typeFactory = cluster.getTypeFactory();
+    final RelDataTypeFactory.Builder builder = typeFactory.builder();
     for (final Ord<String> fieldName : Ord.zip(fieldNames)) {
       final String name =
           fieldName.e != null ? fieldName.e : "expr$" + fieldName.i;
-      final RelDataType type = cluster.getTypeFactory().leastRestrictive(
+      final RelDataType type = typeFactory.leastRestrictive(
           new AbstractList<RelDataType>() {
             public RelDataType get(int index) {
               return tupleList.get(index).get(fieldName.i).getType();
@@ -1386,9 +1386,9 @@ public class RelBuilder {
               return rowCount;
             }
           });
-      rowTypeBuilder.add(name, type);
+      builder.add(name, type);
     }
-    final RelDataType rowType = rowTypeBuilder.build();
+    final RelDataType rowType = builder.build();
     return values(tupleList, rowType);
   }
 

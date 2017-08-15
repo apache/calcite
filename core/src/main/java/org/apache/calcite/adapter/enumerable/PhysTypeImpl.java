@@ -98,7 +98,7 @@ public class PhysTypeImpl implements PhysType {
   static PhysType of(
       final JavaTypeFactory typeFactory,
       Type javaRowClass) {
-    final RelDataTypeFactory.FieldInfoBuilder builder = typeFactory.builder();
+    final RelDataTypeFactory.Builder builder = typeFactory.builder();
     if (javaRowClass instanceof Types.RecordType) {
       final Types.RecordType recordType = (Types.RecordType) javaRowClass;
       for (Types.RecordField field : recordType.getRecordFields()) {
@@ -121,7 +121,7 @@ public class PhysTypeImpl implements PhysType {
 
   public PhysType project(List<Integer> integers, boolean indicator,
       JavaRowFormat format) {
-    final RelDataTypeFactory.FieldInfoBuilder builder = typeFactory.builder();
+    final RelDataTypeFactory.Builder builder = typeFactory.builder();
     for (int index : integers) {
       builder.add(rowType.getFieldList().get(index));
     }

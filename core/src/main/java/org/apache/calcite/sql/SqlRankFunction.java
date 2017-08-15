@@ -18,6 +18,7 @@ package org.apache.calcite.sql;
 
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
+import org.apache.calcite.sql.type.SqlReturnTypeInference;
 
 /**
  * Operator which aggregates sets of values into a result.
@@ -25,8 +26,14 @@ import org.apache.calcite.sql.type.ReturnTypes;
 public class SqlRankFunction extends SqlAggFunction {
   //~ Constructors -----------------------------------------------------------
 
+  @Deprecated
   public SqlRankFunction(boolean requiresOrder, SqlKind kind) {
-    super(kind.name(), null, kind, ReturnTypes.INTEGER, null,
+    this(kind, ReturnTypes.INTEGER, requiresOrder);
+  }
+
+  public SqlRankFunction(SqlKind kind, SqlReturnTypeInference returnTypes,
+      boolean requiresOrder) {
+    super(kind.name(), null, kind, returnTypes, null,
         OperandTypes.NILADIC, SqlFunctionCategory.NUMERIC, requiresOrder,
         true);
   }

@@ -138,7 +138,7 @@ public class TpchSchema extends AbstractSchema {
     }
 
     public RelDataType getRowType(RelDataTypeFactory typeFactory) {
-      final RelDataTypeFactory.FieldInfoBuilder builder = typeFactory.builder();
+      final RelDataTypeFactory.Builder builder = typeFactory.builder();
       String prefix = "";
       if (columnPrefix) {
         final String t = tpchTable.getTableName().toUpperCase(Locale.ROOT);
