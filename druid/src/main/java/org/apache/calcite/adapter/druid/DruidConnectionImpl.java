@@ -48,6 +48,7 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
@@ -493,7 +494,8 @@ class DruidConnectionImpl implements DruidConnection {
   /** Reads segment metadata, and populates a list of columns and metrics. */
   void metadata(String dataSourceName, String timestampColumnName,
       List<LocalInterval> intervals,
-      Map<String, SqlTypeName> fieldBuilder, Set<String> metricNameBuilder) {
+      Map<String, SqlTypeName> fieldBuilder, Set<String> metricNameBuilder,
+      Map<String, List<ComplexMetric>> complexMetrics) {
     final String url = this.url + "/druid/v2/?pretty";
     final Map<String, String> requestHeaders =
         ImmutableMap.of("Content-Type", "application/json");
@@ -519,8 +521,8 @@ class DruidConnectionImpl implements DruidConnection {
           }
           final DruidType druidType;
           try {
-            druidType = DruidType.valueOf(entry.getValue().type);
-          } catch (IllegalArgumentException e) {
+            druidType = DruidType.getTypeFromMetaData(entry.getValue().type);
+          } catch (AssertionError e) {
             // ignore exception; not a supported type
             continue;
           }
@@ -532,7 +534,17 @@ class DruidConnectionImpl implements DruidConnection {
             if (!fieldBuilder.containsKey(entry.getKey())) {
               continue;
             }
-            metricNameBuilder.add(entry.getKey());
+            DruidType type = DruidType.getTypeFromMetaData(entry.getValue().type);
+            if (type.isComplex()) {
+              // Each complex type will get their own alias, equal to their actual name.
+              // Maybe we should have some smart string replacement strategies to make the column
+              // names more natural.
+              List<ComplexMetric> metricList = new ArrayList<>();
+              metricList.add(new ComplexMetric(entry.getKey(), type));
+              complexMetrics.put(entry.getKey(), metricList);
+            } else {
+              metricNameBuilder.add(entry.getKey());
+            }
           }
         }
       }
@@ -666,36 +678,9 @@ class DruidConnectionImpl implements DruidConnection {
     public String fieldName;
 
     DruidType druidType() {
-      if (type.startsWith("long")) {
-        return DruidType.LONG;
-      }
-      if (type.startsWith("double")) {
-        return DruidType.FLOAT;
-      }
-      if (type.equals("hyperUnique")) {
-        return DruidType.hyperUnique;
-      }
-      throw new AssertionError("unknown type " + type);
+      return DruidType.getTypeFromMetric(type);
     }
   }
-
-  /** Druid type. */
-  enum DruidType {
-    LONG(SqlTypeName.BIGINT),
-    // SQL DOUBLE and FLOAT types are both 64 bit, but we use DOUBLE because
-    // people find FLOAT confusing.
-    FLOAT(SqlTypeName.DOUBLE),
-    STRING(SqlTypeName.VARCHAR),
-    hyperUnique(SqlTypeName.VARBINARY);
-
-    /** The corresponding SQL type. */
-    public final SqlTypeName sqlType;
-
-    DruidType(SqlTypeName sqlType) {
-      this.sqlType = sqlType;
-    }
-  }
-
 }
 
 // End DruidConnectionImpl.java

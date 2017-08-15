@@ -524,8 +524,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
 
     // Then we handle project
     if (projects != null) {
-      translator.metrics.clear();
-      translator.dimensions.clear();
+      translator.clearFieldNameLists();
       final ImmutableList.Builder<String> builder = ImmutableList.builder();
       for (RexNode project : projects) {
         builder.add(translator.translate(project, true));
@@ -852,11 +851,20 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
     JsonAggregation aggregation;
 
     CalciteConnectionConfig config = getConnectionConfig();
+
+    // Convert from a complex metric
+    ComplexMetric complexMetric = druidTable.resolveComplexMetric(only, aggCall);
+
     switch (aggCall.getAggregation().getKind()) {
     case COUNT:
       if (aggCall.isDistinct()) {
         if (config.approximateDistinctCount()) {
-          aggregation = new JsonCardinalityAggregation("cardinality", name, list);
+          if (complexMetric == null) {
+            aggregation = new JsonCardinalityAggregation("cardinality", name, list);
+          } else {
+            aggregation = new JsonAggregation(complexMetric.getMetricType(), name,
+                    complexMetric.getMetricName());
+          }
           break;
         } else {
           // Gets thrown if one of the rules allows a count(distinct ...) through
@@ -922,13 +930,30 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
       Integer indexSkipGroup = ((RexInputRef) rexNode).getIndex()
           - ((Aggregate) rel).getGroupCount();
       AggregateCall aggCall = ((Aggregate) rel).getAggCallList().get(indexSkipGroup);
+      // Use either the hyper unique estimator, or the theta sketch one.
+      // Hyper unique is used by default.
       if (aggCall.isDistinct()
           && aggCall.getAggregation().getKind() == SqlKind.COUNT) {
-        // Will be a hyper unique cardinality column.
-        // Use hyperUniqueCardinality post aggregator instead of field Accessor.
-        // TODO: Expect to change after CALC-1787
-        return new JsonHyperUniqueCardinality("",
-            rel.getRowType().getFieldNames().get(((RexInputRef) rexNode).getIndex()));
+        final String fieldName = rel.getRowType().getFieldNames()
+                .get(((RexInputRef) rexNode).getIndex());
+
+        List<String> fieldNames = ((Aggregate) rel).getInput().getRowType().getFieldNames();
+        String complexName = fieldNames.get(aggCall.getArgList().get(0));
+        ComplexMetric metric = druidTable.resolveComplexMetric(complexName, aggCall);
+
+        if (metric != null) {
+          switch (metric.getDruidType()) {
+          case THETA_SKETCH:
+            return new JsonThetaSketchEstimate("", fieldName);
+          case HYPER_UNIQUE:
+            return new JsonHyperUniqueCardinality("", fieldName);
+          default:
+            throw new AssertionError("Can not translate complex metric type: "
+                    + metric.getDruidType());
+          }
+        }
+        // Count distinct on a non-complex column.
+        return new JsonHyperUniqueCardinality("", fieldName);
       }
       return new JsonFieldAccessor("",
           rel.getRowType().getFieldNames().get(((RexInputRef) rexNode).getIndex()));
@@ -1064,13 +1089,18 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
       this.rowType = rowType;
       for (RelDataTypeField f : rowType.getFieldList()) {
         final String fieldName = f.getName();
-        if (druidTable.metricFieldNames.contains(fieldName)) {
+        if (druidTable.isMetric(fieldName)) {
           metrics.add(fieldName);
         } else if (!druidTable.timestampFieldName.equals(fieldName)
             && !DruidTable.DEFAULT_TIMESTAMP_COLUMN.equals(fieldName)) {
           dimensions.add(fieldName);
         }
       }
+    }
+
+    protected void clearFieldNameLists() {
+      dimensions.clear();
+      metrics.clear();
     }
 
     @SuppressWarnings("incomplete-switch") String translate(RexNode e, boolean set) {
@@ -1694,37 +1724,24 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
     }
   }
 
-  /** Thetasketch operation Post aggregator writer */
-  private static class JsonThetaSketchSetOp extends JsonPostAggregation {
-    final String func;
-    final List<JsonPostAggregation> fields;
-    final long size;
+  /** Theta Sketch Estimator for Post aggregation */
+  private static class JsonThetaSketchEstimate extends JsonPostAggregation {
+    final String fieldName;
 
-    private JsonThetaSketchSetOp(String name, String func, List<JsonPostAggregation> fields,
-                                 long size) {
-      super(name, "thetaSketchSetOp");
-      this.func = func;
-      this.fields = fields;
-      this.size = size;
+    private JsonThetaSketchEstimate(String name, String fieldName) {
+      super(name, "thetaSketchEstimate");
+      this.fieldName = fieldName;
     }
 
-    public void write(JsonGenerator generator) throws IOException {
+    @Override public JsonPostAggregation copy() {
+      return new JsonThetaSketchEstimate(name, fieldName);
+    }
+
+    @Override public void write(JsonGenerator generator) throws IOException {
       super.write(generator);
-      writeFieldIf(generator, "fields", fields);
-      generator.writeNumberField("size", size);
+      // Druid spec for ThetaSketchEstimate requires a field accessor
+      writeField(generator, "field", new JsonFieldAccessor("", fieldName));
       generator.writeEndObject();
-    }
-
-    /**
-     * Non-leaf node in Post-aggs Json Tree, recursively copy the leaf node.
-     */
-
-    public JsonPostAggregation copy() {
-      ImmutableList.Builder<JsonPostAggregation> builder = ImmutableList.builder();
-      for (JsonPostAggregation field : fields) {
-        builder.add(field.copy());
-      }
-      return new JsonThetaSketchSetOp(this.name, func, builder.build(), size);
     }
   }
 }

@@ -25,6 +25,8 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -42,6 +44,7 @@ public class DruidTableFactory implements TableFactory {
 
   private DruidTableFactory() {}
 
+  // name that is also the same name as a complex metric
   public Table create(SchemaPlus schema, String name, Map operand,
       RelDataType rowType) {
     final DruidSchema druidSchema = schema.unwrap(DruidSchema.class);
@@ -49,6 +52,7 @@ public class DruidTableFactory implements TableFactory {
     final String dataSource = (String) operand.get("dataSource");
     final Set<String> metricNameBuilder = new LinkedHashSet<>();
     final Map<String, SqlTypeName> fieldBuilder = new LinkedHashMap<>();
+    final Map<String, List<ComplexMetric>> complexMetrics = new HashMap<>();
     final String timestampColumnName;
     if (operand.get("timestampColumn") != null) {
       timestampColumnName = (String) operand.get("timestampColumn");
@@ -58,18 +62,31 @@ public class DruidTableFactory implements TableFactory {
     fieldBuilder.put(timestampColumnName, SqlTypeName.TIMESTAMP);
     final Object dimensionsRaw = operand.get("dimensions");
     if (dimensionsRaw instanceof List) {
-      //noinspection unchecked
+      // noinspection unchecked
       final List<String> dimensions = (List<String>) dimensionsRaw;
       for (String dimension : dimensions) {
         fieldBuilder.put(dimension, SqlTypeName.VARCHAR);
       }
     }
+
+    // init the complex metric map
+    final Object complexMetricsRaw = operand.get("complexMetrics");
+    if (complexMetricsRaw instanceof List) {
+      // noinspection unchecked
+      final List<String> complexMetricList = (List<String>) complexMetricsRaw;
+      for (String metric : complexMetricList) {
+        complexMetrics.put(metric, new ArrayList<ComplexMetric>());
+      }
+    }
+
     final Object metricsRaw = operand.get("metrics");
     if (metricsRaw instanceof List) {
       final List metrics = (List) metricsRaw;
       for (Object metric : metrics) {
-        final SqlTypeName sqlTypeName;
+        DruidType druidType = DruidType.LONG;
         final String metricName;
+        String fieldName = null;
+
         if (metric instanceof Map) {
           Map map2 = (Map) metric;
           if (!(map2.get("name") instanceof String)) {
@@ -77,20 +94,30 @@ public class DruidTableFactory implements TableFactory {
           }
           metricName = (String) map2.get("name");
 
-          final Object type = map2.get("type");
-          if ("long".equals(type)) {
-            sqlTypeName = SqlTypeName.BIGINT;
-          } else if ("double".equals(type)) {
-            sqlTypeName = SqlTypeName.DOUBLE;
-          } else {
-            sqlTypeName = SqlTypeName.BIGINT;
-          }
+          final String type = (String) map2.get("type");
+          fieldName = (String) map2.get("fieldName");
+
+          druidType = DruidType.getTypeFromMetric(type);
         } else {
           metricName = (String) metric;
-          sqlTypeName = SqlTypeName.BIGINT;
         }
-        fieldBuilder.put(metricName, sqlTypeName);
-        metricNameBuilder.add(metricName);
+
+        if (!druidType.isComplex()) {
+          fieldBuilder.put(metricName, druidType.sqlType);
+          metricNameBuilder.add(metricName);
+        } else {
+          assert fieldName != null;
+          // Only add the complex metric if there exists an alias for it
+          if (complexMetrics.containsKey(fieldName)) {
+            SqlTypeName type = fieldBuilder.get(fieldName);
+            if (type != SqlTypeName.VARCHAR) {
+              fieldBuilder.put(fieldName, SqlTypeName.VARBINARY);
+              // else, this complex metric is also a dimension, so it's type should remain as
+              // VARCHAR, but it'll also be added as a complex metric.
+            }
+            complexMetrics.get(fieldName).add(new ComplexMetric(metricName, druidType));
+          }
+        }
       }
     }
     final String dataSourceName = Util.first(dataSource, name);
@@ -108,7 +135,7 @@ public class DruidTableFactory implements TableFactory {
       intervals = null;
     }
     return DruidTable.create(druidSchema, dataSourceName, intervals,
-        fieldBuilder, metricNameBuilder, timestampColumnName, c);
+        fieldBuilder, metricNameBuilder, timestampColumnName, c, complexMetrics);
   }
 
 }
