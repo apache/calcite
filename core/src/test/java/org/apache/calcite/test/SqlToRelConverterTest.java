@@ -2653,6 +2653,27 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  @Test public void testPrevClassifier() {
+    final String sql = "SELECT *\n"
+        + "FROM emp\n"
+        + "MATCH_RECOGNIZE (\n"
+        + "  MEASURES\n"
+        + "    STRT.mgr AS start_mgr,\n"
+        + "    LAST(DOWN.mgr) AS up_days,\n"
+        + "    LAST(UP.mgr) AS total_days\n"
+        + "  PATTERN (STRT DOWN? UP+)\n"
+        + "  DEFINE\n"
+        + "    DOWN AS DOWN.mgr < PREV(DOWN.mgr),\n"
+        + "    UP AS CASE\n"
+        + "            WHEN PREV(CLASSIFIER()) = 'STRT'\n"
+        + "              THEN UP.mgr > 15\n"
+        + "            ELSE\n"
+        + "              UP.mgr > 20\n"
+        + "            END\n"
+        + ") AS T";
+    sql(sql).ok();
+  }
+
   /**
    * Visitor that checks that every {@link RelNode} in a tree is valid.
    *
