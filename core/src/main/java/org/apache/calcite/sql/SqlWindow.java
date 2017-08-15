@@ -260,8 +260,16 @@ public class SqlWindow extends SqlCall {
     return orderList;
   }
 
+  public void setOrderList(SqlNodeList orderList) {
+    this.orderList = orderList;
+  }
+
   public SqlNodeList getPartitionList() {
     return partitionList;
+  }
+
+  public void setPartitionList(SqlNodeList partitionList) {
+    this.partitionList = partitionList;
   }
 
   public SqlIdentifier getRefName() {

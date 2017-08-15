@@ -4903,4 +4903,16 @@ LogicalProject(START_MGR=[$0], UP_DAYS=[$1], TOTAL_DAYS=[$2])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testWindowStarInSubQuery">
+        <Resource name="sql">
+            <![CDATA[SELECT SUM(n_nationkey) OVER w FROM (select * from SALES.NATION) subQry WINDOW w AS (PARTITION BY REGION ORDER BY n_nationkey)]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(EXPR$0=[CASE(>(COUNT(ITEM($0, 'N_NATIONKEY')) OVER (PARTITION BY ITEM($0, 'REGION') ORDER BY ITEM($0, 'N_NATIONKEY') RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW), 0), $SUM0(ITEM($0, 'N_NATIONKEY')) OVER (PARTITION BY ITEM($0, 'REGION') ORDER BY ITEM($0, 'N_NATIONKEY') RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW), null)])
+  LogicalProject(**=[$0])
+    LogicalTableScan(table=[[CATALOG, SALES, NATION]])
+]]>
+        </Resource>
+    </TestCase>
 </Root>

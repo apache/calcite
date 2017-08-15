@@ -3388,6 +3388,19 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       }
     }
 
+    for (SqlNode windowItem : windowList) {
+      SqlWindow sqlWindow = (SqlWindow) windowItem;
+      SqlNodeList expandedOrderList = (SqlNodeList) expand(sqlWindow.getOrderList(),
+                                                            windowScope);
+      sqlWindow.setOrderList(expandedOrderList);
+      expandedOrderList.validate(this, windowScope);
+
+      SqlNodeList expandedPartitionList = (SqlNodeList) expand(sqlWindow.getPartitionList(),
+                                                                windowScope);
+      sqlWindow.setPartitionList(expandedPartitionList);
+      expandedPartitionList.validate(this, windowScope);
+    }
+
     // Hand off to validate window spec components
     windowList.validate(this, windowScope);
   }
