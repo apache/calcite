@@ -358,7 +358,7 @@ public class RelToSqlConverter extends SqlImplementor
       List<? extends RexNode> exprs) {
     return new SqlNodeList(
         Lists.transform(exprs,
-                        new Function<RexNode, SqlNode>() {
+            new Function<RexNode, SqlNode>() {
               public SqlNode apply(RexNode e) {
                 return context.toSql(null, e);
               }
@@ -430,7 +430,10 @@ public class RelToSqlConverter extends SqlImplementor
     final SqlLiteral strictEnd = SqlLiteral.createBoolean(e.isStrictEnd(), POS);
 
     RexLiteral rexInterval = (RexLiteral) e.getInterval();
-    final SqlIntervalLiteral interval = (SqlIntervalLiteral) context.toSql(null, rexInterval);
+    SqlIntervalLiteral interval = null;
+    if (rexInterval != null) {
+      interval = (SqlIntervalLiteral) context.toSql(null, rexInterval);
+    }
 
     final SqlNodeList subsetList = new SqlNodeList(POS);
     for (Map.Entry<String, SortedSet<String>> entry : e.getSubsets().entrySet()) {

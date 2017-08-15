@@ -2169,7 +2169,10 @@ public class SqlToRelConverter {
     final RexNode patternNode = pattern.accept(patternVarVisitor);
 
     SqlLiteral interval = matchRecognize.getInterval();
-    final RexNode intervalNode = matchBb.convertLiteral(interval);
+    RexNode intervalNode = null;
+    if (interval != null) {
+      intervalNode = matchBb.convertLiteral(interval);
+    }
 
     // convert subset
     final SqlNodeList subsets = matchRecognize.getSubsetList();

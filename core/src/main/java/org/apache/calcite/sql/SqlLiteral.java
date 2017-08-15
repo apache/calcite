@@ -777,6 +777,13 @@ public class SqlLiteral extends SqlNode {
     return createTime(TimeString.fromCalendarFields(calendar), precision, pos);
   }
 
+  public static SqlTimeLiteral createTime(
+      TimeString t,
+      int precision,
+      SqlParserPos pos) {
+    return new SqlTimeLiteral(t, precision, false, pos);
+  }
+
   /**
    * Creates an interval literal.
    *
@@ -790,14 +797,7 @@ public class SqlLiteral extends SqlNode {
       SqlIntervalQualifier intervalQualifier,
       SqlParserPos pos) {
     return new SqlIntervalLiteral(sign, intervalStr, intervalQualifier,
-                                  intervalQualifier.typeName(), pos);
-  }
-
-  public static SqlTimeLiteral createTime(
-      TimeString t,
-      int precision,
-      SqlParserPos pos) {
-    return new SqlTimeLiteral(t, precision, false, pos);
+        intervalQualifier.typeName(), pos);
   }
 
   public static SqlNumericLiteral createNegative(
