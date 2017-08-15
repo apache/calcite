@@ -410,7 +410,6 @@ public class TraitPropagationTest {
     final JavaTypeFactory typeFactory = prepareContext.getTypeFactory();
     CalciteCatalogReader catalogReader =
           new CalciteCatalogReader(prepareContext.getRootSchema(),
-              prepareContext.config().caseSensitive(),
               prepareContext.getDefaultSchemaPath(),
               typeFactory,
               prepareContext.config());

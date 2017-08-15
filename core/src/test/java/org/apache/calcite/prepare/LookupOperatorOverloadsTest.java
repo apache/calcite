@@ -143,7 +143,7 @@ public class LookupOperatorOverloadsTest {
           statement.createPrepareContext();
       final JavaTypeFactory typeFactory = prepareContext.getTypeFactory();
       CalciteCatalogReader reader =
-          new CalciteCatalogReader(prepareContext.getRootSchema(), false,
+          new CalciteCatalogReader(prepareContext.getRootSchema(),
               ImmutableList.<String>of(), typeFactory, prepareContext.config());
 
       final List<SqlOperator> operatorList = new ArrayList<>();

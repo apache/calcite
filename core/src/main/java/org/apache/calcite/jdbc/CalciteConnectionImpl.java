@@ -434,7 +434,7 @@ abstract class CalciteConnectionImpl
               : ImmutableList.of(schemaName);
       final SqlValidatorWithHints validator =
           new SqlAdvisorValidator(SqlStdOperatorTable.instance(),
-          new CalciteCatalogReader(rootSchema, con.config().caseSensitive(),
+          new CalciteCatalogReader(rootSchema,
               schemaPath, typeFactory, con.config()),
           typeFactory, SqlConformanceEnum.DEFAULT);
       return new SqlAdvisor(validator);

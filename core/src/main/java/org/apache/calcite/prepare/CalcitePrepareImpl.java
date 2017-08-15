@@ -275,7 +275,6 @@ public class CalcitePrepareImpl implements CalcitePrepare {
     CalciteCatalogReader catalogReader =
         new CalciteCatalogReader(
             context.getRootSchema(),
-            context.config().caseSensitive(),
             context.getDefaultSchemaPath(),
             typeFactory,
             context.config());
@@ -622,7 +621,6 @@ public class CalcitePrepareImpl implements CalcitePrepare {
     CalciteCatalogReader catalogReader =
         new CalciteCatalogReader(
             context.getRootSchema(),
-            context.config().caseSensitive(),
             context.getDefaultSchemaPath(),
             typeFactory,
             context.config());
@@ -1008,7 +1006,6 @@ public class CalcitePrepareImpl implements CalcitePrepare {
       CalciteCatalogReader catalogReader =
           new CalciteCatalogReader(
               schema.root(),
-              context.config().caseSensitive(),
               materialization.viewSchemaPath,
               context.getTypeFactory(),
               context.config());
@@ -1043,7 +1040,6 @@ public class CalcitePrepareImpl implements CalcitePrepare {
             : prepareContext.getRootSchema();
     CalciteCatalogReader catalogReader =
         new CalciteCatalogReader(schema.root(),
-            prepareContext.config().caseSensitive(),
             schema.path(null),
             typeFactory,
             prepareContext.config());

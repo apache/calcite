@@ -84,9 +84,9 @@ public class CalciteCatalogReader implements Prepare.CatalogReader {
   protected final SqlNameMatcher nameMatcher;
   protected final CalciteConnectionConfig config;
 
-  public CalciteCatalogReader(CalciteSchema rootSchema, boolean caseSensitive,
+  public CalciteCatalogReader(CalciteSchema rootSchema,
       List<String> defaultSchema, RelDataTypeFactory typeFactory, CalciteConnectionConfig config) {
-    this(rootSchema, SqlNameMatchers.withCaseSensitive(caseSensitive),
+    this(rootSchema, SqlNameMatchers.withCaseSensitive(config != null && config.caseSensitive()),
         ImmutableList.of(Preconditions.checkNotNull(defaultSchema),
             ImmutableList.<String>of()),
         typeFactory, config);
