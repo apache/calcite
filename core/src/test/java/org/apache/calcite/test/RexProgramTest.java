@@ -47,7 +47,9 @@ import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.TestUtil;
 import org.apache.calcite.util.TimeString;
+import org.apache.calcite.util.TimeWithLocalTimeZoneString;
 import org.apache.calcite.util.TimestampString;
+import org.apache.calcite.util.TimestampWithLocalTimeZoneString;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
@@ -1489,6 +1491,79 @@ public class RexProgramTest {
     checkSimplifyUnchanged(cast(literalAbc, timestampType));
     checkSimplify(cast(literalOne, timestampType),
         "1970-01-01 00:00:00"); // different from Hive
+  }
+
+  @Test public void testSimplifyCastLiteral3() {
+    final RexLiteral literalDate = rexBuilder.makeDateLiteral(new DateString("2011-07-20"));
+    final RexLiteral literalTime = rexBuilder.makeTimeLiteral(new TimeString("12:34:56"), 0);
+    final RexLiteral literalTimestamp = rexBuilder.makeTimestampLiteral(
+        new TimestampString("2011-07-20 12:34:56"), 0);
+    final RexLiteral literalTimeLTZ =
+        rexBuilder.makeTimeWithLocalTimeZoneLiteral(
+            new TimeWithLocalTimeZoneString(1, 23, 45, "Asia/Tokyo"), 0);
+    final RexLiteral timeLTZChar1 = rexBuilder.makeLiteral("12:34:45 America/Los_Angeles");
+    final RexLiteral timeLTZChar2 = rexBuilder.makeLiteral("12:34:45 UTC");
+    final RexLiteral timeLTZChar3 = rexBuilder.makeLiteral("12:34:45 GMT+01");
+    final RexLiteral timestampLTZChar1 = rexBuilder.makeLiteral("2011-07-20 12:34:56 Asia/Tokyo");
+    final RexLiteral timestampLTZChar2 = rexBuilder.makeLiteral("2011-07-20 12:34:56 GMT+01");
+    final RexLiteral timestampLTZChar3 = rexBuilder.makeLiteral("2011-07-20 12:34:56 UTC");
+    final RexLiteral literalTimestampLTZ =
+        rexBuilder.makeTimestampWithLocalTimeZoneLiteral(
+            new TimestampWithLocalTimeZoneString(2011, 7, 20, 1, 23, 45, "America/Los_Angeles"), 0);
+
+    final RelDataType dateType =
+        typeFactory.createSqlType(SqlTypeName.DATE);
+    final RelDataType timeType =
+        typeFactory.createSqlType(SqlTypeName.TIME);
+    final RelDataType timestampType =
+        typeFactory.createSqlType(SqlTypeName.TIMESTAMP);
+    final RelDataType timeLTZType =
+        typeFactory.createSqlType(SqlTypeName.TIME_WITH_LOCAL_TIMEZONE);
+    final RelDataType timestampLTZType =
+        typeFactory.createSqlType(SqlTypeName.TIMESTAMP_WITH_LOCAL_TIMEZONE);
+    final RelDataType varCharType =
+        typeFactory.createSqlType(SqlTypeName.VARCHAR, 40);
+
+    checkSimplify(cast(timeLTZChar1, timeLTZType), "20:34:45 UTC");
+    checkSimplify(cast(timeLTZChar2, timeLTZType), "12:34:45 UTC");
+    checkSimplify(cast(timeLTZChar3, timeLTZType), "11:34:45 UTC");
+    checkSimplify(cast(literalTimeLTZ, timeLTZType), "01:23:45 Asia/Tokyo");
+    checkSimplify(cast(timestampLTZChar1, timestampLTZType),
+        "2011-07-20 03:34:56 UTC");
+    checkSimplify(cast(timestampLTZChar2, timestampLTZType),
+        "2011-07-20 11:34:56 UTC");
+    checkSimplify(cast(timestampLTZChar3, timestampLTZType),
+        "2011-07-20 12:34:56 UTC");
+    checkSimplify(cast(literalTimestampLTZ, timestampLTZType),
+        "2011-07-20 01:23:45 America/Los_Angeles");
+    checkSimplify(cast(literalDate, timestampLTZType),
+        "2011-07-20 07:00:00 UTC");
+    checkSimplify(cast(literalTime, timestampLTZType),
+        "2011-07-20 19:34:56 UTC");
+    checkSimplify(cast(literalTimestamp, timestampLTZType),
+        "2011-07-20 19:34:56 UTC");
+    checkSimplify(cast(literalTimestamp, dateType),
+        "2011-07-20");
+    checkSimplify(cast(literalTimestampLTZ, dateType),
+        "2011-07-20");
+    checkSimplify(cast(literalTimestampLTZ, timeType),
+        "01:23:45");
+    checkSimplify(cast(literalTimestampLTZ, timestampType),
+        "2011-07-20 01:23:45");
+    checkSimplify(cast(literalTimeLTZ, timeType),
+        "08:23:45");
+    checkSimplify(cast(literalTime, timeLTZType),
+        "20:34:56 UTC");
+    checkSimplify(cast(literalTimestampLTZ, timeLTZType),
+        "08:23:45 UTC");
+    checkSimplify(cast(literalTimeLTZ, varCharType),
+        "'08:23:45 America/Los_Angeles'");
+    checkSimplify(cast(literalTimestampLTZ, varCharType),
+        "'2011-07-20 01:23:45 America/Los_Angeles'");
+    checkSimplify(cast(literalTimeLTZ, timestampType),
+        "2011-07-20 09:23:45");
+    checkSimplify(cast(literalTimeLTZ, timestampLTZType),
+        "2011-07-20 16:23:45 UTC");
   }
 
   @Test public void testSimplifyLiterals() {

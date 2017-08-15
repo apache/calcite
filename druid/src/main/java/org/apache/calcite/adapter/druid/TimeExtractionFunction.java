@@ -75,8 +75,8 @@ public class TimeExtractionFunction implements ExtractionFunction {
    *
    * @return the time extraction function
    */
-  public static TimeExtractionFunction createDefault() {
-    return new TimeExtractionFunction(ISO_TIME_FORMAT, null, "UTC", null);
+  public static TimeExtractionFunction createDefault(String timeZone) {
+    return new TimeExtractionFunction(ISO_TIME_FORMAT, null, timeZone, null);
   }
 
   /**
@@ -87,16 +87,18 @@ public class TimeExtractionFunction implements ExtractionFunction {
    * @return the time extraction function corresponding to the granularity input unit
    * {@link TimeExtractionFunction#VALID_TIME_EXTRACT} for supported granularity
    */
-  public static TimeExtractionFunction createExtractFromGranularity(Granularity granularity) {
+  public static TimeExtractionFunction createExtractFromGranularity(
+      Granularity granularity, String timeZone) {
     switch (granularity) {
     case DAY:
-      return new TimeExtractionFunction("d", null, "UTC", Locale.getDefault().toLanguageTag());
+      return new TimeExtractionFunction("d", null, timeZone, Locale.getDefault().toLanguageTag());
     case MONTH:
-      return new TimeExtractionFunction("M", null, "UTC", Locale.getDefault().toLanguageTag());
+      return new TimeExtractionFunction("M", null, timeZone, Locale.getDefault().toLanguageTag());
     case YEAR:
-      return new TimeExtractionFunction("yyyy", null, "UTC", Locale.getDefault().toLanguageTag());
+      return new TimeExtractionFunction("yyyy", null, timeZone,
+          Locale.getDefault().toLanguageTag());
     case WEEK:
-      return new TimeExtractionFunction("w", null, "UTC", Locale.getDefault().toLanguageTag());
+      return new TimeExtractionFunction("w", null, timeZone, Locale.getDefault().toLanguageTag());
     default:
       throw new IllegalArgumentException("Granularity [" + granularity + "] is not supported");
     }
@@ -108,8 +110,9 @@ public class TimeExtractionFunction implements ExtractionFunction {
    * @param granularity granularity to apply to the column
    * @return the time extraction function or null if granularity is not supported
    */
-  public static TimeExtractionFunction createFloorFromGranularity(Granularity granularity) {
-    return new TimeExtractionFunction(ISO_TIME_FORMAT, granularity.value, "UTC", Locale
+  public static TimeExtractionFunction createFloorFromGranularity(
+      Granularity granularity, String timeZone) {
+    return new TimeExtractionFunction(ISO_TIME_FORMAT, granularity.value, timeZone, Locale
         .getDefault().toLanguageTag());
   }
 

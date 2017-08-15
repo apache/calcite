@@ -512,7 +512,7 @@ class DruidConnectionImpl implements DruidConnection {
               JsonSegmentMetadata.class);
       final List<JsonSegmentMetadata> list = mapper.readValue(in, listType);
       in.close();
-      fieldBuilder.put(timestampColumnName, SqlTypeName.TIMESTAMP);
+      fieldBuilder.put(timestampColumnName, SqlTypeName.TIMESTAMP_WITH_LOCAL_TIMEZONE);
       for (JsonSegmentMetadata o : list) {
         for (Map.Entry<String, JsonColumn> entry : o.columns.entrySet()) {
           if (entry.getKey().equals(DruidTable.DEFAULT_TIMESTAMP_COLUMN)) {

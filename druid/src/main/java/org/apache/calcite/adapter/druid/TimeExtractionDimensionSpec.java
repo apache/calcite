@@ -34,9 +34,10 @@ public class TimeExtractionDimensionSpec extends ExtractionDimensionSpec {
    *
    * @return the time extraction DimensionSpec instance
    */
-  public static TimeExtractionDimensionSpec makeFullTimeExtract(String outputName) {
+  public static TimeExtractionDimensionSpec makeFullTimeExtract(
+      String outputName, String timeZone) {
     return new TimeExtractionDimensionSpec(
-        TimeExtractionFunction.createDefault(), outputName);
+        TimeExtractionFunction.createDefault(timeZone), outputName);
   }
 
   /**
@@ -51,9 +52,9 @@ public class TimeExtractionDimensionSpec extends ExtractionDimensionSpec {
    * is not supported
    */
   public static TimeExtractionDimensionSpec makeTimeExtract(
-      Granularity granularity, String outputName) {
+      Granularity granularity, String outputName, String timeZone) {
     return new TimeExtractionDimensionSpec(
-        TimeExtractionFunction.createExtractFromGranularity(granularity), outputName);
+        TimeExtractionFunction.createExtractFromGranularity(granularity, timeZone), outputName);
   }
 
   /**
@@ -64,8 +65,9 @@ public class TimeExtractionDimensionSpec extends ExtractionDimensionSpec {
    * @return floor time extraction DimensionSpec instance.
    */
   public static TimeExtractionDimensionSpec makeTimeFloor(Granularity granularity,
-      String outputName) {
-    ExtractionFunction fn = TimeExtractionFunction.createFloorFromGranularity(granularity);
+      String outputName, String timeZone) {
+    ExtractionFunction fn =
+        TimeExtractionFunction.createFloorFromGranularity(granularity, timeZone);
     return new TimeExtractionDimensionSpec(fn, outputName);
   }
 }

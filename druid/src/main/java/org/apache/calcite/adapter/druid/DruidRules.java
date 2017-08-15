@@ -230,8 +230,8 @@ public class DruidRules {
       List<LocalInterval> intervals = null;
       if (!triple.getLeft().isEmpty()) {
         intervals = DruidDateTimeUtils.createInterval(
-            query.getRowType().getFieldList().get(timestampFieldIdx).getType(),
-            RexUtil.composeConjunction(rexBuilder, triple.getLeft(), false));
+            RexUtil.composeConjunction(rexBuilder, triple.getLeft(), false),
+            cluster.getPlanner().getContext().unwrap(CalciteConnectionConfig.class).timeZone());
         if (intervals == null || intervals.isEmpty()) {
           // Case we have an filter with extract that can not be written as interval push down
           triple.getMiddle().addAll(triple.getLeft());
@@ -579,7 +579,7 @@ public class DruidRules {
         case MINUS:
         case DIVIDE:
         case TIMES:
-        case CAST:
+        //case CAST:
           return true;
         default:
           return false;
