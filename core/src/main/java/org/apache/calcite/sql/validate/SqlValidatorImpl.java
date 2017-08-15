@@ -4621,7 +4621,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       aliases.add(alias);
 
       SqlNode expand = expand(measure, scope);
-      validateMeasures(expand, allRows);
+      expand = navigationInMeasure(expand, allRows);
       setOriginal(expand, measure);
 
       inferUnknownTypes(unknownType, scope, expand);
@@ -4646,9 +4646,22 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     return fields;
   }
 
-  private void validateMeasures(SqlNode node, boolean allRows) {
+  private SqlNode navigationInMeasure(SqlNode node, boolean allRows) {
     final Set<String> prefix = node.accept(new PatternValidator(true));
     Util.discard(prefix);
+    final List<SqlNode> ops = ((SqlCall) node).getOperandList();
+
+    final SqlOperator defaultOp =
+        allRows ? SqlStdOperatorTable.RUNNING : SqlStdOperatorTable.FINAL;
+    final SqlNode op0 = ops.get(0);
+    if (!isRunningOrFinal(op0.getKind())
+        || !allRows && op0.getKind() == SqlKind.RUNNING) {
+      SqlNode newNode = defaultOp.createCall(SqlParserPos.ZERO, op0);
+      node = SqlStdOperatorTable.AS.createCall(SqlParserPos.ZERO, newNode, ops.get(1));
+    }
+
+    node = new NavigationExpander().go(node);
+    return node;
   }
 
   private void validateDefinitions(SqlMatchRecognize mr,
@@ -4669,7 +4682,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     for (SqlNode item : mr.getPatternDefList().getList()) {
       final String alias = alias(item);
       SqlNode expand = expand(item, scope);
-      validateDefine(expand, alias);
+      expand = navigationInDefine(expand, alias);
       setOriginal(expand, item);
 
       inferUnknownTypes(booleanType, scope, expand);
@@ -4706,9 +4719,12 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   }
 
   /** Checks that all pattern variables within a function are the same. */
-  private void validateDefine(SqlNode node, String alpha) {
+  private SqlNode navigationInDefine(SqlNode node, String alpha) {
     Set<String> prefix = node.accept(new PatternValidator(false));
     Util.discard(prefix);
+    node = new NavigationExpander().go(node);
+    node = new NavigationReplacer(alpha).go(node);
+    return node;
   }
 
   public void validateAggregateParams(SqlCall aggCall, SqlNode filter,
@@ -5477,23 +5493,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
    * Modify the nodes in navigation function
    * such as FIRST, LAST, PREV AND NEXT.
    */
-  private class NavigationModifier extends SqlBasicVisitor<SqlNode> {
-    @Override public SqlNode visit(SqlLiteral literal) {
-      return literal;
-    }
-
-    @Override public SqlNode visit(SqlIntervalQualifier intervalQualifier) {
-      return intervalQualifier;
-    }
-
-    @Override public SqlNode visit(SqlDataTypeSpec type) {
-      return type;
-    }
-
-    @Override public SqlNode visit(SqlDynamicParam param) {
-      return param;
-    }
-
+  private class NavigationModifier extends SqlShuttle {
     public SqlNode go(SqlNode node) {
       return node.accept(this);
     }
@@ -5539,17 +5539,33 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
               innerOperands.get(0), offset);
           }
         }
-        return inner.accept(new NavigationExpander(call.getOperator(), offset));
+        SqlNode newInnerNode = inner.accept(new NavigationExpander(call.getOperator(), offset));
+        if (currentOperator != null) {
+          newInnerNode = currentOperator.createCall(SqlParserPos.ZERO, newInnerNode, currentOffset);
+        }
+        return newInnerNode;
       }
 
-      for (SqlNode node : operands) {
-        SqlNode newNode = node.accept(new NavigationExpander());
-        if (currentOperator != null) {
-          newNode = currentOperator.createCall(SqlParserPos.ZERO, newNode, currentOffset);
+      if (operands.size() > 0) {
+        for (SqlNode node : operands) {
+          if (node != null) {
+            SqlNode newNode = node.accept(new NavigationExpander());
+            if (currentOperator != null) {
+              newNode = currentOperator.createCall(SqlParserPos.ZERO, newNode, currentOffset);
+            }
+            newOperands.add(newNode);
+          } else {
+            newOperands.add(null);
+          }
         }
-        newOperands.add(newNode);
+        return call.getOperator().createCall(SqlParserPos.ZERO, newOperands);
+      } else {
+        if (currentOperator == null) {
+          return call;
+        } else {
+          return currentOperator.createCall(SqlParserPos.ZERO, call, currentOffset);
+        }
       }
-      return call.getOperator().createCall(SqlParserPos.ZERO, newOperands);
     }
 
     @Override public SqlNode visit(SqlIdentifier id) {
@@ -5583,13 +5599,19 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       List<SqlNode> operands = call.getOperandList();
       switch (kind) {
       case PREV:
-        String name = ((SqlIdentifier) operands.get(0)).names.get(0);
-        return name.equals(alpha) ? call
-          : SqlStdOperatorTable.LAST.createCall(SqlParserPos.ZERO, operands);
+        if (operands.get(0) instanceof SqlIdentifier) {
+          String name = ((SqlIdentifier) operands.get(0)).names.get(0);
+          return name.equals(alpha) ? call
+              : SqlStdOperatorTable.LAST.createCall(SqlParserPos.ZERO, operands);
+        }
       default:
         List<SqlNode> newOperands = new ArrayList<>();
         for (SqlNode op : operands) {
-          newOperands.add(op.accept(this));
+          if (op != null) {
+            newOperands.add(op.accept(this));
+          } else {
+            newOperands.add(null);
+          }
         }
         return call.getOperator().createCall(SqlParserPos.ZERO, newOperands);
       }
@@ -5672,10 +5694,12 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       }
 
       for (SqlNode node : operands) {
-        vars.addAll(
-            node.accept(
-                new PatternValidator(isMeasure, firstLastCount, prevNextCount,
-                    aggregateCount)));
+        if (node != null) {
+          vars.addAll(
+              node.accept(
+                  new PatternValidator(isMeasure, firstLastCount, prevNextCount,
+                                       aggregateCount)));
+        }
       }
 
       if (isSingle) {
@@ -5687,13 +5711,17 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
           }
           break;
         default:
-          if (vars.isEmpty()) {
-            throw newValidationError(call,
-              Static.RESOURCE.patternFunctionNullCheck(call.toString()));
-          }
-          if (vars.size() != 1) {
-            throw newValidationError(call,
-                Static.RESOURCE.patternFunctionVariableCheck(call.toString()));
+          if (operands.size() == 0
+              || !(operands.get(0) instanceof SqlCall)
+              || ((SqlCall) operands.get(0)).getOperator() != SqlStdOperatorTable.CLASSIFIER) {
+            if (vars.isEmpty()) {
+              throw newValidationError(call,
+                  Static.RESOURCE.patternFunctionNullCheck(call.toString()));
+            }
+            if (vars.size() != 1) {
+              throw newValidationError(call,
+                  Static.RESOURCE.patternFunctionVariableCheck(call.toString()));
+            }
           }
           break;
         }
