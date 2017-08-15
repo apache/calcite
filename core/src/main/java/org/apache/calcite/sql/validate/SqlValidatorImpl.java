@@ -503,14 +503,17 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
                 new SqlIdentifier(
                     ImmutableList.of(child.name, columnName),
                     startPosition);
-            addOrExpandField(
-                selectItems,
-                aliases,
-                types,
-                includeSystemVars,
-                scope,
-                exp,
-                field);
+            // Don't add expanded rolled up columns
+            if (!isRolledUpColumn(exp, scope)) {
+              addOrExpandField(
+                      selectItems,
+                      aliases,
+                      types,
+                      includeSystemVars,
+                      scope,
+                      exp,
+                      field);
+            }
           }
         }
         if (child.nullable) {

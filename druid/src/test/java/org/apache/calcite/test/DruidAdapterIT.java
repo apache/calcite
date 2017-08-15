@@ -3164,6 +3164,23 @@ public class DruidAdapterIT {
                             + "'type':'cardinality','name':'EXPR$0','fieldNames':['the_month']}],"
                             + "'intervals':['1900-01-09T00:00:00.000/2992-01-10T00:00:00.000']}"));
   }
+
+  /**
+   * Test to make sure that SELECT * doesn't fail, and that the rolled up column is not requested
+   * in the JSON query.
+   * */
+  @Test public void testSelectStarWithRollUp() {
+    final String sql = "select * from \"wiki\" limit 5";
+    sql(sql, WIKI)
+            // make sure user_id column is not present
+            .queryContains(druidChecker("{'queryType':'select','dataSource':'wikiticker',"
+                    + "'descending':false,'intervals':['1900-01-09T00:00:00.000/2992-01-10T00:00:00.000'],"
+                    + "'dimensions':['channel','cityName','comment','countryIsoCode','countryName',"
+                    + "'isAnonymous','isMinor','isNew','isRobot','isUnpatrolled','metroCode',"
+                    + "'namespace','page','regionIsoCode','regionName'],'metrics':['count','added',"
+                    + "'deleted','delta'],'granularity':'all','pagingSpec':{'threshold':5,'fromNext'"
+                    + ":true},'context':{'druid.query.fetch':true}}"));
+  }
 }
 
 // End DruidAdapterIT.java
