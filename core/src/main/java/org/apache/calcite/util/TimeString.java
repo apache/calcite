@@ -44,7 +44,7 @@ public class TimeString implements Comparable<TimeString> {
 
   /** Creates a TimeString for hour, minute, second and millisecond values. */
   public TimeString(int h, int m, int s) {
-    this(TimestampString.hms(new StringBuilder(), h, m, s).toString());
+    this(DateTimeStringUtils.hms(new StringBuilder(), h, m, s).toString());
   }
 
   /** Sets the fraction field of a {@code TimeString} to a given number
@@ -55,7 +55,7 @@ public class TimeString implements Comparable<TimeString> {
    * yields {@code TIME '1970-01-01 02:03:04.056'}. */
   public TimeString withMillis(int millis) {
     Preconditions.checkArgument(millis >= 0 && millis < 1000);
-    return withFraction(TimestampString.pad(3, millis));
+    return withFraction(DateTimeStringUtils.pad(3, millis));
   }
 
   /** Sets the fraction field of a {@code TimeString} to a given number
@@ -66,7 +66,7 @@ public class TimeString implements Comparable<TimeString> {
    * yields {@code TIME '1970-01-01 02:03:04.000056789'}. */
   public TimeString withNanos(int nanos) {
     Preconditions.checkArgument(nanos >= 0 && nanos < 1000000000);
-    return withFraction(TimestampString.pad(9, nanos));
+    return withFraction(DateTimeStringUtils.pad(9, nanos));
   }
 
   /** Sets the fraction field of a {@code TimeString}.

@@ -811,6 +811,7 @@ public class RexSimplify {
         case TIMESTAMP:
           return e;
         }
+        break;
       }
       final List<RexNode> reducedValues = new ArrayList<>();
       executor.reduce(rexBuilder, ImmutableList.<RexNode>of(e), reducedValues);

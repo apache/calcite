@@ -33,6 +33,8 @@ import org.apache.calcite.linq4j.tree.Primitive;
 import org.apache.calcite.runtime.FlatLists.ComparableList;
 import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.NumberUtil;
+import org.apache.calcite.util.TimeWithTimeZoneString;
+import org.apache.calcite.util.TimestampWithTimeZoneString;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -1695,6 +1697,50 @@ public class SqlFunctions {
     return v == null ? null : internalToTime(v.intValue());
   }
 
+  public static Integer toTimeWithLocalTimeZone(String v) {
+    return v == null ? null : new TimeWithTimeZoneString(v)
+        .withTimeZone(DateTimeUtils.UTC_ZONE)
+        .getLocalTimeString()
+        .getMillisOfDay();
+  }
+
+  public static Integer toTimeWithLocalTimeZone(String v, TimeZone timeZone) {
+    return v == null ? null : new TimeWithTimeZoneString(v + " " + timeZone.getID())
+        .withTimeZone(DateTimeUtils.UTC_ZONE)
+        .getLocalTimeString()
+        .getMillisOfDay();
+  }
+
+  public static int timeWithLocalTimeZoneToTime(int v, TimeZone timeZone) {
+    return TimeWithTimeZoneString.fromMillisOfDay(v)
+        .withTimeZone(timeZone)
+        .getLocalTimeString()
+        .getMillisOfDay();
+  }
+
+  public static long timeWithLocalTimeZoneToTimestamp(String date, int v, TimeZone timeZone) {
+    final TimeWithTimeZoneString tTZ = TimeWithTimeZoneString.fromMillisOfDay(v)
+        .withTimeZone(DateTimeUtils.UTC_ZONE);
+    return new TimestampWithTimeZoneString(date + " " + tTZ.toString())
+        .withTimeZone(timeZone)
+        .getLocalTimestampString()
+        .getMillisSinceEpoch();
+  }
+
+  public static long timeWithLocalTimeZoneToTimestampWithLocalTimeZone(String date, int v) {
+    final TimeWithTimeZoneString tTZ = TimeWithTimeZoneString.fromMillisOfDay(v)
+        .withTimeZone(DateTimeUtils.UTC_ZONE);
+    return new TimestampWithTimeZoneString(date + " " + tTZ.toString())
+        .getLocalTimestampString()
+        .getMillisSinceEpoch();
+  }
+
+  public static String timeWithLocalTimeZoneToString(int v, TimeZone timeZone) {
+    return TimeWithTimeZoneString.fromMillisOfDay(v)
+        .withTimeZone(timeZone)
+        .toString();
+  }
+
   /** Converts the internal representation of a SQL TIMESTAMP (long) to the Java
    * type used for UDF parameters ({@link java.sql.Timestamp}). */
   public static java.sql.Timestamp internalToTimestamp(long v) {
@@ -1703,6 +1749,53 @@ public class SqlFunctions {
 
   public static java.sql.Timestamp internalToTimestamp(Long v) {
     return v == null ? null : internalToTimestamp(v.longValue());
+  }
+
+  public static int timestampWithLocalTimeZoneToDate(long v, TimeZone timeZone) {
+    return TimestampWithTimeZoneString.fromMillisSinceEpoch(v)
+        .withTimeZone(timeZone)
+        .getLocalDateString()
+        .getDaysSinceEpoch();
+  }
+
+  public static int timestampWithLocalTimeZoneToTime(long v, TimeZone timeZone) {
+    return TimestampWithTimeZoneString.fromMillisSinceEpoch(v)
+        .withTimeZone(timeZone)
+        .getLocalTimeString()
+        .getMillisOfDay();
+  }
+
+  public static long timestampWithLocalTimeZoneToTimestamp(long v, TimeZone timeZone) {
+    return TimestampWithTimeZoneString.fromMillisSinceEpoch(v)
+        .withTimeZone(timeZone)
+        .getLocalTimestampString()
+        .getMillisSinceEpoch();
+  }
+
+  public static String timestampWithLocalTimeZoneToString(long v, TimeZone timeZone) {
+    return TimestampWithTimeZoneString.fromMillisSinceEpoch(v)
+        .withTimeZone(timeZone)
+        .toString();
+  }
+
+  public static int timestampWithLocalTimeZoneToTimeWithLocalTimeZone(long v) {
+    return TimestampWithTimeZoneString.fromMillisSinceEpoch(v)
+        .getLocalTimeString()
+        .getMillisOfDay();
+  }
+
+  public static Long toTimestampWithLocalTimeZone(String v) {
+    return v == null ? null : new TimestampWithTimeZoneString(v)
+        .withTimeZone(DateTimeUtils.UTC_ZONE)
+        .getLocalTimestampString()
+        .getMillisSinceEpoch();
+  }
+
+  public static Long toTimestampWithLocalTimeZone(String v, TimeZone timeZone) {
+    return v == null ? null : new TimestampWithTimeZoneString(v + " " + timeZone.getID())
+        .withTimeZone(DateTimeUtils.UTC_ZONE)
+        .getLocalTimestampString()
+        .getMillisSinceEpoch();
   }
 
   // Don't need shortValueOf etc. - Short.valueOf is sufficient.
@@ -1865,6 +1958,11 @@ public class SqlFunctions {
   @NonDeterministic
   public static int localTime(DataContext root) {
     return (int) (localTimestamp(root) % DateTimeUtils.MILLIS_PER_DAY);
+  }
+
+  @NonDeterministic
+  public static TimeZone timeZone(DataContext root) {
+    return (TimeZone) DataContext.Variable.TIME_ZONE.get(root);
   }
 
   /** SQL {@code TRANSLATE(string, search_chars, replacement_chars)}

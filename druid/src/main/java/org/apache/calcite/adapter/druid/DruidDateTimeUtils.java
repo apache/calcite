@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.adapter.druid;
 
+import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexCall;
@@ -26,6 +27,7 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.DateString;
 import org.apache.calcite.util.TimestampString;
+import org.apache.calcite.util.TimestampWithTimeZoneString;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.trace.CalciteTrace;
 
@@ -40,6 +42,7 @@ import org.slf4j.Logger;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.TimeZone;
 
 /**
  * Utilities for generating intervals from RexNode.
@@ -57,9 +60,9 @@ public class DruidDateTimeUtils {
    * expression. Assumes that all the predicates in the input
    * reference a single column: the timestamp column.
    */
-  public static List<LocalInterval> createInterval(RelDataType type,
-      RexNode e) {
-    final List<Range<TimestampString>> ranges = extractRanges(e, false);
+  public static List<LocalInterval> createInterval(RexNode e, String timeZone) {
+    final List<Range<TimestampString>> ranges =
+        extractRanges(e, TimeZone.getTimeZone(timeZone), false);
     if (ranges == null) {
       // We did not succeed, bail out
       return null;
@@ -71,10 +74,12 @@ public class DruidDateTimeUtils {
     if (LOGGER.isDebugEnabled()) {
       LOGGER.debug("Inferred ranges on interval : " + condensedRanges);
     }
-    return toInterval(ImmutableList.<Range>copyOf(condensedRanges.asRanges()));
+    return toInterval(
+        ImmutableList.<Range>copyOf(condensedRanges.asRanges()));
   }
 
-  protected static List<LocalInterval> toInterval(List<Range<TimestampString>> ranges) {
+  protected static List<LocalInterval> toInterval(
+      List<Range<TimestampString>> ranges) {
     List<LocalInterval> intervals = Lists.transform(ranges,
         new Function<Range<TimestampString>, LocalInterval>() {
           public LocalInterval apply(Range<TimestampString> range) {
@@ -105,7 +110,7 @@ public class DruidDateTimeUtils {
   }
 
   protected static List<Range<TimestampString>> extractRanges(RexNode node,
-      boolean withNot) {
+      TimeZone timeZone, boolean withNot) {
     switch (node.getKind()) {
     case EQUALS:
     case LESS_THAN:
@@ -114,16 +119,17 @@ public class DruidDateTimeUtils {
     case GREATER_THAN_OR_EQUAL:
     case BETWEEN:
     case IN:
-      return leafToRanges((RexCall) node, withNot);
+      return leafToRanges((RexCall) node, timeZone, withNot);
 
     case NOT:
-      return extractRanges(((RexCall) node).getOperands().get(0), !withNot);
+      return extractRanges(((RexCall) node).getOperands().get(0), timeZone, !withNot);
 
     case OR: {
       RexCall call = (RexCall) node;
       List<Range<TimestampString>> intervals = Lists.newArrayList();
       for (RexNode child : call.getOperands()) {
-        List<Range<TimestampString>> extracted = extractRanges(child, withNot);
+        List<Range<TimestampString>> extracted =
+            extractRanges(child, timeZone, withNot);
         if (extracted != null) {
           intervals.addAll(extracted);
         }
@@ -135,7 +141,8 @@ public class DruidDateTimeUtils {
       RexCall call = (RexCall) node;
       List<Range<TimestampString>> ranges = new ArrayList<>();
       for (RexNode child : call.getOperands()) {
-        List<Range<TimestampString>> extractedRanges = extractRanges(child, false);
+        List<Range<TimestampString>> extractedRanges =
+            extractRanges(child, timeZone, false);
         if (extractedRanges == null || extractedRanges.isEmpty()) {
           // We could not extract, we bail out
           return null;
@@ -163,7 +170,7 @@ public class DruidDateTimeUtils {
   }
 
   protected static List<Range<TimestampString>> leafToRanges(RexCall call,
-      boolean withNot) {
+      TimeZone timeZone, boolean withNot) {
     switch (call.getKind()) {
     case EQUALS:
     case LESS_THAN:
@@ -173,11 +180,11 @@ public class DruidDateTimeUtils {
     {
       final TimestampString value;
       if (call.getOperands().get(0) instanceof RexInputRef
-          && literalValue(call.getOperands().get(1)) != null) {
-        value = literalValue(call.getOperands().get(1));
+          && literalValue(call.getOperands().get(1), timeZone) != null) {
+        value = literalValue(call.getOperands().get(1), timeZone);
       } else if (call.getOperands().get(1) instanceof RexInputRef
-          && literalValue(call.getOperands().get(0)) != null) {
-        value = literalValue(call.getOperands().get(0));
+          && literalValue(call.getOperands().get(0), timeZone) != null) {
+        value = literalValue(call.getOperands().get(0), timeZone);
       } else {
         return null;
       }
@@ -201,10 +208,10 @@ public class DruidDateTimeUtils {
     {
       final TimestampString value1;
       final TimestampString value2;
-      if (literalValue(call.getOperands().get(2)) != null
-          && literalValue(call.getOperands().get(3)) != null) {
-        value1 = literalValue(call.getOperands().get(2));
-        value2 = literalValue(call.getOperands().get(3));
+      if (literalValue(call.getOperands().get(2), timeZone) != null
+          && literalValue(call.getOperands().get(3), timeZone) != null) {
+        value1 = literalValue(call.getOperands().get(2), timeZone);
+        value2 = literalValue(call.getOperands().get(3), timeZone);
       } else {
         return null;
       }
@@ -219,9 +226,10 @@ public class DruidDateTimeUtils {
     }
     case IN:
     {
-      ImmutableList.Builder<Range<TimestampString>> ranges = ImmutableList.builder();
+      ImmutableList.Builder<Range<TimestampString>> ranges =
+          ImmutableList.builder();
       for (RexNode operand : Util.skip(call.operands)) {
-        final TimestampString element = literalValue(operand);
+        final TimestampString element = literalValue(operand, timeZone);
         if (element == null) {
           return null;
         }
@@ -239,16 +247,24 @@ public class DruidDateTimeUtils {
     }
   }
 
-  private static TimestampString literalValue(RexNode node) {
+  private static TimestampString literalValue(RexNode node, TimeZone timeZone) {
     switch (node.getKind()) {
     case LITERAL:
       switch (((RexLiteral) node).getTypeName()) {
-      case TIMESTAMP:
+      case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
         return ((RexLiteral) node).getValueAs(TimestampString.class);
+      case TIMESTAMP:
+        // Cast timestamp to timestamp with local time zone
+        final TimestampString t = ((RexLiteral) node).getValueAs(TimestampString.class);
+        return new TimestampWithTimeZoneString(t.toString() + " " + timeZone.getID())
+            .withTimeZone(DateTimeUtils.UTC_ZONE).getLocalTimestampString();
       case DATE:
-        // For uniformity, treat dates as timestamps
+        // Cast date to timestamp with local time zone
         final DateString d = ((RexLiteral) node).getValueAs(DateString.class);
-        return TimestampString.fromMillisSinceEpoch(d.getMillisSinceEpoch());
+        return new TimestampWithTimeZoneString(
+            TimestampString.fromMillisSinceEpoch(
+                d.getMillisSinceEpoch()).toString() + " " + timeZone.getID())
+            .withTimeZone(DateTimeUtils.UTC_ZONE).getLocalTimestampString();
       }
       break;
     case CAST:
@@ -262,11 +278,13 @@ public class DruidDateTimeUtils {
       final RelDataType callType = call.getType();
       final RelDataType operandType = operand.getType();
       if (operand.getKind() == SqlKind.LITERAL
-          && callType.getSqlTypeName() == SqlTypeName.TIMESTAMP
+          && callType.getSqlTypeName() == operandType.getSqlTypeName()
+          && (callType.getSqlTypeName() == SqlTypeName.DATE
+              || callType.getSqlTypeName() == SqlTypeName.TIMESTAMP
+              || callType.getSqlTypeName() == SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE)
           && callType.isNullable()
-          && operandType.getSqlTypeName() == SqlTypeName.TIMESTAMP
           && !operandType.isNullable()) {
-        return literalValue(operand);
+        return literalValue(operand, timeZone);
       }
     }
     return null;

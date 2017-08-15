@@ -99,7 +99,9 @@ public enum SqlTypeFamily implements RelDataTypeFamily {
 
           .put(Types.DATE, DATE)
           .put(Types.TIME, TIME)
+          .put(Types.TIME_WITH_TIMEZONE, TIME)
           .put(Types.TIMESTAMP, TIMESTAMP)
+          .put(Types.TIMESTAMP_WITH_TIMEZONE, TIMESTAMP)
           .put(Types.BOOLEAN, BOOLEAN)
 
           .put(ExtraSqlTypes.REF_CURSOR, CURSOR)
@@ -130,9 +132,9 @@ public enum SqlTypeFamily implements RelDataTypeFamily {
     case DATE:
       return ImmutableList.of(SqlTypeName.DATE);
     case TIME:
-      return ImmutableList.of(SqlTypeName.TIME);
+      return ImmutableList.of(SqlTypeName.TIME, SqlTypeName.TIME_WITH_LOCAL_TIME_ZONE);
     case TIMESTAMP:
-      return ImmutableList.of(SqlTypeName.TIMESTAMP);
+      return ImmutableList.of(SqlTypeName.TIMESTAMP, SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE);
     case BOOLEAN:
       return SqlTypeName.BOOLEAN_TYPES;
     case INTERVAL_YEAR_MONTH:

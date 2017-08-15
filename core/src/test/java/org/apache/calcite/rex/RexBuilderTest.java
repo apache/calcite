@@ -24,11 +24,13 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.DateString;
 import org.apache.calcite.util.TimeString;
 import org.apache.calcite.util.TimestampString;
+import org.apache.calcite.util.TimestampWithTimeZoneString;
 import org.apache.calcite.util.Util;
 
 import org.junit.Test;
 
 import java.util.Calendar;
+import java.util.TimeZone;
 
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.core.Is.is;
@@ -174,6 +176,77 @@ public class RexBuilderTest {
     assertThat((Long) literal.getValue2(), is(MOON));
     assertThat(literal.getValueAs(Calendar.class), notNullValue());
     assertThat(literal.getValueAs(TimestampString.class), notNullValue());
+  }
+
+  /** Tests
+   * {@link RexBuilder#makeTimestampWithLocalTimeZoneLiteral(TimestampWithTimeZoneString, int)}. */
+  @Test public void testTimestampWithLocalTimeZoneLiteral() {
+    final RelDataTypeFactory typeFactory =
+        new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
+    final RelDataType timestampType =
+        typeFactory.createSqlType(SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE);
+    final RelDataType timestampType3 =
+        typeFactory.createSqlType(SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE, 3);
+    final RelDataType timestampType9 =
+        typeFactory.createSqlType(SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE, 9);
+    final RelDataType timestampType18 =
+        typeFactory.createSqlType(SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE, 18);
+    final RexBuilder builder = new RexBuilder(typeFactory);
+
+    // The new way
+    final TimestampWithTimeZoneString ts = new TimestampWithTimeZoneString(
+        1969, 7, 21, 2, 56, 15, TimeZone.getTimeZone("PST").getID());
+    checkTimestampWithLocalTimeZone(
+        builder.makeLiteral(ts.getLocalTimestampString(), timestampType, false));
+
+    // Now with milliseconds
+    final TimestampWithTimeZoneString ts2 = ts.withMillis(56);
+    assertThat(ts2.toString(), is("1969-07-21 02:56:15.056 PST"));
+    final RexNode literal2 = builder.makeLiteral(
+        ts2.getLocalTimestampString(), timestampType3, false);
+    assertThat(((RexLiteral) literal2).getValue().toString(), is("1969-07-21 02:56:15.056"));
+
+    // Now with nanoseconds
+    final TimestampWithTimeZoneString ts3 = ts.withNanos(56);
+    final RexNode literal3 = builder.makeLiteral(
+        ts3.getLocalTimestampString(), timestampType9, false);
+    assertThat(((RexLiteral) literal3).getValueAs(TimestampString.class)
+            .toString(), is("1969-07-21 02:56:15"));
+    final TimestampWithTimeZoneString ts3b = ts.withNanos(2345678);
+    final RexNode literal3b = builder.makeLiteral(
+        ts3b.getLocalTimestampString(), timestampType9, false);
+    assertThat(((RexLiteral) literal3b).getValueAs(TimestampString.class)
+            .toString(), is("1969-07-21 02:56:15.002"));
+
+    // Now with a very long fraction
+    final TimestampWithTimeZoneString ts4 = ts.withFraction("102030405060708090102");
+    final RexNode literal4 = builder.makeLiteral(
+        ts4.getLocalTimestampString(), timestampType18, false);
+    assertThat(((RexLiteral) literal4).getValueAs(TimestampString.class)
+            .toString(), is("1969-07-21 02:56:15.102"));
+
+    // toString
+    assertThat(ts2.round(1).toString(), is("1969-07-21 02:56:15 PST"));
+    assertThat(ts2.round(2).toString(), is("1969-07-21 02:56:15.05 PST"));
+    assertThat(ts2.round(3).toString(), is("1969-07-21 02:56:15.056 PST"));
+    assertThat(ts2.round(4).toString(), is("1969-07-21 02:56:15.056 PST"));
+
+    assertThat(ts2.toString(6), is("1969-07-21 02:56:15.056000 PST"));
+    assertThat(ts2.toString(1), is("1969-07-21 02:56:15.0 PST"));
+    assertThat(ts2.toString(0), is("1969-07-21 02:56:15 PST"));
+
+    assertThat(ts2.round(0).toString(), is("1969-07-21 02:56:15 PST"));
+    assertThat(ts2.round(0).toString(0), is("1969-07-21 02:56:15 PST"));
+    assertThat(ts2.round(0).toString(1), is("1969-07-21 02:56:15.0 PST"));
+    assertThat(ts2.round(0).toString(2), is("1969-07-21 02:56:15.00 PST"));
+  }
+
+  private void checkTimestampWithLocalTimeZone(RexNode node) {
+    assertThat(node.toString(), is("1969-07-21 02:56:15"));
+    RexLiteral literal = (RexLiteral) node;
+    assertThat(literal.getValue() instanceof TimestampString, is(true));
+    assertThat(literal.getValue2() instanceof Long, is(true));
+    assertThat(literal.getValue3() instanceof Long, is(true));
   }
 
   /** Tests {@link RexBuilder#makeTimeLiteral(TimeString, int)}. */

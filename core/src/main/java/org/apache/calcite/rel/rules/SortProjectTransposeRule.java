@@ -23,6 +23,7 @@ import org.apache.calcite.plan.RelOptRuleOperand;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollationTraitDef;
+import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Project;
@@ -102,7 +103,7 @@ public class SortProjectTransposeRule extends RelOptRule {
         final RexCall cast = (RexCall) node;
         final RexCallBinding binding =
             RexCallBinding.create(cluster.getTypeFactory(), cast,
-                ImmutableList.of(RexUtil.apply(map, sort.getCollation())));
+                ImmutableList.of(RelCollations.of(RexUtil.apply(map, fc))));
         if (cast.getOperator().getMonotonicity(binding) == SqlMonotonicity.NOT_MONOTONIC) {
           return;
         }

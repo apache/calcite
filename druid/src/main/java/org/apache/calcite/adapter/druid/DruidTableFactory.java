@@ -59,7 +59,7 @@ public class DruidTableFactory implements TableFactory {
     } else {
       timestampColumnName = DruidTable.DEFAULT_TIMESTAMP_COLUMN;
     }
-    fieldBuilder.put(timestampColumnName, SqlTypeName.TIMESTAMP);
+    fieldBuilder.put(timestampColumnName, SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE);
     final Object dimensionsRaw = operand.get("dimensions");
     if (dimensionsRaw instanceof List) {
       // noinspection unchecked

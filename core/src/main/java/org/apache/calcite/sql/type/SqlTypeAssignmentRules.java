@@ -158,8 +158,16 @@ public class SqlTypeAssignmentRules {
     rule.add(SqlTypeName.TIMESTAMP);
     rules.put(SqlTypeName.TIME, rule);
 
+    // Time with local time-zone is assignable from ...
+    rules.put(SqlTypeName.TIME_WITH_LOCAL_TIME_ZONE,
+        EnumSet.of(SqlTypeName.TIME_WITH_LOCAL_TIME_ZONE));
+
     // Timestamp is assignable from ...
     rules.put(SqlTypeName.TIMESTAMP, EnumSet.of(SqlTypeName.TIMESTAMP));
+
+    // Timestamp with local time-zone is assignable from ...
+    rules.put(SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE,
+        EnumSet.of(SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE));
 
     // Geometry is assignable from ...
     rules.put(SqlTypeName.GEOMETRY, EnumSet.of(SqlTypeName.GEOMETRY));
@@ -275,6 +283,7 @@ public class SqlTypeAssignmentRules {
     rule = new HashSet<>();
     rule.add(SqlTypeName.DATE);
     rule.add(SqlTypeName.TIMESTAMP);
+    rule.add(SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE);
     rule.add(SqlTypeName.CHAR);
     rule.add(SqlTypeName.VARCHAR);
     coerceRules.put(SqlTypeName.DATE, rule);
@@ -282,19 +291,44 @@ public class SqlTypeAssignmentRules {
     // Time is castable from ...
     rule = new HashSet<>();
     rule.add(SqlTypeName.TIME);
+    rule.add(SqlTypeName.TIME_WITH_LOCAL_TIME_ZONE);
     rule.add(SqlTypeName.TIMESTAMP);
+    rule.add(SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE);
     rule.add(SqlTypeName.CHAR);
     rule.add(SqlTypeName.VARCHAR);
     coerceRules.put(SqlTypeName.TIME, rule);
 
+    // Time with local time-zone is castable from ...
+    rule = new HashSet<>();
+    rule.add(SqlTypeName.TIME);
+    rule.add(SqlTypeName.TIME_WITH_LOCAL_TIME_ZONE);
+    rule.add(SqlTypeName.TIMESTAMP);
+    rule.add(SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE);
+    rule.add(SqlTypeName.CHAR);
+    rule.add(SqlTypeName.VARCHAR);
+    coerceRules.put(SqlTypeName.TIME_WITH_LOCAL_TIME_ZONE, rule);
+
     // Timestamp is castable from ...
     rule = new HashSet<>();
     rule.add(SqlTypeName.TIMESTAMP);
+    rule.add(SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE);
     rule.add(SqlTypeName.DATE);
     rule.add(SqlTypeName.TIME);
+    rule.add(SqlTypeName.TIME_WITH_LOCAL_TIME_ZONE);
     rule.add(SqlTypeName.CHAR);
     rule.add(SqlTypeName.VARCHAR);
     coerceRules.put(SqlTypeName.TIMESTAMP, rule);
+
+    // Timestamp with local time-zone is castable from ...
+    rule = new HashSet<>();
+    rule.add(SqlTypeName.TIMESTAMP);
+    rule.add(SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE);
+    rule.add(SqlTypeName.DATE);
+    rule.add(SqlTypeName.TIME);
+    rule.add(SqlTypeName.TIME_WITH_LOCAL_TIME_ZONE);
+    rule.add(SqlTypeName.CHAR);
+    rule.add(SqlTypeName.VARCHAR);
+    coerceRules.put(SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE, rule);
   }
 
   //~ Methods ----------------------------------------------------------------

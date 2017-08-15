@@ -255,7 +255,11 @@ public class RexLiteral extends RexNode {
       return value instanceof DateString;
     case TIME:
       return value instanceof TimeString;
+    case TIME_WITH_LOCAL_TIME_ZONE:
+      return value instanceof TimeString;
     case TIMESTAMP:
+      return value instanceof TimestampString;
+    case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
       return value instanceof TimestampString;
     case INTERVAL_YEAR:
     case INTERVAL_YEAR_MONTH:
@@ -498,7 +502,15 @@ public class RexLiteral extends RexNode {
       assert value instanceof TimeString;
       pw.print(value);
       break;
+    case TIME_WITH_LOCAL_TIME_ZONE:
+      assert value instanceof TimeString;
+      pw.print(value);
+      break;
     case TIMESTAMP:
+      assert value instanceof TimestampString;
+      pw.print(value);
+      break;
+    case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
       assert value instanceof TimestampString;
       pw.print(value);
       break;
@@ -724,9 +736,11 @@ public class RexLiteral extends RexNode {
       return getValueAs(String.class);
     case DECIMAL:
     case TIMESTAMP:
+    case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
       return getValueAs(Long.class);
     case DATE:
     case TIME:
+    case TIME_WITH_LOCAL_TIME_ZONE:
       return getValueAs(Integer.class);
     default:
       return value;
@@ -835,6 +849,12 @@ public class RexLiteral extends RexNode {
         return clazz.cast(((TimeString) value).toCalendar());
       }
       break;
+    case TIME_WITH_LOCAL_TIME_ZONE:
+      if (clazz == Integer.class) {
+        // Milliseconds since 1970-01-01 00:00:00
+        return clazz.cast(((TimeString) value).getMillisOfDay());
+      }
+      break;
     case TIMESTAMP:
       if (clazz == Long.class) {
         // Milliseconds since 1970-01-01 00:00:00
@@ -842,6 +862,12 @@ public class RexLiteral extends RexNode {
       } else if (clazz == Calendar.class) {
         // Note: Nanos are ignored
         return clazz.cast(((TimestampString) value).toCalendar());
+      }
+      break;
+    case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
+      if (clazz == Long.class) {
+        // Milliseconds since 1970-01-01 00:00:00
+        return clazz.cast(((TimestampString) value).getMillisSinceEpoch());
       }
       break;
     case INTERVAL_YEAR:

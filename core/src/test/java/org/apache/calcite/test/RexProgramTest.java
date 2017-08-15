@@ -16,9 +16,11 @@
  */
 package org.apache.calcite.test;
 
+import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.avatica.util.ByteString;
 import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
+import org.apache.calcite.linq4j.QueryProvider;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.Strong;
 import org.apache.calcite.rel.type.RelDataType;
@@ -27,6 +29,8 @@ import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexDynamicParam;
+import org.apache.calcite.rex.RexExecutor;
+import org.apache.calcite.rex.RexExecutorImpl;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexLocalRef;
@@ -35,6 +39,7 @@ import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.rex.RexProgramBuilder;
 import org.apache.calcite.rex.RexSimplify;
 import org.apache.calcite.rex.RexUtil;
+import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSpecialOperator;
@@ -48,6 +53,7 @@ import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.TestUtil;
 import org.apache.calcite.util.TimeString;
 import org.apache.calcite.util.TimestampString;
+import org.apache.calcite.util.TimestampWithTimeZoneString;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
@@ -65,6 +71,7 @@ import java.util.Arrays;
 import java.util.Calendar;
 import java.util.List;
 import java.util.Map;
+import java.util.TimeZone;
 import java.util.TreeMap;
 
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -100,12 +107,42 @@ public class RexProgramTest {
   public void setUp() {
     typeFactory = new JavaTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
     rexBuilder = new RexBuilder(typeFactory);
-    simplify = new RexSimplify(rexBuilder, false, RexUtil.EXECUTOR);
+    RexExecutor executor =
+        new RexExecutorImpl(new DummyTestDataContext());
+    simplify = new RexSimplify(rexBuilder, false, executor);
     trueLiteral = rexBuilder.makeLiteral(true);
     falseLiteral = rexBuilder.makeLiteral(false);
     final RelDataType intType = typeFactory.createSqlType(SqlTypeName.INTEGER);
     nullLiteral = rexBuilder.makeNullLiteral(intType);
     unknownLiteral = rexBuilder.makeNullLiteral(trueLiteral.getType());
+  }
+
+  /** Dummy data context for test. */
+  private static class DummyTestDataContext implements DataContext {
+    private final ImmutableMap<String, Object> map;
+
+    DummyTestDataContext() {
+      this.map =
+          ImmutableMap.<String, Object>of(
+              Variable.TIME_ZONE.camelName, TimeZone.getTimeZone("America/Los_Angeles"),
+              Variable.CURRENT_TIMESTAMP.camelName, new Long(1311120000000L));
+    }
+
+    public SchemaPlus getRootSchema() {
+      return null;
+    }
+
+    public JavaTypeFactory getTypeFactory() {
+      return null;
+    }
+
+    public QueryProvider getQueryProvider() {
+      return null;
+    }
+
+    public Object get(String name) {
+      return map.get(name);
+    }
   }
 
   private void checkCnf(RexNode node, String expected) {
@@ -1489,6 +1526,95 @@ public class RexProgramTest {
     checkSimplifyUnchanged(cast(literalAbc, timestampType));
     checkSimplify(cast(literalOne, timestampType),
         "1970-01-01 00:00:00"); // different from Hive
+  }
+
+  @Test public void testSimplifyCastLiteral3() {
+    // Default TimeZone is "America/Los_Angeles" (DummyDataContext)
+    final RexLiteral literalDate = rexBuilder.makeDateLiteral(new DateString("2011-07-20"));
+    final RexLiteral literalTime = rexBuilder.makeTimeLiteral(new TimeString("12:34:56"), 0);
+    final RexLiteral literalTimestamp = rexBuilder.makeTimestampLiteral(
+        new TimestampString("2011-07-20 12:34:56"), 0);
+    final RexLiteral literalTimeLTZ =
+        rexBuilder.makeTimeWithLocalTimeZoneLiteral(
+            new TimeString(1, 23, 45), 0);
+    final RexLiteral timeLTZChar1 = rexBuilder.makeLiteral("12:34:45 America/Los_Angeles");
+    final RexLiteral timeLTZChar2 = rexBuilder.makeLiteral("12:34:45 UTC");
+    final RexLiteral timeLTZChar3 = rexBuilder.makeLiteral("12:34:45 GMT+01");
+    final RexLiteral timestampLTZChar1 = rexBuilder.makeLiteral("2011-07-20 12:34:56 Asia/Tokyo");
+    final RexLiteral timestampLTZChar2 = rexBuilder.makeLiteral("2011-07-20 12:34:56 GMT+01");
+    final RexLiteral timestampLTZChar3 = rexBuilder.makeLiteral("2011-07-20 12:34:56 UTC");
+    final RexLiteral literalTimestampLTZ =
+        rexBuilder.makeTimestampWithLocalTimeZoneLiteral(
+            new TimestampString(2011, 7, 20, 8, 23, 45), 0);
+
+    final RelDataType dateType =
+        typeFactory.createSqlType(SqlTypeName.DATE);
+    final RelDataType timeType =
+        typeFactory.createSqlType(SqlTypeName.TIME);
+    final RelDataType timestampType =
+        typeFactory.createSqlType(SqlTypeName.TIMESTAMP);
+    final RelDataType timeLTZType =
+        typeFactory.createSqlType(SqlTypeName.TIME_WITH_LOCAL_TIME_ZONE);
+    final RelDataType timestampLTZType =
+        typeFactory.createSqlType(SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE);
+    final RelDataType varCharType =
+        typeFactory.createSqlType(SqlTypeName.VARCHAR, 40);
+
+    checkSimplify(cast(timeLTZChar1, timeLTZType), "20:34:45");
+    checkSimplify(cast(timeLTZChar2, timeLTZType), "12:34:45");
+    checkSimplify(cast(timeLTZChar3, timeLTZType), "11:34:45");
+    checkSimplify(cast(literalTimeLTZ, timeLTZType), "01:23:45");
+    checkSimplify(cast(timestampLTZChar1, timestampLTZType),
+        "2011-07-20 03:34:56");
+    checkSimplify(cast(timestampLTZChar2, timestampLTZType),
+        "2011-07-20 11:34:56");
+    checkSimplify(cast(timestampLTZChar3, timestampLTZType),
+        "2011-07-20 12:34:56");
+    checkSimplify(cast(literalTimestampLTZ, timestampLTZType),
+        "2011-07-20 08:23:45");
+    checkSimplify(cast(literalDate, timestampLTZType),
+        "2011-07-20 07:00:00");
+    checkSimplify(cast(literalTime, timestampLTZType),
+        "2011-07-20 19:34:56");
+    checkSimplify(cast(literalTimestamp, timestampLTZType),
+        "2011-07-20 19:34:56");
+    checkSimplify(cast(literalTimestamp, dateType),
+        "2011-07-20");
+    checkSimplify(cast(literalTimestampLTZ, dateType),
+        "2011-07-20");
+    checkSimplify(cast(literalTimestampLTZ, timeType),
+        "01:23:45");
+    checkSimplify(cast(literalTimestampLTZ, timestampType),
+        "2011-07-20 01:23:45");
+    checkSimplify(cast(literalTimeLTZ, timeType),
+        "17:23:45");
+    checkSimplify(cast(literalTime, timeLTZType),
+        "20:34:56");
+    checkSimplify(cast(literalTimestampLTZ, timeLTZType),
+        "08:23:45");
+    checkSimplify(cast(literalTimeLTZ, varCharType),
+        "'17:23:45 America/Los_Angeles'");
+    checkSimplify(cast(literalTimestampLTZ, varCharType),
+        "'2011-07-20 01:23:45 America/Los_Angeles'");
+    checkSimplify(cast(literalTimeLTZ, timestampType),
+        "2011-07-19 18:23:45");
+    checkSimplify(cast(literalTimeLTZ, timestampLTZType),
+        "2011-07-20 01:23:45");
+  }
+
+  @Test public void testCompareTimestampWithTimeZone() {
+    final TimestampWithTimeZoneString timestampLTZChar1 =
+        new TimestampWithTimeZoneString("2011-07-20 10:34:56 America/Los_Angeles");
+    final TimestampWithTimeZoneString timestampLTZChar2 =
+        new TimestampWithTimeZoneString("2011-07-20 19:34:56 Europe/Rome");
+    final TimestampWithTimeZoneString timestampLTZChar3 =
+        new TimestampWithTimeZoneString("2011-07-20 01:34:56 Asia/Tokyo");
+    final TimestampWithTimeZoneString timestampLTZChar4 =
+        new TimestampWithTimeZoneString("2011-07-20 10:34:56 America/Los_Angeles");
+
+    assertThat(timestampLTZChar1.equals(timestampLTZChar2), is(false));
+    assertThat(timestampLTZChar1.equals(timestampLTZChar3), is(false));
+    assertThat(timestampLTZChar1.equals(timestampLTZChar4), is(true));
   }
 
   @Test public void testSimplifyLiterals() {
