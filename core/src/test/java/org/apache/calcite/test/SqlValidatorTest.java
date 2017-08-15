@@ -6763,7 +6763,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + " from emp group by deptno\n"
         + " window w1 as (partition by ^empno^ ROWS 2 PRECEDING),\n"
         + " w2 as (order by deptno ROWS 2 PRECEDING)")
-        .fails("Expression 'EMP.EMPNO' is not being grouped");
+        .fails("Expression 'EMPNO' is not being grouped");
     sql("select avg(count(empno)) over w\n"
         + "from emp group by deptno\n"
         + "window w as (partition by deptno order by ^empno^)")

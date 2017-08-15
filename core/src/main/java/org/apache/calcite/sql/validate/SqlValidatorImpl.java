@@ -3596,7 +3596,9 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
   protected void validateWindowClause(SqlSelect select) {
     final SqlNodeList windowList = select.getWindowList();
-    if ((windowList == null) || (windowList.size() == 0)) {
+    @SuppressWarnings("unchecked") final List<SqlWindow> windows =
+        (List) windowList.getList();
+    if (windows.isEmpty()) {
       return;
     }
 
@@ -3605,9 +3607,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
     // 1. ensure window names are simple
     // 2. ensure they are unique within this scope
-    for (SqlNode node : windowList) {
-      final SqlWindow child = (SqlWindow) node;
-      SqlIdentifier declName = child.getDeclName();
+    for (SqlWindow window : windows) {
+      SqlIdentifier declName = window.getDeclName();
       if (!declName.isSimple()) {
         throw newValidationError(declName, RESOURCE.windowNameMustBeSimple());
       }
@@ -3621,14 +3622,26 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
     // 7.10 rule 2
     // Check for pairs of windows which are equivalent.
-    for (int i = 0; i < windowList.size(); i++) {
-      SqlNode window1 = windowList.get(i);
-      for (int j = i + 1; j < windowList.size(); j++) {
-        SqlNode window2 = windowList.get(j);
+    for (int i = 0; i < windows.size(); i++) {
+      SqlNode window1 = windows.get(i);
+      for (int j = i + 1; j < windows.size(); j++) {
+        SqlNode window2 = windows.get(j);
         if (window1.equalsDeep(window2, Litmus.IGNORE)) {
           throw newValidationError(window2, RESOURCE.dupWindowSpec());
         }
       }
+    }
+
+    for (SqlWindow window : windows) {
+      final SqlNodeList expandedOrderList =
+          (SqlNodeList) expand(window.getOrderList(), windowScope);
+      window.setOrderList(expandedOrderList);
+      expandedOrderList.validate(this, windowScope);
+
+      final SqlNodeList expandedPartitionList =
+          (SqlNodeList) expand(window.getPartitionList(), windowScope);
+      window.setPartitionList(expandedPartitionList);
+      expandedPartitionList.validate(this, windowScope);
     }
 
     // Hand off to validate window spec components

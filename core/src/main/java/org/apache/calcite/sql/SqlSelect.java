@@ -21,7 +21,10 @@ import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.util.ImmutableNullableList;
 
+import com.google.common.base.Preconditions;
+
 import java.util.List;
+import javax.annotation.Nonnull;
 
 /**
  * A <code>SqlSelect</code> is a node of a parse tree which represents a select
@@ -47,6 +50,7 @@ public class SqlSelect extends SqlCall {
   SqlNode offset;
   SqlNode fetch;
   SqlMatchRecognize matchRecognize;
+
   //~ Constructors -----------------------------------------------------------
 
   public SqlSelect(SqlParserPos pos,
@@ -61,13 +65,15 @@ public class SqlSelect extends SqlCall {
       SqlNode offset,
       SqlNode fetch) {
     super(pos);
-    this.keywordList = keywordList != null ? keywordList : new SqlNodeList(pos);
+    this.keywordList = Preconditions.checkNotNull(keywordList != null
+        ? keywordList : new SqlNodeList(pos));
     this.selectList = selectList;
     this.from = from;
     this.where = where;
     this.groupBy = groupBy;
     this.having = having;
-    this.windowDecls = windowDecls != null ? windowDecls : new SqlNodeList(pos);
+    this.windowDecls = Preconditions.checkNotNull(windowDecls != null
+        ? windowDecls : new SqlNodeList(pos));
     this.orderBy = orderBy;
     this.offset = offset;
     this.fetch = fetch;
@@ -91,7 +97,7 @@ public class SqlSelect extends SqlCall {
   @Override public void setOperand(int i, SqlNode operand) {
     switch (i) {
     case 0:
-      keywordList = (SqlNodeList) operand;
+      keywordList = Preconditions.checkNotNull((SqlNodeList) operand);
       break;
     case 1:
       selectList = (SqlNodeList) operand;
@@ -109,7 +115,7 @@ public class SqlSelect extends SqlCall {
       having = operand;
       break;
     case 6:
-      windowDecls = (SqlNodeList) operand;
+      windowDecls = Preconditions.checkNotNull((SqlNodeList) operand);
       break;
     case 7:
       orderBy = (SqlNodeList) operand;
@@ -180,7 +186,7 @@ public class SqlSelect extends SqlCall {
     this.where = whereClause;
   }
 
-  public final SqlNodeList getWindowList() {
+  @Nonnull public final SqlNodeList getWindowList() {
     return windowDecls;
   }
 
