@@ -554,6 +554,21 @@ public class SqlDialect {
     }
   }
 
+  /**
+   * Returns whether the dialect supports nested aggregations, for instance
+   * {@code SELECT SUM(SUM(1)) }.
+   */
+  public boolean supportsNestedAggregations() {
+    switch (databaseProduct) {
+    case MYSQL:
+    case VERTICA:
+    case POSTGRESQL:
+      return false;
+    default:
+      return true;
+    }
+  }
+
   /** Returns how NULL values are sorted if an ORDER BY item does not contain
    * NULLS ASCENDING or NULLS DESCENDING. */
   public NullCollation getNullCollation() {
