@@ -168,6 +168,16 @@ public enum SqlConformanceEnum implements SqlConformance {
     }
   }
 
+  @Override public boolean isPercentRemainderAllowed() {
+    switch (this) {
+    case LENIENT:
+    case MYSQL_5:
+      return true;
+    default:
+      return false;
+    }
+  }
+
   public boolean isApplyAllowed() {
     switch (this) {
     case LENIENT:

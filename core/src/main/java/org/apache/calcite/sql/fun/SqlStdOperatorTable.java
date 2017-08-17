@@ -246,6 +246,16 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           InferTypes.FIRST_KNOWN,
           OperandTypes.DIVISION_OPERATOR);
 
+  public static final SqlBinaryOperator PERCENT_REMAINDER =
+      new SqlBinaryOperator(
+          "%",
+          SqlKind.MOD,
+          60,
+          true,
+          ReturnTypes.ARG1_NULLABLE,
+          null,
+          OperandTypes.EXACT_NUMERIC_EXACT_NUMERIC);
+
   /** The {@code RAND_INTEGER([seed, ] bound)} function, which yields a random
    * integer, optionally with seed. */
   public static final SqlRandIntegerFunction RAND_INTEGER =
@@ -1324,7 +1334,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
       // SQL2003 Part2 Section 6.27, Syntax Rules 9
       new SqlFunction(
           "MOD",
-          SqlKind.OTHER_FUNCTION,
+          SqlKind.MOD,
           ReturnTypes.ARG1_NULLABLE,
           null,
           OperandTypes.EXACT_NUMERIC_EXACT_NUMERIC,

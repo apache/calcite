@@ -143,6 +143,7 @@ public class ${parser.class} extends SqlAbstractParserImpl
     private Casing unquotedCasing;
     private Casing quotedCasing;
     private int identifierMaxLength;
+    private boolean allowPercentRemainder;
     private SqlConformance conformance;
 
     /**
@@ -202,6 +203,11 @@ public class ${parser.class} extends SqlAbstractParserImpl
     public void setIdentifierMaxLength(int identifierMaxLength)
     {
         this.identifierMaxLength = identifierMaxLength;
+    }
+
+    public void setAllowPercentRemainder(boolean allowPercentRemainder)
+    {
+        this.allowPercentRemainder = allowPercentRemainder;
     }
 
     public void setConformance(SqlConformance conformance)
@@ -5276,6 +5282,12 @@ SqlBinaryOperator BinaryRowOperator() :
 |   <MINUS> { return SqlStdOperatorTable.MINUS; }
 |   <STAR> { return SqlStdOperatorTable.MULTIPLY; }
 |   <SLASH> { return SqlStdOperatorTable.DIVIDE; }
+|   <PERCENT_REMAINDER> {
+        if (!this.conformance.isPercentRemainderAllowed()) {
+            throw new ParseException(RESOURCE.percentRemainderNotAllowed().str());
+        }
+        return SqlStdOperatorTable.PERCENT_REMAINDER;
+        }
 |   <CONCAT> { return SqlStdOperatorTable.CONCAT; }
 |   <AND> { return SqlStdOperatorTable.AND; }
 |   <OR> { return SqlStdOperatorTable.OR; }
@@ -6388,6 +6400,7 @@ String CommonNonReservedKeyWord() :
 |   < MINUS: "-" >
 |   < STAR: "*" >
 |   < SLASH: "/" >
+|   < PERCENT_REMAINDER: "%" >
 |   < CONCAT: "||" >
 |   < NAMED_ARGUMENT_ASSIGNMENT: "=>" >
 |   < DOUBLE_PERIOD: ".." >

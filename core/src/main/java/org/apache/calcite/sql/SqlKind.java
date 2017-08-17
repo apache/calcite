@@ -244,6 +244,11 @@ public enum SqlKind {
   DIVIDE,
 
   /**
+   * The arithmetic mod operator, "%".
+   */
+  MOD,
+
+  /**
    * The arithmetic plus operator, "+".
    *
    * @see #PLUS_PREFIX

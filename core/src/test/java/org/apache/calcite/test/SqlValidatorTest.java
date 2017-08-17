@@ -8413,6 +8413,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "\n"
         + "| left\n"
         + "\n"
+        + "% left\n"
         + "* left\n"
         + "/ left\n"
         + "/INT left\n"

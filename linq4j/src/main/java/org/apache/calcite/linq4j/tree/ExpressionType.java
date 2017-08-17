@@ -141,6 +141,12 @@ public enum ExpressionType {
   Divide(" / ", false, 3, false),
 
   /**
+   * A percent remainder operation, such as (a % b), for numeric
+   * operands.
+   */
+  Mod(" % ", false, 3, false),
+
+  /**
    * A node that represents an equality comparison, such as {@code a == b} in
    * Java.
    */
