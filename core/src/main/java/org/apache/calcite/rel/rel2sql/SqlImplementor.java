@@ -1009,7 +1009,8 @@ public abstract class SqlImplementor {
       Set<Clause> nonWrapSet = ImmutableSet.of(Clause.SELECT);
       for (Clause clause : clauses) {
         if (maxClause.ordinal() > clause.ordinal()
-            || (maxClause == clause && !nonWrapSet.contains(clause))) {
+            || (maxClause == clause && !nonWrapSet.contains(clause))
+            || !dialect.supportsNestedAggregations()) {
           needNew = true;
         }
       }
