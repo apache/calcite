@@ -1946,6 +1946,16 @@ public class RexUtil {
   }
 
   /**
+   * Given an expression, it will swap the table references contained in its
+   * {@link RexTableInputRef} using the contents in the map.
+   * The type of the {@link RexTableInputRef} is made nullable.
+   */
+  public static RexNode swapTableReferencesNullable(final RexBuilder rexBuilder,
+      final RexNode node, final Map<RelTableRef, RelTableRef> tableMapping) {
+    return swapTableColumnReferencesNullable(rexBuilder, node, tableMapping, null);
+  }
+
+  /**
    * Given an expression, it will swap its column references {@link RexTableInputRef}
    * using the contents in the map (in particular, the first element of the set in the
    * map value).
@@ -1972,6 +1982,41 @@ public class RexUtil {
                   tableMapping.get(inputRef.getTableRef()),
                   inputRef.getIndex(),
                   inputRef.getType());
+            }
+            if (ec != null) {
+              Set<RexTableInputRef> s = ec.get(inputRef);
+              if (s != null) {
+                inputRef = s.iterator().next();
+              }
+            }
+            return inputRef;
+          }
+        };
+    return visitor.apply(node);
+  }
+
+  /**
+   * Given an expression, it will swap the table references contained in its
+   * {@link RexTableInputRef} using the contents in the first map, and then
+   * it will swap the column references {@link RexTableInputRef} using the contents
+   * in the second map (in particular, the first element of the set in the map value).
+   * The type of the {@link RexTableInputRef} is made nullable.
+   */
+  public static RexNode swapTableColumnReferencesNullable(final RexBuilder rexBuilder,
+      final RexNode node, final Map<RelTableRef, RelTableRef> tableMapping,
+      final Map<RexTableInputRef, Set<RexTableInputRef>> ec) {
+    RexShuttle visitor =
+        new RexShuttle() {
+          @Override public RexNode visitTableInputRef(RexTableInputRef inputRef) {
+            if (tableMapping != null) {
+              RelTableRef relTableRef = tableMapping.get(inputRef.getTableRef());
+              RelDataType type = relTableRef.getTable().getRowType().getFieldList()
+                .get(inputRef.getIndex()).getType();
+              type = rexBuilder.getTypeFactory().createTypeWithNullability(type, true);
+              inputRef = RexTableInputRef.of(
+                tableMapping.get(inputRef.getTableRef()),
+                inputRef.getIndex(),
+                type);
             }
             if (ec != null) {
               Set<RexTableInputRef> s = ec.get(inputRef);

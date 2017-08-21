@@ -29,6 +29,7 @@ import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.core.Union;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexInputRef;
@@ -185,12 +186,8 @@ public class RelMdExpressionLineage
    */
   public Set<RexNode> getExpressionLineage(Join rel, RelMetadataQuery mq,
       RexNode outputExpression) {
-    if (rel.getJoinType() != JoinRelType.INNER) {
-      // We cannot map origin of this expression.
-      return null;
-    }
-
     final RexBuilder rexBuilder = rel.getCluster().getRexBuilder();
+    final RelDataTypeFactory typeFactory = rexBuilder.getTypeFactory();
     final RelNode leftInput = rel.getLeft();
     final RelNode rightInput = rel.getRight();
     final int nLeftColumns = leftInput.getRowType().getFieldList().size();
@@ -201,7 +198,14 @@ public class RelMdExpressionLineage
     final Map<RexInputRef, Set<RexNode>> mapping = new LinkedHashMap<>();
     for (int idx = 0; idx < rel.getRowType().getFieldList().size(); idx++) {
       if (idx < nLeftColumns) {
-        final RexInputRef inputRef = RexInputRef.of(idx, leftInput.getRowType().getFieldList());
+        final boolean makeNullable = rel.getJoinType() != JoinRelType.INNER
+          && rel.getJoinType() != JoinRelType.LEFT;
+        final RexInputRef inputRef;
+        if (makeNullable) {
+          inputRef = RexInputRef.ofNullable(typeFactory, idx, leftInput.getRowType());
+        } else {
+          inputRef = RexInputRef.of(idx, leftInput.getRowType());
+        }
         final Set<RexNode> originalExprs = mq.getExpressionLineage(leftInput, inputRef);
         if (originalExprs == null) {
           // Bail out
@@ -213,11 +217,22 @@ public class RelMdExpressionLineage
         for (RelTableRef leftRef : tableRefs) {
           qualifiedNamesToRefs.put(leftRef.getQualifiedName(), leftRef);
         }
-        mapping.put(RexInputRef.of(idx, rel.getRowType().getFieldList()), originalExprs);
+        if (makeNullable) {
+          mapping.put(RexInputRef.ofNullable(typeFactory, idx, rel.getRowType()), originalExprs);
+        } else {
+          mapping.put(RexInputRef.of(idx, rel.getRowType().getFieldList()), originalExprs);
+        }
       } else {
         // Right input.
-        final RexInputRef inputRef = RexInputRef.of(idx - nLeftColumns,
-                rightInput.getRowType().getFieldList());
+        final boolean makeNullable = rel.getJoinType() != JoinRelType.INNER
+          && rel.getJoinType() != JoinRelType.RIGHT;
+        final RexInputRef inputRef;
+        int refIdx = idx - nLeftColumns;
+        if (makeNullable) {
+          inputRef = RexInputRef.ofNullable(typeFactory, refIdx, rightInput.getRowType());
+        } else {
+          inputRef = RexInputRef.of(refIdx, rightInput.getRowType().getFieldList());
+        }
         final Set<RexNode> originalExprs = mq.getExpressionLineage(rightInput, inputRef);
         if (originalExprs == null) {
           // Bail out
@@ -242,11 +257,21 @@ public class RelMdExpressionLineage
                 originalExprs,
                 new Function<RexNode, RexNode>() {
                   @Override public RexNode apply(RexNode e) {
-                    return RexUtil.swapTableReferences(rexBuilder, e, currentTablesMapping);
+                    if (makeNullable) {
+                      return RexUtil.swapTableReferencesNullable(
+                        rexBuilder, e, currentTablesMapping);
+                    } else {
+                      return RexUtil.swapTableReferences(rexBuilder, e, currentTablesMapping);
+                    }
                   }
                 }
           ));
-        mapping.put(RexInputRef.of(idx, rel.getRowType().getFieldList()), updatedExprs);
+        if (makeNullable) {
+          mapping.put(
+            RexInputRef.ofNullable(typeFactory, idx, rel.getRowType()), updatedExprs);
+        } else {
+          mapping.put(RexInputRef.of(idx, rel.getRowType().getFieldList()), updatedExprs);
+        }
       }
     }
 

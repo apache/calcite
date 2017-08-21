@@ -160,6 +160,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
   private static final double DEPT_SIZE = 4d;
 
   private static final List<String> EMP_QNAME = ImmutableList.of("CATALOG", "SALES", "EMP");
+  private static final List<String> DEPT_QNAME = ImmutableList.of("CATALOG", "SALES", "DEPT");
 
   //~ Methods ----------------------------------------------------------------
 
@@ -1651,11 +1652,16 @@ public class RelMetadataTest extends SqlToRelTestBase {
     // lineage cannot be determined
     final RelNode rel = convertSql("select name as dname from emp left outer join dept"
         + " on emp.deptno = dept.deptno");
+    final RelNode tableRel = convertSql("select * from dept");
     final RelMetadataQuery mq = RelMetadataQuery.instance();
 
     final RexNode ref = RexInputRef.of(0, rel.getRowType().getFieldList());
     final Set<RexNode> r = mq.getExpressionLineage(rel, ref);
-    assertNull(r);
+    final String inputRef = RexInputRef.of(1, tableRel.getRowType().getFieldList()).toString();
+    assertThat(r.size(), is(1));
+    final String resultString = r.iterator().next().toString();
+    assertThat(resultString, startsWith(DEPT_QNAME.toString()));
+    assertThat(resultString, endsWith(inputRef));
   }
 
   @Test public void testExpressionLineageFilter() {
@@ -1854,6 +1860,32 @@ public class RelMetadataTest extends SqlToRelTestBase {
     assertThat(inputRef1.getIndex(), is(0));
     final RexLiteral constant = (RexLiteral) call.getOperands().get(1);
     assertThat(constant.toString(), is("5"));
+  }
+
+  @Test public void testAllPredicatesLeftJoin1() {
+    final String sql = "select e.empno, d.name from emp e left join dept d on e.deptno = d.deptno";
+    final RelNode rel = convertSql(sql);
+    final RelMetadataQuery mq = RelMetadataQuery.instance();
+    RelOptPredicateList inputSet = mq.getAllPredicates(rel);
+    ImmutableList<RexNode> pulledUpPredicates = inputSet.pulledUpPredicates;
+    assertThat(pulledUpPredicates.size(), is(1));
+    RexCall call = (RexCall) pulledUpPredicates.get(0);
+    assertThat(call.getOperands().size(), is(2));
+
+    final RexCall isNullCall = (RexCall) call.getOperands().get(0);
+    final RexTableInputRef inputRef0 = (RexTableInputRef) isNullCall.getOperands().get(0);
+    assertTrue(inputRef0.getQualifiedName().equals(DEPT_QNAME));
+    assertThat(inputRef0.getIndex(), is(0));
+
+    final RexCall eqCall = (RexCall) call.getOperands().get(1);
+
+    final RexTableInputRef inputRef1 = (RexTableInputRef) eqCall.getOperands().get(0);
+    assertTrue(inputRef1.getQualifiedName().equals(EMP_QNAME));
+    assertThat(inputRef1.getIndex(), is(7));
+    final RexTableInputRef inputRef2 = (RexTableInputRef) eqCall.getOperands().get(1);
+    assertTrue(inputRef2.getQualifiedName().equals(DEPT_QNAME));
+    assertThat(inputRef2.getIndex(), is(0));
+    assertThat(inputRef2.getType().isNullable(), is(true));
   }
 
   @Test public void testAllPredicatesAggregate2() {

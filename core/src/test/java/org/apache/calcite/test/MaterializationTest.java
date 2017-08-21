@@ -1690,6 +1690,37 @@ public class MaterializationTest {
           "expr#5=[10], expr#6=[>($t0, $t5)], expr#7=[30], expr#8=[<=($t0, $t7)]"));
   }
 
+  @Test public void testJoinMaterialization11() {
+    checkMaterialize(
+      "select \"empid\" \"deptno\" from \"emps\"\n"
+              + "left join \"depts\" using (\"deptno\")",
+      "select \"empid\" \"deptno\" from \"emps\"\n"
+              + "left join \"depts\" using (\"deptno\") where \"empid\" = 1",
+      HR_FKUK_MODEL,
+      CalciteAssert.checkResultContains(
+          "EnumerableCalc(expr#0=[{inputs}], expr#1=[CAST($t0):INTEGER NOT NULL], expr#2=[1], "
+                + "expr#3=[=($t1, $t2)], deptno=[$t0], $condition=[$t3])\n"
+                + "  EnumerableTableScan(table=[[hr, m0]])"));
+  }
+
+  @Test public void testJoinMaterialization12() {
+    checkMaterialize(
+      "select \"depts\".\"deptno\", \"dependents\".\"empid\"\n"
+              + "from \"depts\"\n"
+              + "left join \"dependents\" on (\"depts\".\"name\" = \"dependents\".\"name\")\n"
+              + "left join \"emps\" on (\"emps\".\"deptno\" = \"depts\".\"deptno\")",
+      "select \"dependents\".\"empid\"\n"
+              + "from \"depts\"\n"
+              + "left join \"dependents\" on (\"depts\".\"name\" = \"dependents\".\"name\")\n"
+              + "left join \"emps\" on (\"emps\".\"deptno\" = \"depts\".\"deptno\")\n"
+              + "where \"dependents\".\"empid\" = 1",
+      HR_FKUK_MODEL,
+      CalciteAssert.checkResultContains(
+          "EnumerableCalc(expr#0..1=[{inputs}], expr#2=[CAST($t1):INTEGER], expr#3=[1], "
+                  + "expr#4=[=($t2, $t3)], empid=[$t1], $condition=[$t4])\n"
+                  + "  EnumerableTableScan(table=[[hr, m0]])"));
+  }
+
   @Test public void testJoinMaterializationUKFK1() {
     checkMaterialize(
       "select \"a\".\"empid\" \"deptno\" from\n"

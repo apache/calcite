@@ -30,13 +30,16 @@ import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.core.Union;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexTableInputRef;
 import org.apache.calcite.rex.RexTableInputRef.RelTableRef;
 import org.apache.calcite.rex.RexUtil;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Util;
@@ -47,6 +50,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -157,8 +161,12 @@ public class RelMdAllPredicates
    */
   public RelOptPredicateList getAllPredicates(Join join, RelMetadataQuery mq) {
     if (join.getJoinType() != JoinRelType.INNER) {
-      // We cannot map origin of this expression.
-      return null;
+      final RexNode pred = join.getCondition();
+      // TODO: for now we only support equals predicates on non-inner joins
+      if (pred instanceof RexCall && ((RexCall) pred).op != SqlStdOperatorTable.EQUALS) {
+        // We cannot map origin of this expression.
+        return null;
+      }
     }
 
     final RexBuilder rexBuilder = join.getCluster().getRexBuilder();
@@ -219,23 +227,78 @@ public class RelMdAllPredicates
     pred.accept(inputFinder);
     final ImmutableBitSet inputFieldsUsed = inputFinder.inputBitSet.build();
 
-    // Infer column origin expressions for given references
-    final Map<RexInputRef, Set<RexNode>> mapping = new LinkedHashMap<>();
-    for (int idx : inputFieldsUsed) {
-      final RexInputRef inputRef = RexInputRef.of(idx, join.getRowType().getFieldList());
-      final Set<RexNode> originalExprs = mq.getExpressionLineage(join, inputRef);
-      if (originalExprs == null) {
-        // Bail out
-        return null;
-      }
-      final RexInputRef ref = RexInputRef.of(idx, join.getRowType().getFieldList());
-      mapping.put(ref, originalExprs);
-    }
+    if (join.getJoinType() != JoinRelType.INNER) {
+      final RelDataTypeFactory typeFactory = rexBuilder.getTypeFactory();
+      final RelNode leftInput = join.getLeft();
+      final int nLeftColumns = leftInput.getRowType().getFieldList().size();
+      final List<RexNode> orNullPredicates = new ArrayList<>();
 
-    // Replace with new expressions and return union of predicates
-    return newPreds.union(rexBuilder,
-        RelOptPredicateList.of(rexBuilder,
-            RelMdExpressionLineage.createAllPossibleExpressions(rexBuilder, pred, mapping)));
+      // Infer column origin expressions for given references
+      final Map<RexInputRef, Set<RexNode>> mapping = new LinkedHashMap<>();
+      for (int idx : inputFieldsUsed) {
+        final RexInputRef inputRef = RexInputRef.of(idx, join.getRowType().getFieldList());
+        final Set<RexNode> originalExprs = mq.getExpressionLineage(join, inputRef);
+        if (originalExprs == null) {
+          // Bail out
+          return null;
+        }
+
+        boolean makeNullable = false;
+        if (idx < nLeftColumns) {
+          if (join.getJoinType() != JoinRelType.LEFT) {
+            makeNullable = true;
+            orNullPredicates.add(
+                rexBuilder.makeCall(SqlStdOperatorTable.IS_NULL, originalExprs.iterator().next()));
+          }
+        } else {
+          if (join.getJoinType() != JoinRelType.RIGHT) {
+            makeNullable = true;
+            orNullPredicates.add(
+                rexBuilder.makeCall(SqlStdOperatorTable.IS_NULL, originalExprs.iterator().next()));
+          }
+        }
+
+        if (makeNullable) {
+          mapping.put(RexInputRef.ofNullable(typeFactory, idx, join.getRowType()), originalExprs);
+        } else {
+          mapping.put(RexInputRef.of(idx, join.getRowType()), originalExprs);
+        }
+      }
+
+      // Add empty placeholder
+      orNullPredicates.add(null);
+
+      Set<RexNode> allPossibleExpressions =
+              RelMdExpressionLineage.createAllPossibleExpressions(rexBuilder, pred, mapping);
+      List<RexNode> predList = new ArrayList<>(allPossibleExpressions.size());
+      for (RexNode node : allPossibleExpressions) {
+        // fill placeholder with current possible expression
+        orNullPredicates.set(orNullPredicates.size() - 1, node);
+        RexNode orNode = rexBuilder.makeCall(SqlStdOperatorTable.OR, orNullPredicates);
+        predList.add(orNode);
+      }
+
+      // Replace with new expressions and return union of predicates
+      return newPreds.union(rexBuilder, RelOptPredicateList.of(rexBuilder, predList));
+    } else {
+      // Infer column origin expressions for given references
+      final Map<RexInputRef, Set<RexNode>> mapping = new LinkedHashMap<>();
+      for (int idx : inputFieldsUsed) {
+        final RexInputRef inputRef = RexInputRef.of(idx, join.getRowType().getFieldList());
+        final Set<RexNode> originalExprs = mq.getExpressionLineage(join, inputRef);
+        if (originalExprs == null) {
+          // Bail out
+          return null;
+        }
+        final RexInputRef ref = RexInputRef.of(idx, join.getRowType().getFieldList());
+        mapping.put(ref, originalExprs);
+      }
+
+      // Replace with new expressions and return union of predicates
+      return newPreds.union(rexBuilder,
+          RelOptPredicateList.of(rexBuilder,
+              RelMdExpressionLineage.createAllPossibleExpressions(rexBuilder, pred, mapping)));
+    }
   }
 
   /**
