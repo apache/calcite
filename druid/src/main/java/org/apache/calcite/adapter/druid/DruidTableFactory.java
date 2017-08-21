@@ -120,13 +120,6 @@ public class DruidTableFactory implements TableFactory {
         }
       }
     }
-    final String dataSourceName = Util.first(dataSource, name);
-    DruidConnectionImpl c;
-    if (dimensionsRaw == null || metricsRaw == null) {
-      c = new DruidConnectionImpl(druidSchema.url, druidSchema.url.replace(":8082", ":8081"));
-    } else {
-      c = null;
-    }
     final Object interval = operand.get("interval");
     final List<LocalInterval> intervals;
     if (interval instanceof String) {
@@ -134,10 +127,19 @@ public class DruidTableFactory implements TableFactory {
     } else {
       intervals = null;
     }
-    return DruidTable.create(druidSchema, dataSourceName, intervals,
-        fieldBuilder, metricNameBuilder, timestampColumnName, c, complexMetrics);
-  }
 
+    final String dataSourceName = Util.first(dataSource, name);
+
+    if (dimensionsRaw == null || metricsRaw == null) {
+      DruidConnectionImpl connection = new DruidConnectionImpl(druidSchema.url,
+              druidSchema.url.replace(":8082", ":8081"));
+      return DruidTable.create(druidSchema, dataSourceName, intervals, fieldBuilder,
+              metricNameBuilder, timestampColumnName, connection, complexMetrics);
+    } else {
+      return DruidTable.create(druidSchema, dataSourceName, intervals, fieldBuilder,
+              metricNameBuilder, timestampColumnName, complexMetrics);
+    }
+  }
 }
 
 // End DruidTableFactory.java
