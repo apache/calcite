@@ -17,11 +17,13 @@
 package org.apache.calcite.test;
 
 import org.apache.calcite.adapter.druid.DruidQuery;
+import org.apache.calcite.adapter.druid.DruidSchema;
 import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.config.CalciteConnectionProperty;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.schema.impl.AbstractSchema;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.tools.RelBuilder;
@@ -3183,6 +3185,14 @@ public class DruidAdapterIT {
               + ":true},'context':{'druid.query.fetch':true}}"));
   }
 
+  /**
+   * Test to make sure that the mapping from a Table name to a Table returned from
+   * {@link org.apache.calcite.adapter.druid.DruidSchema} is always the same Java object.
+   * */
+  @Test public void testTableMapReused() {
+    AbstractSchema schema = new DruidSchema("http://localhost:8082", "http://localhost:8081", true);
+    assert schema.getTable("wikiticker") == schema.getTable("wikiticker");
+  }
 }
 
 // End DruidAdapterIT.java

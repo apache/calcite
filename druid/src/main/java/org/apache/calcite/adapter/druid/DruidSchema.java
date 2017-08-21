@@ -42,6 +42,7 @@ public class DruidSchema extends AbstractSchema {
   final String url;
   final String coordinatorUrl;
   private final boolean discoverTables;
+  private Map<String, Table> tableMap = null;
 
   /**
    * Creates a Druid schema.
@@ -63,23 +64,31 @@ public class DruidSchema extends AbstractSchema {
     if (!discoverTables) {
       return ImmutableMap.of();
     }
-    final DruidConnectionImpl connection =
-        new DruidConnectionImpl(url, coordinatorUrl);
-    return Compatible.INSTANCE.asMap(
-        ImmutableSet.copyOf(connection.tableNames()),
-        CacheBuilder.newBuilder()
-            .build(new CacheLoader<String, Table>() {
-              public Table load(@Nonnull String tableName) throws Exception {
-                final Map<String, SqlTypeName> fieldMap = new LinkedHashMap<>();
-                final Set<String> metricNameSet = new LinkedHashSet<>();
-                final Map<String, List<ComplexMetric>> complexMetrics = new HashMap<>();
-                connection.metadata(tableName, DruidTable.DEFAULT_TIMESTAMP_COLUMN,
-                    null, fieldMap, metricNameSet, complexMetrics);
-                return DruidTable.create(DruidSchema.this, tableName, null,
-                    fieldMap, metricNameSet, DruidTable.DEFAULT_TIMESTAMP_COLUMN, connection,
-                    complexMetrics);
-              }
-            }));
+
+    if (tableMap == null) {
+      final DruidConnectionImpl connection = new DruidConnectionImpl(url, coordinatorUrl);
+      Set<String> tableNames = connection.tableNames();
+
+      tableMap = Compatible.INSTANCE.asMap(
+              ImmutableSet.copyOf(tableNames),
+              CacheBuilder.newBuilder()
+                .build(new CacheLoader<String, Table>() {
+                  @Override public Table load(@Nonnull String tableName) throws Exception {
+                    final Map<String, SqlTypeName> fieldMap = new LinkedHashMap<>();
+                    final Set<String> metricNameSet = new LinkedHashSet<>();
+                    final Map<String, List<ComplexMetric>> complexMetrics = new HashMap<>();
+
+                    connection.metadata(tableName, DruidTable.DEFAULT_TIMESTAMP_COLUMN,
+                            null, fieldMap, metricNameSet, complexMetrics);
+
+                    return DruidTable.create(DruidSchema.this, tableName, null,
+                            fieldMap, metricNameSet, DruidTable.DEFAULT_TIMESTAMP_COLUMN,
+                            connection, complexMetrics);
+                  }
+                }));
+    }
+
+    return tableMap;
   }
 }
 
