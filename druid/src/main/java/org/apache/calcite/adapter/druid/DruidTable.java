@@ -101,23 +101,44 @@ public class DruidTable extends AbstractTable implements TranslatableTable {
    * @param metricNameSet Mutable set of metric names;
    *        may be partially populated already
    * @param timestampColumnName Name of timestamp column, or null
-   * @param connection If not null, use this connection to find column
-   *                   definitions
+   * @param connection connection used to find column definitions. Must be non-null.
+   *
    * @return A table
    */
   static Table create(DruidSchema druidSchema, String dataSourceName,
       List<LocalInterval> intervals, Map<String, SqlTypeName> fieldMap,
       Set<String> metricNameSet, String timestampColumnName,
       DruidConnectionImpl connection, Map<String, List<ComplexMetric>> complexMetrics) {
-    if (connection != null) {
-      connection.metadata(dataSourceName, timestampColumnName, intervals,
-                          fieldMap, metricNameSet, complexMetrics);
-    }
+    assert connection != null;
+
+    connection.metadata(dataSourceName, timestampColumnName, intervals,
+            fieldMap, metricNameSet, complexMetrics);
+
+    return DruidTable.create(druidSchema, dataSourceName, intervals, fieldMap,
+            metricNameSet, timestampColumnName, complexMetrics);
+  }
+
+  /** Creates a {@link DruidTable}
+   *
+   * @param druidSchema Druid schema
+   * @param dataSourceName Data source name in Druid, also table name
+   * @param intervals Intervals, or null to use default
+   * @param fieldMap Mutable map of fields (dimensions plus metrics);
+   *        may be partially populated already
+   * @param metricNameSet Mutable set of metric names;
+   *        may be partially populated already
+   * @param timestampColumnName Name of timestamp column, or null
+   * @return A table
+   */
+  static Table create(DruidSchema druidSchema, String dataSourceName,
+                      List<LocalInterval> intervals, Map<String, SqlTypeName> fieldMap,
+                      Set<String> metricNameSet, String timestampColumnName,
+                      Map<String, List<ComplexMetric>> complexMetrics) {
     final ImmutableMap<String, SqlTypeName> fields =
-        ImmutableMap.copyOf(fieldMap);
+            ImmutableMap.copyOf(fieldMap);
     return new DruidTable(druidSchema, dataSourceName,
-        new MapRelProtoDataType(fields), ImmutableSet.copyOf(metricNameSet),
-        timestampColumnName, intervals, complexMetrics, fieldMap);
+            new MapRelProtoDataType(fields), ImmutableSet.copyOf(metricNameSet),
+            timestampColumnName, intervals, complexMetrics, fieldMap);
   }
 
   /**
