@@ -26,13 +26,8 @@ limitations under the License.
 
 # Upcoming talks
 
-* 2017/04/04 [Apex Big Data World 2017](http://www.apexbigdata.com/mountain-view.html) (Mountain View, USA)
-  * [Streaming SQL](http://www.apexbigdata.com/platform-track-2.html) &mdash; Julian Hyde
-* 2017/05/16&ndash;18 [Apache: Big Data North America 2017](http://events.linuxfoundation.org/events/apache-big-data-north-america) (Miami, USA)
-  * [Data Profiling in Apache Calcite](https://apachebigdata2017.sched.com/event/A00j) &mdash; Julian Hyde
-  * [A Smarter Pig](https://apachebigdata2017.sched.com/event/A02J) &mdash; Eli Levine and Julian Hyde
-* 2017/06/13&ndash;15 [DataWorks Summit 2017](https://dataworkssummit.com/san-jose-2017/) (San Jose, USA)
-  * [Data Profiling in Apache Calcite](https://dataworkssummit.com/san-jose-2017/agenda/) &mdash; Julian Hyde
+* 2017/10/30&ndash;31 [DataEngConf NYC](http://www.dataengconf.com/) (New York City, USA)
+  * Don't optimize my queries, optimimze my data! (Julian Hyde)
 
 # Project Members
 
