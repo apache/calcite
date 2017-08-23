@@ -50,6 +50,7 @@ import org.apache.calcite.sql.SqlDynamicParam;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlIdentifier;
+import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.SqlJoin;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlLiteral;
@@ -65,6 +66,7 @@ import org.apache.calcite.sql.fun.SqlCase;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.fun.SqlSumEmptyIsZeroAggFunction;
 import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.parser.SqlParserUtil;
 import org.apache.calcite.sql.type.BasicSqlType;
 import org.apache.calcite.sql.type.InferTypes;
 import org.apache.calcite.sql.type.OperandTypes;
@@ -581,6 +583,18 @@ public abstract class SqlImplementor {
             return SqlLiteral.createNull(POS);
           // fall through
           }
+        case INTERVAL_YEAR_MONTH:
+          String intervalStr = SqlParserUtil.monthsToInterval(literal);
+          SqlIntervalQualifier intervalQualifier =
+            literal.getType().getIntervalQualifier();
+          int sign = intervalQualifier.getIntervalSign(
+              literal.getValueAs(BigDecimal.class).toString());
+          return SqlLiteral.createInterval(sign, intervalStr, intervalQualifier, POS);
+        case INTERVAL_DAY_TIME:
+          intervalStr = SqlParserUtil.millisToInterval(literal);
+          intervalQualifier = literal.getType().getIntervalQualifier();
+          sign = intervalQualifier.getIntervalSign(literal.getValueAs(BigDecimal.class).toString());
+          return SqlLiteral.createInterval(sign, intervalStr, intervalQualifier, POS);
         default:
           throw new AssertionError(literal + ": " + literal.getTypeName());
         }

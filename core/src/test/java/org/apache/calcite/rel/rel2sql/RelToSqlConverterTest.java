@@ -699,6 +699,23 @@ public class RelToSqlConverterTest {
     checkLiteral("123");
     checkLiteral("123.45");
     checkLiteral("-123.45");
+    checkLiteral("INTERVAL '1-2' YEAR TO MONTH");
+    checkLiteral("INTERVAL '1' YEAR");
+    checkLiteral("INTERVAL '1' MONTH");
+    checkLiteral("INTERVAL '12' DAY");
+    checkLiteral("INTERVAL '1 2' DAY TO HOUR");
+    checkLiteral("INTERVAL '1 2:10' DAY TO MINUTE");
+    checkLiteral("INTERVAL '1 2:34:56' DAY TO SECOND");
+    checkLiteral("INTERVAL '1 2:34:56.789' DAY TO SECOND");
+    checkLiteral("INTERVAL '1' MONTH");
+    checkLiteral("INTERVAL '1:23' HOUR TO MINUTE");
+    checkLiteral("INTERVAL '1:23:45' HOUR TO SECOND");
+    checkLiteral("INTERVAL '1:23:45.678' HOUR TO SECOND");
+    checkLiteral("INTERVAL '12' MINUTE");
+    checkLiteral("INTERVAL '12:34' MINUTE TO SECOND");
+    checkLiteral("INTERVAL '12:34.567' MINUTE TO SECOND");
+    checkLiteral("INTERVAL '12' SECOND");
+    checkLiteral("INTERVAL '12.345' SECOND");
   }
 
   private void checkLiteral(String s) {
@@ -1895,6 +1912,34 @@ public class RelToSqlConverterTest {
         + "PREV(\"DOWN\".\"net_weight\", 1), "
         + "\"UP\" AS \"UP\".\"net_weight\" > "
         + "PREV(\"UP\".\"net_weight\", 1))";
+    sql(sql).ok(expected);
+  }
+
+  @Test public void testMatchRecognizeWithin() {
+    final String sql = "select *\n"
+        + "  from \"employee\" match_recognize\n"
+        + "  (\n"
+        + "   order by \"hire_date\"\n"
+        + "   ALL ROWS PER MATCH\n"
+        + "   pattern (strt down+ up+) within interval '3:12:22.123' hour to second\n"
+        + "   define\n"
+        + "     down as down.\"salary\" < PREV(down.\"salary\"),\n"
+        + "     up as up.\"salary\" > prev(up.\"salary\")\n"
+        + "  ) mr";
+
+    final String expected = "SELECT *\n"
+        + "FROM (SELECT *\n"
+        + "FROM \"foodmart\".\"employee\") "
+        + "MATCH_RECOGNIZE(\n"
+        + "ORDER BY \"hire_date\"\n"
+        + "ALL ROWS PER MATCH\n"
+        + "AFTER MATCH SKIP TO NEXT ROW\n"
+        + "PATTERN (\"STRT\" \"DOWN\" + \"UP\" +) WITHIN INTERVAL '3:12:22.123' HOUR TO SECOND\n"
+        + "DEFINE "
+        + "\"DOWN\" AS \"DOWN\".\"salary\" < "
+        + "PREV(\"DOWN\".\"salary\", 1), "
+        + "\"UP\" AS \"UP\".\"salary\" > "
+        + "PREV(\"UP\".\"salary\", 1))";
     sql(sql).ok(expected);
   }
 

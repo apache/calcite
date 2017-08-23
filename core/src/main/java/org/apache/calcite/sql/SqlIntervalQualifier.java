@@ -37,6 +37,8 @@ import java.util.regex.Pattern;
 
 import static org.apache.calcite.util.Static.RESOURCE;
 
+import static java.math.BigDecimal.ROUND_UNNECESSARY;
+
 /**
  * Represents an INTERVAL qualifier.
  *
@@ -368,7 +370,7 @@ public class SqlIntervalQualifier extends SqlNode {
   /**
    * @return 1 or -1
    */
-  private int getIntervalSign(String value) {
+  public int getIntervalSign(String value) {
     int sign = 1; // positive until proven otherwise
 
     if (!Util.isNullOrEmpty(value)) {
@@ -1192,6 +1194,112 @@ public class SqlIntervalQualifier extends SqlNode {
     default:
       throw invalidValueException(pos, value0);
     }
+  }
+
+  public String convertAsDay(BigDecimal value) {
+    return value.divide(TimeUnit.DAY.multiplier, ROUND_UNNECESSARY).toString();
+  }
+
+  public String convertAsDayToHour(BigDecimal value) {
+    BigDecimal[] result = value.divideAndRemainder(TimeUnit.DAY.multiplier);
+    BigDecimal day = result[0];
+    BigDecimal hour = result[1].divide(TimeUnit.HOUR.multiplier, ROUND_UNNECESSARY);
+    return day + " " + hour;
+  }
+
+  public String convertAsDayToMinute(BigDecimal value) {
+    BigDecimal[] result = value.divideAndRemainder(TimeUnit.DAY.multiplier);
+    BigDecimal day = result[0];
+    result = result[1].divideAndRemainder(TimeUnit.HOUR.multiplier);
+    BigDecimal hour = result[0];
+    BigDecimal minute = result[1].divide(TimeUnit.MINUTE.multiplier, ROUND_UNNECESSARY);
+    return day + " " + hour + ":" + minute;
+  }
+
+  public String convertAsDayToSecond(BigDecimal value) {
+    BigDecimal[] result = value.divideAndRemainder(TimeUnit.DAY.multiplier);
+    BigDecimal day = result[0];
+    result = result[1].divideAndRemainder(TimeUnit.HOUR.multiplier);
+    BigDecimal hour = result[0];
+    result = result[1].divideAndRemainder(TimeUnit.MINUTE.multiplier);
+    BigDecimal minute = result[0];
+    result = result[1].divideAndRemainder(TimeUnit.SECOND.multiplier);
+    BigDecimal second = result[0];
+    if (result[1].compareTo(BigDecimal.ZERO) == 0) {
+      return day + " " + hour + ":" + minute + ":" + second;
+    } else {
+      BigDecimal secondFrac = result[1];
+      return day + " " + hour + ":" + minute + ":" + second + "." + secondFrac;
+    }
+  }
+
+  public String convertAsHour(BigDecimal value) {
+    return value.divide(TimeUnit.HOUR.multiplier, ROUND_UNNECESSARY).toString();
+  }
+
+  public String convertAsHourToMinute(BigDecimal value) {
+    BigDecimal[] result = value.divideAndRemainder(TimeUnit.HOUR.multiplier);
+    BigDecimal hour = result[0];
+    BigDecimal minute = result[1].divide(TimeUnit.MINUTE.multiplier, ROUND_UNNECESSARY);
+    return hour + ":" + minute;
+  }
+
+  public String convertAsHourToSecond(BigDecimal value) {
+    BigDecimal[] result = value.divideAndRemainder(TimeUnit.HOUR.multiplier);
+    BigDecimal hour = result[0];
+    result = result[1].divideAndRemainder(TimeUnit.MINUTE.multiplier);
+    BigDecimal minute = result[0];
+    result = result[1].divideAndRemainder(TimeUnit.SECOND.multiplier);
+    BigDecimal second = result[0];
+    if (result[1].compareTo(BigDecimal.ZERO) == 0) {
+      return hour + ":" + minute + ":" + second;
+    } else {
+      BigDecimal secondFrac = result[1];
+      return hour + ":" + minute + ":" + second + "." + secondFrac;
+    }
+  }
+
+  public String convertAsMinute(BigDecimal value) {
+    return value.divide(TimeUnit.MINUTE.multiplier, ROUND_UNNECESSARY).toString();
+  }
+
+  public String convertAsMinuteToSecond(BigDecimal value) {
+    BigDecimal[] result = value.divideAndRemainder(TimeUnit.MINUTE.multiplier);
+    BigDecimal minute = result[0];
+    result = result[1].divideAndRemainder(TimeUnit.SECOND.multiplier);
+    BigDecimal second = result[0];
+    if (result[1].compareTo(BigDecimal.ZERO) == 0) {
+      return minute + ":" + second;
+    } else {
+      BigDecimal secondFrac = result[1];
+      return minute + ":" + second + "." + secondFrac;
+    }
+  }
+
+  public String convertAsSecond(BigDecimal value) {
+    BigDecimal[] result = value.divideAndRemainder(TimeUnit.SECOND.multiplier);
+    BigDecimal second = result[0];
+    if (result[1].compareTo(BigDecimal.ZERO) == 0) {
+      return second.toString();
+    } else {
+      BigDecimal secondFrac = result[1];
+      return second + "." + secondFrac;
+    }
+  }
+
+  public String convertAsYear(BigDecimal value) {
+    return value.divide(TimeUnit.YEAR.multiplier, ROUND_UNNECESSARY).toString();
+  }
+
+  public String convertAsYearToMonth(BigDecimal value) {
+    BigDecimal[] result = value.divideAndRemainder(TimeUnit.YEAR.multiplier);
+    BigDecimal year = result[0];
+    BigDecimal month = result[1];
+    return year + "-" + month;
+  }
+
+  public String convertAsMonth(BigDecimal value) {
+    return value.toString();
   }
 
   private BigDecimal parseField(Matcher m, int i) {
