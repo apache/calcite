@@ -48,6 +48,7 @@ import java.util.List;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
@@ -3191,7 +3192,7 @@ public class DruidAdapterIT {
    * */
   @Test public void testTableMapReused() {
     AbstractSchema schema = new DruidSchema("http://localhost:8082", "http://localhost:8081", true);
-    assert schema.getTable("wikiticker") == schema.getTable("wikiticker");
+    assertSame(schema.getTable("wikiticker"), schema.getTable("wikiticker"));
   }
 }
 
