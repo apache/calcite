@@ -552,6 +552,17 @@ public class SqlDialect {
     }
   }
 
+  public boolean supportsNestedAggregations() {
+    switch (databaseProduct) {
+    case MYSQL:
+    case VERTICA:
+    case POSTGRESQL:
+      return false;
+    default:
+      return true;
+    }
+  }
+
   /** Returns how NULL values are sorted if an ORDER BY item does not contain
    * NULLS ASCENDING or NULLS DESCENDING. */
   public NullCollation getNullCollation() {
