@@ -2439,6 +2439,18 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).withConfig(convertConfig).convertsTo("${planConverted}");
   }
 
+  /**
+   * Test case for window function and subquery with star
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1944">[CALCITE-1944]</a>
+   */
+  @Test
+  public void testWindowStarInSubQuery() throws Exception {
+    final String sql = "SELECT SUM(n_nationkey) OVER w\n"
+                      + "FROM (SELECT * FROM SALES.NATION) subQry\n"
+                      + "WINDOW w AS (PARTITION BY REGION ORDER BY n_nationkey)";
+    sql(sql).with(getTesterWithDynamicTable()).ok();
+  }
+
   private Tester getExtendedTester() {
     return tester.withCatalogReaderFactory(
       new Function<RelDataTypeFactory, Prepare.CatalogReader>() {
