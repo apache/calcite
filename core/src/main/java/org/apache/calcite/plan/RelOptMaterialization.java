@@ -56,14 +56,14 @@ public class RelOptMaterialization {
   public final RelNode tableRel;
   public final RelOptTable starRelOptTable;
   public final StarTable starTable;
-  public final RelOptTable table;
+  public final List<String> qualifiedTableName;
   public final RelNode queryRel;
 
   /**
    * Creates a RelOptMaterialization.
    */
   public RelOptMaterialization(RelNode tableRel, RelNode queryRel,
-      RelOptTable starRelOptTable) {
+      RelOptTable starRelOptTable, List<String> qualifiedTableName) {
     this.tableRel =
         RelOptUtil.createCastRel(tableRel, queryRel.getRowType(), false);
     this.starRelOptTable = starRelOptTable;
@@ -73,7 +73,7 @@ public class RelOptMaterialization {
       this.starTable = starRelOptTable.unwrap(StarTable.class);
       assert starTable != null;
     }
-    this.table = tableRel.getTable();
+    this.qualifiedTableName = qualifiedTableName;
     this.queryRel = queryRel;
   }
 

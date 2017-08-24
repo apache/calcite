@@ -143,10 +143,12 @@ public abstract class Prepare {
 
     final List<RelOptMaterialization> materializationList = new ArrayList<>();
     for (Materialization materialization : materializations) {
+      List<String> qualifiedTableName = materialization.materializedTable.path();
       materializationList.add(
           new RelOptMaterialization(materialization.tableRel,
               materialization.queryRel,
-              materialization.starRelOptTable));
+              materialization.starRelOptTable,
+              qualifiedTableName));
     }
 
     final List<RelOptLattice> latticeList = new ArrayList<>();
