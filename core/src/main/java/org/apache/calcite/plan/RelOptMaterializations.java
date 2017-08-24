@@ -138,9 +138,9 @@ public abstract class RelOptMaterializations {
     final Map<List<String>, RelOptMaterialization> qnameMap = new HashMap<>();
     for (RelOptMaterialization materialization : materializations) {
       // If materialization is a tile in a lattice, we will deal with it shortly.
-      if (materialization.table != null
+      if (materialization.qualifiedTableName != null
           && materialization.starTable == null) {
-        final List<String> qname = materialization.table.getQualifiedName();
+        final List<String> qname = materialization.qualifiedTableName;
         qnameMap.put(qname, materialization);
         for (RelOptTable usedTable
             : RelOptUtil.findTables(materialization.queryRel)) {
@@ -167,7 +167,7 @@ public abstract class RelOptMaterializations {
     for (List<String> qname : TopologicalOrderIterator.of(usesGraph)) {
       RelOptMaterialization materialization = qnameMap.get(qname);
       if (materialization != null
-          && usesTable(materialization.table, queryTablesUsed, frozenGraph)) {
+          && usesTable(materialization.qualifiedTableName, queryTablesUsed, frozenGraph)) {
         applicableMaterializations.add(materialization);
       }
     }
@@ -218,13 +218,13 @@ public abstract class RelOptMaterializations {
    * {@code usedTables}.
    */
   private static boolean usesTable(
-      RelOptTable table,
+      List<String> qualifiedName,
       Set<RelOptTable> usedTables,
       Graphs.FrozenGraph<List<String>, DefaultEdge> usesGraph) {
     for (RelOptTable queryTable : usedTables) {
       if (usesGraph.getShortestPath(
           queryTable.getQualifiedName(),
-          table.getQualifiedName()) != null) {
+              qualifiedName) != null) {
         return true;
       }
     }

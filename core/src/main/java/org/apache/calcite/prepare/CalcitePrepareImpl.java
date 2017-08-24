@@ -742,7 +742,8 @@ public class CalcitePrepareImpl implements CalcitePrepare {
           .setQuotedCasing(config.quotedCasing())
           .setUnquotedCasing(config.unquotedCasing())
           .setQuoting(config.quoting())
-          .setConformance(config.conformance());
+          .setConformance(config.conformance())
+          .setCaseSensitive(config.caseSensitive());
       final SqlParserImplFactory parserFactory =
           config.parserFactory(SqlParserImplFactory.class, null);
       if (parserFactory != null) {

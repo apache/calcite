@@ -126,6 +126,10 @@ public class MaterializationService {
     if (tableEntry == null) {
       tableEntry = schema.getTableBySql(viewSql);
     }
+    if (tableEntry == null) {
+      tableEntry = schema.getTableBasedOnNullaryFunction(suggestedTableName, true);
+    }
+
     RelDataType rowType = null;
     if (tableEntry == null) {
       Table table = tableFactory.createTable(schema, viewSql, viewSchemaPath);
