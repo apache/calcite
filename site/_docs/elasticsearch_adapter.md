@@ -47,7 +47,7 @@ A basic example of a model file is given below:
     {
       "type": "custom",
       "name": "elasticsearch",
-      "factory": "org.apache.calcite.adapter.elasticsearch.ElasticsearchSchemaFactory",
+      "factory": "org.apache.calcite.adapter.elasticsearch2.Elasticsearch2SchemaFactory",
       "operand": {
         "coordinates": "{'127.0.0.1': 9300}",
         "userConfig": "{'bulk.flush.max.actions': 10, 'bulk.flush.max.size.mb': 1}",
@@ -57,6 +57,9 @@ A basic example of a model file is given below:
   ]
 }
 {% endhighlight %}
+
+This adapter is targeted for Elasticsearch 2.x. To use Calcite with Elasticsearch 5.x+ you can use the factory
+of the adapter targeted for Elasticsearch 5.x: `org.apache.calcite.adapter.elasticsearch5.Elasticsearch5SchemaFactory`
 
 Assuming this file is stored as `model.json`, you can connect to
 Elasticsearch via [`sqlline`](https://github.com/julianhyde/sqlline) as
