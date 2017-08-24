@@ -28,15 +28,19 @@ import org.apache.calcite.jdbc.CalciteMetaImpl;
 import org.apache.calcite.jdbc.CalcitePrepare;
 import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.materialize.Lattice;
+import org.apache.calcite.model.ModelHandler;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.runtime.CalciteException;
 import org.apache.calcite.runtime.FlatLists;
+import org.apache.calcite.runtime.GeoFunctions;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.impl.AbstractSchema;
 import org.apache.calcite.schema.impl.ViewTable;
+import org.apache.calcite.schema.impl.ViewTableMacro;
+import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.sql.validate.SqlValidatorException;
 import org.apache.calcite.tools.FrameworkConfig;
 import org.apache.calcite.tools.RelBuilder;
@@ -753,6 +757,17 @@ public class CalciteAssert {
             CalciteAssert.addSchema(rootSchema, SchemaSpec.JDBC_FOODMART);
       }
       return rootSchema.add("foodmart2", new CloneSchema(foodmart));
+    case GEO:
+      ModelHandler.addFunctions(rootSchema, null, ImmutableList.<String>of(),
+          GeoFunctions.class.getName(), "*", true);
+      final SchemaPlus s = rootSchema.add("GEO", new AbstractSchema());
+      ModelHandler.addFunctions(s, "countries", ImmutableList.<String>of(),
+          CountriesTableFunction.class.getName(), null, false);
+      final String sql = "select * from table(\"countries\"(true))";
+      final ViewTableMacro viewMacro = ViewTable.viewMacro(rootSchema, sql,
+          ImmutableList.of("GEO"), ImmutableList.<String>of(), false);
+      s.add("countries", viewMacro);
+      return s;
     case HR:
       return rootSchema.add("hr",
           new ReflectiveSchema(new JdbcTest.HrSchema()));
@@ -863,6 +878,10 @@ public class CalciteAssert {
             SchemaSpec.POST);
       case REGULAR_PLUS_METADATA:
         return with(SchemaSpec.HR, SchemaSpec.REFLECTIVE_FOODMART);
+      case GEO:
+        return with(SchemaSpec.GEO)
+            .with(CalciteConnectionProperty.CONFORMANCE.camelName(),
+                SqlConformanceEnum.LENIENT);
       case LINGUAL:
         return with(SchemaSpec.LINGUAL);
       case JDBC_FOODMART:
@@ -1636,6 +1655,9 @@ public class CalciteAssert {
      * database. */
     FOODMART_CLONE,
 
+    /** Configuration that contains geo-spatial functions. */
+    GEO,
+
     /** Configuration that contains an in-memory clone of the FoodMart
      * database, plus a lattice to enable on-the-fly materializations. */
     JDBC_FOODMART_WITH_LATTICE,
@@ -1761,6 +1783,7 @@ public class CalciteAssert {
     JDBC_FOODMART,
     CLONE_FOODMART,
     JDBC_FOODMART_WITH_LATTICE,
+    GEO,
     HR,
     JDBC_SCOTT,
     SCOTT,

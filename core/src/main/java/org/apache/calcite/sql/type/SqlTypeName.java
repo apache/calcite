@@ -115,7 +115,8 @@ public enum SqlTypeName {
   COLUMN_LIST(PrecScale.NO_NO, false, Types.OTHER + 2,
       SqlTypeFamily.COLUMN_LIST),
   DYNAMIC_STAR(PrecScale.NO_NO | PrecScale.YES_NO | PrecScale.YES_YES, true,
-      Types.JAVA_OBJECT, SqlTypeFamily.ANY);
+      Types.JAVA_OBJECT, SqlTypeFamily.ANY),
+  GEOMETRY(PrecScale.NO_NO, true, ExtraSqlTypes.GEOMETRY, SqlTypeFamily.GEO);
 
   public static final int MAX_DATETIME_PRECISION = 3;
 

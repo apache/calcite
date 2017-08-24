@@ -38,6 +38,9 @@ limitations under the License.
   <!-- Don't complain about field names such as cust_id -->
   <suppress checks=".*Name" files="JdbcExample.java"/>
 
+  <!-- Don't complain about method names in a class full of UDFs -->
+  <suppress checks="MethodName" files="GeoFunctions.java"/>
+
   <!-- Suppress JavadocPackage in the test packages -->
   <suppress checks="JavadocPackage" files="src[/\\]test[/\\]java[/\\]"/>
 

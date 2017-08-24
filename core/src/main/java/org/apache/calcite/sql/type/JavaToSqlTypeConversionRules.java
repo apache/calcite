@@ -17,6 +17,7 @@
 package org.apache.calcite.sql.type;
 
 import org.apache.calcite.avatica.util.ArrayImpl;
+import org.apache.calcite.runtime.GeoFunctions;
 
 import com.google.common.collect.ImmutableMap;
 
@@ -69,6 +70,8 @@ public class JavaToSqlTypeConversionRules {
           .put(Timestamp.class, SqlTypeName.TIMESTAMP)
           .put(Time.class, SqlTypeName.TIME)
           .put(BigDecimal.class, SqlTypeName.DECIMAL)
+
+          .put(GeoFunctions.Geom.class, SqlTypeName.GEOMETRY)
 
           .put(ResultSet.class, SqlTypeName.CURSOR)
           .put(ColumnList.class, SqlTypeName.COLUMN_LIST)

@@ -992,6 +992,24 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         "Binary literal string must contain an even number of hexits");
   }
 
+  /**
+   * Tests whether the GEOMETRY data type is allowed.
+   *
+   * @see SqlConformance#allowGeometry()
+   */
+  @Test public void testGeometry() {
+    final SqlTester lenient =
+        tester.withConformance(SqlConformanceEnum.LENIENT);
+    final SqlTester strict =
+        tester.withConformance(SqlConformanceEnum.STRICT_2003);
+
+    final String err =
+        "Geo-spatial extensions and the GEOMETRY data type are not enabled";
+    sql("select cast(null as geometry) as g from emp")
+        .tester(strict).fails(err)
+        .tester(lenient).sansCarets().ok();
+  }
+
   @Test public void testDateTime() {
     // LOCAL_TIME
     checkExp("LOCALTIME(3)");

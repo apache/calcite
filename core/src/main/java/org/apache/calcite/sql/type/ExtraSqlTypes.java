@@ -42,6 +42,9 @@ public interface ExtraSqlTypes {
   int REF_CURSOR = 2012;
   int TIME_WITH_TIMEZONE = 2013;
   int TIMESTAMP_WITH_TIMEZONE = 2014;
+
+  // From OpenGIS
+  int GEOMETRY = 2015; // TODO: confirm
 }
 
 // End ExtraSqlTypes.java

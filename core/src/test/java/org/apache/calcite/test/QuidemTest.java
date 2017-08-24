@@ -279,6 +279,10 @@ public class QuidemTest {
         return CalciteAssert.that()
             .with(CalciteAssert.Config.FOODMART_CLONE)
             .connect();
+      case "geo":
+        return CalciteAssert.that()
+            .with(CalciteAssert.Config.GEO)
+            .connect();
       case "scott":
         return CalciteAssert.that()
             .with(CalciteAssert.Config.SCOTT)

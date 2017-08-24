@@ -161,6 +161,9 @@ public class SqlTypeAssignmentRules {
     // Timestamp is assignable from ...
     rules.put(SqlTypeName.TIMESTAMP, EnumSet.of(SqlTypeName.TIMESTAMP));
 
+    // Geometry is assignable from ...
+    rules.put(SqlTypeName.GEOMETRY, EnumSet.of(SqlTypeName.GEOMETRY));
+
     // Array is assignable from ...
     rules.put(SqlTypeName.ARRAY, EnumSet.of(SqlTypeName.ARRAY));
 

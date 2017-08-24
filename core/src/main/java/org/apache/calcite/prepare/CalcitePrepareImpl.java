@@ -124,6 +124,7 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.parser.SqlParserImplFactory;
+import org.apache.calcite.sql.type.ExtraSqlTypes;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.util.ChainedSqlOperatorTable;
 import org.apache.calcite.sql.validate.SqlConformance;
@@ -922,7 +923,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
       assert rep != null;
       return ColumnMetaData.array(componentType, typeName, rep);
     } else {
-      final int typeOrdinal = getTypeOrdinal(type);
+      int typeOrdinal = getTypeOrdinal(type);
       switch (typeOrdinal) {
       case Types.STRUCT:
         final List<ColumnMetaData> columns = new ArrayList<>();
@@ -932,6 +933,9 @@ public class CalcitePrepareImpl implements CalcitePrepare {
                   field.getType(), null, null));
         }
         return ColumnMetaData.struct(columns);
+      case ExtraSqlTypes.GEOMETRY:
+        typeOrdinal = Types.VARCHAR;
+        // fall through
       default:
         final Type clazz =
             typeFactory.getJavaClass(Util.first(fieldType, type));

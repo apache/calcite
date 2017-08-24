@@ -24,6 +24,7 @@
 - title: Advanced
   docs:
   - adapter
+  - spatial
   - stream
   - lattice
 

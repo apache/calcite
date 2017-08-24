@@ -55,6 +55,9 @@ public interface CalciteResource {
   @BaseMessage("BETWEEN operator has no terminating AND")
   ExInst<SqlValidatorException> betweenWithoutAnd();
 
+  @BaseMessage("Geo-spatial extensions and the GEOMETRY data type are not enabled")
+  ExInst<SqlValidatorException> geometryDisabled();
+
   @BaseMessage("Illegal INTERVAL literal {0}; at {1}")
   @Property(name = "SQLSTATE", value = "42000")
   ExInst<CalciteException> illegalIntervalLiteral(String a0, String a1);

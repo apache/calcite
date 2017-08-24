@@ -228,6 +228,17 @@ public enum SqlConformanceEnum implements SqlConformance {
       return false;
     }
   }
+
+  public boolean allowGeometry() {
+    switch (this) {
+    case LENIENT:
+    case MYSQL_5:
+    case SQL_SERVER_2008:
+      return true;
+    default:
+      return false;
+    }
+  }
 }
 
 // End SqlConformanceEnum.java

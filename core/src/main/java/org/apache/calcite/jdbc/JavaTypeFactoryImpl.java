@@ -27,6 +27,7 @@ import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rel.type.RelDataTypeFieldImpl;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rel.type.RelRecordType;
+import org.apache.calcite.runtime.GeoFunctions;
 import org.apache.calcite.runtime.Unit;
 import org.apache.calcite.sql.type.BasicSqlType;
 import org.apache.calcite.sql.type.IntervalSqlType;
@@ -209,6 +210,8 @@ public class JavaTypeFactoryImpl
       case BINARY:
       case VARBINARY:
         return ByteString.class;
+      case GEOMETRY:
+        return GeoFunctions.Geom.class;
       case ANY:
         return Object.class;
       }

@@ -66,7 +66,8 @@ public enum SqlTypeFamily implements RelDataTypeFamily {
   NULL,
   ANY,
   CURSOR,
-  COLUMN_LIST;
+  COLUMN_LIST,
+  GEO;
 
   private static final Map<Integer, SqlTypeFamily> JDBC_TYPE_TO_FAMILY =
       ImmutableMap.<Integer, SqlTypeFamily>builder()
@@ -150,6 +151,8 @@ public enum SqlTypeFamily implements RelDataTypeFamily {
       return SqlTypeName.DATETIME_TYPES;
     case DATETIME_INTERVAL:
       return SqlTypeName.INTERVAL_TYPES;
+    case GEO:
+      return ImmutableList.of(SqlTypeName.GEOMETRY);
     case MULTISET:
       return ImmutableList.of(SqlTypeName.MULTISET);
     case ARRAY:

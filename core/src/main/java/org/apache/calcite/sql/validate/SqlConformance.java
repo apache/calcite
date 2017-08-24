@@ -294,8 +294,18 @@ public interface SqlConformance {
    * {@link SqlConformanceEnum#MYSQL_5};
    * false otherwise.
    */
-
   boolean isLimitStartCountAllowed();
+
+  /**
+   * Whether to allow geo-spatial extensions, including the GEOMETRY type.
+   *
+   * <p>Among the built-in conformance levels, true in
+   * {@link SqlConformanceEnum#LENIENT},
+   * {@link SqlConformanceEnum#MYSQL_5},
+   * {@link SqlConformanceEnum#SQL_SERVER_2008};
+   * false otherwise.
+   */
+  boolean allowGeometry();
 }
 
 // End SqlConformance.java

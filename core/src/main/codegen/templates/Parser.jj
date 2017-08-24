@@ -4363,7 +4363,7 @@ SqlIdentifier TypeName() :
     }
 }
 
-// Types used for for JDBC and ODBC scalar conversion function
+// Types used for JDBC and ODBC scalar conversion function
 SqlTypeName SqlTypeName(Span s) :
 {
 }
@@ -4382,6 +4382,13 @@ SqlTypeName SqlTypeName(Span s) :
     <TIME> { return SqlTypeName.TIME; }
 |
     <TIMESTAMP> { return SqlTypeName.TIMESTAMP; }
+|
+    <GEOMETRY> {
+        if (!this.conformance.allowGeometry()) {
+            throw new ParseException(RESOURCE.geometryDisabled().str());
+        }
+        return SqlTypeName.GEOMETRY;
+    }
 |
     (<DECIMAL> | <DEC> | <NUMERIC>) { return SqlTypeName.DECIMAL; }
 |
@@ -5564,6 +5571,7 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < G: "G" >
 |   < GENERAL: "GENERAL" >
 |   < GENERATED: "GENERATED" >
+|   < GEOMETRY: "GEOMETRY" >
 |   < GET: "GET" >
 |   < GLOBAL: "GLOBAL" >
 |   < GO: "GO" >
@@ -6105,6 +6113,7 @@ String CommonNonReservedKeyWord() :
     |   <G>
     |   <GENERAL>
     |   <GENERATED>
+    |   <GEOMETRY>
     |   <GO>
     |   <GOTO>
     |   <GRANTED>

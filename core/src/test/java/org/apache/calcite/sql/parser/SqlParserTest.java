@@ -6710,6 +6710,13 @@ public class SqlParserTest {
         "(?s)Encountered \"to\".*");
   }
 
+  @Test public void testGeometry() {
+    checkExpFails("cast(null as geometry)",
+        "Geo-spatial extensions and the GEOMETRY data type are not enabled");
+    conformance = SqlConformanceEnum.LENIENT;
+    checkExp("cast(null as geometry)", "CAST(NULL AS GEOMETRY)");
+  }
+
   @Test public void testIntervalArithmetics() {
     checkExp(
         "TIME '23:59:59' - interval '1' hour ",

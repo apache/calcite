@@ -54,6 +54,7 @@ import java.util.ArrayDeque;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import javax.sql.DataSource;
 
@@ -86,9 +87,29 @@ public class ModelHandler {
     visit(root);
   }
 
-  /** Creates and validates a ScalarFunctionImpl. */
+  /** @deprecated Use {@link #addFunctions}. */
+  @Deprecated
   public static void create(SchemaPlus schema, String functionName,
       List<String> path, String className, String methodName) {
+    addFunctions(schema, functionName, path, className, methodName, false);
+  }
+
+  /** Creates and validates a {@link ScalarFunctionImpl}, and adds it to a
+   * schema. If {@code methodName} is "*", may add more than one function.
+   *
+   * @param schema Schema to add to
+   * @param functionName Name of function; null to derived from method name
+   * @param path Path to look for functions
+   * @param className Class to inspect for methods that may be user-defined
+   *                  functions
+   * @param methodName Method name;
+   *                  null means use the class as a UDF;
+   *                  "*" means add all methods
+   * @param upCase Whether to convert method names to upper case, so that they
+   *               can be called without using quotes
+   */
+  public static void addFunctions(SchemaPlus schema, String functionName,
+      List<String> path, String className, String methodName, boolean upCase) {
     final Class<?> clazz;
     try {
       clazz = Class.forName(className);
@@ -112,14 +133,26 @@ public class ModelHandler {
     if (methodName != null && methodName.equals("*")) {
       for (Map.Entry<String, ScalarFunction> entry
           : ScalarFunctionImpl.createAll(clazz).entries()) {
-        schema.add(entry.getKey(), entry.getValue());
+        String name = entry.getKey();
+        if (upCase) {
+          name = name.toUpperCase(Locale.ROOT);
+        }
+        schema.add(name, entry.getValue());
       }
       return;
     } else {
       final ScalarFunction function =
           ScalarFunctionImpl.create(clazz, Util.first(methodName, "eval"));
       if (function != null) {
-        schema.add(Util.first(functionName, methodName), function);
+        final String name;
+        if (functionName != null) {
+          name = functionName;
+        } else if (upCase) {
+          name = methodName.toUpperCase(Locale.ROOT);
+        } else {
+          name = methodName;
+        }
+        schema.add(name, function);
         return;
       }
     }

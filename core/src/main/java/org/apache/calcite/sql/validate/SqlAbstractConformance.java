@@ -82,6 +82,10 @@ public abstract class SqlAbstractConformance implements SqlConformance {
   public boolean isPercentRemainderAllowed() {
     return SqlConformanceEnum.DEFAULT.isPercentRemainderAllowed();
   }
+
+  public boolean allowGeometry() {
+    return SqlConformanceEnum.DEFAULT.allowGeometry();
+  }
 }
 
 // End SqlAbstractConformance.java
