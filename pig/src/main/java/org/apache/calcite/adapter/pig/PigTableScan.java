@@ -48,9 +48,9 @@ public class PigTableScan extends TableScan implements PigRel {
     final PigTable pigTable = getPigTable(implementor.getTableName(this));
     final String alias = implementor.getPigRelationAlias(this);
     final String schema = '(' + getSchemaForPigStatement(implementor)
-      + ')';
+        + ')';
     final String statement = alias + " = LOAD '" + pigTable.getFilePath()
-      + "' USING PigStorage() AS " + schema + ';';
+        + "' USING PigStorage() AS " + schema + ';';
     implementor.addStatement(statement);
   }
 

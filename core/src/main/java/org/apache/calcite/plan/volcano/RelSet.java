@@ -158,12 +158,12 @@ class RelSet {
       assert other.getTraitSet().size() == subset.getTraitSet().size();
 
       if ((other == subset)
-        || (subsetToOthers
-          && !subset.getConvention().useAbstractConvertersForConversion(
-            subset.getTraitSet(), other.getTraitSet()))
-        || (!subsetToOthers
-          && !other.getConvention().useAbstractConvertersForConversion(
-            other.getTraitSet(), subset.getTraitSet()))) {
+          || (subsetToOthers
+              && !subset.getConvention().useAbstractConvertersForConversion(
+                  subset.getTraitSet(), other.getTraitSet()))
+          || (!subsetToOthers
+              && !other.getConvention().useAbstractConvertersForConversion(
+                  other.getTraitSet(), subset.getTraitSet()))) {
         continue;
       }
 

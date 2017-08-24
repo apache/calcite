@@ -78,8 +78,7 @@ public class ConcurrentTestCommandGenerator {
    * Maps Integer thread IDs to a TreeMap. The TreeMap vaules map an Integer
    * execution order to a {@link ConcurrentTestCommand}.
    */
-  private TreeMap<Integer, TreeMap<Integer, ConcurrentTestCommand>>
-  threadMap;
+  private TreeMap<Integer, TreeMap<Integer, ConcurrentTestCommand>> threadMap;
 
   /**
    * Maps Integer thread IDs to thread names.

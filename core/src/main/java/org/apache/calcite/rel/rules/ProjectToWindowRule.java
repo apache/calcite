@@ -179,59 +179,61 @@ public abstract class ProjectToWindowRule extends RelOptRule {
    */
   static class WindowedAggRelSplitter extends CalcRelSplitter {
     private static final RelType[] REL_TYPES = {
-      new RelType("CalcRelType") {
-        protected boolean canImplement(RexFieldAccess field) {
-          return true;
-        }
+        new RelType("CalcRelType") {
+            protected boolean canImplement(RexFieldAccess field) {
+              return true;
+            }
 
-        protected boolean canImplement(RexDynamicParam param) {
-          return true;
-        }
+            protected boolean canImplement(RexDynamicParam param) {
+              return true;
+            }
 
-        protected boolean canImplement(RexLiteral literal) {
-          return true;
-        }
+            protected boolean canImplement(RexLiteral literal) {
+              return true;
+            }
 
-        protected boolean canImplement(RexCall call) {
-          return !(call instanceof RexOver);
-        }
+            protected boolean canImplement(RexCall call) {
+              return !(call instanceof RexOver);
+            }
 
-        protected RelNode makeRel(RelOptCluster cluster, RelTraitSet traitSet,
-            RelBuilder relBuilder, RelNode input, RexProgram program) {
-          assert !program.containsAggs();
-          program = program.normalize(cluster.getRexBuilder(), null);
-          return super.makeRel(cluster, traitSet, relBuilder, input, program);
-        }
-      },
-      new RelType("WinAggRelType") {
-        protected boolean canImplement(RexFieldAccess field) {
-          return false;
-        }
+            protected RelNode makeRel(RelOptCluster cluster,
+                RelTraitSet traitSet, RelBuilder relBuilder, RelNode input,
+                RexProgram program) {
+              assert !program.containsAggs();
+              program = program.normalize(cluster.getRexBuilder(), null);
+              return super.makeRel(cluster, traitSet, relBuilder, input,
+                  program);
+            }
+        },
+        new RelType("WinAggRelType") {
+          protected boolean canImplement(RexFieldAccess field) {
+            return false;
+          }
 
-        protected boolean canImplement(RexDynamicParam param) {
-          return false;
-        }
+          protected boolean canImplement(RexDynamicParam param) {
+            return false;
+          }
 
-        protected boolean canImplement(RexLiteral literal) {
-          return false;
-        }
+          protected boolean canImplement(RexLiteral literal) {
+            return false;
+          }
 
-        protected boolean canImplement(RexCall call) {
-          return call instanceof RexOver;
-        }
+          protected boolean canImplement(RexCall call) {
+            return call instanceof RexOver;
+          }
 
-        protected boolean supportsCondition() {
-          return false;
-        }
+          protected boolean supportsCondition() {
+            return false;
+          }
 
-        protected RelNode makeRel(RelOptCluster cluster, RelTraitSet traitSet,
-            RelBuilder relBuilder, RelNode input, RexProgram program) {
-          Preconditions.checkArgument(program.getCondition() == null,
-              "WindowedAggregateRel cannot accept a condition");
-          return LogicalWindow.create(cluster, traitSet, relBuilder, input,
-              program);
+          protected RelNode makeRel(RelOptCluster cluster, RelTraitSet traitSet,
+              RelBuilder relBuilder, RelNode input, RexProgram program) {
+            Preconditions.checkArgument(program.getCondition() == null,
+                "WindowedAggregateRel cannot accept a condition");
+            return LogicalWindow.create(cluster, traitSet, relBuilder, input,
+                program);
+          }
         }
-      }
     };
 
     WindowedAggRelSplitter(Calc calc, RelBuilder relBuilder) {

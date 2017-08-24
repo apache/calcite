@@ -99,7 +99,7 @@ public class TileSuggester {
     private final TableImpl table;
     private final ImmutableList<AttributeImpl> attributes;
 
-    public SchemaImpl(Lattice lattice, StatisticsProvider statisticsProvider) {
+    SchemaImpl(Lattice lattice, StatisticsProvider statisticsProvider) {
       this.statisticsProvider = statisticsProvider;
       this.table = new TableImpl();
       final ImmutableList.Builder<AttributeImpl> attributeBuilder =
@@ -197,7 +197,7 @@ public class TileSuggester {
   private static class StatisticsProviderImpl implements StatisticsProvider {
     private final Lattice lattice;
 
-    public StatisticsProviderImpl(Lattice lattice) {
+    StatisticsProviderImpl(Lattice lattice) {
       this.lattice = lattice;
     }
 

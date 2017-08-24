@@ -177,7 +177,7 @@ public class RexOver extends RexCall {
    * and it can be re-used for multiple visits.
    */
   private static class Finder extends RexVisitorImpl<Void> {
-    public Finder() {
+    Finder() {
       super(true);
     }
 

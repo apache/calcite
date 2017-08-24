@@ -178,8 +178,8 @@ public class Handler {
   protected void dump(RelNode rel) {
   }
 
-  private ImmutableList<ImmutableList<RexLiteral>>
-  tuples(Ast.ValuesStmt valuesStmt, RelDataType rowType) {
+  private ImmutableList<ImmutableList<RexLiteral>> tuples(
+      Ast.ValuesStmt valuesStmt, RelDataType rowType) {
     final ImmutableList.Builder<ImmutableList<RexLiteral>> listBuilder =
         ImmutableList.builder();
     for (List<Ast.Node> nodeList : valuesStmt.tupleList) {

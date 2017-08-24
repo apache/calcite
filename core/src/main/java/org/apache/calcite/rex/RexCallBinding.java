@@ -138,7 +138,7 @@ public class RexCallBinding extends SqlOperatorBinding {
   private static class RexCastCallBinding extends RexCallBinding {
     private final RelDataType type;
 
-    public RexCastCallBinding(
+    RexCastCallBinding(
         RelDataTypeFactory typeFactory,
         SqlOperator sqlOperator, List<? extends RexNode> operands,
         RelDataType type,

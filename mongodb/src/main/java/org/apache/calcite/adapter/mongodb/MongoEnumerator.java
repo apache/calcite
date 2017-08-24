@@ -40,7 +40,7 @@ class MongoEnumerator implements Enumerator<Object> {
    * @param cursor Mongo iterator (usually a {@link com.mongodb.DBCursor})
    * @param getter Converts an object into a list of fields
    */
-  public MongoEnumerator(Iterator<DBObject> cursor,
+  MongoEnumerator(Iterator<DBObject> cursor,
       Function1<DBObject, Object> getter) {
     this.cursor = cursor;
     this.getter = getter;

@@ -58,9 +58,10 @@ public class VmstatTableFunction {
         // Could do this here too..
         switch (osName) {
         case "Mac OS X": // tested on version 10.11.6
-          args = new String[]{
-            "/bin/sh", "-c",
-            "vm_stat | tail -n +2 | awk '{print $NF}' | sed 's/\\.//' | tr '\\n' ' '"};
+          args = new String[] {
+              "/bin/sh", "-c",
+              "vm_stat | tail -n +2 | awk '{print $NF}' | sed 's/\\.//' | tr '\\n' ' '"
+          };
           break;
         default:
           args = new String[]{"/bin/sh", "-c", "vmstat -n | tail -n +3"};

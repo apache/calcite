@@ -116,6 +116,8 @@ public class ElasticsearchTable extends AbstractQueryableTable implements Transl
   /**
    * Implementation of {@link org.apache.calcite.linq4j.Queryable} based on
    * a {@link org.apache.calcite.adapter.elasticsearch.ElasticsearchTable}.
+   *
+   * @param <T> element type
    */
   public static class ElasticsearchQueryable<T> extends AbstractTableQueryable<T> {
     public ElasticsearchQueryable(QueryProvider queryProvider, SchemaPlus schema,

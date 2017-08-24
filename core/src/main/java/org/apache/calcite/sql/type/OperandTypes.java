@@ -367,8 +367,7 @@ public abstract class OperandTypes {
    * Operand type-checking strategy where operand types must allow ordered
    * comparisons.
    */
-  public static final SqlOperandTypeChecker
-  COMPARABLE_ORDERED_COMPARABLE_ORDERED =
+  public static final SqlOperandTypeChecker COMPARABLE_ORDERED_COMPARABLE_ORDERED =
       new ComparableOperandTypeChecker(2, RelDataTypeComparability.ALL,
           SqlOperandTypeChecker.Consistency.COMPARE);
 
@@ -385,8 +384,7 @@ public abstract class OperandTypes {
    * Operand type-checking strategy where operand types must allow unordered
    * comparisons.
    */
-  public static final SqlOperandTypeChecker
-  COMPARABLE_UNORDERED_COMPARABLE_UNORDERED =
+  public static final SqlOperandTypeChecker COMPARABLE_UNORDERED_COMPARABLE_UNORDERED =
       new ComparableOperandTypeChecker(2, RelDataTypeComparability.UNORDERED,
           SqlOperandTypeChecker.Consistency.LEAST_RESTRICTIVE);
 
@@ -407,8 +405,7 @@ public abstract class OperandTypes {
   public static final SqlSingleOperandTypeChecker STRING_STRING_INTEGER =
       family(SqlTypeFamily.STRING, SqlTypeFamily.STRING, SqlTypeFamily.INTEGER);
 
-  public static final SqlSingleOperandTypeChecker
-  STRING_STRING_INTEGER_INTEGER =
+  public static final SqlSingleOperandTypeChecker STRING_STRING_INTEGER_INTEGER =
       family(SqlTypeFamily.STRING, SqlTypeFamily.STRING,
           SqlTypeFamily.INTEGER, SqlTypeFamily.INTEGER);
 
@@ -425,7 +422,8 @@ public abstract class OperandTypes {
   public static final SqlSingleOperandTypeChecker ANY_ANY =
       family(SqlTypeFamily.ANY, SqlTypeFamily.ANY);
   public static final SqlSingleOperandTypeChecker ANY_NUMERIC =
-    family(SqlTypeFamily.ANY, SqlTypeFamily.NUMERIC);
+      family(SqlTypeFamily.ANY, SqlTypeFamily.NUMERIC);
+
   /**
    * Parameter type-checking strategy type must a nullable time interval,
    * nullable time interval
@@ -446,8 +444,7 @@ public abstract class OperandTypes {
       family(SqlTypeFamily.DATETIME, SqlTypeFamily.DATETIME_INTERVAL,
           SqlTypeFamily.DATETIME_INTERVAL);
 
-  public static final SqlSingleOperandTypeChecker
-  DATETIME_INTERVAL_INTERVAL_TIME =
+  public static final SqlSingleOperandTypeChecker DATETIME_INTERVAL_INTERVAL_TIME =
       family(SqlTypeFamily.DATETIME, SqlTypeFamily.DATETIME_INTERVAL,
           SqlTypeFamily.DATETIME_INTERVAL, SqlTypeFamily.TIME);
 
@@ -458,8 +455,7 @@ public abstract class OperandTypes {
   public static final SqlSingleOperandTypeChecker INTERVAL_DATETIME =
       family(SqlTypeFamily.DATETIME_INTERVAL, SqlTypeFamily.DATETIME);
 
-  public static final SqlSingleOperandTypeChecker
-  INTERVALINTERVAL_INTERVALDATETIME =
+  public static final SqlSingleOperandTypeChecker INTERVALINTERVAL_INTERVALDATETIME =
       OperandTypes.or(INTERVAL_SAME_SAME, INTERVAL_DATETIME);
 
   // TODO: datetime+interval checking missing

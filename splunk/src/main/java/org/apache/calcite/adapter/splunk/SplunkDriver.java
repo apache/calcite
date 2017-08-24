@@ -106,7 +106,7 @@ public class SplunkDriver extends org.apache.calcite.jdbc.Driver {
   private static class WrappingSplunkConnection implements SplunkConnection {
     private final SplunkConnection connection;
 
-    public WrappingSplunkConnection(SplunkConnection connection) {
+    WrappingSplunkConnection(SplunkConnection connection) {
       this.connection = connection;
     }
 

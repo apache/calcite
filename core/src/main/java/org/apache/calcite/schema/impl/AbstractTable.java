@@ -27,10 +27,10 @@ import org.apache.calcite.sql.SqlNode;
 /**
  * Abstract base class for implementing {@link Table}.
  *
- * Subclasses should override {@link #isRolledUp}
- * and {@link Table#rolledUpColumnValidInsideAgg(String, SqlCall, SqlNode, CalciteConnectionConfig)}
- * if their table can potentially contain rolled up values.
- * This information is used by the validator to check for illegal uses of these columns.
+ * <p>Sub-classes should override {@link #isRolledUp} and
+ * {@link Table#rolledUpColumnValidInsideAgg(String, SqlCall, SqlNode, CalciteConnectionConfig)}
+ * if their table can potentially contain rolled up values. This information is
+ * used by the validator to check for illegal uses of these columns.
  */
 public abstract class AbstractTable implements Table {
   protected AbstractTable() {

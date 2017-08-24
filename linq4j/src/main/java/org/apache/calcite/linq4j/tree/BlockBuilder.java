@@ -497,7 +497,7 @@ public class BlockBuilder {
     private final Map<ParameterExpression, Boolean> actives =
         new IdentityHashMap<>();
 
-    public SubstituteVariableVisitor(Map<ParameterExpression, Expression> map) {
+    SubstituteVariableVisitor(Map<ParameterExpression, Expression> map) {
       this.map = map;
     }
 

@@ -91,7 +91,9 @@ public abstract class RexWindowBound {
    *
    * @return relative order or -1 when order is not known
    */
-  public int getOrderKey() { return -1; }
+  public int getOrderKey() {
+    return -1;
+  }
 
   /**
    * Transforms the bound via {@link org.apache.calcite.rex.RexVisitor}.
@@ -109,7 +111,7 @@ public abstract class RexWindowBound {
   private static class RexWindowBoundUnbounded extends RexWindowBound {
     private final SqlNode node;
 
-    public RexWindowBoundUnbounded(SqlNode node) {
+    RexWindowBoundUnbounded(SqlNode node) {
       this.node = node;
     }
 
@@ -187,7 +189,7 @@ public abstract class RexWindowBound {
     private final SqlKind sqlKind;
     private final RexNode offset;
 
-    public RexWindowBoundBounded(RexNode node) {
+    RexWindowBoundBounded(RexNode node) {
       assert node instanceof RexCall
           : "RexWindowBoundBounded window bound should be either 'X preceding'"
           + " or 'X following' call. Actual type is " + node;

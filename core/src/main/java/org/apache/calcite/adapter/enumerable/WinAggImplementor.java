@@ -35,7 +35,7 @@ public interface WinAggImplementor extends AggImplementor {
    * Allows to access rows in window partition relative to first/last and
    * current row.
    */
-  public enum SeekType {
+  enum SeekType {
     /**
      * Start of window.
      * @see WinAggFrameContext#startIndex()

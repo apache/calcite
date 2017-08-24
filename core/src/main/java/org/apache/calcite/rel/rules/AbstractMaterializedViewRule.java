@@ -2186,7 +2186,7 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
     final Multimap<RexTableInputRef, RexTableInputRef> equiColumns =
         ArrayListMultimap.create();
 
-    public Edge(RelTableRef source, RelTableRef target) {
+    Edge(RelTableRef source, RelTableRef target) {
       super(source, target);
     }
 

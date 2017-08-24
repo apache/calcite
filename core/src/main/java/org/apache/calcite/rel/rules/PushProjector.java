@@ -621,7 +621,7 @@ public class PushProjector {
     private final List<RexNode> preserveRight;
     private final Strong strong;
 
-    public InputSpecialOpFinder(
+    InputSpecialOpFinder(
         BitSet rexRefs,
         ImmutableBitSet leftFields,
         ImmutableBitSet rightFields,
@@ -716,7 +716,7 @@ public class PushProjector {
     private final List<RexNode> preserveRight;
     private final int firstRightRef;
 
-    public RefAndExprConverter(
+    RefAndExprConverter(
         RexBuilder rexBuilder,
         List<RelDataTypeField> srcFields,
         List<RelDataTypeField> destFields,
@@ -850,7 +850,7 @@ public class PushProjector {
      *
      * @param operatorSet Set of operators
      */
-    public OperatorExprCondition(Iterable<? extends SqlOperator> operatorSet) {
+    OperatorExprCondition(Iterable<? extends SqlOperator> operatorSet) {
       this.operatorSet = ImmutableSet.copyOf(operatorSet);
     }
 

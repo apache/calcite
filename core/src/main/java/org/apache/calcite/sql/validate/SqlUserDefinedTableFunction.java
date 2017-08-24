@@ -67,8 +67,8 @@ public class SqlUserDefinedTableFunction extends SqlUserDefinedFunction {
   public RelDataType getRowType(RelDataTypeFactory typeFactory,
       List<SqlNode> operandList) {
     List<Object> arguments =
-      SqlUserDefinedTableMacro.convertArguments(typeFactory, operandList,
-        function, getNameAsId(), false);
+        SqlUserDefinedTableMacro.convertArguments(typeFactory, operandList,
+          function, getNameAsId(), false);
     return getFunction().getRowType(typeFactory, arguments);
   }
 
@@ -84,8 +84,8 @@ public class SqlUserDefinedTableFunction extends SqlUserDefinedFunction {
   public Type getElementType(RelDataTypeFactory typeFactory,
       List<SqlNode> operandList) {
     List<Object> arguments =
-      SqlUserDefinedTableMacro.convertArguments(typeFactory, operandList,
-        function, getNameAsId(), false);
+        SqlUserDefinedTableMacro.convertArguments(typeFactory, operandList,
+            function, getNameAsId(), false);
     return getFunction().getElementType(arguments);
   }
 }

@@ -63,14 +63,16 @@ public class PsTableFunction {
         Util.discard(osVersion);
         switch (osName) {
         case "Mac OS X": // tested on version 10.12.5
-          args = new String[]{"ps", "ax", "-o", "ppid=,pid=,pgid=,tpgid=,stat=,"
-              + "user=,pcpu=,pmem=,vsz=,rss=,tty=,start=,time=,uid=,ruid=,"
-              + "sess=,comm="};
+          args = new String[] {
+              "ps", "ax", "-o", "ppid=,pid=,pgid=,tpgid=,stat=,"
+                + "user=,pcpu=,pmem=,vsz=,rss=,tty=,start=,time=,uid=,ruid=,"
+                + "sess=,comm="};
           break;
         default:
-          args = new String[]{"ps", "--no-headers", "axo", "ppid,pid,pgrp,"
-              + "tpgid,stat,user,pcpu,pmem,vsz,rss,tty,start_time,time,euid,"
-              + "ruid,sess,comm"};
+          args = new String[] {
+              "ps", "--no-headers", "axo", "ppid,pid,pgrp,"
+                + "tpgid,stat,user,pcpu,pmem,vsz,rss,tty,start_time,time,euid,"
+                + "ruid,sess,comm"};
         }
         return Processes.processLines(args)
             .select(

@@ -98,8 +98,7 @@ public class Linq4jTest {
         }
       };
 
-  public static final Function1<Department, Enumerable<Employee>>
-  DEPT_EMPLOYEES_SELECTOR =
+  public static final Function1<Department, Enumerable<Employee>> DEPT_EMPLOYEES_SELECTOR =
       new Function1<Department, Enumerable<Employee>>() {
         public Enumerable<Employee> apply(Department a0) {
           return Linq4j.asEnumerable(a0.employees);
@@ -803,8 +802,7 @@ public class Linq4jTest {
         buf.toString());
   }
 
-  private static <K extends Comparable, V> Function1<Grouping<K, V>, K>
-  groupingKeyExtractor() {
+  private static <K extends Comparable, V> Function1<Grouping<K, V>, K> groupingKeyExtractor() {
     return new Function1<Grouping<K, V>, K>() {
       public K apply(Grouping<K, V> a0) {
         return a0.getKey();
@@ -1011,8 +1009,8 @@ public class Linq4jTest {
 
   @Test public void testIntersect() {
     final Employee[] emps2 = {
-      new Employee(150, "Theodore", 10),
-      emps[3],
+        new Employee(150, "Theodore", 10),
+        emps[3],
     };
     assertEquals(
         1,
@@ -1023,8 +1021,8 @@ public class Linq4jTest {
 
   @Test public void testExcept() {
     final Employee[] emps2 = {
-      new Employee(150, "Theodore", 10),
-      emps[3],
+        new Employee(150, "Theodore", 10),
+        emps[3],
     };
     assertEquals(
         3,
@@ -1035,10 +1033,10 @@ public class Linq4jTest {
 
   @Test public void testDistinct() {
     final Employee[] emps2 = {
-      new Employee(150, "Theodore", 10),
-      emps[3],
-      emps[0],
-      emps[3],
+        new Employee(150, "Theodore", 10),
+        emps[3],
+        emps[0],
+        emps[3],
     };
     assertEquals(
         3,
@@ -1049,10 +1047,10 @@ public class Linq4jTest {
 
   @Test public void testDistinctWithEqualityComparer() {
     final Employee[] emps2 = {
-      new Employee(150, "Theodore", 10),
-      emps[3],
-      emps[1],
-      emps[3],
+        new Employee(150, "Theodore", 10),
+        emps[3],
+        emps[1],
+        emps[3],
     };
     assertEquals(
         2,
@@ -2357,11 +2355,11 @@ public class Linq4jTest {
     final Enumerable<String> e2 = Linq4j.asEnumerable(Arrays.asList("1", "2", "3"));
 
     final Enumerable<String> zipped = e1.zip(e2,
-      new Function2<String, String, String>() {
-        public String apply(String v0, String v1) {
-          return v0 + v1;
-        }
-      });
+        new Function2<String, String, String>() {
+          public String apply(String v0, String v1) {
+            return v0 + v1;
+          }
+        });
     assertEquals(3, zipped.count());
     zipped.enumerator().reset();
     for (int i = 0; i < 3; i++) {
@@ -2518,22 +2516,22 @@ public class Linq4jTest {
   // Cedric works in a non-existent department.
   //CHECKSTYLE: IGNORE 1
   public static final Employee[] badEmps = {
-    new Employee(140, "Cedric", 40),
+      new Employee(140, "Cedric", 40),
   };
 
   //CHECKSTYLE: IGNORE 1
   public static final Employee[] emps = {
-    new Employee(100, "Fred", 10),
-    new Employee(110, "Bill", 30),
-    new Employee(120, "Eric", 10),
-    new Employee(130, "Janet", 10),
+      new Employee(100, "Fred", 10),
+      new Employee(110, "Bill", 30),
+      new Employee(120, "Eric", 10),
+      new Employee(130, "Janet", 10),
   };
 
   //CHECKSTYLE: IGNORE 1
   public static final Department[] depts = {
-    new Department("Sales", 10, Arrays.asList(emps[0], emps[2], emps[3])),
-    new Department("HR", 20, Collections.<Employee>emptyList()),
-    new Department("Marketing", 30, ImmutableList.of(emps[1])),
+      new Department("Sales", 10, Arrays.asList(emps[0], emps[2], emps[3])),
+      new Department("HR", 20, Collections.<Employee>emptyList()),
+      new Department("Marketing", 30, ImmutableList.of(emps[1])),
   };
 }
 

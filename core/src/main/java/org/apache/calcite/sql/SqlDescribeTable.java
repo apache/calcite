@@ -78,9 +78,13 @@ public class SqlDescribeTable extends SqlCall {
     return ImmutableNullableList.<SqlNode>of(table, column);
   }
 
-  public SqlIdentifier getTable() { return table; }
+  public SqlIdentifier getTable() {
+    return table;
+  }
 
-  public SqlIdentifier getColumn() { return column; }
+  public SqlIdentifier getColumn() {
+    return column;
+  }
 }
 
 // End SqlDescribeTable.java

@@ -52,7 +52,7 @@ class TableNamespace extends AbstractNamespace {
     this.extendedFields = ImmutableList.copyOf(fields);
   }
 
-  public TableNamespace(SqlValidatorImpl validator, SqlValidatorTable table) {
+  TableNamespace(SqlValidatorImpl validator, SqlValidatorTable table) {
     this(validator, table, ImmutableList.<RelDataTypeField>of());
   }
 

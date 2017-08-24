@@ -56,6 +56,7 @@ import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlOperandCountRanges;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.util.ReflectiveSqlOperatorTable;
+import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlModality;
 import org.apache.calcite.sql2rel.AuxiliaryConverter;
 import org.apache.calcite.util.Litmus;
@@ -245,6 +246,22 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           ReturnTypes.QUOTIENT_NULLABLE,
           InferTypes.FIRST_KNOWN,
           OperandTypes.DIVISION_OPERATOR);
+
+  /**
+   * Arithmetic remainder operator, '<code>%</code>',
+   * an alternative to {@link #MOD} allowed if under certain conformance levels.
+   *
+   * @see SqlConformance#isPercentRemainderAllowed
+   */
+  public static final SqlBinaryOperator PERCENT_REMAINDER =
+      new SqlBinaryOperator(
+          "%",
+          SqlKind.MOD,
+          60,
+          true,
+          ReturnTypes.ARG1_NULLABLE,
+          null,
+          OperandTypes.EXACT_NUMERIC_EXACT_NUMERIC);
 
   /** The {@code RAND_INTEGER([seed, ] bound)} function, which yields a random
    * integer, optionally with seed. */
@@ -1319,12 +1336,17 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           OperandTypes.NUMERIC,
           SqlFunctionCategory.NUMERIC);
 
+  /**
+   * Arithmetic remainder function {@code MOD}.
+   *
+   * @see #PERCENT_REMAINDER
+   */
   public static final SqlFunction MOD =
       // Return type is same as divisor (2nd operand)
       // SQL2003 Part2 Section 6.27, Syntax Rules 9
       new SqlFunction(
           "MOD",
-          SqlKind.OTHER_FUNCTION,
+          SqlKind.MOD,
           ReturnTypes.ARG1_NULLABLE,
           null,
           OperandTypes.EXACT_NUMERIC_EXACT_NUMERIC,
@@ -2182,8 +2204,8 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    *
    * <p>For example, converts {@code TUMBLE_START(rowtime, INTERVAL '1' HOUR))}
    * to {@code TUMBLE(rowtime, INTERVAL '1' HOUR))}. */
-  public static List<Pair<SqlNode, AuxiliaryConverter>>
-  convertGroupToAuxiliaryCalls(SqlCall call) {
+  public static List<Pair<SqlNode, AuxiliaryConverter>> convertGroupToAuxiliaryCalls(
+      SqlCall call) {
     final SqlOperator op = call.getOperator();
     if (op instanceof SqlGroupFunction
         && op.isGroup()) {

@@ -35,7 +35,7 @@ import org.apache.calcite.sql.type.ReturnTypes;
  * consistent with AS, we reverse the arguments.
  */
 class SqlArgumentAssignmentOperator extends SqlAsOperator {
-  public SqlArgumentAssignmentOperator() {
+  SqlArgumentAssignmentOperator() {
     super("=>", SqlKind.ARGUMENT_ASSIGNMENT, 20, true, ReturnTypes.ARG0,
         InferTypes.RETURN_TYPE, OperandTypes.ANY_ANY);
   }

@@ -69,7 +69,7 @@ public class SqlTypeExplicitPrecedenceList
    * @see Glossary#SQL2003 SQL:2003 Part 2 Section 9.5
    */
   private static final Map<SqlTypeName, SqlTypeExplicitPrecedenceList>
-  TYPE_NAME_TO_PRECEDENCE_LIST =
+      TYPE_NAME_TO_PRECEDENCE_LIST =
       ImmutableMap.<SqlTypeName, SqlTypeExplicitPrecedenceList>builder()
           .put(SqlTypeName.BOOLEAN, list(SqlTypeName.BOOLEAN))
           .put(SqlTypeName.TINYINT, numeric(SqlTypeName.TINYINT))

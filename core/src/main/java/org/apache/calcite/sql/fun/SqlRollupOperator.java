@@ -28,7 +28,7 @@ import org.apache.calcite.sql.SqlWriter;
  * {@code ROLLUP}, {@code GROUPING SETS}.
  */
 class SqlRollupOperator extends SqlInternalOperator {
-  public SqlRollupOperator(String name, SqlKind kind) {
+  SqlRollupOperator(String name, SqlKind kind) {
     super(name, kind, 4);
   }
 

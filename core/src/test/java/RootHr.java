@@ -20,9 +20,9 @@
  * belongs to the unnamed (root) package. */
 public class RootHr {
   public final RootEmployee[] emps = {
-    new RootEmployee(100, "Bill"),
-    new RootEmployee(200, "Eric"),
-    new RootEmployee(150, "Sebastian"),
+      new RootEmployee(100, "Bill"),
+      new RootEmployee(200, "Eric"),
+      new RootEmployee(150, "Sebastian"),
   };
 }
 

@@ -670,7 +670,7 @@ public class PartiallyOrderedSet<E> extends AbstractSet<E> {
     final List<Node<E>> childList = new ArrayList<>();
     final E e;
 
-    public Node(E e) {
+    Node(E e) {
       this.e = e;
     }
 
@@ -688,7 +688,7 @@ public class PartiallyOrderedSet<E> extends AbstractSet<E> {
   private static class TopBottomNode<E> extends Node<E> {
     private final String description;
 
-    public TopBottomNode(boolean top) {
+    TopBottomNode(boolean top) {
       super(null);
       this.description = top ? "top" : "bottom";
     }
@@ -734,7 +734,7 @@ public class PartiallyOrderedSet<E> extends AbstractSet<E> {
   private static class StripList<E> extends AbstractList<E> {
     private final List<Node<E>> list;
 
-    public StripList(List<Node<E>> list) {
+    StripList(List<Node<E>> list) {
       this.list = list;
     }
 

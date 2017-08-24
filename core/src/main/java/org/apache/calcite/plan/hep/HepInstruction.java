@@ -38,7 +38,9 @@ abstract class HepInstruction {
 
   //~ Inner Classes ----------------------------------------------------------
 
-  /** Instruction that executes all rules of a given class. */
+  /** Instruction that executes all rules of a given class.
+   *
+   * @param <R> rule type */
   static class RuleClass<R extends RelOptRule> extends HepInstruction {
     Class<R> ruleClass;
 

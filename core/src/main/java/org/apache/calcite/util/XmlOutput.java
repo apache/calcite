@@ -540,7 +540,7 @@ public class XmlOutput {
     /**
      * Identity transform
      */
-    public StringEscaper() {
+    StringEscaper() {
       translationVector = new ArrayList<String>();
     }
 

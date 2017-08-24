@@ -294,7 +294,7 @@ public class TraitPropagationTest {
 
   /** Physical Aggregate RelNode */
   private static class PhysAgg extends Aggregate implements Phys {
-    public PhysAgg(RelOptCluster cluster, RelTraitSet traits, RelNode child,
+    PhysAgg(RelOptCluster cluster, RelTraitSet traits, RelNode child,
         boolean indicator, ImmutableBitSet groupSet,
         List<ImmutableBitSet> groupSets, List<AggregateCall> aggCalls) {
       super(cluster, traits, child, indicator, groupSet, groupSets, aggCalls);
@@ -316,7 +316,7 @@ public class TraitPropagationTest {
 
   /** Physical Project RelNode */
   private static class PhysProj extends Project implements Phys {
-    public PhysProj(RelOptCluster cluster, RelTraitSet traits, RelNode child,
+    PhysProj(RelOptCluster cluster, RelTraitSet traits, RelNode child,
         List<RexNode> exps, RelDataType rowType) {
       super(cluster, traits, child, exps, rowType);
     }
@@ -350,7 +350,7 @@ public class TraitPropagationTest {
 
   /** Physical Sort RelNode */
   private static class PhysSort extends Sort implements Phys {
-    public PhysSort(RelOptCluster cluster, RelTraitSet traits, RelNode child,
+    PhysSort(RelOptCluster cluster, RelTraitSet traits, RelNode child,
         RelCollation collation, RexNode offset,
         RexNode fetch) {
       super(cluster, traits, child, collation, offset, fetch);
@@ -372,7 +372,7 @@ public class TraitPropagationTest {
 
   /** Physical Table RelNode */
   private static class PhysTable extends AbstractRelNode implements Phys {
-    public PhysTable(RelOptCluster cluster) {
+    PhysTable(RelOptCluster cluster) {
       super(cluster, cluster.traitSet().replace(PHYSICAL).replace(COLLATION));
       RelDataTypeFactory typeFactory = cluster.getTypeFactory();
       final RelDataType stringType = typeFactory.createJavaType(String.class);

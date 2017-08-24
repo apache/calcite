@@ -242,7 +242,9 @@ class CachingCalciteSchema extends CalciteSchema {
   }
 
   /** Implementation of {@link CachingCalciteSchema.Cached}
-   * that drives from {@link CachingCalciteSchema#cache}. */
+   * that drives from {@link CachingCalciteSchema#cache}.
+   *
+   * @param <T> element type */
   private abstract class AbstractCached<T> implements Cached<T> {
     T t;
     long checked = Long.MIN_VALUE;

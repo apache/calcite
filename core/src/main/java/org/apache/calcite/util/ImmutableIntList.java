@@ -287,7 +287,9 @@ public class ImmutableIntList extends FlatLists.AbstractFlatList<Integer> {
   }
 
   /** Extension to {@link com.google.common.collect.UnmodifiableListIterator}
-   * that operates by index. */
+   * that operates by index.
+   *
+   * @param <E> element type */
   private abstract static class AbstractIndexedListIterator<E>
       extends UnmodifiableListIterator<E> {
     private final int size;

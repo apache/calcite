@@ -71,9 +71,9 @@ public class JdbcExample {
   /** Object that will be used via reflection to create the "hr" schema. */
   public static class Hr {
     public final Employee[] emps = {
-      new Employee(100, "Bill"),
-      new Employee(200, "Eric"),
-      new Employee(150, "Sebastian"),
+        new Employee(100, "Bill"),
+        new Employee(200, "Eric"),
+        new Employee(150, "Sebastian"),
     };
   }
 
@@ -92,8 +92,8 @@ public class JdbcExample {
    * schema. */
   public static class Foodmart {
     public final SalesFact[] sales_fact_1997 = {
-      new SalesFact(100, 10),
-      new SalesFact(150, 20),
+        new SalesFact(100, 10),
+        new SalesFact(150, 20),
     };
   }
 

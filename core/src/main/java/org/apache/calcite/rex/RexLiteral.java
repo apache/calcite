@@ -18,6 +18,7 @@ package org.apache.calcite.rex;
 
 import org.apache.calcite.avatica.util.ByteString;
 import org.apache.calcite.avatica.util.DateTimeUtils;
+import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.sql.SqlKind;
@@ -25,6 +26,7 @@ import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserUtil;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.util.CompositeList;
 import org.apache.calcite.util.ConversionUtil;
 import org.apache.calcite.util.DateString;
 import org.apache.calcite.util.Litmus;
@@ -35,6 +37,7 @@ import org.apache.calcite.util.TimestampString;
 import org.apache.calcite.util.Util;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -194,6 +197,10 @@ public class RexLiteral extends RexNode {
    */
   private final SqlTypeName typeName;
 
+
+  private static final ImmutableList<TimeUnit> TIME_UNITS =
+      ImmutableList.copyOf(TimeUnit.values());
+
   //~ Constructors -----------------------------------------------------------
 
   /**
@@ -341,6 +348,66 @@ public class RexLiteral extends RexNode {
       return litmus.succeed();
     } else {
       return litmus.fail("not a constant: {}", o);
+    }
+  }
+
+  /** Returns a list of the time units covered by an interval type such
+   * as HOUR TO SECOND. Adds MILLISECOND if the end is SECOND, to deal with
+   * fractional seconds. */
+  private static List<TimeUnit> getTimeUnits(SqlTypeName typeName) {
+    final TimeUnit start = typeName.getStartUnit();
+    final TimeUnit end = typeName.getEndUnit();
+    final ImmutableList<TimeUnit> list =
+        TIME_UNITS.subList(start.ordinal(), end.ordinal() + 1);
+    if (end == TimeUnit.SECOND) {
+      return CompositeList.of(list, ImmutableList.of(TimeUnit.MILLISECOND));
+    }
+    return list;
+  }
+
+  private String intervalString(BigDecimal v) {
+    final List<TimeUnit> timeUnits = getTimeUnits(type.getSqlTypeName());
+    final StringBuilder b = new StringBuilder();
+    for (TimeUnit timeUnit : timeUnits) {
+      final BigDecimal[] result = v.divideAndRemainder(timeUnit.multiplier);
+      if (b.length() > 0) {
+        b.append(timeUnit.separator);
+      }
+      final int width = b.length() == 0 ? -1 : width(timeUnit); // don't pad 1st
+      pad(b, result[0].toString(), width);
+      v = result[1];
+    }
+    if (Util.last(timeUnits) == TimeUnit.MILLISECOND) {
+      while (b.toString().matches(".*\\.[0-9]*0")) {
+        if (b.toString().endsWith(".0")) {
+          b.setLength(b.length() - 2); // remove ".0"
+        } else {
+          b.setLength(b.length() - 1); // remove "0"
+        }
+      }
+    }
+    return b.toString();
+  }
+
+  private static void pad(StringBuilder b, String s, int width) {
+    if (width >= 0) {
+      for (int i = s.length(); i < width; i++) {
+        b.append('0');
+      }
+    }
+    b.append(s);
+  }
+
+  private static int width(TimeUnit timeUnit) {
+    switch (timeUnit) {
+    case MILLISECOND:
+      return 3;
+    case HOUR:
+    case MINUTE:
+    case SECOND:
+      return 2;
+    default:
+      return -1;
     }
   }
 
@@ -780,10 +847,6 @@ public class RexLiteral extends RexNode {
     case INTERVAL_YEAR:
     case INTERVAL_YEAR_MONTH:
     case INTERVAL_MONTH:
-      if (clazz == Integer.class) {
-        return clazz.cast(((BigDecimal) value).intValue());
-      }
-      break;
     case INTERVAL_DAY:
     case INTERVAL_DAY_HOUR:
     case INTERVAL_DAY_MINUTE:
@@ -794,8 +857,15 @@ public class RexLiteral extends RexNode {
     case INTERVAL_MINUTE:
     case INTERVAL_MINUTE_SECOND:
     case INTERVAL_SECOND:
-      if (clazz == Long.class) {
+      if (clazz == Integer.class) {
+        return clazz.cast(((BigDecimal) value).intValue());
+      } else if (clazz == Long.class) {
         return clazz.cast(((BigDecimal) value).longValue());
+      } else if (clazz == String.class) {
+        return clazz.cast(intervalString(getValueAs(BigDecimal.class).abs()));
+      } else if (clazz == Boolean.class) {
+        // return whether negative
+        return clazz.cast(getValueAs(BigDecimal.class).signum() < 0);
       }
       break;
     }

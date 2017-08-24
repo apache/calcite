@@ -51,8 +51,8 @@ import java.util.Map;
  * Relational expression representing a scan of a table in a Cassandra data source.
  */
 public class CassandraToEnumerableConverter
-  extends ConverterImpl
-  implements EnumerableRel {
+    extends ConverterImpl
+    implements EnumerableRel {
   protected CassandraToEnumerableConverter(
       RelOptCluster cluster,
       RelTraitSet traits,

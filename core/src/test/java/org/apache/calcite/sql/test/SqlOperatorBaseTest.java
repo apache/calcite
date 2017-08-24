@@ -201,59 +201,59 @@ public abstract class SqlOperatorBaseTest {
           "[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]");
 
   public static final String[] NUMERIC_TYPE_NAMES = {
-    "TINYINT", "SMALLINT", "INTEGER", "BIGINT",
-    "DECIMAL(5, 2)", "REAL", "FLOAT", "DOUBLE"
+      "TINYINT", "SMALLINT", "INTEGER", "BIGINT",
+      "DECIMAL(5, 2)", "REAL", "FLOAT", "DOUBLE"
   };
 
   // REVIEW jvs 27-Apr-2006:  for Float and Double, MIN_VALUE
   // is the smallest positive value, not the smallest negative value
   public static final String[] MIN_NUMERIC_STRINGS = {
-    Long.toString(Byte.MIN_VALUE),
-    Long.toString(Short.MIN_VALUE),
-    Long.toString(Integer.MIN_VALUE),
-    Long.toString(Long.MIN_VALUE),
-    "-999.99",
+      Long.toString(Byte.MIN_VALUE),
+      Long.toString(Short.MIN_VALUE),
+      Long.toString(Integer.MIN_VALUE),
+      Long.toString(Long.MIN_VALUE),
+      "-999.99",
 
-    // NOTE jvs 26-Apr-2006:  Win32 takes smaller values from win32_values.h
-    "1E-37", /*Float.toString(Float.MIN_VALUE)*/
-    "2E-307", /*Double.toString(Double.MIN_VALUE)*/
-    "2E-307" /*Double.toString(Double.MIN_VALUE)*/,
+      // NOTE jvs 26-Apr-2006:  Win32 takes smaller values from win32_values.h
+      "1E-37", /*Float.toString(Float.MIN_VALUE)*/
+      "2E-307", /*Double.toString(Double.MIN_VALUE)*/
+      "2E-307" /*Double.toString(Double.MIN_VALUE)*/,
   };
 
   public static final String[] MIN_OVERFLOW_NUMERIC_STRINGS = {
-    Long.toString(Byte.MIN_VALUE - 1),
-    Long.toString(Short.MIN_VALUE - 1),
-    Long.toString((long) Integer.MIN_VALUE - 1),
-    new BigDecimal(Long.MIN_VALUE).subtract(BigDecimal.ONE).toString(),
-    "-1000.00",
-    "1e-46",
-    "1e-324",
-    "1e-324"
+      Long.toString(Byte.MIN_VALUE - 1),
+      Long.toString(Short.MIN_VALUE - 1),
+      Long.toString((long) Integer.MIN_VALUE - 1),
+      new BigDecimal(Long.MIN_VALUE).subtract(BigDecimal.ONE).toString(),
+      "-1000.00",
+      "1e-46",
+      "1e-324",
+      "1e-324"
   };
 
   public static final String[] MAX_NUMERIC_STRINGS = {
-    Long.toString(Byte.MAX_VALUE),
-    Long.toString(Short.MAX_VALUE),
-    Long.toString(Integer.MAX_VALUE),
-    Long.toString(Long.MAX_VALUE), "999.99",
+      Long.toString(Byte.MAX_VALUE),
+      Long.toString(Short.MAX_VALUE),
+      Long.toString(Integer.MAX_VALUE),
+      Long.toString(Long.MAX_VALUE), "999.99",
 
-    // NOTE jvs 26-Apr-2006:  use something slightly less than MAX_VALUE
-    // because roundtripping string to approx to string doesn't preserve
-    // MAX_VALUE on win32
-    "3.4028234E38", /*Float.toString(Float.MAX_VALUE)*/
-    "1.79769313486231E308", /*Double.toString(Double.MAX_VALUE)*/
-    "1.79769313486231E308" /*Double.toString(Double.MAX_VALUE)*/
+      // NOTE jvs 26-Apr-2006:  use something slightly less than MAX_VALUE
+      // because roundtripping string to approx to string doesn't preserve
+      // MAX_VALUE on win32
+      "3.4028234E38", /*Float.toString(Float.MAX_VALUE)*/
+      "1.79769313486231E308", /*Double.toString(Double.MAX_VALUE)*/
+      "1.79769313486231E308" /*Double.toString(Double.MAX_VALUE)*/
   };
 
   public static final String[] MAX_OVERFLOW_NUMERIC_STRINGS = {
-    Long.toString(Byte.MAX_VALUE + 1),
-    Long.toString(Short.MAX_VALUE + 1),
-    Long.toString((long) Integer.MAX_VALUE + 1),
-    (new BigDecimal(Long.MAX_VALUE)).add(BigDecimal.ONE).toString(),
-    "1000.00",
-    "1e39",
-    "-1e309",
-    "1e309"
+      Long.toString(Byte.MAX_VALUE + 1),
+      Long.toString(Short.MAX_VALUE + 1),
+      Long.toString((long) Integer.MAX_VALUE + 1),
+      (new BigDecimal(Long.MAX_VALUE)).add(BigDecimal.ONE).toString(),
+      "1000.00",
+      "1e39",
+      "-1e309",
+      "1e309"
   };
   private static final boolean[] FALSE_TRUE = {false, true};
   private static final SqlTester.VmName VM_FENNEL = SqlTester.VmName.FENNEL;
@@ -1925,6 +1925,68 @@ public abstract class SqlOperatorBaseTest {
     tester.checkNull(" cast(null as ANY) || cast(null as ANY) ");
   }
 
+  @Test public void testModOperator() {
+    // "%" is allowed under MYSQL_5 SQL conformance level
+    final SqlTester tester1 = tester.withConformance(SqlConformanceEnum.MYSQL_5);
+    tester1.setFor(SqlStdOperatorTable.PERCENT_REMAINDER);
+    tester1.checkScalarExact("4%2", "0");
+    tester1.checkScalarExact("8%5", "3");
+    tester1.checkScalarExact("-12%7", "-5");
+    tester1.checkScalarExact("-12%-7", "-5");
+    tester1.checkScalarExact("12%-7", "5");
+    tester1.checkScalarExact(
+        "cast(12 as tinyint) % cast(-7 as tinyint)",
+        "TINYINT NOT NULL",
+        "5");
+    if (!DECIMAL) {
+      return;
+    }
+    tester1.checkScalarExact(
+        "cast(9 as decimal(2, 0)) % 7",
+        "INTEGER NOT NULL",
+        "2");
+    tester1.checkScalarExact(
+        "7 % cast(9 as decimal(2, 0))",
+        "DECIMAL(2, 0) NOT NULL",
+        "7");
+    tester1.checkScalarExact(
+        "cast(-9 as decimal(2, 0)) % cast(7 as decimal(1, 0))",
+        "DECIMAL(1, 0) NOT NULL",
+        "-2");
+  }
+
+  @Test public void testModPrecedence() {
+    // "%" is allowed under MYSQL_5 SQL conformance level
+    final SqlTester tester1 = tester.withConformance(SqlConformanceEnum.MYSQL_5);
+    tester1.setFor(SqlStdOperatorTable.PERCENT_REMAINDER);
+    tester1.checkScalarExact("1 + 5 % 3 % 4 * 14 % 17", "12");
+    tester1.checkScalarExact("(1 + 5 % 3) % 4 + 14 % 17", "17");
+  }
+
+  @Test public void testModOperatorNull() {
+    // "%" is allowed under MYSQL_5 SQL conformance level
+    final SqlTester tester1 = tester.withConformance(SqlConformanceEnum.MYSQL_5);
+    tester1.checkNull("cast(null as integer) % 2");
+    tester1.checkNull("4 % cast(null as tinyint)");
+    if (!DECIMAL) {
+      return;
+    }
+    tester1.checkNull("4 % cast(null as decimal(12,0))");
+  }
+
+  @Test public void testModOperatorDivByZero() {
+    // "%" is allowed under MYSQL_5 SQL conformance level
+    final SqlTester tester1 = tester.withConformance(SqlConformanceEnum.MYSQL_5);
+    // The extra CASE expression is to fool Janino.  It does constant
+    // reduction and will throw the divide by zero exception while
+    // compiling the expression.  The test frame work would then issue
+    // unexpected exception occurred during "validation".  You cannot
+    // submit as non-runtime because the janino exception does not have
+    // error position information and the framework is unhappy with that.
+    tester1.checkFails(
+            "3 % case 'a' when 'a' then 0 end", DIVISION_BY_ZERO_MESSAGE, true);
+  }
+
   @Test public void testDivideOperator() {
     tester.setFor(SqlStdOperatorTable.DIVIDE);
     tester.checkScalarExact("10 / 5", "2");
@@ -2366,22 +2428,22 @@ public abstract class SqlOperatorBaseTest {
    * TIMESTAMP values. */
   @Test public void testPeriodOperators() {
     String[] times = {
-      "TIME '01:00:00'",
-      "TIME '02:00:00'",
-      "TIME '03:00:00'",
-      "TIME '04:00:00'",
+        "TIME '01:00:00'",
+        "TIME '02:00:00'",
+        "TIME '03:00:00'",
+        "TIME '04:00:00'",
     };
     String[] dates = {
-      "DATE '1970-01-01'",
-      "DATE '1970-02-01'",
-      "DATE '1970-03-01'",
-      "DATE '1970-04-01'",
+        "DATE '1970-01-01'",
+        "DATE '1970-02-01'",
+        "DATE '1970-03-01'",
+        "DATE '1970-04-01'",
     };
     String[] timestamps = {
-      "TIMESTAMP '1970-01-01 00:00:00'",
-      "TIMESTAMP '1970-02-01 00:00:00'",
-      "TIMESTAMP '1970-03-01 00:00:00'",
-      "TIMESTAMP '1970-04-01 00:00:00'",
+        "TIMESTAMP '1970-01-01 00:00:00'",
+        "TIMESTAMP '1970-02-01 00:00:00'",
+        "TIMESTAMP '1970-03-01 00:00:00'",
+        "TIMESTAMP '1970-04-01 00:00:00'",
     };
     checkOverlaps(new OverlapChecker(times));
     checkOverlaps(new OverlapChecker(dates));
@@ -3744,13 +3806,13 @@ public abstract class SqlOperatorBaseTest {
     final SqlTester tester1 = oracleTester();
     tester1.setFor(OracleSqlOperatorTable.TRANSLATE3);
     tester1.checkString(
-       "translate('aabbcc', 'ab', '+-')",
-       "++--cc",
-       "VARCHAR(6) NOT NULL");
+        "translate('aabbcc', 'ab', '+-')",
+        "++--cc",
+        "VARCHAR(6) NOT NULL");
     tester1.checkString(
         "translate('aabbcc', 'ab', 'ba')",
-       "bbaacc",
-       "VARCHAR(6) NOT NULL");
+        "bbaacc",
+        "VARCHAR(6) NOT NULL");
     tester1.checkString(
         "translate('aabbcc', 'ab', '')",
         "cc",
@@ -3760,15 +3822,15 @@ public abstract class SqlOperatorBaseTest {
         "aabbcc",
         "VARCHAR(6) NOT NULL");
     tester1.checkString(
-       "translate(cast('aabbcc' as varchar(10)), 'ab', '+-')",
-       "++--cc",
-       "VARCHAR(10) NOT NULL");
+        "translate(cast('aabbcc' as varchar(10)), 'ab', '+-')",
+        "++--cc",
+        "VARCHAR(10) NOT NULL");
     tester1.checkNull(
-       "translate(cast(null as varchar(7)), 'ab', '+-')");
+        "translate(cast(null as varchar(7)), 'ab', '+-')");
     tester1.checkNull(
-       "translate('aabbcc', cast(null as varchar(2)), '+-')");
+        "translate('aabbcc', cast(null as varchar(2)), '+-')");
     tester1.checkNull(
-       "translate('aabbcc', 'ab', cast(null as varchar(2)))");
+        "translate('aabbcc', 'ab', cast(null as varchar(2)))");
   }
 
   @Test public void testOverlayFunc() {
@@ -6132,7 +6194,7 @@ public abstract class SqlOperatorBaseTest {
 
     // string values -- note that empty string is not null
     final String[] stringValues = {
-      "'a'", "CAST(NULL AS VARCHAR(1))", "''"
+        "'a'", "CAST(NULL AS VARCHAR(1))", "''"
     };
     tester.checkAgg("COUNT(*)", stringValues, 3, (double) 0);
     tester.checkAgg("COUNT(x)", stringValues, 2, (double) 0);
@@ -6831,7 +6893,7 @@ public abstract class SqlOperatorBaseTest {
       implements SqlTester.ResultChecker {
     private final Pattern[] patterns;
 
-    public ExceptionResultChecker(Pattern... patterns) {
+    ExceptionResultChecker(Pattern... patterns) {
       this.patterns = patterns;
     }
 
@@ -6866,7 +6928,7 @@ public abstract class SqlOperatorBaseTest {
     private final Object expected;
     private final Pattern[] patterns;
 
-    public ValueOrExceptionResultChecker(
+    ValueOrExceptionResultChecker(
         Object expected, Pattern... patterns) {
       this.expected = expected;
       this.patterns = patterns;

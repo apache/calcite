@@ -212,8 +212,8 @@ public class RexImpTable {
   private final Map<SqlOperator, CallImplementor> map = new HashMap<>();
   private final Map<SqlAggFunction, Supplier<? extends AggImplementor>> aggMap =
       Maps.newHashMap();
-  private final Map<SqlAggFunction, Supplier<? extends WinAggImplementor>>
-  winAggMap = Maps.newHashMap();
+  private final Map<SqlAggFunction, Supplier<? extends WinAggImplementor>> winAggMap =
+      Maps.newHashMap();
 
   RexImpTable() {
     defineMethod(ROW, BuiltInMethod.ARRAY.method, NullPolicy.ANY);
@@ -268,8 +268,8 @@ public class RexImpTable {
     defineImplementor(RAND, NullPolicy.STRICT,
         new NotNullImplementor() {
           final NotNullImplementor[] implementors = {
-            new ReflectiveCallNotNullImplementor(BuiltInMethod.RAND.method),
-            new ReflectiveCallNotNullImplementor(BuiltInMethod.RAND_SEED.method)
+              new ReflectiveCallNotNullImplementor(BuiltInMethod.RAND.method),
+              new ReflectiveCallNotNullImplementor(BuiltInMethod.RAND_SEED.method)
           };
           public Expression implement(RexToLixTranslator translator,
               RexCall call, List<Expression> translatedOperands) {
@@ -280,10 +280,10 @@ public class RexImpTable {
     defineImplementor(RAND_INTEGER, NullPolicy.STRICT,
         new NotNullImplementor() {
           final NotNullImplementor[] implementors = {
-            null,
-            new ReflectiveCallNotNullImplementor(
+              null,
+              new ReflectiveCallNotNullImplementor(
                 BuiltInMethod.RAND_INTEGER.method),
-            new ReflectiveCallNotNullImplementor(
+              new ReflectiveCallNotNullImplementor(
                 BuiltInMethod.RAND_INTEGER_SEED.method)
           };
           public Expression implement(RexToLixTranslator translator,
@@ -669,7 +669,7 @@ public class RexImpTable {
   public CallImplementor get(final SqlOperator operator) {
     if (operator instanceof SqlUserDefinedFunction) {
       org.apache.calcite.schema.Function udf =
-        ((SqlUserDefinedFunction) operator).getFunction();
+          ((SqlUserDefinedFunction) operator).getFunction();
       if (!(udf instanceof ImplementableFunction)) {
         throw new IllegalStateException("User defined function " + operator
             + " must implement ImplementableFunction");
@@ -1293,8 +1293,8 @@ public class RexImpTable {
           Comparable[] rows;  // accessed via WinAggAddContext.compareRows
           {
             if (curentPosition > startIndex) {
-              if (rows[curentPosition - 1].compareTo(rows[curentPosition]) > 0)
-              {
+              if (rows[curentPosition - 1].compareTo(rows[curentPosition])
+                  > 0) {
                 // update rank
               }
             }
@@ -2030,7 +2030,7 @@ public class RexImpTable {
     private final Boolean seek;
     private final boolean negate;
 
-    public IsXxxImplementor(Boolean seek, boolean negate) {
+    IsXxxImplementor(Boolean seek, boolean negate) {
       this.seek = seek;
       this.negate = negate;
     }
@@ -2054,7 +2054,7 @@ public class RexImpTable {
   private static class NotImplementor implements NotNullImplementor {
     private final NotNullImplementor implementor;
 
-    public NotImplementor(NotNullImplementor implementor) {
+    NotImplementor(NotNullImplementor implementor) {
       this.implementor = implementor;
     }
 

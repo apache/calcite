@@ -774,7 +774,7 @@ public class CalciteMetaImpl extends MetaImpl {
   private static class CalciteMetaTable extends MetaTable {
     private final Table calciteTable;
 
-    public CalciteMetaTable(Table calciteTable, String tableCat,
+    CalciteMetaTable(Table calciteTable, String tableCat,
         String tableSchem, String tableName) {
       super(tableCat, tableSchem, tableName,
           calciteTable.getJdbcTableType().name());
@@ -786,16 +786,18 @@ public class CalciteMetaImpl extends MetaImpl {
   private static class CalciteMetaSchema extends MetaSchema {
     private final CalciteSchema calciteSchema;
 
-    public CalciteMetaSchema(CalciteSchema calciteSchema,
+    CalciteMetaSchema(CalciteSchema calciteSchema,
         String tableCatalog, String tableSchem) {
       super(tableCatalog, tableSchem);
       this.calciteSchema = calciteSchema;
     }
   }
 
-  /** Table whose contents are metadata. */
+  /** Table whose contents are metadata.
+   *
+   * @param <E> element type */
   abstract static class MetadataTable<E> extends AbstractQueryableTable {
-    public MetadataTable(Class<E> clazz) {
+    MetadataTable(Class<E> clazz) {
       super(clazz);
     }
 
@@ -828,7 +830,9 @@ public class CalciteMetaImpl extends MetaImpl {
   }
 
   /** Iterator that returns at most {@code limit} rows from an underlying
-   * {@link Iterator}. */
+   * {@link Iterator}.
+   *
+   * @param <E> element type */
   private static class LimitIterator<E> implements Iterator<E> {
     private final Iterator<E> iterator;
     private final long limit;

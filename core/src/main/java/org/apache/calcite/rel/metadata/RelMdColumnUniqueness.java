@@ -405,7 +405,7 @@ public class RelMdColumnUniqueness
 
   /** Splits a column set between left and right sets. */
   private static Pair<ImmutableBitSet, ImmutableBitSet>
-  splitLeftAndRightColumns(int leftCount, final ImmutableBitSet columns) {
+      splitLeftAndRightColumns(int leftCount, final ImmutableBitSet columns) {
     ImmutableBitSet.Builder leftBuilder = ImmutableBitSet.builder();
     ImmutableBitSet.Builder rightBuilder = ImmutableBitSet.builder();
     for (int bit : columns) {

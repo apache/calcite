@@ -2449,6 +2449,7 @@ SqlMatchRecognize MatchRecognizeOpt(SqlNode tableRef) :
     SqlNodeList partitionList = SqlNodeList.EMPTY;
     SqlNodeList orderList = SqlNodeList.EMPTY;
     SqlNode pattern;
+    SqlLiteral interval;
     SqlNodeList patternDefList;
     final SqlNode after;
     SqlParserPos pos;
@@ -2528,6 +2529,11 @@ SqlMatchRecognize MatchRecognizeOpt(SqlNode tableRef) :
         { isStrictEnds = SqlLiteral.createBoolean(false, getPos()); }
     )
     <RPAREN>
+    (
+        <WITHIN> interval = IntervalLiteral()
+    |
+        { interval = null; }
+    )
     [
         <SUBSET>
         subsetList = SubsetDefinitionCommaList(span())
@@ -2537,7 +2543,7 @@ SqlMatchRecognize MatchRecognizeOpt(SqlNode tableRef) :
     <RPAREN> {
         return new SqlMatchRecognize(s.end(this), tableRef,
             pattern, isStrictStarts, isStrictEnds, patternDefList, measureList,
-            after, subsetList, rowsPerMatch, partitionList, orderList);
+            after, subsetList, rowsPerMatch, partitionList, orderList, interval);
     }
 }
 
@@ -5276,6 +5282,12 @@ SqlBinaryOperator BinaryRowOperator() :
 |   <MINUS> { return SqlStdOperatorTable.MINUS; }
 |   <STAR> { return SqlStdOperatorTable.MULTIPLY; }
 |   <SLASH> { return SqlStdOperatorTable.DIVIDE; }
+|   <PERCENT_REMAINDER> {
+        if (!this.conformance.isPercentRemainderAllowed()) {
+            throw new ParseException(RESOURCE.percentRemainderNotAllowed().str());
+        }
+        return SqlStdOperatorTable.PERCENT_REMAINDER;
+    }
 |   <CONCAT> { return SqlStdOperatorTable.CONCAT; }
 |   <AND> { return SqlStdOperatorTable.AND; }
 |   <OR> { return SqlStdOperatorTable.OR; }
@@ -6388,6 +6400,7 @@ String CommonNonReservedKeyWord() :
 |   < MINUS: "-" >
 |   < STAR: "*" >
 |   < SLASH: "/" >
+|   < PERCENT_REMAINDER: "%" >
 |   < CONCAT: "||" >
 |   < NAMED_ARGUMENT_ASSIGNMENT: "=>" >
 |   < DOUBLE_PERIOD: ".." >

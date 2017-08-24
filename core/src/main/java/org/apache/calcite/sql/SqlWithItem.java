@@ -76,7 +76,7 @@ public class SqlWithItem extends SqlCall {
     private static final SqlWithItemOperator INSTANCE =
         new SqlWithItemOperator();
 
-    public SqlWithItemOperator() {
+    SqlWithItemOperator() {
       super("WITH_ITEM", SqlKind.WITH_ITEM, 0);
     }
 

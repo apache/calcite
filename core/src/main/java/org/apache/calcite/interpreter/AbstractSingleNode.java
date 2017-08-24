@@ -28,7 +28,7 @@ abstract class AbstractSingleNode<T extends SingleRel> implements Node {
   protected final Sink sink;
   protected final T rel;
 
-  public AbstractSingleNode(Interpreter interpreter, T rel) {
+  AbstractSingleNode(Interpreter interpreter, T rel) {
     this.rel = rel;
     this.source = interpreter.source(rel, 0);
     this.sink = interpreter.sink(rel);

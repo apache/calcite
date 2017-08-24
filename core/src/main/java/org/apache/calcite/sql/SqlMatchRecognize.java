@@ -43,6 +43,7 @@ public class SqlMatchRecognize extends SqlCall {
   public static final int OPERAND_ROWS_PER_MATCH = 8;
   public static final int OPERAND_PARTITION_BY = 9;
   public static final int OPERAND_ORDER_BY = 10;
+  public static final int OPERAND_INTERVAL = 11;
 
   public static final SqlPrefixOperator SKIP_TO_FIRST =
       new SqlPrefixOperator("SKIP TO FIRST", SqlKind.SKIP_TO_FIRST, 20, null,
@@ -65,13 +66,14 @@ public class SqlMatchRecognize extends SqlCall {
   private SqlLiteral rowsPerMatch;
   private SqlNodeList partitionList;
   private SqlNodeList orderList;
+  private SqlLiteral interval;
 
   /** Creates a SqlMatchRecognize. */
   public SqlMatchRecognize(SqlParserPos pos, SqlNode tableRef, SqlNode pattern,
       SqlLiteral strictStart, SqlLiteral strictEnd, SqlNodeList patternDefList,
       SqlNodeList measureList, SqlNode after, SqlNodeList subsetList,
       SqlLiteral rowsPerMatch, SqlNodeList partitionList,
-      SqlNodeList orderList) {
+      SqlNodeList orderList, SqlLiteral interval) {
     super(pos);
     this.tableRef = Preconditions.checkNotNull(tableRef);
     this.pattern = Preconditions.checkNotNull(pattern);
@@ -87,6 +89,7 @@ public class SqlMatchRecognize extends SqlCall {
     this.rowsPerMatch = rowsPerMatch;
     this.partitionList = Preconditions.checkNotNull(partitionList);
     this.orderList = Preconditions.checkNotNull(orderList);
+    this.interval = interval;
   }
 
   // ~ Methods
@@ -151,6 +154,9 @@ public class SqlMatchRecognize extends SqlCall {
     case OPERAND_ORDER_BY:
       orderList = (SqlNodeList) operand;
       break;
+    case OPERAND_INTERVAL:
+      interval = (SqlLiteral) operand;
+      break;
     default:
       throw new AssertionError(i);
     }
@@ -198,6 +204,10 @@ public class SqlMatchRecognize extends SqlCall {
 
   public SqlNodeList getOrderList() {
     return orderList;
+  }
+
+  public SqlLiteral getInterval() {
+    return interval;
   }
 
   /**
@@ -268,13 +278,13 @@ public class SqlMatchRecognize extends SqlCall {
         SqlParserPos pos,
         SqlNode... operands) {
       assert functionQualifier == null;
-      assert operands.length == 11;
+      assert operands.length == 12;
 
       return new SqlMatchRecognize(pos, operands[0], operands[1],
           (SqlLiteral) operands[2], (SqlLiteral) operands[3],
           (SqlNodeList) operands[4], (SqlNodeList) operands[5], operands[6],
           (SqlNodeList) operands[7], (SqlLiteral) operands[8],
-          (SqlNodeList) operands[9], (SqlNodeList) operands[10]);
+          (SqlNodeList) operands[9], (SqlNodeList) operands[10], (SqlLiteral) operands[11]);
     }
 
     @Override public <R> void acceptCall(
@@ -326,7 +336,7 @@ public class SqlMatchRecognize extends SqlCall {
         writer.newlineAndIndent();
         writer.sep("ORDER BY");
         final SqlWriter.Frame orderFrame =
-          writer.startList(SqlWriter.FrameTypeEnum.ORDER_BY_LIST);
+            writer.startList(SqlWriter.FrameTypeEnum.ORDER_BY_LIST);
         unparseListClause(writer, pattern.orderList);
         writer.endList(orderFrame);
       }
@@ -362,6 +372,10 @@ public class SqlMatchRecognize extends SqlCall {
         writer.sep("$");
       }
       writer.endList(patternFrame);
+      if (pattern.interval != null) {
+        writer.sep("WITHIN");
+        pattern.interval.unparse(writer, 0, 0);
+      }
 
       if (pattern.subsetList != null && pattern.subsetList.size() > 0) {
         writer.newlineAndIndent();

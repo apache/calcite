@@ -318,6 +318,7 @@ public abstract class ReturnTypes {
               new ExplicitOperatorBinding(
                   opBinding,
                   new AbstractList<RelDataType>() {
+                    // CHECKSTYLE: IGNORE 12
                     public RelDataType get(int index) {
                       RelDataType type =
                           opBinding.getOperandType(index)
@@ -329,7 +330,6 @@ public abstract class ReturnTypes {
                     public int size() {
                       return opBinding.getOperandCount();
                     }
-                    // CHECKSTYLE: IGNORE 1
                   });
           RelDataType biggestElementType =
               LEAST_RESTRICTIVE.inferReturnType(newBinding);
@@ -647,8 +647,7 @@ public abstract class ReturnTypes {
    * {@link org.apache.calcite.sql.type.SqlTypeTransforms#TO_NULLABLE},
    * {@link org.apache.calcite.sql.type.SqlTypeTransforms#TO_VARYING}.
    */
-  public static final SqlReturnTypeInference
-  DYADIC_STRING_SUM_PRECISION_NULLABLE_VARYING =
+  public static final SqlReturnTypeInference DYADIC_STRING_SUM_PRECISION_NULLABLE_VARYING =
       cascade(DYADIC_STRING_SUM_PRECISION, SqlTypeTransforms.TO_NULLABLE,
           SqlTypeTransforms.TO_VARYING);
 
@@ -656,8 +655,7 @@ public abstract class ReturnTypes {
    * Same as {@link #DYADIC_STRING_SUM_PRECISION} and using
    * {@link org.apache.calcite.sql.type.SqlTypeTransforms#TO_NULLABLE}
    */
-  public static final SqlReturnTypeInference
-  DYADIC_STRING_SUM_PRECISION_NULLABLE =
+  public static final SqlReturnTypeInference DYADIC_STRING_SUM_PRECISION_NULLABLE =
       cascade(DYADIC_STRING_SUM_PRECISION, SqlTypeTransforms.TO_NULLABLE);
 
   /**

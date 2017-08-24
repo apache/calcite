@@ -44,8 +44,8 @@ public class VolcanoRelMetadataProvider implements RelMetadataProvider {
     return 103;
   }
 
-  public <M extends Metadata> UnboundMetadata<M>
-  apply(Class<? extends RelNode> relClass,
+  public <M extends Metadata> UnboundMetadata<M> apply(
+      Class<? extends RelNode> relClass,
       final Class<? extends M> metadataClass) {
     if (relClass != RelSubset.class) {
       // let someone else further down the chain sort it out
@@ -115,8 +115,8 @@ public class VolcanoRelMetadataProvider implements RelMetadataProvider {
     };
   }
 
-  public <M extends Metadata> Multimap<Method, MetadataHandler<M>>
-  handlers(MetadataDef<M> def) {
+  public <M extends Metadata> Multimap<Method, MetadataHandler<M>> handlers(
+      MetadataDef<M> def) {
     return ImmutableMultimap.of();
   }
 }

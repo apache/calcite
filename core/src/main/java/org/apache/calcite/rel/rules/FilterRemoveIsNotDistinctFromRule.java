@@ -87,7 +87,7 @@ public final class FilterRemoveIsNotDistinctFromRule extends RelOptRule {
   private class RemoveIsNotDistinctFromRexShuttle extends RexShuttle {
     RexBuilder rexBuilder;
 
-    public RemoveIsNotDistinctFromRexShuttle(
+    RemoveIsNotDistinctFromRexShuttle(
         RexBuilder rexBuilder) {
       this.rexBuilder = rexBuilder;
     }

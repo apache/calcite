@@ -257,6 +257,7 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
           "KEYWORD(-)",
           "KEYWORD(.)",
           "KEYWORD(/)",
+          "KEYWORD(%)",
           "KEYWORD(<)",
           "KEYWORD(<=)",
           "KEYWORD(<>)",
@@ -1233,7 +1234,7 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
 
   /** Factory that creates testers. */
   private static class AdvisorTesterFactory extends DelegatingSqlTestFactory {
-    public AdvisorTesterFactory() {
+    AdvisorTesterFactory() {
       super(DefaultSqlTestFactory.INSTANCE);
     }
 

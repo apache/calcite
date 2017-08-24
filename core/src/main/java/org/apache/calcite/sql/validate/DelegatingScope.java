@@ -174,8 +174,8 @@ public abstract class DelegatingScope implements SqlValidatorScope {
   }
 
   @SuppressWarnings("deprecation")
-  public Pair<String, SqlValidatorNamespace>
-  findQualifyingTableName(String columnName, SqlNode ctx) {
+  public Pair<String, SqlValidatorNamespace> findQualifyingTableName(
+      String columnName, SqlNode ctx) {
     //noinspection deprecation
     return parent.findQualifyingTableName(columnName, ctx);
   }

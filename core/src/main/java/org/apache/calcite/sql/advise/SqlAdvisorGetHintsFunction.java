@@ -62,14 +62,14 @@ public class SqlAdvisorGetHintsFunction
         SqlAdvisor.class, String.class, int.class);
 
   private static final CallImplementor IMPLEMENTOR =
-    RexImpTable.createImplementor(
-        new NotNullImplementor() {
-          public Expression implement(RexToLixTranslator translator,
-              RexCall call, List<Expression> operands) {
-            return Expressions.call(GET_COMPLETION_HINTS,
-                Iterables.concat(Collections.singleton(ADVISOR), operands));
-          }
-        }, NullPolicy.ANY, false);
+      RexImpTable.createImplementor(
+          new NotNullImplementor() {
+            public Expression implement(RexToLixTranslator translator,
+                RexCall call, List<Expression> operands) {
+              return Expressions.call(GET_COMPLETION_HINTS,
+                  Iterables.concat(Collections.singleton(ADVISOR), operands));
+            }
+          }, NullPolicy.ANY, false);
 
   private static final List<FunctionParameter> PARAMETERS =
       ReflectiveFunctionBase.builder()
@@ -109,7 +109,7 @@ public class SqlAdvisorGetHintsFunction
       final SqlAdvisor advisor, final String sql, final int pos) {
     final String[] replaced = {null};
     final List<SqlMoniker> hints = advisor.getCompletionHints(sql,
-      pos, replaced);
+        pos, replaced);
     final List<SqlAdvisorHint> res = new ArrayList<>(hints.size() + 1);
     res.add(new SqlAdvisorHint(replaced[0], null, "MATCH"));
     for (SqlMoniker hint : hints) {

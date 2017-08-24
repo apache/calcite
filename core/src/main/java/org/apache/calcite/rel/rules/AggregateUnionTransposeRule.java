@@ -56,7 +56,7 @@ public class AggregateUnionTransposeRule extends RelOptRule {
           LogicalUnion.class, RelFactories.LOGICAL_BUILDER);
 
   private static final Map<Class<? extends SqlAggFunction>, Boolean>
-  SUPPORTED_AGGREGATES = new IdentityHashMap<>();
+      SUPPORTED_AGGREGATES = new IdentityHashMap<>();
 
   static {
     SUPPORTED_AGGREGATES.put(SqlMinMaxAggFunction.class, true);

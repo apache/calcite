@@ -205,8 +205,8 @@ abstract class CalciteConnectionImpl
     }
   }
 
-  <T> CalcitePrepare.CalciteSignature<T>
-  parseQuery(CalcitePrepare.Query<T> query,
+  <T> CalcitePrepare.CalciteSignature<T> parseQuery(
+      CalcitePrepare.Query<T> query,
       CalcitePrepare.Context prepareContext, long maxRowCount) {
     CalcitePrepare.Dummy.push(prepareContext);
     try {
@@ -312,7 +312,9 @@ abstract class CalciteConnectionImpl
     return factory;
   }
 
-  /** Implementation of Queryable. */
+  /** Implementation of Queryable.
+   *
+   * @param <T> element type */
   static class CalciteQueryable<T> extends BaseQueryable<T> {
     CalciteQueryable(CalciteConnection connection, Type elementType,
         Expression expression) {

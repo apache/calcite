@@ -1527,7 +1527,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
     final RexInputRef nullIndicator;
     final ImmutableSet<Integer> isCount;
 
-    public RemoveCorrelationRexShuttle(
+    RemoveCorrelationRexShuttle(
         RexBuilder rexBuilder,
         boolean projectPulledAboveLeftCorrelator,
         RexInputRef nullIndicator,
@@ -1722,7 +1722,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
    * AggRel single group</blockquote>
    */
   private final class RemoveSingleAggregateRule extends RelOptRule {
-    public RemoveSingleAggregateRule() {
+    RemoveSingleAggregateRule() {
       super(
           operand(
               LogicalAggregate.class,
@@ -1775,7 +1775,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
 
   /** Planner rule that removes correlations for scalar projects. */
   private final class RemoveCorrelationForScalarProjectRule extends RelOptRule {
-    public RemoveCorrelationForScalarProjectRule() {
+    RemoveCorrelationForScalarProjectRule() {
       super(
           operand(LogicalCorrelate.class,
               operand(RelNode.class, any()),
@@ -1973,7 +1973,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
   /** Planner rule that removes correlations for scalar aggregates. */
   private final class RemoveCorrelationForScalarAggregateRule
       extends RelOptRule {
-    public RemoveCorrelationForScalarAggregateRule() {
+    RemoveCorrelationForScalarAggregateRule() {
       super(
           operand(LogicalCorrelate.class,
               operand(RelNode.class, any()),
@@ -2356,7 +2356,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
   private final class AdjustProjectForCountAggregateRule extends RelOptRule {
     final boolean flavor;
 
-    public AdjustProjectForCountAggregateRule(boolean flavor) {
+    AdjustProjectForCountAggregateRule(boolean flavor) {
       super(
           flavor
               ? operand(LogicalCorrelate.class,

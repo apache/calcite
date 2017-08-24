@@ -259,25 +259,23 @@ public class EnumerableAggregate extends Aggregate implements EnumerableRel {
       // We have to initialize the SyntheticRecordType instance this way, to avoid using
       // class constructor with too many parameters.
       JavaTypeFactoryImpl.SyntheticRecordType synType =
-        (JavaTypeFactoryImpl.SyntheticRecordType) accPhysType.getJavaRowType();
+          (JavaTypeFactoryImpl.SyntheticRecordType)
+          accPhysType.getJavaRowType();
       final ParameterExpression record0_ =
-        Expressions.parameter(accPhysType.getJavaRowType(), "record0");
+          Expressions.parameter(accPhysType.getJavaRowType(), "record0");
       initBlock.add(Expressions.declare(0, record0_, null));
       initBlock.add(
-        Expressions.statement(
-          Expressions.assign(
-            record0_,
-            Expressions.new_(accPhysType.getJavaRowType()))));
+          Expressions.statement(
+              Expressions.assign(record0_,
+                  Expressions.new_(accPhysType.getJavaRowType()))));
       List<Types.RecordField> fieldList = synType.getRecordFields();
       for (int i = 0; i < initExpressions.size(); i++) {
         Expression right = initExpressions.get(i);
         initBlock.add(
-          Expressions.statement(
-            Expressions.assign(
-              Expressions.field(
-                record0_,
-                fieldList.get(i)),
-              right)));
+            Expressions.statement(
+                Expressions.assign(
+                    Expressions.field(record0_, fieldList.get(i)),
+                    right)));
       }
       initBlock.add(record0_);
     } else {

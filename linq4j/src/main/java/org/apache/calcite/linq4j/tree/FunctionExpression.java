@@ -172,7 +172,8 @@ public final class FunctionExpression<F extends Function<?>>
         .begin(" {\n")
         .append("public ")
         .append(Types.className(resultType2))
-        .list(" " + methodName + "(", ", ", ") ", params)
+        .list(" " + methodName + "(",
+                ", ", ") ", params)
         .append(Blocks.toFunctionBlock(body));
 
     // Generate an intermediate bridge method if at least one parameter is
@@ -222,8 +223,8 @@ public final class FunctionExpression<F extends Function<?>>
 
   private Method getAbstractMethod() {
     if (type instanceof Class
-      && ((Class) type).isInterface()
-      && ((Class) type).getDeclaredMethods().length == 1) {
+        && ((Class) type).isInterface()
+        && ((Class) type).getDeclaredMethods().length == 1) {
       return ((Class) type).getDeclaredMethods()[0];
     }
     return null;

@@ -655,8 +655,8 @@ public class SqlValidatorUtil {
     return null;
   }
 
-  public static AggregatingSelectScope
-  getEnclosingAggregateSelectScope(SqlValidatorScope scope) {
+  public static AggregatingSelectScope getEnclosingAggregateSelectScope(
+      SqlValidatorScope scope) {
     while (scope instanceof DelegatingScope) {
       if (scope instanceof AggregatingSelectScope) {
         return (AggregatingSelectScope) scope;
@@ -788,9 +788,8 @@ public class SqlValidatorUtil {
    * <p>Gathers into {@code groupExprs} the set of distinct expressions being
    * grouped, and returns a bitmap indicating which expressions this tuple
    * is grouping. */
-  private static List<ImmutableBitSet>
-  analyzeGroupTuple(SqlValidatorScope scope, GroupAnalyzer groupAnalyzer,
-                    List<SqlNode> operandList) {
+  private static List<ImmutableBitSet> analyzeGroupTuple(SqlValidatorScope scope,
+       GroupAnalyzer groupAnalyzer, List<SqlNode> operandList) {
     List<ImmutableBitSet> list = Lists.newArrayList();
     for (SqlNode operand : operandList) {
       list.add(
@@ -893,8 +892,8 @@ public class SqlValidatorUtil {
    * <code>rollup({0, 2}, {3, 5})</code>
    * returns <code>({0, 2, 3, 5}, {0, 2}, {})</code>. */
   @VisibleForTesting
-  public static ImmutableList<ImmutableBitSet>
-  rollup(List<ImmutableBitSet> bitSets) {
+  public static ImmutableList<ImmutableBitSet> rollup(
+      List<ImmutableBitSet> bitSets) {
     Set<ImmutableBitSet> builder = Sets.newLinkedHashSet();
     for (;;) {
       final ImmutableBitSet union = ImmutableBitSet.union(bitSets);
@@ -916,8 +915,8 @@ public class SqlValidatorUtil {
    * <code>rollup({0, 2}, {3, 5})</code>
    * returns <code>({0, 2, 3, 5}, {0, 2}, {})</code>. */
   @VisibleForTesting
-  public static ImmutableList<ImmutableBitSet>
-  cube(List<ImmutableBitSet> bitSets) {
+  public static ImmutableList<ImmutableBitSet> cube(
+      List<ImmutableBitSet> bitSets) {
     // Given the bit sets [{1}, {2, 3}, {5}],
     // form the lists [[{1}, {}], [{2, 3}, {}], [{5}, {}]].
     final Set<List<ImmutableBitSet>> builder = Sets.newLinkedHashSet();

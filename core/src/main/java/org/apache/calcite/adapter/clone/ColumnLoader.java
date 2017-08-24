@@ -50,7 +50,7 @@ class ColumnLoader<T> {
   static final int[] INT_B = {0x2, 0xC, 0xF0, 0xFF00, 0xFFFF0000};
   static final int[] INT_S = {1, 2, 4, 8, 16};
   static final long[] LONG_B = {
-    0x2, 0xC, 0xF0, 0xFF00, 0xFFFF0000, 0xFFFFFFFF00000000L};
+      0x2, 0xC, 0xF0, 0xFF00, 0xFFFF0000, 0xFFFFFFFF00000000L};
   static final int[] LONG_S = {1, 2, 4, 8, 16, 32};
 
   private static final Function<Timestamp, Long> TIMESTAMP_TO_LONG =
@@ -461,7 +461,7 @@ class ColumnLoader<T> {
     private final int source;
     private final Comparable key;
 
-    public Kev(int source, Comparable key) {
+    Kev(int source, Comparable key) {
       this.source = source;
       this.key = key;
     }

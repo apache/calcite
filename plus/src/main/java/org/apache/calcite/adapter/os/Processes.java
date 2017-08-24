@@ -184,7 +184,7 @@ public class Processes {
   private static class ProcessFactory implements Supplier<Process> {
     private final String[] args;
 
-    public ProcessFactory(String... args) {
+    ProcessFactory(String... args) {
       this.args = args;
     }
 

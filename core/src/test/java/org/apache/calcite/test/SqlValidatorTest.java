@@ -4127,6 +4127,36 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
             "RANK or DENSE_RANK functions require ORDER BY clause in window specification");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1954">[CALCITE-1954]
+   * Column from outer join should be null, whether or not it is aliased</a>. */
+  @Test public void testLeftOuterJoinWithAlias() {
+    final String query = "select *\n"
+        + "from (select row_number() over (order by sal) from emp) as emp1(r1)\n"
+        + "left outer join\n"
+        + "(select  dense_rank() over(order by sal) from emp) as emp2(r2)\n"
+        + "on (emp1.r1 = emp2.r2)";
+    // In this case, R2 is nullable in the join since we have a left outer join.
+    final String type = "RecordType(BIGINT NOT NULL R1, BIGINT R2) NOT NULL";
+    sql(query).type(type);
+
+    // Similar query, without "AS t(c)"
+    final String query2 = "select *\n"
+        + "from (select row_number() over (order by sal) as r1 from emp) as emp1\n"
+        + "left outer join\n"
+        + "(select dense_rank() over(order by sal) as r2 from emp) as emp2\n"
+        + "on (emp1.r1 = emp2.r2)";
+    sql(query2).type(type);
+
+    // Similar query, without "AS t"
+    final String query3 = "select *\n"
+        + "from (select row_number() over (order by sal) as r1 from emp)\n"
+        + "left outer join\n"
+        + "(select dense_rank() over(order by sal) as r2 from emp)\n"
+        + "on r1 = r2";
+    sql(query3).type(type);
+  }
+
   @Test public void testInvalidWindowFunctionWithGroupBy() {
     sql("select max(^empno^) over () from emp\n"
         + "group by deptno")
@@ -6733,7 +6763,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + " from emp group by deptno\n"
         + " window w1 as (partition by ^empno^ ROWS 2 PRECEDING),\n"
         + " w2 as (order by deptno ROWS 2 PRECEDING)")
-        .fails("Expression 'EMP.EMPNO' is not being grouped");
+        .fails("Expression 'EMPNO' is not being grouped");
     sql("select avg(count(empno)) over w\n"
         + "from emp group by deptno\n"
         + "window w as (partition by deptno order by ^empno^)")
@@ -7053,8 +7083,8 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
 
     // Other operators with similar syntax
     String[] ops = {
-      "overlaps", "contains", "equals", "precedes", "succeeds",
-      "immediately precedes", "immediately succeeds"
+        "overlaps", "contains", "equals", "precedes", "succeeds",
+        "immediately precedes", "immediately succeeds"
     };
     for (String op : ops) {
       checkExpType("period (date '1-2-3', date '1-2-3')\n"
@@ -8413,6 +8443,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "\n"
         + "| left\n"
         + "\n"
+        + "% left\n"
         + "* left\n"
         + "/ left\n"
         + "/INT left\n"

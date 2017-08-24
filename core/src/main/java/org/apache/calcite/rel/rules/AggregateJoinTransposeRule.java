@@ -391,8 +391,8 @@ public class AggregateJoinTransposeRule extends RelOptRule {
 
   /** Creates a {@link org.apache.calcite.sql.SqlSplittableAggFunction.Registry}
    * that is a view of a list. */
-  private static <E> SqlSplittableAggFunction.Registry<E>
-  registry(final List<E> list) {
+  private static <E> SqlSplittableAggFunction.Registry<E> registry(
+      final List<E> list) {
     return new SqlSplittableAggFunction.Registry<E>() {
       public int register(E e) {
         int i = list.indexOf(e);

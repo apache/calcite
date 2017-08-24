@@ -122,92 +122,92 @@ public class ConcurrentTestCommandScript
   private static final String EOF = null;
 
   private static final StateAction[] STATE_TABLE = {
-    new StateAction(
-        PRE_SETUP_STATE,
-        new StateDatum[]{
-          new StateDatum(VAR, PRE_SETUP_STATE),
-          new StateDatum(LOCKSTEP, PRE_SETUP_STATE),
-          new StateDatum(NOLOCKSTEP, PRE_SETUP_STATE),
-          new StateDatum(ENABLED, PRE_SETUP_STATE),
-          new StateDatum(DISABLED, PRE_SETUP_STATE),
-          new StateDatum(PLUGIN, PRE_SETUP_STATE),
-          new StateDatum(SETUP, SETUP_STATE),
-          new StateDatum(CLEANUP, CLEANUP_STATE),
-          new StateDatum(THREAD, THREAD_STATE)
-        }),
+      new StateAction(
+          PRE_SETUP_STATE,
+          new StateDatum[]{
+              new StateDatum(VAR, PRE_SETUP_STATE),
+              new StateDatum(LOCKSTEP, PRE_SETUP_STATE),
+              new StateDatum(NOLOCKSTEP, PRE_SETUP_STATE),
+              new StateDatum(ENABLED, PRE_SETUP_STATE),
+              new StateDatum(DISABLED, PRE_SETUP_STATE),
+              new StateDatum(PLUGIN, PRE_SETUP_STATE),
+              new StateDatum(SETUP, SETUP_STATE),
+              new StateDatum(CLEANUP, CLEANUP_STATE),
+              new StateDatum(THREAD, THREAD_STATE)
+          }),
 
-    new StateAction(
-        SETUP_STATE,
-        new StateDatum[]{
-          new StateDatum(END, POST_SETUP_STATE),
-          new StateDatum(SQL, SETUP_STATE),
-          new StateDatum(INCLUDE, SETUP_STATE),
-        }),
+      new StateAction(
+          SETUP_STATE,
+          new StateDatum[]{
+              new StateDatum(END, POST_SETUP_STATE),
+              new StateDatum(SQL, SETUP_STATE),
+              new StateDatum(INCLUDE, SETUP_STATE),
+          }),
 
-    new StateAction(
-        POST_SETUP_STATE,
-        new StateDatum[]{
-          new StateDatum(CLEANUP, CLEANUP_STATE),
-          new StateDatum(THREAD, THREAD_STATE)
-        }),
+      new StateAction(
+          POST_SETUP_STATE,
+          new StateDatum[]{
+              new StateDatum(CLEANUP, CLEANUP_STATE),
+              new StateDatum(THREAD, THREAD_STATE)
+          }),
 
-    new StateAction(
-        CLEANUP_STATE,
-        new StateDatum[]{
-          new StateDatum(END, POST_CLEANUP_STATE),
-          new StateDatum(SQL, CLEANUP_STATE),
-          new StateDatum(INCLUDE, CLEANUP_STATE),
-        }),
+      new StateAction(
+          CLEANUP_STATE,
+          new StateDatum[]{
+              new StateDatum(END, POST_CLEANUP_STATE),
+              new StateDatum(SQL, CLEANUP_STATE),
+              new StateDatum(INCLUDE, CLEANUP_STATE),
+          }),
 
-    new StateAction(
-        POST_CLEANUP_STATE,
-        new StateDatum[]{
-          new StateDatum(THREAD, THREAD_STATE)
-        }),
+      new StateAction(
+          POST_CLEANUP_STATE,
+          new StateDatum[]{
+              new StateDatum(THREAD, THREAD_STATE)
+          }),
 
-    new StateAction(
-        THREAD_STATE,
-        new StateDatum[]{
-          new StateDatum(REPEAT, REPEAT_STATE),
-          new StateDatum(SYNC, THREAD_STATE),
-          new StateDatum(TIMEOUT, THREAD_STATE),
-          new StateDatum(ROWLIMIT, THREAD_STATE),
-          new StateDatum(PREPARE, THREAD_STATE),
-          new StateDatum(PRINT, THREAD_STATE),
-          new StateDatum(FETCH, THREAD_STATE),
-          new StateDatum(CLOSE, THREAD_STATE),
-          new StateDatum(SLEEP, THREAD_STATE),
-          new StateDatum(SQL, THREAD_STATE),
-          new StateDatum(ECHO, THREAD_STATE),
-          new StateDatum(ERR, THREAD_STATE),
-          new StateDatum(SHELL, THREAD_STATE),
-          new StateDatum(END, POST_THREAD_STATE)
-        }),
+      new StateAction(
+          THREAD_STATE,
+          new StateDatum[]{
+              new StateDatum(REPEAT, REPEAT_STATE),
+              new StateDatum(SYNC, THREAD_STATE),
+              new StateDatum(TIMEOUT, THREAD_STATE),
+              new StateDatum(ROWLIMIT, THREAD_STATE),
+              new StateDatum(PREPARE, THREAD_STATE),
+              new StateDatum(PRINT, THREAD_STATE),
+              new StateDatum(FETCH, THREAD_STATE),
+              new StateDatum(CLOSE, THREAD_STATE),
+              new StateDatum(SLEEP, THREAD_STATE),
+              new StateDatum(SQL, THREAD_STATE),
+              new StateDatum(ECHO, THREAD_STATE),
+              new StateDatum(ERR, THREAD_STATE),
+              new StateDatum(SHELL, THREAD_STATE),
+              new StateDatum(END, POST_THREAD_STATE)
+          }),
 
-    new StateAction(
-        REPEAT_STATE,
-        new StateDatum[]{
-          new StateDatum(SYNC, REPEAT_STATE),
-          new StateDatum(TIMEOUT, REPEAT_STATE),
-          new StateDatum(ROWLIMIT, REPEAT_STATE),
-          new StateDatum(PREPARE, REPEAT_STATE),
-          new StateDatum(PRINT, REPEAT_STATE),
-          new StateDatum(FETCH, REPEAT_STATE),
-          new StateDatum(CLOSE, REPEAT_STATE),
-          new StateDatum(SLEEP, REPEAT_STATE),
-          new StateDatum(SQL, REPEAT_STATE),
-          new StateDatum(ECHO, REPEAT_STATE),
-          new StateDatum(ERR, REPEAT_STATE),
-          new StateDatum(SHELL, REPEAT_STATE),
-          new StateDatum(END, THREAD_STATE)
-        }),
+      new StateAction(
+          REPEAT_STATE,
+          new StateDatum[]{
+              new StateDatum(SYNC, REPEAT_STATE),
+              new StateDatum(TIMEOUT, REPEAT_STATE),
+              new StateDatum(ROWLIMIT, REPEAT_STATE),
+              new StateDatum(PREPARE, REPEAT_STATE),
+              new StateDatum(PRINT, REPEAT_STATE),
+              new StateDatum(FETCH, REPEAT_STATE),
+              new StateDatum(CLOSE, REPEAT_STATE),
+              new StateDatum(SLEEP, REPEAT_STATE),
+              new StateDatum(SQL, REPEAT_STATE),
+              new StateDatum(ECHO, REPEAT_STATE),
+              new StateDatum(ERR, REPEAT_STATE),
+              new StateDatum(SHELL, REPEAT_STATE),
+              new StateDatum(END, THREAD_STATE)
+          }),
 
-    new StateAction(
-        POST_THREAD_STATE,
-        new StateDatum[]{
-          new StateDatum(THREAD, THREAD_STATE),
-          new StateDatum(EOF, EOF_STATE)
-        })
+      new StateAction(
+          POST_THREAD_STATE,
+          new StateDatum[]{
+              new StateDatum(THREAD, THREAD_STATE),
+              new StateDatum(EOF, EOF_STATE)
+          })
   };
 
   private static final int FETCH_LEN = FETCH.length();
@@ -750,13 +750,13 @@ public class ConcurrentTestCommandScript
     private final Pattern symbolPattern =
         Pattern.compile("\\$((\\$)|([A-Za-z]\\w*)|\\{([A-Za-z]\\w*)\\})");
 
-    public VariableTable() {
+    VariableTable() {
       map = new HashMap<>();
     }
 
     /** Exception. */
     public class Excn extends IllegalArgumentException {
-      public Excn(String msg) {
+      Excn(String msg) {
         super(msg);
       }
     }
@@ -854,13 +854,13 @@ public class ConcurrentTestCommandScript
       public final String var;
       public final String val;
 
-      public Binding(String var, String val) {
+      Binding(String var, String val) {
         this.var = var;
         this.val = val;
       }
 
       // @param phrase has form VAR=VAL
-      public Binding(String phrase) {
+      Binding(String phrase) {
         String[] parts = splitBinding.split(phrase);
         assert parts.length == 2;
         this.var = parts[0];
@@ -872,7 +872,7 @@ public class ConcurrentTestCommandScript
     // last @var.
     private final List<Binding> deferredBindings = new ArrayList<>();
 
-    public CommandParser() {
+    CommandParser() {
       state = PRE_SETUP_STATE;
       threadId = nextThreadId = 1;
       order = 1;
@@ -2067,7 +2067,7 @@ public class ConcurrentTestCommandScript
     List<String> bindings;          // VAR=VAL
     List<String> files;             // FILE
 
-    public Tool() {
+    Tool() {
       bindings = new ArrayList<>();
       files = new ArrayList<>();
     }

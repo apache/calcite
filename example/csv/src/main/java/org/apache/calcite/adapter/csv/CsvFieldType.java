@@ -47,8 +47,7 @@ enum CsvFieldType {
   private final Class clazz;
   private final String simpleName;
 
-  private static final Map<String, CsvFieldType> MAP =
-    new HashMap<String, CsvFieldType>();
+  private static final Map<String, CsvFieldType> MAP = new HashMap<>();
 
   static {
     for (CsvFieldType value : values()) {

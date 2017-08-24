@@ -32,7 +32,7 @@ public enum PigDataType {
   private byte pigType; // Pig defines types using bytes
   private SqlTypeName sqlType;
 
-  private PigDataType(byte pigType, SqlTypeName sqlType) {
+  PigDataType(byte pigType, SqlTypeName sqlType) {
     this.pigType = pigType;
     this.sqlType = sqlType;
   }

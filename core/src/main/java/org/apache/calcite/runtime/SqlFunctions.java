@@ -72,16 +72,14 @@ public class SqlFunctions {
 
   private static final TimeZone LOCAL_TZ = TimeZone.getDefault();
 
-  private static final Function1<List<Object>, Enumerable<Object>>
-  LIST_AS_ENUMERABLE =
+  private static final Function1<List<Object>, Enumerable<Object>> LIST_AS_ENUMERABLE =
       new Function1<List<Object>, Enumerable<Object>>() {
         public Enumerable<Object> apply(List<Object> list) {
           return Linq4j.asEnumerable(list);
         }
       };
 
-  private static final Function1<Object[], Enumerable<Object[]>>
-  ARRAY_CARTESIAN_PRODUCT =
+  private static final Function1<Object[], Enumerable<Object[]>> ARRAY_CARTESIAN_PRODUCT =
       new Function1<Object[], Enumerable<Object[]>>() {
         public Enumerable<Object[]> apply(Object[] lists) {
           final List<Enumerator<Object>> enumerators = new ArrayList<>();
@@ -2005,8 +2003,8 @@ public class SqlFunctions {
     }
   }
 
-  public static Function1<Object, Enumerable<ComparableList<Comparable>>>
-  flatProduct(final int[] fieldCounts, final boolean withOrdinality,
+  public static Function1<Object, Enumerable<ComparableList<Comparable>>> flatProduct(
+      final int[] fieldCounts, final boolean withOrdinality,
       final FlatProductInputType[] inputTypes) {
     if (fieldCounts.length == 1) {
       if (!withOrdinality && inputTypes[0] == FlatProductInputType.SCALAR) {
@@ -2029,8 +2027,8 @@ public class SqlFunctions {
     };
   }
 
-  private static Enumerable<FlatLists.ComparableList<Comparable>>
-  p2(Object[] lists, int[] fieldCounts, boolean withOrdinality,
+  private static Enumerable<FlatLists.ComparableList<Comparable>> p2(
+      Object[] lists, int[] fieldCounts, boolean withOrdinality,
       FlatProductInputType[] inputTypes) {
     final List<Enumerator<List<Comparable>>> enumerators = new ArrayList<>();
     int totalFieldCount = 0;
@@ -2063,11 +2061,11 @@ public class SqlFunctions {
             Linq4j.enumerator(map.entrySet());
 
         Enumerator<List<Comparable>> transformed = Linq4j.transform(enumerator,
-          new Function1<Entry<Comparable, Comparable>, List<Comparable>>() {
-            public List<Comparable> apply(Entry<Comparable, Comparable> entry) {
-              return FlatLists.<Comparable>of(entry.getKey(), entry.getValue());
-            }
-          });
+            new Function1<Entry<Comparable, Comparable>, List<Comparable>>() {
+              public List<Comparable> apply(Entry<Comparable, Comparable> e) {
+                return FlatLists.of(e.getKey(), e.getValue());
+              }
+            });
         enumerators.add(transformed);
         break;
       default:
@@ -2091,9 +2089,8 @@ public class SqlFunctions {
 
   /** Similar to {@link Linq4j#product(Iterable)} but each resulting list
    * implements {@link FlatLists.ComparableList}. */
-  public static <E extends Comparable>
-  Enumerable<FlatLists.ComparableList<E>>
-  product(final List<Enumerator<List<E>>> enumerators, final int fieldCount,
+  public static <E extends Comparable> Enumerable<FlatLists.ComparableList<E>> product(
+      final List<Enumerator<List<E>>> enumerators, final int fieldCount,
       final boolean withOrdinality) {
     return new AbstractEnumerable<FlatLists.ComparableList<E>>() {
       public Enumerator<FlatLists.ComparableList<E>> enumerator() {
@@ -2187,7 +2184,9 @@ public class SqlFunctions {
   }
 
   /** Enumerates over the cartesian product of the given lists, returning
-   * a comparable list for each row. */
+   * a comparable list for each row.
+   *
+   * @param <E> element type */
   private static class ProductComparableListEnumerator<E extends Comparable>
       extends CartesianProductEnumerator<List<E>, FlatLists.ComparableList<E>> {
     final E[] flatElements;

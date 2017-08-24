@@ -65,7 +65,9 @@ public class Frameworks {
 
   /** Piece of code to be run in a context where a planner is available. The
    * planner is accessible from the {@code cluster} parameter, as are several
-   * other useful objects. */
+   * other useful objects.
+   *
+   * @param <R> result type */
   public interface PlannerAction<R> {
     R apply(RelOptCluster cluster, RelOptSchema relOptSchema,
         SchemaPlus rootSchema);
@@ -75,7 +77,9 @@ public class Frameworks {
    * available. The planner is accessible from the {@code cluster} parameter, as
    * are several other useful objects. The connection and
    * {@link org.apache.calcite.DataContext} are accessible from the
-   * statement. */
+   * statement.
+   *
+   * @param <R> result type */
   public abstract static class PrepareAction<R> {
     private final FrameworkConfig config;
     public PrepareAction() {
@@ -294,7 +298,7 @@ public class Frameworks {
     private final RelDataTypeSystem typeSystem;
     private final RexExecutor executor;
 
-    public StdFrameworkConfig(Context context,
+    StdFrameworkConfig(Context context,
         SqlRexConvertletTable convertletTable,
         SqlOperatorTable operatorTable,
         ImmutableList<Program> programs,

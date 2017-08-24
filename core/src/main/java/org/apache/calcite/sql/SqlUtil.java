@@ -383,9 +383,8 @@ public abstract class SqlUtil {
     return null;
   }
 
-  private static Iterator<SqlOperator>
-  filterOperatorRoutinesByKind(Iterator<SqlOperator> routines,
-      final SqlKind sqlKind) {
+  private static Iterator<SqlOperator> filterOperatorRoutinesByKind(
+      Iterator<SqlOperator> routines, final SqlKind sqlKind) {
     return Iterators.filter(routines,
         new PredicateImpl<SqlOperator>() {
           public boolean test(SqlOperator input) {

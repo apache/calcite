@@ -1068,7 +1068,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
     private int expansionDepth;
     private SqlValidator sqlValidator;
 
-    public CalcitePreparingStmt(CalcitePrepareImpl prepare,
+    CalcitePreparingStmt(CalcitePrepareImpl prepare,
         Context context,
         CatalogReader catalogReader,
         RelDataTypeFactory typeFactory,
@@ -1311,7 +1311,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
 
   /** An {@code EXPLAIN} statement, prepared and ready to execute. */
   private static class CalcitePreparedExplain extends Prepare.PreparedExplain {
-    public CalcitePreparedExplain(
+    CalcitePreparedExplain(
         RelDataType resultType,
         RelDataType parameterRowType,
         RelRoot root,
@@ -1349,7 +1349,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
   static class EmptyScalarTranslator implements ScalarTranslator {
     private final RexBuilder rexBuilder;
 
-    public EmptyScalarTranslator(RexBuilder rexBuilder) {
+    EmptyScalarTranslator(RexBuilder rexBuilder) {
       this.rexBuilder = rexBuilder;
     }
 
@@ -1472,7 +1472,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
     private final List<ParameterExpression> parameterList;
     private final List<RexNode> values;
 
-    public LambdaScalarTranslator(
+    LambdaScalarTranslator(
         RexBuilder rexBuilder,
         List<ParameterExpression> parameterList,
         List<RexNode> values) {

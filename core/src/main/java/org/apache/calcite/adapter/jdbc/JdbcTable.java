@@ -83,7 +83,7 @@ class JdbcTable extends AbstractQueryableTable
   private final String jdbcTableName;
   private final Schema.TableType jdbcTableType;
 
-  public JdbcTable(JdbcSchema jdbcSchema, String jdbcCatalogName,
+  JdbcTable(JdbcSchema jdbcSchema, String jdbcCatalogName,
       String jdbcSchemaName, String tableName, Schema.TableType jdbcTableType) {
     super(Object[].class);
     this.jdbcSchema = jdbcSchema;
@@ -123,9 +123,8 @@ class JdbcTable extends AbstractQueryableTable
     final RelDataType rowType = protoRowType.apply(typeFactory);
     return Lists.transform(rowType.getFieldList(),
         new Function<RelDataTypeField, Pair<ColumnMetaData.Rep, Integer>>() {
-          public Pair<ColumnMetaData.Rep, Integer>
-          apply(RelDataTypeField field) {
-            final RelDataType type = field.getType();
+          public Pair<ColumnMetaData.Rep, Integer> apply(RelDataTypeField f) {
+            final RelDataType type = f.getType();
             final Class clazz = (Class) typeFactory.getJavaClass(type);
             final ColumnMetaData.Rep rep =
                 Util.first(ColumnMetaData.Rep.of(clazz),
@@ -194,9 +193,11 @@ class JdbcTable extends AbstractQueryableTable
   }
 
   /** Enumerable that returns the contents of a {@link JdbcTable} by connecting
-   * to the JDBC data source. */
+   * to the JDBC data source.
+   *
+   * @param <T> element type */
   private class JdbcTableQueryable<T> extends AbstractTableQueryable<T> {
-    public JdbcTableQueryable(QueryProvider queryProvider, SchemaPlus schema,
+    JdbcTableQueryable(QueryProvider queryProvider, SchemaPlus schema,
         String tableName) {
       super(queryProvider, schema, JdbcTable.this, tableName);
     }

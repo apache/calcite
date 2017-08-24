@@ -221,8 +221,7 @@ public class ConventionTraitDef extends RelTraitDef<Convention> {
      * conversion rules. Maps {@link DefaultEdge} to a
      * collection of {@link ConverterRule} objects.
      */
-    final Multimap<Pair<Convention, Convention>, ConverterRule>
-    mapArcToConverterRule =
+    final Multimap<Pair<Convention, Convention>, ConverterRule> mapArcToConverterRule =
         HashMultimap.create();
 
     private Graphs.FrozenGraph<Convention, DefaultEdge> pathMap;

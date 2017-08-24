@@ -72,7 +72,9 @@ public class SqlBasicVisitor<R> implements SqlVisitor<R> {
 
   //~ Inner Interfaces -------------------------------------------------------
 
-  /** Argument handler. */
+  /** Argument handler.
+   *
+   * @param <R> result type */
   public interface ArgHandler<R> {
     /** Returns the result of visiting all children of a call to an operator,
      * then the call itself.
@@ -95,6 +97,8 @@ public class SqlBasicVisitor<R> implements SqlVisitor<R> {
   /**
    * Default implementation of {@link ArgHandler} which merely calls
    * {@link SqlNode#accept} on each operand.
+   *
+   * @param <R> result type
    */
   public static class ArgHandlerImpl<R> implements ArgHandler<R> {
     private static final ArgHandler INSTANCE = new ArgHandlerImpl();

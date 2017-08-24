@@ -65,9 +65,10 @@ public class ElasticsearchFilter extends Filter implements ElasticsearchRel {
 
   @Override public void implement(Implementor implementor) {
     implementor.visitChild(0, getInput());
-    Translator translator = new Translator(ElasticsearchRules
-      .elasticsearchFieldNames(getRowType()));
-    String match = translator.translateMatch(condition);
+    final List<String> fieldNames =
+        ElasticsearchRules.elasticsearchFieldNames(getRowType());
+    final Translator translator = new Translator(fieldNames);
+    final String match = translator.translateMatch(condition);
     implementor.add(match);
   }
 
@@ -77,7 +78,7 @@ public class ElasticsearchFilter extends Filter implements ElasticsearchRel {
   static class Translator {
     final JsonBuilder builder = new JsonBuilder();
     final Multimap<String, Pair<String, RexLiteral>> multimap =
-      HashMultimap.create();
+        HashMultimap.create();
     final Map<String, RexLiteral> eqMap = new LinkedHashMap<>();
     private final List<String> fieldNames;
 
@@ -160,7 +161,7 @@ public class ElasticsearchFilter extends Filter implements ElasticsearchRel {
         filters.add(map);
       }
       for (Map.Entry<String, Collection<Pair<String, RexLiteral>>> entry
-        : multimap.asMap().entrySet()) {
+          : multimap.asMap().entrySet()) {
         Map<String, Object> map2 = builder.map();
 
         Map<String, Object> map = new HashMap<>();

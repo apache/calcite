@@ -60,7 +60,7 @@ class ArrayTable extends AbstractQueryableTable implements ScannableTable {
   private final Supplier<Content> supplier;
 
   /** Creates an ArrayTable. */
-  public ArrayTable(Type elementType, RelProtoDataType protoRowType,
+  ArrayTable(Type elementType, RelProtoDataType protoRowType,
       Supplier<Content> supplier) {
     super(elementType);
     this.protoRowType = protoRowType;
@@ -265,7 +265,7 @@ class ArrayTable extends AbstractQueryableTable implements ScannableTable {
   public static class ObjectArray implements Representation {
     final int ordinal;
 
-    public ObjectArray(int ordinal) {
+    ObjectArray(int ordinal) {
       this.ordinal = ordinal;
     }
 
@@ -317,7 +317,7 @@ class ArrayTable extends AbstractQueryableTable implements ScannableTable {
     private final Primitive primitive;
     private final Primitive p;
 
-    public PrimitiveArray(int ordinal, Primitive primitive, Primitive p) {
+    PrimitiveArray(int ordinal, Primitive primitive, Primitive p) {
       this.ordinal = ordinal;
       this.primitive = primitive;
       this.p = p;
@@ -364,7 +364,7 @@ class ArrayTable extends AbstractQueryableTable implements ScannableTable {
   /** Representation that stores column values in a dictionary of
    * primitive values, then uses a short code for each row. */
   public static class PrimitiveDictionary implements Representation {
-    public PrimitiveDictionary() {
+    PrimitiveDictionary() {
     }
 
     public String toString() {
@@ -406,7 +406,7 @@ class ArrayTable extends AbstractQueryableTable implements ScannableTable {
     final int ordinal;
     final Representation representation;
 
-    public ObjectDictionary(
+    ObjectDictionary(
         int ordinal,
         Representation representation) {
       this.ordinal = ordinal;
@@ -475,7 +475,7 @@ class ArrayTable extends AbstractQueryableTable implements ScannableTable {
 
   /** Representation that stores string column values. */
   public static class StringDictionary implements Representation {
-    public StringDictionary() {
+    StringDictionary() {
     }
 
     @Override public String toString() {
@@ -513,7 +513,7 @@ class ArrayTable extends AbstractQueryableTable implements ScannableTable {
 
   /** Representation that stores byte-string column values. */
   public static class ByteStringDictionary implements Representation {
-    public ByteStringDictionary() {
+    ByteStringDictionary() {
     }
 
     public String toString() {
@@ -553,7 +553,7 @@ class ArrayTable extends AbstractQueryableTable implements ScannableTable {
   public static class Constant implements Representation {
     final int ordinal;
 
-    public Constant(int ordinal) {
+    Constant(int ordinal) {
       this.ordinal = ordinal;
     }
 
@@ -804,7 +804,7 @@ class ArrayTable extends AbstractQueryableTable implements ScannableTable {
     private final int size;
     private final ImmutableList<RelCollation> collations;
 
-    public Content(List<? extends Column> columns, int size,
+    Content(List<? extends Column> columns, int size,
         Iterable<? extends RelCollation> collations) {
       this.columns = ImmutableList.copyOf(columns);
       this.size = size;
@@ -812,7 +812,7 @@ class ArrayTable extends AbstractQueryableTable implements ScannableTable {
     }
 
     @Deprecated // to be removed before 2.0
-    public Content(List<? extends Column> columns, int size, int sortField) {
+    Content(List<? extends Column> columns, int size, int sortField) {
       this(columns, size,
           sortField >= 0
               ? RelCollations.createSingleton(sortField)
@@ -840,7 +840,7 @@ class ArrayTable extends AbstractQueryableTable implements ScannableTable {
       final Representation representation;
       int i = -1;
 
-      public ObjectEnumerator(int rowCount, Column column) {
+      ObjectEnumerator(int rowCount, Column column) {
         this.rowCount = rowCount;
         this.dataSet = column.dataSet;
         this.representation = column.representation;
@@ -869,7 +869,7 @@ class ArrayTable extends AbstractQueryableTable implements ScannableTable {
       final List<Column> columns;
       int i = -1;
 
-      public ArrayEnumerator(int rowCount, List<Column> columns) {
+      ArrayEnumerator(int rowCount, List<Column> columns) {
         this.rowCount = rowCount;
         this.columns = columns;
       }

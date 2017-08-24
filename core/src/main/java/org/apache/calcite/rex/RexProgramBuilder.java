@@ -1013,7 +1013,7 @@ public class RexProgramBuilder {
   private class RegisterOutputShuttle extends RegisterShuttle {
     private final List<RexNode> localExprList;
 
-    public RegisterOutputShuttle(List<RexNode> localExprList) {
+    RegisterOutputShuttle(List<RexNode> localExprList) {
       super();
       this.localExprList = localExprList;
     }

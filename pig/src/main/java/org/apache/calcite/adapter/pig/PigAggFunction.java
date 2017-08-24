@@ -29,11 +29,11 @@ public enum PigAggFunction {
   private final SqlKind calciteFunc;
   private final boolean star; // as in COUNT(*)
 
-  private PigAggFunction(SqlKind calciteFunc) {
+  PigAggFunction(SqlKind calciteFunc) {
     this(calciteFunc, false);
   }
 
-  private PigAggFunction(SqlKind calciteFunc, boolean star) {
+  PigAggFunction(SqlKind calciteFunc, boolean star) {
     this.calciteFunc = calciteFunc;
     this.star = star;
   }

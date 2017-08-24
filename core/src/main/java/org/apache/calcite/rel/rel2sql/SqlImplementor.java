@@ -564,6 +564,12 @@ public abstract class SqlImplementor {
         case BOOLEAN:
           return SqlLiteral.createBoolean(literal.getValueAs(Boolean.class),
               POS);
+        case INTERVAL_YEAR_MONTH:
+        case INTERVAL_DAY_TIME:
+          final boolean negative = literal.getValueAs(Boolean.class);
+          return SqlLiteral.createInterval(negative ? -1 : 1,
+              literal.getValueAs(String.class),
+              literal.getType().getIntervalQualifier(), POS);
         case DATE:
           return SqlLiteral.createDate(literal.getValueAs(DateString.class),
               POS);

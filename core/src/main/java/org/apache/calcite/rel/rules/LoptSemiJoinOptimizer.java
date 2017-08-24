@@ -824,7 +824,7 @@ public class LoptSemiJoinOptimizer {
 
   /** Dummy class to allow code to compile. */
   private static class LcsIndexOptimizer {
-    public LcsIndexOptimizer(LcsTableScan rel) {}
+    LcsIndexOptimizer(LcsTableScan rel) {}
 
     public FemLocalIndex findSemiJoinIndexByCost(RelNode dimRel,
         List<Integer> actualLeftKeys, List<Integer> rightKeys,

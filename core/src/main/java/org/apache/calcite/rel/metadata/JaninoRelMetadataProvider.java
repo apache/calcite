@@ -184,13 +184,12 @@ public class JaninoRelMetadataProvider implements RelMetadataProvider {
   }
 
   public <M extends Metadata> Multimap<Method, MetadataHandler<M>>
-  handlers(MetadataDef<M> def) {
+      handlers(MetadataDef<M> def) {
     return provider.handlers(def);
   }
 
-  private static <M extends Metadata>
-  MetadataHandler<M> load3(MetadataDef<M> def,
-      Multimap<Method, MetadataHandler<M>> map,
+  private static <M extends Metadata> MetadataHandler<M> load3(
+      MetadataDef<M> def, Multimap<Method, MetadataHandler<M>> map,
       ImmutableList<Class<? extends RelNode>> relClasses) {
     final StringBuilder buff = new StringBuilder();
     final String name =
@@ -379,8 +378,8 @@ public class JaninoRelMetadataProvider implements RelMetadataProvider {
     }
   }
 
-  private static String
-  findProvider(List<Pair<String, MetadataHandler>> providerList,
+  private static String findProvider(
+      List<Pair<String, MetadataHandler>> providerList,
       Class<?> declaringClass) {
     for (Pair<String, MetadataHandler> pair : providerList) {
       if (declaringClass.isInstance(pair.right)) {
@@ -424,8 +423,8 @@ public class JaninoRelMetadataProvider implements RelMetadataProvider {
     return buff;
   }
 
-  static <M extends Metadata> MetadataHandler<M>
-  compile(ClassDeclaration expr, String s, MetadataDef<M> def,
+  static <M extends Metadata> MetadataHandler<M> compile(ClassDeclaration expr,
+      String s, MetadataDef<M> def,
       List<Object> argList) throws CompileException, IOException {
     final ICompilerFactory compilerFactory;
     try {
@@ -456,8 +455,8 @@ public class JaninoRelMetadataProvider implements RelMetadataProvider {
     return def.handlerClass.cast(o);
   }
 
-  synchronized <M extends Metadata, H extends MetadataHandler<M>> H
-  create(MetadataDef<M> def) {
+  synchronized <M extends Metadata, H extends MetadataHandler<M>> H create(
+      MetadataDef<M> def) {
     try {
       final Key key = new Key((MetadataDef) def, provider,
           ImmutableList.copyOf(ALL_RELS));
@@ -469,8 +468,8 @@ public class JaninoRelMetadataProvider implements RelMetadataProvider {
     }
   }
 
-  synchronized <M extends Metadata, H extends MetadataHandler<M>> H
-  revise(Class<? extends RelNode> rClass, MetadataDef<M> def) {
+  synchronized <M extends Metadata, H extends MetadataHandler<M>> H revise(
+      Class<? extends RelNode> rClass, MetadataDef<M> def) {
     if (ALL_RELS.add(rClass)) {
       HANDLERS.invalidateAll();
     }

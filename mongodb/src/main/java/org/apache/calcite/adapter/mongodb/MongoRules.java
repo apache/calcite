@@ -65,10 +65,10 @@ public class MongoRules {
   protected static final Logger LOGGER = CalciteTrace.getPlannerTracer();
 
   public static final RelOptRule[] RULES = {
-    MongoSortRule.INSTANCE,
-    MongoFilterRule.INSTANCE,
-    MongoProjectRule.INSTANCE,
-    MongoAggregateRule.INSTANCE,
+      MongoSortRule.INSTANCE,
+      MongoFilterRule.INSTANCE,
+      MongoProjectRule.INSTANCE,
+      MongoAggregateRule.INSTANCE,
   };
 
   /** Returns 'string' if it is a call to item['string'], null otherwise. */
@@ -248,11 +248,9 @@ public class MongoRules {
    * MongoDB calling convention. */
   abstract static class MongoConverterRule extends ConverterRule {
     protected final Convention out;
-    public MongoConverterRule(
-        Class<? extends RelNode> clazz,
-        RelTrait in,
-        Convention out,
-        String description) {
+
+    MongoConverterRule(Class<? extends RelNode> clazz, RelTrait in,
+        Convention out, String description) {
       super(clazz, in, out, description);
       this.out = out;
     }

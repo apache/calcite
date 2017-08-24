@@ -1020,8 +1020,8 @@ public class SqlParserTest {
 
   @Test public void testOverlaps() {
     final String[] ops = {
-      "overlaps", "equals", "precedes", "succeeds",
-      "immediately precedes", "immediately succeeds"
+        "overlaps", "equals", "precedes", "succeeds",
+        "immediately precedes", "immediately succeeds"
     };
     final String[] periods = {"period ", ""};
     for (String period : periods) {
@@ -1348,7 +1348,7 @@ public class SqlParserTest {
     checkExp("1-2+3*4/5/6-7", "(((1 - 2) + (((3 * 4) / 5) / 6)) - 7)");
     checkExp("power(2,3)", "POWER(2, 3)");
     checkExp("aBs(-2.3e-2)", "ABS(-2.3E-2)");
-    checkExp("MOD(5             ,\t\f\r\n2)", "MOD(5, 2)");
+    checkExp("MOD(5             ,\t\f\r\n2)", "(MOD(5, 2))");
     checkExp("ln(5.43  )", "LN(5.43)");
     checkExp("log10(- -.2  )", "LOG10(0.2)");
   }
@@ -1407,7 +1407,7 @@ public class SqlParserTest {
             + "FROM `EMP`");
     checkExp(
         "log10(1)\r\n+power(2, mod(\r\n3\n\t\t\f\n,ln(4))*log10(5)-6*log10(7/abs(8)+9))*power(10,11)",
-        "(LOG10(1) + (POWER(2, ((MOD(3, LN(4)) * LOG10(5)) - (6 * LOG10(((7 / ABS(8)) + 9))))) * POWER(10, 11)))");
+        "(LOG10(1) + (POWER(2, (((MOD(3, LN(4))) * LOG10(5)) - (6 * LOG10(((7 / ABS(8)) + 9))))) * POWER(10, 11)))");
   }
 
   @Test public void testFunctionWithDistinct() {
@@ -7269,7 +7269,7 @@ public class SqlParserTest {
 
 
     check("alter system set \"a\".\"number\" = 1",
-      "ALTER SYSTEM SET `a`.`number` = 1");
+        "ALTER SYSTEM SET `a`.`number` = 1");
     sql("set approx = -12.3450")
         .ok("SET `APPROX` = -12.3450")
         .node(isDdl());
@@ -8005,6 +8005,34 @@ public class SqlParserTest {
         + "AVG(`STDN`.`PRICE`) AS `STDN_AVG`\n"
         + "ALL ROWS PER MATCH\n"
         + "PATTERN (((`STRT` (`DOWN` +)) (`UP` +)))\n"
+        + "SUBSET (`STDN` = (`STRT`, `DOWN`)), (`STDN2` = (`STRT`, `DOWN`))\n"
+        + "DEFINE `DOWN` AS (`DOWN`.`PRICE` < PREV(`DOWN`.`PRICE`, 1)), "
+        + "`UP` AS (`UP`.`PRICE` > PREV(`UP`.`PRICE`, 1))"
+        + ") AS `MR`";
+    sql(sql).ok(expected);
+  }
+
+  @Test public void testMatchRecognizeWithin() {
+    final String sql = "select *\n"
+        + "  from t match_recognize\n"
+        + "  (\n"
+        + "    order by rowtime\n"
+        + "    measures STRT.ts as start_ts,\n"
+        + "      LAST(DOWN.ts) as bottom_ts,\n"
+        + "      AVG(stdn.price) as stdn_avg\n"
+        + "    pattern (strt down+ up+) within interval '3' second\n"
+        + "    subset stdn = (strt, down), stdn2 = (strt, down)\n"
+        + "    define\n"
+        + "      down as down.price < PREV(down.price),\n"
+        + "      up as up.price > prev(up.price)\n"
+        + "  ) mr";
+    final String expected = "SELECT *\n"
+        + "FROM `T` MATCH_RECOGNIZE(\n"
+        + "ORDER BY `ROWTIME`\n"
+        + "MEASURES `STRT`.`TS` AS `START_TS`, "
+        + "LAST(`DOWN`.`TS`, 0) AS `BOTTOM_TS`, "
+        + "AVG(`STDN`.`PRICE`) AS `STDN_AVG`\n"
+        + "PATTERN (((`STRT` (`DOWN` +)) (`UP` +))) WITHIN INTERVAL '3' SECOND\n"
         + "SUBSET (`STDN` = (`STRT`, `DOWN`)), (`STDN2` = (`STRT`, `DOWN`))\n"
         + "DEFINE `DOWN` AS (`DOWN`.`PRICE` < PREV(`DOWN`.`PRICE`, 1)), "
         + "`UP` AS (`UP`.`PRICE` > PREV(`UP`.`PRICE`, 1))"

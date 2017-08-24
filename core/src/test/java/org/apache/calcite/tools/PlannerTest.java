@@ -967,7 +967,7 @@ public class PlannerTest {
   private class MockJdbcTableScan extends TableScan
       implements JdbcRel {
 
-    public MockJdbcTableScan(RelOptCluster cluster, RelOptTable table,
+    MockJdbcTableScan(RelOptCluster cluster, RelOptTable table,
         JdbcConvention jdbcConvention) {
       super(cluster, cluster.traitSetOf(jdbcConvention), table);
     }
@@ -1067,9 +1067,9 @@ public class PlannerTest {
         .add("tpch", new ReflectiveSchema(new TpchSchema()));
 
     String query = "select t.psPartkey from \n"
-      + "(select ps.psPartkey from `tpch`.`partsupp` ps \n"
-      + "order by ps.psPartkey, ps.psSupplyCost) t \n"
-      + "order by t.psPartkey";
+        + "(select ps.psPartkey from `tpch`.`partsupp` ps \n"
+        + "order by ps.psPartkey, ps.psSupplyCost) t \n"
+        + "order by t.psPartkey";
 
     List<RelTraitDef> traitDefs = new ArrayList<>();
     traitDefs.add(ConventionTraitDef.INSTANCE);
@@ -1077,11 +1077,11 @@ public class PlannerTest {
     final SqlParser.Config parserConfig =
         SqlParser.configBuilder().setLex(Lex.MYSQL).build();
     FrameworkConfig config = Frameworks.newConfigBuilder()
-      .parserConfig(parserConfig)
-      .defaultSchema(schema)
-      .traitDefs(traitDefs)
-      .programs(Programs.ofRules(Programs.RULE_SET))
-      .build();
+        .parserConfig(parserConfig)
+        .defaultSchema(schema)
+        .traitDefs(traitDefs)
+        .programs(Programs.ofRules(Programs.RULE_SET))
+        .build();
     String plan;
     try (Planner p = Frameworks.getPlanner(config)) {
       SqlNode n = p.parse(query);

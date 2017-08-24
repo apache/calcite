@@ -45,34 +45,34 @@ public class SqlValidatorMatchTest extends SqlValidatorTestCase {
 
   @Test public void testMatchRecognizeDefines() throws Exception {
     final String sql = "select *\n"
-      + "  from emp match_recognize (\n"
-      + "    pattern (strt down+ up+)\n"
-      + "    define\n"
-      + "      down as down.sal < PREV(down.sal),\n"
-      + "      up as up.sal > PREV(up.sal)\n"
-      + "  ) mr";
+        + "  from emp match_recognize (\n"
+        + "    pattern (strt down+ up+)\n"
+        + "    define\n"
+        + "      down as down.sal < PREV(down.sal),\n"
+        + "      up as up.sal > PREV(up.sal)\n"
+        + "  ) mr";
     sql(sql).ok();
   }
 
   @Test public void testMatchRecognizeDefines2() throws Exception {
     final String sql = "select *\n"
-      + "  from t match_recognize (\n"
-      + "    pattern (strt down+ up+)\n"
-      + "    define\n"
-      + "      down as down.price < PREV(down.price),\n"
-      + "      ^down as up.price > PREV(up.price)^\n"
-      + "  ) mr";
+        + "  from t match_recognize (\n"
+        + "    pattern (strt down+ up+)\n"
+        + "    define\n"
+        + "      down as down.price < PREV(down.price),\n"
+        + "      ^down as up.price > PREV(up.price)^\n"
+        + "  ) mr";
     sql(sql).fails("Pattern variable 'DOWN' has already been defined");
   }
 
   @Test public void testMatchRecognizeDefines3() throws Exception {
     final String sql = "select *\n"
-      + "  from emp match_recognize (\n"
-      + "    pattern (strt down+up+)\n"
-      + "    define\n"
-      + "      down as down.sal < PREV(down.sal),\n"
-      + "      up as up.sal > PREV(up.sal)\n"
-      + "  ) mr";
+        + "  from emp match_recognize (\n"
+        + "    pattern (strt down+up+)\n"
+        + "    define\n"
+        + "      down as down.sal < PREV(down.sal),\n"
+        + "      up as up.sal > PREV(up.sal)\n"
+        + "  ) mr";
     sql(sql).ok();
   }
 
@@ -197,28 +197,53 @@ public class SqlValidatorMatchTest extends SqlValidatorTestCase {
 
   @Test public void testMatchRecognizeSubset() throws Exception {
     final String sql = "select *\n"
-      + "from emp match_recognize (\n"
-      + "    pattern (strt down+ up+)\n"
-      + "    subset stdn = (^strt1^, down)\n"
-      + "    define\n"
-      + "      down as down.sal < PREV(down.sal),\n"
-      + "      up as up.sal > prev(up.sal)\n"
-      + "  ) mr";
+        + "from emp match_recognize (\n"
+        + "    pattern (strt down+ up+)\n"
+        + "    subset stdn = (^strt1^, down)\n"
+        + "    define\n"
+        + "      down as down.sal < PREV(down.sal),\n"
+        + "      up as up.sal > prev(up.sal)\n"
+        + "  ) mr";
     sql(sql)
       .fails("Unknown pattern 'STRT1'");
   }
 
   @Test public void testMatchRecognizeSubset2() throws Exception {
     final String sql = "select *\n"
-      + "from emp match_recognize (\n"
-      + "    pattern (strt down+ up+)\n"
-      + "    subset ^strt^ = (strt, down)\n"
-      + "    define\n"
-      + "      down as down.sal < PREV(down.sal),\n"
-      + "      up as up.sal > prev(up.sal)\n"
-      + "  ) mr";
+        + "from emp match_recognize (\n"
+        + "    pattern (strt down+ up+)\n"
+        + "    subset ^strt^ = (strt, down)\n"
+        + "    define\n"
+        + "      down as down.sal < PREV(down.sal),\n"
+        + "      up as up.sal > prev(up.sal)\n"
+        + "  ) mr";
     sql(sql)
       .fails("Pattern variable 'STRT' has already been defined");
+  }
+
+  @Test public void testMatchRecognizeWithin() throws Exception {
+    final String sql = "select *\n"
+        + "from emp match_recognize (\n"
+        + "    pattern (strt down+ up+) within ^interval '3:10' minute to second^\n"
+        + "    define\n"
+        + "      down as down.sal < PREV(down.sal),\n"
+        + "      up as up.sal > prev(up.sal)\n"
+        + "  ) mr";
+    sql(sql)
+      .fails("Must contain an ORDER BY clause when WITHIN is used");
+  }
+
+  @Test public void testMatchRecognizeWithin2() throws Exception {
+    final String sql = "select *\n"
+        + "from emp match_recognize (\n"
+        + "    order by sal\n"
+        + "    pattern (strt down+ up+) within ^interval '3:10' minute to second^\n"
+        + "    define\n"
+        + "      down as down.sal < PREV(down.sal),\n"
+        + "      up as up.sal > prev(up.sal)\n"
+        + "  ) mr";
+    sql(sql)
+        .fails("First column of ORDER BY must be of type TIMESTAMP");
   }
 }
 

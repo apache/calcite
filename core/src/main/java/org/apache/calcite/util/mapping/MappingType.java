@@ -118,7 +118,7 @@ public enum MappingType {
 
   private final int inverseOrdinal;
 
-  private MappingType() {
+  MappingType() {
     this.inverseOrdinal = ((ordinal() & 3) << 2)
         | ((ordinal() & 12) >> 2);
   }

@@ -31,7 +31,7 @@ class ParameterNamespace extends AbstractNamespace {
 
   //~ Constructors -----------------------------------------------------------
 
-  public ParameterNamespace(SqlValidatorImpl validator, RelDataType type) {
+  ParameterNamespace(SqlValidatorImpl validator, RelDataType type) {
     super(validator, null);
     this.type = type;
   }

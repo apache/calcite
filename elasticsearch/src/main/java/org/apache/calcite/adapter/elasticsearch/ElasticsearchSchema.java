@@ -87,8 +87,9 @@ public class ElasticsearchSchema extends AbstractSchema {
     final ImmutableMap.Builder<String, Table> builder = ImmutableMap.builder();
 
     try {
-      GetMappingsResponse response = client.admin().indices().getMappings(
-        new GetMappingsRequest().indices(index)).get();
+      GetMappingsResponse response = client.admin().indices()
+          .getMappings(new GetMappingsRequest().indices(index))
+          .get();
       ImmutableOpenMap<String, MappingMetaData> mapping = response.getMappings().get(index);
       for (ObjectObjectCursor<String, MappingMetaData> c: mapping) {
         builder.put(c.key, new ElasticsearchTable(client, index, c.key));

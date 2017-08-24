@@ -79,13 +79,12 @@ public class EnumerableRelImplementor extends JavaRelImplementor {
   private final Map<Object, ParameterExpression> stashedParameters =
       Maps.newIdentityHashMap();
 
-  protected final Function1<String, RexToLixTranslator.InputGetter>
-  allCorrelateVariables =
-    new Function1<String, RexToLixTranslator.InputGetter>() {
-      public RexToLixTranslator.InputGetter apply(String name) {
-        return getCorrelVariableGetter(name);
-      }
-    };
+  protected final Function1<String, RexToLixTranslator.InputGetter> allCorrelateVariables =
+      new Function1<String, RexToLixTranslator.InputGetter>() {
+        public RexToLixTranslator.InputGetter apply(String name) {
+          return getCorrelVariableGetter(name);
+        }
+      };
 
   public EnumerableRelImplementor(RexBuilder rexBuilder,
       Map<String, Object> internalParameters) {

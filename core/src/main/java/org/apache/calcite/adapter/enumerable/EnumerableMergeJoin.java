@@ -154,11 +154,11 @@ public class EnumerableMergeJoin extends EquiJoin implements EnumerableRel {
                   right.getRowType().getFieldList().get(pair.right).getType()));
       final Type keyClass = typeFactory.getJavaClass(keyType);
       leftExpressions.add(
-         Types.castIfNecessary(keyClass,
-             leftResult.physType.fieldReference(left_, pair.left)));
+          Types.castIfNecessary(keyClass,
+              leftResult.physType.fieldReference(left_, pair.left)));
       rightExpressions.add(
-         Types.castIfNecessary(keyClass,
-             rightResult.physType.fieldReference(right_, pair.right)));
+          Types.castIfNecessary(keyClass,
+              rightResult.physType.fieldReference(right_, pair.right)));
     }
     final PhysType leftKeyPhysType =
         leftResult.physType.project(leftKeys, JavaRowFormat.LIST);

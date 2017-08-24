@@ -34,7 +34,7 @@ public interface SparkRel extends RelNode {
 
   /** Extension to {@link JavaRelImplementor} that can handle Spark relational
    * expressions. */
-  public abstract class Implementor extends JavaRelImplementor {
+  abstract class Implementor extends JavaRelImplementor {
     public Implementor(RexBuilder rexBuilder) {
       super(rexBuilder);
     }
@@ -46,7 +46,7 @@ public interface SparkRel extends RelNode {
 
   /** Result of generating Java code to implement a Spark relational
    * expression. */
-  public class Result {
+  class Result {
     public final BlockStatement block;
     public final PhysType physType;
 

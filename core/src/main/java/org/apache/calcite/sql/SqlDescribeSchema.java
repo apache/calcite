@@ -67,7 +67,9 @@ public class SqlDescribeSchema extends SqlCall {
     return ImmutableNullableList.<SqlNode>of(schema);
   }
 
-  public SqlIdentifier getSchema() { return schema; }
+  public SqlIdentifier getSchema() {
+    return schema;
+  }
 }
 
 // End SqlDescribeSchema.java

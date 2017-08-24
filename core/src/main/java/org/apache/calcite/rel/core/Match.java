@@ -67,6 +67,7 @@ public abstract class Match extends SingleRel {
   protected final ImmutableMap<String, SortedSet<String>> subsets;
   protected final List<RexNode> partitionKeys;
   protected final RelCollation orderKeys;
+  protected final RexNode interval;
 
   //~ Constructors -----------------------------------------------
 
@@ -76,6 +77,7 @@ public abstract class Match extends SingleRel {
    * @param cluster Cluster
    * @param traitSet Trait set
    * @param input Input relational expression
+   * @param rowType Row type
    * @param pattern Regular expression that defines pattern variables
    * @param strictStart Whether it is a strict start pattern
    * @param strictEnd Whether it is a strict end pattern
@@ -86,27 +88,29 @@ public abstract class Match extends SingleRel {
    * @param allRows Whether all rows per match (false means one row per match)
    * @param partitionKeys Partition by columns
    * @param orderKeys Order by columns
-   * @param rowType Row type
+   * @param interval Interval definition, null if WITHIN clause is not defined
    */
-  protected Match(RelOptCluster cluster, RelTraitSet traitSet,
-      RelNode input, RexNode pattern, boolean strictStart, boolean strictEnd,
+  protected Match(RelOptCluster cluster, RelTraitSet traitSet, RelNode input,
+      RelDataType rowType, RexNode pattern,
+      boolean strictStart, boolean strictEnd,
       Map<String, RexNode> patternDefinitions, Map<String, RexNode> measures,
       RexNode after, Map<String, ? extends SortedSet<String>> subsets,
       boolean allRows, List<RexNode> partitionKeys, RelCollation orderKeys,
-      RelDataType rowType) {
+      RexNode interval) {
     super(cluster, traitSet, input);
+    this.rowType = Preconditions.checkNotNull(rowType);
     this.pattern = Preconditions.checkNotNull(pattern);
     Preconditions.checkArgument(patternDefinitions.size() > 0);
     this.strictStart = strictStart;
     this.strictEnd = strictEnd;
     this.patternDefinitions = ImmutableMap.copyOf(patternDefinitions);
-    this.rowType = Preconditions.checkNotNull(rowType);
     this.measures = ImmutableMap.copyOf(measures);
     this.after = Preconditions.checkNotNull(after);
     this.subsets = copyMap(subsets);
     this.allRows = allRows;
     this.partitionKeys = ImmutableList.copyOf(partitionKeys);
     this.orderKeys = Preconditions.checkNotNull(orderKeys);
+    this.interval = interval;
 
     final AggregateFinder aggregateFinder = new AggregateFinder();
     for (RexNode rex : this.patternDefinitions.values()) {
@@ -128,8 +132,8 @@ public abstract class Match extends SingleRel {
 
   /** Creates an immutable map of a map of sorted sets. */
   private static <K extends Comparable<K>, V>
-  ImmutableSortedMap<K, SortedSet<V>> copyMap(
-      Map<K, ? extends SortedSet<V>> map) {
+      ImmutableSortedMap<K, SortedSet<V>>
+      copyMap(Map<K, ? extends SortedSet<V>> map) {
     final ImmutableSortedMap.Builder<K, SortedSet<V>> b =
         ImmutableSortedMap.naturalOrder();
     for (Map.Entry<K, ? extends SortedSet<V>> e : map.entrySet()) {
@@ -180,12 +184,16 @@ public abstract class Match extends SingleRel {
     return orderKeys;
   }
 
-  public abstract Match copy(RelNode input, RexNode pattern,
-      boolean strictStart, boolean strictEnd,
+  public RexNode getInterval() {
+    return interval;
+  }
+
+  public abstract Match copy(RelNode input, RelDataType rowType,
+      RexNode pattern, boolean strictStart, boolean strictEnd,
       Map<String, RexNode> patternDefinitions, Map<String, RexNode> measures,
       RexNode after, Map<String, ? extends SortedSet<String>> subsets,
       boolean allRows, List<RexNode> partitionKeys, RelCollation orderKeys,
-      RelDataType rowType);
+      RexNode interval);
 
   @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
     if (getInputs().equals(inputs)
@@ -193,9 +201,9 @@ public abstract class Match extends SingleRel {
       return this;
     }
 
-    return copy(inputs.get(0), pattern, strictStart, strictEnd,
+    return copy(inputs.get(0), rowType, pattern, strictStart, strictEnd,
         patternDefinitions, measures, after, subsets, allRows,
-        partitionKeys, orderKeys, rowType);
+        partitionKeys, orderKeys, interval);
   }
 
   @Override public RelWriter explainTerms(RelWriter pw) {
@@ -208,6 +216,7 @@ public abstract class Match extends SingleRel {
         .item("pattern", getPattern())
         .item("isStrictStarts", isStrictStart())
         .item("isStrictEnds", isStrictEnd())
+        .itemIf("interval", getInterval(), getInterval() != null)
         .item("subsets", getSubsets().values().asList())
         .item("patternDefinitions", getPatternDefinitions().values().asList())
         .item("inputFields", getInput().getRowType().getFieldNames());

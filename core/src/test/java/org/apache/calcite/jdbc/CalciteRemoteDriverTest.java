@@ -92,8 +92,7 @@ public class CalciteRemoteDriverTest {
       CalcitePrepareImpl.DEBUG ? Util.printWriter(System.out)
           : new PrintWriter(new StringWriter());
 
-  private static final CalciteAssert.ConnectionFactory
-  REMOTE_CONNECTION_FACTORY =
+  private static final CalciteAssert.ConnectionFactory REMOTE_CONNECTION_FACTORY =
       new CalciteAssert.ConnectionFactory() {
         public Connection createConnection() throws SQLException {
           return remoteConnection;
@@ -384,22 +383,22 @@ public class CalciteRemoteDriverTest {
    * specification */
   @Test public void testTableB5() {
     SqlType[] columns = {
-      SqlType.TINYINT, SqlType.SMALLINT, SqlType.INTEGER, SqlType.BIGINT,
-      SqlType.REAL, SqlType.FLOAT, SqlType.DOUBLE, SqlType.DECIMAL,
-      SqlType.NUMERIC, SqlType.BIT, SqlType.BOOLEAN, SqlType.CHAR,
-      SqlType.VARCHAR, SqlType.LONGVARCHAR, SqlType.BINARY, SqlType.VARBINARY,
-      SqlType.LONGVARBINARY, SqlType.DATE, SqlType.TIME, SqlType.TIMESTAMP,
-      SqlType.ARRAY, SqlType.BLOB, SqlType.CLOB, SqlType.STRUCT, SqlType.REF,
-      SqlType.DATALINK, SqlType.JAVA_OBJECT, SqlType.ROWID, SqlType.NCHAR,
-      SqlType.NVARCHAR, SqlType.LONGNVARCHAR, SqlType.NCLOB, SqlType.SQLXML
+        SqlType.TINYINT, SqlType.SMALLINT, SqlType.INTEGER, SqlType.BIGINT,
+        SqlType.REAL, SqlType.FLOAT, SqlType.DOUBLE, SqlType.DECIMAL,
+        SqlType.NUMERIC, SqlType.BIT, SqlType.BOOLEAN, SqlType.CHAR,
+        SqlType.VARCHAR, SqlType.LONGVARCHAR, SqlType.BINARY, SqlType.VARBINARY,
+        SqlType.LONGVARBINARY, SqlType.DATE, SqlType.TIME, SqlType.TIMESTAMP,
+        SqlType.ARRAY, SqlType.BLOB, SqlType.CLOB, SqlType.STRUCT, SqlType.REF,
+        SqlType.DATALINK, SqlType.JAVA_OBJECT, SqlType.ROWID, SqlType.NCHAR,
+        SqlType.NVARCHAR, SqlType.LONGNVARCHAR, SqlType.NCLOB, SqlType.SQLXML
     };
     Class[] rows = {
-      String.class, BigDecimal.class, Boolean.class, Byte.class, Short.class,
-      Integer.class, Long.class, Float.class, Double.class, byte[].class,
-      BigInteger.class, java.sql.Date.class, Time.class, Timestamp.class,
-      Array.class, Blob.class, Clob.class, Struct.class, Ref.class,
-      URL.class, Class.class, RowId.class, NClob.class, SQLXML.class,
-      Calendar.class, java.util.Date.class
+        String.class, BigDecimal.class, Boolean.class, Byte.class, Short.class,
+        Integer.class, Long.class, Float.class, Double.class, byte[].class,
+        BigInteger.class, java.sql.Date.class, Time.class, Timestamp.class,
+        Array.class, Blob.class, Clob.class, Struct.class, Ref.class,
+        URL.class, Class.class, RowId.class, NClob.class, SQLXML.class,
+        Calendar.class, java.util.Date.class
     };
     for (Class row : rows) {
       final String s = row == Date.class ? row.getName() : row.getSimpleName();
@@ -422,15 +421,15 @@ public class CalciteRemoteDriverTest {
    * specification */
   @Test public void testTableB6() {
     SqlType[] columns = {
-      SqlType.TINYINT, SqlType.SMALLINT, SqlType.INTEGER, SqlType.BIGINT,
-      SqlType.REAL, SqlType.FLOAT, SqlType.DOUBLE, SqlType.DECIMAL,
-      SqlType.NUMERIC, SqlType.BIT, SqlType.BOOLEAN, SqlType.CHAR,
-      SqlType.VARCHAR, SqlType.LONGVARCHAR, SqlType.BINARY, SqlType.VARBINARY,
-      SqlType.LONGVARBINARY, SqlType.DATE, SqlType.TIME, SqlType.TIMESTAMP,
-      SqlType.CLOB, SqlType.BLOB, SqlType.ARRAY, SqlType.REF,
-      SqlType.DATALINK, SqlType.STRUCT, SqlType.JAVA_OBJECT, SqlType.ROWID,
-      SqlType.NCHAR, SqlType.NVARCHAR, SqlType.LONGNVARCHAR, SqlType.NCLOB,
-      SqlType.SQLXML
+        SqlType.TINYINT, SqlType.SMALLINT, SqlType.INTEGER, SqlType.BIGINT,
+        SqlType.REAL, SqlType.FLOAT, SqlType.DOUBLE, SqlType.DECIMAL,
+        SqlType.NUMERIC, SqlType.BIT, SqlType.BOOLEAN, SqlType.CHAR,
+        SqlType.VARCHAR, SqlType.LONGVARCHAR, SqlType.BINARY, SqlType.VARBINARY,
+        SqlType.LONGVARBINARY, SqlType.DATE, SqlType.TIME, SqlType.TIMESTAMP,
+        SqlType.CLOB, SqlType.BLOB, SqlType.ARRAY, SqlType.REF,
+        SqlType.DATALINK, SqlType.STRUCT, SqlType.JAVA_OBJECT, SqlType.ROWID,
+        SqlType.NCHAR, SqlType.NVARCHAR, SqlType.LONGNVARCHAR, SqlType.NCLOB,
+        SqlType.SQLXML
     };
     final PrintWriter out =
         CalcitePrepareImpl.DEBUG

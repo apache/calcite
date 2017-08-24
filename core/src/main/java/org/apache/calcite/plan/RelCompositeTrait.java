@@ -131,7 +131,9 @@ class RelCompositeTrait<T extends RelMultipleTrait> implements RelTrait {
     return traits.length;
   }
 
-  /** Composite trait with 0 elements. */
+  /** Composite trait with 0 elements.
+   *
+   * @param <T> trait type */
   private static class EmptyCompositeTrait<T extends RelMultipleTrait>
       extends RelCompositeTrait<T> {
     private EmptyCompositeTrait(RelTraitDef traitDef) {

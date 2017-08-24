@@ -34,7 +34,7 @@ import org.apache.calcite.sql.type.ReturnTypes;
  */
 @Deprecated // to be removed before 2.0
 class SqlGroupingIdFunction extends SqlAbstractGroupFunction {
-  public SqlGroupingIdFunction() {
+  SqlGroupingIdFunction() {
     //noinspection deprecation
     super("GROUPING_ID", SqlKind.GROUPING_ID, ReturnTypes.BIGINT, null,
         OperandTypes.ONE_OR_MORE, SqlFunctionCategory.SYSTEM);

@@ -180,7 +180,7 @@ public class BasicSqlType extends AbstractSqlType {
     if (withDetail) {
       // -1 means there is no default value for precision
       if (typeName.allowsPrec()
-        && typeSystem.getDefaultPrecision(typeName) > -1) {
+          && typeSystem.getDefaultPrecision(typeName) > -1) {
         printPrecision = true;
       }
       if (typeName.getDefaultScale() > -1) {

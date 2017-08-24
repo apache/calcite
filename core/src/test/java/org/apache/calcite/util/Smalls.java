@@ -508,15 +508,25 @@ public class Smalls {
     private MultipleFunction() {}
 
     // Three overloads
-    public static String fun1(String x) { return x.toLowerCase(Locale.ROOT); }
-    public static int fun1(int x) { return x * 2; }
-    public static int fun1(int x, int y) { return x + y; }
+    public static String fun1(String x) {
+      return x.toLowerCase(Locale.ROOT);
+    }
+    public static int fun1(int x) {
+      return x * 2;
+    }
+    public static int fun1(int x, int y) {
+      return x + y;
+    }
 
     // Another method
-    public static int fun2(int x) { return x * 3; }
+    public static int fun2(int x) {
+      return x * 3;
+    }
 
     // Non-static method cannot be used because constructor is private
-    public int nonStatic(int x) { return x * 3; }
+    public int nonStatic(int x) {
+      return x * 3;
+    }
   }
 
   /** UDF class that provides user-defined functions for each data type. */
@@ -596,7 +606,11 @@ public class Smalls {
     }
   }
 
-  /** A generic interface for defining user defined aggregate functions */
+  /** A generic interface for defining user defined aggregate functions
+   *
+   * @param <A> accumulator type
+   * @param <V> value type
+   * @param <R> result type */
   private interface MyGenericAggFunction<A, V, R> {
     A init();
 
@@ -841,7 +855,7 @@ public class Smalls {
 
     @SuppressWarnings("unused")
     public final WideProductSale[] prod = {
-      new WideProductSale(100, 10)
+        new WideProductSale(100, 10)
     };
   }
 

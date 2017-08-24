@@ -51,7 +51,7 @@ public class OptimizeShuttle extends Shuttle {
 
   static {
     for (Class aClass : new Class[]{Boolean.class, Byte.class, Short.class,
-      Integer.class, Long.class, String.class}) {
+        Integer.class, Long.class, String.class}) {
       for (Method method : aClass.getMethods()) {
         if ("valueOf".equals(method.getName())
             && Modifier.isStatic(method.getModifiers())) {
@@ -61,8 +61,7 @@ public class OptimizeShuttle extends Shuttle {
     }
   }
 
-  private static final
-  Map<ExpressionType, ExpressionType> NOT_BINARY_COMPLEMENT =
+  private static final Map<ExpressionType, ExpressionType> NOT_BINARY_COMPLEMENT =
       new EnumMap<>(ExpressionType.class);
 
   static {
@@ -173,7 +172,7 @@ public class OptimizeShuttle extends Shuttle {
       if (eq(expression0, expression1)) {
         return binary.getNodeType() == Equal ? TRUE_EXPR : FALSE_EXPR;
       } else if (expression0 instanceof ConstantExpression && expression1
-        instanceof ConstantExpression) {
+          instanceof ConstantExpression) {
         ConstantExpression c0 = (ConstantExpression) expression0;
         ConstantExpression c1 = (ConstantExpression) expression1;
         if (c0.getType() == c1.getType()
@@ -201,7 +200,7 @@ public class OptimizeShuttle extends Shuttle {
           return expr.accept(this);
         }
       }
-      // drop down
+      // fall through
     case AndAlso:
     case OrElse:
       result = visit0(binary, expression0, expression1);

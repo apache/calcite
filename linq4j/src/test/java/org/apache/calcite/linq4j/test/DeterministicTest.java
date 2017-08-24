@@ -80,7 +80,7 @@ public class DeterministicTest {
   private boolean isAtomic(Expression e) {
     /** Subclass to make a protected method public. */
     class MyDeterministicCodeOptimizer extends DeterministicCodeOptimizer {
-      public MyDeterministicCodeOptimizer() {
+      MyDeterministicCodeOptimizer() {
         super(ClassDeclarationFinder.create());
       }
 

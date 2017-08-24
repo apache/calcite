@@ -139,7 +139,7 @@ public class JaninoCompiler implements JavaCompiler {
     private final File destDir;
     private int nBytes;
 
-    public AccountingClassLoader(
+    AccountingClassLoader(
         ClassLoader parentClassLoader,
         ResourceFinder sourceFinder,
         String optionalCharacterEncoding,

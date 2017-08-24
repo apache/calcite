@@ -78,7 +78,7 @@ class QueryableRelBuilder<T> implements QueryableFactory<T> {
   private final LixToRelTranslator translator;
   private RelNode rel;
 
-  public QueryableRelBuilder(LixToRelTranslator translator) {
+  QueryableRelBuilder(LixToRelTranslator translator) {
     this.translator = translator;
   }
 

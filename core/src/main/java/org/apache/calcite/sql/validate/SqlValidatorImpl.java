@@ -2003,12 +2003,12 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
             usingScope,
             alias,
             new AliasNamespace(this, call, enclosingNode),
-            false);
+            forceNullable);
       }
       return node;
     case MATCH_RECOGNIZE:
       registerMatchRecognize(parentScope, usingScope,
-        (SqlMatchRecognize) node, enclosingNode, alias, forceNullable);
+          (SqlMatchRecognize) node, enclosingNode, alias, forceNullable);
       return node;
     case TABLESAMPLE:
       call = (SqlCall) node;
@@ -3596,7 +3596,9 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
   protected void validateWindowClause(SqlSelect select) {
     final SqlNodeList windowList = select.getWindowList();
-    if ((windowList == null) || (windowList.size() == 0)) {
+    @SuppressWarnings("unchecked") final List<SqlWindow> windows =
+        (List) windowList.getList();
+    if (windows.isEmpty()) {
       return;
     }
 
@@ -3605,9 +3607,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
     // 1. ensure window names are simple
     // 2. ensure they are unique within this scope
-    for (SqlNode node : windowList) {
-      final SqlWindow child = (SqlWindow) node;
-      SqlIdentifier declName = child.getDeclName();
+    for (SqlWindow window : windows) {
+      SqlIdentifier declName = window.getDeclName();
       if (!declName.isSimple()) {
         throw newValidationError(declName, RESOURCE.windowNameMustBeSimple());
       }
@@ -3621,14 +3622,26 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
     // 7.10 rule 2
     // Check for pairs of windows which are equivalent.
-    for (int i = 0; i < windowList.size(); i++) {
-      SqlNode window1 = windowList.get(i);
-      for (int j = i + 1; j < windowList.size(); j++) {
-        SqlNode window2 = windowList.get(j);
+    for (int i = 0; i < windows.size(); i++) {
+      SqlNode window1 = windows.get(i);
+      for (int j = i + 1; j < windows.size(); j++) {
+        SqlNode window2 = windows.get(j);
         if (window1.equalsDeep(window2, Litmus.IGNORE)) {
           throw newValidationError(window2, RESOURCE.dupWindowSpec());
         }
       }
+    }
+
+    for (SqlWindow window : windows) {
+      final SqlNodeList expandedOrderList =
+          (SqlNodeList) expand(window.getOrderList(), windowScope);
+      window.setOrderList(expandedOrderList);
+      expandedOrderList.validate(this, windowScope);
+
+      final SqlNodeList expandedPartitionList =
+          (SqlNodeList) expand(window.getPartitionList(), windowScope);
+      window.setPartitionList(expandedPartitionList);
+      expandedPartitionList.validate(this, windowScope);
     }
 
     // Hand off to validate window spec components
@@ -4802,6 +4815,36 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     PatternVarVisitor visitor = new PatternVarVisitor(scope);
     pattern.accept(visitor);
 
+    SqlLiteral interval = matchRecognize.getInterval();
+    if (interval != null) {
+      interval.validate(this, scope);
+      if (((SqlIntervalLiteral) interval).signum() < 0) {
+        throw newValidationError(interval,
+          RESOURCE.intervalMustBeNonNegative(interval.toValue()));
+      }
+      if (orderBy == null || orderBy.size() == 0) {
+        throw newValidationError(interval,
+          RESOURCE.cannotUseWithinWithoutOrderBy());
+      }
+
+      SqlNode firstOrderByColumn = orderBy.getList().get(0);
+      SqlIdentifier identifier;
+      if (firstOrderByColumn instanceof SqlBasicCall) {
+        identifier = (SqlIdentifier) ((SqlBasicCall) firstOrderByColumn).getOperands()[0];
+      } else {
+        identifier = (SqlIdentifier) firstOrderByColumn;
+      }
+      RelDataType firstOrderByColumnType = deriveType(scope, identifier);
+      if (firstOrderByColumnType.getSqlTypeName() != SqlTypeName.TIMESTAMP) {
+        throw newValidationError(interval,
+          RESOURCE.firstColumnOfOrderByMustBeTimestamp());
+      }
+
+      SqlNode expand = expand(interval, scope);
+      RelDataType type = deriveType(scope, expand);
+      setValidatedNodeType(interval, type);
+    }
+
     validateDefinitions(matchRecognize, scope);
 
     SqlNodeList subsets = matchRecognize.getSubsetList();
@@ -4837,7 +4880,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     }
 
     List<Map.Entry<String, RelDataType>> measureColumns =
-      validateMeasure(matchRecognize, scope, allRows);
+        validateMeasure(matchRecognize, scope, allRows);
     for (Map.Entry<String, RelDataType> c : measureColumns) {
       if (!typeBuilder.nameExists(c.getKey())) {
         typeBuilder.add(c.getKey(), c.getValue());
@@ -5183,7 +5226,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   private static class InsertNamespace extends DmlNamespace {
     private final SqlInsert node;
 
-    public InsertNamespace(SqlValidatorImpl validator, SqlInsert node,
+    InsertNamespace(SqlValidatorImpl validator, SqlInsert node,
         SqlNode enclosingNode, SqlValidatorScope parentScope) {
       super(validator, node.getTargetTable(), enclosingNode, parentScope);
       this.node = Preconditions.checkNotNull(node);
@@ -5200,7 +5243,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   private static class UpdateNamespace extends DmlNamespace {
     private final SqlUpdate node;
 
-    public UpdateNamespace(SqlValidatorImpl validator, SqlUpdate node,
+    UpdateNamespace(SqlValidatorImpl validator, SqlUpdate node,
         SqlNode enclosingNode, SqlValidatorScope parentScope) {
       super(validator, node.getTargetTable(), enclosingNode, parentScope);
       this.node = Preconditions.checkNotNull(node);
@@ -5217,7 +5260,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   private static class DeleteNamespace extends DmlNamespace {
     private final SqlDelete node;
 
-    public DeleteNamespace(SqlValidatorImpl validator, SqlDelete node,
+    DeleteNamespace(SqlValidatorImpl validator, SqlDelete node,
         SqlNode enclosingNode, SqlValidatorScope parentScope) {
       super(validator, node.getTargetTable(), enclosingNode, parentScope);
       this.node = Preconditions.checkNotNull(node);
@@ -5234,7 +5277,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   private static class MergeNamespace extends DmlNamespace {
     private final SqlMerge node;
 
-    public MergeNamespace(SqlValidatorImpl validator, SqlMerge node,
+    MergeNamespace(SqlValidatorImpl validator, SqlMerge node,
         SqlNode enclosingNode, SqlValidatorScope parentScope) {
       super(validator, node.getTargetTable(), enclosingNode, parentScope);
       this.node = Preconditions.checkNotNull(node);
@@ -5250,7 +5293,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
    */
   private class PatternVarVisitor implements SqlVisitor<Void> {
     private MatchRecognizeScope scope;
-    public PatternVarVisitor(MatchRecognizeScope scope) {
+    PatternVarVisitor(MatchRecognizeScope scope) {
       this.scope = scope;
     }
 
@@ -5297,7 +5340,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   private class DeriveTypeVisitor implements SqlVisitor<RelDataType> {
     private final SqlValidatorScope scope;
 
-    public DeriveTypeVisitor(SqlValidatorScope scope) {
+    DeriveTypeVisitor(SqlValidatorScope scope) {
       this.scope = scope;
     }
 
@@ -5457,9 +5500,9 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
           Util.last(id.names),
           id.getParserPosition());
         SqlBasicCall item_call = new SqlBasicCall(
-          SqlStdOperatorTable.ITEM,
-          inputs,
-          id.getParserPosition());
+            SqlStdOperatorTable.ITEM,
+            inputs,
+            id.getParserPosition());
         expandedExpr = item_call;
       }
       validator.setOriginal(expandedExpr, id);
@@ -5752,11 +5795,11 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     SqlOperator currentOperator;
     SqlNode currentOffset;
 
-    public NavigationExpander() {
+    NavigationExpander() {
 
     }
 
-    public NavigationExpander(SqlOperator operator, SqlNode offset) {
+    NavigationExpander(SqlOperator operator, SqlNode offset) {
       this.currentOffset = offset;
       this.currentOperator = operator;
     }
@@ -5776,7 +5819,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
             List<SqlNode> innerOperands = ((SqlCall) inner).getOperandList();
             SqlNode innerOffset = innerOperands.get(1);
             SqlOperator newOperator = innerKind == kind
-              ? SqlStdOperatorTable.PLUS : SqlStdOperatorTable.MINUS;
+                ? SqlStdOperatorTable.PLUS : SqlStdOperatorTable.MINUS;
             offset = newOperator.createCall(SqlParserPos.ZERO,
               offset, innerOffset);
             inner = call.getOperator().createCall(SqlParserPos.ZERO,
@@ -5812,7 +5855,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   private class NavigationReplacer extends NavigationModifier {
     private final String alpha;
 
-    public NavigationReplacer(String alpha) {
+    NavigationReplacer(String alpha) {
       this.alpha = alpha;
     }
 
@@ -5844,7 +5887,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         return id;
       }
       SqlOperator operator = id.names.get(0).equals(alpha)
-        ? SqlStdOperatorTable.PREV : SqlStdOperatorTable.LAST;
+          ? SqlStdOperatorTable.PREV : SqlStdOperatorTable.LAST;
 
       return operator.createCall(SqlParserPos.ZERO, id,
         SqlLiteral.createExactNumeric("0", SqlParserPos.ZERO));

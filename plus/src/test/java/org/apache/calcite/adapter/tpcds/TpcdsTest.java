@@ -51,9 +51,8 @@ import java.util.Random;
  * command-line.
  * (See {@link org.apache.calcite.test.CalciteAssert#ENABLE_SLOW}.)</p> */
 public class TpcdsTest {
-  private static
-  Function<Pair<List<Prepare.Materialization>, Holder<Program>>, Void>
-  handler(final boolean bushy, final int minJoinCount) {
+  private static Function<Pair<List<Prepare.Materialization>, Holder<Program>>, Void> handler(
+      final boolean bushy, final int minJoinCount) {
     return new Function<Pair<List<Prepare.Materialization>, Holder<Program>>,
         Void>() {
       public Void apply(

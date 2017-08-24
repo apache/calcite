@@ -54,7 +54,7 @@ public class InterpreterTest {
   private class MyDataContext implements DataContext {
     private final Planner planner;
 
-    public MyDataContext(Planner planner) {
+    MyDataContext(Planner planner) {
       this.planner = planner;
     }
 

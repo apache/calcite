@@ -595,7 +595,9 @@ class DruidConnectionImpl implements DruidConnection {
   }
 
   /** An {@link Enumerator} that gets its rows from a {@link BlockingQueue}.
-   * There are other fields to signal errors and end-of-data. */
+   * There are other fields to signal errors and end-of-data.
+   *
+   * @param <E> element type */
   private static class BlockingQueueEnumerator<E> implements Enumerator<E> {
     final BlockingQueue<E> queue = new ArrayBlockingQueue<>(1000);
     final AtomicBoolean done = new AtomicBoolean(false);

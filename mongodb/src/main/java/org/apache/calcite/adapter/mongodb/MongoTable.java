@@ -218,7 +218,9 @@ public class MongoTable extends AbstractQueryableTable
   }
 
   /** Implementation of {@link org.apache.calcite.linq4j.Queryable} based on
-   * a {@link org.apache.calcite.adapter.mongodb.MongoTable}. */
+   * a {@link org.apache.calcite.adapter.mongodb.MongoTable}.
+   *
+   * @param <T> element type */
   public static class MongoQueryable<T> extends AbstractTableQueryable<T> {
     MongoQueryable(QueryProvider queryProvider, SchemaPlus schema,
         MongoTable table, String tableName) {

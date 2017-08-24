@@ -107,6 +107,7 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
     addAlias(
         SqlStdOperatorTable.IS_NOT_UNKNOWN,
         SqlStdOperatorTable.IS_NOT_NULL);
+    addAlias(SqlStdOperatorTable.PERCENT_REMAINDER, SqlStdOperatorTable.MOD);
 
     // Register convertlets for specific objects.
     registerOp(
@@ -1263,7 +1264,7 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
   private static class AvgVarianceConvertlet implements SqlRexConvertlet {
     private final SqlKind kind;
 
-    public AvgVarianceConvertlet(SqlKind kind) {
+    AvgVarianceConvertlet(SqlKind kind) {
       this.kind = kind;
     }
 
@@ -1376,7 +1377,7 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
   private static class TrimConvertlet implements SqlRexConvertlet {
     private final SqlTrimFunction.Flag flag;
 
-    public TrimConvertlet(SqlTrimFunction.Flag flag) {
+    TrimConvertlet(SqlTrimFunction.Flag flag) {
       this.flag = flag;
     }
 

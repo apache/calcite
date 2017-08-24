@@ -41,14 +41,14 @@ import com.google.common.collect.ImmutableSet;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import static org.hamcrest.CoreMatchers.notNullValue;
-import static org.junit.Assert.assertThat;
-
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.Set;
+
+import static org.hamcrest.CoreMatchers.notNullValue;
+import static org.junit.Assert.assertThat;
 
 /**
  * Unit test for {@link org.apache.calcite.sql2rel.SqlToRelConverter}.
@@ -2410,12 +2410,11 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).with(getTesterWithDynamicTable()).ok();
   }
 
-  /**
-   * Test case for Dynamic Table / Dynamic Star support
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-1150">[CALCITE-1150]</a>
-   */
-  @Test
-  public void testSelStarOrderBy() throws Exception {
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1150">[CALCITE-1150]
+   * Create the a new DynamicRecordType, avoiding star expansion when working
+   * with this type</a>. */
+  @Test public void testSelectDynamicStarOrderBy() throws Exception {
     final String sql = "SELECT * from SALES.NATION order by n_nationkey";
     sql(sql).with(getTesterWithDynamicTable()).ok();
   }
@@ -2424,19 +2423,28 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1321">[CALCITE-1321]
    * Configurable IN list size when converting IN clause to join</a>. */
   @Test public void testInToSemiJoin() {
-    final String sql = "SELECT empno"
-            + " FROM emp AS e"
-            + " WHERE cast(e.empno as bigint) in (130, 131, 132, 133, 134)";
+    final String sql = "SELECT empno\n"
+        + "FROM emp AS e\n"
+        + "WHERE cast(e.empno as bigint) in (130, 131, 132, 133, 134)";
     // No conversion to join since less than IN-list size threshold 10
-    SqlToRelConverter.Config noConvertConfig = SqlToRelConverter.configBuilder().
-
-
-        withInSubQueryThreshold(10).build();
+    SqlToRelConverter.Config noConvertConfig =
+        SqlToRelConverter.configBuilder().withInSubQueryThreshold(10).build();
     sql(sql).withConfig(noConvertConfig).convertsTo("${planNotConverted}");
     // Conversion to join since greater than IN-list size threshold 2
-    SqlToRelConverter.Config convertConfig = SqlToRelConverter.configBuilder().
-        withInSubQueryThreshold(2).build();
+    SqlToRelConverter.Config convertConfig =
+        SqlToRelConverter.configBuilder().withInSubQueryThreshold(2).build();
     sql(sql).withConfig(convertConfig).convertsTo("${planConverted}");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1944">[CALCITE-1944]
+   * Window function applied to sub-query with dynamic star gets wrong
+   * plan</a>. */
+  @Test public void testWindowOnDynamicStar() throws Exception {
+    final String sql = "SELECT SUM(n_nationkey) OVER w\n"
+        + "FROM (SELECT * FROM SALES.NATION) subQry\n"
+        + "WINDOW w AS (PARTITION BY REGION ORDER BY n_nationkey)";
+    sql(sql).with(getTesterWithDynamicTable()).ok();
   }
 
   private Tester getExtendedTester() {
@@ -2612,24 +2620,24 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
-  @Test public void testMRPrevLast() {
+  @Test public void testMatchRecognizePrevLast() {
     final String sql = "SELECT *\n"
-      + "FROM emp\n"
-      + "MATCH_RECOGNIZE (\n"
-      + "  MEASURES\n"
-      + "    STRT.mgr AS start_mgr,\n"
-      + "    LAST(DOWN.mgr) AS bottom_mgr,\n"
-      + "    LAST(UP.mgr) AS end_mgr\n"
-      + "  ONE ROW PER MATCH\n"
-      + "  PATTERN (STRT DOWN+ UP+)\n"
-      + "  DEFINE\n"
-      + "    DOWN AS DOWN.mgr < PREV(DOWN.mgr),\n"
-      + "    UP AS UP.mgr > PREV(LAST(DOWN.mgr, 1), 1)\n"
-      + ") AS T";
+        + "FROM emp\n"
+        + "MATCH_RECOGNIZE (\n"
+        + "  MEASURES\n"
+        + "    STRT.mgr AS start_mgr,\n"
+        + "    LAST(DOWN.mgr) AS bottom_mgr,\n"
+        + "    LAST(UP.mgr) AS end_mgr\n"
+        + "  ONE ROW PER MATCH\n"
+        + "  PATTERN (STRT DOWN+ UP+)\n"
+        + "  DEFINE\n"
+        + "    DOWN AS DOWN.mgr < PREV(DOWN.mgr),\n"
+        + "    UP AS UP.mgr > PREV(LAST(DOWN.mgr, 1), 1)\n"
+        + ") AS T";
     sql(sql).ok();
   }
 
-  @Test public void testMRPrevDown() {
+  @Test public void testMatchRecognizePrevDown() {
     final String sql = "SELECT *\n"
         + "FROM emp\n"
         + "MATCH_RECOGNIZE (\n"

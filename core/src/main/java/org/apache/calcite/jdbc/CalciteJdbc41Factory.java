@@ -117,7 +117,7 @@ public class CalciteJdbc41Factory extends CalciteFactory {
 
   /** Implementation of statement for JDBC 4.1. */
   private static class CalciteJdbc41Statement extends CalciteStatement {
-    public CalciteJdbc41Statement(CalciteConnectionImpl connection,
+    CalciteJdbc41Statement(CalciteConnectionImpl connection,
         Meta.StatementHandle h, int resultSetType, int resultSetConcurrency,
         int resultSetHoldability) {
       super(connection, h, resultSetType, resultSetConcurrency,

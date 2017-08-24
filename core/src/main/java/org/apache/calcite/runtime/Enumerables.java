@@ -61,8 +61,8 @@ public class Enumerables {
 
   /** Converts a supplier of an {@link Enumerable} over object arrays into a
    * supplier of an {@link Enumerable} over {@link Row} objects. */
-  public static Supplier<Enumerable<Row>>
-  toRow(final Supplier<Enumerable<Object[]>> supplier) {
+  public static Supplier<Enumerable<Row>> toRow(
+      final Supplier<Enumerable<Object[]>> supplier) {
     return new Supplier<Enumerable<Row>>() {
       public Enumerable<Row> get() {
         return toRow(supplier.get());

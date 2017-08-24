@@ -34,6 +34,9 @@ public interface CalciteResource {
   @BaseMessage("Bang equal ''!='' is not allowed under the current SQL conformance level")
   ExInst<CalciteException> bangEqualNotAllowed();
 
+  @BaseMessage("Percent remainder ''%'' is not allowed under the current SQL conformance level")
+  ExInst<CalciteException> percentRemainderNotAllowed();
+
   @BaseMessage("''LIMIT start, count'' is not allowed under the current SQL conformance level")
   ExInst<CalciteException> limitStartCountNotAllowed();
 
@@ -561,8 +564,7 @@ public interface CalciteResource {
 
   @BaseMessage("Execution of a new autocommit statement while a cursor is still open on same connection is not supported")
   @Property(name = "FeatureDefinition", value = "Eigenbase-defined")
-  ExInst<CalciteException>
-  sQLConformance_MultipleActiveAutocommitStatements();
+  ExInst<CalciteException> sQLConformance_MultipleActiveAutocommitStatements();
 
   @BaseMessage("Descending sort (ORDER BY DESC) not supported")
   @Property(name = "FeatureDefinition", value = "Eigenbase-defined")
@@ -704,6 +706,15 @@ public interface CalciteResource {
 
   @BaseMessage("Unknown pattern ''{0}''")
   ExInst<SqlValidatorException> unknownPattern(String call);
+
+  @BaseMessage("Interval must be non-negative ''{0}''")
+  ExInst<SqlValidatorException> intervalMustBeNonNegative(String call);
+
+  @BaseMessage("Must contain an ORDER BY clause when WITHIN is used")
+  ExInst<SqlValidatorException> cannotUseWithinWithoutOrderBy();
+
+  @BaseMessage("First column of ORDER BY must be of type TIMESTAMP")
+  ExInst<SqlValidatorException> firstColumnOfOrderByMustBeTimestamp();
 
   @BaseMessage("Extended columns not allowed under the current SQL conformance level")
   ExInst<SqlValidatorException> extendNotAllowed();

@@ -55,6 +55,8 @@ class CompatibleGuava11 {
   /**
    * {@link AbstractSet} substitute without the potentially-quadratic
    * {@code removeAll} implementation.
+   *
+   * @param <E> element type
    */
   abstract static class ImprovedAbstractSet<E> extends AbstractSet<E> {
     @Override public boolean removeAll(Collection<?> c) {
@@ -103,7 +105,10 @@ class CompatibleGuava11 {
     }
   }
 
-  /** ImprovedAbstractMap. */
+  /** ImprovedAbstractMap.
+   *
+   * @param <K> key type
+   * @param <V> value type */
   abstract static class ImprovedAbstractMap<K, V> extends AbstractMap<K, V> {
     /**
      * Creates the entry set to be returned by {@link #entrySet()}. This method
@@ -160,7 +165,10 @@ class CompatibleGuava11 {
     };
   }
 
-  /** KeySet. */
+  /** KeySet.
+   *
+   * @param <K> key type
+   * @param <V> value type */
   abstract static class KeySet<K, V> extends ImprovedAbstractSet<K> {
     abstract Map<K, V> map();
 
@@ -218,7 +226,10 @@ class CompatibleGuava11 {
     };
   }
 
-  /** AsMapView. */
+  /** AsMapView.
+   *
+   * @param <K> key type
+   * @param <V> value type */
   private static class AsMapView<K, V> extends ImprovedAbstractMap<K, V> {
     private final Set<K> set;
     final Function<? super K, V> function;
@@ -287,7 +298,10 @@ class CompatibleGuava11 {
     }
   }
 
-  /** EntrySet. */
+  /** EntrySet.
+   *
+   * @param <K> key type
+   * @param <V> value type */
   abstract static class EntrySet<K, V>
       extends ImprovedAbstractSet<Map.Entry<K, V>> {
     abstract Map<K, V> map();
@@ -362,7 +376,10 @@ class CompatibleGuava11 {
     };
   }
 
-  /** Values. */
+  /** Values.
+   *
+   * @param <K> key type
+   * @param <V> value type */
   abstract static class Values<K, V> extends AbstractCollection<V> {
     abstract Map<K, V> map();
 
@@ -429,7 +446,10 @@ class CompatibleGuava11 {
     }
   }
 
-  /** TransformedIterator. */
+  /** TransformedIterator.
+   *
+   * @param <F> from type
+   * @param <T> to type */
   abstract static class TransformedIterator<F, T> implements Iterator<T> {
     final Iterator<? extends F> backingIterator;
 

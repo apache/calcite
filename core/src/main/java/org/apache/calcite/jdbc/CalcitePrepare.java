@@ -309,7 +309,9 @@ public interface CalcitePrepare {
 
   /** The result of preparing a query. It gives the Avatica driver framework
    * the information it needs to create a prepared statement, or to execute a
-   * statement directly, without an explicit prepare step. */
+   * statement directly, without an explicit prepare step.
+   *
+   * @param <T> element type */
   class CalciteSignature<T> extends Meta.Signature {
     @JsonIgnore public final RelDataType rowType;
     @JsonIgnore public final CalciteSchema rootSchema;
@@ -367,7 +369,9 @@ public interface CalcitePrepare {
 
   /** A union type of the three possible ways of expressing a query: as a SQL
    * string, a {@link Queryable} or a {@link RelNode}. Exactly one must be
-   * provided. */
+   * provided.
+   *
+   * @param <T> element type */
   class Query<T> {
     public final String sql;
     public final Queryable<T> queryable;

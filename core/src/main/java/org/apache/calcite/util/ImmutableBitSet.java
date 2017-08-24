@@ -914,7 +914,7 @@ public class ImmutableBitSet
     private final SortedMap<Integer, ImmutableBitSet> closure =
         Maps.newTreeMap();
 
-    public Closure(SortedMap<Integer, ImmutableBitSet> equivalence) {
+    Closure(SortedMap<Integer, ImmutableBitSet> equivalence) {
       this.equivalence = equivalence;
       final ImmutableIntList keys =
           ImmutableIntList.copyOf(equivalence.keySet());

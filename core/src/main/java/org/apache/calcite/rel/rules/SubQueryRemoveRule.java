@@ -402,7 +402,7 @@ public abstract class SubQueryRemoveRule extends RelOptRule {
     private final RexSubQuery subQuery;
     private final RexNode replacement;
 
-    public ReplaceSubQueryShuttle(RexSubQuery subQuery, RexNode replacement) {
+    ReplaceSubQueryShuttle(RexSubQuery subQuery, RexNode replacement) {
       this.subQuery = subQuery;
       this.replacement = replacement;
     }

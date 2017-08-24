@@ -222,8 +222,8 @@ public class RelOptRulesTest extends RelOptTestBase {
     hepPlanner.addRule(ReduceExpressionsRule.PROJECT_INSTANCE);
 
     final String sql = "SELECT CASE WHEN 1=2 "
-      + "THEN cast((values(1)) as integer) "
-      + "ELSE 2 end from (values(1))";
+        + "THEN cast((values(1)) as integer) "
+        + "ELSE 2 end from (values(1))";
     sql(sql).with(hepPlanner).check();
   }
 
@@ -234,8 +234,8 @@ public class RelOptRulesTest extends RelOptTestBase {
     hepPlanner.addRule(ReduceExpressionsRule.PROJECT_INSTANCE);
 
     final String sql = "SELECT deptno, ename, CASE WHEN 1=2 "
-      + "THEN substring(ename, 1, cast(2 as int)) ELSE NULL end from emp"
-      + " group by deptno, ename, case when 1=2 then substring(ename,1, cast(2 as int))  else null end";
+        + "THEN substring(ename, 1, cast(2 as int)) ELSE NULL end from emp"
+        + " group by deptno, ename, case when 1=2 then substring(ename,1, cast(2 as int))  else null end";
     sql(sql).with(hepPlanner).check();
   }
 
