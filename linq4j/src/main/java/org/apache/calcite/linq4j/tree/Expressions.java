@@ -1168,7 +1168,7 @@ public abstract class Expressions {
    * <p>It can be used when the delegate type is not known at compile time.
    */
   public static <T, F extends Function<? extends T>> FunctionExpression<F>
-  lambda(Class<F> type, BlockStatement body,
+      lambda(Class<F> type, BlockStatement body,
       Iterable<? extends ParameterExpression> parameters) {
     return new FunctionExpression<F>(type, body, toList(parameters));
   }
@@ -1179,9 +1179,8 @@ public abstract class Expressions {
    *
    * <p>It can be used when the delegate type is not known at compile time.
    */
-  public static <T, F extends Function<? extends T>> FunctionExpression<F>
-  lambda(Class<F> type, BlockStatement body,
-      ParameterExpression... parameters) {
+  public static <T, F extends Function<? extends T>> FunctionExpression<F> lambda(
+      Class<F> type, BlockStatement body, ParameterExpression... parameters) {
     return lambda(type, body, toList(parameters));
   }
 
@@ -1191,8 +1190,8 @@ public abstract class Expressions {
    *
    * <p>It can be used when the delegate type is not known at compile time.
    */
-  public static <T, F extends Function<? extends T>> FunctionExpression<F>
-  lambda(Class<F> type, Expression body,
+  public static <T, F extends Function<? extends T>> FunctionExpression<F> lambda(
+      Class<F> type, Expression body,
       Iterable<? extends ParameterExpression> parameters) {
     return lambda(type, Blocks.toFunctionBlock(body), toList(parameters));
   }
@@ -1203,8 +1202,8 @@ public abstract class Expressions {
    *
    * <p>It can be used when the delegate type is not known at compile time.
    */
-  public static <T, F extends Function<? extends T>> FunctionExpression<F>
-  lambda(Class<F> type, Expression body, ParameterExpression... parameters) {
+  public static <T, F extends Function<? extends T>> FunctionExpression<F> lambda(
+      Class<F> type, Expression body, ParameterExpression... parameters) {
     return lambda(type, Blocks.toFunctionBlock(body), toList(parameters));
   }
 
@@ -3213,7 +3212,9 @@ public abstract class Expressions {
   interface SymbolDocumentInfo {
   }
 
-  /** Fluent list. */
+  /** Fluent list.
+   *
+   * @param <T> element type */
   public interface FluentList<T> extends List<T> {
     FluentList<T> append(T t);
 
@@ -3226,14 +3227,16 @@ public abstract class Expressions {
     FluentList<T> appendAll(T... ts);
   }
 
-  /** Fluent array list. */
+  /** Fluent array list.
+   *
+   * @param <T> element type */
   private static class FluentArrayList<T> extends ArrayList<T>
       implements FluentList<T> {
-    public FluentArrayList() {
+    FluentArrayList() {
       super();
     }
 
-    public FluentArrayList(Collection<? extends T> c) {
+    FluentArrayList(Collection<? extends T> c) {
       super(c);
     }
 

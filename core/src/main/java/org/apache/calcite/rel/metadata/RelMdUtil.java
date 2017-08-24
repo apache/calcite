@@ -757,7 +757,7 @@ public class RelMdUtil {
     private final RelMetadataQuery mq;
     private Project rel;
 
-    public CardOfProjExpr(RelMetadataQuery mq, Project rel) {
+    CardOfProjExpr(RelMetadataQuery mq, Project rel) {
       super(true);
       this.mq = mq;
       this.rel = rel;

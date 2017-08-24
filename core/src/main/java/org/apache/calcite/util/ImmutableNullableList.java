@@ -200,6 +200,8 @@ public class ImmutableNullableList<E> extends AbstractList<E> {
 
   /**
    * A builder for creating immutable nullable list instances.
+   *
+   * @param <E> element type
    */
   public static final class Builder<E> {
     private final List<E> contents = Lists.newArrayList();

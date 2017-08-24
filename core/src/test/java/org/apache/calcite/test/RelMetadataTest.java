@@ -2335,7 +2335,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
   private static class MyRelMetadataQuery extends RelMetadataQuery {
     private ColType.Handler colTypeHandler;
 
-    public MyRelMetadataQuery() {
+    MyRelMetadataQuery() {
       super(THREAD_PROVIDERS.get(), EMPTY);
       colTypeHandler = initialHandler(ColType.Handler.class);
     }

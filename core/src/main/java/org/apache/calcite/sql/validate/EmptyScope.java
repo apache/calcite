@@ -198,8 +198,8 @@ class EmptyScope implements SqlValidatorScope {
   }
 
   @SuppressWarnings("deprecation")
-  public Pair<String, SqlValidatorNamespace>
-  findQualifyingTableName(String columnName, SqlNode ctx) {
+  public Pair<String, SqlValidatorNamespace> findQualifyingTableName(
+      String columnName, SqlNode ctx) {
     throw validator.newValidationError(ctx,
         RESOURCE.columnNotFound(columnName));
   }

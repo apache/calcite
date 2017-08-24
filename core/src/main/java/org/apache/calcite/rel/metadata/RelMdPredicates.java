@@ -500,7 +500,7 @@ public class RelMdPredicates
     final RexNode leftChildPredicates;
     final RexNode rightChildPredicates;
 
-    public JoinConditionBasedPredicateInference(Join joinRel,
+    JoinConditionBasedPredicateInference(Join joinRel,
             RexNode lPreds, RexNode rPreds) {
       this(joinRel, joinRel instanceof SemiJoin, lPreds, rPreds);
     }

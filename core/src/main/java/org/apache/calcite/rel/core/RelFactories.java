@@ -71,10 +71,10 @@ public class RelFactories {
       new SemiJoinFactoryImpl();
 
   public static final SortFactory DEFAULT_SORT_FACTORY =
-    new SortFactoryImpl();
+      new SortFactoryImpl();
 
   public static final AggregateFactory DEFAULT_AGGREGATE_FACTORY =
-    new AggregateFactoryImpl();
+      new AggregateFactoryImpl();
 
   public static final MatchFactory DEFAULT_MATCH_FACTORY =
       new MatchFactoryImpl();

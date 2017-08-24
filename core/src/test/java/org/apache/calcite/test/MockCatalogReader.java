@@ -1167,7 +1167,7 @@ public class MockCatalogReader extends CalciteCatalogReader {
      * CustomColumnResolvingTable.
      */
     private class ModifiableViewWithCustomColumnResolving
-      extends ModifiableView implements CustomColumnResolvingTable, Wrapper {
+        extends ModifiableView implements CustomColumnResolvingTable, Wrapper {
 
       @Override public List<Pair<RelDataTypeField, List<String>>> resolveColumn(
           RelDataType rowType, RelDataTypeFactory typeFactory, List<String> names) {

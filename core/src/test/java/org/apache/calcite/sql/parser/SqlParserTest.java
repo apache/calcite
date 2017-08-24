@@ -1020,8 +1020,8 @@ public class SqlParserTest {
 
   @Test public void testOverlaps() {
     final String[] ops = {
-      "overlaps", "equals", "precedes", "succeeds",
-      "immediately precedes", "immediately succeeds"
+        "overlaps", "equals", "precedes", "succeeds",
+        "immediately precedes", "immediately succeeds"
     };
     final String[] periods = {"period ", ""};
     for (String period : periods) {
@@ -7269,7 +7269,7 @@ public class SqlParserTest {
 
 
     check("alter system set \"a\".\"number\" = 1",
-      "ALTER SYSTEM SET `a`.`number` = 1");
+        "ALTER SYSTEM SET `a`.`number` = 1");
     sql("set approx = -12.3450")
         .ok("SET `APPROX` = -12.3450")
         .node(isDdl());

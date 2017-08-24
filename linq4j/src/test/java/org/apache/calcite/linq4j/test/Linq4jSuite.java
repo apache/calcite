@@ -38,7 +38,7 @@ import org.junit.runners.Suite;
     FunctionTest.class,
     TypeTest.class,
     CorrelateJoinTest.class
-})
+    })
 public class Linq4jSuite {
 }
 

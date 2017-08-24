@@ -27,7 +27,7 @@ import org.apache.calcite.rel.convert.ConverterRule;
  */
 public class PigToEnumerableConverterRule extends ConverterRule {
   public static final ConverterRule INSTANCE =
-    new PigToEnumerableConverterRule();
+      new PigToEnumerableConverterRule();
 
   private PigToEnumerableConverterRule() {
     super(RelNode.class, PigRel.CONVENTION, EnumerableConvention.INSTANCE,

@@ -699,10 +699,10 @@ public class CsvTest {
         + "  ]\n"
         + "}\n";
     final String[] strings = {
-      "DEPTNO:int,NAME:string",
-      "10,\"Sales\"",
-      "20,\"Marketing\"",
-      "30,\"Engineering\""
+        "DEPTNO:int,NAME:string",
+        "10,\"Sales\"",
+        "20,\"Marketing\"",
+        "30,\"Engineering\""
     };
 
     try (final Connection connection =

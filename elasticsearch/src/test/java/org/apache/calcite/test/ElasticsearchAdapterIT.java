@@ -192,10 +192,10 @@ public class ElasticsearchAdapterIT {
 
   @Test public void testInPlan() {
     final String[] searches = {
-      "\"query\" : {\"constant_score\":{\"filter\":{\"bool\":{\"should\":"
+        "\"query\" : {\"constant_score\":{\"filter\":{\"bool\":{\"should\":"
           + "[{\"bool\":{\"must\":[{\"term\":{\"pop\":20012}}]}},{\"bool\":{\"must\":[{\"term\":"
           + "{\"pop\":15590}}]}}]}}}}",
-      "\"fields\" : [\"city\", \"pop\", \"state\", \"id\"], \"script_fields\": {\"longitude\":{\"script\":\"_source.loc[0]\"}, \"latitude\":{\"script\":\"_source.loc[1]\"}}"
+        "\"fields\" : [\"city\", \"pop\", \"state\", \"id\"], \"script_fields\": {\"longitude\":{\"script\":\"_source.loc[0]\"}, \"latitude\":{\"script\":\"_source.loc[1]\"}}"
     };
     CalciteAssert.that()
         .enable(enabled())

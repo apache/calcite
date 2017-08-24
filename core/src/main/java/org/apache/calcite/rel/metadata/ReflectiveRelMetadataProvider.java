@@ -114,9 +114,8 @@ public class ReflectiveRelMetadataProvider
     return reflectiveSource(target, ImmutableList.copyOf(methods));
   }
 
-  private static RelMetadataProvider
-  reflectiveSource(final MetadataHandler target,
-      final ImmutableList<Method> methods) {
+  private static RelMetadataProvider reflectiveSource(
+      final MetadataHandler target, final ImmutableList<Method> methods) {
     final Space2 space = Space2.create(target, methods);
 
     // This needs to be a concurrent map since RelMetadataProvider are cached in static
@@ -211,8 +210,8 @@ public class ReflectiveRelMetadataProvider
         space.providerMap);
   }
 
-  public <M extends Metadata> Multimap<Method, MetadataHandler<M>>
-  handlers(MetadataDef<M> def) {
+  public <M extends Metadata> Multimap<Method, MetadataHandler<M>> handlers(
+      MetadataDef<M> def) {
     final ImmutableMultimap.Builder<Method, MetadataHandler<M>> builder =
         ImmutableMultimap.builder();
     for (Map.Entry<Method, MetadataHandler> entry : handlerMap.entries()) {
@@ -241,9 +240,8 @@ public class ReflectiveRelMetadataProvider
 
   //~ Methods ----------------------------------------------------------------
 
-  public <M extends Metadata> UnboundMetadata<M>
-  apply(Class<? extends RelNode> relClass,
-      Class<? extends M> metadataClass) {
+  public <M extends Metadata> UnboundMetadata<M> apply(
+      Class<? extends RelNode> relClass, Class<? extends M> metadataClass) {
     if (metadataClass == metadataClass0) {
       return apply(relClass);
     } else {
@@ -252,8 +250,8 @@ public class ReflectiveRelMetadataProvider
   }
 
   @SuppressWarnings({ "unchecked", "SuspiciousMethodCalls" })
-  public <M extends Metadata> UnboundMetadata<M>
-  apply(Class<? extends RelNode> relClass) {
+  public <M extends Metadata> UnboundMetadata<M> apply(
+      Class<? extends RelNode> relClass) {
     List<Class<? extends RelNode>> newSources = new ArrayList<>();
     for (;;) {
       UnboundMetadata<M> function = map.get(relClass);
@@ -343,7 +341,7 @@ public class ReflectiveRelMetadataProvider
   static class Space2 extends Space {
     private Class<Metadata> metadataClass0;
 
-    public Space2(Class<Metadata> metadataClass0,
+    Space2(Class<Metadata> metadataClass0,
         ImmutableMultimap<Method, MetadataHandler> providerMap) {
       super(providerMap);
       this.metadataClass0 = metadataClass0;

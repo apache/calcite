@@ -373,7 +373,7 @@ public abstract class RelOptUtil {
       final RelDataType type2 = pair.right.getType();
       // If one of the types is ANY comparison should succeed
       if (type1.getSqlTypeName() == SqlTypeName.ANY
-        || type2.getSqlTypeName() == SqlTypeName.ANY) {
+          || type2.getSqlTypeName() == SqlTypeName.ANY) {
         continue;
       }
       if (!type1.equals(type2)) {
@@ -433,9 +433,7 @@ public abstract class RelOptUtil {
       } else if (node.e.isA(SqlKind.CAST)) {
         final RexNode operand = ((RexCall) node.e).getOperands().get(0);
         if (operand instanceof RexInputRef) {
-          mapping.set(
-            node.i,
-            ((RexInputRef) operand).getIndex());
+          mapping.set(node.i, ((RexInputRef) operand).getIndex());
         }
       }
     }

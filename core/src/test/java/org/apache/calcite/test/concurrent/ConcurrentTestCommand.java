@@ -78,7 +78,7 @@ public interface ConcurrentTestCommand {
    * Indicates that a command should have failed, but instead succeeded, which
    * is a test error
    */
-  public static class ShouldHaveFailedException extends RuntimeException {
+  class ShouldHaveFailedException extends RuntimeException {
     private final String description;
 
     public ShouldHaveFailedException(String description) {

@@ -47,8 +47,8 @@ public class ExceptionMessageTest {
   @SuppressWarnings("UnusedDeclaration")
   public static class TestSchema {
     public Entry[] entries = {
-      new Entry(1, "name1"),
-      new Entry(2, "name2")
+        new Entry(1, "name1"),
+        new Entry(2, "name2")
     };
 
     public Iterable<Entry> badEntries = new Iterable<Entry>() {

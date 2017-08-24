@@ -388,13 +388,13 @@ public class DruidRules {
       final List<RexNode> aboveNodes = new ArrayList<>();
       for (RexNode node : nodes) {
         aboveNodes.add(
-          node.accept(
-            new RexShuttle() {
-              @Override public RexNode visitInputRef(RexInputRef ref) {
-                final int index = positions.indexOf(ref.getIndex());
-                return rexBuilder.makeInputRef(belowTypes.get(index), index);
-              }
-            }));
+            node.accept(
+              new RexShuttle() {
+                @Override public RexNode visitInputRef(RexInputRef ref) {
+                  final int index = positions.indexOf(ref.getIndex());
+                  return rexBuilder.makeInputRef(belowTypes.get(index), index);
+                }
+              }));
       }
       return Pair.of(aboveNodes, belowNodes);
     }

@@ -41,14 +41,14 @@ import com.google.common.collect.ImmutableSet;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import static org.hamcrest.CoreMatchers.notNullValue;
-import static org.junit.Assert.assertThat;
-
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.Set;
+
+import static org.hamcrest.CoreMatchers.notNullValue;
+import static org.junit.Assert.assertThat;
 
 /**
  * Unit test for {@link org.apache.calcite.sql2rel.SqlToRelConverter}.
@@ -2622,18 +2622,18 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
 
   @Test public void testMatchRecognizePrevLast() {
     final String sql = "SELECT *\n"
-      + "FROM emp\n"
-      + "MATCH_RECOGNIZE (\n"
-      + "  MEASURES\n"
-      + "    STRT.mgr AS start_mgr,\n"
-      + "    LAST(DOWN.mgr) AS bottom_mgr,\n"
-      + "    LAST(UP.mgr) AS end_mgr\n"
-      + "  ONE ROW PER MATCH\n"
-      + "  PATTERN (STRT DOWN+ UP+)\n"
-      + "  DEFINE\n"
-      + "    DOWN AS DOWN.mgr < PREV(DOWN.mgr),\n"
-      + "    UP AS UP.mgr > PREV(LAST(DOWN.mgr, 1), 1)\n"
-      + ") AS T";
+        + "FROM emp\n"
+        + "MATCH_RECOGNIZE (\n"
+        + "  MEASURES\n"
+        + "    STRT.mgr AS start_mgr,\n"
+        + "    LAST(DOWN.mgr) AS bottom_mgr,\n"
+        + "    LAST(UP.mgr) AS end_mgr\n"
+        + "  ONE ROW PER MATCH\n"
+        + "  PATTERN (STRT DOWN+ UP+)\n"
+        + "  DEFINE\n"
+        + "    DOWN AS DOWN.mgr < PREV(DOWN.mgr),\n"
+        + "    UP AS UP.mgr > PREV(LAST(DOWN.mgr, 1), 1)\n"
+        + ") AS T";
     sql(sql).ok();
   }
 

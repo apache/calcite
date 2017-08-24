@@ -310,7 +310,7 @@ public class RelToSqlConverter extends SqlImplementor
 
     // Target Table Name
     final SqlIdentifier sqlTargetTable =
-      new SqlIdentifier(modify.getTable().getQualifiedName(), POS);
+        new SqlIdentifier(modify.getTable().getQualifiedName(), POS);
 
     switch (modify.getOperation()) {
     case INSERT: {

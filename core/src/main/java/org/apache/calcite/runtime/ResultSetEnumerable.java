@@ -50,8 +50,7 @@ public class ResultSetEnumerable<T> extends AbstractEnumerable<T> {
   private static final Logger LOGGER = LoggerFactory.getLogger(
       ResultSetEnumerable.class);
 
-  private static final Function1<ResultSet, Function0<Object>>
-  AUTO_ROW_BUILDER_FACTORY =
+  private static final Function1<ResultSet, Function0<Object>> AUTO_ROW_BUILDER_FACTORY =
       new Function1<ResultSet, Function0<Object>>() {
         public Function0<Object> apply(final ResultSet resultSet) {
           final ResultSetMetaData metaData;
@@ -171,12 +170,14 @@ public class ResultSetEnumerable<T> extends AbstractEnumerable<T> {
   }
 
   /** Implementation of {@link Enumerator} that reads from a
-   * {@link ResultSet}. */
+   * {@link ResultSet}.
+   *
+   * @param <T> element type */
   private static class ResultSetEnumerator<T> implements Enumerator<T> {
     private final Function0<T> rowBuilder;
     private ResultSet resultSet;
 
-    public ResultSetEnumerator(
+    ResultSetEnumerator(
         ResultSet resultSet,
         Function1<ResultSet, Function0<T>> rowBuilderFactory) {
       this.resultSet = resultSet;
@@ -225,7 +226,7 @@ public class ResultSetEnumerable<T> extends AbstractEnumerable<T> {
   }
 
   private static Function1<ResultSet, Function0<Object>>
-  primitiveRowBuilderFactory(final Primitive[] primitives) {
+      primitiveRowBuilderFactory(final Primitive[] primitives) {
     return new Function1<ResultSet, Function0<Object>>() {
       public Function0<Object> apply(final ResultSet resultSet) {
         final ResultSetMetaData metaData;

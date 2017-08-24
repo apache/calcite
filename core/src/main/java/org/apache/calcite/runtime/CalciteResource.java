@@ -564,8 +564,7 @@ public interface CalciteResource {
 
   @BaseMessage("Execution of a new autocommit statement while a cursor is still open on same connection is not supported")
   @Property(name = "FeatureDefinition", value = "Eigenbase-defined")
-  ExInst<CalciteException>
-  sQLConformance_MultipleActiveAutocommitStatements();
+  ExInst<CalciteException> sQLConformance_MultipleActiveAutocommitStatements();
 
   @BaseMessage("Descending sort (ORDER BY DESC) not supported")
   @Property(name = "FeatureDefinition", value = "Eigenbase-defined")

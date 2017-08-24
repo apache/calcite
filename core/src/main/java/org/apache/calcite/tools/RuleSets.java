@@ -45,7 +45,7 @@ public class RuleSets {
   private static class ListRuleSet implements RuleSet {
     private final ImmutableList<RelOptRule> rules;
 
-    public ListRuleSet(ImmutableList<RelOptRule> rules) {
+    ListRuleSet(ImmutableList<RelOptRule> rules) {
       this.rules = rules;
     }
 

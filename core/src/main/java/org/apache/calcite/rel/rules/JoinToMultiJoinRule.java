@@ -544,7 +544,7 @@ public class JoinToMultiJoinRule extends RelOptRule {
   private class InputReferenceCounter extends RexVisitorImpl<Void> {
     private final int[] refCounts;
 
-    public InputReferenceCounter(int[] refCounts) {
+    InputReferenceCounter(int[] refCounts) {
       super(true);
       this.refCounts = refCounts;
     }

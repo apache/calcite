@@ -823,7 +823,7 @@ public abstract class CalcRelSplitter {
   private static class ImplementTester extends RexVisitorImpl<Void> {
     private final RelType relType;
 
-    public ImplementTester(RelType relType) {
+    ImplementTester(RelType relType) {
       super(false);
       this.relType = relType;
     }
@@ -876,7 +876,7 @@ public abstract class CalcRelSplitter {
     private final int[] inputExprOrdinals;
     private final RexNode[] allExprs;
 
-    public InputToCommonExprConverter(
+    InputToCommonExprConverter(
         int[] exprInverseOrdinals,
         int[] exprLevels,
         int level,
@@ -959,7 +959,7 @@ public abstract class CalcRelSplitter {
     private final int[] maxUsingLevelOrdinals;
     private int currentLevel;
 
-    public HighestUsageFinder(RexNode[] exprs, int[] exprLevels) {
+    HighestUsageFinder(RexNode[] exprs, int[] exprLevels) {
       super(true);
       this.maxUsingLevelOrdinals = new int[exprs.length];
       Arrays.fill(maxUsingLevelOrdinals, -1);

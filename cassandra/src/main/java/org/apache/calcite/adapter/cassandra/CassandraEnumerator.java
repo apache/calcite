@@ -42,7 +42,7 @@ class CassandraEnumerator implements Enumerator<Object> {
    * @param results Cassandra result set ({@link com.datastax.driver.core.ResultSet})
    * @param protoRowType The type of resulting rows
    */
-  public CassandraEnumerator(ResultSet results, RelProtoDataType protoRowType) {
+  CassandraEnumerator(ResultSet results, RelProtoDataType protoRowType) {
     this.iterator = results.iterator();
     this.current = null;
 

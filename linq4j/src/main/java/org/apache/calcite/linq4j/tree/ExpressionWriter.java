@@ -33,11 +33,11 @@ class ExpressionWriter {
   private boolean indentPending;
   private final boolean generics;
 
-  public ExpressionWriter() {
+  ExpressionWriter() {
     this(true);
   }
 
-  public ExpressionWriter(boolean generics) {
+  ExpressionWriter(boolean generics) {
     this.generics = generics;
   }
 
@@ -197,7 +197,7 @@ class ExpressionWriter {
 
   /** Helps generate strings of spaces, to indent text. */
   private static class Indent extends ArrayList<String> {
-    public Indent(int initialCapacity) {
+    Indent(int initialCapacity) {
       super(initialCapacity);
       ensureSize(initialCapacity);
     }

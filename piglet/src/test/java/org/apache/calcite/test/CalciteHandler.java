@@ -36,7 +36,7 @@ import java.sql.Types;
 class CalciteHandler extends Handler {
   private final PrintWriter writer;
 
-  public CalciteHandler(PigRelBuilder builder, Writer writer) {
+  CalciteHandler(PigRelBuilder builder, Writer writer) {
     super(builder);
     this.writer = new PrintWriter(writer);
   }

@@ -322,7 +322,7 @@ public class Interpreter extends AbstractEnumerable<Object[]>
     final Enumerable<Row> rowEnumerable;
     Node node;
 
-    public NodeInfo(RelNode rel, Sink sink, Enumerable<Row> rowEnumerable) {
+    NodeInfo(RelNode rel, Sink sink, Enumerable<Row> rowEnumerable) {
       this.rel = rel;
       this.sink = sink;
       this.rowEnumerable = rowEnumerable;
@@ -337,7 +337,7 @@ public class Interpreter extends AbstractEnumerable<Object[]>
   private static class EnumeratorSource implements Source {
     private final Enumerator<Row> enumerator;
 
-    public EnumeratorSource(final Enumerator<Row> enumerator) {
+    EnumeratorSource(final Enumerator<Row> enumerator) {
       this.enumerator = Preconditions.checkNotNull(enumerator);
     }
 
@@ -386,7 +386,7 @@ public class Interpreter extends AbstractEnumerable<Object[]>
   private static class ListSource implements Source {
     private final ArrayDeque<Row> list;
 
-    public ListSource(ListSink sink) {
+    ListSource(ListSink sink) {
       this.list = sink.list;
     }
 

@@ -655,8 +655,8 @@ public abstract class EnumerableDefaults {
    * specified key selector function and projects the elements for
    * each group by using a specified function.
    */
-  public static <TSource, TKey, TElement> Enumerable<Grouping<TKey, TElement>>
-  groupBy(Enumerable<TSource> enumerable, Function1<TSource, TKey> keySelector,
+  public static <TSource, TKey, TElement> Enumerable<Grouping<TKey, TElement>> groupBy(
+      Enumerable<TSource> enumerable, Function1<TSource, TKey> keySelector,
       Function1<TSource, TElement> elementSelector) {
     return enumerable.toLookup(keySelector, elementSelector);
   }
@@ -667,8 +667,8 @@ public abstract class EnumerableDefaults {
    * comparer and each group's elements are projected by using a
    * specified function.
    */
-  public static <TSource, TKey, TElement> Enumerable<Grouping<TKey, TElement>>
-  groupBy(Enumerable<TSource> enumerable, Function1<TSource, TKey> keySelector,
+  public static <TSource, TKey, TElement> Enumerable<Grouping<TKey, TElement>> groupBy(
+      Enumerable<TSource> enumerable, Function1<TSource, TKey> keySelector,
       Function1<TSource, TElement> elementSelector,
       EqualityComparer<TKey> comparer) {
     return enumerable.toLookup(keySelector, elementSelector, comparer);
@@ -679,8 +679,8 @@ public abstract class EnumerableDefaults {
    * specified key selector function and creates a result value from
    * each group and its key.
    */
-  public static <TSource, TKey, TResult> Enumerable<TResult>
-  groupBy(Enumerable<TSource> enumerable, Function1<TSource, TKey> keySelector,
+  public static <TSource, TKey, TResult> Enumerable<TResult> groupBy(
+      Enumerable<TSource> enumerable, Function1<TSource, TKey> keySelector,
       final Function2<TKey, Enumerable<TSource>, TResult> resultSelector) {
     return enumerable.toLookup(keySelector)
         .select(new Function1<Grouping<TKey, TSource>, TResult>() {
@@ -696,8 +696,8 @@ public abstract class EnumerableDefaults {
    * each group and its key. The keys are compared by using a
    * specified comparer.
    */
-  public static <TSource, TKey, TResult> Enumerable<TResult>
-  groupBy(Enumerable<TSource> enumerable, Function1<TSource, TKey> keySelector,
+  public static <TSource, TKey, TResult> Enumerable<TResult> groupBy(
+      Enumerable<TSource> enumerable, Function1<TSource, TKey> keySelector,
       final Function2<TKey, Enumerable<TSource>, TResult> resultSelector,
       EqualityComparer<TKey> comparer) {
     return enumerable.toLookup(keySelector, comparer)
@@ -753,8 +753,8 @@ public abstract class EnumerableDefaults {
    * Creates a result value from each accumulator and its key using a
    * specified function.
    */
-  public static <TSource, TKey, TAccumulate, TResult> Enumerable<TResult>
-  groupBy(Enumerable<TSource> enumerable, Function1<TSource, TKey> keySelector,
+  public static <TSource, TKey, TAccumulate, TResult> Enumerable<TResult> groupBy(
+      Enumerable<TSource> enumerable, Function1<TSource, TKey> keySelector,
       Function0<TAccumulate> accumulatorInitializer,
       Function2<TAccumulate, TSource, TAccumulate> accumulatorAdder,
       final Function2<TKey, TAccumulate, TResult> resultSelector) {
@@ -772,9 +772,8 @@ public abstract class EnumerableDefaults {
    * <p>This method exists to support SQL {@code GROUPING SETS}.
    * It does not correspond to any method in {@link Enumerable}.
    */
-  public static <TSource, TKey, TAccumulate, TResult> Enumerable<TResult>
-  groupByMultiple(Enumerable<TSource> enumerable,
-      List<Function1<TSource, TKey>> keySelectors,
+  public static <TSource, TKey, TAccumulate, TResult> Enumerable<TResult> groupByMultiple(
+      Enumerable<TSource> enumerable, List<Function1<TSource, TKey>> keySelectors,
       Function0<TAccumulate> accumulatorInitializer,
       Function2<TAccumulate, TSource, TAccumulate> accumulatorAdder,
       final Function2<TKey, TAccumulate, TResult> resultSelector) {
@@ -795,8 +794,8 @@ public abstract class EnumerableDefaults {
    * specified function. Key values are compared by using a
    * specified comparer.
    */
-  public static <TSource, TKey, TAccumulate, TResult> Enumerable<TResult>
-  groupBy(Enumerable<TSource> enumerable, Function1<TSource, TKey> keySelector,
+  public static <TSource, TKey, TAccumulate, TResult> Enumerable<TResult> groupBy(
+      Enumerable<TSource> enumerable, Function1<TSource, TKey> keySelector,
       Function0<TAccumulate> accumulatorInitializer,
       Function2<TAccumulate, TSource, TAccumulate> accumulatorAdder,
       Function2<TKey, TAccumulate, TResult> resultSelector,
@@ -816,8 +815,8 @@ public abstract class EnumerableDefaults {
         resultSelector);
   }
 
-  private static <TSource, TKey, TAccumulate, TResult> Enumerable<TResult>
-  groupBy_(final Map<TKey, TAccumulate> map, Enumerable<TSource> enumerable,
+  private static <TSource, TKey, TAccumulate, TResult> Enumerable<TResult> groupBy_(
+      final Map<TKey, TAccumulate> map, Enumerable<TSource> enumerable,
       Function1<TSource, TKey> keySelector,
       Function0<TAccumulate> accumulatorInitializer,
       Function2<TAccumulate, TSource, TAccumulate> accumulatorAdder,
@@ -843,9 +842,8 @@ public abstract class EnumerableDefaults {
     return new LookupResultEnumerable<>(map, resultSelector);
   }
 
-  private static <TSource, TKey, TAccumulate, TResult> Enumerable<TResult>
-  groupByMultiple_(final Map<TKey, TAccumulate> map,
-      Enumerable<TSource> enumerable,
+  private static <TSource, TKey, TAccumulate, TResult> Enumerable<TResult> groupByMultiple_(
+      final Map<TKey, TAccumulate> map, Enumerable<TSource> enumerable,
       List<Function1<TSource, TKey>> keySelectors,
       Function0<TAccumulate> accumulatorInitializer,
       Function2<TAccumulate, TSource, TAccumulate> accumulatorAdder,
@@ -873,8 +871,8 @@ public abstract class EnumerableDefaults {
     return new LookupResultEnumerable<>(map, resultSelector);
   }
 
-  private static <TSource, TKey, TResult> Enumerable<TResult>
-  groupBy_(final Set<TKey> map, Enumerable<TSource> enumerable,
+  private static <TSource, TKey, TResult> Enumerable<TResult> groupBy_(
+      final Set<TKey> map, Enumerable<TSource> enumerable,
       Function1<TSource, TKey> keySelector,
       final Function1<TKey, TResult> resultSelector) {
     try (Enumerator<TSource> os = enumerable.enumerator()) {
@@ -1390,8 +1388,8 @@ public abstract class EnumerableDefaults {
   }
 
   /** Joins two inputs that are sorted on the key. */
-  public static <TSource, TInner, TKey extends Comparable<TKey>, TResult>
-  Enumerable<TResult> mergeJoin(final Enumerable<TSource> outer,
+  public static <TSource, TInner, TKey extends Comparable<TKey>, TResult> Enumerable<TResult>
+      mergeJoin(final Enumerable<TSource> outer,
       final Enumerable<TInner> inner,
       final Function1<TSource, TKey> outerKeySelector,
       final Function1<TInner, TKey> innerKeySelector,
@@ -1675,14 +1673,14 @@ public abstract class EnumerableDefaults {
   }
 
   @SuppressWarnings("unchecked")
-  private static <TSource extends Comparable<TSource>>
-  Function2<TSource, TSource, TSource> minFunction() {
+  private static <TSource extends Comparable<TSource>> Function2<TSource, TSource, TSource>
+      minFunction() {
     return (Function2<TSource, TSource, TSource>) Extensions.COMPARABLE_MIN;
   }
 
   @SuppressWarnings("unchecked")
-  private static <TSource extends Comparable<TSource>>
-  Function2<TSource, TSource, TSource> maxFunction() {
+  private static <TSource extends Comparable<TSource>> Function2<TSource, TSource, TSource>
+      maxFunction() {
     return (Function2<TSource, TSource, TSource>) Extensions.COMPARABLE_MAX;
   }
 
@@ -1844,8 +1842,7 @@ public abstract class EnumerableDefaults {
    * Sorts the elements of a sequence in descending
    * order according to a key.
    */
-  public static <TSource, TKey extends Comparable> Enumerable<TSource>
-  orderByDescending(
+  public static <TSource, TKey extends Comparable> Enumerable<TSource> orderByDescending(
       Enumerable<TSource> source, Function1<TSource, TKey> keySelector) {
     return orderBy(source, keySelector, Collections.<TKey>reverseOrder());
   }
@@ -2521,8 +2518,7 @@ public abstract class EnumerableDefaults {
    * Performs a subsequent ordering of the elements in a sequence according
    * to a key.
    */
-  public static <TSource, TKey> OrderedEnumerable<TSource>
-  createOrderedEnumerable(
+  public static <TSource, TKey> OrderedEnumerable<TSource> createOrderedEnumerable(
       OrderedEnumerable<TSource> source, Function1<TSource, TKey> keySelector,
       Comparator<TKey> comparator, boolean descending) {
     throw Extensions.todo();
@@ -2532,8 +2528,7 @@ public abstract class EnumerableDefaults {
    * Performs a subsequent ordering of the elements in a sequence in
    * ascending order according to a key.
    */
-  public static <TSource, TKey extends Comparable<TKey>>
-  OrderedEnumerable<TSource> thenBy(
+  public static <TSource, TKey extends Comparable<TKey>> OrderedEnumerable<TSource> thenBy(
       OrderedEnumerable<TSource> source, Function1<TSource, TKey> keySelector) {
     return createOrderedEnumerable(source, keySelector,
         Extensions.<TKey>comparableComparator(), false);
@@ -2554,7 +2549,7 @@ public abstract class EnumerableDefaults {
    * descending order according to a key.
    */
   public static <TSource, TKey extends Comparable<TKey>>
-  OrderedEnumerable<TSource> thenByDescending(
+      OrderedEnumerable<TSource> thenByDescending(
       OrderedEnumerable<TSource> source, Function1<TSource, TKey> keySelector) {
     return createOrderedEnumerable(source, keySelector,
         Extensions.<TKey>comparableComparator(), true);
@@ -2929,7 +2924,9 @@ public abstract class EnumerableDefaults {
     return sink;
   }
 
-  /** Enumerable that implements take-while. */
+  /** Enumerable that implements take-while.
+   *
+   * @param <TSource> element type */
   static class TakeWhileEnumerator<TSource> implements Enumerator<TSource> {
     private final Enumerator<TSource> enumerator;
     private final Predicate2<TSource, Integer> predicate;
@@ -2937,7 +2934,7 @@ public abstract class EnumerableDefaults {
     boolean done = false;
     int n = -1;
 
-    public TakeWhileEnumerator(Enumerator<TSource> enumerator,
+    TakeWhileEnumerator(Enumerator<TSource> enumerator,
         Predicate2<TSource, Integer> predicate) {
       this.enumerator = enumerator;
       this.predicate = predicate;
@@ -2970,7 +2967,9 @@ public abstract class EnumerableDefaults {
     }
   }
 
-  /** Enumerable that implements take-while. */
+  /** Enumerable that implements take-while.
+   *
+   * @param <TSource> element type */
   static class TakeWhileLongEnumerator<TSource> implements Enumerator<TSource> {
     private final Enumerator<TSource> enumerator;
     private final Predicate2<TSource, Long> predicate;
@@ -2978,7 +2977,7 @@ public abstract class EnumerableDefaults {
     boolean done = false;
     long n = -1;
 
-    public TakeWhileLongEnumerator(Enumerator<TSource> enumerator,
+    TakeWhileLongEnumerator(Enumerator<TSource> enumerator,
         Predicate2<TSource, Long> predicate) {
       this.enumerator = enumerator;
       this.predicate = predicate;
@@ -3011,7 +3010,9 @@ public abstract class EnumerableDefaults {
     }
   }
 
-  /** Enumerator that implements skip-while. */
+  /** Enumerator that implements skip-while.
+   *
+   * @param <TSource> element type */
   static class SkipWhileEnumerator<TSource> implements Enumerator<TSource> {
     private final Enumerator<TSource> enumerator;
     private final Predicate2<TSource, Integer> predicate;
@@ -3019,7 +3020,7 @@ public abstract class EnumerableDefaults {
     boolean started = false;
     int n = -1;
 
-    public SkipWhileEnumerator(Enumerator<TSource> enumerator,
+    SkipWhileEnumerator(Enumerator<TSource> enumerator,
         Predicate2<TSource, Integer> predicate) {
       this.enumerator = enumerator;
       this.predicate = predicate;
@@ -3055,12 +3056,14 @@ public abstract class EnumerableDefaults {
     }
   }
 
-  /** Enumerator that casts each value. */
+  /** Enumerator that casts each value.
+   *
+   * @param <T> element type */
   static class CastingEnumerator<T> implements Enumerator<T> {
     private final Enumerator<?> enumerator;
     private final Class<T> clazz;
 
-    public CastingEnumerator(Enumerator<?> enumerator, Class<T> clazz) {
+    CastingEnumerator(Enumerator<?> enumerator, Class<T> clazz) {
       this.enumerator = enumerator;
       this.clazz = clazz;
     }
@@ -3082,7 +3085,9 @@ public abstract class EnumerableDefaults {
     }
   }
 
-  /** Value wrapped with a comparer. */
+  /** Value wrapped with a comparer.
+   *
+   * @param <T> element type */
   private static class Wrapped<T> {
     private final EqualityComparer<T> comparer;
     private final T element;
@@ -3111,7 +3116,10 @@ public abstract class EnumerableDefaults {
     }
   }
 
-  /** Map that wraps each value. */
+  /** Map that wraps each value.
+   *
+   * @param <K> key type
+   * @param <V> value type */
   private static class WrapMap<K, V> extends AbstractMap<K, V> {
     private final Map<Wrapped<K>, V> map;
     private final EqualityComparer<K> comparer;
@@ -3178,13 +3186,17 @@ public abstract class EnumerableDefaults {
     }
   }
 
-  /** Reads a populated map, applying a selector function. */
+  /** Reads a populated map, applying a selector function.
+   *
+   * @param <TResult> result type
+   * @param <TKey> key type
+   * @param <TAccumulate> accumulator type */
   private static class LookupResultEnumerable<TResult, TKey, TAccumulate>
       extends AbstractEnumerable2<TResult> {
     private final Map<TKey, TAccumulate> map;
     private final Function2<TKey, TAccumulate, TResult> resultSelector;
 
-    public LookupResultEnumerable(Map<TKey, TAccumulate> map,
+    LookupResultEnumerable(Map<TKey, TAccumulate> map,
         Function2<TKey, TAccumulate, TResult> resultSelector) {
       this.map = map;
       this.resultSelector = resultSelector;
@@ -3210,7 +3222,12 @@ public abstract class EnumerableDefaults {
     }
   }
 
-  /** Enumerator that performs a merge join on its sorted inputs. */
+  /** Enumerator that performs a merge join on its sorted inputs.
+   *
+   * @param <TResult> result type
+   * @param <TSource> left input record type
+   * @param <TKey> key type
+   * @param <TInner> right input record type */
   private static class MergeJoinEnumerator<TResult, TSource, TInner, TKey extends Comparable<TKey>>
       implements Enumerator<TResult> {
     final List<TSource> lefts = new ArrayList<>();

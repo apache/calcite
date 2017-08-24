@@ -215,7 +215,7 @@ public class UtilTest {
             new String(bytes1, "EUC-JP"),
             0));
     byte[] bytes2 = {
-      64, 32, 43, -45, -23, 0, 43, 54, 119, -32, -56, -34
+        64, 32, 43, -45, -23, 0, 43, 54, 119, -32, -56, -34
     };
     assertEquals(
         "ID$0$_30c__3617__2117__2d15__7fde__a48f_",
@@ -535,19 +535,19 @@ public class UtilTest {
    */
   @Test public void testDiffLines() {
     String[] before = {
-      "Get a dose of her in jackboots and kilt",
-      "She's killer-diller when she's dressed to the hilt",
-      "She's the kind of a girl that makes The News of The World",
-      "Yes you could say she was attractively built.",
-      "Yeah yeah yeah."
+        "Get a dose of her in jackboots and kilt",
+        "She's killer-diller when she's dressed to the hilt",
+        "She's the kind of a girl that makes The News of The World",
+        "Yes you could say she was attractively built.",
+        "Yeah yeah yeah."
     };
     String[] after = {
-      "Get a dose of her in jackboots and kilt",
-      "(they call her \"Polythene Pam\")",
-      "She's killer-diller when she's dressed to the hilt",
-      "She's the kind of a girl that makes The Sunday Times",
-      "seem more interesting.",
-      "Yes you could say she was attractively built."
+        "Get a dose of her in jackboots and kilt",
+        "(they call her \"Polythene Pam\")",
+        "She's killer-diller when she's dressed to the hilt",
+        "She's the kind of a girl that makes The Sunday Times",
+        "seem more interesting.",
+        "Yes you could say she was attractively built."
     };
     String diff =
         DiffTestCase.diffLines(
@@ -830,18 +830,18 @@ public class UtilTest {
    */
   @Test public void testParseLocale() {
     Locale[] locales = {
-      Locale.CANADA,
-      Locale.CANADA_FRENCH,
-      Locale.getDefault(),
-      Locale.US,
-      Locale.TRADITIONAL_CHINESE,
+        Locale.CANADA,
+        Locale.CANADA_FRENCH,
+        Locale.getDefault(),
+        Locale.US,
+        Locale.TRADITIONAL_CHINESE,
     };
     for (Locale locale : locales) {
       assertEquals(locale, Util.parseLocale(locale.toString()));
     }
     // Example locale names in Locale.toString() javadoc.
     String[] localeNames = {
-      "en", "de_DE", "_GB", "en_US_WIN", "de__POSIX", "fr__MAC"
+        "en", "de_DE", "_GB", "en_US_WIN", "de__POSIX", "fr__MAC"
     };
     for (String localeName : localeNames) {
       assertEquals(localeName, Util.parseLocale(localeName).toString());

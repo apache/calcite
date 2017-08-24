@@ -276,7 +276,7 @@ public class EnumerableWindow extends Window implements EnumerableRel {
 
       final List<Expression> outputRow = new ArrayList<Expression>();
       int fieldCountWithAggResults =
-        inputPhysType.getRowType().getFieldCount();
+          inputPhysType.getRowType().getFieldCount();
       for (int i = 0; i < fieldCountWithAggResults; i++) {
         outputRow.add(
             inputPhysType.fieldReference(
@@ -520,7 +520,7 @@ public class EnumerableWindow extends Window implements EnumerableRel {
   }
 
   private Function<BlockBuilder, WinAggFrameResultContext>
-  getBlockBuilderWinAggFrameResultContextFunction(
+      getBlockBuilderWinAggFrameResultContextFunction(
       final JavaTypeFactory typeFactory, final Result result,
       final List<Expression> translatedConstants,
       final Expression comparator_,

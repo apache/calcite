@@ -461,7 +461,7 @@ public class VolcanoPlannerTest {
 
   /** Converter from PHYS to ENUMERABLE convention. */
   class PhysToIteratorConverter extends ConverterImpl {
-    public PhysToIteratorConverter(
+    PhysToIteratorConverter(
         RelOptCluster cluster,
         RelNode child) {
       super(

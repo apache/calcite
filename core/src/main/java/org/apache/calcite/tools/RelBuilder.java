@@ -1482,8 +1482,8 @@ public class RelBuilder {
 
   /** Converts an iterable of lists into an immutable list of immutable lists
    * with the same contents. Returns the same object if possible. */
-  private static <E> ImmutableList<ImmutableList<E>>
-  copy(Iterable<? extends List<E>> tupleList) {
+  private static <E> ImmutableList<ImmutableList<E>> copy(
+      Iterable<? extends List<E>> tupleList) {
     final ImmutableList.Builder<ImmutableList<E>> builder =
         ImmutableList.builder();
     int changeCount = 0;
@@ -1793,7 +1793,7 @@ public class RelBuilder {
   /** A field that belongs to a stack {@link Frame}. */
   private static class Field
       extends Pair<ImmutableSet<String>, RelDataTypeField> {
-    public Field(ImmutableSet<String> left, RelDataTypeField right) {
+    Field(ImmutableSet<String> left, RelDataTypeField right) {
       super(left, right);
     }
   }

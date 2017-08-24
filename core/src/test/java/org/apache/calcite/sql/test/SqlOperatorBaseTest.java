@@ -201,59 +201,59 @@ public abstract class SqlOperatorBaseTest {
           "[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]");
 
   public static final String[] NUMERIC_TYPE_NAMES = {
-    "TINYINT", "SMALLINT", "INTEGER", "BIGINT",
-    "DECIMAL(5, 2)", "REAL", "FLOAT", "DOUBLE"
+      "TINYINT", "SMALLINT", "INTEGER", "BIGINT",
+      "DECIMAL(5, 2)", "REAL", "FLOAT", "DOUBLE"
   };
 
   // REVIEW jvs 27-Apr-2006:  for Float and Double, MIN_VALUE
   // is the smallest positive value, not the smallest negative value
   public static final String[] MIN_NUMERIC_STRINGS = {
-    Long.toString(Byte.MIN_VALUE),
-    Long.toString(Short.MIN_VALUE),
-    Long.toString(Integer.MIN_VALUE),
-    Long.toString(Long.MIN_VALUE),
-    "-999.99",
+      Long.toString(Byte.MIN_VALUE),
+      Long.toString(Short.MIN_VALUE),
+      Long.toString(Integer.MIN_VALUE),
+      Long.toString(Long.MIN_VALUE),
+      "-999.99",
 
-    // NOTE jvs 26-Apr-2006:  Win32 takes smaller values from win32_values.h
-    "1E-37", /*Float.toString(Float.MIN_VALUE)*/
-    "2E-307", /*Double.toString(Double.MIN_VALUE)*/
-    "2E-307" /*Double.toString(Double.MIN_VALUE)*/,
+      // NOTE jvs 26-Apr-2006:  Win32 takes smaller values from win32_values.h
+      "1E-37", /*Float.toString(Float.MIN_VALUE)*/
+      "2E-307", /*Double.toString(Double.MIN_VALUE)*/
+      "2E-307" /*Double.toString(Double.MIN_VALUE)*/,
   };
 
   public static final String[] MIN_OVERFLOW_NUMERIC_STRINGS = {
-    Long.toString(Byte.MIN_VALUE - 1),
-    Long.toString(Short.MIN_VALUE - 1),
-    Long.toString((long) Integer.MIN_VALUE - 1),
-    new BigDecimal(Long.MIN_VALUE).subtract(BigDecimal.ONE).toString(),
-    "-1000.00",
-    "1e-46",
-    "1e-324",
-    "1e-324"
+      Long.toString(Byte.MIN_VALUE - 1),
+      Long.toString(Short.MIN_VALUE - 1),
+      Long.toString((long) Integer.MIN_VALUE - 1),
+      new BigDecimal(Long.MIN_VALUE).subtract(BigDecimal.ONE).toString(),
+      "-1000.00",
+      "1e-46",
+      "1e-324",
+      "1e-324"
   };
 
   public static final String[] MAX_NUMERIC_STRINGS = {
-    Long.toString(Byte.MAX_VALUE),
-    Long.toString(Short.MAX_VALUE),
-    Long.toString(Integer.MAX_VALUE),
-    Long.toString(Long.MAX_VALUE), "999.99",
+      Long.toString(Byte.MAX_VALUE),
+      Long.toString(Short.MAX_VALUE),
+      Long.toString(Integer.MAX_VALUE),
+      Long.toString(Long.MAX_VALUE), "999.99",
 
-    // NOTE jvs 26-Apr-2006:  use something slightly less than MAX_VALUE
-    // because roundtripping string to approx to string doesn't preserve
-    // MAX_VALUE on win32
-    "3.4028234E38", /*Float.toString(Float.MAX_VALUE)*/
-    "1.79769313486231E308", /*Double.toString(Double.MAX_VALUE)*/
-    "1.79769313486231E308" /*Double.toString(Double.MAX_VALUE)*/
+      // NOTE jvs 26-Apr-2006:  use something slightly less than MAX_VALUE
+      // because roundtripping string to approx to string doesn't preserve
+      // MAX_VALUE on win32
+      "3.4028234E38", /*Float.toString(Float.MAX_VALUE)*/
+      "1.79769313486231E308", /*Double.toString(Double.MAX_VALUE)*/
+      "1.79769313486231E308" /*Double.toString(Double.MAX_VALUE)*/
   };
 
   public static final String[] MAX_OVERFLOW_NUMERIC_STRINGS = {
-    Long.toString(Byte.MAX_VALUE + 1),
-    Long.toString(Short.MAX_VALUE + 1),
-    Long.toString((long) Integer.MAX_VALUE + 1),
-    (new BigDecimal(Long.MAX_VALUE)).add(BigDecimal.ONE).toString(),
-    "1000.00",
-    "1e39",
-    "-1e309",
-    "1e309"
+      Long.toString(Byte.MAX_VALUE + 1),
+      Long.toString(Short.MAX_VALUE + 1),
+      Long.toString((long) Integer.MAX_VALUE + 1),
+      (new BigDecimal(Long.MAX_VALUE)).add(BigDecimal.ONE).toString(),
+      "1000.00",
+      "1e39",
+      "-1e309",
+      "1e309"
   };
   private static final boolean[] FALSE_TRUE = {false, true};
   private static final SqlTester.VmName VM_FENNEL = SqlTester.VmName.FENNEL;
@@ -2428,22 +2428,22 @@ public abstract class SqlOperatorBaseTest {
    * TIMESTAMP values. */
   @Test public void testPeriodOperators() {
     String[] times = {
-      "TIME '01:00:00'",
-      "TIME '02:00:00'",
-      "TIME '03:00:00'",
-      "TIME '04:00:00'",
+        "TIME '01:00:00'",
+        "TIME '02:00:00'",
+        "TIME '03:00:00'",
+        "TIME '04:00:00'",
     };
     String[] dates = {
-      "DATE '1970-01-01'",
-      "DATE '1970-02-01'",
-      "DATE '1970-03-01'",
-      "DATE '1970-04-01'",
+        "DATE '1970-01-01'",
+        "DATE '1970-02-01'",
+        "DATE '1970-03-01'",
+        "DATE '1970-04-01'",
     };
     String[] timestamps = {
-      "TIMESTAMP '1970-01-01 00:00:00'",
-      "TIMESTAMP '1970-02-01 00:00:00'",
-      "TIMESTAMP '1970-03-01 00:00:00'",
-      "TIMESTAMP '1970-04-01 00:00:00'",
+        "TIMESTAMP '1970-01-01 00:00:00'",
+        "TIMESTAMP '1970-02-01 00:00:00'",
+        "TIMESTAMP '1970-03-01 00:00:00'",
+        "TIMESTAMP '1970-04-01 00:00:00'",
     };
     checkOverlaps(new OverlapChecker(times));
     checkOverlaps(new OverlapChecker(dates));
@@ -3806,13 +3806,13 @@ public abstract class SqlOperatorBaseTest {
     final SqlTester tester1 = oracleTester();
     tester1.setFor(OracleSqlOperatorTable.TRANSLATE3);
     tester1.checkString(
-       "translate('aabbcc', 'ab', '+-')",
-       "++--cc",
-       "VARCHAR(6) NOT NULL");
+        "translate('aabbcc', 'ab', '+-')",
+        "++--cc",
+        "VARCHAR(6) NOT NULL");
     tester1.checkString(
         "translate('aabbcc', 'ab', 'ba')",
-       "bbaacc",
-       "VARCHAR(6) NOT NULL");
+        "bbaacc",
+        "VARCHAR(6) NOT NULL");
     tester1.checkString(
         "translate('aabbcc', 'ab', '')",
         "cc",
@@ -3822,15 +3822,15 @@ public abstract class SqlOperatorBaseTest {
         "aabbcc",
         "VARCHAR(6) NOT NULL");
     tester1.checkString(
-       "translate(cast('aabbcc' as varchar(10)), 'ab', '+-')",
-       "++--cc",
-       "VARCHAR(10) NOT NULL");
+        "translate(cast('aabbcc' as varchar(10)), 'ab', '+-')",
+        "++--cc",
+        "VARCHAR(10) NOT NULL");
     tester1.checkNull(
-       "translate(cast(null as varchar(7)), 'ab', '+-')");
+        "translate(cast(null as varchar(7)), 'ab', '+-')");
     tester1.checkNull(
-       "translate('aabbcc', cast(null as varchar(2)), '+-')");
+        "translate('aabbcc', cast(null as varchar(2)), '+-')");
     tester1.checkNull(
-       "translate('aabbcc', 'ab', cast(null as varchar(2)))");
+        "translate('aabbcc', 'ab', cast(null as varchar(2)))");
   }
 
   @Test public void testOverlayFunc() {
@@ -6194,7 +6194,7 @@ public abstract class SqlOperatorBaseTest {
 
     // string values -- note that empty string is not null
     final String[] stringValues = {
-      "'a'", "CAST(NULL AS VARCHAR(1))", "''"
+        "'a'", "CAST(NULL AS VARCHAR(1))", "''"
     };
     tester.checkAgg("COUNT(*)", stringValues, 3, (double) 0);
     tester.checkAgg("COUNT(x)", stringValues, 2, (double) 0);
@@ -6893,7 +6893,7 @@ public abstract class SqlOperatorBaseTest {
       implements SqlTester.ResultChecker {
     private final Pattern[] patterns;
 
-    public ExceptionResultChecker(Pattern... patterns) {
+    ExceptionResultChecker(Pattern... patterns) {
       this.patterns = patterns;
     }
 
@@ -6928,7 +6928,7 @@ public abstract class SqlOperatorBaseTest {
     private final Object expected;
     private final Pattern[] patterns;
 
-    public ValueOrExceptionResultChecker(
+    ValueOrExceptionResultChecker(
         Object expected, Pattern... patterns) {
       this.expected = expected;
       this.patterns = patterns;

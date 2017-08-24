@@ -339,8 +339,8 @@ public class CalciteAssert {
     };
   }
 
-  public static Function<ResultSet, Void>
-  checkResultCount(final Matcher<Integer> expected) {
+  public static Function<ResultSet, Void> checkResultCount(
+      final Matcher<Integer> expected) {
     return new Function<ResultSet, Void>() {
       public Void apply(ResultSet resultSet) {
         try {
@@ -1151,7 +1151,7 @@ public class CalciteAssert {
 
     private final ConnectionFactory factory;
 
-    public PoolingConnectionFactory(final ConnectionFactory factory) {
+    PoolingConnectionFactory(final ConnectionFactory factory) {
       this.factory = factory;
     }
 
@@ -1729,8 +1729,8 @@ public class CalciteAssert {
         return path;
       }
       final String[] dirs = {
-        "../calcite-test-dataset",
-        "../../calcite-test-dataset"
+          "../calcite-test-dataset",
+          "../../calcite-test-dataset"
       };
       for (String s : dirs) {
         if (new File(s).exists() && new File(s, "vm").exists()) {

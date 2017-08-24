@@ -31,7 +31,7 @@ import org.junit.runners.Suite;
     OsAdapterTest.class,
     TpcdsTest.class,
     TpchTest.class
-})
+    })
 public class PlusSuite {
 }
 

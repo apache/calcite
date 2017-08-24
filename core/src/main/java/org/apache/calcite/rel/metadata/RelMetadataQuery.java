@@ -199,7 +199,7 @@ public class RelMetadataQuery {
   /** Re-generates the handler for a given kind of metadata, adding support for
    * {@code class_} if it is not already present. */
   protected <M extends Metadata, H extends MetadataHandler<M>> H
-  revise(Class<? extends RelNode> class_, MetadataDef<M> def) {
+      revise(Class<? extends RelNode> class_, MetadataDef<M> def) {
     return metadataProvider.revise(class_, def);
   }
 

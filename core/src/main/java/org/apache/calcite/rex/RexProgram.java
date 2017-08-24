@@ -807,7 +807,7 @@ public class RexProgram {
      *                             or null
      * @param litmus               Whether to fail
      */
-    public Checker(RelDataType inputRowType,
+    Checker(RelDataType inputRowType,
         List<RelDataType> internalExprTypeList, RelNode.Context context,
         Litmus litmus) {
       super(inputRowType, context, litmus);
@@ -841,7 +841,7 @@ public class RexProgram {
   static class ExpansionShuttle extends RexShuttle {
     private final List<RexNode> exprs;
 
-    public ExpansionShuttle(List<RexNode> exprs) {
+    ExpansionShuttle(List<RexNode> exprs) {
       this.exprs = exprs;
     }
 

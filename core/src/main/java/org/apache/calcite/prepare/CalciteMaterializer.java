@@ -58,7 +58,7 @@ import java.util.List;
  * Context for populating a {@link Prepare.Materialization}.
  */
 class CalciteMaterializer extends CalcitePrepareImpl.CalcitePreparingStmt {
-  public CalciteMaterializer(CalcitePrepareImpl prepare,
+  CalciteMaterializer(CalcitePrepareImpl prepare,
       CalcitePrepare.Context context,
       CatalogReader catalogReader, CalciteSchema schema,
       RelOptPlanner planner, SqlRexConvertletTable convertletTable) {

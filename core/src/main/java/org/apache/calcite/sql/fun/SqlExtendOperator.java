@@ -34,7 +34,7 @@ import org.apache.calcite.sql.SqlWriter;
  * achieve schema-on-query against other adapters.
  */
 class SqlExtendOperator extends SqlInternalOperator {
-  public SqlExtendOperator() {
+  SqlExtendOperator() {
     super("EXTEND", SqlKind.EXTEND, MDX_PRECEDENCE);
   }
 

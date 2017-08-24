@@ -72,8 +72,8 @@ public class EnumerableRules {
   public static final EnumerableMinusRule ENUMERABLE_MINUS_RULE =
       new EnumerableMinusRule();
 
-  public static final EnumerableTableModifyRule
-  ENUMERABLE_TABLE_MODIFICATION_RULE = new EnumerableTableModifyRule();
+  public static final EnumerableTableModifyRule ENUMERABLE_TABLE_MODIFICATION_RULE =
+      new EnumerableTableModifyRule();
 
   public static final EnumerableValuesRule ENUMERABLE_VALUES_RULE =
       new EnumerableValuesRule();
@@ -87,17 +87,17 @@ public class EnumerableRules {
   public static final EnumerableUncollectRule ENUMERABLE_UNCOLLECT_RULE =
       new EnumerableUncollectRule();
 
-  public static final EnumerableFilterToCalcRule
-  ENUMERABLE_FILTER_TO_CALC_RULE = new EnumerableFilterToCalcRule();
+  public static final EnumerableFilterToCalcRule ENUMERABLE_FILTER_TO_CALC_RULE =
+      new EnumerableFilterToCalcRule();
 
-  public static final EnumerableProjectToCalcRule
-  ENUMERABLE_PROJECT_TO_CALC_RULE = new EnumerableProjectToCalcRule();
+  public static final EnumerableProjectToCalcRule ENUMERABLE_PROJECT_TO_CALC_RULE =
+      new EnumerableProjectToCalcRule();
 
   public static final EnumerableTableScanRule ENUMERABLE_TABLE_SCAN_RULE =
       new EnumerableTableScanRule();
 
-  public static final EnumerableTableFunctionScanRule
-  ENUMERABLE_TABLE_FUNCTION_SCAN_RULE = new EnumerableTableFunctionScanRule();
+  public static final EnumerableTableFunctionScanRule ENUMERABLE_TABLE_FUNCTION_SCAN_RULE =
+      new EnumerableTableFunctionScanRule();
 }
 
 // End EnumerableRules.java

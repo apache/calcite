@@ -60,7 +60,7 @@ public class JavaTypeFactoryImpl
     extends SqlTypeFactoryImpl
     implements JavaTypeFactory {
   private final Map<List<Pair<Type, Boolean>>, SyntheticRecordType>
-  syntheticTypes = new HashMap<>();
+      syntheticTypes = new HashMap<>();
 
   public JavaTypeFactoryImpl() {
     this(RelDataTypeSystem.DEFAULT);
@@ -356,7 +356,7 @@ public class JavaTypeFactoryImpl
     private final boolean nullable;
     private final int modifiers;
 
-    public RecordFieldImpl(
+    RecordFieldImpl(
         SyntheticRecordType syntheticType,
         String name,
         Type type,

@@ -25,7 +25,7 @@ public enum QueryType {
 
   private final String queryName;
 
-  private QueryType(String queryName) {
+  QueryType(String queryName) {
     this.queryName = queryName;
   }
 

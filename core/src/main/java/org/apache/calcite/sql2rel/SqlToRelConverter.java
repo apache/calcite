@@ -1881,11 +1881,9 @@ public class SqlToRelConverter {
       // necessary because the returned expression is not necessarily a call
       // to an agg function. For example, AVG(x) becomes SUM(x) / COUNT(x).
 
-      boolean isDistinct = false;
-      if (aggCall.getFunctionQuantifier() != null
-        && aggCall.getFunctionQuantifier().getValue().equals(SqlSelectKeyword.DISTINCT)) {
-        isDistinct = true;
-      }
+      final SqlLiteral q = aggCall.getFunctionQuantifier();
+      final boolean isDistinct = q != null
+          && q.getValue() == SqlSelectKeyword.DISTINCT;
 
       final RexShuttle visitor =
           new HistogramShuttle(
@@ -2141,31 +2139,31 @@ public class SqlToRelConverter {
     final Set<String> patternVarsSet = new HashSet<>();
     SqlNode pattern = matchRecognize.getPattern();
     final SqlBasicVisitor<RexNode> patternVarVisitor =
-      new SqlBasicVisitor<RexNode>() {
-        @Override public RexNode visit(SqlCall call) {
-          List<SqlNode> operands = call.getOperandList();
-          List<RexNode> newOperands = Lists.newArrayList();
-          for (SqlNode node : operands) {
-            newOperands.add(node.accept(this));
+        new SqlBasicVisitor<RexNode>() {
+          @Override public RexNode visit(SqlCall call) {
+            List<SqlNode> operands = call.getOperandList();
+            List<RexNode> newOperands = Lists.newArrayList();
+            for (SqlNode node : operands) {
+              newOperands.add(node.accept(this));
+            }
+            return rexBuilder.makeCall(
+              validator.getUnknownType(), call.getOperator(), newOperands);
           }
-          return rexBuilder.makeCall(
-            validator.getUnknownType(), call.getOperator(), newOperands);
-        }
 
-        @Override public RexNode visit(SqlIdentifier id) {
-          assert id.isSimple();
-          patternVarsSet.add(id.getSimple());
-          return rexBuilder.makeLiteral(id.getSimple());
-        }
-
-        @Override public RexNode visit(SqlLiteral literal) {
-          if (literal instanceof SqlNumericLiteral) {
-            return rexBuilder.makeExactLiteral(BigDecimal.valueOf(literal.intValue(true)));
-          } else {
-            return rexBuilder.makeLiteral(literal.booleanValue());
+          @Override public RexNode visit(SqlIdentifier id) {
+            assert id.isSimple();
+            patternVarsSet.add(id.getSimple());
+            return rexBuilder.makeLiteral(id.getSimple());
           }
-        }
-      };
+
+          @Override public RexNode visit(SqlLiteral literal) {
+            if (literal instanceof SqlNumericLiteral) {
+              return rexBuilder.makeExactLiteral(BigDecimal.valueOf(literal.intValue(true)));
+            } else {
+              return rexBuilder.makeLiteral(literal.booleanValue());
+            }
+          }
+        };
     final RexNode patternNode = pattern.accept(patternVarVisitor);
 
     SqlLiteral interval = matchRecognize.getInterval();
@@ -3957,8 +3955,8 @@ public class SqlToRelConverter {
      * Sub-queries can reference group by expressions projected from the
      * "right" to the sub-query.
      */
-    private final Map<RelNode, Map<Integer, Integer>>
-    mapRootRelToFieldProjection = new HashMap<>();
+    private final Map<RelNode, Map<Integer, Integer>> mapRootRelToFieldProjection =
+        new HashMap<>();
 
     private final List<SqlMonotonicity> columnMonotonicities =
         new ArrayList<>();

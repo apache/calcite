@@ -183,7 +183,9 @@ public class CassandraTable extends AbstractQueryableTable
     }
 
     int limit = offset;
-    if (fetch >= 0) { limit += fetch; }
+    if (fetch >= 0) {
+      limit += fetch;
+    }
     if (limit > 0) {
       queryBuilder.append(" LIMIT " + limit);
     }
@@ -196,8 +198,9 @@ public class CassandraTable extends AbstractQueryableTable
         // Skip results until we get to the right offset
         int skip = 0;
         Enumerator<Object> enumerator = new CassandraEnumerator(results, resultRowType);
-        while (skip < offset && enumerator.moveNext()) { skip++; }
-
+        while (skip < offset && enumerator.moveNext()) {
+          skip++;
+        }
         return enumerator;
       }
     };
@@ -217,7 +220,9 @@ public class CassandraTable extends AbstractQueryableTable
   }
 
   /** Implementation of {@link org.apache.calcite.linq4j.Queryable} based on
-   * a {@link org.apache.calcite.adapter.cassandra.CassandraTable}. */
+   * a {@link org.apache.calcite.adapter.cassandra.CassandraTable}.
+   *
+   * @param <T> element type */
   public static class CassandraQueryable<T> extends AbstractTableQueryable<T> {
     public CassandraQueryable(QueryProvider queryProvider, SchemaPlus schema,
         CassandraTable table, String tableName) {

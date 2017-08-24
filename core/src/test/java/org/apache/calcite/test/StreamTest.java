@@ -411,11 +411,11 @@ public class StreamTest {
 
     public static ImmutableList<Object[]> getRowList() {
       final Object[][] rows = {
-        {ts(10, 15, 0), 1, "paint", 10},
-        {ts(10, 24, 15), 2, "paper", 5},
-        {ts(10, 24, 45), 3, "brush", 12},
-        {ts(10, 58, 0), 4, "paint", 3},
-        {ts(11, 10, 0), 5, "paint", 3}
+          {ts(10, 15, 0), 1, "paint", 10},
+          {ts(10, 24, 15), 2, "paper", 5},
+          {ts(10, 24, 45), 3, "brush", 12},
+          {ts(10, 58, 0), 4, "paint", 3},
+          {ts(11, 10, 0), 5, "paint", 3}
       };
       return ImmutableList.copyOf(rows);
     }
@@ -529,9 +529,9 @@ public class StreamTest {
     public Table create(SchemaPlus schema, String name,
         Map<String, Object> operand, RelDataType rowType) {
       final Object[][] rows = {
-        {"paint", 1},
-        {"paper", 0},
-        {"brush", 1}
+          {"paint", 1},
+          {"paper", 0},
+          {"brush", 1}
       };
       return new ProductsTable(ImmutableList.copyOf(rows));
     }

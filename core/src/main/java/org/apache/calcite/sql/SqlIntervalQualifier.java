@@ -413,7 +413,7 @@ public class SqlIntervalQualifier extends SqlNode {
   }
 
   private static final BigDecimal[] POWERS10 = {
-    ZERO,
+      ZERO,
     BigDecimal.valueOf(10),
     BigDecimal.valueOf(100),
     BigDecimal.valueOf(1000),

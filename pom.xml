@@ -93,7 +93,7 @@ limitations under the License.
     <jmh.version>1.12</jmh.version>
     <jsoup.version>1.10.2</jsoup.version>
     <junit.version>4.12</junit.version>
-    <maven-checkstyle-plugin.version>2.12.1</maven-checkstyle-plugin.version>
+    <maven-checkstyle-plugin.version>2.17</maven-checkstyle-plugin.version>
     <maven-dependency-plugin.version>2.10</maven-dependency-plugin.version>
     <!-- Apache 18 has 3.0.1, but need 3.0.2 for [MSOURCES-94]. -->
     <maven-jar-plugin.version>3.0.2</maven-jar-plugin.version>
@@ -608,6 +608,12 @@ limitations under the License.
             <groupId>net.hydromatic</groupId>
             <artifactId>toolbox</artifactId>
             <version>${hydromatic-toolbox.version}</version>
+            <exclusions>
+              <exclusion>
+                <groupId>com.google.guava</groupId>
+                <artifactId>guava</artifactId>
+              </exclusion>
+            </exclusions>
           </dependency>
         </dependencies>
       </plugin>

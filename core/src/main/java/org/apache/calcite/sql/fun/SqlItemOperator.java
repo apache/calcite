@@ -47,7 +47,7 @@ class SqlItemOperator extends SqlSpecialOperator {
           OperandTypes.family(SqlTypeFamily.MAP),
           OperandTypes.family(SqlTypeFamily.ANY));
 
-  public SqlItemOperator() {
+  SqlItemOperator() {
     super("ITEM", SqlKind.OTHER_FUNCTION, 100, true, null, null, null);
   }
 

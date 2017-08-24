@@ -95,7 +95,7 @@ public class SparkToEnumerableConverter
   private static class SparkImplementorImpl extends SparkRel.Implementor {
     private final EnumerableRelImplementor implementor;
 
-    public SparkImplementorImpl(EnumerableRelImplementor implementor) {
+    SparkImplementorImpl(EnumerableRelImplementor implementor) {
       super(implementor.getRexBuilder());
       this.implementor = implementor;
     }

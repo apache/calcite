@@ -40,7 +40,7 @@ import static org.junit.Assert.assertThat;
 class Fluent {
   private final String pig;
 
-  public Fluent(String pig) {
+  Fluent(String pig) {
     this.pig = pig;
   }
 

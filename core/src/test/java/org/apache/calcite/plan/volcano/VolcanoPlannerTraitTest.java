@@ -506,7 +506,7 @@ public class VolcanoPlannerTraitTest {
   /** Relational expression with one input, that implements the {@link FooRel}
    * mix-in interface. */
   private static class IterSingleRel extends TestSingleRel implements FooRel {
-    public IterSingleRel(RelOptCluster cluster, RelNode child) {
+    IterSingleRel(RelOptCluster cluster, RelNode child) {
       super(
           cluster,
           cluster.traitSetOf(EnumerableConvention.INSTANCE),
@@ -678,7 +678,7 @@ public class VolcanoPlannerTraitTest {
 
   /** Planner rule that converts from PHYS to ENUMERABLE convention. */
   private static class PhysToIteratorConverterRule extends ConverterRule {
-    public PhysToIteratorConverterRule() {
+    PhysToIteratorConverterRule() {
       super(
           RelNode.class,
           PHYS_CALLING_CONVENTION,
@@ -695,7 +695,7 @@ public class VolcanoPlannerTraitTest {
 
   /** Planner rule that converts PHYS to ENUMERABLE convention. */
   private static class PhysToIteratorConverter extends ConverterImpl {
-    public PhysToIteratorConverter(
+    PhysToIteratorConverter(
         RelOptCluster cluster,
         RelNode child) {
       super(
@@ -715,7 +715,7 @@ public class VolcanoPlannerTraitTest {
   /** Planner rule that converts an {@link IterSingleRel} on a
    * {@link PhysToIteratorConverter} into a {@link IterMergedRel}. */
   private static class IterSinglePhysMergeRule extends RelOptRule {
-    public IterSinglePhysMergeRule() {
+    IterSinglePhysMergeRule() {
       super(
           operand(IterSingleRel.class,
               operand(PhysToIteratorConverter.class, any())));
@@ -731,7 +731,7 @@ public class VolcanoPlannerTraitTest {
   /** Relational expression with no inputs, that implements the {@link FooRel}
    * mix-in interface. */
   private static class IterMergedRel extends TestLeafRel implements FooRel {
-    public IterMergedRel(RelOptCluster cluster, String label) {
+    IterMergedRel(RelOptCluster cluster, String label) {
       super(
           cluster,
           cluster.traitSetOf(EnumerableConvention.INSTANCE),

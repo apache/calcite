@@ -89,28 +89,28 @@ public class FilesTableFunction {
 
       private Enumerable<String> sourceLinux() {
         final String[] args = {
-          "find", path, "-printf", ""
-            + "%A@\\0" // access_time
-            + "%b\\0" // block_count
-            + "%C@\\0" // change_time
-            + "%d\\0" // depth
-            + "%D\\0" // device
-            + "%f\\0" // file_name
-            + "%F\\0" // fstype
-            + "%g\\0" // gname
-            + "%G\\0" // gid
-            + "%h\\0" // dir_name
-            + "%i\\0" // inode
-            + "%l\\0" // link
-            + "%#m\\0" // perm
-            + "%n\\0" // hard
-            + "%P\\0" // path
-            + "%s\\0" // size
-            + "%S\\0" // sparseness
-            + "%T@\\0" // mod_time
-            + "%u\\0" // user
-            + "%U\\0" // uid
-            + "%Y\\0" // type
+            "find", path, "-printf", ""
+              + "%A@\\0" // access_time
+              + "%b\\0" // block_count
+              + "%C@\\0" // change_time
+              + "%d\\0" // depth
+              + "%D\\0" // device
+              + "%f\\0" // file_name
+              + "%F\\0" // fstype
+              + "%g\\0" // gname
+              + "%G\\0" // gid
+              + "%h\\0" // dir_name
+              + "%i\\0" // inode
+              + "%l\\0" // link
+              + "%#m\\0" // perm
+              + "%n\\0" // hard
+              + "%P\\0" // path
+              + "%s\\0" // size
+              + "%S\\0" // sparseness
+              + "%T@\\0" // mod_time
+              + "%u\\0" // user
+              + "%U\\0" // uid
+              + "%Y\\0" // type
         };
         return Processes.processLines('\0', args);
       }
@@ -121,28 +121,28 @@ public class FilesTableFunction {
           throw new IllegalArgumentException();
         }
         final String[] args = {"/bin/sh", "-c", "find '" + path
-            + "' | xargs stat -f "
-            + "%a%n" // access_time
-            + "%b%n" // block_count
-            + "%c%n" // change_time
-            + "0%n" // depth: not supported by macOS stat
-            + "%Hd%n" // device: we only use the high part of "H,L" device
-            + "filename%n" // filename: not supported by macOS stat
-            + "fstype%n" // fstype: not supported by macOS stat
-            + "%Sg%n" // gname
-            + "%g%n" // gid
-            + "dir_name%n" // dir_name: not supported by macOS stat
-            + "%i%n" // inode
-            + "%Y%n" // link
-            + "%Lp%n" // perm
-            + "%l%n" // hard
-            + "%SN%n" // path
-            + "%z%n" // size
-            + "0%n" // sparseness: not supported by macOS stat
-            + "%m%n" // mod_time
-            + "%Su%n" // user
-            + "%u%n" // uid
-            + "%LT%n" // type
+              + "' | xargs stat -f "
+              + "%a%n" // access_time
+              + "%b%n" // block_count
+              + "%c%n" // change_time
+              + "0%n" // depth: not supported by macOS stat
+              + "%Hd%n" // device: we only use the high part of "H,L" device
+              + "filename%n" // filename: not supported by macOS stat
+              + "fstype%n" // fstype: not supported by macOS stat
+              + "%Sg%n" // gname
+              + "%g%n" // gid
+              + "dir_name%n" // dir_name: not supported by macOS stat
+              + "%i%n" // inode
+              + "%Y%n" // link
+              + "%Lp%n" // perm
+              + "%l%n" // hard
+              + "%SN%n" // path
+              + "%z%n" // size
+              + "0%n" // sparseness: not supported by macOS stat
+              + "%m%n" // mod_time
+              + "%Su%n" // user
+              + "%u%n" // uid
+              + "%LT%n" // type
         };
         return Processes.processLines('\n', args);
       }

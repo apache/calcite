@@ -27,7 +27,7 @@ import org.apache.calcite.rel.convert.ConverterRule;
  */
 public class CassandraToEnumerableConverterRule extends ConverterRule {
   public static final ConverterRule INSTANCE =
-    new CassandraToEnumerableConverterRule();
+      new CassandraToEnumerableConverterRule();
 
   private CassandraToEnumerableConverterRule() {
     super(RelNode.class, CassandraRel.CONVENTION, EnumerableConvention.INSTANCE,

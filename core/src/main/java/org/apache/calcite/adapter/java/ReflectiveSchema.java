@@ -358,7 +358,9 @@ public class ReflectiveSchema
     }
   }
 
-  /** Table based on a Java field. */
+  /** Table based on a Java field.
+   *
+   * @param <T> element type */
   private static class FieldTable<T> extends ReflectiveTable {
     private final Field field;
     private Statistic statistic;

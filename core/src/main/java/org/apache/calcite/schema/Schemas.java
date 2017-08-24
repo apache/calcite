@@ -461,8 +461,8 @@ public final class Schemas {
   /** Returns the star tables defined in a schema.
    *
    * @param schema Schema */
-  public static List<CalciteSchema.TableEntry>
-  getStarTables(CalciteSchema schema) {
+  public static List<CalciteSchema.TableEntry> getStarTables(
+      CalciteSchema schema) {
     final List<CalciteSchema.LatticeEntry> list = getLatticeEntries(schema);
     return Lists.transform(list, TO_TABLE_ENTRY);
   }

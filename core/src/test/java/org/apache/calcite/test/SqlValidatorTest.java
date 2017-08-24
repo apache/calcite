@@ -7083,8 +7083,8 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
 
     // Other operators with similar syntax
     String[] ops = {
-      "overlaps", "contains", "equals", "precedes", "succeeds",
-      "immediately precedes", "immediately succeeds"
+        "overlaps", "contains", "equals", "precedes", "succeeds",
+        "immediately precedes", "immediately succeeds"
     };
     for (String op : ops) {
       checkExpType("period (date '1-2-3', date '1-2-3')\n"

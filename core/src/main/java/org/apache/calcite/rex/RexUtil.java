@@ -2024,12 +2024,12 @@ public class RexUtil {
   public static Set<RelTableRef> gatherTableReferences(final List<RexNode> nodes) {
     final Set<RelTableRef> occurrences = new HashSet<>();
     RexVisitor<Void> visitor =
-      new RexVisitorImpl<Void>(true) {
-        @Override public Void visitTableInputRef(RexTableInputRef ref) {
-          occurrences.add(ref.getTableRef());
-          return super.visitTableInputRef(ref);
-        }
-      };
+        new RexVisitorImpl<Void>(true) {
+          @Override public Void visitTableInputRef(RexTableInputRef ref) {
+            occurrences.add(ref.getTableRef());
+            return super.visitTableInputRef(ref);
+          }
+        };
     for (RexNode e : nodes) {
       e.accept(visitor);
     }
@@ -2136,7 +2136,7 @@ public class RexUtil {
     private int limit = -1;
     private final RelDataType inputRowType;
 
-    public ForwardRefFinder(RelDataType inputRowType) {
+    ForwardRefFinder(RelDataType inputRowType) {
       super(true);
       this.inputRowType = inputRowType;
     }
@@ -2442,7 +2442,7 @@ public class RexUtil {
   private static class RexShiftShuttle extends RexShuttle {
     private final int offset;
 
-    public RexShiftShuttle(int offset) {
+    RexShiftShuttle(int offset) {
       this.offset = offset;
     }
 

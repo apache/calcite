@@ -327,7 +327,7 @@ public final class BitSets {
     private SortedMap<Integer, BitSet> equivalence;
     private final SortedMap<Integer, BitSet> closure = new TreeMap<>();
 
-    public Closure(SortedMap<Integer, BitSet> equivalence) {
+    Closure(SortedMap<Integer, BitSet> equivalence) {
       this.equivalence = equivalence;
       final ImmutableIntList keys =
           ImmutableIntList.copyOf(equivalence.keySet());

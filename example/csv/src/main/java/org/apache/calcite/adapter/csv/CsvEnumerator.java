@@ -60,19 +60,19 @@ class CsvEnumerator<E> implements Enumerator<E> {
         FastDateFormat.getInstance("yyyy-MM-dd HH:mm:ss", gmt);
   }
 
-  public CsvEnumerator(Source source, AtomicBoolean cancelFlag,
+  CsvEnumerator(Source source, AtomicBoolean cancelFlag,
       List<CsvFieldType> fieldTypes) {
     this(source, cancelFlag, fieldTypes, identityList(fieldTypes.size()));
   }
 
-  public CsvEnumerator(Source source, AtomicBoolean cancelFlag,
+  CsvEnumerator(Source source, AtomicBoolean cancelFlag,
       List<CsvFieldType> fieldTypes, int[] fields) {
     //noinspection unchecked
     this(source, cancelFlag, false, null,
         (RowConverter<E>) converter(fieldTypes, fields));
   }
 
-  public CsvEnumerator(Source source, AtomicBoolean cancelFlag, boolean stream,
+  CsvEnumerator(Source source, AtomicBoolean cancelFlag, boolean stream,
       String[] filterValues, RowConverter<E> rowConverter) {
     this.cancelFlag = cancelFlag;
     this.rowConverter = rowConverter;
@@ -133,9 +133,9 @@ class CsvEnumerator<E> implements Enumerator<E> {
           fieldType = CsvFieldType.of(typeString);
           if (fieldType == null) {
             System.out.println("WARNING: Found unknown type: "
-              + typeString + " in file: " + source.path()
-              + " for column: " + name
-              + ". Will assume the type of column is string");
+                + typeString + " in file: " + source.path()
+                + " for column: " + name
+                + ". Will assume the type of column is string");
           }
         } else {
           name = string;
@@ -240,7 +240,9 @@ class CsvEnumerator<E> implements Enumerator<E> {
     return integers;
   }
 
-  /** Row converter. */
+  /** Row converter.
+   *
+   * @param <E> element type */
   abstract static class RowConverter<E> {
     abstract E convertRow(String[] rows);
 

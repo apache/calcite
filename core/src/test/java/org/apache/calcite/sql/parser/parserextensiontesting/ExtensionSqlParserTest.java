@@ -36,13 +36,13 @@ public class ExtensionSqlParserTest extends SqlParserTest {
 
   @Test public void testAlterSystemExtension() throws SqlParseException {
     check("alter system upload jar '/path/to/jar'",
-      "ALTER SYSTEM UPLOAD JAR '/path/to/jar'");
+        "ALTER SYSTEM UPLOAD JAR '/path/to/jar'");
   }
 
   @Test public void testAlterSystemExtensionWithoutAlter() throws SqlParseException {
     // We need to include the scope for custom alter operations
     checkFails("^upload^ jar '/path/to/jar'",
-      "(?s).*Encountered \"upload\" at .*");
+        "(?s).*Encountered \"upload\" at .*");
   }
 
   @Test public void testCreateTable() {

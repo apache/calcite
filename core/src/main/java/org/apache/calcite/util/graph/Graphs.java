@@ -36,8 +36,8 @@ public class Graphs {
   private Graphs() {
   }
 
-  public static <V, E extends DefaultEdge> List<V>
-  predecessorListOf(DirectedGraph<V, E> graph, V vertex) {
+  public static <V, E extends DefaultEdge> List<V> predecessorListOf(
+      DirectedGraph<V, E> graph, V vertex) {
     final List<E> edges = graph.getInwardEdges(vertex);
     return new AbstractList<V>() {
       public V get(int index) {

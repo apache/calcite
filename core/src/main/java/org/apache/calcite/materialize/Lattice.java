@@ -445,7 +445,7 @@ public class Lattice {
 
     final List<IntPair> pairs = Lists.newArrayList();
 
-    public Edge(RelNode source, RelNode target) {
+    Edge(RelNode source, RelNode target) {
       super(source, target);
     }
 

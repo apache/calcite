@@ -46,10 +46,10 @@ public class Linq4jExample {
   }
 
   public static final Employee[] EMPS = {
-    new Employee(100, "Fred", 10),
-    new Employee(110, "Bill", 30),
-    new Employee(120, "Eric", 10),
-    new Employee(130, "Janet", 10),
+      new Employee(100, "Fred", 10),
+      new Employee(110, "Bill", 30),
+      new Employee(120, "Eric", 10),
+      new Employee(130, "Janet", 10),
   };
 
   public static final Function1<Employee, Integer> EMP_DEPTNO_SELECTOR =

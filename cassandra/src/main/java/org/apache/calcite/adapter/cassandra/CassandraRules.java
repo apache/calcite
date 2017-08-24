@@ -58,10 +58,10 @@ public class CassandraRules {
   private CassandraRules() {}
 
   public static final RelOptRule[] RULES = {
-    CassandraFilterRule.INSTANCE,
-    CassandraProjectRule.INSTANCE,
-    CassandraSortRule.INSTANCE,
-    CassandraLimitRule.INSTANCE
+      CassandraFilterRule.INSTANCE,
+      CassandraProjectRule.INSTANCE,
+      CassandraSortRule.INSTANCE,
+      CassandraLimitRule.INSTANCE
   };
 
   static List<String> cassandraFieldNames(final RelDataType rowType) {
@@ -92,14 +92,12 @@ public class CassandraRules {
   abstract static class CassandraConverterRule extends ConverterRule {
     protected final Convention out;
 
-    public CassandraConverterRule(
-        Class<? extends RelNode> clazz,
+    CassandraConverterRule(Class<? extends RelNode> clazz,
         String description) {
       this(clazz, Predicates.<RelNode>alwaysTrue(), description);
     }
 
-    public <R extends RelNode> CassandraConverterRule(
-        Class<R> clazz,
+    <R extends RelNode> CassandraConverterRule(Class<R> clazz,
         Predicate<? super R> predicate,
         String description) {
       super(clazz, predicate, Convention.NONE, CassandraRel.CONVENTION, description);

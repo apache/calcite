@@ -139,7 +139,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
    * operands based on the class of the RelNode.</p>
    */
   private final Multimap<Class<? extends RelNode>, RelOptRuleOperand>
-  classOperands = LinkedListMultimap.create();
+      classOperands = LinkedListMultimap.create();
 
   /**
    * List of all sets. Used only for debugging.
@@ -282,7 +282,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
   //~ Methods ----------------------------------------------------------------
 
   protected VolcanoPlannerPhaseRuleMappingInitializer
-  getPhaseRuleMappingInitializer() {
+      getPhaseRuleMappingInitializer() {
     return new VolcanoPlannerPhaseRuleMappingInitializer() {
       public void initialize(
           Map<VolcanoPlannerPhase, Set<String>> phaseRuleMap) {

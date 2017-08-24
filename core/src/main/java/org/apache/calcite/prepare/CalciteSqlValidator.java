@@ -25,7 +25,7 @@ import org.apache.calcite.sql.validate.SqlValidatorImpl;
 
 /** Validator. */
 class CalciteSqlValidator extends SqlValidatorImpl {
-  public CalciteSqlValidator(SqlOperatorTable opTab,
+  CalciteSqlValidator(SqlOperatorTable opTab,
       CalciteCatalogReader catalogReader, JavaTypeFactory typeFactory,
       SqlConformance conformance) {
     super(opTab, catalogReader, typeFactory, conformance);

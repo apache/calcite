@@ -523,7 +523,9 @@ public class RexImplicationChecker {
 
   /**
    * Usage of a {@link RexInputRef} in an expression.
-   */
+   *
+   * @param <T1> left type
+   * @param <T2> right type */
   private static class InputRefUsage<T1, T2> {
     private final List<Pair<T1, T2>> usageList = new ArrayList<>();
     private int usageCount = 0;

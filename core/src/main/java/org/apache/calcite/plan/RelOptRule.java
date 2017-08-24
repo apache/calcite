@@ -225,7 +225,7 @@ public abstract class RelOptRule {
    * @param predicate Predicate to apply to relational expression
    */
   protected static <R extends RelNode> ConverterRelOptRuleOperand
-  convertOperand(Class<R> clazz, Predicate<? super R> predicate,
+      convertOperand(Class<R> clazz, Predicate<? super R> predicate,
       RelTrait trait) {
     return new ConverterRelOptRuleOperand(clazz, trait, predicate);
   }

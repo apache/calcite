@@ -57,9 +57,9 @@ public class ElasticsearchProject extends Project implements ElasticsearchRel {
     implementor.visitChild(0, getInput());
 
     final ElasticsearchRules.RexToElasticsearchTranslator translator =
-      new ElasticsearchRules.RexToElasticsearchTranslator(
-        (JavaTypeFactory) getCluster().getTypeFactory(),
-        ElasticsearchRules.elasticsearchFieldNames(getInput().getRowType()));
+        new ElasticsearchRules.RexToElasticsearchTranslator(
+            (JavaTypeFactory) getCluster().getTypeFactory(),
+            ElasticsearchRules.elasticsearchFieldNames(getInput().getRowType()));
 
     final List<String> findItems = new ArrayList<>();
     final List<String> scriptFieldItems = new ArrayList<>();
@@ -71,10 +71,10 @@ public class ElasticsearchProject extends Project implements ElasticsearchRel {
         findItems.add(ElasticsearchRules.quote(name));
       } else if (expr.matches("\"literal\":.+")) {
         scriptFieldItems.add(ElasticsearchRules.quote(name) + ":{\"script\": "
-          + expr.split(":")[1] + "}");
+            + expr.split(":")[1] + "}");
       } else {
         scriptFieldItems.add(ElasticsearchRules.quote(name) + ":{\"script\":\"_source."
-          + expr.replaceAll("\"", "") + "\"}");
+            + expr.replaceAll("\"", "") + "\"}");
       }
     }
     final String findString = Util.toString(findItems, "", ", ", "");

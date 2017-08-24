@@ -34,7 +34,7 @@ class CachingLatticeStatisticProvider implements LatticeStatisticProvider {
   private final LoadingCache<Pair<Lattice, Lattice.Column>, Integer> cache;
 
   /** Creates a CachingStatisticProvider. */
-  public CachingLatticeStatisticProvider(
+  CachingLatticeStatisticProvider(
       final LatticeStatisticProvider provider) {
     cache = CacheBuilder.<Pair<Lattice, Lattice.Column>>newBuilder()
         .build(

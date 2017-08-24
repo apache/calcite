@@ -61,7 +61,10 @@ public abstract class SparkRuntime {
   }
 
   /** Combines linq4j {@link org.apache.calcite.linq4j.function.Function}
-   * and Spark {@link org.apache.spark.api.java.function.FlatMapFunction}. */
+   * and Spark {@link org.apache.spark.api.java.function.FlatMapFunction}.
+   *
+   * @param <T> argument type
+   * @param <R> result type */
   public abstract static class CalciteFlatMapFunction<T, R>
       implements FlatMapFunction<T, R>,
       org.apache.calcite.linq4j.function.Function {

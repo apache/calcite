@@ -45,7 +45,7 @@ public abstract class SqlOperandCountRanges {
     private final int min;
     private final int max;
 
-    public RangeImpl(int min, int max) {
+    RangeImpl(int min, int max) {
       this.min = min;
       this.max = max;
       Preconditions.checkArgument(min <= max || max == -1);

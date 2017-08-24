@@ -38,8 +38,7 @@ public class ClassDeclarationFinder extends Shuttle {
   protected final List<MemberDeclaration> addedDeclarations =
       new ArrayList<MemberDeclaration>();
 
-  private final Function1<ClassDeclarationFinder, ClassDeclarationFinder>
-  childFactory;
+  private final Function1<ClassDeclarationFinder, ClassDeclarationFinder> childFactory;
 
   private static final Function1<ClassDeclarationFinder,
       ClassDeclarationFinder> DEFAULT_CHILD_FACTORY =
@@ -90,8 +89,8 @@ public class ClassDeclarationFinder extends Shuttle {
    * @param optimizingClass class that implements optimizations
    * @return factory that creates instances of given classes
    */
-  private static Function1<ClassDeclarationFinder, ClassDeclarationFinder>
-  newChildCreator(Class<? extends ClassDeclarationFinder> optimizingClass) {
+  private static Function1<ClassDeclarationFinder, ClassDeclarationFinder> newChildCreator(
+      Class<? extends ClassDeclarationFinder> optimizingClass) {
     try {
       final Constructor<? extends ClassDeclarationFinder> constructor =
           optimizingClass.getConstructor(ClassDeclarationFinder.class);

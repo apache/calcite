@@ -95,7 +95,9 @@ public interface SqlSplittableAggFunction {
       AggregateCall aggregateCall);
 
   /** Collection in which one can register an element. Registering may return
-   * a reference to an existing element. */
+   * a reference to an existing element.
+   *
+   * @param <E> element type */
   interface Registry<E> {
     int register(E e);
   }

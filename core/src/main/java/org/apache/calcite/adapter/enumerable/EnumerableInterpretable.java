@@ -186,7 +186,7 @@ public class EnumerableInterpretable extends ConverterImpl
     private final Enumerable<Object[]> enumerable;
     private final Sink sink;
 
-    public EnumerableNode(Enumerable<Object[]> enumerable,
+    EnumerableNode(Enumerable<Object[]> enumerable,
         Interpreter interpreter, EnumerableInterpretable rel) {
       this.enumerable = enumerable;
       this.sink = interpreter.sink(rel);

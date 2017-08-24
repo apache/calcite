@@ -281,7 +281,7 @@ class ConcurrentTestCommandExecutor extends Thread {
     private int numThreads;
     private int numWaiting;
 
-    public Sync(int numThreads) {
+    Sync(int numThreads) {
       assert numThreads > 0;
       this.numThreads = numThreads;
       this.numWaiting = 0;

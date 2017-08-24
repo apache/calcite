@@ -45,38 +45,38 @@ public class CorrelateJoinTest {
 
   @Test public void testInner() {
     testJoin(CorrelateJoinType.INNER, new Integer[][]{
-      {2, 20},
-      {3, -30},
-      {3, -60},
-      {20, 200},
-      {30, -300},
-      {30, -600}});
+        {2, 20},
+        {3, -30},
+        {3, -60},
+        {20, 200},
+        {30, -300},
+        {30, -600}});
   }
 
   @Test public void testLeft() {
     testJoin(CorrelateJoinType.LEFT, new Integer[][]{
-      {1, null},
-      {2, 20},
-      {3, -30},
-      {3, -60},
-      {10, null},
-      {20, 200},
-      {30, -300},
-      {30, -600}});
+        {1, null},
+        {2, 20},
+        {3, -30},
+        {3, -60},
+        {10, null},
+        {20, 200},
+        {30, -300},
+        {30, -600}});
   }
 
   @Test public void testSemi() {
     testJoin(CorrelateJoinType.SEMI, new Integer[][]{
-      {2, null},
-      {3, null},
-      {20, null},
-      {30, null}});
+        {2, null},
+        {3, null},
+        {20, null},
+        {30, null}});
   }
 
   @Test public void testAnti() {
     testJoin(CorrelateJoinType.ANTI, new Integer[][]{
-      {1, null},
-      {10, null}});
+        {1, null},
+        {10, null}});
   }
 
   public void testJoin(CorrelateJoinType joinType, Integer[][] expected) {

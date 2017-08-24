@@ -880,17 +880,17 @@ public class ReflectiveSchemaTest {
     public final BitSet bitSet = new BitSet(1);
 
     public final EveryType[] everyTypes = {
-      new EveryType(
-          false, (byte) 0, (char) 0, (short) 0, 0, 0L, 0F, 0D,
-          false, (byte) 0, (char) 0, (short) 0, 0, 0L, 0F, 0D,
-          new java.sql.Date(0), new Time(0), new Timestamp(0),
-          new Date(0), "1"),
-      new EveryType(
-          true, Byte.MAX_VALUE, Character.MAX_VALUE, Short.MAX_VALUE,
-          Integer.MAX_VALUE, Long.MAX_VALUE, Float.MAX_VALUE,
-          Double.MAX_VALUE,
-          null, null, null, null, null, null, null, null,
-          null, null, null, null, null),
+        new EveryType(
+            false, (byte) 0, (char) 0, (short) 0, 0, 0L, 0F, 0D,
+            false, (byte) 0, (char) 0, (short) 0, 0, 0L, 0F, 0D,
+            new java.sql.Date(0), new Time(0), new Timestamp(0),
+            new Date(0), "1"),
+        new EveryType(
+            true, Byte.MAX_VALUE, Character.MAX_VALUE, Short.MAX_VALUE,
+            Integer.MAX_VALUE, Long.MAX_VALUE, Float.MAX_VALUE,
+            Double.MAX_VALUE,
+            null, null, null, null, null, null, null, null,
+            null, null, null, null, null),
     };
 
     public final AllPrivate[] allPrivates = { new AllPrivate() };
@@ -898,10 +898,10 @@ public class ReflectiveSchemaTest {
     public final BadType[] badTypes = { new BadType() };
 
     public final Employee[] prefixEmps = {
-      new Employee(1, 10, "A", 0f, null),
-      new Employee(2, 10, "Ab", 0f, null),
-      new Employee(3, 10, "Abc", 0f, null),
-      new Employee(4, 10, "Abd", 0f, null),
+        new Employee(1, 10, "A", 0f, null),
+        new Employee(2, 10, "Ab", 0f, null),
+        new Employee(3, 10, "Abc", 0f, null),
+        new Employee(4, 10, "Abd", 0f, null),
     };
 
     public final Integer[] primesBoxed = new Integer[]{1, 3, 5};
@@ -912,11 +912,11 @@ public class ReflectiveSchemaTest {
         new IntHolder[]{new IntHolder(1), new IntHolder(3), new IntHolder(5)};
 
     public final IntAndString[] nullables = new IntAndString[] {
-      new IntAndString(1, "A"), new IntAndString(2, "B"), new IntAndString(2, "C"),
-      new IntAndString(3, null)};
+        new IntAndString(1, "A"), new IntAndString(2, "B"), new IntAndString(2, "C"),
+        new IntAndString(3, null)};
 
     public final IntAndString[] bools = new IntAndString[] {
-      new IntAndString(1, "T"), new IntAndString(2, "F"), new IntAndString(3, null)};
+        new IntAndString(1, "T"), new IntAndString(2, "F"), new IntAndString(3, null)};
   }
 
   /**
@@ -933,9 +933,9 @@ public class ReflectiveSchemaTest {
   /** Schema that contains a table with a date column. */
   public static class DateColumnSchema {
     public final EmployeeWithHireDate[] emps = {
-      new EmployeeWithHireDate(
-          10, 20, "fred", 0f, null, new java.sql.Date(0)), // 1970-1-1
-      new EmployeeWithHireDate(
+        new EmployeeWithHireDate(
+            10, 20, "fred", 0f, null, new java.sql.Date(0)), // 1970-1-1
+        new EmployeeWithHireDate(
             10, 20, "bill", 0f, null,
             new java.sql.Date(100 * DateTimeUtils.MILLIS_PER_DAY)) // 1970-04-11
     };

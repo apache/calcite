@@ -1117,96 +1117,96 @@ public class JdbcTest {
   @Ignore("extremely slow - a bit better if you disable ProjectMergeRule")
   @Test public void testBushy() {
     CalciteAssert.that()
-      .with(CalciteAssert.Config.FOODMART_CLONE)
-      .query("select *\n"
-          + "from \"sales_fact_1997\" as s\n"
-          + "  join \"customer\" as c using (\"customer_id\")\n"
-          + "  join \"product\" as p using (\"product_id\")\n"
-          + "  join \"product_class\" as pc using (\"product_class_id\")\n"
-          + "where c.\"city\" = 'San Francisco'\n"
-          + "and pc.\"product_department\" = 'Snacks'\n")
-        .explainMatches("including all attributes ",
-            CalciteAssert.checkMaskedResultContains(""
-                + "EnumerableCalcRel(expr#0..56=[{inputs}], expr#57=['San Francisco'], expr#58=[=($t9, $t57)], expr#59=['Snacks'], expr#60=[=($t32, $t59)], expr#61=[AND($t58, $t60)], product_id=[$t49], time_id=[$t50], customer_id=[$t51], promotion_id=[$t52], store_id=[$t53], store_sales=[$t54], store_cost=[$t55], unit_sales=[$t56], customer_id0=[$t0], account_num=[$t1], lname=[$t2], fname=[$t3], mi=[$t4], address1=[$t5], address2=[$t6], address3=[$t7], address4=[$t8], city=[$t9], state_province=[$t10], postal_code=[$t11], country=[$t12], customer_region_id=[$t13], phone1=[$t14], phone2=[$t15], birthdate=[$t16], marital_status=[$t17], yearly_income=[$t18], gender=[$t19], total_children=[$t20], num_children_at_home=[$t21], education=[$t22], date_accnt_opened=[$t23], member_card=[$t24], occupation=[$t25], houseowner=[$t26], num_cars_owned=[$t27], fullname=[$t28], product_class_id=[$t34], product_id0=[$t35], brand_name=[$t36], product_name=[$t37], SKU=[$t38], SRP=[$t39], gross_weight=[$t40], net_weight=[$t41], recyclable_package=[$t42], low_fat=[$t43], units_per_case=[$t44], cases_per_pallet=[$t45], shelf_width=[$t46], shelf_height=[$t47], shelf_depth=[$t48], product_class_id0=[$t29], product_subcategory=[$t30], product_category=[$t31], product_department=[$t32], product_family=[$t33], $condition=[$t61]): rowcount = 1953.8325, cumulative cost = {728728.1144018068 rows, 1.0519232E7 cpu, 0.0 io}\n"
-                + "  EnumerableJoinRel(condition=[=($51, $0)], joinType=[inner]): rowcount = 86837.0, cumulative cost = {726774.2819018068 rows, 98792.0 cpu, 0.0 io}\n"
-                + "    EnumerableTableScan(table=[[foodmart2, customer]]): rowcount = 10281.0, cumulative cost = {10281.0 rows, 10282.0 cpu, 0.0 io}\n"
-                + "    EnumerableJoinRel(condition=[=($5, $0)], joinType=[inner]): rowcount = 86837.0, cumulative cost = {447842.86095661717 rows, 88510.0 cpu, 0.0 io}\n"
-                + "      EnumerableTableScan(table=[[foodmart2, product_class]]): rowcount = 110.0, cumulative cost = {110.0 rows, 111.0 cpu, 0.0 io}\n"
-                + "      EnumerableJoinRel(condition=[=($15, $1)], joinType=[inner]): rowcount = 86837.0, cumulative cost = {273541.80811638 rows, 88399.0 cpu, 0.0 io}\n"
-                + "        EnumerableTableScan(table=[[foodmart2, product]]): rowcount = 1560.0, cumulative cost = {1560.0 rows, 1561.0 cpu, 0.0 io}\n"
-                + "        EnumerableTableScan(table=[[foodmart2, sales_fact_1997]]): rowcount = 86837.0, cumulative cost = {86837.0 rows, 86838.0 cpu, 0.0 io}\n"));
+        .with(CalciteAssert.Config.FOODMART_CLONE)
+        .query("select *\n"
+            + "from \"sales_fact_1997\" as s\n"
+            + "  join \"customer\" as c using (\"customer_id\")\n"
+            + "  join \"product\" as p using (\"product_id\")\n"
+            + "  join \"product_class\" as pc using (\"product_class_id\")\n"
+            + "where c.\"city\" = 'San Francisco'\n"
+            + "and pc.\"product_department\" = 'Snacks'\n")
+          .explainMatches("including all attributes ",
+              CalciteAssert.checkMaskedResultContains(""
+                  + "EnumerableCalcRel(expr#0..56=[{inputs}], expr#57=['San Francisco'], expr#58=[=($t9, $t57)], expr#59=['Snacks'], expr#60=[=($t32, $t59)], expr#61=[AND($t58, $t60)], product_id=[$t49], time_id=[$t50], customer_id=[$t51], promotion_id=[$t52], store_id=[$t53], store_sales=[$t54], store_cost=[$t55], unit_sales=[$t56], customer_id0=[$t0], account_num=[$t1], lname=[$t2], fname=[$t3], mi=[$t4], address1=[$t5], address2=[$t6], address3=[$t7], address4=[$t8], city=[$t9], state_province=[$t10], postal_code=[$t11], country=[$t12], customer_region_id=[$t13], phone1=[$t14], phone2=[$t15], birthdate=[$t16], marital_status=[$t17], yearly_income=[$t18], gender=[$t19], total_children=[$t20], num_children_at_home=[$t21], education=[$t22], date_accnt_opened=[$t23], member_card=[$t24], occupation=[$t25], houseowner=[$t26], num_cars_owned=[$t27], fullname=[$t28], product_class_id=[$t34], product_id0=[$t35], brand_name=[$t36], product_name=[$t37], SKU=[$t38], SRP=[$t39], gross_weight=[$t40], net_weight=[$t41], recyclable_package=[$t42], low_fat=[$t43], units_per_case=[$t44], cases_per_pallet=[$t45], shelf_width=[$t46], shelf_height=[$t47], shelf_depth=[$t48], product_class_id0=[$t29], product_subcategory=[$t30], product_category=[$t31], product_department=[$t32], product_family=[$t33], $condition=[$t61]): rowcount = 1953.8325, cumulative cost = {728728.1144018068 rows, 1.0519232E7 cpu, 0.0 io}\n"
+                  + "  EnumerableJoinRel(condition=[=($51, $0)], joinType=[inner]): rowcount = 86837.0, cumulative cost = {726774.2819018068 rows, 98792.0 cpu, 0.0 io}\n"
+                  + "    EnumerableTableScan(table=[[foodmart2, customer]]): rowcount = 10281.0, cumulative cost = {10281.0 rows, 10282.0 cpu, 0.0 io}\n"
+                  + "    EnumerableJoinRel(condition=[=($5, $0)], joinType=[inner]): rowcount = 86837.0, cumulative cost = {447842.86095661717 rows, 88510.0 cpu, 0.0 io}\n"
+                  + "      EnumerableTableScan(table=[[foodmart2, product_class]]): rowcount = 110.0, cumulative cost = {110.0 rows, 111.0 cpu, 0.0 io}\n"
+                  + "      EnumerableJoinRel(condition=[=($15, $1)], joinType=[inner]): rowcount = 86837.0, cumulative cost = {273541.80811638 rows, 88399.0 cpu, 0.0 io}\n"
+                  + "        EnumerableTableScan(table=[[foodmart2, product]]): rowcount = 1560.0, cumulative cost = {1560.0 rows, 1561.0 cpu, 0.0 io}\n"
+                  + "        EnumerableTableScan(table=[[foodmart2, sales_fact_1997]]): rowcount = 86837.0, cumulative cost = {86837.0 rows, 86838.0 cpu, 0.0 io}\n"));
   }
 
   private static final String[] QUERIES = {
-    "select count(*) from (select 1 as \"c0\" from \"salary\" as \"salary\") as \"init\"",
-    "EXPR$0=21252\n",
-    "select count(*) from (select 1 as \"c0\" from \"salary\" as \"salary2\") as \"init\"",
-    "EXPR$0=21252\n",
-    "select count(*) from (select 1 as \"c0\" from \"department\" as \"department\") as \"init\"",
-    "EXPR$0=12\n",
-    "select count(*) from (select 1 as \"c0\" from \"employee\" as \"employee\") as \"init\"",
-    "EXPR$0=1155\n",
-    "select count(*) from (select 1 as \"c0\" from \"employee_closure\" as \"employee_closure\") as \"init\"",
-    "EXPR$0=7179\n",
-    "select count(*) from (select 1 as \"c0\" from \"position\" as \"position\") as \"init\"",
-    "EXPR$0=18\n",
-    "select count(*) from (select 1 as \"c0\" from \"promotion\" as \"promotion\") as \"init\"",
-    "EXPR$0=1864\n",
-    "select count(*) from (select 1 as \"c0\" from \"store\" as \"store\") as \"init\"",
-    "EXPR$0=25\n",
-    "select count(*) from (select 1 as \"c0\" from \"product\" as \"product\") as \"init\"",
-    "EXPR$0=1560\n",
-    "select count(*) from (select 1 as \"c0\" from \"product_class\" as \"product_class\") as \"init\"",
-    "EXPR$0=110\n",
-    "select count(*) from (select 1 as \"c0\" from \"time_by_day\" as \"time_by_day\") as \"init\"",
-    "EXPR$0=730\n",
-    "select count(*) from (select 1 as \"c0\" from \"customer\" as \"customer\") as \"init\"",
-    "EXPR$0=10281\n",
-    "select count(*) from (select 1 as \"c0\" from \"sales_fact_1997\" as \"sales_fact_1997\") as \"init\"",
-    "EXPR$0=86837\n",
-    "select count(*) from (select 1 as \"c0\" from \"inventory_fact_1997\" as \"inventory_fact_1997\") as \"init\"",
-    "EXPR$0=4070\n",
-    "select count(*) from (select 1 as \"c0\" from \"warehouse\" as \"warehouse\") as \"init\"",
-    "EXPR$0=24\n",
-    "select count(*) from (select 1 as \"c0\" from \"agg_c_special_sales_fact_1997\" as \"agg_c_special_sales_fact_1997\") as \"init\"",
-    "EXPR$0=86805\n",
-    "select count(*) from (select 1 as \"c0\" from \"agg_pl_01_sales_fact_1997\" as \"agg_pl_01_sales_fact_1997\") as \"init\"",
-    "EXPR$0=86829\n",
-    "select count(*) from (select 1 as \"c0\" from \"agg_l_05_sales_fact_1997\" as \"agg_l_05_sales_fact_1997\") as \"init\"",
-    "EXPR$0=86154\n",
-    "select count(*) from (select 1 as \"c0\" from \"agg_g_ms_pcat_sales_fact_1997\" as \"agg_g_ms_pcat_sales_fact_1997\") as \"init\"",
-    "EXPR$0=2637\n",
-    "select count(*) from (select 1 as \"c0\" from \"agg_c_14_sales_fact_1997\" as \"agg_c_14_sales_fact_1997\") as \"init\"",
-    "EXPR$0=86805\n",
-    "select \"time_by_day\".\"the_year\" as \"c0\" from \"time_by_day\" as \"time_by_day\" group by \"time_by_day\".\"the_year\" order by \"time_by_day\".\"the_year\" ASC",
-    "c0=1997\n"
+      "select count(*) from (select 1 as \"c0\" from \"salary\" as \"salary\") as \"init\"",
+      "EXPR$0=21252\n",
+      "select count(*) from (select 1 as \"c0\" from \"salary\" as \"salary2\") as \"init\"",
+      "EXPR$0=21252\n",
+      "select count(*) from (select 1 as \"c0\" from \"department\" as \"department\") as \"init\"",
+      "EXPR$0=12\n",
+      "select count(*) from (select 1 as \"c0\" from \"employee\" as \"employee\") as \"init\"",
+      "EXPR$0=1155\n",
+      "select count(*) from (select 1 as \"c0\" from \"employee_closure\" as \"employee_closure\") as \"init\"",
+      "EXPR$0=7179\n",
+      "select count(*) from (select 1 as \"c0\" from \"position\" as \"position\") as \"init\"",
+      "EXPR$0=18\n",
+      "select count(*) from (select 1 as \"c0\" from \"promotion\" as \"promotion\") as \"init\"",
+      "EXPR$0=1864\n",
+      "select count(*) from (select 1 as \"c0\" from \"store\" as \"store\") as \"init\"",
+      "EXPR$0=25\n",
+      "select count(*) from (select 1 as \"c0\" from \"product\" as \"product\") as \"init\"",
+      "EXPR$0=1560\n",
+      "select count(*) from (select 1 as \"c0\" from \"product_class\" as \"product_class\") as \"init\"",
+      "EXPR$0=110\n",
+      "select count(*) from (select 1 as \"c0\" from \"time_by_day\" as \"time_by_day\") as \"init\"",
+      "EXPR$0=730\n",
+      "select count(*) from (select 1 as \"c0\" from \"customer\" as \"customer\") as \"init\"",
+      "EXPR$0=10281\n",
+      "select count(*) from (select 1 as \"c0\" from \"sales_fact_1997\" as \"sales_fact_1997\") as \"init\"",
+      "EXPR$0=86837\n",
+      "select count(*) from (select 1 as \"c0\" from \"inventory_fact_1997\" as \"inventory_fact_1997\") as \"init\"",
+      "EXPR$0=4070\n",
+      "select count(*) from (select 1 as \"c0\" from \"warehouse\" as \"warehouse\") as \"init\"",
+      "EXPR$0=24\n",
+      "select count(*) from (select 1 as \"c0\" from \"agg_c_special_sales_fact_1997\" as \"agg_c_special_sales_fact_1997\") as \"init\"",
+      "EXPR$0=86805\n",
+      "select count(*) from (select 1 as \"c0\" from \"agg_pl_01_sales_fact_1997\" as \"agg_pl_01_sales_fact_1997\") as \"init\"",
+      "EXPR$0=86829\n",
+      "select count(*) from (select 1 as \"c0\" from \"agg_l_05_sales_fact_1997\" as \"agg_l_05_sales_fact_1997\") as \"init\"",
+      "EXPR$0=86154\n",
+      "select count(*) from (select 1 as \"c0\" from \"agg_g_ms_pcat_sales_fact_1997\" as \"agg_g_ms_pcat_sales_fact_1997\") as \"init\"",
+      "EXPR$0=2637\n",
+      "select count(*) from (select 1 as \"c0\" from \"agg_c_14_sales_fact_1997\" as \"agg_c_14_sales_fact_1997\") as \"init\"",
+      "EXPR$0=86805\n",
+      "select \"time_by_day\".\"the_year\" as \"c0\" from \"time_by_day\" as \"time_by_day\" group by \"time_by_day\".\"the_year\" order by \"time_by_day\".\"the_year\" ASC",
+      "c0=1997\n"
         + "c0=1998\n",
-    "select \"store\".\"store_country\" as \"c0\" from \"store\" as \"store\" where UPPER(\"store\".\"store_country\") = UPPER('USA') group by \"store\".\"store_country\" order by \"store\".\"store_country\" ASC",
-    "c0=USA\n",
-    "select \"store\".\"store_state\" as \"c0\" from \"store\" as \"store\" where (\"store\".\"store_country\" = 'USA') and UPPER(\"store\".\"store_state\") = UPPER('CA') group by \"store\".\"store_state\" order by \"store\".\"store_state\" ASC",
-    "c0=CA\n",
-    "select \"store\".\"store_city\" as \"c0\", \"store\".\"store_state\" as \"c1\" from \"store\" as \"store\" where (\"store\".\"store_state\" = 'CA' and \"store\".\"store_country\" = 'USA') and UPPER(\"store\".\"store_city\") = UPPER('Los Angeles') group by \"store\".\"store_city\", \"store\".\"store_state\" order by \"store\".\"store_city\" ASC",
-    "c0=Los Angeles; c1=CA\n",
-    "select \"customer\".\"country\" as \"c0\" from \"customer\" as \"customer\" where UPPER(\"customer\".\"country\") = UPPER('USA') group by \"customer\".\"country\" order by \"customer\".\"country\" ASC",
-    "c0=USA\n",
-    "select \"customer\".\"state_province\" as \"c0\", \"customer\".\"country\" as \"c1\" from \"customer\" as \"customer\" where (\"customer\".\"country\" = 'USA') and UPPER(\"customer\".\"state_province\") = UPPER('CA') group by \"customer\".\"state_province\", \"customer\".\"country\" order by \"customer\".\"state_province\" ASC",
-    "c0=CA; c1=USA\n",
-    "select \"customer\".\"city\" as \"c0\", \"customer\".\"country\" as \"c1\", \"customer\".\"state_province\" as \"c2\" from \"customer\" as \"customer\" where (\"customer\".\"country\" = 'USA' and \"customer\".\"state_province\" = 'CA' and \"customer\".\"country\" = 'USA' and \"customer\".\"state_province\" = 'CA' and \"customer\".\"country\" = 'USA') and UPPER(\"customer\".\"city\") = UPPER('Los Angeles') group by \"customer\".\"city\", \"customer\".\"country\", \"customer\".\"state_province\" order by \"customer\".\"city\" ASC",
-    "c0=Los Angeles; c1=USA; c2=CA\n",
-    "select \"store\".\"store_country\" as \"c0\" from \"store\" as \"store\" where UPPER(\"store\".\"store_country\") = UPPER('Gender') group by \"store\".\"store_country\" order by \"store\".\"store_country\" ASC",
-    "",
-    "select \"store\".\"store_type\" as \"c0\" from \"store\" as \"store\" where UPPER(\"store\".\"store_type\") = UPPER('Gender') group by \"store\".\"store_type\" order by \"store\".\"store_type\" ASC",
-    "",
-    "select \"product_class\".\"product_family\" as \"c0\" from \"product\" as \"product\", \"product_class\" as \"product_class\" where \"product\".\"product_class_id\" = \"product_class\".\"product_class_id\" and UPPER(\"product_class\".\"product_family\") = UPPER('Gender') group by \"product_class\".\"product_family\" order by \"product_class\".\"product_family\" ASC",
-    "",
-    "select \"promotion\".\"media_type\" as \"c0\" from \"promotion\" as \"promotion\" where UPPER(\"promotion\".\"media_type\") = UPPER('Gender') group by \"promotion\".\"media_type\" order by \"promotion\".\"media_type\" ASC",
-    "",
-    "select \"promotion\".\"promotion_name\" as \"c0\" from \"promotion\" as \"promotion\" where UPPER(\"promotion\".\"promotion_name\") = UPPER('Gender') group by \"promotion\".\"promotion_name\" order by \"promotion\".\"promotion_name\" ASC",
-    "",
-    "select \"promotion\".\"media_type\" as \"c0\" from \"promotion\" as \"promotion\" where UPPER(\"promotion\".\"media_type\") = UPPER('No Media') group by \"promotion\".\"media_type\" order by \"promotion\".\"media_type\" ASC",
-    "c0=No Media\n",
-    "select \"promotion\".\"media_type\" as \"c0\" from \"promotion\" as \"promotion\" group by \"promotion\".\"media_type\" order by \"promotion\".\"media_type\" ASC",
-    "c0=Bulk Mail\n"
+      "select \"store\".\"store_country\" as \"c0\" from \"store\" as \"store\" where UPPER(\"store\".\"store_country\") = UPPER('USA') group by \"store\".\"store_country\" order by \"store\".\"store_country\" ASC",
+      "c0=USA\n",
+      "select \"store\".\"store_state\" as \"c0\" from \"store\" as \"store\" where (\"store\".\"store_country\" = 'USA') and UPPER(\"store\".\"store_state\") = UPPER('CA') group by \"store\".\"store_state\" order by \"store\".\"store_state\" ASC",
+      "c0=CA\n",
+      "select \"store\".\"store_city\" as \"c0\", \"store\".\"store_state\" as \"c1\" from \"store\" as \"store\" where (\"store\".\"store_state\" = 'CA' and \"store\".\"store_country\" = 'USA') and UPPER(\"store\".\"store_city\") = UPPER('Los Angeles') group by \"store\".\"store_city\", \"store\".\"store_state\" order by \"store\".\"store_city\" ASC",
+      "c0=Los Angeles; c1=CA\n",
+      "select \"customer\".\"country\" as \"c0\" from \"customer\" as \"customer\" where UPPER(\"customer\".\"country\") = UPPER('USA') group by \"customer\".\"country\" order by \"customer\".\"country\" ASC",
+      "c0=USA\n",
+      "select \"customer\".\"state_province\" as \"c0\", \"customer\".\"country\" as \"c1\" from \"customer\" as \"customer\" where (\"customer\".\"country\" = 'USA') and UPPER(\"customer\".\"state_province\") = UPPER('CA') group by \"customer\".\"state_province\", \"customer\".\"country\" order by \"customer\".\"state_province\" ASC",
+      "c0=CA; c1=USA\n",
+      "select \"customer\".\"city\" as \"c0\", \"customer\".\"country\" as \"c1\", \"customer\".\"state_province\" as \"c2\" from \"customer\" as \"customer\" where (\"customer\".\"country\" = 'USA' and \"customer\".\"state_province\" = 'CA' and \"customer\".\"country\" = 'USA' and \"customer\".\"state_province\" = 'CA' and \"customer\".\"country\" = 'USA') and UPPER(\"customer\".\"city\") = UPPER('Los Angeles') group by \"customer\".\"city\", \"customer\".\"country\", \"customer\".\"state_province\" order by \"customer\".\"city\" ASC",
+      "c0=Los Angeles; c1=USA; c2=CA\n",
+      "select \"store\".\"store_country\" as \"c0\" from \"store\" as \"store\" where UPPER(\"store\".\"store_country\") = UPPER('Gender') group by \"store\".\"store_country\" order by \"store\".\"store_country\" ASC",
+      "",
+      "select \"store\".\"store_type\" as \"c0\" from \"store\" as \"store\" where UPPER(\"store\".\"store_type\") = UPPER('Gender') group by \"store\".\"store_type\" order by \"store\".\"store_type\" ASC",
+      "",
+      "select \"product_class\".\"product_family\" as \"c0\" from \"product\" as \"product\", \"product_class\" as \"product_class\" where \"product\".\"product_class_id\" = \"product_class\".\"product_class_id\" and UPPER(\"product_class\".\"product_family\") = UPPER('Gender') group by \"product_class\".\"product_family\" order by \"product_class\".\"product_family\" ASC",
+      "",
+      "select \"promotion\".\"media_type\" as \"c0\" from \"promotion\" as \"promotion\" where UPPER(\"promotion\".\"media_type\") = UPPER('Gender') group by \"promotion\".\"media_type\" order by \"promotion\".\"media_type\" ASC",
+      "",
+      "select \"promotion\".\"promotion_name\" as \"c0\" from \"promotion\" as \"promotion\" where UPPER(\"promotion\".\"promotion_name\") = UPPER('Gender') group by \"promotion\".\"promotion_name\" order by \"promotion\".\"promotion_name\" ASC",
+      "",
+      "select \"promotion\".\"media_type\" as \"c0\" from \"promotion\" as \"promotion\" where UPPER(\"promotion\".\"media_type\") = UPPER('No Media') group by \"promotion\".\"media_type\" order by \"promotion\".\"media_type\" ASC",
+      "c0=No Media\n",
+      "select \"promotion\".\"media_type\" as \"c0\" from \"promotion\" as \"promotion\" group by \"promotion\".\"media_type\" order by \"promotion\".\"media_type\" ASC",
+      "c0=Bulk Mail\n"
         + "c0=Cash Register Handout\n"
         + "c0=Daily Paper\n"
         + "c0=Daily Paper, Radio\n"
@@ -1220,12 +1220,12 @@ public class JdbcTest {
         + "c0=Sunday Paper, Radio\n"
         + "c0=Sunday Paper, Radio, TV\n"
         + "c0=TV\n",
-    "select count(distinct \"the_year\") from \"time_by_day\"",
-    "EXPR$0=2\n",
-    "select \"time_by_day\".\"the_year\" as \"c0\", sum(\"sales_fact_1997\".\"unit_sales\") as \"m0\" from \"time_by_day\" as \"time_by_day\", \"sales_fact_1997\" as \"sales_fact_1997\" where \"sales_fact_1997\".\"time_id\" = \"time_by_day\".\"time_id\" and \"time_by_day\".\"the_year\" = 1997 group by \"time_by_day\".\"the_year\"",
-    "c0=1997; m0=266773.0000\n",
-    "select \"time_by_day\".\"the_year\" as \"c0\", \"promotion\".\"media_type\" as \"c1\", sum(\"sales_fact_1997\".\"unit_sales\") as \"m0\" from \"time_by_day\" as \"time_by_day\", \"sales_fact_1997\" as \"sales_fact_1997\", \"promotion\" as \"promotion\" where \"sales_fact_1997\".\"time_id\" = \"time_by_day\".\"time_id\" and \"time_by_day\".\"the_year\" = 1997 and \"sales_fact_1997\".\"promotion_id\" = \"promotion\".\"promotion_id\" group by \"time_by_day\".\"the_year\", \"promotion\".\"media_type\"",
-    "c0=1997; c1=Bulk Mail; m0=4320.0000\n"
+      "select count(distinct \"the_year\") from \"time_by_day\"",
+      "EXPR$0=2\n",
+      "select \"time_by_day\".\"the_year\" as \"c0\", sum(\"sales_fact_1997\".\"unit_sales\") as \"m0\" from \"time_by_day\" as \"time_by_day\", \"sales_fact_1997\" as \"sales_fact_1997\" where \"sales_fact_1997\".\"time_id\" = \"time_by_day\".\"time_id\" and \"time_by_day\".\"the_year\" = 1997 group by \"time_by_day\".\"the_year\"",
+      "c0=1997; m0=266773.0000\n",
+      "select \"time_by_day\".\"the_year\" as \"c0\", \"promotion\".\"media_type\" as \"c1\", sum(\"sales_fact_1997\".\"unit_sales\") as \"m0\" from \"time_by_day\" as \"time_by_day\", \"sales_fact_1997\" as \"sales_fact_1997\", \"promotion\" as \"promotion\" where \"sales_fact_1997\".\"time_id\" = \"time_by_day\".\"time_id\" and \"time_by_day\".\"the_year\" = 1997 and \"sales_fact_1997\".\"promotion_id\" = \"promotion\".\"promotion_id\" group by \"time_by_day\".\"the_year\", \"promotion\".\"media_type\"",
+      "c0=1997; c1=Bulk Mail; m0=4320.0000\n"
         + "c0=1997; c1=Radio; m0=2454.0000\n"
         + "c0=1997; c1=Street Handout; m0=5753.0000\n"
         + "c0=1997; c1=TV; m0=3607.0000\n"
@@ -1239,17 +1239,17 @@ public class JdbcTest {
         + "c0=1997; c1=Daily Paper, Radio, TV; m0=9513.0000\n"
         + "c0=1997; c1=Sunday Paper, Radio; m0=5945.0000\n"
         + "c0=1997; c1=Sunday Paper; m0=4339.0000\n",
-    "select \"store\".\"store_country\" as \"c0\", sum(\"inventory_fact_1997\".\"supply_time\") as \"m0\" from \"store\" as \"store\", \"inventory_fact_1997\" as \"inventory_fact_1997\" where \"inventory_fact_1997\".\"store_id\" = \"store\".\"store_id\" group by \"store\".\"store_country\"",
-    "c0=USA; m0=10425\n",
-    "select \"sn\".\"desc\" as \"c0\" from (SELECT * FROM (VALUES (1, 'SameName')) AS \"t\" (\"id\", \"desc\")) as \"sn\" group by \"sn\".\"desc\" order by \"sn\".\"desc\" ASC NULLS LAST",
-    "c0=SameName\n",
-    "select \"the_year\", count(*) as c, min(\"the_month\") as m\n"
+      "select \"store\".\"store_country\" as \"c0\", sum(\"inventory_fact_1997\".\"supply_time\") as \"m0\" from \"store\" as \"store\", \"inventory_fact_1997\" as \"inventory_fact_1997\" where \"inventory_fact_1997\".\"store_id\" = \"store\".\"store_id\" group by \"store\".\"store_country\"",
+      "c0=USA; m0=10425\n",
+      "select \"sn\".\"desc\" as \"c0\" from (SELECT * FROM (VALUES (1, 'SameName')) AS \"t\" (\"id\", \"desc\")) as \"sn\" group by \"sn\".\"desc\" order by \"sn\".\"desc\" ASC NULLS LAST",
+      "c0=SameName\n",
+      "select \"the_year\", count(*) as c, min(\"the_month\") as m\n"
         + "from \"foodmart2\".\"time_by_day\"\n"
         + "group by \"the_year\"\n"
         + "order by 1, 2",
-    "the_year=1997; C=365; M=April\n"
+      "the_year=1997; C=365; M=April\n"
         + "the_year=1998; C=365; M=April\n",
-    "select\n"
+      "select\n"
         + " \"store\".\"store_state\" as \"c0\",\n"
         + " \"time_by_day\".\"the_year\" as \"c1\",\n"
         + " sum(\"sales_fact_1997\".\"unit_sales\") as \"m0\",\n"
@@ -1262,10 +1262,10 @@ public class JdbcTest {
         + "and \"sales_fact_1997\".\"time_id\" = \"time_by_day\".\"time_id\"\n"
         + "and \"time_by_day\".\"the_year\" = 1997\n"
         + "group by \"store\".\"store_state\", \"time_by_day\".\"the_year\"",
-    "c0=WA; c1=1997; m0=124366.0000; m1=263793.2200\n",
-    "select count(distinct \"product_id\") from \"product\"",
-    "EXPR$0=1560\n",
-    "select \"store\".\"store_name\" as \"c0\",\n"
+      "c0=WA; c1=1997; m0=124366.0000; m1=263793.2200\n",
+      "select count(distinct \"product_id\") from \"product\"",
+      "EXPR$0=1560\n",
+      "select \"store\".\"store_name\" as \"c0\",\n"
         + " \"time_by_day\".\"the_year\" as \"c1\",\n"
         + " sum(\"sales_fact_1997\".\"store_sales\") as \"m0\"\n"
         + "from \"store\" as \"store\",\n"
@@ -1277,13 +1277,13 @@ public class JdbcTest {
         + "and \"time_by_day\".\"the_year\" = 1997\n"
         + "group by \"store\".\"store_name\",\n"
         + " \"time_by_day\".\"the_year\"\n",
-    "c0=Store 7; c1=1997; m0=54545.2800\n"
+      "c0=Store 7; c1=1997; m0=54545.2800\n"
         + "c0=Store 24; c1=1997; m0=54431.1400\n"
         + "c0=Store 16; c1=1997; m0=49634.4600\n"
         + "c0=Store 3; c1=1997; m0=52896.3000\n"
         + "c0=Store 15; c1=1997; m0=52644.0700\n"
         + "c0=Store 11; c1=1997; m0=55058.7900\n",
-    "select \"customer\".\"yearly_income\" as \"c0\","
+      "select \"customer\".\"yearly_income\" as \"c0\","
         + " \"customer\".\"education\" as \"c1\"\n"
         + "from \"customer\" as \"customer\",\n"
         + " \"sales_fact_1997\" as \"sales_fact_1997\"\n"
@@ -1294,7 +1294,7 @@ public class JdbcTest {
         + " \"customer\".\"education\"\n"
         + "order by \"customer\".\"yearly_income\" ASC NULLS LAST,\n"
         + " \"customer\".\"education\" ASC NULLS LAST",
-    "c0=$110K - $130K; c1=Bachelors Degree\n"
+      "c0=$110K - $130K; c1=Bachelors Degree\n"
         + "c0=$110K - $130K; c1=Graduate Degree\n"
         + "c0=$110K - $130K; c1=High School Degree\n"
         + "c0=$110K - $130K; c1=Partial College\n"
@@ -1324,9 +1324,9 @@ public class JdbcTest {
         + "c0=$90K - $110K; c1=High School Degree\n"
         + "c0=$90K - $110K; c1=Partial College\n"
         + "c0=$90K - $110K; c1=Partial High School\n",
-    "ignore:select \"time_by_day\".\"the_year\" as \"c0\", \"product_class\".\"product_family\" as \"c1\", \"customer\".\"state_province\" as \"c2\", \"customer\".\"city\" as \"c3\", sum(\"sales_fact_1997\".\"unit_sales\") as \"m0\" from \"time_by_day\" as \"time_by_day\", \"sales_fact_1997\" as \"sales_fact_1997\", \"product_class\" as \"product_class\", \"product\" as \"product\", \"customer\" as \"customer\" where \"sales_fact_1997\".\"time_id\" = \"time_by_day\".\"time_id\" and \"time_by_day\".\"the_year\" = 1997 and \"sales_fact_1997\".\"product_id\" = \"product\".\"product_id\" and \"product\".\"product_class_id\" = \"product_class\".\"product_class_id\" and \"product_class\".\"product_family\" = 'Drink' and \"sales_fact_1997\".\"customer_id\" = \"customer\".\"customer_id\" and \"customer\".\"state_province\" = 'WA' and \"customer\".\"city\" in ('Anacortes', 'Ballard', 'Bellingham', 'Bremerton', 'Burien', 'Edmonds', 'Everett', 'Issaquah', 'Kirkland', 'Lynnwood', 'Marysville', 'Olympia', 'Port Orchard', 'Puyallup', 'Redmond', 'Renton', 'Seattle', 'Sedro Woolley', 'Spokane', 'Tacoma', 'Walla Walla', 'Yakima') group by \"time_by_day\".\"the_year\", \"product_class\".\"product_family\", \"customer\".\"state_province\", \"customer\".\"city\"",
-    "c0=1997; c1=Drink; c2=WA; c3=Sedro Woolley; m0=58.0000\n",
-    "select \"store\".\"store_country\" as \"c0\",\n"
+      "ignore:select \"time_by_day\".\"the_year\" as \"c0\", \"product_class\".\"product_family\" as \"c1\", \"customer\".\"state_province\" as \"c2\", \"customer\".\"city\" as \"c3\", sum(\"sales_fact_1997\".\"unit_sales\") as \"m0\" from \"time_by_day\" as \"time_by_day\", \"sales_fact_1997\" as \"sales_fact_1997\", \"product_class\" as \"product_class\", \"product\" as \"product\", \"customer\" as \"customer\" where \"sales_fact_1997\".\"time_id\" = \"time_by_day\".\"time_id\" and \"time_by_day\".\"the_year\" = 1997 and \"sales_fact_1997\".\"product_id\" = \"product\".\"product_id\" and \"product\".\"product_class_id\" = \"product_class\".\"product_class_id\" and \"product_class\".\"product_family\" = 'Drink' and \"sales_fact_1997\".\"customer_id\" = \"customer\".\"customer_id\" and \"customer\".\"state_province\" = 'WA' and \"customer\".\"city\" in ('Anacortes', 'Ballard', 'Bellingham', 'Bremerton', 'Burien', 'Edmonds', 'Everett', 'Issaquah', 'Kirkland', 'Lynnwood', 'Marysville', 'Olympia', 'Port Orchard', 'Puyallup', 'Redmond', 'Renton', 'Seattle', 'Sedro Woolley', 'Spokane', 'Tacoma', 'Walla Walla', 'Yakima') group by \"time_by_day\".\"the_year\", \"product_class\".\"product_family\", \"customer\".\"state_province\", \"customer\".\"city\"",
+      "c0=1997; c1=Drink; c2=WA; c3=Sedro Woolley; m0=58.0000\n",
+      "select \"store\".\"store_country\" as \"c0\",\n"
         + " \"time_by_day\".\"the_year\" as \"c1\",\n"
         + " sum(\"sales_fact_1997\".\"store_cost\") as \"m0\",\n"
         + " count(\"sales_fact_1997\".\"product_id\") as \"m1\",\n"
@@ -1340,10 +1340,10 @@ public class JdbcTest {
         + "and \"sales_fact_1997\".\"time_id\" = \"time_by_day\".\"time_id\"\n"
         + "and \"time_by_day\".\"the_year\" = 1997\n"
         + "group by \"store\".\"store_country\", \"time_by_day\".\"the_year\"",
-    "c0=USA; c1=1997; m0=225627.2336; m1=86837; m2=5581; m3=151211.2100\n",
+      "c0=USA; c1=1997; m0=225627.2336; m1=86837; m2=5581; m3=151211.2100\n",
       // query 6077
       // disabled (runs out of memory)
-    "ignore:select \"time_by_day\".\"the_year\" as \"c0\",\n"
+      "ignore:select \"time_by_day\".\"the_year\" as \"c0\",\n"
         + " count(distinct \"sales_fact_1997\".\"customer_id\") as \"m0\"\n"
         + "from \"time_by_day\" as \"time_by_day\",\n"
         + " \"sales_fact_1997\" as \"sales_fact_1997\",\n"
@@ -1378,10 +1378,10 @@ public class JdbcTest {
         + "   and \"product_class\".\"product_department\" = 'Household'\n"
         + "   and \"product_class\".\"product_family\" = 'Non-Consumable'))\n"
         + "group by \"time_by_day\".\"the_year\"\n",
-    "xxtodo",
+      "xxtodo",
       // query 6077, simplified
       // disabled (slow)
-    "ignore:select count(\"sales_fact_1997\".\"customer_id\") as \"m0\"\n"
+      "ignore:select count(\"sales_fact_1997\".\"customer_id\") as \"m0\"\n"
         + "from \"sales_fact_1997\" as \"sales_fact_1997\",\n"
         + " \"product_class\" as \"product_class\",\n"
         + " \"product\" as \"product\"\n"
@@ -1390,18 +1390,18 @@ public class JdbcTest {
         + "and ((\"product\".\"brand_name\" = 'Cormorant'\n"
         + "   and \"product_class\".\"product_subcategory\" = 'Pot Scrubbers')\n"
         + " or (\"product_class\".\"product_subcategory\" = 'Pots and Pans'))\n",
-    "xxxx",
+      "xxxx",
       // query 6077, simplified further
-    "select count(distinct \"sales_fact_1997\".\"customer_id\") as \"m0\"\n"
+      "select count(distinct \"sales_fact_1997\".\"customer_id\") as \"m0\"\n"
         + "from \"sales_fact_1997\" as \"sales_fact_1997\",\n"
         + " \"product_class\" as \"product_class\",\n"
         + " \"product\" as \"product\"\n"
         + "where \"sales_fact_1997\".\"product_id\" = \"product\".\"product_id\"\n"
         + "and \"product\".\"product_class_id\" = \"product_class\".\"product_class_id\"\n"
         + "and \"product\".\"brand_name\" = 'Cormorant'\n",
-    "m0=1298",
+      "m0=1298",
       // query 193
-    "select \"store\".\"store_country\" as \"c0\",\n"
+      "select \"store\".\"store_country\" as \"c0\",\n"
         + " \"time_by_day\".\"the_year\" as \"c1\",\n"
         + " \"time_by_day\".\"quarter\" as \"c2\",\n"
         + " \"product_class\".\"product_family\" as \"c3\",\n"
@@ -1424,7 +1424,7 @@ public class JdbcTest {
         + " \"time_by_day\".\"the_year\",\n"
         + " \"time_by_day\".\"quarter\",\n"
         + " \"product_class\".\"product_family\"",
-    "c0=USA; c1=1997; c2=Q3; c3=Food; m0=15449; m1=2939",
+      "c0=USA; c1=1997; c2=Q3; c3=Food; m0=15449; m1=2939",
   };
 
   public static final List<Pair<String, String>> FOODMART_QUERIES =
@@ -1817,12 +1817,11 @@ public class JdbcTest {
             + "  ]\n"
             + "}");
 
-    Connection calciteConnection = DriverManager.getConnection(
-      "jdbc:calcite:", info);
-
+    Connection calciteConnection =
+        DriverManager.getConnection("jdbc:calcite:", info);
     Statement calciteStatement = calciteConnection.createStatement();
-    ResultSet rs = calciteStatement.executeQuery(
-      "SELECT ID, VALS FROM ARR_TABLE");
+    final String sql = "SELECT ID, VALS FROM ARR_TABLE";
+    ResultSet rs = calciteStatement.executeQuery(sql);
     assertTrue(rs.next());
     assertEquals(1, rs.getInt(1));
     Array array = rs.getArray(2);
@@ -5656,25 +5655,25 @@ public class JdbcTest {
   @Test
   public void testGetDate() throws Exception {
     CalciteAssert.that()
-      .with(CalciteAssert.Config.JDBC_FOODMART)
-      .doWithConnection(
-          new Function<CalciteConnection, Object>() {
-            public Object apply(CalciteConnection conn) {
-              try {
-                Statement stmt = conn.createStatement();
-                ResultSet rs = stmt.executeQuery(
-                    "select min(\"date\") mindate from \"foodmart\".\"currency\"");
-                assertTrue(rs.next());
-                assertEquals(
-                    Date.valueOf("1997-01-01"),
-                    rs.getDate(1));
-                assertFalse(rs.next());
-                return null;
-              } catch (SQLException e) {
-                throw new RuntimeException(e);
+        .with(CalciteAssert.Config.JDBC_FOODMART)
+        .doWithConnection(
+            new Function<CalciteConnection, Object>() {
+              public Object apply(CalciteConnection conn) {
+                try {
+                  Statement stmt = conn.createStatement();
+                  ResultSet rs = stmt.executeQuery(
+                      "select min(\"date\") mindate from \"foodmart\".\"currency\"");
+                  assertTrue(rs.next());
+                  assertEquals(
+                      Date.valueOf("1997-01-01"),
+                      rs.getDate(1));
+                  assertFalse(rs.next());
+                  return null;
+                } catch (SQLException e) {
+                  throw new RuntimeException(e);
+                }
               }
-            }
-          });
+            });
   }
 
   /** Tests accessing a date as a string in a JDBC source whose type is DATE. */
@@ -5685,28 +5684,27 @@ public class JdbcTest {
       .returns2("MINDATE=1997-01-01\n");
   }
 
-  @Test
-  public void testGetTimestampObject() throws Exception {
+  @Test public void testGetTimestampObject() throws Exception {
     CalciteAssert.that()
-      .with(CalciteAssert.Config.JDBC_FOODMART)
-      .doWithConnection(
-          new Function<CalciteConnection, Object>() {
-            public Object apply(CalciteConnection conn) {
-              try {
-                Statement stmt = conn.createStatement();
-                ResultSet rs = stmt.executeQuery(
-                    "select \"hire_date\" from \"foodmart\".\"employee\" where \"employee_id\" = 1");
-                assertTrue(rs.next());
-                assertEquals(
-                    Timestamp.valueOf("1994-12-01 00:00:00"),
-                    rs.getTimestamp(1));
-                assertFalse(rs.next());
-                return null;
-              } catch (SQLException e) {
-                throw new RuntimeException(e);
+        .with(CalciteAssert.Config.JDBC_FOODMART)
+        .doWithConnection(
+            new Function<CalciteConnection, Object>() {
+              public Object apply(CalciteConnection conn) {
+                try {
+                  Statement stmt = conn.createStatement();
+                  ResultSet rs = stmt.executeQuery(
+                      "select \"hire_date\" from \"foodmart\".\"employee\" where \"employee_id\" = 1");
+                  assertTrue(rs.next());
+                  assertEquals(
+                      Timestamp.valueOf("1994-12-01 00:00:00"),
+                      rs.getTimestamp(1));
+                  assertFalse(rs.next());
+                  return null;
+                } catch (SQLException e) {
+                  throw new RuntimeException(e);
+                }
               }
-            }
-          });
+            });
   }
 
   @Test public void testUnicode() throws Exception {
@@ -6383,27 +6381,27 @@ public class JdbcTest {
 
     Properties info = new Properties();
     info.put("model",
-      "inline:"
-      + "{\n"
-      + "  version: '1.0',\n"
-      + "  defaultSchema: 'BASEJDBC',\n"
-      + "  schemas: [\n"
-      + "     {\n"
-      + "       type: 'jdbc',\n"
-      + "       name: 'BASEJDBC',\n"
-      + "       jdbcDriver: '" + jdbcDriver.class.getName() + "',\n"
-      + "       jdbcUrl: '" + hsqldbMemUrl + "',\n"
-      + "       jdbcCatalog: null,\n"
-      + "       jdbcSchema: null\n"
-      + "     }\n"
-      + "  ]\n"
-      + "}");
+        "inline:"
+        + "{\n"
+        + "  version: '1.0',\n"
+        + "  defaultSchema: 'BASEJDBC',\n"
+        + "  schemas: [\n"
+        + "     {\n"
+        + "       type: 'jdbc',\n"
+        + "       name: 'BASEJDBC',\n"
+        + "       jdbcDriver: '" + jdbcDriver.class.getName() + "',\n"
+        + "       jdbcUrl: '" + hsqldbMemUrl + "',\n"
+        + "       jdbcCatalog: null,\n"
+        + "       jdbcSchema: null\n"
+        + "     }\n"
+        + "  ]\n"
+        + "}");
 
-    Connection calciteConnection = DriverManager.getConnection(
-      "jdbc:calcite:", info);
+    Connection calciteConnection =
+        DriverManager.getConnection("jdbc:calcite:", info);
 
     ResultSet rs = calciteConnection.prepareStatement("select * from t1")
-      .executeQuery();
+        .executeQuery();
 
     assertThat(rs.next(), is(true));
     assertThat((Integer) rs.getObject("ID"), equalTo(1));

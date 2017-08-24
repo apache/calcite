@@ -47,7 +47,7 @@ public class CassandraAdapterIT {
    * included if "it" profile is activated ({@code -Pit}). To disable,
    * specify {@code -Dcalcite.test.cassandra=false} on the Java command line. */
   public static final boolean ENABLED =
-     Util.getBooleanProperty("calcite.test.cassandra", true);
+      Util.getBooleanProperty("calcite.test.cassandra", true);
 
   /** Whether to run this test. */
   protected boolean enabled() {

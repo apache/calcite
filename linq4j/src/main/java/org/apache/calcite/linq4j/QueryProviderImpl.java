@@ -51,6 +51,8 @@ public abstract class QueryProviderImpl implements QueryProvider {
 
   /**
    * Binds an expression to this query provider.
+   *
+   * @param <T> element type
    */
   public static class QueryableImpl<T> extends BaseQueryable<T> {
     public QueryableImpl(QueryProviderImpl provider, Type elementType,

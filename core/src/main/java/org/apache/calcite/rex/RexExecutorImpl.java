@@ -138,7 +138,7 @@ public class RexExecutorImpl implements RexExecutor {
     private final RelDataTypeFactory typeFactory;
     private final RelDataType rowType;
 
-    public DataContextInputGetter(RelDataType rowType,
+    DataContextInputGetter(RelDataType rowType,
         RelDataTypeFactory typeFactory) {
       this.rowType = rowType;
       this.typeFactory = typeFactory;

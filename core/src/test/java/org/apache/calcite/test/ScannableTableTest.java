@@ -290,8 +290,7 @@ public class ScannableTableTest {
     // have to iterate (CalciteAssert.toString) and then close the result set b/c it is backed by
     // an enumerable that only populates the info buffer (buf) on close
     resultSet.close();
-    assertThat(buf.toString(),
-      equalTo("returnCount=4, projects=[2]"));
+    assertThat(buf.toString(), is("returnCount=4, projects=[2]"));
   }
 
   /** Test case for
@@ -524,10 +523,10 @@ public class ScannableTableTest {
   }
 
   private static final Object[][] BEATLES = {
-    {4, "John", 1940},
-    {4, "Paul", 1942},
-    {6, "George", 1943},
-    {5, "Ringo", 1940}
+      {4, "John", 1940},
+      {4, "Paul", 1942},
+      {6, "George", 1943},
+      {5, "Ringo", 1940}
   };
 
   private static Enumerator<Object[]> beatles(final StringBuilder buf,

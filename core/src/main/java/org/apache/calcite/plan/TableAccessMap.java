@@ -38,7 +38,7 @@ public class TableAccessMap {
   //~ Enums ------------------------------------------------------------------
 
   /** Access mode. */
-  public static enum Mode {
+  public enum Mode {
     /**
      * Table is not accessed at all.
      */

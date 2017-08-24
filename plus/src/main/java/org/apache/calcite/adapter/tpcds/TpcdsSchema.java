@@ -99,7 +99,9 @@ public class TpcdsSchema extends AbstractSchema {
     return tableMap;
   }
 
-  /** Definition of a table in the TPC-DS schema. */
+  /** Definition of a table in the TPC-DS schema.
+   *
+   * @param <E> entity type */
   private class TpcdsQueryableTable<E extends TpcdsEntity>
       extends AbstractQueryableTable {
     private final TpcdsTable<E> tpcdsTable;

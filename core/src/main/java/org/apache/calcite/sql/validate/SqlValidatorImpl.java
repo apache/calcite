@@ -2008,7 +2008,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       return node;
     case MATCH_RECOGNIZE:
       registerMatchRecognize(parentScope, usingScope,
-        (SqlMatchRecognize) node, enclosingNode, alias, forceNullable);
+          (SqlMatchRecognize) node, enclosingNode, alias, forceNullable);
       return node;
     case TABLESAMPLE:
       call = (SqlCall) node;
@@ -4880,7 +4880,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     }
 
     List<Map.Entry<String, RelDataType>> measureColumns =
-      validateMeasure(matchRecognize, scope, allRows);
+        validateMeasure(matchRecognize, scope, allRows);
     for (Map.Entry<String, RelDataType> c : measureColumns) {
       if (!typeBuilder.nameExists(c.getKey())) {
         typeBuilder.add(c.getKey(), c.getValue());
@@ -5226,7 +5226,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   private static class InsertNamespace extends DmlNamespace {
     private final SqlInsert node;
 
-    public InsertNamespace(SqlValidatorImpl validator, SqlInsert node,
+    InsertNamespace(SqlValidatorImpl validator, SqlInsert node,
         SqlNode enclosingNode, SqlValidatorScope parentScope) {
       super(validator, node.getTargetTable(), enclosingNode, parentScope);
       this.node = Preconditions.checkNotNull(node);
@@ -5243,7 +5243,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   private static class UpdateNamespace extends DmlNamespace {
     private final SqlUpdate node;
 
-    public UpdateNamespace(SqlValidatorImpl validator, SqlUpdate node,
+    UpdateNamespace(SqlValidatorImpl validator, SqlUpdate node,
         SqlNode enclosingNode, SqlValidatorScope parentScope) {
       super(validator, node.getTargetTable(), enclosingNode, parentScope);
       this.node = Preconditions.checkNotNull(node);
@@ -5260,7 +5260,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   private static class DeleteNamespace extends DmlNamespace {
     private final SqlDelete node;
 
-    public DeleteNamespace(SqlValidatorImpl validator, SqlDelete node,
+    DeleteNamespace(SqlValidatorImpl validator, SqlDelete node,
         SqlNode enclosingNode, SqlValidatorScope parentScope) {
       super(validator, node.getTargetTable(), enclosingNode, parentScope);
       this.node = Preconditions.checkNotNull(node);
@@ -5277,7 +5277,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   private static class MergeNamespace extends DmlNamespace {
     private final SqlMerge node;
 
-    public MergeNamespace(SqlValidatorImpl validator, SqlMerge node,
+    MergeNamespace(SqlValidatorImpl validator, SqlMerge node,
         SqlNode enclosingNode, SqlValidatorScope parentScope) {
       super(validator, node.getTargetTable(), enclosingNode, parentScope);
       this.node = Preconditions.checkNotNull(node);
@@ -5293,7 +5293,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
    */
   private class PatternVarVisitor implements SqlVisitor<Void> {
     private MatchRecognizeScope scope;
-    public PatternVarVisitor(MatchRecognizeScope scope) {
+    PatternVarVisitor(MatchRecognizeScope scope) {
       this.scope = scope;
     }
 
@@ -5340,7 +5340,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   private class DeriveTypeVisitor implements SqlVisitor<RelDataType> {
     private final SqlValidatorScope scope;
 
-    public DeriveTypeVisitor(SqlValidatorScope scope) {
+    DeriveTypeVisitor(SqlValidatorScope scope) {
       this.scope = scope;
     }
 
@@ -5500,9 +5500,9 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
           Util.last(id.names),
           id.getParserPosition());
         SqlBasicCall item_call = new SqlBasicCall(
-          SqlStdOperatorTable.ITEM,
-          inputs,
-          id.getParserPosition());
+            SqlStdOperatorTable.ITEM,
+            inputs,
+            id.getParserPosition());
         expandedExpr = item_call;
       }
       validator.setOriginal(expandedExpr, id);
@@ -5795,11 +5795,11 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     SqlOperator currentOperator;
     SqlNode currentOffset;
 
-    public NavigationExpander() {
+    NavigationExpander() {
 
     }
 
-    public NavigationExpander(SqlOperator operator, SqlNode offset) {
+    NavigationExpander(SqlOperator operator, SqlNode offset) {
       this.currentOffset = offset;
       this.currentOperator = operator;
     }
@@ -5819,7 +5819,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
             List<SqlNode> innerOperands = ((SqlCall) inner).getOperandList();
             SqlNode innerOffset = innerOperands.get(1);
             SqlOperator newOperator = innerKind == kind
-              ? SqlStdOperatorTable.PLUS : SqlStdOperatorTable.MINUS;
+                ? SqlStdOperatorTable.PLUS : SqlStdOperatorTable.MINUS;
             offset = newOperator.createCall(SqlParserPos.ZERO,
               offset, innerOffset);
             inner = call.getOperator().createCall(SqlParserPos.ZERO,
@@ -5855,7 +5855,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   private class NavigationReplacer extends NavigationModifier {
     private final String alpha;
 
-    public NavigationReplacer(String alpha) {
+    NavigationReplacer(String alpha) {
       this.alpha = alpha;
     }
 
@@ -5887,7 +5887,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         return id;
       }
       SqlOperator operator = id.names.get(0).equals(alpha)
-        ? SqlStdOperatorTable.PREV : SqlStdOperatorTable.LAST;
+          ? SqlStdOperatorTable.PREV : SqlStdOperatorTable.LAST;
 
       return operator.createCall(SqlParserPos.ZERO, id,
         SqlLiteral.createExactNumeric("0", SqlParserPos.ZERO));

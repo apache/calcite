@@ -51,9 +51,9 @@ import java.util.List;
  */
 class ElasticsearchRules {
   static final RelOptRule[] RULES = {
-    ElasticsearchSortRule.INSTANCE,
-    ElasticsearchFilterRule.INSTANCE,
-    ElasticsearchProjectRule.INSTANCE
+      ElasticsearchSortRule.INSTANCE,
+      ElasticsearchFilterRule.INSTANCE,
+      ElasticsearchProjectRule.INSTANCE
   };
 
   private ElasticsearchRules() {}
@@ -69,9 +69,9 @@ class ElasticsearchRules {
     final RexNode op1 = call.getOperands().get(1);
 
     if (op0 instanceof RexInputRef
-      && ((RexInputRef) op0).getIndex() == 0
-      && op1 instanceof RexLiteral
-      && ((RexLiteral) op1).getValue2() instanceof String) {
+        && ((RexInputRef) op0).getIndex() == 0
+        && op1 instanceof RexLiteral
+        && ((RexLiteral) op1).getValue2() instanceof String) {
       return (String) ((RexLiteral) op1).getValue2();
     }
     return null;

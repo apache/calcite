@@ -337,7 +337,7 @@ public class RelOptTableImpl extends Prepare.AbstractPreparingTable {
     private final String name;
     private final Schema schema;
 
-    public MySchemaPlus(SchemaPlus parent, String name, Schema schema) {
+    MySchemaPlus(SchemaPlus parent, String name, Schema schema) {
       this.parent = parent;
       this.name = name;
       this.schema = schema;

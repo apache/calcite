@@ -54,7 +54,7 @@ class LixToRelTranslator implements RelOptTable.ToRelContext {
   private final Prepare preparingStmt;
   final JavaTypeFactory typeFactory;
 
-  public LixToRelTranslator(RelOptCluster cluster, Prepare preparingStmt) {
+  LixToRelTranslator(RelOptCluster cluster, Prepare preparingStmt) {
     this.cluster = cluster;
     this.preparingStmt = preparingStmt;
     this.typeFactory = (JavaTypeFactory) cluster.getTypeFactory();

@@ -2240,8 +2240,8 @@ public class Util {
 
   /** Returns a copy of a list of lists, making the component lists immutable if
    * they are not already. */
-  public static <E> List<List<E>>
-  immutableCopy(Iterable<? extends Iterable<E>> lists) {
+  public static <E> List<List<E>> immutableCopy(
+      Iterable<? extends Iterable<E>> lists) {
     int n = 0;
     for (Iterable<E> list : lists) {
       if (!(list instanceof ImmutableList)) {

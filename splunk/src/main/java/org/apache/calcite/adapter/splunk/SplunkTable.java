@@ -75,10 +75,12 @@ class SplunkTable extends AbstractQueryableTable implements TranslatableTable {
 
   /** Implementation of {@link Queryable} backed by a {@link SplunkTable}.
    * Generated code uses this get a Splunk connection for executing arbitrary
-   * Splunk queries. */
+   * Splunk queries.
+   *
+   * @param <T> element type */
   public static class SplunkTableQueryable<T>
       extends AbstractTableQueryable<T> {
-    public SplunkTableQueryable(QueryProvider queryProvider, SchemaPlus schema,
+    SplunkTableQueryable(QueryProvider queryProvider, SchemaPlus schema,
         SplunkTable table, String tableName) {
       super(queryProvider, schema, table, tableName);
     }

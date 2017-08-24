@@ -128,7 +128,7 @@ public class JdbcRules {
   abstract static class JdbcConverterRule extends ConverterRule {
     protected final JdbcConvention out;
 
-    public JdbcConverterRule(Class<? extends RelNode> clazz, RelTrait in,
+    JdbcConverterRule(Class<? extends RelNode> clazz, RelTrait in,
         JdbcConvention out, String description) {
       super(clazz, in, out, description);
       this.out = out;

@@ -30,7 +30,7 @@ import java.util.List;
 class JsonEnumerator implements Enumerator<Object[]> {
   private final Enumerator<Object> enumerator;
 
-  public JsonEnumerator(Source source) {
+  JsonEnumerator(Source source) {
     try {
       final ObjectMapper mapper = new ObjectMapper();
       mapper.configure(JsonParser.Feature.ALLOW_UNQUOTED_FIELD_NAMES, true);

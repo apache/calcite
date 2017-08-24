@@ -36,8 +36,7 @@ import java.util.RandomAccess;
 public abstract class Functions {
   private Functions() {}
 
-  public static final Map<Class<? extends Function>, Class>
-  FUNCTION_RESULT_TYPES =
+  public static final Map<Class<? extends Function>, Class> FUNCTION_RESULT_TYPES =
       Collections.<Class<? extends Function>, Class>unmodifiableMap(
           map(Function0.class, Object.class,
               Function1.class, Object.class,
@@ -531,7 +530,10 @@ public abstract class Functions {
     }
   }
 
-  /** Selector equality comparer. */
+  /** Selector equality comparer.
+   *
+   * @param <T> element type
+   * @param <T2> target type */
   private static final class SelectorEqualityComparer<T, T2>
       implements EqualityComparer<T> {
     private final Function1<T, T2> selector;
@@ -624,7 +626,11 @@ public abstract class Functions {
     }
   }
 
-  /** Ignore. */
+  /** Ignore.
+   *
+   * @param <R> result type
+   * @param <T0> first argument type
+   * @param <T1> second argument type */
   private static final class Ignore<R, T0, T1>
       implements Function0<R>, Function1<T0, R>, Function2<T0, T1, R> {
     public R apply() {
@@ -642,13 +648,15 @@ public abstract class Functions {
     static final Ignore INSTANCE = new Ignore();
   }
 
-  /** List that generates each element using a function. */
+  /** List that generates each element using a function.
+   *
+   * @param <E> element type */
   private static class GeneratingList<E> extends AbstractList<E>
       implements RandomAccess {
     private final int size;
     private final Function1<Integer, E> fn;
 
-    public GeneratingList(int size, Function1<Integer, E> fn) {
+    GeneratingList(int size, Function1<Integer, E> fn) {
       this.size = size;
       this.fn = fn;
     }

@@ -219,20 +219,20 @@ public class SplunkConnectionImpl implements SplunkConnection {
 
   public static void printUsage(String errorMsg) {
     String[] strings = {
-      "Usage: java Connection -<arg-name> <arg-value>",
-      "The following <arg-name> are valid",
-      "search        - required, search string to execute",
-      "field_list    - "
-        + "required, list of fields to request, comma delimited",
-      "uri           - "
-        + "uri to splunk's mgmt port, default: https://localhost:8089",
-      "username      - "
-        + "username to use for authentication, default: admin",
-      "password      - "
-        + "password to use for authentication, default: changeme",
-      "earliest_time - earliest time for the search, default: -24h",
-      "latest_time   - latest time for the search, default: now",
-      "-print        - whether to print results or just the summary"
+        "Usage: java Connection -<arg-name> <arg-value>",
+        "The following <arg-name> are valid",
+        "search        - required, search string to execute",
+        "field_list    - "
+          + "required, list of fields to request, comma delimited",
+        "uri           - "
+          + "uri to splunk's mgmt port, default: https://localhost:8089",
+        "username      - "
+          + "username to use for authentication, default: admin",
+        "password      - "
+          + "password to use for authentication, default: changeme",
+        "earliest_time - earliest time for the search, default: -24h",
+        "latest_time   - latest time for the search, default: now",
+        "-print        - whether to print results or just the summary"
     };
     System.err.println(errorMsg);
     for (String s : strings) {

@@ -48,7 +48,7 @@ class ListTable extends AbstractQueryableTable {
   private final List list;
 
   /** Creates a ListTable. */
-  public ListTable(
+  ListTable(
       Type elementType,
       RelProtoDataType protoRowType,
       Expression expression,

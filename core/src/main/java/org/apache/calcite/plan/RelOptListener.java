@@ -85,7 +85,7 @@ public interface RelOptListener extends EventListener {
    * Event class for abstract event dealing with a relational expression. The
    * source of an event is typically the RelOptPlanner which initiated it.
    */
-  public abstract static class RelEvent extends EventObject {
+  abstract class RelEvent extends EventObject {
     private final RelNode rel;
 
     protected RelEvent(Object eventSource, RelNode rel) {
@@ -99,7 +99,7 @@ public interface RelOptListener extends EventListener {
   }
 
   /** Event indicating that a relational expression has been chosen. */
-  public static class RelChosenEvent extends RelEvent {
+  class RelChosenEvent extends RelEvent {
     public RelChosenEvent(Object eventSource, RelNode rel) {
       super(eventSource, rel);
     }
@@ -107,7 +107,7 @@ public interface RelOptListener extends EventListener {
 
   /** Event indicating that a relational expression has been found to
    * be equivalent to an equivalence class. */
-  public static class RelEquivalenceEvent extends RelEvent {
+  class RelEquivalenceEvent extends RelEvent {
     private final Object equivalenceClass;
     private final boolean isPhysical;
 
@@ -131,14 +131,14 @@ public interface RelOptListener extends EventListener {
   }
 
   /** Event indicating that a relational expression has been discarded. */
-  public static class RelDiscardedEvent extends RelEvent {
+  class RelDiscardedEvent extends RelEvent {
     public RelDiscardedEvent(Object eventSource, RelNode rel) {
       super(eventSource, rel);
     }
   }
 
   /** Event indicating that a planner rule has fired. */
-  public abstract static class RuleEvent extends RelEvent {
+  abstract class RuleEvent extends RelEvent {
     private final RelOptRuleCall ruleCall;
 
     protected RuleEvent(
@@ -155,7 +155,7 @@ public interface RelOptListener extends EventListener {
   }
 
   /** Event indicating that a planner rule has been attemptedd. */
-  public static class RuleAttemptedEvent extends RuleEvent {
+  class RuleAttemptedEvent extends RuleEvent {
     private final boolean before;
 
     public RuleAttemptedEvent(
@@ -173,7 +173,7 @@ public interface RelOptListener extends EventListener {
   }
 
   /** Event indicating that a planner rule has produced a result. */
-  public static class RuleProductionEvent extends RuleAttemptedEvent {
+  class RuleProductionEvent extends RuleAttemptedEvent {
     public RuleProductionEvent(
         Object eventSource,
         RelNode rel,

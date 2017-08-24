@@ -422,7 +422,7 @@ public abstract class SqlToRelTestBase {
   private static class DelegatingRelOptTable implements RelOptTable {
     private final RelOptTable parent;
 
-    public DelegatingRelOptTable(RelOptTable parent) {
+    DelegatingRelOptTable(RelOptTable parent) {
       this.parent = parent;
     }
 
@@ -491,8 +491,7 @@ public abstract class SqlToRelTestBase {
     private final boolean enableTrim;
     private final boolean enableExpand;
     private final SqlConformance conformance;
-    private final Function<RelDataTypeFactory, Prepare.CatalogReader>
-    catalogReaderFactory;
+    private final Function<RelDataTypeFactory, Prepare.CatalogReader> catalogReaderFactory;
     private final Function<RelOptCluster, RelOptCluster> clusterFactory;
     private RelDataTypeFactory typeFactory;
     public final SqlToRelConverter.Config config;
@@ -788,7 +787,7 @@ public abstract class SqlToRelTestBase {
 
     /** Validator for testing. */
   private static class FarragoTestValidator extends SqlValidatorImpl {
-    public FarragoTestValidator(
+    FarragoTestValidator(
         SqlOperatorTable opTab,
         SqlValidatorCatalogReader catalogReader,
         RelDataTypeFactory typeFactory,

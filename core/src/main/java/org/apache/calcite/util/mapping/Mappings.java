@@ -1549,7 +1549,7 @@ public abstract class Mappings {
     private final MappingType mappingType;
     private final int[] targets;
 
-    public PartialFunctionImpl(
+    PartialFunctionImpl(
         int sourceCount,
         int targetCount,
         MappingType mappingType) {

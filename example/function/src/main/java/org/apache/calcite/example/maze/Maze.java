@@ -39,7 +39,7 @@ class Maze {
   private final boolean horizontal = false;
   private final boolean spiral = false;
 
-  public Maze(int width, int height) {
+  Maze(int width, int height) {
     this.width = width;
     this.height = height;
     this.regions = new int[width * height];

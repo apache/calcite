@@ -33,7 +33,7 @@ import org.apache.calcite.sql.type.SqlTypeName;
  * has chance to resolve arguments.
  */
 class SqlDefaultOperator extends SqlSpecialOperator {
-  public SqlDefaultOperator() {
+  SqlDefaultOperator() {
     super("DEFAULT", SqlKind.DEFAULT, 100, true,
         ReturnTypes.explicit(SqlTypeName.ANY), InferTypes.RETURN_TYPE,
         OperandTypes.NILADIC);

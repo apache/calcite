@@ -2204,8 +2204,8 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    *
    * <p>For example, converts {@code TUMBLE_START(rowtime, INTERVAL '1' HOUR))}
    * to {@code TUMBLE(rowtime, INTERVAL '1' HOUR))}. */
-  public static List<Pair<SqlNode, AuxiliaryConverter>>
-  convertGroupToAuxiliaryCalls(SqlCall call) {
+  public static List<Pair<SqlNode, AuxiliaryConverter>> convertGroupToAuxiliaryCalls(
+      SqlCall call) {
     final SqlOperator op = call.getOperator();
     if (op instanceof SqlGroupFunction
         && op.isGroup()) {

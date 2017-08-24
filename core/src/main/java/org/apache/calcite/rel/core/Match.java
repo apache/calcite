@@ -132,8 +132,8 @@ public abstract class Match extends SingleRel {
 
   /** Creates an immutable map of a map of sorted sets. */
   private static <K extends Comparable<K>, V>
-  ImmutableSortedMap<K, SortedSet<V>> copyMap(
-      Map<K, ? extends SortedSet<V>> map) {
+      ImmutableSortedMap<K, SortedSet<V>>
+      copyMap(Map<K, ? extends SortedSet<V>> map) {
     final ImmutableSortedMap.Builder<K, SortedSet<V>> b =
         ImmutableSortedMap.naturalOrder();
     for (Map.Entry<K, ? extends SortedSet<V>> e : map.entrySet()) {
