@@ -21,7 +21,7 @@
     {
       "type": "custom",
       "name": "elasticsearch_raw",
-      "factory": "org.apache.calcite.adapter.elasticsearch5.Elasticsearch5SchemaFactory",
+      "factory": "org.apache.calcite.adapter.elasticsearch2.Elasticsearch2SchemaFactory",
       "operand": {
         "coordinates": "{'127.0.0.1': 9300}",
         "userConfig": "{'bulk.flush.max.actions': 10, 'bulk.flush.max.size.mb': 1}",

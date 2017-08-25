@@ -16,10 +16,10 @@
  */
 
 /**
- * Query provider based on an Elasticsearch5 DB.
+ * Base classes for a query provider based on an Elasticsearch DB.
  */
 @PackageMarker
-package org.apache.calcite.adapter.elasticsearch5;
+package org.apache.calcite.adapter.elasticsearch;
 
 import org.apache.calcite.avatica.util.PackageMarker;
 

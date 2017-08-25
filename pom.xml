@@ -140,7 +140,7 @@ limitations under the License.
     <module>cassandra</module>
     <module>core</module>
     <module>druid</module>
-    <module>elasticsearch</module>
+    <module>elasticsearch2</module>
     <module>elasticsearch5</module>
     <module>example</module>
     <module>file</module>

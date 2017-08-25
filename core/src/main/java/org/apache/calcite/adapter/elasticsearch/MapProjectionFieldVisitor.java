@@ -14,13 +14,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.calcite.adapter.elasticsearch;
+
+import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexLiteral;
+import org.apache.calcite.rex.RexVisitorImpl;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 
 /**
- * Query provider based on an Elasticsearch5 DB.
+ * Visitor that extracts the actual field name from an item expression.
  */
-@PackageMarker
-package org.apache.calcite.adapter.elasticsearch5;
+public class MapProjectionFieldVisitor extends RexVisitorImpl<String> {
+  public static final MapProjectionFieldVisitor INSTANCE = new MapProjectionFieldVisitor();
 
-import org.apache.calcite.avatica.util.PackageMarker;
+  private MapProjectionFieldVisitor() {
+    super(true);
+  }
 
-// End package-info.java
+  @Override public String visitCall(RexCall call) {
+    if (call.op == SqlStdOperatorTable.ITEM) {
+      return ((RexLiteral) call.getOperands().get(1)).getValueAs(String.class);
+    }
+    return super.visitCall(call);
+  }
+}
+
+// End MapProjectionFieldVisitor.java

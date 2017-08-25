@@ -14,13 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.calcite.adapter.elasticsearch;
 
 /**
- * Query provider based on an Elasticsearch5 DB.
+ * Gives access to some basic information of the Elasticsearch schema.
  */
-@PackageMarker
-package org.apache.calcite.adapter.elasticsearch5;
+public interface ElasticsearchSchema {
+  /**
+   * The name of the Elasticsearch index.
+   *
+   * @return The index name
+   */
+  String getIndex();
+}
 
-import org.apache.calcite.avatica.util.PackageMarker;
-
-// End package-info.java
+// End ElasticsearchSchema.java
