@@ -475,6 +475,7 @@ public class RexImpTable {
     switch (nullPolicy) {
     case ANY:
     case STRICT:
+    case SEMI_STRICT:
       return new CallImplementor() {
         public Expression implement(
             RexToLixTranslator translator, RexCall call, NullAs nullAs) {
@@ -812,7 +813,8 @@ public class RexImpTable {
     case IS_NOT_NULL:
       // If "f" is strict, then "f(a0, a1) IS NOT NULL" is
       // equivalent to "a0 IS NOT NULL AND a1 IS NOT NULL".
-      if (nullPolicy == NullPolicy.STRICT) {
+      switch (nullPolicy) {
+      case STRICT:
         return Expressions.foldAnd(
             translator.translateList(
                 call.getOperands(), nullAs));
@@ -821,7 +823,8 @@ public class RexImpTable {
     case IS_NULL:
       // If "f" is strict, then "f(a0, a1) IS NULL" is
       // equivalent to "a0 IS NULL OR a1 IS NULL".
-      if (nullPolicy == NullPolicy.STRICT) {
+      switch (nullPolicy) {
+      case STRICT:
         return Expressions.foldOr(
             translator.translateList(
                 call.getOperands(), nullAs));
@@ -904,7 +907,8 @@ public class RexImpTable {
       // RexNode can be referred via multiple ways: RexNode itself, RexLocalRef,
       // and may be others.
       final Map<RexNode, Boolean> nullable = new HashMap<>();
-      if (nullPolicy == NullPolicy.STRICT) {
+      switch (nullPolicy) {
+      case STRICT:
         // The arguments should be not nullable if STRICT operator is computed
         // in nulls NOT_POSSIBLE mode
         for (RexNode arg : call.getOperands()) {

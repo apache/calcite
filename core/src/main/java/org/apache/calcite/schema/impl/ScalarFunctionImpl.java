@@ -20,10 +20,13 @@ import org.apache.calcite.adapter.enumerable.CallImplementor;
 import org.apache.calcite.adapter.enumerable.NullPolicy;
 import org.apache.calcite.adapter.enumerable.ReflectiveCallNotNullImplementor;
 import org.apache.calcite.adapter.enumerable.RexImpTable;
+import org.apache.calcite.linq4j.function.SemiStrict;
+import org.apache.calcite.linq4j.function.Strict;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.schema.ImplementableFunction;
 import org.apache.calcite.schema.ScalarFunction;
+import org.apache.calcite.sql.SqlOperatorBinding;
 
 import com.google.common.collect.ImmutableMultimap;
 
@@ -35,8 +38,8 @@ import static org.apache.calcite.util.Static.RESOURCE;
 /**
 * Implementation of {@link org.apache.calcite.schema.ScalarFunction}.
 */
-public class ScalarFunctionImpl extends ReflectiveFunctionBase implements
-    ScalarFunction, ImplementableFunction {
+public class ScalarFunctionImpl extends ReflectiveFunctionBase
+    implements ScalarFunction, ImplementableFunction {
   private final CallImplementor implementor;
 
   /** Private constructor. */
@@ -112,8 +115,43 @@ public class ScalarFunctionImpl extends ReflectiveFunctionBase implements
   }
 
   private static CallImplementor createImplementor(final Method method) {
+    final NullPolicy nullPolicy = getNullPolicy(method);
     return RexImpTable.createImplementor(
-        new ReflectiveCallNotNullImplementor(method), NullPolicy.NONE, false);
+        new ReflectiveCallNotNullImplementor(method), nullPolicy, false);
+  }
+
+  private static NullPolicy getNullPolicy(Method m) {
+    if (m.getAnnotation(Strict.class) != null) {
+      return NullPolicy.STRICT;
+    } else if (m.getAnnotation(SemiStrict.class) != null) {
+      return NullPolicy.SEMI_STRICT;
+    } else if (m.getDeclaringClass().getAnnotation(Strict.class) != null) {
+      return NullPolicy.STRICT;
+    } else if (m.getDeclaringClass().getAnnotation(SemiStrict.class) != null) {
+      return NullPolicy.SEMI_STRICT;
+    } else {
+      return NullPolicy.NONE;
+    }
+  }
+
+  public RelDataType getReturnType(RelDataTypeFactory typeFactory,
+      SqlOperatorBinding opBinding) {
+    // Strict and semi-strict functions can return null even if their Java
+    // functions return a primitive type. Because when one of their arguments
+    // is null, they won't even be called.
+    final RelDataType returnType = getReturnType(typeFactory);
+    switch (getNullPolicy(method)) {
+    case STRICT:
+      for (RelDataType type : opBinding.collectOperandTypes()) {
+        if (type.isNullable()) {
+          return typeFactory.createTypeWithNullability(returnType, true);
+        }
+      }
+      break;
+    case SEMI_STRICT:
+      return typeFactory.createTypeWithNullability(returnType, true);
+    }
+    return returnType;
   }
 }
 

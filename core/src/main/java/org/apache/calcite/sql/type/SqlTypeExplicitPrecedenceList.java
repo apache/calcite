@@ -151,8 +151,8 @@ public class SqlTypeExplicitPrecedenceList
 
   // implement RelDataTypePrecedenceList
   public int compareTypePrecedence(RelDataType type1, RelDataType type2) {
-    assert containsType(type1);
-    assert containsType(type2);
+    assert containsType(type1) : type1;
+    assert containsType(type2) : type2;
 
     int p1 =
         getListPosition(

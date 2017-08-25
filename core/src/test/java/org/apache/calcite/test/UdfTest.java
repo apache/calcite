@@ -22,6 +22,7 @@ import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
 import org.apache.calcite.adapter.java.ReflectiveSchema;
 import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.linq4j.Ord;
+import org.apache.calcite.linq4j.function.SemiStrict;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.linq4j.tree.Types;
@@ -147,6 +148,18 @@ public class UdfTest {
         + java.lang.Math.class.getName()
         + "',\n"
         + "           methodName: 'abs'\n"
+        + "         },\n"
+        + "         {\n"
+        + "           name: 'NULL4',\n"
+        + "           className: '"
+        + Smalls.Null4Function.class.getName()
+        + "'\n"
+        + "         },\n"
+        + "         {\n"
+        + "           name: 'NULL8',\n"
+        + "           className: '"
+        + Smalls.Null8Function.class.getName()
+        + "'\n"
         + "         },\n"
         + "         {\n"
         + "           className: '"
@@ -289,6 +302,46 @@ public class UdfTest {
         + "where \"adhoc\".my_str(upper(\"adhoc\".my_str(\"name\")"
         + ")) ='8'")
         .returns("");
+  }
+
+  /** Tests that we generate the appropriate checks for a "semi-strict"
+   * function.
+   *
+   * <p>The difference between "strict" and "semi-strict" functions is that a
+   * "semi-strict" function might return null even if none of its arguments
+   * are null. (Both always return null if one of their arguments is null.)
+   * Thus, a nasty function is more unpredictable.
+   *
+   * @see SemiStrict */
+  @Test public void testSemiStrict() {
+    final CalciteAssert.AssertThat with = withUdf();
+    final String sql = "select\n"
+        + "  \"adhoc\".null4(upper(\"name\")) as p\n"
+        + " from \"adhoc\".EMPLOYEES";
+    with.query(sql)
+        .returnsUnordered("P=null",
+            "P=null",
+            "P=SEBASTIAN",
+            "P=THEODORE");
+    // my_str is non-strict; it must be called when args are null
+    final String sql2 = "select\n"
+        + "  \"adhoc\".my_str(upper(\"adhoc\".null4(\"name\"))) as p\n"
+        + " from \"adhoc\".EMPLOYEES";
+    with.query(sql2)
+        .returnsUnordered("P=<null>",
+            "P=<null>",
+            "P=<SEBASTIAN>",
+            "P=<THEODORE>");
+    // null8 throws NPE if its argument is null,
+    // so we had better know that null4 might return null
+    final String sql3 = "select\n"
+        + "  \"adhoc\".null8(\"adhoc\".null4(\"name\")) as p\n"
+        + " from \"adhoc\".EMPLOYEES";
+    with.query(sql3)
+        .returnsUnordered("P=null",
+            "P=null",
+            "P=Sebastian",
+            "P=null");
   }
 
   /** Tests derived return type of user-defined function. */

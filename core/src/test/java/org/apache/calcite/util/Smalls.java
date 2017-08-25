@@ -30,6 +30,7 @@ import org.apache.calcite.linq4j.function.Deterministic;
 import org.apache.calcite.linq4j.function.Function1;
 import org.apache.calcite.linq4j.function.Function2;
 import org.apache.calcite.linq4j.function.Parameter;
+import org.apache.calcite.linq4j.function.SemiStrict;
 import org.apache.calcite.linq4j.tree.Types;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
@@ -447,6 +448,29 @@ public class Smalls {
         return "<null>";
       }
       return "<" + o.toString() + ">";
+    }
+  }
+
+  /** Example of a semi-strict UDF.
+   * (Returns null if its parameter is null or if its length is 4.) */
+  public static class Null4Function {
+    @SemiStrict public static String eval(@Parameter(name = "s") String s) {
+      if (s == null || s.length() == 4) {
+        return null;
+      }
+      return s;
+    }
+  }
+
+  /** Example of a picky, semi-strict UDF.
+   * Throws {@link NullPointerException} if argument is null.
+   * Returns null if its argument's length is 8. */
+  public static class Null8Function {
+    @SemiStrict public static String eval(@Parameter(name = "s") String s) {
+      if (s.length() == 8) {
+        return null;
+      }
+      return s;
     }
   }
 
