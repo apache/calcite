@@ -1438,6 +1438,33 @@ public class RelMetadataTest extends SqlToRelTestBase {
     assertThat(pulledUpPredicates, sortsAs("[=($0, 1)]"));
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1960">[CALCITE-1960]
+   * RelMdPredicates.getPredicates is slow if there are many equivalent
+   * columns</a>. Since this is a performance problem, the test result does not
+   * change, but takes over 15 minutes before the fix and 6 seconds after. */
+  @Test(timeout = 20_000) public void testPullUpPredicatesForExprsItr() {
+    final String sql = "select a.EMPNO, a.ENAME\n"
+        + "from (select * from sales.emp ) a\n"
+        + "join (select * from sales.emp  ) b\n"
+        + "on a.empno = b.deptno\n"
+        + "  and a.comm = b.comm\n"
+        + "  and a.mgr=b.mgr\n"
+        + "  and (a.empno < 10 or a.comm < 3 or a.deptno < 10\n"
+        + "    or a.job ='abc' or a.ename='abc' or a.sal='30' or a.mgr >3\n"
+        + "    or a.slacker is not null  or a.HIREDATE is not null\n"
+        + "    or b.empno < 9 or b.comm < 3 or b.deptno < 10 or b.job ='abc'\n"
+        + "    or b.ename='abc' or b.sal='30' or b.mgr >3 or b.slacker )\n"
+        + "join emp c\n"
+        + "on b.mgr =a.mgr and a.empno =b.deptno and a.comm=b.comm\n"
+        + "  and a.deptno=b.deptno and a.job=b.job and a.ename=b.ename\n"
+        + "  and a.mgr=b.deptno and a.slacker=b.slacker";
+    final RelNode rel = convertSql(sql);
+    final RelMetadataQuery mq = RelMetadataQuery.instance();
+    RelOptPredicateList inputSet = mq.getPulledUpPredicates(rel.getInput(0));
+    assertThat(inputSet.pulledUpPredicates.size(), is(131089));
+  }
+
   @Test public void testPullUpPredicatesOnConstant() {
     final String sql = "select deptno, mgr, x, 'y' as y, z from (\n"
         + "  select deptno, mgr, cast(null as integer) as x, cast('1' as int) as z\n"
