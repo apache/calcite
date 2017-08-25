@@ -1438,6 +1438,19 @@ public class RelMetadataTest extends SqlToRelTestBase {
     assertThat(pulledUpPredicates, sortsAs("[=($0, 1)]"));
   }
 
+  @Test public void testPullUpPredicatesForExprsItr() {
+    final String sql = "select a.EMPNO, a.ENAME from sales.emp a\n"
+        + " join (select * from sales.emp where comm < 3 or mgr >3) b\n"
+        + "on a.empno = b.deptno and a.comm = b.comm and a.mgr=b.mgr";
+    final RelNode rel = convertSql(sql);
+    final RelMetadataQuery mq = RelMetadataQuery.instance();
+    RelOptPredicateList inputSet = mq.getPulledUpPredicates(rel.getInput(0));
+    ImmutableList<RexNode> pulledUpPredicates = inputSet.pulledUpPredicates;
+    assertThat(pulledUpPredicates, sortsAs("[=($0, $16), =($3, $12), =($6, $15),"
+        + " OR(<($15, 3), >($12, 3)), OR(<($15, 3), >($3, 3)), "
+        + "OR(<($6, 3), >($12, 3)), OR(<($6, 3), >($3, 3))]"));
+  }
+
   @Test public void testPullUpPredicatesOnConstant() {
     final String sql = "select deptno, mgr, x, 'y' as y, z from (\n"
         + "  select deptno, mgr, cast(null as integer) as x, cast('1' as int) as z\n"
