@@ -1721,6 +1721,68 @@ public class MaterializationTest {
                   + "  EnumerableTableScan(table=[[hr, m0]])"));
   }
 
+  @Test public void testJoinMaterialization13() {
+    checkMaterialize(
+      "select \"depts\".\"deptno\", \"dependents\".\"empid\"\n"
+              + "from \"depts\"\n"
+              + "left join \"dependents\" on (\"depts\".\"name\" = \"dependents\".\"name\")\n"
+              + "inner join \"emps\" on (\"emps\".\"deptno\" = \"depts\".\"deptno\")",
+      "select \"dependents\".\"empid\"\n"
+              + "from \"depts\"\n"
+              + "inner join \"dependents\" on (\"depts\".\"name\" = \"dependents\".\"name\")\n"
+              + "left join \"emps\" on (\"emps\".\"deptno\" = \"depts\".\"deptno\")\n"
+              + "where \"dependents\".\"empid\" = 1",
+      HR_FKUK_MODEL,
+      CalciteAssert.checkResultContains(
+          "EnumerableCalc(expr#0..2=[{inputs}], empid=[$t1])\n" +
+                  "  EnumerableJoin(condition=[=($0, $2)], joinType=[left])\n" +
+                  "    EnumerableCalc(expr#0..3=[{inputs}], deptno=[$t2], empid=[$t0])\n" +
+                  "      EnumerableJoin(condition=[=($1, $3)], joinType=[inner])\n" +
+                  "        EnumerableCalc(expr#0..1=[{inputs}], expr#2=[CAST($t1):VARCHAR " +
+                  "CHARACTER SET \"ISO-8859-1\" COLLATE \"ISO-8859-1$en_US$primary\"], " +
+                  "expr#3=[CAST($t0):INTEGER NOT NULL], expr#4=[1], expr#5=[=($t3, $t4)], " +
+                  "empid=[$t0], name0=[$t2], $condition=[$t5])\n" +
+                  "          EnumerableTableScan(table=[[hr, dependents]])\n" +
+                  "        EnumerableCalc(expr#0..3=[{inputs}], expr#4=[CAST($t1):VARCHAR " +
+                  "CHARACTER SET \"ISO-8859-1\" COLLATE \"ISO-8859-1$en_US$primary\"], " +
+                  "deptno=[$t0], name0=[$t4])\n" +
+                  "          EnumerableTableScan(table=[[hr, depts]])\n" +
+                  "    EnumerableCalc(expr#0..4=[{inputs}], deptno=[$t1])\n" +
+                  "      EnumerableTableScan(table=[[hr, emps]])"));
+  }
+
+  @Test public void testJoinMaterialization14() {
+    checkMaterialize(
+      "select \"depts\".\"deptno\", \"dependents\".\"empid\"\n"
+              + "from \"depts\"\n"
+              + "inner join \"dependents\" on (\"depts\".\"name\" = \"dependents\".\"name\")\n"
+              + "left join \"emps\" on (\"emps\".\"deptno\" = \"depts\".\"deptno\")",
+      "select \"dependents\".\"empid\"\n"
+              + "from \"depts\"\n"
+              + "left join \"dependents\" on (\"depts\".\"name\" = \"dependents\".\"name\")\n"
+              + "inner join \"emps\" on (\"emps\".\"deptno\" = \"depts\".\"deptno\")\n"
+              + "where \"dependents\".\"empid\" = 1",
+      HR_FKUK_MODEL,
+      CalciteAssert.checkResultContains(
+      "EnumerableCalc(expr#0..2=[{inputs}], empid=[$t2])\n" +
+              "  EnumerableJoin(condition=[=($0, $1)], joinType=[inner])\n" +
+              "    EnumerableCalc(expr#0..4=[{inputs}], deptno=[$t1])\n" +
+              "      EnumerableTableScan(table=[[hr, emps]])\n" +
+              "    EnumerableCalc(expr#0..3=[{inputs}], " +
+              "expr#4=[CAST($t0):JavaType(class java.lang.Integer)], " +
+              "deptno=[$t2], empid=[$t4])\n" +
+              "      EnumerableJoin(condition=[=($1, $3)], joinType=[inner])\n" +
+              "        EnumerableCalc(expr#0..1=[{inputs}], expr#2=[CAST($t1):VARCHAR " +
+              "CHARACTER SET \"ISO-8859-1\" COLLATE \"ISO-8859-1$en_US$primary\"], " +
+              "expr#3=[CAST($t0):INTEGER], expr#4=[1], expr#5=[=($t3, $t4)], empid=[$t0], " +
+              "name0=[$t2], $condition=[$t5])\n" +
+              "          EnumerableTableScan(table=[[hr, dependents]])\n" +
+              "        EnumerableCalc(expr#0..3=[{inputs}], expr#4=[CAST($t1):VARCHAR " +
+              "CHARACTER SET \"ISO-8859-1\" COLLATE \"ISO-8859-1$en_US$primary\"], deptno=[$t0], " +
+              "name0=[$t4])\n" +
+              "          EnumerableTableScan(table=[[hr, depts]])"));
+  }
+
   @Test public void testJoinMaterializationUKFK1() {
     checkMaterialize(
       "select \"a\".\"empid\" \"deptno\" from\n"
