@@ -143,13 +143,7 @@ public abstract class Prepare {
 
     final List<RelOptMaterialization> materializationList = new ArrayList<>();
     for (Materialization materialization : materializations) {
-      RelOptTable table = materialization.tableRel.getTable();
-      List<String> qualifiedTableName;
-      if (table == null) {
-        qualifiedTableName = materialization.materializedTable.path();
-      } else {
-        qualifiedTableName = table.getQualifiedName();
-      }
+      List<String> qualifiedTableName = materialization.materializedTable.path();
       materializationList.add(
           new RelOptMaterialization(materialization.tableRel,
               materialization.queryRel,

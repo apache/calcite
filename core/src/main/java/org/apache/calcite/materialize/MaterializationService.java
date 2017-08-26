@@ -120,14 +120,14 @@ public class MaterializationService {
     CalciteSchema.TableEntry tableEntry;
     if (existing) {
       tableEntry = schema.getTable(suggestedTableName, true);
+      if (tableEntry == null) {
+        tableEntry = schema.getTableBasedOnNullaryFunction(suggestedTableName, true);
+      }
     } else {
       tableEntry = null;
     }
     if (tableEntry == null) {
       tableEntry = schema.getTableBySql(viewSql);
-    }
-    if (tableEntry == null) {
-      tableEntry = schema.getTableBasedOnNullaryFunction(suggestedTableName, true);
     }
 
     RelDataType rowType = null;
