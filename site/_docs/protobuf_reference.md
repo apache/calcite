@@ -348,7 +348,7 @@ message PrepareAndExecuteRequest {
   string sql = 2;
   uint64 max_row_count = 3; // Deprecated!
   int64 max_rows_total = 5;
-  int32 max_rows_in_first_frame = 6;
+  int32 first_frame_max_size = 6;
 }
 {% endhighlight %}
 
