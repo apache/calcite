@@ -121,7 +121,7 @@ public class DruidQueryFilterTest {
         .add("dimensionName", varcharType)
         .build();
     final DruidQuery.Translator translatorStringKind =
-        new DruidQuery.Translator(druidTable, varcharRowType);
+        new DruidQuery.Translator(druidTable, varcharRowType, "UTC");
   }
 }
 

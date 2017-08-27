@@ -544,6 +544,9 @@ public class CalciteAssert {
         calciteConnection.getProperties().setProperty(
             CalciteConnectionProperty.CREATE_MATERIALIZATIONS.camelName(),
             Boolean.toString(materializationsEnabled));
+        calciteConnection.getProperties().setProperty(
+            CalciteConnectionProperty.TIME_ZONE.camelName(),
+            DateTimeUtils.UTC_ZONE.getID());
       }
       for (Pair<Hook, Function> hook : hooks) {
         closer.add(hook.left.addThread(hook.right));

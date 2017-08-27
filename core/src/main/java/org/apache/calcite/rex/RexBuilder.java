@@ -46,7 +46,9 @@ import org.apache.calcite.util.DateString;
 import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.TimeString;
+import org.apache.calcite.util.TimeWithLocalTimeZoneString;
 import org.apache.calcite.util.TimestampString;
+import org.apache.calcite.util.TimestampWithLocalTimeZoneString;
 import org.apache.calcite.util.Util;
 
 import com.google.common.base.Function;
@@ -863,6 +865,14 @@ public class RexBuilder {
       }
       o = ((TimeString) o).round(p);
       break;
+    case TIME_WITH_LOCAL_TIMEZONE:
+      assert o instanceof TimeWithLocalTimeZoneString;
+      p = type.getPrecision();
+      if (p == RelDataType.PRECISION_NOT_SPECIFIED) {
+        p = 0;
+      }
+      o = ((TimeWithLocalTimeZoneString) o).round(p);
+      break;
     case TIMESTAMP:
       assert o instanceof TimestampString;
       p = type.getPrecision();
@@ -871,6 +881,13 @@ public class RexBuilder {
       }
       o = ((TimestampString) o).round(p);
       break;
+    case TIMESTAMP_WITH_LOCAL_TIMEZONE:
+      assert o instanceof TimestampWithLocalTimeZoneString;
+      p = type.getPrecision();
+      if (p == RelDataType.PRECISION_NOT_SPECIFIED) {
+        p = 0;
+      }
+      o = ((TimestampWithLocalTimeZoneString) o).round(p);
     }
     return new RexLiteral(o, type, typeName);
   }
@@ -1084,6 +1101,17 @@ public class RexBuilder {
         SqlTypeName.TIME);
   }
 
+  /**
+   * Creates a Time with local time-zone literal.
+   */
+  public RexLiteral makeTimeWithLocalTimeZoneLiteral(
+      TimeWithLocalTimeZoneString time,
+      int precision) {
+    return makeLiteral(Preconditions.checkNotNull(time),
+        typeFactory.createSqlType(SqlTypeName.TIME_WITH_LOCAL_TIMEZONE, precision),
+        SqlTypeName.TIME_WITH_LOCAL_TIMEZONE);
+  }
+
   /** @deprecated Use {@link #makeTimestampLiteral(TimestampString, int)}. */
   @Deprecated // to be removed before 2.0
   public RexLiteral makeTimestampLiteral(Calendar calendar, int precision) {
@@ -1099,6 +1127,17 @@ public class RexBuilder {
     return makeLiteral(Preconditions.checkNotNull(timestamp),
         typeFactory.createSqlType(SqlTypeName.TIMESTAMP, precision),
         SqlTypeName.TIMESTAMP);
+  }
+
+  /**
+   * Creates a Timestamp with local time-zone literal.
+   */
+  public RexLiteral makeTimestampWithLocalTimeZoneLiteral(
+      TimestampWithLocalTimeZoneString timestamp,
+      int precision) {
+    return makeLiteral(Preconditions.checkNotNull(timestamp),
+        typeFactory.createSqlType(SqlTypeName.TIMESTAMP_WITH_LOCAL_TIMEZONE, precision),
+        SqlTypeName.TIMESTAMP_WITH_LOCAL_TIMEZONE);
   }
 
   /**
@@ -1225,6 +1264,11 @@ public class RexBuilder {
     case DATE:
     case TIMESTAMP:
       return DateTimeUtils.ZERO_CALENDAR;
+    case TIME_WITH_LOCAL_TIMEZONE:
+      return new TimeWithLocalTimeZoneString(0, 0, 0, DateTimeUtils.UTC_ZONE.toString());
+    case TIMESTAMP_WITH_LOCAL_TIMEZONE:
+      return new TimestampWithLocalTimeZoneString(0, 0, 0, 0, 0, 0,
+          DateTimeUtils.UTC_ZONE.toString());
     default:
       throw Util.unexpected(type.getSqlTypeName());
     }
@@ -1288,10 +1332,16 @@ public class RexBuilder {
       return (Boolean) value ? booleanTrue : booleanFalse;
     case TIME:
       return makeTimeLiteral((TimeString) value, type.getPrecision());
+    case TIME_WITH_LOCAL_TIMEZONE:
+      return makeTimeWithLocalTimeZoneLiteral((TimeWithLocalTimeZoneString) value,
+          type.getPrecision());
     case DATE:
       return makeDateLiteral((DateString) value);
     case TIMESTAMP:
       return makeTimestampLiteral((TimestampString) value, type.getPrecision());
+    case TIMESTAMP_WITH_LOCAL_TIMEZONE:
+      return makeTimestampWithLocalTimeZoneLiteral((TimestampWithLocalTimeZoneString) value,
+          type.getPrecision());
     case INTERVAL_YEAR:
     case INTERVAL_YEAR_MONTH:
     case INTERVAL_MONTH:
@@ -1423,6 +1473,12 @@ public class RexBuilder {
       } else {
         return TimeString.fromMillisOfDay((Integer) o);
       }
+    case TIME_WITH_LOCAL_TIMEZONE:
+      if (o instanceof TimeWithLocalTimeZoneString) {
+        return o;
+      } else {
+        return TimeWithLocalTimeZoneString.fromMillisOfDay((Integer) o);
+      }
     case DATE:
       if (o instanceof DateString) {
         return o;
@@ -1444,6 +1500,12 @@ public class RexBuilder {
         return TimestampString.fromCalendarFields((Calendar) o);
       } else {
         return TimestampString.fromMillisSinceEpoch((Long) o);
+      }
+    case TIMESTAMP_WITH_LOCAL_TIMEZONE:
+      if (o instanceof TimestampWithLocalTimeZoneString) {
+        return o;
+      } else {
+        return TimestampWithLocalTimeZoneString.fromMillisSinceEpoch((Long) o);
       }
     default:
       return o;

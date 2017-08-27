@@ -158,7 +158,7 @@ public class DruidDateRangeRulesTest {
               operandRanges));
     }
     final List<LocalInterval> intervals =
-        DruidDateTimeUtils.createInterval(f.timeStampDataType, e);
+        DruidDateTimeUtils.createInterval(e, "UTC");
     assertThat(intervals, notNullValue());
     assertThat(intervals.toString(), intervalMatcher);
   }
@@ -178,7 +178,7 @@ public class DruidDateRangeRulesTest {
     }
     final RexNode e2 = f.simplify.simplify(e);
     List<LocalInterval> intervals =
-        DruidDateTimeUtils.createInterval(f.timeStampDataType, e2);
+        DruidDateTimeUtils.createInterval(e2, "UTC");
     if (intervals == null) {
       throw new AssertionError("null interval");
     }

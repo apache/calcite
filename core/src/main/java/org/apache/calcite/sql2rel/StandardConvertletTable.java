@@ -672,6 +672,14 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
       case INTERVAL_MINUTE_SECOND:
       case INTERVAL_SECOND:
         break;
+      case TIMESTAMP_WITH_LOCAL_TIMEZONE:
+        RelDataType type =
+            cx.getTypeFactory().createSqlType(SqlTypeName.TIMESTAMP);
+        type = cx.getTypeFactory().createTypeWithNullability(
+            type,
+            exprs.get(1).getType().isNullable());
+        res = rexBuilder.makeCast(type, res);
+        // fall through
       case TIMESTAMP:
         res = divide(rexBuilder, res, TimeUnit.DAY.multiplier);
         // fall through
@@ -684,6 +692,14 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
       break;
     case DECADE:
       switch (sqlTypeName) {
+      case TIMESTAMP_WITH_LOCAL_TIMEZONE:
+        RelDataType type =
+            cx.getTypeFactory().createSqlType(SqlTypeName.TIMESTAMP);
+        type = cx.getTypeFactory().createTypeWithNullability(
+            type,
+            exprs.get(1).getType().isNullable());
+        res = rexBuilder.makeCast(type, res);
+        // fall through
       case TIMESTAMP:
         res = divide(rexBuilder, res, TimeUnit.DAY.multiplier);
         // fall through
@@ -703,6 +719,16 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
       case TIMESTAMP:
         // convert to seconds
         return divide(rexBuilder, res, TimeUnit.SECOND.multiplier);
+      case TIMESTAMP_WITH_LOCAL_TIMEZONE:
+        RelDataType type =
+            cx.getTypeFactory().createSqlType(SqlTypeName.TIMESTAMP);
+        type = cx.getTypeFactory().createTypeWithNullability(
+            type,
+            exprs.get(1).getType().isNullable());
+        return divide(
+            rexBuilder,
+            rexBuilder.makeCast(type, res),
+            TimeUnit.SECOND.multiplier);
       case INTERVAL_YEAR:
       case INTERVAL_YEAR_MONTH:
       case INTERVAL_MONTH:

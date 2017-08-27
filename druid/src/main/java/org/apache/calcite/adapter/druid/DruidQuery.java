@@ -512,7 +512,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
       ImmutableBitSet numericCollationIndexes, Integer fetch, Project postProject) {
     final CalciteConnectionConfig config = getConnectionConfig();
     QueryType queryType = QueryType.SELECT;
-    final Translator translator = new Translator(druidTable, rowType);
+    final Translator translator = new Translator(druidTable, rowType, config.timeZone());
     List<String> fieldNames = rowType.getFieldNames();
     Set<String> usedFieldNames = Sets.newHashSet(fieldNames);
 
@@ -564,7 +564,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
               String extractColumnName = SqlValidatorUtil.uniquify(EXTRACT_COLUMN_NAME_PREFIX,
                   usedFieldNames, SqlValidatorUtil.EXPR_SUGGESTER);
               timeExtractionDimensionSpec = TimeExtractionDimensionSpec.makeFullTimeExtract(
-                  extractColumnName);
+                  extractColumnName, config.timeZone());
               dimensions.add(timeExtractionDimensionSpec);
               builder.add(extractColumnName);
               assert timePositionIdx == -1;
@@ -587,7 +587,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
                         + "_" + funcGranularity.value, usedFieldNames,
                     SqlValidatorUtil.EXPR_SUGGESTER);
                 timeExtractionDimensionSpec = TimeExtractionDimensionSpec.makeTimeExtract(
-                    funcGranularity, extractColumnName);
+                    funcGranularity, extractColumnName, config.timeZone());
                 dimensions.add(timeExtractionDimensionSpec);
                 builder.add(extractColumnName);
                 break;
@@ -600,7 +600,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
                       SqlValidatorUtil.EXPR_SUGGESTER);
                   dimensions.add(
                       TimeExtractionDimensionSpec.makeTimeFloor(funcGranularity,
-                          extractColumnName));
+                          extractColumnName, config.timeZone()));
                   finalGranularity = Granularity.ALL;
                   builder.add(extractColumnName);
                 } else {
@@ -632,7 +632,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
             String extractColumnName = SqlValidatorUtil.uniquify(EXTRACT_COLUMN_NAME_PREFIX,
                 usedFieldNames, SqlValidatorUtil.EXPR_SUGGESTER);
             timeExtractionDimensionSpec = TimeExtractionDimensionSpec.makeFullTimeExtract(
-                extractColumnName);
+                extractColumnName, config.timeZone());
             dimensions.add(timeExtractionDimensionSpec);
             builder.add(extractColumnName);
             assert timePositionIdx == -1;
@@ -1083,8 +1083,9 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
     final List<String> metrics = new ArrayList<>();
     final DruidTable druidTable;
     final RelDataType rowType;
+    final String timeZone;
 
-    Translator(DruidTable druidTable, RelDataType rowType) {
+    Translator(DruidTable druidTable, RelDataType rowType, String timeZone) {
       this.druidTable = druidTable;
       this.rowType = rowType;
       for (RelDataTypeField f : rowType.getFieldList()) {
@@ -1096,6 +1097,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
           dimensions.add(fieldName);
         }
       }
+      this.timeZone = timeZone;
     }
 
     protected void clearFieldNameLists() {
@@ -1169,7 +1171,8 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
         // in case no extraction the field will be omitted from the serialization
         ExtractionFunction extractionFunction = null;
         if (granularity != null) {
-          extractionFunction = TimeExtractionFunction.createExtractFromGranularity(granularity);
+          extractionFunction =
+              TimeExtractionFunction.createExtractFromGranularity(granularity, timeZone);
         }
         String dimName = tr(e, posRef);
         if (dimName.equals(DruidConnectionImpl.DEFAULT_RESPONSE_TIMESTAMP_COLUMN)) {
@@ -1279,7 +1282,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
 
     private ColumnMetaData.Rep getPrimitive(RelDataTypeField field) {
       switch (field.getType().getSqlTypeName()) {
-      case TIMESTAMP:
+      case TIMESTAMP_WITH_LOCAL_TIMEZONE:
         return ColumnMetaData.Rep.JAVA_SQL_TIMESTAMP;
       case BIGINT:
         return ColumnMetaData.Rep.LONG;

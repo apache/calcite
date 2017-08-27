@@ -42,7 +42,7 @@ public class DateString implements Comparable<DateString> {
 
   /** Creates a DateString for year, month, day values. */
   public DateString(int year, int month, int day) {
-    this(TimestampString.ymd(new StringBuilder(), year, month, day).toString());
+    this(DateTimeStringUtils.ymd(new StringBuilder(), year, month, day).toString());
   }
 
   @Override public String toString() {

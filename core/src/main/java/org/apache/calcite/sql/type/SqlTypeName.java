@@ -63,7 +63,11 @@ public enum SqlTypeName {
   DATE(PrecScale.NO_NO, false, Types.DATE, SqlTypeFamily.DATE),
   TIME(PrecScale.NO_NO | PrecScale.YES_NO, false, Types.TIME,
       SqlTypeFamily.TIME),
+  TIME_WITH_LOCAL_TIMEZONE(PrecScale.NO_NO | PrecScale.YES_NO, false, Types.OTHER,
+      SqlTypeFamily.TIME),
   TIMESTAMP(PrecScale.NO_NO | PrecScale.YES_NO, false, Types.TIMESTAMP,
+      SqlTypeFamily.TIMESTAMP),
+  TIMESTAMP_WITH_LOCAL_TIMEZONE(PrecScale.NO_NO | PrecScale.YES_NO, false, Types.OTHER,
       SqlTypeFamily.TIMESTAMP),
   INTERVAL_YEAR(PrecScale.NO_NO, false, Types.OTHER,
       SqlTypeFamily.INTERVAL_YEAR_MONTH),
@@ -146,7 +150,7 @@ public enum SqlTypeName {
           INTERVAL_DAY, INTERVAL_DAY_HOUR, INTERVAL_DAY_MINUTE,
           INTERVAL_DAY_SECOND, INTERVAL_HOUR, INTERVAL_HOUR_MINUTE,
           INTERVAL_HOUR_SECOND, INTERVAL_MINUTE, INTERVAL_MINUTE_SECOND,
-          INTERVAL_SECOND,
+          INTERVAL_SECOND, TIME_WITH_LOCAL_TIMEZONE, TIMESTAMP_WITH_LOCAL_TIMEZONE,
           FLOAT, MULTISET, DISTINCT, STRUCTURED, ROW, CURSOR, COLUMN_LIST);
 
   public static final List<SqlTypeName> BOOLEAN_TYPES =
@@ -177,7 +181,8 @@ public enum SqlTypeName {
       combine(CHAR_TYPES, BINARY_TYPES);
 
   public static final List<SqlTypeName> DATETIME_TYPES =
-      ImmutableList.of(DATE, TIME, TIMESTAMP);
+      ImmutableList.of(DATE, TIME, TIME_WITH_LOCAL_TIMEZONE,
+          TIMESTAMP, TIMESTAMP_WITH_LOCAL_TIMEZONE);
 
   public static final Set<SqlTypeName> YEAR_INTERVAL_TYPES =
       Sets.immutableEnumSet(SqlTypeName.INTERVAL_YEAR,
@@ -739,7 +744,9 @@ public enum SqlTypeName {
     case VARBINARY:
     case BINARY:
     case TIME:
+    case TIME_WITH_LOCAL_TIMEZONE:
     case TIMESTAMP:
+    case TIMESTAMP_WITH_LOCAL_TIMEZONE:
       return 1;
     case INTERVAL_YEAR:
     case INTERVAL_YEAR_MONTH:

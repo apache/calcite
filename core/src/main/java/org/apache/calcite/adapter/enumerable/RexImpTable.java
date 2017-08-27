@@ -1591,7 +1591,14 @@ public class RexImpTable {
       case 2:
         final Type type;
         final Method floorMethod;
+        Expression operand = translatedOperands.get(0);
         switch (call.getType().getSqlTypeName()) {
+        case TIMESTAMP_WITH_LOCAL_TIMEZONE:
+          operand = Expressions.call(
+              BuiltInMethod.TIMESTAMP_WITH_LOCAL_TIMEZONE_TO_TIMESTAMP.method,
+              operand,
+              Expressions.call(BuiltInMethod.TIME_ZONE.method, translator.getRoot()));
+          // fall through
         case TIMESTAMP:
           type = long.class;
           floorMethod = timestampMethod;
@@ -1607,19 +1614,19 @@ public class RexImpTable {
         case YEAR:
         case MONTH:
           return Expressions.call(floorMethod, tur,
-              call(translatedOperands, type, TimeUnit.DAY));
+              call(operand, type, TimeUnit.DAY));
         default:
-          return call(translatedOperands, type, timeUnitRange.startUnit);
+          return call(operand, type, timeUnitRange.startUnit);
         }
       default:
         throw new AssertionError();
       }
     }
 
-    private Expression call(List<Expression> translatedOperands, Type type,
+    private Expression call(Expression operand, Type type,
         TimeUnit timeUnit) {
       return Expressions.call(SqlFunctions.class, methodName,
-          Types.castIfNecessary(type, translatedOperands.get(0)),
+          Types.castIfNecessary(type, operand),
           Types.castIfNecessary(type,
               Expressions.constant(timeUnit.multiplier)));
     }

@@ -17,6 +17,7 @@
 package org.apache.calcite.schema;
 
 import org.apache.calcite.DataContext;
+import org.apache.calcite.DataContext.Variable;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.config.CalciteConnectionConfigImpl;
@@ -565,7 +566,9 @@ public final class Schemas {
       this.connection = connection;
       this.rootSchema = rootSchema;
       this.map =
-          ImmutableMap.<String, Object>of("timeZone", TimeZone.getDefault());
+          ImmutableMap.<String, Object>of(
+              Variable.TIME_ZONE.camelName, TimeZone.getTimeZone("America/Los_Angeles"),
+              Variable.CURRENT_TIMESTAMP.camelName, new Long(1311120000000L));
     }
 
     public SchemaPlus getRootSchema() {

@@ -47,7 +47,7 @@ public class TimestampString implements Comparable<TimestampString> {
   /** Creates a TimestampString for year, month, day, hour, minute, second,
    *  millisecond values. */
   public TimestampString(int year, int month, int day, int h, int m, int s) {
-    this(ymdhms(new StringBuilder(), year, month, day, h, m, s).toString());
+    this(DateTimeStringUtils.ymdhms(new StringBuilder(), year, month, day, h, m, s).toString());
   }
 
   /** Sets the fraction field of a {@code TimestampString} to a given number
@@ -58,7 +58,7 @@ public class TimestampString implements Comparable<TimestampString> {
    * yields {@code TIMESTAMP '1970-01-01 02:03:04.056'}. */
   public TimestampString withMillis(int millis) {
     Preconditions.checkArgument(millis >= 0 && millis < 1000);
-    return withFraction(pad(3, millis));
+    return withFraction(DateTimeStringUtils.pad(3, millis));
   }
 
   /** Sets the fraction field of a {@code TimestampString} to a given number
@@ -69,7 +69,7 @@ public class TimestampString implements Comparable<TimestampString> {
    * yields {@code TIMESTAMP '1970-01-01 02:03:04.000056789'}. */
   public TimestampString withNanos(int nanos) {
     Preconditions.checkArgument(nanos >= 0 && nanos < 1000000000);
-    return withFraction(pad(9, nanos));
+    return withFraction(DateTimeStringUtils.pad(9, nanos));
   }
 
   /** Sets the fraction field of a {@code TimestampString}.
@@ -111,44 +111,6 @@ public class TimestampString implements Comparable<TimestampString> {
 
   @Override public int compareTo(TimestampString o) {
     return v.compareTo(o.v);
-  }
-
-  static StringBuilder hms(StringBuilder b, int h, int m, int s) {
-    int2(b, h);
-    b.append(':');
-    int2(b, m);
-    b.append(':');
-    int2(b, s);
-    return b;
-  }
-
-  static StringBuilder ymdhms(StringBuilder b, int year, int month, int day,
-      int h, int m, int s) {
-    ymd(b, year, month, day);
-    b.append(' ');
-    hms(b, h, m, s);
-    return b;
-  }
-
-  static StringBuilder ymd(StringBuilder b, int year, int month, int day) {
-    int4(b, year);
-    b.append('-');
-    int2(b, month);
-    b.append('-');
-    int2(b, day);
-    return b;
-  }
-
-  private static void int4(StringBuilder buf, int i) {
-    buf.append((char) ('0' + (i / 1000) % 10));
-    buf.append((char) ('0' + (i / 100) % 10));
-    buf.append((char) ('0' + (i / 10) % 10));
-    buf.append((char) ('0' + i % 10));
-  }
-
-  private static void int2(StringBuilder buf, int i) {
-    buf.append((char) ('0' + (i / 10) % 10));
-    buf.append((char) ('0' + i % 10));
   }
 
   /** Creates a TimestampString from a Calendar. */
@@ -212,14 +174,6 @@ public class TimestampString implements Comparable<TimestampString> {
   public static TimestampString fromMillisSinceEpoch(long millis) {
     return new TimestampString(DateTimeUtils.unixTimestampToString(millis))
         .withMillis((int) DateTimeUtils.floorMod(millis, 1000));
-  }
-
-  static String pad(int length, long v) {
-    StringBuilder s = new StringBuilder(Long.toString(v));
-    while (s.length() < length) {
-      s.insert(0, "0");
-    }
-    return s.toString();
   }
 
   public Calendar toCalendar() {
