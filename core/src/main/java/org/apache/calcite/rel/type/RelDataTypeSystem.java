@@ -69,11 +69,21 @@ public interface RelDataTypeSystem {
    * 0 means "not applicable". */
   int getNumTypeRadix(SqlTypeName typeName);
 
-  /**
-   * Returns the return type of a call to the {@code SUM} aggregate function
-   * inferred from its argument type.
+  /** Returns the return type of a call to the {@code SUM} aggregate function,
+   * inferred from its argument type. */
+  RelDataType deriveSumType(RelDataTypeFactory typeFactory,
+      RelDataType argumentType);
+
+  /** Returns the return type of a call to the {@code AVG}, {@code STDDEV} or
+   * {@code VAR} aggregate functions, inferred from its argument type.
    */
-  RelDataType deriveSumType(RelDataTypeFactory typeFactory, RelDataType argumentType);
+  RelDataType deriveAvgAggType(RelDataTypeFactory typeFactory,
+      RelDataType argumentType);
+
+  /** Returns the return type of a call to the {@code COVAR} aggregate function,
+   * inferred from its argument types. */
+  RelDataType deriveCovarType(RelDataTypeFactory typeFactory,
+      RelDataType arg0Type, RelDataType arg1Type);
 
   /** Returns the return type of the {@code CUME_DIST} and {@code PERCENT_RANK}
    * aggregate functions. */

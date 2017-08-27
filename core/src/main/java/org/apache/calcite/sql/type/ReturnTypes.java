@@ -779,8 +779,10 @@ public abstract class ReturnTypes {
         @Override public RelDataType
         inferReturnType(SqlOperatorBinding opBinding) {
           final RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
-          return typeFactory.getTypeSystem()
+          final RelDataType sumType = typeFactory.getTypeSystem()
               .deriveSumType(typeFactory, opBinding.getOperandType(0));
+          // SUM0 should not return null.
+          return typeFactory.createTypeWithNullability(sumType, false);
         }
       };
 
@@ -807,6 +809,36 @@ public abstract class ReturnTypes {
         inferReturnType(SqlOperatorBinding opBinding) {
           final RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
           return typeFactory.getTypeSystem().deriveRankType(typeFactory);
+        }
+      };
+
+  public static final SqlReturnTypeInference AVG_AGG_FUNCTION =
+      new SqlReturnTypeInference() {
+        @Override public RelDataType
+        inferReturnType(SqlOperatorBinding opBinding) {
+          final RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
+          final RelDataType relDataType = typeFactory.getTypeSystem().deriveAvgAggType(
+              typeFactory, opBinding.getOperandType(0));
+          if (opBinding.getGroupCount() == 0 || opBinding.hasFilter()) {
+            return typeFactory.createTypeWithNullability(relDataType, true);
+          } else {
+            return relDataType;
+          }
+        }
+      };
+
+  public static final SqlReturnTypeInference COVAR_FUNCTION =
+      new SqlReturnTypeInference() {
+        @Override public RelDataType
+        inferReturnType(SqlOperatorBinding opBinding) {
+          final RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
+          final RelDataType relDataType = typeFactory.getTypeSystem().deriveCovarType(
+              typeFactory, opBinding.getOperandType(0), opBinding.getOperandType(1));
+          if (opBinding.getGroupCount() == 0 || opBinding.hasFilter()) {
+            return typeFactory.createTypeWithNullability(relDataType, true);
+          } else {
+            return relDataType;
+          }
         }
       };
 }

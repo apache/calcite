@@ -1119,6 +1119,15 @@ public enum SqlKind {
       EnumSet.of(OTHER_FUNCTION, ROW, TRIM, LTRIM, RTRIM, CAST, JDBC_FN);
 
   /**
+   * Category of SqlAvgAggFunction.
+   *
+   * <p>Consists of {@link #AVG}, {@link #STDDEV_POP}, {@link #STDDEV_SAMP},
+   * {@link #VAR_POP}, {@link #VAR_SAMP}.
+   */
+  public static final Set<SqlKind> AVG_AGG_FUNCTIONS =
+      EnumSet.of(AVG, STDDEV_POP, STDDEV_SAMP, VAR_POP, VAR_SAMP);
+
+  /**
    * Category of comparison operators.
    *
    * <p>Consists of:

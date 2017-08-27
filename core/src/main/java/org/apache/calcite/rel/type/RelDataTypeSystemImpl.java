@@ -207,9 +207,19 @@ public abstract class RelDataTypeSystemImpl implements RelDataTypeSystem {
     return 0;
   }
 
-  @Override public RelDataType deriveSumType(
-      RelDataTypeFactory typeFactory, RelDataType argumentType) {
+  @Override public RelDataType deriveSumType(RelDataTypeFactory typeFactory,
+      RelDataType argumentType) {
     return argumentType;
+  }
+
+  @Override public RelDataType deriveAvgAggType(RelDataTypeFactory typeFactory,
+      RelDataType argumentType) {
+    return argumentType;
+  }
+
+  @Override public RelDataType deriveCovarType(RelDataTypeFactory typeFactory,
+      RelDataType arg0Type, RelDataType arg1Type) {
+    return arg0Type;
   }
 
   @Override public RelDataType deriveFractionalRankType(RelDataTypeFactory typeFactory) {
