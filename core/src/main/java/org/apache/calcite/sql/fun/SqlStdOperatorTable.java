@@ -918,6 +918,12 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
       new SqlAvgAggFunction(SqlKind.STDDEV_SAMP);
 
   /**
+   * <code>STDDEV</code> aggregate function.
+   */
+  public static final SqlAggFunction STDDEV =
+      new SqlAvgAggFunction("STDDEV", SqlKind.STDDEV_SAMP);
+
+  /**
    * <code>VAR_POP</code> aggregate function.
    */
   public static final SqlAggFunction VAR_POP =
@@ -928,6 +934,12 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    */
   public static final SqlAggFunction VAR_SAMP =
       new SqlAvgAggFunction(SqlKind.VAR_SAMP);
+
+  /**
+   * <code>VARIANCE</code> aggregate function.
+   */
+  public static final SqlAggFunction VARIANCE =
+      new SqlAvgAggFunction("VARIANCE", SqlKind.VAR_SAMP);
 
   //-------------------------------------------------------------
   // WINDOW Aggregate Functions

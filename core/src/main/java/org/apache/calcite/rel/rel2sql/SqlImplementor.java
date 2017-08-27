@@ -665,7 +665,15 @@ public abstract class SqlImplementor {
         }
 
         final RexCall call = (RexCall) stripCastFromString(rex);
-        final SqlOperator op = call.getOperator();
+        final SqlOperator op;
+        switch (call.getOperator().getKind()) {
+        case SUM0:
+          op = SqlStdOperatorTable.SUM;
+          break;
+        default:
+          op = call.getOperator();
+          break;
+        }
         final List<SqlNode> nodeList = toSql(program, call.getOperands());
         switch (call.getKind()) {
         case CAST:
