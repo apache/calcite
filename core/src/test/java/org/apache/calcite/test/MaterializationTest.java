@@ -199,14 +199,22 @@ public class MaterializationTest {
         RuleSets.ofList(ImmutableList.<RelOptRule>of()));
   }
 
+
+  private void checkMaterialize(String materialize, String query, String model,
+      Function<ResultSet, Void> explainChecker, final RuleSet rules) {
+    checkThatMaterialize(materialize, query, "m0", false, model, explainChecker, rules)
+            .sameResultWithMaterializationsDisabled();
+  }
+
   /** Checks that a given query can use a materialized view with a given
    * definition. */
-  private void checkMaterialize(String materialize, String query, String model,
+  private CalciteAssert.AssertQuery checkThatMaterialize(String materialize, String query,
+      String name, boolean existing, String model,
       Function<ResultSet, Void> explainChecker, final RuleSet rules) {
     try (final TryThreadLocal.Memo ignored = Prepare.THREAD_TRIM.push(true)) {
       MaterializationService.setThreadLocal();
       CalciteAssert.AssertQuery that = CalciteAssert.that()
-          .withMaterializations(model, "m0", materialize)
+          .withMaterializations(model, existing, name, materialize)
           .query(query)
           .enableMaterializations(true);
 
@@ -222,8 +230,7 @@ public class MaterializationTest {
         });
       }
 
-      that.explainMatches("", explainChecker)
-          .sameResultWithMaterializationsDisabled();
+      return that.explainMatches("", explainChecker);
     }
   }
 
@@ -1799,6 +1806,23 @@ public class MaterializationTest {
       HR_FKUK_MODEL);
   }
 
+  @Test public void testViewMaterialization() {
+    checkThatMaterialize(
+      "select \"depts\".\"name\"\n"
+            + "from \"emps\"\n"
+            + "join \"depts\" on (\"emps\".\"deptno\" = \"depts\".\"deptno\")",
+      "select \"depts\".\"name\"\n"
+            + "from \"depts\"\n"
+            + "join \"emps\" on (\"emps\".\"deptno\" = \"depts\".\"deptno\")",
+      "matview",
+      true,
+      HR_FKUK_MODEL,
+      CalciteAssert.checkResultContains(
+        "EnumerableValues(tuples=[[{ 'noname' }]])"),
+      RuleSets.ofList(ImmutableList.<RelOptRule>of()))
+        .returnsValue("noname");
+  }
+
   @Test public void testSubQuery() {
     String q = "select \"empid\", \"deptno\", \"salary\" from \"emps\" e1\n"
         + "where \"empid\" = (\n"
@@ -2132,6 +2156,10 @@ public class MaterializationTest {
 
     public TranslatableTable view(String s) {
       return Smalls.view(s);
+    }
+
+    public TranslatableTable matview() {
+      return Smalls.strView("noname");
     }
   }
 }

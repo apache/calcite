@@ -925,8 +925,13 @@ public class CalciteAssert {
       return with("model", "inline:" + model);
     }
 
-    /** Adds materializations to the schema. */
     public final AssertThat withMaterializations(String model,
+       final String... materializations) {
+      return withMaterializations(model, false, materializations);
+    }
+
+    /** Adds materializations to the schema. */
+    public final AssertThat withMaterializations(String model, final boolean existing,
         final String... materializations) {
       return withMaterializations(model,
           new Function<JsonBuilder, List<Object>>() {
@@ -937,7 +942,9 @@ public class CalciteAssert {
                 String table = materializations[i++];
                 final Map<String, Object> map = builder.map();
                 map.put("table", table);
-                map.put("view", table + "v");
+                if (!existing) {
+                  map.put("view", table + "v");
+                }
                 String sql = materializations[i];
                 final String sql2 = sql.replaceAll("`", "\"");
                 map.put("sql", sql2);
@@ -957,15 +964,17 @@ public class CalciteAssert {
           "materializations: " + builder.toJsonString(list);
       final String model2;
       if (model.contains("defaultSchema: 'foodmart'")) {
-        model2 = model.replace("]",
-            ", { name: 'mat', "
+        int endIndex = model.lastIndexOf(']');
+        model2 = model.substring(0, endIndex)
+            + ", \n{ name: 'mat', "
             + buf
             + "}\n"
-            + "]");
+            + "]"
+            + model.substring(endIndex + 1);
       } else if (model.contains("type: ")) {
-        model2 = model.replace("type: ",
-            buf + ",\n"
-            + "type: ");
+        model2 = model.replaceFirst("type: ",
+            java.util.regex.Matcher.quoteReplacement(buf + ",\n"
+            + "type: "));
       } else {
         throw new AssertionError("do not know where to splice");
       }

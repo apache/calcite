@@ -349,6 +349,17 @@ public class Smalls {
         }, "values (1), (3), " + s, ImmutableList.<String>of(), Arrays.asList("view"));
   }
 
+  public static TranslatableTable strView(String s) {
+    return new ViewTable(Object.class,
+        new RelProtoDataType() {
+          public RelDataType apply(RelDataTypeFactory typeFactory) {
+            return typeFactory.builder().add("c", SqlTypeName.VARCHAR, 100)
+                    .build();
+          }
+        }, "values (" + SqlDialect.CALCITE.quoteStringLiteral(s) + ")",
+        ImmutableList.<String>of(), Arrays.asList("view"));
+  }
+
   public static TranslatableTable str(Object o, Object p) {
     assertThat(RexLiteral.validConstant(o, Litmus.THROW), is(true));
     assertThat(RexLiteral.validConstant(p, Litmus.THROW), is(true));
