@@ -75,6 +75,18 @@ public interface RelDataTypeSystem {
    */
   RelDataType deriveSumType(RelDataTypeFactory typeFactory, RelDataType argumentType);
 
+  /**
+   * Returns the return type of a call to the {@code AVG}, {@code STDDEV}, {@code VAR}
+   * aggregate function inferred from its argument type.
+   */
+  RelDataType deriveAvgAggType(RelDataTypeFactory typeFactory, RelDataType argumentType);
+
+  /**
+   * Returns the return type of a call to the {@code COVAR}
+   * aggregate function inferred from its argument type.
+   */
+  RelDataType deriveCovarType(RelDataTypeFactory typeFactory, RelDataType arg0, RelDataType arg1);
+
   /** Returns the return type of the {@code CUME_DIST} and {@code PERCENT_RANK}
    * aggregate functions. */
   RelDataType deriveFractionalRankType(RelDataTypeFactory typeFactory);

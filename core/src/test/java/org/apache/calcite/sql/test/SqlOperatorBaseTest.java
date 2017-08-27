@@ -6417,6 +6417,33 @@ public abstract class SqlOperatorBaseTest {
         0d);
   }
 
+  @Test public void testStddevFunc() {
+    tester.setFor(SqlStdOperatorTable.STDDEV, VM_EXPAND);
+    tester.checkFails(
+        "stddev(^*^)",
+        "Unknown identifier '\\*'",
+        false);
+    tester.checkFails(
+        "^stddev(cast(null as varchar(2)))^",
+        "(?s)Cannot apply 'STDDEV' to arguments of type 'STDDEV\\(<VARCHAR\\(2\\)>\\)'\\. Supported form\\(s\\): 'STDDEV\\(<NUMERIC>\\)'.*",
+        false);
+    tester.checkType("stddev(CAST(NULL AS INTEGER))", "INTEGER");
+    checkAggType(tester, "stddev(DISTINCT 1.5)", "DECIMAL(2, 1) NOT NULL");
+    final String[] values = {"0", "CAST(null AS FLOAT)", "3", "3"};
+    // with one value
+    tester.checkAgg(
+        "stddev(x)",
+        new String[]{"5"},
+        null,
+        0d);
+    // with zero values
+    tester.checkAgg(
+        "stddev(x)",
+        new String[]{},
+        null,
+        0d);
+  }
+
   @Test public void testVarPopFunc() {
     tester.setFor(SqlStdOperatorTable.VAR_POP, VM_EXPAND);
     tester.checkFails(
@@ -6500,6 +6527,49 @@ public abstract class SqlOperatorBaseTest {
     // with zero values
     tester.checkAgg(
         "var_samp(x)",
+        new String[]{},
+        null,
+        0d);
+  }
+
+  @Test public void testVarFunc() {
+    tester.setFor(SqlStdOperatorTable.VARIANCE, VM_EXPAND);
+    tester.checkFails(
+        "variance(^*^)",
+        "Unknown identifier '\\*'",
+        false);
+    tester.checkFails(
+        "^variance(cast(null as varchar(2)))^",
+        "(?s)Cannot apply 'VARIANCE' to arguments of type 'VARIANCE\\(<VARCHAR\\(2\\)>\\)'\\. Supported form\\(s\\): 'VARIANCE\\(<NUMERIC>\\)'.*",
+        false);
+    tester.checkType("variance(CAST(NULL AS INTEGER))", "INTEGER");
+    checkAggType(tester, "variance(DISTINCT 1.5)", "DECIMAL(2, 1) NOT NULL");
+    final String[] values = {"0", "CAST(null AS FLOAT)", "3", "3"};
+    if (!enable) {
+      return;
+    }
+    tester.checkAgg(
+        "variance(x)", values, 3d, // verified on Oracle 10g
+        0d);
+    tester.checkAgg(
+        "variance(DISTINCT x)", // Oracle does not allow distinct
+        values,
+        4.5d,
+        0.0001d);
+    tester.checkAgg(
+        "variance(DISTINCT CASE x WHEN 0 THEN NULL ELSE -1 END)",
+        values,
+        null,
+        0d);
+    // with one value
+    tester.checkAgg(
+        "variance(x)",
+        new String[]{"5"},
+        null,
+        0d);
+    // with zero values
+    tester.checkAgg(
+        "variance(x)",
         new String[]{},
         null,
         0d);

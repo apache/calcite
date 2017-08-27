@@ -85,19 +85,31 @@ select stddev_pop(deptno) as s from emp;
 
 !ok
 
+# stddev
+select stddev(deptno) as s from emp;
++----+
+| S  |
++----+
+| 19 |
++----+
+(1 row)
+
+!ok
+
 # both
 select gender,
   stddev_pop(deptno) as p,
   stddev_samp(deptno) as s,
+  stddev(deptno) as ss,
   count(deptno) as c
 from emp
 group by gender;
-+--------+----+----+---+
-| GENDER | P  | S  | C |
-+--------+----+----+---+
-| F      | 17 | 19 | 5 |
-| M      | 17 | 20 | 3 |
-+--------+----+----+---+
++--------+----+----+----+---+
+| GENDER | P  | S  | SS | C |
++--------+----+----+----+---+
+| F      | 17 | 19 | 19 | 5 |
+| M      | 17 | 20 | 20 | 3 |
++--------+----+----+----+---+
 (2 rows)
 
 !ok

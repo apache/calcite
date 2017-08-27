@@ -212,6 +212,19 @@ public abstract class RelDataTypeSystemImpl implements RelDataTypeSystem {
     return argumentType;
   }
 
+  @Override public RelDataType deriveAvgAggType(
+      RelDataTypeFactory typeFactory, RelDataType argumentType) {
+    return argumentType;
+    //return typeFactory.createSqlType(SqlTypeName.DOUBLE);
+  }
+
+
+  @Override public RelDataType deriveCovarType(
+      RelDataTypeFactory typeFactory, RelDataType argumentType0, RelDataType argumentType1) {
+    return argumentType0;
+    //return typeFactory.createSqlType(SqlTypeName.DOUBLE);
+  }
+
   @Override public RelDataType deriveFractionalRankType(RelDataTypeFactory typeFactory) {
     return typeFactory.createTypeWithNullability(
         typeFactory.createSqlType(SqlTypeName.DOUBLE), false);
