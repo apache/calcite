@@ -161,6 +161,21 @@ public class RelOptRulesTest extends RelOptTestBase {
     return DiffRepository.lookup(RelOptRulesTest.class);
   }
 
+  @Test public void testReduceNot() {
+    HepProgram preProgram = new HepProgramBuilder()
+        .build();
+
+    HepProgramBuilder builder = new HepProgramBuilder();
+    builder.addRuleClass(ReduceExpressionsRule.class);
+    HepPlanner hepPlanner = new HepPlanner(builder.build());
+    hepPlanner.addRule(ReduceExpressionsRule.FILTER_INSTANCE);
+
+    final String sql = "select *\n"
+        + "from (select (case when sal > 1000 then null else false end) as caseCol from emp)\n"
+        + "where NOT(caseCol)";
+    checkPlanning(tester, preProgram, hepPlanner, sql, true);
+  }
+
   @Test public void testReduceNestedCaseWhen() {
     HepProgram preProgram = new HepProgramBuilder()
         .build();

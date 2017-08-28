@@ -1170,19 +1170,26 @@ public enum SqlKind {
 
   /** Returns the kind that you get if you apply NOT to this kind.
    *
-   * <p>For example, {@code IS_NOT_NULL.negate()} returns {@link #IS_NULL}. */
+   * <p>For example, {@code IS_NOT_NULL.negate()} returns {@link #IS_NULL}.
+   *
+   * For IS_TRUE/IS_FALSE/IS_NOT_TRUE/IS_NOT_FALSE, nullable inputs need to be
+   * treated carefully.  NOT(IS_TRUE(null)) = NOT(false) = true while IS_FALSE(null) = false,
+   * so NOT(IS_TRUE(X)) should be IS_NOT_TRUE(X). On the other hand,
+   * IS_TRUE(NOT(null)) = IS_TRUE(null) = false.  This is why negate() != negateNullSafe()
+   * for these operators.
+   **/
   public SqlKind negate() {
     switch (this) {
     case IS_TRUE:
-      return IS_FALSE;
+      return IS_NOT_TRUE;
     case IS_FALSE:
-      return IS_TRUE;
+      return IS_NOT_FALSE;
     case IS_NULL:
       return IS_NOT_NULL;
     case IS_NOT_TRUE:
-      return IS_NOT_FALSE;
+      return IS_TRUE;
     case IS_NOT_FALSE:
-      return IS_NOT_TRUE;
+      return IS_FALSE;
     case IS_NOT_NULL:
       return IS_NULL;
     case IS_DISTINCT_FROM:
@@ -1195,7 +1202,16 @@ public enum SqlKind {
   }
 
   /** Returns the kind that you get if you negate this kind.
-   * To conform to null semantics, null value should not be compared. */
+   * To conform to null semantics, null value should not be compared.
+   *
+   * For IS_TRUE/IS_FALSE/IS_NOT_TRUE/IS_NOT_FALSE, nullable inputs need to be
+   * treated carefully.
+   *
+   * NOT(IS_TRUE(null)) = NOT(false) = true
+   * IS_TRUE(NOT(null)) = IS_TRUE(null) = false
+   * IS_FALSE(null) = false
+   * IS_NOT_TRUE(null) = true
+   **/
   public SqlKind negateNullSafe() {
     switch (this) {
     case EQUALS:
@@ -1210,6 +1226,14 @@ public enum SqlKind {
       return GREATER_THAN;
     case GREATER_THAN_OR_EQUAL:
       return LESS_THAN;
+    case IS_TRUE:
+      return IS_FALSE;
+    case IS_FALSE:
+      return IS_TRUE;
+    case IS_NOT_TRUE:
+      return IS_NOT_FALSE;
+    case IS_NOT_FALSE:
+      return IS_NOT_TRUE;
     default:
       return this.negate();
     }

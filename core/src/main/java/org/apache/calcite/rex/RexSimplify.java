@@ -325,7 +325,7 @@ public class RexSimplify {
       // Note that
       //   (NOT x) IS TRUE !=> x IS FALSE
       // because of null values.
-      final SqlOperator notKind = RexUtil.op(kind.negate());
+      final SqlOperator notKind = RexUtil.op(kind.negateNullSafe());
       final RexNode arg = ((RexCall) a).operands.get(0);
       return simplify(rexBuilder.makeCall(notKind, arg));
     }
