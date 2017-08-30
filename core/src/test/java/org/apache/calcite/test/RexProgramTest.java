@@ -1566,6 +1566,33 @@ public class RexProgramTest {
         "2011-07-20 16:23:45 UTC");
   }
 
+  @Test public void testSimplifyTimestampWithLocalTimeZone() {
+    final RexLiteral timestampLTZChar1 =
+        rexBuilder.makeLiteral("2011-07-20 10:34:56 America/Los_Angeles");
+    final RexLiteral timestampLTZChar2 =
+        rexBuilder.makeLiteral("2011-07-20 19:34:56 Europe/Rome");
+    final RexLiteral timestampLTZChar3 =
+        rexBuilder.makeLiteral("2011-07-20 01:34:56 Asia/Tokyo");
+    final RelDataType timestampLTZType =
+        typeFactory.createSqlType(SqlTypeName.TIMESTAMP_WITH_LOCAL_TIMEZONE);
+
+    RexNode condition1 = eq(
+        cast(timestampLTZChar1, timestampLTZType),
+        cast(timestampLTZChar2, timestampLTZType));
+    RexLiteral result1 = (RexLiteral) simplify.simplify(condition1);
+    assertThat(result1.getType().isNullable(), is(false));
+    assertThat(result1.getType().getSqlTypeName(), is(SqlTypeName.BOOLEAN));
+    assertThat(result1, is(trueLiteral));
+
+    RexNode condition2 = eq(
+        cast(timestampLTZChar1, timestampLTZType),
+        cast(timestampLTZChar3, timestampLTZType));
+    RexLiteral result2 = (RexLiteral) simplify.simplify(condition2);
+    assertThat(result2.getType().isNullable(), is(false));
+    assertThat(result2.getType().getSqlTypeName(), is(SqlTypeName.BOOLEAN));
+    assertThat(result2, is(falseLiteral));
+  }
+
   @Test public void testSimplifyLiterals() {
     final RexLiteral literalAbc = rexBuilder.makeLiteral("abc");
     final RexLiteral literalDef = rexBuilder.makeLiteral("def");

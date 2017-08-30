@@ -153,7 +153,8 @@ public class TimestampWithLocalTimeZoneString
   }
 
   @Override public int compareTo(TimestampWithLocalTimeZoneString o) {
-    return v.compareTo(o.v);
+    return withTimeZone(DateTimeUtils.UTC_ZONE).toString()
+        .compareTo(o.withTimeZone(DateTimeUtils.UTC_ZONE).toString());
   }
 
   public TimestampWithLocalTimeZoneString round(int precision) {
