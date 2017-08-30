@@ -18,6 +18,7 @@ package org.apache.calcite.jdbc;
 
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.config.CalciteConnectionConfig;
+import org.apache.calcite.jdbc.CalcitePrepare.Context;
 import org.apache.calcite.linq4j.QueryProvider;
 import org.apache.calcite.schema.SchemaPlus;
 
@@ -76,6 +77,9 @@ public interface CalciteConnection extends Connection, QueryProvider {
   String getSchema() throws SQLException;
 
   CalciteConnectionConfig config();
+
+  /** Creates a context for preparing a statement for execution. */
+  Context createPrepareContext();
 }
 
 // End CalciteConnection.java

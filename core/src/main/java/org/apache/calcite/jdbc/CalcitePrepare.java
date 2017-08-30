@@ -124,7 +124,7 @@ public interface CalcitePrepare {
      *
      * <p>The object is being analyzed is typically a view. If it is already
      * being analyzed further up the stack, the view definition can be deduced
-     * to be cylic. */
+     * to be cyclic. */
     List<String> getObjectPath();
   }
 

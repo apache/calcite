@@ -80,12 +80,7 @@ public abstract class JsonSchema {
    * <p>If {@code true}, Calcite will cache the metadata the first time it reads
    * it. This can lead to better performance, especially if name-matching is
    * case-insensitive
-   * (see {@link org.apache.calcite.config.Lex#caseSensitive}).
-   * However, it also leads to the problem of cache staleness.
-   * A particular schema implementation can override the
-   * {@link org.apache.calcite.schema.Schema#contentsHaveChangedSince(long, long)}
-   * method to tell Calcite when it should consider its cache to be out of
-   * date.</p>
+   * (see {@link org.apache.calcite.config.Lex#caseSensitive}).</p>
    *
    * <p>Tables, functions and sub-schemas explicitly created in a schema are
    * not affected by this caching mechanism. They always appear in the schema

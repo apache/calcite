@@ -64,10 +64,6 @@ public abstract class CalciteStatement extends AvaticaStatement {
     return (CalciteConnectionImpl) connection;
   }
 
-  public CalciteConnectionImpl.ContextImpl createPrepareContext() {
-    return new CalciteConnectionImpl.ContextImpl(getConnection());
-  }
-
   protected <T> CalcitePrepare.CalciteSignature<T> prepare(
       Queryable<T> queryable) {
     final CalciteConnectionImpl calciteConnection = getConnection();

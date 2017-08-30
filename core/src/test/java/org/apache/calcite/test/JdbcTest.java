@@ -6192,11 +6192,6 @@ public class JdbcTest {
     aSchema.setCacheEnabled(true);
     assertThat(aSchema.getSubSchemaNames().size(), is(0));
 
-    // AbstractSchema never thinks its contents have changed; subsequent tests
-    // assume this
-    assertThat(aSchema.contentsHaveChangedSince(-1, 1), equalTo(false));
-    assertThat(aSchema.contentsHaveChangedSince(1, 1), equalTo(false));
-
     // first call, to populate the cache
     assertThat(aSchema.getSubSchemaNames().size(), is(0));
 
@@ -6226,33 +6221,24 @@ public class JdbcTest {
 
     // create schema "/a2"
     final Map<String, Schema> a2SubSchemaMap = new HashMap<>();
-    final boolean[] changed = {false};
     final SchemaPlus a2Schema = rootSchema.add("a", new AbstractSchema() {
       @Override protected Map<String, Schema> getSubSchemaMap() {
         return a2SubSchemaMap;
-      }
-      @Override public boolean contentsHaveChangedSince(long lastCheck,
-          long now) {
-        return changed[0];
       }
     });
     a2Schema.setCacheEnabled(true);
     assertThat(a2Schema.getSubSchemaNames().size(), is(0));
 
-    // create schema "/a2/b3". Appears only when we mark the schema changed.
+    // create schema "/a2/b3". Change not visible since caching is enabled.
     a2SubSchemaMap.put("b3", new AbstractSchema());
     assertThat(a2Schema.getSubSchemaNames().size(), is(0));
     Thread.sleep(1);
     assertThat(a2Schema.getSubSchemaNames().size(), is(0));
-    changed[0] = true;
-    assertThat(a2Schema.getSubSchemaNames().size(), is(1));
-    changed[0] = false;
 
-    // or if we disable caching
-    a2SubSchemaMap.put("b4", new AbstractSchema());
-    assertThat(a2Schema.getSubSchemaNames().size(), is(1));
+    // Change visible after we turn off caching.
     a2Schema.setCacheEnabled(false);
-    a2Schema.setCacheEnabled(true);
+    assertThat(a2Schema.getSubSchemaNames().size(), is(1));
+    a2SubSchemaMap.put("b4", new AbstractSchema());
     assertThat(a2Schema.getSubSchemaNames().size(), is(2));
     for (String name : aSchema.getSubSchemaNames()) {
       assertThat(aSchema.getSubSchema(name), notNullValue());

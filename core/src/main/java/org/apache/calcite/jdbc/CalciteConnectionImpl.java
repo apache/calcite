@@ -31,6 +31,7 @@ import org.apache.calcite.avatica.UnregisteredDriver;
 import org.apache.calcite.avatica.remote.TypedValue;
 import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.config.CalciteConnectionConfigImpl;
+import org.apache.calcite.jdbc.CalcitePrepare.Context;
 import org.apache.calcite.linq4j.BaseQueryable;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.Enumerator;
@@ -47,8 +48,10 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.schema.SchemaVersion;
 import org.apache.calcite.schema.Schemas;
 import org.apache.calcite.schema.impl.AbstractSchema;
+import org.apache.calcite.schema.impl.LongSchemaVersion;
 import org.apache.calcite.server.CalciteServer;
 import org.apache.calcite.server.CalciteServerStatement;
 import org.apache.calcite.sql.advise.SqlAdvisor;
@@ -139,6 +142,10 @@ abstract class CalciteConnectionImpl
     return new CalciteConnectionConfigImpl(info);
   }
 
+  public Context createPrepareContext() {
+    return new ContextImpl(this);
+  }
+
   /** Called after the constructor has completed and the model has been
    * loaded. */
   void init() {
@@ -193,7 +200,7 @@ abstract class CalciteConnectionImpl
       int resultSetHoldability) throws SQLException {
     try {
       final Meta.Signature signature =
-          parseQuery(query, new ContextImpl(this), -1);
+          parseQuery(query, createPrepareContext(), -1);
       final CalcitePreparedStatement calcitePreparedStatement =
           (CalcitePreparedStatement) factory.newPreparedStatement(this, null,
               signature, resultSetType, resultSetConcurrency, resultSetHoldability);
@@ -463,7 +470,8 @@ abstract class CalciteConnectionImpl
     ContextImpl(CalciteConnectionImpl connection) {
       this.connection = Preconditions.checkNotNull(connection);
       long now = System.currentTimeMillis();
-      this.rootSchema = connection.rootSchema.createSnapshot(now);
+      SchemaVersion schemaVersion = new LongSchemaVersion(now);
+      this.rootSchema = connection.rootSchema.createSnapshot(schemaVersion);
     }
 
     public JavaTypeFactory getTypeFactory() {
@@ -532,8 +540,8 @@ abstract class CalciteConnectionImpl
       this.connection = Preconditions.checkNotNull(connection);
     }
 
-    public ContextImpl createPrepareContext() {
-      return new ContextImpl(connection);
+    public Context createPrepareContext() {
+      return connection.createPrepareContext();
     }
 
     public CalciteConnection getConnection() {
