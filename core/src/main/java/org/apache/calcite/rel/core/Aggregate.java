@@ -80,6 +80,13 @@ public abstract class Aggregate extends SingleRel {
         }
       };
 
+  public static final Predicate<Aggregate> NO_INDICATOR =
+      new PredicateImpl<Aggregate>() {
+        public boolean test(Aggregate input) {
+          return !input.indicator;
+        }
+      };
+
   public static final Predicate<Aggregate> IS_NOT_GRAND_TOTAL =
       new PredicateImpl<Aggregate>() {
         public boolean test(Aggregate input) {
@@ -89,6 +96,11 @@ public abstract class Aggregate extends SingleRel {
 
   //~ Instance fields --------------------------------------------------------
 
+  /** Whether there are indicator fields.
+   *
+   * <p>We strongly discourage the use indicator fields, because they cause the
+   * output row type of GROUPING SETS queries to be different from regular GROUP
+   * BY queries, and recommend that you set this field to {@code false}. */
   public final boolean indicator;
   protected final List<AggregateCall> aggCalls;
   protected final ImmutableBitSet groupSet;
@@ -118,8 +130,7 @@ public abstract class Aggregate extends SingleRel {
    * @param traits   Traits
    * @param child    Child
    * @param indicator Whether row type should include indicator fields to
-   *                 indicate which grouping set is active; must be true if
-   *                 aggregate is not simple
+   *                 indicate which grouping set is active; true is deprecated
    * @param groupSet Bit set of grouping fields
    * @param groupSets List of all grouping sets; null for just {@code groupSet}
    * @param aggCalls Collection of calls to aggregate functions
@@ -133,7 +144,7 @@ public abstract class Aggregate extends SingleRel {
       List<ImmutableBitSet> groupSets,
       List<AggregateCall> aggCalls) {
     super(cluster, traits, child);
-    this.indicator = indicator;
+    this.indicator = indicator; // true is allowed, but discouraged
     this.aggCalls = ImmutableList.copyOf(aggCalls);
     this.groupSet = Preconditions.checkNotNull(groupSet);
     if (groupSets == null) {
@@ -346,6 +357,9 @@ public abstract class Aggregate extends SingleRel {
       final RelDataTypeField field = fieldList.get(groupKey);
       containedNames.add(field.getName());
       builder.add(field);
+      if (groupSets != null && !allContain(groupSets, groupKey)) {
+        builder.nullable(true);
+      }
     }
     if (indicator) {
       for (int groupKey : groupList) {
@@ -378,6 +392,16 @@ public abstract class Aggregate extends SingleRel {
       builder.add(name, aggCall.e.type);
     }
     return builder.build();
+  }
+
+  private static boolean allContain(List<ImmutableBitSet> groupSets,
+      int groupKey) {
+    for (ImmutableBitSet groupSet : groupSets) {
+      if (!groupSet.get(groupKey)) {
+        return false;
+      }
+    }
+    return true;
   }
 
   public boolean isValid(Litmus litmus, Context context) {

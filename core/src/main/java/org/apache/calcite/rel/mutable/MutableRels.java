@@ -194,7 +194,7 @@ public abstract class MutableRels {
       final MutableAggregate aggregate = (MutableAggregate) node;
       relBuilder.push(fromMutable(aggregate.input, relBuilder));
       relBuilder.aggregate(
-          relBuilder.groupKey(aggregate.groupSet, aggregate.indicator, aggregate.groupSets),
+          relBuilder.groupKey(aggregate.groupSet, aggregate.groupSets),
           aggregate.aggCalls);
       return relBuilder.build();
     case SORT:
@@ -312,9 +312,8 @@ public abstract class MutableRels {
     if (rel instanceof Aggregate) {
       final Aggregate aggregate = (Aggregate) rel;
       final MutableRel input = toMutable(aggregate.getInput());
-      return MutableAggregate.of(input, aggregate.indicator,
-          aggregate.getGroupSet(), aggregate.getGroupSets(),
-          aggregate.getAggCallList());
+      return MutableAggregate.of(input, aggregate.getGroupSet(),
+          aggregate.getGroupSets(), aggregate.getAggCallList());
     }
     if (rel instanceof Sort) {
       final Sort sort = (Sort) rel;

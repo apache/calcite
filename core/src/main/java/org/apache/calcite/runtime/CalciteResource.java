@@ -320,9 +320,6 @@ public interface CalciteResource {
   @BaseMessage("Windowed aggregate expression is illegal in {0} clause")
   ExInst<SqlValidatorException> windowedAggregateIllegalInClause(String a0);
 
-  @BaseMessage("Aggregate expression is illegal in GROUP BY clause")
-  ExInst<SqlValidatorException> aggregateIllegalInGroupBy();
-
   @BaseMessage("Aggregate expressions cannot be nested")
   ExInst<SqlValidatorException> nestedAggIllegal();
 

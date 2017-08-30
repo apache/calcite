@@ -93,11 +93,14 @@ public class RexCall extends RexNode {
   }
 
   public String toString() {
-    if (digest == null) {
-      digest = computeDigest(
+    // This data race is intentional
+    String localDigest = digest;
+    if (localDigest == null) {
+      localDigest = computeDigest(
           isA(SqlKind.CAST) || isA(SqlKind.NEW_SPECIFICATION));
+      digest = localDigest;
     }
-    return digest;
+    return localDigest;
   }
 
   public <R> R accept(RexVisitor<R> visitor) {

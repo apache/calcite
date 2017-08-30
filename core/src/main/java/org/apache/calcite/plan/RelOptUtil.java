@@ -508,7 +508,7 @@ public abstract class RelOptUtil {
               extraName);
 
       ret =
-          LogicalAggregate.create(ret, false,
+          LogicalAggregate.create(ret,
               ImmutableBitSet.of(), null, ImmutableList.of(aggCall));
     }
 
@@ -557,8 +557,7 @@ public abstract class RelOptUtil {
         || logic == RelOptUtil.Logic.TRUE_FALSE_UNKNOWN;
     if (!outerJoin) {
       final LogicalAggregate aggregate =
-          LogicalAggregate.create(ret, false,
-              ImmutableBitSet.range(keyCount), null,
+          LogicalAggregate.create(ret, ImmutableBitSet.range(keyCount), null,
               ImmutableList.<AggregateCall>of());
       return new Exists(aggregate, false, false);
     }
@@ -586,9 +585,8 @@ public abstract class RelOptUtil {
             null,
             null);
 
-    ret = LogicalAggregate.create(ret, false,
-        ImmutableBitSet.range(projectedKeyCount), null,
-        ImmutableList.of(aggCall));
+    ret = LogicalAggregate.create(ret, ImmutableBitSet.range(projectedKeyCount),
+        null, ImmutableList.of(aggCall));
 
     switch (logic) {
     case TRUE_FALSE_UNKNOWN:
@@ -787,14 +785,13 @@ public abstract class RelOptUtil {
               0, rel, null, null));
     }
 
-    return LogicalAggregate.create(rel, false,
-        ImmutableBitSet.of(), null, aggCalls);
+    return LogicalAggregate.create(rel, ImmutableBitSet.of(), null, aggCalls);
   }
 
   /** @deprecated Use {@link RelBuilder#distinct()}. */
   @Deprecated // to be removed before 2.0
   public static RelNode createDistinctRel(RelNode rel) {
-    return LogicalAggregate.create(rel, false,
+    return LogicalAggregate.create(rel,
         ImmutableBitSet.range(rel.getRowType().getFieldCount()), null,
         ImmutableList.<AggregateCall>of());
   }

@@ -18,6 +18,7 @@ package org.apache.calcite.adapter.enumerable;
 
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlAggFunction;
+import org.apache.calcite.util.ImmutableBitSet;
 
 import java.lang.reflect.Type;
 import java.util.List;
@@ -67,6 +68,24 @@ public interface AggContext {
    * @return Parameter types of the aggregate
    */
   List<? extends Type> parameterTypes();
+
+  /** Returns the ordinals of the input fields that make up the key. */
+  List<Integer> keyOrdinals();
+
+  /**
+   * Returns the types of the group key as
+   * {@link org.apache.calcite.rel.type.RelDataType}.
+   */
+  List<? extends RelDataType> keyRelTypes();
+
+  /**
+   * Returns the types of the group key as
+   * {@link java.lang.reflect.Type}.
+   */
+  List<? extends Type> keyTypes();
+
+  /** Returns the grouping sets we are aggregating on. */
+  List<ImmutableBitSet> groupSets();
 }
 
 // End AggContext.java

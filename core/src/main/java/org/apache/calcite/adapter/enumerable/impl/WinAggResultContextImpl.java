@@ -45,7 +45,7 @@ public abstract class WinAggResultContextImpl extends AggResultContextImpl
   public WinAggResultContextImpl(BlockBuilder block,
       List<Expression> accumulator,
       Function<BlockBuilder, WinAggFrameResultContext> frameContextBuilder) {
-    super(block, accumulator);
+    super(block, null, accumulator, null, null);
     this.frame = frameContextBuilder;
   }
 

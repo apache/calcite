@@ -23,6 +23,7 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.SqlSyntax;
+import org.apache.calcite.sql.fun.SqlAbstractGroupFunction;
 import org.apache.calcite.sql.util.SqlBasicVisitor;
 import org.apache.calcite.util.Util;
 
@@ -105,7 +106,9 @@ class AggFinder extends SqlBasicVisitor<Void> {
   public Void visit(SqlCall call) {
     final SqlOperator operator = call.getOperator();
     // If nested aggregates disallowed or found an aggregate at invalid level
-    if (operator.isAggregator() && !operator.requiresOver()) {
+    if (operator.isAggregator()
+        && !(operator instanceof SqlAbstractGroupFunction)
+        && !operator.requiresOver()) {
       if (delegate != null) {
         return operator.acceptCall(delegate, call);
       }

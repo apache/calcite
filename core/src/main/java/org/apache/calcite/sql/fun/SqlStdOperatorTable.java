@@ -195,26 +195,28 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   public static final SqlInternalOperator GROUPING_SETS =
       new SqlRollupOperator("GROUPING SETS", SqlKind.GROUPING_SETS);
 
-  /** {@code GROUPING} function. Occurs in similar places to an aggregate
+  /** {@code GROUPING(c1 [, c2, ...])} function.
+   *
+   * <p>Occurs in similar places to an aggregate
    * function ({@code SELECT}, {@code HAVING} clause, etc. of an aggregate
    * query), but not technically an aggregate function. */
   public static final SqlGroupingFunction GROUPING =
       new SqlGroupingFunction("GROUPING");
 
-  /** {@code GROUP_ID} function. */
+  /** {@code GROUP_ID()} function. (Oracle-specific.) */
   public static final SqlGroupIdFunction GROUP_ID =
       new SqlGroupIdFunction();
 
-  /** {@code GROUP_ID} function is a synonym for {@code GROUPING}.
+  /** {@code GROUPING_ID} function is a synonym for {@code GROUPING}.
    *
    * <p>Some history. The {@code GROUPING} function is in the SQL standard,
-   * and originally supported only one argument. The {@code GROUP_ID} is not
-   * standard (though supported in Oracle and SQL Server) and supports zero or
+   * and originally supported only one argument. {@code GROUPING_ID} is not
+   * standard (though supported in Oracle and SQL Server) and supports one or
    * more arguments.
    *
    * <p>The SQL standard has changed to allow {@code GROUPING} to have multiple
-   * arguments. It is now equivalent to {@code GROUP_ID}, so we made
-   * {@code GROUP_ID} a synonym for {@code GROUPING}. */
+   * arguments. It is now equivalent to {@code GROUPING_ID}, so we made
+   * {@code GROUPING_ID} a synonym for {@code GROUPING}. */
   public static final SqlGroupingFunction GROUPING_ID =
       new SqlGroupingFunction("GROUPING_ID");
 

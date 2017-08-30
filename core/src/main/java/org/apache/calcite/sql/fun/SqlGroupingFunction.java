@@ -24,6 +24,13 @@ import org.apache.calcite.sql.type.ReturnTypes;
 /**
  * The {@code GROUPING} function.
  *
+ * <p>Accepts 1 or more arguments.
+ * Example: {@code GROUPING(deptno, gender)} returns
+ * 3 if both deptno and gender are being grouped,
+ * 2 if only deptno is being grouped,
+ * 1 if only gender is being groped,
+ * 0 if neither deptno nor gender are being grouped.
+ *
  * <p>This function is defined in the SQL standard.
  * {@code GROUPING_ID} is a non-standard synonym.
  *

@@ -5243,34 +5243,55 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   @Test public void testGroupId() {
+    final String groupIdOnlyInAggregate =
+        "GROUP_ID operator may only occur in an aggregate query";
+    final String groupIdWrongClause =
+        "GROUP_ID operator may only occur in SELECT, HAVING or ORDER BY clause";
+
     sql("select deptno, group_id() from emp group by deptno").ok();
     sql("select deptno, ^group_id^ as x from emp group by deptno")
         .fails("Column 'GROUP_ID' not found in any table");
     sql("select deptno, ^group_id(deptno)^ from emp group by deptno")
         .fails("Invalid number of arguments to function 'GROUP_ID'\\. "
             + "Was expecting 0 arguments");
+    // Oracle throws "GROUPING function only supported with GROUP BY CUBE or
+    // ROLLUP"
+    sql("select ^group_id()^ from emp")
+        .fails(groupIdOnlyInAggregate);
     sql("select deptno from emp order by ^group_id(deptno)^")
-        .fails("GROUP_ID operator may only occur in an aggregate query");
+        .fails(groupIdOnlyInAggregate);
+    // Oracle throws "GROUPING function only supported with GROUP BY CUBE or
+    // ROLLUP"
+    sql("select 1 from emp order by ^group_id()^")
+        .fails(groupIdOnlyInAggregate);
+    sql("select 1 from emp order by ^grouping(deptno)^")
+        .fails("GROUPING operator may only occur in an aggregate query");
+    // Oracle throws "group function is not allowed here"
     sql("select deptno from emp where ^group_id()^ = 1")
-        .fails("GROUP_ID operator may only occur in an aggregate query");
+        .fails(groupIdOnlyInAggregate);
+    // Oracle throws "group function is not allowed here"
+    sql("select deptno from emp group by ^group_id()^")
+        .fails(groupIdWrongClause);
     sql("select deptno from emp where ^group_id()^ = 1 group by deptno")
-        .fails(
-            "GROUP_ID operator may only occur in SELECT, HAVING or ORDER BY clause");
+        .fails(groupIdWrongClause);
     sql("select deptno from emp group by deptno, ^group_id()^")
-        .fails(
-            "GROUP_ID operator may only occur in SELECT, HAVING or ORDER BY clause");
+        .fails(groupIdWrongClause);
     sql("select deptno from emp\n"
         + "group by grouping sets(deptno, ^group_id()^)")
-        .fails(
-            "GROUP_ID operator may only occur in SELECT, HAVING or ORDER BY clause");
+        .fails(groupIdWrongClause);
     sql("select deptno from emp\n"
         + "group by cube(empno, ^group_id()^)")
-        .fails(
-            "GROUP_ID operator may only occur in SELECT, HAVING or ORDER BY clause");
+        .fails(groupIdWrongClause);
     sql("select deptno from emp\n"
         + "group by rollup(empno, ^group_id()^)")
-        .fails(
-            "GROUP_ID operator may only occur in SELECT, HAVING or ORDER BY clause");
+        .fails(groupIdWrongClause);
+    sql("select grouping(^group_id()^) from emp")
+        .fails(groupIdOnlyInAggregate);
+    // Oracle throws "not a GROUP BY expression"
+    sql("select grouping(^group_id()^) from emp group by deptno")
+        .fails(groupIdWrongClause);
+    sql("select ^grouping(sum(empno))^ from emp group by deptno")
+        .fails("Aggregate expressions cannot be nested");
   }
 
   @Test public void testCubeGrouping() {

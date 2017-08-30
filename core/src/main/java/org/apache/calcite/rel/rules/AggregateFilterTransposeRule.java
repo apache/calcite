@@ -106,7 +106,7 @@ public class AggregateFilterTransposeRule extends RelOptRule {
         RexUtil.apply(mapping, filter.getCondition());
     final Filter newFilter = filter.copy(filter.getTraitSet(),
         newAggregate, newCondition);
-    if (allColumnsInAggregate && !aggregate.indicator) {
+    if (allColumnsInAggregate && aggregate.getGroupSets().size() == 1) {
       // Everything needed by the filter is returned by the aggregate.
       assert newGroupSet.equals(aggregate.getGroupSet());
       call.transformTo(newFilter);
@@ -119,7 +119,7 @@ public class AggregateFilterTransposeRule extends RelOptRule {
         topGroupSet.set(newGroupSet.indexOf(c));
       }
       ImmutableList<ImmutableBitSet> newGroupingSets = null;
-      if (aggregate.indicator) {
+      if (aggregate.groupSets.size() > 1) {
         ImmutableList.Builder<ImmutableBitSet> newGroupingSetsBuilder =
                 ImmutableList.builder();
         for (ImmutableBitSet groupingSet : aggregate.getGroupSets()) {

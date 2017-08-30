@@ -125,6 +125,12 @@ public abstract class SqlAggFunction extends SqlFunction implements Context {
   public RelDataType getReturnType(RelDataTypeFactory typeFactory) {
     throw new UnsupportedOperationException("remove before calcite-2.0");
   }
+
+  /** Whether this aggregate function allows a {@code FILTER (WHERE ...)}
+   * clause. */
+  public boolean allowsFilter() {
+    return true;
+  }
 }
 
 // End SqlAggFunction.java
