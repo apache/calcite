@@ -18,18 +18,23 @@ package org.apache.calcite.schema;
 
 /**
  * An interface to represent a version ID that can be used to create a
- * read-consistent view of a Schema. Any class implementing this interface
- * is assumed to be partially ordered.
+ * read-consistent view of a Schema. This interface assumes a strict
+ * partial ordering contract that is:
+ *   1) Irreflexive: !a.isBefore(a), which means a cannot happen before itself;
+ *   2) Transitive: if a.isBefore(b) and b.isBefore(c) then a.isBefore(c);
+ *   3) anti-symmetric: if a.isBefore(b) then !b.isBefore(a).
+ * Implementation classes of this interface must also override equals(),
+ * hashCode() and toString().
  *
  * @see Schema#snapshot(SchemaVersion)
  */
 public interface SchemaVersion {
 
   /**
-   * Returns if this Version is smaller than or equal to the other Version.
+   * Returns if this Version happens before the other Version.
    * @param other the other Version object
    */
-  boolean lessThanOrEqualTo(SchemaVersion other);
+  boolean isBefore(SchemaVersion other);
 }
 
 // End SchemaVersion.java

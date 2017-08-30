@@ -549,10 +549,6 @@ public abstract class CalciteSchema {
       return CalciteSchema.this.isCacheEnabled();
     }
 
-    public boolean contentsHaveChangedSince(long lastCheck, long now) {
-      return schema.contentsHaveChangedSince(lastCheck, now);
-    }
-
     public Schema snapshot(SchemaVersion version) {
       throw new UnsupportedOperationException();
     }

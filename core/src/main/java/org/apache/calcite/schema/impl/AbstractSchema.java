@@ -62,10 +62,6 @@ public class AbstractSchema implements Schema {
     return true;
   }
 
-  public boolean contentsHaveChangedSince(long lastCheck, long now) {
-    return false;
-  }
-
   public Schema snapshot(SchemaVersion version) {
     return this;
   }

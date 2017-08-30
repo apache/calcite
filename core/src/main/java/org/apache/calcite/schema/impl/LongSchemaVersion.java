@@ -26,14 +26,14 @@ public class LongSchemaVersion implements SchemaVersion {
     this.value = value;
   }
 
-  public boolean lessThanOrEqualTo(SchemaVersion other) {
+  public boolean isBefore(SchemaVersion other) {
     if (!(other instanceof LongSchemaVersion)) {
       throw new IllegalArgumentException(
           "Cannot compare a LongSchemaVersion object with a "
           + other.getClass() + " object.");
     }
 
-    return this.value <= ((LongSchemaVersion) other).value;
+    return this.value < ((LongSchemaVersion) other).value;
   }
 
   public boolean equals(Object obj) {

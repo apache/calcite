@@ -164,10 +164,6 @@ public class JdbcSchema implements Schema {
     return false;
   }
 
-  public boolean contentsHaveChangedSince(long lastCheck, long now) {
-    return false;
-  }
-
   public Schema snapshot(SchemaVersion version) {
     return new JdbcSchema(dataSource, dialect, convention, catalog, schema,
         tableMap);

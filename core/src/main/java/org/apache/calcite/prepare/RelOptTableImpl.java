@@ -431,11 +431,6 @@ public class RelOptTableImpl extends Prepare.AbstractPreparingTable {
       return schema.getExpression(parentSchema, name);
     }
 
-    @Override public boolean contentsHaveChangedSince(long lastCheck,
-        long now) {
-      return schema.contentsHaveChangedSince(lastCheck, now);
-    }
-
     @Override public Schema snapshot(SchemaVersion version) {
       throw new UnsupportedOperationException();
     }

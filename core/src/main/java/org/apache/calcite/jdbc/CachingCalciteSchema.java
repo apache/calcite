@@ -246,17 +246,16 @@ class CachingCalciteSchema extends CalciteSchema {
    * that drives from {@link CachingCalciteSchema#cache}. */
   private abstract class AbstractCached<T> implements Cached<T> {
     T t;
-    long checked = Long.MIN_VALUE;
+    boolean built = false;
 
     public T get(long now) {
       if (!CachingCalciteSchema.this.cache) {
         return build();
       }
-      if (checked == Long.MIN_VALUE
-          || schema.contentsHaveChangedSince(checked, now)) {
+      if (!built) {
         t = build();
       }
-      checked = now;
+      built = true;
       return t;
     }
 
@@ -264,7 +263,7 @@ class CachingCalciteSchema extends CalciteSchema {
       if (!enabled) {
         t = null;
       }
-      checked = Long.MIN_VALUE;
+      built = false;
     }
   }
 

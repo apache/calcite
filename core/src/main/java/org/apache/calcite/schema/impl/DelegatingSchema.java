@@ -50,10 +50,6 @@ public class DelegatingSchema implements Schema {
     return schema.isMutable();
   }
 
-  public boolean contentsHaveChangedSince(long lastCheck, long now) {
-    return schema.contentsHaveChangedSince(lastCheck, now);
-  }
-
   public Schema snapshot(SchemaVersion version) {
     return schema.snapshot(version);
   }
