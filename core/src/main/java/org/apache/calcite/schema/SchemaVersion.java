@@ -20,10 +20,12 @@ package org.apache.calcite.schema;
  * An interface to represent a version ID that can be used to create a
  * read-consistent view of a Schema. This interface assumes a strict
  * partial ordering contract that is:
- *   1) Irreflexive: !a.isBefore(a), which means a cannot happen before itself;
- *   2) Transitive: if a.isBefore(b) and b.isBefore(c) then a.isBefore(c);
- *   3) anti-symmetric: if a.isBefore(b) then !b.isBefore(a).
- * Implementation classes of this interface must also override equals(),
+ * <ol>
+ * <li>irreflexive: !a.isBefore(a), which means a cannot happen before itself;
+ * <li>transitive: if a.isBefore(b) and b.isBefore(c) then a.isBefore(c);
+ * <li>antisymmetric: if a.isBefore(b) then !b.isBefore(a).
+ * </ol>
+ * Implementation classes of this interface must also override equals(Object),
  * hashCode() and toString().
  *
  * @see Schema#snapshot(SchemaVersion)
