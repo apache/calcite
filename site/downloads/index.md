@@ -48,9 +48,9 @@ Release          | Date       | Commit   | Download
 {% endcomment %}{% assign d = "https://archive.apache.org/dist" %}{% comment %}
 {% endcomment %}{% endif %}{% comment %}
 {% endcomment %}{% capture d1 %}{{ post.date | date: "%F"}}{% endcapture %}{% comment %}
-{% endcomment %}{% capture d2 %}2016-06-13{% endcapture %}{% comment %}
+{% endcomment %}{% capture d2 %}2017-08-31{% endcapture %}{% comment %}
 {% endcomment %}{% if d1 > d2 %}{% comment %}
-{% endcomment %}{% assign digest = "mds" %}{% comment %}
+{% endcomment %}{% assign digest = "sha256" %}{% comment %}
 {% endcomment %}{% else %}{% comment %}
 {% endcomment %}{% assign digest = "md5" %}{% comment %}
 {% endcomment %}{% endif %}{% comment %}
