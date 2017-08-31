@@ -47,9 +47,8 @@ import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.TestUtil;
 import org.apache.calcite.util.TimeString;
-import org.apache.calcite.util.TimeWithLocalTimeZoneString;
 import org.apache.calcite.util.TimestampString;
-import org.apache.calcite.util.TimestampWithLocalTimeZoneString;
+import org.apache.calcite.util.TimestampWithTimeZoneString;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
@@ -1494,13 +1493,14 @@ public class RexProgramTest {
   }
 
   @Test public void testSimplifyCastLiteral3() {
+    // Default TimeZone is "America/Los_Angeles" (DummyDataContext)
     final RexLiteral literalDate = rexBuilder.makeDateLiteral(new DateString("2011-07-20"));
     final RexLiteral literalTime = rexBuilder.makeTimeLiteral(new TimeString("12:34:56"), 0);
     final RexLiteral literalTimestamp = rexBuilder.makeTimestampLiteral(
         new TimestampString("2011-07-20 12:34:56"), 0);
     final RexLiteral literalTimeLTZ =
         rexBuilder.makeTimeWithLocalTimeZoneLiteral(
-            new TimeWithLocalTimeZoneString(1, 23, 45, "Asia/Tokyo"), 0);
+            new TimeString(1, 23, 45), 0);
     final RexLiteral timeLTZChar1 = rexBuilder.makeLiteral("12:34:45 America/Los_Angeles");
     final RexLiteral timeLTZChar2 = rexBuilder.makeLiteral("12:34:45 UTC");
     final RexLiteral timeLTZChar3 = rexBuilder.makeLiteral("12:34:45 GMT+01");
@@ -1509,7 +1509,7 @@ public class RexProgramTest {
     final RexLiteral timestampLTZChar3 = rexBuilder.makeLiteral("2011-07-20 12:34:56 UTC");
     final RexLiteral literalTimestampLTZ =
         rexBuilder.makeTimestampWithLocalTimeZoneLiteral(
-            new TimestampWithLocalTimeZoneString(2011, 7, 20, 1, 23, 45, "America/Los_Angeles"), 0);
+            new TimestampString(2011, 7, 20, 8, 23, 45), 0);
 
     final RelDataType dateType =
         typeFactory.createSqlType(SqlTypeName.DATE);
@@ -1524,24 +1524,24 @@ public class RexProgramTest {
     final RelDataType varCharType =
         typeFactory.createSqlType(SqlTypeName.VARCHAR, 40);
 
-    checkSimplify(cast(timeLTZChar1, timeLTZType), "20:34:45 UTC");
-    checkSimplify(cast(timeLTZChar2, timeLTZType), "12:34:45 UTC");
-    checkSimplify(cast(timeLTZChar3, timeLTZType), "11:34:45 UTC");
-    checkSimplify(cast(literalTimeLTZ, timeLTZType), "01:23:45 Asia/Tokyo");
+    checkSimplify(cast(timeLTZChar1, timeLTZType), "20:34:45");
+    checkSimplify(cast(timeLTZChar2, timeLTZType), "12:34:45");
+    checkSimplify(cast(timeLTZChar3, timeLTZType), "11:34:45");
+    checkSimplify(cast(literalTimeLTZ, timeLTZType), "01:23:45");
     checkSimplify(cast(timestampLTZChar1, timestampLTZType),
-        "2011-07-20 03:34:56 UTC");
+        "2011-07-20 03:34:56");
     checkSimplify(cast(timestampLTZChar2, timestampLTZType),
-        "2011-07-20 11:34:56 UTC");
+        "2011-07-20 11:34:56");
     checkSimplify(cast(timestampLTZChar3, timestampLTZType),
-        "2011-07-20 12:34:56 UTC");
+        "2011-07-20 12:34:56");
     checkSimplify(cast(literalTimestampLTZ, timestampLTZType),
-        "2011-07-20 01:23:45 America/Los_Angeles");
+        "2011-07-20 08:23:45");
     checkSimplify(cast(literalDate, timestampLTZType),
-        "2011-07-20 07:00:00 UTC");
+        "2011-07-20 07:00:00");
     checkSimplify(cast(literalTime, timestampLTZType),
-        "2011-07-20 19:34:56 UTC");
+        "2011-07-20 19:34:56");
     checkSimplify(cast(literalTimestamp, timestampLTZType),
-        "2011-07-20 19:34:56 UTC");
+        "2011-07-20 19:34:56");
     checkSimplify(cast(literalTimestamp, dateType),
         "2011-07-20");
     checkSimplify(cast(literalTimestampLTZ, dateType),
@@ -1551,46 +1551,34 @@ public class RexProgramTest {
     checkSimplify(cast(literalTimestampLTZ, timestampType),
         "2011-07-20 01:23:45");
     checkSimplify(cast(literalTimeLTZ, timeType),
-        "08:23:45");
+        "17:23:45");
     checkSimplify(cast(literalTime, timeLTZType),
-        "20:34:56 UTC");
+        "20:34:56");
     checkSimplify(cast(literalTimestampLTZ, timeLTZType),
-        "08:23:45 UTC");
+        "08:23:45");
     checkSimplify(cast(literalTimeLTZ, varCharType),
-        "'08:23:45 America/Los_Angeles'");
+        "'17:23:45 America/Los_Angeles'");
     checkSimplify(cast(literalTimestampLTZ, varCharType),
         "'2011-07-20 01:23:45 America/Los_Angeles'");
     checkSimplify(cast(literalTimeLTZ, timestampType),
-        "2011-07-20 09:23:45");
+        "2011-07-19 18:23:45");
     checkSimplify(cast(literalTimeLTZ, timestampLTZType),
-        "2011-07-20 16:23:45 UTC");
+        "2011-07-20 01:23:45");
   }
 
-  @Test public void testSimplifyTimestampWithLocalTimeZone() {
-    final RexLiteral timestampLTZChar1 =
-        rexBuilder.makeLiteral("2011-07-20 10:34:56 America/Los_Angeles");
-    final RexLiteral timestampLTZChar2 =
-        rexBuilder.makeLiteral("2011-07-20 19:34:56 Europe/Rome");
-    final RexLiteral timestampLTZChar3 =
-        rexBuilder.makeLiteral("2011-07-20 01:34:56 Asia/Tokyo");
-    final RelDataType timestampLTZType =
-        typeFactory.createSqlType(SqlTypeName.TIMESTAMP_WITH_LOCAL_TIMEZONE);
+  @Test public void testCompareTimestampWithTimeZone() {
+    final TimestampWithTimeZoneString timestampLTZChar1 =
+        new TimestampWithTimeZoneString("2011-07-20 10:34:56 America/Los_Angeles");
+    final TimestampWithTimeZoneString timestampLTZChar2 =
+        new TimestampWithTimeZoneString("2011-07-20 19:34:56 Europe/Rome");
+    final TimestampWithTimeZoneString timestampLTZChar3 =
+        new TimestampWithTimeZoneString("2011-07-20 01:34:56 Asia/Tokyo");
+    final TimestampWithTimeZoneString timestampLTZChar4 =
+        new TimestampWithTimeZoneString("2011-07-20 10:34:56 America/Los_Angeles");
 
-    RexNode condition1 = eq(
-        cast(timestampLTZChar1, timestampLTZType),
-        cast(timestampLTZChar2, timestampLTZType));
-    RexLiteral result1 = (RexLiteral) simplify.simplify(condition1);
-    assertThat(result1.getType().isNullable(), is(false));
-    assertThat(result1.getType().getSqlTypeName(), is(SqlTypeName.BOOLEAN));
-    assertThat(result1, is(trueLiteral));
-
-    RexNode condition2 = eq(
-        cast(timestampLTZChar1, timestampLTZType),
-        cast(timestampLTZChar3, timestampLTZType));
-    RexLiteral result2 = (RexLiteral) simplify.simplify(condition2);
-    assertThat(result2.getType().isNullable(), is(false));
-    assertThat(result2.getType().getSqlTypeName(), is(SqlTypeName.BOOLEAN));
-    assertThat(result2, is(falseLiteral));
+    assertThat(timestampLTZChar1.equals(timestampLTZChar2), is(false));
+    assertThat(timestampLTZChar1.equals(timestampLTZChar3), is(false));
+    assertThat(timestampLTZChar1.equals(timestampLTZChar4), is(true));
   }
 
   @Test public void testSimplifyLiterals() {

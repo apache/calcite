@@ -26,27 +26,27 @@ import java.util.Locale;
 import java.util.TimeZone;
 
 /**
- * Timestamp with local time-zone literal.
+ * Timestamp with time-zone literal.
  *
  * <p>Immutable, internally represented as a string (in ISO format),
  * and can support unlimited precision (milliseconds, nanoseconds).
  */
-public class TimestampWithLocalTimeZoneString
-  implements Comparable<TimestampWithLocalTimeZoneString> {
+public class TimestampWithTimeZoneString
+  implements Comparable<TimestampWithTimeZoneString> {
 
   final TimestampString localDateTime;
   final TimeZone timeZone;
   final String v;
 
-  /** Creates a TimestampWithLocalTimeZoneString. */
-  public TimestampWithLocalTimeZoneString(TimestampString localDateTime, TimeZone timeZone) {
+  /** Creates a TimestampWithTimeZoneString. */
+  public TimestampWithTimeZoneString(TimestampString localDateTime, TimeZone timeZone) {
     this.localDateTime = localDateTime;
     this.timeZone = timeZone;
     this.v = localDateTime.toString() + " " + timeZone.getID();
   }
 
-  /** Creates a TimestampWithLocalTimeZoneString. */
-  public TimestampWithLocalTimeZoneString(String v) {
+  /** Creates a TimestampWithTimeZoneString. */
+  public TimestampWithTimeZoneString(String v) {
     this.localDateTime = new TimestampString(v.substring(0, v.indexOf(' ', 11)));
     String timeZoneString = v.substring(v.indexOf(' ', 11) + 1);
     Preconditions.checkArgument(DateTimeStringUtils.isValidTimeZone(timeZoneString));
@@ -54,32 +54,32 @@ public class TimestampWithLocalTimeZoneString
     this.v = v;
   }
 
-  /** Creates a TimestampWithLocalTimeZoneString for year, month, day, hour, minute, second,
+  /** Creates a TimestampWithTimeZoneString for year, month, day, hour, minute, second,
    *  millisecond values in the given time-zone. */
-  public TimestampWithLocalTimeZoneString(int year, int month, int day, int h, int m, int s,
+  public TimestampWithTimeZoneString(int year, int month, int day, int h, int m, int s,
       String timeZone) {
     this(DateTimeStringUtils.ymdhms(new StringBuilder(), year, month, day, h, m, s).toString()
         + " " + timeZone);
   }
 
-  /** Sets the fraction field of a {@code TimestampWithLocalTimeZoneString} to a given number
+  /** Sets the fraction field of a {@code TimestampWithTimeZoneString} to a given number
    * of milliseconds. Nukes the value set via {@link #withNanos}.
    *
    * <p>For example,
-   * {@code new TimestampWithLocalTimeZoneString(1970, 1, 1, 2, 3, 4, "GMT").withMillis(56)}
+   * {@code new TimestampWithTimeZoneString(1970, 1, 1, 2, 3, 4, "GMT").withMillis(56)}
    * yields {@code TIMESTAMP WITH LOCAL TIME ZONE '1970-01-01 02:03:04.056 GMT'}. */
-  public TimestampWithLocalTimeZoneString withMillis(int millis) {
+  public TimestampWithTimeZoneString withMillis(int millis) {
     Preconditions.checkArgument(millis >= 0 && millis < 1000);
     return withFraction(DateTimeStringUtils.pad(3, millis));
   }
 
-  /** Sets the fraction field of a {@code TimestampWithLocalTimeZoneString} to a given number
+  /** Sets the fraction field of a {@code TimestampWithTimeZoneString} to a given number
    * of nanoseconds. Nukes the value set via {@link #withMillis(int)}.
    *
    * <p>For example,
-   * {@code new TimestampWithLocalTimeZoneString(1970, 1, 1, 2, 3, 4, "GMT").withNanos(56789)}
+   * {@code new TimestampWithTimeZoneString(1970, 1, 1, 2, 3, 4, "GMT").withNanos(56789)}
    * yields {@code TIMESTAMP WITH LOCAL TIME ZONE '1970-01-01 02:03:04.000056789 GMT'}. */
-  public TimestampWithLocalTimeZoneString withNanos(int nanos) {
+  public TimestampWithTimeZoneString withNanos(int nanos) {
     Preconditions.checkArgument(nanos >= 0 && nanos < 1000000000);
     return withFraction(DateTimeStringUtils.pad(9, nanos));
   }
@@ -89,14 +89,14 @@ public class TimestampWithLocalTimeZoneString
    * Trailing zeros are stripped.
    *
    * <p>For example, {@code
-   * new TimestampWithLocalTimeZoneString(1970, 1, 1, 2, 3, 4, "GMT").withFraction("00506000")}
+   * new TimestampWithTimeZoneString(1970, 1, 1, 2, 3, 4, "GMT").withFraction("00506000")}
    * yields {@code TIMESTAMP WITH LOCAL TIME ZONE '1970-01-01 02:03:04.00506 GMT'}. */
-  public TimestampWithLocalTimeZoneString withFraction(String fraction) {
-    return new TimestampWithLocalTimeZoneString(
+  public TimestampWithTimeZoneString withFraction(String fraction) {
+    return new TimestampWithTimeZoneString(
         localDateTime.withFraction(fraction), timeZone);
   }
 
-  public TimestampWithLocalTimeZoneString withTimeZone(TimeZone timeZone) {
+  public TimestampWithTimeZoneString withTimeZone(TimeZone timeZone) {
     if (this.timeZone.equals(timeZone)) {
       return this;
     }
@@ -117,7 +117,7 @@ public class TimestampWithLocalTimeZoneString
             this.timeZone, -1);
     pt.getCalendar().setTimeZone(timeZone);
     if (fraction != null) {
-      return new TimestampWithLocalTimeZoneString(
+      return new TimestampWithTimeZoneString(
           pt.getCalendar().get(Calendar.YEAR),
           pt.getCalendar().get(Calendar.MONTH) + 1,
           pt.getCalendar().get(Calendar.DAY_OF_MONTH),
@@ -127,7 +127,7 @@ public class TimestampWithLocalTimeZoneString
           timeZone.getID())
               .withFraction(fraction);
     }
-    return new TimestampWithLocalTimeZoneString(
+    return new TimestampWithTimeZoneString(
         pt.getCalendar().get(Calendar.YEAR),
         pt.getCalendar().get(Calendar.MONTH) + 1,
         pt.getCalendar().get(Calendar.DAY_OF_MONTH),
@@ -144,34 +144,33 @@ public class TimestampWithLocalTimeZoneString
   @Override public boolean equals(Object o) {
     // The value is in canonical form (no trailing zeros).
     return o == this
-        || o instanceof TimestampWithLocalTimeZoneString
-        && ((TimestampWithLocalTimeZoneString) o).v.equals(v);
+        || o instanceof TimestampWithTimeZoneString
+        && ((TimestampWithTimeZoneString) o).v.equals(v);
   }
 
   @Override public int hashCode() {
     return v.hashCode();
   }
 
-  @Override public int compareTo(TimestampWithLocalTimeZoneString o) {
-    return withTimeZone(DateTimeUtils.UTC_ZONE).toString()
-        .compareTo(o.withTimeZone(DateTimeUtils.UTC_ZONE).toString());
+  @Override public int compareTo(TimestampWithTimeZoneString o) {
+    return v.compareTo(o.v);
   }
 
-  public TimestampWithLocalTimeZoneString round(int precision) {
+  public TimestampWithTimeZoneString round(int precision) {
     Preconditions.checkArgument(precision >= 0);
-    return new TimestampWithLocalTimeZoneString(
+    return new TimestampWithTimeZoneString(
         localDateTime.round(precision), timeZone);
   }
 
-  /** Creates a TimestampWithLocalTimeZoneString that is a given number of milliseconds since
+  /** Creates a TimestampWithTimeZoneString that is a given number of milliseconds since
    * the epoch UTC. */
-  public static TimestampWithLocalTimeZoneString fromMillisSinceEpoch(long millis) {
-    return new TimestampWithLocalTimeZoneString(
+  public static TimestampWithTimeZoneString fromMillisSinceEpoch(long millis) {
+    return new TimestampWithTimeZoneString(
         DateTimeUtils.unixTimestampToString(millis) + " " + DateTimeUtils.UTC_ZONE.getID())
             .withMillis((int) DateTimeUtils.floorMod(millis, 1000));
   }
 
-  /** Converts this TimestampWithLocalTimeZoneString to a string, truncated or padded with
+  /** Converts this TimestampWithTimeZoneString to a string, truncated or padded with
    * zeroes to a given precision. */
   public String toString(int precision) {
     Preconditions.checkArgument(precision >= 0);
@@ -192,4 +191,4 @@ public class TimestampWithLocalTimeZoneString
 
 }
 
-// End TimestampWithLocalTimeZoneString.java
+// End TimestampWithTimeZoneString.java

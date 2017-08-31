@@ -31,9 +31,7 @@ import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.SaffronProperties;
 import org.apache.calcite.util.TimeString;
-import org.apache.calcite.util.TimeWithLocalTimeZoneString;
 import org.apache.calcite.util.TimestampString;
-import org.apache.calcite.util.TimestampWithLocalTimeZoneString;
 import org.apache.calcite.util.Util;
 
 import com.google.common.base.Preconditions;
@@ -251,11 +249,11 @@ public class RexLiteral extends RexNode {
     case TIME:
       return value instanceof TimeString;
     case TIME_WITH_LOCAL_TIMEZONE:
-      return value instanceof TimeWithLocalTimeZoneString;
+      return value instanceof TimeString;
     case TIMESTAMP:
       return value instanceof TimestampString;
     case TIMESTAMP_WITH_LOCAL_TIMEZONE:
-      return value instanceof TimestampWithLocalTimeZoneString;
+      return value instanceof TimestampString;
     case INTERVAL_YEAR:
     case INTERVAL_YEAR_MONTH:
     case INTERVAL_MONTH:
@@ -438,7 +436,7 @@ public class RexLiteral extends RexNode {
       pw.print(value);
       break;
     case TIME_WITH_LOCAL_TIMEZONE:
-      assert value instanceof TimeWithLocalTimeZoneString;
+      assert value instanceof TimeString;
       pw.print(value);
       break;
     case TIMESTAMP:
@@ -446,7 +444,7 @@ public class RexLiteral extends RexNode {
       pw.print(value);
       break;
     case TIMESTAMP_WITH_LOCAL_TIMEZONE:
-      assert value instanceof TimestampWithLocalTimeZoneString;
+      assert value instanceof TimestampString;
       pw.print(value);
       break;
     case INTERVAL_YEAR:
@@ -787,8 +785,7 @@ public class RexLiteral extends RexNode {
     case TIME_WITH_LOCAL_TIMEZONE:
       if (clazz == Integer.class) {
         // Milliseconds since 1970-01-01 00:00:00
-        return clazz.cast(((TimeWithLocalTimeZoneString) value)
-            .withTimeZone(DateTimeUtils.UTC_ZONE).getLocalTimeString().getMillisOfDay());
+        return clazz.cast(((TimeString) value).getMillisOfDay());
       }
       break;
     case TIMESTAMP:
@@ -803,8 +800,7 @@ public class RexLiteral extends RexNode {
     case TIMESTAMP_WITH_LOCAL_TIMEZONE:
       if (clazz == Long.class) {
         // Milliseconds since 1970-01-01 00:00:00
-        return clazz.cast(((TimestampWithLocalTimeZoneString) value)
-            .withTimeZone(DateTimeUtils.UTC_ZONE).getLocalTimestampString().getMillisSinceEpoch());
+        return clazz.cast(((TimestampString) value).getMillisSinceEpoch());
       }
       break;
     case INTERVAL_YEAR:

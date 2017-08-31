@@ -26,26 +26,26 @@ import java.util.Locale;
 import java.util.TimeZone;
 
 /**
- * Time with local time-zone literal.
+ * Time with time-zone literal.
  *
  * <p>Immutable, internally represented as a string (in ISO format),
  * and can support unlimited precision (milliseconds, nanoseconds).
  */
-public class TimeWithLocalTimeZoneString implements Comparable<TimeWithLocalTimeZoneString> {
+public class TimeWithTimeZoneString implements Comparable<TimeWithTimeZoneString> {
 
   final TimeString localTime;
   final TimeZone timeZone;
   final String v;
 
-  /** Creates a TimestampWithLocalTimeZoneString. */
-  public TimeWithLocalTimeZoneString(TimeString localTime, TimeZone timeZone) {
+  /** Creates a TimeWithTimeZoneString. */
+  public TimeWithTimeZoneString(TimeString localTime, TimeZone timeZone) {
     this.localTime = localTime;
     this.timeZone = timeZone;
     this.v = localTime.toString() + " " + timeZone.getID();
   }
 
-  /** Creates a TimeWithLocalTimeZoneString. */
-  public TimeWithLocalTimeZoneString(String v) {
+  /** Creates a TimeWithTimeZoneString. */
+  public TimeWithTimeZoneString(String v) {
     this.localTime = new TimeString(v.substring(0, 8));
     String timeZoneString = v.substring(9);
     Preconditions.checkArgument(DateTimeStringUtils.isValidTimeZone(timeZoneString));
@@ -53,19 +53,19 @@ public class TimeWithLocalTimeZoneString implements Comparable<TimeWithLocalTime
     this.v = v;
   }
 
-  /** Creates a TimeWithLocalTimeZoneString for hour, minute, second and millisecond values
+  /** Creates a TimeWithTimeZoneString for hour, minute, second and millisecond values
    * in the given time-zone. */
-  public TimeWithLocalTimeZoneString(int h, int m, int s, String timeZone) {
+  public TimeWithTimeZoneString(int h, int m, int s, String timeZone) {
     this(DateTimeStringUtils.hms(new StringBuilder(), h, m, s).toString() + " " + timeZone);
   }
 
-  /** Sets the fraction field of a {@code TimeWithLocalTimeZoneString} to a given number
+  /** Sets the fraction field of a {@code TimeWithTimeZoneString} to a given number
    * of milliseconds. Nukes the value set via {@link #withNanos}.
    *
    * <p>For example,
-   * {@code new TimeWithLocalTimeZoneString(1970, 1, 1, 2, 3, 4, "UTC").withMillis(56)}
+   * {@code new TimeWithTimeZoneString(1970, 1, 1, 2, 3, 4, "UTC").withMillis(56)}
    * yields {@code TIME WITH LOCAL TIME ZONE '1970-01-01 02:03:04.056 UTC'}. */
-  public TimeWithLocalTimeZoneString withMillis(int millis) {
+  public TimeWithTimeZoneString withMillis(int millis) {
     Preconditions.checkArgument(millis >= 0 && millis < 1000);
     return withFraction(DateTimeStringUtils.pad(3, millis));
   }
@@ -74,21 +74,21 @@ public class TimeWithLocalTimeZoneString implements Comparable<TimeWithLocalTime
    * of nanoseconds. Nukes the value set via {@link #withMillis(int)}.
    *
    * <p>For example,
-   * {@code new TimeWithLocalTimeZoneString(1970, 1, 1, 2, 3, 4, "UTC").withNanos(56789)}
+   * {@code new TimeWithTimeZoneString(1970, 1, 1, 2, 3, 4, "UTC").withNanos(56789)}
    * yields {@code TIME WITH LOCAL TIME ZONE '1970-01-01 02:03:04.000056789 UTC'}. */
-  public TimeWithLocalTimeZoneString withNanos(int nanos) {
+  public TimeWithTimeZoneString withNanos(int nanos) {
     Preconditions.checkArgument(nanos >= 0 && nanos < 1000000000);
     return withFraction(DateTimeStringUtils.pad(9, nanos));
   }
 
-  /** Sets the fraction field of a {@code TimeWithLocalTimeZoneString}.
+  /** Sets the fraction field of a {@code TimeWithTimeZoneString}.
    * The precision is determined by the number of leading zeros.
    * Trailing zeros are stripped.
    *
    * <p>For example,
-   * {@code new TimeWithLocalTimeZoneString(1970, 1, 1, 2, 3, 4, "UTC").withFraction("00506000")}
+   * {@code new TimeWithTimeZoneString(1970, 1, 1, 2, 3, 4, "UTC").withFraction("00506000")}
    * yields {@code TIME WITH LOCAL TIME ZONE '1970-01-01 02:03:04.00506 UTC'}. */
-  public TimeWithLocalTimeZoneString withFraction(String fraction) {
+  public TimeWithTimeZoneString withFraction(String fraction) {
     String v = this.v;
     int i = v.indexOf('.');
     if (i >= 0) {
@@ -103,10 +103,10 @@ public class TimeWithLocalTimeZoneString implements Comparable<TimeWithLocalTime
       v = v + "." + fraction;
     }
     v = v + this.v.substring(8); // time-zone
-    return new TimeWithLocalTimeZoneString(v);
+    return new TimeWithTimeZoneString(v);
   }
 
-  public TimeWithLocalTimeZoneString withTimeZone(TimeZone timeZone) {
+  public TimeWithTimeZoneString withTimeZone(TimeZone timeZone) {
     if (this.timeZone.equals(timeZone)) {
       return this;
     }
@@ -127,14 +127,14 @@ public class TimeWithLocalTimeZoneString implements Comparable<TimeWithLocalTime
             this.timeZone, -1);
     pt.getCalendar().setTimeZone(timeZone);
     if (fraction != null) {
-      return new TimeWithLocalTimeZoneString(
+      return new TimeWithTimeZoneString(
           pt.getCalendar().get(Calendar.HOUR_OF_DAY),
           pt.getCalendar().get(Calendar.MINUTE),
           pt.getCalendar().get(Calendar.SECOND),
           timeZone.getID())
               .withFraction(fraction);
     }
-    return new TimeWithLocalTimeZoneString(
+    return new TimeWithTimeZoneString(
         pt.getCalendar().get(Calendar.HOUR_OF_DAY),
         pt.getCalendar().get(Calendar.MINUTE),
         pt.getCalendar().get(Calendar.SECOND),
@@ -148,31 +148,31 @@ public class TimeWithLocalTimeZoneString implements Comparable<TimeWithLocalTime
   @Override public boolean equals(Object o) {
     // The value is in canonical form (no trailing zeros).
     return o == this
-        || o instanceof TimeWithLocalTimeZoneString
-        && ((TimeWithLocalTimeZoneString) o).v.equals(v);
+        || o instanceof TimeWithTimeZoneString
+        && ((TimeWithTimeZoneString) o).v.equals(v);
   }
 
   @Override public int hashCode() {
     return v.hashCode();
   }
 
-  @Override public int compareTo(TimeWithLocalTimeZoneString o) {
+  @Override public int compareTo(TimeWithTimeZoneString o) {
     return v.compareTo(o.v);
   }
 
-  public TimeWithLocalTimeZoneString round(int precision) {
+  public TimeWithTimeZoneString round(int precision) {
     Preconditions.checkArgument(precision >= 0);
-    return new TimeWithLocalTimeZoneString(
+    return new TimeWithTimeZoneString(
         localTime.round(precision), timeZone);
   }
 
-  public static TimeWithLocalTimeZoneString fromMillisOfDay(int i) {
-    return new TimeWithLocalTimeZoneString(
+  public static TimeWithTimeZoneString fromMillisOfDay(int i) {
+    return new TimeWithTimeZoneString(
         DateTimeUtils.unixTimeToString(i) + " " + DateTimeUtils.UTC_ZONE.getID())
             .withMillis((int) DateTimeUtils.floorMod(i, 1000));
   }
 
-  /** Converts this TimeWithLocalTimeZoneString to a string, truncated or padded with
+  /** Converts this TimeWithTimeZoneString to a string, truncated or padded with
    * zeroes to a given precision. */
   public String toString(int precision) {
     Preconditions.checkArgument(precision >= 0);
@@ -185,4 +185,4 @@ public class TimeWithLocalTimeZoneString implements Comparable<TimeWithLocalTime
 
 }
 
-// End TimeWithLocalTimeZoneString.java
+// End TimeWithTimeZoneString.java

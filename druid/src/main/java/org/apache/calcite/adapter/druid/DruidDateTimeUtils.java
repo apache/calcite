@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.adapter.druid;
 
+import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexCall;
@@ -26,7 +27,7 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.DateString;
 import org.apache.calcite.util.TimestampString;
-import org.apache.calcite.util.TimestampWithLocalTimeZoneString;
+import org.apache.calcite.util.TimestampWithTimeZoneString;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.trace.CalciteTrace;
 
@@ -60,7 +61,7 @@ public class DruidDateTimeUtils {
    * reference a single column: the timestamp column.
    */
   public static List<LocalInterval> createInterval(RexNode e, String timeZone) {
-    final List<Range<TimestampWithLocalTimeZoneString>> ranges =
+    final List<Range<TimestampString>> ranges =
         extractRanges(e, TimeZone.getTimeZone(timeZone), false);
     if (ranges == null) {
       // We did not succeed, bail out
@@ -74,25 +75,22 @@ public class DruidDateTimeUtils {
       LOGGER.debug("Inferred ranges on interval : " + condensedRanges);
     }
     return toInterval(
-        ImmutableList.<Range>copyOf(condensedRanges.asRanges()), TimeZone.getTimeZone(timeZone));
+        ImmutableList.<Range>copyOf(condensedRanges.asRanges()));
   }
 
   protected static List<LocalInterval> toInterval(
-      List<Range<TimestampWithLocalTimeZoneString>> ranges,
-      final TimeZone timeZone) {
+      List<Range<TimestampString>> ranges) {
     List<LocalInterval> intervals = Lists.transform(ranges,
-        new Function<Range<TimestampWithLocalTimeZoneString>, LocalInterval>() {
-          public LocalInterval apply(Range<TimestampWithLocalTimeZoneString> range) {
+        new Function<Range<TimestampString>, LocalInterval>() {
+          public LocalInterval apply(Range<TimestampString> range) {
             if (!range.hasLowerBound() && !range.hasUpperBound()) {
               return DruidTable.DEFAULT_INTERVAL;
             }
             long start = range.hasLowerBound()
-                ? range.lowerEndpoint().withTimeZone(timeZone)
-                    .getLocalTimestampString().getMillisSinceEpoch()
+                ? range.lowerEndpoint().getMillisSinceEpoch()
                 : DruidTable.DEFAULT_INTERVAL.getStartMillis();
             long end = range.hasUpperBound()
-                ? range.upperEndpoint().withTimeZone(timeZone)
-                    .getLocalTimestampString().getMillisSinceEpoch()
+                ? range.upperEndpoint().getMillisSinceEpoch()
                 : DruidTable.DEFAULT_INTERVAL.getEndMillis();
             if (range.hasLowerBound()
                 && range.lowerBoundType() == BoundType.OPEN) {
@@ -111,7 +109,7 @@ public class DruidDateTimeUtils {
     return intervals;
   }
 
-  protected static List<Range<TimestampWithLocalTimeZoneString>> extractRanges(RexNode node,
+  protected static List<Range<TimestampString>> extractRanges(RexNode node,
       TimeZone timeZone, boolean withNot) {
     switch (node.getKind()) {
     case EQUALS:
@@ -128,9 +126,9 @@ public class DruidDateTimeUtils {
 
     case OR: {
       RexCall call = (RexCall) node;
-      List<Range<TimestampWithLocalTimeZoneString>> intervals = Lists.newArrayList();
+      List<Range<TimestampString>> intervals = Lists.newArrayList();
       for (RexNode child : call.getOperands()) {
-        List<Range<TimestampWithLocalTimeZoneString>> extracted =
+        List<Range<TimestampString>> extracted =
             extractRanges(child, timeZone, withNot);
         if (extracted != null) {
           intervals.addAll(extracted);
@@ -141,9 +139,9 @@ public class DruidDateTimeUtils {
 
     case AND: {
       RexCall call = (RexCall) node;
-      List<Range<TimestampWithLocalTimeZoneString>> ranges = new ArrayList<>();
+      List<Range<TimestampString>> ranges = new ArrayList<>();
       for (RexNode child : call.getOperands()) {
-        List<Range<TimestampWithLocalTimeZoneString>> extractedRanges =
+        List<Range<TimestampString>> extractedRanges =
             extractRanges(child, timeZone, false);
         if (extractedRanges == null || extractedRanges.isEmpty()) {
           // We could not extract, we bail out
@@ -153,7 +151,7 @@ public class DruidDateTimeUtils {
           ranges.addAll(extractedRanges);
           continue;
         }
-        List<Range<TimestampWithLocalTimeZoneString>> overlapped = new ArrayList<>();
+        List<Range<TimestampString>> overlapped = new ArrayList<>();
         for (Range current : ranges) {
           for (Range interval : extractedRanges) {
             if (current.isConnected(interval)) {
@@ -171,7 +169,7 @@ public class DruidDateTimeUtils {
     }
   }
 
-  protected static List<Range<TimestampWithLocalTimeZoneString>> leafToRanges(RexCall call,
+  protected static List<Range<TimestampString>> leafToRanges(RexCall call,
       TimeZone timeZone, boolean withNot) {
     switch (call.getKind()) {
     case EQUALS:
@@ -180,7 +178,7 @@ public class DruidDateTimeUtils {
     case GREATER_THAN:
     case GREATER_THAN_OR_EQUAL:
     {
-      final TimestampWithLocalTimeZoneString value;
+      final TimestampString value;
       if (call.getOperands().get(0) instanceof RexInputRef
           && literalValue(call.getOperands().get(1), timeZone) != null) {
         value = literalValue(call.getOperands().get(1), timeZone);
@@ -208,8 +206,8 @@ public class DruidDateTimeUtils {
     }
     case BETWEEN:
     {
-      final TimestampWithLocalTimeZoneString value1;
-      final TimestampWithLocalTimeZoneString value2;
+      final TimestampString value1;
+      final TimestampString value2;
       if (literalValue(call.getOperands().get(2), timeZone) != null
           && literalValue(call.getOperands().get(3), timeZone) != null) {
         value1 = literalValue(call.getOperands().get(2), timeZone);
@@ -228,10 +226,10 @@ public class DruidDateTimeUtils {
     }
     case IN:
     {
-      ImmutableList.Builder<Range<TimestampWithLocalTimeZoneString>> ranges =
+      ImmutableList.Builder<Range<TimestampString>> ranges =
           ImmutableList.builder();
       for (RexNode operand : Util.skip(call.operands)) {
-        final TimestampWithLocalTimeZoneString element = literalValue(operand, timeZone);
+        final TimestampString element = literalValue(operand, timeZone);
         if (element == null) {
           return null;
         }
@@ -249,22 +247,24 @@ public class DruidDateTimeUtils {
     }
   }
 
-  private static TimestampWithLocalTimeZoneString literalValue(RexNode node, TimeZone timeZone) {
+  private static TimestampString literalValue(RexNode node, TimeZone timeZone) {
     switch (node.getKind()) {
     case LITERAL:
       switch (((RexLiteral) node).getTypeName()) {
       case TIMESTAMP_WITH_LOCAL_TIMEZONE:
-        return ((RexLiteral) node).getValueAs(TimestampWithLocalTimeZoneString.class);
+        return ((RexLiteral) node).getValueAs(TimestampString.class);
       case TIMESTAMP:
         // Cast timestamp to timestamp with timezone
         final TimestampString t = ((RexLiteral) node).getValueAs(TimestampString.class);
-        return new TimestampWithLocalTimeZoneString(t.toString() + " " + timeZone.getID());
+        return new TimestampWithTimeZoneString(t.toString() + " " + timeZone.getID())
+            .withTimeZone(DateTimeUtils.UTC_ZONE).getLocalTimestampString();
       case DATE:
         // Cast date to timestamp with timezone
         final DateString d = ((RexLiteral) node).getValueAs(DateString.class);
-        return new TimestampWithLocalTimeZoneString(
-            TimestampString.fromMillisSinceEpoch(d.getMillisSinceEpoch()).toString()
-                + " " + timeZone.getID());
+        return new TimestampWithTimeZoneString(
+            TimestampString.fromMillisSinceEpoch(
+                d.getMillisSinceEpoch()).toString() + " " + timeZone.getID())
+            .withTimeZone(DateTimeUtils.UTC_ZONE).getLocalTimestampString();
       }
       break;
     case CAST:
