@@ -42,7 +42,7 @@ import static org.apache.calcite.util.Static.RESOURCE;
  * A string, optionally with {@link Charset character set} and
  * {@link SqlCollation}. It is immutable.
  */
-public class NlsString implements Comparable<NlsString>, Cloneable {
+public class NlsString implements Comparable, Cloneable {
   //~ Instance fields --------------------------------------------------------
 
   private static final LoadingCache<Pair<ByteString, Charset>, String>
@@ -168,10 +168,13 @@ public class NlsString implements Comparable<NlsString>, Cloneable {
         && Objects.equals(collation, ((NlsString) obj).collation);
   }
 
-  @Override public int compareTo(NlsString other) {
+  // implement Comparable
+  public int compareTo(Object other) {
     // TODO jvs 18-Jan-2006:  Actual collation support.  This just uses
     // the default collation.
-    return getValue().compareTo(other.getValue());
+    return other instanceof AbstractDateTime
+        ? getValue().compareTo(((AbstractDateTime) other).v)
+        : getValue().compareTo(((NlsString) other).getValue());
   }
 
   public String getCharsetName() {

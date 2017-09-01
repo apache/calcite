@@ -30,24 +30,22 @@ import java.util.regex.Pattern;
  * <p>Immutable, internally represented as a string (in ISO format),
  * and can support unlimited precision (milliseconds, nanoseconds).
  */
-public class TimestampString implements Comparable<TimestampString> {
+public class TimestampString extends AbstractDateTime {
   private static final Pattern PATTERN =
       Pattern.compile("[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]"
           + " "
           + "[0-9][0-9]:[0-9][0-9]:[0-9][0-9](\\.[0-9]*[1-9])?");
 
-  final String v;
-
   /** Creates a TimeString. */
   public TimestampString(String v) {
-    this.v = v;
+    super(v);
     Preconditions.checkArgument(PATTERN.matcher(v).matches(), v);
   }
 
   /** Creates a TimestampString for year, month, day, hour, minute, second,
    *  millisecond values. */
   public TimestampString(int year, int month, int day, int h, int m, int s) {
-    this(DateTimeStringUtils.ymdhms(new StringBuilder(), year, month, day, h, m, s).toString());
+    super(DateTimeStringUtils.ymdhms(new StringBuilder(), year, month, day, h, m, s).toString());
   }
 
   /** Sets the fraction field of a {@code TimestampString} to a given number
@@ -107,10 +105,6 @@ public class TimestampString implements Comparable<TimestampString> {
 
   @Override public int hashCode() {
     return v.hashCode();
-  }
-
-  @Override public int compareTo(TimestampString o) {
-    return v.compareTo(o.v);
   }
 
   /** Creates a TimestampString from a Calendar. */

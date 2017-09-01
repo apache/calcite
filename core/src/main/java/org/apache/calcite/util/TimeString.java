@@ -23,7 +23,6 @@ import com.google.common.base.Strings;
 
 import java.util.Calendar;
 import java.util.regex.Pattern;
-import javax.annotation.Nonnull;
 
 /**
  * Time literal.
@@ -31,15 +30,13 @@ import javax.annotation.Nonnull;
  * <p>Immutable, internally represented as a string (in ISO format),
  * and can support unlimited precision (milliseconds, nanoseconds).
  */
-public class TimeString implements Comparable<TimeString> {
+public class TimeString extends AbstractDateTime {
   private static final Pattern PATTERN =
       Pattern.compile("[0-9][0-9]:[0-9][0-9]:[0-9][0-9](\\.[0-9]*[1-9])?");
 
-  final String v;
-
   /** Internal constructor, no validation. */
   private TimeString(String v, @SuppressWarnings("unused") boolean ignore) {
-    this.v = v;
+    super(v);
   }
 
   /** Creates a TimeString. */
@@ -127,10 +124,6 @@ public class TimeString implements Comparable<TimeString> {
 
   @Override public int hashCode() {
     return v.hashCode();
-  }
-
-  @Override public int compareTo(@Nonnull TimeString o) {
-    return v.compareTo(o.v);
   }
 
   /** Creates a TimeString from a Calendar. */
