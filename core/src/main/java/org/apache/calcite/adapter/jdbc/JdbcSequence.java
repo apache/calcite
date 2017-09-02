@@ -27,7 +27,7 @@ class JdbcSequence extends JdbcTable implements Sequence {
   private final SqlTypeName sequenceType;
   private final int increment;
 
-  public JdbcSequence(JdbcSchema jdbcSchema, String jdbcCatalogName,
+  JdbcSequence(JdbcSchema jdbcSchema, String jdbcCatalogName,
                       String jdbcSchemaName, String sequenceName, SqlTypeName sequenceType,
                       int increment) {
     super(jdbcSchema, jdbcCatalogName, jdbcSchemaName, sequenceName, Schema.TableType.SEQUENCE);

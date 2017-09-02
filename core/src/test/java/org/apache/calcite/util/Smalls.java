@@ -47,8 +47,8 @@ import org.apache.calcite.schema.TranslatableTable;
 import org.apache.calcite.schema.impl.AbstractTable;
 import org.apache.calcite.schema.impl.ViewTable;
 import org.apache.calcite.sql.SqlCall;
-import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.dialect.CalciteSqlDialect;
 import org.apache.calcite.sql.type.SqlTypeName;
 
 import com.google.common.collect.ImmutableList;
@@ -357,7 +357,7 @@ public class Smalls {
             return typeFactory.builder().add("c", SqlTypeName.VARCHAR, 100)
                     .build();
           }
-        }, "values (" + SqlDialect.CALCITE.quoteStringLiteral(s) + ")",
+        }, "values (" + CalciteSqlDialect.DEFAULT.quoteStringLiteral(s) + ")",
         ImmutableList.<String>of(), Arrays.asList("view"));
   }
 
@@ -371,8 +371,8 @@ public class Smalls {
                 .build();
           }
         },
-        "values " + SqlDialect.CALCITE.quoteStringLiteral(o.toString())
-            + ", " + SqlDialect.CALCITE.quoteStringLiteral(p.toString()),
+        "values " + CalciteSqlDialect.DEFAULT.quoteStringLiteral(o.toString())
+            + ", " + CalciteSqlDialect.DEFAULT.quoteStringLiteral(p.toString()),
         ImmutableList.<String>of(), Arrays.asList("view"));
   }
 

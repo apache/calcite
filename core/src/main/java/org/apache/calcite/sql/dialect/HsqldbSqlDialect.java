@@ -17,25 +17,39 @@
 package org.apache.calcite.sql.dialect;
 
 import org.apache.calcite.avatica.util.TimeUnitRange;
+import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.fun.SqlFloorFunction;
 
-/**
- * Defines how a SQL parse tree should be unparsed to SQL
- * for execution against an HSQLDB database.
- *
- * <p>It reverts to the unparse method of the operator
- * if this database's implementation is standard.
- */
-@Deprecated // to be removed before 2.0
-public class HsqldbHandler extends SqlDialect.BaseHandler {
-  public static final HsqldbHandler INSTANCE = new HsqldbHandler();
+import java.sql.DatabaseMetaData;
 
-  @Override public void unparseCall(SqlWriter writer, SqlCall call,
-      int leftPrec, int rightPrec) {
+/**
+ * A <code>SqlDialect</code> implementation for the Hsqldb database.
+ */
+public class HsqldbSqlDialect extends SqlDialect {
+  public static final SqlDialect DEFAULT = new HsqldbSqlDialect();
+
+  public HsqldbSqlDialect(DatabaseMetaData databaseMetaData) {
+    super(
+        DatabaseProduct.HSQLDB,
+        databaseMetaData,
+        resolveSequenceSupport(HsqldbSequenceSupport.INSTANCE, databaseMetaData)
+    );
+  }
+
+  private HsqldbSqlDialect() {
+    super(
+        DatabaseProduct.HSQLDB,
+        null,
+        NullCollation.HIGH,
+        resolveSequenceSupport(HsqldbSequenceSupport.INSTANCE, null)
+    );
+  }
+
+  @Override public void unparseCall(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
     switch (call.getKind()) {
     case FLOOR:
       if (call.operandCount() != 2) {
@@ -80,4 +94,4 @@ public class HsqldbHandler extends SqlDialect.BaseHandler {
   }
 }
 
-// End HsqldbHandler.java
+// End HsqldbSqlDialect.java

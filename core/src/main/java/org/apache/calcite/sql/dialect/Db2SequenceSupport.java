@@ -29,12 +29,12 @@ import java.sql.SQLException;
  * See the following for reference: https://www.ibm.com/
  * support/knowledgecenter/en/SSEPGG_10.5.0/com.ibm.db2.luw.sql.ref.doc/doc/r0004203.html
  */
-public class DB2SequenceSupport extends SequenceSupportImpl
+public class Db2SequenceSupport extends SequenceSupportImpl
         implements SqlDialect.SequenceSupportResolver {
   public static final SqlDialect.SequenceSupportResolver INSTANCE =
-          new DB2SequenceSupport();
+          new Db2SequenceSupport();
 
-  private DB2SequenceSupport() {
+  private Db2SequenceSupport() {
     super(
       "select NULL, SEQSCHEMA, SEQNAME, CASE WHEN PRECISION = 19 THEN 'BIGINT' ELSE 'INT' END, "
           + "INCREMENT from SYSCAT.SEQUENCES where 1=1",
@@ -55,4 +55,4 @@ public class DB2SequenceSupport extends SequenceSupportImpl
   }
 }
 
-// End DB2SequenceSupport.java
+// End Db2SequenceSupport.java

@@ -80,6 +80,7 @@ import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexPatternFieldRef;
 import org.apache.calcite.rex.RexRangeRef;
+import org.apache.calcite.rex.RexSeqCall;
 import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.rex.RexSubQuery;
 import org.apache.calcite.rex.RexUtil;
@@ -4429,6 +4430,10 @@ public class SqlToRelConverter {
         }
         return fieldAccess;
 
+      case NEXT_VALUE:
+      case CURRENT_VALUE:
+        return convertSequenceExpression((SqlCall) expr);
+
       case OVER:
         return convertOver(this, expr);
 
@@ -4439,6 +4444,48 @@ public class SqlToRelConverter {
       // Apply standard conversions.
       rex = expr.accept(this);
       return Preconditions.checkNotNull(rex);
+    }
+
+    private RexNode convertSequenceExpression(SqlCall call) {
+      final SqlIdentifier id = call.operand(0);
+      final String key = Util.listToString(id.names);
+      RelDataType returnType =
+          validator.getValidatedNodeType(call);
+      SqlKind kind = call.getKind();
+      SqlOperator op;
+      if (kind == SqlKind.NEXT_VALUE) {
+        op = SqlStdOperatorTable.NEXT_VALUE;
+      } else if (kind == SqlKind.CURRENT_VALUE) {
+        op = SqlStdOperatorTable.CURRENT_VALUE;
+      } else {
+        throw new RuntimeException("Only next or current value supported. Invalid " + kind);
+      }
+
+      final SqlValidatorScope.ResolvedImpl resolved =
+          new SqlValidatorScope.ResolvedImpl();
+      scope.resolveTable(id.names, catalogReader.nameMatcher(),
+          SqlValidatorScope.Path.EMPTY, resolved);
+      assert resolved.count() == 1;
+
+      final SqlValidatorNamespace fromNamespace = resolved.only().namespace;
+      RelNode rel;
+      final String datasetName =
+          datasetStack.isEmpty() ? null : datasetStack.peek();
+      final boolean[] usedDataset = {false};
+      RelOptTable table =
+          SqlValidatorUtil.getRelOptTable(fromNamespace, catalogReader,
+              datasetName, usedDataset);
+      if (config.isConvertTableAccess()) {
+        rel = toRel(table);
+      } else {
+        rel = LogicalTableScan.create(cluster, table);
+      }
+      return new RexSeqCall(
+          returnType,
+          op,
+          ImmutableList.<RexNode>of(rexBuilder.makeLiteral(key)),
+          rel
+      );
     }
 
     /**

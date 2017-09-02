@@ -23,7 +23,6 @@ import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlSpecialOperator;
-import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 
@@ -41,10 +40,10 @@ public class SqlSequenceValueOperator extends SqlSpecialOperator {
     return false;
   }
 
-  @Override public void unparse(SqlWriter writer, SqlCall call, int leftPrec,
-      int rightPrec) {
-    writer.getDialect().unparseSequenceVal(writer, kind, call.getOperandList().get(0));
-  }
+//  @Override public void unparse(SqlWriter writer, SqlCall call, int leftPrec,
+//      int rightPrec) {
+//    writer.getDialect().unparseSequenceVal(writer, kind, call.getOperandList().get(0));
+//  }
 
   @Override public RelDataType deriveType(SqlValidator validator,
       SqlValidatorScope scope, SqlCall call) {

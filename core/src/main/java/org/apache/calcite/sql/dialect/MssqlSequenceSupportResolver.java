@@ -27,12 +27,12 @@ import java.sql.SQLException;
 /**
  * Implementation using the SQL Server sys sequences view from version 2012 onwards.
  */
-public class MSSQLSequenceSupportResolver extends SequenceSupportImpl
+public class MssqlSequenceSupportResolver extends SequenceSupportImpl
         implements SqlDialect.SequenceSupportResolver {
   public static final SqlDialect.SequenceSupportResolver INSTANCE =
-          new MSSQLSequenceSupportResolver();
+          new MssqlSequenceSupportResolver();
 
-  private MSSQLSequenceSupportResolver() {
+  private MssqlSequenceSupportResolver() {
     super(
       "select NULL, schema_name(seq.schema_id), seq.name, "
               + "CASE WHEN PRECISION = 19 THEN 'BIGINT' ELSE 'INT', seq.increment from "
@@ -66,4 +66,4 @@ public class MSSQLSequenceSupportResolver extends SequenceSupportImpl
   }
 }
 
-// End MSSQLSequenceSupportResolver.java
+// End MssqlSequenceSupportResolver.java

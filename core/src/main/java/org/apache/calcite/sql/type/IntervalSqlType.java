@@ -22,6 +22,7 @@ import org.apache.calcite.rel.type.RelDataTypeFactoryImpl;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlIntervalQualifier;
+import org.apache.calcite.sql.dialect.AnsiSqlDialect;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.pretty.SqlPrettyWriter;
 import org.apache.calcite.sql.util.SqlString;
@@ -56,7 +57,7 @@ public class IntervalSqlType extends AbstractSqlType {
 
   protected void generateTypeString(StringBuilder sb, boolean withDetail) {
     sb.append("INTERVAL ");
-    final SqlDialect dialect = SqlDialect.DUMMY;
+    final SqlDialect dialect = AnsiSqlDialect.DEFAULT;
     final SqlPrettyWriter writer = new SqlPrettyWriter(dialect);
     writer.setAlwaysUseParentheses(false);
     writer.setSelectListItemsOnSeparateLines(false);

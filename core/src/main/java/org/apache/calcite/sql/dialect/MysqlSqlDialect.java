@@ -17,24 +17,29 @@
 package org.apache.calcite.sql.dialect;
 
 import org.apache.calcite.avatica.util.TimeUnitRange;
+import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlWriter;
 
-/**
- * Defines how a SQL parse tree should be unparsed to SQL
- * for execution against a MySQL database.
- *
- * <p>It reverts to the unparse method of the operator
- * if this database's implementation is standard.
- */
-@Deprecated // to be removed before 2.0
-public class MysqlHandler extends SqlDialect.BaseHandler {
-  public static final MysqlHandler INSTANCE = new MysqlHandler();
+import java.sql.DatabaseMetaData;
 
-  @Override public void unparseCall(SqlWriter writer, SqlCall call,
-      int leftPrec, int rightPrec) {
+/**
+ * A <code>SqlDialect</code> implementation for the Mysql database.
+ */
+public class MysqlSqlDialect extends SqlDialect {
+  public static final SqlDialect DEFAULT = new MysqlSqlDialect();
+
+  public MysqlSqlDialect(DatabaseMetaData databaseMetaData) {
+    super(DatabaseProduct.MYSQL, databaseMetaData, null);
+  }
+
+  private MysqlSqlDialect() {
+    super(DatabaseProduct.MYSQL, "`", NullCollation.HIGH, null);
+  }
+
+  @Override public void unparseCall(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
     switch (call.getKind()) {
     case FLOOR:
       if (call.operandCount() != 2) {
@@ -106,4 +111,4 @@ public class MysqlHandler extends SqlDialect.BaseHandler {
   }
 }
 
-// End MysqlHandler.java
+// End MysqlSqlDialect.java

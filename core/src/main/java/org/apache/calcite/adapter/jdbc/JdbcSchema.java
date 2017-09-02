@@ -48,6 +48,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
@@ -196,6 +197,23 @@ public class JdbcSchema implements Schema {
     ResultSet resultSet = null;
     try {
       connection = dataSource.getConnection();
+
+      // Collect sequences before tables in a map so we can skip "sequence tables"
+      // that were already discovered by the sequence support of the dialect
+      Collection<SqlDialect.SequenceInformation> sequenceInformations =
+              dialect.getSequenceInformation(connection, catalog, schema);
+      final Map<String, JdbcSequence> sequences = new HashMap<>();
+      for (SqlDialect.SequenceInformation sequenceInformation : sequenceInformations) {
+        final JdbcSequence sequence =
+                new JdbcSequence(
+                        this,
+                        sequenceInformation.getCatalog(),
+                        sequenceInformation.getSchema(),
+                        sequenceInformation.getName(),
+                        sequenceInformation.getType(),
+                        sequenceInformation.getIncrement());
+        sequences.put(sequenceInformation.getName(), sequence);
+      }
       DatabaseMetaData metaData = connection.getMetaData();
       resultSet = metaData.getTables(
           catalog,
@@ -204,6 +222,7 @@ public class JdbcSchema implements Schema {
           null);
       final ImmutableMap.Builder<String, JdbcTable> builder =
           ImmutableMap.builder();
+      builder.putAll(sequences);
       while (resultSet.next()) {
         final String tableName = resultSet.getString(3);
         final String catalogName = resultSet.getString(1);
@@ -228,27 +247,15 @@ public class JdbcSchema implements Schema {
           System.out.println("Unknown table type: " + tableTypeName2);
         }
         final JdbcTable table;
-        if (tableType == TableType.SEQUENCE || tableType == TableType.TEMPORARY_SEQUENCE) {
+        // Only add "sequence tables" that we didn't discover before
+        if ((tableType == TableType.SEQUENCE || tableType == TableType.TEMPORARY_SEQUENCE)
+            && !sequences.containsKey(tableName)) {
           table =
               new JdbcSequence(this, catalogName, schemaName, tableName, SqlTypeName.BIGINT, 1);
         } else {
           table = new JdbcTable(this, catalogName, schemaName, tableName, tableType);
         }
         builder.put(tableName, table);
-      }
-
-      Collection<SqlDialect.SequenceInformation> sequenceInformations =
-              dialect.getSequenceInformation(connection, catalog, schema);
-      for (SqlDialect.SequenceInformation sequenceInformation : sequenceInformations) {
-        final JdbcTable table =
-                new JdbcSequence(
-                        this,
-                        sequenceInformation.getCatalog(),
-                        sequenceInformation.getSchema(),
-                        sequenceInformation.getName(),
-                        sequenceInformation.getType(),
-                        sequenceInformation.getIncrement());
-        builder.put(sequenceInformation.getName(), table);
       }
       return builder.build();
     } catch (SQLException e) {

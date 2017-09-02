@@ -18,6 +18,7 @@ package org.apache.calcite.rel.logical;
 
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollationTraitDef;
@@ -30,6 +31,7 @@ import org.apache.calcite.rel.metadata.RelMdCollation;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexSeqCall;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.util.Util;
@@ -127,6 +129,19 @@ public final class LogicalProject extends Project {
 
   @Override public RelNode accept(RelShuttle shuttle) {
     return shuttle.visit(this);
+  }
+
+  @Override
+  public RelNode onRegister(RelOptPlanner planner) {
+    RelNode r = super.onRegister(planner);
+    // TODO: Is there an extracting visitor maybe that goes deep into expressions?
+    for (RexNode exp : exps) {
+      if (exp instanceof RexSeqCall) {
+        planner.ensureRegistered(((RexSeqCall) exp).rel, null);
+      }
+    }
+
+    return r;
   }
 }
 

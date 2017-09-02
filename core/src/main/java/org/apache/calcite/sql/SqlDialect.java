@@ -19,11 +19,13 @@ package org.apache.calcite.sql;
 import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.rel.RelFieldCollation;
-import org.apache.calcite.sql.dialect.DB2SequenceSupport;
+import org.apache.calcite.sql.dialect.AnsiSqlDialect;
+import org.apache.calcite.sql.dialect.CalciteSqlDialect;
+import org.apache.calcite.sql.dialect.Db2SequenceSupport;
 import org.apache.calcite.sql.dialect.HsqldbHandler;
 import org.apache.calcite.sql.dialect.HsqldbSequenceSupport;
-import org.apache.calcite.sql.dialect.MSSQLSequenceSupportResolver;
 import org.apache.calcite.sql.dialect.MssqlHandler;
+import org.apache.calcite.sql.dialect.MssqlSequenceSupportResolver;
 import org.apache.calcite.sql.dialect.MysqlHandler;
 import org.apache.calcite.sql.dialect.OracleHandler;
 import org.apache.calcite.sql.dialect.OracleSequenceSupport;
@@ -61,8 +63,9 @@ public class SqlDialect {
    * database-specific like quoting identifiers, don't rely on this dialect to
    * do what you want.
    */
+  @Deprecated // to be removed before 2.0
   public static final SqlDialect DUMMY =
-      DatabaseProduct.UNKNOWN.getDialect();
+      AnsiSqlDialect.DEFAULT;
 
   /**
    * A dialect useful for generating SQL which can be parsed by the
@@ -70,16 +73,19 @@ public class SqlDialect {
    * want a dialect that knows the full capabilities of the database, create
    * one from a connection.
    */
+  @Deprecated // to be removed before 2.0
   public static final SqlDialect CALCITE =
-      DatabaseProduct.CALCITE.getDialect();
+      CalciteSqlDialect.DEFAULT;
 
   //~ Instance fields --------------------------------------------------------
 
   private final String identifierQuoteString;
   private final String identifierEndQuoteString;
   private final String identifierEscapedQuote;
+  @Deprecated // to be removed before 2.0
   private final DatabaseProduct databaseProduct;
   private final NullCollation nullCollation;
+  @Deprecated // to be removed before 2.0
   private final Handler handler;
   private final SequenceSupport sequenceSupport;
 
@@ -96,57 +102,42 @@ public class SqlDialect {
    *                         generate
    */
   public static SqlDialect create(DatabaseMetaData databaseMetaData) {
-    String identifierQuoteString;
-    try {
-      identifierQuoteString = databaseMetaData.getIdentifierQuoteString();
-    } catch (SQLException e) {
-      throw FakeUtil.newInternal(e, "while quoting identifier");
-    }
-    String databaseProductName;
-    try {
-      databaseProductName = databaseMetaData.getDatabaseProductName();
-    } catch (SQLException e) {
-      throw FakeUtil.newInternal(e, "while detecting database product");
-    }
-    String databaseProductVersion;
-    try {
-      databaseProductVersion = databaseMetaData.getDatabaseProductVersion();
-    } catch (SQLException e) {
-      throw FakeUtil.newInternal(e, "while detecting database version");
-    }
-    final DatabaseProduct databaseProduct =
-        getProduct(databaseProductName, databaseProductVersion);
-    NullCollation nullCollation;
+    return new SqlDialectFactoryImpl().create(databaseMetaData);
+  }
+
+  protected static NullCollation getNullCollation(DatabaseMetaData databaseMetaData) {
     try {
       if (databaseMetaData.nullsAreSortedAtEnd()) {
-        nullCollation = NullCollation.LAST;
+        return NullCollation.LAST;
       } else if (databaseMetaData.nullsAreSortedAtStart()) {
-        nullCollation = NullCollation.FIRST;
+        return NullCollation.FIRST;
       } else if (databaseMetaData.nullsAreSortedLow()) {
-        nullCollation = NullCollation.LOW;
+        return NullCollation.LOW;
       } else if (databaseMetaData.nullsAreSortedHigh()) {
-        nullCollation = NullCollation.HIGH;
+        return NullCollation.HIGH;
       } else {
         throw new IllegalArgumentException("cannot deduce null collation");
       }
     } catch (SQLException e) {
       throw new IllegalArgumentException("cannot deduce null collation", e);
     }
-    Handler handler = chooseHandler(databaseProduct);
-    SequenceSupport sequenceSupport;
-    if (databaseProduct.sequenceSupportResolver != null) {
-      try {
-        sequenceSupport =
-                databaseProduct.sequenceSupportResolver.resolveExtractor(
-                  databaseMetaData);
-      } catch (SQLException e) {
-        throw FakeUtil.newInternal(e, "while resolving sequence information extractor");
-      }
-    } else {
-      sequenceSupport = null;
+  }
+
+  protected static String getIdentifierQuoteString(DatabaseMetaData databaseMetaData) {
+    try {
+      return databaseMetaData.getIdentifierQuoteString();
+    } catch (SQLException e) {
+      throw new IllegalArgumentException("cannot deduce identifier quote string", e);
     }
-    return new SqlDialect(databaseProduct, databaseProductName,
-        identifierQuoteString, nullCollation, handler, sequenceSupport);
+  }
+
+  protected static SequenceSupport resolveSequenceSupport(SequenceSupportResolver resolver,
+      DatabaseMetaData databaseMetaData) {
+    try {
+      return resolver.resolveExtractor(databaseMetaData);
+    } catch (SQLException e) {
+      throw new IllegalArgumentException("cannot resolve sequence support", e);
+    }
   }
 
   @Deprecated // to be removed before 2.0
@@ -163,6 +154,43 @@ public class SqlDialect {
         nullCollation, DEFAULT_HANDLER, null);
   }
 
+  @Deprecated // to be removed before 2.0, replace with constructor without DatabaseProduct
+  protected SqlDialect(DatabaseProduct databaseProduct, DatabaseMetaData databaseMetaData,
+                       SequenceSupport sequenceSupport) {
+    this(
+      databaseProduct,
+      getIdentifierQuoteString(databaseMetaData),
+      getNullCollation(databaseMetaData),
+      sequenceSupport
+    );
+  }
+
+  @Deprecated // to be removed before 2.0, replace with constructor without DatabaseProduct
+  protected SqlDialect(DatabaseProduct databaseProduct, String identifierQuoteString,
+                    NullCollation nullCollation, SequenceSupport sequenceSupport) {
+    this.nullCollation = Preconditions.checkNotNull(nullCollation);
+    this.databaseProduct = Preconditions.checkNotNull(databaseProduct);
+    this.handler = null;
+    this.sequenceSupport = sequenceSupport;
+    if (identifierQuoteString != null) {
+      identifierQuoteString = identifierQuoteString.trim();
+      if (identifierQuoteString.equals("")) {
+        identifierQuoteString = null;
+      }
+    }
+    this.identifierQuoteString = identifierQuoteString;
+    this.identifierEndQuoteString =
+            identifierQuoteString == null
+                    ? null
+                    : identifierQuoteString.equals("[")
+                    ? "]"
+                    : identifierQuoteString;
+    this.identifierEscapedQuote =
+            identifierQuoteString == null
+                    ? null
+                    : this.identifierEndQuoteString + this.identifierEndQuoteString;
+  }
+
   /**
    * Creates a SqlDialect.
    *
@@ -174,6 +202,7 @@ public class SqlDialect {
    * @param nullCollation         Whether NULL values appear first or last
    * @param handler               Handler for un-parsing
    */
+  @Deprecated // to be removed before 2.0
   public SqlDialect(DatabaseProduct databaseProduct, String databaseProductName,
       String identifierQuoteString, NullCollation nullCollation,
       Handler handler, SequenceSupport sequenceSupport) {
@@ -211,6 +240,7 @@ public class SqlDialect {
    * @param productVersion Product version
    * @return database product
    */
+  @Deprecated // to be removed before 2.0
   public static DatabaseProduct getProduct(
       String productName,
       String productVersion) {
@@ -385,9 +415,18 @@ public class SqlDialect {
     }
   }
 
-  public void unparseCall(SqlWriter writer, SqlCall call, int leftPrec,
-      int rightPrec) {
-    handler.unparseCall(writer, call, leftPrec, rightPrec);
+  public void unparseCall(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    switch (call.getKind()) {
+    case NEXT_VALUE:
+    case CURRENT_VALUE:
+      if (sequenceSupport == null) {
+        throw new IllegalStateException("Sequences not supported on target database platform!");
+      }
+      sequenceSupport.unparseSequenceVal(writer, call.getKind(), call.operand(0));
+      break;
+    default:
+      call.getOperator().unparse(writer, call, leftPrec, rightPrec);
+    }
   }
 
   /**
@@ -612,13 +651,6 @@ public class SqlDialect {
     }
   }
 
-  public void unparseSequenceVal(SqlWriter writer, SqlKind kind, SqlNode sequenceNode) {
-    if (sequenceSupport == null) {
-      throw new IllegalStateException("Sequences not supported on target database platform!");
-    }
-    sequenceSupport.unparseSequenceVal(writer, kind, sequenceNode);
-  }
-
   /**
    * A few utility functions copied from org.apache.calcite.util.Util. We have
    * copied them because we wish to keep SqlDialect's dependencies to a
@@ -677,15 +709,16 @@ public class SqlDialect {
    * extend the dialect to describe the particular capability, for example,
    * whether the database allows expressions to appear in the GROUP BY clause.
    */
+  @Deprecated // to be removed before 2.0
   public enum DatabaseProduct {
     ACCESS("Access", "\"", null, NullCollation.HIGH),
     CALCITE("Apache Calcite", "\"", null, NullCollation.HIGH),
     MSSQL("Microsoft SQL Server", "[",
-      MSSQLSequenceSupportResolver.INSTANCE, NullCollation.HIGH),
+      MssqlSequenceSupportResolver.INSTANCE, NullCollation.HIGH),
     MYSQL("MySQL", "`", null, NullCollation.HIGH),
     ORACLE("Oracle", "\"", OracleSequenceSupport.INSTANCE, NullCollation.HIGH),
     DERBY("Apache Derby", null, null, NullCollation.HIGH),
-    DB2("IBM DB2", null, DB2SequenceSupport.INSTANCE, NullCollation.HIGH),
+    DB2("IBM DB2", null, Db2SequenceSupport.INSTANCE, NullCollation.HIGH),
     FIREBIRD("Firebird", null, null, NullCollation.HIGH),
     // H2 uses the same nextval and currval functions as Postgresql
     H2("H2", "\"", PostgresqlSequenceSupport.INSTANCE, NullCollation.HIGH),
@@ -775,12 +808,14 @@ public class SqlDialect {
    *
    * <p>Instances are stateless and therefore immutable.
    */
+  @Deprecated // to be removed before 2.0
   public interface Handler {
     void unparseCall(SqlWriter writer, SqlCall call, int leftPrec,
         int rightPrec);
   }
 
   /** Base class for dialect handlers. */
+  @Deprecated // to be removed before 2.0
   public static class BaseHandler implements Handler {
     public void unparseCall(SqlWriter writer, SqlCall call,
         int leftPrec, int rightPrec) {
@@ -811,9 +846,9 @@ public class SqlDialect {
    */
   public interface SequenceSupport {
     Collection<SequenceInformation> extract(
-      Connection connection,
-      String catalog,
-      String schema) throws SQLException;
+        Connection connection,
+        String catalog,
+        String schema) throws SQLException;
 
     void unparseSequenceVal(SqlWriter writer, SqlKind kind, SqlNode sequenceNode);
 

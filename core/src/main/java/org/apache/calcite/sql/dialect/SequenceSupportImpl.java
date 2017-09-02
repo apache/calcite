@@ -90,7 +90,7 @@ public class SequenceSupportImpl implements SqlDialect.SequenceSupport {
         }
 
         sequenceInformations.add(
-          new SequenceInformationImpl(
+            new SequenceInformationImpl(
                 sequenceCatalog,
                 sequenceSchema,
                 sequenceName,
