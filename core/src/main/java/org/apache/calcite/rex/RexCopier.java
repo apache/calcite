@@ -66,6 +66,12 @@ class RexCopier extends RexShuttle {
         visitList(call.getOperands(), update));
   }
 
+  public RexNode visitSeqCall(final RexSeqCall seqCall) {
+    final boolean[] update = null;
+    return seqCall.clone(copy(seqCall.getType()),
+        visitList(seqCall.getOperands(), update));
+  }
+
   public RexNode visitCorrelVariable(RexCorrelVariable variable) {
     throw new UnsupportedOperationException();
   }

@@ -20,13 +20,7 @@ import com.google.common.collect.ImmutableList;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.rel.type.RelDataTypeFactory;
-import org.apache.calcite.rel.type.RelDataTypeField;
-import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
-import org.apache.calcite.sql.fun.SqlQuantifyOperator;
-import org.apache.calcite.sql.fun.SqlStdOperatorTable;
-import org.apache.calcite.sql.type.SqlTypeName;
 
 import java.util.List;
 
@@ -37,18 +31,18 @@ public class RexSeqCall extends RexCall {
   public final RelNode rel;
 
   public RexSeqCall(RelDataType type, SqlOperator op,
-                     ImmutableList<RexNode> operands, RelNode rel) {
+                     List<RexNode> operands, RelNode rel) {
     super(type, op, operands);
     this.rel = rel;
     this.digest = computeDigest(false);
   }
 
   public <R> R accept(RexVisitor<R> visitor) {
-    return visitor.visitCall(this);
+    return visitor.visitSeqCall(this);
   }
 
   public <R, P> R accept(RexBiVisitor<R, P> visitor, P arg) {
-    return visitor.visitCall(this, arg);
+    return visitor.visitSeqCall(this, arg);
   }
 
   @Override protected String computeDigest(boolean withType) {

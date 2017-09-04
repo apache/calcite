@@ -32,6 +32,7 @@ import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexLocalRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexProgram;
+import org.apache.calcite.rex.RexSeqCall;
 import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.rex.RexVisitorImpl;
@@ -829,6 +830,13 @@ public abstract class CalcRelSplitter {
     }
 
     public Void visitCall(RexCall call) {
+      if (!relType.canImplement(call)) {
+        throw CannotImplement.INSTANCE;
+      }
+      return null;
+    }
+
+    public Void visitSeqCall(RexSeqCall call) {
       if (!relType.canImplement(call)) {
         throw CannotImplement.INSTANCE;
       }

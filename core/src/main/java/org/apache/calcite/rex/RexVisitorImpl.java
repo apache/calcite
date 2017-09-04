@@ -82,6 +82,10 @@ public class RexVisitorImpl<R> implements RexVisitor<R> {
     return r;
   }
 
+  public R visitSeqCall(RexSeqCall seqCall) {
+    return null;
+  }
+
   public R visitDynamicParam(RexDynamicParam dynamicParam) {
     return null;
   }
