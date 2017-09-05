@@ -672,7 +672,7 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
       case INTERVAL_MINUTE_SECOND:
       case INTERVAL_SECOND:
         break;
-      case TIMESTAMP_WITH_LOCAL_TIMEZONE:
+      case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
         RelDataType type =
             cx.getTypeFactory().createSqlType(SqlTypeName.TIMESTAMP);
         type = cx.getTypeFactory().createTypeWithNullability(
@@ -692,7 +692,7 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
       break;
     case DECADE:
       switch (sqlTypeName) {
-      case TIMESTAMP_WITH_LOCAL_TIMEZONE:
+      case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
         RelDataType type =
             cx.getTypeFactory().createSqlType(SqlTypeName.TIMESTAMP);
         type = cx.getTypeFactory().createTypeWithNullability(
@@ -719,7 +719,7 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
       case TIMESTAMP:
         // convert to seconds
         return divide(rexBuilder, res, TimeUnit.SECOND.multiplier);
-      case TIMESTAMP_WITH_LOCAL_TIMEZONE:
+      case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
         RelDataType type =
             cx.getTypeFactory().createSqlType(SqlTypeName.TIMESTAMP);
         type = cx.getTypeFactory().createTypeWithNullability(

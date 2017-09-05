@@ -16,9 +16,11 @@
  */
 package org.apache.calcite.test;
 
+import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.avatica.util.ByteString;
 import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
+import org.apache.calcite.linq4j.QueryProvider;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.Strong;
 import org.apache.calcite.rel.type.RelDataType;
@@ -27,6 +29,8 @@ import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexDynamicParam;
+import org.apache.calcite.rex.RexExecutor;
+import org.apache.calcite.rex.RexExecutorImpl;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexLocalRef;
@@ -35,6 +39,7 @@ import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.rex.RexProgramBuilder;
 import org.apache.calcite.rex.RexSimplify;
 import org.apache.calcite.rex.RexUtil;
+import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSpecialOperator;
@@ -66,6 +71,7 @@ import java.util.Arrays;
 import java.util.Calendar;
 import java.util.List;
 import java.util.Map;
+import java.util.TimeZone;
 import java.util.TreeMap;
 
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -101,12 +107,42 @@ public class RexProgramTest {
   public void setUp() {
     typeFactory = new JavaTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
     rexBuilder = new RexBuilder(typeFactory);
-    simplify = new RexSimplify(rexBuilder, false, RexUtil.EXECUTOR);
+    RexExecutor executor =
+        new RexExecutorImpl(new DummyTestDataContext());
+    simplify = new RexSimplify(rexBuilder, false, executor);
     trueLiteral = rexBuilder.makeLiteral(true);
     falseLiteral = rexBuilder.makeLiteral(false);
     final RelDataType intType = typeFactory.createSqlType(SqlTypeName.INTEGER);
     nullLiteral = rexBuilder.makeNullLiteral(intType);
     unknownLiteral = rexBuilder.makeNullLiteral(trueLiteral.getType());
+  }
+
+  /** Dummy data context for test. */
+  private static class DummyTestDataContext implements DataContext {
+    private final ImmutableMap<String, Object> map;
+
+    DummyTestDataContext() {
+      this.map =
+          ImmutableMap.<String, Object>of(
+              Variable.TIME_ZONE.camelName, TimeZone.getTimeZone("America/Los_Angeles"),
+              Variable.CURRENT_TIMESTAMP.camelName, new Long(1311120000000L));
+    }
+
+    public SchemaPlus getRootSchema() {
+      return null;
+    }
+
+    public JavaTypeFactory getTypeFactory() {
+      return null;
+    }
+
+    public QueryProvider getQueryProvider() {
+      return null;
+    }
+
+    public Object get(String name) {
+      return map.get(name);
+    }
   }
 
   private void checkCnf(RexNode node, String expected) {
@@ -1518,9 +1554,9 @@ public class RexProgramTest {
     final RelDataType timestampType =
         typeFactory.createSqlType(SqlTypeName.TIMESTAMP);
     final RelDataType timeLTZType =
-        typeFactory.createSqlType(SqlTypeName.TIME_WITH_LOCAL_TIMEZONE);
+        typeFactory.createSqlType(SqlTypeName.TIME_WITH_LOCAL_TIME_ZONE);
     final RelDataType timestampLTZType =
-        typeFactory.createSqlType(SqlTypeName.TIMESTAMP_WITH_LOCAL_TIMEZONE);
+        typeFactory.createSqlType(SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE);
     final RelDataType varCharType =
         typeFactory.createSqlType(SqlTypeName.VARCHAR, 40);
 

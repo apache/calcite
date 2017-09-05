@@ -246,11 +246,11 @@ public class RexToLixTranslator {
                 operand, Expressions.constant(DateTimeUtils.MILLIS_PER_DAY)),
             int.class);
         break;
-      case TIMESTAMP_WITH_LOCAL_TIMEZONE:
+      case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
         convert = RexImpTable.optimize2(
             operand,
             Expressions.call(
-                BuiltInMethod.TIMESTAMP_WITH_LOCAL_TIMEZONE_TO_DATE.method,
+                BuiltInMethod.TIMESTAMP_WITH_LOCAL_TIME_ZONE_TO_DATE.method,
                 operand,
                 Expressions.call(BuiltInMethod.TIME_ZONE.method, root)));
       }
@@ -262,11 +262,11 @@ public class RexToLixTranslator {
         convert =
             Expressions.call(BuiltInMethod.STRING_TO_TIME.method, operand);
         break;
-      case TIME_WITH_LOCAL_TIMEZONE:
+      case TIME_WITH_LOCAL_TIME_ZONE:
         convert = RexImpTable.optimize2(
             operand,
             Expressions.call(
-                BuiltInMethod.TIME_WITH_LOCAL_TIMEZONE_TO_TIME.method,
+                BuiltInMethod.TIME_WITH_LOCAL_TIME_ZONE_TO_TIME.method,
                 operand,
                 Expressions.call(BuiltInMethod.TIME_ZONE.method, root)));
         break;
@@ -278,25 +278,25 @@ public class RexToLixTranslator {
                 Expressions.constant(DateTimeUtils.MILLIS_PER_DAY)),
             int.class);
         break;
-      case TIMESTAMP_WITH_LOCAL_TIMEZONE:
+      case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
         convert = RexImpTable.optimize2(
             operand,
             Expressions.call(
-                BuiltInMethod.TIMESTAMP_WITH_LOCAL_TIMEZONE_TO_TIME.method,
+                BuiltInMethod.TIMESTAMP_WITH_LOCAL_TIME_ZONE_TO_TIME.method,
                 operand,
                 Expressions.call(BuiltInMethod.TIME_ZONE.method, root)));
       }
       break;
-    case TIME_WITH_LOCAL_TIMEZONE:
+    case TIME_WITH_LOCAL_TIME_ZONE:
       switch (sourceType.getSqlTypeName()) {
       case CHAR:
       case VARCHAR:
         convert =
-            Expressions.call(BuiltInMethod.STRING_TO_TIME_WITH_LOCAL_TIMEZONE.method, operand);
+            Expressions.call(BuiltInMethod.STRING_TO_TIME_WITH_LOCAL_TIME_ZONE.method, operand);
         break;
       case TIME:
         convert = Expressions.call(
-            BuiltInMethod.TIME_STRING_TO_TIME_WITH_LOCAL_TIMEZONE.method,
+            BuiltInMethod.TIME_STRING_TO_TIME_WITH_LOCAL_TIME_ZONE.method,
             RexImpTable.optimize2(
                 operand,
                 Expressions.call(
@@ -306,7 +306,7 @@ public class RexToLixTranslator {
         break;
       case TIMESTAMP:
         convert = Expressions.call(
-            BuiltInMethod.TIMESTAMP_STRING_TO_TIMESTAMP_WITH_LOCAL_TIMEZONE.method,
+            BuiltInMethod.TIMESTAMP_STRING_TO_TIMESTAMP_WITH_LOCAL_TIME_ZONE.method,
             RexImpTable.optimize2(
                 operand,
                 Expressions.call(
@@ -314,11 +314,11 @@ public class RexToLixTranslator {
                     operand)),
             Expressions.call(BuiltInMethod.TIME_ZONE.method, root));
         break;
-      case TIMESTAMP_WITH_LOCAL_TIMEZONE:
+      case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
         convert = RexImpTable.optimize2(
             operand,
             Expressions.call(
-                BuiltInMethod.TIMESTAMP_WITH_LOCAL_TIMEZONE_TO_TIME_WITH_LOCAL_TIMEZONE.method,
+                BuiltInMethod.TIMESTAMP_WITH_LOCAL_TIME_ZONE_TO_TIME_WITH_LOCAL_TIME_ZONE.method,
                 operand));
       }
       break;
@@ -344,36 +344,38 @@ public class RexToLixTranslator {
                     Expressions.constant(DateTimeUtils.MILLIS_PER_DAY)),
                 Expressions.convert_(operand, long.class));
         break;
-      case TIME_WITH_LOCAL_TIMEZONE:
+      case TIME_WITH_LOCAL_TIME_ZONE:
         convert = RexImpTable.optimize2(
             operand,
             Expressions.call(
-                BuiltInMethod.TIME_WITH_LOCAL_TIMEZONE_TO_TIMESTAMP.method,
+                BuiltInMethod.TIME_WITH_LOCAL_TIME_ZONE_TO_TIMESTAMP.method,
                 Expressions.call(
                     BuiltInMethod.UNIX_DATE_TO_STRING.method,
                     Expressions.call(BuiltInMethod.CURRENT_DATE.method, root)),
                 operand,
                 Expressions.call(BuiltInMethod.TIME_ZONE.method, root)));
         break;
-      case TIMESTAMP_WITH_LOCAL_TIMEZONE:
+      case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
         convert = RexImpTable.optimize2(
             operand,
             Expressions.call(
-                BuiltInMethod.TIMESTAMP_WITH_LOCAL_TIMEZONE_TO_TIMESTAMP.method,
+                BuiltInMethod.TIMESTAMP_WITH_LOCAL_TIME_ZONE_TO_TIMESTAMP.method,
                 operand,
                 Expressions.call(BuiltInMethod.TIME_ZONE.method, root)));
       }
       break;
-    case TIMESTAMP_WITH_LOCAL_TIMEZONE:
+    case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
       switch (sourceType.getSqlTypeName()) {
       case CHAR:
       case VARCHAR:
         convert =
-            Expressions.call(BuiltInMethod.STRING_TO_TIMESTAMP_WITH_LOCAL_TIMEZONE.method, operand);
+            Expressions.call(
+                BuiltInMethod.STRING_TO_TIMESTAMP_WITH_LOCAL_TIME_ZONE.method,
+                operand);
         break;
       case DATE:
         convert = Expressions.call(
-            BuiltInMethod.TIMESTAMP_STRING_TO_TIMESTAMP_WITH_LOCAL_TIMEZONE.method,
+            BuiltInMethod.TIMESTAMP_STRING_TO_TIMESTAMP_WITH_LOCAL_TIME_ZONE.method,
             RexImpTable.optimize2(
                 operand,
                 Expressions.call(
@@ -385,7 +387,7 @@ public class RexToLixTranslator {
         break;
       case TIME:
         convert = Expressions.call(
-            BuiltInMethod.TIMESTAMP_STRING_TO_TIMESTAMP_WITH_LOCAL_TIMEZONE.method,
+            BuiltInMethod.TIMESTAMP_STRING_TO_TIMESTAMP_WITH_LOCAL_TIME_ZONE.method,
             RexImpTable.optimize2(
                 operand,
                 Expressions.call(
@@ -399,11 +401,11 @@ public class RexToLixTranslator {
                         Expressions.convert_(operand, long.class)))),
             Expressions.call(BuiltInMethod.TIME_ZONE.method, root));
         break;
-      case TIME_WITH_LOCAL_TIMEZONE:
+      case TIME_WITH_LOCAL_TIME_ZONE:
         convert = RexImpTable.optimize2(
             operand,
             Expressions.call(
-                BuiltInMethod.TIME_WITH_LOCAL_TIMEZONE_TO_TIMESTAMP_WITH_LOCAL_TIMEZONE.method,
+                BuiltInMethod.TIME_WITH_LOCAL_TIME_ZONE_TO_TIMESTAMP_WITH_LOCAL_TIME_ZONE.method,
                 Expressions.call(
                     BuiltInMethod.UNIX_DATE_TO_STRING.method,
                     Expressions.call(BuiltInMethod.CURRENT_DATE.method, root)),
@@ -411,7 +413,7 @@ public class RexToLixTranslator {
         break;
       case TIMESTAMP:
         convert = Expressions.call(
-            BuiltInMethod.TIMESTAMP_STRING_TO_TIMESTAMP_WITH_LOCAL_TIMEZONE.method,
+            BuiltInMethod.TIMESTAMP_STRING_TO_TIMESTAMP_WITH_LOCAL_TIME_ZONE.method,
             RexImpTable.optimize2(
                 operand,
                 Expressions.call(
@@ -448,11 +450,11 @@ public class RexToLixTranslator {
                 BuiltInMethod.UNIX_TIME_TO_STRING.method,
                 operand));
         break;
-      case TIME_WITH_LOCAL_TIMEZONE:
+      case TIME_WITH_LOCAL_TIME_ZONE:
         convert = RexImpTable.optimize2(
             operand,
             Expressions.call(
-                BuiltInMethod.TIME_WITH_LOCAL_TIMEZONE_TO_STRING.method,
+                BuiltInMethod.TIME_WITH_LOCAL_TIME_ZONE_TO_STRING.method,
                 operand,
                 Expressions.call(BuiltInMethod.TIME_ZONE.method, root)));
         break;
@@ -463,11 +465,11 @@ public class RexToLixTranslator {
                 BuiltInMethod.UNIX_TIMESTAMP_TO_STRING.method,
                 operand));
         break;
-      case TIMESTAMP_WITH_LOCAL_TIMEZONE:
+      case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
         convert = RexImpTable.optimize2(
             operand,
             Expressions.call(
-                BuiltInMethod.TIMESTAMP_WITH_LOCAL_TIMEZONE_TO_STRING.method,
+                BuiltInMethod.TIMESTAMP_WITH_LOCAL_TIME_ZONE_TO_STRING.method,
                 operand,
                 Expressions.call(BuiltInMethod.TIME_ZONE.method, root)));
         break;
@@ -770,7 +772,7 @@ public class RexToLixTranslator {
           Expressions.constant(bd.toString()));
     case DATE:
     case TIME:
-    case TIME_WITH_LOCAL_TIMEZONE:
+    case TIME_WITH_LOCAL_TIME_ZONE:
     case INTERVAL_YEAR:
     case INTERVAL_YEAR_MONTH:
     case INTERVAL_MONTH:
@@ -778,7 +780,7 @@ public class RexToLixTranslator {
       javaClass = int.class;
       break;
     case TIMESTAMP:
-    case TIMESTAMP_WITH_LOCAL_TIMEZONE:
+    case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
     case INTERVAL_DAY:
     case INTERVAL_DAY_HOUR:
     case INTERVAL_DAY_MINUTE:

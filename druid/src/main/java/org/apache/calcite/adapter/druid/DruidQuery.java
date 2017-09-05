@@ -1282,7 +1282,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
 
     private ColumnMetaData.Rep getPrimitive(RelDataTypeField field) {
       switch (field.getType().getSqlTypeName()) {
-      case TIMESTAMP_WITH_LOCAL_TIMEZONE:
+      case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
         return ColumnMetaData.Rep.JAVA_SQL_TIMESTAMP;
       case BIGINT:
         return ColumnMetaData.Rep.LONG;

@@ -175,14 +175,14 @@ public class JavaTypeFactoryImpl
         return String.class;
       case DATE:
       case TIME:
-      case TIME_WITH_LOCAL_TIMEZONE:
+      case TIME_WITH_LOCAL_TIME_ZONE:
       case INTEGER:
       case INTERVAL_YEAR:
       case INTERVAL_YEAR_MONTH:
       case INTERVAL_MONTH:
         return type.isNullable() ? Integer.class : int.class;
       case TIMESTAMP:
-      case TIMESTAMP_WITH_LOCAL_TIMEZONE:
+      case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
       case BIGINT:
       case INTERVAL_DAY:
       case INTERVAL_DAY_HOUR:

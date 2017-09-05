@@ -1593,9 +1593,9 @@ public class RexImpTable {
         final Method floorMethod;
         Expression operand = translatedOperands.get(0);
         switch (call.getType().getSqlTypeName()) {
-        case TIMESTAMP_WITH_LOCAL_TIMEZONE:
+        case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
           operand = Expressions.call(
-              BuiltInMethod.TIMESTAMP_WITH_LOCAL_TIMEZONE_TO_TIMESTAMP.method,
+              BuiltInMethod.TIMESTAMP_WITH_LOCAL_TIME_ZONE_TO_TIMESTAMP.method,
               operand,
               Expressions.call(BuiltInMethod.TIME_ZONE.method, translator.getRoot()));
           // fall through

@@ -184,13 +184,13 @@ public class RexBuilderTest {
     final RelDataTypeFactory typeFactory =
         new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
     final RelDataType timestampType =
-        typeFactory.createSqlType(SqlTypeName.TIMESTAMP_WITH_LOCAL_TIMEZONE);
+        typeFactory.createSqlType(SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE);
     final RelDataType timestampType3 =
-        typeFactory.createSqlType(SqlTypeName.TIMESTAMP_WITH_LOCAL_TIMEZONE, 3);
+        typeFactory.createSqlType(SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE, 3);
     final RelDataType timestampType9 =
-        typeFactory.createSqlType(SqlTypeName.TIMESTAMP_WITH_LOCAL_TIMEZONE, 9);
+        typeFactory.createSqlType(SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE, 9);
     final RelDataType timestampType18 =
-        typeFactory.createSqlType(SqlTypeName.TIMESTAMP_WITH_LOCAL_TIMEZONE, 18);
+        typeFactory.createSqlType(SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE, 18);
     final RexBuilder builder = new RexBuilder(typeFactory);
 
     // The new way

@@ -251,15 +251,15 @@ public class DruidDateTimeUtils {
     switch (node.getKind()) {
     case LITERAL:
       switch (((RexLiteral) node).getTypeName()) {
-      case TIMESTAMP_WITH_LOCAL_TIMEZONE:
+      case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
         return ((RexLiteral) node).getValueAs(TimestampString.class);
       case TIMESTAMP:
-        // Cast timestamp to timestamp with timezone
+        // Cast timestamp to timestamp with local time zone
         final TimestampString t = ((RexLiteral) node).getValueAs(TimestampString.class);
         return new TimestampWithTimeZoneString(t.toString() + " " + timeZone.getID())
             .withTimeZone(DateTimeUtils.UTC_ZONE).getLocalTimestampString();
       case DATE:
-        // Cast date to timestamp with timezone
+        // Cast date to timestamp with local time zone
         final DateString d = ((RexLiteral) node).getValueAs(DateString.class);
         return new TimestampWithTimeZoneString(
             TimestampString.fromMillisSinceEpoch(
@@ -281,7 +281,7 @@ public class DruidDateTimeUtils {
           && callType.getSqlTypeName() == operandType.getSqlTypeName()
           && (callType.getSqlTypeName() == SqlTypeName.DATE
               || callType.getSqlTypeName() == SqlTypeName.TIMESTAMP
-              || callType.getSqlTypeName() == SqlTypeName.TIMESTAMP_WITH_LOCAL_TIMEZONE)
+              || callType.getSqlTypeName() == SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE)
           && callType.isNullable()
           && !operandType.isNullable()) {
         return literalValue(operand, timeZone);

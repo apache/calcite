@@ -977,6 +977,7 @@ name will have been converted to upper case also.
 | DATE        | Date                      | Example: DATE '1969-07-20'
 | TIME        | Time of day               | Example: TIME '20:17:40'
 | TIMESTAMP [ WITHOUT TIME ZONE ] | Date and time | Example: TIMESTAMP '1969-07-20 20:17:40'
+| TIMESTAMP WITH LOCAL TIME ZONE | Date and time with local time zone | Example: TIMESTAMP '1969-07-20 20:17:40 America/Los Angeles'
 | TIMESTAMP WITH TIME ZONE | Date and time with time zone | Example: TIMESTAMP '1969-07-20 20:17:40 America/Los Angeles'
 | INTERVAL timeUnit [ TO timeUnit ] | Date time interval | Examples: INTERVAL '1:5' YEAR TO MONTH, INTERVAL '45' DAY
 
@@ -989,9 +990,11 @@ timeUnit:
 
 Note:
 
-* DATE, TIME and TIMESTAMP have no time zone. There is not even an implicit
-  time zone, such as UTC (as in Java) or the local time zone. It is left to
-  the user or application to supply a time zone.
+* DATE, TIME and TIMESTAMP have no time zone. For those types, there is not
+  even an implicit time zone, such as UTC (as in Java) or the local time zone.
+  It is left to the user or application to supply a time zone. In turn,
+  TIMESTAMP WITH LOCAL TIME ZONE does not store the time zone internally, but
+  it will rely on the supplied time zone to provide correct semantics.
 
 ### Non-scalar types
 
