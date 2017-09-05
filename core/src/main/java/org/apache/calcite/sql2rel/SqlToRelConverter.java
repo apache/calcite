@@ -2693,6 +2693,10 @@ public class SqlToRelConverter {
     replaceSubQueries(bb, aggregateFinder.list,
         RelOptUtil.Logic.TRUE_FALSE_UNKNOWN);
 
+    // also replace sub-queries inside filters in the aggregates
+    replaceSubQueries(bb, aggregateFinder.filterList,
+        RelOptUtil.Logic.TRUE_FALSE_UNKNOWN);
+
     // If group-by clause is missing, pretend that it has zero elements.
     if (groupList == null) {
       groupList = SqlNodeList.EMPTY;
@@ -5214,12 +5218,24 @@ public class SqlToRelConverter {
    */
   private static class AggregateFinder extends SqlBasicVisitor<Void> {
     final SqlNodeList list = new SqlNodeList(SqlParserPos.ZERO);
+    final SqlNodeList filterList = new SqlNodeList(SqlParserPos.ZERO);
 
     @Override public Void visit(SqlCall call) {
       // ignore window aggregates and ranking functions (associated with OVER operator)
       if (call.getOperator().getKind() == SqlKind.OVER) {
         return null;
       }
+
+      if (call.getOperator().getKind() == SqlKind.FILTER) {
+        // the WHERE in a FILTER must be tracked too so we can call replaceSubQueries on it.
+        // see https://issues.apache.org/jira/browse/CALCITE-1910
+        final SqlNode aggCall = call.getOperandList().get(0);
+        final SqlNode whereCall = call.getOperandList().get(1);
+        list.add(aggCall);
+        filterList.add(whereCall);
+        return null;
+      }
+
       if (call.getOperator().isAggregator()) {
         list.add(call);
         return null;
