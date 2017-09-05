@@ -469,6 +469,14 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  @Test public void testAggFilterWithIn() {
+    final String sql = "select\n"
+        + "  deptno, sum(sal * 2) filter (where empno not in (1, 2)), count(*)\n"
+        + "from emp\n"
+        + "group by deptno";
+    sql(sql).ok();
+  }
+
   @Test public void testFakeStar() {
     sql("SELECT * FROM (VALUES (0, 0)) AS T(A, \"*\")").ok();
   }
