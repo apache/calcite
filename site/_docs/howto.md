@@ -449,7 +449,7 @@ Before you start:
   * `-Dcalcite.test.mongodb`
   * `-Dcalcite.test.splunk`
 * Trigger a
-  <a href="https://scan.coverity.com/projects/2966">Coverity scan</a>
+  <a href="https://scan.coverity.com/projects/julianhyde-calcite">Coverity scan</a>
   by merging the latest code into the `julianhyde/coverity_scan` branch,
   and when it completes, make sure that there are no important issues.
 * Add release notes to `site/_docs/history.md`. Include the commit history,
