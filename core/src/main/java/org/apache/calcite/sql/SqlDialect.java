@@ -552,6 +552,10 @@ public class SqlDialect {
     }
   }
 
+  /**
+   * Returns whether the dialect supports nested aggregations, for instance
+   * {@code SELECT SUM(SUM(1)) }.
+   */
   public boolean supportsNestedAggregations() {
     switch (databaseProduct) {
     case MYSQL:

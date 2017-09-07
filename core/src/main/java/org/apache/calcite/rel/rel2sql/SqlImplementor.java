@@ -23,6 +23,7 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.JoinRelType;
+import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexCall;
@@ -41,6 +42,7 @@ import org.apache.calcite.rex.RexSubQuery;
 import org.apache.calcite.rex.RexWindow;
 import org.apache.calcite.rex.RexWindowBound;
 import org.apache.calcite.sql.JoinType;
+import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlBinaryOperator;
 import org.apache.calcite.sql.SqlCall;
@@ -92,6 +94,7 @@ import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -1009,11 +1012,16 @@ public abstract class SqlImplementor {
       Set<Clause> nonWrapSet = ImmutableSet.of(Clause.SELECT);
       for (Clause clause : clauses) {
         if (maxClause.ordinal() > clause.ordinal()
-            || (maxClause == clause && !nonWrapSet.contains(clause))
-            || !dialect.supportsNestedAggregations()) {
+            || (maxClause == clause && !nonWrapSet.contains(clause))) {
           needNew = true;
         }
       }
+      if (rel instanceof LogicalAggregate
+          && !dialect.supportsNestedAggregations()
+          && hasNestedAggregations((LogicalAggregate) rel)) {
+        needNew = true;
+      }
+
       SqlSelect select;
       Expressions.FluentList<Clause> clauseList = Expressions.list();
       if (needNew) {
@@ -1055,6 +1063,29 @@ public abstract class SqlImplementor {
       }
       return new Builder(rel, clauseList, select, newContext,
           needNew ? null : aliases);
+    }
+
+    private boolean hasNestedAggregations(LogicalAggregate rel) {
+      List<AggregateCall> aggCallList = rel.getAggCallList();
+      HashSet<Integer> aggregatesArgs = new HashSet<>();
+      for (AggregateCall aggregateCall: aggCallList) {
+        aggregatesArgs.addAll(aggregateCall.getArgList());
+      }
+      for (Integer aggregatesArg : aggregatesArgs) {
+        SqlNode selectNode = ((SqlSelect) node).getSelectList().get(aggregatesArg);
+        if (!(selectNode instanceof SqlBasicCall)) {
+          continue;
+        }
+        for (SqlNode operand : ((SqlBasicCall) selectNode).getOperands()) {
+          if (operand instanceof SqlCall) {
+            final SqlOperator operator = ((SqlCall) operand).getOperator();
+            if (operator instanceof SqlAggFunction) {
+              return true;
+            }
+          }
+        }
+      }
+      return false;
     }
 
     // make private?

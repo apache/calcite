@@ -1910,17 +1910,17 @@ public class RelToSqlConverterTest {
         + "FROM \"foodmart\".\"product\"\n"
         + "GROUP BY \"product_id\"";
     final String expectedMySQL = "SELECT SUM(`net_weight1`) AS `net_weight_converted`\n"
-        + "FROM (SELECT `product_id`, SUM(`net_weight`) AS `net_weight1`\n"
+        + "FROM (SELECT SUM(`net_weight`) AS `net_weight1`\n"
         + "FROM `foodmart`.`product`\n"
-        + "GROUP BY `product_id`) AS `t0`";
+        + "GROUP BY `product_id`) AS `t1`";
     final String expectedVertica = "SELECT SUM(\"net_weight1\") AS \"net_weight_converted\"\n"
-        + "FROM (SELECT \"product_id\", SUM(\"net_weight\") AS \"net_weight1\"\n"
+        + "FROM (SELECT SUM(\"net_weight\") AS \"net_weight1\"\n"
         + "FROM \"foodmart\".\"product\"\n"
-        + "GROUP BY \"product_id\") AS \"t0\"";
+        + "GROUP BY \"product_id\") AS \"t1\"";
     final String expectedPostgresql = "SELECT SUM(\"net_weight1\") AS \"net_weight_converted\"\n"
-        + "FROM (SELECT \"product_id\", SUM(\"net_weight\") AS \"net_weight1\"\n"
+        + "FROM (SELECT SUM(\"net_weight\") AS \"net_weight1\"\n"
         + "FROM \"foodmart\".\"product\"\n"
-        + "GROUP BY \"product_id\") AS \"t0\"";
+        + "GROUP BY \"product_id\") AS \"t1\"";
     sql(query)
         .dialect(DatabaseProduct.ORACLE.getDialect())
         .ok(expectedOracle)
