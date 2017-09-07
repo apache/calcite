@@ -26,7 +26,6 @@ import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlCallBinding;
 import org.apache.calcite.sql.SqlDataTypeSpec;
-import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlJdbcFunctionCall;
 import org.apache.calcite.sql.SqlLiteral;
@@ -34,6 +33,8 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlOperandCountRange;
 import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.dialect.AnsiSqlDialect;
+import org.apache.calcite.sql.dialect.CalciteSqlDialect;
 import org.apache.calcite.sql.fun.OracleSqlOperatorTable;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
@@ -6733,7 +6734,7 @@ public abstract class SqlOperatorBaseTest {
         SqlLiteral literal =
             type.getSqlTypeName().createLiteral(o, SqlParserPos.ZERO);
         SqlString literalString =
-            literal.toSqlString(SqlDialect.DUMMY);
+            literal.toSqlString(AnsiSqlDialect.DEFAULT);
         final String expr =
             "CAST(" + literalString
                 + " AS " + type + ")";
@@ -6783,7 +6784,7 @@ public abstract class SqlOperatorBaseTest {
         SqlLiteral literal =
             type.getSqlTypeName().createLiteral(o, SqlParserPos.ZERO);
         SqlString literalString =
-            literal.toSqlString(SqlDialect.DUMMY);
+            literal.toSqlString(AnsiSqlDialect.DEFAULT);
 
         if ((type.getSqlTypeName() == SqlTypeName.BIGINT)
             || ((type.getSqlTypeName() == SqlTypeName.DECIMAL)
@@ -6900,7 +6901,7 @@ public abstract class SqlOperatorBaseTest {
             continue;
           }
           final SqlPrettyWriter writer =
-              new SqlPrettyWriter(SqlDialect.CALCITE);
+              new SqlPrettyWriter(CalciteSqlDialect.DEFAULT);
           op.unparse(writer, call, 0, 0);
           final String s = writer.toSqlString().toString();
           if (s.startsWith("OVERLAY(")

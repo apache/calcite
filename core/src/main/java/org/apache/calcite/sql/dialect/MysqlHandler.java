@@ -29,6 +29,7 @@ import org.apache.calcite.sql.SqlWriter;
  * <p>It reverts to the unparse method of the operator
  * if this database's implementation is standard.
  */
+@Deprecated // to be removed before 2.0
 public class MysqlHandler extends SqlDialect.BaseHandler {
   public static final MysqlHandler INSTANCE = new MysqlHandler();
 

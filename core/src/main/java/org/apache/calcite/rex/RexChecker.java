@@ -145,6 +145,10 @@ public class RexChecker extends RexVisitorImpl<Boolean> {
     return litmus.succeed();
   }
 
+  @Override public Boolean visitSeqCall(RexSeqCall seqCll) {
+    return litmus.succeed();
+  }
+
   @Override public Boolean visitFieldAccess(RexFieldAccess fieldAccess) {
     super.visitFieldAccess(fieldAccess);
     final RelDataType refType = fieldAccess.getReferenceExpr().getType();

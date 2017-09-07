@@ -520,6 +520,11 @@ public class RexUtil {
           && RexVisitorImpl.visitArrayAnd(this, call.getOperands());
     }
 
+    public Boolean visitSeqCall(RexSeqCall seqCall) {
+      // A sequence call is never constant as it's not deterministic
+      return false;
+    }
+
     public Boolean visitRangeRef(RexRangeRef rangeRef) {
       return false;
     }
@@ -555,6 +560,10 @@ public class RexUtil {
                 throw Util.FoundOne.NULL;
               }
               return super.visitCall(call);
+            }
+            @Override public Void visitSeqCall(RexSeqCall call) {
+              // A sequence is always non-deterministic
+              throw Util.FoundOne.NULL;
             }
           };
       e.accept(visitor);
@@ -592,6 +601,13 @@ public class RexUtil {
                 throw new Util.FoundOne(call);
               }
               return super.visitCall(call);
+            }
+
+            public Void visitSeqCall(RexSeqCall seqCall) {
+              if (seqCall.getOperator().equals(operator)) {
+                throw new Util.FoundOne(seqCall);
+              }
+              return super.visitCall(seqCall);
             }
           };
       node.accept(visitor);

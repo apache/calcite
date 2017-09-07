@@ -30,6 +30,7 @@ import org.apache.calcite.sql.fun.SqlFloorFunction;
  * <p>It reverts to the unparse method of the operator
  * if this database's implementation is standard.
  */
+@Deprecated // to be removed before 2.0
 public class HsqldbHandler extends SqlDialect.BaseHandler {
   public static final HsqldbHandler INSTANCE = new HsqldbHandler();
 

@@ -115,6 +115,20 @@ public class RexShuttle implements RexVisitor<RexNode> {
     }
   }
 
+  public RexNode visitSeqCall(final RexSeqCall call) {
+    boolean[] update = {false};
+    List<RexNode> clonedOperands = visitList(call.operands, update);
+    if (update[0]) {
+      return new RexSeqCall(
+          call.getType(),
+          call.getOperator(),
+          clonedOperands,
+          call.rel);
+    } else {
+      return call;
+    }
+  }
+
   /**
    * Visits each of an array of expressions and returns an array of the
    * results.

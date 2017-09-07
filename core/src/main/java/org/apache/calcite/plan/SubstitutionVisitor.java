@@ -41,6 +41,7 @@ import org.apache.calcite.rex.RexExecutorImpl;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexSeqCall;
 import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.rex.RexSimplify;
 import org.apache.calcite.rex.RexUtil;
@@ -1347,6 +1348,14 @@ public class SubstitutionVisitor {
           return new RexInputRef(integer, call.getType());
         }
         return super.visitCall(call);
+      }
+
+      @Override public RexNode visitSeqCall(RexSeqCall seqCall) {
+        final Integer integer = map.get(seqCall.toString());
+        if (integer != null) {
+          return new RexInputRef(integer, seqCall.getType());
+        }
+        return super.visitSeqCall(seqCall);
       }
     };
   }

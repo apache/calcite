@@ -35,6 +35,7 @@ import org.apache.calcite.sql.type.ReturnTypes;
  * <p>It reverts to the unparse method of the operator
  * if this database's implementation is standard.
  */
+@Deprecated // to be removed before 2.0
 public class MssqlHandler extends SqlDialect.BaseHandler {
   public static final MssqlHandler INSTANCE = new MssqlHandler();
   public static final SqlFunction MSSQL_SUBSTRING =

@@ -33,6 +33,7 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
  * <p>It reverts to the unparse method of the operator
  * if this database's implementation is standard.
  */
+@Deprecated // to be removed before 2.0
 public class OracleHandler extends SqlDialect.BaseHandler {
   public static final OracleHandler INSTANCE = new OracleHandler();
 

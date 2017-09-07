@@ -901,6 +901,14 @@ public class RexProgram {
       return call.clone(call.getType(), newOperands);
     }
 
+    public RexNode visitSeqCall(RexSeqCall seqCall) {
+      final List<RexNode> newOperands = new ArrayList<>();
+      for (RexNode operand : seqCall.getOperands()) {
+        newOperands.add(operand.accept(this));
+      }
+      return seqCall.clone(seqCall.getType(), newOperands);
+    }
+
     public RexNode visitOver(RexOver over) {
       return visitCall(over);
     }

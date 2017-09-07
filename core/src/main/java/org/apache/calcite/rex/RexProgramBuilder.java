@@ -884,6 +884,10 @@ public class RexProgramBuilder {
       final RexNode expr = super.visitCall(call);
       return registerInternal(expr, false);
     }
+    public RexNode visitSeqCall(RexSeqCall seqCall) {
+      final RexNode expr = super.visitSeqCall(seqCall);
+      return registerInternal(expr, false);
+    }
 
     public RexNode visitOver(RexOver over) {
       final RexNode expr = super.visitOver(over);

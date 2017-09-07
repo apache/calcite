@@ -34,6 +34,7 @@ import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexSeqCall;
 import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
@@ -142,6 +143,11 @@ class ElasticsearchRules {
       }
       throw new IllegalArgumentException("Translation of " + call.toString()
         + "is not supported by ElasticsearchProject");
+    }
+
+    @Override public String visitSeqCall(RexSeqCall seqCall) {
+      throw new IllegalArgumentException("Translation of " + seqCall.toString()
+          + "is not supported by ElasticsearchProject");
     }
 
     private String stripQuotes(String s) {
