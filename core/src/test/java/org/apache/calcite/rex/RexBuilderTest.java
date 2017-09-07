@@ -179,7 +179,7 @@ public class RexBuilderTest {
   }
 
   /** Tests
-   * {@link RexBuilder#makeTimestampWithLocalTimeZoneLiteral(TimestampWithTimeZoneString, int)}. */
+   * {@link RexBuilder#makeTimestampWithLocalTimeZoneLiteral(TimestampString, int)}. */
   @Test public void testTimestampWithLocalTimeZoneLiteral() {
     final RelDataTypeFactory typeFactory =
         new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
