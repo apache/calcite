@@ -161,7 +161,7 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
     return super.leastRestrictive(types);
   }
 
-  private RelDataType leastRestrictiveByCast(List<RelDataType> types) {
+  public RelDataType leastRestrictiveByCast(List<RelDataType> types) {
     RelDataType resultType = types.get(0);
     boolean anyNullable = resultType.isNullable();
     for (int i = 1; i < types.size(); i++) {
@@ -221,7 +221,7 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
         : "use createSqlIntervalType() instead";
   }
 
-  private RelDataType leastRestrictiveSqlType(List<RelDataType> types) {
+  public RelDataType leastRestrictiveSqlType(List<RelDataType> types) {
     RelDataType resultType = null;
     int nullCount = 0;
     int nullableCount = 0;
