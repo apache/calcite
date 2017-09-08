@@ -99,9 +99,9 @@ public enum SqlTypeFamily implements RelDataTypeFamily {
 
           .put(Types.DATE, DATE)
           .put(Types.TIME, TIME)
-          .put(Types.TIME_WITH_TIMEZONE, TIME)
+          .put(ExtraSqlTypes.TIME_WITH_TIMEZONE, TIME)
           .put(Types.TIMESTAMP, TIMESTAMP)
-          .put(Types.TIMESTAMP_WITH_TIMEZONE, TIMESTAMP)
+          .put(ExtraSqlTypes.TIMESTAMP_WITH_TIMEZONE, TIMESTAMP)
           .put(Types.BOOLEAN, BOOLEAN)
 
           .put(ExtraSqlTypes.REF_CURSOR, CURSOR)

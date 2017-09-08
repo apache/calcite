@@ -18,6 +18,7 @@ package org.apache.calcite.sql;
 
 import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.config.NullCollation;
+import org.apache.calcite.linq4j.function.Experimental;
 import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.sql.dialect.HsqldbHandler;
 import org.apache.calcite.sql.dialect.MssqlHandler;
@@ -133,7 +134,7 @@ public class SqlDialect {
         NullCollation.HIGH, DEFAULT_HANDLER);
   }
 
-  @Deprecated // to be removed before 2.0
+  /** Creates a SqlDialect with the default handler. */
   public SqlDialect(DatabaseProduct databaseProduct, String databaseProductName,
       String identifierQuoteString, NullCollation nullCollation) {
     this(databaseProduct, databaseProductName, identifierQuoteString,
@@ -151,6 +152,7 @@ public class SqlDialect {
    * @param nullCollation         Whether NULL values appear first or last
    * @param handler               Handler for un-parsing
    */
+  @Experimental
   public SqlDialect(DatabaseProduct databaseProduct, String databaseProductName,
       String identifierQuoteString, NullCollation nullCollation,
       Handler handler) {
@@ -717,12 +719,14 @@ public class SqlDialect {
    *
    * <p>Instances are stateless and therefore immutable.
    */
+  @Experimental
   public interface Handler {
     void unparseCall(SqlWriter writer, SqlCall call, int leftPrec,
         int rightPrec);
   }
 
   /** Base class for dialect handlers. */
+  @Experimental
   public static class BaseHandler implements Handler {
     public void unparseCall(SqlWriter writer, SqlCall call,
         int leftPrec, int rightPrec) {

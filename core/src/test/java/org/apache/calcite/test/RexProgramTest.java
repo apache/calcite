@@ -125,7 +125,7 @@ public class RexProgramTest {
       this.map =
           ImmutableMap.<String, Object>of(
               Variable.TIME_ZONE.camelName, TimeZone.getTimeZone("America/Los_Angeles"),
-              Variable.CURRENT_TIMESTAMP.camelName, new Long(1311120000000L));
+              Variable.CURRENT_TIMESTAMP.camelName, 1311120000000L);
     }
 
     public SchemaPlus getRootSchema() {
