@@ -1446,9 +1446,10 @@ public class RelMetadataTest extends SqlToRelTestBase {
     final RelMetadataQuery mq = RelMetadataQuery.instance();
     RelOptPredicateList inputSet = mq.getPulledUpPredicates(rel.getInput(0));
     ImmutableList<RexNode> pulledUpPredicates = inputSet.pulledUpPredicates;
-    assertThat(pulledUpPredicates, sortsAs("[=($0, $16), =($3, $12), =($6, $15),"
-        + " OR(<($15, 3), >($12, 3)), OR(<($15, 3), >($3, 3)), "
-        + "OR(<($6, 3), >($12, 3)), OR(<($6, 3), >($3, 3))]"));
+    assertThat(pulledUpPredicates,
+        sortsAs("[=($0, $16), =($3, $12),"
+            + " =($6, $15), OR(<($15, 3), >($12, 3)), OR(<($15, 3), >($3, 3)),"
+            + " OR(<($6, 3), >($12, 3)), OR(<($6, 3), >($3, 3))]"));
   }
 
   @Test public void testPullUpPredicatesOnConstant() {
