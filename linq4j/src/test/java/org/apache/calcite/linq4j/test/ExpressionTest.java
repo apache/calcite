@@ -34,6 +34,8 @@ import org.apache.calcite.linq4j.tree.ParameterExpression;
 import org.apache.calcite.linq4j.tree.Shuttle;
 import org.apache.calcite.linq4j.tree.Types;
 
+import com.google.common.collect.ImmutableMap;
+
 import org.junit.Test;
 
 import java.lang.reflect.Modifier;
@@ -44,7 +46,10 @@ import java.util.AbstractList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.TreeSet;
 
 import static org.hamcrest.core.Is.is;
@@ -1197,6 +1202,66 @@ public class ExpressionTest {
             + "  }\n"
             + "}\n",
         Expressions.toString(builder.toBlock()));
+  }
+
+  @Test public void testEmptyListLiteral() throws Exception {
+    assertEquals("java.util.Collections.EMPTY_LIST",
+        Expressions.toString(Expressions.constant(Arrays.asList())));
+  }
+
+  @Test public void testEneElementListLiteral() throws Exception {
+    assertEquals("java.util.Arrays.asList(1)",
+        Expressions.toString(Expressions.constant(Arrays.asList(1))));
+  }
+
+  @Test public void testTwoElementListLiteral() throws Exception {
+    assertEquals("java.util.Arrays.asList(1,\n"
+            + "  2)",
+        Expressions.toString(Expressions.constant(Arrays.asList(1, 2))));
+  }
+
+  @Test public void testNestedListsLiteral() throws Exception {
+    assertEquals("java.util.Arrays.asList(java.util.Arrays.asList(1,\n"
+            + "    2),\n"
+            + "  java.util.Arrays.asList(3,\n"
+            + "    4))",
+        Expressions.toString(
+            Expressions.constant(
+                Arrays.asList(Arrays.asList(1, 2), Arrays.asList(3, 4)))));
+  }
+
+  @Test public void testEmptyMapLiteral() throws Exception {
+    assertEquals("com.google.common.collect.ImmutableMap.of()",
+        Expressions.toString(Expressions.constant(new HashMap())));
+  }
+
+  @Test public void testOneElementMapLiteral() throws Exception {
+    assertEquals("com.google.common.collect.ImmutableMap.of(\"abc\", 42)",
+        Expressions.toString(Expressions.constant(Collections.singletonMap("abc", 42))));
+  }
+
+  @Test public void testTwoElementMapLiteral() throws Exception {
+    assertEquals("com.google.common.collect.ImmutableMap.of(\"abc\", 42,\n"
+            + "\"def\", 43)",
+        Expressions.toString(Expressions.constant(ImmutableMap.of("abc", 42, "def", 43))));
+  }
+
+  @Test public void testTenElementMapLiteral() throws Exception {
+    Map<String, String> map = new LinkedHashMap<>(); // for consistent output
+    for (int i = 0; i < 10; i++) {
+      map.put("key_" + i, "value_" + i);
+    }
+    assertEquals("com.google.common.collect.ImmutableMap.builder().put(\"key_0\", \"value_0\")\n"
+            + ".put(\"key_1\", \"value_1\")\n"
+            + ".put(\"key_2\", \"value_2\")\n"
+            + ".put(\"key_3\", \"value_3\")\n"
+            + ".put(\"key_4\", \"value_4\")\n"
+            + ".put(\"key_5\", \"value_5\")\n"
+            + ".put(\"key_6\", \"value_6\")\n"
+            + ".put(\"key_7\", \"value_7\")\n"
+            + ".put(\"key_8\", \"value_8\")\n"
+            + ".put(\"key_9\", \"value_9\").build()",
+        Expressions.toString(Expressions.constant(map)));
   }
 
   /** An enum. */
