@@ -699,6 +699,13 @@ public class SqlParserTest {
         "Lexical error at line 1, column 10\\.  Encountered: \"#\" \\(35\\), after : \"\"");
   }
 
+  // TODO: should fail in parser
+  @Test public void testStarAsFails() {
+    sql("select * as x from emp")
+        .ok("SELECT * AS `X`\n"
+            + "FROM `EMP`");
+  }
+
   @Test public void testDerivedColumnList() {
     check("select * from emp as e (empno, gender) where true",
         "SELECT *\n"
