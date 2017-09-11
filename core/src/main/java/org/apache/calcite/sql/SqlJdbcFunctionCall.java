@@ -595,8 +595,9 @@ public class SqlJdbcFunctionCall extends SqlFunction {
      * <p>The reordering is specified by an int array where the value of
      * element at position <code>i</code> indicates to which element in a
      * new SqlNode[] array the operand goes.
-     *  @param operator Operator
-     * @param order    Order
+     *
+     * @param operator Operator
+     * @param order Order
      */
     PermutingMakeCall(SqlOperator operator, int[] order) {
       super(operator);

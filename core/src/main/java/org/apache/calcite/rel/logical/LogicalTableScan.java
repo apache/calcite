@@ -90,7 +90,8 @@ public final class LogicalTableScan extends TableScan {
   }
 
   /** Creates a LogicalTableScan.
-   *  @param cluster Cluster
+   *
+   * @param cluster Cluster
    * @param relOptTable Table
    */
   public static LogicalTableScan create(RelOptCluster cluster,
