@@ -1072,6 +1072,9 @@ public abstract class SqlImplementor {
         aggregatesArgs.addAll(aggregateCall.getArgList());
       }
       for (Integer aggregatesArg : aggregatesArgs) {
+        if (!(node instanceof SqlSelect)) {
+          continue;
+        }
         SqlNode selectNode = ((SqlSelect) node).getSelectList().get(aggregatesArg);
         if (!(selectNode instanceof SqlBasicCall)) {
           continue;
