@@ -18,6 +18,7 @@ package org.apache.calcite.test;
 
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTraitDef;
+
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.Correlate;
@@ -656,6 +657,21 @@ public class RelBuilderTest {
         + "LogicalAggregate(group=[{7}], groups=[[{7}, {}]], C=[COUNT() FILTER $8])\n"
         + "  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], $f8=[>($0, 100)])\n"
         + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(str(root), is(expected));
+  }
+
+  @Test public void testAggregateProjectWithAliases() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    RelNode root =
+        builder.scan("EMP")
+            .project(builder.field("DEPTNO"))
+            .aggregate(builder.groupKey(builder.alias(builder.field("DEPTNO"), "departmentNo")))
+            .build();
+    final String expected = ""
+        + "LogicalAggregate(group=[{1}])\n" +
+        "  LogicalProject(DEPTNO=[$0], departmentNo=[$0])\n" +
+        "    LogicalProject(DEPTNO=[$7])\n" +
+        "      LogicalTableScan(table=[[scott, EMP]])\n";
     assertThat(str(root), is(expected));
   }
 
