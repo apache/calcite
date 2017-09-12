@@ -613,13 +613,18 @@ public class RexSimplify {
           RexCall rightCast = (RexCall) right;
           comparedOperands.add(rightCast.getOperands().get(0).toString());
         }
-        // Check for equality on different constants. If the same ref or CAST(ref)
-        // is equal to different constants, this condition cannot be satisfied,
-        // and hence it can be evaluated to FALSE
         final boolean leftRef = RexUtil.isReferenceOrAccess(left, true);
         final boolean rightRef = RexUtil.isReferenceOrAccess(right, true);
         final boolean leftConstant = left.isA(SqlKind.LITERAL);
         final boolean rightConstant = right.isA(SqlKind.LITERAL);
+        // Check for comparison with null values
+        if (leftConstant && ((RexLiteral) left).getValue() == null
+            || rightConstant && ((RexLiteral) right).getValue() == null) {
+          return rexBuilder.makeLiteral(false);
+        }
+        // Check for equality on different constants. If the same ref or CAST(ref)
+        // is equal to different constants, this condition cannot be satisfied,
+        // and hence it can be evaluated to FALSE
         if (term.getKind() == SqlKind.EQUALS) {
           if (leftRef && rightConstant) {
             final String literal = right.toString();

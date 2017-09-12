@@ -1311,6 +1311,9 @@ public class RexProgramTest {
     checkSimplifyFilter(
         case_(aRef, trueLiteral, bRef, trueLiteral, cRef, falseLiteral, dRef, falseLiteral,
             unknownLiteral), "CAST(OR(?0.a, ?0.b)):BOOLEAN");
+
+    // condition with null value for range
+    checkSimplifyFilter(and(gt(aRef, unknownLiteral), ge(bRef, literal1)), "false");
   }
 
   /** Unit test for
