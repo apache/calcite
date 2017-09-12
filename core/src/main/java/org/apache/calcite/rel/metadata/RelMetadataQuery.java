@@ -537,9 +537,6 @@ public class RelMetadataQuery {
    */
   public Boolean areColumnsUnique(RelNode rel, ImmutableBitSet columns,
       boolean ignoreNulls) {
-    if (columns.length() > rel.getInputs().size()) {
-      return null;
-    }
     for (;;) {
       try {
         return columnUniquenessHandler.areColumnsUnique(rel, this, columns,
