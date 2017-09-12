@@ -1186,9 +1186,10 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
           // we have guarantees about the format of the output and thus we can apply the
           // normal selector
           if (numeric && extractionFunction == null) {
+            String constantValue = tr(e, posConstant);
             return new JsonCompositeFilter(JsonFilter.Type.AND,
-                new JsonBound(dimName, tr(e, posConstant), true,
-                    tr(e, posConstant), true, numeric, extractionFunction));
+                new JsonBound(dimName, constantValue, true, constantValue, true,
+                    numeric, extractionFunction));
           }
           return new JsonSelector(dimName, tr(e, posConstant), extractionFunction);
         case NOT_EQUALS:
@@ -1196,9 +1197,10 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
           // we have guarantees about the format of the output and thus we can apply the
           // normal selector
           if (numeric && extractionFunction == null) {
+            String constantValue = tr(e, posConstant);
             return new JsonCompositeFilter(JsonFilter.Type.OR,
-                new JsonBound(dimName, tr(e, posConstant), false,
-                    tr(e, posConstant), false, numeric, extractionFunction));
+                new JsonBound(dimName, constantValue, false, constantValue, false,
+                    numeric, extractionFunction));
           }
           return new JsonCompositeFilter(JsonFilter.Type.NOT,
               new JsonSelector(dimName, tr(e, posConstant), extractionFunction));
