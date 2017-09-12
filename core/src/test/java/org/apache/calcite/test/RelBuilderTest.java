@@ -668,10 +668,10 @@ public class RelBuilderTest {
             .aggregate(builder.groupKey(builder.alias(builder.field("DEPTNO"), "departmentNo")))
             .build();
     final String expected = ""
-        + "LogicalAggregate(group=[{1}])\n" +
-        "  LogicalProject(DEPTNO=[$0], departmentNo=[$0])\n" +
-        "    LogicalProject(DEPTNO=[$7])\n" +
-        "      LogicalTableScan(table=[[scott, EMP]])\n";
+        + "LogicalAggregate(group=[{1}])\n"
+        + "  LogicalProject(DEPTNO=[$0], departmentNo=[$0])\n"
+        + "    LogicalProject(DEPTNO=[$7])\n"
+        + "      LogicalTableScan(table=[[scott, EMP]])\n";
     assertThat(str(root), is(expected));
   }
 
