@@ -3186,6 +3186,46 @@ public class DruidAdapterIT {
     AbstractSchema schema = new DruidSchema("http://localhost:8082", "http://localhost:8081", true);
     assertSame(schema.getTable("wikiticker"), schema.getTable("wikiticker"));
   }
+
+  @Test public void testPushEqualsCastDimension() {
+    final String sqlQuery = "select sum(\"store_cost\") as a "
+        + "from \"foodmart\" "
+        + "where cast(\"customer_id\" as double) = 1.0";
+    final String plan = "PLAN=EnumerableInterpreter\n"
+        + "  DruidQuery(table=[[foodmart, foodmart]], intervals=[[1900-01-09T00:00:00.000/2992-01-10T00:00:00.000]], "
+        + "filter=[=(CAST($20):DOUBLE, 1.0)], groups=[{}], aggs=[[SUM($91)]])";
+    sql(sqlQuery, FOODMART)
+        .explainContains(plan)
+        .queryContains(
+            druidChecker(
+                "{'queryType':'timeseries','dataSource':'foodmart','descending':false,'granularity':'all',"
+                + "'filter':{'type':'bound','dimension':'customer_id','lower':'1.0','lowerStrict':true,"
+                + "'upper':'1.0','upperStrict':true,'ordering':'numeric'},"
+                + "'aggregations':[{'type':'doubleSum','name':'A','fieldName':'store_cost'}],"
+                + "'intervals':['1900-01-09T00:00:00.000/2992-01-10T00:00:00.000'],"
+                + "'context':{'skipEmptyBuckets':true}}"));
+  }
+
+  @Test public void testPushNotEqualsCastDimension() {
+    final String sqlQuery = "select sum(\"store_cost\") as a "
+        + "from \"foodmart\" "
+        + "where cast(\"customer_id\" as double) <> 1.0";
+    final String plan = "PLAN=EnumerableInterpreter\n"
+        + "  DruidQuery(table=[[foodmart, foodmart]], intervals=[[1900-01-09T00:00:00.000/2992-01-10T00:00:00.000]], "
+        + "filter=[<>(CAST($20):DOUBLE, 1.0)], groups=[{}], aggs=[[SUM($91)]])";
+    sql(sqlQuery, FOODMART)
+        .explainContains(plan)
+        .queryContains(
+            druidChecker(
+                "{'queryType':'timeseries','dataSource':'foodmart','descending':false,'granularity':'all',"
+                + "'filter':{'type':'or','fields':[{'type':'bound','dimension':'customer_id','lower':'1.0',"
+                + "'lowerStrict':false,'ordering':'numeric'},{'type':'bound','dimension':'customer_id',"
+                + "'upper':'1.0','upperStrict':false,'ordering':'numeric'}]},"
+                + "'aggregations':[{'type':'doubleSum','name':'A','fieldName':'store_cost'}],"
+                + "'intervals':['1900-01-09T00:00:00.000/2992-01-10T00:00:00.000'],"
+                + "'context':{'skipEmptyBuckets':true}}"));
+  }
+
 }
 
 // End DruidAdapterIT.java
