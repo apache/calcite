@@ -29,7 +29,7 @@ import java.util.Map;
  * Factory that creates a {@link FileSchema}.
  *
  * <p>Allows a custom schema to be included in a model.json file.
- * See <a href="http://calcite.apache.org/docs/file.html">File adapter</a>.
+ * See <a href="http://calcite.apache.org/docs/file_adapter.html">File adapter</a>.
  */
 @SuppressWarnings("UnusedDeclaration")
 public class FileSchemaFactory implements SchemaFactory {
