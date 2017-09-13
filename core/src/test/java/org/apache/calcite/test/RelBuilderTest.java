@@ -702,6 +702,50 @@ public class RelBuilderTest {
     assertThat(str(root), is(expected));
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1980">[CALCITE-1980]
+   * RelBuilder gives NPE if groupKey contains alias</a>.
+   *
+   * <p>Now, the alias does not cause a new expression to be added to the input,
+   * but causes the referenced fields to be renamed. */
+  @Test public void testAggregateProjectWithAliases() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    RelNode root =
+        builder.scan("EMP")
+            .project(builder.field("DEPTNO"))
+            .aggregate(
+                builder.groupKey(
+                    builder.alias(builder.field("DEPTNO"), "departmentNo")))
+            .build();
+    final String expected = ""
+        + "LogicalAggregate(group=[{0}])\n"
+        + "  LogicalProject(departmentNo=[$0])\n"
+        + "    LogicalProject(DEPTNO=[$7])\n"
+        + "      LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(str(root), is(expected));
+  }
+
+  @Test public void testAggregateProjectWithExpression() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    RelNode root =
+        builder.scan("EMP")
+            .project(builder.field("DEPTNO"))
+            .aggregate(
+                builder.groupKey(
+                    builder.alias(
+                        builder.call(SqlStdOperatorTable.PLUS,
+                            builder.field("DEPTNO"), builder.literal(3)),
+                        "d3")))
+            .build();
+    final String expected = ""
+        + "LogicalAggregate(group=[{1}])\n"
+        + "  LogicalProject(DEPTNO=[$0], d3=[$1])\n"
+        + "    LogicalProject(DEPTNO=[$0], $f1=[+($0, 3)])\n"
+        + "      LogicalProject(DEPTNO=[$7])\n"
+        + "        LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(str(root), is(expected));
+  }
+
   @Test public void testAggregateGroupingKeyOutOfRangeFails() {
     final RelBuilder builder = RelBuilder.create(config().build());
     try {
