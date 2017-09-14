@@ -32,6 +32,13 @@ public class JsonJdbcSchema extends JsonSchema {
    */
   public String jdbcDriver;
 
+  /** The FQN of the {@link org.apache.calcite.sql.SqlDialectFactory} implementation.
+   *
+   * <p>Optional. If not specified, uses whichever class the JDBC
+   * {@link java.sql.DriverManager} chooses.
+   */
+  public String sqlDialectFactory;
+
   /** JDBC connect string, for example "jdbc:mysql://localhost/foodmart".
    *
    * <p>Optional.

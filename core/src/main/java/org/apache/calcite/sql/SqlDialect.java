@@ -20,15 +20,26 @@ import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.linq4j.function.Experimental;
 import org.apache.calcite.rel.RelFieldCollation;
+import org.apache.calcite.rel.rel2sql.SqlImplementor;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.sql.dialect.AnsiSqlDialect;
+import org.apache.calcite.sql.dialect.CalciteSqlDialect;
 import org.apache.calcite.sql.dialect.HsqldbHandler;
 import org.apache.calcite.sql.dialect.MssqlHandler;
 import org.apache.calcite.sql.dialect.MysqlHandler;
 import org.apache.calcite.sql.dialect.OracleHandler;
 import org.apache.calcite.sql.dialect.PostgresqlHandler;
+import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.type.BasicSqlType;
+import org.apache.calcite.sql.type.SqlTypeUtil;
 
 import com.google.common.base.Preconditions;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.sql.DatabaseMetaData;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
@@ -46,14 +57,17 @@ public class SqlDialect {
   //~ Static fields/initializers ---------------------------------------------
 
   private static final Handler DEFAULT_HANDLER = new BaseHandler();
+  protected static final Logger LOGGER =
+      LoggerFactory.getLogger(SqlDialect.class);
 
   /**
    * A dialect useful for generating generic SQL. If you need to do something
    * database-specific like quoting identifiers, don't rely on this dialect to
    * do what you want.
    */
+  @Deprecated // to be removed before 2.0
   public static final SqlDialect DUMMY =
-      DatabaseProduct.UNKNOWN.getDialect();
+      AnsiSqlDialect.DEFAULT;
 
   /**
    * A dialect useful for generating SQL which can be parsed by the
@@ -61,16 +75,19 @@ public class SqlDialect {
    * want a dialect that knows the full capabilities of the database, create
    * one from a connection.
    */
+  @Deprecated // to be removed before 2.0
   public static final SqlDialect CALCITE =
-      DatabaseProduct.CALCITE.getDialect();
+      CalciteSqlDialect.DEFAULT;
 
   //~ Instance fields --------------------------------------------------------
 
   private final String identifierQuoteString;
   private final String identifierEndQuoteString;
   private final String identifierEscapedQuote;
+  @Deprecated // to be removed before 2.0
   private final DatabaseProduct databaseProduct;
   private final NullCollation nullCollation;
+  @Deprecated // to be removed before 2.0
   private final Handler handler;
 
   //~ Constructors -----------------------------------------------------------
@@ -84,47 +101,37 @@ public class SqlDialect {
    *
    * @param databaseMetaData used to determine which dialect of SQL to
    *                         generate
+   * @deprecated Replaced by {@link SqlDialectFactory}
    */
+  @Deprecated // to be removed before 2.0
   public static SqlDialect create(DatabaseMetaData databaseMetaData) {
-    String identifierQuoteString;
-    try {
-      identifierQuoteString = databaseMetaData.getIdentifierQuoteString();
-    } catch (SQLException e) {
-      throw FakeUtil.newInternal(e, "while quoting identifier");
-    }
-    String databaseProductName;
-    try {
-      databaseProductName = databaseMetaData.getDatabaseProductName();
-    } catch (SQLException e) {
-      throw FakeUtil.newInternal(e, "while detecting database product");
-    }
-    String databaseProductVersion;
-    try {
-      databaseProductVersion = databaseMetaData.getDatabaseProductVersion();
-    } catch (SQLException e) {
-      throw FakeUtil.newInternal(e, "while detecting database version");
-    }
-    final DatabaseProduct databaseProduct =
-        getProduct(databaseProductName, databaseProductVersion);
-    NullCollation nullCollation;
+    return new SqlDialectFactoryImpl().create(databaseMetaData);
+  }
+
+  protected static NullCollation getNullCollation(DatabaseMetaData databaseMetaData) {
     try {
       if (databaseMetaData.nullsAreSortedAtEnd()) {
-        nullCollation = NullCollation.LAST;
+        return NullCollation.LAST;
       } else if (databaseMetaData.nullsAreSortedAtStart()) {
-        nullCollation = NullCollation.FIRST;
+        return NullCollation.FIRST;
       } else if (databaseMetaData.nullsAreSortedLow()) {
-        nullCollation = NullCollation.LOW;
+        return NullCollation.LOW;
       } else if (databaseMetaData.nullsAreSortedHigh()) {
-        nullCollation = NullCollation.HIGH;
+        return NullCollation.HIGH;
       } else {
         throw new IllegalArgumentException("cannot deduce null collation");
       }
     } catch (SQLException e) {
       throw new IllegalArgumentException("cannot deduce null collation", e);
     }
-    Handler handler = chooseHandler(databaseProduct);
-    return new SqlDialect(databaseProduct, databaseProductName,
-        identifierQuoteString, nullCollation, handler);
+  }
+
+  protected static String getIdentifierQuoteString(DatabaseMetaData databaseMetaData) {
+    try {
+      return databaseMetaData.getIdentifierQuoteString();
+    } catch (SQLException e) {
+      throw new IllegalArgumentException("cannot deduce identifier quote string", e);
+    }
   }
 
   @Deprecated // to be removed before 2.0
@@ -141,6 +148,40 @@ public class SqlDialect {
         nullCollation, DEFAULT_HANDLER);
   }
 
+  @Deprecated // to be removed before 2.0, replace with constructor without DatabaseProduct
+  protected SqlDialect(DatabaseProduct databaseProduct, DatabaseMetaData databaseMetaData) {
+    this(
+      databaseProduct,
+      getIdentifierQuoteString(databaseMetaData),
+      getNullCollation(databaseMetaData)
+    );
+  }
+
+  @Deprecated // to be removed before 2.0, replace with constructor without DatabaseProduct
+  protected SqlDialect(DatabaseProduct databaseProduct, String identifierQuoteString,
+                    NullCollation nullCollation) {
+    this.nullCollation = Preconditions.checkNotNull(nullCollation);
+    this.databaseProduct = Preconditions.checkNotNull(databaseProduct);
+    this.handler = null;
+    if (identifierQuoteString != null) {
+      identifierQuoteString = identifierQuoteString.trim();
+      if (identifierQuoteString.equals("")) {
+        identifierQuoteString = null;
+      }
+    }
+    this.identifierQuoteString = identifierQuoteString;
+    this.identifierEndQuoteString =
+            identifierQuoteString == null
+                    ? null
+                    : identifierQuoteString.equals("[")
+                    ? "]"
+                    : identifierQuoteString;
+    this.identifierEscapedQuote =
+            identifierQuoteString == null
+                    ? null
+                    : this.identifierEndQuoteString + this.identifierEndQuoteString;
+  }
+
   /**
    * Creates a SqlDialect.
    *
@@ -152,6 +193,7 @@ public class SqlDialect {
    * @param nullCollation         Whether NULL values appear first or last
    * @param handler               Handler for un-parsing
    */
+  @Deprecated // to be removed before 2.0
   @Experimental
   public SqlDialect(DatabaseProduct databaseProduct, String databaseProductName,
       String identifierQuoteString, NullCollation nullCollation,
@@ -189,6 +231,7 @@ public class SqlDialect {
    * @param productVersion Product version
    * @return database product
    */
+  @Deprecated // to be removed before 2.0
   public static DatabaseProduct getProduct(
       String productName,
       String productVersion) {
@@ -363,9 +406,13 @@ public class SqlDialect {
     }
   }
 
-  public void unparseCall(SqlWriter writer, SqlCall call, int leftPrec,
-      int rightPrec) {
-    handler.unparseCall(writer, call, leftPrec, rightPrec);
+  public void unparseCall(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    call.getOperator().unparse(writer, call, leftPrec, rightPrec);
+  }
+
+  public void unparseDateTimeLiteral(SqlWriter writer, SqlAbstractDateTimeLiteral literal,
+      int leftPrec, int rightPrec) {
+    writer.literal(literal.toString());
   }
 
   /**
@@ -434,18 +481,12 @@ public class SqlDialect {
   }
 
   protected boolean allowsAs() {
-    switch (databaseProduct) {
-    case ORACLE:
-    case HIVE:
-      return false;
-    default:
-      return true;
-    }
+    return true;
   }
 
   // -- behaviors --
   protected boolean requiresAliasForFromItems() {
-    return getDatabaseProduct() == DatabaseProduct.POSTGRESQL;
+    return false;
   }
 
   /** Returns whether a qualified table in the FROM clause has an implicit alias
@@ -471,12 +512,7 @@ public class SqlDialect {
    * <p>Returns true for all databases except DB2.
    */
   public boolean hasImplicitTableAlias() {
-    switch (databaseProduct) {
-    case DB2:
-      return false;
-    default:
-      return true;
-    }
+    return true;
   }
 
   /**
@@ -512,7 +548,9 @@ public class SqlDialect {
    * {@link SqlDialect.DatabaseProduct#UNKNOWN} if not known, never null.
    *
    * @return Database product
+   * @deprecated Going to be removed without replacement
    */
+  @Deprecated // to be removed before 2.0
   public DatabaseProduct getDatabaseProduct() {
     return databaseProduct;
   }
@@ -522,18 +560,59 @@ public class SqlDialect {
    * data type, for instance {@code VARCHAR(30) CHARACTER SET `ISO-8859-1`}.
    */
   public boolean supportsCharSet() {
-    switch (databaseProduct) {
-    case DB2:
-    case H2:
-    case HSQLDB:
-    case MYSQL:
-    case ORACLE:
-    case PHOENIX:
-    case POSTGRESQL:
-      return false;
-    default:
+    return true;
+  }
+
+  public boolean supportsAggregateFunction(SqlKind kind) {
+    switch (kind) {
+    case COUNT:
+    case SUM:
+    case SUM0:
+    case MIN:
+    case MAX:
       return true;
     }
+    return false;
+  }
+
+  public CalendarPolicy getCalendarPolicy() {
+    return CalendarPolicy.NULL;
+  }
+
+  public SqlNode getCastSpec(RelDataType type) {
+    if (type instanceof BasicSqlType) {
+      return new SqlDataTypeSpec(
+          new SqlIdentifier(type.getSqlTypeName().name(), SqlParserPos.ZERO),
+              type.getPrecision(),
+              type.getScale(),
+              type.getCharset() != null
+                  && supportsCharSet()
+                  ? type.getCharset().name()
+                  : null,
+              null,
+              SqlParserPos.ZERO);
+    }
+    return SqlTypeUtil.convertTypeToSpec(type);
+  }
+
+  /** Rewrite SINGLE_VALUE into expression based on database variants
+   *  E.g. HSQLDB, MYSQL, ORACLE, etc
+   */
+  public SqlNode rewriteSingleValueExpr(SqlNode aggCall) {
+    LOGGER.debug("SINGLE_VALUE rewrite not supported for {}", databaseProduct);
+    return aggCall;
+  }
+
+  /**
+   * Returns the SqlNode for emulating the null direction for the given field
+   * or <code>null</code> if no emulation needs to be done.
+   *
+   * @param context The translation context
+   * @param field The field for which to emulate null direction
+   * @return A SqlNode for null direction emulation or <code>null</code> if not required
+   */
+  public SqlNode emulateNullDirection(SqlImplementor.Context context, RelFieldCollation field) {
+    return null;
   }
 
   /**
@@ -544,14 +623,7 @@ public class SqlDialect {
    * {@code LIMIT 20 OFFSET 10}.
    */
   public boolean supportsOffsetFetch() {
-    switch (databaseProduct) {
-    case MYSQL:
-    case HIVE:
-    case REDSHIFT:
-      return false;
-    default:
-      return true;
-    }
+    return true;
   }
 
   /** Returns how NULL values are sorted if an ORDER BY item does not contain
@@ -626,6 +698,17 @@ public class SqlDialect {
     }
   }
 
+
+  /** Whether this JDBC driver needs you to pass a Calendar object to methods
+   * such as {@link ResultSet#getTimestamp(int, java.util.Calendar)}. */
+  public enum CalendarPolicy {
+    NONE,
+    NULL,
+    LOCAL,
+    DIRECT,
+    SHIFT;
+  }
+
   /**
    * Rough list of flavors of database.
    *
@@ -638,6 +721,7 @@ public class SqlDialect {
    * extend the dialect to describe the particular capability, for example,
    * whether the database allows expressions to appear in the GROUP BY clause.
    */
+  @Deprecated // to be removed before 2.0
   public enum DatabaseProduct {
     ACCESS("Access", "\"", NullCollation.HIGH),
     CALCITE("Apache Calcite", "\"", NullCollation.HIGH),
@@ -719,6 +803,7 @@ public class SqlDialect {
    *
    * <p>Instances are stateless and therefore immutable.
    */
+  @Deprecated // to be removed before 2.0
   @Experimental
   public interface Handler {
     void unparseCall(SqlWriter writer, SqlCall call, int leftPrec,
@@ -726,6 +811,7 @@ public class SqlDialect {
   }
 
   /** Base class for dialect handlers. */
+  @Deprecated // to be removed before 2.0
   @Experimental
   public static class BaseHandler implements Handler {
     public void unparseCall(SqlWriter writer, SqlCall call,

@@ -21,6 +21,7 @@ import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.linq4j.function.Function0;
 import org.apache.calcite.linq4j.function.Function1;
 import org.apache.calcite.sql.SqlDialect;
+import org.apache.calcite.sql.SqlDialectFactory;
 import org.apache.calcite.util.ImmutableNullableList;
 import org.apache.calcite.util.Pair;
 
@@ -58,15 +59,18 @@ final class JdbcUtils {
 
   /** Pool of dialects. */
   static class DialectPool {
-    final Map<DataSource, SqlDialect> map0 = new IdentityHashMap<>();
+    final Map<DataSource, Map<SqlDialectFactory, SqlDialect>> map0 = new IdentityHashMap<>();
     final Map<List, SqlDialect> map = new HashMap<>();
 
     public static final DialectPool INSTANCE = new DialectPool();
 
-    SqlDialect get(DataSource dataSource) {
-      final SqlDialect sqlDialect = map0.get(dataSource);
-      if (sqlDialect != null) {
-        return sqlDialect;
+    synchronized SqlDialect get(SqlDialectFactory dialectFactory, DataSource dataSource) {
+      Map<SqlDialectFactory, SqlDialect> dialectMap = map0.get(dataSource);
+      if (dialectMap != null) {
+        final SqlDialect sqlDialect = dialectMap.get(dialectFactory);
+        if (sqlDialect != null) {
+          return sqlDialect;
+        }
       }
       Connection connection = null;
       try {
@@ -74,12 +78,16 @@ final class JdbcUtils {
         DatabaseMetaData metaData = connection.getMetaData();
         String productName = metaData.getDatabaseProductName();
         String productVersion = metaData.getDatabaseProductVersion();
-        List key = ImmutableList.of(productName, productVersion);
+        List key = ImmutableList.of(productName, productVersion, dialectFactory);
         SqlDialect dialect = map.get(key);
         if (dialect == null) {
-          dialect = SqlDialect.create(metaData);
+          dialect = dialectFactory.create(metaData);
           map.put(key, dialect);
-          map0.put(dataSource, dialect);
+          if (dialectMap == null) {
+            dialectMap = new IdentityHashMap<>();
+            map0.put(dataSource, dialectMap);
+          }
+          dialectMap.put(dialectFactory, dialect);
         }
         connection.close();
         connection = null;

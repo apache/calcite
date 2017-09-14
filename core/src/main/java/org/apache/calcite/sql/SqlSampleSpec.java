@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.sql;
 
+import org.apache.calcite.sql.dialect.CalciteSqlDialect;
+
 /**
  * Specification of a SQL sample.
  *
@@ -94,7 +96,7 @@ public abstract class SqlSampleSpec {
 
     public String toString() {
       return "SUBSTITUTE("
-          + SqlDialect.CALCITE.quoteStringLiteral(name)
+          + CalciteSqlDialect.DEFAULT.quoteStringLiteral(name)
           + ")";
     }
   }

@@ -17,25 +17,45 @@
 package org.apache.calcite.sql.dialect;
 
 import org.apache.calcite.avatica.util.TimeUnitRange;
+import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.fun.SqlFloorFunction;
 
-/**
- * Defines how a SQL parse tree should be unparsed to SQL
- * for execution against an HSQLDB database.
- *
- * <p>It reverts to the unparse method of the operator
- * if this database's implementation is standard.
- */
-@Deprecated // to be removed before 2.0
-public class HsqldbHandler extends SqlDialect.BaseHandler {
-  public static final HsqldbHandler INSTANCE = new HsqldbHandler();
+import java.sql.DatabaseMetaData;
 
-  @Override public void unparseCall(SqlWriter writer, SqlCall call,
-      int leftPrec, int rightPrec) {
+/**
+ * A <code>SqlDialect</code> implementation for the Postgresql database.
+ */
+public class PostgresqlSqlDialect extends SqlDialect {
+  public static final SqlDialect DEFAULT = new PostgresqlSqlDialect();
+
+  public PostgresqlSqlDialect(DatabaseMetaData databaseMetaData) {
+    super(
+        DatabaseProduct.POSTGRESQL,
+        databaseMetaData
+    );
+  }
+
+  private PostgresqlSqlDialect() {
+    super(
+        DatabaseProduct.POSTGRESQL,
+        "\"",
+        NullCollation.HIGH
+    );
+  }
+
+  @Override public boolean supportsCharSet() {
+    return false;
+  }
+
+  @Override protected boolean requiresAliasForFromItems() {
+    return true;
+  }
+
+  @Override public void unparseCall(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
     switch (call.getKind()) {
     case FLOOR:
       if (call.operandCount() != 2) {
@@ -46,38 +66,15 @@ public class HsqldbHandler extends SqlDialect.BaseHandler {
       final SqlLiteral timeUnitNode = call.operand(1);
       final TimeUnitRange timeUnit = timeUnitNode.getValueAs(TimeUnitRange.class);
 
-      final String translatedLit = convertTimeUnit(timeUnit);
-      SqlCall call2 = SqlFloorFunction.replaceTimeUnitOperand(call, translatedLit,
+      SqlCall call2 = SqlFloorFunction.replaceTimeUnitOperand(call, timeUnit.name(),
           timeUnitNode.getParserPosition());
-      SqlFloorFunction.unparseDatetimeFunction(writer, call2, "TRUNC", true);
+      SqlFloorFunction.unparseDatetimeFunction(writer, call2, "DATE_TRUNC", false);
       break;
 
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
   }
-
-  private static String convertTimeUnit(TimeUnitRange unit) {
-    switch (unit) {
-    case YEAR:
-      return "YYYY";
-    case MONTH:
-      return "MM";
-    case DAY:
-      return "DD";
-    case WEEK:
-      return "WW";
-    case HOUR:
-      return "HH24";
-    case MINUTE:
-      return "MI";
-    case SECOND:
-      return "SS";
-    default:
-      throw new AssertionError("could not convert time unit to HSQLDB equivalent: "
-          + unit);
-    }
-  }
 }
 
-// End HsqldbHandler.java
+// End PostgresqlSqlDialect.java

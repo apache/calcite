@@ -1120,7 +1120,6 @@ public class CalcitePrepareImpl implements CalcitePrepare {
 
     private PreparedResult prepare_(Supplier<RelNode> fn,
         RelDataType resultType) {
-      queryString = null;
       Class runtimeContextClass = Object.class;
       init(runtimeContextClass);
 

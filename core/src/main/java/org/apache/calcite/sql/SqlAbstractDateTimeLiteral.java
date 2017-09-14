@@ -33,7 +33,7 @@ import org.apache.calcite.util.TimestampString;
  * <li><code>TIMESTAMP '1969-07-21 03:15 GMT'</code></li>
  * </ul>
  */
-abstract class SqlAbstractDateTimeLiteral extends SqlLiteral {
+public abstract class SqlAbstractDateTimeLiteral extends SqlLiteral {
   //~ Instance fields --------------------------------------------------------
 
   protected final boolean hasTimeZone;
