@@ -20,6 +20,7 @@ import org.apache.calcite.avatica.util.Spaces;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlWriter;
+import org.apache.calcite.sql.dialect.AnsiSqlDialect;
 import org.apache.calcite.sql.util.SqlBuilder;
 import org.apache.calcite.sql.util.SqlString;
 import org.apache.calcite.util.Unsafe;
@@ -131,7 +132,7 @@ public class SqlPrettyWriter implements SqlWriter {
    * Bean holding the default property values.
    */
   private static final Bean DEFAULT_BEAN =
-      new SqlPrettyWriter(SqlDialect.DUMMY).getBean();
+      new SqlPrettyWriter(AnsiSqlDialect.DEFAULT).getBean();
   protected static final String NL = System.getProperty("line.separator");
 
   //~ Instance fields --------------------------------------------------------

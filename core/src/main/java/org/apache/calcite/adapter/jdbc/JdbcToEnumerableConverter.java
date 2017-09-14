@@ -100,7 +100,8 @@ public class JdbcToEnumerableConverter
     final ParameterExpression resultSet_ =
         Expressions.parameter(Modifier.FINAL, ResultSet.class,
             builder.newName("resultSet"));
-    CalendarPolicy calendarPolicy = CalendarPolicy.of(jdbcConvention.dialect);
+    final SqlDialect.CalendarPolicy calendarPolicy =
+        jdbcConvention.dialect.getCalendarPolicy();
     final Expression calendar_;
     switch (calendarPolicy) {
     case LOCAL:
@@ -179,7 +180,7 @@ public class JdbcToEnumerableConverter
   private void generateGet(EnumerableRelImplementor implementor,
       PhysType physType, BlockBuilder builder, ParameterExpression resultSet_,
       int i, Expression target, Expression calendar_,
-      CalendarPolicy calendarPolicy) {
+      SqlDialect.CalendarPolicy calendarPolicy) {
     final Primitive primitive = Primitive.ofBoxOr(physType.fieldClass(i));
     final RelDataType fieldType =
         physType.getRowType().getFieldList().get(i).getType();
@@ -298,27 +299,6 @@ public class JdbcToEnumerableConverter
     final JdbcImplementor.Result result =
         jdbcImplementor.visitChild(0, getInput());
     return result.asStatement().toSqlString(dialect).getSql();
-  }
-
-  /** Whether this JDBC driver needs you to pass a Calendar object to methods
-   * such as {@link ResultSet#getTimestamp(int, java.util.Calendar)}. */
-  private enum CalendarPolicy {
-    NONE,
-    NULL,
-    LOCAL,
-    DIRECT,
-    SHIFT;
-
-    static CalendarPolicy of(SqlDialect dialect) {
-      switch (dialect.getDatabaseProduct()) {
-      case MYSQL:
-        return SHIFT;
-      case HSQLDB:
-      default:
-        // NULL works for hsqldb-2.3; nothing worked for hsqldb-1.8.
-        return NULL;
-      }
-    }
   }
 }
 

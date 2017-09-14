@@ -37,6 +37,7 @@ import org.apache.calcite.schema.impl.ScalarFunctionImpl;
 import org.apache.calcite.schema.impl.TableFunctionImpl;
 import org.apache.calcite.schema.impl.TableMacroImpl;
 import org.apache.calcite.schema.impl.ViewTable;
+import org.apache.calcite.sql.SqlDialectFactory;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
@@ -320,9 +321,18 @@ public class ModelHandler {
             jsonSchema.jdbcDriver,
             jsonSchema.jdbcUser,
             jsonSchema.jdbcPassword);
-    JdbcSchema schema =
-        JdbcSchema.create(parentSchema, jsonSchema.name, dataSource,
-            jsonSchema.jdbcCatalog, jsonSchema.jdbcSchema);
+    final JdbcSchema schema;
+    if (jsonSchema.sqlDialectFactory == null || jsonSchema.sqlDialectFactory.isEmpty()) {
+      schema =
+          JdbcSchema.create(parentSchema, jsonSchema.name, dataSource,
+              jsonSchema.jdbcCatalog, jsonSchema.jdbcSchema);
+    } else {
+      SqlDialectFactory factory = AvaticaUtils.instantiatePlugin(
+          SqlDialectFactory.class, jsonSchema.sqlDialectFactory);
+      schema =
+          JdbcSchema.create(parentSchema, jsonSchema.name, dataSource,
+              factory, jsonSchema.jdbcCatalog, jsonSchema.jdbcSchema);
+    }
     final SchemaPlus schemaPlus = parentSchema.add(jsonSchema.name, schema);
     populateSchema(jsonSchema, schemaPlus);
   }

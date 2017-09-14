@@ -27,20 +27,31 @@ import org.apache.calcite.sql.fun.SqlFloorFunction;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 
 /**
- * Defines how a SQL parse tree should be unparsed to SQL
- * for execution against an Oracle database.
- *
- * <p>It reverts to the unparse method of the operator
- * if this database's implementation is standard.
+ * A <code>SqlDialect</code> implementation for the Oracle database.
  */
-public class OracleHandler extends SqlDialect.BaseHandler {
-  public static final OracleHandler INSTANCE = new OracleHandler();
+public class OracleSqlDialect extends SqlDialect {
+  public static final SqlDialect DEFAULT =
+      new OracleSqlDialect(EMPTY_CONTEXT
+          .withDatabaseProduct(DatabaseProduct.ORACLE)
+          .withIdentifierQuoteString("\""));
+
+  /** Creates an OracleSqlDialect. */
+  public OracleSqlDialect(Context context) {
+    super(context);
+  }
+
+  @Override public boolean supportsCharSet() {
+    return false;
+  }
+
+  @Override protected boolean allowsAs() {
+    return false;
+  }
 
   @Override public void unparseCall(SqlWriter writer, SqlCall call,
       int leftPrec, int rightPrec) {
     if (call.getOperator() == SqlStdOperatorTable.SUBSTRING) {
       SqlUtil.unparseFunctionSyntax(OracleSqlOperatorTable.SUBSTR, writer, call);
-
     } else {
       switch (call.getKind()) {
       case FLOOR:
@@ -64,4 +75,4 @@ public class OracleHandler extends SqlDialect.BaseHandler {
   }
 }
 
-// End OracleHandler.java
+// End OracleSqlDialect.java

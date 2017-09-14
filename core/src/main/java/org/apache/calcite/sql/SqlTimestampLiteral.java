@@ -63,14 +63,7 @@ public class SqlTimestampLiteral extends SqlAbstractDateTimeLiteral {
       SqlWriter writer,
       int leftPrec,
       int rightPrec) {
-    switch (writer.getDialect().getDatabaseProduct()) {
-    case MSSQL:
-      writer.literal("'" + this.toFormattedString() + "'");
-      break;
-    default:
-      writer.literal(this.toString());
-      break;
-    }
+    writer.getDialect().unparseDateTimeLiteral(writer, this, leftPrec, rightPrec);
   }
 }
 

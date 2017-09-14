@@ -18,10 +18,10 @@ package org.apache.calcite.sql.parser;
 
 import org.apache.calcite.avatica.util.Casing;
 import org.apache.calcite.avatica.util.Quoting;
-import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlSetOption;
+import org.apache.calcite.sql.dialect.CalciteSqlDialect;
 import org.apache.calcite.sql.parser.impl.SqlParserImpl;
 import org.apache.calcite.sql.pretty.SqlPrettyWriter;
 import org.apache.calcite.sql.validate.SqlConformance;
@@ -7259,11 +7259,11 @@ public class SqlParserTest {
     SqlNode node = getSqlParser("alter system set schema = true").parseStmt();
     SqlSetOption opt = (SqlSetOption) node;
     assertThat(opt.getScope(), equalTo("SYSTEM"));
-    SqlPrettyWriter writer = new SqlPrettyWriter(SqlDialect.CALCITE);
+    SqlPrettyWriter writer = new SqlPrettyWriter(CalciteSqlDialect.DEFAULT);
     assertThat(writer.format(opt.getName()), equalTo("\"SCHEMA\""));
-    writer = new SqlPrettyWriter(SqlDialect.CALCITE);
+    writer = new SqlPrettyWriter(CalciteSqlDialect.DEFAULT);
     assertThat(writer.format(opt.getValue()), equalTo("TRUE"));
-    writer = new SqlPrettyWriter(SqlDialect.CALCITE);
+    writer = new SqlPrettyWriter(CalciteSqlDialect.DEFAULT);
     assertThat(writer.format(opt),
         equalTo("ALTER SYSTEM SET \"SCHEMA\" = TRUE"));
 
@@ -7291,10 +7291,10 @@ public class SqlParserTest {
     node = getSqlParser("reset schema").parseStmt();
     opt = (SqlSetOption) node;
     assertThat(opt.getScope(), equalTo(null));
-    writer = new SqlPrettyWriter(SqlDialect.CALCITE);
+    writer = new SqlPrettyWriter(CalciteSqlDialect.DEFAULT);
     assertThat(writer.format(opt.getName()), equalTo("\"SCHEMA\""));
     assertThat(opt.getValue(), equalTo(null));
-    writer = new SqlPrettyWriter(SqlDialect.CALCITE);
+    writer = new SqlPrettyWriter(CalciteSqlDialect.DEFAULT);
     assertThat(writer.format(opt),
         equalTo("RESET \"SCHEMA\""));
 
@@ -8185,7 +8185,7 @@ public class SqlParserTest {
       // Unparse again in Calcite dialect (which we can parse), and
       // minimal parentheses.
       final String sql1 =
-          sqlNode.toSqlString(SqlDialect.CALCITE, false).getSql();
+          sqlNode.toSqlString(CalciteSqlDialect.DEFAULT, false).getSql();
 
       // Parse and unparse again.
       SqlNode sqlNode2;
@@ -8197,7 +8197,7 @@ public class SqlParserTest {
         quoting = q;
       }
       final String sql2 =
-          sqlNode2.toSqlString(SqlDialect.CALCITE, false).getSql();
+          sqlNode2.toSqlString(CalciteSqlDialect.DEFAULT, false).getSql();
 
       // Should be the same as we started with.
       assertEquals(sql1, sql2);
@@ -8219,7 +8219,7 @@ public class SqlParserTest {
       // Unparse again in Calcite dialect (which we can parse), and
       // minimal parentheses.
       final String sql1 =
-          sqlNode.toSqlString(SqlDialect.CALCITE, false).getSql();
+          sqlNode.toSqlString(CalciteSqlDialect.DEFAULT, false).getSql();
 
       // Parse and unparse again.
       SqlNode sqlNode2;
@@ -8231,7 +8231,7 @@ public class SqlParserTest {
         quoting = q;
       }
       final String sql2 =
-          sqlNode2.toSqlString(SqlDialect.CALCITE, false).getSql();
+          sqlNode2.toSqlString(CalciteSqlDialect.DEFAULT, false).getSql();
 
       // Should be the same as we started with.
       assertEquals(sql1, sql2);

@@ -87,7 +87,6 @@ public abstract class Prepare {
 
   protected final CalcitePrepare.Context context;
   protected final CatalogReader catalogReader;
-  protected String queryString = null;
   /**
    * Convention via which results should be returned by execution.
    */
@@ -241,8 +240,6 @@ public abstract class Prepare {
       Class runtimeContextClass,
       SqlValidator validator,
       boolean needsValidation) {
-    queryString = sqlQuery.toString();
-
     init(runtimeContextClass);
 
     final SqlToRelConverter.ConfigBuilder builder =

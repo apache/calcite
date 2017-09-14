@@ -58,6 +58,13 @@ public class SqlTimeLiteral extends SqlAbstractDateTimeLiteral {
   public String toFormattedString() {
     return getTime().toString(precision);
   }
+
+  public void unparse(
+      SqlWriter writer,
+      int leftPrec,
+      int rightPrec) {
+    writer.getDialect().unparseDateTimeLiteral(writer, this, leftPrec, rightPrec);
+  }
 }
 
 // End SqlTimeLiteral.java
