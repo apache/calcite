@@ -75,6 +75,7 @@ import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
@@ -89,6 +90,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.SortedSet;
@@ -132,6 +134,7 @@ public class RelBuilder {
   private final RelFactories.CorrelateFactory correlateFactory;
   private final RelFactories.ValuesFactory valuesFactory;
   private final RelFactories.TableScanFactory scanFactory;
+  private final RelFactories.MatchFactory matchFactory;
   private final Deque<Frame> stack = new ArrayDeque<>();
   private final boolean simplify;
   private final RexSimplify simplifier;
@@ -175,6 +178,9 @@ public class RelBuilder {
     this.scanFactory =
         Util.first(context.unwrap(RelFactories.TableScanFactory.class),
             RelFactories.DEFAULT_TABLE_SCAN_FACTORY);
+    this.matchFactory =
+        Util.first(context.unwrap(RelFactories.MatchFactory.class),
+            RelFactories.DEFAULT_MATCH_FACTORY);
     final RexExecutor executor =
         Util.first(context.unwrap(RexExecutor.class),
             Util.first(cluster.getPlanner().getExecutor(), RexUtil.EXECUTOR));
@@ -771,6 +777,89 @@ public class RelBuilder {
   /** Creates a call to the MAX aggregate function. */
   public AggCall max(String alias, RexNode operand) {
     return aggregateCall(SqlStdOperatorTable.MAX, false, null, alias, operand);
+  }
+
+  // Methods for patterns
+
+  /**
+   * Creates a reference to a given field of the pattern.
+   *
+   * @param alpha the pattern name
+   * @param type Type of field
+   * @param i Ordinal of field
+   * @return Reference to field of pattern
+   */
+  public RexNode patternField(String alpha, RelDataType type, int i) {
+    return getRexBuilder().makePatternFieldRef(alpha, type, i);
+  }
+
+  /** Creates a call that concatenates patterns;
+   * for use in {@link #match}. */
+  public RexNode patternConcat(Iterable<? extends RexNode> nodes) {
+    final ImmutableList<RexNode> list = ImmutableList.copyOf(nodes);
+    if (list.size() > 2) {
+      // Convert into binary calls
+      return patternConcat(patternConcat(Util.skipLast(list)), Util.last(list));
+    }
+    final RelDataType t = getTypeFactory().createSqlType(SqlTypeName.NULL);
+    return getRexBuilder().makeCall(t, SqlStdOperatorTable.PATTERN_CONCAT,
+        list);
+  }
+
+  /** Creates a call that concatenates patterns;
+   * for use in {@link #match}. */
+  public RexNode patternConcat(RexNode... nodes) {
+    return patternConcat(ImmutableList.copyOf(nodes));
+  }
+
+  /** Creates a call that creates alternate patterns;
+   * for use in {@link #match}. */
+  public RexNode patternAlter(Iterable<? extends RexNode> nodes) {
+    final RelDataType t = getTypeFactory().createSqlType(SqlTypeName.NULL);
+    return getRexBuilder().makeCall(t, SqlStdOperatorTable.PATTERN_ALTER,
+        ImmutableList.copyOf(nodes));
+  }
+
+  /** Creates a call that creates alternate patterns;
+   * for use in {@link #match}. */
+  public RexNode patternAlter(RexNode... nodes) {
+    return patternAlter(ImmutableList.copyOf(nodes));
+  }
+
+  /** Creates a call that creates quantify patterns;
+   * for use in {@link #match}. */
+  public RexNode patternQuantify(Iterable<? extends RexNode> nodes) {
+    final RelDataType t = getTypeFactory().createSqlType(SqlTypeName.NULL);
+    return getRexBuilder().makeCall(t, SqlStdOperatorTable.PATTERN_QUANTIFIER,
+        ImmutableList.copyOf(nodes));
+  }
+
+  /** Creates a call that creates quantify patterns;
+   * for use in {@link #match}. */
+  public RexNode patternQuantify(RexNode... nodes) {
+    return patternQuantify(ImmutableList.copyOf(nodes));
+  }
+
+  /** Creates a call that creates permute patterns;
+   * for use in {@link #match}. */
+  public RexNode patternPermute(Iterable<? extends RexNode> nodes) {
+    final RelDataType t = getTypeFactory().createSqlType(SqlTypeName.NULL);
+    return getRexBuilder().makeCall(t, SqlStdOperatorTable.PATTERN_PERMUTE,
+        ImmutableList.copyOf(nodes));
+  }
+
+  /** Creates a call that creates permute patterns;
+   * for use in {@link #match}. */
+  public RexNode patternPermute(RexNode... nodes) {
+    return patternPermute(ImmutableList.copyOf(nodes));
+  }
+
+  /** Creates a call that creates an exclude pattern;
+   * for use in {@link #match}. */
+  public RexNode patternExclude(RexNode node) {
+    final RelDataType t = getTypeFactory().createSqlType(SqlTypeName.NULL);
+    return getRexBuilder().makeCall(t, SqlStdOperatorTable.PATTERN_EXCLUDE,
+        ImmutableList.of(node));
   }
 
   // Methods that create relational expressions
@@ -1709,6 +1798,71 @@ public class RelBuilder {
                 return new AggCallImpl2(input);
               }
             }));
+  }
+
+  /** Creates a {@link org.apache.calcite.rel.core.Match}. */
+  public RelBuilder match(RexNode pattern, boolean strictStart,
+      boolean strictEnd, Map<String, RexNode> patternDefinitions,
+      Iterable<? extends RexNode> measureList, RexNode after,
+      Map<String, ? extends SortedSet<String>> subsets, boolean allRows,
+      Iterable<? extends RexNode> partitionKeys,
+      Iterable<? extends RexNode> orderKeys, RexNode interval) {
+    final List<RelFieldCollation> fieldCollations = new ArrayList<>();
+    for (RexNode orderKey : orderKeys) {
+      final RelFieldCollation.Direction direction;
+      switch (orderKey.getKind()) {
+      case DESCENDING:
+        direction = RelFieldCollation.Direction.DESCENDING;
+        orderKey = ((RexCall) orderKey).getOperands().get(0);
+        break;
+      case NULLS_FIRST:
+      case NULLS_LAST:
+        throw new AssertionError();
+      default:
+        direction = RelFieldCollation.Direction.ASCENDING;
+        break;
+      }
+      final RelFieldCollation.NullDirection nullDirection =
+          direction.defaultNullDirection();
+      final RexInputRef ref = (RexInputRef) orderKey;
+      fieldCollations.add(
+          new RelFieldCollation(ref.getIndex(), direction, nullDirection));
+    }
+
+    final RelDataTypeFactory.Builder typeBuilder = cluster.getTypeFactory().builder();
+    for (RexNode partitionKey : partitionKeys) {
+      typeBuilder.add(partitionKey.toString(), partitionKey.getType());
+    }
+    if (allRows) {
+      for (RexNode orderKey : orderKeys) {
+        if (!typeBuilder.nameExists(orderKey.toString())) {
+          typeBuilder.add(orderKey.toString(), orderKey.getType());
+        }
+      }
+
+      final RelDataType inputRowType = peek().getRowType();
+      for (RelDataTypeField fs : inputRowType.getFieldList()) {
+        if (!typeBuilder.nameExists(fs.getName())) {
+          typeBuilder.add(fs);
+        }
+      }
+    }
+
+    final ImmutableMap.Builder<String, RexNode> measures = ImmutableMap.builder();
+    for (RexNode measure : measureList) {
+      List<RexNode> operands = ((RexCall) measure).getOperands();
+      String alias = operands.get(1).toString();
+      typeBuilder.add(alias, operands.get(0).getType());
+      measures.put(alias, operands.get(0));
+    }
+
+    final RelNode match = matchFactory.createMatch(peek(), pattern,
+        typeBuilder.build(), strictStart, strictEnd, patternDefinitions,
+        measures.build(), after, subsets, allRows,
+        ImmutableList.copyOf(partitionKeys), RelCollations.of(fieldCollations),
+        interval);
+    stack.push(new Frame(match));
+    return this;
   }
 
   /** Clears the stack.

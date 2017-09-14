@@ -49,7 +49,7 @@ import com.google.common.collect.ImmutableList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.TreeSet;
+import java.util.SortedSet;
 
 /**
  * Contains factory interface and default implementation for creating various
@@ -396,11 +396,12 @@ public class RelFactories {
    */
   public interface MatchFactory {
     /** Creates a {@link Match}. */
-    RelNode createMatchRecognize(RelNode input, RexNode pattern,
+    RelNode createMatch(RelNode input, RexNode pattern,
         RelDataType rowType, boolean strictStart, boolean strictEnd,
         Map<String, RexNode> patternDefinitions, Map<String, RexNode> measures,
-        RexNode after, Map<String, TreeSet<String>> subsets, boolean allRows,
-        List<RexNode> partitionKeys, RelCollation orderKeys, RexNode interval);
+        RexNode after, Map<String, ? extends SortedSet<String>> subsets,
+        boolean allRows, List<RexNode> partitionKeys, RelCollation orderKeys,
+        RexNode interval);
   }
 
   /**
@@ -408,11 +409,12 @@ public class RelFactories {
    * that returns a {@link LogicalMatch}.
    */
   private static class MatchFactoryImpl implements MatchFactory {
-    public RelNode createMatchRecognize(RelNode input, RexNode pattern,
+    public RelNode createMatch(RelNode input, RexNode pattern,
         RelDataType rowType, boolean strictStart, boolean strictEnd,
         Map<String, RexNode> patternDefinitions, Map<String, RexNode> measures,
-        RexNode after, Map<String, TreeSet<String>> subsets, boolean allRows,
-        List<RexNode> partitionKeys, RelCollation orderKeys, RexNode interval) {
+        RexNode after, Map<String, ? extends SortedSet<String>> subsets,
+        boolean allRows, List<RexNode> partitionKeys, RelCollation orderKeys,
+        RexNode interval) {
       return LogicalMatch.create(input, rowType, pattern, strictStart,
           strictEnd, patternDefinitions, measures, after, subsets, allRows,
           partitionKeys, orderKeys, interval);

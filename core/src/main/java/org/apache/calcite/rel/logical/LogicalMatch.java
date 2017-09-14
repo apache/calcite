@@ -29,7 +29,6 @@ import org.apache.calcite.rex.RexNode;
 import java.util.List;
 import java.util.Map;
 import java.util.SortedSet;
-import java.util.TreeSet;
 
 /**
  * Sub-class of {@link Match}
@@ -74,7 +73,7 @@ public class LogicalMatch extends Match {
   public static LogicalMatch create(RelNode input, RelDataType rowType,
       RexNode pattern, boolean strictStart, boolean strictEnd,
       Map<String, RexNode> patternDefinitions, Map<String, RexNode> measures,
-      RexNode after, Map<String, TreeSet<String>> subsets, boolean allRows,
+      RexNode after, Map<String, ? extends SortedSet<String>> subsets, boolean allRows,
       List<RexNode> partitionKeys, RelCollation orderKeys, RexNode interval) {
     final RelOptCluster cluster = input.getCluster();
     final RelTraitSet traitSet = cluster.traitSetOf(Convention.NONE);

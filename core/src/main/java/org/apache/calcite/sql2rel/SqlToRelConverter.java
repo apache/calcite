@@ -2239,7 +2239,7 @@ public class SqlToRelConverter {
     final RelFactories.MatchFactory factory =
         RelFactories.DEFAULT_MATCH_FACTORY;
     final RelNode rel =
-        factory.createMatchRecognize(input, patternNode,
+        factory.createMatch(input, patternNode,
             rowType, matchRecognize.getStrictStart().booleanValue(),
             matchRecognize.getStrictEnd().booleanValue(),
             definitionNodes.build(), measureNodes.build(), after,

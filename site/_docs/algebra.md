@@ -274,12 +274,14 @@ return the `RelBuilder`.
 | `union(all [, n])` | Creates a [Union]({{ site.apiRoot }}/org/apache/calcite/rel/core/Union.html) of the `n` (default two) most recent relational expressions.
 | `intersect(all [, n])` | Creates an [Intersect]({{ site.apiRoot }}/org/apache/calcite/rel/core/Intersect.html) of the `n` (default two) most recent relational expressions.
 | `minus(all)` | Creates a [Minus]({{ site.apiRoot }}/org/apache/calcite/rel/core/Minus.html) of the two most recent relational expressions.
+| `match(pattern, strictStart,` `strictEnd, patterns, measures,` `after, subsets, allRows,` `partitionKeys, orderKeys,` `interval)` | Creates a [Match]({{ site.apiRoot }}/org/apache/calcite/rel/core/Match.html).
 
 Argument types:
 
-* `expr`  [RexNode]({{ site.apiRoot }}/org/apache/calcite/rex/RexNode.html)
+* `expr`, `interval` [RexNode]({{ site.apiRoot }}/org/apache/calcite/rex/RexNode.html)
 * `expr...` Array of [RexNode]({{ site.apiRoot }}/org/apache/calcite/rex/RexNode.html)
-* `exprList` Iterable of [RexNode]({{ site.apiRoot }}/org/apache/calcite/rex/RexNode.html)
+* `exprList`, `measureList`, `partitionKeys`, `orderKeys` Iterable of
+  [RexNode]({{ site.apiRoot }}/org/apache/calcite/rex/RexNode.html)
 * `fieldOrdinal` Ordinal of a field within its row (starting from 0)
 * `fieldName` Name of a field, unique within its row
 * `fieldName...` Array of String
@@ -291,12 +293,14 @@ Argument types:
 * `value...` Array of Object
 * `value` Object
 * `tupleList` Iterable of List of [RexLiteral]({{ site.apiRoot }}/org/apache/calcite/rex/RexLiteral.html)
-* `all` boolean
-* `distinct` boolean
+* `all`, `distinct`, `strictStart`, `strictEnd`, `allRows` boolean
 * `alias` String
 * `varHolder` [Holder]({{ site.apiRoot }}/org/apache/calcite/util/Holder.html) of [RexCorrelVariable]({{ site.apiRoot }}/org/apache/calcite/rex/RexCorrelVariable.html)
+* `patterns` Map whose key is String, value is [RexNode]({{ site.apiRoot }}/org/apache/calcite/rex/RexNode.html)
+* `subsets` Map whose key is String, value is a sorted set of String
 
 The builder methods perform various optimizations, including:
+
 * `project` returns its input if asked to project all columns in order
 * `filter` flattens the condition (so an `AND` and `OR` may have more than 2 children),
   simplifies (converting say `x = 1 AND TRUE` to `x = 1`)
@@ -354,6 +358,18 @@ added to the stack.
 | `desc(expr)` | Changes sort direction to descending (only valid as an argument to `sort` or `sortLimit`)
 | `nullsFirst(expr)` | Changes sort order to nulls first (only valid as an argument to `sort` or `sortLimit`)
 | `nullsLast(expr)` | Changes sort order to nulls last (only valid as an argument to `sort` or `sortLimit`)
+
+#### Pattern methods
+
+The following methods return patterns for use in `match`.
+
+| Method              | Description
+|:------------------- |:-----------
+| `patternConcat(pattern...)` | Concatenates patterns
+| `patternAlter(pattern...)` | Alternates patterns
+| `patternQuantify(pattern, min, max)` | Quantifies a pattern
+| `patternPermute(pattern...)` | Permutes a pattern
+| `patternExclude(pattern)` | Excludes a pattern
 
 ### Group key methods
 

@@ -809,6 +809,19 @@ public class RexBuilder {
   }
 
   /**
+   * Creates a reference to a given field of the pattern.
+   *
+   * @param alpha the pattern name
+   * @param type Type of field
+   * @param i    Ordinal of field
+   * @return Reference to field of pattern
+   */
+  public RexPatternFieldRef makePatternFieldRef(String alpha, RelDataType type, int i) {
+    type = SqlTypeUtil.addCharsetAndCollation(type, typeFactory);
+    return new RexPatternFieldRef(alpha, i, type);
+  }
+
+  /**
    * Creates a literal representing a flag.
    *
    * @param flag Flag value
