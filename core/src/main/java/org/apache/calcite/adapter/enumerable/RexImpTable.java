@@ -125,6 +125,7 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.DIVIDE_INTEGER;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ELEMENT;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.EQUALS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.EXP;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.EXTRACT;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.EXTRACT_DATE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.FIRST_VALUE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.FLOOR;
@@ -325,6 +326,8 @@ public class RexImpTable {
         new DatetimeArithmeticImplementor(), false);
     defineMethod(EXTRACT_DATE, BuiltInMethod.UNIX_DATE_EXTRACT.method,
         NullPolicy.STRICT);
+    defineImplementor(EXTRACT, NullPolicy.STRICT,
+        new ExtractImplementor(), false);
     defineImplementor(FLOOR, NullPolicy.STRICT,
         new FloorImplementor(BuiltInMethod.FLOOR.method.getName(),
             BuiltInMethod.UNIX_TIMESTAMP_FLOOR.method,
@@ -1886,6 +1889,160 @@ public class RexImpTable {
       return Expressions.makeUnary(
           expressionType,
           translatedOperands.get(0));
+    }
+  }
+
+  /** Implementor for EXTRACT(unit FROM datetime) function */
+  private static class ExtractImplementor implements NotNullImplementor {
+
+    @Override public Expression implement(RexToLixTranslator translator, RexCall call,
+                                List<Expression> translatedOperands) {
+      final TimeUnit unit =
+          ((TimeUnitRange) ((ConstantExpression) translatedOperands.get(0)).value).startUnit;
+      Expression operand = translatedOperands.get(1);
+      final SqlTypeName sqlTypeName = call.operands.get(1).getType().getSqlTypeName();
+      switch (unit) {
+      case MILLENNIUM:
+      case CENTURY:
+      case YEAR:
+      case QUARTER:
+      case MONTH:
+      case DAY:
+      case DOW:
+      case DOY:
+      case WEEK:
+        switch (sqlTypeName) {
+        case INTERVAL_YEAR:
+        case INTERVAL_YEAR_MONTH:
+        case INTERVAL_MONTH:
+        case INTERVAL_DAY:
+        case INTERVAL_DAY_HOUR:
+        case INTERVAL_DAY_MINUTE:
+        case INTERVAL_DAY_SECOND:
+        case INTERVAL_HOUR:
+        case INTERVAL_HOUR_MINUTE:
+        case INTERVAL_HOUR_SECOND:
+        case INTERVAL_MINUTE:
+        case INTERVAL_MINUTE_SECOND:
+        case INTERVAL_SECOND:
+          break;
+        case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
+          operand = Expressions.call(
+              BuiltInMethod.TIMESTAMP_WITH_LOCAL_TIME_ZONE_TO_TIMESTAMP.method,
+              operand,
+              Expressions.call(BuiltInMethod.TIME_ZONE.method, translator.getRoot()));
+          // fall through
+        case TIMESTAMP:
+          operand = Expressions.divide(operand,
+              Expressions.constant(TimeUnit.DAY.multiplier.longValue()));
+          // fall through
+        case DATE:
+          return Expressions.call(BuiltInMethod.UNIX_DATE_EXTRACT.method,
+              translatedOperands.get(0), operand);
+        default:
+          throw new AssertionError("unexpected " + sqlTypeName);
+        }
+        break;
+      case DECADE:
+        switch (sqlTypeName) {
+        case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
+          operand = Expressions.call(
+              BuiltInMethod.TIMESTAMP_WITH_LOCAL_TIME_ZONE_TO_TIMESTAMP.method,
+              operand,
+              Expressions.call(BuiltInMethod.TIME_ZONE.method, translator.getRoot()));
+          // fall through
+        case TIMESTAMP:
+          operand = Expressions.divide(operand,
+              Expressions.constant(TimeUnit.DAY.multiplier.longValue()));
+          // fall through
+        case DATE:
+          operand = Expressions.call(
+              BuiltInMethod.UNIX_DATE_EXTRACT.method,
+              Expressions.constant(TimeUnitRange.YEAR), operand);
+          return Expressions.divide(operand,
+              Expressions.constant(
+                  unit.multiplier.divideToIntegralValue(TimeUnit.YEAR.multiplier).longValue()));
+        }
+        break;
+      case EPOCH:
+        switch (sqlTypeName) {
+        case DATE:
+          // convert to milliseconds
+          operand = Expressions.multiply(operand,
+              Expressions.constant(TimeUnit.DAY.multiplier.longValue()));
+          // fall through
+        case TIMESTAMP:
+          // convert to seconds
+          return Expressions.divide(operand,
+              Expressions.constant(TimeUnit.SECOND.multiplier.longValue()));
+        case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
+          operand = Expressions.call(
+              BuiltInMethod.TIMESTAMP_WITH_LOCAL_TIME_ZONE_TO_TIMESTAMP.method,
+              operand,
+              Expressions.call(BuiltInMethod.TIME_ZONE.method, translator.getRoot()));
+          return Expressions.divide(operand,
+              Expressions.constant(TimeUnit.SECOND.multiplier.longValue()));
+        case INTERVAL_YEAR:
+        case INTERVAL_YEAR_MONTH:
+        case INTERVAL_MONTH:
+        case INTERVAL_DAY:
+        case INTERVAL_DAY_HOUR:
+        case INTERVAL_DAY_MINUTE:
+        case INTERVAL_DAY_SECOND:
+        case INTERVAL_HOUR:
+        case INTERVAL_HOUR_MINUTE:
+        case INTERVAL_HOUR_SECOND:
+        case INTERVAL_MINUTE:
+        case INTERVAL_MINUTE_SECOND:
+        case INTERVAL_SECOND:
+          // no convertlet conversion, pass it as extract
+          throw new AssertionError("unexpected " + sqlTypeName);
+        }
+        break;
+      }
+
+      operand = mod(operand, getFactor(unit));
+      if (unit == TimeUnit.QUARTER) {
+        operand = Expressions.subtract(operand, Expressions.constant(1L));
+      }
+      operand = Expressions.divide(operand, Expressions.constant(unit.multiplier.longValue()));
+      if (unit == TimeUnit.QUARTER) {
+        operand = Expressions.add(operand, Expressions.constant(1L));
+      }
+      return operand;
+    }
+
+  }
+
+  private static Expression mod(Expression operand, long factor) {
+    if (factor == 1L) {
+      return operand;
+    } else {
+      return Expressions.modulo(operand, Expressions.constant(factor));
+    }
+  }
+
+  private static long getFactor(TimeUnit unit) {
+    switch (unit) {
+    case DAY:
+      return 1L;
+    case HOUR:
+      return TimeUnit.DAY.multiplier.longValue();
+    case MINUTE:
+      return TimeUnit.HOUR.multiplier.longValue();
+    case SECOND:
+      return TimeUnit.MINUTE.multiplier.longValue();
+    case MONTH:
+      return TimeUnit.YEAR.multiplier.longValue();
+    case QUARTER:
+      return TimeUnit.YEAR.multiplier.longValue();
+    case YEAR:
+    case DECADE:
+    case CENTURY:
+    case MILLENNIUM:
+      return 1L;
+    default:
+      throw Util.unexpected(unit);
     }
   }
 
