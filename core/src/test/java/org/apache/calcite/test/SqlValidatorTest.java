@@ -8575,7 +8575,6 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "UNION ALL left\n"
         + "\n"
         + "$throw -\n"
-        + "EXTRACT_DATE -\n"
         + "FILTER left\n"
         + "Reinterpret -\n"
         + "TABLE pre\n"

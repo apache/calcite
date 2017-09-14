@@ -112,9 +112,9 @@ public class DruidDateRangeRulesTest {
     //     OR(AND(>=($9, 2012-02-29), <($9, 2012-03-01)),"
     //        AND(>=($9, 2016-02-29), <($9, 2016-03-01))))
     checkDateRange(f,
-        f.and(f.gt(f.exYearTs, f.literal(2010)),
-            f.lt(f.exYearTs, f.literal(2020)),
-            f.eq(f.exMonthTs, f.literal(2)), f.eq(f.exDayTs, f.literal(29))),
+        f.and(f.gt(f.exYear, f.literal(2010)),
+            f.lt(f.exYear, f.literal(2020)),
+            f.eq(f.exMonth, f.literal(2)), f.eq(f.exDay, f.literal(29))),
         is("[2012-02-29T00:00:00.000/2012-03-01T00:00:00.000, "
             + "2016-02-29T00:00:00.000/2016-03-01T00:00:00.000]"));
   }
@@ -190,26 +190,14 @@ public class DruidDateRangeRulesTest {
     private final RexNode exYear;
     private final RexNode exMonth;
     private final RexNode exDay;
-    private final RexNode exYearTs;
-    private final RexNode exMonthTs;
-    private final RexNode exDayTs;
 
     Fixture2() {
-      exYear = rexBuilder.makeCall(intRelDataType,
-          SqlStdOperatorTable.EXTRACT_DATE,
-          ImmutableList.of(rexBuilder.makeFlag(TimeUnitRange.YEAR), dt));
-      exMonth = rexBuilder.makeCall(intRelDataType,
-          SqlStdOperatorTable.EXTRACT_DATE,
-          ImmutableList.of(rexBuilder.makeFlag(TimeUnitRange.MONTH), dt));
-      exDay = rexBuilder.makeCall(intRelDataType,
-          SqlStdOperatorTable.EXTRACT_DATE,
-          ImmutableList.of(rexBuilder.makeFlag(TimeUnitRange.DAY), dt));
-      exYearTs = rexBuilder.makeCall(SqlStdOperatorTable.EXTRACT,
+      exYear = rexBuilder.makeCall(SqlStdOperatorTable.EXTRACT,
           ImmutableList.of(rexBuilder.makeFlag(TimeUnitRange.YEAR), ts));
-      exMonthTs = rexBuilder.makeCall(intRelDataType,
+      exMonth = rexBuilder.makeCall(intRelDataType,
           SqlStdOperatorTable.EXTRACT,
           ImmutableList.of(rexBuilder.makeFlag(TimeUnitRange.MONTH), ts));
-      exDayTs = rexBuilder.makeCall(intRelDataType,
+      exDay = rexBuilder.makeCall(intRelDataType,
           SqlStdOperatorTable.EXTRACT,
           ImmutableList.of(rexBuilder.makeFlag(TimeUnitRange.DAY), ts));
     }

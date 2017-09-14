@@ -1516,6 +1516,30 @@ public class JdbcTest {
             });
   }
 
+  @Test public void testExtractMonthFromTimestamp() {
+    CalciteAssert.that()
+        .with(CalciteAssert.Config.JDBC_FOODMART)
+        .query("select extract(month from \"birth_date\") as c \n"
+            + "from \"foodmart\".\"employee\" where \"employee_id\"=1")
+        .returns("C=8\n");
+  }
+
+  @Test public void testExtractYearFromTimestamp() {
+    CalciteAssert.that()
+        .with(CalciteAssert.Config.JDBC_FOODMART)
+        .query("select extract(year from \"birth_date\") as c \n"
+            + "from \"foodmart\".\"employee\" where \"employee_id\"=1")
+        .returns("C=1961\n");
+  }
+
+  @Test public void testExtractFromInterval() {
+    CalciteAssert.that()
+        .with(CalciteAssert.Config.JDBC_FOODMART)
+        .query("select extract(month from interval '2-3' year to month) as c \n"
+            + "from \"foodmart\".\"employee\" where \"employee_id\"=1")
+        .returns("C=3\n");
+  }
+
   @Test public void testFloorDate() {
     CalciteAssert.that()
         .with(CalciteAssert.Config.JDBC_FOODMART)
