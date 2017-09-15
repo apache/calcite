@@ -18,11 +18,9 @@ limitations under the License.
 <Root>
     <TestCase name="testReduceNot">
         <Resource name="sql">
-            <![CDATA[select sal
-from emp
-where case when (sal = 1000) then
-(case when sal = 1000 then null else 1 end is null) else
-(case when sal = 2000 then null else 1 end is null) end is true]]>
+            <![CDATA[select *
+from (select (case when sal > 1000 then null else false end) as caseCol from emp)
+where NOT(caseCol)]]>
         </Resource>
         <Resource name="planAfter">
             <![CDATA[
@@ -656,7 +654,7 @@ LogicalAggregate(group=[{0}], EXPR$1=[$SUM0($2)], EXPR$2=[SUM($1)])
     </TestCase>
     <TestCase name="testDistinctNonDistinctTwoAggregatesWithGrouping">
         <Resource name="sql">
-            <![CDATA[SELECT deptno, sum(comm), min(comm), SUM(DISTINCT sal)
+            <![CDATA[SELECT deptno, SUM(comm), MIN(comm), SUM(DISTINCT sal)
 FROM emp
 GROUP BY deptno]]>
         </Resource>
@@ -678,7 +676,7 @@ LogicalAggregate(group=[{0}], EXPR$1=[SUM($2)], EXPR$2=[MIN($3)], EXPR$3=[SUM($1
     </TestCase>
     <TestCase name="testDistinctWithGrouping">
         <Resource name="sql">
-            <![CDATA[SELECT sal, sum(comm), min(comm), SUM(DISTINCT sal)
+            <![CDATA[SELECT sal, SUM(comm), MIN(comm), SUM(DISTINCT sal)
 FROM emp
 GROUP BY sal]]>
         </Resource>
@@ -2331,14 +2329,14 @@ where extract(year from birthdate) = 2014and extract(month from birthdate) = 4]]
         <Resource name="planBefore">
             <![CDATA[
 LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], BIRTHDATE=[$9])
-  LogicalFilter(condition=[AND(=(EXTRACT_DATE(FLAG(YEAR), Reinterpret($9)), 2014), =(EXTRACT_DATE(FLAG(MONTH), Reinterpret($9)), 4))])
+  LogicalFilter(condition=[AND(=(EXTRACT(FLAG(YEAR), $9), 2014), =(EXTRACT(FLAG(MONTH), $9), 4))])
     LogicalTableScan(table=[[CATALOG, SALES, EMP_B]])
 ]]>
         </Resource>
         <Resource name="planAfter">
             <![CDATA[
 LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], BIRTHDATE=[$9])
-  LogicalFilter(condition=[AND(>=(Reinterpret($9), 2014-01-01), <(Reinterpret($9), 2015-01-01), >=(Reinterpret($9), 2014-04-01), <(Reinterpret($9), 2014-05-01))])
+  LogicalFilter(condition=[AND(>=($9, 2014-04-01), <($9, 2014-05-01))])
     LogicalTableScan(table=[[CATALOG, SALES, EMP_B]])
 ]]>
         </Resource>
@@ -2352,14 +2350,14 @@ where extract(year from birthdate) = 2014]]>
         <Resource name="planBefore">
             <![CDATA[
 LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], BIRTHDATE=[$9])
-  LogicalFilter(condition=[=(EXTRACT_DATE(FLAG(YEAR), Reinterpret($9)), 2014)])
+  LogicalFilter(condition=[=(EXTRACT(FLAG(YEAR), $9), 2014)])
     LogicalTableScan(table=[[CATALOG, SALES, EMP_B]])
 ]]>
         </Resource>
         <Resource name="planAfter">
             <![CDATA[
 LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], BIRTHDATE=[$9])
-  LogicalFilter(condition=[AND(>=(Reinterpret($9), 2014-01-01), <(Reinterpret($9), 2015-01-01))])
+  LogicalFilter(condition=[AND(>=($9, 2014-01-01), <($9, 2015-01-01))])
     LogicalTableScan(table=[[CATALOG, SALES, EMP_B]])
 ]]>
         </Resource>
