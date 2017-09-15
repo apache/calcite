@@ -37,6 +37,7 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelProtoDataType;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.type.SqlTypeUtil;
+import org.apache.calcite.tools.RelRunner;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.Pair;
 
@@ -407,6 +408,10 @@ public final class Schemas {
         return schema.root();
       }
 
+      public CalciteSchema getMutableRootSchema() {
+        return getRootSchema();
+      }
+
       public List<String> getDefaultSchemaPath() {
         // schemaPath is usually null. If specified, it overrides schema
         // as the context within which the SQL is validated.
@@ -426,6 +431,10 @@ public final class Schemas {
 
       public DataContext getDataContext() {
         return dataContext;
+      }
+
+      public RelRunner getRelRunner() {
+        throw new UnsupportedOperationException();
       }
 
       public CalcitePrepare.SparkHandler spark() {

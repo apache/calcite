@@ -21,6 +21,7 @@ import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.Statistic;
 import org.apache.calcite.schema.Statistics;
 import org.apache.calcite.schema.Table;
+import org.apache.calcite.schema.Wrapper;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlNode;
 
@@ -32,7 +33,7 @@ import org.apache.calcite.sql.SqlNode;
  * if their table can potentially contain rolled up values. This information is
  * used by the validator to check for illegal uses of these columns.
  */
-public abstract class AbstractTable implements Table {
+public abstract class AbstractTable implements Table, Wrapper {
   protected AbstractTable() {
   }
 
@@ -45,13 +46,19 @@ public abstract class AbstractTable implements Table {
     return Schema.TableType.TABLE;
   }
 
+  public <C> C unwrap(Class<C> aClass) {
+    if (aClass.isInstance(this)) {
+      return aClass.cast(this);
+    }
+    return null;
+  }
+
   @Override public boolean isRolledUp(String column) {
     return false;
   }
 
-  @Override public boolean rolledUpColumnValidInsideAgg(String column, SqlCall call,
-                                                        SqlNode parent,
-                                                        CalciteConnectionConfig config) {
+  @Override public boolean rolledUpColumnValidInsideAgg(String column,
+      SqlCall call, SqlNode parent, CalciteConnectionConfig config) {
     return true;
   }
 }

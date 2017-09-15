@@ -596,13 +596,25 @@ public class CalciteMetaImpl extends MetaImpl {
       synchronized (callback.getMonitor()) {
         callback.clear();
         final CalciteConnectionImpl calciteConnection = getConnection();
-        CalciteServerStatement statement =
+        final CalciteServerStatement statement =
             calciteConnection.server.getStatement(h);
         final Context context = statement.createPrepareContext();
         final CalcitePrepare.Query<Object> query = toQuery(context, sql);
         signature = calciteConnection.parseQuery(query, context, maxRowCount);
         statement.setSignature(signature);
-        callback.assign(signature, null, -1);
+        final int updateCount;
+        switch (signature.statementType) {
+        case CREATE:
+        case DROP:
+        case ALTER:
+        case OTHER_DDL:
+          updateCount = 0; // DDL produces no result set
+          break;
+        default:
+          updateCount = -1; // SELECT and DML produces result set
+          break;
+        }
+        callback.assign(signature, null, updateCount);
       }
       callback.execute();
       final MetaResultSet metaResultSet =

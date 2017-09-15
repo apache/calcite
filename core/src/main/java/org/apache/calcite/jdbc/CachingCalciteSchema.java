@@ -226,6 +226,24 @@ class CachingCalciteSchema extends CalciteSchema {
     return snapshot;
   }
 
+  @Override public boolean removeTable(String name) {
+    if (cache) {
+      final long now = System.nanoTime();
+      implicitTableCache.enable(now, false);
+      implicitTableCache.enable(now, true);
+    }
+    return super.removeTable(name);
+  }
+
+  @Override public boolean removeFunction(String name) {
+    if (cache) {
+      final long now = System.nanoTime();
+      implicitFunctionCache.enable(now, false);
+      implicitFunctionCache.enable(now, true);
+    }
+    return super.removeFunction(name);
+  }
+
   /** Strategy for caching the value of an object and re-creating it if its
    * value is out of date as of a given timestamp.
    *

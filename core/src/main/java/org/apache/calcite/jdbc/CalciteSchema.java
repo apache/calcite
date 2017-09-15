@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.jdbc;
 
+import org.apache.calcite.linq4j.function.Experimental;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.materialize.Lattice;
 import org.apache.calcite.schema.Function;
@@ -458,6 +459,26 @@ public abstract class CalciteSchema {
       rootSchema.add("metadata", MetadataSchema.INSTANCE);
     }
     return rootSchema;
+  }
+
+  @Experimental
+  public boolean removeSubSchema(String name) {
+    return subSchemaMap.remove(name) != null;
+  }
+
+  @Experimental
+  public boolean removeTable(String name) {
+    return tableMap.remove(name) != null;
+  }
+
+  @Experimental
+  public boolean removeFunction(String name) {
+    final FunctionEntry remove = nullaryFunctionMap.remove(name);
+    if (remove == null) {
+      return false;
+    }
+    functionMap.remove(name, remove);
+    return true;
   }
 
   /**

@@ -25,6 +25,7 @@ import org.apache.calcite.rel.RelRoot;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.schema.ColumnStrategy;
 import org.apache.calcite.schema.Wrapper;
 import org.apache.calcite.util.ImmutableBitSet;
 
@@ -118,6 +119,10 @@ public interface RelOptTable extends Wrapper {
    * table.
    */
   RelOptTable extend(List<RelDataTypeField> extendedFields);
+
+  /** Returns a list describing how each column is populated. The list has the
+   *  same number of entries as there are fields, and is immutable. */
+  List<ColumnStrategy> getColumnStrategies();
 
   /** Can expand a view into relational expressions. */
   interface ViewExpander {

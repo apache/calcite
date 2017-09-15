@@ -37,11 +37,12 @@ public class ConsList<E> extends AbstractImmutableList<E> {
   /** Creates a ConsList.
    * It consists of an element pre-pended to another list.
    * If the other list is mutable, creates an immutable copy. */
-  public static <E> List<E> of(E first, List<E> rest) {
+  public static <E> List<E> of(E first, List<? extends E> rest) {
     if (rest instanceof ConsList
         || rest instanceof ImmutableList
         && !rest.isEmpty()) {
-      return new ConsList<>(first, rest);
+      //noinspection unchecked
+      return new ConsList<>(first, (List<E>) rest);
     } else {
       return ImmutableList.<E>builder().add(first).addAll(rest).build();
     }

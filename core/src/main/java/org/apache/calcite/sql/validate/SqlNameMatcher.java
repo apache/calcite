@@ -49,7 +49,7 @@ public interface SqlNameMatcher {
    * throws {@link UnsupportedOperationException}. */
   String bestString();
 
-  /** Finds a field with a given name, using the currenct case-sensitivity,
+  /** Finds a field with a given name, using the current case-sensitivity,
    * returning null if not found.
    *
    * @param rowType    Row type

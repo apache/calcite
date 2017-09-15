@@ -19,6 +19,7 @@ package org.apache.calcite.sql2rel;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.schema.ColumnStrategy;
 import org.apache.calcite.sql.SqlFunction;
 
 import java.util.List;
@@ -32,8 +33,28 @@ public interface InitializerExpressionFactory {
   /**
    * Whether a column is always generated. If a column is always generated,
    * then non-generated values cannot be inserted into the column.
+   *
+   * @see #generationStrategy(RelOptTable, int)
+   *
+   * @deprecated Use {@code c.generationStrategy(t, i) == VIRTUAL
+   * || c.generationStrategy(t, i) == STORED}
    */
+  @Deprecated // to be removed before 2.0
   boolean isGeneratedAlways(
+      RelOptTable table,
+      int iColumn);
+
+  /**
+   * Returns how a column is populated.
+   *
+   * @param table   the table containing the column
+   * @param iColumn the 0-based offset of the column in the table
+   *
+   * @return generation strategy, never null
+   *
+   * @see RelOptTable#getColumnStrategies()
+   */
+  ColumnStrategy generationStrategy(
       RelOptTable table,
       int iColumn);
 

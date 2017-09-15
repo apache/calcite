@@ -29,7 +29,6 @@ import org.apache.calcite.schema.impl.AbstractTable;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.Closer;
-import org.apache.calcite.util.TryThreadLocal;
 import org.apache.calcite.util.Util;
 
 import com.google.common.base.Function;
@@ -60,24 +59,14 @@ import static org.junit.Assert.fail;
  * Test that runs every Quidem file as a test.
  */
 @RunWith(Parameterized.class)
-public class QuidemTest {
-  private final String path;
-  private final Method method;
+public abstract class QuidemTest {
+  protected final String path;
+  protected final Method method;
 
-  public QuidemTest(String path) {
+  /** Creates a QuidemTest. */
+  protected QuidemTest(String path) {
     this.path = path;
     this.method = findMethod(path);
-  }
-
-  /** Runs a test from the command line.
-   *
-   * <p>For example:
-   *
-   * <blockquote><code>java QuidemTest sql/dummy.iq</code></blockquote> */
-  public static void main(String[] args) throws Exception {
-    for (String arg : args) {
-      new QuidemTest(arg).test();
-    }
   }
 
   private Method findMethod(String path) {
@@ -93,12 +82,7 @@ public class QuidemTest {
     return m;
   }
 
-  /** For {@link org.junit.runners.Parameterized} runner. */
-  @Parameterized.Parameters(name = "{index}: quidem({0})")
-  public static Collection<Object[]> data() {
-    // Start with a test file we know exists, then find the directory and list
-    // its files.
-    final String first = "sql/agg.iq";
+  protected static Collection<Object[]> data(String first) {
     // inUrl = "file:/home/fred/calcite/core/target/test-classes/sql/agg.iq"
     final URL inUrl = JdbcTest.class.getResource("/" + first);
     String x = inUrl.getFile();
@@ -124,7 +108,7 @@ public class QuidemTest {
     });
   }
 
-  private void checkRun(String path) throws Exception {
+  protected void checkRun(String path) throws Exception {
     final File inFile;
     final File outFile;
     final File f = new File(path);
@@ -150,7 +134,7 @@ public class QuidemTest {
     try (final Reader reader = Util.reader(inFile);
          final Writer writer = Util.printWriter(outFile);
          final Closer closer = new Closer()) {
-      new Quidem(reader, writer, env(), new QuidemConnectionFactory())
+      new Quidem(reader, writer, env(), createConnectionFactory())
           .withPropertyHandler(new Quidem.PropertyHandler() {
             public void onSet(String propertyName, Object value) {
               if (propertyName.equals("bindable")) {
@@ -172,6 +156,11 @@ public class QuidemTest {
       fail("Files differ: " + outFile + " " + inFile + "\n"
           + diff);
     }
+  }
+
+  /** Creates a connection factory. */
+  protected Quidem.ConnectionFactory createConnectionFactory() {
+    return new QuidemConnectionFactory();
   }
 
   /** Converts a path from Unix to native. On Windows, converts
@@ -221,37 +210,8 @@ public class QuidemTest {
     }
   }
 
-  /** Override settings for "sql/misc.iq". */
-  public void testSqlMisc() throws Exception {
-    switch (CalciteAssert.DB) {
-    case ORACLE:
-      // There are formatting differences (e.g. "4.000" vs "4") when using
-      // Oracle as the JDBC data source.
-      return;
-    }
-    try (final TryThreadLocal.Memo ignored = Prepare.THREAD_EXPAND.push(true)) {
-      checkRun(path);
-    }
-  }
-
-  /** Override settings for "sql/scalar.iq". */
-  public void testSqlScalar() throws Exception {
-    try (final TryThreadLocal.Memo ignored = Prepare.THREAD_EXPAND.push(true)) {
-      checkRun(path);
-    }
-  }
-
-  /** Runs the dummy script "sql/dummy.iq", which is checked in empty but
-   * which you may use as scratch space during development. */
-  // Do not add disable this test; just remember not to commit changes to dummy.iq
-  public void testSqlDummy() throws Exception {
-    try (final TryThreadLocal.Memo ignored = Prepare.THREAD_EXPAND.push(true)) {
-      checkRun(path);
-    }
-  }
-
   /** Quidem connection factory for Calcite's built-in test schemas. */
-  private static class QuidemConnectionFactory
+  protected static class QuidemConnectionFactory
       implements Quidem.ConnectionFactory {
     public Connection connect(String name) throws Exception {
       return connect(name, false);

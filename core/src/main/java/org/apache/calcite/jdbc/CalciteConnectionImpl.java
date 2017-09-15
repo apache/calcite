@@ -465,13 +465,15 @@ abstract class CalciteConnectionImpl
   /** Implementation of Context. */
   static class ContextImpl implements CalcitePrepare.Context {
     private final CalciteConnectionImpl connection;
+    private final CalciteSchema mutableRootSchema;
     private final CalciteSchema rootSchema;
 
     ContextImpl(CalciteConnectionImpl connection) {
       this.connection = Preconditions.checkNotNull(connection);
       long now = System.currentTimeMillis();
       SchemaVersion schemaVersion = new LongSchemaVersion(now);
-      this.rootSchema = connection.rootSchema.createSnapshot(schemaVersion);
+      this.mutableRootSchema = connection.rootSchema;
+      this.rootSchema = mutableRootSchema.createSnapshot(schemaVersion);
     }
 
     public JavaTypeFactory getTypeFactory() {
@@ -480,6 +482,10 @@ abstract class CalciteConnectionImpl
 
     public CalciteSchema getRootSchema() {
       return rootSchema;
+    }
+
+    public CalciteSchema getMutableRootSchema() {
+      return mutableRootSchema;
     }
 
     public List<String> getDefaultSchemaPath() {
@@ -500,6 +506,19 @@ abstract class CalciteConnectionImpl
     public DataContext getDataContext() {
       return connection.createDataContext(ImmutableMap.<String, Object>of(),
           rootSchema);
+    }
+
+    public RelRunner getRelRunner() {
+      final RelRunner runner;
+      try {
+        runner = connection.unwrap(RelRunner.class);
+      } catch (SQLException e) {
+        throw new RuntimeException(e);
+      }
+      if (runner == null) {
+        throw new UnsupportedOperationException();
+      }
+      return runner;
     }
 
     public CalcitePrepare.SparkHandler spark() {

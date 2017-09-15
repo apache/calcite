@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.util;
 
+import org.apache.calcite.linq4j.function.Experimental;
+
 import com.google.common.collect.ImmutableSortedMap;
 
 import java.util.Locale;
@@ -77,6 +79,11 @@ public class NameMap<V> {
   /** Returns the underlying map. */
   public NavigableMap<String, V> map() {
     return map;
+  }
+
+  @Experimental
+  public V remove(String key) {
+    return map.remove(key);
   }
 }
 

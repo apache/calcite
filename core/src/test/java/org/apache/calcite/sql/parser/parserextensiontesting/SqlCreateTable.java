@@ -63,18 +63,14 @@ public class SqlCreateTable extends SqlCreate
   private final SqlNodeList columnList;
 
   private static final SqlOperator OPERATOR =
-      new SqlSpecialOperator("CREATE TABLE", SqlKind.OTHER_DDL);
+      new SqlSpecialOperator("CREATE TABLE", SqlKind.CREATE_TABLE);
 
   /** Creates a SqlCreateTable. */
   public SqlCreateTable(SqlParserPos pos, SqlIdentifier name,
       SqlNodeList columnList) {
-    super(pos, false);
+    super(OPERATOR, pos, false, false);
     this.name = name;
     this.columnList = columnList;
-  }
-
-  @Override public SqlOperator getOperator() {
-    return OPERATOR;
   }
 
   @Override public List<SqlNode> getOperandList() {

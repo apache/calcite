@@ -159,7 +159,7 @@ import org.junit.runners.Suite;
     LatticeTest.class,
     ReflectiveSchemaTest.class,
     JdbcTest.class,
-    QuidemTest.class,
+    CoreQuidemTest.class,
     CalciteRemoteDriverTest.class,
     StreamTest.class,
 

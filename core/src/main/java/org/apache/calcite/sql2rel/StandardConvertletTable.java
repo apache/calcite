@@ -781,6 +781,10 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
       public RexBuilder getRexBuilder() {
         return rexBuilder;
       }
+
+      public RexNode convertExpression(SqlNode e) {
+        throw new UnsupportedOperationException();
+      }
     };
     for (int i = 0; i < n; ++i) {
       initializationExprs.add(

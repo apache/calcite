@@ -18,7 +18,10 @@ package org.apache.calcite.util;
 
 import org.apache.calcite.runtime.CalciteResource;
 
+import org.apache.calcite.runtime.ConsList;
 import org.apache.calcite.runtime.Resources;
+
+import java.util.List;
 
 /**
  * Definitions of objects to be statically imported.
@@ -45,6 +48,11 @@ public abstract class Static {
   /** Resources. */
   public static final CalciteResource RESOURCE =
       Resources.create(CalciteResource.class);
+
+  /** Builds a list. */
+  public static <E> List<E> cons(E first, List<? extends E> rest) {
+    return ConsList.of(first, rest);
+  }
 }
 
 // End Static.java

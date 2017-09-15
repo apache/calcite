@@ -1,0 +1,251 @@
+# table_as.iq - "CREATE TABLE AS ..." DDL
+#
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to you under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+!use server
+!set outputformat mysql
+
+# Create a source table
+create table dept (deptno int not null, name varchar(10));
+(0 rows modified)
+
+!update
+
+insert into dept
+values (10, 'Sales'), (20, 'Marketing'), (30, 'Engineering');
+(3 rows modified)
+
+!update
+
+# Create as select
+create table d as
+select * from dept where deptno > 10;
+(0 rows modified)
+
+!update
+
+# Check contents
+select * from d;
++--------+-------------+
+| DEPTNO | NAME        |
++--------+-------------+
+|     20 | Marketing   |
+|     30 | Engineering |
++--------+-------------+
+(2 rows)
+
+!ok
+
+# Try to create again - fails
+create table d as
+select * from dept where deptno < 30;
+Table 'D' already exists
+!error
+
+# Try to create again - fails silently
+create table if not exists d as
+select * from dept where deptno < 30;
+(0 rows modified)
+
+!update
+
+# Check contents are unchanged
+select * from d;
++--------+-------------+
+| DEPTNO | NAME        |
++--------+-------------+
+|     20 | Marketing   |
+|     30 | Engineering |
++--------+-------------+
+(2 rows)
+
+!ok
+
+# Drop
+drop table if exists d;
+(0 rows modified)
+
+!update
+
+# It's gone
+select * from d;
+Object 'D' not found
+!error
+
+# Drop does nothing because table does not exist
+drop table if exists d;
+(0 rows modified)
+
+!update
+
+# Create table without either AS or column list - fails
+create table d;
+At line 1, column 14: Missing column list
+!error
+
+# Create table without AS or column types - fails
+create table d (x, y);
+At line 1, column 17: Type required for column 'X' in CREATE TABLE without AS
+!error
+
+# Create table without AS or column types - fails
+create table d (x int, y);
+At line 1, column 24: Type required for column 'Y' in CREATE TABLE without AS
+!error
+
+# Create based on itself - fails
+create table d2 as select * from d2;
+Object 'D2' not found
+!error
+
+# Create table based on UNION
+create table d3 as
+select deptno as dd from dept where deptno < 15
+union all
+select deptno as ee from dept where deptno > 25;
+(0 rows modified)
+
+!update
+
+# Check contents
+select * from d3;
++----+
+| DD |
++----+
+| 10 |
+| 30 |
++----+
+(2 rows)
+
+!ok
+
+# Drop
+drop table d3;
+(0 rows modified)
+
+!update
+
+# Create table based on UNION and ORDER BY
+create table d4 as
+select deptno as dd from dept where deptno < 15
+union all
+select deptno as dd from dept where deptno > 25
+order by 1 desc;
+(0 rows modified)
+
+!update
+
+# Check contents
+select * from d4;
++----+
+| DD |
++----+
+| 10 |
+| 30 |
++----+
+(2 rows)
+
+!ok
+
+# Drop
+drop table d4;
+
+# Create table based on VALUES
+create table d5 as
+values (1, 'a'), (2, 'b');
+(0 rows modified)
+
+!update
+
+# Check contents
+select * from d5;
++--------+--------+
+| EXPR$0 | EXPR$1 |
++--------+--------+
+|      1 | a      |
+|      2 | b      |
++--------+--------+
+(2 rows)
+
+!ok
+
+# Use just aliases
+create table d6 (x, y) as
+select * from dept where deptno < 15;
+(0 rows modified)
+
+!update
+
+# Check contents
+select * from d6;
++----+-------+
+| X  | Y     |
++----+-------+
+| 10 | Sales |
++----+-------+
+(1 row)
+
+!ok
+
+# Use a mixture of aliases and column declarations
+create table d7 (x int, y) as
+select * from dept where deptno < 15;
+(0 rows modified)
+
+!update
+
+# Check contents
+select * from d7;
++----+-------+
+| X  | Y     |
++----+-------+
+| 10 | Sales |
++----+-------+
+(1 row)
+
+!ok
+
+# Too many columns
+create table d8 (x, y, z) as
+select * from dept where deptno < 15;
+Number of columns must match number of query columns
+!error
+
+# Too few columns
+create table d9 (x) as
+select * from dept where deptno < 15;
+Number of columns must match number of query columns
+!error
+
+# Specify column names and types
+create table d10 (x int, y varchar(20)) as
+select * from dept where deptno < 15;
+(0 rows modified)
+
+!update
+
+# Check contents
+select * from d10;
++----+-------+
+| X  | Y     |
++----+-------+
+| 10 | Sales |
++----+-------+
+(1 row)
+
+!ok
+
+# End table_as.iq

@@ -1,0 +1,168 @@
+# schema.iq - DDL on schemas
+#
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to you under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+!use server
+!set outputformat mysql
+
+# Create a schema
+create schema s;
+(0 rows modified)
+
+!update
+
+# Create a table and a view in the schema
+create table s.t (i int);
+(0 rows modified)
+
+!update
+
+create view s.v as select * from s.t;
+(0 rows modified)
+
+!update
+
+select count(*) as c from s.v;
++---+
+| C |
++---+
+| 0 |
++---+
+(1 row)
+
+!ok
+
+# Try to create a schema that already exists
+create schema s;
+Schema 'S' already exists
+!error
+
+create or replace schema s;
+(0 rows modified)
+
+!update
+
+create schema if exists s;
+Encountered "exists" at line 1, column 18.
+!error
+
+create schema if not exists s;
+(0 rows modified)
+
+!update
+
+# Bad library
+create foreign schema fs library 'com.example.BadSchemaFactory';
+Property 'com.example.BadSchemaFactory' not valid for plugin type org.apache.calcite.schema.SchemaFactory
+!error
+
+# Bad type
+create foreign schema fs type 'bad';
+Invalid schema type 'bad'; valid values: [MAP, JDBC, CUSTOM]
+!error
+
+# Can not specify both type and library
+create foreign schema fs
+  type 'jdbc'
+  library 'org.apache.calcite.test.JdbcTest.MySchemaFactory';
+Encountered "library" at line 3, column 3.
+!error
+
+# Cannot specify type or library with non-foreign schema
+create schema fs type 'jdbc';
+Encountered "type" at line 1, column 18.
+!error
+
+create schema fs library 'org.apache.calcite.test.JdbcTest.MySchemaFactory';
+Encountered "library" at line 1, column 18.
+!error
+
+create foreign schema fs;
+Encountered "<EOF>" at line 1, column 25.
+Was expecting one of:
+    "TYPE" ...
+    "LIBRARY" ...
+    "." ...
+!error
+
+# JDBC schema
+create foreign schema scott type 'jdbc' options (
+  "jdbcUrl" 'jdbc:hsqldb:res:scott',
+  "jdbcSchema" 'SCOTT',
+  "jdbcUser" 'SCOTT',
+  "jdbcPassword" 'TIGER');
+(0 rows modified)
+
+!update
+
+select count(*) as c from scott.dept;
++---+
+| C |
++---+
+| 4 |
++---+
+(1 row)
+
+!ok
+
+# Drop schema, then make sure that a query can't find it
+drop schema if exists s;
+(0 rows modified)
+
+!update
+
+select * from s.t;
+Object 'T' not found
+!error
+
+# Create again and objects are still gone
+create schema s;
+
+select * from s.t;
+Object 'T' not found
+!error
+
+select * from s.v;
+Object 'V' not found
+!error
+
+# Try to drop schema that does not exist
+drop schema sss;
+Schema 'SSS' not found
+!error
+
+drop schema if exists sss;
+(0 rows modified)
+
+!update
+
+drop foreign schema if exists sss;
+(0 rows modified)
+
+!update
+
+# Use 'if exists' to drop a foreign schema that does exist
+drop foreign schema if exists scott;
+(0 rows modified)
+
+!update
+
+drop foreign schema if exists scott;
+(0 rows modified)
+
+!update
+
+# End schema.iq

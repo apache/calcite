@@ -351,6 +351,10 @@ public class MaterializationService {
     return INSTANCE;
   }
 
+  public void removeMaterialization(MaterializationKey key) {
+    actor.keyMap.remove(key);
+  }
+
   /**
    * Creates tables that represent a materialized view.
    */

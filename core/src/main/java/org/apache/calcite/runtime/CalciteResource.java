@@ -445,6 +445,9 @@ public interface CalciteResource {
   @BaseMessage("DEFAULT is only allowed for optional parameters")
   ExInst<SqlValidatorException> defaultForOptionalParameter();
 
+  @BaseMessage("DEFAULT not allowed here")
+  ExInst<SqlValidatorException> defaultNotAllowed();
+
   @BaseMessage("Not allowed to perform {0} on {1}")
   ExInst<SqlValidatorException> accessNotAllowed(String a0, String a1);
 
@@ -521,8 +524,8 @@ public interface CalciteResource {
   @BaseMessage("''{0}'' is not a valid datetime format")
   ExInst<CalciteException> invalidDatetimeFormat(String a0);
 
-  @BaseMessage("Cannot explicitly insert value into IDENTITY column ''{0}'' which is ALWAYS GENERATED")
-  ExInst<CalciteException> insertIntoAlwaysGenerated(String a0);
+  @BaseMessage("Cannot INSERT into generated column ''{0}''")
+  ExInst<SqlValidatorException> insertIntoAlwaysGenerated(String a0);
 
   @BaseMessage("Argument to function ''{0}'' must have a scale of 0")
   ExInst<CalciteException> argumentMustHaveScaleZero(String a0);
@@ -721,6 +724,33 @@ public interface CalciteResource {
 
   @BaseMessage("Rolled up column ''{0}'' is not allowed in {1}")
   ExInst<SqlValidatorException> rolledUpNotAllowed(String column, String context);
+
+  @BaseMessage("Schema ''{0}'' already exists")
+  ExInst<SqlValidatorException> schemaExists(String name);
+
+  @BaseMessage("Invalid schema type ''{0}''; valid values: {1}")
+  ExInst<SqlValidatorException> schemaInvalidType(String type, String values);
+
+  @BaseMessage("Table ''{0}'' already exists")
+  ExInst<SqlValidatorException> tableExists(String name);
+
+  // If CREATE TABLE does not have "AS query", there must be a column list
+  @BaseMessage("Missing column list")
+  ExInst<SqlValidatorException> createTableRequiresColumnList();
+
+  // If CREATE TABLE does not have "AS query", a type must be specified for each
+  // column
+  @BaseMessage("Type required for column ''{0}'' in CREATE TABLE without AS")
+  ExInst<SqlValidatorException> createTableRequiresColumnTypes(String columnName);
+
+  @BaseMessage("View ''{0}'' already exists and REPLACE not specified")
+  ExInst<SqlValidatorException> viewExists(String name);
+
+  @BaseMessage("Schema ''{0}'' not found")
+  ExInst<SqlValidatorException> schemaNotFound(String name);
+
+  @BaseMessage("View ''{0}'' not found")
+  ExInst<SqlValidatorException> viewNotFound(String name);
 }
 
 // End CalciteResource.java

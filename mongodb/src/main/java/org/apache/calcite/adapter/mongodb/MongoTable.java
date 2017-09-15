@@ -28,7 +28,6 @@ import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
-import org.apache.calcite.runtime.ConsList;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.TranslatableTable;
 import org.apache.calcite.schema.impl.AbstractTableQueryable;
@@ -50,6 +49,8 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+
+import static org.apache.calcite.util.Static.cons;
 
 /**
  * Table based on a MongoDB collection.
@@ -214,7 +215,7 @@ public class MongoTable extends AbstractQueryableTable
    */
   private AggregationOutput aggregateOldWay(DBCollection dbCollection,
        DBObject first, List<DBObject> rest) {
-    return dbCollection.aggregate(ConsList.of(first, rest));
+    return dbCollection.aggregate(cons(first, rest));
   }
 
   /** Implementation of {@link org.apache.calcite.linq4j.Queryable} based on

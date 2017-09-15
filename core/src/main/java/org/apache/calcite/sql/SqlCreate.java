@@ -23,14 +23,25 @@ import org.apache.calcite.sql.parser.SqlParserPos;
  * statement covered by this class is "CREATE [ OR REPLACE ]". Subclasses handle
  * whatever comes afterwards.
  */
-public abstract class SqlCreate extends SqlCall {
+public abstract class SqlCreate extends SqlDdl {
 
   /** Whether "OR REPLACE" was specified. */
   boolean replace;
 
-  public SqlCreate(SqlParserPos pos, boolean replace) {
-    super(pos);
+  /** Whether "IF NOT EXISTS" was specified. */
+  protected final boolean ifNotExists;
+
+  /** Creates a SqlCreate. */
+  public SqlCreate(SqlOperator operator, SqlParserPos pos, boolean replace,
+      boolean ifNotExists) {
+    super(operator, pos);
     this.replace = replace;
+    this.ifNotExists = ifNotExists;
+  }
+
+  @Deprecated // to be removed before 2.0
+  public SqlCreate(SqlParserPos pos, boolean replace) {
+    this(SqlDdl.DDL_OPERATOR, pos, replace, false);
   }
 
   public boolean getReplace() {

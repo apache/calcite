@@ -137,6 +137,82 @@ makes a connection to the Cassandra adapter, equivalent to writing the following
 
 Note how each key in the `operand` section appears with a `schema.` prefix in the connect string.
 
+## Server
+
+Calcite's core module (`calcite-core`) supports SQL queries (`SELECT`) and DML
+operations  (`INSERT`, `UPDATE`, `DELETE`, `MERGE`)
+but does not support DDL operations such as `CREATE SCHEMA` or `CREATE TABLE`.
+As we shall see, DDL complicates the state model of the repository and makes
+the parser more difficult to extend, so we left DDL out of core.
+
+The server module (`calcite-server`) adds DDL support to Calcite.
+It extends the SQL parser,
+[using the same mechanism used by sub-projects](#extending-the-parser),
+adding some DDL commands:
+
+* `CREATE` and `DROP SCHEMA`
+* `CREATE` and `DROP FOREIGN SCHEMA`
+* `CREATE` and `DROP TABLE` (including `CREATE TABLE ... AS SELECT`)
+* `CREATE` and `DROP MATERIALIZED VIEW`
+* `CREATE` and `DROP VIEW`
+
+Commands are described in the [SQL reference](reference.html#ddl-extensions).
+
+To enable, include `calcite-server.jar` in your class path, and add
+`parserFactory=org.apache.calcite.sql.parser.ddl.SqlDdlParserImpl#FACTORY`
+to the JDBC connect string (see connect string property
+[parserFactory]({{ site.apiRoot }}/org/apache/calcite/config/CalciteConnectionProperty.html#PARSER_FACTORY)).
+Here is an example using the `sqlline` shell.
+
+{% highlight sql %}
+$ ./sqlline
+sqlline version 1.3.0
+> !connect jdbc:calcite:parserFactory=org.apache.calcite.sql.parser.ddl.SqlDdlParserImpl#FACTORY sa ""
+> CREATE TABLE t (i INTEGER, j VARCHAR(10));
+No rows affected (0.293 seconds)
+> INSERT INTO t VALUES (1, 'a'), (2, 'bc');
+2 rows affected (0.873 seconds)
+> CREATE VIEW v AS SELECT * FROM t WHERE i > 1;
+No rows affected (0.072 seconds)
+> SELECT count(*) FROM v;
++---------------------+
+|       EXPR$0        |
++---------------------+
+| 1                   |
++---------------------+
+1 row selected (0.148 seconds)
+> !quit
+{% endhighlight %}
+
+The `calcite-server` module is optional.
+One of its goals is to showcase Calcite's capabilities
+(for example materialized views, foreign tables and generated columns) using
+concise examples that you can try from the SQL command line.
+All of the capabilities used by `calcite-server` are available via APIs in
+`calcite-core`.
+
+If you are the author of a sub-project, it is unlikely that your syntax
+extensions match those in `calcite-server`, so we recommend that you add your
+SQL syntax extensions by [extending the core parser](#extending-the-parser);
+if you want DDL commands, you may be able to copy-paste from `calcite-server`
+into your project.
+
+At present, the repository is not persisted. As you execute DDL commands, you
+are modifying an in-memory repository by adding and removing objects
+reachable from a root
+[<tt>Schema</tt>]({{ site.apiRoot }}/org/apache/calcite/schema/Schema.html).
+All commands within the same SQL session will see those objects.
+You can create the same objects in a future session by executing the same
+script of SQL commands.
+
+Calcite could also act as a data virtualization or federation server:
+Calcite manages data in multiple foreign schemas, but to a client the data
+all seems to be in the same place. Calcite chooses where processing should
+occur, and whether to create copies of data for efficiency.
+The `calcite-server` module is a step towards that goal; an
+industry-strength solution would require further on packaging (to make Calcite
+runnable as a service), repository persistence, authorization and security.
+
 ## Extensibility
 
 There are many other APIs that allow you to extend Calcite's capabilities.

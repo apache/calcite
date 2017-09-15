@@ -23,10 +23,20 @@ import org.apache.calcite.sql.parser.SqlParserPos;
  * statement covered by this class is "DROP". Subclasses handle
  * whatever comes afterwards.
  */
-public abstract class SqlDrop extends SqlCall {
+public abstract class SqlDrop extends SqlDdl {
 
+  /** Whether "IF EXISTS" was specified. */
+  protected final boolean ifExists;
+
+  /** Creates a SqlDrop. */
+  public SqlDrop(SqlOperator operator, SqlParserPos pos, boolean ifExists) {
+    super(operator, pos);
+    this.ifExists = ifExists;
+  }
+
+  @Deprecated // to be removed before 2.0
   public SqlDrop(SqlParserPos pos) {
-    super(pos);
+    this(DDL_OPERATOR, pos, false);
   }
 
 }

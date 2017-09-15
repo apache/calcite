@@ -43,6 +43,7 @@ import org.apache.calcite.rex.RexExecutorImpl;
 import org.apache.calcite.runtime.Bindable;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.runtime.Typed;
+import org.apache.calcite.schema.ColumnStrategy;
 import org.apache.calcite.schema.ExtensibleTable;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.Wrapper;
@@ -429,8 +430,10 @@ public abstract class Prepare {
    * for {@link #columnHasDefaultValue}. */
   public abstract static class AbstractPreparingTable
       implements PreparingTable {
+    @SuppressWarnings("deprecation")
     public boolean columnHasDefaultValue(RelDataType rowType, int ordinal,
         InitializerContext initializerContext) {
+      // This method is no longer used
       final Table table = this.unwrap(Table.class);
       if (table != null && table instanceof Wrapper) {
         final InitializerExpressionFactory initializerExpressionFactory =
@@ -476,6 +479,10 @@ public abstract class Prepare {
     /** Implementation-specific code to instantiate a new {@link RelOptTable}
      * based on a {@link Table} that has been extended. */
     protected abstract RelOptTable extend(Table extendedTable);
+
+    public List<ColumnStrategy> getColumnStrategies() {
+      return RelOptTableImpl.columnStrategies(AbstractPreparingTable.this);
+    }
   }
 
   /**

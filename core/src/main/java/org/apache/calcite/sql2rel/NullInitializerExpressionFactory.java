@@ -19,6 +19,7 @@ package org.apache.calcite.sql2rel;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.schema.ColumnStrategy;
 import org.apache.calcite.sql.SqlFunction;
 
 import java.util.List;
@@ -28,11 +29,27 @@ import java.util.List;
  */
 public class NullInitializerExpressionFactory implements InitializerExpressionFactory {
 
+  public static final InitializerExpressionFactory INSTANCE =
+      new NullInitializerExpressionFactory();
+
   public NullInitializerExpressionFactory() {
   }
 
+  @SuppressWarnings("deprecation")
   public boolean isGeneratedAlways(RelOptTable table, int iColumn) {
-    return false;
+    switch (generationStrategy(table, iColumn)) {
+    case VIRTUAL:
+    case STORED:
+      return true;
+    default:
+      return false;
+    }
+  }
+
+  public ColumnStrategy generationStrategy(RelOptTable table, int iColumn) {
+    return table.getRowType().getFieldList().get(iColumn).getType().isNullable()
+        ? ColumnStrategy.NULLABLE
+        : ColumnStrategy.NOT_NULLABLE;
   }
 
   public RexNode newColumnDefaultValue(RelOptTable table, int iColumn,

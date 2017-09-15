@@ -16,7 +16,6 @@
  */
 package org.apache.calcite.util.graph;
 
-import org.apache.calcite.runtime.ConsList;
 import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableList;
@@ -28,6 +27,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import static org.apache.calcite.util.Static.cons;
 
 /**
  * Miscellaneous graph utilities.
@@ -80,7 +81,7 @@ public class Graphs {
             if ((bestPath == null)
                 || (bestPath.size() > (arc2Path.size() + 1))) {
               shortestPaths.put(key,
-                  ConsList.of(graph1.source(edge), arc2Path));
+                  cons(graph1.source(edge), arc2Path));
               changeCount++;
             }
           }

@@ -938,6 +938,21 @@ public enum SqlKind {
    * the {@link #SESSION} group function. */
   SESSION_END,
 
+  /** Column declaration. */
+  COLUMN_DECL,
+
+  /** {@code CHECK} constraint. */
+  CHECK,
+
+  /** {@code UNIQUE} constraint. */
+  UNIQUE,
+
+  /** {@code PRIMARY KEY} constraint. */
+  PRIMARY_KEY,
+
+  /** {@code FOREIGN KEY} constraint. */
+  FOREIGN_KEY,
+
   // DDL and session control statements follow. The list is not exhaustive: feel
   // free to add more.
 
@@ -949,6 +964,15 @@ public enum SqlKind {
 
   /** {@code ALTER SESSION} DDL statement. */
   ALTER_SESSION,
+
+  /** {@code CREATE SCHEMA} DDL statement. */
+  CREATE_SCHEMA,
+
+  /** {@code CREATE FOREIGN SCHEMA} DDL statement. */
+  CREATE_FOREIGN_SCHEMA,
+
+  /** {@code DROP SCHEMA} DDL statement. */
+  DROP_SCHEMA,
 
   /** {@code CREATE TABLE} DDL statement. */
   CREATE_TABLE,
@@ -967,6 +991,15 @@ public enum SqlKind {
 
   /** {@code DROP VIEW} DDL statement. */
   DROP_VIEW,
+
+  /** {@code CREATE MATERIALIZED VIEW} DDL statement. */
+  CREATE_MATERIALIZED_VIEW,
+
+  /** {@code ALTER MATERIALIZED VIEW} DDL statement. */
+  ALTER_MATERIALIZED_VIEW,
+
+  /** {@code DROP MATERIALIZED VIEW} DDL statement. */
+  DROP_MATERIALIZED_VIEW,
 
   /** {@code CREATE SEQUENCE} DDL statement. */
   CREATE_SEQUENCE,
@@ -1045,8 +1078,11 @@ public enum SqlKind {
    */
   public static final EnumSet<SqlKind> DDL =
       EnumSet.of(COMMIT, ROLLBACK, ALTER_SESSION,
+          CREATE_SCHEMA, CREATE_FOREIGN_SCHEMA, DROP_SCHEMA,
           CREATE_TABLE, ALTER_TABLE, DROP_TABLE,
           CREATE_VIEW, ALTER_VIEW, DROP_VIEW,
+          CREATE_MATERIALIZED_VIEW, ALTER_MATERIALIZED_VIEW,
+          DROP_MATERIALIZED_VIEW,
           CREATE_SEQUENCE, ALTER_SEQUENCE, DROP_SEQUENCE,
           CREATE_INDEX, ALTER_INDEX, DROP_INDEX,
           SET_OPTION, OTHER_DDL);

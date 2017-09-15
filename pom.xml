@@ -156,6 +156,7 @@ limitations under the License.
     <module>pig</module>
     <module>piglet</module>
     <module>plus</module>
+    <module>server</module>
     <module>spark</module>
     <module>splunk</module>
     <module>ubenchmark</module>
@@ -655,9 +656,9 @@ limitations under the License.
         <artifactId>maven-javadoc-plugin</artifactId>
         <configuration>
           <links>
-            <link>https://docs.oracle.com/javase/8/docs/api/</link>
+            <link>https://docs.oracle.com/javase/9/docs/api/</link>
           </links>
-          <excludePackageNames>org.apache.calcite.benchmarks.generated,org.apache.calcite.sql.parser.impl,org.apache.calcite.sql.parser.parserextensiontesting,org.apache.calcite.piglet.parser,org.openjdk.jmh</excludePackageNames>
+          <excludePackageNames>org.apache.calcite.benchmarks.generated,org.apache.calcite.sql.parser.ddl,org.apache.calcite.sql.parser.impl,org.apache.calcite.sql.parser.parserextensiontesting,org.apache.calcite.piglet.parser,org.openjdk.jmh</excludePackageNames>
           <show>private</show>
         </configuration>
       </plugin>
@@ -869,7 +870,7 @@ limitations under the License.
           <links>
             <link>https://docs.oracle.com/javase/8/docs/api/</link>
           </links>
-          <excludePackageNames>org.apache.calcite.benchmarks.generated,org.apache.calcite.sql.parser.impl,org.apache.calcite.sql.parser.parserextensiontesting,org.apache.calcite.piglet.parser,org.openjdk.jmh</excludePackageNames>
+          <excludePackageNames>org.apache.calcite.benchmarks.generated,org.apache.calcite.sql.parser.ddl,org.apache.calcite.sql.parser.impl,org.apache.calcite.sql.parser.parserextensiontesting,org.apache.calcite.piglet.parser,org.openjdk.jmh</excludePackageNames>
           <notimestamp>true</notimestamp>
           <windowtitle>Apache Calcite API</windowtitle>
         </configuration>

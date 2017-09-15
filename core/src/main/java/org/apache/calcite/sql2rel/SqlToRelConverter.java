@@ -85,6 +85,7 @@ import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.rex.RexSubQuery;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.rex.RexWindowBound;
+import org.apache.calcite.schema.ColumnStrategy;
 import org.apache.calcite.schema.ModifiableTable;
 import org.apache.calcite.schema.ModifiableView;
 import org.apache.calcite.schema.Table;
@@ -170,6 +171,7 @@ import org.apache.calcite.util.trace.CalciteTrace;
 
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Supplier;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.ImmutableMap;
@@ -198,7 +200,6 @@ import java.util.Set;
 import java.util.TreeSet;
 
 import static org.apache.calcite.sql.SqlUtil.stripAs;
-import static org.apache.calcite.util.Static.RESOURCE;
 
 /**
  * Converts a SQL parse tree (consisting of
@@ -3110,7 +3111,8 @@ public class SqlToRelConverter {
   private RelNode createModify(RelOptTable targetTable, RelNode source) {
     final ModifiableTable modifiableTable =
         targetTable.unwrap(ModifiableTable.class);
-    if (modifiableTable != null) {
+    if (modifiableTable != null
+        && modifiableTable == targetTable.unwrap(Table.class)) {
       return modifiableTable.toModificationRel(cluster, targetTable,
           catalogReader, source, LogicalTableModify.Operation.INSERT, null,
           null, false);
@@ -3199,8 +3201,44 @@ public class SqlToRelConverter {
     };
   }
 
-  public RelNode toRel(RelOptTable table) {
-    return table.toRel(createToRelContext());
+  public RelNode toRel(final RelOptTable table) {
+    final RelNode scan = table.toRel(createToRelContext());
+
+    final InitializerExpressionFactory ief =
+        Util.first(table.unwrap(InitializerExpressionFactory.class),
+            NullInitializerExpressionFactory.INSTANCE);
+
+    // Lazily create a blackboard that contains all non-generated columns.
+    final Supplier<Blackboard> bb = new Supplier<Blackboard>() {
+      public Blackboard get() {
+        RexNode sourceRef = rexBuilder.makeRangeReference(scan);
+        return createInsertBlackboard(table, sourceRef,
+            table.getRowType().getFieldNames());
+      }
+    };
+
+    int virtualCount = 0;
+    final List<RexNode> list = new ArrayList<>();
+    for (RelDataTypeField f : table.getRowType().getFieldList()) {
+      final ColumnStrategy strategy =
+          ief.generationStrategy(table, f.getIndex());
+      switch (strategy) {
+      case VIRTUAL:
+        list.add(ief.newColumnDefaultValue(table, f.getIndex(), bb.get()));
+        ++virtualCount;
+        break;
+      default:
+        list.add(
+            rexBuilder.makeInputRef(scan,
+                RelOptTableImpl.realOrdinal(table, f.getIndex())));
+      }
+    }
+    if (virtualCount > 0) {
+      relBuilder.push(scan);
+      relBuilder.project(list);
+      return relBuilder.build();
+    }
+    return scan;
   }
 
   protected RelOptTable getTargetTable(SqlNode call) {
@@ -3226,13 +3264,11 @@ public class SqlToRelConverter {
    * default values and the source expressions provided.
    *
    * @param call      Insert expression
-   * @param sourceRel Source relational expression
+   * @param source Source relational expression
    * @return Converted INSERT statement
    */
-  protected RelNode convertColumnList(
-      SqlInsert call,
-      RelNode sourceRel) {
-    RelDataType sourceRowType = sourceRel.getRowType();
+  protected RelNode convertColumnList(final SqlInsert call, RelNode source) {
+    RelDataType sourceRowType = source.getRowType();
     final RexNode sourceRef =
         rexBuilder.makeRangeReference(sourceRowType, 0, false);
     final List<String> targetColumnNames = new ArrayList<>();
@@ -3240,9 +3276,8 @@ public class SqlToRelConverter {
     collectInsertTargets(call, sourceRef, targetColumnNames, columnExprs);
 
     final RelOptTable targetTable = getTargetTable(call);
-    final RelDataType targetRowType = targetTable.getRowType();
-    final List<RelDataTypeField> targetFields =
-        targetRowType.getFieldList();
+    final RelDataType targetRowType = RelOptTableImpl.realRowType(targetTable);
+    final List<RelDataTypeField> targetFields = targetRowType.getFieldList();
     final List<RexNode> sourceExps =
         new ArrayList<>(
             Collections.<RexNode>nCopies(targetFields.size(), null));
@@ -3264,32 +3299,56 @@ public class SqlToRelConverter {
       sourceExps.set(field.getIndex(), p.right);
     }
 
+    // Lazily create a blackboard that contains all non-generated columns.
+    final Supplier<Blackboard> bb = new Supplier<Blackboard>() {
+      public Blackboard get() {
+        return createInsertBlackboard(targetTable, sourceRef,
+            targetColumnNames);
+      }
+    };
+
     // Walk the expression list and get default values for any columns
     // that were not supplied in the statement. Get field names too.
     for (int i = 0; i < targetFields.size(); ++i) {
       final RelDataTypeField field = targetFields.get(i);
       final String fieldName = field.getName();
       fieldNames.set(i, fieldName);
-      if (sourceExps.get(i) != null) {
-        if (initializerFactory.isGeneratedAlways(targetTable, i)) {
-          throw RESOURCE.insertIntoAlwaysGenerated(fieldName).ex();
-        }
-        continue;
-      }
-      sourceExps.set(i,
-          initializerFactory.newColumnDefaultValue(targetTable, i,
-              new InitializerContext() {
-                public RexBuilder getRexBuilder() {
-                  return rexBuilder;
-                }
-              }));
+      if (sourceExps.get(i) == null
+          || sourceExps.get(i).getKind() == SqlKind.DEFAULT) {
+        sourceExps.set(i,
+            initializerFactory.newColumnDefaultValue(targetTable, i, bb.get()));
 
-      // bare nulls are dangerous in the wrong hands
-      sourceExps.set(i,
-          castNullLiteralIfNeeded(sourceExps.get(i), field.getType()));
+        // bare nulls are dangerous in the wrong hands
+        sourceExps.set(i,
+            castNullLiteralIfNeeded(sourceExps.get(i), field.getType()));
+      }
     }
 
-    return RelOptUtil.createProject(sourceRel, sourceExps, fieldNames, true);
+    return RelOptUtil.createProject(source, sourceExps, fieldNames, true);
+  }
+
+  /** Creates a blackboard for translating the expressions of generated columns
+   * in an INSERT statement. */
+  private Blackboard createInsertBlackboard(RelOptTable targetTable,
+      RexNode sourceRef, List<String> targetColumnNames) {
+    final Map<String, RexNode> nameToNodeMap = new HashMap<>();
+    int j = 0;
+
+    // Assign expressions for non-generated columns.
+    final List<ColumnStrategy> strategies = targetTable.getColumnStrategies();
+    final List<String> targetFields = targetTable.getRowType().getFieldNames();
+    for (String targetColumnName : targetColumnNames) {
+      final int i = targetFields.indexOf(targetColumnName);
+      switch (strategies.get(i)) {
+      case STORED:
+      case VIRTUAL:
+        break;
+      default:
+        nameToNodeMap.put(targetColumnName,
+            rexBuilder.makeFieldAccess(sourceRef, j++));
+      }
+    }
+    return createBlackboard(null, nameToNodeMap, false);
   }
 
   private InitializerExpressionFactory getInitializerFactory(
@@ -3303,7 +3362,7 @@ public class SqlToRelConverter {
         return f;
       }
     }
-    return new NullInitializerExpressionFactory();
+    return NullInitializerExpressionFactory.INSTANCE;
   }
 
   private static <T> T unwrap(Object o, Class<T> clazz) {
@@ -3359,9 +3418,37 @@ public class SqlToRelConverter {
       }
     }
 
-    for (int i = 0; i < targetColumnNames.size(); i++) {
-      final RexNode expr = rexBuilder.makeFieldAccess(sourceRef, i);
+    final Blackboard bb =
+        createInsertBlackboard(targetTable, sourceRef, targetColumnNames);
+
+    // Next, assign expressions for generated columns.
+    final List<ColumnStrategy> strategies = targetTable.getColumnStrategies();
+    for (String columnName : targetColumnNames) {
+      final int i = tableRowType.getFieldNames().indexOf(columnName);
+      final RexNode expr;
+      switch (strategies.get(i)) {
+      case STORED:
+        final InitializerExpressionFactory f =
+            Util.first(targetTable.unwrap(InitializerExpressionFactory.class),
+                NullInitializerExpressionFactory.INSTANCE);
+        expr = f.newColumnDefaultValue(targetTable, i, bb);
+        break;
+      case VIRTUAL:
+        expr = null;
+        break;
+      default:
+        expr = bb.nameToNodeMap.get(columnName);
+      }
       columnExprs.add(expr);
+    }
+
+    // Remove virtual columns from the list.
+    for (int i = 0; i < targetColumnNames.size(); i++) {
+      if (columnExprs.get(i) == null) {
+        columnExprs.remove(i);
+        targetColumnNames.remove(i);
+        --i;
+      }
     }
   }
 
@@ -3890,7 +3977,8 @@ public class SqlToRelConverter {
   /**
    * Workspace for translating an individual SELECT statement (or sub-SELECT).
    */
-  protected class Blackboard implements SqlRexContext, SqlVisitor<RexNode> {
+  protected class Blackboard implements SqlRexContext, SqlVisitor<RexNode>,
+      InitializerContext {
     /**
      * Collection of {@link RelNode} objects which correspond to a SELECT
      * statement.
@@ -4231,6 +4319,9 @@ public class SqlToRelConverter {
     }
 
     RelDataTypeField getRootField(RexInputRef inputRef) {
+      if (inputs == null) {
+        return null;
+      }
       int fieldOffset = inputRef.getIndex();
       for (RelNode input : inputs) {
         RelDataType rowType = input.getRowType();

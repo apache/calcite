@@ -32,7 +32,7 @@ import java.util.List;
  * different type classes into one. Inelegant, but since our type system was
  * defined before the advent of Java generics, it avoids a lot of typecasting.
  */
-public interface RelDataType /*extends Type*/ {
+public interface RelDataType {
   int SCALE_NOT_SPECIFIED = Integer.MIN_VALUE;
   int PRECISION_NOT_SPECIFIED = -1;
 

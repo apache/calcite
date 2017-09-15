@@ -2035,7 +2035,7 @@ measureColumn:
       expression AS alias
 
 pattern:
-      patternTerm ['|' patternTerm ]*
+      patternTerm [ '|' patternTerm ]*
 
 patternTerm:
       patternFactor [ patternFactor ]*
@@ -2067,3 +2067,98 @@ intervalLiteral:
 
 In *patternQuantifier*, *repeat* is a positive integer,
 and *minRepeat* and *maxRepeat* are non-negative integers.
+
+### DDL Extensions
+
+DDL extensions are only available in the calcite-server module.
+To enable, include `calcite-server.jar` in your class path, and add
+`parserFactory=org.apache.calcite.sql.parser.ddl.SqlDdlParserImpl#FACTORY`
+to the JDBC connect string (see connect string property
+[parserFactory]({{ site.apiRoot }}/org/apache/calcite/config/CalciteConnectionProperty.html#PARSER_FACTORY)).
+
+{% highlight sql %}
+ddlStatement:
+      createSchemaStatement
+  |   createForeignSchemaStatement
+  |   createTableStatement
+  |   createViewStatement
+  |   createMaterializedViewStatement
+  |   dropSchemaStatement
+  |   dropForeignSchemaStatement
+  |   dropTableStatement
+  |   dropViewStatement
+  |   dropMaterializedViewStatement
+
+createSchemaStatement:
+      CREATE [ OR REPLACE ] SCHEMA [ IF NOT EXISTS ] name
+
+createForeignSchemaStatement:
+      CREATE [ OR REPLACE ] FOREIGN SCHEMA [ IF NOT EXISTS ] name
+      (
+          TYPE 'type'
+      |   LIBRARY 'com.example.calcite.ExampleSchemaFactory'
+      )
+      [ OPTIONS '(' option [, option ]* ')' ]
+
+option:
+      name literal
+
+createTableStatement:
+      CREATE TABLE [ IF NOT EXISTS ] name
+      [ '(' tableElement [, tableElement ]* ')' ]
+      [ AS query ]
+
+tableElement:
+      columnName type [ columnGenerator ] [ columnConstraint ]
+  |   columnName
+  |   tableConstraint
+
+columnGenerator:
+      DEFAULT expression
+  |   [ GENERATED ALWAYS ] AS '(' expression ')'
+      { VIRTUAL | STORED }
+
+columnConstraint:
+      [ CONSTRAINT name ]
+      [ NOT ] NULL
+
+tableConstraint:
+      [ CONSTRAINT name ]
+      {
+          CHECK '(' expression ')'
+      |   PRIMARY KEY '(' columnName [, columnName ]* ')'
+      |   UNIQUE '(' columnName [, columnName ]* ')'
+      }
+
+createViewStatement:
+      CREATE [ OR REPLACE ] VIEW name
+      [ '(' columnName [, columnName ]* ')' ]
+      AS query
+
+createMaterializedViewStatement:
+      CREATE MATERIALIZED VIEW [ IF NOT EXISTS ] name
+      [ '(' columnName [, columnName ]* ')' ]
+      AS query
+
+dropSchemaStatement:
+      DROP SCHEMA name [ IF EXISTS ]
+
+dropForeignSchemaStatement:
+      DROP FOREIGN SCHEMA name [ IF EXISTS ]
+
+dropTableStatement:
+      DROP TABLE name [ IF EXISTS ]
+
+dropViewStatement:
+      DROP VIEW name [ IF EXISTS ]
+
+dropMaterializedViewStatement:
+      DROP MATERIALIZED VIEW name [ IF EXISTS ]
+{% endhighlight %}
+
+In *createTableStatement*, if you specify *AS query*, you may omit the list of
+*tableElement*s, or you can omit the data type of any *tableElement*, in which
+case it just renames the underlying column.
+
+In *columnGenerator*, if you do not specify `VIRTUAL` or `STORED` for a
+generated column, `VIRTUAL` is the default.

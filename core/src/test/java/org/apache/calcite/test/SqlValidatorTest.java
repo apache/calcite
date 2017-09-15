@@ -8712,9 +8712,22 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "  timestamp '1970-01-01 00:00:00', 1, 1, 1)";
     pragmaticTester.checkQueryFails(sql3,
         "Column 'SLACKER' has no default value and does not allow NULLs");
-    assertThat("Missing non-NULL column generates a call to factory",
+    assertThat("Should not check for default value, even if if column is missing"
+            + "from INSERT and nullable",
         MockCatalogReader.CountingFactory.THREAD_CALL_COUNT.get().get(),
-        is(c + 1));
+        is(c));
+
+    // Now remove DEPTNO, which has a default value, from the target list.
+    // Will generate an extra call to newColumnDefaultValue at sql-to-rel time,
+    // just not yet.
+    final String sql4 = "insert into ^emp^ (empno, ename, job, mgr, hiredate,\n"
+        + "  sal, comm, slacker)\n"
+        + "values(1, 'nom', 'job', 0,\n"
+        + "  timestamp '1970-01-01 00:00:00', 1, 1, false)";
+    pragmaticTester.checkQuery(sql4);
+    assertThat("Missing DEFAULT column generates a call to factory",
+        MockCatalogReader.CountingFactory.THREAD_CALL_COUNT.get().get(),
+        is(c));
   }
 
   @Test public void testInsertView() {

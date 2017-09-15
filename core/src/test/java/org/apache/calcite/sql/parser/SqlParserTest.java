@@ -1442,18 +1442,18 @@ public class SqlParserTest {
   }
 
   @Test public void testFunctionDefaultArgument() {
-    checkExp("foo(1, DEFAULT, default, 'default', \"default\", 3)",
-        "`FOO`(1, DEFAULT, DEFAULT, 'default', `default`, 3)");
-    checkExp("foo(DEFAULT)",
-        "`FOO`(DEFAULT)");
-    checkExp("foo(x => 1, DEFAULT)",
-        "`FOO`(`X` => 1, DEFAULT)");
-    checkExp("foo(y => DEFAULT, x => 1)",
-        "`FOO`(`Y` => DEFAULT, `X` => 1)");
-    checkExp("foo(x => 1, y => DEFAULT)",
-        "`FOO`(`X` => 1, `Y` => DEFAULT)");
-    check("select sum(DISTINCT DEFAULT) from t group by x",
-        "SELECT SUM(DISTINCT DEFAULT)\n"
+    sql("foo(1, DEFAULT, default, 'default', \"default\", 3)").expression()
+        .ok("`FOO`(1, DEFAULT, DEFAULT, 'default', `default`, 3)");
+    sql("foo(DEFAULT)").expression()
+        .ok("`FOO`(DEFAULT)");
+    sql("foo(x => 1, DEFAULT)").expression()
+        .ok("`FOO`(`X` => 1, DEFAULT)");
+    sql("foo(y => DEFAULT, x => 1)").expression()
+        .ok("`FOO`(`Y` => DEFAULT, `X` => 1)");
+    sql("foo(x => 1, y => DEFAULT)").expression()
+        .ok("`FOO`(`X` => 1, `Y` => DEFAULT)");
+    sql("select sum(DISTINCT DEFAULT) from t group by x")
+        .ok("SELECT SUM(DISTINCT DEFAULT)\n"
             + "FROM `T`\n"
             + "GROUP BY `X`");
     checkExpFails("foo(x ^+^ DEFAULT)",
@@ -1462,6 +1462,31 @@ public class SqlParserTest {
         "(?s).*Encountered \"\\+ DEFAULT\" at .*");
     checkExpFails("foo(0, DEFAULT ^+^ y)",
         "(?s).*Encountered \"\\+\" at .*");
+  }
+
+  @Test public void testDefault() {
+    sql("select ^DEFAULT^ from emp")
+        .fails("(?s)Encountered \"DEFAULT\" at .*");
+    sql("select cast(empno ^+^ DEFAULT as double) from emp")
+        .fails("(?s)Encountered \"\\+ DEFAULT\" at .*");
+    sql("select empno ^+^ DEFAULT + deptno from emp")
+        .fails("(?s)Encountered \"\\+ DEFAULT\" at .*");
+    sql("select power(0, DEFAULT ^+^ empno) from emp")
+        .fails("(?s)Encountered \"\\+\" at .*");
+    sql("select * from emp join dept ^on^ DEFAULT")
+        .fails("(?s)Encountered \"on DEFAULT\" at .*");
+    sql("select * from emp where empno ^>^ DEFAULT or deptno < 10")
+        .fails("(?s)Encountered \"> DEFAULT\" at .*");
+    sql("select * from emp order by ^DEFAULT^ desc")
+        .fails("(?s)Encountered \"DEFAULT\" at .*");
+    final String expected = "INSERT INTO `DEPT` (`NAME`, `DEPTNO`)\n"
+        + "VALUES (ROW('a', DEFAULT))";
+    sql("insert into dept (name, deptno) values ('a', DEFAULT)")
+        .ok(expected);
+    sql("insert into dept (name, deptno) values ('a', 1 ^+^ DEFAULT)")
+        .fails("(?s)Encountered \"\\+ DEFAULT\" at .*");
+    sql("insert into dept (name, deptno) select 'a'^,^ DEFAULT from (values 0)")
+        .fails("(?s)Encountered \", DEFAULT\" at .*");
   }
 
   @Test public void testAggregateFilter() {
@@ -3336,6 +3361,24 @@ public class SqlParserTest {
     final String expected = "INSERT INTO `EMPS`\n"
         + "VALUES (ROW(1, 'Fredkin'))";
     sql("insert into emps values (1,'Fredkin')")
+        .ok(expected)
+        .node(not(isDdl()));
+  }
+
+  @Test public void testInsertValuesDefault() {
+    final String expected = "INSERT INTO `EMPS`\n"
+        + "VALUES (ROW(1, DEFAULT, 'Fredkin'))";
+    sql("insert into emps values (1,DEFAULT,'Fredkin')")
+        .ok(expected)
+        .node(not(isDdl()));
+  }
+
+  @Test public void testInsertValuesRawDefault() {
+    final String expected = "INSERT INTO `EMPS`\n"
+        + "VALUES (ROW(DEFAULT))";
+    sql("insert into emps ^values^ default")
+        .fails("(?s).*Encountered \"values default\" at .*");
+    sql("insert into emps values (default)")
         .ok(expected)
         .node(not(isDdl()));
   }
@@ -8268,24 +8311,43 @@ public class SqlParserTest {
    * {@code sql("values 1").ok();}. */
   protected class Sql {
     private final String sql;
+    private final boolean expression;
 
     Sql(String sql) {
+      this(sql, false);
+    }
+
+    Sql(String sql, boolean expression) {
       this.sql = sql;
+      this.expression = expression;
     }
 
     public Sql ok(String expected) {
-      getTester().check(sql, expected);
+      if (expression) {
+        getTester().checkExp(sql, expected);
+      } else {
+        getTester().check(sql, expected);
+      }
       return this;
     }
 
     public Sql fails(String expectedMsgPattern) {
-      getTester().checkFails(sql, expectedMsgPattern);
+      if (expression) {
+        getTester().checkExpFails(sql, expectedMsgPattern);
+      } else {
+        getTester().checkFails(sql, expectedMsgPattern);
+      }
       return this;
     }
 
     public Sql node(Matcher<SqlNode> matcher) {
       getTester().checkNode(sql, matcher);
       return this;
+    }
+
+    /** Flags that this is an expression, not a whole query. */
+    public Sql expression() {
+      return expression ? this : new Sql(sql, true);
     }
   }
 

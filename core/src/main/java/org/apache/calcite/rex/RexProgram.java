@@ -35,6 +35,7 @@ import org.apache.calcite.util.Permutation;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Ordering;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -527,10 +528,10 @@ public class RexProgram {
   /**
    * Given a list of collations which hold for the input to this program,
    * returns a list of collations which hold for its output. The result is
-   * mutable.
+   * mutable and sorted.
    */
   public List<RelCollation> getCollations(List<RelCollation> inputCollations) {
-    List<RelCollation> outputCollations = new ArrayList<>(1);
+    final List<RelCollation> outputCollations = new ArrayList<>();
     deduceCollations(
         outputCollations,
         inputRowType.getFieldCount(), projects,
@@ -540,7 +541,7 @@ public class RexProgram {
 
   /**
    * Given a list of expressions and a description of which are ordered,
-   * computes a list of collations. The result is mutable.
+   * populates a list of collations, sorted in natural order.
    */
   public static void deduceCollations(
       List<RelCollation> outputCollations,
@@ -573,6 +574,7 @@ public class RexProgram {
       // to the output.
       outputCollations.add(RelCollations.of(fieldCollations));
     }
+    Collections.sort(outputCollations, Ordering.natural());
   }
 
   /**

@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.util;
 
+import org.apache.calcite.linq4j.function.Experimental;
+
 import com.google.common.collect.ImmutableList;
 
 import java.util.ArrayList;
@@ -54,6 +56,18 @@ public class NameMultimap<V> {
       map.put(name, list);
     }
     list.add(v);
+  }
+
+  /** Removes all entries that have the given case-sensitive key.
+   *
+   * @return Whether a value was removed */
+  @Experimental
+  public boolean remove(String key, V value) {
+    final List<V> list = map.get(key);
+    if (list == null) {
+      return false;
+    }
+    return list.remove(value);
   }
 
   /** Returns a map containing all the entries in this multimap that match the

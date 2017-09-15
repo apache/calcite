@@ -1,0 +1,272 @@
+# materialized_view.iq - Materialized view DDL
+#
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to you under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+!use server
+!set outputformat mysql
+
+# Create a source table
+create table dept (deptno int not null, name varchar(10));
+(0 rows modified)
+
+!update
+
+insert into dept
+values (10, 'Sales'), (20, 'Marketing'), (30, 'Engineering');
+(3 rows modified)
+
+!update
+
+# Create as select
+create materialized view v as
+select * from dept where deptno > 10;
+(0 rows modified)
+
+!update
+
+# Check contents
+select * from v;
++--------+-------------+
+| DEPTNO | NAME        |
++--------+-------------+
+|     20 | Marketing   |
+|     30 | Engineering |
++--------+-------------+
+(2 rows)
+
+!ok
+
+# Try to create again - fails
+create materialized view v as
+select * from dept where deptno < 30;
+Table 'V' already exists
+!error
+
+# Try to create again - fails silently
+create materialized view if not exists v as
+select * from dept where deptno < 30;
+(0 rows modified)
+
+!update
+
+# Check contents are unchanged
+select * from v;
++--------+-------------+
+| DEPTNO | NAME        |
++--------+-------------+
+|     20 | Marketing   |
+|     30 | Engineering |
++--------+-------------+
+(2 rows)
+
+!ok
+
+# Drop
+drop materialized view if exists v;
+(0 rows modified)
+
+!update
+
+# It's gone
+select * from v;
+Object 'V' not found
+!error
+
+# Drop does nothing because materialized view does not exist
+drop materialized view if exists v;
+(0 rows modified)
+
+!update
+
+# Create materialized view without AS - fails
+create materialized view d;
+Encountered "<EOF>" at line 1, column 27.
+!error
+
+# Create materialized view without AS - fails
+create materialized view d (x, y);
+Encountered "<EOF>" at line 1, column 34.
+!error
+
+# Create materialized view without AS - fails
+create materialized view d (x int, y);
+Encountered "int" at line 1, column 31.
+!error
+
+# Create based on itself - fails
+create materialized view d2 as select * from d2;
+Object 'D2' not found
+!error
+
+# Create materialized view based on UNION
+create materialized view d3 as
+select deptno as dd from dept where deptno < 15
+union all
+select deptno as ee from dept where deptno > 25;
+(0 rows modified)
+
+!update
+
+# Check contents
+select * from d3;
++----+
+| DD |
++----+
+| 10 |
+| 30 |
++----+
+(2 rows)
+
+!ok
+
+# Drop
+drop materialized view d3;
+(0 rows modified)
+
+!update
+
+# Create materialized view based on UNION and ORDER BY
+create materialized view d4 as
+select deptno as dd from dept where deptno < 15
+union all
+select deptno as dd from dept where deptno > 25
+order by 1 desc;
+(0 rows modified)
+
+!update
+
+# Check contents
+select * from d4;
++----+
+| DD |
++----+
+| 10 |
+| 30 |
++----+
+(2 rows)
+
+!ok
+
+# Drop
+drop materialized view d4;
+
+# Create materialized view based on VALUES
+create materialized view d5 as
+values (1, 'a'), (2, 'b');
+(0 rows modified)
+
+!update
+
+# Check contents
+select * from d5;
++--------+--------+
+| EXPR$0 | EXPR$1 |
++--------+--------+
+|      1 | a      |
+|      2 | b      |
++--------+--------+
+(2 rows)
+
+!ok
+
+# Use just aliases
+create materialized view d6 (x, y) as
+select * from dept where deptno < 15;
+(0 rows modified)
+
+!update
+
+# Check contents
+select * from d6;
++----+-------+
+| X  | Y     |
++----+-------+
+| 10 | Sales |
++----+-------+
+(1 row)
+
+!ok
+
+# Use a mixture of aliases and column declarations - fails
+create materialized view d7 (x int, y) as
+select * from dept where deptno < 15;
+Encountered "int" at line 1, column 32.
+!error
+
+# Too many columns
+create materialized view d8 (x, y, z) as
+select * from dept where deptno < 15;
+List of column aliases must have same degree as table; table has 2 columns ('DEPTNO', 'NAME'), whereas alias list has 3 columns
+!error
+
+# Too few columns
+create materialized view d9 (x) as
+select * from dept where deptno < 15;
+List of column aliases must have same degree as table; table has 2 columns ('DEPTNO', 'NAME'), whereas alias list has 1 columns
+!error
+
+create schema s;
+(0 rows modified)
+
+!update
+
+# Materialized view in explicit schema
+create materialized view s.d10 (x, y) as
+select * from dept where deptno < 25;
+(0 rows modified)
+
+!update
+
+# Check contents
+select * from s.d10;
++----+-----------+
+| X  | Y         |
++----+-----------+
+| 10 | Sales     |
+| 20 | Marketing |
++----+-----------+
+(2 rows)
+
+!ok
+
+# Appears in catalog, with table type 'MATERIALIZED VIEW'
+# (Materialized views in root schema should also, but currently do not.)
+select * from "metadata".TABLES;
++----------+------------+-----------+-------------------+---------+---------+-----------+----------+------------------------+---------------+
+| tableCat | tableSchem | tableName | tableType         | remarks | typeCat | typeSchem | typeName | selfReferencingColName | refGeneration |
++----------+------------+-----------+-------------------+---------+---------+-----------+----------+------------------------+---------------+
+|          | S          | D10       | MATERIALIZED VIEW |         |         |           |          |                        |               |
+|          | metadata   | COLUMNS   | SYSTEM TABLE      |         |         |           |          |                        |               |
+|          | metadata   | TABLES    | SYSTEM TABLE      |         |         |           |          |                        |               |
++----------+------------+-----------+-------------------+---------+---------+-----------+----------+------------------------+---------------+
+(3 rows)
+
+!ok
+
+# Check that exact match materialized view is used
+select * from dept where deptno < 15;
+EnumerableTableScan(table=[[D6]])
+!plan
++--------+-------+
+| DEPTNO | NAME  |
++--------+-------+
+|     10 | Sales |
++--------+-------+
+(1 row)
+
+!ok
+
+# End materialized_view.iq

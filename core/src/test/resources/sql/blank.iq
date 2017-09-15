@@ -19,7 +19,7 @@
 !set outputformat mysql
 
 create table foo (i int not null, j int);
-(-1 rows modified)
+(0 rows modified)
 
 !update
 insert into foo values (1, 0);
@@ -55,11 +55,11 @@ select * from foo as f where i in (
 
 # [CALCITE-1493] Wrong plan for NOT IN correlated queries
 create table table1(i int, j int);
-(-1 rows modified)
+(0 rows modified)
 
 !update
 create table table2(i int, j int);
-(-1 rows modified)
+(0 rows modified)
 
 !update
 insert into table1 values (1, 2), (1, 3);

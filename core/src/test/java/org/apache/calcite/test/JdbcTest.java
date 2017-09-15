@@ -730,7 +730,7 @@ public class JdbcTest {
              driver.connect("jdbc:calcite:", new Properties());
         Statement statement = connection.createStatement()) {
       assertThat(driver.counter, is(0));
-      statement.executeQuery("COMMIT");
+      statement.executeUpdate("COMMIT");
       assertThat(driver.counter, is(1));
     }
   }

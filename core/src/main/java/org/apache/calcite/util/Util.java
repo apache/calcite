@@ -225,8 +225,10 @@ public class Util {
    * you are not interested in, but you don't want the compiler to warn that
    * you are not using it.
    */
-  public static boolean discard(boolean b) {
-    return b;
+  public static void discard(boolean b) {
+    if (false) {
+      discard(b);
+    }
   }
 
   /**

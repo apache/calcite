@@ -17,6 +17,7 @@
 package org.apache.calcite.sql;
 
 import org.apache.calcite.jdbc.CalcitePrepare;
+import org.apache.calcite.linq4j.function.Experimental;
 
 /**
  * Mix-in interface for {@link SqlNode} that allows DDL commands to be
@@ -24,6 +25,7 @@ import org.apache.calcite.jdbc.CalcitePrepare;
  *
  * <p>NOTE: Subject to change without notice.
  */
+@Experimental
 public interface SqlExecutableStatement {
   void execute(CalcitePrepare.Context context);
 }
