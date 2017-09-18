@@ -356,7 +356,7 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
   /**
    * A list of accumulators used during grouping.
    */
-  private class AccumulatorList extends ArrayList<Accumulator> {
+  private static class AccumulatorList extends ArrayList<Accumulator> {
     public void send(Row row) {
       for (Accumulator a : this) {
         a.send(row);

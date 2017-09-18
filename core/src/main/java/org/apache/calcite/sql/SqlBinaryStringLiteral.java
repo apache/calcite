@@ -56,7 +56,7 @@ public class SqlBinaryStringLiteral extends SqlAbstractStringLiteral {
     return (BitString) value;
   }
 
-  public SqlNode clone(SqlParserPos pos) {
+  @Override public SqlBinaryStringLiteral clone(SqlParserPos pos) {
     return new SqlBinaryStringLiteral((BitString) value, pos);
   }
 

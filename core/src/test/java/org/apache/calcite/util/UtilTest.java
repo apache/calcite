@@ -30,6 +30,7 @@ import org.apache.calcite.runtime.FlatLists;
 import org.apache.calcite.runtime.Resources;
 import org.apache.calcite.runtime.SqlFunctions;
 import org.apache.calcite.runtime.Utilities;
+import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.util.SqlBuilder;
 import org.apache.calcite.sql.util.SqlString;
@@ -2006,6 +2007,42 @@ public class UtilTest {
     assertThat(map.range("baz", true).size(), is(2));
     assertThat(map.range("BAZ", true).size(), is(0));
     assertThat(map.range("Baz", true).size(), is(1));
+  }
+
+  @Test public void testNlsStringClone() {
+    final NlsString s = new NlsString("foo", "LATIN1", SqlCollation.IMPLICIT);
+    assertThat(s.toString(), is("_LATIN1'foo'"));
+    final Object s2 = s.clone();
+    assertThat(s2, instanceOf(NlsString.class));
+    assertThat(s2, not(sameInstance((Object) s)));
+    assertThat(s2.toString(), is(s.toString()));
+  }
+
+  @Test public void testXmlOutput() {
+    final StringWriter w = new StringWriter();
+    final XmlOutput o = new XmlOutput(w);
+    o.beginBeginTag("root");
+    o.attribute("a1", "v1");
+    o.attribute("a2", null);
+    o.endBeginTag("root");
+    o.beginTag("someText", null);
+    o.content("line 1 followed by empty line\n"
+        + "\n"
+        + "line 3 with windows line ending\r\n"
+        + "line 4 with no ending");
+    o.endTag("someText");
+    o.endTag("root");
+    final String s = w.toString();
+    final String expected = ""
+        + "<root a1=\"v1\">\n"
+        + "\t<someText>\n"
+        + "\t\t\tline 1 followed by empty line\n"
+        + "\t\t\t\n"
+        + "\t\t\tline 3 with windows line ending\n"
+        + "\t\t\tline 4 with no ending\n"
+        + "\t</someText>\n"
+        + "</root>\n";
+    assertThat(s, is(expected));
   }
 }
 

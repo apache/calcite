@@ -63,7 +63,7 @@ public class SqlCharStringLiteral extends SqlAbstractStringLiteral {
     return getNlsString().getCollation();
   }
 
-  public SqlNode clone(SqlParserPos pos) {
+  @Override public SqlCharStringLiteral clone(SqlParserPos pos) {
     return new SqlCharStringLiteral((NlsString) value, pos);
   }
 

@@ -65,13 +65,9 @@ public class SqlNumericLiteral extends SqlLiteral {
     return isExact;
   }
 
-  public SqlNode clone(SqlParserPos pos) {
-    return new SqlNumericLiteral(
-        (BigDecimal) value,
-        getPrec(),
-        getScale(),
-        isExact,
-        pos);
+  @Override public SqlNumericLiteral clone(SqlParserPos pos) {
+    return new SqlNumericLiteral((BigDecimal) value, getPrec(), getScale(),
+        isExact, pos);
   }
 
   public void unparse(

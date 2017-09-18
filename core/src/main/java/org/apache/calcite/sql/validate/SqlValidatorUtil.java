@@ -1005,7 +1005,7 @@ public class SqlValidatorUtil {
     }
 
     public SqlNode visit(SqlLiteral literal) {
-      return (SqlNode) literal.clone();
+      return SqlNode.clone(literal);
     }
 
     public SqlNode visit(SqlIdentifier id) {
@@ -1020,15 +1020,15 @@ public class SqlValidatorUtil {
     }
 
     public SqlNode visit(SqlDataTypeSpec type) {
-      return (SqlNode) type.clone();
+      return SqlNode.clone(type);
     }
 
     public SqlNode visit(SqlDynamicParam param) {
-      return (SqlNode) param.clone();
+      return SqlNode.clone(param);
     }
 
     public SqlNode visit(SqlIntervalQualifier intervalQualifier) {
-      return (SqlNode) intervalQualifier.clone();
+      return SqlNode.clone(intervalQualifier);
     }
   }
 

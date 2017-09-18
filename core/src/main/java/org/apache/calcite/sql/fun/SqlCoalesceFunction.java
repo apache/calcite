@@ -70,17 +70,14 @@ public class SqlCoalesceFunction extends SqlFunction {
 
     // todo: optimize when know operand is not null.
 
-    for (int i = 0; (i + 1) < operands.size(); ++i) {
+    for (SqlNode operand : Util.skipLast(operands)) {
       whenList.add(
-          SqlStdOperatorTable.IS_NOT_NULL.createCall(
-              pos,
-              operands.get(i)));
-      thenList.add(operands.get(i).clone(operands.get(i).getParserPosition()));
+          SqlStdOperatorTable.IS_NOT_NULL.createCall(pos, operand));
+      thenList.add(SqlNode.clone(operand));
     }
     SqlNode elseExpr = Util.last(operands);
     assert call.getFunctionQuantifier() == null;
-    return SqlCase.createSwitched(
-        pos, null, whenList, thenList, elseExpr);
+    return SqlCase.createSwitched(pos, null, whenList, thenList, elseExpr);
   }
 }
 

@@ -1191,8 +1191,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       selectList.add(SqlIdentifier.star(SqlParserPos.ZERO));
       final SqlNodeList orderList;
       if (getInnerSelect(node) != null && isAggregate(getInnerSelect(node))) {
-        orderList =
-            orderBy.orderList.clone(orderBy.orderList.getParserPosition());
+        orderList = SqlNode.clone(orderBy.orderList);
         // We assume that ORDER BY item does not have ASC etc.
         // We assume that ORDER BY item is present in SELECT list.
         for (int i = 0; i < orderList.size(); i++) {
@@ -1281,9 +1280,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       // from the update statement's source since it's the same as
       // what we want for the select list of the merge source -- '*'
       // followed by the update set expressions
-      selectList =
-          (SqlNodeList) updateStmt.getSourceSelect().getSelectList()
-              .clone();
+      selectList = SqlNode.clone(updateStmt.getSourceSelect().getSelectList());
     } else {
       // otherwise, just use select *
       selectList = new SqlNodeList(SqlParserPos.ZERO);
@@ -1305,7 +1302,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     SqlNode sourceTableRef = call.getSourceTableRef();
     SqlInsert insertCall = call.getInsertCall();
     JoinType joinType = (insertCall == null) ? JoinType.INNER : JoinType.LEFT;
-    SqlNode leftJoinTerm = (SqlNode) sourceTableRef.clone();
+    final SqlNode leftJoinTerm = SqlNode.clone(sourceTableRef);
     SqlNode outerJoin =
         new SqlJoin(SqlParserPos.ZERO,
             leftJoinTerm,
@@ -1331,7 +1328,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
           new SqlNodeList(
               rowCall.getOperandList(),
               SqlParserPos.ZERO);
-      SqlNode insertSource = (SqlNode) sourceTableRef.clone();
+      final SqlNode insertSource = SqlNode.clone(sourceTableRef);
       select =
           new SqlSelect(SqlParserPos.ZERO, null, selectList, insertSource, null,
               null, null, null, null, null, null);

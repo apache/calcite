@@ -44,7 +44,7 @@ public class SqlTimeLiteral extends SqlAbstractDateTimeLiteral {
     return (TimeString) value;
   }
 
-  public SqlNode clone(SqlParserPos pos) {
+  @Override public SqlTimeLiteral clone(SqlParserPos pos) {
     return new SqlTimeLiteral((TimeString) value, precision, hasTimeZone, pos);
   }
 
