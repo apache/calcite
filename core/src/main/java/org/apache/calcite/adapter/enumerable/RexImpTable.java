@@ -126,7 +126,6 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ELEMENT;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.EQUALS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.EXP;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.EXTRACT;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.EXTRACT_DATE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.FIRST_VALUE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.FLOOR;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.GREATER_THAN;
@@ -324,8 +323,6 @@ public class RexImpTable {
         new DatetimeArithmeticImplementor(), false);
     defineImplementor(MINUS_DATE, NullPolicy.STRICT,
         new DatetimeArithmeticImplementor(), false);
-    defineMethod(EXTRACT_DATE, BuiltInMethod.UNIX_DATE_EXTRACT.method,
-        NullPolicy.STRICT);
     defineImplementor(EXTRACT, NullPolicy.STRICT,
         new ExtractImplementor(), false);
     defineImplementor(FLOOR, NullPolicy.STRICT,
