@@ -158,13 +158,8 @@ public class JdbcSchema implements Schema {
       return JdbcSchema.create(
           parentSchema, name, dataSource, jdbcCatalog, jdbcSchema);
     } else {
-      SqlDialectFactory factory;
-      try {
-        factory = (SqlDialectFactory) Class.forName(sqlDialectFactory).newInstance();
-      } catch (Exception ex) {
-        throw new RuntimeException("Could not instantiate SqlDialectFactory: "
-            + sqlDialectFactory, ex);
-      }
+      SqlDialectFactory factory = AvaticaUtils.instantiatePlugin(
+          SqlDialectFactory.class, sqlDialectFactory);
       return JdbcSchema.create(
           parentSchema, name, dataSource, factory, jdbcCatalog, jdbcSchema);
     }

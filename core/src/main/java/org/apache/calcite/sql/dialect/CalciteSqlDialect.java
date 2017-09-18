@@ -25,7 +25,7 @@ import org.apache.calcite.sql.SqlDialect;
 public class CalciteSqlDialect extends SqlDialect {
   public static final SqlDialect DEFAULT = new CalciteSqlDialect();
 
-  private CalciteSqlDialect() {
+  @SuppressWarnings("deprecation") private CalciteSqlDialect() {
     super(
         DatabaseProduct.CALCITE,
         "\"",

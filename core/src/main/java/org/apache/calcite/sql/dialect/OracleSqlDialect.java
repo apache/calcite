@@ -27,20 +27,19 @@ import org.apache.calcite.sql.fun.OracleSqlOperatorTable;
 import org.apache.calcite.sql.fun.SqlFloorFunction;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 
-import java.sql.DatabaseMetaData;
-
 /**
  * A <code>SqlDialect</code> implementation for the Oracle database.
  */
 public class OracleSqlDialect extends SqlDialect {
   public static final SqlDialect DEFAULT = new OracleSqlDialect();
 
-  public OracleSqlDialect(DatabaseMetaData databaseMetaData) {
-    super(DatabaseProduct.ORACLE, databaseMetaData
-    );
+  @SuppressWarnings("deprecation") public OracleSqlDialect(
+      String databaseProduct, String databaseVersion,
+      String identifierQuoteString, NullCollation nullCollation) {
+    super(DatabaseProduct.ORACLE, identifierQuoteString, nullCollation);
   }
 
-  private OracleSqlDialect() {
+  @SuppressWarnings("deprecation") private OracleSqlDialect() {
     super(
         DatabaseProduct.ORACLE,
         "\"",

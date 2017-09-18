@@ -19,19 +19,19 @@ package org.apache.calcite.sql.dialect;
 import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.sql.SqlDialect;
 
-import java.sql.DatabaseMetaData;
-
 /**
  * A <code>SqlDialect</code> implementation for the Infobright database.
  */
 public class InfobrightSqlDialect extends SqlDialect {
   public static final SqlDialect DEFAULT = new InfobrightSqlDialect();
 
-  public InfobrightSqlDialect(DatabaseMetaData databaseMetaData) {
-    super(DatabaseProduct.INFOBRIGHT, databaseMetaData);
+  @SuppressWarnings("deprecation") public InfobrightSqlDialect(
+      String databaseProduct, String databaseVersion,
+      String identifierQuoteString, NullCollation nullCollation) {
+    super(DatabaseProduct.INFOBRIGHT, identifierQuoteString, nullCollation);
   }
 
-  private InfobrightSqlDialect() {
+  @SuppressWarnings("deprecation") private InfobrightSqlDialect() {
     super(DatabaseProduct.INFOBRIGHT, "`", NullCollation.HIGH);
   }
 }

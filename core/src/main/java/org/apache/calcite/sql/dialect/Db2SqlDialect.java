@@ -19,22 +19,23 @@ package org.apache.calcite.sql.dialect;
 import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.sql.SqlDialect;
 
-import java.sql.DatabaseMetaData;
-
 /**
  * A <code>SqlDialect</code> implementation for the Db2 database.
  */
 public class Db2SqlDialect extends SqlDialect {
   public static final SqlDialect DEFAULT = new Db2SqlDialect();
 
-  public Db2SqlDialect(DatabaseMetaData databaseMetaData) {
+  @SuppressWarnings("deprecation") public Db2SqlDialect(
+      String databaseProduct, String databaseVersion,
+      String identifierQuoteString, NullCollation nullCollation) {
     super(
         DatabaseProduct.DB2,
-        databaseMetaData
+        identifierQuoteString,
+        nullCollation
     );
   }
 
-  private Db2SqlDialect() {
+  @SuppressWarnings("deprecation") private Db2SqlDialect() {
     super(
         DatabaseProduct.DB2,
         null,

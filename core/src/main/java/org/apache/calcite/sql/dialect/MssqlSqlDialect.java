@@ -30,8 +30,6 @@ import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.ReturnTypes;
 
-import java.sql.DatabaseMetaData;
-
 /**
  * A <code>SqlDialect</code> implementation for the Mssql database.
  */
@@ -43,14 +41,17 @@ public class MssqlSqlDialect extends SqlDialect {
           ReturnTypes.ARG0_NULLABLE_VARYING, null, null,
           SqlFunctionCategory.STRING);
 
-  public MssqlSqlDialect(DatabaseMetaData databaseMetaData) {
+  @SuppressWarnings("deprecation") public MssqlSqlDialect(
+      String databaseProduct, String databaseVersion,
+      String identifierQuoteString, NullCollation nullCollation) {
     super(
         DatabaseProduct.MSSQL,
-        databaseMetaData
+        identifierQuoteString,
+        nullCollation
     );
   }
 
-  private MssqlSqlDialect() {
+  @SuppressWarnings("deprecation") private MssqlSqlDialect() {
     super(
         DatabaseProduct.MSSQL,
         "[",

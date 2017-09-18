@@ -19,19 +19,19 @@ package org.apache.calcite.sql.dialect;
 import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.sql.SqlDialect;
 
-import java.sql.DatabaseMetaData;
-
 /**
  * A <code>SqlDialect</code> implementation for the Ingress database.
  */
 public class IngressSqlDialect extends SqlDialect {
   public static final SqlDialect DEFAULT = new IngressSqlDialect();
 
-  public IngressSqlDialect(DatabaseMetaData databaseMetaData) {
-    super(DatabaseProduct.INGRES, databaseMetaData);
+  @SuppressWarnings("deprecation") public IngressSqlDialect(
+      String databaseProduct, String databaseVersion,
+      String identifierQuoteString, NullCollation nullCollation) {
+    super(DatabaseProduct.INGRES, identifierQuoteString, nullCollation);
   }
 
-  private IngressSqlDialect() {
+  @SuppressWarnings("deprecation") private IngressSqlDialect() {
     super(DatabaseProduct.INGRES, null, NullCollation.HIGH);
   }
 }

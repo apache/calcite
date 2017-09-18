@@ -19,19 +19,19 @@ package org.apache.calcite.sql.dialect;
 import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.sql.SqlDialect;
 
-import java.sql.DatabaseMetaData;
-
 /**
  * A <code>SqlDialect</code> implementation for the Informix database.
  */
 public class InformixSqlDialect extends SqlDialect {
   public static final SqlDialect DEFAULT = new InformixSqlDialect();
 
-  public InformixSqlDialect(DatabaseMetaData databaseMetaData) {
-    super(DatabaseProduct.INFORMIX, databaseMetaData);
+  @SuppressWarnings("deprecation") public InformixSqlDialect(
+      String databaseProduct, String databaseVersion,
+      String identifierQuoteString, NullCollation nullCollation) {
+    super(DatabaseProduct.INFORMIX, identifierQuoteString, nullCollation);
   }
 
-  private InformixSqlDialect() {
+  @SuppressWarnings("deprecation") private InformixSqlDialect() {
     super(DatabaseProduct.INFORMIX, null, NullCollation.HIGH);
   }
 }

@@ -20,15 +20,9 @@ import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.linq4j.function.Experimental;
 import org.apache.calcite.rel.RelFieldCollation;
-import org.apache.calcite.rel.rel2sql.SqlImplementor;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.dialect.AnsiSqlDialect;
 import org.apache.calcite.sql.dialect.CalciteSqlDialect;
-import org.apache.calcite.sql.dialect.HsqldbHandler;
-import org.apache.calcite.sql.dialect.MssqlHandler;
-import org.apache.calcite.sql.dialect.MysqlHandler;
-import org.apache.calcite.sql.dialect.OracleHandler;
-import org.apache.calcite.sql.dialect.PostgresqlHandler;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.BasicSqlType;
 import org.apache.calcite.sql.type.SqlTypeUtil;
@@ -40,7 +34,6 @@ import org.slf4j.LoggerFactory;
 
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
 import java.util.List;
@@ -56,7 +49,6 @@ import java.util.regex.Pattern;
 public class SqlDialect {
   //~ Static fields/initializers ---------------------------------------------
 
-  private static final Handler DEFAULT_HANDLER = new BaseHandler();
   protected static final Logger LOGGER =
       LoggerFactory.getLogger(SqlDialect.class);
 
@@ -87,8 +79,6 @@ public class SqlDialect {
   @Deprecated // to be removed before 2.0
   private final DatabaseProduct databaseProduct;
   private final NullCollation nullCollation;
-  @Deprecated // to be removed before 2.0
-  private final Handler handler;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -108,61 +98,19 @@ public class SqlDialect {
     return new SqlDialectFactoryImpl().create(databaseMetaData);
   }
 
-  protected static NullCollation getNullCollation(DatabaseMetaData databaseMetaData) {
-    try {
-      if (databaseMetaData.nullsAreSortedAtEnd()) {
-        return NullCollation.LAST;
-      } else if (databaseMetaData.nullsAreSortedAtStart()) {
-        return NullCollation.FIRST;
-      } else if (databaseMetaData.nullsAreSortedLow()) {
-        return NullCollation.LOW;
-      } else if (databaseMetaData.nullsAreSortedHigh()) {
-        return NullCollation.HIGH;
-      } else {
-        throw new IllegalArgumentException("cannot deduce null collation");
-      }
-    } catch (SQLException e) {
-      throw new IllegalArgumentException("cannot deduce null collation", e);
-    }
-  }
-
-  protected static String getIdentifierQuoteString(DatabaseMetaData databaseMetaData) {
-    try {
-      return databaseMetaData.getIdentifierQuoteString();
-    } catch (SQLException e) {
-      throw new IllegalArgumentException("cannot deduce identifier quote string", e);
-    }
-  }
-
   @Deprecated // to be removed before 2.0
   public SqlDialect(DatabaseProduct databaseProduct, String databaseProductName,
       String identifierQuoteString) {
     this(databaseProduct, databaseProductName, identifierQuoteString,
-        NullCollation.HIGH, DEFAULT_HANDLER);
+        NullCollation.HIGH);
   }
 
   /** Creates a SqlDialect with the default handler. */
-  public SqlDialect(DatabaseProduct databaseProduct, String databaseProductName,
-      String identifierQuoteString, NullCollation nullCollation) {
-    this(databaseProduct, databaseProductName, identifierQuoteString,
-        nullCollation, DEFAULT_HANDLER);
-  }
-
-  @Deprecated // to be removed before 2.0, replace with constructor without DatabaseProduct
-  protected SqlDialect(DatabaseProduct databaseProduct, DatabaseMetaData databaseMetaData) {
-    this(
-      databaseProduct,
-      getIdentifierQuoteString(databaseMetaData),
-      getNullCollation(databaseMetaData)
-    );
-  }
-
   @Deprecated // to be removed before 2.0, replace with constructor without DatabaseProduct
   protected SqlDialect(DatabaseProduct databaseProduct, String identifierQuoteString,
                     NullCollation nullCollation) {
     this.nullCollation = Preconditions.checkNotNull(nullCollation);
     this.databaseProduct = Preconditions.checkNotNull(databaseProduct);
-    this.handler = null;
     if (identifierQuoteString != null) {
       identifierQuoteString = identifierQuoteString.trim();
       if (identifierQuoteString.equals("")) {
@@ -182,6 +130,12 @@ public class SqlDialect {
                     : this.identifierEndQuoteString + this.identifierEndQuoteString;
   }
 
+  // This will be our new constructor in 2.0
+  @SuppressWarnings("deprecation") public SqlDialect(String databaseProductName,
+      String identifierQuoteString, NullCollation nullCollation) {
+    this(null, databaseProductName, identifierQuoteString, nullCollation);
+  }
+
   /**
    * Creates a SqlDialect.
    *
@@ -191,17 +145,14 @@ public class SqlDialect {
    *                              is not supported. If "[", close quote is
    *                              deemed to be "]".
    * @param nullCollation         Whether NULL values appear first or last
-   * @param handler               Handler for un-parsing
    */
   @Deprecated // to be removed before 2.0
-  @Experimental
+  @Experimental // Keep around until we remove DatabaseProduct
   public SqlDialect(DatabaseProduct databaseProduct, String databaseProductName,
-      String identifierQuoteString, NullCollation nullCollation,
-      Handler handler) {
+      String identifierQuoteString, NullCollation nullCollation) {
     this.nullCollation = Preconditions.checkNotNull(nullCollation);
     Preconditions.checkNotNull(databaseProductName);
     this.databaseProduct = Preconditions.checkNotNull(databaseProduct);
-    this.handler = Preconditions.checkNotNull(handler);
     if (identifierQuoteString != null) {
       identifierQuoteString = identifierQuoteString.trim();
       if (identifierQuoteString.equals("")) {
@@ -292,24 +243,6 @@ public class SqlDialect {
       return DatabaseProduct.VERTICA;
     } else {
       return DatabaseProduct.UNKNOWN;
-    }
-  }
-
-  /** Chooses the best handler for a given database product. */
-  private static Handler chooseHandler(DatabaseProduct databaseProduct) {
-    switch (databaseProduct) {
-    case HSQLDB:
-      return HsqldbHandler.INSTANCE;
-    case MSSQL:
-      return MssqlHandler.INSTANCE;
-    case MYSQL:
-      return MysqlHandler.INSTANCE;
-    case ORACLE:
-      return OracleHandler.INSTANCE;
-    case POSTGRESQL:
-      return PostgresqlHandler.INSTANCE;
-    default:
-      return DEFAULT_HANDLER;
     }
   }
 
@@ -607,11 +540,11 @@ public class SqlDialect {
    * Returns the SqlNode for emulating the null direction for the given field
    * or <code>null</code> if no emulation needs to be done.
    *
-   * @param context The translation context
-   * @param field The field for which to emulate null direction
+   * @param node The SqlNode representing the expression
+   * @param nullsFirst <code>true</code> if nulls should come first, <code>false</code> otherwise
    * @return A SqlNode for null direction emulation or <code>null</code> if not required
    */
-  public SqlNode emulateNullDirection(SqlImplementor.Context context, RelFieldCollation field) {
+  public SqlNode emulateNullDirection(SqlNode node, boolean nullsFirst) {
     return null;
   }
 
@@ -788,35 +721,11 @@ public class SqlDialect {
      */
     public SqlDialect getDialect() {
       if (dialect == null) {
-        final Handler handler = chooseHandler(this);
         dialect =
             new SqlDialect(this, databaseProductName, quoteString,
-                nullCollation, handler);
+                nullCollation);
       }
       return dialect;
-    }
-  }
-
-  /**
-   * A handler for converting {@link SqlNode} into SQL text of a particular
-   * dialect.
-   *
-   * <p>Instances are stateless and therefore immutable.
-   */
-  @Deprecated // to be removed before 2.0
-  @Experimental
-  public interface Handler {
-    void unparseCall(SqlWriter writer, SqlCall call, int leftPrec,
-        int rightPrec);
-  }
-
-  /** Base class for dialect handlers. */
-  @Deprecated // to be removed before 2.0
-  @Experimental
-  public static class BaseHandler implements Handler {
-    public void unparseCall(SqlWriter writer, SqlCall call,
-        int leftPrec, int rightPrec) {
-      call.getOperator().unparse(writer, call, leftPrec, rightPrec);
     }
   }
 }

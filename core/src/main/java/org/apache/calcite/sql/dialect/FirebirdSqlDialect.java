@@ -19,19 +19,19 @@ package org.apache.calcite.sql.dialect;
 import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.sql.SqlDialect;
 
-import java.sql.DatabaseMetaData;
-
 /**
  * A <code>SqlDialect</code> implementation for the Firebird database.
  */
 public class FirebirdSqlDialect extends SqlDialect {
   public static final SqlDialect DEFAULT = new FirebirdSqlDialect();
 
-  public FirebirdSqlDialect(DatabaseMetaData databaseMetaData) {
-    super(DatabaseProduct.FIREBIRD, databaseMetaData);
+  @SuppressWarnings("deprecation") public FirebirdSqlDialect(
+      String databaseProduct, String databaseVersion,
+      String identifierQuoteString, NullCollation nullCollation) {
+    super(DatabaseProduct.FIREBIRD, identifierQuoteString, nullCollation);
   }
 
-  private FirebirdSqlDialect() {
+  @SuppressWarnings("deprecation") private FirebirdSqlDialect() {
     super(DatabaseProduct.FIREBIRD, null, NullCollation.HIGH);
   }
 }

@@ -30,22 +30,23 @@ import org.apache.calcite.sql.fun.SqlFloorFunction;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
 
-import java.sql.DatabaseMetaData;
-
 /**
  * A <code>SqlDialect</code> implementation for the Hsqldb database.
  */
 public class HsqldbSqlDialect extends SqlDialect {
   public static final SqlDialect DEFAULT = new HsqldbSqlDialect();
 
-  public HsqldbSqlDialect(DatabaseMetaData databaseMetaData) {
+  @SuppressWarnings("deprecation") public HsqldbSqlDialect(
+      String databaseProduct, String databaseVersion,
+      String identifierQuoteString, NullCollation nullCollation) {
     super(
         DatabaseProduct.HSQLDB,
-        databaseMetaData
+        identifierQuoteString,
+        nullCollation
     );
   }
 
-  private HsqldbSqlDialect() {
+  @SuppressWarnings("deprecation") private HsqldbSqlDialect() {
     super(
         DatabaseProduct.HSQLDB,
         null,

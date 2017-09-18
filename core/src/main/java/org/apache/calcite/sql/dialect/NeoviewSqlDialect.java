@@ -19,19 +19,19 @@ package org.apache.calcite.sql.dialect;
 import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.sql.SqlDialect;
 
-import java.sql.DatabaseMetaData;
-
 /**
  * A <code>SqlDialect</code> implementation for the Neoview database.
  */
 public class NeoviewSqlDialect extends SqlDialect {
   public static final SqlDialect DEFAULT = new NeoviewSqlDialect();
 
-  public NeoviewSqlDialect(DatabaseMetaData databaseMetaData) {
-    super(DatabaseProduct.NEOVIEW, databaseMetaData);
+  @SuppressWarnings("deprecation") public NeoviewSqlDialect(
+      String databaseProduct, String databaseVersion,
+      String identifierQuoteString, NullCollation nullCollation) {
+    super(DatabaseProduct.NEOVIEW, identifierQuoteString, nullCollation);
   }
 
-  private NeoviewSqlDialect() {
+  @SuppressWarnings("deprecation") private NeoviewSqlDialect() {
     super(DatabaseProduct.NEOVIEW, null, NullCollation.HIGH);
   }
 }

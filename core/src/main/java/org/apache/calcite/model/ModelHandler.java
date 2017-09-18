@@ -327,13 +327,8 @@ public class ModelHandler {
           JdbcSchema.create(parentSchema, jsonSchema.name, dataSource,
               jsonSchema.jdbcCatalog, jsonSchema.jdbcSchema);
     } else {
-      SqlDialectFactory factory;
-      try {
-        factory = (SqlDialectFactory) Class.forName(jsonSchema.sqlDialectFactory).newInstance();
-      } catch (Exception ex) {
-        throw new RuntimeException("Could not instantiate SqlDialectFactory: "
-            + jsonSchema.sqlDialectFactory, ex);
-      }
+      SqlDialectFactory factory = AvaticaUtils.instantiatePlugin(
+          SqlDialectFactory.class, jsonSchema.sqlDialectFactory);
       schema =
           JdbcSchema.create(parentSchema, jsonSchema.name, dataSource,
               factory, jsonSchema.jdbcCatalog, jsonSchema.jdbcSchema);

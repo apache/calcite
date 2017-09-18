@@ -19,19 +19,19 @@ package org.apache.calcite.sql.dialect;
 import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.sql.SqlDialect;
 
-import java.sql.DatabaseMetaData;
-
 /**
  * A <code>SqlDialect</code> implementation for the Hive database.
  */
 public class HiveSqlDialect extends SqlDialect {
   public static final SqlDialect DEFAULT = new HiveSqlDialect();
 
-  public HiveSqlDialect(DatabaseMetaData databaseMetaData) {
-    super(DatabaseProduct.HIVE, databaseMetaData);
+  @SuppressWarnings("deprecation") public HiveSqlDialect(
+      String databaseProduct, String databaseVersion,
+      String identifierQuoteString, NullCollation nullCollation) {
+    super(DatabaseProduct.HIVE, identifierQuoteString, nullCollation);
   }
 
-  private HiveSqlDialect() {
+  @SuppressWarnings("deprecation") private HiveSqlDialect() {
     super(DatabaseProduct.HIVE, null, NullCollation.HIGH);
   }
 

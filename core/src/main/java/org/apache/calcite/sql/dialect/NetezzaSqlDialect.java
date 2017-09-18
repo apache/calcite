@@ -19,19 +19,19 @@ package org.apache.calcite.sql.dialect;
 import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.sql.SqlDialect;
 
-import java.sql.DatabaseMetaData;
-
 /**
  * A <code>SqlDialect</code> implementation for the Netezza database.
  */
 public class NetezzaSqlDialect extends SqlDialect {
   public static final SqlDialect DEFAULT = new NetezzaSqlDialect();
 
-  public NetezzaSqlDialect(DatabaseMetaData databaseMetaData) {
-    super(DatabaseProduct.NETEZZA, databaseMetaData);
+  @SuppressWarnings("deprecation") public NetezzaSqlDialect(
+      String databaseProduct, String databaseVersion,
+      String identifierQuoteString, NullCollation nullCollation) {
+    super(DatabaseProduct.NETEZZA, identifierQuoteString, nullCollation);
   }
 
-  private NetezzaSqlDialect() {
+  @SuppressWarnings("deprecation") private NetezzaSqlDialect() {
     super(DatabaseProduct.NETEZZA, "\"", NullCollation.HIGH);
   }
 }

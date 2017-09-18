@@ -19,8 +19,6 @@ package org.apache.calcite.sql.dialect;
 import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.sql.SqlDialect;
 
-import java.sql.DatabaseMetaData;
-
 /**
  * A <code>SqlDialect</code> implementation for an unknown ANSI compatible database.
  */
@@ -32,14 +30,17 @@ public class AnsiSqlDialect extends SqlDialect {
    */
   public static final SqlDialect DEFAULT = new AnsiSqlDialect();
 
-  public AnsiSqlDialect(DatabaseMetaData databaseMetaData) {
+  @SuppressWarnings("deprecation") public AnsiSqlDialect(
+      String databaseProduct, String databaseVersion,
+      String identifierQuoteString, NullCollation nullCollation) {
     super(
         DatabaseProduct.UNKNOWN,
-        databaseMetaData
+        identifierQuoteString,
+        nullCollation
     );
   }
 
-  private AnsiSqlDialect() {
+  @SuppressWarnings("deprecation") private AnsiSqlDialect() {
     super(
         DatabaseProduct.UNKNOWN,
         "`",

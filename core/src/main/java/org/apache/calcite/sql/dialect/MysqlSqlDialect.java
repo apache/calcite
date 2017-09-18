@@ -18,8 +18,6 @@ package org.apache.calcite.sql.dialect;
 
 import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.config.NullCollation;
-import org.apache.calcite.rel.RelFieldCollation;
-import org.apache.calcite.rel.rel2sql.SqlImplementor;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlCall;
@@ -41,8 +39,6 @@ import org.apache.calcite.sql.type.InferTypes;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 
-import java.sql.DatabaseMetaData;
-
 /**
  * A <code>SqlDialect</code> implementation for the Mysql database.
  */
@@ -55,11 +51,13 @@ public class MysqlSqlDialect extends SqlDialect {
           ReturnTypes.BOOLEAN, InferTypes.FIRST_KNOWN,
           OperandTypes.ANY, SqlFunctionCategory.SYSTEM);
 
-  public MysqlSqlDialect(DatabaseMetaData databaseMetaData) {
-    super(DatabaseProduct.MYSQL, databaseMetaData);
+  @SuppressWarnings("deprecation") public MysqlSqlDialect(
+      String databaseProduct, String databaseVersion,
+      String identifierQuoteString, NullCollation nullCollation) {
+    super(DatabaseProduct.MYSQL, identifierQuoteString, nullCollation);
   }
 
-  private MysqlSqlDialect() {
+  @SuppressWarnings("deprecation") private MysqlSqlDialect() {
     super(DatabaseProduct.MYSQL, "`", NullCollation.HIGH);
   }
 
@@ -71,9 +69,12 @@ public class MysqlSqlDialect extends SqlDialect {
     return false;
   }
 
-  @Override public SqlNode emulateNullDirection(SqlImplementor.Context context,
-      RelFieldCollation field) {
-    return ISNULL_FUNCTION.createCall(SqlParserPos.ZERO, context.field(field.getFieldIndex()));
+  @Override public SqlNode emulateNullDirection(SqlNode node, boolean nullsFirst) {
+    node = ISNULL_FUNCTION.createCall(SqlParserPos.ZERO, node);
+    if (nullsFirst) {
+      node = SqlStdOperatorTable.DESC.createCall(SqlParserPos.ZERO, node);
+    }
+    return node;
   }
 
   @Override public boolean supportsAggregateFunction(SqlKind kind) {

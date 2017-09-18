@@ -19,19 +19,19 @@ package org.apache.calcite.sql.dialect;
 import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.sql.SqlDialect;
 
-import java.sql.DatabaseMetaData;
-
 /**
  * A <code>SqlDialect</code> implementation for the Lucidb database.
  */
 public class LucidbSqlDialect extends SqlDialect {
   public static final SqlDialect DEFAULT = new LucidbSqlDialect();
 
-  public LucidbSqlDialect(DatabaseMetaData databaseMetaData) {
-    super(DatabaseProduct.LUCIDDB, databaseMetaData);
+  @SuppressWarnings("deprecation") public LucidbSqlDialect(
+      String databaseProduct, String databaseVersion,
+      String identifierQuoteString, NullCollation nullCollation) {
+    super(DatabaseProduct.LUCIDDB, identifierQuoteString, nullCollation);
   }
 
-  private LucidbSqlDialect() {
+  @SuppressWarnings("deprecation") private LucidbSqlDialect() {
     super(DatabaseProduct.LUCIDDB, "\"", NullCollation.HIGH);
   }
 }

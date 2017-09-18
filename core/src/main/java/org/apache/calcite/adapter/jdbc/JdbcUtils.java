@@ -64,6 +64,7 @@ final class JdbcUtils {
 
     public static final DialectPool INSTANCE = new DialectPool();
 
+    // TODO: Discuss why we need a pool. If we do, I'd like to improve performance
     synchronized SqlDialect get(SqlDialectFactory dialectFactory, DataSource dataSource) {
       Map<SqlDialectFactory, SqlDialect> dialectMap = map0.get(dataSource);
       if (dialectMap != null) {

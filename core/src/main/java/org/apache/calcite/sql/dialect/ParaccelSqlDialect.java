@@ -19,19 +19,19 @@ package org.apache.calcite.sql.dialect;
 import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.sql.SqlDialect;
 
-import java.sql.DatabaseMetaData;
-
 /**
  * A <code>SqlDialect</code> implementation for the Paraccel database.
  */
 public class ParaccelSqlDialect extends SqlDialect {
   public static final SqlDialect DEFAULT = new ParaccelSqlDialect();
 
-  public ParaccelSqlDialect(DatabaseMetaData databaseMetaData) {
-    super(DatabaseProduct.PARACCEL, databaseMetaData);
+  @SuppressWarnings("deprecation") public ParaccelSqlDialect(
+      String databaseProduct, String databaseVersion,
+      String identifierQuoteString, NullCollation nullCollation) {
+    super(DatabaseProduct.PARACCEL, identifierQuoteString, nullCollation);
   }
 
-  private ParaccelSqlDialect() {
+  @SuppressWarnings("deprecation") private ParaccelSqlDialect() {
     super(DatabaseProduct.PARACCEL, "\"", NullCollation.HIGH);
   }
 }

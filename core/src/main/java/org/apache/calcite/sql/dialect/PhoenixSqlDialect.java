@@ -19,22 +19,23 @@ package org.apache.calcite.sql.dialect;
 import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.sql.SqlDialect;
 
-import java.sql.DatabaseMetaData;
-
 /**
  * A <code>SqlDialect</code> implementation for the Phoenix database.
  */
 public class PhoenixSqlDialect extends SqlDialect {
   public static final SqlDialect DEFAULT = new PhoenixSqlDialect();
 
-  public PhoenixSqlDialect(DatabaseMetaData databaseMetaData) {
+  @SuppressWarnings("deprecation") public PhoenixSqlDialect(
+      String databaseProduct, String databaseVersion,
+      String identifierQuoteString, NullCollation nullCollation) {
     super(
         DatabaseProduct.PHOENIX,
-        databaseMetaData
+        identifierQuoteString,
+        nullCollation
     );
   }
 
-  private PhoenixSqlDialect() {
+  @SuppressWarnings("deprecation") private PhoenixSqlDialect() {
     super(
         DatabaseProduct.PHOENIX,
         "\"",

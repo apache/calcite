@@ -19,22 +19,23 @@ package org.apache.calcite.sql.dialect;
 import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.sql.SqlDialect;
 
-import java.sql.DatabaseMetaData;
-
 /**
  * A <code>SqlDialect</code> implementation for the Redshift database.
  */
 public class RedshiftSqlDialect extends SqlDialect {
   public static final SqlDialect DEFAULT = new RedshiftSqlDialect();
 
-  public RedshiftSqlDialect(DatabaseMetaData databaseMetaData) {
+  @SuppressWarnings("deprecation") public RedshiftSqlDialect(
+      String databaseProduct, String databaseVersion,
+      String identifierQuoteString, NullCollation nullCollation) {
     super(
         DatabaseProduct.REDSHIFT,
-        databaseMetaData
+        identifierQuoteString,
+        nullCollation
     );
   }
 
-  private RedshiftSqlDialect() {
+  @SuppressWarnings("deprecation") private RedshiftSqlDialect() {
     super(
         DatabaseProduct.REDSHIFT,
         "\"",

@@ -19,19 +19,19 @@ package org.apache.calcite.sql.dialect;
 import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.sql.SqlDialect;
 
-import java.sql.DatabaseMetaData;
-
 /**
  * A <code>SqlDialect</code> implementation for the Teradata database.
  */
 public class TeradataSqlDialect extends SqlDialect {
   public static final SqlDialect DEFAULT = new TeradataSqlDialect();
 
-  public TeradataSqlDialect(DatabaseMetaData databaseMetaData) {
-    super(DatabaseProduct.TERADATA, databaseMetaData);
+  @SuppressWarnings("deprecation") public TeradataSqlDialect(
+      String databaseProduct, String databaseVersion,
+      String identifierQuoteString, NullCollation nullCollation) {
+    super(DatabaseProduct.TERADATA, identifierQuoteString, nullCollation);
   }
 
-  private TeradataSqlDialect() {
+  @SuppressWarnings("deprecation") private TeradataSqlDialect() {
     super(DatabaseProduct.TERADATA, "\"", NullCollation.HIGH);
   }
 }

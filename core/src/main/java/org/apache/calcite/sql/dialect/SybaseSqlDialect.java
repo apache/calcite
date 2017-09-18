@@ -19,19 +19,19 @@ package org.apache.calcite.sql.dialect;
 import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.sql.SqlDialect;
 
-import java.sql.DatabaseMetaData;
-
 /**
  * A <code>SqlDialect</code> implementation for the Sybase database.
  */
 public class SybaseSqlDialect extends SqlDialect {
   public static final SqlDialect DEFAULT = new SybaseSqlDialect();
 
-  public SybaseSqlDialect(DatabaseMetaData databaseMetaData) {
-    super(DatabaseProduct.SYBASE, databaseMetaData);
+  @SuppressWarnings("deprecation") public SybaseSqlDialect(
+      String databaseProduct, String databaseVersion,
+      String identifierQuoteString, NullCollation nullCollation) {
+    super(DatabaseProduct.SYBASE, identifierQuoteString, nullCollation);
   }
 
-  private SybaseSqlDialect() {
+  @SuppressWarnings("deprecation") private SybaseSqlDialect() {
     super(DatabaseProduct.SYBASE, null, NullCollation.HIGH);
   }
 }

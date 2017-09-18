@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.sql;
 
+import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.sql.dialect.AccessSqlDialect;
 import org.apache.calcite.sql.dialect.AnsiSqlDialect;
 import org.apache.calcite.sql.dialect.Db2SqlDialect;
@@ -56,70 +57,126 @@ public class SqlDialectFactoryImpl implements SqlDialectFactory {
    */
   public SqlDialect create(DatabaseMetaData databaseMetaData) {
     String databaseProductName;
+    String databaseVersion;
     try {
       databaseProductName = databaseMetaData.getDatabaseProductName();
+      databaseVersion = databaseMetaData.getDatabaseProductVersion();
     } catch (SQLException e) {
       throw new RuntimeException("while detecting database product", e);
     }
     final String upperProductName =
         databaseProductName.toUpperCase(Locale.ROOT).trim();
+    String quoteString = getIdentifierQuoteString(databaseMetaData);
+    NullCollation nullCollation = getNullCollation(databaseMetaData);
     switch (upperProductName) {
     case "ACCESS":
-      return new AccessSqlDialect(databaseMetaData);
+      return new AccessSqlDialect(databaseProductName, databaseVersion,
+          quoteString, nullCollation);
     case "APACHE DERBY":
-      return new DerbySqlDialect(databaseMetaData);
+      return new DerbySqlDialect(databaseProductName, databaseVersion,
+          quoteString, nullCollation);
     case "DBMS:CLOUDSCAPE":
-      return new DerbySqlDialect(databaseMetaData);
+      return new DerbySqlDialect(databaseProductName, databaseVersion,
+          quoteString, nullCollation);
     case "HIVE":
-      return new HiveSqlDialect(databaseMetaData);
+      return new HiveSqlDialect(databaseProductName, databaseVersion,
+          quoteString, nullCollation);
     case "INGRES":
-      return new IngressSqlDialect(databaseMetaData);
+      return new IngressSqlDialect(databaseProductName, databaseVersion,
+          quoteString, nullCollation);
     case "INTERBASE":
-      return new InterbaseSqlDialect(databaseMetaData);
+      return new InterbaseSqlDialect(databaseProductName, databaseVersion,
+          quoteString, nullCollation);
     case "LUCIDDB":
-      return new LucidbSqlDialect(databaseMetaData);
+      return new LucidbSqlDialect(databaseProductName, databaseVersion,
+          quoteString, nullCollation);
     case "ORACLE":
-      return new OracleSqlDialect(databaseMetaData);
+      return new OracleSqlDialect(databaseProductName, databaseVersion,
+          quoteString, nullCollation);
     case "PHOENIX":
-      return new PhoenixSqlDialect(databaseMetaData);
+      return new PhoenixSqlDialect(databaseProductName, databaseVersion,
+          quoteString, nullCollation);
     case "MYSQL (INFOBRIGHT)":
-      return new InfobrightSqlDialect(databaseMetaData);
+      return new InfobrightSqlDialect(databaseProductName, databaseVersion,
+          quoteString, nullCollation);
     case "MYSQL":
-      return new MysqlSqlDialect(databaseMetaData);
+      return new MysqlSqlDialect(databaseProductName, databaseVersion,
+          quoteString, nullCollation);
     case "REDSHIFT":
-      return new RedshiftSqlDialect(databaseMetaData);
+      return new RedshiftSqlDialect(databaseProductName, databaseVersion,
+          quoteString, nullCollation);
     }
     // Now the fuzzy matches.
     if (databaseProductName.startsWith("DB2")) {
-      return new Db2SqlDialect(databaseMetaData);
+      return new Db2SqlDialect(databaseProductName, databaseVersion,
+          quoteString, nullCollation);
     } else if (upperProductName.contains("FIREBIRD")) {
-      return new FirebirdSqlDialect(databaseMetaData);
+      return new FirebirdSqlDialect(databaseProductName, databaseVersion,
+          quoteString, nullCollation);
     } else if (databaseProductName.startsWith("Informix")) {
-      return new InformixSqlDialect(databaseMetaData);
+      return new InformixSqlDialect(databaseProductName, databaseVersion,
+          quoteString, nullCollation);
     } else if (upperProductName.contains("NETEZZA")) {
-      return new NetezzaSqlDialect(databaseMetaData);
+      return new NetezzaSqlDialect(databaseProductName, databaseVersion,
+          quoteString, nullCollation);
     } else if (upperProductName.contains("PARACCEL")) {
-      return new ParaccelSqlDialect(databaseMetaData);
+      return new ParaccelSqlDialect(databaseProductName, databaseVersion,
+          quoteString, nullCollation);
     } else if (databaseProductName.startsWith("HP Neoview")) {
-      return new NeoviewSqlDialect(databaseMetaData);
+      return new NeoviewSqlDialect(databaseProductName, databaseVersion,
+          quoteString, nullCollation);
     } else if (upperProductName.contains("POSTGRE")) {
-      return new PostgresqlSqlDialect(databaseMetaData);
+      return new PostgresqlSqlDialect(databaseProductName, databaseVersion,
+          quoteString, nullCollation);
     } else if (upperProductName.contains("SQL SERVER")) {
-      return new MssqlSqlDialect(databaseMetaData);
+      return new MssqlSqlDialect(databaseProductName, databaseVersion,
+          quoteString, nullCollation);
     } else if (upperProductName.contains("SYBASE")) {
-      return new SybaseSqlDialect(databaseMetaData);
+      return new SybaseSqlDialect(databaseProductName, databaseVersion,
+          quoteString, nullCollation);
     } else if (upperProductName.contains("TERADATA")) {
-      return new TeradataSqlDialect(databaseMetaData);
+      return new TeradataSqlDialect(databaseProductName, databaseVersion,
+          quoteString, nullCollation);
     } else if (upperProductName.contains("HSQL")) {
-      return new HsqldbSqlDialect(databaseMetaData);
+      return new HsqldbSqlDialect(databaseProductName, databaseVersion,
+          quoteString, nullCollation);
     } else if (upperProductName.contains("H2")) {
-      return new H2SqlDialect(databaseMetaData);
+      return new H2SqlDialect(databaseProductName, databaseVersion,
+          quoteString, nullCollation);
     } else if (upperProductName.contains("VERTICA")) {
-      return new VerticaSqlDialect(databaseMetaData);
+      return new VerticaSqlDialect(databaseProductName, databaseVersion,
+          quoteString, nullCollation);
     } else {
-      return new AnsiSqlDialect(databaseMetaData);
+      return new AnsiSqlDialect(databaseProductName, databaseVersion,
+          quoteString, nullCollation);
     }
 
+  }
+
+  protected static NullCollation getNullCollation(DatabaseMetaData databaseMetaData) {
+    try {
+      if (databaseMetaData.nullsAreSortedAtEnd()) {
+        return NullCollation.LAST;
+      } else if (databaseMetaData.nullsAreSortedAtStart()) {
+        return NullCollation.FIRST;
+      } else if (databaseMetaData.nullsAreSortedLow()) {
+        return NullCollation.LOW;
+      } else if (databaseMetaData.nullsAreSortedHigh()) {
+        return NullCollation.HIGH;
+      } else {
+        throw new IllegalArgumentException("cannot deduce null collation");
+      }
+    } catch (SQLException e) {
+      throw new IllegalArgumentException("cannot deduce null collation", e);
+    }
+  }
+
+  protected static String getIdentifierQuoteString(DatabaseMetaData databaseMetaData) {
+    try {
+      return databaseMetaData.getIdentifierQuoteString();
+    } catch (SQLException e) {
+      throw new IllegalArgumentException("cannot deduce identifier quote string", e);
+    }
   }
 
 }

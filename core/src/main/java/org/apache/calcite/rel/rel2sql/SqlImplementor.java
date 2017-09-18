@@ -1088,7 +1088,9 @@ public abstract class SqlImplementor {
     public void addOrderItem(List<SqlNode> orderByList,
         RelFieldCollation field) {
       if (field.nullDirection != RelFieldCollation.NullDirection.UNSPECIFIED) {
-        SqlNode nullDirectionNode = dialect.emulateNullDirection(context, field);
+        boolean first = field.nullDirection == RelFieldCollation.NullDirection.FIRST;
+        SqlNode nullDirectionNode = dialect.emulateNullDirection(
+            context.field(field.getFieldIndex()), first);
         if (nullDirectionNode != null) {
           orderByList.add(nullDirectionNode);
           field = new RelFieldCollation(field.getFieldIndex(),

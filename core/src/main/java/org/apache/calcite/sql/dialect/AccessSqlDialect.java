@@ -19,8 +19,6 @@ package org.apache.calcite.sql.dialect;
 import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.sql.SqlDialect;
 
-import java.sql.DatabaseMetaData;
-
 /**
  * A <code>SqlDialect</code> implementation for the Access database.
  */
@@ -28,11 +26,13 @@ public class AccessSqlDialect extends SqlDialect {
 
   public static final SqlDialect DEFAULT = new AccessSqlDialect();
 
-  public AccessSqlDialect(DatabaseMetaData databaseMetaData) {
-    super(DatabaseProduct.ACCESS, databaseMetaData);
+  @SuppressWarnings("deprecation") public AccessSqlDialect(
+      String databaseProduct, String databaseVersion,
+      String identifierQuoteString, NullCollation nullCollation) {
+    super(DatabaseProduct.ACCESS, identifierQuoteString, nullCollation);
   }
 
-  private AccessSqlDialect() {
+  @SuppressWarnings("deprecation") private AccessSqlDialect() {
     super(DatabaseProduct.ACCESS, "\"", NullCollation.HIGH);
   }
 }

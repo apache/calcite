@@ -19,19 +19,19 @@ package org.apache.calcite.sql.dialect;
 import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.sql.SqlDialect;
 
-import java.sql.DatabaseMetaData;
-
 /**
  * A <code>SqlDialect</code> implementation for the Interbase database.
  */
 public class InterbaseSqlDialect extends SqlDialect {
   public static final SqlDialect DEFAULT = new InterbaseSqlDialect();
 
-  public InterbaseSqlDialect(DatabaseMetaData databaseMetaData) {
-    super(DatabaseProduct.INTERBASE, databaseMetaData);
+  @SuppressWarnings("deprecation") public InterbaseSqlDialect(
+      String databaseProduct, String databaseVersion,
+      String identifierQuoteString, NullCollation nullCollation) {
+    super(DatabaseProduct.INTERBASE, identifierQuoteString, nullCollation);
   }
 
-  private InterbaseSqlDialect() {
+  @SuppressWarnings("deprecation") private InterbaseSqlDialect() {
     super(DatabaseProduct.INTERBASE, null, NullCollation.HIGH);
   }
 }

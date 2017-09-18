@@ -24,22 +24,23 @@ import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.fun.SqlFloorFunction;
 
-import java.sql.DatabaseMetaData;
-
 /**
  * A <code>SqlDialect</code> implementation for the Postgresql database.
  */
 public class PostgresqlSqlDialect extends SqlDialect {
   public static final SqlDialect DEFAULT = new PostgresqlSqlDialect();
 
-  public PostgresqlSqlDialect(DatabaseMetaData databaseMetaData) {
+  @SuppressWarnings("deprecation") public PostgresqlSqlDialect(
+      String databaseProduct, String databaseVersion,
+      String identifierQuoteString, NullCollation nullCollation) {
     super(
         DatabaseProduct.POSTGRESQL,
-        databaseMetaData
+        identifierQuoteString,
+        nullCollation
     );
   }
 
-  private PostgresqlSqlDialect() {
+  @SuppressWarnings("deprecation") private PostgresqlSqlDialect() {
     super(
         DatabaseProduct.POSTGRESQL,
         "\"",

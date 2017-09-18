@@ -19,19 +19,19 @@ package org.apache.calcite.sql.dialect;
 import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.sql.SqlDialect;
 
-import java.sql.DatabaseMetaData;
-
 /**
  * A <code>SqlDialect</code> implementation for the Vertica database.
  */
 public class VerticaSqlDialect extends SqlDialect {
   public static final SqlDialect DEFAULT = new VerticaSqlDialect();
 
-  public VerticaSqlDialect(DatabaseMetaData databaseMetaData) {
-    super(DatabaseProduct.VERTICA, databaseMetaData);
+  @SuppressWarnings("deprecation") public VerticaSqlDialect(
+      String databaseProduct, String databaseVersion,
+      String identifierQuoteString, NullCollation nullCollation) {
+    super(DatabaseProduct.VERTICA, identifierQuoteString, nullCollation);
   }
 
-  private VerticaSqlDialect() {
+  @SuppressWarnings("deprecation") private VerticaSqlDialect() {
     super(DatabaseProduct.VERTICA, "\"", NullCollation.HIGH);
   }
 }
