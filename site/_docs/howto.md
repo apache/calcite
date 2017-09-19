@@ -436,6 +436,9 @@ Before you start:
 * Make sure build and tests succeed, including with `-P it,it-oracle`.
 * Make sure that `mvn javadoc:javadoc javadoc:test-javadoc` succeeds
   (i.e. gives no errors; warnings are OK)
+* Generate a report of vulnerabilities that occur among dependencies,
+  using `-Ppedantic`; if you like, run again with `-DfailBuildOnCVSS=8` to see
+  whether serious vulnerabilities exist.
 * Make sure that `mvn apache-rat:check` succeeds. (It will be run as part of
   the release, but it's better to trouble-shoot early.)
 * Decide the supported configurations of JDK, operating system and
