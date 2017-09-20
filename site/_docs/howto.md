@@ -492,20 +492,23 @@ git clean -xn
 mvn clean
 
 # Do a dry run of the release:prepare step, which sets version numbers
+# (accept the default tag name of calcite-X.Y.Z)
 mvn -DdryRun=true -DskipTests -DreleaseVersion=X.Y.Z -DdevelopmentVersion=X.Y+1.Z-SNAPSHOT -Papache-release -Darguments="-Dgpg.passphrase=${GPG_PASSPHRASE}" release:prepare 2>&1 | tee /tmp/prepare-dry.log
 {% endhighlight %}
 
-Check the artifacts:
+Check the artifacts.
+Note that when performing the dry run `SNAPSHOT` will appear in any file or directory names given below.
+The version will be automatically changed when performing the release for real.
 
 * In the `target` directory should be these 8 files, among others:
   * apache-calcite-X.Y.Z-src.tar.gz
   * apache-calcite-X.Y.Z-src.tar.gz.asc
   * apache-calcite-X.Y.Z-src.tar.gz.md5
-  * apache-calcite-X.Y.Z-src.tar.gz.sha1
+  * apache-calcite-X.Y.Z-src.tar.gz.sha256
   * apache-calcite-X.Y.Z-src.zip
   * apache-calcite-X.Y.Z-src.zip.asc
   * apache-calcite-X.Y.Z-src.zip.md5
-  * apache-calcite-X.Y.Z-src.zip.sha1
+  * apache-calcite-X.Y.Z-src.zip.sha256
 * Note that the file names start `apache-calcite-`.
 * In the two source distros `.tar.gz` and `.zip` (currently there is
   no binary distro), check that all files belong to a directory called
@@ -526,6 +529,7 @@ Check the artifacts:
 * Check PGP, per [this](https://httpd.apache.org/dev/verification.html)
 
 Now, remove the `-DdryRun` flag and run the release for real.
+For this step you'll have to add the [Apache servers](https://maven.apache.org/developers/committer-settings.html) to `~/.m2/settings.xml`.
 
 {% highlight bash %}
 # Prepare sets the version numbers, creates a tag, and pushes it to git
