@@ -1439,17 +1439,11 @@ public class RelMetadataTest extends SqlToRelTestBase {
   }
 
   @Test public void testPullUpPredicatesForExprsItr() {
-    final String sql = "select a.EMPNO, a.ENAME from sales.emp a\n"
-        + " join (select * from sales.emp where comm < 3 or mgr >3) b\n"
-        + "on a.empno = b.deptno and a.comm = b.comm and a.mgr=b.mgr";
+    final String sql = "select a.EMPNO, a.ENAME from (select * from sales.emp ) a join (select * from sales.emp  ) b on a.empno = b.deptno and a.comm = b.comm and a.mgr=b.mgr and (a.empno < 10 or a.comm < 3 or a.deptno < 10 or a.job ='abc' or a.ename='abc' or a.sal='30' or a.mgr >3 or a.slacker is not null  or a.HIREDATE is not null or b.empno < 9 or b.comm < 3 or b.deptno < 10 or b.job ='abc' or b.ename='abc' or b.sal='30' or b.mgr >3 or b.slacker ) join emp c on b.mgr =a.mgr and a.empno =b.deptno and a.comm=b.comm and a.deptno=b.deptno and a.job=b.job and a.ename=b.ename and a.mgr=b.deptno and a.slacker=b.slacker";
     final RelNode rel = convertSql(sql);
     final RelMetadataQuery mq = RelMetadataQuery.instance();
     RelOptPredicateList inputSet = mq.getPulledUpPredicates(rel.getInput(0));
-    ImmutableList<RexNode> pulledUpPredicates = inputSet.pulledUpPredicates;
-    assertThat(pulledUpPredicates,
-        sortsAs("[=($0, $16), =($3, $12),"
-            + " =($6, $15), OR(<($15, 3), >($12, 3)), OR(<($15, 3), >($3, 3)),"
-            + " OR(<($6, 3), >($12, 3)), OR(<($6, 3), >($3, 3))]"));
+    assertThat(inputSet.pulledUpPredicates.size(), is(131072));
   }
 
   @Test public void testPullUpPredicatesOnConstant() {
