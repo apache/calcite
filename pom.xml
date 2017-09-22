@@ -46,6 +46,8 @@ limitations under the License.
   </mailingLists>
 
   <properties>
+    <surefire.parallel>both</surefire.parallel>
+
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <top.dir>${project.basedir}</top.dir>
     <version.major>1</version.major>
@@ -817,7 +819,7 @@ limitations under the License.
           <configuration>
             <threadCount>1</threadCount>
             <perCoreThreadCount>true</perCoreThreadCount>
-            <parallel>both</parallel>
+            <parallel>${surefire.parallel}</parallel>
             <forkMode>once</forkMode>
             <systemProperties>
               <systemProperty>
