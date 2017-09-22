@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.rel;
 
+import org.apache.calcite.plan.RelMultipleTrait;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelTrait;
 import org.apache.calcite.util.ImmutableIntList;
@@ -82,6 +83,8 @@ public class RelDistributions {
 
   /** Implementation of {@link org.apache.calcite.rel.RelDistribution}. */
   private static class RelDistributionImpl implements RelDistribution {
+    private static final Ordering<Iterable<Integer>> ORDERING =
+        Ordering.<Integer>natural().lexicographical();
     private final Type type;
     private final ImmutableIntList keys;
 
@@ -169,6 +172,21 @@ public class RelDistributions {
     }
 
     public void register(RelOptPlanner planner) {
+    }
+
+    @Override public boolean isTop() {
+      return type == Type.ANY;
+    }
+
+    @Override public int compareTo(@Nonnull RelMultipleTrait o) {
+      final RelDistribution distribution = (RelDistribution) o;
+      if (type == distribution.getType()
+          && (type == Type.HASH_DISTRIBUTED
+              || type == Type.RANGE_DISTRIBUTED)) {
+        return ORDERING.compare(getKeys(), distribution.getKeys());
+      }
+
+      return type.compareTo(distribution.getType());
     }
   }
 }

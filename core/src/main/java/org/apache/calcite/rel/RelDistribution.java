@@ -16,7 +16,7 @@
  */
 package org.apache.calcite.rel;
 
-import org.apache.calcite.plan.RelTrait;
+import org.apache.calcite.plan.RelMultipleTrait;
 import org.apache.calcite.util.mapping.Mappings;
 
 import java.util.List;
@@ -35,7 +35,7 @@ import javax.annotation.Nonnull;
  *       registered with the planner that are not trait-defs.
  * </ul>
  */
-public interface RelDistribution extends RelTrait {
+public interface RelDistribution extends RelMultipleTrait {
   /** Returns the type of distribution. */
   @Nonnull Type getType();
 
