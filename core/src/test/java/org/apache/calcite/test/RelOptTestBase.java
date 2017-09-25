@@ -27,8 +27,11 @@ import org.apache.calcite.rel.RelRoot;
 import org.apache.calcite.rel.metadata.ChainedRelMetadataProvider;
 import org.apache.calcite.rel.metadata.DefaultRelMetadataProvider;
 import org.apache.calcite.rel.metadata.RelMetadataProvider;
+import org.apache.calcite.rel.rel2sql.RelToSqlConverter;
 import org.apache.calcite.runtime.FlatLists;
 import org.apache.calcite.runtime.Hook;
+import org.apache.calcite.sql.SqlDialect;
+import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql2rel.RelDecorrelator;
 import org.apache.calcite.util.Closer;
 
@@ -36,6 +39,7 @@ import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
+import org.apache.calcite.util.Util;
 
 import java.util.List;
 import java.util.Map;
@@ -161,6 +165,9 @@ abstract class RelOptTestBase extends SqlToRelTestBase {
     diffRepos.assertEquals("planBefore", "${planBefore}", planBefore);
     SqlToRelTestBase.assertValid(relBefore);
 
+    System.out.println("Input SQL:");
+    System.out.println(sql);
+
     planner.setRoot(relBefore);
     RelNode r = planner.findBestExp();
     if (tester.isLateDecorrelate()) {
@@ -180,6 +187,14 @@ abstract class RelOptTestBase extends SqlToRelTestBase {
       }
     }
     SqlToRelTestBase.assertValid(r);
+
+    final SqlDialect dialect = SqlDialect.DatabaseProduct.DB2.getDialect();
+    final RelToSqlConverter converter =
+            new RelToSqlConverter(dialect);
+    final SqlNode sqlNode = converter.visitChild(0, r).asStatement();
+    System.out.println("plan after:");
+    System.out.println(Util.toLinux(sqlNode.toSqlString(dialect).getSql()));
+
   }
 
   /** Sets the SQL statement for a test. */
