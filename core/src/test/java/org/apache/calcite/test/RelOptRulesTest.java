@@ -2618,6 +2618,14 @@ public class RelOptRulesTest extends RelOptTestBase {
     transitiveInference(ReduceExpressionsRule.FILTER_INSTANCE);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1995">[CALCITE-1995]
+   * Remove predicates from Filter if they can be proved to be always true or
+   * false</a>. */
+  @Test public void testSimplifyFilter() throws Exception {
+    transitiveInference(ReduceExpressionsRule.FILTER_INSTANCE);
+  }
+
   @Test public void testPullConstantIntoJoin() throws Exception {
     transitiveInference(ReduceExpressionsRule.JOIN_INSTANCE);
   }

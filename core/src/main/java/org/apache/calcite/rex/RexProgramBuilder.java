@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.rex;
 
+import org.apache.calcite.plan.RelOptPredicateList;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
@@ -323,7 +324,10 @@ public class RexProgramBuilder {
    *              sub-expression exists.
    */
   private RexLocalRef registerInternal(RexNode expr, boolean force) {
-    expr = new RexSimplify(rexBuilder, false, RexUtil.EXECUTOR).simplify(expr);
+    final RexSimplify simplify =
+        new RexSimplify(rexBuilder, RelOptPredicateList.EMPTY, false,
+            RexUtil.EXECUTOR);
+    expr = simplify.simplify(expr);
 
     RexLocalRef ref;
     final Pair<String, String> key;
@@ -543,10 +547,14 @@ public class RexProgramBuilder {
       final RexNode condition,
       final RelDataType outputRowType,
       boolean normalize,
-      boolean simplify) {
+      boolean simplify_) {
+    RexSimplify simplify = null;
+    if (simplify_) {
+      simplify = new RexSimplify(rexBuilder, RelOptPredicateList.EMPTY, false,
+          RexUtil.EXECUTOR);
+    }
     return new RexProgramBuilder(rexBuilder, inputRowType, exprList,
-        projectList, condition, outputRowType, normalize,
-        simplify ? new RexSimplify(rexBuilder, false, RexUtil.EXECUTOR) : null);
+        projectList, condition, outputRowType, normalize, simplify);
   }
 
   @Deprecated // to be removed before 2.0

@@ -21,6 +21,7 @@ import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.avatica.util.ByteString;
 import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
 import org.apache.calcite.linq4j.QueryProvider;
+import org.apache.calcite.plan.RelOptPredicateList;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.Strong;
 import org.apache.calcite.rel.type.RelDataType;
@@ -109,7 +110,8 @@ public class RexProgramTest {
     rexBuilder = new RexBuilder(typeFactory);
     RexExecutor executor =
         new RexExecutorImpl(new DummyTestDataContext());
-    simplify = new RexSimplify(rexBuilder, false, executor);
+    simplify =
+        new RexSimplify(rexBuilder, RelOptPredicateList.EMPTY, false, executor);
     trueLiteral = rexBuilder.makeLiteral(true);
     falseLiteral = rexBuilder.makeLiteral(false);
     final RelDataType intType = typeFactory.createSqlType(SqlTypeName.INTEGER);
@@ -194,6 +196,13 @@ public class RexProgramTest {
 
   private void checkSimplifyFilter(RexNode node, String expected) {
     assertThat(simplify.withUnknownAsFalse(true).simplify(node).toString(),
+        equalTo(expected));
+  }
+
+  private void checkSimplifyFilter(RexNode node, RelOptPredicateList predicates,
+      String expected) {
+    assertThat(simplify.withUnknownAsFalse(true).withPredicates(predicates)
+            .simplify(node).toString(),
         equalTo(expected));
   }
 
@@ -1278,8 +1287,8 @@ public class RexProgramTest {
     final RexNode cRef = rexBuilder.makeFieldAccess(range, 2);
     final RexNode dRef = rexBuilder.makeFieldAccess(range, 3);
     final RexLiteral literal1 = rexBuilder.makeExactLiteral(BigDecimal.ONE);
+    final RexLiteral literal5 = rexBuilder.makeExactLiteral(new BigDecimal(5));
     final RexLiteral literal10 = rexBuilder.makeExactLiteral(BigDecimal.TEN);
-
 
     // condition, and the inverse
     checkSimplifyFilter(and(le(aRef, literal1), gt(aRef, literal1)),
@@ -1307,6 +1316,11 @@ public class RexProgramTest {
     checkSimplifyFilter(and(gt(aRef, literal10), ge(bRef, literal1), lt(aRef, literal10)),
         "false");
 
+    // one "and" containing three "or"s
+    checkSimplifyFilter(
+        or(gt(aRef, literal10), gt(bRef, literal1), gt(aRef, literal10)),
+        "OR(>(?0.a, 10), >(?0.b, 1))");
+
     // case: trailing false and null, remove
     checkSimplifyFilter(
         case_(aRef, trueLiteral, bRef, trueLiteral, cRef, falseLiteral, dRef, falseLiteral,
@@ -1314,6 +1328,65 @@ public class RexProgramTest {
 
     // condition with null value for range
     checkSimplifyFilter(and(gt(aRef, unknownLiteral), ge(bRef, literal1)), "false");
+
+    // range with no predicates;
+    // condition "a > 1 && a < 10 && a < 5" yields "a < 1 && a < 5"
+    checkSimplifyFilter(
+        and(gt(aRef, literal1), lt(aRef, literal10), lt(aRef, literal5)),
+        RelOptPredicateList.EMPTY,
+        "AND(>(?0.a, 1), <(?0.a, 5))");
+
+    // condition "a > 1 && a < 10 && a < 5"
+    // with pre-condition "a > 5"
+    // yields "false"
+    checkSimplifyFilter(
+        and(gt(aRef, literal1), lt(aRef, literal10), lt(aRef, literal5)),
+        RelOptPredicateList.of(rexBuilder,
+            ImmutableList.of(gt(aRef, literal5))),
+        "false");
+
+    // condition "a > 1 && a < 10 && a <= 5"
+    // with pre-condition "a >= 5"
+    // yields "a = 5"
+    // "a <= 5" would also be correct, just a little less concise.
+    checkSimplifyFilter(
+        and(gt(aRef, literal1), lt(aRef, literal10), le(aRef, literal5)),
+        RelOptPredicateList.of(rexBuilder,
+            ImmutableList.of(ge(aRef, literal5))),
+        "=(?0.a, 5)");
+
+    // condition "a > 1 && a < 10 && a < 5"
+    // with pre-condition "b < 10 && a > 5"
+    // yields "a > 1 and a < 5"
+    checkSimplifyFilter(
+        and(gt(aRef, literal1), lt(aRef, literal10), lt(aRef, literal5)),
+        RelOptPredicateList.of(rexBuilder,
+            ImmutableList.of(lt(bRef, literal10), ge(aRef, literal1))),
+        "AND(>(?0.a, 1), <(?0.a, 5))");
+
+    // condition "a > 1"
+    // with pre-condition "b < 10 && a > 5"
+    // yields "true"
+    checkSimplifyFilter(gt(aRef, literal1),
+        RelOptPredicateList.of(rexBuilder,
+            ImmutableList.of(lt(bRef, literal10), gt(aRef, literal5))),
+        "true");
+
+    // condition "a < 1"
+    // with pre-condition "b < 10 && a > 5"
+    // yields "false"
+    checkSimplifyFilter(lt(aRef, literal1),
+        RelOptPredicateList.of(rexBuilder,
+            ImmutableList.of(lt(bRef, literal10), gt(aRef, literal5))),
+        "false");
+
+    // condition "a > 5"
+    // with pre-condition "b < 10 && a >= 5"
+    // yields "a > 5"
+    checkSimplifyFilter(gt(aRef, literal5),
+        RelOptPredicateList.of(rexBuilder,
+            ImmutableList.of(lt(bRef, literal10), ge(aRef, literal5))),
+        ">(?0.a, 5)");
   }
 
   /** Unit test for
@@ -1794,7 +1867,8 @@ public class RexProgramTest {
   }
 
   private RexNode simplify(RexNode e) {
-    return new RexSimplify(rexBuilder, false, RexUtil.EXECUTOR).simplify(e);
+    return new RexSimplify(rexBuilder, RelOptPredicateList.EMPTY, false,
+        RexUtil.EXECUTOR).simplify(e);
   }
 }
 

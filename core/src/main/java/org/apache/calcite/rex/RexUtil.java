@@ -17,6 +17,7 @@
 package org.apache.calcite.rex;
 
 import org.apache.calcite.linq4j.function.Predicate1;
+import org.apache.calcite.plan.RelOptPredicateList;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollations;
@@ -1673,8 +1674,8 @@ public class RexUtil {
   @Deprecated // to be removed before 2.0
   public static RexNode simplifyPreservingType(RexBuilder rexBuilder,
       RexNode e) {
-    return new RexSimplify(rexBuilder, false, EXECUTOR)
-        .simplifyPreservingType(e);
+    return new RexSimplify(rexBuilder, RelOptPredicateList.EMPTY, false,
+        EXECUTOR).simplifyPreservingType(e);
   }
 
   /**
@@ -1686,8 +1687,8 @@ public class RexUtil {
    */
   @Deprecated // to be removed before 2.0
   public static RexNode simplify(RexBuilder rexBuilder, RexNode e) {
-    return new RexSimplify(rexBuilder, false, EXECUTOR)
-        .simplify(e);
+    return new RexSimplify(rexBuilder, RelOptPredicateList.EMPTY, false,
+        EXECUTOR).simplify(e);
   }
 
   /**
@@ -1717,8 +1718,8 @@ public class RexUtil {
   @Deprecated // to be removed before 2.0
   public static RexNode simplify(RexBuilder rexBuilder, RexNode e,
       boolean unknownAsFalse) {
-    return new RexSimplify(rexBuilder, unknownAsFalse, EXECUTOR)
-        .simplify(e);
+    return new RexSimplify(rexBuilder, RelOptPredicateList.EMPTY,
+        unknownAsFalse, EXECUTOR).simplify(e);
   }
 
   /**
@@ -1730,15 +1731,15 @@ public class RexUtil {
   @Deprecated // to be removed before 2.0
   public static RexNode simplifyAnds(RexBuilder rexBuilder,
       Iterable<? extends RexNode> nodes) {
-    return new RexSimplify(rexBuilder, false, EXECUTOR)
-        .simplifyAnds(nodes);
+    return new RexSimplify(rexBuilder, RelOptPredicateList.EMPTY, false,
+        EXECUTOR).simplifyAnds(nodes);
   }
 
   @Deprecated // to be removed before 2.0
   public static RexNode simplifyAnds(RexBuilder rexBuilder,
       Iterable<? extends RexNode> nodes, boolean unknownAsFalse) {
-    return new RexSimplify(rexBuilder, unknownAsFalse, EXECUTOR)
-        .simplifyAnds(nodes);
+    return new RexSimplify(rexBuilder, RelOptPredicateList.EMPTY,
+        unknownAsFalse, EXECUTOR).simplifyAnds(nodes);
   }
 
   /** Negates a logical expression by adding or removing a NOT. */
@@ -1788,22 +1789,23 @@ public class RexUtil {
   @Deprecated // to be removed before 2.0
   public static RexNode simplifyAnd(RexBuilder rexBuilder, RexCall e,
       boolean unknownAsFalse) {
-    return new RexSimplify(rexBuilder, unknownAsFalse, EXECUTOR)
-        .simplifyAnd(e);
+    return new RexSimplify(rexBuilder, RelOptPredicateList.EMPTY,
+        unknownAsFalse, EXECUTOR).simplifyAnd(e);
   }
 
   @Deprecated // to be removed before 2.0
   public static RexNode simplifyAnd2(RexBuilder rexBuilder,
       List<RexNode> terms, List<RexNode> notTerms) {
-    return new RexSimplify(rexBuilder, false, EXECUTOR)
-        .simplifyAnd2(terms, notTerms);
+    return new RexSimplify(rexBuilder, RelOptPredicateList.EMPTY, false,
+        EXECUTOR).simplifyAnd2(terms, notTerms);
   }
 
   @Deprecated // to be removed before 2.0
   public static RexNode simplifyAnd2ForUnknownAsFalse(RexBuilder rexBuilder,
       List<RexNode> terms, List<RexNode> notTerms) {
-    return new RexSimplify(rexBuilder, true, EXECUTOR)
-        .simplifyAnd2ForUnknownAsFalse(terms, notTerms);
+    final Class<Comparable> clazz = Comparable.class;
+    return new RexSimplify(rexBuilder, RelOptPredicateList.EMPTY, true,
+        EXECUTOR).simplifyAnd2ForUnknownAsFalse(terms, notTerms);
   }
 
   public static RexNode negate(RexBuilder rexBuilder, RexCall call) {
@@ -1836,15 +1838,15 @@ public class RexUtil {
 
   @Deprecated // to be removed before 2.0
   public static RexNode simplifyOr(RexBuilder rexBuilder, RexCall call) {
-    return new RexSimplify(rexBuilder, false, EXECUTOR)
-        .simplifyOr(call);
+    return new RexSimplify(rexBuilder, RelOptPredicateList.EMPTY, false,
+        EXECUTOR).simplifyOr(call);
   }
 
   @Deprecated // to be removed before 2.0
   public static RexNode simplifyOrs(RexBuilder rexBuilder,
       List<RexNode> terms) {
-    return new RexSimplify(rexBuilder, false, EXECUTOR)
-        .simplifyOrs(terms);
+    return new RexSimplify(rexBuilder, RelOptPredicateList.EMPTY, false,
+        EXECUTOR).simplifyOrs(terms);
   }
 
   /**

@@ -18,6 +18,7 @@ package org.apache.calcite.adapter.druid;
 
 import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptPredicateList;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptUtil;
@@ -197,7 +198,10 @@ public class DruidRules {
       final List<RexNode> nonValidPreds = new ArrayList<>();
       final RexExecutor executor =
           Util.first(cluster.getPlanner().getExecutor(), RexUtil.EXECUTOR);
-      final RexSimplify simplify = new RexSimplify(rexBuilder, true, executor);
+      final RelOptPredicateList predicates =
+          call.getMetadataQuery().getPulledUpPredicates(filter.getInput());
+      final RexSimplify simplify =
+          new RexSimplify(rexBuilder, predicates, true, executor);
       final RexNode cond = simplify.simplify(filter.getCondition());
       if (!canPush(cond)) {
         return;
@@ -646,7 +650,7 @@ public class DruidRules {
     public void onMatch(RelOptRuleCall call) {
       final Aggregate aggregate = call.rel(0);
       final Project project = call.rel(1);
-      DruidQuery query = call.rel(2);
+      final DruidQuery query = call.rel(2);
       if (!DruidQuery.isValidSignature(query.signature() + 'p' + 'a')) {
         return;
       }
@@ -681,13 +685,15 @@ public class DruidRules {
       final RelNode newAggregate = aggregate.copy(aggregate.getTraitSet(),
               ImmutableList.of(newProject));
 
+      final DruidQuery query2;
       if (filterRefs.size() > 0) {
-        query = optimizeFilteredAggregations(query, (Project) newProject,
-                (Aggregate) newAggregate);
+        query2 = optimizeFilteredAggregations(call, query, (Project) newProject,
+            (Aggregate) newAggregate);
       } else {
-        query = DruidQuery.extendQuery(DruidQuery.extendQuery(query, newProject), newAggregate);
+        final DruidQuery query1 = DruidQuery.extendQuery(query, newProject);
+        query2 = DruidQuery.extendQuery(query1, newAggregate);
       }
-      call.transformTo(query);
+      call.transformTo(query2);
     }
 
     /**
@@ -705,20 +711,33 @@ public class DruidRules {
     }
 
     /**
-     * Attempts to optimize any aggregations with filters in the DruidQuery by
-     * 1. Trying to abstract common filters out into the "filter" field
-     * 2. Eliminating expressions that are always true or always false when possible
-     * 3. ANDing aggregate filters together with the outer filter to allow for pruning of data
-     * Should be called before pushing both the aggregate and project into Druid.
-     * Assumes that at least one aggregate call has a filter attached to it
-     * */
-    private DruidQuery optimizeFilteredAggregations(DruidQuery query, Project project,
-                                                   Aggregate aggregate) {
+     * Attempts to optimize any aggregations with filters in the DruidQuery.
+     * Uses the following steps:
+     *
+     * <ol>
+     * <li>Tries to abstract common filters out into the "filter" field;
+     * <li>Eliminates expressions that are always true or always false when
+     *     possible;
+     * <li>ANDs aggregate filters together with the outer filter to allow for
+     *     pruning of data.
+     * </ol>
+     *
+     * <p>Should be called before pushing both the aggregate and project into
+     * Druid. Assumes that at least one aggregate call has a filter attached to
+     * it. */
+    private DruidQuery optimizeFilteredAggregations(RelOptRuleCall call,
+        DruidQuery query,
+        Project project, Aggregate aggregate) {
       Filter filter = null;
-      RexBuilder builder = query.getCluster().getRexBuilder();
+      final RexBuilder builder = query.getCluster().getRexBuilder();
       final RexExecutor executor =
-              Util.first(query.getCluster().getPlanner().getExecutor(), RexUtil.EXECUTOR);
-      RexSimplify simplifier = new RexSimplify(builder, true, executor);
+          Util.first(query.getCluster().getPlanner().getExecutor(),
+              RexUtil.EXECUTOR);
+      final RelNode scan = query.rels.get(0); // first rel is the table scan
+      final RelOptPredicateList predicates =
+          call.getMetadataQuery().getPulledUpPredicates(scan);
+      final RexSimplify simplify =
+          new RexSimplify(builder, predicates, true, executor);
 
       // if the druid query originally contained a filter
       boolean containsFilter = false;
@@ -748,14 +767,14 @@ public class DruidRules {
       RexNode filterNode = RexUtil.composeDisjunction(builder, disjunctions);
 
       // Erase references to filters
-      for (AggregateCall call : aggregate.getAggCallList()) {
-        int newFilterArg = call.filterArg;
-        if (!call.hasFilter()
+      for (AggregateCall aggCall : aggregate.getAggCallList()) {
+        int newFilterArg = aggCall.filterArg;
+        if (!aggCall.hasFilter()
                 || (uniqueFilterRefs.size() == 1 && allHaveFilters) // filters get extracted
                 || project.getProjects().get(newFilterArg).isAlwaysTrue()) {
           newFilterArg = -1;
         }
-        newCalls.add(call.copy(call.getArgList(), newFilterArg));
+        newCalls.add(aggCall.copy(aggCall.getArgList(), newFilterArg));
       }
       aggregate = aggregate.copy(aggregate.getTraitSet(), aggregate.getInput(),
               aggregate.indicator, aggregate.getGroupSet(), aggregate.getGroupSets(),
@@ -768,7 +787,7 @@ public class DruidRules {
 
       // Simplify the filter as much as possible
       RexNode tempFilterNode = filterNode;
-      filterNode = simplifier.simplify(filterNode);
+      filterNode = simplify.simplify(filterNode);
 
       // It's possible that after simplification that the expression is now always false.
       // Druid cannot handle such a filter.
@@ -782,7 +801,7 @@ public class DruidRules {
         filterNode = tempFilterNode;
       }
 
-      filter = LogicalFilter.create(query.rels.get(0), filterNode);
+      filter = LogicalFilter.create(scan, filterNode);
 
       boolean addNewFilter = !filter.getCondition().isAlwaysTrue() && allHaveFilters;
       // Assumes that Filter nodes are always right after

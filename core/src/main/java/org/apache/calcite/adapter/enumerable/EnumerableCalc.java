@@ -28,6 +28,7 @@ import org.apache.calcite.linq4j.tree.MemberDeclaration;
 import org.apache.calcite.linq4j.tree.ParameterExpression;
 import org.apache.calcite.linq4j.tree.Types;
 import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptPredicateList;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollationTraitDef;
@@ -150,8 +151,10 @@ public class EnumerableCalc extends Calc implements EnumerableRel {
             inputJavaType);
 
     final RexBuilder rexBuilder = getCluster().getRexBuilder();
+    final RelMetadataQuery mq = RelMetadataQuery.instance();
+    final RelOptPredicateList predicates = mq.getPulledUpPredicates(child);
     final RexSimplify simplify =
-        new RexSimplify(rexBuilder, false, RexUtil.EXECUTOR);
+        new RexSimplify(rexBuilder, predicates, false, RexUtil.EXECUTOR);
     final RexProgram program = this.program.normalize(rexBuilder, simplify);
 
     BlockStatement moveNextBody;

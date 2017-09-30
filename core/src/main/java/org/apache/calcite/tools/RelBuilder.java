@@ -20,6 +20,7 @@ import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.plan.Context;
 import org.apache.calcite.plan.Contexts;
 import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptPredicateList;
 import org.apache.calcite.plan.RelOptSchema;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelOptUtil;
@@ -184,9 +185,11 @@ public class RelBuilder {
     final RexExecutor executor =
         Util.first(context.unwrap(RexExecutor.class),
             Util.first(cluster.getPlanner().getExecutor(), RexUtil.EXECUTOR));
-    this.simplifier = new RexSimplify(cluster.getRexBuilder(), false, executor);
+    final RelOptPredicateList predicates = RelOptPredicateList.EMPTY;
+    this.simplifier =
+        new RexSimplify(cluster.getRexBuilder(), predicates, false, executor);
     this.simplifierUnknownAsFalse =
-        new RexSimplify(cluster.getRexBuilder(), true, executor);
+        new RexSimplify(cluster.getRexBuilder(), predicates, true, executor);
   }
 
   /** Creates a RelBuilder. */

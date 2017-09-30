@@ -19,6 +19,7 @@ package org.apache.calcite.test;
 import org.apache.calcite.DataContext;
 import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
 import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptPredicateList;
 import org.apache.calcite.plan.RelOptSchema;
 import org.apache.calcite.plan.RexImplicationChecker;
 import org.apache.calcite.rel.type.RelDataType;
@@ -431,7 +432,9 @@ public class RexImplicationCheckerTest {
           });
 
       executor = holder.get();
-      simplify = new RexSimplify(rexBuilder, false, executor);
+      simplify =
+          new RexSimplify(rexBuilder, RelOptPredicateList.EMPTY, false,
+              executor);
       checker = new RexImplicationChecker(rexBuilder, executor, rowType);
     }
 

@@ -20,6 +20,7 @@ import org.apache.calcite.adapter.java.ReflectiveSchema;
 import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
 import org.apache.calcite.materialize.MaterializationService;
 import org.apache.calcite.plan.RelOptPlanner;
+import org.apache.calcite.plan.RelOptPredicateList;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.SubstitutionVisitor;
@@ -118,7 +119,8 @@ public class MaterializationTest {
       new JavaTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
   private final RexBuilder rexBuilder = new RexBuilder(typeFactory);
   private final RexSimplify simplify =
-      new RexSimplify(rexBuilder, false, RexUtil.EXECUTOR);
+      new RexSimplify(rexBuilder, RelOptPredicateList.EMPTY, false,
+          RexUtil.EXECUTOR);
 
   @Test public void testScan() {
     CalciteAssert.that()

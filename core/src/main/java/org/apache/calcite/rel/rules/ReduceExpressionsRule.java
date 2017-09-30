@@ -461,7 +461,7 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
     final RexExecutor executor =
         Util.first(cluster.getPlanner().getExecutor(), RexUtil.EXECUTOR);
     final RexSimplify simplify =
-        new RexSimplify(rexBuilder, unknownAsFalse, executor);
+        new RexSimplify(rexBuilder, predicates, unknownAsFalse, executor);
 
     // Simplify predicates in place
     boolean reduced = reduceExpressionsInternal(rel, simplify, expList,
