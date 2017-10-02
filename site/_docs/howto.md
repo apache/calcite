@@ -782,11 +782,15 @@ svn ci
 The old releases will remain available in the
 [release archive](http://archive.apache.org/dist/calcite/).
 
+You should receive an email from the [Apache Reporter Service](https://reporter.apache.org/).
+Make sure to add the version number and date of the latest release at the site linked to in the email.
+
 Add a release note by copying
 [site/_posts/2016-10-12-release-1.10.0.md]({{ site.sourceRoot }}/site/_posts/2016-10-12-release-1.10.0.md),
-generate the javadoc using `mvn site` and copy to `site/target/apidocs` and `site/target/testapidocs`,
-[publish the site](#publish-the-web-site),
+generate the javadoc using `mvn site`, [publish the site](#publish-the-web-site),
 and check that it appears in the contents in [news](http://localhost:4000/news/).
+
+Merge the release branch back into `master` (e.g. `git merge --ff-only branch-X.Y`).
 
 After 24 hours, announce the release by sending an email to
 [announce@apache.org](https://mail-archives.apache.org/mod_mbox/www-announce/).
