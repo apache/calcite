@@ -1438,6 +1438,23 @@ public class RelMetadataTest extends SqlToRelTestBase {
     assertThat(pulledUpPredicates, sortsAs("[=($0, 1)]"));
   }
 
+  @Test public void testPullUpPredicatesForExprsItr() {
+    final String sql = "select a.EMPNO, a.ENAME from (select * from sales.emp )"
+        + " a join (select * from sales.emp  ) b on a.empno = b.deptno and"
+        + " a.comm = b.comm and a.mgr=b.mgr and (a.empno < 10 or a.comm < 3 "
+        + "or a.deptno < 10 or a.job ='abc' or a.ename='abc' or a.sal='30' or "
+        + "a.mgr >3 or a.slacker is not null  or a.HIREDATE is not null or"
+        + " b.empno < 9 or b.comm < 3 or b.deptno < 10 or b.job ='abc' or"
+        + " b.ename='abc' or b.sal='30' or b.mgr >3 or b.slacker ) join emp c "
+        + "on b.mgr =a.mgr and a.empno =b.deptno and a.comm=b.comm and "
+        + "a.deptno=b.deptno and a.job=b.job and a.ename=b.ename and "
+        + "a.mgr=b.deptno and a.slacker=b.slacker";
+    final RelNode rel = convertSql(sql);
+    final RelMetadataQuery mq = RelMetadataQuery.instance();
+    RelOptPredicateList inputSet = mq.getPulledUpPredicates(rel.getInput(0));
+    assertThat(inputSet.pulledUpPredicates.size(), is(131089));
+  }
+
   @Test public void testPullUpPredicatesOnConstant() {
     final String sql = "select deptno, mgr, x, 'y' as y, z from (\n"
         + "  select deptno, mgr, cast(null as integer) as x, cast('1' as int) as z\n"

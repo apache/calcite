@@ -827,7 +827,9 @@ public class RelMdPredicates
           if (level == 0) {
             nextMapping = null;
           } else {
-            iterationIdx[level] = 0;
+            int tmp = columnSets[level].nextSetBit(0);
+            nextMapping.set(columns[level], tmp);
+            iterationIdx[level] = tmp + 1;
             computeNextMapping(level - 1);
           }
         } else {
