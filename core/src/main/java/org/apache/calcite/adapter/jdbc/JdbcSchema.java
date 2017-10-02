@@ -32,6 +32,8 @@ import org.apache.calcite.schema.SchemaVersion;
 import org.apache.calcite.schema.Schemas;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.sql.SqlDialect;
+import org.apache.calcite.sql.SqlDialectFactory;
+import org.apache.calcite.sql.SqlDialectFactoryImpl;
 import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.Util;
@@ -102,9 +104,19 @@ public class JdbcSchema implements Schema {
       DataSource dataSource,
       String catalog,
       String schema) {
+    return create(parentSchema, name, dataSource, new SqlDialectFactoryImpl(), catalog, schema);
+  }
+
+  public static JdbcSchema create(
+      SchemaPlus parentSchema,
+      String name,
+      DataSource dataSource,
+      SqlDialectFactory dialectFactory,
+      String catalog,
+      String schema) {
     final Expression expression =
         Schemas.subSchemaExpression(parentSchema, name, JdbcSchema.class);
-    final SqlDialect dialect = createDialect(dataSource);
+    final SqlDialect dialect = createDialect(dialectFactory, dataSource);
     final JdbcConvention convention =
         JdbcConvention.of(dialect, expression, name);
     return new JdbcSchema(dataSource, dialect, convention, catalog, schema);
@@ -140,13 +152,33 @@ public class JdbcSchema implements Schema {
     }
     String jdbcCatalog = (String) operand.get("jdbcCatalog");
     String jdbcSchema = (String) operand.get("jdbcSchema");
-    return JdbcSchema.create(
-        parentSchema, name, dataSource, jdbcCatalog, jdbcSchema);
+    String sqlDialectFactory = (String) operand.get("sqlDialectFactory");
+
+    if (sqlDialectFactory == null || sqlDialectFactory.isEmpty()) {
+      return JdbcSchema.create(
+          parentSchema, name, dataSource, jdbcCatalog, jdbcSchema);
+    } else {
+      SqlDialectFactory factory = AvaticaUtils.instantiatePlugin(
+          SqlDialectFactory.class, sqlDialectFactory);
+      return JdbcSchema.create(
+          parentSchema, name, dataSource, factory, jdbcCatalog, jdbcSchema);
+    }
+  }
+
+  /**
+   * Returns a suitable SQL dialect for the given data source..
+   *
+   * @param dataSource The data source
+   * @deprecated Use {@link #createDialect(SqlDialectFactory, DataSource)} instead
+   */
+  @Deprecated
+  public static SqlDialect createDialect(DataSource dataSource) {
+    return createDialect(new SqlDialectFactoryImpl(), dataSource);
   }
 
   /** Returns a suitable SQL dialect for the given data source. */
-  public static SqlDialect createDialect(DataSource dataSource) {
-    return JdbcUtils.DialectPool.INSTANCE.get(dataSource);
+  public static SqlDialect createDialect(SqlDialectFactory dialectFactory, DataSource dataSource) {
+    return JdbcUtils.DialectPool.INSTANCE.get(dialectFactory, dataSource);
   }
 
   /** Creates a JDBC data source with the given specification. */

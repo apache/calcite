@@ -17,6 +17,8 @@
 package org.apache.calcite.sql.dialect;
 
 import org.apache.calcite.avatica.util.TimeUnitRange;
+import org.apache.calcite.config.NullCollation;
+import org.apache.calcite.sql.SqlAbstractDateTimeLiteral;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlFunction;
@@ -29,27 +31,45 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.ReturnTypes;
 
 /**
- * Defines how a SQL parse tree should be unparsed to SQL
- * for execution against a Microsoft SQL Server database.
- *
- * <p>It reverts to the unparse method of the operator
- * if this database's implementation is standard.
+ * A <code>SqlDialect</code> implementation for the Mssql database.
  */
-public class MssqlHandler extends SqlDialect.BaseHandler {
-  public static final MssqlHandler INSTANCE = new MssqlHandler();
-  public static final SqlFunction MSSQL_SUBSTRING =
+public class MssqlSqlDialect extends SqlDialect {
+  public static final SqlDialect DEFAULT = new MssqlSqlDialect();
+
+  private static final SqlFunction MSSQL_SUBSTRING =
       new SqlFunction("SUBSTRING", SqlKind.OTHER_FUNCTION,
           ReturnTypes.ARG0_NULLABLE_VARYING, null, null,
           SqlFunctionCategory.STRING);
 
-  @Override public void unparseCall(SqlWriter writer, SqlCall call,
+  @SuppressWarnings("deprecation") public MssqlSqlDialect(
+      String databaseProduct, String databaseVersion,
+      String identifierQuoteString, NullCollation nullCollation) {
+    super(
+        DatabaseProduct.MSSQL,
+        identifierQuoteString,
+        nullCollation
+    );
+  }
+
+  @SuppressWarnings("deprecation") private MssqlSqlDialect() {
+    super(
+        DatabaseProduct.MSSQL,
+        "[",
+        NullCollation.HIGH
+    );
+  }
+
+  @Override public void unparseDateTimeLiteral(SqlWriter writer, SqlAbstractDateTimeLiteral literal,
       int leftPrec, int rightPrec) {
+    writer.literal("'" + literal.toFormattedString() + "'");
+  }
+
+  @Override public void unparseCall(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
     if (call.getOperator() == SqlStdOperatorTable.SUBSTRING) {
       if (call.operandCount() != 3) {
         throw new IllegalArgumentException("MSSQL SUBSTRING requires FROM and FOR arguments");
       }
       SqlUtil.unparseFunctionSyntax(MSSQL_SUBSTRING, writer, call);
-
     } else {
       switch (call.getKind()) {
       case FLOOR:
@@ -125,4 +145,4 @@ public class MssqlHandler extends SqlDialect.BaseHandler {
   }
 }
 
-// End MssqlHandler.java
+// End MssqlSqlDialect.java

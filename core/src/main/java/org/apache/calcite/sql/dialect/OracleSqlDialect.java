@@ -17,6 +17,7 @@
 package org.apache.calcite.sql.dialect;
 
 import org.apache.calcite.avatica.util.TimeUnitRange;
+import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlLiteral;
@@ -27,20 +28,36 @@ import org.apache.calcite.sql.fun.SqlFloorFunction;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 
 /**
- * Defines how a SQL parse tree should be unparsed to SQL
- * for execution against an Oracle database.
- *
- * <p>It reverts to the unparse method of the operator
- * if this database's implementation is standard.
+ * A <code>SqlDialect</code> implementation for the Oracle database.
  */
-public class OracleHandler extends SqlDialect.BaseHandler {
-  public static final OracleHandler INSTANCE = new OracleHandler();
+public class OracleSqlDialect extends SqlDialect {
+  public static final SqlDialect DEFAULT = new OracleSqlDialect();
 
-  @Override public void unparseCall(SqlWriter writer, SqlCall call,
-      int leftPrec, int rightPrec) {
+  @SuppressWarnings("deprecation") public OracleSqlDialect(
+      String databaseProduct, String databaseVersion,
+      String identifierQuoteString, NullCollation nullCollation) {
+    super(DatabaseProduct.ORACLE, identifierQuoteString, nullCollation);
+  }
+
+  @SuppressWarnings("deprecation") private OracleSqlDialect() {
+    super(
+        DatabaseProduct.ORACLE,
+        "\"",
+        NullCollation.HIGH
+    );
+  }
+
+  @Override public boolean supportsCharSet() {
+    return false;
+  }
+
+  @Override protected boolean allowsAs() {
+    return false;
+  }
+
+  @Override public void unparseCall(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
     if (call.getOperator() == SqlStdOperatorTable.SUBSTRING) {
       SqlUtil.unparseFunctionSyntax(OracleSqlOperatorTable.SUBSTR, writer, call);
-
     } else {
       switch (call.getKind()) {
       case FLOOR:
@@ -64,4 +81,4 @@ public class OracleHandler extends SqlDialect.BaseHandler {
   }
 }
 
-// End OracleHandler.java
+// End OracleSqlDialect.java

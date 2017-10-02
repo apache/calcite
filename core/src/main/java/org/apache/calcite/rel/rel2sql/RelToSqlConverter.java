@@ -198,8 +198,8 @@ public class RelToSqlConverter extends SqlImplementor
     for (AggregateCall aggCall : e.getAggCallList()) {
       SqlNode aggCallSqlNode = builder.context.toSql(aggCall);
       if (aggCall.getAggregation() instanceof SqlSingleValueAggFunction) {
-        aggCallSqlNode =
-            rewriteSingleValueExpr(aggCallSqlNode, dialect);
+        aggCallSqlNode = dialect.
+            rewriteSingleValueExpr(aggCallSqlNode);
       }
       addSelect(selectList, aggCallSqlNode, e.getRowType());
     }
@@ -397,12 +397,15 @@ public class RelToSqlConverter extends SqlImplementor
     final List<SqlNode> orderBySqlList = new ArrayList<>();
     if (e.getOrderKeys() != null) {
       for (RelFieldCollation fc : e.getOrderKeys().getFieldCollations()) {
-        if (fc.nullDirection != RelFieldCollation.NullDirection.UNSPECIFIED
-            && dialect.getDatabaseProduct() == SqlDialect.DatabaseProduct.MYSQL) {
-          orderBySqlList.add(
-              ISNULL_FUNCTION.createCall(POS, context.field(fc.getFieldIndex())));
-          fc = new RelFieldCollation(fc.getFieldIndex(), fc.getDirection(),
-              RelFieldCollation.NullDirection.UNSPECIFIED);
+        if (fc.nullDirection != RelFieldCollation.NullDirection.UNSPECIFIED) {
+          boolean first = fc.nullDirection == RelFieldCollation.NullDirection.FIRST;
+          SqlNode nullDirectionNode = dialect.emulateNullDirection(
+              context.field(fc.getFieldIndex()), first);
+          if (nullDirectionNode != null) {
+            orderBySqlList.add(nullDirectionNode);
+            fc = new RelFieldCollation(fc.getFieldIndex(), fc.getDirection(),
+                RelFieldCollation.NullDirection.UNSPECIFIED);
+          }
         }
         orderBySqlList.add(context.toSql(fc));
       }
