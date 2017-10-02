@@ -82,7 +82,7 @@ other software versions as specified in `pom.xml`.
 
 #### Bug-fixes, API changes and minor enhancements
 
-* [<a href="https://issues.apache.org/jira/browse/<a href="https://issues.apache.org/jira/browse/CALCITE-1931">CALCITE-1931</a>">CALCITE-1931</a>] 
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1931">CALCITE-1931</a>]
   Change the return type of `RANK` and other aggregate functions.
   Various aggregate functions that used to return `INTEGER` now return other
   types: `RANK`, `DENSE_RANK`, and `NTILE` now return `BIGINT`;
