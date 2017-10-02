@@ -201,6 +201,12 @@ public class RelMdColumnUniqueness
     // references
 
     List<RexNode> projExprs = rel.getProjects();
+
+    // check that columns bit set represents indices inside projExprs else
+    // cannot determine uniqueness
+    if (projExprs.size() < columns.length()) {
+      return null;
+    }
     ImmutableBitSet.Builder childColumns = ImmutableBitSet.builder();
     for (int bit : columns) {
       RexNode projExpr = projExprs.get(bit);
