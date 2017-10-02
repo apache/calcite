@@ -33,6 +33,7 @@ import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.runtime.CalciteException;
 import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.sql.SqlMatchRecognize;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.type.SqlTypeName;
@@ -46,6 +47,7 @@ import org.apache.calcite.util.Util;
 import org.apache.calcite.util.mapping.Mappings;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 
@@ -53,7 +55,9 @@ import org.junit.Test;
 
 import java.sql.PreparedStatement;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.TreeSet;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
@@ -1816,6 +1820,126 @@ public class RelBuilderTest {
     } catch (IllegalArgumentException e) {
       assertThat(e.getMessage(), containsString("cannot derive type"));
     }
+  }
+
+  @Test public void testMatchRecognize() {
+    // Equivalent SQL:
+    //   SELECT *
+    //   FROM emp
+    //   MATCH_RECOGNIZE (
+    //     PARTITION BY deptno
+    //     ORDER BY empno asc
+    //     MEASURES
+    //       STRT.mgr as start_nw,
+    //       LAST(DOWN.mgr) as bottom_nw,
+    //     PATTERN (STRT DOWN+ UP+) WITHIN INTERVAL '5' SECOND
+    //     DEFINE
+    //       DOWN as DOWN.mgr < PREV(DOWN.mgr),
+    //       UP as UP.mgr > PREV(UP.mgr)
+    //   )
+    final RelBuilder builder = RelBuilder.create(config().build()).scan("EMP");
+
+    RexNode pattern = builder.getRexBuilder().makeCall(
+        builder.getTypeFactory().createSqlType(SqlTypeName.NULL),
+        SqlStdOperatorTable.PATTERN_CONCAT,
+        Arrays.asList(
+            builder.getRexBuilder().makeCall(
+                builder.getTypeFactory().createSqlType(SqlTypeName.NULL),
+                SqlStdOperatorTable.PATTERN_CONCAT,
+                Arrays.asList(
+                    builder.literal("STRT"),
+                    builder.getRexBuilder().makeCall(
+                        builder.getTypeFactory().createSqlType(SqlTypeName.NULL),
+                        SqlStdOperatorTable.PATTERN_QUANTIFIER,
+                        Arrays.asList(
+                            builder.literal("DOWN"),
+                            builder.literal(1),
+                            builder.literal(-1),
+                            builder.literal(false))
+                    ))
+            ),
+            builder.getRexBuilder().makeCall(
+                builder.getTypeFactory().createSqlType(SqlTypeName.NULL),
+                SqlStdOperatorTable.PATTERN_QUANTIFIER,
+                Arrays.asList(
+                    builder.literal("UP"),
+                    builder.literal(1),
+                    builder.literal(-1),
+                    builder.literal(false))
+            ))
+    );
+
+    ImmutableMap.Builder<String, RexNode> pdBuilder = new ImmutableMap.Builder<>();
+    RexNode downDefinition = builder.call(
+        SqlStdOperatorTable.LESS_THAN,
+        builder.call(
+            SqlStdOperatorTable.PREV,
+            builder.patternField(
+                "DOWN", builder.getTypeFactory().createSqlType(SqlTypeName.INTEGER), 3),
+            builder.literal(0)),
+        builder.call(
+            SqlStdOperatorTable.PREV,
+            builder.patternField(
+                "DOWN", builder.getTypeFactory().createSqlType(SqlTypeName.INTEGER), 3),
+            builder.literal(1))
+    );
+    pdBuilder.put("DOWN", downDefinition);
+    RexNode upDefinition = builder.call(
+        SqlStdOperatorTable.GREATER_THAN,
+        builder.call(
+            SqlStdOperatorTable.PREV,
+            builder.patternField(
+                "UP", builder.getTypeFactory().createSqlType(SqlTypeName.INTEGER), 3),
+            builder.literal(0)),
+        builder.call(
+            SqlStdOperatorTable.PREV,
+            builder.patternField(
+                "UP", builder.getTypeFactory().createSqlType(SqlTypeName.INTEGER), 3),
+            builder.literal(1))
+    );
+    pdBuilder.put("UP", upDefinition);
+
+    ImmutableList.Builder<RexNode> measuresBuilder = new ImmutableList.Builder<>();
+    measuresBuilder.add(
+        builder.alias(
+            builder.patternField(
+                "STRT", builder.getTypeFactory().createSqlType(SqlTypeName.INTEGER), 3),
+            "start_nw"));
+    measuresBuilder.add(
+        builder.alias(
+            builder.call(SqlStdOperatorTable.LAST,
+                builder.patternField(
+                    "DOWN", builder.getTypeFactory().createSqlType(SqlTypeName.INTEGER), 3),
+                builder.literal(0)),
+            "bottom_nw"));
+
+    RexNode after = builder.getRexBuilder().makeFlag(
+        SqlMatchRecognize.AfterOption.SKIP_TO_NEXT_ROW);
+
+    ImmutableList.Builder<RexNode> partitionKeysBuilder = new ImmutableList.Builder<>();
+    partitionKeysBuilder.add(builder.field("DEPTNO"));
+
+    ImmutableList.Builder<RexNode> orderKeysBuilder = new ImmutableList.Builder<>();
+    orderKeysBuilder.add(builder.field("EMPNO"));
+
+    RexNode interval = builder.literal("INTERVAL '5' SECOND");
+
+    final RelNode root = builder
+        .matchRecognize(pattern, false, false, pdBuilder.build(), measuresBuilder.build(),
+            after, new HashMap<String, TreeSet<String>>(0), false,
+            partitionKeysBuilder.build(), orderKeysBuilder.build(), interval)
+        .build();
+    final String expected =
+        "LogicalMatch(partition=[[$7]], order=[[0]], "
+        + "outputFields=[[$7, 'start_nw', 'bottom_nw']], allRows=[false], "
+        + "after=[FLAG(SKIP TO NEXT ROW)], pattern=[(('STRT', "
+        + "PATTERN_QUANTIFIER('DOWN', 1, -1, false)), PATTERN_QUANTIFIER('UP', 1, -1, false))], "
+        + "isStrictStarts=[false], isStrictEnds=[false], interval=['INTERVAL ''5'' SECOND'], "
+        + "subsets=[[]], patternDefinitions=[[<(PREV(DOWN.$3, 0), PREV(DOWN.$3, 1)), "
+        + ">(PREV(UP.$3, 0), PREV(UP.$3, 1))]], "
+        + "inputFields=[[EMPNO, ENAME, JOB, MGR, HIREDATE, SAL, COMM, DEPTNO]])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(str(root), is(expected));
   }
 }
 
