@@ -17,9 +17,6 @@
 # limitations under the License.
 #
 language: java
-jdk:
-  - oraclejdk8
-  - oraclejdk7
 branches:
   only:
     - master
@@ -30,11 +27,17 @@ branches:
 install:
   - mvn install -DskipTests=true -Dmaven.javadoc.skip=true -B -V
 script:
-  - mvn -Dsurefire.useFile=false test
+  - unset _JAVA_OPTIONS
+  - mvn -Dsurefire.useFile=false -Dsurefire.parallel= test
 git:
   depth: 10000
 sudo: false
 cache:
   directories:
     - $HOME/.m2
+matrix:
+  fast_finish: true
+  include:
+    - jdk: openjdk7
+    - jdk: oraclejdk8
 # End .travis.yml
