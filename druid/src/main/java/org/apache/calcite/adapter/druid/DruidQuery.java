@@ -224,10 +224,10 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
     case AND:
     case OR:
     case NOT:
-    case EQUALS:
-    case NOT_EQUALS:
     case IN:
       return areValidFilters(((RexCall) e).getOperands(), false, input);
+    case EQUALS:
+    case NOT_EQUALS:
     case LESS_THAN:
     case LESS_THAN_OR_EQUAL:
     case GREATER_THAN:
@@ -1182,8 +1182,26 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
 
         switch (e.getKind()) {
         case EQUALS:
+          // extractionFunction should be null because if we are using an extraction function
+          // we have guarantees about the format of the output and thus we can apply the
+          // normal selector
+          if (numeric && extractionFunction == null) {
+            String constantValue = tr(e, posConstant);
+            return new JsonCompositeFilter(JsonFilter.Type.AND,
+                new JsonBound(dimName, constantValue, true, constantValue, true,
+                    numeric, extractionFunction));
+          }
           return new JsonSelector(dimName, tr(e, posConstant), extractionFunction);
         case NOT_EQUALS:
+          // extractionFunction should be null because if we are using an extraction function
+          // we have guarantees about the format of the output and thus we can apply the
+          // normal selector
+          if (numeric && extractionFunction == null) {
+            String constantValue = tr(e, posConstant);
+            return new JsonCompositeFilter(JsonFilter.Type.OR,
+                new JsonBound(dimName, constantValue, false, constantValue, false,
+                    numeric, extractionFunction));
+          }
           return new JsonCompositeFilter(JsonFilter.Type.NOT,
               new JsonSelector(dimName, tr(e, posConstant), extractionFunction));
         case GREATER_THAN:
