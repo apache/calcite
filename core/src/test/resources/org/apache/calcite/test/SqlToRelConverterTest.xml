@@ -2034,7 +2034,7 @@ group by "$f2"]]>
         <Resource name="plan">
             <![CDATA[
 LogicalAggregate(group=[{0}], EXPR$1=[MAX($1)], EXPR$2=[MAX($2)])
-  LogicalProject($f2=[$0], EXPR$1=[$1], $f3=[+($1, 1)])
+  LogicalProject($f2=[$0], X=[$1], $f3=[+($1, 1)])
     LogicalValues(tuples=[[{ 1, 2 }]])
 ]]>
         </Resource>
@@ -2250,7 +2250,7 @@ group by cube(a, b)]]>
             <![CDATA[
 LogicalProject(EXPR$0=[1])
   LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {1}, {}]])
-    LogicalProject(EXPR$0=[$0], EXPR$1=[$1])
+    LogicalProject(A=[$0], B=[$1])
       LogicalValues(tuples=[[{ 1, 2, 3, 4 }]])
 ]]>
         </Resource>
@@ -2265,7 +2265,7 @@ group by rollup(b, (a, d))]]>
             <![CDATA[
 LogicalProject(EXPR$0=[1])
   LogicalAggregate(group=[{0, 1, 2}], groups=[[{0, 1, 2}, {0}, {}]])
-    LogicalProject(EXPR$1=[$1], EXPR$0=[$0], EXPR$3=[$3])
+    LogicalProject(B=[$1], A=[$0], D=[$3])
       LogicalValues(tuples=[[{ 1, 2, 3, 4 }]])
 ]]>
         </Resource>
@@ -3631,7 +3631,7 @@ group by d.deptno]]>
         <Resource name="plan">
             <![CDATA[
 LogicalAggregate(group=[{0}], EMPID=[MIN($1)])
-  LogicalProject(DEPTNO=[$3], EXPR$0=[$0])
+  LogicalProject(DEPTNO=[$3], EMPID=[$0])
     LogicalJoin(condition=[=($2, $3)], joinType=[inner])
       LogicalValues(tuples=[[{ 100, 'Bill', 1 }]])
       LogicalValues(tuples=[[{ 1, 'LeaderShip' }]])

@@ -1084,6 +1084,17 @@ public class RelBuilder {
     if (oldFieldNames.equals(newFieldNames)) {
       return this;
     }
+    if (peek() instanceof Values) {
+      // Special treatment for VALUES. Re-build it rather than add a project.
+      final Values v = (Values) build();
+      final RelDataTypeFactory.Builder b = getTypeFactory().builder();
+      for (Pair<String, RelDataTypeField> p
+          : Pair.zip(newFieldNames, v.getRowType().getFieldList())) {
+        b.add(p.left, p.right.getType());
+      }
+      return values(v.tuples, b.build());
+    }
+
     project(fields(), newFieldNames, true);
 
     // If, after de-duplication, the field names are unchanged, discard the

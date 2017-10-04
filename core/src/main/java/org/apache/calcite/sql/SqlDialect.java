@@ -18,6 +18,7 @@ package org.apache.calcite.sql;
 
 import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.config.NullCollation;
+import org.apache.calcite.linq4j.function.Experimental;
 import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.dialect.AnsiSqlDialect;
@@ -581,6 +582,18 @@ public class SqlDialect {
     default:
       return RelFieldCollation.NullDirection.UNSPECIFIED;
     }
+  }
+
+  /**
+   * Returns whether the dialect supports VALUES in a sub-query with
+   * and an "AS t(column, ...)" values to define column names.
+   *
+   * <p>Currently, only Oracle does not. For this, we generate "SELECT v0 AS c0,
+   * v1 AS c1 ... UNION ALL ...". We may need to refactor this method when we
+   * support VALUES for other dialects. */
+  @Experimental
+  public boolean supportsAliasedValues() {
+    return true;
   }
 
   /**

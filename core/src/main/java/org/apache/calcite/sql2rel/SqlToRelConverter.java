@@ -46,6 +46,7 @@ import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.Sample;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.Uncollect;
+import org.apache.calcite.rel.core.Values;
 import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.logical.LogicalCorrelate;
 import org.apache.calcite.rel.logical.LogicalFilter;
@@ -1931,7 +1932,16 @@ public class SqlToRelConverter {
       return;
 
     case AS:
-      convertFrom(bb, ((SqlCall) from).operand(0));
+      call = (SqlCall) from;
+      convertFrom(bb, call.operand(0));
+      if (call.operandCount() > 2
+          && bb.root instanceof Values) {
+        final List<String> fieldNames = new ArrayList<>();
+        for (SqlNode node : Util.skip(call.getOperandList(), 2)) {
+          fieldNames.add(((SqlIdentifier) node).getSimple());
+        }
+        bb.setRoot(relBuilder.push(bb.root).rename(fieldNames).build(), true);
+      }
       return;
 
     case WITH_ITEM:

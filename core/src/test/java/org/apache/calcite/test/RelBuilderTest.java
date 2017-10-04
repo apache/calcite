@@ -549,6 +549,24 @@ public class RelBuilderTest {
     }
   }
 
+  @Test public void testRenameValues() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    RelNode root =
+        builder.values(new String[]{"a", "b"}, true, 1, false, -50)
+            .build();
+    final String expected =
+        "LogicalValues(tuples=[[{ true, 1 }, { false, -50 }]])\n";
+    assertThat(str(root), is(expected));
+
+    // When you rename Values, you get a Values with a new row type, no Project
+    root =
+        builder.push(root)
+            .rename(ImmutableList.of("x", "y z"))
+            .build();
+    assertThat(str(root), is(expected));
+    assertThat(root.getRowType().getFieldNames().toString(), is("[x, y z]"));
+  }
+
   @Test public void testPermute() {
     final RelBuilder builder = RelBuilder.create(config().build());
     RelNode root =

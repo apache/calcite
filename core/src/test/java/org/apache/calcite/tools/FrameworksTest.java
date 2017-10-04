@@ -18,6 +18,7 @@ package org.apache.calcite.tools;
 
 import org.apache.calcite.adapter.enumerable.EnumerableConvention;
 import org.apache.calcite.adapter.enumerable.EnumerableTableScan;
+import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.plan.RelOptAbstractTable;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptPlanner;
@@ -47,6 +48,8 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.test.CalciteAssert;
 import org.apache.calcite.util.Util;
+
+import com.google.common.base.Function;
 
 import org.junit.Test;
 
@@ -222,6 +225,58 @@ public class FrameworksTest {
     } catch (IllegalArgumentException e) {
       // ok
     }
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1996">[CALCITE-1996]
+   * VALUES syntax</a>.
+   *
+   * <p>With that bug, running a VALUES query would succeed before running a
+   * query that reads from a JDBC table, but fail after it. Before, the plan
+   * would use {@link org.apache.calcite.adapter.enumerable.EnumerableValues},
+   * but after, it would use
+   * {@link org.apache.calcite.adapter.jdbc.JdbcRules.JdbcValues}, and would
+   * generate invalid SQL syntax.
+   *
+   * <p>Even though the SQL generator has been fixed, we are still interested in
+   * how JDBC convention gets lodged in the planner's state. */
+  @Test public void testJdbcValues() throws Exception {
+    CalciteAssert.that()
+        .with(CalciteAssert.SchemaSpec.JDBC_SCOTT)
+        .doWithConnection(new Function<CalciteConnection, Void>() {
+          public Void apply(CalciteConnection conn) {
+            try {
+              final FrameworkConfig config = Frameworks.newConfigBuilder()
+                  .defaultSchema(conn.getRootSchema())
+                  .build();
+              final RelBuilder builder = RelBuilder.create(config);
+              final RelRunner runner = conn.unwrap(RelRunner.class);
+
+              final RelNode values =
+                  builder.values(new String[]{"a", "b"}, "X", 1, "Y", 2)
+                      .project(builder.field("a"))
+                      .build();
+
+              // If you run the "values" query before the "scan" query,
+              // everything works fine. JdbcValues is never instantiated in any
+              // of the 3 queries.
+              if (false) {
+                runner.prepare(values).executeQuery();
+              }
+
+              final RelNode scan = builder.scan("JDBC_SCOTT", "EMP").build();
+              runner.prepare(scan).executeQuery();
+              builder.clear();
+
+              // running this after the scott query causes the exception
+              RelRunner runner2 = conn.unwrap(RelRunner.class);
+              runner2.prepare(values).executeQuery();
+              return null;
+            } catch (Exception e) {
+              throw new RuntimeException(e);
+            }
+          }
+        });
   }
 
   /** Dummy type system, similar to Hive's, accessed via an INSTANCE member. */
