@@ -26,14 +26,31 @@ case $(uname -s) in
 (*) cygwin=;;
 esac
 
+if [ "$1" == "" ]; then
+  export CPFILE=target/fullclasspath.txt
+  # By default assume users want to use ES5
+  EXCLUDED_PROJECTS="elasticsearch2"
+elif [ $1 == "es2" ]; then
+  export CPFILE=target/fullclasspath_$1.txt
+  EXCLUDED_PROJECTS="elasticsearch5"
+elif [ $1 == "es5" ]; then
+  export CPFILE=target/fullclasspath_$1.txt
+  EXCLUDED_PROJECTS="elasticsearch2"
+else
+  echo "Invalid argument: $1"
+  exit 1
+fi
+
+shift
+
 # Build classpath on first call.
 # (To force rebuild, remove target/fullclasspath.txt.)
 cd $(dirname $0)
-if [ ! -f target/fullclasspath.txt ]; then
-    mvn dependency:build-classpath -Dmdep.outputFile=target/classpath.txt
+if [ ! -f $CPFILE ]; then
+    mvn -pl "!$EXCLUDED_PROJECTS" dependency:build-classpath -Dmdep.outputFile=target/classpath.txt
     awk -v RS=: -v ORS=: '{if (!m[$0]) {m[$0]=1; print}}' \
         target/classpath.txt \
-        */target/classpath.txt > target/fullclasspath.txt
+        */target/classpath.txt > $CPFILE
 fi
 
 CP=
@@ -41,7 +58,8 @@ for module in core cassandra druid elasticsearch2 elasticsearch5 file mongodb sp
   CP=${CP}${module}/target/classes:
   CP=${CP}${module}/target/test-classes:
 done
-CP="${CP}$(cat target/fullclasspath.txt)"
+
+CP="${CP}$(cat $CPFILE)"
 
 VM_OPTS=
 if [ "$cygwin" ]; then
