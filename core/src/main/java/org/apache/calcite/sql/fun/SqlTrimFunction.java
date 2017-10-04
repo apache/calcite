@@ -119,7 +119,7 @@ public class SqlTrimFunction extends SqlFunction {
   public String getSignatureTemplate(final int operandsCount) {
     switch (operandsCount) {
     case 3:
-      return "{0}([BOTH|LEADING|TRAILING} {1} FROM {2})";
+      return "{0}([BOTH|LEADING|TRAILING] {1} FROM {2})";
     default:
       throw new AssertionError();
     }
