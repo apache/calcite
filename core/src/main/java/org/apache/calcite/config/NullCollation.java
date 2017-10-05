@@ -45,6 +45,26 @@ public enum NullCollation {
       return !desc;
     }
   }
+
+  /** Returns whether a given combination of null direction and sort order is
+   * the default order of nulls returned in the ORDER BY clause. */
+  public boolean isDefaultOrder(boolean nullsFirst, boolean desc) {
+    final boolean asc = !desc;
+    final boolean nullsLast = !nullsFirst;
+
+    switch (this) {
+    case FIRST:
+      return nullsFirst;
+    case LAST:
+      return nullsLast;
+    case LOW:
+      return (asc && nullsFirst) || (desc && nullsLast);
+    case HIGH:
+      return (asc && nullsLast) || (desc && nullsFirst);
+    default:
+      throw new IllegalArgumentException("Unrecognized Null Collation");
+    }
+  }
 }
 
 // End NullCollation.java
