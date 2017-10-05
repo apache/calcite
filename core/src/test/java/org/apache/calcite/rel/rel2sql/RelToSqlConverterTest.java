@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.rel.rel2sql;
 
+import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.plan.RelOptLattice;
 import org.apache.calcite.plan.RelOptMaterialization;
 import org.apache.calcite.plan.RelOptPlanner;
@@ -31,6 +32,7 @@ import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlDialect.DatabaseProduct;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.dialect.CalciteSqlDialect;
+import org.apache.calcite.sql.dialect.HiveSqlDialect;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql2rel.SqlToRelConverter;
 import org.apache.calcite.test.CalciteAssert;
@@ -340,6 +342,27 @@ public class RelToSqlConverterTest {
         + "LIMIT 100\nOFFSET 10";
     sql(query).dialect(SqlDialect.DatabaseProduct.HIVE.getDialect())
         .ok(expected);
+  }
+
+  @Test public void testSelectQueryWithOrderByDescAndHighNulls() {
+    String query = "select \"product_id\" from \"product\" order by \"product_id\" desc nulls "
+        + "first";
+    String expected = "SELECT product_id\n"
+        + "FROM foodmart.product\n"
+        + "ORDER BY ISNULL(product_id) DESC, product_id DESC";
+    sql(query).dialect(HiveSqlDialect.DEFAULT).ok(expected);
+  }
+
+  @Test public void testSelectQueryWithOrderByDescAndHighNullsWithHiveVersionGT21() {
+    SqlDialect.Context context = SqlDialect.EMPTY_CONTEXT.withDatabaseVersion("2.1.0")
+        .withNullCollation(NullCollation.LOW);
+    HiveSqlDialect hive2_1_0_Dialect = new HiveSqlDialect(context);
+    String query = "select \"product_id\" from \"product\" order by \"product_id\" desc nulls "
+        + "first";
+    String expected = "SELECT product_id\n"
+        + "FROM foodmart.product\n"
+        + "ORDER BY product_id DESC NULLS FIRST";
+    sql(query).dialect(hive2_1_0_Dialect).ok(expected);
   }
 
   @Test public void testSelectQueryWithLimitClauseWithoutOrder() {

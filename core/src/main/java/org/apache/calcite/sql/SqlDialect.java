@@ -75,6 +75,8 @@ public class SqlDialect {
   private final DatabaseProduct databaseProduct;
   private final NullCollation nullCollation;
 
+  protected final String databaseVersion;
+
   //~ Constructors -----------------------------------------------------------
 
   /**
@@ -148,6 +150,7 @@ public class SqlDialect {
     this.identifierEscapedQuote =
         identifierQuoteString == null ? null
             : this.identifierEndQuoteString + this.identifierEndQuoteString;
+    this.databaseVersion = context.databaseVersion();
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -225,6 +228,8 @@ public class SqlDialect {
       return DatabaseProduct.H2;
     } else if (upperProductName.contains("VERTICA")) {
       return DatabaseProduct.VERTICA;
+    } else if (upperProductName.contains("GOOGLE BIGQUERY")) {
+      return DatabaseProduct.BIGQUERY;
     } else {
       return DatabaseProduct.UNKNOWN;
     }
@@ -662,7 +667,8 @@ public class SqlDialect {
     DB2("IBM DB2", null, NullCollation.HIGH),
     FIREBIRD("Firebird", null, NullCollation.HIGH),
     H2("H2", "\"", NullCollation.HIGH),
-    HIVE("Apache Hive", null, NullCollation.HIGH),
+    HIVE("Apache Hive", null, NullCollation.LOW),
+    BIGQUERY("Google BigQuery", "`", NullCollation.LOW),
     INFORMIX("Informix", null, NullCollation.HIGH),
     INGRES("Ingres", null, NullCollation.HIGH),
     LUCIDDB("LucidDB", "\"", NullCollation.HIGH),
