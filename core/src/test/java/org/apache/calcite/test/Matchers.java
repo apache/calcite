@@ -19,6 +19,7 @@ package org.apache.calcite.test;
 import org.apache.calcite.util.Util;
 
 import com.google.common.base.Functions;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 
@@ -134,19 +135,20 @@ public class Matchers {
     private final double epsilon;
 
     public IsWithin(T expectedValue, double epsilon) {
+      Preconditions.checkArgument(epsilon >= 0D);
       this.expectedValue = expectedValue;
       this.epsilon = epsilon;
     }
 
     public boolean matches(Object actualValue) {
-      return areEqual(actualValue, expectedValue, epsilon);
+      return isWithin(actualValue, expectedValue, epsilon);
     }
 
     public void describeTo(Description description) {
       description.appendValue(expectedValue + " +/-" + epsilon);
     }
 
-    private static boolean areEqual(Object actual, Number expected,
+    private static boolean isWithin(Object actual, Number expected,
         double epsilon) {
       if (actual == null) {
         return expected == null;

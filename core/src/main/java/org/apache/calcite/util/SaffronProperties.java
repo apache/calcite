@@ -19,6 +19,7 @@ package org.apache.calcite.util;
 import org.apache.calcite.runtime.Resources;
 import org.apache.calcite.runtime.Resources.BooleanProp;
 import org.apache.calcite.runtime.Resources.Default;
+import org.apache.calcite.runtime.Resources.IntProp;
 import org.apache.calcite.runtime.Resources.Resource;
 import org.apache.calcite.runtime.Resources.StringProp;
 
@@ -95,6 +96,18 @@ public interface SaffronProperties {
   @Resource("saffron.default.collation.strength")
   @Default("primary")
   StringProp defaultCollationStrength();
+
+  /**
+   * The string property "saffron.metadata.handler.cache.maximum.size" is the
+   * maximum size of the cache of metadata handlers. A typical value is
+   * the number of queries being concurrently prepared multiplied by the number
+   * of types of metadata.
+   *
+   * <p>If the value is less than 0, there is no limit. The default is 1,000.
+   */
+  @Resource("saffron.metadata.handler.cache.maximum.size")
+  @Default("1000")
+  IntProp metadataHandlerCacheMaximumSize();
 
   SaffronProperties INSTANCE = Helper.instance();
 

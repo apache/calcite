@@ -54,6 +54,7 @@ import org.apache.calcite.rel.stream.LogicalDelta;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.util.ControlFlowException;
 import org.apache.calcite.util.Pair;
+import org.apache.calcite.util.SaffronProperties;
 import org.apache.calcite.util.Util;
 
 import com.google.common.cache.CacheBuilder;
@@ -106,14 +107,16 @@ public class JaninoRelMetadataProvider implements RelMetadataProvider {
    * For the cache to be effective, providers should implement identity
    * correctly. */
   private static final LoadingCache<Key, MetadataHandler> HANDLERS =
-      CacheBuilder.newBuilder().build(
-          new CacheLoader<Key, MetadataHandler>() {
-            public MetadataHandler load(@Nonnull Key key) {
-              //noinspection unchecked
-              return load3(key.def, key.provider.handlers(key.def),
-                  key.relClasses);
-            }
-          });
+      maxSize(CacheBuilder.newBuilder(),
+          SaffronProperties.INSTANCE.metadataHandlerCacheMaximumSize().get())
+          .build(
+              new CacheLoader<Key, MetadataHandler>() {
+                public MetadataHandler load(@Nonnull Key key) {
+                  //noinspection unchecked
+                  return load3(key.def, key.provider.handlers(key.def),
+                      key.relClasses);
+                }
+              });
 
   // Pre-register the most common relational operators, to reduce the number of
   // times we re-generate.
@@ -166,6 +169,15 @@ public class JaninoRelMetadataProvider implements RelMetadataProvider {
       return (JaninoRelMetadataProvider) provider;
     }
     return new JaninoRelMetadataProvider(provider);
+  }
+
+  // helper for initialization
+  private static <K, V> CacheBuilder<K, V> maxSize(CacheBuilder<K, V> builder,
+      int size) {
+    if (size >= 0) {
+      builder.maximumSize(size);
+    }
+    return builder;
   }
 
   @Override public boolean equals(Object obj) {
