@@ -68,8 +68,8 @@ select * from "metadata".tables;
 +----------+------------+-----------+--------------+---------+---------+-----------+----------+------------------------+---------------+
 | tableCat | tableSchem | tableName | tableType    | remarks | typeCat | typeSchem | typeName | selfReferencingColName | refGeneration |
 +----------+------------+-----------+--------------+---------+---------+-----------+----------+------------------------+---------------+
-|          | metadata   | COLUMNS   | SYSTEM_TABLE |         |         |           |          |                        |               |
-|          | metadata   | TABLES    | SYSTEM_TABLE |         |         |           |          |                        |               |
+|          | metadata   | COLUMNS   | SYSTEM TABLE |         |         |           |          |                        |               |
+|          | metadata   | TABLES    | SYSTEM TABLE |         |         |           |          |                        |               |
 |          | s          | my_seq    | SEQUENCE     |         |         |           |          |                        |               |
 +----------+------------+-----------+--------------+---------+---------+-----------+----------+------------------------+---------------+
 (3 rows)

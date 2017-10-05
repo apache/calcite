@@ -310,7 +310,15 @@ public interface Schema {
      *
      * <p>If you get one of these, please fix the problem by adding an enum
      * value. */
-    OTHER,
+    OTHER;
+
+    /** The name used in JDBC. For example "SYSTEM TABLE" rather than
+     * "SYSTEM_TABLE". */
+    public final String jdbcName;
+
+    TableType() {
+      this.jdbcName = name().replace('_', ' ');
+    }
   }
 }
 

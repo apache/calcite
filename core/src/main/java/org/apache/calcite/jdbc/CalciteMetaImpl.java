@@ -777,7 +777,7 @@ public class CalciteMetaImpl extends MetaImpl {
     CalciteMetaTable(Table calciteTable, String tableCat,
         String tableSchem, String tableName) {
       super(tableCat, tableSchem, tableName,
-          calciteTable.getJdbcTableType().name());
+          calciteTable.getJdbcTableType().jdbcName);
       this.calciteTable = Preconditions.checkNotNull(calciteTable);
     }
   }

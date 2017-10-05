@@ -4732,7 +4732,7 @@ public class JdbcTest {
         .query("select * from \"metadata\".TABLES")
         .returns(
             CalciteAssert.checkResultContains(
-                "tableSchem=metadata; tableName=COLUMNS; tableType=SYSTEM_TABLE; "));
+                "tableSchem=metadata; tableName=COLUMNS; tableType=SYSTEM TABLE; "));
 
     CalciteAssert.that()
         .with(CalciteAssert.Config.REGULAR_PLUS_METADATA)
@@ -5232,6 +5232,17 @@ public class JdbcTest {
                   CalciteAssert.toString(
                       metaData.getTables(null, "adhoc", null, null)));
 
+              // including system tables; note that table type is "SYSTEM TABLE"
+              // not "SYSTEM_TABLE"
+              assertEquals(
+                  "TABLE_CAT=null; TABLE_SCHEM=adhoc; TABLE_NAME=EMPLOYEES; TABLE_TYPE=TABLE; REMARKS=null; TYPE_CAT=null; TYPE_SCHEM=null; TYPE_NAME=null; SELF_REFERENCING_COL_NAME=null; REF_GENERATION=null\n"
+                      + "TABLE_CAT=null; TABLE_SCHEM=adhoc; TABLE_NAME=MUTABLE_EMPLOYEES; TABLE_TYPE=TABLE; REMARKS=null; TYPE_CAT=null; TYPE_SCHEM=null; TYPE_NAME=null; SELF_REFERENCING_COL_NAME=null; REF_GENERATION=null\n"
+                      + "TABLE_CAT=null; TABLE_SCHEM=adhoc; TABLE_NAME=V; TABLE_TYPE=VIEW; REMARKS=null; TYPE_CAT=null; TYPE_SCHEM=null; TYPE_NAME=null; SELF_REFERENCING_COL_NAME=null; REF_GENERATION=null\n"
+                      + "TABLE_CAT=null; TABLE_SCHEM=metadata; TABLE_NAME=COLUMNS; TABLE_TYPE=SYSTEM TABLE; REMARKS=null; TYPE_CAT=null; TYPE_SCHEM=null; TYPE_NAME=null; SELF_REFERENCING_COL_NAME=null; REF_GENERATION=null\n"
+                      + "TABLE_CAT=null; TABLE_SCHEM=metadata; TABLE_NAME=TABLES; TABLE_TYPE=SYSTEM TABLE; REMARKS=null; TYPE_CAT=null; TYPE_SCHEM=null; TYPE_NAME=null; SELF_REFERENCING_COL_NAME=null; REF_GENERATION=null\n",
+                  CalciteAssert.toString(
+                      metaData.getTables(null, null, null, null)));
+
               // views only
               assertEquals(
                   "TABLE_CAT=null; TABLE_SCHEM=adhoc; TABLE_NAME=V; TABLE_TYPE=VIEW; REMARKS=null; TYPE_CAT=null; TYPE_SCHEM=null; TYPE_NAME=null; SELF_REFERENCING_COL_NAME=null; REF_GENERATION=null\n",
@@ -5239,7 +5250,7 @@ public class JdbcTest {
                       metaData.getTables(
                           null, "adhoc", null,
                           new String[]{
-                              Schema.TableType.VIEW.name()
+                              Schema.TableType.VIEW.jdbcName
                           })));
 
               // columns
