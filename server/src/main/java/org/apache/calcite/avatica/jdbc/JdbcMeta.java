@@ -67,6 +67,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -213,6 +214,11 @@ public class JdbcMeta implements ProtobufMeta {
   // For testing purposes
   protected AtomicInteger getStatementIdGenerator() {
     return statementIdGenerator;
+  }
+
+  // For testing purposes
+  protected Cache<String, Connection> getConnectionCache() {
+    return connectionCache;
   }
 
   // For testing purposes
@@ -610,17 +616,28 @@ public class JdbcMeta implements ProtobufMeta {
       fullInfo.putAll(info);
     }
 
-    synchronized (this) {
-      try {
-        if (connectionCache.asMap().containsKey(ch.id)) {
-          throw new RuntimeException("Connection already exists: " + ch.id);
-        }
-        Connection conn = DriverManager.getConnection(url, fullInfo);
-        connectionCache.put(ch.id, conn);
-      } catch (SQLException e) {
-        throw new RuntimeException(e);
-      }
+    final ConcurrentMap<String, Connection> cacheAsMap = connectionCache.asMap();
+    if (cacheAsMap.containsKey(ch.id)) {
+      throw new RuntimeException("Connection already exists: " + ch.id);
     }
+    // Avoid global synchronization of connection opening
+    try {
+      Connection conn = createConnection(url, fullInfo);
+      Connection loadedConn = cacheAsMap.putIfAbsent(ch.id, conn);
+      // Race condition: someone beat us to storing the connection in the cache.
+      if (loadedConn != null) {
+        conn.close();
+        throw new RuntimeException("Connection already exists: " + ch.id);
+      }
+    } catch (SQLException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  // Visible for testing
+  protected Connection createConnection(String url, Properties info) throws SQLException {
+    // Allows simpler testing of openConnection
+    return DriverManager.getConnection(url, info);
   }
 
   @Override public void closeConnection(ConnectionHandle ch) {

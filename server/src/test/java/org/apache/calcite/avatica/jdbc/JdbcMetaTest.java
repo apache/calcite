@@ -31,10 +31,14 @@ import java.sql.ParameterMetaData;
 import java.sql.PreparedStatement;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
+import java.util.Collections;
+import java.util.Map;
+import java.util.Properties;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
@@ -117,6 +121,56 @@ public class JdbcMetaTest {
 
     // Verify we called setMaxRows with the right value
     Mockito.verify(statement).setMaxRows(maxRows);
+  }
+
+  @Test public void testConcurrentConnectionOpening() throws Exception {
+    final Map<String, String> properties = Collections.emptyMap();
+    final Connection conn = Mockito.mock(Connection.class);
+    // Override JdbcMeta to shim in a fake Connection object. Irrelevant for the test
+    JdbcMeta meta = new JdbcMeta("jdbc:url") {
+      @Override protected Connection createConnection(String url, Properties info) {
+        return conn;
+      }
+    };
+
+    ConnectionHandle ch1 = new ConnectionHandle("id1");
+    meta.openConnection(ch1, properties);
+
+    assertEquals(conn, meta.getConnectionCache().getIfPresent(ch1.id));
+    try {
+      meta.openConnection(ch1, properties);
+      fail("Should not be allowed to open two connections with the same ID");
+    } catch (RuntimeException e) {
+      // pass
+    }
+    // Cached object should not change
+    assertEquals(conn, meta.getConnectionCache().getIfPresent(ch1.id));
+  }
+
+  @Test public void testRacingConnectionOpens() throws Exception {
+    final Map<String, String> properties = Collections.emptyMap();
+    final Connection conn1 = Mockito.mock(Connection.class);
+    final Connection conn2 = Mockito.mock(Connection.class);
+    final ConnectionHandle ch1 = new ConnectionHandle("id1");
+    // Override JdbcMeta to shim in a fake Connection object. Irrelevant for the test
+    JdbcMeta meta = new JdbcMeta("jdbc:url") {
+      @Override protected Connection createConnection(String url, Properties info) {
+        // Hack to mimic the race condition of a connection being cached by another thread.
+        getConnectionCache().put(ch1.id, conn1);
+        // Return our "newly created" connectino
+        return conn2;
+      }
+    };
+
+    try {
+      meta.openConnection(ch1, properties);
+      fail("Should see an exception when the cache already contained our connection after"
+          + " creating it");
+    } catch (RuntimeException e) {
+      // pass
+    }
+    // Our opened connection should get closed when this race condition happens
+    Mockito.verify(conn2).close();
   }
 }
 
