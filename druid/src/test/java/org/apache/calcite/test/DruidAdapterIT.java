@@ -3190,40 +3190,56 @@ public class DruidAdapterIT {
   @Test public void testPushEqualsCastDimension() {
     final String sqlQuery = "select sum(\"store_cost\") as a "
         + "from \"foodmart\" "
-        + "where cast(\"customer_id\" as double) = 1.0";
+        + "where cast(\"product_id\" as double) = 1016.0";
     final String plan = "PLAN=EnumerableInterpreter\n"
         + "  DruidQuery(table=[[foodmart, foodmart]], intervals=[[1900-01-09T00:00:00.000/2992-01-10T00:00:00.000]], "
-        + "filter=[=(CAST($20):DOUBLE, 1.0)], groups=[{}], aggs=[[SUM($91)]])";
+        + "filter=[=(CAST($1):DOUBLE, 1016.0)], groups=[{}], aggs=[[SUM($91)]])";
+    final String druidQuery =
+        "{'queryType':'timeseries','dataSource':'foodmart','descending':false,'granularity':'all',"
+            + "'filter':{'type':'bound','dimension':'product_id','lower':'1016.0',"
+            + "'lowerStrict':false,'upper':'1016.0','upperStrict':false,'ordering':'numeric'},"
+            + "'aggregations':[{'type':'doubleSum','name':'A','fieldName':'store_cost'}],"
+            + "'intervals':['1900-01-09T00:00:00.000/2992-01-10T00:00:00.000'],"
+            + "'context':{'skipEmptyBuckets':true}}";
     sql(sqlQuery, FOODMART)
         .explainContains(plan)
-        .queryContains(
-            druidChecker(
-                "{'queryType':'timeseries','dataSource':'foodmart','descending':false,'granularity':'all',"
-                + "'filter':{'type':'bound','dimension':'customer_id','lower':'1.0','lowerStrict':true,"
-                + "'upper':'1.0','upperStrict':true,'ordering':'numeric'},"
-                + "'aggregations':[{'type':'doubleSum','name':'A','fieldName':'store_cost'}],"
-                + "'intervals':['1900-01-09T00:00:00.000/2992-01-10T00:00:00.000'],"
-                + "'context':{'skipEmptyBuckets':true}}"));
+        .queryContains(druidChecker(druidQuery))
+        .returnsUnordered("A=85.3163999915123");
+
+    final String sqlQuery2 = "select sum(\"store_cost\") as a "
+        + "from \"foodmart\" "
+        + "where cast(\"product_id\" as double) <= 1016.0 "
+        + "and cast(\"product_id\" as double) >= 1016.0";
+    sql(sqlQuery2, FOODMART)
+        .returnsUnordered("A=85.3163999915123");
   }
 
   @Test public void testPushNotEqualsCastDimension() {
     final String sqlQuery = "select sum(\"store_cost\") as a "
         + "from \"foodmart\" "
-        + "where cast(\"customer_id\" as double) <> 1.0";
+        + "where cast(\"product_id\" as double) <> 1016.0";
     final String plan = "PLAN=EnumerableInterpreter\n"
         + "  DruidQuery(table=[[foodmart, foodmart]], intervals=[[1900-01-09T00:00:00.000/2992-01-10T00:00:00.000]], "
-        + "filter=[<>(CAST($20):DOUBLE, 1.0)], groups=[{}], aggs=[[SUM($91)]])";
+        + "filter=[<>(CAST($1):DOUBLE, 1016.0)], groups=[{}], aggs=[[SUM($91)]])";
+    final String druidQuery =
+        "{'queryType':'timeseries','dataSource':'foodmart','descending':false,'granularity':'all',"
+            + "'filter':{'type':'or','fields':[{'type':'bound','dimension':'product_id','lower':'1016.0',"
+            + "'lowerStrict':true,'ordering':'numeric'},{'type':'bound','dimension':'product_id',"
+            + "'upper':'1016.0','upperStrict':true,'ordering':'numeric'}]},"
+            + "'aggregations':[{'type':'doubleSum','name':'A','fieldName':'store_cost'}],"
+            + "'intervals':['1900-01-09T00:00:00.000/2992-01-10T00:00:00.000'],"
+            + "'context':{'skipEmptyBuckets':true}}";
     sql(sqlQuery, FOODMART)
         .explainContains(plan)
-        .queryContains(
-            druidChecker(
-                "{'queryType':'timeseries','dataSource':'foodmart','descending':false,'granularity':'all',"
-                + "'filter':{'type':'or','fields':[{'type':'bound','dimension':'customer_id','lower':'1.0',"
-                + "'lowerStrict':false,'ordering':'numeric'},{'type':'bound','dimension':'customer_id',"
-                + "'upper':'1.0','upperStrict':false,'ordering':'numeric'}]},"
-                + "'aggregations':[{'type':'doubleSum','name':'A','fieldName':'store_cost'}],"
-                + "'intervals':['1900-01-09T00:00:00.000/2992-01-10T00:00:00.000'],"
-                + "'context':{'skipEmptyBuckets':true}}"));
+        .queryContains(druidChecker(druidQuery))
+        .returnsUnordered("A=225541.91732536256");
+
+    final String sqlQuery2 = "select sum(\"store_cost\") as a "
+        + "from \"foodmart\" "
+        + "where cast(\"product_id\" as double) < 1016.0 "
+        + "or cast(\"product_id\" as double) > 1016.0";
+    sql(sqlQuery2, FOODMART)
+        .returnsUnordered("A=225541.91732536256");
   }
 
 }
