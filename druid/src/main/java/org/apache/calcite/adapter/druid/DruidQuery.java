@@ -225,6 +225,8 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
     case OR:
     case NOT:
     case IN:
+    case IS_NULL:
+    case IS_NOT_NULL:
       return areValidFilters(((RexCall) e).getOperands(), false, input);
     case EQUALS:
     case NOT_EQUALS:
@@ -1151,10 +1153,15 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
       case LESS_THAN_OR_EQUAL:
       case IN:
       case BETWEEN:
+      case IS_NULL:
+      case IS_NOT_NULL:
         call = (RexCall) e;
         int posRef;
         int posConstant;
-        if (RexUtil.isConstant(call.getOperands().get(1))) {
+        if (call.getOperands().size() == 1) { // IS NULL and IS NOT NULL
+          posRef = 0;
+          posConstant = -1;
+        } else if (RexUtil.isConstant(call.getOperands().get(1))) {
           posRef = 0;
           posConstant = 1;
         } else if (RexUtil.isConstant(call.getOperands().get(0))) {
@@ -1228,6 +1235,11 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
         case BETWEEN:
           return new JsonBound(dimName, tr(e, 2), false,
               tr(e, 3), false, numeric, extractionFunction);
+        case IS_NULL:
+          return new JsonSelector(dimName, null, extractionFunction);
+        case IS_NOT_NULL:
+          return new JsonCompositeFilter(JsonFilter.Type.NOT,
+              new JsonSelector(dimName, null, extractionFunction));
         default:
           throw new AssertionError();
         }
