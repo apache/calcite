@@ -1410,7 +1410,9 @@ public class DruidAdapterIT {
         + " 'Germany', 'India', 'Italy', 'Russia', 'United Kingdom',\n"
         + " 'United States') or \"wikiticker\".\"countryName\" is null)\n"
         + "group by \"wikiticker\".\"countryName\"";
+    String druidQuery = "{'type':'selector','dimension':'countryName','value':null}";
     sql(sql, WIKI)
+        .queryContains(druidChecker(druidQuery))
         .returnsCount(9);
   }
 
@@ -3240,6 +3242,36 @@ public class DruidAdapterIT {
         + "or cast(\"product_id\" as double) > 1016.0";
     sql(sqlQuery2, FOODMART)
         .returnsUnordered("A=225541.91732536256");
+  }
+
+  @Test public void testIsNull() {
+    final String sql = "select count(*) as c "
+        + "from \"foodmart\" "
+        + "where \"product_id\" is null";
+    final String druidQuery =
+        "{'queryType':'timeseries','dataSource':'foodmart','descending':false,'granularity':'all',"
+            + "'filter':{'type':'selector','dimension':'product_id','value':null},"
+            + "'aggregations':[{'type':'count','name':'C'}],"
+            + "'intervals':['1900-01-09T00:00:00.000/2992-01-10T00:00:00.000'],"
+            + "'context':{'skipEmptyBuckets':true}}";
+    sql(sql, FOODMART)
+        .queryContains(druidChecker(druidQuery))
+        .returnsCount(0);
+  }
+
+  @Test public void testIsNotNull() {
+    final String sql = "select count(*) as c "
+        + "from \"foodmart\" "
+        + "where \"product_id\" is not null";
+    final String druidQuery =
+        "{'queryType':'timeseries','dataSource':'foodmart','descending':false,'granularity':'all',"
+            + "'filter':{'type':'not','field':{'type':'selector','dimension':'product_id','value':null}},"
+            + "'aggregations':[{'type':'count','name':'C'}],"
+            + "'intervals':['1900-01-09T00:00:00.000/2992-01-10T00:00:00.000'],"
+            + "'context':{'skipEmptyBuckets':true}}";
+    sql(sql, FOODMART)
+        .queryContains(druidChecker(druidQuery))
+        .returnsUnordered("C=86829");
   }
 
 }
