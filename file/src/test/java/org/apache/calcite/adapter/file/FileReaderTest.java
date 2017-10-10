@@ -18,6 +18,7 @@ package org.apache.calcite.adapter.file;
 
 import org.apache.calcite.util.Source;
 import org.apache.calcite.util.Sources;
+import org.apache.calcite.util.TestUtil;
 
 import org.jsoup.select.Elements;
 
@@ -200,6 +201,7 @@ public class FileReaderTest {
    * NPE in planner</a>. */
   @Test public void testCsvFile() throws Exception {
     Properties info = new Properties();
+    final String path = resourcePath("sales-csv");
     final String model = "inline:"
         + "{\n"
         + "  \"version\": \"1.0\",\n"
@@ -210,7 +212,7 @@ public class FileReaderTest {
         + "      \"type\": \"custom\",\n"
         + "      \"factory\": \"org.apache.calcite.adapter.file.FileSchemaFactory\",\n"
         + "      \"operand\": {\n"
-        + "        \"directory\": \"" + resourcePath("sales-csv") + "\"\n"
+        + "        \"directory\": " + TestUtil.escapeString(path) + "\n"
         + "      }\n"
         + "    }\n"
         + "  ]\n"

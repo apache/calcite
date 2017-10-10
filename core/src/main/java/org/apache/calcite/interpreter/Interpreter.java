@@ -326,7 +326,8 @@ public class Interpreter extends AbstractEnumerable<Object[]>
       this.rel = rel;
       this.sink = sink;
       this.rowEnumerable = rowEnumerable;
-      assert (sink != null) != (rowEnumerable != null) : "one or the other";
+      Preconditions.checkArgument((sink == null) != (rowEnumerable == null),
+          "one or the other");
     }
   }
 

@@ -100,9 +100,12 @@ import com.google.common.collect.Sets;
 import org.hamcrest.CoreMatchers;
 import org.hamcrest.CustomTypeSafeMatcher;
 import org.hamcrest.Matcher;
+import org.hamcrest.core.Is;
+import org.junit.Assume;
 import org.junit.Ignore;
 import org.junit.Test;
 
+import java.io.File;
 import java.lang.reflect.Method;
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -1444,6 +1447,15 @@ public class RelMetadataTest extends SqlToRelTestBase {
    * columns</a>. Since this is a performance problem, the test result does not
    * change, but takes over 15 minutes before the fix and 6 seconds after. */
   @Test(timeout = 20_000) public void testPullUpPredicatesForExprsItr() {
+    // If we're running Windows, we are probably in a VM and the test may
+    // exceed timeout by a small margin.
+    Assume.assumeThat("Too slow on Windows", File.separatorChar, Is.is('/'));
+    testPullUpPredicatesForExprsItrNoTimeout();
+  }
+
+  /** As {@link #testPullUpPredicatesForExprsItr} but no timeout; can run on
+   * all platforms, even slow VMs. */
+  @Test public void testPullUpPredicatesForExprsItrNoTimeout() {
     final String sql = "select a.EMPNO, a.ENAME\n"
         + "from (select * from sales.emp ) a\n"
         + "join (select * from sales.emp  ) b\n"

@@ -2042,7 +2042,7 @@ public class UtilTest {
         + "\t\t\tline 4 with no ending\n"
         + "\t</someText>\n"
         + "</root>\n";
-    assertThat(s, is(expected));
+    assertThat(Util.toLinux(s), is(expected));
   }
 }
 
