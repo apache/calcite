@@ -1329,6 +1329,30 @@ public class RexProgramTest {
     // condition with null value for range
     checkSimplifyFilter(and(gt(aRef, unknownLiteral), ge(bRef, literal1)), "false");
 
+    // condition "1 < a && 5 < x" yields "5 < x"
+    checkSimplifyFilter(
+        and(lt(literal1, aRef), lt(literal5, aRef)),
+        RelOptPredicateList.EMPTY,
+        "<(5, ?0.a)");
+
+    // condition "1 < a && a < 5" is unchanged
+    checkSimplifyFilter(
+        and(lt(literal1, aRef), lt(aRef, literal5)),
+        RelOptPredicateList.EMPTY,
+        "AND(<(1, ?0.a), <(?0.a, 5))");
+
+    // condition "1 > a && 5 > x" yields "1 > a"
+    checkSimplifyFilter(
+        and(gt(literal1, aRef), gt(literal5, aRef)),
+        RelOptPredicateList.EMPTY,
+        ">(1, ?0.a)");
+
+    // condition "1 > a && a > 5" yields false
+    checkSimplifyFilter(
+        and(gt(literal1, aRef), gt(aRef, literal5)),
+        RelOptPredicateList.EMPTY,
+        "false");
+
     // range with no predicates;
     // condition "a > 1 && a < 10 && a < 5" yields "a < 1 && a < 5"
     checkSimplifyFilter(
