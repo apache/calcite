@@ -1125,12 +1125,9 @@ public class RexSimplify {
       if (removeUpperBound) {
         ImmutableList.Builder<RexNode> newBounds = ImmutableList.builder();
         for (RexNode e : p.right) {
-          switch (e.getKind()) {
-          case LESS_THAN:
-          case LESS_THAN_OR_EQUAL:
+          if (isUpperBound(e)) {
             Collections.replaceAll(terms, e, rexBuilder.makeLiteral(true));
-            break;
-          default:
+          } else {
             newBounds.add(e);
           }
         }
@@ -1140,12 +1137,9 @@ public class RexSimplify {
       } else if (removeLowerBound) {
         ImmutableList.Builder<RexNode> newBounds = ImmutableList.builder();
         for (RexNode e : p.right) {
-          switch (e.getKind()) {
-          case GREATER_THAN:
-          case GREATER_THAN_OR_EQUAL:
+          if (isLowerBound(e)) {
             Collections.replaceAll(terms, e, rexBuilder.makeLiteral(true));
-            break;
-          default:
+          } else {
             newBounds.add(e);
           }
         }
@@ -1216,6 +1210,42 @@ public class RexSimplify {
         }
       }
       return null;
+    }
+  }
+
+  private static boolean isUpperBound(final RexNode e) {
+    final List<RexNode> operands;
+    switch (e.getKind()) {
+    case LESS_THAN:
+    case LESS_THAN_OR_EQUAL:
+      operands = ((RexCall) e).getOperands();
+      return RexUtil.isReferenceOrAccess(operands.get(0), true)
+          && operands.get(1).isA(SqlKind.LITERAL);
+    case GREATER_THAN:
+    case GREATER_THAN_OR_EQUAL:
+      operands = ((RexCall) e).getOperands();
+      return RexUtil.isReferenceOrAccess(operands.get(1), true)
+          && operands.get(0).isA(SqlKind.LITERAL);
+    default:
+      return false;
+    }
+  }
+
+  private static boolean isLowerBound(final RexNode e) {
+    final List<RexNode> operands;
+    switch (e.getKind()) {
+    case LESS_THAN:
+    case LESS_THAN_OR_EQUAL:
+      operands = ((RexCall) e).getOperands();
+      return RexUtil.isReferenceOrAccess(operands.get(1), true)
+          && operands.get(0).isA(SqlKind.LITERAL);
+    case GREATER_THAN:
+    case GREATER_THAN_OR_EQUAL:
+      operands = ((RexCall) e).getOperands();
+      return RexUtil.isReferenceOrAccess(operands.get(0), true)
+          && operands.get(1).isA(SqlKind.LITERAL);
+    default:
+      return false;
     }
   }
 }
