@@ -399,8 +399,10 @@ public class RelToSqlConverter extends SqlImplementor
       for (RelFieldCollation fc : e.getOrderKeys().getFieldCollations()) {
         if (fc.nullDirection != RelFieldCollation.NullDirection.UNSPECIFIED) {
           boolean first = fc.nullDirection == RelFieldCollation.NullDirection.FIRST;
+          boolean desc = fc.direction == RelFieldCollation.Direction.DESCENDING
+              || fc.direction == RelFieldCollation.Direction.STRICTLY_DESCENDING;
           SqlNode nullDirectionNode = dialect.emulateNullDirection(
-              context.field(fc.getFieldIndex()), first);
+              context.field(fc.getFieldIndex()), first, desc);
           if (nullDirectionNode != null) {
             orderBySqlList.add(nullDirectionNode);
             fc = new RelFieldCollation(fc.getFieldIndex(), fc.getDirection(),

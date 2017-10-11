@@ -25,7 +25,7 @@ import org.apache.calcite.sql.SqlDialect;
  */
 public class BigQuerySqlDialect extends SqlDialect {
   public static final SqlDialect DEFAULT =
-      new HiveSqlDialect(
+      new BigQuerySqlDialect(
           EMPTY_CONTEXT.withDatabaseProduct(SqlDialect.DatabaseProduct.BIGQUERY)
               .withNullCollation(NullCollation.LOW));
 

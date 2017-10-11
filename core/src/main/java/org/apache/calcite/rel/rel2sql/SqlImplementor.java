@@ -1122,8 +1122,10 @@ public abstract class SqlImplementor {
         RelFieldCollation field) {
       if (field.nullDirection != RelFieldCollation.NullDirection.UNSPECIFIED) {
         boolean first = field.nullDirection == RelFieldCollation.NullDirection.FIRST;
+        boolean desc = field.direction == RelFieldCollation.Direction.DESCENDING
+            || field.direction == RelFieldCollation.Direction.STRICTLY_DESCENDING;
         SqlNode nullDirectionNode = dialect.emulateNullDirection(
-            context.field(field.getFieldIndex()), first);
+            context.field(field.getFieldIndex()), first, desc);
         if (nullDirectionNode != null) {
           orderByList.add(nullDirectionNode);
           field = new RelFieldCollation(field.getFieldIndex(),
