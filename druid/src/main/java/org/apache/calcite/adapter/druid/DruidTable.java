@@ -42,6 +42,10 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
+import org.joda.time.DateTime;
+import org.joda.time.Interval;
+import org.joda.time.chrono.ISOChronology;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -53,14 +57,15 @@ import java.util.Set;
 public class DruidTable extends AbstractTable implements TranslatableTable {
 
   public static final String DEFAULT_TIMESTAMP_COLUMN = "__time";
-  public static final LocalInterval DEFAULT_INTERVAL =
-      LocalInterval.create("1900-01-01", "3000-01-01");
+  public static final Interval DEFAULT_INTERVAL =
+      new Interval(new DateTime("1900-01-01", ISOChronology.getInstanceUTC()),
+          new DateTime("3000-01-01", ISOChronology.getInstanceUTC()));
 
   final DruidSchema schema;
   final String dataSource;
   final RelProtoDataType protoRowType;
   final ImmutableSet<String> metricFieldNames;
-  final ImmutableList<LocalInterval> intervals;
+  final ImmutableList<Interval> intervals;
   final String timestampFieldName;
   final ImmutableMap<String, List<ComplexMetric>> complexMetrics;
   final ImmutableMap<String, SqlTypeName> allFields;
@@ -77,7 +82,7 @@ public class DruidTable extends AbstractTable implements TranslatableTable {
    */
   public DruidTable(DruidSchema schema, String dataSource,
       RelProtoDataType protoRowType, Set<String> metricFieldNames,
-      String timestampFieldName, List<LocalInterval> intervals,
+      String timestampFieldName, List<Interval> intervals,
       Map<String, List<ComplexMetric>> complexMetrics, Map<String, SqlTypeName> allFields) {
     this.timestampFieldName = Preconditions.checkNotNull(timestampFieldName);
     this.schema = Preconditions.checkNotNull(schema);
@@ -107,7 +112,7 @@ public class DruidTable extends AbstractTable implements TranslatableTable {
    * @return A table
    */
   static Table create(DruidSchema druidSchema, String dataSourceName,
-      List<LocalInterval> intervals, Map<String, SqlTypeName> fieldMap,
+      List<Interval> intervals, Map<String, SqlTypeName> fieldMap,
       Set<String> metricNameSet, String timestampColumnName,
       DruidConnectionImpl connection, Map<String, List<ComplexMetric>> complexMetrics) {
     assert connection != null;
@@ -132,7 +137,7 @@ public class DruidTable extends AbstractTable implements TranslatableTable {
    * @return A table
    */
   static Table create(DruidSchema druidSchema, String dataSourceName,
-                      List<LocalInterval> intervals, Map<String, SqlTypeName> fieldMap,
+                      List<Interval> intervals, Map<String, SqlTypeName> fieldMap,
                       Set<String> metricNameSet, String timestampColumnName,
                       Map<String, List<ComplexMetric>> complexMetrics) {
     final ImmutableMap<String, SqlTypeName> fields =

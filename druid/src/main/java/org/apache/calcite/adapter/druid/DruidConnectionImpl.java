@@ -42,6 +42,8 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
+import org.joda.time.Interval;
+
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -493,7 +495,7 @@ class DruidConnectionImpl implements DruidConnection {
 
   /** Reads segment metadata, and populates a list of columns and metrics. */
   void metadata(String dataSourceName, String timestampColumnName,
-      List<LocalInterval> intervals,
+      List<Interval> intervals,
       Map<String, SqlTypeName> fieldBuilder, Set<String> metricNameBuilder,
       Map<String, List<ComplexMetric>> complexMetrics) {
     final String url = this.url + "/druid/v2/?pretty";

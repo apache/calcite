@@ -17,7 +17,6 @@
 package org.apache.calcite.test;
 
 import org.apache.calcite.adapter.druid.DruidDateTimeUtils;
-import org.apache.calcite.adapter.druid.LocalInterval;
 import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.rel.rules.DateRangeRules;
 import org.apache.calcite.rex.RexNode;
@@ -31,6 +30,7 @@ import com.google.common.collect.Ordering;
 import com.google.common.collect.RangeSet;
 
 import org.hamcrest.Matcher;
+import org.joda.time.Interval;
 import org.junit.Test;
 
 import java.util.Calendar;
@@ -50,7 +50,7 @@ public class DruidDateRangeRulesTest {
     // AND(>=($8, 2014-01-01), <($8, 2015-01-01), >=($8, 2014-06-01), <($8, 2014-07-01))
     checkDateRange(f,
         f.and(f.eq(f.exYear, f.literal(2014)), f.eq(f.exMonth, f.literal(6))),
-        is("[2014-06-01T00:00:00.000/2014-07-01T00:00:00.000]"));
+        is("[2014-06-01T00:00:00.000Z/2014-07-01T00:00:00.000Z]"));
   }
 
   @Test public void testExtractYearAndDayFromDateColumn() {
@@ -65,13 +65,13 @@ public class DruidDateRangeRulesTest {
     //        AND(>=($8, 2010-12-31), <($8, 2011-01-01))))
     checkDateRange(f,
         f.and(f.eq(f.exYear, f.literal(2010)), f.eq(f.exDay, f.literal(31))),
-        is("[2010-01-31T00:00:00.000/2010-02-01T00:00:00.000, "
-            + "2010-03-31T00:00:00.000/2010-04-01T00:00:00.000, "
-            + "2010-05-31T00:00:00.000/2010-06-01T00:00:00.000, "
-            + "2010-07-31T00:00:00.000/2010-08-01T00:00:00.000, "
-            + "2010-08-31T00:00:00.000/2010-09-01T00:00:00.000, "
-            + "2010-10-31T00:00:00.000/2010-11-01T00:00:00.000, "
-            + "2010-12-31T00:00:00.000/2011-01-01T00:00:00.000]"));
+        is("[2010-01-31T00:00:00.000Z/2010-02-01T00:00:00.000Z, "
+            + "2010-03-31T00:00:00.000Z/2010-04-01T00:00:00.000Z, "
+            + "2010-05-31T00:00:00.000Z/2010-06-01T00:00:00.000Z, "
+            + "2010-07-31T00:00:00.000Z/2010-08-01T00:00:00.000Z, "
+            + "2010-08-31T00:00:00.000Z/2010-09-01T00:00:00.000Z, "
+            + "2010-10-31T00:00:00.000Z/2010-11-01T00:00:00.000Z, "
+            + "2010-12-31T00:00:00.000Z/2011-01-01T00:00:00.000Z]"));
   }
 
   @Test public void testExtractYearMonthDayFromDateColumn() {
@@ -92,8 +92,8 @@ public class DruidDateRangeRulesTest {
     checkDateRange(f,
         f.and(f.gt(f.exYear, f.literal(2010)), f.lt(f.exYear, f.literal(2020)),
             f.eq(f.exMonth, f.literal(2)), f.eq(f.exDay, f.literal(29))),
-        is("[2012-02-29T00:00:00.000/2012-03-01T00:00:00.000, "
-            + "2016-02-29T00:00:00.000/2016-03-01T00:00:00.000]"));
+        is("[2012-02-29T00:00:00.000Z/2012-03-01T00:00:00.000Z, "
+            + "2016-02-29T00:00:00.000Z/2016-03-01T00:00:00.000Z]"));
   }
 
   @Test public void testExtractYearMonthDayFromTimestampColumn() {
@@ -115,8 +115,8 @@ public class DruidDateRangeRulesTest {
         f.and(f.gt(f.exYear, f.literal(2010)),
             f.lt(f.exYear, f.literal(2020)),
             f.eq(f.exMonth, f.literal(2)), f.eq(f.exDay, f.literal(29))),
-        is("[2012-02-29T00:00:00.000/2012-03-01T00:00:00.000, "
-            + "2016-02-29T00:00:00.000/2016-03-01T00:00:00.000]"));
+        is("[2012-02-29T00:00:00.000Z/2012-03-01T00:00:00.000Z, "
+            + "2016-02-29T00:00:00.000Z/2016-03-01T00:00:00.000Z]"));
   }
 
   /** Test case for
@@ -137,7 +137,7 @@ public class DruidDateRangeRulesTest {
         f.and(
             f.ge(f.dt, f.cast(f.timeStampDataType, f.timestampLiteral(from))),
             f.lt(f.dt, f.cast(f.timeStampDataType, f.timestampLiteral(to)))),
-        is("[2010-01-01T00:00:00.000/2011-01-01T00:00:00.000]"));
+        is("[2010-01-01T00:00:00.000Z/2011-01-01T00:00:00.000Z]"));
   }
 
   // For testFilterWithCast we need to no simplify the expression, which would
@@ -157,7 +157,7 @@ public class DruidDateRangeRulesTest {
           new DateRangeRules.ExtractShuttle(f.rexBuilder, timeUnit,
               operandRanges));
     }
-    final List<LocalInterval> intervals =
+    final List<Interval> intervals =
         DruidDateTimeUtils.createInterval(e, "UTC");
     assertThat(intervals, notNullValue());
     assertThat(intervals.toString(), intervalMatcher);
@@ -177,7 +177,7 @@ public class DruidDateRangeRulesTest {
               operandRanges));
     }
     final RexNode e2 = f.simplify.simplify(e);
-    List<LocalInterval> intervals =
+    List<Interval> intervals =
         DruidDateTimeUtils.createInterval(e2, "UTC");
     if (intervals == null) {
       throw new AssertionError("null interval");

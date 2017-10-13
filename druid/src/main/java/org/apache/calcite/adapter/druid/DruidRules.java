@@ -68,6 +68,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 
+import org.joda.time.Interval;
 import org.slf4j.Logger;
 
 import java.util.ArrayList;
@@ -233,7 +234,7 @@ public class DruidRules {
         return;
       }
       final List<RexNode> residualPreds = new ArrayList<>(triple.getRight());
-      List<LocalInterval> intervals = null;
+      List<Interval> intervals = null;
       if (!triple.getLeft().isEmpty()) {
         intervals = DruidDateTimeUtils.createInterval(
             RexUtil.composeConjunction(rexBuilder, triple.getLeft(), false),

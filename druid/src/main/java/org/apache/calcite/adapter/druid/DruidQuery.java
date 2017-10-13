@@ -73,6 +73,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 
+import org.joda.time.Interval;
+
 import java.io.IOException;
 import java.io.StringWriter;
 import java.math.BigDecimal;
@@ -95,7 +97,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
 
   final RelOptTable table;
   final DruidTable druidTable;
-  final ImmutableList<LocalInterval> intervals;
+  final ImmutableList<Interval> intervals;
   final ImmutableList<RelNode> rels;
 
   private static final Pattern VALID_SIG = Pattern.compile("sf?p?(a?|ao)l?");
@@ -115,7 +117,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
    */
   protected DruidQuery(RelOptCluster cluster, RelTraitSet traitSet,
       RelOptTable table, DruidTable druidTable,
-      List<LocalInterval> intervals, List<RelNode> rels) {
+      List<Interval> intervals, List<RelNode> rels) {
     super(cluster, traitSet);
     this.table = table;
     this.druidTable = druidTable;
@@ -292,7 +294,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
 
   /** Creates a DruidQuery. */
   private static DruidQuery create(RelOptCluster cluster, RelTraitSet traitSet,
-      RelOptTable table, DruidTable druidTable, List<LocalInterval> intervals,
+      RelOptTable table, DruidTable druidTable, List<Interval> intervals,
       List<RelNode> rels) {
     return new DruidQuery(cluster, traitSet, table, druidTable, intervals, rels);
   }
@@ -307,7 +309,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
 
   /** Extends a DruidQuery. */
   public static DruidQuery extendQuery(DruidQuery query,
-      List<LocalInterval> intervals) {
+      List<Interval> intervals) {
     return DruidQuery.create(query.getCluster(), query.getTraitSet(), query.getTable(),
         query.druidTable, intervals, query.rels);
   }
@@ -999,7 +1001,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
     if (o instanceof String) {
       String s = (String) o;
       generator.writeString(s);
-    } else if (o instanceof LocalInterval) {
+    } else if (o instanceof Interval) {
       generator.writeString(o.toString());
     } else if (o instanceof Integer) {
       Integer i = (Integer) o;
@@ -1015,7 +1017,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
 
   /** Generates a JSON string to query metadata about a data source. */
   static String metadataQuery(String dataSourceName,
-      List<LocalInterval> intervals) {
+      List<Interval> intervals) {
     final StringWriter sw = new StringWriter();
     final JsonFactory factory = new JsonFactory();
     try {

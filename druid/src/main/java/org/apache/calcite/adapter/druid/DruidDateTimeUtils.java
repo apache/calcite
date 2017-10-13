@@ -38,6 +38,8 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Range;
 import com.google.common.collect.TreeRangeSet;
 
+import org.joda.time.Interval;
+import org.joda.time.chrono.ISOChronology;
 import org.slf4j.Logger;
 
 import java.util.ArrayList;
@@ -56,11 +58,11 @@ public class DruidDateTimeUtils {
   }
 
   /**
-   * Generates a list of {@link LocalInterval}s equivalent to a given
+   * Generates a list of {@link Interval}s equivalent to a given
    * expression. Assumes that all the predicates in the input
    * reference a single column: the timestamp column.
    */
-  public static List<LocalInterval> createInterval(RexNode e, String timeZone) {
+  public static List<Interval> createInterval(RexNode e, String timeZone) {
     final List<Range<TimestampString>> ranges =
         extractRanges(e, TimeZone.getTimeZone(timeZone), false);
     if (ranges == null) {
@@ -78,11 +80,11 @@ public class DruidDateTimeUtils {
         ImmutableList.<Range>copyOf(condensedRanges.asRanges()));
   }
 
-  protected static List<LocalInterval> toInterval(
+  protected static List<Interval> toInterval(
       List<Range<TimestampString>> ranges) {
-    List<LocalInterval> intervals = Lists.transform(ranges,
-        new Function<Range<TimestampString>, LocalInterval>() {
-          public LocalInterval apply(Range<TimestampString> range) {
+    List<Interval> intervals = Lists.transform(ranges,
+        new Function<Range<TimestampString>, Interval>() {
+          public Interval apply(Range<TimestampString> range) {
             if (!range.hasLowerBound() && !range.hasUpperBound()) {
               return DruidTable.DEFAULT_INTERVAL;
             }
@@ -100,7 +102,7 @@ public class DruidDateTimeUtils {
                 && range.upperBoundType() == BoundType.CLOSED) {
               end++;
             }
-            return LocalInterval.create(start, end);
+            return new Interval(start, end, ISOChronology.getInstanceUTC());
           }
         });
     if (LOGGER.isDebugEnabled()) {

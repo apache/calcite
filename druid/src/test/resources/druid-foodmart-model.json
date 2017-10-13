@@ -31,7 +31,7 @@
           "name": "foodmart",
           "factory": "org.apache.calcite.adapter.druid.DruidTableFactory",
           "operand": {
-            "interval": "1900-01-09T00:00:00.000/2992-01-10T00:00:00.000",
+            "interval": "1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z",
             "timestampColumn": "timestamp",
             "dimensions": [
               "product_id",

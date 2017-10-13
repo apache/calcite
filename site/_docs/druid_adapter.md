@@ -60,7 +60,7 @@ A basic example of a model file is given below:
           "factory": "org.apache.calcite.adapter.druid.DruidTableFactory",
           "operand": {
             "dataSource": "wikiticker",
-            "interval": "1900-01-09T00:00:00.000/2992-01-10T00:00:00.000",
+            "interval": "1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z",
             "timestampColumn": "time",
             "dimensions": [
               "channel",
@@ -213,7 +213,7 @@ but with `dimensions`, `metrics` and `timestampColumn` removed:
           "factory": "org.apache.calcite.adapter.druid.DruidTableFactory",
           "operand": {
             "dataSource": "wikiticker",
-            "interval": "1900-01-09T00:00:00.000/2992-01-10T00:00:00.000"
+            "interval": "1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z"
           }
         }
       ]
