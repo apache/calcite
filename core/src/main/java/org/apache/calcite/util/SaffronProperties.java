@@ -22,9 +22,8 @@ import org.apache.calcite.runtime.Resources.Default;
 import org.apache.calcite.runtime.Resources.Resource;
 import org.apache.calcite.runtime.Resources.StringProp;
 
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.security.AccessControlException;
 import java.util.Enumeration;
 import java.util.Properties;
@@ -109,16 +108,14 @@ public interface SaffronProperties {
     static SaffronProperties instance() {
       Properties properties = new Properties();
 
-      // read properties from the file "saffron.properties", if it exists
-      File file = new File("saffron.properties");
-      try {
-        if (file.exists()) {
-          try {
-            properties.load(new FileInputStream(file));
-          } catch (IOException e) {
-            throw new RuntimeException("while reading from " + file, e);
-          }
+      // read properties from the file "saffron.properties", if it exists in classpath
+      try (InputStream stream = Helper.class.getClassLoader()
+          .getResourceAsStream("saffron.properties")) {
+        if (stream != null) {
+          properties.load(stream);
         }
+      } catch (IOException e) {
+        throw new RuntimeException("while reading from saffron.properties file", e);
       } catch (AccessControlException e) {
         // we're in a sandbox
       }
