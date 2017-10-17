@@ -2891,6 +2891,21 @@ LogicalAggregate(group=[{0}], EXPR$1=[SUM($1) FILTER $2], EXPR$2=[COUNT()])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testAggFilterWithIn">
+        <Resource name="sql">
+            <![CDATA[select
+  deptno, sum(sal * 2) filter (where empno not in (1, 2)), count(*)
+from emp
+group by deptno]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalAggregate(group=[{0}], EXPR$1=[SUM($1) FILTER $2], EXPR$2=[COUNT()])
+  LogicalProject(DEPTNO=[$7], $f1=[*($5, 2)], $f2=[AND(<>($0, 1), <>($0, 2))])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testSubQueryAggregateFunctionFollowedBySimpleOperation">
         <Resource name="sql">
             <![CDATA[select deptno
