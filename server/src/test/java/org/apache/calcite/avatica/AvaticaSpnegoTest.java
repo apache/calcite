@@ -19,10 +19,10 @@ package org.apache.calcite.avatica;
 import org.apache.calcite.avatica.jdbc.JdbcMeta;
 import org.apache.calcite.avatica.remote.Driver;
 import org.apache.calcite.avatica.remote.LocalService;
+import org.apache.calcite.avatica.server.AvaticaJaasKrbUtil;
 import org.apache.calcite.avatica.server.HttpServer;
 
 import org.apache.kerby.kerberos.kerb.KrbException;
-import org.apache.kerby.kerberos.kerb.client.JaasKrbUtil;
 import org.apache.kerby.kerberos.kerb.client.KrbConfig;
 import org.apache.kerby.kerberos.kerb.client.KrbConfigKey;
 import org.apache.kerby.kerberos.kerb.server.SimpleKdcServer;
@@ -193,8 +193,8 @@ public class AvaticaSpnegoTest {
     try {
       final String tableName = "allowed_clients";
       // Create the subject for the client
-      final Subject clientSubject = JaasKrbUtil.loginUsingKeytab(SpnegoTestUtil.CLIENT_PRINCIPAL,
-          clientKeytab);
+      final Subject clientSubject = AvaticaJaasKrbUtil.loginUsingKeytab(
+          SpnegoTestUtil.CLIENT_PRINCIPAL, clientKeytab);
 
       // The name of the principal
 

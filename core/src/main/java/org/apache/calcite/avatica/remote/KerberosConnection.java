@@ -23,7 +23,6 @@ import java.io.File;
 import java.lang.Thread.UncaughtExceptionHandler;
 import java.security.Principal;
 import java.util.AbstractMap;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map.Entry;
 import java.util.Objects;
@@ -33,7 +32,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import javax.security.auth.Subject;
 import javax.security.auth.kerberos.KerberosPrincipal;
 import javax.security.auth.kerberos.KerberosTicket;
-import javax.security.auth.login.AppConfigurationEntry;
 import javax.security.auth.login.Configuration;
 import javax.security.auth.login.LoginContext;
 import javax.security.auth.login.LoginException;
@@ -50,6 +48,10 @@ public class KerberosConnection {
       "com.sun.security.auth.module.Krb5LoginModule";
   private static final String JAAS_CONF_NAME = "AvaticaKeytabConf";
   private static final String RENEWAL_THREAD_NAME = "Avatica Kerberos Renewal Thread";
+
+  // Thanks Hadoop! Lifted from UserGroupInformation and PlatformName
+  private static final String JAVA_VENDOR_NAME = System.getProperty("java.vendor");
+  private static final boolean IS_IBM_JAVA = JAVA_VENDOR_NAME.contains("IBM");
 
   /** The percentage of the Kerberos ticket's lifetime which we should start trying to renew it */
   public static final float PERCENT_OF_LIFETIME_TO_RENEW = 0.80f;
@@ -70,7 +72,8 @@ public class KerberosConnection {
    */
   public KerberosConnection(String principal, File keytab) {
     this.principal = Objects.requireNonNull(principal);
-    this.jaasConf = new KeytabJaasConf(principal, Objects.requireNonNull(keytab));
+    this.jaasConf = new ClientKeytabJaasConf(principal,
+        Objects.requireNonNull(keytab).getAbsolutePath());
   }
 
   public synchronized Subject getSubject() {
@@ -359,31 +362,13 @@ public class KerberosConnection {
   }
 
   /**
-   * Javax Configuration for performing a keytab-based Kerberos login.
+   * Returns whether or not the current environment is IBM Java. Otherwise, assumed to be Oracle
+   * Java/OpenJDK.
+   *
+   * @return True if the environment is IBM Java, false otherwise.
    */
-  static class KeytabJaasConf extends Configuration {
-    private String principal;
-    private File keytabFile;
-
-    KeytabJaasConf(String principal, File keytab) {
-      this.principal = principal;
-      this.keytabFile = keytab;
-    }
-
-    @Override public AppConfigurationEntry[] getAppConfigurationEntry(String name) {
-      HashMap<String, String> options = new HashMap<String, String>();
-      options.put("keyTab", keytabFile.getAbsolutePath());
-      options.put("principal", principal);
-      options.put("useKeyTab", "true");
-      options.put("storeKey", "true");
-      options.put("doNotPrompt", "true");
-      options.put("renewTGT", "false");
-      options.put("refreshKrb5Config", "true");
-      options.put("isInitiator", "true");
-
-      return new AppConfigurationEntry[] {new AppConfigurationEntry(getKrb5LoginModuleName(),
-          AppConfigurationEntry.LoginModuleControlFlag.REQUIRED, options)};
-    }
+  public static boolean isIbmJava() {
+    return IS_IBM_JAVA;
   }
 
   /**
@@ -391,7 +376,7 @@ public class KerberosConnection {
    *
    * @return The class name of the KRB5 LoginModule
    */
-  static String getKrb5LoginModuleName() {
+  public static String getKrb5LoginModuleName() {
     return System.getProperty("java.vendor").contains("IBM") ? IBM_KRB5_LOGIN_MODULE
         : SUN_KRB5_LOGIN_MODULE;
   }

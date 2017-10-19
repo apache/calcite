@@ -46,17 +46,14 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.security.Principal;
 import java.security.PrivilegedAction;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Locale;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.Callable;
 
 import javax.security.auth.Subject;
 import javax.security.auth.kerberos.KerberosPrincipal;
-import javax.security.auth.login.AppConfigurationEntry;
 import javax.security.auth.login.LoginContext;
 import javax.security.auth.login.LoginException;
 
@@ -798,7 +795,8 @@ public class HttpServer {
       Subject subject = new Subject(false, principals, new HashSet<Object>(),
           new HashSet<Object>());
 
-      KeytabJaasConf conf = new KeytabJaasConf(b.kerberosPrincipal, b.keytab.toString());
+      ServerKeytabJaasConf conf = new ServerKeytabJaasConf(b.kerberosPrincipal,
+          b.keytab.toString());
       String confName = "NotUsed";
       try {
         LoginContext loginContext = new LoginContext(confName, subject, null, conf);
@@ -807,42 +805,6 @@ public class HttpServer {
       } catch (LoginException e) {
         throw new RuntimeException(e);
       }
-    }
-
-    /**
-     * Javax Configuration class which always returns a configuration for our keytab-based
-     * login.
-     */
-    private static class KeytabJaasConf extends javax.security.auth.login.Configuration {
-      private final String principal;
-      private final String keytab;
-
-      private KeytabJaasConf(String principal, String keytab) {
-        this.principal = principal;
-        this.keytab = keytab;
-      }
-
-      @Override public AppConfigurationEntry[] getAppConfigurationEntry(String name) {
-        Map<String, String> options = new HashMap<String, String>();
-        options.put("storeKey", "true");
-        options.put("principal", principal);
-        options.put("keyTab", keytab);
-        options.put("doNotPrompt", "true");
-        options.put("useKeyTab", "true");
-        options.put("isInitiator", "false");
-        options.put("debug",
-            System.getProperty("sun.security.krb5.debug", "false")
-                .toLowerCase(Locale.ROOT));
-
-        return new AppConfigurationEntry[] {new AppConfigurationEntry(getKrb5LoginModuleName(),
-            AppConfigurationEntry.LoginModuleControlFlag.REQUIRED, options)};
-      }
-    }
-
-    private static String getKrb5LoginModuleName() {
-      return System.getProperty("java.vendor").contains("IBM")
-          ? "com.ibm.security.auth.module.Krb5LoginModule"
-          : "com.sun.security.auth.module.Krb5LoginModule";
     }
   }
 }
