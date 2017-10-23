@@ -46,20 +46,21 @@ import java.util.List;
  * GROUP BY HOP(rowtime, INTERVAL '1' HOUR), productId
  * </pre></blockquote>
  */
-class SqlGroupFunction extends SqlFunction {
+public class SqlGroupedWindowFunction extends SqlFunction {
   /** The grouped function, if this an auxiliary function; null otherwise. */
-  final SqlGroupFunction groupFunction;
+  final SqlGroupedWindowFunction groupFunction;
 
-  /** Creates a SqlGroupFunction.
+  /** Creates a SqlGroupedWindowFunction.
    *
-   * @param kind Kind; also determines function name
+   * @param name Function name
+   * @param kind Kind
    * @param groupFunction Group function, if this is an auxiliary;
    *                      null, if this is a group function
    * @param operandTypeChecker Operand type checker
    */
-  SqlGroupFunction(SqlKind kind, SqlGroupFunction groupFunction,
+  public SqlGroupedWindowFunction(String name, SqlKind kind, SqlGroupedWindowFunction groupFunction,
       SqlOperandTypeChecker operandTypeChecker) {
-    super(kind.name(), kind, ReturnTypes.ARG0, null,
+    super(name, kind, ReturnTypes.ARG0, null,
         operandTypeChecker, SqlFunctionCategory.SYSTEM);
     this.groupFunction = groupFunction;
     if (groupFunction != null) {
@@ -67,13 +68,37 @@ class SqlGroupFunction extends SqlFunction {
     }
   }
 
-  /** Creates an auxiliary function from this grouped window function. */
-  SqlGroupFunction auxiliary(SqlKind kind) {
-    return new SqlGroupFunction(kind, this, getOperandTypeChecker());
+  /** Creates a SqlGroupedWindowFunction.
+   *
+   * @param kind Kind; also determines function name
+   * @param groupFunction Group function, if this is an auxiliary;
+   *                      null, if this is a group function
+   * @param operandTypeChecker Operand type checker
+   */
+  public SqlGroupedWindowFunction(SqlKind kind, SqlGroupedWindowFunction groupFunction,
+      SqlOperandTypeChecker operandTypeChecker) {
+    this(kind.name(), kind, groupFunction, operandTypeChecker);
+  }
+
+  /** Creates an auxiliary function from this grouped window function.
+   *
+   * @param kind Kind; also determines function name
+   */
+  public SqlGroupedWindowFunction auxiliary(SqlKind kind) {
+    return auxiliary(kind.name(), kind);
+  }
+
+  /** Creates an auxiliary function from this grouped window function.
+   *
+   * @param name Function name
+   * @param kind Kind
+   */
+  public SqlGroupedWindowFunction auxiliary(String name, SqlKind kind) {
+    return new SqlGroupedWindowFunction(name, kind, this, getOperandTypeChecker());
   }
 
   /** Returns a list of this grouped window function's auxiliary functions. */
-  List<SqlGroupFunction> getAuxiliaryFunctions() {
+  public List<SqlGroupedWindowFunction> getAuxiliaryFunctions() {
     return ImmutableList.of();
   }
 
@@ -96,4 +121,4 @@ class SqlGroupFunction extends SqlFunction {
   }
 }
 
-// End SqlGroupFunction.java
+// End SqlGroupedWindowFunction.java
