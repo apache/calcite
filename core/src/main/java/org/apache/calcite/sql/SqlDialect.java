@@ -23,6 +23,7 @@ import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.dialect.AnsiSqlDialect;
 import org.apache.calcite.sql.dialect.CalciteSqlDialect;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.BasicSqlType;
 import org.apache.calcite.sql.type.SqlTypeUtil;
@@ -155,8 +156,8 @@ public class SqlDialect {
 
   /** Creates an empty context. Use {@link #EMPTY_CONTEXT} if possible. */
   protected static Context emptyContext() {
-    return new ContextImpl(DatabaseProduct.UNKNOWN, null, null, null,
-        NullCollation.HIGH);
+    return new ContextImpl(DatabaseProduct.UNKNOWN, null,
+        -1, -1, null, NullCollation.HIGH);
   }
 
   /**
@@ -226,6 +227,8 @@ public class SqlDialect {
       return DatabaseProduct.H2;
     } else if (upperProductName.contains("VERTICA")) {
       return DatabaseProduct.VERTICA;
+    } else if (upperProductName.contains("GOOGLE BIGQUERY")) {
+      return DatabaseProduct.BIGQUERY;
     } else {
       return DatabaseProduct.UNKNOWN;
     }
@@ -533,10 +536,27 @@ public class SqlDialect {
    *
    * @param node The SqlNode representing the expression
    * @param nullsFirst <code>true</code> if nulls should come first, <code>false</code> otherwise
+   * @param desc <code>true</code> if the sort direction is RelFieldCollation.Direction.DESCENDING
+   *             or RelFieldCollation.Direction.STRICTLY_DESCENDING
    * @return A SqlNode for null direction emulation or <code>null</code> if not required
    */
-  public SqlNode emulateNullDirection(SqlNode node, boolean nullsFirst) {
+  public SqlNode emulateNullDirection(SqlNode node, boolean nullsFirst, boolean desc) {
     return null;
+  }
+
+  protected SqlNode emulateNullDirectionWithIsNull(SqlNode node, boolean nullsFirst, boolean desc) {
+    boolean nullsAreInNaturalOrder = nullCollation.naturalOrder(nullsFirst, desc);
+    // No need for emulation if the nulls will anyways come out the way we want them based on
+    // "nullsFirst" and "desc"
+    if (nullsAreInNaturalOrder) {
+      return null;
+    }
+
+    node = SqlStdOperatorTable.IS_NULL.createCall(SqlParserPos.ZERO, node);
+    if (nullsFirst) {
+      node = SqlStdOperatorTable.DESC.createCall(SqlParserPos.ZERO, node);
+    }
+    return node;
   }
 
   /**
@@ -667,15 +687,16 @@ public class SqlDialect {
    */
   public enum DatabaseProduct {
     ACCESS("Access", "\"", NullCollation.HIGH),
+    BIGQUERY("Google BigQuery", "`", NullCollation.LOW),
     CALCITE("Apache Calcite", "\"", NullCollation.HIGH),
     MSSQL("Microsoft SQL Server", "[", NullCollation.HIGH),
-    MYSQL("MySQL", "`", NullCollation.HIGH),
+    MYSQL("MySQL", "`", NullCollation.LOW),
     ORACLE("Oracle", "\"", NullCollation.HIGH),
     DERBY("Apache Derby", null, NullCollation.HIGH),
     DB2("IBM DB2", null, NullCollation.HIGH),
     FIREBIRD("Firebird", null, NullCollation.HIGH),
     H2("H2", "\"", NullCollation.HIGH),
-    HIVE("Apache Hive", null, NullCollation.HIGH),
+    HIVE("Apache Hive", null, NullCollation.LOW),
     INFORMIX("Informix", null, NullCollation.HIGH),
     INGRES("Ingres", null, NullCollation.HIGH),
     LUCIDDB("LucidDB", "\"", NullCollation.HIGH),
@@ -758,8 +779,10 @@ public class SqlDialect {
     Context withDatabaseProduct(@Nonnull DatabaseProduct databaseProduct);
     String databaseProductName();
     Context withDatabaseProductName(String databaseProductName);
-    String databaseVersion();
-    Context withDatabaseVersion(String databaseVersion);
+    Integer databaseMajorVersion();
+    Context withDatabaseMajorVersion(Integer databaseMajorVersion);
+    Integer databaseMinorVersion();
+    Context withDatabaseMinorVersion(Integer databaseMinorVersion);
     String identifierQuoteString();
     Context withIdentifierQuoteString(String identifierQuoteString);
     @Nonnull NullCollation nullCollation();
@@ -770,16 +793,19 @@ public class SqlDialect {
   private static class ContextImpl implements Context {
     private final DatabaseProduct databaseProduct;
     private final String databaseProductName;
-    private final String databaseVersion;
+    private final int databaseMajorVersion;
+    private final int databaseMinorVersion;
     private final String identifierQuoteString;
     private final NullCollation nullCollation;
 
     private ContextImpl(DatabaseProduct databaseProduct,
-        String databaseProductName, String databaseVersion,
-        String identifierQuoteString, NullCollation nullCollation) {
+                        String databaseProductName,
+                        Integer databaseMajorVersion, Integer databaseMinorVersion,
+                        String identifierQuoteString, NullCollation nullCollation) {
       this.databaseProduct = Preconditions.checkNotNull(databaseProduct);
       this.databaseProductName = databaseProductName;
-      this.databaseVersion = databaseVersion;
+      this.databaseMajorVersion = databaseMajorVersion;
+      this.databaseMinorVersion = databaseMinorVersion;
       this.identifierQuoteString = identifierQuoteString;
       this.nullCollation = Preconditions.checkNotNull(nullCollation);
     }
@@ -791,7 +817,7 @@ public class SqlDialect {
     public Context withDatabaseProduct(
         @Nonnull DatabaseProduct databaseProduct) {
       return new ContextImpl(databaseProduct, databaseProductName,
-          databaseVersion, identifierQuoteString, nullCollation);
+          databaseMajorVersion, databaseMinorVersion, identifierQuoteString, nullCollation);
     }
 
     public String databaseProductName() {
@@ -800,16 +826,25 @@ public class SqlDialect {
 
     public Context withDatabaseProductName(String databaseProductName) {
       return new ContextImpl(databaseProduct, databaseProductName,
-          databaseVersion, identifierQuoteString, nullCollation);
+          databaseMajorVersion, databaseMinorVersion, identifierQuoteString, nullCollation);
     }
 
-    public String databaseVersion() {
-      return databaseVersion;
+    @Override public Integer databaseMajorVersion() {
+      return databaseMajorVersion;
     }
 
-    public Context withDatabaseVersion(String databaseVersion) {
+    @Override public Context withDatabaseMajorVersion(Integer databaseMajorVersion) {
       return new ContextImpl(databaseProduct, databaseProductName,
-          databaseVersion, identifierQuoteString, nullCollation);
+          databaseMajorVersion, databaseMinorVersion, identifierQuoteString, nullCollation);
+    }
+
+    @Override public Integer databaseMinorVersion() {
+      return databaseMinorVersion;
+    }
+
+    @Override public Context withDatabaseMinorVersion(Integer databaseMinorVersion) {
+      return new ContextImpl(databaseProduct, databaseProductName,
+          databaseMajorVersion, databaseMinorVersion, identifierQuoteString, nullCollation);
     }
 
     public String identifierQuoteString() {
@@ -818,7 +853,7 @@ public class SqlDialect {
 
     public Context withIdentifierQuoteString(String identifierQuoteString) {
       return new ContextImpl(databaseProduct, databaseProductName,
-          databaseVersion, identifierQuoteString, nullCollation);
+          databaseMajorVersion, databaseMinorVersion, identifierQuoteString, nullCollation);
     }
 
     @Nonnull public NullCollation nullCollation() {
@@ -827,7 +862,7 @@ public class SqlDialect {
 
     public Context withNullCollation(@Nonnull NullCollation nullCollation) {
       return new ContextImpl(databaseProduct, databaseProductName,
-          databaseVersion, identifierQuoteString, nullCollation);
+          databaseMajorVersion, databaseMinorVersion, identifierQuoteString, nullCollation);
     }
   }
 }

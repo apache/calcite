@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.rel.rel2sql;
 
+import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.plan.RelOptLattice;
 import org.apache.calcite.plan.RelOptMaterialization;
 import org.apache.calcite.plan.RelOptPlanner;
@@ -30,6 +31,8 @@ import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.dialect.CalciteSqlDialect;
+import org.apache.calcite.sql.dialect.HiveSqlDialect;
+import org.apache.calcite.sql.dialect.MysqlSqlDialect;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql2rel.SqlToRelConverter;
 import org.apache.calcite.test.CalciteAssert;
@@ -41,6 +44,8 @@ import org.apache.calcite.tools.Programs;
 import org.apache.calcite.tools.RuleSet;
 import org.apache.calcite.tools.RuleSets;
 import org.apache.calcite.util.Util;
+
+import static org.apache.calcite.sql.SqlDialect.EMPTY_CONTEXT;
 
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
@@ -338,6 +343,279 @@ public class RelToSqlConverterTest {
         + "FROM foodmart.product\n"
         + "LIMIT 100\nOFFSET 10";
     sql(query).withHive().ok(expected);
+  }
+
+  @Test public void testHiveSelectQueryWithOrderByDescAndNullsFirstShouldBeEmulated() {
+    String query = "select \"product_id\" from \"product\" order by \"product_id\" desc nulls "
+        + "first";
+    String expected = "SELECT product_id\n"
+        + "FROM foodmart.product\n"
+        + "ORDER BY product_id IS NULL DESC, product_id DESC";
+    sql(query).dialect(HiveSqlDialect.DEFAULT).ok(expected);
+  }
+
+  @Test public void testHiveSelectQueryWithOrderByAscAndNullsLastShouldBeEmulated() {
+    String query = "select \"product_id\" from \"product\" order by \"product_id\" nulls last";
+    String expected = "SELECT product_id\n"
+        + "FROM foodmart.product\n"
+        + "ORDER BY product_id IS NULL, product_id";
+    sql(query).dialect(HiveSqlDialect.DEFAULT).ok(expected);
+  }
+
+  @Test public void testHiveSelectQueryWithOrderByAscNullsFirstShouldNotAddNullEmulation() {
+    String query = "select \"product_id\" from \"product\" order by \"product_id\" nulls "
+        + "first";
+    String expected = "SELECT product_id\n"
+        + "FROM foodmart.product\n"
+        + "ORDER BY product_id";
+    sql(query).dialect(HiveSqlDialect.DEFAULT).ok(expected);
+  }
+
+  @Test public void testHiveSelectQueryWithOrderByDescNullsLastShouldNotAddNullEmulation() {
+    String query = "select \"product_id\" from \"product\" order by \"product_id\" desc nulls "
+        + "last";
+    String expected = "SELECT product_id\n"
+        + "FROM foodmart.product\n"
+        + "ORDER BY product_id DESC";
+    sql(query).dialect(HiveSqlDialect.DEFAULT).ok(expected);
+  }
+
+  @Test public void testHiveSelectQueryWithOrderByDescAndHighNullsWithVersionGreaterThanOrEq21() {
+    SqlDialect.Context hive2_1Context = EMPTY_CONTEXT
+        .withDatabaseMajorVersion(2)
+        .withDatabaseMinorVersion(1)
+        .withNullCollation(NullCollation.LOW);
+    HiveSqlDialect hive2_1Dialect = new HiveSqlDialect(hive2_1Context);
+
+    SqlDialect.Context hive2_2Context = EMPTY_CONTEXT
+        .withDatabaseMajorVersion(2)
+        .withDatabaseMinorVersion(2)
+        .withNullCollation(NullCollation.LOW);
+    HiveSqlDialect hive2_2_Dialect = new HiveSqlDialect(hive2_2Context);
+
+    String query = "select \"product_id\" from \"product\" order by \"product_id\" desc nulls "
+        + "first";
+    String expected = "SELECT product_id\n"
+        + "FROM foodmart.product\n"
+        + "ORDER BY product_id DESC NULLS FIRST";
+    sql(query).dialect(hive2_1Dialect).ok(expected);
+    sql(query).dialect(hive2_2_Dialect).ok(expected);
+  }
+
+  @Test public void testHiveSelectQueryWithOrderByDescAndHighNullsWithVersion20() {
+    SqlDialect.Context context = EMPTY_CONTEXT
+        .withDatabaseMajorVersion(2)
+        .withDatabaseMinorVersion(0)
+        .withNullCollation(NullCollation.LOW);
+    HiveSqlDialect hive2_1_0_Dialect = new HiveSqlDialect(context);
+    String query = "select \"product_id\" from \"product\" order by \"product_id\" desc nulls "
+        + "first";
+    String expected = "SELECT product_id\n"
+        + "FROM foodmart.product\n"
+        + "ORDER BY product_id IS NULL DESC, product_id DESC";
+    sql(query).dialect(hive2_1_0_Dialect).ok(expected);
+  }
+
+  @Test public void testMySQLSelectQueryWithOrderByDescAndNullsFirstShouldBeEmulated() {
+    String query = "select \"product_id\" from \"product\" order by \"product_id\" desc nulls "
+        + "first";
+    String expected = "SELECT `product_id`\n"
+        + "FROM `foodmart`.`product`\n"
+        + "ORDER BY `product_id` IS NULL DESC, `product_id` DESC";
+    sql(query).dialect(MysqlSqlDialect.DEFAULT).ok(expected);
+  }
+
+  @Test public void testMySQLSelectQueryWithOrderByAscAndNullsLastShouldBeEmulated() {
+    String query = "select \"product_id\" from \"product\" order by \"product_id\" nulls last";
+    String expected = "SELECT `product_id`\n"
+        + "FROM `foodmart`.`product`\n"
+        + "ORDER BY `product_id` IS NULL, `product_id`";
+    sql(query).dialect(MysqlSqlDialect.DEFAULT).ok(expected);
+  }
+
+  @Test public void testMySQLSelectQueryWithOrderByAscNullsFirstShouldNotAddNullEmulation() {
+    String query = "select \"product_id\" from \"product\" order by \"product_id\" nulls "
+        + "first";
+    String expected = "SELECT `product_id`\n"
+        + "FROM `foodmart`.`product`\n"
+        + "ORDER BY `product_id`";
+    sql(query).dialect(MysqlSqlDialect.DEFAULT).ok(expected);
+  }
+
+  @Test public void testMySQLSelectQueryWithOrderByDescNullsLastShouldNotAddNullEmulation() {
+    String query = "select \"product_id\" from \"product\" order by \"product_id\" desc nulls "
+        + "last";
+    String expected = "SELECT `product_id`\n"
+        + "FROM `foodmart`.`product`\n"
+        + "ORDER BY `product_id` DESC";
+    sql(query).dialect(MysqlSqlDialect.DEFAULT).ok(expected);
+  }
+
+  @Test public void testMySQLWithHighNullsSelectWithOrderByAscNullsLastAndNoEmulation() {
+    SqlDialect mySqlDialectWithHighNulls = new MysqlSqlDialect(EMPTY_CONTEXT
+        .withDatabaseProduct(DatabaseProduct.MYSQL)
+        .withIdentifierQuoteString("`")
+        .withNullCollation(NullCollation.HIGH));
+
+    String query = "select \"product_id\" from \"product\" order by \"product_id\" nulls last";
+    String expected = "SELECT `product_id`\n"
+        + "FROM `foodmart`.`product`\n"
+        + "ORDER BY `product_id`";
+    sql(query).dialect(mySqlDialectWithHighNulls).ok(expected);
+  }
+
+  @Test public void testMySQLWithHighNullsSelectWithOrderByAscNullsFirstAndNullEmulation() {
+    SqlDialect mySqlDialectWithHighNulls = new MysqlSqlDialect(EMPTY_CONTEXT
+        .withDatabaseProduct(DatabaseProduct.MYSQL)
+        .withIdentifierQuoteString("`")
+        .withNullCollation(NullCollation.HIGH));
+
+    String query = "select \"product_id\" from \"product\" order by \"product_id\" nulls "
+        + "first";
+    String expected = "SELECT `product_id`\n"
+        + "FROM `foodmart`.`product`\n"
+        + "ORDER BY `product_id` IS NULL DESC, `product_id`";
+    sql(query).dialect(mySqlDialectWithHighNulls).ok(expected);
+  }
+
+  @Test public void testMySQLWithHighNullsSelectWithOrderByDescNullsFirstAndNoEmulation() {
+    SqlDialect mySqlDialectWithHighNulls = new MysqlSqlDialect(EMPTY_CONTEXT
+        .withDatabaseProduct(DatabaseProduct.MYSQL)
+        .withIdentifierQuoteString("`")
+        .withNullCollation(NullCollation.HIGH));
+
+    String query = "select \"product_id\" from \"product\" order by \"product_id\" desc nulls "
+        + "first";
+    String expected = "SELECT `product_id`\n"
+        + "FROM `foodmart`.`product`\n"
+        + "ORDER BY `product_id` DESC";
+    sql(query).dialect(mySqlDialectWithHighNulls).ok(expected);
+  }
+
+  @Test public void testMySQLWithHighNullsSelectWithOrderByDescNullsLastAndNullEmulation() {
+    SqlDialect mySqlDialectWithHighNulls = new MysqlSqlDialect(EMPTY_CONTEXT
+        .withDatabaseProduct(DatabaseProduct.MYSQL)
+        .withIdentifierQuoteString("`")
+        .withNullCollation(NullCollation.HIGH));
+
+    String query = "select \"product_id\" from \"product\" order by \"product_id\" desc nulls "
+        + "last";
+    String expected = "SELECT `product_id`\n"
+        + "FROM `foodmart`.`product`\n"
+        + "ORDER BY `product_id` IS NULL, `product_id` DESC";
+    sql(query).dialect(mySqlDialectWithHighNulls).ok(expected);
+  }
+
+  @Test public void testMySQLWithFirstNullsSelectWithOrderByDescAndNullsFirstShouldNotBeEmulated() {
+    SqlDialect mySqlDialectWithHighNulls = new MysqlSqlDialect(EMPTY_CONTEXT
+        .withDatabaseProduct(DatabaseProduct.MYSQL)
+        .withIdentifierQuoteString("`")
+        .withNullCollation(NullCollation.FIRST));
+
+    String query = "select \"product_id\" from \"product\" order by \"product_id\" desc nulls "
+        + "first";
+    String expected = "SELECT `product_id`\n"
+        + "FROM `foodmart`.`product`\n"
+        + "ORDER BY `product_id` DESC";
+    sql(query).dialect(mySqlDialectWithHighNulls).ok(expected);
+  }
+
+  @Test public void testMySQLWithFirstNullsSelectWithOrderByAscAndNullsFirstShouldNotBeEmulated() {
+    SqlDialect mySqlDialectWithHighNulls = new MysqlSqlDialect(EMPTY_CONTEXT
+        .withDatabaseProduct(DatabaseProduct.MYSQL)
+        .withIdentifierQuoteString("`")
+        .withNullCollation(NullCollation.FIRST));
+
+    String query = "select \"product_id\" from \"product\" order by \"product_id\" nulls "
+        + "first";
+    String expected = "SELECT `product_id`\n"
+        + "FROM `foodmart`.`product`\n"
+        + "ORDER BY `product_id`";
+    sql(query).dialect(mySqlDialectWithHighNulls).ok(expected);
+  }
+
+  @Test public void testMySQLWithFirstNullsSelectWithOrderByDescAndNullsLastShouldBeEmulated() {
+    SqlDialect mySqlDialectWithHighNulls = new MysqlSqlDialect(EMPTY_CONTEXT
+        .withDatabaseProduct(DatabaseProduct.MYSQL)
+        .withIdentifierQuoteString("`")
+        .withNullCollation(NullCollation.FIRST));
+
+    String query = "select \"product_id\" from \"product\" order by \"product_id\" desc nulls "
+        + "last";
+    String expected = "SELECT `product_id`\n"
+        + "FROM `foodmart`.`product`\n"
+        + "ORDER BY `product_id` IS NULL, `product_id` DESC";
+    sql(query).dialect(mySqlDialectWithHighNulls).ok(expected);
+  }
+
+  @Test public void testMySQLWithFirstNullsSelectWithOrderByAscAndNullsLastShouldBeEmulated() {
+    SqlDialect mySqlDialectWithHighNulls = new MysqlSqlDialect(EMPTY_CONTEXT
+        .withDatabaseProduct(DatabaseProduct.MYSQL)
+        .withIdentifierQuoteString("`")
+        .withNullCollation(NullCollation.FIRST));
+
+    String query = "select \"product_id\" from \"product\" order by \"product_id\" nulls "
+        + "last";
+    String expected = "SELECT `product_id`\n"
+        + "FROM `foodmart`.`product`\n"
+        + "ORDER BY `product_id` IS NULL, `product_id`";
+    sql(query).dialect(mySqlDialectWithHighNulls).ok(expected);
+  }
+
+  @Test public void testMySQLWithLastNullsSelectWithOrderByDescAndNullsFirstShouldBeEmulated() {
+    SqlDialect mySqlDialectWithHighNulls = new MysqlSqlDialect(EMPTY_CONTEXT
+        .withDatabaseProduct(DatabaseProduct.MYSQL)
+        .withIdentifierQuoteString("`")
+        .withNullCollation(NullCollation.LAST));
+
+    String query = "select \"product_id\" from \"product\" order by \"product_id\" desc nulls "
+        + "first";
+    String expected = "SELECT `product_id`\n"
+        + "FROM `foodmart`.`product`\n"
+        + "ORDER BY `product_id` IS NULL DESC, `product_id` DESC";
+    sql(query).dialect(mySqlDialectWithHighNulls).ok(expected);
+  }
+
+  @Test public void testMySQLWithLastNullsSelectWithOrderByAscAndNullsFirstShouldBeEmulated() {
+    SqlDialect mySqlDialectWithHighNulls = new MysqlSqlDialect(EMPTY_CONTEXT
+        .withDatabaseProduct(DatabaseProduct.MYSQL)
+        .withIdentifierQuoteString("`")
+        .withNullCollation(NullCollation.LAST));
+
+    String query = "select \"product_id\" from \"product\" order by \"product_id\" nulls "
+        + "first";
+    String expected = "SELECT `product_id`\n"
+        + "FROM `foodmart`.`product`\n"
+        + "ORDER BY `product_id` IS NULL DESC, `product_id`";
+    sql(query).dialect(mySqlDialectWithHighNulls).ok(expected);
+  }
+
+  @Test public void testMySQLWithLastNullsSelectWithOrderByDescAndNullsLastShouldNotBeEmulated() {
+    SqlDialect mySqlDialectWithHighNulls = new MysqlSqlDialect(EMPTY_CONTEXT
+        .withDatabaseProduct(DatabaseProduct.MYSQL)
+        .withIdentifierQuoteString("`")
+        .withNullCollation(NullCollation.LAST));
+
+    String query = "select \"product_id\" from \"product\" order by \"product_id\" desc nulls "
+        + "last";
+    String expected = "SELECT `product_id`\n"
+        + "FROM `foodmart`.`product`\n"
+        + "ORDER BY `product_id` DESC";
+    sql(query).dialect(mySqlDialectWithHighNulls).ok(expected);
+  }
+
+  @Test public void testMySQLWithLastNullsSelectWithOrderByAscAndNullsLastShouldNotBeEmulated() {
+    SqlDialect mySqlDialectWithHighNulls = new MysqlSqlDialect(EMPTY_CONTEXT
+        .withDatabaseProduct(DatabaseProduct.MYSQL)
+        .withIdentifierQuoteString("`")
+        .withNullCollation(NullCollation.LAST));
+
+    String query = "select \"product_id\" from \"product\" order by \"product_id\" nulls "
+        + "last";
+    String expected = "SELECT `product_id`\n"
+        + "FROM `foodmart`.`product`\n"
+        + "ORDER BY `product_id`";
+    sql(query).dialect(mySqlDialectWithHighNulls).ok(expected);
   }
 
   @Test public void testSelectQueryWithLimitClauseWithoutOrder() {

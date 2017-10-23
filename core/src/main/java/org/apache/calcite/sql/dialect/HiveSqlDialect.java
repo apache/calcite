@@ -16,19 +16,28 @@
  */
 package org.apache.calcite.sql.dialect;
 
+import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.sql.SqlDialect;
+import org.apache.calcite.sql.SqlNode;
 
 /**
  * A <code>SqlDialect</code> implementation for the Apache Hive database.
  */
 public class HiveSqlDialect extends SqlDialect {
   public static final SqlDialect DEFAULT =
-      new HiveSqlDialect(
-          EMPTY_CONTEXT.withDatabaseProduct(DatabaseProduct.HIVE));
+      new HiveSqlDialect(EMPTY_CONTEXT
+          .withDatabaseProduct(DatabaseProduct.HIVE)
+          .withNullCollation(NullCollation.LOW));
 
-  /** Creates a HiveSqlDialect. */
+  private final boolean emulateNullDirection;
+
+  /**
+   * Creates a HiveSqlDialect.
+   */
   public HiveSqlDialect(Context context) {
     super(context);
+    emulateNullDirection = context.databaseMajorVersion() == null
+        || (context.databaseMajorVersion() <= 2 && context.databaseMinorVersion() < 1);
   }
 
   @Override protected boolean allowsAs() {
@@ -37,6 +46,18 @@ public class HiveSqlDialect extends SqlDialect {
 
   @Override public boolean supportsOffsetFetch() {
     return false;
+  }
+
+  /**
+   * Since 2.1.0, Hive natively supports "NULLS FIRST" and "NULLS LAST".
+   * https://issues.apache.org/jira/browse/HIVE-12994
+   */
+  @Override public SqlNode emulateNullDirection(SqlNode node, boolean nullsFirst, boolean desc) {
+    if (emulateNullDirection) {
+      return emulateNullDirectionWithIsNull(node, nullsFirst, desc);
+    }
+
+    return null;
   }
 }
 
