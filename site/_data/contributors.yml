@@ -36,6 +36,11 @@
   githubId: chris-baynes
   org: Contiamo
   role: Committer
+- name: Christian Beikov
+  apacheId: cbeikov
+  githubId: beikov
+  org: Blazebit
+  role: Committer
 - name: Francis Chuang
   apacheId: francischuang
   githubId: F21
