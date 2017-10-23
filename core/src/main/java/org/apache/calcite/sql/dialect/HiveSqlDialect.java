@@ -29,7 +29,7 @@ public class HiveSqlDialect extends SqlDialect {
           .withDatabaseProduct(DatabaseProduct.HIVE)
           .withNullCollation(NullCollation.LOW));
 
-  private boolean emulateNullDirection;
+  private final boolean emulateNullDirection;
 
   /**
    * Creates a HiveSqlDialect.
@@ -54,7 +54,7 @@ public class HiveSqlDialect extends SqlDialect {
    */
   @Override public SqlNode emulateNullDirection(SqlNode node, boolean nullsFirst, boolean desc) {
     if (emulateNullDirection) {
-      return emulateNullDirectionForLowNulls(node, nullsFirst, desc);
+      return emulateNullDirectionWithIsNull(node, nullsFirst, desc);
     }
 
     return null;

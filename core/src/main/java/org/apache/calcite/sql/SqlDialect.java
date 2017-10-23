@@ -543,11 +543,11 @@ public class SqlDialect {
     return null;
   }
 
-  protected SqlNode emulateNullDirectionForLowNulls(
-      SqlNode node, boolean nullsFirst, boolean desc) {
-    // No emulation required for the following 2 cases
-    if (/*order by id nulls first*/ (nullsFirst && !desc)
-        || /*order by id desc nulls last*/ (!nullsFirst && desc)) {
+  protected SqlNode emulateNullDirectionWithIsNull(SqlNode node, boolean nullsFirst, boolean desc) {
+    boolean nullsAreInNaturalOrder = nullCollation.naturalOrder(nullsFirst, desc);
+    // No need for emulation if the nulls will anyways come out the way we want them based on
+    // "nullsFirst" and "desc"
+    if (nullsAreInNaturalOrder) {
       return null;
     }
 
@@ -674,6 +674,7 @@ public class SqlDialect {
    */
   public enum DatabaseProduct {
     ACCESS("Access", "\"", NullCollation.HIGH),
+    BIGQUERY("Google BigQuery", "`", NullCollation.LOW),
     CALCITE("Apache Calcite", "\"", NullCollation.HIGH),
     MSSQL("Microsoft SQL Server", "[", NullCollation.HIGH),
     MYSQL("MySQL", "`", NullCollation.LOW),
@@ -683,7 +684,6 @@ public class SqlDialect {
     FIREBIRD("Firebird", null, NullCollation.HIGH),
     H2("H2", "\"", NullCollation.HIGH),
     HIVE("Apache Hive", null, NullCollation.LOW),
-    BIGQUERY("Google BigQuery", "`", NullCollation.LOW),
     INFORMIX("Informix", null, NullCollation.HIGH),
     INGRES("Ingres", null, NullCollation.HIGH),
     LUCIDDB("LucidDB", "\"", NullCollation.HIGH),

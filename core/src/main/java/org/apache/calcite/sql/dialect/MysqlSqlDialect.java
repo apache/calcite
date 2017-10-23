@@ -70,7 +70,7 @@ public class MysqlSqlDialect extends SqlDialect {
 
   @Override public SqlNode emulateNullDirection(SqlNode node, boolean nullsFirst, boolean desc) {
     // MySQL assumes that nulls are low values
-    return emulateNullDirectionForLowNulls(node, nullsFirst, desc);
+    return emulateNullDirectionWithIsNull(node, nullsFirst, desc);
   }
 
   @Override public boolean supportsAggregateFunction(SqlKind kind) {
