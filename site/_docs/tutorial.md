@@ -718,43 +718,6 @@ initial implementations.
 
 ## Further topics
 
-### Defining a custom schema
+There are many other ways to extend Calcite not yet described in this tutorial.
+The [adapter specification](adapter.html) describes the APIs involved.
 
-(To be written.)
-
-### Modifying data
-
-How to enable DML operations (INSERT, UPDATE and DELETE) on your schema.
-
-(To be written.)
-
-### Calling conventions
-
-(To be written.)
-
-### Statistics and cost
-
-(To be written.)
-
-### Defining and using user-defined functions
-
-(To be written.)
-
-###  Defining tables in a schema
-
-(To be written.)
-
-### Defining custom tables
-
-(To be written.)
-
-### Built-in SQL implementation
-
-How does Calcite implement SQL, if an adapter does not implement all of the core
-relational operators?
-
-(To be written.)
-
-### Table functions
-
-(To be written.)
