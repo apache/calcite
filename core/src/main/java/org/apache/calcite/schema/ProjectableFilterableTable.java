@@ -48,7 +48,7 @@ public interface ProjectableFilterableTable extends Table {
    * <p>The projects are zero-based.</p>
    *
    * @param root Execution context
-   * @param filters Mutable list of filters. The method should remove from the
+   * @param filters Mutable list of filters. The method should keep in the
    *                list any filters that it cannot apply.
    * @param projects List of projects. Each is the 0-based ordinal of the column
    *                 to project.
