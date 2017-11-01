@@ -2611,7 +2611,7 @@ public class RexUtil {
       if (simplifiedNode.getType().equals(call.getType())) {
         return simplifiedNode;
       }
-      return simplify.rexBuilder.makeCast(call.getType(), simplifiedNode, true);
+      return simplify.rexBuilder.makeAbstractCast(call.getType(), simplifiedNode);
     }
   }
 }
