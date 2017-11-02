@@ -257,6 +257,16 @@ public class GeoFunctions {
     return geom.g().hasZ();
   }
 
+  /** Returns the x-value of the first coordinate of {@code geom}. */
+  public static Double ST_X(Geom geom) {
+    return geom.g() instanceof Point ? ((Point) geom.g()).getX() : null;
+  }
+
+  /** Returns the y-value of the first coordinate of {@code geom}. */
+  public static Double ST_Y(Geom geom) {
+    return geom.g() instanceof Point ? ((Point) geom.g()).getY() : null;
+  }
+
   /** Returns the z-value of the first coordinate of {@code geom}. */
   public static Double ST_Z(Geom geom) {
     return geom.g().getDescription().hasZ() && geom.g() instanceof Point
