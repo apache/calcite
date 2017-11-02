@@ -174,7 +174,7 @@ public class CassandraFilter extends Filter implements CassandraRel {
       }
     }
 
-    /** Conver the value of a literal to a string.
+    /** Convert the value of a literal to a string.
      *
      * @param literal Literal to translate
      * @return String representation of the literal

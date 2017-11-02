@@ -71,8 +71,8 @@ public interface RelDataType /*extends Type*/ {
   /**
    * Returns the number of fields in a struct type.
    *
-   * <p>This method is equivalent to <code>{@link #getFieldList}
-   * ().size()</code>.
+   * <p>This method is equivalent to
+   * <code>{@link #getFieldList}.size()</code>.
    */
   int getFieldCount();
 
