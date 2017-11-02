@@ -18,6 +18,7 @@ package org.apache.calcite.rel.logical;
 
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptPredicateList;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollationTraitDef;
@@ -33,6 +34,8 @@ import org.apache.calcite.rel.metadata.RelMdCollation;
 import org.apache.calcite.rel.metadata.RelMdDistribution;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexSimplify;
+import org.apache.calcite.rex.RexUtil;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
@@ -121,7 +124,12 @@ public final class LogicalFilter extends Filter {
                 return RelMdDistribution.filter(mq, input);
               }
             });
-    return new LogicalFilter(cluster, traitSet, input, condition, variablesSet);
+    RexNode newCondition = new RexSimplify(cluster.getRexBuilder(),
+                                           RelOptPredicateList.EMPTY,
+                                           false,
+                                           RexUtil.EXECUTOR)
+                                  .removeNullabilityCast(condition);
+    return new LogicalFilter(cluster, traitSet, input, newCondition, variablesSet);
   }
 
   //~ Methods ----------------------------------------------------------------

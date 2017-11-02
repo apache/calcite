@@ -18,6 +18,7 @@ package org.apache.calcite.adapter.enumerable;
 
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptPredicateList;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.InvalidRelException;
 import org.apache.calcite.rel.RelNode;
@@ -25,6 +26,9 @@ import org.apache.calcite.rel.convert.ConverterRule;
 import org.apache.calcite.rel.core.JoinInfo;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.logical.LogicalJoin;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexSimplify;
+import org.apache.calcite.rex.RexUtil;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -87,9 +91,13 @@ class EnumerableJoinRule extends ConverterRule {
       EnumerableRules.LOGGER.debug(e.toString());
       return null;
     }
+    RexNode newCondition = new RexSimplify(cluster.getRexBuilder(),
+                                           RelOptPredicateList.EMPTY,
+                                           false,
+                                           RexUtil.EXECUTOR)
+                            .removeNullabilityCast(info.getRemaining(cluster.getRexBuilder()));
     if (!info.isEqui()) {
-      newRel = new EnumerableFilter(cluster, newRel.getTraitSet(),
-          newRel, info.getRemaining(cluster.getRexBuilder()));
+      newRel = new EnumerableFilter(cluster, newRel.getTraitSet(), newRel, newCondition);
     }
     return newRel;
   }
