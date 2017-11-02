@@ -748,6 +748,20 @@ public class RexBuilder {
   }
 
   /**
+   * Makes a cast of a value to NOT NULL;
+   * no-op if the type already has NOT NULL.
+   */
+  public RexNode makeNotNull(RexNode exp) {
+    final RelDataType type = exp.getType();
+    if (!type.isNullable()) {
+      return exp;
+    }
+    final RelDataType notNullType =
+        typeFactory.createTypeWithNullability(type, false);
+    return makeAbstractCast(notNullType, exp);
+  }
+
+  /**
    * Creates a reference to all the fields in the row. That is, the whole row
    * as a single record object.
    *

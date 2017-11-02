@@ -626,23 +626,35 @@ LogicalProject(DEPTNO=[$7])
     <TestCase name="testIsDistinctFrom">
         <Resource name="plan">
             <![CDATA[
-LogicalProject(EXPR$0=[CAST(CASE(IS NULL(1), IS NOT NULL(2), IS NULL(2), IS NOT NULL(1), <>(1, 2))):BOOLEAN NOT NULL])
-  LogicalValues(tuples=[[{ true }]])
+LogicalProject(EXPR$0=[CASE(IS NULL($0), IS NOT NULL($1), IS NULL($1), IS NOT NULL($0), <>(CAST($0):INTEGER NOT NULL, CAST($1):INTEGER NOT NULL))])
+  LogicalUnion(all=[true])
+    LogicalProject(EXPR$0=[null], EXPR$1=[1])
+      LogicalValues(tuples=[[{ 0 }]])
+    LogicalProject(EXPR$0=[2], EXPR$1=[null])
+      LogicalValues(tuples=[[{ 0 }]])
 ]]>
         </Resource>
         <Resource name="sql">
-            <![CDATA[select 1 is distinct from 2 from (values(true))]]>
+            <![CDATA[select empno is distinct from deptno
+from (values (cast(null as int), 1),
+              (2, cast(null as int))) as emp(empno, deptno)]]>
         </Resource>
     </TestCase>
     <TestCase name="testIsNotDistinctFrom">
         <Resource name="plan">
             <![CDATA[
-LogicalProject(EXPR$0=[CAST(CASE(IS NULL(1), IS NULL(2), IS NULL(2), IS NULL(1), =(1, 2))):BOOLEAN NOT NULL])
-  LogicalValues(tuples=[[{ true }]])
+LogicalProject(EXPR$0=[CASE(IS NULL($0), IS NULL($1), IS NULL($1), IS NULL($0), =(CAST($0):INTEGER NOT NULL, CAST($1):INTEGER NOT NULL))])
+  LogicalUnion(all=[true])
+    LogicalProject(EXPR$0=[null], EXPR$1=[1])
+      LogicalValues(tuples=[[{ 0 }]])
+    LogicalProject(EXPR$0=[2], EXPR$1=[null])
+      LogicalValues(tuples=[[{ 0 }]])
 ]]>
         </Resource>
         <Resource name="sql">
-            <![CDATA[select 1 is not distinct from 2 from (values(true))]]>
+            <![CDATA[select empno is not distinct from deptno
+from (values (cast(null as int), 1),
+             (2, cast(null as int))) as emp(empno, deptno)]]>
         </Resource>
     </TestCase>
     <TestCase name="testNotLike">

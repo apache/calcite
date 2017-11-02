@@ -2036,7 +2036,7 @@ LogicalCalc(expr#0=[{inputs}], expr#1=['TABLE        '], expr#2=['t'], U=[$t1], 
         </Resource>
         <Resource name="planBefore">
             <![CDATA[
-LogicalProject(EXPR$0=[CAST(CASE(IS NULL($1), IS NULL($0), IS NULL($0), IS NULL($1), =($1, $0))):BOOLEAN NOT NULL])
+LogicalProject(EXPR$0=[CASE(IS NULL($1), IS NULL($0), =(CAST($1):INTEGER NOT NULL, $0))])
   LogicalProject(EXPR$0=[2], EXPR$1=[null])
     LogicalValues(tuples=[[{ 0 }]])
 ]]>

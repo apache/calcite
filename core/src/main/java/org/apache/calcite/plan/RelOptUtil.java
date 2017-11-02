@@ -1920,10 +1920,8 @@ public abstract class RelOptUtil {
 
     // The result of IS DISTINCT FROM is NOT NULL because it can
     // only return TRUE or FALSE.
-    ret =
-        rexBuilder.makeCast(
-            rexBuilder.getTypeFactory().createSqlType(SqlTypeName.BOOLEAN),
-            ret);
+    assert ret != null;
+    assert !ret.getType().isNullable();
 
     return ret;
   }
@@ -1942,6 +1940,8 @@ public abstract class RelOptUtil {
       nullOp = SqlStdOperatorTable.IS_NOT_NULL;
       eqOp = SqlStdOperatorTable.NOT_EQUALS;
     }
+    // By the time the ELSE is reached, x and y are known to be not null;
+    // therefore the whole CASE is not null.
     RexNode[] whenThenElse = {
         // when x is null
         rexBuilder.makeCall(SqlStdOperatorTable.IS_NULL, x),
@@ -1956,7 +1956,9 @@ public abstract class RelOptUtil {
         rexBuilder.makeCall(nullOp, x),
 
         // else return x compared to y
-        rexBuilder.makeCall(eqOp, x, y)
+        rexBuilder.makeCall(eqOp,
+            rexBuilder.makeNotNull(x),
+            rexBuilder.makeNotNull(y))
     };
     return rexBuilder.makeCall(
         SqlStdOperatorTable.CASE,

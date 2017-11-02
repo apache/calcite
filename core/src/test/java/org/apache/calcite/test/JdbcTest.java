@@ -1589,6 +1589,34 @@ public class JdbcTest {
             + "full_name=Terry Anderson\n");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2029">[CALCITE-2029]
+   * Query with "is distinct from" condition in where or join clause fails
+   * with AssertionError: Cast for just nullability not allowed</a>. */
+  @Test public void testIsNotDistinctInFilter() {
+    CalciteAssert.that()
+      .with(CalciteAssert.Config.JDBC_FOODMART)
+      .query("select *\n"
+          + "  from \"foodmart\".\"employee\" as e1\n"
+          + "  where e1.\"last_name\" is distinct from e1.\"last_name\"")
+      .runs();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2029">[CALCITE-2029]
+   * Query with "is distinct from" condition in where or join clause fails
+   * with AssertionError: Cast for just nullability not allowed</a>. */
+  @Test public void testMixedEqualAndIsNotDistinctJoin() {
+    CalciteAssert.that()
+      .with(CalciteAssert.Config.JDBC_FOODMART)
+      .query("select *\n"
+          + "  from \"foodmart\".\"employee\" as e1\n"
+          + "  join \"foodmart\".\"employee\" as e2 on\n"
+          + "  e1.\"first_name\" = e1.\"first_name\"\n"
+          + "  and e1.\"last_name\" is distinct from e2.\"last_name\"")
+      .runs();
+  }
+
   /** A join that has both equi and non-equi conditions.
    *
    * <p>Test case for
