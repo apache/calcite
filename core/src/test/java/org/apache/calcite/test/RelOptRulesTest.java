@@ -3342,6 +3342,19 @@ public class RelOptRulesTest extends RelOptTestBase {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2028">[CALCITE-2028]
+   * Un-correlated IN sub-query should be converted into a Join,
+   * rather than a Correlate without correlation variables </a>. */
+  @Test public void testDecorrelateUncorrelatedInAndCorrelatedExists() throws Exception {
+    final String sql = "select * from sales.emp\n"
+        + "WHERE job in (\n"
+        + "  select job from emp ee where ee.sal=34)"
+        + "AND EXISTS (\n"
+        + "  select * from emp e where emp.deptno = e.deptno)\n";
+    checkSubQuery(sql).withLateDecorrelation(true).check();
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1537">[CALCITE-1537]
    * Unnecessary project expression in multi-sub-query plan</a>. */
   @Test public void testDecorrelateTwoIn() throws Exception {

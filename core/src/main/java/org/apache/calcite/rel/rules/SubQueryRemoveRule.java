@@ -110,7 +110,8 @@ public abstract class SubQueryRemoveRule extends RelOptRule {
             final RelOptUtil.Logic logic =
                 LogicVisitor.find(RelOptUtil.Logic.TRUE, ImmutableList.of(c),
                     e);
-            final RexNode target = apply(e, filter.getVariablesSet(), logic,
+            Set<CorrelationId>  variablesSet = RelOptUtil.getVariablesUsed(e.rel);
+            final RexNode target = apply(e, variablesSet, logic,
                 builder, 1, builder.peek().getRowType().getFieldCount());
             final RexShuttle shuttle = new ReplaceSubQueryShuttle(e, target);
             c = c.accept(shuttle);
