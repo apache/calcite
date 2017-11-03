@@ -1984,4 +1984,19 @@ select multiset[1,null,2,2-1] as m from (values (1));
 
 !ok
 
+!if (false) {
+# [CALCITE-2032] Error when implicitly converting character literal to date literal
+select *
+from "scott".emp
+WHERE hiredate = '1980-12-17';
++-------+-------+-------+------+------------+--------+------+--------+
+| EMPNO | ENAME | JOB   | MGR  | HIREDATE   | SAL    | COMM | DEPTNO |
++-------+-------+-------+------+------------+--------+------+--------+
+|  7369 | SMITH | CLERK | 7902 | 1980-12-17 | 800.00 |      |     20 |
++-------+-------+-------+------+------------+--------+------+--------+
+(1 row)
+
+!ok
+!}
+
 # End misc.iq
