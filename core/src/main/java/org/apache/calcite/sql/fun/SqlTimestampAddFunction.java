@@ -60,8 +60,7 @@ class SqlTimestampAddFunction extends SqlFunction {
       new SqlReturnTypeInference() {
         public RelDataType inferReturnType(SqlOperatorBinding opBinding) {
           final RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
-          final TimeUnit unit = (TimeUnit) opBinding.getOperandLiteralValue(0);
-          switch (unit) {
+          switch (opBinding.getOperandLiteralValue(0, TimeUnit.class)) {
           case HOUR:
           case MINUTE:
           case SECOND:

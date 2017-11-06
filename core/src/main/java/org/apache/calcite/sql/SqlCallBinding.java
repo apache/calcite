@@ -152,7 +152,7 @@ public class SqlCallBinding extends SqlOperatorBinding {
 
   /** Returns the operands to a call permuted into the same order as the
    * formal parameters of the function. */
-  public List<SqlNode> permutedOperands(final SqlCall call) {
+  private List<SqlNode> permutedOperands(final SqlCall call) {
     final SqlFunction operator = (SqlFunction) call.getOperator();
     return Lists.transform(operator.getParamNames(),
         new Function<String, SqlNode>() {
@@ -215,10 +215,10 @@ public class SqlCallBinding extends SqlOperatorBinding {
     throw new AssertionError();
   }
 
-  @Override public Comparable getOperandLiteralValue(int ordinal) {
+  @Override public <T> T getOperandLiteralValue(int ordinal, Class<T> clazz) {
     try {
       final SqlNode node = call.operand(ordinal);
-      return SqlLiteral.value(node);
+      return SqlLiteral.unchain(node).getValueAs(clazz);
     } catch (IllegalArgumentException e) {
       return null;
     }

@@ -186,9 +186,8 @@ public class SqlBinaryOperator extends SqlOperator {
       final SqlMonotonicity mono0 = call.getOperandMonotonicity(0);
       final SqlMonotonicity mono1 = call.getOperandMonotonicity(1);
       if (mono1 == SqlMonotonicity.CONSTANT) {
-        final Object o = call.getOperandLiteralValue(1);
-        if (o instanceof BigDecimal) {
-          switch (((BigDecimal) o).compareTo(BigDecimal.ZERO)) {
+        if (call.isOperandLiteral(1, false)) {
+          switch (call.getOperandLiteralValue(1, BigDecimal.class).signum()) {
           case -1:
 
             // mono / -ve constant --> reverse mono, unstrict

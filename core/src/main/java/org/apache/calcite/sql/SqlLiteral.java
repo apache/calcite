@@ -261,6 +261,42 @@ public class SqlLiteral extends SqlNode {
       return clazz.cast(value);
     }
     switch (typeName) {
+    case CHAR:
+      if (clazz == String.class) {
+        return clazz.cast(((NlsString) value).getValue());
+      }
+      break;
+    case BINARY:
+      if (clazz == byte[].class) {
+        return clazz.cast(((BitString) value).getAsByteArray());
+      }
+      break;
+    case DECIMAL:
+      if (clazz == Long.class) {
+        return clazz.cast(((BigDecimal) value).unscaledValue().longValue());
+      }
+      // fall through
+    case BIGINT:
+    case INTEGER:
+    case SMALLINT:
+    case TINYINT:
+    case DOUBLE:
+    case REAL:
+    case FLOAT:
+      if (clazz == Long.class) {
+        return clazz.cast(((BigDecimal) value).longValue());
+      } else if (clazz == Integer.class) {
+        return clazz.cast(((BigDecimal) value).intValue());
+      } else if (clazz == Short.class) {
+        return clazz.cast(((BigDecimal) value).shortValue());
+      } else if (clazz == Byte.class) {
+        return clazz.cast(((BigDecimal) value).byteValue());
+      } else if (clazz == Double.class) {
+        return clazz.cast(((BigDecimal) value).doubleValue());
+      } else if (clazz == Float.class) {
+        return clazz.cast(((BigDecimal) value).floatValue());
+      }
+      break;
     case DATE:
       if (clazz == Calendar.class) {
         return clazz.cast(((DateString) value).toCalendar());
@@ -279,13 +315,15 @@ public class SqlLiteral extends SqlNode {
     case INTERVAL_YEAR:
     case INTERVAL_YEAR_MONTH:
     case INTERVAL_MONTH:
+      final SqlIntervalLiteral.IntervalValue valMonth =
+          (SqlIntervalLiteral.IntervalValue) value;
       if (clazz == Long.class) {
-        final SqlIntervalLiteral.IntervalValue valMonth =
-            (SqlIntervalLiteral.IntervalValue) value;
         return clazz.cast(valMonth.getSign()
             * SqlParserUtil.intervalToMonths(valMonth));
       } else if (clazz == BigDecimal.class) {
         return clazz.cast(BigDecimal.valueOf(getValueAs(Long.class)));
+      } else if (clazz == TimeUnitRange.class) {
+        return clazz.cast(valMonth.getIntervalQualifier().timeUnitRange);
       }
       break;
     case INTERVAL_DAY:
@@ -298,13 +336,15 @@ public class SqlLiteral extends SqlNode {
     case INTERVAL_MINUTE:
     case INTERVAL_MINUTE_SECOND:
     case INTERVAL_SECOND:
+      final SqlIntervalLiteral.IntervalValue valTime =
+          (SqlIntervalLiteral.IntervalValue) value;
       if (clazz == Long.class) {
-        final SqlIntervalLiteral.IntervalValue valTime =
-            (SqlIntervalLiteral.IntervalValue) value;
         return clazz.cast(valTime.getSign()
             * SqlParserUtil.intervalToMillis(valTime));
       } else if (clazz == BigDecimal.class) {
         return clazz.cast(BigDecimal.valueOf(getValueAs(Long.class)));
+      } else if (clazz == TimeUnitRange.class) {
+        return clazz.cast(valTime.getIntervalQualifier().timeUnitRange);
       }
       break;
     }
@@ -447,6 +487,11 @@ public class SqlLiteral extends SqlNode {
       return (SqlLiteral) node;
     } else if (SqlUtil.isLiteralChain(node)) {
       return SqlLiteralChainOperator.concatenateOperands((SqlCall) node);
+    } else if (node instanceof SqlIntervalQualifier) {
+      final SqlIntervalQualifier q = (SqlIntervalQualifier) node;
+      return new SqlLiteral(
+          new SqlIntervalLiteral.IntervalValue(q, 1, q.toString()),
+          q.typeName(), q.pos);
     } else {
       throw new AssertionError("invalid literal: " + node);
     }

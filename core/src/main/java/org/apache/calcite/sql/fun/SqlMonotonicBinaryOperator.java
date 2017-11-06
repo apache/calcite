@@ -17,7 +17,6 @@
 package org.apache.calcite.sql.fun;
 
 import org.apache.calcite.sql.SqlBinaryOperator;
-import org.apache.calcite.sql.SqlIntervalLiteral;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperatorBinding;
 import org.apache.calcite.sql.type.SqlOperandTypeChecker;
@@ -74,7 +73,7 @@ public class SqlMonotonicBinaryOperator extends SqlBinaryOperator {
         return mono0;
       }
       assert getName().equals("*");
-      switch (signum(call.getOperandLiteralValue(1))) {
+      switch (call.getOperandLiteralValue(1, BigDecimal.class).signum()) {
       case -1:
         // mono0 * negative constant --> reverse mono0
         return mono0.reverse();
@@ -100,9 +99,8 @@ public class SqlMonotonicBinaryOperator extends SqlBinaryOperator {
         return mono1;
       }
       assert getName().equals("*");
-      final Object v0 = call.getOperandLiteralValue(0);
-      if (v0 != null) {
-        switch (signum(v0)) {
+      if (!call.isOperandNull(0, true)) {
+        switch (call.getOperandLiteralValue(0, BigDecimal.class).signum()) {
         case -1:
           // negative constant * mono1 --> reverse mono1
           return mono1.reverse();
@@ -150,16 +148,6 @@ public class SqlMonotonicBinaryOperator extends SqlBinaryOperator {
     }
 
     return super.getMonotonicity(call);
-  }
-
-  private int signum(Object o) {
-    if (o instanceof BigDecimal) {
-      return ((BigDecimal) o).signum();
-    } else if (o instanceof SqlIntervalLiteral.IntervalValue) {
-      return ((SqlIntervalLiteral.IntervalValue) o).getSign();
-    } else {
-      return 1;
-    }
   }
 }
 

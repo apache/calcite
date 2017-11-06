@@ -1854,7 +1854,7 @@ SqlNode TableRef2(boolean lateral) :
             <SUBSTITUTE> <LPAREN> sample = StringLiteral() <RPAREN>
             {
                 String sampleName =
-                    ((NlsString) SqlLiteral.value(sample)).getValue();
+                    SqlLiteral.unchain(sample).getValueAs(String.class);
                 SqlSampleSpec sampleSpec = SqlSampleSpec.createNamed(sampleName);
                 final SqlLiteral sampleLiteral =
                     SqlLiteral.createSample(sampleSpec, s2.end(this));

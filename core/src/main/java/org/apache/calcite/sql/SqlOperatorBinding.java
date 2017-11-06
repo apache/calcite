@@ -131,10 +131,17 @@ public abstract class SqlOperatorBinding {
    * </ul>
    *
    * @param ordinal zero-based ordinal of operand of interest
+   * @param clazz Desired valued type
+   *
    * @return value of operand
    */
-  public Comparable getOperandLiteralValue(int ordinal) {
+  public <T> T getOperandLiteralValue(int ordinal, Class<T> clazz) {
     throw new UnsupportedOperationException();
+  }
+
+  @Deprecated // to be removed before 2.0
+  public Comparable getOperandLiteralValue(int ordinal) {
+    return getOperandLiteralValue(ordinal, Comparable.class);
   }
 
   /**
