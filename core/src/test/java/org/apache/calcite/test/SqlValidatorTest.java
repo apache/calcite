@@ -7400,7 +7400,9 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + " UNNEST(d.employees) as e";
     final String type = "RecordType(INTEGER NOT NULL DEPTNO,"
         + " INTEGER NOT NULL EMPNO,"
-        + " VARCHAR(10) NOT NULL ENAME) NOT NULL";
+        + " VARCHAR(10) NOT NULL ENAME,"
+        + " RecordType(VARCHAR(10) NOT NULL TYPE, VARCHAR(20) NOT NULL DESC)"
+        + " NOT NULL ARRAY NOT NULL SKILLS) NOT NULL";
     sql(sql).type(type);
 
     // equivalent query using CROSS JOIN
@@ -7775,6 +7777,15 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     checkResultType(
         "SELECT customer.contact.coord.x, customer.contact.email, contact.coord.y FROM customer.contact",
         "RecordType(INTEGER NOT NULL X, VARCHAR(20) NOT NULL EMAIL, INTEGER NOT NULL Y) NOT NULL");
+  }
+
+  @Test public void testArrayOfRecordType() {
+    sql("SELECT name, dept_nested.employees[1].ne as ne from dept_nested")
+        .fails("Unknown field 'NE'");
+    sql("SELECT name, dept_nested.employees[1].ename as ename from dept_nested")
+        .type("RecordType(VARCHAR(10) NOT NULL NAME, VARCHAR(10) ENAME) NOT NULL");
+    sql("SELECT dept_nested.employees[1].skills[1].desc as DESCRIPTION from dept_nested")
+        .type("RecordType(VARCHAR(20) DESCRIPTION) NOT NULL");
   }
 
   /** Test case for
@@ -8465,6 +8476,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "\n"
         + "CURRENT_VALUE -\n"
         + "DEFAULT -\n"
+        + "DOT -\n"
         + "ITEM -\n"
         + "NEXT_VALUE -\n"
         + "PATTERN_EXCLUDE -\n"
@@ -8476,7 +8488,6 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "$LiteralChain -\n"
         + "+ pre\n"
         + "- pre\n"
-        + ". left\n"
         + "FINAL pre\n"
         + "RUNNING pre\n"
         + "\n"

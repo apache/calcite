@@ -359,6 +359,17 @@ from orders
 window w as (partition by productId)]]>
         </Resource>
     </TestCase>
+    <TestCase name="testArrayOfRecord">
+        <Resource name="sql">
+            <![CDATA[select*from unnest(array(select*from dept))]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(EXPR$0=[DOT(ITEM(DOT(ITEM($2, 1), 'SKILLS'), +(2, 3)), 'DESC')])
+  LogicalTableScan(table=[[CATALOG, SALES, DEPT_NESTED]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testUnnestArray">
         <Resource name="sql">
             <![CDATA[select*from unnest(array(select*from dept))]]>
