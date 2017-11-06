@@ -2975,6 +2975,7 @@ List<Object> Expression2(ExprContext exprContext) :
     SqlNodeList nodeList;
     SqlNode e;
     SqlOperator op;
+    String p;
     final Span s = span();
 }
 {
@@ -3096,6 +3097,25 @@ List<Object> Expression2(ExprContext exprContext) :
                             SqlStdOperatorTable.ITEM, getPos()));
                     list.add(e);
                 }
+                (
+                    <DOT>
+                    (
+                    <QUOTED_STRING> {
+                        list.add(
+                            new SqlParserUtil.ToTreeListItem(
+                                SqlStdOperatorTable.DOT, getPos()));
+                        p = SqlParserUtil.trim(token.image, "'"); // no embedded quotes
+                        list.add(SqlLiteral.createCharString(p, getPos()));
+                    }
+                    |
+                    p = Identifier() {
+                        list.add(
+                            new SqlParserUtil.ToTreeListItem(
+                                SqlStdOperatorTable.DOT, getPos()));
+                        list.add(SqlLiteral.createCharString(p, getPos()));
+                    }
+                    )
+                )*
             |
                 {
                     checkNonQueryExpression(exprContext);

@@ -295,15 +295,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   /**
    * Dot operator, '<code>.</code>', used for referencing fields of records.
    */
-  public static final SqlBinaryOperator DOT =
-      new SqlBinaryOperator(
-          ".",
-          SqlKind.DOT,
-          80,
-          true,
-          null,
-          null,
-          OperandTypes.ANY_ANY);
+  public static final SqlOperator DOT = new SqlDotOperator();
 
   /**
    * Logical equals operator, '<code>=</code>'.

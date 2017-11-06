@@ -1615,10 +1615,16 @@ public class MockCatalogReader extends CalciteCatalogReader {
                     .build())
             .kind(StructKind.PEEK_FIELDS_NO_EXPAND)
             .build();
+    final RelDataType skillRecordType =
+        typeFactory.builder()
+            .add("TYPE", varchar10Type)
+            .add("DESC", varchar20Type)
+            .build();
     final RelDataType empRecordType =
         typeFactory.builder()
             .add("EMPNO", intType)
-            .add("ENAME", varchar10Type).build();
+            .add("ENAME", varchar10Type)
+            .add("SKILLS", typeFactory.createArrayType(skillRecordType, -1)).build();
     final RelDataType empListType =
         typeFactory.createArrayType(empRecordType, -1);
 
