@@ -16,10 +16,12 @@
  */
 package org.apache.calcite.sql.parser.parserextensiontesting;
 
+import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParserImplFactory;
 import org.apache.calcite.sql.parser.SqlParserTest;
 
+import org.hamcrest.core.IsNull;
 import org.junit.Test;
 
 /**
@@ -48,6 +50,13 @@ public class ExtensionSqlParserTest extends SqlParserTest {
   @Test public void testCreateTable() {
     sql("CREATE TABLE foo.baz(i INTEGER, j VARCHAR(10) NOT NULL)")
         .ok("CREATE TABLE `FOO`.`BAZ` (`I` INTEGER, `J` VARCHAR(10) NOT NULL)");
+  }
+
+  @Test public void testExtendedSqlStmt() {
+    sql("DESCRIBE SPACE POWER")
+        .node(new IsNull<SqlNode>());
+    sql("DESCRIBE SEA ^POWER^")
+        .fails("(?s)Encountered \"POWER\" at line 1, column 14..*");
   }
 }
 

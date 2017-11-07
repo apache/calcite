@@ -38,6 +38,7 @@ data: {
 
       # List of methods for parsing custom SQL statements.
       statementParserMethods: [
+        "SqlDescribeSpacePower()"
       ]
 
       # List of methods for parsing custom literals.

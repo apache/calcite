@@ -47,4 +47,13 @@ SqlCreate SqlCreateTable(Span s, boolean replace) :
     }
 }
 
+SqlNode SqlDescribeSpacePower() :
+{
+}
+{
+    <DESCRIBE> <SPACE> <POWER> {
+        return null;
+    }
+}
+
 // End parserImpls.ftl
