@@ -241,6 +241,41 @@ public class CsvTest {
         .ok();
   }
 
+  @Test public void testPushDownProjectAggregate() throws SQLException {
+    final String sql = "explain plan for\n"
+        + "select gender, count(*) from EMPS group by gender";
+    final String expected = "PLAN="
+        + "EnumerableAggregate(group=[{0}], EXPR$1=[COUNT()])\n"
+        + "  CsvTableScan(table=[[SALES, EMPS]], fields=[[3]])\n";
+    sql("smart", sql).returns(expected).ok();
+  }
+
+  @Test public void testPushDownProjectAggregateWithFilter() throws SQLException {
+    final String sql = "explain plan for\n"
+        + "select max(empno) from EMPS where gender='F'";
+    final String expected = "PLAN="
+        + "EnumerableAggregate(group=[{}], EXPR$0=[MAX($0)])\n"
+        + "  EnumerableCalc(expr#0..1=[{inputs}], expr#2=['F'], "
+        + "expr#3=[=($t1, $t2)], proj#0..1=[{exprs}], $condition=[$t3])\n"
+        + "    CsvTableScan(table=[[SALES, EMPS]], fields=[[0, 3]])\n";
+    sql("smart", sql).returns(expected).ok();
+  }
+
+  @Test public void testPushDownProjectAggregateNested() throws SQLException {
+    final String sql = "explain plan for\n"
+        + "select gender, max(qty)\n"
+        + "from (\n"
+        + "  select name, gender, count(*) qty\n"
+        + "  from EMPS\n"
+        + "  group by name, gender) t\n"
+        + "group by gender";
+    final String expected = "PLAN="
+        + "EnumerableAggregate(group=[{1}], EXPR$1=[MAX($2)])\n"
+        + "  EnumerableAggregate(group=[{0, 1}], QTY=[COUNT()])\n"
+        + "    CsvTableScan(table=[[SALES, EMPS]], fields=[[1, 3]])\n";
+    sql("smart", sql).returns(expected).ok();
+  }
+
   @Test public void testFilterableSelect() throws SQLException {
     sql("filterable-model", "select name from EMPS").ok();
   }
