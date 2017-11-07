@@ -464,7 +464,8 @@ with the adapter and find a more efficient way of accessing the data.
 This negotiation is a simple form of query optimization. Calcite supports query
 optimization by adding <i>planner rules</i>. Planner rules operate by
 looking for patterns in the query parse tree (for instance a project on top
-of a certain kind of table), and
+of a certain kind of table), and replacing the matched nodes in the tree by
+a new set of nodes which implement the optimization.
 
 Planner rules are also extensible, like schemas and tables. So, if you have a
 data store that you want to access via SQL, you first define a custom table or
