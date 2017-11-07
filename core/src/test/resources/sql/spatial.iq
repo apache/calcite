@@ -295,6 +295,18 @@ EXPR$0
 {"x":1,"y":2,"z":1.5}
 !ok
 
+# Get x of point
+SELECT ST_X(ST_MakePoint(1.0, 2.0,1.5));
+EXPR$0
+1.0
+!ok
+
+# Get y of point
+SELECT ST_Y(ST_MakePoint(1.0, 2.0,1.5));
+EXPR$0
+2.0
+!ok
+
 # Get z of point
 SELECT ST_Z(ST_MakePoint(1.0, 2.0,1.5));
 EXPR$0
@@ -544,7 +556,16 @@ p , POINT, 1
 # Not implemented
 
 # ST_X(geom) Returns the x-value of the first coordinate of *geom*
-# Not implemented
+
+SELECT ST_X(ST_GeomFromText('POINT Z(1 2 3)'));
+EXPR$0
+1.0
+!ok
+
+SELECT ST_X(ST_GeomFromText('POINT (1 2)'));
+EXPR$0
+1.0
+!ok
 
 # ST_XMax(geom) Returns the maximum x-value of *geom*
 # Not implemented
@@ -554,6 +575,16 @@ p , POINT, 1
 
 # ST_Y(geom) Returns the y-value of the first coordinate of *geom*
 # Not implemented
+
+SELECT ST_Y(ST_GeomFromText('POINT Z(1 2 3)'));
+EXPR$0
+2.0
+!ok
+
+SELECT ST_Y(ST_GeomFromText('POINT (1 2)'));
+EXPR$0
+2.0
+!ok
 
 # ST_YMax(geom) Returns the maximum y-value of *geom*
 # Not implemented

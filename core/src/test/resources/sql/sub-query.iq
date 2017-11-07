@@ -645,4 +645,44 @@ from (
 
 !ok
 
+# [CALCITE-2028] Un-correlated IN sub-query should be converted into a Join
+# rather than a Correlate without correlation variables
+SELECT *
+FROM "scott".emp
+WHERE job in (select job from "scott".emp ee where ee.hiredate = DATE '1980-12-17')
+AND EXISTS (select * from "scott".emp e where emp.deptno = e.deptno);
++-------+--------+-------+------+------------+---------+------+--------+
+| EMPNO | ENAME  | JOB   | MGR  | HIREDATE   | SAL     | COMM | DEPTNO |
++-------+--------+-------+------+------------+---------+------+--------+
+|  7369 | SMITH  | CLERK | 7902 | 1980-12-17 |  800.00 |      |     20 |
+|  7876 | ADAMS  | CLERK | 7788 | 1987-05-23 | 1100.00 |      |     20 |
+|  7900 | JAMES  | CLERK | 7698 | 1981-12-03 |  950.00 |      |     30 |
+|  7934 | MILLER | CLERK | 7782 | 1982-01-23 | 1300.00 |      |     10 |
++-------+--------+-------+------+------------+---------+------+--------+
+(4 rows)
+
+!ok
+
+# Variant of [CALCITE-2028] above
+SELECT *
+FROM "scott".emp
+WHERE job in (select job from "scott".emp ee where ee.hiredate = DATE '1980-12-17')
+OR EXISTS (select * from "scott".emp e where emp.deptno = e.deptno + 20);
++-------+--------+----------+------+------------+---------+---------+--------+
+| EMPNO | ENAME  | JOB      | MGR  | HIREDATE   | SAL     | COMM    | DEPTNO |
++-------+--------+----------+------+------------+---------+---------+--------+
+|  7369 | SMITH  | CLERK    | 7902 | 1980-12-17 |  800.00 |         |     20 |
+|  7876 | ADAMS  | CLERK    | 7788 | 1987-05-23 | 1100.00 |         |     20 |
+|  7900 | JAMES  | CLERK    | 7698 | 1981-12-03 |  950.00 |         |     30 |
+|  7934 | MILLER | CLERK    | 7782 | 1982-01-23 | 1300.00 |         |     10 |
+|  7499 | ALLEN  | SALESMAN | 7698 | 1981-02-20 | 1600.00 |  300.00 |     30 |
+|  7521 | WARD   | SALESMAN | 7698 | 1981-02-22 | 1250.00 |  500.00 |     30 |
+|  7654 | MARTIN | SALESMAN | 7698 | 1981-09-28 | 1250.00 | 1400.00 |     30 |
+|  7698 | BLAKE  | MANAGER  | 7839 | 1981-01-05 | 2850.00 |         |     30 |
+|  7844 | TURNER | SALESMAN | 7698 | 1981-09-08 | 1500.00 |    0.00 |     30 |
++-------+--------+----------+------+------------+---------+---------+--------+
+(9 rows)
+
+!ok
+
 # End sub-query.iq

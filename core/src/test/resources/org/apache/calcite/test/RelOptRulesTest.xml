@@ -487,6 +487,65 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testDecorrelateUncorrelatedInAndCorrelatedExists">
+        <Resource name="sql">
+            <![CDATA["select * from sales.emp
+WHERE job in (
+  select job from emp ee where ee.sal=34)
+AND EXISTS (
+  select * from emp e where emp.deptno = e.deptno)]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalFilter(condition=[AND(IN($2, {
+LogicalProject(JOB=[$2])
+  LogicalFilter(condition=[=($5, 34)])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+}), EXISTS({
+LogicalFilter(condition=[=($cor0.DEPTNO, $7)])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+}))], variablesSet=[[$cor0]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planMid">
+            <![CDATA[
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+    LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{7}])
+      LogicalJoin(condition=[=($2, $9)], joinType=[inner])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalAggregate(group=[{0}])
+          LogicalProject(JOB=[$2])
+            LogicalFilter(condition=[=($5, 34)])
+              LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalAggregate(group=[{0}])
+        LogicalProject(i=[true])
+          LogicalFilter(condition=[=($cor0.DEPTNO, $7)])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+    LogicalJoin(condition=[=($7, $10)], joinType=[inner])
+      LogicalJoin(condition=[=($2, $9)], joinType=[inner])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalAggregate(group=[{0}])
+          LogicalProject(JOB=[$0])
+            LogicalProject(JOB=[$2])
+              LogicalFilter(condition=[=($5, 34)])
+                LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalProject(DEPTNO=[$0], $f1=[true])
+        LogicalAggregate(group=[{0}])
+          LogicalProject(DEPTNO=[$1], i=[$0])
+            LogicalProject(i=[true], DEPTNO=[$7])
+              LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testDecorrelateTwoIn">
         <Resource name="sql">
             <![CDATA[select sal
@@ -2036,7 +2095,7 @@ LogicalCalc(expr#0=[{inputs}], expr#1=['TABLE        '], expr#2=['t'], U=[$t1], 
         </Resource>
         <Resource name="planBefore">
             <![CDATA[
-LogicalProject(EXPR$0=[CAST(CASE(IS NULL($1), IS NULL($0), IS NULL($0), IS NULL($1), =($1, $0))):BOOLEAN NOT NULL])
+LogicalProject(EXPR$0=[CASE(IS NULL($1), IS NULL($0), =(CAST($1):INTEGER NOT NULL, $0))])
   LogicalProject(EXPR$0=[2], EXPR$1=[null])
     LogicalValues(tuples=[[{ 0 }]])
 ]]>
