@@ -33,6 +33,7 @@ import org.apache.calcite.sql.type.SqlOperandCountRanges;
 import org.apache.calcite.sql.type.SqlSingleOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.util.NlsString;
 
 import java.util.Arrays;
 
@@ -114,17 +115,16 @@ public class SqlDotOperator extends SqlSpecialOperator {
     final RelDataType operandType = opBinding.getOperandType(0);
     switch (operandType.getSqlTypeName()) {
     case ROW:
-      if (opBinding instanceof SqlCallBinding) {
-        return typeFactory.createTypeWithNullability(
-            opBinding.getOperandType(0).getField(
-                ((SqlCallBinding) opBinding).operand(1).toString().replaceAll("^'|'$", ""),
-                false, false)
-            .getType(), true);
-      } else if (opBinding instanceof RexCallBinding) {
-        return typeFactory.createTypeWithNullability(
-            opBinding.getOperandType(0).getField(
-                ((RexCallBinding) opBinding).getStringLiteralOperand(1).toString(), false, false)
-            .getType(), true);
+      if (opBinding instanceof SqlCallBinding || opBinding instanceof RexCallBinding) {
+        if (opBinding.getOperandType(0).isNullable()) {
+          return typeFactory.createTypeWithNullability(opBinding.getOperandType(0)
+              .getField(((NlsString) opBinding.getOperandLiteralValue(1)).getValue()
+                  .replaceAll("^'|'$", ""), false, false).getType(), true);
+        } else {
+          return opBinding.getOperandType(0)
+              .getField(((NlsString) opBinding.getOperandLiteralValue(1)).getValue()
+                  .replaceAll("^'|'$", ""), false, false).getType();
+        }
       } else {
         throw new AssertionError();
       }

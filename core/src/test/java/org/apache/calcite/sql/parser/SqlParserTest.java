@@ -4251,7 +4251,7 @@ public class SqlParserTest {
   }
 
   @Test public void testArrayElementWithDot() {
-    checkExp("a[1].b.c[2].d", "(((`A`[1].'B').'C')[2].'D')");
+    checkExp("a[1+2].b.c[2].d", "(((`A`[(1 + 2)].'B').'C')[2].'D')");
     checkExp("a[b[1]].c.f0[d[1]]", "((`A`[`B`[1]].'C').'F0')[`D`[1]]");
   }
 
