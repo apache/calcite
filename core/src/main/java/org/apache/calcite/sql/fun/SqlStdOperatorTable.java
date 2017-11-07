@@ -828,7 +828,13 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   /**
    * <code>COUNT</code> aggregate function.
    */
-  public static final SqlAggFunction COUNT = new SqlCountAggFunction();
+  public static final SqlAggFunction COUNT = new SqlCountAggFunction("COUNT");
+
+  /**
+   * <code>APPROX_COUNT_DISTINCT</code> aggregate function.
+   */
+  public static final SqlAggFunction APPROX_COUNT_DISTINCT =
+      new SqlCountAggFunction("APPROX_COUNT_DISTINCT");
 
   /**
    * <code>MIN</code> aggregate function.

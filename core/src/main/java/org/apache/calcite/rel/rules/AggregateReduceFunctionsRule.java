@@ -267,6 +267,7 @@ public class AggregateReduceFunctionsRule extends RelOptRule {
             oldCall.filterArg >= 0);
     return AggregateCall.create(aggFunction,
         oldCall.isDistinct(),
+        oldCall.isApproximate(),
         ImmutableIntList.of(argOrdinal),
         oldCall.filterArg,
         aggFunction.inferReturnType(binding),
@@ -287,9 +288,9 @@ public class AggregateReduceFunctionsRule extends RelOptRule {
             oldAggRel.getInput(),
             iAvgInput);
     final AggregateCall sumCall =
-        AggregateCall.create(
-            SqlStdOperatorTable.SUM,
+        AggregateCall.create(SqlStdOperatorTable.SUM,
             oldCall.isDistinct(),
+            oldCall.isApproximate(),
             oldCall.getArgList(),
             oldCall.filterArg,
             oldAggRel.getGroupCount(),
@@ -297,9 +298,9 @@ public class AggregateReduceFunctionsRule extends RelOptRule {
             null,
             null);
     final AggregateCall countCall =
-        AggregateCall.create(
-            SqlStdOperatorTable.COUNT,
+        AggregateCall.create(SqlStdOperatorTable.COUNT,
             oldCall.isDistinct(),
+            oldCall.isApproximate(),
             oldCall.getArgList(),
             oldCall.filterArg,
             oldAggRel.getGroupCount(),
@@ -347,12 +348,13 @@ public class AggregateReduceFunctionsRule extends RelOptRule {
             arg);
     final AggregateCall sumZeroCall =
         AggregateCall.create(SqlStdOperatorTable.SUM0, oldCall.isDistinct(),
-            oldCall.getArgList(), oldCall.filterArg, oldAggRel.getGroupCount(),
-            oldAggRel.getInput(), null, oldCall.name);
+            oldCall.isApproximate(), oldCall.getArgList(), oldCall.filterArg,
+            oldAggRel.getGroupCount(), oldAggRel.getInput(), null,
+            oldCall.name);
     final AggregateCall countCall =
-        AggregateCall.create(
-            SqlStdOperatorTable.COUNT,
+        AggregateCall.create(SqlStdOperatorTable.COUNT,
             oldCall.isDistinct(),
+            oldCall.isApproximate(),
             oldCall.getArgList(),
             oldCall.filterArg,
             oldAggRel.getGroupCount(),
@@ -441,9 +443,9 @@ public class AggregateReduceFunctionsRule extends RelOptRule {
             ImmutableList.of(sumArgSquaredAggCall.getType()));
 
     final AggregateCall sumArgAggCall =
-        AggregateCall.create(
-            SqlStdOperatorTable.SUM,
+        AggregateCall.create(SqlStdOperatorTable.SUM,
             oldCall.isDistinct(),
+            oldCall.isApproximate(),
             ImmutableIntList.of(argOrdinal),
             oldCall.filterArg,
             oldAggRel.getGroupCount(),
@@ -464,9 +466,9 @@ public class AggregateReduceFunctionsRule extends RelOptRule {
             SqlStdOperatorTable.MULTIPLY, sumArgCast, sumArgCast);
 
     final AggregateCall countArgAggCall =
-        AggregateCall.create(
-            SqlStdOperatorTable.COUNT,
+        AggregateCall.create(SqlStdOperatorTable.COUNT,
             oldCall.isDistinct(),
+            oldCall.isApproximate(),
             oldCall.getArgList(),
             oldCall.filterArg,
             oldAggRel.getGroupCount(),

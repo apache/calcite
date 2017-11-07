@@ -279,7 +279,7 @@ public class RelJsonReader {
     final Integer filterOperand = (Integer) jsonAggCall.get("filter");
     final RelDataType type =
         relJson.toType(cluster.getTypeFactory(), jsonAggCall.get("type"));
-    return AggregateCall.create(aggregation, distinct, operands,
+    return AggregateCall.create(aggregation, distinct, false, operands,
         filterOperand == null ? -1 : filterOperand, type, null);
   }
 

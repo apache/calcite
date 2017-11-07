@@ -170,6 +170,7 @@ public class AggregateUnionTransposeRule extends RelOptRule {
       }
       AggregateCall newCall =
           AggregateCall.create(aggFun, origCall.isDistinct(),
+              origCall.isApproximate(),
               ImmutableList.of(groupCount + ord.i), -1, groupCount, input,
               aggType, origCall.getName());
       newCalls.add(newCall);

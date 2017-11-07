@@ -142,8 +142,10 @@ public class DruidRules {
                       node, query)) {
                 return true;
               }
-              if ((config.approximateDistinctCount() && aggregateCall.isDistinct())
-                      || aggregateCall.getArgList().isEmpty()) {
+              if ((aggregateCall.isDistinct()
+                      && (aggregateCall.isApproximate()
+                          || config.approximateDistinctCount()))
+                  || aggregateCall.getArgList().isEmpty()) {
                 continue;
               }
               return true;

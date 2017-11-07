@@ -500,6 +500,7 @@ public abstract class RelOptUtil {
       final AggregateCall aggCall =
           AggregateCall.create(SqlStdOperatorTable.MIN,
               false,
+              false,
               ImmutableList.of(0),
               -1,
               0,
@@ -577,6 +578,7 @@ public abstract class RelOptUtil {
 
     final AggregateCall aggCall =
         AggregateCall.create(SqlStdOperatorTable.MIN,
+            false,
             false,
             ImmutableList.of(projectedKeyCount),
             -1,
@@ -781,8 +783,8 @@ public abstract class RelOptUtil {
     for (int i = 0; i < aggCallCnt; i++) {
       aggCalls.add(
           AggregateCall.create(
-              SqlStdOperatorTable.SINGLE_VALUE, false, ImmutableList.of(i), -1,
-              0, rel, null, null));
+              SqlStdOperatorTable.SINGLE_VALUE, false, false,
+              ImmutableList.of(i), -1, 0, rel, null, null));
     }
 
     return LogicalAggregate.create(rel, ImmutableBitSet.of(), null, aggCalls);

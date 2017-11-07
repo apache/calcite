@@ -34,6 +34,7 @@ import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlSelectKeyword;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeName;
 
 import com.google.common.base.Preconditions;
@@ -178,11 +179,12 @@ public class DruidTable extends AbstractTable implements TranslatableTable {
     assert isRolledUp(column);
     // Our rolled up columns are only allowed in COUNT(DISTINCT ...) aggregate functions.
     // We only allow this when approximate results are acceptable.
-    return config != null
-            && config.approximateDistinctCount()
-            && isCountDistinct(call)
-            && call.getOperandList().size() == 1 // for COUNT(a_1, a_2, ... a_n). n should be 1
-            && isValidParentKind(parent);
+    return ((config != null
+                && config.approximateDistinctCount()
+                && isCountDistinct(call))
+            || call.getOperator() == SqlStdOperatorTable.APPROX_COUNT_DISTINCT)
+        && call.getOperandList().size() == 1 // for COUNT(a_1, a_2, ... a_n). n should be 1
+        && isValidParentKind(parent);
   }
 
   private boolean isValidParentKind(SqlNode node) {

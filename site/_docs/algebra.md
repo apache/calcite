@@ -389,7 +389,7 @@ The following methods return an
 
 | Method              | Description
 |:------------------- |:-----------
-| `aggregateCall(op, distinct, filter, alias, expr...)`<br/>`aggregateCall(op, distinct, filter, alias, exprList)` | Creates a call to a given aggregate function, with an optional filter expression
+| `aggregateCall(op, distinct, approximate, filter, alias, expr...)`<br/>`aggregateCall(op, distinct, approximate, filter, alias, exprList)` | Creates a call to a given aggregate function, with an optional filter expression
 | `count(distinct, alias, expr...)` | Creates a call to the COUNT aggregate function
 | `countStar(alias)` | Creates a call to the COUNT(*) aggregate function
 | `sum(distinct, alias, expr)` | Creates a call to the SUM aggregate function

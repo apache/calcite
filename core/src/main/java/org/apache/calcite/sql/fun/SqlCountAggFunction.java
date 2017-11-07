@@ -44,19 +44,12 @@ import java.util.List;
 public class SqlCountAggFunction extends SqlAggFunction {
   //~ Constructors -----------------------------------------------------------
 
-  public SqlCountAggFunction() {
-    super(
-        "COUNT",
-        null,
-        SqlKind.COUNT,
-        ReturnTypes.BIGINT,
-        null,
+  public SqlCountAggFunction(String name) {
+    super(name, null, SqlKind.COUNT, ReturnTypes.BIGINT, null,
         SqlValidator.STRICT
             ? OperandTypes.ANY
             : OperandTypes.ONE_OR_MORE,
-        SqlFunctionCategory.NUMERIC,
-        false,
-        false);
+        SqlFunctionCategory.NUMERIC, false, false);
   }
 
   //~ Methods ----------------------------------------------------------------

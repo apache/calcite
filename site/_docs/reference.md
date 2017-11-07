@@ -1480,6 +1480,7 @@ passed to the aggregate function.
 | COLLECT( [ ALL &#124; DISTINCT ] value)       | Returns a multiset of the values
 | COUNT( [ ALL &#124; DISTINCT ] value [, value ]*) | Returns the number of input rows for which *value* is not null (wholly not null if *value* is composite)
 | COUNT(*)                           | Returns the number of input rows
+| APPROX_COUNT_DISTINCT(value [, value ]*)      | Returns the approximate number of distinct values of *value*; the database is allowed to use an approximation but is not required to
 | AVG( [ ALL &#124; DISTINCT ] numeric)         | Returns the average (arithmetic mean) of *numeric* across all input values
 | SUM( [ ALL &#124; DISTINCT ] numeric)         | Returns the sum of *numeric* across all input values
 | MAX( [ ALL &#124; DISTINCT ] value)           | Returns the maximum value of *value* across all input values
@@ -1507,7 +1508,7 @@ Not implemented:
 
 | Operator syntax                           | Description
 |:----------------------------------------- |:-----------
-| COUNT(value [, value ]*) OVER window     | Returns the number of rows in *window* for which *value* is not null (wholly not null if *value* is composite)
+| COUNT(value [, value ]*) OVER window      | Returns the number of rows in *window* for which *value* is not null (wholly not null if *value* is composite)
 | COUNT(*) OVER window                      | Returns the number of rows in *window*
 | AVG(numeric) OVER window                  | Returns the average (arithmetic mean) of *numeric* across all values in *window*
 | SUM(numeric) OVER window                  | Returns the sum of *numeric* across all values in *window*
@@ -1524,7 +1525,8 @@ Not implemented:
 
 Not implemented:
 
-* COUNT(DISTINCT value) OVER window
+* COUNT(DISTINCT value [, value ]*) OVER window
+* APPROX_COUNT_DISTINCT(value [, value ]*) OVER window
 * FIRST_VALUE(value) IGNORE NULLS OVER window
 * LAST_VALUE(value) IGNORE NULLS OVER window
 * PERCENT_RANK(value) OVER window

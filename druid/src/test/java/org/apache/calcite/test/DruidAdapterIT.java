@@ -3137,19 +3137,28 @@ public class DruidAdapterIT {
                     "month=November; avg$=34.51727744987063",
                     "month=December; avg$=33.62788702774498");
 
-    wikiApprox("select (count(distinct \"user_id\") + 100) - "
-            + "(count(distinct \"user_id\") * 2) from \"wiki\"")
-            .queryContains(
-                    druidChecker("'aggregations':[{'type':'hyperUnique','name':'$f0',"
-                            + "'fieldName':'user_unique'}],'postAggregations':[{'type':"
-                            + "'arithmetic','name':'postagg#0','fn':'-','fields':[{'type':"
-                            + "'arithmetic','name':'','fn':'+','fields':[{'type':"
-                            + "'hyperUniqueCardinality','name':'','fieldName':'$f0'},"
-                            + "{'type':'constant','name':'','value':100.0}]},{'type':"
-                            + "'arithmetic','name':'','fn':'*','fields':[{'type':"
-                            + "'hyperUniqueCardinality','name':'','fieldName':'$f0'},"
-                            + "{'type':'constant','name':'','value':2.0}]}]}]"))
-            .returnsUnordered("EXPR$0=-10590");
+    final String druid = "'aggregations':[{'type':'hyperUnique','name':'$f0',"
+        + "'fieldName':'user_unique'}],'postAggregations':[{'type':"
+        + "'arithmetic','name':'postagg#0','fn':'-','fields':[{'type':"
+        + "'arithmetic','name':'','fn':'+','fields':[{'type':"
+        + "'hyperUniqueCardinality','name':'','fieldName':'$f0'},"
+        + "{'type':'constant','name':'','value':100.0}]},{'type':"
+        + "'arithmetic','name':'','fn':'*','fields':[{'type':"
+        + "'hyperUniqueCardinality','name':'','fieldName':'$f0'},"
+        + "{'type':'constant','name':'','value':2.0}]}]}]";
+    final String sql = "select (count(distinct \"user_id\") + 100) - "
+        + "(count(distinct \"user_id\") * 2) from \"wiki\"";
+    wikiApprox(sql)
+        .queryContains(druidChecker(druid))
+        .returnsUnordered("EXPR$0=-10590");
+
+    // Change COUNT(DISTINCT ...) to APPROX_COUNT_DISTINCT(...) and get
+    // same result even if approximation is off by default.
+    final String sql2 = "select (approx_count_distinct(\"user_id\") + 100) - "
+        + "(approx_count_distinct(\"user_id\") * 2) from \"wiki\"";
+    sql(sql2, WIKI)
+        .queryContains(druidChecker(druid))
+        .returnsUnordered("EXPR$0=-10590");
   }
 
   /**

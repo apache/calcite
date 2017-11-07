@@ -1101,9 +1101,9 @@ public class SqlToRelConverter {
             LogicalAggregate.create(seek, ImmutableBitSet.of(), null,
                 ImmutableList.of(
                     AggregateCall.create(SqlStdOperatorTable.COUNT, false,
-                        ImmutableList.<Integer>of(), -1, longType, null),
+                        false, ImmutableList.<Integer>of(), -1, longType, null),
                     AggregateCall.create(SqlStdOperatorTable.COUNT, false,
-                        args, -1, longType, null)));
+                        false, args, -1, longType, null)));
         LogicalJoin join =
             LogicalJoin.create(bb.root, aggregate, rexBuilder.makeLiteral(true),
                 ImmutableSet.<CorrelationId>of(), JoinRelType.INNER);
@@ -4879,19 +4879,26 @@ public class SqlToRelConverter {
         bb.agg = this;
       }
 
-      final SqlAggFunction aggFunction =
+      SqlAggFunction aggFunction =
           (SqlAggFunction) call.getOperator();
-      RelDataType type = validator.deriveType(bb.scope, call);
+      final RelDataType type = validator.deriveType(bb.scope, call);
       boolean distinct = false;
       SqlLiteral quantifier = call.getFunctionQuantifier();
       if ((null != quantifier)
           && (quantifier.getValue() == SqlSelectKeyword.DISTINCT)) {
         distinct = true;
       }
+      boolean approximate = false;
+      if (aggFunction == SqlStdOperatorTable.APPROX_COUNT_DISTINCT) {
+        aggFunction = SqlStdOperatorTable.COUNT;
+        distinct = true;
+        approximate = true;
+      }
       final AggregateCall aggCall =
           AggregateCall.create(
               aggFunction,
               distinct,
+              approximate,
               args,
               filterArg,
               type,

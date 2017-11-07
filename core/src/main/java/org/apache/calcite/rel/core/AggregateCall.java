@@ -40,6 +40,7 @@ public class AggregateCall {
   private final SqlAggFunction aggFunction;
 
   private final boolean distinct;
+  private final boolean approximate;
   public final RelDataType type;
   public final String name;
 
@@ -66,7 +67,7 @@ public class AggregateCall {
       List<Integer> argList,
       RelDataType type,
       String name) {
-    this(aggFunction, distinct, argList, -1, type, name);
+    this(aggFunction, distinct, false, argList, -1, type, name);
   }
 
   /**
@@ -74,6 +75,7 @@ public class AggregateCall {
    *
    * @param aggFunction Aggregate function
    * @param distinct    Whether distinct
+   * @param approximate Whether approximate
    * @param argList     List of ordinals of arguments
    * @param filterArg   Ordinal of filter argument, or -1
    * @param type        Result type
@@ -82,6 +84,7 @@ public class AggregateCall {
   private AggregateCall(
       SqlAggFunction aggFunction,
       boolean distinct,
+      boolean approximate,
       List<Integer> argList,
       int filterArg,
       RelDataType type,
@@ -92,22 +95,31 @@ public class AggregateCall {
     this.argList = ImmutableList.copyOf(argList);
     this.filterArg = filterArg;
     this.distinct = distinct;
+    this.approximate = approximate;
   }
 
   //~ Methods ----------------------------------------------------------------
 
-  /** Creates an AggregateCall, inferring its type if {@code type} is null. */
   @Deprecated // to be removed before 2.0
   public static AggregateCall create(SqlAggFunction aggFunction,
       boolean distinct, List<Integer> argList, int groupCount, RelNode input,
       RelDataType type, String name) {
-    return create(aggFunction, distinct, argList, -1, groupCount, input, type,
-        name);
+    return create(aggFunction, distinct, false, argList, -1, groupCount, input,
+        type, name);
+  }
+
+  @Deprecated // to be removed before 2.0
+  public static AggregateCall create(SqlAggFunction aggFunction,
+      boolean distinct, List<Integer> argList, int filterArg, int groupCount,
+      RelNode input, RelDataType type, String name) {
+    return create(aggFunction, distinct, false, argList, -1, groupCount, input,
+        type, name);
   }
 
   /** Creates an AggregateCall, inferring its type if {@code type} is null. */
   public static AggregateCall create(SqlAggFunction aggFunction,
-      boolean distinct, List<Integer> argList, int filterArg, int groupCount,
+      boolean distinct, boolean approximate, List<Integer> argList,
+      int filterArg, int groupCount,
       RelNode input, RelDataType type, String name) {
     if (type == null) {
       final RelDataTypeFactory typeFactory =
@@ -119,15 +131,23 @@ public class AggregateCall {
               groupCount, filterArg >= 0);
       type = aggFunction.inferReturnType(callBinding);
     }
-    return create(aggFunction, distinct, argList, filterArg, type, name);
+    return create(aggFunction, distinct, approximate, argList, filterArg, type,
+        name);
+  }
+
+  @Deprecated // to be removed before 2.0
+  public static AggregateCall create(SqlAggFunction aggFunction,
+      boolean distinct, List<Integer> argList, int filterArg, RelDataType type,
+      String name) {
+    return create(aggFunction, distinct, false, argList, filterArg, type, name);
   }
 
   /** Creates an AggregateCall. */
   public static AggregateCall create(SqlAggFunction aggFunction,
-      boolean distinct, List<Integer> argList, int filterArg, RelDataType type,
-      String name) {
-    return new AggregateCall(aggFunction, distinct, argList, filterArg, type,
-        name);
+      boolean distinct, boolean approximate, List<Integer> argList,
+      int filterArg, RelDataType type, String name) {
+    return new AggregateCall(aggFunction, distinct, approximate, argList,
+        filterArg, type, name);
   }
 
   /**
@@ -138,6 +158,16 @@ public class AggregateCall {
    */
   public final boolean isDistinct() {
     return distinct;
+  }
+
+  /**
+   * Returns whether this AggregateCall is approximate, as in <code>
+   * APPROX_COUNT_DISTINCT(empno)</code>.
+   *
+   * @return whether approximate
+   */
+  public final boolean isApproximate() {
+    return approximate;
   }
 
   /**
@@ -187,8 +217,8 @@ public class AggregateCall {
     if (Objects.equals(this.name, name)) {
       return this;
     }
-    return new AggregateCall(aggFunction, distinct, argList, filterArg, type,
-        name);
+    return new AggregateCall(aggFunction, distinct, approximate, argList,
+        filterArg, type, name);
   }
 
   public String toString() {
@@ -257,8 +287,8 @@ public class AggregateCall {
    * @return AggregateCall that suits new inputs and GROUP BY columns
    */
   public AggregateCall copy(List<Integer> args, int filterArg) {
-    return new AggregateCall(aggFunction, distinct, args, filterArg, type,
-        name);
+    return new AggregateCall(aggFunction, distinct, approximate, args,
+        filterArg, type, name);
   }
 
   @Deprecated // to be removed before 2.0
@@ -287,8 +317,8 @@ public class AggregateCall {
             && filterArg == this.filterArg
             ? type
             : null;
-    return create(aggFunction, distinct, argList, filterArg, newGroupKeyCount,
-        input, newType, getName());
+    return create(aggFunction, distinct, approximate, argList, filterArg,
+        newGroupKeyCount, input, newType, getName());
   }
 
   /** Creates a copy of this aggregate call, applying a mapping to its

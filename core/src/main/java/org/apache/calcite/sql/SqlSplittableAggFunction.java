@@ -117,7 +117,7 @@ public interface SqlSplittableAggFunction {
     }
 
     public AggregateCall other(RelDataTypeFactory typeFactory, AggregateCall e) {
-      return AggregateCall.create(SqlStdOperatorTable.COUNT, false,
+      return AggregateCall.create(SqlStdOperatorTable.COUNT, false, false,
           ImmutableIntList.of(), -1,
           typeFactory.createSqlType(SqlTypeName.BIGINT), null);
     }
@@ -146,7 +146,7 @@ public interface SqlSplittableAggFunction {
         throw new AssertionError("unexpected count " + merges);
       }
       int ordinal = extra.register(node);
-      return AggregateCall.create(SqlStdOperatorTable.SUM0, false,
+      return AggregateCall.create(SqlStdOperatorTable.SUM0, false, false,
           ImmutableList.of(ordinal), -1, aggregateCall.type,
           aggregateCall.name);
     }
@@ -229,7 +229,7 @@ public interface SqlSplittableAggFunction {
     }
 
     public AggregateCall other(RelDataTypeFactory typeFactory, AggregateCall e) {
-      return AggregateCall.create(SqlStdOperatorTable.COUNT, false,
+      return AggregateCall.create(SqlStdOperatorTable.COUNT, false, false,
           ImmutableIntList.of(), -1,
           typeFactory.createSqlType(SqlTypeName.BIGINT), null);
     }
@@ -260,7 +260,7 @@ public interface SqlSplittableAggFunction {
         throw new AssertionError("unexpected count " + merges);
       }
       int ordinal = extra.register(node);
-      return AggregateCall.create(SqlStdOperatorTable.SUM, false,
+      return AggregateCall.create(SqlStdOperatorTable.SUM, false, false,
           ImmutableList.of(ordinal), -1, aggregateCall.type,
           aggregateCall.name);
     }

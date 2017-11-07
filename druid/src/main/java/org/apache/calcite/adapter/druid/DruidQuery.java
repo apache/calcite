@@ -860,7 +860,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
     switch (aggCall.getAggregation().getKind()) {
     case COUNT:
       if (aggCall.isDistinct()) {
-        if (config.approximateDistinctCount()) {
+        if (aggCall.isApproximate() || config.approximateDistinctCount()) {
           if (complexMetric == null) {
             aggregation = new JsonCardinalityAggregation("cardinality", name, list);
           } else {

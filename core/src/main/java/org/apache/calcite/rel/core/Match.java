@@ -28,8 +28,8 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexPatternFieldRef;
 import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.sql.SqlAggFunction;
-import org.apache.calcite.sql.fun.SqlCountAggFunction;
 import org.apache.calcite.sql.fun.SqlMinMaxAggFunction;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.fun.SqlSumAggFunction;
 import org.apache.calcite.sql.fun.SqlSumEmptyIsZeroAggFunction;
 
@@ -248,7 +248,7 @@ public abstract class Match extends SingleRel {
         aggFunction = new SqlMinMaxAggFunction(call.getKind());
         break;
       case COUNT:
-        aggFunction = new SqlCountAggFunction();
+        aggFunction = SqlStdOperatorTable.COUNT;
         break;
       default:
         for (RexNode rex : call.getOperands()) {
