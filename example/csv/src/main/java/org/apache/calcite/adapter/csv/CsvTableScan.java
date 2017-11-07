@@ -25,12 +25,14 @@ import org.apache.calcite.linq4j.tree.Blocks;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.linq4j.tree.Primitive;
 import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.core.TableScan;
+import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
@@ -77,6 +79,11 @@ public class CsvTableScan extends TableScan implements EnumerableRel {
 
   @Override public void register(RelOptPlanner planner) {
     planner.addRule(CsvProjectTableScanRule.INSTANCE);
+  }
+
+  @Override public RelOptCost computeSelfCost(RelOptPlanner planner, RelMetadataQuery mq) {
+    return super.computeSelfCost(planner, mq)
+        .multiplyBy(fields.length / table.getRowType().getFieldCount());
   }
 
   public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
