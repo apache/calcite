@@ -45,7 +45,8 @@ public static class HrSchema {
 Class.forName("org.apache.calcite.jdbc.Driver");
 Properties info = new Properties();
 info.setProperty("lex", "JAVA");
-Connection connection = DriverManager.getConnection("jdbc:calcite:", info);
+Connection connection =
+    DriverManager.getConnection("jdbc:calcite:", info);
 CalciteConnection calciteConnection =
     connection.unwrap(CalciteConnection.class);
 SchemaPlus rootSchema = calciteConnection.getRootSchema();
