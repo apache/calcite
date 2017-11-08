@@ -21,6 +21,7 @@ import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelFieldCollation;
+import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.Window;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.logical.LogicalWindow;
@@ -31,6 +32,7 @@ import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.sql.SqlAggFunction;
+import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.BitSets;
 import org.apache.calcite.util.ImmutableBitSet;
 
@@ -46,12 +48,18 @@ public class ProjectWindowTransposeRule extends RelOptRule {
   /** The default instance of
    * {@link org.apache.calcite.rel.rules.ProjectWindowTransposeRule}. */
   public static final ProjectWindowTransposeRule INSTANCE =
-      new ProjectWindowTransposeRule();
+      new ProjectWindowTransposeRule(RelFactories.LOGICAL_BUILDER);
 
-  private ProjectWindowTransposeRule() {
+  /**
+   * Creates ProjectWindowTransposeRule.
+   *
+   * @param relBuilderFactory Builder for relational expressions
+   */
+  public ProjectWindowTransposeRule(RelBuilderFactory relBuilderFactory) {
     super(
         operand(LogicalProject.class,
-            operand(LogicalWindow.class, any())));
+            operand(LogicalWindow.class, any())),
+        relBuilderFactory, null);
   }
 
   @Override public void onMatch(RelOptRuleCall call) {

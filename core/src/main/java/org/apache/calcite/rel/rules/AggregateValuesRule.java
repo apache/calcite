@@ -20,10 +20,12 @@ import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
+import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.Values;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.tools.RelBuilder;
+import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.Util;
 
 import com.google.common.base.Predicates;
@@ -52,12 +54,19 @@ import java.util.List;
  * value, and each group will consist of at least one row.
  */
 public class AggregateValuesRule extends RelOptRule {
-  public static final AggregateValuesRule INSTANCE = new AggregateValuesRule();
+  public static final AggregateValuesRule INSTANCE =
+      new AggregateValuesRule(RelFactories.LOGICAL_BUILDER);
 
-  private AggregateValuesRule() {
+  /**
+   * Creates an AggregateValuesRule.
+   *
+   * @param relBuilderFactory Builder for relational expressions
+   */
+  public AggregateValuesRule(RelBuilderFactory relBuilderFactory) {
     super(
         operand(Aggregate.class, null, Predicates.not(Aggregate.IS_NOT_GRAND_TOTAL),
-            operand(Values.class, null, Values.IS_EMPTY, none())));
+            operand(Values.class, null, Values.IS_EMPTY, none())),
+        relBuilderFactory, null);
   }
 
   @Override public void onMatch(RelOptRuleCall call) {

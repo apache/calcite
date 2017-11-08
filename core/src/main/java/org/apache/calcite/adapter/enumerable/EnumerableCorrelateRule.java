@@ -21,14 +21,23 @@ import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterRule;
 import org.apache.calcite.rel.logical.LogicalCorrelate;
+import org.apache.calcite.tools.RelBuilderFactory;
+
+import com.google.common.base.Predicates;
 
 /**
  * Implementation of nested loops over enumerable inputs.
  */
 public class EnumerableCorrelateRule extends ConverterRule {
-  EnumerableCorrelateRule() {
-    super(LogicalCorrelate.class, Convention.NONE,
-        EnumerableConvention.INSTANCE, "EnumerableCorrelateRule");
+  /**
+   * Creates an EnumerableCorrelateRule.
+   *
+   * @param relBuilderFactory Builder for relational expressions
+   */
+  public EnumerableCorrelateRule(RelBuilderFactory relBuilderFactory) {
+    super(LogicalCorrelate.class, Predicates.<RelNode>alwaysTrue(),
+        Convention.NONE, EnumerableConvention.INSTANCE, relBuilderFactory,
+        "EnumerableCorrelateRule");
   }
 
   public RelNode convert(RelNode rel) {

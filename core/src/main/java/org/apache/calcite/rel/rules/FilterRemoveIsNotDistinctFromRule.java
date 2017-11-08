@@ -28,6 +28,7 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.tools.RelBuilderFactory;
 
 /**
  * Planner rule that replaces {@code IS NOT DISTINCT FROM}
@@ -41,12 +42,18 @@ public final class FilterRemoveIsNotDistinctFromRule extends RelOptRule {
 
   /** The singleton. */
   public static final FilterRemoveIsNotDistinctFromRule INSTANCE =
-      new FilterRemoveIsNotDistinctFromRule();
+      new FilterRemoveIsNotDistinctFromRule(RelFactories.LOGICAL_BUILDER);
 
   //~ Constructors -----------------------------------------------------------
 
-  private FilterRemoveIsNotDistinctFromRule() {
-    super(operand(LogicalFilter.class, any()));
+  /**
+   * Creates a FilterRemoveIsNotDistinctFromRule.
+   *
+   * @param relBuilderFactory Builder for relational expressions
+   */
+  public FilterRemoveIsNotDistinctFromRule(
+      RelBuilderFactory relBuilderFactory) {
+    super(operand(LogicalFilter.class, any()), relBuilderFactory, null);
   }
 
   //~ Methods ----------------------------------------------------------------

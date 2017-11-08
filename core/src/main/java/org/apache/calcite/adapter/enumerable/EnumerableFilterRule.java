@@ -20,6 +20,7 @@ import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterRule;
+import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.logical.LogicalFilter;
 
 /**
@@ -29,7 +30,8 @@ import org.apache.calcite.rel.logical.LogicalFilter;
 class EnumerableFilterRule extends ConverterRule {
   EnumerableFilterRule() {
     super(LogicalFilter.class, RelOptUtil.FILTER_PREDICATE, Convention.NONE,
-        EnumerableConvention.INSTANCE, "EnumerableFilterRule");
+        EnumerableConvention.INSTANCE, RelFactories.LOGICAL_BUILDER,
+        "EnumerableFilterRule");
   }
 
   public RelNode convert(RelNode rel) {

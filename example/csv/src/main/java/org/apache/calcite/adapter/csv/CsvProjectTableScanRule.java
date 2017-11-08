@@ -18,9 +18,11 @@ package org.apache.calcite.adapter.csv;
 
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.tools.RelBuilderFactory;
 
 import java.util.List;
 
@@ -31,12 +33,18 @@ import java.util.List;
  */
 public class CsvProjectTableScanRule extends RelOptRule {
   public static final CsvProjectTableScanRule INSTANCE =
-      new CsvProjectTableScanRule();
+      new CsvProjectTableScanRule(RelFactories.LOGICAL_BUILDER);
 
-  private CsvProjectTableScanRule() {
+  /**
+   * Creates a CsvProjectTableScanRule.
+   *
+   * @param relBuilderFactory Builder for relational expressions
+   */
+  public CsvProjectTableScanRule(RelBuilderFactory relBuilderFactory) {
     super(
         operand(LogicalProject.class,
             operand(CsvTableScan.class, none())),
+        relBuilderFactory,
         "CsvProjectTableScanRule");
   }
 

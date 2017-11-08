@@ -19,9 +19,11 @@ package org.apache.calcite.rel.rules;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.logical.LogicalCalc;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rex.RexProgram;
+import org.apache.calcite.tools.RelBuilderFactory;
 
 /**
  * Rule to convert a
@@ -40,12 +42,18 @@ import org.apache.calcite.rex.RexProgram;
 public class ProjectToCalcRule extends RelOptRule {
   //~ Static fields/initializers ---------------------------------------------
 
-  public static final ProjectToCalcRule INSTANCE = new ProjectToCalcRule();
+  public static final ProjectToCalcRule INSTANCE =
+      new ProjectToCalcRule(RelFactories.LOGICAL_BUILDER);
 
   //~ Constructors -----------------------------------------------------------
 
-  private ProjectToCalcRule() {
-    super(operand(LogicalProject.class, any()));
+  /**
+   * Creates a ProjectToCalcRule.
+   *
+   * @param relBuilderFactory Builder for relational expressions
+   */
+  public ProjectToCalcRule(RelBuilderFactory relBuilderFactory) {
+    super(operand(LogicalProject.class, any()), relBuilderFactory, null);
   }
 
   //~ Methods ----------------------------------------------------------------

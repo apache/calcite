@@ -22,6 +22,8 @@ import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelTrait;
 import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.RelFactories;
+import org.apache.calcite.tools.RelBuilderFactory;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
@@ -49,7 +51,15 @@ public abstract class ConverterRule extends RelOptRule {
    */
   public ConverterRule(Class<? extends RelNode> clazz, RelTrait in,
       RelTrait out, String description) {
-    this(clazz, Predicates.<RelNode>alwaysTrue(), in, out, description);
+    this(clazz, Predicates.<RelNode>alwaysTrue(), in, out,
+        RelFactories.LOGICAL_BUILDER, description);
+  }
+
+  @Deprecated // to be removed before 2.0
+  public <R extends RelNode> ConverterRule(Class<R> clazz,
+      Predicate<? super R> predicate, RelTrait in, RelTrait out,
+      String description) {
+    this(clazz, predicate, in, out, RelFactories.LOGICAL_BUILDER, description);
   }
 
   /**
@@ -59,12 +69,14 @@ public abstract class ConverterRule extends RelOptRule {
    * @param predicate   Predicate on the relational expression
    * @param in          Trait of relational expression to consider converting
    * @param out         Trait which is converted to
+   * @param relBuilderFactory Builder for relational expressions
    * @param description Description of rule
    */
   public <R extends RelNode> ConverterRule(Class<R> clazz,
       Predicate<? super R> predicate, RelTrait in, RelTrait out,
-      String description) {
+      RelBuilderFactory relBuilderFactory, String description) {
     super(convertOperand(clazz, predicate, in),
+        relBuilderFactory,
         description == null
             ? "ConverterRule<in=" + in + ",out=" + out + ">"
             : description);

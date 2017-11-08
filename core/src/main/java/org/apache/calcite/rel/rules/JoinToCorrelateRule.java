@@ -66,9 +66,9 @@ public class JoinToCorrelateRule extends RelOptRule {
   //~ Constructors -----------------------------------------------------------
 
   /**
-   * Private constructor; use singleton {@link #INSTANCE}.
+   * Creates a JoinToCorrelateRule.
    */
-  protected JoinToCorrelateRule(RelBuilderFactory relBuilderFactory) {
+  public JoinToCorrelateRule(RelBuilderFactory relBuilderFactory) {
     super(operand(LogicalJoin.class, any()), relBuilderFactory, null);
   }
 

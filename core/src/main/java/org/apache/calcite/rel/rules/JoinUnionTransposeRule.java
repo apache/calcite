@@ -21,8 +21,10 @@ import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptRuleOperand;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Join;
+import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.SetOp;
 import org.apache.calcite.rel.core.Union;
+import org.apache.calcite.tools.RelBuilderFactory;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -38,6 +40,7 @@ public class JoinUnionTransposeRule extends RelOptRule {
           operand(Join.class,
               operand(Union.class, any()),
               operand(RelNode.class, any())),
+          RelFactories.LOGICAL_BUILDER,
           "JoinUnionTransposeRule(Union-Other)");
 
   public static final JoinUnionTransposeRule RIGHT_UNION =
@@ -45,11 +48,19 @@ public class JoinUnionTransposeRule extends RelOptRule {
           operand(Join.class,
               operand(RelNode.class, any()),
               operand(Union.class, any())),
+          RelFactories.LOGICAL_BUILDER,
           "JoinUnionTransposeRule(Other-Union)");
 
-  private JoinUnionTransposeRule(RelOptRuleOperand operand,
-      String description) {
-    super(operand, description);
+  /**
+   * Creates a JoinUnionTransposeRule.
+   *
+   * @param operand           root operand, must not be null
+   * @param description       Description, or null to guess description
+   * @param relBuilderFactory Builder for relational expressions
+   */
+  public JoinUnionTransposeRule(RelOptRuleOperand operand,
+      RelBuilderFactory relBuilderFactory, String description) {
+    super(operand, relBuilderFactory, description);
   }
 
   public void onMatch(RelOptRuleCall call) {

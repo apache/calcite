@@ -19,6 +19,7 @@ package org.apache.calcite.rel.rules;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.logical.LogicalCalc;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rex.RexBuilder;
@@ -26,6 +27,7 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexOver;
 import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.rex.RexProgramBuilder;
+import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.Pair;
 
 /**
@@ -44,15 +46,21 @@ public class ProjectCalcMergeRule extends RelOptRule {
   //~ Static fields/initializers ---------------------------------------------
 
   public static final ProjectCalcMergeRule INSTANCE =
-      new ProjectCalcMergeRule();
+      new ProjectCalcMergeRule(RelFactories.LOGICAL_BUILDER);
 
   //~ Constructors -----------------------------------------------------------
 
-  private ProjectCalcMergeRule() {
+  /**
+   * Creates a ProjectCalcMergeRule.
+   *
+   * @param relBuilderFactory Builder for relational expressions
+   */
+  public ProjectCalcMergeRule(RelBuilderFactory relBuilderFactory) {
     super(
         operand(
             LogicalProject.class,
-            operand(LogicalCalc.class, any())));
+            operand(LogicalCalc.class, any())),
+        relBuilderFactory, null);
   }
 
   //~ Methods ----------------------------------------------------------------

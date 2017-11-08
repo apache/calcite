@@ -39,7 +39,7 @@ public class ProjectMultiJoinMergeRule extends RelOptRule {
   //~ Constructors -----------------------------------------------------------
 
   /** Creates a ProjectMultiJoinMergeRule. */
-  private ProjectMultiJoinMergeRule(RelBuilderFactory relBuilderFactory) {
+  public ProjectMultiJoinMergeRule(RelBuilderFactory relBuilderFactory) {
     super(
         operand(LogicalProject.class,
             operand(MultiJoin.class, any())), relBuilderFactory, null);

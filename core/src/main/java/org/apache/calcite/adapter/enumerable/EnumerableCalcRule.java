@@ -20,6 +20,7 @@ import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterRule;
+import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.logical.LogicalCalc;
 
 /**
@@ -31,7 +32,8 @@ class EnumerableCalcRule extends ConverterRule {
     // The predicate ensures that if there's a multiset, FarragoMultisetSplitter
     // will work on it first.
     super(LogicalCalc.class, RelOptUtil.CALC_PREDICATE, Convention.NONE,
-        EnumerableConvention.INSTANCE, "EnumerableCalcRule");
+        EnumerableConvention.INSTANCE, RelFactories.LOGICAL_BUILDER,
+        "EnumerableCalcRule");
   }
 
   public RelNode convert(RelNode rel) {

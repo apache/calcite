@@ -20,14 +20,23 @@ import org.apache.calcite.plan.Convention;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterRule;
 import org.apache.calcite.rel.logical.LogicalValues;
+import org.apache.calcite.tools.RelBuilderFactory;
+
+import com.google.common.base.Predicates;
 
 /** Planner rule that converts a
  * {@link org.apache.calcite.rel.logical.LogicalValues}
  * relational expression
  * {@link org.apache.calcite.adapter.enumerable.EnumerableConvention enumerable calling convention}. */
 public class EnumerableValuesRule extends ConverterRule {
-  EnumerableValuesRule() {
-    super(LogicalValues.class, Convention.NONE, EnumerableConvention.INSTANCE,
+  /**
+   * Creates an EnumerableValuesRule.
+   *
+   * @param relBuilderFactory Builder for relational expressions
+   */
+  public EnumerableValuesRule(RelBuilderFactory relBuilderFactory) {
+    super(LogicalValues.class, Predicates.<RelNode>alwaysTrue(),
+        Convention.NONE, EnumerableConvention.INSTANCE, relBuilderFactory,
         "EnumerableValuesRule");
   }
 

@@ -25,6 +25,7 @@ import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Calc;
 import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.logical.LogicalCalc;
 import org.apache.calcite.rel.logical.LogicalWindow;
 import org.apache.calcite.rex.RexCall;
@@ -39,6 +40,7 @@ import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.rex.RexWindow;
 import org.apache.calcite.runtime.PredicateImpl;
 import org.apache.calcite.tools.RelBuilder;
+import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.graph.DefaultDirectedGraph;
@@ -90,25 +92,56 @@ public abstract class ProjectToWindowRule extends RelOptRule {
         }
       };
 
+  public static final ProjectToWindowRule INSTANCE =
+      new CalcToWindowRule(RelFactories.LOGICAL_BUILDER);
+
+  public static final ProjectToWindowRule PROJECT =
+      new ProjectToLogicalProjectAndWindowRule(RelFactories.LOGICAL_BUILDER);
+
+  //~ Constructors -----------------------------------------------------------
+
+  /**
+   * Creates a ProjectToWindowRule.
+   *
+   * @param operand           Root operand, must not be null
+   * @param description       Description, or null to guess description
+   * @param relBuilderFactory Builder for relational expressions
+   */
+  public ProjectToWindowRule(RelOptRuleOperand operand,
+      RelBuilderFactory relBuilderFactory, String description) {
+    super(operand, relBuilderFactory, description);
+  }
+
+  //~ Inner Classes ----------------------------------------------------------
+
   /**
    * Instance of the rule that applies to a
    * {@link org.apache.calcite.rel.core.Calc} that contains
    * windowed aggregates and converts it into a mixture of
    * {@link org.apache.calcite.rel.logical.LogicalWindow} and {@code Calc}.
    */
-  public static final ProjectToWindowRule INSTANCE =
-      new ProjectToWindowRule(
-        operand(Calc.class, null, PREDICATE, any()),
-        "ProjectToWindowRule") {
-        public void onMatch(RelOptRuleCall call) {
-          Calc calc = call.rel(0);
-          assert RexOver.containsOver(calc.getProgram());
-          final CalcRelSplitter transform =
-              new WindowedAggRelSplitter(calc, call.builder());
-          RelNode newRel = transform.execute();
-          call.transformTo(newRel);
-        }
-      };
+  public static class CalcToWindowRule extends ProjectToWindowRule {
+
+    /**
+     * Creates a CalcToWindowRule.
+     *
+     * @param relBuilderFactory Builder for relational expressions
+     */
+    public CalcToWindowRule(RelBuilderFactory relBuilderFactory) {
+      super(
+          operand(Calc.class, null, PREDICATE, any()),
+          relBuilderFactory, "ProjectToWindowRule");
+    }
+
+    public void onMatch(RelOptRuleCall call) {
+      Calc calc = call.rel(0);
+      assert RexOver.containsOver(calc.getProgram());
+      final CalcRelSplitter transform =
+          new WindowedAggRelSplitter(calc, call.builder());
+      RelNode newRel = transform.execute();
+      call.transformTo(newRel);
+    }
+  }
 
   /**
    * Instance of the rule that can be applied to a
@@ -116,62 +149,62 @@ public abstract class ProjectToWindowRule extends RelOptRule {
    * a mixture of {@code LogicalProject}
    * and {@link org.apache.calcite.rel.logical.LogicalWindow}.
    */
-  public static final ProjectToWindowRule PROJECT =
-      new ProjectToWindowRule(
-        operand(Project.class, null, PREDICATE2, any()),
-        "ProjectToWindowRule:project") {
-        @Override public void onMatch(RelOptRuleCall call) {
-          Project project = call.rel(0);
-          assert RexOver.containsOver(project.getProjects(), null);
-          final RelNode input = project.getInput();
-          final RexProgram program =
-              RexProgram.create(
-                  input.getRowType(),
-                  project.getProjects(),
-                  null,
-                  project.getRowType(),
-                  project.getCluster().getRexBuilder());
-          // temporary LogicalCalc, never registered
-          final LogicalCalc calc = LogicalCalc.create(input, program);
-          final CalcRelSplitter transform = new WindowedAggRelSplitter(calc,
-              call.builder()) {
-            @Override protected RelNode handle(RelNode rel) {
-              if (!(rel instanceof LogicalCalc)) {
-                return rel;
-              }
-              final LogicalCalc calc = (LogicalCalc) rel;
-              final RexProgram program = calc.getProgram();
-              relBuilder.push(calc.getInput());
-              if (program.getCondition() != null) {
-                relBuilder.filter(
-                    program.expandLocalRef(program.getCondition()));
-              }
-              if (!program.projectsOnlyIdentity()) {
-                relBuilder.project(
-                    Lists.transform(program.getProjectList(),
-                        new Function<RexLocalRef, RexNode>() {
-                          public RexNode apply(RexLocalRef a0) {
-                            return program.expandLocalRef(a0);
-                          }
-                        }),
-                    calc.getRowType().getFieldNames());
-              }
-              return relBuilder.build();
-            }
-          };
-          RelNode newRel = transform.execute();
-          call.transformTo(newRel);
+  public static class ProjectToLogicalProjectAndWindowRule
+      extends ProjectToWindowRule {
+    /**
+     * Creates a ProjectToWindowRule.
+     *
+     * @param relBuilderFactory Builder for relational expressions
+     */
+    public ProjectToLogicalProjectAndWindowRule(
+        RelBuilderFactory relBuilderFactory) {
+      super(operand(Project.class, null, PREDICATE2, any()),
+          relBuilderFactory, "ProjectToWindowRule:project");
+    }
+
+    @Override public void onMatch(RelOptRuleCall call) {
+      Project project = call.rel(0);
+      assert RexOver.containsOver(project.getProjects(), null);
+      final RelNode input = project.getInput();
+      final RexProgram program =
+          RexProgram.create(
+              input.getRowType(),
+              project.getProjects(),
+              null,
+              project.getRowType(),
+              project.getCluster().getRexBuilder());
+      // temporary LogicalCalc, never registered
+      final LogicalCalc calc = LogicalCalc.create(input, program);
+      final CalcRelSplitter transform = new WindowedAggRelSplitter(calc,
+          call.builder()) {
+        @Override protected RelNode handle(RelNode rel) {
+          if (!(rel instanceof LogicalCalc)) {
+            return rel;
+          }
+          final LogicalCalc calc = (LogicalCalc) rel;
+          final RexProgram program = calc.getProgram();
+          relBuilder.push(calc.getInput());
+          if (program.getCondition() != null) {
+            relBuilder.filter(
+                program.expandLocalRef(program.getCondition()));
+          }
+          if (!program.projectsOnlyIdentity()) {
+            relBuilder.project(
+                Lists.transform(program.getProjectList(),
+                    new Function<RexLocalRef, RexNode>() {
+                      public RexNode apply(RexLocalRef a0) {
+                        return program.expandLocalRef(a0);
+                      }
+                    }),
+              calc.getRowType().getFieldNames());
+          }
+          return relBuilder.build();
         }
       };
-
-  //~ Constructors -----------------------------------------------------------
-
-  /** Creates a ProjectToWindowRule. */
-  private ProjectToWindowRule(RelOptRuleOperand operand, String description) {
-    super(operand, description);
+      RelNode newRel = transform.execute();
+      call.transformTo(newRel);
+    }
   }
-
-  //~ Inner Classes ----------------------------------------------------------
 
   /**
    * Splitter that distinguishes between windowed aggregation expressions

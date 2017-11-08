@@ -27,6 +27,7 @@ import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rex.RexCall;
@@ -35,6 +36,7 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
+import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.mapping.Mappings;
 
 import com.google.common.collect.ImmutableList;
@@ -51,7 +53,8 @@ import java.util.Map;
  */
 public class SortProjectTransposeRule extends RelOptRule {
   public static final SortProjectTransposeRule INSTANCE =
-      new SortProjectTransposeRule(Sort.class, LogicalProject.class, null);
+      new SortProjectTransposeRule(Sort.class, LogicalProject.class,
+          RelFactories.LOGICAL_BUILDER, null);
 
   //~ Constructors -----------------------------------------------------------
 
@@ -59,20 +62,35 @@ public class SortProjectTransposeRule extends RelOptRule {
   public SortProjectTransposeRule(
       Class<? extends Sort> sortClass,
       Class<? extends Project> projectClass) {
-    this(sortClass, projectClass, null);
+    this(sortClass, projectClass, RelFactories.LOGICAL_BUILDER, null);
   }
 
-  /** Creates a SortProjectTransposeRule.*/
+  @Deprecated // to be removed before 2.0
   public SortProjectTransposeRule(
       Class<? extends Sort> sortClass,
       Class<? extends Project> projectClass,
       String description) {
-    super(
-        operand(sortClass,
-            operand(projectClass, any())),
-        description);
+    this(sortClass, projectClass, RelFactories.LOGICAL_BUILDER, description);
   }
 
+  /** Creates a SortProjectTransposeRule. */
+  public SortProjectTransposeRule(
+      Class<? extends Sort> sortClass,
+      Class<? extends Project> projectClass,
+      RelBuilderFactory relBuilderFactory, String description) {
+    this(
+        operand(sortClass,
+            operand(projectClass, any())),
+        relBuilderFactory, description);
+  }
+
+  /** Creates a SortProjectTransposeRule with an operand. */
+  protected SortProjectTransposeRule(RelOptRuleOperand operand,
+      RelBuilderFactory relBuilderFactory, String description) {
+    super(operand, relBuilderFactory, description);
+  }
+
+  @Deprecated // to be removed before 2.0
   protected SortProjectTransposeRule(RelOptRuleOperand operand) {
     super(operand);
   }

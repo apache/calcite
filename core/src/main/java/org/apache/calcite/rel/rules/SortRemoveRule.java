@@ -21,7 +21,9 @@ import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollationTraitDef;
+import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.Sort;
+import org.apache.calcite.tools.RelBuilderFactory;
 
 /**
  * Planner rule that removes
@@ -30,12 +32,16 @@ import org.apache.calcite.rel.core.Sort;
  * <p>Requires {@link RelCollationTraitDef}.
  */
 public class SortRemoveRule extends RelOptRule {
-  public static final SortRemoveRule INSTANCE = new SortRemoveRule();
+  public static final SortRemoveRule INSTANCE =
+      new SortRemoveRule(RelFactories.LOGICAL_BUILDER);
 
-  private SortRemoveRule() {
-    super(
-        operand(Sort.class, any()),
-        "SortRemoveRule");
+  /**
+   * Creates a SortRemoveRule.
+   *
+   * @param relBuilderFactory Builder for relational expressions
+   */
+  public SortRemoveRule(RelBuilderFactory relBuilderFactory) {
+    super(operand(Sort.class, any()), relBuilderFactory, "SortRemoveRule");
   }
 
   @Override public void onMatch(RelOptRuleCall call) {

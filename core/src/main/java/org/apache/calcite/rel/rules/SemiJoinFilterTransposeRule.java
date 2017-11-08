@@ -22,6 +22,7 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.SemiJoin;
 import org.apache.calcite.rel.logical.LogicalFilter;
+import org.apache.calcite.tools.RelBuilderFactory;
 
 /**
  * Planner rule that pushes
@@ -37,17 +38,18 @@ import org.apache.calcite.rel.logical.LogicalFilter;
  */
 public class SemiJoinFilterTransposeRule extends RelOptRule {
   public static final SemiJoinFilterTransposeRule INSTANCE =
-      new SemiJoinFilterTransposeRule();
+      new SemiJoinFilterTransposeRule(RelFactories.LOGICAL_BUILDER);
 
   //~ Constructors -----------------------------------------------------------
 
   /**
    * Creates a SemiJoinFilterTransposeRule.
    */
-  private SemiJoinFilterTransposeRule() {
+  public SemiJoinFilterTransposeRule(RelBuilderFactory relBuilderFactory) {
     super(
         operand(SemiJoin.class,
-            some(operand(LogicalFilter.class, any()))));
+            some(operand(LogicalFilter.class, any()))),
+        relBuilderFactory, null);
   }
 
   //~ Methods ----------------------------------------------------------------

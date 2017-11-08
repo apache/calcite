@@ -17,6 +17,7 @@
 package org.apache.calcite.adapter.enumerable;
 
 import org.apache.calcite.plan.RelOptRule;
+import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.util.trace.CalciteTrace;
 
 import org.slf4j.Logger;
@@ -40,7 +41,7 @@ public class EnumerableRules {
       new EnumerableSemiJoinRule();
 
   public static final RelOptRule ENUMERABLE_CORRELATE_RULE =
-      new EnumerableCorrelateRule();
+      new EnumerableCorrelateRule(RelFactories.LOGICAL_BUILDER);
 
   private EnumerableRules() {
   }
@@ -73,10 +74,10 @@ public class EnumerableRules {
       new EnumerableMinusRule();
 
   public static final EnumerableTableModifyRule ENUMERABLE_TABLE_MODIFICATION_RULE =
-      new EnumerableTableModifyRule();
+      new EnumerableTableModifyRule(RelFactories.LOGICAL_BUILDER);
 
   public static final EnumerableValuesRule ENUMERABLE_VALUES_RULE =
-      new EnumerableValuesRule();
+      new EnumerableValuesRule(RelFactories.LOGICAL_BUILDER);
 
   public static final EnumerableWindowRule ENUMERABLE_WINDOW_RULE =
       new EnumerableWindowRule();
@@ -88,16 +89,16 @@ public class EnumerableRules {
       new EnumerableUncollectRule();
 
   public static final EnumerableFilterToCalcRule ENUMERABLE_FILTER_TO_CALC_RULE =
-      new EnumerableFilterToCalcRule();
+      new EnumerableFilterToCalcRule(RelFactories.LOGICAL_BUILDER);
 
   public static final EnumerableProjectToCalcRule ENUMERABLE_PROJECT_TO_CALC_RULE =
-      new EnumerableProjectToCalcRule();
+      new EnumerableProjectToCalcRule(RelFactories.LOGICAL_BUILDER);
 
   public static final EnumerableTableScanRule ENUMERABLE_TABLE_SCAN_RULE =
-      new EnumerableTableScanRule();
+      new EnumerableTableScanRule(RelFactories.LOGICAL_BUILDER);
 
   public static final EnumerableTableFunctionScanRule ENUMERABLE_TABLE_FUNCTION_SCAN_RULE =
-      new EnumerableTableFunctionScanRule();
+      new EnumerableTableFunctionScanRule(RelFactories.LOGICAL_BUILDER);
 }
 
 // End EnumerableRules.java

@@ -20,6 +20,7 @@ import org.apache.calcite.plan.hep.HepMatchOrder;
 import org.apache.calcite.plan.hep.HepPlanner;
 import org.apache.calcite.plan.hep.HepProgram;
 import org.apache.calcite.plan.hep.HepProgramBuilder;
+import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.logical.LogicalIntersect;
 import org.apache.calcite.rel.logical.LogicalUnion;
 import org.apache.calcite.rel.rules.CalcMergeRule;
@@ -61,8 +62,12 @@ public class HepPlannerTest extends RelOptTestBase {
         new HepPlanner(
             programBuilder.build());
 
-    planner.addRule(new CoerceInputsRule(LogicalUnion.class, false));
-    planner.addRule(new CoerceInputsRule(LogicalIntersect.class, false));
+    planner.addRule(
+        new CoerceInputsRule(LogicalUnion.class, false,
+            RelFactories.LOGICAL_BUILDER));
+    planner.addRule(
+        new CoerceInputsRule(LogicalIntersect.class, false,
+            RelFactories.LOGICAL_BUILDER));
 
     checkPlanning(planner,
         "(select name from dept union select ename from emp)"

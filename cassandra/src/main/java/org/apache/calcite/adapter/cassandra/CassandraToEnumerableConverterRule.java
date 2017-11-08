@@ -20,6 +20,10 @@ import org.apache.calcite.adapter.enumerable.EnumerableConvention;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterRule;
+import org.apache.calcite.rel.core.RelFactories;
+import org.apache.calcite.tools.RelBuilderFactory;
+
+import com.google.common.base.Predicates;
 
 /**
  * Rule to convert a relational expression from
@@ -27,11 +31,18 @@ import org.apache.calcite.rel.convert.ConverterRule;
  */
 public class CassandraToEnumerableConverterRule extends ConverterRule {
   public static final ConverterRule INSTANCE =
-      new CassandraToEnumerableConverterRule();
+      new CassandraToEnumerableConverterRule(RelFactories.LOGICAL_BUILDER);
 
-  private CassandraToEnumerableConverterRule() {
-    super(RelNode.class, CassandraRel.CONVENTION, EnumerableConvention.INSTANCE,
-        "CassandraToEnumerableConverterRule");
+  /**
+   * Creates a CassandraToEnumerableConverterRule.
+   *
+   * @param relBuilderFactory Builder for relational expressions
+   */
+  public CassandraToEnumerableConverterRule(
+      RelBuilderFactory relBuilderFactory) {
+    super(RelNode.class, Predicates.<RelNode>alwaysTrue(),
+        CassandraRel.CONVENTION, EnumerableConvention.INSTANCE,
+        relBuilderFactory, "CassandraToEnumerableConverterRule");
   }
 
   @Override public RelNode convert(RelNode rel) {

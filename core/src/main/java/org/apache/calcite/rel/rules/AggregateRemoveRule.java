@@ -20,10 +20,12 @@ import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
+import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.runtime.SqlFunctions;
 import org.apache.calcite.tools.RelBuilder;
+import org.apache.calcite.tools.RelBuilderFactory;
 
 /**
  * Planner rule that removes
@@ -34,14 +36,21 @@ import org.apache.calcite.tools.RelBuilder;
  */
 public class AggregateRemoveRule extends RelOptRule {
   public static final AggregateRemoveRule INSTANCE =
-      new AggregateRemoveRule(LogicalAggregate.class);
+      new AggregateRemoveRule(LogicalAggregate.class,
+          RelFactories.LOGICAL_BUILDER);
 
   //~ Constructors -----------------------------------------------------------
 
-  /**
-   * Creates a AggregateRemoveRule.
-   */
+  @Deprecated // to be removed before 2.0
   public AggregateRemoveRule(Class<? extends Aggregate> aggregateClass) {
+    this(aggregateClass, RelFactories.LOGICAL_BUILDER);
+  }
+
+  /**
+   * Creates an AggregateRemoveRule.
+   */
+  public AggregateRemoveRule(Class<? extends Aggregate> aggregateClass,
+      RelBuilderFactory relBuilderFactory) {
     // REVIEW jvs 14-Mar-2006: We have to explicitly mention the child here
     // to make sure the rule re-fires after the child changes (e.g. via
     // ProjectRemoveRule), since that may change our information
@@ -50,7 +59,8 @@ public class AggregateRemoveRule extends RelOptRule {
     // to the child here.
     super(
         operand(aggregateClass,
-            operand(RelNode.class, any())));
+            operand(RelNode.class, any())),
+        relBuilderFactory, null);
   }
 
   //~ Methods ----------------------------------------------------------------

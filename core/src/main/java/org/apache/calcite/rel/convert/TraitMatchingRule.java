@@ -21,6 +21,8 @@ import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptRuleOperandChildPolicy;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.RelFactories;
+import org.apache.calcite.tools.RelBuilderFactory;
 
 /**
  * TraitMatchingRule adapts a converter rule, restricting it to fire only when
@@ -35,17 +37,25 @@ public class TraitMatchingRule extends RelOptRule {
 
   //~ Constructors -----------------------------------------------------------
 
-  /**
-   * Creates a new TraitMatchingRule.
-   *
-   * @param converterRule rule to be restricted; rule must take a single
-   *                      operand expecting a single input
-   */
+  @Deprecated // to be removed before 2.0
   public TraitMatchingRule(ConverterRule converterRule) {
+    this(converterRule, RelFactories.LOGICAL_BUILDER);
+  }
+
+  /**
+   * Creates a TraitMatchingRule.
+   *
+   * @param converterRule     Rule to be restricted; rule must take a single
+   *                          operand expecting a single input
+   * @param relBuilderFactory Builder for relational expressions
+   */
+  public TraitMatchingRule(ConverterRule converterRule,
+      RelBuilderFactory relBuilderFactory) {
     super(
         operand(
             converterRule.getOperand().getMatchedClass(),
             operand(RelNode.class, any())),
+        relBuilderFactory,
         "TraitMatchingRule: " + converterRule);
     assert converterRule.getOperand().childPolicy
         == RelOptRuleOperandChildPolicy.ANY;
@@ -54,8 +64,7 @@ public class TraitMatchingRule extends RelOptRule {
 
   //~ Methods ----------------------------------------------------------------
 
-  // implement RelOptRule
-  public Convention getOutConvention() {
+  @Override public Convention getOutConvention() {
     return converter.getOutConvention();
   }
 

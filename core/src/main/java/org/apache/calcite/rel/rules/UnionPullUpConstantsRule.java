@@ -51,7 +51,7 @@ public class UnionPullUpConstantsRule extends RelOptRule {
       new UnionPullUpConstantsRule(Union.class, RelFactories.LOGICAL_BUILDER);
 
   /** Creates a UnionPullUpConstantsRule. */
-  protected UnionPullUpConstantsRule(Class<? extends Union> unionClass,
+  public UnionPullUpConstantsRule(Class<? extends Union> unionClass,
       RelBuilderFactory relBuilderFactory) {
     super(operand(unionClass, any()), relBuilderFactory, null);
   }

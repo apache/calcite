@@ -21,7 +21,9 @@ import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.logical.LogicalTableScan;
+import org.apache.calcite.tools.RelBuilderFactory;
 
 /**
  * Planner rule that converts a
@@ -31,12 +33,18 @@ import org.apache.calcite.rel.logical.LogicalTableScan;
 public class TableScanRule extends RelOptRule {
   //~ Static fields/initializers ---------------------------------------------
 
-  public static final TableScanRule INSTANCE = new TableScanRule();
+  public static final TableScanRule INSTANCE =
+      new TableScanRule(RelFactories.LOGICAL_BUILDER);
 
   //~ Constructors -----------------------------------------------------------
 
-  private TableScanRule() {
-    super(operand(LogicalTableScan.class, any()));
+  /**
+   * Creates a TableScanRule.
+   *
+   * @param relBuilderFactory Builder for relational expressions
+   */
+  public TableScanRule(RelBuilderFactory relBuilderFactory) {
+    super(operand(LogicalTableScan.class, any()), relBuilderFactory, null);
   }
 
   //~ Methods ----------------------------------------------------------------

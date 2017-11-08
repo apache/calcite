@@ -20,6 +20,10 @@ import org.apache.calcite.adapter.enumerable.EnumerableConvention;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterRule;
+import org.apache.calcite.rel.core.RelFactories;
+import org.apache.calcite.tools.RelBuilderFactory;
+
+import com.google.common.base.Predicates;
 
 /**
  * Rule to convert a relational expression from
@@ -27,10 +31,16 @@ import org.apache.calcite.rel.convert.ConverterRule;
  */
 public class MongoToEnumerableConverterRule extends ConverterRule {
   public static final ConverterRule INSTANCE =
-      new MongoToEnumerableConverterRule();
+      new MongoToEnumerableConverterRule(RelFactories.LOGICAL_BUILDER);
 
-  private MongoToEnumerableConverterRule() {
-    super(RelNode.class, MongoRel.CONVENTION, EnumerableConvention.INSTANCE,
+  /**
+   * Creates a MongoToEnumerableConverterRule.
+   *
+   * @param relBuilderFactory Builder for relational expressions
+   */
+  public MongoToEnumerableConverterRule(RelBuilderFactory relBuilderFactory) {
+    super(RelNode.class, Predicates.<RelNode>alwaysTrue(), MongoRel.CONVENTION,
+        EnumerableConvention.INSTANCE, relBuilderFactory,
         "MongoToEnumerableConverterRule");
   }
 

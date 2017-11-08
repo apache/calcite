@@ -20,6 +20,10 @@ import org.apache.calcite.adapter.enumerable.EnumerableConvention;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterRule;
+import org.apache.calcite.rel.core.RelFactories;
+import org.apache.calcite.tools.RelBuilderFactory;
+
+import com.google.common.base.Predicates;
 
 /**
  * Rule to convert a relational expression from
@@ -28,11 +32,16 @@ import org.apache.calcite.rel.convert.ConverterRule;
  */
 public class EnumerableToSparkConverterRule extends ConverterRule {
   public static final EnumerableToSparkConverterRule INSTANCE =
-      new EnumerableToSparkConverterRule();
+      new EnumerableToSparkConverterRule(RelFactories.LOGICAL_BUILDER);
 
-  private EnumerableToSparkConverterRule() {
-    super(
-        RelNode.class, EnumerableConvention.INSTANCE, SparkRel.CONVENTION,
+  /**
+   * Creates an EnumerableToSparkConverterRule.
+   *
+   * @param relBuilderFactory Builder for relational expressions
+   */
+  public EnumerableToSparkConverterRule(RelBuilderFactory relBuilderFactory) {
+    super(RelNode.class, Predicates.<RelNode>alwaysTrue(),
+        EnumerableConvention.INSTANCE, SparkRel.CONVENTION, relBuilderFactory,
         "EnumerableToSparkConverterRule");
   }
 

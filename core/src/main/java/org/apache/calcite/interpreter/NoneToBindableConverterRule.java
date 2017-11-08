@@ -20,6 +20,10 @@ import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterRule;
+import org.apache.calcite.rel.core.RelFactories;
+import org.apache.calcite.tools.RelBuilderFactory;
+
+import com.google.common.base.Predicates;
 
 /**
  * Rule to convert a relational expression from
@@ -28,10 +32,16 @@ import org.apache.calcite.rel.convert.ConverterRule;
  */
 public class NoneToBindableConverterRule extends ConverterRule {
   public static final ConverterRule INSTANCE =
-      new NoneToBindableConverterRule();
+      new NoneToBindableConverterRule(RelFactories.LOGICAL_BUILDER);
 
-  private NoneToBindableConverterRule() {
-    super(RelNode.class, Convention.NONE, BindableConvention.INSTANCE,
+  /**
+   * Creates a NoneToBindableConverterRule.
+   *
+   * @param relBuilderFactory Builder for relational expressions
+   */
+  public NoneToBindableConverterRule(RelBuilderFactory relBuilderFactory) {
+    super(RelNode.class, Predicates.<RelNode>alwaysTrue(), Convention.NONE,
+        BindableConvention.INSTANCE, relBuilderFactory,
         "NoneToBindableConverterRule");
   }
 

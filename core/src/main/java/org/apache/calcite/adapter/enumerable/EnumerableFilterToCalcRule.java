@@ -23,12 +23,18 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.rex.RexProgramBuilder;
+import org.apache.calcite.tools.RelBuilderFactory;
 
 /** Variant of {@link org.apache.calcite.rel.rules.FilterToCalcRule} for
  * {@link org.apache.calcite.adapter.enumerable.EnumerableConvention enumerable calling convention}. */
 public class EnumerableFilterToCalcRule extends RelOptRule {
-  EnumerableFilterToCalcRule() {
-    super(operand(EnumerableFilter.class, any()));
+  /**
+   * Creates an EnumerableFilterToCalcRule.
+   *
+   * @param relBuilderFactory Builder for relational expressions
+   */
+  public EnumerableFilterToCalcRule(RelBuilderFactory relBuilderFactory) {
+    super(operand(EnumerableFilter.class, any()), relBuilderFactory, null);
   }
 
   public void onMatch(RelOptRuleCall call) {
