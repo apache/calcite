@@ -280,7 +280,7 @@ public class DruidAdapterIT {
         + "group by \"page\", floor(\"__time\" to DAY)\n"
         + "order by \"s\" desc";
     final String explain = "PLAN=EnumerableInterpreter\n"
-        + "  BindableProject(s=[$2], page=[$0], day=[CAST($1):TIMESTAMP(0)])\n"
+        + "  BindableProject(s=[$2], page=[$0], day=[CAST($1):TIMESTAMP(0) NOT NULL])\n"
         + "    DruidQuery(table=[[wiki, wikiticker]], "
         + "intervals=[[1900-01-01T00:00:00.000/3000-01-01T00:00:00.000]], projects=[[$17, FLOOR"
         + "($0, FLAG(DAY)), $1]], groups=[{0, 1}], aggs=[[SUM($2)]], sort0=[2], dir0=[DESC])";
@@ -361,7 +361,7 @@ public class DruidAdapterIT {
         + "where \"__time\" < '2015-10-12 00:00:00 UTC')";
     final String explain = "PLAN="
         + "EnumerableInterpreter\n"
-        + "  BindableProject(__time=[CAST($0):TIMESTAMP(0)])\n"
+        + "  BindableProject(__time=[CAST($0):TIMESTAMP(0) NOT NULL)\n"
         + "    DruidQuery(table=[[wiki, wikiticker]], "
         + "intervals=[[1900-01-01T00:00:00.000/2015-10-12T00:00:00.000]], "
         + "groups=[{0}], aggs=[[]])\n";
@@ -394,7 +394,7 @@ public class DruidAdapterIT {
                   // 1 timestamp, 2 float measure, 1 int measure, 88 dimensions
                   assertThat(map.keySet().size(), is(4));
                   assertThat(map.values().size(), is(92));
-                  assertThat(map.get("TIMESTAMP_WITH_LOCAL_TIME_ZONE(0)").size(), is(1));
+                  assertThat(map.get("TIMESTAMP_WITH_LOCAL_TIME_ZONE(0) NOT NULL").size(), is(1));
                   assertThat(map.get("DOUBLE").size(), is(2));
                   assertThat(map.get("BIGINT").size(), is(1));
                   assertThat(map.get(VARCHAR_TYPE).size(), is(88));
@@ -1434,7 +1434,7 @@ public class DruidAdapterIT {
     String plan = "BindableProject(countryName=[$0], EXPR$1=[$1], C=[CAST($2):INTEGER NOT NULL])\n"
         + "    BindableSort(sort0=[$2], dir0=[ASC], fetch=[5])\n"
         + "      BindableAggregate(group=[{0, 1}], agg#0=[COUNT()])\n"
-        + "        BindableProject(countryName=[$1], EXPR$1=[FLOOR(CAST($0):TIMESTAMP(0), FLAG(DAY))])\n"
+        + "        BindableProject(countryName=[$1], EXPR$1=[FLOOR(CAST($0):TIMESTAMP(0) NOT NULL, FLAG(DAY))])\n"
         + "          BindableFilter(condition=[AND(>=(FLOOR($0, FLAG(DAY)), 1997-01-01 00:00:00), <(FLOOR($0, FLAG(DAY)), 1997-09-01 00:00:00))])\n"
         + "            DruidQuery(table=[[wiki, wiki]], intervals=[[1900-01-09T00:00:00.000/2992-01-10T00:00:00.000]], projects=[[$0, $5]])";
     // NOTE: Druid query only has countryName as the dimension
@@ -1938,7 +1938,7 @@ public class DruidAdapterIT {
     sql(sqlQuery)
         .explainContains("PLAN=EnumerableInterpreter\n"
         + "  BindableSort(sort0=[$1], dir0=[DESC])\n"
-        + "    BindableProject(C=[$1], S=[$2], EXPR$2=[CAST($0):TIMESTAMP(0)])\n"
+        + "    BindableProject(C=[$1], S=[$2], EXPR$2=[CAST($0):TIMESTAMP(0) NOT NULL])\n"
         + "      DruidQuery(table=[[foodmart, foodmart]], "
         + "intervals=[[1900-01-09T00:00:00.000/2992-01-10T00:00:00.000]], projects=[[FLOOR($0, "
         + "FLAG(MONTH)), $89]], groups=[{0}], aggs=[[COUNT(), SUM($1)]])")
@@ -2899,6 +2899,15 @@ public class DruidAdapterIT {
         + "intervals=[[1900-01-01T00:00:00.000/3000-01-01T00:00:00.000]], projects=[[$7]])";
     sql(sql3, WIKI_AUTO2)
         .explainContains(plan3);
+  }
+
+  @Test
+  public void testCountWithNonNull() {
+    final String sql = "select count(\"timestamp\") from \"foodmart\"\n";
+    final String druidQuery = "{'queryType':'timeseries','dataSource':'foodmart'";
+    sql(sql)
+        .returnsUnordered("EXPR$0=86829")
+        .queryContains(druidChecker(druidQuery));
   }
 
   /**

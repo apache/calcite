@@ -136,9 +136,14 @@ public class DruidTable extends AbstractTable implements TranslatableTable {
                       Map<String, List<ComplexMetric>> complexMetrics) {
     final ImmutableMap<String, SqlTypeName> fields =
             ImmutableMap.copyOf(fieldMap);
-    return new DruidTable(druidSchema, dataSourceName,
-            new MapRelProtoDataType(fields), ImmutableSet.copyOf(metricNameSet),
-            timestampColumnName, intervals, complexMetrics, fieldMap);
+    return new DruidTable(druidSchema,
+        dataSourceName,
+        new MapRelProtoDataType(fields, timestampColumnName),
+        ImmutableSet.copyOf(metricNameSet),
+        timestampColumnName,
+        intervals,
+        complexMetrics,
+        fieldMap);
   }
 
   /**
@@ -244,15 +249,25 @@ public class DruidTable extends AbstractTable implements TranslatableTable {
    * field names and types. */
   private static class MapRelProtoDataType implements RelProtoDataType {
     private final ImmutableMap<String, SqlTypeName> fields;
+    private final String timestampColumn;
 
     MapRelProtoDataType(ImmutableMap<String, SqlTypeName> fields) {
       this.fields = fields;
+      this.timestampColumn = DruidTable.DEFAULT_TIMESTAMP_COLUMN;
+    }
+
+    MapRelProtoDataType(ImmutableMap<String, SqlTypeName> fields, String timestampColumn) {
+      this.fields = fields;
+      this.timestampColumn = timestampColumn;
     }
 
     public RelDataType apply(RelDataTypeFactory typeFactory) {
       final RelDataTypeFactory.Builder builder = typeFactory.builder();
       for (Map.Entry<String, SqlTypeName> field : fields.entrySet()) {
-        builder.add(field.getKey(), field.getValue()).nullable(true);
+        final String key = field.getKey();
+        builder.add(key, field.getValue())
+            // Druid's time column is always not null and the only column called __time.
+            .nullable(!timestampColumn.equals(key));
       }
       return builder.build();
     }
