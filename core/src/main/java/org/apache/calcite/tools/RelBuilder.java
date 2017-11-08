@@ -796,7 +796,7 @@ public class RelBuilder {
     return getRexBuilder().makePatternFieldRef(alpha, type, i);
   }
 
-  /** Creates a call that concatenates patterns;
+  /** Creates a call that concatenates patterns which should occur successively;
    * for use in {@link #match}. */
   public RexNode patternConcat(Iterable<? extends RexNode> nodes) {
     final ImmutableList<RexNode> list = ImmutableList.copyOf(nodes);
@@ -809,10 +809,29 @@ public class RelBuilder {
         list);
   }
 
-  /** Creates a call that concatenates patterns;
+  /** Creates a call that concatenates patterns which should occur successively;
    * for use in {@link #match}. */
   public RexNode patternConcat(RexNode... nodes) {
     return patternConcat(ImmutableList.copyOf(nodes));
+  }
+
+  /** Creates a call that concatenates patterns which may not occur successively;
+   * for use in {@link #match}. */
+  public RexNode patternFollowedBy(Iterable<? extends RexNode> nodes) {
+    final ImmutableList<RexNode> list = ImmutableList.copyOf(nodes);
+    if (list.size() > 2) {
+      // Convert into binary calls
+      return patternFollowedBy(patternFollowedBy(Util.skipLast(list)), Util.last(list));
+    }
+    final RelDataType t = getTypeFactory().createSqlType(SqlTypeName.NULL);
+    return getRexBuilder().makeCall(t, SqlStdOperatorTable.PATTERN_FOLLOWED_BY,
+                                    list);
+  }
+
+  /** Creates a call that concatenates patterns which may not occur successively;
+   * for use in {@link #match}. */
+  public RexNode patternFollowedBy(RexNode... nodes) {
+    return patternFollowedBy(ImmutableList.copyOf(nodes));
   }
 
   /** Creates a call that creates alternate patterns;

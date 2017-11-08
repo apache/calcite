@@ -8476,6 +8476,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "$LiteralChain -\n"
         + "+ pre\n"
         + "- pre\n"
+        + "-> left\n"
         + ". left\n"
         + "FINAL pre\n"
         + "RUNNING pre\n"

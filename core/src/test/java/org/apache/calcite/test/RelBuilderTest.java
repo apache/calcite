@@ -1894,7 +1894,7 @@ public class RelBuilderTest {
     //     MEASURES
     //       STRT.mgr as start_nw,
     //       LAST(DOWN.mgr) as bottom_nw,
-    //     PATTERN (STRT DOWN+ UP+) WITHIN INTERVAL '5' SECOND
+    //     PATTERN (STRT -> DOWN+ UP+) WITHIN INTERVAL '5' SECOND
     //     DEFINE
     //       DOWN as DOWN.mgr < PREV(DOWN.mgr),
     //       UP as UP.mgr > PREV(UP.mgr)
@@ -1904,9 +1904,10 @@ public class RelBuilderTest {
     final RelDataType intType = typeFactory.createSqlType(SqlTypeName.INTEGER);
 
     RexNode pattern = builder.patternConcat(
-        builder.literal("STRT"),
-        builder.patternQuantify(builder.literal("DOWN"), builder.literal(1),
-            builder.literal(-1), builder.literal(false)),
+        builder.patternFollowedBy(
+            builder.literal("STRT"),
+            builder.patternQuantify(builder.literal("DOWN"), builder.literal(1),
+                builder.literal(-1), builder.literal(false))),
         builder.patternQuantify(builder.literal("UP"), builder.literal(1),
             builder.literal(-1), builder.literal(false)));
 

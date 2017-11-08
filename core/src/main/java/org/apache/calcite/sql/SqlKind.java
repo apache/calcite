@@ -272,6 +272,11 @@ public enum SqlKind {
    */
   PATTERN_CONCAT,
 
+  /**
+   * the followed by operator in a pattern expression within a match_recognize clause
+   */
+  PATTERN_FOLLOWED_BY,
+
   // comparison operators
 
   /**

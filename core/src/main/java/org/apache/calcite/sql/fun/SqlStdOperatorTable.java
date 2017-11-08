@@ -2077,9 +2077,16 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   /** Operator to concatenate patterns within {@code MATCH_RECOGNIZE}.
    *
    * <p>If {@code p1} and {@code p2} are patterns then {@code p1 p2} is a
-   * pattern that matches {@code p1} followed by {@code p2}. */
+   * pattern that matches {@code p1} next by {@code p2}. */
   public static final SqlBinaryOperator PATTERN_CONCAT =
       new SqlBinaryOperator("", SqlKind.PATTERN_CONCAT, 80, true, null, null, null);
+
+  /** Operator to concatenate patterns within {@code MATCH_RECOGNIZE}.
+   *
+   * <p>If {@code p1} and {@code p2} are patterns then {@code p1 -> p2} is a
+   * pattern that matches {@code p1} followed by {@code p2}. */
+  public static final SqlBinaryOperator PATTERN_FOLLOWED_BY =
+      new SqlBinaryOperator("->", SqlKind.PATTERN_FOLLOWED_BY, 80, true, null, null, null);
 
   /** Operator to quantify patterns within {@code MATCH_RECOGNIZE}.
    *

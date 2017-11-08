@@ -2611,6 +2611,12 @@ SqlNode PatternTerm() :
             left = SqlStdOperatorTable.PATTERN_CONCAT.createCall(
                 Span.of(left).end(right), left, right);
         }
+    |
+        <FOLLOWED_BY>
+        right = PatternFactor() {
+            left = SqlStdOperatorTable.PATTERN_FOLLOWED_BY.createCall(
+                Span.of(left).end(right), left, right);
+        }
     )*
     {
         return left;
@@ -5556,6 +5562,7 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < FIRST_VALUE: "FIRST_VALUE">
 |   < FLOAT: "FLOAT" >
 |   < FLOOR: "FLOOR" >
+|   < FOLLOWED_BY: "->">
 |   < FOLLOWING: "FOLLOWING" >
 |   < FOR: "FOR" >
 |   < FOREIGN: "FOREIGN" >
