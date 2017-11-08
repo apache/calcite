@@ -2086,7 +2086,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    * <p>If {@code p1} and {@code p2} are patterns then {@code p1 -> p2} is a
    * pattern that matches {@code p1} followed by {@code p2}. */
   public static final SqlBinaryOperator PATTERN_FOLLOWED_BY =
-      new SqlBinaryOperator("", SqlKind.PATTERN_FOLLOWED_BY, 80, true, null, null, null);
+      new SqlBinaryOperator("->", SqlKind.PATTERN_FOLLOWED_BY, 80, true, null, null, null);
 
   /** Operator to quantify patterns within {@code MATCH_RECOGNIZE}.
    *
