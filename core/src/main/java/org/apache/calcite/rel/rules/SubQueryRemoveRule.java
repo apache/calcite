@@ -148,7 +148,7 @@ public abstract class SubQueryRemoveRule extends RelOptRule {
         }
       };
 
-  private SubQueryRemoveRule(RelOptRuleOperand operand,
+  public SubQueryRemoveRule(RelOptRuleOperand operand,
       RelBuilderFactory relBuilderFactory,
       String description) {
     super(operand, relBuilderFactory, description);

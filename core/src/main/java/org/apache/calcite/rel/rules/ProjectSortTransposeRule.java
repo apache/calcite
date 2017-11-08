@@ -21,7 +21,9 @@ import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptRuleOperand;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.Sort;
+import org.apache.calcite.tools.RelBuilderFactory;
 
 import com.google.common.collect.ImmutableList;
 
@@ -48,7 +50,12 @@ public class ProjectSortTransposeRule extends RelOptRule {
   }
 
   protected ProjectSortTransposeRule(RelOptRuleOperand operand) {
-    super(operand);
+    this(operand, RelFactories.LOGICAL_BUILDER);
+  }
+
+  public ProjectSortTransposeRule(RelOptRuleOperand operand,
+                                  RelBuilderFactory relBuilderFactory) {
+    super(operand, relBuilderFactory, null);
   }
 
   //~ Methods ----------------------------------------------------------------

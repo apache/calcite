@@ -26,6 +26,7 @@ import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.core.Union;
@@ -40,6 +41,7 @@ import org.apache.calcite.rel.logical.LogicalUnion;
 import org.apache.calcite.schema.StreamableTable;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.tools.RelBuilder;
+import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
@@ -55,21 +57,22 @@ public class StreamRules {
 
   public static final ImmutableList<RelOptRule> RULES =
       ImmutableList.of(
-          new DeltaProjectTransposeRule(),
-          new DeltaFilterTransposeRule(),
-          new DeltaAggregateTransposeRule(),
-          new DeltaSortTransposeRule(),
-          new DeltaUnionTransposeRule(),
+          new DeltaProjectTransposeRule(RelFactories.LOGICAL_BUILDER),
+          new DeltaFilterTransposeRule(RelFactories.LOGICAL_BUILDER),
+          new DeltaAggregateTransposeRule(RelFactories.LOGICAL_BUILDER),
+          new DeltaSortTransposeRule(RelFactories.LOGICAL_BUILDER),
+          new DeltaUnionTransposeRule(RelFactories.LOGICAL_BUILDER),
           new DeltaJoinTransposeRule(),
-          new DeltaTableScanRule(),
-          new DeltaTableScanToEmptyRule());
+          new DeltaTableScanRule(RelFactories.LOGICAL_BUILDER),
+          new DeltaTableScanToEmptyRule(RelFactories.LOGICAL_BUILDER));
 
   /** Planner rule that pushes a {@link Delta} through a {@link Project}. */
   public static class DeltaProjectTransposeRule extends RelOptRule {
-    private DeltaProjectTransposeRule() {
+    public DeltaProjectTransposeRule(RelBuilderFactory relBuilderFactory) {
       super(
           operand(Delta.class,
-              operand(Project.class, any())));
+              operand(Project.class, any())),
+          relBuilderFactory, null);
     }
 
     @Override public void onMatch(RelOptRuleCall call) {
@@ -86,10 +89,11 @@ public class StreamRules {
 
   /** Planner rule that pushes a {@link Delta} through a {@link Filter}. */
   public static class DeltaFilterTransposeRule extends RelOptRule {
-    private DeltaFilterTransposeRule() {
+    public DeltaFilterTransposeRule(RelBuilderFactory relBuilderFactory) {
       super(
           operand(Delta.class,
-              operand(Filter.class, any())));
+              operand(Filter.class, any())),
+          relBuilderFactory, null);
     }
 
     @Override public void onMatch(RelOptRuleCall call) {
@@ -105,10 +109,11 @@ public class StreamRules {
 
   /** Planner rule that pushes a {@link Delta} through an {@link Aggregate}. */
   public static class DeltaAggregateTransposeRule extends RelOptRule {
-    private DeltaAggregateTransposeRule() {
+    public DeltaAggregateTransposeRule(RelBuilderFactory relBuilderFactory) {
       super(
           operand(Delta.class,
-              operand(Aggregate.class, null, Aggregate.NO_INDICATOR, any())));
+              operand(Aggregate.class, null, Aggregate.NO_INDICATOR, any())),
+          relBuilderFactory, null);
     }
 
     @Override public void onMatch(RelOptRuleCall call) {
@@ -126,10 +131,11 @@ public class StreamRules {
 
   /** Planner rule that pushes a {@link Delta} through an {@link Sort}. */
   public static class DeltaSortTransposeRule extends RelOptRule {
-    private DeltaSortTransposeRule() {
+    public DeltaSortTransposeRule(RelBuilderFactory relBuilderFactory) {
       super(
           operand(Delta.class,
-              operand(Sort.class, any())));
+              operand(Sort.class, any())),
+          relBuilderFactory, null);
     }
 
     @Override public void onMatch(RelOptRuleCall call) {
@@ -146,10 +152,11 @@ public class StreamRules {
 
   /** Planner rule that pushes a {@link Delta} through an {@link Union}. */
   public static class DeltaUnionTransposeRule extends RelOptRule {
-    private DeltaUnionTransposeRule() {
+    public DeltaUnionTransposeRule(RelBuilderFactory relBuilderFactory) {
       super(
           operand(Delta.class,
-              operand(Union.class, any())));
+              operand(Union.class, any())),
+          relBuilderFactory, null);
     }
 
     @Override public void onMatch(RelOptRuleCall call) {
@@ -174,10 +181,11 @@ public class StreamRules {
    * with the other relations in the system. The Delta disappears and the stream
    * can be implemented directly. */
   public static class DeltaTableScanRule extends RelOptRule {
-    private DeltaTableScanRule() {
+    public DeltaTableScanRule(RelBuilderFactory relBuilderFactory) {
       super(
           operand(Delta.class,
-              operand(TableScan.class, none())));
+              operand(TableScan.class, none())),
+          relBuilderFactory, null);
     }
 
     @Override public void onMatch(RelOptRuleCall call) {
@@ -208,10 +216,11 @@ public class StreamRules {
    * an empty {@link Values}.
    */
   public static class DeltaTableScanToEmptyRule extends RelOptRule {
-    private DeltaTableScanToEmptyRule() {
+    public DeltaTableScanToEmptyRule(RelBuilderFactory relBuilderFactory) {
       super(
           operand(Delta.class,
-              operand(TableScan.class, none())));
+              operand(TableScan.class, none())),
+          relBuilderFactory, null);
     }
 
     @Override public void onMatch(RelOptRuleCall call) {
@@ -240,9 +249,14 @@ public class StreamRules {
   public static class DeltaJoinTransposeRule extends RelOptRule {
 
     public DeltaJoinTransposeRule() {
+      this(RelFactories.LOGICAL_BUILDER);
+    }
+
+    public DeltaJoinTransposeRule(RelBuilderFactory relBuilderFactory) {
       super(
           operand(Delta.class,
-              operand(Join.class, any())));
+              operand(Join.class, any())),
+          relBuilderFactory, null);
     }
 
     public void onMatch(RelOptRuleCall call) {

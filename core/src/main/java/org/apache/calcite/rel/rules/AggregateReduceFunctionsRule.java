@@ -89,7 +89,7 @@ public class AggregateReduceFunctionsRule extends RelOptRule {
 
   //~ Constructors -----------------------------------------------------------
 
-  protected AggregateReduceFunctionsRule(RelOptRuleOperand operand,
+  public AggregateReduceFunctionsRule(RelOptRuleOperand operand,
       RelBuilderFactory relBuilderFactory) {
     super(operand, relBuilderFactory, null);
   }

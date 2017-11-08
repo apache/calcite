@@ -21,7 +21,9 @@ import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.tools.RelBuilderFactory;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -50,8 +52,24 @@ public class CoerceInputsRule extends RelOptRule {
   public CoerceInputsRule(
       Class<? extends RelNode> consumerRelClass,
       boolean coerceNames) {
+    this(consumerRelClass, coerceNames, RelFactories.LOGICAL_BUILDER);
+  }
+
+  /**
+   * Constructs the rule.
+   *
+   * @param consumerRelClass  the RelNode class which will consume the inputs
+   * @param coerceNames       if true, coerce names and types; if false, coerce
+   *                          type only
+   * @param relBuilderFactory Builder for relational expressions
+   */
+  public CoerceInputsRule(
+      Class<? extends RelNode> consumerRelClass,
+      boolean coerceNames,
+      RelBuilderFactory relBuilderFactory) {
     super(
         operand(consumerRelClass, any()),
+        relBuilderFactory,
         "CoerceInputsRule:" + consumerRelClass.getName());
     this.consumerRelClass = consumerRelClass;
     this.coerceNames = coerceNames;

@@ -21,12 +21,14 @@ import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalTableFunctionScan;
 import org.apache.calcite.rel.metadata.RelColumnMapping;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.tools.RelBuilderFactory;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -39,17 +41,18 @@ import java.util.Set;
  */
 public class FilterTableFunctionTransposeRule extends RelOptRule {
   public static final FilterTableFunctionTransposeRule INSTANCE =
-      new FilterTableFunctionTransposeRule();
+      new FilterTableFunctionTransposeRule(RelFactories.LOGICAL_BUILDER);
 
   //~ Constructors -----------------------------------------------------------
 
   /**
    * Creates a FilterTableFunctionTransposeRule.
    */
-  private FilterTableFunctionTransposeRule() {
+  public FilterTableFunctionTransposeRule(RelBuilderFactory relBuilderFactory) {
     super(
         operand(LogicalFilter.class,
-            operand(LogicalTableFunctionScan.class, any())));
+            operand(LogicalTableFunctionScan.class, any())),
+        relBuilderFactory, null);
   }
 
   //~ Methods ----------------------------------------------------------------

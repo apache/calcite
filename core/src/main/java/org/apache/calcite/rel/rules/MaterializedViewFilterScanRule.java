@@ -56,7 +56,7 @@ public class MaterializedViewFilterScanRule extends RelOptRule {
   //~ Constructors -----------------------------------------------------------
 
   /** Creates a MaterializedViewFilterScanRule. */
-  protected MaterializedViewFilterScanRule(RelBuilderFactory relBuilderFactory) {
+  public MaterializedViewFilterScanRule(RelBuilderFactory relBuilderFactory) {
     super(operand(Filter.class, operand(TableScan.class, null, none())),
         relBuilderFactory, "MaterializedViewFilterScanRule");
   }

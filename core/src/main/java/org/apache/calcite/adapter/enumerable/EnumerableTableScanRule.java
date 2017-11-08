@@ -21,8 +21,12 @@ import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterRule;
+import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.logical.LogicalTableScan;
 import org.apache.calcite.schema.Table;
+import org.apache.calcite.tools.RelBuilderFactory;
+
+import com.google.common.base.Predicates;
 
 /** Planner rule that converts a
  * {@link org.apache.calcite.rel.logical.LogicalTableFunctionScan}
@@ -30,8 +34,12 @@ import org.apache.calcite.schema.Table;
  * {@link EnumerableConvention enumerable calling convention}. */
 public class EnumerableTableScanRule extends ConverterRule {
   public EnumerableTableScanRule() {
-    super(LogicalTableScan.class, Convention.NONE,
-        EnumerableConvention.INSTANCE, "EnumerableTableScanRule");
+    this(RelFactories.LOGICAL_BUILDER);
+  }
+
+  public EnumerableTableScanRule(RelBuilderFactory relBuilderFactory) {
+    super(LogicalTableScan.class, Predicates.<RelNode>alwaysTrue(), Convention.NONE,
+      EnumerableConvention.INSTANCE, relBuilderFactory, "EnumerableTableScanRule");
   }
 
   @Override public RelNode convert(RelNode rel) {

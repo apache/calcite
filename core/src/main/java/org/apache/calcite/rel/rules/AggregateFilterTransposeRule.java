@@ -66,7 +66,7 @@ public class AggregateFilterTransposeRule extends RelOptRule {
         RelFactories.LOGICAL_BUILDER);
   }
 
-  protected AggregateFilterTransposeRule(RelOptRuleOperand operand,
+  public AggregateFilterTransposeRule(RelOptRuleOperand operand,
       RelBuilderFactory relBuilderFactory) {
     super(operand, relBuilderFactory, null);
   }

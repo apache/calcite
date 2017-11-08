@@ -20,6 +20,10 @@ import org.apache.calcite.adapter.enumerable.EnumerableConvention;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterRule;
+import org.apache.calcite.rel.core.RelFactories;
+import org.apache.calcite.tools.RelBuilderFactory;
+
+import com.google.common.base.Predicates;
 
 /**
  * Rule to convert a relational expression from
@@ -28,8 +32,12 @@ import org.apache.calcite.rel.convert.ConverterRule;
  */
 public class JdbcToEnumerableConverterRule extends ConverterRule {
   JdbcToEnumerableConverterRule(JdbcConvention out) {
-    super(RelNode.class, out, EnumerableConvention.INSTANCE,
-        "JdbcToEnumerableConverterRule:" + out);
+    this(out, RelFactories.LOGICAL_BUILDER);
+  }
+
+  public JdbcToEnumerableConverterRule(JdbcConvention out, RelBuilderFactory relBuilderFactory) {
+    super(RelNode.class, Predicates.<RelNode>alwaysTrue(), out, EnumerableConvention.INSTANCE,
+        relBuilderFactory, "JdbcToEnumerableConverterRule:" + out);
   }
 
   @Override public RelNode convert(RelNode rel) {

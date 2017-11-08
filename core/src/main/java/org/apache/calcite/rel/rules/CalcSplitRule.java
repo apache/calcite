@@ -42,7 +42,7 @@ public class CalcSplitRule extends RelOptRule {
   public static final CalcSplitRule INSTANCE =
       new CalcSplitRule(RelFactories.LOGICAL_BUILDER);
 
-  private CalcSplitRule(RelBuilderFactory relBuilderFactory) {
+  public CalcSplitRule(RelBuilderFactory relBuilderFactory) {
     super(operand(Calc.class, any()), relBuilderFactory, null);
   }
 

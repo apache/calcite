@@ -18,7 +18,9 @@ package org.apache.calcite.rel.rules;
 
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.SemiJoin;
+import org.apache.calcite.tools.RelBuilderFactory;
 
 /**
  * Planner rule that removes a {@link org.apache.calcite.rel.core.SemiJoin}s
@@ -33,13 +35,13 @@ import org.apache.calcite.rel.core.SemiJoin;
  */
 public class SemiJoinRemoveRule extends RelOptRule {
   public static final SemiJoinRemoveRule INSTANCE =
-      new SemiJoinRemoveRule();
+      new SemiJoinRemoveRule(RelFactories.LOGICAL_BUILDER);
 
   //~ Constructors -----------------------------------------------------------
 
   /** Creates a SemiJoinRemoveRule. */
-  private SemiJoinRemoveRule() {
-    super(operand(SemiJoin.class, any()));
+  public SemiJoinRemoveRule(RelBuilderFactory relBuilderFactory) {
+    super(operand(SemiJoin.class, any()), relBuilderFactory, null);
   }
 
   //~ Methods ----------------------------------------------------------------

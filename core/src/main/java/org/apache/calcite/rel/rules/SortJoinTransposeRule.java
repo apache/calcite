@@ -26,11 +26,13 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinInfo;
 import org.apache.calcite.rel.core.JoinRelType;
+import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.logical.LogicalJoin;
 import org.apache.calcite.rel.logical.LogicalSort;
 import org.apache.calcite.rel.metadata.RelMdUtil;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
+import org.apache.calcite.tools.RelBuilderFactory;
 
 
 /**
@@ -52,9 +54,17 @@ public class SortJoinTransposeRule extends RelOptRule {
   /** Creates a SortJoinTransposeRule. */
   public SortJoinTransposeRule(Class<? extends Sort> sortClass,
       Class<? extends Join> joinClass) {
+    this(sortClass, joinClass, RelFactories.LOGICAL_BUILDER);
+  }
+
+  /** Creates a SortJoinTransposeRule. */
+  public SortJoinTransposeRule(Class<? extends Sort> sortClass,
+                               Class<? extends Join> joinClass,
+                               RelBuilderFactory relBuilderFactory) {
     super(
         operand(sortClass,
-            operand(joinClass, any())));
+            operand(joinClass, any())),
+        relBuilderFactory, null);
   }
 
   //~ Methods ----------------------------------------------------------------

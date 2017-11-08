@@ -19,7 +19,11 @@ package org.apache.calcite.adapter.enumerable;
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterRule;
+import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.logical.LogicalValues;
+import org.apache.calcite.tools.RelBuilderFactory;
+
+import com.google.common.base.Predicates;
 
 /** Planner rule that converts a
  * {@link org.apache.calcite.rel.logical.LogicalValues}
@@ -27,8 +31,12 @@ import org.apache.calcite.rel.logical.LogicalValues;
  * {@link org.apache.calcite.adapter.enumerable.EnumerableConvention enumerable calling convention}. */
 public class EnumerableValuesRule extends ConverterRule {
   EnumerableValuesRule() {
-    super(LogicalValues.class, Convention.NONE, EnumerableConvention.INSTANCE,
-        "EnumerableValuesRule");
+    this(RelFactories.LOGICAL_BUILDER);
+  }
+
+  public EnumerableValuesRule(RelBuilderFactory relBuilderFactory) {
+    super(LogicalValues.class, Predicates.<RelNode>alwaysTrue(), Convention.NONE,
+        EnumerableConvention.INSTANCE, relBuilderFactory, "EnumerableValuesRule");
   }
 
   @Override public RelNode convert(RelNode rel) {

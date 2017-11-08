@@ -27,6 +27,7 @@ import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rex.RexCall;
@@ -35,6 +36,7 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
+import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.mapping.Mappings;
 
 import com.google.common.collect.ImmutableList;
@@ -67,9 +69,21 @@ public class SortProjectTransposeRule extends RelOptRule {
       Class<? extends Sort> sortClass,
       Class<? extends Project> projectClass,
       String description) {
-    super(
+    this(
         operand(sortClass,
             operand(projectClass, any())),
+        RelFactories.LOGICAL_BUILDER,
+        description);
+  }
+
+  /** Creates a SortProjectTransposeRule.*/
+  public SortProjectTransposeRule(
+      RelOptRuleOperand operand,
+      RelBuilderFactory relBuilderFactory,
+      String description) {
+    super(
+        operand,
+        relBuilderFactory,
         description);
   }
 

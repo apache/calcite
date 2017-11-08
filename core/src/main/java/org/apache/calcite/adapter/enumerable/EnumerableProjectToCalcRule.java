@@ -19,13 +19,19 @@ package org.apache.calcite.adapter.enumerable;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rex.RexProgram;
+import org.apache.calcite.tools.RelBuilderFactory;
 
 /** Variant of {@link org.apache.calcite.rel.rules.ProjectToCalcRule} for
  * {@link org.apache.calcite.adapter.enumerable.EnumerableConvention enumerable calling convention}. */
 public class EnumerableProjectToCalcRule extends RelOptRule {
   EnumerableProjectToCalcRule() {
-    super(operand(EnumerableProject.class, any()));
+    this(RelFactories.LOGICAL_BUILDER);
+  }
+
+  public EnumerableProjectToCalcRule(RelBuilderFactory relBuilderFactory) {
+    super(operand(EnumerableProject.class, any()), relBuilderFactory, null);
   }
 
   public void onMatch(RelOptRuleCall call) {

@@ -42,6 +42,7 @@ import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.core.Union;
@@ -66,10 +67,12 @@ import org.apache.calcite.schema.FilterableTable;
 import org.apache.calcite.schema.ProjectableFilterableTable;
 import org.apache.calcite.schema.ScannableTable;
 import org.apache.calcite.schema.Table;
+import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.ImmutableIntList;
 
 import com.google.common.base.Preconditions;
+import com.google.common.base.Predicates;
 import com.google.common.base.Supplier;
 import com.google.common.collect.ImmutableList;
 
@@ -83,31 +86,31 @@ public class Bindables {
   private Bindables() {}
 
   public static final RelOptRule BINDABLE_TABLE_SCAN_RULE =
-      new BindableTableScanRule();
+      new BindableTableScanRule(RelFactories.LOGICAL_BUILDER);
 
   public static final RelOptRule BINDABLE_FILTER_RULE =
-      new BindableFilterRule();
+      new BindableFilterRule(RelFactories.LOGICAL_BUILDER);
 
   public static final RelOptRule BINDABLE_PROJECT_RULE =
-      new BindableProjectRule();
+      new BindableProjectRule(RelFactories.LOGICAL_BUILDER);
 
   public static final RelOptRule BINDABLE_SORT_RULE =
-      new BindableSortRule();
+      new BindableSortRule(RelFactories.LOGICAL_BUILDER);
 
   public static final RelOptRule BINDABLE_JOIN_RULE =
-      new BindableJoinRule();
+      new BindableJoinRule(RelFactories.LOGICAL_BUILDER);
 
   public static final RelOptRule BINDABLE_UNION_RULE =
-      new BindableUnionRule();
+      new BindableUnionRule(RelFactories.LOGICAL_BUILDER);
 
   public static final RelOptRule BINDABLE_VALUES_RULE =
-      new BindableValuesRule();
+      new BindableValuesRule(RelFactories.LOGICAL_BUILDER);
 
   public static final RelOptRule BINDABLE_AGGREGATE_RULE =
-      new BindableAggregateRule();
+      new BindableAggregateRule(RelFactories.LOGICAL_BUILDER);
 
   public static final RelOptRule BINDABLE_WINDOW_RULE =
-      new BindableWindowRule();
+      new BindableWindowRule(RelFactories.LOGICAL_BUILDER);
 
   /** All rules that convert logical relational expression to bindable. */
   public static final ImmutableList<RelOptRule> RULES =
@@ -136,9 +139,9 @@ public class Bindables {
 
   /** Rule that converts a {@link org.apache.calcite.rel.core.TableScan}
    * to bindable convention. */
-  private static class BindableTableScanRule extends RelOptRule {
-    private BindableTableScanRule() {
-      super(operand(LogicalTableScan.class, none()));
+  public static class BindableTableScanRule extends RelOptRule {
+    public BindableTableScanRule(RelBuilderFactory relBuilderFactory) {
+      super(operand(LogicalTableScan.class, none()), relBuilderFactory, null);
     }
 
     @Override public void onMatch(RelOptRuleCall call) {
@@ -240,10 +243,10 @@ public class Bindables {
   }
 
   /** Rule that converts a {@link Filter} to bindable convention. */
-  private static class BindableFilterRule extends ConverterRule {
-    private BindableFilterRule() {
+  public static class BindableFilterRule extends ConverterRule {
+    public BindableFilterRule(RelBuilderFactory relBuilderFactory) {
       super(LogicalFilter.class, RelOptUtil.FILTER_PREDICATE, Convention.NONE,
-          BindableConvention.INSTANCE, "BindableFilterRule");
+          BindableConvention.INSTANCE, relBuilderFactory, "BindableFilterRule");
     }
 
     public RelNode convert(RelNode rel) {
@@ -303,10 +306,10 @@ public class Bindables {
    * Rule to convert a {@link org.apache.calcite.rel.logical.LogicalProject}
    * to a {@link BindableProject}.
    */
-  private static class BindableProjectRule extends ConverterRule {
-    private BindableProjectRule() {
+  public static class BindableProjectRule extends ConverterRule {
+    public BindableProjectRule(RelBuilderFactory relBuilderFactory) {
       super(LogicalProject.class, RelOptUtil.PROJECT_PREDICATE, Convention.NONE,
-          BindableConvention.INSTANCE, "BindableProjectRule");
+          BindableConvention.INSTANCE, relBuilderFactory, "BindableProjectRule");
     }
 
     public RelNode convert(RelNode rel) {
@@ -353,10 +356,10 @@ public class Bindables {
    * Rule to convert an {@link org.apache.calcite.rel.core.Sort} to a
    * {@link org.apache.calcite.interpreter.Bindables.BindableSort}.
    */
-  private static class BindableSortRule extends ConverterRule {
-    private BindableSortRule() {
-      super(Sort.class, Convention.NONE, BindableConvention.INSTANCE,
-          "BindableSortRule");
+  public static class BindableSortRule extends ConverterRule {
+    public BindableSortRule(RelBuilderFactory relBuilderFactory) {
+      super(Sort.class, Predicates.<RelNode>alwaysTrue(), Convention.NONE,
+            BindableConvention.INSTANCE, relBuilderFactory, "BindableSortRule");
     }
 
     public RelNode convert(RelNode rel) {
@@ -403,10 +406,10 @@ public class Bindables {
    * Rule to convert a {@link org.apache.calcite.rel.logical.LogicalJoin}
    * to a {@link BindableJoin}.
    */
-  private static class BindableJoinRule extends ConverterRule {
-    private BindableJoinRule() {
-      super(LogicalJoin.class, Convention.NONE, BindableConvention.INSTANCE,
-          "BindableJoinRule");
+  public static class BindableJoinRule extends ConverterRule {
+    public BindableJoinRule(RelBuilderFactory relBuilderFactory) {
+      super(LogicalJoin.class, Predicates.<RelNode>alwaysTrue(), Convention.NONE,
+        BindableConvention.INSTANCE, relBuilderFactory, "BindableJoinRule");
     }
 
     public RelNode convert(RelNode rel) {
@@ -466,10 +469,10 @@ public class Bindables {
    * Rule to convert an {@link org.apache.calcite.rel.logical.LogicalUnion}
    * to a {@link BindableUnion}.
    */
-  private static class BindableUnionRule extends ConverterRule {
-    private BindableUnionRule() {
-      super(LogicalUnion.class, Convention.NONE, BindableConvention.INSTANCE,
-          "BindableUnionRule");
+  public static class BindableUnionRule extends ConverterRule {
+    public BindableUnionRule(RelBuilderFactory relBuilderFactory) {
+      super(LogicalUnion.class, Predicates.<RelNode>alwaysTrue(), Convention.NONE,
+            BindableConvention.INSTANCE, relBuilderFactory, "BindableUnionRule");
     }
 
     public RelNode convert(RelNode rel) {
@@ -534,10 +537,10 @@ public class Bindables {
   }
 
   /** Rule that converts a {@link Values} to bindable convention. */
-  private static class BindableValuesRule extends ConverterRule {
-    private BindableValuesRule() {
-      super(LogicalValues.class, Convention.NONE, BindableConvention.INSTANCE,
-          "BindableValuesRule");
+  public static class BindableValuesRule extends ConverterRule {
+    public BindableValuesRule(RelBuilderFactory relBuilderFactory) {
+      super(LogicalValues.class, Predicates.<RelNode>alwaysTrue(), Convention.NONE,
+            BindableConvention.INSTANCE, relBuilderFactory, "BindableValuesRule");
     }
 
     @Override public RelNode convert(RelNode rel) {
@@ -605,10 +608,10 @@ public class Bindables {
   }
 
   /** Rule that converts an {@link Aggregate} to bindable convention. */
-  private static class BindableAggregateRule extends ConverterRule {
-    private BindableAggregateRule() {
-      super(LogicalAggregate.class, Convention.NONE,
-          BindableConvention.INSTANCE, "BindableAggregateRule");
+  public static class BindableAggregateRule extends ConverterRule {
+    public BindableAggregateRule(RelBuilderFactory relBuilderFactory) {
+      super(LogicalAggregate.class, Predicates.<RelNode>alwaysTrue(), Convention.NONE,
+          BindableConvention.INSTANCE, relBuilderFactory, "BindableAggregateRule");
     }
 
     public RelNode convert(RelNode rel) {
@@ -663,10 +666,10 @@ public class Bindables {
    * Rule to convert a {@link org.apache.calcite.rel.logical.LogicalWindow}
    * to a {@link BindableWindow}.
    */
-  private static class BindableWindowRule extends ConverterRule {
-    private BindableWindowRule() {
-      super(LogicalWindow.class, Convention.NONE, BindableConvention.INSTANCE,
-          "BindableWindowRule");
+  public static class BindableWindowRule extends ConverterRule {
+    public BindableWindowRule(RelBuilderFactory relBuilderFactory) {
+      super(LogicalWindow.class, Predicates.<RelNode>alwaysTrue(), Convention.NONE,
+            BindableConvention.INSTANCE, relBuilderFactory, "BindableWindowRule");
     }
 
     public RelNode convert(RelNode rel) {

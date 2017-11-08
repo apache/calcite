@@ -20,8 +20,10 @@ import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptRuleOperand;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.logical.LogicalJoin;
 import org.apache.calcite.rel.logical.LogicalProject;
+import org.apache.calcite.tools.RelBuilderFactory;
 
 /**
  * MultiJoinProjectTransposeRule implements the rule for pulling
@@ -87,7 +89,14 @@ public class MultiJoinProjectTransposeRule extends JoinProjectTransposeRule {
   public MultiJoinProjectTransposeRule(
       RelOptRuleOperand operand,
       String description) {
-    super(operand, description);
+    this(operand, RelFactories.LOGICAL_BUILDER, description);
+  }
+
+  public MultiJoinProjectTransposeRule(
+      RelOptRuleOperand operand,
+      RelBuilderFactory relBuilderFactory,
+      String description) {
+    super(operand, description, false, relBuilderFactory);
   }
 
   //~ Methods ----------------------------------------------------------------
