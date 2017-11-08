@@ -2574,10 +2574,16 @@ public class RexUtil {
   public static class ExprSimplifier extends RexShuttle {
     private final RexSimplify simplify;
     private final Map<RexNode, Boolean> unknownAsFalseMap;
+    private final boolean matchNullability;
 
     public ExprSimplifier(RexSimplify simplify) {
+      this(simplify, true);
+    }
+
+    public ExprSimplifier(RexSimplify simplify, boolean matchNullability) {
       this.simplify = simplify;
       this.unknownAsFalseMap = new HashMap<>();
+      this.matchNullability = matchNullability;
     }
 
     @Override public RexNode visitCall(RexCall call) {
@@ -2611,7 +2617,7 @@ public class RexUtil {
       if (simplifiedNode.getType().equals(call.getType())) {
         return simplifiedNode;
       }
-      return simplify.rexBuilder.makeCast(call.getType(), simplifiedNode, true);
+      return simplify.rexBuilder.makeCast(call.getType(), simplifiedNode, matchNullability);
     }
   }
 }

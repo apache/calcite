@@ -451,11 +451,27 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
    * @param expList List of expressions, modified in place
    * @param predicates Constraints known to hold on input expressions
    * @param unknownAsFalse Whether UNKNOWN will be treated as FALSE
-   *
    * @return whether reduction found something to change, and succeeded
    */
   protected static boolean reduceExpressions(RelNode rel, List<RexNode> expList,
       RelOptPredicateList predicates, boolean unknownAsFalse) {
+    return reduceExpressions(rel, expList, predicates, unknownAsFalse, true);
+  }
+  /**
+   * Reduces a list of expressions.
+   *
+   * @param rel     Relational expression
+   * @param expList List of expressions, modified in place
+   * @param predicates Constraints known to hold on input expressions
+   * @param unknownAsFalse Whether UNKNOWN will be treated as FALSE
+   * @param matchNullability Whether we should add a CAST to the expressions
+   * resulting from simplification in case the CAST only serves to match
+   * the nullability of the simplified expression with the nullability
+   * of the original expression
+   * @return whether reduction found something to change, and succeeded
+   */
+  protected static boolean reduceExpressions(RelNode rel, List<RexNode> expList,
+      RelOptPredicateList predicates, boolean unknownAsFalse, boolean matchNullability) {
     final RelOptCluster cluster = rel.getCluster();
     final RexBuilder rexBuilder = cluster.getRexBuilder();
     final RexExecutor executor =
@@ -467,7 +483,7 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
     boolean reduced = reduceExpressionsInternal(rel, simplify, expList,
         predicates);
 
-    final ExprSimplifier simplifier = new ExprSimplifier(simplify);
+    final ExprSimplifier simplifier = new ExprSimplifier(simplify, matchNullability);
     boolean simplified = false;
     for (int i = 0; i < expList.size(); i++) {
       RexNode expr2 = simplifier.apply(expList.get(i));
