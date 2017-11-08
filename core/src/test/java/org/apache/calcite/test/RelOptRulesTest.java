@@ -35,6 +35,7 @@ import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Minus;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.Union;
+import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.logical.LogicalTableModify;
 import org.apache.calcite.rel.metadata.CachingRelMetadataProvider;
 import org.apache.calcite.rel.metadata.ChainedRelMetadataProvider;
@@ -1876,7 +1877,10 @@ public class RelOptRulesTest extends RelOptTestBase {
             + " where a - b < 21");
   }
 
-  @Ignore @Test public void testReduceCase() throws Exception {
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1439">[CALCITE-1439]
+   * Handling errors during constant reduction</a>. */
+  @Test public void testReduceCase() throws Exception {
     HepProgram program = new HepProgramBuilder()
         .addRuleInstance(ReduceExpressionsRule.PROJECT_INSTANCE)
         .build();
@@ -1888,6 +1892,34 @@ public class RelOptRulesTest extends RelOptTestBase {
     sql(sql).with(program)
         .withProperty(Hook.REL_BUILDER_SIMPLIFY, false)
         .check();
+  }
+
+  private void checkReduceNullableToNotNull(ReduceExpressionsRule rule) {
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(rule)
+        .build();
+
+    final String sql = "select\n"
+        + "  empno + case when 'a' = 'a' then 1 else null end as newcol\n"
+        + "from emp";
+    sql(sql).with(program)
+        .withProperty(Hook.REL_BUILDER_SIMPLIFY, false)
+        .check();
+  }
+
+  /** Test case that reduces a nullable expression to a NOT NULL literal that
+   *  is cast to nullable. */
+  @Test public void testReduceNullableToNotNull() throws Exception {
+    checkReduceNullableToNotNull(ReduceExpressionsRule.PROJECT_INSTANCE);
+  }
+
+  /** Test case that reduces a nullable expression to a NOT NULL literal. */
+  @Test public void testReduceNullableToNotNull2() throws Exception {
+    final ReduceExpressionsRule.ProjectReduceExpressionsRule rule =
+        new ReduceExpressionsRule.ProjectReduceExpressionsRule(
+            LogicalProject.class, false,
+            RelFactories.LOGICAL_BUILDER);
+    checkReduceNullableToNotNull(rule);
   }
 
   @Test public void testReduceConstantsIsNull() throws Exception {

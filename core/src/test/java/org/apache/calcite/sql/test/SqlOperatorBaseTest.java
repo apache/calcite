@@ -1139,11 +1139,13 @@ public abstract class SqlOperatorBaseTest {
     tester.checkNull("cast(null as boolean)");
   }
 
-  @Ignore("[CALCITE-1439] Handling errors during constant reduction")
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1439">[CALCITE-1439]
+   * Handling errors during constant reduction</a>. */
   @Test public void testCastInvalid() {
-    // Constant reduction kicks in and generates Java constants that throw
-    // when the class is loaded, thus ExceptionInInitializerError. We don't have
-    // a fix yet.
+    // Before CALCITE-1439 was fixed, constant reduction would kick in and
+    // generate Java constants that throw when the class is loaded, thus
+    // ExceptionInInitializerError.
     tester.checkScalarExact("cast('15' as integer)", "INTEGER NOT NULL", "15");
     tester.checkFails("cast('15.4' as integer)", "xxx", true);
     tester.checkFails("cast('15.6' as integer)", "xxx", true);
