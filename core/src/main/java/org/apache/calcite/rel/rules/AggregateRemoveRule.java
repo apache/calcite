@@ -20,10 +20,12 @@ import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
+import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.runtime.SqlFunctions;
 import org.apache.calcite.tools.RelBuilder;
+import org.apache.calcite.tools.RelBuilderFactory;
 
 /**
  * Planner rule that removes
@@ -48,9 +50,18 @@ public class AggregateRemoveRule extends RelOptRule {
     // about whether the child is distinct.  If we clean up the inference of
     // distinct to make it correct up-front, we can get rid of the reference
     // to the child here.
+    this(aggregateClass, RelFactories.LOGICAL_BUILDER);
+  }
+
+  /**
+   * Creates a AggregateRemoveRule.
+   */
+  public AggregateRemoveRule(Class<? extends Aggregate> aggregateClass,
+                             RelBuilderFactory relBuilderFactory) {
     super(
         operand(aggregateClass,
-            operand(RelNode.class, any())));
+            operand(RelNode.class, any())),
+        relBuilderFactory, null);
   }
 
   //~ Methods ----------------------------------------------------------------

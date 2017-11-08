@@ -22,6 +22,7 @@ import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
+import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.logical.LogicalJoin;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexBuilder;
@@ -29,6 +30,7 @@ import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.rex.RexVisitorImpl;
+import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.Pair;
@@ -102,7 +104,7 @@ import java.util.Map;
  */
 public class JoinToMultiJoinRule extends RelOptRule {
   public static final JoinToMultiJoinRule INSTANCE =
-      new JoinToMultiJoinRule(LogicalJoin.class);
+      new JoinToMultiJoinRule(LogicalJoin.class, RelFactories.LOGICAL_BUILDER);
 
   //~ Constructors -----------------------------------------------------------
 
@@ -110,10 +112,19 @@ public class JoinToMultiJoinRule extends RelOptRule {
    * Creates a JoinToMultiJoinRule.
    */
   public JoinToMultiJoinRule(Class<? extends Join> clazz) {
+    this(clazz, RelFactories.LOGICAL_BUILDER);
+  }
+
+  /**
+   * Creates a JoinToMultiJoinRule.
+   */
+  public JoinToMultiJoinRule(Class<? extends Join> clazz,
+                             RelBuilderFactory relBuilderFactory) {
     super(
         operand(clazz,
             operand(RelNode.class, any()),
-            operand(RelNode.class, any())));
+            operand(RelNode.class, any())),
+        relBuilderFactory, null);
   }
 
   //~ Methods ----------------------------------------------------------------
