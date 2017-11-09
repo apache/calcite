@@ -220,7 +220,18 @@ public class Bindables {
 
     @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
         RelMetadataQuery mq) {
-      return super.computeSelfCost(planner, mq).multiplyBy(0.01d);
+      // Cost factor for pushing filters
+      double f = filters.isEmpty() ? 1d : 0.5d;
+
+      // Cost factor for pushing fields
+      // The "+ 2d" on top and bottom keeps the function fairly smooth.
+      double p = ((double) projects.size() + 2d)
+          / ((double) table.getRowType().getFieldCount() + 2d);
+
+      // Multiply the cost by a factor that makes a scan more attractive if
+      // filters and projects are pushed to the table scan
+      return super.computeSelfCost(planner, mq)
+          .multiplyBy(f * p * 0.01d);
     }
 
     public static boolean canHandle(RelOptTable table) {
