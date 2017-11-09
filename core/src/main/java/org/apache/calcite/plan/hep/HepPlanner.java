@@ -33,6 +33,7 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.Converter;
 import org.apache.calcite.rel.convert.ConverterRule;
 import org.apache.calcite.rel.convert.TraitMatchingRule;
+import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.metadata.RelMetadataProvider;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.util.Pair;
@@ -307,7 +308,8 @@ public class HepPlanner extends AbstractRelOptPlanner {
         instruction.ruleSet.add(converter);
         if (!instruction.guaranteed) {
           // Add a TraitMatchingRule to work bottom-up
-          instruction.ruleSet.add(new TraitMatchingRule(converter));
+          instruction.ruleSet.add(
+              new TraitMatchingRule(converter, RelFactories.LOGICAL_BUILDER));
         }
       }
     }

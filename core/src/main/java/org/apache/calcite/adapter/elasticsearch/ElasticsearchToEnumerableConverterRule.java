@@ -33,10 +33,15 @@ public class ElasticsearchToEnumerableConverterRule extends ConverterRule {
   public static final ConverterRule INSTANCE =
       new ElasticsearchToEnumerableConverterRule(RelFactories.LOGICAL_BUILDER);
 
+  /**
+   * Creates an ElasticsearchToEnumerableConverterRule.
+   *
+   * @param relBuilderFactory Builder for relational expressions
+   */
   public ElasticsearchToEnumerableConverterRule(RelBuilderFactory relBuilderFactory) {
     super(RelNode.class, Predicates.<RelNode>alwaysTrue(),
-          ElasticsearchRel.CONVENTION, EnumerableConvention.INSTANCE,
-          relBuilderFactory, "ElasticsearchToEnumerableConverterRule");
+        ElasticsearchRel.CONVENTION, EnumerableConvention.INSTANCE,
+        relBuilderFactory, "ElasticsearchToEnumerableConverterRule");
   }
 
   @Override public RelNode convert(RelNode relNode) {

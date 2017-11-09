@@ -42,6 +42,7 @@ import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Minus;
 import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.TableModify;
 import org.apache.calcite.rel.core.Union;
@@ -94,7 +95,7 @@ public class JdbcRules {
 
   public static List<RelOptRule> rules(JdbcConvention out) {
     return ImmutableList.<RelOptRule>of(
-        new JdbcToEnumerableConverterRule(out),
+        new JdbcToEnumerableConverterRule(out, RelFactories.LOGICAL_BUILDER),
         new JdbcJoinRule(out),
         new JdbcCalcRule(out),
         new JdbcProjectRule(out),

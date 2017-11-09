@@ -33,13 +33,20 @@ import com.google.common.base.Predicates;
  * relational expression
  * {@link EnumerableConvention enumerable calling convention}. */
 public class EnumerableTableScanRule extends ConverterRule {
+
+  @Deprecated // to be removed before 2.0
   public EnumerableTableScanRule() {
     this(RelFactories.LOGICAL_BUILDER);
   }
 
+  /**
+   * Creates an EnumerableTableScanRule.
+   *
+   * @param relBuilderFactory Builder for relational expressions
+   */
   public EnumerableTableScanRule(RelBuilderFactory relBuilderFactory) {
     super(LogicalTableScan.class, Predicates.<RelNode>alwaysTrue(), Convention.NONE,
-      EnumerableConvention.INSTANCE, relBuilderFactory, "EnumerableTableScanRule");
+        EnumerableConvention.INSTANCE, relBuilderFactory, "EnumerableTableScanRule");
   }
 
   @Override public RelNode convert(RelNode rel) {

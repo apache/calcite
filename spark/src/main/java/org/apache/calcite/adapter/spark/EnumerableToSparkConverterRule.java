@@ -34,9 +34,13 @@ public class EnumerableToSparkConverterRule extends ConverterRule {
   public static final EnumerableToSparkConverterRule INSTANCE =
       new EnumerableToSparkConverterRule(RelFactories.LOGICAL_BUILDER);
 
+  /**
+   * Creates an EnumerableToSparkConverterRule.
+   *
+   * @param relBuilderFactory Builder for relational expressions
+   */
   public EnumerableToSparkConverterRule(RelBuilderFactory relBuilderFactory) {
-    super(
-        RelNode.class, Predicates.<RelNode>alwaysTrue(), EnumerableConvention.INSTANCE,
+    super(RelNode.class, Predicates.<RelNode>alwaysTrue(), EnumerableConvention.INSTANCE,
         SparkRel.CONVENTION, relBuilderFactory, "EnumerableToSparkConverterRule");
   }
 

@@ -30,10 +30,17 @@ import com.google.common.base.Predicates;
  * Implementation of nested loops over enumerable inputs.
  */
 public class EnumerableCorrelateRule extends ConverterRule {
+
+  @Deprecated // to be removed before 2.0
   EnumerableCorrelateRule() {
     this(RelFactories.LOGICAL_BUILDER);
   }
 
+  /**
+   * Creates an EnumerableCorrelateRule.
+   *
+   * @param relBuilderFactory Builder for relational expressions
+   */
   public EnumerableCorrelateRule(RelBuilderFactory relBuilderFactory) {
     super(LogicalCorrelate.class, Predicates.<RelNode>alwaysTrue(), Convention.NONE,
         EnumerableConvention.INSTANCE, relBuilderFactory, "EnumerableCorrelateRule");

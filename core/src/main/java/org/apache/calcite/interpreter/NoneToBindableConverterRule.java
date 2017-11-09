@@ -34,6 +34,11 @@ public class NoneToBindableConverterRule extends ConverterRule {
   public static final ConverterRule INSTANCE =
       new NoneToBindableConverterRule(RelFactories.LOGICAL_BUILDER);
 
+  /**
+   * Creates a NoneToBindableConverterRule.
+   *
+   * @param relBuilderFactory Builder for relational expressions
+   */
   public NoneToBindableConverterRule(RelBuilderFactory relBuilderFactory) {
     super(RelNode.class, Predicates.<RelNode>alwaysTrue(), Convention.NONE,
         BindableConvention.INSTANCE, relBuilderFactory, "NoneToBindableConverterRule");

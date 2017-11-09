@@ -50,6 +50,11 @@ public class ProjectCalcMergeRule extends RelOptRule {
 
   //~ Constructors -----------------------------------------------------------
 
+  /**
+   * Creates a ProjectCalcMergeRule.
+   *
+   * @param relBuilderFactory Builder for relational expressions
+   */
   public ProjectCalcMergeRule(RelBuilderFactory relBuilderFactory) {
     super(
         operand(

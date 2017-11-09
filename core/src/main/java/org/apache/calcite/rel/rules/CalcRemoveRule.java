@@ -42,6 +42,11 @@ public class CalcRemoveRule extends RelOptRule {
 
   //~ Constructors -----------------------------------------------------------
 
+  /**
+   * Creates a CalcRemoveRule.
+   *
+   * @param relBuilderFactory Builder for relational expressions
+   */
   public CalcRemoveRule(RelBuilderFactory relBuilderFactory) {
     super(operand(LogicalCalc.class, any()), relBuilderFactory, null);
   }

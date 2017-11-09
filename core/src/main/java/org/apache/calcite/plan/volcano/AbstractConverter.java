@@ -106,6 +106,8 @@ public class AbstractConverter extends ConverterImpl {
 
     /**
      * Creates an ExpandConversionRule.
+     *
+     * @param relBuilderFactory Builder for relational expressions
      */
     public ExpandConversionRule(RelBuilderFactory relBuilderFactory) {
       super(operand(AbstractConverter.class, any()), relBuilderFactory, null);

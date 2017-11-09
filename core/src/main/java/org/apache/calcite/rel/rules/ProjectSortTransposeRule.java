@@ -49,12 +49,14 @@ public class ProjectSortTransposeRule extends RelOptRule {
             operand(Sort.class, any())));
   }
 
+  @Deprecated // to be removed before 2.0
   protected ProjectSortTransposeRule(RelOptRuleOperand operand) {
     this(operand, RelFactories.LOGICAL_BUILDER);
   }
 
+  /** Creates a ProjectSortTransposeRule. */
   public ProjectSortTransposeRule(RelOptRuleOperand operand,
-                                  RelBuilderFactory relBuilderFactory) {
+      RelBuilderFactory relBuilderFactory) {
     super(operand, relBuilderFactory, null);
   }
 

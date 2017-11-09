@@ -91,6 +91,11 @@ public class EnumerableBindable extends ConverterImpl implements BindableRel {
     public static final EnumerableToBindableConverterRule INSTANCE =
         new EnumerableToBindableConverterRule(RelFactories.LOGICAL_BUILDER);
 
+    /**
+     * Creates an EnumerableToBindableConverterRule.
+     *
+     * @param relBuilderFactory Builder for relational expressions
+     */
     public EnumerableToBindableConverterRule(RelBuilderFactory relBuilderFactory) {
       super(EnumerableRel.class, Predicates.<RelNode>alwaysTrue(), EnumerableConvention.INSTANCE,
           BindableConvention.INSTANCE, relBuilderFactory, "EnumerableToBindableConverterRule");

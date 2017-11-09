@@ -26,10 +26,17 @@ import org.apache.calcite.tools.RelBuilderFactory;
 /** Variant of {@link org.apache.calcite.rel.rules.ProjectToCalcRule} for
  * {@link org.apache.calcite.adapter.enumerable.EnumerableConvention enumerable calling convention}. */
 public class EnumerableProjectToCalcRule extends RelOptRule {
+
+  @Deprecated // to be removed before 2.0
   EnumerableProjectToCalcRule() {
     this(RelFactories.LOGICAL_BUILDER);
   }
 
+  /**
+   * Creates an EnumerableProjectToCalcRule.
+   *
+   * @param relBuilderFactory Builder for relational expressions
+   */
   public EnumerableProjectToCalcRule(RelBuilderFactory relBuilderFactory) {
     super(operand(EnumerableProject.class, any()), relBuilderFactory, null);
   }

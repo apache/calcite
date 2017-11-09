@@ -57,6 +57,11 @@ public class AggregateValuesRule extends RelOptRule {
   public static final AggregateValuesRule INSTANCE =
       new AggregateValuesRule(RelFactories.LOGICAL_BUILDER);
 
+  /**
+   * Creates an AggregateValuesRule.
+   *
+   * @param relBuilderFactory Builder for relational expressions
+   */
   public AggregateValuesRule(RelBuilderFactory relBuilderFactory) {
     super(
         operand(Aggregate.class, null, Predicates.not(Aggregate.IS_NOT_GRAND_TOTAL),

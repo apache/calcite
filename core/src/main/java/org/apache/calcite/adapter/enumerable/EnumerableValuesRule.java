@@ -30,10 +30,17 @@ import com.google.common.base.Predicates;
  * relational expression
  * {@link org.apache.calcite.adapter.enumerable.EnumerableConvention enumerable calling convention}. */
 public class EnumerableValuesRule extends ConverterRule {
+
+  @Deprecated // to be removed before 2.0
   EnumerableValuesRule() {
     this(RelFactories.LOGICAL_BUILDER);
   }
 
+  /**
+   * Creates an EnumerableValuesRule.
+   *
+   * @param relBuilderFactory Builder for relational expressions
+   */
   public EnumerableValuesRule(RelBuilderFactory relBuilderFactory) {
     super(LogicalValues.class, Predicates.<RelNode>alwaysTrue(), Convention.NONE,
         EnumerableConvention.INSTANCE, relBuilderFactory, "EnumerableValuesRule");

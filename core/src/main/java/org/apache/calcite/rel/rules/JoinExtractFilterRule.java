@@ -44,22 +44,23 @@ public final class JoinExtractFilterRule extends RelOptRule {
 
   /** The singleton. */
   public static final JoinExtractFilterRule INSTANCE =
-      new JoinExtractFilterRule(LogicalJoin.class);
+      new JoinExtractFilterRule(LogicalJoin.class, RelFactories.LOGICAL_BUILDER);
 
   //~ Constructors -----------------------------------------------------------
 
   /**
    * Creates an JoinExtractFilterRule.
    */
+  @Deprecated // to be removed before 2.0
   public JoinExtractFilterRule(Class<? extends Join> clazz) {
     this(clazz, RelFactories.LOGICAL_BUILDER);
   }
 
   /**
-   * Creates an JoinExtractFilterRule.
+   * Creates a JoinExtractFilterRule.
    */
   public JoinExtractFilterRule(Class<? extends Join> clazz,
-                               RelBuilderFactory relBuilderFactory) {
+      RelBuilderFactory relBuilderFactory) {
     super(operand(clazz, any()), relBuilderFactory, null);
   }
 

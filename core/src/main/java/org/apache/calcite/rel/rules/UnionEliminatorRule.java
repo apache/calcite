@@ -38,7 +38,7 @@ public class UnionEliminatorRule extends RelOptRule {
    * Creates a UnionEliminatorRule.
    */
   public UnionEliminatorRule(Class<? extends Union> clazz,
-                             RelBuilderFactory relBuilderFactory) {
+      RelBuilderFactory relBuilderFactory) {
     super(operand(clazz, any()), relBuilderFactory, null);
   }
 

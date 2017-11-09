@@ -111,6 +111,7 @@ public class JoinToMultiJoinRule extends RelOptRule {
   /**
    * Creates a JoinToMultiJoinRule.
    */
+  @Deprecated // to be removed before 2.0
   public JoinToMultiJoinRule(Class<? extends Join> clazz) {
     this(clazz, RelFactories.LOGICAL_BUILDER);
   }
@@ -119,7 +120,7 @@ public class JoinToMultiJoinRule extends RelOptRule {
    * Creates a JoinToMultiJoinRule.
    */
   public JoinToMultiJoinRule(Class<? extends Join> clazz,
-                             RelBuilderFactory relBuilderFactory) {
+      RelBuilderFactory relBuilderFactory) {
     super(
         operand(clazz,
             operand(RelNode.class, any()),

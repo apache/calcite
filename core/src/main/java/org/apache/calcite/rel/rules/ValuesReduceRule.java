@@ -132,8 +132,7 @@ public abstract class ValuesReduceRule extends RelOptRule {
    * @param desc              Description, or null to guess description
    */
   public ValuesReduceRule(RelOptRuleOperand operand,
-                           RelBuilderFactory relBuilderFactory,
-                           String desc) {
+      RelBuilderFactory relBuilderFactory, String desc) {
     super(operand, relBuilderFactory, desc);
     Util.discard(LOGGER);
   }

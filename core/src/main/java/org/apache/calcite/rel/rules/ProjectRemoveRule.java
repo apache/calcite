@@ -56,7 +56,11 @@ public class ProjectRemoveRule extends RelOptRule {
 
   //~ Constructors -----------------------------------------------------------
 
-  /** Creates a ProjectRemoveRule. */
+  /**
+   * Creates a ProjectRemoveRule.
+   *
+   * @param relBuilderFactory Builder for relational expressions
+   */
   public ProjectRemoveRule(RelBuilderFactory relBuilderFactory) {
     // Create a specialized operand to detect non-matches early. This keeps
     // the rule queue short.

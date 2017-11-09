@@ -90,10 +90,9 @@ public abstract class ProjectTableScanRule extends RelOptRule {
 
   //~ Constructors -----------------------------------------------------------
 
-  /** Creates a ProjectScanRule. */
+  /** Creates a ProjectTableScanRule. */
   public ProjectTableScanRule(RelOptRuleOperand operand,
-                              RelBuilderFactory relBuilderFactory,
-                              String description) {
+      RelBuilderFactory relBuilderFactory, String description) {
     super(operand, relBuilderFactory, description);
   }
 

@@ -31,10 +31,13 @@ import com.google.common.base.Predicates;
  * {@link EnumerableConvention}.
  */
 public class JdbcToEnumerableConverterRule extends ConverterRule {
+
+  @Deprecated // to be removed before 2.0
   JdbcToEnumerableConverterRule(JdbcConvention out) {
     this(out, RelFactories.LOGICAL_BUILDER);
   }
 
+  /** Creates a JdbcToEnumerableConverterRule. */
   public JdbcToEnumerableConverterRule(JdbcConvention out, RelBuilderFactory relBuilderFactory) {
     super(RelNode.class, Predicates.<RelNode>alwaysTrue(), out, EnumerableConvention.INSTANCE,
         relBuilderFactory, "JdbcToEnumerableConverterRule:" + out);

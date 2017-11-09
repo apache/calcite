@@ -50,10 +50,15 @@ public class ProjectWindowTransposeRule extends RelOptRule {
   public static final ProjectWindowTransposeRule INSTANCE =
       new ProjectWindowTransposeRule(RelFactories.LOGICAL_BUILDER);
 
+  /**
+   * Creates ProjectWindowTransposeRule.
+   *
+   * @param relBuilderFactory Builder for relational expressions
+   */
   public ProjectWindowTransposeRule(RelBuilderFactory relBuilderFactory) {
     super(
         operand(LogicalProject.class,
-          operand(LogicalWindow.class, any())),
+            operand(LogicalWindow.class, any())),
         relBuilderFactory, null);
   }
 

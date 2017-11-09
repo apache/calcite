@@ -37,6 +37,11 @@ public class TableScanRule extends RelOptRule {
 
   //~ Constructors -----------------------------------------------------------
 
+  /**
+   * Creates a TableScanRule.
+   *
+   * @param relBuilderFactory Builder for relational expressions
+   */
   public TableScanRule(RelBuilderFactory relBuilderFactory) {
     super(operand(LogicalTableScan.class, any()), relBuilderFactory, null);
   }

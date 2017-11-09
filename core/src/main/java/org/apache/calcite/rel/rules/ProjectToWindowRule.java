@@ -100,10 +100,15 @@ public abstract class ProjectToWindowRule extends RelOptRule {
 
   //~ Constructors -----------------------------------------------------------
 
-  /** Creates a ProjectToWindowRule. */
+  /**
+   * Creates a ProjectToWindowRule.
+   *
+   * @param operand           Root operand, must not be null
+   * @param description       Description, or null to guess description
+   * @param relBuilderFactory Builder for relational expressions
+   */
   public ProjectToWindowRule(RelOptRuleOperand operand,
-                              RelBuilderFactory relBuilderFactory,
-                              String description) {
+      RelBuilderFactory relBuilderFactory, String description) {
     super(operand, relBuilderFactory, description);
   }
 

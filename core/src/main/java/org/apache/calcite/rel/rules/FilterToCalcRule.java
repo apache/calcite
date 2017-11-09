@@ -50,6 +50,11 @@ public class FilterToCalcRule extends RelOptRule {
 
   //~ Constructors -----------------------------------------------------------
 
+  /**
+   * Creates a FilterToCalcRule.
+   *
+   * @param relBuilderFactory Builder for relational expressions
+   */
   public FilterToCalcRule(RelBuilderFactory relBuilderFactory) {
     super(operand(LogicalFilter.class, any()), relBuilderFactory, null);
   }

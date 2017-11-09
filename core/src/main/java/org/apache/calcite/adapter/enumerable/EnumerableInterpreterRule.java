@@ -33,6 +33,11 @@ public class EnumerableInterpreterRule extends ConverterRule {
   public static final EnumerableInterpreterRule INSTANCE =
       new EnumerableInterpreterRule(RelFactories.LOGICAL_BUILDER);
 
+  /**
+   * Creates an EnumerableInterpreterRule.
+   *
+   * @param relBuilderFactory Builder for relational expressions
+   */
   public EnumerableInterpreterRule(RelBuilderFactory relBuilderFactory) {
     super(RelNode.class, Predicates.<RelNode>alwaysTrue(), BindableConvention.INSTANCE,
         EnumerableConvention.INSTANCE, relBuilderFactory, "EnumerableInterpreterRule");

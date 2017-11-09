@@ -51,7 +51,8 @@ public abstract class ConverterRule extends RelOptRule {
    */
   public ConverterRule(Class<? extends RelNode> clazz, RelTrait in,
       RelTrait out, String description) {
-    this(clazz, Predicates.<RelNode>alwaysTrue(), in, out, description);
+    this(clazz, Predicates.<RelNode>alwaysTrue(), in, out,
+        RelFactories.LOGICAL_BUILDER, description);
   }
 
   /**
@@ -63,6 +64,7 @@ public abstract class ConverterRule extends RelOptRule {
    * @param out         Trait which is converted to
    * @param description Description of rule
    */
+  @Deprecated // to be removed before 2.0
   public <R extends RelNode> ConverterRule(Class<R> clazz,
       Predicate<? super R> predicate, RelTrait in, RelTrait out,
       String description) {

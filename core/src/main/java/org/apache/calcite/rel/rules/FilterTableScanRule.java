@@ -68,6 +68,7 @@ public abstract class FilterTableScanRule extends RelOptRule {
       new FilterTableScanRule(
           operand(Filter.class,
               operand(TableScan.class, null, PREDICATE, none())),
+          RelFactories.LOGICAL_BUILDER,
           "FilterTableRule") {
         public void onMatch(RelOptRuleCall call) {
           final Filter filter = call.rel(0);
@@ -82,6 +83,7 @@ public abstract class FilterTableScanRule extends RelOptRule {
           operand(Filter.class,
               operand(EnumerableInterpreter.class,
                   operand(TableScan.class, null, PREDICATE, none()))),
+          RelFactories.LOGICAL_BUILDER,
           "FilterTableRule:interpreter") {
         public void onMatch(RelOptRuleCall call) {
           final Filter filter = call.rel(0);
@@ -93,13 +95,14 @@ public abstract class FilterTableScanRule extends RelOptRule {
   //~ Constructors -----------------------------------------------------------
 
   /** Creates a FilterTableRule. */
+  @Deprecated // to be removed before 2.0
   protected FilterTableScanRule(RelOptRuleOperand operand, String description) {
     this(operand, RelFactories.LOGICAL_BUILDER, description);
   }
 
   /** Creates a FilterTableRule. */
-  public FilterTableScanRule(RelOptRuleOperand operand, RelBuilderFactory relBuilderFactory,
-                             String description) {
+  public FilterTableScanRule(RelOptRuleOperand operand,
+      RelBuilderFactory relBuilderFactory, String description) {
     super(operand, relBuilderFactory, description);
   }
 

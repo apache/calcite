@@ -43,11 +43,17 @@ public class CalcMergeRule extends RelOptRule {
 
   //~ Constructors -----------------------------------------------------------
 
+  /**
+   * Creates a CalcMergeRule.
+   *
+   * @param relBuilderFactory Builder for relational expressions
+   */
   public CalcMergeRule(RelBuilderFactory relBuilderFactory) {
     super(
         operand(
             Calc.class,
-            operand(Calc.class, any())), relBuilderFactory, null);
+            operand(Calc.class, any())),
+        relBuilderFactory, null);
   }
 
   //~ Methods ----------------------------------------------------------------

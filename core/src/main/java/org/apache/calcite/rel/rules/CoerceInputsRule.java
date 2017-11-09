@@ -49,6 +49,7 @@ public class CoerceInputsRule extends RelOptRule {
    * @param coerceNames      if true, coerce names and types; if false, coerce
    *                         type only
    */
+  @Deprecated // to be removed before 2.0
   public CoerceInputsRule(
       Class<? extends RelNode> consumerRelClass,
       boolean coerceNames) {

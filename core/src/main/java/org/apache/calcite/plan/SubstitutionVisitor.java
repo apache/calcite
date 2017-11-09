@@ -1547,6 +1547,11 @@ public class SubstitutionVisitor {
     public static final FilterOnProjectRule INSTANCE =
         new FilterOnProjectRule(RelFactories.LOGICAL_BUILDER);
 
+    /**
+     * Creates a FilterOnProjectRule.
+     *
+     * @param relBuilderFactory Builder for relational expressions
+     */
     public FilterOnProjectRule(RelBuilderFactory relBuilderFactory) {
       super(
           operand(LogicalFilter.class, null, PREDICATE,

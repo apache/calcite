@@ -44,6 +44,11 @@ public class FilterCalcMergeRule extends RelOptRule {
 
   //~ Constructors -----------------------------------------------------------
 
+  /**
+   * Creates a FilterCalcMergeRule.
+   *
+   * @param relBuilderFactory Builder for relational expressions
+   */
   public FilterCalcMergeRule(RelBuilderFactory relBuilderFactory) {
     super(
         operand(

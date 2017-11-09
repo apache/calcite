@@ -36,28 +36,29 @@ import org.apache.calcite.tools.RelBuilderFactory;
  */
 public class AggregateRemoveRule extends RelOptRule {
   public static final AggregateRemoveRule INSTANCE =
-      new AggregateRemoveRule(LogicalAggregate.class);
+      new AggregateRemoveRule(LogicalAggregate.class, RelFactories.LOGICAL_BUILDER);
 
   //~ Constructors -----------------------------------------------------------
 
   /**
    * Creates a AggregateRemoveRule.
    */
+  @Deprecated // to be removed before 2.0
   public AggregateRemoveRule(Class<? extends Aggregate> aggregateClass) {
+    this(aggregateClass, RelFactories.LOGICAL_BUILDER);
+  }
+
+  /**
+   * Creates an AggregateRemoveRule.
+   */
+  public AggregateRemoveRule(Class<? extends Aggregate> aggregateClass,
+      RelBuilderFactory relBuilderFactory) {
     // REVIEW jvs 14-Mar-2006: We have to explicitly mention the child here
     // to make sure the rule re-fires after the child changes (e.g. via
     // ProjectRemoveRule), since that may change our information
     // about whether the child is distinct.  If we clean up the inference of
     // distinct to make it correct up-front, we can get rid of the reference
     // to the child here.
-    this(aggregateClass, RelFactories.LOGICAL_BUILDER);
-  }
-
-  /**
-   * Creates a AggregateRemoveRule.
-   */
-  public AggregateRemoveRule(Class<? extends Aggregate> aggregateClass,
-                             RelBuilderFactory relBuilderFactory) {
     super(
         operand(aggregateClass,
             operand(RelNode.class, any())),

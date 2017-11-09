@@ -35,6 +35,11 @@ public class SortRemoveRule extends RelOptRule {
   public static final SortRemoveRule INSTANCE =
       new SortRemoveRule(RelFactories.LOGICAL_BUILDER);
 
+  /**
+   * Creates a SortRemoveRule.
+   *
+   * @param relBuilderFactory Builder for relational expressions
+   */
   public SortRemoveRule(RelBuilderFactory relBuilderFactory) {
     super(operand(Sort.class, any()), relBuilderFactory, "SortRemoveRule");
   }

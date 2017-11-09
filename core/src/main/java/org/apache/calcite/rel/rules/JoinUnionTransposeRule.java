@@ -51,9 +51,15 @@ public class JoinUnionTransposeRule extends RelOptRule {
           RelFactories.LOGICAL_BUILDER,
           "JoinUnionTransposeRule(Other-Union)");
 
+  /**
+   * Creates a JoinUnionTransposeRule.
+   *
+   * @param operand           root operand, must not be null
+   * @param description       Description, or null to guess description
+   * @param relBuilderFactory Builder for relational expressions
+   */
   public JoinUnionTransposeRule(RelOptRuleOperand operand,
-                                RelBuilderFactory relBuilderFactory,
-                                String description) {
+      RelBuilderFactory relBuilderFactory, String description) {
     super(operand, relBuilderFactory, description);
   }
 

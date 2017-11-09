@@ -33,10 +33,14 @@ public class CassandraToEnumerableConverterRule extends ConverterRule {
   public static final ConverterRule INSTANCE =
       new CassandraToEnumerableConverterRule(RelFactories.LOGICAL_BUILDER);
 
+  /**
+   * Creates a CassandraToEnumerableConverterRule.
+   *
+   * @param relBuilderFactory Builder for relational expressions
+   */
   public CassandraToEnumerableConverterRule(RelBuilderFactory relBuilderFactory) {
     super(RelNode.class, Predicates.<RelNode>alwaysTrue(), CassandraRel.CONVENTION,
-          EnumerableConvention.INSTANCE, relBuilderFactory,
-          "CassandraToEnumerableConverterRule");
+        EnumerableConvention.INSTANCE, relBuilderFactory, "CassandraToEnumerableConverterRule");
   }
 
   @Override public RelNode convert(RelNode rel) {

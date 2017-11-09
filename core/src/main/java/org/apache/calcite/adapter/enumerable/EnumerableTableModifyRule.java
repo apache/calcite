@@ -32,10 +32,17 @@ import com.google.common.base.Predicates;
  * relational expression
  * {@link org.apache.calcite.adapter.enumerable.EnumerableConvention enumerable calling convention}. */
 public class EnumerableTableModifyRule extends ConverterRule {
+
+  @Deprecated // to be removed before 2.0
   EnumerableTableModifyRule() {
     this(RelFactories.LOGICAL_BUILDER);
   }
 
+  /**
+   * Creates an EnumerableTableModifyRule.
+   *
+   * @param relBuilderFactory Builder for relational expressions
+   */
   public EnumerableTableModifyRule(RelBuilderFactory relBuilderFactory) {
     super(LogicalTableModify.class, Predicates.<RelNode>alwaysTrue(), Convention.NONE,
         EnumerableConvention.INSTANCE, relBuilderFactory, "EnumerableTableModificationRule");

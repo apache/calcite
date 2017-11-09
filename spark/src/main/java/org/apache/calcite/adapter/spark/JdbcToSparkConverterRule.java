@@ -31,10 +31,13 @@ import com.google.common.base.Predicates;
  * {@link org.apache.calcite.adapter.spark.SparkRel#CONVENTION Spark convention}.
  */
 public class JdbcToSparkConverterRule extends ConverterRule {
+
+  @Deprecated // to be removed before 2.0
   JdbcToSparkConverterRule(JdbcConvention out) {
     this(out, RelFactories.LOGICAL_BUILDER);
   }
 
+  /** Creates a JdbcToSparkConverterRule. */
   public JdbcToSparkConverterRule(JdbcConvention out, RelBuilderFactory relBuilderFactory) {
     super(
         RelNode.class,

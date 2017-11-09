@@ -47,11 +47,12 @@ public class SortJoinTransposeRule extends RelOptRule {
 
   public static final SortJoinTransposeRule INSTANCE =
       new SortJoinTransposeRule(LogicalSort.class,
-          LogicalJoin.class);
+          LogicalJoin.class, RelFactories.LOGICAL_BUILDER);
 
   //~ Constructors -----------------------------------------------------------
 
   /** Creates a SortJoinTransposeRule. */
+  @Deprecated // to be removed before 2.0
   public SortJoinTransposeRule(Class<? extends Sort> sortClass,
       Class<? extends Join> joinClass) {
     this(sortClass, joinClass, RelFactories.LOGICAL_BUILDER);
@@ -59,8 +60,7 @@ public class SortJoinTransposeRule extends RelOptRule {
 
   /** Creates a SortJoinTransposeRule. */
   public SortJoinTransposeRule(Class<? extends Sort> sortClass,
-                               Class<? extends Join> joinClass,
-                               RelBuilderFactory relBuilderFactory) {
+      Class<? extends Join> joinClass, RelBuilderFactory relBuilderFactory) {
     super(
         operand(sortClass,
             operand(joinClass, any())),

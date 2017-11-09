@@ -31,10 +31,17 @@ import com.google.common.base.Predicates;
  * relational expression
  * {@link org.apache.calcite.adapter.enumerable.EnumerableConvention enumerable calling convention}. */
 public class EnumerableTableFunctionScanRule extends ConverterRule {
+
+  @Deprecated // to be removed before 2.0
   public EnumerableTableFunctionScanRule() {
     this(RelFactories.LOGICAL_BUILDER);
   }
 
+  /**
+   * Creates an EnumerableTableFunctionScanRule.
+   *
+   * @param relBuilderFactory Builder for relational expressions
+   */
   public EnumerableTableFunctionScanRule(RelBuilderFactory relBuilderFactory) {
     super(LogicalTableFunctionScan.class, Predicates.<RelNode>alwaysTrue(), Convention.NONE,
         EnumerableConvention.INSTANCE, relBuilderFactory, "EnumerableTableFunctionScanRule");

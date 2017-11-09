@@ -46,6 +46,11 @@ public final class FilterRemoveIsNotDistinctFromRule extends RelOptRule {
 
   //~ Constructors -----------------------------------------------------------
 
+  /**
+   * Creates a FilterRemoveIsNotDistinctFromRule.
+   *
+   * @param relBuilderFactory Builder for relational expressions
+   */
   public FilterRemoveIsNotDistinctFromRule(RelBuilderFactory relBuilderFactory) {
     super(operand(LogicalFilter.class, any()), relBuilderFactory, null);
   }

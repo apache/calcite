@@ -93,9 +93,15 @@ public class AggregateStarTableRule extends RelOptRule {
         }
       };
 
+  /**
+   * Creates an AggregateStarTableRule.
+   *
+   * @param operand           root operand, must not be null
+   * @param description       Description, or null to guess description
+   * @param relBuilderFactory Builder for relational expressions
+   */
   public AggregateStarTableRule(RelOptRuleOperand operand,
-                                RelBuilderFactory relBuilderFactory,
-                                String description) {
+      RelBuilderFactory relBuilderFactory, String description) {
     super(operand, relBuilderFactory, description);
   }
 

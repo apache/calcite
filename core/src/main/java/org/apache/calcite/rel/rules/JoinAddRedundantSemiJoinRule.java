@@ -46,7 +46,7 @@ public class JoinAddRedundantSemiJoinRule extends RelOptRule {
    * Creates an JoinAddRedundantSemiJoinRule.
    */
   public JoinAddRedundantSemiJoinRule(Class<? extends Join> clazz,
-                                      RelBuilderFactory relBuilderFactory) {
+      RelBuilderFactory relBuilderFactory) {
     super(operand(clazz, any()), relBuilderFactory, null);
   }
 

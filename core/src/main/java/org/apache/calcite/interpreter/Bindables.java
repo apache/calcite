@@ -140,6 +140,12 @@ public class Bindables {
   /** Rule that converts a {@link org.apache.calcite.rel.core.TableScan}
    * to bindable convention. */
   public static class BindableTableScanRule extends RelOptRule {
+
+    /**
+     * Creates a BindableTableScanRule.
+     *
+     * @param relBuilderFactory Builder for relational expressions
+     */
     public BindableTableScanRule(RelBuilderFactory relBuilderFactory) {
       super(operand(LogicalTableScan.class, none()), relBuilderFactory, null);
     }
@@ -244,6 +250,12 @@ public class Bindables {
 
   /** Rule that converts a {@link Filter} to bindable convention. */
   public static class BindableFilterRule extends ConverterRule {
+
+    /**
+     * Creates a BindableFilterRule.
+     *
+     * @param relBuilderFactory Builder for relational expressions
+     */
     public BindableFilterRule(RelBuilderFactory relBuilderFactory) {
       super(LogicalFilter.class, RelOptUtil.FILTER_PREDICATE, Convention.NONE,
           BindableConvention.INSTANCE, relBuilderFactory, "BindableFilterRule");
@@ -307,6 +319,12 @@ public class Bindables {
    * to a {@link BindableProject}.
    */
   public static class BindableProjectRule extends ConverterRule {
+
+    /**
+     * Creates a BindableProjectRule.
+     *
+     * @param relBuilderFactory Builder for relational expressions
+     */
     public BindableProjectRule(RelBuilderFactory relBuilderFactory) {
       super(LogicalProject.class, RelOptUtil.PROJECT_PREDICATE, Convention.NONE,
           BindableConvention.INSTANCE, relBuilderFactory, "BindableProjectRule");
@@ -357,9 +375,15 @@ public class Bindables {
    * {@link org.apache.calcite.interpreter.Bindables.BindableSort}.
    */
   public static class BindableSortRule extends ConverterRule {
+
+    /**
+     * Creates a BindableSortRule.
+     *
+     * @param relBuilderFactory Builder for relational expressions
+     */
     public BindableSortRule(RelBuilderFactory relBuilderFactory) {
       super(Sort.class, Predicates.<RelNode>alwaysTrue(), Convention.NONE,
-            BindableConvention.INSTANCE, relBuilderFactory, "BindableSortRule");
+          BindableConvention.INSTANCE, relBuilderFactory, "BindableSortRule");
     }
 
     public RelNode convert(RelNode rel) {
@@ -407,9 +431,15 @@ public class Bindables {
    * to a {@link BindableJoin}.
    */
   public static class BindableJoinRule extends ConverterRule {
+
+    /**
+     * Creates a BindableJoinRule.
+     *
+     * @param relBuilderFactory Builder for relational expressions
+     */
     public BindableJoinRule(RelBuilderFactory relBuilderFactory) {
       super(LogicalJoin.class, Predicates.<RelNode>alwaysTrue(), Convention.NONE,
-        BindableConvention.INSTANCE, relBuilderFactory, "BindableJoinRule");
+          BindableConvention.INSTANCE, relBuilderFactory, "BindableJoinRule");
     }
 
     public RelNode convert(RelNode rel) {
@@ -470,9 +500,15 @@ public class Bindables {
    * to a {@link BindableUnion}.
    */
   public static class BindableUnionRule extends ConverterRule {
+
+    /**
+     * Creates a BindableUnionRule.
+     *
+     * @param relBuilderFactory Builder for relational expressions
+     */
     public BindableUnionRule(RelBuilderFactory relBuilderFactory) {
       super(LogicalUnion.class, Predicates.<RelNode>alwaysTrue(), Convention.NONE,
-            BindableConvention.INSTANCE, relBuilderFactory, "BindableUnionRule");
+          BindableConvention.INSTANCE, relBuilderFactory, "BindableUnionRule");
     }
 
     public RelNode convert(RelNode rel) {
@@ -538,9 +574,15 @@ public class Bindables {
 
   /** Rule that converts a {@link Values} to bindable convention. */
   public static class BindableValuesRule extends ConverterRule {
+
+    /**
+     * Creates a BindableValuesRule.
+     *
+     * @param relBuilderFactory Builder for relational expressions
+     */
     public BindableValuesRule(RelBuilderFactory relBuilderFactory) {
       super(LogicalValues.class, Predicates.<RelNode>alwaysTrue(), Convention.NONE,
-            BindableConvention.INSTANCE, relBuilderFactory, "BindableValuesRule");
+          BindableConvention.INSTANCE, relBuilderFactory, "BindableValuesRule");
     }
 
     @Override public RelNode convert(RelNode rel) {
@@ -609,6 +651,12 @@ public class Bindables {
 
   /** Rule that converts an {@link Aggregate} to bindable convention. */
   public static class BindableAggregateRule extends ConverterRule {
+
+    /**
+     * Creates a BindableAggregateRule.
+     *
+     * @param relBuilderFactory Builder for relational expressions
+     */
     public BindableAggregateRule(RelBuilderFactory relBuilderFactory) {
       super(LogicalAggregate.class, Predicates.<RelNode>alwaysTrue(), Convention.NONE,
           BindableConvention.INSTANCE, relBuilderFactory, "BindableAggregateRule");
@@ -667,9 +715,15 @@ public class Bindables {
    * to a {@link BindableWindow}.
    */
   public static class BindableWindowRule extends ConverterRule {
+
+    /**
+     * Creates a BindableWindowRule.
+     *
+     * @param relBuilderFactory Builder for relational expressions
+     */
     public BindableWindowRule(RelBuilderFactory relBuilderFactory) {
       super(LogicalWindow.class, Predicates.<RelNode>alwaysTrue(), Convention.NONE,
-            BindableConvention.INSTANCE, relBuilderFactory, "BindableWindowRule");
+          BindableConvention.INSTANCE, relBuilderFactory, "BindableWindowRule");
     }
 
     public RelNode convert(RelNode rel) {

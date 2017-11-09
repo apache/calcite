@@ -47,6 +47,11 @@ public class ProjectToCalcRule extends RelOptRule {
 
   //~ Constructors -----------------------------------------------------------
 
+  /**
+   * Creates a ProjectToCalcRule.
+   *
+   * @param relBuilderFactory Builder for relational expressions
+   */
   public ProjectToCalcRule(RelBuilderFactory relBuilderFactory) {
     super(operand(LogicalProject.class, any()), relBuilderFactory, null);
   }

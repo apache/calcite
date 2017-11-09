@@ -35,6 +35,11 @@ public class CsvProjectTableScanRule extends RelOptRule {
   public static final CsvProjectTableScanRule INSTANCE =
       new CsvProjectTableScanRule(RelFactories.LOGICAL_BUILDER);
 
+  /**
+   * Creates a CsvProjectTableScanRule.
+   *
+   * @param relBuilderFactory Builder for relational expressions
+   */
   public CsvProjectTableScanRule(RelBuilderFactory relBuilderFactory) {
     super(
         operand(LogicalProject.class,

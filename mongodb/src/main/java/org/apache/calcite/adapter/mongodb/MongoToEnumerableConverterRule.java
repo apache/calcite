@@ -33,9 +33,14 @@ public class MongoToEnumerableConverterRule extends ConverterRule {
   public static final ConverterRule INSTANCE =
       new MongoToEnumerableConverterRule(RelFactories.LOGICAL_BUILDER);
 
+  /**
+   * Creates a MongoToEnumerableConverterRule.
+   *
+   * @param relBuilderFactory Builder for relational expressions
+   */
   public MongoToEnumerableConverterRule(RelBuilderFactory relBuilderFactory) {
     super(RelNode.class, Predicates.<RelNode>alwaysTrue(), MongoRel.CONVENTION,
-          EnumerableConvention.INSTANCE, relBuilderFactory, "MongoToEnumerableConverterRule");
+        EnumerableConvention.INSTANCE, relBuilderFactory, "MongoToEnumerableConverterRule");
   }
 
   @Override public RelNode convert(RelNode rel) {

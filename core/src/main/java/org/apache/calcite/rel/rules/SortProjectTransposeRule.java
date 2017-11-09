@@ -53,7 +53,10 @@ import java.util.Map;
  */
 public class SortProjectTransposeRule extends RelOptRule {
   public static final SortProjectTransposeRule INSTANCE =
-      new SortProjectTransposeRule(Sort.class, LogicalProject.class, null);
+      new SortProjectTransposeRule(
+          operand(Sort.class,
+              operand(LogicalProject.class, any())),
+          RelFactories.LOGICAL_BUILDER, null);
 
   //~ Constructors -----------------------------------------------------------
 
@@ -61,10 +64,14 @@ public class SortProjectTransposeRule extends RelOptRule {
   public SortProjectTransposeRule(
       Class<? extends Sort> sortClass,
       Class<? extends Project> projectClass) {
-    this(sortClass, projectClass, null);
+    this(
+        operand(sortClass,
+            operand(projectClass, any())),
+        RelFactories.LOGICAL_BUILDER, null);
   }
 
   /** Creates a SortProjectTransposeRule.*/
+  @Deprecated // to be removed before 2.0
   public SortProjectTransposeRule(
       Class<? extends Sort> sortClass,
       Class<? extends Project> projectClass,
@@ -87,6 +94,7 @@ public class SortProjectTransposeRule extends RelOptRule {
         description);
   }
 
+  @Deprecated // to be removed before 2.0
   protected SortProjectTransposeRule(RelOptRuleOperand operand) {
     super(operand);
   }
