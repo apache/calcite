@@ -1053,9 +1053,17 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
                 rexBuilder.makeInputRef(relBuilder.peek(),
                     aggregate.getGroupCount() + i)));
       }
+      RelNode prevNode = relBuilder.peek();
       RelNode result = relBuilder
           .aggregate(relBuilder.groupKey(groupSet, null), aggregateCalls)
           .build();
+      if (prevNode == result && groupSet.cardinality() != result.getRowType().getFieldCount()) {
+        // Aggregate was not inserted but we need to prune columns
+        result = relBuilder
+            .push(result)
+            .project(relBuilder.fields(groupSet.asList()))
+            .build();
+      }
       if (topProject != null) {
         // Top project
         return topProject.copy(topProject.getTraitSet(), ImmutableList.of(result));
@@ -1271,10 +1279,18 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
             rewritingMapping.set(targetIdx, sourceIdx);
           }
         }
+        RelNode prevNode = result;
         result = relBuilder
             .push(result)
             .aggregate(relBuilder.groupKey(groupSet, null), aggregateCalls)
             .build();
+        if (prevNode == result && groupSet.cardinality() != result.getRowType().getFieldCount()) {
+          // Aggregate was not inserted but we need to prune columns
+          result = relBuilder
+              .push(result)
+              .project(relBuilder.fields(groupSet.asList()))
+              .build();
+        }
         // We introduce a project on top, as group by columns order is lost
         List<RexNode> projects = new ArrayList<>();
         Mapping inverseMapping = rewritingMapping.inverse();

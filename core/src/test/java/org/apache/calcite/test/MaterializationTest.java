@@ -1582,6 +1582,19 @@ public class MaterializationTest {
         HR_FKUK_MODEL);
   }
 
+  @Test public void testJoinAggregateMaterializationAggregateFuncs13() {
+    checkNoMaterialize(
+        "select \"dependents\".\"empid\", \"emps\".\"deptno\", count(distinct \"salary\") as s\n"
+            + "from \"emps\"\n"
+            + "join \"dependents\" on (\"emps\".\"empid\" = \"dependents\".\"empid\")\n"
+            + "group by \"dependents\".\"empid\", \"emps\".\"deptno\"",
+        "select \"emps\".\"deptno\", count(\"salary\") as s\n"
+            + "from \"emps\"\n"
+            + "join \"dependents\" on (\"emps\".\"empid\" = \"dependents\".\"empid\")\n"
+            + "group by \"dependents\".\"empid\", \"emps\".\"deptno\"",
+        HR_FKUK_MODEL);
+  }
+
   @Test public void testJoinMaterialization4() {
     checkMaterialize(
         "select \"empid\" \"deptno\" from \"emps\"\n"
@@ -1995,6 +2008,80 @@ public class MaterializationTest {
     }
   }
 
+  @Test public void testAggregateMaterializationOnCountDistinctQuery1() {
+    // The column empid is already unique, thus DISTINCT is not
+    // in the COUNT of the resulting rewriting
+    checkMaterialize(
+        "select \"deptno\", \"empid\", \"salary\"\n"
+            + "from \"emps\"\n"
+            + "group by \"deptno\", \"empid\", \"salary\"",
+        "select \"deptno\", count(distinct \"empid\") as c from (\n"
+            + "select \"deptno\", \"empid\"\n"
+            + "from \"emps\"\n"
+            + "group by \"deptno\", \"empid\")\n"
+            + "group by \"deptno\"",
+        HR_FKUK_MODEL,
+        CalciteAssert.checkResultContains(
+            "EnumerableAggregate(group=[{0}], C=[COUNT($1)])\n"
+                + "  EnumerableTableScan(table=[[hr, m0]]"));
+  }
+
+  @Test public void testAggregateMaterializationOnCountDistinctQuery2() {
+    // The column empid is already unique, thus DISTINCT is not
+    // in the COUNT of the resulting rewriting
+    checkMaterialize(
+        "select \"deptno\", \"salary\", \"empid\"\n"
+            + "from \"emps\"\n"
+            + "group by \"deptno\", \"salary\", \"empid\"",
+        "select \"deptno\", count(distinct \"empid\") as c from (\n"
+            + "select \"deptno\", \"empid\"\n"
+            + "from \"emps\"\n"
+            + "group by \"deptno\", \"empid\")\n"
+            + "group by \"deptno\"",
+        HR_FKUK_MODEL,
+        CalciteAssert.checkResultContains(
+            "EnumerableAggregate(group=[{0}], C=[COUNT($2)])\n"
+                + "  EnumerableTableScan(table=[[hr, m0]]"));
+  }
+
+  @Test public void testAggregateMaterializationOnCountDistinctQuery3() {
+    // The column salary is not unique, thus we end up with
+    // a different rewriting
+    checkMaterialize(
+        "select \"deptno\", \"empid\", \"salary\"\n"
+            + "from \"emps\"\n"
+            + "group by \"deptno\", \"empid\", \"salary\"",
+        "select \"deptno\", count(distinct \"salary\") from (\n"
+            + "select \"deptno\", \"salary\"\n"
+            + "from \"emps\"\n"
+            + "group by \"deptno\", \"salary\")\n"
+            + "group by \"deptno\"",
+        HR_FKUK_MODEL,
+        CalciteAssert.checkResultContains(
+            "EnumerableAggregate(group=[{0}], EXPR$1=[COUNT($1)])\n"
+                + "  EnumerableAggregate(group=[{0, 2}])\n"
+                + "    EnumerableTableScan(table=[[hr, m0]]"));
+  }
+
+  @Test public void testAggregateMaterializationOnCountDistinctQuery4() {
+    // Although there is no DISTINCT in the COUNT, this is
+    // equivalent to previous query
+    checkMaterialize(
+        "select \"deptno\", \"salary\", \"empid\"\n"
+            + "from \"emps\"\n"
+            + "group by \"deptno\", \"salary\", \"empid\"",
+        "select \"deptno\", count(\"salary\") from (\n"
+            + "select \"deptno\", \"salary\"\n"
+            + "from \"emps\"\n"
+            + "group by \"deptno\", \"salary\")\n"
+            + "group by \"deptno\"",
+        HR_FKUK_MODEL,
+        CalciteAssert.checkResultContains(
+            "EnumerableAggregate(group=[{0}], EXPR$1=[COUNT()])\n"
+                + "  EnumerableAggregate(group=[{0, 1}])\n"
+                + "    EnumerableTableScan(table=[[hr, m0]]"));
+  }
+
   @Test public void testMaterializationSubstitution() {
     String q = "select *\n"
         + "from (select * from \"emps\" where \"empid\" < 300)\n"
@@ -2127,7 +2214,7 @@ public class MaterializationTest {
         new Employee(100, 10, "Bill", 10000, 1000),
         new Employee(200, 20, "Eric", 8000, 500),
         new Employee(150, 10, "Sebastian", 7000, null),
-        new Employee(110, 10, "Theodore", 11500, 250),
+        new Employee(110, 10, "Theodore", 10000, 250),
     };
     public final Department[] depts = {
         new Department(10, "Sales", Arrays.asList(emps[0], emps[2], emps[3]),
