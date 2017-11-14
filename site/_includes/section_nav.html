@@ -29,7 +29,11 @@ next, lets build a link to it.
           {% else %}
             {% assign next = forloop.index0 | plus: 1 %}
             {% capture next_page %}{{ site.baseurl }}{{ docs[next] | prepend:"/docs/" | append:".html" }}{% endcapture %}
-            <a href="{{ next_page }}" class="next">Next</a>
+
+            {% comment %}
+            See CALCITE-2036 for an explanation of the replacement below
+            {% endcomment %}
+            <a href="{{ next_page | replace: '/docs/api.html', '/apidocs/' }}" class="next">Next</a>
           {% endif %}
       </div>
     </div>
