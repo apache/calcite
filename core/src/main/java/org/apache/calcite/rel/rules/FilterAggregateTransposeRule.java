@@ -23,6 +23,7 @@ import org.apache.calcite.plan.RelOptRuleOperand;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
+import org.apache.calcite.rel.core.Aggregate.Group;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.type.RelDataTypeField;
@@ -137,7 +138,7 @@ public class FilterAggregateTransposeRule extends RelOptRule {
       return false;
     }
 
-    if (aggregate.getGroupSets().size() > 1) {
+    if (aggregate.getGroupType() != Group.SIMPLE) {
       // If grouping sets are used, the filter can be pushed if
       // the columns referenced in the predicate are present in
       // all the grouping sets.
