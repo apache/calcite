@@ -32,11 +32,13 @@ import org.junit.Test;
 import java.util.Calendar;
 import java.util.TimeZone;
 
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
 
 /**
  * Test for {@link RexBuilder}.
@@ -358,6 +360,119 @@ public class RexBuilderTest {
     assertThat((Integer) literal.getValue2(), is(MOON_DAY));
     assertThat(literal.getValueAs(Calendar.class), notNullValue());
     assertThat(literal.getValueAs(DateString.class), notNullValue());
+  }
+
+  /** Tests {@link DateString} year range. */
+  @Test public void testDateStringYearError() {
+    try {
+      final DateString dateString = new DateString(11969, 7, 21);
+      fail("expected exception, got " + dateString);
+    } catch (IllegalArgumentException e) {
+      assertThat(e.getMessage(), containsString("Year out of range: [11969]"));
+    }
+    try {
+      final DateString dateString = new DateString("12345-01-23");
+      fail("expected exception, got " + dateString);
+    } catch (IllegalArgumentException e) {
+      assertThat(e.getMessage(),
+          containsString("Invalid date format: [12345-01-23]"));
+    }
+  }
+
+  /** Tests {@link DateString} month range. */
+  @Test public void testDateStringMonthError() {
+    try {
+      final DateString dateString = new DateString(1969, 27, 21);
+      fail("expected exception, got " + dateString);
+    } catch (IllegalArgumentException e) {
+      assertThat(e.getMessage(), containsString("Month out of range: [27]"));
+    }
+    try {
+      final DateString dateString = new DateString("1234-13-02");
+      fail("expected exception, got " + dateString);
+    } catch (IllegalArgumentException e) {
+      assertThat(e.getMessage(), containsString("Month out of range: [13]"));
+    }
+  }
+
+  /** Tests {@link DateString} day range. */
+  @Test public void testDateStringDayError() {
+    try {
+      final DateString dateString = new DateString(1969, 7, 41);
+      fail("expected exception, got " + dateString);
+    } catch (IllegalArgumentException e) {
+      assertThat(e.getMessage(), containsString("Day out of range: [41]"));
+    }
+    try {
+      final DateString dateString = new DateString("1234-01-32");
+      fail("expected exception, got " + dateString);
+    } catch (IllegalArgumentException e) {
+      assertThat(e.getMessage(), containsString("Day out of range: [32]"));
+    }
+    // We don't worry about the number of days in a month. 30 is in range.
+    final DateString dateString = new DateString("1234-02-30");
+    assertThat(dateString, notNullValue());
+  }
+
+  /** Tests {@link TimeString} hour range. */
+  @Test public void testTimeStringHourError() {
+    try {
+      final TimeString timeString = new TimeString(111, 34, 56);
+      fail("expected exception, got " + timeString);
+    } catch (IllegalArgumentException e) {
+      assertThat(e.getMessage(), containsString("Hour out of range: [111]"));
+    }
+    try {
+      final TimeString timeString = new TimeString("24:00:00");
+      fail("expected exception, got " + timeString);
+    } catch (IllegalArgumentException e) {
+      assertThat(e.getMessage(), containsString("Hour out of range: [24]"));
+    }
+    try {
+      final TimeString timeString = new TimeString("24:00");
+      fail("expected exception, got " + timeString);
+    } catch (IllegalArgumentException e) {
+      assertThat(e.getMessage(),
+          containsString("Invalid time format: [24:00]"));
+    }
+  }
+
+  /** Tests {@link TimeString} minute range. */
+  @Test public void testTimeStringMinuteError() {
+    try {
+      final TimeString timeString = new TimeString(12, 334, 56);
+      fail("expected exception, got " + timeString);
+    } catch (IllegalArgumentException e) {
+      assertThat(e.getMessage(), containsString("Minute out of range: [334]"));
+    }
+    try {
+      final TimeString timeString = new TimeString("12:60:23");
+      fail("expected exception, got " + timeString);
+    } catch (IllegalArgumentException e) {
+      assertThat(e.getMessage(), containsString("Minute out of range: [60]"));
+    }
+  }
+
+  /** Tests {@link TimeString} second range. */
+  @Test public void testTimeStringSecondError() {
+    try {
+      final TimeString timeString = new TimeString(12, 34, 567);
+      fail("expected exception, got " + timeString);
+    } catch (IllegalArgumentException e) {
+      assertThat(e.getMessage(), containsString("Second out of range: [567]"));
+    }
+    try {
+      final TimeString timeString = new TimeString(12, 34, -4);
+      fail("expected exception, got " + timeString);
+    } catch (IllegalArgumentException e) {
+      assertThat(e.getMessage(), containsString("Second out of range: [-4]"));
+    }
+    try {
+      final TimeString timeString = new TimeString("12:34:60");
+      fail("expected exception, got " + timeString);
+    } catch (IllegalArgumentException e) {
+      assertThat(e.getMessage(), containsString("Second out of range: [60]"));
+    }
   }
 
 }

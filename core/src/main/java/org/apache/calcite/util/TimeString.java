@@ -23,6 +23,7 @@ import com.google.common.base.Strings;
 
 import java.util.Calendar;
 import java.util.regex.Pattern;
+import javax.annotation.Nonnull;
 
 /**
  * Time literal.
@@ -36,15 +37,37 @@ public class TimeString implements Comparable<TimeString> {
 
   final String v;
 
+  /** Internal constructor, no validation. */
+  private TimeString(String v, @SuppressWarnings("unused") boolean ignore) {
+    this.v = v;
+  }
+
   /** Creates a TimeString. */
   public TimeString(String v) {
-    this.v = v;
-    Preconditions.checkArgument(PATTERN.matcher(v).matches(), v);
+    this(v, false);
+    Preconditions.checkArgument(PATTERN.matcher(v).matches(),
+        "Invalid time format:", v);
+    Preconditions.checkArgument(getHour() >= 0 && getHour() < 24,
+        "Hour out of range:", getHour());
+    Preconditions.checkArgument(getMinute() >= 0 && getMinute() < 60,
+        "Minute out of range:", getMinute());
+    Preconditions.checkArgument(getSecond() >= 0 && getSecond() < 60,
+        "Second out of range:", getSecond());
   }
 
   /** Creates a TimeString for hour, minute, second and millisecond values. */
   public TimeString(int h, int m, int s) {
-    this(DateTimeStringUtils.hms(new StringBuilder(), h, m, s).toString());
+    this(hms(h, m, s), false);
+  }
+
+  /** Validates an hour-minute-second value and converts to a string. */
+  private static String hms(int h, int m, int s) {
+    Preconditions.checkArgument(h >= 0 && h < 24, "Hour out of range:", h);
+    Preconditions.checkArgument(m >= 0 && m < 60, "Minute out of range:", m);
+    Preconditions.checkArgument(s >= 0 && s < 60, "Second out of range:", s);
+    final StringBuilder b = new StringBuilder();
+    DateTimeStringUtils.hms(b, h, m, s);
+    return b.toString();
   }
 
   /** Sets the fraction field of a {@code TimeString} to a given number
@@ -106,7 +129,7 @@ public class TimeString implements Comparable<TimeString> {
     return v.hashCode();
   }
 
-  @Override public int compareTo(TimeString o) {
+  @Override public int compareTo(@Nonnull TimeString o) {
     return v.compareTo(o.v);
   }
 
@@ -160,6 +183,18 @@ public class TimeString implements Comparable<TimeString> {
     default: // "12:34:56.7890000012345"
       return Integer.valueOf(v.substring(9, 12));
     }
+  }
+
+  private int getHour() {
+    return Integer.parseInt(v.substring(0, 2));
+  }
+
+  private int getMinute() {
+    return Integer.parseInt(this.v.substring(3, 5));
+  }
+
+  private int getSecond() {
+    return Integer.parseInt(this.v.substring(6, 8));
   }
 
   public Calendar toCalendar() {

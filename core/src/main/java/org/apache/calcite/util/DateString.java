@@ -22,6 +22,7 @@ import com.google.common.base.Preconditions;
 
 import java.util.Calendar;
 import java.util.regex.Pattern;
+import javax.annotation.Nonnull;
 
 /**
  * Date literal.
@@ -34,15 +35,40 @@ public class DateString implements Comparable<DateString> {
 
   final String v;
 
+  /** Internal constructor, no validation. */
+  private DateString(String v, @SuppressWarnings("unused") boolean ignore) {
+    this.v = v;
+  }
+
   /** Creates a DateString. */
   public DateString(String v) {
-    this.v = v;
-    Preconditions.checkArgument(PATTERN.matcher(v).matches(), v);
+    this(v, false);
+    Preconditions.checkArgument(PATTERN.matcher(v).matches(),
+        "Invalid date format:", v);
+    Preconditions.checkArgument(getYear() >= 1 && getYear() <= 9999,
+        "Year out of range:", getYear());
+    Preconditions.checkArgument(getMonth() >= 1 && getMonth() <= 12,
+        "Month out of range:", getMonth());
+    Preconditions.checkArgument(getDay() >= 1 && getDay() <= 31,
+        "Day out of range:", getDay());
   }
 
   /** Creates a DateString for year, month, day values. */
   public DateString(int year, int month, int day) {
-    this(DateTimeStringUtils.ymd(new StringBuilder(), year, month, day).toString());
+    this(ymd(year, month, day), true);
+  }
+
+  /** Validates a year-month-date and converts to a string. */
+  private static String ymd(int year, int month, int day) {
+    Preconditions.checkArgument(year >= 1 && year <= 9999,
+        "Year out of range:", year);
+    Preconditions.checkArgument(month >= 1 && month <= 12,
+        "Month out of range:", month);
+    Preconditions.checkArgument(day >= 1 && day <= 31,
+        "Day out of range:", day);
+    final StringBuilder b = new StringBuilder();
+    DateTimeStringUtils.ymd(b, year, month, day);
+    return b.toString();
   }
 
   @Override public String toString() {
@@ -60,7 +86,7 @@ public class DateString implements Comparable<DateString> {
     return v.hashCode();
   }
 
-  @Override public int compareTo(DateString o) {
+  @Override public int compareTo(@Nonnull DateString o) {
     return v.compareTo(o.v);
   }
 
@@ -73,10 +99,22 @@ public class DateString implements Comparable<DateString> {
 
   /** Returns the number of days since the epoch. */
   public int getDaysSinceEpoch() {
-    int year = Integer.valueOf(v.substring(0, 4));
-    int month = Integer.valueOf(v.substring(5, 7));
-    int day = Integer.valueOf(v.substring(8, 10));
+    int year = getYear();
+    int month = getMonth();
+    int day = getDay();
     return DateTimeUtils.ymdToUnixDate(year, month, day);
+  }
+
+  private int getYear() {
+    return Integer.parseInt(v.substring(0, 4));
+  }
+
+  private int getMonth() {
+    return Integer.parseInt(v.substring(5, 7));
+  }
+
+  private int getDay() {
+    return Integer.parseInt(v.substring(8, 10));
   }
 
   /** Creates a DateString that is a given number of days since the epoch. */
