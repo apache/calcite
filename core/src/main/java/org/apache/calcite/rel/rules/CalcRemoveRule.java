@@ -19,8 +19,10 @@ package org.apache.calcite.rel.rules;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.logical.LogicalCalc;
 import org.apache.calcite.rex.RexProgram;
+import org.apache.calcite.tools.RelBuilderFactory;
 
 /**
  * Planner rule that removes a trivial
@@ -36,12 +38,17 @@ public class CalcRemoveRule extends RelOptRule {
   //~ Static fields/initializers ---------------------------------------------
 
   public static final CalcRemoveRule INSTANCE =
-      new CalcRemoveRule();
+      new CalcRemoveRule(RelFactories.LOGICAL_BUILDER);
 
   //~ Constructors -----------------------------------------------------------
 
-  private CalcRemoveRule() {
-    super(operand(LogicalCalc.class, any()));
+  /**
+   * Creates a CalcRemoveRule.
+   *
+   * @param relBuilderFactory Builder for relational expressions
+   */
+  public CalcRemoveRule(RelBuilderFactory relBuilderFactory) {
+    super(operand(LogicalCalc.class, any()), relBuilderFactory, null);
   }
 
   //~ Methods ----------------------------------------------------------------

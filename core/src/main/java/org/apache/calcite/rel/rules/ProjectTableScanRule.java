@@ -23,10 +23,12 @@ import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptRuleOperand;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.runtime.PredicateImpl;
 import org.apache.calcite.schema.ProjectableFilterableTable;
+import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.mapping.Mapping;
 import org.apache.calcite.util.mapping.Mappings;
@@ -62,6 +64,7 @@ public abstract class ProjectTableScanRule extends RelOptRule {
       new ProjectTableScanRule(
           operand(Project.class,
               operand(TableScan.class, null, PREDICATE, none())),
+          RelFactories.LOGICAL_BUILDER,
           "ProjectScanRule") {
         @Override public void onMatch(RelOptRuleCall call) {
           final Project project = call.rel(0);
@@ -76,6 +79,7 @@ public abstract class ProjectTableScanRule extends RelOptRule {
           operand(Project.class,
               operand(EnumerableInterpreter.class,
                   operand(TableScan.class, null, PREDICATE, none()))),
+          RelFactories.LOGICAL_BUILDER,
           "ProjectScanRule:interpreter") {
         @Override public void onMatch(RelOptRuleCall call) {
           final Project project = call.rel(0);
@@ -86,9 +90,10 @@ public abstract class ProjectTableScanRule extends RelOptRule {
 
   //~ Constructors -----------------------------------------------------------
 
-  /** Creates a ProjectScanRule. */
-  private ProjectTableScanRule(RelOptRuleOperand operand, String description) {
-    super(operand, description);
+  /** Creates a ProjectTableScanRule. */
+  public ProjectTableScanRule(RelOptRuleOperand operand,
+      RelBuilderFactory relBuilderFactory, String description) {
+    super(operand, relBuilderFactory, description);
   }
 
   //~ Methods ----------------------------------------------------------------

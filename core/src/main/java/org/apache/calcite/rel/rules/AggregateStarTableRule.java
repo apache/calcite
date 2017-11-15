@@ -33,12 +33,14 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.impl.StarTable;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.tools.RelBuilder;
+import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.mapping.AbstractSourceMapping;
@@ -60,6 +62,7 @@ public class AggregateStarTableRule extends RelOptRule {
       new AggregateStarTableRule(
           operand(Aggregate.class, null, Aggregate.IS_SIMPLE,
               some(operand(StarTable.StarTableScan.class, none()))),
+          RelFactories.LOGICAL_BUILDER,
           "AggregateStarTableRule");
 
   public static final AggregateStarTableRule INSTANCE2 =
@@ -67,6 +70,7 @@ public class AggregateStarTableRule extends RelOptRule {
           operand(Aggregate.class, null, Aggregate.IS_SIMPLE,
               operand(Project.class,
                   operand(StarTable.StarTableScan.class, none()))),
+          RelFactories.LOGICAL_BUILDER,
           "AggregateStarTableRule:project") {
         @Override public void onMatch(RelOptRuleCall call) {
           final Aggregate aggregate = call.rel(0);
@@ -89,9 +93,16 @@ public class AggregateStarTableRule extends RelOptRule {
         }
       };
 
-  private AggregateStarTableRule(RelOptRuleOperand operand,
-      String description) {
-    super(operand, description);
+  /**
+   * Creates an AggregateStarTableRule.
+   *
+   * @param operand           root operand, must not be null
+   * @param description       Description, or null to guess description
+   * @param relBuilderFactory Builder for relational expressions
+   */
+  public AggregateStarTableRule(RelOptRuleOperand operand,
+      RelBuilderFactory relBuilderFactory, String description) {
+    super(operand, relBuilderFactory, description);
   }
 
   @Override public void onMatch(RelOptRuleCall call) {

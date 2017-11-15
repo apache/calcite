@@ -22,6 +22,7 @@ import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptRuleOperand;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.type.RelDataType;
@@ -36,6 +37,7 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.Pair;
 
@@ -79,6 +81,7 @@ public class SplunkPushDownRule
                   operand(
                       LogicalProject.class,
                       operand(SplunkTableScan.class, none())))),
+          RelFactories.LOGICAL_BUILDER,
           "proj on filter on proj");
 
   public static final SplunkPushDownRule FILTER_ON_PROJECT =
@@ -88,12 +91,14 @@ public class SplunkPushDownRule
               operand(
                   LogicalProject.class,
                   operand(SplunkTableScan.class, none()))),
+          RelFactories.LOGICAL_BUILDER,
           "filter on proj");
 
   public static final SplunkPushDownRule FILTER =
       new SplunkPushDownRule(
           operand(
               LogicalFilter.class, operand(SplunkTableScan.class, none())),
+          RelFactories.LOGICAL_BUILDER,
           "filter");
 
   public static final SplunkPushDownRule PROJECT =
@@ -101,11 +106,19 @@ public class SplunkPushDownRule
           operand(
               LogicalProject.class,
               operand(SplunkTableScan.class, none())),
+          RelFactories.LOGICAL_BUILDER,
           "proj");
 
   /** Creates a SplunkPushDownRule. */
+  @Deprecated // to be removed before 2.0
   protected SplunkPushDownRule(RelOptRuleOperand rule, String id) {
-    super(rule, "SplunkPushDownRule: " + id);
+    this(rule, RelFactories.LOGICAL_BUILDER, id);
+  }
+
+  /** Creates a SplunkPushDownRule. */
+  public SplunkPushDownRule(RelOptRuleOperand rule,
+      RelBuilderFactory relBuilderFactory, String id) {
+    super(rule, relBuilderFactory, "SplunkPushDownRule: " + id);
   }
 
   // ~ Methods --------------------------------------------------------------

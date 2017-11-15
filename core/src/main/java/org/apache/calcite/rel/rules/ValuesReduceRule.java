@@ -21,6 +21,7 @@ import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptRuleOperand;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.Values;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalProject;
@@ -32,6 +33,7 @@ import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.rex.RexUtil;
+import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.trace.CalciteTrace;
 
@@ -74,6 +76,7 @@ public abstract class ValuesReduceRule extends RelOptRule {
       new ValuesReduceRule(
           operand(LogicalFilter.class,
               operand(LogicalValues.class, null, Values.IS_NOT_EMPTY, none())),
+          RelFactories.LOGICAL_BUILDER,
           "ValuesReduceRule(Filter)") {
         public void onMatch(RelOptRuleCall call) {
           LogicalFilter filter = call.rel(0);
@@ -90,6 +93,7 @@ public abstract class ValuesReduceRule extends RelOptRule {
       new ValuesReduceRule(
           operand(LogicalProject.class,
               operand(LogicalValues.class, null, Values.IS_NOT_EMPTY, none())),
+          RelFactories.LOGICAL_BUILDER,
           "ValuesReduceRule(Project)") {
         public void onMatch(RelOptRuleCall call) {
           LogicalProject project = call.rel(0);
@@ -108,6 +112,7 @@ public abstract class ValuesReduceRule extends RelOptRule {
               operand(LogicalFilter.class,
                   operand(LogicalValues.class, null, Values.IS_NOT_EMPTY,
                       none()))),
+          RelFactories.LOGICAL_BUILDER,
           "ValuesReduceRule(Project-Filter)") {
         public void onMatch(RelOptRuleCall call) {
           LogicalProject project = call.rel(0);
@@ -122,10 +127,13 @@ public abstract class ValuesReduceRule extends RelOptRule {
   /**
    * Creates a ValuesReduceRule.
    *
-   * @param operand class of rels to which this rule should apply
+   * @param operand           Class of rels to which this rule should apply
+   * @param relBuilderFactory Builder for relational expressions
+   * @param desc              Description, or null to guess description
    */
-  private ValuesReduceRule(RelOptRuleOperand operand, String desc) {
-    super(operand, desc);
+  public ValuesReduceRule(RelOptRuleOperand operand,
+      RelBuilderFactory relBuilderFactory, String desc) {
+    super(operand, relBuilderFactory, desc);
     Util.discard(LOGGER);
   }
 

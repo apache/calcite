@@ -19,12 +19,14 @@ package org.apache.calcite.rel.rules;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.logical.LogicalCalc;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.rex.RexProgramBuilder;
+import org.apache.calcite.tools.RelBuilderFactory;
 
 /**
  * Planner rule that converts a
@@ -43,12 +45,18 @@ import org.apache.calcite.rex.RexProgramBuilder;
 public class FilterToCalcRule extends RelOptRule {
   //~ Static fields/initializers ---------------------------------------------
 
-  public static final FilterToCalcRule INSTANCE = new FilterToCalcRule();
+  public static final FilterToCalcRule INSTANCE =
+      new FilterToCalcRule(RelFactories.LOGICAL_BUILDER);
 
   //~ Constructors -----------------------------------------------------------
 
-  private FilterToCalcRule() {
-    super(operand(LogicalFilter.class, any()));
+  /**
+   * Creates a FilterToCalcRule.
+   *
+   * @param relBuilderFactory Builder for relational expressions
+   */
+  public FilterToCalcRule(RelBuilderFactory relBuilderFactory) {
+    super(operand(LogicalFilter.class, any()), relBuilderFactory, null);
   }
 
   //~ Methods ----------------------------------------------------------------

@@ -20,17 +20,32 @@ import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterRule;
+import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.logical.LogicalTableModify;
 import org.apache.calcite.schema.ModifiableTable;
+import org.apache.calcite.tools.RelBuilderFactory;
+
+import com.google.common.base.Predicates;
 
 /** Planner rule that converts a
  * {@link org.apache.calcite.rel.logical.LogicalTableModify}
  * relational expression
  * {@link org.apache.calcite.adapter.enumerable.EnumerableConvention enumerable calling convention}. */
 public class EnumerableTableModifyRule extends ConverterRule {
+
+  @Deprecated // to be removed before 2.0
   EnumerableTableModifyRule() {
-    super(LogicalTableModify.class, Convention.NONE,
-        EnumerableConvention.INSTANCE, "EnumerableTableModificationRule");
+    this(RelFactories.LOGICAL_BUILDER);
+  }
+
+  /**
+   * Creates an EnumerableTableModifyRule.
+   *
+   * @param relBuilderFactory Builder for relational expressions
+   */
+  public EnumerableTableModifyRule(RelBuilderFactory relBuilderFactory) {
+    super(LogicalTableModify.class, Predicates.<RelNode>alwaysTrue(), Convention.NONE,
+        EnumerableConvention.INSTANCE, relBuilderFactory, "EnumerableTableModificationRule");
   }
 
   @Override public RelNode convert(RelNode rel) {

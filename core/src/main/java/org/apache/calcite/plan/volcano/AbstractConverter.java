@@ -27,7 +27,9 @@ import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.convert.ConverterImpl;
+import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
+import org.apache.calcite.tools.RelBuilderFactory;
 
 import java.util.List;
 
@@ -100,13 +102,15 @@ public class AbstractConverter extends ConverterImpl {
    */
   public static class ExpandConversionRule extends RelOptRule {
     public static final ExpandConversionRule INSTANCE =
-        new ExpandConversionRule();
+        new ExpandConversionRule(RelFactories.LOGICAL_BUILDER);
 
     /**
      * Creates an ExpandConversionRule.
+     *
+     * @param relBuilderFactory Builder for relational expressions
      */
-    private ExpandConversionRule() {
-      super(operand(AbstractConverter.class, any()));
+    public ExpandConversionRule(RelBuilderFactory relBuilderFactory) {
+      super(operand(AbstractConverter.class, any()), relBuilderFactory, null);
     }
 
     public void onMatch(RelOptRuleCall call) {

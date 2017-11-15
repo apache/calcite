@@ -18,7 +18,9 @@ package org.apache.calcite.rel.rules;
 
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.logical.LogicalFilter;
+import org.apache.calcite.tools.RelBuilderFactory;
 
 /**
  * Planner rule that merges a
@@ -30,17 +32,18 @@ import org.apache.calcite.rel.logical.LogicalFilter;
  */
 public class FilterMultiJoinMergeRule extends RelOptRule {
   public static final FilterMultiJoinMergeRule INSTANCE =
-      new FilterMultiJoinMergeRule();
+      new FilterMultiJoinMergeRule(RelFactories.LOGICAL_BUILDER);
 
   //~ Constructors -----------------------------------------------------------
 
   /**
    * Creates a FilterMultiJoinMergeRule.
    */
-  private FilterMultiJoinMergeRule() {
+  public FilterMultiJoinMergeRule(RelBuilderFactory relBuilderFactory) {
     super(
         operand(LogicalFilter.class,
-            operand(MultiJoin.class, any())));
+            operand(MultiJoin.class, any())),
+        relBuilderFactory, null);
   }
 
   //~ Methods ----------------------------------------------------------------

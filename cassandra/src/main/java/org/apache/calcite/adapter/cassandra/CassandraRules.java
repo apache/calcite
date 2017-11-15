@@ -29,6 +29,7 @@ import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterRule;
+import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalProject;
@@ -100,7 +101,8 @@ public class CassandraRules {
     <R extends RelNode> CassandraConverterRule(Class<R> clazz,
         Predicate<? super R> predicate,
         String description) {
-      super(clazz, predicate, Convention.NONE, CassandraRel.CONVENTION, description);
+      super(clazz, predicate, Convention.NONE,
+          CassandraRel.CONVENTION, RelFactories.LOGICAL_BUILDER, description);
       this.out = CassandraRel.CONVENTION;
     }
   }

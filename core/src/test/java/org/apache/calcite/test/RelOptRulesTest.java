@@ -33,6 +33,7 @@ import org.apache.calcite.rel.core.Intersect;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Minus;
+import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rel.logical.LogicalTableModify;
 import org.apache.calcite.rel.metadata.CachingRelMetadataProvider;
@@ -2211,7 +2212,8 @@ public class RelOptRulesTest extends RelOptTestBase {
 
         // Simulate the way INSERT will insert casts to the target types
         .addRuleInstance(
-            new CoerceInputsRule(LogicalTableModify.class, false))
+            new CoerceInputsRule(LogicalTableModify.class, false,
+                RelFactories.LOGICAL_BUILDER))
 
             // Convert projects to calcs, merge two calcs, and then
             // reduce redundant casts in merged calc.

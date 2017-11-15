@@ -20,6 +20,10 @@ import org.apache.calcite.adapter.jdbc.JdbcConvention;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterRule;
+import org.apache.calcite.rel.core.RelFactories;
+import org.apache.calcite.tools.RelBuilderFactory;
+
+import com.google.common.base.Predicates;
 
 /**
  * Rule to convert a relational expression from
@@ -27,10 +31,19 @@ import org.apache.calcite.rel.convert.ConverterRule;
  * {@link org.apache.calcite.adapter.spark.SparkRel#CONVENTION Spark convention}.
  */
 public class JdbcToSparkConverterRule extends ConverterRule {
+
+  @Deprecated // to be removed before 2.0
   JdbcToSparkConverterRule(JdbcConvention out) {
+    this(out, RelFactories.LOGICAL_BUILDER);
+  }
+
+  /** Creates a JdbcToSparkConverterRule. */
+  public JdbcToSparkConverterRule(JdbcConvention out, RelBuilderFactory relBuilderFactory) {
     super(
         RelNode.class,
+        Predicates.<RelNode>alwaysTrue(),
         out, SparkRel.CONVENTION,
+        relBuilderFactory,
         "JdbcToSparkConverterRule");
   }
 

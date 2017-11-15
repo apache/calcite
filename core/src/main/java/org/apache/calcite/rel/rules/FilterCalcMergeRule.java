@@ -19,11 +19,13 @@ package org.apache.calcite.rel.rules;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.rel.core.Filter;
+import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.logical.LogicalCalc;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.rex.RexProgramBuilder;
+import org.apache.calcite.tools.RelBuilderFactory;
 
 /**
  * Planner rule that merges a
@@ -38,15 +40,21 @@ public class FilterCalcMergeRule extends RelOptRule {
   //~ Static fields/initializers ---------------------------------------------
 
   public static final FilterCalcMergeRule INSTANCE =
-      new FilterCalcMergeRule();
+      new FilterCalcMergeRule(RelFactories.LOGICAL_BUILDER);
 
   //~ Constructors -----------------------------------------------------------
 
-  private FilterCalcMergeRule() {
+  /**
+   * Creates a FilterCalcMergeRule.
+   *
+   * @param relBuilderFactory Builder for relational expressions
+   */
+  public FilterCalcMergeRule(RelBuilderFactory relBuilderFactory) {
     super(
         operand(
             Filter.class,
-            operand(LogicalCalc.class, any())));
+            operand(LogicalCalc.class, any())),
+        relBuilderFactory, null);
   }
 
   //~ Methods ----------------------------------------------------------------

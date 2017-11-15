@@ -18,8 +18,10 @@ package org.apache.calcite.rel.rules;
 
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rel.logical.LogicalUnion;
+import org.apache.calcite.tools.RelBuilderFactory;
 
 /**
  * <code>UnionEliminatorRule</code> checks to see if its possible to optimize a
@@ -28,15 +30,16 @@ import org.apache.calcite.rel.logical.LogicalUnion;
  */
 public class UnionEliminatorRule extends RelOptRule {
   public static final UnionEliminatorRule INSTANCE =
-      new UnionEliminatorRule(LogicalUnion.class);
+      new UnionEliminatorRule(LogicalUnion.class, RelFactories.LOGICAL_BUILDER);
 
   //~ Constructors -----------------------------------------------------------
 
   /**
    * Creates a UnionEliminatorRule.
    */
-  private UnionEliminatorRule(Class<? extends Union> clazz) {
-    super(operand(clazz, any()));
+  public UnionEliminatorRule(Class<? extends Union> clazz,
+      RelBuilderFactory relBuilderFactory) {
+    super(operand(clazz, any()), relBuilderFactory, null);
   }
 
   //~ Methods ----------------------------------------------------------------

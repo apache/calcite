@@ -23,10 +23,12 @@ import org.apache.calcite.plan.volcano.RelSubset;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
+import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexPermuteInputsShuttle;
 import org.apache.calcite.rex.RexUtil;
+import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.mapping.Mappings;
 
@@ -49,18 +51,20 @@ public class JoinAssociateRule extends RelOptRule {
   //~ Static fields/initializers ---------------------------------------------
 
   /** The singleton. */
-  public static final JoinAssociateRule INSTANCE = new JoinAssociateRule();
+  public static final JoinAssociateRule INSTANCE =
+      new JoinAssociateRule(RelFactories.LOGICAL_BUILDER);
 
   //~ Constructors -----------------------------------------------------------
 
   /**
    * Creates a JoinAssociateRule.
    */
-  private JoinAssociateRule() {
+  public JoinAssociateRule(RelBuilderFactory relBuilderFactory) {
     super(
         operand(Join.class,
             operand(Join.class, any()),
-            operand(RelSubset.class, any())));
+            operand(RelSubset.class, any())),
+        relBuilderFactory, null);
   }
 
   //~ Methods ----------------------------------------------------------------
