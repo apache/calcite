@@ -70,7 +70,7 @@
   apacheId: jcamacho
   githubId: jcamachor
   org: Hortonworks
-  role: PMC Chair
+  role: PMC
 - name: Jinfeng Ni
   apacheId: jni
   githubId: jinfengni
@@ -111,7 +111,7 @@
   apacheId: mmior
   githubId: michaelmior
   org: University of Waterloo
-  role: PMC
+  role: PMC Chair
   homepage: http://michael.mior.ca/
 - name: Milinda Pathirage
   apacheId: milinda
