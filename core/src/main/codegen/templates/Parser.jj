@@ -3099,22 +3099,12 @@ List<Object> Expression2(ExprContext exprContext) :
                 }
                 (
                     <DOT>
-                    (
-                    <QUOTED_STRING> {
-                        list.add(
-                            new SqlParserUtil.ToTreeListItem(
-                                SqlStdOperatorTable.DOT, getPos()));
-                        p = SqlParserUtil.trim(token.image, "'"); // no embedded quotes
-                        list.add(SqlLiteral.createCharString(p, getPos()));
-                    }
-                    |
                     p = Identifier() {
                         list.add(
                             new SqlParserUtil.ToTreeListItem(
                                 SqlStdOperatorTable.DOT, getPos()));
-                        list.add(SqlLiteral.createCharString(p, getPos()));
+                        list.add(new SqlIdentifier(p, getPos()));
                     }
-                    )
                 )*
             |
                 {

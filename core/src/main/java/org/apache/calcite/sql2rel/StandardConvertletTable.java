@@ -248,6 +248,16 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
           }
         });
 
+    // "DOT"
+    registerOp(
+        SqlStdOperatorTable.DOT,
+        new SqlRexConvertlet() {
+          public RexNode convertCall(SqlRexContext cx, SqlCall call) {
+            return cx.getRexBuilder().makeCall(SqlStdOperatorTable.DOT,
+                cx.convertExpression(call.operand(0)),
+                cx.getRexBuilder().makeLiteral(call.operand(1).toString()));
+          }
+        });
     // "AS" has no effect, so expand "x AS id" into "x".
     registerOp(
         SqlStdOperatorTable.AS,

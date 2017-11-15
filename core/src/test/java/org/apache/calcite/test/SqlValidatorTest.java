@@ -7780,6 +7780,8 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   @Test public void testArrayOfRecordType() {
+    sql("SELECT name, dept_nested.employees[1].ne as ne from dept_nested")
+        .fails("Unknown field 'NE'");
     sql("SELECT name, dept_nested.employees[1].ename as ename from dept_nested")
         .type("RecordType(VARCHAR(10) NOT NULL NAME, VARCHAR(10) ENAME) NOT NULL");
     sql("SELECT dept_nested.employees[1].skills[1].desc as DESCRIPTION from dept_nested")
