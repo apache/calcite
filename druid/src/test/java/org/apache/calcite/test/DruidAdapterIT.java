@@ -2266,7 +2266,6 @@ public class DruidAdapterIT {
     final String sql = "SELECT \"store_state\", \"brand_name\", sum(\"store_sales\") - "
         + "sum(\"store_cost\") as a  from \"foodmart\" where extract (week from \"timestamp\")"
         + " IN (10,11) and \"brand_name\"='Bird Call' group by \"store_state\", \"brand_name\"";
-
     final String druidQuery = "'filter':{'type':'and','fields':[{'type':'selector','dimension'"
         + ":'brand_name','value':'Bird Call'},{'type':'or','fields':[{'type':'selector',"
         + "'dimension':'__time','value':'10','extractionFn':{'type':'timeFormat','format'"
@@ -2282,7 +2281,33 @@ public class DruidAdapterIT {
         + "intervals=[[1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z]], filter=[AND(=(";
     sql(sql, FOODMART)
         .explainContains(plan)
-        .queryContains(druidChecker(druidQuery));
+        .queryContains(druidChecker(druidQuery))
+        .returnsOrdered("store_state=CA; brand_name=Bird Call; A=34.364601135253906",
+            "store_state=OR; brand_name=Bird Call; A=39.16360282897949",
+            "store_state=WA; brand_name=Bird Call; A=53.74250030517578");
+  }
+
+  @Test public void testExtractFilterWorkWithPostAggregationsWithConstant() {
+    final String sql = "SELECT \"store_state\", 'Bird Call' as \"brand_name\", "
+        + "sum(\"store_sales\") - sum(\"store_cost\") as a  from \"foodmart\" "
+        + "where extract (week from \"timestamp\")"
+        + " IN (10,11) and \"brand_name\"='Bird Call' group by \"store_state\"";
+    final String druidQuery = "'aggregations':[{'type':'doubleSum','name':'$f1','fieldName':"
+        + "'store_sales'},{'type':'doubleSum','name':'$f2','fieldName':'store_cost'}],"
+        + "'postAggregations':[{'type':'arithmetic','name':'postagg#0','fn':'-',"
+        + "'fields':[{'type':'fieldAccess','name':'','fieldName':'$f1'},{'type':'fieldAccess',"
+        + "'name':'','fieldName':'$f2'}]}],"
+        + "'intervals':['1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z']}";
+    final String plan = "PLAN=EnumerableInterpreter\n"
+        + "  BindableProject(store_state=[$0], brand_name=['Bird Call'], A=[$1])\n"
+        + "    DruidQuery(table=[[foodmart, foodmart]], "
+        + "intervals=[[1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z]], filter=[AND(=(";
+    sql(sql, FOODMART)
+        .explainContains(plan)
+        .queryContains(druidChecker(druidQuery))
+        .returnsOrdered("store_state=CA; brand_name=Bird Call; A=34.364601135253906",
+            "store_state=OR; brand_name=Bird Call; A=39.16360282897949",
+            "store_state=WA; brand_name=Bird Call; A=53.74250030517578");
   }
 
   @Test public void testSingleAverageFunction() {

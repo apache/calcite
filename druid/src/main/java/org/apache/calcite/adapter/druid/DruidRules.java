@@ -525,9 +525,8 @@ public class DruidRules {
       }
       Project innerProject = project.copy(project.getTraitSet(), Util.last(query.rels), innerRex,
           typeBuilder.build());
-      // When no input get visited, it means all project can be treated as post-aggregation.
-      // Then the whole project can be get pushed in.
-      if (visitor.inputPosReferenced.size() == 0) {
+      // If the whole project is pushed, we do not need to do anything else.
+      if (project.getNamedProjects().size() == nameMap.size()) {
         return new Pair<>(innerProject, null);
       }
       // Build outer Project when some projects are left in outer project.
@@ -573,9 +572,9 @@ public class DruidRules {
       final ImmutableMap.Builder<String, String> mapBuilder = ImmutableMap.builder();
       int j = 0;
       boolean ret = false;
-      for (Pair namedProject : project.getNamedProjects()) {
-        RexNode rex = (RexNode) namedProject.left;
-        String name = (String) namedProject.right;
+      for (Pair<RexNode, String> namedProject : project.getNamedProjects()) {
+        RexNode rex = namedProject.left;
+        String name = namedProject.right;
         // Find out the corresponding fieldName for DruidQuery to fetch result
         // in DruidConnectionImpl, give specific name for post aggregator
         if (rex instanceof RexCall) {
