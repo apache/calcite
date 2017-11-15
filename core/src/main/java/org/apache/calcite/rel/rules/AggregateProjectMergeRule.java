@@ -20,6 +20,7 @@ import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
+import org.apache.calcite.rel.core.Aggregate.Group;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.RelFactories;
@@ -88,7 +89,7 @@ public class AggregateProjectMergeRule extends RelOptRule {
 
     final ImmutableBitSet newGroupSet = aggregate.getGroupSet().permute(map);
     ImmutableList<ImmutableBitSet> newGroupingSets = null;
-    if (aggregate.getGroupSets().size() > 1) {
+    if (aggregate.getGroupType() != Group.SIMPLE) {
       newGroupingSets =
           ImmutableBitSet.ORDERING.immutableSortedCopy(
               ImmutableBitSet.permute(aggregate.getGroupSets(), map));
