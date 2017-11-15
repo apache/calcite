@@ -4250,6 +4250,11 @@ public class SqlParserTest {
     checkExp("a[b[1 + 2] + 3]", "`A`[(`B`[(1 + 2)] + 3)]");
   }
 
+  @Test public void testArrayElementWithDot() {
+    checkExp("a[1+2].b.c[2].d", "(((`A`[(1 + 2)].`B`).`C`)[2].`D`)");
+    checkExp("a[b[1]].c.f0[d[1]]", "((`A`[`B`[1]].`C`).`F0`)[`D`[1]]");
+  }
+
   @Test public void testArrayValueConstructor() {
     checkExp("array[1, 2]", "(ARRAY[1, 2])");
     checkExp("array [1, 2]", "(ARRAY[1, 2])"); // with space

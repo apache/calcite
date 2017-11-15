@@ -3273,6 +3273,13 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     }
   }
 
+  private SqlNode stripDot(SqlNode node) {
+    if (node != null && node.getKind() == SqlKind.DOT) {
+      return ((SqlCall) node).operand(0);
+    }
+    return node;
+  }
+
   private void checkRollUp(SqlNode grandParent, SqlNode parent,
                            SqlNode current, SqlValidatorScope scope, String optionalClause) {
     current = stripAs(current);
@@ -3281,7 +3288,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       checkRollUpInWindow(getWindowInOver(current), scope);
       current = stripOver(current);
 
-      List<SqlNode> children = ((SqlCall) current).getOperandList();
+      List<SqlNode> children = ((SqlCall) stripDot(current)).getOperandList();
       for (SqlNode child : children) {
         checkRollUp(parent, current, child, scope, optionalClause);
       }
@@ -3289,10 +3296,10 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       SqlIdentifier id = (SqlIdentifier) current;
       if (!id.isStar() && isRolledUpColumn(id, scope)) {
         if (!isAggregation(parent.getKind())
-                || !isRolledUpColumnAllowedInAgg(id, scope, (SqlCall) parent, grandParent)) {
+            || !isRolledUpColumnAllowedInAgg(id, scope, (SqlCall) parent, grandParent)) {
           String context = optionalClause != null ? optionalClause : parent.getKind().toString();
           throw newValidationError(id,
-                  RESOURCE.rolledUpNotAllowed(deriveAlias(id, 0), context));
+              RESOURCE.rolledUpNotAllowed(deriveAlias(id, 0), context));
         }
       }
     }
