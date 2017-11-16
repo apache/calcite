@@ -273,6 +273,9 @@ public abstract class Project extends SingleRel {
    */
   public static Mappings.TargetMapping getMapping(int inputFieldCount,
       List<? extends RexNode> projects) {
+    if (inputFieldCount < projects.size()) {
+      return null; // surjection is not possible
+    }
     Mappings.TargetMapping mapping =
         Mappings.create(MappingType.INVERSE_SURJECTION,
             inputFieldCount, projects.size());

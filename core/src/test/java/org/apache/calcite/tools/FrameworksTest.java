@@ -16,17 +16,32 @@
  */
 package org.apache.calcite.tools;
 
+import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.enumerable.EnumerableConvention;
 import org.apache.calcite.adapter.enumerable.EnumerableTableScan;
 import org.apache.calcite.jdbc.CalciteConnection;
+import org.apache.calcite.linq4j.Enumerable;
+import org.apache.calcite.linq4j.QueryProvider;
+import org.apache.calcite.linq4j.Queryable;
+import org.apache.calcite.linq4j.tree.Expression;
+import org.apache.calcite.plan.ConventionTraitDef;
 import org.apache.calcite.plan.RelOptAbstractTable;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptSchema;
+import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.plan.volcano.AbstractConverter;
+import org.apache.calcite.prepare.CalcitePrepareImpl;
+import org.apache.calcite.prepare.Prepare;
+import org.apache.calcite.rel.RelCollation;
+import org.apache.calcite.rel.RelDistributionTraitDef;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.TableModify;
 import org.apache.calcite.rel.logical.LogicalFilter;
+import org.apache.calcite.rel.logical.LogicalTableModify;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
@@ -34,10 +49,15 @@ import org.apache.calcite.rel.type.RelDataTypeSystemImpl;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.schema.ModifiableTable;
 import org.apache.calcite.schema.Path;
+import org.apache.calcite.schema.ProjectableFilterableTable;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.Schemas;
+import org.apache.calcite.schema.Statistic;
+import org.apache.calcite.schema.Statistics;
 import org.apache.calcite.schema.Table;
+import org.apache.calcite.schema.impl.AbstractSchema;
 import org.apache.calcite.schema.impl.AbstractTable;
 import org.apache.calcite.server.CalciteServerStatement;
 import org.apache.calcite.sql.SqlExplainFormat;
@@ -45,15 +65,23 @@ import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.dialect.AnsiSqlDialect;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.parser.SqlParseException;
+import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.test.CalciteAssert;
+import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Util;
 
 import com.google.common.base.Function;
+import com.google.common.collect.ImmutableList;
 
 import org.junit.Test;
 
+import java.lang.reflect.Type;
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
@@ -277,6 +305,121 @@ public class FrameworksTest {
             }
           }
         });
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2039">[CALCITE-2039]
+   * AssertionError when pushing project to ProjectableFilterableTable</a>
+   * using UPDATE via {@link Frameworks}. */
+  @Test public void testUpdate() throws Exception {
+    Table table = new TableImpl();
+    final SchemaPlus rootSchema = Frameworks.createRootSchema(true);
+    SchemaPlus schema = rootSchema.add("x", new AbstractSchema());
+    schema.add("MYTABLE", table);
+    List<RelTraitDef> traitDefs = new ArrayList<>();
+    traitDefs.add(ConventionTraitDef.INSTANCE);
+    traitDefs.add(RelDistributionTraitDef.INSTANCE);
+    SqlParser.Config parserConfig =
+        SqlParser.configBuilder(SqlParser.Config.DEFAULT)
+            .setCaseSensitive(false)
+            .build();
+
+    final FrameworkConfig config = Frameworks.newConfigBuilder()
+        .parserConfig(parserConfig)
+        .defaultSchema(schema)
+        .traitDefs(traitDefs)
+        // define the rules you want to apply
+        .ruleSets(
+            RuleSets.ofList(AbstractConverter.ExpandConversionRule.INSTANCE))
+        .programs(Programs.ofRules(Programs.RULE_SET))
+        .build();
+    executeQuery(config, " UPDATE MYTABLE set id=7 where id=1",
+        CalcitePrepareImpl.DEBUG);
+  }
+
+  private void executeQuery(FrameworkConfig config,
+      @SuppressWarnings("SameParameterValue") String query, boolean debug)
+      throws RelConversionException, SqlParseException, ValidationException {
+    Planner planner = Frameworks.getPlanner(config);
+    if (debug) {
+      System.out.println("Query:" + query);
+    }
+    SqlNode n = planner.parse(query);
+    n = planner.validate(n);
+    RelNode root = planner.rel(n).project();
+    if (debug) {
+      System.out.println(
+          RelOptUtil.dumpPlan("-- Logical Plan", root, SqlExplainFormat.TEXT,
+              SqlExplainLevel.DIGEST_ATTRIBUTES));
+    }
+    RelOptCluster cluster = root.getCluster();
+    final RelOptPlanner optPlanner = cluster.getPlanner();
+
+    RelTraitSet desiredTraits  =
+        cluster.traitSet().replace(EnumerableConvention.INSTANCE);
+    final RelNode newRoot = optPlanner.changeTraits(root, desiredTraits);
+    if (debug) {
+      System.out.println(
+          RelOptUtil.dumpPlan("-- Mid Plan", newRoot, SqlExplainFormat.TEXT,
+              SqlExplainLevel.DIGEST_ATTRIBUTES));
+    }
+    optPlanner.setRoot(newRoot);
+    RelNode bestExp = optPlanner.findBestExp();
+    if (debug) {
+      System.out.println(
+          RelOptUtil.dumpPlan("-- Best Plan", bestExp, SqlExplainFormat.TEXT,
+              SqlExplainLevel.DIGEST_ATTRIBUTES));
+    }
+  }
+
+  /** Modifiable, filterable table. */
+  private static class TableImpl extends AbstractTable
+      implements ModifiableTable, ProjectableFilterableTable {
+    TableImpl() {}
+
+    public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+      return typeFactory.builder()
+          .add("id", typeFactory.createSqlType(SqlTypeName.INTEGER))
+          .add("name", typeFactory.createSqlType(SqlTypeName.INTEGER))
+          .build();
+    }
+
+    public Statistic getStatistic() {
+      return Statistics.of(15D,
+          ImmutableList.of(ImmutableBitSet.of(0)),
+          ImmutableList.<RelCollation>of());
+    }
+
+    public Enumerable<Object[]> scan(DataContext root, List<RexNode> filters,
+        int[] projects) {
+      throw new UnsupportedOperationException();
+    }
+
+    public Collection getModifiableCollection() {
+      throw new UnsupportedOperationException();
+    }
+
+    public TableModify toModificationRel(RelOptCluster cluster,
+        RelOptTable table, Prepare.CatalogReader catalogReader, RelNode child,
+        TableModify.Operation operation, List<String> updateColumnList,
+        List<RexNode> sourceExpressionList, boolean flattened) {
+      return LogicalTableModify.create(table, catalogReader, child, operation,
+          updateColumnList, sourceExpressionList, flattened);
+    }
+
+    public <T> Queryable<T> asQueryable(QueryProvider queryProvider,
+        SchemaPlus schema, String tableName) {
+      throw new UnsupportedOperationException();
+    }
+
+    public Type getElementType() {
+      return Object.class;
+    }
+
+    public Expression getExpression(SchemaPlus schema, String tableName,
+        Class clazz) {
+      throw new UnsupportedOperationException();
+    }
   }
 
   /** Dummy type system, similar to Hive's, accessed via an INSTANCE member. */
