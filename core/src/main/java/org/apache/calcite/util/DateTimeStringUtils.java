@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.util;
 
+import java.util.Locale;
 import java.util.TimeZone;
 
 /**
@@ -34,6 +35,14 @@ public class DateTimeStringUtils {
   }
 
   static StringBuilder hms(StringBuilder b, int h, int m, int s) {
+    if (h < 0 || h > 23
+        || m < 0 || m > 59
+        || s < 0 || s > 59) {
+      throw new IllegalArgumentException(
+          String.format(Locale.ROOT,
+              "Specified time has value that is outside the expected range: %s:%s:%s",
+              h, m, s));
+    }
     int2(b, h);
     b.append(':');
     int2(b, m);
@@ -51,6 +60,14 @@ public class DateTimeStringUtils {
   }
 
   static StringBuilder ymd(StringBuilder b, int year, int month, int day) {
+    if (year < 0 || year > 9999
+        || month < 0 || month > 12
+        || day < 0 || day > 31) {
+      throw new IllegalArgumentException(
+          String.format(Locale.ROOT,
+              "Specified date has value that is outside the expected range: %s-%s-%s",
+              year, month, day));
+    }
     int4(b, year);
     b.append('-');
     int2(b, month);

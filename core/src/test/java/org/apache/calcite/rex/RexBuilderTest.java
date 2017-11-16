@@ -32,11 +32,13 @@ import org.junit.Test;
 import java.util.Calendar;
 import java.util.TimeZone;
 
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
 
 /**
  * Test for {@link RexBuilder}.
@@ -347,6 +349,78 @@ public class RexBuilderTest {
     // The new way
     final DateString d = new DateString(1969, 7, 21);
     checkDate(builder.makeLiteral(d, dateType, false));
+  }
+
+  /** Tests {@link DateString} year range. */
+  @Test
+  public void testDateStringYearError() {
+    try {
+      new DateString(11969, 7, 21);
+      fail("expected exception");
+    } catch (IllegalArgumentException e) {
+      assertThat(e.getMessage(),
+          containsString("Specified date has value that is outside the expected range"));
+    }
+  }
+
+  /** Tests {@link DateString} month range. */
+  @Test
+  public void testDateStringMonthError() {
+    try {
+      new DateString(1969, 27, 21);
+      fail("expected exception");
+    } catch (IllegalArgumentException e) {
+      assertThat(e.getMessage(),
+          containsString("Specified date has value that is outside the expected range"));
+    }
+  }
+
+  /** Tests {@link DateString} day range. */
+  @Test
+  public void testDateStringDayError() {
+    try {
+      new DateString(1969, 7, 41);
+      fail("expected exception");
+    } catch (IllegalArgumentException e) {
+      assertThat(e.getMessage(),
+          containsString("Specified date has value that is outside the expected range"));
+    }
+  }
+
+  /** Tests {@link TimeString} hour range. */
+  @Test
+  public void testTimeStringHourError() {
+    try {
+      new TimeString(111, 34, 56);
+      fail("expected exception");
+    } catch (IllegalArgumentException e) {
+      assertThat(e.getMessage(),
+          containsString("Specified time has value that is outside the expected range"));
+    }
+  }
+
+  /** Tests {@link TimeString} minute range. */
+  @Test
+  public void testTimeStringMinuteError() {
+    try {
+      new TimeString(12, 334, 56);
+      fail("expected exception");
+    } catch (IllegalArgumentException e) {
+      assertThat(e.getMessage(),
+          containsString("Specified time has value that is outside the expected range"));
+    }
+  }
+
+  /** Tests {@link TimeString} second range. */
+  @Test
+  public void testTimeStringSecondError() {
+    try {
+      new TimeString(12, 34, 567);
+      fail("expected exception");
+    } catch (IllegalArgumentException e) {
+      assertThat(e.getMessage(),
+          containsString("Specified time has value that is outside the expected range"));
+    }
   }
 
   private void checkDate(RexNode node) {
