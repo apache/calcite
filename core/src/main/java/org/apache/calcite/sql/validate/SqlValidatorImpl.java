@@ -345,10 +345,11 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     final List<Map.Entry<String, RelDataType>> types = new ArrayList<>();
     for (int i = 0; i < selectList.size(); i++) {
       final SqlNode selectItem = selectList.get(i);
+      final RelDataType originalType = getValidatedNodeTypeIfKnown(selectItem);
       expandSelectItem(
           selectItem,
           select,
-          unknownType,
+          Util.first(originalType, unknownType),
           list,
           catalogReader.nameMatcher().isCaseSensitive()
               ? new LinkedHashSet<String>()

@@ -3989,6 +3989,19 @@ LogicalTableModify(table=[[CATALOG, SALES, EMP]], operation=[UPDATE], updateColu
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testUpdateBind2">
+        <Resource name="sql">
+            <![CDATA[update emp set sal = ? where slacker = false]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalTableModify(table=[[CATALOG, SALES, EMP]], operation=[UPDATE], updateColumnList=[[SAL]], sourceExpressionList=[[?0]], flattened=[true])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], EXPR$0=[?0])
+    LogicalFilter(condition=[=($8, false)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testUpdateExtendedColumnCollision">
         <Resource name="sql">
             <![CDATA[update empdefaults(empno INTEGER NOT NULL, deptno INTEGER) set deptno = 1, empno = 20, ename = 'Bob' where deptno = 10]]>
