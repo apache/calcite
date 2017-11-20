@@ -82,8 +82,12 @@ public class SqlDotOperator extends SqlSpecialOperator {
 
   @Override public <R> void acceptCall(SqlVisitor<R> visitor, SqlCall call,
       boolean onlyExpressions, SqlBasicVisitor.ArgHandler<R> argHandler) {
-    // Do not visit operands[1] here.
-    argHandler.visitChild(visitor, call, 0, call.operand(0));
+    if (onlyExpressions) {
+      // Do not visit operands[1] -- it is not an expression.
+      argHandler.visitChild(visitor, call, 0, call.operand(0));
+    } else {
+      super.acceptCall(visitor, call, onlyExpressions, argHandler);
+    }
   }
 
   @Override public RelDataType deriveType(SqlValidator validator,
