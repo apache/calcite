@@ -33,7 +33,7 @@ Downloads are available on the
 
 Compatibility: This release is tested
 on Linux, macOS, Microsoft Windows;
-using Oracle JDK 1.7, 1.8, 9;
+using Oracle JDK 7, 8, 9, 10;
 Guava versions 14.0 to 21.0;
 Druid version 0.10.0;
 other software versions as specified in `pom.xml`.
