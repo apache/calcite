@@ -251,6 +251,9 @@ in those same conformance levels, any *column* in *insert* may be replaced by
 In *orderItem*, if *expression* is a positive integer *n*, it denotes
 the <em>n</em>th item in the SELECT clause.
 
+In *query*, *count* and *start* may each be either an unsigned integer literal
+or a dynamic parameter whose value is an integer.
+
 An aggregate query is a query that contains a GROUP BY or a HAVING
 clause, or aggregate functions in the SELECT clause. In the SELECT,
 HAVING and ORDER BY clauses of an aggregate query, all expressions

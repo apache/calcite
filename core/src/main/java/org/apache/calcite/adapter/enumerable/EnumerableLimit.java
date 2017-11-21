@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.adapter.enumerable;
 
+import org.apache.calcite.DataContext;
 import org.apache.calcite.linq4j.tree.BlockBuilder;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
@@ -31,6 +32,7 @@ import org.apache.calcite.rel.SingleRel;
 import org.apache.calcite.rel.metadata.RelMdCollation;
 import org.apache.calcite.rel.metadata.RelMdDistribution;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
+import org.apache.calcite.rex.RexDynamicParam;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.util.BuiltInMethod;
@@ -117,7 +119,7 @@ public class EnumerableLimit extends SingleRel implements EnumerableRel {
           Expressions.call(
               v,
               BuiltInMethod.SKIP.method,
-              Expressions.constant(RexLiteral.intValue(offset))));
+              getExpression(offset)));
     }
     if (fetch != null) {
       v = builder.append(
@@ -125,7 +127,7 @@ public class EnumerableLimit extends SingleRel implements EnumerableRel {
           Expressions.call(
               v,
               BuiltInMethod.TAKE.method,
-              Expressions.constant(RexLiteral.intValue(fetch))));
+              getExpression(fetch)));
     }
 
     builder.add(
@@ -133,6 +135,19 @@ public class EnumerableLimit extends SingleRel implements EnumerableRel {
             null,
             v));
     return implementor.result(physType, builder.toBlock());
+  }
+
+  private static Expression getExpression(RexNode offset) {
+    if (offset instanceof RexDynamicParam) {
+      final RexDynamicParam param = (RexDynamicParam) offset;
+      return Expressions.convert_(
+          Expressions.call(DataContext.ROOT,
+              BuiltInMethod.DATA_CONTEXT_GET.method,
+              Expressions.constant("?" + param.getIndex())),
+          Integer.class);
+    } else {
+      return Expressions.constant(RexLiteral.intValue(offset));
+    }
   }
 }
 

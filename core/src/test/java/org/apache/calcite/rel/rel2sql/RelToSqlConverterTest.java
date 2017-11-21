@@ -592,7 +592,7 @@ public class RelToSqlConverterTest {
         + "AND ? >= \"shelf_width\"";
     final String expected = "SELECT *\n"
         + "FROM \"foodmart\".\"product\"\n"
-        + "WHERE \"product_id\" = ?"
+        + "WHERE \"product_id\" = ? "
         + "AND ? >= \"shelf_width\"";
     sql(query).ok(expected);
   }

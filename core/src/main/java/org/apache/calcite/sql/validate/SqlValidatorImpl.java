@@ -1063,6 +1063,17 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     }
   }
 
+  private void handleOffsetFetch(SqlNode offset, SqlNode fetch) {
+    if (offset instanceof SqlDynamicParam) {
+      setValidatedNodeType(offset,
+          typeFactory.createSqlType(SqlTypeName.INTEGER));
+    }
+    if (fetch instanceof SqlDynamicParam) {
+      setValidatedNodeType(fetch,
+          typeFactory.createSqlType(SqlTypeName.INTEGER));
+    }
+  }
+
   /**
    * Performs expression rewrites which are always used unconditionally. These
    * rewrites massage the expression tree into a standard form so that the
@@ -1160,6 +1171,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
     case ORDER_BY: {
       SqlOrderBy orderBy = (SqlOrderBy) node;
+      handleOffsetFetch(orderBy.offset, orderBy.fetch);
       if (orderBy.query instanceof SqlSelect) {
         SqlSelect select = (SqlSelect) orderBy.query;
 
@@ -3144,7 +3156,6 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       SqlSelect select,
       RelDataType targetRowType) {
     assert targetRowType != null;
-
     // Namespace is either a select namespace or a wrapper around one.
     final SelectNamespace ns =
         getNamespace(select).unwrap(SelectNamespace.class);
@@ -3208,6 +3219,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     validateGroupClause(select);
     validateHavingClause(select);
     validateWindowClause(select);
+    handleOffsetFetch(select.getOffset(), select.getFetch());
 
     // Validate the SELECT clause late, because a select item might
     // depend on the GROUP BY list, or the window function might reference
@@ -5222,11 +5234,17 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     // NOTE: We assume that bind variables occur in depth-first tree
     // traversal in the same order that they occurred in the SQL text.
     final List<RelDataType> types = new ArrayList<>();
+    // NOTE: but parameters on fetch/offset would be counted twice
+    // as they are counted in the SqlOrderBy call and the inner SqlSelect call
+    final Set<SqlNode> alreadyVisited = new HashSet<>();
     sqlQuery.accept(
         new SqlShuttle() {
+
           @Override public SqlNode visit(SqlDynamicParam param) {
-            RelDataType type = getValidatedNodeType(param);
-            types.add(type);
+            if (alreadyVisited.add(param)) {
+              RelDataType type = getValidatedNodeType(param);
+              types.add(type);
+            }
             return param;
           }
         });

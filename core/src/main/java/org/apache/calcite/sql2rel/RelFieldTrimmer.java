@@ -43,6 +43,7 @@ import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rel.type.RelDataTypeImpl;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCorrelVariable;
+import org.apache.calcite.rex.RexDynamicParam;
 import org.apache.calcite.rex.RexFieldAccess;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
@@ -525,6 +526,12 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
         && inputMapping.isIdentity()
         && fieldsUsed.cardinality() == fieldCount) {
       return result(sort, Mappings.createIdentity(fieldCount));
+    }
+
+    // leave the Sort unchanged in case we have dynamic limits
+    if (sort.offset instanceof RexDynamicParam
+        || sort.fetch instanceof RexDynamicParam) {
+      return result(sort, inputMapping);
     }
 
     relBuilder.push(newInput);

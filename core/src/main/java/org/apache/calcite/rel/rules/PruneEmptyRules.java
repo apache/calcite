@@ -32,6 +32,7 @@ import org.apache.calcite.rel.logical.LogicalIntersect;
 import org.apache.calcite.rel.logical.LogicalMinus;
 import org.apache.calcite.rel.logical.LogicalUnion;
 import org.apache.calcite.rel.logical.LogicalValues;
+import org.apache.calcite.rex.RexDynamicParam;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
@@ -247,6 +248,7 @@ public abstract class PruneEmptyRules {
         @Override public void onMatch(RelOptRuleCall call) {
           Sort sort = call.rel(0);
           if (sort.fetch != null
+              && !(sort.fetch instanceof RexDynamicParam)
               && RexLiteral.intValue(sort.fetch) == 0) {
             call.transformTo(call.builder().push(sort).empty().build());
           }
