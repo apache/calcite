@@ -100,6 +100,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.LinkedListMultimap;
 import com.google.common.collect.Multimap;
 
+import org.hamcrest.Matcher;
 import org.hsqldb.jdbcDriver;
 
 import org.junit.Ignore;
@@ -116,12 +117,14 @@ import java.sql.DatabaseMetaData;
 import java.sql.Date;
 import java.sql.DriverManager;
 import java.sql.DriverPropertyInfo;
+import java.sql.ParameterMetaData;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
+import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
@@ -4882,6 +4885,45 @@ public class JdbcTest {
                   preparedStatement2.close();
                   preparedStatement.close();
                   return null;
+                } catch (SQLException e) {
+                  throw new RuntimeException(e);
+                }
+              }
+            });
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2061">[CALCITE-2061]
+   * Dynamic parameters in offset/fetch</a>. */
+  @Test public void testPreparedOffsetFetch() throws Exception {
+    checkPreparedOffsetFetch(0, 0, Matchers.returnsUnordered());
+    checkPreparedOffsetFetch(100, 4, Matchers.returnsUnordered());
+    checkPreparedOffsetFetch(3, 4,
+        Matchers.returnsUnordered("row 1", "row 2"));
+  }
+
+  private void checkPreparedOffsetFetch(final int offset, final int fetch,
+      final Matcher<? super ResultSet> matcher) throws Exception {
+    CalciteAssert.hr()
+        .doWithConnection(
+            new Function<CalciteConnection, Object>() {
+              public Object apply(CalciteConnection connection) {
+                final String sql = "select \"name\"\n"
+                    + "from \"hr\".\"emps\"\n"
+                    + "order by \"empid\" offset ? fetch next ? rows only";
+                try (final PreparedStatement p =
+                         connection.prepareStatement(sql)) {
+                  final ParameterMetaData pmd = p.getParameterMetaData();
+                  assertThat(pmd.getParameterCount(), is(2));
+                  assertThat(pmd.getParameterType(1), is(Types.BIGINT));
+                  assertThat(pmd.getParameterType(2), is(Types.BIGINT));
+
+                  p.setInt(1, offset);
+                  p.setInt(2, fetch);
+                  try (final ResultSet r = p.executeQuery()) {
+                    assertThat(r, matcher);
+                    return null;
+                  }
                 } catch (SQLException e) {
                   throw new RuntimeException(e);
                 }

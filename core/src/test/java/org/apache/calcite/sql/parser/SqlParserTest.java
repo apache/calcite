@@ -2486,8 +2486,8 @@ public class SqlParserTest {
         "select a from foo offset ? row fetch next ? rows only",
         "SELECT `A`\n"
             + "FROM `FOO`\n"
-            + "OFFSET ?ROWS\n"
-            + "FETCH NEXT ?ROWS ONLY");
+            + "OFFSET ? ROWS\n"
+            + "FETCH NEXT ? ROWS ONLY");
     // missing ROWS after FETCH
     checkFails(
         "select a from foo offset 1 fetch next 3 ^only^",
