@@ -47,6 +47,7 @@ import static org.apache.calcite.plan.RelOptRule.none;
 import static org.apache.calcite.plan.RelOptRule.operand;
 import static org.apache.calcite.plan.RelOptRule.some;
 import static org.apache.calcite.plan.RelOptRule.unordered;
+import org.apache.calcite.rex.RexDynamicParam;
 
 /**
  * Collection of rules which remove sections of a query plan known never to
@@ -246,7 +247,7 @@ public abstract class PruneEmptyRules {
           operand(Sort.class, any()), "PruneSortLimit0") {
         @Override public void onMatch(RelOptRuleCall call) {
           Sort sort = call.rel(0);
-          if (sort.fetch != null
+          if (sort.fetch != null && !(sort.fetch instanceof RexDynamicParam)
               && RexLiteral.intValue(sort.fetch) == 0) {
             call.transformTo(call.builder().push(sort).empty().build());
           }

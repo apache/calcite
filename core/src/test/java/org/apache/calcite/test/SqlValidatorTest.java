@@ -7918,6 +7918,17 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     tester.checkRewrite(validator, sql, expected);
   }
 
+ @Test public void testRewriteWithLimitWithDynamicParameters() {
+    SqlValidator validator = tester.getValidator();
+    validator.setIdentifierExpansion(false);
+    final String sql = "select name from dept offset ? rows fetch next ? rows only";
+    final String expected = "SELECT `NAME`\n"
+        + "FROM `DEPT`\n"
+        + "OFFSET ?ROWS\n"
+        + "FETCH NEXT ?ROWS ONLY";
+    tester.checkRewrite(validator, sql, expected);
+  }
+
   @Test public void testRewriteWithOffsetWithoutOrderBy() {
     SqlValidator validator = tester.getValidator();
     validator.setIdentifierExpansion(false);

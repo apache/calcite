@@ -669,9 +669,21 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  @Test public void testOrderOffsetFetchWithDynamicParameter() {
+    final String sql = "select empno from emp\n"
+        + "order by empno offset ? rows fetch next ? rows only";
+    sql(sql).ok();
+  }
+
   @Test public void testOffsetFetch() {
     final String sql = "select empno from emp\n"
         + "offset 10 rows fetch next 5 rows only";
+    sql(sql).ok();
+  }
+
+  @Test public void testOffsetFetchWithDynamicParameter() {
+    final String sql = "select empno from emp\n"
+        + "offset ? rows fetch next ? rows only";
     sql(sql).ok();
   }
 
@@ -680,8 +692,18 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  @Test public void testOffsetWithDynamicParameter() {
+    final String sql = "select empno from emp offset ? rows";
+    sql(sql).ok();
+  }
+
   @Test public void testFetch() {
     final String sql = "select empno from emp fetch next 5 rows only";
+    sql(sql).ok();
+  }
+
+  @Test public void testFetchWithDynamicParameter() {
+    final String sql = "select empno from emp fetch next ? rows only";
     sql(sql).ok();
   }
 

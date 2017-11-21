@@ -609,14 +609,14 @@ SqlNode OrderedQueryOrExpr(ExprContext exprContext) :
         <LIMIT>
         (
             // MySQL-style syntax. "LIMIT start, count"
-            start = UnsignedNumericLiteral()
-            <COMMA> count = UnsignedNumericLiteral() {
+            start = FetchOffsetValueExpression()
+            <COMMA> count = FetchOffsetValueExpression() {
                 if (!this.conformance.isLimitStartCountAllowed()) {
                     throw new ParseException(RESOURCE.limitStartCountNotAllowed().str());
                 }
             }
         |
-            count = UnsignedNumericLiteral()
+            count = FetchOffsetValueExpression()
         |
             <ALL>
         )
@@ -625,12 +625,12 @@ SqlNode OrderedQueryOrExpr(ExprContext exprContext) :
         // ROW or ROWS is required in SQL:2008 but we make it optional
         // because it is not present in Postgres-style syntax.
         // If you specify both LIMIT start and OFFSET, OFFSET wins.
-        <OFFSET> start = UnsignedNumericLiteral() [ <ROW> | <ROWS> ]
+        <OFFSET> start = FetchOffsetValueExpression() [ <ROW> | <ROWS> ]
     ]
     [
         // SQL:2008-style syntax. "OFFSET ... FETCH ...".
         // If you specify both LIMIT and FETCH, FETCH wins.
-        <FETCH> ( <FIRST> | <NEXT> ) count = UnsignedNumericLiteral() ( <ROW> | <ROWS> ) <ONLY>
+        <FETCH> ( <FIRST> | <NEXT> ) count = FetchOffsetValueExpression() ( <ROW> | <ROWS> ) <ONLY>
     ]
     {
         if (orderBy != null || start != null || count != null) {
@@ -3282,6 +3282,22 @@ SqlCollation CollateClause() :
         return new SqlCollation(
             getToken(0).image, SqlCollation.Coercibility.EXPLICIT);
     }
+}
+
+/**
+ * Parses an atomic expression useful for limit/fetch/offset.
+ */
+SqlNode FetchOffsetValueExpression() :
+{
+    final SqlNode e;
+}
+{
+    (
+        e = UnsignedNumericLiteral()
+    |
+        e = DynamicParam()
+    )
+    { return e; }
 }
 
 /**

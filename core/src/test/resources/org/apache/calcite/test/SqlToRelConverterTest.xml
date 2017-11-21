@@ -1461,6 +1461,19 @@ LogicalSort(sort0=[$0], dir0=[ASC], offset=[10], fetch=[5])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testOrderOffsetFetchWithDynamicParameter">
+        <Resource name="sql">
+            <![CDATA[select empno from emp
+order by empno offset ? rows fetch next ? rows only]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalSort(sort0=[$0], dir0=[ASC], offset=[?0], fetch=[?1])
+  LogicalProject(EMPNO=[$0])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testFetch">
         <Resource name="sql">
             <![CDATA[select empno from emp fetch next 5 rows only]]>
@@ -1468,6 +1481,18 @@ LogicalSort(sort0=[$0], dir0=[ASC], offset=[10], fetch=[5])
         <Resource name="plan">
             <![CDATA[
 LogicalSort(fetch=[5])
+  LogicalProject(EMPNO=[$0])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testFetchWithDynamicParameter">
+        <Resource name="sql">
+            <![CDATA[select empno from emp fetch next ? rows only]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalSort(fetch=[?0])
   LogicalProject(EMPNO=[$0])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
@@ -1486,6 +1511,19 @@ LogicalSort(offset=[10], fetch=[5])
 ]]>
         </Resource>
     </TestCase>
+<TestCase name="testOffsetFetchWithDynamicParameter">
+        <Resource name="sql">
+            <![CDATA[select empno from emp
+offset ? rows fetch next ? rows only]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalSort(offset=[?0], fetch=[?1])
+  LogicalProject(EMPNO=[$0])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testOffset">
         <Resource name="sql">
             <![CDATA[select empno from emp offset 10 rows]]>
@@ -1493,6 +1531,18 @@ LogicalSort(offset=[10], fetch=[5])
         <Resource name="plan">
             <![CDATA[
 LogicalSort(offset=[10])
+  LogicalProject(EMPNO=[$0])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testOffsetWithDynamicParameter">
+        <Resource name="sql">
+            <![CDATA[select empno from emp offset ? rows]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalSort(offset=[?0])
   LogicalProject(EMPNO=[$0])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>

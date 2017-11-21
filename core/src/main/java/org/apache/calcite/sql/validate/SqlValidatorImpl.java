@@ -1062,6 +1062,17 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     }
   }
 
+  private void handleOffsetFetch(SqlNode offset, SqlNode fetch) {
+    if (offset instanceof SqlDynamicParam) {
+      setValidatedNodeType(offset,
+              typeFactory.createSqlType(SqlTypeName.INTEGER));
+    }
+    if (fetch instanceof SqlDynamicParam) {
+      setValidatedNodeType(fetch,
+              typeFactory.createSqlType(SqlTypeName.INTEGER));
+    }
+  }
+
   /**
    * Performs expression rewrites which are always used unconditionally. These
    * rewrites massage the expression tree into a standard form so that the
@@ -1159,6 +1170,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
     case ORDER_BY: {
       SqlOrderBy orderBy = (SqlOrderBy) node;
+      handleOffsetFetch(orderBy.offset, orderBy.fetch);
       if (orderBy.query instanceof SqlSelect) {
         SqlSelect select = (SqlSelect) orderBy.query;
 
@@ -3143,7 +3155,6 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       SqlSelect select,
       RelDataType targetRowType) {
     assert targetRowType != null;
-
     // Namespace is either a select namespace or a wrapper around one.
     final SelectNamespace ns =
         getNamespace(select).unwrap(SelectNamespace.class);
@@ -3207,6 +3218,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     validateGroupClause(select);
     validateHavingClause(select);
     validateWindowClause(select);
+    handleOffsetFetch(select.getOffset(), select.getFetch());
 
     // Validate the SELECT clause late, because a select item might
     // depend on the GROUP BY list, or the window function might reference
