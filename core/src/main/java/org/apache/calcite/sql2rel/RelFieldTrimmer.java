@@ -74,6 +74,7 @@ import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import org.apache.calcite.rex.RexDynamicParam;
 
 /**
  * Transformer that walks over a tree of relational expressions, replacing each
@@ -525,6 +526,12 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
         && inputMapping.isIdentity()
         && fieldsUsed.cardinality() == fieldCount) {
       return result(sort, Mappings.createIdentity(fieldCount));
+    }
+
+    // leave the Sort unchanged in case we have dynamic limits
+    if (sort.offset instanceof RexDynamicParam
+         || sort.fetch instanceof RexDynamicParam) {
+      return result(sort, inputMapping);
     }
 
     relBuilder.push(newInput);
