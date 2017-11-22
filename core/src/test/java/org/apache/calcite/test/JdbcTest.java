@@ -116,12 +116,14 @@ import java.sql.DatabaseMetaData;
 import java.sql.Date;
 import java.sql.DriverManager;
 import java.sql.DriverPropertyInfo;
+import java.sql.ParameterMetaData;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
+import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
@@ -6483,6 +6485,73 @@ public class JdbcTest {
     assertThat((Double) rs.getObject("VALS"), equalTo(2.0));
 
     rs.close();
+    calciteConnection.close();
+
+  }
+
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2054">[CALCITE-2054]
+   * Parser error on trivial UPDATE with dynamic parameters </a>.
+   */
+  @Test public void testUpdateBind() throws Exception {
+    String hsqldbMemUrl = "jdbc:hsqldb:mem:.";
+    Connection baseConnection = DriverManager.getConnection(hsqldbMemUrl);
+    Statement baseStmt = baseConnection.createStatement();
+    baseStmt.execute("CREATE TABLE T2 (\n"
+        + "ID INTEGER,\n"
+        + "VALS DOUBLE)");
+    baseStmt.execute("INSERT INTO T2 VALUES (1, 1.0)");
+    baseStmt.execute("INSERT INTO T2 VALUES (2, null)");
+    baseStmt.execute("INSERT INTO T2 VALUES (null, 2.0)");
+
+    baseStmt.close();
+    baseConnection.commit();
+
+    Properties info = new Properties();
+    info.put("model",
+        "inline:"
+        + "{\n"
+        + "  version: '1.0',\n"
+        + "  defaultSchema: 'BASEJDBC',\n"
+        + "  schemas: [\n"
+        + "     {\n"
+        + "       type: 'jdbc',\n"
+        + "       name: 'BASEJDBC',\n"
+        + "       jdbcDriver: '" + jdbcDriver.class.getName() + "',\n"
+        + "       jdbcUrl: '" + hsqldbMemUrl + "',\n"
+        + "       jdbcCatalog: null,\n"
+        + "       jdbcSchema: null\n"
+        + "     }\n"
+        + "  ]\n"
+        + "}");
+
+    Connection calciteConnection =
+        DriverManager.getConnection("jdbc:calcite:", info);
+
+    ResultSet rs = calciteConnection.prepareStatement("select * from t2")
+        .executeQuery();
+
+    assertThat(rs.next(), is(true));
+    assertThat((Integer) rs.getObject("ID"), equalTo(1));
+    assertThat((Double) rs.getObject("VALS"), equalTo(1.0));
+
+    assertThat(rs.next(), is(true));
+    assertThat((Integer) rs.getObject("ID"), equalTo(2));
+    assertThat(rs.getObject("VALS"), nullValue());
+
+    assertThat(rs.next(), is(true));
+    assertThat(rs.getObject("ID"), nullValue());
+    assertThat((Double) rs.getObject("VALS"), equalTo(2.0));
+
+    rs.close();
+
+    PreparedStatement ps = calciteConnection.prepareStatement("update t2 set vals=? where id=?");
+    ParameterMetaData pmd = ps.getParameterMetaData();
+    assertThat(pmd.getParameterCount(), equalTo(2));
+    assertThat(pmd.getParameterType(1), equalTo(Types.DOUBLE));
+    assertThat(pmd.getParameterType(2), equalTo(Types.INTEGER));
+    ps.close();
     calciteConnection.close();
 
   }
