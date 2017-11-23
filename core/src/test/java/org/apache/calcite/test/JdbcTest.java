@@ -4899,7 +4899,7 @@ public class JdbcTest {
     checkPreparedOffsetFetch(0, 0, Matchers.returnsUnordered());
     checkPreparedOffsetFetch(100, 4, Matchers.returnsUnordered());
     checkPreparedOffsetFetch(3, 4,
-        Matchers.returnsUnordered("row 1", "row 2"));
+        Matchers.returnsUnordered("name=Eric"));
   }
 
   private void checkPreparedOffsetFetch(final int offset, final int fetch,
@@ -4915,9 +4915,8 @@ public class JdbcTest {
                          connection.prepareStatement(sql)) {
                   final ParameterMetaData pmd = p.getParameterMetaData();
                   assertThat(pmd.getParameterCount(), is(2));
-                  assertThat(pmd.getParameterType(1), is(Types.BIGINT));
-                  assertThat(pmd.getParameterType(2), is(Types.BIGINT));
-
+                  assertThat(pmd.getParameterType(1), is(Types.INTEGER));
+                  assertThat(pmd.getParameterType(2), is(Types.INTEGER));
                   p.setInt(1, offset);
                   p.setInt(2, fetch);
                   try (final ResultSet r = p.executeQuery()) {

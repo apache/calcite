@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.adapter.enumerable;
 
+import org.apache.calcite.DataContext;
 import org.apache.calcite.linq4j.tree.BlockBuilder;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
@@ -31,6 +32,7 @@ import org.apache.calcite.rel.SingleRel;
 import org.apache.calcite.rel.metadata.RelMdCollation;
 import org.apache.calcite.rel.metadata.RelMdDistribution;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
+import org.apache.calcite.rex.RexDynamicParam;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.util.BuiltInMethod;
@@ -112,20 +114,48 @@ public class EnumerableLimit extends SingleRel implements EnumerableRel {
 
     Expression v = builder.append("child", result.block);
     if (offset != null) {
-      v = builder.append(
+      if (offset instanceof RexDynamicParam) {
+        RexDynamicParam expr = (RexDynamicParam) offset;
+        v = builder.append(
           "offset",
           Expressions.call(
               v,
               BuiltInMethod.SKIP.method,
-              Expressions.constant(RexLiteral.intValue(offset))));
+              Expressions.convert_(
+              Expressions.call(
+                DataContext.ROOT, BuiltInMethod.DATA_CONTEXT_GET.method,
+                Expressions.constant("?" + expr.getIndex())), Integer.class)
+              ));
+      } else {
+        v = builder.append(
+            "offset",
+            Expressions.call(
+                v,
+                BuiltInMethod.SKIP.method,
+                Expressions.constant(RexLiteral.intValue(offset))));
+      }
     }
     if (fetch != null) {
-      v = builder.append(
+      if (fetch instanceof RexDynamicParam) {
+        RexDynamicParam expr = (RexDynamicParam) fetch;
+        v = builder.append(
           "fetch",
           Expressions.call(
               v,
               BuiltInMethod.TAKE.method,
+              Expressions.convert_(
+              Expressions.call(
+                DataContext.ROOT, BuiltInMethod.DATA_CONTEXT_GET.method,
+                Expressions.constant("?" + expr.getIndex())), Integer.class)
+              ));
+      } else {
+        v = builder.append(
+            "fetch",
+            Expressions.call(
+              v,
+              BuiltInMethod.TAKE.method,
               Expressions.constant(RexLiteral.intValue(fetch))));
+      }
     }
 
     builder.add(

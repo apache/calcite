@@ -799,7 +799,7 @@ public class SqlToRelConverter {
       assert collation.getFieldCollations().isEmpty();
       if ((offset == null
             || (offset instanceof SqlLiteral
-                &&((SqlLiteral) offset).bigDecimalValue().equals(BigDecimal.ZERO)))
+                && ((SqlLiteral) offset).bigDecimalValue().equals(BigDecimal.ZERO)))
           && fetch == null) {
         return;
       }

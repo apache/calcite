@@ -7918,7 +7918,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     tester.checkRewrite(validator, sql, expected);
   }
 
- @Test public void testRewriteWithLimitWithDynamicParameters() {
+  @Test public void testRewriteWithLimitWithDynamicParameters() {
     SqlValidator validator = tester.getValidator();
     validator.setIdentifierExpansion(false);
     final String sql = "select name from dept offset ? rows fetch next ? rows only";
