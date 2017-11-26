@@ -1919,6 +1919,12 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  @Test public void testUpdateBind2() {
+    final String sql = "update emp"
+        + " set sal = ? where slacker = false";
+    sql(sql).ok();
+  }
+
   @Ignore("CALCITE-1708")
   @Test public void testUpdateBindExtendedColumn() {
     final String sql = "update emp(test INT)"
