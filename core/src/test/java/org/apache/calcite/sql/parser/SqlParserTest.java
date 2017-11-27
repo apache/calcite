@@ -2481,6 +2481,13 @@ public class SqlParserTest {
             + "FROM `FOO`\n"
             + "OFFSET 1 ROWS\n"
             + "FETCH NEXT 3 ROWS ONLY");
+    // OFFSET and FETCH, with dynamic parameters
+    check(
+        "select a from foo offset ? row fetch next ? rows only",
+        "SELECT `A`\n"
+            + "FROM `FOO`\n"
+            + "OFFSET ? ROWS\n"
+            + "FETCH NEXT ? ROWS ONLY");
     // missing ROWS after FETCH
     checkFails(
         "select a from foo offset 1 fetch next 3 ^only^",
