@@ -1008,6 +1008,19 @@ public class RexBuilder {
   }
 
   /**
+   * Creates an approximate numeric or not numeric literal.
+   *
+   * @param val   literal value
+   * @param type approximate numeric type
+   * @return new literal
+   */
+  public RexLiteral makeApproxLiteral(Double val, RelDataType type) {
+    assert SqlTypeFamily.APPROXIMATE_NUMERIC.getTypeNames().contains(
+        type.getSqlTypeName());
+    return makeLiteral(val, type, SqlTypeName.DOUBLE);
+  }
+
+  /**
    * Creates a character string literal.
    */
   public RexLiteral makeLiteral(String s) {
@@ -1351,6 +1364,9 @@ public class RexBuilder {
     case FLOAT:
     case REAL:
     case DOUBLE:
+      if (Util.isNotNumeric(((Number) value).doubleValue())) {
+        return makeApproxLiteral(((Number) value).doubleValue(), type);
+      }
       return makeApproxLiteral((BigDecimal) value, type);
     case BOOLEAN:
       return (Boolean) value ? booleanTrue : booleanFalse;
@@ -1474,6 +1490,8 @@ public class RexBuilder {
     case DOUBLE:
       if (o instanceof BigDecimal) {
         return o;
+      } else if (o instanceof Double) {
+        return  ((Number) o).doubleValue();
       }
       return new BigDecimal(((Number) o).doubleValue(), MathContext.DECIMAL64)
           .stripTrailingZeros();

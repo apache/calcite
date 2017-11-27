@@ -250,7 +250,7 @@ public class RexLiteral extends RexNode {
     case FLOAT:
     case REAL:
     case BIGINT:
-      return value instanceof BigDecimal;
+      return value instanceof BigDecimal || value instanceof Double;
     case DATE:
       return value instanceof DateString;
     case TIME:
@@ -470,8 +470,21 @@ public class RexLiteral extends RexNode {
       pw.print(value.toString());
       break;
     case DOUBLE:
-      assert value instanceof BigDecimal;
-      pw.print(Util.toScientificNotation((BigDecimal) value));
+      assert value instanceof BigDecimal || value instanceof Double;
+      if (value instanceof Double) {
+        double doubleValue = ((Number) value).doubleValue();
+        if (Double.isNaN(doubleValue)) {
+          pw.print("NaN");
+        } else if (Double.isInfinite(doubleValue) && Math.signum(doubleValue) > 0) {
+          pw.print("Infinity");
+        } else if (Double.isInfinite(doubleValue) && Math.signum(doubleValue) < 0) {
+          pw.print("-Infinity");
+        } else {
+          pw.print(Util.toScientificNotation(new BigDecimal(doubleValue)));
+        }
+      } else {
+        pw.print(Util.toScientificNotation((BigDecimal) value));
+      }
       break;
     case BIGINT:
       assert value instanceof BigDecimal;

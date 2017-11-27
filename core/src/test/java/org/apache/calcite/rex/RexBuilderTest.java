@@ -33,6 +33,7 @@ import java.util.Calendar;
 import java.util.TimeZone;
 
 import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertEquals;
@@ -92,6 +93,44 @@ public class RexBuilderTest {
 
     assertNotEquals(node, ensuredNode);
     assertEquals(ensuredNode.getType(), typeFactory.createSqlType(SqlTypeName.INTEGER));
+  }
+
+  /**
+   * Test RexBuilder.makeLiteral() with Double.NaN value
+   */
+  @Test
+  public void testDoubleNanLiteral() {
+    final RelDataTypeFactory typeFactory = new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
+    RexBuilder builder = new RexBuilder(typeFactory);
+    RexNode nanLiteral = builder.makeLiteral(Double.NaN,
+            typeFactory.createSqlType(SqlTypeName.DOUBLE), true);
+    assertThat(((RexLiteral) nanLiteral).getValueAs(Double.class), equalTo(Double.NaN));
+  }
+
+  /**
+   * Test RexBuilder.makeLiteral() with Double.POSITIVE_INFINITY value
+   */
+  @Test
+  public void testDoublePositiveInfinityLiteral() {
+    final RelDataTypeFactory typeFactory = new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
+    RexBuilder builder = new RexBuilder(typeFactory);
+    RexNode infinityLiteral = builder.makeLiteral(Double.POSITIVE_INFINITY,
+            typeFactory.createSqlType(SqlTypeName.DOUBLE), true);
+    assertThat(((RexLiteral) infinityLiteral).getValueAs(Double.class),
+            equalTo(Double.POSITIVE_INFINITY));
+  }
+
+  /**
+   * Test RexBuilder.makeLiteral() with Double.NEGATIVE_INFINITY value
+   */
+  @Test
+  public void testDoubleNegativeInfinityLiteral() {
+    final RelDataTypeFactory typeFactory = new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
+    RexBuilder builder = new RexBuilder(typeFactory);
+    RexNode infinityLiteral = builder.makeLiteral(Double.NEGATIVE_INFINITY,
+            typeFactory.createSqlType(SqlTypeName.DOUBLE), true);
+    assertThat(((RexLiteral) infinityLiteral).getValueAs(Double.class),
+            equalTo(Double.NEGATIVE_INFINITY));
   }
 
   private static final long MOON = -14159025000L;

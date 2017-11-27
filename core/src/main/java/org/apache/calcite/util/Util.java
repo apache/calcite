@@ -2313,6 +2313,12 @@ public class Util {
     return calendar;
   }
 
+  /** checks whether given Double number is NaN or Infinite
+   */
+  public static boolean isNotNumeric(Double value) {
+    return Double.isNaN(value) || Double.isInfinite(value);
+  }
+
   //~ Inner Classes ----------------------------------------------------------
 
   /**
