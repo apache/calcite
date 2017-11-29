@@ -1110,10 +1110,6 @@ public abstract class SqlTypeUtil {
       return true;
     }
 
-    if (isAny(type1) || isAny(type2)) {
-      return true;
-    }
-
     if (type1.isNullable() == type2.isNullable()) {
       // If types have the same nullability and they weren't equal above,
       // they must be different.

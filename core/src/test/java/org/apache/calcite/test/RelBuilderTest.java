@@ -1971,6 +1971,21 @@ public class RelBuilderTest {
         + "  LogicalTableScan(table=[[scott, EMP]])\n";
     assertThat(str(root), is(expected));
   }
+
+  @Test public void testFilterCastAny() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    final RelDataType anyType = builder.getTypeFactory().createSqlType(SqlTypeName.ANY);
+    final RelNode root =
+        builder.scan("EMP")
+            .filter(
+                builder.cast(
+                    builder.getRexBuilder().makeInputRef(anyType, 0),
+                    SqlTypeName.BOOLEAN))
+            .build();
+    final String expected = "LogicalFilter(condition=[CAST($0):BOOLEAN NOT NULL])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(str(root), is(expected));
+  }
 }
 
 // End RelBuilderTest.java
