@@ -454,11 +454,11 @@ public class DruidAdapterIT {
     sql(sql)
         .explainContains(plan)
         .queryContains(druidChecker(druidQuery))
-        .returnsUnordered("store_sales=0.5099999904632568; product_id=1020",
-            "store_sales=1.0199999809265137; product_id=1020",
-            "store_sales=1.5299999713897705; product_id=1020",
-            "store_sales=2.0399999618530273; product_id=1020",
-            "store_sales=2.549999952316284; product_id=1020");
+        .returnsUnordered("store_sales=0.51; product_id=1020",
+            "store_sales=1.02; product_id=1020",
+            "store_sales=1.53; product_id=1020",
+            "store_sales=2.04; product_id=1020",
+            "store_sales=2.55; product_id=1020");
   }
 
   @Test public void testPushSimpleGroupBy() {
@@ -1679,7 +1679,7 @@ public class DruidAdapterIT {
             + "<(CAST($10):BIGINT, 15), =(EXTRACT(FLAG(YEAR), $0), 1997))], groups=[{}], "
             + "aggs=[[SUM($90)]])\n")
         .queryContains(druidChecker(druidQuery))
-        .returnsUnordered("EXPR$0=75364.09998679161");
+        .returnsUnordered("EXPR$0=75364.1");
   }
 
   @Test public void testPushOfFilterExtractionOnDayAndMonth() {
@@ -2138,9 +2138,9 @@ public class DruidAdapterIT {
     sql(sqlQuery, FOODMART)
         .explainContains(plan)
         .queryContains(druidChecker(postAggString))
-        .returnsOrdered("A=369117.525390625; store_state=WA",
-            "A=222698.26513671875; store_state=CA",
-            "A=199049.57055664062; store_state=OR");
+        .returnsOrdered("A=369117.52790000016; store_state=WA",
+            "A=222698.26509999996; store_state=CA",
+            "A=199049.57059999998; store_state=OR");
   }
 
   @Test public void testDivideArithmeticOperation() {
@@ -2157,9 +2157,9 @@ public class DruidAdapterIT {
     sql(sqlQuery, FOODMART)
         .explainContains(plan)
         .queryContains(druidChecker(postAggString))
-        .returnsOrdered("store_state=OR; A=2.5060913241562606",
-            "store_state=CA; A=2.505379731203625",
-            "store_state=WA; A=2.5045805694710124");
+        .returnsOrdered("store_state=OR; A=2.506091302943239",
+            "store_state=CA; A=2.505379741272971",
+            "store_state=WA; A=2.5045806163801996");
   }
 
   @Test public void testMultiplyArithmeticOperation() {
@@ -2176,9 +2176,9 @@ public class DruidAdapterIT {
     sql(sqlQuery, FOODMART)
         .explainContains(plan)
         .queryContains(druidChecker(postAggString))
-        .returnsOrdered("store_state=WA; A=2.778383817085206E10",
-            "store_state=CA; A=1.0112000558236574E10",
-            "store_state=OR; A=8.077425009052019E9");
+        .returnsOrdered("store_state=WA; A=2.7783838325212463E10",
+            "store_state=CA; A=1.0112000537448784E10",
+            "store_state=OR; A=8.077425041941243E9");
   }
 
   @Test public void testMinusArithmeticOperation() {
@@ -2195,9 +2195,9 @@ public class DruidAdapterIT {
     sql(sqlQuery, FOODMART)
         .explainContains(plan)
         .queryContains(druidChecker(postAggString))
-        .returnsOrdered("store_state=WA; A=158468.908203125",
-            "store_state=CA; A=95637.41455078125",
-            "store_state=OR; A=85504.57006835938");
+        .returnsOrdered("store_state=WA; A=158468.91210000002",
+            "store_state=CA; A=95637.41489999992",
+            "store_state=OR; A=85504.56939999988");
   }
 
   @Test public void testConstantPostAggregator() {
@@ -2212,9 +2212,9 @@ public class DruidAdapterIT {
     sql(sqlQuery, FOODMART)
         .explainContains(plan)
         .queryContains(druidChecker(postAggString))
-        .returnsOrdered("store_state=WA; A=263893.216796875",
-            "store_state=CA; A=159267.83984375",
-            "store_state=OR; A=142377.0703125");
+        .returnsOrdered("store_state=WA; A=263893.2200000001",
+            "store_state=CA; A=159267.83999999994",
+            "store_state=OR; A=142377.06999999992");
   }
 
   @Test public void testRecursiveArithmeticOperation() {
@@ -2239,9 +2239,9 @@ public class DruidAdapterIT {
     sql(sqlQuery, FOODMART)
         .explainContains(plan)
         .queryContains(druidChecker(postAggString))
-        .returnsOrdered("store_state=OR; C=-67660.31890436632",
-            "store_state=CA; C=-74749.30433035406",
-            "store_state=WA; C=-124367.29537911131");
+        .returnsOrdered("store_state=OR; C=-67660.31890435601",
+            "store_state=CA; C=-74749.30433035882",
+            "store_state=WA; C=-124367.29537914316");
   }
 
   /**
@@ -2282,9 +2282,9 @@ public class DruidAdapterIT {
     sql(sql, FOODMART)
         .explainContains(plan)
         .queryContains(druidChecker(druidQuery))
-        .returnsOrdered("store_state=CA; brand_name=Bird Call; A=34.364601135253906",
-            "store_state=OR; brand_name=Bird Call; A=39.16360282897949",
-            "store_state=WA; brand_name=Bird Call; A=53.74250030517578");
+        .returnsOrdered("store_state=CA; brand_name=Bird Call; A=34.364599999999996",
+            "store_state=OR; brand_name=Bird Call; A=39.16359999999999",
+            "store_state=WA; brand_name=Bird Call; A=53.742500000000014");
   }
 
   @Test public void testExtractFilterWorkWithPostAggregationsWithConstant() {
@@ -2305,9 +2305,9 @@ public class DruidAdapterIT {
     sql(sql, FOODMART)
         .explainContains(plan)
         .queryContains(druidChecker(druidQuery))
-        .returnsOrdered("store_state=CA; brand_name=Bird Call; A=34.364601135253906",
-            "store_state=OR; brand_name=Bird Call; A=39.16360282897949",
-            "store_state=WA; brand_name=Bird Call; A=53.74250030517578");
+        .returnsOrdered("store_state=CA; brand_name=Bird Call; A=34.364599999999996",
+            "store_state=OR; brand_name=Bird Call; A=39.16359999999999",
+            "store_state=WA; brand_name=Bird Call; A=53.742500000000014");
   }
 
   @Test public void testSingleAverageFunction() {
@@ -2326,9 +2326,9 @@ public class DruidAdapterIT {
     sql(sqlQuery, FOODMART)
         .explainContains(plan)
         .queryContains(druidChecker(postAggString))
-        .returnsOrdered("store_state=OR; A=2.627140224161991",
-            "store_state=CA; A=2.5993382141879935",
-            "store_state=WA; A=2.5828708762997206");
+        .returnsOrdered("store_state=OR; A=2.6271402406293403",
+            "store_state=CA; A=2.599338206292706",
+            "store_state=WA; A=2.5828708592868717");
   }
 
   @Test public void testPartiallyPostAggregation() {
@@ -2348,9 +2348,9 @@ public class DruidAdapterIT {
     sql(sqlQuery, FOODMART)
         .explainContains(plan)
         .queryContains(druidChecker(postAggString))
-        .returnsOrdered("store_state=OR; A=2.5060913241562606; B=67659",
-            "store_state=CA; A=2.505379731203625; B=74748",
-            "store_state=WA; A=2.5045805694710124; B=124366");
+        .returnsOrdered("store_state=OR; A=2.506091302943239; B=67659",
+            "store_state=CA; A=2.505379741272971; B=74748",
+            "store_state=WA; A=2.5045806163801996; B=124366");
   }
 
   @Test public void testDuplicateReferenceOnPostAggregation() {
@@ -2372,9 +2372,9 @@ public class DruidAdapterIT {
     sql(sqlQuery, FOODMART)
         .explainContains(plan)
         .queryContains(druidChecker(postAggString))
-        .returnsOrdered("store_state=WA; A=263893.216796875; C=158568.908203125",
-            "store_state=CA; A=159267.83984375; C=95737.41455078125",
-            "store_state=OR; A=142377.0703125; C=85604.57006835938");
+        .returnsOrdered("store_state=WA; A=263893.2200000001; C=158568.91210000002",
+            "store_state=CA; A=159267.83999999994; C=95737.41489999992",
+            "store_state=OR; A=142377.06999999992; C=85604.56939999988");
   }
 
   @Test public void testDivideByZeroDoubleTypeInfinity() {
@@ -2471,11 +2471,11 @@ public class DruidAdapterIT {
     sql(sqlQuery, FOODMART)
             .explainContains(plan)
             .queryContains(druidChecker(postAggString))
-            .returnsOrdered("store_state=CA; brand_name=King; A=21.46319955587387",
-                    "store_state=OR; brand_name=Symphony; A=32.17600071430206",
-                    "store_state=CA; brand_name=Toretti; A=32.24650126695633",
-                    "store_state=WA; brand_name=King; A=34.61040019989014",
-                    "store_state=OR; brand_name=Toretti; A=36.300002098083496");
+            .returnsOrdered("store_state=CA; brand_name=King; A=21.4632",
+                    "store_state=OR; brand_name=Symphony; A=32.176",
+                    "store_state=CA; brand_name=Toretti; A=32.24650000000001",
+                    "store_state=WA; brand_name=King; A=34.6104",
+                    "store_state=OR; brand_name=Toretti; A=36.3");
   }
 
   @Test public void testInterleaveBetweenAggregateAndGroupOrderByOnDimension() {
@@ -2500,11 +2500,11 @@ public class DruidAdapterIT {
     sql(sqlQuery, FOODMART)
             .explainContains(plan)
             .queryContains(druidChecker(postAggString))
-            .returnsOrdered("store_state=CA; brand_name=ADJ; A=222.15239667892456",
-                    "store_state=OR; brand_name=ADJ; A=186.6035966873169",
-                    "store_state=WA; brand_name=ADJ; A=216.99119639396667",
-                    "store_state=CA; brand_name=Akron; A=250.3489989042282",
-                    "store_state=OR; brand_name=Akron; A=278.6972026824951");
+            .returnsOrdered("store_state=CA; brand_name=ADJ; A=222.1524",
+                    "store_state=OR; brand_name=ADJ; A=186.60359999999997",
+                    "store_state=WA; brand_name=ADJ; A=216.9912",
+                    "store_state=CA; brand_name=Akron; A=250.349",
+                    "store_state=OR; brand_name=Akron; A=278.69720000000007");
   }
 
   @Test public void testOrderByOnMetricsInSelectDruidQuery() {
@@ -2520,11 +2520,11 @@ public class DruidAdapterIT {
     sql(sqlQuery, FOODMART)
             .explainContains(plan)
             .queryContains(druidChecker(postAggString))
-            .returnsOrdered("A=0.5099999904632568; B=0.24480000138282776; C=0.2651999890804291",
-                    "A=0.5099999904632568; B=0.23970000445842743; C=0.2702999860048294",
-                    "A=0.5699999928474426; B=0.2849999964237213; C=0.2849999964237213",
-                    "A=0.5; B=0.20999999344348907; C=0.2900000065565109",
-                    "A=0.5099999904632568; B=0.21930000185966492; C=0.2906999886035919");
+            .returnsOrdered("A=0.51; B=0.2448; C=0.2652",
+                    "A=0.51; B=0.2397; C=0.2703",
+                    "A=0.57; B=0.285; C=0.285",
+                    "A=0.5; B=0.21; C=0.29000000000000004",
+                    "A=0.57; B=0.2793; C=0.29069999999999996");
   }
 
   /**
@@ -2668,7 +2668,7 @@ public class DruidAdapterIT {
 
     sql(sql)
         .queryContains(druidChecker(expectedQuery))
-        .returnsUnordered("EXPR$0=52644.07004201412");
+        .returnsUnordered("EXPR$0=52644.07000000001");
   }
 
   /**
@@ -2730,7 +2730,7 @@ public class DruidAdapterIT {
 
     sql(sql)
         .queryContains(druidChecker(expectedQuery))
-        .returnsUnordered("EXPR$0=159167.840144217; EXPR$1=263793.2202244997");
+        .returnsUnordered("EXPR$0=159167.83999999994; EXPR$1=263793.2200000001");
   }
 
   /**
@@ -2756,7 +2756,7 @@ public class DruidAdapterIT {
 
     sql(sql)
         .queryContains(druidChecker(expectedQuery))
-        .returnsUnordered("EXPR$0=2600.0099930763245; EXPR$1=4486.439979553223");
+        .returnsUnordered("EXPR$0=2600.01; EXPR$1=4486.4400000000005");
   }
 
   /**
@@ -2785,7 +2785,7 @@ public class DruidAdapterIT {
     sql(sql)
         .queryContains(druidChecker(expectedQuery))
         .explainContains(expectedAggregateExplain)
-        .returnsUnordered("EXPR$0=2600.0099930763245; EXPR$1=1013.1619997620583");
+        .returnsUnordered("EXPR$0=2600.01; EXPR$1=1013.162");
   }
 
   /**
@@ -2860,7 +2860,7 @@ public class DruidAdapterIT {
     sql(sql)
             .queryContains(druidChecker(expectedFilterJson))
             .queryContains(druidChecker(expectedAggregateJson))
-            .returnsUnordered("EXPR$0=301444.910279572");
+            .returnsUnordered("EXPR$0=301444.9099999999");
   }
 
   /**
@@ -2894,7 +2894,7 @@ public class DruidAdapterIT {
     sql(sql)
             .queryContains(druidChecker(expectedFilterJson))
             .queryContains(druidChecker(expectedAggregatesJson))
-            .returnsUnordered("EXPR$0=13077.79001301527; EXPR$1=9830.779905691743");
+            .returnsUnordered("EXPR$0=13077.789999999992; EXPR$1=9830.7799");
   }
 
   /**
@@ -3088,7 +3088,7 @@ public class DruidAdapterIT {
                     druidChecker("{'type':'filtered','filter':"
                             + "{'type':'selector','dimension':'store_state','value':'CA'},'aggregator':"
                             + "{'type':'thetaSketch','name':'EXPR$1','fieldName':'customer_id_ts'}}]"))
-            .returnsUnordered("EXPR$0=42342.27003854513; EXPR$1=459");
+            .returnsUnordered("EXPR$0=42342.26999999995; EXPR$1=459");
   }
 
   /**
@@ -3149,18 +3149,18 @@ public class DruidAdapterIT {
                             + "'','fieldName':'$f1'},{'type':'thetaSketchEstimate','name':'','field':"
                             + "{'type':'fieldAccess','name':'','fieldName':'$f2'}}]}]"))
             .returnsUnordered(
-                    "month=January; avg$=32.621555448603154",
-                    "month=February; avg$=33.102020332456796",
-                    "month=March; avg$=33.84970980632612",
-                    "month=April; avg$=32.55751708428246",
-                    "month=May; avg$=32.426177288475564",
-                    "month=June; avg$=33.93093597960329",
-                    "month=July; avg$=34.36859022315321",
-                    "month=August; avg$=32.81181751598012",
-                    "month=September; avg$=33.32773288973384",
-                    "month=October; avg$=32.74730822215777",
-                    "month=November; avg$=34.51727744987063",
-                    "month=December; avg$=33.62788702774498");
+                    "month=January; avg$=32.62155444126063",
+                    "month=February; avg$=33.102021036814484",
+                    "month=March; avg$=33.84970906630567",
+                    "month=April; avg$=32.557517084282296",
+                    "month=May; avg$=32.42617797228287",
+                    "month=June; avg$=33.93093562874239",
+                    "month=July; avg$=34.36859097127213",
+                    "month=August; avg$=32.81181818181806",
+                    "month=September; avg$=33.327733840304155",
+                    "month=October; avg$=32.74730858468674",
+                    "month=November; avg$=34.51727684346705",
+                    "month=December; avg$=33.62788665879565");
 
     final String druid = "'aggregations':[{'type':'hyperUnique','name':'$f0',"
         + "'fieldName':'user_unique'}],'postAggregations':[{'type':"
@@ -3249,14 +3249,14 @@ public class DruidAdapterIT {
     sql(sqlQuery, FOODMART)
         .explainContains(plan)
         .queryContains(druidChecker(druidQuery))
-        .returnsUnordered("A=85.3163999915123");
+        .returnsUnordered("A=85.31639999999999");
 
     final String sqlQuery2 = "select sum(\"store_cost\") as a "
         + "from \"foodmart\" "
         + "where cast(\"product_id\" as double) <= 1016.0 "
         + "and cast(\"product_id\" as double) >= 1016.0";
     sql(sqlQuery2, FOODMART)
-        .returnsUnordered("A=85.3163999915123");
+        .returnsUnordered("A=85.31639999999999");
   }
 
   @Test public void testPushNotEqualsCastDimension() {
@@ -3277,14 +3277,14 @@ public class DruidAdapterIT {
     sql(sqlQuery, FOODMART)
         .explainContains(plan)
         .queryContains(druidChecker(druidQuery))
-        .returnsUnordered("A=225541.91732536256");
+        .returnsUnordered("A=225541.91720000014");
 
     final String sqlQuery2 = "select sum(\"store_cost\") as a "
         + "from \"foodmart\" "
         + "where cast(\"product_id\" as double) < 1016.0 "
         + "or cast(\"product_id\" as double) > 1016.0";
     sql(sqlQuery2, FOODMART)
-        .returnsUnordered("A=225541.91732536256");
+        .returnsUnordered("A=225541.91720000014");
   }
 
   @Test public void testIsNull() {
