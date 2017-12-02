@@ -34,7 +34,7 @@ import java.util.Arrays;
  * Utilities regarding operating system processes.
  *
  * <p>WARNING: Spawning processes is not secure.
- * Use this class caution.
+ * Use this class with caution.
  * This class is in the "plus" module because "plus" is not used by default.
  * Do not move this class to the "core" module.
  */

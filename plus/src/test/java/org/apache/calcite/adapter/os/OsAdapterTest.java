@@ -31,6 +31,8 @@ import org.junit.Assume;
 import org.junit.Test;
 
 import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.FilenameFilter;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
@@ -62,6 +64,29 @@ import static org.junit.Assert.fail;
 public class OsAdapterTest {
   private static boolean isWindows() {
     return System.getProperty("os.name").startsWith("Windows");
+  }
+
+  /** Returns whether there is a ".git" directory in this directory or in a
+   * directory between this directory and root. */
+  private static boolean hasGit() {
+    final String path = OsAdapterTest.class.getResource("/").getPath();
+    File f = new File(path);
+    for (;;) {
+      if (f == null || !f.exists()) {
+        return false; // abandon hope
+      }
+      File[] files =
+          f.listFiles(
+              new FilenameFilter() {
+                public boolean accept(File dir, String name) {
+                  return name.equals(".git");
+                }
+              });
+      if (files != null && files.length == 1) {
+        return true; // there is a ".git" subdirectory
+      }
+      f = f.getParentFile();
+    }
   }
 
   @Test public void testDu() {
@@ -155,6 +180,7 @@ public class OsAdapterTest {
   }
 
   @Test public void testGitCommits() {
+    Assume.assumeTrue("no git", hasGit());
     sql("select count(*) from git_commits")
         .returns(
             new Function<ResultSet, Void>() {
@@ -172,6 +198,7 @@ public class OsAdapterTest {
   }
 
   @Test public void testGitCommitsTop() {
+    Assume.assumeTrue("no git", hasGit());
     final String q = "select author from git_commits\n"
         + "group by 1 order by count(*) desc limit 1";
     sql(q).returnsUnordered("author=Julian Hyde <julianhyde@gmail.com>");
