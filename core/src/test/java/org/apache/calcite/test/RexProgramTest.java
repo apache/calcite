@@ -1411,6 +1411,30 @@ public class RexProgramTest {
         RelOptPredicateList.of(rexBuilder,
             ImmutableList.of(lt(bRef, literal10), ge(aRef, literal5))),
         ">(?0.a, 5)");
+
+    // condition "a > 5"
+    // with pre-condition "a <= 5"
+    // yields "false"
+    checkSimplifyFilter(gt(aRef, literal5),
+        RelOptPredicateList.of(rexBuilder,
+            ImmutableList.of(le(aRef, literal5))),
+        "false");
+
+    // condition "a > 5"
+    // with pre-condition "a <= 5 and b <= 5"
+    // yields "false"
+    checkSimplifyFilter(gt(aRef, literal5),
+        RelOptPredicateList.of(rexBuilder,
+            ImmutableList.of(le(aRef, literal5), le(bRef, literal5))),
+        "false");
+
+    // condition "a > 5 or b > 5"
+    // with pre-condition "a <= 5 and b <= 5"
+    // should yield "false" but yields "a = 5 or b = 5"
+    checkSimplifyFilter(or(gt(aRef, literal5), gt(bRef, literal5)),
+        RelOptPredicateList.of(rexBuilder,
+            ImmutableList.of(le(aRef, literal5), le(bRef, literal5))),
+        "false");
   }
 
   /** Unit test for

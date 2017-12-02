@@ -826,6 +826,12 @@ public class RexSimplify {
       // Term is always satisfied given these predicates
       return rexBuilder.makeLiteral(true);
     } else if (range2.lowerEndpoint().equals(range2.upperEndpoint())) {
+      if (range2.lowerBoundType() == BoundType.OPEN
+          || range2.upperBoundType() == BoundType.OPEN) {
+        // range is a point, but does not include its endpoint, therefore is
+        // effectively empty
+        return rexBuilder.makeLiteral(false);
+      }
       // range is now a point; it's worth simplifying
       return rexBuilder.makeCall(SqlStdOperatorTable.EQUALS, comparison.ref,
           rexBuilder.makeLiteral(range2.lowerEndpoint(),
