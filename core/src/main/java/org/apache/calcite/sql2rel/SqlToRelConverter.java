@@ -1087,9 +1087,10 @@ public class SqlToRelConverter {
           SqlTypeUtil.promoteToRowType(typeFactory,
               validator.getValidatedNodeType(leftKeyNode), null);
       final boolean notIn = call.getOperator().kind == SqlKind.NOT_IN;
+      final boolean outerJoin = bb.subQueryNeedsOuterJoin || notIn;
       converted =
           convertExists(query, RelOptUtil.SubQueryType.IN, subQuery.logic,
-              notIn, targetRowType);
+            outerJoin, targetRowType);
       if (converted.indicator) {
         // Generate
         //    emp CROSS JOIN (SELECT COUNT(*) AS c,
@@ -1733,6 +1734,13 @@ public class SqlToRelConverter {
         if (operand != null) {
           // In the case of an IN expression, locate scalar
           // sub-queries so we can convert them to constants
+          if (kind == SqlKind.OR
+              || kind == SqlKind.NOT) {
+            // It's always correct to outer join subquery with
+            // containing query; however, when predicates involve Or
+            // or NOT, outer join might be necessary.
+            bb.subQueryNeedsOuterJoin = true;
+          }
           findSubQueries(bb, operand, logic,
               kind == SqlKind.IN || kind == SqlKind.NOT_IN
                   || kind == SqlKind.SOME || kind == SqlKind.ALL
@@ -1761,12 +1769,13 @@ public class SqlToRelConverter {
       case TRUE_FALSE_UNKNOWN:
         if (validator.getValidatedNodeType(node).isNullable()) {
           break;
-        } else if (true) {
-          break;
         }
         // fall through
       case UNKNOWN_AS_FALSE:
-        logic = RelOptUtil.Logic.TRUE;
+        if (!bb.subQueryNeedsOuterJoin
+            && kind != SqlKind.NOT_IN) {
+          logic = RelOptUtil.Logic.TRUE;
+        }
       }
       bb.registerSubQuery(node, logic);
       break;
@@ -4000,6 +4009,8 @@ public class SqlToRelConverter {
      * <code>SELECT</code> statement (but not inside sub-queries).
      */
     private final Set<SubQuery> subQueryList = new LinkedHashSet<>();
+
+    private boolean subQueryNeedsOuterJoin;
 
     /**
      * Workspace for building aggregates.

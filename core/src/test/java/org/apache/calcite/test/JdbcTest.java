@@ -465,6 +465,20 @@ public class JdbcTest {
     connection.close();
   }
 
+  @Test
+  public void testWhereInOr() throws Exception {
+    CalciteAssert.hr()
+        .query("select \"empid\"\n"
+            + "from \"hr\".\"emps\" t\n"
+            + "    where (\"empid\" in (select \"empid\" from \"hr\".\"emps\") \n"
+            + "        or \"empid\" in (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, "
+            + "                     12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25) )\n"
+            + "      and \"empid\" in (100, 200, 150)")
+        .returns("empid=100\n"
+            + "empid=200\n"
+            + "empid=150\n");
+  }
+
   /**
    * Tests a relation that is accessed via method syntax.
    *
