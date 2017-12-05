@@ -381,4 +381,27 @@ group by deptno, ename;
 
 !ok
 
+# Window function on top of regular aggregate in partitioning or order clause.
+select deptno, gender, min(ename) as x, sum(deptno) as y,
+  rank() over (partition by gender order by min(ename)) as r,
+  sum(sum(deptno)) over (partition by gender order by min(ename)) as s
+from emp
+group by deptno, gender
+order by gender, r;
++--------+--------+-------+----+---+-----+
+| DEPTNO | GENDER | X     | Y  | R | S   |
++--------+--------+-------+----+---+-----+
+|     30 | F      | Alice | 60 | 1 |  60 |
+|     50 | F      | Eve   | 50 | 2 | 110 |
+|     60 | F      | Grace | 60 | 3 | 170 |
+|     10 | F      | Jane  | 10 | 4 | 180 |
+|        | F      | Wilma |    | 5 | 180 |
+|     50 | M      | Adam  | 50 | 1 |  50 |
+|     10 | M      | Bob   | 10 | 2 |  60 |
+|     20 | M      | Eric  | 20 | 3 |  80 |
++--------+--------+-------+----+---+-----+
+(8 rows)
+
+!ok
+
 # End winagg.iq
