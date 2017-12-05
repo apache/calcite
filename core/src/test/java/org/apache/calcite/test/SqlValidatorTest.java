@@ -3952,6 +3952,17 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .fails("ORDER BY expression should not contain OVER clause");
   }
 
+  @Test public void testAggregateFunctionInOver() {
+    final String sql = "select sum(deptno) over (order by count(empno))\n"
+        + "from emp\n"
+        + "group by deptno";
+    winSql(sql).ok();
+    final String sql2 = "select sum(^empno^) over (order by count(empno))\n"
+        + "from emp\n"
+        + "group by deptno";
+    winSql(sql2).fails("Expression 'EMPNO' is not being grouped");
+  }
+
   @Test public void testWindowFunctions() {
     // SQL 03 Section 6.10
 

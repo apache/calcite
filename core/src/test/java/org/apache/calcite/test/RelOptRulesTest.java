@@ -2780,6 +2780,23 @@ public class RelOptRulesTest extends RelOptTestBase {
     checkPlanning(program, sql);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2078">[CALCITE-2078]
+   * Aggregate functions in OVER clause</a>. */
+  @Test public void testWindowFunctionOnAggregations() {
+    final HepProgram program = HepProgram.builder()
+        .addRuleInstance(ProjectToWindowRule.PROJECT)
+        .build();
+    final String sql = "SELECT\n"
+        + "  min(empno),\n"
+        + "  sum(sal),\n"
+        + "  sum(sum(sal))\n"
+        + "    over (partition by min(empno) order by sum(sal))\n"
+        + "from emp\n"
+        + "group by deptno";
+    checkPlanning(program, sql);
+  }
+
   @Test public void testPushAggregateThroughJoin1() throws Exception {
     final HepProgram preProgram = new HepProgramBuilder()
         .addRuleInstance(AggregateProjectMergeRule.INSTANCE)

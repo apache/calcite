@@ -4902,7 +4902,18 @@ public class SqlToRelConverter {
       // operator). However, do not ignore nested window aggregates.
       if (call.getOperator().getKind() == SqlKind.OVER) {
         // Track aggregate nesting levels only within an OVER operator.
+        List<SqlNode> operandList = call.getOperandList();
+        assert operandList.size() == 2;
+
+        // Ignore the top level window aggregates and ranking functions
+        // positioned as the first operand of a OVER operator
         inOver = true;
+        operandList.get(0).accept(this);
+
+        // Normal translation for the second operand of a OVER operator
+        inOver = false;
+        operandList.get(1).accept(this);
+        return null;
       }
 
       // Do not translate the top level window aggregate. Only do so for
