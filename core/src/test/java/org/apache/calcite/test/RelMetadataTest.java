@@ -120,6 +120,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.concurrent.locks.ReentrantLock;
 
 import static org.apache.calcite.test.Matchers.within;
 
@@ -166,6 +167,10 @@ public class RelMetadataTest extends SqlToRelTestBase {
   private static final double DEPT_SIZE = 4d;
 
   private static final List<String> EMP_QNAME = ImmutableList.of("CATALOG", "SALES", "EMP");
+
+  /** Ensures that tests that use a lot of memory do not run at the same
+   * time. */
+  private static final ReentrantLock LOCK = new ReentrantLock();
 
   //~ Methods ----------------------------------------------------------------
 
@@ -1494,10 +1499,14 @@ public class RelMetadataTest extends SqlToRelTestBase {
         + "on b.mgr =a.mgr and a.empno =b.deptno and a.comm=b.comm\n"
         + "  and a.deptno=b.deptno and a.job=b.job and a.ename=b.ename\n"
         + "  and a.mgr=b.deptno and a.slacker=b.slacker";
-    final RelNode rel = convertSql(sql);
-    final RelMetadataQuery mq = RelMetadataQuery.instance();
-    RelOptPredicateList inputSet = mq.getPulledUpPredicates(rel.getInput(0));
-    assertThat(inputSet.pulledUpPredicates.size(), is(131089));
+    // Lock to ensure that only one test is using this method at a time.
+    try (final JdbcAdapterTest.LockWrapper ignore =
+             JdbcAdapterTest.LockWrapper.lock(LOCK)) {
+      final RelNode rel = convertSql(sql);
+      final RelMetadataQuery mq = RelMetadataQuery.instance();
+      RelOptPredicateList inputSet = mq.getPulledUpPredicates(rel.getInput(0));
+      assertThat(inputSet.pulledUpPredicates.size(), is(131089));
+    }
   }
 
   @Test public void testPullUpPredicatesOnConstant() {

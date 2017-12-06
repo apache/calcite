@@ -31,16 +31,16 @@ adapters.
 
 ## Building from a source distribution
 
-Prerequisites are maven (3.2.1 or later)
-and Java (JDK 7, 8 or 9) on your path.
+Prerequisites are maven (3.5.2 or later)
+and Java (JDK 7, 8, 9 or 10) on your path.
 
 Unpack the source distribution `.tar.gz` or `.zip` file,
 `cd` to the root directory of the unpacked source,
 then build using maven:
 
 {% highlight bash %}
-$ tar xvfz calcite-1.14.0-source.tar.gz
-$ cd calcite-1.14.0
+$ tar xvfz calcite-1.15.0-source.tar.gz
+$ cd calcite-1.15.0
 $ mvn install
 {% endhighlight %}
 
@@ -49,8 +49,8 @@ tests.
 
 ## Building from git
 
-Prerequisites are git, maven (3.2.1 or later)
-and Java (JDK 7 or later, 8 preferred) on your path.
+Prerequisites are git, maven (3.5.2 or later)
+and Java (JDK 7 or later, 9 preferred) on your path.
 
 Create a local copy of the github repository,
 `cd` to its root directory,
@@ -408,7 +408,7 @@ ball because that would be
 Before you start:
 
 * Set up signing keys as described above.
-* Make sure you are using JDK 8 (not 7 or 9).
+* Make sure you are using JDK 8 (not 7, 9 or 10).
 * Make sure build and tests succeed with `-Dcalcite.test.db=hsqldb` (the default)
 
 {% highlight bash %}
