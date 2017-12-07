@@ -310,6 +310,17 @@ public class RexUtil {
     return false;
   }
 
+  /** Removes any casts that change nullability but not type.
+   *
+   * <p>For example, {@code CAST(1 = 0 AS BOOLEAN)} becomes {@code 1 = 0}. */
+  public static RexNode removeNullabilityCast(RelDataTypeFactory typeFactory,
+      RexNode node) {
+    while (isNullabilityCast(typeFactory, node)) {
+      node = ((RexCall) node).operands.get(0);
+    }
+    return node;
+  }
+
   /** Creates a map containing each (e, constant) pair that occurs within
    * a predicate list.
    *

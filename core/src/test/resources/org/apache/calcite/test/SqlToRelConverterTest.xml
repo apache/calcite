@@ -361,7 +361,7 @@ window w as (partition by productId)]]>
     </TestCase>
     <TestCase name="testArrayOfRecord">
         <Resource name="sql">
-            <![CDATA[select*from unnest(array(select*from dept))]]>
+            <![CDATA[select employees[1].skills[2+3].desc from dept_nested]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
@@ -648,7 +648,7 @@ LogicalProject(EXPR$0=[CASE(IS NULL($0), IS NOT NULL($1), IS NULL($1), IS NOT NU
         <Resource name="sql">
             <![CDATA[select empno is distinct from deptno
 from (values (cast(null as int), 1),
-              (2, cast(null as int))) as emp(empno, deptno)]]>
+             (2, cast(null as int))) as emp(empno, deptno)]]>
         </Resource>
     </TestCase>
     <TestCase name="testIsNotDistinctFrom">
@@ -1511,7 +1511,7 @@ LogicalSort(offset=[10], fetch=[5])
 ]]>
         </Resource>
     </TestCase>
-<TestCase name="testOffsetFetchWithDynamicParameter">
+    <TestCase name="testOffsetFetchWithDynamicParameter">
         <Resource name="sql">
             <![CDATA[select empno from emp
 offset ? rows fetch next ? rows only]]>
@@ -2444,8 +2444,7 @@ LogicalProject(DEPTNO=[$1], EXPR$1=[$2], EXPR$2=[$3], EXPR$3=[$4])
     pattern (strt down+ up+)
     define
       down as down.mgr < PREV(down.mgr),
-      up as up.mgr > prev(up.mgr)
-  ) mr]]>
+      up as up.mgr > prev(up.mgr)) as mr]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
@@ -2458,15 +2457,18 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
     <TestCase name="testMatchRecognizeMeasures1">
         <Resource name="sql">
             <![CDATA[select *
-  from emp match_recognize
-  (
-   partition by job, sal
-   order by job asc, sal desc
-   measures STRT.mgr as start_nw,   LAST(DOWN.mgr) as bottom_nw,   LAST(up.mgr) as end_nw    pattern (strt down+ up+)
-    define
-      down as down.mgr < PREV(down.mgr),
-      up as up.mgr > prev(up.mgr)
-  ) mr]]>
+from emp match_recognize (
+  partition by job, sal
+  order by job asc, sal desc
+  measures MATCH_NUMBER() as match_num,
+    CLASSIFIER() as var_match,
+    STRT.mgr as start_nw,
+    LAST(DOWN.mgr) as bottom_nw,
+    LAST(up.mgr) as end_nw
+  pattern (strt down+ up+)
+  define
+    down as down.mgr < PREV(down.mgr),
+    up as up.mgr > prev(up.mgr)) as mr]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
@@ -2479,15 +2481,18 @@ LogicalProject(JOB=[$0], SAL=[$1], MATCH_NUM=[$2], VAR_MATCH=[$3], START_NW=[$4]
     <TestCase name="testMatchRecognizeMeasures2">
         <Resource name="sql">
             <![CDATA[select *
-  from emp match_recognize
-  (
-   partition by job
-   order by sal
-   measures STRT.mgr as start_nw,   LAST(DOWN.mgr) as bottom_nw,   LAST(up.mgr) as end_nw    pattern (strt down+ up+)
-    define
-      down as down.mgr < PREV(down.mgr),
-      up as up.mgr > prev(up.mgr)
-  ) mr]]>
+from emp match_recognize (
+  partition by job
+  order by sal
+  measures MATCH_NUMBER() as match_num,
+    CLASSIFIER() as var_match,
+    STRT.mgr as start_nw,
+    LAST(DOWN.mgr) as bottom_nw,
+    LAST(up.mgr) as end_nw
+  pattern (strt down+ up+)
+  define
+    down as down.mgr < PREV(down.mgr),
+    up as up.mgr > prev(up.mgr)) as mr]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
@@ -2500,17 +2505,19 @@ LogicalProject(JOB=[$0], MATCH_NUM=[$1], VAR_MATCH=[$2], START_NW=[$3], BOTTOM_N
     <TestCase name="testMatchRecognizeMeasures3">
         <Resource name="sql">
             <![CDATA[select *
-  from emp match_recognize
-  (
-   partition by job
-   order by sal
-   measures STRT.mgr as start_nw,   LAST(DOWN.mgr) as bottom_nw,   LAST(up.mgr) as end_nw
-   ALL ROWS PER MATCH
-   pattern (strt down+ up+)
-    define
-      down as down.mgr < PREV(down.mgr),
-      up as up.mgr > prev(up.mgr)
-  ) mr]]>
+from emp match_recognize (
+  partition by job
+  order by sal
+  measures MATCH_NUMBER() as match_num,
+    CLASSIFIER() as var_match,
+    STRT.mgr as start_nw,
+    LAST(DOWN.mgr) as bottom_nw,
+    LAST(up.mgr) as end_nw
+  ALL ROWS PER MATCH
+  pattern (strt down+ up+)
+  define
+    down as down.mgr < PREV(down.mgr),
+    up as up.mgr > prev(up.mgr)) as mr]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
@@ -2543,7 +2550,7 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
     <TestCase name="testMatchRecognizePrevDown">
         <Resource name="sql">
             <![CDATA[SELECT *
-FROM tmp
+FROM emp
 MATCH_RECOGNIZE (
   MEASURES
     STRT.mgr AS start_mgr,
@@ -2611,7 +2618,7 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
     <TestCase name="testPrevClassifier">
         <Resource name="sql">
             <![CDATA[SELECT *
-FROM tmp
+FROM emp
 MATCH_RECOGNIZE (
   MEASURES
     STRT.mgr AS start_mgr,
@@ -2913,6 +2920,28 @@ LogicalDelta
     LogicalAggregate(group=[{0}], C=[COUNT()])
       LogicalProject($f0=[HOP($0, 3600000, 10800000)])
         LogicalTableScan(table=[[CATALOG, SALES, ORDERS]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testNotInWithLiteral">
+        <Resource name="sql">
+            <![CDATA[SELECT *
+FROM SALES.NATION
+WHERE n_name NOT IN
+    (SELECT ''
+     FROM SALES.NATION)]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(**=[$1])
+  LogicalFilter(condition=[NOT(AND(IS TRUE($4), IS NOT NULL($2)))])
+    LogicalJoin(condition=[=($2, $3)], joinType=[left])
+      LogicalProject($f0=[$0], $f1=[$1], $f2=[$0])
+        LogicalTableScan(table=[[CATALOG, SALES, NATION]])
+      LogicalAggregate(group=[{0}], agg#0=[MIN($1)])
+        LogicalProject($f0=[$0], $f1=[true])
+          LogicalProject(EXPR$0=[''])
+            LogicalTableScan(table=[[CATALOG, SALES, NATION]])
 ]]>
         </Resource>
     </TestCase>

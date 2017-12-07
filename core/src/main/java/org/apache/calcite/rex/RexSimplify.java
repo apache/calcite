@@ -953,10 +953,7 @@ public class RexSimplify {
    *
    * <p>For example, {@code CAST(1 = 0 AS BOOLEAN)} becomes {@code 1 = 0}. */
   public RexNode removeNullabilityCast(RexNode e) {
-    while (RexUtil.isNullabilityCast(rexBuilder.getTypeFactory(), e)) {
-      e = ((RexCall) e).operands.get(0);
-    }
-    return e;
+    return RexUtil.removeNullabilityCast(rexBuilder.getTypeFactory(), e);
   }
 
   private static <C extends Comparable<C>> RexNode processRange(

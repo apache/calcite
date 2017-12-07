@@ -2371,6 +2371,19 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).with(getTesterWithDynamicTable()).ok();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2080">[CALCITE-2080]
+   * Query with NOT IN operator and literal fails throws AssertionError: 'Cast
+   * for just nullability not allowed'</a>. */
+  @Test public void testNotInWithLiteral() {
+    final String sql = "SELECT *\n"
+        + "FROM SALES.NATION\n"
+        + "WHERE n_name NOT IN\n"
+        + "    (SELECT ''\n"
+        + "     FROM SALES.NATION)";
+    sql(sql).with(getTesterWithDynamicTable()).ok();
+  }
+
   /**
    * Test case for Dynamic Table / Dynamic Star support
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1150">[CALCITE-1150]</a>
@@ -2570,27 +2583,24 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
         + "    pattern (strt down+ up+)\n"
         + "    define\n"
         + "      down as down.mgr < PREV(down.mgr),\n"
-        + "      up as up.mgr > prev(up.mgr)\n"
-        + "  ) mr";
+        + "      up as up.mgr > prev(up.mgr)) as mr";
     sql(sql).ok();
   }
 
   @Test public void testMatchRecognizeMeasures1() {
     final String sql = "select *\n"
-        + "  from emp match_recognize\n"
-        + "  (\n"
-        + "   partition by job, sal\n"
-        + "   order by job asc, sal desc\n"
-        + "   measures  MATCH_NUMBER() as match_num, "
-        + "   CLASSIFIER() as var_match, "
-        + "   STRT.mgr as start_nw,"
-        + "   LAST(DOWN.mgr) as bottom_nw,"
-        + "   LAST(up.mgr) as end_nw"
-        + "    pattern (strt down+ up+)\n"
-        + "    define\n"
-        + "      down as down.mgr < PREV(down.mgr),\n"
-        + "      up as up.mgr > prev(up.mgr)\n"
-        + "  ) mr";
+        + "from emp match_recognize (\n"
+        + "  partition by job, sal\n"
+        + "  order by job asc, sal desc\n"
+        + "  measures MATCH_NUMBER() as match_num,\n"
+        + "    CLASSIFIER() as var_match,\n"
+        + "    STRT.mgr as start_nw,\n"
+        + "    LAST(DOWN.mgr) as bottom_nw,\n"
+        + "    LAST(up.mgr) as end_nw\n"
+        + "  pattern (strt down+ up+)\n"
+        + "  define\n"
+        + "    down as down.mgr < PREV(down.mgr),\n"
+        + "    up as up.mgr > prev(up.mgr)) as mr";
     sql(sql).ok();
   }
 
@@ -2600,40 +2610,36 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
    * columns</a>. */
   @Test public void testMatchRecognizeMeasures2() {
     final String sql = "select *\n"
-        + "  from emp match_recognize\n"
-        + "  (\n"
-        + "   partition by job\n"
-        + "   order by sal\n"
-        + "   measures  MATCH_NUMBER() as match_num, "
-        + "   CLASSIFIER() as var_match, "
-        + "   STRT.mgr as start_nw,"
-        + "   LAST(DOWN.mgr) as bottom_nw,"
-        + "   LAST(up.mgr) as end_nw"
-        + "    pattern (strt down+ up+)\n"
-        + "    define\n"
-        + "      down as down.mgr < PREV(down.mgr),\n"
-        + "      up as up.mgr > prev(up.mgr)\n"
-        + "  ) mr";
+        + "from emp match_recognize (\n"
+        + "  partition by job\n"
+        + "  order by sal\n"
+        + "  measures MATCH_NUMBER() as match_num,\n"
+        + "    CLASSIFIER() as var_match,\n"
+        + "    STRT.mgr as start_nw,\n"
+        + "    LAST(DOWN.mgr) as bottom_nw,\n"
+        + "    LAST(up.mgr) as end_nw\n"
+        + "  pattern (strt down+ up+)\n"
+        + "  define\n"
+        + "    down as down.mgr < PREV(down.mgr),\n"
+        + "    up as up.mgr > prev(up.mgr)) as mr";
     sql(sql).ok();
   }
 
   @Test public void testMatchRecognizeMeasures3() {
     final String sql = "select *\n"
-        + "  from emp match_recognize\n"
-        + "  (\n"
-        + "   partition by job\n"
-        + "   order by sal\n"
-        + "   measures  MATCH_NUMBER() as match_num, "
-        + "   CLASSIFIER() as var_match, "
-        + "   STRT.mgr as start_nw,"
-        + "   LAST(DOWN.mgr) as bottom_nw,"
-        + "   LAST(up.mgr) as end_nw"
-        + "   ALL ROWS PER MATCH"
-        + "    pattern (strt down+ up+)\n"
-        + "    define\n"
-        + "      down as down.mgr < PREV(down.mgr),\n"
-        + "      up as up.mgr > prev(up.mgr)\n"
-        + "  ) mr";
+        + "from emp match_recognize (\n"
+        + "  partition by job\n"
+        + "  order by sal\n"
+        + "  measures MATCH_NUMBER() as match_num,\n"
+        + "    CLASSIFIER() as var_match,\n"
+        + "    STRT.mgr as start_nw,\n"
+        + "    LAST(DOWN.mgr) as bottom_nw,\n"
+        + "    LAST(up.mgr) as end_nw\n"
+        + "  ALL ROWS PER MATCH\n"
+        + "  pattern (strt down+ up+)\n"
+        + "  define\n"
+        + "    down as down.mgr < PREV(down.mgr),\n"
+        + "    up as up.mgr > prev(up.mgr)) as mr";
     sql(sql).ok();
   }
 
