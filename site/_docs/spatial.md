@@ -51,6 +51,24 @@ Calcite's support for spatial data includes:
 
 and will at some point also include query rewrites to use spatial indexes.
 
+## Enabling spatial support
+
+Though the `GEOMETRY` data type is built-in, the functions are not enabled by
+default. You need to add `fun=spatial` to the JDBC connect string to enable
+the functions. For example, `sqlline`:
+
+{% highlight sql %}
+$ ./sqlline
+> !connect jdbc:calcite:fun=spatial "sa" ""
+SELECT ST_PointFromText('POINT(-71.064544 42.28787)');
++-------------------------------+
+| EXPR$0                        |
++-------------------------------+
+| {"x":-71.064544,"y":42.28787} |
++-------------------------------+
+1 row selected (0.323 seconds)
+{% endhighlight %}
+
 ## Acknowledgements
 
 Calcite's OpenGIS implementation uses the

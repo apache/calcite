@@ -464,6 +464,21 @@ Before you start:
   a fix version assigned (most likely the version we are
   just about to release)
 
+Smoke-test `sqlline` with Spatial and Oracle function tables:
+
+{% highlight sql %}
+$ ./sqlline
+> !connect jdbc:calcite:fun=spatial,oracle "sa" ""
+SELECT NVL(ST_Is3D(ST_PointFromText('POINT(-71.064544 42.28787)')), TRUE);
++--------+
+| EXPR$0 |
++--------+
+| false  |
++--------+
+1 row selected (0.039 seconds)
+> !quit
+{% endhighlight %}
+
 Create a release branch named after the release, e.g. `branch-1.1`, and push it to Apache.
 
 {% highlight bash %}

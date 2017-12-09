@@ -17,6 +17,7 @@
 package org.apache.calcite.sql.validate;
 
 import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
+import org.apache.calcite.linq4j.function.Experimental;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeFactoryImpl;
@@ -46,6 +47,10 @@ import java.util.List;
  */
 public class SqlUserDefinedAggFunction extends SqlAggFunction {
   public final AggregateFunction function;
+
+  /** This field is is technical debt; see [CALCITE-2082] Remove
+   * RelDataTypeFactory argument from SqlUserDefinedAggFunction constructor. */
+  @Experimental
   public final RelDataTypeFactory typeFactory;
 
   /** Creates a SqlUserDefinedAggFunction. */

@@ -6157,6 +6157,24 @@ public class JdbcTest {
         .throws_("No match found for function signature NVL(<NUMERIC>, <NUMERIC>)");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2072">[CALCITE-2072]
+   * Enable spatial operator table by adding 'fun=spatial'to JDBC URL</a>. */
+  @Test public void testFunSpatial() {
+    final String sql = "select distinct\n"
+        + "  ST_PointFromText('POINT(-71.0642.28)') as c\n"
+        + "from \"hr\".\"emps\"";
+    CalciteAssert.that(CalciteAssert.Config.REGULAR)
+        .with("fun", "spatial")
+        .query(sql)
+        .returnsUnordered("C={\"x\":-71.0642,\"y\":0.28}");
+
+    // NVL is present in the Oracle operator table, but not spatial or core
+    CalciteAssert.that(CalciteAssert.Config.REGULAR)
+        .query("select nvl(\"commission\", -99) as c from \"hr\".\"emps\"")
+        .throws_("No match found for function signature NVL(<NUMERIC>, <NUMERIC>)");
+  }
+
   /** Tests that {@link Hook#PARSE_TREE} works. */
   @Test public void testHook() {
     final int[] callCount = {0};
