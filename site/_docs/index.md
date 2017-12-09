@@ -102,9 +102,9 @@ server.start();
 
 We know that it is important that client libraries have minimal dependencies.
 
-Avatica is currently part of Apache Calcite.
+Avatica is a sub-project of [Apache Calcite](https://calcite.apache.org),
+maintained in a separate repository.
 It does not depend upon any other part of Calcite.
-At some point Avatica could become a separate project.
 
 Packages:
 
@@ -154,12 +154,12 @@ highly welcomed!
 * Avatica version 1.2.0 onwards
 * *Maintainer*: Microsoft Azure
 
-### Boostport
-* [Home page](https://github.com/Boostport/avatica)
+### Apache Phoenix/Avatica SQL Driver
+* [Home page](https://github.com/apache/calcite-avatica-go)
 * *Language*: Go
 * *License*: [Apache 2.0](https://www.apache.org/licenses/LICENSE-2.0)
 * Avatica version 1.8.0 onwards
-* *Maintainer*: Boostport
+* *Maintainer*: Boostport and the Apache Calcite community
 
 ### Avatica thin client
 * [Home page](https://calcite.apache.org/avatica)
