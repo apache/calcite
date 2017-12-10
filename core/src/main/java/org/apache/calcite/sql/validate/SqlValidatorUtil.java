@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.sql.validate;
 
+import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.linq4j.Linq4j;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.plan.RelOptSchemaWithSampling;
@@ -51,6 +52,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
@@ -928,6 +930,83 @@ public class SqlValidatorUtil {
       flattenedBitSets.add(ImmutableBitSet.union(o));
     }
     return ImmutableList.copyOf(flattenedBitSets);
+  }
+
+  /**
+   * Finds a {@link org.apache.calcite.jdbc.CalciteSchema.TableEntry} in a
+   * given catalog reader whose table has the given name, possibly qualified.
+   *
+   * <p>Uses the case-sensitivity policy of the specified catalog reader.
+   *
+   * <p>If not found, returns null.
+   *
+   * @param catalogReader accessor to the table metadata
+   * @param names Name of table, may be qualified or fully-qualified
+   *
+   * @return TableEntry with a table with the given name, or null
+   */
+  public static CalciteSchema.TableEntry getTableEntry(
+      SqlValidatorCatalogReader catalogReader, List<String> names) {
+    // First look in the default schema, if any.
+    // If not found, look in the root schema.
+    for (List<String> schemaPath : catalogReader.getSchemaPaths()) {
+      CalciteSchema schema =
+          getSchema(catalogReader.getRootSchema(),
+              Iterables.concat(schemaPath, Util.skipLast(names)),
+              catalogReader.nameMatcher());
+      if (schema == null) {
+        continue;
+      }
+      CalciteSchema.TableEntry entry =
+          getTableEntryFrom(schema, Util.last(names),
+              catalogReader.nameMatcher().isCaseSensitive());
+      if (entry != null) {
+        return entry;
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Finds and returns {@link CalciteSchema} nested to the given rootSchema
+   * with specified schemaPath.
+   *
+   * <p>Uses the case-sensitivity policy of specified nameMatcher.
+   *
+   * <p>If not found, returns null.
+   *
+   * @param rootSchema root schema
+   * @param schemaPath full schema path of required schema
+   * @param nameMatcher name matcher
+   *
+   * @return CalciteSchema that corresponds specified schemaPath
+   */
+  public static CalciteSchema getSchema(CalciteSchema rootSchema,
+      Iterable<String> schemaPath, SqlNameMatcher nameMatcher) {
+    CalciteSchema schema = rootSchema;
+    for (String schemaName : schemaPath) {
+      if (schema == rootSchema
+          && nameMatcher.matches(schemaName, schema.getName())) {
+        continue;
+      }
+      schema = schema.getSubSchema(schemaName,
+          nameMatcher.isCaseSensitive());
+      if (schema == null) {
+        return null;
+      }
+    }
+    return schema;
+  }
+
+  private static CalciteSchema.TableEntry getTableEntryFrom(
+      CalciteSchema schema, String name, boolean caseSensitive) {
+    CalciteSchema.TableEntry entry =
+        schema.getTable(name, caseSensitive);
+    if (entry == null) {
+      entry = schema.getTableBasedOnNullaryFunction(name,
+          caseSensitive);
+    }
+    return entry;
   }
 
   /**
