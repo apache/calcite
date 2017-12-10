@@ -10405,6 +10405,9 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
 
     sql("select (((^slackingmin^))) from emp_r")
             .fails(error);
+
+    sql("select ^slackingmin^ from nest.emp_r")
+            .fails(error);
   }
 
   @Test public void testSelectAggregateOnRolledUpColumn() {
