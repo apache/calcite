@@ -22,7 +22,9 @@ matrix:
   include:
     - jdk: oraclejdk8
     - jdk: openjdk7
-    - jdk: ibmjava8
+      # Travis appears to have broken IBM JDK. Can only get a JRE.
+      # Needs to be investigate.
+      #    - jdk: ibmjava8
 branches:
   only:
     - master
@@ -44,5 +46,6 @@ cache:
   directories:
     - $HOME/.m2
 sudo: required
-group: edge
+# Added to enable IBM Java. Temporarily removed.
+#group: edge
 # End .travis.yml

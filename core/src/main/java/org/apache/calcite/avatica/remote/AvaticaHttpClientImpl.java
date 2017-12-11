@@ -55,6 +55,10 @@ public class AvaticaHttpClientImpl implements AvaticaHttpClient {
           continue;
         } else if (responseCode != HttpURLConnection.HTTP_OK) {
           inputStream = connection.getErrorStream();
+          if (inputStream == null) {
+            // HTTP Transport exception that resulted in no content coming back
+            throw new RuntimeException("Failed to read data from the server: HTTP/" + responseCode);
+          }
         } else {
           inputStream = connection.getInputStream();
         }
