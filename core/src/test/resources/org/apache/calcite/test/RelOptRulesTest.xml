@@ -6128,6 +6128,29 @@ LogicalAggregate(group=[{}], EXPR$0=[COUNT()])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testSkipReduceConstantsCaseEquals">
+        <Resource name="sql">
+            <![CDATA[select * from emp e1, emp e2
+where coalesce(e1.mgr, -1) = coalesce(e2.mgr, -1)]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], EMPNO0=[$9], ENAME0=[$10], JOB0=[$11], MGR0=[$12], HIREDATE0=[$13], SAL0=[$14], COMM0=[$15], DEPTNO0=[$16], SLACKER0=[$17])
+  LogicalFilter(condition=[=(CASE(IS NOT NULL($3), $3, -1), CASE(IS NOT NULL($12), $12, -1))])
+    LogicalJoin(condition=[true], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], EMPNO0=[$9], ENAME0=[$10], JOB0=[$11], MGR0=[$12], HIREDATE0=[$13], SAL0=[$14], COMM0=[$15], DEPTNO0=[$16], SLACKER0=[$17])
+  LogicalJoin(condition=[=(CASE(IS NOT NULL($3), $3, -1), CASE(IS NOT NULL($12), $12, -1))], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testPushFilterPastAggThree">
         <Resource name="sql">
             <![CDATA[select deptno from emp

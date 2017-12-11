@@ -20,6 +20,7 @@ import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptPredicateList;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Calc;
 import org.apache.calcite.rel.core.EquiJoin;
@@ -61,6 +62,7 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
+import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
@@ -702,6 +704,16 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
     case AND:
     case OR:
       return call; // don't push CASE into CASE!
+    case EQUALS: {
+      // checks that the EQUALS operands may be splitted and
+      // doesn't push EQUALS into CASE
+      List<RexNode> equalsOperands = call.getOperands();
+      ImmutableBitSet left = RelOptUtil.InputFinder.bits(equalsOperands.get(0));
+      ImmutableBitSet right = RelOptUtil.InputFinder.bits(equalsOperands.get(1));
+      if (!left.isEmpty() && !right.isEmpty() && left.intersect(right).isEmpty()) {
+        return call;
+      }
+    }
     }
     int caseOrdinal = -1;
     final List<RexNode> operands = call.getOperands();
