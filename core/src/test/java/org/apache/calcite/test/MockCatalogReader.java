@@ -87,6 +87,7 @@ import org.apache.calcite.sql.validate.SqlMonotonicity;
 import org.apache.calcite.sql.validate.SqlNameMatcher;
 import org.apache.calcite.sql.validate.SqlNameMatchers;
 import org.apache.calcite.sql.validate.SqlValidatorCatalogReader;
+import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.sql2rel.InitializerContext;
 import org.apache.calcite.sql2rel.InitializerExpressionFactory;
 import org.apache.calcite.sql2rel.NullInitializerExpressionFactory;
@@ -527,6 +528,20 @@ public class MockCatalogReader extends CalciteCatalogReader {
     deptSlackingTable.addColumn("SLACKINGMIN", f.intType);
     registerTable(deptSlackingTable);
 
+    // Register nested schema NEST that contains table with a rolled up column.
+    MockSchema nestedSchema = new MockSchema("NEST");
+    registerNestedSchema(schema, nestedSchema);
+
+    // Register "EMP_R" table which contains a rolled up column in NEST schema.
+    ImmutableList<String> tablePath =
+        ImmutableList.of(schema.getCatalogName(), schema.name, nestedSchema.name, "EMP_R");
+    final MockTable nestedEmpRolledTable = MockTable.create(this, tablePath, false, 14);
+    nestedEmpRolledTable.addColumn("EMPNO", f.intType, true);
+    nestedEmpRolledTable.addColumn("DEPTNO", f.intType);
+    nestedEmpRolledTable.addColumn("SLACKER", f.booleanType);
+    nestedEmpRolledTable.addColumn("SLACKINGMIN", f.intType);
+    nestedEmpRolledTable.registerRolledUpColumn("SLACKINGMIN");
+    registerTable(nestedEmpRolledTable);
   }
 
   /** Adds some extra tables to the mock catalog. These increase the time and
@@ -622,14 +637,20 @@ public class MockCatalogReader extends CalciteCatalogReader {
 
   private void registerTable(final List<String> names, final Table table) {
     assert names.get(0).equals(DEFAULT_CATALOG);
-    final String schemaName = names.get(1);
-    final String tableName = names.get(2);
-    final CalciteSchema schema = rootSchema.getSubSchema(schemaName, true);
+    final List<String> schemaPath = Util.skipLast(names);
+    final String tableName = Util.last(names);
+    final CalciteSchema schema = SqlValidatorUtil.getSchema(rootSchema,
+        schemaPath, SqlNameMatchers.withCaseSensitive(true));
     schema.add(tableName, table);
   }
 
   protected void registerSchema(MockSchema schema) {
     rootSchema.add(schema.name, new AbstractSchema());
+  }
+
+  private void registerNestedSchema(MockSchema parentSchema, MockSchema schema) {
+    rootSchema.getSubSchema(parentSchema.getName(), true)
+        .add(schema.name, new AbstractSchema());
   }
 
   public RelDataType getNamedType(SqlIdentifier typeName) {
@@ -826,6 +847,12 @@ public class MockCatalogReader extends CalciteCatalogReader {
     public static MockTable create(MockCatalogReader catalogReader,
         MockSchema schema, String name, boolean stream, double rowCount) {
       return create(catalogReader, schema, name, stream, rowCount, null);
+    }
+
+    public static MockTable create(MockCatalogReader catalogReader,
+        List<String> names, boolean stream, double rowCount) {
+      return new MockTable(catalogReader, names, stream, rowCount, null,
+          NullInitializerExpressionFactory.INSTANCE);
     }
 
     public static MockTable create(MockCatalogReader catalogReader,
