@@ -1505,7 +1505,24 @@ public class SqlToRelConverter {
     final Blackboard seekBb = createBlackboard(seekScope, null, false);
     RelNode seekRel = convertQueryOrInList(seekBb, seek, targetDataType);
 
-    return RelOptUtil.createExistsPlan(seekRel, subQueryType, logic, notIn);
+    boolean isNullable = targetDataType != null && containsNullableFields(targetDataType);
+
+    return RelOptUtil.createExistsPlan(seekRel, subQueryType, logic, notIn, isNullable);
+  }
+
+  /**
+   * Checks that specified RelDataType contains nullable field.
+   *
+   * @param targetDataType RelDataType to be checked
+   * @return true if specified RelDataType contains nullable field.
+   */
+  private static boolean containsNullableFields(RelDataType targetDataType) {
+    for (RelDataTypeField field : targetDataType.getFieldList()) {
+      if (field.getType().isNullable()) {
+        return true;
+      }
+    }
+    return false;
   }
 
   private RelNode convertQueryOrInList(

@@ -538,6 +538,33 @@ public abstract class RelOptUtil {
       SubQueryType subQueryType,
       Logic logic,
       boolean notIn) {
+    return createExistsPlan(seekRel, subQueryType, logic, notIn, false);
+  }
+
+  /**
+   * Creates a plan suitable for use in <code>EXISTS</code> or <code>IN</code>
+   * statements.
+   *
+   * @see org.apache.calcite.sql2rel.SqlToRelConverter#convertExists
+   *
+   * @param seekRel    A query rel, for example the resulting rel from 'select *
+   *                   from emp' or 'values (1,2,3)' or '('Foo', 34)'.
+   * @param subQueryType Sub-query type
+   * @param logic  Whether to use 2- or 3-valued boolean logic
+   * @param notIn Whether the operator is NOT IN
+   * @param isNullable Whether the operator result type is nullable
+   *
+   * @return A pair of a relational expression which outer joins a boolean
+   * condition column, and a numeric offset. The offset is 2 if column 0 is
+   * the number of rows and column 1 is the number of rows with not-null keys;
+   * 0 otherwise.
+   */
+  public static Exists createExistsPlan(
+      RelNode seekRel,
+      SubQueryType subQueryType,
+      Logic logic,
+      boolean notIn,
+      boolean isNullable) {
     switch (subQueryType) {
     case SCALAR:
       return new Exists(seekRel, false, true);
@@ -546,7 +573,7 @@ public abstract class RelOptUtil {
     switch (logic) {
     case TRUE_FALSE_UNKNOWN:
     case UNKNOWN_AS_TRUE:
-      if (!containsNullableFields(seekRel)) {
+      if (!isNullable && !containsNullableFields(seekRel)) {
         logic = Logic.TRUE_FALSE;
       }
     }

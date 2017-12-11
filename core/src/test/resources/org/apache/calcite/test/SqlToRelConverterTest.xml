@@ -4933,6 +4933,29 @@ LogicalProject(**=[$1], R_REGIONKEY=[$2], R_NAME=[$3], R_COMMENT=[$4])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testNotInWithLiteral">
+        <Resource name="sql">
+            <![CDATA[SELECT * FROM SALES.NATION WHERE n_name not IN (SELECT '' FROM SALES.NATION)]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(**=[$1])
+  LogicalFilter(condition=[NOT(CASE(=($2, 0), false, IS NOT NULL($6), true, IS NULL($4), null, <($3, $2), null, false))])
+    LogicalJoin(condition=[=($4, $5)], joinType=[left])
+      LogicalProject($f0=[$0], $f1=[$1], $f2=[$2], $f3=[$3], $f4=[$0])
+        LogicalJoin(condition=[true], joinType=[inner])
+          LogicalTableScan(table=[[CATALOG, SALES, NATION]])
+          LogicalAggregate(group=[{}], agg#0=[COUNT()], agg#1=[COUNT($0)])
+            LogicalProject($f0=[$0], $f1=[true])
+              LogicalProject(EXPR$0=[''])
+                LogicalTableScan(table=[[CATALOG, SALES, NATION]])
+      LogicalAggregate(group=[{0}], agg#0=[MIN($1)])
+        LogicalProject($f0=[$0], $f1=[true])
+          LogicalProject(EXPR$0=[''])
+            LogicalTableScan(table=[[CATALOG, SALES, NATION]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testGrpByColFromStarInSubQuery">
         <Resource name="sql">
             <![CDATA[SELECT n.n_nationkey AS col  from (SELECT * FROM SALES.NATION) as n  group by n.n_nationkey]]>
