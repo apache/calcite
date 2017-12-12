@@ -86,6 +86,7 @@ import org.apache.calcite.sql.SqlSampleSpec;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlSelectKeyword;
 import org.apache.calcite.sql.SqlSetOption;
+import org.apache.calcite.sql.SqlSnapshot;
 import org.apache.calcite.sql.SqlTimeLiteral;
 import org.apache.calcite.sql.SqlTimestampLiteral;
 import org.apache.calcite.sql.SqlUnnestOperator;
@@ -1842,6 +1843,15 @@ SqlNode TableRef2(boolean lateral) :
             }
         }
         [
+            over = SnapshotOpt(tableRef)
+            {
+                if (over != null) {
+                    tableRef = SqlStdOperatorTable.LATERAL.createCall(
+                        getPos(), over);
+                }
+            }
+        ]
+        [
             over = MatchRecognizeOpt(tableRef)
             {
                 if (over != null) {
@@ -2502,6 +2512,23 @@ SqlNode OrderItem() :
     )?
     {
         return e;
+    }
+}
+
+/**
+ * Parses a FOR SYSTEM_TIME clause following a table expression.
+ */
+SqlSnapshot SnapshotOpt(SqlNode tableRef) :
+{
+    final SqlParserPos pos;
+    SqlNode e;
+}
+{
+    <FOR> { pos = getPos(); } <SYSTEM_TIME>
+    <AS> <OF>
+    e = Expression(ExprContext.ACCEPT_NON_QUERY)
+    {
+        return new SqlSnapshot(pos, tableRef, e);
     }
 }
 

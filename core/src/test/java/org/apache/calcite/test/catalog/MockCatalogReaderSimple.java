@@ -241,6 +241,18 @@ public class MockCatalogReaderSimple extends MockCatalogReader {
     productsTable.addColumn("SUPPLIERID", fixture.intType);
     registerTable(productsTable);
 
+    // Register "PRODUCTS_TEMPORAL" table.
+    MockTable productsTemporalTable = MockTable.create(this, salesSchema, "PRODUCTS_TEMPORAL",
+        false, 200D);
+    productsTemporalTable.setTemporal(true);
+    productsTemporalTable.addColumn("PRODUCTID", fixture.intType);
+    productsTemporalTable.addColumn("NAME", fixture.varchar20Type);
+    productsTemporalTable.addColumn("SUPPLIERID", fixture.intType);
+    productsTemporalTable.addColumn("SYS_START", fixture.timestampType);
+    productsTemporalTable.addColumn("SYS_END", fixture.timestampType);
+    registerTable(productsTemporalTable);
+
+
     // Register "SUPPLIERS" table.
     MockTable suppliersTable = MockTable.create(this, salesSchema, "SUPPLIERS",
         false, 10D);

@@ -72,6 +72,7 @@ import org.apache.calcite.sql.SqlOrderBy;
 import org.apache.calcite.sql.SqlSampleSpec;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlSelectKeyword;
+import org.apache.calcite.sql.SqlSnapshot;
 import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.SqlUnresolvedFunction;
 import org.apache.calcite.sql.SqlUpdate;
@@ -963,6 +964,22 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         node,
         ns.getTable(),
         SqlAccessEnum.SELECT);
+
+    if (node.getKind() == SqlKind.SNAPSHOT) {
+      SqlSnapshot snapshot = (SqlSnapshot) node;
+      SqlNode period = snapshot.getPeriod();
+      RelDataType dataType = deriveType(scope, period);
+      if (dataType.getSqlTypeName() != SqlTypeName.TIMESTAMP) {
+        throw newValidationError(period,
+            Static.RESOURCE.illegalExpressionForTemporal(dataType.getSqlTypeName().getName()));
+      }
+      if (!ns.getTable().isTemporalTable()) {
+        List<String> qualifiedName = ns.getTable().getQualifiedName();
+        String tableName = qualifiedName.get(qualifiedName.size() - 1);
+        throw newValidationError(snapshot.getTableRef(),
+            Static.RESOURCE.notTemporalTable(tableName));
+      }
+    }
   }
 
   /**
@@ -1084,6 +1101,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         return ns;
       }
       // fall through
+    case SNAPSHOT:
     case OVER:
     case COLLECTION_TABLE:
     case ORDER_BY:
@@ -2271,6 +2289,25 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
           (SqlNodeList) extend.getOperandList().get(1),
           forceNullable,
           lateral);
+
+    case SNAPSHOT:
+      call = (SqlCall) node;
+      operand = call.operand(0);
+      newOperand = registerFrom(
+          tableScope == null ? parentScope : tableScope,
+          usingScope,
+          register,
+          operand,
+          enclosingNode,
+          alias,
+          extendList,
+          forceNullable,
+          true);
+      if (newOperand != operand) {
+        call.setOperand(0, newOperand);
+      }
+      scopes.put(node, parentScope);
+      return newNode;
 
     default:
       throw Util.unexpected(kind);

@@ -46,6 +46,7 @@ import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.Sample;
 import org.apache.calcite.rel.core.Sort;
+import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.core.Uncollect;
 import org.apache.calcite.rel.core.Values;
 import org.apache.calcite.rel.logical.LogicalAggregate;
@@ -56,6 +57,7 @@ import org.apache.calcite.rel.logical.LogicalJoin;
 import org.apache.calcite.rel.logical.LogicalMatch;
 import org.apache.calcite.rel.logical.LogicalMinus;
 import org.apache.calcite.rel.logical.LogicalProject;
+import org.apache.calcite.rel.logical.LogicalSnapshot;
 import org.apache.calcite.rel.logical.LogicalSort;
 import org.apache.calcite.rel.logical.LogicalTableFunctionScan;
 import org.apache.calcite.rel.logical.LogicalTableModify;
@@ -123,6 +125,7 @@ import org.apache.calcite.sql.SqlSampleSpec;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlSelectKeyword;
 import org.apache.calcite.sql.SqlSetOperator;
+import org.apache.calcite.sql.SqlSnapshot;
 import org.apache.calcite.sql.SqlUnnestOperator;
 import org.apache.calcite.sql.SqlUpdate;
 import org.apache.calcite.sql.SqlUtil;
@@ -2012,6 +2015,10 @@ public class SqlToRelConverter {
       convertIdentifier(bb, id, extendedColumns);
       return;
 
+    case SNAPSHOT:
+      snapshotTemporalTable(bb, (SqlCall) from);
+      return;
+
     case JOIN:
       final SqlJoin join = (SqlJoin) from;
       final SqlValidatorScope scope = validator.getJoinScope(from);
@@ -2375,6 +2382,21 @@ public class SqlToRelConverter {
       SqlToRelConverter.Blackboard bb,
       SqlCall call,
       LogicalTableFunctionScan callRel) {
+  }
+
+
+  private void snapshotTemporalTable(Blackboard bb, SqlCall call) {
+    final SqlSnapshot snapshot = (SqlSnapshot) call;
+    RexNode rexCall = bb.convertExpression(snapshot.getPeriod());
+
+    // convert inner query, could be a table name or a derived table
+    SqlNode expr = snapshot.getTableRef();
+    convertFrom(bb, expr);
+    final TableScan scan = (TableScan) bb.root;
+
+    LogicalSnapshot snapshotRel = LogicalSnapshot.create(scan, rexCall);
+
+    bb.setRoot(snapshotRel, false);
   }
 
   private Set<RelColumnMapping> getColumnMappings(SqlOperator op) {

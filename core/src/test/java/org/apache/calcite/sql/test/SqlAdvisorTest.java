@@ -90,6 +90,7 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
           "TABLE(CATALOG.SALES.SALGRADE)",
           "TABLE(CATALOG.SALES.SHIPMENTS)",
           "TABLE(CATALOG.SALES.PRODUCTS)",
+          "TABLE(CATALOG.SALES.PRODUCTS_TEMPORAL)",
           "TABLE(CATALOG.SALES.SUPPLIERS)",
           "TABLE(CATALOG.SALES.EMP_R)",
           "TABLE(CATALOG.SALES.DEPT_R)");
@@ -328,6 +329,7 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
   protected static final List<String> JOIN_KEYWORDS =
       Arrays.asList(
           "KEYWORD(FETCH)",
+          "KEYWORD(FOR)",
           "KEYWORD(OFFSET)",
           "KEYWORD(LIMIT)",
           "KEYWORD(UNION)",

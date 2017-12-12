@@ -293,6 +293,7 @@ public abstract class MockCatalogReader extends CalciteCatalogReader {
     protected final Set<String> monotonicColumnSet = new HashSet<>();
     protected StructKind kind = StructKind.FULLY_QUALIFIED;
     protected final ColumnResolver resolver;
+    private boolean temporal;
     protected final InitializerExpressionFactory initializerFactory;
     protected final Set<String> rolledUpColumns = new HashSet<>();
 
@@ -484,6 +485,14 @@ public abstract class MockCatalogReader extends CalciteCatalogReader {
 
     public boolean supportsModality(SqlModality modality) {
       return modality == (stream ? SqlModality.STREAM : SqlModality.RELATION);
+    }
+
+    @Override public boolean isTemporalTable() {
+      return temporal;
+    }
+
+    public void setTemporal(boolean temporal) {
+      this.temporal = temporal;
     }
 
     public void onRegister(RelDataTypeFactory typeFactory) {

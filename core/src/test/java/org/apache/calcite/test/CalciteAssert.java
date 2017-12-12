@@ -755,6 +755,7 @@ public class CalciteAssert {
   public static SchemaPlus addSchema(SchemaPlus rootSchema, SchemaSpec schema) {
     final SchemaPlus foodmart;
     final SchemaPlus jdbcScott;
+    final SchemaPlus scott;
     final ConnectionSpec cs;
     final DataSource dataSource;
     switch (schema) {
@@ -789,6 +790,13 @@ public class CalciteAssert {
     case SCOTT:
       jdbcScott = addSchemaIfNotExists(rootSchema, SchemaSpec.JDBC_SCOTT);
       return rootSchema.add(schema.schemaName, new CloneSchema(jdbcScott));
+    case SCOTT_WITH_TEMPORAL:
+      scott = addSchemaIfNotExists(rootSchema, SchemaSpec.SCOTT);
+      scott.add("products_temporal", new StreamTest.ProductsTemporalTable());
+      scott.add("orders",
+          new StreamTest.OrdersHistoryTable(
+              StreamTest.OrdersStreamTableFactory.getRowList()));
+      return scott;
     case CLONE_FOODMART:
       foodmart = addSchemaIfNotExists(rootSchema, SchemaSpec.JDBC_FOODMART);
       return rootSchema.add("foodmart2", new CloneSchema(foodmart));
@@ -1915,6 +1923,7 @@ public class CalciteAssert {
     HR("hr"),
     JDBC_SCOTT("JDBC_SCOTT"),
     SCOTT("scott"),
+    SCOTT_WITH_TEMPORAL("scott_temporal"),
     BLANK("BLANK"),
     LINGUAL("SALES"),
     POST("POST"),

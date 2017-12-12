@@ -194,6 +194,7 @@ joinCondition:
 
 tableReference:
       tablePrimary
+      [ FOR SYSTEM_TIME AS OF expression ]
       [ matchRecognize ]
       [ [ AS ] alias [ '(' columnAlias [, columnAlias ]* ')' ] ]
 
