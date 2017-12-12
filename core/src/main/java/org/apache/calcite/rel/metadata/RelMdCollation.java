@@ -26,6 +26,7 @@ import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.Calc;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.Project;
@@ -147,6 +148,11 @@ public class RelMdCollation
       RelMetadataQuery mq) {
     return ImmutableList.copyOf(
         project(mq, project.getInput(), project.getProjects()));
+  }
+
+  public ImmutableList<RelCollation> collations(Calc calc,
+      RelMetadataQuery mq) {
+    return ImmutableList.copyOf(calc(mq, calc.getInput(), calc.getProgram()));
   }
 
   public ImmutableList<RelCollation> collations(Values values,

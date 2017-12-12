@@ -685,4 +685,76 @@ OR EXISTS (select * from "scott".emp e where emp.deptno = e.deptno + 20);
 
 !ok
 
+# [CALCITE-2071] Query with IN and OR in WHERE clause returns wrong result
+select empno
+from "scott".emp
+where (empno in (select empno from "scott".emp)
+    or empno in (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14,
+                 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25))
+and empno in (7876, 7698, 7900);
++-------+
+| EMPNO |
++-------+
+|  7698 |
+|  7876 |
+|  7900 |
++-------+
+(3 rows)
+
+!ok
+
+# Equivalent to above (by de Morgan's law)
+select empno
+from "scott".emp
+where not (empno not in (select empno from "scott".emp)
+  and empno not in (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14,
+                    15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25))
+and empno in (7876, 7698, 7900);
++-------+
+| EMPNO |
++-------+
+|  7698 |
+|  7876 |
+|  7900 |
++-------+
+(3 rows)
+
+!ok
+
+# Not equivalent to above, but happens to have same result
+select empno
+from "scott".emp
+where (empno = 12345
+  or empno in (select empno from "scott".emp)
+  or not empno in (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14,
+                   15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25))
+and empno in (7876, 7698, 7900);
++-------+
+| EMPNO |
++-------+
+|  7698 |
+|  7876 |
+|  7900 |
++-------+
+(3 rows)
+
+!ok
+
+# Similar to above, but never suffered from [CALCITE-2071] because AND
+select empno
+from "scott".emp
+where (empno in (select empno from "scott".emp)
+      and empno in (7876, 7698, 7900))
+and empno in (7876, 7698, 7900);
++-------+
+| EMPNO |
++-------+
+|  7698 |
+|  7876 |
+|  7900 |
++-------+
+(3 rows)
+
+!ok
+
 # End sub-query.iq

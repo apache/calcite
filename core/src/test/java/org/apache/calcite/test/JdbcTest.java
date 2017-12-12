@@ -725,6 +725,24 @@ public class JdbcTest {
     assertTrue(connection.isClosed());
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2071">[CALCITE-2071]
+   * Query with IN and OR in WHERE clause returns wrong result</a>.
+   * More cases in sub-query.iq. */
+  @Test public void testWhereInOr() {
+    final String sql = "select \"empid\"\n"
+        + "from \"hr\".\"emps\" t\n"
+        + "where (\"empid\" in (select \"empid\" from \"hr\".\"emps\")\n"
+        + "    or \"empid\" in (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,\n"
+        + "        12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25))\n"
+        + "and \"empid\" in (100, 200, 150)";
+    CalciteAssert.hr()
+        .query(sql)
+        .returnsUnordered("empid=100",
+            "empid=200",
+            "empid=150");
+  }
+
   /** Tests that a driver can be extended with its own parser and can execute
    * its own flavor of DDL. */
   @Test public void testMockDdl() throws Exception {
