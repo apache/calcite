@@ -42,6 +42,7 @@ import org.apache.calcite.rel.core.Minus;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.SemiJoin;
+import org.apache.calcite.rel.core.Snapshot;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.core.Union;
@@ -142,6 +143,7 @@ public class RelBuilder {
   private final RelFactories.CorrelateFactory correlateFactory;
   private final RelFactories.ValuesFactory valuesFactory;
   private final RelFactories.TableScanFactory scanFactory;
+  private final RelFactories.SnapshotFactory snapshotFactory;
   private final RelFactories.MatchFactory matchFactory;
   private final Deque<Frame> stack = new ArrayDeque<>();
   private final boolean simplify;
@@ -191,6 +193,9 @@ public class RelBuilder {
     this.scanFactory =
         Util.first(context.unwrap(RelFactories.TableScanFactory.class),
             RelFactories.DEFAULT_TABLE_SCAN_FACTORY);
+    this.snapshotFactory =
+        Util.first(context.unwrap(RelFactories.SnapshotFactory.class),
+            RelFactories.DEFAULT_SNAPSHOT_FACTORY);
     this.matchFactory =
         Util.first(context.unwrap(RelFactories.MatchFactory.class),
             RelFactories.DEFAULT_MATCH_FACTORY);
@@ -1025,6 +1030,19 @@ public class RelBuilder {
    */
   public RelBuilder scan(String... tableNames) {
     return scan(ImmutableList.copyOf(tableNames));
+  }
+
+  /** Creates a {@link Snapshot} of a given snapshot period.
+   *
+   * <p>Returns this builder.
+   *
+   * @param period Name of table (can optionally be qualified)
+   */
+  public RelBuilder snapshot(RexNode period) {
+    final Frame frame = stack.pop();
+    final RelNode snapshot = snapshotFactory.createSnapshot(frame.rel, period);
+    stack.push(new Frame(snapshot, frame.fields));
+    return this;
   }
 
   /** Creates a {@link Filter} of an array of

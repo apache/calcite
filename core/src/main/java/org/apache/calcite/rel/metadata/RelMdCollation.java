@@ -213,6 +213,12 @@ public class RelMdCollation
   }
 
   /** Helper method to determine a
+   * {@link org.apache.calcite.rel.core.Snapshot}'s collation. */
+  public static List<RelCollation> snapshot(RelMetadataQuery mq, RelNode input) {
+    return mq.collations(input);
+  }
+
+  /** Helper method to determine a
    * {@link org.apache.calcite.rel.core.Sort}'s collation. */
   public static List<RelCollation> sort(RelCollation collation) {
     return ImmutableList.of(collation);

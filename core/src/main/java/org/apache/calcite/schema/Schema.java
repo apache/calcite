@@ -322,6 +322,13 @@ public interface Schema {
      */
     TYPED_VIEW,
 
+    /**
+     * A temporal table.
+     *
+     * <p>Used by MS SQL, Oracle and others
+     */
+    TEMPORAL_TABLE,
+
     /** Table type not known to Calcite.
      *
      * <p>If you get one of these, please fix the problem by adding an enum

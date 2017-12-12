@@ -7945,6 +7945,27 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         "Object 'BLOOP' not found");
   }
 
+  @Test public void testTemporalTable() {
+    checkFails("select stream * from orders, ^products^ for system_time as of"
+            + " TIMESTAMP '2011-01-02 00:00:00'",
+        "Table 'PRODUCTS' is not a temporal table, "
+            + "can not be queried in system time period specification");
+
+    checkFails("select stream * from orders, products_temporal "
+            + "for system_time as of ^'2011-01-02 00:00:00'^",
+        "The system time period specification expects Timestamp type but is 'CHAR'");
+
+    // verify inner join with a specific timestamp
+    check("select stream * from orders join products_temporal "
+        + "for system_time as of timestamp '2011-01-02 00:00:00' "
+        + "on orders.productid = products_temporal.productid");
+
+    // verify left join with a timestamp expression
+    check("select stream * from orders left join products_temporal "
+        + "for system_time as of orders.rowtime "
+        + "on orders.productid = products_temporal.productid");
+  }
+
   @Test public void testScalarSubQuery() {
     check("SELECT  ename,(select name from dept where deptno=1) FROM emp");
     checkFails(

@@ -241,6 +241,12 @@ public enum SqlKind {
    * MATCH_RECOGNIZE clause
    */
   MATCH_RECOGNIZE,
+
+  /**
+   * SNAPSHOT operator
+   */
+  SNAPSHOT,
+
   // binary operators
 
   /**
