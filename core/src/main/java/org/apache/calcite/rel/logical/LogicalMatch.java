@@ -55,7 +55,7 @@ public class LogicalMatch extends Match {
    * @param orderKeys Order by columns
    * @param interval Interval definition, null if WITHIN clause is not defined
    */
-  private LogicalMatch(RelOptCluster cluster, RelTraitSet traitSet,
+  public LogicalMatch(RelOptCluster cluster, RelTraitSet traitSet,
       RelNode input, RelDataType rowType, RexNode pattern,
       boolean strictStart, boolean strictEnd,
       Map<String, RexNode> patternDefinitions, Map<String, RexNode> measures,
@@ -84,14 +84,13 @@ public class LogicalMatch extends Match {
 
   //~ Methods ------------------------------------------------------
 
-  @Override public Match copy(RelNode input, RelDataType rowType,
+  @Override public Match copy(RelTraitSet traits, RelNode input, RelDataType rowType,
       RexNode pattern, boolean strictStart, boolean strictEnd,
       Map<String, RexNode> patternDefinitions, Map<String, RexNode> measures,
       RexNode after, Map<String, ? extends SortedSet<String>> subsets,
       boolean allRows, List<RexNode> partitionKeys, RelCollation orderKeys,
       RexNode interval) {
-    final RelTraitSet traitSet = getCluster().traitSetOf(Convention.NONE);
-    return new LogicalMatch(getCluster(), traitSet,
+    return new LogicalMatch(getCluster(), traits,
         input,
         rowType,
         pattern, strictStart, strictEnd, patternDefinitions, measures,

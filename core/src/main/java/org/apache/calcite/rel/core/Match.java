@@ -190,7 +190,7 @@ public abstract class Match extends SingleRel {
     return interval;
   }
 
-  public abstract Match copy(RelNode input, RelDataType rowType,
+  public abstract Match copy(RelTraitSet traits, RelNode input, RelDataType rowType,
       RexNode pattern, boolean strictStart, boolean strictEnd,
       Map<String, RexNode> patternDefinitions, Map<String, RexNode> measures,
       RexNode after, Map<String, ? extends SortedSet<String>> subsets,
@@ -203,7 +203,7 @@ public abstract class Match extends SingleRel {
       return this;
     }
 
-    return copy(inputs.get(0), rowType, pattern, strictStart, strictEnd,
+    return copy(traitSet, inputs.get(0), rowType, pattern, strictStart, strictEnd,
         patternDefinitions, measures, after, subsets, allRows,
         partitionKeys, orderKeys, interval);
   }
