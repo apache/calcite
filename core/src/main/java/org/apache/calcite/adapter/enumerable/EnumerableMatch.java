@@ -14,14 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.rel.logical;
+package org.apache.calcite.adapter.enumerable;
 
-import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelNode;
-import org.apache.calcite.rel.RelShuttle;
 import org.apache.calcite.rel.core.Match;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexNode;
@@ -30,34 +28,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.SortedSet;
 
-/**
- * Sub-class of {@link Match}
- * not targeted at any particular engine or calling convention.
- */
-public class LogicalMatch extends Match {
-
+/** Implementation of {@link org.apache.calcite.rel.core.Match} in
+ * {@link org.apache.calcite.adapter.enumerable.EnumerableConvention enumerable calling convention}. */
+public class EnumerableMatch extends Match implements EnumerableRel {
   /**
-   * Creates a LogicalMatch.
+   * Creates an EnumerableMatch.
    *
    * <p>Use {@link #create} unless you know what you're doing.
-   *
-   * @param cluster Cluster
-   * @param traitSet Trait set
-   * @param input Input relational expression
-   * @param rowType Row type
-   * @param pattern Regular Expression defining pattern variables
-   * @param strictStart Whether it is a strict start pattern
-   * @param strictEnd Whether it is a strict end pattern
-   * @param patternDefinitions Pattern definitions
-   * @param measures Measure definitions
-   * @param after After match definitions
-   * @param subsets Subset definitions
-   * @param allRows Whether all rows per match (false means one row per match)
-   * @param partitionKeys Partition by columns
-   * @param orderKeys Order by columns
-   * @param interval Interval definition, null if WITHIN clause is not defined
    */
-  public LogicalMatch(RelOptCluster cluster, RelTraitSet traitSet,
+  public EnumerableMatch(RelOptCluster cluster, RelTraitSet traitSet,
       RelNode input, RelDataType rowType, RexNode pattern,
       boolean strictStart, boolean strictEnd,
       Map<String, RexNode> patternDefinitions, Map<String, RexNode> measures,
@@ -69,47 +48,31 @@ public class LogicalMatch extends Match {
         orderKeys, interval);
   }
 
-  /**
-   * Creates a LogicalMatch.
-   */
-  public static LogicalMatch create(RelNode input, RelDataType rowType,
-      RexNode pattern, boolean strictStart, boolean strictEnd,
-      Map<String, RexNode> patternDefinitions, Map<String, RexNode> measures,
-      RexNode after, Map<String, ? extends SortedSet<String>> subsets, boolean allRows,
-      List<RexNode> partitionKeys, RelCollation orderKeys, RexNode interval) {
-    final RelOptCluster cluster = input.getCluster();
-    final RelTraitSet traitSet = cluster.traitSetOf(Convention.NONE);
-    return create(cluster, traitSet, input, rowType, pattern,
-        strictStart, strictEnd, patternDefinitions, measures, after, subsets,
-        allRows, partitionKeys, orderKeys, interval);
-  }
-
-  /**
-   * Creates a LogicalMatch.
-   */
-  public static LogicalMatch create(RelOptCluster cluster,
-      RelTraitSet traitSet, RelNode input, RelDataType rowType,
+  /** Creates an EnumerableMatch. */
+  public static EnumerableMatch create(RelNode input, RelDataType rowType,
       RexNode pattern, boolean strictStart, boolean strictEnd,
       Map<String, RexNode> patternDefinitions, Map<String, RexNode> measures,
       RexNode after, Map<String, ? extends SortedSet<String>> subsets,
       boolean allRows, List<RexNode> partitionKeys, RelCollation orderKeys,
       RexNode interval) {
-    return new LogicalMatch(cluster, traitSet, input, rowType, pattern,
+    final RelOptCluster cluster = input.getCluster();
+    final RelTraitSet traitSet =
+        cluster.traitSetOf(EnumerableConvention.INSTANCE);
+    return new EnumerableMatch(cluster, traitSet, input, rowType, pattern,
         strictStart, strictEnd, patternDefinitions, measures, after, subsets,
         allRows, partitionKeys, orderKeys, interval);
   }
 
-  //~ Methods ------------------------------------------------------
-
   @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
-    return new LogicalMatch(getCluster(), traitSet, inputs.get(0), rowType,
+    return new EnumerableMatch(getCluster(), traitSet, inputs.get(0), rowType,
         pattern, strictStart, strictEnd, patternDefinitions, measures, after,
         subsets, allRows, partitionKeys, orderKeys, interval);
   }
 
-  @Override public RelNode accept(RelShuttle shuttle) {
-    return shuttle.visit(this);
+  public EnumerableRel.Result implement(EnumerableRelImplementor implementor,
+      EnumerableRel.Prefer pref) {
+    throw new RuntimeException("Test");
   }
 }
 
-// End LogicalMatch.java
+// End EnumerableMatch.java

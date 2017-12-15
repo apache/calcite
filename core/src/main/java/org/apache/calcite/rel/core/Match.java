@@ -190,24 +190,6 @@ public abstract class Match extends SingleRel {
     return interval;
   }
 
-  public abstract Match copy(RelNode input, RelDataType rowType,
-      RexNode pattern, boolean strictStart, boolean strictEnd,
-      Map<String, RexNode> patternDefinitions, Map<String, RexNode> measures,
-      RexNode after, Map<String, ? extends SortedSet<String>> subsets,
-      boolean allRows, List<RexNode> partitionKeys, RelCollation orderKeys,
-      RexNode interval);
-
-  @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
-    if (getInputs().equals(inputs)
-        && traitSet == getTraitSet()) {
-      return this;
-    }
-
-    return copy(inputs.get(0), rowType, pattern, strictStart, strictEnd,
-        patternDefinitions, measures, after, subsets, allRows,
-        partitionKeys, orderKeys, interval);
-  }
-
   @Override public RelWriter explainTerms(RelWriter pw) {
     return super.explainTerms(pw)
         .item("partition", getPartitionKeys())

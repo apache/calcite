@@ -14,31 +14,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.rel.mutable;
+package org.apache.calcite.interpreter;
 
-/** Type of {@code MutableRel}. */
-enum MutableRelType {
-  AGGREGATE,
-  CALC,
-  COLLECT,
-  CORRELATE,
-  EXCHANGE,
-  FILTER,
-  INTERSECT,
-  JOIN,
-  MATCH,
-  MINUS,
-  PROJECT,
-  SAMPLE,
-  SORT,
-  TABLE_FUNCTION_SCAN,
-  TABLE_MODIFY,
-  TABLE_SCAN,
-  UNCOLLECT,
-  UNION,
-  VALUES,
-  WINDOW,
-  HOLDER
+import org.apache.calcite.rel.core.Match;
+
+/**
+ * Interpreter node that implements a
+ * {@link Match}.
+ */
+public class MatchNode extends AbstractSingleNode<Match> {
+  MatchNode(Compiler compiler, Match rel) {
+    super(compiler, rel);
+  }
+
+  public void run() throws InterruptedException {
+    Row row;
+    while ((row = source.receive()) != null) {
+      sink.send(row);
+    }
+    sink.end();
+  }
 }
 
-// End MutableRelType.java
+// End MatchNode.java
