@@ -65,8 +65,6 @@ import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
-import static org.apache.calcite.sql.SqlKind.INPUT_REF;
-
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.google.common.annotations.VisibleForTesting;
@@ -89,6 +87,8 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.TimeZone;
 import java.util.regex.Pattern;
+
+import static org.apache.calcite.sql.SqlKind.INPUT_REF;
 
 /**
  * Relational expression representing a scan of a Druid data set.
