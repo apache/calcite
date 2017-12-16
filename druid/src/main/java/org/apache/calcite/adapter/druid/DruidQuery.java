@@ -214,13 +214,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
   public boolean isValidFilter(RexNode e, boolean boundedComparator, RelNode input) {
     switch (e.getKind()) {
     case INPUT_REF:
-      if (input == null) {
-        return true;
-      }
-      int nameIndex = ((RexInputRef) e).getIndex();
-      String name = input.getRowType().getFieldList().get(nameIndex).getName();
-      // Druid can't filter on metrics
-      return !druidTable.isMetric(name);
+      return true;
     case LITERAL:
       return ((RexLiteral) e).getValue() != null;
     case AND:
