@@ -356,6 +356,7 @@ class DruidConnectionImpl implements DruidConnection {
           case "NaN":
             throw new RuntimeException("/ by zero");
           }
+          rowBuilder.set(i, Long.valueOf(s));
           break;
         case FLOAT:
         case PRIMITIVE_FLOAT:
@@ -373,10 +374,12 @@ class DruidConnectionImpl implements DruidConnection {
             rowBuilder.set(i, Double.NaN);
             return;
           }
+          rowBuilder.set(i, Double.valueOf(s));
+          break;
         }
+      } else {
+        rowBuilder.set(i, s);
       }
-      rowBuilder.set(i, s);
-      break;
     }
   }
 
