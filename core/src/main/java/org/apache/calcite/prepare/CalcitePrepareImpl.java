@@ -1162,10 +1162,8 @@ public class CalcitePrepareImpl implements CalcitePrepare {
         CatalogReader catalogReader,
         SqlToRelConverter.Config config) {
       final RelOptCluster cluster = prepare.createCluster(planner, rexBuilder);
-      SqlToRelConverter sqlToRelConverter =
-          new SqlToRelConverter(this, validator, catalogReader, cluster,
-              convertletTable, config);
-      return sqlToRelConverter;
+      return new SqlToRelConverter(this, validator, catalogReader, cluster,
+          convertletTable, config);
     }
 
     @Override public RelNode flattenTypes(
