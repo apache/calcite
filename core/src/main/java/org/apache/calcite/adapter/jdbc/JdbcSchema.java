@@ -104,7 +104,8 @@ public class JdbcSchema implements Schema {
       DataSource dataSource,
       String catalog,
       String schema) {
-    return create(parentSchema, name, dataSource, new SqlDialectFactoryImpl(), catalog, schema);
+    return create(parentSchema, name, dataSource,
+        SqlDialectFactoryImpl.INSTANCE, catalog, schema);
   }
 
   public static JdbcSchema create(
@@ -174,7 +175,7 @@ public class JdbcSchema implements Schema {
    */
   @Deprecated // to be removed before 2.0
   public static SqlDialect createDialect(DataSource dataSource) {
-    return createDialect(new SqlDialectFactoryImpl(), dataSource);
+    return createDialect(SqlDialectFactoryImpl.INSTANCE, dataSource);
   }
 
   /** Returns a suitable SQL dialect for the given data source. */
