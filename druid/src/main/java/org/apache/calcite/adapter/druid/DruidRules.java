@@ -218,9 +218,6 @@ public class DruidRules {
       final RexSimplify simplify =
           new RexSimplify(rexBuilder, predicates, true, executor);
       final RexNode cond = simplify.simplify(filter.getCondition());
-      if (!canPush(cond)) {
-        return;
-      }
       for (RexNode e : RelOptUtil.conjunctions(cond)) {
         if (query.isValidFilter(e)) {
           validPreds.add(e);
@@ -316,12 +313,6 @@ public class DruidRules {
         }
       }
       return ImmutableTriple.of(timeRangeNodes, pushableNodes, nonPushableNodes);
-    }
-
-    /** Returns whether we can push an expression to Druid. */
-    private static boolean canPush(RexNode cond) {
-      // Druid cannot implement "where false"
-      return !cond.isAlwaysFalse();
     }
   }
 

@@ -724,12 +724,6 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
     try {
       final JsonGenerator generator = factory.createGenerator(sw);
 
-      if (aggregations.isEmpty()) {
-        // Druid requires at least one aggregation, otherwise gives:
-        //   Must have at least one AggregatorFactory
-        aggregations.add(
-                new JsonAggregation("longSum", "dummy_agg", "dummy_agg"));
-      }
       switch (queryType) {
       case TIMESERIES:
         generator.writeStartObject();
@@ -747,7 +741,11 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
         generator.writeFieldName("context");
         // The following field is necessary to conform with SQL semantics (CALCITE-1589)
         generator.writeStartObject();
-        generator.writeBooleanField("skipEmptyBuckets", true);
+        final boolean isCountStar = Granularity.ALL == finalGranularity
+            && aggregations.size() == 1
+            && aggregations.get(0).type.equals("count");
+        //Count(*) returns 0 if result set is empty thus need to set skipEmptyBuckets to false
+        generator.writeBooleanField("skipEmptyBuckets", !isCountStar);
         generator.writeEndObject();
 
         generator.writeEndObject();
@@ -1146,6 +1144,12 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
 
     private JsonFilter translateFilter(RexNode e) {
       final RexCall call;
+      if (e.isAlwaysTrue()) {
+        return JsonExpressionFilter.alwaysTrue();
+      }
+      if (e.isAlwaysFalse()) {
+        return JsonExpressionFilter.alwaysFalse();
+      }
       switch (e.getKind()) {
       case EQUALS:
       case NOT_EQUALS:
@@ -1459,7 +1463,8 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
       NOT,
       SELECTOR,
       IN,
-      BOUND;
+      BOUND,
+      EXPRESSION;
 
       public String lowercase() {
         return name().toLowerCase(Locale.ROOT);
@@ -1472,6 +1477,36 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
       this.type = type;
     }
   }
+
+  /**
+   * Druid Expression filter.
+   */
+  private static class JsonExpressionFilter extends JsonFilter {
+    private final String expression;
+
+    private JsonExpressionFilter(String expression) {
+      super(Type.EXPRESSION);
+      this.expression = Preconditions.checkNotNull(expression);
+    }
+
+    @Override public void write(JsonGenerator generator) throws IOException {
+      generator.writeStartObject();
+      generator.writeStringField("type", type.lowercase());
+      generator.writeStringField("expression", expression);
+      generator.writeEndObject();
+    }
+
+    /** We need to push to Druid an expression that always evaluates to true. */
+    public static final JsonExpressionFilter alwaysTrue() {
+      return new JsonExpressionFilter("1 == 1");
+    }
+
+    /** We need to push to Druid an expression that always evaluates to false. */
+    public static final JsonExpressionFilter alwaysFalse() {
+      return new JsonExpressionFilter("1 == 2");
+    }
+  }
+
 
   /** Equality filter. */
   private static class JsonSelector extends JsonFilter {
