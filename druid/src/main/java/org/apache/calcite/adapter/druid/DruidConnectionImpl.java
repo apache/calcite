@@ -143,11 +143,11 @@ class DruidConnectionImpl implements DruidConnection {
       case TIMESERIES:
         if (parser.nextToken() == JsonToken.START_ARRAY) {
           while (parser.nextToken() == JsonToken.START_OBJECT) {
-            // loop until token equal to "}"
+           // loop until token equal to "}"
             final Long timeValue = extractTimestampField(parser);
             if (parser.nextToken() == JsonToken.FIELD_NAME
-                && parser.getCurrentName().equals("result")
-                && parser.nextToken() == JsonToken.START_OBJECT) {
+                    && parser.getCurrentName().equals("result")
+                    && parser.nextToken() == JsonToken.START_OBJECT) {
               if (posTimestampField != -1) {
                 rowBuilder.set(posTimestampField, timeValue);
               }
@@ -273,7 +273,6 @@ class DruidConnectionImpl implements DruidConnection {
                 }
                 expect(parser, JsonToken.END_ARRAY);
                 Row row = rowBuilder.build();
-                //  System.out.println("Row read" + row);
                 sink.send(row);
                 rowBuilder.reset();
                 page.totalRowCount += 1;
@@ -326,18 +325,18 @@ class DruidConnectionImpl implements DruidConnection {
 
     if (isTimestampColumn || ColumnMetaData.Rep.JAVA_SQL_TIMESTAMP == type) {
       try {
-        final long parse;
+        final long timeInMillis;
 
         if (token == JsonToken.VALUE_NUMBER_INT) {
-          parse = parser.getLongValue();
+          timeInMillis = parser.getLongValue();
         } else {
           // synchronized block to avoid race condition
           synchronized (UTC_TIMESTAMP_FORMAT) {
-            parse = UTC_TIMESTAMP_FORMAT.parse(parser.getText()).getTime();
+            timeInMillis = UTC_TIMESTAMP_FORMAT.parse(parser.getText()).getTime();
           }
         }
         if (posTimestampField != -1) {
-          rowBuilder.set(posTimestampField, parse);
+          rowBuilder.set(posTimestampField, timeInMillis);
         }
       } catch (ParseException e) {
         // ignore bad value
@@ -670,8 +669,7 @@ class DruidConnectionImpl implements DruidConnection {
       }
     }
 
-    public void reset() {
-    }
+    public void reset() {}
 
     public void close() {
       final Throwable e = throwableHolder.get();
