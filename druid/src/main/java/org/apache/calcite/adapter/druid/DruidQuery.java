@@ -875,7 +875,14 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
               + " because an approximate count distinct is not acceptable.");
         }
       }
-      aggregation = new JsonAggregation("count", name, only);
+      if (aggCall.getArgList().size() == 1) {
+        final JsonFilter filter = new JsonCompositeFilter(JsonFilter.Type.NOT,
+            new JsonSelector(only, null, null));
+        aggregation = new JsonFilteredAggregation(filter, new JsonAggregation("count", name, only));
+      } else {
+        aggregation = new JsonAggregation("count", name, only);
+      }
+
       break;
     case SUM:
     case SUM0:
