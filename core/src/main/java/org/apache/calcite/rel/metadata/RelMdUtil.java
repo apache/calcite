@@ -874,6 +874,15 @@ public class RelMdUtil {
     }
     return alreadySorted && alreadySmaller;
   }
+
+  /**
+   * Removes cached metadata values for specified RelNode.
+   *
+   * @param rel RelNode whose cached metadata should be removed
+   */
+  public static void clearCache(RelNode rel) {
+    rel.getCluster().getMetadataQuery().clearCache(rel);
+  }
 }
 
 // End RelMdUtil.java

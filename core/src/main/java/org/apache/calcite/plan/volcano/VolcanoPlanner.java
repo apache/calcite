@@ -46,6 +46,7 @@ import org.apache.calcite.rel.convert.Converter;
 import org.apache.calcite.rel.convert.ConverterRule;
 import org.apache.calcite.rel.externalize.RelWriterImpl;
 import org.apache.calcite.rel.metadata.JaninoRelMetadataProvider;
+import org.apache.calcite.rel.metadata.RelMdUtil;
 import org.apache.calcite.rel.metadata.RelMetadataProvider;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
@@ -1566,6 +1567,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
         }
       }
     }
+    RelMdUtil.clearCache(rel);
     return changeCount > 0;
   }
 

@@ -265,10 +265,9 @@ public class JaninoRelMetadataProvider implements RelMetadataProvider {
             .append(method.i)
             .append(")");
       }
-      buff.append(", r");
       safeArgList(buff, method.e)
           .append(");\n")
-          .append("    final Object v = mq.map.get(key);\n")
+          .append("    final Object v = mq.map.get(r, key);\n")
           .append("    if (v != null) {\n")
           .append("      if (v == ")
           .append(NullSentinel.class.getName())
@@ -286,7 +285,7 @@ public class JaninoRelMetadataProvider implements RelMetadataProvider {
           .append(method.e.getReturnType().getName())
           .append(") v;\n")
           .append("    }\n")
-          .append("    mq.map.put(key,")
+          .append("    mq.map.put(r, key,")
           .append(NullSentinel.class.getName())
           .append(".ACTIVE);\n")
           .append("    try {\n")
@@ -297,14 +296,14 @@ public class JaninoRelMetadataProvider implements RelMetadataProvider {
           .append("_(r, mq");
       argList(buff, method.e)
           .append(");\n")
-          .append("      mq.map.put(key, ")
+          .append("      mq.map.put(r, key, ")
           .append(NullSentinel.class.getName())
           .append(".mask(x));\n")
           .append("      return x;\n")
           .append("    } catch (")
           .append(Exception.class.getName())
           .append(" e) {\n")
-          .append("      mq.map.remove(key);\n")
+          .append("      mq.map.row(r).clear();\n")
           .append("      throw e;\n")
           .append("    }\n")
           .append("  }\n")
