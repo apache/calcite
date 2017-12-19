@@ -143,7 +143,7 @@ public class EnumerableCalc extends Calc implements EnumerableRel {
             inputJavaType);
 
     final RexBuilder rexBuilder = getCluster().getRexBuilder();
-    final RelMetadataQuery mq = RelMetadataQuery.instance();
+    final RelMetadataQuery mq = getCluster().getMetadataQuery();
     final RelOptPredicateList predicates = mq.getPulledUpPredicates(child);
     final RexSimplify simplify =
         new RexSimplify(rexBuilder, predicates, RexUtil.EXECUTOR);

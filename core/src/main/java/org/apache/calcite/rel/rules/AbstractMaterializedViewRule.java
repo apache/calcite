@@ -203,7 +203,7 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
    */
   protected void perform(RelOptRuleCall call, Project topProject, RelNode node) {
     final RexBuilder rexBuilder = node.getCluster().getRexBuilder();
-    final RelMetadataQuery mq = RelMetadataQuery.instance();
+    final RelMetadataQuery mq = call.getMetadataQuery();
     final RelOptPlanner planner = call.getPlanner();
     final RexExecutor executor =
         Util.first(planner.getExecutor(), RexUtil.EXECUTOR);

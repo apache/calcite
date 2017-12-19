@@ -92,6 +92,8 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static org.apache.calcite.rel.metadata.RelMdUtil.clearCache;
+
 /**
  * VolcanoPlanner optimizes queries by transforming expressions selectively
  * according to a dynamic programming algorithm.
@@ -1363,6 +1365,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
         }
       }
     }
+    clearCache(rel);
     return changeCount > 0;
   }
 

@@ -20,8 +20,8 @@ import org.apache.calcite.adapter.enumerable.EnumerableRel;
 import org.apache.calcite.interpreter.BindableConvention;
 import org.apache.calcite.jdbc.CalcitePrepare;
 import org.apache.calcite.jdbc.CalciteSchema;
+import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptMaterialization;
-import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
@@ -61,10 +61,10 @@ class CalciteMaterializer extends CalcitePrepareImpl.CalcitePreparingStmt {
   CalciteMaterializer(CalcitePrepareImpl prepare,
       CalcitePrepare.Context context,
       CatalogReader catalogReader, CalciteSchema schema,
-      RelOptPlanner planner, SqlRexConvertletTable convertletTable) {
+      SqlRexConvertletTable convertletTable, RelOptCluster cluster) {
     super(prepare, context, catalogReader, catalogReader.getTypeFactory(),
-        schema, EnumerableRel.Prefer.ANY, planner, BindableConvention.INSTANCE,
-        convertletTable);
+        schema, EnumerableRel.Prefer.ANY, BindableConvention.INSTANCE,
+        convertletTable, cluster);
   }
 
   /** Populates a materialization record, converting a table path

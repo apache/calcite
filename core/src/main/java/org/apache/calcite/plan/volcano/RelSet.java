@@ -33,7 +33,9 @@ import org.slf4j.Logger;
 
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -311,10 +313,13 @@ class RelSet {
     assert otherSet.equivalentSet == null;
     LOGGER.trace("Merge set#{} into set#{}", otherSet.id, id);
     otherSet.equivalentSet = this;
+    final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
 
     // remove from table
     boolean existed = planner.allSets.remove(otherSet);
     assert existed : "merging with a dead otherSet";
+
+    final Map<RelSubset, RelNode> changedSubsets = new IdentityHashMap<>();
 
     // merge subsets
     for (RelSubset otherSubset : otherSet.subsets) {
@@ -323,9 +328,9 @@ class RelSet {
           getOrCreateSubset(
               otherSubset.getCluster(),
               otherSubset.getTraitSet());
+      // collect RelSubset instances, whose best should be changed
       if (otherSubset.bestCost.isLt(subset.bestCost)) {
-        subset.bestCost = otherSubset.bestCost;
-        subset.best = otherSubset.best;
+        changedSubsets.put(subset, otherSubset.best);
       }
       for (RelNode otherRel : otherSubset.getRels()) {
         planner.reregister(this, otherRel);
@@ -334,6 +339,18 @@ class RelSet {
 
     // Has another set merged with this?
     assert equivalentSet == null;
+
+    // calls propagateCostImprovements() for RelSubset instances,
+    // whose best should be changed to checks whether that
+    // subset's parents have gotten cheaper.
+    final Set<RelSubset> activeSet = new HashSet<>();
+    for (Map.Entry<RelSubset, RelNode> subsetBestPair : changedSubsets.entrySet()) {
+      RelSubset relSubset = subsetBestPair.getKey();
+      relSubset.propagateCostImprovements(
+          planner, mq, subsetBestPair.getValue(),
+          activeSet);
+    }
+    assert activeSet.isEmpty();
 
     // Update all rels which have a child in the other set, to reflect the
     // fact that the child has been renamed.
@@ -353,8 +370,6 @@ class RelSet {
     }
 
     // Make sure the cost changes as a result of merging are propagated.
-    final Set<RelSubset> activeSet = new HashSet<>();
-    final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
     for (RelNode parentRel : getParentRels()) {
       final RelSubset parentSubset = planner.getSubset(parentRel);
       parentSubset.propagateCostImprovements(

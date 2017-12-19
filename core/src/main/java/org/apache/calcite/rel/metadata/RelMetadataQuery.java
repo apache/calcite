@@ -27,15 +27,15 @@ import org.apache.calcite.rex.RexTableInputRef.RelTableRef;
 import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.util.ImmutableBitSet;
 
+import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.Table;
 
 import java.lang.reflect.Proxy;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
@@ -76,7 +76,7 @@ import java.util.Set;
  */
 public class RelMetadataQuery {
   /** Set of active metadata queries, and cache of previous results. */
-  public final Map<List, Object> map = new HashMap<>();
+  public final Table<RelNode, List, Object> map = HashBasedTable.create();
 
   public final JaninoRelMetadataProvider metadataProvider;
 
@@ -839,6 +839,15 @@ public class RelMetadataQuery {
             revise(e.relClass, BuiltInMetadata.ExplainVisibility.DEF);
       }
     }
+  }
+
+  /**
+   * Removes cached metadata values for specified RelNode.
+   *
+   * @param rel RelNode whose cached metadata should be removed
+   */
+  public void clearCache(RelNode rel) {
+    map.row(rel).clear();
   }
 
   private static Double validatePercentage(Double result) {

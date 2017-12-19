@@ -161,13 +161,13 @@ public abstract class AbstractRelNode implements RelNode {
 
   @SuppressWarnings("deprecation")
   public boolean isDistinct() {
-    final RelMetadataQuery mq = RelMetadataQuery.instance();
+    final RelMetadataQuery mq = cluster.getMetadataQuery();
     return Boolean.TRUE.equals(mq.areRowsUnique(this));
   }
 
   @SuppressWarnings("deprecation")
   public boolean isKey(ImmutableBitSet columns) {
-    final RelMetadataQuery mq = RelMetadataQuery.instance();
+    final RelMetadataQuery mq = cluster.getMetadataQuery();
     return Boolean.TRUE.equals(mq.areColumnsUnique(this, columns));
   }
 
@@ -241,7 +241,7 @@ public abstract class AbstractRelNode implements RelNode {
 
   @SuppressWarnings("deprecation")
   public final double getRows() {
-    return estimateRowCount(RelMetadataQuery.instance());
+    return estimateRowCount(cluster.getMetadataQuery());
   }
 
   public double estimateRowCount(RelMetadataQuery mq) {
@@ -283,7 +283,7 @@ public abstract class AbstractRelNode implements RelNode {
 
   @SuppressWarnings("deprecation")
   public final RelOptCost computeSelfCost(RelOptPlanner planner) {
-    return computeSelfCost(planner, RelMetadataQuery.instance());
+    return computeSelfCost(planner, cluster.getMetadataQuery());
   }
 
   public RelOptCost computeSelfCost(RelOptPlanner planner,
