@@ -16,8 +16,10 @@
  */
 package org.apache.calcite.sql;
 
+import com.google.common.collect.Lists;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.util.ImmutableNullableList;
+import org.apache.calcite.util.Litmus;
 
 import java.util.List;
 
@@ -48,8 +50,19 @@ public class SqlOrderBy extends SqlCall {
   public SqlOrderBy(SqlParserPos pos, SqlNode query, SqlNodeList orderList,
       SqlNode offset, SqlNode fetch) {
     super(pos);
+    //remove the repeated sort keys
+    List<SqlNode> list = Lists.newArrayList();
+    for (SqlNode sqlNode : orderList.getList()) {
+      boolean match = false;
+      for (SqlNode containNode : list) {
+        if (containNode.equalsDeep(sqlNode, Litmus.IGNORE)) {
+          match = true;
+        }
+      }
+      if (!match) list.add(sqlNode);
+    }
     this.query = query;
-    this.orderList = orderList;
+    this.orderList = new SqlNodeList(list, orderList.getParserPosition());
     this.offset = offset;
     this.fetch = fetch;
   }

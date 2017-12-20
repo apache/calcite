@@ -16,19 +16,23 @@
  */
 package org.apache.calcite.rel;
 
+import com.google.common.collect.ImmutableSet;
 import org.apache.calcite.plan.RelMultipleTrait;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelTrait;
 import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.runtime.Utilities;
+import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.UnmodifiableIterator;
 
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 import javax.annotation.Nonnull;
 
 /**
@@ -50,6 +54,7 @@ public class RelCollationImpl implements RelCollation {
   //~ Constructors -----------------------------------------------------------
 
   protected RelCollationImpl(ImmutableList<RelFieldCollation> fieldCollations) {
+    validate(fieldCollations);
     this.fieldCollations = fieldCollations;
   }
 
@@ -116,6 +121,22 @@ public class RelCollationImpl implements RelCollation {
         || trait instanceof RelCollationImpl
         && Util.startsWith(fieldCollations,
             ((RelCollationImpl) trait).fieldCollations);
+  }
+
+    /**
+     * validate validity of the fieldCollations, in order to avoid the repeated  and incompatible sort keys
+     */
+  private void validate(ImmutableList<RelFieldCollation> fieldCollations) {
+      Set<RelFieldCollation> fieldCollationSet = ImmutableSet.copyOf(fieldCollations);
+      assert fieldCollationSet.size() == fieldCollations.size();
+      for (RelFieldCollation outField : fieldCollationSet) {
+          for (RelFieldCollation inField : fieldCollationSet) {
+              if (outField.getFieldIndex() == inField.getFieldIndex()) {
+                  assert outField.direction == inField.direction &&
+                         outField.nullDirection == inField.nullDirection;
+              }
+          }
+      }
   }
 
   /** Returns a string representation of this collation, suitably terse given

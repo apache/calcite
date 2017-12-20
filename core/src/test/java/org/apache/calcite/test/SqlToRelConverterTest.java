@@ -643,7 +643,7 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
 
   @Test public void testOrderBySameExpr() {
     final String sql = "select empno from emp, dept\n"
-        + "order by sal + empno desc, sal * empno, sal + empno";
+        + "order by sal + empno desc, sal * empno, sal + empno desc";
     sql(sql).ok();
   }
 
