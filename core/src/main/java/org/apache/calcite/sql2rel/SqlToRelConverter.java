@@ -2939,10 +2939,7 @@ public class SqlToRelConverter {
     }
     for (SqlNode orderItem : orderList) {
       collationList.add(
-          convertOrderItem(
-              select,
-              orderItem,
-              extraOrderExprs,
+          convertOrderItem(select, orderItem, extraOrderExprs,
               RelFieldCollation.Direction.ASCENDING,
               RelFieldCollation.NullDirection.UNSPECIFIED));
     }

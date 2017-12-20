@@ -38,6 +38,7 @@ import com.google.common.cache.LoadingCache;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Sets;
 
 import org.slf4j.Logger;
 
@@ -84,6 +85,7 @@ import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -2001,6 +2003,38 @@ public class Util {
       }
     }
     return -1;
+  }
+
+  /** Converts a list into a list with unique elements.
+   *
+   * <p>The order is preserved; the second and subsequent occurrences are
+   * removed.
+   *
+   * <p>If the list is already unique it is returned unchanged. */
+  public static <E> List<E> distinctList(List<E> list) {
+    if (isDistinct(list)) {
+      return list;
+    }
+    return ImmutableList.copyOf(new LinkedHashSet<>(list));
+  }
+
+  /** Converts an iterable into a list with unique elements.
+   *
+   * <p>The order is preserved; the second and subsequent occurrences are
+   * removed.
+   *
+   * <p>If {@code iterable} is a unique list it is returned unchanged. */
+  public static <E> List<E> distinctList(Iterable<E> keys) {
+    if (keys instanceof Set) {
+      return ImmutableList.copyOf(keys);
+    }
+    if (keys instanceof List) {
+      @SuppressWarnings("unchecked") final List<E> list = (List) keys;
+      if (isDistinct(list)) {
+        return list;
+      }
+    }
+    return ImmutableList.copyOf(Sets.newLinkedHashSet(keys));
   }
 
   /** Returns whether two collections have any elements in common. */

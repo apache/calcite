@@ -71,8 +71,7 @@ class EnumerableMergeJoinRule extends ConverterRule {
         final List<RelFieldCollation> fieldCollations = Lists.newArrayList();
         for (int key : info.keys().get(ord.i)) {
           fieldCollations.add(
-              new RelFieldCollation(key,
-                  RelFieldCollation.Direction.ASCENDING,
+              new RelFieldCollation(key, RelFieldCollation.Direction.ASCENDING,
                   RelFieldCollation.NullDirection.LAST));
         }
         final RelCollation collation = RelCollations.of(fieldCollations);

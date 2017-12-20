@@ -1708,9 +1708,13 @@ public class RelBuilder {
     final List<RexNode> originalExtraNodes = fields();
     final List<RexNode> extraNodes = new ArrayList<>(originalExtraNodes);
     for (RexNode node : nodes) {
-      fieldCollations.add(
+      final RelFieldCollation collation =
           collation(node, RelFieldCollation.Direction.ASCENDING, null,
-              extraNodes));
+              extraNodes);
+      if (!RelCollations.ordinals(fieldCollations)
+          .contains(collation.getFieldIndex())) {
+        fieldCollations.add(collation);
+      }
     }
     final RexNode offsetNode = offset <= 0 ? null : literal(offset);
     final RexNode fetchNode = fetch < 0 ? null : literal(fetch);

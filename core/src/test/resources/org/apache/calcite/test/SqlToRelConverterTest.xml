@@ -902,6 +902,18 @@ LogicalSort(sort0=[$0], dir0=[DESC-nulls-last])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testOrderBasedRepeatFields">
+        <Resource name="sql">
+            <![CDATA[select empno from emp order by empno DESC, empno ASC]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalSort(sort0=[$0], dir0=[DESC])
+  LogicalProject(EMPNO=[$0])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testOrderByAlias">
         <Resource name="sql">
             <![CDATA[select empno + 1 as x, empno - 2 as y from emp order by y]]>
@@ -1086,7 +1098,7 @@ order by sal + empno desc, sal * empno, sal + empno]]>
         <Resource name="plan">
             <![CDATA[
 LogicalProject(EMPNO=[$0])
-  LogicalSort(sort0=[$1], sort1=[$2], sort2=[$1], dir0=[DESC], dir1=[ASC], dir2=[ASC])
+  LogicalSort(sort0=[$1], sort1=[$2], dir0=[DESC], dir1=[ASC])
     LogicalProject(EMPNO=[$0], EXPR$1=[+($5, $0)], EXPR$2=[*($5, $0)])
       LogicalJoin(condition=[true], joinType=[inner])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])

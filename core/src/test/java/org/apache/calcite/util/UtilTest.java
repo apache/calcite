@@ -59,12 +59,14 @@ import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -1457,6 +1459,35 @@ public class UtilTest {
           },
           5).run();
     }
+  }
+
+  /** Unit test for {@link Util#distinctList(List)}
+   * and {@link Util#distinctList(Iterable)}. */
+  @Test public void testDistinctList() {
+    assertThat(Util.distinctList(Arrays.asList(1, 2)), is(Arrays.asList(1, 2)));
+    assertThat(Util.distinctList(Arrays.asList(1, 2, 1)),
+        is(Arrays.asList(1, 2)));
+    try {
+      List<Object> o = Util.distinctList(null);
+      fail("expected exception, got " + o);
+    } catch (NullPointerException ignore) {
+    }
+    final List<Integer> empty = ImmutableList.of();
+    assertThat(Util.distinctList(empty), sameInstance(empty));
+    final Iterable<Integer> emptyIterable = empty;
+    assertThat(Util.distinctList(emptyIterable), sameInstance(emptyIterable));
+    final List<Integer> empty2 = ImmutableList.of();
+    assertThat(Util.distinctList(empty2), sameInstance(empty2));
+    final List<String> abc = ImmutableList.of("a", "b", "c");
+    assertThat(Util.distinctList(abc), sameInstance(abc));
+    final List<String> a = ImmutableList.of("a");
+    assertThat(Util.distinctList(a), sameInstance(a));
+    final List<String> cbca = ImmutableList.of("c", "b", "c", "a");
+    assertThat(Util.distinctList(cbca), not(sameInstance(cbca)));
+    assertThat(Util.distinctList(cbca), is(Arrays.asList("c", "b", "a")));
+    final Collection<String> cbcaC = new LinkedHashSet<>(cbca);
+    assertThat(Util.distinctList(cbcaC), not(sameInstance(cbca)));
+    assertThat(Util.distinctList(cbcaC), is(Arrays.asList("c", "b", "a")));
   }
 
   /** Unit test for {@link Utilities#hashCode(double)}. */

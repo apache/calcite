@@ -1672,6 +1672,27 @@ public class RelBuilderTest {
     assertThat(str(root), is(expected));
   }
 
+  @Test public void testSortDuplicate() {
+    // Equivalent SQL:
+    //   SELECT *
+    //   FROM emp
+    //   ORDER BY empno DESC, deptno, empno ASC, hiredate
+    //
+    // The sort key "empno ASC" is unnecessary and is ignored.
+    final RelBuilder builder = RelBuilder.create(config().build());
+    final RelNode root =
+        builder.scan("EMP")
+            .sort(builder.desc(builder.field("EMPNO")),
+                builder.field("DEPTNO"),
+                builder.field("EMPNO"),
+                builder.field("HIREDATE"))
+            .build();
+    final String expected = "LogicalSort(sort0=[$0], sort1=[$7], sort2=[$4], "
+        + "dir0=[DESC], dir1=[ASC], dir2=[ASC])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(str(root), is(expected));
+  }
+
   @Test public void testSortByExpression() {
     // Equivalent SQL:
     //   SELECT *

@@ -24,6 +24,7 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.runtime.Utilities;
 import org.apache.calcite.util.Util;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.UnmodifiableIterator;
 
@@ -51,6 +52,9 @@ public class RelCollationImpl implements RelCollation {
 
   protected RelCollationImpl(ImmutableList<RelFieldCollation> fieldCollations) {
     this.fieldCollations = fieldCollations;
+    Preconditions.checkArgument(
+        Util.isDistinct(RelCollations.ordinals(fieldCollations)),
+        "fields must be distinct");
   }
 
   @Deprecated // to be removed before 2.0
