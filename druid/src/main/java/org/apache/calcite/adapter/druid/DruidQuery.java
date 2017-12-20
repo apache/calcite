@@ -876,9 +876,11 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
         }
       }
       if (aggCall.getArgList().size() == 1) {
-        final JsonFilter filter = new JsonCompositeFilter(JsonFilter.Type.NOT,
-            new JsonSelector(only, null, null));
-        aggregation = new JsonFilteredAggregation(filter, new JsonAggregation("count", name, only));
+        // case we have count(column) push it as count(*) where column is not null
+        final JsonFilter matchNulls = new JsonSelector(only, null, null);
+        final JsonFilter filterOutNulls = new JsonCompositeFilter(JsonFilter.Type.NOT, matchNulls);
+        aggregation = new JsonFilteredAggregation(filterOutNulls,
+            new JsonAggregation("count", name, only));
       } else {
         aggregation = new JsonAggregation("count", name, only);
       }
