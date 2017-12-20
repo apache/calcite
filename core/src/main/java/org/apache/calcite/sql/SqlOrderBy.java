@@ -16,10 +16,11 @@
  */
 package org.apache.calcite.sql;
 
-import com.google.common.collect.Lists;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.util.ImmutableNullableList;
 import org.apache.calcite.util.Litmus;
+
+import com.google.common.collect.Lists;
 
 import java.util.List;
 
@@ -51,25 +52,27 @@ public class SqlOrderBy extends SqlCall {
       SqlNode offset, SqlNode fetch) {
     super(pos);
     //remove the repeated sort keys
-    boolean repeatedNode = false;
+    boolean containRepeatedNode = false;
     List<SqlNode> list = Lists.newArrayList();
     for (SqlNode sqlNode : orderList.getList()) {
       boolean contain = false;
       for (SqlNode containNode : list) {
         if (containNode.equalsDeep(sqlNode, Litmus.IGNORE)) {
-            contain = true;
-            repeatedNode = true;
+          contain = true;
+          containRepeatedNode = true;
         }
       }
-      if (!contain) list.add(sqlNode);
+      if (!contain) {
+        list.add(sqlNode);
+      }
     }
 
     this.query = query;
-    if (repeatedNode) {
-        this.orderList = new SqlNodeList(list, orderList.getParserPosition());
+    if (containRepeatedNode) {
+      this.orderList = new SqlNodeList(list, orderList.getParserPosition());
     } else {
-        this.orderList = orderList;
-     }
+      this.orderList = orderList;
+    }
     this.offset = offset;
     this.fetch = fetch;
   }
