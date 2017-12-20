@@ -2403,13 +2403,7 @@ public class SqlParserTest {
         "select * from emp order by empno, gender desc, deptno asc, empno asc, name desc",
         "SELECT *\n"
             + "FROM `EMP`\n"
-            + "ORDER BY `EMPNO`, `GENDER` DESC, `DEPTNO`, `EMPNO`, `NAME` DESC");
-
-    check(
-            "select * from emp order by empno, empno, name desc",
-            "SELECT *\n"
-            + "FROM `EMP`\n"
-            + "ORDER BY `EMPNO`, `NAME` DESC");
+            + "ORDER BY `EMPNO`, `GENDER` DESC, `DEPTNO`, `NAME` DESC");
   }
 
   @Test public void testOrderNullsFirst() {

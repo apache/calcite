@@ -51,18 +51,25 @@ public class SqlOrderBy extends SqlCall {
       SqlNode offset, SqlNode fetch) {
     super(pos);
     //remove the repeated sort keys
+    boolean repeatedNode = false;
     List<SqlNode> list = Lists.newArrayList();
     for (SqlNode sqlNode : orderList.getList()) {
-      boolean match = false;
+      boolean contain = false;
       for (SqlNode containNode : list) {
         if (containNode.equalsDeep(sqlNode, Litmus.IGNORE)) {
-          match = true;
+            contain = true;
+            repeatedNode = true;
         }
       }
-      if (!match) list.add(sqlNode);
+      if (!contain) list.add(sqlNode);
     }
+
     this.query = query;
-    this.orderList = new SqlNodeList(list, orderList.getParserPosition());
+    if (repeatedNode) {
+        this.orderList = new SqlNodeList(list, orderList.getParserPosition());
+    } else {
+        this.orderList = orderList;
+     }
     this.offset = offset;
     this.fetch = fetch;
   }

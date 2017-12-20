@@ -548,7 +548,7 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test(expected = AssertionError.class)
   public void testOrderBasedIncompatibleFields() {
     final String sql = "select empno from emp order by empno DESC, empno ASC";
     sql(sql).ok();
