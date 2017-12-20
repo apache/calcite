@@ -2937,13 +2937,26 @@ public class SqlToRelConverter {
       return;
     }
     for (SqlNode orderItem : orderList) {
-      collationList.add(
-          convertOrderItem(
+      RelFieldCollation fieldCollation = convertOrderItem(
               select,
               orderItem,
               extraOrderExprs,
               RelFieldCollation.Direction.ASCENDING,
-              RelFieldCollation.NullDirection.UNSPECIFIED));
+              RelFieldCollation.NullDirection.UNSPECIFIED);
+      boolean ingore = false;
+      for (RelFieldCollation containField : collationList) {
+        if (containField.getFieldIndex() == fieldCollation.getFieldIndex()) {
+          if (containField.getDirection() == fieldCollation.getDirection()) {
+            //removal the repeated RelFieldCollation
+            ingore = true;
+          } else {
+            throw new IllegalArgumentException("Unable to ORDER BY based incompatible sort keys!");
+          }
+        }
+      }
+      if (!ingore) {
+        collationList.add(fieldCollation);
+      }
     }
   }
 
