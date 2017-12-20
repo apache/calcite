@@ -21,6 +21,7 @@ import org.apache.calcite.util.ImmutableIntList;
 
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 
 import java.util.Iterator;
@@ -146,8 +147,10 @@ public class RelCollations {
    * is sorted on the given list of keys. */
   public static boolean contains(List<RelCollation> collations,
       ImmutableIntList keys) {
+    //keys maybe repeated, so we should duplicate removal firstly.
+    ImmutableSet uniqueKeys = ImmutableSet.copyOf(keys);
     for (RelCollation collation : collations) {
-      if (contains(collation, keys)) {
+      if (contains(collation, uniqueKeys)) {
         return true;
       }
     }
