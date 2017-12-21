@@ -3321,40 +3321,41 @@ public class DruidAdapterIT {
   public void testFilterwithFloorOnTime() {
     // Test filter on floor on time column is pushed to druid
     final String sql =
-        "Select floor(\"__time\" to MONTH) as t from \"wikiticker\" where "
-            + "floor(\"__time\" to MONTH) between '2014-08-01 00:00:00 UTC'"
-            + "and '2016-10-01 00:00:00 UTC' order by t limit 2";
+        "Select cast(floor(\"timestamp\" to MONTH) as timestamp) as t from \"foodmart\" where "
+            + "floor(\"timestamp\" to MONTH) between '1997-01-01 00:00:00 UTC'"
+            + "and '1997-03-01 00:00:00 UTC' order by t limit 2";
 
     final String druidQueryPart1 = "\"filter\":{\"type\":\"and\",\"fields\":"
-        + "[{\"type\":\"bound\",\"dimension\":\"__time\",\"lower\":\"2014-08-01T00:00:00.000Z\","
+        + "[{\"type\":\"bound\",\"dimension\":\"__time\",\"lower\":\"1997-01-01T00:00:00.000Z\","
         + "\"lowerStrict\":false,\"ordering\":\"lexicographic\","
         + "\"extractionFn\":{\"type\":\"timeFormat\",\"format\":\"yyyy-MM-dd";
     final String druidQueryPart2 = "HH:mm:ss.SSS";
     final String druidQueryPart3 = ",\"granularity\":\"month\",\"timeZone\":\"UTC\","
         + "\"locale\":\"en-US\"}},{\"type\":\"bound\",\"dimension\":\"__time\""
-        + ",\"upper\":\"2016-10-01T00:00:00.000Z\",\"upperStrict\":false,"
+        + ",\"upper\":\"1997-03-01T00:00:00.000Z\",\"upperStrict\":false,"
         + "\"ordering\":\"lexicographic\",\"extractionFn\":{\"type\":\"timeFormat\"";
     final String druidQueryPart4 = "\"dimensions\":[],\"metrics\":[],\"granularity\":\"all\"";
 
-    sql(sql, WIKI_AUTO2)
+    sql(sql, FOODMART)
         .queryContains(
             druidChecker(druidQueryPart1, druidQueryPart2, druidQueryPart3, druidQueryPart4))
-        .returnsOrdered("T=1441065600000", "T=1441065600000");
+        .returnsOrdered("T=1997-01-01 00:00:00\\nT=1997-01-01 00:00:00");
   }
 
   @Test
   public void testSelectFloorOnTimeWithFilterOnFloorOnTime() {
-    final String sql = "Select floor(\"__time\"  to YEAR) as t from \"wikiticker\" "
-        + "where floor(\"__time\" to YEAR) >= '2006-10-01 00:00:00 UTC' order by t limit 1";
+    final String sql = "Select cast(floor(\"timestamp\" to MONTH) as timestamp) as t from "
+        + "\"foodmart\" where floor(\"timestamp\" to MONTH) >= '1997-05-01 00:00:00 UTC' order by t"
+        + " limit 1";
     final String druidQueryPart1 = "filter\":{\"type\":\"bound\",\"dimension\":\"__time\","
-        + "\"lower\":\"2006-10-01T00:00:00.000Z\",\"lowerStrict\":false,"
+        + "\"lower\":\"1997-05-01T00:00:00.000Z\",\"lowerStrict\":false,"
         + "\"ordering\":\"lexicographic\",\"extractionFn\":{\"type\":\"timeFormat\","
         + "\"format\":\"yyyy-MM-dd";
-    final String druidQueryPart2 = "\"granularity\":\"year\",\"timeZone\":\"UTC\","
+    final String druidQueryPart2 = "\"granularity\":\"month\",\"timeZone\":\"UTC\","
         + "\"locale\":\"en-US\"}},\"dimensions\":[],\"metrics\":[],\"granularity\":\"all\"";
 
-    sql(sql, WIKI_AUTO2).queryContains(druidChecker(druidQueryPart1, druidQueryPart2))
-        .returnsOrdered("T=1420070400000");
+    sql(sql, FOODMART).queryContains(druidChecker(druidQueryPart1, druidQueryPart2))
+        .returnsOrdered("T=1997-05-01 00:00:00");
   }
 
 }

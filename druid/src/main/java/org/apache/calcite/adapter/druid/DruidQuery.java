@@ -18,6 +18,7 @@ package org.apache.calcite.adapter.druid;
 
 import org.apache.calcite.DataContext;
 import org.apache.calcite.avatica.ColumnMetaData;
+import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.config.CalciteConnectionProperty;
 import org.apache.calcite.interpreter.BindableRel;
@@ -1120,6 +1121,11 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
     }
 
     @SuppressWarnings("incomplete-switch")
+    /**
+     * formatDateString is used to format timestamp values to druid format using
+     * {@link DruidQuery.Translator#dateFormatter}. This is needed when pushing timestamp
+     * comparisons to druid using TimeFormatExtractionFunction that returns a string value.
+     */
     String translate(RexNode e, boolean set, boolean formatDateString) {
       int index = -1;
       switch (e.getKind()) {
@@ -1132,19 +1138,20 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
       case LITERAL:
 
         if (!formatDateString) {
-          return ((RexLiteral) e).getValue3().toString();
+          return Objects.toString(((RexLiteral) e).getValue3());
         } else {
           switch (((RexLiteral) e).getTypeName()) {
+          // Case when we are passing to druid as an extractionFunction
+          // Need to format the timestamp String in druid format.
           case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
           case TIMESTAMP:
+            Long millisSinceEpoch = ((RexLiteral) e).getValueAs(Long.class);
+            return dateFormatter.format(millisSinceEpoch);
           case DATE:
-            //case CHAR:
-            // Case when we are passing to druid as an extractionFunction
-            // Need to format the timestamp Strng in druid format.
-            Long val = ((RexLiteral) e).getValueAs(Long.class);
-            return dateFormatter.format(val);
+            Integer daysSinceEpoch = ((RexLiteral) e).getValueAs(Integer.class);
+            return dateFormatter.format(daysSinceEpoch * DateTimeUtils.MILLIS_PER_DAY);
           default:
-            return ((RexLiteral) e).getValue3().toString();
+            return Objects.toString(((RexLiteral) e).getValue3());
           }
         }
       case FLOOR:
@@ -1269,7 +1276,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
           ImmutableList.Builder<String> listBuilder = ImmutableList.builder();
           for (RexNode rexNode: call.getOperands()) {
             if (rexNode.getKind() == SqlKind.LITERAL) {
-              listBuilder.add(((RexLiteral) rexNode).getValue3().toString());
+              listBuilder.add(Objects.toString(((RexLiteral) rexNode).getValue3()));
             }
           }
           return new JsonInFilter(dimName, listBuilder.build(), extractionFunction);
