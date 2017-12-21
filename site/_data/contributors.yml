@@ -153,6 +153,11 @@
   githubId: vlsi
   org: NetCracker
   role: PMC
+- name: Volodymyr Vysotskyi
+  apacheId: volodymyr
+  githubId: vvysotskyi
+  org:
+  role: Committer
 - name: Zhiqiang He
   apacheId: zhiqianghe
   githubId: Zhiqiang-He
