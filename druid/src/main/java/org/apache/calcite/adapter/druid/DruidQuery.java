@@ -1136,22 +1136,22 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
       case CAST:
         return tr(e, 0, set, formatDateString);
       case LITERAL:
-
+        final RexLiteral rexLiteral = (RexLiteral) e;
         if (!formatDateString) {
-          return Objects.toString(((RexLiteral) e).getValue3());
+          return Objects.toString(rexLiteral.getValue3());
         } else {
-          switch (((RexLiteral) e).getTypeName()) {
+          switch (rexLiteral.getTypeName()) {
           // Case when we are passing to druid as an extractionFunction
           // Need to format the timestamp String in druid format.
           case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
           case TIMESTAMP:
-            Long millisSinceEpoch = ((RexLiteral) e).getValueAs(Long.class);
+            Long millisSinceEpoch = rexLiteral.getValueAs(Long.class);
             return dateFormatter.format(millisSinceEpoch);
           case DATE:
-            Integer daysSinceEpoch = ((RexLiteral) e).getValueAs(Integer.class);
+            Integer daysSinceEpoch = rexLiteral.getValueAs(Integer.class);
             return dateFormatter.format(daysSinceEpoch * DateTimeUtils.MILLIS_PER_DAY);
           default:
-            return Objects.toString(((RexLiteral) e).getValue3());
+            return Objects.toString(rexLiteral.getValue3());
           }
         }
       case FLOOR:
