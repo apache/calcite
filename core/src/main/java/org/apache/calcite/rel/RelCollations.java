@@ -129,7 +129,8 @@ public class RelCollations {
   public static boolean contains(RelCollation collation,
       Iterable<Integer> keys) {
     final int n = collation.getFieldCollations().size();
-    final Iterator<Integer> iterator = keys.iterator();
+    ImmutableSet uniqueKeys = ImmutableSet.copyOf(keys);
+    final Iterator<Integer> iterator = uniqueKeys.iterator();
     for (int i = 0; i < n; i++) {
       final RelFieldCollation fieldCollation =
           collation.getFieldCollations().get(i);
