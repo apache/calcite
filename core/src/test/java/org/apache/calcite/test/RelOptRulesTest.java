@@ -2514,19 +2514,35 @@ public class RelOptRulesTest extends RelOptTestBase {
             + "group by rollup(x, y)");
   }
 
-  @Test public void testPullAggregateThroughUnion() throws Exception {
+  @Test public void testPullAggregateThroughUnion() {
     HepProgram program = new HepProgramBuilder()
         .addRuleInstance(AggregateUnionAggregateRule.INSTANCE)
         .build();
 
-    checkPlanning(program,
-        "select deptno, job from"
-            + " (select deptno, job from emp as e1"
-            + " group by deptno,job"
-            + "  union all"
-            + " select deptno, job from emp as e2"
-            + " group by deptno,job)"
-            + " group by deptno,job");
+    final String sql = "select deptno, job from"
+        + " (select deptno, job from emp as e1"
+        + " group by deptno,job"
+        + "  union all"
+        + " select deptno, job from emp as e2"
+        + " group by deptno,job)"
+        + " group by deptno,job";
+    sql(sql).with(program).check();
+  }
+
+  @Test public void testPullAggregateThroughUnion2() {
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(AggregateUnionAggregateRule.AGG_ON_SECOND_INPUT)
+        .addRuleInstance(AggregateUnionAggregateRule.AGG_ON_FIRST_INPUT)
+        .build();
+
+    final String sql = "select deptno, job from"
+        + " (select deptno, job from emp as e1"
+        + " group by deptno,job"
+        + "  union all"
+        + " select deptno, job from emp as e2"
+        + " group by deptno,job)"
+        + " group by deptno,job";
+    sql(sql).with(program).check();
   }
 
   private void transitiveInference(RelOptRule... extraRules) throws Exception {
