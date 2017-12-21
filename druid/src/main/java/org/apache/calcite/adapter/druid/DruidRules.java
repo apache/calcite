@@ -140,18 +140,29 @@ public class DruidRules {
           for (AggregateCall aggregateCall : aggregate.getAggCallList()) {
             switch (aggregateCall.getAggregation().getKind()) {
             case COUNT:
-              // Druid can handle 2 scenarios:
+              // Druid count aggregator can handle 3 scenarios:
               // 1. count(distinct col) when approximate results
-              //    are acceptable and col is not a metric
+              //    are acceptable and col is not a metric.
+              //    Note that exact count(distinct column) is handled
+              //    by being rewritten into group by followed by count
               // 2. count(*)
+              // 3. count(column)
+
               if (checkAggregateOnMetric(ImmutableBitSet.of(aggregateCall.getArgList()),
                       node, query)) {
                 return true;
               }
-              if ((aggregateCall.isDistinct()
-                      && (aggregateCall.isApproximate()
-                          || config.approximateDistinctCount()))
-                  || aggregateCall.getArgList().isEmpty()) {
+              // case count(*)
+              if (aggregateCall.getArgList().isEmpty()) {
+                continue;
+              }
+              // case count(column)
+              if (aggregateCall.getArgList().size() == 1 && !aggregateCall.isDistinct()) {
+                continue;
+              }
+              // case count(distinct and is approximate)
+              if (aggregateCall.isDistinct()
+                      && (aggregateCall.isApproximate() || config.approximateDistinctCount())) {
                 continue;
               }
               return true;
@@ -218,9 +229,6 @@ public class DruidRules {
       final RexSimplify simplify =
           new RexSimplify(rexBuilder, predicates, true, executor);
       final RexNode cond = simplify.simplify(filter.getCondition());
-      if (!canPush(cond)) {
-        return;
-      }
       for (RexNode e : RelOptUtil.conjunctions(cond)) {
         if (query.isValidFilter(e)) {
           validPreds.add(e);
@@ -316,12 +324,6 @@ public class DruidRules {
         }
       }
       return ImmutableTriple.of(timeRangeNodes, pushableNodes, nonPushableNodes);
-    }
-
-    /** Returns whether we can push an expression to Druid. */
-    private static boolean canPush(RexNode cond) {
-      // Druid cannot implement "where false"
-      return !cond.isAlwaysFalse();
     }
   }
 
