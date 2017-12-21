@@ -308,19 +308,7 @@ public class DruidRules {
             timeRangeNodes.add(conj);
           }
         } else {
-          boolean filterOnMetrics = false;
-          for (Integer i : visitor.inputPosReferenced) {
-            if (input.druidTable.isMetric(input.getRowType().getFieldList().get(i).getName())) {
-              // Filter on metrics, not supported in Druid
-              filterOnMetrics = true;
-              break;
-            }
-          }
-          if (filterOnMetrics) {
-            nonPushableNodes.add(conj);
-          } else {
-            pushableNodes.add(conj);
-          }
+          pushableNodes.add(conj);
         }
       }
       return ImmutableTriple.of(timeRangeNodes, pushableNodes, nonPushableNodes);
@@ -668,9 +656,6 @@ public class DruidRules {
       for (AggregateCall aggCall : aggregate.getAggCallList()) {
         builder.addAll(aggCall.getArgList());
       }
-      if (checkAggregateOnMetric(aggregate.getGroupSet(), aggregate, query)) {
-        return false;
-      }
       return !checkTimestampRefOnQuery(builder.build(), query.getTopNode(), query);
     }
   }
@@ -722,9 +707,6 @@ public class DruidRules {
               || aggregate.getGroupSets().size() != 1
               || BAD_AGG.apply(ImmutableTriple.of(aggregate, (RelNode) project, query))
               || !validAggregate(aggregate, timestampIdx, filterRefs.size())) {
-        return;
-      }
-      if (checkAggregateOnMetric(aggregate.getGroupSet(), project, query)) {
         return;
       }
       final RelNode newProject = project.copy(project.getTraitSet(),
