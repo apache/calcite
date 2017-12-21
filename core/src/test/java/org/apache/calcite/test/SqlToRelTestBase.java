@@ -605,7 +605,8 @@ public abstract class SqlToRelTestBase {
         cluster = clusterFactory.apply(cluster);
       }
       return new SqlToRelConverter(null, validator, catalogReader, cluster,
-          StandardConvertletTable.INSTANCE, config);
+          StandardConvertletTable.INSTANCE, config,
+          RelFactories.LOGICAL_BUILDER.create(cluster, null));
     }
 
     protected final RelDataTypeFactory getTypeFactory() {

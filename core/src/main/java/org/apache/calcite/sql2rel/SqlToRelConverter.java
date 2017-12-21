@@ -283,8 +283,8 @@ public class SqlToRelConverter {
       RexBuilder rexBuilder,
       SqlRexConvertletTable convertletTable) {
     this(viewExpander, validator, catalogReader,
-        RelOptCluster.create(planner, rexBuilder), convertletTable,
-        Config.DEFAULT);
+        RelOptCluster.create(planner, rexBuilder), convertletTable, Config.DEFAULT,
+        RelFactories.LOGICAL_BUILDER.create(RelOptCluster.create(planner, rexBuilder), null));
   }
 
   @Deprecated // to be removed before 2.0
@@ -295,7 +295,19 @@ public class SqlToRelConverter {
       RelOptCluster cluster,
       SqlRexConvertletTable convertletTable) {
     this(viewExpander, validator, catalogReader, cluster, convertletTable,
-        Config.DEFAULT);
+        Config.DEFAULT, RelFactories.LOGICAL_BUILDER.create(cluster, null));
+  }
+
+  @Deprecated // to be removed before 2.0
+  public SqlToRelConverter(
+      RelOptTable.ViewExpander viewExpander,
+      SqlValidator validator,
+      Prepare.CatalogReader catalogReader,
+      RelOptCluster cluster,
+      SqlRexConvertletTable convertletTable,
+      Config config) {
+    this(viewExpander, validator, catalogReader, cluster,
+        convertletTable, config, RelFactories.LOGICAL_BUILDER.create(cluster, null));
   }
 
   /* Creates a converter. */
@@ -305,7 +317,8 @@ public class SqlToRelConverter {
       Prepare.CatalogReader catalogReader,
       RelOptCluster cluster,
       SqlRexConvertletTable convertletTable,
-      Config config) {
+      Config config,
+      RelBuilder relBuilder) {
     this.viewExpander = viewExpander;
     this.opTab =
         (validator
@@ -320,7 +333,7 @@ public class SqlToRelConverter {
     this.exprConverter = new SqlNodeToRexConverterImpl(convertletTable);
     this.explainParamCount = 0;
     this.config = new ConfigBuilder().withConfig(config).build();
-    this.relBuilder = RelFactories.LOGICAL_BUILDER.create(cluster, null);
+    this.relBuilder = relBuilder;
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -2410,7 +2423,7 @@ public class SqlToRelConverter {
         (Join) RelFactories.DEFAULT_JOIN_FACTORY.createJoin(leftRel, rightRel,
             joinCond, ImmutableSet.<CorrelationId>of(), joinType, false);
 
-    return RelOptUtil.pushDownJoinConditions(originalJoin);
+    return RelOptUtil.pushDownJoinConditions(originalJoin, relBuilder);
   }
 
   private CorrelationUse getCorrelationUse(Blackboard bb, final RelNode r0) {

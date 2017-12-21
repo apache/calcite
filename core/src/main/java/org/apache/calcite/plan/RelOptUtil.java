@@ -3299,6 +3299,7 @@ public abstract class RelOptUtil {
    *
    * @see #pushDownJoinConditions(Join, RelBuilder)
    */
+  @Deprecated // to be removed before 2.0
   public static RelNode pushDownJoinConditions(Join originalJoin) {
     return pushDownJoinConditions(originalJoin, RelFactories.LOGICAL_BUILDER);
   }

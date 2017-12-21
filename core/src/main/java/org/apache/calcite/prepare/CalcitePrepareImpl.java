@@ -71,6 +71,7 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelRoot;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.rules.AbstractMaterializedViewRule;
@@ -1164,7 +1165,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
       final RelOptCluster cluster = prepare.createCluster(planner, rexBuilder);
       SqlToRelConverter sqlToRelConverter =
           new SqlToRelConverter(this, validator, catalogReader, cluster,
-              convertletTable, config);
+              convertletTable, config, RelFactories.LOGICAL_BUILDER.create(cluster, null));
       return sqlToRelConverter;
     }
 
