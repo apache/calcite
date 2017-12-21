@@ -206,23 +206,13 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
   }
 
   public boolean isValidFilter(RexNode e) {
-    return isValidFilter(e, false, null);
+    return isValidFilter(e, false);
   }
 
-  public boolean isValidFilter(RexNode e, RelNode input) {
-    return isValidFilter(e, false, input);
-  }
-
-  public boolean isValidFilter(RexNode e, boolean boundedComparator, RelNode input) {
+  public boolean isValidFilter(RexNode e, boolean boundedComparator) {
     switch (e.getKind()) {
     case INPUT_REF:
-      if (input == null) {
-        return true;
-      }
-      int nameIndex = ((RexInputRef) e).getIndex();
-      String name = input.getRowType().getFieldList().get(nameIndex).getName();
-      // Druid can't filter on metrics
-      return !druidTable.isMetric(name);
+      return true;
     case LITERAL:
       return ((RexLiteral) e).getValue() != null;
     case AND:
@@ -231,7 +221,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
     case IN:
     case IS_NULL:
     case IS_NOT_NULL:
-      return areValidFilters(((RexCall) e).getOperands(), false, input);
+      return areValidFilters(((RexCall) e).getOperands(), false);
     case EQUALS:
     case NOT_EQUALS:
     case LESS_THAN:
@@ -239,21 +229,21 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
     case GREATER_THAN:
     case GREATER_THAN_OR_EQUAL:
     case BETWEEN:
-      return areValidFilters(((RexCall) e).getOperands(), true, input);
+      return areValidFilters(((RexCall) e).getOperands(), true);
     case CAST:
       return isValidCast((RexCall) e, boundedComparator);
     case EXTRACT:
       return TimeExtractionFunction.isValidTimeExtract((RexCall) e);
     case IS_TRUE:
-      return isValidFilter(((RexCall) e).getOperands().get(0), boundedComparator, input);
+      return isValidFilter(((RexCall) e).getOperands().get(0), boundedComparator);
     default:
       return false;
     }
   }
 
-  private boolean areValidFilters(List<RexNode> es, boolean boundedComparator, RelNode input) {
+  private boolean areValidFilters(List<RexNode> es, boolean boundedComparator) {
     for (RexNode e : es) {
-      if (!isValidFilter(e, boundedComparator, input)) {
+      if (!isValidFilter(e, boundedComparator)) {
         return false;
       }
     }
