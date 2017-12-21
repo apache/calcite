@@ -123,19 +123,11 @@ public class RelCollationImpl implements RelCollation {
 
     /**
      * validate validity of the fieldCollations, in order to avoid the repeated
-     * and incompatible sort keys
+     * sort keys
      */
   private void validate(ImmutableList<RelFieldCollation> fieldCollations) {
     Set<RelFieldCollation> fieldCollationSet = ImmutableSet.copyOf(fieldCollations);
     assert fieldCollationSet.size() == fieldCollations.size();
-    for (RelFieldCollation outField : fieldCollationSet) {
-      for (RelFieldCollation inField : fieldCollationSet) {
-        if (outField.getFieldIndex() == inField.getFieldIndex()) {
-           assert outField.direction == inField.direction
-                  && outField.nullDirection == inField.nullDirection;
-        }
-      }
-    }
   }
 
   /** Returns a string representation of this collation, suitably terse given
