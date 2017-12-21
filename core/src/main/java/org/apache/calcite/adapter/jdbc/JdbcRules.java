@@ -507,15 +507,27 @@ public class JdbcRules {
       super(Sort.class, Convention.NONE, out, "JdbcSortRule");
     }
 
-    public RelNode convert(RelNode rel) {
+    public RelNode convert(RelNode rel, boolean convertInputTraits) {
       final Sort sort = (Sort) rel;
-      if (sort.offset != null || sort.fetch != null) {
+      /*if (sort.offset != null || sort.fetch != null) {
         // Cannot implement "OFFSET n FETCH n" currently.
         return null;
-      }
+      }*/
       final RelTraitSet traitSet = sort.getTraitSet().replace(out);
+
+      RelNode input;
+      if (convertInputTraits) {
+        input = convert(sort.getInput(), traitSet);
+      } else {
+        input = sort.getInput();
+      }
+
       return new JdbcSort(rel.getCluster(), traitSet,
-          convert(sort.getInput(), traitSet), sort.getCollation());
+          input, sort.getCollation(), sort.offset, sort.fetch);
+    }
+
+    public RelNode convert(RelNode rel) {
+      return convert(rel, true);
     }
   }
 
@@ -527,18 +539,20 @@ public class JdbcRules {
         RelOptCluster cluster,
         RelTraitSet traitSet,
         RelNode input,
-        RelCollation collation) {
-      super(cluster, traitSet, input, collation);
+        RelCollation collation,
+        RexNode offset,
+        RexNode fetch) {
+      super(cluster, traitSet, input, collation, offset, fetch);
       assert getConvention() instanceof JdbcConvention;
       assert getConvention() == input.getConvention();
     }
 
     @Override public JdbcSort copy(RelTraitSet traitSet, RelNode newInput,
         RelCollation newCollation, RexNode offset, RexNode fetch) {
-      if (offset != null || fetch != null) {
+      /*if (offset != null || fetch != null) {
         throw new IllegalArgumentException("not supported: offset or fetch");
-      }
-      return new JdbcSort(getCluster(), traitSet, newInput, newCollation);
+      }*/
+      return new JdbcSort(getCluster(), traitSet, newInput, newCollation, offset, fetch);
     }
 
     public JdbcImplementor.Result implement(JdbcImplementor implementor) {
