@@ -3397,7 +3397,7 @@ public class DruidAdapterIT {
         + "\"locale\":\"en-US\"}},{\"type\":\"bound\",\"dimension\":\"__time\""
         + ",\"upper\":\"1997-03-01T00:00:00.000Z\",\"upperStrict\":false,"
         + "\"ordering\":\"lexicographic\",\"extractionFn\":{\"type\":\"timeFormat\"";
-    final String druidQueryPart4 = "\"dimensions\":[],\"metrics\":[],\"granularity\":\"all\"";
+    final String druidQueryPart4 = "\"columns\":[\"__time\"],\"granularity\":\"all\"";
 
     sql(sql, FOODMART)
         .queryContains(
@@ -3415,7 +3415,7 @@ public class DruidAdapterIT {
         + "\"ordering\":\"lexicographic\",\"extractionFn\":{\"type\":\"timeFormat\","
         + "\"format\":\"yyyy-MM-dd";
     final String druidQueryPart2 = "\"granularity\":\"month\",\"timeZone\":\"UTC\","
-        + "\"locale\":\"en-US\"}},\"dimensions\":[],\"metrics\":[],\"granularity\":\"all\"";
+        + "\"locale\":\"en-US\"}},\"columns\":[\"__time\"],\"granularity\":\"all\"";
 
     sql(sql, FOODMART).queryContains(druidChecker(druidQueryPart1, druidQueryPart2))
         .returnsOrdered("T=1997-05-01 00:00:00");
@@ -3431,7 +3431,7 @@ public class DruidAdapterIT {
         + "\"ordering\":\"lexicographic\",\"extractionFn\":{\"type\":\"timeFormat\","
         + "\"format\":\"yyyy-MM-dd";
     final String druidQueryPart2 = "\"granularity\":\"month\",\"timeZone\":\"UTC\","
-        + "\"locale\":\"en-US\"}},\"dimensions\":[],\"metrics\":[],\"granularity\":\"all\"";
+        + "\"locale\":\"en-US\"}},\"columns\":[\"__time\"],\"granularity\":\"all\"";
 
     sql(sql, FOODMART).queryContains(druidChecker(druidQueryPart1, druidQueryPart2))
         .returnsOrdered("T=1997-05-01 00:00:00");
@@ -3447,7 +3447,7 @@ public class DruidAdapterIT {
         + "\"ordering\":\"lexicographic\",\"extractionFn\":{\"type\":\"timeFormat\","
         + "\"format\":\"yyyy-MM-dd";
     final String druidQueryPart2 = "\"granularity\":\"month\",\"timeZone\":\"IST\","
-        + "\"locale\":\"en-US\"}},\"dimensions\":[],\"metrics\":[],\"granularity\":\"all\"";
+        + "\"locale\":\"en-US\"}},\"columns\":[\"__time\"],\"granularity\":\"all\"";
 
     CalciteAssert.that()
         .enable(enabled())
@@ -3471,7 +3471,7 @@ public class DruidAdapterIT {
         + "\"ordering\":\"lexicographic\",\"extractionFn\":{\"type\":\"timeFormat\","
         + "\"format\":\"yyyy-MM-dd";
     final String druidQueryPart2 = "\"granularity\":\"month\",\"timeZone\":\"IST\","
-        + "\"locale\":\"en-US\"}},\"dimensions\":[],\"metrics\":[],\"granularity\":\"all\"";
+        + "\"locale\":\"en-US\"}},\"columns\":[\"__time\"],\"granularity\":\"all\"";
 
     CalciteAssert.that()
         .enable(enabled())
