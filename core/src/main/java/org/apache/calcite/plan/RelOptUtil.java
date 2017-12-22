@@ -3293,12 +3293,7 @@ public abstract class RelOptUtil {
     return relBuilder.build();
   }
 
-  /**
-   * Pushes down expressions in "equal" join condition, using the default
-   * builder.
-   *
-   * @see #pushDownJoinConditions(Join, RelBuilder)
-   */
+  @Deprecated // to be removed before 2.0
   public static RelNode pushDownJoinConditions(Join originalJoin) {
     return pushDownJoinConditions(originalJoin, RelFactories.LOGICAL_BUILDER);
   }

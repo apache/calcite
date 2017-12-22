@@ -140,18 +140,29 @@ public class DruidRules {
           for (AggregateCall aggregateCall : aggregate.getAggCallList()) {
             switch (aggregateCall.getAggregation().getKind()) {
             case COUNT:
-              // Druid can handle 2 scenarios:
+              // Druid count aggregator can handle 3 scenarios:
               // 1. count(distinct col) when approximate results
-              //    are acceptable and col is not a metric
+              //    are acceptable and col is not a metric.
+              //    Note that exact count(distinct column) is handled
+              //    by being rewritten into group by followed by count
               // 2. count(*)
+              // 3. count(column)
+
               if (checkAggregateOnMetric(ImmutableBitSet.of(aggregateCall.getArgList()),
                       node, query)) {
                 return true;
               }
-              if ((aggregateCall.isDistinct()
-                      && (aggregateCall.isApproximate()
-                          || config.approximateDistinctCount()))
-                  || aggregateCall.getArgList().isEmpty()) {
+              // case count(*)
+              if (aggregateCall.getArgList().isEmpty()) {
+                continue;
+              }
+              // case count(column)
+              if (aggregateCall.getArgList().size() == 1 && !aggregateCall.isDistinct()) {
+                continue;
+              }
+              // case count(distinct and is approximate)
+              if (aggregateCall.isDistinct()
+                      && (aggregateCall.isApproximate() || config.approximateDistinctCount())) {
                 continue;
               }
               return true;
@@ -218,9 +229,6 @@ public class DruidRules {
       final RexSimplify simplify =
           new RexSimplify(rexBuilder, predicates, true, executor);
       final RexNode cond = simplify.simplify(filter.getCondition());
-      if (!canPush(cond)) {
-        return;
-      }
       for (RexNode e : RelOptUtil.conjunctions(cond)) {
         if (query.isValidFilter(e)) {
           validPreds.add(e);
@@ -300,28 +308,10 @@ public class DruidRules {
             timeRangeNodes.add(conj);
           }
         } else {
-          boolean filterOnMetrics = false;
-          for (Integer i : visitor.inputPosReferenced) {
-            if (input.druidTable.isMetric(input.getRowType().getFieldList().get(i).getName())) {
-              // Filter on metrics, not supported in Druid
-              filterOnMetrics = true;
-              break;
-            }
-          }
-          if (filterOnMetrics) {
-            nonPushableNodes.add(conj);
-          } else {
-            pushableNodes.add(conj);
-          }
+          pushableNodes.add(conj);
         }
       }
       return ImmutableTriple.of(timeRangeNodes, pushableNodes, nonPushableNodes);
-    }
-
-    /** Returns whether we can push an expression to Druid. */
-    private static boolean canPush(RexNode cond) {
-      // Druid cannot implement "where false"
-      return !cond.isAlwaysFalse();
     }
   }
 
@@ -666,9 +656,6 @@ public class DruidRules {
       for (AggregateCall aggCall : aggregate.getAggCallList()) {
         builder.addAll(aggCall.getArgList());
       }
-      if (checkAggregateOnMetric(aggregate.getGroupSet(), aggregate, query)) {
-        return false;
-      }
       return !checkTimestampRefOnQuery(builder.build(), query.getTopNode(), query);
     }
   }
@@ -711,7 +698,7 @@ public class DruidRules {
       // into Druid
       for (Integer i : filterRefs) {
         RexNode filterNode = project.getProjects().get(i);
-        if (!query.isValidFilter(filterNode, project.getInput()) || filterNode.isAlwaysFalse()) {
+        if (!query.isValidFilter(filterNode) || filterNode.isAlwaysFalse()) {
           return;
         }
       }
@@ -720,9 +707,6 @@ public class DruidRules {
               || aggregate.getGroupSets().size() != 1
               || BAD_AGG.apply(ImmutableTriple.of(aggregate, (RelNode) project, query))
               || !validAggregate(aggregate, timestampIdx, filterRefs.size())) {
-        return;
-      }
-      if (checkAggregateOnMetric(aggregate.getGroupSet(), project, query)) {
         return;
       }
       final RelNode newProject = project.copy(project.getTraitSet(),

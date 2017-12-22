@@ -71,9 +71,11 @@ import static org.apache.calcite.sql.SqlKind.INPUT_REF;
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 import org.joda.time.Interval;
@@ -207,23 +209,13 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
   }
 
   public boolean isValidFilter(RexNode e) {
-    return isValidFilter(e, false, null);
+    return isValidFilter(e, false);
   }
 
-  public boolean isValidFilter(RexNode e, RelNode input) {
-    return isValidFilter(e, false, input);
-  }
-
-  public boolean isValidFilter(RexNode e, boolean boundedComparator, RelNode input) {
+  public boolean isValidFilter(RexNode e, boolean boundedComparator) {
     switch (e.getKind()) {
     case INPUT_REF:
-      if (input == null) {
-        return true;
-      }
-      int nameIndex = ((RexInputRef) e).getIndex();
-      String name = input.getRowType().getFieldList().get(nameIndex).getName();
-      // Druid can't filter on metrics
-      return !druidTable.isMetric(name);
+      return true;
     case LITERAL:
       return ((RexLiteral) e).getValue() != null;
     case AND:
@@ -232,7 +224,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
     case IN:
     case IS_NULL:
     case IS_NOT_NULL:
-      return areValidFilters(((RexCall) e).getOperands(), false, input);
+      return areValidFilters(((RexCall) e).getOperands(), false);
     case EQUALS:
     case NOT_EQUALS:
     case LESS_THAN:
@@ -240,23 +232,23 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
     case GREATER_THAN:
     case GREATER_THAN_OR_EQUAL:
     case BETWEEN:
-      return areValidFilters(((RexCall) e).getOperands(), true, input);
+      return areValidFilters(((RexCall) e).getOperands(), true);
     case CAST:
       return isValidCast((RexCall) e, boundedComparator);
     case EXTRACT:
       return TimeExtractionFunction.isValidTimeExtract((RexCall) e);
-    case IS_TRUE:
-      return isValidFilter(((RexCall) e).getOperands().get(0), boundedComparator, input);
     case FLOOR:
       return TimeExtractionFunction.isValidTimeFloor((RexCall) e);
+    case IS_TRUE:
+      return isValidFilter(((RexCall) e).getOperands().get(0), boundedComparator);
     default:
       return false;
     }
   }
 
-  private boolean areValidFilters(List<RexNode> es, boolean boundedComparator, RelNode input) {
+  private boolean areValidFilters(List<RexNode> es, boolean boundedComparator) {
     for (RexNode e : es) {
-      if (!isValidFilter(e, boundedComparator, input)) {
+      if (!isValidFilter(e, boundedComparator)) {
         return false;
       }
     }
@@ -355,7 +347,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
       } else if (rel instanceof Filter) {
         pw.item("filter", ((Filter) rel).getCondition());
       } else if (rel instanceof Project) {
-        if (((Project) rel).getInput() instanceof  Aggregate) {
+        if (((Project) rel).getInput() instanceof Aggregate) {
           pw.item("post_projects", ((Project) rel).getProjects());
         } else {
           pw.item("projects", ((Project) rel).getProjects());
@@ -483,7 +475,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
       final Sort sort = (Sort) rels.get(i++);
       collationIndexes = new ArrayList<>();
       collationDirections = new ArrayList<>();
-      for (RelFieldCollation fCol: sort.collation.getFieldCollations()) {
+      for (RelFieldCollation fCol : sort.collation.getFieldCollations()) {
         collationIndexes.add(fCol.getFieldIndex());
         collationDirections.add(fCol.getDirection());
         if (sort.getRowType().getFieldList().get(fCol.getFieldIndex()).getType().getFamily()
@@ -520,7 +512,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
       List<Integer> collationIndexes, List<Direction> collationDirections,
       ImmutableBitSet numericCollationIndexes, Integer fetch, Project postProject) {
     final CalciteConnectionConfig config = getConnectionConfig();
-    QueryType queryType = QueryType.SELECT;
+    QueryType queryType = QueryType.SCAN;
     final Translator translator = new Translator(druidTable, rowType, config.timeZone());
     List<String> fieldNames = rowType.getFieldNames();
     Set<String> usedFieldNames = Sets.newHashSet(fieldNames);
@@ -672,7 +664,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
           // all check has been done to ensure all RexCall rexNode can be pushed in.
           if (rex instanceof RexCall) {
             DruidQuery.JsonPostAggregation jsonPost = getJsonPostAggregation(fieldName, rex,
-                    postProject.getInput());
+                postProject.getInput());
             postAggs.add(jsonPost);
           }
         }
@@ -729,12 +721,6 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
     try {
       final JsonGenerator generator = factory.createGenerator(sw);
 
-      if (aggregations.isEmpty()) {
-        // Druid requires at least one aggregation, otherwise gives:
-        //   Must have at least one AggregatorFactory
-        aggregations.add(
-                new JsonAggregation("longSum", "dummy_agg", "dummy_agg"));
-      }
       switch (queryType) {
       case TIMESERIES:
         generator.writeStartObject();
@@ -752,7 +738,11 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
         generator.writeFieldName("context");
         // The following field is necessary to conform with SQL semantics (CALCITE-1589)
         generator.writeStartObject();
-        generator.writeBooleanField("skipEmptyBuckets", true);
+        final boolean isCountStar = Granularity.ALL == finalGranularity
+            && aggregations.size() == 1
+            && aggregations.get(0).type.equals("count");
+        //Count(*) returns 0 if result set is empty thus need to set skipEmptyBuckets to false
+        generator.writeBooleanField("skipEmptyBuckets", !isCountStar);
         generator.writeEndObject();
 
         generator.writeEndObject();
@@ -814,6 +804,29 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
         generator.writeStartObject();
         generator.writeBooleanField(DRUID_QUERY_FETCH, fetch != null);
         generator.writeEndObject();
+
+        generator.writeEndObject();
+        break;
+
+      case SCAN:
+        generator.writeStartObject();
+
+        generator.writeStringField("queryType", "scan");
+        generator.writeStringField("dataSource", druidTable.dataSource);
+        writeField(generator, "intervals", intervals);
+        writeFieldIf(generator, "filter", jsonFilter);
+        writeField(generator, "columns",
+            Lists.transform(fieldNames, new Function<String, String>() {
+              @Override public String apply(String s) {
+                return s.equals(druidTable.timestampFieldName)
+                    ? DruidTable.DEFAULT_TIMESTAMP_COLUMN : s;
+              }
+            }));
+        generator.writeStringField("granularity", finalGranularity.value);
+        generator.writeStringField("resultFormat", "compactedList");
+        if (fetch != null) {
+          generator.writeNumberField("limit", fetch);
+        }
 
         generator.writeEndObject();
         break;
@@ -882,7 +895,16 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
               + " because an approximate count distinct is not acceptable.");
         }
       }
-      aggregation = new JsonAggregation("count", name, only);
+      if (aggCall.getArgList().size() == 1) {
+        // case we have count(column) push it as count(*) where column is not null
+        final JsonFilter matchNulls = new JsonSelector(only, null, null);
+        final JsonFilter filterOutNulls = new JsonCompositeFilter(JsonFilter.Type.NOT, matchNulls);
+        aggregation = new JsonFilteredAggregation(filterOutNulls,
+            new JsonAggregation("count", name, only));
+      } else {
+        aggregation = new JsonAggregation("count", name, only);
+      }
+
       break;
     case SUM:
     case SUM0:
@@ -1177,6 +1199,12 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
 
     private JsonFilter translateFilter(RexNode e) {
       final RexCall call;
+      if (e.isAlwaysTrue()) {
+        return JsonExpressionFilter.alwaysTrue();
+      }
+      if (e.isAlwaysFalse()) {
+        return JsonExpressionFilter.alwaysFalse();
+      }
       switch (e.getKind()) {
       case EQUALS:
       case NOT_EQUALS:
@@ -1502,7 +1530,8 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
       NOT,
       SELECTOR,
       IN,
-      BOUND;
+      BOUND,
+      EXPRESSION;
 
       public String lowercase() {
         return name().toLowerCase(Locale.ROOT);
@@ -1515,6 +1544,36 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
       this.type = type;
     }
   }
+
+  /**
+   * Druid Expression filter.
+   */
+  private static class JsonExpressionFilter extends JsonFilter {
+    private final String expression;
+
+    private JsonExpressionFilter(String expression) {
+      super(Type.EXPRESSION);
+      this.expression = Preconditions.checkNotNull(expression);
+    }
+
+    @Override public void write(JsonGenerator generator) throws IOException {
+      generator.writeStartObject();
+      generator.writeStringField("type", type.lowercase());
+      generator.writeStringField("expression", expression);
+      generator.writeEndObject();
+    }
+
+    /** We need to push to Druid an expression that always evaluates to true. */
+    public static final JsonExpressionFilter alwaysTrue() {
+      return new JsonExpressionFilter("1 == 1");
+    }
+
+    /** We need to push to Druid an expression that always evaluates to false. */
+    public static final JsonExpressionFilter alwaysFalse() {
+      return new JsonExpressionFilter("1 == 2");
+    }
+  }
+
 
   /** Equality filter. */
   private static class JsonSelector extends JsonFilter {

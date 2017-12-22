@@ -160,6 +160,7 @@ import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.sql.validate.SqlValidatorTable;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.tools.RelBuilder;
+import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.Litmus;
@@ -320,7 +321,7 @@ public class SqlToRelConverter {
     this.exprConverter = new SqlNodeToRexConverterImpl(convertletTable);
     this.explainParamCount = 0;
     this.config = new ConfigBuilder().withConfig(config).build();
-    this.relBuilder = RelFactories.LOGICAL_BUILDER.create(cluster, null);
+    this.relBuilder = config.getRelBuilderFactory().create(cluster, null);
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -2410,7 +2411,7 @@ public class SqlToRelConverter {
         (Join) RelFactories.DEFAULT_JOIN_FACTORY.createJoin(leftRel, rightRel,
             joinCond, ImmutableSet.<CorrelationId>of(), joinType, false);
 
-    return RelOptUtil.pushDownJoinConditions(originalJoin);
+    return RelOptUtil.pushDownJoinConditions(originalJoin, relBuilder);
   }
 
   private CorrelationUse getCorrelationUse(Blackboard bb, final RelNode r0) {
@@ -5447,6 +5448,10 @@ public class SqlToRelConverter {
      * cases; a threshold of {@link Integer#MAX_VALUE} forces usage of OR in all
      * cases. */
     int getInSubQueryThreshold();
+
+    /** Returns the factory to create {@link RelBuilder}, never null. Default is
+     * {@link RelFactories#LOGICAL_BUILDER}. */
+    RelBuilderFactory getRelBuilderFactory();
   }
 
   /** Builder for a {@link Config}. */
@@ -5458,6 +5463,7 @@ public class SqlToRelConverter {
     private boolean explain;
     private boolean expand = true;
     private int inSubQueryThreshold = DEFAULT_IN_SUB_QUERY_THRESHOLD;
+    private RelBuilderFactory relBuilderFactory = RelFactories.LOGICAL_BUILDER;
 
     private ConfigBuilder() {}
 
@@ -5470,6 +5476,7 @@ public class SqlToRelConverter {
       this.explain = config.isExplain();
       this.expand = config.isExpand();
       this.inSubQueryThreshold = config.getInSubQueryThreshold();
+      this.relBuilderFactory = config.getRelBuilderFactory();
       return this;
     }
 
@@ -5513,11 +5520,17 @@ public class SqlToRelConverter {
       return this;
     }
 
+    public ConfigBuilder withRelBuilderFactory(
+        RelBuilderFactory relBuilderFactory) {
+      this.relBuilderFactory = relBuilderFactory;
+      return this;
+    }
+
     /** Builds a {@link Config}. */
     public Config build() {
       return new ConfigImpl(convertTableAccess, decorrelationEnabled,
           trimUnusedFields, createValuesRel, explain, expand,
-          inSubQueryThreshold);
+          inSubQueryThreshold, relBuilderFactory);
     }
   }
 
@@ -5529,12 +5542,14 @@ public class SqlToRelConverter {
     private final boolean trimUnusedFields;
     private final boolean createValuesRel;
     private final boolean explain;
-    private final int inSubQueryThreshold;
     private final boolean expand;
+    private final int inSubQueryThreshold;
+    private final RelBuilderFactory relBuilderFactory;
 
     private ConfigImpl(boolean convertTableAccess, boolean decorrelationEnabled,
         boolean trimUnusedFields, boolean createValuesRel, boolean explain,
-        boolean expand, int inSubQueryThreshold) {
+        boolean expand, int inSubQueryThreshold,
+        RelBuilderFactory relBuilderFactory) {
       this.convertTableAccess = convertTableAccess;
       this.decorrelationEnabled = decorrelationEnabled;
       this.trimUnusedFields = trimUnusedFields;
@@ -5542,6 +5557,7 @@ public class SqlToRelConverter {
       this.explain = explain;
       this.expand = expand;
       this.inSubQueryThreshold = inSubQueryThreshold;
+      this.relBuilderFactory = relBuilderFactory;
     }
 
     public boolean isConvertTableAccess() {
@@ -5570,6 +5586,10 @@ public class SqlToRelConverter {
 
     public int getInSubQueryThreshold() {
       return inSubQueryThreshold;
+    }
+
+    public RelBuilderFactory getRelBuilderFactory() {
+      return relBuilderFactory;
     }
   }
 }
