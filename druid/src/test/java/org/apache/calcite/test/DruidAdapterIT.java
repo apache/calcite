@@ -3339,7 +3339,7 @@ public class DruidAdapterIT {
     sql(sql, FOODMART)
         .queryContains(
             druidChecker(druidQueryPart1, druidQueryPart2, druidQueryPart3, druidQueryPart4))
-        .returnsOrdered("T=1997-01-01 00:00:00\\nT=1997-01-01 00:00:00");
+        .returnsOrdered("T=1997-01-01 00:00:00", "T=1997-01-01 00:00:00");
   }
 
   @Test
@@ -3356,6 +3356,70 @@ public class DruidAdapterIT {
 
     sql(sql, FOODMART).queryContains(druidChecker(druidQueryPart1, druidQueryPart2))
         .returnsOrdered("T=1997-05-01 00:00:00");
+  }
+
+  @Test
+  public void testTmeWithFilterOnFloorOnTimeAndCastToTimestamp() {
+    final String sql = "Select cast(floor(\"timestamp\" to MONTH) as timestamp) as t from "
+        + "\"foodmart\" where floor(\"timestamp\" to MONTH) >= cast('1997-05-01 00:00:00' as TIMESTAMP) order by t"
+        + " limit 1";
+    final String druidQueryPart1 = "filter\":{\"type\":\"bound\",\"dimension\":\"__time\","
+        + "\"lower\":\"1997-05-01T00:00:00.000Z\",\"lowerStrict\":false,"
+        + "\"ordering\":\"lexicographic\",\"extractionFn\":{\"type\":\"timeFormat\","
+        + "\"format\":\"yyyy-MM-dd";
+    final String druidQueryPart2 = "\"granularity\":\"month\",\"timeZone\":\"UTC\","
+        + "\"locale\":\"en-US\"}},\"dimensions\":[],\"metrics\":[],\"granularity\":\"all\"";
+
+    sql(sql, FOODMART).queryContains(druidChecker(druidQueryPart1, druidQueryPart2))
+        .returnsOrdered("T=1997-05-01 00:00:00");
+  }
+
+  @Test
+  public void testTmeWithFilterOnFloorOnTimeWithTimezone() {
+    final String sql = "Select cast(floor(\"timestamp\" to MONTH) as timestamp) as t from "
+        + "\"foodmart\" where floor(\"timestamp\" to MONTH) >= cast('1997-05-01 00:00:00'"
+        + " as TIMESTAMP) order by t limit 1";
+    final String druidQueryPart1 = "filter\":{\"type\":\"bound\",\"dimension\":\"__time\","
+        + "\"lower\":\"1997-05-01T00:00:00.000Z\",\"lowerStrict\":false,"
+        + "\"ordering\":\"lexicographic\",\"extractionFn\":{\"type\":\"timeFormat\","
+        + "\"format\":\"yyyy-MM-dd";
+    final String druidQueryPart2 = "\"granularity\":\"month\",\"timeZone\":\"IST\","
+        + "\"locale\":\"en-US\"}},\"dimensions\":[],\"metrics\":[],\"granularity\":\"all\"";
+
+    CalciteAssert.that()
+        .enable(enabled())
+        .with(ImmutableMap.of("model", FOODMART.getPath()))
+        .with(CalciteConnectionProperty.TIME_ZONE.camelName(), "IST")
+        .query(sql)
+        .runs()
+        .queryContains(druidChecker(druidQueryPart1, druidQueryPart2))
+        // NOTE: this return value is not as expected
+        // see https://issues.apache.org/jira/browse/CALCITE-2107
+        .returnsOrdered("T=1997-05-01 05:30:00");
+  }
+
+  @Test
+  public void testTmeWithFilterOnFloorOnTimeWithTimezoneConversion() {
+    final String sql = "Select cast(floor(\"timestamp\" to MONTH) as timestamp) as t from "
+        + "\"foodmart\" where floor(\"timestamp\" to MONTH) >= '1997-04-30 18:30:00 UTC' order by t"
+        + " limit 1";
+    final String druidQueryPart1 = "filter\":{\"type\":\"bound\",\"dimension\":\"__time\","
+        + "\"lower\":\"1997-05-01T00:00:00.000Z\",\"lowerStrict\":false,"
+        + "\"ordering\":\"lexicographic\",\"extractionFn\":{\"type\":\"timeFormat\","
+        + "\"format\":\"yyyy-MM-dd";
+    final String druidQueryPart2 = "\"granularity\":\"month\",\"timeZone\":\"IST\","
+        + "\"locale\":\"en-US\"}},\"dimensions\":[],\"metrics\":[],\"granularity\":\"all\"";
+
+    CalciteAssert.that()
+        .enable(enabled())
+        .with(ImmutableMap.of("model", FOODMART.getPath()))
+        .with(CalciteConnectionProperty.TIME_ZONE.camelName(), "IST")
+        .query(sql)
+        .runs()
+        .queryContains(druidChecker(druidQueryPart1, druidQueryPart2))
+        // NOTE: this return value is not as expected
+        // see https://issues.apache.org/jira/browse/CALCITE-2107
+        .returnsOrdered("T=1997-05-01 05:30:00");
   }
 
 }

@@ -18,7 +18,6 @@ package org.apache.calcite.adapter.druid;
 
 import org.apache.calcite.DataContext;
 import org.apache.calcite.avatica.ColumnMetaData;
-import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.config.CalciteConnectionProperty;
 import org.apache.calcite.interpreter.BindableRel;
@@ -64,7 +63,10 @@ import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Pair;
+import org.apache.calcite.util.TimestampString;
 import org.apache.calcite.util.Util;
+
+import static org.apache.calcite.sql.SqlKind.INPUT_REF;
 
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
@@ -88,8 +90,6 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.TimeZone;
 import java.util.regex.Pattern;
-
-import static org.apache.calcite.sql.SqlKind.INPUT_REF;
 
 /**
  * Relational expression representing a scan of a Druid data set.
@@ -1140,19 +1140,16 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
         if (!formatDateString) {
           return Objects.toString(rexLiteral.getValue3());
         } else {
-          switch (rexLiteral.getTypeName()) {
           // Case when we are passing to druid as an extractionFunction
           // Need to format the timestamp String in druid format.
-          case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
-          case TIMESTAMP:
-            Long millisSinceEpoch = rexLiteral.getValueAs(Long.class);
-            return dateFormatter.format(millisSinceEpoch);
-          case DATE:
-            Integer daysSinceEpoch = rexLiteral.getValueAs(Integer.class);
-            return dateFormatter.format(daysSinceEpoch * DateTimeUtils.MILLIS_PER_DAY);
-          default:
-            return Objects.toString(rexLiteral.getValue3());
+          TimestampString timestampString = DruidDateTimeUtils
+              .literalValue(e, TimeZone.getTimeZone(timeZone));
+          if (timestampString == null) {
+            throw new AssertionError(
+                "Cannot translate Literal" + e + " of type "
+                    + rexLiteral.getTypeName() + " to TimestampString");
           }
+          return dateFormatter.format(timestampString.getMillisSinceEpoch());
         }
       case FLOOR:
       case EXTRACT:

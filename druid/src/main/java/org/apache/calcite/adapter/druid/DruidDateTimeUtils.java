@@ -249,7 +249,7 @@ public class DruidDateTimeUtils {
     }
   }
 
-  private static TimestampString literalValue(RexNode node, TimeZone timeZone) {
+  public static TimestampString literalValue(RexNode node, TimeZone timeZone) {
     switch (node.getKind()) {
     case LITERAL:
       switch (((RexLiteral) node).getTypeName()) {

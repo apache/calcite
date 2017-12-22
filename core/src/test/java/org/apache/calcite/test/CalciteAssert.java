@@ -97,6 +97,7 @@ import java.util.TimeZone;
 import java.util.TreeSet;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
+
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.sql.DataSource;
@@ -548,9 +549,13 @@ public class CalciteAssert {
         calciteConnection.getProperties().setProperty(
             CalciteConnectionProperty.CREATE_MATERIALIZATIONS.camelName(),
             Boolean.toString(materializationsEnabled));
-        calciteConnection.getProperties().setProperty(
-            CalciteConnectionProperty.TIME_ZONE.camelName(),
-            DateTimeUtils.UTC_ZONE.getID());
+        if (!calciteConnection.getProperties()
+            .containsKey(CalciteConnectionProperty.TIME_ZONE.camelName())) {
+          // Do not override id some test has already set this property.
+          calciteConnection.getProperties().setProperty(
+              CalciteConnectionProperty.TIME_ZONE.camelName(),
+              DateTimeUtils.UTC_ZONE.getID());
+        }
       }
       for (Pair<Hook, Function> hook : hooks) {
         closer.add(hook.left.addThread(hook.right));
