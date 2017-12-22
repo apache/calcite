@@ -2810,7 +2810,7 @@ public class RelOptRulesTest extends RelOptTestBase {
     checkPlanning(program, sql);
   }
 
-  @Test public void testPushAggregateThroughJoin1() throws Exception {
+  @Test public void testPushAggregateThroughJoin1() {
     final HepProgram preProgram = new HepProgramBuilder()
         .addRuleInstance(AggregateProjectMergeRule.INSTANCE)
         .build();
@@ -2824,7 +2824,7 @@ public class RelOptRulesTest extends RelOptTestBase {
     checkPlanning(tester, preProgram, new HepPlanner(program), sql);
   }
 
-  @Test public void testPushAggregateThroughJoin2() throws Exception {
+  @Test public void testPushAggregateThroughJoin2() {
     final HepProgram preProgram = new HepProgramBuilder()
         .addRuleInstance(AggregateProjectMergeRule.INSTANCE)
         .build();
@@ -2839,7 +2839,7 @@ public class RelOptRulesTest extends RelOptTestBase {
     checkPlanning(tester, preProgram, new HepPlanner(program), sql);
   }
 
-  @Test public void testPushAggregateThroughJoin3() throws Exception {
+  @Test public void testPushAggregateThroughJoin3() {
     final HepProgram preProgram = new HepProgramBuilder()
         .addRuleInstance(AggregateProjectMergeRule.INSTANCE)
         .build();
@@ -2856,7 +2856,7 @@ public class RelOptRulesTest extends RelOptTestBase {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1544">[CALCITE-1544]
    * AggregateJoinTransposeRule fails to preserve row type</a>. */
-  @Test public void testPushAggregateThroughJoin4() throws Exception {
+  @Test public void testPushAggregateThroughJoin4() {
     final HepProgram preProgram = new HepProgramBuilder()
         .addRuleInstance(AggregateProjectMergeRule.INSTANCE)
         .build();
@@ -2869,7 +2869,7 @@ public class RelOptRulesTest extends RelOptTestBase {
     sql(sql).withPre(preProgram).with(program).check();
   }
 
-  @Test public void testPushAggregateThroughJoin5() throws Exception {
+  @Test public void testPushAggregateThroughJoin5() {
     final HepProgram preProgram = new HepProgramBuilder()
         .addRuleInstance(AggregateProjectMergeRule.INSTANCE)
         .build();
@@ -2883,7 +2883,7 @@ public class RelOptRulesTest extends RelOptTestBase {
   }
 
   /** SUM is the easiest aggregate function to split. */
-  @Test public void testPushAggregateSumThroughJoin() throws Exception {
+  @Test public void testPushAggregateSumThroughJoin() {
     final HepProgram preProgram = new HepProgramBuilder()
         .addRuleInstance(AggregateProjectMergeRule.INSTANCE)
         .build();
@@ -2897,8 +2897,25 @@ public class RelOptRulesTest extends RelOptTestBase {
     checkPlanning(tester, preProgram, new HepPlanner(program), sql);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2105">[CALCITE-2105]
+   * AggregateJoinTransposeRule incorrectly makes a SUM NOT NULL when Aggregate
+   * has no group keys</a>. */
+  @Test public void testPushAggregateSumWithoutGroupKeyThroughJoin() {
+    final HepProgram preProgram = new HepProgramBuilder()
+        .addRuleInstance(AggregateProjectMergeRule.INSTANCE)
+        .build();
+    final HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(AggregateJoinTransposeRule.EXTENDED)
+        .build();
+    final String sql = "select sum(sal)\n"
+        + "from (select * from sales.emp where empno = 10) as e\n"
+        + "join sales.dept as d on e.job = d.name";
+    checkPlanning(tester, preProgram, new HepPlanner(program), sql);
+  }
+
   /** Push a variety of aggregate functions. */
-  @Test public void testPushAggregateFunctionsThroughJoin() throws Exception {
+  @Test public void testPushAggregateFunctionsThroughJoin() {
     final HepProgram preProgram = new HepProgramBuilder()
         .addRuleInstance(AggregateProjectMergeRule.INSTANCE)
         .build();
@@ -2918,7 +2935,7 @@ public class RelOptRulesTest extends RelOptTestBase {
 
   /** Push a aggregate functions into a relation that is unique on the join
    * key. */
-  @Test public void testPushAggregateThroughJoinDistinct() throws Exception {
+  @Test public void testPushAggregateThroughJoinDistinct() {
     final HepProgram preProgram = new HepProgramBuilder()
         .addRuleInstance(AggregateProjectMergeRule.INSTANCE)
         .build();
@@ -2935,7 +2952,7 @@ public class RelOptRulesTest extends RelOptTestBase {
   }
 
   /** Push count(*) through join, no GROUP BY. */
-  @Test public void testPushAggregateSumNoGroup() throws Exception {
+  @Test public void testPushAggregateSumNoGroup() {
     final HepProgram preProgram = new HepProgramBuilder()
         .addRuleInstance(AggregateProjectMergeRule.INSTANCE)
         .build();
@@ -2947,7 +2964,7 @@ public class RelOptRulesTest extends RelOptTestBase {
     checkPlanning(tester, preProgram, new HepPlanner(program), sql);
   }
 
-  @Test public void testSwapOuterJoin() throws Exception {
+  @Test public void testSwapOuterJoin() {
     final HepProgram program = new HepProgramBuilder()
         .addMatchLimit(1)
         .addRuleInstance(JoinCommuteRule.SWAP_OUTER)
