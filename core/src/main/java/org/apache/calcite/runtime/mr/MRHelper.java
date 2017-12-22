@@ -53,29 +53,17 @@ public abstract class MRHelper {
   // if all rows should be returned
   protected boolean isAllRows = false;
 
-  protected int matchNum = -1;
-
-  protected int limit = -1;
-
-  protected int offset = 0;
-
   protected MatchingFactory matchingFactory;
 
   private Map<Integer, Object> dynamicParams = new HashMap<>();
 
-  public void init(int limit,
-                   int offset,
-                   int matchNum,
-                   boolean isAllRows,
+  public void init(boolean isAllRows,
                    NFA nfa,
                    List<String> aggrFun,
                    Set<String> excludeVars,
                    Map<String, Set<String>> subSets,
                    Integer[] partitionKey) {
     this.setNFA(nfa.copy());
-    this.setMatchNum(matchNum);
-    this.setLimit(limit);
-    this.setOffset(offset);
     this.setAggrFun(new ArrayList<String>(aggrFun));
     this.setExcludeVars(new HashSet<String>(excludeVars));
     this.setSubSets(new HashMap<String, Set<String>>(subSets));
@@ -203,36 +191,12 @@ public abstract class MRHelper {
     this.matchingFactory = matchingFactory;
   }
 
-  public int getMatchNum() {
-    return matchNum;
-  }
-
-  public void setMatchNum(int matchNum) {
-    this.matchNum = matchNum;
-  }
-
-  public int getLimit() {
-    return limit;
-  }
-
-  public void setLimit(int limit) {
-    this.limit = limit;
-  }
-
   public boolean isLongestFirst() {
     return longestFirst;
   }
 
   public void setLongestFirst(boolean longestFirst) {
     this.longestFirst = longestFirst;
-  }
-
-  public int getOffset() {
-    return offset;
-  }
-
-  public void setOffset(int offset) {
-    this.offset = offset;
   }
 
   public Map<Integer, Object> getDynamicParams() {
