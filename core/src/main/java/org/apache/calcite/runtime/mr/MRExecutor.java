@@ -40,14 +40,12 @@ public class MRExecutor {
   }
 
   public static List<Object[]> executMR(List<Object[]> inputData, MRHelper mr) {
-    int mrCounter = 0;
-    boolean breakNow = false;
-    int matchNum = mr.getMatchNum();
     List<Tuple> resultOutput = new ArrayList<>();
     final Set<String> alphaEval = new HashSet<>();
     final Set<String> alphaMatch = new HashSet<>();
     final Map<String, Queue> inputsPerGroup = new HashMap<>();
 
+    int mrCounter = 0;
     boolean isEOF = false;
     int maxTID = 0;
     int tupleCounter = 0;
@@ -66,7 +64,7 @@ public class MRExecutor {
         break;
       }
       tupleCounter += tuples.size() - prevSize;
-      isEOF = tuples.size() - prevSize < mr.getLimit() || mr.getLimit() < 0;
+      isEOF = tuples.size() - prevSize < 0;
 
       // for each partition, do the matching
       int smallestID = tupleCounter;
@@ -140,10 +138,6 @@ public class MRExecutor {
                       && isEOF && activeTemp.getNextTID() > maxTID) {
                     mrCounter = mr.measures(resultOutput, tuples, tuplesPerPart.get(pKey),
                         pKeys.get(pKey), mrCounter, activeTemp);
-                    breakNow = mrCounter >= matchNum && matchNum > 0;
-                    if (breakNow) {
-                      break;
-                    }
                   } else {
                     input.add(activeTemp.copy());
                   }
@@ -155,10 +149,6 @@ public class MRExecutor {
                 input.add(activeTemp);
               }
             }
-
-            if (breakNow) {
-              break;
-            }
           }
 
           if (matchCounter == 0) {
@@ -169,10 +159,6 @@ public class MRExecutor {
                   && isEOF && top.getNextTID() > maxTID) {
                 mr.measures(resultOutput, tuples,
                     tuplesPerPart.get(pKey), pKeys.get(pKey), mrCounter, top.getBak());
-                breakNow = mrCounter >= matchNum && matchNum > 0;
-                if (breakNow) {
-                  break;
-                }
               }
             } else if (!mr.getNFA().isStrictStarts()) {
               int reStart = top.getStartTID() + 1;
@@ -182,9 +168,6 @@ public class MRExecutor {
               }
             }
           }
-        }
-        if (breakNow) {
-          break;
         }
         if (tmpQueue.size() > 0) {
           int peekID = tmpQueue.peek().getStartTID();
@@ -196,38 +179,29 @@ public class MRExecutor {
       }
 
       tuples = MRUtilFuns.cleanUp(tuples, tuplesPerPart, smallestID);
+    } while (!isEOF);
 
-    } while (!(isEOF || breakNow));
+    for (Map.Entry<String, Queue> entry : inputsPerGroup.entrySet()) {
+      String pKey = entry.getKey();
+      Queue queue = entry.getValue();
 
-    if (!breakNow) {
-      for (Map.Entry<String, Queue> entry : inputsPerGroup.entrySet()) {
-        String pKey = entry.getKey();
-        Queue queue = entry.getValue();
-
-        while (!queue.isEmpty()) {
-          Matching top = (Matching) queue.poll();
-          int status = top.getStatus();
-          if (!mr.getNFA().isStrictEnds()
-              || mr.getNFA().isStrictEnds()
-              && isEOF && top.getNextTID() > maxTID) {
-            if (mr.getNFA().isFinal(status)) {
-              mrCounter = mr.measures(resultOutput, tuples,
-                  tuplesPerPart.get(pKey), pKeys.get(pKey), mrCounter, top);
-            } else if (top.getBak() != null) {
-              mrCounter = mr.measures(resultOutput, tuples,
-                  tuplesPerPart.get(pKey), pKeys.get(pKey), mrCounter, top.getBak());
-            }
-            breakNow = mrCounter >= matchNum && matchNum > 0;
-            if (breakNow) {
-              break;
-            }
+      while (!queue.isEmpty()) {
+        Matching top = (Matching) queue.poll();
+        int status = top.getStatus();
+        if (!mr.getNFA().isStrictEnds()
+            || mr.getNFA().isStrictEnds()
+            && isEOF && top.getNextTID() > maxTID) {
+          if (mr.getNFA().isFinal(status)) {
+            mrCounter = mr.measures(resultOutput, tuples,
+                tuplesPerPart.get(pKey), pKeys.get(pKey), mrCounter, top);
+          } else if (top.getBak() != null) {
+            mrCounter = mr.measures(resultOutput, tuples,
+                tuplesPerPart.get(pKey), pKeys.get(pKey), mrCounter, top.getBak());
           }
-        }
-        if (breakNow) {
-          break;
         }
       }
     }
+
     return mr.parserResult(resultOutput);
   }
 
@@ -244,7 +218,7 @@ public class MRExecutor {
       if (offset >= dataSet.size()) {
         return new HashSet<>();
       } else {
-        results = dataSet.subList(offset, Math.min(dataSet.size(), offset + mr.getLimit()));
+        results = dataSet.subList(offset, dataSet.size());
       }
     }
 
