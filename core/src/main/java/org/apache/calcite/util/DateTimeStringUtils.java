@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.util;
 
+import java.util.Locale;
 import java.util.TimeZone;
 
 /**
@@ -85,6 +86,13 @@ public class DateTimeStringUtils {
       }
     }
     return false;
+  }
+
+  /**
+   * Equivalent of String.format(Locale.ENGLISH, message, formatArgs).
+   */
+  public static String format(String message, Object... formatArgs) {
+    return String.format(Locale.ENGLISH, message, formatArgs);
   }
 
 }

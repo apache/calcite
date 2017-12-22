@@ -32,7 +32,7 @@ import javax.annotation.Nonnull;
  *
  * @see Granularities
  */
-public interface Granularity extends DruidQuery.Json {
+public interface Granularity extends DruidJson {
   /** Type of supported periods for granularity. */
   enum Type {
     ALL,

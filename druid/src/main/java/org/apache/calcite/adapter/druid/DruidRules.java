@@ -231,7 +231,9 @@ public class DruidRules {
           new RexSimplify(rexBuilder, predicates, true, executor);
       final RexNode cond = simplify.simplify(filter.getCondition());
       for (RexNode e : RelOptUtil.conjunctions(cond)) {
-        if (query.isValidFilter(e)) {
+        DruidJsonFilter druidJsonFilter = DruidJsonFilter
+            .toDruidFilters(e, query.table.getRowType(), query);
+        if (druidJsonFilter != null) {
           validPreds.add(e);
         } else {
           nonValidPreds.add(e);
@@ -239,19 +241,12 @@ public class DruidRules {
       }
 
       // Timestamp
-      int timestampFieldIdx = -1;
-      for (int i = 0; i < query.getRowType().getFieldCount(); i++) {
-        if (query.druidTable.timestampFieldName.equals(
-                query.getRowType().getFieldList().get(i).getName())) {
-          timestampFieldIdx = i;
-          break;
-        }
-      }
-
+      int timestampFieldIdx = query.getTimestampFieldIndex();
+      RelNode newDruidQuery = query;
       final Triple<List<RexNode>, List<RexNode>, List<RexNode>> triple =
           splitFilters(rexBuilder, query, validPreds, nonValidPreds, timestampFieldIdx);
       if (triple.getLeft().isEmpty() && triple.getMiddle().isEmpty()) {
-        // We can't push anything useful to Druid.
+        //it sucks, nothing to push
         return;
       }
       final List<RexNode> residualPreds = new ArrayList<>(triple.getRight());
@@ -262,13 +257,14 @@ public class DruidRules {
         assert timeZone != null;
         intervals = DruidDateTimeUtils.createInterval(
             RexUtil.composeConjunction(rexBuilder, triple.getLeft(), false),
-            timeZone);
+
+            query.getConnectionConfig().timeZone());
         if (intervals == null || intervals.isEmpty()) {
-          // Case we have an filter with extract that can not be written as interval push down
+          // Case we have a filter with extract that can not be written as interval push down
           triple.getMiddle().addAll(triple.getLeft());
         }
       }
-      RelNode newDruidQuery = query;
+
       if (!triple.getMiddle().isEmpty()) {
         final RelNode newFilter = filter.copy(filter.getTraitSet(), Util.last(query.rels),
             RexUtil.composeConjunction(rexBuilder, triple.getMiddle(), false));
@@ -304,13 +300,9 @@ public class DruidRules {
       for (RexNode conj : validPreds) {
         final RelOptUtil.InputReferencedVisitor visitor = new RelOptUtil.InputReferencedVisitor();
         conj.accept(visitor);
-        if (visitor.inputPosReferenced.contains(timestampFieldIdx)) {
-          if (visitor.inputPosReferenced.size() != 1) {
-            // Complex predicate, transformation currently not supported
-            nonPushableNodes.add(conj);
-          } else {
-            timeRangeNodes.add(conj);
-          }
+        if (visitor.inputPosReferenced.contains(timestampFieldIdx)
+            && visitor.inputPosReferenced.size() == 1) {
+          timeRangeNodes.add(conj);
         } else {
           pushableNodes.add(conj);
         }
@@ -703,7 +695,9 @@ public class DruidRules {
       // into Druid
       for (Integer i : filterRefs) {
         RexNode filterNode = project.getProjects().get(i);
-        if (!query.isValidFilter(filterNode) || filterNode.isAlwaysFalse()) {
+        final DruidJsonFilter filter = DruidJsonFilter
+            .toDruidFilters(filterNode, query.table.getRowType(), query);
+        if (filter == null) {
           return;
         }
       }
@@ -940,6 +934,9 @@ public class DruidRules {
             if (!(call.getOperands().get(0) instanceof RexInputRef)) {
               return -1;
             }
+            if (!TimeExtractionFunction.isValidTimeFloor(call)) {
+              return -1;
+            }
             final RexInputRef ref = (RexInputRef) call.getOperands().get(0);
             if (!(checkTimestampRefOnQuery(ImmutableBitSet.of(ref.getIndex()),
                 query.getTopNode(),
@@ -950,6 +947,9 @@ public class DruidRules {
             break;
           case EXTRACT:
             idxTimestamp = RelOptUtil.InputFinder.bits(call).asList().get(0);
+            if (!TimeExtractionFunction.isValidTimeExtract(call)) {
+              return -1;
+            }
             break;
           default:
             throw new AssertionError();

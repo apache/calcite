@@ -21,9 +21,8 @@ import org.apache.calcite.sql.type.SqlTypeName;
 /** Druid type. */
 public enum DruidType {
   LONG(SqlTypeName.BIGINT),
-  // SQL DOUBLE and FLOAT types are both 64 bit, but we use DOUBLE because
-  // people find FLOAT confusing.
-  FLOAT(SqlTypeName.DOUBLE),
+  FLOAT(SqlTypeName.FLOAT),
+  DOUBLE(SqlTypeName.DOUBLE),
   STRING(SqlTypeName.VARCHAR),
   HYPER_UNIQUE(SqlTypeName.VARBINARY),
   THETA_SKETCH(SqlTypeName.VARBINARY);
@@ -54,6 +53,8 @@ public enum DruidType {
     } else if (type.startsWith("long") || type.equals("count")) {
       return LONG;
     } else if (type.startsWith("double")) {
+      return DOUBLE;
+    } else if (type.startsWith("float")) {
       return FLOAT;
     }
     throw new AssertionError("Unknown type: " + type);
@@ -68,7 +69,9 @@ public enum DruidType {
     case "LONG":
       return LONG;
     case "FLOAT":
-      return FLOAT;
+      return DOUBLE;
+    case "DOUBLE":
+      return DOUBLE;
     case "STRING":
       return STRING;
     default:
