@@ -2914,6 +2914,27 @@ public class RelOptRulesTest extends RelOptTestBase {
     checkPlanning(tester, preProgram, new HepPlanner(program), sql);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2108">[CALCITE-2108]
+   * AggregateJoinTransposeRule incorrectly splits a SUM0 call when Aggregate
+   * has no group keys</a>.
+   *
+   * <p>Similar to {@link #testPushAggregateSumThroughJoin()},
+   * but also uses {@link AggregateReduceFunctionsRule}. */
+  @Test public void testPushAggregateSumThroughJoinAfterAggregateReduce() {
+    final HepProgram preProgram = new HepProgramBuilder()
+        .addRuleInstance(AggregateProjectMergeRule.INSTANCE)
+        .build();
+    final HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(AggregateReduceFunctionsRule.INSTANCE)
+        .addRuleInstance(AggregateJoinTransposeRule.EXTENDED)
+        .build();
+    final String sql = "select sum(sal)\n"
+        + "from (select * from sales.emp where empno = 10) as e\n"
+        + "join sales.dept as d on e.job = d.name";
+    checkPlanning(tester, preProgram, new HepPlanner(program), sql);
+  }
+
   /** Push a variety of aggregate functions. */
   @Test public void testPushAggregateFunctionsThroughJoin() {
     final HepProgram preProgram = new HepProgramBuilder()

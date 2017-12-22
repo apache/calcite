@@ -5754,6 +5754,38 @@ LogicalAggregate(group=[{}], EXPR$0=[SUM($4)])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testPushAggregateSumThroughJoinAfterAggregateReduce">
+      <Resource name="sql">
+        <![CDATA[select e.job,sum(sal)
+from (select * from sales.emp where empno = 10) as e
+join sales.dept as d on e.job = d.name
+group by e.job,d.name]]>
+      </Resource>
+      <Resource name="planBefore">
+        <![CDATA[
+LogicalAggregate(group=[{}], EXPR$0=[SUM($5)])
+  LogicalJoin(condition=[=($2, $10)], joinType=[inner])
+    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+      LogicalFilter(condition=[=($0, 10)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+      </Resource>
+      <Resource name="planAfter">
+        <![CDATA[
+LogicalProject(EXPR$0=[CASE(=($1, 0), null, $0)])
+  LogicalAggregate(group=[{}], EXPR$0=[$SUM0($5)], agg#1=[$SUM0($6)])
+    LogicalProject(JOB=[$0], EXPR$0=[$1], $f2=[$2], NAME=[$3], $f1=[$4], $f5=[CAST(*($1, $4)):INTEGER NOT NULL], $f6=[*($2, $4)])
+      LogicalJoin(condition=[=($0, $3)], joinType=[inner])
+        LogicalAggregate(group=[{2}], EXPR$0=[$SUM0($5)], agg#1=[COUNT()])
+          LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+            LogicalFilter(condition=[=($0, 10)])
+              LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalAggregate(group=[{1}], agg#0=[COUNT()])
+          LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+      </Resource>
+    </TestCase>
     <TestCase name="testReduceConstantsIsNotNull">
         <Resource name="sql">
             <![CDATA[select empno from emp
