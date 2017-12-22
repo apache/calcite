@@ -63,6 +63,7 @@ import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Pair;
+import org.apache.calcite.util.TimestampString;
 import org.apache.calcite.util.Util;
 
 import com.fasterxml.jackson.core.JsonFactory;
@@ -80,12 +81,14 @@ import org.joda.time.Interval;
 import java.io.IOException;
 import java.io.StringWriter;
 import java.math.BigDecimal;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.Properties;
 import java.util.Set;
+import java.util.TimeZone;
 import java.util.regex.Pattern;
 
 import static org.apache.calcite.sql.SqlKind.INPUT_REF;
@@ -234,6 +237,8 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
       return isValidCast((RexCall) e, boundedComparator);
     case EXTRACT:
       return TimeExtractionFunction.isValidTimeExtract((RexCall) e);
+    case FLOOR:
+      return TimeExtractionFunction.isValidTimeFloor((RexCall) e);
     case IS_TRUE:
       return isValidFilter(((RexCall) e).getOperands().get(0), boundedComparator);
     default:
@@ -264,7 +269,9 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
       return true;
     }
     if (e.getOperands().get(0).isA(SqlKind.LITERAL)
-        && e.getType().getFamily() == SqlTypeFamily.TIMESTAMP) {
+        && (e.getType().getSqlTypeName() == SqlTypeName.DATE
+        || e.getType().getSqlTypeName() == SqlTypeName.TIMESTAMP
+        || e.getType().getSqlTypeName() == SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE)) {
       // CAST of literal to timestamp type
       return true;
     }
@@ -523,7 +530,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
       translator.clearFieldNameLists();
       final ImmutableList.Builder<String> builder = ImmutableList.builder();
       for (RexNode project : projects) {
-        builder.add(translator.translate(project, true));
+        builder.add(translator.translate(project, true, false));
       }
       fieldNames = builder.build();
     }
@@ -1110,6 +1117,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
     final DruidTable druidTable;
     final RelDataType rowType;
     final String timeZone;
+    final SimpleDateFormat dateFormatter;
 
     Translator(DruidTable druidTable, RelDataType rowType, String timeZone) {
       this.druidTable = druidTable;
@@ -1124,6 +1132,11 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
         }
       }
       this.timeZone = timeZone;
+      this.dateFormatter = new SimpleDateFormat(TimeExtractionFunction.ISO_TIME_FORMAT,
+          Locale.ROOT);
+      if (timeZone != null) {
+        this.dateFormatter.setTimeZone(TimeZone.getTimeZone(timeZone));
+      }
     }
 
     protected void clearFieldNameLists() {
@@ -1131,7 +1144,13 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
       metrics.clear();
     }
 
-    @SuppressWarnings("incomplete-switch") String translate(RexNode e, boolean set) {
+    @SuppressWarnings("incomplete-switch")
+    /**
+     * formatDateString is used to format timestamp values to druid format using
+     * {@link DruidQuery.Translator#dateFormatter}. This is needed when pushing timestamp
+     * comparisons to druid using TimeFormatExtractionFunction that returns a string value.
+     */
+    String translate(RexNode e, boolean set, boolean formatDateString) {
       int index = -1;
       switch (e.getKind()) {
       case INPUT_REF:
@@ -1139,9 +1158,23 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
         index = ref.getIndex();
         break;
       case CAST:
-        return tr(e, 0, set);
+        return tr(e, 0, set, formatDateString);
       case LITERAL:
-        return ((RexLiteral) e).getValue3().toString();
+        final RexLiteral rexLiteral = (RexLiteral) e;
+        if (!formatDateString) {
+          return Objects.toString(rexLiteral.getValue3());
+        } else {
+          // Case when we are passing to druid as an extractionFunction
+          // Need to format the timestamp String in druid format.
+          TimestampString timestampString = DruidDateTimeUtils
+              .literalValue(e, TimeZone.getTimeZone(timeZone));
+          if (timestampString == null) {
+            throw new AssertionError(
+                "Cannot translate Literal" + e + " of type "
+                    + rexLiteral.getTypeName() + " to TimestampString");
+          }
+          return dateFormatter.format(timestampString.getMillisSinceEpoch());
+        }
       case FLOOR:
       case EXTRACT:
         final RexCall call = (RexCall) e;
@@ -1200,18 +1233,29 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
         } else {
           throw new AssertionError("it is not a valid comparison: " + e);
         }
+        RexNode posRefNode = call.getOperands().get(posRef);
         final boolean numeric =
             call.getOperands().get(posRef).getType().getFamily()
                 == SqlTypeFamily.NUMERIC;
-        final Granularity granularity = DruidDateTimeUtils.extractGranularity(call.getOperands()
-            .get(posRef));
+        boolean formatDateString = false;
+        final Granularity granularity = DruidDateTimeUtils.extractGranularity(posRefNode);
         // in case no extraction the field will be omitted from the serialization
         ExtractionFunction extractionFunction = null;
         if (granularity != null) {
-          extractionFunction =
-              TimeExtractionFunction.createExtractFromGranularity(granularity, timeZone);
+          switch (posRefNode.getKind()) {
+          case EXTRACT:
+            extractionFunction =
+                TimeExtractionFunction.createExtractFromGranularity(granularity, timeZone);
+            break;
+          case FLOOR:
+            extractionFunction =
+                TimeExtractionFunction.createFloorFromGranularity(granularity, timeZone);
+            formatDateString = true;
+            break;
+
+          }
         }
-        String dimName = tr(e, posRef);
+        String dimName = tr(e, posRef, formatDateString);
         if (dimName.equals(DruidConnectionImpl.DEFAULT_RESPONSE_TIMESTAMP_COLUMN)) {
           // We need to use Druid default column name to refer to the time dimension in a filter
           dimName = DruidTable.DEFAULT_TIMESTAMP_COLUMN;
@@ -1223,17 +1267,18 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
           // we have guarantees about the format of the output and thus we can apply the
           // normal selector
           if (numeric && extractionFunction == null) {
-            String constantValue = tr(e, posConstant);
+            String constantValue = tr(e, posConstant, formatDateString);
             return new JsonBound(dimName, constantValue, false, constantValue, false,
                 numeric, extractionFunction);
           }
-          return new JsonSelector(dimName, tr(e, posConstant), extractionFunction);
+          return new JsonSelector(dimName, tr(e, posConstant, formatDateString),
+              extractionFunction);
         case NOT_EQUALS:
           // extractionFunction should be null because if we are using an extraction function
           // we have guarantees about the format of the output and thus we can apply the
           // normal selector
           if (numeric && extractionFunction == null) {
-            String constantValue = tr(e, posConstant);
+            String constantValue = tr(e, posConstant, formatDateString);
             return new JsonCompositeFilter(JsonFilter.Type.OR,
                 new JsonBound(dimName, constantValue, true, null, false,
                     numeric, extractionFunction),
@@ -1241,30 +1286,30 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
                     numeric, extractionFunction));
           }
           return new JsonCompositeFilter(JsonFilter.Type.NOT,
-              new JsonSelector(dimName, tr(e, posConstant), extractionFunction));
+              new JsonSelector(dimName, tr(e, posConstant, formatDateString), extractionFunction));
         case GREATER_THAN:
-          return new JsonBound(dimName, tr(e, posConstant),
+          return new JsonBound(dimName, tr(e, posConstant, formatDateString),
               true, null, false, numeric, extractionFunction);
         case GREATER_THAN_OR_EQUAL:
-          return new JsonBound(dimName, tr(e, posConstant),
+          return new JsonBound(dimName, tr(e, posConstant, formatDateString),
               false, null, false, numeric, extractionFunction);
         case LESS_THAN:
           return new JsonBound(dimName, null, false,
-              tr(e, posConstant), true, numeric, extractionFunction);
+              tr(e, posConstant, formatDateString), true, numeric, extractionFunction);
         case LESS_THAN_OR_EQUAL:
           return new JsonBound(dimName, null, false,
-              tr(e, posConstant), false, numeric, extractionFunction);
+              tr(e, posConstant, formatDateString), false, numeric, extractionFunction);
         case IN:
           ImmutableList.Builder<String> listBuilder = ImmutableList.builder();
           for (RexNode rexNode: call.getOperands()) {
             if (rexNode.getKind() == SqlKind.LITERAL) {
-              listBuilder.add(((RexLiteral) rexNode).getValue3().toString());
+              listBuilder.add(Objects.toString(((RexLiteral) rexNode).getValue3()));
             }
           }
           return new JsonInFilter(dimName, listBuilder.build(), extractionFunction);
         case BETWEEN:
-          return new JsonBound(dimName, tr(e, 2), false,
-              tr(e, 3), false, numeric, extractionFunction);
+          return new JsonBound(dimName, tr(e, 2, formatDateString), false,
+              tr(e, 3, formatDateString), false, numeric, extractionFunction);
         case IS_NULL:
           return new JsonSelector(dimName, null, extractionFunction);
         case IS_NOT_NULL:
@@ -1284,12 +1329,12 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
       }
     }
 
-    private String tr(RexNode call, int index) {
-      return tr(call, index, false);
+    private String tr(RexNode call, int index, boolean formatDateString) {
+      return tr(call, index, false, formatDateString);
     }
 
-    private String tr(RexNode call, int index, boolean set) {
-      return translate(((RexCall) call).getOperands().get(index), set);
+    private String tr(RexNode call, int index, boolean set, boolean formatDateString) {
+      return translate(((RexCall) call).getOperands().get(index), set, formatDateString);
     }
 
     private List<JsonFilter> translateFilters(List<RexNode> operands) {

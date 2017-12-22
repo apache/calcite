@@ -47,7 +47,8 @@ public class TimeExtractionFunction implements ExtractionFunction {
       TimeUnitRange.DAY,
       TimeUnitRange.WEEK);
 
-  private static final String ISO_TIME_FORMAT = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'";
+  public static final String ISO_TIME_FORMAT = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'";
+
   private final String format;
   private final String granularity;
   private final String timeZone;
@@ -132,6 +133,24 @@ public class TimeExtractionFunction implements ExtractionFunction {
     final TimeUnitRange timeUnit = (TimeUnitRange) flag.getValue();
     return timeUnit != null && VALID_TIME_EXTRACT.contains(timeUnit);
   }
+
+  /**
+   * Returns whether the RexCall contains a valid FLOOR unit that we can
+   * serialize to Druid.
+   *
+   * @param call Extract expression
+   *
+   * @return true if the extract unit is valid
+   */
+  public static boolean isValidTimeFloor(RexCall call) {
+    if (call.getKind() != SqlKind.FLOOR) {
+      return false;
+    }
+    final RexLiteral flag = (RexLiteral) call.operands.get(1);
+    final TimeUnitRange timeUnit = (TimeUnitRange) flag.getValue();
+    return timeUnit != null && VALID_TIME_EXTRACT.contains(timeUnit);
+  }
+
 }
 
 // End TimeExtractionFunction.java
