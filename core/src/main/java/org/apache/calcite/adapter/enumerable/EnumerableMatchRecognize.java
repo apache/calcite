@@ -16,8 +16,6 @@
  */
 package org.apache.calcite.adapter.enumerable;
 
-import org.apache.calcite.adapter.java.JavaTypeFactory;
-import org.apache.calcite.linq4j.tree.BlockBuilder;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelCollation;
@@ -63,12 +61,7 @@ public class EnumerableMatchRecognize extends LogicalMatch implements Enumerable
 
   public EnumerableRel.Result implement(EnumerableRelImplementor implementor,
       EnumerableRel.Prefer pref) {
-    final JavaTypeFactory typeFactory = implementor.getTypeFactory();
-    final EnumerableRel child = (EnumerableRel) getInput();
-    final BlockBuilder builder = new BlockBuilder();
-    final Result result = implementor.visitChild(this, 0, child, pref);
-
-    return result;
+    throw new RuntimeException("Test");
   }
 
 }

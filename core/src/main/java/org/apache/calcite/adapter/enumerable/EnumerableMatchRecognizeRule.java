@@ -20,11 +20,7 @@ import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterRule;
-import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.logical.LogicalMatch;
-import org.apache.calcite.tools.RelBuilderFactory;
-
-import com.google.common.base.Predicates;
 
 /**
  * Rule to convert a {@link org.apache.calcite.rel.logical.LogicalMatch} to an
@@ -33,17 +29,8 @@ import com.google.common.base.Predicates;
 public class EnumerableMatchRecognizeRule extends ConverterRule {
 
   public EnumerableMatchRecognizeRule() {
-    this(RelFactories.LOGICAL_BUILDER);
-  }
-
-  /**
-   * Create an EnumerableMatchRecognizeRule
-   * @param relBuilderFactory Builder for relation expressions
-   */
-  public EnumerableMatchRecognizeRule(RelBuilderFactory relBuilderFactory) {
-    super(LogicalMatch.class, Predicates.alwaysTrue(),
-      Convention.NONE, EnumerableConvention.INSTANCE, relBuilderFactory,
-      "EnumerableMatchRecognizeRule");
+    super(LogicalMatch.class, Convention.NONE,
+      EnumerableConvention.INSTANCE, "EnumerableMatchRecognizeRule");
   }
 
   @Override public RelNode convert(RelNode rel) {
