@@ -25,10 +25,12 @@ import org.apache.calcite.runtime.Utilities;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.UnmodifiableIterator;
 
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 import javax.annotation.Nonnull;
 
 /**
@@ -50,6 +52,7 @@ public class RelCollationImpl implements RelCollation {
   //~ Constructors -----------------------------------------------------------
 
   protected RelCollationImpl(ImmutableList<RelFieldCollation> fieldCollations) {
+    validate(fieldCollations);
     this.fieldCollations = fieldCollations;
   }
 
@@ -116,6 +119,15 @@ public class RelCollationImpl implements RelCollation {
         || trait instanceof RelCollationImpl
         && Util.startsWith(fieldCollations,
             ((RelCollationImpl) trait).fieldCollations);
+  }
+
+    /**
+     * validate validity of the fieldCollations, in order to avoid the repeated
+     * sort keys
+     */
+  private void validate(ImmutableList<RelFieldCollation> fieldCollations) {
+    Set<RelFieldCollation> fieldCollationSet = ImmutableSet.copyOf(fieldCollations);
+    assert fieldCollationSet.size() == fieldCollations.size();
   }
 
   /** Returns a string representation of this collation, suitably terse given

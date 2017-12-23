@@ -48,6 +48,8 @@ public class RelCollationTest {
         is(false));
     assertThat(RelCollations.contains(collation, Arrays.<Integer>asList()),
         is(true));
+    assertThat(RelCollations.contains(collation, Arrays.asList(2, 2)),
+        is(true));
   }
 
   /** Unit test for
