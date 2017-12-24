@@ -37,15 +37,12 @@ public class JethrodataSqlDialect extends SqlDialect {
       super(context);
   }
 
-  @Override public boolean hasImplicitTableAlias() {
-    return false;
-  }
-
   @Override public boolean supportsCharSet() {
     return false;
   }
 
   @Override public SqlNode emulateNullDirection(SqlNode node, boolean nullsFirst, boolean desc) {
+    //return emulateNullDirectionWithIsNull(node, nullsFirst, desc);
     return node;
   }
 
