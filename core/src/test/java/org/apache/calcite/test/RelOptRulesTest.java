@@ -2529,6 +2529,22 @@ public class RelOptRulesTest extends RelOptTestBase {
             + " group by deptno,job");
   }
 
+  @Test public void testPullAggregateThroughUnion2() throws Exception {
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(AggregateUnionAggregateRule.AGG_ON_SECOND_INPUT)
+        .addRuleInstance(AggregateUnionAggregateRule.AGG_ON_FIRST_INPUT)
+        .build();
+
+    checkPlanning(program,
+        "select deptno, job from"
+            + " (select deptno, job from emp as e1"
+            + " group by deptno,job"
+            + "  union all"
+            + " select deptno, job from emp as e2"
+            + " group by deptno,job)"
+            + " group by deptno,job");
+  }
+
   private void transitiveInference(RelOptRule... extraRules) throws Exception {
     final DiffRepository diffRepos = getDiffRepos();
     final String sql = diffRepos.expand(null, "${sql}");
