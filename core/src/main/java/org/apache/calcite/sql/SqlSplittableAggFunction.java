@@ -212,9 +212,8 @@ public interface SqlSplittableAggFunction {
     }
   }
 
-  /** Splitting strategy for {@code SUM}. */
-  class SumSplitter implements SqlSplittableAggFunction {
-    public static final SumSplitter INSTANCE = new SumSplitter();
+  /** Common Splitting strategy for {@coide SUM} and {@coide SUM0}. */
+  abstract class AbstractSumSplitter implements SqlSplittableAggFunction {
 
     public RexNode singleton(RexBuilder rexBuilder,
         RelDataType inputRowType, AggregateCall aggregateCall) {
@@ -260,9 +259,33 @@ public interface SqlSplittableAggFunction {
         throw new AssertionError("unexpected count " + merges);
       }
       int ordinal = extra.register(node);
-      return AggregateCall.create(SqlStdOperatorTable.SUM, false, false,
+      return AggregateCall.create(getMergeAggFunctionOfTopSplit(), false, false,
           ImmutableList.of(ordinal), -1, aggregateCall.type,
           aggregateCall.name);
+    }
+
+    protected abstract SqlAggFunction getMergeAggFunctionOfTopSplit();
+
+  }
+
+  /** Splitting strategy for {@coide SUM}. */
+  class SumSplitter extends AbstractSumSplitter {
+
+    public static final SumSplitter INSTANCE = new SumSplitter();
+
+    @Override public SqlAggFunction getMergeAggFunctionOfTopSplit() {
+      return SqlStdOperatorTable.SUM;
+    }
+
+  }
+
+  /** Splitting strategy for {@code SUM0}. */
+  class Sum0Splitter extends AbstractSumSplitter {
+
+    public static final Sum0Splitter INSTANCE = new Sum0Splitter();
+
+    @Override public SqlAggFunction getMergeAggFunctionOfTopSplit() {
+      return SqlStdOperatorTable.SUM0;
     }
   }
 }
