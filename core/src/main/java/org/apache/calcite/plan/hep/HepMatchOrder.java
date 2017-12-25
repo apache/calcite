@@ -22,7 +22,7 @@ package org.apache.calcite.plan.hep;
  */
 public enum HepMatchOrder {
   /**
-   * Match in arbitrary order. This is the default because it is the most
+   * Match in arbitrary order. This is the default because it is
    * efficient, and most rules don't care about order.
    */
   ARBITRARY,
@@ -37,7 +37,18 @@ public enum HepMatchOrder {
    * Match from root down. A match attempt at an ancestor always precedes all
    * match attempts at its descendants.
    */
-  TOP_DOWN
+  TOP_DOWN,
+
+  /**
+   * Match in depth-first order.
+   *
+   * <p>It avoids applying a rule to the previous
+   * {@link org.apache.calcite.rel.RelNode} repeatedly after new vertex is
+   * generated in one rule application. It can therefore be more efficient than
+   * {@link #ARBITRARY} in cases such as
+   * {@link org.apache.calcite.rel.core.Union} with large fan-out.
+   */
+  DEPTH_FIRST
 }
 
 // End HepMatchOrder.java

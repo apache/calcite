@@ -66,7 +66,7 @@ public class HepProgram {
 
   void initialize(boolean clearCache) {
     matchLimit = MATCH_UNTIL_FIXPOINT;
-    matchOrder = HepMatchOrder.ARBITRARY;
+    matchOrder = HepMatchOrder.DEPTH_FIRST;
     group = null;
 
     for (HepInstruction instruction : instructions) {
