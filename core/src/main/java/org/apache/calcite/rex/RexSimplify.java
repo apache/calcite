@@ -1015,7 +1015,10 @@ public class RexSimplify {
           removeUpperBound = true;
         } else {
           // Remove this term as it is contained in current upper bound
-          terms.set(terms.indexOf(term), rexBuilder.makeLiteral(true));
+          final int index = terms.indexOf(term);
+          if (index >= 0) {
+            terms.set(index, rexBuilder.makeLiteral(true));
+          }
         }
         break;
       }
@@ -1049,7 +1052,10 @@ public class RexSimplify {
           removeUpperBound = true;
         } else {
           // Remove this term as it is contained in current upper bound
-          terms.set(terms.indexOf(term), rexBuilder.makeLiteral(true));
+          final int index = terms.indexOf(term);
+          if (index >= 0) {
+            terms.set(index, rexBuilder.makeLiteral(true));
+          }
         }
         break;
       }
@@ -1084,7 +1090,10 @@ public class RexSimplify {
           removeLowerBound = true;
         } else {
           // Remove this term as it is contained in current lower bound
-          terms.set(terms.indexOf(term), rexBuilder.makeLiteral(true));
+          final int index = terms.indexOf(term);
+          if (index >= 0) {
+            terms.set(index, rexBuilder.makeLiteral(true));
+          }
         }
         break;
       }
@@ -1118,7 +1127,10 @@ public class RexSimplify {
           removeLowerBound = true;
         } else {
           // Remove this term as it is contained in current lower bound
-          terms.set(terms.indexOf(term), rexBuilder.makeLiteral(true));
+          final int index = terms.indexOf(term);
+          if (index >= 0) {
+            terms.set(index, rexBuilder.makeLiteral(true));
+          }
         }
         break;
       }

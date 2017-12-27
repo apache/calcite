@@ -2697,6 +2697,29 @@ public class RelOptRulesTest extends RelOptTestBase {
         FilterProjectTransposeRule.INSTANCE);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2110">[CALCITE-2110]
+   * ArrayIndexOutOfBoundsException in RexSimplify when using
+   * ReduceExpressionsRule.JOIN_INSTANCE</a>. */
+  @Test public void testCorrelationScalarAggAndFilter() {
+    final String sql = "SELECT e1.empno\n"
+        + "FROM emp e1, dept d1 where e1.deptno = d1.deptno\n"
+        + "and e1.deptno < 10 and d1.deptno < 15\n"
+        + "and e1.sal > (select avg(sal) from emp e2 where e1.empno = e2.empno)";
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(ReduceExpressionsRule.PROJECT_INSTANCE)
+        .addRuleInstance(ReduceExpressionsRule.FILTER_INSTANCE)
+        .addRuleInstance(ReduceExpressionsRule.JOIN_INSTANCE)
+        .build();
+    sql(sql)
+        .withDecorrelation(true)
+        .withTrim(true)
+        .expand(true)
+        .withPre(program)
+        .with(program)
+        .checkUnchanged();
+  }
+
   @Test public void testProjectWindowTransposeRule() {
     HepProgram program = new HepProgramBuilder()
         .addRuleInstance(ProjectToWindowRule.PROJECT)
