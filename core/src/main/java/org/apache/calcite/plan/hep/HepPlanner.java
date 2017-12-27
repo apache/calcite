@@ -399,7 +399,8 @@ public class HepPlanner extends AbstractRelOptPlanner {
     LOGGER.trace("Applying rule set {}", rules);
 
     boolean fullRestartAfterTransformation =
-        currentProgram.matchOrder != HepMatchOrder.ARBITRARY;
+        currentProgram.matchOrder != HepMatchOrder.ARBITRARY
+        && currentProgram.matchOrder != HepMatchOrder.DEPTH_FIRST;
 
     int nMatches = 0;
 
@@ -418,19 +419,19 @@ public class HepPlanner extends AbstractRelOptPlanner {
               return;
             }
             if (fullRestartAfterTransformation) {
-              if (currentProgram.matchOrder == HepMatchOrder.DEPTH_FIRST) {
-                nMatches =
-                    depthFirstApply(getGraphIterator(newVertex), rules,
-                        forceConversions, nMatches);
-              } else {
-                iter = getGraphIterator(root);
-              }
+              iter = getGraphIterator(root);
             } else {
               // To the extent possible, pick up where we left
               // off; have to create a new iterator because old
               // one was invalidated by transformation.
               iter = getGraphIterator(newVertex);
-
+              if (currentProgram.matchOrder == HepMatchOrder.DEPTH_FIRST) {
+                nMatches =
+                    depthFirstApply(iter, rules, forceConversions, nMatches);
+                if (nMatches >= currentProgram.matchLimit) {
+                  return;
+                }
+              }
               // Remember to go around again since we're
               // skipping some stuff.
               fixpoint = false;

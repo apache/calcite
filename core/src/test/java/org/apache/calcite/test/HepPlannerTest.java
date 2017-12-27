@@ -328,7 +328,7 @@ public class HepPlannerTest extends RelOptTestBase {
     planner2.setRoot(tester.convertSqlToRel(COMPLEX_UNION_TREE).rel);
     planner2.findBestExp();
     Long applyTimes2 = listener2.getApplyTimes();
-    assertThat(applyTimes2, is(302L));
+    assertThat(applyTimes2, is(403L));
 
     //The count of Rule Apply is more than 10 times
     assertThat(applyTimes1 > applyTimes2 * 10, is(true));
