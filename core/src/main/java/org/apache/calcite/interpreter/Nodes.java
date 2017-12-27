@@ -20,6 +20,7 @@ import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Join;
+import org.apache.calcite.rel.core.Match;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.TableScan;
@@ -83,6 +84,10 @@ public class Nodes {
 
     public void visit(Window window) {
       node = new WindowNode(this, window);
+    }
+
+    public void visit(Match match) {
+      node = new MatchNode(this, match);
     }
   }
 }

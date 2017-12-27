@@ -77,9 +77,22 @@ public class LogicalMatch extends Match {
       List<RexNode> partitionKeys, RelCollation orderKeys, RexNode interval) {
     final RelOptCluster cluster = input.getCluster();
     final RelTraitSet traitSet = cluster.traitSetOf(Convention.NONE);
-    return new LogicalMatch(cluster, traitSet, input, rowType, pattern,
+    return create(cluster, traitSet, input, rowType, pattern,
         strictStart, strictEnd, patternDefinitions, measures, after, subsets,
         allRows, partitionKeys, orderKeys, interval);
+  }
+
+  /**
+   * Creates a LogicalMatch.
+   */
+  public static LogicalMatch create(RelOptCluster cluster, RelTraitSet traitSet, RelNode input,
+      RelDataType rowType, RexNode pattern, boolean strictStart, boolean strictEnd,
+      Map<String, RexNode> patternDefinitions, Map<String, RexNode> measures,
+      RexNode after, Map<String, ? extends SortedSet<String>> subsets, boolean allRows,
+      List<RexNode> partitionKeys, RelCollation orderKeys, RexNode interval) {
+    return new LogicalMatch(cluster, traitSet, input, rowType, pattern,
+      strictStart, strictEnd, patternDefinitions, measures, after, subsets,
+      allRows, partitionKeys, orderKeys, interval);
   }
 
   //~ Methods ------------------------------------------------------

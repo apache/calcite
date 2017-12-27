@@ -32,6 +32,7 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Calc;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Join;
+import org.apache.calcite.rel.core.Match;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.Sort;
@@ -114,6 +115,14 @@ public class RelMdCollation
   public ImmutableList<RelCollation> collations(Window rel,
       RelMetadataQuery mq) {
     return ImmutableList.copyOf(window(mq, rel.getInput(), rel.groups));
+  }
+
+  public ImmutableList<RelCollation> collations(Match rel,
+                                                RelMetadataQuery mq) {
+    return ImmutableList.copyOf(match(mq, rel.getInput(), rel.getRowType(), rel.getPattern(),
+      rel.isStrictStart(), rel.isStrictEnd(), rel.getPatternDefinitions(), rel.getMeasures(),
+      rel.getAfter(), rel.getSubsets(), rel.isAllRows(), rel.getPartitionKeys(),
+      rel.getOrderKeys(), rel.getInterval()));
   }
 
   public ImmutableList<RelCollation> collations(Filter rel,
@@ -313,6 +322,19 @@ public class RelMdCollation
    * input are preserved. */
   public static List<RelCollation> window(RelMetadataQuery mq, RelNode input,
       ImmutableList<Window.Group> groups) {
+    return mq.collations(input);
+  }
+
+  /** Helper method to determine a
+   * {@link org.apache.calcite.rel.core.Match}'s collation.
+   **/
+  public static List<RelCollation> match(RelMetadataQuery mq, RelNode input,
+       RelDataType rowType, RexNode pattern,
+       boolean strictStart, boolean strictEnd,
+       Map<String, RexNode> patternDefinitions, Map<String, RexNode> measures,
+       RexNode after, Map<String, ? extends SortedSet<String>> subsets,
+       boolean allRows, List<RexNode> partitionKeys, RelCollation orderKeys,
+       RexNode interval) {
     return mq.collations(input);
   }
 

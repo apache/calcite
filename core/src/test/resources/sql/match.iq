@@ -15,8 +15,37 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-!use scott
+!use post
 !set outputformat oracle
+
+# Match recognize
+SELECT *
+FROM ticker
+   MATCH_RECOGNIZE (
+     PARTITION BY symbol
+     ORDER BY tstamp
+     MEASURES  STRT.tstamp AS start_tstamp,
+               LAST(DOWN.tstamp) AS bottom_tstamp,
+               LAST(UP.tstamp) AS end_tstamp
+     ONE ROW PER MATCH
+     AFTER MATCH SKIP TO LAST UP
+     PATTERN (STRT DOWN+ UP+)
+     DEFINE
+        DOWN AS DOWN.price < PREV(DOWN.price),
+        UP AS UP.price > PREV(UP.price)
+     ) MR
+     ORDER BY MR.symbol, MR.start_tstamp;
++--------+--------+---+
+| GENDER | EXPR$1 | C |
++--------+--------+---+
+| M      |     21 | 1 |
+| F      |     11 | 1 |
++--------+--------+---+
+(3 rows)
+
+!ok
+
+!use scott
 
 # Simple query to check that oracle output format works
 select empno, deptno, ename, comm from "scott".emp;

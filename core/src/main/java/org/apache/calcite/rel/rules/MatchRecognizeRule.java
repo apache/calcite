@@ -18,6 +18,7 @@ package org.apache.calcite.rel.rules;
 
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.logical.LogicalMatch;
 
 /**
@@ -40,12 +41,15 @@ public class MatchRecognizeRule extends RelOptRule {
 
   public void onMatch(RelOptRuleCall call) {
     final LogicalMatch oldRel = call.rel(0);
-    new LogicalMatch(oldRel.getCluster(), oldRel.getTraitSet(), oldRel.getInput(),
-      oldRel.getRowType(), oldRel.getPattern(), oldRel.isStrictStart(), oldRel.isStrictEnd(),
-      oldRel.getPatternDefinitions(), oldRel.getMeasures(), oldRel.getAfter(), oldRel.getSubsets(),
-      oldRel.isAllRows(), oldRel.getPartitionKeys(), oldRel.getOrderKeys(), oldRel.getInterval());
-    call.transformTo(oldRel);
+    RelNode enumerableMR = LogicalMatch.create(oldRel.getCluster(),
+      oldRel.getTraitSet(), oldRel.getInput(), oldRel.getRowType(), oldRel.getPattern(),
+      oldRel.isStrictStart(), oldRel.isStrictEnd(), oldRel.getPatternDefinitions(),
+      oldRel.getMeasures(), oldRel.getAfter(), oldRel.getSubsets(), oldRel.isAllRows(),
+      oldRel.getPartitionKeys(), oldRel.getOrderKeys(), oldRel.getInterval());
+    call.transformTo(enumerableMR);
   }
+
+
 }
 
 // End MatchRecognizeRule.java

@@ -28,6 +28,7 @@ import org.apache.calcite.rel.core.Exchange;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Intersect;
 import org.apache.calcite.rel.core.Join;
+import org.apache.calcite.rel.core.Match;
 import org.apache.calcite.rel.core.Minus;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.RelFactories;
@@ -43,6 +44,7 @@ import org.apache.calcite.rel.core.Window;
 import org.apache.calcite.rel.logical.LogicalCalc;
 import org.apache.calcite.rel.logical.LogicalCorrelate;
 import org.apache.calcite.rel.logical.LogicalExchange;
+import org.apache.calcite.rel.logical.LogicalMatch;
 import org.apache.calcite.rel.logical.LogicalSort;
 import org.apache.calcite.rel.logical.LogicalTableFunctionScan;
 import org.apache.calcite.rel.logical.LogicalTableModify;
@@ -231,6 +233,13 @@ public abstract class MutableRels {
       return LogicalWindow.create(child.getTraitSet(),
           child, window.constants, window.rowType, window.groups);
     }
+    case MATCH_RECOGNIZE: {
+      final MutableMatch match = (MutableMatch) node;
+      final RelNode child = fromMutable(match.getInput(), relBuilder);
+      return LogicalMatch.create(child, match.rowType, match.pattern, match.strictStart,
+        match.strictEnd, match.patternDefinitions, match.measures, match.after, match.subsets,
+        match.allRows, match.partitionKeys, match.orderKeys, match.interval);
+    }
     case TABLE_MODIFY:
       final MutableTableModify modify = (MutableTableModify) node;
       return LogicalTableModify.create(modify.table, modify.catalogReader,
@@ -343,6 +352,15 @@ public abstract class MutableRels {
       final MutableRel input = toMutable(window.getInput());
       return MutableWindow.of(window.getRowType(),
           input, window.groups, window.getConstants());
+    }
+    if (rel instanceof Match) {
+      final Match match = (Match) rel;
+      final MutableRel input = toMutable(match.getInput());
+      return MutableMatch.of(match.getRowType(),
+        input, match.getPattern(), match.isStrictStart(), match.isStrictEnd(),
+        match.getPatternDefinitions(), match.getMeasures(), match.getAfter(),
+        match.getSubsets(), match.isAllRows(), match.getPartitionKeys(),
+        match.getOrderKeys(), match.getInterval());
     }
     if (rel instanceof TableModify) {
       final TableModify modify = (TableModify) rel;
