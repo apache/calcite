@@ -53,12 +53,12 @@ several important concepts:
 
 ## Download and build
 
-You need Java (1.7 or higher; 1.8 preferred), git and maven (3.2.1 or later).
+You need Java (version 8, 9 or 10) and git.
 
 {% highlight bash %}
 $ git clone https://github.com/apache/calcite.git
 $ cd calcite
-$ mvn install -DskipTests -Dcheckstyle.skip=true
+$ ./mvnw install -DskipTests -Dcheckstyle.skip=true
 $ cd example/csv
 {% endhighlight %}
 
