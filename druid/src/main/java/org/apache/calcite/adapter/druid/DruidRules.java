@@ -114,10 +114,7 @@ public class DruidRules {
   public static final List<RelOptRule> RULES =
       ImmutableList.of(FILTER,
           PROJECT_FILTER_TRANSPOSE,
-          // Disabled, per
-          //   [CALCITE-1706] DruidAggregateFilterTransposeRule
-          //   causes very fine-grained aggregations to be pushed to Druid
-          // AGGREGATE_FILTER_TRANSPOSE,
+          AGGREGATE_FILTER_TRANSPOSE,
           AGGREGATE_PROJECT,
           PROJECT,
           POST_AGGREGATION_PROJECT,
