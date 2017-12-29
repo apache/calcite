@@ -2051,11 +2051,11 @@ public class DruidAdapterIT {
         + "from \"foodmart\"\n"
         + "where \"product_id\" = cast(NULL as varchar)\n"
         + "group by \"product_id\" order by \"product_id\" limit 5";
-    final String plan = "PLAN=EnumerableInterpreter\n" +
-        "  BindableSort(sort0=[$0], dir0=[ASC], fetch=[5])\n" +
-        "    BindableFilter(condition=[=($0, null)])\n" +
-        "      DruidQuery(table=[[foodmart, foodmart]], intervals=" +
-        "[[1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z]], groups=[{1}], aggs=[[]])";
+    final String plan = "PLAN=EnumerableInterpreter\n"
+        + "  BindableSort(sort0=[$0], dir0=[ASC], fetch=[5])\n"
+        + "    BindableFilter(condition=[=($0, null)])\n"
+        + "      DruidQuery(table=[[foodmart, foodmart]], intervals="
+        + "[[1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z]], groups=[{1}], aggs=[[]])";
     final String query = "{\"queryType\":\"groupBy\"";
     sql(sql)
         .explainContains(plan)
