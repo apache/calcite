@@ -16,6 +16,78 @@ See the License for the specific language governing permissions and
 limitations under the License.
 -->
 <Root>
+    <TestCase name="testAggregateExtractProjectRule">
+        <Resource name="sql">
+            <![CDATA[select sum(sal)
+from emp]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalAggregate(group=[{}], EXPR$0=[SUM($5)])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalAggregate(group=[{}], EXPR$0=[SUM($0)])
+  LogicalProject(SAL=[$5])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testAggregateExtractProjectRuleWithFilter">
+        <Resource name="sql">
+            <![CDATA[select sum(sal) filter (where empno = 40)
+from emp]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalAggregate(group=[{}], EXPR$0=[SUM($0) FILTER $1])
+  LogicalProject(SAL=[$5], $f1=[=($0, 40)])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testAggregateExtractProjectRuleWithGroupingSets">
+        <Resource name="sql">
+            <![CDATA[select empno, deptno, sum(sal)
+from emp
+group by grouping sets ((empno, deptno),(deptno),(empno))]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalAggregate(group=[{0, 7}], groups=[[{0, 7}, {0}, {7}]], EXPR$2=[SUM($5)])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalAggregate(group=[{0, 2}], groups=[[{0, 2}, {0}, {2}]], EXPR$2=[SUM($1)])
+  LogicalProject(EMPNO=[$0], SAL=[$5], DEPTNO=[$7])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testAggregateExtractProjectRuleWithGroupingSets2">
+        <Resource name="sql">
+            <![CDATA[select empno, deptno, sum(empno)
+from emp
+group by grouping sets ((empno, deptno),(deptno),(empno))]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalAggregate(group=[{0, 7}], groups=[[{0, 7}, {0}, {7}]], EXPR$2=[SUM($0)])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {1}]], EXPR$2=[SUM($0)])
+  LogicalProject(EMPNO=[$0], DEPTNO=[$7])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testReduceNot">
         <Resource name="sql">
             <![CDATA[select *
@@ -5778,10 +5850,9 @@ LogicalProject(JOB=[$0], EXPR$1=[$2])
     </TestCase>
     <TestCase name="testPushAggregateSumWithoutGroupKeyThroughJoin">
         <Resource name="sql">
-            <![CDATA[select e.job,sum(sal)
+            <![CDATA[select sum(sal)
 from (select * from sales.emp where empno = 10) as e
-join sales.dept as d on e.job = d.name
-group by e.job,d.name]]>
+join sales.dept as d on e.job = d.name]]>
         </Resource>
         <Resource name="planBefore">
             <![CDATA[
@@ -5809,10 +5880,9 @@ LogicalAggregate(group=[{}], EXPR$0=[SUM($4)])
     </TestCase>
     <TestCase name="testPushAggregateSumThroughJoinAfterAggregateReduce">
         <Resource name="sql">
-            <![CDATA[select e.job,sum(sal)
+            <![CDATA[select sum(sal)
 from (select * from sales.emp where empno = 10) as e
-join sales.dept as d on e.job = d.name
-group by e.job,d.name]]>
+join sales.dept as d on e.job = d.name]]>
         </Resource>
         <Resource name="planBefore">
             <![CDATA[
