@@ -3086,8 +3086,8 @@ public class DruidAdapterIT {
         + "group by \"B\"";
     String expectedSubExplain = "PLAN=EnumerableInterpreter\n"
         + "  DruidQuery(table=[[foodmart, foodmart]], "
-        + "intervals=[[1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z]], projects=[[$63, "
-        + "$89]], groups=[{0}], aggs=[[COUNT($1)]]";
+        + "intervals=[[1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z]], projects=[[$89, "
+        + "$63]], groups=[{1}], aggs=[[COUNT($0)]]";
 
     testCountWithApproxDistinct(true, sql, expectedSubExplain);
     testCountWithApproxDistinct(false, sql, expectedSubExplain);

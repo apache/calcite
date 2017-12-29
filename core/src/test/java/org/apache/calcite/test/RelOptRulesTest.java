@@ -29,6 +29,7 @@ import org.apache.calcite.prepare.Prepare;
 import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelRoot;
+import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.Intersect;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
@@ -37,6 +38,7 @@ import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.logical.LogicalTableModify;
+import org.apache.calcite.rel.logical.LogicalTableScan;
 import org.apache.calcite.rel.metadata.CachingRelMetadataProvider;
 import org.apache.calcite.rel.metadata.ChainedRelMetadataProvider;
 import org.apache.calcite.rel.metadata.DefaultRelMetadataProvider;
@@ -53,6 +55,7 @@ import org.apache.calcite.rel.rules.AggregateValuesRule;
 import org.apache.calcite.rel.rules.CalcMergeRule;
 import org.apache.calcite.rel.rules.CoerceInputsRule;
 import org.apache.calcite.rel.rules.DateRangeRules;
+import org.apache.calcite.rel.rules.ExtractProjectFromAggregateRule;
 import org.apache.calcite.rel.rules.FilterAggregateTransposeRule;
 import org.apache.calcite.rel.rules.FilterJoinRule;
 import org.apache.calcite.rel.rules.FilterMergeRule;
@@ -3615,6 +3618,22 @@ public class RelOptRulesTest extends RelOptTestBase {
         .addRuleInstance(DateRangeRules.FILTER_INSTANCE)
         .build();
     sql(sql).with(program).check();
+  }
+
+  @Test public void testExtractProjectFromAggregateRule() throws Exception {
+    final String sql = "select sum(sal)\n"
+        + "from emp";
+
+    HepProgram pre = new HepProgramBuilder()
+        .addRuleInstance(AggregateProjectMergeRule.INSTANCE)
+        .build();
+
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(
+            new ExtractProjectFromAggregateRule(Aggregate.class, LogicalTableScan.class,
+                RelFactories.LOGICAL_BUILDER))
+        .build();
+    sql(sql).withPre(pre).with(program).check();
   }
 
 }
