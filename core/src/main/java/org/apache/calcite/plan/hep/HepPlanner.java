@@ -887,14 +887,14 @@ public class HepPlanner extends AbstractRelOptPlanner {
       mapDigestToVertex.remove(oldDigest);
     }
     String newDigest = rel.recomputeDigest();
-    if (mapDigestToVertex.get(newDigest) == null) {
-      mapDigestToVertex.put(newDigest, vertex);
-    } else {
-      // REVIEW jvs 5-Apr-2006:  Could this lead us to
-      // miss common subexpressions?  When called from
-      // addRelToGraph, we'll check after this method returns,
-      // but what about the other callers?
-    }
+    // When a transformation happened in one rule apply, support
+    // vertex2 replace vertex1, but the current relNode of
+    // vertex1 and vertex2 is same,
+    // then the digest is also same. but we can't remove vertex2,
+    // otherwise the digest will be removed wrongly in the mapDigestToVertex
+    //  when collectGC
+    // so it must update the digest that map to vertex
+    mapDigestToVertex.put(newDigest, vertex);
     if (rel != vertex.getCurrentRel()) {
       vertex.replaceRel(rel);
     }
