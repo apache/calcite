@@ -21,8 +21,10 @@ import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperator;
-import org.apache.calcite.sql.dialect.JethrodataSqlDialect.SupportedFunction;
 import org.apache.calcite.sql.type.SqlTypeName;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
@@ -39,6 +41,8 @@ import javax.sql.DataSource;
  * A <code>SqlDialect</code> implementation for the Jethrodata database.
  */
 public class JethrodataSqlDialect extends SqlDialect {
+  private static final Logger LOG = LoggerFactory.getLogger(JethrodataSqlDialect.class);
+
   public static final SqlDialect DEFAULT = new JethrodataSqlDialect(
             EMPTY_CONTEXT.withDatabaseProduct(DatabaseProduct.JETHRO).
                           withIdentifierQuoteString("\"").withDatabaseVersion("Default"));
@@ -85,7 +89,8 @@ public class JethrodataSqlDialect extends SqlDialect {
         || operator.getKind() == SqlKind.OR
         || operator.getKind() == SqlKind.NOT
         || operator.getKind() == SqlKind.BETWEEN
-        || operator.getKind() == SqlKind.CASE) {
+        || operator.getKind() == SqlKind.CASE
+        || operator.getKind() == SqlKind.CAST) {
       return true;
     }
     final HashMap<String, HashSet<SupportedFunction>> supportedFunctions =
@@ -105,6 +110,7 @@ public class JethrodataSqlDialect extends SqlDialect {
         }
       }
     }
+    LOG.debug("Unsupported function in jethro: " + operator + " with params " + paramsList);
     return false;
   }
 
