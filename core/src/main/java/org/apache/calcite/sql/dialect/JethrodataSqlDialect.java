@@ -17,12 +17,23 @@
 package org.apache.calcite.sql.dialect;
 
 import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlDialect;
-import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
-import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.dialect.JethrodataSqlDialect.SupportedFunction;
+import org.apache.calcite.sql.type.SqlTypeName;
+
+import java.sql.DatabaseMetaData;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+
+import javax.sql.DataSource;
+
 
 /**
  * A <code>SqlDialect</code> implementation for the Jethrodata database.
@@ -30,11 +41,18 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 public class JethrodataSqlDialect extends SqlDialect {
   public static final SqlDialect DEFAULT = new JethrodataSqlDialect(
             EMPTY_CONTEXT.withDatabaseProduct(DatabaseProduct.JETHRO).
-                          withIdentifierQuoteString("\""));
+                          withIdentifierQuoteString("\"").withDatabaseVersion("Default"));
+
+  private final String version;
 
   /** Creates an InterbaseSqlDialect. */
   public JethrodataSqlDialect(Context context) {
       super(context);
+    if (context.databaseVersion() != null) {
+      version = context.databaseVersion();
+    } else {
+      version = "Default";
+    }
   }
 
   @Override public boolean supportsCharSet() {
@@ -59,18 +77,35 @@ public class JethrodataSqlDialect extends SqlDialect {
     return false;
   }
 
-  @Override public SqlNode getCastSpec(RelDataType type) {
-      //TODOY support all hive types
-    switch (type.getSqlTypeName()) {
-    case VARCHAR:
-        // MySQL doesn't have a VARCHAR type, only CHAR.
-      return new SqlDataTypeSpec(new SqlIdentifier("CHAR", SqlParserPos.ZERO), type.getPrecision(),
-              -1, null, null, SqlParserPos.ZERO);
-        //case INTEGER:
-        //  return new SqlDataTypeSpec(new SqlIdentifier("_UNSIGNED", SqlParserPos.ZERO),
-        //      type.getPrecision(), -1, null, null, SqlParserPos.ZERO);
+  @Override public boolean supportsFunction(SqlOperator operator,
+                                            RelDataType type, ArrayList<RelDataType> paramsList) {
+    if (operator.getKind() == SqlKind.IS_NOT_NULL
+        || operator.getKind() == SqlKind.IS_NULL
+        || operator.getKind() == SqlKind.AND
+        || operator.getKind() == SqlKind.OR
+        || operator.getKind() == SqlKind.NOT
+        || operator.getKind() == SqlKind.BETWEEN
+        || operator.getKind() == SqlKind.CASE) {
+      return true;
     }
-    return super.getCastSpec(type);
+    final HashMap<String, HashSet<SupportedFunction>> supportedFunctions =
+        SUPPORTED_JETHRO_FUNCTIONS.get(version);
+    if (supportedFunctions != null) {
+      HashSet<SupportedFunction> currMethodSignatures = supportedFunctions.get(operator.getName());
+      if (currMethodSignatures != null) {
+        for (SupportedFunction curr : currMethodSignatures) {
+          if (paramsList.size() == curr.operandsType.length) {
+            for (int i = 0; i < paramsList.size(); i++) {
+              if (paramsList.get(i).getSqlTypeName() != curr.operandsType[i]) {
+                continue;
+              }
+            }
+            return true;
+          }
+        }
+      }
+    }
+    return false;
   }
 
   @Override public boolean supportsOffsetFetch() {
@@ -80,6 +115,94 @@ public class JethrodataSqlDialect extends SqlDialect {
   @Override public boolean supportsNestedAggregations() {
     return false;
   }
+
+  /**
+   * A class to hold one jethro supported function info
+   */
+  static class SupportedFunction {
+    /**
+     * Jethro types
+     */
+    /*enum Type {
+      Int, Long, Double, Float, String, TimeStamp, Unknown
+    };*/
+    final String funcName;
+    final SqlTypeName [] operandsType;
+
+
+    /**
+     * @param funcName Function name
+     * @param operands function opernads
+     */
+    SupportedFunction(String funcName, String operands) {
+      super();
+
+      this.funcName = funcName;
+      String[] operandsStrType = operands.split(":");
+      this.operandsType = new SqlTypeName [operandsStrType.length];
+      for (int i = 0; i < this.operandsType.length; ++i) {
+        SqlTypeName curr_t = SqlTypeName.ANY;
+        switch (operandsStrType [i]) {
+        case "kInteger64":
+          curr_t = SqlTypeName.BIGINT;
+          break;
+        case "kInteger32":
+          curr_t = SqlTypeName.INTEGER;
+          break;
+        case "kDouble":
+          curr_t = SqlTypeName.DOUBLE;
+          break;
+        case "kFloat":
+          curr_t = SqlTypeName.FLOAT;
+          break;
+        case "kString":
+          curr_t = SqlTypeName.CHAR;
+          break;
+        case "kTimeStamp":
+          curr_t = SqlTypeName.TIMESTAMP;
+          break;
+
+        default:
+          break;
+        }
+        operandsType [i] = curr_t;
+      }
+    }
+  };
+
+  private static final HashMap<String, HashMap<String, HashSet<SupportedFunction>>>
+            SUPPORTED_JETHRO_FUNCTIONS = new HashMap<>();
+
+  /**
+   * @param ds data source
+   * @throws SQLException
+   */
+  public static void initializeSupportedFunctions(DataSource ds) throws SQLException {
+    java.sql.Connection jethroConnection = ds.getConnection();
+    DatabaseMetaData metaData = jethroConnection.getMetaData();
+    assert "JethroData".equals(metaData.getDatabaseProductName());
+    String productVersion = "Default"; //metaData.getDatabaseProductVersion();
+    if (SUPPORTED_JETHRO_FUNCTIONS.containsKey(productVersion)) {
+      return;
+    }
+    final HashMap<String, HashSet<SupportedFunction>> supportedFunctions =
+        new HashMap<String, HashSet<SupportedFunction>>();
+
+    SUPPORTED_JETHRO_FUNCTIONS.put(productVersion, supportedFunctions);
+    Statement jethroStatement = jethroConnection.createStatement();
+    ResultSet functionsTupleSet = jethroStatement.executeQuery("show functions");
+    while (functionsTupleSet.next()) {
+      String functionName = functionsTupleSet.getString(1);
+      String operandsType = functionsTupleSet.getString(3);
+      HashSet<SupportedFunction> funcSignatures = supportedFunctions.get(functionName);
+      if (funcSignatures == null) {
+        funcSignatures = new HashSet<SupportedFunction>();
+        supportedFunctions.put(functionName, funcSignatures);
+      }
+      funcSignatures.add(new SupportedFunction(functionName, operandsType));
+    }
+  }
+
 }
 
 // End JethrodataSqlDialect.java

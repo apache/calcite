@@ -118,19 +118,24 @@ public class JdbcRules {
     }
 
     @Override public RelNode convert(RelNode rel) {
+      return convert(rel, true);
+    }
+
+    public RelNode convert(RelNode rel, boolean verifyJoinCondition) {
       Join join = (Join) rel;
       final List<RelNode> newInputs = new ArrayList<>();
       for (RelNode input : join.getInputs()) {
-        if (!(input.getConvention() == getOutTrait())) {
+        if (verifyJoinCondition && !(input.getConvention() == getOutTrait())) {
           input =
               convert(input,
                   input.getTraitSet().replace(out));
         }
         newInputs.add(input);
       }
-      if (!canJoinOnCondition(join.getCondition())) {
+      if (verifyJoinCondition && !canJoinOnCondition(join.getCondition())) {
         return null;
       }
+
       try {
         return new JdbcJoin(
             join.getCluster(),

@@ -39,6 +39,7 @@ import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.regex.Pattern;
@@ -502,6 +503,11 @@ public class SqlDialect {
     return false;
   }
 
+  public boolean supportsFunction(SqlOperator operator,
+                                  RelDataType type, ArrayList<RelDataType> paramsList) {
+    return true;
+  }
+
   public CalendarPolicy getCalendarPolicy() {
     return CalendarPolicy.NULL;
   }
@@ -701,7 +707,7 @@ public class SqlDialect {
     HIVE("Apache Hive", null, NullCollation.LOW),
     INFORMIX("Informix", null, NullCollation.HIGH),
     INGRES("Ingres", null, NullCollation.HIGH),
-    JETHRO("JethroData", null, NullCollation.HIGH),
+    JETHRO("JethroData", "\"", NullCollation.LOW),
     LUCIDDB("LucidDB", "\"", NullCollation.HIGH),
     INTERBASE("Interbase", null, NullCollation.HIGH),
     PHOENIX("Phoenix", "\"", NullCollation.HIGH),
