@@ -26,7 +26,6 @@ import org.apache.calcite.util.TimestampString;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Ordering;
 import com.google.common.collect.RangeSet;
 
 import org.hamcrest.Matcher;
@@ -146,16 +145,11 @@ public class DruidDateRangeRulesTest {
   private void checkDateRangeNoSimplify(Fixture f, RexNode e,
       Matcher<String> intervalMatcher) {
     final Map<String, RangeSet<Calendar>> operandRanges = new HashMap<>();
-    // We rely on the collection being sorted (so YEAR comes before MONTH
-    // before HOUR) and unique. A predicate on MONTH is not useful if there is
-    // no predicate on YEAR. Then when we apply the predicate on DAY it doesn't
-    // generate hundreds of ranges we'll later throw away.
-    final List<TimeUnitRange> timeUnits =
-        Ordering.natural().sortedCopy(DateRangeRules.extractTimeUnits(e));
+    final List<TimeUnitRange> timeUnits = DateRangeRules.extractTimeUnits(e);
     for (TimeUnitRange timeUnit : timeUnits) {
       e = e.accept(
           new DateRangeRules.ExtractShuttle(f.rexBuilder, timeUnit,
-              operandRanges));
+              operandRanges, timeUnits));
     }
     final List<Interval> intervals =
         DruidDateTimeUtils.createInterval(e, "UTC");
@@ -165,16 +159,11 @@ public class DruidDateRangeRulesTest {
 
   private void checkDateRange(Fixture f, RexNode e, Matcher<String> intervalMatcher) {
     final Map<String, RangeSet<Calendar>> operandRanges = new HashMap<>();
-    // We rely on the collection being sorted (so YEAR comes before MONTH
-    // before HOUR) and unique. A predicate on MONTH is not useful if there is
-    // no predicate on YEAR. Then when we apply the predicate on DAY it doesn't
-    // generate hundreds of ranges we'll later throw away.
-    final List<TimeUnitRange> timeUnits =
-        Ordering.natural().sortedCopy(DateRangeRules.extractTimeUnits(e));
+    final List<TimeUnitRange> timeUnits = DateRangeRules.extractTimeUnits(e);
     for (TimeUnitRange timeUnit : timeUnits) {
       e = e.accept(
           new DateRangeRules.ExtractShuttle(f.rexBuilder, timeUnit,
-              operandRanges));
+              operandRanges, timeUnits));
     }
     final RexNode e2 = f.simplify.simplify(e);
     List<Interval> intervals =
