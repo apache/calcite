@@ -38,12 +38,14 @@ import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.DateString;
 import org.apache.calcite.util.Util;
 
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.collect.BoundType;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableRangeSet;
-import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
 import com.google.common.collect.TreeRangeSet;
@@ -120,17 +122,39 @@ public abstract class DateRangeRules {
           .put(TimeUnitRange.MICROSECOND, TimeUnitRange.SECOND)
           .build();
 
-  /** Returns whether an expression contains one or more calls to the
-   * {@code EXTRACT} function. */
-  public static Set<TimeUnitRange> extractTimeUnits(RexNode e) {
+  /** Tests whether an expression contains one or more calls to the
+   * {@code EXTRACT} function, and if so, returns the time units used.
+   *
+   * <p>The result is an immutable set in natural order. This is important,
+   * because code relies on the collection being sorted (so YEAR comes before
+   * MONTH before HOUR) and unique. A predicate on MONTH is not useful if there
+   * is no predicate on YEAR. Then when we apply the predicate on DAY it doesn't
+   * generate hundreds of ranges we'll later throw away. */
+  static ImmutableSortedSet<TimeUnitRange> extractTimeUnits(RexNode e) {
     final ExtractFinder finder = ExtractFinder.THREAD_INSTANCES.get();
     try {
       assert finder.timeUnits.isEmpty() : "previous user did not clean up";
       e.accept(finder);
-      return ImmutableSet.copyOf(finder.timeUnits);
+      return ImmutableSortedSet.copyOf(finder.timeUnits);
     } finally {
       finder.timeUnits.clear();
     }
+  }
+
+  /** Replaces calls to EXTRACT in an expression. */
+  @VisibleForTesting
+  public static RexNode replaceTimeUnits(RexBuilder rexBuilder, RexNode e) {
+    final ImmutableSortedSet<TimeUnitRange> timeUnits = extractTimeUnits(e);
+    if (!timeUnits.contains(TimeUnitRange.YEAR)) {
+      // bail out if there is no year extract.
+      return e;
+    }
+    final Map<String, RangeSet<Calendar>> operandRanges = new HashMap<>();
+    for (TimeUnitRange timeUnit : timeUnits) {
+      e = e.accept(
+          new ExtractShuttle(rexBuilder, timeUnit, operandRanges, timeUnits));
+    }
+    return e;
   }
 
   /** Rule that converts EXTRACT in a Filter condition into a date range. */
@@ -144,17 +168,8 @@ public abstract class DateRangeRules {
     @Override public void onMatch(RelOptRuleCall call) {
       final Filter filter = call.rel(0);
       final RexBuilder rexBuilder = filter.getCluster().getRexBuilder();
-      RexNode condition = filter.getCondition();
-      final Map<String, RangeSet<Calendar>> operandRanges = new HashMap<>();
-      Set<TimeUnitRange> timeUnitRangeSet = extractTimeUnits(condition);
-      if (!timeUnitRangeSet.contains(TimeUnitRange.YEAR)) {
-        // bail out if there is no year extract.
-        return;
-      }
-      for (TimeUnitRange timeUnit : timeUnitRangeSet) {
-        condition = condition.accept(
-            new ExtractShuttle(rexBuilder, timeUnit, operandRanges));
-      }
+      final RexNode condition =
+          replaceTimeUnits(rexBuilder, filter.getCondition());
       if (RexUtil.eq(condition, filter.getCondition())) {
         return;
       }
@@ -194,19 +209,24 @@ public abstract class DateRangeRules {
   }
 
   /** Walks over an expression, replacing {@code EXTRACT} with date ranges. */
-  public static class ExtractShuttle extends RexShuttle {
+  @VisibleForTesting
+  static class ExtractShuttle extends RexShuttle {
     private final RexBuilder rexBuilder;
     private final TimeUnitRange timeUnit;
     private final Map<String, RangeSet<Calendar>> operandRanges;
     private final Deque<RexCall> calls = new ArrayDeque<>();
+    private final ImmutableSortedSet<TimeUnitRange> timeUnitRanges;
 
-    public ExtractShuttle(RexBuilder rexBuilder, TimeUnitRange timeUnit,
-        Map<String, RangeSet<Calendar>> operandRanges) {
-      this.rexBuilder = rexBuilder;
-      this.timeUnit = timeUnit;
+    @VisibleForTesting
+    ExtractShuttle(RexBuilder rexBuilder, TimeUnitRange timeUnit,
+        Map<String, RangeSet<Calendar>> operandRanges,
+        ImmutableSortedSet<TimeUnitRange> timeUnitRanges) {
+      this.rexBuilder = Preconditions.checkNotNull(rexBuilder);
+      this.timeUnit = Preconditions.checkNotNull(timeUnit);
       Bug.upgrade("Change type to Map<RexNode, RangeSet<Calendar>> when"
           + " [CALCITE-1367] is fixed");
-      this.operandRanges = operandRanges;
+      this.operandRanges = Preconditions.checkNotNull(operandRanges);
+      this.timeUnitRanges = Preconditions.checkNotNull(timeUnitRanges);
     }
 
     @Override public RexNode visitCall(RexCall call) {
@@ -220,14 +240,14 @@ public abstract class DateRangeRules {
         final RexNode op1 = call.operands.get(1);
         switch (op0.getKind()) {
         case LITERAL:
-          if (isExtractCall(op1)) {
+          if (isExtractCall(op1) && canRewriteExtract()) {
             return foo(call.getKind().reverse(),
                 ((RexCall) op1).getOperands().get(1), (RexLiteral) op0);
           }
         }
         switch (op1.getKind()) {
         case LITERAL:
-          if (isExtractCall(op0)) {
+          if (isExtractCall(op0) && canRewriteExtract()) {
             return foo(call.getKind(), ((RexCall) op0).getOperands().get(1),
                 (RexLiteral) op1);
           }
@@ -243,6 +263,19 @@ public abstract class DateRangeRules {
       }
     }
 
+    private boolean canRewriteExtract() {
+      // We rely on timeUnits being sorted (so YEAR comes before MONTH
+      // before HOUR) and unique. If we have seen a predicate on YEAR,
+      // operandRanges will not be empty. This checks whether we can rewrite
+      // the "extract" condition. For example, in the condition
+      //
+      //   extract(MONTH from time) = someValue
+      //   OR extract(YEAR from time) = someValue
+      //
+      // we cannot rewrite extract on MONTH.
+      return timeUnit == TimeUnitRange.YEAR || !operandRanges.isEmpty();
+    }
+
     @Override protected List<RexNode> visitList(List<? extends RexNode> exprs,
         boolean[] update) {
       if (exprs.isEmpty()) {
@@ -252,12 +285,23 @@ public abstract class DateRangeRules {
       case AND:
         return super.visitList(exprs, update);
       default:
+        if (timeUnit != TimeUnitRange.YEAR) {
+          // Already visited for lower TimeUnit ranges in the loop below.
+          // Early bail out.
+          //noinspection unchecked
+          return (List<RexNode>) exprs;
+        }
         final Map<String, RangeSet<Calendar>> save =
             ImmutableMap.copyOf(operandRanges);
         final ImmutableList.Builder<RexNode> clonedOperands =
             ImmutableList.builder();
         for (RexNode operand : exprs) {
-          RexNode clonedOperand = operand.accept(this);
+          RexNode clonedOperand = operand;
+          for (TimeUnitRange timeUnit : timeUnitRanges) {
+            clonedOperand = clonedOperand.accept(
+                new ExtractShuttle(rexBuilder, timeUnit, operandRanges,
+                    timeUnitRanges));
+          }
           if ((clonedOperand != operand) && (update != null)) {
             update[0] = true;
           }

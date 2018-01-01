@@ -23,17 +23,15 @@ import org.apache.calcite.test.RexImplicationCheckerTest.Fixture;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Ordering;
+import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.RangeSet;
 
 import org.hamcrest.CoreMatchers;
 import org.hamcrest.Matcher;
-
 import org.junit.Test;
 
 import java.util.Calendar;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -180,6 +178,128 @@ public class DateRangeRulesTest {
             + " AND(>=($9, 2016-02-29), <($9, 2016-03-01))))"));
   }
 
+  /** Test case #1 for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1658">[CALCITE-1658]
+   * DateRangeRules issues</a>. */
+  @Test public void testExtractWithOrCondition1() {
+    // (EXTRACT(YEAR FROM __time) = 2000
+    //    AND EXTRACT(MONTH FROM __time) IN (2, 3, 5))
+    // OR (EXTRACT(YEAR FROM __time) = 2001
+    //    AND EXTRACT(MONTH FROM __time) = 1)
+    final Fixture2 f = new Fixture2();
+    checkDateRange(f,
+        f.or(
+            f.and(f.eq(f.exYear, f.literal(2000)),
+                f.or(f.eq(f.exMonth, f.literal(2)),
+                    f.eq(f.exMonth, f.literal(3)),
+                    f.eq(f.exMonth, f.literal(5)))),
+            f.and(f.eq(f.exYear, f.literal(2001)),
+                f.eq(f.exMonth, f.literal(1)))),
+        is("OR(AND(AND(>=($9, 2000-01-01), <($9, 2001-01-01)),"
+            + " OR(AND(>=($9, 2000-02-01), <($9, 2000-03-01)),"
+            + " AND(>=($9, 2000-03-01), <($9, 2000-04-01)),"
+            + " AND(>=($9, 2000-05-01), <($9, 2000-06-01)))),"
+            + " AND(AND(>=($9, 2001-01-01), <($9, 2002-01-01)),"
+            + " AND(>=($9, 2001-01-01), <($9, 2001-02-01))))"));
+  }
+
+  /** Test case #2 for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1658">[CALCITE-1658]
+   * DateRangeRules issues</a>. */
+  @Test public void testExtractWithOrCondition2() {
+    // EXTRACT(YEAR FROM __time) IN (2000, 2001)
+    //   AND ((EXTRACT(YEAR FROM __time) = 2000
+    //         AND EXTRACT(MONTH FROM __time) IN (2, 3, 5))
+    //     OR (EXTRACT(YEAR FROM __time) = 2001
+    //       AND EXTRACT(MONTH FROM __time) = 1))
+    final Fixture2 f = new Fixture2();
+    checkDateRange(f,
+        f.and(
+            f.or(f.eq(f.exYear, f.literal(2000)),
+                f.eq(f.exYear, f.literal(2001))),
+            f.or(
+                f.and(f.eq(f.exYear, f.literal(2000)),
+                    f.or(f.eq(f.exMonth, f.literal(2)),
+                        f.eq(f.exMonth, f.literal(3)),
+                        f.eq(f.exMonth, f.literal(5)))),
+                f.and(f.eq(f.exYear, f.literal(2001)),
+                    f.eq(f.exMonth, f.literal(1))))),
+        is("AND(OR(AND(>=($9, 2000-01-01), <($9, 2001-01-01)),"
+            + " AND(>=($9, 2001-01-01), <($9, 2002-01-01))),"
+            + " OR(AND(AND(>=($9, 2000-01-01), <($9, 2001-01-01)),"
+            + " OR(AND(>=($9, 2000-02-01), <($9, 2000-03-01)),"
+            + " AND(>=($9, 2000-03-01), <($9, 2000-04-01)),"
+            + " AND(>=($9, 2000-05-01), <($9, 2000-06-01)))),"
+            + " AND(AND(>=($9, 2001-01-01), <($9, 2002-01-01)),"
+            + " AND(>=($9, 2001-01-01), <($9, 2001-02-01)))))"));
+  }
+
+  /** Test case #3 for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1658">[CALCITE-1658]
+   * DateRangeRules issues</a>. */
+  @Test public void testExtractPartialRewriteForNotEqualsYear() {
+    // EXTRACT(YEAR FROM __time) <> 2000
+    // AND ((EXTRACT(YEAR FROM __time) = 2000
+    //     AND EXTRACT(MONTH FROM __time) IN (2, 3, 5))
+    //   OR (EXTRACT(YEAR FROM __time) = 2001
+    //     AND EXTRACT(MONTH FROM __time) = 1))
+    final Fixture2 f = new Fixture2();
+    checkDateRange(f,
+        f.and(
+            f.ne(f.exYear, f.literal(2000)),
+            f.or(
+                f.and(f.eq(f.exYear, f.literal(2000)),
+                    f.or(f.eq(f.exMonth, f.literal(2)),
+                        f.eq(f.exMonth, f.literal(3)),
+                        f.eq(f.exMonth, f.literal(5)))),
+                f.and(f.eq(f.exYear, f.literal(2001)),
+                    f.eq(f.exMonth, f.literal(1))))),
+        is("AND(<>(EXTRACT(FLAG(YEAR), $9), 2000),"
+            + " OR(AND(AND(>=($9, 2000-01-01), <($9, 2001-01-01)),"
+            + " OR(AND(>=($9, 2000-02-01), <($9, 2000-03-01)),"
+            + " AND(>=($9, 2000-03-01), <($9, 2000-04-01)),"
+            + " AND(>=($9, 2000-05-01), <($9, 2000-06-01)))),"
+            + " AND(AND(>=($9, 2001-01-01), <($9, 2002-01-01)),"
+            + " AND(>=($9, 2001-01-01), <($9, 2001-02-01)))))"));
+  }
+
+  /** Test case #4 for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1658">[CALCITE-1658]
+   * DateRangeRules issues</a>. */
+  @Test public void testExtractPartialRewriteForInMonth() {
+    // EXTRACT(MONTH FROM __time) in (1, 2, 3, 4, 5)
+    // AND ((EXTRACT(YEAR FROM __time) = 2000
+    //     AND EXTRACT(MONTH FROM __time) IN (2, 3, 5))
+    //   OR (EXTRACT(YEAR FROM __time) = 2001
+    //     AND EXTRACT(MONTH FROM __time) = 1))
+    final Fixture2 f = new Fixture2();
+    checkDateRange(f,
+        f.and(
+            f.or(f.eq(f.exMonth, f.literal(1)),
+                f.eq(f.exMonth, f.literal(2)),
+                f.eq(f.exMonth, f.literal(3)),
+                f.eq(f.exMonth, f.literal(4)),
+                f.eq(f.exMonth, f.literal(5))),
+            f.or(
+                f.and(f.eq(f.exYear, f.literal(2000)),
+                    f.or(f.eq(f.exMonth, f.literal(2)),
+                        f.eq(f.exMonth, f.literal(3)),
+                        f.eq(f.exMonth, f.literal(5)))),
+                f.and(f.eq(f.exYear, f.literal(2001)),
+                    f.eq(f.exMonth, f.literal(1))))),
+        is("AND(OR(=(EXTRACT(FLAG(MONTH), $9), 1),"
+            + " =(EXTRACT(FLAG(MONTH), $9), 2),"
+            + " =(EXTRACT(FLAG(MONTH), $9), 3),"
+            + " =(EXTRACT(FLAG(MONTH), $9), 4),"
+            + " =(EXTRACT(FLAG(MONTH), $9), 5)),"
+            + " OR(AND(AND(>=($9, 2000-01-01), <($9, 2001-01-01)),"
+            + " OR(AND(>=($9, 2000-02-01), <($9, 2000-03-01)),"
+            + " AND(>=($9, 2000-03-01), <($9, 2000-04-01)),"
+            + " AND(>=($9, 2000-05-01), <($9, 2000-06-01)))),"
+            + " AND(AND(>=($9, 2001-01-01), <($9, 2002-01-01)),"
+            + " AND(>=($9, 2001-01-01), <($9, 2001-02-01)))))"));
+  }
+
   private static Set<TimeUnitRange> set(TimeUnitRange... es) {
     return ImmutableSet.copyOf(es);
   }
@@ -191,16 +311,12 @@ public class DateRangeRulesTest {
   private void checkDateRange(Fixture f, RexNode e, Matcher<String> matcher,
       Matcher<String> simplifyMatcher) {
     final Map<String, RangeSet<Calendar>> operandRanges = new HashMap<>();
-    // We rely on the collection being sorted (so YEAR comes before MONTH
-    // before HOUR) and unique. A predicate on MONTH is not useful if there is
-    // no predicate on YEAR. Then when we apply the predicate on DAY it doesn't
-    // generate hundreds of ranges we'll later throw away.
-    final List<TimeUnitRange> timeUnits =
-        Ordering.natural().sortedCopy(DateRangeRules.extractTimeUnits(e));
+    final ImmutableSortedSet<TimeUnitRange> timeUnits =
+        DateRangeRules.extractTimeUnits(e);
     for (TimeUnitRange timeUnit : timeUnits) {
       e = e.accept(
           new DateRangeRules.ExtractShuttle(f.rexBuilder, timeUnit,
-              operandRanges));
+              operandRanges, timeUnits));
     }
     assertThat(e.toString(), matcher);
     final RexNode e2 = f.simplify.simplify(e);
