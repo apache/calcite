@@ -43,9 +43,9 @@ import javax.sql.DataSource;
 public class JethrodataSqlDialect extends SqlDialect {
   private static final Logger LOG = LoggerFactory.getLogger(JethrodataSqlDialect.class);
 
-  public static final SqlDialect DEFAULT = new JethrodataSqlDialect(
-            EMPTY_CONTEXT.withDatabaseProduct(DatabaseProduct.JETHRO).
-                          withIdentifierQuoteString("\"").withDatabaseVersion("Default"));
+//  public static final SqlDialect DEFAULT = new JethrodataSqlDialect(
+//            EMPTY_CONTEXT.withDatabaseProduct(DatabaseProduct.JETHRO).
+//                          withIdentifierQuoteString("\"").withDatabaseVersion("Default"));
 
   private final String version;
 
@@ -57,6 +57,10 @@ public class JethrodataSqlDialect extends SqlDialect {
     } else {
       version = "Default";
     }
+  }
+
+  @Override public void initFromDataSource(DataSource ds) throws SQLException {
+    initializeSupportedFunctions(ds);
   }
 
   @Override public boolean supportsCharSet() {

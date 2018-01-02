@@ -37,13 +37,16 @@ import org.slf4j.LoggerFactory;
 
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.regex.Pattern;
+
 import javax.annotation.Nonnull;
+import javax.sql.DataSource;
 
 /**
  * <code>SqlDialect</code> encapsulates the differences between dialects of SQL.
@@ -125,6 +128,9 @@ public class SqlDialect {
         .withDatabaseProductName(databaseProductName)
         .withIdentifierQuoteString(identifierQuoteString)
         .withNullCollation(nullCollation));
+  }
+
+  public void initFromDataSource(DataSource ds) throws SQLException {
   }
 
   /**

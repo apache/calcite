@@ -83,6 +83,7 @@ final class JdbcUtils {
         SqlDialect dialect = map.get(key);
         if (dialect == null) {
           dialect = dialectFactory.create(metaData);
+          dialect.initFromDataSource(dataSource);
           map.put(key, dialect);
           if (dialectMap == null) {
             dialectMap = new IdentityHashMap<>();
