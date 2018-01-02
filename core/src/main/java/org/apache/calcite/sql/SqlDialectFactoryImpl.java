@@ -53,6 +53,13 @@ import java.util.Locale;
  * The default implementation of a <code>SqlDialectFactory</code>.
  */
 public class SqlDialectFactoryImpl implements SqlDialectFactory {
+
+  static SqlDialectFactoryImpl inst = new SqlDialectFactoryImpl();
+
+  public static SqlDialectFactoryImpl inst() {
+    return inst;
+  }
+
   public SqlDialect create(DatabaseMetaData databaseMetaData) {
     String databaseProductName;
     int databaseMajorVersion;

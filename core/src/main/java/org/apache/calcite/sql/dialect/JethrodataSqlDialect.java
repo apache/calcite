@@ -183,29 +183,33 @@ public class JethrodataSqlDialect extends SqlDialect {
    * @param ds data source
    * @throws SQLException
    */
-  public static void initializeSupportedFunctions(DataSource ds) throws SQLException {
-    java.sql.Connection jethroConnection = ds.getConnection();
-    DatabaseMetaData metaData = jethroConnection.getMetaData();
-    assert "JethroData".equals(metaData.getDatabaseProductName());
-    String productVersion = "Default"; //metaData.getDatabaseProductVersion();
-    if (SUPPORTED_JETHRO_FUNCTIONS.containsKey(productVersion)) {
-      return;
-    }
-    final HashMap<String, HashSet<SupportedFunction>> supportedFunctions =
-        new HashMap<String, HashSet<SupportedFunction>>();
-
-    SUPPORTED_JETHRO_FUNCTIONS.put(productVersion, supportedFunctions);
-    Statement jethroStatement = jethroConnection.createStatement();
-    ResultSet functionsTupleSet = jethroStatement.executeQuery("show functions");
-    while (functionsTupleSet.next()) {
-      String functionName = functionsTupleSet.getString(1);
-      String operandsType = functionsTupleSet.getString(3);
-      HashSet<SupportedFunction> funcSignatures = supportedFunctions.get(functionName);
-      if (funcSignatures == null) {
-        funcSignatures = new HashSet<SupportedFunction>();
-        supportedFunctions.put(functionName, funcSignatures);
+  public static synchronized void initializeSupportedFunctions(DataSource ds) throws SQLException {
+    java.sql.Connection jethroConnection = null;
+    try {
+      jethroConnection = ds.getConnection();
+      DatabaseMetaData metaData = jethroConnection.getMetaData();
+      assert "JethroData".equals(metaData.getDatabaseProductName());
+      String productVersion = "Default"; //metaData.getDatabaseProductVersion();
+      if (SUPPORTED_JETHRO_FUNCTIONS.containsKey(productVersion)) {
+        return;
       }
-      funcSignatures.add(new SupportedFunction(functionName, operandsType));
+      final HashMap<String, HashSet<SupportedFunction>> supportedFunctions =
+          new HashMap<String, HashSet<SupportedFunction>>();
+      SUPPORTED_JETHRO_FUNCTIONS.put(productVersion, supportedFunctions);
+      Statement jethroStatement = jethroConnection.createStatement();
+      ResultSet functionsTupleSet = jethroStatement.executeQuery("show functions");
+      while (functionsTupleSet.next()) {
+        String functionName = functionsTupleSet.getString(1);
+        String operandsType = functionsTupleSet.getString(3);
+        HashSet<SupportedFunction> funcSignatures = supportedFunctions.get(functionName);
+        if (funcSignatures == null) {
+          funcSignatures = new HashSet<SupportedFunction>();
+          supportedFunctions.put(functionName, funcSignatures);
+        }
+        funcSignatures.add(new SupportedFunction(functionName, operandsType));
+      }
+    } finally {
+      jethroConnection.close();
     }
   }
 
