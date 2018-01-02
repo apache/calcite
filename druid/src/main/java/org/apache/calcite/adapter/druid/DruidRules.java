@@ -32,6 +32,7 @@ import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.rules.AggregateFilterTransposeRule;
+import org.apache.calcite.rel.rules.AggregateExtractProjectRule;
 import org.apache.calcite.rel.rules.FilterAggregateTransposeRule;
 import org.apache.calcite.rel.rules.FilterProjectTransposeRule;
 import org.apache.calcite.rel.rules.ProjectFilterTransposeRule;
@@ -110,12 +111,15 @@ public class DruidRules {
       new DruidFilterAggregateTransposeRule(RelFactories.LOGICAL_BUILDER);
   public static final DruidPostAggregationProjectRule POST_AGGREGATION_PROJECT =
       new DruidPostAggregationProjectRule(RelFactories.LOGICAL_BUILDER);
+  public static final DruidAggregateExtractProjectRule PROJECT_EXTRACT_RULE =
+      new DruidAggregateExtractProjectRule(RelFactories.LOGICAL_BUILDER);
 
   public static final List<RelOptRule> RULES =
       ImmutableList.of(FILTER,
           PROJECT_FILTER_TRANSPOSE,
           AGGREGATE_FILTER_TRANSPOSE,
           AGGREGATE_PROJECT,
+          PROJECT_EXTRACT_RULE,
           PROJECT,
           POST_AGGREGATION_PROJECT,
           AGGREGATE,
@@ -1270,6 +1274,29 @@ public class DruidRules {
           relBuilderFactory);
     }
   }
+
+  /**
+   * Rule to extract a {@link org.apache.calcite.rel.core.Project} from
+   * {@link org.apache.calcite.rel.core.Aggregate} on top of
+   * {@link org.apache.calcite.adapter.druid.DruidQuery} based on the fields
+   * used in the aggregate.
+   */
+  public static class DruidAggregateExtractProjectRule extends AggregateExtractProjectRule {
+
+    /**
+     * Creates a DruidAggregateExtractProjectRule.
+     *
+     * @param relBuilderFactory Builder for relational expressions
+     */
+    public DruidAggregateExtractProjectRule(
+        RelBuilderFactory relBuilderFactory) {
+      super(
+          operand(Aggregate.class,
+              operand(DruidQuery.class, none())),
+          relBuilderFactory);
+    }
+  }
+
 }
 
 // End DruidRules.java
