@@ -32,7 +32,7 @@ import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.rules.AggregateFilterTransposeRule;
-import org.apache.calcite.rel.rules.ExtractProjectFromAggregateRule;
+import org.apache.calcite.rel.rules.AggregateExtractProjectRule;
 import org.apache.calcite.rel.rules.FilterAggregateTransposeRule;
 import org.apache.calcite.rel.rules.FilterProjectTransposeRule;
 import org.apache.calcite.rel.rules.ProjectFilterTransposeRule;
@@ -111,8 +111,8 @@ public class DruidRules {
       new DruidFilterAggregateTransposeRule(RelFactories.LOGICAL_BUILDER);
   public static final DruidPostAggregationProjectRule POST_AGGREGATION_PROJECT =
       new DruidPostAggregationProjectRule(RelFactories.LOGICAL_BUILDER);
-  public static final DruidExtractProjectFromAggregateRule PROJECT_EXTRACT_RULE =
-      new DruidExtractProjectFromAggregateRule(RelFactories.LOGICAL_BUILDER);
+  public static final DruidAggregateExtractProjectRule PROJECT_EXTRACT_RULE =
+      new DruidAggregateExtractProjectRule(RelFactories.LOGICAL_BUILDER);
 
   public static final List<RelOptRule> RULES =
       ImmutableList.of(FILTER,
@@ -1284,14 +1284,14 @@ public class DruidRules {
    * {@link org.apache.calcite.adapter.druid.DruidQuery} based on the fields
    * used in the aggregate.
    */
-  public static class DruidExtractProjectFromAggregateRule extends ExtractProjectFromAggregateRule {
+  public static class DruidAggregateExtractProjectRule extends AggregateExtractProjectRule {
 
     /**
-     * Creates a DruidExtractProjectFromAggregateRule.
+     * Creates a DruidAggregateExtractProjectRule.
      *
      * @param relBuilderFactory Builder for relational expressions
      */
-    public DruidExtractProjectFromAggregateRule(
+    public DruidAggregateExtractProjectRule(
         RelBuilderFactory relBuilderFactory) {
       super(
           operand(Aggregate.class,

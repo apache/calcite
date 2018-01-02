@@ -22,6 +22,7 @@ import org.apache.calcite.plan.RelOptRuleOperand;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
+import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.tools.RelBuilder;
@@ -32,42 +33,51 @@ import org.apache.calcite.util.mapping.MappingType;
 import org.apache.calcite.util.mapping.Mappings;
 
 import com.google.common.base.Function;
+import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
+
+import javax.annotation.Nullable;
 
 /**
  * Rule to extract a {@link org.apache.calcite.rel.core.Project} from
  * {@link org.apache.calcite.rel.core.Aggregate} based on the fields used in the aggregate.
+ * NOTE - This rule will not extract Project if the Aggregate is already on top of a Project.
  */
-public class ExtractProjectFromAggregateRule extends RelOptRule {
+public class AggregateExtractProjectRule extends RelOptRule {
 
+  // Predicate to prevent matching against Aggregate which is already on top of project.
+  // This will prevent firing of this rule repeatedly.
+  private static final Predicate<RelNode> PREDICATE = new Predicate<RelNode>() {
+    @Override public boolean apply(@Nullable RelNode relNode) {
+      return !(relNode instanceof Project);
+    }
+  };
   /**
-   * Creates a ExtractProjectFromAggregateRule.
+   * Creates a AggregateExtractProjectRule.
    *
    * @param relBuilderFactory Builder for relational expressions
    */
-  public ExtractProjectFromAggregateRule(
+  public AggregateExtractProjectRule(
       Class<? extends Aggregate> aggregateClass,
       Class<? extends RelNode> inputClass,
       RelBuilderFactory relBuilderFactory) {
-    this(operand(aggregateClass, operand(inputClass, any())),
+    this(operand(aggregateClass, operand(inputClass, null, PREDICATE, any())),
         relBuilderFactory);
   }
 
-  protected ExtractProjectFromAggregateRule(RelOptRuleOperand operand,
+  public AggregateExtractProjectRule(RelOptRuleOperand operand,
       RelBuilderFactory builderFactory) {
     super(operand, builderFactory, null);
   }
 
   public void onMatch(RelOptRuleCall call) {
     final Aggregate aggregate = call.rel(0);
-    final RelNode input = call.rel(1);
+    final RelNode child = call.rel(1);
     // Compute which input fields are used.
     // 1. group fields are always used
     final ImmutableBitSet.Builder inputFieldsUsed =
@@ -90,14 +100,13 @@ public class ExtractProjectFromAggregateRule extends RelOptRule {
             MappingType.INVERSE_SURJECTION,
             aggregate.getInput().getRowType().getFieldCount(),
             inputFieldsUsed.cardinality());
-    final Map<Integer, Integer> newKeys = new HashMap<>();
     int j = 0;
     for (int i : inputFieldsUsed.build()) {
       projects.add(rexBuilder.makeInputRef(aggregate.getInput(), i));
       mapping.set(i, j++);
     }
 
-    relBuilder = relBuilder.push(input).project(projects);
+    relBuilder = relBuilder.push(child).project(projects);
 
     final ImmutableBitSet newGroupSet =
         Mappings.apply(mapping, aggregate.getGroupSet());
@@ -131,4 +140,4 @@ public class ExtractProjectFromAggregateRule extends RelOptRule {
   }
 }
 
-// End ExtractProjectFromAggregateRule.java
+// End AggregateExtractProjectRule.java

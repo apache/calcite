@@ -34,6 +34,7 @@ import org.apache.calcite.rel.core.Intersect;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Minus;
+import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rel.logical.LogicalProject;
@@ -44,6 +45,7 @@ import org.apache.calcite.rel.metadata.ChainedRelMetadataProvider;
 import org.apache.calcite.rel.metadata.DefaultRelMetadataProvider;
 import org.apache.calcite.rel.metadata.RelMetadataProvider;
 import org.apache.calcite.rel.rules.AggregateExpandDistinctAggregatesRule;
+import org.apache.calcite.rel.rules.AggregateExtractProjectRule;
 import org.apache.calcite.rel.rules.AggregateFilterTransposeRule;
 import org.apache.calcite.rel.rules.AggregateJoinTransposeRule;
 import org.apache.calcite.rel.rules.AggregateProjectMergeRule;
@@ -55,7 +57,6 @@ import org.apache.calcite.rel.rules.AggregateValuesRule;
 import org.apache.calcite.rel.rules.CalcMergeRule;
 import org.apache.calcite.rel.rules.CoerceInputsRule;
 import org.apache.calcite.rel.rules.DateRangeRules;
-import org.apache.calcite.rel.rules.ExtractProjectFromAggregateRule;
 import org.apache.calcite.rel.rules.FilterAggregateTransposeRule;
 import org.apache.calcite.rel.rules.FilterJoinRule;
 import org.apache.calcite.rel.rules.FilterMergeRule;
@@ -99,11 +100,15 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.runtime.Hook;
+import org.apache.calcite.runtime.PredicateImpl;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql2rel.SqlToRelConverter;
 import org.apache.calcite.tools.RelBuilder;
+
+import static org.apache.calcite.plan.RelOptRule.none;
+import static org.apache.calcite.plan.RelOptRule.operand;
 
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
@@ -114,6 +119,8 @@ import org.junit.Test;
 
 import java.util.Arrays;
 import java.util.List;
+
+import javax.annotation.Nullable;
 
 import static org.junit.Assert.assertTrue;
 
@@ -3620,7 +3627,7 @@ public class RelOptRulesTest extends RelOptTestBase {
     sql(sql).with(program).check();
   }
 
-  @Test public void testExtractProjectFromAggregateRule() throws Exception {
+  @Test public void testAggregateExtractProjectRule() throws Exception {
     final String sql = "select sum(sal)\n"
         + "from emp";
 
@@ -3630,10 +3637,72 @@ public class RelOptRulesTest extends RelOptTestBase {
 
     HepProgram program = new HepProgramBuilder()
         .addRuleInstance(
-            new ExtractProjectFromAggregateRule(Aggregate.class, LogicalTableScan.class,
+            new AggregateExtractProjectRule(Aggregate.class, LogicalTableScan.class,
                 RelFactories.LOGICAL_BUILDER))
         .build();
     sql(sql).withPre(pre).with(program).check();
+  }
+
+  @Test public void testAggregateExtractProjectRuleWithGroupingSets() throws Exception {
+    final String sql = "select empno, deptno, sum(sal)\n"
+        + " from emp group by grouping sets ((empno, deptno),(deptno),(empno))";
+
+    HepProgram pre = new HepProgramBuilder()
+        .addRuleInstance(AggregateProjectMergeRule.INSTANCE)
+        .build();
+
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(
+            new AggregateExtractProjectRule(Aggregate.class, LogicalTableScan.class,
+                RelFactories.LOGICAL_BUILDER))
+        .build();
+    sql(sql).withPre(pre).with(program).check();
+  }
+
+  // Test with column used in both grouping set and argument to aggregate function.
+  @Test public void testAggregateExtractProjectRuleWithGroupingSets2() throws Exception {
+    final String sql = "select empno, deptno, sum(empno)\n"
+        + " from emp group by grouping sets ((empno, deptno),(deptno),(empno))";
+
+    HepProgram pre = new HepProgramBuilder()
+        .addRuleInstance(AggregateProjectMergeRule.INSTANCE)
+        .build();
+
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(
+            new AggregateExtractProjectRule(Aggregate.class, LogicalTableScan.class,
+                RelFactories.LOGICAL_BUILDER))
+        .build();
+    sql(sql).withPre(pre).with(program).check();
+  }
+
+  @Test public void testAggregateExtractProjectRuleWithFilter() throws Exception {
+    final String sql = "select sum(sal) filter ( where empno = 40)\n"
+        + "from emp";
+
+    HepProgram pre = new HepProgramBuilder()
+        .addRuleInstance(AggregateProjectMergeRule.INSTANCE)
+        .build();
+    // AggregateProjectMergeRule does not merges the project with filter,
+    // Force match Aggregate on top of project once explicitly in unit test.
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(
+            new AggregateExtractProjectRule(
+                operand(Aggregate.class,
+                    operand(Project.class, null, new PredicateImpl<Project>() {
+                      boolean alreadyMatched = false;
+                      @Override public boolean test(@Nullable Project project) {
+                        if (alreadyMatched) {
+                          return false;
+                        } else {
+                          alreadyMatched = true;
+                          return true;
+                        }
+                      }
+                    }, none())),
+                RelFactories.LOGICAL_BUILDER))
+        .build();
+    sql(sql).withPre(pre).with(program).checkUnchanged();
   }
 
 }
