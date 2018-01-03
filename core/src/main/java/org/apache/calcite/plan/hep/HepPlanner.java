@@ -360,6 +360,33 @@ public class HepPlanner extends AbstractRelOptPlanner {
     LOGGER.trace("Leaving group");
   }
 
+  private int depthFirstApply(Iterator<HepRelVertex> iter,
+      Collection<RelOptRule> rules,
+      boolean forceConversions, int nMatches) {
+    while (iter.hasNext()) {
+      HepRelVertex vertex = iter.next();
+      for (RelOptRule rule : rules) {
+        HepRelVertex newVertex =
+            applyRule(rule, vertex, forceConversions);
+        if (newVertex != null) {
+          ++nMatches;
+          if (nMatches >= currentProgram.matchLimit) {
+            return nMatches;
+          }
+
+          // To the extent possible, pick up where we left
+          // off; have to create a new iterator because old
+          // one was invalidated by transformation.
+          Iterator<HepRelVertex> depthIter = getGraphIterator(newVertex);
+          nMatches = depthFirstApply(depthIter, rules, forceConversions,
+              nMatches);
+          break;
+        }
+      }
+    }
+    return nMatches;
+  }
+
   private void applyRules(
       Collection<RelOptRule> rules,
       boolean forceConversions) {
@@ -372,7 +399,8 @@ public class HepPlanner extends AbstractRelOptPlanner {
     LOGGER.trace("Applying rule set {}", rules);
 
     boolean fullRestartAfterTransformation =
-        currentProgram.matchOrder != HepMatchOrder.ARBITRARY;
+        currentProgram.matchOrder != HepMatchOrder.ARBITRARY
+        && currentProgram.matchOrder != HepMatchOrder.DEPTH_FIRST;
 
     int nMatches = 0;
 
@@ -397,7 +425,13 @@ public class HepPlanner extends AbstractRelOptPlanner {
               // off; have to create a new iterator because old
               // one was invalidated by transformation.
               iter = getGraphIterator(newVertex);
-
+              if (currentProgram.matchOrder == HepMatchOrder.DEPTH_FIRST) {
+                nMatches =
+                    depthFirstApply(iter, rules, forceConversions, nMatches);
+                if (nMatches >= currentProgram.matchLimit) {
+                  return;
+                }
+              }
               // Remember to go around again since we're
               // skipping some stuff.
               fixpoint = false;
@@ -420,7 +454,8 @@ public class HepPlanner extends AbstractRelOptPlanner {
     // better optimizer performance.
     collectGarbage();
 
-    if (currentProgram.matchOrder == HepMatchOrder.ARBITRARY) {
+    if (currentProgram.matchOrder == HepMatchOrder.ARBITRARY
+        || currentProgram.matchOrder == HepMatchOrder.DEPTH_FIRST) {
       return DepthFirstIterator.of(graph, start).iterator();
     }
 
@@ -449,10 +484,22 @@ public class HepPlanner extends AbstractRelOptPlanner {
     return list.iterator();
   }
 
+  private boolean belongToDAG(HepRelVertex vertex) {
+    String digest = vertex.getCurrentRel().getDigest();
+    //The vertex is invalid
+    if (mapDigestToVertex.get(digest) == null) {
+      return false;
+    }
+    return true;
+  }
+
   private HepRelVertex applyRule(
       RelOptRule rule,
       HepRelVertex vertex,
       boolean forceConversions) {
+    if (!belongToDAG(vertex)) {
+      return null;
+    }
     RelTrait parentTrait = null;
     List<RelNode> parents = null;
     if (rule instanceof ConverterRule) {
@@ -840,14 +887,14 @@ public class HepPlanner extends AbstractRelOptPlanner {
       mapDigestToVertex.remove(oldDigest);
     }
     String newDigest = rel.recomputeDigest();
-    if (mapDigestToVertex.get(newDigest) == null) {
-      mapDigestToVertex.put(newDigest, vertex);
-    } else {
-      // REVIEW jvs 5-Apr-2006:  Could this lead us to
-      // miss common subexpressions?  When called from
-      // addRelToGraph, we'll check after this method returns,
-      // but what about the other callers?
-    }
+    // When a transformation happened in one rule apply, support
+    // vertex2 replace vertex1, but the current relNode of
+    // vertex1 and vertex2 is same,
+    // then the digest is also same. but we can't remove vertex2,
+    // otherwise the digest will be removed wrongly in the mapDigestToVertex
+    //  when collectGC
+    // so it must update the digest that map to vertex
+    mapDigestToVertex.put(newDigest, vertex);
     if (rel != vertex.getCurrentRel()) {
       vertex.replaceRel(rel);
     }

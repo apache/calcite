@@ -37,7 +37,14 @@ public enum HepMatchOrder {
    * Match from root down. A match attempt at an ancestor always precedes all
    * match attempts at its descendants.
    */
-  TOP_DOWN
+  TOP_DOWN,
+
+  /**
+   * Match in depth first order. It avoid the rule apply for
+   * the previous relNode repeatedly after new vertex is generated
+   * in one rule apply
+   */
+  DEPTH_FIRST
 }
 
 // End HepMatchOrder.java
