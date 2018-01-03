@@ -418,6 +418,11 @@ limitations under the License.
         <artifactId>hsqldb</artifactId>
         <version>${hsqldb.version}</version>
       </dependency>
+		<dependency>
+			<groupId>org.hsqldb</groupId>
+			<artifactId>sqltool</artifactId>
+			<version>${hsqldb.version}</version>
+		</dependency>
       <dependency>
         <groupId>org.incava</groupId>
         <artifactId>java-diff</artifactId>

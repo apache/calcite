@@ -74,7 +74,6 @@ public class FilesTableFunction {
             .add("hard", SqlTypeName.INTEGER) // %n number of hard links
             .add("path", SqlTypeName.VARCHAR) // %P file's name
             .add("size", SqlTypeName.BIGINT) // %s file's size in bytes
-            .add("sparseness", SqlTypeName.FLOAT) // %S sparseness
             .add("mod_time", SqlTypeName.TIMESTAMP) // %T@ seconds since epoch
             .add("user", SqlTypeName.VARCHAR) // %u user name
             .add("uid", SqlTypeName.INTEGER) // %U numeric user id
@@ -106,7 +105,6 @@ public class FilesTableFunction {
               + "%n\\0" // hard
               + "%P\\0" // path
               + "%s\\0" // size
-              + "%S\\0" // sparseness
               + "%T@\\0" // mod_time
               + "%u\\0" // user
               + "%U\\0" // uid
@@ -138,7 +136,6 @@ public class FilesTableFunction {
               + "%l%n" // hard
               + "%SN%n" // path
               + "%z%n" // size
-              + "0%n" // sparseness: not supported by macOS stat
               + "%m%n" // mod_time
               + "%Su%n" // user
               + "%u%n" // uid
@@ -209,14 +206,9 @@ public class FilesTableFunction {
                     current[9] = ""; // dir_name
                   }
 
-                  // In Linux, sparseness = (BLOCKSIZE * st_blocks / st_size)
-                  final Integer blocks = (Integer) current[1];
-                  final Long bytes = (Long) current[15];
-                  current[16] = blocks.floatValue() * 512f / bytes.floatValue();
-
                   // Make type values more like those on Linux
-                  final String type = (String) current[20];
-                  current[20] = type.equals("/") ? "d"
+                  final String type = (String) current[19];
+                  current[19] = type.equals("/") ? "d"
                       : type.equals("") || type.equals("*") ? "f"
                       : type.equals("@") ? "l"
                       : type;
@@ -258,8 +250,6 @@ public class FilesTableFunction {
                 case "change_time":
                 case "mod_time":
                   return new BigDecimal(value).multiply(THOUSAND).longValue();
-                case "sparseness":
-                  return Float.valueOf(value);
                 default:
                   return value;
                 }
