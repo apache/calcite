@@ -193,7 +193,7 @@ public class JethrodataSqlDialect extends SqlDialect {
       jethroConnection = ds.getConnection();
       DatabaseMetaData metaData = jethroConnection.getMetaData();
       assert "JethroData".equals(metaData.getDatabaseProductName());
-      String productVersion = "Default"; //metaData.getDatabaseProductVersion();
+      String productVersion = metaData.getDatabaseProductVersion();
       if (SUPPORTED_JETHRO_FUNCTIONS.containsKey(productVersion)) {
         return;
       }

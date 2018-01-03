@@ -64,10 +64,12 @@ public class SqlDialectFactoryImpl implements SqlDialectFactory {
     String databaseProductName;
     int databaseMajorVersion;
     int databaseMinorVersion;
+    String databaseVersion;
     try {
       databaseProductName = databaseMetaData.getDatabaseProductName();
       databaseMajorVersion = databaseMetaData.getDatabaseMajorVersion();
       databaseMinorVersion = databaseMetaData.getDatabaseMinorVersion();
+      databaseVersion = databaseMetaData.getDatabaseProductVersion();
     } catch (SQLException e) {
       throw new RuntimeException("while detecting database product", e);
     }
@@ -79,6 +81,7 @@ public class SqlDialectFactoryImpl implements SqlDialectFactory {
         .withDatabaseProductName(databaseProductName)
         .withDatabaseMajorVersion(databaseMajorVersion)
         .withDatabaseMinorVersion(databaseMinorVersion)
+        .withDatabaseVersion(databaseVersion)
         .withIdentifierQuoteString(quoteString)
         .withNullCollation(nullCollation);
     switch (upperProductName) {
