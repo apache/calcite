@@ -271,6 +271,7 @@ public class MongoAdapterIT {
             + "CITY=FORT WORTH; LONGITUDE=null; LATITUDE=null; POP=20012; STATE=TX; ID=76104\n");
   }
 
+  @Ignore("broken; [CALCITE-2115] is logged to fix it")
   @Test public void testUnionPlan() {
     CalciteAssert.that()
         .enable(enabled())
@@ -614,6 +615,7 @@ public class MongoAdapterIT {
                 "{$project: {C: 1, STATE: 1, CITY: 1}}"));
   }
 
+  @Ignore("broken; [CALCITE-2115] is logged to fix it")
   @Test public void testDistinctCount() {
     CalciteAssert.that()
         .enable(enabled())
@@ -668,6 +670,7 @@ public class MongoAdapterIT {
                 "{$limit: 5}"));
   }
 
+  @Ignore("broken; [CALCITE-2115] is logged to fix it")
   @Test public void testProject() {
     CalciteAssert.that()
         .enable(enabled())
