@@ -44,6 +44,7 @@ import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Minus;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.RelFactories;
+import org.apache.calcite.rel.core.SemiJoin;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.TableModify;
 import org.apache.calcite.rel.core.Union;
@@ -119,6 +120,11 @@ public class JdbcRules {
     }
 
     @Override public RelNode convert(RelNode rel) {
+      if (rel instanceof SemiJoin) {
+        // It's not possible to convert semi-joins. They have fewer columns
+        // than regular joins.
+        return null;
+      }
       return convert((Join) rel, true);
     }
 

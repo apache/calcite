@@ -105,6 +105,9 @@ public abstract class ConverterRule extends RelOptRule {
     return inTrait.getTraitDef();
   }
 
+  /** Converts a relational expression to the target trait(s) of this rule.
+   *
+   * <p>Returns null if conversion is not possible. */
   public abstract RelNode convert(RelNode rel);
 
   /**

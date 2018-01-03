@@ -14,27 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.test;
-
-import org.apache.calcite.adapter.os.OsAdapterTest;
-import org.apache.calcite.adapter.tpcds.TpcdsTest;
-import org.apache.calcite.adapter.tpch.TpchTest;
-import org.apache.calcite.chinook.EndToEndTest;
-
-import org.junit.runner.RunWith;
-import org.junit.runners.Suite;
 
 /**
- * Suite consisting of all tests in the <code>calcite-plus</code> module.
+ * End to end tests.
  */
-@RunWith(Suite.class)
-@Suite.SuiteClasses({
-    OsAdapterTest.class,
-    TpcdsTest.class,
-    TpchTest.class,
-    EndToEndTest.class
-    })
-public class PlusSuite {
-}
+@PackageMarker
+package org.apache.calcite.chinook;
 
-// End PlusSuite.java
+import org.apache.calcite.avatica.util.PackageMarker;
+
+// End package-info.java
