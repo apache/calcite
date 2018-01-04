@@ -24,6 +24,7 @@ import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.runtime.PredicateImpl;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.ImmutableBitSet;
@@ -57,11 +58,12 @@ public class AggregateExtractProjectRule extends RelOptRule {
   /** Predicate that prevents matching against an {@code Aggregate} whose input
    * is already a {@code Project}. This will prevent this rule firing
    * repeatedly. */
-  private static final Predicate<RelNode> PREDICATE = new Predicate<RelNode>() {
-    @Override public boolean apply(@Nullable RelNode relNode) {
-      return !(relNode instanceof Project);
-    }
-  };
+  private static final Predicate<RelNode> PREDICATE =
+      new PredicateImpl<RelNode>() {
+        public boolean test(@Nullable RelNode relNode) {
+          return !(relNode instanceof Project);
+        }
+      };
 
   /**
    * Creates an AggregateExtractProjectRule.
