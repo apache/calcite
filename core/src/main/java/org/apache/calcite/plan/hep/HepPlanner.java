@@ -811,6 +811,9 @@ public class HepPlanner extends AbstractRelOptPlanner {
       rel = rel.copy(rel.getTraitSet(), newInputs);
       onCopy(oldRel, rel);
     }
+    // Compute digest first time we add to DAG,
+    // otherwise can't get equivVertex for common sub-expression
+    rel.recomputeDigest();
 
     // try to find equivalent rel only if DAG is allowed
     if (!noDAG) {
@@ -886,7 +889,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
     if (mapDigestToVertex.get(oldDigest) == vertex) {
       mapDigestToVertex.remove(oldDigest);
     }
-    String newDigest = rel.recomputeDigest();
+    String newDigest = rel.getDigest();
     // When a transformation happened in one rule apply, support
     // vertex2 replace vertex1, but the current relNode of
     // vertex1 and vertex2 is same,
