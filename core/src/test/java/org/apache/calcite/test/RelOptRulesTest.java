@@ -764,7 +764,7 @@ public class RelOptRulesTest extends RelOptTestBase {
   }
 
   @Test public void testDistinctCountWithoutGroupBy() {
-     final HepProgram program = HepProgram.builder()
+    final HepProgram program = HepProgram.builder()
         .addRuleInstance(AggregateExpandDistinctAggregatesRule.INSTANCE)
         .addRuleInstance(AggregateProjectMergeRule.INSTANCE)
         .build();
