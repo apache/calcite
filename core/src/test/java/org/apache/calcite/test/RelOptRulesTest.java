@@ -763,6 +763,16 @@ public class RelOptRulesTest extends RelOptTestBase {
     sql(sql).with(program).check();
   }
 
+  @Test public void testDistinctCountWithoutGroupBy() {
+    final HepProgram program = HepProgram.builder()
+        .addRuleInstance(AggregateExpandDistinctAggregatesRule.INSTANCE)
+        .addRuleInstance(AggregateProjectMergeRule.INSTANCE)
+        .build();
+    final String sql = "select max(deptno), count(distinct ename)\n"
+        + "from sales.emp";
+    sql(sql).with(program).check();
+  }
+
   @Test public void testDistinctCount1() {
     final HepProgram program = HepProgram.builder()
         .addRuleInstance(AggregateExpandDistinctAggregatesRule.INSTANCE)
