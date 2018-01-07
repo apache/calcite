@@ -1320,6 +1320,14 @@ public abstract class SqlOperatorBaseTest {
         "cast('1945-02-24 12:42:25.34' as TIMESTAMP)",
         "1945-02-24 12:42:25",
         "TIMESTAMP(0) NOT NULL");
+    tester.checkScalar(
+        "cast('1945-12-31' as TIMESTAMP)",
+        "1945-12-31 00:00:00",
+        "TIMESTAMP(0) NOT NULL");
+    tester.checkScalar(
+        "cast('2004-02-29' as TIMESTAMP)",
+        "2004-02-29 00:00:00",
+        "TIMESTAMP(0) NOT NULL");
 
     if (Bug.FRG282_FIXED) {
       tester.checkScalar(

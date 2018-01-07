@@ -3488,6 +3488,18 @@ public class DruidAdapterIT {
         .returnsOrdered("T=1997-05-01 05:30:00");
   }
 
+  @Test
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2122">[CALCITE-2122]
+   * DateRangeRules issues</a>. */
+  public void testCombinationOfValidAndNotValidAndInterval() {
+    final String sql = "SELECT COUNT(*) FROM \"foodmart\" "
+        + "WHERE  \"timestamp\" < CAST('1998-01-02' as TIMESTAMP) AND "
+        + "EXTRACT(MONTH FROM \"timestamp\") = 01 AND EXTRACT(YEAR FROM \"timestamp\") = 1996 ";
+    sql(sql, FOODMART)
+        .runs()
+        .queryContains(druidChecker("{\"queryType\":\"timeseries\""));
+  }
 }
 
 // End DruidAdapterIT.java
