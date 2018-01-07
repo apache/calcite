@@ -36,6 +36,7 @@ import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.DateString;
+import org.apache.calcite.util.TimestampString;
 import org.apache.calcite.util.Util;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -401,8 +402,7 @@ public abstract class DateRangeRules {
             : SqlStdOperatorTable.GREATER_THAN;
         nodes.add(
             rexBuilder.makeCall(op, operand,
-                rexBuilder.makeDateLiteral(
-                    DateString.fromCalendarFields(r.lowerEndpoint()))));
+                makeLiteralForComparison(rexBuilder, r.lowerEndpoint(), operand)));
       }
       if (r.hasUpperBound()) {
         final SqlBinaryOperator op = r.upperBoundType() == BoundType.CLOSED
@@ -410,10 +410,23 @@ public abstract class DateRangeRules {
             : SqlStdOperatorTable.LESS_THAN;
         nodes.add(
             rexBuilder.makeCall(op, operand,
-                rexBuilder.makeDateLiteral(
-                    DateString.fromCalendarFields(r.upperEndpoint()))));
+                makeLiteralForComparison(rexBuilder, r.upperEndpoint(), operand)));
       }
       return RexUtil.composeConjunction(rexBuilder, nodes, false);
+    }
+
+    private RexLiteral makeLiteralForComparison(RexBuilder rexBuilder, Calendar calendar,
+        RexNode operand) {
+      switch (operand.getType().getSqlTypeName()) {
+      case TIMESTAMP:
+      case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
+        return rexBuilder.makeTimestampLiteral(TimestampString.fromCalendarFields(calendar),
+            operand.getType().getPrecision());
+      case DATE:
+        return rexBuilder.makeDateLiteral(DateString.fromCalendarFields(calendar));
+      default:
+        throw Util.unexpected(operand.getType().getSqlTypeName());
+      }
     }
 
     private Range<Calendar> baz(TimeUnitRange timeUnit, SqlKind comparison,
