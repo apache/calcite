@@ -128,11 +128,11 @@ public class DruidDateRangeRulesTest {
     c.set(2011, Calendar.JANUARY, 1);
     final TimestampString to = TimestampString.fromCalendarFields(c);
 
-    // dt >= 2010-01-01 AND dt < 2011-01-01
+    // d >= 2010-01-01 AND d < 2011-01-01
     checkDateRangeNoSimplify(f,
         f.and(
-            f.ge(f.dt, f.cast(f.timeStampDataType, f.timestampLiteral(from))),
-            f.lt(f.dt, f.cast(f.timeStampDataType, f.timestampLiteral(to)))),
+            f.ge(f.d, f.cast(f.timestampDataType, f.timestampLiteral(from))),
+            f.lt(f.d, f.cast(f.timestampDataType, f.timestampLiteral(to)))),
         is("[2010-01-01T00:00:00.000Z/2011-01-01T00:00:00.000Z]"));
   }
 

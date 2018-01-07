@@ -184,15 +184,15 @@ public class RexImplicationCheckerTest {
   @Test public void testSimpleDate() {
     final Fixture f = new Fixture();
     final DateString d = DateString.fromCalendarFields(Util.calendar());
-    final RexNode node1 = f.ge(f.dt, f.rexBuilder.makeDateLiteral(d));
-    final RexNode node2 = f.eq(f.dt, f.rexBuilder.makeDateLiteral(d));
+    final RexNode node1 = f.ge(f.d, f.dateLiteral(d));
+    final RexNode node2 = f.eq(f.d, f.dateLiteral(d));
     f.checkImplies(node2, node1);
     f.checkNotImplies(node1, node2);
 
     final DateString dBeforeEpoch1 = DateString.fromDaysSinceEpoch(-12345);
     final DateString dBeforeEpoch2 = DateString.fromDaysSinceEpoch(-123);
-    final RexNode nodeBe1 = f.lt(f.dt, f.rexBuilder.makeDateLiteral(dBeforeEpoch1));
-    final RexNode nodeBe2 = f.lt(f.dt, f.rexBuilder.makeDateLiteral(dBeforeEpoch2));
+    final RexNode nodeBe1 = f.lt(f.d, f.dateLiteral(dBeforeEpoch1));
+    final RexNode nodeBe2 = f.lt(f.d, f.dateLiteral(dBeforeEpoch2));
     f.checkImplies(nodeBe1, nodeBe2);
     f.checkNotImplies(nodeBe2, nodeBe1);
   }
@@ -389,22 +389,22 @@ public class RexImplicationCheckerTest {
     public final RelDataType floatDataType;
     public final RelDataType charDataType;
     public final RelDataType dateDataType;
-    public final RelDataType timeStampDataType;
+    public final RelDataType timestampDataType;
     public final RelDataType timeDataType;
     public final RelDataType stringDataType;
 
-    public final RexNode bl;
-    public final RexNode i;
-    public final RexNode dec;
-    public final RexNode lg;
-    public final RexNode sh;
-    public final RexNode by;
-    public final RexNode fl;
-    public final RexNode dt;
-    public final RexNode ch;
-    public final RexNode ts;
-    public final RexNode t;
-    public final RexNode str;
+    public final RexNode bl; // a field of Java type "Boolean"
+    public final RexNode i; // a field of Java type "Integer"
+    public final RexNode dec; // a field of Java type "Double"
+    public final RexNode lg; // a field of Java type "Long"
+    public final RexNode sh; // a  field of Java type "Short"
+    public final RexNode by; // a field of Java type "Byte"
+    public final RexNode fl; // a field of Java type "Float" (not a SQL FLOAT)
+    public final RexNode d; // a field of Java type "Date"
+    public final RexNode ch; // a field of Java type "Character"
+    public final RexNode ts; // a field of Java type "Timestamp"
+    public final RexNode t; // a field of Java type "Time"
+    public final RexNode str; // a field of Java type "String"
 
     public final RexImplicationChecker checker;
     public final RelDataType rowType;
@@ -423,7 +423,7 @@ public class RexImplicationCheckerTest {
       floatDataType = typeFactory.createJavaType(Float.class);
       charDataType = typeFactory.createJavaType(Character.class);
       dateDataType = typeFactory.createJavaType(Date.class);
-      timeStampDataType = typeFactory.createJavaType(Timestamp.class);
+      timestampDataType = typeFactory.createJavaType(Timestamp.class);
       timeDataType = typeFactory.createJavaType(Time.class);
       stringDataType = typeFactory.createJavaType(String.class);
 
@@ -435,8 +435,8 @@ public class RexImplicationCheckerTest {
       by = ref(5, byteDataType);
       fl = ref(6, floatDataType);
       ch = ref(7, charDataType);
-      dt = ref(8, dateDataType);
-      ts = ref(9, timeStampDataType);
+      d = ref(8, dateDataType);
+      ts = ref(9, timestampDataType);
       t = ref(10, timeDataType);
       str = ref(11, stringDataType);
 
@@ -450,7 +450,7 @@ public class RexImplicationCheckerTest {
           .add("float", floatDataType)
           .add("char", charDataType)
           .add("date", dateDataType)
-          .add("timestamp", timeStampDataType)
+          .add("timestamp", timestampDataType)
           .add("time", timeDataType)
           .add("string", stringDataType)
           .build();
@@ -544,9 +544,13 @@ public class RexImplicationCheckerTest {
           new NlsString(z, null, SqlCollation.COERCIBLE));
     }
 
+    public RexNode dateLiteral(DateString d) {
+      return rexBuilder.makeDateLiteral(d);
+    }
+
     public RexNode timestampLiteral(TimestampString ts) {
       return rexBuilder.makeTimestampLiteral(ts,
-          timeStampDataType.getPrecision());
+          timestampDataType.getPrecision());
     }
 
     public RexNode timeLiteral(TimeString t) {

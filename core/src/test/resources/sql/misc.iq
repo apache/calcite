@@ -1508,7 +1508,7 @@ select (case when (true) then 1 end) from (values(1));
 EXPR$0 INTEGER(10)
 !type
 
-# Cast an character literal to a timestamp; note: the plan does not contain CAST
+# Cast a character literal to a timestamp; note: the plan does not contain CAST
 values cast('1969-07-21 12:34:56' as timestamp);
 +---------------------+
 | EXPR$0              |
@@ -1519,6 +1519,20 @@ values cast('1969-07-21 12:34:56' as timestamp);
 
 !ok
 EnumerableCalc(expr#0=[{inputs}], expr#1=[1969-07-21 12:34:56], EXPR$0=[$t1])
+  EnumerableValues(tuples=[[{ 0 }]])
+!plan
+
+# Cast a character literal without time to a timestamp; note: the plan does not contain CAST
+values cast('1969-07-21' as timestamp);
++---------------------+
+| EXPR$0              |
++---------------------+
+| 1969-07-21 00:00:00 |
++---------------------+
+(1 row)
+
+!ok
+EnumerableCalc(expr#0=[{inputs}], expr#1=[1969-07-21 00:00:00], EXPR$0=[$t1])
   EnumerableValues(tuples=[[{ 0 }]])
 !plan
 

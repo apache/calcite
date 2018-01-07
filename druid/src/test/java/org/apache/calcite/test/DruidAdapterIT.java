@@ -2986,8 +2986,7 @@ public class DruidAdapterIT {
         .returnsUnordered("EXPR$0=3799");
   }
 
-  @Test
-  public void testCountWithNonNull() {
+  @Test public void testCountWithNonNull() {
     final String sql = "select count(\"timestamp\") from \"foodmart\"\n";
     final String druidQuery = "{'queryType':'timeseries','dataSource':'foodmart'";
     sql(sql)
@@ -3383,8 +3382,7 @@ public class DruidAdapterIT {
         .returnsUnordered("C=86829");
   }
 
-  @Test
-  public void testFilterwithFloorOnTime() {
+  @Test public void testFilterWithFloorOnTime() {
     // Test filter on floor on time column is pushed to druid
     final String sql =
         "Select cast(floor(\"timestamp\" to MONTH) as timestamp) as t from \"foodmart\" where "
@@ -3408,8 +3406,7 @@ public class DruidAdapterIT {
         .returnsOrdered("T=1997-01-01 00:00:00", "T=1997-01-01 00:00:00");
   }
 
-  @Test
-  public void testSelectFloorOnTimeWithFilterOnFloorOnTime() {
+  @Test public void testSelectFloorOnTimeWithFilterOnFloorOnTime() {
     final String sql = "Select cast(floor(\"timestamp\" to MONTH) as timestamp) as t from "
         + "\"foodmart\" where floor(\"timestamp\" to MONTH) >= '1997-05-01 00:00:00 UTC' order by t"
         + " limit 1";
@@ -3424,8 +3421,7 @@ public class DruidAdapterIT {
         .returnsOrdered("T=1997-05-01 00:00:00");
   }
 
-  @Test
-  public void testTmeWithFilterOnFloorOnTimeAndCastToTimestamp() {
+  @Test public void testTmeWithFilterOnFloorOnTimeAndCastToTimestamp() {
     final String sql = "Select cast(floor(\"timestamp\" to MONTH) as timestamp) as t from "
         + "\"foodmart\" where floor(\"timestamp\" to MONTH) >= cast('1997-05-01 00:00:00' as TIMESTAMP) order by t"
         + " limit 1";
@@ -3440,8 +3436,7 @@ public class DruidAdapterIT {
         .returnsOrdered("T=1997-05-01 00:00:00");
   }
 
-  @Test
-  public void testTmeWithFilterOnFloorOnTimeWithTimezone() {
+  @Test public void testTmeWithFilterOnFloorOnTimeWithTimezone() {
     final String sql = "Select cast(floor(\"timestamp\" to MONTH) as timestamp) as t from "
         + "\"foodmart\" where floor(\"timestamp\" to MONTH) >= cast('1997-05-01 00:00:00'"
         + " as TIMESTAMP) order by t limit 1";
@@ -3464,8 +3459,7 @@ public class DruidAdapterIT {
         .returnsOrdered("T=1997-05-01 05:30:00");
   }
 
-  @Test
-  public void testTmeWithFilterOnFloorOnTimeWithTimezoneConversion() {
+  @Test public void testTmeWithFilterOnFloorOnTimeWithTimezoneConversion() {
     final String sql = "Select cast(floor(\"timestamp\" to MONTH) as timestamp) as t from "
         + "\"foodmart\" where floor(\"timestamp\" to MONTH) >= '1997-04-30 18:30:00 UTC' order by t"
         + " limit 1";
@@ -3488,6 +3482,17 @@ public class DruidAdapterIT {
         .returnsOrdered("T=1997-05-01 05:30:00");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2122">[CALCITE-2122]
+   * DateRangeRules issues</a>. */
+  @Test public void testCombinationOfValidAndNotValidAndInterval() {
+    final String sql = "SELECT COUNT(*) FROM \"foodmart\" "
+        + "WHERE  \"timestamp\" < CAST('1998-01-02' as TIMESTAMP) AND "
+        + "EXTRACT(MONTH FROM \"timestamp\") = 01 AND EXTRACT(YEAR FROM \"timestamp\") = 1996 ";
+    sql(sql, FOODMART)
+        .runs()
+        .queryContains(druidChecker("{\"queryType\":\"timeseries\""));
+  }
 }
 
 // End DruidAdapterIT.java
