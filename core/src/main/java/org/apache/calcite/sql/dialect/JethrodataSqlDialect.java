@@ -73,7 +73,6 @@ public class JethrodataSqlDialect extends SqlDialect {
   }
 
   @Override public boolean supportsAggregateFunction(SqlKind kind) {
-      //TODOY check if STDDEV_POP, STDDEV_SAMP, VAR_POP, VAR_SAMP are supported
     switch (kind) {
     case COUNT:
     case SUM:
