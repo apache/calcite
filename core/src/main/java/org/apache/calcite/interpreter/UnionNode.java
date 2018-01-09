@@ -32,13 +32,13 @@ public class UnionNode implements Node {
   private final Sink sink;
   private final Union rel;
 
-  public UnionNode(Interpreter interpreter, Union rel) {
+  public UnionNode(Compiler compiler, Union rel) {
     ImmutableList.Builder<Source> builder = ImmutableList.builder();
     for (int i = 0; i < rel.getInputs().size(); i++) {
-      builder.add(interpreter.source(rel, i));
+      builder.add(compiler.source(rel, i));
     }
     this.sources = builder.build();
-    this.sink = interpreter.sink(rel);
+    this.sink = compiler.sink(rel);
     this.rel = rel;
   }
 

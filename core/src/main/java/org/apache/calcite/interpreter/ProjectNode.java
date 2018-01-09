@@ -27,12 +27,12 @@ public class ProjectNode extends AbstractSingleNode<Project> {
   private final Context context;
   private final int projectCount;
 
-  public ProjectNode(Interpreter interpreter, Project rel) {
-    super(interpreter, rel);
+  public ProjectNode(Compiler compiler, Project rel) {
+    super(compiler, rel);
     this.projectCount = rel.getProjects().size();
-    this.scalar = interpreter.compile(rel.getProjects(),
+    this.scalar = compiler.compile(rel.getProjects(),
         rel.getInput().getRowType());
-    this.context = interpreter.createContext();
+    this.context = compiler.createContext();
   }
 
   public void run() throws InterruptedException {

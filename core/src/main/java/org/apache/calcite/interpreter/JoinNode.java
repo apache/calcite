@@ -35,14 +35,14 @@ public class JoinNode implements Node {
   private final Scalar condition;
   private final Context context;
 
-  public JoinNode(Interpreter interpreter, Join rel) {
-    this.leftSource = interpreter.source(rel, 0);
-    this.rightSource = interpreter.source(rel, 1);
-    this.sink = interpreter.sink(rel);
-    this.condition = interpreter.compile(ImmutableList.of(rel.getCondition()),
-        interpreter.combinedRowType(rel.getInputs()));
+  public JoinNode(Compiler compiler, Join rel) {
+    this.leftSource = compiler.source(rel, 0);
+    this.rightSource = compiler.source(rel, 1);
+    this.sink = compiler.sink(rel);
+    this.condition = compiler.compile(ImmutableList.of(rel.getCondition()),
+        compiler.combinedRowType(rel.getInputs()));
     this.rel = rel;
-    this.context = interpreter.createContext();
+    this.context = compiler.createContext();
 
   }
 

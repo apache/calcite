@@ -34,8 +34,8 @@ import java.util.List;
  * {@link org.apache.calcite.rel.core.Sort}.
  */
 public class SortNode extends AbstractSingleNode<Sort> {
-  public SortNode(Interpreter interpreter, Sort rel) {
-    super(interpreter, rel);
+  public SortNode(Compiler compiler, Sort rel) {
+    super(compiler, rel);
   }
 
   public void run() throws InterruptedException {

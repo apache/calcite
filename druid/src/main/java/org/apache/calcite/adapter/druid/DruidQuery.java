@@ -426,7 +426,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
   }
 
   @Override public Node implement(InterpreterImplementor implementor) {
-    return new DruidQueryNode(implementor.interpreter, this);
+    return new DruidQueryNode(implementor.compiler, this);
   }
 
   public QuerySpec getQuerySpec() {

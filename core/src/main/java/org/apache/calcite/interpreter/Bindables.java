@@ -321,7 +321,7 @@ public class Bindables {
     }
 
     public Node implement(InterpreterImplementor implementor) {
-      return new FilterNode(implementor.interpreter, this);
+      return new FilterNode(implementor.compiler, this);
     }
   }
 
@@ -378,7 +378,7 @@ public class Bindables {
     }
 
     public Node implement(InterpreterImplementor implementor) {
-      return new ProjectNode(implementor.interpreter, this);
+      return new ProjectNode(implementor.compiler, this);
     }
   }
 
@@ -434,7 +434,7 @@ public class Bindables {
     }
 
     public Node implement(InterpreterImplementor implementor) {
-      return new SortNode(implementor.interpreter, this);
+      return new SortNode(implementor.compiler, this);
     }
   }
 
@@ -504,7 +504,7 @@ public class Bindables {
     }
 
     public Node implement(InterpreterImplementor implementor) {
-      return new JoinNode(implementor.interpreter, this);
+      return new JoinNode(implementor.compiler, this);
     }
   }
 
@@ -556,7 +556,7 @@ public class Bindables {
     }
 
     public Node implement(InterpreterImplementor implementor) {
-      return new UnionNode(implementor.interpreter, this);
+      return new UnionNode(implementor.compiler, this);
     }
   }
 
@@ -582,7 +582,7 @@ public class Bindables {
     }
 
     public Node implement(InterpreterImplementor implementor) {
-      return new ValuesNode(implementor.interpreter, this);
+      return new ValuesNode(implementor.compiler, this);
     }
   }
 
@@ -660,7 +660,7 @@ public class Bindables {
     }
 
     public Node implement(InterpreterImplementor implementor) {
-      return new AggregateNode(implementor.interpreter, this);
+      return new AggregateNode(implementor.compiler, this);
     }
   }
 
@@ -722,7 +722,7 @@ public class Bindables {
     }
 
     public Node implement(InterpreterImplementor implementor) {
-      return new WindowNode(implementor.interpreter, this);
+      return new WindowNode(implementor.compiler, this);
     }
   }
 

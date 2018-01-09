@@ -28,10 +28,10 @@ abstract class AbstractSingleNode<T extends SingleRel> implements Node {
   protected final Sink sink;
   protected final T rel;
 
-  AbstractSingleNode(Interpreter interpreter, T rel) {
+  AbstractSingleNode(Compiler compiler, T rel) {
     this.rel = rel;
-    this.source = interpreter.source(rel, 0);
-    this.sink = interpreter.sink(rel);
+    this.source = compiler.source(rel, 0);
+    this.sink = compiler.sink(rel);
   }
 }
 

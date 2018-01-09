@@ -18,9 +18,9 @@ package org.apache.calcite.adapter.enumerable;
 
 import org.apache.calcite.DataContext;
 import org.apache.calcite.avatica.Helper;
+import org.apache.calcite.interpreter.Compiler;
 import org.apache.calcite.interpreter.InterpretableConvention;
 import org.apache.calcite.interpreter.InterpretableRel;
-import org.apache.calcite.interpreter.Interpreter;
 import org.apache.calcite.interpreter.Node;
 import org.apache.calcite.interpreter.Row;
 import org.apache.calcite.interpreter.Sink;
@@ -79,7 +79,7 @@ public class EnumerableInterpretable extends ConverterImpl
     final ArrayBindable arrayBindable = box(bindable);
     final Enumerable<Object[]> enumerable =
         arrayBindable.bind(implementor.dataContext);
-    return new EnumerableNode(enumerable, implementor.interpreter, this);
+    return new EnumerableNode(enumerable, implementor.compiler, this);
   }
 
   public static Bindable toBindable(Map<String, Object> parameters,
@@ -186,10 +186,10 @@ public class EnumerableInterpretable extends ConverterImpl
     private final Enumerable<Object[]> enumerable;
     private final Sink sink;
 
-    EnumerableNode(Enumerable<Object[]> enumerable,
-        Interpreter interpreter, EnumerableInterpretable rel) {
+    EnumerableNode(Enumerable<Object[]> enumerable, Compiler compiler,
+        EnumerableInterpretable rel) {
       this.enumerable = enumerable;
-      this.sink = interpreter.sink(rel);
+      this.sink = compiler.sink(rel);
     }
 
     public void run() throws InterruptedException {
