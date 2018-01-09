@@ -48,6 +48,7 @@ import com.google.common.collect.Maps;
 
 import java.math.BigDecimal;
 import java.util.ArrayDeque;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -386,6 +387,7 @@ public class Interpreter extends AbstractEnumerable<Object[]>
   /** Implementation of {@link Source} using a {@link java.util.ArrayDeque}. */
   private static class ListSource implements Source {
     private final ArrayDeque<Row> list;
+    private Iterator<Row> iterator = null;
 
     ListSource(ListSink sink) {
       this.list = sink.list;
@@ -393,8 +395,12 @@ public class Interpreter extends AbstractEnumerable<Object[]>
 
     public Row receive() {
       try {
-        return list.remove();
+        if (iterator == null) {
+          iterator = list.iterator();
+        }
+        return iterator.next();
       } catch (NoSuchElementException e) {
+        iterator = null;
         return null;
       }
     }

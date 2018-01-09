@@ -21,6 +21,7 @@ import org.apache.calcite.plan.hep.HepMatchOrder;
 import org.apache.calcite.plan.hep.HepPlanner;
 import org.apache.calcite.plan.hep.HepProgram;
 import org.apache.calcite.plan.hep.HepProgramBuilder;
+import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.logical.LogicalIntersect;
 import org.apache.calcite.rel.logical.LogicalUnion;
@@ -246,6 +247,26 @@ public class HepPlannerTest extends RelOptTestBase {
         ProjectRemoveRule.INSTANCE,
         "select d1.deptno from (select * from dept) d1,"
             + " (select * from dept) d2");
+  }
+
+  @Test public void testCommonSubexpression() throws Exception {
+    //for '(select 1 from dept where abs(-1)=20)', it occur twice,
+    // but it's a common sub-expression, so only apply once
+    // for testReplaceCommonSubexpression it's once rule applying but not twice
+    HepProgramBuilder programBuilder = HepProgram.builder();
+    programBuilder.addRuleInstance(FilterToCalcRule.INSTANCE);
+
+    final HepTestListener listener = new HepTestListener(0);
+    HepPlanner planner = new HepPlanner(programBuilder.build());
+    planner.addListener(listener);
+
+    planner.setRoot(
+        tester.convertSqlToRel("(select 1 from dept where abs(-1)=20) union all"
+            + "(select 1 from dept where abs(-1)=20)").rel);
+    RelNode bestRel = planner.findBestExp();
+
+    assertThat(bestRel.getInput(0).equals(bestRel.getInput(1)), is(true));
+    assertThat(listener.getApplyTimes() == 1, is(true));
   }
 
   @Test public void testSubprogram() throws Exception {
