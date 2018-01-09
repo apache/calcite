@@ -859,8 +859,8 @@ public abstract class SqlTypeUtil {
     // where internally a cast across character repertoires is OK.  Should
     // probably clean that up.
 
-    SqlTypeAssignmentRules rules = SqlTypeAssignmentRules.instance();
-    return rules.canCastFrom(toTypeName, fromTypeName, coerce);
+    SqlTypeAssignmentRules rules = SqlTypeAssignmentRules.instance(coerce);
+    return rules.canCastFrom(toTypeName, fromTypeName);
   }
 
   /**

@@ -69,7 +69,6 @@ import org.junit.Test;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Calendar;
 import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
@@ -1597,8 +1596,8 @@ public class RexProgramTest {
 
     for (RelDataType fromType : types) {
       for (RelDataType toType : types) {
-        if (SqlTypeAssignmentRules.instance().canCastFrom(
-            toType.getSqlTypeName(), fromType.getSqlTypeName(), false)) {
+        if (SqlTypeAssignmentRules.instance(false)
+            .canCastFrom(toType.getSqlTypeName(), fromType.getSqlTypeName())) {
           for (RexLiteral literal : map.get(fromType.getSqlTypeName())) {
             final RexNode cast = rexBuilder.makeCast(toType, literal);
             if (cast instanceof RexLiteral) {
@@ -1824,17 +1823,6 @@ public class RexProgramTest {
             RexUtil.retainDeterministic(RelOptUtil.conjunctions(n)).size());
   }
 
-  private Calendar cal(int y, int m, int d, int h, int mm, int s) {
-    final Calendar c = Util.calendar();
-    c.set(Calendar.YEAR, y);
-    c.set(Calendar.MONTH, m);
-    c.set(Calendar.DAY_OF_MONTH, d);
-    c.set(Calendar.HOUR_OF_DAY, h);
-    c.set(Calendar.MINUTE, mm);
-    c.set(Calendar.SECOND, s);
-    return c;
-  }
-
   @Test public void testConstantMap() {
     final RelDataType intType = typeFactory.createSqlType(SqlTypeName.INTEGER);
     final RelDataType rowType = typeFactory.builder()
@@ -1865,7 +1853,6 @@ public class RexProgramTest {
 
     // Contradictory constraints yield no constants
     final RexNode ref0 = rexBuilder.makeInputRef(rowType, 0);
-    final RexNode ref1 = rexBuilder.makeInputRef(rowType, 1);
     final ImmutableMap<RexNode, RexNode> map2 =
         RexUtil.predicateConstants(RexNode.class, rexBuilder,
             ImmutableList.of(eq(ref0, literal1),
