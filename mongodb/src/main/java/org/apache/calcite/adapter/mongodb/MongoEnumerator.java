@@ -120,7 +120,7 @@ class MongoEnumerator implements Enumerator<Object> {
         ? (Function1) mapGetter()
         : fields.size() == 1
             ? singletonGetter(fields.get(0).getKey(), fields.get(0).getValue())
-            : listGetter(fields);
+            : (Function1) listGetter(fields);
   }
 
   private static Object convert(Object o, Class clazz) {
