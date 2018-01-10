@@ -301,6 +301,10 @@ public class DateRangeRulesTest {
             + " AND(>=($8, 2001-01-01), <($8, 2001-02-01)))))"));
   }
 
+  @Test public void testFloorRewrite(){
+
+  }
+
   private static Set<TimeUnitRange> set(TimeUnitRange... es) {
     return ImmutableSet.copyOf(es);
   }
@@ -316,7 +320,7 @@ public class DateRangeRulesTest {
         DateRangeRules.extractTimeUnits(e);
     for (TimeUnitRange timeUnit : timeUnits) {
       e = e.accept(
-          new DateRangeRules.ExtractShuttle(f.rexBuilder, timeUnit,
+          new DateRangeRules.ExtractAndFloorShuttle(f.rexBuilder, timeUnit,
               operandRanges, timeUnits));
     }
     assertThat(e.toString(), matcher);
@@ -332,6 +336,13 @@ public class DateRangeRulesTest {
     private final RexNode exYearD; // EXTRACT YEAR from DATE field
     private final RexNode exMonthD; // EXTRACT MONTH from DATE field
     private final RexNode exDayD; // EXTRACT DAY from DATE field
+
+    private final RexNode floorYear;
+    private final RexNode floorMonth;
+    private final RexNode floorDay;
+    private final RexNode floorHour;
+    private final RexNode floorMinute;
+    private final RexNode floorSecond;
 
     Fixture2() {
       exYearTs = rexBuilder.makeCall(SqlStdOperatorTable.EXTRACT,
@@ -350,6 +361,19 @@ public class DateRangeRulesTest {
       exDayD = rexBuilder.makeCall(intRelDataType,
           SqlStdOperatorTable.EXTRACT,
           ImmutableList.of(rexBuilder.makeFlag(TimeUnitRange.DAY), d));
+
+      floorYear = rexBuilder.makeCall(intRelDataType, SqlStdOperatorTable.FLOOR,
+          ImmutableList.<RexNode>of(ts, rexBuilder.makeFlag(TimeUnitRange.YEAR)));
+      floorMonth = rexBuilder.makeCall(intRelDataType, SqlStdOperatorTable.FLOOR,
+          ImmutableList.<RexNode>of(ts, rexBuilder.makeFlag(TimeUnitRange.MONTH)));
+      floorDay = rexBuilder.makeCall(intRelDataType, SqlStdOperatorTable.FLOOR,
+          ImmutableList.<RexNode>of(ts, rexBuilder.makeFlag(TimeUnitRange.DAY)));
+      floorHour = rexBuilder.makeCall(intRelDataType, SqlStdOperatorTable.FLOOR,
+          ImmutableList.<RexNode>of(ts, rexBuilder.makeFlag(TimeUnitRange.HOUR)));
+      floorMinute = rexBuilder.makeCall(intRelDataType, SqlStdOperatorTable.FLOOR,
+          ImmutableList.<RexNode>of(ts, rexBuilder.makeFlag(TimeUnitRange.MINUTE)));
+      floorSecond = rexBuilder.makeCall(intRelDataType, SqlStdOperatorTable.FLOOR,
+          ImmutableList.<RexNode>of(ts, rexBuilder.makeFlag(TimeUnitRange.SECOND)));
     }
   }
 }
