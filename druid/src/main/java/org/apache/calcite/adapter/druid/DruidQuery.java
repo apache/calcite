@@ -22,7 +22,7 @@ import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.config.CalciteConnectionProperty;
 import org.apache.calcite.interpreter.BindableRel;
 import org.apache.calcite.interpreter.Bindables;
-import org.apache.calcite.interpreter.Interpreter;
+import org.apache.calcite.interpreter.Compiler;
 import org.apache.calcite.interpreter.Node;
 import org.apache.calcite.interpreter.Sink;
 import org.apache.calcite.linq4j.Enumerable;
@@ -1354,7 +1354,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
     private final DruidQuery query;
     private final QuerySpec querySpec;
 
-    DruidQueryNode(Interpreter interpreter, DruidQuery query) {
+    DruidQueryNode(Compiler interpreter, DruidQuery query) {
       this.query = query;
       this.sink = interpreter.sink(query);
       this.querySpec = query.getQuerySpec();
