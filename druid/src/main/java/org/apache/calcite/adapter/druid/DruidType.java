@@ -24,6 +24,7 @@ public enum DruidType {
   FLOAT(SqlTypeName.FLOAT),
   DOUBLE(SqlTypeName.DOUBLE),
   STRING(SqlTypeName.VARCHAR),
+  COMPLEX(SqlTypeName.OTHER),
   HYPER_UNIQUE(SqlTypeName.VARBINARY),
   THETA_SKETCH(SqlTypeName.VARBINARY);
 
@@ -38,7 +39,7 @@ public enum DruidType {
    * Returns true if and only if this enum should be used inside of a {@link ComplexMetric}
    * */
   public boolean isComplex() {
-    return this == THETA_SKETCH || this == HYPER_UNIQUE;
+    return this == THETA_SKETCH || this == HYPER_UNIQUE || this == COMPLEX;
   }
 
   /**

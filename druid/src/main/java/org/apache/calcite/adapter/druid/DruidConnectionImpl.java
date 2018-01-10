@@ -347,7 +347,7 @@ class DruidConnectionImpl implements DruidConnection {
     switch (token) {
     case VALUE_NUMBER_INT:
       if (type == null) {
-        type = ColumnMetaData.Rep.INTEGER;
+        type = ColumnMetaData.Rep.LONG;
       }
       // fall through
     case VALUE_NUMBER_FLOAT:

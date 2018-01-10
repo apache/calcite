@@ -18,7 +18,6 @@ package org.apache.calcite.adapter.druid;
 
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexCall;
-import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlKind;
@@ -47,31 +46,6 @@ import javax.annotation.Nullable;
  * Filter element of a Druid "groupBy" or "topN" query.
  */
 abstract class DruidJsonFilter implements DruidJson {
-
-  /**
-   * @param rexNode Druid input ref node
-   * @param rowType rowType
-   * @param query Druid Query
-   *
-   * @return Druid column name or null when not possible to translate.
-   */
-  @Nullable
-  private static String extractColumnName(RexNode rexNode, RelDataType rowType, DruidQuery query) {
-
-    if (rexNode.getKind() == SqlKind.INPUT_REF) {
-      final RexInputRef ref = (RexInputRef) rexNode;
-      final String columnName = rowType.getFieldNames().get(ref.getIndex());
-      if (columnName == null) {
-        return null;
-      }
-      //this a nasty hack since calcite has this un-direct renaming of timestamp to __time
-      if (query.getDruidTable().timestampFieldName.equals(columnName)) {
-        return DruidTable.DEFAULT_TIMESTAMP_COLUMN;
-      }
-      return columnName;
-    }
-    return null;
-  }
 
   /**
    * @param rexNode    rexNode to translate to Druid Json Filter
@@ -117,7 +91,7 @@ abstract class DruidJsonFilter implements DruidJson {
     }
     final boolean isNumeric = refNode.getType().getFamily() == SqlTypeFamily.NUMERIC
         || rexLiteral.getType().getFamily() == SqlTypeFamily.NUMERIC;
-    final Pair<String, ExtractionFunction> druidColumn = toDruidColumn(refNode, rowType,
+    final Pair<String, ExtractionFunction> druidColumn = DruidQuery.toDruidColumn(refNode, rowType,
         druidQuery
     );
     final String columnName = druidColumn.left;
@@ -142,120 +116,6 @@ abstract class DruidJsonFilter implements DruidJson {
     return toNotDruidFilter(partialFilter);
   }
 
-  /**
-   * @param rexNode    leaf Input Ref to Druid Column
-   * @param rowType    row type
-   * @param druidQuery druid query
-   *
-   * @return {@link Pair} of Column name and Extraction Function on the top of the input ref or
-   * {@link Pair of(null, null)} when can not translate to valid Druid column
-   */
-  private static Pair<String, ExtractionFunction> toDruidColumn(RexNode rexNode,
-      RelDataType rowType, DruidQuery druidQuery
-  ) {
-    final String columnName;
-    final ExtractionFunction extractionFunction;
-    final Granularity granularity;
-    switch (rexNode.getKind()) {
-    case INPUT_REF:
-      columnName = extractColumnName(rexNode, rowType, druidQuery);
-      //@TODO we can remove this ugly check by treating druid time columns as LONG
-      if (rexNode.getType().getFamily() == SqlTypeFamily.DATE
-          || rexNode.getType().getFamily() == SqlTypeFamily.TIMESTAMP) {
-        extractionFunction = TimeExtractionFunction
-            .createDefault(druidQuery.getConnectionConfig().timeZone());
-      } else {
-        extractionFunction = null;
-      }
-      break;
-    case EXTRACT:
-      granularity = DruidDateTimeUtils
-          .extractGranularity(rexNode, druidQuery.getConnectionConfig().timeZone());
-      if (granularity == null) {
-        // unknown Granularity
-        return Pair.of(null, null);
-      }
-      if (!TimeExtractionFunction.isValidTimeExtract((RexCall) rexNode)) {
-        return Pair.of(null, null);
-      }
-      extractionFunction =
-          TimeExtractionFunction.createExtractFromGranularity(granularity,
-              druidQuery.getConnectionConfig().timeZone()
-          );
-      columnName = extractColumnName(((RexCall) rexNode).getOperands().get(1), rowType, druidQuery);
-
-      break;
-    case FLOOR:
-      granularity = DruidDateTimeUtils
-          .extractGranularity(rexNode, druidQuery.getConnectionConfig().timeZone());
-      if (granularity == null) {
-        // unknown Granularity
-        return Pair.of(null, null);
-      }
-      if (!TimeExtractionFunction.isValidTimeFloor((RexCall) rexNode)) {
-        return Pair.of(null, null);
-      }
-      extractionFunction =
-          TimeExtractionFunction
-              .createFloorFromGranularity(granularity, druidQuery.getConnectionConfig().timeZone());
-      columnName = extractColumnName(((RexCall) rexNode).getOperands().get(0), rowType, druidQuery);
-      break;
-    case CAST:
-      // CASE we have a cast over RexRef. Check that cast is valid
-      if (!isValidLeafCast(rexNode)) {
-        return Pair.of(null, null);
-      }
-      columnName = extractColumnName(((RexCall) rexNode).getOperands().get(0), rowType, druidQuery);
-      // CASE CAST to TIME/DATE need to make sure that we have valid extraction fn
-      final SqlTypeName toTypeName = rexNode.getType().getSqlTypeName();
-      if (toTypeName.getFamily() == SqlTypeFamily.TIMESTAMP
-          || toTypeName.getFamily() == SqlTypeFamily.DATETIME) {
-        extractionFunction = TimeExtractionFunction.translateCastToTimeExtract(rexNode,
-            TimeZone.getTimeZone(druidQuery.getConnectionConfig().timeZone())
-        );
-        if (extractionFunction == null) {
-          // no extraction Function means cast is not valid thus bail out
-          return Pair.of(null, null);
-        }
-      } else {
-        extractionFunction = null;
-      }
-      break;
-    default:
-      return Pair.of(null, null);
-    }
-    return Pair.of(columnName, extractionFunction);
-  }
-
-  private static boolean isValidLeafCast(RexNode rexNode) {
-    assert rexNode.isA(SqlKind.CAST);
-    final RexNode input = ((RexCall) rexNode).getOperands().get(0);
-    if (!input.isA(SqlKind.INPUT_REF)) {
-      // it is not a leaf cast don't bother going further.
-      return false;
-    }
-    final SqlTypeName toTypeName = rexNode.getType().getSqlTypeName();
-    if (toTypeName.getFamily() == SqlTypeFamily.CHARACTER) {
-      // CAST of input to character type
-      return true;
-    }
-    if (toTypeName.getFamily() == SqlTypeFamily.NUMERIC) {
-      // CAST of input to numeric type, it is part of a bounded comparison
-      return true;
-    }
-    if (toTypeName.getFamily() == SqlTypeFamily.TIMESTAMP
-        || toTypeName.getFamily() == SqlTypeFamily.DATETIME) {
-      // CAST of literal to timestamp type
-      return true;
-    }
-    if (toTypeName.getFamily().contains(input.getType())) {
-      //same type it is okay to push it
-      return true;
-    }
-    // Currently other CAST operations cannot be pushed to Druid
-    return false;
-
-  }
 
   /**
    * @param rexNode    rexNode to translate
@@ -301,7 +161,7 @@ abstract class DruidJsonFilter implements DruidJson {
     }
     final boolean isNumeric = refNode.getType().getFamily() == SqlTypeFamily.NUMERIC
         || rexLiteral.getType().getFamily() == SqlTypeFamily.NUMERIC;
-    final Pair<String, ExtractionFunction> druidColumn = toDruidColumn(refNode, rowType,
+    final Pair<String, ExtractionFunction> druidColumn = DruidQuery.toDruidColumn(refNode, rowType,
         druidQuery
     );
     final String columnName = druidColumn.left;
@@ -394,7 +254,8 @@ abstract class DruidJsonFilter implements DruidJson {
     }
     final RexCall rexCall = (RexCall) rexNode;
     final RexNode refNode = rexCall.getOperands().get(0);
-    Pair<String, ExtractionFunction> druidColumn = toDruidColumn(refNode, rowType, druidQuery);
+    Pair<String, ExtractionFunction> druidColumn = DruidQuery
+        .toDruidColumn(refNode, rowType, druidQuery);
     final String columnName = druidColumn.left;
     final ExtractionFunction extractionFunction = druidColumn.right;
     if (columnName == null) {
@@ -423,7 +284,8 @@ abstract class DruidJsonFilter implements DruidJson {
         listBuilder.add(value);
       }
     }
-    Pair<String, ExtractionFunction> druidColumn = toDruidColumn(((RexCall) e).getOperands().get(0),
+    Pair<String, ExtractionFunction> druidColumn = DruidQuery
+        .toDruidColumn(((RexCall) e).getOperands().get(0),
         rowType, druidQuery
     );
     final String columnName = druidColumn.left;
@@ -469,7 +331,8 @@ abstract class DruidJsonFilter implements DruidJson {
     }
     final boolean isNumeric = lhs.getType().getFamily() == SqlTypeFamily.NUMERIC
         || lhs.getType().getFamily() == SqlTypeFamily.NUMERIC;
-    final Pair<String, ExtractionFunction> druidColumn = toDruidColumn(refNode, rowType, query);
+    final Pair<String, ExtractionFunction> druidColumn = DruidQuery
+        .toDruidColumn(refNode, rowType, query);
     final String columnName = druidColumn.left;
     final ExtractionFunction extractionFunction = druidColumn.right;
 
@@ -595,10 +458,10 @@ abstract class DruidJsonFilter implements DruidJson {
   /**
    * Druid Expression filter.
    */
-  private static class JsonExpressionFilter extends DruidJsonFilter {
+  public static class JsonExpressionFilter extends DruidJsonFilter {
     private final String expression;
 
-    private JsonExpressionFilter(String expression) {
+    JsonExpressionFilter(String expression) {
       super(Type.EXPRESSION);
       this.expression = Preconditions.checkNotNull(expression);
     }

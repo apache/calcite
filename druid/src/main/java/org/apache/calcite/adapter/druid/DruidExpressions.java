@@ -76,6 +76,7 @@ public class DruidExpressions {
     builder.put(SqlTypeName.TIMESTAMP, DruidType.LONG);
     builder.put(SqlTypeName.DATE, DruidType.LONG);
     builder.put(SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE, DruidType.LONG);
+    builder.put(SqlTypeName.OTHER, DruidType.COMPLEX);
     EXPRESSION_TYPES = builder.build();
     // Safe chars must be sorted
     Arrays.sort(SAFE_CHARS);
@@ -87,7 +88,7 @@ public class DruidExpressions {
   /**
    * Translates Calcite rexNode to Druid Expression when possible
    * @param rexNode rexNode to convert to a Druid Expression
-   * @param rowType row type related to the rexNode
+   * @param inputRowType input row type of the rexNode to translate
    * @param druidRel Druid query
    *
    * @return Druid Expression or null when can not convert the RexNode
@@ -95,7 +96,7 @@ public class DruidExpressions {
   @Nullable
   public static String toDruidExpression(
       final RexNode rexNode,
-      final RelDataType rowType,
+      final RelDataType inputRowType,
       final DruidQuery druidRel
   ) {
     SqlKind kind = rexNode.getKind();
@@ -103,7 +104,7 @@ public class DruidExpressions {
 
     if (kind == SqlKind.INPUT_REF) {
       final RexInputRef ref = (RexInputRef) rexNode;
-      final String columnName = rowType.getFieldNames().get(ref.getIndex());
+      final String columnName = inputRowType.getFieldNames().get(ref.getIndex());
       if (columnName == null) {
         throw new IllegalArgumentException(
             DateTimeStringUtils.format("Expression referred to nonexistent index[%d]",
@@ -123,7 +124,7 @@ public class DruidExpressions {
         //unknown operator can not translate
         return null;
       } else {
-        return conversion.toDruidExpression(rexNode, rowType, druidRel);
+        return conversion.toDruidExpression(rexNode, inputRowType, druidRel);
       }
     } else if (kind == SqlKind.LITERAL) {
       // Translate literal.
@@ -158,8 +159,7 @@ public class DruidExpressions {
           );
         }
       } else if (SqlTypeName.BOOLEAN == sqlTypeName) {
-        // Skip Boolean for now it is hairy.
-        return null;
+        return DruidExpressions.numberLiteral(RexLiteral.booleanValue(rexNode) ? 1 : 0);
       } else {
         //Unknown Literal type bail out.
         return null;
