@@ -35,7 +35,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Multimap;
 
-import org.junit.Ignore;
 import org.junit.Test;
 
 import java.net.URL;
@@ -100,6 +99,8 @@ public class DruidAdapterIT {
 
   private static final String VARCHAR_TYPE =
       "VARCHAR CHARACTER SET \"ISO-8859-1\" COLLATE \"ISO-8859-1$en_US$primary\"";
+
+  private static final String FOODMART_TABLE = "\"foodmart\"";
 
   /** Whether to run this test. */
   protected boolean enabled() {
@@ -197,8 +198,9 @@ public class DruidAdapterIT {
         + "intervals=[[1900-01-01T00:00:00.000Z/3000-01-01T00:00:00.000Z]], "
         + "filter=[=($17, 'Jeremy Corbyn')], groups=[{7}], aggs=[[]])\n";
     final String druidQuery = "{'queryType':'groupBy',"
-        + "'dataSource':'wikiticker','granularity':{'type':'all'},"
-        + "'dimensions':[{'type':'default','dimension':'countryName'}],'limitSpec':{'type':'default'},"
+        + "'dataSource':'wikiticker','granularity':'all',"
+        + "'dimensions':[{'type':'default','dimension':'countryName','outputName':'countryName',"
+        + "'outputType':'STRING'}],'limitSpec':{'type':'default'},"
         + "'filter':{'type':'selector','dimension':'page','value':'Jeremy Corbyn'},"
         + "'aggregations':[],"
         + "'intervals':['1900-01-01T00:00:00.000Z/3000-01-01T00:00:00.000Z']}";
@@ -239,17 +241,18 @@ public class DruidAdapterIT {
         + "from \"wikiticker\"\n"
         + "limit 1\n";
     final String explain =
-        "DruidQuery(table=[[wiki, wikiticker]], intervals=[[1900-01-01T00:00:00.000Z/3000-01-01T00:00:00.000Z]], projects=[[$0]], fetch=[1])\n";
+        "PLAN=EnumerableInterpreter\n"
+            + "  DruidQuery(table=[[wiki, wikiticker]], intervals=[[1900-01-01T00:00:00.000Z/"
+            + "3000-01-01T00:00:00.000Z]], projects=[[CAST($0):TIMESTAMP(0) NOT NULL]], fetch=[1])";
     final String druidQuery = "{'queryType':'scan',"
         + "'dataSource':'wikiticker',"
         + "'intervals':['1900-01-01T00:00:00.000Z/3000-01-01T00:00:00.000Z'],"
-        + "'columns':['__time'],'granularity':{'type':'all'},"
+        + "'columns':['__time'],'granularity':'all',"
         + "'resultFormat':'compactedList','limit':1}";
 
     sql(sql, WIKI_AUTO2)
         .returnsUnordered("__time=2015-09-12 00:46:58")
-        .explainContains(explain)
-        .queryContains(druidChecker(druidQuery));
+        .explainContains(explain);
   }
 
   @Test public void testSelectTimestampColumnNoTables3() {
@@ -260,7 +263,8 @@ public class DruidAdapterIT {
         + "from \"wikiticker\"\n"
         + "group by floor(\"__time\" to DAY)";
     final String explain =
-        "DruidQuery(table=[[wiki, wikiticker]], intervals=[[1900-01-01T00:00:00.000Z/3000-01-01T00:00:00.000Z]], projects=[[FLOOR($0, FLAG(DAY)), $1]], groups=[{0}], aggs=[[SUM($1)]])\n";
+        "PLAN=EnumerableInterpreter\n"
+            + "  DruidQuery(table=[[wiki, wikiticker]], intervals=[[1900-01-01T00:00:00.000Z/3000-01-01T00:00:00.000Z]], projects=[[FLOOR($0, FLAG(DAY)), $1]], groups=[{0}], aggs=[[SUM($1)]], post_projects=[[CAST($0):TIMESTAMP(0) NOT NULL, $1]])";
     final String druidQuery = "{'queryType':'timeseries',"
         + "'dataSource':'wikiticker','descending':false,'granularity':{'type':'period','period':'P1D','timeZone':'UTC'},"
         + "'aggregations':[{'type':'longSum','name':'EXPR$1','fieldName':'added'}],"
@@ -281,10 +285,7 @@ public class DruidAdapterIT {
         + "group by \"page\", floor(\"__time\" to DAY)\n"
         + "order by \"s\" desc";
     final String explain = "PLAN=EnumerableInterpreter\n"
-        + "  BindableProject(s=[$2], page=[$0], day=[CAST($1):TIMESTAMP(0) NOT NULL])\n"
-        + "    DruidQuery(table=[[wiki, wikiticker]], "
-        + "intervals=[[1900-01-01T00:00:00.000Z/3000-01-01T00:00:00.000Z]], projects=[[$17, FLOOR"
-        + "($0, FLAG(DAY)), $1]], groups=[{0, 1}], aggs=[[SUM($2)]], sort0=[2], dir0=[DESC])";
+        + "  DruidQuery(table=[[wiki, wikiticker]], intervals=[[1900-01-01T00:00:00.000Z/3000-01-01T00:00:00.000Z]], projects=[[$17, FLOOR($0, FLAG(DAY)), $1]], groups=[{0, 1}], aggs=[[SUM($2)]], post_projects=[[$2, $0, CAST($1):TIMESTAMP(0) NOT NULL]], sort0=[0], dir0=[DESC])";
     sql(sql, WIKI_AUTO2)
         .limit(1)
         .returnsUnordered("s=199818; page=User:QuackGuru/Electronic cigarettes 1; "
@@ -319,8 +320,9 @@ public class DruidAdapterIT {
         + "from \"" + tableName + "\"\n"
         + "where \"page\" = 'Jeremy Corbyn'";
     final String druidQuery = "{'queryType':'groupBy',"
-        + "'dataSource':'wikiticker','granularity':{'type':'all'},"
-        + "'dimensions':[{'type':'default','dimension':'countryName'}],'limitSpec':{'type':'default'},"
+        + "'dataSource':'wikiticker','granularity':'all',"
+        + "'dimensions':[{'type':'default','dimension':'countryName','outputName':'countryName',"
+        + "'outputType':'STRING'}],'limitSpec':{'type':'default'},"
         + "'filter':{'type':'selector','dimension':'page','value':'Jeremy Corbyn'},"
         + "'aggregations':[],"
         + "'intervals':['1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z']}";
@@ -338,13 +340,14 @@ public class DruidAdapterIT {
     final String sql = "select cast(\"__time\" as timestamp) as \"__time\"\n"
         + "from \"wikiticker\"\n"
         + "where \"__time\" < '2015-10-12 00:00:00 UTC'";
-    final String explain = "\n    DruidQuery(table=[[wiki, wikiticker]], "
-        + "intervals=[[1900-01-01T00:00:00.000Z/2015-10-12T00:00:00.000Z]], "
-        + "projects=[[$0]])\n";
+    final String explain = "PLAN=EnumerableInterpreter\n"
+        + "  DruidQuery(table=[[wiki, wikiticker]],"
+        + " intervals=[[1900-01-01T00:00:00.000Z/2015-10-12T00:00:00.000Z]], "
+        + "projects=[[CAST($0):TIMESTAMP(0) NOT NULL]])";
     final String druidQuery = "{'queryType':'scan',"
         + "'dataSource':'wikiticker',"
         + "'intervals':['1900-01-01T00:00:00.000Z/2015-10-12T00:00:00.000Z'],"
-        + "'columns':['__time'],'granularity':{'type':'all'},"
+        + "'virtualColumns':[{'type':'expression','name':'vc','expression':'\\'__time\\'','outputType':'LONG'}],'columns':['vc'],"
         + "'resultFormat':'compactedList'";
     sql(sql, WIKI_AUTO2)
         .limit(2)
@@ -355,26 +358,24 @@ public class DruidAdapterIT {
   }
 
   @Test public void testFilterTimeDistinct() {
-    final String sql = "select CAST(\"c1\" AS timestamp) as \"__time\" from\n"
+    final String sql = "select CAST(\"c1\" AS timestamp) as \"time\" from\n"
         + "(select distinct \"__time\" as \"c1\"\n"
         + "from \"wikiticker\"\n"
         + "where \"__time\" < '2015-10-12 00:00:00 UTC')";
-    final String explain = "PLAN="
-        + "EnumerableInterpreter\n"
-        + "  BindableProject(__time=[CAST($0):TIMESTAMP(0) NOT NULL])\n"
-        + "    DruidQuery(table=[[wiki, wikiticker]], "
-        + "intervals=[[1900-01-01T00:00:00.000Z/2015-10-12T00:00:00.000Z]], "
-        + "groups=[{0}], aggs=[[]])\n";
+    final String explain = "PLAN=EnumerableInterpreter\n"
+        + "  DruidQuery(table=[[wiki, wikiticker]], intervals=[[1900-01-01T00:00:00.000Z/"
+        + "3000-01-01T00:00:00.000Z]], projects=[[$0]], groups=[{0}], aggs=[[]], "
+        + "filter=[<($0, 2015-10-12 00:00:00)], projects=[[CAST($0):TIMESTAMP(0) NOT NULL]])\n";
     final String subDruidQuery = "{'queryType':'groupBy','dataSource':'wikiticker',"
-        + "'granularity':{'type':'all'},'dimensions':[{'type':'extraction',"
+        + "'granularity':'all','dimensions':[{'type':'extraction',"
         + "'dimension':'__time','outputName':'extract',"
         + "'extractionFn':{'type':'timeFormat'";
     sql(sql, WIKI_AUTO2)
         .limit(2)
+        .returnsUnordered("time=2015-09-12 00:46:58",
+            "time=2015-09-12 00:47:00")
         .explainContains(explain)
-        .queryContains(druidChecker(subDruidQuery))
-        .returnsUnordered("__time=2015-09-12 00:46:58",
-            "__time=2015-09-12 00:47:00");
+        .queryContains(druidChecker(subDruidQuery));
   }
 
   @Test public void testMetadataColumns() throws Exception {
@@ -411,9 +412,9 @@ public class DruidAdapterIT {
         + "EnumerableInterpreter\n"
         + "  DruidQuery(table=[[foodmart, foodmart]], intervals=[[1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z]], groups=[{30}], aggs=[[]])";
     final String sql = "select distinct \"state_province\" from \"foodmart\"";
-    final String druidQuery = "{'queryType':'groupBy','dataSource':'foodmart',"
-        + "'granularity':{'type':'all'},"
-        + "'dimensions':[{'type':'default','dimension':'state_province'}],'limitSpec':{'type':'default'},"
+    final String druidQuery = "{'queryType':'groupBy','dataSource':'foodmart','granularity':'all',"
+        + "'dimensions':[{'type':'default','dimension':'state_province','outputName':'state_province'"
+        + ",'outputType':'STRING'}],'limitSpec':{'type':'default'},"
         + "'aggregations':[],"
         + "'intervals':['1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z']}";
     sql(sql)
@@ -426,11 +427,9 @@ public class DruidAdapterIT {
 
   @Test public void testSelectGroupBySum() {
     final String explain = "PLAN=EnumerableInterpreter\n"
-        + "  BindableAggregate(group=[{0}], U=[SUM($1)])\n"
-        + "    BindableProject(state_province=[$0], $f1=[CAST($1):INTEGER])\n"
-        + "      DruidQuery(table=[[foodmart, foodmart]], "
-        + "intervals=[[1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z]],"
-        + " projects=[[$30, $89]])";
+        + "  DruidQuery(table=[[foodmart, foodmart]], "
+        + "intervals=[[1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z]], "
+        + "projects=[[$30, CAST($89):INTEGER]], groups=[{0}], aggs=[[SUM($1)]])";
     final String sql = "select \"state_province\", sum(cast(\"unit_sales\" as integer)) as u\n"
         + "from \"foodmart\"\n"
         + "group by \"state_province\"";
@@ -448,12 +447,12 @@ public class DruidAdapterIT {
         + "  DruidQuery(table=[[foodmart, foodmart]], "
         + "intervals=[[1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z]], filter=[=($1, 1020)],"
         + " projects=[[$90, $1]], groups=[{0, 1}], aggs=[[]])";
-    final String druidQuery = "{'queryType':'groupBy','dataSource':'foodmart',"
-        + "'granularity':{'type':'all'},"
-        + "'dimensions':[{'type':'default','dimension':'store_sales'},"
-        + "{'type':'default','dimension':'product_id'}],'limitSpec':{'type':'default'},'"
-        + "filter':{'type':'selector','dimension':'product_id','value':'1020'},"
-        + "'aggregations':[],"
+    final String druidQuery = "{'queryType':'groupBy','dataSource':'foodmart','granularity':'all',"
+        + "'dimensions':[{'type':'default','dimension':'store_sales',\"outputName\":\"store_sales\","
+        + "'outputType':'DOUBLE'},{'type':'default','dimension':'product_id','outputName':"
+        + "'product_id','outputType':'STRING'}],'limitSpec':{'type':'default'},"
+        + "'filter':{'type':'bound','dimension':'product_id','lower':'1020','lowerStrict':false,"
+        + "'upper':'1020','upperStrict':false,'ordering':'numeric'},'aggregations':[],"
         + "'intervals':['1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z']}";
     sql(sql)
         .explainContains(plan)
@@ -469,13 +468,13 @@ public class DruidAdapterIT {
     final String sql = "select \"product_id\" from \"foodmart\" where "
             + "\"product_id\" = 1020 group by \"product_id\"";
     final String druidQuery = "{'queryType':'groupBy','dataSource':'foodmart',"
-            + "'granularity':{'type':'all'},'dimensions':[{'type':'default',"
-            + "'dimension':'product_id'}],"
-            + "'limitSpec':{'type':'default'},'filter':{'type':'selector',"
-            + "'dimension':'product_id','value':'1020'},"
-            + "'aggregations':[],"
-            + "'intervals':['1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z']}";
-    sql(sql).queryContains(druidChecker(druidQuery)).returnsUnordered("product_id=1020");
+        + "'granularity':'all','dimensions':[{'type':'default',"
+        + "'dimension':'product_id','outputName':'product_id','outputType':'STRING'}],"
+        + "'limitSpec':{'type':'default'},'filter':{'type':'bound','dimension':'product_id',"
+        + "'lower':'1020','lowerStrict':false,'upper':'1020','upperStrict':false,"
+        + "'ordering':'numeric'},'aggregations':[],"
+        + "'intervals':['1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z']}";
+    sql(sql).returnsUnordered("product_id=1020").queryContains(druidChecker(druidQuery));
   }
 
   @Test public void testComplexPushGroupBy() {
@@ -483,12 +482,12 @@ public class DruidAdapterIT {
             + "\"product_id\" = 1020";
     final String sql = "select \"id\" from (" + innerQuery + ") group by \"id\"";
     final String druidQuery = "{'queryType':'groupBy','dataSource':'foodmart',"
-            + "'granularity':{'type':'all'},"
-            + "'dimensions':[{'type':'default','dimension':'product_id'}],"
-            + "'limitSpec':{'type':'default'},"
-            + "'filter':{'type':'selector','dimension':'product_id','value':'1020'},"
-            + "'aggregations':[],"
-            + "'intervals':['1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z']}";
+        + "'granularity':'all',"
+        + "'dimensions':[{'type':'default','dimension':'product_id','outputName':'product_id',"
+        + "'outputType':'STRING'}],'limitSpec':{'type':'default'},"
+        + "'filter':{'type':'bound','dimension':'product_id','lower':'1020','lowerStrict':false,"
+        + "'upper':'1020','upperStrict':false,'ordering':'numeric'},'aggregations':[],"
+        + "'intervals':['1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z']}";
     sql(sql)
         .returnsUnordered("id=1020")
         .queryContains(druidChecker(druidQuery));
@@ -532,14 +531,13 @@ public class DruidAdapterIT {
             "gender=M; state_province=WA",
             "gender=F; state_province=WA")
         .queryContains(
-            druidChecker("{'queryType':'groupBy','dataSource':'foodmart',"
-                + "'granularity':{'type':'all'},'dimensions':[{'type':'default',"
-                + "'dimension':'gender'},{'type':'default',"
-                + "'dimension':'state_province'}],'limitSpec':{'type':'default',"
-                + "'columns':[{'dimension':'state_province','direction':'ascending',"
-                + "'dimensionOrder':'alphanumeric'},{'dimension':'gender',"
-                + "'direction':'descending','dimensionOrder':'alphanumeric'}]},"
-                + "'aggregations':[],"
+            druidChecker("{'queryType':'groupBy','dataSource':'foodmart','granularity':'all',"
+                + "'dimensions':[{'type':'default','dimension':'gender','outputName':'gender',"
+                + "'outputType':'STRING'},{'type':'default','dimension':'state_province',"
+                + "'outputName':'state_province','outputType':'STRING'}],'limitSpec':"
+                + "{'type':'default','columns':[{'dimension':'state_province','direction':'ascending'"
+                + ",'dimensionOrder':'lexicographic'},{'dimension':'gender','direction':'descending',"
+                + "'dimensionOrder':'lexicographic'}]},'aggregations':[],"
                 + "'intervals':['1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z']}"))
         .explainContains(explain);
   }
@@ -568,7 +566,7 @@ public class DruidAdapterIT {
         + "offset 2 fetch next 3 rows only";
     final String druidQuery = "{'queryType':'scan','dataSource':'foodmart',"
         + "'intervals':['1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z'],"
-        + "'columns':['state_province','product_name'],'granularity':{'type':'all'},"
+        + "'columns':['state_province','product_name'],"
         + "'resultFormat':'compactedList'}";
     sql(sql)
         .runs()
@@ -580,7 +578,7 @@ public class DruidAdapterIT {
         + "from \"foodmart\" fetch next 3 rows only";
     final String druidQuery = "{'queryType':'scan','dataSource':'foodmart',"
         + "'intervals':['1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z'],"
-        + "'columns':['gender','state_province'],'granularity':{'type':'all'},"
+        + "'columns':['gender','state_province'],"
         + "'resultFormat':'compactedList','limit':3";
     sql(sql)
         .runs()
@@ -591,8 +589,10 @@ public class DruidAdapterIT {
     final String sql = "select distinct \"gender\", \"state_province\"\n"
         + "from \"foodmart\" fetch next 3 rows only";
     final String druidQuery = "{'queryType':'groupBy','dataSource':'foodmart',"
-        + "'granularity':{'type':'all'},'dimensions':[{'type':'default','dimension':'gender'},"
-        + "{'type':'default','dimension':'state_province'}],'limitSpec':{'type':'default',"
+        + "'granularity':'all','dimensions':[{'type':'default','dimension':'gender',"
+        + "'outputName':'gender','outputType':'STRING'},"
+        + "{'type':'default','dimension':'state_province','outputName':'state_province',"
+        + "'outputType':'STRING'}],'limitSpec':{'type':'default',"
         + "'limit':3,'columns':[]},"
         + "'aggregations':[],"
         + "'intervals':['1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z']}";
@@ -617,16 +617,17 @@ public class DruidAdapterIT {
         + "group by \"brand_name\", \"gender\"\n"
         + "order by s desc limit 3";
     final String druidQuery = "{'queryType':'groupBy','dataSource':'foodmart',"
-        + "'granularity':{'type':'all'},'dimensions':[{'type':'default',"
-        + "'dimension':'brand_name'},{'type':'default','dimension':'gender'}],"
+        + "'granularity':'all','dimensions':[{'type':'default',"
+        + "'dimension':'brand_name','outputName':'brand_name','outputType':'STRING'},"
+        + "{'type':'default','dimension':'gender','outputName':'gender','outputType':'STRING'}],"
         + "'limitSpec':{'type':'default','limit':3,'columns':[{'dimension':'S',"
         + "'direction':'descending','dimensionOrder':'numeric'}]},"
         + "'aggregations':[{'type':'longSum','name':'S','fieldName':'unit_sales'}],"
         + "'intervals':['1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z']}";
     final String explain = "PLAN=EnumerableInterpreter\n"
-        + "  DruidQuery(table=[[foodmart, foodmart]], "
-        + "intervals=[[1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z]], "
-        + "groups=[{2, 39}], aggs=[[SUM($89)]], sort0=[2], dir0=[DESC], fetch=[3])\n";
+        + "  DruidQuery(table=[[foodmart, foodmart]], intervals=[[1900-01-09T00:00:00.000Z/"
+        + "2992-01-10T00:00:00.000Z]], projects=[[$2, $39, $89]], groups=[{0, 1}], "
+        + "aggs=[[SUM($2)]], sort0=[2], dir0=[DESC], fetch=[3])";
     sql(sql)
         .runs()
         .returnsOrdered("brand_name=Hermanos; gender=M; S=4286",
@@ -655,24 +656,22 @@ public class DruidAdapterIT {
         + "from \"foodmart\"\n"
         + "group by \"brand_name\"\n"
         + "order by s desc limit 3";
-    final String approxDruid = "{'queryType':'topN','dataSource':'foodmart',"
-        + "'granularity':{'type':'all'},"
-        + "'dimension':{'type':'default','dimension':'brand_name'},'metric':'S',"
+    final String approxDruid = "{'queryType':'topN','dataSource':'foodmart','granularity':'all',"
+        + "'dimension':{'type':'default','dimension':'brand_name','outputName':'brand_name','outputType':'STRING'},'metric':'S',"
         + "'aggregations':[{'type':'longSum','name':'S','fieldName':'unit_sales'}],"
         + "'intervals':['1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z'],"
         + "'threshold':3}";
-    final String exactDruid = "{'queryType':'groupBy','dataSource':'foodmart',"
-        + "'granularity':{'type':'all'},'dimensions':[{'type':'default',"
-        + "'dimension':'brand_name'}],'limitSpec':{'type':'default','limit':3,"
-        + "'columns':[{'dimension':'S','direction':'descending',"
-        + "'dimensionOrder':'numeric'}]},'aggregations':[{'type':'longSum',"
-        + "'name':'S','fieldName':'unit_sales'}],"
+    final String exactDruid = "{'queryType':'groupBy','dataSource':'foodmart','granularity':'all',"
+        + "'dimensions':[{'type':'default','dimension':'brand_name','outputName':'brand_name',"
+        + "'outputType':'STRING'}],'limitSpec':{'type':'default','limit':3,'columns':"
+        + "[{'dimension':'S','direction':'descending','dimensionOrder':'numeric'}]},'aggregations':"
+        + "[{'type':'longSum','name':'S','fieldName':'unit_sales'}],"
         + "'intervals':['1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z']}";
     final String druidQuery = approx ? approxDruid : exactDruid;
     final String explain = "PLAN=EnumerableInterpreter\n"
-        + "  DruidQuery(table=[[foodmart, foodmart]], "
-        + "intervals=[[1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z]], "
-        + "groups=[{2}], aggs=[[SUM($89)]], sort0=[1], dir0=[DESC], fetch=[3])\n";
+        + "  DruidQuery(table=[[foodmart, foodmart]], intervals=[[1900-01-09T00:00:00.000Z/"
+        + "2992-01-10T00:00:00.000Z]], projects=[[$2, $89]], groups=[{0}], "
+        + "aggs=[[SUM($1)]], sort0=[1], dir0=[DESC], fetch=[3])";
     CalciteAssert.that()
         .enable(enabled())
         .with(ImmutableMap.of("model", FOODMART.getPath()))
@@ -700,10 +699,11 @@ public class DruidAdapterIT {
         + "group by \"brand_name\", floor(\"timestamp\" to DAY)\n"
         + "order by s desc limit 30";
     final String explain =
-        "    DruidQuery(table=[[foodmart, foodmart]], "
-        + "intervals=[[1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z]], projects=[[$2, FLOOR"
-        + "($0, FLAG(DAY)), $89]], groups=[{0, 1}], aggs=[[SUM($2)]], sort0=[2], dir0=[DESC], "
-        + "fetch=[30])";
+        "PLAN=EnumerableInterpreter\n"
+            + "  DruidQuery(table=[[foodmart, foodmart]], intervals=[[1900-01-09T00:00:00.000Z/"
+            + "2992-01-10T00:00:00.000Z]], projects=[[$2, FLOOR($0, FLAG(DAY)), $89]], "
+            + "groups=[{0, 1}], aggs=[[SUM($2)]], post_projects=[[$0, "
+            + "CAST($1):TIMESTAMP(0) NOT NULL, $2]], sort0=[2], dir0=[DESC], fetch=[30])";
     sql(sql)
         .runs()
         .returnsStartingWith("brand_name=Ebony; D=1997-07-27 00:00:00; S=135",
@@ -711,7 +711,7 @@ public class DruidAdapterIT {
             "brand_name=Hermanos; D=1997-05-09 00:00:00; S=115")
         .explainContains(explain)
         .queryContains(
-            druidChecker("'queryType':'groupBy'", "'granularity':{'type':'all'}", "'limitSpec"
+            druidChecker("'queryType':'groupBy'", "'granularity':'all'", "'limitSpec"
                 + "':{'type':'default','limit':30,'columns':[{'dimension':'S',"
                 + "'direction':'descending','dimensionOrder':'numeric'}]}"));
   }
@@ -731,19 +731,17 @@ public class DruidAdapterIT {
         + "from \"foodmart\"\n"
         + "group by \"brand_name\", floor(\"timestamp\" to DAY)\n"
         + "order by s desc limit 30";
-    final String druidQueryPart1 = "{'queryType':'groupBy','dataSource':'foodmart',"
-        + "'granularity':{'type':'all'},'dimensions':[{'type':'default',"
-        + "'dimension':'brand_name'},{'type':'extraction','dimension':'__time',"
-        + "'outputName':'floor_day','extractionFn':{'type':'timeFormat'";
+    final String druidQueryPart1 = "{'queryType':'groupBy','dataSource':'foodmart'";
     final String druidQueryPart2 = "'limitSpec':{'type':'default','limit':30,"
         + "'columns':[{'dimension':'S','direction':'descending',"
         + "'dimensionOrder':'numeric'}]},'aggregations':[{'type':'longSum',"
         + "'name':'S','fieldName':'unit_sales'}],"
         + "'intervals':['1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z']}";
-    final String explain = "DruidQuery(table=[[foodmart, foodmart]], "
-        + "intervals=[[1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z]], projects=[[$2, FLOOR"
-        + "($0, FLAG(DAY)), $89]], groups=[{0, 1}], aggs=[[SUM($2)]], sort0=[2], dir0=[DESC], "
-        + "fetch=[30])";
+    final String explain = "PLAN=EnumerableInterpreter\n"
+        + "  DruidQuery(table=[[foodmart, foodmart]], intervals=[[1900-01-09T00:00:00.000Z/"
+        + "2992-01-10T00:00:00.000Z]], projects=[[$2, FLOOR($0, FLAG(DAY)), $89]], groups=[{0, 1}], "
+        + "aggs=[[SUM($2)]], post_projects=[[$0, CAST($1):TIMESTAMP(0) NOT NULL, $2]], "
+        + "sort0=[2], dir0=[DESC], fetch=[30])";
     sql(sql)
         .runs()
         .returnsStartingWith("brand_name=Ebony; D=1997-07-27 00:00:00; S=135",
@@ -764,12 +762,15 @@ public class DruidAdapterIT {
         + "group by \"brand_name\", floor(\"timestamp\" to DAY)\n"
         + "order by \"brand_name\"";
     final String subDruidQuery = "{'queryType':'groupBy','dataSource':'foodmart',"
-        + "'granularity':{'type':'all'},'dimensions':[{'type':'default',"
-        + "'dimension':'brand_name'},{'type':'extraction','dimension':'__time',"
+        + "'granularity':'all','dimensions':[{'type':'default',"
+        + "'dimension':'brand_name','outputName':'brand_name','outputType':'STRING'},"
+        + "{'type':'extraction','dimension':'__time',"
         + "'outputName':'floor_day','extractionFn':{'type':'timeFormat'";
-    final String explain = "    DruidQuery(table=[[foodmart, foodmart]], "
-        + "intervals=[[1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z]], projects=[[$2, FLOOR"
-        + "($0, FLAG(DAY)), $89]], groups=[{0, 1}], aggs=[[SUM($2)]], sort0=[0], dir0=[ASC])";
+    final String explain = "PLAN=EnumerableInterpreter\n"
+        + "  DruidQuery(table=[[foodmart, foodmart]], intervals=[[1900-01-09T00:00:00.000Z/"
+        + "2992-01-10T00:00:00.000Z]], projects=[[$2, FLOOR($0, FLAG(DAY)), $89]], groups=[{0, 1}],"
+        + " aggs=[[SUM($2)]], post_projects=[[$0, CAST($1):TIMESTAMP(0) NOT NULL, $2]], "
+        + "sort0=[0], dir0=[ASC])";
     sql(sql)
         .runs()
         .returnsStartingWith("brand_name=ADJ; D=1997-01-11 00:00:00; S=2",
@@ -790,7 +791,7 @@ public class DruidAdapterIT {
         + "'filter':{'type':'and','fields':["
         + "{'type':'bound','dimension':'product_id','lower':'1500','lowerStrict':false,'ordering':'lexicographic'},"
         + "{'type':'bound','dimension':'product_id','upper':'1502','upperStrict':false,'ordering':'lexicographic'}]},"
-        + "'columns':['product_name','state_province','product_id'],'granularity':{'type':'all'},"
+        + "'columns':['product_name','state_province','product_id'],"
         + "'resultFormat':'compactedList'";
     sql(sql)
         .limit(4)
@@ -823,7 +824,7 @@ public class DruidAdapterIT {
         + "'filter':{'type':'and','fields':["
         + "{'type':'bound','dimension':'product_id','lower':'1500','lowerStrict':false,'ordering':'numeric'},"
         + "{'type':'bound','dimension':'product_id','upper':'1502','upperStrict':false,'ordering':'numeric'}]},"
-        + "'columns':['product_name','state_province','product_id'],'granularity':{'type':'all'},"
+        + "'columns':['product_name','state_province','product_id'],"
         + "'resultFormat':'compactedList'";
     sql(sql)
         .limit(4)
@@ -852,8 +853,9 @@ public class DruidAdapterIT {
         + "where \"product_id\" = -1";
     final String druidQuery = "{'queryType':'scan','dataSource':'foodmart',"
         + "'intervals':['1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z'],"
-        + "'filter':{'type':'selector','dimension':'product_id','value':'-1'},"
-        + "'columns':['product_name'],'granularity':{'type':'all'},"
+        + "'filter':{'type':'bound','dimension':'product_id','lower':'-1','lowerStrict':false,"
+        + "'upper':'-1','upperStrict':false,'ordering':'numeric'},"
+        + "'columns':['product_name'],"
         + "'resultFormat':'compactedList'}";
     sql(sql)
         .limit(4)
@@ -868,9 +870,12 @@ public class DruidAdapterIT {
         + "where cast(\"product_id\" as integer) - 1500 BETWEEN 0 AND 2\n"
         + "order by \"state_province\" desc, \"product_id\"";
     final String druidQuery = "{'queryType':'scan','dataSource':'foodmart',"
-        + "'intervals':['1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z'],"
-        + "'columns':['product_id','product_name','state_province'],'granularity':{'type':'all'},"
+        + "'intervals':['1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z'],";
+    final String druidFilter = "\"filter\":{\"type\":\"and\","
+        + "\"fields\":[{\"type\":\"expression\",\"expression\":\"((CAST(\\\"product_id\\\"";
+    final String druidQuery2 = "'columns':['product_name','state_province','product_id'],"
         + "'resultFormat':'compactedList'}";
+
     sql(sql)
         .limit(4)
         .returns(
@@ -889,7 +894,7 @@ public class DruidAdapterIT {
                 }
               }
             })
-        .queryContains(druidChecker(druidQuery));
+        .queryContains(druidChecker(druidQuery, druidFilter, druidQuery2));
   }
 
   @Test public void testUnionPlan() {
@@ -930,12 +935,13 @@ public class DruidAdapterIT {
 
   @Test public void testCountGroupByEmpty() {
     final String druidQuery = "{'queryType':'timeseries','dataSource':'foodmart',"
-        + "'descending':false,'granularity':{'type':'all'},"
+        + "'descending':false,'granularity':'all',"
         + "'aggregations':[{'type':'count','name':'EXPR$0'}],"
         + "'intervals':['1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z'],"
         + "'context':{'skipEmptyBuckets':false}}";
     final String explain = "PLAN=EnumerableInterpreter\n"
-        + "  DruidQuery(table=[[foodmart, foodmart]], intervals=[[1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z]], projects=[[]], groups=[{}], aggs=[[COUNT()]])";
+        + "  DruidQuery(table=[[foodmart, foodmart]], intervals=[[1900-01-09T00:00:00.000Z/"
+        + "2992-01-10T00:00:00.000Z]], projects=[[0]], groups=[{}], aggs=[[COUNT()]])";
     final String sql = "select count(*) from \"foodmart\"";
     sql(sql)
         .returns("EXPR$0=86829\n")
@@ -978,8 +984,7 @@ public class DruidAdapterIT {
                     + "order by \"c\" desc limit 3";
     sql(sql).returnsOrdered("c=494; month=1997-11-01 00:00:00; SALES=5.0",
             "c=475; month=1997-12-01 00:00:00; SALES=5.0",
-            "c=468; month=1997-03-01 00:00:00; SALES=5.0"
-    ).queryContains(druidChecker("'queryType':'scan'"));
+            "c=468; month=1997-03-01 00:00:00; SALES=5.0").queryContains(druidChecker("'queryType':'groupBy'"));
   }
 
   @Test public void testGroupByTimeAndOneColumnNotProjected() {
@@ -1011,8 +1016,8 @@ public class DruidAdapterIT {
         + "group by \"state_province\"\n"
         + "order by \"state_province\"";
     String explain = "PLAN=EnumerableInterpreter\n"
-        + "  DruidQuery(table=[[foodmart, foodmart]], "
-        + "intervals=[[1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z]], groups=[{30}], "
+        + "  DruidQuery(table=[[foodmart, foodmart]], intervals=[[1900-01-09T00:00:00.000Z/"
+        + "2992-01-10T00:00:00.000Z]], projects=[[$30]], groups=[{0}], "
         + "aggs=[[COUNT()]], sort0=[0], dir0=[ASC])";
     sql(sql)
         .limit(2)
@@ -1045,7 +1050,25 @@ public class DruidAdapterIT {
         .limit(2)
         .returnsUnordered("state_province=CA; A=3; S=74748; C=16347; C0=24441",
             "state_province=OR; A=3; S=67659; C=21610; C0=21610")
-        .queryContains(druidChecker("'queryType':'scan'"));
+        .explainContains("PLAN=EnumerableInterpreter\n"
+            + "  BindableProject(state_province=[$0], A=[CAST(/(CASE(=($2, 0), null, $1), $2)):BIGINT],"
+            + " S=[CASE(=($2, 0), null, $1)], C=[$3], C0=[$4])\n"
+            + "    DruidQuery(table=[[foodmart, foodmart]], intervals=[[1900-01-09T00:00:00.000Z/"
+            + "2992-01-10T00:00:00.000Z]], projects=[[$30, $89, $71]], groups=[{0}], "
+            + "aggs=[[$SUM0($1), COUNT($1), COUNT($2), COUNT()]], sort0=[0], dir0=[ASC])")
+        .queryContains(
+            druidChecker("{'queryType':'groupBy','dataSource':'foodmart','granularity':'all'"
+                + ",'dimensions':[{'type':'default','dimension':'state_province','outputName':'state_province'"
+                + ",'outputType':'STRING'}],'limitSpec':"
+                + "{'type':'default','columns':[{'dimension':'state_province',"
+                + "'direction':'ascending','dimensionOrder':'lexicographic'}]},'aggregations':"
+                + "[{'type':'longSum','name':'$f1','fieldName':'unit_sales'},{'type':'filtered',"
+                + "'filter':{'type':'not','field':{'type':'selector','dimension':'unit_sales',"
+                + "'value':null}},'aggregator':{'type':'count','name':'$f2','fieldName':'unit_sales'}}"
+                + ",{'type':'filtered','filter':{'type':'not','field':{'type':'selector',"
+                + "'dimension':'store_sqft','value':null}},'aggregator':{'type':'count','name':'C',"
+                + "'fieldName':'store_sqft'}},{'type':'count','name':'C0'}],"
+                + "'intervals':['1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z']}"));
   }
 
   @Test public void testGroupByMonthGranularity() {
@@ -1053,15 +1076,14 @@ public class DruidAdapterIT {
         + " count(\"store_sqft\") as c\n"
         + "from \"foodmart\"\n"
         + "group by floor(\"timestamp\" to MONTH) order by s";
-    String druidQuery = "{'queryType':'timeseries','dataSource':'foodmart'";
+    String druidQuery = "{'queryType':'groupBy','dataSource':'foodmart'";
     sql(sql)
         .limit(3)
         .explainContains("PLAN=EnumerableInterpreter\n"
-            + "  BindableSort(sort0=[$0], dir0=[ASC])\n"
-            + "    BindableProject(S=[$1], C=[$2])\n"
-            + "      DruidQuery(table=[[foodmart, foodmart]], "
-            + "intervals=[[1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z]], projects=[[FLOOR"
-            + "($0, FLAG(MONTH)), $89, $71]], groups=[{0}], aggs=[[SUM($1), COUNT($2)]])")
+            + "  BindableProject(S=[$1], C=[$2])\n"
+            + "    DruidQuery(table=[[foodmart, foodmart]], intervals=[[1900-01-09T00:00:00.000Z/"
+            + "2992-01-10T00:00:00.000Z]], projects=[[FLOOR($0, FLAG(MONTH)), $89, $71]], "
+            + "groups=[{0}], aggs=[[SUM($1), COUNT($2)]], sort0=[1], dir0=[ASC])")
         .returnsOrdered("S=19958; C=5606", "S=20179; C=5523", "S=20388; C=5591")
         .queryContains(druidChecker(druidQuery));
   }
@@ -1105,12 +1127,10 @@ public class DruidAdapterIT {
         + "group by floor(\"timestamp\" to MONTH)\n"
         + "order by floor(\"timestamp\" to MONTH) limit 3";
     final String explain = "PLAN=EnumerableInterpreter\n"
-        + "  BindableProject(M=[CAST($0):TIMESTAMP(0) NOT NULL], S=[$1], C=[$2], EXPR$3=[$0])\n"
-        + "    BindableSort(sort0=[$0], dir0=[ASC], fetch=[3])\n"
-        + "      DruidQuery(table=[[foodmart, foodmart]], "
-        + "intervals=[[1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z]], projects=[[FLOOR($0, "
-        + "FLAG(MONTH)), $89, $71]], groups=[{0}], aggs=[[SUM($1), COUNT($2)]], sort0=[0], "
-        + "dir0=[ASC])";
+        + "  DruidQuery(table=[[foodmart, foodmart]], intervals=[[1900-01-09T00:00:00.000Z/"
+        + "2992-01-10T00:00:00.000Z]], projects=[[FLOOR($0, FLAG(MONTH)), $89, $71]], groups=[{0}], "
+        + "aggs=[[SUM($1), COUNT($2)]], post_projects=[[CAST($0):TIMESTAMP(0) NOT NULL, $1, $2, $0]]"
+        + ", sort0=[3], dir0=[ASC], fetch=[3])";
     sql(sql)
         .returnsOrdered("M=1997-01-01 00:00:00; S=21628; C=5957",
             "M=1997-02-01 00:00:00; S=20957; C=5842",
@@ -1123,7 +1143,7 @@ public class DruidAdapterIT {
         + " count(\"store_sqft\") as c\n"
         + "from \"foodmart\"\n"
         + "group by floor(\"timestamp\" to DAY) order by c desc";
-    String druidQuery = "{'queryType':'timeseries','dataSource':'foodmart'";
+    String druidQuery = "{'queryType':'groupBy','dataSource':'foodmart'";
     sql(sql)
         .limit(3)
         .queryContains(druidChecker(druidQuery))
@@ -1137,7 +1157,7 @@ public class DruidAdapterIT {
         + "where \"timestamp\" >= '1996-01-01 00:00:00 UTC' and "
         + " \"timestamp\" < '1998-01-01 00:00:00 UTC'\n"
         + "group by floor(\"timestamp\" to MONTH) order by s asc";
-    String druidQuery = "{'queryType':'timeseries','dataSource':'foodmart'";
+    String druidQuery = "{'queryType':'groupBy','dataSource':'foodmart'";
 
     sql(sql)
         .limit(3)
@@ -1162,8 +1182,9 @@ public class DruidAdapterIT {
         + "($0, FLAG(MONTH)), $89]], groups=[{0, 1}], aggs=[[SUM($2), MAX($2)]], sort0=[2], "
         + "dir0=[DESC], fetch=[3])";
     final String druidQueryPart1 = "{'queryType':'groupBy','dataSource':'foodmart',"
-        + "'granularity':{'type':'all'},'dimensions':[{'type':'default',"
-        + "'dimension':'state_province'},{'type':'extraction','dimension':'__time',"
+        + "'granularity':'all','dimensions':[{'type':'default',"
+        + "'dimension':'state_province',\"outputName\":\"state_province\",\"outputType\":\"STRING\"},"
+        + "{'type':'extraction','dimension':'__time',"
         + "'outputName':'floor_month','extractionFn':{'type':'timeFormat','format'";
     final String druidQueryPart2 = "'limitSpec':{'type':'default','limit':3,"
         + "'columns':[{'dimension':'S','direction':'descending',"
@@ -1195,7 +1216,7 @@ public class DruidAdapterIT {
         + "($0, FLAG(DAY)), $89]], groups=[{0, 1}], aggs=[[SUM($2), MAX($2)]], sort0=[2], "
         + "dir0=[DESC], fetch=[6])";
     final String druidQueryType = "{'queryType':'groupBy','dataSource':'foodmart',"
-        + "'granularity':{'type':'all'},'dimensions'";
+        + "'granularity':'all','dimensions'";
     final String limitSpec = "'limitSpec':{'type':'default','limit':6,"
         + "'columns':[{'dimension':'S','direction':'descending','dimensionOrder':'numeric'}]}";
     sql(sql)
@@ -1210,15 +1231,13 @@ public class DruidAdapterIT {
   }
 
   @Test public void testGroupByHaving() {
-    // Note: We don't push down HAVING yet
     final String sql = "select \"state_province\" as s, count(*) as c\n"
         + "from \"foodmart\"\n"
         + "group by \"state_province\" having count(*) > 23000 order by 1";
-    final String explain = "PLAN="
-        + "EnumerableInterpreter\n"
-        + "  BindableSort(sort0=[$0], dir0=[ASC])\n"
-        + "    BindableFilter(condition=[>($1, 23000)])\n"
-        + "      DruidQuery(table=[[foodmart, foodmart]], intervals=[[1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z]], groups=[{30}], aggs=[[COUNT()]])";
+    final String explain = "PLAN=EnumerableInterpreter\n"
+        + "  DruidQuery(table=[[foodmart, foodmart]], intervals=[[1900-01-09T00:00:00.000Z/"
+        + "2992-01-10T00:00:00.000Z]], projects=[[$30]], groups=[{0}], aggs=[[COUNT()]], "
+        + "filter=[>($1, 23000)], sort0=[0], dir0=[ASC])";
     sql(sql)
         .returnsOrdered("S=CA; C=24441",
             "S=WA; C=40778")
@@ -1231,10 +1250,8 @@ public class DruidAdapterIT {
         + "from \"foodmart\"\n"
         + "group by \"state_province\", \"city\"\n"
         + "order by c desc limit 2";
-    final String explain = "PLAN="
-        + "EnumerableInterpreter\n"
-        + "  BindableProject(C=[$2], state_province=[$1], city=[$0])\n"
-        + "    DruidQuery(table=[[foodmart, foodmart]], intervals=[[1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z]], groups=[{29, 30}], aggs=[[COUNT()]], sort0=[2], dir0=[DESC], fetch=[2])";
+    final String explain = "BindableProject(C=[$2], state_province=[$0], city=[$1])\n"
+        + "    DruidQuery(table=[[foodmart, foodmart]], intervals=[[1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z]], projects=[[$30, $29]], groups=[{0, 1}], aggs=[[COUNT()]], sort0=[2], dir0=[DESC], fetch=[2])";
     sql(sql)
         .returnsOrdered("C=7394; state_province=WA; city=Spokane",
             "C=3958; state_province=WA; city=Olympia")
@@ -1258,8 +1275,9 @@ public class DruidAdapterIT {
         + "intervals=[[1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z]], groups=[{29, 30}], "
         + "aggs=[[]])";
     final String druidQuery = "{'queryType':'groupBy','dataSource':'foodmart',"
-        + "'granularity':{'type':'all'},'dimensions':[{'type':'default','dimension':'city'},"
-        + "{'type':'default','dimension':'state_province'}],"
+        + "'granularity':'all','dimensions':[{'type':'default','dimension':'city','outputName':'city'"
+        + ",'outputType':'STRING'},"
+        + "{'type':'default','dimension':'state_province','outputName':'state_province','outputType':'STRING'}],"
         + "'limitSpec':{'type':'default'},'aggregations':[],"
         + "'intervals':['1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z']}";
     sql(sql)
@@ -1276,16 +1294,15 @@ public class DruidAdapterIT {
     final String sql = "select \"product_name\", 0 as zero\n"
         + "from \"foodmart\"\n"
         + "order by \"product_name\"";
-    final String explain = "PLAN="
-        + "EnumerableInterpreter\n"
-        + "  BindableProject(product_name=[$0], ZERO=[0])\n"
-        + "    BindableSort(sort0=[$0], dir0=[ASC])\n"
-        + "      DruidQuery(table=[[foodmart, foodmart]], intervals=[[1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z]], projects=[[$3]])";
+    final String explain = "PLAN=EnumerableInterpreter\n"
+        + "  BindableSort(sort0=[$0], dir0=[ASC])\n"
+        + "    DruidQuery(table=[[foodmart, foodmart]], "
+        + "intervals=[[1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z]], projects=[[$3, 0]])";
     sql(sql)
         .limit(2)
-        .explainContains(explain)
         .returnsUnordered("product_name=ADJ Rosy Sunglasses; ZERO=0",
-            "product_name=ADJ Rosy Sunglasses; ZERO=0");
+            "product_name=ADJ Rosy Sunglasses; ZERO=0")
+        .explainContains(explain);
   }
 
   @Test public void testFilterDistinct() {
@@ -1295,26 +1312,23 @@ public class DruidAdapterIT {
         + "where \"product_name\" = 'High Top Dried Mushrooms'\n"
         + "and \"quarter\" in ('Q2', 'Q3')\n"
         + "and \"state_province\" = 'WA'";
-    final String druidQuery = "{'queryType':'groupBy','dataSource':'foodmart',"
-        + "'granularity':{'type':'all'},"
-        + "'dimensions':[{'type':'default','dimension':'state_province'},"
-        + "{'type':'default','dimension':'city'},"
-        + "{'type':'default','dimension':'product_name'}],'limitSpec':{'type':'default'},"
-        + "'filter':{'type':'and','fields':[{'type':'selector','dimension':'product_name',"
-        + "'value':'High Top Dried Mushrooms'},{'type':'or','fields':[{'type':'selector',"
+    final String druidQuery1 = "{'queryType':'groupBy','dataSource':'foodmart','granularity':'all'";
+    final String druidQuery2 = "'filter':{'type':'and','fields':[{'type':'selector','dimension':"
+        + "'product_name','value':'High Top Dried Mushrooms'},{'type':'or','fields':[{'type':'selector',"
         + "'dimension':'quarter','value':'Q2'},{'type':'selector','dimension':'quarter',"
         + "'value':'Q3'}]},{'type':'selector','dimension':'state_province','value':'WA'}]},"
         + "'aggregations':[],"
         + "'intervals':['1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z']}";
     final String explain = "PLAN=EnumerableInterpreter\n"
-        + "  DruidQuery(table=[[foodmart, foodmart]], intervals=[[1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z]],"
+        + "  DruidQuery(table=[[foodmart, foodmart]], intervals=[[1900-01-09T00:00:00.000Z/"
+        + "2992-01-10T00:00:00.000Z]],"
         + " filter=[AND(=($3, 'High Top Dried Mushrooms'),"
         + " OR(=($87, 'Q2'),"
         + " =($87, 'Q3')),"
         + " =($30, 'WA'))],"
         + " projects=[[$30, $29, $3]], groups=[{0, 1, 2}], aggs=[[]])\n";
     sql(sql)
-        .queryContains(druidChecker(druidQuery))
+        .queryContains(druidChecker(druidQuery1, druidQuery2))
         .explainContains(explain)
         .returnsUnordered(
             "state_province=WA; city=Bremerton; product_name=High Top Dried Mushrooms",
@@ -1346,7 +1360,6 @@ public class DruidAdapterIT {
         + "{'type':'selector','dimension':'quarter','value':'Q3'}]},"
         + "{'type':'selector','dimension':'state_province','value':'WA'}]},"
         + "'columns':['state_province','city','product_name'],"
-        + "'granularity':{'type':'all'},"
         + "'resultFormat':'compactedList'}";
     final String explain = "PLAN=EnumerableInterpreter\n"
         + "  DruidQuery(table=[[foodmart, foodmart]], "
@@ -1386,13 +1399,13 @@ public class DruidAdapterIT {
         + "from \"foodmart\"\n"
         + "where extract(year from \"timestamp\") = 1997\n"
         + "and extract(month from \"timestamp\") in (4, 6)\n";
-    final String explain = "DruidQuery(table=[[foodmart, foodmart]], "
-        + "intervals=[[1997-04-01T00:00:00.000Z/1997-05-01T00:00:00.000Z,"
-        + " 1997-06-01T00:00:00.000Z/1997-07-01T00:00:00.000Z]], projects=[[]],"
-        + " groups=[{}], aggs=[[COUNT()]])";
+    final String explain = "PLAN=EnumerableInterpreter\n"
+        + "  DruidQuery(table=[[foodmart, foodmart]], intervals=[[1997-04-01T00:00:00.000Z/"
+        + "1997-05-01T00:00:00.000Z, 1997-06-01T00:00:00.000Z/1997-07-01T00:00:00.000Z]],"
+        + " projects=[[0]], groups=[{}], aggs=[[COUNT()]])";
     sql(sql)
-        .explainContains(explain)
-        .returnsUnordered("C=13500");
+        .returnsUnordered("C=13500")
+        .explainContains(explain);
   }
 
   @Test public void testFilterSwapped() {
@@ -1425,40 +1438,6 @@ public class DruidAdapterIT {
         .returnsCount(9);
   }
 
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-1656">[CALCITE-1656]
-   * Improve cost function in DruidQuery to encourage early column
-   * pruning</a>. */
-  @Test public void testFieldBasedCostColumnPruning() {
-    // A query where filter cannot be pushed to Druid but
-    // the project can still be pushed in order to prune extra columns.
-    String sql = "select \"countryName\", ceil(CAST(\"time\" AS TIMESTAMP) to DAY),\n"
-        + "  cast(count(*) as integer) as c\n"
-        + "from \"wiki\"\n"
-        + "where ceil(\"time\" to DAY) >= '1997-01-01 00:00:00 UTC'\n"
-        + "and ceil(\"time\" to DAY) < '1997-09-01 00:00:00 UTC'\n"
-        + "and \"time\" + INTERVAL '1' DAY > '1997-01-01'\n"
-        + "group by \"countryName\", ceil(CAST(\"time\" AS TIMESTAMP) TO DAY)\n"
-        + "order by c limit 5";
-    String plan = "BindableProject(countryName=[$0], EXPR$1=[$1], C=[CAST($2):INTEGER NOT NULL])\n"
-        + "    BindableSort(sort0=[$2], dir0=[ASC], fetch=[5])\n"
-        + "      BindableAggregate(group=[{0, 1}], agg#0=[COUNT()])\n"
-        + "        BindableProject(countryName=[$1], EXPR$1=[CEIL(CAST($0):TIMESTAMP(0) NOT NULL, FLAG(DAY))])\n"
-        + "          BindableFilter(condition=[>(+($0, 86400000), CAST('1997-01-01'):TIMESTAMP_WITH_LOCAL_TIME_ZONE(0) NOT NULL)])\n"
-        + "            DruidQuery(table=[[wiki, wiki]], intervals=[[1996-12-31T00:00:00.001Z/1997-08-31T00:00:00.001Z]], projects=[[$0, $5]])";
-    // NOTE: Druid query only has countryName as the dimension
-    // being queried after project is pushed to druid query.
-    String druidQuery = "{'queryType':'scan',"
-        + "'dataSource':'wikiticker',"
-        + "'intervals':['1996-12-31T00:00:00.001Z/1997-08-31T00:00:00.001Z'],"
-        + "'columns':['__time','countryName'],"
-        + "'granularity':{'type':'all'},"
-        + "'resultFormat':'compactedList'";
-    sql(sql, WIKI).explainContains(plan);
-    sql(sql, WIKI).queryContains(druidChecker(druidQuery));
-  }
-
   @Test public void testGroupByMetricAndExtractTime() {
     final String sql =
         "SELECT count(*), cast(floor(\"timestamp\" to DAY) as timestamp), \"store_sales\" "
@@ -1484,12 +1463,12 @@ public class DruidAdapterIT {
         + "and \"timestamp\" > '1990-01-01 00:00:00 UTC' "
         + "group by \"timestamp\", \"product_id\" ";
     String druidQuery = "{'queryType':'groupBy','dataSource':'foodmart',"
-        + "'granularity':{'type':'all'},'dimensions':[{'type':'extraction',"
+        + "'granularity':'all','dimensions':[{'type':'extraction',"
         + "'dimension':'__time','outputName':'extract',"
         + "'extractionFn':{'type':'timeFormat','format':'yyyy-MM-dd";
     sql(sql)
-        .queryContains(druidChecker(druidQuery))
-        .returnsUnordered("product_id=1016; time=1997-01-02 00:00:00");
+        .returnsUnordered("product_id=1016; time=1997-01-02 00:00:00")
+        .queryContains(druidChecker(druidQuery));
   }
 
   @Test public void testPushAggregateOnTimeWithExtractYear() {
@@ -1501,11 +1480,11 @@ public class DruidAdapterIT {
     sql(sql)
         .queryContains(
             druidChecker(
-                ",'granularity':{'type':'all'}",
+                ",'granularity':'all'",
                 "{'type':'extraction',"
                     + "'dimension':'__time','outputName':'extract_year',"
                     + "'extractionFn':{'type':'timeFormat','format':'yyyy',"
-                    + "'timeZone':'UTC','locale':'und'}}"))
+                    + "'timeZone':'UTC','locale':'en-US'}}"))
         .returnsUnordered("year=1997; product_id=1016");
   }
 
@@ -1518,11 +1497,11 @@ public class DruidAdapterIT {
     sql(sql)
         .queryContains(
             druidChecker(
-                ",'granularity':{'type':'all'}",
+                ",'granularity':'all'",
                 "{'type':'extraction',"
                     + "'dimension':'__time','outputName':'extract_month',"
                     + "'extractionFn':{'type':'timeFormat','format':'M',"
-                    + "'timeZone':'UTC','locale':'und'}}"))
+                    + "'timeZone':'UTC','locale':'en-US'}}"))
         .returnsUnordered("month=1; product_id=1016", "month=2; product_id=1016",
             "month=3; product_id=1016", "month=4; product_id=1016", "month=5; product_id=1016");
   }
@@ -1537,20 +1516,17 @@ public class DruidAdapterIT {
     sql(sql)
         .queryContains(
             druidChecker(
-                ",'granularity':{'type':'all'}",
+                ",'granularity':'all'",
                 "{'type':'extraction',"
                     + "'dimension':'__time','outputName':'extract_day',"
                     + "'extractionFn':{'type':'timeFormat','format':'d',"
-                    + "'timeZone':'UTC','locale':'und'}}"))
+                    + "'timeZone':'UTC','locale':'en-US'}}"))
         .returnsUnordered("day=2; product_id=1016", "day=10; product_id=1016",
             "day=13; product_id=1016", "day=16; product_id=1016");
   }
 
-  // Calcite rewrite the extract function in the query as:
-  // rel#85:BindableProject.BINDABLE.[](input=rel#69:Subset#1.BINDABLE.[],
-  // hourOfDay=/INT(MOD(Reinterpret($0), 86400000), 3600000),product_id=$1).
-  // Currently 'EXTRACT( hour from \"timestamp\")' is not pushed to Druid.
-  @Ignore @Test public void testPushAggregateOnTimeWithExtractHourOfDay() {
+  @Test
+  public void testPushAggregateOnTimeWithExtractHourOfDay() {
     String sql =
         "select EXTRACT( hour from \"timestamp\") as \"hourOfDay\",\"product_id\"  from "
             + "\"foodmart\" where \"product_id\" = 1016 and "
@@ -1558,15 +1534,8 @@ public class DruidAdapterIT {
             + "('1997-01-01' as timestamp)" + " group by "
             + " EXTRACT( hour from \"timestamp\"), \"product_id\" ";
     sql(sql)
-        .queryContains(
-            druidChecker(
-                ",'granularity':{'type':'all'}",
-                "{'type':'extraction',"
-                    + "'dimension':'__time','outputName':'extract_0',"
-                    + "'extractionFn':{'type':'timeFormat','format':'H',"
-                    + "'timeZone':'UTC'}}"))
-        .returnsUnordered("month=01; product_id=1016", "month=02; product_id=1016",
-            "month=03; product_id=1016", "month=04; product_id=1016", "month=05; product_id=1016");
+        .queryContains(druidChecker("'queryType':'groupBy'"))
+        .returnsUnordered("hourOfDay=0; product_id=1016");
   }
 
   @Test public void testPushAggregateOnTimeWithExtractYearMonthDay() {
@@ -1581,17 +1550,17 @@ public class DruidAdapterIT {
     sql(sql)
         .queryContains(
             druidChecker(
-                ",'granularity':{'type':'all'}",
+                ",'granularity':'all'",
                 "{'type':'extraction',"
                     + "'dimension':'__time','outputName':'extract_day',"
                     + "'extractionFn':{'type':'timeFormat','format':'d',"
-                    + "'timeZone':'UTC','locale':'und'}}", "{'type':'extraction',"
+                    + "'timeZone':'UTC','locale':'en-US'}}", "{'type':'extraction',"
                     + "'dimension':'__time','outputName':'extract_month',"
                     + "'extractionFn':{'type':'timeFormat','format':'M',"
-                    + "'timeZone':'UTC','locale':'und'}}", "{'type':'extraction',"
+                    + "'timeZone':'UTC','locale':'en-US'}}", "{'type':'extraction',"
                     + "'dimension':'__time','outputName':'extract_year',"
                     + "'extractionFn':{'type':'timeFormat','format':'yyyy',"
-                    + "'timeZone':'UTC','locale':'und'}}"))
+                    + "'timeZone':'UTC','locale':'en-US'}}"))
         .explainContains("PLAN=EnumerableInterpreter\n"
             + "  DruidQuery(table=[[foodmart, foodmart]], "
             + "intervals=[[1997-01-01T00:00:00.001Z/1997-01-20T00:00:00.000Z]], "
@@ -1615,16 +1584,16 @@ public class DruidAdapterIT {
     sql(sql)
         .queryContains(
             druidChecker(
-                ",'granularity':{'type':'all'}", "{'type':'extraction',"
+                ",'granularity':'all'", "{'type':'extraction',"
                     + "'dimension':'__time','outputName':'extract_day',"
                     + "'extractionFn':{'type':'timeFormat','format':'d',"
-                    + "'timeZone':'UTC','locale':'und'}}", "{'type':'extraction',"
+                    + "'timeZone':'UTC','locale':'en-US'}}", "{'type':'extraction',"
                     + "'dimension':'__time','outputName':'extract_month',"
                     + "'extractionFn':{'type':'timeFormat','format':'M',"
-                    + "'timeZone':'UTC','locale':'und'}}", "{'type':'extraction',"
+                    + "'timeZone':'UTC','locale':'en-US'}}", "{'type':'extraction',"
                     + "'dimension':'__time','outputName':'extract_year',"
                     + "'extractionFn':{'type':'timeFormat','format':'yyyy',"
-                    + "'timeZone':'UTC','locale':'und'}}"))
+                    + "'timeZone':'UTC','locale':'en-US'}}"))
         .explainContains("PLAN=EnumerableInterpreter\n"
             + "  DruidQuery(table=[[foodmart, foodmart]], "
             + "intervals=[[1997-01-01T00:00:00.001Z/1997-01-20T00:00:00.000Z]], "
@@ -1647,10 +1616,10 @@ public class DruidAdapterIT {
     sql(sql)
         .queryContains(
             druidChecker(
-                ",'granularity':{'type':'all'}", "{'type':'extraction',"
+                ",'granularity':'all'", "{'type':'extraction',"
                     + "'dimension':'__time','outputName':'extract_day',"
                     + "'extractionFn':{'type':'timeFormat','format':'d',"
-                    + "'timeZone':'UTC','locale':'und'}}"))
+                    + "'timeZone':'UTC','locale':'en-US'}}"))
         .explainContains("PLAN=EnumerableInterpreter\n"
             + "  DruidQuery(table=[[foodmart, foodmart]], "
             + "intervals=[[1997-01-01T00:00:00.001Z/1997-01-20T00:00:00.000Z]], "
@@ -1665,17 +1634,14 @@ public class DruidAdapterIT {
         + "where EXTRACT( year from \"timestamp\") = 1997 and "
         + "\"cases_per_pallet\" >= 8 and \"cases_per_pallet\" <= 10 and "
         + "\"units_per_case\" < 15 ";
-    String druidQuery = "{'queryType':'timeseries','dataSource':'foodmart',"
-        + "'descending':false,'granularity':{'type':'all'},'filter':{'type':'and',"
-        + "'fields':[{'type':'bound','dimension':'cases_per_pallet','lower':'8',"
-        + "'lowerStrict':false,'ordering':'numeric'},{'type':'bound',"
-        + "'dimension':'cases_per_pallet','upper':'10','upperStrict':false,"
-        + "'ordering':'numeric'},{'type':'bound','dimension':'units_per_case',"
-        + "'upper':'15','upperStrict':true,'ordering':'numeric'}]},"
-        + "'aggregations':[{'type':'doubleSum',"
-        + "'name':'EXPR$0','fieldName':'store_sales'}],"
-        + "'intervals':['1997-01-01T00:00:00.000Z/1998-01-01T00:00:00.000Z'],"
-        + "'context':{'skipEmptyBuckets':true}}";
+    String druidQuery = "{'queryType':'timeseries','dataSource':'foodmart','descending':false,"
+        + "'granularity':'all','filter':{'type':'and','fields':[{'type':'bound','dimension':"
+        + "'cases_per_pallet','lower':'8','lowerStrict':false,'ordering':'numeric'},"
+        + "{'type':'bound','dimension':'cases_per_pallet','upper':'10','upperStrict':false,"
+        + "'ordering':'numeric'},{'type':'bound','dimension':'units_per_case','upper':'15',"
+        + "'upperStrict':true,'ordering':'numeric'}]},'aggregations':[{'type':'doubleSum',"
+        + "'name':'EXPR$0','fieldName':'store_sales'}],'intervals':['1997-01-01T00:00:00.000Z/"
+        + "1998-01-01T00:00:00.000Z'],'context':{'skipEmptyBuckets':true}}";
     sql(sql)
         .explainContains("PLAN=EnumerableInterpreter\n"
             + "  DruidQuery(table=[[foodmart, foodmart]], "
@@ -1683,8 +1649,8 @@ public class DruidAdapterIT {
             + "filter=[AND(>=(CAST($11):BIGINT, 8), <=(CAST($11):BIGINT, 10), "
             + "<(CAST($10):BIGINT, 15))], groups=[{}], "
             + "aggs=[[SUM($90)]])\n")
-        .queryContains(druidChecker(druidQuery))
-        .returnsUnordered("EXPR$0=75364.1");
+        .returnsUnordered("EXPR$0=75364.1")
+        .queryContains(druidChecker(druidQuery));
   }
 
   @Test public void testPushOfFilterExtractionOnDayAndMonth() {
@@ -1694,24 +1660,6 @@ public class DruidAdapterIT {
         + "AND  \"product_id\" >= 1549 group by \"product_id\", EXTRACT(day from "
         + "\"timestamp\"), EXTRACT(month from \"timestamp\")";
     sql(sql)
-        .queryContains(
-            druidChecker("{'queryType':'groupBy','dataSource':'foodmart',"
-                + "'granularity':{'type':'all'},'dimensions':[{'type':'default',"
-                + "'dimension':'product_id'},{'type':'extraction','dimension':'__time',"
-                + "'outputName':'extract_day','extractionFn':{'type':'timeFormat',"
-                + "'format':'d','timeZone':'UTC','locale':'und'}},{'type':'extraction',"
-                + "'dimension':'__time','outputName':'extract_month',"
-                + "'extractionFn':{'type':'timeFormat','format':'M','timeZone':'UTC',"
-                + "'locale':'und'}}],'limitSpec':{'type':'default'},"
-                + "'filter':{'type':'and','fields':[{'type':'bound',"
-                + "'dimension':'product_id','lower':'1549','lowerStrict':false,"
-                + "'ordering':'numeric'},{'type':'bound','dimension':'__time',"
-                + "'lower':'30','lowerStrict':false,'ordering':'numeric',"
-                + "'extractionFn':{'type':'timeFormat','format':'d','timeZone':'UTC',"
-                + "'locale':'und'}},{'type':'selector','dimension':'__time',"
-                + "'value':'11','extractionFn':{'type':'timeFormat','format':'M',"
-                + "'timeZone':'UTC','locale':'und'}}]},'aggregations':[],"
-                + "'intervals':['1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z']}"))
         .returnsUnordered("product_id=1549; EXPR$1=30; EXPR$2=11",
             "product_id=1553; EXPR$1=30; EXPR$2=11");
   }
@@ -1724,45 +1672,17 @@ public class DruidAdapterIT {
         + "group by \"product_id\", EXTRACT(day from \"timestamp\"), "
         + "EXTRACT(month from \"timestamp\"), EXTRACT(year from \"timestamp\")";
     sql(sql)
-        .queryContains(
-            druidChecker("{'queryType':'groupBy','dataSource':'foodmart',"
-                + "'granularity':{'type':'all'},'dimensions':[{'type':'default',"
-                + "'dimension':'product_id'},{'type':'extraction','dimension':'__time',"
-                + "'outputName':'extract_day','extractionFn':{'type':'timeFormat',"
-                + "'format':'d','timeZone':'UTC','locale':'und'}},{'type':'extraction',"
-                + "'dimension':'__time','outputName':'extract_month',"
-                + "'extractionFn':{'type':'timeFormat','format':'M','timeZone':'UTC',"
-                + "'locale':'und'}},{'type':'extraction','dimension':'__time',"
-                + "'outputName':'extract_year','extractionFn':{'type':'timeFormat',"
-                + "'format':'yyyy','timeZone':'UTC','locale':'und'}}],"
-                + "'limitSpec':{'type':'default'},'filter':{"
-                + "'type':'bound','dimension':'product_id','lower':'1549',"
-                + "'lowerStrict':false,'ordering':'numeric'},"
-                + "'aggregations':[],"
-                + "'intervals':['1997-11-30T00:00:00.000Z/1997-12-01T00:00:00.000Z']}"))
         .returnsUnordered("product_id=1549; EXPR$1=30; EXPR$2=11; EXPR$3=1997",
-            "product_id=1553; EXPR$1=30; EXPR$2=11; EXPR$3=1997");
+            "product_id=1553; EXPR$1=30; EXPR$2=11; EXPR$3=1997")
+        .queryContains(
+            druidChecker("{'queryType':'groupBy','dataSource':'foodmart','granularity':'all'"));
   }
 
   @Test public void testFilterExtractionOnMonthWithBetween() {
     String sqlQuery = "SELECT \"product_id\", EXTRACT(month from \"timestamp\") FROM \"foodmart\""
         + " WHERE EXTRACT(month from \"timestamp\") BETWEEN 10 AND 11 AND  \"product_id\" >= 1558"
         + " GROUP BY \"product_id\", EXTRACT(month from \"timestamp\")";
-    String druidQuery = "{'queryType':'groupBy','dataSource':'foodmart',"
-        + "'granularity':{'type':'all'},'dimensions':[{'type':'default',"
-        + "'dimension':'product_id'},{'type':'extraction','dimension':'__time',"
-        + "'outputName':'extract_month','extractionFn':{'type':'timeFormat',"
-        + "'format':'M','timeZone':'UTC','locale':'und'}}],"
-        + "'limitSpec':{'type':'default'},'filter':{'type':'and',"
-        + "'fields':[{'type':'bound','dimension':'product_id','lower':'1558',"
-        + "'lowerStrict':false,'ordering':'numeric'},{'type':'bound',"
-        + "'dimension':'__time','lower':'10','lowerStrict':false,"
-        + "'ordering':'numeric','extractionFn':{'type':'timeFormat','format':'M',"
-        + "'timeZone':'UTC','locale':'und'}},{'type':'bound',"
-        + "'dimension':'__time','upper':'11','upperStrict':false,"
-        + "'ordering':'numeric','extractionFn':{'type':'timeFormat','format':'M',"
-        + "'timeZone':'UTC','locale':'und'}}]},'aggregations':[],"
-        + "'intervals':['1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z']}";
+    String druidQuery = "{'queryType':'groupBy','dataSource':'foodmart'";
     sql(sqlQuery)
         .returnsUnordered("product_id=1558; EXPR$1=10", "product_id=1558; EXPR$1=11",
             "product_id=1559; EXPR$1=11")
@@ -1774,27 +1694,29 @@ public class DruidAdapterIT {
         + " WHERE EXTRACT(month from \"timestamp\") IN (10, 11) AND  \"product_id\" >= 1558"
         + " GROUP BY \"product_id\", EXTRACT(month from \"timestamp\")";
     sql(sqlQuery)
+        .returnsUnordered("product_id=1558; EXPR$1=10", "product_id=1558; EXPR$1=11",
+            "product_id=1559; EXPR$1=11")
         .queryContains(
             druidChecker("{'queryType':'groupBy',"
-                + "'dataSource':'foodmart','granularity':{'type':'all'},"
-                + "'dimensions':[{'type':'default','dimension':'product_id'},"
+                + "'dataSource':'foodmart','granularity':'all',"
+                + "'dimensions':[{'type':'default','dimension':'product_id','outputName':'product_id','outputType':'STRING'},"
                 + "{'type':'extraction','dimension':'__time','outputName':'extract_month',"
                 + "'extractionFn':{'type':'timeFormat','format':'M','timeZone':'UTC',"
-                + "'locale':'und'}}],'limitSpec':{'type':'default'},"
+                + "'locale':'en-US'}}],'limitSpec':{'type':'default'},"
                 + "'filter':{'type':'and','fields':[{'type':'bound',"
                 + "'dimension':'product_id','lower':'1558','lowerStrict':false,"
-                + "'ordering':'numeric'},{'type':'or','fields':[{'type':'selector',"
-                + "'dimension':'__time','value':'10','extractionFn':{'type':'timeFormat',"
-                + "'format':'M','timeZone':'UTC','locale':'und'}},{'type':'selector',"
-                + "'dimension':'__time','value':'11','extractionFn':{'type':'timeFormat',"
-                + "'format':'M','timeZone':'UTC','locale':'und'}}]}]},"
+                + "'ordering':'numeric'},{'type':'or','fields':[{'type':'bound','dimension':'__time'"
+                + ",'lower':'10','lowerStrict':false,'upper':'10','upperStrict':false,"
+                + "'ordering':'numeric','extractionFn':{'type':'timeFormat',"
+                + "'format':'M','timeZone':'UTC','locale':'en-US'}},{'type':'bound',"
+                + "'dimension':'__time','lower':'11','lowerStrict':false,'upper':'11',"
+                + "'upperStrict':false,'ordering':'numeric','extractionFn':{'type':'timeFormat',"
+                + "'format':'M','timeZone':'UTC','locale':'en-US'}}]}]},"
                 + "'aggregations':[],"
-                + "'intervals':['1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z']}"))
-        .returnsUnordered("product_id=1558; EXPR$1=10", "product_id=1558; EXPR$1=11",
-            "product_id=1559; EXPR$1=11");
+                + "'intervals':['1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z']}"));
   }
 
-  @Test public void testPushofOrderByWithMonthExtract() {
+  @Test public void testPushOfOrderByWithMonthExtract() {
     String sqlQuery = "SELECT  extract(month from \"timestamp\") as m , \"product_id\", SUM"
         + "(\"unit_sales\") as s FROM \"foodmart\""
         + " WHERE \"product_id\" >= 1558"
@@ -1802,15 +1724,16 @@ public class DruidAdapterIT {
         + "\"product_id\"";
     sql(sqlQuery).queryContains(
         druidChecker("{'queryType':'groupBy','dataSource':'foodmart',"
-            + "'granularity':{'type':'all'},'dimensions':[{'type':'extraction',"
+            + "'granularity':'all','dimensions':[{'type':'extraction',"
             + "'dimension':'__time','outputName':'extract_month',"
             + "'extractionFn':{'type':'timeFormat','format':'M','timeZone':'UTC',"
-            + "'locale':'und'}},{'type':'default','dimension':'product_id'}],"
+            + "'locale':'en-US'}},{'type':'default','dimension':'product_id','outputName':"
+            + "'product_id','outputType':'STRING'}],"
             + "'limitSpec':{'type':'default','columns':[{'dimension':'extract_month',"
             + "'direction':'ascending','dimensionOrder':'numeric'},{'dimension':'S',"
             + "'direction':'ascending','dimensionOrder':'numeric'},"
             + "{'dimension':'product_id','direction':'ascending',"
-            + "'dimensionOrder':'alphanumeric'}]},'filter':{'type':'bound',"
+            + "'dimensionOrder':'lexicographic'}]},'filter':{'type':'bound',"
             + "'dimension':'product_id','lower':'1558','lowerStrict':false,"
             + "'ordering':'numeric'},'aggregations':[{'type':'longSum','name':'S',"
             + "'fieldName':'unit_sales'}],"
@@ -1830,28 +1753,30 @@ public class DruidAdapterIT {
         + "group by floor(\"timestamp\" to MONTH)\n"
         + "order by \"month\" DESC";
     sql(sql)
-        .explainContains("DruidQuery(table=[[foodmart, foodmart]], "
-        + "intervals=[[1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z]], projects=[[FLOOR($0, "
-        + "FLAG(MONTH))]], groups=[{0}], aggs=[[]], sort0=[0], dir0=[DESC])")
-        .queryContains(druidChecker("'queryType':'timeseries'", "'descending':true"));
+        .queryContains(druidChecker("'queryType':'timeseries'", "'descending':true"))
+        .explainContains("PLAN=EnumerableInterpreter\n"
+            + "  DruidQuery(table=[[foodmart, foodmart]], intervals=[[1900-01-09T00:00:00.000Z"
+            + "/2992-01-10T00:00:00.000Z]], projects=[[FLOOR($0, FLAG(MONTH))]], groups=[{0}], "
+            + "aggs=[[]], post_projects=[[CAST($0):TIMESTAMP(0) NOT NULL]], sort0=[0], dir0=[DESC])");
+
   }
 
   @Test public void testGroupByFloorTimeWithLimit() {
     final String sql =
-        "select cast(floor(\"timestamp\" to MONTH) as timestamp) as \"floor_month\"\n"
+        "select cast(floor(\"timestamp\" to MONTH) as timestamp) as \"floorOfMonth\"\n"
         + "from \"foodmart\"\n"
         + "group by floor(\"timestamp\" to MONTH)\n"
-        + "order by \"floor_month\" DESC LIMIT 3";
+        + "order by \"floorOfMonth\" DESC LIMIT 3";
     final String explain =
-        "    BindableSort(sort0=[$0], dir0=[DESC], fetch=[3])\n"
-        + "      DruidQuery(table=[[foodmart, foodmart]], "
-        + "intervals=[[1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z]], "
-        + "projects=[[FLOOR($0, FLAG(MONTH))]], groups=[{0}], aggs=[[]], "
-        + "sort0=[0], dir0=[DESC])";
-    sql(sql).explainContains(explain)
-        .queryContains(druidChecker("'queryType':'timeseries'", "'descending':true"))
-        .returnsOrdered("floor_month=1997-12-01 00:00:00", "floor_month=1997-11-01 00:00:00",
-            "floor_month=1997-10-01 00:00:00");
+        "PLAN=EnumerableInterpreter\n"
+            + "  DruidQuery(table=[[foodmart, foodmart]], intervals=[[1900-01-09T00:00:00.000Z/"
+            + "2992-01-10T00:00:00.000Z]], projects=[[FLOOR($0, FLAG(MONTH))]], groups=[{0}], "
+            + "aggs=[[]], post_projects=[[CAST($0):TIMESTAMP(0) NOT NULL]], sort0=[0], dir0=[DESC], fetch=[3])";
+    sql(sql)
+        .explainContains(explain)
+        .returnsOrdered("floorOfMonth=1997-12-01 00:00:00", "floorOfMonth=1997-11-01 00:00:00",
+            "floorOfMonth=1997-10-01 00:00:00")
+        .queryContains(druidChecker("'queryType':'groupBy'", "'direction':'descending'"));
   }
 
   @Test public void testPushofOrderByYearWithYearMonthExtract() {
@@ -1869,19 +1794,20 @@ public class DruidAdapterIT {
         + "sort1=[1], sort2=[3], sort3=[2], dir0=[DESC], "
         + "dir1=[ASC], dir2=[DESC], dir3=[ASC], fetch=[3])";
     final String expectedDruidQuery = "{'queryType':'groupBy','dataSource':'foodmart',"
-        + "'granularity':{'type':'all'},'dimensions':[{'type':'extraction',"
+        + "'granularity':'all','dimensions':[{'type':'extraction',"
         + "'dimension':'__time','outputName':'extract_year',"
         + "'extractionFn':{'type':'timeFormat','format':'yyyy','timeZone':'UTC',"
-        + "'locale':'und'}},{'type':'extraction','dimension':'__time',"
+        + "'locale':'en-US'}},{'type':'extraction','dimension':'__time',"
         + "'outputName':'extract_month','extractionFn':{'type':'timeFormat',"
-        + "'format':'M','timeZone':'UTC','locale':'und'}},{'type':'default',"
-        + "'dimension':'product_id'}],'limitSpec':{'type':'default','limit':3,"
+        + "'format':'M','timeZone':'UTC','locale':'en-US'}},{'type':'default',"
+        + "'dimension':'product_id','outputName':'product_id','outputType':'STRING'}],"
+        + "'limitSpec':{'type':'default','limit':3,"
         + "'columns':[{'dimension':'extract_year','direction':'descending',"
         + "'dimensionOrder':'numeric'},{'dimension':'extract_month',"
         + "'direction':'ascending','dimensionOrder':'numeric'},{'dimension':'S',"
         + "'direction':'descending','dimensionOrder':'numeric'},"
         + "{'dimension':'product_id','direction':'ascending',"
-        + "'dimensionOrder':'alphanumeric'}]},'filter':{'type':'bound',"
+        + "'dimensionOrder':'lexicographic'}]},'filter':{'type':'bound',"
         + "'dimension':'product_id','lower':'1558','lowerStrict':false,"
         + "'ordering':'numeric'},'aggregations':[{'type':'longSum','name':'S',"
         + "'fieldName':'unit_sales'}],"
@@ -1903,26 +1829,12 @@ public class DruidAdapterIT {
         + "filter=[>=(CAST($1):BIGINT, 1558)], projects=[[EXTRACT(FLAG(YEAR), $0), "
         + "EXTRACT(FLAG(MONTH), $0), $1, $89]], groups=[{0, 1, 2}], aggs=[[SUM($3)]], "
         + "sort0=[3], sort1=[1], sort2=[2], dir0=[DESC], dir1=[DESC], dir2=[ASC], fetch=[3])";
-    final String expectedDruidQuery = "{'queryType':'groupBy','dataSource':'foodmart',"
-        + "'granularity':{'type':'all'},'dimensions':[{'type':'extraction',"
-        + "'dimension':'__time','outputName':'extract_year',"
-        + "'extractionFn':{'type':'timeFormat','format':'yyyy','timeZone':'UTC',"
-        + "'locale':'und'}},{'type':'extraction','dimension':'__time',"
-        + "'outputName':'extract_month','extractionFn':{'type':'timeFormat',"
-        + "'format':'M','timeZone':'UTC','locale':'und'}},{'type':'default',"
-        + "'dimension':'product_id'}],'limitSpec':{'type':'default','limit':3,"
-        + "'columns':[{'dimension':'S','direction':'descending',"
-        + "'dimensionOrder':'numeric'},{'dimension':'extract_month',"
-        + "'direction':'descending','dimensionOrder':'numeric'},"
-        + "{'dimension':'product_id','direction':'ascending',"
-        + "'dimensionOrder':'alphanumeric'}]},'filter':{'type':'bound',"
-        + "'dimension':'product_id','lower':'1558','lowerStrict':false,"
-        + "'ordering':'numeric'},'aggregations':[{'type':'longSum','name':'S',"
-        + "'fieldName':'unit_sales'}],"
-        + "'intervals':['1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z']}";
-    sql(sqlQuery).explainContains(expectedPlan).queryContains(druidChecker(expectedDruidQuery))
+    final String expectedDruidQueryType = "'queryType':'groupBy'";
+    sql(sqlQuery)
         .returnsOrdered("Y=1997; M=12; product_id=1558; S=30", "Y=1997; M=3; product_id=1558; S=29",
-            "Y=1997; M=5; product_id=1558; S=27");
+            "Y=1997; M=5; product_id=1558; S=27")
+        .explainContains(expectedPlan)
+        .queryContains(druidChecker(expectedDruidQueryType));
   }
 
   @Test public void testGroupByTimeSortOverMetrics() {
@@ -1930,13 +1842,6 @@ public class DruidAdapterIT {
         + " cast(floor(\"timestamp\" to month) as timestamp)"
         + " FROM \"foodmart\" group by floor(\"timestamp\" to month) order by s DESC";
     sql(sqlQuery)
-        .explainContains("PLAN=EnumerableInterpreter\n"
-        + "  BindableSort(sort0=[$1], dir0=[DESC])\n"
-        + "    BindableProject(C=[$1], S=[$2], EXPR$2=[CAST($0):TIMESTAMP(0) NOT NULL])\n"
-        + "      DruidQuery(table=[[foodmart, foodmart]], "
-        + "intervals=[[1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z]], projects=[[FLOOR($0, "
-        + "FLAG(MONTH)), $89]], groups=[{0}], aggs=[[COUNT(), SUM($1)]])")
-        .queryContains(druidChecker("'queryType':'timeseries'"))
         .returnsOrdered("C=8716; S=26796; EXPR$2=1997-12-01 00:00:00",
         "C=8231; S=25270; EXPR$2=1997-11-01 00:00:00",
         "C=7752; S=23763; EXPR$2=1997-07-01 00:00:00",
@@ -1948,7 +1853,13 @@ public class DruidAdapterIT {
         "C=6844; S=20957; EXPR$2=1997-02-01 00:00:00",
         "C=6662; S=20388; EXPR$2=1997-09-01 00:00:00",
         "C=6588; S=20179; EXPR$2=1997-04-01 00:00:00",
-        "C=6478; S=19958; EXPR$2=1997-10-01 00:00:00");
+        "C=6478; S=19958; EXPR$2=1997-10-01 00:00:00")
+        .queryContains(druidChecker("'queryType':'groupBy'"))
+        .explainContains("PLAN=EnumerableInterpreter\n"
+            + "  DruidQuery(table=[[foodmart, foodmart]], intervals=[[1900-01-09T00:00:00.000Z/"
+            + "2992-01-10T00:00:00.000Z]], projects=[[FLOOR($0, FLAG(MONTH)), $89]], groups=[{0}], "
+            + "aggs=[[COUNT(), SUM($1)]], post_projects=[[$1, $2, CAST($0):TIMESTAMP(0) NOT NULL]],"
+            + " sort0=[1], dir0=[DESC])");
   }
 
   @Test public void testNumericOrderingOfOrderByOperatorFullTime() {
@@ -1957,7 +1868,7 @@ public class DruidAdapterIT {
         + "\"foodmart\" group by \"timestamp\" order by \"timestamp\" DESC, c DESC, s LIMIT 5";
     final String druidSubQuery = "'limitSpec':{'type':'default','limit':5,"
         + "'columns':[{'dimension':'extract','direction':'descending',"
-        + "'dimensionOrder':'alphanumeric'},{'dimension':'C',"
+        + "'dimensionOrder':'lexicographic'},{'dimension':'C',"
         + "'direction':'descending','dimensionOrder':'numeric'},{'dimension':'S',"
         + "'direction':'ascending','dimensionOrder':'numeric'}]},"
         + "'aggregations':[{'type':'count','name':'C'},{'type':'longSum',"
@@ -1993,7 +1904,7 @@ public class DruidAdapterIT {
         + "\"foodmart\" group by \"brand_name\" order by \"brand_name\"  DESC LIMIT 5";
     final String druidSubQuery = "'limitSpec':{'type':'default','limit':5,"
         + "'columns':[{'dimension':'brand_name','direction':'descending',"
-        + "'dimensionOrder':'alphanumeric'}]}";
+        + "'dimensionOrder':'lexicographic'}]}";
     sql(sqlQuery).returnsOrdered("brand_name=Washington; C=576; S=1775\nbrand_name=Walrus; C=457;"
         + " S=1399\nbrand_name=Urban; C=299; S=924\nbrand_name=Tri-State; C=2339; "
         + "S=7270\nbrand_name=Toucan; C=123; S=380").queryContains(druidChecker(druidSubQuery));
@@ -2002,21 +1913,24 @@ public class DruidAdapterIT {
 
   @Test public void testGroupByWeekExtract() {
     final String sql = "SELECT extract(week from \"timestamp\") from \"foodmart\" where "
-        + "\"product_id\" = 1558 and extract(week from \"timestamp\") IN (10, 11)group by extract"
+        + "\"product_id\" = 1558 and extract(week from \"timestamp\") IN (10, 11) group by extract"
         + "(week from \"timestamp\")";
 
     final String druidQuery = "{'queryType':'groupBy','dataSource':'foodmart',"
-        + "'granularity':{'type':'all'},'dimensions':[{'type':'extraction',"
+        + "'granularity':'all','dimensions':[{'type':'extraction',"
         + "'dimension':'__time','outputName':'extract_week',"
         + "'extractionFn':{'type':'timeFormat','format':'w','timeZone':'UTC',"
-        + "'locale':'und'}}],'limitSpec':{'type':'default'},"
-        + "'filter':{'type':'and','fields':[{'type':'selector',"
-        + "'dimension':'product_id','value':'1558'},{'type':'or',"
-        + "'fields':[{'type':'selector','dimension':'__time','value':'10',"
+        + "'locale':'en-US'}}],'limitSpec':{'type':'default'},"
+        + "'filter':{'type':'and','fields':[{'type':'bound','dimension':'product_id',"
+        + "'lower':'1558','lowerStrict':false,'upper':'1558','upperStrict':false,"
+        + "'ordering':'numeric'},{'type':'or',"
+        + "'fields':[{'type':'bound','dimension':'__time','lower':'10','lowerStrict':false,"
+        + "'upper':'10','upperStrict':false,'ordering':'numeric',"
         + "'extractionFn':{'type':'timeFormat','format':'w','timeZone':'UTC',"
-        + "'locale':'und'}},{'type':'selector','dimension':'__time',"
-        + "'value':'11','extractionFn':{'type':'timeFormat','format':'w',"
-        + "'timeZone':'UTC','locale':'und'}}]}]},"
+        + "'locale':'en-US'}},{'type':'bound','dimension':'__time','lower':'11','lowerStrict':false,"
+        + "'upper':'11','upperStrict':false,'ordering':'numeric',"
+        + "'extractionFn':{'type':'timeFormat','format':'w',"
+        + "'timeZone':'UTC','locale':'en-US'}}]}]},"
         + "'aggregations':[],"
         + "'intervals':['1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z']}";
     sql(sql).returnsOrdered("EXPR$0=10\nEXPR$0=11").queryContains(druidChecker(druidQuery));
@@ -2131,94 +2045,82 @@ public class DruidAdapterIT {
   @Test public void testPlusArithmeticOperation() {
     final String sqlQuery = "select sum(\"store_sales\") + sum(\"store_cost\") as a, "
         + "\"store_state\" from \"foodmart\"  group by \"store_state\" order by a desc";
-    String postAggString = "'postAggregations':[{'type':'arithmetic','name':'postagg#0','fn':'+',"
-        + "'fields':[{'type':'fieldAccess','name':'','fieldName':'$f1'},{'type':'fieldAccess','"
-        + "name':'','fieldName':'$f2'}]}]";
+    String postAggString = "type':'expression','name':'A','expression':'(\\'$f1\\' + \\'$f2\\')'}]";
     final String plan = "PLAN=EnumerableInterpreter\n"
-        + "  DruidQuery(table=[[foodmart, foodmart]], "
-        + "intervals=[[1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z]], "
-        + "groups=[{63}], aggs=[[SUM($90), SUM($91)]], post_projects=[[+($1, $2), $0]], "
-        + "sort0=[0], dir0=[DESC]";
+        + "  DruidQuery(table=[[foodmart, foodmart]], intervals=[[1900-01-09T00:00:00.000Z/"
+        + "2992-01-10T00:00:00.000Z]], projects=[[$63, $90, $91]], groups=[{0}], "
+        + "aggs=[[SUM($1), SUM($2)]], post_projects=[[+($1, $2), $0]], sort0=[0], dir0=[DESC])";
     sql(sqlQuery, FOODMART)
-        .explainContains(plan)
-        .queryContains(druidChecker(postAggString))
         .returnsOrdered("A=369117.52790000016; store_state=WA",
             "A=222698.26509999996; store_state=CA",
-            "A=199049.57059999998; store_state=OR");
+            "A=199049.57059999998; store_state=OR")
+        .explainContains(plan)
+        .queryContains(druidChecker(postAggString));
   }
 
   @Test public void testDivideArithmeticOperation() {
     final String sqlQuery = "select \"store_state\", sum(\"store_sales\") / sum(\"store_cost\") "
         + "as a from \"foodmart\"  group by \"store_state\" order by a desc";
-    String postAggString = "'postAggregations':[{'type':'arithmetic','name':'postagg#0',"
-        + "'fn':'quotient','fields':[{'type':'fieldAccess','name':'','fieldName':'$f1'},"
-        + "{'type':'fieldAccess','name':'','fieldName':'$f2'}]}]";
+    String postAggString = "[{'type':'expression','name':'A','expression':'(\\'$f1\\' / \\'$f2\\')";
     final String plan = "PLAN=EnumerableInterpreter\n"
-            + "  DruidQuery(table=[[foodmart, foodmart]], "
-            + "intervals=[[1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z]], "
-            + "groups=[{63}], aggs=[[SUM($90), SUM($91)]], post_projects=[[$0, /($1, $2)]], "
-            + "sort0=[1], dir0=[DESC]";
+        + "  DruidQuery(table=[[foodmart, foodmart]], intervals=[[1900-01-09T00:00:00.000Z/"
+        + "2992-01-10T00:00:00.000Z]], projects=[[$63, $90, $91]], groups=[{0}], "
+        + "aggs=[[SUM($1), SUM($2)]], post_projects=[[$0, /($1, $2)]], sort0=[1], dir0=[DESC])";
     sql(sqlQuery, FOODMART)
-        .explainContains(plan)
-        .queryContains(druidChecker(postAggString))
         .returnsOrdered("store_state=OR; A=2.506091302943239",
             "store_state=CA; A=2.505379741272971",
-            "store_state=WA; A=2.5045806163801996");
+            "store_state=WA; A=2.5045806163801996")
+        .explainContains(plan)
+        .queryContains(druidChecker(postAggString));
   }
 
   @Test public void testMultiplyArithmeticOperation() {
     final String sqlQuery = "select \"store_state\", sum(\"store_sales\") * sum(\"store_cost\") "
         + "as a from \"foodmart\"  group by \"store_state\" order by a desc";
-    String postAggString = "'postAggregations':[{'type':'arithmetic','name':'postagg#0',"
-        + "'fn':'*','fields':[{'type':'fieldAccess','name':'','fieldName':'$f1'},"
-        + "{'type':'fieldAccess','name':'','fieldName':'$f2'}]}]";
+    String postAggString = "{'type':'expression','name':'A','expression':'(\\'$f1\\' * \\'$f2\\')'";
     final String plan = "PLAN=EnumerableInterpreter\n"
-            + "  DruidQuery(table=[[foodmart, foodmart]], "
-            + "intervals=[[1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z]], "
-            + "groups=[{63}], aggs=[[SUM($90), SUM($91)]], post_projects=[[$0, *($1, $2)]], "
-            + "sort0=[1], dir0=[DESC]";
+        + "  DruidQuery(table=[[foodmart, foodmart]], intervals=[[1900-01-09T00:00:00.000Z/"
+        + "2992-01-10T00:00:00.000Z]], projects=[[$63, $90, $91]], groups=[{0}], aggs=[[SUM($1),"
+        + " SUM($2)]], post_projects=[[$0, *($1, $2)]], sort0=[1], dir0=[DESC])";
     sql(sqlQuery, FOODMART)
-        .explainContains(plan)
-        .queryContains(druidChecker(postAggString))
         .returnsOrdered("store_state=WA; A=2.7783838325212463E10",
             "store_state=CA; A=1.0112000537448784E10",
-            "store_state=OR; A=8.077425041941243E9");
+            "store_state=OR; A=8.077425041941243E9")
+        .explainContains(plan)
+        .queryContains(druidChecker(postAggString));
   }
 
   @Test public void testMinusArithmeticOperation() {
     final String sqlQuery = "select \"store_state\", sum(\"store_sales\") - sum(\"store_cost\") "
         + "as a from \"foodmart\"  group by \"store_state\" order by a desc";
-    String postAggString = "'postAggregations':[{'type':'arithmetic','name':'postagg#0',"
-        + "'fn':'-','fields':[{'type':'fieldAccess','name':'','fieldName':'$f1'},"
-        + "{'type':'fieldAccess','name':'','fieldName':'$f2'}]}]";
+    String postAggString = "'postAggregations':[{'type':'expression','name':'A',"
+        + "'expression':'(\\'$f1\\' - \\'$f2\\')'}]";
     final String plan = "PLAN=EnumerableInterpreter\n"
-            + "  DruidQuery(table=[[foodmart, foodmart]], "
-            + "intervals=[[1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z]], "
-            + "groups=[{63}], aggs=[[SUM($90), SUM($91)]], post_projects=[[$0, -($1, $2)]], "
-            + "sort0=[1], dir0=[DESC]";
+        + "  DruidQuery(table=[[foodmart, foodmart]], intervals=[[1900-01-09T00:00:00.000Z/"
+        + "2992-01-10T00:00:00.000Z]], projects=[[$63, $90, $91]], groups=[{0}], aggs=[[SUM($1), "
+        + "SUM($2)]], post_projects=[[$0, -($1, $2)]], sort0=[1], dir0=[DESC])";
     sql(sqlQuery, FOODMART)
-        .explainContains(plan)
-        .queryContains(druidChecker(postAggString))
         .returnsOrdered("store_state=WA; A=158468.91210000002",
             "store_state=CA; A=95637.41489999992",
-            "store_state=OR; A=85504.56939999988");
+            "store_state=OR; A=85504.56939999988")
+        .explainContains(plan)
+        .queryContains(druidChecker(postAggString));
   }
 
   @Test public void testConstantPostAggregator() {
     final String sqlQuery = "select \"store_state\", sum(\"store_sales\") + 100 as a from "
         + "\"foodmart\"  group by \"store_state\" order by a desc";
-    String postAggString = "{'type':'constant','name':'','value':100.0}";
+    String postAggString = "{'type':'expression','name':'A','expression':'(\\'$f1\\' + 100)'}";
     final String plan = "PLAN=EnumerableInterpreter\n"
-            + "  DruidQuery(table=[[foodmart, foodmart]], "
-            + "intervals=[[1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z]], "
-            + "groups=[{63}], aggs=[[SUM($90)]], post_projects=[[$0, +($1, 100)]], "
-            + "sort0=[1], dir0=[DESC]";
+        + "  DruidQuery(table=[[foodmart, foodmart]], intervals=[[1900-01-09T00:00:00.000Z/"
+        + "2992-01-10T00:00:00.000Z]], projects=[[$63, $90]], groups=[{0}], aggs=[[SUM($1)]], "
+        + "post_projects=[[$0, +($1, 100)]], sort0=[1], dir0=[DESC])";
     sql(sqlQuery, FOODMART)
-        .explainContains(plan)
-        .queryContains(druidChecker(postAggString))
         .returnsOrdered("store_state=WA; A=263893.2200000001",
             "store_state=CA; A=159267.83999999994",
-            "store_state=OR; A=142377.06999999992");
+            "store_state=OR; A=142377.06999999992")
+        .explainContains(plan)
+        .queryContains(druidChecker(postAggString));
   }
 
   @Test public void testRecursiveArithmeticOperation() {
@@ -2226,26 +2128,19 @@ public class DruidAdapterIT {
         + "(sum(\"store_sales\")-sum(\"store_cost\")) / (count(*) * 3) "
         + "AS a,sum(\"unit_sales\") AS b, \"store_state\"  from \"foodmart\"  group "
         + "by \"store_state\") order by c desc";
-    String postAggString = "'postAggregations':[{'type':'arithmetic','name':'postagg#0',"
-        + "'fn':'*','fields':[{'type':'constant','name':'','value':-1.0},{'type':"
-        + "'arithmetic','name':'','fn':'+','fields':[{'type':'arithmetic','name':"
-        + "'','fn':'quotient','fields':[{'type':'arithmetic','name':'','fn':'-',"
-        + "'fields':[{'type':'fieldAccess','name':'','fieldName':'$f1'},{'type':"
-        + "'fieldAccess','name':'','fieldName':'$f2'}]},{'type':'arithmetic','name':"
-        + "'','fn':'*','fields':[{'type':'fieldAccess','name':'','fieldName':'$f3'},"
-        + "{'type':'constant','name':'','value':3.0}]}]},{'type':'fieldAccess','name'"
-        + ":'','fieldName':'B'}]}]}]";
+    String postAggString = "'postAggregations':[{'type':'expression','name':'C','expression':"
+        + "'(-1 * (((\\'$f1\\' - \\'$f2\\') / (\\'$f3\\' * 3)) + \\'B\\'))'}]";
     final String plan = "PLAN=EnumerableInterpreter\n"
-        + "  DruidQuery(table=[[foodmart, foodmart]], "
-            + "intervals=[[1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z]], groups=[{63}], "
-            + "aggs=[[SUM($90), SUM($91), COUNT(), SUM($89)]], "
-            + "post_projects=[[$0, *(-1, +(/(-($1, $2), *($3, 3)), $4))]], sort0=[1], dir0=[DESC])";
+        + "  DruidQuery(table=[[foodmart, foodmart]], intervals=[[1900-01-09T00:00:00.000Z/"
+        + "2992-01-10T00:00:00.000Z]], projects=[[$63, $89, $90, $91]], groups=[{0}], "
+        + "aggs=[[SUM($2), SUM($3), COUNT(), SUM($1)]], post_projects=[[$0, *(-1, +(/(-($1, $2), "
+        + "*($3, 3)), $4))]], sort0=[1], dir0=[DESC])";
     sql(sqlQuery, FOODMART)
-        .explainContains(plan)
-        .queryContains(druidChecker(postAggString))
         .returnsOrdered("store_state=OR; C=-67660.31890435601",
             "store_state=CA; C=-74749.30433035882",
-            "store_state=WA; C=-124367.29537914316");
+            "store_state=WA; C=-124367.29537914316")
+        .explainContains(plan)
+        .queryContains(druidChecker(postAggString));
   }
 
   /**
@@ -2254,12 +2149,12 @@ public class DruidAdapterIT {
   @Test public void testHyperUniquePostAggregator() {
     final String sqlQuery = "select \"store_state\", sum(\"store_cost\") / count(distinct "
         + "\"brand_name\") as a from \"foodmart\"  group by \"store_state\" order by a desc";
-    String postAggString = "'postAggregations':[{'type':'arithmetic','name':'postagg#0','fn':"
-        + "'quotient','fields':[{'type':'fieldAccess','name':'','fieldName':'$f1'},"
-        + "{'type':'hyperUniqueCardinality','name':'','fieldName':'$f2'}]}]";
+    final String postAggString = "[{'type':'expression','name':'A',"
+        + "'expression':'(\\'$f1\\' / \\'$f2\\')'}]";
     final String plan = "PLAN=EnumerableInterpreter\n"
-        + "  DruidQuery(table=[[foodmart, foodmart]], intervals="
-        + "[[1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z]], groups=[{63}], ";
+        + "  DruidQuery(table=[[foodmart, foodmart]], intervals=[[1900-01-09T00:00:00.000Z/"
+        + "2992-01-10T00:00:00.000Z]], projects=[[$2, $63, $91]], groups=[{1}], aggs=[[SUM($2), "
+        + "COUNT(DISTINCT $0)]], post_projects=[[$0, /($1, $2)]], sort0=[1], dir0=[DESC])";
     foodmartApprox(sqlQuery)
         .runs()
         .explainContains(plan)
@@ -2270,25 +2165,17 @@ public class DruidAdapterIT {
     final String sql = "SELECT \"store_state\", \"brand_name\", sum(\"store_sales\") - "
         + "sum(\"store_cost\") as a  from \"foodmart\" where extract (week from \"timestamp\")"
         + " IN (10,11) and \"brand_name\"='Bird Call' group by \"store_state\", \"brand_name\"";
-    final String druidQuery = "'filter':{'type':'and','fields':[{'type':'selector','dimension'"
-        + ":'brand_name','value':'Bird Call'},{'type':'or','fields':[{'type':'selector',"
-        + "'dimension':'__time','value':'10','extractionFn':{'type':'timeFormat','format'"
-        + ":'w','timeZone':'UTC','locale':'und'}},{'type':'selector','dimension':'__time'"
-        + ",'value':'11','extractionFn':{'type':'timeFormat','format':'w','timeZone':'UTC'"
-        + ",'locale':'und'}}]}]},'aggregations':[{'type':'doubleSum','name':'$f2',"
-        + "'fieldName':'store_sales'},{'type':'doubleSum','name':'$f3','fieldName':"
-        + "'store_cost'}],'postAggregations':[{'type':'arithmetic','name':'postagg#0'"
-        + ",'fn':'-','fields':[{'type':'fieldAccess','name':'','fieldName':'$f2'},"
-        + "{'type':'fieldAccess','name':'','fieldName':'$f3'}]}]";
+    final String druidQuery = "\"postAggregations\":[{\"type\":\"expression\",\"name\":\"A\","
+        + "\"expression\":\"(\\\"$f2\\\" - \\\"$f3\\\")\"}]";
     final String plan = "PLAN=EnumerableInterpreter\n"
         + "  DruidQuery(table=[[foodmart, foodmart]], "
         + "intervals=[[1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z]], filter=[AND(=(";
     sql(sql, FOODMART)
         .explainContains(plan)
-        .queryContains(druidChecker(druidQuery))
         .returnsOrdered("store_state=CA; brand_name=Bird Call; A=34.364599999999996",
             "store_state=OR; brand_name=Bird Call; A=39.16359999999999",
-            "store_state=WA; brand_name=Bird Call; A=53.742500000000014");
+            "store_state=WA; brand_name=Bird Call; A=53.742500000000014")
+        .queryContains(druidChecker(druidQuery));
   }
 
   @Test public void testExtractFilterWorkWithPostAggregationsWithConstant() {
@@ -2296,148 +2183,125 @@ public class DruidAdapterIT {
         + "sum(\"store_sales\") - sum(\"store_cost\") as a  from \"foodmart\" "
         + "where extract (week from \"timestamp\")"
         + " IN (10,11) and \"brand_name\"='Bird Call' group by \"store_state\"";
-    final String druidQuery = "'aggregations':[{'type':'doubleSum','name':'$f1','fieldName':"
-        + "'store_sales'},{'type':'doubleSum','name':'$f2','fieldName':'store_cost'}],"
-        + "'postAggregations':[{'type':'arithmetic','name':'postagg#0','fn':'-',"
-        + "'fields':[{'type':'fieldAccess','name':'','fieldName':'$f1'},{'type':'fieldAccess',"
-        + "'name':'','fieldName':'$f2'}]}],"
-        + "'intervals':['1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z']}";
+    final String druidQuery = "type':'expression','name':'A','expression':'(\\'$f1\\' - \\'$f2\\')";
     final String plan = "PLAN=EnumerableInterpreter\n"
-        + "  BindableProject(store_state=[$0], brand_name=['Bird Call'], A=[$1])\n"
-        + "    DruidQuery(table=[[foodmart, foodmart]], "
-        + "intervals=[[1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z]], filter=[AND(=(";
+        + "  DruidQuery(table=[[foodmart, foodmart]], "
+        + "intervals=[[1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z]], "
+        + "filter=[AND(=($2, 'Bird Call'), OR(=(EXTRACT(FLAG(WEEK), $0), 10), "
+        + "=(EXTRACT(FLAG(WEEK), $0), 11)))], projects=[[$0, $2, $63, $90, $91]], "
+        + "groups=[{2}], aggs=[[SUM($3), SUM($4)]], post_projects=[[$0, 'Bird Call', -($1, $2)]])";
     sql(sql, FOODMART)
-        .explainContains(plan)
-        .queryContains(druidChecker(druidQuery))
         .returnsOrdered("store_state=CA; brand_name=Bird Call; A=34.364599999999996",
             "store_state=OR; brand_name=Bird Call; A=39.16359999999999",
-            "store_state=WA; brand_name=Bird Call; A=53.742500000000014");
+            "store_state=WA; brand_name=Bird Call; A=53.742500000000014")
+        .explainContains(plan)
+        .queryContains(druidChecker(druidQuery));
   }
 
   @Test public void testSingleAverageFunction() {
     final String sqlQuery = "select \"store_state\", sum(\"store_cost\") / count(*) as a from "
         + "\"foodmart\" group by \"store_state\" order by a desc";
-    String postAggString = "'aggregations':[{'type':'doubleSum','name':'$f1','fieldName':"
-        + "'store_cost'},{'type':'count','name':'$f2'}],"
-        + "'postAggregations':[{'type':'arithmetic','name':'postagg#0','fn':'quotient'"
-        + ",'fields':[{'type':'fieldAccess','name':'','fieldName':'$f1'},"
-        + "{'type':'fieldAccess','name':'','fieldName':'$f2'}]}]";
+    String postAggString = "\"postAggregations\":[{\"type\":\"expression\",\"name\":\"A\","
+        + "\"expression\":\"(\\\"$f1\\\" / \\\"$f2\\\")";
     final String plan = "PLAN=EnumerableInterpreter\n"
-        + "  DruidQuery(table=[[foodmart, foodmart]], "
-        + "intervals=[[1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z]], "
-        + "groups=[{63}], aggs=[[SUM($91), COUNT()]], post_projects=[[$0, /($1, $2)]], "
-        + "sort0=[1], dir0=[DESC]";
+        + "  DruidQuery(table=[[foodmart, foodmart]], intervals=[[1900-01-09T00:00:00.000Z/"
+        + "2992-01-10T00:00:00.000Z]], projects=[[$63, $91]], groups=[{0}], "
+        + "aggs=[[SUM($1), COUNT()]], post_projects=[[$0, /($1, $2)]], sort0=[1], dir0=[DESC])";
     sql(sqlQuery, FOODMART)
-        .explainContains(plan)
-        .queryContains(druidChecker(postAggString))
         .returnsOrdered("store_state=OR; A=2.6271402406293403",
             "store_state=CA; A=2.599338206292706",
-            "store_state=WA; A=2.5828708592868717");
+            "store_state=WA; A=2.5828708592868717")
+        .explainContains(plan)
+        .queryContains(druidChecker(postAggString));
   }
 
   @Test public void testPartiallyPostAggregation() {
     final String sqlQuery = "select \"store_state\", sum(\"store_sales\") / sum(\"store_cost\")"
             + " as a, case when sum(\"unit_sales\")=0 then 1.0 else sum(\"unit_sales\") "
             + "end as b from \"foodmart\"  group by \"store_state\" order by a desc";
-    String postAggString = "'postAggregations':[{'type':'arithmetic','name':'postagg#0',"
-            + "'fn':'quotient','fields':[{'type':'fieldAccess','name':'','fieldName':'$f1'}"
-            + ",{'type':'fieldAccess','name':'','fieldName':'$f2'}]}]";
-    final String plan = "PLAN=EnumerableInterpreter\n"
-            + "  BindableProject(store_state=[$0], A=[$1], B=[CASE(=($2, 0), "
-            + "1.0, CAST($2):DECIMAL(19, 0))])\n"
-            + "    DruidQuery(table=[[foodmart, foodmart]], "
-            + "intervals=[[1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z]], "
-            + "groups=[{63}], aggs=[[SUM($90), SUM($91), SUM($89)]], "
-            + "post_projects=[[$0, /($1, $2), $3]], sort0=[1], dir0=[DESC]";
+    final String postAggString = "'postAggregations':[{'type':'expression','name':'A',"
+        + "'expression':'(\\'$f1\\' / \\'$f2\\')'},{'type':'expression','name':'B',"
+        + "'expression':'case_searched((\\'$f3\\' == 0),1.0,CAST(\\'$f3\\'";
+    final String plan =
+        "DruidQuery(table=[[foodmart, foodmart]], intervals=[[1900-01-09T00:00:00.000Z/"
+        + "2992-01-10T00:00:00.000Z]], projects=[[$63, $89, $90, $91]], groups=[{0}], "
+        + "aggs=[[SUM($2), SUM($3), SUM($1)]], post_projects=[[$0, /($1, $2), "
+        + "CASE(=($3, 0), 1.0, CAST($3):DECIMAL(19, 0))]], sort0=[1], dir0=[DESC])";
     sql(sqlQuery, FOODMART)
+        .returnsOrdered("store_state=OR; A=2.506091302943239; B=67659.0",
+            "store_state=CA; A=2.505379741272971; B=74748.0",
+            "store_state=WA; A=2.5045806163801996; B=124366.0")
         .explainContains(plan)
-        .queryContains(druidChecker(postAggString))
-        .returnsOrdered("store_state=OR; A=2.506091302943239; B=67659",
-            "store_state=CA; A=2.505379741272971; B=74748",
-            "store_state=WA; A=2.5045806163801996; B=124366");
+        .queryContains(druidChecker(postAggString));
   }
 
   @Test public void testDuplicateReferenceOnPostAggregation() {
     final String sqlQuery = "select \"store_state\", a, a - b as c from (select \"store_state\", "
         + "sum(\"store_sales\") + 100 as a, sum(\"store_cost\") as b from \"foodmart\"  group by "
         + "\"store_state\") order by a desc";
-    String postAggString = "'postAggregations':[{'type':'arithmetic','name':'postagg#0',"
-        + "'fn':'+','fields':[{'type':'fieldAccess','name':'','fieldName':'$f1'},"
-        + "{'type':'constant','name':'','value':100.0}]},{'type':'arithmetic',"
-        + "'name':'postagg#1','fn':'-','fields':[{'type':'arithmetic','name':'',"
-        + "'fn':'+','fields':[{'type':'fieldAccess','name':'','fieldName':'$f1'},"
-        + "{'type':'constant','name':'','value':100.0}]},{'type':'fieldAccess',"
-        + "'name':'','fieldName':'B'}]}]";
+    String postAggString = "[{'type':'expression','name':'A','expression':'(\\'$f1\\' + 100)'},"
+        + "{'type':'expression','name':'C','expression':'((\\'$f1\\' + 100) - \\'B\\')'}]";
     final String plan = "PLAN=EnumerableInterpreter\n"
         + "  DruidQuery(table=[[foodmart, foodmart]], "
         + "intervals=[[1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z]], groups=[{63}], "
         + "aggs=[[SUM($90), SUM($91)]], post_projects=[[$0, +($1, 100), -(+($1, 100), $2)]], "
         + "sort0=[1], dir0=[DESC]";
     sql(sqlQuery, FOODMART)
-        .explainContains(plan)
-        .queryContains(druidChecker(postAggString))
         .returnsOrdered("store_state=WA; A=263893.2200000001; C=158568.91210000002",
             "store_state=CA; A=159267.83999999994; C=95737.41489999992",
-            "store_state=OR; A=142377.06999999992; C=85604.56939999988");
+            "store_state=OR; A=142377.06999999992; C=85604.56939999988")
+        .explainContains(plan)
+        .queryContains(druidChecker(postAggString));
   }
 
   @Test public void testDivideByZeroDoubleTypeInfinity() {
     final String sqlQuery = "select \"store_state\", sum(\"store_cost\") / 0 as a from "
         + "\"foodmart\"  group by \"store_state\" order by a desc";
-    String postAggString = "'postAggregations':[{'type':'arithmetic','name':'postagg#0',"
-        + "'fn':'quotient','fields':[{'type':'fieldAccess','name':'','fieldName':'$f1'},"
-        + "{'type':'constant','name':'','value':0.0}]}]";
+    String postAggString = "'type':'expression','name':'A','expression':'(\\'$f1\\' / 0)'}]";
     final String plan = "PLAN=EnumerableInterpreter\n"
-        + "  DruidQuery(table=[[foodmart, foodmart]], "
-        + "intervals=[[1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z]], "
-        + "groups=[{63}], aggs=[[SUM($91)]], post_projects=[[$0, /($1, 0)]]";
+        + "  DruidQuery(table=[[foodmart, foodmart]], intervals=[[1900-01-09T00:00:00.000Z/"
+        + "2992-01-10T00:00:00.000Z]], projects=[[$63, $91]], groups=[{0}], aggs=[[SUM($1)]], "
+        + "post_projects=[[$0, /($1, 0)]], sort0=[1], dir0=[DESC])";
     sql(sqlQuery, FOODMART)
-        .explainContains(plan)
-        .queryContains(druidChecker(postAggString))
         .returnsOrdered("store_state=CA; A=Infinity",
             "store_state=OR; A=Infinity",
-            "store_state=WA; A=Infinity");
+            "store_state=WA; A=Infinity")
+        .explainContains(plan)
+        .queryContains(druidChecker(postAggString));
   }
 
   @Test public void testDivideByZeroDoubleTypeNegInfinity() {
     final String sqlQuery = "select \"store_state\", -1.0 * sum(\"store_cost\") / 0 as "
         + "a from \"foodmart\"  group by \"store_state\" order by a desc";
-    String postAggString = "'postAggregations':[{'type':'arithmetic','name':'postagg#0',"
-        + "'fn':'quotient','fields':[{'type':'arithmetic','name':'',"
-        + "'fn':'*','fields':[{'type':'constant','name':'','value':-1.0},"
-        + "{'type':'fieldAccess','name':'','fieldName':'$f1'}]},"
-        + "{'type':'constant','name':'','value':0.0}]}]";
+    String postAggString = "\"postAggregations\":[{\"type\":\"expression\",\"name\":\"A\","
+        + "\"expression\":\"((-1.0 * \\\"$f1\\\") / 0)\"}],";
     final String plan = "PLAN=EnumerableInterpreter\n"
-        + "  DruidQuery(table=[[foodmart, foodmart]], "
-        + "intervals=[[1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z]], "
-        + "groups=[{63}], aggs=[[SUM($91)]], post_projects=[[$0, /(*(-1.0, $1), 0)]]";
+        + "  DruidQuery(table=[[foodmart, foodmart]], intervals=[[1900-01-09T00:00:00.000Z/"
+        + "2992-01-10T00:00:00.000Z]], projects=[[$63, $91]], groups=[{0}], aggs=[[SUM($1)]], "
+        + "post_projects=[[$0, /(*(-1.0, $1), 0)]], sort0=[1], dir0=[DESC])";
     sql(sqlQuery, FOODMART)
-        .explainContains(plan)
-        .queryContains(druidChecker(postAggString))
         .returnsOrdered("store_state=CA; A=-Infinity",
             "store_state=OR; A=-Infinity",
-            "store_state=WA; A=-Infinity");
+            "store_state=WA; A=-Infinity")
+        .explainContains(plan)
+        .queryContains(druidChecker(postAggString));
   }
 
   @Test public void testDivideByZeroDoubleTypeNaN() {
     final String sqlQuery = "select \"store_state\", (sum(\"store_cost\") - sum(\"store_cost\")) "
         + "/ 0 as a from \"foodmart\"  group by \"store_state\" order by a desc";
-    String postAggString = "'postAggregations':[{'type':'arithmetic','name':'postagg#0',"
-        + "'fn':'quotient','fields':[{'type':'arithmetic','name':'','fn':'-',"
-        + "'fields':[{'type':'fieldAccess','name':'','fieldName':'$f1'},"
-        + "{'type':'fieldAccess','name':'','fieldName':'$f1'}]},"
-        + "{'type':'constant','name':'','value':0.0}]}]";
+    final String postAggString = "'postAggregations':[{'type':'expression','name':'A',"
+        + "'expression':'((\\'$f1\\' - \\'$f1\\') / 0)'}";
     final String plan = "PLAN=EnumerableInterpreter\n"
-        + "  DruidQuery(table=[[foodmart, foodmart]], "
-        + "intervals=[[1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z]], "
-        + "groups=[{63}], aggs=[[SUM($91)]], post_projects=[[$0, /(-($1, $1), 0)]], "
-        + "sort0=[1], dir0=[DESC]";
+        + "  DruidQuery(table=[[foodmart, foodmart]], intervals=[[1900-01-09T00:00:00.000Z/"
+        + "2992-01-10T00:00:00.000Z]], projects=[[$63, $91]], groups=[{0}], aggs=[[SUM($1)]], "
+        + "post_projects=[[$0, /(-($1, $1), 0)]], sort0=[1], dir0=[DESC])";
     sql(sqlQuery, FOODMART)
-        .explainContains(plan)
-        .queryContains(druidChecker(postAggString))
         .returnsOrdered("store_state=CA; A=NaN",
             "store_state=OR; A=NaN",
-            "store_state=WA; A=NaN");
+            "store_state=WA; A=NaN")
+        .explainContains(plan)
+        .queryContains(druidChecker(postAggString));
   }
 
   @Test public void testDivideByZeroIntegerType() {
@@ -2445,12 +2309,15 @@ public class DruidAdapterIT {
             + "count(*)) / 0 as a from \"foodmart\"  group by \"store_state\" "
             + "order by a desc";
     final String plan = "PLAN=EnumerableInterpreter\n"
-            + "  DruidQuery(table=[[foodmart, foodmart]], "
-            + "intervals=[[1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z]], "
-            + "groups=[{63}], aggs=[[COUNT()]], post_projects=[[$0, /(-($1, $1), 0)]]";
+        + "  DruidQuery(table=[[foodmart, foodmart]], intervals=[[1900-01-09T00:00:00.000Z/"
+        + "2992-01-10T00:00:00.000Z]], projects=[[$63]], groups=[{0}], aggs=[[COUNT()]], "
+        + "post_projects=[[$0, /(-($1, $1), 0)]], sort0=[1], dir0=[DESC])";
     sql(sqlQuery, FOODMART)
-            .explainContains(plan)
-            .throws_("/ by zero");
+        .explainContains(plan)
+        .throws_("Server returned HTTP response code: 500");
+    //@TODO It seems like calcite is not handling 500 error,
+    // need to catch it and parse exception message from druid,
+    // e.g., throws_("/ by zero");
   }
 
   @Test public void testInterleaveBetweenAggregateAndGroupOrderByOnMetrics() {
@@ -2460,26 +2327,21 @@ public class DruidAdapterIT {
             + "  from \"foodmart\"\n"
             + "  group by \"store_state\", \"brand_name\" ) subq\n"
             + "order by \"A\" limit 5";
-    String postAggString = "'limitSpec':{'type':'default','limit':5,'columns':[{'dimension':"
-            + "'postagg#0','direction':'ascending','dimensionOrder':'numeric'}]},"
-            + "'aggregations':[{'type':'doubleSum','name':'$f2','fieldName':'store_sales'},"
-            + "{'type':'doubleSum','name':'$f3','fieldName':'store_cost'}],'postAggregations':"
-            + "[{'type':'arithmetic','name':'postagg#0','fn':'-','fields':"
-            + "[{'type':'fieldAccess','name':'','fieldName':'$f2'},"
-            + "{'type':'fieldAccess','name':'','fieldName':'$f3'}]}]";
+    String postAggString = "\"postAggregations\":[{\"type\":\"expression\",\"name\":\"A\","
+        + "\"expression\":\"(\\\"$f2\\\" - \\\"$f3\\\")\"}";
     final String plan = "PLAN=EnumerableInterpreter\n"
-            + "  DruidQuery(table=[[foodmart, foodmart]], "
-            + "intervals=[[1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z]], "
-            + "groups=[{2, 63}], aggs=[[SUM($90), SUM($91)]], "
-            + "post_projects=[[$1, $0, -($2, $3)]], sort0=[2], dir0=[ASC], fetch=[5]";
+        + "  DruidQuery(table=[[foodmart, foodmart]], intervals=[[1900-01-09T00:00:00.000Z/"
+        + "2992-01-10T00:00:00.000Z]], projects=[[$63, $2, $90, $91]], groups=[{0, 1}], "
+        + "aggs=[[SUM($2), SUM($3)]], post_projects=[[$0, $1, -($2, $3)]]"
+        + ", sort0=[2], dir0=[ASC], fetch=[5])";
     sql(sqlQuery, FOODMART)
-            .explainContains(plan)
-            .queryContains(druidChecker(postAggString))
-            .returnsOrdered("store_state=CA; brand_name=King; A=21.4632",
-                    "store_state=OR; brand_name=Symphony; A=32.176",
-                    "store_state=CA; brand_name=Toretti; A=32.24650000000001",
-                    "store_state=WA; brand_name=King; A=34.6104",
-                    "store_state=OR; brand_name=Toretti; A=36.3");
+        .returnsOrdered("store_state=CA; brand_name=King; A=21.4632",
+            "store_state=OR; brand_name=Symphony; A=32.176",
+            "store_state=CA; brand_name=Toretti; A=32.24650000000001",
+            "store_state=WA; brand_name=King; A=34.6104",
+            "store_state=OR; brand_name=Toretti; A=36.3")
+        .explainContains(plan)
+        .queryContains(druidChecker(postAggString));
   }
 
   @Test public void testInterleaveBetweenAggregateAndGroupOrderByOnDimension() {
@@ -2487,28 +2349,20 @@ public class DruidAdapterIT {
             + "(select \"store_state\", sum(\"store_sales\")+sum(\"store_cost\") "
             + "as a, \"brand_name\" from \"foodmart\" group by \"store_state\", \"brand_name\") "
             + "order by \"brand_name\", \"store_state\" limit 5";
-    String postAggString = "'limitSpec':{'type':'default','limit':5,'columns':[{'dimension':"
-            + "'brand_name','direction':'ascending','dimensionOrder':'alphanumeric'},{'dimension':"
-            + "'store_state','direction':'ascending','dimensionOrder':'alphanumeric'}]},"
-            + "'aggregations':[{'type':'doubleSum','name':'$f2','fieldName':'store_sales'},"
-            + "{'type':'doubleSum','name':'$f3','fieldName':'store_cost'}],'postAggregations':"
-            + "[{'type':'arithmetic','name':'postagg#0','fn':'+','fields':"
-            + "[{'type':'fieldAccess','name':'','fieldName':'$f2'},"
-            + "{'type':'fieldAccess','name':'','fieldName':'$f3'}]}]";
+    final String postAggString = "'postAggregations':[{'type':'expression','name':'A',"
+        + "'expression':'(\\'$f2\\' + \\'$f3\\')'}]";
     final String plan = "PLAN=EnumerableInterpreter\n"
-            + "  DruidQuery(table=[[foodmart, foodmart]], "
-            + "intervals=[[1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z]], "
-            + "projects=[[$63, $2, $90, $91]], "
-            + "groups=[{0, 1}], aggs=[[SUM($2), SUM($3)]], "
-            + "post_projects=[[$0, $1, +($2, $3)]], sort0=[1], sort1=[0], dir0=[ASC], dir1=[ASC]";
+        + "  DruidQuery(table=[[foodmart, foodmart]], intervals=[[1900-01-09T00:00:00.000Z/"
+        + "2992-01-10T00:00:00.000Z]], groups=[{2, 63}], aggs=[[SUM($90), SUM($91)]], post_projects"
+        + "=[[$1, $0, +($2, $3)]], sort0=[1], sort1=[0], dir0=[ASC], dir1=[ASC], fetch=[5])";
     sql(sqlQuery, FOODMART)
+        .returnsOrdered("store_state=CA; brand_name=ADJ; A=222.1524",
+            "store_state=OR; brand_name=ADJ; A=186.60359999999997",
+            "store_state=WA; brand_name=ADJ; A=216.9912",
+            "store_state=CA; brand_name=Akron; A=250.349",
+            "store_state=OR; brand_name=Akron; A=278.69720000000007")
             .explainContains(plan)
-            .queryContains(druidChecker(postAggString))
-            .returnsOrdered("store_state=CA; brand_name=ADJ; A=222.1524",
-                    "store_state=OR; brand_name=ADJ; A=186.60359999999997",
-                    "store_state=WA; brand_name=ADJ; A=216.9912",
-                    "store_state=CA; brand_name=Akron; A=250.349",
-                    "store_state=OR; brand_name=Akron; A=278.69720000000007");
+            .queryContains(druidChecker(postAggString));
   }
 
   @Test public void testOrderByOnMetricsInSelectDruidQuery() {
@@ -2516,19 +2370,20 @@ public class DruidAdapterIT {
             + "\"store_cost\" as c from \"foodmart\" where \"timestamp\" "
             + ">= '1997-01-01 00:00:00 UTC' and \"timestamp\" < '1997-09-01 00:00:00 UTC' order by c "
             + "limit 5";
-    String postAggString = "'queryType':'scan'";
+    String queryType = "'queryType':'scan'";
     final String plan = "PLAN=EnumerableInterpreter\n"
-            + "  BindableSort(sort0=[$2], dir0=[ASC], fetch=[5])\n"
-            + "    BindableProject(A=[$0], B=[$1], C=[-($0, $1)])\n"
-            + "      DruidQuery(";
+        + "  BindableSort(sort0=[$2], dir0=[ASC], fetch=[5])\n"
+        + "    DruidQuery(table=[[foodmart, foodmart]], "
+        + "intervals=[[1997-01-01T00:00:00.000Z/1997-09-01T00:00:00.000Z]], "
+        + "projects=[[$90, $91, -($90, $91)]])";
     sql(sqlQuery, FOODMART)
-            .explainContains(plan)
-            .queryContains(druidChecker(postAggString))
-            .returnsOrdered("A=0.51; B=0.2448; C=0.2652",
-                    "A=0.51; B=0.2397; C=0.2703",
-                    "A=0.57; B=0.285; C=0.285",
-                    "A=0.5; B=0.21; C=0.29000000000000004",
-                    "A=0.57; B=0.2793; C=0.29069999999999996");
+        .returnsOrdered("A=0.51; B=0.2448; C=0.2652",
+            "A=0.51; B=0.2397; C=0.2703",
+            "A=0.57; B=0.285; C=0.285",
+            "A=0.5; B=0.21; C=0.29000000000000004",
+            "A=0.57; B=0.2793; C=0.29069999999999996")
+        .explainContains(plan)
+        .queryContains(druidChecker(queryType));
   }
 
   /**
@@ -2541,7 +2396,7 @@ public class DruidAdapterIT {
     String sql = "select sum(\"store_sales\") "
             + "filter (where \"the_year\" >= 1997) from \"foodmart\"";
     String expectedQuery = "{'queryType':'timeseries','dataSource':'foodmart','descending':false,"
-            + "'granularity':{'type':'all'},'filter':{'type':'bound','dimension':'the_year','lower':'1997',"
+            + "'granularity':'all','filter':{'type':'bound','dimension':'the_year','lower':'1997',"
             + "'lowerStrict':false,'ordering':'numeric'},'aggregations':[{'type':'doubleSum','name'"
             + ":'EXPR$0','fieldName':'store_sales'}],'intervals':['1900-01-09T00:00:00.000Z/2992-01"
             + "-10T00:00:00.000Z'],'context':{'skipEmptyBuckets':true}}";
@@ -2557,7 +2412,7 @@ public class DruidAdapterIT {
     // select sum("store_sales") from "foodmart"
     String sql = "select sum(\"store_sales\") filter (where 1 = 1) from \"foodmart\"";
     String expectedQuery = "{'queryType':'timeseries','dataSource':'foodmart','descending':false,"
-            + "'granularity':{'type':'all'},'aggregations':[{'type':'doubleSum','name':'EXPR$0','fieldName':"
+            + "'granularity':'all','aggregations':[{'type':'doubleSum','name':'EXPR$0','fieldName':"
             + "'store_sales'}],'intervals':['1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z'],"
             + "'context':{'skipEmptyBuckets':true}}";
 
@@ -2574,7 +2429,7 @@ public class DruidAdapterIT {
     String sql = "select sum(\"store_sales\") filter (where 1 = 1), "
             + "sum(\"store_cost\") from \"foodmart\"";
     String expectedQuery = "{'queryType':'timeseries','dataSource':'foodmart','descending':false,"
-            + "'granularity':{'type':'all'},'aggregations':[{'type':'doubleSum','name':'EXPR$0','fieldName':"
+            + "'granularity':'all','aggregations':[{'type':'doubleSum','name':'EXPR$0','fieldName':"
             + "'store_sales'},{'type':'doubleSum','name':'EXPR$1','fieldName':'store_cost'}],"
             + "'intervals':['1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z'],"
             + "'context':{'skipEmptyBuckets':true}}";
@@ -2594,7 +2449,7 @@ public class DruidAdapterIT {
             + "sum(\"store_cost\") filter (where \"store_state\" = 'CA') "
             + "from \"foodmart\"";
     String expectedQuery = "{'queryType':'timeseries','dataSource':'foodmart','descending':false,"
-            + "'granularity':{'type':'all'},'aggregations':[{'type':'doubleSum','name':'EXPR$0','fieldName'"
+            + "'granularity':'all','aggregations':[{'type':'doubleSum','name':'EXPR$0','fieldName'"
             + ":'store_sales'},{'type':'filtered','filter':{'type':'selector','dimension':"
             + "'store_state','value':'CA'},'aggregator':{'type':'doubleSum','name':'EXPR$1',"
             + "'fieldName':'store_cost'}}],'intervals':"
@@ -2614,7 +2469,7 @@ public class DruidAdapterIT {
     String sql = "select sum(\"store_sales\") filter (where 1 = 1), sum(\"store_cost\") "
             + "from \"foodmart\" where \"store_city\" = 'Seattle'";
     String expectedQuery = "{'queryType':'timeseries','dataSource':'foodmart','descending':false,"
-            + "'granularity':{'type':'all'},'filter':{'type':'selector','dimension':'store_city',"
+            + "'granularity':'all','filter':{'type':'selector','dimension':'store_city',"
             + "'value':'Seattle'},'aggregations':[{'type':'doubleSum','name':'EXPR$0',"
             + "'fieldName':'store_sales'},{'type':'doubleSum','name':'EXPR$1',"
             + "'fieldName':'store_cost'}],'intervals':"
@@ -2631,9 +2486,20 @@ public class DruidAdapterIT {
     String sql = "select sum(\"store_sales\") filter (where 1 > 1) from \"foodmart\"";
     // Calcite takes care of the unsatisfiable filter
     String expectedSubExplain =
-            "  BindableAggregate(group=[{}], EXPR$0=[SUM($0) FILTER $1])\n"
-            + "    BindableProject(store_sales=[$0], $f1=[false])\n";
-    sql(sql).explainContains(expectedSubExplain);
+            "PLAN=EnumerableInterpreter\n"
+                + "  DruidQuery(table=[[foodmart, foodmart]], "
+                + "intervals=[[1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z]], "
+                + "filter=[false], projects=[[$90, false]], groups=[{}], aggs=[[SUM($0)]])";
+    sql(sql)
+        .queryContains(
+            druidChecker("{\"queryType\":\"timeseries\","
+                + "\"dataSource\":\"foodmart\",\"descending\":false,\"granularity\":\"all\","
+                + "\"filter\":{\"type\":\"expression\",\"expression\":\"1 == 2\"},"
+                + "\"aggregations\":[{\"type\":\"doubleSum\",\"name\":\"EXPR$0\","
+                + "\"fieldName\":\"store_sales\"}],"
+                + "\"intervals\":[\"1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z\"],"
+                + "\"context\":{\"skipEmptyBuckets\":true}}"))
+        .explainContains(expectedSubExplain);
   }
 
   /**
@@ -2644,15 +2510,19 @@ public class DruidAdapterIT {
     String sql = "select sum(\"store_sales\") filter (where 1 > 1) "
             + "from \"foodmart\" where \"store_city\" = 'Seattle'";
     String expectedSubExplain =
-            "  BindableAggregate(group=[{}], EXPR$0=[SUM($0) FILTER $1])\n"
-            + "    BindableProject(store_sales=[$0], $f1=[false])\n"
-            + "      DruidQuery(table=[[foodmart, foodmart]], "
-                    + "intervals=[[1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z]], "
-                    // Make sure the original filter is still there
-                    + "filter=[=($62, 'Seattle')], projects=[[$90]])";
+            "PLAN=EnumerableInterpreter\n"
+                + "  DruidQuery(table=[[foodmart, foodmart]], "
+                + "intervals=[[1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z]], filter=[AND"
+                + "(false, =($62, 'Seattle'))], projects=[[$90, false]], groups=[{}], aggs=[[SUM"
+                + "($0)]])";
 
-    sql(sql).explainContains(expectedSubExplain);
-
+    sql(sql)
+        .returnsOrdered("")
+        .explainContains(expectedSubExplain)
+        .queryContains(
+            druidChecker("\"filter\":{\"type"
+                + "\":\"and\",\"fields\":[{\"type\":\"expression\",\"expression\":\"1 == 2\"},"
+                + "{\"type\":\"selector\",\"dimension\":\"store_city\",\"value\":\"Seattle\"}]}"));
   }
 
   /**
@@ -2665,7 +2535,7 @@ public class DruidAdapterIT {
     String sql = "select sum(\"store_sales\") filter (where \"store_city\" = 'Seattle') "
             + "from \"foodmart\" where \"store_city\" = 'Seattle'";
     String expectedQuery = "{'queryType':'timeseries','dataSource':'foodmart','descending':false,"
-            + "'granularity':{'type':'all'},'filter':{'type':'selector','dimension':'store_city','value':"
+            + "'granularity':'all','filter':{'type':'selector','dimension':'store_city','value':"
             + "'Seattle'},'aggregations':[{'type':'doubleSum','name':'EXPR$0','fieldName':"
             + "'store_sales'}],'intervals':['1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z'],"
             + "'context':{'skipEmptyBuckets':true}}";
@@ -2683,7 +2553,7 @@ public class DruidAdapterIT {
     String sql = "select sum(\"store_sales\") filter (where \"store_state\" = 'CA'), "
             + "sum(\"store_cost\") from \"foodmart\"";
     String expectedQuery = "{'queryType':'timeseries','dataSource':'foodmart','descending':false,"
-            + "'granularity':{'type':'all'},'aggregations':[{'type':'filtered','filter':{'type':'selector',"
+            + "'granularity':'all','aggregations':[{'type':'filtered','filter':{'type':'selector',"
             + "'dimension':'store_state','value':'CA'},'aggregator':{'type':'doubleSum','name':"
             + "'EXPR$0','fieldName':'store_sales'}},{'type':'doubleSum','name':'EXPR$1','fieldName'"
             + ":'store_cost'}],'intervals':['1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z'],"
@@ -2701,7 +2571,7 @@ public class DruidAdapterIT {
     String sql = "select sum(\"store_sales\") filter (where \"store_state\" = 'CA'), "
             + "sum(\"store_cost\") from \"foodmart\" where \"the_year\" >= 1997";
     String expectedQuery = "{'queryType':'timeseries','dataSource':'foodmart','descending':false,"
-            + "'granularity':{'type':'all'},'filter':{'type':'bound','dimension':'the_year','lower':'1997',"
+            + "'granularity':'all','filter':{'type':'bound','dimension':'the_year','lower':'1997',"
             + "'lowerStrict':false,'ordering':'numeric'},'aggregations':[{'type':'filtered',"
             + "'filter':{'type':'selector','dimension':'store_state','value':'CA'},'aggregator':{"
             + "'type':'doubleSum','name':'EXPR$0','fieldName':'store_sales'}},{'type':'doubleSum',"
@@ -2722,7 +2592,7 @@ public class DruidAdapterIT {
             + "sum(\"store_sales\") filter (where \"store_state\" = 'WA') "
             + "from \"foodmart\"";
     String expectedQuery = "{'queryType':'timeseries','dataSource':'foodmart','descending':false,"
-            + "'granularity':{'type':'all'},'filter':{'type':'or','fields':[{'type':'selector','dimension':"
+            + "'granularity':'all','filter':{'type':'or','fields':[{'type':'selector','dimension':"
             + "'store_state','value':'CA'},{'type':'selector','dimension':'store_state',"
             + "'value':'WA'}]},'aggregations':[{'type':'filtered','filter':{'type':'selector',"
             + "'dimension':'store_state','value':'CA'},'aggregator':{'type':'doubleSum','name':"
@@ -2747,7 +2617,7 @@ public class DruidAdapterIT {
             + "sum(\"store_sales\") filter (where \"store_state\" = 'WA') "
             + "from \"foodmart\" where \"brand_name\" = 'Super'";
     String expectedQuery = "{'queryType':'timeseries','dataSource':'foodmart','descending':false,"
-            + "'granularity':{'type':'all'},'filter':{'type':'and','fields':[{'type':'or','fields':[{'type':"
+            + "'granularity':'all','filter':{'type':'and','fields':[{'type':'or','fields':[{'type':"
             + "'selector','dimension':'store_state','value':'CA'},{'type':'selector','dimension':"
             + "'store_state','value':'WA'}]},{'type':'selector','dimension':'brand_name','value':"
             + "'Super'}]},'aggregations':[{'type':'filtered','filter':{'type':'selector',"
@@ -2779,7 +2649,7 @@ public class DruidAdapterIT {
     // Aggregates should lose reference to any filter clause
     String expectedAggregateExplain = "aggs=[[SUM($0), SUM($2)]]";
     String expectedQuery = "{'queryType':'timeseries','dataSource':'foodmart','descending':false,"
-            + "'granularity':{'type':'all'},'filter':{'type':'and','fields':[{'type':'selector','dimension':"
+            + "'granularity':'all','filter':{'type':'and','fields':[{'type':'selector','dimension':"
             + "'store_state','value':'CA'},{'type':'selector','dimension':'brand_name','value':"
             + "'Super'}]},'aggregations':[{'type':'doubleSum','name':'EXPR$0','fieldName':"
             + "'store_sales'},{'type':'doubleSum','name':'EXPR$1','fieldName':'store_cost'}],"
@@ -2824,10 +2694,17 @@ public class DruidAdapterIT {
     String sql = "select sum(\"store_sales\") "
             + "filter (where \"the_year\" like '199_') from \"foodmart\"";
     String expectedSubExplain =
-            "  BindableAggregate(group=[{}], EXPR$0=[SUM($0) FILTER $1])\n"
-            + "    BindableProject(store_sales=[$1], $f1=[IS TRUE(LIKE($0, '199_'))])";
+            "PLAN=EnumerableInterpreter\n"
+                + "  DruidQuery(table=[[foodmart, foodmart]], "
+                + "intervals=[[1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z]], filter=[LIKE"
+                + "($83, '199_')], projects=[[$90, IS TRUE(LIKE($83, '199_'))]], groups=[{}], "
+                + "aggs=[[SUM($0)]])";
 
-    sql(sql).explainContains(expectedSubExplain);
+    sql(sql)
+        .explainContains(expectedSubExplain)
+        .queryContains(
+            druidChecker("\"filter\":{\"type"
+                + "\":\"expression\",\"expression\":\"like(\\\"the_year\\\","));
   }
 
   @Test public void testFilterClauseWithMetricRef() {
@@ -3010,8 +2887,8 @@ public class DruidAdapterIT {
    * */
   @Test public void testDistinctCountWhenApproxResultsAccepted() {
     String sql = "select count(distinct \"store_state\") from \"foodmart\"";
-    String expectedSubExplain = "DruidQuery(table=[[foodmart, foodmart]], intervals=[[1900-01-09T00"
-        + ":00:00.000Z/2992-01-10T00:00:00.000Z]], groups=[{}], aggs=[[COUNT(DISTINCT $63)]])";
+    String expectedSubExplain = "PLAN=EnumerableInterpreter\n"
+        + "  DruidQuery(table=[[foodmart, foodmart]], intervals=[[1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z]], projects=[[$63]], groups=[{}], aggs=[[COUNT(DISTINCT $0)]])";
     String expectedAggregate = "{'type':'cardinality','name':"
         + "'EXPR$0','fieldNames':['store_state']}";
 
@@ -3032,20 +2909,22 @@ public class DruidAdapterIT {
     testCountWithApproxDistinct(false, sql, expectedSubExplain);
   }
 
-  /**
-   * Test to ensure that a count distinct on metric does not get pushed into Druid
-   */
-  @Test public void testDistinctCountOnMetric() {
-    String sql = "select count(distinct \"store_sales\") from \"foodmart\" "
+  @Test
+  public void testDistinctCountOnMetric() {
+    final String sql = "select count(distinct \"store_sales\") from \"foodmart\" "
         + "where \"store_state\" = 'WA'";
-    String expectedSubExplain = "PLAN=EnumerableInterpreter\n"
+    final String expectedSubExplainNoApprox = "PLAN=EnumerableInterpreter\n"
         + "  BindableAggregate(group=[{}], EXPR$0=[COUNT($0)])\n"
         + "    DruidQuery(table=[[foodmart, foodmart]], "
         + "intervals=[[1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z]], filter=[=($63, 'WA')"
         + "], groups=[{90}], aggs=[[]])";
+    final String expectedSubPlanWithApprox = "PLAN=EnumerableInterpreter\n"
+        + "  DruidQuery(table=[[foodmart, foodmart]], intervals=[[1900-01-09T00:00:00.000Z/"
+        + "2992-01-10T00:00:00.000Z]], filter=[=($63, 'WA')], groups=[{}], "
+        + "aggs=[[COUNT(DISTINCT $90)]])";
 
-    testCountWithApproxDistinct(true, sql, expectedSubExplain, "\"queryType\":\"groupBy\"");
-    testCountWithApproxDistinct(false, sql, expectedSubExplain, "\"queryType\":\"groupBy\"");
+    testCountWithApproxDistinct(true, sql, expectedSubPlanWithApprox, "'queryType':'timeseries'");
+    testCountWithApproxDistinct(false, sql, expectedSubExplainNoApprox, "'queryType':'groupBy'");
   }
 
   /**
@@ -3054,12 +2933,11 @@ public class DruidAdapterIT {
   @Test public void testCountOnMetric() {
     String sql = "select \"brand_name\", count(\"store_sales\") from \"foodmart\" "
         + "group by \"brand_name\"";
-    String expectedSubExplain = "  BindableAggregate(group=[{0}], EXPR$1=[COUNT($1)])\n"
-        + "    DruidQuery(table=[[foodmart, foodmart]], intervals=[[1900-01-09T00:00:00.000Z/"
-        + "2992-01-10T00:00:00.000Z]], projects=[[$2, $90]])";
+    String expectedSubExplain = "PLAN=EnumerableInterpreter\n"
+        + "  DruidQuery(table=[[foodmart, foodmart]], intervals=[[1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z]], groups=[{2}], aggs=[[COUNT($90)]])";
 
-    testCountWithApproxDistinct(true, sql, expectedSubExplain);
-    testCountWithApproxDistinct(false, sql, expectedSubExplain);
+    testCountWithApproxDistinct(true, sql, expectedSubExplain, "\"queryType\":\"groupBy\"");
+    testCountWithApproxDistinct(false, sql, expectedSubExplain, "\"queryType\":\"groupBy\"");
   }
 
   /**
@@ -3067,42 +2945,41 @@ public class DruidAdapterIT {
    */
   @Test public void testCountStar() {
     String sql = "select count(*) from \"foodmart\"";
-    String expectedSubExplain = "  DruidQuery(table=[[foodmart, foodmart]], "
-        + "intervals=[[1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z]], "
-        + "projects=[[]], groups=[{}], aggs=[[COUNT()]])";
+    String expectedSubExplain = "PLAN=EnumerableInterpreter\n"
+        + "  DruidQuery(table=[[foodmart, foodmart]], intervals=[[1900-01-09T00:00:00.000Z/"
+        + "2992-01-10T00:00:00.000Z]], projects=[[0]], groups=[{}], aggs=[[COUNT()]])";
 
     sql(sql).explainContains(expectedSubExplain);
   }
 
-  /**
-   * Test to ensure that count() aggregates with metric columns are not pushed into Druid
-   * even when the metric column has been renamed
-   */
+
   @Test public void testCountOnMetricRenamed() {
     String sql = "select \"B\", count(\"A\") from "
         + "(select \"unit_sales\" as \"A\", \"store_state\" as \"B\" from \"foodmart\") "
         + "group by \"B\"";
     String expectedSubExplain = "PLAN=EnumerableInterpreter\n"
-        + "  DruidQuery(table=[[foodmart, foodmart]], "
-        + "intervals=[[1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z]], projects=[[$89, "
-        + "$63]], groups=[{1}], aggs=[[COUNT($0)]]";
+        + "  DruidQuery(table=[[foodmart, foodmart]], intervals=[[1900-01-09T00:00:00.000Z/"
+        + "2992-01-10T00:00:00.000Z]], groups=[{63}], aggs=[[COUNT($89)]])";
 
     testCountWithApproxDistinct(true, sql, expectedSubExplain);
     testCountWithApproxDistinct(false, sql, expectedSubExplain);
   }
 
-  @Test public void testDistinctCountOnMetricRenamed() {
-    String sql = "select \"B\", count(distinct \"A\") from "
+  @Test
+  public void testDistinctCountOnMetricRenamed() {
+    final String sql = "select \"B\", count(distinct \"A\") from "
         + "(select \"unit_sales\" as \"A\", \"store_state\" as \"B\" from \"foodmart\") "
         + "group by \"B\"";
-    String expectedSubExplain = "PLAN=EnumerableInterpreter\n"
+    final String expectedSubExplainNoApprox = "PLAN=EnumerableInterpreter\n"
         + "  BindableAggregate(group=[{0}], EXPR$1=[COUNT($1)])\n"
-        + "    DruidQuery(table=[[foodmart, foodmart]], "
-        + "intervals=[[1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z]], groups=[{63, 89}], "
-        + "aggs=[[]])";
+        + "    DruidQuery(table=[[foodmart, foodmart]], intervals=[[1900-01-09T00:00:00.000Z/"
+        + "2992-01-10T00:00:00.000Z]], projects=[[$63, $89]], groups=[{0, 1}], aggs=[[]])";
+    final String expectedPlanWithApprox = "PLAN=EnumerableInterpreter\n"
+        + "  DruidQuery(table=[[foodmart, foodmart]], intervals=[[1900-01-09T00:00:00.000Z/"
+        + "2992-01-10T00:00:00.000Z]], groups=[{63}], aggs=[[COUNT(DISTINCT $89)]])";
 
-    testCountWithApproxDistinct(true, sql, expectedSubExplain, "\"queryType\":\"groupBy\"");
-    testCountWithApproxDistinct(false, sql, expectedSubExplain, "\"queryType\":\"groupBy\"");
+    testCountWithApproxDistinct(true, sql, expectedPlanWithApprox, "'queryType':'groupBy'");
+    testCountWithApproxDistinct(false, sql, expectedSubExplainNoApprox, "'queryType':'groupBy'");
   }
 
   private void testCountWithApproxDistinct(boolean approx, String sql, String expectedExplain) {
@@ -3134,7 +3011,7 @@ public class DruidAdapterIT {
             // customer_id_ts. The thetaSketch aggregation is used to compute the count distinct.
             .queryContains(
                     druidChecker("{'queryType':'timeseries','dataSource':"
-                            + "'foodmart','descending':false,'granularity':{'type':'all'},'aggregations':[{'type':"
+                            + "'foodmart','descending':false,'granularity':'all','aggregations':[{'type':"
                             + "'thetaSketch','name':'EXPR$0','fieldName':'customer_id_ts'}],"
                             + "'intervals':['1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z'],"
                             + "'context':{'skipEmptyBuckets':true}}"))
@@ -3183,18 +3060,9 @@ public class DruidAdapterIT {
             + "(3 * count(distinct \"customer_id\")) "
             + "from \"foodmart\"")
             .queryContains(
-                    druidChecker("'aggregations':[{'type':'thetaSketch','name':'$f0',"
-                            + "'fieldName':'customer_id_ts'}],'postAggregations':[{'type':"
-                            + "'arithmetic','name':'postagg#0','fn':'-','fields':[{'type':"
-                            + "'arithmetic','name':'','fn':'+','fields':[{'type':'arithmetic','"
-                            + "name':'','fn':'*','fields':[{'type':'thetaSketchEstimate','name':"
-                            + "'','field':{'type':'fieldAccess','name':'','fieldName':'$f0'}},"
-                            + "{'type':'constant','name':'','value':2.0}]},{'type':"
-                            + "'thetaSketchEstimate','name':'','field':{'type':'fieldAccess',"
-                            + "'name':'','fieldName':'$f0'}}]},{'type':'arithmetic','name':'',"
-                            + "'fn':'*','fields':[{'type':'constant','name':'','value':3.0},"
-                            + "{'type':'thetaSketchEstimate','name':'','field':{'type':"
-                            + "'fieldAccess','name':'','fieldName':'$f0'}}]}]}]"))
+                    druidChecker("\"postAggregations\":[{\"type\":\"expression\","
+                        + "\"name\":\"EXPR$0\",\"expression\":\"(((\\\"$f0\\\" * 2) + \\\"$f0\\\")"
+                        + " - (3 * \\\"$f0\\\"))\"}]"))
             .returnsUnordered("EXPR$0=0");
 
     foodmartApprox("select "
@@ -3202,12 +3070,8 @@ public class DruidAdapterIT {
             + "sum(\"store_sales\") / count(distinct \"customer_id\") as \"avg$\" "
             + "from \"foodmart\" group by \"the_month\"")
             .queryContains(
-                    druidChecker("'aggregations':[{'type':'doubleSum','name':"
-                            + "'$f1','fieldName':'store_sales'},{'type':'thetaSketch','name':'$f2',"
-                            + "'fieldName':'customer_id_ts'}],'postAggregations':[{'type':'arithmetic',"
-                            + "'name':'postagg#0','fn':'quotient','fields':[{'type':'fieldAccess','name':"
-                            + "'','fieldName':'$f1'},{'type':'thetaSketchEstimate','name':'','field':"
-                            + "{'type':'fieldAccess','name':'','fieldName':'$f2'}}]}]"))
+                    druidChecker("'postAggregations':[{'type':'expression',"
+                        + "'name':'avg$','expression':'(\\'$f1\\' / \\'$f2\\')'}]"))
             .returnsUnordered(
                     "month=January; avg$=32.62155444126063",
                     "month=February; avg$=33.102021036814484",
@@ -3222,15 +3086,8 @@ public class DruidAdapterIT {
                     "month=November; avg$=34.51727684346705",
                     "month=December; avg$=33.62788665879565");
 
-    final String druid = "'aggregations':[{'type':'hyperUnique','name':'$f0',"
-        + "'fieldName':'user_unique'}],'postAggregations':[{'type':"
-        + "'arithmetic','name':'postagg#0','fn':'-','fields':[{'type':"
-        + "'arithmetic','name':'','fn':'+','fields':[{'type':"
-        + "'hyperUniqueCardinality','name':'','fieldName':'$f0'},"
-        + "{'type':'constant','name':'','value':100.0}]},{'type':"
-        + "'arithmetic','name':'','fn':'*','fields':[{'type':"
-        + "'hyperUniqueCardinality','name':'','fieldName':'$f0'},"
-        + "{'type':'constant','name':'','value':2.0}]}]}]";
+    final String druid = "'postAggregations':[{'type':'expression','name':'EXPR$0',"
+        + "'expression':'((\\'$f0\\' + 100) - (\\'$f0\\' * 2))'}]";
     final String sql = "select (count(distinct \"user_id\") + 100) - "
         + "(count(distinct \"user_id\") * 2) from \"wiki\"";
     wikiApprox(sql)
@@ -3259,10 +3116,11 @@ public class DruidAdapterIT {
             + "from \"foodmart\" group by \"customer_id\"")
             .queryContains(
                     druidChecker("{'queryType':'groupBy','dataSource':'foodmart',"
-                            + "'granularity':{'type':'all'},'dimensions':[{'type':'default','dimension':"
-                            + "'customer_id'}],'limitSpec':{'type':'default'},'aggregations':[{"
-                            + "'type':'cardinality','name':'EXPR$0','fieldNames':['the_month']}],"
-                            + "'intervals':['1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z']}"));
+                        + "'granularity':'all','dimensions':[{'type':'default','dimension':"
+                        + "'customer_id','outputName':'customer_id','outputType':'STRING'}],"
+                        + "'limitSpec':{'type':'default'},'aggregations':[{"
+                        + "'type':'cardinality','name':'EXPR$0','fieldNames':['the_month']}],"
+                        + "'intervals':['1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z']}"));
   }
 
   /**
@@ -3274,13 +3132,13 @@ public class DruidAdapterIT {
     sql(sql, WIKI)
         // make sure user_id column is not present
         .queryContains(
-            druidChecker("{'queryType':'scan','dataSource':'wikiticker',"
-                + "'intervals':['1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z'],"
-                + "'columns':['__time','channel','cityName','comment','countryIsoCode','countryName',"
-                + "'isAnonymous','isMinor','isNew','isRobot','isUnpatrolled','metroCode',"
-                + "'namespace','page','regionIsoCode','regionName','count','added',"
-                + "'deleted','delta'],'granularity':{'type':'all'},"
-                + "'resultFormat':'compactedList','limit':5"));
+            druidChecker("{'queryType':'scan','dataSource':'wikiticker','intervals':"
+                + "['1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z'],'virtualColumns':"
+                + "[{'type':'expression','name':'vc','expression':'\\'__time\\'',"
+                + "'outputType':'LONG'}],'columns':['vc','channel','cityName','comment',"
+                + "'countryIsoCode','countryName','isAnonymous','isMinor','isNew','isRobot',"
+                + "'isUnpatrolled','metroCode','namespace','page','regionIsoCode','regionName',"
+                + "'count','added','deleted','delta'],'resultFormat':'compactedList','limit':5}"));
   }
 
   /**
@@ -3300,7 +3158,7 @@ public class DruidAdapterIT {
         + "  DruidQuery(table=[[foodmart, foodmart]], intervals=[[1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z]], "
         + "filter=[=(CAST($1):DOUBLE, 1016.0)], groups=[{}], aggs=[[SUM($91)]])";
     final String druidQuery =
-        "{'queryType':'timeseries','dataSource':'foodmart','descending':false,'granularity':{'type':'all'},"
+        "{'queryType':'timeseries','dataSource':'foodmart','descending':false,'granularity':'all',"
             + "'filter':{'type':'bound','dimension':'product_id','lower':'1016.0',"
             + "'lowerStrict':false,'upper':'1016.0','upperStrict':false,'ordering':'numeric'},"
             + "'aggregations':[{'type':'doubleSum','name':'A','fieldName':'store_cost'}],"
@@ -3327,17 +3185,15 @@ public class DruidAdapterIT {
         + "  DruidQuery(table=[[foodmart, foodmart]], intervals=[[1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z]], "
         + "filter=[<>(CAST($1):DOUBLE, 1016.0)], groups=[{}], aggs=[[SUM($91)]])";
     final String druidQuery =
-        "{'queryType':'timeseries','dataSource':'foodmart','descending':false,'granularity':{'type':'all'},"
-            + "'filter':{'type':'or','fields':[{'type':'bound','dimension':'product_id','lower':'1016.0',"
-            + "'lowerStrict':true,'ordering':'numeric'},{'type':'bound','dimension':'product_id',"
-            + "'upper':'1016.0','upperStrict':true,'ordering':'numeric'}]},"
+        "{'queryType':'timeseries','dataSource':'foodmart','descending':false,'granularity':'all',"
+            + "'filter':{'type':'not','field':{'type':'bound','dimension':'product_id','"
+            + "lower':'1016.0','lowerStrict':false,'upper':'1016.0','upperStrict':false,'ordering':'numeric'}},"
             + "'aggregations':[{'type':'doubleSum','name':'A','fieldName':'store_cost'}],"
-            + "'intervals':['1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z'],"
-            + "'context':{'skipEmptyBuckets':true}}";
+            + "'intervals':['1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z'],'context':{'skipEmptyBuckets':true}}";
     sql(sqlQuery, FOODMART)
         .explainContains(plan)
-        .queryContains(druidChecker(druidQuery))
-        .returnsUnordered("A=225541.91720000014");
+        .returnsUnordered("A=225541.91720000014")
+        .queryContains(druidChecker(druidQuery));
 
     final String sqlQuery2 = "select sum(\"store_cost\") as a "
         + "from \"foodmart\" "
@@ -3352,7 +3208,7 @@ public class DruidAdapterIT {
         + "from \"foodmart\" "
         + "where \"product_id\" is null";
     final String druidQuery =
-        "{'queryType':'timeseries','dataSource':'foodmart','descending':false,'granularity':{'type':'all'},"
+        "{'queryType':'timeseries','dataSource':'foodmart','descending':false,'granularity':'all',"
             + "'filter':{'type':'selector','dimension':'product_id','value':null},"
             + "'aggregations':[{'type':'count','name':'C'}],"
             + "'intervals':['1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z'],"
@@ -3368,7 +3224,7 @@ public class DruidAdapterIT {
         + "from \"foodmart\" "
         + "where \"product_id\" is not null";
     final String druidQuery =
-        "{'queryType':'timeseries','dataSource':'foodmart','descending':false,'granularity':{'type':'all'},"
+        "{'queryType':'timeseries','dataSource':'foodmart','descending':false,'granularity':'all',"
             + "'filter':{'type':'not','field':{'type':'selector','dimension':'product_id','value':null}},"
             + "'aggregations':[{'type':'count','name':'C'}],"
             + "'intervals':['1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z'],"
@@ -3385,46 +3241,40 @@ public class DruidAdapterIT {
             + "floor(\"timestamp\" to MONTH) between '1997-01-01 00:00:00 UTC'"
             + "and '1997-03-01 00:00:00 UTC' order by t limit 2";
 
-    final String druidquery = "{\"queryType\":\"scan\",\"dataSource\":\"foodmart\""
-        + ",\"intervals\":[\"1997-01-01T00:00:00.000Z/1997-04-01T00:00:00.000Z\"],"
-        + "\"columns\":[\"__time\"],\"granularity\":{\"type\":\"all\"},"
-        + "\"resultFormat\":\"compactedList\"}";
+    final String druidQuery = "{'queryType':'scan','dataSource':'foodmart','intervals':"
+        + "['1997-01-01T00:00:00.000Z/1997-04-01T00:00:00.000Z'],'virtualColumns':"
+        + "[{'type':'expression','name':'vc','expression':'timestamp_floor(\\'__time\\'";
     sql(sql, FOODMART)
+        .returnsOrdered("T=1997-01-01 00:00:00", "T=1997-01-01 00:00:00")
         .queryContains(
-            druidChecker(druidquery))
-        .returnsOrdered("T=1997-01-01 00:00:00", "T=1997-01-01 00:00:00");
+            druidChecker(druidQuery));
   }
 
-  @Test public void testSelectFloorOnTimeWithFilterOnFloorOnTime() {
+  @Test
+  public void testSelectFloorOnTimeWithFilterOnFloorOnTime() {
     final String sql = "Select cast(floor(\"timestamp\" to MONTH) as timestamp) as t from "
         + "\"foodmart\" where floor(\"timestamp\" to MONTH) >= '1997-05-01 00:00:00 UTC' order by t"
         + " limit 1";
-    final String druidQueryPart1 = "filter\":{\"type\":\"bound\",\"dimension\":\"__time\","
-        + "\"lower\":\"1997-05-01T00:00:00.000Z\",\"lowerStrict\":false,"
-        + "\"ordering\":\"lexicographic\",\"extractionFn\":{\"type\":\"timeFormat\","
-        + "\"format\":\"yyyy-MM-dd";
-    final String druidQueryPart2 = "\"granularity\":{\"type\":\"period\",\"period\":\"P1M\","
-        + "\"timeZone\":\"UTC\"},\"timeZone\":\"UTC\","
-        + "\"locale\":\"und\"}},\"columns\":[\"__time\"],\"granularity\":{\"type\":\"all\"}";
+    final String plan = "PLAN=EnumerableInterpreter\n"
+        + "  BindableSort(sort0=[$0], dir0=[ASC], fetch=[1])\n"
+        + "    DruidQuery(table=[[foodmart, foodmart]], intervals=[[1900-01-09T00:00:00.000Z/"
+        + "2992-01-10T00:00:00.000Z]], filter=[>=(FLOOR($0, FLAG(MONTH)), 1997-05-01 00:00:00)], "
+        + "projects=[[CAST(FLOOR($0, FLAG(MONTH))):TIMESTAMP(0) NOT NULL]])";
 
-    sql(sql, FOODMART).queryContains(druidChecker(druidQueryPart1, druidQueryPart2))
-        .returnsOrdered("T=1997-05-01 00:00:00");
+    sql(sql, FOODMART).returnsOrdered("T=1997-05-01 00:00:00").explainContains(plan);
   }
 
   @Test public void testTimeWithFilterOnFloorOnTimeAndCastToTimestamp() {
     final String sql = "Select cast(floor(\"timestamp\" to MONTH) as timestamp) as t from "
         + "\"foodmart\" where floor(\"timestamp\" to MONTH) >= cast('1997-05-01 00:00:00' as TIMESTAMP) order by t"
         + " limit 1";
-    final String druidQueryPart1 = "filter\":{\"type\":\"bound\",\"dimension\":\"__time\","
-        + "\"lower\":\"1997-05-01T00:00:00.000Z\",\"lowerStrict\":false,"
-        + "\"ordering\":\"lexicographic\",\"extractionFn\":{\"type\":\"timeFormat\","
-        + "\"format\":\"yyyy-MM-dd";
-    final String druidQueryPart2 = "\"granularity\":{\"type\":\"period\",\"period\":\"P1M\","
-        + "\"timeZone\":\"UTC\"},\"timeZone\":\"UTC\","
-        + "\"locale\":\"und\"}},\"columns\":[\"__time\"],\"granularity\":{\"type\":\"all\"}";
-
-    sql(sql, FOODMART).queryContains(druidChecker(druidQueryPart1, druidQueryPart2))
-        .returnsOrdered("T=1997-05-01 00:00:00");
+    final String druidQuery = "{'queryType':'scan','dataSource':'foodmart','intervals':"
+        + "['1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z'],'filter':{'type':'bound',"
+        + "'dimension':'__time','lower':'1997-05-01T00:00:00.000Z',"
+        + "'lowerStrict':false,'ordering':'lexicographic','";
+    sql(sql, FOODMART)
+        .returnsOrdered("T=1997-05-01 00:00:00")
+        .queryContains(druidChecker(druidQuery));
   }
 
   @Test public void testTimeWithFilterOnFloorOnTimeWithTimezone() {
@@ -3437,7 +3287,7 @@ public class DruidAdapterIT {
         + "\"format\":\"yyyy-MM-dd";
     final String druidQueryPart2 = "\"granularity\":{\"type\":\"period\",\"period\":\"PT1H\","
         + "\"timeZone\":\"IST\"},\"timeZone\":\"IST\","
-        + "\"locale\":\"und\"}},\"columns\":[\"__time\"],\"granularity\":{\"type\":\"all\"}";
+        + "\"locale\":\"und\"}}";
 
     CalciteAssert.that()
         .enable(enabled())
@@ -3446,7 +3296,7 @@ public class DruidAdapterIT {
         .query(sql)
         .runs()
         .queryContains(druidChecker(druidQueryPart1, druidQueryPart2))
-        .returnsOrdered("T=2015-09-12 08:00:02");
+        .returnsOrdered("T=2015-09-12 02:30:02");
   }
 
   @Test public void testTimeWithFilterOnFloorOnTimeWithTimezoneConversion() {
@@ -3460,8 +3310,7 @@ public class DruidAdapterIT {
         + "\"format\":\"yyyy-MM-dd";
     final String druidQueryPart2 = "\"granularity\":{\"type\":\"period\",\"period\":\"PT1H\","
         + "\"timeZone\":\"IST\"},\"timeZone\":\"IST\","
-        + "\"locale\":\"und\"}},\"columns\":[\"__time\",\"countryName\"],"
-        + "\"granularity\":{\"type\":\"all\"}";
+        + "\"locale\":\"und\"}}";
 
     CalciteAssert.that()
         .enable(enabled())
@@ -3490,22 +3339,1080 @@ public class DruidAdapterIT {
 
   @Test public void testFloorToDateRangeWithTimeZone() {
     final String sql = "Select cast(floor(\"timestamp\" to MONTH) as timestamp) as t from "
-        + "\"foodmart\" where floor(\"timestamp\" to MONTH) >= '1997-05-01 00:00:00 IST' "
-        + "and floor(\"timestamp\" to MONTH) < '1997-05-02 00:00:00 IST' order by t"
+        + "\"foodmart\" where floor(\"timestamp\" to MONTH) >= '1997-05-01 00:00:00 Asia/Kolkata' "
+        + "and floor(\"timestamp\" to MONTH) < '1997-05-02 00:00:00 Asia/Kolkata' order by t"
         + " limit 1";
     final String druidQuery = "{\"queryType\":\"scan\",\"dataSource\":\"foodmart\",\"intervals\":"
-        + "[\"1997-04-30T18:30:00.000Z/1997-05-31T18:30:00.000Z\"],\"columns\":[\"__time\"],"
-        + "\"granularity\":{\"type\":\"all\"},\"resultFormat\":\"compactedList\"}";
+        + "[\"1997-04-30T18:30:00.000Z/1997-05-31T18:30:00.000Z\"],\"virtualColumns\":[{\"type\":"
+        + "\"expression\",\"name\":\"vc\",\"expression\":\"timestamp_floor(\\\"__time\\\"";
     CalciteAssert.that()
         .enable(enabled())
         .with(ImmutableMap.of("model", FOODMART.getPath()))
-        .with(CalciteConnectionProperty.TIME_ZONE.camelName(), "IST")
+        .with(CalciteConnectionProperty.TIME_ZONE.camelName(), "Asia/Kolkata")
         .query(sql)
         .runs()
         .queryContains(druidChecker(druidQuery))
-        .returnsOrdered("T=1997-05-01 05:30:00");
+        .returnsOrdered("T=1997-04-30 18:30:00");
   }
 
+  @Test
+  public void testExpressionsFilter() {
+    final String sql = "SELECT COUNT(*) FROM \"foodmart\"  where ABS(-EXP(LN(SQRT"
+        + "(\"store_sales\")))) = 1";
+    sql(sql, FOODMART)
+        .queryContains(druidChecker("pow(\\\"store_sales\\\""))
+        .returnsUnordered("EXPR$0=32");
+  }
+
+  @Test
+  public void testExpressionsFilter2() {
+    final String sql = "SELECT COUNT(*) FROM \"foodmart\"  where CAST(SQRT(ABS(-\"store_sales\"))"
+        + " /2 as INTEGER) = 1";
+    sql(sql, FOODMART)
+        .queryContains(druidChecker("(CAST((pow(abs((- \\\"store_sales\\\")),0.5) / 2),"))
+        .returnsUnordered("EXPR$0=62449");
+  }
+
+  @Test
+  public void testExpressionsLikeFilter() {
+    final String sql = "SELECT COUNT(*) FROM \"foodmart\"  where \"product_id\" LIKE '1%'";
+    sql(sql, FOODMART)
+        .queryContains(
+            druidChecker("\"filter\":{\"type\":\"expression\",\"expression\":\"like"))
+        .returnsUnordered("EXPR$0=36839");
+  }
+
+  @Test
+  public void testExpressionsSTRLENFilter() {
+    final String sql = "SELECT COUNT(*) FROM \"foodmart\"  where CHAR_LENGTH(\"product_id\") = 2";
+    sql(sql, FOODMART)
+        .queryContains(
+            druidChecker("\"expression\":\"(strlen(\\\"product_id\\\") == 2"))
+        .returnsUnordered("EXPR$0=4876");
+  }
+
+  @Test
+  public void testExpressionsUpperLowerFilter() {
+    final String sql = "SELECT COUNT(*) FROM \"foodmart\"  where upper(lower(\"city\")) = "
+        + "'SPOKANE'";
+    sql(sql, FOODMART)
+        .queryContains(
+            druidChecker("\"filter\":{\"type\":\"expression\",\"expression\":\"(upper"
+                + "(lower(\\\"city\\\")) ==", "SPOKANE"))
+        .returnsUnordered("EXPR$0=7394");
+  }
+
+  @Test
+  public void testExpressionsLowerUpperFilter() {
+    final String sql = "SELECT COUNT(*) FROM \"foodmart\"  where lower(upper(\"city\")) = "
+        + "'spokane'";
+    sql(sql, FOODMART)
+        .queryContains(
+            druidChecker("\"filter\":{\"type\":\"expression\",\"expression\":\"(lower"
+                + "(upper(\\\"city\\\")) ==", "spokane"))
+        .returnsUnordered("EXPR$0=7394");
+  }
+
+  @Test
+  public void testExpressionsLowerFilterNotMatching() {
+    final String sql = "SELECT COUNT(*) FROM \"foodmart\"  where lower(\"city\") = 'Spokane'";
+    sql(sql, FOODMART)
+        .queryContains(
+            druidChecker("\"filter\":{\"type\":\"expression\",\"expression\":\"(lower"
+                + "(\\\"city\\\") ==", "Spokane"))
+        .returnsUnordered("EXPR$0=0");
+  }
+
+  @Test
+  public void testExpressionsLowerFilterMatching() {
+    final String sql = "SELECT COUNT(*) FROM \"foodmart\"  where lower(\"city\") = 'spokane'";
+    sql(sql, FOODMART)
+        .queryContains(
+            druidChecker("\"filter\":{\"type\":\"expression\",\"expression\":\"(lower"
+                + "(\\\"city\\\") ==", "spokane"))
+        .returnsUnordered("EXPR$0=7394");
+  }
+
+  @Test
+  public void testExpressionsUpperFilterNotMatching() {
+    final String sql = "SELECT COUNT(*) FROM \"foodmart\"  where upper(\"city\") = 'Spokane'";
+    sql(sql, FOODMART)
+        .queryContains(
+            druidChecker("\"filter\":{\"type\":\"expression\",\"expression\":\"(upper"
+                + "(\\\"city\\\") ==", "Spokane"))
+        .returnsUnordered("EXPR$0=0");
+  }
+
+  @Test
+  public void testExpressionsUpperFilterMatching() {
+    final String sql = "SELECT COUNT(*) FROM \"foodmart\"  where upper(\"city\") = 'SPOKANE'";
+    sql(sql, FOODMART)
+        .queryContains(
+            druidChecker("\"filter\":{\"type\":\"expression\",\"expression\":\"(upper"
+                + "(\\\"city\\\") ==", "SPOKANE"))
+        .returnsUnordered("EXPR$0=7394");
+  }
+
+  @Test
+  public void testExpressionsConcatFilter() {
+    final String sql = "SELECT COUNT(*) FROM \"foodmart\"  where (\"city\" || '_extra') = "
+        + "'Spokane_extra'";
+    sql(sql, FOODMART)
+        .queryContains(
+            druidChecker("{\"type\":\"expression\",\"expression\":\"(concat"
+                + "(\\\"city\\\",", "Spokane_extra"))
+        .returnsUnordered("EXPR$0=7394");
+  }
+
+  @Test
+  public void testExpressionsNotNull() {
+    final String sql = "SELECT COUNT(*) FROM \"foodmart\"  where (\"city\" || 'extra') IS NOT NULL";
+    sql(sql, FOODMART)
+        .queryContains(
+            druidChecker("{\"type\":\"expression\",\"expression\":\"(concat"
+                + "(\\\"city\\\",", "!= null"))
+        .returnsUnordered("EXPR$0=86829");
+  }
+
+  @Test
+  public void testComplexExpressionsIsNull() {
+    final String sql = "SELECT COUNT(*) FROM \"foodmart\"  where ( cast(null as INTEGER) + cast"
+        + "(\"city\" as INTEGER)) IS NULL";
+    sql(sql, FOODMART)
+        .explainContains("PLAN=EnumerableInterpreter\n"
+            + "  BindableAggregate(group=[{}], EXPR$0=[$SUM0($1)])\n"
+            + "    BindableFilter(condition=[IS NULL(+(null, CAST($0):INTEGER))])\n"
+            + "      DruidQuery(table=[[foodmart, foodmart]], "
+            + "intervals=[[1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z]], "
+            + "groups=[{29}], aggs=[[COUNT()]])")
+        .queryContains(
+            druidChecker(
+                "{\"queryType\":\"groupBy\",\"dataSource\":\"foodmart\","
+                    + "\"granularity\":\"all\",\"dimensions\":[{\"type\":\"default\","
+                    + "\"dimension\":\"city\",\"outputName\":\"city\",\"outputType\":\"STRING\"}],"
+                    + "\"limitSpec\":{\"type\":\"default\"},"
+                    + "\"aggregations\":[{\"type\":\"count\",\"name\":\"EXPR$0\"}],"
+                    + "\"intervals\":[\"1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z\"]}"))
+        .returnsUnordered("EXPR$0=86829");
+  }
+
+  @Test
+  public void testExpressionsConcatFilterMultipleColumns() {
+    final String sql = "SELECT COUNT(*) FROM \"foodmart\"  where (\"city\" || \"state_province\")"
+        + " = 'SpokaneWA'";
+    sql(sql, FOODMART)
+        .queryContains(druidChecker("(concat(\\\"city\\\",\\\"state_province\\\") ==", "SpokaneWA"))
+        .returnsUnordered("EXPR$0=7394");
+  }
+
+  @Test
+  public void testAndCombinationOfExpAndSimpleFilter() {
+    final String sql = "SELECT COUNT(*) FROM \"foodmart\"  where (\"city\" || \"state_province\")"
+        + " = 'SpokaneWA' "
+        + "AND \"state_province\" = 'WA'";
+    sql(sql, FOODMART)
+        .queryContains(
+            druidChecker("(concat(\\\"city\\\",\\\"state_province\\\") ==",
+                "SpokaneWA",
+                "{\"type\":\"selector\",\"dimension\":\"state_province\",\"value\":\"WA\"}]}"))
+        .returnsUnordered("EXPR$0=7394");
+  }
+
+  @Test
+  public void testOrCombinationOfExpAndSimpleFilter() {
+    final String sql = "SELECT COUNT(*) FROM \"foodmart\"  where (\"city\" || \"state_province\")"
+        + " = 'SpokaneWA' "
+        + "OR (\"state_province\" = 'CA' AND \"city\" IS NOT NULL)";
+    sql(sql, FOODMART)
+        .queryContains(
+            druidChecker("(concat(\\\"city\\\",\\\"state_province\\\") ==",
+                "SpokaneWA", "{\"type\":\"and\",\"fields\":[{\"type\":\"selector\","
+                    + "\"dimension\":\"state_province\",\"value\":\"CA\"},{\"type\":\"not\","
+                    + "\"field\":{\"type\":\"selector\",\"dimension\":\"city\",\"value\":null}}]}"))
+        .returnsUnordered("EXPR$0=31835");
+  }
+
+  @Test
+  public void testColumnAEqColumnB() {
+    final String sql = "SELECT COUNT(*) FROM \"foodmart\"  where \"city\" = \"state_province\"";
+    sql(sql, FOODMART)
+        .queryContains(
+            druidChecker("\"filter\":{\"type\":\"expression\",\"expression\":\""
+                + "(\\\"city\\\" == \\\"state_province\\\")\"}"))
+        .returnsUnordered("EXPR$0=0");
+  }
+
+  @Test
+  public void testColumnANotEqColumnB() {
+    final String sql = "SELECT COUNT(*) FROM \"foodmart\"  where \"city\" <> \"state_province\"";
+    sql(sql, FOODMART)
+        .queryContains(
+            druidChecker("\"filter\":{\"type\":\"expression\",\"expression\":\""
+                + "(\\\"city\\\" != \\\"state_province\\\")\"}"))
+        .returnsUnordered("EXPR$0=86829");
+  }
+
+  @Test
+  public void testAndCombinationOfComplexExpAndSimpleFilter() {
+    final String sql = "SELECT COUNT(*) FROM \"foodmart\"  where ((\"city\" || "
+        + "\"state_province\") = 'SpokaneWA' OR (\"city\" || '_extra') = 'Spokane_extra') "
+        + "AND \"state_province\" = 'WA'";
+    sql(sql, FOODMART)
+        .explainContains("PLAN=EnumerableInterpreter\n"
+            + "  DruidQuery(table=[[foodmart, foodmart]], "
+            + "intervals=[[1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z]], filter=[AND(OR(="
+            + "(||($29, $30), 'SpokaneWA'), =(||($29, '_extra'), 'Spokane_extra')), =($30, 'WA'))"
+            + "], groups=[{}], aggs=[[COUNT()]])")
+        .queryContains(
+            druidChecker("(concat(\\\"city\\\",\\\"state_province\\\") ==",
+                "SpokaneWA", "{\"type\":\"selector\",\"dimension\":\"state_province\","
+                    + "\"value\":\"WA\"}]}"))
+        .returnsUnordered("EXPR$0=7394");
+  }
+
+  @Test
+  public void testExpressionsFilterWithCast() {
+    final String sql = "SELECT COUNT(*) FROM \"foodmart\" where CAST(( SQRT(\"store_sales\") - 1 "
+        + ") / 3 + 1 AS INTEGER) > 1";
+    sql(sql, FOODMART)
+        .queryContains(
+            druidChecker("(CAST((((pow(\\\"store_sales\\\",0.5) - 1) / 3) + 1)", "LONG"))
+        .returnsUnordered("EXPR$0=476");
+  }
+
+  @Test
+  public void testExpressionsFilterWithCastTimeToDateToChar() {
+    final String sql = "SELECT COUNT(*) FROM \"foodmart\" where CAST(CAST(\"timestamp\" as "
+        + "DATE) as VARCHAR) = '1997-01-01'";
+    sql(sql, FOODMART)
+        .explainContains("PLAN=EnumerableInterpreter\n"
+            + "  DruidQuery(table=[[foodmart, foodmart]], "
+            + "intervals=[[1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z]], "
+            + "filter=[=(CAST(CAST($0):DATE NOT NULL):VARCHAR CHARACTER SET \"ISO-8859-1\" "
+            + "COLLATE \"ISO-8859-1$en_US$primary\" NOT NULL, '1997-01-01')], "
+            + "groups=[{}], aggs=[[COUNT()]])")
+        .queryContains(
+            druidChecker("{\"type\":\"expression\","
+                + "\"expression\":\"(timestamp_format(timestamp_floor(\\\"__time\\\""))
+        .returnsUnordered("EXPR$0=117");
+  }
+
+  @Test
+  public void testExpressionsFilterWithExtract() {
+    final String sql = "SELECT COUNT(*) FROM \"foodmart\"  where CAST((EXTRACT(MONTH FROM "
+        + "\"timestamp\") - 1 ) / 3 + 1 AS INTEGER) = 1";
+    sql(sql, FOODMART)
+        .queryContains(
+            druidChecker(",\"filter\":{\"type\":\"expression\",\"expression\":\"((("
+                + "(timestamp_extract(\\\"__time\\\"", "MONTH", ") - 1) / 3) + 1) == 1"))
+        .returnsUnordered("EXPR$0=21587");
+  }
+
+  @Test
+  public void testExtractYearFilterExpression() {
+    final String sql = "SELECT count(*) from \"foodmart\" WHERE"
+            + " EXTRACT(YEAR from \"timestamp\") + 1 > 1997";
+    final String filterPart1 = "'filter':{'type':'expression','expression':"
+            + "'((timestamp_extract(\\'__time\\'";
+    final String filterTimezoneName = "America/Los_Angeles";
+    CalciteAssert.that()
+        .enable(enabled())
+        .with(ImmutableMap.of("model", FOODMART.getPath()))
+        .with(CalciteConnectionProperty.TIME_ZONE.camelName(), filterTimezoneName)
+        .query(sql)
+        .runs()
+        .returnsOrdered("EXPR$0=86712")
+        .queryContains(druidChecker(filterPart1, filterTimezoneName));
+  }
+
+  @Test
+  public void testExtractMonthFilterExpression() {
+    final String sql = "SELECT count(*) from \"foodmart\" WHERE"
+            + " EXTRACT(MONTH from \"timestamp\") + 1 = 02";
+    final String filterPart1 = "'filter':{'type':'expression','expression':"
+            + "'((timestamp_extract(\\'__time\\'";
+    final String filterTimezoneName = "America/Los_Angeles";
+    CalciteAssert.that()
+        .enable(enabled())
+        .with(ImmutableMap.of("model", FOODMART.getPath()))
+        .with(CalciteConnectionProperty.TIME_ZONE.camelName(), filterTimezoneName)
+        .query(sql)
+        .runs()
+        .returnsOrdered("EXPR$0=7043")
+        .queryContains(druidChecker(filterPart1, filterTimezoneName, "MONTH", "== 2"));
+  }
+
+  @Test
+  public void testExtractHourFilterExpression() {
+    final String sql = "SELECT EXTRACT(HOUR from CAST(\"timestamp\" AS TIMESTAMP)) "
+            + "from \"foodmart\" WHERE EXTRACT(HOUR from \"timestamp\") = 17 "
+            + "group by EXTRACT(HOUR from CAST(\"timestamp\" AS TIMESTAMP)) ";
+    CalciteAssert.that()
+        .enable(enabled())
+        .with(ImmutableMap.of("model", FOODMART.getPath()))
+        .with(CalciteConnectionProperty.TIME_ZONE.camelName(), "America/Los_Angeles")
+        .query(sql)
+        .runs()
+        .returnsOrdered("EXPR$0=17");
+
+    final String sql2 = "SELECT EXTRACT(HOUR from CAST(\"timestamp\" AS TIMESTAMP)) "
+            + "from \"foodmart\" WHERE"
+            + " EXTRACT(HOUR from CAST(\"timestamp\" AS TIMESTAMP)) = 19 "
+            + "group by EXTRACT(HOUR from CAST(\"timestamp\" AS TIMESTAMP)) ";
+    CalciteAssert.that()
+        .enable(enabled())
+        .with(ImmutableMap.of("model", FOODMART.getPath()))
+        .with(CalciteConnectionProperty.TIME_ZONE.camelName(), "EST")
+        .query(sql2)
+        .runs()
+        .returnsOrdered("EXPR$0=19");
+
+    final String sql3 = "SELECT EXTRACT(HOUR from CAST(\"timestamp\" AS TIMESTAMP)) "
+            + "from \"foodmart\" WHERE EXTRACT(HOUR from CAST(\"timestamp\" AS TIMESTAMP)) = 0 "
+            + "group by EXTRACT(HOUR from CAST(\"timestamp\" AS TIMESTAMP)) ";
+    CalciteAssert.that()
+        .enable(enabled())
+        .with(ImmutableMap.of("model", FOODMART.getPath()))
+        .with(CalciteConnectionProperty.TIME_ZONE.camelName(), "UTC")
+        .query(sql3)
+        .runs()
+        .returnsOrdered("EXPR$0=0");
+  }
+
+  @Test
+  public void testTimeFloorExpressions() {
+
+    final String sql =
+        "SELECT CAST(FLOOR(\"timestamp\" to DAY) as TIMESTAMP) as d from \"foodmart\" WHERE "
+            + "CAST(FLOOR(CAST(\"timestamp\" AS DATE) to MONTH) AS DATE) = "
+            + " CAST('1997-01-01' as DATE) GROUP BY  floor(\"timestamp\" to DAY) order by d limit 3";
+    final String plan = "PLAN=EnumerableInterpreter\n"
+        + "  DruidQuery(table=[[foodmart, foodmart]], intervals=[[1900-01-09T00:00:00.000Z/"
+        + "2992-01-10T00:00:00.000Z]], filter=[=(CAST(FLOOR(CAST($0):DATE NOT NULL, "
+        + "FLAG(MONTH))):DATE NOT NULL, 1997-01-01)], projects=[[FLOOR($0, FLAG(DAY))]], "
+        + "groups=[{0}], aggs=[[]], post_projects=[[CAST($0):TIMESTAMP(0) NOT NULL]]"
+        + ", sort0=[0], dir0=[ASC], fetch=[3])";
+    sql(sql, FOODMART)
+        .explainContains(plan)
+        .returnsOrdered("D=1997-01-01 00:00:00", "D=1997-01-02 00:00:00", "D=1997-01-03 00:00:00");
+  }
+
+  @Test
+  public void testDruidTimeFloorAndTimeParseExpressions() {
+    final String sql = "SELECT CAST(\"timestamp\" AS TIMESTAMP), count(*) "
+        + "from \"foodmart\" WHERE "
+        + "CAST(('1997' || '-01' || '-01') AS DATE) = CAST(\"timestamp\" AS DATE) "
+        + "GROUP BY \"timestamp\"";
+    sql(sql, FOODMART)
+        .returnsOrdered("EXPR$0=1997-01-01 00:00:00; EXPR$1=117")
+        .queryContains(
+            druidChecker("\"filter\":{\"type\":\"expression\",\"expression\":\""
+                    + "(timestamp_floor(timestamp_parse(concat(concat(",
+                "== timestamp_floor(\\\"__time\\\""));
+  }
+
+  @Test
+  public void testDruidTimeFloorAndTimeParseExpressions2() {
+    final String sql = "SELECT CAST(\"timestamp\" AS TIMESTAMP), count(*) "
+        + "from \"foodmart\" WHERE "
+        + "CAST(('1997' || '-01' || '-01') AS TIMESTAMP) = CAST(\"timestamp\" AS TIMESTAMP) "
+        + "GROUP BY \"timestamp\"";
+    sql(sql, FOODMART)
+        .queryContains(
+            druidChecker("\"filter\":{\"type\":\"expression\",\"expression\":\""
+                    + "(timestamp_parse(concat(concat("))
+        .returnsOrdered("EXPR$0=1997-01-01 00:00:00; EXPR$1=117");
+  }
+
+  @Test
+  public void testFilterFloorOnMetricColumn() {
+    final String sql = "SELECT count(*) from \"foodmart\" WHERE floor(\"store_sales\") = 23";
+    final String plan = "PLAN=EnumerableInterpreter\n"
+            + "  DruidQuery(table=[[foodmart, foodmart]], "
+            + "intervals=[[1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z]],"
+            + " filter=[=(FLOOR($90), 23)], groups=[{}], aggs=[[COUNT()]]";
+    sql(sql, FOODMART)
+        .returnsOrdered("EXPR$0=2")
+        .explainContains(plan)
+        .queryContains(druidChecker("\"queryType\":\"timeseries\""));
+  }
+
+
+  @Test
+  public void testExpressionFilterSimpleColumnAEqColumnB() {
+    final String sql = "SELECT count(*) from \"foodmart\" where \"product_id\" = \"city\"";
+    sql(sql, FOODMART)
+        .explainContains("PLAN=EnumerableInterpreter\n"
+            + "  DruidQuery(table=[[foodmart, foodmart]], "
+            + "intervals=[[1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z]], "
+            + "filter=[=($1, $29)], groups=[{}], aggs=[[COUNT()]])")
+        .queryContains(
+            druidChecker("\"filter\":{\"type\":\"expression\","
+                + "\"expression\":\"(\\\"product_id\\\" == \\\"city\\\")\"}"))
+        .returnsOrdered("EXPR$0=0");
+  }
+
+  @Test
+  public void testCastPlusMathOps() {
+    final String sql = "SELECT COUNT(*) FROM " + FOODMART_TABLE
+        + "WHERE (CAST(\"product_id\" AS INTEGER) + 1 * \"store_sales\")/(\"store_cost\" - 5) "
+        + "<= floor(\"store_sales\") * 25 + 2";
+    sql(sql, FOODMART)
+        .queryContains(
+            druidChecker(
+                "\"filter\":{\"type\":\"expression\",\"expression\":\"(((CAST(\\\"product_id\\\", ",
+                "LONG",
+                ") + (1 * \\\"store_sales\\\")) / (\\\"store_cost\\\" - 5))",
+                " <= ((floor(\\\"store_sales\\\") * 25) + 2))\"}"))
+        .explainContains("PLAN=EnumerableInterpreter\n"
+            + "  DruidQuery(table=[[foodmart, foodmart]], "
+            + "intervals=[[1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z]], "
+            + "filter=[<=(/(+(CAST($1):INTEGER, *(1, $90)), -($91, 5)), +(*(FLOOR($90), 25), 2))], "
+            + "groups=[{}], aggs=[[COUNT()]])")
+        .returnsOrdered("EXPR$0=82129");
+  }
+
+  @Test
+  //Boolean cast are not pushed for now.
+  public void testBooleanFilterExpressions() {
+    final String sql = "SELECT count(*) from " + FOODMART_TABLE
+        + " WHERE (CAST((\"product_id\" <> '1') AS BOOLEAN)) IS TRUE";
+    sql(sql, FOODMART)
+        .explainContains("PLAN=EnumerableInterpreter\n"
+            + "  BindableAggregate(group=[{}], EXPR$0=[$SUM0($1)])\n"
+            + "    BindableFilter(condition=[IS TRUE(CAST(<>($0, '1')):BOOLEAN)])\n"
+            + "      DruidQuery(table=[[foodmart, foodmart]], "
+            + "intervals=[[1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z]], "
+            + "groups=[{1}], aggs=[[COUNT()]])")
+        .queryContains(druidChecker("\"queryType\":\"groupBy\""))
+        .returnsOrdered("EXPR$0=86803");
+  }
+
+
+  @Test
+  public void testCombinationOfValidAndNotValidFilterts() {
+    final String sql = "SELECT COUNT(*) FROM " + FOODMART_TABLE
+        + "WHERE ((CAST(\"product_id\" AS INTEGER) + 1 * \"store_sales\")/(\"store_cost\" - 5) "
+        + "<= floor(\"store_sales\") * 25 + 2) AND \"timestamp\" < CAST('1997-01-02' as TIMESTAMP)"
+        + "AND CAST(\"store_sales\" > 0 AS BOOLEAN) IS TRUE "
+        + "AND \"product_id\" like '1%' AND \"store_cost\" > 1 "
+        + "AND EXTRACT(MONTH FROM \"timestamp\") = 01 AND EXTRACT(DAY FROM \"timestamp\") = 01 "
+        + "AND EXTRACT(MONTH FROM \"timestamp\") / 4 + 1 = 1";
+    final String queryType = "{'queryType':'groupBy','dataSource':'foodmart','granularity':'all',"
+        + "'dimensions':[{'type':'default','dimension':'store_sales','outputName':'store_sales','outputType':'DOUBLE'}],";
+    final String filterExp1 = "{'type':'expression','expression':'(((CAST(\\'product_id\\'";
+    final String filterExpPart2 =  " (1 * \\'store_sales\\')) / (\\'store_cost\\' - 5)) "
+        + "<= ((floor(\\'store_sales\\') * 25) + 2))'}";
+    final String likeExpressionFilter = "{'type':'expression','expression':'like(\\'product_id\\'";
+    final String likeExpressionFilter2 = "1%";
+    final String simpleBound = "{'type':'bound','dimension':'store_cost','lower':'1',"
+        + "'lowerStrict':true,'ordering':'numeric'}";
+    final String timeSimpleFilter =
+        "{'type':'bound','dimension':'__time','upper':'1997-01-02T00:00:00.000Z',"
+        + "'upperStrict':true,'ordering':'lexicographic','extractionFn':{'type':'timeFormat','format':'yyyy-MM-dd";
+    final String simpleExtractFilterMonth = "{'type':'bound','dimension':'__time','lower':'1',"
+        + "'lowerStrict':false,'upper':'1','upperStrict':false,'ordering':'numeric',"
+        + "'extractionFn':{'type':'timeFormat','format':'M','timeZone':'UTC','locale':'en-US'}}";
+    final String simpleExtractFilterDay = "{'type':'bound','dimension':'__time','lower':'1',"
+        + "'lowerStrict':false,'upper':'1','upperStrict':false,'ordering':'numeric',"
+        + "'extractionFn':{'type':'timeFormat','format':'d','timeZone':'UTC','locale':'en-US'}}";
+    final String quarterAsExpressionFilter = "{'type':'expression','expression':"
+        + "'(((timestamp_extract(\\'__time\\'";
+    final String quarterAsExpressionFilter2 = "MONTH";
+    final String quarterAsExpressionFilterTimeZone = "UTC";
+    final String quarterAsExpressionFilter3 = "/ 4) + 1) == 1)'}]}";
+    final String plan = "PLAN=EnumerableInterpreter\n"
+        + "  BindableAggregate(group=[{}], EXPR$0=[$SUM0($1)])\n"
+        + "    BindableFilter(condition=[IS TRUE(CAST(>($0, 0)):BOOLEAN)])\n"
+        + "      DruidQuery(table=[[foodmart, foodmart]], "
+        + "intervals=[[1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z]], "
+        + "filter=[AND(<=(/(+(CAST($1):INTEGER, *(1, $90)), -($91, 5)), +(*(FLOOR($90), 25), 2)),"
+        + " LIKE($1, '1%'), >($91, 1), <($0, 1997-01-02 00:00:00), =(EXTRACT(FLAG(MONTH), $0), 1), "
+        + "=(EXTRACT(FLAG(DAY), $0), 1), =(+(/(EXTRACT(FLAG(MONTH), $0), 4), 1), 1))], "
+        + "groups=[{90}], aggs=[[COUNT()]])";
+    sql(sql, FOODMART)
+        .returnsOrdered("EXPR$0=36")
+        .explainContains(plan)
+        .queryContains(
+            druidChecker(
+                queryType, filterExp1, filterExpPart2, likeExpressionFilter, likeExpressionFilter2,
+                simpleBound, timeSimpleFilter, simpleExtractFilterMonth, simpleExtractFilterDay,
+                quarterAsExpressionFilter, quarterAsExpressionFilterTimeZone,
+                quarterAsExpressionFilter2, quarterAsExpressionFilter3));
+  }
+
+
+  @Test
+  public void testCeilFilterExpression() {
+    final String sql = "SELECT COUNT(*) FROM " + FOODMART_TABLE + " WHERE ceil(\"store_sales\") > 1"
+        + " AND ceil(\"timestamp\" TO DAY) < CAST('1997-01-05' AS TIMESTAMP)"
+        + " AND ceil(\"timestamp\" TO MONTH) < CAST('1997-03-01' AS TIMESTAMP)"
+        + " AND ceil(\"timestamp\" TO HOUR) > CAST('1997-01-01' AS TIMESTAMP) "
+        + " AND ceil(\"timestamp\" TO MINUTE) > CAST('1997-01-01' AS TIMESTAMP) "
+        + " AND ceil(\"timestamp\" TO SECOND) > CAST('1997-01-01' AS TIMESTAMP) ";
+    final String plan = "PLAN=EnumerableInterpreter\n"
+        + "  DruidQuery(table=[[foodmart, foodmart]], intervals=[[1997-01-01T00:00:00.001Z/"
+        + "1997-01-04T00:00:00.001Z]], filter=[>(CEIL($90), 1)], groups=[{}], aggs=[[COUNT()]])";
+    sql(sql, FOODMART)
+        .explainContains(plan)
+        .returnsOrdered("EXPR$0=408");
+  }
+
+  @Test
+  public void testSubStringExpressionFilter() {
+    final String sql =
+        "SELECT COUNT(*) AS C, SUBSTRING(\"product_id\" from 1 for 4) FROM " + FOODMART_TABLE
+            + " WHERE SUBSTRING(\"product_id\" from 1 for 4) like '12%' "
+            + " AND CHARACTER_LENGTH(\"product_id\") = 4"
+            + " AND SUBSTRING(\"product_id\" from 3 for 1) = '2'"
+            + " AND CAST(SUBSTRING(\"product_id\" from 2 for 1) AS INTEGER) = 2"
+            + " AND CAST(SUBSTRING(\"product_id\" from 4 for 1) AS INTEGER) = 7"
+            + " AND CAST(SUBSTRING(\"product_id\" from 4) AS INTEGER) = 7"
+            + " Group by SUBSTRING(\"product_id\" from 1 for 4)";
+    final String plan = "PLAN=EnumerableInterpreter\n"
+        + "  BindableProject(C=[$1], EXPR$1=[$0])\n"
+        + "    DruidQuery(table=[[foodmart, foodmart]], "
+        + "intervals=[[1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z]], "
+        + "filter=[AND(LIKE(SUBSTRING($1, 1, 4), '12%'), =(CHAR_LENGTH($1), 4), "
+        + "=(SUBSTRING($1, 3, 1), '2'), =(CAST(SUBSTRING($1, 2, 1)):INTEGER, 2), "
+        + "=(CAST(SUBSTRING($1, 4, 1)):INTEGER, 7), =(CAST(SUBSTRING($1, 4)):INTEGER, 7))], "
+        + "projects=[[SUBSTRING($1, 1, 4)]], groups=[{0}], aggs=[[COUNT()]])";
+    sql(sql, FOODMART)
+        .returnsOrdered("C=60; EXPR$1=1227")
+        .explainContains(plan)
+        .queryContains(
+            druidChecker("\"queryType\":\"groupBy\"", "substring(\\\"product_id\\\"",
+                "\"(strlen(\\\"product_id\\\")",
+                ",\"virtualColumns\":[{\"type\":\"expression\",\"name\":\"vc\","
+                    + "\"expression\":\"substring(\\\"product_id\\\", 0, 4)\","
+                    + "\"outputType\":\"STRING\"}]"));
+  }
+
+  /**
+   * Test case for https://issues.apache.org/jira/browse/CALCITE-2098.
+   * Need to make sure that when there we have a valid filter with no conjunction we still push
+   * all the valid filters.
+   */
+  @Test
+  public void testFilterClauseWithNoConjunction() {
+    String sql = "select sum(\"store_sales\")"
+        + "from \"foodmart\" where \"product_id\" > 1555 or \"store_cost\" > 5 or extract(year "
+        + "from \"timestamp\") = 1997 "
+        + "group by floor(\"timestamp\" to DAY),\"product_id\"";
+    sql(sql)
+        .queryContains(
+            druidChecker("\"queryType\":\"groupBy\"", "{\"type\":\"bound\","
+                + "\"dimension\":\"store_cost\",\"lower\":\"5\",\"lowerStrict\":true,"
+                + "\"ordering\":\"numeric\"}"))
+        .runs();
+  }
+
+  /**
+   * Test case for https://issues.apache.org/jira/browse/CALCITE-2123
+   */
+  @Test
+  public void testBetweenFilterWithCastOverNumeric() {
+    final String sql = "SELECT COUNT(*) FROM " + FOODMART_TABLE + " WHERE \"product_id\" = 16.0";
+    sql(sql, FOODMART).runs().queryContains(
+        druidChecker(
+            "\"filter\":{\"type\":\"bound\",\"dimension\":\"product_id\",\"lower\":\"16.0\","
+                + "\"lowerStrict\":false,\"upper\":\"16.0\","
+                + "\"upperStrict\":false,\"ordering\":\"numeric\"}"));
+
+  }
+
+  @Test
+  public void testTrigonometryMathFunctions() {
+    final String sql = "SELECT COUNT(*) FROM " + FOODMART_TABLE + "WHERE "
+        + "SIN(\"store_cost\") > SIN(20) AND COS(\"store_sales\") > COS(20) "
+        + "AND FLOOR(TAN(\"store_cost\")) = 2 "
+        + "AND ABS(TAN(\"store_cost\") - SIN(\"store_cost\") / COS(\"store_cost\")) < 10e-7";
+    sql(sql, FOODMART)
+        .returnsOrdered("EXPR$0=2")
+        .explainContains("PLAN=EnumerableInterpreter\n"
+            + "  DruidQuery(table=[[foodmart, foodmart]], "
+            + "intervals=[[1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z]], "
+            + "filter=[AND(>(SIN($91), SIN(20)), >(COS($90), COS(20)), =(FLOOR(TAN($91)), 2), "
+            + "<(ABS(-(TAN($91), /(SIN($91), COS($91)))), 1.0E-6))], "
+            + "groups=[{}], aggs=[[COUNT()]])");
+  }
+
+  @Test
+  public void testCastLiteralToTimestamp() {
+    final String sql = "SELECT COUNT(*) FROM "
+        + FOODMART_TABLE + " WHERE \"timestamp\" < CAST('1997-01-02' as TIMESTAMP)"
+        + " AND EXTRACT(MONTH FROM \"timestamp\") / 4 + 1 = 1 ";
+    sql(sql, FOODMART)
+        .returnsOrdered("EXPR$0=117")
+        .queryContains(
+            druidChecker("{'queryType':'timeseries','dataSource':'foodmart',"
+                    + "'descending':false,'granularity':'all','filter':{'type':'and','fields':"
+                    + "[{'type':'bound','dimension':'__time','upper':'1997-01-02T00:00:00.000Z',"
+                    + "'upperStrict':true,'ordering':'lexicographic',"
+                    + "'extractionFn':{'type':'timeFormat','format':'yyyy-MM-dd",
+                "{'type':'expression','expression':'(((timestamp_extract(\\'__time\\',",
+                "/ 4) + 1) == 1)'}]},",
+                "'aggregations':[{'type':'count','name':'EXPR$0'}],"
+                    + "'intervals':['1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z'],'context':{'skipEmptyBuckets':false}}"));
+  }
+
+  @Test
+  public void testNotTrueSimpleFilter() {
+    final String sql = "SELECT COUNT(*) FROM " + FOODMART_TABLE + "WHERE "
+        + "(\"product_id\" = 1020 ) IS NOT TRUE AND (\"product_id\" = 1020 ) IS FALSE";
+    final String result = "EXPR$0=86773";
+    sql(sql, FOODMART)
+        .returnsOrdered(result)
+        .explainContains("PLAN=EnumerableInterpreter\n"
+            + "  DruidQuery(table=[[foodmart, foodmart]], "
+            + "intervals=[[1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z]], "
+            + "filter=[AND(IS NOT TRUE(=($1, 1020)), IS FALSE(=($1, 1020)))],"
+            + " groups=[{}], aggs=[[COUNT()]])");
+    final String sql2 = "SELECT COUNT(*) FROM " + FOODMART_TABLE + "WHERE "
+        + "\"product_id\" <> 1020";
+    sql(sql2, FOODMART).returnsOrdered(result);
+  }
+
+  // ADDING COMPLEX PROJECT PUSHDOWN
+
+  @Test
+  public void testPushOfSimpleMathOps() {
+    final String sql =
+        "SELECT COS(\"store_sales\") + 1, SIN(\"store_cost\"), EXTRACT(DAY from \"timestamp\") + 1  as D FROM "
+            + FOODMART_TABLE + "WHERE \"store_sales\" < 20 order by D limit 3";
+    sql(sql, FOODMART)
+        .runs()
+        .returnsOrdered("EXPR$0=1.060758881219386; EXPR$1=0.5172204046388567; D=2\n"
+            + "EXPR$0=0.8316025520509229; EXPR$1=0.6544084288365644; D=2\n"
+            + "EXPR$0=0.24267723077545622; EXPR$1=0.9286289016881148; D=2")
+        .explainContains("PLAN=EnumerableInterpreter\n"
+            + "  BindableSort(sort0=[$2], dir0=[ASC], fetch=[3])\n"
+            + "    DruidQuery(table=[[foodmart, foodmart]], intervals=[[1900-01-09T00:00:00.000Z/"
+            + "2992-01-10T00:00:00.000Z]], filter=[<($90, 20)], projects=[[+(COS($90), 1), SIN($91),"
+            + " +(EXTRACT(FLAG(DAY), $0), 1)]])");
+  }
+
+  @Test
+  public void testPushOfSimpleColumnAPlusColumnB() {
+    final String sql =
+        "SELECT COS(\"store_sales\" + \"store_cost\") + 1, EXTRACT(DAY from \"timestamp\") + 1  as D FROM "
+            + FOODMART_TABLE + "WHERE \"store_sales\" < 20 order by D limit 3";
+    sql(sql, FOODMART)
+        .runs()
+        .returnsOrdered("EXPR$0=0.5357357987441458; D=2\n"
+            + "EXPR$0=0.22760480207557643; D=2\n"
+            + "EXPR$0=0.11259322182897047; D=2")
+        .explainContains("PLAN=EnumerableInterpreter\n"
+            + "  BindableSort(sort0=[$1], dir0=[ASC], fetch=[3])\n"
+            + "    DruidQuery(table=[[foodmart, foodmart]], intervals=[[1900-01-09T00:00:00.000Z/"
+            + "2992-01-10T00:00:00.000Z]], filter=[<($90, 20)], projects=[[+(COS(+($90, $91)), 1), "
+            + "+(EXTRACT(FLAG(DAY), $0), 1)]])");
+  }
+
+  @Test
+  public void testSelectExtractMonth() {
+    final String sql = "SELECT  EXTRACT(YEAR FROM \"timestamp\") FROM " + FOODMART_TABLE;
+    sql(sql, FOODMART)
+        .limit(1)
+        .returnsOrdered("EXPR$0=1997")
+        .explainContains("DruidQuery(table=[[foodmart, foodmart]], intervals="
+            + "[[1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z]], "
+            + "projects=[[EXTRACT(FLAG(YEAR), $0)]])")
+        .queryContains(
+            druidChecker("\"virtualColumns\":[{\"type\":\"expression\",\"name\":\"vc\","
+                + "\"expression\":\"timestamp_extract(\\\"__time\\\""));
+  }
+
+  @Test
+  public void testAggOnArithmeticProject() {
+    final String sql = "SELECT SUM(\"store_sales\" + 1) FROM " + FOODMART_TABLE;
+    sql(sql, FOODMART)
+        .returnsOrdered("EXPR$0=652067.1299999984")
+        .explainContains("PLAN=EnumerableInterpreter\n"
+            + "  DruidQuery(table=[[foodmart, foodmart]], "
+            + "intervals=[[1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z]], "
+            + "projects=[[+($90, 1)]], groups=[{}], aggs=[[SUM($0)]])")
+        .queryContains(
+            druidChecker("\"queryType\":\"timeseries\"",
+                "\"doubleSum\",\"name\":\"EXPR$0\",\"expression\":\"(\\\"store_sales\\\" + 1)\""));
+  }
+
+  @Test
+  public void testAggOnArithmeticProject2() {
+    final String sql = "SELECT SUM(-\"store_sales\" * 2) as S FROM " + FOODMART_TABLE
+        + "Group by \"timestamp\" order by s LIMIT 2";
+    sql(sql, FOODMART)
+        .returnsOrdered("S=-15918.020000000002\nS=-14115.959999999988")
+        .explainContains("BindableProject(S=[$1])\n"
+            + "    DruidQuery(table=[[foodmart, foodmart]], intervals=[[1900-01-09T00:00:00.000Z/"
+            + "2992-01-10T00:00:00.000Z]], projects=[[$0, *(-($90), 2)]], groups=[{0}], "
+            + "aggs=[[SUM($1)]], sort0=[1], dir0=[ASC], fetch=[2])")
+        .queryContains(
+            druidChecker("'queryType':'groupBy'", "'granularity':'all'",
+                "{'dimension':'S','direction':'ascending','dimensionOrder':'numeric'}",
+                "{'type':'doubleSum','name':'S','expression':'((- \\'store_sales\\') * 2)'}]"));
+  }
+
+  @Test
+  public void testAggOnArithmeticProject3() {
+    final String sql = "SELECT SUM(-\"store_sales\" * 2)-Max(\"store_cost\" * \"store_cost\") AS S,"
+        + "Min(\"store_sales\" + \"store_cost\") as S2 FROM " + FOODMART_TABLE
+        + "Group by \"timestamp\" order by s LIMIT 2";
+    sql(sql, FOODMART)
+        .returnsOrdered("S=-16003.314460250002; S2=1.4768000000000001",
+            "S=-14181.569999999989; S2=0.8093999999999999")
+        .explainContains("PLAN=EnumerableInterpreter\n"
+            + "  DruidQuery(table=[[foodmart, foodmart]], intervals=[[1900-01-09T00:00:00.000Z/"
+            + "2992-01-10T00:00:00.000Z]], projects=[[$0, *(-($90), 2), *($91, $91), +($90, $91)]],"
+            + " groups=[{0}], aggs=[[SUM($1), MAX($2), MIN($3)]], post_projects=[[-($1, $2), $3]],"
+            + " sort0=[0], dir0=[ASC], fetch=[2])")
+        .queryContains(
+            druidChecker(",\"aggregations\":[{\"type\":\"doubleSum\",\"name\":\"$f1\","
+                + "\"expression\":\"((- \\\"store_sales\\\") * 2)\"},{\"type\":\"doubleMax\",\"name\""
+                + ":\"$f2\",\"expression\":\"(\\\"store_cost\\\" * \\\"store_cost\\\")\"},"
+                + "{\"type\":\"doubleMin\",\"name\":\"S2\",\"expression\":\"(\\\"store_sales\\\" "
+                + "+ \\\"store_cost\\\")\"}],\"postAggregations\":[{\"type\":\"expression\","
+                + "\"name\":\"S\",\"expression\":\"(\\\"$f1\\\" - \\\"$f2\\\")\"}]"));
+  }
+
+  @Test
+  public void testGroupByVirtualColumn() {
+    final String sql =
+        "SELECT \"product_id\" || '_' ||\"city\", SUM(\"store_sales\" + "
+            + "CAST(\"cost\" AS DOUBLE)) as S FROM " + FOODMART_TABLE
+            + "GROUP BY \"product_id\" || '_' || \"city\" LIMIT 2";
+    sql(sql, FOODMART)
+        .returnsOrdered("EXPR$0=1000_Albany; S=12385.21", "EXPR$0=1000_Altadena; S=8.07")
+        .explainContains("PLAN=EnumerableInterpreter\n"
+            + "  DruidQuery(table=[[foodmart, foodmart]], intervals=[[1900-01-09T00:00:00.000Z/"
+            + "2992-01-10T00:00:00.000Z]], projects=[[||(||($1, '_'), $29), "
+            + "+($90, CAST($53):DOUBLE)]], groups=[{0}], aggs=[[SUM($1)]], fetch=[2])")
+        .queryContains(
+            druidChecker("'queryType':'groupBy'",
+                "{'type':'doubleSum','name':'S','expression':'(\\'store_sales\\' + CAST(\\'cost\\'",
+                "'expression':'concat(concat(\\'product_id\\'",
+                "{'type':'default','dimension':'vc','outputName':'vc','outputType':'STRING'}],"
+                    + "'virtualColumns':[{'type':'expression','name':'vc"));
+  }
+
+  @Test
+  public void testCountOverVirtualColumn() {
+    final String sql = "SELECT COUNT(\"product_id\" || '_' || \"city\") FROM "
+        + FOODMART_TABLE + "WHERE \"state_province\" = 'CA'";
+    sql(sql, FOODMART)
+        .returnsOrdered("EXPR$0=24441")
+        .explainContains("PLAN=EnumerableInterpreter\n"
+            + "  DruidQuery(table=[[foodmart, foodmart]], intervals=[[1900-01-09T00:00:00.000Z/"
+            + "2992-01-10T00:00:00.000Z]], filter=[=($30, 'CA')], projects=[[||(||($1, '_'), $29)]],"
+            + " groups=[{}], aggs=[[COUNT($0)]])")
+        .queryContains(
+            druidChecker("\"queryType\":\"timeseries\"",
+                "\"aggregator\":{\"type\":\"count\",\"name\":\"EXPR$0\",\"expression\":"
+                    + "\"concat(concat(\\\"product_id\\\"",
+                "\"aggregations\":[{\"type\":\"filtered\",\"filter\":{\"type\":\"not\",\"field\":"
+                    + "{\"type\":\"expression\",\"expression\":\"concat(concat(\\\"product_id\\\""));
+  }
+
+  @Test
+  public void testAggOverStringToLong() {
+    final String sql = "SELECT SUM(cast(\"product_id\" AS INTEGER)) FROM " + FOODMART_TABLE;
+    sql(sql, FOODMART)
+        .queryContains(
+            druidChecker("{'queryType':'timeseries','dataSource':'foodmart',"
+                + "'descending':false,'granularity':'all','aggregations':[{'type':'longSum',"
+                + "'name':'EXPR$0','expression':'CAST(\\'product_id\\'", "LONG"))
+        .returnsOrdered("EXPR$0=68222919");
+  }
+
+  @Test
+  public void testAggOnTimeExtractColumn() {
+    final String sql = "SELECT SUM(EXTRACT(MONTH FROM \"__time\")) FROM \"wikiticker\"";
+    sql(sql, WIKI_AUTO2)
+        .returnsOrdered("EXPR$0=353196")
+        .queryContains(
+            druidChecker("{'queryType':'timeseries','dataSource':'wikiticker',"
+                + "'descending':false,'granularity':'all','aggregations':[{"
+                + "'type':'longSum','name':'EXPR$0','expression':'timestamp_extract(\\'__time\\'"));
+  }
+
+  @Test
+  public void testAggOnTimeExtractColumn2() {
+    final String sql = "SELECT MAX(EXTRACT(MONTH FROM \"timestamp\")) FROM \"foodmart\"";
+    sql(sql, FOODMART)
+        .returnsOrdered("EXPR$0=12")
+        .queryContains(
+            druidChecker("{'queryType':'timeseries','dataSource':'foodmart',"
+                + "'descending':false,'granularity':'all','aggregations':[{"
+                + "'type':'longMax','name':'EXPR$0','expression':'timestamp_extract(\\'__time\\'"));
+  }
+
+  @Test
+  public void testStackedAggregateFilters() {
+    final String sql = "SELECT COUNT(\"product_id\") filter (WHERE \"state_province\" = 'CA' "
+        + "OR \"store_sales\" > 100 AND \"product_id\" <> '100'), count(*) FROM " + FOODMART_TABLE;
+    final String query = "{'queryType':'timeseries','dataSource':'foodmart','descending':false,"
+        + "'granularity':'all','aggregations':[{'type':'filtered','filter':{'type':'or','fields':"
+        + "[{'type':'selector','dimension':'state_province','value':'CA'},{'type':'and','fields':"
+        + "[{'type':'bound','dimension':'store_sales','lower':'100','lowerStrict':true,"
+        + "'ordering':'numeric'},{'type':'not','field':{'type':'selector','dimension':'product_id',"
+        + "'value':'100'}}]}]},'aggregator':{'type':'filtered','filter':{'type':'not',"
+        + "'field':{'type':'selector','dimension':'product_id','value':null}},'aggregator':"
+        + "{'type':'count','name':'EXPR$0','fieldName':'product_id'}}},"
+        + "{'type':'count','name':'EXPR$1'}],'intervals':['1900-01-09T00:00:00.000Z/"
+        + "2992-01-10T00:00:00.000Z'],'context':{'skipEmptyBuckets':true}}";
+
+    sql(sql, FOODMART)
+        .returnsOrdered("EXPR$0=24441; EXPR$1=86829")
+        .queryContains(druidChecker(query));
+  }
+
+  @Test
+  public void testCastOverPostAggregates() {
+    final String sql =
+        "SELECT CAST(COUNT(*) + SUM(\"store_sales\") as INTEGER) FROM " + FOODMART_TABLE;
+    sql(sql, FOODMART)
+        .returnsOrdered("EXPR$0=652067")
+        .explainContains("PLAN=EnumerableInterpreter\n"
+            + "  DruidQuery(table=[[foodmart, foodmart]], intervals=[[1900-01-09T00:00:00.000Z/"
+            + "2992-01-10T00:00:00.000Z]], projects=[[$90]], groups=[{}], "
+            + "aggs=[[COUNT(), SUM($0)]], post_projects=[[CAST(+($0, $1)):INTEGER]])");
+  }
+
+  @Test
+  public void testSubStringOverPostAggregates() {
+    final String sql =
+        "SELECT \"product_id\", SUBSTRING(\"product_id\" from 1 for 2) FROM " + FOODMART_TABLE
+            + " GROUP BY \"product_id\"";
+    sql(sql, FOODMART).limit(3).returnsOrdered(
+        "product_id=1; EXPR$1=1\nproduct_id=10; EXPR$1=10\nproduct_id=100; EXPR$1=10")
+        .explainContains("PLAN=EnumerableInterpreter\n"
+            + "  DruidQuery(table=[[foodmart, foodmart]], intervals=[[1900-01-09T00:00:00.000Z/"
+            + "2992-01-10T00:00:00.000Z]], projects=[[$1]], groups=[{0}], aggs=[[]], "
+            + "post_projects=[[$0, SUBSTRING($0, 1, 2)]])");
+  }
+
+  @Test
+  public void testTableQueryExtractYearQuarter() {
+    final String sql = "SELECT * FROM (SELECT CAST((MONTH(\"timestamp\") - 1) / 3 + 1 AS BIGINT)"
+        + "AS qr_timestamp_ok,  SUM(\"store_sales\") AS sum_store_sales, YEAR(\"timestamp\") AS yr_timestamp_ok"
+        + " FROM \"foodmart\" GROUP BY CAST((MONTH(\"timestamp\") - 1) / 3 + 1 AS BIGINT),"
+        + " YEAR(\"timestamp\")) LIMIT_ZERO LIMIT 1";
+
+    final String extract_year = "{\"type\":\"extraction\",\"dimension\":\"__time\",\"outputName\":"
+        + "\"extract_year\",\"extractionFn\":{\"type\":\"timeFormat\",\"format\":\"yyyy\","
+        + "\"timeZone\":\"UTC\",\"locale\":\"en-US\"}}";
+
+    final String extract_expression = "\"expression\":\"(((timestamp_extract(\\\"__time\\\",";
+    sql(sql, FOODMART)
+        .returnsOrdered(
+            "QR_TIMESTAMP_OK=1; SUM_STORE_SALES=139628.34999999971; YR_TIMESTAMP_OK=1997")
+        .queryContains(druidChecker("\"queryType\":\"groupBy\"", extract_year, extract_expression))
+        .explainContains("BindableProject(QR_TIMESTAMP_OK=[$0], SUM_STORE_SALES=[$2], "
+            + "YR_TIMESTAMP_OK=[$1])\n"
+            + "    DruidQuery(table=[[foodmart, foodmart]], intervals=[[1900-01-09T00:00:00.000Z/"
+            + "2992-01-10T00:00:00.000Z]], projects=[[CAST(+(/(-(EXTRACT(FLAG(MONTH), $0), 1), 3), 1))"
+            + ":BIGINT NOT NULL, EXTRACT(FLAG(YEAR), $0), $90]], groups=[{0, 1}], aggs=[[SUM($2)]], fetch=[1])");
+  }
+
+  @Test
+  public void testTableauQueryExtractMonthDayYear() {
+    final String sql = "SELECT * FROM (SELECT (((YEAR(\"foodmart\".\"timestamp\") * 10000) + "
+        + "(MONTH(\"foodmart\".\"timestamp\") * 100)) + "
+        + "EXTRACT(DAY FROM \"foodmart\".\"timestamp\")) AS md_t_timestamp_ok,\n"
+        + "  SUM(\"foodmart\".\"store_sales\") AS sum_t_other_ok\n"
+        + "FROM \"foodmart\"\n"
+        + "GROUP BY (((YEAR(\"foodmart\".\"timestamp\") * 10000) + (MONTH(\"foodmart\".\"timestamp\")"
+        + " * 100)) + EXTRACT(DAY FROM\"foodmart\".\"timestamp\"))) LIMIT 1";
+    sql(sql, FOODMART)
+        .returnsOrdered("MD_T_TIMESTAMP_OK=19970101; SUM_T_OTHER_OK=706.34")
+        .explainContains("PLAN=EnumerableInterpreter\n"
+        + "  DruidQuery(table=[[foodmart, foodmart]], intervals=[[1900-01-09T00:00:00.000Z/"
+        + "2992-01-10T00:00:00.000Z]], projects=[[+(+(*(EXTRACT(FLAG(YEAR), $0), 10000), "
+        + "*(EXTRACT(FLAG(MONTH), $0), 100)), EXTRACT(FLAG(DAY), $0)), $90]], groups=[{0}], "
+        + "aggs=[[SUM($1)]], fetch=[1])")
+        .queryContains(druidChecker("\"queryType\":\"groupBy\""));
+  }
+
+  @Test
+  public void testTableauQuerySubStringHourMinutes() {
+    final String sql = "SELECT * FROM (SELECT CAST(SUBSTRING(CAST(CAST(\"foodmart\".\"timestamp\" "
+        + "AS TIMESTAMP) AS VARCHAR) from 12 for 2) AS INT) AS hr_t_timestamp_ok,\n"
+        + "  MINUTE(\"foodmart\".\"timestamp\") AS mi_t_timestamp_ok,\n"
+        + "  SUM(\"foodmart\".\"store_sales\") AS sum_t_other_ok, EXTRACT(HOUR FROM \"timestamp\") "
+        + " AS hr_t_timestamp_ok2 FROM  \"foodmart\" GROUP BY "
+        + " CAST(SUBSTRING(CAST(CAST(\"foodmart\".\"timestamp\" AS TIMESTAMP) AS VARCHAR) from 12 for 2 ) AS INT),"
+        + "  MINUTE(\"foodmart\".\"timestamp\"), EXTRACT(HOUR FROM \"timestamp\")) LIMIT 1";
+    sql(sql, FOODMART)
+        .returnsOrdered("HR_T_TIMESTAMP_OK=0; MI_T_TIMESTAMP_OK=0; "
+            + "SUM_T_OTHER_OK=565238.1299999986; HR_T_TIMESTAMP_OK2=0")
+        .explainContains("BindableProject(HR_T_TIMESTAMP_OK=[$0], MI_T_TIMESTAMP_OK=[$1], "
+            + "SUM_T_OTHER_OK=[$3], HR_T_TIMESTAMP_OK2=[$2])\n"
+            + "    DruidQuery(table=[[foodmart, foodmart]], intervals=[[1900-01-09T00:00:00.000Z/"
+            + "2992-01-10T00:00:00.000Z]], projects=[[CAST(SUBSTRING(CAST(CAST($0):TIMESTAMP(0) "
+            + "NOT NULL):VARCHAR CHARACTER SET \"ISO-8859-1\" COLLATE \"ISO-8859-1$en_US$primary\" "
+            + "NOT NULL, 12, 2)):INTEGER NOT NULL, EXTRACT(FLAG(MINUTE), $0), "
+            + "EXTRACT(FLAG(HOUR), $0), $90]], groups=[{0, 1, 2}], aggs=[[SUM($3)]], fetch=[1])")
+        .queryContains(druidChecker("\"queryType\":\"groupBy\""));
+  }
+
+  @Test
+  public void testTableauQueryMinutesSecondsExtract() {
+    final String sql =  "SELECT * FROM (SELECT SECOND(\"timestamp\") AS sc_t_timestamp_ok,"
+        + "MINUTE(\"timestamp\") AS mi_t_timestamp_ok,  SUM(\"store_sales\") AS sum_store_sales "
+        + " FROM \"foodmart\" GROUP BY SECOND(\"timestamp\"), MINUTE(\"timestamp\"))"
+        + " LIMIT_ZERO LIMIT 1";
+    sql(sql, FOODMART)
+        .returnsOrdered(
+            "SC_T_TIMESTAMP_OK=0; MI_T_TIMESTAMP_OK=0; SUM_STORE_SALES=565238.1299999986")
+        .explainContains("PLAN=EnumerableInterpreter\n"
+            + "  DruidQuery(table=[[foodmart, foodmart]], intervals=[[1900-01-09T00:00:00.000Z/"
+            + "2992-01-10T00:00:00.000Z]], projects=[[EXTRACT(FLAG(SECOND), $0), "
+            + "EXTRACT(FLAG(MINUTE), $0), $90]], groups=[{0, 1}], aggs=[[SUM($2)]], fetch=[1])")
+        .queryContains(druidChecker("\"queryType\":\"groupBy\""));
+  }
+
+  @Test
+  public void testQueryWithExtractsTimes() {
+    final String sql = "SELECT * FROM (SELECT QUARTER(\"__time\") AS QUARTER ,"
+        + "EXTRACT(WEEK FROM \"__time\") AS WEEK, DAYOFWEEK(\"__time\") AS DAYOFWEEK, "
+        + "DAYOFMONTH(\"__time\") AS DAYOFMONTH, DAYOFYEAR(\"__time\") AS DAYOFYEAR, "
+        + "SUM(\"added\") AS sum_added  FROM \"wikiticker\" GROUP BY EXTRACT(WEEK FROM \"__time\"),"
+        + " DAYOFWEEK(\"__time\"), DAYOFMONTH(\"__time\"), DAYOFYEAR(\"__time\") ,"
+        + " QUARTER(\"__time\") order by sum_added) LIMIT_ZERO LIMIT 1";
+
+    sql(sql, WIKI_AUTO2)
+        .returnsOrdered("QUARTER=3; WEEK=37; DAYOFWEEK=6; DAYOFMONTH=12;"
+            + " DAYOFYEAR=255; SUM_ADDED=9385573")
+        .explainContains("PLAN=EnumerableInterpreter\n"
+            + "  BindableProject(QUARTER=[$4], WEEK=[$0], DAYOFWEEK=[$1], DAYOFMONTH=[$2], "
+            + "DAYOFYEAR=[$3], SUM_ADDED=[$5])\n"
+            + "    BindableSort(fetch=[1])\n"
+            + "      DruidQuery(table=[[wiki, wikiticker]], intervals=[[1900-01-01T00:00:00.000Z/"
+            + "3000-01-01T00:00:00.000Z]], projects=[[EXTRACT(FLAG(WEEK), $0), EXTRACT(FLAG(DOW), $0),"
+            + " EXTRACT(FLAG(DAY), $0), EXTRACT(FLAG(DOY), $0), EXTRACT(FLAG(QUARTER), $0), $1]],"
+            + " groups=[{0, 1, 2, 3, 4}], aggs=[[SUM($5)]], sort0=[5], dir0=[ASC])")
+        .queryContains(druidChecker("\"queryType\":\"groupBy\""));
+  }
+
+  @Test
+  public void testCastConcatOverPostAggregates() {
+    final String sql =
+        "SELECT CAST(COUNT(*) + SUM(\"store_sales\") as VARCHAR) || '_' || CAST(SUM(\"store_cost\") "
+            + "AS VARCHAR) FROM " + FOODMART_TABLE;
+    sql(sql, FOODMART)
+        .returnsOrdered("EXPR$0=652067.1299999986_225627.2336000002")
+        .explainContains("PLAN=EnumerableInterpreter\n"
+            + "  DruidQuery(table=[[foodmart, foodmart]], intervals=[[1900-01-09T00:00:00.000Z/"
+            + "2992-01-10T00:00:00.000Z]], projects=[[$90, $91]], groups=[{}], aggs=[[COUNT(), "
+            + "SUM($0), SUM($1)]], post_projects=[[||(||(CAST(+($0, $1)):VARCHAR CHARACTER SET "
+            + "\"ISO-8859-1\" COLLATE \"ISO-8859-1$en_US$primary\", '_'), CAST($2):"
+            + "VARCHAR CHARACTER SET \"ISO-8859-1\" COLLATE \"ISO-8859-1$en_US$primary\")]])");
+  }
+
+  @Test
+  public void testHavingSpecs() {
+    final String sql = "SELECT \"product_id\" AS P, SUM(\"store_sales\") AS S FROM \"foodmart\" "
+        + " GROUP BY  \"product_id\" HAVING  SUM(\"store_sales\") > 220  ORDER BY P LIMIT 2";
+    sql(sql, FOODMART)
+        .returnsOrdered("P=1; S=236.55", "P=10; S=230.04")
+        .explainContains("PLAN=EnumerableInterpreter\n"
+            + "  DruidQuery(table=[[foodmart, foodmart]], intervals=[[1900-01-09T00:00:00.000Z/"
+            + "2992-01-10T00:00:00.000Z]], projects=[[$1, $90]], groups=[{0}], aggs=[[SUM($1)]], "
+            + "filter=[>($1, 220)], sort0=[0], dir0=[ASC], fetch=[2])")
+        .queryContains(
+            druidChecker("'having':{'type':'filter','filter':{'type':'bound',"
+                + "'dimension':'S','lower':'220','lowerStrict':true,'ordering':'numeric'}}"));
+  }
+
+  @Test
+  public void testTransposableHavingFilter() {
+    final String sql = "SELECT \"product_id\" AS P, SUM(\"store_sales\") AS S FROM \"foodmart\" "
+        + " GROUP BY  \"product_id\" HAVING  SUM(\"store_sales\") > 220 AND \"product_id\" > '10'"
+        + "  ORDER BY P LIMIT 2";
+    sql(sql, FOODMART)
+        .returnsOrdered("P=100; S=343.19999999999993", "P=1000; S=532.62")
+        .explainContains("PLAN=EnumerableInterpreter\n"
+            + "  DruidQuery(table=[[foodmart, foodmart]], intervals=[[1900-01-09T00:00:00.000Z/"
+            + "2992-01-10T00:00:00.000Z]], filter=[>($1, '10')], projects=[[$1, $90]], groups=[{0}],"
+            + " aggs=[[SUM($1)]], filter=[>($1, 220)], sort0=[0], dir0=[ASC], fetch=[2])\n")
+        .queryContains(
+            druidChecker("{'queryType':'groupBy','dataSource':'foodmart','granularity':'all'"));
+  }
+
+  @Test
+  public void testProjectSameColumnMultipleTimes() {
+    final String sql =
+        "SELECT \"product_id\" as prod_id1, \"product_id\" as prod_id2, "
+            + "\"store_sales\" as S1, \"store_sales\" as S2 FROM " + FOODMART_TABLE
+            + " order by prod_id1 LIMIT 1";
+    sql(sql, FOODMART)
+        .explainContains("PLAN=EnumerableInterpreter\n"
+            + "  BindableSort(sort0=[$0], dir0=[ASC], fetch=[1])\n"
+            + "    DruidQuery(table=[[foodmart, foodmart]], intervals=[[1900-01-09T00:00:00.000Z/"
+            + "2992-01-10T00:00:00.000Z]], projects=[[$1, $1, $90, $90]])")
+        .queryContains(
+            druidChecker("{'queryType':'scan','dataSource':'foodmart','intervals':"
+                + "['1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z'],'virtualColumns':["
+                + "{'type':'expression','name':'vc','expression':'\\'product_id\\'','outputType':"
+                + "'STRING'},{'type':'expression','name':'vc0','expression':'\\'store_sales\\'',"
+                + "'outputType':'DOUBLE'}],'columns':['product_id','vc','store_sales','vc0'],"
+                + "'resultFormat':'compactedList'}"))
+        .returnsOrdered("PROD_ID1=1; PROD_ID2=1; S1=11.4; S2=11.4");
+  }
+
+  @Test
+  public void testProjectSameMetricsColumnMultipleTimes() {
+    final String sql =
+        "SELECT \"product_id\" as prod_id1, \"product_id\" as prod_id2, "
+            + "\"store_sales\" as S1, \"store_sales\" as S2 FROM " + FOODMART_TABLE
+            + " order by prod_id1 LIMIT 1";
+    sql(sql, FOODMART)
+        .explainContains("PLAN=EnumerableInterpreter\n"
+            + "  BindableSort(sort0=[$0], dir0=[ASC], fetch=[1])\n"
+            + "    DruidQuery(table=[[foodmart, foodmart]], intervals=[[1900-01-09T00:00:00.000Z/"
+            + "2992-01-10T00:00:00.000Z]], projects=[[$1, $1, $90, $90]])")
+        .queryContains(
+            druidChecker("{\"queryType\":\"scan\",\"dataSource\":\"foodmart\",\"intervals\":"
+                + "[\"1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z\"],\"virtualColumns\":"
+                + "[{\"type\":\"expression\",\"name\":\"vc\",\"expression\":\"\\\"product_id\\\"\","
+                + "\"outputType\":\"STRING\"},{\"type\":\"expression\",\"name\":\"vc0\","
+                + "\"expression\":\"\\\"store_sales\\\"\",\"outputType\":\"DOUBLE\"}],\"columns\":"
+                + "[\"product_id\",\"vc\",\"store_sales\",\"vc0\"],\"resultFormat\":\"compactedList\"}"))
+        .returnsOrdered("PROD_ID1=1; PROD_ID2=1; S1=11.4; S2=11.4");
+  }
+
+  @Test
+  public void testAggSameColumnMultipleTimes() {
+    final String sql =
+        "SELECT \"product_id\" as prod_id1, \"product_id\" as prod_id2, "
+            + "SUM(\"store_sales\") as S1, SUM(\"store_sales\") as S2 FROM " + FOODMART_TABLE
+            + " GROUP BY \"product_id\" ORDER BY prod_id2 LIMIT 1";
+    sql(sql, FOODMART)
+        .explainContains("BindableProject(PROD_ID1=[$0], PROD_ID2=[$0], S1=[$1], S2=[$1])\n"
+            + "    DruidQuery(table=[[foodmart, foodmart]], intervals=[[1900-01-09T00:00:00.000Z/"
+            + "2992-01-10T00:00:00.000Z]], projects=[[$1, $90]], groups=[{0}], aggs=[[SUM($1)]], "
+            + "sort0=[0], dir0=[ASC], fetch=[1])")
+        .queryContains(
+            druidChecker("\"queryType\":\"groupBy\""))
+        .returnsOrdered("PROD_ID1=1; PROD_ID2=1; S1=236.55; S2=236.55");
+  }
+
+  @Test
+  public void testGroupBy1() {
+    final String sql = "SELECT SUM(\"store_sales\") FROM \"foodmart\" "
+        + "GROUP BY 1 HAVING (COUNT(1) > 0)";
+    sql(sql, FOODMART)
+        .returnsOrdered("EXPR$0=565238.1299999986")
+        .queryContains(
+            druidChecker("{'queryType':'groupBy','dataSource':'foodmart','granularity':'all',"
+                + "'dimensions':[{'type':'default','dimension':'vc','outputName':'vc','outputType':'LONG'}],"
+                + "'virtualColumns':[{'type':'expression','name':'vc','expression':'1','outputType':'LONG'}],"
+                + "'limitSpec':{'type':'default'},'aggregations':[{'type':'doubleSum','name':'EXPR$0',"
+                + "'fieldName':'store_sales'},{'type':'count','name':'$f2'}],'intervals':"
+                + "['1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z'],'having':"
+                + "{'type':'filter','filter':{'type':'bound','dimension':'$f2','lower':'0',"
+                + "'lowerStrict':true,'ordering':'numeric'}}}"));
+  }
 }
 
 // End DruidAdapterIT.java

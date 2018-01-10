@@ -39,12 +39,15 @@ import com.google.common.collect.Range;
 import com.google.common.collect.TreeRangeSet;
 
 import org.joda.time.Interval;
+import org.joda.time.Period;
 import org.joda.time.chrono.ISOChronology;
 import org.slf4j.Logger;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.TimeZone;
+
+import javax.annotation.Nullable;
 
 /**
  * Utilities for generating intervals from RexNode.
@@ -62,6 +65,7 @@ public class DruidDateTimeUtils {
    * expression. Assumes that all the predicates in the input
    * reference a single column: the timestamp column.
    */
+  @Nullable
   public static List<Interval> createInterval(RexNode e, String timeZone) {
     final List<Range<TimestampString>> ranges =
         extractRanges(e, TimeZone.getTimeZone(timeZone), false);
@@ -111,6 +115,7 @@ public class DruidDateTimeUtils {
     return intervals;
   }
 
+  @Nullable
   protected static List<Range<TimestampString>> extractRanges(RexNode node,
       TimeZone timeZone, boolean withNot) {
     switch (node.getKind()) {
@@ -171,6 +176,7 @@ public class DruidDateTimeUtils {
     }
   }
 
+  @Nullable
   protected static List<Range<TimestampString>> leafToRanges(RexCall call,
       TimeZone timeZone, boolean withNot) {
     switch (call.getKind()) {
@@ -249,6 +255,7 @@ public class DruidDateTimeUtils {
     }
   }
 
+  @Nullable
   protected static TimestampString literalValue(RexNode node, TimeZone timeZone) {
     switch (node.getKind()) {
     case LITERAL:
@@ -318,6 +325,67 @@ public class DruidDateTimeUtils {
     return Granularities.createGranularity(timeUnit, timeZone);
   }
 
+  /**
+   * @param type Druid Granularity  to translate as period of time
+   *
+   * @return String representing the granularity as ISO8601 Period of Time, null for unknown case.
+   */
+  @Nullable
+  public static String toISOPeriodFormat(Granularity.Type type) {
+    switch (type) {
+    case SECOND:
+      return Period.seconds(1).toString();
+    case MINUTE:
+      return Period.minutes(1).toString();
+    case HOUR:
+      return Period.hours(1).toString();
+    case DAY:
+      return Period.days(1).toString();
+    case WEEK:
+      return Period.weeks(1).toString();
+    case MONTH:
+      return Period.months(1).toString();
+    case QUARTER:
+      return Period.months(3).toString();
+    case YEAR:
+      return Period.years(1).toString();
+    default:
+      return null;
+    }
+  }
+
+  /**
+   * Translates Calcite TimeUnitRange to Druid {@link Granularity}
+   * @param timeUnit Calcite Time unit to convert
+   *
+   * @return Druid Granularity or null
+   */
+  @Nullable
+  public static Granularity.Type toDruidGranularity(TimeUnitRange timeUnit) {
+    if (timeUnit == null) {
+      return null;
+    }
+    switch (timeUnit) {
+    case YEAR:
+      return Granularity.Type.YEAR;
+    case QUARTER:
+      return Granularity.Type.QUARTER;
+    case MONTH:
+      return Granularity.Type.MONTH;
+    case WEEK:
+      return Granularity.Type.WEEK;
+    case DAY:
+      return Granularity.Type.DAY;
+    case HOUR:
+      return Granularity.Type.HOUR;
+    case MINUTE:
+      return Granularity.Type.MINUTE;
+    case SECOND:
+      return Granularity.Type.SECOND;
+    default:
+      return null;
+    }
+  }
 }
 
 // End DruidDateTimeUtils.java

@@ -16,12 +16,18 @@
  */
 package org.apache.calcite.adapter.druid;
 
+import javax.annotation.Nullable;
+
 /**
  * Interface for Druid DimensionSpec.
  *
  * <p>DimensionSpecs define how dimension values get transformed prior to aggregation.
  */
-public interface DimensionSpec extends DruidQuery.Json {
+public interface DimensionSpec extends DruidJson {
+  String getOutputName();
+  DruidType getOutputType();
+  @Nullable ExtractionFunction getExtractionFn();
+  String getDimension();
 }
 
 // End DimensionSpec.java
