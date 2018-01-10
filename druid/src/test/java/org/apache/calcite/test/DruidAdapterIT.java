@@ -1434,13 +1434,14 @@ public class DruidAdapterIT {
         + "from \"wiki\"\n"
         + "where ceil(\"time\" to DAY) >= '1997-01-01 00:00:00 UTC'\n"
         + "and ceil(\"time\" to DAY) < '1997-09-01 00:00:00 UTC'\n"
+        + "and \"time\" + INTERVAL '1' DAY > '1997-01-01'\n"
         + "group by \"countryName\", ceil(CAST(\"time\" AS TIMESTAMP) TO DAY)\n"
         + "order by c limit 5";
     String plan = "BindableProject(countryName=[$0], EXPR$1=[$1], C=[CAST($2):INTEGER NOT NULL])\n"
         + "    BindableSort(sort0=[$2], dir0=[ASC], fetch=[5])\n"
         + "      BindableAggregate(group=[{0, 1}], agg#0=[COUNT()])\n"
         + "        BindableProject(countryName=[$1], EXPR$1=[CEIL(CAST($0):TIMESTAMP(0) NOT NULL, FLAG(DAY))])\n"
-        + "          BindableFilter(condition=[AND(>=(CEIL($0, FLAG(DAY)), 1997-01-01 00:00:00), <(CEIL($0, FLAG(DAY)), 1997-09-01 00:00:00))])\n"
+        + "          BindableFilter(condition=[AND(>($0, 1996-12-31 00:00:00), <=($0, 1997-08-31 00:00:00), >(+($0, 86400000), CAST('1997-01-01'):TIMESTAMP_WITH_LOCAL_TIME_ZONE(0) NOT NULL))])\n"
         + "            DruidQuery(table=[[wiki, wiki]], intervals=[[1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z]], projects=[[$0, $5]])";
     // NOTE: Druid query only has countryName as the dimension
     // being queried after project is pushed to druid query.
