@@ -262,12 +262,15 @@ public abstract class DateRangeRules {
         final RexNode op1 = call.operands.get(1);
         switch (op0.getKind()) {
         case LITERAL:
-          if (isExtractCall(op1) && canRewriteExtract()) {
-            return compareExtract(call.getKind().reverse(),
-                ((RexCall) op1).getOperands().get(1), (RexLiteral) op0);
+          if (isExtractCall(op1)) {
+            RexNode operand = ((RexCall) op1).getOperands().get(1);
+            if (canRewriteExtract(operand)) {
+              return compareExtract(call.getKind().reverse(),
+                  operand, (RexLiteral) op0);
+            }
           }
           if (isFloorCall(op1)) {
-            final RexLiteral flag = (RexLiteral) ((RexCall) op0).operands.get(1);
+            final RexLiteral flag = (RexLiteral) ((RexCall) op1).operands.get(1);
             final TimeUnitRange timeUnit = (TimeUnitRange) flag.getValue();
             return compareFloor(call.getKind().reverse(),
                 ((RexCall) op1).getOperands().get(0), (RexLiteral) op0, timeUnit);
@@ -275,12 +278,15 @@ public abstract class DateRangeRules {
         }
         switch (op1.getKind()) {
         case LITERAL:
-          if (isExtractCall(op0) && canRewriteExtract()) {
-            return compareExtract(call.getKind(),
-                ((RexCall) op0).getOperands().get(1), (RexLiteral) op1);
+          if (isExtractCall(op0)) {
+            RexNode operand = ((RexCall) op0).getOperands().get(1);
+            if (canRewriteExtract(operand)) {
+              return compareExtract(call.getKind(),
+                  ((RexCall) op0).getOperands().get(1), (RexLiteral) op1);
+            }
           }
           if (isFloorCall(op0)) {
-            final RexLiteral flag = (RexLiteral) ((RexCall) op1).operands.get(1);
+            final RexLiteral flag = (RexLiteral) ((RexCall) op0).operands.get(1);
             final TimeUnitRange timeUnit = (TimeUnitRange) flag.getValue();
             return compareFloor(call.getKind(),
                 ((RexCall) op0).getOperands().get(0), (RexLiteral) op1, timeUnit);
@@ -297,7 +303,7 @@ public abstract class DateRangeRules {
       }
     }
 
-    private boolean canRewriteExtract() {
+    private boolean canRewriteExtract(RexNode operand) {
       // We rely on timeUnits being sorted (so YEAR comes before MONTH
       // before HOUR) and unique. If we have seen a predicate on YEAR,
       // operandRanges will not be empty. This checks whether we can rewrite
@@ -307,7 +313,21 @@ public abstract class DateRangeRules {
       //   OR extract(YEAR from time) = someValue
       //
       // we cannot rewrite extract on MONTH.
-      return timeUnit == TimeUnitRange.YEAR || !operandRanges.isEmpty();
+      if (timeUnit == TimeUnitRange.YEAR) {
+        return true;
+      }
+      RangeSet<Calendar> calendarRangeSet = operandRanges.get(operand.toString());
+      if (calendarRangeSet == null || calendarRangeSet.isEmpty()) {
+        return false;
+      }
+      Set<Range<Calendar>> ranges = calendarRangeSet.asRanges();
+      for (Range<Calendar> range : ranges) {
+        // Cannot reWrite if range does not have an upper or lower bound
+        if (!range.hasUpperBound() || !range.hasLowerBound()) {
+          return false;
+        }
+      }
+      return true;
     }
 
     @Override protected List<RexNode> visitList(List<? extends RexNode> exprs,
@@ -372,6 +392,12 @@ public abstract class DateRangeRules {
       // Calendar.MONTH is 0-based
       final int v = ((BigDecimal) literal.getValue()).intValue()
           - (timeUnit == TimeUnitRange.MONTH ? 1 : 0);
+
+      if (!isValid(v, timeUnit)) {
+        // Comparison with an invalid value for timeunit, always false.
+        return rexBuilder.makeLiteral(false);
+      }
+
       for (Range<Calendar> r : rangeSet.asRanges()) {
         final Calendar c;
         switch (timeUnit) {
@@ -386,7 +412,7 @@ public abstract class DateRangeRules {
         case HOUR:
         case MINUTE:
         case SECOND:
-          if (r.hasLowerBound()) {
+          if (r.hasLowerBound() && r.hasUpperBound()) {
             c = (Calendar) r.lowerEndpoint().clone();
             int i = 0;
             while (next(c, timeUnit, v, r, i++ > 0)) {
@@ -405,6 +431,7 @@ public abstract class DateRangeRules {
       return RexUtil.composeDisjunction(rexBuilder, nodes);
     }
 
+    // Assumes v is a valid value for given timeunit
     private boolean next(Calendar c, TimeUnitRange timeUnit, int v,
         Range<Calendar> r, boolean strict) {
       final Calendar original = (Calendar) c.clone();
@@ -426,6 +453,25 @@ public abstract class DateRangeRules {
         }
         return true;
       }
+    }
+
+    private static boolean isValid(int v, TimeUnitRange timeUnit) {
+      switch (timeUnit) {
+      case YEAR:
+        return v > 0;
+      case MONTH:
+        return v >= Calendar.JANUARY && v <= Calendar.DECEMBER;
+      case DAY:
+        return v > 0 && v <= 31;
+      case HOUR:
+        return v >= 0 && v <= 24;
+      case MINUTE:
+      case SECOND:
+        return v >= 0 && v <= 60;
+      default:
+        return false;
+      }
+
     }
 
     private RexNode toRex(RexNode operand, Range<Calendar> r) {
@@ -497,15 +543,17 @@ public abstract class DateRangeRules {
 
     private RexNode compareFloor(SqlKind comparison, RexNode operand, RexLiteral timeLiteral,
         TimeUnitRange timeUnit) {
-      Calendar orig = timeLiteral.getValueAs(Calendar.class);
-      Calendar floor = floor(orig, timeUnit);
-      Range<Calendar> range = floorRange(timeUnit, comparison, floor);
       RangeSet<Calendar> rangeSet = operandRanges.get(operand.toString());
       if (rangeSet == null) {
-        rangeSet = TreeRangeSet.create();
-        operandRanges.put(operand.toString(), rangeSet);
+        rangeSet = ImmutableRangeSet.<Calendar>of().complement();
       }
-      rangeSet.add(range);
+      final RangeSet<Calendar> s2 = TreeRangeSet.create();
+      final Range<Calendar> range = floorRange(timeUnit, comparison,
+          timeLiteral.getValueAs(Calendar.class));
+      s2.add(range);
+      // Intersect old range set with new.
+      s2.removeAll(rangeSet.complement());
+      operandRanges.put(operand.toString(), ImmutableRangeSet.copyOf(s2));
       if (range.isEmpty()) {
         return rexBuilder.makeLiteral(false);
       }
@@ -518,17 +566,17 @@ public abstract class DateRangeRules {
       boolean boundary = floor.equals(c);
       switch (comparison) {
       case EQUALS:
-        return Range.closedOpen(floor, boundary ? floor : increment(floor, timeUnit));
+        return Range.closedOpen(floor, boundary ? increment(floor, timeUnit) : floor);
       case LESS_THAN:
         return boundary ? Range.lessThan(floor) : Range.lessThan(increment(floor, timeUnit));
       case LESS_THAN_OR_EQUAL:
         return Range.lessThan(increment(floor, timeUnit));
       case GREATER_THAN:
-        return Range.greaterThan(increment(floor, timeUnit));
+        return Range.atLeast(increment(floor, timeUnit));
       case GREATER_THAN_OR_EQUAL:
-        return boundary ? Range.atLeast(floor) : Range.greaterThan(increment(floor, timeUnit));
+        return boundary ? Range.atLeast(floor) : Range.atLeast(increment(floor, timeUnit));
       default:
-        throw new AssertionError(comparison);
+        throw Util.unexpected(comparison);
       }
     }
 
@@ -558,9 +606,8 @@ public abstract class DateRangeRules {
       case YEAR:
         c.set(TIME_UNIT_CODES.get(TimeUnitRange.MONTH), Calendar.JANUARY);
         // Ignore checkstyle failure for Fall through from previous branch of the switch statement.
-        // CHECKSTYLE: IGNORE 11
+        // CHECKSTYLE: IGNORE 10
       case MONTH:
-        // First day of Month has value 1
         c.set(TIME_UNIT_CODES.get(TimeUnitRange.DAY), 1);
       case DAY:
         c.set(TIME_UNIT_CODES.get(TimeUnitRange.HOUR), 0);

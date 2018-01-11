@@ -20,19 +20,17 @@ import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.test.RexImplicationCheckerTest.Fixture;
+import org.apache.calcite.util.TimestampString;
+import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ImmutableSortedSet;
-import com.google.common.collect.RangeSet;
 
 import org.hamcrest.CoreMatchers;
 import org.hamcrest.Matcher;
 import org.junit.Test;
 
 import java.util.Calendar;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Set;
 
 import static org.hamcrest.core.Is.is;
@@ -301,7 +299,199 @@ public class DateRangeRulesTest {
             + " AND(>=($8, 2001-01-01), <($8, 2001-02-01)))))"));
   }
 
-  @Test public void testFloorRewrite(){
+  @Test public void testExtractRewriteForInvalidMonthComparison() {
+    final Fixture2 f = new Fixture2();
+    checkDateRange(f,
+        f.and(f.eq(f.exYearTs, f.literal(2010)),
+            f.eq(f.exMonthTs, f.literal(14))),
+        is("AND(AND(>=($9, 2010-01-01 00:00:00), <($9, 2011-01-01 00:00:00)), false)"));
+  }
+
+  @Test public void testExtractRewriteForInvalidDayComparison() {
+    final Fixture2 f = new Fixture2();
+    checkDateRange(f,
+        f.and(f.eq(f.exYearTs, f.literal(2010)),
+            f.eq(f.exMonthTs, f.literal(11)),
+            f.eq(f.exDayTs, f.literal(32))),
+        is("AND(AND(>=($9, 2010-01-01 00:00:00), <($9, 2011-01-01 00:00:00)),"
+            + " AND(>=($9, 2010-11-01 00:00:00), <($9, 2010-12-01 00:00:00)), false)"));
+    // Feb 31 is an invalid date
+    checkDateRange(f,
+        f.and(f.eq(f.exYearTs, f.literal(2010)),
+            f.eq(f.exMonthTs, f.literal(2)),
+            f.eq(f.exDayTs, f.literal(31))),
+        is("AND(AND(>=($9, 2010-01-01 00:00:00), <($9, 2011-01-01 00:00:00)),"
+            + " AND(>=($9, 2010-02-01 00:00:00), <($9, 2010-03-01 00:00:00)), false)"));
+  }
+
+  @Test public void testUnboundYearExtractRewrite() {
+    final Fixture2 f = new Fixture2();
+    // No lower bound on YEAR
+    checkDateRange(f,
+        f.and(f.le(f.exYearTs, f.literal(2010)),
+            f.eq(f.exMonthTs, f.literal(11)),
+            f.eq(f.exDayTs, f.literal(2))),
+        is("AND(<($9, 2011-01-01 00:00:00), =(EXTRACT(FLAG(MONTH), $9), 11),"
+            + " =(EXTRACT(FLAG(DAY), $9), 2))"));
+
+    // No upper bound on YEAR
+    checkDateRange(f,
+        f.and(f.ge(f.exYearTs, f.literal(2010)),
+            f.eq(f.exMonthTs, f.literal(11)),
+            f.eq(f.exDayTs, f.literal(2))),
+        // Since the year does not have a upper bound, MONTH and DAY cannot be replaced
+        is("AND(>=($9, 2010-01-01 00:00:00), =(EXTRACT(FLAG(MONTH), $9), 11),"
+            + " =(EXTRACT(FLAG(DAY), $9), 2))"));
+
+    // No lower/upper bound on YEAR for individual rexNodes.
+    checkDateRange(f,
+        f.and(f.le(f.exYearTs, f.literal(2010)),
+            f.ge(f.exYearTs, f.literal(2010)),
+            f.eq(f.exMonthTs, f.literal(5))),
+        is("AND(<($9, 2011-01-01 00:00:00), AND(>=($9, 2010-01-01 00:00:00),"
+            + " <($9, 2011-01-01 00:00:00)), AND(>=($9, 2010-05-01 00:00:00),"
+            + " <($9, 2010-06-01 00:00:00)))"));
+  }
+
+  @Test public void testFloorEqRewrite() {
+    final Calendar c = Util.calendar();
+    c.clear();
+    c.set(2010, Calendar.FEBRUARY, 10, 11, 12, 05);
+    final Fixture2 f = new Fixture2();
+    // Always False
+    checkDateRange(f, f.eq(f.floorYear, f.timestampLiteral(TimestampString.fromCalendarFields(c))),
+        is("false"));
+    checkDateRange(f, f.eq(f.timestampLiteral(TimestampString.fromCalendarFields(c)), f.floorYear),
+        is("false"));
+
+    c.clear();
+    c.set(2010, Calendar.JANUARY, 1, 0, 0, 0);
+    checkDateRange(f, f.eq(f.floorYear, f.timestampLiteral(TimestampString.fromCalendarFields(c))),
+        is("AND(>=($9, 2010-01-01 00:00:00), <($9, 2011-01-01 00:00:00))"));
+
+    c.set(2010, Calendar.FEBRUARY, 1, 0, 0, 0);
+    checkDateRange(f, f.eq(f.floorMonth, f.timestampLiteral(TimestampString.fromCalendarFields(c))),
+        is("AND(>=($9, 2010-02-01 00:00:00), <($9, 2010-03-01 00:00:00))"));
+
+    c.set(2010, Calendar.DECEMBER, 1, 0, 0, 0);
+    checkDateRange(f, f.eq(f.floorMonth, f.timestampLiteral(TimestampString.fromCalendarFields(c))),
+        is("AND(>=($9, 2010-12-01 00:00:00), <($9, 2011-01-01 00:00:00))"));
+
+    c.set(2010, Calendar.FEBRUARY, 4, 0, 0, 0);
+    checkDateRange(f, f.eq(f.floorDay, f.timestampLiteral(TimestampString.fromCalendarFields(c))),
+        is("AND(>=($9, 2010-02-04 00:00:00), <($9, 2010-02-05 00:00:00))"));
+
+    c.set(2010, Calendar.DECEMBER, 31, 0, 0, 0);
+    checkDateRange(f, f.eq(f.floorDay, f.timestampLiteral(TimestampString.fromCalendarFields(c))),
+        is("AND(>=($9, 2010-12-31 00:00:00), <($9, 2011-01-01 00:00:00))"));
+
+    c.set(2010, Calendar.FEBRUARY, 4, 4, 0, 0);
+    checkDateRange(f, f.eq(f.floorHour, f.timestampLiteral(TimestampString.fromCalendarFields(c))),
+        is("AND(>=($9, 2010-02-04 04:00:00), <($9, 2010-02-04 05:00:00))"));
+
+    c.set(2010, Calendar.DECEMBER, 31, 23, 0, 0);
+    checkDateRange(f, f.eq(f.floorHour, f.timestampLiteral(TimestampString.fromCalendarFields(c))),
+        is("AND(>=($9, 2010-12-31 23:00:00), <($9, 2011-01-01 00:00:00))"));
+
+    c.set(2010, Calendar.FEBRUARY, 4, 2, 32, 0);
+    checkDateRange(f,
+        f.eq(f.floorMinute, f.timestampLiteral(TimestampString.fromCalendarFields(c))),
+        is("AND(>=($9, 2010-02-04 02:32:00), <($9, 2010-02-04 02:33:00))"));
+
+    c.set(2010, Calendar.FEBRUARY, 4, 2, 59, 0);
+    checkDateRange(f,
+        f.eq(f.floorMinute, f.timestampLiteral(TimestampString.fromCalendarFields(c))),
+        is("AND(>=($9, 2010-02-04 02:59:00), <($9, 2010-02-04 03:00:00))"));
+  }
+
+  @Test public void testFloorLtRewrite() {
+    final Calendar c = Util.calendar();
+
+    c.clear();
+    c.set(2010, Calendar.FEBRUARY, 10, 11, 12, 05);
+    final Fixture2 f = new Fixture2();
+    checkDateRange(f, f.lt(f.floorYear, f.timestampLiteral(TimestampString.fromCalendarFields(c))),
+        is("<($9, 2011-01-01 00:00:00)"));
+
+    c.clear();
+    c.set(2010, Calendar.JANUARY, 1, 0, 0, 0);
+    checkDateRange(f, f.lt(f.floorYear, f.timestampLiteral(TimestampString.fromCalendarFields(c))),
+        is("<($9, 2010-01-01 00:00:00)"));
+  }
+
+  @Test public void testFloorLeRewrite() {
+    final Calendar c = Util.calendar();
+    c.clear();
+    c.set(2010, Calendar.FEBRUARY, 10, 11, 12, 05);
+    final Fixture2 f = new Fixture2();
+    checkDateRange(f, f.le(f.floorYear, f.timestampLiteral(TimestampString.fromCalendarFields(c))),
+        is("<($9, 2011-01-01 00:00:00)"));
+
+    c.clear();
+    c.set(2010, Calendar.JANUARY, 1, 0, 0, 0);
+    checkDateRange(f, f.le(f.floorYear, f.timestampLiteral(TimestampString.fromCalendarFields(c))),
+        is("<($9, 2011-01-01 00:00:00)"));
+  }
+
+  @Test public void testFloorGtRewrite() {
+    final Calendar c = Util.calendar();
+    c.clear();
+    c.set(2010, Calendar.FEBRUARY, 10, 11, 12, 05);
+    final Fixture2 f = new Fixture2();
+    checkDateRange(f, f.gt(f.floorYear, f.timestampLiteral(TimestampString.fromCalendarFields(c))),
+        is(">=($9, 2011-01-01 00:00:00)"));
+
+    c.clear();
+    c.set(2010, Calendar.JANUARY, 1, 0, 0, 0);
+    checkDateRange(f, f.gt(f.floorYear, f.timestampLiteral(TimestampString.fromCalendarFields(c))),
+        is(">=($9, 2011-01-01 00:00:00)"));
+  }
+
+  @Test public void testFloorGeRewrite() {
+    final Calendar c = Util.calendar();
+    c.clear();
+    c.set(2010, Calendar.FEBRUARY, 10, 11, 12, 05);
+    final Fixture2 f = new Fixture2();
+    checkDateRange(f, f.ge(f.floorYear, f.timestampLiteral(TimestampString.fromCalendarFields(c))),
+        is(">=($9, 2011-01-01 00:00:00)"));
+
+    c.clear();
+    c.set(2010, Calendar.JANUARY, 1, 0, 0, 0);
+    checkDateRange(f, f.ge(f.floorYear, f.timestampLiteral(TimestampString.fromCalendarFields(c))),
+        is(">=($9, 2010-01-01 00:00:00)"));
+  }
+
+  @Test public void testFloorExtractBothRewrite() {
+    final Calendar c = Util.calendar();
+    c.clear();
+    Fixture2 f = new Fixture2();
+    c.clear();
+    c.set(2010, Calendar.JANUARY, 1, 0, 0, 0);
+    checkDateRange(f,
+        f.and(f.eq(f.floorYear, f.timestampLiteral(TimestampString.fromCalendarFields(c))),
+            f.eq(f.exMonthTs, f.literal(5))),
+        is("AND(AND(>=($9, 2010-01-01 00:00:00), <($9, 2011-01-01 00:00:00)),"
+            + " AND(>=($9, 2010-05-01 00:00:00), <($9, 2010-06-01 00:00:00)))"));
+
+    // No lower range for floor
+    checkDateRange(f,
+        f.and(f.le(f.floorYear, f.timestampLiteral(TimestampString.fromCalendarFields(c))),
+            f.eq(f.exMonthTs, f.literal(5))),
+        is("AND(<($9, 2011-01-01 00:00:00), =(EXTRACT(FLAG(MONTH), $9), 5))"));
+
+    // No lower range for floor
+    checkDateRange(f,
+        f.and(f.gt(f.floorYear, f.timestampLiteral(TimestampString.fromCalendarFields(c))),
+            f.eq(f.exMonthTs, f.literal(5))),
+        is("AND(>=($9, 2011-01-01 00:00:00), =(EXTRACT(FLAG(MONTH), $9), 5))"));
+
+    // No upper range for individual floor rexNodes, but combined results in bounded interval
+    checkDateRange(f,
+        f.and(f.le(f.floorYear, f.timestampLiteral(TimestampString.fromCalendarFields(c))),
+            f.eq(f.exMonthTs, f.literal(5)),
+            f.ge(f.floorYear, f.timestampLiteral(TimestampString.fromCalendarFields(c)))),
+        is("AND(<($9, 2011-01-01 00:00:00), AND(>=($9, 2010-05-01 00:00:00),"
+            + " <($9, 2010-06-01 00:00:00)), >=($9, 2010-01-01 00:00:00))"));
 
   }
 
@@ -315,14 +505,7 @@ public class DateRangeRulesTest {
 
   private void checkDateRange(Fixture f, RexNode e, Matcher<String> matcher,
       Matcher<String> simplifyMatcher) {
-    final Map<String, RangeSet<Calendar>> operandRanges = new HashMap<>();
-    final ImmutableSortedSet<TimeUnitRange> timeUnits =
-        DateRangeRules.extractTimeUnits(e);
-    for (TimeUnitRange timeUnit : timeUnits) {
-      e = e.accept(
-          new DateRangeRules.ExtractAndFloorShuttle(f.rexBuilder, timeUnit,
-              operandRanges, timeUnits));
-    }
+    e = DateRangeRules.replaceTimeUnits(f.rexBuilder, e);
     assertThat(e.toString(), matcher);
     final RexNode e2 = f.simplify.simplify(e);
     assertThat(e2.toString(), simplifyMatcher);
@@ -342,7 +525,6 @@ public class DateRangeRulesTest {
     private final RexNode floorDay;
     private final RexNode floorHour;
     private final RexNode floorMinute;
-    private final RexNode floorSecond;
 
     Fixture2() {
       exYearTs = rexBuilder.makeCall(SqlStdOperatorTable.EXTRACT,
@@ -372,8 +554,6 @@ public class DateRangeRulesTest {
           ImmutableList.<RexNode>of(ts, rexBuilder.makeFlag(TimeUnitRange.HOUR)));
       floorMinute = rexBuilder.makeCall(intRelDataType, SqlStdOperatorTable.FLOOR,
           ImmutableList.<RexNode>of(ts, rexBuilder.makeFlag(TimeUnitRange.MINUTE)));
-      floorSecond = rexBuilder.makeCall(intRelDataType, SqlStdOperatorTable.FLOOR,
-          ImmutableList.<RexNode>of(ts, rexBuilder.makeFlag(TimeUnitRange.SECOND)));
     }
   }
 }
