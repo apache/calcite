@@ -23,7 +23,6 @@ import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.rel.rules.FilterSetOpTransposeRule;
 import org.apache.calcite.rel.rules.ProjectRemoveRule;
 import org.apache.calcite.sql.SqlDialect;
-//import org.apache.calcite.sql.dialect.JethrodataSqlDialect;
 
 /**
  * Calling convention for relational operations that occur in a JDBC
@@ -47,8 +46,6 @@ public class JdbcConvention extends Convention.Impl {
   /** Cost of a JDBC node versus implementing an equivalent node in a "typical"
    * calling convention. */
   public static final double COST_MULTIPLIER = 0.8d;
-  //public static final JdbcConvention JETHRO_DEFAULT_CONVENTION =
-  //    new JdbcConvention(JethrodataSqlDialect.DEFAULT, null, "JdbcConventionName");
 
   public final SqlDialect dialect;
   public final Expression expression;

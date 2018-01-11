@@ -250,7 +250,7 @@ public class JdbcRules {
   }
 
   /**
-   * Rule to convert a {@link org.apache.calcite.rel..Calc} to an
+   * Rule to convert a {@link org.apache.calcite.rel.Calc} to an
    * {@link org.apache.calcite.adapter.jdbc.JdbcRules.JdbcCalc}.
    */
   private static class JdbcCalcRule extends JdbcConverterRule {
@@ -323,7 +323,7 @@ public class JdbcRules {
   }
 
   /**
-   * Rule to convert a {@link org.apache.calcite.rel..Project} to
+   * Rule to convert a {@link org.apache.calcite.rel.core.Project} to
    * an {@link org.apache.calcite.adapter.jdbc.JdbcRules.JdbcProject}.
    */
   public static class JdbcProjectRule extends JdbcConverterRule {
@@ -345,7 +345,7 @@ public class JdbcRules {
     }
   }
 
-  /** Implementation of {@link org.apache.calcite.rel..Project} in
+  /** Implementation of {@link org.apache.calcite.rel.core.Project} in
    * {@link JdbcConvention jdbc calling convention}. */
   public static class JdbcProject
       extends Project
@@ -384,7 +384,7 @@ public class JdbcRules {
   }
 
   /**
-   * Rule to convert a {@link org.apache.calcite.rel..Filter} to
+   * Rule to convert a {@link org.apache.calcite.rel.core.Filter} to
    * an {@link org.apache.calcite.adapter.jdbc.JdbcRules.JdbcFilter}.
    */
   public static class JdbcFilterRule extends JdbcConverterRule {
@@ -427,7 +427,7 @@ public class JdbcRules {
   }
 
   /**
-   * Rule to convert a {@link org.apache.calcite.rel..Aggregate}
+   * Rule to convert a {@link org.apache.calcite.rel.core.Aggregate}
    * to a {@link org.apache.calcite.adapter.jdbc.JdbcRules.JdbcAggregate}.
    */
   public static class JdbcAggregateRule extends JdbcConverterRule {
@@ -514,10 +514,6 @@ public class JdbcRules {
 
     public RelNode convert(RelNode rel, boolean convertInputTraits) {
       final Sort sort = (Sort) rel;
-      /*if (sort.offset != null || sort.fetch != null) {
-        // Cannot implement "OFFSET n FETCH n" currently.
-        return null;
-      }*/
       final RelTraitSet traitSet = sort.getTraitSet().replace(out);
 
       RelNode input;
@@ -554,9 +550,6 @@ public class JdbcRules {
 
     @Override public JdbcSort copy(RelTraitSet traitSet, RelNode newInput,
         RelCollation newCollation, RexNode offset, RexNode fetch) {
-      /*if (offset != null || fetch != null) {
-        throw new IllegalArgumentException("not supported: offset or fetch");
-      }*/
       return new JdbcSort(getCluster(), traitSet, newInput, newCollation, offset, fetch);
     }
 
@@ -566,7 +559,7 @@ public class JdbcRules {
   }
 
   /**
-   * Rule to convert an {@link org.apache.calcite.rel..Union} to a
+   * Rule to convert an {@link org.apache.calcite.rel.core.Union} to a
    * {@link org.apache.calcite.adapter.jdbc.JdbcRules.JdbcUnion}.
    */
   public static class JdbcUnionRule extends JdbcConverterRule {
@@ -609,7 +602,7 @@ public class JdbcRules {
   }
 
   /**
-   * Rule to convert a {@link org.apache.calcite.rel..Intersect}
+   * Rule to convert a {@link org.apache.calcite.rel.core.Intersect}
    * to a {@link org.apache.calcite.adapter.jdbc.JdbcRules.JdbcIntersect}.
    */
   public static class JdbcIntersectRule extends JdbcConverterRule {
@@ -653,7 +646,7 @@ public class JdbcRules {
   }
 
   /**
-   * Rule to convert a {@link org.apache.calcite.rel..Minus} to a
+   * Rule to convert a {@link org.apache.calcite.rel.core.Minus} to a
    * {@link org.apache.calcite.adapter.jdbc.JdbcRules.JdbcMinus}.
    */
   public static class JdbcMinusRule extends JdbcConverterRule {

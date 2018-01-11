@@ -509,8 +509,8 @@ public class SqlDialect {
     return false;
   }
 
-  public boolean supportsFunction(SqlOperator operator,
-                                  RelDataType type, ArrayList<RelDataType> paramsList) {
+  public boolean supportsFunction(SqlOperator operator, RelDataType type, 
+                                  ArrayList<RelDataType> paramsList) {
     return true;
   }
 

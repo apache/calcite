@@ -197,9 +197,8 @@ public class SqlDialectFactoryImpl implements SqlDialectFactory {
       return IngresSqlDialect.DEFAULT;
     case INTERBASE:
       return InterbaseSqlDialect.DEFAULT;
-//Jethro does not support simple creation
-//    case JETHRO:
-//      return JethrodataSqlDialect.DEFAULT;
+    case JETHRO:
+      throw new RuntimeException("Jethro does not support simple creation");
     case LUCIDDB:
       return LucidDbSqlDialect.DEFAULT;
     case MSSQL:

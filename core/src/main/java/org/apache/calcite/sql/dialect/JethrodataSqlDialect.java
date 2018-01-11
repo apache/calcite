@@ -43,10 +43,6 @@ import javax.sql.DataSource;
 public class JethrodataSqlDialect extends SqlDialect {
   private static final Logger LOG = LoggerFactory.getLogger(JethrodataSqlDialect.class);
 
-//  public static final SqlDialect DEFAULT = new JethrodataSqlDialect(
-//            EMPTY_CONTEXT.withDatabaseProduct(DatabaseProduct.JETHRO).
-//                          withIdentifierQuoteString("\"").withDatabaseVersion("Default"));
-
   private final String version;
 
   /** Creates an InterbaseSqlDialect. */
@@ -68,7 +64,6 @@ public class JethrodataSqlDialect extends SqlDialect {
   }
 
   @Override public SqlNode emulateNullDirection(SqlNode node, boolean nullsFirst, boolean desc) {
-    //return emulateNullDirectionWithIsNull(node, nullsFirst, desc);
     return node;
   }
 
@@ -129,19 +124,13 @@ public class JethrodataSqlDialect extends SqlDialect {
    * A class to hold one jethro supported function info
    */
   static class SupportedFunction {
-    /**
-     * Jethro types
-     */
-    /*enum Type {
-      Int, Long, Double, Float, String, TimeStamp, Unknown
-    };*/
     final String funcName;
     final SqlTypeName [] operandsType;
 
 
     /**
-     * @param funcName Function name
-     * @param operands function opernads
+     * @param funcName The sql function name
+     * @param operands The sql function parameters type
      */
     SupportedFunction(String funcName, String operands) {
       super();
@@ -183,7 +172,7 @@ public class JethrodataSqlDialect extends SqlDialect {
             SUPPORTED_JETHRO_FUNCTIONS = new HashMap<>();
 
   /**
-   * @param ds data source
+   * @param ds The JethroData jdbc data source 
    * @throws SQLException
    */
   public static synchronized void initializeSupportedFunctions(DataSource ds) throws SQLException {
