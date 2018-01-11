@@ -353,6 +353,28 @@ public class DateRangeRulesTest {
             + " <($9, 2010-06-01 00:00:00)))"));
   }
 
+  // Test reWrite with multiple operands
+  @Test public void testExtractRewriteMultipleOperands() {
+    final Fixture2 f = new Fixture2();
+    checkDateRange(f,
+        f.and(f.eq(f.exYearTs, f.literal(2010)),
+            f.eq(f.exMonthTs, f.literal(10)),
+            f.eq(f.exMonthD, f.literal(5))),
+        is("AND(AND(>=($9, 2010-01-01 00:00:00), <($9, 2011-01-01 00:00:00)),"
+            + " AND(>=($9, 2010-10-01 00:00:00), <($9, 2010-11-01 00:00:00)),"
+            + " =(EXTRACT(FLAG(MONTH), $8), 5))"));
+
+    checkDateRange(f,
+        f.and(f.eq(f.exYearTs, f.literal(2010)),
+            f.eq(f.exMonthTs, f.literal(10)),
+            f.eq(f.exYearD, f.literal(2011)),
+            f.eq(f.exMonthD, f.literal(5))),
+        is("AND(AND(>=($9, 2010-01-01 00:00:00), <($9, 2011-01-01 00:00:00)),"
+            + " AND(>=($9, 2010-10-01 00:00:00), <($9, 2010-11-01 00:00:00)),"
+            + " AND(>=($8, 2011-01-01), <($8, 2012-01-01)), AND(>=($8, 2011-05-01),"
+            + " <($8, 2011-06-01)))"));
+  }
+
   @Test public void testFloorEqRewrite() {
     final Calendar c = Util.calendar();
     c.clear();
