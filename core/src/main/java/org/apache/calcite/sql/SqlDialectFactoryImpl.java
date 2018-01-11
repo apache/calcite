@@ -45,6 +45,10 @@ import org.apache.calcite.sql.dialect.SybaseSqlDialect;
 import org.apache.calcite.sql.dialect.TeradataSqlDialect;
 import org.apache.calcite.sql.dialect.VerticaSqlDialect;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.SQLException;
 import java.util.Locale;
@@ -53,6 +57,7 @@ import java.util.Locale;
  * The default implementation of a <code>SqlDialectFactory</code>.
  */
 public class SqlDialectFactoryImpl implements SqlDialectFactory {
+  static Logger logger = LoggerFactory.getLogger(SqlDialectFactoryImpl.class);
 
   static SqlDialectFactoryImpl inst = new SqlDialectFactoryImpl();
 
@@ -60,7 +65,8 @@ public class SqlDialectFactoryImpl implements SqlDialectFactory {
     return inst;
   }
 
-  public SqlDialect create(DatabaseMetaData databaseMetaData) {
+  public SqlDialect create(DatabaseMetaData databaseMetaData, Connection connection) {
+
     String databaseProductName;
     int databaseMajorVersion;
     int databaseMinorVersion;
@@ -98,7 +104,14 @@ public class SqlDialectFactoryImpl implements SqlDialectFactory {
     case "INTERBASE":
       return new InterbaseSqlDialect(c);
     case "JETHRODATA":
-      return new JethrodataSqlDialect(c);
+    {
+      try {
+        return new JethrodataSqlDialect(c, JethrodataSqlDialect.getSupportedFunctions(connection));
+      } catch (Exception e) {
+        logger.error("Failed to create JethroDataDialect", e);
+        return null;
+      }
+    }
     case "LUCIDDB":
       return new LucidDbSqlDialect(c);
     case "ORACLE":
@@ -142,6 +155,11 @@ public class SqlDialectFactoryImpl implements SqlDialectFactory {
     } else {
       return new AnsiSqlDialect(c);
     }
+
+  }
+
+  public SqlDialect create(DatabaseMetaData databaseMetaData) {
+    return create(databaseMetaData, null);
   }
 
   private NullCollation getNullCollation(DatabaseMetaData databaseMetaData) {

@@ -82,8 +82,7 @@ final class JdbcUtils {
         List key = ImmutableList.of(productName, productVersion, dialectFactory);
         SqlDialect dialect = map.get(key);
         if (dialect == null) {
-          dialect = dialectFactory.create(metaData);
-          dialect.initFromDataSource(dataSource);
+          dialect = dialectFactory.create(metaData, connection);
           map.put(key, dialect);
           if (dialectMap == null) {
             dialectMap = new IdentityHashMap<>();

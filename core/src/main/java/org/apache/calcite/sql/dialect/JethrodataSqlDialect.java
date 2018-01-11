@@ -26,15 +26,16 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-
-import javax.sql.DataSource;
+import java.util.Map;
 
 
 /**
@@ -43,20 +44,14 @@ import javax.sql.DataSource;
 public class JethrodataSqlDialect extends SqlDialect {
   private static final Logger LOG = LoggerFactory.getLogger(JethrodataSqlDialect.class);
 
-  private final String version;
+  private final Map<String, HashSet<SupportedFunction>> supportedFunctions;
 
-  /** Creates an InterbaseSqlDialect. */
-  public JethrodataSqlDialect(Context context) {
+  /** Creates an JethrodataSqlDialect. */
+  public JethrodataSqlDialect(Context context,
+      HashMap<String, HashSet<SupportedFunction>> supportedFunctions) {
       super(context);
-    if (context.databaseVersion() != null) {
-      version = context.databaseVersion();
-    } else {
-      version = "Default";
-    }
-  }
-
-  @Override public void initFromDataSource(DataSource ds) throws SQLException {
-    initializeSupportedFunctions(ds);
+    this.supportedFunctions =
+        supportedFunctions != null ? Collections.unmodifiableMap(supportedFunctions) : null;
   }
 
   @Override public boolean supportsCharSet() {
@@ -91,8 +86,6 @@ public class JethrodataSqlDialect extends SqlDialect {
         || operator.getKind() == SqlKind.CAST) {
       return true;
     }
-    final HashMap<String, HashSet<SupportedFunction>> supportedFunctions =
-        SUPPORTED_JETHRO_FUNCTIONS.get(version);
     if (supportedFunctions != null) {
       HashSet<SupportedFunction> currMethodSignatures = supportedFunctions.get(operator.getName());
       if (currMethodSignatures != null) {
@@ -172,21 +165,23 @@ public class JethrodataSqlDialect extends SqlDialect {
             SUPPORTED_JETHRO_FUNCTIONS = new HashMap<>();
 
   /**
-   * @param ds The JethroData jdbc data source 
+   * @param jethroConnection The JethroData jdbc data source
+   * @return
    * @throws SQLException
    */
-  public static synchronized void initializeSupportedFunctions(DataSource ds) throws SQLException {
-    java.sql.Connection jethroConnection = null;
-    try {
-      jethroConnection = ds.getConnection();
-      DatabaseMetaData metaData = jethroConnection.getMetaData();
-      assert "JethroData".equals(metaData.getDatabaseProductName());
-      String productVersion = metaData.getDatabaseProductVersion();
-      if (SUPPORTED_JETHRO_FUNCTIONS.containsKey(productVersion)) {
-        return;
-      }
-      final HashMap<String, HashSet<SupportedFunction>> supportedFunctions =
-          new HashMap<String, HashSet<SupportedFunction>>();
+  public static synchronized HashMap<String, HashSet<SupportedFunction>> getSupportedFunctions(
+      Connection jethroConnection) throws SQLException {
+    if (jethroConnection == null) {
+      throw new SQLException("JethrodataSqlDialect reuqies a connection");
+    }
+
+    HashMap<String, HashSet<SupportedFunction>> supportedFunctions = null;
+    DatabaseMetaData metaData = jethroConnection.getMetaData();
+    assert "JethroData".equals(metaData.getDatabaseProductName());
+    String productVersion = metaData.getDatabaseProductVersion();
+    supportedFunctions = SUPPORTED_JETHRO_FUNCTIONS.get(productVersion);
+    if (supportedFunctions == null) {
+      supportedFunctions = new HashMap<String, HashSet<SupportedFunction>>();
       SUPPORTED_JETHRO_FUNCTIONS.put(productVersion, supportedFunctions);
       Statement jethroStatement = jethroConnection.createStatement();
       ResultSet functionsTupleSet = jethroStatement.executeQuery("show functions");
@@ -200,9 +195,8 @@ public class JethrodataSqlDialect extends SqlDialect {
         }
         funcSignatures.add(new SupportedFunction(functionName, operandsType));
       }
-    } finally {
-      jethroConnection.close();
     }
+    return supportedFunctions;
   }
 
 }

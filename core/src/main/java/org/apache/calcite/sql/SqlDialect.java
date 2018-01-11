@@ -96,7 +96,7 @@ public class SqlDialect {
    */
   @Deprecated // to be removed before 2.0
   public static SqlDialect create(DatabaseMetaData databaseMetaData) {
-    return new SqlDialectFactoryImpl().create(databaseMetaData);
+    return new SqlDialectFactoryImpl().create(databaseMetaData, null);
   }
 
   @Deprecated // to be removed before 2.0
@@ -509,7 +509,7 @@ public class SqlDialect {
     return false;
   }
 
-  public boolean supportsFunction(SqlOperator operator, RelDataType type, 
+  public boolean supportsFunction(SqlOperator operator, RelDataType type,
                                   ArrayList<RelDataType> paramsList) {
     return true;
   }
