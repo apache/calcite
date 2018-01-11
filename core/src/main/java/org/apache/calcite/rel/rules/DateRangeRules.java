@@ -86,8 +86,7 @@ import java.util.Set;
  */
 public abstract class DateRangeRules {
 
-  private DateRangeRules() {
-  }
+  private DateRangeRules() {}
 
   private static final Predicate<Filter> FILTER_PREDICATE =
       new PredicateImpl<Filter>() {
