@@ -517,6 +517,114 @@ public class DateRangeRulesTest {
 
   }
 
+  @Test public void testCeilEqRewrite() {
+    final Calendar c = Util.calendar();
+    c.clear();
+    c.set(2010, Calendar.FEBRUARY, 10, 11, 12, 05);
+    final Fixture2 f = new Fixture2();
+    // Always False
+    checkDateRange(f, f.eq(f.ceilYear, f.timestampLiteral(TimestampString.fromCalendarFields(c))),
+        is("false"));
+    checkDateRange(f, f.eq(f.timestampLiteral(TimestampString.fromCalendarFields(c)), f.ceilYear),
+        is("false"));
+
+    c.clear();
+    c.set(2010, Calendar.JANUARY, 1, 0, 0, 0);
+    checkDateRange(f, f.eq(f.ceilYear, f.timestampLiteral(TimestampString.fromCalendarFields(c))),
+        is("AND(>($9, 2009-01-01 00:00:00), <=($9, 2010-01-01 00:00:00))"));
+
+    c.set(2010, Calendar.FEBRUARY, 1, 0, 0, 0);
+    checkDateRange(f, f.eq(f.ceilMonth, f.timestampLiteral(TimestampString.fromCalendarFields(c))),
+        is("AND(>($9, 2010-01-01 00:00:00), <=($9, 2010-02-01 00:00:00))"));
+
+    c.set(2010, Calendar.DECEMBER, 1, 0, 0, 0);
+    checkDateRange(f, f.eq(f.ceilMonth, f.timestampLiteral(TimestampString.fromCalendarFields(c))),
+        is("AND(>($9, 2010-11-01 00:00:00), <=($9, 2010-12-01 00:00:00))"));
+
+    c.set(2010, Calendar.FEBRUARY, 4, 0, 0, 0);
+    checkDateRange(f, f.eq(f.ceilDay, f.timestampLiteral(TimestampString.fromCalendarFields(c))),
+        is("AND(>($9, 2010-02-03 00:00:00), <=($9, 2010-02-04 00:00:00))"));
+
+    c.set(2010, Calendar.DECEMBER, 31, 0, 0, 0);
+    checkDateRange(f, f.eq(f.ceilDay, f.timestampLiteral(TimestampString.fromCalendarFields(c))),
+        is("AND(>($9, 2010-12-30 00:00:00), <=($9, 2010-12-31 00:00:00))"));
+
+    c.set(2010, Calendar.FEBRUARY, 4, 4, 0, 0);
+    checkDateRange(f, f.eq(f.ceilHour, f.timestampLiteral(TimestampString.fromCalendarFields(c))),
+        is("AND(>($9, 2010-02-04 03:00:00), <=($9, 2010-02-04 04:00:00))"));
+
+    c.set(2010, Calendar.DECEMBER, 31, 23, 0, 0);
+    checkDateRange(f, f.eq(f.ceilHour, f.timestampLiteral(TimestampString.fromCalendarFields(c))),
+        is("AND(>($9, 2010-12-31 22:00:00), <=($9, 2010-12-31 23:00:00))"));
+
+    c.set(2010, Calendar.FEBRUARY, 4, 2, 32, 0);
+    checkDateRange(f,
+        f.eq(f.ceilMinute, f.timestampLiteral(TimestampString.fromCalendarFields(c))),
+        is("AND(>($9, 2010-02-04 02:31:00), <=($9, 2010-02-04 02:32:00))"));
+
+    c.set(2010, Calendar.FEBRUARY, 4, 2, 59, 0);
+    checkDateRange(f,
+        f.eq(f.ceilMinute, f.timestampLiteral(TimestampString.fromCalendarFields(c))),
+        is("AND(>($9, 2010-02-04 02:58:00), <=($9, 2010-02-04 02:59:00))"));
+  }
+
+  @Test public void testCeilLtRewrite() {
+    final Calendar c = Util.calendar();
+
+    c.clear();
+    c.set(2010, Calendar.FEBRUARY, 10, 11, 12, 05);
+    final Fixture2 f = new Fixture2();
+    checkDateRange(f, f.lt(f.ceilYear, f.timestampLiteral(TimestampString.fromCalendarFields(c))),
+        is("<=($9, 2010-01-01 00:00:00)"));
+
+    c.clear();
+    c.set(2010, Calendar.JANUARY, 1, 0, 0, 0);
+    checkDateRange(f, f.lt(f.ceilYear, f.timestampLiteral(TimestampString.fromCalendarFields(c))),
+        is("<=($9, 2009-01-01 00:00:00)"));
+  }
+
+  @Test public void testCeilLeRewrite() {
+    final Calendar c = Util.calendar();
+    c.clear();
+    c.set(2010, Calendar.FEBRUARY, 10, 11, 12, 05);
+    final Fixture2 f = new Fixture2();
+    checkDateRange(f, f.le(f.ceilYear, f.timestampLiteral(TimestampString.fromCalendarFields(c))),
+        is("<=($9, 2010-01-01 00:00:00)"));
+
+    c.clear();
+    c.set(2010, Calendar.JANUARY, 1, 0, 0, 0);
+    checkDateRange(f, f.le(f.ceilYear, f.timestampLiteral(TimestampString.fromCalendarFields(c))),
+        is("<=($9, 2010-01-01 00:00:00)"));
+  }
+
+  @Test public void testCeilGtRewrite() {
+    final Calendar c = Util.calendar();
+    c.clear();
+    c.set(2010, Calendar.FEBRUARY, 10, 11, 12, 05);
+    final Fixture2 f = new Fixture2();
+    checkDateRange(f, f.gt(f.ceilYear, f.timestampLiteral(TimestampString.fromCalendarFields(c))),
+        is(">($9, 2010-01-01 00:00:00)"));
+
+    c.clear();
+    c.set(2010, Calendar.JANUARY, 1, 0, 0, 0);
+    checkDateRange(f, f.gt(f.ceilYear, f.timestampLiteral(TimestampString.fromCalendarFields(c))),
+        is(">($9, 2010-01-01 00:00:00)"));
+  }
+
+  @Test public void testCeilGeRewrite() {
+    final Calendar c = Util.calendar();
+    c.clear();
+    c.set(2010, Calendar.FEBRUARY, 10, 11, 12, 05);
+    final Fixture2 f = new Fixture2();
+    checkDateRange(f, f.ge(f.ceilYear, f.timestampLiteral(TimestampString.fromCalendarFields(c))),
+        is(">($9, 2010-01-01 00:00:00)"));
+
+    c.clear();
+    c.set(2010, Calendar.JANUARY, 1, 0, 0, 0);
+    checkDateRange(f, f.ge(f.ceilYear, f.timestampLiteral(TimestampString.fromCalendarFields(c))),
+        is(">($9, 2009-01-01 00:00:00)"));
+  }
+
   private static Set<TimeUnitRange> set(TimeUnitRange... es) {
     return ImmutableSet.copyOf(es);
   }
@@ -548,6 +656,12 @@ public class DateRangeRulesTest {
     private final RexNode floorHour;
     private final RexNode floorMinute;
 
+    private final RexNode ceilYear;
+    private final RexNode ceilMonth;
+    private final RexNode ceilDay;
+    private final RexNode ceilHour;
+    private final RexNode ceilMinute;
+
     Fixture2() {
       exYearTs = rexBuilder.makeCall(SqlStdOperatorTable.EXTRACT,
           ImmutableList.of(rexBuilder.makeFlag(TimeUnitRange.YEAR), ts));
@@ -575,6 +689,17 @@ public class DateRangeRulesTest {
       floorHour = rexBuilder.makeCall(intRelDataType, SqlStdOperatorTable.FLOOR,
           ImmutableList.<RexNode>of(ts, rexBuilder.makeFlag(TimeUnitRange.HOUR)));
       floorMinute = rexBuilder.makeCall(intRelDataType, SqlStdOperatorTable.FLOOR,
+          ImmutableList.<RexNode>of(ts, rexBuilder.makeFlag(TimeUnitRange.MINUTE)));
+
+      ceilYear = rexBuilder.makeCall(intRelDataType, SqlStdOperatorTable.CEIL,
+          ImmutableList.<RexNode>of(ts, rexBuilder.makeFlag(TimeUnitRange.YEAR)));
+      ceilMonth = rexBuilder.makeCall(intRelDataType, SqlStdOperatorTable.CEIL,
+          ImmutableList.<RexNode>of(ts, rexBuilder.makeFlag(TimeUnitRange.MONTH)));
+      ceilDay = rexBuilder.makeCall(intRelDataType, SqlStdOperatorTable.CEIL,
+          ImmutableList.<RexNode>of(ts, rexBuilder.makeFlag(TimeUnitRange.DAY)));
+      ceilHour = rexBuilder.makeCall(intRelDataType, SqlStdOperatorTable.CEIL,
+          ImmutableList.<RexNode>of(ts, rexBuilder.makeFlag(TimeUnitRange.HOUR)));
+      ceilMinute = rexBuilder.makeCall(intRelDataType, SqlStdOperatorTable.CEIL,
           ImmutableList.<RexNode>of(ts, rexBuilder.makeFlag(TimeUnitRange.MINUTE)));
     }
   }

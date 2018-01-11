@@ -66,8 +66,9 @@ import java.util.Set;
 
 /**
  * Collection of planner rules that convert
- * {@code EXTRACT(timeUnit FROM dateTime) = constant}
- * and {@code FLOOR(dateTime to timeUnit} = constant}
+ * {@code EXTRACT(timeUnit FROM dateTime) = constant},
+ * {@code FLOOR(dateTime to timeUnit} = constant} and
+ * {@code CEIL(dateTime to timeUnit} = constant}
  * to
  * {@code dateTime BETWEEN lower AND upper}.
  *
@@ -96,7 +97,7 @@ public abstract class DateRangeRules {
           try {
             filter.getCondition().accept(finder);
             // bail out if there is no year extract or floor call
-            return finder.timeUnits.contains(TimeUnitRange.YEAR) || finder.hasFloor;
+            return finder.timeUnits.contains(TimeUnitRange.YEAR) || finder.hasFloorOrCeil;
           } finally {
             finder.timeUnits.clear();
           }
@@ -194,7 +195,7 @@ public abstract class DateRangeRules {
   private static class ExtractOrFloorFinder extends RexVisitorImpl {
     private final Set<TimeUnitRange> timeUnits =
         EnumSet.noneOf(TimeUnitRange.class);
-    private boolean hasFloor = false;
+    private boolean hasFloorOrCeil = false;
 
     private static final ThreadLocal<ExtractOrFloorFinder> THREAD_INSTANCES =
         new ThreadLocal<ExtractOrFloorFinder>() {
@@ -214,9 +215,10 @@ public abstract class DateRangeRules {
         timeUnits.add((TimeUnitRange) operand.getValue());
         break;
       case FLOOR:
+      case CEIL:
         // Check that the floor is on Time
         if (call.getOperands().size() == 2) {
-          hasFloor = true;
+          hasFloorOrCeil = true;
         }
         break;
       }
@@ -225,7 +227,7 @@ public abstract class DateRangeRules {
 
     public void clean() {
       timeUnits.clear();
-      hasFloor = false;
+      hasFloorOrCeil = false;
     }
   }
 
@@ -268,11 +270,12 @@ public abstract class DateRangeRules {
                   operand, (RexLiteral) op0);
             }
           }
-          if (isFloorCall(op1)) {
+          if (isFloorOrCeilCall(op1)) {
             final RexLiteral flag = (RexLiteral) ((RexCall) op1).operands.get(1);
             final TimeUnitRange timeUnit = (TimeUnitRange) flag.getValue();
-            return compareFloor(call.getKind().reverse(),
-                ((RexCall) op1).getOperands().get(0), (RexLiteral) op0, timeUnit);
+            return compareFloorOrCeil(call.getKind().reverse(),
+                ((RexCall) op1).getOperands().get(0), (RexLiteral) op0, timeUnit,
+                op1.getKind() == SqlKind.FLOOR);
           }
         }
         switch (op1.getKind()) {
@@ -284,11 +287,12 @@ public abstract class DateRangeRules {
                   ((RexCall) op0).getOperands().get(1), (RexLiteral) op1);
             }
           }
-          if (isFloorCall(op0)) {
+          if (isFloorOrCeilCall(op0)) {
             final RexLiteral flag = (RexLiteral) ((RexCall) op0).operands.get(1);
             final TimeUnitRange timeUnit = (TimeUnitRange) flag.getValue();
-            return compareFloor(call.getKind(),
-                ((RexCall) op0).getOperands().get(0), (RexLiteral) op1, timeUnit);
+            return compareFloorOrCeil(call.getKind(),
+                ((RexCall) op0).getOperands().get(0), (RexLiteral) op1, timeUnit,
+                op0.getKind() == SqlKind.FLOOR);
           }
         }
         // fall through
@@ -540,15 +544,17 @@ public abstract class DateRangeRules {
       return c;
     }
 
-    private RexNode compareFloor(SqlKind comparison, RexNode operand, RexLiteral timeLiteral,
-        TimeUnitRange timeUnit) {
+    private RexNode compareFloorOrCeil(SqlKind comparison, RexNode operand, RexLiteral timeLiteral,
+        TimeUnitRange timeUnit, boolean floor) {
       RangeSet<Calendar> rangeSet = operandRanges.get(operand.toString());
       if (rangeSet == null) {
         rangeSet = ImmutableRangeSet.<Calendar>of().complement();
       }
       final RangeSet<Calendar> s2 = TreeRangeSet.create();
-      final Range<Calendar> range = floorRange(timeUnit, comparison,
-          timeLiteral.getValueAs(Calendar.class));
+      final Range<Calendar> range = floor
+          ? floorRange(timeUnit, comparison,
+          timeLiteral.getValueAs(Calendar.class))
+          : ceilRange(timeUnit, comparison, timeLiteral.getValueAs(Calendar.class));
       s2.add(range);
       // Intersect old range set with new.
       s2.removeAll(rangeSet.complement());
@@ -579,9 +585,30 @@ public abstract class DateRangeRules {
       }
     }
 
-    boolean isFloorCall(RexNode e) {
+    private Range<Calendar> ceilRange(TimeUnitRange timeUnit, SqlKind comparison,
+        Calendar c) {
+      final Calendar ceil = ceil(c, timeUnit);
+      boolean boundary = ceil.equals(c);
+      switch (comparison) {
+      case EQUALS:
+        return Range.openClosed(boundary ? decrement(ceil, timeUnit) : ceil, ceil);
+      case LESS_THAN:
+        return Range.atMost(decrement(ceil, timeUnit));
+      case LESS_THAN_OR_EQUAL:
+        return boundary ? Range.atMost(ceil) : Range.atMost(decrement(ceil, timeUnit));
+      case GREATER_THAN:
+        return boundary ? Range.greaterThan(ceil) : Range.greaterThan(decrement(ceil, timeUnit));
+      case GREATER_THAN_OR_EQUAL:
+        return Range.greaterThan(decrement(ceil, timeUnit));
+      default:
+        throw Util.unexpected(comparison);
+      }
+    }
+
+    private boolean isFloorOrCeilCall(RexNode e) {
       switch (e.getKind()) {
       case FLOOR:
+      case CEIL:
         final RexCall call = (RexCall) e;
         return call.getOperands().size() == 2;
       default:
@@ -589,17 +616,28 @@ public abstract class DateRangeRules {
       }
     }
 
-    protected Calendar increment(Calendar c, TimeUnitRange timeUnit) {
+    private Calendar increment(Calendar c, TimeUnitRange timeUnit) {
       c = (Calendar) c.clone();
       c.add(TIME_UNIT_CODES.get(timeUnit), 1);
       return c;
+    }
+
+    private Calendar decrement(Calendar c, TimeUnitRange timeUnit) {
+      c = (Calendar) c.clone();
+      c.add(TIME_UNIT_CODES.get(timeUnit), -1);
+      return c;
+    }
+
+    private Calendar ceil(Calendar c, TimeUnitRange timeUnit) {
+      Calendar floor = floor(c, timeUnit);
+      return floor.equals(c) ? floor : increment(floor, timeUnit);
     }
 
     /**
      * Commputes floor of given calendar object to provided timeunit
      * @return returns a copy of calendar, floored to the given timeunit
      */
-    protected Calendar floor(Calendar c, TimeUnitRange timeUnit) {
+    private Calendar floor(Calendar c, TimeUnitRange timeUnit) {
       c = (Calendar) c.clone();
       switch (timeUnit) {
       case YEAR:
