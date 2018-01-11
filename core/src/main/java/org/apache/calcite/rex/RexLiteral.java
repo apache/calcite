@@ -868,6 +868,9 @@ public class RexLiteral extends RexNode {
       if (clazz == Long.class) {
         // Milliseconds since 1970-01-01 00:00:00
         return clazz.cast(((TimestampString) value).getMillisSinceEpoch());
+      } else if (clazz == Calendar.class) {
+        // Note: Nanos are ignored
+        return clazz.cast(((TimestampString) value).toCalendar());
       }
       break;
     case INTERVAL_YEAR:
