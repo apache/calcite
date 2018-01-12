@@ -943,7 +943,7 @@ public class RexImpTable {
         translator.translateList(call.getOperands());
     Expression result =
         implementor.implement(translator, call, translatedOperands);
-    return nullAs.handle(result);
+    return translator.handleNull(result, nullAs);
   }
 
   /** Strategy what an operator should return if one of its
@@ -2134,8 +2134,7 @@ public class RexImpTable {
       // make a mistake. If expression looks nullable, caller WILL have
       // checked that expression is not null before calling us.
       final boolean nullable =
-          translator.isNullable(call)
-              && sourceType.isNullable()
+          sourceType.isNullable()
               && !Primitive.is(translatedOperands.get(0).getType());
       final RelDataType targetType =
           translator.nullifyType(call.getType(), nullable);

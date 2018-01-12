@@ -749,6 +749,39 @@ public class ReflectiveSchemaTest {
     }
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1054">[CALCITE-1054]
+   * NPE caused by wrong code generation for Timestamp fields</a>. */
+  @Test public void testFilterOnNullableTimestamp() throws Exception {
+    final CalciteAssert.AssertThat with =
+            CalciteAssert.that().withSchema("s", CATCHALL);
+    with.query(
+            "select count(1) as \"c0\" from \"s\".\"everyTypes\" where \"sqlTimestamp\" > TIMESTAMP '1996-01-01 00:00:00' and \"sqlTimestamp\" < TIMESTAMP '1998-01-01 00:00:00'")
+            .returnsUnordered("c0=0");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1054">[CALCITE-1054]
+   * NPE caused by wrong code generation for Timestamp fields</a>. */
+  @Test public void testFilterOnNullableDate() throws Exception {
+    final CalciteAssert.AssertThat with =
+            CalciteAssert.that().withSchema("s", CATCHALL);
+    with.query(
+            "select count(1) as \"c0\" from \"s\".\"everyTypes\" where \"sqlDate\" <= DATE '1996-01-01' or \"sqlDate\" > DATE '1998-01-01'")
+            .returnsUnordered("c0=1");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1054">[CALCITE-1054]
+   * NPE caused by wrong code generation for Timestamp fields</a>. */
+  @Test public void testFilterOnNullableTime() throws Exception {
+    final CalciteAssert.AssertThat with =
+            CalciteAssert.that().withSchema("s", CATCHALL);
+    with.query(
+            "select count(1) as \"c0\" from \"s\".\"everyTypes\" where (\"sqlTime\" >= TIME '00:00:00' and \"sqlTime\" < TIME '12:00:00') or (\"sqlTime\" >= TIME '12:00:00')")
+            .returnsUnordered("c0=1");
+  }
+
   /** Extension to {@link Employee} with a {@code hireDate} column. */
   public static class EmployeeWithHireDate extends Employee {
     public final java.sql.Date hireDate;
