@@ -32,21 +32,21 @@ import java.sql.SQLException;
 /**
  * Bootstrap of HSQLDB schema under calcite. It contains data for end 2 end tests.
  */
-public class HSQLBootstrap {
+public class HsqlBootstrap {
 
   private static final String DB_FILENAME = "database.sql";
   private static final String DB_URL = "jdbc:hsqldb:mem:e2edb";
   private static final String DB_PASSWORD = "password";
   private static final String DB_USER = "admin";
 
-  private static HSQLBootstrap instance;
+  private static HsqlBootstrap instance;
 
-  private HSQLBootstrap() {
+  private HsqlBootstrap() {
   }
 
-  public static HSQLBootstrap instance() {
+  public static HsqlBootstrap instance() {
     if (instance == null) {
-      instance = new HSQLBootstrap();
+      instance = new HsqlBootstrap();
       instance.init();
     }
     return instance;
@@ -76,11 +76,11 @@ public class HSQLBootstrap {
   }
 
   private InputStream getDBScriptAsResource() {
-    return HSQLBootstrap.class.getResourceAsStream("/chinook/database.sql");
+    return HsqlBootstrap.class.getResourceAsStream("/chinook/database.sql");
   }
 
   public Connection connection() throws SQLException {
     return DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD);
   }
 }
-// End HSQLBootstrap.java
+// End HsqlBootstrap.java

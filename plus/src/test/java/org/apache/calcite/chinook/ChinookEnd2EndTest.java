@@ -45,13 +45,13 @@ import java.util.regex.Pattern;
  * Entry point for all e2e tests based on Chinook data in hsqldb wrapped by calcite schema
  */
 @RunWith(Parameterized.class)
-public class End2EndTest {
+public class ChinookEnd2EndTest {
 
   private static final Pattern FILE_PATERN = Pattern.compile(".*\\.iq");
 
   private final Path pathToQuidemFile;
 
-  public End2EndTest(Path pathToQuidemFile) {
+  public ChinookEnd2EndTest(Path pathToQuidemFile) {
     this.pathToQuidemFile = pathToQuidemFile;
   }
 
@@ -138,4 +138,4 @@ public class End2EndTest {
 
 }
 
-// End End2EndTest.java
+// End ChinookEnd2EndTest.java

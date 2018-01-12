@@ -30,7 +30,8 @@ import java.sql.SQLException;
 import java.util.Properties;
 
 /**
- * Provider of calcite connection for e2e tests
+ * Provider of calcite connection to chinook database wrapped by Calcite. Calcite adds its own views
+ * functions and all those things we would like to test.
  */
 public class CalciteConnectionProvider {
 

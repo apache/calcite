@@ -26,7 +26,7 @@ import java.sql.Connection;
 public class ConnectionFactory implements Quidem.ConnectionFactory {
 
   private static final CalciteConnectionProvider CALCITE = new CalciteConnectionProvider();
-  private static final HSQLBootstrap HSQLDB = HSQLBootstrap.instance();
+  private static final HsqlBootstrap HSQLDB = HsqlBootstrap.instance();
 
   public Connection connect(String db, boolean bln) throws Exception {
     return DBWrapper.valueOf(db).connection();
