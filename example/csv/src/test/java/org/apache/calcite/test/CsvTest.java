@@ -578,6 +578,9 @@ public class CsvTest {
     }
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1427">[CALCITE-1427]
+   * Code generation incorrect (does not compile) for DATE, TIME and TIMESTAMP fields</a>. */
   @Test public void testNonNullFilterOnDateType() throws SQLException {
     Properties info = new Properties();
     info.put("model", jsonPath("bug"));
@@ -613,6 +616,9 @@ public class CsvTest {
     }
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1427">[CALCITE-1427]
+   * Code generation incorrect (does not compile) for DATE, TIME and TIMESTAMP fields</a>. */
   @Test public void testGreaterThanFilterOnDateType() throws SQLException {
     Properties info = new Properties();
     info.put("model", jsonPath("bug"));

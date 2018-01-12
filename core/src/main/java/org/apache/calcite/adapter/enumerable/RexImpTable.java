@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.adapter.enumerable;
 
+import com.google.common.base.Function;
+import com.google.common.collect.Lists;
 import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.avatica.util.TimeUnitRange;
@@ -935,12 +937,23 @@ public class RexImpTable {
   }
 
   private static Expression implementCall(
-      RexToLixTranslator translator,
+      final RexToLixTranslator translator,
       RexCall call,
       NotNullImplementor implementor,
-      NullAs nullAs) {
-    final List<Expression> translatedOperands =
-        translator.translateList(call.getOperands());
+      final NullAs nullAs) {
+    List<Expression> translatedOperands =
+            translator.translateList(call.getOperands());
+    // Make sure the operands have all been handled for nulls before
+    // being passed to the NotNullImplementor.
+    if (nullAs == NullAs.NOT_POSSIBLE) {
+      translatedOperands = Lists.transform(
+          translatedOperands,
+          new Function<Expression, Expression>() {
+            public Expression apply(Expression e) {
+              return translator.handleNull(e, nullAs);
+            }
+          });
+    }
     Expression result =
         implementor.implement(translator, call, translatedOperands);
     return translator.handleNull(result, nullAs);
@@ -2134,7 +2147,8 @@ public class RexImpTable {
       // make a mistake. If expression looks nullable, caller WILL have
       // checked that expression is not null before calling us.
       final boolean nullable =
-          sourceType.isNullable()
+          translator.isNullable(call)
+              && sourceType.isNullable()
               && !Primitive.is(translatedOperands.get(0).getType());
       final RelDataType targetType =
           translator.nullifyType(call.getType(), nullable);

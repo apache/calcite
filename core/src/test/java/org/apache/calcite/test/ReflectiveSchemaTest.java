@@ -758,6 +758,31 @@ public class ReflectiveSchemaTest {
     with.query(
             "select \"sqlTimestamp\" as \"t0\" from \"s\".\"everyTypes\" where \"sqlTimestamp\" >= {ts '1969-01-01 00:00:00'} and \"sqlTimestamp\" < TIMESTAMP '1998-01-01 00:00:00'")
             .returnsUnordered("t0=1970-01-01 00:00:00");
+    with.query(
+            "select \"sqlTimestamp\" as \"t0\", extract(year from  \"sqlTimestamp\") as \"t1\" from \"s\".\"everyTypes\"")
+            .returnsUnordered("t0=1970-01-01 00:00:00; t1=1970\n"
+                + "t0=null; t1=null");
+    with.query(
+            "select \"sqlTimestamp\" as \"t0\" from \"s\".\"everyTypes\" where \"sqlTimestamp\" is not null")
+            .returnsUnordered("t0=1970-01-01 00:00:00");
+    with.query(
+            "select extract(year from  \"sqlTimestamp\") as \"t0\" from \"s\".\"everyTypes\" where \"sqlTimestamp\" is not null")
+            .returnsUnordered("t0=1970");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1118">[CALCITE-1118]
+   * NullPointerException in EXTRACT with WHERE ... IN clause if field has null value</a>. */
+  @Test public void testFilterOnNullableTimestamp2() throws Exception {
+    final CalciteAssert.AssertThat with =
+            CalciteAssert.that().withSchema("s", CATCHALL);
+    with.query(
+            "select extract(year from \"sqlTimestamp\") as \"t0\" from \"s\".\"everyTypes\" where extract(year from \"sqlTimestamp\") in (1969, 1970)")
+            .returnsUnordered("t0=1970");
+    with.query(
+            "select extract(year from \"sqlTimestamp\") as \"t0\", extract(year from \"sqlTimestamp\") + 1 as \"t1\" from \"s\".\"everyTypes\"")
+            .returnsUnordered("t0=1970; t1=1971\n"
+                + "t0=null; t1=null");
   }
 
   /** Test case for
