@@ -596,6 +596,45 @@ public class RexToLixTranslator {
     return convert;
   }
 
+  /** Adapts an expression with "normal" result to one that adheres to
+   * this particular policy. Wraps the result expression into a new
+   * parameter if need be.
+   *
+   * @param input Expression
+   * @param nullAs If false, if expression is definitely not null at
+   *   runtime. Therefore we can optimize. For example, we can cast to int
+   *   using x.intValue().
+   * @return Translated expression
+   */
+  public Expression handleNull(Expression input, RexImpTable.NullAs nullAs) {
+    final Expression nullHandled = nullAs.handle(input);
+
+    // If we get ConstantExpression, just return it (i.e. primitive false)
+    if (nullHandled instanceof ConstantExpression) {
+      return nullHandled;
+    }
+
+    // if nullHandled expression is the same as "input",
+    // then we can just reuse it
+    if (nullHandled == input) {
+      return input;
+    }
+
+    // If nullHandled is different, then it might be unsafe to compute
+    // early (i.e. unbox of null value should not happen _before_ ternary).
+    // Thus we wrap it into brand-new ParameterExpression,
+    // and we are guaranteed that ParameterExpression will not be shared
+    String unboxVarName = "v_unboxed";
+    if (input instanceof ParameterExpression) {
+      unboxVarName = ((ParameterExpression) input).name + "_unboxed";
+    }
+    ParameterExpression unboxed = Expressions.parameter(nullHandled.getType(),
+        list.newName(unboxVarName));
+    list.add(Expressions.declare(Modifier.FINAL, unboxed, nullHandled));
+
+    return unboxed;
+  }
+
   /** Translates an expression that is not in the cache.
    *
    * @param expr Expression
@@ -621,32 +660,7 @@ public class RexToLixTranslator {
         // unboxing via nullAs.handle below.
         return input;
       }
-      Expression nullHandled = nullAs.handle(input);
-
-      // If we get ConstantExpression, just return it (i.e. primitive false)
-      if (nullHandled instanceof ConstantExpression) {
-        return nullHandled;
-      }
-
-      // if nullHandled expression is the same as "input",
-      // then we can just reuse it
-      if (nullHandled == input) {
-        return input;
-      }
-
-      // If nullHandled is different, then it might be unsafe to compute
-      // early (i.e. unbox of null value should not happen _before_ ternary).
-      // Thus we wrap it into brand-new ParameterExpression,
-      // and we are guaranteed that ParameterExpression will not be shared
-      String unboxVarName = "v_unboxed";
-      if (input instanceof ParameterExpression) {
-        unboxVarName = ((ParameterExpression) input).name + "_unboxed";
-      }
-      ParameterExpression unboxed = Expressions.parameter(nullHandled.getType(),
-          list.newName(unboxVarName));
-      list.add(Expressions.declare(Modifier.FINAL, unboxed, nullHandled));
-
-      return unboxed;
+      return handleNull(input, nullAs);
     case LOCAL_REF:
       return translate(
           deref(expr),
