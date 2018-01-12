@@ -257,9 +257,12 @@ public class DruidRules {
       final List<RexNode> residualPreds = new ArrayList<>(triple.getRight());
       List<Interval> intervals = null;
       if (!triple.getLeft().isEmpty()) {
+        final String timeZone = cluster.getPlanner().getContext()
+            .unwrap(CalciteConnectionConfig.class).timeZone();
+        assert timeZone != null;
         intervals = DruidDateTimeUtils.createInterval(
             RexUtil.composeConjunction(rexBuilder, triple.getLeft(), false),
-            cluster.getPlanner().getContext().unwrap(CalciteConnectionConfig.class).timeZone());
+            timeZone);
         if (intervals == null || intervals.isEmpty()) {
           // Case we have an filter with extract that can not be written as interval push down
           triple.getMiddle().addAll(triple.getLeft());
@@ -640,6 +643,7 @@ public class DruidRules {
       if (!DruidQuery.isValidSignature(query.signature() + 'a')) {
         return;
       }
+
       if (aggregate.indicator
               || aggregate.getGroupSets().size() != 1
               || BAD_AGG.apply(ImmutableTriple.of(aggregate, (RelNode) aggregate, query))
@@ -920,7 +924,10 @@ public class DruidRules {
         if (e instanceof RexCall) {
           // It is a call, check that it is EXTRACT and follow-up conditions
           final RexCall call = (RexCall) e;
-          if (DruidDateTimeUtils.extractGranularity(call) == null) {
+          final String timeZone = query.getCluster().getPlanner().getContext()
+              .unwrap(CalciteConnectionConfig.class).timeZone();
+          assert timeZone != null;
+          if (DruidDateTimeUtils.extractGranularity(call, timeZone) == null) {
             return -1;
           }
           if (idxTimestamp != -1 && hasFloor) {
@@ -1108,7 +1115,10 @@ public class DruidRules {
         RexNode node = project.getProjects().get(index);
         if (node instanceof RexCall) {
           RexCall call = (RexCall) node;
-          assert DruidDateTimeUtils.extractGranularity(call) != null;
+          final String timeZone = query.getCluster().getPlanner().getContext()
+              .unwrap(CalciteConnectionConfig.class).timeZone();
+          assert timeZone != null;
+          assert DruidDateTimeUtils.extractGranularity(call, timeZone) != null;
           if (call.getKind() == SqlKind.FLOOR) {
             newSet.addAll(RelOptUtil.InputFinder.bits(call));
           }
@@ -1140,8 +1150,12 @@ public class DruidRules {
           newSet.set(((RexInputRef) node).getIndex());
         } else if (node instanceof RexCall) {
           RexCall call = (RexCall) node;
-          assert DruidDateTimeUtils.extractGranularity(call) != null;
-          // when we have extract from time columnthe rexCall is in the form of /Reinterpret$0
+          final String timeZone = query.getCluster().getPlanner().getContext()
+              .unwrap(CalciteConnectionConfig.class).timeZone();
+          assert timeZone != null;
+          assert DruidDateTimeUtils.extractGranularity(call, timeZone) != null;
+          // when we have extract from time column the rexCall is of the form
+          // "/Reinterpret$0"
           newSet.addAll(RelOptUtil.InputFinder.bits(call));
         }
       }
