@@ -783,6 +783,9 @@ public class ReflectiveSchemaTest {
             "select extract(year from \"sqlTimestamp\") as \"t0\", extract(year from \"sqlTimestamp\") + 1 as \"t1\" from \"s\".\"everyTypes\"")
             .returnsUnordered("t0=1970; t1=1971\n"
                 + "t0=null; t1=null");
+    with.query(
+            "select extract(year from \"sqlTimestamp\") as \"t0\" from \"s\".\"everyTypes\" where timestampadd(SQL_TSI_DAY, 1, \"sqlTimestamp\") < TIMESTAMP '1980-01-01 00:00:00'")
+            .returnsUnordered("t0=1970");
   }
 
   /** Test case for
