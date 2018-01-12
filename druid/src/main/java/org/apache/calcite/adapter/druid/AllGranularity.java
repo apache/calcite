@@ -16,22 +16,26 @@
  */
 package org.apache.calcite.adapter.druid;
 
-/** Granularity of a Druid query. */
-public interface Granularity extends DruidQuery.Json {
-  /** Enum Values for Supported Granularities. */
-  enum Value {
-    ALL,
-    YEAR,
-    QUARTER,
-    MONTH,
-    WEEK,
-    DAY,
-    HOUR,
-    MINUTE,
-    SECOND
+import com.fasterxml.jackson.core.JsonGenerator;
+
+import java.io.IOException;
+
+/** AllGranularity of a Druid query. */
+public class AllGranularity implements Granularity {
+
+  public static Granularity instance = new AllGranularity();
+
+  private AllGranularity() {}
+
+  @Override public void write(JsonGenerator generator) throws IOException {
+    generator.writeStartObject();
+    generator.writeStringField("type", "all");
+    generator.writeEndObject();
   }
 
-  Value getValue();
+  @Override public Value getValue() {
+    return Value.ALL;
+  }
 }
 
-// End Granularity.java
+// End AllGranularity.java
