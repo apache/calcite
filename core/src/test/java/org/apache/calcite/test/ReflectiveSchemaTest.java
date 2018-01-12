@@ -756,8 +756,8 @@ public class ReflectiveSchemaTest {
     final CalciteAssert.AssertThat with =
             CalciteAssert.that().withSchema("s", CATCHALL);
     with.query(
-            "select count(1) as \"c0\" from \"s\".\"everyTypes\" where \"sqlTimestamp\" > TIMESTAMP '1996-01-01 00:00:00' and \"sqlTimestamp\" < TIMESTAMP '1998-01-01 00:00:00'")
-            .returnsUnordered("c0=0");
+            "select \"sqlTimestamp\" as \"t0\" from \"s\".\"everyTypes\" where \"sqlTimestamp\" >= {ts '1969-01-01 00:00:00'} and \"sqlTimestamp\" < TIMESTAMP '1998-01-01 00:00:00'")
+            .returnsUnordered("t0=1970-01-01 00:00:00");
   }
 
   /** Test case for
@@ -767,8 +767,8 @@ public class ReflectiveSchemaTest {
     final CalciteAssert.AssertThat with =
             CalciteAssert.that().withSchema("s", CATCHALL);
     with.query(
-            "select count(1) as \"c0\" from \"s\".\"everyTypes\" where \"sqlDate\" <= DATE '1996-01-01' or \"sqlDate\" > DATE '1998-01-01'")
-            .returnsUnordered("c0=1");
+            "select \"sqlDate\" as \"t0\" from \"s\".\"everyTypes\" where \"sqlDate\" <= DATE '1996-01-01' or \"sqlDate\" > DATE '1998-01-01'")
+            .returnsUnordered("t0=1970-01-01");
   }
 
   /** Test case for
@@ -778,8 +778,8 @@ public class ReflectiveSchemaTest {
     final CalciteAssert.AssertThat with =
             CalciteAssert.that().withSchema("s", CATCHALL);
     with.query(
-            "select count(1) as \"c0\" from \"s\".\"everyTypes\" where (\"sqlTime\" >= TIME '00:00:00' and \"sqlTime\" < TIME '12:00:00') or (\"sqlTime\" >= TIME '12:00:00')")
-            .returnsUnordered("c0=1");
+            "select \"sqlTime\" as \"t0\" from \"s\".\"everyTypes\" where \"sqlTime\" < TIME '00:00:00' or \"sqlTime\" >= TIME '00:00:00'")
+            .returnsUnordered("t0=00:00:00");
   }
 
   /** Extension to {@link Employee} with a {@code hireDate} column. */
