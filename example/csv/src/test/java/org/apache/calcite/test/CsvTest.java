@@ -579,82 +579,6 @@ public class CsvTest {
   }
 
   /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-1427">[CALCITE-1427]
-   * Code generation incorrect (does not compile) for DATE, TIME and TIMESTAMP fields</a>. */
-  @Test public void testNonNullFilterOnDateType() throws SQLException {
-    Properties info = new Properties();
-    info.put("model", jsonPath("bug"));
-
-    try (Connection connection
-                 = DriverManager.getConnection("jdbc:calcite:", info)) {
-      Statement statement = connection.createStatement();
-
-      // date
-      ResultSet joinedat = statement.executeQuery(
-              "select JOINEDAT from \"DATE\" where JOINEDAT is not null");
-      joinedat.next();
-      Assert.assertEquals(java.sql.Date.class, joinedat.getDate(1).getClass());
-      Assert.assertEquals(java.sql.Date.valueOf("1996-08-03"),
-              joinedat.getDate(1));
-
-      // time
-      ResultSet jointime = statement.executeQuery(
-              "select JOINTIME from \"DATE\" where JOINTIME is not null");
-      jointime.next();
-      Assert.assertEquals(java.sql.Time.class, jointime.getTime(1).getClass());
-      Assert.assertEquals(java.sql.Time.valueOf("00:01:02"),
-              jointime.getTime(1));
-
-      // timestamp
-      ResultSet jointimes = statement.executeQuery(
-              "select JOINTIMES from \"DATE\" where JOINTIMES is not null");
-      jointimes.next();
-      Assert.assertEquals(java.sql.Timestamp.class,
-              jointimes.getTimestamp(1).getClass());
-      Assert.assertEquals(java.sql.Timestamp.valueOf("1996-08-03 00:01:02"),
-              jointimes.getTimestamp(1));
-    }
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-1427">[CALCITE-1427]
-   * Code generation incorrect (does not compile) for DATE, TIME and TIMESTAMP fields</a>. */
-  @Test public void testGreaterThanFilterOnDateType() throws SQLException {
-    Properties info = new Properties();
-    info.put("model", jsonPath("bug"));
-
-    try (Connection connection
-                 = DriverManager.getConnection("jdbc:calcite:", info)) {
-      Statement statement = connection.createStatement();
-
-      // date
-      ResultSet joinedat = statement.executeQuery(
-              "select JOINEDAT from \"DATE\" where JOINEDAT > {d '1990-01-01'}");
-      joinedat.next();
-      Assert.assertEquals(java.sql.Date.class, joinedat.getDate(1).getClass());
-      Assert.assertEquals(java.sql.Date.valueOf("1996-08-03"),
-              joinedat.getDate(1));
-
-      // time
-      ResultSet jointime = statement.executeQuery(
-              "select JOINTIME from \"DATE\" where JOINTIME > {t '00:00:00'}");
-      jointime.next();
-      Assert.assertEquals(java.sql.Time.class, jointime.getTime(1).getClass());
-      Assert.assertEquals(java.sql.Time.valueOf("00:01:02"),
-              jointime.getTime(1));
-
-      // timestamp
-      ResultSet jointimes = statement.executeQuery(
-              "select JOINTIMES from \"DATE\" where JOINTIMES > {ts '1990-01-01 00:00:00'}");
-      jointimes.next();
-      Assert.assertEquals(java.sql.Timestamp.class,
-              jointimes.getTimestamp(1).getClass());
-      Assert.assertEquals(java.sql.Timestamp.valueOf("1996-08-03 00:01:02"),
-              jointimes.getTimestamp(1));
-    }
-  }
-
-  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1072">[CALCITE-1072]
    * CSV adapter incorrectly parses TIMESTAMP values after noon</a>. */
   @Test public void testDateType2() throws SQLException {
@@ -665,7 +589,7 @@ public class CsvTest {
         = DriverManager.getConnection("jdbc:calcite:", info)) {
       Statement statement = connection.createStatement();
       ResultSet resultSet =
-          statement.executeQuery("select * from \"DATE\" where EMPNO >= 140");
+          statement.executeQuery("select * from \"DATE\" where EMPNO >= 140 and EMPNO < 200");
       int n = 0;
       while (resultSet.next()) {
         ++n;
@@ -780,6 +704,153 @@ public class CsvTest {
       final ResultSet resultSet1 = statement2.executeQuery();
       Function<ResultSet, Void> expect = expect("DEPTNO=10; NAME=Sales");
       expect.apply(resultSet1);
+    }
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1054">[CALCITE-1054]
+   * NPE caused by wrong code generation for Timestamp fields</a>. */
+  @Test public void testFilterOnNullableTimestamp() throws Exception {
+    Properties info = new Properties();
+    info.put("model", jsonPath("bug"));
+
+    try (Connection connection
+             = DriverManager.getConnection("jdbc:calcite:", info)) {
+      Statement statement = connection.createStatement();
+
+      // date
+      ResultSet joinedat = statement.executeQuery(
+          "select JOINEDAT from \"DATE\" where JOINEDAT < {d '2000-01-01'} or JOINEDAT >= {d '2017-01-01'}");
+      joinedat.next();
+      Assert.assertEquals(java.sql.Date.valueOf("1996-08-03"),
+          joinedat.getDate(1));
+
+      // time
+      ResultSet jointime = statement.executeQuery(
+          "select JOINTIME from \"DATE\" where JOINTIME >= {t '07:00:00'} and JOINTIME < {t '08:00:00'}");
+      jointime.next();
+      Assert.assertEquals(java.sql.Time.valueOf("07:15:56"),
+          jointime.getTime(1));
+
+      // timestamp
+      ResultSet jointimes = statement.executeQuery(
+          "select JOINTIMES, {fn timestampadd(SQL_TSI_DAY, 1, JOINTIMES)} from \"DATE\"\n"
+              + "where (JOINTIMES >= {ts '2003-01-01 00:00:00'} and JOINTIMES < {ts '2006-01-01 00:00:00'})\n"
+              + "or (JOINTIMES >= {ts '2003-01-01 00:00:00'} and JOINTIMES < {ts '2007-01-01 00:00:00'})");
+      jointimes.next();
+      Assert.assertEquals(java.sql.Timestamp.valueOf("2005-09-07 00:00:00"),
+          jointimes.getTimestamp(1));
+      Assert.assertEquals(java.sql.Timestamp.valueOf("2005-09-08 00:00:00"),
+          jointimes.getTimestamp(2));
+      jointimes = statement.executeQuery(
+          "select JOINTIMES, extract(year from JOINTIMES) from \"DATE\"");
+      jointimes.next();
+      Assert.assertEquals(java.sql.Timestamp.valueOf("1996-08-03 00:01:02"),
+          jointimes.getTimestamp(1));
+    }
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1118">[CALCITE-1118]
+   * NullPointerException in EXTRACT with WHERE ... IN clause if field has null value</a>. */
+  @Test public void testFilterOnNullableTimestamp2() throws Exception {
+    Properties info = new Properties();
+    info.put("model", jsonPath("bug"));
+
+    try (Connection connection
+             = DriverManager.getConnection("jdbc:calcite:", info)) {
+      Statement statement = connection.createStatement();
+      ResultSet jointimes = statement.executeQuery(
+          "select extract(year from JOINTIMES) from \"DATE\"\n"
+              + "where extract(year from JOINTIMES) in (2006, 2007)");
+      jointimes.next();
+      Assert.assertEquals(2007, jointimes.getInt(1));
+      jointimes = statement.executeQuery(
+          "select extract(year from JOINTIMES) , count(0) from \"DATE\"\n"
+              + "where extract(year from JOINTIMES) between 2007 and 2016"
+              + "group by extract(year from JOINTIMES)");
+      jointimes.next();
+      Assert.assertEquals(2007, jointimes.getInt(1));
+      Assert.assertEquals(1, jointimes.getLong(2));
+      jointimes.next();
+      Assert.assertEquals(2015, jointimes.getInt(1));
+      Assert.assertEquals(2, jointimes.getLong(2));
+    }
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1427">[CALCITE-1427]
+   * Code generation incorrect (does not compile) for DATE, TIME and TIMESTAMP fields</a>. */
+  @Test public void testNonNullFilterOnDateType() throws SQLException {
+    Properties info = new Properties();
+    info.put("model", jsonPath("bug"));
+
+    try (Connection connection
+             = DriverManager.getConnection("jdbc:calcite:", info)) {
+      Statement statement = connection.createStatement();
+
+      // date
+      ResultSet joinedat = statement.executeQuery(
+          "select JOINEDAT from \"DATE\" where JOINEDAT is not null");
+      joinedat.next();
+      Assert.assertEquals(java.sql.Date.class, joinedat.getDate(1).getClass());
+      Assert.assertEquals(java.sql.Date.valueOf("1996-08-03"),
+          joinedat.getDate(1));
+
+      // time
+      ResultSet jointime = statement.executeQuery(
+          "select JOINTIME from \"DATE\" where JOINTIME is not null");
+      jointime.next();
+      Assert.assertEquals(java.sql.Time.class, jointime.getTime(1).getClass());
+      Assert.assertEquals(java.sql.Time.valueOf("00:01:02"),
+          jointime.getTime(1));
+
+      // timestamp
+      ResultSet jointimes = statement.executeQuery(
+          "select JOINTIMES from \"DATE\" where JOINTIMES is not null");
+      jointimes.next();
+      Assert.assertEquals(java.sql.Timestamp.class,
+          jointimes.getTimestamp(1).getClass());
+      Assert.assertEquals(java.sql.Timestamp.valueOf("1996-08-03 00:01:02"),
+          jointimes.getTimestamp(1));
+    }
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1427">[CALCITE-1427]
+   * Code generation incorrect (does not compile) for DATE, TIME and TIMESTAMP fields</a>. */
+  @Test public void testGreaterThanFilterOnDateType() throws SQLException {
+    Properties info = new Properties();
+    info.put("model", jsonPath("bug"));
+
+    try (Connection connection
+             = DriverManager.getConnection("jdbc:calcite:", info)) {
+      Statement statement = connection.createStatement();
+
+      // date
+      ResultSet joinedat = statement.executeQuery(
+          "select JOINEDAT from \"DATE\" where JOINEDAT > {d '1990-01-01'}");
+      joinedat.next();
+      Assert.assertEquals(java.sql.Date.class, joinedat.getDate(1).getClass());
+      Assert.assertEquals(java.sql.Date.valueOf("1996-08-03"),
+          joinedat.getDate(1));
+
+      // time
+      ResultSet jointime = statement.executeQuery(
+          "select JOINTIME from \"DATE\" where JOINTIME > {t '00:00:00'}");
+      jointime.next();
+      Assert.assertEquals(java.sql.Time.class, jointime.getTime(1).getClass());
+      Assert.assertEquals(java.sql.Time.valueOf("00:01:02"),
+          jointime.getTime(1));
+
+      // timestamp
+      ResultSet jointimes = statement.executeQuery(
+          "select JOINTIMES from \"DATE\" where JOINTIMES > {ts '1990-01-01 00:00:00'}");
+      jointimes.next();
+      Assert.assertEquals(java.sql.Timestamp.class,
+          jointimes.getTimestamp(1).getClass());
+      Assert.assertEquals(java.sql.Timestamp.valueOf("1996-08-03 00:01:02"),
+          jointimes.getTimestamp(1));
     }
   }
 

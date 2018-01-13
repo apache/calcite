@@ -749,67 +749,6 @@ public class ReflectiveSchemaTest {
     }
   }
 
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-1054">[CALCITE-1054]
-   * NPE caused by wrong code generation for Timestamp fields</a>. */
-  @Test public void testFilterOnNullableTimestamp() throws Exception {
-    final CalciteAssert.AssertThat with =
-            CalciteAssert.that().withSchema("s", CATCHALL);
-    with.query(
-            "select \"sqlTimestamp\" as \"t0\" from \"s\".\"everyTypes\" where \"sqlTimestamp\" >= {ts '1969-01-01 00:00:00'} and \"sqlTimestamp\" < TIMESTAMP '1998-01-01 00:00:00'")
-            .returnsUnordered("t0=1970-01-01 00:00:00");
-    with.query(
-            "select \"sqlTimestamp\" as \"t0\", extract(year from  \"sqlTimestamp\") as \"t1\" from \"s\".\"everyTypes\"")
-            .returnsUnordered("t0=1970-01-01 00:00:00; t1=1970\n"
-                + "t0=null; t1=null");
-    with.query(
-            "select \"sqlTimestamp\" as \"t0\" from \"s\".\"everyTypes\" where \"sqlTimestamp\" is not null")
-            .returnsUnordered("t0=1970-01-01 00:00:00");
-    with.query(
-            "select extract(year from  \"sqlTimestamp\") as \"t0\" from \"s\".\"everyTypes\" where \"sqlTimestamp\" is not null")
-            .returnsUnordered("t0=1970");
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-1118">[CALCITE-1118]
-   * NullPointerException in EXTRACT with WHERE ... IN clause if field has null value</a>. */
-  @Test public void testFilterOnNullableTimestamp2() throws Exception {
-    final CalciteAssert.AssertThat with =
-            CalciteAssert.that().withSchema("s", CATCHALL);
-    with.query(
-            "select extract(year from \"sqlTimestamp\") as \"t0\" from \"s\".\"everyTypes\" where extract(year from \"sqlTimestamp\") in (1969, 1970)")
-            .returnsUnordered("t0=1970");
-    with.query(
-            "select extract(year from \"sqlTimestamp\") as \"t0\", extract(year from \"sqlTimestamp\") + 1 as \"t1\" from \"s\".\"everyTypes\"")
-            .returnsUnordered("t0=1970; t1=1971\n"
-                + "t0=null; t1=null");
-    with.query(
-            "select extract(year from \"sqlTimestamp\") as \"t0\" from \"s\".\"everyTypes\" where timestampadd(SQL_TSI_DAY, 1, \"sqlTimestamp\") < TIMESTAMP '1980-01-01 00:00:00'")
-            .returnsUnordered("t0=1970");
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-1054">[CALCITE-1054]
-   * NPE caused by wrong code generation for Timestamp fields</a>. */
-  @Test public void testFilterOnNullableDate() throws Exception {
-    final CalciteAssert.AssertThat with =
-            CalciteAssert.that().withSchema("s", CATCHALL);
-    with.query(
-            "select \"sqlDate\" as \"t0\" from \"s\".\"everyTypes\" where \"sqlDate\" <= DATE '1996-01-01' or \"sqlDate\" > DATE '1998-01-01'")
-            .returnsUnordered("t0=1970-01-01");
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-1054">[CALCITE-1054]
-   * NPE caused by wrong code generation for Timestamp fields</a>. */
-  @Test public void testFilterOnNullableTime() throws Exception {
-    final CalciteAssert.AssertThat with =
-            CalciteAssert.that().withSchema("s", CATCHALL);
-    with.query(
-            "select \"sqlTime\" as \"t0\" from \"s\".\"everyTypes\" where \"sqlTime\" < TIME '00:00:00' or \"sqlTime\" >= TIME '00:00:00'")
-            .returnsUnordered("t0=00:00:00");
-  }
-
   /** Extension to {@link Employee} with a {@code hireDate} column. */
   public static class EmployeeWithHireDate extends Employee {
     public final java.sql.Date hireDate;
