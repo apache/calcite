@@ -69,6 +69,10 @@ public class JethrodataSqlDialect extends SqlDialect {
     case AVG:
     case MIN:
     case MAX:
+    case STDDEV_POP:
+    case STDDEV_SAMP:
+    case VAR_POP:
+    case VAR_SAMP:
       return true;
     }
     return false;
@@ -184,7 +188,7 @@ public class JethrodataSqlDialect extends SqlDialect {
       supportedFunctions = new HashMap<String, HashSet<SupportedFunction>>();
       SUPPORTED_JETHRO_FUNCTIONS.put(productVersion, supportedFunctions);
       Statement jethroStatement = jethroConnection.createStatement();
-      ResultSet functionsTupleSet = jethroStatement.executeQuery("show functions");
+      ResultSet functionsTupleSet = jethroStatement.executeQuery("show functions extended");
       while (functionsTupleSet.next()) {
         String functionName = functionsTupleSet.getString(1);
         String operandsType = functionsTupleSet.getString(3);
