@@ -17,13 +17,36 @@
       "operand": {},
       "tables": [
         {
-          "name" : "PREFERRED_TRACKS",
-          "type" : "view", 
-          "sql" : [
+          "name": "PREFERRED_TRACKS",
+          "type": "view", 
+          "sql": [
             "SELECT trackid, name, albumid, mediatypeid, genreid, composer, milliseconds, bytes, unitprice ",
             "FROM chinook.track AS tr",
             "WHERE tr.genreid IN (SELECT id FROM preferred_genres) ",
             "OR tr.albumid IN (SELECT id FROM preferred_albums)"
+          ]
+        },
+        {
+          "name": "LOVED_TRACKS",
+          "type": "view", 
+          "sql": [
+            "SELECT trackid, name, albumid, mediatypeid, genreid, composer, milliseconds, bytes, unitprice ",
+            "FROM chinook.track AS tr",
+            "WHERE tr.genreid IN (SELECT id FROM preferred_genres) ",
+            "AND tr.albumid IN (SELECT id FROM preferred_albums)"
+          ]
+        },
+        {
+          "name": "PREFERRED_BUT_NOT_LOVED_CUSTOMERS",
+          "type": "view", 
+          "sql": [
+            "SELECT cu.firstname, cu.lastname ",
+            "FROM chinook.customer AS cu ",
+            "JOIN chinook.invoice AS inv ON cu.customerid = inv.customerid ",
+            "JOIN chinook.invoiceline AS il ON inv.invoiceid = il.invoiceid ",
+            "WHERE il.trackid IN (SELECT pt.trackid FROM preferred_tracks AS pt) ",
+            "AND il.trackid NOT IN (SELECT pt.trackid FROM loved_tracks AS pt) ",
+            "GROUP BY cu.firstname, cu.lastname"
           ]
         },
         {

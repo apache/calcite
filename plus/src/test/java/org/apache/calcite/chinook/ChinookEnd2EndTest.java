@@ -16,126 +16,36 @@
  */
 package org.apache.calcite.chinook;
 
-import org.apache.commons.lang3.StringUtils;
-
-import com.google.common.base.Charsets;
-import com.google.common.base.Function;
-import com.google.common.io.CharStreams;
+import org.apache.calcite.test.QuidemTest;
 
 import net.hydromatic.quidem.Quidem;
 
-import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.StringReader;
-import java.io.StringWriter;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.regex.Pattern;
 
 /**
  * Entry point for all e2e tests based on Chinook data in hsqldb wrapped by calcite schema
  */
 @RunWith(Parameterized.class)
-public class ChinookEnd2EndTest {
+public class ChinookEnd2EndTest extends QuidemTest {
 
-  private static final Pattern FILE_PATERN = Pattern.compile(".*\\.iq");
-
-  private final Path pathToQuidemFile;
-
-  public ChinookEnd2EndTest(Path pathToQuidemFile) {
-    this.pathToQuidemFile = pathToQuidemFile;
-  }
-
-  @Test
-  public void test() throws Exception {
-    InputStream is = QuidemFilesLocator.getResource(pathToQuidemFile.toString());
-    String original = CharStreams.toString(new InputStreamReader(is, Charsets.UTF_8));
-    StringReader reader = new StringReader(original);
-    StringWriter writer = new StringWriter(original.length());
-    new Quidem(reader, writer, env(), new ConnectionFactory()).execute();
-    String result = writer.toString();
-    int index = StringUtils.indexOfDifference(original, result);
-    if (index == -1) {
-      return;
-    }
-    throw new QuidemDiffException(pathToQuidemFile.toString(), result, index);
+  public ChinookEnd2EndTest(String pathToQuidemFile) {
+    super(pathToQuidemFile);
   }
 
   @Parameterized.Parameters(name = "{index}: quidem({0})")
-  public static Collection<Path> data() throws IOException {
-    return QuidemFilesLocator.locateFiles("/chinook");
+  public static Collection<Object[]> data() {
+    // Start with a test file we know exists, then find the directory and list
+    // its files.
+    final String first = "chinook/basic.iq";
+    return data(first);
   }
 
-  private Function<String, Object> env() {
-    return new Function<String, Object>() {
-      public Object apply(String f) {
-        return null;
-      }
-    };
+  protected Quidem.ConnectionFactory createConnectionFactory() {
+    return new ConnectionFactory();
   }
-
-  /**
-   * Exception for wrapping quidem assertion
-   */
-  public static class QuidemDiffException extends Exception {
-
-    public QuidemDiffException(String originalFile, String result, int index) {
-      super(originalFile + " differs at index " + index + " see result:\n"
-              + result);
-    }
-
-  }
-
-  /**
-   * Logic to basic search all quidem files (test assertions) in class path
-   */
-  private static class QuidemFilesLocator {
-
-    private QuidemFilesLocator() {
-    }
-
-    public static Collection<Path> locateFiles(String root) throws IOException {
-      InputStream rootPathStream = getResource(root);
-      BufferedReader reader = new BufferedReader(
-              new InputStreamReader(rootPathStream, StandardCharsets.UTF_8));
-      Collection<Path> result = new ArrayList<>();
-      String path;
-      while ((path = reader.readLine()) != null) {
-        if (!FILE_PATERN.matcher(path).matches()) {
-          continue;
-        }
-        result.add(Paths.get(root, path));
-      }
-      return result;
-    }
-
-    private static InputStream getResourceFromContextClassLoaded(String root) {
-      return Thread.currentThread().getContextClassLoader().getResourceAsStream(root);
-    }
-
-    public static InputStream getResource(String root) {
-      InputStream stream = getResourceFromContextClassLoaded(root);
-      if (stream != null) {
-        return stream;
-      }
-      return getResourceFromClass(root);
-    }
-
-    private static InputStream getResourceFromClass(String root) {
-      return QuidemFilesLocator.class.getResourceAsStream(root);
-    }
-
-  }
-
 }
 
 // End ChinookEnd2EndTest.java
