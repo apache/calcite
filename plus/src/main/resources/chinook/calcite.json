@@ -6,9 +6,9 @@
       "name": "CHINOOK",
       "type": "jdbc",
       "jdbcDriver": "org.hsqldb.jdbc.JDBCDriver",
-      "jdbcUrl": "jdbc:hsqldb:mem:e2edb",
-      "jdbcUser": "admin",
-      "jdbcPassword": "password"
+      "jdbcUrl": "jdbc:hsqldb:res:chinook",
+      "jdbcUser": "sa",
+      "jdbcPassword": ""
     },
     {
       "name": "ENHANCED",

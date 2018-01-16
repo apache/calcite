@@ -16,15 +16,8 @@
  */
 package org.apache.calcite.chinook;
 
-import org.hsqldb.cmdline.SqlFile;
+import net.hydromatic.chinook.data.hsqldb.ChinookHsqldb;
 
-import org.hsqldb.cmdline.SqlToolError;
-
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -34,11 +27,6 @@ import java.sql.SQLException;
  */
 public class HsqlBootstrap {
 
-  private static final String DB_FILENAME = "database.sql";
-  private static final String DB_URL = "jdbc:hsqldb:mem:e2edb";
-  private static final String DB_PASSWORD = "password";
-  private static final String DB_USER = "admin";
-
   private static HsqlBootstrap instance;
 
   private HsqlBootstrap() {
@@ -46,41 +34,17 @@ public class HsqlBootstrap {
 
   public static HsqlBootstrap instance() {
     if (instance == null) {
+      new org.hsqldb.jdbc.JDBCDriver();
       instance = new HsqlBootstrap();
-      instance.init();
     }
     return instance;
   }
 
-  private void init() {
-    new org.hsqldb.jdbc.JDBCDriver(); // workaround for cheking unused dependiences in pom.xml
-    try {
-      initWithReportedException();
-    } catch (Exception e) {
-      throw new RuntimeException(e);
-    }
-  }
-
-  private void initWithReportedException() throws IOException, SqlToolError, SQLException {
-    try (Connection connection = connection(); InputStream inputStream = getDBScriptAsResource()) {
-      SqlFile sqlFile = new SqlFile(
-              new InputStreamReader(inputStream, StandardCharsets.UTF_8),
-              DB_FILENAME,
-              System.out,
-              StandardCharsets.UTF_8.name(),
-              false,
-              new File("."));
-      sqlFile.setConnection(connection);
-      sqlFile.execute();
-    }
-  }
-
-  private InputStream getDBScriptAsResource() {
-    return HsqlBootstrap.class.getResourceAsStream("/chinook/database.sql");
-  }
-
   public Connection connection() throws SQLException {
-    return DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD);
+    return DriverManager.getConnection(
+            ChinookHsqldb.URI,
+            ChinookHsqldb.USER,
+            ChinookHsqldb.PASSWORD);
   }
 }
 // End HsqlBootstrap.java
