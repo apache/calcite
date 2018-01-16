@@ -1561,6 +1561,20 @@ public class JdbcTest {
         .returns("C=3\n");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1188">[CALCITE-1188]
+   * NullPointerException when extract is called on a NULL date field, appearing
+   * in both select and where-in clauses, the last one with at least two values</a>. */
+  @Test public void testExtractOnNullDateField() {
+    CalciteAssert.that()
+            .with(CalciteAssert.Config.FOODMART_CLONE)
+            .query("select extract (year from \"end_date\"), \"hire_date\", \"birth_date\"\n"
+                    + "from \"foodmart\".\"employee\"\n"
+                    + "where extract (year from \"end_date\") in (1994, 1995, 1996)\n"
+                    + "group by extract(year from \"end_date\"), \"hire_date\", \"birth_date\" limit 10000")
+            .returns("");
+  }
+
   @Test public void testFloorDate() {
     CalciteAssert.that()
         .with(CalciteAssert.Config.JDBC_FOODMART)
