@@ -94,7 +94,7 @@ public class TimeExtractionFunction implements ExtractionFunction {
    */
   public static TimeExtractionFunction createExtractFromGranularity(
       Granularity granularity, String timeZone) {
-    switch (granularity.getValue()) {
+    switch (granularity.getType()) {
     case DAY:
       return new TimeExtractionFunction("d", null, timeZone, Locale.getDefault().toLanguageTag());
     case MONTH:

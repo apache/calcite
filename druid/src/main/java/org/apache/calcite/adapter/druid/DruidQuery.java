@@ -848,7 +848,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
   }
 
   private String suffix(Granularity granularity) {
-    return granularity.getValue().name().toLowerCase(Locale.ROOT);
+    return granularity.getType().name().toLowerCase(Locale.ROOT);
   }
 
   protected JsonAggregation getJsonAggregation(List<String> fieldNames,

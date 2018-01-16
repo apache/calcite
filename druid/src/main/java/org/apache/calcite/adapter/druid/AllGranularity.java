@@ -33,8 +33,8 @@ public class AllGranularity implements Granularity {
     generator.writeEndObject();
   }
 
-  @Override public Value getValue() {
-    return Value.ALL;
+  @Override public Type getType() {
+    return Type.ALL;
   }
 }
 

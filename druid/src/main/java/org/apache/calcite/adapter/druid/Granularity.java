@@ -18,8 +18,8 @@ package org.apache.calcite.adapter.druid;
 
 /** Granularity of a Druid query. */
 public interface Granularity extends DruidQuery.Json {
-  /** Enum Values for Supported Granularities. */
-  enum Value {
+  /** Type of supported periods for granularity. */
+  enum Type {
     ALL,
     YEAR,
     QUARTER,
@@ -31,7 +31,7 @@ public interface Granularity extends DruidQuery.Json {
     SECOND
   }
 
-  Value getValue();
+  Type getType();
 }
 
 // End Granularity.java

@@ -22,15 +22,17 @@ import com.fasterxml.jackson.core.JsonGenerator;
 
 import java.io.IOException;
 
-/** PeriodGranularity of a Druid query. */
+/** PeriodGranularity of a Druid query.
+ * JSON representation for {@code io.druid.java.util.common.granularity.PeriodGranularity}
+ */
 public class PeriodGranularity implements Granularity {
 
-  private final Value value;
+  private final Type type;
   private final String period;
   private final String timeZone;
 
-  public PeriodGranularity(Value value, String period, String timeZone) {
-    this.value = value;
+  public PeriodGranularity(Type type, String period, String timeZone) {
+    this.type = type;
     this.period = period;
     this.timeZone = timeZone;
   }
@@ -43,8 +45,8 @@ public class PeriodGranularity implements Granularity {
     generator.writeEndObject();
   }
 
-  @Override public Value getValue() {
-    return value;
+  @Override public Type getType() {
+    return type;
   }
 
 }

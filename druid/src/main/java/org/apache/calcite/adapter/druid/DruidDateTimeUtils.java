@@ -323,21 +323,21 @@ public class DruidDateTimeUtils {
     }
     switch (timeUnit) {
     case YEAR:
-      return new PeriodGranularity(Granularity.Value.YEAR, "P1Y", timeZone);
+      return new PeriodGranularity(Granularity.Type.YEAR, "P1Y", timeZone);
     case QUARTER:
-      return new PeriodGranularity(Granularity.Value.QUARTER, "P3M", timeZone);
+      return new PeriodGranularity(Granularity.Type.QUARTER, "P3M", timeZone);
     case MONTH:
-      return new PeriodGranularity(Granularity.Value.MONTH, "P1M", timeZone);
+      return new PeriodGranularity(Granularity.Type.MONTH, "P1M", timeZone);
     case WEEK:
-      return new PeriodGranularity(Granularity.Value.WEEK, "P1W", timeZone);
+      return new PeriodGranularity(Granularity.Type.WEEK, "P1W", timeZone);
     case DAY:
-      return new PeriodGranularity(Granularity.Value.DAY, "P1D",  timeZone);
+      return new PeriodGranularity(Granularity.Type.DAY, "P1D",  timeZone);
     case HOUR:
-      return new PeriodGranularity(Granularity.Value.HOUR, "PT1H", timeZone);
+      return new PeriodGranularity(Granularity.Type.HOUR, "PT1H", timeZone);
     case MINUTE:
-      return new PeriodGranularity(Granularity.Value.MINUTE, "PT1M", timeZone);
+      return new PeriodGranularity(Granularity.Type.MINUTE, "PT1M", timeZone);
     case SECOND:
-      return new PeriodGranularity(Granularity.Value.SECOND, "PT1S", timeZone);
+      return new PeriodGranularity(Granularity.Type.SECOND, "PT1S", timeZone);
     default:
       return null;
     }
