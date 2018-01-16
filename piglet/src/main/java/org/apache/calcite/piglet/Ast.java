@@ -570,7 +570,7 @@ public class Ast {
 
     public UnParser appendList(List<? extends Node> list) {
       append("[").in();
-      for (Ord<Node> n : Ord.zip(list)) {
+      for (Ord<Node> n : Ord.<Node>zip(list)) {
         newline().append(n.e);
         if (n.i < list.size() - 1) {
           append(",");
