@@ -96,20 +96,20 @@ public class TimeExtractionFunction implements ExtractionFunction {
       Granularity granularity, String timeZone) {
     switch (granularity.getType()) {
     case DAY:
-      return new TimeExtractionFunction("d", null, timeZone, Locale.getDefault().toLanguageTag());
+      return new TimeExtractionFunction("d", null, timeZone, Locale.ROOT.toLanguageTag());
     case MONTH:
-      return new TimeExtractionFunction("M", null, timeZone, Locale.getDefault().toLanguageTag());
+      return new TimeExtractionFunction("M", null, timeZone, Locale.ROOT.toLanguageTag());
     case YEAR:
       return new TimeExtractionFunction("yyyy", null, timeZone,
           Locale.getDefault().toLanguageTag());
     case WEEK:
-      return new TimeExtractionFunction("w", null, timeZone, Locale.getDefault().toLanguageTag());
+      return new TimeExtractionFunction("w", null, timeZone, Locale.ROOT.toLanguageTag());
     case HOUR:
-      return new TimeExtractionFunction("H", null, timeZone, Locale.getDefault().toLanguageTag());
+      return new TimeExtractionFunction("H", null, timeZone, Locale.ROOT.toLanguageTag());
     case MINUTE:
-      return new TimeExtractionFunction("m", null, timeZone, Locale.getDefault().toLanguageTag());
+      return new TimeExtractionFunction("m", null, timeZone, Locale.ROOT.toLanguageTag());
     case SECOND:
-      return new TimeExtractionFunction("s", null, timeZone, Locale.getDefault().toLanguageTag());
+      return new TimeExtractionFunction("s", null, timeZone, Locale.ROOT.toLanguageTag());
     default:
       throw new IllegalArgumentException("Granularity [" + granularity + "] is not supported");
     }

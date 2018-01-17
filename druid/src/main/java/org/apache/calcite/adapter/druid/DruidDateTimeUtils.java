@@ -318,29 +318,7 @@ public class DruidDateTimeUtils {
     }
     final RexLiteral flag = (RexLiteral) call.operands.get(flagIndex);
     final TimeUnitRange timeUnit = (TimeUnitRange) flag.getValue();
-    if (timeUnit == null) {
-      return null;
-    }
-    switch (timeUnit) {
-    case YEAR:
-      return new PeriodGranularity(Granularity.Type.YEAR, "P1Y", timeZone);
-    case QUARTER:
-      return new PeriodGranularity(Granularity.Type.QUARTER, "P3M", timeZone);
-    case MONTH:
-      return new PeriodGranularity(Granularity.Type.MONTH, "P1M", timeZone);
-    case WEEK:
-      return new PeriodGranularity(Granularity.Type.WEEK, "P1W", timeZone);
-    case DAY:
-      return new PeriodGranularity(Granularity.Type.DAY, "P1D",  timeZone);
-    case HOUR:
-      return new PeriodGranularity(Granularity.Type.HOUR, "PT1H", timeZone);
-    case MINUTE:
-      return new PeriodGranularity(Granularity.Type.MINUTE, "PT1M", timeZone);
-    case SECOND:
-      return new PeriodGranularity(Granularity.Type.SECOND, "PT1S", timeZone);
-    default:
-      return null;
-    }
+    return Granularities.createGranularity(timeUnit, timeZone);
   }
 
 }

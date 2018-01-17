@@ -16,7 +16,11 @@
  */
 package org.apache.calcite.adapter.druid;
 
-/** Granularity of a Druid query. */
+/**
+ * This is intended to generate a JSON fragment as part of a Druid query.
+ * A Granularity is just a particular time period over which Druid is able to roll up
+ * and round timestamp values.
+ **/
 public interface Granularity extends DruidQuery.Json {
   /** Type of supported periods for granularity. */
   enum Type {
