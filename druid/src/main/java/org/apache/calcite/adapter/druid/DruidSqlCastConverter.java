@@ -104,7 +104,7 @@ public class DruidSqlCastConverter implements DruidSqlOperatorConverter {
       final SqlTypeName toType
   ) {
     // Cast strings to date times by parsing them from SQL format.
-    final String timestampExpression = DruidExpressions.fromFunctionCall(
+    final String timestampExpression = DruidExpressions.functionCall(
         "timestamp_parse",
         ImmutableList.of(
             operand,
@@ -135,7 +135,7 @@ public class DruidSqlCastConverter implements DruidSqlOperatorConverter {
       final String operand,
       final SqlTypeName fromType
   ) {
-    return DruidExpressions.fromFunctionCall(
+    return DruidExpressions.functionCall(
         "timestamp_format",
         ImmutableList.of(
             operand,

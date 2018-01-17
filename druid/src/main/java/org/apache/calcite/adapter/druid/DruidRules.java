@@ -61,7 +61,6 @@ import org.apache.commons.lang3.tuple.ImmutableTriple;
 import org.apache.commons.lang3.tuple.Triple;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 
@@ -357,183 +356,29 @@ public class DruidRules {
     public void onMatch(RelOptRuleCall call) {
       Project project = call.rel(0);
       DruidQuery query = call.rel(1);
-      final RelOptCluster cluster = project.getCluster();
-      final RexBuilder rexBuilder = cluster.getRexBuilder();
       if (!DruidQuery.isValidSignature(query.signature() + 'o')) {
         return;
       }
-      Pair<ImmutableMap<String, String>, Boolean> scanned = scanProject(query, project);
+      boolean hasRexCalls = false;
+      for (RexNode rexNode : project.getChildExps()) {
+        if (rexNode instanceof RexCall) {
+          hasRexCalls = true;
+          break;
+        }
+      }
       // Only try to push down Project when there will be Post aggregators in result DruidQuery
-      if (scanned.right) {
-        Pair<Project, Project> splitProjectAggregate = splitProject(rexBuilder, query,
-                project, scanned.left, cluster);
-        Project inner = splitProjectAggregate.left;
-        Project outer = splitProjectAggregate.right;
-        DruidQuery newQuery = DruidQuery.extendQuery(query, inner);
-        // When all project get pushed into DruidQuery, the project can be replaced by DruidQuery.
-        if (outer != null) {
-          Project newProject = outer.copy(outer.getTraitSet(), newQuery, outer.getProjects(),
-              outer.getRowType());
-          call.transformTo(newProject);
-        } else {
-          call.transformTo(newQuery);
-        }
-      }
-    }
-
-    /**
-     * Similar to split Project in DruidProjectRule. It used the name mapping from scanProject
-     * to render the correct field names of inner project so that the outer project can correctly
-     * refer to them. For RexNode that can be parsed into post aggregator, they will get pushed in
-     * before input reference, then outer project can simply refer to those pushed in RexNode to
-     * get result.
-     * @param rexBuilder builder from cluster
-     * @param query matched Druid Query
-     * @param project matched project takes in druid
-     * @param nameMap Result nameMapping from scanProject
-     * @param cluster cluster that provide builder for row type.
-     * @return Triple object contains inner project, outer project and required
-     *         Json Post Aggregation objects to be pushed down into Druid Query.
-     */
-    public Pair<Project, Project> splitProject(final RexBuilder rexBuilder,
-        DruidQuery query, Project project, ImmutableMap<String, String> nameMap,
-        final RelOptCluster cluster) {
-      //Visit & Build Inner Project
-      final List<RexNode> innerRex = new ArrayList<>();
-      final RelDataTypeFactory.Builder typeBuilder =
-          cluster.getTypeFactory().builder();
-      final RelOptUtil.InputReferencedVisitor visitor =
-          new RelOptUtil.InputReferencedVisitor();
-      final List<Integer> positions = new ArrayList<>();
-      final List<RelDataType> innerTypes = new ArrayList<>();
-      // Similar logic to splitProject in DruidProject Rule
-      // However, post aggregation will also be output of DruidQuery and they will be
-      // added before other input.
-      int offset = 0;
-      for (Pair<RexNode, String> pair : project.getNamedProjects()) {
-        RexNode rex = pair.left;
-        String name = pair.right;
-        String fieldName = nameMap.get(name);
-        if (fieldName == null) {
-          rex.accept(visitor);
-        } else {
-          final RexNode node = rexBuilder.copy(rex);
-          innerRex.add(node);
-          positions.add(offset++);
-          typeBuilder.add(nameMap.get(name), node.getType());
-          innerTypes.add(node.getType());
-        }
-      }
-      // Other referred input will be added into the inner project rex list.
-      positions.addAll(visitor.inputPosReferenced);
-      for (int i : visitor.inputPosReferenced) {
-        final RexNode node = rexBuilder.makeInputRef(Util.last(query.rels), i);
-        innerRex.add(node);
-        typeBuilder.add(query.getRowType().getFieldNames().get(i), node.getType());
-        innerTypes.add(node.getType());
-      }
-      Project innerProject = project.copy(project.getTraitSet(), Util.last(query.rels), innerRex,
-          typeBuilder.build());
-      // If the whole project is pushed, we do not need to do anything else.
-      if (project.getNamedProjects().size() == nameMap.size()) {
-        return new Pair<>(innerProject, null);
-      }
-      // Build outer Project when some projects are left in outer project.
-      offset = 0;
-      final List<RexNode> outerRex = new ArrayList<>();
-      for (Pair<RexNode, String> pair : project.getNamedProjects()) {
-        RexNode rex = pair.left;
-        String name = pair.right;
-        if (!nameMap.containsKey(name)) {
-          outerRex.add(
-              rex.accept(
-                  new RexShuttle() {
-                    @Override public RexNode visitInputRef(RexInputRef ref) {
-                      final int j = positions.indexOf(ref.getIndex());
-                      return rexBuilder.makeInputRef(innerTypes.get(j), j);
-                    }
-                  }));
-        } else {
-          outerRex.add(
-              rexBuilder.makeInputRef(rex.getType(),
-                  positions.indexOf(offset++)));
-        }
-      }
-      Project outerProject = project.copy(project.getTraitSet(), innerProject,
-          outerRex, project.getRowType());
-      return new Pair<>(innerProject, outerProject);
-    }
-
-    /**
-     * Scans the project.
-     *
-     * <p>Takes Druid Query as input to figure out which expression can be
-     * pushed down. Also returns a map to show the correct field name in Druid
-     * Query for columns get pushed in.
-     *
-     * @param query matched Druid Query
-     * @param project Matched project that takes in Druid Query
-     * @return Pair that shows how name map with each other.
-     */
-    public Pair<ImmutableMap<String, String>, Boolean> scanProject(
-        DruidQuery query, Project project) {
-      List<String> aggNamesWithGroup = query.getRowType().getFieldNames();
-      final ImmutableMap.Builder<String, String> mapBuilder = ImmutableMap.builder();
-      int j = 0;
-      boolean ret = false;
-      for (Pair<RexNode, String> namedProject : project.getNamedProjects()) {
-        RexNode rex = namedProject.left;
-        String name = namedProject.right;
-        // Find out the corresponding fieldName for DruidQuery to fetch result
-        // in DruidConnectionImpl, give specific name for post aggregator
-        if (rex instanceof RexCall) {
-          if (checkPostAggregatorExist(rex)) {
-            String postAggName = "postagg#" + j++;
-            mapBuilder.put(name, postAggName);
-            ret = true;
-          }
-        } else if (rex instanceof RexInputRef) {
-          String fieldName = aggNamesWithGroup.get(((RexInputRef) rex).getIndex());
-          mapBuilder.put(name, fieldName);
-        }
-      }
-      return new Pair<>(mapBuilder.build(), ret);
-    }
-
-    /**
-     * Recursively check whether the rexNode can be parsed into post aggregator in druid query
-     * Have to fulfill conditions below:
-     * 1. Arithmetic operation +, -, /, * or CAST in SQL
-     * 2. Simple input reference refer to the result of Aggregate or Grouping
-     * 3. A constant
-     * 4. All input referred should also be able to be parsed
-     * @param rexNode input RexNode to be recursively checked
-     * @return a boolean shows whether this rexNode can be parsed or not.
-     */
-    public boolean checkPostAggregatorExist(RexNode rexNode) {
-      if (rexNode instanceof RexCall) {
-        for (RexNode ele : ((RexCall) rexNode).getOperands()) {
-          boolean inputRex = checkPostAggregatorExist(ele);
-          if (!inputRex) {
-            return false;
+      if (hasRexCalls) {
+        final Aggregate topAgg = (Aggregate) query.getTopNode();
+        for (RexNode rexNode : project.getProjects()) {
+          if (DruidExpressions.toDruidExpression(rexNode, topAgg.getRowType(), query) == null) {
+            return;
           }
         }
-        switch (rexNode.getKind()) {
-        case PLUS:
-        case MINUS:
-        case DIVIDE:
-        case TIMES:
-        //case CAST:
-          return true;
-        default:
-          return false;
-        }
-      } else if (rexNode instanceof RexInputRef || rexNode instanceof RexLiteral) {
-        // Do not have to check the source of input because the signature checking ensure
-        // the input of project must be Aggregate.
-        return true;
+        final RelNode newProject = project
+            .copy(project.getTraitSet(), ImmutableList.of(Util.last(query.rels)));
+        final DruidQuery newQuery = DruidQuery.extendQuery(query, newProject);
+        call.transformTo(newQuery);
       }
-      return false;
     }
   }
 
@@ -576,12 +421,6 @@ public class DruidRules {
           == null) {
         return;
       }
-      /*if (isAggregateOnTimeColumn(aggregate, query)) {
-        @TODO not sure why this condition is here ? how about MIN(EXTRACT(Month from __time))
-        see org.apache.calcite.test.DruidAdapterIT.testAggOnTimeExtractColumn()
-        Double check with Jesus or Julian might have more insights
-        return;
-      }*/
       final RelNode newAggregate = aggregate
           .copy(aggregate.getTraitSet(), ImmutableList.of(query.getTopNode()));
       call.transformTo(DruidQuery.extendQuery(query, newAggregate));

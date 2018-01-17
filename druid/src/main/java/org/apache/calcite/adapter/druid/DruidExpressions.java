@@ -69,7 +69,7 @@ public class DruidExpressions {
     for (SqlTypeName type : SqlTypeName.STRING_TYPES) {
       builder.put(type, DruidType.STRING);
     }
-    // @TODO skip boolean for now it is hairy
+    // @TODO Create Jira for this: skip boolean for now.
      //builder.put(SqlTypeName.BOOLEAN, DruidType.LONG);
 
     // Timestamps are treated as longs (millis since the epoch) in Druid expressions.
@@ -126,7 +126,8 @@ public class DruidExpressions {
       } else {
         return conversion.toDruidExpression(rexNode, inputRowType, druidRel);
       }
-    } else if (kind == SqlKind.LITERAL) {
+    }
+    if (kind == SqlKind.LITERAL) {
       // Translate literal.
       if (RexLiteral.isNullLiteral(rexNode)) {
         //case the filter/project might yield to unknown let Calcite deal with this for now
@@ -146,26 +147,14 @@ public class DruidExpressions {
         return
             DruidExpressions.stringLiteral(RexLiteral.stringValue(rexNode));
       } else if (SqlTypeName.TIMESTAMP == sqlTypeName || SqlTypeName.DATE == sqlTypeName) {
-        if (RexLiteral.isNullLiteral(rexNode)) {
-          return null;
-        } else {
-          return
-              DruidExpressions.numberLiteral(
-                  DruidDateTimeUtils.literalValue(
-                      rexNode,
-                      TimeZone.getTimeZone(
-                          druidRel.getConnectionConfig().timeZone())).getMillisSinceEpoch()
-
-          );
-        }
+        return DruidExpressions.numberLiteral(DruidDateTimeUtils
+            .literalValue(rexNode, TimeZone.getTimeZone(druidRel.getConnectionConfig().timeZone()))
+            .getMillisSinceEpoch());
       } else if (SqlTypeName.BOOLEAN == sqlTypeName) {
         return DruidExpressions.numberLiteral(RexLiteral.booleanValue(rexNode) ? 1 : 0);
-      } else {
-        //Unknown Literal type bail out.
-        return null;
       }
     }
-    // Not Literal/InputRef/RexCall ?
+    // Not Literal/InputRef/RexCall or unknown type?
     return null;
   }
 
@@ -218,10 +207,6 @@ public class DruidExpressions {
     return builder.toString();
   }
 
-  public static String fromFunctionCall(final String functionName, final List<String> args) {
-    return functionCall(functionName, args);
-  }
-
   /**
    * Translate a list of Calcite {@code RexNode} to Druid expressions.
    *
@@ -257,7 +242,7 @@ public class DruidExpressions {
     Preconditions.checkNotNull(granularity, "granularity");
 
 
-    return DruidExpressions.fromFunctionCall(
+    return DruidExpressions.functionCall(
         "timestamp_floor",
         ImmutableList.of(input,
             DruidExpressions.stringLiteral(granularity),
@@ -276,7 +261,7 @@ public class DruidExpressions {
     Preconditions.checkNotNull(granularity, "granularity");
 
 
-    return DruidExpressions.fromFunctionCall(
+    return DruidExpressions.functionCall(
         "timestamp_ceil",
         ImmutableList.of(input,
             DruidExpressions.stringLiteral(granularity),
@@ -288,7 +273,7 @@ public class DruidExpressions {
 
   public static String applyTimeExtract(String timeExpression, String druidUnit,
       TimeZone timeZone) {
-    return DruidExpressions.fromFunctionCall(
+    return DruidExpressions.functionCall(
         "timestamp_extract",
         ImmutableList.of(
             timeExpression,
