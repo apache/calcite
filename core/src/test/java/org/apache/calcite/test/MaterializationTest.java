@@ -1773,7 +1773,7 @@ public class MaterializationTest {
             + "where \"emps\".\"empid\" = 1",
         HR_FKUK_MODEL,
         CalciteAssert.checkResultContains(
-            "EnumerableCalc(expr#0..1=[{inputs}], empid=[$t0])\n"
+            "EnumerableCalc(expr#0..1=[{inputs}], empid0=[$t0])\n"
                 + "  EnumerableTableScan(table=[[hr, m0]])"));
   }
 
@@ -1789,7 +1789,7 @@ public class MaterializationTest {
             + "where \"emps\".\"empid\" = 1",
         HR_FKUK_MODEL,
         CalciteAssert.checkResultContains(
-            "EnumerableCalc(expr#0..1=[{inputs}], empid=[$t0])\n"
+            "EnumerableCalc(expr#0..1=[{inputs}], empid0=[$t0])\n"
                 + "  EnumerableTableScan(table=[[hr, m0]])"));
   }
 
@@ -1817,6 +1817,20 @@ public class MaterializationTest {
             + "join \"dependents\" using (\"empid\")\n"
             + "where \"emps\".\"empid\" = 1",
         HR_FKUK_MODEL);
+  }
+
+  @Test public void testJoinMaterializationUKFK9() {
+    checkMaterialize(
+        "select * from \"emps\"\n"
+            + "join \"dependents\" using (\"empid\")",
+        "select \"emps\".\"empid\", \"dependents\".\"empid\", \"emps\".\"deptno\"\n"
+            + "from \"emps\"\n"
+            + "join \"dependents\" using (\"empid\")"
+            + "join \"depts\" \"a\" on (\"emps\".\"deptno\"=\"a\".\"deptno\")\n"
+            + "where \"emps\".\"name\" = 'Bill'",
+        HR_FKUK_MODEL,
+        CalciteAssert.checkResultContains(
+            "EnumerableTableScan(table=[[hr, m0]])"));
   }
 
   @Test public void testViewMaterialization() {

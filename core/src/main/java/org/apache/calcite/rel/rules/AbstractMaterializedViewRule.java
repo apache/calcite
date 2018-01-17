@@ -746,7 +746,11 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
           return null;
         }
         assert s.size() == 1;
-        exprsLineage.add(s.iterator().next());
+        // Rewrite expr. Take first element from the corresponding equivalence class
+        // (no need to swap the table references following the table mapping)
+        exprsLineage.add(
+            RexUtil.swapColumnReferences(rexBuilder,
+                s.iterator().next(), queryEC.getEquivalenceClassesMap()));
       }
       List<RexNode> viewExprs = topViewProject == null
           ? extractReferences(rexBuilder, viewNode)
