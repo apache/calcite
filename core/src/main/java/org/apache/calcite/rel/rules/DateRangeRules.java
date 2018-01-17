@@ -641,24 +641,28 @@ public abstract class DateRangeRules {
     }
 
     /**
-     * Commputes floor of given calendar object to provided timeunit
-     * @return returns a copy of calendar, floored to the given timeunit
+     * Computes floor of a calendar to a given time unit.
+     *
+     * @return returns a copy of calendar, floored to the given time unit
      */
     private Calendar floor(Calendar c, TimeUnitRange timeUnit) {
       c = (Calendar) c.clone();
       switch (timeUnit) {
       case YEAR:
         c.set(TIME_UNIT_CODES.get(TimeUnitRange.MONTH), Calendar.JANUARY);
-        // Ignore checkstyle failure for Fall through from previous branch of the switch statement.
-        // CHECKSTYLE: IGNORE 10
+        // fall through; need to zero out lower time units
       case MONTH:
         c.set(TIME_UNIT_CODES.get(TimeUnitRange.DAY), 1);
+        // fall through; need to zero out lower time units
       case DAY:
         c.set(TIME_UNIT_CODES.get(TimeUnitRange.HOUR), 0);
+        // fall through; need to zero out lower time units
       case HOUR:
         c.set(TIME_UNIT_CODES.get(TimeUnitRange.MINUTE), 0);
+        // fall through; need to zero out lower time units
       case MINUTE:
         c.set(TIME_UNIT_CODES.get(TimeUnitRange.SECOND), 0);
+        // fall through; need to zero out lower time units
       case SECOND:
         c.set(TIME_UNIT_CODES.get(TimeUnitRange.MILLISECOND), 0);
       }
