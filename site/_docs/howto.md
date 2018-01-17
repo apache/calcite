@@ -32,7 +32,7 @@ adapters.
 ## Building from a source distribution
 
 Prerequisites are maven (3.5.2 or later)
-and Java (JDK 7, 8, 9 or 10) on your path.
+and Java (JDK 8, 9 or 10) on your path.
 
 Unpack the source distribution `.tar.gz` or `.zip` file,
 `cd` to the root directory of the unpacked source,
@@ -50,7 +50,7 @@ tests.
 ## Building from git
 
 Prerequisites are git, maven (3.5.2 or later)
-and Java (JDK 7 or later, 9 preferred) on your path.
+and Java (JDK 8 or later, 9 preferred) on your path.
 
 Create a local copy of the github repository,
 `cd` to its root directory,
@@ -429,7 +429,7 @@ When the dry-run has succeeded, change `install` to `deploy`.
 Before you start:
 
 * Set up signing keys as described above.
-* Make sure you are using JDK 8 (not 7 or 9).
+* Make sure you are using JDK 8 (not 7, 9 or 10).
 * Check that `README` and `site/_docs/howto.md` have the correct version number.
 * Check that `NOTICE` has the current copyright year.
 * Set `version.major` and `version.minor` in `pom.xml`.
