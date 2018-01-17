@@ -74,6 +74,8 @@ public class JethrodataSqlDialect extends SqlDialect {
     case VAR_POP:
     case VAR_SAMP:
       return true;
+    default:
+      break;
     }
     return false;
   }
@@ -188,16 +190,22 @@ public class JethrodataSqlDialect extends SqlDialect {
       supportedFunctions = new HashMap<String, HashSet<SupportedFunction>>();
       SUPPORTED_JETHRO_FUNCTIONS.put(productVersion, supportedFunctions);
       Statement jethroStatement = jethroConnection.createStatement();
-      ResultSet functionsTupleSet = jethroStatement.executeQuery("show functions extended");
-      while (functionsTupleSet.next()) {
-        String functionName = functionsTupleSet.getString(1);
-        String operandsType = functionsTupleSet.getString(3);
-        HashSet<SupportedFunction> funcSignatures = supportedFunctions.get(functionName);
-        if (funcSignatures == null) {
-          funcSignatures = new HashSet<SupportedFunction>();
-          supportedFunctions.put(functionName, funcSignatures);
+      try {
+        ResultSet functionsTupleSet = jethroStatement.executeQuery("show functions extended");
+        while (functionsTupleSet.next()) {
+          String functionName = functionsTupleSet.getString(1);
+          String operandsType = functionsTupleSet.getString(3);
+          HashSet<SupportedFunction> funcSignatures = supportedFunctions.get(functionName);
+          if (funcSignatures == null) {
+            funcSignatures = new HashSet<SupportedFunction>();
+            supportedFunctions.put(functionName, funcSignatures);
+          }
+          funcSignatures.add(new SupportedFunction(functionName, operandsType));
         }
-        funcSignatures.add(new SupportedFunction(functionName, operandsType));
+      } catch (Exception e) {
+        LOG.error("Jethro server failed to execute 'show functions extended'", e);
+        throw new SQLException("Jethro server failed to execute 'show functions extended',"
+                               + " make sure your Jethro server is up to date");
       }
     }
     return supportedFunctions;
