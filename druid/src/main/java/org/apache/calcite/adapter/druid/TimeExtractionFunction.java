@@ -101,7 +101,7 @@ public class TimeExtractionFunction implements ExtractionFunction {
       return new TimeExtractionFunction("M", null, timeZone, Locale.ROOT.toLanguageTag());
     case YEAR:
       return new TimeExtractionFunction("yyyy", null, timeZone,
-          Locale.getDefault().toLanguageTag());
+          Locale.ROOT.toLanguageTag());
     case WEEK:
       return new TimeExtractionFunction("w", null, timeZone, Locale.ROOT.toLanguageTag());
     case HOUR:
