@@ -300,7 +300,7 @@ public class DruidDateTimeUtils {
    * @param node the Rex node
    * @return the granularity, or null if it cannot be inferred
    */
-  public static Granularity extractGranularity(RexNode node) {
+  public static Granularity extractGranularity(RexNode node, String timeZone) {
     final int flagIndex;
     switch (node.getKind()) {
     case EXTRACT:
@@ -318,29 +318,7 @@ public class DruidDateTimeUtils {
     }
     final RexLiteral flag = (RexLiteral) call.operands.get(flagIndex);
     final TimeUnitRange timeUnit = (TimeUnitRange) flag.getValue();
-    if (timeUnit == null) {
-      return null;
-    }
-    switch (timeUnit) {
-    case YEAR:
-      return Granularity.YEAR;
-    case QUARTER:
-      return Granularity.QUARTER;
-    case MONTH:
-      return Granularity.MONTH;
-    case WEEK:
-      return Granularity.WEEK;
-    case DAY:
-      return Granularity.DAY;
-    case HOUR:
-      return Granularity.HOUR;
-    case MINUTE:
-      return Granularity.MINUTE;
-    case SECOND:
-      return Granularity.SECOND;
-    default:
-      return null;
-    }
+    return Granularities.createGranularity(timeUnit, timeZone);
   }
 
 }

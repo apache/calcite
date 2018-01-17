@@ -45,16 +45,20 @@ public class TimeExtractionFunction implements ExtractionFunction {
       TimeUnitRange.YEAR,
       TimeUnitRange.MONTH,
       TimeUnitRange.DAY,
-      TimeUnitRange.WEEK);
+      TimeUnitRange.WEEK,
+      TimeUnitRange.HOUR,
+      TimeUnitRange.MINUTE,
+      TimeUnitRange.SECOND);
 
   public static final String ISO_TIME_FORMAT = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'";
 
   private final String format;
-  private final String granularity;
+  private final Granularity granularity;
   private final String timeZone;
   private final String local;
 
-  public TimeExtractionFunction(String format, String granularity, String timeZone, String local) {
+  public TimeExtractionFunction(String format, Granularity granularity, String timeZone,
+      String local) {
     this.format = format;
     this.granularity = granularity;
     this.timeZone = timeZone;
@@ -90,19 +94,26 @@ public class TimeExtractionFunction implements ExtractionFunction {
    */
   public static TimeExtractionFunction createExtractFromGranularity(
       Granularity granularity, String timeZone) {
-    switch (granularity) {
+    switch (granularity.getType()) {
     case DAY:
-      return new TimeExtractionFunction("d", null, timeZone, Locale.getDefault().toLanguageTag());
+      return new TimeExtractionFunction("d", null, timeZone, Locale.ROOT.toLanguageTag());
     case MONTH:
-      return new TimeExtractionFunction("M", null, timeZone, Locale.getDefault().toLanguageTag());
+      return new TimeExtractionFunction("M", null, timeZone, Locale.ROOT.toLanguageTag());
     case YEAR:
       return new TimeExtractionFunction("yyyy", null, timeZone,
-          Locale.getDefault().toLanguageTag());
+          Locale.ROOT.toLanguageTag());
     case WEEK:
-      return new TimeExtractionFunction("w", null, timeZone, Locale.getDefault().toLanguageTag());
+      return new TimeExtractionFunction("w", null, timeZone, Locale.ROOT.toLanguageTag());
+    case HOUR:
+      return new TimeExtractionFunction("H", null, timeZone, Locale.ROOT.toLanguageTag());
+    case MINUTE:
+      return new TimeExtractionFunction("m", null, timeZone, Locale.ROOT.toLanguageTag());
+    case SECOND:
+      return new TimeExtractionFunction("s", null, timeZone, Locale.ROOT.toLanguageTag());
     default:
       throw new IllegalArgumentException("Granularity [" + granularity + "] is not supported");
     }
+
   }
 
   /**
@@ -113,7 +124,7 @@ public class TimeExtractionFunction implements ExtractionFunction {
    */
   public static TimeExtractionFunction createFloorFromGranularity(
       Granularity granularity, String timeZone) {
-    return new TimeExtractionFunction(ISO_TIME_FORMAT, granularity.value, timeZone, Locale
+    return new TimeExtractionFunction(ISO_TIME_FORMAT, granularity, timeZone, Locale
         .getDefault().toLanguageTag());
   }
 

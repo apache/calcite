@@ -640,6 +640,7 @@ public class DruidRules {
       if (!DruidQuery.isValidSignature(query.signature() + 'a')) {
         return;
       }
+
       if (aggregate.indicator
               || aggregate.getGroupSets().size() != 1
               || BAD_AGG.apply(ImmutableTriple.of(aggregate, (RelNode) aggregate, query))
@@ -920,7 +921,9 @@ public class DruidRules {
         if (e instanceof RexCall) {
           // It is a call, check that it is EXTRACT and follow-up conditions
           final RexCall call = (RexCall) e;
-          if (DruidDateTimeUtils.extractGranularity(call) == null) {
+          final String timeZone = query.getCluster().getPlanner().getContext()
+              .unwrap(CalciteConnectionConfig.class).timeZone();
+          if (DruidDateTimeUtils.extractGranularity(call, timeZone) == null) {
             return -1;
           }
           if (idxTimestamp != -1 && hasFloor) {
@@ -1108,7 +1111,9 @@ public class DruidRules {
         RexNode node = project.getProjects().get(index);
         if (node instanceof RexCall) {
           RexCall call = (RexCall) node;
-          assert DruidDateTimeUtils.extractGranularity(call) != null;
+          final String timeZone = query.getCluster().getPlanner().getContext()
+              .unwrap(CalciteConnectionConfig.class).timeZone();
+          assert DruidDateTimeUtils.extractGranularity(call, timeZone) != null;
           if (call.getKind() == SqlKind.FLOOR) {
             newSet.addAll(RelOptUtil.InputFinder.bits(call));
           }
@@ -1140,7 +1145,9 @@ public class DruidRules {
           newSet.set(((RexInputRef) node).getIndex());
         } else if (node instanceof RexCall) {
           RexCall call = (RexCall) node;
-          assert DruidDateTimeUtils.extractGranularity(call) != null;
+          final String timeZone = query.getCluster().getPlanner().getContext()
+              .unwrap(CalciteConnectionConfig.class).timeZone();
+          assert DruidDateTimeUtils.extractGranularity(call, timeZone) != null;
           // when we have extract from time columnthe rexCall is in the form of /Reinterpret$0
           newSet.addAll(RelOptUtil.InputFinder.bits(call));
         }
