@@ -2261,6 +2261,21 @@ public class RelToSqlConverterTest {
         .ok(expectedOracle);
   }
 
+  @Test public void testPreserveAlias() {
+    final String sql = "select \"warehouse_class_id\" as \"id\", \"description\" "
+        + "from \"warehouse_class\"";
+    final String expected = "SELECT \"warehouse_class_id\" AS \"id\", \"description\"\n"
+        + "FROM \"foodmart\".\"warehouse_class\"";
+    sql(sql).ok(expected);
+  }
+
+  @Test public void testPreservePermutation() {
+    final String sql = "select \"description\", \"warehouse_class_id\" from \"warehouse_class\"";
+    final String expected = "SELECT \"description\", \"warehouse_class_id\"\n"
+        + "FROM \"foodmart\".\"warehouse_class\"";
+    sql(sql).ok(expected);
+  }
+
   /** Fluid interface to run tests. */
   private static class Sql {
     private CalciteAssert.SchemaSpec schemaSpec;

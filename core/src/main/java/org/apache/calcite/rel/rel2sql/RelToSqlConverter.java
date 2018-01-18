@@ -173,7 +173,7 @@ public class RelToSqlConverter extends SqlImplementor
   public Result visit(Project e) {
     Result x = visitChild(0, e.getInput());
     parseCorrelTable(e, x);
-    if (isStar(e.getChildExps(), e.getInput().getRowType())) {
+    if (isStar(e.getChildExps(), e.getInput().getRowType(), e.getRowType())) {
       return x;
     }
     final Builder builder =
