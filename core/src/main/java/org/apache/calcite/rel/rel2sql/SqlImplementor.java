@@ -122,16 +122,25 @@ public abstract class SqlImplementor {
     selectList.add(node);
   }
 
-  public static boolean isStar(List<RexNode> exps, RelDataType inputRowType) {
-    int i = 0;
-    for (RexNode ref : exps) {
-      if (!(ref instanceof RexInputRef)) {
-        return false;
-      } else if (((RexInputRef) ref).getIndex() != i++) {
-        return false;
+  public static boolean isStar(List<RexNode> exps, RelDataType inputRowType,
+                               RelDataType projectRowType) {
+    if (inputRowType.getFieldCount() != projectRowType.getFieldCount()) {
+      return false;
+    } else {
+      int i = 0;
+      for (RexNode ref : exps) {
+        String inputFieldName = inputRowType.getFieldList().get(i).getKey();
+        String projectFieldName = projectRowType.getFieldList().get(i).getKey();
+        if (!(ref instanceof RexInputRef)) {
+          return false;
+        } else if (!inputFieldName.equals(projectFieldName)) {
+          return false;
+        } else if (((RexInputRef) ref).getIndex() != i++) {
+          return false;
+        }
       }
+      return true;
     }
-    return i == inputRowType.getFieldCount();
   }
 
   public static boolean isStar(RexProgram program) {
