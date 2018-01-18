@@ -122,7 +122,11 @@ public abstract class SqlImplementor {
     selectList.add(node);
   }
 
-  public static boolean isStar(List<RexNode> exps, RelDataType inputRowType) {
+  /** Returns whether a list of expressions projects all fields, in order,
+   * from the input, with the same names. */
+  public static boolean isStar(List<RexNode> exps, RelDataType inputRowType,
+      RelDataType projectRowType) {
+    assert exps.size() == projectRowType.getFieldCount();
     int i = 0;
     for (RexNode ref : exps) {
       if (!(ref instanceof RexInputRef)) {
@@ -131,7 +135,8 @@ public abstract class SqlImplementor {
         return false;
       }
     }
-    return i == inputRowType.getFieldCount();
+    return i == inputRowType.getFieldCount()
+        && inputRowType.getFieldNames().equals(projectRowType.getFieldNames());
   }
 
   public static boolean isStar(RexProgram program) {

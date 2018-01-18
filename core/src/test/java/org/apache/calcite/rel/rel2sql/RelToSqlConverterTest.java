@@ -2261,6 +2261,33 @@ public class RelToSqlConverterTest {
         .ok(expectedOracle);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2118">[CALCITE-2118]
+   * RelToSqlConverter should only generate "*" if field names match</a>. */
+  @Test public void testPreserveAlias() {
+    final String sql = "select \"warehouse_class_id\" as \"id\",\n"
+        + " \"description\"\n"
+        + "from \"warehouse_class\"";
+    final String expected = ""
+        + "SELECT \"warehouse_class_id\" AS \"id\", \"description\"\n"
+        + "FROM \"foodmart\".\"warehouse_class\"";
+    sql(sql).ok(expected);
+
+    final String sql2 = "select \"warehouse_class_id\", \"description\"\n"
+        + "from \"warehouse_class\"";
+    final String expected2 = "SELECT *\n"
+        + "FROM \"foodmart\".\"warehouse_class\"";
+    sql(sql2).ok(expected2);
+  }
+
+  @Test public void testPreservePermutation() {
+    final String sql = "select \"description\", \"warehouse_class_id\"\n"
+        + "from \"warehouse_class\"";
+    final String expected = "SELECT \"description\", \"warehouse_class_id\"\n"
+        + "FROM \"foodmart\".\"warehouse_class\"";
+    sql(sql).ok(expected);
+  }
+
   /** Fluid interface to run tests. */
   private static class Sql {
     private CalciteAssert.SchemaSpec schemaSpec;
