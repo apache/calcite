@@ -196,7 +196,7 @@ public abstract class ProjectToWindowRule extends RelOptRule {
                         return program.expandLocalRef(a0);
                       }
                     }),
-              calc.getRowType().getFieldNames());
+                calc.getRowType().getFieldNames());
           }
           return relBuilder.build();
         }
