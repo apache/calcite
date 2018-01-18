@@ -23,6 +23,8 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.type.SqlTypeName;
 
+import com.google.common.collect.ImmutableMap;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -31,11 +33,11 @@ import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 
 /**
@@ -44,14 +46,14 @@ import java.util.Map;
 public class JethrodataSqlDialect extends SqlDialect {
   private static final Logger LOG = LoggerFactory.getLogger(JethrodataSqlDialect.class);
 
-  private final Map<String, HashSet<SupportedFunction>> supportedFunctions;
+  private final ImmutableMap<String, HashSet<SupportedFunction>> supportedFunctions;
 
   /** Creates an JethrodataSqlDialect. */
   public JethrodataSqlDialect(Context context,
-      HashMap<String, HashSet<SupportedFunction>> supportedFunctions) {
+                              Connection connection) throws SQLException {
       super(context);
-    this.supportedFunctions =
-        supportedFunctions != null ? Collections.unmodifiableMap(supportedFunctions) : null;
+
+    this.supportedFunctions = getSupportedFunctions(connection);
   }
 
   @Override public boolean supportsCharSet() {
@@ -81,7 +83,7 @@ public class JethrodataSqlDialect extends SqlDialect {
   }
 
   @Override public boolean supportsFunction(SqlOperator operator,
-                                            RelDataType type, ArrayList<RelDataType> paramsList) {
+                                            RelDataType type, List<RelDataType> paramsList) {
     if (operator.getKind() == SqlKind.IS_NOT_NULL
         || operator.getKind() == SqlKind.IS_NULL
         || operator.getKind() == SqlKind.AND
@@ -93,7 +95,8 @@ public class JethrodataSqlDialect extends SqlDialect {
       return true;
     }
     if (supportedFunctions != null) {
-      HashSet<SupportedFunction> currMethodSignatures = supportedFunctions.get(operator.getName());
+      Set<SupportedFunction> currMethodSignatures = supportedFunctions.get(operator.getName());
+
       if (currMethodSignatures != null) {
         for (SupportedFunction curr : currMethodSignatures) {
           if (paramsList.size() == curr.operandsType.length) {
@@ -167,7 +170,7 @@ public class JethrodataSqlDialect extends SqlDialect {
     }
   };
 
-  private static final HashMap<String, HashMap<String, HashSet<SupportedFunction>>>
+  private static final Map<String, ImmutableMap<String, HashSet<SupportedFunction>>>
             SUPPORTED_JETHRO_FUNCTIONS = new HashMap<>();
 
   /**
@@ -175,40 +178,58 @@ public class JethrodataSqlDialect extends SqlDialect {
    * @return
    * @throws SQLException
    */
-  public static synchronized HashMap<String, HashSet<SupportedFunction>> getSupportedFunctions(
-      Connection jethroConnection) throws SQLException {
+  private static synchronized
+                    ImmutableMap<String, HashSet<SupportedFunction>> getSupportedFunctions(
+                                         Connection jethroConnection) throws SQLException {
     if (jethroConnection == null) {
       throw new SQLException("JethrodataSqlDialect reuqies a connection");
     }
 
-    HashMap<String, HashSet<SupportedFunction>> supportedFunctions = null;
     DatabaseMetaData metaData = jethroConnection.getMetaData();
     assert "JethroData".equals(metaData.getDatabaseProductName());
     String productVersion = metaData.getDatabaseProductVersion();
-    supportedFunctions = SUPPORTED_JETHRO_FUNCTIONS.get(productVersion);
-    if (supportedFunctions == null) {
-      supportedFunctions = new HashMap<String, HashSet<SupportedFunction>>();
-      SUPPORTED_JETHRO_FUNCTIONS.put(productVersion, supportedFunctions);
-      Statement jethroStatement = jethroConnection.createStatement();
+    ImmutableMap<String, HashSet<SupportedFunction>> res =
+            SUPPORTED_JETHRO_FUNCTIONS.get(productVersion);
+
+    if (res == null) {
+      Statement jethroStatement = null;
+      ResultSet functionsTupleSet = null;
       try {
-        ResultSet functionsTupleSet = jethroStatement.executeQuery("show functions extended");
+        jethroStatement = jethroConnection.createStatement();
+        functionsTupleSet = jethroStatement.executeQuery("show functions extended");
+
+        Map<String, HashSet<SupportedFunction>> supportedFunctions = new HashMap<>();
         while (functionsTupleSet.next()) {
           String functionName = functionsTupleSet.getString(1);
           String operandsType = functionsTupleSet.getString(3);
           HashSet<SupportedFunction> funcSignatures = supportedFunctions.get(functionName);
           if (funcSignatures == null) {
-            funcSignatures = new HashSet<SupportedFunction>();
+            funcSignatures = new HashSet<>();
             supportedFunctions.put(functionName, funcSignatures);
           }
           funcSignatures.add(new SupportedFunction(functionName, operandsType));
         }
+        res = ImmutableMap.copyOf(supportedFunctions);
+        SUPPORTED_JETHRO_FUNCTIONS.put(productVersion, res);
       } catch (Exception e) {
         LOG.error("Jethro server failed to execute 'show functions extended'", e);
         throw new SQLException("Jethro server failed to execute 'show functions extended',"
                                + " make sure your Jethro server is up to date");
+      } finally {
+        try {
+          if (jethroStatement != null) {
+            jethroStatement.close();
+          }
+
+          if (functionsTupleSet != null) {
+            functionsTupleSet.close();
+          }
+        } catch (Exception e) {
+          LOGGER.error("Failed to close jethro connection resources", e);
+        }
       }
     }
-    return supportedFunctions;
+    return res;
   }
 
 }

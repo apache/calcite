@@ -37,9 +37,9 @@ import org.slf4j.LoggerFactory;
 
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.regex.Pattern;
@@ -93,8 +93,8 @@ public class SqlDialect {
    * @deprecated Replaced by {@link SqlDialectFactory}
    */
   @Deprecated // to be removed before 2.0
-  public static SqlDialect create(DatabaseMetaData databaseMetaData) {
-    return new SqlDialectFactoryImpl().create(databaseMetaData, null);
+  public static SqlDialect create(DatabaseMetaData databaseMetaData) throws SQLException {
+    return new SqlDialectFactoryImpl().create(databaseMetaData);
   }
 
   @Deprecated // to be removed before 2.0
@@ -505,7 +505,7 @@ public class SqlDialect {
   }
 
   public boolean supportsFunction(SqlOperator operator, RelDataType type,
-                                  ArrayList<RelDataType> paramsList) {
+                                  List<RelDataType> paramsList) {
     return true;
   }
 

@@ -57,16 +57,12 @@ import java.util.Locale;
  * The default implementation of a <code>SqlDialectFactory</code>.
  */
 public class SqlDialectFactoryImpl implements SqlDialectFactory {
-  static Logger logger = LoggerFactory.getLogger(SqlDialectFactoryImpl.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(SqlDialectFactoryImpl.class);
 
-  static SqlDialectFactoryImpl inst = new SqlDialectFactoryImpl();
+  public static final SqlDialectFactoryImpl INSTANCE = new SqlDialectFactoryImpl();
 
-  public static SqlDialectFactoryImpl inst() {
-    return inst;
-  }
 
-  public SqlDialect create(DatabaseMetaData databaseMetaData, Connection connection) {
-
+  public SqlDialect create(DatabaseMetaData databaseMetaData) throws SQLException {
     String databaseProductName;
     int databaseMajorVersion;
     int databaseMinorVersion;
@@ -105,12 +101,24 @@ public class SqlDialectFactoryImpl implements SqlDialectFactory {
       return new InterbaseSqlDialect(c);
     case "JETHRODATA":
     {
+      Connection connection = null;
+      JethrodataSqlDialect jethroDialect = null;
       try {
-        return new JethrodataSqlDialect(c, JethrodataSqlDialect.getSupportedFunctions(connection));
-      } catch (Exception e) {
-        logger.error("Failed to create JethroDataDialect", e);
-        return null;
+        connection = databaseMetaData.getConnection();
+        jethroDialect = new JethrodataSqlDialect(c, connection);
+      } catch (SQLException e) {
+        LOGGER.error("Failed to create JethroDataDialect", e);
+        throw e;
+      } finally {
+        if (connection != null) {
+          try {
+            connection.close();
+          } catch (SQLException e) {
+            LOGGER.error("Failed to close jethro connection", e);
+          }
+        }
       }
+      return jethroDialect;
     }
     case "LUCIDDB":
       return new LucidDbSqlDialect(c);
@@ -155,11 +163,6 @@ public class SqlDialectFactoryImpl implements SqlDialectFactory {
     } else {
       return new AnsiSqlDialect(c);
     }
-
-  }
-
-  public SqlDialect create(DatabaseMetaData databaseMetaData) {
-    return create(databaseMetaData, null);
   }
 
   private NullCollation getNullCollation(DatabaseMetaData databaseMetaData) {

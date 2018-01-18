@@ -18,14 +18,13 @@ package org.apache.calcite.sql;
 
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
+import java.sql.SQLException;
 
 /**
  * <code>SqlDialectFactory</code> constructs a <code>SqlDialect</code> appropriate
  * for a given database metadata object.
  */
 public interface SqlDialectFactory {
-
-  SqlDialect create(DatabaseMetaData databaseMetaData);
 
   /**
    * Creates a <code>SqlDialect</code> from a DatabaseMetaData.
@@ -36,9 +35,8 @@ public interface SqlDialectFactory {
    *
    * @param databaseMetaData used to determine which dialect of SQL to
    *                         generate
-   * @param connection       used to query the database for capabilities
    */
-  SqlDialect create(DatabaseMetaData metaData, Connection connection);
+  SqlDialect create(DatabaseMetaData databaseMetaData) throws SQLException;
 
 }
 

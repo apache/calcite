@@ -52,6 +52,7 @@ import com.google.common.collect.ImmutableList;
 
 import org.junit.Test;
 
+import java.sql.SQLException;
 import java.util.List;
 
 import junit.framework.AssertionFailedError;
@@ -97,7 +98,7 @@ public class RelToSqlConverterTest {
     return Frameworks.getPlanner(config);
   }
 
-  private static JethrodataSqlDialect jethroDataSqlDialect() {
+  private static JethrodataSqlDialect jethroDataSqlDialect() throws SQLException {
     Context a = SqlDialect.EMPTY_CONTEXT
         .withDatabaseProduct(SqlDialect.DatabaseProduct.JETHRO)
         .withDatabaseMajorVersion(1)
@@ -435,7 +436,8 @@ public class RelToSqlConverterTest {
     sql(query).dialect(hive2_1_0_Dialect).ok(expected);
   }
 
-  @Test public void testJethroDataSelectQueryWithOrderByDescAndNullsFirstShouldBeEmulated() {
+  @Test public void testJethroDataSelectQueryWithOrderByDescAndNullsFirstShouldBeEmulated()
+                                 throws SQLException {
     final String query = "select \"product_id\" from \"product\"\n"
         + "order by \"product_id\" desc nulls first";
     final String expected = "SELECT `product_id`\n"
