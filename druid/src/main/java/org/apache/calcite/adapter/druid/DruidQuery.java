@@ -80,7 +80,6 @@ import org.joda.time.Interval;
 
 import java.io.IOException;
 import java.io.StringWriter;
-import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -940,41 +939,34 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
       ImmutableBitSet groupSet, List<AggregateCall> aggCalls, List<String> aggNames,
       List<Integer> collationIndexes, List<Direction> collationDirections,
       ImmutableBitSet numericCollationIndexes, Integer fetch, Project postProject) {
-    final CalciteConnectionConfig config = getConnectionConfig();
-    final QueryType queryType;
     // Handle filter
     final DruidJsonFilter jsonFilter = computeFilter(filter, this);
 
-    // Then we handle project and aggs
     if (groupSet == null) {
       //It is Scan Query since no Grouping
       assert aggCalls == null;
       assert aggNames == null;
       assert collationIndexes == null || collationIndexes.isEmpty();
       assert collationDirections == null || collationDirections.isEmpty();
-      final List<String> columnsNames;
+      final List<String> scanColumnNames;
       final List<VirtualColumn> virtualColumnList = new ArrayList<>();
-      final ScanQueryBuilder scanQueryBuilder = new ScanQueryBuilder();
       if (project != null) {
         //project some fields only
         Pair<List<String>, List<VirtualColumn>> projectResult = computeProjectAsScan(
             project, project.getInput().getRowType(), this);
-        columnsNames = projectResult.left;
+        scanColumnNames = projectResult.left;
         virtualColumnList.addAll(projectResult.right);
       } else {
         //Scan all the fields
-        columnsNames = rowType.getFieldNames();
+        scanColumnNames = rowType.getFieldNames();
       }
-
-      final String queryString = scanQueryBuilder.setDataSource(druidTable.dataSource)
-          .setIntervals(intervals)
-          .setColumns(columnsNames)
-          .setVirtualColumnList(virtualColumnList)
-          .setJsonFilter(jsonFilter)
-          .setFetchLimit(fetch)
-          .createScanQuery()
-          .toQuery();
-      return new QuerySpec(QueryType.SCAN, Preconditions.checkNotNull(queryString), columnsNames);
+      final ScanQuery scanQuery = new ScanQuery(druidTable.dataSource, intervals, jsonFilter,
+          virtualColumnList, scanColumnNames, fetch
+      );
+      return new QuerySpec(QueryType.SCAN,
+          Preconditions.checkNotNull(scanQuery.toQuery(), "Can not plan Scan Druid Query"),
+          scanColumnNames
+      );
     }
 
     // At this Stage we have a valid Aggregate thus Query is one of Timeseries, TopN, or GroupBy
@@ -984,40 +976,40 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
     assert aggCalls != null;
     assert aggNames != null;
     assert aggCalls.size() == aggNames.size();
+
     final List<JsonExpressionPostAgg> postAggs = new ArrayList<>();
-    final Granularity queryGranularity;
     final JsonLimit limit;
     final RelDataType aggInputRowType = table.getRowType();
+    final ImmutableList<JsonCollation> collations;
+    final List<String> aggregateStageFieldNames = new ArrayList<>();
 
-    Direction timeSeriesDirection = null;
-    String topNMetricColumnName = null;
-    List<String> fieldNames = new ArrayList<>();
     Pair<List<DimensionSpec>, List<VirtualColumn>> projectGroupSet = computeProjectGroupSet(
         project, groupSet, aggInputRowType, this);
 
     final List<DimensionSpec> groupByKeyDims = projectGroupSet.left;
     final List<VirtualColumn> virtualColumnList = projectGroupSet.right;
     for (DimensionSpec dim : groupByKeyDims) {
-      fieldNames.add(dim.getOutputName());
+      aggregateStageFieldNames.add(dim.getOutputName());
     }
     final List<JsonAggregation> aggregations = computeDruidJsonAgg(aggCalls, aggNames, project,
         this
     );
     for (JsonAggregation jsonAgg : aggregations) {
-      fieldNames.add(jsonAgg.name);
+      aggregateStageFieldNames.add(jsonAgg.name);
     }
 
     //Then we handle projects after aggregates as Druid Post Aggregates
+    final List<String> postAggregateStageFieldNames;
     if (postProject != null) {
       final List<String> postProjectDimListBuilder = new ArrayList<>();
       final RelDataType postAggInputRowType = getCluster().getTypeFactory()
           .createStructType(Pair.right(postProject.getInput().getRowType().getFieldList()),
-              fieldNames
+              aggregateStageFieldNames
           );
       // this is an index of existing columns coming out aggregate layer. Will use this index to:
       // filter out any project down the road that doesn't change values e.g inputRef/identity cast
       Map<String, String> existingProjects = Maps
-          .uniqueIndex(fieldNames, new Function<String, String>() {
+          .uniqueIndex(aggregateStageFieldNames, new Function<String, String>() {
             @Override public String apply(@Nullable String input) {
               return DruidExpressions.fromColumn(input);
             }
@@ -1036,18 +1028,112 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
           postProjectDimListBuilder.add(postProjectFieldName);
         }
       }
-      fieldNames = postProjectDimListBuilder;
+      postAggregateStageFieldNames = postProjectDimListBuilder;
+    } else {
+      postAggregateStageFieldNames = null;
     }
 
-    // Check if Timeseries is viable when we have one GB key. The only hope is to have a time floor
-    // with a valid druid granularity
+    // final Query output row field names.
+    final List<String> queryOutputFieldNames = postAggregateStageFieldNames == null
+        ? aggregateStageFieldNames
+        : postAggregateStageFieldNames;
+
+    //handle sort all together
+    limit = computeSort(fetch, collationIndexes, collationDirections, numericCollationIndexes,
+        queryOutputFieldNames
+    );
+
+    final String timeSeriesQueryString = planAsTimeSeries(groupByKeyDims, jsonFilter,
+        virtualColumnList, aggregations, postAggs, limit
+    );
+    if (timeSeriesQueryString != null) {
+      return new QuerySpec(QueryType.TIMESERIES, timeSeriesQueryString, queryOutputFieldNames);
+    }
+    final String topNQuery = planAsTopN(groupByKeyDims, jsonFilter,
+        virtualColumnList, aggregations, postAggs, limit
+    );
+    if (topNQuery != null) {
+      return new QuerySpec(QueryType.TOP_N, topNQuery, queryOutputFieldNames);
+    }
+
+    final String groupByQuery = planAsGroupBy(groupByKeyDims, jsonFilter,
+        virtualColumnList, aggregations, postAggs, limit
+    );
+
+    if (groupByQuery == null) {
+      throw new IllegalStateException("Can not plan Druid Query");
+    }
+    return new QuerySpec(QueryType.GROUP_BY, groupByQuery, queryOutputFieldNames);
+  }
+
+  /**
+   * @param fetch limit to fetch
+   * @param collationIndexes index of fields as listed in query row output
+   * @param collationDirections direction of sort
+   * @param numericCollationIndexes flag of to determine sort comparator
+   * @param queryOutputFieldNames query output fields
+   *
+   * @return always an non null Json Limit object
+   */
+  private JsonLimit computeSort(@Nullable Integer fetch, List<Integer> collationIndexes,
+      List<Direction> collationDirections, ImmutableBitSet numericCollationIndexes,
+      List<String> queryOutputFieldNames
+  ) {
+    final List<JsonCollation> collations;
+    if (collationIndexes != null) {
+      assert collationDirections != null;
+      ImmutableList.Builder<JsonCollation> colBuilder = ImmutableList.builder();
+      for (Pair<Integer, Direction> p : Pair.zip(collationIndexes, collationDirections)) {
+        final String dimensionOrder = numericCollationIndexes.get(p.left)
+            ? "numeric"
+            : "alphanumeric";
+        colBuilder.add(
+            new JsonCollation(queryOutputFieldNames.get(p.left),
+                p.right == Direction.DESCENDING ? "descending" : "ascending", dimensionOrder
+            ));
+      }
+      collations = colBuilder.build();
+    } else {
+      collations = null;
+    }
+    return new JsonLimit("default", fetch, collations);
+  }
+
+  @Nullable
+  private String planAsTimeSeries(List<DimensionSpec> groupByKeyDims, DruidJsonFilter jsonFilter,
+      List<VirtualColumn> virtualColumnList, List<JsonAggregation> aggregations,
+      List<JsonExpressionPostAgg> postAggregations, JsonLimit limit
+  ) {
+    if (groupByKeyDims.size() > 1) {
+      return null;
+    }
+    if (limit.limit != null) {
+      // it has a limit not supported by time series
+      return null;
+    }
+    if (limit.collations != null && limit.collations.size() > 1) {
+      //it has multiple sort columns
+      return null;
+    }
+    final String sortDirection;
+    if (limit.collations != null && limit.collations.size() == 1) {
+      if (groupByKeyDims.isEmpty()
+          || !(limit.collations.get(0).dimension.equals(groupByKeyDims.get(0).getOutputName()))) {
+        //sort column is not time column
+        return null;
+      }
+      sortDirection = limit.collations.get(0).direction;
+    } else {
+      sortDirection = null;
+    }
+
     final Granularity timeseriesGranularity;
     if (groupByKeyDims.size() == 1) {
       DimensionSpec dimensionSpec = Iterables.getOnlyElement(groupByKeyDims);
       Granularity granularity = ExtractionDimensionSpec.toQueryGranularity(dimensionSpec);
       //case we have project expression on the top of the time extract then can not use timeseries
       boolean hasExpressionOnTopOfTimeExtract = false;
-      for (JsonExpressionPostAgg postAgg : postAggs) {
+      for (JsonExpressionPostAgg postAgg : postAggregations) {
         if (postAgg instanceof JsonExpressionPostAgg) {
           if (postAgg.expression.contains(groupByKeyDims.get(0).getOutputName())) {
             hasExpressionOnTopOfTimeExtract = true;
@@ -1055,151 +1141,127 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
         }
       }
       timeseriesGranularity = hasExpressionOnTopOfTimeExtract ? null : granularity;
-    } else {
-      timeseriesGranularity = null;
-    }
-
-    ImmutableList<JsonCollation> collations = null;
-    boolean sortsMetric = false;
-    if (collationIndexes != null) {
-      assert collationDirections != null;
-      ImmutableList.Builder<JsonCollation> colBuilder =
-          ImmutableList.builder();
-      for (Pair<Integer, Direction> p : Pair.zip(collationIndexes, collationDirections)) {
-        final String dimensionOrder = numericCollationIndexes.get(p.left) ? "numeric"
-            : "alphanumeric";
-        colBuilder.add(
-            new JsonCollation(fieldNames.get(p.left),
-                p.right == Direction.DESCENDING ? "descending" : "ascending", dimensionOrder
-            ));
-        if (p.left >= groupSet.cardinality() && p.right == Direction.DESCENDING) {
-          // Currently only support for DESC in TopN
-          sortsMetric = true;
-        } else if (timeseriesGranularity != null && groupSet.get(p.left)) {
-          //CASE SORT BY TIME COLUMN
-          assert timeSeriesDirection == null;
-          timeSeriesDirection = p.right;
-        }
+      if (timeseriesGranularity == null) {
+        // can not extract granularity bailout
+        return null;
       }
-      collations = colBuilder.build();
-    }
-
-    limit = new JsonLimit("default", fetch, collations);
-
-    //Infer the query Type
-    if ((groupByKeyDims.isEmpty() || timeseriesGranularity != null)
-        && (collations == null || timeSeriesDirection != null)) {
-      queryType = QueryType.TIMESERIES;
-      queryGranularity =
-          timeseriesGranularity == null ? Granularities.all() : timeseriesGranularity;
-      assert fetch == null;
-    } else if (config.approximateTopN()
-        && groupByKeyDims.size() == 1
-        && sortsMetric
-        && collations.size() == 1
-        && fetch != null) {
-      queryType = QueryType.TOP_N;
-      queryGranularity = Granularities.all();
-      topNMetricColumnName = fieldNames.get(collationIndexes.get(0));
     } else {
-      queryType = QueryType.GROUP_BY;
-      queryGranularity = Granularities.all();
+      timeseriesGranularity = Granularities.all();
     }
 
-    final String queryString = generateQuery(queryType, queryGranularity, jsonFilter,
-        groupByKeyDims,
-        virtualColumnList, aggregations, postAggs, timeSeriesDirection, limit, fetch,
-        topNMetricColumnName
-    );
+    final boolean isCountStar = Granularities.all() == timeseriesGranularity
+        && aggregations.size() == 1
+        && aggregations.get(0).type.equals("count");
 
-    return new QuerySpec(queryType, queryString, fieldNames);
+    final StringWriter sw = new StringWriter();
+    final JsonFactory factory = new JsonFactory();
+    try {
+      final JsonGenerator generator = factory.createGenerator(sw);
+      generator.writeStartObject();
+      generator.writeStringField("queryType", "timeseries");
+      generator.writeStringField("dataSource", druidTable.dataSource);
+      generator.writeBooleanField("descending", sortDirection != null
+          && sortDirection.equals("descending"));
+      writeField(generator,"granularity", timeseriesGranularity);
+      writeFieldIf(generator, "filter", jsonFilter);
+      writeField(generator, "aggregations", aggregations);
+      writeFieldIf(generator, "virtualColumns",
+          virtualColumnList.size() > 0 ? virtualColumnList : null
+      );
+      writeFieldIf(generator, "postAggregations",
+          postAggregations.size() > 0 ? postAggregations : null
+      );
+      writeField(generator, "intervals", intervals);
+      generator.writeFieldName("context");
+      // The following field is necessary to conform with SQL semantics (CALCITE-1589)
+      generator.writeStartObject();
+      //Count(*) returns 0 if result set is empty thus need to set skipEmptyBuckets to false
+      generator.writeBooleanField("skipEmptyBuckets", !isCountStar);
+      generator.writeEndObject();
+      generator.close();
+    } catch (IOException e) {
+      Throwables.propagate(e);
+    }
+    return sw.toString();
   }
 
-  private String generateQuery(QueryType queryType, Granularity finalGranularity,
-      DruidJsonFilter jsonFilter, List<DimensionSpec> dimensions,
-      List<VirtualColumn> virtualColumnList,
-      List<JsonAggregation> aggregations, List<JsonExpressionPostAgg> postAggs,
-      Direction timeSeriesDirection, JsonLimit limit, Integer fetchLimit,
-      String topNMetricColumnName
+  @Nullable
+  private String planAsTopN(List<DimensionSpec> groupByKeyDims, DruidJsonFilter jsonFilter,
+      List<VirtualColumn> virtualColumnList, List<JsonAggregation> aggregations,
+      List<JsonExpressionPostAgg> postAggregations, JsonLimit limit
+  ) {
+    if (!getConnectionConfig().approximateTopN() || groupByKeyDims.size() != 1
+        || limit.limit == null || limit.collations == null || limit.collations.size() != 1) {
+      return null;
+    }
+    if (limit.collations.get(0).dimension.equals(groupByKeyDims.get(0).getOutputName())) {
+      return null;
+    }
+    if (limit.collations.get(0).direction.equals("ascending")) {
+      //Only DESC is allowed
+      return null;
+    }
+
+    final String topNMetricColumnName = limit.collations.get(0).dimension;
+    final StringWriter sw = new StringWriter();
+    final JsonFactory factory = new JsonFactory();
+    try {
+      final JsonGenerator generator = factory.createGenerator(sw);
+      generator.writeStartObject();
+
+      generator.writeStringField("queryType", "topN");
+      generator.writeStringField("dataSource", druidTable.dataSource);
+      writeField(generator,"granularity", Granularities.all());
+      writeField(generator, "dimension", groupByKeyDims.get(0));
+      writeFieldIf(generator, "virtualColumns",
+          virtualColumnList.size() > 0 ? virtualColumnList : null
+      );
+      generator.writeStringField("metric", topNMetricColumnName);
+      writeFieldIf(generator, "filter", jsonFilter);
+      writeField(generator, "aggregations", aggregations);
+      writeFieldIf(generator, "postAggregations",
+          postAggregations.size() > 0 ? postAggregations : null
+      );
+      writeField(generator, "intervals", intervals);
+      generator.writeNumberField("threshold", limit.limit);
+      generator.writeEndObject();
+      generator.close();
+    } catch (IOException e) {
+      Throwables.propagate(e);
+    }
+    return sw.toString();
+  }
+
+  @Nullable
+  private String planAsGroupBy(List<DimensionSpec> groupByKeyDims, DruidJsonFilter jsonFilter,
+      List<VirtualColumn> virtualColumnList, List<JsonAggregation> aggregations,
+      List<JsonExpressionPostAgg> postAggregations, JsonLimit limit
   ) {
     final StringWriter sw = new StringWriter();
     final JsonFactory factory = new JsonFactory();
     try {
       final JsonGenerator generator = factory.createGenerator(sw);
 
-      switch (queryType) {
-      case TIMESERIES:
-        generator.writeStartObject();
-
-        generator.writeStringField("queryType", "timeseries");
-        generator.writeStringField("dataSource", druidTable.dataSource);
-        generator.writeBooleanField("descending", timeSeriesDirection != null
-            && timeSeriesDirection == Direction.DESCENDING);
-        writeField(generator, "granularity", finalGranularity);
-        writeFieldIf(generator, "filter", jsonFilter);
-        writeField(generator, "aggregations", aggregations);
-        writeFieldIf(generator, "postAggregations", postAggs.size() > 0 ? postAggs : null);
-        writeField(generator, "intervals", intervals);
-
-        generator.writeFieldName("context");
-        // The following field is necessary to conform with SQL semantics (CALCITE-1589)
-        generator.writeStartObject();
-        final boolean isCountStar = finalGranularity.equals(Granularities.all())
-            && aggregations.size() == 1
-            && aggregations.get(0).type.equals("count");
-        //Count(*) returns 0 if result set is empty thus need to set skipEmptyBuckets to false
-        generator.writeBooleanField("skipEmptyBuckets", !isCountStar);
-        generator.writeEndObject();
-
-        generator.writeEndObject();
-        break;
-
-      case TOP_N:
-        generator.writeStartObject();
-
-        generator.writeStringField("queryType", "topN");
-        generator.writeStringField("dataSource", druidTable.dataSource);
-        writeField(generator, "granularity", finalGranularity);
-        writeField(generator, "dimension", dimensions.get(0));
-        writeFieldIf(generator, "virtualColumns",
-            virtualColumnList.size() > 0 ? virtualColumnList : null
-        );
-        generator.writeStringField("metric", topNMetricColumnName);
-        writeFieldIf(generator, "filter", jsonFilter);
-        writeField(generator, "aggregations", aggregations);
-        writeFieldIf(generator, "postAggregations", postAggs.size() > 0 ? postAggs : null);
-        writeField(generator, "intervals", intervals);
-        generator.writeNumberField("threshold", fetchLimit);
-
-        generator.writeEndObject();
-        break;
-
-      case GROUP_BY:
-        generator.writeStartObject();
-        generator.writeStringField("queryType", "groupBy");
-        generator.writeStringField("dataSource", druidTable.dataSource);
-        writeField(generator, "granularity", finalGranularity);
-        writeField(generator, "dimensions", dimensions);
-        writeFieldIf(generator, "virtualColumns",
-            virtualColumnList.size() > 0 ? virtualColumnList : null
-        );
-        writeFieldIf(generator, "limitSpec", limit);
-        writeFieldIf(generator, "filter", jsonFilter);
-        writeField(generator, "aggregations", aggregations);
-        writeFieldIf(generator, "postAggregations", postAggs.size() > 0 ? postAggs : null);
-        writeField(generator, "intervals", intervals);
-        writeFieldIf(generator, "having", null);
-
-        generator.writeEndObject();
-        break;
-
-      default:
-        throw new AssertionError("unknown query type " + queryType);
-      }
-
+      generator.writeStartObject();
+      generator.writeStringField("queryType", "groupBy");
+      generator.writeStringField("dataSource", druidTable.dataSource);
+      writeField(generator,"granularity", Granularities.all());
+      writeField(generator, "dimensions", groupByKeyDims);
+      writeFieldIf(generator, "virtualColumns",
+          virtualColumnList.size() > 0 ? virtualColumnList : null
+      );
+      writeFieldIf(generator, "limitSpec", limit);
+      writeFieldIf(generator, "filter", jsonFilter);
+      writeField(generator, "aggregations", aggregations);
+      writeFieldIf(generator, "postAggregations",
+          postAggregations.size() > 0 ? postAggregations : null
+      );
+      writeField(generator, "intervals", intervals);
+      writeFieldIf(generator, "having", null);
+      generator.writeEndObject();
       generator.close();
     } catch (IOException e) {
-      e.printStackTrace();
+      Throwables.propagate(e);
     }
     return sw.toString();
   }
@@ -1207,7 +1269,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
   /**
    * Druid Scan Query Body
    */
-  static class ScanQuery {
+  private static class ScanQuery {
 
     private String dataSource;
 
@@ -1236,8 +1298,8 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
     }
 
     public String toQuery() {
+      final StringWriter sw = new StringWriter();
       try {
-        final StringWriter sw = new StringWriter();
         final JsonFactory factory = new JsonFactory();
         final JsonGenerator generator = factory.createGenerator(sw);
         generator.writeStartObject();
@@ -1255,12 +1317,10 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
         }
         generator.writeEndObject();
         generator.close();
-
-        return sw.toString();
       } catch (IOException e) {
         Throwables.propagate(e);
       }
-      return null;
+      return sw.toString();
     }
   }
 
@@ -1368,77 +1428,6 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
     }
 
     return aggregation;
-  }
-
-  public JsonPostAggregation getJsonPostAggregation(String name, RexNode rexNode, RelNode rel) {
-    if (rexNode instanceof RexCall) {
-      List<JsonPostAggregation> fields = new ArrayList<>();
-      for (RexNode ele : ((RexCall) rexNode).getOperands()) {
-        JsonPostAggregation field = getJsonPostAggregation("", ele, rel);
-        if (field == null) {
-          throw new RuntimeException("Unchecked types that cannot be parsed as Post Aggregator");
-        }
-        fields.add(field);
-      }
-      switch (rexNode.getKind()) {
-      case PLUS:
-        return new JsonArithmetic(name, "+", fields, null);
-      case MINUS:
-        return new JsonArithmetic(name, "-", fields, null);
-      case DIVIDE:
-        return new JsonArithmetic(name, "quotient", fields, null);
-      case TIMES:
-        return new JsonArithmetic(name, "*", fields, null);
-      case CAST:
-        return getJsonPostAggregation(name, ((RexCall) rexNode).getOperands().get(0),
-            rel);
-      default:
-      }
-    } else if (rexNode instanceof RexInputRef) {
-      // Subtract only number of grouping columns as offset because for now only Aggregates
-      // without grouping sets (i.e. indicator columns size is zero) are allowed to pushed
-      // in Druid Query.
-      Integer indexSkipGroup = ((RexInputRef) rexNode).getIndex()
-          - ((Aggregate) rel).getGroupCount();
-      AggregateCall aggCall = ((Aggregate) rel).getAggCallList().get(indexSkipGroup);
-      // Use either the hyper unique estimator, or the theta sketch one.
-      // Hyper unique is used by default.
-      if (aggCall.isDistinct()
-          && aggCall.getAggregation().getKind() == SqlKind.COUNT) {
-        final String fieldName = rel.getRowType().getFieldNames()
-                .get(((RexInputRef) rexNode).getIndex());
-
-        List<String> fieldNames = ((Aggregate) rel).getInput().getRowType().getFieldNames();
-        String complexName = fieldNames.get(aggCall.getArgList().get(0));
-        ComplexMetric metric = druidTable.resolveComplexMetric(complexName, aggCall);
-
-        if (metric != null) {
-          switch (metric.getDruidType()) {
-          case THETA_SKETCH:
-            return new JsonThetaSketchEstimate("", fieldName);
-          case HYPER_UNIQUE:
-            return new JsonHyperUniqueCardinality("", fieldName);
-          default:
-            throw new AssertionError("Can not translate complex metric type: "
-                    + metric.getDruidType());
-          }
-        }
-        // Count distinct on a non-complex column.
-        return new JsonHyperUniqueCardinality("", fieldName);
-      }
-      return new JsonFieldAccessor("",
-          rel.getRowType().getFieldNames().get(((RexInputRef) rexNode).getIndex()));
-    } else if (rexNode instanceof RexLiteral) {
-      // Druid constant post aggregator only supports numeric value for now.
-      // (http://druid.io/docs/0.10.0/querying/post-aggregations.html) Accordingly, all
-      // numeric type of RexLiteral can only have BigDecimal value, so filter out unsupported
-      // constant by checking the type of RexLiteral value.
-      if (((RexLiteral) rexNode).getValue3() instanceof BigDecimal) {
-        return new JsonConstant("",
-            ((BigDecimal) ((RexLiteral) rexNode).getValue3()).doubleValue());
-      }
-    }
-    throw new RuntimeException("Unchecked types that cannot be parsed as Post Aggregator");
   }
 
   protected static void writeField(JsonGenerator generator, String fieldName,
@@ -1663,9 +1652,9 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
   private static class JsonLimit implements DruidJson {
     final String type;
     final Integer limit;
-    final ImmutableList<JsonCollation> collations;
+    final List<JsonCollation> collations;
 
-    private JsonLimit(String type, Integer limit, ImmutableList<JsonCollation> collations) {
+    private JsonLimit(String type, Integer limit, List<JsonCollation> collations) {
       this.type = type;
       this.limit = limit;
       this.collations = collations;
@@ -1764,168 +1753,6 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
     }
 
     public abstract JsonPostAggregation copy();
-  }
-
-  /** FieldAccessor Post aggregator writer */
-  private static class JsonFieldAccessor extends JsonPostAggregation {
-    final String fieldName;
-
-    private JsonFieldAccessor(String name, String fieldName) {
-      super(name, "fieldAccess");
-      this.fieldName = fieldName;
-    }
-
-    public void write(JsonGenerator generator) throws IOException {
-      super.write(generator);
-      generator.writeStringField("fieldName", fieldName);
-      generator.writeEndObject();
-    }
-
-    /**
-     * Leaf node in Post-aggs Json Tree, return an identical leaf node.
-     */
-
-    public JsonPostAggregation copy() {
-      return new JsonFieldAccessor(this.name, this.fieldName);
-    }
-  }
-
-  /** Constant Post aggregator writer */
-  private static class JsonConstant extends JsonPostAggregation {
-    final double value;
-
-    private JsonConstant(String name, double value) {
-      super(name, "constant");
-      this.value = value;
-    }
-
-    public void write(JsonGenerator generator) throws IOException {
-      super.write(generator);
-      generator.writeNumberField("value", value);
-      generator.writeEndObject();
-    }
-
-    /**
-     * Leaf node in Post-aggs Json Tree, return an identical leaf node.
-     */
-
-    public JsonPostAggregation copy() {
-      return new JsonConstant(this.name, this.value);
-    }
-  }
-
-  /** Greatest/Leastest Post aggregator writer */
-  private static class JsonGreatestLeast extends JsonPostAggregation {
-    final List<JsonPostAggregation> fields;
-    final boolean fractional;
-    final boolean greatest;
-
-    private JsonGreatestLeast(String name, List<JsonPostAggregation> fields,
-                              boolean fractional, boolean greatest) {
-      super(name, greatest ? (fractional ? "doubleGreatest" : "longGreatest")
-          : (fractional ? "doubleLeast" : "longLeast"));
-      this.fields = fields;
-      this.fractional = fractional;
-      this.greatest = greatest;
-    }
-
-    public void write(JsonGenerator generator) throws IOException {
-      super.write(generator);
-      writeFieldIf(generator, "fields", fields);
-      generator.writeEndObject();
-    }
-
-    /**
-     * Non-leaf node in Post-aggs Json Tree, recursively copy the leaf node.
-     */
-
-    public JsonPostAggregation copy() {
-      ImmutableList.Builder<JsonPostAggregation> builder = ImmutableList.builder();
-      for (JsonPostAggregation field : fields) {
-        builder.add(field.copy());
-      }
-      return new JsonGreatestLeast(name, builder.build(), fractional, greatest);
-    }
-  }
-
-  /** Arithmetic Post aggregator writer */
-  private static class JsonArithmetic extends JsonPostAggregation {
-    final String fn;
-    final List<JsonPostAggregation> fields;
-    final String ordering;
-
-    private JsonArithmetic(String name, String fn, List<JsonPostAggregation> fields,
-                           String ordering) {
-      super(name, "arithmetic");
-      this.fn = fn;
-      this.fields = fields;
-      this.ordering = ordering;
-    }
-
-    public void write(JsonGenerator generator) throws IOException {
-      super.write(generator);
-      generator.writeStringField("fn", fn);
-      writeFieldIf(generator, "fields", fields);
-      writeFieldIf(generator, "ordering", ordering);
-      generator.writeEndObject();
-    }
-
-    /**
-     * Non-leaf node in Post-aggs Json Tree, recursively copy the leaf node.
-     */
-
-    public JsonPostAggregation copy() {
-      ImmutableList.Builder<JsonPostAggregation> builder = ImmutableList.builder();
-      for (JsonPostAggregation field : fields) {
-        builder.add(field.copy());
-      }
-      return new JsonArithmetic(name, fn, builder.build(), ordering);
-    }
-  }
-
-  /** HyperUnique Cardinality Post aggregator writer */
-  private static class JsonHyperUniqueCardinality extends JsonPostAggregation {
-    final String fieldName;
-
-    private JsonHyperUniqueCardinality(String name, String fieldName) {
-      super(name, "hyperUniqueCardinality");
-      this.fieldName = fieldName;
-    }
-
-    public void write(JsonGenerator generator) throws IOException {
-      super.write(generator);
-      generator.writeStringField("fieldName", fieldName);
-      generator.writeEndObject();
-    }
-
-    /**
-     * Leaf node in Post-aggs Json Tree, return an identical leaf node.
-     */
-
-    public JsonPostAggregation copy() {
-      return new JsonHyperUniqueCardinality(this.name, this.fieldName);
-    }
-  }
-
-  /** Theta Sketch Estimator for Post aggregation */
-  private static class JsonThetaSketchEstimate extends JsonPostAggregation {
-    final String fieldName;
-
-    private JsonThetaSketchEstimate(String name, String fieldName) {
-      super(name, "thetaSketchEstimate");
-      this.fieldName = fieldName;
-    }
-
-    @Override public JsonPostAggregation copy() {
-      return new JsonThetaSketchEstimate(name, fieldName);
-    }
-
-    @Override public void write(JsonGenerator generator) throws IOException {
-      super.write(generator);
-      // Druid spec for ThetaSketchEstimate requires a field accessor
-      writeField(generator, "field", new JsonFieldAccessor("", fieldName));
-      generator.writeEndObject();
-    }
   }
 
   /**

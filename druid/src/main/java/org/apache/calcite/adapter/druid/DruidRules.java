@@ -61,7 +61,6 @@ import org.apache.commons.lang3.tuple.ImmutableTriple;
 import org.apache.commons.lang3.tuple.Triple;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 
 import org.joda.time.Interval;
@@ -733,73 +732,19 @@ public class DruidRules {
         return;
       }
       // Either it is:
-      // - a sort and limit on a dimension/metric part of the druid group by query or
-      // - a sort without limit on the time column on top of
-      //     Agg operator (transformable to timeseries query), or
-      // - a simple limit on top of other operator than Agg
-      if (!validSortLimit(sort, query)) {
-        return;
-      }
-      final RelNode newSort = sort.copy(sort.getTraitSet(),
-              ImmutableList.of(Util.last(query.rels)));
-      call.transformTo(DruidQuery.extendQuery(query, newSort));
-    }
-
-    /** Checks whether sort is valid. */
-    private static boolean validSortLimit(Sort sort, DruidQuery query) {
+      // - a pure limit above a query of type scan
+      // - a sort and limit on a dimension/metric part of the druid group by query
       if (sort.offset != null && RexLiteral.intValue(sort.offset) != 0) {
         // offset not supported by Druid
-        return false;
+        return;
       }
-      // Use a different logic to push down Sort RelNode because the top node could be a Project now
-      final RelNode topNode = query.getTopNode();
-      final Aggregate topAgg;
-      final Project project;
-      if (topNode instanceof Project && ((Project) topNode).getInput() instanceof Aggregate) {
-        topAgg = (Aggregate) ((Project) topNode).getInput();
-      } else if (topNode instanceof Aggregate) {
-        topAgg = (Aggregate) topNode;
-      } else {
-        // If it is going to be a Druid select operator, we push the limit if
-        // it does not contain a sort specification (required by Druid)
-        return RelOptUtil.isPureLimit(sort);
+      if (query.getQueryType() == QueryType.SCAN && !RelOptUtil.isPureLimit(sort)) {
+        return;
       }
-      project = topAgg.getInput() instanceof Project ? (Project) topAgg.getInput() : null;
-      Pair<List<DimensionSpec>, List<VirtualColumn>> projectGroupSet = DruidQuery
-          .computeProjectGroupSet(project, topAgg.getGroupSet(),
-              query.table.getRowType(), query
-          );
-      if (projectGroupSet == null) {
-        // should not happen but whom knows
-        return false;
-      }
-      final List<DimensionSpec> groupByKeyDims = projectGroupSet.left;
-      if (groupByKeyDims.size() == 1
-          && ExtractionDimensionSpec.toQueryGranularity(Iterables.getOnlyElement(groupByKeyDims))
-          != null) {
-        // Case Query type Timeseries push if and only if we have one sort on time column
-        if (RelOptUtil.isLimit(sort) || sort.collation.getFieldCollations().size() > 1) {
-          // do not push limit and let it be Timeseries
-          return false;
-        }
-        // Case Query type Timeseries push if and only if we have one sort on time column
-        int index = Iterables.getOnlyElement(sort.collation.getFieldCollations()).getFieldIndex();
-        if (project == null) {
-          // this should not happen but am not sure
-          return false;
-        }
-        if (project.getProjects().size() <= index) {
-          // it is not reference from table scan thus can not be time column
-          return false;
-        }
-        Pair column = DruidQuery
-            .toDruidColumn(project.getProjects().get(index),
-                query.table.getRowType(), query
-            );
-        return column.left != null && DruidTable.DEFAULT_TIMESTAMP_COLUMN.equals(column.left);
 
-      }
-      return true;
+      final RelNode newSort = sort
+          .copy(sort.getTraitSet(), ImmutableList.of(Util.last(query.rels)));
+      call.transformTo(DruidQuery.extendQuery(query, newSort));
     }
   }
 

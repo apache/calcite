@@ -1072,15 +1072,14 @@ public class DruidAdapterIT {
         + " count(\"store_sqft\") as c\n"
         + "from \"foodmart\"\n"
         + "group by floor(\"timestamp\" to MONTH) order by s";
-    String druidQuery = "{'queryType':'timeseries','dataSource':'foodmart'";
+    String druidQuery = "{'queryType':'groupBy','dataSource':'foodmart'";
     sql(sql)
         .limit(3)
         .explainContains("PLAN=EnumerableInterpreter\n"
-            + "  BindableSort(sort0=[$0], dir0=[ASC])\n"
-            + "    BindableProject(S=[$1], C=[$2])\n"
-            + "      DruidQuery(table=[[foodmart, foodmart]], "
-            + "intervals=[[1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z]], projects=[[FLOOR"
-            + "($0, FLAG(MONTH)), $89, $71]], groups=[{0}], aggs=[[SUM($1), COUNT($2)]])")
+            + "  BindableProject(S=[$1], C=[$2])\n"
+            + "    DruidQuery(table=[[foodmart, foodmart]], intervals=[[1900-01-09T00:00:00.000Z/"
+            + "2992-01-10T00:00:00.000Z]], projects=[[FLOOR($0, FLAG(MONTH)), $89, $71]], "
+            + "groups=[{0}], aggs=[[SUM($1), COUNT($2)]], sort0=[1], dir0=[ASC])")
         .returnsOrdered("S=19958; C=5606", "S=20179; C=5523", "S=20388; C=5591")
         .queryContains(druidChecker(druidQuery));
   }
@@ -1124,10 +1123,10 @@ public class DruidAdapterIT {
         + "group by floor(\"timestamp\" to MONTH)\n"
         + "order by floor(\"timestamp\" to MONTH) limit 3";
     final String explain = "PLAN=EnumerableInterpreter\n"
-        + "  BindableSort(sort0=[$3], dir0=[ASC], fetch=[3])\n"
-        + "    DruidQuery(table=[[foodmart, foodmart]], intervals=[[1900-01-09T00:00:00.000Z/"
+        + "  DruidQuery(table=[[foodmart, foodmart]], intervals=[[1900-01-09T00:00:00.000Z/"
         + "2992-01-10T00:00:00.000Z]], projects=[[FLOOR($0, FLAG(MONTH)), $89, $71]], groups=[{0}], "
-        + "aggs=[[SUM($1), COUNT($2)]], post_projects=[[CAST($0):TIMESTAMP(0) NOT NULL, $1, $2, $0]])";
+        + "aggs=[[SUM($1), COUNT($2)]], post_projects=[[CAST($0):TIMESTAMP(0) NOT NULL, $1, $2, $0]]"
+        + ", sort0=[3], dir0=[ASC], fetch=[3])";
     sql(sql)
         .returnsOrdered("M=1997-01-01 00:00:00; S=21628; C=5957",
             "M=1997-02-01 00:00:00; S=20957; C=5842",
@@ -1140,7 +1139,7 @@ public class DruidAdapterIT {
         + " count(\"store_sqft\") as c\n"
         + "from \"foodmart\"\n"
         + "group by floor(\"timestamp\" to DAY) order by c desc";
-    String druidQuery = "{'queryType':'timeseries','dataSource':'foodmart'";
+    String druidQuery = "{'queryType':'groupBy','dataSource':'foodmart'";
     sql(sql)
         .limit(3)
         .queryContains(druidChecker(druidQuery))
@@ -1155,7 +1154,7 @@ public class DruidAdapterIT {
         + "where \"timestamp\" >= '1996-01-01 00:00:00 UTC' and "
         + " \"timestamp\" < '1998-01-01 00:00:00 UTC'\n"
         + "group by floor(\"timestamp\" to MONTH) order by s asc";
-    String druidQuery = "{'queryType':'timeseries','dataSource':'foodmart'";
+    String druidQuery = "{'queryType':'groupBy','dataSource':'foodmart'";
 
     sql(sql)
         .limit(3)
@@ -1863,7 +1862,9 @@ public class DruidAdapterIT {
     sql(sql)
         .queryContains(druidChecker("'queryType':'timeseries'", "'descending':true"))
         .explainContains("PLAN=EnumerableInterpreter\n"
-            + "  DruidQuery(table=[[foodmart, foodmart]], intervals=[[1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z]], projects=[[FLOOR($0, FLAG(MONTH))]], groups=[{0}], aggs=[[]], post_projects=[[CAST($0):TIMESTAMP(0) NOT NULL]], sort0=[0], dir0=[DESC])\n");
+            + "  DruidQuery(table=[[foodmart, foodmart]], intervals=[[1900-01-09T00:00:00.000Z"
+            + "/2992-01-10T00:00:00.000Z]], projects=[[FLOOR($0, FLAG(MONTH))]], groups=[{0}], "
+            + "aggs=[[]], post_projects=[[CAST($0):TIMESTAMP(0) NOT NULL]], sort0=[0], dir0=[DESC])");
 
   }
 
@@ -1874,13 +1875,15 @@ public class DruidAdapterIT {
         + "group by floor(\"timestamp\" to MONTH)\n"
         + "order by \"floor_month\" DESC LIMIT 3";
     final String explain =
-        "BindableSort(sort0=[$0], dir0=[DESC], fetch=[3])\n"
-            + "    DruidQuery(table=[[foodmart, foodmart]], intervals=[[1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z]], projects=[[FLOOR($0, FLAG(MONTH))]], groups=[{0}], aggs=[[]], post_projects=[[CAST($0):TIMESTAMP(0) NOT NULL]], sort0=[0], dir0=[DESC])";
+        "PLAN=EnumerableInterpreter\n"
+            + "  DruidQuery(table=[[foodmart, foodmart]], intervals=[[1900-01-09T00:00:00.000Z/"
+            + "2992-01-10T00:00:00.000Z]], projects=[[FLOOR($0, FLAG(MONTH))]], groups=[{0}], "
+            + "aggs=[[]], post_projects=[[CAST($0):TIMESTAMP(0) NOT NULL]], sort0=[0], dir0=[DESC], fetch=[3])";
     sql(sql)
         .explainContains(explain)
         .returnsOrdered("floor_month=1997-12-01 00:00:00", "floor_month=1997-11-01 00:00:00",
             "floor_month=1997-10-01 00:00:00")
-        .queryContains(druidChecker("'queryType':'timeseries'", "'descending':true"));
+        .queryContains(druidChecker("'queryType':'groupBy'", "'direction':'descending'"));
   }
 
   @Test public void testPushofOrderByYearWithYearMonthExtract() {
@@ -1973,13 +1976,12 @@ public class DruidAdapterIT {
         "C=6662; S=20388; EXPR$2=1997-09-01 00:00:00",
         "C=6588; S=20179; EXPR$2=1997-04-01 00:00:00",
         "C=6478; S=19958; EXPR$2=1997-10-01 00:00:00")
-        .queryContains(druidChecker("'queryType':'timeseries'"))
+        .queryContains(druidChecker("'queryType':'groupBy'"))
         .explainContains("PLAN=EnumerableInterpreter\n"
-            + "  BindableSort(sort0=[$1], dir0=[DESC])\n"
-            + "    DruidQuery(table=[[foodmart, foodmart]], intervals=[[1900-01-09T00:00:00.000Z/"
-            + "2992-01-10T00:00:00.000Z]], projects=[[FLOOR($0, FLAG(MONTH)), $89]], "
-            + "groups=[{0}], aggs=[[COUNT(), SUM($1)]], post_projects=[[$1, $2, CAST($0):"
-            + "TIMESTAMP(0) NOT NULL]])");
+            + "  DruidQuery(table=[[foodmart, foodmart]], intervals=[[1900-01-09T00:00:00.000Z/"
+            + "2992-01-10T00:00:00.000Z]], projects=[[FLOOR($0, FLAG(MONTH)), $89]], groups=[{0}], "
+            + "aggs=[[COUNT(), SUM($1)]], post_projects=[[$1, $2, CAST($0):TIMESTAMP(0) NOT NULL]],"
+            + " sort0=[1], dir0=[DESC])");
   }
 
   @Test public void testNumericOrderingOfOrderByOperatorFullTime() {
@@ -3828,8 +3830,11 @@ public class DruidAdapterIT {
             + "CAST(FLOOR(CAST(\"timestamp\" AS DATE) to MONTH) AS DATE) = "
             + " CAST('1997-01-01' as DATE) GROUP BY  floor(\"timestamp\" to DAY) order by d limit 3";
     final String plan = "PLAN=EnumerableInterpreter\n"
-        + "  BindableSort(sort0=[$0], dir0=[ASC], fetch=[3])\n"
-        + "    DruidQuery(table=[[foodmart, foodmart]], intervals=[[1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z]], filter=[=(CAST(FLOOR(CAST($0):DATE NOT NULL, FLAG(MONTH))):DATE NOT NULL, 1997-01-01)], projects=[[FLOOR($0, FLAG(DAY))]], groups=[{0}], aggs=[[]], post_projects=[[CAST($0):TIMESTAMP(0) NOT NULL]], sort0=[0], dir0=[ASC])";
+        + "  DruidQuery(table=[[foodmart, foodmart]], intervals=[[1900-01-09T00:00:00.000Z/"
+        + "2992-01-10T00:00:00.000Z]], filter=[=(CAST(FLOOR(CAST($0):DATE NOT NULL, "
+        + "FLAG(MONTH))):DATE NOT NULL, 1997-01-01)], projects=[[FLOOR($0, FLAG(DAY))]], "
+        + "groups=[{0}], aggs=[[]], post_projects=[[CAST($0):TIMESTAMP(0) NOT NULL]]"
+        + ", sort0=[0], dir0=[ASC], fetch=[3])";
     sql(sql, FOODMART)
         .explainContains(plan)
         .returnsOrdered("D=1997-01-01 00:00:00", "D=1997-01-02 00:00:00", "D=1997-01-03 00:00:00");
