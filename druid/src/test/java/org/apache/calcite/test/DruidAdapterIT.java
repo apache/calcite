@@ -1505,7 +1505,7 @@ public class DruidAdapterIT {
                 "{'type':'extraction',"
                     + "'dimension':'__time','outputName':'extract_year',"
                     + "'extractionFn':{'type':'timeFormat','format':'yyyy',"
-                    + "'timeZone':'UTC','locale':'en-US'}}"))
+                    + "'timeZone':'UTC','locale':'und'}}"))
         .returnsUnordered("year=1997; product_id=1016");
   }
 
@@ -1522,7 +1522,7 @@ public class DruidAdapterIT {
                 "{'type':'extraction',"
                     + "'dimension':'__time','outputName':'extract_month',"
                     + "'extractionFn':{'type':'timeFormat','format':'M',"
-                    + "'timeZone':'UTC','locale':'en-US'}}"))
+                    + "'timeZone':'UTC','locale':'und'}}"))
         .returnsUnordered("month=1; product_id=1016", "month=2; product_id=1016",
             "month=3; product_id=1016", "month=4; product_id=1016", "month=5; product_id=1016");
   }
@@ -1541,7 +1541,7 @@ public class DruidAdapterIT {
                 "{'type':'extraction',"
                     + "'dimension':'__time','outputName':'extract_day',"
                     + "'extractionFn':{'type':'timeFormat','format':'d',"
-                    + "'timeZone':'UTC','locale':'en-US'}}"))
+                    + "'timeZone':'UTC','locale':'und'}}"))
         .returnsUnordered("day=2; product_id=1016", "day=10; product_id=1016",
             "day=13; product_id=1016", "day=16; product_id=1016");
   }
@@ -1585,13 +1585,13 @@ public class DruidAdapterIT {
                 "{'type':'extraction',"
                     + "'dimension':'__time','outputName':'extract_day',"
                     + "'extractionFn':{'type':'timeFormat','format':'d',"
-                    + "'timeZone':'UTC','locale':'en-US'}}", "{'type':'extraction',"
+                    + "'timeZone':'UTC','locale':'und'}}", "{'type':'extraction',"
                     + "'dimension':'__time','outputName':'extract_month',"
                     + "'extractionFn':{'type':'timeFormat','format':'M',"
-                    + "'timeZone':'UTC','locale':'en-US'}}", "{'type':'extraction',"
+                    + "'timeZone':'UTC','locale':'und'}}", "{'type':'extraction',"
                     + "'dimension':'__time','outputName':'extract_year',"
                     + "'extractionFn':{'type':'timeFormat','format':'yyyy',"
-                    + "'timeZone':'UTC','locale':'en-US'}}"))
+                    + "'timeZone':'UTC','locale':'und'}}"))
         .explainContains("PLAN=EnumerableInterpreter\n"
             + "  DruidQuery(table=[[foodmart, foodmart]], "
             + "intervals=[[1997-01-01T00:00:00.001Z/1997-01-20T00:00:00.000Z]], "
@@ -1618,13 +1618,13 @@ public class DruidAdapterIT {
                 ",'granularity':{'type':'all'}", "{'type':'extraction',"
                     + "'dimension':'__time','outputName':'extract_day',"
                     + "'extractionFn':{'type':'timeFormat','format':'d',"
-                    + "'timeZone':'UTC','locale':'en-US'}}", "{'type':'extraction',"
+                    + "'timeZone':'UTC','locale':'und'}}", "{'type':'extraction',"
                     + "'dimension':'__time','outputName':'extract_month',"
                     + "'extractionFn':{'type':'timeFormat','format':'M',"
-                    + "'timeZone':'UTC','locale':'en-US'}}", "{'type':'extraction',"
+                    + "'timeZone':'UTC','locale':'und'}}", "{'type':'extraction',"
                     + "'dimension':'__time','outputName':'extract_year',"
                     + "'extractionFn':{'type':'timeFormat','format':'yyyy',"
-                    + "'timeZone':'UTC','locale':'en-US'}}"))
+                    + "'timeZone':'UTC','locale':'und'}}"))
         .explainContains("PLAN=EnumerableInterpreter\n"
             + "  DruidQuery(table=[[foodmart, foodmart]], "
             + "intervals=[[1997-01-01T00:00:00.001Z/1997-01-20T00:00:00.000Z]], "
@@ -1650,7 +1650,7 @@ public class DruidAdapterIT {
                 ",'granularity':{'type':'all'}", "{'type':'extraction',"
                     + "'dimension':'__time','outputName':'extract_day',"
                     + "'extractionFn':{'type':'timeFormat','format':'d',"
-                    + "'timeZone':'UTC','locale':'en-US'}}"))
+                    + "'timeZone':'UTC','locale':'und'}}"))
         .explainContains("PLAN=EnumerableInterpreter\n"
             + "  DruidQuery(table=[[foodmart, foodmart]], "
             + "intervals=[[1997-01-01T00:00:00.001Z/1997-01-20T00:00:00.000Z]], "
@@ -1674,7 +1674,7 @@ public class DruidAdapterIT {
         + "'upper':'15','upperStrict':true,'ordering':'numeric'},"
         + "{'type':'selector','dimension':'__time','value':'1997',"
         + "'extractionFn':{'type':'timeFormat','format':'yyyy','timeZone':'UTC',"
-        + "'locale':'en-US'}}]},'aggregations':[{'type':'doubleSum',"
+        + "'locale':'und'}}]},'aggregations':[{'type':'doubleSum',"
         + "'name':'EXPR$0','fieldName':'store_sales'}],"
         + "'intervals':['1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z'],"
         + "'context':{'skipEmptyBuckets':true}}";
@@ -1701,18 +1701,18 @@ public class DruidAdapterIT {
                 + "'granularity':{'type':'all'},'dimensions':[{'type':'default',"
                 + "'dimension':'product_id'},{'type':'extraction','dimension':'__time',"
                 + "'outputName':'extract_day','extractionFn':{'type':'timeFormat',"
-                + "'format':'d','timeZone':'UTC','locale':'en-US'}},{'type':'extraction',"
+                + "'format':'d','timeZone':'UTC','locale':'und'}},{'type':'extraction',"
                 + "'dimension':'__time','outputName':'extract_month',"
                 + "'extractionFn':{'type':'timeFormat','format':'M','timeZone':'UTC',"
-                + "'locale':'en-US'}}],'limitSpec':{'type':'default'},"
+                + "'locale':'und'}}],'limitSpec':{'type':'default'},"
                 + "'filter':{'type':'and','fields':[{'type':'bound',"
                 + "'dimension':'product_id','lower':'1549','lowerStrict':false,"
                 + "'ordering':'numeric'},{'type':'bound','dimension':'__time',"
                 + "'lower':'30','lowerStrict':false,'ordering':'numeric',"
                 + "'extractionFn':{'type':'timeFormat','format':'d','timeZone':'UTC',"
-                + "'locale':'en-US'}},{'type':'selector','dimension':'__time',"
+                + "'locale':'und'}},{'type':'selector','dimension':'__time',"
                 + "'value':'11','extractionFn':{'type':'timeFormat','format':'M',"
-                + "'timeZone':'UTC','locale':'en-US'}}]},'aggregations':[],"
+                + "'timeZone':'UTC','locale':'und'}}]},'aggregations':[],"
                 + "'intervals':['1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z']}"))
         .returnsUnordered("product_id=1549; EXPR$1=30; EXPR$2=11",
             "product_id=1553; EXPR$1=30; EXPR$2=11");
@@ -1731,22 +1731,22 @@ public class DruidAdapterIT {
                 + "'granularity':{'type':'all'},'dimensions':[{'type':'default',"
                 + "'dimension':'product_id'},{'type':'extraction','dimension':'__time',"
                 + "'outputName':'extract_day','extractionFn':{'type':'timeFormat',"
-                + "'format':'d','timeZone':'UTC','locale':'en-US'}},{'type':'extraction',"
+                + "'format':'d','timeZone':'UTC','locale':'und'}},{'type':'extraction',"
                 + "'dimension':'__time','outputName':'extract_month',"
                 + "'extractionFn':{'type':'timeFormat','format':'M','timeZone':'UTC',"
-                + "'locale':'en-US'}},{'type':'extraction','dimension':'__time',"
+                + "'locale':'und'}},{'type':'extraction','dimension':'__time',"
                 + "'outputName':'extract_year','extractionFn':{'type':'timeFormat',"
-                + "'format':'yyyy','timeZone':'UTC','locale':'en-US'}}],"
+                + "'format':'yyyy','timeZone':'UTC','locale':'und'}}],"
                 + "'limitSpec':{'type':'default'},'filter':{'type':'and',"
                 + "'fields':[{'type':'bound','dimension':'product_id','lower':'1549',"
                 + "'lowerStrict':false,'ordering':'numeric'},{'type':'bound',"
                 + "'dimension':'__time','lower':'30','lowerStrict':false,"
                 + "'ordering':'numeric','extractionFn':{'type':'timeFormat','format':'d',"
-                + "'timeZone':'UTC','locale':'en-US'}},{'type':'selector',"
+                + "'timeZone':'UTC','locale':'und'}},{'type':'selector',"
                 + "'dimension':'__time','value':'11','extractionFn':{'type':'timeFormat',"
-                + "'format':'M','timeZone':'UTC','locale':'en-US'}},{'type':'selector',"
+                + "'format':'M','timeZone':'UTC','locale':'und'}},{'type':'selector',"
                 + "'dimension':'__time','value':'1997','extractionFn':{'type':'timeFormat',"
-                + "'format':'yyyy','timeZone':'UTC','locale':'en-US'}}]},"
+                + "'format':'yyyy','timeZone':'UTC','locale':'und'}}]},"
                 + "'aggregations':[],"
                 + "'intervals':['1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z']}"))
         .returnsUnordered("product_id=1549; EXPR$1=30; EXPR$2=11; EXPR$3=1997",
@@ -1761,16 +1761,16 @@ public class DruidAdapterIT {
         + "'granularity':{'type':'all'},'dimensions':[{'type':'default',"
         + "'dimension':'product_id'},{'type':'extraction','dimension':'__time',"
         + "'outputName':'extract_month','extractionFn':{'type':'timeFormat',"
-        + "'format':'M','timeZone':'UTC','locale':'en-US'}}],"
+        + "'format':'M','timeZone':'UTC','locale':'und'}}],"
         + "'limitSpec':{'type':'default'},'filter':{'type':'and',"
         + "'fields':[{'type':'bound','dimension':'product_id','lower':'1558',"
         + "'lowerStrict':false,'ordering':'numeric'},{'type':'bound',"
         + "'dimension':'__time','lower':'10','lowerStrict':false,"
         + "'ordering':'numeric','extractionFn':{'type':'timeFormat','format':'M',"
-        + "'timeZone':'UTC','locale':'en-US'}},{'type':'bound',"
+        + "'timeZone':'UTC','locale':'und'}},{'type':'bound',"
         + "'dimension':'__time','upper':'11','upperStrict':false,"
         + "'ordering':'numeric','extractionFn':{'type':'timeFormat','format':'M',"
-        + "'timeZone':'UTC','locale':'en-US'}}]},'aggregations':[],"
+        + "'timeZone':'UTC','locale':'und'}}]},'aggregations':[],"
         + "'intervals':['1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z']}";
     sql(sqlQuery)
         .returnsUnordered("product_id=1558; EXPR$1=10", "product_id=1558; EXPR$1=11",
@@ -1789,14 +1789,14 @@ public class DruidAdapterIT {
                 + "'dimensions':[{'type':'default','dimension':'product_id'},"
                 + "{'type':'extraction','dimension':'__time','outputName':'extract_month',"
                 + "'extractionFn':{'type':'timeFormat','format':'M','timeZone':'UTC',"
-                + "'locale':'en-US'}}],'limitSpec':{'type':'default'},"
+                + "'locale':'und'}}],'limitSpec':{'type':'default'},"
                 + "'filter':{'type':'and','fields':[{'type':'bound',"
                 + "'dimension':'product_id','lower':'1558','lowerStrict':false,"
                 + "'ordering':'numeric'},{'type':'or','fields':[{'type':'selector',"
                 + "'dimension':'__time','value':'10','extractionFn':{'type':'timeFormat',"
-                + "'format':'M','timeZone':'UTC','locale':'en-US'}},{'type':'selector',"
+                + "'format':'M','timeZone':'UTC','locale':'und'}},{'type':'selector',"
                 + "'dimension':'__time','value':'11','extractionFn':{'type':'timeFormat',"
-                + "'format':'M','timeZone':'UTC','locale':'en-US'}}]}]},"
+                + "'format':'M','timeZone':'UTC','locale':'und'}}]}]},"
                 + "'aggregations':[],"
                 + "'intervals':['1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z']}"))
         .returnsUnordered("product_id=1558; EXPR$1=10", "product_id=1558; EXPR$1=11",
@@ -1814,7 +1814,7 @@ public class DruidAdapterIT {
             + "'granularity':{'type':'all'},'dimensions':[{'type':'extraction',"
             + "'dimension':'__time','outputName':'extract_month',"
             + "'extractionFn':{'type':'timeFormat','format':'M','timeZone':'UTC',"
-            + "'locale':'en-US'}},{'type':'default','dimension':'product_id'}],"
+            + "'locale':'und'}},{'type':'default','dimension':'product_id'}],"
             + "'limitSpec':{'type':'default','columns':[{'dimension':'extract_month',"
             + "'direction':'ascending','dimensionOrder':'numeric'},{'dimension':'S',"
             + "'direction':'ascending','dimensionOrder':'numeric'},"
@@ -1881,9 +1881,9 @@ public class DruidAdapterIT {
         + "'granularity':{'type':'all'},'dimensions':[{'type':'extraction',"
         + "'dimension':'__time','outputName':'extract_year',"
         + "'extractionFn':{'type':'timeFormat','format':'yyyy','timeZone':'UTC',"
-        + "'locale':'en-US'}},{'type':'extraction','dimension':'__time',"
+        + "'locale':'und'}},{'type':'extraction','dimension':'__time',"
         + "'outputName':'extract_month','extractionFn':{'type':'timeFormat',"
-        + "'format':'M','timeZone':'UTC','locale':'en-US'}},{'type':'default',"
+        + "'format':'M','timeZone':'UTC','locale':'und'}},{'type':'default',"
         + "'dimension':'product_id'}],'limitSpec':{'type':'default','limit':3,"
         + "'columns':[{'dimension':'extract_year','direction':'descending',"
         + "'dimensionOrder':'numeric'},{'dimension':'extract_month',"
@@ -1916,9 +1916,9 @@ public class DruidAdapterIT {
         + "'granularity':{'type':'all'},'dimensions':[{'type':'extraction',"
         + "'dimension':'__time','outputName':'extract_year',"
         + "'extractionFn':{'type':'timeFormat','format':'yyyy','timeZone':'UTC',"
-        + "'locale':'en-US'}},{'type':'extraction','dimension':'__time',"
+        + "'locale':'und'}},{'type':'extraction','dimension':'__time',"
         + "'outputName':'extract_month','extractionFn':{'type':'timeFormat',"
-        + "'format':'M','timeZone':'UTC','locale':'en-US'}},{'type':'default',"
+        + "'format':'M','timeZone':'UTC','locale':'und'}},{'type':'default',"
         + "'dimension':'product_id'}],'limitSpec':{'type':'default','limit':3,"
         + "'columns':[{'dimension':'S','direction':'descending',"
         + "'dimensionOrder':'numeric'},{'dimension':'extract_month',"
@@ -2018,14 +2018,14 @@ public class DruidAdapterIT {
         + "'granularity':{'type':'all'},'dimensions':[{'type':'extraction',"
         + "'dimension':'__time','outputName':'extract_week',"
         + "'extractionFn':{'type':'timeFormat','format':'w','timeZone':'UTC',"
-        + "'locale':'en-US'}}],'limitSpec':{'type':'default'},"
+        + "'locale':'und'}}],'limitSpec':{'type':'default'},"
         + "'filter':{'type':'and','fields':[{'type':'selector',"
         + "'dimension':'product_id','value':'1558'},{'type':'or',"
         + "'fields':[{'type':'selector','dimension':'__time','value':'10',"
         + "'extractionFn':{'type':'timeFormat','format':'w','timeZone':'UTC',"
-        + "'locale':'en-US'}},{'type':'selector','dimension':'__time',"
+        + "'locale':'und'}},{'type':'selector','dimension':'__time',"
         + "'value':'11','extractionFn':{'type':'timeFormat','format':'w',"
-        + "'timeZone':'UTC','locale':'en-US'}}]}]},"
+        + "'timeZone':'UTC','locale':'und'}}]}]},"
         + "'aggregations':[],"
         + "'intervals':['1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z']}";
     sql(sql).returnsOrdered("EXPR$0=10\nEXPR$0=11").queryContains(druidChecker(druidQuery));
@@ -2282,9 +2282,9 @@ public class DruidAdapterIT {
     final String druidQuery = "'filter':{'type':'and','fields':[{'type':'selector','dimension'"
         + ":'brand_name','value':'Bird Call'},{'type':'or','fields':[{'type':'selector',"
         + "'dimension':'__time','value':'10','extractionFn':{'type':'timeFormat','format'"
-        + ":'w','timeZone':'UTC','locale':'en-US'}},{'type':'selector','dimension':'__time'"
+        + ":'w','timeZone':'UTC','locale':'und'}},{'type':'selector','dimension':'__time'"
         + ",'value':'11','extractionFn':{'type':'timeFormat','format':'w','timeZone':'UTC'"
-        + ",'locale':'en-US'}}]}]},'aggregations':[{'type':'doubleSum','name':'$f2',"
+        + ",'locale':'und'}}]}]},'aggregations':[{'type':'doubleSum','name':'$f2',"
         + "'fieldName':'store_sales'},{'type':'doubleSum','name':'$f3','fieldName':"
         + "'store_cost'}],'postAggregations':[{'type':'arithmetic','name':'postagg#0'"
         + ",'fn':'-','fields':[{'type':'fieldAccess','name':'','fieldName':'$f2'},"
@@ -3401,7 +3401,7 @@ public class DruidAdapterIT {
     final String druidQueryPart2 = "HH:mm:ss.SSS";
     final String druidQueryPart3 = ",\"granularity\":{\"type\":\"period\",\"period\":\"P1M\","
         + "\"timeZone\":\"UTC\"},\"timeZone\":\"UTC\","
-        + "\"locale\":\"en-US\"}},{\"type\":\"bound\",\"dimension\":\"__time\""
+        + "\"locale\":\"und\"}},{\"type\":\"bound\",\"dimension\":\"__time\""
         + ",\"upper\":\"1997-03-01T00:00:00.000Z\",\"upperStrict\":false,"
         + "\"ordering\":\"lexicographic\",\"extractionFn\":{\"type\":\"timeFormat\"";
     final String druidQueryPart4 = "\"columns\":[\"__time\"],\"granularity\":{\"type\":\"all\"}";
@@ -3422,7 +3422,7 @@ public class DruidAdapterIT {
         + "\"format\":\"yyyy-MM-dd";
     final String druidQueryPart2 = "\"granularity\":{\"type\":\"period\",\"period\":\"P1M\","
         + "\"timeZone\":\"UTC\"},\"timeZone\":\"UTC\","
-        + "\"locale\":\"en-US\"}},\"columns\":[\"__time\"],\"granularity\":{\"type\":\"all\"}";
+        + "\"locale\":\"und\"}},\"columns\":[\"__time\"],\"granularity\":{\"type\":\"all\"}";
 
     sql(sql, FOODMART).queryContains(druidChecker(druidQueryPart1, druidQueryPart2))
         .returnsOrdered("T=1997-05-01 00:00:00");
@@ -3438,7 +3438,7 @@ public class DruidAdapterIT {
         + "\"format\":\"yyyy-MM-dd";
     final String druidQueryPart2 = "\"granularity\":{\"type\":\"period\",\"period\":\"P1M\","
         + "\"timeZone\":\"UTC\"},\"timeZone\":\"UTC\","
-        + "\"locale\":\"en-US\"}},\"columns\":[\"__time\"],\"granularity\":{\"type\":\"all\"}";
+        + "\"locale\":\"und\"}},\"columns\":[\"__time\"],\"granularity\":{\"type\":\"all\"}";
 
     sql(sql, FOODMART).queryContains(druidChecker(druidQueryPart1, druidQueryPart2))
         .returnsOrdered("T=1997-05-01 00:00:00");
@@ -3454,7 +3454,7 @@ public class DruidAdapterIT {
         + "\"format\":\"yyyy-MM-dd";
     final String druidQueryPart2 = "\"granularity\":{\"type\":\"period\",\"period\":\"PT1H\","
         + "\"timeZone\":\"IST\"},\"timeZone\":\"IST\","
-        + "\"locale\":\"en-US\"}},\"columns\":[\"__time\"],\"granularity\":{\"type\":\"all\"}";
+        + "\"locale\":\"und\"}},\"columns\":[\"__time\"],\"granularity\":{\"type\":\"all\"}";
 
     CalciteAssert.that()
         .enable(enabled())
@@ -3477,7 +3477,7 @@ public class DruidAdapterIT {
         + "\"format\":\"yyyy-MM-dd";
     final String druidQueryPart2 = "\"granularity\":{\"type\":\"period\",\"period\":\"PT1H\","
         + "\"timeZone\":\"IST\"},\"timeZone\":\"IST\","
-        + "\"locale\":\"en-US\"}},\"columns\":[\"__time\",\"countryName\"],"
+        + "\"locale\":\"und\"}},\"columns\":[\"__time\",\"countryName\"],"
         + "\"granularity\":{\"type\":\"all\"}";
 
     CalciteAssert.that()
