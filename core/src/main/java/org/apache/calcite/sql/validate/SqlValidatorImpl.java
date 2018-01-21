@@ -2673,8 +2673,10 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         if (call != null
             && call.getOperator().getKind() == SqlKind.OVER
             && call.getOperandList().size() != 0) {
-          if (call.operand(0) instanceof SqlCall
-              && isNestedAggregateWindow((SqlCall) call.operand(0))) {
+          if ((call.operand(0) instanceof SqlCall
+                && isNestedAggregateWindow((SqlCall) call.operand(0)))
+              || (call.operand(1) instanceof SqlCall
+                && isOverAggregateWindow((SqlCall) call.operand(1)))) {
             return true;
           }
         }
@@ -2687,6 +2689,10 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     AggFinder nestedAggFinder =
         new AggFinder(opTab, false, false, false, aggFinder);
     return nestedAggFinder.findAgg(windowFunction) != null;
+  }
+
+  protected boolean isOverAggregateWindow(SqlCall windowFunction) {
+    return aggFinder.findAgg(windowFunction) != null;
   }
 
   /** Returns the parse tree node (GROUP BY, HAVING, or an aggregate function
