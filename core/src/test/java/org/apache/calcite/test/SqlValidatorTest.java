@@ -6948,6 +6948,14 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         ERR_AGG_IN_GROUP_BY);
   }
 
+  @Test public void testAggregateInsideOverClause() {
+    checkFails("select ^empno^, sum(empno) over (partition by min(sal))"
+        + " empno_sum from emp", "Expression 'EMPNO' is not being grouped");
+
+    check("select ^empno^, sum(empno) over (partition by min(sal))"
+        + " empno_sum from emp group by empno");
+  }
+
   @Test public void testAggregateInNonGroupBy() {
     checkFails("select count(1), ^empno^ from emp",
         "Expression 'EMPNO' is not being grouped");
