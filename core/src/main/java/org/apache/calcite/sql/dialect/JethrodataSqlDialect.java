@@ -17,6 +17,9 @@
 package org.apache.calcite.sql.dialect;
 
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexOver;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
@@ -33,9 +36,9 @@ import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -82,8 +85,14 @@ public class JethrodataSqlDialect extends SqlDialect {
     return false;
   }
 
-  @Override public boolean supportsFunction(SqlOperator operator,
-                                            RelDataType type, List<RelDataType> paramsList) {
+  @Override public boolean supportsFunction(RexCall call) {
+
+    if (call instanceof RexOver) {
+      return false;
+    }
+
+    final SqlOperator operator = call.getOperator();
+
     if (operator.getKind() == SqlKind.IS_NOT_NULL
         || operator.getKind() == SqlKind.IS_NULL
         || operator.getKind() == SqlKind.AND
@@ -94,14 +103,20 @@ public class JethrodataSqlDialect extends SqlDialect {
         || operator.getKind() == SqlKind.CAST) {
       return true;
     }
+
+    ArrayList<RelDataType> paramsListType = new ArrayList<RelDataType>();
+    for (RexNode currNode : call.getOperands()) {
+      paramsListType.add(currNode.getType());
+    }
+
     if (supportedFunctions != null) {
       Set<SupportedFunction> currMethodSignatures = supportedFunctions.get(operator.getName());
 
       if (currMethodSignatures != null) {
         for (SupportedFunction curr : currMethodSignatures) {
-          if (paramsList.size() == curr.operandsType.length) {
-            for (int i = 0; i < paramsList.size(); i++) {
-              if (paramsList.get(i).getSqlTypeName() != curr.operandsType[i]) {
+          if (paramsListType.size() == curr.operandsType.length) {
+            for (int i = 0; i < paramsListType.size(); i++) {
+              if (paramsListType.get(i).getSqlTypeName() != curr.operandsType[i]) {
                 continue;
               }
             }
@@ -110,7 +125,7 @@ public class JethrodataSqlDialect extends SqlDialect {
         }
       }
     }
-    LOG.debug("Unsupported function in jethro: " + operator + " with params " + paramsList);
+    LOG.debug("Unsupported function in jethro: " + operator + " with params " + paramsListType);
     return false;
   }
 

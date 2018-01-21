@@ -21,6 +21,7 @@ import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.linq4j.function.Experimental;
 import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.sql.dialect.AnsiSqlDialect;
 import org.apache.calcite.sql.dialect.CalciteSqlDialect;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
@@ -504,8 +505,7 @@ public class SqlDialect {
     return false;
   }
 
-  public boolean supportsFunction(SqlOperator operator, RelDataType type,
-                                  List<RelDataType> paramsList) {
+  public boolean supportsFunction(RexCall call) {
     return true;
   }
 
