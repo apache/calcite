@@ -2667,33 +2667,34 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       return true;
     }
     // Also when nested window aggregates are present
-    for (SqlNode node : select.getSelectList()) {
-      if (node instanceof SqlCall) {
-        SqlCall call = (SqlCall) overFinder.findAgg(node);
-        if (call != null
-            && call.getOperator().getKind() == SqlKind.OVER
-            && call.getOperandList().size() != 0) {
-          if (call.operand(0) instanceof SqlCall
-              && isNestedAggregateWindow((SqlCall) call.operand(0))) {
-            return true;
-          }
-        }
+    for (SqlCall call : overFinder.findAll(select.getSelectList())) {
+      assert call.getKind() == SqlKind.OVER;
+      if (isNestedAggregateWindow(call.operand(0))) {
+        return true;
+      }
+      if (isOverAggregateWindow(call.operand(1))) {
+        return true;
       }
     }
     return false;
   }
 
-  protected boolean isNestedAggregateWindow(SqlCall windowFunction) {
+  protected boolean isNestedAggregateWindow(SqlNode node) {
     AggFinder nestedAggFinder =
         new AggFinder(opTab, false, false, false, aggFinder);
-    return nestedAggFinder.findAgg(windowFunction) != null;
+    return nestedAggFinder.findAgg(node) != null;
+  }
+
+  protected boolean isOverAggregateWindow(SqlNode node) {
+    return aggFinder.findAgg(node) != null;
   }
 
   /** Returns the parse tree node (GROUP BY, HAVING, or an aggregate function
-   * call) that causes {@code select} to be an aggregate query, or null if it is
-   * not an aggregate query.
+   * call) that causes {@code select} to be an aggregate query, or null if it
+   * is not an aggregate query.
    *
-   * <p>The node is useful context for error messages. */
+   * <p>The node is useful context for error messages,
+   * but you cannot assume that the node is the only aggregate function. */
   protected SqlNode getAggregate(SqlSelect select) {
     SqlNode node = select.getGroup();
     if (node != null) {
@@ -2706,6 +2707,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     return getAgg(select);
   }
 
+  /** If there is at least one call to an aggregate function, returns the
+   * first. */
   private SqlNode getAgg(SqlSelect select) {
     final SelectScope selectScope = getRawSelectScope(select);
     if (selectScope != null) {

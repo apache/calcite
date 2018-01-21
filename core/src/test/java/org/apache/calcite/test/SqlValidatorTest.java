@@ -3963,6 +3963,27 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     winSql(sql2).fails("Expression 'EMPNO' is not being grouped");
   }
 
+  @Test public void testAggregateInsideOverClause() {
+    final String sql = "select ^empno^,\n"
+        + "  sum(empno) over (partition by min(sal)) empno_sum\n"
+        + "from emp";
+    sql(sql).fails("Expression 'EMPNO' is not being grouped");
+
+    final String sql2 = "select ^empno^,\n"
+        + "  sum(empno) over (partition by min(sal)) empno_sum\n"
+        + "from emp\n"
+        + "group by empno";
+    sql(sql2).ok();
+  }
+
+  @Test public void testAggregateInsideOverClause2() {
+    final String sql = "select ^empno^,\n"
+        + "  sum(empno) over ()\n"
+        + "  + sum(empno) over (partition by min(sal)) empno_sum\n"
+        + "from emp";
+    sql(sql).fails("Expression 'EMPNO' is not being grouped");
+  }
+
   @Test public void testWindowFunctions() {
     // SQL 03 Section 6.10
 
