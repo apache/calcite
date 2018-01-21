@@ -19,6 +19,7 @@ package org.apache.calcite.adapter.druid;
 import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexLiteral;
+import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlKind;
 
 import com.fasterxml.jackson.core.JsonGenerator;
@@ -123,21 +124,22 @@ public class TimeExtractionFunction implements ExtractionFunction {
   public static TimeExtractionFunction createFloorFromGranularity(
       Granularity granularity, String timeZone) {
     return new TimeExtractionFunction(ISO_TIME_FORMAT, granularity, timeZone, Locale
-        .getDefault().toLanguageTag());
+        .ROOT.toLanguageTag());
   }
 
   /**
    * Returns whether the RexCall contains a valid extract unit that we can
    * serialize to Druid.
    *
-   * @param call Extract expression
+   * @param rexNode Extract expression
    *
    * @return true if the extract unit is valid
    */
-  public static boolean isValidTimeExtract(RexCall call) {
-    if (call.getKind() != SqlKind.EXTRACT) {
+  public static boolean isValidTimeExtract(RexNode rexNode) {
+    if (rexNode.getKind() != SqlKind.EXTRACT) {
       return false;
     }
+    final RexCall call = (RexCall) rexNode;
     final RexLiteral flag = (RexLiteral) call.operands.get(0);
     final TimeUnitRange timeUnit = (TimeUnitRange) flag.getValue();
     return timeUnit != null && VALID_TIME_EXTRACT.contains(timeUnit);
@@ -147,12 +149,16 @@ public class TimeExtractionFunction implements ExtractionFunction {
    * Returns whether the RexCall contains a valid FLOOR unit that we can
    * serialize to Druid.
    *
-   * @param call Extract expression
+   * @param rexNode Extract expression
    *
    * @return true if the extract unit is valid
    */
-  public static boolean isValidTimeFloor(RexCall call) {
-    if (call.getKind() != SqlKind.FLOOR) {
+  public static boolean isValidTimeFloor(RexNode rexNode) {
+    if (rexNode.getKind() != SqlKind.FLOOR) {
+      return false;
+    }
+    final RexCall call = (RexCall) rexNode;
+    if (call.operands.size() != 2) {
       return false;
     }
     final RexLiteral flag = (RexLiteral) call.operands.get(1);
