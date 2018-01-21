@@ -303,20 +303,16 @@ public class DruidDateTimeUtils {
    */
   public static Granularity extractGranularity(RexNode node, String timeZone) {
     final int flagIndex;
-    switch (node.getKind()) {
-    case EXTRACT:
+
+    if (TimeExtractionFunction.isValidTimeExtract(node)) {
       flagIndex = 0;
-      break;
-    case FLOOR:
+    } else if (TimeExtractionFunction.isValidTimeFloor(node)) {
       flagIndex = 1;
-      break;
-    default:
+    } else {
+      // We can only infer granularity from floor and extract.
       return null;
     }
     final RexCall call = (RexCall) node;
-    if (call.operands.size() != 2) {
-      return null;
-    }
     final RexLiteral flag = (RexLiteral) call.operands.get(flagIndex);
     final TimeUnitRange timeUnit = (TimeUnitRange) flag.getValue();
     return Granularities.createGranularity(timeUnit, timeZone);
