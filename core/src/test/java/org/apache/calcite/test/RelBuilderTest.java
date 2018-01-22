@@ -38,6 +38,7 @@ import org.apache.calcite.sql.SqlMatchRecognize;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.tools.FrameworkConfig;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.Programs;
 import org.apache.calcite.tools.RelBuilder;
@@ -55,9 +56,16 @@ import com.google.common.collect.Lists;
 import org.junit.Test;
 
 import java.sql.PreparedStatement;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.TreeSet;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CyclicBarrier;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
@@ -1784,6 +1792,49 @@ public class RelBuilderTest {
         + "  LogicalSort(sort0=[$0], dir0=[ASC], fetch=[1])\n"
         + "    LogicalTableScan(table=[[scott, EMP]])\n";
     assertThat(str(r), is(expected));
+  }
+
+  @Test public void testConcurrentProject() {
+    // On my quad core hyperthreaded i7, 2 threads passed 10 times in 10 attempts,
+    // 4 threads passed 2/10, and 8 threads passed 0/0.
+    final int numThreads = 16;
+    final FrameworkConfig config = config().build();
+    final RelBuilder builder = RelBuilder.create(config);
+    final RelNode r = builder.scan("EMP").build();
+    // Avoid race condition in org.apache.calcite.plan.RelOptCluster.getMetadataQuery()
+    r.getCluster().getMetadataQuery();
+    ExecutorService service = Executors.newFixedThreadPool(numThreads);
+    final CyclicBarrier barrier = new CyclicBarrier(numThreads);
+    List<Future<RelNode>> futures = new ArrayList<>(numThreads);
+    final Callable<RelNode> callable = new Callable<RelNode>() {
+      @Override public RelNode call() throws Exception {
+        final RelBuilder builder = RelBuilder.create(config);
+        builder.push(r);
+        final List<RexNode> fields = Lists.newArrayList((RexNode) builder.field("ENAME"));
+        final List<String> fieldNames = Lists.newArrayList("F1");
+        barrier.await();
+        builder.project(fields, fieldNames, true);
+        return builder.build();
+      }
+    };
+    for (int i = 0; i < numThreads; i++) {
+      final Future<RelNode> future = service.submit(callable);
+      futures.add(future);
+    }
+    for (Future<RelNode> f : futures) {
+      final RelNode node;
+      try {
+        node = f.get();
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+        throw new RuntimeException(e);
+      } catch (ExecutionException e) {
+        throw new RuntimeException(e);
+      }
+      String expected = "LogicalProject(F1=[$1])\n"
+          + "  LogicalTableScan(table=[[scott, EMP]])\n";
+      assertThat(str(node), is(expected));
+    }
   }
 
   /** Tests that a sort on a field followed by a limit gives the same
