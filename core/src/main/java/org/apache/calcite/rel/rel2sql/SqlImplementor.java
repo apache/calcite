@@ -945,9 +945,9 @@ public abstract class SqlImplementor {
         if (needNew
                 && neededAlias != null
                 && (aliases.size() != 1 || !aliases.containsKey(neededAlias))) {
-          newContext =
-              aliasContext(ImmutableMap.of(neededAlias, rel.getRowType()),
-                  qualified);
+          final Map<String, RelDataType> newAliases =
+              ImmutableMap.of(neededAlias, rel.getInput(0).getRowType());
+          newContext = aliasContext(newAliases, qualified);
         } else {
           newContext = aliasContext(aliases, qualified);
         }
