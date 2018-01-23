@@ -99,14 +99,14 @@ public class RelToSqlConverterTest {
   }
 
   private static JethrodataSqlDialect jethroDataSqlDialect() throws SQLException {
-    Context a = SqlDialect.EMPTY_CONTEXT
+    Context dummyContext = SqlDialect.EMPTY_CONTEXT
         .withDatabaseProduct(SqlDialect.DatabaseProduct.JETHRO)
         .withDatabaseMajorVersion(1)
         .withDatabaseMinorVersion(0)
         .withDatabaseVersion("1.0")
         .withIdentifierQuoteString("\"")
         .withNullCollation(NullCollation.HIGH);
-    return new JethrodataSqlDialect(a, null);
+    return new JethrodataSqlDialect(dummyContext);
   }
 
   private static MysqlSqlDialect mySqlDialect(NullCollation nullCollation) {
@@ -440,9 +440,10 @@ public class RelToSqlConverterTest {
                                  throws SQLException {
     final String query = "select \"product_id\" from \"product\"\n"
         + "order by \"product_id\" desc nulls first";
-    final String expected = "SELECT `product_id`\n"
-        + "FROM \"product\"\n"
-        + "ORDER BY \"product_id\" ,\"`product_id\" DESC";
+
+    final String expected = "SELECT \"product_id\"\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "ORDER BY \"product_id\", \"product_id\" DESC";
     sql(query).dialect(jethroDataSqlDialect()).ok(expected);
   }
 

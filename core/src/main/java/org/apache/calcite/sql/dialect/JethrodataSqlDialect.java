@@ -26,6 +26,7 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.type.SqlTypeName;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
 
 import org.slf4j.Logger;
@@ -55,8 +56,13 @@ public class JethrodataSqlDialect extends SqlDialect {
   public JethrodataSqlDialect(Context context,
                               Connection connection) throws SQLException {
       super(context);
-
     this.supportedFunctions = getSupportedFunctions(connection);
+  }
+
+  @VisibleForTesting
+  public JethrodataSqlDialect(Context context) throws SQLException {
+      super(context);
+    this.supportedFunctions = null;
   }
 
   @Override public boolean supportsCharSet() {
