@@ -56,8 +56,10 @@ import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.Util;
 
+import com.google.common.base.Function;
 import com.google.common.base.Supplier;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 import java.lang.reflect.Constructor;
@@ -935,15 +937,26 @@ public class RexImpTable {
   }
 
   private static Expression implementCall(
-      RexToLixTranslator translator,
+      final RexToLixTranslator translator,
       RexCall call,
       NotNullImplementor implementor,
-      NullAs nullAs) {
-    final List<Expression> translatedOperands =
-        translator.translateList(call.getOperands());
+      final NullAs nullAs) {
+    List<Expression> translatedOperands =
+            translator.translateList(call.getOperands());
+    // Make sure the operands have all been handled for nulls before
+    // being passed to the NotNullImplementor.
+    if (nullAs == NullAs.NOT_POSSIBLE) {
+      translatedOperands = Lists.transform(
+          translatedOperands,
+          new Function<Expression, Expression>() {
+            public Expression apply(Expression e) {
+              return translator.handleNull(e, nullAs);
+            }
+          });
+    }
     Expression result =
         implementor.implement(translator, call, translatedOperands);
-    return nullAs.handle(result);
+    return translator.handleNull(result, nullAs);
   }
 
   /** Strategy what an operator should return if one of its
