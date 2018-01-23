@@ -23,8 +23,6 @@ import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
-import org.apache.calcite.util.DateTimeStringUtils;
-
 
 import java.util.TimeZone;
 
@@ -52,7 +50,7 @@ public class CeilOperatorConversion implements DruidSqlOperatorConverter {
       return null;
     } else if (call.getOperands().size() == 1) {
       // case CEIL(expr)
-      return  DateTimeStringUtils.format("ceil(%s)", druidExpression);
+      return  DruidQuery.format("ceil(%s)", druidExpression);
     } else if (call.getOperands().size() == 2) {
       // CEIL(expr TO timeUnit)
       final RexLiteral flag = (RexLiteral) call.getOperands().get(1);

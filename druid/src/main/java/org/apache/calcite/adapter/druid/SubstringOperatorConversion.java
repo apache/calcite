@@ -22,7 +22,6 @@ import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
-import org.apache.calcite.util.DateTimeStringUtils;
 
 import javax.annotation.Nullable;
 
@@ -55,7 +54,7 @@ public class SubstringOperatorConversion implements DruidSqlOperatorConverter {
       //case substring from index to the end
       length = -1;
     }
-    return DateTimeStringUtils.format("substring(%s, %s, %s)",
+    return DruidQuery.format("substring(%s, %s, %s)",
         arg,
         DruidExpressions.numberLiteral(index),
         DruidExpressions.numberLiteral(length)

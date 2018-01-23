@@ -20,7 +20,6 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlOperator;
-import org.apache.calcite.util.DateTimeStringUtils;
 
 import java.util.List;
 
@@ -54,12 +53,12 @@ public class BinaryOperatorConversion implements DruidSqlOperatorConverter {
     }
     if (druidExpressions.size() != 2) {
       throw new IllegalStateException(
-          DateTimeStringUtils.format("Got binary operator[%s] with %s args?", operator.getName(),
+          DruidQuery.format("Got binary operator[%s] with %s args?", operator.getName(),
               druidExpressions.size()
       ));
     }
 
-    return DateTimeStringUtils
+    return DruidQuery
         .format("(%s %s %s)", druidExpressions.get(0), druidOperator, druidExpressions.get(1)
     );
   }

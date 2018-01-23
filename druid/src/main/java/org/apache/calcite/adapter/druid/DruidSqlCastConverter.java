@@ -22,7 +22,6 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeName;
-import org.apache.calcite.util.DateTimeStringUtils;
 
 import com.google.common.collect.ImmutableList;
 
@@ -75,7 +74,7 @@ public class DruidSqlCastConverter implements DruidSqlOperatorConverter {
       }
       final String typeCastExpression;
       if (fromExprType != toExprType) {
-        typeCastExpression = DateTimeStringUtils.format("CAST(%s, '%s')", operandExpression,
+        typeCastExpression = DruidQuery.format("CAST(%s, '%s')", operandExpression,
             toExprType
             .toString());
       } else {
@@ -126,7 +125,7 @@ public class DruidSqlCastConverter implements DruidSqlOperatorConverter {
       return timestampExpression;
     } else {
       throw new IllegalStateException(
-          DateTimeStringUtils.format("Unsupported DateTime type[%s]", toType));
+          DruidQuery.format("Unsupported DateTime type[%s]", toType));
     }
   }
 

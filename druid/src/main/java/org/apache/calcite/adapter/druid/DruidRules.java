@@ -40,6 +40,7 @@ import org.apache.calcite.rel.rules.PushProjector;
 import org.apache.calcite.rel.rules.SortProjectTransposeRule;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexExecutor;
@@ -60,7 +61,9 @@ import org.apache.calcite.util.trace.CalciteTrace;
 import org.apache.commons.lang3.tuple.ImmutableTriple;
 import org.apache.commons.lang3.tuple.Triple;
 
+import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 
 import org.joda.time.Interval;
@@ -71,6 +74,8 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+
+import javax.annotation.Nullable;
 
 /**
  * Rules and relational operators for {@link DruidQuery}.
@@ -106,6 +111,8 @@ public class DruidRules {
       new DruidPostAggregationProjectRule(RelFactories.LOGICAL_BUILDER);
   public static final DruidAggregateExtractProjectRule PROJECT_EXTRACT_RULE =
       new DruidAggregateExtractProjectRule(RelFactories.LOGICAL_BUILDER);
+  public static final DruidHavingFilterRule DRUID_HAVING_FILTER_RULE =
+      new DruidHavingFilterRule(RelFactories.LOGICAL_BUILDER);
 
   public static final List<RelOptRule> RULES =
       ImmutableList.of(FILTER,
@@ -120,7 +127,8 @@ public class DruidRules {
           FILTER_PROJECT_TRANSPOSE,
           PROJECT_SORT_TRANSPOSE,
           SORT,
-          SORT_PROJECT_TRANSPOSE);
+          SORT_PROJECT_TRANSPOSE,
+          DRUID_HAVING_FILTER_RULE);
 
   /**
    * Rule to push a {@link org.apache.calcite.rel.core.Filter} into a {@link DruidQuery}.
@@ -168,7 +176,12 @@ public class DruidRules {
       }
 
       // Timestamp
-      int timestampFieldIdx = query.getTimestampFieldIndex();
+      int timestampFieldIdx = Iterables
+          .indexOf(query.getRowType().getFieldList(), new Predicate<RelDataTypeField>() {
+            @Override public boolean apply(@Nullable RelDataTypeField input) {
+              return query.druidTable.timestampFieldName.equals(input.getName());
+            }
+          });
       RelNode newDruidQuery = query;
       final Triple<List<RexNode>, List<RexNode>, List<RexNode>> triple =
           splitFilters(rexBuilder, query, validPreds, nonValidPreds, timestampFieldIdx);
@@ -239,6 +252,37 @@ public class DruidRules {
   }
 
   /**
+   * Rule to Push a Having {@link Filter} into a {@link DruidQuery}
+   */
+  public static class DruidHavingFilterRule extends RelOptRule {
+
+    public DruidHavingFilterRule(RelBuilderFactory relBuilderFactory) {
+      super(operand(Filter.class, operand(DruidQuery.class, none())),
+          relBuilderFactory, null
+      );
+    }
+
+    @Override public void onMatch(RelOptRuleCall call) {
+      final Filter filter = call.rel(0);
+      final DruidQuery query = call.rel(1);
+
+      if (!DruidQuery.isValidSignature(query.signature() + 'h')) {
+        return;
+      }
+
+      final RexNode cond = filter.getCondition();
+      final DruidJsonFilter druidJsonFilter = DruidJsonFilter
+          .toDruidFilters(cond, query.getTopNode().getRowType(), query);
+      if (druidJsonFilter != null) {
+        final RelNode newFilter = filter
+            .copy(filter.getTraitSet(), Util.last(query.rels), filter.getCondition());
+        final DruidQuery newDruidQuery = DruidQuery.extendQuery(query, newFilter);
+        call.transformTo(newDruidQuery);
+      }
+    }
+  }
+
+  /**
    * Rule to push a {@link org.apache.calcite.rel.core.Project} into a {@link DruidQuery}.
    */
   public static class DruidProjectRule extends RelOptRule {
@@ -262,7 +306,7 @@ public class DruidRules {
         return;
       }
 
-      if (DruidQuery.computeProjectAsScan(project, query.table.getRowType(), query)
+      if (DruidQuery.computeProjectAsScan(project, query.getTable().getRowType(), query)
           != null) {
         // All expressions can be pushed to Druid in their entirety.
         final RelNode newProject = project.copy(project.getTraitSet(),
@@ -367,7 +411,15 @@ public class DruidRules {
       }
       // Only try to push down Project when there will be Post aggregators in result DruidQuery
       if (hasRexCalls) {
-        final Aggregate topAgg = (Aggregate) query.getTopNode();
+
+        final RelNode topNode = query.getTopNode();
+        final Aggregate topAgg;
+        if (topNode instanceof Aggregate) {
+          topAgg = (Aggregate) topNode;
+        } else {
+          topAgg = (Aggregate) ((Filter) topNode).getInput();
+        }
+
         for (RexNode rexNode : project.getProjects()) {
           if (DruidExpressions.toDruidExpression(rexNode, topAgg.getRowType(), query) == null) {
             return;

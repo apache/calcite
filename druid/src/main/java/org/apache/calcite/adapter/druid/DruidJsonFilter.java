@@ -638,6 +638,25 @@ abstract class DruidJsonFilter implements DruidJson {
     Preconditions.checkNotNull(column);
     return new JsonSelector(column, value, extractionFunction);
   }
+
+  /**
+   * Druid Having Filter spec
+   */
+  protected static class JsonDimHavingFilter implements DruidJson {
+
+    private final DruidJsonFilter filter;
+
+    public JsonDimHavingFilter(DruidJsonFilter filter) {
+      this.filter = filter;
+    }
+
+    @Override public void write(JsonGenerator generator) throws IOException {
+      generator.writeStartObject();
+      generator.writeStringField("type", "filter");
+      DruidQuery.writeField(generator, "filter", filter);
+      generator.writeEndObject();
+    }
+  }
 }
 
 // End DruidJsonFilter.java

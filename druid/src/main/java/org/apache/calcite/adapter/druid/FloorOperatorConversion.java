@@ -21,7 +21,6 @@ import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
-import org.apache.calcite.util.DateTimeStringUtils;
 
 import java.util.TimeZone;
 
@@ -51,7 +50,7 @@ public class FloorOperatorConversion implements DruidSqlOperatorConverter {
       return null;
     } else if (call.getOperands().size() == 1) {
       // case FLOOR(expr)
-      return  DateTimeStringUtils.format("floor(%s)", druidExpression);
+      return  DruidQuery.format("floor(%s)", druidExpression);
     } else if (call.getOperands().size() == 2) {
       // FLOOR(expr TO timeUnit)
       final Granularity granularity = DruidDateTimeUtils

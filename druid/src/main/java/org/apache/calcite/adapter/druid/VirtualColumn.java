@@ -76,7 +76,7 @@ public class VirtualColumn implements DruidJson {
       return this;
     }
 
-    public Builder withExperession(String expression) {
+    public Builder withExpression(String expression) {
       this.expression = expression;
       return this;
     }

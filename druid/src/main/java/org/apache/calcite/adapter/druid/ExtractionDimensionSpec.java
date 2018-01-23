@@ -79,7 +79,7 @@ public class ExtractionDimensionSpec implements DimensionSpec {
   /**
    * @param dimensionSpec Druid Dimesion spec object
    *
-   * @return valid {@link Granularity} of floor extract or null is not possible.
+   * @return valid {@link Granularity} of floor extract or null when not possible.
    */
   @Nullable
   public static Granularity toQueryGranularity(DimensionSpec dimensionSpec) {

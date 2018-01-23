@@ -45,7 +45,7 @@ public enum DruidType {
   /**
    * Returns a DruidType matching the given String type from a Druid metric
    * */
-  public static DruidType getTypeFromMetric(String type) {
+  protected static DruidType getTypeFromMetric(String type) {
     assert type != null;
     if (type.equals("hyperUnique")) {
       return HYPER_UNIQUE;
@@ -64,7 +64,7 @@ public enum DruidType {
   /**
    * Returns a DruidType matching the String from a meta data query
    * */
-  public static DruidType getTypeFromMetaData(String type) {
+  protected static DruidType getTypeFromMetaData(String type) {
     assert type != null;
     switch (type) {
     case "LONG":

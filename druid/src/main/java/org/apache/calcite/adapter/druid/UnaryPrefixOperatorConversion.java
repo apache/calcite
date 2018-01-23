@@ -20,7 +20,6 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlOperator;
-import org.apache.calcite.util.DateTimeStringUtils;
 
 import com.google.common.collect.Iterables;
 
@@ -57,7 +56,7 @@ public class UnaryPrefixOperatorConversion implements DruidSqlOperatorConverter 
       return null;
     }
 
-    return DateTimeStringUtils
+    return DruidQuery
         .format("(%s %s)", druidOperator, Iterables.getOnlyElement(druidExpressions));
   }
 }

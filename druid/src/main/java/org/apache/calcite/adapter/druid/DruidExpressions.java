@@ -25,7 +25,6 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
-import org.apache.calcite.util.DateTimeStringUtils;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
@@ -106,9 +105,7 @@ public class DruidExpressions {
       final RexInputRef ref = (RexInputRef) rexNode;
       final String columnName = inputRowType.getFieldNames().get(ref.getIndex());
       if (columnName == null) {
-        throw new IllegalArgumentException(
-            DateTimeStringUtils.format("Expression referred to nonexistent index[%d]",
-                ref.getIndex()));
+        return null;
       }
       //this a nasty hack since calcite has this un-direct renaming of timestamp to __time
       if (druidRel.getDruidTable().timestampFieldName.equals(columnName)) {
@@ -159,7 +156,7 @@ public class DruidExpressions {
   }
 
   public static String fromColumn(String columnName) {
-    return DateTimeStringUtils.format("\"%s\"", columnName);
+    return DruidQuery.format("\"%s\"", columnName);
   }
 
   public static String nullLiteral() {
