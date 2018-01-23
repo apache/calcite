@@ -68,7 +68,8 @@ public abstract class IteratorCursor<E> extends PositionedCursor<E> {
 
   protected E current() {
     if (position != Position.OK) {
-      throw new NoSuchElementException();
+      throw new NoSuchElementException("Expecting cursor position to be Position." + Position.OK
+              + ", actual is Position." + position);
     }
     return current;
   }

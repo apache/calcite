@@ -48,19 +48,21 @@ public abstract class PositionedCursor<T> extends AbstractCursor {
       this.field = field;
     }
 
-    public Object getObject() {
-      Object collection = current();
+    public Object getObject() throws SQLException {
+      Object collection;
       Object o;
-      if (collection instanceof List) {
-        o = ((List) collection).get(field);
-      } else if (collection instanceof StructImpl) {
-        try {
+      try {
+        collection = current();
+
+        if (collection instanceof List) {
+          o = ((List) collection).get(field);
+        } else if (collection instanceof StructImpl) {
           o = ((StructImpl) collection).getAttributes()[field];
-        } catch (SQLException e) {
-          throw new RuntimeException(e);
+        } else {
+          o = ((Object[]) collection)[field];
         }
-      } else {
-        o = ((Object[]) collection)[field];
+      } catch (RuntimeException e) {
+        throw new SQLException(e);
       }
       wasNull[0] = o == null;
       return o;
@@ -77,8 +79,13 @@ public abstract class PositionedCursor<T> extends AbstractCursor {
       this.index = index;
     }
 
-    public Object getObject() {
-      Object o = ((List) current()).get(index);
+    public Object getObject() throws SQLException {
+      Object o;
+      try {
+        o = ((List) current()).get(index);
+      } catch (RuntimeException e) {
+        throw new SQLException(e);
+      }
       wasNull[0] = o == null;
       return o;
     }
@@ -95,8 +102,13 @@ public abstract class PositionedCursor<T> extends AbstractCursor {
       assert field == 0;
     }
 
-    public Object getObject() {
-      Object o = current();
+    public Object getObject() throws SQLException {
+      Object o;
+      try {
+        o = current();
+      } catch (RuntimeException e) {
+        throw new SQLException(e);
+      }
       wasNull[0] = o == null;
       return o;
     }
@@ -108,16 +120,14 @@ public abstract class PositionedCursor<T> extends AbstractCursor {
   protected class FieldGetter extends AbstractGetter {
     protected final Field field;
 
-    public FieldGetter(Field field) {
-      this.field = field;
-    }
+    public FieldGetter(Field field) { this.field = field; }
 
-    public Object getObject() {
+    public Object getObject() throws SQLException {
       Object o;
       try {
         o = field.get(current());
-      } catch (IllegalAccessException e) {
-        throw new RuntimeException(e);
+      } catch (IllegalAccessException | RuntimeException e) {
+        throw new SQLException(e);
       }
       wasNull[0] = o == null;
       return o;
@@ -134,10 +144,15 @@ public abstract class PositionedCursor<T> extends AbstractCursor {
       this.key = key;
     }
 
-    public Object getObject() {
-      @SuppressWarnings("unchecked") final Map<K, Object> map =
-          (Map<K, Object>) current();
-      Object o = map.get(key);
+    public Object getObject() throws SQLException {
+      Object o;
+      try {
+        @SuppressWarnings("unchecked") final Map<K, Object> map =
+            (Map<K, Object>) current();
+        o = map.get(key);
+      } catch (RuntimeException e) {
+        throw new SQLException(e);
+      }
       wasNull[0] = o == null;
       return o;
     }

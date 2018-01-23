@@ -135,7 +135,7 @@ public class AvaticaResultSet extends ArrayFactoryImpl implements ResultSet {
    * @throws SQLException if there is no column with that label
    */
   private Cursor.Accessor getAccessor(String columnLabel) throws SQLException {
-    return accessorList.get(findColumn0(columnLabel));
+    return getAccessor(findColumn0(columnLabel));
   }
 
   public void close() {

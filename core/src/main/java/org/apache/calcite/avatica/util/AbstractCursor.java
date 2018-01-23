@@ -1393,11 +1393,7 @@ public abstract class AbstractCursor implements Cursor {
       } else {
         final List<Object> list = new ArrayList<>();
         for (Accessor fieldAccessor : fieldAccessors) {
-          try {
-            list.add(fieldAccessor.getObject());
-          } catch (SQLException e) {
-            throw new RuntimeException(e);
-          }
+          list.add(fieldAccessor.getObject());
         }
         return new StructImpl(list);
       }
@@ -1417,14 +1413,14 @@ public abstract class AbstractCursor implements Cursor {
   /** Gets a value from a particular field of the current record of this
    * cursor. */
   protected interface Getter {
-    Object getObject();
+    Object getObject() throws SQLException;
 
-    boolean wasNull();
+    boolean wasNull() throws SQLException;
   }
 
   /** Abstract implementation of {@link Getter}. */
   protected abstract class AbstractGetter implements Getter {
-    public boolean wasNull() {
+    public boolean wasNull() throws SQLException {
       return wasNull[0];
     }
   }
@@ -1434,11 +1430,11 @@ public abstract class AbstractCursor implements Cursor {
   public class SlotGetter implements Getter {
     public Object slot;
 
-    public Object getObject() {
+    public Object getObject() throws SQLException {
       return slot;
     }
 
-    public boolean wasNull() {
+    public boolean wasNull() throws SQLException {
       return slot == null;
     }
   }
@@ -1454,21 +1450,21 @@ public abstract class AbstractCursor implements Cursor {
       this.columnMetaData = columnMetaData;
     }
 
-    public Object getObject() {
-      final Object o = getter.getObject();
-      if (o instanceof Object[]) {
-        Object[] objects = (Object[]) o;
-        return objects[columnMetaData.ordinal];
-      }
+    public Object getObject() throws SQLException {
       try {
+        final Object o = getter.getObject();
+        if (o instanceof Object[]) {
+          Object[] objects = (Object[]) o;
+          return objects[columnMetaData.ordinal];
+        }
         final Field field = o.getClass().getField(columnMetaData.label);
         return field.get(getter.getObject());
       } catch (IllegalAccessException | NoSuchFieldException e) {
-        throw new RuntimeException(e);
+        throw new SQLException(e);
       }
     }
 
-    public boolean wasNull() {
+    public boolean wasNull() throws SQLException {
       return getObject() == null;
     }
   }
