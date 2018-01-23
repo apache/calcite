@@ -109,6 +109,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
   private static final String EXTRACT_COLUMN_NAME_PREFIX = "extract";
   private static final String FLOOR_COLUMN_NAME_PREFIX = "floor";
   protected static final String DRUID_QUERY_FETCH = "druid.query.fetch";
+  private static final int DAYS_IN_TEN_YEARS = 10 * 365;
 
   /**
    * Creates a DruidQuery.
@@ -389,7 +390,20 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
             RelMdUtil.linear(querySpec.fieldNames.size(), 2, 100, 1d, 2d))
         .multiplyBy(getQueryTypeCostMultiplier())
         // a plan with sort pushed to druid is better than doing sort outside of druid
-        .multiplyBy(Util.last(rels) instanceof Sort ? 0.1 : 1.0);
+        .multiplyBy(Util.last(rels) instanceof Sort ? 0.1 : 1.0)
+        .multiplyBy(getIntervalCostMultiplier());
+  }
+
+  private double getIntervalCostMultiplier() {
+    int days = 0;
+    for (Interval interval : intervals) {
+      days += interval.toDuration().getStandardDays();
+    }
+    // Cost increases with the wider interval being queries.
+    // A plan querying 10 or more years of data will have 10x the cost of a
+    // plan returning 1 day data.
+    // A plan where least interval is queries will be preferred.
+    return RelMdUtil.linear(days, 1, DAYS_IN_TEN_YEARS, 0.1d, 1d);
   }
 
   private double getQueryTypeCostMultiplier() {
