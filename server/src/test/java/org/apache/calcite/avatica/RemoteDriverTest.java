@@ -1430,7 +1430,7 @@ public class RemoteDriverTest {
         assertTrue("ResultSet should have a result", rs.next());
         assertEquals("Wrong value for row " + i, Integer.toString(i), rs.getString(1).trim());
 
-        Date actual = rs.getDate(2);
+        Date actual = rs.getDate(2, calendar);
         calendar.setTime(actual);
         int actualDay = calendar.get(Calendar.DAY_OF_MONTH);
         int actualMonth = calendar.get(Calendar.MONTH);
