@@ -305,6 +305,27 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
         + "group by grouping sets ((deptno), (ename, deptno))\n"
         + "order by 2").ok();
   }
+  // Equivalence Example:
+  //   GROUP BY GROUPING SETS (ROLLUP(A, B), CUBE(C,D))
+  // is equal to
+  //   GROUP BY GROUPING SETS ((A,B), (A), (), (C,D), (C), (D) )
+  @Test public void testGroupingSetsWithRollup() {
+    sql("select deptno, ename, sum(sal) from emp\n"
+            + "group by grouping sets ( rollup(deptno), (ename, deptno))\n"
+            + "order by 2").ok();
+  }
+
+  @Test public void testGroupingSetsWithCube() {
+    sql("select deptno, ename, sum(sal) from emp\n"
+            + "group by grouping sets ( (deptno), CUBE(ename, deptno))\n"
+            + "order by 2").ok();
+  }
+
+  @Test public void testGroupingSetsWithRollupCube() {
+    sql("select deptno, ename, sum(sal) from emp\n"
+            + "group by grouping sets ( CUBE(deptno), ROLLUP(ename, deptno))\n"
+            + "order by 2").ok();
+  }
 
   @Test public void testGroupingSetsProduct() {
     // Example in SQL:2011:
