@@ -775,6 +775,24 @@ public class SqlValidatorUtil {
               ((SqlCall) groupExpr).getOperandList());
       builder.add(ImmutableBitSet.union(bitSets));
       return;
+    case ROLLUP:
+    case CUBE: {
+      // GROUPING SETS ( (a), ROLLUP(c,b), CUBE(d,e) )
+      // is EQUIVALENT to
+      // GROUPING SETS ( (a), (c,b), (b) ,(), (d,e), (d), (e) ).
+      // Expand all ROLLUP/CUBE nodes
+      List<ImmutableBitSet> operandBitSet =
+          analyzeGroupTuple(scope, groupAnalyzer,
+              ((SqlCall) groupExpr).getOperandList());
+      switch (groupExpr.getKind()) {
+      case ROLLUP:
+        builder.addAll(rollup(operandBitSet));
+        return;
+      default:
+        builder.addAll(cube(operandBitSet));
+        return;
+      }
+    }
     default:
       builder.add(
           analyzeGroupExpr(scope, groupAnalyzer, groupExpr));

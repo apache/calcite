@@ -301,9 +301,41 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
   }
 
   @Test public void testGroupingSets() {
-    sql("select deptno, ename, sum(sal) from emp\n"
+    final String sql = "select deptno, ename, sum(sal) from emp\n"
         + "group by grouping sets ((deptno), (ename, deptno))\n"
-        + "order by 2").ok();
+        + "order by 2";
+    sql(sql).ok();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2147">[CALCITE-2147]
+   * Incorrect plan in with with ROLLUP inside GROUPING SETS</a>.
+   *
+   * <p>Equivalence example:
+   * <blockquote>GROUP BY GROUPING SETS (ROLLUP(A, B), CUBE(C,D))</blockquote>
+   * <p>is equal to
+   * <blockquote>GROUP BY GROUPING SETS ((A,B), (A), (),
+   * (C,D), (C), (D) )</blockquote>
+   */
+  @Test public void testGroupingSetsWithRollup() {
+    final String sql = "select deptno, ename, sum(sal) from emp\n"
+        + "group by grouping sets ( rollup(deptno), (ename, deptno))\n"
+        + "order by 2";
+    sql(sql).ok();
+  }
+
+  @Test public void testGroupingSetsWithCube() {
+    final String sql = "select deptno, ename, sum(sal) from emp\n"
+        + "group by grouping sets ( (deptno), CUBE(ename, deptno))\n"
+        + "order by 2";
+    sql(sql).ok();
+  }
+
+  @Test public void testGroupingSetsWithRollupCube() {
+    final String sql = "select deptno, ename, sum(sal) from emp\n"
+        + "group by grouping sets ( CUBE(deptno), ROLLUP(ename, deptno))\n"
+        + "order by 2";
+    sql(sql).ok();
   }
 
   @Test public void testGroupingSetsProduct() {
