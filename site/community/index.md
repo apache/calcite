@@ -26,10 +26,8 @@ limitations under the License.
 
 # Upcoming talks
 
-* 2017/10/30 [DataEngConf NYC](http://www.dataengconf.com/) (New York City, USA)
+* 2018/04/17-18 [DataEngConf SF](http://www.dataengconf.com/) (San Francisco, CA)
   * [Don't optimize my queries, optimize my data!](http://www.dataengconf.com/dont-optimize-my-queries-optimize-my-data) (Julian Hyde)
-* 2017/11/14 [QCon](https://qconsf.com/) (San Francisco, USA)
-  * [AMA: SQL Over Streams, Ask the Experts](https://qconsf.com/sf2017/presentation/ama-sql-over-streams-ask-experts) (Julian Hyde)
 
 # Project Members
 
