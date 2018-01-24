@@ -64,8 +64,9 @@ public class MysqlSqlDialect extends SqlDialect {
     return false;
   }
 
-  @Override public boolean supportsOffsetFetch() {
-    return false;
+  @Override public void unparseOffsetFetch(SqlWriter writer, SqlNode offset,
+      SqlNode fetch) {
+    unparseFetchUsingLimit(writer, offset, fetch);
   }
 
   @Override public SqlNode emulateNullDirection(SqlNode node,

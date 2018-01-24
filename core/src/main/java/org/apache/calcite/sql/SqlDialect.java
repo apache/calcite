@@ -567,9 +567,86 @@ public class SqlDialect {
    * {@code OFFSET 10 ROWS FETCH NEXT 20 ROWS ONLY}.
    * If false, we assume that the dialect supports the alternative syntax
    * {@code LIMIT 20 OFFSET 10}.
+   *
+   * @deprecated This method is no longer used. To change how the dialect
+   * unparses offset/fetch, override the {@link #unparseOffsetFetch} method.
    */
+  @Deprecated
   public boolean supportsOffsetFetch() {
     return true;
+  }
+
+  /**
+   * Converts an offset and fetch into SQL.
+   *
+   * <p>At least one of {@code offset} and {@code fetch} must be provided.
+   *
+   * <p>Common options:
+   * <ul>
+   *   <li>{@code OFFSET offset ROWS FETCH NEXT fetch ROWS ONLY}
+   *   (ANSI standard SQL, Oracle, PostgreSQL, and the default)
+   *   <li>{@code LIMIT fetch OFFSET offset} (Apache Hive, MySQL, Redshift)
+   * </ul>
+   *
+   * @param writer Writer
+   * @param offset Number of rows to skip before emitting, or null
+   * @param fetch Number of rows to fetch, or null
+   *
+   * @see #unparseFetchUsingAnsi(SqlWriter, SqlNode, SqlNode)
+   * @see #unparseFetchUsingLimit(SqlWriter, SqlNode, SqlNode)
+   */
+  public void unparseOffsetFetch(SqlWriter writer, SqlNode offset,
+      SqlNode fetch) {
+    unparseFetchUsingAnsi(writer, offset, fetch);
+  }
+
+  /** Unparses offset/fetch using ANSI standard "OFFSET offset ROWS FETCH NEXT
+   * fetch ROWS ONLY" syntax. */
+  protected final void unparseFetchUsingAnsi(SqlWriter writer, SqlNode offset,
+      SqlNode fetch) {
+    Preconditions.checkArgument(fetch != null || offset != null);
+    if (offset != null) {
+      writer.newlineAndIndent();
+      final SqlWriter.Frame offsetFrame =
+          writer.startList(SqlWriter.FrameTypeEnum.OFFSET);
+      writer.keyword("OFFSET");
+      offset.unparse(writer, -1, -1);
+      writer.keyword("ROWS");
+      writer.endList(offsetFrame);
+    }
+    if (fetch != null) {
+      writer.newlineAndIndent();
+      final SqlWriter.Frame fetchFrame =
+          writer.startList(SqlWriter.FrameTypeEnum.FETCH);
+      writer.keyword("FETCH");
+      writer.keyword("NEXT");
+      fetch.unparse(writer, -1, -1);
+      writer.keyword("ROWS");
+      writer.keyword("ONLY");
+      writer.endList(fetchFrame);
+    }
+  }
+
+  /** Unparses offset/fetch using "LIMIT fetch OFFSET offset" syntax. */
+  protected final void unparseFetchUsingLimit(SqlWriter writer, SqlNode offset,
+      SqlNode fetch) {
+    Preconditions.checkArgument(fetch != null || offset != null);
+    if (fetch != null) {
+      writer.newlineAndIndent();
+      final SqlWriter.Frame fetchFrame =
+          writer.startList(SqlWriter.FrameTypeEnum.FETCH);
+      writer.keyword("LIMIT");
+      fetch.unparse(writer, -1, -1);
+      writer.endList(fetchFrame);
+    }
+    if (offset != null) {
+      writer.newlineAndIndent();
+      final SqlWriter.Frame offsetFrame =
+          writer.startList(SqlWriter.FrameTypeEnum.OFFSET);
+      writer.keyword("OFFSET");
+      offset.unparse(writer, -1, -1);
+      writer.endList(offsetFrame);
+    }
   }
 
   /**

@@ -17,6 +17,8 @@
 package org.apache.calcite.sql.dialect;
 
 import org.apache.calcite.sql.SqlDialect;
+import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlWriter;
 
 /**
  * A <code>SqlDialect</code> implementation for the Redshift database.
@@ -32,8 +34,9 @@ public class RedshiftSqlDialect extends SqlDialect {
     super(context);
   }
 
-  @Override public boolean supportsOffsetFetch() {
-    return false;
+  @Override public void unparseOffsetFetch(SqlWriter writer, SqlNode offset,
+      SqlNode fetch) {
+    unparseFetchUsingLimit(writer, offset, fetch);
   }
 }
 

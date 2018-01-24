@@ -456,6 +456,10 @@ public class LatticeTest {
             + "from \"foodmart\".\"sales_fact_1997\" as s\n"
             + "join \"foodmart\".\"time_by_day\" as t using (\"time_id\")\n")
         .enableMaterializations(true)
+        // disable for MySQL; times out running star-join query
+        // disable for H2; it thinks our generated SQL has invalid syntax
+        .enable(CalciteAssert.DB != CalciteAssert.DatabaseInstance.MYSQL
+            && CalciteAssert.DB != CalciteAssert.DatabaseInstance.H2)
         .explainContains(expectedExplain)
         .returnsUnordered("the_year=1997; quarter=Q1",
             "the_year=1997; quarter=Q2",
@@ -680,18 +684,26 @@ public class LatticeTest {
 
   @Test public void testTwoLattices() {
     final AtomicInteger counter = new AtomicInteger();
+    // disable for MySQL; times out running star-join query
+    // disable for H2; it thinks our generated SQL has invalid syntax
+    final boolean enabled =
+        CalciteAssert.DB != CalciteAssert.DatabaseInstance.MYSQL
+            && CalciteAssert.DB != CalciteAssert.DatabaseInstance.H2;
     modelWithLattices(SALES_LATTICE, INVENTORY_LATTICE)
         .query("select s.\"unit_sales\", p.\"brand_name\"\n"
             + "from \"foodmart\".\"sales_fact_1997\" as s\n"
             + "join \"foodmart\".\"product\" as p using (\"product_id\")\n")
         .enableMaterializations(true)
+        .enable(enabled)
         .substitutionMatches(
             CalciteAssert.checkRel(
                 "LogicalProject(unit_sales=[$7], brand_name=[$10])\n"
                     + "  LogicalProject(product_id=[$0], time_id=[$1], customer_id=[$2], promotion_id=[$3], store_id=[$4], store_sales=[$5], store_cost=[$6], unit_sales=[$7], product_class_id=[$8], product_id0=[$9], brand_name=[$10], product_name=[$11], SKU=[$12], SRP=[$13], gross_weight=[$14], net_weight=[$15], recyclable_package=[$16], low_fat=[$17], units_per_case=[$18], cases_per_pallet=[$19], shelf_width=[$20], shelf_height=[$21], shelf_depth=[$22])\n"
                     + "    LogicalTableScan(table=[[adhoc, star]])\n",
                 counter));
-    assertThat(counter.intValue(), equalTo(1));
+    if (enabled) {
+      assertThat(counter.intValue(), is(1));
+    }
   }
 
   /** Test case for

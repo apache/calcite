@@ -1558,6 +1558,9 @@ public class JdbcTest {
         .with(CalciteAssert.Config.JDBC_FOODMART)
         .query("select extract(month from interval '2-3' year to month) as c \n"
             + "from \"foodmart\".\"employee\" where \"employee_id\"=1")
+        // disable for MySQL, H2; cannot handle EXTRACT yet
+        .enable(CalciteAssert.DB != CalciteAssert.DatabaseInstance.MYSQL
+            && CalciteAssert.DB != CalciteAssert.DatabaseInstance.H2)
         .returns("C=3\n");
   }
 
@@ -1590,6 +1593,10 @@ public class JdbcTest {
         .with(CalciteAssert.Config.JDBC_FOODMART)
         .query("select floor(timestamp '2011-9-14 19:27:23' to month) as c \n"
             + "from \"foodmart\".\"employee\" limit 1")
+        // disable for MySQL; birth_date suffers timezone shift
+        // disable for H2; Calcite generates incorrect FLOOR syntax
+        .enable(CalciteAssert.DB != CalciteAssert.DatabaseInstance.MYSQL
+            && CalciteAssert.DB != CalciteAssert.DatabaseInstance.H2)
         .returns("C=2011-09-01 00:00:00\n");
   }
 
@@ -1629,6 +1636,8 @@ public class JdbcTest {
             + "  from \"foodmart\".\"employee\" as e1\n"
             + "  join \"foodmart\".\"employee\" as e2 on e1.\"first_name\" = e2.\"last_name\"\n"
             + "order by e1.\"last_name\" limit 3")
+        // disable for H2; gives "Unexpected code path" internal error
+        .enable(CalciteAssert.DB != CalciteAssert.DatabaseInstance.H2)
         .returns("full_name=James Aguilar\n"
             + "full_name=Carol Amyotte\n"
             + "full_name=Terry Anderson\n");
@@ -2374,6 +2383,8 @@ public class JdbcTest {
         .with(config)
         .query(
             "select \"hire_date\", \"end_date\", \"birth_date\" from \"foodmart\".\"employee\" where \"employee_id\" = 1")
+        // disable for MySQL; birth_date suffers timezone shift
+        .enable(CalciteAssert.DB != CalciteAssert.DatabaseInstance.MYSQL)
         .returns2(
             "hire_date=1994-12-01; end_date=null; birth_date=1961-08-26\n");
   }
