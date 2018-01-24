@@ -41,6 +41,11 @@
   githubId: beikov
   org: Blazebit
   role: Committer
+- name: Edmon Begoli
+  apacheId: ebegoli
+  githubId: ebegoli
+  org: Oak Ridge National Laboratory
+  role: Committer
 - name: Francis Chuang
   apacheId: francischuang
   githubId: F21
@@ -132,6 +137,11 @@
   org:
   role: PMC
   homepage: http://www.n10k.com
+- name: Nishant Bangarwa
+  apacheId: nishant
+  githubId: nishantmonu51
+  org: Hortonworks
+  role: Committer
 - name: Slim Bouguerra
   apacheId: bslim
   githubId: b-slim
