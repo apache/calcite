@@ -50,7 +50,7 @@ public class SparkHandlerImpl implements CalcitePrepare.SparkHandler {
 
   private static SparkHandlerImpl instance;
   private static final File SRC_DIR = new File("/tmp");
-  private static final File CLASS_DIR = new File("spark/target/classes");
+  private static final File CLASS_DIR = new File("target/classes");
 
   /** Creates a SparkHandlerImpl. */
   private SparkHandlerImpl() {
@@ -85,8 +85,8 @@ public class SparkHandlerImpl implements CalcitePrepare.SparkHandler {
       boolean restructure) {
     RelNode root2 =
         planner.changeTraits(rootRel,
-            rootRel.getTraitSet().plus(SparkRel.CONVENTION));
-    return planner.changeTraits(root2, rootRel.getTraitSet());
+            rootRel.getTraitSet().plus(SparkRel.CONVENTION).simplify());
+    return planner.changeTraits(root2, rootRel.getTraitSet().simplify());
   }
 
   public void registerRules(RuleSetBuilder builder) {
