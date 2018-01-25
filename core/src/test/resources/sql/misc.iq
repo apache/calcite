@@ -1998,6 +1998,35 @@ select multiset[1,null,2,2-1] as m from (values (1));
 
 !ok
 
+!use catchall
+
+# [CALCITE-1054] NPE caused by wrong code generation for Timestamp fields
+select "sqlTimestamp" as T
+from "everyTypes"
+where "sqlTimestamp" >= {ts '1969-01-01 00:00:00'}
+and "sqlTimestamp" < {ts '1998-01-01 00:00:00'};
++---------------------+
+| T                   |
++---------------------+
+| 1970-01-01 00:00:00 |
++---------------------+
+(1 row)
+
+!ok
+
+# [CALCITE-1188] NullPointerException in EXTRACT with WHERE ... IN clause if field has null value
+select extract(YEAR from "sqlTimestamp") Y
+from "everyTypes"
+where extract(YEAR from "sqlTimestamp") IN (1969, 1970);
++------+
+| Y    |
++------+
+| 1970 |
++------+
+(1 row)
+
+!ok
+
 !if (false) {
 # [CALCITE-2032] Error when implicitly converting character literal to date literal
 select *
