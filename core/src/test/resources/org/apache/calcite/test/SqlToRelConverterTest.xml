@@ -2265,6 +2265,52 @@ LogicalSort(sort0=[$1], dir0=[ASC])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testGroupingSetsWithRollup">
+        <Resource name="sql">
+            <![CDATA[select deptno, ename, sum(sal) from emp
+group by grouping sets (rollup(deptno), (ename, deptno))
+order by 2]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalSort(sort0=[$1], dir0=[ASC])
+  LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {}]], EXPR$2=[SUM($2)])
+    LogicalProject(DEPTNO=[$7], ENAME=[$1], SAL=[$5])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testGroupingSetsWithCube">
+        <Resource name="sql">
+            <![CDATA[select deptno, ename, sum(sal) from emp
+group by grouping sets ((deptno), cube(ename, deptno))
+order by 2]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalSort(sort0=[$1], dir0=[ASC])
+  LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {1}, {}]], EXPR$2=[SUM($2)])
+    LogicalProject(DEPTNO=[$7], ENAME=[$1], SAL=[$5])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testGroupingSetsWithRollupCube">
+        <Resource name="sql">
+            <![CDATA[select deptno, ename, sum(sal) from emp
+group by grouping sets (cube(deptno), rollup(ename, deptno))
+order by 2]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalSort(sort0=[$1], dir0=[ASC])
+  LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {1}, {}]], EXPR$2=[SUM($2)])
+    LogicalProject(DEPTNO=[$7], ENAME=[$1], SAL=[$5])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+
     <TestCase name="testDuplicateGroupingSets">
         <Resource name="sql">
             <![CDATA[select sum(sal) from emp
