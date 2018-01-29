@@ -3487,6 +3487,26 @@ public class DruidAdapterIT {
         .runs()
         .queryContains(druidChecker("{\"queryType\":\"timeseries\""));
   }
+
+  @Test public void testFloorToDateRangeWithTimeZone() {
+    final String sql = "Select cast(floor(\"timestamp\" to MONTH) as timestamp) as t from "
+        + "\"foodmart\" where floor(\"timestamp\" to MONTH) >= '1997-05-01 00:00:00 IST' "
+        + "and floor(\"timestamp\" to MONTH) < '1997-05-02 00:00:00 IST' order by t"
+        + " limit 1";
+    final String druidquery = "{\"queryType\":\"scan\",\"dataSource\":\"foodmart\",\"intervals\":"
+        + "[\"1997-04-30T18:30:00.000Z/1997-05-31T18:30:00.000Z\"],\"columns\":[\"__time\"],"
+        + "\"granularity\":{\"type\":\"all\"},\"resultFormat\":\"compactedList\"}";
+    CalciteAssert.that()
+        .enable(enabled())
+        .with(ImmutableMap.of("model", FOODMART.getPath()))
+        .with(CalciteConnectionProperty.TIME_ZONE.camelName(), "IST")
+        .query(sql)
+        .runs()
+        .queryContains(druidChecker(druidquery))
+        .returnsOrdered("T=1997-05-01 05:30:00");
+  }
+
+
 }
 
 // End DruidAdapterIT.java

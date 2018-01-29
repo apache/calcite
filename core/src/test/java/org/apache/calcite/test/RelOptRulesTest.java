@@ -16,6 +16,9 @@
  */
 package org.apache.calcite.test;
 
+import org.apache.calcite.config.CalciteConnectionConfigImpl;
+import org.apache.calcite.plan.Context;
+import org.apache.calcite.plan.Contexts;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptUtil;
@@ -119,6 +122,7 @@ import org.junit.Test;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Properties;
 
 import javax.annotation.Nullable;
 
@@ -3711,7 +3715,17 @@ public class RelOptRulesTest extends RelOptTestBase {
     HepProgram program = new HepProgramBuilder()
         .addRuleInstance(DateRangeRules.FILTER_INSTANCE)
         .build();
-    sql(sql).with(program).check();
+    Tester tester = new TesterImpl(getDiffRepos(), true, true, false, false,
+        null, null) {
+      @Override public RelOptPlanner createPlanner() {
+        return new MockRelOptPlanner() {
+          @Override public Context getContext() {
+            return Contexts.of(new CalciteConnectionConfigImpl(new Properties()));
+          }
+        };
+      }
+    };
+    checkPlanning(tester, null, new HepPlanner(program), sql);
   }
 
   @Test public void testExtractYearMonthToRange() throws Exception {
@@ -3722,7 +3736,18 @@ public class RelOptRulesTest extends RelOptTestBase {
     HepProgram program = new HepProgramBuilder()
         .addRuleInstance(DateRangeRules.FILTER_INSTANCE)
         .build();
-    sql(sql).with(program).check();
+
+    Tester tester = new TesterImpl(getDiffRepos(), true, true, false, false,
+        null, null) {
+      @Override public RelOptPlanner createPlanner() {
+        return new MockRelOptPlanner() {
+          @Override public Context getContext() {
+            return Contexts.of(new CalciteConnectionConfigImpl(new Properties()));
+          }
+        };
+      }
+    };
+    checkPlanning(tester, null, new HepPlanner(program), sql);
   }
 
 }

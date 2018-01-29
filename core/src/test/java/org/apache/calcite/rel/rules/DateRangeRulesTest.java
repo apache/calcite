@@ -20,6 +20,7 @@ import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.test.RexImplicationCheckerTest.Fixture;
+import org.apache.calcite.util.DateString;
 import org.apache.calcite.util.TimestampString;
 import org.apache.calcite.util.Util;
 
@@ -657,6 +658,29 @@ public class DateRangeRulesTest {
         is(">($9, 2009-01-01 00:00:00)"));
   }
 
+  @Test public void testFloorRewriteWithTimezone() {
+    final Calendar c = Util.calendar();
+    c.clear();
+    c.set(2010, Calendar.FEBRUARY, 1, 11, 30, 0);
+    final Fixture2 f = new Fixture2();
+    checkDateRange(f,
+        f.eq(f.floorHour, f.timestampWithLocalTimeZone(TimestampString.fromCalendarFields(c))),
+        is("AND(>=($9, 2010-02-01 17:00:00), <($9, 2010-02-01 18:00:00))"),
+        CoreMatchers.any(String.class), "IST");
+
+    c.clear();
+    c.set(2010, Calendar.FEBRUARY, 1, 11, 00, 0);
+    checkDateRange(f, f.eq(f.floorHour, f.timestampLiteral(TimestampString.fromCalendarFields(c))),
+        is("AND(>=($9, 2010-02-01 11:00:00), <($9, 2010-02-01 12:00:00))"),
+        CoreMatchers.any(String.class), "IST");
+
+    c.clear();
+    c.set(2010, Calendar.FEBRUARY, 1, 00, 00, 0);
+    checkDateRange(f, f.eq(f.floorHour, f.dateLiteral(DateString.fromCalendarFields(c))),
+        is("AND(>=($9, 2010-02-01 00:00:00), <($9, 2010-02-01 01:00:00))"),
+        CoreMatchers.any(String.class), "IST");
+  }
+
   private static Set<TimeUnitRange> set(TimeUnitRange... es) {
     return ImmutableSet.copyOf(es);
   }
@@ -667,7 +691,12 @@ public class DateRangeRulesTest {
 
   private void checkDateRange(Fixture f, RexNode e, Matcher<String> matcher,
       Matcher<String> simplifyMatcher) {
-    e = DateRangeRules.replaceTimeUnits(f.rexBuilder, e);
+    checkDateRange(f, e, matcher, simplifyMatcher, "UTC");
+  }
+
+  private void checkDateRange(Fixture f, RexNode e, Matcher<String> matcher,
+      Matcher<String> simplifyMatcher, String timeZone) {
+    e = DateRangeRules.replaceTimeUnits(f.rexBuilder, e, timeZone);
     assertThat(e.toString(), matcher);
     final RexNode e2 = f.simplify.simplify(e);
     assertThat(e2.toString(), simplifyMatcher);
