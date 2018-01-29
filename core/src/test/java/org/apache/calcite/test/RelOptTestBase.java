@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.test;
 
+import org.apache.calcite.plan.Context;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptUtil;
@@ -279,6 +280,14 @@ abstract class RelOptTestBase extends SqlToRelTestBase {
           });
     }
 
+    public Sql withContext(final Context context) {
+      return withTransform(
+          new Function<Tester, Tester>() {
+            public Tester apply(Tester tester) {
+              return tester.withContext(context);
+            }
+          });
+    }
 
     public void check() {
       check(false);
