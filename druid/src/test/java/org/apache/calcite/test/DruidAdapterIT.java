@@ -661,7 +661,12 @@ public class DruidAdapterIT {
         + "'aggregations':[{'type':'longSum','name':'S','fieldName':'unit_sales'}],"
         + "'intervals':['1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z'],"
         + "'threshold':3}";
-    final String exactDruid = "{'queryType':'groupBy','dataSource':'foodmart','granularity':'all','dimensions':[{'type':'default','dimension':'brand_name','outputName':'brand_name','outputType':'STRING'}],'limitSpec':{'type':'default','limit':3,'columns':[{'dimension':'S','direction':'descending','dimensionOrder':'numeric'}]},'aggregations':[{'type':'longSum','name':'S','fieldName':'unit_sales'}],'intervals':['1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z']}";
+    final String exactDruid = "{'queryType':'groupBy','dataSource':'foodmart','granularity':'all',"
+        + "'dimensions':[{'type':'default','dimension':'brand_name','outputName':'brand_name',"
+        + "'outputType':'STRING'}],'limitSpec':{'type':'default','limit':3,'columns':"
+        + "[{'dimension':'S','direction':'descending','dimensionOrder':'numeric'}]},'aggregations':"
+        + "[{'type':'longSum','name':'S','fieldName':'unit_sales'}],"
+        + "'intervals':['1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z']}";
     final String druidQuery = approx ? approxDruid : exactDruid;
     final String explain = "PLAN=EnumerableInterpreter\n"
         + "  DruidQuery(table=[[foodmart, foodmart]], intervals=[[1900-01-09T00:00:00.000Z/"
@@ -1310,14 +1315,15 @@ public class DruidAdapterIT {
         + "and \"quarter\" in ('Q2', 'Q3')\n"
         + "and \"state_province\" = 'WA'";
     final String druidQuery1 = "{'queryType':'groupBy','dataSource':'foodmart','granularity':'all'";
-    final String druidQuery2 = "'filter':{'type':'and','fields':[{'type':'selector','dimension':'product_name',"
-        + "'value':'High Top Dried Mushrooms'},{'type':'or','fields':[{'type':'selector',"
+    final String druidQuery2 = "'filter':{'type':'and','fields':[{'type':'selector','dimension':"
+        + "'product_name','value':'High Top Dried Mushrooms'},{'type':'or','fields':[{'type':'selector',"
         + "'dimension':'quarter','value':'Q2'},{'type':'selector','dimension':'quarter',"
         + "'value':'Q3'}]},{'type':'selector','dimension':'state_province','value':'WA'}]},"
         + "'aggregations':[],"
         + "'intervals':['1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z']}";
     final String explain = "PLAN=EnumerableInterpreter\n"
-        + "  DruidQuery(table=[[foodmart, foodmart]], intervals=[[1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z]],"
+        + "  DruidQuery(table=[[foodmart, foodmart]], intervals=[[1900-01-09T00:00:00.000Z/"
+        + "2992-01-10T00:00:00.000Z]],"
         + " filter=[AND(=($3, 'High Top Dried Mushrooms'),"
         + " OR(=($87, 'Q2'),"
         + " =($87, 'Q3')),"
