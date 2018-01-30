@@ -274,6 +274,9 @@ public class SqlDialect {
     case "ACCESS":
       return DatabaseProduct.ACCESS;
     case "APACHE DERBY":
+      return DatabaseProduct.DERBY;
+    case "CLICKHOUSE":
+      return DatabaseProduct.CLICKHOUSE;
     case "DBMS:CLOUDSCAPE":
       return DatabaseProduct.DERBY;
     case "HIVE":
@@ -1226,6 +1229,7 @@ public class SqlDialect {
     ACCESS("Access", "\"", NullCollation.HIGH),
     BIG_QUERY("Google BigQuery", "`", NullCollation.LOW),
     CALCITE("Apache Calcite", "\"", NullCollation.HIGH),
+    CLICKHOUSE("ClickHouse", "`", NullCollation.LOW),
     MSSQL("Microsoft SQL Server", "[", NullCollation.HIGH),
     MYSQL("MySQL", "`", NullCollation.LOW),
     ORACLE("Oracle", "\"", NullCollation.HIGH),
