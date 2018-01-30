@@ -589,7 +589,7 @@ public abstract class DateRangeRules {
       return toRex(operand, range);
     }
 
-    Calendar timestampValue(RexLiteral timeLiteral) {
+    private Calendar timestampValue(RexLiteral timeLiteral) {
       switch (timeLiteral.getTypeName()) {
       case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
         return Util.calendar(SqlFunctions
