@@ -999,7 +999,6 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
     final List<JsonExpressionPostAgg> postAggs = new ArrayList<>();
     final JsonLimit limit;
     final RelDataType aggInputRowType = table.getRowType();
-    final ImmutableList<JsonCollation> collations;
     final List<String> aggregateStageFieldNames = new ArrayList<>();
 
     Pair<List<DimensionSpec>, List<VirtualColumn>> projectGroupSet = computeProjectGroupSet(
@@ -1075,6 +1074,23 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
         virtualColumnList, aggregations, postAggs, limit, havingJsonFilter
     );
     if (timeSeriesQueryString != null) {
+      final String timeExtractColumn = groupByKeyDims.isEmpty()
+          ? null
+          : groupByKeyDims.get(0).getOutputName();
+      if (timeExtractColumn != null) {
+        //Case we have transformed the group by time to druid timeseries with Granularity
+        //Need to replace the name of the column with druid timestamp field name
+        final List<String> timeseriesFieldNames = Lists
+            .transform(queryOutputFieldNames, new Function<String, String>() {
+              @Override public String apply(@Nullable String input) {
+                if (timeExtractColumn.equals(input)) {
+                  return "timestamp";
+                }
+                return input;
+              }
+            });
+        return new QuerySpec(QueryType.TIMESERIES, timeSeriesQueryString, timeseriesFieldNames);
+      }
       return new QuerySpec(QueryType.TIMESERIES, timeSeriesQueryString, queryOutputFieldNames);
     }
     final String topNQuery = planAsTopN(groupByKeyDims, jsonFilter,

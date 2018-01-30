@@ -70,7 +70,6 @@ public class DruidExpressions {
     }
     // @TODO Create Jira for this: skip boolean for now.
      //builder.put(SqlTypeName.BOOLEAN, DruidType.LONG);
-
     // Timestamps are treated as longs (millis since the epoch) in Druid expressions.
     builder.put(SqlTypeName.TIMESTAMP, DruidType.LONG);
     builder.put(SqlTypeName.DATE, DruidType.LONG);
