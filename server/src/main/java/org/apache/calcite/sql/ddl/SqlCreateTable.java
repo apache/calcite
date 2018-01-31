@@ -65,6 +65,7 @@ import org.apache.calcite.sql2rel.InitializerExpressionFactory;
 import org.apache.calcite.sql2rel.NullInitializerExpressionFactory;
 import org.apache.calcite.util.ImmutableNullableList;
 import org.apache.calcite.util.Pair;
+import org.apache.calcite.util.Util;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
@@ -125,7 +126,7 @@ public class SqlCreateTable extends SqlCreate
 
   public void execute(CalcitePrepare.Context context) {
     final Pair<CalciteSchema, String> pair =
-        SqlDdlNodes.schema(context, true, name);
+        Util.schema(context.getMutableRootSchema(), context.getDefaultSchemaPath(), name);
     final JavaTypeFactory typeFactory = new JavaTypeFactoryImpl();
     final RelDataType queryRowType;
     if (query != null) {

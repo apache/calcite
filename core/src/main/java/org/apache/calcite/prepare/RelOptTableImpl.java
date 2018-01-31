@@ -33,6 +33,7 @@ import org.apache.calcite.rel.logical.LogicalTableScan;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.rel.type.RelProtoDataType;
 import org.apache.calcite.rel.type.RelRecordType;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.schema.ColumnStrategy;
@@ -468,6 +469,10 @@ public class RelOptTableImpl extends Prepare.AbstractPreparingTable {
       throw new UnsupportedOperationException();
     }
 
+    @Override public void add(String name, RelProtoDataType type) {
+      throw new UnsupportedOperationException();
+    }
+
     @Override public void add(String name, Lattice lattice) {
       throw new UnsupportedOperationException();
     }
@@ -498,6 +503,14 @@ public class RelOptTableImpl extends Prepare.AbstractPreparingTable {
 
     @Override public Set<String> getTableNames() {
       return schema.getTableNames();
+    }
+
+    @Override public RelProtoDataType getType(String name) {
+      return schema.getType(name);
+    }
+
+    @Override public Set<String> getTypeNames() {
+      return schema.getTypeNames();
     }
 
     @Override public Collection<org.apache.calcite.schema.Function>

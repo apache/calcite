@@ -94,7 +94,7 @@ public class SqlCreateView extends SqlCreate
 
   public void execute(CalcitePrepare.Context context) {
     final Pair<CalciteSchema, String> pair =
-        SqlDdlNodes.schema(context, true, name);
+        Util.schema(context.getMutableRootSchema(), context.getDefaultSchemaPath(), name);
     final SchemaPlus schemaPlus = pair.left.plus();
     for (Function function : schemaPlus.getFunctions(pair.right)) {
       if (function.getParameters().isEmpty()) {

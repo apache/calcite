@@ -18,10 +18,12 @@ package org.apache.calcite.util;
 
 import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.avatica.util.Spaces;
+import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.runtime.CalciteException;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
@@ -158,6 +160,23 @@ public class Util {
               });
 
   //~ Methods ----------------------------------------------------------------
+
+  /** Returns the schema in which to create an object. */
+  public static Pair<CalciteSchema, String> schema(
+      CalciteSchema schema, List<String> defaultSchemaPath, SqlIdentifier id) {
+    final String name;
+    List<String> path = defaultSchemaPath;
+    if (id.isSimple()) {
+      name = id.getSimple();
+    } else {
+      path = Util.skipLast(id.names);
+      name = Util.last(id.names);
+    }
+    for (String p : path) {
+      schema = schema.getSubSchema(p, true);
+    }
+    return Pair.of(schema, name);
+  }
 
   /**
    * Does nothing with its argument. Returns whether it is ensured that

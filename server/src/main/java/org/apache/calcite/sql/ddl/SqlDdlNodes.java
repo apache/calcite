@@ -17,10 +17,10 @@
 package org.apache.calcite.sql.ddl;
 
 import org.apache.calcite.jdbc.CalcitePrepare;
-import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.rel.RelRoot;
 import org.apache.calcite.schema.ColumnStrategy;
 import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlDrop;
 import org.apache.calcite.sql.SqlIdentifier;
@@ -38,7 +38,6 @@ import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.Planner;
 import org.apache.calcite.tools.RelConversionException;
 import org.apache.calcite.tools.ValidationException;
-import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
@@ -47,7 +46,6 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
-import java.util.List;
 
 /**
  * Utilities concerning {@link SqlNode} for DDL.
@@ -67,6 +65,13 @@ public class SqlDdlNodes {
       SqlNode library, SqlNodeList optionList) {
     return new SqlCreateForeignSchema(pos, replace, ifNotExists, name, type,
         library, optionList);
+  }
+
+  /** Creates a CREATE TYPE. */
+  public static SqlCreateType createType(SqlParserPos pos, boolean replace,
+                                         SqlIdentifier name, SqlNodeList attributeList,
+                                         SqlDataTypeSpec dataTypeSpec) {
+    return new SqlCreateType(pos, replace, name, attributeList, dataTypeSpec);
   }
 
   /** Creates a CREATE TABLE. */
@@ -121,6 +126,12 @@ public class SqlDdlNodes {
     return new SqlColumnDeclaration(pos, name, dataType, expression, strategy);
   }
 
+  /** Creates a attribute definition. */
+  public static SqlNode attribute(SqlParserPos pos, SqlIdentifier name, SqlDataTypeSpec dataType,
+                                  SqlNode expression, SqlCollation collation) {
+    return new SqlAttributeDefinition(pos, name, dataType, expression, collation);
+  }
+
   /** Creates a CHECK constraint. */
   public static SqlNode check(SqlParserPos pos, SqlIdentifier name,
       SqlNode expression) {
@@ -141,26 +152,6 @@ public class SqlDdlNodes {
         return PRIMARY;
       }
     };
-  }
-
-  /** Returns the schema in which to create an object. */
-  static Pair<CalciteSchema, String> schema(CalcitePrepare.Context context,
-      boolean mutable, SqlIdentifier id) {
-    final String name;
-    final List<String> path;
-    if (id.isSimple()) {
-      path = context.getDefaultSchemaPath();
-      name = id.getSimple();
-    } else {
-      path = Util.skipLast(id.names);
-      name = Util.last(id.names);
-    }
-    CalciteSchema schema = mutable ? context.getMutableRootSchema()
-        : context.getRootSchema();
-    for (String p : path) {
-      schema = schema.getSubSchema(p, true);
-    }
-    return Pair.of(schema, name);
   }
 
   /** Wraps a query to rename its columns. Used by CREATE VIEW and CREATE

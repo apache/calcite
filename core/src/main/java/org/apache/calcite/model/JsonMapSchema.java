@@ -34,6 +34,12 @@ public class JsonMapSchema extends JsonSchema {
    */
   public final List<JsonTable> tables = new ArrayList<>();
 
+  /** Types in this schema.
+   *
+   * <p>The list may be empty.
+   */
+  public final List<JsonType> types = new ArrayList<>();
+
   /** Functions in this schema.
    *
    * <p>The list may be empty.
@@ -51,6 +57,9 @@ public class JsonMapSchema extends JsonSchema {
     }
     for (JsonFunction jsonFunction : functions) {
       jsonFunction.accept(modelHandler);
+    }
+    for (JsonType jsonType : types) {
+      jsonType.accept(modelHandler);
     }
   }
 }

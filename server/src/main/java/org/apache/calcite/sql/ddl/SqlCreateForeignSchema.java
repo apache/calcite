@@ -119,7 +119,7 @@ public class SqlCreateForeignSchema extends SqlCreate
 
   public void execute(CalcitePrepare.Context context) {
     final Pair<CalciteSchema, String> pair =
-        SqlDdlNodes.schema(context, true, name);
+        Util.schema(context.getMutableRootSchema(), context.getDefaultSchemaPath(), name);
     final SchemaPlus subSchema0 = pair.left.plus().getSubSchema(pair.right);
     if (subSchema0 != null) {
       if (!getReplace() && !ifNotExists) {

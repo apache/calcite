@@ -2086,6 +2086,7 @@ ddlStatement:
   |   createTableStatement
   |   createViewStatement
   |   createMaterializedViewStatement
+  |   createTypeStatement
   |   dropSchemaStatement
   |   dropForeignSchemaStatement
   |   dropTableStatement
@@ -2110,6 +2111,19 @@ createTableStatement:
       CREATE TABLE [ IF NOT EXISTS ] name
       [ '(' tableElement [, tableElement ]* ')' ]
       [ AS query ]
+
+createTypeStatement:
+      CREATE [OR REPLACE] TYPE name AS
+      {
+          base_type
+      |   '(' attributeDef [, attributeDef ]* ')'
+      }
+
+attributeDef:
+      attribute_name data_type
+      [ COLLATE collation ]
+      [ NULL | NOT NULL ]
+      [ DEFAULT expression ]
 
 tableElement:
       columnName type [ columnGenerator ] [ columnConstraint ]

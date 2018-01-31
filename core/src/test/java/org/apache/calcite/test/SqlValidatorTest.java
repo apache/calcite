@@ -958,7 +958,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   @Test public void testCastFails() {
     checkExpFails(
         "cast('foo' as ^bar^)",
-        "(?s).*Unknown datatype name 'BAR'");
+        "java.lang.UnsupportedOperationException: class org.apache.calcite.sql.SqlIdentifier: BAR");
     checkWholeExpFails(
         "cast(multiset[1] as integer)",
         "(?s).*Cast function cannot convert value of type INTEGER MULTISET to type INTEGER");

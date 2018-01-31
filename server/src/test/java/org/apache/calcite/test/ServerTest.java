@@ -79,6 +79,33 @@ public class ServerTest {
     }
   }
 
+  @Test public void testCreateType() throws Exception {
+    try (Connection c = connect();
+         Statement s = c.createStatement()) {
+      boolean b = s.execute("create type mytype1 as BIGINT");
+      assertThat(b, is(false));
+      b = s.execute("create or replace type mytype2 as (i int not null, jj mytype1)");
+      assertThat(b, is(false));
+      b = s.execute("create type mytype3 as (i int not null, jj mytype2)");
+      assertThat(b, is(false));
+      b = s.execute("create or replace type mytype1 as DOUBLE");
+      assertThat(b, is(false));
+      b = s.execute("create table t (c int)");
+      assertThat(b, is(false));
+      int x = s.executeUpdate("insert into t values 12");
+      assertThat(x, is(1));
+      x = s.executeUpdate("insert into t values 3");
+      assertThat(x, is(1));
+      try (ResultSet r = s.executeQuery("select CAST(c AS mytype1) from t")) {
+        assertThat(r.next(), is(true));
+        assertThat(r.getInt(1), is(12));
+        assertThat(r.next(), is(true));
+        assertThat(r.getInt(1), is(3));
+        assertThat(r.next(), is(false));
+      }
+    }
+  }
+
   @Test public void testCreateTable() throws Exception {
     try (Connection c = connect();
          Statement s = c.createStatement()) {
