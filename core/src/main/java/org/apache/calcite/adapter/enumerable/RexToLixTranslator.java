@@ -780,6 +780,8 @@ public class RexToLixTranslator {
       final BigDecimal bd = literal.getValueAs(BigDecimal.class);
       if (javaClass == float.class) {
         return Expressions.constant(bd, javaClass);
+      } else if (javaClass == double.class) {
+        return Expressions.constant(bd, javaClass);
       }
       assert javaClass == BigDecimal.class;
       return Expressions.new_(BigDecimal.class,

@@ -751,6 +751,9 @@ public interface CalciteResource {
 
   @BaseMessage("View ''{0}'' not found")
   ExInst<SqlValidatorException> viewNotFound(String name);
+
+  @BaseMessage("Type ''{0}'' not found")
+  ExInst<SqlValidatorException> typeNotFound(String name);
 }
 
 // End CalciteResource.java

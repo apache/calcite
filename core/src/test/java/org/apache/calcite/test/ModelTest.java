@@ -24,6 +24,7 @@ import org.apache.calcite.model.JsonLattice;
 import org.apache.calcite.model.JsonMapSchema;
 import org.apache.calcite.model.JsonRoot;
 import org.apache.calcite.model.JsonTable;
+import org.apache.calcite.model.JsonTypeAttribute;
 import org.apache.calcite.model.JsonView;
 
 import com.fasterxml.jackson.core.JsonParser;
@@ -61,6 +62,17 @@ public class ModelTest {
         + "   schemas: [\n"
         + "     {\n"
         + "       name: 'FoodMart',\n"
+        + "       types: [\n"
+        + "         {\n"
+        + "           name: 'mytype1',\n"
+        + "           attributes: [\n"
+        + "             {\n"
+        + "               name: 'f1',\n"
+        + "               type: 'BIGINT'\n"
+        + "             }\n"
+        + "           ]\n"
+        + "         }\n"
+        + "       ],\n"
         + "       tables: [\n"
         + "         {\n"
         + "           name: 'time_by_day',\n"
@@ -87,6 +99,10 @@ public class ModelTest {
     assertEquals(1, root.schemas.size());
     final JsonMapSchema schema = (JsonMapSchema) root.schemas.get(0);
     assertEquals("FoodMart", schema.name);
+    assertEquals(1, schema.types.size());
+    final List<JsonTypeAttribute> attributes = schema.types.get(0).attributes;
+    assertEquals("f1", attributes.get(0).name);
+    assertEquals("BIGINT", attributes.get(0).type);
     assertEquals(2, schema.tables.size());
     final JsonTable table0 = schema.tables.get(0);
     assertEquals("time_by_day", table0.name);

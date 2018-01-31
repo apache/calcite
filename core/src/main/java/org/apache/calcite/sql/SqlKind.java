@@ -941,6 +941,9 @@ public enum SqlKind {
   /** Column declaration. */
   COLUMN_DECL,
 
+  /** Attribute definition. */
+  ATTRIBUTE_DEF,
+
   /** {@code CHECK} constraint. */
   CHECK,
 
@@ -1019,6 +1022,12 @@ public enum SqlKind {
   /** {@code DROP INDEX} DDL statement. */
   DROP_INDEX,
 
+  /** {@code CREATE TYPE} DDL statement. */
+  CREATE_TYPE,
+
+  /** {@code DROP TYPE} DDL statement. */
+  DROP_TYPE,
+
   /** DDL statement not handled above.
    *
    * <p><b>Note to other projects</b>: If you are extending Calcite's SQL parser
@@ -1085,6 +1094,7 @@ public enum SqlKind {
           DROP_MATERIALIZED_VIEW,
           CREATE_SEQUENCE, ALTER_SEQUENCE, DROP_SEQUENCE,
           CREATE_INDEX, ALTER_INDEX, DROP_INDEX,
+          CREATE_TYPE, DROP_TYPE,
           SET_OPTION, OTHER_DDL);
 
   /**

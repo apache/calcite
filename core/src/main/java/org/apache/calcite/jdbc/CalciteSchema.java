@@ -19,6 +19,7 @@ package org.apache.calcite.jdbc;
 import org.apache.calcite.linq4j.function.Experimental;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.materialize.Lattice;
+import org.apache.calcite.rel.type.RelProtoDataType;
 import org.apache.calcite.schema.Function;
 import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.SchemaPlus;
@@ -62,6 +63,7 @@ public abstract class CalciteSchema {
    *  {@link #schema}. */
   protected final NameMap<TableEntry> tableMap;
   protected final NameMultimap<FunctionEntry> functionMap;
+  protected final NameMap<TypeEntry> typeMap;
   protected final NameMap<LatticeEntry> latticeMap;
   protected final NameSet functionNames;
   protected final NameMap<FunctionEntry> nullaryFunctionMap;
@@ -70,7 +72,7 @@ public abstract class CalciteSchema {
 
   protected CalciteSchema(CalciteSchema parent, Schema schema,
       String name, NameMap<CalciteSchema> subSchemaMap,
-      NameMap<TableEntry> tableMap, NameMap<LatticeEntry> latticeMap,
+      NameMap<TableEntry> tableMap, NameMap<LatticeEntry> latticeMap, NameMap<TypeEntry> typeMap,
       NameMultimap<FunctionEntry> functionMap, NameSet functionNames,
       NameMap<FunctionEntry> nullaryFunctionMap,
       List<? extends List<String>> path) {
@@ -103,6 +105,11 @@ public abstract class CalciteSchema {
       this.functionNames = Preconditions.checkNotNull(functionNames);
       this.nullaryFunctionMap = Preconditions.checkNotNull(nullaryFunctionMap);
     }
+    if (typeMap == null) {
+      this.typeMap = new NameMap<>();
+    } else {
+      this.typeMap = Preconditions.checkNotNull(typeMap);
+    }
     this.path = path;
   }
 
@@ -117,6 +124,12 @@ public abstract class CalciteSchema {
    * by a call to {@link #add(String, Table)}), or null. */
   protected abstract TableEntry getImplicitTable(String tableName,
       boolean caseSensitive);
+
+  /** Returns a type with a given name that is defined implicitly
+   * (that is, by the underlying {@link Schema} object, not explicitly
+   * by a call to {@link #add(String, RelProtoDataType)}), or null. */
+  protected abstract TypeEntry getImplicitType(String name,
+                                                boolean caseSensitive);
 
   /** Returns table function with a given name and zero arguments that is
    * defined implicitly (that is, by the underlying {@link Schema} object,
@@ -141,6 +154,10 @@ public abstract class CalciteSchema {
   protected abstract void addImplicitFuncNamesToBuilder(
       ImmutableSortedSet.Builder<String> builder);
 
+  /** Adds implicit type names to a builder. */
+  protected abstract void addImplicitTypeNamesToBuilder(
+      ImmutableSortedSet.Builder<String> builder);
+
   /** Adds implicit table functions to a builder. */
   protected abstract void addImplicitTablesBasedOnNullaryFunctionsToBuilder(
       ImmutableSortedMap.Builder<String, Table> builder);
@@ -158,6 +175,11 @@ public abstract class CalciteSchema {
     return new TableEntryImpl(this, name, table, ImmutableList.<String>of());
   }
 
+  /** Creates a TableEntryImpl with no SQLs. */
+  protected TypeEntryImpl typeEntry(String name, RelProtoDataType relProtoDataType) {
+    return new TypeEntryImpl(this, name, relProtoDataType);
+  }
+
   /** Defines a table within this schema. */
   public TableEntry add(String tableName, Table table) {
     return add(tableName, table, ImmutableList.<String>of());
@@ -169,6 +191,14 @@ public abstract class CalciteSchema {
     final TableEntryImpl entry =
         new TableEntryImpl(this, tableName, table, sqls);
     tableMap.put(tableName, entry);
+    return entry;
+  }
+
+  /** Defines a type within this schema. */
+  public TypeEntry add(String name, RelProtoDataType type) {
+    final TypeEntry entry =
+        new TypeEntryImpl(this, name, type);
+    typeMap.put(name, entry);
     return entry;
   }
 
@@ -317,6 +347,27 @@ public abstract class CalciteSchema {
     // Add implicit tables, case-sensitive.
     addImplicitTableToBuilder(builder);
     return Compatible.INSTANCE.navigableSet(builder.build());
+  }
+
+  /** Returns the set of all types names. */
+  public final NavigableSet<String> getTypeNames() {
+    final ImmutableSortedSet.Builder<String> builder =
+        new ImmutableSortedSet.Builder<>(NameSet.COMPARATOR);
+    // Add explicit types.
+    builder.addAll(typeMap.map().keySet());
+    // Add implicit types.
+    addImplicitTypeNamesToBuilder(builder);
+    return Compatible.INSTANCE.navigableSet(builder.build());
+  }
+
+  /** Returns a type, explicit and implicit, with a given
+   * name. Never null. */
+  public final TypeEntry getType(String name, boolean caseSensitive) {
+    for (Map.Entry<String, TypeEntry> entry
+        : typeMap.range(name, caseSensitive).entrySet()) {
+      return entry.getValue();
+    }
+    return getImplicitType(name, caseSensitive);
   }
 
   /** Returns a collection of all functions, explicit and implicit, with a given
@@ -481,6 +532,11 @@ public abstract class CalciteSchema {
     return true;
   }
 
+  @Experimental
+  public boolean removeType(String name) {
+    return typeMap.remove(name) != null;
+  }
+
   /**
    * Entry in a schema, such as a table or sub-schema.
    *
@@ -517,6 +573,15 @@ public abstract class CalciteSchema {
     }
 
     public abstract Table getTable();
+  }
+
+  /** Membership of a type in a schema. */
+  public abstract static class TypeEntry extends Entry {
+    public TypeEntry(CalciteSchema schema, String name) {
+      super(schema, name);
+    }
+
+    public abstract RelProtoDataType getType();
   }
 
   /** Membership of a function in a schema. */
@@ -587,6 +652,15 @@ public abstract class CalciteSchema {
       return CalciteSchema.this.getTableNames();
     }
 
+    @Override public RelProtoDataType getType(String name) {
+      final TypeEntry entry = CalciteSchema.this.getType(name, true);
+      return entry == null ? null : entry.getType();
+    }
+
+    @Override public Set<String> getTypeNames() {
+      return CalciteSchema.this.getTypeNames();
+    }
+
     public Collection<Function> getFunctions(String name) {
       return CalciteSchema.this.getFunctions(name, true);
     }
@@ -635,6 +709,10 @@ public abstract class CalciteSchema {
       CalciteSchema.this.add(name, function);
     }
 
+    public void add(String name, RelProtoDataType type) {
+      CalciteSchema.this.add(name, type);
+    }
+
     public void add(String name, Lattice lattice) {
       CalciteSchema.this.add(name, lattice);
     }
@@ -657,6 +735,24 @@ public abstract class CalciteSchema {
 
     public Table getTable() {
       return table;
+    }
+  }
+
+  /**
+   * Implementation of {@link TypeEntry}
+   * where all properties are held in fields.
+   */
+  public static class TypeEntryImpl extends TypeEntry {
+    private final RelProtoDataType protoDataType;
+
+    /** Creates a TypeEntryImpl. */
+    public TypeEntryImpl(CalciteSchema schema, String name, RelProtoDataType protoDataType) {
+      super(schema, name);
+      this.protoDataType = protoDataType;
+    }
+
+    public RelProtoDataType getType() {
+      return protoDataType;
     }
   }
 

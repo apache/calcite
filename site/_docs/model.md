@@ -102,7 +102,7 @@ A particular schema implementation can override the
 `Schema.contentsHaveChangedSince` method to tell Calcite
 when it should consider its cache to be out of date.
 
-Tables, functions and sub-schemas explicitly created in a schema are
+Tables, functions, types, and sub-schemas explicitly created in a schema are
 not affected by this caching mechanism. They always appear in the schema
 immediately, and are never flushed.
 
@@ -115,7 +115,8 @@ Like base class <a href="#schema">Schema</a>, occurs within `root.schemas`.
   name: 'foodmart',
   type: 'map',
   tables: [ Table... ],
-  functions: [ Function... ]
+  functions: [ Function... ],
+  types: [ Type... ]
 }
 {% endhighlight %}
 
@@ -127,6 +128,8 @@ defines the tables in this schema.
 
 `functions` (optional list of <a href="#function">Function</a> elements)
 defines the functions in this schema.
+
+`types` defines the types in this schema.
 
 ### Custom Schema
 
@@ -369,6 +372,31 @@ It also looks for methods "init", "add", "merge", "result", and
 if found, creates an aggregate function.
 
 `path` (optional list of string) is the path for resolving this function.
+
+### Type
+
+Occurs within `root.schemas.types`.
+
+{% highlight json %}
+{
+  name: 'mytype1',
+  type: 'BIGINT',
+  attributes: [
+    {
+      name: 'f1',
+      type: 'BIGINT'
+    }
+  ]
+}
+{% endhighlight %}
+
+`name` (required string) is the name of this type.
+
+`type` (optional) is the SQL type.
+
+`attributes` (optional) is the attribute list of this type.
+If `attributes` and `type` both exist at the same level,
+`type` takes precedence.
 
 ### Lattice
 

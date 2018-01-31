@@ -21,6 +21,8 @@ import org.apache.calcite.avatica.AvaticaUtils;
 import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.materialize.Lattice;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.schema.AggregateFunction;
 import org.apache.calcite.schema.ScalarFunction;
 import org.apache.calcite.schema.Schema;
@@ -38,6 +40,7 @@ import org.apache.calcite.schema.impl.TableFunctionImpl;
 import org.apache.calcite.schema.impl.TableMacroImpl;
 import org.apache.calcite.schema.impl.ViewTable;
 import org.apache.calcite.sql.SqlDialectFactory;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
@@ -471,6 +474,33 @@ public class ModelHandler {
     return schema;
   }
 
+  public void visit(final JsonType jsonType) {
+    checkRequiredAttributes(jsonType, "name");
+    try {
+      final SchemaPlus schema = currentMutableSchema("type");
+      schema.add(jsonType.name, typeFactory -> {
+        if (jsonType.type != null) {
+          return typeFactory.createSqlType(SqlTypeName.get(jsonType.type));
+        } else {
+          final RelDataTypeFactory.Builder builder = typeFactory.builder();
+          for (JsonTypeAttribute jsonTypeAttribute : jsonType.attributes) {
+            final SqlTypeName typeName =
+                SqlTypeName.get(jsonTypeAttribute.type);
+            RelDataType type = typeFactory.createSqlType(typeName);
+            if (type == null) {
+              type = currentSchema().getType(jsonTypeAttribute.type)
+                  .apply(typeFactory);
+            }
+            builder.add(jsonTypeAttribute.name, type);
+          }
+          return builder.build();
+        }
+      });
+    } catch (Exception e) {
+      throw new RuntimeException("Error instantiating " + jsonType, e);
+    }
+  }
+
   public void visit(JsonFunction jsonFunction) {
     // "name" is not required - a class can have several functions
     checkRequiredAttributes(jsonFunction, "className");
@@ -478,11 +508,8 @@ public class ModelHandler {
       final SchemaPlus schema = currentMutableSchema("function");
       final List<String> path =
           Util.first(jsonFunction.path, currentSchemaPath());
-      create(schema,
-          jsonFunction.name,
-          path,
-          jsonFunction.className,
-          jsonFunction.methodName);
+      addFunctions(schema, jsonFunction.name, path, jsonFunction.className,
+          jsonFunction.methodName, false);
     } catch (Exception e) {
       throw new RuntimeException("Error instantiating " + jsonFunction, e);
     }

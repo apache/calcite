@@ -2087,11 +2087,13 @@ ddlStatement:
   |   createTableStatement
   |   createViewStatement
   |   createMaterializedViewStatement
+  |   createTypeStatement
   |   dropSchemaStatement
   |   dropForeignSchemaStatement
   |   dropTableStatement
   |   dropViewStatement
   |   dropMaterializedViewStatement
+  |   dropTypeStatement
 
 createSchemaStatement:
       CREATE [ OR REPLACE ] SCHEMA [ IF NOT EXISTS ] name
@@ -2111,6 +2113,19 @@ createTableStatement:
       CREATE TABLE [ IF NOT EXISTS ] name
       [ '(' tableElement [, tableElement ]* ')' ]
       [ AS query ]
+
+createTypeStatement:
+      CREATE [ OR REPLACE ] TYPE name AS
+      {
+          baseType
+      |   '(' attributeDef [, attributeDef ]* ')'
+      }
+
+attributeDef:
+      attributeName type
+      [ COLLATE collation ]
+      [ NULL | NOT NULL ]
+      [ DEFAULT expression ]
 
 tableElement:
       columnName type [ columnGenerator ] [ columnConstraint ]
@@ -2145,19 +2160,22 @@ createMaterializedViewStatement:
       AS query
 
 dropSchemaStatement:
-      DROP SCHEMA name [ IF EXISTS ]
+      DROP SCHEMA [ IF EXISTS ] name
 
 dropForeignSchemaStatement:
-      DROP FOREIGN SCHEMA name [ IF EXISTS ]
+      DROP FOREIGN SCHEMA [ IF EXISTS ] name
 
 dropTableStatement:
-      DROP TABLE name [ IF EXISTS ]
+      DROP TABLE [ IF EXISTS ] name
 
 dropViewStatement:
-      DROP VIEW name [ IF EXISTS ]
+      DROP VIEW [ IF EXISTS ] name
 
 dropMaterializedViewStatement:
-      DROP MATERIALIZED VIEW name [ IF EXISTS ]
+      DROP MATERIALIZED VIEW [ IF EXISTS ] name
+
+dropTypeStatement:
+      DROP TYPE [ IF EXISTS ] name
 {% endhighlight %}
 
 In *createTableStatement*, if you specify *AS query*, you may omit the list of

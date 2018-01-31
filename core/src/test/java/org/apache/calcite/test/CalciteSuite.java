@@ -147,6 +147,7 @@ import org.junit.runners.Suite;
 
     // slow tests (above 1s)
     UdfTest.class,
+    UdtTest.class,
     TableFunctionTest.class,
     PlannerTest.class,
     RelBuilderTest.class,

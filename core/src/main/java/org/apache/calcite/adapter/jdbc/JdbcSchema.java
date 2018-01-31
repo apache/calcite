@@ -410,6 +410,19 @@ public class JdbcSchema implements Schema {
     return getTableMap(!snapshot).keySet();
   }
 
+  protected Map<String, RelProtoDataType> getTypes() {
+    // TODO: populate map from JDBC metadata
+    return ImmutableMap.of();
+  }
+
+  @Override public RelProtoDataType getType(String name) {
+    return getTypes().get(name);
+  }
+
+  @Override public Set<String> getTypeNames() {
+    return getTypes().keySet();
+  }
+
   public Schema getSubSchema(String name) {
     // JDBC does not support sub-schemas.
     return null;

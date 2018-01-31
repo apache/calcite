@@ -173,7 +173,12 @@ public class CalciteCatalogReader implements Prepare.CatalogReader {
   }
 
   public RelDataType getNamedType(SqlIdentifier typeName) {
-    return null;
+    CalciteSchema.TypeEntry typeEntry = SqlValidatorUtil.getTypeEntry(getRootSchema(), typeName);
+    if (typeEntry != null) {
+      return typeEntry.getType().apply(typeFactory);
+    } else {
+      return null;
+    }
   }
 
   public List<SqlMoniker> getAllSchemaObjectNames(List<String> names) {

@@ -166,7 +166,15 @@ public class SqlCreateTable extends SqlCreate
     for (Ord<SqlNode> c : Ord.zip(columnList)) {
       if (c.e instanceof SqlColumnDeclaration) {
         final SqlColumnDeclaration d = (SqlColumnDeclaration) c.e;
-        final RelDataType type = d.dataType.deriveType(typeFactory, true);
+        RelDataType type = d.dataType.deriveType(typeFactory, true);
+        final Pair<CalciteSchema, String> pairForType =
+            SqlDdlNodes.schema(context, true, d.dataType.getTypeName());
+        if (type == null) {
+          CalciteSchema.TypeEntry typeEntry = pairForType.left.getType(pairForType.right, false);
+          if (typeEntry != null) {
+            type = typeEntry.getType().apply(typeFactory);
+          }
+        }
         builder.add(d.name.getSimple(), type);
         if (d.strategy != ColumnStrategy.VIRTUAL) {
           storedBuilder.add(d.name.getSimple(), type);

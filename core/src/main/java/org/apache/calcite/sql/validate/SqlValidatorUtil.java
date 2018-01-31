@@ -951,6 +951,37 @@ public class SqlValidatorUtil {
   }
 
   /**
+   * Finds a {@link org.apache.calcite.jdbc.CalciteSchema.TypeEntry} in a
+   * given schema whose type has the given name, possibly qualified.
+   *
+   * @param rootSchema root schema
+   * @param typeName name of the type, may be qualified or fully-qualified
+   *
+   * @return TypeEntry with a table with the given name, or null
+   */
+  public static CalciteSchema.TypeEntry getTypeEntry(
+      CalciteSchema rootSchema, SqlIdentifier typeName) {
+    final String name;
+    final List<String> path;
+    if (typeName.isSimple()) {
+      path = ImmutableList.of();
+      name = typeName.getSimple();
+    } else {
+      path = Util.skipLast(typeName.names);
+      name = Util.last(typeName.names);
+    }
+    CalciteSchema schema = rootSchema;
+    for (String p : path) {
+      if (schema == rootSchema
+          && SqlNameMatchers.withCaseSensitive(true).matches(p, schema.getName())) {
+        continue;
+      }
+      schema = schema.getSubSchema(p, true);
+    }
+    return schema == null ? null : schema.getType(name, false);
+  }
+
+  /**
    * Finds a {@link org.apache.calcite.jdbc.CalciteSchema.TableEntry} in a
    * given catalog reader whose table has the given name, possibly qualified.
    *

@@ -31,6 +31,7 @@ import java.util.List;
  * <!-- CHECKSTYLE: OFF -->
  * <pre>{@code Root}
  *   {@link JsonSchema} (in collection {@link JsonRoot#schemas schemas})
+ *     {@link JsonType} (in collection {@link JsonMapSchema#types types})
  *     {@link JsonTable} (in collection {@link JsonMapSchema#tables tables})
  *       {@link JsonColumn} (in collection {@link JsonTable#columns columns})
  *       {@link JsonStream} (in field {@link JsonTable#stream stream})
