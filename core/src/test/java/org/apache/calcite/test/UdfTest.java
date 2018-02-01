@@ -884,6 +884,27 @@ public class UdfTest {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2053">[CALCITE-2053]
+   * Overloaded user-defined functions that have Double and BigDecimal arguments
+   * will goes wrong </a>. */
+  @Test
+  public void testBigDecimalAndLong() {
+    final CalciteAssert.AssertThat with = withUdf();
+    with.query("values \"adhoc\".\"toDouble\"(cast(1.0 as double))")
+            .returns("EXPR$0=1.0\n");
+    with.query("values \"adhoc\".\"toDouble\"(cast(1.0 as decimal))")
+            .returns("EXPR$0=1.0\n");
+    with.query("values \"adhoc\".\"toDouble\"(cast(1 as double))")
+            .returns("EXPR$0=1.0\n");
+    with.query("values \"adhoc\".\"toDouble\"(cast(1 as decimal))")
+            .returns("EXPR$0=1.0\n");
+    with.query("values \"adhoc\".\"toDouble\"(cast(1 as float))")
+            .returns("EXPR$0=1.0\n");
+    with.query("values \"adhoc\".\"toDouble\"(cast(1.0 as float))")
+            .returns("EXPR$0=1.0\n");
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1041">[CALCITE-1041]
    * User-defined function returns DATE or TIMESTAMP value</a>. */
   @Test public void testReturnDate2() {

@@ -54,6 +54,7 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import com.google.common.collect.ImmutableList;
 
 import java.lang.reflect.Method;
+import java.math.BigDecimal;
 import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
@@ -597,6 +598,18 @@ public class Smalls {
     }
     public static java.sql.Time toTimeFun(Long v) {
       return v == null ? null : SqlFunctions.internalToTime(v.intValue());
+    }
+    /** for Overloaded user-defined functions that have Double and BigDecimal
+     * arguments will goes wrong
+     * */
+    public static double toDouble(BigDecimal var) {
+      return var == null ? null : var.doubleValue();
+    }
+    public static double toDouble(Double var) {
+      return var == null ? 0.0d : var;
+    }
+    public static double toDouble(Float var) {
+      return var == null ? 0.0d : Double.valueOf(var.toString());
     }
 
     public static List arrayAppendFun(List v, Integer i) {
