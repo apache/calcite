@@ -78,8 +78,8 @@ public class SqlTypeExplicitPrecedenceList
           .put(SqlTypeName.BIGINT, numeric(SqlTypeName.BIGINT))
           .put(SqlTypeName.DECIMAL, numeric(SqlTypeName.DECIMAL))
           .put(SqlTypeName.REAL, numeric(SqlTypeName.REAL))
-          .put(SqlTypeName.FLOAT, numeric(SqlTypeName.FLOAT))
-          .put(SqlTypeName.DOUBLE, numeric(SqlTypeName.DOUBLE))
+          .put(SqlTypeName.FLOAT, list(SqlTypeName.FLOAT, SqlTypeName.REAL, SqlTypeName.DOUBLE))
+          .put(SqlTypeName.DOUBLE, list(SqlTypeName.DOUBLE, SqlTypeName.DECIMAL))
           .put(SqlTypeName.CHAR, list(SqlTypeName.CHAR, SqlTypeName.VARCHAR))
           .put(SqlTypeName.VARCHAR, list(SqlTypeName.VARCHAR))
           .put(SqlTypeName.BINARY,
