@@ -7433,8 +7433,9 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     final String type = "RecordType(INTEGER NOT NULL DEPTNO,"
         + " INTEGER NOT NULL EMPNO,"
         + " VARCHAR(10) NOT NULL ENAME,"
-        + " RecordType(VARCHAR(10) NOT NULL TYPE, VARCHAR(20) NOT NULL DESC)"
-        + " NOT NULL ARRAY NOT NULL SKILLS) NOT NULL";
+        + " RecordType(RecordType(VARCHAR(10) NOT NULL TYPE, VARCHAR(20) NOT NULL DESC,"
+        + " RecordType(VARCHAR(10) NOT NULL A, VARCHAR(10) NOT NULL B) NOT NULL OTHERS)"
+        + " NOT NULL ARRAY NOT NULL SKILLS) NOT NULL DETAIL) NOT NULL";
     sql(sql).type(type);
 
     // equivalent query using CROSS JOIN
@@ -7816,8 +7817,12 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .fails("Unknown field 'NE'");
     sql("SELECT name, dept_nested.employees[1].ename as ename from dept_nested")
         .type("RecordType(VARCHAR(10) NOT NULL NAME, VARCHAR(10) ENAME) NOT NULL");
-    sql("SELECT dept_nested.employees[1].skills[1].desc as DESCRIPTION from dept_nested")
+    sql("SELECT dept_nested.employees[1].detail.skills[1].desc as DESCRIPTION\n"
+        + "from dept_nested")
         .type("RecordType(VARCHAR(20) DESCRIPTION) NOT NULL");
+    sql("SELECT dept_nested.employees[1].detail.skills[1].others.a as oa\n"
+        + "from dept_nested")
+        .type("RecordType(VARCHAR(10) OA) NOT NULL");
   }
 
   /** Test case for
