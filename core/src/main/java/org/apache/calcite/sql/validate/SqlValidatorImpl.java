@@ -3292,7 +3292,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
   private SqlNode stripDot(SqlNode node) {
     if (node != null && node.getKind() == SqlKind.DOT) {
-      return ((SqlCall) node).operand(0);
+      return stripDot(((SqlCall) node).operand(0));
     }
     return node;
   }

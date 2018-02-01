@@ -1670,12 +1670,16 @@ public class MockCatalogReader extends CalciteCatalogReader {
         typeFactory.builder()
             .add("TYPE", varchar10Type)
             .add("DESC", varchar20Type)
+            .add("OTHERS",
+                typeFactory.builder().add("A", varchar10Type).add("B", varchar10Type).build())
             .build();
     final RelDataType empRecordType =
         typeFactory.builder()
             .add("EMPNO", intType)
             .add("ENAME", varchar10Type)
-            .add("SKILLS", typeFactory.createArrayType(skillRecordType, -1))
+            .add("DETAIL",
+                typeFactory.builder().add(
+                    "SKILLS", typeFactory.createArrayType(skillRecordType, -1)).build())
             .build();
     final RelDataType empListType =
         typeFactory.createArrayType(empRecordType, -1);
