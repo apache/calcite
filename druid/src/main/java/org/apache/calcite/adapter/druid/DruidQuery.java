@@ -125,8 +125,8 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
           .add(new DirectOperatorConversion(SqlStdOperatorTable.CHARACTER_LENGTH, "strlen"))
           .add(new BinaryOperatorConversion(SqlStdOperatorTable.EQUALS, "=="))
           .add(new BinaryOperatorConversion(SqlStdOperatorTable.NOT_EQUALS, "!="))
-          .add(new BinaryOperatorConversion(SqlStdOperatorTable.OR, "||"))
-          .add(new BinaryOperatorConversion(SqlStdOperatorTable.AND, "&&"))
+          .add(new NaryOperatorConverter(SqlStdOperatorTable.OR, "||"))
+          .add(new NaryOperatorConverter(SqlStdOperatorTable.AND, "&&"))
           .add(new BinaryOperatorConversion(SqlStdOperatorTable.LESS_THAN, "<"))
           .add(new BinaryOperatorConversion(SqlStdOperatorTable.LESS_THAN_OR_EQUAL, "<="))
           .add(new BinaryOperatorConversion(SqlStdOperatorTable.GREATER_THAN, ">"))
@@ -772,7 +772,21 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
         projectedColumnsBuilder.add(virColName);
       } else {
         // simple inputRef or extractable function
-        projectedColumnsBuilder.add(druidColumn.left);
+        if (usedFieldNames.contains(druidColumn.left)) {
+          final String virColName = SqlValidatorUtil.uniquify("vc",
+              usedFieldNames, SqlValidatorUtil.EXPR_SUGGESTER
+          );
+          virtualColumnsBuilder.add(VirtualColumn.builder()
+              .withName(virColName)
+              .withExpression(DruidExpressions.fromColumn(druidColumn.left)).withType(
+                  DruidExpressions.EXPRESSION_TYPES.get(project.getType().getSqlTypeName()))
+              .build());
+          usedFieldNames.add(virColName);
+          projectedColumnsBuilder.add(virColName);
+        } else {
+          projectedColumnsBuilder.add(druidColumn.left);
+          usedFieldNames.add(druidColumn.left);
+        }
       }
     }
     return Pair.<List<String>, List<VirtualColumn>>of(projectedColumnsBuilder.build(),

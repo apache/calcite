@@ -184,12 +184,11 @@ public class DruidExpressions {
   }
 
   public static String functionCall(final String functionName, final List<String> args) {
-    Preconditions.checkNotNull(functionName, "functionName");
+    Preconditions.checkNotNull(functionName, "druid functionName");
     Preconditions.checkNotNull(args, "args");
 
     final StringBuilder builder = new StringBuilder(functionName);
     builder.append("(");
-
     for (int i = 0; i < args.size(); i++) {
       final String arg = Preconditions.checkNotNull(args.get(i), "arg #%s", i);
       builder.append(arg);
@@ -197,9 +196,23 @@ public class DruidExpressions {
         builder.append(",");
       }
     }
-
     builder.append(")");
+    return builder.toString();
+  }
 
+  public static String nAryOperatorCall(final String druidOperator, final List<String> args) {
+    Preconditions.checkNotNull(druidOperator, "druid operator missing");
+    Preconditions.checkNotNull(args, "args");
+    final StringBuilder builder = new StringBuilder();
+    builder.append("(");
+    for (int i = 0; i < args.size(); i++) {
+      final String arg = Preconditions.checkNotNull(args.get(i), "arg #%s", i);
+      builder.append(arg);
+      if (i < args.size() - 1) {
+        builder.append(druidOperator);
+      }
+    }
+    builder.append(")");
     return builder.toString();
   }
 
