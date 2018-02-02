@@ -3506,11 +3506,6 @@ public class DruidAdapterIT {
         .returnsOrdered("T=1997-05-01 05:30:00");
   }
 
-  @Test public void test123(){
-    System.out.println("abc".startsWith(""));
-  }
-
-
 }
 
 // End DruidAdapterIT.java

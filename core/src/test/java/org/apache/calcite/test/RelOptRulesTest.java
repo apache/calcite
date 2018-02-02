@@ -17,7 +17,6 @@
 package org.apache.calcite.test;
 
 import org.apache.calcite.config.CalciteConnectionConfigImpl;
-import org.apache.calcite.plan.Context;
 import org.apache.calcite.plan.Contexts;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptRule;
@@ -3182,7 +3181,7 @@ public class RelOptRulesTest extends RelOptTestBase {
     Tester tester = new TesterImpl(getDiffRepos(), true, true, false, false,
         null, null) {
       @Override public RelOptPlanner createPlanner() {
-        return new MockRelOptPlanner() {
+        return new MockRelOptPlanner(Contexts.empty()) {
           @Override public List<RelTraitDef> getRelTraitDefs() {
             return ImmutableList.<RelTraitDef>of(RelCollationTraitDef.INSTANCE);
           }
@@ -3715,17 +3714,8 @@ public class RelOptRulesTest extends RelOptTestBase {
     HepProgram program = new HepProgramBuilder()
         .addRuleInstance(DateRangeRules.FILTER_INSTANCE)
         .build();
-    Tester tester = new TesterImpl(getDiffRepos(), true, true, false, false,
-        null, null) {
-      @Override public RelOptPlanner createPlanner() {
-        return new MockRelOptPlanner() {
-          @Override public Context getContext() {
-            return Contexts.of(new CalciteConnectionConfigImpl(new Properties()));
-          }
-        };
-      }
-    };
-    checkPlanning(tester, null, new HepPlanner(program), sql);
+    sql(sql).with(program)
+        .withContext(Contexts.of(new CalciteConnectionConfigImpl(new Properties()))).check();
   }
 
   @Test public void testExtractYearMonthToRange() throws Exception {
@@ -3736,18 +3726,8 @@ public class RelOptRulesTest extends RelOptTestBase {
     HepProgram program = new HepProgramBuilder()
         .addRuleInstance(DateRangeRules.FILTER_INSTANCE)
         .build();
-
-    Tester tester = new TesterImpl(getDiffRepos(), true, true, false, false,
-        null, null) {
-      @Override public RelOptPlanner createPlanner() {
-        return new MockRelOptPlanner() {
-          @Override public Context getContext() {
-            return Contexts.of(new CalciteConnectionConfigImpl(new Properties()));
-          }
-        };
-      }
-    };
-    checkPlanning(tester, null, new HepPlanner(program), sql);
+    sql(sql).with(program)
+        .withContext(Contexts.of(new CalciteConnectionConfigImpl(new Properties()))).check();
   }
 
 }
