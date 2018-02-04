@@ -154,7 +154,7 @@ public class StackWriter extends FilterWriter {
 
   private void popQuote(Character quoteChar) throws IOException {
     final Character pop = quoteStack.pop();
-    assert pop == quoteChar;
+    assert pop.equals(quoteChar);
     writeQuote(quoteChar);
   }
 

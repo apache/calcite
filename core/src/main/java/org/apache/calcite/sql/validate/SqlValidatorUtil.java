@@ -512,7 +512,7 @@ public class SqlValidatorUtil {
    *
    * @param typeFactory     Type factory
    * @param leftType        Type of left input to join
-   * @param rightType       Type of right input to join
+   * @param rightType       Type of right input to join, or null for semi-join
    * @param fieldNameList   If not null, overrides the original names of the
    *                        fields
    * @param systemFieldList List of system fields that will be prefixed to

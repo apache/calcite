@@ -671,7 +671,7 @@ public class LoptSemiJoinOptimizer {
       return 0;
     }
 
-    Double dimRows = dimCost.getRows();
+    double dimRows = dimCost.getRows();
     if (dimRows < 1.0) {
       dimRows = 1.0;
     }

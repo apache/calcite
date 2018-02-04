@@ -22,7 +22,6 @@ import org.apache.calcite.linq4j.tree.TypeTest;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 
-
 /**
  * Suite of all Linq4j tests.
  */
@@ -33,6 +32,7 @@ import org.junit.runners.Suite;
     ExpressionTest.class,
     OptimizerTest.class,
     InlinerTest.class,
+    LookupImplTest.class,
     DeterministicTest.class,
     BlockBuilderTest.class,
     FunctionTest.class,

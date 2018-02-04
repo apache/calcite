@@ -348,6 +348,8 @@ public class JoinToMultiJoinRule extends RelOptRule {
     if (adjustmentAmount == 0) {
       destJoinSpecs.addAll(srcJoinSpecs);
     } else {
+      assert srcFields != null;
+      assert destFields != null;
       int nFields = srcFields.size();
       int[] adjustments = new int[nFields];
       for (int idx = 0; idx < nFields; idx++) {
