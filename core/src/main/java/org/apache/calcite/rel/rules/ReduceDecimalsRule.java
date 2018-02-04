@@ -801,8 +801,7 @@ public class ReduceDecimalsRule extends RelOptRule {
         if (fromScale <= toScale) {
           scaled = ensureScale(value, fromScale, toScale);
         } else {
-          if ((toDigits == fromDigits)
-              && (toScale < fromScale)) {
+          if (toDigits == fromDigits) {
             // rounding away from zero may cause an overflow
             // for example: cast(9.99 as decimal(2,1))
             checkOverflow = true;

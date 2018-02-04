@@ -4777,7 +4777,6 @@ public class SqlToRelConverter {
     /** Expressions to be evaluated as rows are being placed into the
      * aggregate's hash table. This is when group functions such as TUMBLE
      * cause rows to be expanded. */
-    private final List<RexNode> midExprs = new ArrayList<>();
 
     private final List<AggregateCall> aggCalls = new ArrayList<>();
     private final Map<SqlNode, RexNode> aggMapping = new HashMap<>();

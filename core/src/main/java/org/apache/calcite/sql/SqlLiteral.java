@@ -717,7 +717,7 @@ public class SqlLiteral extends SqlNode {
       }
       break;
     default:
-      writer.literal(value.toString());
+      writer.literal(String.valueOf(value));
     }
   }
 
