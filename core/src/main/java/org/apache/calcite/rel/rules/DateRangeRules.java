@@ -16,7 +16,9 @@
  */
 package org.apache.calcite.rel.rules;
 
+import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.avatica.util.TimeUnitRange;
+import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.rel.core.Filter;
@@ -29,6 +31,7 @@ import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.runtime.PredicateImpl;
+import org.apache.calcite.runtime.SqlFunctions;
 import org.apache.calcite.sql.SqlBinaryOperator;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
@@ -37,6 +40,7 @@ import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.DateString;
 import org.apache.calcite.util.TimestampString;
+import org.apache.calcite.util.TimestampWithTimeZoneString;
 import org.apache.calcite.util.Util;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -61,6 +65,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TimeZone;
 
 /**
  * Collection of planner rules that convert
@@ -145,7 +150,7 @@ public abstract class DateRangeRules {
 
   /** Replaces calls to EXTRACT, FLOOR and CEIL in an expression. */
   @VisibleForTesting
-  public static RexNode replaceTimeUnits(RexBuilder rexBuilder, RexNode e) {
+  public static RexNode replaceTimeUnits(RexBuilder rexBuilder, RexNode e, String timeZone) {
     ImmutableSortedSet<TimeUnitRange> timeUnits = extractTimeUnits(e);
     if (!timeUnits.contains(TimeUnitRange.YEAR)) {
       // Case when we have FLOOR or CEIL but no extract on YEAR.
@@ -157,7 +162,7 @@ public abstract class DateRangeRules {
     final Map<String, RangeSet<Calendar>> operandRanges = new HashMap<>();
     for (TimeUnitRange timeUnit : timeUnits) {
       e = e.accept(
-          new ExtractShuttle(rexBuilder, timeUnit, operandRanges, timeUnits));
+          new ExtractShuttle(rexBuilder, timeUnit, operandRanges, timeUnits, timeZone));
     }
     return e;
   }
@@ -174,8 +179,10 @@ public abstract class DateRangeRules {
     @Override public void onMatch(RelOptRuleCall call) {
       final Filter filter = call.rel(0);
       final RexBuilder rexBuilder = filter.getCluster().getRexBuilder();
+      final String timeZone = filter.getCluster().getPlanner().getContext()
+          .unwrap(CalciteConnectionConfig.class).timeZone();
       final RexNode condition =
-          replaceTimeUnits(rexBuilder, filter.getCondition());
+          replaceTimeUnits(rexBuilder, filter.getCondition(), timeZone);
       if (RexUtil.eq(condition, filter.getCondition())) {
         return;
       }
@@ -238,17 +245,20 @@ public abstract class DateRangeRules {
     private final Map<String, RangeSet<Calendar>> operandRanges;
     private final Deque<RexCall> calls = new ArrayDeque<>();
     private final ImmutableSortedSet<TimeUnitRange> timeUnitRanges;
+    private final String timeZone;
 
     @VisibleForTesting
     ExtractShuttle(RexBuilder rexBuilder, TimeUnitRange timeUnit,
         Map<String, RangeSet<Calendar>> operandRanges,
-        ImmutableSortedSet<TimeUnitRange> timeUnitRanges) {
+        ImmutableSortedSet<TimeUnitRange> timeUnitRanges,
+        String timeZone) {
       this.rexBuilder = Preconditions.checkNotNull(rexBuilder);
       this.timeUnit = Preconditions.checkNotNull(timeUnit);
       Bug.upgrade("Change type to Map<RexNode, RangeSet<Calendar>> when"
           + " [CALCITE-1367] is fixed");
       this.operandRanges = Preconditions.checkNotNull(operandRanges);
       this.timeUnitRanges = Preconditions.checkNotNull(timeUnitRanges);
+      this.timeZone = timeZone;
     }
 
     @Override public RexNode visitCall(RexCall call) {
@@ -365,7 +375,7 @@ public abstract class DateRangeRules {
           for (TimeUnitRange timeUnit : timeUnitRanges) {
             clonedOperand = clonedOperand.accept(
                 new ExtractShuttle(rexBuilder, timeUnit, operandRanges,
-                    timeUnitRanges));
+                    timeUnitRanges, timeZone));
           }
           if ((clonedOperand != operand) && (update != null)) {
             update[0] = true;
@@ -509,9 +519,16 @@ public abstract class DateRangeRules {
         RexNode operand) {
       switch (operand.getType().getSqlTypeName()) {
       case TIMESTAMP:
-      case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
         final TimestampString ts = TimestampString.fromCalendarFields(calendar);
         return rexBuilder.makeTimestampLiteral(ts, operand.getType().getPrecision());
+      case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
+        TimestampWithTimeZoneString timestampWithTimeZoneString = new TimestampWithTimeZoneString(
+            TimestampString.fromCalendarFields(calendar), TimeZone.getTimeZone(timeZone))
+            .withTimeZone(DateTimeUtils.UTC_ZONE);
+        return rexBuilder
+            .makeTimestampWithLocalTimeZoneLiteral(
+                timestampWithTimeZoneString.getLocalTimestampString(),
+                operand.getType().getPrecision());
       case DATE:
         final DateString d = DateString.fromCalendarFields(calendar);
         return rexBuilder.makeDateLiteral(d);
@@ -558,7 +575,7 @@ public abstract class DateRangeRules {
         rangeSet = ImmutableRangeSet.<Calendar>of().complement();
       }
       final RangeSet<Calendar> s2 = TreeRangeSet.create();
-      final Calendar c = timeLiteral.getValueAs(Calendar.class);
+      final Calendar c = timestampValue(timeLiteral);
       final Range<Calendar> range = floor
           ? floorRange(timeUnit, comparison, c)
           : ceilRange(timeUnit, comparison, c);
@@ -570,6 +587,23 @@ public abstract class DateRangeRules {
         return rexBuilder.makeLiteral(false);
       }
       return toRex(operand, range);
+    }
+
+    private Calendar timestampValue(RexLiteral timeLiteral) {
+      switch (timeLiteral.getTypeName()) {
+      case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
+        return Util.calendar(SqlFunctions
+            .timestampWithLocalTimeZoneToTimestamp(timeLiteral.getValueAs(Long.class),
+                TimeZone.getTimeZone(timeZone)));
+      case TIMESTAMP:
+        return Util.calendar(timeLiteral.getValueAs(Long.class));
+      case DATE:
+        // Cast date to timestamp with local time zone
+        final DateString d = timeLiteral.getValueAs(DateString.class);
+        return Util.calendar(d.getMillisSinceEpoch());
+      default:
+        throw Util.unexpected(timeLiteral.getTypeName());
+      }
     }
 
     private Range<Calendar> floorRange(TimeUnitRange timeUnit, SqlKind comparison,

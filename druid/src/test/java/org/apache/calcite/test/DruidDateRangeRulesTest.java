@@ -141,7 +141,7 @@ public class DruidDateRangeRulesTest {
   // HiveRexExecutorImpl is used in Hive
   private void checkDateRangeNoSimplify(Fixture f, RexNode e,
       Matcher<String> intervalMatcher) {
-    e = DateRangeRules.replaceTimeUnits(f.rexBuilder, e);
+    e = DateRangeRules.replaceTimeUnits(f.rexBuilder, e, "UTC");
     final List<Interval> intervals =
         DruidDateTimeUtils.createInterval(e, "UTC");
     assertThat(intervals, notNullValue());
@@ -149,7 +149,7 @@ public class DruidDateRangeRulesTest {
   }
 
   private void checkDateRange(Fixture f, RexNode e, Matcher<String> intervalMatcher) {
-    e = DateRangeRules.replaceTimeUnits(f.rexBuilder, e);
+    e = DateRangeRules.replaceTimeUnits(f.rexBuilder, e, "UTC");
     final RexNode e2 = f.simplify.simplify(e);
     List<Interval> intervals =
         DruidDateTimeUtils.createInterval(e2, "UTC");

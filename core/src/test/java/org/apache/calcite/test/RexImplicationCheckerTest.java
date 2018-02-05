@@ -553,6 +553,11 @@ public class RexImplicationCheckerTest {
           timestampDataType.getPrecision());
     }
 
+    public RexNode timestampWithLocalTimeZone(TimestampString ts) {
+      return rexBuilder.makeTimestampWithLocalTimeZoneLiteral(ts,
+          timestampDataType.getPrecision());
+    }
+
     public RexNode timeLiteral(TimeString t) {
       return rexBuilder.makeTimeLiteral(t, timeDataType.getPrecision());
     }
