@@ -4443,6 +4443,81 @@ public class DruidAdapterIT {
         .queryContains(
             druidChecker("{'queryType':'groupBy','dataSource':'foodmart','granularity':'all'"));
   }
+
+  @Test
+  public void testProjectSameColumnMultipleTimes() {
+    final String sql =
+        "SELECT \"product_id\" as prod_id1, \"product_id\" as prod_id2, "
+            + "\"store_sales\" as S1, \"store_sales\" as S2 FROM " + FOODMART_TABLE
+            + " order by prod_id1 LIMIT 1";
+    sql(sql, FOODMART)
+        .explainContains("PLAN=EnumerableInterpreter\n"
+            + "  BindableSort(sort0=[$0], dir0=[ASC], fetch=[1])\n"
+            + "    DruidQuery(table=[[foodmart, foodmart]], intervals=[[1900-01-09T00:00:00.000Z/"
+            + "2992-01-10T00:00:00.000Z]], projects=[[$1, $1, $90, $90]])")
+        .queryContains(
+            druidChecker("{'queryType':'scan','dataSource':'foodmart','intervals':"
+                + "['1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z'],'virtualColumns':["
+                + "{'type':'expression','name':'vc','expression':'\\'product_id\\'','outputType':"
+                + "'STRING'},{'type':'expression','name':'vc0','expression':'\\'store_sales\\'',"
+                + "'outputType':'DOUBLE'}],'columns':['product_id','vc','store_sales','vc0'],"
+                + "'resultFormat':'compactedList'}"))
+        .returnsOrdered("PROD_ID1=1; PROD_ID2=1; S1=11.4; S2=11.4");
+  }
+
+  @Test
+  public void testProjectSameMetricsColumnMultipleTimes() {
+    final String sql =
+        "SELECT \"product_id\" as prod_id1, \"product_id\" as prod_id2, "
+            + "\"store_sales\" as S1, \"store_sales\" as S2 FROM " + FOODMART_TABLE
+            + " order by prod_id1 LIMIT 1";
+    sql(sql, FOODMART)
+        .explainContains("PLAN=EnumerableInterpreter\n"
+            + "  BindableSort(sort0=[$0], dir0=[ASC], fetch=[1])\n"
+            + "    DruidQuery(table=[[foodmart, foodmart]], intervals=[[1900-01-09T00:00:00.000Z/"
+            + "2992-01-10T00:00:00.000Z]], projects=[[$1, $1, $90, $90]])")
+        .queryContains(
+            druidChecker("{\"queryType\":\"scan\",\"dataSource\":\"foodmart\",\"intervals\":"
+                + "[\"1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z\"],\"virtualColumns\":"
+                + "[{\"type\":\"expression\",\"name\":\"vc\",\"expression\":\"\\\"product_id\\\"\","
+                + "\"outputType\":\"STRING\"},{\"type\":\"expression\",\"name\":\"vc0\","
+                + "\"expression\":\"\\\"store_sales\\\"\",\"outputType\":\"DOUBLE\"}],\"columns\":"
+                + "[\"product_id\",\"vc\",\"store_sales\",\"vc0\"],\"resultFormat\":\"compactedList\"}"))
+        .returnsOrdered("PROD_ID1=1; PROD_ID2=1; S1=11.4; S2=11.4");
+  }
+
+  @Test
+  public void testAggSameColumnMultipleTimes() {
+    final String sql =
+        "SELECT \"product_id\" as prod_id1, \"product_id\" as prod_id2, "
+            + "SUM(\"store_sales\") as S1, SUM(\"store_sales\") as S2 FROM " + FOODMART_TABLE
+            + " GROUP BY \"product_id\" ORDER BY prod_id2 LIMIT 1";
+    sql(sql, FOODMART)
+        .explainContains("BindableProject(PROD_ID1=[$0], PROD_ID2=[$0], S1=[$1], S2=[$1])\n"
+            + "    DruidQuery(table=[[foodmart, foodmart]], intervals=[[1900-01-09T00:00:00.000Z/"
+            + "2992-01-10T00:00:00.000Z]], projects=[[$1, $90]], groups=[{0}], aggs=[[SUM($1)]], "
+            + "sort0=[0], dir0=[ASC], fetch=[1])")
+        .queryContains(
+            druidChecker("\"queryType\":\"groupBy\""))
+        .returnsOrdered("PROD_ID1=1; PROD_ID2=1; S1=236.55; S2=236.55");
+  }
+
+  @Test
+  public void testGroupBy1() {
+    final String sql = "SELECT SUM(\"store_sales\") FROM \"foodmart\" "
+        + "GROUP BY 1 HAVING (COUNT(1) > 0)";
+    sql(sql, FOODMART)
+        .returnsOrdered("EXPR$0=565238.1299999986")
+        .queryContains(
+            druidChecker("{'queryType':'groupBy','dataSource':'foodmart','granularity':'all',"
+                + "'dimensions':[{'type':'default','dimension':'vc','outputName':'vc','outputType':'LONG'}],"
+                + "'virtualColumns':[{'type':'expression','name':'vc','expression':'1','outputType':'LONG'}],"
+                + "'limitSpec':{'type':'default'},'aggregations':[{'type':'doubleSum','name':'EXPR$0',"
+                + "'fieldName':'store_sales'},{'type':'count','name':'$f2'}],'intervals':"
+                + "['1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z'],'having':"
+                + "{'type':'filter','filter':{'type':'bound','dimension':'$f2','lower':'0',"
+                + "'lowerStrict':true,'ordering':'numeric'}}}"));
+  }
 }
 
 // End DruidAdapterIT.java
