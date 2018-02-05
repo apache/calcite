@@ -37,7 +37,7 @@ public class VirtualColumn implements DruidJson {
   public VirtualColumn(String name, String expression, DruidType outputType) {
     this.name = Preconditions.checkNotNull(name);
     this.expression = Preconditions.checkNotNull(expression);
-    this.outputType = outputType == null ? DruidType.LONG : outputType;
+    this.outputType = outputType == null ? DruidType.FLOAT : outputType;
   }
 
   @Override public void write(JsonGenerator generator) throws IOException {

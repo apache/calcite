@@ -240,14 +240,14 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
     final ImmutableList.Builder<RelNode> builder = ImmutableList.builder();
     return DruidQuery.create(query.getCluster(), r.getTraitSet().replace(query.getConvention()),
         query.getTable(), query.druidTable, query.intervals,
-        builder.addAll(query.rels).add(r).build(), query.getConverterOperatorMap());
+        builder.addAll(query.rels).add(r).build(), query.getOperatorConversionMap());
   }
 
   /** Extends a DruidQuery. */
   public static DruidQuery extendQuery(DruidQuery query,
       List<Interval> intervals) {
     return DruidQuery.create(query.getCluster(), query.getTraitSet(), query.getTable(),
-        query.druidTable, intervals, query.rels, query.getConverterOperatorMap());
+        query.druidTable, intervals, query.rels, query.getOperatorConversionMap());
   }
 
   /**
@@ -486,7 +486,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
     return true;
   }
 
-  protected Map<SqlOperator, DruidSqlOperatorConverter> getConverterOperatorMap() {
+  protected Map<SqlOperator, DruidSqlOperatorConverter> getOperatorConversionMap() {
     return converterOperatorMap;
   }
 
@@ -833,7 +833,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
       } else if (druidColumn.left != null && druidColumn.right != null) {
        // CASE it is an extraction Dimension
         final String columnPrefix;
-        //@TODO Remove it! Switch statement is not really needed it is here to make tests pass.
+        //@TODO Remove it! if else statement is not really needed it is here to make tests pass.
         if (project.getKind() == SqlKind.EXTRACT) {
           columnPrefix =
               EXTRACT_COLUMN_NAME_PREFIX + "_" + Objects

@@ -48,7 +48,7 @@ public class DruidExpressions {
   /**
    * Type mapping between Calcite SQL family types and native Druid expression types
    */
-  public static final Map<SqlTypeName, DruidType> EXPRESSION_TYPES;
+  static final Map<SqlTypeName, DruidType> EXPRESSION_TYPES;
   /**
    * Druid expression safe chars, must be sorted.
    */
@@ -106,7 +106,6 @@ public class DruidExpressions {
       if (columnName == null) {
         return null;
       }
-      //this a nasty hack since calcite has this un-direct renaming of timestamp to __time
       if (druidRel.getDruidTable().timestampFieldName.equals(columnName)) {
         return DruidExpressions.fromColumn(DruidTable.DEFAULT_TIMESTAMP_COLUMN);
       }
@@ -115,7 +114,8 @@ public class DruidExpressions {
 
     if (rexNode instanceof RexCall) {
       final SqlOperator operator = ((RexCall) rexNode).getOperator();
-      final DruidSqlOperatorConverter conversion = druidRel.getConverterOperatorMap().get(operator);
+      final DruidSqlOperatorConverter conversion = druidRel.getOperatorConversionMap()
+          .get(operator);
       if (conversion == null) {
         //unknown operator can not translate
         return null;

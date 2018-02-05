@@ -70,7 +70,7 @@ public enum DruidType {
     case "LONG":
       return LONG;
     case "FLOAT":
-      return DOUBLE;
+      return FLOAT;
     case "DOUBLE":
       return DOUBLE;
     case "STRING":

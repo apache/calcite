@@ -59,7 +59,8 @@ abstract class DruidJsonFilter implements DruidJson {
       DruidQuery druidQuery
   ) {
     if (rexNode.getKind() != SqlKind.EQUALS && rexNode.getKind() != SqlKind.NOT_EQUALS) {
-      return null;
+      throw new AssertionError(
+          DruidQuery.format("Expecting EQUALS or NOT_EQUALS but got [%s]", rexNode.getKind()));
     }
     final RexCall rexCall = (RexCall) rexNode;
     if (rexCall.getOperands().size() < 2) {
@@ -178,11 +179,12 @@ abstract class DruidJsonFilter implements DruidJson {
             rexCall.getKind() == SqlKind.LESS_THAN, isNumeric,
             extractionFunction
         );
+      } else {
+        return new JsonBound(columnName, literalValue, rexCall.getKind() == SqlKind.LESS_THAN, null,
+            false, isNumeric,
+            extractionFunction
+        );
       }
-      return new JsonBound(columnName, literalValue, rexCall.getKind() == SqlKind.LESS_THAN, null,
-          false, isNumeric,
-          extractionFunction
-      );
     case GREATER_THAN_OR_EQUAL:
     case GREATER_THAN:
       if (!lhsIsRef) {
@@ -190,12 +192,13 @@ abstract class DruidJsonFilter implements DruidJson {
             rexCall.getKind() == SqlKind.GREATER_THAN, isNumeric,
             extractionFunction
         );
+      } else {
+        return new JsonBound(columnName, literalValue, rexCall.getKind() == SqlKind.GREATER_THAN,
+            null,
+            false, isNumeric,
+            extractionFunction
+        );
       }
-      return new JsonBound(columnName, literalValue, rexCall.getKind() == SqlKind.GREATER_THAN,
-          null,
-          false, isNumeric,
-          extractionFunction
-      );
     default:
       return null;
     }
@@ -250,7 +253,8 @@ abstract class DruidJsonFilter implements DruidJson {
       DruidQuery druidQuery
   ) {
     if (rexNode.getKind() != SqlKind.IS_NULL && rexNode.getKind() != SqlKind.IS_NOT_NULL) {
-      return null;
+      throw new AssertionError(
+          DruidQuery.format("Expecting IS_NULL or IS_NOT_NULL but got [%s]", rexNode.getKind()));
     }
     final RexCall rexCall = (RexCall) rexNode;
     final RexNode refNode = rexCall.getOperands().get(0);
@@ -272,7 +276,8 @@ abstract class DruidJsonFilter implements DruidJson {
       DruidQuery druidQuery
   ) {
     if (e.getKind() != SqlKind.IN && e.getKind() != SqlKind.NOT_IN) {
-      return null;
+      throw new AssertionError(
+          DruidQuery.format("Expecting IN or NOT IN but got [%s]", e.getKind()));
     }
     ImmutableList.Builder<String> listBuilder = ImmutableList.builder();
     for (RexNode rexNode : ((RexCall) e).getOperands()) {
@@ -295,9 +300,10 @@ abstract class DruidJsonFilter implements DruidJson {
     }
     if (e.getKind() != SqlKind.NOT_IN) {
       return new DruidJsonFilter.JsonInFilter(columnName, listBuilder.build(), extractionFunction);
+    } else {
+      return toNotDruidFilter(
+          new DruidJsonFilter.JsonInFilter(columnName, listBuilder.build(), extractionFunction));
     }
-    return toNotDruidFilter(
-        new DruidJsonFilter.JsonInFilter(columnName, listBuilder.build(), extractionFunction));
   }
 
   @Nullable
@@ -449,7 +455,7 @@ abstract class DruidJsonFilter implements DruidJson {
     }
   }
 
-  final Type type;
+  protected final Type type;
 
   private DruidJsonFilter(Type type) {
     this.type = type;
