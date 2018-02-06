@@ -838,13 +838,15 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
           columnPrefix =
               EXTRACT_COLUMN_NAME_PREFIX + "_" + Objects
                   .requireNonNull(DruidDateTimeUtils
-                      .extractGranularity(project, druidQuery.getConnectionConfig().timeZone()));
+                      .extractGranularity(project, druidQuery.getConnectionConfig().timeZone())
+                      .getType().lowerName);
         } else if (project.getKind() == SqlKind.FLOOR) {
           columnPrefix =
               FLOOR_COLUMN_NAME_PREFIX + "_" + Objects
                   .requireNonNull(DruidDateTimeUtils
-                      .extractGranularity(project, druidQuery.getConnectionConfig().timeZone()));
-        } else  {
+                      .extractGranularity(project, druidQuery.getConnectionConfig().timeZone())
+                      .getType().lowerName);
+        } else {
           columnPrefix = "extract";
         }
         final String uniqueExtractColumnName = SqlValidatorUtil
@@ -1223,7 +1225,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
       generator.writeStringField("dataSource", druidTable.dataSource);
       generator.writeBooleanField("descending", sortDirection != null
           && sortDirection.equals("descending"));
-      writeField(generator,"granularity", timeseriesGranularity);
+      writeField(generator, "granularity", timeseriesGranularity);
       writeFieldIf(generator, "filter", jsonFilter);
       writeField(generator, "aggregations", aggregations);
       writeFieldIf(generator, "virtualColumns",
@@ -1275,7 +1277,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
 
       generator.writeStringField("queryType", "topN");
       generator.writeStringField("dataSource", druidTable.dataSource);
-      writeField(generator,"granularity", Granularities.all());
+      writeField(generator, "granularity", Granularities.all());
       writeField(generator, "dimension", groupByKeyDims.get(0));
       writeFieldIf(generator, "virtualColumns",
           virtualColumnList.size() > 0 ? virtualColumnList : null
@@ -1309,7 +1311,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
       generator.writeStartObject();
       generator.writeStringField("queryType", "groupBy");
       generator.writeStringField("dataSource", druidTable.dataSource);
-      writeField(generator,"granularity", Granularities.all());
+      writeField(generator, "granularity", Granularities.all());
       writeField(generator, "dimensions", groupByKeyDims);
       writeFieldIf(generator, "virtualColumns",
           virtualColumnList.size() > 0 ? virtualColumnList : null

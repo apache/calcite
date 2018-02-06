@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.adapter.druid;
 
+import com.google.common.base.Throwables;
 import org.apache.calcite.avatica.AvaticaUtils;
 import org.apache.calcite.avatica.ColumnMetaData;
 import org.apache.calcite.avatica.util.DateTimeUtils;
@@ -72,12 +73,15 @@ class DruidConnectionImpl implements DruidConnection {
 
   public static final String DEFAULT_RESPONSE_TIMESTAMP_COLUMN = "timestamp";
   private static final SimpleDateFormat UTC_TIMESTAMP_FORMAT;
+  private static final SimpleDateFormat TIMESTAMP_FORMAT;
 
   static {
     final TimeZone utc = DateTimeUtils.UTC_ZONE;
     UTC_TIMESTAMP_FORMAT =
         new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.ROOT);
     UTC_TIMESTAMP_FORMAT.setTimeZone(utc);
+    TIMESTAMP_FORMAT = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.ROOT);
+    TIMESTAMP_FORMAT.setTimeZone(utc);
   }
 
   DruidConnectionImpl(String url, String coordinatorUrl) {
@@ -132,6 +136,8 @@ class DruidConnectionImpl implements DruidConnection {
 
     int posTimestampField = -1;
     for (int i = 0; i < fieldTypes.size(); i++) {
+      //@TODO this need to be revisited the logic seems implying that only
+      // one column of type timestamp is present, i don't see why this is true?
       if (fieldTypes.get(i) == ColumnMetaData.Rep.JAVA_SQL_TIMESTAMP) {
         posTimestampField = i;
         break;
@@ -324,24 +330,39 @@ class DruidConnectionImpl implements DruidConnection {
     }
 
     if (isTimestampColumn || ColumnMetaData.Rep.JAVA_SQL_TIMESTAMP == type) {
-      try {
-        final long timeInMillis;
-
+      if (posTimestampField != -1) {
         if (token == JsonToken.VALUE_NUMBER_INT) {
-          timeInMillis = parser.getLongValue();
+          rowBuilder.set(posTimestampField, parser.getLongValue());
+          return;
         } else {
-          // synchronized block to avoid race condition
+          // We don't have any way to figure out the format of time upfront since we only have
+          // org.apache.calcite.avatica.ColumnMetaData.Rep.JAVA_SQL_TIMESTAMP as type to represent
+          // both timestamp and timestamp with local timezone.
+          // Logic where type is inferred can be found at DruidQuery.DruidQueryNode.getPrimitive()
+          // Thus need to guess via try and catch
           synchronized (UTC_TIMESTAMP_FORMAT) {
-            timeInMillis = UTC_TIMESTAMP_FORMAT.parse(parser.getText()).getTime();
+            // synchronized block to avoid race condition
+            try {
+              //First try to pars as Timestamp with timezone.
+              rowBuilder
+                  .set(posTimestampField, UTC_TIMESTAMP_FORMAT.parse(parser.getText()).getTime());
+            } catch (ParseException e) {
+              // swallow the exception and try timestamp format
+              try {
+                rowBuilder
+                    .set(posTimestampField, TIMESTAMP_FORMAT.parse(parser.getText()).getTime());
+              } catch (ParseException e2) {
+                // unknown format should not happen
+                Throwables.propagate(e2);
+              }
+            }
           }
+          return;
         }
-        if (posTimestampField != -1) {
-          rowBuilder.set(posTimestampField, timeInMillis);
-        }
-      } catch (ParseException e) {
-        // ignore bad value
+      } else {
+        // not sure about the logic am following what was here. nothing to do case == -1
+        return;
       }
-      return;
     }
 
     switch (token) {

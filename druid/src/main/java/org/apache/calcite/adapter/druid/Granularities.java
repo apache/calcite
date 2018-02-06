@@ -72,9 +72,7 @@ public class Granularities {
     INSTANCE;
 
     @Override public void write(JsonGenerator generator) throws IOException {
-      generator.writeStartObject();
-      generator.writeStringField("type", "all");
-      generator.writeEndObject();
+      generator.writeObject("all");
     }
 
     @Nonnull public Type getType() {
