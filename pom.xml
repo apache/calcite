@@ -838,8 +838,8 @@ limitations under the License.
                 <value>tr</value>
               </systemProperty>
             </systemProperties>
-            <!--<argLine>-Xmx1536m -XX:MaxPermSize=256m -Duser.timezone=${user.timezone} -Duser.country=${user.country} -Duser.language=${user.language}</argLine>-->
-            <argLine>-Xmx1536m -XX:MaxPermSize=256m</argLine>
+            <!--<argLine>-Xmx1536m -Duser.timezone=${user.timezone} -Duser.country=${user.country} -Duser.language=${user.language}</argLine>-->
+            <argLine>-Xmx1536m</argLine>
           </configuration>
         </plugin>
         <plugin>
