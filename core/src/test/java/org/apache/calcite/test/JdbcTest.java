@@ -28,7 +28,10 @@ import org.apache.calcite.avatica.AvaticaStatement;
 import org.apache.calcite.avatica.Handler;
 import org.apache.calcite.avatica.HandlerImpl;
 import org.apache.calcite.avatica.Meta;
+import org.apache.calcite.avatica.util.Casing;
+import org.apache.calcite.avatica.util.Quoting;
 import org.apache.calcite.config.CalciteConnectionConfig;
+import org.apache.calcite.config.CalciteConnectionProperty;
 import org.apache.calcite.config.Lex;
 import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.jdbc.CalciteConnection;
@@ -3032,7 +3035,7 @@ public class JdbcTest {
     };
     final CalciteAssert.AssertThat with = CalciteAssert.that()
         .with(CalciteAssert.Config.FOODMART_CLONE)
-        .with("defaultNullCollation", nullCollation.name());
+        .with(CalciteConnectionProperty.DEFAULT_NULL_COLLATION, nullCollation);
     final String sql = "select \"store_id\", \"grocery_sqft\" from \"store\"\n"
         + "where \"store_id\" < 3 order by 2 "
         + (desc ? " DESC" : "");
@@ -4578,7 +4581,7 @@ public class JdbcTest {
         + " select 1 from \"hr\".\"depts\"\n"
         + " where \"emps\".\"deptno\"=\"depts\".\"deptno\")";
     CalciteAssert.hr()
-        .with("forceDecorrelate", false)
+        .with(CalciteConnectionProperty.FORCE_DECORRELATE, false)
         .query(sql)
         .explainContains(plan)
         .returnsUnordered(
@@ -5648,7 +5651,7 @@ public class JdbcTest {
    * is executed. */
   @Test public void testCurrentTimestamp() throws Exception {
     CalciteAssert.that()
-        .with("timezone", "GMT+1:00")
+        .with(CalciteConnectionProperty.TIME_ZONE, "GMT+1:00")
         .doWithConnection(
             new Function<CalciteConnection, Void>() {
               public Void apply(CalciteConnection connection) {
@@ -5688,9 +5691,7 @@ public class JdbcTest {
   /** Test for timestamps and time zones, based on pgsql TimezoneTest. */
   @Test public void testGetTimestamp() throws Exception {
     CalciteAssert.that()
-        .with("timezone", "GMT+1:00")
-        // Workaround, until [CALCITE-1667] is fixed in Avatica
-        .with("TIME_ZONE", "GMT+1:00")
+        .with(CalciteConnectionProperty.TIME_ZONE, "GMT+1:00")
         .doWithConnection(
             new Function<CalciteConnection, Void>() {
               public Void apply(CalciteConnection connection) {
@@ -6110,10 +6111,10 @@ public class JdbcTest {
   @Test public void testLexOracleAsJava() throws Exception {
     CalciteAssert.that()
         .with(Lex.ORACLE)
-        .with("quoting", "BACK_TICK")
-        .with("unquotedCasing", "UNCHANGED")
-        .with("quotedCasing", "UNCHANGED")
-        .with("caseSensitive", "TRUE")
+        .with(CalciteConnectionProperty.QUOTING, Quoting.BACK_TICK)
+        .with(CalciteConnectionProperty.UNQUOTED_CASING, Casing.UNCHANGED)
+        .with(CalciteConnectionProperty.QUOTED_CASING, Casing.UNCHANGED)
+        .with(CalciteConnectionProperty.CASE_SENSITIVE, true)
         .doWithConnection(
             new Function<CalciteConnection, Void>() {
               public Void apply(CalciteConnection connection) {
@@ -6211,7 +6212,7 @@ public class JdbcTest {
 
   @Test public void testFunOracle() {
     CalciteAssert.that(CalciteAssert.Config.REGULAR)
-        .with("fun", "oracle")
+        .with(CalciteConnectionProperty.FUN, "oracle")
         .query("select nvl(\"commission\", -99) as c from \"hr\".\"emps\"")
         .returnsUnordered("C=-99",
             "C=1000",
@@ -6232,7 +6233,7 @@ public class JdbcTest {
         + "  ST_PointFromText('POINT(-71.0642.28)') as c\n"
         + "from \"hr\".\"emps\"";
     CalciteAssert.that(CalciteAssert.Config.REGULAR)
-        .with("fun", "spatial")
+        .with(CalciteConnectionProperty.FUN, "spatial")
         .query(sql)
         .returnsUnordered("C={\"x\":-71.0642,\"y\":0.28}");
 

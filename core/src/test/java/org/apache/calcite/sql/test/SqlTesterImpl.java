@@ -18,6 +18,7 @@ package org.apache.calcite.sql.test;
 
 import org.apache.calcite.avatica.util.Casing;
 import org.apache.calcite.avatica.util.Quoting;
+import org.apache.calcite.config.CalciteConnectionProperty;
 import org.apache.calcite.config.Lex;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
@@ -293,10 +294,15 @@ public class SqlTesterImpl implements SqlTester, AutoCloseable {
     if (conformance == null) {
       conformance = SqlConformanceEnum.DEFAULT;
     }
-    return with("conformance", conformance)
-        .withConnectionFactory(
-            CalciteAssert.EMPTY_CONNECTION_FACTORY
-                .with("conformance", conformance));
+    final SqlTesterImpl tester = with("conformance", conformance);
+    if (conformance instanceof SqlConformanceEnum) {
+      return tester
+          .withConnectionFactory(
+              CalciteAssert.EMPTY_CONNECTION_FACTORY
+                  .with(CalciteConnectionProperty.CONFORMANCE, conformance));
+    } else {
+      return tester;
+    }
   }
 
   public SqlTester withOperatorTable(SqlOperatorTable operatorTable) {

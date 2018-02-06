@@ -378,9 +378,8 @@ public class OsAdapterTest {
   static CalciteAssert.AssertQuery sql(String sql) {
     return CalciteAssert.that()
         .withModel(SqlShell.MODEL)
-        .with(CalciteConnectionProperty.LEX.camelName(), Lex.JAVA)
-        .with(CalciteConnectionProperty.CONFORMANCE.camelName(),
-            SqlConformanceEnum.LENIENT)
+        .with(CalciteConnectionProperty.LEX, Lex.JAVA)
+        .with(CalciteConnectionProperty.CONFORMANCE, SqlConformanceEnum.LENIENT)
         .query(sql);
   }
 }
