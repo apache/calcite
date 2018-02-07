@@ -2111,6 +2111,35 @@ public class JdbcTest {
             "empid=150; deptno=10; name=Sebastian; salary=7000.0; commission=null; deptno0=10; name0=Sales; employees=[{100, 10, Bill, 10000.0, 1000}, {150, 10, Sebastian, 7000.0, null}]; location={-122, 38}");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-531">[CALCITE-531]
+   * Window function does not work in LATERAL</a>. */
+  @Test public void testLateralWithOver() {
+    final String sql = "select \"emps\".\"name\", d.\"deptno\", d.m\n"
+        + "from \"hr\".\"emps\",\n"
+        + "  LATERAL (\n"
+        + "    select \"depts\".\"deptno\",\n"
+        + "      max(\"deptno\" + \"emps\".\"empid\") over (\n"
+        + "        partition by \"emps\".\"deptno\") as m\n"
+        + "     from \"hr\".\"depts\"\n"
+        + "     where \"emps\".\"deptno\" = \"depts\".\"deptno\") as d";
+    CalciteAssert.that()
+        .with(CalciteAssert.Config.REGULAR)
+        .query(sql)
+        .returnsUnordered("name=Bill; deptno=10; M=190",
+            "name=Bill; deptno=30; M=190",
+            "name=Bill; deptno=40; M=190",
+            "name=Eric; deptno=10; M=240",
+            "name=Eric; deptno=30; M=240",
+            "name=Eric; deptno=40; M=240",
+            "name=Sebastian; deptno=10; M=190",
+            "name=Sebastian; deptno=30; M=190",
+            "name=Sebastian; deptno=40; M=190",
+            "name=Theodore; deptno=10; M=190",
+            "name=Theodore; deptno=30; M=190",
+            "name=Theodore; deptno=40; M=190");
+  }
+
   /** Per SQL std, UNNEST is implicitly LATERAL. */
   @Test public void testUnnestArrayColumn() {
     CalciteAssert.hr()

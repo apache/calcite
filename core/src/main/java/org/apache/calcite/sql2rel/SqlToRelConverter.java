@@ -2439,7 +2439,7 @@ public class SqlToRelConverter {
       String originalFieldName = fieldAccess.getField().getName();
 
       final SqlNameMatcher nameMatcher =
-          lookup.bb.scope.getValidator().getCatalogReader().nameMatcher();
+          bb.getValidator().getCatalogReader().nameMatcher();
       final SqlValidatorScope.ResolvedImpl resolved =
           new SqlValidatorScope.ResolvedImpl();
       lookup.bb.scope.resolve(ImmutableList.of(originalRelName),
@@ -2450,7 +2450,7 @@ public class SqlToRelConverter {
       final RelDataType rowType = resolve.rowType();
       final int childNamespaceIndex = resolve.path.steps().get(0).i;
       final SqlValidatorScope ancestorScope = resolve.scope;
-      boolean correlInCurrentScope = ancestorScope == bb.scope;
+      boolean correlInCurrentScope = bb.scope.isWithin(ancestorScope);
 
       if (!correlInCurrentScope) {
         continue;
@@ -5404,6 +5404,7 @@ public class SqlToRelConverter {
   private static class CorrelationUse {
     private final CorrelationId id;
     private final ImmutableBitSet requiredColumns;
+    /** The relational expression that uses the variable. */
     private final RelNode r;
 
     CorrelationUse(CorrelationId id, ImmutableBitSet requiredColumns,

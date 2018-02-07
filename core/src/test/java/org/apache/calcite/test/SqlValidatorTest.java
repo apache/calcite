@@ -4812,8 +4812,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         "RecordType(CHAR(2) NOT NULL A, INTEGER NOT NULL B) NOT NULL");
   }
 
-  // todo: implement IN
-  public void _testAmbiguousColumnInIn() {
+  @Test public void testAmbiguousColumnInIn() {
     // ok: cyclic reference
     check("select * from emp as e\n"
         + "where e.deptno in (\n"
@@ -7506,7 +7505,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   @Test public void testUnnestArrayColumn() {
-    final String sql = "select d.deptno, e.*\n"
+    final String sql1 = "select d.deptno, e.*\n"
         + "from dept_nested as d,\n"
         + " UNNEST(d.employees) as e";
     final String type = "RecordType(INTEGER NOT NULL DEPTNO,"
@@ -7515,13 +7514,25 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + " RecordType(RecordType(VARCHAR(10) NOT NULL TYPE, VARCHAR(20) NOT NULL DESC,"
         + " RecordType(VARCHAR(10) NOT NULL A, VARCHAR(10) NOT NULL B) NOT NULL OTHERS)"
         + " NOT NULL ARRAY NOT NULL SKILLS) NOT NULL DETAIL) NOT NULL";
-    sql(sql).type(type);
+    sql(sql1).type(type);
+
+    // equivalent query without table alias
+    final String sql1b = "select d.deptno, e.*\n"
+        + "from dept_nested as d,\n"
+        + " UNNEST(employees) as e";
+    sql(sql1b).type(type);
 
     // equivalent query using CROSS JOIN
     final String sql2 = "select d.deptno, e.*\n"
         + "from dept_nested as d CROSS JOIN\n"
         + " UNNEST(d.employees) as e";
     sql(sql2).type(type);
+
+    // equivalent query using CROSS JOIN, without table alias
+    final String sql2b = "select d.deptno, e.*\n"
+        + "from dept_nested as d CROSS JOIN\n"
+        + " UNNEST(employees) as e";
+    sql(sql2b).type(type);
 
     // LATERAL works left-to-right
     final String sql3 = "select d.deptno, e.*\n"
