@@ -508,12 +508,9 @@ public class PushProjector {
               ((RexCall) projExpr).getOperator().getName()));
     }
 
-    return (Project) RelOptUtil.createProject(
-        projChild,
-        Pair.left(newProjects),
-        Pair.right(newProjects),
-        false,
-        relBuilder);
+    return (Project) relBuilder.push(projChild)
+        .projectNamed(Pair.left(newProjects), Pair.right(newProjects), true)
+        .build();
   }
 
   /**
@@ -597,12 +594,9 @@ public class PushProjector {
                     field.e.getType(), field.i), field.e.getName()));
       }
     }
-    return RelOptUtil.createProject(
-        projChild,
-        Pair.left(projects),
-        Pair.right(projects),
-        true /* optimize to avoid trivial projections, as per javadoc */,
-        relBuilder);
+    return relBuilder.push(projChild)
+        .project(Pair.left(projects), Pair.right(projects))
+        .build();
   }
 
   //~ Inner Classes ----------------------------------------------------------
