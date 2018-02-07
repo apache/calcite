@@ -32,6 +32,7 @@ import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelRoot;
+import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.metadata.CachingRelMetadataProvider;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexBuilder;
@@ -239,7 +240,9 @@ public class PlannerImpl implements Planner {
     root =
         sqlToRelConverter.convertQuery(validatedSqlNode, false, true);
     root = root.withRel(sqlToRelConverter.flattenTypes(root.rel, true));
-    root = root.withRel(RelDecorrelator.decorrelateQuery(root.rel));
+    root = root.withRel(
+        RelDecorrelator.decorrelateQuery(
+            root.rel, RelFactories.LOGICAL_BUILDER));
     state = State.STATE_5_CONVERTED;
     return root;
   }
@@ -280,7 +283,9 @@ public class PlannerImpl implements Planner {
 
       root = sqlToRelConverter.convertQuery(validatedSqlNode, true, false);
       root = root.withRel(sqlToRelConverter.flattenTypes(root.rel, true));
-      root = root.withRel(RelDecorrelator.decorrelateQuery(root.rel));
+      root = root.withRel(
+          RelDecorrelator.decorrelateQuery(
+              root.rel, RelFactories.LOGICAL_BUILDER));
 
       return PlannerImpl.this.root;
     }

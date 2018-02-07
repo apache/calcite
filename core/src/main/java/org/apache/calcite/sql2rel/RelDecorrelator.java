@@ -75,6 +75,7 @@ import org.apache.calcite.sql.fun.SqlCountAggFunction;
 import org.apache.calcite.sql.fun.SqlSingleValueAggFunction;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.tools.RelBuilder;
+import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.Holder;
 import org.apache.calcite.util.ImmutableBitSet;
@@ -145,6 +146,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
 
   //~ Instance fields --------------------------------------------------------
 
+  private final RelBuilderFactory relBuilderFactory;
   private final RelBuilder relBuilder;
 
   // map built during translation
@@ -173,26 +175,34 @@ public class RelDecorrelator implements ReflectiveVisitor {
   private RelDecorrelator(
       RelOptCluster cluster,
       CorelMap cm,
-      Context context) {
+      Context context,
+      RelBuilderFactory relBuilderFactory) {
     this.cm = cm;
     this.rexBuilder = cluster.getRexBuilder();
     this.context = context;
-    relBuilder = RelFactories.LOGICAL_BUILDER.create(cluster, null);
+    this.relBuilderFactory = relBuilderFactory;
+    this.relBuilder = relBuilderFactory.create(cluster, null);
 
   }
 
   //~ Methods ----------------------------------------------------------------
 
+  @Deprecated // to be removed before 2.0
+  public static RelNode decorrelateQuery(RelNode rootRel) {
+    return decorrelateQuery(rootRel, RelFactories.LOGICAL_BUILDER);
+  }
   /** Decorrelates a query.
    *
    * <p>This is the main entry point to {@code RelDecorrelator}.
    *
-   * @param rootRel Root node of the query
+   * @param rootRel           Root node of the query
+   * @param relBuilderFactory Builder for relational expressions
    *
    * @return Equivalent query with all
    * {@link org.apache.calcite.rel.logical.LogicalCorrelate} instances removed
    */
-  public static RelNode decorrelateQuery(RelNode rootRel) {
+  public static RelNode decorrelateQuery(RelNode rootRel,
+      RelBuilderFactory relBuilderFactory) {
     final CorelMap corelMap = new CorelMapBuilder().build(rootRel);
     if (!corelMap.hasCorrelation()) {
       return rootRel;
@@ -201,7 +211,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
     final RelOptCluster cluster = rootRel.getCluster();
     final RelDecorrelator decorrelator =
         new RelDecorrelator(cluster, corelMap,
-            cluster.getPlanner().getContext());
+            cluster.getPlanner().getContext(), relBuilderFactory);
 
     RelNode newRootRel = decorrelator.removeCorrelationViaRule(rootRel);
 
@@ -228,11 +238,22 @@ public class RelDecorrelator implements ReflectiveVisitor {
   private RelNode decorrelate(RelNode root) {
     // first adjust count() expression if any
     HepProgram program = HepProgram.builder()
-        .addRuleInstance(new AdjustProjectForCountAggregateRule(false))
-        .addRuleInstance(new AdjustProjectForCountAggregateRule(true))
-        .addRuleInstance(FilterJoinRule.FILTER_ON_JOIN)
-        .addRuleInstance(FilterProjectTransposeRule.INSTANCE)
-        .addRuleInstance(FilterCorrelateRule.INSTANCE)
+        .addRuleInstance(
+            new AdjustProjectForCountAggregateRule(
+                false, relBuilderFactory))
+        .addRuleInstance(
+            new AdjustProjectForCountAggregateRule(
+                true, relBuilderFactory))
+        .addRuleInstance(
+            new FilterJoinRule.FilterIntoJoinRule(
+                true, relBuilderFactory,
+                FilterJoinRule.TRUE_PREDICATE))
+        .addRuleInstance(
+            new FilterProjectTransposeRule(Filter.class,
+                Project.class, true, true,
+                relBuilderFactory))
+        .addRuleInstance(
+            new FilterCorrelateRule(relBuilderFactory))
         .build();
 
     HepPlanner planner = createPlanner(program);
@@ -247,8 +268,14 @@ public class RelDecorrelator implements ReflectiveVisitor {
     if (frame != null) {
       // has been rewritten; apply rules post-decorrelation
       final HepProgram program2 = HepProgram.builder()
-          .addRuleInstance(FilterJoinRule.FILTER_ON_JOIN)
-          .addRuleInstance(FilterJoinRule.JOIN)
+          .addRuleInstance(
+              new FilterJoinRule.FilterIntoJoinRule(
+                  true, relBuilderFactory,
+                  FilterJoinRule.TRUE_PREDICATE))
+          .addRuleInstance(
+              new FilterJoinRule.JoinConditionPushRule(
+                  relBuilderFactory,
+                  FilterJoinRule.TRUE_PREDICATE))
           .build();
 
       final HepPlanner planner2 = createPlanner(program2);
@@ -297,9 +324,9 @@ public class RelDecorrelator implements ReflectiveVisitor {
 
   public RelNode removeCorrelationViaRule(RelNode root) {
     HepProgram program = HepProgram.builder()
-        .addRuleInstance(new RemoveSingleAggregateRule())
-        .addRuleInstance(new RemoveCorrelationForScalarProjectRule())
-        .addRuleInstance(new RemoveCorrelationForScalarAggregateRule())
+        .addRuleInstance(new RemoveSingleAggregateRule(relBuilderFactory))
+        .addRuleInstance(new RemoveCorrelationForScalarProjectRule(relBuilderFactory))
+        .addRuleInstance(new RemoveCorrelationForScalarAggregateRule(relBuilderFactory))
         .build();
 
     HepPlanner planner = createPlanner(program);
@@ -517,7 +544,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
     // This Project will be what the old input maps to,
     // replacing any previous mapping from old input).
     RelNode newProject =
-        RelOptUtil.createProject(newInput, projects, false);
+        RelOptUtil.createProject(newInput, projects, false, relBuilderFactory);
 
     // update mappings:
     // oldInput ----> newInput
@@ -670,7 +697,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
     }
 
     RelNode newProject =
-        RelOptUtil.createProject(frame.r, projects, false);
+        RelOptUtil.createProject(frame.r, projects, false, relBuilderFactory);
 
     return register(rel, newProject, mapOldToNewOutputs, corDefOutputs);
   }
@@ -1283,7 +1310,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
       newProjExprs.add(Pair.of(newProjExpr, pair.right));
     }
 
-    return RelOptUtil.createProject(join, newProjExprs, false);
+    return RelOptUtil.createProject(join, newProjExprs, false, relBuilderFactory);
   }
 
   /**
@@ -1330,7 +1357,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
       newProjects.add(Pair.of(newProjExpr, pair.right));
     }
 
-    return RelOptUtil.createProject(correlate, newProjects, false);
+    return RelOptUtil.createProject(correlate, newProjects, false, relBuilderFactory);
   }
 
   /**
@@ -1421,7 +1448,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
               field.e.getName()));
     }
     projects.addAll(additionalExprs);
-    return RelOptUtil.createProject(input, projects, false);
+    return RelOptUtil.createProject(input, projects, false, relBuilderFactory);
   }
 
   /* Returns an immutable map with the identity [0: 0, .., count-1: count-1]. */
@@ -1718,13 +1745,14 @@ public class RelDecorrelator implements ReflectiveVisitor {
    * AggRel single group</blockquote>
    */
   private final class RemoveSingleAggregateRule extends RelOptRule {
-    RemoveSingleAggregateRule() {
+    RemoveSingleAggregateRule(RelBuilderFactory relBuilderFactory) {
       super(
           operand(
               LogicalAggregate.class,
               operand(
                   LogicalProject.class,
-                  operand(LogicalAggregate.class, any()))));
+                  operand(LogicalAggregate.class, any()))),
+          relBuilderFactory, null);
     }
 
     public void onMatch(RelOptRuleCall call) {
@@ -1764,20 +1792,21 @@ public class RelDecorrelator implements ReflectiveVisitor {
                           projExprs.get(0).getType(),
                           true),
                       projExprs.get(0))),
-              null);
+              null, relBuilderFactory);
       call.transformTo(newProject);
     }
   }
 
   /** Planner rule that removes correlations for scalar projects. */
   private final class RemoveCorrelationForScalarProjectRule extends RelOptRule {
-    RemoveCorrelationForScalarProjectRule() {
+    RemoveCorrelationForScalarProjectRule(RelBuilderFactory relBuilderFactory) {
       super(
           operand(LogicalCorrelate.class,
               operand(RelNode.class, any()),
               operand(LogicalAggregate.class,
                   operand(LogicalProject.class,
-                      operand(RelNode.class, any())))));
+                      operand(RelNode.class, any())))),
+          relBuilderFactory, null);
     }
 
     public void onMatch(RelOptRuleCall call) {
@@ -1969,14 +1998,15 @@ public class RelDecorrelator implements ReflectiveVisitor {
   /** Planner rule that removes correlations for scalar aggregates. */
   private final class RemoveCorrelationForScalarAggregateRule
       extends RelOptRule {
-    RemoveCorrelationForScalarAggregateRule() {
+    RemoveCorrelationForScalarAggregateRule(RelBuilderFactory relBuilderFactory) {
       super(
           operand(LogicalCorrelate.class,
               operand(RelNode.class, any()),
               operand(LogicalProject.class,
                   operand(LogicalAggregate.class, null, Aggregate.IS_SIMPLE,
                       operand(LogicalProject.class,
-                          operand(RelNode.class, any()))))));
+                          operand(RelNode.class, any()))))),
+          relBuilderFactory, null);
     }
 
     public void onMatch(RelOptRuleCall call) {
@@ -2271,7 +2301,8 @@ public class RelDecorrelator implements ReflectiveVisitor {
           RelOptUtil.createProject(
               join,
               joinOutputProjects,
-              null);
+              null,
+              relBuilderFactory);
 
       // nullIndicator is now at a different location in the output of
       // the join
@@ -2328,7 +2359,8 @@ public class RelDecorrelator implements ReflectiveVisitor {
           RelOptUtil.createProject(
               newAggregate,
               newAggOutputProjectList,
-              null);
+              null,
+              relBuilderFactory);
 
       call.transformTo(newAggOutputProject);
 
@@ -2348,7 +2380,8 @@ public class RelDecorrelator implements ReflectiveVisitor {
   private final class AdjustProjectForCountAggregateRule extends RelOptRule {
     final boolean flavor;
 
-    AdjustProjectForCountAggregateRule(boolean flavor) {
+    AdjustProjectForCountAggregateRule(boolean flavor,
+        RelBuilderFactory relBuilderFactory) {
       super(
           flavor
               ? operand(LogicalCorrelate.class,
@@ -2357,7 +2390,8 @@ public class RelDecorrelator implements ReflectiveVisitor {
                           operand(LogicalAggregate.class, any())))
               : operand(LogicalCorrelate.class,
                   operand(RelNode.class, any()),
-                      operand(LogicalAggregate.class, any())));
+                      operand(LogicalAggregate.class, any())),
+          relBuilderFactory, null);
       this.flavor = flavor;
     }
 
@@ -2383,7 +2417,8 @@ public class RelDecorrelator implements ReflectiveVisitor {
             (LogicalProject) RelOptUtil.createProject(
                 aggregate,
                 projects,
-                false);
+                false,
+                relBuilderFactory);
       }
       onMatch2(call, correlate, left, aggOutputProject, aggregate);
     }

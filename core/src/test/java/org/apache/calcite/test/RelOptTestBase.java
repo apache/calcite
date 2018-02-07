@@ -25,6 +25,7 @@ import org.apache.calcite.plan.hep.HepProgram;
 import org.apache.calcite.plan.hep.HepProgramBuilder;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelRoot;
+import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.metadata.ChainedRelMetadataProvider;
 import org.apache.calcite.rel.metadata.DefaultRelMetadataProvider;
 import org.apache.calcite.rel.metadata.RelMetadataProvider;
@@ -168,7 +169,8 @@ abstract class RelOptTestBase extends SqlToRelTestBase {
       final String planMid = NL + RelOptUtil.toString(r);
       diffRepos.assertEquals("planMid", "${planMid}", planMid);
       SqlToRelTestBase.assertValid(r);
-      r = RelDecorrelator.decorrelateQuery(r);
+      r = RelDecorrelator.decorrelateQuery(r,
+          RelFactories.LOGICAL_BUILDER);
     }
     final String planAfter = NL + RelOptUtil.toString(r);
     if (unchanged) {

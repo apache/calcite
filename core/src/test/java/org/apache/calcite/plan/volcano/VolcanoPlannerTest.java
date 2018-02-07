@@ -28,6 +28,7 @@ import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterImpl;
 import org.apache.calcite.rel.convert.ConverterRule;
+import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.rules.ProjectRemoveRule;
 import org.apache.calcite.rex.RexInputRef;
@@ -234,7 +235,8 @@ public class VolcanoPlannerTest {
         RelOptUtil.createProject(
             leafRel,
             ImmutableList.of(inputRef),
-            ImmutableList.of("this"));
+            ImmutableList.of("this"),
+            RelFactories.LOGICAL_BUILDER);
     NoneSingleRel singleRel =
         new NoneSingleRel(
             cluster,

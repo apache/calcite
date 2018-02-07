@@ -89,13 +89,14 @@ public class JoinCommuteRule extends RelOptRule {
 
   //~ Methods ----------------------------------------------------------------
 
-  /**
-   * Returns a relational expression with the inputs switched round. Does not
-   * modify <code>join</code>. Returns null if the join cannot be swapped (for
-   * example, because it is an outer join).
-   */
+  @Deprecated // to be removed before 2.0
   public static RelNode swap(Join join) {
-    return swap(join, false);
+    return swap(join, false, RelFactories.LOGICAL_BUILDER);
+  }
+
+  @Deprecated // to be removed before 2.0
+  public static RelNode swap(Join join, boolean swapOuterJoins) {
+    return swap(join, swapOuterJoins, RelFactories.LOGICAL_BUILDER);
   }
 
   /**
@@ -103,11 +104,13 @@ public class JoinCommuteRule extends RelOptRule {
    * modify <code>join</code>. Returns null if the join cannot be swapped (for
    * example, because it is an outer join).
    *
-   * @param join           join to be swapped
-   * @param swapOuterJoins whether outer joins should be swapped
+   * @param join              join to be swapped
+   * @param swapOuterJoins    whether outer joins should be swapped
+   * @param relBuilderFactory Builder for relational expressions
    * @return swapped join if swapping possible; else null
    */
-  public static RelNode swap(Join join, boolean swapOuterJoins) {
+  public static RelNode swap(Join join, boolean swapOuterJoins,
+      RelBuilderFactory relBuilderFactory) {
     final JoinRelType joinType = join.getJoinType();
     if (!swapOuterJoins && joinType != JoinRelType.INNER) {
       return null;
@@ -131,10 +134,8 @@ public class JoinCommuteRule extends RelOptRule {
     final List<RexNode> exps =
         RelOptUtil.createSwappedJoinExprs(newJoin, join, true);
     return RelOptUtil.createProject(
-        newJoin,
-        exps,
-        join.getRowType().getFieldNames(),
-        true);
+        newJoin, exps, join.getRowType().getFieldNames(), true,
+        relBuilderFactory.create(newJoin.getCluster(), null));
   }
 
   public void onMatch(final RelOptRuleCall call) {
@@ -145,7 +146,7 @@ public class JoinCommuteRule extends RelOptRule {
       return;
     }
 
-    final RelNode swapped = swap(join, this.swapOuter);
+    final RelNode swapped = swap(join, this.swapOuter, relBuilderFactory);
     if (swapped == null) {
       return;
     }
