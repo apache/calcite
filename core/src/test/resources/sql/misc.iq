@@ -2127,4 +2127,10 @@ FROM (VALUES (1, 'X'),(2, 'Y'),(3, 'X'),(4, 'X')) AS T(A, B);
 
 !ok
 
+# [CALCITE-2183] Implement RelSubset.copy
+select *
+from (values (1, 'a'), (2, 'b'), (1, 'b'), (2, 'c'), (2, 'c')) as t(x, y)
+where false;
+!ok
+
 # End misc.iq
