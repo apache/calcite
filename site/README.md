@@ -24,7 +24,7 @@ This directory contains the code for the Apache Calcite web site,
 
 ## Setup
 
-Note that the site can currently only be built with Ruby 2.1.x.
+Site generation currently works best with ruby-2.4.1.
 
 1. `cd site`
 2. `svn co https://svn.apache.org/repos/asf/calcite/site target`
