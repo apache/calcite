@@ -106,7 +106,7 @@ public class RelToSqlConverterTest {
         .withDatabaseVersion("1.0")
         .withIdentifierQuoteString("\"")
         .withNullCollation(NullCollation.HIGH);
-    return new JethrodataSqlDialect(dummyContext);
+    return new JethrodataSqlDialect(dummyContext, null);
   }
 
   private static MysqlSqlDialect mySqlDialect(NullCollation nullCollation) {
