@@ -483,7 +483,15 @@ public class CsvTest {
             "C=1; T=1996-09-03")
         .ok();
   }
-  @Test public void testBoolean() throws SQLException {
+
+  @Test public void testUnionGroupByWithoutGroupKey() {
+    final String sql = "select count(*) as c1 from EMPS group by NAME\n"
+        + "union\n"
+        + "select count(*) as c1 from EMPS group by NAME";
+    sql("model", sql).ok();
+  }
+
+  @Test public void testBoolean() {
     sql("smart", "select empno, slacker from emps where slacker")
         .returns("EMPNO=100; SLACKER=true").ok();
   }
