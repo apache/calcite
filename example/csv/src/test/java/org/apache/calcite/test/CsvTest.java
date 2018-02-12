@@ -132,6 +132,12 @@ public class CsvTest {
     connection.close();
   }
 
+  @Test
+  public void testUnionGroupByWithoutGroupKey() throws SQLException {
+    sql("model", "select count(*) as c1 from EMPS group by NAME union "
+        + "select count(*) as c1  from EMPS group by NAME").ok();
+  }
+
   /**
    * Tests the vanity driver with properties in the URL.
    */
