@@ -62,10 +62,6 @@ public class EnumerableUnion extends Union implements EnumerableRel {
                 Expressions.list(childExp)
                     .appendIfNotNull(result.physType.comparer()));
       }
-
-      // Once the first input has chosen its format, ask for the same for
-      // other inputs.
-      pref = pref.of(result.format);
     }
 
     builder.add(unionExp);

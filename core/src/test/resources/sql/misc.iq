@@ -1030,6 +1030,42 @@ Expression 'DEPTNO' is not being grouped
 
 !use scott
 
+# [CALCITE-2099] Incorrect code generated for UNION
+select count(*) as c from "scott".emp group by deptno
+union
+select count(*) as c from "scott".emp group by deptno;
++---+
+| C |
++---+
+| 3 |
+| 5 |
+| 6 |
++---+
+(3 rows)
+
+!ok
+
+# Similar
+select count(*) as c from "scott".emp group by job
+union all
+select count(*) as c from "scott".dept group by deptno;
++---+
+| C |
++---+
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 2 |
+| 3 |
+| 4 |
+| 4 |
++---+
+(9 rows)
+
+!ok
+
 # [CALCITE-1864] Allow NULL literal as argument
 select count(*) as c from "scott".emp where empno > null;
 +---+
