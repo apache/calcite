@@ -26,6 +26,7 @@ import static org.apache.calcite.adapter.druid.DruidQuery.writeFieldIf;
 
 /**
  * Druid Json Expression based Virtual Column.
+ * Virtual columns is used as "projection" concept throughout Druid using expression.
  */
 public class VirtualColumn implements DruidJson {
   private final String name;
