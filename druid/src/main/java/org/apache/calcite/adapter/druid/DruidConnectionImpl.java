@@ -136,8 +136,10 @@ class DruidConnectionImpl implements DruidConnection {
 
     int posTimestampField = -1;
     for (int i = 0; i < fieldTypes.size(); i++) {
-      //@TODO this need to be revisited the logic seems implying that only
-      // one column of type timestamp is present, i don't see why this is true?
+      /*@TODO this need to be revisited the logic seems implying that only
+      one column of type timestamp is present, i don't see why this is true?
+      see https://issues.apache.org/jira/browse/CALCITE-2175
+      */
       if (fieldTypes.get(i) == ColumnMetaData.Rep.JAVA_SQL_TIMESTAMP) {
         posTimestampField = i;
         break;
@@ -330,37 +332,33 @@ class DruidConnectionImpl implements DruidConnection {
     }
 
     if (isTimestampColumn || ColumnMetaData.Rep.JAVA_SQL_TIMESTAMP == type) {
-      if (posTimestampField != -1) {
-        if (token == JsonToken.VALUE_NUMBER_INT) {
-          rowBuilder.set(posTimestampField, parser.getLongValue());
-          return;
-        } else {
-          // We don't have any way to figure out the format of time upfront since we only have
-          // org.apache.calcite.avatica.ColumnMetaData.Rep.JAVA_SQL_TIMESTAMP as type to represent
-          // both timestamp and timestamp with local timezone.
-          // Logic where type is inferred can be found at DruidQuery.DruidQueryNode.getPrimitive()
-          // Thus need to guess via try and catch
-          synchronized (UTC_TIMESTAMP_FORMAT) {
-            // synchronized block to avoid race condition
+      final int fieldPos = posTimestampField != -1 ? posTimestampField : i;
+      if (token == JsonToken.VALUE_NUMBER_INT) {
+        rowBuilder.set(posTimestampField, parser.getLongValue());
+        return;
+      } else {
+        // We don't have any way to figure out the format of time upfront since we only have
+        // org.apache.calcite.avatica.ColumnMetaData.Rep.JAVA_SQL_TIMESTAMP as type to represent
+        // both timestamp and timestamp with local timezone.
+        // Logic where type is inferred can be found at DruidQuery.DruidQueryNode.getPrimitive()
+        // Thus need to guess via try and catch
+        synchronized (UTC_TIMESTAMP_FORMAT) {
+          // synchronized block to avoid race condition
+          try {
+            //First try to pars as Timestamp with timezone.
+            rowBuilder
+                .set(fieldPos, UTC_TIMESTAMP_FORMAT.parse(parser.getText()).getTime());
+          } catch (ParseException e) {
+            // swallow the exception and try timestamp format
             try {
-              //First try to pars as Timestamp with timezone.
               rowBuilder
-                  .set(posTimestampField, UTC_TIMESTAMP_FORMAT.parse(parser.getText()).getTime());
-            } catch (ParseException e) {
-              // swallow the exception and try timestamp format
-              try {
-                rowBuilder
-                    .set(posTimestampField, TIMESTAMP_FORMAT.parse(parser.getText()).getTime());
-              } catch (ParseException e2) {
-                // unknown format should not happen
-                Throwables.propagate(e2);
-              }
+                  .set(fieldPos, TIMESTAMP_FORMAT.parse(parser.getText()).getTime());
+            } catch (ParseException e2) {
+              // unknown format should not happen
+              Throwables.propagate(e2);
             }
           }
-          return;
         }
-      } else {
-        // not sure about the logic am following what was here. nothing to do case == -1
         return;
       }
     }

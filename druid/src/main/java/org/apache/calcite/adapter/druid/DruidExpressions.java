@@ -68,8 +68,6 @@ public class DruidExpressions {
     for (SqlTypeName type : SqlTypeName.STRING_TYPES) {
       builder.put(type, DruidType.STRING);
     }
-    // @TODO Create Jira for this: skip boolean for now.
-     //builder.put(SqlTypeName.BOOLEAN, DruidType.LONG);
     // Timestamps are treated as longs (millis since the epoch) in Druid expressions.
     builder.put(SqlTypeName.TIMESTAMP, DruidType.LONG);
     builder.put(SqlTypeName.DATE, DruidType.LONG);
@@ -142,7 +140,8 @@ public class DruidExpressions {
       } else if (SqlTypeName.STRING_TYPES.contains(sqlTypeName)) {
         return
             DruidExpressions.stringLiteral(RexLiteral.stringValue(rexNode));
-      } else if (SqlTypeName.TIMESTAMP == sqlTypeName || SqlTypeName.DATE == sqlTypeName) {
+      } else if (SqlTypeName.TIMESTAMP == sqlTypeName || SqlTypeName.DATE == sqlTypeName
+          || SqlTypeName.TIME_WITH_LOCAL_TIME_ZONE == sqlTypeName) {
         return DruidExpressions.numberLiteral(DruidDateTimeUtils
             .literalValue(rexNode, TimeZone.getTimeZone(druidRel.getConnectionConfig().timeZone()))
             .getMillisSinceEpoch());
@@ -249,8 +248,6 @@ public class DruidExpressions {
   ) {
     Preconditions.checkNotNull(input, "input");
     Preconditions.checkNotNull(granularity, "granularity");
-
-
     return DruidExpressions.functionCall(
         "timestamp_floor",
         ImmutableList.of(input,
@@ -268,8 +265,6 @@ public class DruidExpressions {
   ) {
     Preconditions.checkNotNull(input, "input");
     Preconditions.checkNotNull(granularity, "granularity");
-
-
     return DruidExpressions.functionCall(
         "timestamp_ceil",
         ImmutableList.of(input,
