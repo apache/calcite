@@ -83,10 +83,17 @@ uses Calcite for parsing streaming SQL and query optimization.
 <a href="https://storm.apache.org">Apache Storm</a>
 uses Calcite for parsing streaming SQL and query optimization.
 
+### AthenaX
+
+<a href="https://www.uber.com/">Uber</a>'s SQL-based streaming analytics platform
+<a href="https://github.com/uber/AthenaX/">AthenaX</a>
+uses Calcite for SQL parsing and query optimization.
+
 ### Cascading
 
 <a href="https://github.com/Cascading/lingual">Lingual</a>
-component provides a SQL interface to Cascading.
+component provides a SQL interface to
+<a href="https://www.cascading.org/">Cascading</a>.
 
 ### Dremio
 
@@ -96,7 +103,7 @@ uses Calcite for SQL parsing and cost-based query optimization.
 ### MapD
 
 <a href="https://www.mapd.com">MapD</a>
-is GPU-powered database and visual analytics platform for
+is a GPU-powered database and visual analytics platform for
 interactive exploration of large datasets.
 
 ### Qubole Quark
@@ -111,4 +118,3 @@ It uses Calcite to transparently rewrite queries to use materialized views.
 is a SQL interface to a
 <a href="http://tinkerpop.apache.org/">Apache TinkerPop</a>-enabled
 graph database.
-
