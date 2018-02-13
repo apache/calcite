@@ -112,3 +112,9 @@ is a SQL interface to a
 <a href="http://tinkerpop.apache.org/">Apache TinkerPop</a>-enabled
 graph database.
 
+### AthenaX
+
+<a href="https://www.uber.com/">Uber</a>'s SQL-based streaming analytics platform
+<a href="https://github.com/uber/AthenaX/">AthenaX</a>
+uses Calcite for SQL parsing and query optimization.
+
