@@ -187,7 +187,9 @@ See the [developers guide]({{ site.baseurl }}/develop/#getting-started).
 To setup [IntelliJ IDEA](https://www.jetbrains.com/idea/), either ultimate or community, follow the standard steps for the installation of IDEA, 
 and setup of the JDK with versions currently supported by Calcite. 
 
-To start, go to *File > Open...* and open up Calcite's "pom.xml" file. 
+Start with building calcite project from the command line (See how to build Calcite from the source). 
+
+Go to *File > Open...* and open up Calcite's "pom.xml" file. 
 When IntelliJ asks if you want to open it as a project or a file, select project. 
 Also, say yes when it asks if you want a new window. 
 IntelliJ's Maven project importer should handle the rest. 
@@ -199,9 +201,8 @@ it does a decent amount of it.
 To import, go to *Preferences > Editor > Code Style*, click the gear next to "scheme", 
 then *Import Scheme > IntelliJ IDEA Code Style XML*.  
 
-
-Once the importer is finished, navigate to the method `JdbcTest.testWinAgg` with 
-*Navigate > Symbol* and enter `testWinAgg`. Run the `testWinAgg` by right-clicking and selecting *Run* (or the equivalent key shortcut sequence).
+Once the importer is finished, test the project setup. For example, navigate to the method `JdbcTest.testWinAgg` with 
+*Navigate > Symbol* and enter `testWinAgg`. Run the `testWinAgg` by right-clicking and selecting *Run* (or the equivalent key shortcut sequence). Once you run it, you can also invoke it from debugger. 
 
 If you encounter an error while running the `JdbcTest.testWinAgg` , run the following Maven command from the command line:  
 
