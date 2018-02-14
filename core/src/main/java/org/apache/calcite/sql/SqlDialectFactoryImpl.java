@@ -108,9 +108,9 @@ public class SqlDialectFactoryImpl implements SqlDialectFactory {
           curr_t = SqlTypeName.FLOAT;
           break;
         case "string":
-          curr_t = SqlTypeName.CHAR;
+          curr_t = SqlTypeName.VARCHAR;
           break;
-        case "simeStamp":
+        case "timestamp":
           curr_t = SqlTypeName.TIMESTAMP;
           break;
 

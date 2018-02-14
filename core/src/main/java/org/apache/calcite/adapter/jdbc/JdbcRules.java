@@ -121,18 +121,27 @@ public class JdbcRules {
       return convert(rel, true);
     }
 
-    public RelNode convert(RelNode rel, boolean verifyJoinCondition) {
+    /**
+     * Converts a join operator into a JdbcJoin operator
+     *
+     *
+     * @param rel a join operator to convert
+     * @param convertInputTraits is the join input traits should change their convention to the
+     *                            Jdbc operator convention
+     * @return A new JdbcJoin operator
+     */
+    public RelNode convert(RelNode rel, boolean convertInputTraits) {
       Join join = (Join) rel;
       final List<RelNode> newInputs = new ArrayList<>();
       for (RelNode input : join.getInputs()) {
-        if (verifyJoinCondition && !(input.getConvention() == getOutTrait())) {
+        if (convertInputTraits && !(input.getConvention() == getOutTrait())) {
           input =
               convert(input,
                   input.getTraitSet().replace(out));
         }
         newInputs.add(input);
       }
-      if (verifyJoinCondition && !canJoinOnCondition(join.getCondition())) {
+      if (convertInputTraits && !canJoinOnCondition(join.getCondition())) {
         return null;
       }
 
@@ -512,6 +521,15 @@ public class JdbcRules {
       super(Sort.class, Convention.NONE, out, "JdbcSortRule");
     }
 
+    /**
+     * Converts a join operator into a JdbcJoin operator
+     *
+     *
+     * @param rel a sort operator to convert
+     * @param convertInputTraits is the sort input traits should change their convention to the
+     *                            Jdbc operator convention
+     * @return A new JdbcSort operator
+     */
     public RelNode convert(RelNode rel, boolean convertInputTraits) {
       final Sort sort = (Sort) rel;
       final RelTraitSet traitSet = sort.getTraitSet().replace(out);
