@@ -37,11 +37,13 @@ import org.slf4j.LoggerFactory;
 
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
 import java.util.List;
 import java.util.Locale;
 import java.util.regex.Pattern;
+
 import javax.annotation.Nonnull;
 
 /**
@@ -91,7 +93,7 @@ public class SqlDialect {
    * @deprecated Replaced by {@link SqlDialectFactory}
    */
   @Deprecated // to be removed before 2.0
-  public static SqlDialect create(DatabaseMetaData databaseMetaData) {
+  public static SqlDialect create(DatabaseMetaData databaseMetaData) throws SQLException {
     return new SqlDialectFactoryImpl().create(databaseMetaData);
   }
 
@@ -502,6 +504,11 @@ public class SqlDialect {
     return false;
   }
 
+  public boolean supportsFunction(SqlOperator operator, RelDataType type,
+                                  List<RelDataType> paramsList) {
+    return true;
+  }
+
   public CalendarPolicy getCalendarPolicy() {
     return CalendarPolicy.NULL;
   }
@@ -701,6 +708,7 @@ public class SqlDialect {
     HIVE("Apache Hive", null, NullCollation.LOW),
     INFORMIX("Informix", null, NullCollation.HIGH),
     INGRES("Ingres", null, NullCollation.HIGH),
+    JETHRO("JethroData", "\"", NullCollation.LOW),
     LUCIDDB("LucidDB", "\"", NullCollation.HIGH),
     INTERBASE("Interbase", null, NullCollation.HIGH),
     PHOENIX("Phoenix", "\"", NullCollation.HIGH),

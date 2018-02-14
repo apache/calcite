@@ -74,7 +74,7 @@ import java.util.List;
  * The resulting queryable can then be converted to a SQL query, which can be
  * executed efficiently on the JDBC server.</p>
  */
-class JdbcTable extends AbstractQueryableTable
+public class JdbcTable extends AbstractQueryableTable
     implements TranslatableTable, ScannableTable, ModifiableTable {
   private RelProtoDataType protoRowType;
   private final JdbcSchema jdbcSchema;

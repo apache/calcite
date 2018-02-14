@@ -29,9 +29,11 @@ import org.apache.calcite.rel.rules.UnionMergeRule;
 import org.apache.calcite.runtime.FlatLists;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.sql.SqlDialect;
+import org.apache.calcite.sql.SqlDialect.Context;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.dialect.CalciteSqlDialect;
 import org.apache.calcite.sql.dialect.HiveSqlDialect;
+import org.apache.calcite.sql.dialect.JethrodataSqlDialect;
 import org.apache.calcite.sql.dialect.MysqlSqlDialect;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql2rel.SqlToRelConverter;
@@ -50,6 +52,7 @@ import com.google.common.collect.ImmutableList;
 
 import org.junit.Test;
 
+import java.sql.SQLException;
 import java.util.List;
 
 import junit.framework.AssertionFailedError;
@@ -93,6 +96,17 @@ public class RelToSqlConverterTest {
         .programs(programs)
         .build();
     return Frameworks.getPlanner(config);
+  }
+
+  private static JethrodataSqlDialect jethroDataSqlDialect() throws SQLException {
+    Context dummyContext = SqlDialect.EMPTY_CONTEXT
+        .withDatabaseProduct(SqlDialect.DatabaseProduct.JETHRO)
+        .withDatabaseMajorVersion(1)
+        .withDatabaseMinorVersion(0)
+        .withDatabaseVersion("1.0")
+        .withIdentifierQuoteString("\"")
+        .withNullCollation(NullCollation.HIGH);
+    return new JethrodataSqlDialect(dummyContext, null);
   }
 
   private static MysqlSqlDialect mySqlDialect(NullCollation nullCollation) {
@@ -420,6 +434,17 @@ public class RelToSqlConverterTest {
         + "FROM foodmart.product\n"
         + "ORDER BY product_id IS NULL DESC, product_id DESC";
     sql(query).dialect(hive2_1_0_Dialect).ok(expected);
+  }
+
+  @Test public void testJethroDataSelectQueryWithOrderByDescAndNullsFirstShouldBeEmulated()
+                                 throws SQLException {
+    final String query = "select \"product_id\" from \"product\"\n"
+        + "order by \"product_id\" desc nulls first";
+
+    final String expected = "SELECT \"product_id\"\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "ORDER BY \"product_id\", \"product_id\" DESC";
+    sql(query).dialect(jethroDataSqlDialect()).ok(expected);
   }
 
   @Test public void testMySqlSelectQueryWithOrderByDescAndNullsFirstShouldBeEmulated() {
