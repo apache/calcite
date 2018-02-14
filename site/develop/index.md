@@ -54,6 +54,7 @@ $ mvn install
 
 The HOWTO describes how to
 [build from a source distribution]({{ site.baseurl }}/docs/howto.html#building-from-a-source-distribution),
+[set up an IDE for contributing]({{ site.baseurl }}/docs/howto.html#setting-up-an-ide-for-contributing),
 [run more or fewer tests]({{ site.baseurl }}/docs/howto.html#running-tests) and
 [run integration tests]({{ site.baseurl }}/docs/howto.html#running-integration-tests).
 

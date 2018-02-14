@@ -180,6 +180,48 @@ See the [developers guide]({{ site.baseurl }}/develop/#contributing).
 
 See the [developers guide]({{ site.baseurl }}/develop/#getting-started).
 
+## Setting up an IDE for contributing
+
+### Setting up IntelliJ IDEA
+
+To setup [IntelliJ IDEA](https://www.jetbrains.com/idea/), follow the standard steps for the installation of IDEA and set up one of the JDK versions currently supported by Calcite.
+
+Start with [building Calcite from the command line](#building-from-a-source-distribution).
+
+Go to *File > Open...* and open up Calcite's `pom.xml` file.
+When IntelliJ asks if you want to open it as a project or a file, select project.
+Also, say yes when it asks if you want a new window.
+IntelliJ's Maven project importer should handle the rest.
+
+There is a partially implemented IntelliJ code style configuration that you can import located [on GitHub](https://gist.github.com/gianm/27a4e3cad99d7b9b6513b6885d3cfcc9).
+It does not do everything needed to make Calcite's style checker happy, but
+it does a decent amount of it.
+To import, go to *Preferences > Editor > Code Style*, click the gear next to "scheme",
+then *Import Scheme > IntelliJ IDEA Code Style XML*.
+
+Once the importer is finished, test the project setup.
+For example, navigate to the method `JdbcTest.testWinAgg` with
+*Navigate > Symbol* and enter `testWinAgg`. Run `testWinAgg` by right-clicking and selecting *Run* (or the equivalent keyboard shortcut).
+
+If you encounter an error while running the `JdbcTest.testWinAgg` , run the following Maven command from the command line:
+
+`$ mvn -DskipTests clean install`
+
+You should see `"BUILD SUCCESS"`.
+
+Once that is complete, proceed with running `JdbcTest.testWinAgg`.
+
+### Setting up NetBeans
+
+From the main menu, select *File > Open Project* and navigate to a name of the project (Calcite) with a small Maven icon, and choose to open.
+(See [this tutorial](https://www.packtpub.com/mapt/book/application_development/9781785286124/2/ch02lvl1sec23/importing-an-existing-maven-project-in-netbeans) for an example of how to open a Maven project)
+Wait for NetBeans to finish importing all dependencies.
+
+To ensure that the project is configured successfully, navigate to the method `testWinAgg` in `org.apache.calcite.test.JdbcTest`.
+Right-click on the method and select to *Run Focused Test Method*.
+NetBeans will run a Maven process, and you should see in the command output window a line with
+ `Running org.apache.calcite.test.JdbcTest` followed by `"BUILD SUCCESS"`.
+
 ## Tracing
 
 To enable tracing, add the following flags to the java command line:
