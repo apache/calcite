@@ -1605,8 +1605,14 @@ public abstract class Expressions {
    */
   public static UnaryExpression makeUnary(ExpressionType expressionType,
       Expression expression) {
-    return new UnaryExpression(expressionType, expression.getType(),
-        expression);
+    Type type = expression.getType();
+    switch (expressionType) {
+    case Negate:
+      if (type == byte.class || type == short.class) {
+        type = int.class;
+      }
+    }
+    return new UnaryExpression(expressionType, type, expression);
   }
 
   /**

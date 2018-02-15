@@ -835,6 +835,20 @@ public class ExpressionTest {
             Expressions.constant(true),
             Expressions.constant(0),
             Expressions.constant(null)).getType());
+
+    // In Java, "-" applied to short and byte yield int.
+    assertEquals(double.class,
+        Expressions.negate(Expressions.constant((double) 1)).getType());
+    assertEquals(float.class,
+        Expressions.negate(Expressions.constant((float) 1)).getType());
+    assertEquals(long.class,
+        Expressions.negate(Expressions.constant((long) 1)).getType());
+    assertEquals(int.class,
+        Expressions.negate(Expressions.constant(1)).getType());
+    assertEquals(int.class,
+        Expressions.negate(Expressions.constant((short) 1)).getType());
+    assertEquals(int.class,
+        Expressions.negate(Expressions.constant((byte) 1)).getType());
   }
 
   @Test public void testCompile() throws NoSuchMethodException {

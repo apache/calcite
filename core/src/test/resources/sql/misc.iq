@@ -1030,6 +1030,42 @@ Expression 'DEPTNO' is not being grouped
 
 !use scott
 
+# ORDER BY expression with SELECT DISTINCT
+select distinct deptno, job
+from "scott".emp
+order by substring(job from 2 for 1), -deptno;
++--------+-----------+
+| DEPTNO | JOB       |
++--------+-----------+
+|     30 | SALESMAN  |
+|     30 | MANAGER   |
+|     20 | MANAGER   |
+|     10 | MANAGER   |
+|     30 | CLERK     |
+|     20 | CLERK     |
+|     10 | CLERK     |
+|     20 | ANALYST   |
+|     10 | PRESIDENT |
++--------+-----------+
+(9 rows)
+
+!ok
+
+# [CALCITE-2180] Invalid code generated for negative of byte and short values
+select -deptno as d
+from "scott".dept;
++-----+
+| D   |
++-----+
+| -40 |
+| -30 |
+| -20 |
+| -10 |
++-----+
+(4 rows)
+
+!ok
+
 # [CALCITE-2099] Incorrect code generated for UNION
 select count(*) as c from "scott".emp group by deptno
 union
