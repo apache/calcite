@@ -17,6 +17,7 @@
 package org.apache.calcite.test;
 
 import org.apache.calcite.DataContext;
+import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptPredicateList;
@@ -26,6 +27,7 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexExecutorImpl;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
@@ -36,6 +38,7 @@ import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.Schemas;
 import org.apache.calcite.server.CalciteServerStatement;
 import org.apache.calcite.sql.SqlCollation;
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.util.DateString;
@@ -44,6 +47,8 @@ import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.TimeString;
 import org.apache.calcite.util.TimestampString;
 import org.apache.calcite.util.Util;
+
+import com.google.common.collect.ImmutableList;
 
 import org.junit.Test;
 
@@ -369,6 +374,50 @@ public class RexImplicationCheckerTest {
         is("2014"));
     assertThat(nonMatchingNullabilitySimplifier.apply(e2).toString(),
         is("2014"));
+  }
+
+  /** Test case for simplifier of ceil and floor. */
+  @Test public void testSimplifyFloor() {
+    final ImmutableList<TimeUnitRange> timeUnitRanges =
+        ImmutableList.of(TimeUnitRange.WEEK,
+            TimeUnitRange.YEAR, TimeUnitRange.QUARTER, TimeUnitRange.MONTH, TimeUnitRange.DAY,
+            TimeUnitRange.HOUR, TimeUnitRange.MINUTE, TimeUnitRange.SECOND,
+            TimeUnitRange.MILLISECOND, TimeUnitRange.MICROSECOND);
+    final Fixture f = new Fixture();
+    final RexUtil.ExprSimplifier defaultSimplifier =
+        new RexUtil.ExprSimplifier(f.simplify, true);
+
+    final RexNode literalTs =
+        f.timestampLiteral(new TimestampString("2010-10-10 00:00:00"));
+    // Exclude WEEK as it is only used for the negative tests
+    for (int i = 1; i < timeUnitRanges.size(); i++) {
+      final RexNode innerFloorCall = f.rexBuilder.makeCall(
+          SqlStdOperatorTable.CEIL, literalTs,
+          f.rexBuilder.makeFlag(timeUnitRanges.get(i)));
+      for (int j = 1; j <= i; j++) {
+        final RexNode outerFloorCall = f.rexBuilder.makeCall(
+            SqlStdOperatorTable.FLOOR, innerFloorCall,
+            f.rexBuilder.makeFlag(timeUnitRanges.get(j)));
+        final RexCall simplifiedExpr = (RexCall) defaultSimplifier.apply(outerFloorCall);
+        assertThat(simplifiedExpr.getKind(), is(SqlKind.FLOOR));
+        assertThat(((RexLiteral) simplifiedExpr.getOperands().get(1)).getValue().toString(),
+            is(timeUnitRanges.get(j).toString()));
+        assertThat(simplifiedExpr.getOperands().get(0).toString(), is(literalTs.toString()));
+      }
+    }
+    // Negative test
+    for (int i = timeUnitRanges.size() - 1; i >= 0; i--) {
+      final RexNode innerFloorCall = f.rexBuilder.makeCall(
+          SqlStdOperatorTable.FLOOR, literalTs,
+          f.rexBuilder.makeFlag(timeUnitRanges.get(i)));
+      for (int j = timeUnitRanges.size() - 1; j > i; j--) {
+        final RexNode outerFloorCall = f.rexBuilder.makeCall(
+            SqlStdOperatorTable.CEIL, innerFloorCall,
+            f.rexBuilder.makeFlag(timeUnitRanges.get(j)));
+        final RexCall simplifiedExpr = (RexCall) defaultSimplifier.apply(outerFloorCall);
+        assertThat(simplifiedExpr.toString(), is(outerFloorCall.toString()));
+      }
+    }
   }
 
   /** Contains all the nourishment a test case could possibly need.

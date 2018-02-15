@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.rex;
 
+import org.apache.calcite.avatica.util.TimeUnit;
+import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.plan.RelOptPredicateList;
 import org.apache.calcite.plan.RelOptUtil;
@@ -142,6 +144,9 @@ public class RexSimplify {
       return simplifyCase((RexCall) e);
     case CAST:
       return simplifyCast((RexCall) e);
+    case CEIL:
+    case FLOOR:
+      return simplifyCeilFloor((RexCall) e);
     case IS_NULL:
     case IS_NOT_NULL:
     case IS_TRUE:
@@ -947,6 +952,82 @@ public class RexSimplify {
     default:
       return e;
     }
+  }
+
+  private RexNode simplifyCeilFloor(RexCall e) {
+    if (e.getOperands().size() != 2) {
+      // Bail out since we only simplify ceil/floor <date>
+      return e;
+    }
+    final RexNode operand = simplify(e.getOperands().get(0));
+    switch (operand.getKind()) {
+    case CEIL:
+    case FLOOR:
+      // CEIL/FLOOR on top of CEIL/FLOOR
+      final RexCall child = (RexCall) operand;
+      if (child.getOperands().size() != 2) {
+        // Bail out since we only simplify ceil/floor <date>
+        return e;
+      }
+      final RexLiteral parentFlag = (RexLiteral) e.operands.get(1);
+      final TimeUnitRange parentFlagValue = (TimeUnitRange) parentFlag.getValue();
+      final RexLiteral childFlag = (RexLiteral) child.operands.get(1);
+      final TimeUnitRange childFlagValue = (TimeUnitRange) childFlag.getValue();
+      if (parentFlagValue != null && childFlagValue != null) {
+        if (canRollUp(parentFlagValue.startUnit, childFlagValue.startUnit)) {
+          return e.clone(e.getType(),
+              ImmutableList.of(child.getOperands().get(0), parentFlag));
+        }
+      }
+    }
+    return e.clone(e.getType(),
+        ImmutableList.of(operand, e.getOperands().get(1)));
+  }
+
+  /** Method that returns whether we can rollup from inner time unit
+   * to outer time unit. */
+  private static boolean canRollUp(TimeUnit outer, TimeUnit inner) {
+    // Special handling for QUARTER as it is not in the expected
+    // order in TimeUnit
+    switch (outer) {
+    case YEAR:
+    case MONTH:
+    case DAY:
+    case HOUR:
+    case MINUTE:
+    case SECOND:
+    case MILLISECOND:
+    case MICROSECOND:
+      switch (inner) {
+      case YEAR:
+      case QUARTER:
+      case MONTH:
+      case DAY:
+      case HOUR:
+      case MINUTE:
+      case SECOND:
+      case MILLISECOND:
+      case MICROSECOND:
+        if (inner == TimeUnit.QUARTER) {
+          return outer == TimeUnit.YEAR || outer == TimeUnit.QUARTER;
+        }
+        return outer.ordinal() <= inner.ordinal();
+      }
+      break;
+    case QUARTER:
+      switch (inner) {
+      case QUARTER:
+      case MONTH:
+      case DAY:
+      case HOUR:
+      case MINUTE:
+      case SECOND:
+      case MILLISECOND:
+      case MICROSECOND:
+        return true;
+      }
+    }
+    return false;
   }
 
   /** Removes any casts that change nullability but not type.
