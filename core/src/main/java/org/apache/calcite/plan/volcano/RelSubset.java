@@ -145,7 +145,7 @@ public class RelSubset extends AbstractRelNode {
   }
 
   public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
-    throw new UnsupportedOperationException();
+    return this;
   }
 
   public RelOptCost computeSelfCost(RelOptPlanner planner, RelMetadataQuery mq) {
