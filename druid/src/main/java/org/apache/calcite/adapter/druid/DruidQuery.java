@@ -202,17 +202,13 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
   /** Creates a DruidQuery. */
   public static DruidQuery create(RelOptCluster cluster, RelTraitSet traitSet,
       RelOptTable table, DruidTable druidTable, List<RelNode> rels) {
-    final ImmutableMap converterOperatorMap = ImmutableMap.<SqlOperator,
-        DruidSqlOperatorConverter>builder().putAll(
-        Lists.transform(DEFAULT_OPERATORS_LIST, new Function<DruidSqlOperatorConverter,
-            Map.Entry<SqlOperator, DruidSqlOperatorConverter>>() {
-          @Nullable @Override public Map.Entry<SqlOperator, DruidSqlOperatorConverter> apply(
-              final DruidSqlOperatorConverter input) {
-            return Maps.immutableEntry(input.calciteOperator(), input);
-          }
-        })).build();
+    final ImmutableMap.Builder<SqlOperator, DruidSqlOperatorConverter> mapBuilder = ImmutableMap
+        .builder();
+    for (DruidSqlOperatorConverter converter : DEFAULT_OPERATORS_LIST) {
+      mapBuilder.put(converter.calciteOperator(), converter);
+    }
     return create(cluster, traitSet, table, druidTable, druidTable.intervals, rels,
-        converterOperatorMap);
+        mapBuilder.build());
   }
 
   /** Creates a DruidQuery. */
