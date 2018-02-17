@@ -6900,6 +6900,26 @@ public class JdbcTest {
     }
   }
 
+  public static class Event {
+    public final int eventid;
+    public final Timestamp ts;
+
+    public Event(int eventid, Timestamp ts) {
+      this.eventid = eventid;
+      this.ts = ts;
+    }
+
+    @Override public String toString() {
+      return "Event [eventid: " + eventid + ", ts: " + ts + "]";
+    }
+
+    @Override public boolean equals(Object obj) {
+      return obj == this
+          || obj instanceof Event
+          && eventid == ((Event) obj).eventid;
+    }
+  }
+
   public static class FoodmartSchema {
     public final SalesFact[] sales_fact_1997 = {
       new SalesFact(100, 10),

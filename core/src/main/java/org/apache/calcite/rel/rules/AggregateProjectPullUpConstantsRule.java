@@ -26,6 +26,7 @@ import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
+import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexInputRef;
@@ -166,7 +167,13 @@ public class AggregateProjectPullUpConstantsRule extends RelOptRule {
         expr = relBuilder.field(i - map.size());
       } else if (map.containsKey(i)) {
         // Re-generate the constant expression in the project.
-        expr = map.get(i);
+        RelDataType originalType =
+            aggregate.getRowType().getFieldList().get(projects.size()).getType();
+        if (!originalType.equals(map.get(i).getType())) {
+          expr = rexBuilder.makeCast(originalType, map.get(i), true);
+        } else {
+          expr = map.get(i);
+        }
       } else {
         // Project the aggregation expression, in its original
         // position.
