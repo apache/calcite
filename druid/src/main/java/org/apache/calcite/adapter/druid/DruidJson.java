@@ -16,10 +16,14 @@
  */
 package org.apache.calcite.adapter.druid;
 
-/**
- * Created by jhyde on 3/9/16.
- */
-public class DruidResultEnumerator {
+import com.fasterxml.jackson.core.JsonGenerator;
+
+import java.io.IOException;
+
+/** Object that knows how to write itself to a
+ * {@link com.fasterxml.jackson.core.JsonGenerator}. */
+public interface DruidJson {
+  void write(JsonGenerator generator) throws IOException;
 }
 
-// End DruidResultEnumerator.java
+// End DruidJson.java
