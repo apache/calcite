@@ -785,8 +785,8 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
    * @param inputRowType Input row type under the project
    * @param druidQuery Druid Query
    *
-   * @return Pair of: Ordered {@link List<DimensionSpec>} containing the group by dimensions
-   * and {@link List<VirtualColumn>} containing Druid virtual column projections or Null,
+   * @return Pair of ordered list of {@link DimensionSpec} containing the group by dimensions
+   * and list of {@link VirtualColumn} containing Druid virtual column projections or Null,
    * if translation is not possible. Note that the size of lists can be different.
    */
   @Nullable
@@ -867,7 +867,8 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
    *
    * @param aggCalls List of Agg Calls to translate
    * @param aggNames Lit of Agg names
-   * @param project Input project under the Agg Calls, if null means we have TableScan->Agg
+   * @param project Input project under the Agg Calls,
+   *                if null means we have TableScan followed by Aggregation
    * @param druidQuery Druid Query Rel
    *
    * @return List of Valid Druid Json Aggregate or null if any of the aggregates is not supported
