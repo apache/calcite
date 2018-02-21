@@ -12,3 +12,8 @@ settings.xml
 .classpath
 .settings
 .checkstyle
+
+# netbeans
+nb-configuration.xml
+*/nb-configuration.xm
+

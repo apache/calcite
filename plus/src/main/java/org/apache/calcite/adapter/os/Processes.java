@@ -190,7 +190,9 @@ public class Processes {
 
     public Process get() {
       try {
-        return new ProcessBuilder().command(args).start();
+        ProcessBuilder processBuilder = new ProcessBuilder();
+        processBuilder.environment().put("LC_ALL", "en_US");
+        return processBuilder.command(args).start();
       } catch (IOException e) {
         throw new RuntimeException("while creating process: "
             + Arrays.toString(args), e);

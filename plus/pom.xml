@@ -35,7 +35,7 @@ limitations under the License.
 
   <dependencies>
     <!-- Sorted by groupId, artifactId; calcite dependencies first. Put versions
-         in dependencyManagement in the root POM, not here. -->
+    in dependencyManagement in the root POM, not here. -->
     <dependency>
       <groupId>org.apache.calcite</groupId>
       <artifactId>calcite-core</artifactId>
@@ -81,12 +81,28 @@ limitations under the License.
       <artifactId>hamcrest-core</artifactId>
       <scope>test</scope>
     </dependency>
+    <dependency>
+      <groupId>org.hsqldb</groupId>
+      <artifactId>hsqldb</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>net.hydromatic</groupId>
+      <artifactId>quidem</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.incava</groupId>
+      <artifactId>java-diff</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>net.hydromatic</groupId>
+      <artifactId>chinook-data-hsqldb</artifactId>
+    </dependency>
   </dependencies>
-
   <build>
     <plugins>
       <!-- Sorted by groupId, artifactId. Put versions in
-           pluginManagement in the root POM, not here. -->
+      pluginManagement in the root POM, not here. -->
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-jar-plugin</artifactId>
@@ -103,9 +119,9 @@ limitations under the License.
         <artifactId>maven-release-plugin</artifactId>
       </plugin>
       <!-- Parent module has the same plugin and does the work of
-           generating -sources.jar for each project. But without the
-           plugin declared here, IDEs don't know the sources are
-           available. -->
+      generating -sources.jar for each project. But without the
+      plugin declared here, IDEs don't know the sources are
+      available. -->
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-source-plugin</artifactId>
@@ -128,6 +144,25 @@ limitations under the License.
             <include>org/apache/calcite/test/PlusSuite.java</include>
           </includes>
         </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-dependency-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>analyze</id>
+            <goals>
+              <goal>analyze-only</goal>
+            </goals>
+            <configuration>
+              <failOnWarning>true</failOnWarning>
+              <ignoredUnusedDeclaredDependencies>
+                <ignoredUnusedDeclaredDependency>org.incava:java-diff</ignoredUnusedDeclaredDependency>
+                <ignoredUnusedDeclaredDependency>net.hydromatic:chinook-data-hsqldb</ignoredUnusedDeclaredDependency>
+              </ignoredUnusedDeclaredDependencies>
+            </configuration>
+          </execution>
+        </executions>
       </plugin>
     </plugins>
   </build>

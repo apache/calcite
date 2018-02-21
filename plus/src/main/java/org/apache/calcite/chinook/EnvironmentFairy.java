@@ -14,27 +14,38 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.test;
-
-import org.apache.calcite.adapter.os.OsAdapterTest;
-import org.apache.calcite.adapter.tpcds.TpcdsTest;
-import org.apache.calcite.adapter.tpch.TpchTest;
-import org.apache.calcite.chinook.ChinookEnd2EndTest;
-
-import org.junit.runner.RunWith;
-import org.junit.runners.Suite;
+package org.apache.calcite.chinook;
 
 /**
- * Suite consisting of all tests in the <code>calcite-plus</code> module.
+ * Fairy simulates environment around the calcite. It can be users on behalf which calcite is
+ * running queries, or other properties which can change from one query to another.
  */
-@RunWith(Suite.class)
-@Suite.SuiteClasses({
-    OsAdapterTest.class,
-    TpcdsTest.class,
-    TpchTest.class,
-    ChinookEnd2EndTest.class
-    })
-public class PlusSuite {
+public class EnvironmentFairy {
+
+  private static final ThreadLocal<User> USER = new ThreadLocal<User>() {
+    @Override protected User initialValue() {
+      return User.ADMIN;
+    }
+  };
+
+  private EnvironmentFairy() {
+  }
+
+  public static User getUser() {
+    return USER.get();
+  }
+
+  public static void login(User user) {
+    USER.set(user);
+  }
+
+  /**
+   * Who is emulated to being logged in?
+   */
+  public enum User {
+    ADMIN, SPECIFIC_USER
+  }
+
 }
 
-// End PlusSuite.java
+// End EnvironmentFairy.java

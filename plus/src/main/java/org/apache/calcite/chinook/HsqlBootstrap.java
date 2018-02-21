@@ -14,27 +14,37 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.test;
+package org.apache.calcite.chinook;
 
-import org.apache.calcite.adapter.os.OsAdapterTest;
-import org.apache.calcite.adapter.tpcds.TpcdsTest;
-import org.apache.calcite.adapter.tpch.TpchTest;
-import org.apache.calcite.chinook.ChinookEnd2EndTest;
+import net.hydromatic.chinook.data.hsqldb.ChinookHsqldb;
 
-import org.junit.runner.RunWith;
-import org.junit.runners.Suite;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
 
 /**
- * Suite consisting of all tests in the <code>calcite-plus</code> module.
+ * Bootstrap of HSQLDB schema under calcite. It contains data for end 2 end tests.
  */
-@RunWith(Suite.class)
-@Suite.SuiteClasses({
-    OsAdapterTest.class,
-    TpcdsTest.class,
-    TpchTest.class,
-    ChinookEnd2EndTest.class
-    })
-public class PlusSuite {
-}
+public class HsqlBootstrap {
 
-// End PlusSuite.java
+  private static HsqlBootstrap instance;
+
+  private HsqlBootstrap() {
+  }
+
+  public static HsqlBootstrap instance() {
+    if (instance == null) {
+      new org.hsqldb.jdbc.JDBCDriver();
+      instance = new HsqlBootstrap();
+    }
+    return instance;
+  }
+
+  public Connection connection() throws SQLException {
+    return DriverManager.getConnection(
+            ChinookHsqldb.URI,
+            ChinookHsqldb.USER,
+            ChinookHsqldb.PASSWORD);
+  }
+}
+// End HsqlBootstrap.java
