@@ -45,6 +45,7 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.test.JdbcTest.Department;
 import org.apache.calcite.test.JdbcTest.Dependent;
 import org.apache.calcite.test.JdbcTest.Employee;
+import org.apache.calcite.test.JdbcTest.Event;
 import org.apache.calcite.test.JdbcTest.Location;
 import org.apache.calcite.tools.RuleSet;
 import org.apache.calcite.tools.RuleSets;
@@ -62,6 +63,7 @@ import org.junit.Test;
 
 import java.math.BigDecimal;
 import java.sql.ResultSet;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -546,7 +548,7 @@ public class MaterializationTest {
         HR_FKUK_MODEL,
         CalciteAssert.checkResultContains(
             "EnumerableCalc(expr#0..1=[{inputs}], expr#2=[1], "
-                + "expr#3=[+($t1, $t2)], C=[$t3], deptno=[$t0])\n"
+                + "expr#3=[+($t1, $t2)], $f0=[$t3], deptno=[$t0])\n"
                 + "  EnumerableAggregate(group=[{1}], agg#0=[$SUM0($2)])\n"
                 + "    EnumerableTableScan(table=[[hr, m0]])"));
   }
@@ -1143,8 +1145,8 @@ public class MaterializationTest {
             + "from \"emps\" where \"deptno\" > 10 group by \"deptno\"",
         HR_FKUK_MODEL,
         CalciteAssert.checkResultContains(
-            "EnumerableCalc(expr#0..1=[{inputs}], expr#2=[1], expr#3=[+($t1, $t2)], "
-                + "deptno=[$t0], S=[$t3])\n"
+            "EnumerableCalc(expr#0..1=[{inputs}], expr#2=[1], expr#3=[+($t1, $t2)],"
+                + " deptno=[$t0], $f1=[$t3])\n"
                 + "  EnumerableAggregate(group=[{1}], agg#0=[$SUM0($3)])\n"
                 + "    EnumerableCalc(expr#0..3=[{inputs}], expr#4=[10], expr#5=[>($t1, $t4)], "
                 + "proj#0..3=[{exprs}], $condition=[$t5])\n"
@@ -1169,10 +1171,10 @@ public class MaterializationTest {
         HR_FKUK_MODEL,
         CalciteAssert.checkResultContains(
             "EnumerableCalc(expr#0..1=[{inputs}], expr#2=[1], expr#3=[+($t0, $t2)], "
-                + "expr#4=[+($t1, $t2)], EXPR$0=[$t3], S=[$t4])\n"
+                + "expr#4=[+($t1, $t2)], $f0=[$t3], $f1=[$t4])\n"
                 + "  EnumerableAggregate(group=[{1}], agg#0=[$SUM0($3)])\n"
-                + "    EnumerableCalc(expr#0..3=[{inputs}], expr#4=[10], expr#5=[>($t1, $t4)], "
-                + "proj#0..3=[{exprs}], $condition=[$t5])\n"
+                + "    EnumerableCalc(expr#0..3=[{inputs}], expr#4=[10], "
+                + "expr#5=[>($t1, $t4)], proj#0..3=[{exprs}], $condition=[$t5])\n"
                 + "      EnumerableTableScan(table=[[hr, m0]])"));
   }
 
@@ -1185,6 +1187,97 @@ public class MaterializationTest {
             + "from \"emps\" where \"deptno\" >= 10 group by \"empid\", \"deptno\"",
         "select \"deptno\" + 1, sum(\"empid\") + 1 as s\n"
             + "from \"emps\" where \"deptno\" > 10 group by \"deptno\"");
+  }
+
+  @Test public void testAggregateMaterializationAggregateFuncs9() {
+    checkMaterialize(
+        "select \"empid\", floor(cast('1997-01-20 12:34:56' as timestamp) to month), count(*) + 1 as c, sum(\"empid\") as s\n"
+            + "from \"emps\" group by \"empid\", floor(cast('1997-01-20 12:34:56' as timestamp) to month)",
+        "select floor(cast('1997-01-20 12:34:56' as timestamp) to year), sum(\"empid\") as s\n"
+            + "from \"emps\" group by floor(cast('1997-01-20 12:34:56' as timestamp) to year)");
+  }
+
+  @Test public void testAggregateMaterializationAggregateFuncs10() {
+    checkMaterialize(
+        "select \"empid\", floor(cast('1997-01-20 12:34:56' as timestamp) to month), count(*) + 1 as c, sum(\"empid\") as s\n"
+            + "from \"emps\" group by \"empid\", floor(cast('1997-01-20 12:34:56' as timestamp) to month)",
+        "select floor(cast('1997-01-20 12:34:56' as timestamp) to year), sum(\"empid\") + 1 as s\n"
+            + "from \"emps\" group by floor(cast('1997-01-20 12:34:56' as timestamp) to year)");
+  }
+
+  @Test public void testAggregateMaterializationAggregateFuncs11() {
+    checkMaterialize(
+        "select \"empid\", floor(cast('1997-01-20 12:34:56' as timestamp) to second), count(*) + 1 as c, sum(\"empid\") as s\n"
+            + "from \"emps\" group by \"empid\", floor(cast('1997-01-20 12:34:56' as timestamp) to second)",
+        "select floor(cast('1997-01-20 12:34:56' as timestamp) to minute), sum(\"empid\") as s\n"
+            + "from \"emps\" group by floor(cast('1997-01-20 12:34:56' as timestamp) to minute)");
+  }
+
+  @Test public void testAggregateMaterializationAggregateFuncs12() {
+    checkMaterialize(
+        "select \"empid\", floor(cast('1997-01-20 12:34:56' as timestamp) to second), count(*) + 1 as c, sum(\"empid\") as s\n"
+            + "from \"emps\" group by \"empid\", floor(cast('1997-01-20 12:34:56' as timestamp) to second)",
+        "select floor(cast('1997-01-20 12:34:56' as timestamp) to month), sum(\"empid\") as s\n"
+            + "from \"emps\" group by floor(cast('1997-01-20 12:34:56' as timestamp) to month)");
+  }
+
+  @Test public void testAggregateMaterializationAggregateFuncs13() {
+    checkMaterialize(
+        "select \"empid\", cast('1997-01-20 12:34:56' as timestamp), count(*) + 1 as c, sum(\"empid\") as s\n"
+            + "from \"emps\" group by \"empid\", cast('1997-01-20 12:34:56' as timestamp)",
+        "select floor(cast('1997-01-20 12:34:56' as timestamp) to year), sum(\"empid\") as s\n"
+            + "from \"emps\" group by floor(cast('1997-01-20 12:34:56' as timestamp) to year)");
+  }
+
+  @Test public void testAggregateMaterializationAggregateFuncs14() {
+    checkMaterialize(
+        "select \"empid\", floor(cast('1997-01-20 12:34:56' as timestamp) to month), count(*) + 1 as c, sum(\"empid\") as s\n"
+            + "from \"emps\" group by \"empid\", floor(cast('1997-01-20 12:34:56' as timestamp) to month)",
+        "select floor(cast('1997-01-20 12:34:56' as timestamp) to hour), sum(\"empid\") as s\n"
+            + "from \"emps\" group by floor(cast('1997-01-20 12:34:56' as timestamp) to hour)");
+  }
+
+  @Test public void testAggregateMaterializationAggregateFuncs15() {
+    checkMaterialize(
+        "select \"eventid\", floor(cast(\"ts\" as timestamp) to second), count(*) + 1 as c, sum(\"eventid\") as s\n"
+            + "from \"events\" group by \"eventid\", floor(cast(\"ts\" as timestamp) to second)",
+        "select floor(cast(\"ts\" as timestamp) to minute), sum(\"eventid\") as s\n"
+            + "from \"events\" group by floor(cast(\"ts\" as timestamp) to minute)");
+  }
+
+  @Test public void testAggregateMaterializationAggregateFuncs16() {
+    checkMaterialize(
+        "select \"eventid\", cast(\"ts\" as timestamp), count(*) + 1 as c, sum(\"eventid\") as s\n"
+            + "from \"events\" group by \"eventid\", cast(\"ts\" as timestamp)",
+        "select floor(cast(\"ts\" as timestamp) to year), sum(\"eventid\") as s\n"
+            + "from \"events\" group by floor(cast(\"ts\" as timestamp) to year)");
+  }
+
+  @Test public void testAggregateMaterializationAggregateFuncs17() {
+    checkMaterialize(
+        "select \"eventid\", floor(cast(\"ts\" as timestamp) to month), count(*) + 1 as c, sum(\"eventid\") as s\n"
+            + "from \"events\" group by \"eventid\", floor(cast(\"ts\" as timestamp) to month)",
+        "select floor(cast(\"ts\" as timestamp) to hour), sum(\"eventid\") as s\n"
+            + "from \"events\" group by floor(cast(\"ts\" as timestamp) to hour)",
+        HR_FKUK_MODEL,
+        CalciteAssert.checkResultContains(
+            "EnumerableTableScan(table=[[hr, events]])"));
+  }
+
+  @Test public void testAggregateMaterializationAggregateFuncs18() {
+    checkMaterialize(
+        "select \"empid\", \"deptno\", count(*) + 1 as c, sum(\"empid\") as s\n"
+            + "from \"emps\" group by \"empid\", \"deptno\"",
+        "select \"empid\"*\"deptno\", sum(\"empid\") as s\n"
+            + "from \"emps\" group by \"empid\"*\"deptno\"");
+  }
+
+  @Test public void testAggregateMaterializationAggregateFuncs19() {
+    checkMaterialize(
+        "select \"empid\", \"deptno\", count(*) as c, sum(\"empid\") as s\n"
+            + "from \"emps\" group by \"empid\", \"deptno\"",
+        "select \"empid\" + 10, count(*) + 1 as c\n"
+            + "from \"emps\" group by \"empid\" + 10");
   }
 
   @Test public void testJoinAggregateMaterializationNoAggregateFuncs1() {
@@ -2244,6 +2337,12 @@ public class MaterializationTest {
     public final Dependent[] locations = {
         new Dependent(10, "San Francisco"),
         new Dependent(20, "San Diego"),
+    };
+    public final Event[] events = {
+        new Event(100, new Timestamp(0)),
+        new Event(200, new Timestamp(0)),
+        new Event(150, new Timestamp(0)),
+        new Event(110, null),
     };
 
     public final RelReferentialConstraint rcs0 =
