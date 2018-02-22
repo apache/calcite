@@ -2114,4 +2114,17 @@ WHERE hiredate = '1980-12-17';
 !ok
 !}
 
+# [CALCITE-2002] DISTINCT applied to VALUES returns wrong result
+SELECT DISTINCT T.B
+FROM (VALUES (1, 'X'),(2, 'Y'),(3, 'X'),(4, 'X')) AS T(A, B);
++---+
+| B |
++---+
+| X |
+| Y |
++---+
+(2 rows)
+
+!ok
+
 # End misc.iq

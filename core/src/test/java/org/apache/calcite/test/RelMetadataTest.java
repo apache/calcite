@@ -55,6 +55,7 @@ import org.apache.calcite.rel.logical.LogicalSort;
 import org.apache.calcite.rel.logical.LogicalTableScan;
 import org.apache.calcite.rel.logical.LogicalUnion;
 import org.apache.calcite.rel.logical.LogicalValues;
+import org.apache.calcite.rel.metadata.BuiltInMetadata;
 import org.apache.calcite.rel.metadata.CachingRelMetadataProvider;
 import org.apache.calcite.rel.metadata.ChainedRelMetadataProvider;
 import org.apache.calcite.rel.metadata.DefaultRelMetadataProvider;
@@ -65,6 +66,7 @@ import org.apache.calcite.rel.metadata.MetadataHandler;
 import org.apache.calcite.rel.metadata.ReflectiveRelMetadataProvider;
 import org.apache.calcite.rel.metadata.RelColumnOrigin;
 import org.apache.calcite.rel.metadata.RelMdCollation;
+import org.apache.calcite.rel.metadata.RelMdColumnUniqueness;
 import org.apache.calcite.rel.metadata.RelMdUtil;
 import org.apache.calcite.rel.metadata.RelMetadataProvider;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
@@ -86,6 +88,7 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.tools.FrameworkConfig;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.RelBuilder;
+import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.SaffronProperties;
@@ -1166,6 +1169,60 @@ public class RelMetadataTest extends SqlToRelTestBase {
     final LogicalValues values =
         LogicalValues.create(cluster, rowType, tuples.build());
     assertThat(mq.collations(values), equalTo(collations));
+  }
+
+  /** Unit test for
+   * {@link org.apache.calcite.rel.metadata.RelMdColumnUniqueness#areColumnsUnique}
+   * applied to {@link Values}. */
+  @Test public void testColumnUniquenessForValues() {
+    Frameworks.withPlanner(
+        new Frameworks.PlannerAction<Void>() {
+          public Void apply(RelOptCluster cluster, RelOptSchema relOptSchema,
+              SchemaPlus rootSchema) {
+            final RexBuilder rexBuilder = cluster.getRexBuilder();
+            final RelMetadataQuery mq = RelMetadataQuery.instance();
+            final RelDataType rowType = cluster.getTypeFactory().builder()
+                .add("a", SqlTypeName.INTEGER)
+                .add("b", SqlTypeName.VARCHAR)
+                .build();
+            final ImmutableList.Builder<ImmutableList<RexLiteral>> tuples =
+                ImmutableList.builder();
+            addRow(tuples, rexBuilder, 1, "X");
+            addRow(tuples, rexBuilder, 2, "Y");
+            addRow(tuples, rexBuilder, 3, "X");
+            addRow(tuples, rexBuilder, 4, "X");
+
+            final LogicalValues values =
+                LogicalValues.create(cluster, rowType, tuples.build());
+
+            final ImmutableBitSet colNone = ImmutableBitSet.of();
+            final ImmutableBitSet col0 = ImmutableBitSet.of(0);
+            final ImmutableBitSet col1 = ImmutableBitSet.of(1);
+            final ImmutableBitSet colAll = ImmutableBitSet.of(0, 1);
+
+            assertThat(mq.areColumnsUnique(values, col0), is(true));
+            assertThat(mq.areColumnsUnique(values, col1), is(false));
+            assertThat(mq.areColumnsUnique(values, colAll), is(true));
+            assertThat(mq.areColumnsUnique(values, colNone), is(false));
+
+            // Repeat the above tests directly against the handler.
+            final RelMdColumnUniqueness handler =
+                (RelMdColumnUniqueness) RelMdColumnUniqueness.SOURCE
+                    .handlers(BuiltInMetadata.ColumnUniqueness.DEF)
+                    .get(BuiltInMethod.COLUMN_UNIQUENESS.method)
+                    .iterator().next();
+            assertThat(handler.areColumnsUnique(values, mq, col0, false),
+                is(true));
+            assertThat(handler.areColumnsUnique(values, mq, col1, false),
+                is(false));
+            assertThat(handler.areColumnsUnique(values, mq, colAll, false),
+                is(true));
+            assertThat(handler.areColumnsUnique(values, mq, colNone, false),
+                is(false));
+
+            return null;
+          }
+        });
   }
 
   private void addRow(ImmutableList.Builder<ImmutableList<RexLiteral>> builder,
