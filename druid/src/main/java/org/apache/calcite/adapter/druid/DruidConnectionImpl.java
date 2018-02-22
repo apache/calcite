@@ -38,7 +38,6 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.type.CollectionType;
 import com.google.common.base.Preconditions;
-import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
@@ -345,7 +344,7 @@ class DruidConnectionImpl implements DruidConnection {
         synchronized (UTC_TIMESTAMP_FORMAT) {
           // synchronized block to avoid race condition
           try {
-            //First try to pars as Timestamp with timezone.
+            // First try to parse as Timestamp with timezone.
             rowBuilder
                 .set(fieldPos, UTC_TIMESTAMP_FORMAT.parse(parser.getText()).getTime());
           } catch (ParseException e) {
@@ -355,7 +354,7 @@ class DruidConnectionImpl implements DruidConnection {
                   .set(fieldPos, TIMESTAMP_FORMAT.parse(parser.getText()).getTime());
             } catch (ParseException e2) {
               // unknown format should not happen
-              Throwables.propagate(e2);
+              throw new RuntimeException(e2);
             }
           }
         }
