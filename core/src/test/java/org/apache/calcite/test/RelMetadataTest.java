@@ -55,6 +55,7 @@ import org.apache.calcite.rel.logical.LogicalSort;
 import org.apache.calcite.rel.logical.LogicalTableScan;
 import org.apache.calcite.rel.logical.LogicalUnion;
 import org.apache.calcite.rel.logical.LogicalValues;
+import org.apache.calcite.rel.metadata.BuiltInMetadata;
 import org.apache.calcite.rel.metadata.CachingRelMetadataProvider;
 import org.apache.calcite.rel.metadata.ChainedRelMetadataProvider;
 import org.apache.calcite.rel.metadata.DefaultRelMetadataProvider;
@@ -65,6 +66,7 @@ import org.apache.calcite.rel.metadata.MetadataHandler;
 import org.apache.calcite.rel.metadata.ReflectiveRelMetadataProvider;
 import org.apache.calcite.rel.metadata.RelColumnOrigin;
 import org.apache.calcite.rel.metadata.RelMdCollation;
+import org.apache.calcite.rel.metadata.RelMdColumnUniqueness;
 import org.apache.calcite.rel.metadata.RelMdUtil;
 import org.apache.calcite.rel.metadata.RelMetadataProvider;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
@@ -86,6 +88,7 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.tools.FrameworkConfig;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.RelBuilder;
+import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.SaffronProperties;
@@ -1166,6 +1169,46 @@ public class RelMetadataTest extends SqlToRelTestBase {
     final LogicalValues values =
         LogicalValues.create(cluster, rowType, tuples.build());
     assertThat(mq.collations(values), equalTo(collations));
+  }
+
+  @Test public void testTableFunctionColumnUniqueness() {
+    Frameworks.withPlanner(
+        new Frameworks.PlannerAction<Void>() {
+          public Void apply(RelOptCluster cluster,
+                            RelOptSchema relOptSchema,
+                            SchemaPlus rootSchema) {
+            final RexBuilder rexBuilder = cluster.getRexBuilder();
+            final RelMetadataQuery mq = RelMetadataQuery.instance();
+            final RelDataType rowType = cluster.getTypeFactory().builder()
+                .add("a", SqlTypeName.INTEGER)
+                .add("b", SqlTypeName.VARCHAR)
+                .build();
+            final ImmutableList.Builder<ImmutableList<RexLiteral>> tuples =
+                ImmutableList.builder();
+            addRow(tuples, rexBuilder, 1, "X");
+            addRow(tuples, rexBuilder, 2, "Y");
+            addRow(tuples, rexBuilder, 3, "X");
+            addRow(tuples, rexBuilder, 4, "X");
+
+            final LogicalValues values =
+                LogicalValues.create(cluster, rowType, tuples.build());
+
+            Collection handlers = RelMdColumnUniqueness.SOURCE.handlers(
+                BuiltInMetadata.ColumnUniqueness.DEF
+            ).get(
+                BuiltInMethod.COLUMN_UNIQUENESS.method
+            );
+
+            RelMdColumnUniqueness handler = (RelMdColumnUniqueness) handlers.iterator().next();
+            ImmutableBitSet col1 = ImmutableBitSet.of(0);
+            ImmutableBitSet col2 = ImmutableBitSet.of(1);
+
+            assertTrue(handler.areColumnsUnique(values, mq, col1, false));
+            assertTrue(!handler.areColumnsUnique(values, mq, col2, false));
+
+            return null;
+          }
+        });
   }
 
   private void addRow(ImmutableList.Builder<ImmutableList<RexLiteral>> builder,
