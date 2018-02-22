@@ -27,20 +27,25 @@ import org.junit.Test;
  * the {@link org.apache.calcite.adapter.spark} package.
  */
 public class SparkAdapterTest {
+  private static final String VALUES0 = "(values (1, 'a'), (2, 'b'))";
 
-  private static final String commonValuesExpr0 = "(values (1, 'a'), (2, 'b'))";
-
-  private static final String commonValuesExpr1 = 
+  private static final String VALUES1 =
       "(values (1, 'a'), (2, 'b')) as t(x, y)";
 
-  private static final String commonValuesExpr2 =
+  private static final String VALUES2 =
       "(values (1, 'a'), (2, 'b'), (1, 'b'), (2, 'c'), (2, 'c')) as t(x, y)";
 
-  private static final String commonValuesExpr3 =
+  private static final String VALUES3 =
       "(values (1, 'a'), (2, 'b')) as v(w, z)";
 
-  private static final String commonValuesExpr4 =
+  private static final String VALUES4 =
       "(values (1, 'a'), (2, 'b'), (3, 'b'), (4, 'c'), (2, 'c')) as t(x, y)";
+
+  private CalciteAssert.AssertQuery sql(String sql) {
+    return CalciteAssert.that()
+        .with(CalciteAssert.Config.SPARK)
+        .query(sql);
+  }
 
   /**
    * Tests a VALUES query evaluated using Spark.
@@ -53,43 +58,37 @@ public class SparkAdapterTest {
     Util.discard(SparkRel.class);
 
     final String sql = "select *\n"
-        + "from " + commonValuesExpr0;
+        + "from " + VALUES0;
 
     final String plan = "PLAN="
         + "EnumerableValues(tuples=[[{ 1, 'a' }, { 2, 'b' }]])";
 
     final String expectedResult = "EXPR$0=1; EXPR$1=a\n"
-        + "EXPR$0=2; EXPR$1=b";
+        + "EXPR$0=2; EXPR$1=b\n";
 
-    sql(sql).returnsUnordered(expectedResult)
+    sql(sql).returns(expectedResult)
         .explainContains(plan);
   }
 
   /** Tests values followed by filter, evaluated by Spark. */
   @Test public void testValuesFilter() {
     final String sql = "select *\n"
-        + "from " + commonValuesExpr1 + "\n"
+        + "from " + VALUES1 + "\n"
         + "where x < 2";
+
+    final String expectedResult = "X=1; Y=a\n";
 
     final String plan = "PLAN="
         + "EnumerableCalc(expr#0..1=[{inputs}], expr#2=[2], expr#3=[<($t0, $t2)], proj#0..1=[{exprs}], $condition=[$t3])\n"
         + "  EnumerableValues(tuples=[[{ 1, 'a' }, { 2, 'b' }]])\n";
 
-    final String expectedResult = "X=1; Y=a";
-
-    sql(sql).returnsUnordered(expectedResult)
+    sql(sql).returns(expectedResult)
         .explainContains(plan);
-  }
-
-  private CalciteAssert.AssertQuery sql(String sql) {
-    return CalciteAssert.that()
-        .with(CalciteAssert.Config.SPARK)
-        .query(sql);
   }
 
   @Test public void testSelectDistinct() {
     final String sql = "select distinct *\n"
-        + "from " + commonValuesExpr2;
+        + "from " + VALUES2;
 
     final String plan = "PLAN="
         + "EnumerableAggregate(group=[{0, 1}])\n"
@@ -104,12 +103,12 @@ public class SparkAdapterTest {
         .explainContains(plan);
   }
 
-  /** Tests about grouping and aggregation functions. */
+  // Tests about grouping and aggregate functions
 
   @Test public void testGroupBy() {
     final String sql = "select sum(x) as SUM_X, min(y) as MIN_Y, max(y) as MAX_Y, "
         + "count(*) as CNT_Y, count(distinct y) as CNT_DIST_Y\n"
-        + "from " + commonValuesExpr2 + "\n"
+        + "from " + VALUES2 + "\n"
         + "group by x";
 
     final String plan = "PLAN="
@@ -129,7 +128,7 @@ public class SparkAdapterTest {
   @Test public void testAggFuncNoGroupBy() {
     final String sql = "select sum(x) as SUM_X, min(y) as MIN_Y, max(y) as MAX_Y, "
         + "count(*) as CNT_Y, count(distinct y) as CNT_DIST_Y\n"
-        + "from " + commonValuesExpr2;
+        + "from " + VALUES2;
 
     final String plan = "PLAN="
         + "EnumerableCalc(expr#0..4=[{inputs}], expr#5=[CAST($t3):BIGINT NOT NULL], proj#0..2=[{exprs}], CNT_Y=[$t5], CNT_DIST_Y=[$t4])\n"
@@ -146,7 +145,7 @@ public class SparkAdapterTest {
 
   @Test public void testGroupByOrderByAsc() {
     final String sql = "select x, count(*) as CNT_Y\n"
-        + "from " + commonValuesExpr2 + "\n"
+        + "from " + VALUES2 + "\n"
         + "group by x\n"
         + "order by x asc";
 
@@ -162,7 +161,7 @@ public class SparkAdapterTest {
   @Test public void testGroupByMinMaxCountCountDistinctOrderByAsc() {
     final String sql = "select x, min(y) as MIN_Y, max(y) as MAX_Y, count(*) as CNT_Y, "
         + "count(distinct y) as CNT_DIST_Y\n"
-        + "from " + commonValuesExpr2 + "\n"
+        + "from " + VALUES2 + "\n"
         + "group by x\n"
         + "order by x asc";
 
@@ -184,7 +183,7 @@ public class SparkAdapterTest {
   @Test public void testGroupByMiMaxCountCountDistinctOrderByDesc() {
     final String sql = "select x, min(y) as MIN_Y, max(y) as MAX_Y, count(*) as CNT_Y, "
         + "count(distinct y) as CNT_DIST_Y\n"
-        + "from " + commonValuesExpr2 + "\n"
+        + "from " + VALUES2 + "\n"
         + "group by x\n"
         + "order by x desc";
 
@@ -205,7 +204,7 @@ public class SparkAdapterTest {
 
   @Test public void testGroupByHaving() {
     final String sql = "select x\n"
-        + "from " + commonValuesExpr2 + "\n"
+        + "from " + VALUES2 + "\n"
         + "group by x\n"
         + "having count(*) > 2";
 
@@ -220,14 +219,14 @@ public class SparkAdapterTest {
         .explainContains(plan);
   }
 
-  // Tests about set operators (union, union all, intersect).
+  // Tests about set operators (UNION, UNION ALL, INTERSECT)
 
   @Test public void testUnionAll() {
     final String sql = "select *\n"
-        + "from " + commonValuesExpr1 + "\n"
+        + "from " + VALUES1 + "\n"
         + " union all\n"
         + "select *\n"
-        + "from " + commonValuesExpr2;
+        + "from " + VALUES2;
 
     final String plan = "PLAN="
         + "EnumerableUnion(all=[true])\n"
@@ -248,10 +247,10 @@ public class SparkAdapterTest {
 
   @Test public void testUnion() {
     final String sql = "select *\n"
-        + "from " + commonValuesExpr1 + "\n"
+        + "from " + VALUES1 + "\n"
         + " union\n"
         + "select *\n"
-        + "from " + commonValuesExpr2;
+        + "from " + VALUES2;
 
     final String plan = "PLAN="
         + "EnumerableUnion(all=[false])\n"
@@ -269,10 +268,10 @@ public class SparkAdapterTest {
 
   @Test public void testIntersect() {
     final String sql = "select *\n"
-        + "from " + commonValuesExpr1 + "\n"
+        + "from " + VALUES1 + "\n"
         + " intersect\n"
         + "select *\n"
-        + "from " + commonValuesExpr2;
+        + "from " + VALUES2;
 
     final String plan = "PLAN="
         + "EnumerableIntersect(all=[false])\n"
@@ -290,7 +289,7 @@ public class SparkAdapterTest {
 
   @Test public void testSortXAscProjectY() {
     final String sql = "select y\n"
-        + "from " + commonValuesExpr2 + "\n"
+        + "from " + VALUES2 + "\n"
         + "order by x asc";
 
     final String plan = "PLAN="
@@ -310,7 +309,7 @@ public class SparkAdapterTest {
 
   @Test public void testSortXDescYDescProjectY() {
     final String sql = "select y\n"
-        + "from " + commonValuesExpr2 + "\n"
+        + "from " + VALUES2 + "\n"
         + "order by x desc, y desc";
 
     final String plan = "PLAN="
@@ -330,7 +329,7 @@ public class SparkAdapterTest {
 
   @Test public void testSortXDescYAscProjectY() {
     final String sql = "select y\n"
-        + "from " + commonValuesExpr2 + "\n"
+        + "from " + VALUES2 + "\n"
         + "order by x desc, y";
 
     final String plan = "PLAN="
@@ -350,7 +349,7 @@ public class SparkAdapterTest {
 
   @Test public void testSortXAscYDescProjectY() {
     final String sql = "select y\n"
-        + "from " + commonValuesExpr2 + "\n"
+        + "from " + VALUES2 + "\n"
         + "order by x, y desc";
 
     final String plan = "PLAN="
@@ -368,12 +367,12 @@ public class SparkAdapterTest {
         .explainContains(plan);
   }
 
-  // Tests involving joins.
+  // Tests involving joins
 
   @Test public void testJoinProject() {
     final String sql = "select t.y, v.z\n"
-        + "from " + commonValuesExpr2 + "\n"
-        + "  join " + commonValuesExpr3 + " on t.x = v.w";
+        + "from " + VALUES2 + "\n"
+        + "  join " + VALUES3 + " on t.x = v.w";
 
     final String plan = "PLAN="
         + "EnumerableCalc(expr#0..3=[{inputs}], Y=[$t3], Z=[$t1])\n"
@@ -395,8 +394,8 @@ public class SparkAdapterTest {
     final String sql = "select r.z\n"
         + "from (\n"
         + "  select *\n"
-        + "  from " + commonValuesExpr2 + "\n"
-        + "    join " + commonValuesExpr3 + " on t.x = v.w) as r";
+        + "  from " + VALUES2 + "\n"
+        + "    join " + VALUES3 + " on t.x = v.w) as r";
 
     final String plan = "PLAN="
         + "EnumerableCalc(expr#0..3=[{inputs}], Z=[$t1])\n"
@@ -414,11 +413,11 @@ public class SparkAdapterTest {
         .explainContains(plan);
   }
 
-  // Tests involving limit/offset.
+  // Tests involving LIMIT/OFFSET
 
   @Test public void testLimit() {
     final String sql = "select *\n"
-        + "from " + commonValuesExpr2 + "\n"
+        + "from " + VALUES2 + "\n"
         + "where x = 1\n"
         + "limit 1";
 
@@ -435,7 +434,7 @@ public class SparkAdapterTest {
 
   @Test public void testOrderByLimit() {
     final String sql = "select *\n"
-        + "from " + commonValuesExpr2 + "\n"
+        + "from " + VALUES2 + "\n"
         + "order by y\n"
         + "limit 1";
 
@@ -451,7 +450,7 @@ public class SparkAdapterTest {
 
   @Test public void testOrderByOffset() {
     final String sql = "select *\n"
-        + "from " + commonValuesExpr2 + "\n"
+        + "from " + VALUES2 + "\n"
         + "order by y\n"
         + "offset 2";
 
@@ -471,7 +470,7 @@ public class SparkAdapterTest {
 
   @Test public void testFilterBetween() {
     final String sql = "select *\n"
-        + "from " + commonValuesExpr4 + "\n"
+        + "from " + VALUES4 + "\n"
         + "where x between 3 and 4";
 
     final String plan = "PLAN="
@@ -487,7 +486,7 @@ public class SparkAdapterTest {
 
   @Test public void testFilterIsIn() {
     final String sql = "select *\n"
-        + "from " + commonValuesExpr4 + "\n"
+        + "from " + VALUES4 + "\n"
         + "where x in (3, 4)";
 
     final String plan = "PLAN="
@@ -503,7 +502,7 @@ public class SparkAdapterTest {
 
   @Test public void testFilterTrue() {
     final String sql = "select *\n"
-        + "from " + commonValuesExpr2 + "\n"
+        + "from " + VALUES2 + "\n"
         + "where true";
 
     final String plan = "PLAN="
@@ -521,7 +520,7 @@ public class SparkAdapterTest {
 
   @Test public void testFilterFalse() {
     final String sql = "select *\n"
-        + "from " + commonValuesExpr2 + "\n"
+        + "from " + VALUES2 + "\n"
         + "where false";
 
     final String plan = "PLAN="
@@ -536,7 +535,7 @@ public class SparkAdapterTest {
 
   @Test public void testFilterOr() {
     final String sql = "select *\n"
-        + "from " + commonValuesExpr2 + "\n"
+        + "from " + VALUES2 + "\n"
         + "where x = 1 or x = 2";
 
     final String plan = "PLAN="
@@ -555,7 +554,7 @@ public class SparkAdapterTest {
 
   @Test public void testFilterIsNotNull() {
     final String sql = "select *\n"
-        + "from " + commonValuesExpr2 + "\n"
+        + "from " + VALUES2 + "\n"
         + "where x is not null";
 
     final String plan = "PLAN="
@@ -573,7 +572,7 @@ public class SparkAdapterTest {
 
   @Test public void testFilterIsNull() {
     final String sql = "select *\n"
-        + "from " + commonValuesExpr2 + "\n"
+        + "from " + VALUES2 + "\n"
         + "where x is null";
 
     final String plan = "PLAN="
@@ -586,15 +585,15 @@ public class SparkAdapterTest {
         .explainContains(plan);
   }
 
-  // Tests on more complex queries as union operands.
+  // Tests on more complex queries as UNION operands
 
   @Test public void testUnionWithFilters() {
     final String sql = "select *\n"
-        + "from " + commonValuesExpr1 + "\n"
+        + "from " + VALUES1 + "\n"
         + "where x > 1\n"
         + " union all\n"
         + "select *\n"
-        + "from " + commonValuesExpr2 + "\n"
+        + "from " + VALUES2 + "\n"
         + "where x > 1";
 
     final String plan = "PLAN="
@@ -615,11 +614,11 @@ public class SparkAdapterTest {
 
   @Test public void testUnionWithFiltersProject() {
     final String sql = "select x\n"
-        + "from " + commonValuesExpr1 + "\n"
+        + "from " + VALUES1 + "\n"
         + "where x > 1\n"
         + " union\n"
         + "select x\n"
-        + "from " + commonValuesExpr2 + "\n"
+        + "from " + VALUES2 + "\n"
         + "where x > 1";
 
     final String plan = "PLAN="
@@ -635,11 +634,11 @@ public class SparkAdapterTest {
         .explainContains(plan);
   }
 
-  // Tests involving arithmetic operators.
+  // Tests involving arithmetic operators
 
   @Test public void testArithmeticPlus() {
     final String sql = "select x\n"
-        + "from " + commonValuesExpr1 + "\n"
+        + "from " + VALUES1 + "\n"
         + "where x + 1 > 1";
 
     final String plan = "PLAN="
@@ -655,7 +654,7 @@ public class SparkAdapterTest {
 
   @Test public void testArithmeticMinus() {
     final String sql = "select x\n"
-        + "from " + commonValuesExpr1 + "\n"
+        + "from " + VALUES1 + "\n"
         + "where x - 1 > 0";
 
     final String plan = "PLAN="
@@ -670,7 +669,7 @@ public class SparkAdapterTest {
 
   @Test public void testArithmeticMul() {
     final String sql = "select x\n"
-        + "from " + commonValuesExpr1 + "\n"
+        + "from " + VALUES1 + "\n"
         + "where x * x > 1";
 
     final String plan = "PLAN="
@@ -685,7 +684,7 @@ public class SparkAdapterTest {
 
   @Test public void testArithmeticDiv() {
     final String sql = "select x\n"
-        + "from " + commonValuesExpr1 + "\n"
+        + "from " + VALUES1 + "\n"
         + "where x / x = 1";
 
     final String plan = "PLAN="
@@ -699,14 +698,15 @@ public class SparkAdapterTest {
         .explainContains(plan);
   }
 
-  /** Tests involving subqueries (both correlated and non correlated). */
+  // Tests involving sub-queries (both correlated and non correlated)
+
   @Ignore("[CALCITE-2184] java.lang.ClassCastException: RexSubQuery cannot be cast to RexLocalRef")
   @Test public void testFilterExists() {
     final String sql = "select *\n"
-        + "from " + commonValuesExpr4 + "\n"
+        + "from " + VALUES4 + "\n"
         + "where exists (\n"
         + "  select *\n"
-        + "  from " + commonValuesExpr3 + "\n"
+        + "  from " + VALUES3 + "\n"
         + "  where w < x\n"
         + ")";
 
@@ -724,10 +724,10 @@ public class SparkAdapterTest {
   @Ignore("[CALCITE-2184] java.lang.ClassCastException: RexSubQuery cannot be cast to RexLocalRef")
   @Test public void testFilterNotExists() {
     final String sql = "select *\n"
-        + "from " + commonValuesExpr4 + "\n"
+        + "from " + VALUES4 + "\n"
         + "where not exists (\n"
         + "  select *\n"
-        + "  from " + commonValuesExpr3 + "\n"
+        + "  from " + VALUES3 + "\n"
         + "  where w > x\n"
         + ")";
 
@@ -740,12 +740,12 @@ public class SparkAdapterTest {
   }
 
   @Ignore("[CALCITE-2184] java.lang.ClassCastException: RexSubQuery cannot be cast to RexLocalRef")
-  @Test public void testSubqueryAny() {
+  @Test public void testSubQueryAny() {
     final String sql = "select x\n"
-        + "from " + commonValuesExpr1 + "\n"
+        + "from " + VALUES1 + "\n"
         + "where x <= any (\n"
         + "  select x\n"
-        + "  from " + commonValuesExpr2 + "\n"
+        + "  from " + VALUES2 + "\n"
         + ")";
 
     final String plan = "PLAN=todo\n\n";
@@ -758,12 +758,12 @@ public class SparkAdapterTest {
   }
 
   @Ignore("[CALCITE-2184] java.lang.ClassCastException: RexSubQuery cannot be cast to RexLocalRef")
-  @Test public void testSubqueryAll() {
+  @Test public void testSubQueryAll() {
     final String sql = "select x\n"
-        + "from " + commonValuesExpr1 + "\n"
+        + "from " + VALUES1 + "\n"
         + "where x <= all (\n"
         + "  select x\n"
-        + "  from " + commonValuesExpr2 + "\n"
+        + "  from " + VALUES2 + "\n"
         + ")";
 
     final String plan = "PLAN=todo\n\n";
