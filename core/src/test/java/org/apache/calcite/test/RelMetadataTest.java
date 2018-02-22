@@ -2063,6 +2063,43 @@ public class RelMetadataTest extends SqlToRelTestBase {
             + "[CATALOG, SALES, EMP].#2, [CATALOG, SALES, EMP].#3]"));
   }
 
+  @Test public void testAllPredicatesCrossJoinMultiTable() {
+    final String sql = "select x.sal from\n"
+        + "(select a.deptno, c.sal from (select * from emp limit 7) as a\n"
+        + "cross join (select * from dept limit 1) as b\n"
+        + "cross join (select * from emp where empno = 5 limit 2) as c) as x";
+    final RelNode rel = convertSql(sql);
+    final RelMetadataQuery mq = RelMetadataQuery.instance();
+    final Set<RelTableRef> tableReferences = Sets.newTreeSet(mq.getTableReferences(rel));
+    assertThat(tableReferences.toString(),
+        equalTo("[[CATALOG, SALES, DEPT].#0, "
+            + "[CATALOG, SALES, EMP].#0, "
+            + "[CATALOG, SALES, EMP].#1]"));
+    final RelOptPredicateList inputSet = mq.getAllPredicates(rel);
+    // Note that we reference [CATALOG, SALES, EMP].#1 rather than [CATALOG, SALES, EMP].#0
+    assertThat(inputSet.pulledUpPredicates.toString(),
+        equalTo("[true, =([CATALOG, SALES, EMP].#1.$0, 5), true]"));
+  }
+
+  @Test public void testAllPredicatesUnionMultiTable() {
+    final String sql = "select x.sal from\n"
+        + "(select a.deptno, a.sal from (select * from emp) as a\n"
+        + "union all select emp.deptno, emp.sal from emp\n"
+        + "union all select emp.deptno, emp.sal from emp where empno = 5) as x";
+    final RelNode rel = convertSql(sql);
+    final RelMetadataQuery mq = RelMetadataQuery.instance();
+    final Set<RelTableRef> tableReferences = Sets.newTreeSet(mq.getTableReferences(rel));
+    assertThat(tableReferences.toString(),
+        equalTo("[[CATALOG, SALES, EMP].#0, "
+            + "[CATALOG, SALES, EMP].#1, "
+            + "[CATALOG, SALES, EMP].#2]"));
+    // Note that we reference [CATALOG, SALES, EMP].#2 rather than
+    // [CATALOG, SALES, EMP].#0 or [CATALOG, SALES, EMP].#1
+    final RelOptPredicateList inputSet = mq.getAllPredicates(rel);
+    assertThat(inputSet.pulledUpPredicates.toString(),
+        equalTo("[=([CATALOG, SALES, EMP].#2.$0, 5)]"));
+  }
+
   private void checkNodeTypeCount(String sql, Map<Class<? extends RelNode>, Integer> expected) {
     final RelNode rel = convertSql(sql);
     final RelMetadataQuery mq = RelMetadataQuery.instance();

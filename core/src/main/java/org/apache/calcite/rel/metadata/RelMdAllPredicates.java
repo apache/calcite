@@ -172,11 +172,6 @@ public class RelMdAllPredicates
         // Bail out
         return null;
       }
-      // If it does not contain table references, nothing needs to be done
-      if (!RexUtil.containsTableInputRef(inputPreds.pulledUpPredicates)) {
-        newPreds = newPreds.union(rexBuilder, inputPreds);
-        continue;
-      }
       // Gather table references
       final Set<RelTableRef> tableRefs = mq.getTableReferences(input);
       if (input == join.getLeft()) {
@@ -259,11 +254,6 @@ public class RelMdAllPredicates
       if (inputPreds == null) {
         // Bail out
         return null;
-      }
-      // If it does not contain table references, nothing needs to be done
-      if (!RexUtil.containsTableInputRef(inputPreds.pulledUpPredicates)) {
-        newPreds = newPreds.union(rexBuilder, inputPreds);
-        continue;
       }
       // Gather table references
       final Set<RelTableRef> tableRefs = mq.getTableReferences(input);
