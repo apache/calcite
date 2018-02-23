@@ -175,10 +175,11 @@ public class EnumerableWindow extends Window implements EnumerableRel {
 
     PhysType inputPhysType = result.physType;
 
+    final int w = implementor.windowCount++;
     ParameterExpression prevStart =
-        Expressions.parameter(int.class, builder.newName("prevStart"));
+        Expressions.parameter(int.class, builder.newName("prevStart" + w));
     ParameterExpression prevEnd =
-        Expressions.parameter(int.class, builder.newName("prevEnd"));
+        Expressions.parameter(int.class, builder.newName("prevEnd" + w));
 
     builder.add(Expressions.declare(0, prevStart, null));
     builder.add(Expressions.declare(0, prevEnd, null));

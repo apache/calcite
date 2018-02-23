@@ -67,17 +67,12 @@ import java.util.Set;
  * operators of {@link EnumerableConvention} calling convention.
  */
 public class EnumerableRelImplementor extends JavaRelImplementor {
-  /** Maximum number of arguments to a constructor. See
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-1097">[CALCITE-1097]
-   * Exception when executing query with too many aggregation columns</a> for
-   * details. */
-  private static final int MAX_CONSTRUCTOR_ARG_COUNT = 10;
-
   public final Map<String, Object> map;
   private final Map<String, RexToLixTranslator.InputGetter> corrVars =
       Maps.newHashMap();
   private final Map<Object, ParameterExpression> stashedParameters =
       Maps.newIdentityHashMap();
+  int windowCount = 0;
 
   protected final Function1<String, RexToLixTranslator.InputGetter> allCorrelateVariables =
       new Function1<String, RexToLixTranslator.InputGetter>() {
