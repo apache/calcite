@@ -782,7 +782,7 @@ public class MaterializationTest {
     final RexNode x_eq_1 =
         rexBuilder.makeCall(SqlStdOperatorTable.EQUALS, x, i1); // $0 = 1
     final RexNode x_eq_1_b =
-        rexBuilder.makeCall(SqlStdOperatorTable.EQUALS, x, i1); // $0 = 1 again
+        rexBuilder.makeCall(SqlStdOperatorTable.EQUALS, i1, x); // 1 = $0
     final RexNode x_eq_2 =
         rexBuilder.makeCall(SqlStdOperatorTable.EQUALS, x, i2); // $0 = 2
     final RexNode y_eq_2 =
@@ -793,7 +793,14 @@ public class MaterializationTest {
     RexNode newFilter;
 
     // Example 1.
-    // TODO:
+    //   condition: x = 1 or y = 2
+    //   target:    y = 2 or 1 = x
+    // yields
+    //   residue:   true
+    newFilter = SubstitutionVisitor.splitFilter(simplify,
+        rexBuilder.makeCall(SqlStdOperatorTable.OR, x_eq_1, y_eq_2),
+        rexBuilder.makeCall(SqlStdOperatorTable.OR, y_eq_2, x_eq_1_b));
+    assertThat(newFilter.isAlwaysTrue(), equalTo(true));
 
     // Example 2.
     //   condition: x = 1,
@@ -1059,7 +1066,7 @@ public class MaterializationTest {
         HR_FKUK_MODEL,
         CalciteAssert.checkResultContains(
             "EnumerableAggregate(group=[{1}])\n"
-                + "  EnumerableCalc(expr#0..1=[{inputs}], expr#2=[10], expr#3=[>($t1, $t2)], "
+                + "  EnumerableCalc(expr#0..1=[{inputs}], expr#2=[10], expr#3=[<($t2, $t1)], "
                 + "proj#0..1=[{exprs}], $condition=[$t3])\n"
                 + "    EnumerableTableScan(table=[[hr, m0]])"));
   }
@@ -1132,7 +1139,7 @@ public class MaterializationTest {
         HR_FKUK_MODEL,
         CalciteAssert.checkResultContains(
             "EnumerableAggregate(group=[{1}], S=[$SUM0($3)])\n"
-                + "  EnumerableCalc(expr#0..3=[{inputs}], expr#4=[10], expr#5=[>($t1, $t4)], "
+                + "  EnumerableCalc(expr#0..3=[{inputs}], expr#4=[10], expr#5=[<($t4, $t1)], "
                 + "proj#0..3=[{exprs}], $condition=[$t5])\n"
                 + "    EnumerableTableScan(table=[[hr, m0]])"));
   }
@@ -1148,7 +1155,7 @@ public class MaterializationTest {
             "EnumerableCalc(expr#0..1=[{inputs}], expr#2=[1], expr#3=[+($t1, $t2)],"
                 + " deptno=[$t0], $f1=[$t3])\n"
                 + "  EnumerableAggregate(group=[{1}], agg#0=[$SUM0($3)])\n"
-                + "    EnumerableCalc(expr#0..3=[{inputs}], expr#4=[10], expr#5=[>($t1, $t4)], "
+                + "    EnumerableCalc(expr#0..3=[{inputs}], expr#4=[10], expr#5=[<($t4, $t1)], "
                 + "proj#0..3=[{exprs}], $condition=[$t5])\n"
                 + "      EnumerableTableScan(table=[[hr, m0]])"));
   }
@@ -1173,8 +1180,8 @@ public class MaterializationTest {
             "EnumerableCalc(expr#0..1=[{inputs}], expr#2=[1], expr#3=[+($t0, $t2)], "
                 + "expr#4=[+($t1, $t2)], $f0=[$t3], $f1=[$t4])\n"
                 + "  EnumerableAggregate(group=[{1}], agg#0=[$SUM0($3)])\n"
-                + "    EnumerableCalc(expr#0..3=[{inputs}], expr#4=[10], "
-                + "expr#5=[>($t1, $t4)], proj#0..3=[{exprs}], $condition=[$t5])\n"
+                + "    EnumerableCalc(expr#0..3=[{inputs}], expr#4=[10], expr#5=[<($t4, $t1)], "
+                + "proj#0..3=[{exprs}], $condition=[$t5])\n"
                 + "      EnumerableTableScan(table=[[hr, m0]])"));
   }
 
@@ -1290,7 +1297,7 @@ public class MaterializationTest {
             + "group by \"empid\", \"depts\".\"deptno\"",
         HR_FKUK_MODEL,
         CalciteAssert.checkResultContains(
-            "EnumerableCalc(expr#0..1=[{inputs}], expr#2=[20], expr#3=[>($t1, $t2)], "
+            "EnumerableCalc(expr#0..1=[{inputs}], expr#2=[20], expr#3=[<($t2, $t1)], "
                 + "empid=[$t0], $condition=[$t3])\n"
                 + "  EnumerableTableScan(table=[[hr, m0]])"));
   }
@@ -1305,7 +1312,7 @@ public class MaterializationTest {
             + "group by \"empid\", \"depts\".\"deptno\"",
         HR_FKUK_MODEL,
         CalciteAssert.checkResultContains(
-            "EnumerableCalc(expr#0..1=[{inputs}], expr#2=[20], expr#3=[>($t0, $t2)], "
+            "EnumerableCalc(expr#0..1=[{inputs}], expr#2=[20], expr#3=[<($t2, $t0)], "
                 + "empid=[$t1], $condition=[$t3])\n"
                 + "  EnumerableTableScan(table=[[hr, m0]])"));
   }
@@ -1332,7 +1339,7 @@ public class MaterializationTest {
             + "group by \"empid\", \"depts\".\"deptno\"",
         HR_FKUK_MODEL,
         CalciteAssert.checkResultContains(
-            "EnumerableCalc(expr#0..1=[{inputs}], expr#2=[20], expr#3=[>($t1, $t2)], "
+            "EnumerableCalc(expr#0..1=[{inputs}], expr#2=[20], expr#3=[<($t2, $t1)], "
                 + "empid=[$t0], $condition=[$t3])\n"
                 + "  EnumerableTableScan(table=[[hr, m0]])"));
   }
@@ -1347,7 +1354,7 @@ public class MaterializationTest {
             + "group by \"depts\".\"deptno\", \"emps\".\"empid\"",
         HR_FKUK_MODEL,
         CalciteAssert.checkResultContains(
-            "EnumerableCalc(expr#0..1=[{inputs}], expr#2=[15], expr#3=[>($t1, $t2)], "
+            "EnumerableCalc(expr#0..1=[{inputs}], expr#2=[15], expr#3=[<($t2, $t1)], "
                 + "deptno=[$t0], $condition=[$t3])\n"
                 + "  EnumerableTableScan(table=[[hr, m0]])"));
   }
@@ -1363,7 +1370,7 @@ public class MaterializationTest {
         HR_FKUK_MODEL,
         CalciteAssert.checkResultContains(
             "EnumerableAggregate(group=[{0}])\n"
-                + "  EnumerableCalc(expr#0..1=[{inputs}], expr#2=[15], expr#3=[>($t1, $t2)], "
+                + "  EnumerableCalc(expr#0..1=[{inputs}], expr#2=[15], expr#3=[<($t2, $t1)], "
                 + "proj#0..1=[{exprs}], $condition=[$t3])\n"
                 + "    EnumerableTableScan(table=[[hr, m0]])"));
   }
@@ -1390,7 +1397,7 @@ public class MaterializationTest {
             "EnumerableUnion(all=[true])",
             "EnumerableAggregate(group=[{2}])",
             "EnumerableTableScan(table=[[hr, m0]])",
-            "expr#5=[10], expr#6=[>($t0, $t5)], expr#7=[11], expr#8=[<=($t0, $t7)]"));
+            "expr#5=[10], expr#6=[>($t0, $t5)], expr#7=[11], expr#8=[>=($t7, $t0)]"));
   }
 
   @Test public void testJoinAggregateMaterializationNoAggregateFuncs8() {
@@ -1457,8 +1464,8 @@ public class MaterializationTest {
         CalciteAssert.checkResultContains(
             "EnumerableAggregate(group=[{4}])\n"
                 + "  EnumerableCalc(expr#0..4=[{inputs}], expr#5=[=($t2, $t3)], "
-                + "expr#6=[CAST($t0):VARCHAR CHARACTER SET \"ISO-8859-1\" COLLATE \"ISO-8859-1$en_US$primary\"], "
-                + "expr#7=[CAST($t1):VARCHAR CHARACTER SET \"ISO-8859-1\" COLLATE \"ISO-8859-1$en_US$primary\"], "
+                + "expr#6=[CAST($t1):VARCHAR CHARACTER SET \"ISO-8859-1\" COLLATE \"ISO-8859-1$en_US$primary\"], "
+                + "expr#7=[CAST($t0):VARCHAR CHARACTER SET \"ISO-8859-1\" COLLATE \"ISO-8859-1$en_US$primary\"], "
                 + "expr#8=[=($t6, $t7)], expr#9=[AND($t5, $t8)], proj#0..4=[{exprs}], $condition=[$t9])\n"
                 + "    EnumerableTableScan(table=[[hr, m0]])"));
   }
@@ -1516,7 +1523,7 @@ public class MaterializationTest {
         HR_FKUK_MODEL,
         CalciteAssert.checkResultContains(
             "EnumerableAggregate(group=[{1}], S=[$SUM0($3)])\n"
-                + "  EnumerableCalc(expr#0..3=[{inputs}], expr#4=[10], expr#5=[>($t1, $t4)], "
+                + "  EnumerableCalc(expr#0..3=[{inputs}], expr#4=[10], expr#5=[<($t4, $t1)], "
                 + "proj#0..3=[{exprs}], $condition=[$t5])\n"
                 + "    EnumerableTableScan(table=[[hr, m0]])"));
   }
@@ -1534,7 +1541,7 @@ public class MaterializationTest {
             "EnumerableCalc(expr#0..1=[{inputs}], expr#2=[1], expr#3=[+($t1, $t2)], "
                 + "deptno=[$t0], S=[$t3])\n"
                 + "  EnumerableAggregate(group=[{1}], agg#0=[$SUM0($3)])\n"
-                + "    EnumerableCalc(expr#0..3=[{inputs}], expr#4=[10], expr#5=[>($t1, $t4)], "
+                + "    EnumerableCalc(expr#0..3=[{inputs}], expr#4=[10], expr#5=[<($t4, $t1)], "
                 + "proj#0..3=[{exprs}], $condition=[$t5])\n"
                 + "      EnumerableTableScan(table=[[hr, m0]])"));
   }
@@ -1800,7 +1807,7 @@ public class MaterializationTest {
         CalciteAssert.checkResultContains(
             "EnumerableUnion(all=[true])",
             "EnumerableTableScan(table=[[hr, m0]])",
-            "expr#5=[10], expr#6=[>($t0, $t5)], expr#7=[30], expr#8=[<=($t0, $t7)]"));
+            "expr#5=[10], expr#6=[>($t0, $t5)], expr#7=[30], expr#8=[>=($t7, $t0)]"));
   }
 
   @Test public void testJoinMaterializationUKFK1() {
