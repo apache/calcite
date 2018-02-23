@@ -404,4 +404,24 @@ order by gender, r;
 
 !ok
 
+#window function under join operation
+select a."deptno", a.r as ar, b.r as br from
+    (select "deptno", first_value("empid") over (partition by "deptno" order by "commission") as r from "hr"."emps") a
+    join
+    (select "deptno", last_value("empid")  over (partition by "deptno" order by "commission") as r from "hr"."emps") b
+    on a."deptno" = b."deptno" limit 5;
+
++--------+-----+-----+
+| deptno | AR  | BR  |
++--------+-----+-----+
+|     10 | 110 | 110 |
+|     10 | 110 | 110 |
+|     10 | 110 | 110 |
+|     20 | 200 | 200 |
+|     20 | 200 |     |
++--------+-----+-----+
+(5 rows)
+
+!ok
+
 # End winagg.iq

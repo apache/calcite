@@ -73,6 +73,8 @@ public class EnumerableRelImplementor extends JavaRelImplementor {
    * details. */
   private static final int MAX_CONSTRUCTOR_ARG_COUNT = 10;
 
+  private int windowCount = 0;
+
   public final Map<String, Object> map;
   private final Map<String, RexToLixTranslator.InputGetter> corrVars =
       Maps.newHashMap();
@@ -552,6 +554,14 @@ public class EnumerableRelImplementor extends JavaRelImplementor {
         register(type);
       }
     }
+  }
+
+  public void setWindowCount(int windowCount) {
+    this.windowCount = windowCount;
+  }
+
+  public int getWindowCount() {
+    return windowCount;
   }
 }
 
