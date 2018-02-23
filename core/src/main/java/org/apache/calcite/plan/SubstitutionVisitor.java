@@ -74,6 +74,8 @@ import org.slf4j.Logger;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -272,34 +274,78 @@ public class SubstitutionVisitor {
   @VisibleForTesting
   public static RexNode splitFilter(final RexSimplify simplify,
       RexNode condition, RexNode target) {
+    RexNode condition2 = rewriteNode(simplify.rexBuilder, condition);
+    RexNode target2 = rewriteNode(simplify.rexBuilder, target);
+
     // First, try splitting into ORs.
     // Given target    c1 OR c2 OR c3 OR c4
     // and condition   c2 OR c4
     // residue is      c2 OR c4
     // Also deals with case target [x] condition [x] yields residue [true].
-    RexNode z = splitOr(simplify.rexBuilder, condition, target);
+    RexNode z = splitOr(simplify.rexBuilder, condition2, target2);
     if (z != null) {
       return z;
     }
 
-    if (isEquivalent(simplify.rexBuilder, condition, target)) {
+    if (isEquivalent(simplify.rexBuilder, condition2, target2)) {
       return simplify.rexBuilder.makeLiteral(true);
     }
 
-    RexNode x = andNot(simplify.rexBuilder, target, condition);
+    RexNode x = andNot(simplify.rexBuilder, target2, condition2);
     if (mayBeSatisfiable(x)) {
       RexNode x2 = RexUtil.composeConjunction(simplify.rexBuilder,
-          ImmutableList.of(condition, target), false);
-      RexNode r = simplify.withUnknownAsFalse(true).simplify(x2);
-      if (!r.isAlwaysFalse() && isEquivalent(simplify.rexBuilder, condition, r)) {
+          ImmutableList.of(condition2, target2), false);
+      RexNode r = rewriteNode(simplify.rexBuilder,
+          simplify.withUnknownAsFalse(true).simplify(x2));
+      if (!r.isAlwaysFalse() && isEquivalent(simplify.rexBuilder, condition2, r)) {
         List<RexNode> conjs = RelOptUtil.conjunctions(r);
-        for (RexNode e : RelOptUtil.conjunctions(target)) {
+        for (RexNode e : RelOptUtil.conjunctions(target2)) {
           removeAll(conjs, e);
         }
         return RexUtil.composeConjunction(simplify.rexBuilder, conjs, false);
       }
     }
     return null;
+  }
+
+  /**
+   * Reorders some of the operands in this expression so structural comparison,
+   * i.e., based on string representation, can be more precise.
+   */
+  private static RexNode rewriteNode(RexBuilder rexBuilder, RexNode condition) {
+    switch (condition.getKind()) {
+    case AND:
+    case OR: {
+      RexCall call = (RexCall) condition;
+      List<Pair<String, RexNode>> newOperands = new ArrayList<>();
+      for (RexNode operand : call.operands) {
+        operand = rewriteNode(rexBuilder, operand);
+        newOperands.add(Pair.of(operand.toString(), operand));
+      }
+      Collections.sort(newOperands, new Comparator<Pair<String, RexNode>>() {
+        @Override public int compare(Pair<String, RexNode> o1, Pair<String, RexNode> o2) {
+          return o1.left.compareTo(o2.left);
+        }
+      });
+      return rexBuilder.makeCall(call.getOperator(), Pair.right(newOperands));
+    }
+    case EQUALS:
+    case NOT_EQUALS:
+    case LESS_THAN:
+    case GREATER_THAN:
+    case LESS_THAN_OR_EQUAL:
+    case GREATER_THAN_OR_EQUAL: {
+      RexCall call = (RexCall) condition;
+      final RexNode left = call.getOperands().get(0);
+      final RexNode right = call.getOperands().get(1);
+      if (left.toString().compareTo(right.toString()) <= 0) {
+        return call;
+      }
+      return RexUtil.invert(rexBuilder, call);
+    }
+    default:
+      return condition;
+    }
   }
 
   private static RexNode splitOr(
