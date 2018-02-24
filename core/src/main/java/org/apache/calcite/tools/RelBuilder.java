@@ -1188,8 +1188,8 @@ public class RelBuilder {
       if (registrar.extraNodes.size() == fields().size()) {
         final Boolean unique = mq.areColumnsUnique(peek(), groupSet);
         if (unique != null && unique) {
-          // Rel is already unique. Nothing to do.
-          return this;
+          // Rel is already unique.
+          return project(fields(groupSet.asList()));
         }
       }
       final Double maxRowCount = mq.getMaxRowCount(peek());
