@@ -129,6 +129,24 @@ select distinct count(*) as c from emp group by deptno order by 1 desc;
 
 !ok
 
+# [CALCITE-2192] RelBuilder wrongly skips creation of Aggregate that prunes
+# columns if input is unique
+select distinct deptno
+from (select deptno, count(*) from emp group by deptno);
++--------+
+| DEPTNO |
++--------+
+|     10 |
+|     20 |
+|     30 |
+|     50 |
+|     60 |
+|        |
++--------+
+(6 rows)
+
+!ok
+
 # [CALCITE-998] Exception when calling STDDEV_SAMP, STDDEV_POP
 # stddev_samp
 select stddev_samp(deptno) as s from emp;

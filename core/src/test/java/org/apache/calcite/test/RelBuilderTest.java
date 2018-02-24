@@ -659,6 +659,62 @@ public class RelBuilderTest {
             + "    LogicalTableScan(table=[[scott, EMP]])\n"));
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2192">[CALCITE-2192]
+   * RelBuilder wrongly skips creation of Aggregate that prunes columns if input
+   * is unique</a>. */
+  @Test public void testAggregate3() {
+    // Equivalent SQL:
+    //   SELECT DISTINCT deptno FROM (
+    //     SELECT deptno, COUNT(*)
+    //     FROM emp
+    //     GROUP BY deptno)
+    final RelBuilder builder = RelBuilder.create(config().build());
+    RelNode root =
+        builder.scan("EMP")
+            .aggregate(
+                builder.groupKey(builder.field(1)),
+                builder.aggregateCall(SqlStdOperatorTable.COUNT, false, false,
+                    null, "C"))
+            .aggregate(
+                builder.groupKey(builder.field(0)))
+            .build();
+    final String expected = ""
+        + "LogicalProject(ENAME=[$0])\n"
+        + "  LogicalAggregate(group=[{1}], C=[COUNT()])\n"
+        + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(str(root), is(expected));
+  }
+
+  /** As {@link #testAggregate3()} but with Filter. */
+  @Test public void testAggregate4() {
+    // Equivalent SQL:
+    //   SELECT DISTINCT deptno FROM (
+    //     SELECT deptno, COUNT(*)
+    //     FROM emp
+    //     GROUP BY deptno
+    //     HAVING COUNT(*) > 3)
+    final RelBuilder builder = RelBuilder.create(config().build());
+    RelNode root =
+        builder.scan("EMP")
+            .aggregate(
+                builder.groupKey(builder.field(1)),
+                builder.aggregateCall(SqlStdOperatorTable.COUNT, false, false,
+                    null, "C"))
+            .filter(
+                builder.call(SqlStdOperatorTable.GREATER_THAN, builder.field(1),
+                    builder.literal(3)))
+            .aggregate(
+                builder.groupKey(builder.field(0)))
+            .build();
+    final String expected = ""
+        + "LogicalProject(ENAME=[$0])\n"
+        + "  LogicalFilter(condition=[>($1, 3)])\n"
+        + "    LogicalAggregate(group=[{1}], C=[COUNT()])\n"
+        + "      LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(str(root), is(expected));
+  }
+
   @Test public void testAggregateFilter() {
     // Equivalent SQL:
     //   SELECT deptno, COUNT(*) FILTER (WHERE empno > 100) AS c
