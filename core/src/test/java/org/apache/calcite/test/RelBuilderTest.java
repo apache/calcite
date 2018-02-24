@@ -659,6 +659,24 @@ public class RelBuilderTest {
             + "    LogicalTableScan(table=[[scott, EMP]])\n"));
   }
 
+  @Test public void testAggregate3() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    RelNode root =
+        builder.scan("EMP")
+            .aggregate(
+                builder.groupKey(builder.field(1)),
+                builder.aggregateCall(SqlStdOperatorTable.COUNT, false, false,
+                    null, "C"))
+            .aggregate(
+                builder.groupKey(builder.field(0)))
+            .build();
+    assertThat(str(root),
+        is(""
+            + "LogicalProject(ENAME=[$0])\n"
+            + "  LogicalAggregate(group=[{1}], C=[COUNT()])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n"));
+  }
+
   @Test public void testAggregateFilter() {
     // Equivalent SQL:
     //   SELECT deptno, COUNT(*) FILTER (WHERE empno > 100) AS c
