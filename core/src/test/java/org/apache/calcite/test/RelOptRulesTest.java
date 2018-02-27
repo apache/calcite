@@ -3010,6 +3010,23 @@ public class RelOptRulesTest extends RelOptTestBase {
     sql(sql).withPre(preProgram).with(program).check();
   }
 
+  /** Test case for
+   *  https://issues.apache.org/jira/browse/CALCITE-2195 */
+  @Test public void testPushAggregateThroughJoin6() {
+    final HepProgram preProgram = new HepProgramBuilder()
+            .addRuleInstance(AggregateProjectMergeRule.INSTANCE)
+            .build();
+    final HepProgram program = new HepProgramBuilder()
+            .addRuleInstance(AggregateJoinTransposeRule.EXTENDED)
+            .build();
+    final String sql = "select sum(B.sal) \n"
+        + "from sales.emp as A \n"
+        + "join (select distinct sal from sales.emp) as B \n"
+        + "on A.sal=B.sal\n";
+    checkPlanning(tester, preProgram, new HepPlanner(program), sql);
+  }
+
+
   /** SUM is the easiest aggregate function to split. */
   @Test public void testPushAggregateSumThroughJoin() {
     final HepProgram preProgram = new HepProgramBuilder()
