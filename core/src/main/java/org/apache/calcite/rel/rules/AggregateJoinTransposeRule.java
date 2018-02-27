@@ -197,6 +197,11 @@ public class AggregateJoinTransposeRule extends RelOptRule {
       for (Ord<Integer> c : Ord.zip(belowAggregateKeyNotShifted)) {
         map.put(c.e, belowOffset + c.i);
       }
+      final Mappings.TargetMapping mapping =
+          s == 0
+              ? Mappings.createIdentity(fieldCount)
+              : Mappings.createShiftMapping(fieldCount + offset, 0, offset,
+                  fieldCount);
       final ImmutableBitSet belowAggregateKey =
           belowAggregateKeyNotShifted.shift(-offset);
       final boolean unique;
@@ -224,17 +229,35 @@ public class AggregateJoinTransposeRule extends RelOptRule {
       if (unique) {
         ++uniqueCount;
         side.aggregate = false;
-        side.newInput = joinInput;
+        relBuilder.push(joinInput);
+        final List<RexNode> projects = new ArrayList<>();
+        for (Integer i : belowAggregateKey) {
+          projects.add(relBuilder.field(i));
+        }
+        for (Ord<AggregateCall> aggCall : Ord.zip(aggregate.getAggCallList())) {
+          final SqlAggFunction aggregation = aggCall.e.getAggregation();
+          final SqlSplittableAggFunction splitter =
+              Preconditions.checkNotNull(
+                  aggregation.unwrap(SqlSplittableAggFunction.class));
+          if (!aggCall.e.getArgList().isEmpty()
+              && fieldSet.contains(ImmutableBitSet.of(aggCall.e.getArgList()))) {
+            final RexNode singleton = splitter.singleton(rexBuilder,
+                joinInput.getRowType(), aggCall.e.transform(mapping));
+            if (singleton instanceof RexInputRef) {
+              side.split.put(aggCall.i, ((RexInputRef) singleton).getIndex());
+            } else {
+              projects.add(singleton);
+              side.split.put(aggCall.i, projects.size() - 1);
+            }
+          }
+        }
+        relBuilder.project(projects);
+        side.newInput = relBuilder.build();
       } else {
         side.aggregate = true;
         List<AggregateCall> belowAggCalls = new ArrayList<>();
         final SqlSplittableAggFunction.Registry<AggregateCall>
             belowAggCallRegistry = registry(belowAggCalls);
-        final Mappings.TargetMapping mapping =
-            s == 0
-                ? Mappings.createIdentity(fieldCount)
-                : Mappings.createShiftMapping(fieldCount + offset, 0, offset,
-                    fieldCount);
         final int oldGroupKeyCount = aggregate.getGroupCount();
         final int newGroupKeyCount = belowAggregateKey.cardinality();
         for (Ord<AggregateCall> aggCall : Ord.zip(aggregate.getAggCallList())) {

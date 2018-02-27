@@ -3010,6 +3010,23 @@ public class RelOptRulesTest extends RelOptTestBase {
     sql(sql).withPre(preProgram).with(program).check();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2195">[CALCITE-2195]
+   * AggregateJoinTransposeRule fails to aggregate over unique column</a>. */
+  @Test public void testPushAggregateThroughJoin6() {
+    final HepProgram preProgram = new HepProgramBuilder()
+        .addRuleInstance(AggregateProjectMergeRule.INSTANCE)
+        .build();
+    final HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(AggregateJoinTransposeRule.EXTENDED)
+        .build();
+    final String sql = "select sum(B.sal)\n"
+        + "from sales.emp as A\n"
+        + "join (select distinct sal from sales.emp) as B\n"
+        + "on A.sal=B.sal\n";
+    sql(sql).withPre(preProgram).with(program).check();
+  }
+
   /** SUM is the easiest aggregate function to split. */
   @Test public void testPushAggregateSumThroughJoin() {
     final HepProgram preProgram = new HepProgramBuilder()
