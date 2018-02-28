@@ -249,6 +249,24 @@ log4j.logger.org.apache.calcite.plan.RelOptPlanner=DEBUG
 log4j.logger.org.apache.calcite.plan.hep.HepPlanner=TRACE
 {% endhighlight %}
 
+## Debugging generated classes in Intellij
+
+Calcite uses [Janino](http://janino-compiler.github.io/janino/) to generate Java
+code. The generated classes can be debugged interactively
+(see [the Janino tutorial](http://janino-compiler.github.io/janino/)).
+
+To debug generated classes, set two system properties when starting the JVM:
+
+* `-Dorg.codehaus.janino.source_debugging.enable=true`
+* `-Dorg.codehaus.janino.source_debugging.dir=C:\tmp` (This property is optional;
+  if not set, Janino will create temporary files in the system's default location
+  for temporary files, such as `/tmp` on Unix-based systems.)
+
+After code is generated, either go into Intellij and mark the folder that
+contains generated temporary files as a generated sources root or sources root,
+or directly set the value of `org.codehaus.janino.source_debugging.dir` to an
+existing source root when starting the JVM.
+
 ## CSV adapter
 
 See the [tutorial]({{ site.baseurl }}/docs/tutorial.html).
@@ -435,7 +453,7 @@ particular release managers.
 ## Set up PGP signing keys (for Calcite committers)
 
 Follow instructions [here](http://www.apache.org/dev/release-signing) to
-create a key pair. (On Mac OS X, I did `brew install gpg` and
+create a key pair. (On macOS, I did `brew install gpg` and
 `gpg --gen-key`.)
 
 Add your public key to the
@@ -450,7 +468,7 @@ ball because that would be
 Before you start:
 
 * Set up signing keys as described above.
-* Make sure you are using JDK 8 (not 7, 9 or 10).
+* Make sure you are using JDK 8 (not 9 or 10).
 * Make sure build and tests succeed with `-Dcalcite.test.db=hsqldb` (the default)
 
 {% highlight bash %}
@@ -471,7 +489,7 @@ When the dry-run has succeeded, change `install` to `deploy`.
 Before you start:
 
 * Set up signing keys as described above.
-* Make sure you are using JDK 8 (not 7, 9 or 10).
+* Make sure you are using JDK 8 (not 9 or 10).
 * Check that `README` and `site/_docs/howto.md` have the correct version number.
 * Check that `NOTICE` has the current copyright year.
 * Set `version.major` and `version.minor` in `pom.xml`.
@@ -486,7 +504,7 @@ Before you start:
 * Decide the supported configurations of JDK, operating system and
   Guava.  These will probably be the same as those described in the
   release notes of the previous release.  Document them in the release
-  notes.  To test Guava version x.y, specify `-Dguava.version=x.y`
+  notes.  To test Guava version _x.y_, specify `-Dguava.version=x.y`
 * Optional extra tests:
   * `-Dcalcite.test.db=mysql`
   * `-Dcalcite.test.db=hsqldb`
