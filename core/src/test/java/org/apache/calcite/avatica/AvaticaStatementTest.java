@@ -19,10 +19,16 @@ package org.apache.calcite.avatica;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.sql.ResultSet;
 import java.sql.SQLException;
 
 import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertFalse;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.Mockito.doCallRealMethod;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
@@ -45,6 +51,18 @@ public class AvaticaStatementTest {
 
     assertArrayEquals(intValues, statement.executeBatch());
     assertArrayEquals(longValues, statement.executeLargeBatch());
+  }
+
+  @Test public void testGetMoreResults() throws SQLException {
+    AvaticaResultSet resultSet = mock(AvaticaResultSet.class);
+    statement.openResultSet = resultSet;
+
+    doCallRealMethod().when(statement).onResultSetClose(any(ResultSet.class));
+    when(statement.getMoreResults()).thenCallRealMethod();
+    when(statement.getMoreResults(anyInt())).thenCallRealMethod();
+
+    assertFalse(statement.getMoreResults());
+    verify(resultSet).close();
   }
 }
 

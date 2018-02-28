@@ -64,6 +64,10 @@ public class Helper {
     return exception;
   }
 
+  public SQLException closed() {
+    return createException("Connection closed");
+  }
+
   public SQLException unsupported() {
     return new SQLFeatureNotSupportedException();
   }

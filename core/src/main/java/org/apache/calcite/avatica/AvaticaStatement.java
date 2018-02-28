@@ -366,7 +366,7 @@ public abstract class AvaticaStatement
   }
 
   public boolean getMoreResults() throws SQLException {
-    throw connection.helper.unsupported();
+    return getMoreResults(CLOSE_CURRENT_RESULT);
   }
 
   public void setFetchDirection(int direction) throws SQLException {
@@ -420,7 +420,26 @@ public abstract class AvaticaStatement
   }
 
   public boolean getMoreResults(int current) throws SQLException {
-    throw connection.helper.unsupported();
+    if (closed) {
+      throw connection.helper.closed();
+    }
+    switch (current) {
+    case KEEP_CURRENT_RESULT:
+    case CLOSE_ALL_RESULTS:
+      throw connection.helper.unsupported();
+
+    case CLOSE_CURRENT_RESULT:
+      break;
+
+    default:
+      throw connection.helper.createException("value " + current
+          + " is not one of CLOSE_CURRENT_RESULT, KEEP_CURRENT_RESULT or CLOSE_ALL_RESULTS");
+    }
+
+    if (openResultSet != null) {
+      openResultSet.close();
+    }
+    return false;
   }
 
   public ResultSet getGeneratedKeys() throws SQLException {
