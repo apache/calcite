@@ -28,6 +28,80 @@ For a full list of releases, see
 Downloads are available on the
 [downloads page]({{ site.baseurl }}/downloads/).
 
+## <a href="https://github.com/apache/calcite-avatica/releases/tag/calcite-avatica-1.11.0">1.11.0</a> / 2018-03-09
+{: #v1-11-0}
+
+Apache Calcite Avatica 1.11.0 adds support for JDK 10 and drops
+support for JDK 7. There are more than 20 bug fixes and new features.
+
+Compatibility: This release is tested
+on Linux, macOS, Microsoft Windows;
+using Oracle JDK 8, 9, 10;
+Guava versions 14.0 to 23.0;
+other software versions as specified in `pom.xml`.
+
+Features and bug fixes
+
+* Generate sha256 checksums for releases (previous releases used md5 and sha1)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-2199">CALCITE-2199</a>]
+  Allow methods overriding `AvaticaResultSet.getStatement()` to throw a
+  `SQLException` (Benjamin Cogrel)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-508">CALCITE-508</a>]
+  Ensure that `RuntimeException` is wrapped in `SQLException`
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-2013">CALCITE-2013</a>]
+  Upgrade HSQLDB to 2.4
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-2154">CALCITE-2154</a>]
+  Upgrade jackson to 2.9.4
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-2140">CALCITE-2140</a>]
+  Basic implementation of `Statement.getMoreResults()`
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-2086">CALCITE-2086</a>]
+  Increased max allowed HTTP header size to 64KB
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-2073">CALCITE-2073</a>]
+  Allow disabling of the `maven-protobuf-plugin`
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-2017">CALCITE-2017</a>]
+  Support JAAS-based Kerberos login on IBM Java
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-2003">CALCITE-2003</a>]
+  Remove global synchronization on `openConnection`
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1922">CALCITE-1922</a>]
+  Allow kerberos v5 OID in SPNEGO authentication
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1915">CALCITE-1915</a>]
+  Work around a Jetty bug where the SPNEGO challenge is not sent
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1902">CALCITE-1902</a>]
+  In `AvaticaResultSet` methods, throw `SQLFeatureNotSupportedException` rather
+  than `UnsupportedOperationException` (Sergio Sainz)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1487">CALCITE-1487</a>]
+  Set the request as handled with authentication failures
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1904">CALCITE-1904</a>]
+  Allow SSL hostname verification to be turned off
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1879">CALCITE-1879</a>]
+  Log incoming protobuf requests at `TRACE`
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1880">CALCITE-1880</a>]
+  Regenerate protobuf files for 3.3.0
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1836">CALCITE-1836</a>]
+  Upgrade to protobuf-java-3.3.0
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1195">CALCITE-1195</a>]
+  Add a curl+jq example for interacting with Avatica
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1813">CALCITE-1813</a>]
+  Use correct noop-driver artifactId
+
+Tests
+
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-2145">CALCITE-2145</a>]
+  `RemoteDriverTest.testBatchInsertWithDates` fails in certain time zones
+  (Alessandro Solimando)
+* Fix tests on Windows; disable SPNEGO test on Windows
+
+Web site and documentation
+
+* Update description of the `signature` field in `ResultSetResponse`
+* Correct field name in `PrepareAndExecuteRequest` documentation (Lukáš Lalinský)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-2083">CALCITE-2083</a>]
+  Update documentation
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-2036">CALCITE-2036</a>]
+  Fix "next" link in `history.html`
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1878">CALCITE-1878</a>]
+  Update the website for protobuf changes in 1.10.0
+
 ## <a href="https://github.com/apache/calcite-avatica/releases/tag/calcite-avatica-1.10.0">1.10.0</a> / 2017-05-30
 {: #v1-10-0}
 

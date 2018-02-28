@@ -116,7 +116,8 @@ import static java.nio.charset.StandardCharsets.UTF_8;
  *   </tr>
  * </table>
  *
- * Note:
+ * <p>Note:
+ *
  * <ul>
  *   <li>The various numeric types (TINYINT, SMALLINT, INTEGER, BIGINT, REAL,
  *   FLOAT, DOUBLE) are represented by {@link Number} in serial format because

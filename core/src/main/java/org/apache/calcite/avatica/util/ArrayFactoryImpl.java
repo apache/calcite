@@ -99,13 +99,14 @@ public class ArrayFactoryImpl implements ArrayImpl.Factory {
   /**
    * Creates the row-level view over the values that will make up an Array. The Iterator has a row
    * per Array element, each row containing two columns. The second column is the array element and
-   * the first column is the offset into the array of that array element (one-based, not zero-based)
+   * the first column is the offset into the array of that array element (one-based, not
+   * zero-based).
    *
-   * The ordering of the rows is not guaranteed to be in the same order as the array elements.
+   * <p>The ordering of the rows is not guaranteed to be in the same order as the array elements.
    *
-   * A list of {@code elements}:
+   * <p>A list of {@code elements}:
    * <pre>[1, 2, 3]</pre>
-   * might be converted into
+   * <p>might be converted into
    * <pre>Iterator{ [1, 1], [2, 2], [3, 3] }</pre>
    *
    * @param elements The elements of an array.
@@ -124,9 +125,9 @@ public class ArrayFactoryImpl implements ArrayImpl.Factory {
    * Creates an row-level view over the values that will make up an Array. The Iterator has one
    * entry which has a list that also has one entry.
    *
-   * A provided list of {@code elements}
+   * <p>A provided list of {@code elements}
    * <pre>[1, 2, 3]</pre>
-   * would be converted into
+   * <p>would be converted into
    * <pre>Iterator{ [ [1,2,3] ] }</pre>
    *
    * @param elements The elements of an array

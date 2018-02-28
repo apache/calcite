@@ -269,9 +269,8 @@ public class ByteString implements Comparable<ByteString>, Serializable {
    * Returns the byte at a given position in the byte string.
    *
    * @param i Index
-   * @throws  IndexOutOfBoundsException
-   *          if the <tt>index</tt> argument is negative or not less than
-   *          <tt>length()</tt>
+   * @throws  IndexOutOfBoundsException if the <tt>index</tt> argument is
+   *          negative or not less than <tt>length()</tt>
    * @return Byte at given position
    */
   public byte byteAt(int i) {

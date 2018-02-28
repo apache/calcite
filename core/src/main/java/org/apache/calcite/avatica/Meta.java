@@ -1347,7 +1347,7 @@ public interface Meta {
     CREATE, DROP, ALTER, OTHER_DDL, CALL;
 
     public boolean canUpdate() {
-      switch(this) {
+      switch (this) {
       case INSERT:
         return true;
       case IS_DML:

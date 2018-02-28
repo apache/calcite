@@ -31,15 +31,15 @@ Here's some miscellaneous documentation about using Avatica.
 ## Building from a source distribution
 
 Prerequisites are maven (3.2.1 or later)
-and Java (JDK 1.7 or later, 1.8 preferred) on your path.
+and Java (JDK 8 or later) on your path.
 
 Unpack the source distribution `.tar.gz` or `.zip` file,
 `cd` to the root directory of the unpacked source,
 then build using maven:
 
 {% highlight bash %}
-$ tar xvfz apache-calcite-avatica-1.10.0-src.tar.gz
-$ cd apache-calcite-avatica-1.10.0-src
+$ tar xvfz apache-calcite-avatica-1.11.0-src.tar.gz
+$ cd apache-calcite-avatica-1.11.0-src
 $ mvn install
 {% endhighlight %}
 
@@ -49,7 +49,7 @@ tests.
 ## Building from git
 
 Prerequisites are git, maven (3.2.1 or later)
-and Java (JDK 1.7 or later, 1.8 preferred) on your path.
+and Java (JDK 8 or later) on your path.
 
 Create a local copy of the github repository,
 `cd` to its root directory,
@@ -174,7 +174,7 @@ to guarantee that your credentials will be cached for the duration of the build.
 Before you start:
 
 * Set up signing keys as described above.
-* Make sure you are using JDK 8 (not 7 or 9).
+* Make sure you are using JDK 8 (not 9 or 10).
 
 {% highlight bash %}
 # Make sure that there are no junk files in the sandbox
@@ -190,10 +190,14 @@ When the dry-run has succeeded, change `install` to `deploy`.
 Before you start:
 
 * Set up signing keys as described above.
-* Make sure you are using JDK 8 (not 7 or 9).
+* Make sure you are using JDK 8 (not 9 or 10).
 * Check that `README`, `site/_docs/howto.md`, `site/_docs/docker_images.md`,
   and `docker/src/main/dockerhub/Dockerfile` have the correct version number.
+* Check that `NOTICE` has the current copyright year.
 * Set `version.major` and `version.minor` in `pom.xml`.
+* Add release notes to `site/_docs/history.md`. Include the commit history,
+  and say which versions of Java, Guava and operating systems the release is
+  tested against.
 * Make sure that
   <a href="https://issues.apache.org/jira/issues/?jql=project%20%3D%20CALCITE%20AND%20status%20%3D%20Resolved%20and%20fixVersion%20is%20null">
   every "resolved" JIRA case</a> (including duplicates) has
@@ -235,8 +239,8 @@ index 4617a4e..4ccd97f 100644
 +++ b/docker/src/main/dockerhub/Dockerfile
 @@ -23,3 +23,3 @@ RUN mkdir -p /home/avatica/classpath
 # This line must be preserved. The Maven build will verify this version matches its version
--ARG AVATICA_VERSION="1.10.0"
-+ARG AVATICA_VERSION="1.10.0-SNAPSHOT"
+-ARG AVATICA_VERSION="1.11.0"
++ARG AVATICA_VERSION="1.11.0-SNAPSHOT"
 EOF
 
 # Do a dry run of the release:prepare step, which sets version numbers.

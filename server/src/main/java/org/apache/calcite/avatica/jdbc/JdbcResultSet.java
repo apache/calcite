@@ -45,9 +45,9 @@ import java.util.Set;
 import java.util.TreeMap;
 
 /** Implementation of {@link org.apache.calcite.avatica.Meta.MetaResultSet}
- *  upon a JDBC {@link java.sql.ResultSet}.
+ * upon a JDBC {@link java.sql.ResultSet}.
  *
- *  @see org.apache.calcite.avatica.jdbc.JdbcMeta */
+ * @see org.apache.calcite.avatica.jdbc.JdbcMeta */
 class JdbcResultSet extends Meta.MetaResultSet {
   protected JdbcResultSet(String connectionId, int statementId,
       boolean ownStatement, Meta.Signature signature, Meta.Frame firstFrame) {

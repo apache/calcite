@@ -2643,7 +2643,7 @@ public interface Service {
   /**
    * Response that includes information about the server that handled an RPC.
    *
-   * This isn't really a "response", but we want to be able to be able to convert it to protobuf
+   * <p>This isn't really a "response", but we want to be able to be able to convert it to protobuf
    * and back again, so ignore that there isn't an explicit endpoint for it.
    */
   public class RpcMetadataResponse extends Response {

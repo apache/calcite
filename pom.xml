@@ -54,7 +54,7 @@ limitations under the License.
     <top.dir>${project.basedir}</top.dir>
     <avatica.release.version>${project.version}</avatica.release.version>
     <version.major>1</version.major>
-    <version.minor>10</version.minor>
+    <version.minor>11</version.minor>
     <!-- This list is in alphabetical order. -->
     <bouncycastle.version>1.55</bouncycastle.version>
     <build-helper-maven-plugin.version>3.0.0</build-helper-maven-plugin.version>
@@ -346,6 +346,7 @@ limitations under the License.
       <plugin>
         <groupId>org.apache.rat</groupId>
         <artifactId>apache-rat-plugin</artifactId>
+        <version>0.12</version>
         <configuration>
           <excludes>
             <!-- Do not exclude site/target; it should not exist

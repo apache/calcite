@@ -29,7 +29,7 @@ and an RPC wire protocol.
 
 Avatica's Java binding has very few dependencies.
 Even though it is part of Apache Calcite it does not depend on other parts of
-Calcite. It depends only on JDK 1.7+ and Jackson.
+Calcite. It depends only on JDK 8+ and Jackson.
 
 Avatica's wire protocols are JSON or Protocol Buffers over HTTP. The
 Java implementation of the JSON protocol uses
