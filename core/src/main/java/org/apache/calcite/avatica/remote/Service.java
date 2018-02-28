@@ -154,8 +154,7 @@ public interface Service {
   /** Base class for all service response messages. */
   @JsonTypeInfo(
       use = JsonTypeInfo.Id.NAME,
-      property = "response",
-      defaultImpl = ResultSetResponse.class)
+      property = "response")
   @JsonSubTypes({
       @JsonSubTypes.Type(value = OpenConnectionResponse.class, name = "openConnection"),
       @JsonSubTypes.Type(value = ResultSetResponse.class, name = "resultSet"),

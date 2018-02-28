@@ -70,7 +70,7 @@ limitations under the License.
     <httpclient.version>4.5.2</httpclient.version>
     <httpcore.version>4.4.4</httpcore.version>
     <hydromatic-toolbox.version>0.3</hydromatic-toolbox.version>
-    <jackson.version>2.6.3</jackson.version>
+    <jackson.version>2.9.4</jackson.version>
     <jcip-annotations.version>1.0-1</jcip-annotations.version>
     <jcommander.version>1.48</jcommander.version>
     <jetty.version>9.2.19.v20160908</jetty.version>
