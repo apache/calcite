@@ -102,6 +102,13 @@ public class ClickHouseSqlDialect extends SqlDialect {
     case DOUBLE:
       castSpec = "Float64";
       break;
+    case DATE:
+      castSpec = "Date";
+      break;
+    case TIMESTAMP:
+    case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
+      castSpec = "DateTime";
+      break;
     default:
       return super.getCastSpec(type);
     }
