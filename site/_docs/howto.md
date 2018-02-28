@@ -249,6 +249,16 @@ log4j.logger.org.apache.calcite.plan.RelOptPlanner=DEBUG
 log4j.logger.org.apache.calcite.plan.hep.HepPlanner=TRACE
 {% endhighlight %}
 
+## Debug generated class in Intellij
+
+Calcite uses janino to generates Java code. The generated classes can be debugged interactively, see more details in <http://janino-compiler.github.io/janino/">the Janino tutorial</a>..
+
+To debug generated class, all that needs to be done is set two system properties when starting the JVM:
+* `-Dorg.codehaus.janino.source_debugging.enable=true`
+* `-Dorg.codehaus.janino.source_debugging.dir=C:\tmp` (This property is optional; if not set, then the temporary files will be created in the default temporary-file directory.)
+
+After code is generated, mark the folder which contains generated temporary files as generated sources root or sources root manually or directly set the value of `org.codehaus.janino.source_debugging.dir` to existed sources root when starting the JVM.
+
 ## CSV adapter
 
 See the [tutorial]({{ site.baseurl }}/docs/tutorial.html).
