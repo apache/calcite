@@ -338,6 +338,8 @@ public enum SqlType {
   ROW(Types.STRUCT, Object.class),
   OTHER(Types.OTHER, Object.class),
   CURSOR(2012, Object.class),
+  TIME_WITH_TIMEZONE(2013, String.class),
+  TIMESTAMP_WITH_TIMEZONE(2014, String.class),
   COLUMN_LIST(Types.OTHER + 2, Object.class);
 
   /** Type id as appears in {@link java.sql.Types},

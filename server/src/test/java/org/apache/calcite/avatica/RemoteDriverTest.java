@@ -66,7 +66,6 @@ import java.util.Properties;
 import java.util.TimeZone;
 import java.util.UUID;
 import java.util.concurrent.Callable;
-import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
@@ -963,7 +962,6 @@ public class RemoteDriverTest {
     final String sql0 =
         "select cast(? as varchar(20)) as c\n"
             + "from (values (1, 'a'))";
-    final String sql1 = "select ? + interval '2' day as c from (values (1, 'a'))";
 
     final Date date = Date.valueOf("2015-04-08");
     final long time = date.getTime();
@@ -989,37 +987,6 @@ public class RemoteDriverTest {
     resultSet = ps.executeQuery();
     assertThat(resultSet.next(), is(true));
     assertThat(resultSet.getString(1), is("00:00:00"));
-    ps.close();
-
-    ps = connection.prepareStatement(sql1);
-    parameterMetaData = ps.getParameterMetaData();
-    assertThat(parameterMetaData.getParameterCount(), equalTo(1));
-
-    ps.setDate(1, date);
-    resultSet = ps.executeQuery();
-    assertTrue(resultSet.next());
-    assertThat(resultSet.getDate(1),
-        equalTo(new Date(time + TimeUnit.DAYS.toMillis(2))));
-    assertThat(resultSet.getTimestamp(1),
-        equalTo(new Timestamp(time + TimeUnit.DAYS.toMillis(2))));
-
-    ps.setTimestamp(1, new Timestamp(time));
-    resultSet = ps.executeQuery();
-    assertTrue(resultSet.next());
-    assertThat(resultSet.getTimestamp(1),
-        equalTo(new Timestamp(time + TimeUnit.DAYS.toMillis(2))));
-    assertThat(resultSet.getTimestamp(1),
-        equalTo(new Timestamp(time + TimeUnit.DAYS.toMillis(2))));
-
-    ps.setObject(1, new java.util.Date(time));
-    resultSet = ps.executeQuery();
-    assertTrue(resultSet.next());
-    assertThat(resultSet.getDate(1),
-        equalTo(new Date(time + TimeUnit.DAYS.toMillis(2))));
-    assertThat(resultSet.getTimestamp(1),
-        equalTo(new Timestamp(time + TimeUnit.DAYS.toMillis(2))));
-
-    resultSet.close();
     ps.close();
     connection.close();
   }

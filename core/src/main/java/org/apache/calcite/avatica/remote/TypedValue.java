@@ -568,7 +568,13 @@ public class TypedValue {
       builder.setBytesValue(UnsafeByteOperations.unsafeWrap(bytes));
       return;
     case STRING:
-      builder.setStringValueBytes(UnsafeByteOperations.unsafeWrap(((String) o).getBytes(UTF_8)));
+      String s;
+      if (DateTimeUtils.isOffsetDateTime(o)) {
+        s = DateTimeUtils.offsetDateTimeValue(o);
+      } else {
+        s = (String) o;
+      }
+      builder.setStringValueBytes(UnsafeByteOperations.unsafeWrap(s.getBytes(UTF_8)));
       return;
     case PRIMITIVE_CHAR:
     case CHARACTER:
@@ -810,12 +816,16 @@ public class TypedValue {
     } else if (o instanceof Timestamp) {
       writeToProtoWithType(builder, o, Common.Rep.JAVA_SQL_TIMESTAMP);
       return Common.Rep.JAVA_SQL_TIMESTAMP;
-    } else if (o instanceof Date) {
+    } else if (o instanceof java.sql.Date) {
       writeToProtoWithType(builder, o, Common.Rep.JAVA_SQL_DATE);
       return Common.Rep.JAVA_SQL_DATE;
     } else if (o instanceof Time) {
       writeToProtoWithType(builder, o, Common.Rep.JAVA_SQL_TIME);
       return Common.Rep.JAVA_SQL_TIME;
+    } else if (DateTimeUtils.isOffsetDateTime(o)) {
+      // SQL type is TIMESTAMP WITH TIMEZONE. Transmit as a string.
+      writeToProtoWithType(builder, o, Common.Rep.STRING);
+      return Common.Rep.STRING;
     } else if (o instanceof List) {
       // Treat a List as an Array
       builder.setType(Common.Rep.ARRAY);

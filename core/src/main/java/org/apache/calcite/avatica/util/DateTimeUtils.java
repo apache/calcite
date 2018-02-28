@@ -93,9 +93,18 @@ public class DateTimeUtils {
    */
   public static final Calendar ZERO_CALENDAR;
 
+  private static final OffsetDateTimeHandler OFFSET_DATE_TIME_HANDLER;
+
   static {
     ZERO_CALENDAR = Calendar.getInstance(DateTimeUtils.UTC_ZONE, Locale.ROOT);
     ZERO_CALENDAR.setTimeInMillis(0);
+    OffsetDateTimeHandler h;
+    try {
+      h = new ReflectiveOffsetDateTimeHandler();
+    } catch (ClassNotFoundException e) {
+      h = new NoopOffsetDateTimeHandler();
+    }
+    OFFSET_DATE_TIME_HANDLER = h;
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -1022,6 +1031,16 @@ public class DateTimeUtils {
     return Calendar.getInstance(UTC_ZONE, Locale.ROOT);
   }
 
+  /** Returns whether a value is an {@code OffsetDateTime}. */
+  public static boolean isOffsetDateTime(Object o) {
+    return OFFSET_DATE_TIME_HANDLER.isOffsetDateTime(o);
+  }
+
+  /** Returns the value of a {@code OffsetDateTime} as a string. */
+  public static String offsetDateTimeValue(Object o) {
+    return OFFSET_DATE_TIME_HANDLER.stringValue(o);
+  }
+
   //~ Inner Classes ----------------------------------------------------------
 
   /**
@@ -1048,6 +1067,46 @@ public class DateTimeUtils {
 
     public String getFraction() {
       return fraction;
+    }
+  }
+
+  /** Deals with values of {@code java.time.OffsetDateTime} without introducing
+   * a compile-time dependency (because {@code OffsetDateTime} is only JDK 8 and
+   * higher). */
+  private interface OffsetDateTimeHandler {
+    boolean isOffsetDateTime(Object o);
+    String stringValue(Object o);
+  }
+
+  /** Implementation of {@code OffsetDateTimeHandler} for environments where
+   * no instances are possible. */
+  private static class NoopOffsetDateTimeHandler
+      implements OffsetDateTimeHandler {
+    public boolean isOffsetDateTime(Object o) {
+      return false;
+    }
+
+    public String stringValue(Object o) {
+      throw new UnsupportedOperationException();
+    }
+  }
+
+  /** Implementation of {@code OffsetDateTimeHandler} for environments where
+   * no instances are possible. */
+  private static class ReflectiveOffsetDateTimeHandler
+      implements OffsetDateTimeHandler {
+    final Class offsetDateTimeClass;
+
+    public ReflectiveOffsetDateTimeHandler() throws ClassNotFoundException {
+      offsetDateTimeClass = Class.forName("java.time.OffsetDateTime");
+    }
+
+    public boolean isOffsetDateTime(Object o) {
+      return o != null && o.getClass() == offsetDateTimeClass;
+    }
+
+    public String stringValue(Object o) {
+      return o.toString();
     }
   }
 }

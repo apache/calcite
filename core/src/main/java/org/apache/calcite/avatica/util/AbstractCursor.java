@@ -172,6 +172,20 @@ public abstract class AbstractCursor implements Cursor {
       default:
         throw new AssertionError("bad " + columnMetaData.type.rep);
       }
+    case 2013: // TIME_WITH_TIMEZONE
+      switch (columnMetaData.type.rep) {
+      case STRING:
+        return new StringAccessor(getter);
+      default:
+        throw new AssertionError("bad " + columnMetaData.type.rep);
+      }
+    case 2014: // TIMESTAMP_WITH_TIMEZONE
+      switch (columnMetaData.type.rep) {
+      case STRING:
+        return new StringAccessor(getter);
+      default:
+        throw new AssertionError("bad " + columnMetaData.type.rep);
+      }
     case Types.ARRAY:
       final ColumnMetaData.ArrayType arrayType =
           (ColumnMetaData.ArrayType) columnMetaData.type;
