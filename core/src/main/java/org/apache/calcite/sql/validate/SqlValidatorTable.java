@@ -18,7 +18,6 @@ package org.apache.calcite.sql.validate;
 
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.schema.Wrapper;
-import org.apache.calcite.sql.SqlAccessType;
 import org.apache.calcite.sql2rel.InitializerContext;
 
 import java.util.List;
@@ -41,11 +40,6 @@ public interface SqlValidatorTable extends Wrapper {
    */
   SqlMonotonicity getMonotonicity(String columnName);
 
-  /**
-   * Returns the access type of the table
-   */
-  SqlAccessType getAllowedAccess();
-
   boolean supportsModality(SqlModality modality);
 
   /**
@@ -54,7 +48,6 @@ public interface SqlValidatorTable extends Wrapper {
   @Deprecated // to be removed before 2.0
   boolean columnHasDefaultValue(RelDataType rowType, int ordinal,
       InitializerContext initializerContext);
-
 }
 
 // End SqlValidatorTable.java

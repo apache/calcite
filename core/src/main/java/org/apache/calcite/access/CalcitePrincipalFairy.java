@@ -14,13 +14,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.sql;
+package org.apache.calcite.access;
 
 /**
- * Enumeration representing different access types
+ * Simple placeholder for principal currently "logged in through connection"
  */
-public enum SqlAccessEnum {
-  SELECT, UPDATE, INSERT, DELETE
+public class CalcitePrincipalFairy {
+
+  public static final CalcitePrincipalFairy INSTANCE = new CalcitePrincipalFairy();
+
+  private static final ThreadLocal<CalcitePrincipal> THREAD_LOCAL
+          = new ThreadLocal<CalcitePrincipal>();
+
+  public void register(CalcitePrincipal principal) {
+    THREAD_LOCAL.set(principal);
+  }
+
+  public CalcitePrincipal get() {
+    return THREAD_LOCAL.get();
+  }
 }
 
-// End SqlAccessEnum.java
+// End CalcitePrincipalFairy.java

@@ -14,13 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.sql;
+package org.apache.calcite.access;
 
 /**
- * Enumeration representing different access types
+ * Responsible handling principal and its access to schemas
  */
-public enum SqlAccessEnum {
-  SELECT, UPDATE, INSERT, DELETE
+public interface CalcitePrincipal {
+
+  String getName();
 }
 
-// End SqlAccessEnum.java
+// End CalcitePrincipal.java

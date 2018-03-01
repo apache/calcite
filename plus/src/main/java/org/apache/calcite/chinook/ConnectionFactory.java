@@ -30,23 +30,35 @@ public class ConnectionFactory implements Quidem.ConnectionFactory {
   private static final CalciteConnectionProvider CALCITE = new CalciteConnectionProvider();
 
   public Connection connect(String db, boolean bln) throws Exception {
-    return DatabaseWrapper.valueOf(db).connection();
+    return DBWrapper.valueOf(db).connection();
   }
 
   /**
    * Wrapping with Fairy environmental decoration
    */
-  public enum DatabaseWrapper {
-    CALCITE_AS_ADMIN {
+  public enum DBWrapper {
+    CALCITE_WITH_GENERAL_CONDITION {
       @Override public Connection connection() throws Exception {
-        EnvironmentFairy.login(EnvironmentFairy.User.ADMIN);
-        return CALCITE.connection();
+        EnvironmentFairy.setCondition(EnvironmentFairy.Condition.GENERAL_CONDITION);
+        return CALCITE.connection(CalciteConnectionProvider.USER_SA);
       }
     },
-    CALCITE_AS_SPECIFIC_USER {
+    CALCITE_WITH_GENERAL_CONDITION_SPECIFICUSER {
       @Override public Connection connection() throws Exception {
-        EnvironmentFairy.login(EnvironmentFairy.User.SPECIFIC_USER);
-        return CALCITE.connection();
+        EnvironmentFairy.setCondition(EnvironmentFairy.Condition.GENERAL_CONDITION);
+        return CALCITE.connection(CalciteConnectionProvider.USER_SPECIFIC);
+      }
+    },
+    CALCITE_WITH_SPECIFIC_CONDITION {
+      @Override public Connection connection() throws Exception {
+        EnvironmentFairy.setCondition(EnvironmentFairy.Condition.SPECIFIC_CONDITION);
+        return CALCITE.connection(CalciteConnectionProvider.USER_SA);
+      }
+    },
+    CALCITE_WITH_SPECIFIC_CONDITION_SPECIFICUSER {
+      @Override public Connection connection() throws Exception {
+        EnvironmentFairy.setCondition(EnvironmentFairy.Condition.SPECIFIC_CONDITION);
+        return CALCITE.connection(CalciteConnectionProvider.USER_SPECIFIC);
       }
     },
     RAW {

@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.sql.test;
 
+import org.apache.calcite.access.CalcitePrincipalFairy;
 import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.config.CalciteConnectionProperty;
 import org.apache.calcite.linq4j.Linq4j;
@@ -65,6 +66,7 @@ import org.junit.Test;
 
 import java.math.BigDecimal;
 import java.sql.Connection;
+import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -76,6 +78,7 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
+import java.util.Properties;
 import java.util.TimeZone;
 import java.util.function.Consumer;
 import java.util.regex.Pattern;
@@ -302,6 +305,7 @@ public abstract class SqlOperatorBaseTest {
   @Before
   public void setUp() throws Exception {
     tester.setFor(null);
+    CalcitePrincipalFairy.INSTANCE.register(null);
   }
 
   protected SqlTester oracleTester() {
@@ -5270,14 +5274,60 @@ public abstract class SqlOperatorBaseTest {
     tester.checkString("USER", "sa", "VARCHAR(2000) NOT NULL");
   }
 
+  @Test public void testUserFuncWithNotDefaultUser() {
+    testFuncWithNotDefaultUser("USER");
+  }
+
+  @Test public void testUserFuncWithNoUserLogged() {
+    testFuncWithNoUserLogged("USER");
+  }
+
+  private void testFuncWithNoUserLogged(String userFunc) {
+    tester.setFor(SqlStdOperatorTable.USER, VM_FENNEL);
+    String user = System.getProperty("user.name"); // e.g. "jhyde"
+    tester.withConnectionFactory(new CalciteAssert.ConnectionFactory() {
+      @Override public Connection createConnection() throws SQLException {
+        final Properties info = new Properties();
+        return DriverManager.getConnection("jdbc:calcite:", info);
+      }
+    }).checkString(userFunc, user, "VARCHAR(2000) NOT NULL");
+  }
+
+  private void testFuncWithNotDefaultUser(String userFunc) {
+    tester.setFor(SqlStdOperatorTable.USER, VM_FENNEL);
+    tester.withConnectionFactory(new CalciteAssert.ConnectionFactory() {
+      @Override public Connection createConnection() throws SQLException {
+        final Properties info = new Properties();
+        info.put("user", "somenotdefaultuser");
+        return DriverManager.getConnection("jdbc:calcite:", info);
+      }
+    }).checkString(userFunc, "somenotdefaultuser", "VARCHAR(2000) NOT NULL");
+  }
+
   @Test public void testCurrentUserFunc() {
     tester.setFor(SqlStdOperatorTable.CURRENT_USER, VM_FENNEL);
     tester.checkString("CURRENT_USER", "sa", "VARCHAR(2000) NOT NULL");
   }
 
+  @Test public void testCurrenUserFuncWithNotDefaultUser() {
+    testFuncWithNotDefaultUser("CURRENT_USER");
+  }
+
+  @Test public void testCurrentUserFuncWithNoUserLogged() {
+    testFuncWithNoUserLogged("CURRENT_USER");
+  }
+
   @Test public void testSessionUserFunc() {
     tester.setFor(SqlStdOperatorTable.SESSION_USER, VM_FENNEL);
     tester.checkString("SESSION_USER", "sa", "VARCHAR(2000) NOT NULL");
+  }
+
+  @Test public void testSessionUserFuncWithNotDefaultUser() {
+    testFuncWithNotDefaultUser("SESSION_USER");
+  }
+
+  @Test public void testSessionUserFuncWithNoUserLogged() {
+    testFuncWithNoUserLogged("SESSION_USER");
   }
 
   @Test public void testSystemUserFunc() {

@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.prepare;
 
+import org.apache.calcite.access.Authorization;
 import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
@@ -408,6 +409,10 @@ public class CalciteCatalogReader implements Prepare.CatalogReader {
       return aClass.cast(this);
     }
     return null;
+  }
+
+  @Override public Authorization getAuthorization() {
+    return rootSchema.getAuthorization();
   }
 }
 

@@ -68,7 +68,7 @@ public class ChinookAvaticaServer {
       if (instance == null) {
         try {
           instance = new JdbcMeta(CalciteConnectionProvider.DRIVER_URL,
-              CONNECTION_PROVIDER.provideConnectionInfo());
+              CONNECTION_PROVIDER.provideConnectionInfo(CONNECTION_PROVIDER.USER_SA));
         } catch (SQLException | IOException e) {
           throw new RuntimeException(e);
         }

@@ -14,13 +14,31 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.sql;
+package org.apache.calcite.access;
+
+import org.apache.calcite.sql.SqlAccessEnum;
+
+import org.junit.Assert;
+import org.junit.Test;
 
 /**
- * Enumeration representing different access types
+ * Test for default guard implementation
  */
-public enum SqlAccessEnum {
-  SELECT, UPDATE, INSERT, DELETE
+public class AlwaysPassGuardTest {
+
+  private final AlwaysPassAuthorization tested = new AlwaysPassAuthorization();
+
+  @Test public void testShouldAlwaysPassAnySqlAccess() {
+    // given
+    boolean result = true;
+    // when
+    for (SqlAccessEnum access : SqlAccessEnum.values()) {
+      result &= tested.accessGranted(new AuthorizationRequest(access, null, null, null, null));
+    }
+    // then
+    Assert.assertTrue("Access should be always granted", result);
+  }
+
 }
 
-// End SqlAccessEnum.java
+// End AlwaysPassGuardTest.java

@@ -1318,6 +1318,7 @@ public class CalciteAssert {
 
     public Connection createConnection() throws SQLException {
       final Properties info = new Properties();
+      info.put("user", "sa");
       for (Map.Entry<String, String> entry : map.entrySet()) {
         info.setProperty(entry.getKey(), entry.getValue());
       }

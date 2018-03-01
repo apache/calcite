@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.adapter.enumerable;
 
+import org.apache.calcite.access.CalcitePrincipal;
+import org.apache.calcite.access.CalcitePrincipalFairy;
 import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.avatica.util.TimeUnitRange;
@@ -483,11 +485,12 @@ public class RexImpTable {
             new MethodImplementor(BuiltInMethod.IS_JSON_SCALAR.method)), false);
 
     // System functions
-    final SystemFunctionImplementor systemFunctionImplementor =
-        new SystemFunctionImplementor();
-    map.put(USER, systemFunctionImplementor);
-    map.put(CURRENT_USER, systemFunctionImplementor);
-    map.put(SESSION_USER, systemFunctionImplementor);
+    final UserFunctionImplementor userFunctionImplementor = new UserFunctionImplementor();
+    map.put(USER, userFunctionImplementor);
+    map.put(CURRENT_USER, userFunctionImplementor);
+    map.put(SESSION_USER, userFunctionImplementor);
+    final SystemFunctionImplementor systemFunctionImplementor
+            = new SystemFunctionImplementor();
     map.put(SYSTEM_USER, systemFunctionImplementor);
     map.put(CURRENT_PATH, systemFunctionImplementor);
     map.put(CURRENT_ROLE, systemFunctionImplementor);
@@ -2483,11 +2486,7 @@ public class RexImpTable {
       }
       final SqlOperator op = call.getOperator();
       final Expression root = translator.getRoot();
-      if (op == CURRENT_USER
-          || op == SESSION_USER
-          || op == USER) {
-        return Expressions.constant("sa");
-      } else if (op == SYSTEM_USER) {
+      if (op == SYSTEM_USER) {
         return Expressions.constant(System.getProperty("user.name"));
       } else if (op == CURRENT_PATH
           || op == CURRENT_ROLE
@@ -2511,8 +2510,25 @@ public class RexImpTable {
     }
   }
 
-  /** Implements "IS XXX" operations such as "IS NULL"
-   * or "IS NOT TRUE".
+  /**
+   * Implementation of user functions which deduce user from connection properties
+   */
+  private static class UserFunctionImplementor implements CallImplementor {
+
+    @Override public Expression implement(
+        RexToLixTranslator translator,
+        RexCall call,
+        NullAs nullAs) {
+      CalcitePrincipal principal = CalcitePrincipalFairy.INSTANCE.get();
+      return principal != null
+          ? Expressions.constant(principal.getName())
+          : Expressions.constant(System.getProperty("user.name"));
+    }
+
+  }
+
+  /**
+   * Implements "IS XXX" operations such as "IS NULL" or "IS NOT TRUE".
    *
    * <p>What these operators have in common:</p>
    * 1. They return TRUE or FALSE, never NULL.

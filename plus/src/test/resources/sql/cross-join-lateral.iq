@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-!use CALCITE_AS_ADMIN
+!use CALCITE_WITH_GENERAL_CONDITION
 !set outputformat mysql
 
 # Checks whether CROSS JOIN LATERAL works

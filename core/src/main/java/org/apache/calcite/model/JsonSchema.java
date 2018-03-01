@@ -21,6 +21,7 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Schema schema element.
@@ -60,6 +61,11 @@ public abstract class JsonSchema {
    * string.
    */
   public List<Object> path;
+
+  /**
+   * Config with authorization definition for this schema, used by AuthorizationFactory
+   */
+  public Map<String, String> authConfig;
 
   /**
    * List of tables in this schema that are materializations of queries.

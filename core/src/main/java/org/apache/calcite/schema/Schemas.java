@@ -420,6 +420,7 @@ public final class Schemas {
         final boolean enable = config().spark();
         return CalcitePrepare.Dummy.getSparkHandler(enable);
       }
+
     };
   }
 

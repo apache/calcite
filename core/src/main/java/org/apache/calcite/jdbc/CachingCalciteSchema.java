@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.jdbc;
 
+import org.apache.calcite.access.Authorization;
 import org.apache.calcite.rel.type.RelProtoDataType;
 import org.apache.calcite.schema.Function;
 import org.apache.calcite.schema.Schema;
@@ -252,6 +253,7 @@ class CachingCalciteSchema extends CalciteSchema {
       CalciteSchema subSchemaSnapshot = subSchema.snapshot(snapshot, version);
       snapshot.subSchemaMap.put(subSchema.name, subSchemaSnapshot);
     }
+    snapshot.setGuard(getAuthorization());
     return snapshot;
   }
 
@@ -327,8 +329,7 @@ class CachingCalciteSchema extends CalciteSchema {
     private SubSchemaCache(final CalciteSchema calciteSchema,
         Set<String> names) {
       this.names = NameSet.immutableCopyOf(names);
-      this.cache = CacheBuilder.newBuilder().build(
-          new CacheLoader<String, CalciteSchema>() {
+      this.cache = CacheBuilder.newBuilder().build(new CacheLoader<String, CalciteSchema>() {
             @SuppressWarnings("NullableProblems")
             @Override public CalciteSchema load(String schemaName) {
               final Schema subSchema =
@@ -337,7 +338,14 @@ class CachingCalciteSchema extends CalciteSchema {
                 throw new RuntimeException("sub-schema " + schemaName
                     + " not found");
               }
-              return new CachingCalciteSchema(calciteSchema, subSchema, schemaName);
+              CachingCalciteSchema cache
+                      = new CachingCalciteSchema(calciteSchema, subSchema, schemaName);
+              try {
+                Authorization guard
+                        = calciteSchema.subSchemaMap.map().get(schemaName).getAuthorization();
+                cache.setGuard(guard);
+              } catch (NullPointerException e) { }
+              return cache;
             }
           });
     }

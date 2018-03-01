@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.jdbc;
 
+import org.apache.calcite.access.AlwaysPassAuthorization;
+import org.apache.calcite.access.Authorization;
 import org.apache.calcite.linq4j.function.Experimental;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.materialize.Lattice;
@@ -68,6 +70,7 @@ public abstract class CalciteSchema {
   protected final NameMap<FunctionEntry> nullaryFunctionMap;
   protected final NameMap<CalciteSchema> subSchemaMap;
   private List<? extends List<String>> path;
+  private Authorization guard = AlwaysPassAuthorization.INSTANCE;
 
   protected CalciteSchema(CalciteSchema parent, Schema schema,
       String name, NameMap<CalciteSchema> subSchemaMap,
@@ -538,6 +541,14 @@ public abstract class CalciteSchema {
     return typeMap.remove(name) != null;
   }
 
+  public void setGuard(Authorization guard) {
+    this.guard = guard;
+  }
+
+  public Authorization getAuthorization() {
+    return guard;
+  }
+
   /**
    * Entry in a schema, such as a table or sub-schema.
    *
@@ -716,6 +727,10 @@ public abstract class CalciteSchema {
 
     public void add(String name, Lattice lattice) {
       CalciteSchema.this.add(name, lattice);
+    }
+
+    @Override public void setAuthorization(Authorization guard) {
+      CalciteSchema.this.setGuard(guard);
     }
   }
 

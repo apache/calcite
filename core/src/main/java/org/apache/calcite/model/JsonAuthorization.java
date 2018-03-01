@@ -14,13 +14,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.sql;
+package org.apache.calcite.model;
+
+import java.util.Map;
 
 /**
- * Enumeration representing different access types
+ * JSON element that represents access definition to defined schema
  */
-public enum SqlAccessEnum {
-  SELECT, UPDATE, INSERT, DELETE
+public class JsonAuthorization {
+   /** Name of the factory class implementing Access level logic to schema
+   *
+   * <p>Required
+   */
+  public String factory;
+
+  /** Contains attributes to be passed to the factory.
+   *
+   * <p>May be a JSON object (represented as Map) or null.
+   */
+  public Map<String, String> operand;
+
+  public void accept(ModelHandler modelHandler) {
+    modelHandler.visit(this);
+  }
 }
 
-// End SqlAccessEnum.java
+// End JsonAuthorization.java

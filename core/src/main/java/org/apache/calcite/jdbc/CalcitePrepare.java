@@ -127,6 +127,7 @@ public interface CalcitePrepare {
 
     /** Gets a runner; it can execute a relational expression. */
     RelRunner getRelRunner();
+
   }
 
   /** Callback to register Spark as the main engine. */

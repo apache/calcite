@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.sql;
 
 /**
- * Enumeration representing different access types
+ * Authorization and identity logic is here.
  */
-public enum SqlAccessEnum {
-  SELECT, UPDATE, INSERT, DELETE
-}
+@PackageMarker
+package org.apache.calcite.access;
 
-// End SqlAccessEnum.java
+import org.apache.calcite.avatica.util.PackageMarker;
+
+// End package-info.java

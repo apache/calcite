@@ -26,25 +26,28 @@ package org.apache.calcite.chinook;
  */
 public class EnvironmentFairy {
 
-  private static final ThreadLocal<User> USER =
-      ThreadLocal.withInitial(() -> User.ADMIN);
+  private static final ThreadLocal<Condition> CONDITION = new ThreadLocal<Condition>() {
+    @Override protected Condition initialValue() {
+      return Condition.GENERAL_CONDITION;
+    }
+  };
 
   private EnvironmentFairy() {
   }
 
-  public static User getUser() {
-    return USER.get();
+  public static void setCondition(Condition condition) {
+    CONDITION.set(condition);
   }
 
-  public static void login(User user) {
-    USER.set(user);
+  public static Condition getCondition() {
+    return CONDITION.get();
   }
 
   /**
    * Who is emulated to being logged in?
    */
-  public enum User {
-    ADMIN, SPECIFIC_USER
+  public enum Condition {
+    GENERAL_CONDITION, SPECIFIC_CONDITION
   }
 
 }

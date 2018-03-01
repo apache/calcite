@@ -35,6 +35,7 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Objects;
+import java.util.Properties;
 
 /**
  * Table that is a materialized view.
@@ -56,7 +57,9 @@ public class MaterializedViewTable extends ViewTable {
 
   static {
     try {
-      MATERIALIZATION_CONNECTION = DriverManager.getConnection("jdbc:calcite:")
+      final Properties info = new Properties();
+      info.setProperty("caseSensitive", "false");
+      MATERIALIZATION_CONNECTION = DriverManager.getConnection("jdbc:calcite:", info)
           .unwrap(CalciteConnection.class);
     } catch (SQLException e) {
       throw new RuntimeException(e);

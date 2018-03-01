@@ -14,13 +14,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.sql;
+package org.apache.calcite.access;
+
+import java.util.Map;
 
 /**
- * Enumeration representing different access types
+ *
+ * Factory that creates AuthorisationGuard
  */
-public enum SqlAccessEnum {
-  SELECT, UPDATE, INSERT, DELETE
+public interface AuthorizationFactory {
+
+  /**
+   * Populates this factory with configuration. It is assured that this method is called first,
+   * before any others on this factory.
+   */
+  void init(Map<String, String> operand);
+
+  /**
+   * Creates guard instancee for specific schema configuration
+   */
+  Authorization create(Map<String, String> operand);
+
 }
 
-// End SqlAccessEnum.java
+// End AuthorizationFactory.java

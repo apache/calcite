@@ -13,25 +13,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-*~
-target
-.idea
-*.iml
-settings.xml
-.classpath.txt
-.fullclasspath.txt
+!use CALCITE_WITH_GENERAL_CONDITION_SPECIFICUSER
+!set outputformat mysql
 
-# eclipse
-.project
-.buildpath
-.classpath
-.settings
-.checkstyle
+# count returns number of rows in table
+SELECT COUNT(*) as C1 FROM chinook.album;
+ java.sql.SQLException: Error while executing SQL "SELECT COUNT(*) as C1 FROM chinook.album": From line 1, column 28 to line 1, column 40: Not allowed to perform SELECT on [CHINOOK, ALBUM]
 
-# netbeans
-**/nb-configuration.xml
-**/nbproject
+!error
 
-.mvn/wrapper/maven-wrapper.jar
+# count returns number of rows in table
+SELECT COUNT(*) as C1 FROM enhanced.preferred_tracks;
++------+
+| C1   |
++------+
+| 3503 |
++------+
+(1 row)
 
-# End .gitignore
+!ok
