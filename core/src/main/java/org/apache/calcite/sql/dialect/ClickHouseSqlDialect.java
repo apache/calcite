@@ -78,6 +78,10 @@ public class ClickHouseSqlDialect extends SqlDialect {
     return false;
   }
 
+  @Override public CalendarPolicy getCalendarPolicy() {
+    return CalendarPolicy.SHIFT;
+  }
+
   @Override public SqlNode getCastSpec(RelDataType type) {
     String castSpec;
     switch (type.getSqlTypeName()) {
