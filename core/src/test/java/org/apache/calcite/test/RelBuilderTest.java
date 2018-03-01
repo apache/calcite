@@ -16,7 +16,6 @@
  */
 package org.apache.calcite.test;
 
-import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.AggregateCall;
@@ -44,7 +43,6 @@ import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelRunners;
 import org.apache.calcite.util.Holder;
 import org.apache.calcite.util.ImmutableBitSet;
-import org.apache.calcite.util.Util;
 import org.apache.calcite.util.mapping.Mappings;
 
 import com.google.common.collect.ImmutableList;
@@ -58,6 +56,8 @@ import java.sql.PreparedStatement;
 import java.util.Arrays;
 import java.util.List;
 import java.util.TreeSet;
+
+import static org.apache.calcite.test.Matchers.hasTree;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
@@ -109,11 +109,6 @@ public class RelBuilderTest {
         .programs(Programs.heuristicJoinOrder(Programs.RULE_SET, true, 2));
   }
 
-  /** Converts a relational expression to a string with linux line-endings. */
-  private String str(RelNode r) {
-    return Util.toLinux(RelOptUtil.toString(r));
-  }
-
   @Test public void testScan() {
     // Equivalent SQL:
     //   SELECT *
@@ -122,8 +117,8 @@ public class RelBuilderTest {
         RelBuilder.create(config().build())
             .scan("EMP")
             .build();
-    assertThat(str(root),
-        is("LogicalTableScan(table=[[scott, EMP]])\n"));
+    assertThat(root,
+        hasTree("LogicalTableScan(table=[[scott, EMP]])\n"));
   }
 
   @Test public void testScanQualifiedTable() {
@@ -134,8 +129,8 @@ public class RelBuilderTest {
         RelBuilder.create(config().build())
             .scan("scott", "EMP")
             .build();
-    assertThat(str(root),
-        is("LogicalTableScan(table=[[scott, EMP]])\n"));
+    assertThat(root,
+        hasTree("LogicalTableScan(table=[[scott, EMP]])\n"));
   }
 
   @Test public void testScanInvalidTable() {
@@ -208,8 +203,8 @@ public class RelBuilderTest {
         builder.scan("EMP")
             .filter(builder.literal(true))
             .build();
-    assertThat(str(root),
-        is("LogicalTableScan(table=[[scott, EMP]])\n"));
+    assertThat(root,
+        hasTree("LogicalTableScan(table=[[scott, EMP]])\n"));
   }
 
   @Test public void testScanFilterTriviallyFalse() {
@@ -222,8 +217,8 @@ public class RelBuilderTest {
         builder.scan("EMP")
             .filter(builder.equals(builder.literal(1), builder.literal(2)))
             .build();
-    assertThat(str(root),
-        is("LogicalValues(tuples=[[]])\n"));
+    assertThat(root,
+        hasTree("LogicalValues(tuples=[[]])\n"));
   }
 
   @Test public void testScanFilterEquals() {
@@ -237,9 +232,9 @@ public class RelBuilderTest {
             .filter(
                 builder.equals(builder.field("DEPTNO"), builder.literal(20)))
             .build();
-    assertThat(str(root),
-        is("LogicalFilter(condition=[=($7, 20)])\n"
-            + "  LogicalTableScan(table=[[scott, EMP]])\n"));
+    final String expected = "LogicalFilter(condition=[=($7, 20)])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(root, hasTree(expected));
   }
 
   @Test public void testScanFilterOr() {
@@ -258,9 +253,10 @@ public class RelBuilderTest {
                     builder.isNull(builder.field(6))),
                 builder.isNotNull(builder.field(3)))
             .build();
-    assertThat(str(root),
-        is("LogicalFilter(condition=[AND(OR(=($7, 20), IS NULL($6)), IS NOT NULL($3))])\n"
-            + "  LogicalTableScan(table=[[scott, EMP]])\n"));
+    final String expected = ""
+        + "LogicalFilter(condition=[AND(OR(=($7, 20), IS NULL($6)), IS NOT NULL($3))])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(root, hasTree(expected));
   }
 
   @Test public void testScanFilterOr2() {
@@ -284,9 +280,9 @@ public class RelBuilderTest {
                         builder.field("DEPTNO"),
                         builder.literal(20))))
             .build();
-    assertThat(str(root),
-        is("LogicalFilter(condition=[>($7, 20)])\n"
-            + "  LogicalTableScan(table=[[scott, EMP]])\n"));
+    final String expected = "LogicalFilter(condition=[>($7, 20)])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(root, hasTree(expected));
   }
 
   @Test public void testScanFilterAndFalse() {
@@ -305,8 +301,8 @@ public class RelBuilderTest {
                     builder.literal(20)),
                 builder.literal(false))
             .build();
-    final String plan = "LogicalValues(tuples=[[]])\n";
-    assertThat(str(root), is(plan));
+    final String expected = "LogicalValues(tuples=[[]])\n";
+    assertThat(root, hasTree(expected));
   }
 
   @Test public void testScanFilterAndTrue() {
@@ -323,9 +319,9 @@ public class RelBuilderTest {
                     builder.literal(20)),
                 builder.literal(true))
             .build();
-    final String plan = "LogicalFilter(condition=[>($7, 20)])\n"
+    final String expected = "LogicalFilter(condition=[>($7, 20)])\n"
         + "  LogicalTableScan(table=[[scott, EMP]])\n";
-    assertThat(str(root), is(plan));
+    assertThat(root, hasTree(expected));
   }
 
   @Test public void testBadFieldName() {
@@ -383,10 +379,10 @@ public class RelBuilderTest {
             .build();
     // Note: CAST(COMM) gets the COMM alias because it occurs first
     // Note: AS(COMM, C) becomes just $6
-    assertThat(str(root),
-        is(
-            "LogicalProject(DEPTNO=[$7], COMM=[CAST($6):SMALLINT NOT NULL], $f2=[20], COMM0=[$6], C=[$6])\n"
-            + "  LogicalTableScan(table=[[scott, EMP]])\n"));
+    final String expected = ""
+        + "LogicalProject(DEPTNO=[$7], COMM=[CAST($6):SMALLINT NOT NULL], $f2=[20], COMM0=[$6], C=[$6])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(root, hasTree(expected));
   }
 
   /** Tests each method that creates a scalar expression. */
@@ -414,12 +410,13 @@ public class RelBuilderTest {
                 builder.field(6),
                 builder.alias(builder.field(6), "C"))
             .build();
-    assertThat(str(root),
-        is("LogicalProject(DEPTNO=[$7], COMM=[CAST($6):SMALLINT NOT NULL],"
-                + " $f2=[OR(=($7, 20), AND(null, =($7, 10), IS NULL($6),"
-                + " IS NULL($7)), =($7, 30))], n2=[IS NULL($2)],"
-                + " nn2=[IS NOT NULL($3)], $f5=[20], COMM0=[$6], C=[$6])\n"
-                + "  LogicalTableScan(table=[[scott, EMP]])\n"));
+    final String expected = ""
+        + "LogicalProject(DEPTNO=[$7], COMM=[CAST($6):SMALLINT NOT NULL],"
+        + " $f2=[OR(=($7, 20), AND(null, =($7, 10), IS NULL($6),"
+        + " IS NULL($7)), =($7, 30))], n2=[IS NULL($2)],"
+        + " nn2=[IS NOT NULL($3)], $f5=[20], COMM0=[$6], C=[$6])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(root, hasTree(expected));
   }
 
   @Test public void testProjectIdentity() {
@@ -429,7 +426,7 @@ public class RelBuilderTest {
             .project(builder.fields(Mappings.bijection(Arrays.asList(0, 1, 2))))
             .build();
     final String expected = "LogicalTableScan(table=[[scott, DEPT]])\n";
-    assertThat(str(root), is(expected));
+    assertThat(root, hasTree(expected));
   }
 
   /** Test case for
@@ -449,7 +446,7 @@ public class RelBuilderTest {
             .build();
     final String expected = "LogicalProject(a=[$0], c=[$2])\n"
         + "  LogicalTableScan(table=[[scott, DEPT]])\n";
-    assertThat(str(root), is(expected));
+    assertThat(root, hasTree(expected));
   }
 
   /** Variation on {@link #testProjectIdentityWithFieldsRename}: don't use a
@@ -477,7 +474,7 @@ public class RelBuilderTest {
         + "  LogicalAggregate(group=[{0, 1, 2}], agg#0=[SUM($0)])\n"
         + "    LogicalFilter(condition=[=($0, 20)])\n"
         + "      LogicalTableScan(table=[[scott, DEPT]])\n";
-    assertThat(str(root), is(expected));
+    assertThat(root, hasTree(expected));
   }
 
   @Test public void testProjectLeadingEdge() {
@@ -488,7 +485,7 @@ public class RelBuilderTest {
             .build();
     final String expected = "LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2])\n"
         + "  LogicalTableScan(table=[[scott, EMP]])\n";
-    assertThat(str(root), is(expected));
+    assertThat(root, hasTree(expected));
   }
 
   @Test public void testRename() {
@@ -500,14 +497,14 @@ public class RelBuilderTest {
             .rename(Arrays.asList("DEPTNO", null))
             .build();
     final String expected = "LogicalTableScan(table=[[scott, DEPT]])\n";
-    assertThat(str(root), is(expected));
+    assertThat(root, hasTree(expected));
 
     // No rename necessary (prefix matches)
     root =
         builder.scan("DEPT")
             .rename(ImmutableList.of("DEPTNO"))
             .build();
-    assertThat(str(root), is(expected));
+    assertThat(root, hasTree(expected));
 
     // Add project to rename fields
     root =
@@ -517,7 +514,7 @@ public class RelBuilderTest {
     final String expected2 = ""
         + "LogicalProject(NAME=[$0], DNAME=[$1], DEPTNO=[$2])\n"
         + "  LogicalTableScan(table=[[scott, DEPT]])\n";
-    assertThat(str(root), is(expected2));
+    assertThat(root, hasTree(expected2));
 
     // If our requested list has non-unique names, we might get the same field
     // names we started with. Don't add a useless project.
@@ -528,14 +525,14 @@ public class RelBuilderTest {
     final String expected3 = ""
         + "LogicalProject(DEPTNO=[$0], DNAME=[$1], DEPTNO0=[$2])\n"
         + "  LogicalTableScan(table=[[scott, DEPT]])\n";
-    assertThat(str(root), is(expected3));
+    assertThat(root, hasTree(expected3));
     root =
         builder.scan("DEPT")
             .rename(Arrays.asList("DEPTNO", null, "DEPTNO"))
             .rename(Arrays.asList("DEPTNO", null, "DEPTNO"))
             .build();
     // No extra Project
-    assertThat(str(root), is(expected3));
+    assertThat(root, hasTree(expected3));
 
     // Name list too long
     try {
@@ -556,14 +553,14 @@ public class RelBuilderTest {
             .build();
     final String expected =
         "LogicalValues(tuples=[[{ true, 1 }, { false, -50 }]])\n";
-    assertThat(str(root), is(expected));
+    assertThat(root, hasTree(expected));
 
     // When you rename Values, you get a Values with a new row type, no Project
     root =
         builder.push(root)
             .rename(ImmutableList.of("x", "y z"))
             .build();
-    assertThat(str(root), is(expected));
+    assertThat(root, hasTree(expected));
     assertThat(root.getRowType().getFieldNames().toString(), is("[x, y z]"));
   }
 
@@ -575,7 +572,7 @@ public class RelBuilderTest {
             .build();
     final String expected = "LogicalProject(JOB=[$2], EMPNO=[$0], ENAME=[$1])\n"
         + "  LogicalTableScan(table=[[scott, EMP]])\n";
-    assertThat(str(root), is(expected));
+    assertThat(root, hasTree(expected));
   }
 
   @Test public void testConvert() {
@@ -593,7 +590,7 @@ public class RelBuilderTest {
     final String expected = ""
         + "LogicalProject(DEPTNO=[CAST($0):BIGINT NOT NULL], DNAME=[CAST($1):VARCHAR(10) CHARACTER SET \"ISO-8859-1\" COLLATE \"ISO-8859-1$en_US$primary\" NOT NULL], LOC=[CAST($2):VARCHAR(10) CHARACTER SET \"ISO-8859-1\" COLLATE \"ISO-8859-1$en_US$primary\" NOT NULL])\n"
         + "  LogicalTableScan(table=[[scott, DEPT]])\n";
-    assertThat(str(root), is(expected));
+    assertThat(root, hasTree(expected));
   }
 
   @Test public void testConvertRename() {
@@ -611,7 +608,7 @@ public class RelBuilderTest {
     final String expected = ""
         + "LogicalProject(a=[CAST($0):BIGINT NOT NULL], b=[CAST($1):VARCHAR(10) CHARACTER SET \"ISO-8859-1\" COLLATE \"ISO-8859-1$en_US$primary\" NOT NULL], c=[CAST($2):VARCHAR(10) CHARACTER SET \"ISO-8859-1\" COLLATE \"ISO-8859-1$en_US$primary\" NOT NULL])\n"
         + "  LogicalTableScan(table=[[scott, DEPT]])\n";
-    assertThat(str(root), is(expected));
+    assertThat(root, hasTree(expected));
   }
 
   @Test public void testAggregate() {
@@ -626,9 +623,10 @@ public class RelBuilderTest {
                 builder.aggregateCall(SqlStdOperatorTable.COUNT, true, false,
                     null, "C", builder.field("DEPTNO")))
             .build();
-    assertThat(str(root),
-        is("LogicalAggregate(group=[{}], C=[COUNT(DISTINCT $7)])\n"
-            + "  LogicalTableScan(table=[[scott, EMP]])\n"));
+    final String expected = ""
+        + "LogicalAggregate(group=[{}], C=[COUNT(DISTINCT $7)])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(root, hasTree(expected));
   }
 
   @Test public void testAggregate2() {
@@ -652,11 +650,11 @@ public class RelBuilderTest {
                     builder.call(SqlStdOperatorTable.PLUS, builder.field(3),
                         builder.literal(1))))
             .build();
-    assertThat(str(root),
-        is(""
-            + "LogicalAggregate(group=[{1, 8}], C=[COUNT()], S=[SUM($9)])\n"
-            + "  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], $f8=[+($4, $3)], $f9=[+($3, 1)])\n"
-            + "    LogicalTableScan(table=[[scott, EMP]])\n"));
+    final String expected = ""
+        + "LogicalAggregate(group=[{1, 8}], C=[COUNT()], S=[SUM($9)])\n"
+        + "  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], $f8=[+($4, $3)], $f9=[+($3, 1)])\n"
+        + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(root, hasTree(expected));
   }
 
   /** Test case for
@@ -683,7 +681,7 @@ public class RelBuilderTest {
         + "LogicalProject(ENAME=[$0])\n"
         + "  LogicalAggregate(group=[{1}], C=[COUNT()])\n"
         + "    LogicalTableScan(table=[[scott, EMP]])\n";
-    assertThat(str(root), is(expected));
+    assertThat(root, hasTree(expected));
   }
 
   /** As {@link #testAggregate3()} but with Filter. */
@@ -712,7 +710,7 @@ public class RelBuilderTest {
         + "  LogicalFilter(condition=[>($1, 3)])\n"
         + "    LogicalAggregate(group=[{1}], C=[COUNT()])\n"
         + "      LogicalTableScan(table=[[scott, EMP]])\n";
-    assertThat(str(root), is(expected));
+    assertThat(root, hasTree(expected));
   }
 
   @Test public void testAggregateFilter() {
@@ -735,7 +733,7 @@ public class RelBuilderTest {
         + "LogicalAggregate(group=[{7}], groups=[[{7}, {}]], C=[COUNT() FILTER $8])\n"
         + "  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], $f8=[>($0, 100)])\n"
         + "    LogicalTableScan(table=[[scott, EMP]])\n";
-    assertThat(str(root), is(expected));
+    assertThat(root, hasTree(expected));
   }
 
   @Test public void testAggregateFilterFails() {
@@ -778,7 +776,7 @@ public class RelBuilderTest {
         + "LogicalAggregate(group=[{7}], C=[SUM($5) FILTER $8])\n"
         + "  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], $f8=[IS TRUE(<($6, 100))])\n"
         + "    LogicalTableScan(table=[[scott, EMP]])\n";
-    assertThat(str(root), is(expected));
+    assertThat(root, hasTree(expected));
   }
 
   /** Test case for
@@ -801,7 +799,7 @@ public class RelBuilderTest {
         + "  LogicalProject(departmentNo=[$0])\n"
         + "    LogicalProject(DEPTNO=[$7])\n"
         + "      LogicalTableScan(table=[[scott, EMP]])\n";
-    assertThat(str(root), is(expected));
+    assertThat(root, hasTree(expected));
   }
 
   @Test public void testAggregateProjectWithExpression() {
@@ -822,7 +820,7 @@ public class RelBuilderTest {
         + "    LogicalProject(DEPTNO=[$0], $f1=[+($0, 3)])\n"
         + "      LogicalProject(DEPTNO=[$7])\n"
         + "        LogicalTableScan(table=[[scott, EMP]])\n";
-    assertThat(str(root), is(expected));
+    assertThat(root, hasTree(expected));
   }
 
   @Test public void testAggregateGroupingKeyOutOfRangeFails() {
@@ -868,7 +866,7 @@ public class RelBuilderTest {
     final String expected = ""
         + "LogicalAggregate(group=[{6, 7}], groups=[[{6}, {7}]])\n"
         + "  LogicalTableScan(table=[[scott, EMP]])\n";
-    assertThat(str(root), is(expected));
+    assertThat(root, hasTree(expected));
   }
 
   @Test public void testAggregateGrouping() {
@@ -882,7 +880,7 @@ public class RelBuilderTest {
     final String expected = ""
         + "LogicalAggregate(group=[{6, 7}], g=[GROUPING($7)])\n"
         + "  LogicalTableScan(table=[[scott, EMP]])\n";
-    assertThat(str(root), is(expected));
+    assertThat(root, hasTree(expected));
   }
 
   @Test public void testAggregateGroupingWithDistinctFails() {
@@ -929,8 +927,7 @@ public class RelBuilderTest {
     final String expected = "LogicalAggregate(group=[{0}])\n"
         + "  LogicalProject(DEPTNO=[$7])\n"
         + "    LogicalTableScan(table=[[scott, EMP]])\n";
-    assertThat(str(root),
-        is(expected));
+    assertThat(root, hasTree(expected));
   }
 
   @Test public void testDistinctAlready() {
@@ -940,8 +937,8 @@ public class RelBuilderTest {
         builder.scan("DEPT")
             .distinct()
             .build();
-    assertThat(str(root),
-        is("LogicalTableScan(table=[[scott, DEPT]])\n"));
+    final String expected = "LogicalTableScan(table=[[scott, DEPT]])\n";
+    assertThat(root, hasTree(expected));
   }
 
   @Test public void testDistinctEmpty() {
@@ -964,7 +961,7 @@ public class RelBuilderTest {
         + "  LogicalProject\n"
         + "    LogicalFilter(condition=[IS NULL($6)])\n"
         + "      LogicalTableScan(table=[[scott, EMP]])\n";
-    assertThat(str(root), is(expected));
+    assertThat(root, hasTree(expected));
   }
 
   @Test public void testUnion() {
@@ -984,13 +981,14 @@ public class RelBuilderTest {
             .project(builder.field("EMPNO"))
             .union(true)
             .build();
-    assertThat(str(root),
-        is("LogicalUnion(all=[true])\n"
-            + "  LogicalProject(DEPTNO=[$0])\n"
-            + "    LogicalTableScan(table=[[scott, DEPT]])\n"
-            + "  LogicalProject(EMPNO=[$0])\n"
-            + "    LogicalFilter(condition=[=($7, 20)])\n"
-            + "      LogicalTableScan(table=[[scott, EMP]])\n"));
+    final String expected = ""
+        + "LogicalUnion(all=[true])\n"
+        + "  LogicalProject(DEPTNO=[$0])\n"
+        + "    LogicalTableScan(table=[[scott, DEPT]])\n"
+        + "  LogicalProject(EMPNO=[$0])\n"
+        + "    LogicalFilter(condition=[=($7, 20)])\n"
+        + "      LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(root, hasTree(expected));
   }
 
   /** Test case for
@@ -1036,14 +1034,15 @@ public class RelBuilderTest {
             .project(builder.field("DEPTNO"))
             .union(true, 3)
             .build();
-    assertThat(str(root),
-        is("LogicalUnion(all=[true])\n"
-            + "  LogicalProject(DEPTNO=[$0])\n"
-            + "    LogicalTableScan(table=[[scott, DEPT]])\n"
-            + "  LogicalProject(EMPNO=[$0])\n"
-            + "    LogicalTableScan(table=[[scott, EMP]])\n"
-            + "  LogicalProject(DEPTNO=[$7])\n"
-            + "    LogicalTableScan(table=[[scott, EMP]])\n"));
+    final String expected = ""
+        + "LogicalUnion(all=[true])\n"
+        + "  LogicalProject(DEPTNO=[$0])\n"
+        + "    LogicalTableScan(table=[[scott, DEPT]])\n"
+        + "  LogicalProject(EMPNO=[$0])\n"
+        + "    LogicalTableScan(table=[[scott, EMP]])\n"
+        + "  LogicalProject(DEPTNO=[$7])\n"
+        + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(root, hasTree(expected));
   }
 
   @Test public void testUnion1() {
@@ -1063,9 +1062,9 @@ public class RelBuilderTest {
             .project(builder.field("DEPTNO"))
             .union(true, 1)
             .build();
-    assertThat(str(root),
-        is("LogicalProject(DEPTNO=[$7])\n"
-            + "  LogicalTableScan(table=[[scott, EMP]])\n"));
+    final String expected = "LogicalProject(DEPTNO=[$7])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(root, hasTree(expected));
   }
 
   @Test public void testIntersect() {
@@ -1086,13 +1085,14 @@ public class RelBuilderTest {
             .project(builder.field("EMPNO"))
             .intersect(false)
             .build();
-    assertThat(str(root),
-        is("LogicalIntersect(all=[false])\n"
-            + "  LogicalProject(DEPTNO=[$0])\n"
-            + "    LogicalTableScan(table=[[scott, DEPT]])\n"
-            + "  LogicalProject(EMPNO=[$0])\n"
-            + "    LogicalFilter(condition=[=($7, 20)])\n"
-            + "      LogicalTableScan(table=[[scott, EMP]])\n"));
+    final String expected = ""
+        + "LogicalIntersect(all=[false])\n"
+        + "  LogicalProject(DEPTNO=[$0])\n"
+        + "    LogicalTableScan(table=[[scott, DEPT]])\n"
+        + "  LogicalProject(EMPNO=[$0])\n"
+        + "    LogicalFilter(condition=[=($7, 20)])\n"
+        + "      LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(root, hasTree(expected));
   }
 
   @Test public void testIntersect3() {
@@ -1112,14 +1112,15 @@ public class RelBuilderTest {
             .project(builder.field("DEPTNO"))
             .intersect(true, 3)
             .build();
-    assertThat(str(root),
-        is("LogicalIntersect(all=[true])\n"
-            + "  LogicalProject(DEPTNO=[$0])\n"
-            + "    LogicalTableScan(table=[[scott, DEPT]])\n"
-            + "  LogicalProject(EMPNO=[$0])\n"
-            + "    LogicalTableScan(table=[[scott, EMP]])\n"
-            + "  LogicalProject(DEPTNO=[$7])\n"
-            + "    LogicalTableScan(table=[[scott, EMP]])\n"));
+    final String expected = ""
+        + "LogicalIntersect(all=[true])\n"
+        + "  LogicalProject(DEPTNO=[$0])\n"
+        + "    LogicalTableScan(table=[[scott, DEPT]])\n"
+        + "  LogicalProject(EMPNO=[$0])\n"
+        + "    LogicalTableScan(table=[[scott, EMP]])\n"
+        + "  LogicalProject(DEPTNO=[$7])\n"
+        + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(root, hasTree(expected));
   }
 
   @Test public void testExcept() {
@@ -1140,13 +1141,14 @@ public class RelBuilderTest {
             .project(builder.field("EMPNO"))
             .minus(false)
             .build();
-    assertThat(str(root),
-        is("LogicalMinus(all=[false])\n"
-            + "  LogicalProject(DEPTNO=[$0])\n"
-            + "    LogicalTableScan(table=[[scott, DEPT]])\n"
-            + "  LogicalProject(EMPNO=[$0])\n"
-            + "    LogicalFilter(condition=[=($7, 20)])\n"
-            + "      LogicalTableScan(table=[[scott, EMP]])\n"));
+    final String expected = ""
+        + "LogicalMinus(all=[false])\n"
+        + "  LogicalProject(DEPTNO=[$0])\n"
+        + "    LogicalTableScan(table=[[scott, DEPT]])\n"
+        + "  LogicalProject(EMPNO=[$0])\n"
+        + "    LogicalFilter(condition=[=($7, 20)])\n"
+        + "      LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(root, hasTree(expected));
   }
 
   @Test public void testJoin() {
@@ -1171,7 +1173,7 @@ public class RelBuilderTest {
         + "  LogicalFilter(condition=[IS NULL($6)])\n"
         + "    LogicalTableScan(table=[[scott, EMP]])\n"
         + "  LogicalTableScan(table=[[scott, DEPT]])\n";
-    assertThat(str(root), is(expected));
+    assertThat(root, hasTree(expected));
   }
 
   /** Same as {@link #testJoin} using USING. */
@@ -1190,7 +1192,7 @@ public class RelBuilderTest {
         + "  LogicalFilter(condition=[IS NULL($6)])\n"
         + "    LogicalTableScan(table=[[scott, EMP]])\n"
         + "  LogicalTableScan(table=[[scott, DEPT]])\n";
-    assertThat(str(root2), is(expected));
+    assertThat(root2, hasTree(expected));
   }
 
   @Test public void testJoin2() {
@@ -1219,7 +1221,7 @@ public class RelBuilderTest {
         + "LogicalJoin(condition=[AND(=($7, $8), =($0, 123))], joinType=[left])\n"
         + "  LogicalTableScan(table=[[scott, EMP]])\n"
         + "  LogicalTableScan(table=[[scott, DEPT]])\n";
-    assertThat(str(root), is(expected));
+    assertThat(root, hasTree(expected));
   }
 
   @Test public void testJoinCartesian() {
@@ -1235,7 +1237,7 @@ public class RelBuilderTest {
         "LogicalJoin(condition=[true], joinType=[inner])\n"
             + "  LogicalTableScan(table=[[scott, EMP]])\n"
             + "  LogicalTableScan(table=[[scott, DEPT]])\n";
-    assertThat(str(root), is(expected));
+    assertThat(root, hasTree(expected));
   }
 
   @Test public void testCorrelationFails() {
@@ -1277,7 +1279,7 @@ public class RelBuilderTest {
         + "  LogicalFilter(condition=[=($cor0.SAL, 1000)])\n"
         + "    LogicalFilter(condition=[=($0, $cor0.DEPTNO)])\n"
         + "      LogicalTableScan(table=[[scott, DEPT]])\n";
-    assertThat(str(root), is(expected));
+    assertThat(root, hasTree(expected));
   }
 
   @Test public void testAlias() {
@@ -1302,7 +1304,7 @@ public class RelBuilderTest {
         + "    LogicalJoin(condition=[true], joinType=[left])\n"
         + "      LogicalTableScan(table=[[scott, EMP]])\n"
         + "      LogicalTableScan(table=[[scott, DEPT]])\n";
-    assertThat(str(root), is(expected));
+    assertThat(root, hasTree(expected));
     final RelDataTypeField field = root.getRowType().getFieldList().get(1);
     assertThat(field.getName(), is("DNAME"));
     assertThat(field.getType().isNullable(), is(true));
@@ -1336,7 +1338,7 @@ public class RelBuilderTest {
         + "    LogicalJoin(condition=[true], joinType=[inner])\n"
         + "      LogicalTableScan(table=[[scott, EMP]])\n"
         + "      LogicalTableScan(table=[[scott, DEPT]])\n";
-    assertThat(str(root), is(expected));
+    assertThat(root, hasTree(expected));
   }
 
   @Test public void testAliasSort() {
@@ -1351,7 +1353,7 @@ public class RelBuilderTest {
         + "LogicalProject(EMPNO=[$0])\n"
         + "  LogicalSort(sort0=[$0], dir0=[ASC])\n"
         + "    LogicalTableScan(table=[[scott, EMP]])\n";
-    assertThat(str(root), is(expected));
+    assertThat(root, hasTree(expected));
   }
 
   @Test public void testAliasLimit() {
@@ -1367,7 +1369,7 @@ public class RelBuilderTest {
         + "LogicalProject(EMPNO=[$0])\n"
         + "  LogicalSort(sort0=[$1], dir0=[ASC], offset=[10], fetch=[20])\n"
         + "    LogicalTableScan(table=[[scott, EMP]])\n";
-    assertThat(str(root), is(expected));
+    assertThat(root, hasTree(expected));
   }
 
   /** Test case for
@@ -1386,7 +1388,7 @@ public class RelBuilderTest {
         + "LogicalProject(DEPTNO=[$0])\n"
         + "  LogicalProject(DEPTNO=[$7], $f1=[20])\n"
         + "    LogicalTableScan(table=[[scott, EMP]])\n";
-    assertThat(str(root), is(expected));
+    assertThat(root, hasTree(expected));
   }
 
   @Test public void testAliasAggregate() {
@@ -1407,7 +1409,7 @@ public class RelBuilderTest {
         + "  LogicalAggregate(group=[{0}], agg#0=[SUM($1)])\n"
         + "    LogicalProject(DEPTNO=[$7], $f1=[20])\n"
         + "      LogicalTableScan(table=[[scott, EMP]])\n";
-    assertThat(str(root), is(expected));
+    assertThat(root, hasTree(expected));
   }
 
   /** Tests that a projection retains field names after a join. */
@@ -1432,7 +1434,7 @@ public class RelBuilderTest {
         + "  LogicalJoin(condition=[true], joinType=[inner])\n"
         + "    LogicalTableScan(table=[[scott, EMP]])\n"
         + "    LogicalTableScan(table=[[scott, DEPT]])\n";
-    assertThat(str(root), is(expected));
+    assertThat(root, hasTree(expected));
   }
 
   @Test public void testMultiLevelAlias() {
@@ -1466,7 +1468,7 @@ public class RelBuilderTest {
         + "        LogicalJoin(condition=[true], joinType=[inner])\n"
         + "          LogicalTableScan(table=[[scott, EMP]])\n"
         + "          LogicalTableScan(table=[[scott, DEPT]])\n";
-    assertThat(str(root), is(expected));
+    assertThat(root, hasTree(expected));
   }
 
   @Test public void testUnionAlias() {
@@ -1494,7 +1496,7 @@ public class RelBuilderTest {
         + "      LogicalTableScan(table=[[scott, EMP]])\n"
         + "    LogicalProject(EMPNO=[$0], $f1=[||($1, '-2')])\n"
         + "      LogicalTableScan(table=[[scott, EMP]])\n";
-    assertThat(str(root), is(expected));
+    assertThat(root, hasTree(expected));
   }
 
   /** Test case for
@@ -1525,7 +1527,7 @@ public class RelBuilderTest {
         + "LogicalJoin(condition=[AND(=($7, $8), =($0, 123))], joinType=[left])\n"
         + "  LogicalTableScan(table=[[scott, EMP]])\n"
         + "  LogicalTableScan(table=[[scott, DEPT]])\n";
-    assertThat(str(root), is(expected));
+    assertThat(root, hasTree(expected));
   }
 
   /** As {@link #testAliasPastTop()}. */
@@ -1561,7 +1563,7 @@ public class RelBuilderTest {
         + "    LogicalTableScan(table=[[scott, EMP]])\n"
         + "    LogicalTableScan(table=[[scott, EMP]])\n"
         + "  LogicalTableScan(table=[[scott, DEPT]])\n";
-    assertThat(str(root), is(expected));
+    assertThat(root, hasTree(expected));
   }
 
   @Test public void testEmpty() {
@@ -1577,7 +1579,7 @@ public class RelBuilderTest {
             .build();
     final String expected =
         "LogicalValues(tuples=[[]])\n";
-    assertThat(str(root), is(expected));
+    assertThat(root, hasTree(expected));
     final String expectedType =
         "RecordType(TINYINT NOT NULL DEPTNO, BOOLEAN NOT NULL $f1) NOT NULL";
     assertThat(root.getRowType().getFullTypeString(), is(expectedType));
@@ -1592,7 +1594,7 @@ public class RelBuilderTest {
             .build();
     final String expected =
         "LogicalValues(tuples=[[{ true, 1 }, { false, -50 }]])\n";
-    assertThat(str(root), is(expected));
+    assertThat(root, hasTree(expected));
     final String expectedType =
         "RecordType(BOOLEAN NOT NULL a, INTEGER NOT NULL b) NOT NULL";
     assertThat(root.getRowType().getFullTypeString(), is(expectedType));
@@ -1609,7 +1611,7 @@ public class RelBuilderTest {
             false, null, "longer string").build();
     final String expected =
         "LogicalValues(tuples=[[{ null, 1, 'abc' }, { false, null, 'longer string' }]])\n";
-    assertThat(str(root), is(expected));
+    assertThat(root, hasTree(expected));
     final String expectedType =
         "RecordType(BOOLEAN a, INTEGER expr$1, CHAR(13) CHARACTER SET \"ISO-8859-1\" COLLATE \"ISO-8859-1$en_US$primary\" NOT NULL c) NOT NULL";
     assertThat(root.getRowType().getFullTypeString(), is(expectedType));
@@ -1682,7 +1684,7 @@ public class RelBuilderTest {
         builder.values(rowType, null, null, 1, null).build();
     final String expected =
         "LogicalValues(tuples=[[{ null, null }, { 1, null }]])\n";
-    assertThat(str(root), is(expected));
+    assertThat(root, hasTree(expected));
     final String expectedType =
         "RecordType(BIGINT NOT NULL a, VARCHAR(10) CHARACTER SET \"ISO-8859-1\" COLLATE \"ISO-8859-1$en_US$primary\" NOT NULL a) NOT NULL";
     assertThat(root.getRowType().getFullTypeString(), is(expectedType));
@@ -1701,14 +1703,14 @@ public class RelBuilderTest {
     final String expected =
         "LogicalSort(sort0=[$2], sort1=[$0], dir0=[ASC], dir1=[DESC])\n"
             + "  LogicalTableScan(table=[[scott, EMP]])\n";
-    assertThat(str(root), is(expected));
+    assertThat(root, hasTree(expected));
 
     // same result using ordinals
     final RelNode root2 =
         builder.scan("EMP")
             .sort(2, -1)
             .build();
-    assertThat(str(root2), is(expected));
+    assertThat(root2, hasTree(expected));
   }
 
   /** Test case for
@@ -1725,7 +1727,7 @@ public class RelBuilderTest {
             .sortLimit(0, -1, ImmutableList.<RexNode>of())
             .build();
     final String expected = "LogicalTableScan(table=[[scott, EMP]])\n";
-    assertThat(str(root), is(expected));
+    assertThat(root, hasTree(expected));
   }
 
   @Test public void testSortDuplicate() {
@@ -1746,7 +1748,7 @@ public class RelBuilderTest {
     final String expected = "LogicalSort(sort0=[$0], sort1=[$7], sort2=[$4], "
         + "dir0=[DESC], dir1=[ASC], dir2=[ASC])\n"
         + "  LogicalTableScan(table=[[scott, EMP]])\n";
-    assertThat(str(root), is(expected));
+    assertThat(root, hasTree(expected));
   }
 
   @Test public void testSortByExpression() {
@@ -1767,7 +1769,7 @@ public class RelBuilderTest {
             + "  LogicalSort(sort0=[$1], sort1=[$8], dir0=[DESC-nulls-last], dir1=[ASC-nulls-first])\n"
             + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], $f8=[+($4, $3)])\n"
             + "      LogicalTableScan(table=[[scott, EMP]])\n";
-    assertThat(str(root), is(expected));
+    assertThat(root, hasTree(expected));
   }
 
   @Test public void testLimit() {
@@ -1783,7 +1785,7 @@ public class RelBuilderTest {
     final String expected =
         "LogicalSort(offset=[2], fetch=[10])\n"
             + "  LogicalTableScan(table=[[scott, EMP]])\n";
-    assertThat(str(root), is(expected));
+    assertThat(root, hasTree(expected));
   }
 
   @Test public void testSortLimit() {
@@ -1799,7 +1801,7 @@ public class RelBuilderTest {
     final String expected =
         "LogicalSort(sort0=[$7], dir0=[DESC], fetch=[10])\n"
             + "  LogicalTableScan(table=[[scott, EMP]])\n";
-    assertThat(str(root), is(expected));
+    assertThat(root, hasTree(expected));
   }
 
   @Test public void testSortLimit0() {
@@ -1813,7 +1815,7 @@ public class RelBuilderTest {
             .sortLimit(-1, 0, builder.desc(builder.field("DEPTNO")))
             .build();
     final String expected = "LogicalValues(tuples=[[]])\n";
-    assertThat(str(root), is(expected));
+    assertThat(root, hasTree(expected));
   }
 
   /** Test case for
@@ -1828,7 +1830,7 @@ public class RelBuilderTest {
         // inner sort node
         .limit(0, 1)
         .build();
-    RelNode r = builder.scan("EMP")
+    RelNode root = builder.scan("EMP")
         .sort(0)
         .project(Lists.newArrayList(builder.field(1)),
             Lists.newArrayList("F1"))
@@ -1839,7 +1841,7 @@ public class RelBuilderTest {
     String expected = "LogicalProject(F1=[$1])\n"
         + "  LogicalSort(sort0=[$0], dir0=[ASC], fetch=[1])\n"
         + "    LogicalTableScan(table=[[scott, EMP]])\n";
-    assertThat(str(r), is(expected));
+    assertThat(root, hasTree(expected));
   }
 
   /** Tests that a sort on a field followed by a limit gives the same
@@ -1858,13 +1860,13 @@ public class RelBuilderTest {
     final String expected = ""
         + "LogicalSort(sort0=[$7], dir0=[DESC], fetch=[10])\n"
         + "  LogicalTableScan(table=[[scott, EMP]])\n";
-    assertThat(str(root), is(expected));
+    assertThat(root, hasTree(expected));
 
     final RelNode root2 =
         builder.scan("EMP")
             .sortLimit(-1, 10, builder.desc(builder.field("DEPTNO")))
             .build();
-    assertThat(str(root2), is(expected));
+    assertThat(root2, hasTree(expected));
   }
 
   /** Tests that a sort on an expression followed by a limit gives the same
@@ -1884,7 +1886,7 @@ public class RelBuilderTest {
         + "  LogicalSort(sort0=[$3], dir0=[DESC], offset=[3], fetch=[10])\n"
         + "    LogicalProject(DEPTNO=[$0], DNAME=[$1], LOC=[$2], $f3=[+($0, 1)])\n"
         + "      LogicalTableScan(table=[[scott, DEPT]])\n";
-    assertThat(str(root), is(expected));
+    assertThat(root, hasTree(expected));
 
     final RelNode root2 =
         builder.scan("DEPT")
@@ -1893,7 +1895,7 @@ public class RelBuilderTest {
                     builder.call(SqlStdOperatorTable.PLUS,
                         builder.field("DEPTNO"), builder.literal(1))))
             .build();
-    assertThat(str(root2), is(expected));
+    assertThat(root2, hasTree(expected));
   }
 
   /** Tests {@link org.apache.calcite.tools.RelRunner} for a VALUES query. */
@@ -2046,7 +2048,7 @@ public class RelBuilderTest {
         + ">(PREV(UP.$3, 0), PREV(UP.$3, 1))]], "
         + "inputFields=[[EMPNO, ENAME, JOB, MGR, HIREDATE, SAL, COMM, DEPTNO]])\n"
         + "  LogicalTableScan(table=[[scott, EMP]])\n";
-    assertThat(str(root), is(expected));
+    assertThat(root, hasTree(expected));
   }
 
   @Test public void testFilterCastAny() {
@@ -2063,7 +2065,7 @@ public class RelBuilderTest {
     final String expected = ""
         + "LogicalFilter(condition=[CAST($0):BOOLEAN NOT NULL])\n"
         + "  LogicalTableScan(table=[[scott, EMP]])\n";
-    assertThat(str(root), is(expected));
+    assertThat(root, hasTree(expected));
   }
 }
 

@@ -45,7 +45,6 @@ import org.apache.calcite.tools.Program;
 import org.apache.calcite.tools.Programs;
 import org.apache.calcite.tools.RuleSet;
 import org.apache.calcite.tools.RuleSets;
-import org.apache.calcite.util.Util;
 
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
@@ -55,6 +54,8 @@ import org.junit.Test;
 import java.util.List;
 
 import junit.framework.AssertionFailedError;
+
+import static org.apache.calcite.test.Matchers.isLinux;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
@@ -2406,7 +2407,7 @@ public class RelToSqlConverterTest {
     }
 
     Sql ok(String expectedQuery) {
-      assertThat(exec(), is(expectedQuery));
+      assertThat(exec(), isLinux(expectedQuery));
       return this;
     }
 
@@ -2434,7 +2435,7 @@ public class RelToSqlConverterTest {
         final RelToSqlConverter converter =
             new RelToSqlConverter(dialect);
         final SqlNode sqlNode = converter.visitChild(0, rel).asStatement();
-        return Util.toLinux(sqlNode.toSqlString(dialect).getSql());
+        return sqlNode.toSqlString(dialect).getSql();
       } catch (RuntimeException e) {
         throw e;
       } catch (Exception e) {

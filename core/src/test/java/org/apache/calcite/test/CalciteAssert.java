@@ -101,9 +101,13 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.sql.DataSource;
 
+import static org.apache.calcite.test.Matchers.containsStringLinux;
+import static org.apache.calcite.test.Matchers.isLinux;
+
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.nullValue;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
@@ -242,8 +246,8 @@ public class CalciteAssert {
         if (counter != null) {
           counter.incrementAndGet();
         }
-        String s = Util.toLinux(RelOptUtil.toString(relNode));
-        assertThat(s, containsString(expected));
+        String s = RelOptUtil.toString(relNode);
+        assertThat(s, containsStringLinux(expected));
         return null;
       }
     };
@@ -313,7 +317,7 @@ public class CalciteAssert {
       public Void apply(ResultSet resultSet) {
         try {
           resultSetFormatter.resultSet(resultSet);
-          assertEquals(expected, Util.toLinux(resultSetFormatter.string()));
+          assertThat(resultSetFormatter.string(), isLinux(expected));
           return null;
         } catch (SQLException e) {
           throw new RuntimeException(e);
@@ -333,8 +337,8 @@ public class CalciteAssert {
             throw new AssertionError("expected 1 column");
           }
           final String resultString = resultSet.getString(1);
-          assertEquals(expected,
-              resultString == null ? null : Util.toLinux(resultString));
+          assertThat(resultString,
+              expected == null ? nullValue(String.class) : isLinux(expected));
           return null;
         } catch (SQLException e) {
           throw new RuntimeException(e);
@@ -451,9 +455,9 @@ public class CalciteAssert {
     return new Function<ResultSet, Void>() {
       public Void apply(ResultSet s) {
         try {
-          final String actual = Util.toLinux(CalciteAssert.toString(s));
+          final String actual = CalciteAssert.toString(s);
           for (String st : expected) {
-            assertThat(actual, containsString(st));
+            assertThat(actual, containsStringLinux(st));
           }
           return null;
         } catch (SQLException e) {
