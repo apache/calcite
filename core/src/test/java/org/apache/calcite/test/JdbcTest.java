@@ -134,7 +134,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Properties;
 import java.util.Set;
@@ -1521,9 +1520,10 @@ public class JdbcTest {
                   final BigDecimal bigDecimal = a0.getBigDecimal(1);
                   fail("expected error, got " + bigDecimal);
                 } catch (SQLException e) {
-                  throw new RuntimeException(e);
-                } catch (NoSuchElementException e) {
-                  // ok
+                  assertThat(e.getMessage(),
+                      is("java.util.NoSuchElementException: Expecting cursor "
+                          + "position to be Position.OK, actual "
+                          + "is Position.BEFORE_START"));
                 }
                 try {
                   assertTrue(a0.next());

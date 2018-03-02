@@ -452,13 +452,13 @@ public class CalciteRemoteDriverTest {
   @Test public void testRemoteStatementExecute() throws Exception {
     final Statement statement = remoteConnection.createStatement();
     final boolean status = statement.execute("values (1, 2), (3, 4), (5, 6)");
+    assertThat(status, is(true));
     final ResultSet resultSet = statement.getResultSet();
     int n = 0;
     while (resultSet.next()) {
       ++n;
     }
     assertThat(n, equalTo(3));
-
   }
 
   @Test(expected = SQLException.class)
@@ -468,7 +468,15 @@ public class CalciteRemoteDriverTest {
 
   @Test(expected = SQLException.class)
   public void testAvaticaStatementException() throws Exception {
-    remoteConnection.createStatement().getMoreResults();
+    try (Statement statement = remoteConnection.createStatement()) {
+      statement.setCursorName("foo");
+    }
+  }
+
+  @Test public void testAvaticaStatementGetMoreResults() throws Exception {
+    try (Statement statement = remoteConnection.createStatement()) {
+      assertThat(statement.getMoreResults(), is(false));
+    }
   }
 
   @Test public void testRemoteExecute() throws Exception {
