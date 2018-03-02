@@ -26,13 +26,22 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
+import java.io.InputStream;
+import java.io.Reader;
 import java.math.BigDecimal;
+import java.net.URL;
+import java.sql.Array;
+import java.sql.Blob;
+import java.sql.Clob;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.Date;
+import java.sql.NClob;
+import java.sql.Ref;
 import java.sql.ResultSet;
 import java.sql.SQLDataException;
 import java.sql.SQLException;
+import java.sql.SQLXML;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.sql.Types;
@@ -209,22 +218,22 @@ public class AvaticaResultSetConversionsTest {
   }
 
   /**
-   * Base accessor test helper
+   * Base accessor test helper.
    */
   private static class AccessorTestHelper {
-    protected final int ordinal;
+    protected final Getter g;
 
-    protected AccessorTestHelper(int ordinal) {
-      this.ordinal = ordinal;
+    protected AccessorTestHelper(Getter g) {
+      this.g = g;
     }
 
     public void testGetString(ResultSet resultSet) throws SQLException {
-      resultSet.getString(ordinal);
+      g.getString(resultSet);
     }
 
     public void testGetBoolean(ResultSet resultSet) throws SQLException {
       try {
-        resultSet.getBoolean(ordinal);
+        g.getBoolean(resultSet);
         fail("Was expecting to throw SQLDataException");
       } catch (Exception e) {
         assertThat(e, isA((Class) SQLDataException.class)); // success
@@ -233,7 +242,7 @@ public class AvaticaResultSetConversionsTest {
 
     public void testGetByte(ResultSet resultSet) throws SQLException {
       try {
-        resultSet.getByte(ordinal);
+        g.getByte(resultSet);
         fail("Was expecting to throw SQLDataException");
       } catch (Exception e) {
         assertThat(e, isA((Class) SQLDataException.class)); // success
@@ -242,7 +251,7 @@ public class AvaticaResultSetConversionsTest {
 
     public void testGetShort(ResultSet resultSet) throws SQLException {
       try {
-        resultSet.getShort(ordinal);
+        g.getShort(resultSet);
         fail("Was expecting to throw SQLDataException");
       } catch (Exception e) {
         assertThat(e, isA((Class) SQLDataException.class)); // success
@@ -251,7 +260,7 @@ public class AvaticaResultSetConversionsTest {
 
     public void testGetInt(ResultSet resultSet) throws SQLException {
       try {
-        resultSet.getInt(ordinal);
+        g.getInt(resultSet);
         fail("Was expecting to throw SQLDataException");
       } catch (Exception e) {
         assertThat(e, isA((Class) SQLDataException.class)); // success
@@ -260,7 +269,7 @@ public class AvaticaResultSetConversionsTest {
 
     public void testGetLong(ResultSet resultSet) throws SQLException {
       try {
-        resultSet.getLong(ordinal);
+        g.getLong(resultSet);
         fail("Was expecting to throw SQLDataException");
       } catch (Exception e) {
         assertThat(e, isA((Class) SQLDataException.class)); // success
@@ -269,7 +278,7 @@ public class AvaticaResultSetConversionsTest {
 
     public void testGetFloat(ResultSet resultSet) throws SQLException {
       try {
-        resultSet.getFloat(ordinal);
+        g.getFloat(resultSet);
         fail("Was expecting to throw SQLDataException");
       } catch (Exception e) {
         assertThat(e, isA((Class) SQLDataException.class)); // success
@@ -278,7 +287,7 @@ public class AvaticaResultSetConversionsTest {
 
     public void testGetDouble(ResultSet resultSet) throws SQLException {
       try {
-        resultSet.getDouble(ordinal);
+        g.getDouble(resultSet);
         fail("Was expecting to throw SQLDataException");
       } catch (Exception e) {
         assertThat(e, isA((Class) SQLDataException.class)); // success
@@ -287,7 +296,7 @@ public class AvaticaResultSetConversionsTest {
 
     public void testGetDecimal(ResultSet resultSet) throws SQLException {
       try {
-        resultSet.getBigDecimal(ordinal);
+        g.getBigDecimal(resultSet);
         fail("Was expecting to throw SQLDataException");
       } catch (Exception e) {
         assertThat(e, isA((Class) SQLDataException.class)); // success
@@ -296,7 +305,7 @@ public class AvaticaResultSetConversionsTest {
 
     public void testGetBytes(ResultSet resultSet) throws SQLException {
       try {
-        resultSet.getBytes(ordinal);
+        g.getBytes(resultSet);
         fail("Was expecting to throw SQLDataException");
       } catch (Exception e) {
         assertThat(e, isA((Class) SQLDataException.class)); // success
@@ -305,7 +314,7 @@ public class AvaticaResultSetConversionsTest {
 
     public void testGetAsciiStream(ResultSet resultSet) throws SQLException {
       try {
-        resultSet.getAsciiStream(ordinal);
+        g.getAsciiStream(resultSet);
         fail("Was expecting to throw SQLDataException");
       } catch (Exception e) {
         assertThat(e, isA((Class) SQLDataException.class)); // success
@@ -314,7 +323,7 @@ public class AvaticaResultSetConversionsTest {
 
     public void testGetBinaryStream(ResultSet resultSet) throws SQLException {
       try {
-        resultSet.getBinaryStream(ordinal);
+        g.getBinaryStream(resultSet);
         fail("Was expecting to throw SQLDataException");
       } catch (Exception e) {
         assertThat(e, isA((Class) SQLDataException.class)); // success
@@ -322,12 +331,12 @@ public class AvaticaResultSetConversionsTest {
     }
 
     public void testGetObject(ResultSet resultSet) throws SQLException {
-      resultSet.getObject(ordinal);
+      g.getObject(resultSet);
     }
 
     public void testGetCharacterStream(ResultSet resultSet) throws SQLException {
       try {
-        resultSet.getCharacterStream(ordinal);
+        g.getCharacterStream(resultSet);
         fail("Was expecting to throw SQLDataException");
       } catch (Exception e) {
         assertThat(e, isA((Class) SQLDataException.class)); // success
@@ -336,7 +345,7 @@ public class AvaticaResultSetConversionsTest {
 
     public void testGetObject(ResultSet resultSet, Map<String, Class<?>> map) throws SQLException {
       try {
-        resultSet.getObject(ordinal, map);
+        g.getObject(resultSet, map);
         fail("Was expecting to throw SQLDataException");
       } catch (Exception e) {
         assertThat(e, isA((Class) SQLDataException.class)); // success
@@ -345,7 +354,7 @@ public class AvaticaResultSetConversionsTest {
 
     public void testGetRef(ResultSet resultSet) throws SQLException {
       try {
-        resultSet.getRef(ordinal);
+        g.getRef(resultSet);
         fail("Was expecting to throw SQLDataException");
       } catch (Exception e) {
         assertThat(e, isA((Class) SQLDataException.class)); // success
@@ -354,7 +363,7 @@ public class AvaticaResultSetConversionsTest {
 
     public void testGetBlob(ResultSet resultSet) throws SQLException {
       try {
-        resultSet.getBlob(ordinal);
+        g.getBlob(resultSet);
         fail("Was expecting to throw SQLDataException");
       } catch (Exception e) {
         assertThat(e, isA((Class) SQLDataException.class)); // success
@@ -363,7 +372,7 @@ public class AvaticaResultSetConversionsTest {
 
     public void testGetClob(ResultSet resultSet) throws SQLException {
       try {
-        resultSet.getBlob(ordinal);
+        g.getBlob(resultSet);
         fail("Was expecting to throw SQLDataException");
       } catch (Exception e) {
         assertThat(e, isA((Class) SQLDataException.class)); // success
@@ -372,7 +381,7 @@ public class AvaticaResultSetConversionsTest {
 
     public void testGetArray(ResultSet resultSet) throws SQLException {
       try {
-        resultSet.getArray(ordinal);
+        g.getArray(resultSet);
         fail("Was expecting to throw SQLDataException");
       } catch (Exception e) {
         assertThat(e, isA((Class) SQLDataException.class)); // success
@@ -381,7 +390,7 @@ public class AvaticaResultSetConversionsTest {
 
     public void testGetDate(ResultSet resultSet, Calendar calendar) throws SQLException {
       try {
-        resultSet.getDate(ordinal, calendar);
+        g.getDate(resultSet, calendar);
         fail("Was expecting to throw SQLDataException");
       } catch (Exception e) {
         assertThat(e, isA((Class) SQLDataException.class)); // success
@@ -390,7 +399,7 @@ public class AvaticaResultSetConversionsTest {
 
     public void testGetTime(ResultSet resultSet, Calendar calendar) throws SQLException {
       try {
-        resultSet.getTime(ordinal, calendar);
+        g.getTime(resultSet, calendar);
         fail("Was expecting to throw SQLDataException");
       } catch (Exception e) {
         assertThat(e, isA((Class) SQLDataException.class)); // success
@@ -399,7 +408,7 @@ public class AvaticaResultSetConversionsTest {
 
     public void testGetTimestamp(ResultSet resultSet, Calendar calendar) throws SQLException {
       try {
-        resultSet.getTimestamp(ordinal, calendar);
+        g.getTimestamp(resultSet, calendar);
         fail("Was expecting to throw SQLDataException");
       } catch (Exception e) {
         assertThat(e, isA((Class) SQLDataException.class)); // success
@@ -408,7 +417,7 @@ public class AvaticaResultSetConversionsTest {
 
     public void getURL(ResultSet resultSet) throws SQLException {
       try {
-        resultSet.getURL(ordinal);
+        g.getURL(resultSet);
         fail("Was expecting to throw SQLDataException");
       } catch (Exception e) {
         assertThat(e, isA((Class) SQLDataException.class)); // success
@@ -417,7 +426,7 @@ public class AvaticaResultSetConversionsTest {
 
     public void testGetNClob(ResultSet resultSet) throws SQLException {
       try {
-        resultSet.getNClob(ordinal);
+        g.getNClob(resultSet);
         fail("Was expecting to throw SQLDataException");
       } catch (Exception e) {
         assertThat(e, isA((Class) SQLDataException.class)); // success
@@ -426,7 +435,7 @@ public class AvaticaResultSetConversionsTest {
 
     public void testGetSQLXML(ResultSet resultSet) throws SQLException {
       try {
-        resultSet.getSQLXML(ordinal);
+        g.getSQLXML(resultSet);
         fail("Was expecting to throw SQLDataException");
       } catch (Exception e) {
         assertThat(e, isA((Class) SQLDataException.class)); // success
@@ -435,7 +444,7 @@ public class AvaticaResultSetConversionsTest {
 
     public void testGetNString(ResultSet resultSet) throws SQLException {
       try {
-        resultSet.getNString(ordinal);
+        g.getNString(resultSet);
         fail("Was expecting to throw SQLDataException");
       } catch (Exception e) {
         assertThat(e, isA((Class) SQLDataException.class)); // success
@@ -444,7 +453,7 @@ public class AvaticaResultSetConversionsTest {
 
     public void testGetNCharacterStream(ResultSet resultSet) throws SQLException {
       try {
-        resultSet.getNCharacterStream(ordinal);
+        g.getNCharacterStream(resultSet);
         fail("Was expecting to throw SQLDataException");
       } catch (Exception e) {
         assertThat(e, isA((Class) SQLDataException.class)); // success
@@ -453,227 +462,227 @@ public class AvaticaResultSetConversionsTest {
   }
 
   /**
-   * accessor test helper for the boolean column
+   * Accessor test helper for boolean column.
    */
-  private static final class BooleanAccesorTestHelper extends AccessorTestHelper {
-    private BooleanAccesorTestHelper(int ordinal) {
-      super(ordinal);
+  private static final class BooleanAccessorTestHelper extends AccessorTestHelper {
+    private BooleanAccessorTestHelper(Getter g) {
+      super(g);
     }
 
     @Override public void testGetString(ResultSet resultSet) throws SQLException {
-      assertEquals("true", resultSet.getString(ordinal));
+      assertEquals("true", g.getString(resultSet));
     }
 
     @Override public void testGetBoolean(ResultSet resultSet) throws SQLException {
-      assertEquals(true, resultSet.getBoolean(ordinal));
+      assertEquals(true, g.getBoolean(resultSet));
     }
 
     @Override public void testGetByte(ResultSet resultSet) throws SQLException {
-      assertEquals((byte) 1, resultSet.getByte(ordinal));
+      assertEquals((byte) 1, g.getByte(resultSet));
     }
 
     @Override public void testGetShort(ResultSet resultSet) throws SQLException {
-      assertEquals((short) 1, resultSet.getShort(ordinal));
+      assertEquals((short) 1, g.getShort(resultSet));
     }
 
     @Override public void testGetInt(ResultSet resultSet) throws SQLException {
-      assertEquals(1, resultSet.getInt(ordinal));
+      assertEquals(1, g.getInt(resultSet));
     }
 
     @Override public void testGetLong(ResultSet resultSet) throws SQLException {
-      assertEquals(1L, resultSet.getLong(ordinal));
+      assertEquals(1L, g.getLong(resultSet));
     }
 
     @Override public void testGetDecimal(ResultSet resultSet) throws SQLException {
-      assertEquals(BigDecimal.ONE, resultSet.getBigDecimal(ordinal));
+      assertEquals(BigDecimal.ONE, g.getBigDecimal(resultSet));
     }
 
     @Override public void testGetFloat(ResultSet resultSet) throws SQLException {
-      assertEquals(1.0f, resultSet.getFloat(ordinal), 0);
+      assertEquals(1.0f, g.getFloat(resultSet), 0);
     }
 
     @Override public void testGetDouble(ResultSet resultSet) throws SQLException {
-      assertEquals(1.0d, resultSet.getDouble(ordinal), 0);
+      assertEquals(1.0d, g.getDouble(resultSet), 0);
     }
   }
 
   /**
-   * accessor test helper for the byte column
+   * Accessor test helper for the byte column.
    */
-  private static final class ByteAccesorTestHelper extends AccessorTestHelper {
-    private ByteAccesorTestHelper(int ordinal) {
-      super(ordinal);
+  private static final class ByteAccessorTestHelper extends AccessorTestHelper {
+    private ByteAccessorTestHelper(Getter g) {
+      super(g);
     }
 
     @Override public void testGetString(ResultSet resultSet) throws SQLException {
-      assertEquals("1", resultSet.getString(ordinal));
+      assertEquals("1", g.getString(resultSet));
     }
 
     @Override public void testGetBoolean(ResultSet resultSet) throws SQLException {
-      assertEquals(true, resultSet.getBoolean(ordinal));
+      assertEquals(true, g.getBoolean(resultSet));
     }
 
     @Override public void testGetByte(ResultSet resultSet) throws SQLException {
-      assertEquals((byte) 1, resultSet.getByte(ordinal));
+      assertEquals((byte) 1, g.getByte(resultSet));
     }
 
     @Override public void testGetShort(ResultSet resultSet) throws SQLException {
-      assertEquals((short) 1, resultSet.getShort(ordinal));
+      assertEquals((short) 1, g.getShort(resultSet));
     }
 
     @Override public void testGetInt(ResultSet resultSet) throws SQLException {
-      assertEquals(1, resultSet.getInt(ordinal));
+      assertEquals(1, g.getInt(resultSet));
     }
 
     @Override public void testGetLong(ResultSet resultSet) throws SQLException {
-      assertEquals(1L, resultSet.getLong(ordinal));
+      assertEquals(1L, g.getLong(resultSet));
     }
 
     @Override public void testGetDecimal(ResultSet resultSet) throws SQLException {
-      assertEquals(BigDecimal.ONE, resultSet.getBigDecimal(ordinal));
+      assertEquals(BigDecimal.ONE, g.getBigDecimal(resultSet));
     }
 
     @Override public void testGetFloat(ResultSet resultSet) throws SQLException {
-      assertEquals(1.0f, resultSet.getFloat(ordinal), 0);
+      assertEquals(1.0f, g.getFloat(resultSet), 0);
     }
 
     @Override public void testGetDouble(ResultSet resultSet) throws SQLException {
-      assertEquals(1.0d, resultSet.getDouble(ordinal), 0);
+      assertEquals(1.0d, g.getDouble(resultSet), 0);
     }
   }
 
   /**
-   * accessor test helper for the short column
+   * Accessor test helper for the short column.
    */
   private static final class ShortAccessorTestHelper extends AccessorTestHelper {
-    private ShortAccessorTestHelper(int ordinal) {
-      super(ordinal);
+    private ShortAccessorTestHelper(Getter g) {
+      super(g);
     }
 
     @Override public void testGetString(ResultSet resultSet) throws SQLException {
-      assertEquals("2", resultSet.getString(ordinal));
+      assertEquals("2", g.getString(resultSet));
     }
 
     @Override public void testGetBoolean(ResultSet resultSet) throws SQLException {
-      assertEquals(true, resultSet.getBoolean(ordinal));
+      assertEquals(true, g.getBoolean(resultSet));
     }
 
     @Override public void testGetByte(ResultSet resultSet) throws SQLException {
-      assertEquals((byte) 2, resultSet.getByte(ordinal));
+      assertEquals((byte) 2, g.getByte(resultSet));
     }
 
     @Override public void testGetShort(ResultSet resultSet) throws SQLException {
-      assertEquals((short) 2, resultSet.getShort(ordinal));
+      assertEquals((short) 2, g.getShort(resultSet));
     }
 
     @Override public void testGetInt(ResultSet resultSet) throws SQLException {
-      assertEquals(2, resultSet.getInt(ordinal));
+      assertEquals(2, g.getInt(resultSet));
     }
 
     @Override public void testGetLong(ResultSet resultSet) throws SQLException {
-      assertEquals(2L, resultSet.getLong(ordinal));
+      assertEquals(2L, g.getLong(resultSet));
     }
 
     @Override public void testGetDecimal(ResultSet resultSet) throws SQLException {
-      assertEquals(new BigDecimal(2), resultSet.getBigDecimal(ordinal));
+      assertEquals(new BigDecimal(2), g.getBigDecimal(resultSet));
     }
 
     @Override public void testGetFloat(ResultSet resultSet) throws SQLException {
-      assertEquals(2.0f, resultSet.getFloat(ordinal), 0);
+      assertEquals(2.0f, g.getFloat(resultSet), 0);
     }
 
     @Override public void testGetDouble(ResultSet resultSet) throws SQLException {
-      assertEquals(2.0d, resultSet.getDouble(ordinal), 0);
+      assertEquals(2.0d, g.getDouble(resultSet), 0);
     }
   }
 
   /**
-   * accessor test helper for the int column
+   * Accessor test helper for the int column.
    */
   private static final class IntAccessorTestHelper extends AccessorTestHelper {
-    private IntAccessorTestHelper(int ordinal) {
-      super(ordinal);
+    private IntAccessorTestHelper(Getter g) {
+      super(g);
     }
 
     @Override public void testGetString(ResultSet resultSet) throws SQLException {
-      assertEquals("3", resultSet.getString(ordinal));
+      assertEquals("3", g.getString(resultSet));
     }
 
     @Override public void testGetBoolean(ResultSet resultSet) throws SQLException {
-      assertEquals(true, resultSet.getBoolean(ordinal));
+      assertEquals(true, g.getBoolean(resultSet));
     }
 
     @Override public void testGetByte(ResultSet resultSet) throws SQLException {
-      assertEquals((byte) 3, resultSet.getByte(ordinal));
+      assertEquals((byte) 3, g.getByte(resultSet));
     }
 
     @Override public void testGetShort(ResultSet resultSet) throws SQLException {
-      assertEquals((short) 3, resultSet.getShort(ordinal));
+      assertEquals((short) 3, g.getShort(resultSet));
     }
 
     @Override public void testGetInt(ResultSet resultSet) throws SQLException {
-      assertEquals(3, resultSet.getInt(ordinal));
+      assertEquals(3, g.getInt(resultSet));
     }
 
     @Override public void testGetLong(ResultSet resultSet) throws SQLException {
-      assertEquals(3L, resultSet.getLong(ordinal));
+      assertEquals(3L, g.getLong(resultSet));
     }
 
     @Override public void testGetDecimal(ResultSet resultSet) throws SQLException {
-      assertEquals(new BigDecimal(3), resultSet.getBigDecimal(ordinal));
+      assertEquals(new BigDecimal(3), g.getBigDecimal(resultSet));
     }
 
     @Override public void testGetFloat(ResultSet resultSet) throws SQLException {
-      assertEquals(3.0f, resultSet.getFloat(ordinal), 0);
+      assertEquals(3.0f, g.getFloat(resultSet), 0);
     }
 
     @Override public void testGetDouble(ResultSet resultSet) throws SQLException {
-      assertEquals(3.0d, resultSet.getDouble(ordinal), 0);
+      assertEquals(3.0d, g.getDouble(resultSet), 0);
     }
   }
 
   /**
-   * accessor test helper for the long column
+   * Accessor test helper for the long column.
    */
   private static final class LongAccessorTestHelper extends AccessorTestHelper {
-    private LongAccessorTestHelper(int ordinal) {
-      super(ordinal);
+    private LongAccessorTestHelper(Getter g) {
+      super(g);
     }
 
     @Override public void testGetString(ResultSet resultSet) throws SQLException {
-      assertEquals("4", resultSet.getString(ordinal));
+      assertEquals("4", g.getString(resultSet));
     }
 
     @Override public void testGetBoolean(ResultSet resultSet) throws SQLException {
-      assertEquals(true, resultSet.getBoolean(ordinal));
+      assertEquals(true, g.getBoolean(resultSet));
     }
 
     @Override public void testGetByte(ResultSet resultSet) throws SQLException {
-      assertEquals((byte) 4, resultSet.getByte(ordinal));
+      assertEquals((byte) 4, g.getByte(resultSet));
     }
 
     @Override public void testGetShort(ResultSet resultSet) throws SQLException {
-      assertEquals((short) 4, resultSet.getShort(ordinal));
+      assertEquals((short) 4, g.getShort(resultSet));
     }
 
     @Override public void testGetInt(ResultSet resultSet) throws SQLException {
-      assertEquals(4, resultSet.getInt(ordinal));
+      assertEquals(4, g.getInt(resultSet));
     }
 
     @Override public void testGetLong(ResultSet resultSet) throws SQLException {
-      assertEquals(4L, resultSet.getLong(ordinal));
+      assertEquals(4L, g.getLong(resultSet));
     }
 
     @Override public void testGetDecimal(ResultSet resultSet) throws SQLException {
-      assertEquals(new BigDecimal(4), resultSet.getBigDecimal(ordinal));
+      assertEquals(new BigDecimal(4), g.getBigDecimal(resultSet));
     }
 
     @Override public void testGetFloat(ResultSet resultSet) throws SQLException {
-      assertEquals(4.0f, resultSet.getFloat(ordinal), 0);
+      assertEquals(4.0f, g.getFloat(resultSet), 0);
     }
 
     @Override public void testGetDouble(ResultSet resultSet) throws SQLException {
-      assertEquals(4.0d, resultSet.getDouble(ordinal), 0);
+      assertEquals(4.0d, g.getDouble(resultSet), 0);
     }
   }
 
@@ -681,126 +690,126 @@ public class AvaticaResultSetConversionsTest {
    * accessor test helper for the float column
    */
   private static final class FloatAccessorTestHelper extends AccessorTestHelper {
-    private FloatAccessorTestHelper(int ordinal) {
-      super(ordinal);
+    private FloatAccessorTestHelper(Getter g) {
+      super(g);
     }
 
     @Override public void testGetString(ResultSet resultSet) throws SQLException {
-      assertEquals("5.0", resultSet.getString(ordinal));
+      assertEquals("5.0", g.getString(resultSet));
     }
 
     @Override public void testGetBoolean(ResultSet resultSet) throws SQLException {
-      assertEquals(true, resultSet.getBoolean(ordinal));
+      assertEquals(true, g.getBoolean(resultSet));
     }
 
     @Override public void testGetByte(ResultSet resultSet) throws SQLException {
-      assertEquals((byte) 5, resultSet.getByte(ordinal));
+      assertEquals((byte) 5, g.getByte(resultSet));
     }
 
     @Override public void testGetShort(ResultSet resultSet) throws SQLException {
-      assertEquals((short) 5, resultSet.getShort(ordinal));
+      assertEquals((short) 5, g.getShort(resultSet));
     }
 
     @Override public void testGetInt(ResultSet resultSet) throws SQLException {
-      assertEquals(5, resultSet.getInt(ordinal));
+      assertEquals(5, g.getInt(resultSet));
     }
 
     @Override public void testGetLong(ResultSet resultSet) throws SQLException {
-      assertEquals(5L, resultSet.getLong(ordinal));
+      assertEquals(5L, g.getLong(resultSet));
     }
 
     @Override public void testGetDecimal(ResultSet resultSet) throws SQLException {
-      assertEquals(new BigDecimal(5).setScale(1), resultSet.getBigDecimal(ordinal));
+      assertEquals(new BigDecimal(5).setScale(1), g.getBigDecimal(resultSet));
     }
 
     @Override public void testGetFloat(ResultSet resultSet) throws SQLException {
-      assertEquals(5.0f, resultSet.getFloat(ordinal), 0);
+      assertEquals(5.0f, g.getFloat(resultSet), 0);
     }
 
     @Override public void testGetDouble(ResultSet resultSet) throws SQLException {
-      assertEquals(5.0d, resultSet.getDouble(ordinal), 0);
+      assertEquals(5.0d, g.getDouble(resultSet), 0);
     }
   }
 
   /**
-   * accessor test helper for the double column
+   * Accessor test helper for the double column.
    */
   private static final class DoubleAccessorTestHelper extends AccessorTestHelper {
-    private DoubleAccessorTestHelper(int ordinal) {
-      super(ordinal);
+    private DoubleAccessorTestHelper(Getter g) {
+      super(g);
     }
 
     @Override public void testGetString(ResultSet resultSet) throws SQLException {
-      assertEquals("6.0", resultSet.getString(ordinal));
+      assertEquals("6.0", g.getString(resultSet));
     }
 
     @Override public void testGetBoolean(ResultSet resultSet) throws SQLException {
-      assertEquals(true, resultSet.getBoolean(ordinal));
+      assertEquals(true, g.getBoolean(resultSet));
     }
 
     @Override public void testGetByte(ResultSet resultSet) throws SQLException {
-      assertEquals((byte) 6, resultSet.getByte(ordinal));
+      assertEquals((byte) 6, g.getByte(resultSet));
     }
 
     @Override public void testGetShort(ResultSet resultSet) throws SQLException {
-      assertEquals((short) 6, resultSet.getShort(ordinal));
+      assertEquals((short) 6, g.getShort(resultSet));
     }
 
     @Override public void testGetInt(ResultSet resultSet) throws SQLException {
-      assertEquals(6, resultSet.getInt(ordinal));
+      assertEquals(6, g.getInt(resultSet));
     }
 
     @Override public void testGetLong(ResultSet resultSet) throws SQLException {
-      assertEquals(6L, resultSet.getLong(ordinal));
+      assertEquals(6L, g.getLong(resultSet));
     }
 
     @Override public void testGetDecimal(ResultSet resultSet) throws SQLException {
-      assertEquals(new BigDecimal(6).setScale(1), resultSet.getBigDecimal(ordinal));
+      assertEquals(new BigDecimal(6).setScale(1), g.getBigDecimal(resultSet));
     }
 
     @Override public void testGetFloat(ResultSet resultSet) throws SQLException {
-      assertEquals(6.0f, resultSet.getFloat(ordinal), 0);
+      assertEquals(6.0f, g.getFloat(resultSet), 0);
     }
 
     @Override public void testGetDouble(ResultSet resultSet) throws SQLException {
-      assertEquals(6.0d, resultSet.getDouble(ordinal), 0);
+      assertEquals(6.0d, g.getDouble(resultSet), 0);
     }
   }
 
   /**
-   * accessor test helper for the date column
+   * Accessor test helper for the date column.
    */
   private static final class DateAccessorTestHelper extends AccessorTestHelper {
-    private DateAccessorTestHelper(int ordinal) {
-      super(ordinal);
+    private DateAccessorTestHelper(Getter g) {
+      super(g);
     }
 
     @Override public void testGetString(ResultSet resultSet) throws SQLException {
-      assertEquals("2016-10-10", resultSet.getString(ordinal));
+      assertEquals("2016-10-10", g.getString(resultSet));
     }
 
     @Override public void testGetBoolean(ResultSet resultSet) throws SQLException {
-      assertEquals(true, resultSet.getBoolean(ordinal));
+      assertEquals(true, g.getBoolean(resultSet));
     }
 
     @Override public void testGetByte(ResultSet resultSet) throws SQLException {
-      assertEquals((byte) -68, resultSet.getByte(ordinal));
+      assertEquals((byte) -68, g.getByte(resultSet));
     }
 
     @Override public void testGetShort(ResultSet resultSet) throws SQLException {
-      assertEquals((short) 17084, resultSet.getShort(ordinal));
+      assertEquals((short) 17084, g.getShort(resultSet));
     }
 
     @Override public void testGetInt(ResultSet resultSet) throws SQLException {
-      assertEquals(17084, resultSet.getInt(ordinal));
+      assertEquals(17084, g.getInt(resultSet));
     }
 
     @Override public void testGetLong(ResultSet resultSet) throws SQLException {
-      assertEquals(17084, resultSet.getLong(ordinal));
+      assertEquals(17084, g.getLong(resultSet));
     }
 
     @Override public void testGetDate(ResultSet resultSet, Calendar calendar) throws SQLException {
-      assertEquals(new Date(1476130718123L), resultSet.getDate(ordinal, calendar));
+      assertEquals(new Date(1476130718123L), g.getDate(resultSet, calendar));
     }
   }
 
@@ -808,36 +817,36 @@ public class AvaticaResultSetConversionsTest {
    * accessor test helper for the time column
    */
   private static final class TimeAccessorTestHelper extends AccessorTestHelper {
-    private TimeAccessorTestHelper(int ordinal) {
-      super(ordinal);
+    private TimeAccessorTestHelper(Getter g) {
+      super(g);
     }
 
     @Override public void testGetString(ResultSet resultSet) throws SQLException {
-      assertEquals("20:18:38", resultSet.getString(ordinal));
+      assertEquals("20:18:38", g.getString(resultSet));
     }
 
     @Override public void testGetBoolean(ResultSet resultSet) throws SQLException {
-      assertEquals(true, resultSet.getBoolean(ordinal));
+      assertEquals(true, g.getBoolean(resultSet));
     }
 
     @Override public void testGetByte(ResultSet resultSet) throws SQLException {
-      assertEquals((byte) -85, resultSet.getByte(ordinal));
+      assertEquals((byte) -85, g.getByte(resultSet));
     }
 
     @Override public void testGetShort(ResultSet resultSet) throws SQLException {
-      assertEquals((short) -20053, resultSet.getShort(ordinal));
+      assertEquals((short) -20053, g.getShort(resultSet));
     }
 
     @Override public void testGetInt(ResultSet resultSet) throws SQLException {
-      assertEquals(73118123, resultSet.getInt(ordinal));
+      assertEquals(73118123, g.getInt(resultSet));
     }
 
     @Override public void testGetLong(ResultSet resultSet) throws SQLException {
-      assertEquals(73118123, resultSet.getLong(ordinal));
+      assertEquals(73118123, g.getLong(resultSet));
     }
 
     @Override public void testGetTime(ResultSet resultSet, Calendar calendar) throws SQLException {
-      assertEquals(new Time(1476130718123L), resultSet.getTime(ordinal, calendar));
+      assertEquals(new Time(1476130718123L), g.getTime(resultSet, calendar));
     }
   }
 
@@ -845,47 +854,47 @@ public class AvaticaResultSetConversionsTest {
    * accessor test helper for the timestamp column
    */
   private static final class TimestampAccessorTestHelper extends AccessorTestHelper {
-    private TimestampAccessorTestHelper(int ordinal) {
-      super(ordinal);
+    private TimestampAccessorTestHelper(Getter g) {
+      super(g);
     }
 
     @Override public void testGetString(ResultSet resultSet) throws SQLException {
-      assertEquals("2016-10-10 20:18:38", resultSet.getString(ordinal));
+      assertEquals("2016-10-10 20:18:38", g.getString(resultSet));
     }
 
     @Override public void testGetBoolean(ResultSet resultSet) throws SQLException {
-      assertEquals(true, resultSet.getBoolean(ordinal));
+      assertEquals(true, g.getBoolean(resultSet));
     }
 
     @Override public void testGetByte(ResultSet resultSet) throws SQLException {
-      assertEquals((byte) -85, resultSet.getByte(ordinal));
+      assertEquals((byte) -85, g.getByte(resultSet));
     }
 
     @Override public void testGetShort(ResultSet resultSet) throws SQLException {
-      assertEquals((short) 16811, resultSet.getShort(ordinal));
+      assertEquals((short) 16811, g.getShort(resultSet));
     }
 
     @Override public void testGetInt(ResultSet resultSet) throws SQLException {
-      assertEquals(-1338031701, resultSet.getInt(ordinal));
+      assertEquals(-1338031701, g.getInt(resultSet));
     }
 
     @Override public void testGetLong(ResultSet resultSet) throws SQLException {
-      assertEquals(1476130718123L, resultSet.getLong(ordinal));
+      assertEquals(1476130718123L, g.getLong(resultSet));
     }
 
     @Override public void testGetDate(ResultSet resultSet, Calendar calendar) throws SQLException {
-      assertEquals(new Date(1476130718123L), resultSet.getDate(ordinal, calendar));
+      assertEquals(new Date(1476130718123L), g.getDate(resultSet, calendar));
     }
 
     @Override public void testGetTime(ResultSet resultSet, Calendar calendar) throws SQLException {
       // how come both are different? DST...
-      //assertEquals(new Time(1476130718123L), resultSet.getTime(ordinal, calendar));
-      assertEquals(new Time(73118123L), resultSet.getTime(ordinal, calendar));
+      //assertEquals(new Time(1476130718123L), g.getTime(label, calendar));
+      assertEquals(new Time(73118123L), g.getTime(resultSet, calendar));
     }
 
     @Override public void testGetTimestamp(ResultSet resultSet, Calendar calendar)
         throws SQLException {
-      assertEquals(new Timestamp(1476130718123L), resultSet.getTimestamp(ordinal, calendar));
+      assertEquals(new Timestamp(1476130718123L), g.getTimestamp(resultSet, calendar));
     }
   }
 
@@ -893,12 +902,12 @@ public class AvaticaResultSetConversionsTest {
    * accessor test helper for the string column
    */
   private static final class StringAccessorTestHelper extends AccessorTestHelper {
-    private StringAccessorTestHelper(int ordinal) {
-      super(ordinal);
+    private StringAccessorTestHelper(Getter g) {
+      super(g);
     }
 
     @Override public void testGetString(ResultSet resultSet) throws SQLException {
-      assertEquals("testvalue", resultSet.getString(ordinal));
+      assertEquals("testvalue", g.getString(resultSet));
     }
   }
 
@@ -930,18 +939,29 @@ public class AvaticaResultSetConversionsTest {
 
   @Parameters
   public static Collection<AccessorTestHelper> data() {
-    return Arrays.<AccessorTestHelper>asList(
-        new BooleanAccesorTestHelper(1),
-        new ByteAccesorTestHelper(2),
-        new ShortAccessorTestHelper(3),
-        new IntAccessorTestHelper(4),
-        new LongAccessorTestHelper(5),
-        new FloatAccessorTestHelper(6),
-        new DoubleAccessorTestHelper(7),
-        new StringAccessorTestHelper(8),
-        new DateAccessorTestHelper(9),
-        new TimeAccessorTestHelper(10),
-        new TimestampAccessorTestHelper(11));
+    return Arrays.asList(
+        new BooleanAccessorTestHelper(new OrdinalGetter(1)),
+        new BooleanAccessorTestHelper(new LabelGetter("bool")),
+        new ByteAccessorTestHelper(new OrdinalGetter(2)),
+        new ByteAccessorTestHelper(new LabelGetter("byte")),
+        new ShortAccessorTestHelper(new OrdinalGetter(3)),
+        new ShortAccessorTestHelper(new LabelGetter("short")),
+        new IntAccessorTestHelper(new OrdinalGetter(4)),
+        new IntAccessorTestHelper(new LabelGetter("int")),
+        new LongAccessorTestHelper(new OrdinalGetter(5)),
+        new LongAccessorTestHelper(new LabelGetter("long")),
+        new FloatAccessorTestHelper(new OrdinalGetter(6)),
+        new FloatAccessorTestHelper(new LabelGetter("float")),
+        new DoubleAccessorTestHelper(new OrdinalGetter(7)),
+        new DoubleAccessorTestHelper(new LabelGetter("double")),
+        new StringAccessorTestHelper(new OrdinalGetter(8)),
+        new StringAccessorTestHelper(new LabelGetter("string")),
+        new DateAccessorTestHelper(new OrdinalGetter(9)),
+        new DateAccessorTestHelper(new LabelGetter("date")),
+        new TimeAccessorTestHelper(new OrdinalGetter(10)),
+        new TimeAccessorTestHelper(new LabelGetter("time")),
+        new TimestampAccessorTestHelper(new OrdinalGetter(11)),
+        new TimestampAccessorTestHelper(new LabelGetter("timestamp")));
   }
 
   private final AccessorTestHelper testHelper;
@@ -1083,6 +1103,303 @@ public class AvaticaResultSetConversionsTest {
   @Test
   public void testGetNCharacterStream() throws SQLException {
     testHelper.testGetNCharacterStream(resultSet);
+  }
+
+  /** Retrieves a value from a particular column of a result set, in
+   * whatever type the caller chooses. */
+  interface Getter {
+    byte getByte(ResultSet r) throws SQLException;
+    short getShort(ResultSet r) throws SQLException;
+    int getInt(ResultSet r) throws SQLException;
+    long getLong(ResultSet r) throws SQLException;
+    float getFloat(ResultSet r) throws SQLException;
+    double getDouble(ResultSet r) throws SQLException;
+    BigDecimal getBigDecimal(ResultSet r) throws SQLException;
+    boolean getBoolean(ResultSet r) throws SQLException;
+    Date getDate(ResultSet r) throws SQLException;
+    Date getDate(ResultSet r, Calendar c) throws SQLException;
+    Time getTime(ResultSet r) throws SQLException;
+    Time getTime(ResultSet r, Calendar c) throws SQLException;
+    Timestamp getTimestamp(ResultSet r) throws SQLException;
+    Timestamp getTimestamp(ResultSet r, Calendar c) throws SQLException;
+    String getString(ResultSet r) throws SQLException;
+    String getNString(ResultSet r) throws SQLException;
+    byte[] getBytes(ResultSet r) throws SQLException;
+    InputStream getAsciiStream(ResultSet r) throws SQLException;
+    InputStream getBinaryStream(ResultSet r) throws SQLException;
+    Object getCharacterStream(ResultSet r) throws SQLException;
+    Object getNCharacterStream(ResultSet r) throws SQLException;
+    Object getObject(ResultSet r) throws SQLException;
+    Object getObject(ResultSet r, Map<String, Class<?>> map) throws SQLException;
+    Object getRef(ResultSet r) throws SQLException;
+    Object getBlob(ResultSet r) throws SQLException;
+    Object getClob(ResultSet r) throws SQLException;
+    Object getNClob(ResultSet r) throws SQLException;
+    Object getURL(ResultSet r) throws SQLException;
+    Object getSQLXML(ResultSet r) throws SQLException;
+    Object getArray(ResultSet r) throws SQLException;
+  }
+
+  /** Retrieves the value of a column in a result set, addressing by column
+   * label. */
+  static class OrdinalGetter implements Getter {
+    final int ordinal;
+
+    OrdinalGetter(int ordinal) {
+      this.ordinal = ordinal;
+    }
+
+    public byte getByte(ResultSet r) throws SQLException {
+      return r.getByte(ordinal);
+    }
+
+    public short getShort(ResultSet r) throws SQLException {
+      return r.getShort(ordinal);
+    }
+
+    public int getInt(ResultSet r) throws SQLException {
+      return r.getInt(ordinal);
+    }
+
+    public long getLong(ResultSet r) throws SQLException {
+      return r.getLong(ordinal);
+    }
+
+    public float getFloat(ResultSet r) throws SQLException {
+      return r.getFloat(ordinal);
+    }
+
+    public double getDouble(ResultSet r) throws SQLException {
+      return r.getDouble(ordinal);
+    }
+
+    public BigDecimal getBigDecimal(ResultSet r) throws SQLException {
+      return r.getBigDecimal(ordinal);
+    }
+
+    public boolean getBoolean(ResultSet r) throws SQLException {
+      return r.getBoolean(ordinal);
+    }
+
+    public Date getDate(ResultSet r) throws SQLException {
+      return r.getDate(ordinal);
+    }
+
+    public Date getDate(ResultSet r, Calendar c) throws SQLException {
+      return r.getDate(ordinal, c);
+    }
+
+    public Time getTime(ResultSet r) throws SQLException {
+      return r.getTime(ordinal);
+    }
+
+    public Time getTime(ResultSet r, Calendar c) throws SQLException {
+      return r.getTime(ordinal, c);
+    }
+
+    public Timestamp getTimestamp(ResultSet r) throws SQLException {
+      return r.getTimestamp(ordinal);
+    }
+
+    public Timestamp getTimestamp(ResultSet r, Calendar c) throws SQLException {
+      return r.getTimestamp(ordinal, c);
+    }
+
+    public String getString(ResultSet r) throws SQLException {
+      return r.getString(ordinal);
+    }
+
+    public String getNString(ResultSet r) throws SQLException {
+      return r.getNString(ordinal);
+    }
+
+    public byte[] getBytes(ResultSet r) throws SQLException {
+      return r.getBytes(ordinal);
+    }
+
+    public InputStream getAsciiStream(ResultSet r) throws SQLException {
+      return r.getAsciiStream(ordinal);
+    }
+
+    public InputStream getBinaryStream(ResultSet r) throws SQLException {
+      return r.getBinaryStream(ordinal);
+    }
+
+    public Object getCharacterStream(ResultSet r) throws SQLException {
+      return r.getCharacterStream(ordinal);
+    }
+
+    public Object getNCharacterStream(ResultSet r) throws SQLException {
+      return r.getNCharacterStream(ordinal);
+    }
+
+    public Object getObject(ResultSet r) throws SQLException {
+      return r.getObject(ordinal);
+    }
+
+    public Object getObject(ResultSet r, Map<String, Class<?>> map)
+        throws SQLException {
+      return r.getObject(ordinal, map);
+    }
+
+    public Object getRef(ResultSet r) throws SQLException {
+      return r.getRef(ordinal);
+    }
+
+    public Object getBlob(ResultSet r) throws SQLException {
+      return r.getBlob(ordinal);
+    }
+
+    public Object getClob(ResultSet r) throws SQLException {
+      return r.getClob(ordinal);
+    }
+
+    public Object getNClob(ResultSet r) throws SQLException {
+      return r.getNClob(ordinal);
+    }
+
+    public Object getURL(ResultSet r) throws SQLException {
+      return r.getURL(ordinal);
+    }
+
+    public Object getSQLXML(ResultSet r) throws SQLException {
+      return r.getSQLXML(ordinal);
+    }
+
+    public Object getArray(ResultSet r) throws SQLException {
+      return r.getArray(ordinal);
+    }
+  }
+
+  /** Retrieves the value of a column in a result set, addressing by column
+   * label. */
+  static class LabelGetter implements Getter {
+    final String label;
+
+    LabelGetter(String label) {
+      this.label = label;
+    }
+
+    public byte getByte(ResultSet r) throws SQLException {
+      return r.getByte(label);
+    }
+
+    public short getShort(ResultSet r) throws SQLException {
+      return r.getShort(label);
+    }
+
+    public int getInt(ResultSet r) throws SQLException {
+      return r.getInt(label);
+    }
+
+    public long getLong(ResultSet r) throws SQLException {
+      return r.getLong(label);
+    }
+
+    public float getFloat(ResultSet r) throws SQLException {
+      return r.getFloat(label);
+    }
+
+    public double getDouble(ResultSet r) throws SQLException {
+      return r.getDouble(label);
+    }
+
+    public BigDecimal getBigDecimal(ResultSet r) throws SQLException {
+      return r.getBigDecimal(label);
+    }
+
+    public boolean getBoolean(ResultSet r) throws SQLException {
+      return r.getBoolean(label);
+    }
+
+    public Date getDate(ResultSet r) throws SQLException {
+      return r.getDate(label);
+    }
+
+    public Date getDate(ResultSet r, Calendar c) throws SQLException {
+      return r.getDate(label, c);
+    }
+
+    public Time getTime(ResultSet r) throws SQLException {
+      return r.getTime(label);
+    }
+
+    public Time getTime(ResultSet r, Calendar c) throws SQLException {
+      return r.getTime(label, c);
+    }
+
+    public Timestamp getTimestamp(ResultSet r) throws SQLException {
+      return r.getTimestamp(label);
+    }
+
+    public Timestamp getTimestamp(ResultSet r, Calendar c) throws SQLException {
+      return r.getTimestamp(label, c);
+    }
+
+    public String getString(ResultSet r) throws SQLException {
+      return r.getString(label);
+    }
+
+    public String getNString(ResultSet r) throws SQLException {
+      return r.getNString(label);
+    }
+
+    public byte[] getBytes(ResultSet r) throws SQLException {
+      return r.getBytes(label);
+    }
+
+    public InputStream getAsciiStream(ResultSet r) throws SQLException {
+      return r.getAsciiStream(label);
+    }
+
+    public InputStream getBinaryStream(ResultSet r) throws SQLException {
+      return r.getBinaryStream(label);
+    }
+
+    public Reader getCharacterStream(ResultSet r) throws SQLException {
+      return r.getCharacterStream(label);
+    }
+
+    public Reader getNCharacterStream(ResultSet r) throws SQLException {
+      return r.getNCharacterStream(label);
+    }
+
+    public Object getObject(ResultSet r) throws SQLException {
+      return r.getObject(label);
+    }
+
+    public Object getObject(ResultSet r, Map<String, Class<?>> map)
+        throws SQLException {
+      return r.getObject(label, map);
+    }
+
+    public Ref getRef(ResultSet r) throws SQLException {
+      return r.getRef(label);
+    }
+
+    public Blob getBlob(ResultSet r) throws SQLException {
+      return r.getBlob(label);
+    }
+
+    public Clob getClob(ResultSet r) throws SQLException {
+      return r.getClob(label);
+    }
+
+    public NClob getNClob(ResultSet r) throws SQLException {
+      return r.getNClob(label);
+    }
+
+    public URL getURL(ResultSet r) throws SQLException {
+      return r.getURL(label);
+    }
+
+    public SQLXML getSQLXML(ResultSet r) throws SQLException {
+      return r.getSQLXML(label);
+    }
+
+    public Array getArray(ResultSet r) throws SQLException {
+      return r.getArray(label);
+    }
   }
 }
 

@@ -68,8 +68,6 @@ public class AvaticaResultSet extends ArrayFactoryImpl implements ResultSet {
   private int concurrency;
   private int holdability;
   private boolean closed;
-  private long timeoutMillis;
-  private Cursor timeoutCursor;
 
   /** Creates an {@link AvaticaResultSet}. */
   public AvaticaResultSet(AvaticaStatement statement,
@@ -135,7 +133,7 @@ public class AvaticaResultSet extends ArrayFactoryImpl implements ResultSet {
    * @throws SQLException if there is no column with that label
    */
   private Cursor.Accessor getAccessor(String columnLabel) throws SQLException {
-    return getAccessor(findColumn0(columnLabel));
+    return accessorList.get(findColumn0(columnLabel));
   }
 
   public void close() {
@@ -146,36 +144,6 @@ public class AvaticaResultSet extends ArrayFactoryImpl implements ResultSet {
       cursor.close();
     }
     statement.onResultSetClose(this);
-    // TODO: for timeout, see IteratorResultSet.close
-/*
-        if (timeoutCursor != null) {
-            final long noTimeout = 0;
-            timeoutCursor.close(noTimeout);
-            timeoutCursor = null;
-        }
-*/
-  }
-
-  /**
-   * Sets the timeout that this result set will wait for a row from the
-   * underlying iterator.
-   *
-   * <p>Not a JDBC method.
-   *
-   * @param timeoutMillis Timeout in milliseconds. Must be greater than zero.
-   */
-  void setTimeout(long timeoutMillis) {
-    assert timeoutMillis > 0;
-    assert this.timeoutMillis == 0;
-    this.timeoutMillis = timeoutMillis;
-    assert timeoutCursor == null;
-    timeoutCursor = cursor;
-
-    // TODO: for timeout, see IteratorResultSet.setTimeout
-/*
-        timeoutCursor = new TimeoutCursor(timeoutMillis);
-        timeoutCursor.start();
-*/
   }
 
   /** Sets the flag to indicate that cancel has been requested.
