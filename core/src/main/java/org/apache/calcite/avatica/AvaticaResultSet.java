@@ -674,7 +674,7 @@ public class AvaticaResultSet extends ArrayFactoryImpl implements ResultSet {
     throw statement.connection.helper.unsupported();
   }
 
-  public AvaticaStatement getStatement() {
+  public AvaticaStatement getStatement() throws SQLException {
     return statement;
   }
 
