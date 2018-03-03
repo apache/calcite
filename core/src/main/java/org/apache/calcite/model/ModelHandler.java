@@ -487,13 +487,13 @@ public class ModelHandler {
           } else {
             List<RelDataType> typeList = new ArrayList<>(jsonType.attributes.size());
             List<String> fieldNameList = new ArrayList<>(jsonType.attributes.size());
-            for (JsonAttribute jsonAttribute : jsonType.attributes) {
-              RelDataType relDataType = a0.createSqlType(SqlTypeName.get(jsonAttribute.type));
+            for (JsonTypeAttribute jsonTypeAttribute : jsonType.attributes) {
+              RelDataType relDataType = a0.createSqlType(SqlTypeName.get(jsonTypeAttribute.type));
               if (relDataType == null) {
-                relDataType = currentSchema().getType(jsonAttribute.type).apply(a0);
+                relDataType = currentSchema().getType(jsonTypeAttribute.type).apply(a0);
               }
               typeList.add(relDataType);
-              fieldNameList.add(jsonAttribute.name);
+              fieldNameList.add(jsonTypeAttribute.name);
             }
             return a0.createStructType(typeList, fieldNameList);
           }

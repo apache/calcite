@@ -14,36 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.calcite.sql.ddl;
 
-package org.apache.calcite.model;
-
-import java.util.ArrayList;
-import java.util.List;
+import org.apache.calcite.sql.SqlIdentifier;
+import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.SqlSpecialOperator;
+import org.apache.calcite.sql.parser.SqlParserPos;
 
 /**
- * Type schema element.
- *
- * <p>Occurs within {@link JsonMapSchema#tables}.
- *
- * @see JsonRoot Description of schema elements
+ * Parse tree for {@code DROP TYPE} statement.
  */
-public class JsonType {
-  /** Name of this type.
-   *
-   * <p>Required.
-   */
-  public String name;
+public class SqlDropType extends SqlDropObject {
+  private static final SqlOperator OPERATOR =
+      new SqlSpecialOperator("DROP TYPE", SqlKind.DROP_TYPE);
 
-  /** Type if this is not a struct.
-   */
-  public String type;
-
-  /** Definition of the attributes of this type.
-   */
-  public final List<JsonTypeAttribute> attributes = new ArrayList<>();
-
-  public void accept(ModelHandler handler) {
-    handler.visit(this);
+  SqlDropType(SqlParserPos pos, boolean ifExists, SqlIdentifier name) {
+    super(OPERATOR, pos, ifExists, name);
   }
 }
-// End JsonType.java
+// End SqlDropType.java

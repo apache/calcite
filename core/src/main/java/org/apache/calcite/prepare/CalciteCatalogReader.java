@@ -62,7 +62,6 @@ import org.apache.calcite.sql.validate.SqlUserDefinedFunction;
 import org.apache.calcite.sql.validate.SqlUserDefinedTableFunction;
 import org.apache.calcite.sql.validate.SqlUserDefinedTableMacro;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
-import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
 import com.google.common.base.Preconditions;
@@ -174,9 +173,7 @@ public class CalciteCatalogReader implements Prepare.CatalogReader {
   }
 
   public RelDataType getNamedType(SqlIdentifier typeName) {
-    Pair<CalciteSchema, String> pair =
-        Util.schema(getRootSchema(), ImmutableList.<String>of(), typeName);
-    CalciteSchema.TypeEntry typeEntry = pair.left.getType(pair.right, false);
+    CalciteSchema.TypeEntry typeEntry = SqlValidatorUtil.getTypeEntry(getRootSchema(), typeName);
     if (typeEntry != null) {
       return typeEntry.getType().apply(typeFactory);
     } else {

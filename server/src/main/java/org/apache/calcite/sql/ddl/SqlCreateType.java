@@ -35,10 +35,8 @@ import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.util.ImmutableNullableList;
 import org.apache.calcite.util.Pair;
-import org.apache.calcite.util.Util;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -64,26 +62,8 @@ public class SqlCreateType extends SqlCreate
     this.dataType = dataType; // may be null
   }
 
-  /** Returns the schema in which to create an object. */
-  Pair<CalciteSchema, String> schema(CalciteSchema schema, SqlIdentifier id) {
-    final String name;
-    final List<String> path;
-    if (id.isSimple()) {
-      path = ImmutableList.of();
-      name = id.getSimple();
-    } else {
-      path = Util.skipLast(id.names);
-      name = Util.last(id.names);
-    }
-    for (String p : path) {
-      schema = schema.getSubSchema(p, true);
-    }
-    return Pair.of(schema, name);
-  }
-
   @Override public void execute(CalcitePrepare.Context context) {
-    final Pair<CalciteSchema, String> pair =
-        Util.schema(context.getMutableRootSchema(), context.getDefaultSchemaPath(), name);
+    final Pair<CalciteSchema, String> pair = SqlDdlNodes.schema(context, true, name);
     pair.left.add(pair.right, new RelProtoDataType() {
       @Override public RelDataType apply(RelDataTypeFactory a0) {
         if (dataType != null) {
@@ -96,7 +76,7 @@ public class SqlCreateType extends SqlCreate
                     RelDataType relDataType = typeSpec.deriveType(a0);
                     if (relDataType == null) {
                       Pair<CalciteSchema, String> pair =
-                          schema(context.getRootSchema(), typeSpec.getTypeName());
+                          SqlDdlNodes.schema(context, false, typeSpec.getTypeName());
                       relDataType = pair.left.getType(pair.right, false).getType().apply(a0);
                     }
                     return relDataType;

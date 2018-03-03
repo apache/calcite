@@ -532,6 +532,11 @@ public abstract class CalciteSchema {
     return true;
   }
 
+  @Experimental
+  public boolean removeType(String name) {
+    return typeMap.remove(name) != null;
+  }
+
   /**
    * Entry in a schema, such as a table or sub-schema.
    *

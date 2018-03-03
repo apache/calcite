@@ -1025,6 +1025,9 @@ public enum SqlKind {
   /** {@code CREATE TYPE} DDL statement. */
   CREATE_TYPE,
 
+  /** {@code DROP TYPE} DDL statement. */
+  DROP_TYPE,
+
   /** DDL statement not handled above.
    *
    * <p><b>Note to other projects</b>: If you are extending Calcite's SQL parser
@@ -1091,7 +1094,7 @@ public enum SqlKind {
           DROP_MATERIALIZED_VIEW,
           CREATE_SEQUENCE, ALTER_SEQUENCE, DROP_SEQUENCE,
           CREATE_INDEX, ALTER_INDEX, DROP_INDEX,
-          SET_OPTION, CREATE_TYPE, OTHER_DDL);
+          SET_OPTION, CREATE_TYPE, DROP_TYPE, OTHER_DDL);
 
   /**
    * Category consisting of query node types.

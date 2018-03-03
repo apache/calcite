@@ -19,7 +19,7 @@ package org.apache.calcite.model;
 /**
  * JSON object representing a type attribute.
  */
-public class JsonAttribute {
+public class JsonTypeAttribute {
   /** Name of this attribute.
    *
    * <p>Required.
@@ -32,4 +32,4 @@ public class JsonAttribute {
    */
   public String type;
 }
-// End JsonAttribute.java
+// End JsonTypeAttribute.java

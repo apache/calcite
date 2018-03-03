@@ -33,7 +33,6 @@ import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.util.ImmutableNullableList;
 import org.apache.calcite.util.Pair;
-import org.apache.calcite.util.Util;
 
 import com.google.common.base.Preconditions;
 
@@ -77,7 +76,7 @@ public class SqlCreateSchema extends SqlCreate
 
   public void execute(CalcitePrepare.Context context) {
     final Pair<CalciteSchema, String> pair =
-        Util.schema(context.getMutableRootSchema(), context.getDefaultSchemaPath(), name);
+        SqlDdlNodes.schema(context, true, name);
     final SchemaPlus subSchema0 = pair.left.plus().getSubSchema(pair.right);
     if (subSchema0 != null) {
       if (!getReplace() && !ifNotExists) {

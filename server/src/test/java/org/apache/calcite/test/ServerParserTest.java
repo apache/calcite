@@ -221,6 +221,11 @@ public class ServerParserTest extends SqlParserTest {
         .ok("DROP FOREIGN SCHEMA `X`");
   }
 
+  @Test public void testDropType() {
+    sql("drop type X")
+        .ok("DROP TYPE `X`");
+  }
+
   @Test public void testDropTable() {
     sql("drop table x")
         .ok("DROP TABLE `X`");

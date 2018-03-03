@@ -320,6 +320,17 @@ SqlDrop SqlDropSchema(Span s, boolean replace) :
     }
 }
 
+SqlDrop SqlDropType(Span s, boolean replace) :
+{
+    final boolean ifExists;
+    final SqlIdentifier id;
+}
+{
+    <TYPE> ifExists = IfExistsOpt() id = CompoundIdentifier() {
+        return SqlDdlNodes.dropType(s.end(this), ifExists, id);
+    }
+}
+
 SqlDrop SqlDropTable(Span s, boolean replace) :
 {
     final boolean ifExists;

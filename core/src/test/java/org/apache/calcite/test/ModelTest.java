@@ -16,7 +16,6 @@
  */
 package org.apache.calcite.test;
 
-import org.apache.calcite.model.JsonAttribute;
 import org.apache.calcite.model.JsonColumn;
 import org.apache.calcite.model.JsonCustomSchema;
 import org.apache.calcite.model.JsonCustomTable;
@@ -25,6 +24,7 @@ import org.apache.calcite.model.JsonLattice;
 import org.apache.calcite.model.JsonMapSchema;
 import org.apache.calcite.model.JsonRoot;
 import org.apache.calcite.model.JsonTable;
+import org.apache.calcite.model.JsonTypeAttribute;
 import org.apache.calcite.model.JsonView;
 
 import com.fasterxml.jackson.core.JsonParser;
@@ -100,7 +100,7 @@ public class ModelTest {
     final JsonMapSchema schema = (JsonMapSchema) root.schemas.get(0);
     assertEquals("FoodMart", schema.name);
     assertEquals(1, schema.types.size());
-    final List<JsonAttribute> attributes = schema.types.get(0).attributes;
+    final List<JsonTypeAttribute> attributes = schema.types.get(0).attributes;
     assertEquals("f1", attributes.get(0).name);
     assertEquals("BIGINT", attributes.get(0).type);
     assertEquals(2, schema.tables.size());

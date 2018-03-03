@@ -955,10 +955,17 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         "INTEGER NOT NULL MULTISET NOT NULL");
   }
 
+  @Test public void testCastRegisteredType() {
+    checkExpFails("cast(123 as customBigInt)",
+        "class org.apache.calcite.sql.SqlIdentifier: CUSTOMBIGINT");
+    checkExpType("cast(123 as sales.customBigInt)", "BIGINT NOT NULL");
+    checkExpType("cast(123 as catalog.sales.customBigInt)", "BIGINT NOT NULL");
+  }
+
   @Test public void testCastFails() {
     checkExpFails(
         "cast('foo' as ^bar^)",
-        "java.lang.UnsupportedOperationException: class org.apache.calcite.sql.SqlIdentifier: BAR");
+        "class org.apache.calcite.sql.SqlIdentifier: BAR");
     checkWholeExpFails(
         "cast(multiset[1] as integer)",
         "(?s).*Cast function cannot convert value of type INTEGER MULTISET to type INTEGER");

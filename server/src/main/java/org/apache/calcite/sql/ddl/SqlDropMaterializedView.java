@@ -28,7 +28,6 @@ import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSpecialOperator;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.util.Pair;
-import org.apache.calcite.util.Util;
 
 /**
  * Parse tree for {@code DROP MATERIALIZED VIEW} statement.
@@ -45,8 +44,7 @@ public class SqlDropMaterializedView extends SqlDropObject {
   }
 
   @Override public void execute(CalcitePrepare.Context context) {
-    final Pair<CalciteSchema, String> pair =
-        Util.schema(context.getMutableRootSchema(), context.getDefaultSchemaPath(), name);
+    final Pair<CalciteSchema, String> pair = SqlDdlNodes.schema(context, true, name);
     final Table table = pair.left.plus().getTable(pair.right);
     if (table != null) {
       // Materialized view exists.

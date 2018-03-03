@@ -17,6 +17,7 @@
 package org.apache.calcite.sql.ddl;
 
 import org.apache.calcite.jdbc.CalcitePrepare;
+import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.rel.RelRoot;
 import org.apache.calcite.schema.ColumnStrategy;
 import org.apache.calcite.sql.SqlCall;
@@ -38,6 +39,7 @@ import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.Planner;
 import org.apache.calcite.tools.RelConversionException;
 import org.apache.calcite.tools.ValidationException;
+import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
@@ -46,6 +48,7 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.util.List;
 
 /**
  * Utilities concerning {@link SqlNode} for DDL.
@@ -102,6 +105,11 @@ public class SqlDdlNodes {
     return new SqlDropSchema(pos, foreign, ifExists, name);
   }
 
+  /** Creates a DROP TYPE. */
+  public static SqlDropType dropType(SqlParserPos pos, boolean ifExists, SqlIdentifier name) {
+    return new SqlDropType(pos, ifExists, name);
+  }
+
   /** Creates a DROP TABLE. */
   public static SqlDropTable dropTable(SqlParserPos pos, boolean ifExists,
       SqlIdentifier name) {
@@ -152,6 +160,26 @@ public class SqlDdlNodes {
         return PRIMARY;
       }
     };
+  }
+
+  /** Returns the schema in which to create an object. */
+  static Pair<CalciteSchema, String> schema(CalcitePrepare.Context context,
+                                            boolean mutable, SqlIdentifier id) {
+    final String name;
+    final List<String> path;
+    if (id.isSimple()) {
+      path = context.getDefaultSchemaPath();
+      name = id.getSimple();
+    } else {
+      path = Util.skipLast(id.names);
+      name = Util.last(id.names);
+    }
+    CalciteSchema schema = mutable ? context.getMutableRootSchema()
+        : context.getRootSchema();
+    for (String p : path) {
+      schema = schema.getSubSchema(p, true);
+    }
+    return Pair.of(schema, name);
   }
 
   /** Wraps a query to rename its columns. Used by CREATE VIEW and CREATE
