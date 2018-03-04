@@ -8171,4 +8171,41 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testJoinPushTransitivePredicatesRule">
+      <Resource name="sql">
+      <![CDATA[select d.deptno from sales.dept d
+order by cast(d.deptno as integer) offset 1]]>
+      </Resource>
+      <Resource name="planBefore">
+          <![CDATA[
+LogicalProject(DEPTNO=[$7])
+  LogicalJoin(condition=[AND(=($7, $10), =($7, $9))], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalAggregate(group=[{0, 1}])
+      LogicalProject(DEPTNO=[$0], DEPTNO0=[$1])
+        LogicalProject(DEPTNO=[$7], DEPTNO0=[$9])
+          LogicalJoin(condition=[OR(=($7, $9), =($7, 4))], joinType=[inner])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+            LogicalAggregate(group=[{0}])
+              LogicalProject(DEPTNO=[$7])
+                LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+      </Resource>
+      <Resource name="planAfter">
+          <![CDATA[
+LogicalProject(DEPTNO=[$7])
+  LogicalJoin(condition=[AND(=($7, $10), =($7, $9))], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalFilter(condition=[OR(=($1, $0), =($1, 4))])
+      LogicalAggregate(group=[{0, 1}])
+        LogicalProject(DEPTNO=[$0], DEPTNO0=[$1])
+          LogicalProject(DEPTNO=[$7], DEPTNO0=[$9])
+            LogicalJoin(condition=[OR(=($7, $9), =($7, 4))], joinType=[inner])
+              LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+              LogicalAggregate(group=[{0}])
+                LogicalProject(DEPTNO=[$7])
+                  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+      </Resource>
+    </TestCase>
 </Root>

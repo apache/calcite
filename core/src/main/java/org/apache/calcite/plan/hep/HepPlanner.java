@@ -368,7 +368,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
       for (RelOptRule rule : rules) {
         HepRelVertex newVertex =
             applyRule(rule, vertex, forceConversions);
-        if (newVertex != null) {
+        if (newVertex != null && newVertex != vertex) {
           ++nMatches;
           if (nMatches >= currentProgram.matchLimit) {
             return nMatches;
@@ -413,7 +413,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
         for (RelOptRule rule : rules) {
           HepRelVertex newVertex =
               applyRule(rule, vertex, forceConversions);
-          if (newVertex != null) {
+          if (newVertex != null && newVertex != vertex) {
             ++nMatches;
             if (nMatches >= currentProgram.matchLimit) {
               return;

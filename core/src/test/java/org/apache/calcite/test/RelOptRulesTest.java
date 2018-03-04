@@ -3750,6 +3750,24 @@ public class RelOptRulesTest extends RelOptTestBase {
     sql(sql).with(program).withContext(context).check();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2200">[CALCITE-2200]
+   * Infinite loop for JoinPushTransitivePredicatesRule</a>. */
+  @Test public void testJoinPushTransitivePredicatesRule() {
+    HepProgram preProgram = HepProgram.builder().build();
+
+    HepProgram hepProgramAfter = HepProgram.builder()
+        .addRuleInstance(JoinPushTransitivePredicatesRule.INSTANCE)
+        .build();
+    HepPlanner hepPlanner = new HepPlanner(hepProgramAfter);
+
+    final String sql = "select d.deptno from sales.emp d where d.deptno\n"
+        + "IN (select e.deptno from sales.emp e "
+        + "where e.deptno = d.deptno or e.deptno = 4)";
+    TesterImpl tester = new TesterImpl(getDiffRepos(), true, false, true, false, null, null);
+    checkPlanning(tester, preProgram, hepPlanner, sql);
+  }
+
 }
 
 // End RelOptRulesTest.java
