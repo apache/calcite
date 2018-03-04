@@ -17,8 +17,6 @@
 package org.apache.calcite.sql.fun;
 
 import org.apache.calcite.avatica.util.TimeUnit;
-import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlAsOperator;
 import org.apache.calcite.sql.SqlBasicCall;
@@ -36,7 +34,6 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNumericLiteral;
 import org.apache.calcite.sql.SqlOperandCountRange;
 import org.apache.calcite.sql.SqlOperator;
-import org.apache.calcite.sql.SqlOperatorBinding;
 import org.apache.calcite.sql.SqlOverOperator;
 import org.apache.calcite.sql.SqlPostfixOperator;
 import org.apache.calcite.sql.SqlPrefixOperator;
@@ -51,7 +48,6 @@ import org.apache.calcite.sql.SqlValuesOperator;
 import org.apache.calcite.sql.SqlWindow;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.type.InferTypes;
-import org.apache.calcite.sql.type.IntervalSqlType;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlOperandCountRanges;
@@ -535,28 +531,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    * Infix datetime plus operator, '<code>DATETIME + INTERVAL</code>'.
    */
   public static final SqlSpecialOperator DATETIME_PLUS =
-      new SqlSpecialOperator("DATETIME_PLUS", SqlKind.PLUS, 40, true, null,
-          InferTypes.FIRST_KNOWN, OperandTypes.PLUS_OPERATOR) {
-        @Override public RelDataType
-        inferReturnType(SqlOperatorBinding opBinding) {
-          final RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
-          final RelDataType leftType = opBinding.getOperandType(0);
-          final IntervalSqlType unitType =
-              (IntervalSqlType) opBinding.getOperandType(1);
-          switch (unitType.getIntervalQualifier().getStartUnit()) {
-          case HOUR:
-          case MINUTE:
-          case SECOND:
-          case MILLISECOND:
-          case MICROSECOND:
-            return typeFactory.createTypeWithNullability(
-                typeFactory.createSqlType(SqlTypeName.TIMESTAMP),
-                leftType.isNullable() || unitType.isNullable());
-          default:
-            return leftType;
-          }
-        }
-      };
+      new SqlDatetimeAdditionOperator();
 
   /**
    * Multiset {@code MEMBER OF}, which returns whether a element belongs to a

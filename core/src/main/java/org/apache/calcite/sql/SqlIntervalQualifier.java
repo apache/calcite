@@ -90,7 +90,8 @@ public class SqlIntervalQualifier extends SqlNode {
   private static final BigDecimal INT_MAX_VALUE_PLUS_ONE =
       BigDecimal.valueOf(Integer.MAX_VALUE).add(BigDecimal.ONE);
 
-  //~ Instance fields --------------------------------------------------------
+  //~ Instance fields ---------------------------
+  // -----------------------------
 
   private final int startPrecision;
   public final TimeUnitRange timeUnitRange;
@@ -202,7 +203,11 @@ public class SqlIntervalQualifier extends SqlNode {
     return startPrecision;
   }
 
-  private boolean useDefaultStartPrecision() {
+  /**
+   * Returns {@code true} if start precision is not specified.
+   */
+
+  public boolean useDefaultStartPrecision() {
     return startPrecision == RelDataType.PRECISION_NOT_SPECIFIED;
   }
 
@@ -250,7 +255,10 @@ public class SqlIntervalQualifier extends SqlNode {
     }
   }
 
-  private boolean useDefaultFractionalSecondPrecision() {
+  /**
+   * Returns {@code true} if fractional second precision is not specified.
+   */
+  public boolean useDefaultFractionalSecondPrecision() {
     return fractionalSecondPrecision == RelDataType.PRECISION_NOT_SPECIFIED;
   }
 
@@ -305,50 +313,8 @@ public class SqlIntervalQualifier extends SqlNode {
       SqlWriter writer,
       int leftPrec,
       int rightPrec) {
-    unparse(RelDataTypeSystem.DEFAULT, writer);
-  }
-
-  public void unparse(RelDataTypeSystem typeSystem, SqlWriter writer) {
-    final String start = timeUnitRange.startUnit.name();
-    final int fractionalSecondPrecision =
-        getFractionalSecondPrecision(typeSystem);
-    final int startPrecision = getStartPrecision(typeSystem);
-    if (timeUnitRange.startUnit == TimeUnit.SECOND) {
-      if (!useDefaultFractionalSecondPrecision()) {
-        final SqlWriter.Frame frame = writer.startFunCall(start);
-        writer.print(startPrecision);
-        writer.sep(",", true);
-        writer.print(getFractionalSecondPrecision(typeSystem));
-        writer.endList(frame);
-      } else if (!useDefaultStartPrecision()) {
-        final SqlWriter.Frame frame = writer.startFunCall(start);
-        writer.print(startPrecision);
-        writer.endList(frame);
-      } else {
-        writer.keyword(start);
-      }
-    } else {
-      if (!useDefaultStartPrecision()) {
-        final SqlWriter.Frame frame = writer.startFunCall(start);
-        writer.print(startPrecision);
-        writer.endList(frame);
-      } else {
-        writer.keyword(start);
-      }
-
-      if (null != timeUnitRange.endUnit) {
-        writer.keyword("TO");
-        final String end = timeUnitRange.endUnit.name();
-        if ((TimeUnit.SECOND == timeUnitRange.endUnit)
-            && (!useDefaultFractionalSecondPrecision())) {
-          final SqlWriter.Frame frame = writer.startFunCall(end);
-          writer.print(fractionalSecondPrecision);
-          writer.endList(frame);
-        } else {
-          writer.keyword(end);
-        }
-      }
-    }
+    writer.getDialect()
+        .unparseSqlIntervalQualifier(writer, this, RelDataTypeSystem.DEFAULT);
   }
 
   /**
