@@ -1099,6 +1099,98 @@ public class RelToSqlConverterTest {
         .ok(expected);
   }
 
+  @Test public void testUnparseSqlIntervalQualifierDb2() {
+    String queryDatePlus = "select  * from \"employee\" where  \"hire_date\" + "
+        + "INTERVAL '19800' SECOND(5) > TIMESTAMP '2005-10-17 00:00:00' ";
+    String expectedDatePlus = "SELECT *\n"
+        + "FROM foodmart.employee AS employee\n"
+        + "WHERE (employee.hire_date + 19800 SECOND)"
+        + " > TIMESTAMP '2005-10-17 00:00:00'";
+
+    sql(queryDatePlus)
+        .withDb2()
+        .ok(expectedDatePlus);
+
+    String queryDateMinus = "select  * from \"employee\" where  \"hire_date\" - "
+        + "INTERVAL '19800' SECOND(5) > TIMESTAMP '2005-10-17 00:00:00' ";
+    String expectedDateMinus = "SELECT *\n"
+        + "FROM foodmart.employee AS employee\n"
+        + "WHERE (employee.hire_date - 19800 SECOND)"
+        + " > TIMESTAMP '2005-10-17 00:00:00'";
+
+    sql(queryDateMinus)
+        .withDb2()
+        .ok(expectedDateMinus);
+  }
+
+  @Test public void testUnparseSqlIntervalQualifierMySql() {
+    final String sql0 = "select  * from \"employee\" where  \"hire_date\" - "
+        + "INTERVAL '19800' SECOND(5) > TIMESTAMP '2005-10-17 00:00:00' ";
+    final String expect0 = "SELECT *\n"
+        + "FROM `foodmart`.`employee`\n"
+        + "WHERE (`hire_date` - INTERVAL '19800' SECOND)"
+        + " > TIMESTAMP '2005-10-17 00:00:00'";
+    sql(sql0).withMysql().ok(expect0);
+
+    final String sql1 = "select  * from \"employee\" where  \"hire_date\" + "
+        + "INTERVAL '10' HOUR > TIMESTAMP '2005-10-17 00:00:00' ";
+    final String expect1 = "SELECT *\n"
+        + "FROM `foodmart`.`employee`\n"
+        + "WHERE (`hire_date` + INTERVAL '10' HOUR)"
+        + " > TIMESTAMP '2005-10-17 00:00:00'";
+    sql(sql1).withMysql().ok(expect1);
+
+    final String sql2 = "select  * from \"employee\" where  \"hire_date\" + "
+        + "INTERVAL '1-2' year to month > TIMESTAMP '2005-10-17 00:00:00' ";
+    final String expect2 = "SELECT *\n"
+        + "FROM `foodmart`.`employee`\n"
+        + "WHERE (`hire_date` + INTERVAL '1-2' YEAR_MONTH)"
+        + " > TIMESTAMP '2005-10-17 00:00:00'";
+    sql(sql2).withMysql().ok(expect2);
+
+    final String sql3 = "select  * from \"employee\" "
+        + "where  \"hire_date\" + INTERVAL '39:12' MINUTE TO SECOND"
+        + " > TIMESTAMP '2005-10-17 00:00:00' ";
+    final String expect3 = "SELECT *\n"
+        + "FROM `foodmart`.`employee`\n"
+        + "WHERE (`hire_date` + INTERVAL '39:12' MINUTE_SECOND)"
+        + " > TIMESTAMP '2005-10-17 00:00:00'";
+    sql(sql3).withMysql().ok(expect3);
+  }
+
+  @Test public void testUnparseSqlIntervalQualifierMsSql() {
+    String queryDatePlus = "select  * from \"employee\" where  \"hire_date\" +"
+        + "INTERVAL '19800' SECOND(5) > TIMESTAMP '2005-10-17 00:00:00' ";
+    String expectedDatePlus = "SELECT *\n"
+        + "FROM [foodmart].[employee]\n"
+        + "WHERE DATEADD(SECOND, 19800, [hire_date]) > '2005-10-17 00:00:00'";
+
+    sql(queryDatePlus)
+        .withMssql()
+        .ok(expectedDatePlus);
+
+    String queryDateMinus = "select  * from \"employee\" where  \"hire_date\" -"
+        + "INTERVAL '19800' SECOND(5) > TIMESTAMP '2005-10-17 00:00:00' ";
+    String expectedDateMinus = "SELECT *\n"
+        + "FROM [foodmart].[employee]\n"
+        + "WHERE DATEADD(SECOND, -19800, [hire_date]) > '2005-10-17 00:00:00'";
+
+    sql(queryDateMinus)
+        .withMssql()
+        .ok(expectedDateMinus);
+
+    String queryDateMinusNegate = "select  * from \"employee\" "
+        + "where  \"hire_date\" -INTERVAL '-19800' SECOND(5)"
+        + " > TIMESTAMP '2005-10-17 00:00:00' ";
+    String expectedDateMinusNegate = "SELECT *\n"
+        + "FROM [foodmart].[employee]\n"
+        + "WHERE DATEADD(SECOND, 19800, [hire_date]) > '2005-10-17 00:00:00'";
+
+    sql(queryDateMinusNegate)
+        .withMssql()
+        .ok(expectedDateMinusNegate);
+  }
+
   @Test public void testFloorMysqlWeek() {
     String query = "SELECT floor(\"hire_date\" TO WEEK) FROM \"employee\"";
     String expected = "SELECT STR_TO_DATE(DATE_FORMAT(`hire_date` , '%x%v-1'), '%x%v-%w')\n"

@@ -72,13 +72,7 @@ public class SqlIntervalLiteral extends SqlLiteral {
       SqlWriter writer,
       int leftPrec,
       int rightPrec) {
-    IntervalValue interval = (IntervalValue) value;
-    writer.keyword("INTERVAL");
-    if (interval.getSign() == -1) {
-      writer.print("-");
-    }
-    writer.literal("'" + value.toString() + "'");
-    writer.keyword(interval.intervalQualifier.toString());
+    writer.getDialect().unparseSqlIntervalLiteral(writer, this, leftPrec, rightPrec);
   }
 
   @SuppressWarnings("deprecation")

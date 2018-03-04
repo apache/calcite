@@ -17,10 +17,12 @@
 package org.apache.calcite.sql;
 
 import org.apache.calcite.avatica.util.DateTimeUtils;
+import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.linq4j.function.Experimental;
 import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.sql.dialect.AnsiSqlDialect;
 import org.apache.calcite.sql.dialect.CalciteSqlDialect;
 import org.apache.calcite.sql.dialect.JethroDataSqlDialect;
@@ -336,6 +338,83 @@ public class SqlDialect {
   public void unparseDateTimeLiteral(SqlWriter writer,
       SqlAbstractDateTimeLiteral literal, int leftPrec, int rightPrec) {
     writer.literal(literal.toString());
+  }
+
+  public void unparseSqlDatetimeArithmetic(SqlWriter writer,
+      SqlCall call, SqlKind sqlKind, int leftPrec, int rightPrec) {
+    final SqlWriter.Frame frame = writer.startList("(", ")");
+    call.operand(0).unparse(writer, leftPrec, rightPrec);
+    writer.sep((SqlKind.PLUS == sqlKind) ? "+" : "-");
+    call.operand(1).unparse(writer, leftPrec, rightPrec);
+    writer.endList(frame);
+    //Only two parameters are present normally
+    //Checking parameter count to prevent errors
+    if (call.getOperandList().size() > 2) {
+      call.operand(2).unparse(writer, leftPrec, rightPrec);
+    }
+  }
+
+  /** Converts an interval qualifier to a SQL string. The default implementation
+   * returns strings such as
+   * <code>INTERVAL '1 2:3:4' DAY(4) TO SECOND(4)</code>. */
+  public void unparseSqlIntervalQualifier(SqlWriter writer,
+      SqlIntervalQualifier qualifier, RelDataTypeSystem typeSystem) {
+    final String start = qualifier.timeUnitRange.startUnit.name();
+    final int fractionalSecondPrecision =
+        qualifier.getFractionalSecondPrecision(typeSystem);
+    final int startPrecision = qualifier.getStartPrecision(typeSystem);
+    if (qualifier.timeUnitRange.startUnit == TimeUnit.SECOND) {
+      if (!qualifier.useDefaultFractionalSecondPrecision()) {
+        final SqlWriter.Frame frame = writer.startFunCall(start);
+        writer.print(startPrecision);
+        writer.sep(",", true);
+        writer.print(qualifier.getFractionalSecondPrecision(typeSystem));
+        writer.endList(frame);
+      } else if (!qualifier.useDefaultStartPrecision()) {
+        final SqlWriter.Frame frame = writer.startFunCall(start);
+        writer.print(startPrecision);
+        writer.endList(frame);
+      } else {
+        writer.keyword(start);
+      }
+    } else {
+      if (!qualifier.useDefaultStartPrecision()) {
+        final SqlWriter.Frame frame = writer.startFunCall(start);
+        writer.print(startPrecision);
+        writer.endList(frame);
+      } else {
+        writer.keyword(start);
+      }
+
+      if (null != qualifier.timeUnitRange.endUnit) {
+        writer.keyword("TO");
+        final String end = qualifier.timeUnitRange.endUnit.name();
+        if ((TimeUnit.SECOND == qualifier.timeUnitRange.endUnit)
+                && (!qualifier.useDefaultFractionalSecondPrecision())) {
+          final SqlWriter.Frame frame = writer.startFunCall(end);
+          writer.print(fractionalSecondPrecision);
+          writer.endList(frame);
+        } else {
+          writer.keyword(end);
+        }
+      }
+    }
+  }
+
+  /** Converts an interval literal to a SQL string. The default implementation
+   * returns strings such as
+   * <code>INTERVAL '1 2:3:4' DAY(4) TO SECOND(4)</code>. */
+  public void unparseSqlIntervalLiteral(SqlWriter writer,
+      SqlIntervalLiteral literal, int leftPrec, int rightPrec) {
+    SqlIntervalLiteral.IntervalValue interval =
+        (SqlIntervalLiteral.IntervalValue) literal.getValue();
+    writer.keyword("INTERVAL");
+    if (interval.getSign() == -1) {
+      writer.print("-");
+    }
+    writer.literal("'" + literal.getValue().toString() + "'");
+    unparseSqlIntervalQualifier(writer, interval.getIntervalQualifier(),
+        RelDataTypeSystem.DEFAULT);
   }
 
   /**
