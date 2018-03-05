@@ -40,13 +40,13 @@ import org.slf4j.Logger;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.Stack;
 
 /**
  * Subset of an equivalence class where all relational expressions have the
@@ -321,17 +321,12 @@ public class RelSubset extends AbstractRelNode {
    */
   void propagateCostImprovements(VolcanoPlanner planner, RelMetadataQuery mq,
       RelNode rel, Set<RelSubset> activeSet) {
-//    for (RelSubset subset : set.subsets) {
-//      if (rel.getTraitSet().satisfies(subset.traitSet)) {
-//        subset.propagateCostImprovements0(planner, mq, rel, activeSet);
-//      }
-//    }
     hierarchicalPropagateImprovement(planner, mq, this, rel, activeSet);
   }
 
   void propagateCostImprovements0(VolcanoPlanner planner, RelMetadataQuery mq,
       RelNode rel, Set<RelSubset> activeSet,
-      Stack<Pair<RelNode, RelSubset>> propagateStack) {
+      ArrayDeque<Pair<RelNode, RelSubset>> propagateQueue) {
     ++timestamp;
 
     if (!activeSet.add(this)) {
@@ -355,7 +350,7 @@ public class RelSubset extends AbstractRelNode {
         planner.ruleQueue.recompute(this);
         for (RelNode parent : getParents()) {
           final RelSubset parentSubset = planner.getSubset(parent);
-          parentSubset.push(parent, propagateStack);
+          parentSubset.push(parent, propagateQueue);
         }
         planner.checkForSatisfiedConverters(set, rel);
       }
@@ -366,57 +361,23 @@ public class RelSubset extends AbstractRelNode {
 
   void hierarchicalPropagateImprovement(VolcanoPlanner planner, RelMetadataQuery mq,
       RelSubset subset, RelNode rel, Set<RelSubset> activeSet) {
-    Stack<Pair<RelNode, RelSubset>> propagateStack = new Stack<>();
-    subset.push(rel, propagateStack);
+    ArrayDeque<Pair<RelNode, RelSubset>> propagateQueue = new ArrayDeque<>();
+    subset.push(rel, propagateQueue);
 
-    while (!propagateStack.empty()) {
-      Pair<RelNode, RelSubset> one = propagateStack.remove(0);
+    while (!propagateQueue.isEmpty()) {
+      Pair<RelNode, RelSubset> first = propagateQueue.remove();
 
-      one.getValue()
-          .propagateCostImprovements0(planner, mq, one.getKey(), activeSet,
-              propagateStack);
+      first.getValue()
+          .propagateCostImprovements0(planner, mq, first.getKey(), activeSet,
+              propagateQueue);
     }
   }
 
-  void push(RelNode rel, Stack<Pair<RelNode, RelSubset>> propagateRelNodes) {
+  void push(RelNode rel, ArrayDeque<Pair<RelNode, RelSubset>> propagateQueue) {
     for (RelSubset subset : set.subsets) {
       if (rel.getTraitSet().satisfies(subset.traitSet)) {
-        propagateRelNodes.push(Pair.of(rel, subset));
+        propagateQueue.add(Pair.of(rel, subset));
       }
-    }
-  }
-
-  void propagateCostImprovements0(VolcanoPlanner planner, RelMetadataQuery mq,
-      RelNode rel, Set<RelSubset> activeSet) {
-    ++timestamp;
-
-    if (!activeSet.add(this)) {
-      // This subset is already in the chain being propagated to. This
-      // means that the graph is cyclic, and therefore the cost of this
-      // relational expression - not this subset - must be infinite.
-      LOGGER.trace("cyclic: {}", this);
-      return;
-    }
-    try {
-      final RelOptCost cost = planner.getCost(rel, mq);
-      if (cost.isLt(bestCost)) {
-        LOGGER.trace("Subset cost improved: subset [{}] cost was {} now {}", this, bestCost, cost);
-
-        bestCost = cost;
-        best = rel;
-
-        // Lower cost means lower importance. Other nodes will change
-        // too, but we'll get to them later.
-        planner.ruleQueue.recompute(this);
-        for (RelNode parent : getParents()) {
-          final RelSubset parentSubset = planner.getSubset(parent);
-          parentSubset.propagateCostImprovements(planner, mq, parent,
-              activeSet);
-        }
-        planner.checkForSatisfiedConverters(set, rel);
-      }
-    } finally {
-      activeSet.remove(this);
     }
   }
 
