@@ -32,6 +32,7 @@ import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.util.Litmus;
+import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.trace.CalciteTrace;
 
@@ -45,6 +46,7 @@ import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.Stack;
 
 /**
  * Subset of an equivalence class where all relational expressions have the
@@ -319,9 +321,67 @@ public class RelSubset extends AbstractRelNode {
    */
   void propagateCostImprovements(VolcanoPlanner planner, RelMetadataQuery mq,
       RelNode rel, Set<RelSubset> activeSet) {
+//    for (RelSubset subset : set.subsets) {
+//      if (rel.getTraitSet().satisfies(subset.traitSet)) {
+//        subset.propagateCostImprovements0(planner, mq, rel, activeSet);
+//      }
+//    }
+    hierarchicalPropagateImprovement(planner, mq, this, rel, activeSet);
+  }
+
+  void propagateCostImprovements0(VolcanoPlanner planner, RelMetadataQuery mq,
+      RelNode rel, Set<RelSubset> activeSet,
+      Stack<Pair<RelNode, RelSubset>> propagateStack) {
+    ++timestamp;
+
+    if (!activeSet.add(this)) {
+      // This subset is already in the chain being propagated to. This
+      // means that the graph is cyclic, and therefore the cost of this
+      // relational expression - not this subset - must be infinite.
+      LOGGER.trace("cyclic: {}", this);
+      return;
+    }
+    try {
+      final RelOptCost cost = planner.getCost(rel, mq);
+      if (cost.isLt(bestCost)) {
+        LOGGER.trace("Subset cost improved: subset [{}] cost was {} now {}",
+            this, bestCost, cost);
+
+        bestCost = cost;
+        best = rel;
+
+        // Lower cost means lower importance. Other nodes will change
+        // too, but we'll get to them later.
+        planner.ruleQueue.recompute(this);
+        for (RelNode parent : getParents()) {
+          final RelSubset parentSubset = planner.getSubset(parent);
+          parentSubset.push(parent, propagateStack);
+        }
+        planner.checkForSatisfiedConverters(set, rel);
+      }
+    } finally {
+      activeSet.remove(this);
+    }
+  }
+
+  void hierarchicalPropagateImprovement(VolcanoPlanner planner, RelMetadataQuery mq,
+      RelSubset subset, RelNode rel, Set<RelSubset> activeSet) {
+    Stack<Pair<RelNode, RelSubset>> propagateStack = new Stack<>();
+    subset.push(rel, propagateStack);
+
+    while (!propagateStack.empty()) {
+      Pair<RelNode, RelSubset> one = propagateStack.remove(0);
+
+      one.getValue()
+          .propagateCostImprovements0(planner, mq, one.getKey(), activeSet,
+              propagateStack);
+    }
+  }
+
+  void push(RelNode rel, Stack<Pair<RelNode, RelSubset>> propagateRelNodes) {
     for (RelSubset subset : set.subsets) {
       if (rel.getTraitSet().satisfies(subset.traitSet)) {
-        subset.propagateCostImprovements0(planner, mq, rel, activeSet);
+        propagateRelNodes.push(Pair.of(rel, subset));
       }
     }
   }
