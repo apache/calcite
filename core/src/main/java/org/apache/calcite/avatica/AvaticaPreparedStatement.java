@@ -334,8 +334,8 @@ public abstract class AvaticaPreparedStatement
       return getSignature().parameters.get(param - 1);
     } catch (IndexOutOfBoundsException e) {
       //noinspection ThrowableResultOfMethodCallIgnored
-      throw connection.helper.toSQLException(
-          connection.helper.createException(
+      throw connection.HELPER.toSQLException(
+          connection.HELPER.createException(
               "parameter ordinal " + param + " out of range"));
     }
   }

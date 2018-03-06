@@ -1064,39 +1064,39 @@ public class AvaticaDatabaseMetaData implements AvaticaSpecificDatabaseMetaData 
   }
 
   public boolean ownUpdatesAreVisible(int type) throws SQLException {
-    throw connection.helper.todo();
+    throw connection.HELPER.todo();
   }
 
   public boolean ownDeletesAreVisible(int type) throws SQLException {
-    throw connection.helper.todo();
+    throw connection.HELPER.todo();
   }
 
   public boolean ownInsertsAreVisible(int type) throws SQLException {
-    throw connection.helper.todo();
+    throw connection.HELPER.todo();
   }
 
   public boolean othersUpdatesAreVisible(int type) throws SQLException {
-    throw connection.helper.todo();
+    throw connection.HELPER.todo();
   }
 
   public boolean othersDeletesAreVisible(int type) throws SQLException {
-    throw connection.helper.todo();
+    throw connection.HELPER.todo();
   }
 
   public boolean othersInsertsAreVisible(int type) throws SQLException {
-    throw connection.helper.todo();
+    throw connection.HELPER.todo();
   }
 
   public boolean updatesAreDetected(int type) throws SQLException {
-    throw connection.helper.todo();
+    throw connection.HELPER.todo();
   }
 
   public boolean deletesAreDetected(int type) throws SQLException {
-    throw connection.helper.todo();
+    throw connection.HELPER.todo();
   }
 
   public boolean insertsAreDetected(int type) throws SQLException {
-    throw connection.helper.todo();
+    throw connection.HELPER.todo();
   }
 
   public boolean supportsBatchUpdates() throws SQLException {
@@ -1239,7 +1239,7 @@ public class AvaticaDatabaseMetaData implements AvaticaSpecificDatabaseMetaData 
 
   public boolean supportsResultSetHoldability(int holdability)
       throws SQLException {
-    throw connection.helper.todo();
+    throw connection.HELPER.todo();
   }
 
   public int getResultSetHoldability() {
@@ -1411,7 +1411,7 @@ public class AvaticaDatabaseMetaData implements AvaticaSpecificDatabaseMetaData 
       return iface.cast(getRemoteAvaticaProperties());
     }
 
-    throw connection.helper.createException(
+    throw connection.HELPER.createException(
         "does not implement '" + iface + "'");
   }
 

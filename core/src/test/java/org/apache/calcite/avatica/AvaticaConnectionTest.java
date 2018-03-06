@@ -20,23 +20,39 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.mockito.Mockito;
 
+import java.sql.SQLException;
 import java.util.Properties;
 
 /**
  * Tests for AvaticaConnection
  */
 public class AvaticaConnectionTest {
+  @Test
+  public void testIsValid() throws SQLException {
+    AvaticaConnection connection = Mockito.mock(AvaticaConnection.class,
+        Mockito.CALLS_REAL_METHODS);
+    try {
+      connection.isValid(-1);
+      Assert.fail("Connection isValid should throw SQLException on negative timeout");
+    } catch (SQLException expected) {
+      Assert.assertEquals("timeout is less than 0", expected.getMessage());
+    }
+
+    Mockito.when(connection.isClosed()).thenReturn(false);
+    Assert.assertTrue(connection.isValid(0));
+
+    Mockito.when(connection.isClosed()).thenReturn(true);
+    Assert.assertFalse(connection.isValid(0));
+  }
 
   @Test
   public void testNumExecuteRetries() {
-    AvaticaConnection statement = Mockito.mock(AvaticaConnection.class);
-
-    Mockito.when(statement.getNumStatementRetries(Mockito.nullable(Properties.class)))
-      .thenCallRealMethod();
+    AvaticaConnection connection = Mockito.mock(AvaticaConnection.class,
+        Mockito.CALLS_REAL_METHODS);
 
     // Bad argument should throw an exception
     try {
-      statement.getNumStatementRetries(null);
+      connection.getNumStatementRetries(null);
       Assert.fail("Calling getNumStatementRetries with a null object should throw an exception");
     } catch (NullPointerException e) {
       // Pass
@@ -45,14 +61,14 @@ public class AvaticaConnectionTest {
     Properties props = new Properties();
 
     // Verify the default value
-    Assert.assertEquals(Long.valueOf(AvaticaConnection.NUM_EXECUTE_RETRIES_DEFAULT).longValue(),
-        statement.getNumStatementRetries(props));
+    Assert.assertEquals(Long.parseLong(AvaticaConnection.NUM_EXECUTE_RETRIES_DEFAULT),
+        connection.getNumStatementRetries(props));
 
     // Set a non-default value
     props.setProperty(AvaticaConnection.NUM_EXECUTE_RETRIES_KEY, "10");
 
     // Verify that we observe that value
-    Assert.assertEquals(10, statement.getNumStatementRetries(props));
+    Assert.assertEquals(10, connection.getNumStatementRetries(props));
   }
 
 }

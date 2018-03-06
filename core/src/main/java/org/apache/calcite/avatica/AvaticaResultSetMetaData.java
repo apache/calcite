@@ -133,7 +133,7 @@ public class AvaticaResultSetMetaData implements ResultSetMetaData {
     if (iface.isInstance(this)) {
       return iface.cast(this);
     }
-    throw statement.connection.helper.createException(
+    throw statement.connection.HELPER.createException(
         "does not implement '" + iface + "'");
   }
 

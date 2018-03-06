@@ -242,6 +242,34 @@ public class RemoteDriverTest {
     assertThat(connection.isClosed(), is(true));
   }
 
+  @Test public void testIsValid() throws Exception {
+    ConnectionSpec.getDatabaseLock().lock();
+    try {
+      final Connection connection = getLocalConnection();
+      try {
+        connection.isValid(-1);
+        fail("Connection isValid should throw SQLException on negative timeout");
+      } catch (SQLException expected) {
+        assertEquals("timeout is less than 0", expected.getMessage());
+      }
+
+      // Check that connection isValid before and during use
+      assertThat(connection.isValid(1), is(true));
+      Statement statement = connection.createStatement();
+      assertTrue(statement.execute("VALUES 1"));
+      assertNotNull(statement.getResultSet());
+      assertThat(connection.isValid(1), is(true));
+      statement.close();
+      assertThat(connection.isValid(1), is(true));
+
+      // Connection should be invalid after being closed
+      connection.close();
+      assertThat(connection.isValid(1), is(false));
+    } finally {
+      ConnectionSpec.getDatabaseLock().unlock();
+    }
+  }
+
   @Test public void testDatabaseProperties() throws Exception {
     ConnectionSpec.getDatabaseLock().lock();
     try {

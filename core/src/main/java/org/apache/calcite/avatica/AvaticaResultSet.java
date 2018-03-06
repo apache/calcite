@@ -364,7 +364,7 @@ public class AvaticaResultSet extends ArrayFactoryImpl implements ResultSet {
   }
 
   public String getCursorName() throws SQLException {
-    throw statement.connection.helper.unsupported();
+    throw statement.connection.HELPER.unsupported();
   }
 
   public ResultSetMetaData getMetaData() throws SQLException {
@@ -410,23 +410,23 @@ public class AvaticaResultSet extends ArrayFactoryImpl implements ResultSet {
   }
 
   public boolean isLast() throws SQLException {
-    throw statement.connection.helper.unsupported();
+    throw statement.connection.HELPER.unsupported();
   }
 
   public void beforeFirst() throws SQLException {
-    throw statement.connection.helper.unsupported();
+    throw statement.connection.HELPER.unsupported();
   }
 
   public void afterLast() throws SQLException {
-    throw statement.connection.helper.unsupported();
+    throw statement.connection.HELPER.unsupported();
   }
 
   public boolean first() throws SQLException {
-    throw statement.connection.helper.unsupported();
+    throw statement.connection.HELPER.unsupported();
   }
 
   public boolean last() throws SQLException {
-    throw statement.connection.helper.unsupported();
+    throw statement.connection.HELPER.unsupported();
   }
 
   public int getRow() throws SQLException {
@@ -434,15 +434,15 @@ public class AvaticaResultSet extends ArrayFactoryImpl implements ResultSet {
   }
 
   public boolean absolute(int row) throws SQLException {
-    throw statement.connection.helper.unsupported();
+    throw statement.connection.HELPER.unsupported();
   }
 
   public boolean relative(int rows) throws SQLException {
-    throw statement.connection.helper.unsupported();
+    throw statement.connection.HELPER.unsupported();
   }
 
   public boolean previous() throws SQLException {
-    throw statement.connection.helper.unsupported();
+    throw statement.connection.HELPER.unsupported();
   }
 
   public void setFetchDirection(int direction) throws SQLException {
@@ -482,196 +482,196 @@ public class AvaticaResultSet extends ArrayFactoryImpl implements ResultSet {
   }
 
   public void updateNull(int columnIndex) throws SQLException {
-    throw statement.connection.helper.unsupported();
+    throw statement.connection.HELPER.unsupported();
   }
 
   public void updateBoolean(int columnIndex, boolean x) throws SQLException {
-    throw statement.connection.helper.unsupported();
+    throw statement.connection.HELPER.unsupported();
   }
 
   public void updateByte(int columnIndex, byte x) throws SQLException {
-    throw statement.connection.helper.unsupported();
+    throw statement.connection.HELPER.unsupported();
   }
 
   public void updateShort(int columnIndex, short x) throws SQLException {
-    throw statement.connection.helper.unsupported();
+    throw statement.connection.HELPER.unsupported();
   }
 
   public void updateInt(int columnIndex, int x) throws SQLException {
-    throw statement.connection.helper.unsupported();
+    throw statement.connection.HELPER.unsupported();
   }
 
   public void updateLong(int columnIndex, long x) throws SQLException {
-    throw statement.connection.helper.unsupported();
+    throw statement.connection.HELPER.unsupported();
   }
 
   public void updateFloat(int columnIndex, float x) throws SQLException {
-    throw statement.connection.helper.unsupported();
+    throw statement.connection.HELPER.unsupported();
   }
 
   public void updateDouble(int columnIndex, double x) throws SQLException {
-    throw statement.connection.helper.unsupported();
+    throw statement.connection.HELPER.unsupported();
   }
 
   public void updateBigDecimal(
       int columnIndex, BigDecimal x) throws SQLException {
-    throw statement.connection.helper.unsupported();
+    throw statement.connection.HELPER.unsupported();
   }
 
   public void updateString(int columnIndex, String x) throws SQLException {
-    throw statement.connection.helper.unsupported();
+    throw statement.connection.HELPER.unsupported();
   }
 
   public void updateBytes(int columnIndex, byte[] x) throws SQLException {
-    throw statement.connection.helper.unsupported();
+    throw statement.connection.HELPER.unsupported();
   }
 
   public void updateDate(int columnIndex, Date x) throws SQLException {
-    throw statement.connection.helper.unsupported();
+    throw statement.connection.HELPER.unsupported();
   }
 
   public void updateTime(int columnIndex, Time x) throws SQLException {
-    throw statement.connection.helper.unsupported();
+    throw statement.connection.HELPER.unsupported();
   }
 
   public void updateTimestamp(
       int columnIndex, Timestamp x) throws SQLException {
-    throw statement.connection.helper.unsupported();
+    throw statement.connection.HELPER.unsupported();
   }
 
   public void updateAsciiStream(
       int columnIndex, InputStream x, int length) throws SQLException {
-    throw statement.connection.helper.unsupported();
+    throw statement.connection.HELPER.unsupported();
   }
 
   public void updateBinaryStream(
       int columnIndex, InputStream x, int length) throws SQLException {
-    throw statement.connection.helper.unsupported();
+    throw statement.connection.HELPER.unsupported();
   }
 
   public void updateCharacterStream(
       int columnIndex, Reader x, int length) throws SQLException {
-    throw statement.connection.helper.unsupported();
+    throw statement.connection.HELPER.unsupported();
   }
 
   public void updateObject(
       int columnIndex, Object x, int scaleOrLength) throws SQLException {
-    throw statement.connection.helper.unsupported();
+    throw statement.connection.HELPER.unsupported();
   }
 
   public void updateObject(int columnIndex, Object x) throws SQLException {
-    throw statement.connection.helper.unsupported();
+    throw statement.connection.HELPER.unsupported();
   }
 
   public void updateNull(String columnLabel) throws SQLException {
-    throw statement.connection.helper.unsupported();
+    throw statement.connection.HELPER.unsupported();
   }
 
   public void updateBoolean(
       String columnLabel, boolean x) throws SQLException {
-    throw statement.connection.helper.unsupported();
+    throw statement.connection.HELPER.unsupported();
   }
 
   public void updateByte(String columnLabel, byte x) throws SQLException {
-    throw statement.connection.helper.unsupported();
+    throw statement.connection.HELPER.unsupported();
   }
 
   public void updateShort(String columnLabel, short x) throws SQLException {
-    throw statement.connection.helper.unsupported();
+    throw statement.connection.HELPER.unsupported();
   }
 
   public void updateInt(String columnLabel, int x) throws SQLException {
-    throw statement.connection.helper.unsupported();
+    throw statement.connection.HELPER.unsupported();
   }
 
   public void updateLong(String columnLabel, long x) throws SQLException {
-    throw statement.connection.helper.unsupported();
+    throw statement.connection.HELPER.unsupported();
   }
 
   public void updateFloat(String columnLabel, float x) throws SQLException {
-    throw statement.connection.helper.unsupported();
+    throw statement.connection.HELPER.unsupported();
   }
 
   public void updateDouble(String columnLabel, double x) throws SQLException {
-    throw statement.connection.helper.unsupported();
+    throw statement.connection.HELPER.unsupported();
   }
 
   public void updateBigDecimal(
       String columnLabel, BigDecimal x) throws SQLException {
-    throw statement.connection.helper.unsupported();
+    throw statement.connection.HELPER.unsupported();
   }
 
   public void updateString(String columnLabel, String x) throws SQLException {
-    throw statement.connection.helper.unsupported();
+    throw statement.connection.HELPER.unsupported();
   }
 
   public void updateBytes(String columnLabel, byte[] x) throws SQLException {
-    throw statement.connection.helper.unsupported();
+    throw statement.connection.HELPER.unsupported();
   }
 
   public void updateDate(String columnLabel, Date x) throws SQLException {
-    throw statement.connection.helper.unsupported();
+    throw statement.connection.HELPER.unsupported();
   }
 
   public void updateTime(String columnLabel, Time x) throws SQLException {
-    throw statement.connection.helper.unsupported();
+    throw statement.connection.HELPER.unsupported();
   }
 
   public void updateTimestamp(
       String columnLabel, Timestamp x) throws SQLException {
-    throw statement.connection.helper.unsupported();
+    throw statement.connection.HELPER.unsupported();
   }
 
   public void updateAsciiStream(
       String columnLabel, InputStream x, int length) throws SQLException {
-    throw statement.connection.helper.unsupported();
+    throw statement.connection.HELPER.unsupported();
   }
 
   public void updateBinaryStream(
       String columnLabel, InputStream x, int length) throws SQLException {
-    throw statement.connection.helper.unsupported();
+    throw statement.connection.HELPER.unsupported();
   }
 
   public void updateCharacterStream(
       String columnLabel, Reader reader, int length) throws SQLException {
-    throw statement.connection.helper.unsupported();
+    throw statement.connection.HELPER.unsupported();
   }
 
   public void updateObject(
       String columnLabel, Object x, int scaleOrLength) throws SQLException {
-    throw statement.connection.helper.unsupported();
+    throw statement.connection.HELPER.unsupported();
   }
 
   public void updateObject(String columnLabel, Object x) throws SQLException {
-    throw statement.connection.helper.unsupported();
+    throw statement.connection.HELPER.unsupported();
   }
 
   public void insertRow() throws SQLException {
-    throw statement.connection.helper.unsupported();
+    throw statement.connection.HELPER.unsupported();
   }
 
   public void updateRow() throws SQLException {
-    throw statement.connection.helper.unsupported();
+    throw statement.connection.HELPER.unsupported();
   }
 
   public void deleteRow() throws SQLException {
-    throw statement.connection.helper.unsupported();
+    throw statement.connection.HELPER.unsupported();
   }
 
   public void refreshRow() throws SQLException {
-    throw statement.connection.helper.unsupported();
+    throw statement.connection.HELPER.unsupported();
   }
 
   public void cancelRowUpdates() throws SQLException {
-    throw statement.connection.helper.unsupported();
+    throw statement.connection.HELPER.unsupported();
   }
 
   public void moveToInsertRow() throws SQLException {
-    throw statement.connection.helper.unsupported();
+    throw statement.connection.HELPER.unsupported();
   }
 
   public void moveToCurrentRow() throws SQLException {
-    throw statement.connection.helper.unsupported();
+    throw statement.connection.HELPER.unsupported();
   }
 
   public AvaticaStatement getStatement() throws SQLException {
@@ -755,51 +755,51 @@ public class AvaticaResultSet extends ArrayFactoryImpl implements ResultSet {
   }
 
   public void updateRef(int columnIndex, Ref x) throws SQLException {
-    throw statement.connection.helper.unsupported();
+    throw statement.connection.HELPER.unsupported();
   }
 
   public void updateRef(String columnLabel, Ref x) throws SQLException {
-    throw statement.connection.helper.unsupported();
+    throw statement.connection.HELPER.unsupported();
   }
 
   public void updateBlob(int columnIndex, Blob x) throws SQLException {
-    throw statement.connection.helper.unsupported();
+    throw statement.connection.HELPER.unsupported();
   }
 
   public void updateBlob(String columnLabel, Blob x) throws SQLException {
-    throw statement.connection.helper.unsupported();
+    throw statement.connection.HELPER.unsupported();
   }
 
   public void updateClob(int columnIndex, Clob x) throws SQLException {
-    throw statement.connection.helper.unsupported();
+    throw statement.connection.HELPER.unsupported();
   }
 
   public void updateClob(String columnLabel, Clob x) throws SQLException {
-    throw statement.connection.helper.unsupported();
+    throw statement.connection.HELPER.unsupported();
   }
 
   public void updateArray(int columnIndex, Array x) throws SQLException {
-    throw statement.connection.helper.unsupported();
+    throw statement.connection.HELPER.unsupported();
   }
 
   public void updateArray(String columnLabel, Array x) throws SQLException {
-    throw statement.connection.helper.unsupported();
+    throw statement.connection.HELPER.unsupported();
   }
 
   public RowId getRowId(int columnIndex) throws SQLException {
-    throw statement.connection.helper.unsupported();
+    throw statement.connection.HELPER.unsupported();
   }
 
   public RowId getRowId(String columnLabel) throws SQLException {
-    throw statement.connection.helper.unsupported();
+    throw statement.connection.HELPER.unsupported();
   }
 
   public void updateRowId(int columnIndex, RowId x) throws SQLException {
-    throw statement.connection.helper.unsupported();
+    throw statement.connection.HELPER.unsupported();
   }
 
   public void updateRowId(String columnLabel, RowId x) throws SQLException {
-    throw statement.connection.helper.unsupported();
+    throw statement.connection.HELPER.unsupported();
   }
 
   public int getHoldability() throws SQLException {
@@ -812,21 +812,21 @@ public class AvaticaResultSet extends ArrayFactoryImpl implements ResultSet {
 
   public void updateNString(
       int columnIndex, String nString) throws SQLException {
-    throw statement.connection.helper.unsupported();
+    throw statement.connection.HELPER.unsupported();
   }
 
   public void updateNString(
       String columnLabel, String nString) throws SQLException {
-    throw statement.connection.helper.unsupported();
+    throw statement.connection.HELPER.unsupported();
   }
 
   public void updateNClob(int columnIndex, NClob nClob) throws SQLException {
-    throw statement.connection.helper.unsupported();
+    throw statement.connection.HELPER.unsupported();
   }
 
   public void updateNClob(
       String columnLabel, NClob nClob) throws SQLException {
-    throw statement.connection.helper.unsupported();
+    throw statement.connection.HELPER.unsupported();
   }
 
   public NClob getNClob(int columnIndex) throws SQLException {
@@ -847,12 +847,12 @@ public class AvaticaResultSet extends ArrayFactoryImpl implements ResultSet {
 
   public void updateSQLXML(
       int columnIndex, SQLXML xmlObject) throws SQLException {
-    throw statement.connection.helper.unsupported();
+    throw statement.connection.HELPER.unsupported();
   }
 
   public void updateSQLXML(
       String columnLabel, SQLXML xmlObject) throws SQLException {
-    throw statement.connection.helper.unsupported();
+    throw statement.connection.HELPER.unsupported();
   }
 
   public String getNString(int columnIndex) throws SQLException {
@@ -873,145 +873,145 @@ public class AvaticaResultSet extends ArrayFactoryImpl implements ResultSet {
 
   public void updateNCharacterStream(
       int columnIndex, Reader x, long length) throws SQLException {
-    throw statement.connection.helper.unsupported();
+    throw statement.connection.HELPER.unsupported();
   }
 
   public void updateNCharacterStream(
       String columnLabel, Reader reader, long length) throws SQLException {
-    throw statement.connection.helper.unsupported();
+    throw statement.connection.HELPER.unsupported();
   }
 
   public void updateAsciiStream(
       int columnIndex, InputStream x, long length) throws SQLException {
-    throw statement.connection.helper.unsupported();
+    throw statement.connection.HELPER.unsupported();
   }
 
   public void updateBinaryStream(
       int columnIndex, InputStream x, long length) throws SQLException {
-    throw statement.connection.helper.unsupported();
+    throw statement.connection.HELPER.unsupported();
   }
 
   public void updateCharacterStream(
       int columnIndex, Reader x, long length) throws SQLException {
-    throw statement.connection.helper.unsupported();
+    throw statement.connection.HELPER.unsupported();
   }
 
   public void updateAsciiStream(
       String columnLabel, InputStream x, long length) throws SQLException {
-    throw statement.connection.helper.unsupported();
+    throw statement.connection.HELPER.unsupported();
   }
 
   public void updateBinaryStream(
       String columnLabel, InputStream x, long length) throws SQLException {
-    throw statement.connection.helper.unsupported();
+    throw statement.connection.HELPER.unsupported();
   }
 
   public void updateCharacterStream(
       String columnLabel, Reader reader, long length) throws SQLException {
-    throw statement.connection.helper.unsupported();
+    throw statement.connection.HELPER.unsupported();
   }
 
   public void updateBlob(
       int columnIndex,
       InputStream inputStream,
       long length) throws SQLException {
-    throw statement.connection.helper.unsupported();
+    throw statement.connection.HELPER.unsupported();
   }
 
   public void updateBlob(
       String columnLabel,
       InputStream inputStream,
       long length) throws SQLException {
-    throw statement.connection.helper.unsupported();
+    throw statement.connection.HELPER.unsupported();
   }
 
   public void updateClob(
       int columnIndex, Reader reader, long length) throws SQLException {
-    throw statement.connection.helper.unsupported();
+    throw statement.connection.HELPER.unsupported();
   }
 
   public void updateClob(
       String columnLabel, Reader reader, long length) throws SQLException {
-    throw statement.connection.helper.unsupported();
+    throw statement.connection.HELPER.unsupported();
   }
 
   public void updateNClob(
       int columnIndex, Reader reader, long length) throws SQLException {
-    throw statement.connection.helper.unsupported();
+    throw statement.connection.HELPER.unsupported();
   }
 
   public void updateNClob(
       String columnLabel, Reader reader, long length) throws SQLException {
-    throw statement.connection.helper.unsupported();
+    throw statement.connection.HELPER.unsupported();
   }
 
   public void updateNCharacterStream(
       int columnIndex, Reader x) throws SQLException {
-    throw statement.connection.helper.unsupported();
+    throw statement.connection.HELPER.unsupported();
   }
 
   public void updateNCharacterStream(
       String columnLabel, Reader reader) throws SQLException {
-    throw statement.connection.helper.unsupported();
+    throw statement.connection.HELPER.unsupported();
   }
 
   public void updateAsciiStream(
       int columnIndex, InputStream x) throws SQLException {
-    throw statement.connection.helper.unsupported();
+    throw statement.connection.HELPER.unsupported();
   }
 
   public void updateBinaryStream(
       int columnIndex, InputStream x) throws SQLException {
-    throw statement.connection.helper.unsupported();
+    throw statement.connection.HELPER.unsupported();
   }
 
   public void updateCharacterStream(
       int columnIndex, Reader x) throws SQLException {
-    throw statement.connection.helper.unsupported();
+    throw statement.connection.HELPER.unsupported();
   }
 
   public void updateAsciiStream(
       String columnLabel, InputStream x) throws SQLException {
-    throw statement.connection.helper.unsupported();
+    throw statement.connection.HELPER.unsupported();
   }
 
   public void updateBinaryStream(
       String columnLabel, InputStream x) throws SQLException {
-    throw statement.connection.helper.unsupported();
+    throw statement.connection.HELPER.unsupported();
   }
 
   public void updateCharacterStream(
       String columnLabel, Reader reader) throws SQLException {
-    throw statement.connection.helper.unsupported();
+    throw statement.connection.HELPER.unsupported();
   }
 
   public void updateBlob(
       int columnIndex, InputStream inputStream) throws SQLException {
-    throw statement.connection.helper.unsupported();
+    throw statement.connection.HELPER.unsupported();
   }
 
   public void updateBlob(
       String columnLabel, InputStream inputStream) throws SQLException {
-    throw statement.connection.helper.unsupported();
+    throw statement.connection.HELPER.unsupported();
   }
 
   public void updateClob(int columnIndex, Reader reader) throws SQLException {
-    throw statement.connection.helper.unsupported();
+    throw statement.connection.HELPER.unsupported();
   }
 
   public void updateClob(
       String columnLabel, Reader reader) throws SQLException {
-    throw statement.connection.helper.unsupported();
+    throw statement.connection.HELPER.unsupported();
   }
 
   public void updateNClob(
       int columnIndex, Reader reader) throws SQLException {
-    throw statement.connection.helper.unsupported();
+    throw statement.connection.HELPER.unsupported();
   }
 
   public void updateNClob(
       String columnLabel, Reader reader) throws SQLException {
-    throw statement.connection.helper.unsupported();
+    throw statement.connection.HELPER.unsupported();
   }
 
   public <T> T getObject(int columnIndex, Class<T> type) throws SQLException {
@@ -1027,7 +1027,7 @@ public class AvaticaResultSet extends ArrayFactoryImpl implements ResultSet {
     if (iface.isInstance(this)) {
       return iface.cast(this);
     }
-    throw statement.connection.helper.createException(
+    throw statement.connection.HELPER.createException(
         "does not implement '" + iface + "'");
   }
 
