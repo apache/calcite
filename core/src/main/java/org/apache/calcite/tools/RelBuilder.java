@@ -933,19 +933,15 @@ public class RelBuilder {
    * and optimized in a similar way to the {@link #and} method.
    * If the result is TRUE no filter is created. */
   public RelBuilder filter(Iterable<? extends RexNode> predicates) {
-    final RexNode x = simplifierUnknownAsFalse.simplifyAnds(predicates);
-    if (x.isAlwaysFalse()) {
+    final RexNode simplifiedPredicates =
+        simplifierUnknownAsFalse.simplifyFilterPredicates(predicates);
+    if (simplifiedPredicates == null) {
       return empty();
     }
 
-    // Remove cast of BOOLEAN NOT NULL to BOOLEAN or vice versa. Filter accepts
-    // nullable and not-nullable conditions, but a CAST might get in the way of
-    // other rewrites.
-    final RexNode x2 = simplifierUnknownAsFalse.removeNullabilityCast(x);
-
-    if (!x2.isAlwaysTrue()) {
+    if (!simplifiedPredicates.isAlwaysTrue()) {
       final Frame frame = stack.pop();
-      final RelNode filter = filterFactory.createFilter(frame.rel, x2);
+      final RelNode filter = filterFactory.createFilter(frame.rel, simplifiedPredicates);
       stack.push(new Frame(filter, frame.fields));
     }
     return this;

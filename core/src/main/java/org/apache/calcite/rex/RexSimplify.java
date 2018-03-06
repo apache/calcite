@@ -1357,6 +1357,24 @@ public class RexSimplify {
       return false;
     }
   }
+
+  /**
+   * The predicates are combined using AND and optimized.
+   *
+   * @param predicates filter condition predicates
+   * @return simplified conjunction of predicates for the filter, null if always false
+   */
+  public RexNode simplifyFilterPredicates(Iterable<? extends RexNode> predicates) {
+    final RexNode simplifiedAnds = simplifyAnds(predicates);
+    if (simplifiedAnds.isAlwaysFalse()) {
+      return null;
+    }
+
+    // Remove cast of BOOLEAN NOT NULL to BOOLEAN or vice versa. Filter accepts
+    // nullable and not-nullable conditions, but a CAST might get in the way of
+    // other rewrites.
+    return removeNullabilityCast(simplifiedAnds);
+  }
 }
 
 // End RexSimplify.java
