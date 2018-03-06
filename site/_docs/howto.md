@@ -246,15 +246,13 @@ mvn -DdryRun=true -DreleaseVersion=X.Y.Z -DdevelopmentVersion=X2.Y2.Z2-SNAPSHOT 
 
 Check the artifacts:
 
-* In the `target` directory should be these 8 files, among others:
+* In the `target` directory should be these 6 files, among others:
   * apache-calcite-avatica-X.Y.Z-src.tar.gz
   * apache-calcite-avatica-X.Y.Z-src.tar.gz.asc
-  * apache-calcite-avatica-X.Y.Z-src.tar.gz.md5
-  * apache-calcite-avatica-X.Y.Z-src.tar.gz.sha1
+  * apache-calcite-avatica-X.Y.Z-src.tar.gz.sha256
   * apache-calcite-avatica-X.Y.Z-src.zip
   * apache-calcite-avatica-X.Y.Z-src.zip.asc
-  * apache-calcite-avatica-X.Y.Z-src.zip.md5
-  * apache-calcite-avatica-X.Y.Z-src.zip.sha1
+  * apache-calcite-avatica-X.Y.Z-src.zip.sha256
 * Note that the file names start `apache-calcite-avatica-`.
 * In the two source distros `.tar.gz` and `.zip` (currently there is
   no binary distro), check that all files belong to a directory called
@@ -310,13 +308,6 @@ pushd ~/dist/dev
 svn co https://dist.apache.org/repos/dist/dev/calcite
 popd
 
-# Replace digest files with a single digest
-cd target
-for f in *.tar.gz *.zip; do
-  rm ${f}.md5 ${f}.sha1
-  gpg --print-mds ${f} > ${f}.mds
-done
-
 # Move the files into a directory
 cd target
 mkdir ~/dist/dev/calcite/apache-calcite-avatica-X.Y.Z-rcN
@@ -357,33 +348,23 @@ gpg --recv-keys key
 # Check keys
 curl -O https://dist.apache.org/repos/dist/release/calcite/KEYS
 
-# Sign/check md5 and sha1 hashes
-# (Assumes your O/S has 'md5' and 'sha1' commands.)
+# Sign/check sha256 hashes
+# (Assumes your O/S has a 'shasum' command.)
 function checkHash() {
   cd "$1"
   for i in *.{zip,pom,gz}; do
     if [ ! -f $i ]; then
       continue
     fi
-    if [ -f $i.md5 ]; then
-      if [ "$(cat $i.md5)" = "$(md5 -q $i)" ]; then
-        echo $i.md5 present and correct
+    if [ -f $i.sha256 ]; then
+      if [ "$(cat $i.sha256)" = "$(shasum -a 256 $i)" ]; then
+        echo $i.sha256 present and correct
       else
-        echo $i.md5 does not match
+        echo $i.sha256 does not match
       fi
     else
-      md5 -q $i > $i.md5
-      echo $i.md5 created
-    fi
-    if [ -f $i.sha1 ]; then
-      if [ "$(cat $i.sha1)" = "$(sha1 -q $i)" ]; then
-        echo $i.sha1 present and correct
-      else
-        echo $i.sha1 does not match
-      fi
-    else
-      sha1 -q $i > $i.sha1
-      echo $i.sha1 created
+      shasum -a 256 $i > $i.sha256
+      echo $i.sha256 created
     fi
   done
 }
@@ -415,10 +396,8 @@ The artifacts to be voted on are located here:
 https://dist.apache.org/repos/dist/dev/calcite/apache-calcite-avatica-X.Y.Z-rcN/
 
 The hashes of the artifacts are as follows:
-src.tar.gz.md5 XXXX
-src.tar.gz.sha1 XXXX
-src.zip.md5 XXXX
-src.zip.sha1 XXXX
+src.tar.gz.sha256 XXXX
+src.zip.sha256 XXXX
 
 A staged Maven repository is available for review at:
 https://repository.apache.org/content/repositories/orgapachecalcite-NNNN
@@ -476,8 +455,8 @@ Julian
 
 Use the [Apache URL shortener](http://s.apache.org) to generate
 shortened URLs for the vote proposal and result emails. Examples:
-[s.apache.org/calcite-1.2-vote](http://s.apache.org/avatica-1.2-vote) and
-[s.apache.org/calcite-1.2-result](http://s.apache.org/avatica-1.2-result).
+[s.apache.org/calcite-1.2-vote](http://s.apache.org/calcite-1.2-vote) and
+[s.apache.org/calcite-1.2-result](http://s.apache.org/calcite-1.2-result).
 
 
 ## Publishing a release (for Calcite committers)
