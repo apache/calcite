@@ -2067,6 +2067,24 @@ public class RelBuilderTest {
         + "  LogicalTableScan(table=[[scott, EMP]])\n";
     assertThat(root, hasTree(expected));
   }
+
+  @Test public void testFilterCastNull() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    final RelDataTypeFactory typeFactory = builder.getTypeFactory();
+    final RelNode root =
+        builder.scan("EMP")
+            .filter(
+                builder.getRexBuilder().makeCast(
+                    typeFactory.createTypeWithNullability(
+                        typeFactory.createSqlType(SqlTypeName.BOOLEAN), true),
+                    builder.equals(builder.field("DEPTNO"),
+                        builder.literal(10))))
+            .build();
+    final String expected = ""
+        + "LogicalFilter(condition=[=($7, 10)])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(root, hasTree(expected));
+  }
 }
 
 // End RelBuilderTest.java

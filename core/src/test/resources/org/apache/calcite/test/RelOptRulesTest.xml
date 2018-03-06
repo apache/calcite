@@ -2626,20 +2626,58 @@ LogicalProject(DEPTNO=[$7])
             LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
+    </TestCase>
+    <TestCase name="testJoinPushTransitivePredicatesRule2">
+        <Resource name="sql">
+            <![CDATA[select n1.SAL
+from EMPNULLABLES_20 n1
+where n1.SAL IN (
+  select n2.SAL
+  from EMPNULLABLES_20 n2
+  where n1.SAL = n2.SAL or n1.SAL = 4)]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(SAL=[$5])
+  LogicalJoin(condition=[AND(=($5, $9), =($5, $8))], joinType=[inner])
+    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], SLACKER=[$8])
+      LogicalFilter(condition=[AND(=($7, 20), >($5, 1000))])
+        LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+    LogicalAggregate(group=[{0, 1}])
+      LogicalProject(SAL=[$0], SAL0=[$1])
+        LogicalProject(SAL=[$5], SAL0=[$8])
+          LogicalJoin(condition=[OR(=($8, $5), =($8, 4))], joinType=[inner])
+            LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], SLACKER=[$8])
+              LogicalFilter(condition=[AND(=($7, 20), >($5, 1000))])
+                LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+            LogicalAggregate(group=[{0}])
+              LogicalProject(SAL=[$5])
+                LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], SLACKER=[$8])
+                  LogicalFilter(condition=[AND(=($7, 20), >($5, 1000))])
+                    LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+]]>
+        </Resource>
         <Resource name="planAfter">
             <![CDATA[
-LogicalProject(DEPTNO=[$7])
-  LogicalJoin(condition=[AND(=($7, $10), =($7, $9))], joinType=[inner])
-    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-    LogicalFilter(condition=[OR(=($1, $0), =($1, 4))])
+LogicalProject(SAL=[$5])
+  LogicalJoin(condition=[AND(=($5, $9), =($5, $8))], joinType=[inner])
+    LogicalFilter(condition=[OR(IS NOT NULL($5), =($5, 4))])
+      LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], SLACKER=[$8])
+        LogicalFilter(condition=[AND(=($7, 20), >($5, 1000))])
+          LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+    LogicalFilter(condition=[AND(OR(IS NOT NULL($0), =($0, 4)), OR(=($0, $1), =($0, 4)), OR(IS NOT NULL($1), =($1, 4)))])
       LogicalAggregate(group=[{0, 1}])
-        LogicalProject(DEPTNO=[$0], DEPTNO0=[$1])
-          LogicalProject(DEPTNO=[$7], DEPTNO0=[$9])
-            LogicalJoin(condition=[OR(=($7, $9), =($7, 4))], joinType=[inner])
-              LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalProject(SAL=[$0], SAL0=[$1])
+          LogicalProject(SAL=[$5], SAL0=[$8])
+            LogicalJoin(condition=[OR(=($8, $5), =($8, 4))], joinType=[inner])
+              LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], SLACKER=[$8])
+                LogicalFilter(condition=[AND(=($7, 20), >($5, 1000))])
+                  LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
               LogicalAggregate(group=[{0}])
-                LogicalProject(DEPTNO=[$7])
-                  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+                LogicalProject(SAL=[$5])
+                  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], SLACKER=[$8])
+                    LogicalFilter(condition=[AND(=($7, 20), >($5, 1000))])
+                      LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
 ]]>
         </Resource>
     </TestCase>
