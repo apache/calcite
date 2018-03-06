@@ -16,5 +16,6 @@
 source 'https://rubygems.org'
 gem 'github-pages', '150'
 gem 'rouge'
-gem 'jekyll-oembed'
+gem 'jekyll_oembed'
+gem 'jekyll-redirect-from'
 # End Gemfile
