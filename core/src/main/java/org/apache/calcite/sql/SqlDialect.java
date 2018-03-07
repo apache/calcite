@@ -503,6 +503,10 @@ public class SqlDialect {
     return false;
   }
 
+  public boolean supportsWindowFunctions() {
+    return true;
+  }
+
   /** Returns whether this dialect supports a given function or operator. */
   public boolean supportsFunction(SqlOperator operator, RelDataType type,
       List<RelDataType> paramTypes) {

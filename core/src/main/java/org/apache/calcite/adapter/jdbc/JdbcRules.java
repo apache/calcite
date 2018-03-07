@@ -58,14 +58,18 @@ import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexMultisetUtil;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexOver;
 import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.schema.ModifiableTable;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlDialect;
+import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.trace.CalciteTrace;
 
+import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
 
 import org.slf4j.Logger;
@@ -73,6 +77,7 @@ import org.slf4j.Logger;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import javax.annotation.Nullable;
 
 /**
  * Rules and relational operators for
@@ -106,8 +111,16 @@ public class JdbcRules {
     protected final JdbcConvention out;
 
     JdbcConverterRule(Class<? extends RelNode> clazz, RelTrait in,
-        JdbcConvention out, String description) {
-      super(clazz, in, out, description);
+                      JdbcConvention out, String description) {
+      this(clazz, Predicates.<RelNode>alwaysTrue(), in, out,
+          RelFactories.LOGICAL_BUILDER, description);
+    }
+
+    <R extends RelNode> JdbcConverterRule(
+        Class<R> clazz, Predicate<? super R> predicate,
+        RelTrait in, JdbcConvention out,
+        RelBuilderFactory relBuilderFactory, String description) {
+      super(clazz, predicate, in, out, relBuilderFactory, description);
       this.out = out;
     }
   }
@@ -340,8 +353,13 @@ public class JdbcRules {
    * an {@link org.apache.calcite.adapter.jdbc.JdbcRules.JdbcProject}.
    */
   public static class JdbcProjectRule extends JdbcConverterRule {
-    public JdbcProjectRule(JdbcConvention out) {
-      super(Project.class, Convention.NONE, out, "JdbcProjectRule");
+    public JdbcProjectRule(final JdbcConvention out) {
+      super(Project.class, new Predicate<Project>() {
+        @Override public boolean apply(@Nullable Project project) {
+          return out.dialect.supportsWindowFunctions()
+              || !RexOver.containsOver(project.getProjects(), null);
+        }
+      }, Convention.NONE, out, RelFactories.LOGICAL_BUILDER, "JdbcProjectRule");
     }
 
     public RelNode convert(RelNode rel) {
