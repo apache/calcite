@@ -127,10 +127,8 @@
 - name: MinJi Kim
   apacheId: minji
   githubId: minji-kim
-  org: Dremio
+  org: Oracle
   role: Committer
-  avatar: http://web.mit.edu/minjikim/www/minji.png
-  homepage: http://web.mit.edu/minjikim/www/
 - name: Nick Dimiduk
   apacheId: ndimiduk
   githubId: ndimiduk
@@ -172,5 +170,10 @@
   apacheId: zhiqianghe
   githubId: Zhiqiang-He
   org: Huawei
+  role: Committer
+- name: Zhen Wang
+  apacheId: zhenw
+  githubId: zinking
+  org:
   role: Committer
 # End contributors.yml

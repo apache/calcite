@@ -1038,7 +1038,7 @@ for example `ST_GeomFromText('POINT (30 10)')`.
 | MULTICURVE         |  - | generalization of MULTILINESTRING
 | MULTILINESTRING    |  5 | <tt>ST_GeomFromText(&#8203;'MULTILINESTRING ((10 10, 20 20, 10 40), (40 40, 30 30, 40 20, 30 10))')</tt>
 | MULTISURFACE       |  - | generalization of MULTIPOLYGON
-| MULTIPOLYGON       |  6 | <tt>ST_GeomFromText(`&#8203;'MULTIPOLYGON (((30 20, 45 40, 10 40, 30 20)), ((15 5, 40 10, 10 20, 5 10, 15 5)))')</tt>
+| MULTIPOLYGON       |  6 | <tt>ST_GeomFromText(&#8203;'MULTIPOLYGON (((30 20, 45 40, 10 40, 30 20)), ((15 5, 40 10, 10 20, 5 10, 15 5)))')</tt>
 
 ## Operators and functions
 
@@ -1964,12 +1964,14 @@ that is used if they are not specified).
 
 Suppose you have a function `f`, declared as in the following pseudo syntax:
 
-```FUNCTION f(
+{% highlight sql %}
+FUNCTION f(
   INTEGER a,
   INTEGER b DEFAULT NULL,
   INTEGER c,
   INTEGER d DEFAULT NULL,
-  INTEGER e DEFAULT NULL) RETURNS INTEGER```
+  INTEGER e DEFAULT NULL) RETURNS INTEGER
+{% endhighlight sql %}
 
 All of the function's parameters have names, and parameters `b`, `d` and `e`
 have a default value of `NULL` and are therefore optional.
@@ -2000,7 +2002,6 @@ Here are some examples:
 * `f(c => 3, d => 1, a => 0)` is equivalent to `f(0, NULL, 3, 1, NULL)`;
 * `f(c => 3, d => 1)` is not legal, because you have not specified a value for
   `a` and `a` is not optional.
-```
 
 ### MATCH_RECOGNIZE
 
