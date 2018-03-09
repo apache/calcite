@@ -45,7 +45,10 @@ Release          | Date       | Commit   | Download
 {% endcomment %}{% endif %}{% comment %}
 {% endcomment %}{% capture d1 %}{{ post.date | date: "%F"}}{% endcapture %}{% comment %}
 {% endcomment %}{% capture d2 %}2017-05-01{% endcapture %}{% comment %}
-{% endcomment %}{% if d1 > d2 %}{% comment %}
+{% endcomment %}{% capture d3 %}2018-03-01{% endcapture %}{% comment %}
+{% endcomment %}{% if d1 > d3 %}{% comment %}
+{% endcomment %}{% assign digest = "sha256" %}{% comment %}
+{% endcomment %}{% elsif d1 > d2 %}{% comment %}
 {% endcomment %}{% assign digest = "mds" %}{% comment %}
 {% endcomment %}{% else %}{% comment %}
 {% endcomment %}{% assign digest = "md5" %}{% comment %}
@@ -67,8 +70,8 @@ Choose a source distribution in either *tar* or *zip* format,
 and [verify](http://www.apache.org/dyn/closer.cgi#verify)
 using the corresponding *pgp* signature (using the committer file in
 [KEYS](http://www.apache.org/dist/calcite/KEYS)).
-If you cannot do that, the *md5* hash file may be used to check that the
-download has completed OK.
+If you cannot do that, use the *sha256* hash file (*md5* in older
+releases) to check that the download has completed OK.
 
 For fast downloads, current source distributions are hosted on mirror servers;
 older source distributions are in the

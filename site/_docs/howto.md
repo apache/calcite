@@ -530,11 +530,12 @@ svn ci
 The old releases will remain available in the
 [release archive](http://archive.apache.org/dist/calcite/).
 
-Publish the [Docker images](docker_images.md).
+Publish the [Docker images](docker.md).
 
 Add a release note by copying
 [site/_posts/2016-11-01-release-1.9.0.md]({{ site.sourceRoot }}/site/_posts/2016-11-01-release-1.9.0.md),
-generate the javadoc and copy to `site/target/apidocs` and `site/target/testapidocs`,
+generate the javadoc and copy to `site/target/avatica/apidocs`
+and `site/target/avatica/testapidocs`,
 [publish the site](#publish-the-web-site),
 and check that it appears in the contents in [news](http://localhost:4000/news/).
 
