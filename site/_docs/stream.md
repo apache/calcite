@@ -12,7 +12,7 @@ The ASF licenses this file to you under the Apache License, Version 2.0
 (the "License"); you may not use this file except in compliance with
 the License.  You may obtain a copy of the License at
 
-http://www.apache.org/licenses/LICENSE-2.0
+https://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -1009,15 +1009,15 @@ Partitioning functions:
   and Jennifer Widom (2003) The CQL Continuous Query
   Language: Semantic Foundations and Query Execution</a>.
 * [<a name="ref2">2</a>]
-  <a href="http://kafka.apache.org/documentation.html">Apache Kafka</a>.
-* [<a name="ref3">3</a>] <a href="http://samza.apache.org">Apache Samza</a>.
+  <a href="https://kafka.apache.org/documentation.html">Apache Kafka</a>.
+* [<a name="ref3">3</a>] <a href="https://samza.apache.org">Apache Samza</a>.
 * [<a name="ref4">4</a>] <a href="https://github.com/milinda/samza-sql">SamzaSQL</a>.
 * [<a name="ref5">5</a>]
-  <a href="http://www.whitworth.edu/academic/department/mathcomputerscience/faculty/tuckerpeter/pdf/117896_final.pdf">Peter
+  <a href="https://www.whitworth.edu/academic/department/mathcomputerscience/faculty/tuckerpeter/pdf/117896_final.pdf">Peter
   A. Tucker, David Maier, Tim Sheard, and Leonidas Fegaras (2003) Exploiting
   Punctuation Semantics in Continuous Data Streams</a>.
 * [<a name="ref6">6</a>]
-  <a href="http://research.google.com/pubs/pub41378.html">Tyler Akidau,
+  <a href="https://research.google.com/pubs/pub41378.html">Tyler Akidau,
   Alex Balikov, Kaya Bekiroglu, Slava Chernyak, Josh Haberman, Reuven Lax,
   Sam McVeety, Daniel Mills, Paul Nordstrom, and Sam Whittle (2013)
   MillWheel: Fault-Tolerant Stream Processing at Internet Scale</a>.

@@ -13,7 +13,7 @@ The ASF licenses this file to you under the Apache License, Version 2.0
 (the "License"); you may not use this file except in compliance with
 the License.  You may obtain a copy of the License at
 
-http://www.apache.org/licenses/LICENSE-2.0
+https://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -251,9 +251,9 @@ log4j.logger.org.apache.calcite.plan.hep.HepPlanner=TRACE
 
 ## Debugging generated classes in Intellij
 
-Calcite uses [Janino](http://janino-compiler.github.io/janino/) to generate Java
+Calcite uses [Janino](https://janino-compiler.github.io/janino/) to generate Java
 code. The generated classes can be debugged interactively
-(see [the Janino tutorial](http://janino-compiler.github.io/janino/)).
+(see [the Janino tutorial](https://janino-compiler.github.io/janino/)).
 
 To debug generated classes, set two system properties when starting the JVM:
 
@@ -274,14 +274,14 @@ See the [tutorial]({{ site.baseurl }}/docs/tutorial.html).
 ## MongoDB adapter
 
 First, download and install Calcite,
-and <a href="http://www.mongodb.org/downloads">install MongoDB</a>.
+and <a href="https://www.mongodb.org/downloads">install MongoDB</a>.
 
 Note: you can use MongoDB from integration test virtual machine above.
 
 Import MongoDB's zipcode data set into MongoDB:
 
 {% highlight bash %}
-$ curl -o /tmp/zips.json http://media.mongodb.org/zips.json
+$ curl -o /tmp/zips.json https://media.mongodb.org/zips.json
 $ mongoimport --db test --collection zips --file /tmp/zips.json
 Tue Jun  4 16:24:14.190 check 9 29470
 Tue Jun  4 16:24:14.469 imported 29470 objects
@@ -339,7 +339,7 @@ $
 
 To run the test suite and sample queries against Splunk,
 load Splunk's `tutorialdata.zip` data set as described in
-<a href="http://docs.splunk.com/Documentation/Splunk/6.0.2/PivotTutorial/GetthetutorialdataintoSplunk">the Splunk tutorial</a>.
+<a href="https://docs.splunk.com/Documentation/Splunk/6.0.2/PivotTutorial/GetthetutorialdataintoSplunk">the Splunk tutorial</a>.
 
 (This step is optional, but it provides some interesting data for the sample
 queries. It is also necessary if you intend to run the test suite, using
@@ -452,7 +452,7 @@ particular release managers.
 
 ## Set up PGP signing keys (for Calcite committers)
 
-Follow instructions [here](http://www.apache.org/dev/release-signing) to
+Follow instructions [here](https://www.apache.org/dev/release-signing) to
 create a key pair. (On macOS, I did `brew install gpg` and
 `gpg --gen-key`.)
 
@@ -727,7 +727,7 @@ Thanks to everyone who has contributed to this release.
 https://github.com/apache/calcite/blob/XXXX/site/_docs/history.md
 
 The commit to be voted upon:
-http://git-wip-us.apache.org/repos/asf/calcite/commit/NNNNNN
+https://git-wip-us.apache.org/repos/asf/calcite/commit/NNNNNN
 
 Its hash is XXXX.
 
@@ -794,10 +794,10 @@ thread to discuss.
 Julian
 {% endhighlight %}
 
-Use the [Apache URL shortener](http://s.apache.org) to generate
+Use the [Apache URL shortener](https://s.apache.org) to generate
 shortened URLs for the vote proposal and result emails. Examples:
-[s.apache.org/calcite-1.2-vote](http://s.apache.org/calcite-1.2-vote) and
-[s.apache.org/calcite-1.2-result](http://s.apache.org/calcite-1.2-result).
+[s.apache.org/calcite-1.2-vote](https://s.apache.org/calcite-1.2-vote) and
+[s.apache.org/calcite-1.2-result](https://s.apache.org/calcite-1.2-result).
 
 
 ## Publishing a release (for Calcite committers)
@@ -847,7 +847,7 @@ svn ci
 
 Svnpubsub will publish to the
 [release repo](https://dist.apache.org/repos/dist/release/calcite) and propagate to the
-[mirrors](http://www.apache.org/dyn/closer.cgi/calcite) within 24 hours.
+[mirrors](https://www.apache.org/dyn/closer.cgi/calcite) within 24 hours.
 
 If there are now more than 2 releases, clear out the oldest ones:
 
@@ -858,7 +858,7 @@ svn ci
 {% endhighlight %}
 
 The old releases will remain available in the
-[release archive](http://archive.apache.org/dist/calcite/).
+[release archive](https://archive.apache.org/dist/calcite/).
 
 You should receive an email from the [Apache Reporter Service](https://reporter.apache.org/).
 Make sure to add the version number and date of the latest release at the site linked to in the email.

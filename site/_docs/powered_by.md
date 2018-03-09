@@ -12,7 +12,7 @@ The ASF licenses this file to you under the Apache License, Version 2.0
 (the "License"); you may not use this file except in compliance with
 the License.  You may obtain a copy of the License at
 
-http://www.apache.org/licenses/LICENSE-2.0
+https://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -97,7 +97,7 @@ component provides a SQL interface to
 
 ### Dremio
 
-<a href="http://www.dremio.com">Dremio</a>
+<a href="https://www.dremio.com">Dremio</a>
 uses Calcite for SQL parsing and cost-based query optimization.
 
 ### MapD
@@ -116,5 +116,5 @@ It uses Calcite to transparently rewrite queries to use materialized views.
 
 <a href="https://github.com/twilmes/sql-gremlin">SQL-Gremlin</a>
 is a SQL interface to a
-<a href="http://tinkerpop.apache.org/">Apache TinkerPop</a>-enabled
+<a href="https://tinkerpop.apache.org/">Apache TinkerPop</a>-enabled
 graph database.

@@ -12,7 +12,7 @@ The ASF licenses this file to you under the Apache License, Version 2.0
 (the "License"); you may not use this file except in compliance with
 the License.  You may obtain a copy of the License at
 
-http://www.apache.org/licenses/LICENSE-2.0
+https://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -26,7 +26,7 @@ Calcite is [aiming](https://issues.apache.org/jira/browse/CALCITE-1968) to imple
 OpenGIS Simple Features Implementation Specification for SQL,
 [version 1.2.1](http://www.opengeospatial.org/standards/sfs),
 a standard implemented by spatial databases such as
-[PostGIS](http://postgis.net/)
+[PostGIS](https://postgis.net/)
 and [H2GIS](http://www.h2gis.org/).
 
 We also aim to add optimizer support for

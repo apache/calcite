@@ -12,7 +12,7 @@ The ASF licenses this file to you under the Apache License, Version 2.0
 (the "License"); you may not use this file except in compliance with
 the License.  You may obtain a copy of the License at
 
-http://www.apache.org/licenses/LICENSE-2.0
+https://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -366,7 +366,7 @@ compatible with future changes to the grammar. Making a copy of the grammar file
 quite frequently.
 
 Fortunately, `Parser.jj` is actually an
-[Apache FreeMarker](http://freemarker.apache.org/)
+[Apache FreeMarker](https://freemarker.apache.org/)
 template that contains variables that can be substituted.
 The parser in `calcite-core` instantiates the template with default values of
 the variables, typically empty, but you can override.

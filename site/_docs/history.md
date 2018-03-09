@@ -13,7 +13,7 @@ The ASF licenses this file to you under the Apache License, Version 2.0
 (the "License"); you may not use this file except in compliance with
 the License.  You may obtain a copy of the License at
 
-http://www.apache.org/licenses/LICENSE-2.0
+https://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -1398,7 +1398,7 @@ Avatica-related changes, see the
 
 We have [added](https://issues.apache.org/jira/browse/CALCITE-1080)
 an [adapter]({{ site.baseurl }}/docs/adapter.html) for
-[Apache Cassandra](http://cassandra.apache.org/).
+[Apache Cassandra](https://cassandra.apache.org/).
 You can map a Cassandra keyspace into Calcite as a schema, Cassandra
 CQL tables as tables, and execute SQL queries on them, which Calcite
 converts into [CQL](https://cassandra.apache.org/doc/cql/CQL.html).
@@ -1415,7 +1415,7 @@ forward to adding more functions, and compatibility modes for other
 databases, in future releases.
 
 We've replaced our use of JUL (`java.util.logging`)
-with [SLF4J](http://slf4j.org/). SLF4J provides an API which Calcite can use
+with [SLF4J](https://slf4j.org/). SLF4J provides an API which Calcite can use
 independent of the logging implementation. This ultimately provides additional
 flexibility to users, allowing them to configure Calcite's logging within their
 own chosen logging framework. This work was done in

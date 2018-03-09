@@ -12,7 +12,7 @@ The ASF licenses this file to you under the Apache License, Version 2.0
 (the "License"); you may not use this file except in compliance with
 the License.  You may obtain a copy of the License at
 
-http://www.apache.org/licenses/LICENSE-2.0
+https://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -25,7 +25,7 @@ limitations under the License.
 # Overview
 
 The Pig adapter allows you to write queries in SQL and execute them using
-<a href="http://pig.apache.org">Apache Pig</a>.
+<a href="https://pig.apache.org">Apache Pig</a>.
 
 # A simple example
 
@@ -79,7 +79,7 @@ t = JOIN t BY tc1, s BY sc0;
 {% endhighlight %}
 
 which is then executed using Pig's runtime, typically MapReduce on
-<a href="http://hadoop.apache.org/">Apache Hadoop</a>.
+<a href="https://hadoop.apache.org/">Apache Hadoop</a>.
 
 # Relationship to Piglet
 

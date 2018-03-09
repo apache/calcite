@@ -12,7 +12,7 @@ The ASF licenses this file to you under the Apache License, Version 2.0
 (the "License"); you may not use this file except in compliance with
 the License.  You may obtain a copy of the License at
 
-http://www.apache.org/licenses/LICENSE-2.0
+https://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -31,9 +31,9 @@ schema. In particular, all relationships must be many-to-one, heading
 from a fact table at the center of the star.
 
 The name derives from the mathematics: a
-<a href="http://en.wikipedia.org/wiki/Lattice_(order)">lattice</a>
+<a href="https://en.wikipedia.org/wiki/Lattice_(order)">lattice</a>
 is a
-<a href="http://en.wikipedia.org/wiki/Partially_ordered_set">partially
+<a href="https://en.wikipedia.org/wiki/Partially_ordered_set">partially
 ordered set</a> where any two elements have a unique greatest lower
 bound and least upper bound.
 

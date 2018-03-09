@@ -12,7 +12,7 @@ The ASF licenses this file to you under the Apache License, Version 2.0
 (the "License"); you may not use this file except in compliance with
 the License.  You may obtain a copy of the License at
 
-http://www.apache.org/licenses/LICENSE-2.0
+https://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -30,7 +30,7 @@ provides a full SQL interface.
 Calcite-example-CSV is a fully functional adapter for
 Calcite that reads
 text files in
-<a href="http://en.wikipedia.org/wiki/Comma-separated_values">CSV
+<a href="https://en.wikipedia.org/wiki/Comma-separated_values">CSV
 (comma-separated values)</a> format. It is remarkable that a couple of
 hundred lines of Java code are sufficient to provide full SQL query
 capability.
@@ -91,7 +91,7 @@ sqlline> !tables
 {% endhighlight %}
 
 (JDBC experts, note: sqlline's <code>!tables</code> command is just executing
-<a href="http://docs.oracle.com/javase/7/docs/api/java/sql/DatabaseMetaData.html#getTables(java.lang.String, java.lang.String, java.lang.String, java.lang.String[])"><code>DatabaseMetaData.getTables()</code></a>
+<a href="https://docs.oracle.com/javase/7/docs/api/java/sql/DatabaseMetaData.html#getTables(java.lang.String, java.lang.String, java.lang.String, java.lang.String[])"><code>DatabaseMetaData.getTables()</code></a>
 behind the scenes.
 It has other commands to query JDBC metadata, such as <code>!columns</code> and <code>!describe</code>.)
 
@@ -633,7 +633,7 @@ For example, this schema reads from a MySQL "foodmart" database:
 (The FoodMart database will be familiar to those of you who have used
 the Mondrian OLAP engine, because it is Mondrian's main test data
 set. To load the data set, follow <a
-href="http://mondrian.pentaho.com/documentation/installation.php#2_Set_up_test_data">Mondrian's
+href="https://mondrian.pentaho.com/documentation/installation.php#2_Set_up_test_data">Mondrian's
 installation instructions</a>.)
 
 <b>Current limitations</b>: The JDBC adapter currently only pushes
