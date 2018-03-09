@@ -29,6 +29,8 @@ a sub-directory of the
 Similar to the instructions to
 [set up the Calcite web site](../site/README.md).
 
+Site generation currently works best with ruby-2.4.1.
+
 1. `cd site`
 2. `svn co https://svn.apache.org/repos/asf/calcite/site/avatica target/avatica`
 3. `sudo apt-get install rubygems ruby2.1-dev zlib1g-dev` (linux)
