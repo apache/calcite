@@ -2777,9 +2777,10 @@ public class SqlToRelConverter {
       bb.setRoot(
           RelOptUtil.createProject(
               inputRel,
-              preExprs,
+              Pair.left(preExprs),
+              Pair.right(preExprs),
               true,
-              config.getRelBuilderFactory()),
+              config.getRelBuilderFactory().create(inputRel.getCluster(), null)),
           false);
       bb.mapRootRelToFieldProjection.put(bb.root, r.groupExprProjection);
 
@@ -3193,8 +3194,8 @@ public class SqlToRelConverter {
               field.getName()));
     }
 
-    source = RelOptUtil.createProject(source, projects, true,
-        config.getRelBuilderFactory());
+    source = RelOptUtil.createProject(source, Pair.left(projects), Pair.right(projects),
+        true, config.getRelBuilderFactory().create(source.getCluster(), null));
     if (filters.size() > 0) {
       source = RelOptUtil.createFilter(source, filters);
     }

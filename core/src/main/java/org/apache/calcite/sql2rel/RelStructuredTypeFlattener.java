@@ -208,7 +208,8 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
           flattened,
           structuringExps,
           root.getRowType().getFieldNames(),
-          relBuilderFactory);
+          false,
+          relBuilderFactory.create(flattened.getCluster(), null));
     } else {
       return flattened;
     }
@@ -490,9 +491,10 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
     RelNode newRel =
         RelOptUtil.createProject(
             getNewForOldRel(rel.getInput()),
-            flattenedExpList,
+            Pair.left(flattenedExpList),
+            Pair.right(flattenedExpList),
             false,
-            relBuilderFactory);
+            relBuilderFactory.create(rel.getCluster(), null));
     setNewForOldRel(rel, newRel);
   }
 
@@ -676,8 +678,9 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
           rexBuilder.makeRangeReference(newRel),
           flattenedExpList);
       newRel =
-          RelOptUtil.createProject(newRel, flattenedExpList,
-              false, relBuilderFactory);
+          RelOptUtil.createProject(newRel,
+              Pair.left(flattenedExpList), Pair.right(flattenedExpList), false,
+              relBuilderFactory.create(newRel.getCluster(), null));
     }
     setNewForOldRel(rel, newRel);
   }

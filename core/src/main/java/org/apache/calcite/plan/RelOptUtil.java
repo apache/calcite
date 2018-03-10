@@ -494,8 +494,8 @@ public abstract class RelOptUtil {
       // agg does not like no agg functions so just pretend it is
       // doing a min(TRUE)
 
-      ret = createProject(ret, ImmutableList.of(extraExpr), null,
-          RelFactories.LOGICAL_BUILDER);
+      ret = createProject(ret, ImmutableList.of(extraExpr), null, false,
+          RelFactories.LOGICAL_BUILDER.create(ret.getCluster(), null));
 
       final AggregateCall aggCall =
           AggregateCall.create(SqlStdOperatorTable.MIN,
@@ -586,7 +586,8 @@ public abstract class RelOptUtil {
     final int projectedKeyCount = exprs.size();
     exprs.add(rexBuilder.makeLiteral(true));
 
-    ret = createProject(ret, exprs, null, relBuilderFactory);
+    ret = createProject(ret, exprs, null, false,
+        relBuilderFactory.create(ret.getCluster(), null));
 
     final AggregateCall aggCall =
         AggregateCall.create(SqlStdOperatorTable.MIN,
@@ -638,7 +639,8 @@ public abstract class RelOptUtil {
               outputField.getName()));
     }
     return createProject(rel, Pair.left(renames),
-        Pair.right(renames), RelFactories.LOGICAL_BUILDER);
+        Pair.right(renames), false,
+        RelFactories.LOGICAL_BUILDER.create(rel.getCluster(), null));
   }
 
   @Deprecated // to be removed before 2.0
@@ -1679,14 +1681,14 @@ public abstract class RelOptUtil {
       leftRel = createProject(leftRel, newLeftFields,
           SqlValidatorUtil.uniquify(newLeftFieldNames,
               typeSystem.isSchemaCaseSensitive()),
-          RelFactories.LOGICAL_BUILDER);
+          false, RelFactories.LOGICAL_BUILDER.create(leftRel.getCluster(), null));
     }
 
     if (newRightKeyCount > 0) {
       rightRel = createProject(rightRel, newRightFields,
           SqlValidatorUtil.uniquify(newRightFieldNames,
               typeSystem.isSchemaCaseSensitive()),
-          RelFactories.LOGICAL_BUILDER);
+          false, RelFactories.LOGICAL_BUILDER.create(rightRel.getCluster(), null));
     }
 
     inputRels[0] = leftRel;
@@ -1721,7 +1723,8 @@ public abstract class RelOptUtil {
           joinRel,
           Pair.left(newProjects),
           Pair.right(newProjects),
-          RelFactories.LOGICAL_BUILDER);
+          false,
+          RelFactories.LOGICAL_BUILDER.create(joinRel.getCluster(), null));
     }
 
     return joinRel;
@@ -2865,24 +2868,8 @@ public abstract class RelOptUtil {
       RelNode child,
       List<? extends RexNode> exprList,
       List<String> fieldNameList) {
-    return createProject(child, exprList, fieldNameList, RelFactories.LOGICAL_BUILDER);
-  }
-
-  /**
-   * Creates a relational expression which projects a list of expressions.
-   *
-   * @param child             input relational expression
-   * @param exprList          list of expressions for the input columns
-   * @param fieldNameList     aliases of the expressions, or null to generate
-   * @param relBuilderFactory Builder for relational expressions
-   */
-  public static RelNode createProject(
-      RelNode child,
-      List<? extends RexNode> exprList,
-      List<String> fieldNameList,
-      RelBuilderFactory relBuilderFactory) {
     return createProject(child, exprList, fieldNameList, false,
-        relBuilderFactory.create(child.getCluster(), null));
+        RelFactories.LOGICAL_BUILDER.create(child.getCluster(), null));
   }
 
   @Deprecated // to be removed before 2.0
@@ -2890,25 +2877,8 @@ public abstract class RelOptUtil {
       RelNode child,
       List<Pair<RexNode, String>> projectList,
       boolean optimize) {
-    return createProject(child, projectList, optimize, RelFactories.LOGICAL_BUILDER);
-  }
-
-  /**
-   * Creates a relational expression which projects a list of (expression, name)
-   * pairs.
-   *
-   * @param child             input relational expression
-   * @param projectList       list of (expression, name) pairs
-   * @param optimize          Whether to optimize
-   * @param relBuilderFactory Builder for relational expressions
-   */
-  public static RelNode createProject(
-      RelNode child,
-      List<Pair<RexNode, String>> projectList,
-      boolean optimize,
-      RelBuilderFactory relBuilderFactory) {
     return createProject(child, Pair.left(projectList), Pair.right(projectList),
-        optimize, relBuilderFactory.create(child.getCluster(), null));
+        optimize, RelFactories.LOGICAL_BUILDER.create(child.getCluster(), null));
   }
 
   /**

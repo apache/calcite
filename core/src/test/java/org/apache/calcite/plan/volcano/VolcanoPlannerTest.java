@@ -236,7 +236,8 @@ public class VolcanoPlannerTest {
             leafRel,
             ImmutableList.of(inputRef),
             ImmutableList.of("this"),
-            RelFactories.LOGICAL_BUILDER);
+            false,
+            RelFactories.LOGICAL_BUILDER.create(leafRel.getCluster(), null));
     NoneSingleRel singleRel =
         new NoneSingleRel(
             cluster,

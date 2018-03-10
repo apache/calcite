@@ -544,7 +544,8 @@ public class RelDecorrelator implements ReflectiveVisitor {
     // This Project will be what the old input maps to,
     // replacing any previous mapping from old input).
     RelNode newProject =
-        RelOptUtil.createProject(newInput, projects, false, relBuilderFactory);
+        RelOptUtil.createProject(newInput, Pair.left(projects),
+            Pair.right(projects), false, relBuilder);
 
     // update mappings:
     // oldInput ----> newInput
@@ -697,7 +698,8 @@ public class RelDecorrelator implements ReflectiveVisitor {
     }
 
     RelNode newProject =
-        RelOptUtil.createProject(frame.r, projects, false, relBuilderFactory);
+        RelOptUtil.createProject(frame.r, Pair.left(projects),
+            Pair.right(projects), false, relBuilder);
 
     return register(rel, newProject, mapOldToNewOutputs, corDefOutputs);
   }
@@ -1310,7 +1312,8 @@ public class RelDecorrelator implements ReflectiveVisitor {
       newProjExprs.add(Pair.of(newProjExpr, pair.right));
     }
 
-    return RelOptUtil.createProject(join, newProjExprs, false, relBuilderFactory);
+    return RelOptUtil.createProject(join, Pair.left(newProjExprs),
+        Pair.right(newProjExprs), false, relBuilder);
   }
 
   /**
@@ -1357,7 +1360,8 @@ public class RelDecorrelator implements ReflectiveVisitor {
       newProjects.add(Pair.of(newProjExpr, pair.right));
     }
 
-    return RelOptUtil.createProject(correlate, newProjects, false, relBuilderFactory);
+    return RelOptUtil.createProject(correlate, Pair.left(newProjects),
+        Pair.right(newProjects), false, relBuilder);
   }
 
   /**
@@ -1448,7 +1452,8 @@ public class RelDecorrelator implements ReflectiveVisitor {
               field.e.getName()));
     }
     projects.addAll(additionalExprs);
-    return RelOptUtil.createProject(input, projects, false, relBuilderFactory);
+    return RelOptUtil.createProject(input, Pair.left(projects),
+        Pair.right(projects), false, relBuilder);
   }
 
   /* Returns an immutable map with the identity [0: 0, .., count-1: count-1]. */
@@ -1792,7 +1797,8 @@ public class RelDecorrelator implements ReflectiveVisitor {
                           projExprs.get(0).getType(),
                           true),
                       projExprs.get(0))),
-              null, relBuilderFactory);
+              null, false,
+              relBuilderFactory.create(aggregate.getCluster(), null));
       call.transformTo(newProject);
     }
   }
@@ -2302,7 +2308,8 @@ public class RelDecorrelator implements ReflectiveVisitor {
               join,
               joinOutputProjects,
               null,
-              relBuilderFactory);
+              false,
+              relBuilderFactory.create(join.getCluster(), null));
 
       // nullIndicator is now at a different location in the output of
       // the join
@@ -2360,7 +2367,8 @@ public class RelDecorrelator implements ReflectiveVisitor {
               newAggregate,
               newAggOutputProjectList,
               null,
-              relBuilderFactory);
+              false,
+              relBuilderFactory.create(newAggregate.getCluster(), null));
 
       call.transformTo(newAggOutputProject);
 
@@ -2416,9 +2424,10 @@ public class RelDecorrelator implements ReflectiveVisitor {
         aggOutputProject =
             (LogicalProject) RelOptUtil.createProject(
                 aggregate,
-                projects,
+                Pair.left(projects),
+                Pair.right(projects),
                 false,
-                relBuilderFactory);
+                relBuilderFactory.create(aggregate.getCluster(), null));
       }
       onMatch2(call, correlate, left, aggOutputProject, aggregate);
     }
