@@ -20,11 +20,11 @@ language: java
 matrix:
   fast_finish: true
   include:
-    - jdk: oraclejdk8
-    - jdk: openjdk7
-      # Travis appears to have broken IBM JDK. Can only get a JRE.
-      # Needs to be investigate.
-      #    - jdk: ibmjava8
+    - env: IMAGE=maven:3-jdk-10
+    # Workaround: https://github.com/docker-library/openjdk/issues/145
+    - env: IMAGE=maven:3-jdk-9-slim
+    - env: IMAGE=maven:3-jdk-8
+    - env: IMAGE=maven:3-ibmjava-8
 branches:
   only:
     - master
@@ -32,20 +32,24 @@ branches:
     - javadoc
     - /^branch-.*$/
     - /^[0-9]+-.*$/
+env:
+  global:
+  - DOCKERRUN="docker run -it --rm -v $PWD:/src -v $HOME/.m2:/root/.m2 -w /src"
+services:
+  - docker
+before_install:
+  - docker pull $IMAGE
 install:
   # Print the Maven version, skip tests and javadoc
-  - mvn -V install -DskipTests -Dmaven.javadoc.skip=true
+  - $DOCKERRUN $IMAGE mvn -V install -DskipTests -Dmaven.javadoc.skip=true
 script:
   # Print surefire output to the console instead of files
   - unset _JAVA_OPTIONS
-  - mvn -Dsurefire.useFile=false verify
+  - $DOCKERRUN $IMAGE mvn -Dsurefire.useFile=false verify
 git:
   depth: 10000
-sudo: false
+sudo: required
 cache:
   directories:
     - $HOME/.m2
-sudo: required
-# Added to enable IBM Java. Temporarily removed.
-#group: edge
 # End .travis.yml
