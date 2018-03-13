@@ -91,12 +91,14 @@ public class JoinCommuteRule extends RelOptRule {
 
   @Deprecated // to be removed before 2.0
   public static RelNode swap(Join join) {
-    return swap(join, false, RelFactories.LOGICAL_BUILDER);
+    return swap(join, false,
+        RelFactories.LOGICAL_BUILDER.create(join.getCluster(), null));
   }
 
   @Deprecated // to be removed before 2.0
   public static RelNode swap(Join join, boolean swapOuterJoins) {
-    return swap(join, swapOuterJoins, RelFactories.LOGICAL_BUILDER);
+    return swap(join, swapOuterJoins,
+        RelFactories.LOGICAL_BUILDER.create(join.getCluster(), null));
   }
 
   /**
@@ -106,11 +108,11 @@ public class JoinCommuteRule extends RelOptRule {
    *
    * @param join              join to be swapped
    * @param swapOuterJoins    whether outer joins should be swapped
-   * @param relBuilderFactory Builder for relational expressions
+   * @param relBuilder        Builder for relational expressions
    * @return swapped join if swapping possible; else null
    */
   public static RelNode swap(Join join, boolean swapOuterJoins,
-      RelBuilderFactory relBuilderFactory) {
+      RelBuilder relBuilder) {
     final JoinRelType joinType = join.getJoinType();
     if (!swapOuterJoins && joinType != JoinRelType.INNER) {
       return null;
@@ -134,8 +136,7 @@ public class JoinCommuteRule extends RelOptRule {
     final List<RexNode> exps =
         RelOptUtil.createSwappedJoinExprs(newJoin, join, true);
     return RelOptUtil.createProject(
-        newJoin, exps, join.getRowType().getFieldNames(), true,
-        relBuilderFactory.create(newJoin.getCluster(), null));
+        newJoin, exps, join.getRowType().getFieldNames(), true, relBuilder);
   }
 
   public void onMatch(final RelOptRuleCall call) {
@@ -146,7 +147,7 @@ public class JoinCommuteRule extends RelOptRule {
       return;
     }
 
-    final RelNode swapped = swap(join, this.swapOuter, relBuilderFactory);
+    final RelNode swapped = swap(join, this.swapOuter, call.builder());
     if (swapped == null) {
       return;
     }

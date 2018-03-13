@@ -459,8 +459,8 @@ public class SqlToRelConverter {
       RelNode rootRel,
       boolean restructure) {
     RelStructuredTypeFlattener typeFlattener =
-        new RelStructuredTypeFlattener(config.getRelBuilderFactory(), rexBuilder,
-            createToRelContext(), restructure);
+        new RelStructuredTypeFlattener(relBuilder,
+            rexBuilder, createToRelContext(), restructure);
     return typeFlattener.rewrite(rootRel);
   }
 
@@ -1509,8 +1509,8 @@ public class SqlToRelConverter {
     final Blackboard seekBb = createBlackboard(seekScope, null, false);
     RelNode seekRel = convertQueryOrInList(seekBb, seek, targetDataType);
 
-    return RelOptUtil.createExistsPlan(seekRel, subQueryType,
-        logic, notIn, config.getRelBuilderFactory());
+    return RelOptUtil.createExistsPlan(seekRel,
+        subQueryType, logic, notIn, relBuilder);
   }
 
   private RelNode convertQueryOrInList(
@@ -2092,7 +2092,7 @@ public class SqlToRelConverter {
       final RelNode input =
           RelOptUtil.createProject(
               (null != bb.root) ? bb.root : LogicalValues.createOneRow(cluster), exprs,
-              fieldNames, true, config.getRelBuilderFactory().create(cluster, null));
+              fieldNames, true, relBuilder);
 
       Uncollect uncollect =
           new Uncollect(cluster, cluster.traitSetOf(Convention.NONE),
@@ -2780,7 +2780,7 @@ public class SqlToRelConverter {
               Pair.left(preExprs),
               Pair.right(preExprs),
               true,
-              config.getRelBuilderFactory().create(inputRel.getCluster(), null)),
+              relBuilder),
           false);
       bb.mapRootRelToFieldProjection.put(bb.root, r.groupExprProjection);
 
@@ -3194,8 +3194,8 @@ public class SqlToRelConverter {
               field.getName()));
     }
 
-    source = RelOptUtil.createProject(source, Pair.left(projects), Pair.right(projects),
-        true, config.getRelBuilderFactory().create(source.getCluster(), null));
+    source = RelOptUtil.createProject(source,
+        Pair.left(projects), Pair.right(projects), true, relBuilder);
     if (filters.size() > 0) {
       source = RelOptUtil.createFilter(source, filters);
     }
@@ -3342,8 +3342,8 @@ public class SqlToRelConverter {
       }
     }
 
-    return RelOptUtil.createProject(source, sourceExps, fieldNames, true,
-        config.getRelBuilderFactory().create(source.getCluster(), null));
+    return RelOptUtil.createProject(source,
+        sourceExps, fieldNames, true, relBuilder);
   }
 
   /** Creates a blackboard for translating the expressions of generated columns
@@ -3584,8 +3584,8 @@ public class SqlToRelConverter {
     }
 
     RelNode massagedRel =
-        RelOptUtil.createProject(join, projects, null, true,
-            config.getRelBuilderFactory().create(join.getCluster(), null));
+        RelOptUtil.createProject(join,
+            projects, null, true, relBuilder);
 
     return LogicalTableModify.create(targetTable, catalogReader, massagedRel,
         LogicalTableModify.Operation.MERGE, targetColumnNameList, null, false);
@@ -3763,8 +3763,6 @@ public class SqlToRelConverter {
       joinList.add(lastList);
     }
 
-    RelBuilder relBuilder = config.getRelBuilderFactory().create(cluster, null);
-
     for (int i = 0; i < joinList.size(); i++) {
       Object o = joinList.get(i);
       if (o instanceof List) {
@@ -3854,8 +3852,8 @@ public class SqlToRelConverter {
         catalogReader.nameMatcher().isCaseSensitive());
 
     bb.setRoot(
-        RelOptUtil.createProject(bb.root, exprs, fieldNames, false,
-            config.getRelBuilderFactory().create(bb.root.getCluster(), null)),
+        RelOptUtil.createProject(bb.root,
+            exprs, fieldNames, false, relBuilder),
         false);
 
     assert bb.columnMonotonicities.isEmpty();
@@ -3970,8 +3968,12 @@ public class SqlToRelConverter {
               ? LogicalValues.createOneRow(cluster)
               : tmpBb.root;
       unionRels.add(
-          RelOptUtil.createProject(in, Pair.left(exps), Pair.right(exps), true,
-              config.getRelBuilderFactory().create(in.getCluster(), null)));
+          RelOptUtil.createProject(
+              in,
+              Pair.left(exps),
+              Pair.right(exps),
+              true,
+              relBuilder));
     }
 
     if (unionRels.size() == 0) {
@@ -4118,8 +4120,12 @@ public class SqlToRelConverter {
         }
 
         RelNode newLeftInput =
-            RelOptUtil.createProject(root, newLeftInputExpr, null, true,
-                config.getRelBuilderFactory().create(root.getCluster(), null));
+            RelOptUtil.createProject(
+                root,
+                newLeftInputExpr,
+                null,
+                true,
+                relBuilder);
 
         // maintain the group by mapping in the new LogicalProject
         if (mapRootRelToFieldProjection.containsKey(root)) {

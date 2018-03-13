@@ -66,7 +66,7 @@ import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
-import org.apache.calcite.tools.RelBuilderFactory;
+import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.ReflectUtil;
@@ -127,7 +127,7 @@ import java.util.SortedSet;
 public class RelStructuredTypeFlattener implements ReflectiveVisitor {
   //~ Instance fields --------------------------------------------------------
 
-  private final RelBuilderFactory relBuilderFactory;
+  private final RelBuilder relBuilder;
   private final RexBuilder rexBuilder;
   private final boolean restructure;
 
@@ -145,15 +145,16 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
       RexBuilder rexBuilder,
       RelOptTable.ToRelContext toRelContext,
       boolean restructure) {
-    this(RelFactories.LOGICAL_BUILDER, rexBuilder, toRelContext, restructure);
+    this(RelFactories.LOGICAL_BUILDER.create(toRelContext.getCluster(), null),
+        rexBuilder, toRelContext, restructure);
   }
 
   public RelStructuredTypeFlattener(
-      RelBuilderFactory relBuilderFactory,
+      RelBuilder relBuilder,
       RexBuilder rexBuilder,
       RelOptTable.ToRelContext toRelContext,
       boolean restructure) {
-    this.relBuilderFactory = relBuilderFactory;
+    this.relBuilder = relBuilder;
     this.rexBuilder = rexBuilder;
     this.toRelContext = toRelContext;
     this.restructure = restructure;
@@ -209,7 +210,7 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
           structuringExps,
           root.getRowType().getFieldNames(),
           false,
-          relBuilderFactory.create(flattened.getCluster(), null));
+          relBuilder);
     } else {
       return flattened;
     }
@@ -494,7 +495,7 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
             Pair.left(flattenedExpList),
             Pair.right(flattenedExpList),
             false,
-            relBuilderFactory.create(rel.getCluster(), null));
+            relBuilder);
     setNewForOldRel(rel, newRel);
   }
 
@@ -678,9 +679,8 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
           rexBuilder.makeRangeReference(newRel),
           flattenedExpList);
       newRel =
-          RelOptUtil.createProject(newRel,
-              Pair.left(flattenedExpList), Pair.right(flattenedExpList), false,
-              relBuilderFactory.create(newRel.getCluster(), null));
+          RelOptUtil.createProject(newRel, Pair.left(flattenedExpList),
+              Pair.right(flattenedExpList), false, relBuilder);
     }
     setNewForOldRel(rel, newRel);
   }
@@ -847,7 +847,7 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
     @Override public RexNode visitSubQuery(RexSubQuery subQuery) {
       subQuery = (RexSubQuery) super.visitSubQuery(subQuery);
       RelStructuredTypeFlattener flattener =
-          new RelStructuredTypeFlattener(relBuilderFactory, rexBuilder,
+          new RelStructuredTypeFlattener(relBuilder, rexBuilder,
               toRelContext, restructure);
       RelNode rel = flattener.rewrite(subQuery.rel);
       return subQuery.clone(rel);

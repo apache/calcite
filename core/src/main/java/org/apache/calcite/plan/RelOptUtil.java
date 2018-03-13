@@ -523,7 +523,7 @@ public abstract class RelOptUtil {
       Logic logic,
       boolean notIn) {
     return createExistsPlan(seekRel, subQueryType, logic,
-        notIn, RelFactories.LOGICAL_BUILDER);
+        notIn, RelFactories.LOGICAL_BUILDER.create(seekRel.getCluster(), null));
   }
 
   /**
@@ -537,7 +537,7 @@ public abstract class RelOptUtil {
    * @param subQueryType Sub-query type
    * @param logic  Whether to use 2- or 3-valued boolean logic
    * @param notIn Whether the operator is NOT IN
-   * @param relBuilderFactory Builder for relational expressions
+   * @param relBuilder Builder for relational expressions
    *
    * @return A pair of a relational expression which outer joins a boolean
    * condition column, and a numeric offset. The offset is 2 if column 0 is
@@ -549,7 +549,7 @@ public abstract class RelOptUtil {
       SubQueryType subQueryType,
       Logic logic,
       boolean notIn,
-      RelBuilderFactory relBuilderFactory) {
+      RelBuilder relBuilder) {
     switch (subQueryType) {
     case SCALAR:
       return new Exists(seekRel, false, true);
@@ -586,8 +586,8 @@ public abstract class RelOptUtil {
     final int projectedKeyCount = exprs.size();
     exprs.add(rexBuilder.makeLiteral(true));
 
-    ret = createProject(ret, exprs, null, false,
-        relBuilderFactory.create(ret.getCluster(), null));
+    ret = createProject(ret, exprs,
+        null, false, relBuilder);
 
     final AggregateCall aggCall =
         AggregateCall.create(SqlStdOperatorTable.MIN,
@@ -1675,20 +1675,22 @@ public abstract class RelOptUtil {
       }
     }
 
+    RelBuilder relBuilder = RelFactories.LOGICAL_BUILDER.create(leftRel.getCluster(), null);
+
     // added project if need to produce new keys than the original input
     // fields
     if (newLeftKeyCount > 0) {
       leftRel = createProject(leftRel, newLeftFields,
           SqlValidatorUtil.uniquify(newLeftFieldNames,
               typeSystem.isSchemaCaseSensitive()),
-          false, RelFactories.LOGICAL_BUILDER.create(leftRel.getCluster(), null));
+          false, relBuilder);
     }
 
     if (newRightKeyCount > 0) {
       rightRel = createProject(rightRel, newRightFields,
           SqlValidatorUtil.uniquify(newRightFieldNames,
               typeSystem.isSchemaCaseSensitive()),
-          false, RelFactories.LOGICAL_BUILDER.create(rightRel.getCluster(), null));
+          false, relBuilder);
     }
 
     inputRels[0] = leftRel;

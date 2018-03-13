@@ -182,7 +182,6 @@ public class RelDecorrelator implements ReflectiveVisitor {
     this.context = context;
     this.relBuilderFactory = relBuilderFactory;
     this.relBuilder = relBuilderFactory.create(cluster, null);
-
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -191,6 +190,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
   public static RelNode decorrelateQuery(RelNode rootRel) {
     return decorrelateQuery(rootRel, RelFactories.LOGICAL_BUILDER);
   }
+
   /** Decorrelates a query.
    *
    * <p>This is the main entry point to {@code RelDecorrelator}.
@@ -1798,7 +1798,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
                           true),
                       projExprs.get(0))),
               null, false,
-              relBuilderFactory.create(aggregate.getCluster(), null));
+              call.builder());
       call.transformTo(newProject);
     }
   }
@@ -2309,7 +2309,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
               joinOutputProjects,
               null,
               false,
-              relBuilderFactory.create(join.getCluster(), null));
+              call.builder());
 
       // nullIndicator is now at a different location in the output of
       // the join
@@ -2368,7 +2368,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
               newAggOutputProjectList,
               null,
               false,
-              relBuilderFactory.create(newAggregate.getCluster(), null));
+              call.builder());
 
       call.transformTo(newAggOutputProject);
 
@@ -2427,7 +2427,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
                 Pair.left(projects),
                 Pair.right(projects),
                 false,
-                relBuilderFactory.create(aggregate.getCluster(), null));
+                call.builder());
       }
       onMatch2(call, correlate, left, aggOutputProject, aggregate);
     }
