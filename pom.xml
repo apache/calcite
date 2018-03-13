@@ -103,6 +103,7 @@ limitations under the License.
     <junit.version>4.12</junit.version>
     <maven-checkstyle-plugin.version>3.0.0</maven-checkstyle-plugin.version>
     <maven-dependency-plugin.version>2.10</maven-dependency-plugin.version>
+    <maven-enforcer-plugin.version>3.0.0-M1</maven-enforcer-plugin.version>
     <!-- Apache 18 has 3.0.1, but need 3.0.2 for [MSOURCES-94]. -->
     <maven-jar-plugin.version>3.0.2</maven-jar-plugin.version>
     <!-- Apache 18 has 2.10.3, but need 2.10.4 for [MJAVADOC-442]. -->
@@ -671,6 +672,10 @@ limitations under the License.
         </executions>
       </plugin>
       <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-enforcer-plugin</artifactId>
+      </plugin>
+      <plugin>
         <!-- This is the configuration used by "mvn javadoc:javadoc". It is
              configured strict, so that it shows errors such as broken links in
              javadoc on private methods. The configuration for "mvn site" is
@@ -782,6 +787,26 @@ limitations under the License.
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-checkstyle-plugin</artifactId>
           <version>${maven-checkstyle-plugin.version}</version>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-enforcer-plugin</artifactId>
+          <version>${maven-enforcer-plugin.version}</version>
+          <executions>
+            <execution>
+              <id>enforce-java</id>
+              <goals>
+                <goal>enforce</goal>
+              </goals>
+              <configuration>
+                <rules>
+                  <requireJavaVersion>
+                    <version>[1.8,)</version>
+                  </requireJavaVersion>
+                </rules>
+              </configuration>
+            </execution>
+          </executions>
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
