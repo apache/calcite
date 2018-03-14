@@ -503,6 +503,7 @@ public class SqlDialect {
     return false;
   }
 
+  /** Returns whether this dialect supports window functions (OVER clause). */
   public boolean supportsWindowFunctions() {
     return true;
   }

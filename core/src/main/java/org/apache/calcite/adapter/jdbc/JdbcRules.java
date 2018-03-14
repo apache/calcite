@@ -110,6 +110,7 @@ public class JdbcRules {
   abstract static class JdbcConverterRule extends ConverterRule {
     protected final JdbcConvention out;
 
+    @Deprecated
     JdbcConverterRule(Class<? extends RelNode> clazz, RelTrait in,
                       JdbcConvention out, String description) {
       this(clazz, Predicates.<RelNode>alwaysTrue(), in, out,
