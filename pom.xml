@@ -973,7 +973,6 @@ limitations under the License.
             </executions>
             <configuration>
               <algorithms>
-                <algorithm>MD5</algorithm>
                 <algorithm>SHA-256</algorithm>
               </algorithms>
               <failOnError>false</failOnError>
