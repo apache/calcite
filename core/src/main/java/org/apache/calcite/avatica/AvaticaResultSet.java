@@ -61,6 +61,7 @@ public class AvaticaResultSet extends ArrayFactoryImpl implements ResultSet {
   protected Cursor cursor;
   protected List<Cursor.Accessor> accessorList;
   private int row;
+  private boolean beforeFirst;
   private boolean afterLast;
   private int fetchDirection;
   private int fetchSize;
@@ -174,7 +175,8 @@ public class AvaticaResultSet extends ArrayFactoryImpl implements ResultSet {
     this.cursor = MetaImpl.createCursor(signature.cursorFactory, iterable1);
     this.accessorList =
         cursor.createAccessors(columnMetaDataList, localCalendar, this);
-    this.row = -1;
+    this.row = 0;
+    this.beforeFirst = true;
     this.afterLast = false;
     return this;
   }
@@ -184,7 +186,8 @@ public class AvaticaResultSet extends ArrayFactoryImpl implements ResultSet {
     this.cursor = cursor;
     this.accessorList =
         cursor.createAccessors(columnMetaDataList, localCalendar, this);
-    this.row = -1;
+    this.row = 0;
+    this.beforeFirst = true;
     this.afterLast = false;
     return this;
   }
@@ -206,8 +209,10 @@ public class AvaticaResultSet extends ArrayFactoryImpl implements ResultSet {
     }
     if (cursor.next()) {
       ++row;
+      beforeFirst = false;
       return true;
     } else {
+      row = 0;
       afterLast = true;
       return false;
     }
@@ -398,7 +403,7 @@ public class AvaticaResultSet extends ArrayFactoryImpl implements ResultSet {
   }
 
   public boolean isBeforeFirst() throws SQLException {
-    return row < 0;
+    return beforeFirst;
   }
 
   public boolean isAfterLast() throws SQLException {
@@ -406,7 +411,7 @@ public class AvaticaResultSet extends ArrayFactoryImpl implements ResultSet {
   }
 
   public boolean isFirst() throws SQLException {
-    return row == 0;
+    return row == 1;
   }
 
   public boolean isLast() throws SQLException {
