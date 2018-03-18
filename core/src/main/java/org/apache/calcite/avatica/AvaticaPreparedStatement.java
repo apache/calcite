@@ -27,12 +27,15 @@ import java.sql.Array;
 import java.sql.Blob;
 import java.sql.Clob;
 import java.sql.Date;
+import java.sql.NClob;
 import java.sql.ParameterMetaData;
 import java.sql.PreparedStatement;
 import java.sql.Ref;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
+import java.sql.RowId;
 import java.sql.SQLException;
+import java.sql.SQLXML;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.ArrayList;
@@ -128,6 +131,7 @@ public abstract class AvaticaPreparedStatement
   // implement PreparedStatement
 
   public ResultSet executeQuery() throws SQLException {
+    checkOpen();
     this.updateCount = -1;
     final Signature sig = getSignature();
     return getConnection().executeQueryInternal(this, sig, null,
@@ -135,14 +139,16 @@ public abstract class AvaticaPreparedStatement
   }
 
   public ParameterMetaData getParameterMetaData() throws SQLException {
+    checkOpen();
     return this;
   }
 
   public final int executeUpdate() throws SQLException {
-    return (int) executeLargeUpdate();
+    return AvaticaUtils.toSaturatedInt(executeLargeUpdate());
   }
 
   public long executeLargeUpdate() throws SQLException {
+    checkOpen();
     getConnection().executeQueryInternal(this, null, null,
         new QueryState(getSignature().sql), true);
     return updateCount;
@@ -210,6 +216,7 @@ public abstract class AvaticaPreparedStatement
   }
 
   public void clearParameters() throws SQLException {
+    checkOpen();
     for (int i = 0; i < slots.length; i++) {
       slots[i] = null;
     }
@@ -225,6 +232,7 @@ public abstract class AvaticaPreparedStatement
   }
 
   public boolean execute() throws SQLException {
+    checkOpen();
     this.updateCount = -1;
     // We don't know if this is actually an update or a query, so call it a query so we pass the
     // Signature to the server.
@@ -236,12 +244,14 @@ public abstract class AvaticaPreparedStatement
   }
 
   public void addBatch() throws SQLException {
+    checkOpen();
     // Need to copy the parameterValues into a new list, not wrap the array in a list
     // as getParameterValues does.
     this.parameterValueBatch.add(copyParameterValues());
   }
 
-  @Override public void clearBatch() {
+  @Override public void clearBatch() throws SQLException {
+    checkOpen();
     this.parameterValueBatch.clear();
   }
 
@@ -250,6 +260,7 @@ public abstract class AvaticaPreparedStatement
   }
 
   public long[] executeLargeBatch() throws SQLException {
+    checkOpen();
     // Overriding the implementation in AvaticaStatement.
     try {
       return getConnection().executeBatchUpdateInternal(this);
@@ -281,7 +292,8 @@ public abstract class AvaticaPreparedStatement
     getSite(parameterIndex).setArray(x);
   }
 
-  public ResultSetMetaData getMetaData() {
+  public ResultSetMetaData getMetaData() throws SQLException {
+    checkOpen();
     return resultSetMetaData;
   }
 
@@ -327,20 +339,98 @@ public abstract class AvaticaPreparedStatement
     getSite(parameterIndex).setObject(x, targetSqlType, scaleOrLength);
   }
 
+  public void setRowId(int parameterIndex, RowId x) throws SQLException {
+    getSite(parameterIndex).setRowId(x);
+  }
+
+  public void setNString(int parameterIndex, String value) throws SQLException {
+    getSite(parameterIndex).setNString(value);
+  }
+
+  public void setNCharacterStream(int parameterIndex, Reader value, long length)
+      throws SQLException {
+    getSite(parameterIndex).setNCharacterStream(value, length);
+  }
+
+  public void setNClob(int parameterIndex, NClob value) throws SQLException {
+    getSite(parameterIndex).setNClob(value);
+  }
+
+  public void setClob(int parameterIndex, Reader reader, long length) throws SQLException {
+    getSite(parameterIndex).setClob(reader, length);
+  }
+
+  public void setBlob(int parameterIndex, InputStream inputStream, long length)
+      throws SQLException {
+    getSite(parameterIndex).setBlob(inputStream, length);
+  }
+
+  public void setNClob(int parameterIndex, Reader reader, long length) throws SQLException {
+    getSite(parameterIndex).setNClob(reader, length);
+  }
+
+  public void setSQLXML(int parameterIndex, SQLXML xmlObject) throws SQLException {
+    getSite(parameterIndex).setSQLXML(xmlObject);
+  }
+
+  public void setAsciiStream(int parameterIndex, InputStream x, long length) throws SQLException {
+    getSite(parameterIndex).setAsciiStream(x, length);
+  }
+
+  public void setBinaryStream(int parameterIndex, InputStream x, long length) throws SQLException {
+    getSite(parameterIndex).setBinaryStream(x, length);
+  }
+
+  public void setCharacterStream(int parameterIndex, Reader reader, long length)
+      throws SQLException {
+    getSite(parameterIndex).setCharacterStream(reader, length);
+  }
+
+  public void setAsciiStream(int parameterIndex, InputStream x) throws SQLException {
+    getSite(parameterIndex).setAsciiStream(x);
+  }
+
+  public void setBinaryStream(int parameterIndex, InputStream x) throws SQLException {
+    getSite(parameterIndex).setBinaryStream(x);
+  }
+
+  public void setCharacterStream(int parameterIndex, Reader reader) throws SQLException {
+    getSite(parameterIndex).setCharacterStream(reader);
+  }
+
+  public void setNCharacterStream(int parameterIndex, Reader value) throws SQLException {
+    getSite(parameterIndex).setNCharacterStream(value);
+  }
+
+  public void setClob(int parameterIndex, Reader reader) throws SQLException {
+    getSite(parameterIndex).setClob(reader);
+  }
+
+  public void setBlob(int parameterIndex, InputStream inputStream) throws SQLException {
+    getSite(parameterIndex).setBlob(inputStream);
+  }
+
+  public void setNClob(int parameterIndex, Reader reader) throws SQLException {
+    getSite(parameterIndex).setNClob(reader);
+  }
+
   // implement ParameterMetaData
+
+
 
   protected AvaticaParameter getParameter(int param) throws SQLException {
     try {
       return getSignature().parameters.get(param - 1);
     } catch (IndexOutOfBoundsException e) {
       //noinspection ThrowableResultOfMethodCallIgnored
-      throw connection.HELPER.toSQLException(
-          connection.HELPER.createException(
+      throw AvaticaConnection.HELPER.toSQLException(
+          AvaticaConnection.HELPER.createException(
               "parameter ordinal " + param + " out of range"));
     }
   }
 
   protected AvaticaSite getSite(int param) throws SQLException {
+    checkOpen();
     final AvaticaParameter parameter = getParameter(param);
     return new AvaticaSite(parameter, getCalendar(), param - 1, slots);
   }

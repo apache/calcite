@@ -154,9 +154,15 @@ public abstract class AvaticaConnection implements Connection {
     this.meta.openConnection(handle, OpenConnectionRequest.serializeProperties(info));
   }
 
+  protected void checkOpen() throws SQLException {
+    if (isClosed()) {
+      throw HELPER.closed();
+    }
+  }
   // Connection methods
 
   public AvaticaStatement createStatement() throws SQLException {
+    checkOpen();
     //noinspection MagicConstant
     return createStatement(ResultSet.TYPE_FORWARD_ONLY,
         ResultSet.CONCUR_READ_ONLY,
@@ -164,6 +170,7 @@ public abstract class AvaticaConnection implements Connection {
   }
 
   public PreparedStatement prepareStatement(String sql) throws SQLException {
+    checkOpen();
     //noinspection MagicConstant
     return prepareStatement(
         sql, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY,
@@ -179,18 +186,22 @@ public abstract class AvaticaConnection implements Connection {
   }
 
   public void setAutoCommit(boolean autoCommit) throws SQLException {
+    checkOpen();
     meta.connectionSync(handle, new ConnectionPropertiesImpl().setAutoCommit(autoCommit));
   }
 
   public boolean getAutoCommit() throws SQLException {
+    checkOpen();
     return unbox(sync().isAutoCommit(), true);
   }
 
   public void commit() throws SQLException {
+    checkOpen();
     meta.commit(handle);
   }
 
   public void rollback() throws SQLException {
+    checkOpen();
     meta.rollback(handle);
   }
 
@@ -217,44 +228,54 @@ public abstract class AvaticaConnection implements Connection {
   }
 
   public DatabaseMetaData getMetaData() throws SQLException {
+    checkOpen();
     return metaData;
   }
 
   public void setReadOnly(boolean readOnly) throws SQLException {
+    checkOpen();
     meta.connectionSync(handle, new ConnectionPropertiesImpl().setReadOnly(readOnly));
   }
 
   public boolean isReadOnly() throws SQLException {
+    checkOpen();
     return unbox(sync().isReadOnly(), true);
   }
 
   public void setCatalog(String catalog) throws SQLException {
+    checkOpen();
     meta.connectionSync(handle, new ConnectionPropertiesImpl().setCatalog(catalog));
   }
 
-  public String getCatalog() {
+  public String getCatalog() throws SQLException {
+    checkOpen();
     return sync().getCatalog();
   }
 
   public void setTransactionIsolation(int level) throws SQLException {
+    checkOpen();
     meta.connectionSync(handle, new ConnectionPropertiesImpl().setTransactionIsolation(level));
   }
 
   public int getTransactionIsolation() throws SQLException {
+    checkOpen();
     //noinspection MagicConstant
     return unbox(sync().getTransactionIsolation(), TRANSACTION_NONE);
   }
 
   public SQLWarning getWarnings() throws SQLException {
+    checkOpen();
     return null;
   }
 
   public void clearWarnings() throws SQLException {
+    checkOpen();
     // no-op since connection pooling often calls this.
   }
 
   public Statement createStatement(
       int resultSetType, int resultSetConcurrency) throws SQLException {
+    checkOpen();
     //noinspection MagicConstant
     return createStatement(resultSetType, resultSetConcurrency, holdability);
   }
@@ -263,6 +284,7 @@ public abstract class AvaticaConnection implements Connection {
       String sql,
       int resultSetType,
       int resultSetConcurrency) throws SQLException {
+    checkOpen();
     //noinspection MagicConstant
     return prepareStatement(
         sql, resultSetType, resultSetConcurrency, holdability);
@@ -284,6 +306,7 @@ public abstract class AvaticaConnection implements Connection {
   }
 
   public void setHoldability(int holdability) throws SQLException {
+    checkOpen();
     if (!(holdability == ResultSet.CLOSE_CURSORS_AT_COMMIT
         || holdability == ResultSet.HOLD_CURSORS_OVER_COMMIT)) {
       throw new SQLException("invalid value");
@@ -292,6 +315,7 @@ public abstract class AvaticaConnection implements Connection {
   }
 
   public int getHoldability() throws SQLException {
+    checkOpen();
     return holdability;
   }
 
@@ -315,6 +339,7 @@ public abstract class AvaticaConnection implements Connection {
       int resultSetType,
       int resultSetConcurrency,
       int resultSetHoldability) throws SQLException {
+    checkOpen();
     return factory.newStatement(this, null, resultSetType, resultSetConcurrency,
         resultSetHoldability);
   }
@@ -324,6 +349,7 @@ public abstract class AvaticaConnection implements Connection {
       int resultSetType,
       int resultSetConcurrency,
       int resultSetHoldability) throws SQLException {
+    checkOpen();
     try {
       final Meta.StatementHandle h = meta.prepare(handle, sql, -1);
       return factory.newPreparedStatement(this, h, h.signature, resultSetType,
@@ -392,14 +418,16 @@ public abstract class AvaticaConnection implements Connection {
   }
 
   public String getClientInfo(String name) throws SQLException {
-    throw HELPER.unsupported();
+    return getClientInfo().getProperty(name);
   }
 
   public Properties getClientInfo() throws SQLException {
-    throw HELPER.unsupported();
+    checkOpen();
+    return new Properties();
   }
 
   public Array createArrayOf(String typeName, Object[] elements) throws SQLException {
+    checkOpen();
     @SuppressWarnings("unchecked")
     List<Object> elementList = (List<Object>) AvaticaUtils.primitiveList(elements);
     SqlType type;
@@ -430,10 +458,12 @@ public abstract class AvaticaConnection implements Connection {
   }
 
   public void setSchema(String schema) throws SQLException {
+    checkOpen();
     meta.connectionSync(handle, new ConnectionPropertiesImpl().setSchema(schema));
   }
 
-  public String getSchema() {
+  public String getSchema() throws SQLException {
+    checkOpen();
     return sync().getSchema();
   }
 
@@ -443,10 +473,12 @@ public abstract class AvaticaConnection implements Connection {
 
   public void setNetworkTimeout(
       Executor executor, int milliseconds) throws SQLException {
+    checkOpen();
     this.networkTimeout = milliseconds;
   }
 
   public int getNetworkTimeout() throws SQLException {
+    checkOpen();
     return networkTimeout;
   }
 

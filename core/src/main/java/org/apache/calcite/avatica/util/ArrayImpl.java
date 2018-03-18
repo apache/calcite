@@ -228,8 +228,10 @@ public class ArrayImpl implements Array {
      *
      * @param elementType The type of the elements
      * @param iterable The elements
+     * @throws SQLException
      */
-    ResultSet create(ColumnMetaData.AvaticaType elementType, Iterable<Object> iterable);
+    ResultSet create(ColumnMetaData.AvaticaType elementType, Iterable<Object> iterable)
+        throws SQLException;
 
     /**
      * Creates an {@link Array} from the given list of values, converting any primitive values

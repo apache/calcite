@@ -31,6 +31,7 @@ import org.apache.calcite.avatica.util.Cursor.Accessor;
 
 import java.sql.Array;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -50,7 +51,8 @@ public class ArrayFactoryImpl implements ArrayImpl.Factory {
     this.timeZone = Objects.requireNonNull(timeZone);
   }
 
-  @Override public ResultSet create(AvaticaType elementType, Iterable<Object> elements) {
+  @Override public ResultSet create(AvaticaType elementType, Iterable<Object> elements)
+      throws SQLException {
     // The ColumnMetaData for offset "1" in the ResultSet for an Array.
     ScalarType arrayOffsetType = ColumnMetaData.scalar(Types.INTEGER, "INTEGER", Rep.PRIMITIVE_INT);
     // Two columns (types) in the ResultSet we will create

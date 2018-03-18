@@ -76,7 +76,7 @@ public class AvaticaResultSet extends ArrayFactoryImpl implements ResultSet {
       Meta.Signature signature,
       ResultSetMetaData resultSetMetaData,
       TimeZone timeZone,
-      Meta.Frame firstFrame) {
+      Meta.Frame firstFrame) throws SQLException {
     super(timeZone);
     this.statement = statement;
     this.state = state;
@@ -108,9 +108,15 @@ public class AvaticaResultSet extends ArrayFactoryImpl implements ResultSet {
         return columnMetaData.ordinal; // 0-based
       }
     }
-    throw new SQLException("column '" + columnLabel + "' not found");
+    throw AvaticaConnection.HELPER.createException("column '" + columnLabel
+        + "' not found");
   }
 
+  protected void checkOpen() throws SQLException {
+    if (isClosed()) {
+      throw AvaticaConnection.HELPER.createException("ResultSet closed");
+    }
+  }
   /**
    * Returns the accessor for column with a given index.
    *
@@ -119,10 +125,12 @@ public class AvaticaResultSet extends ArrayFactoryImpl implements ResultSet {
    * @throws SQLException if index is not valid
    */
   private Cursor.Accessor getAccessor(int columnIndex) throws SQLException {
+    checkOpen();
     try {
       return accessorList.get(columnIndex - 1);
     } catch (IndexOutOfBoundsException e) {
-      throw new SQLException("invalid column ordinal: " + columnIndex);
+      throw AvaticaConnection.HELPER.createException(
+          "invalid column ordinal: " + columnIndex);
     }
   }
 
@@ -134,6 +142,7 @@ public class AvaticaResultSet extends ArrayFactoryImpl implements ResultSet {
    * @throws SQLException if there is no column with that label
    */
   private Cursor.Accessor getAccessor(String columnLabel) throws SQLException {
+    checkOpen();
     return accessorList.get(findColumn0(columnLabel));
   }
 
@@ -201,11 +210,9 @@ public class AvaticaResultSet extends ArrayFactoryImpl implements ResultSet {
 
   public boolean next() throws SQLException {
     // TODO: for timeout, see IteratorResultSet.next
-    if (isClosed()) {
-      throw new SQLException("next() called on closed cursor");
-    }
+    checkOpen();
     if (null != statement && statement.cancelFlag.get()) {
-      throw new SQLException("Statement canceled");
+      throw AvaticaConnection.HELPER.createException("Statement canceled");
     }
     if (cursor.next()) {
       ++row;
@@ -219,10 +226,12 @@ public class AvaticaResultSet extends ArrayFactoryImpl implements ResultSet {
   }
 
   public int findColumn(String columnLabel) throws SQLException {
+    checkOpen();
     return findColumn0(columnLabel) + 1;
   }
 
   public boolean wasNull() throws SQLException {
+    checkOpen();
     return cursor.wasNull();
   }
 
@@ -258,7 +267,6 @@ public class AvaticaResultSet extends ArrayFactoryImpl implements ResultSet {
     return getAccessor(columnIndex).getDouble();
   }
 
-  @SuppressWarnings("deprecation")
   public BigDecimal getBigDecimal(
       int columnIndex, int scale) throws SQLException {
     return getAccessor(columnIndex).getBigDecimal(scale);
@@ -284,7 +292,6 @@ public class AvaticaResultSet extends ArrayFactoryImpl implements ResultSet {
     return getAccessor(columnIndex).getAsciiStream();
   }
 
-  @SuppressWarnings("deprecation")
   public InputStream getUnicodeStream(int columnIndex) throws SQLException {
     return getAccessor(columnIndex).getUnicodeStream();
   }
@@ -325,7 +332,6 @@ public class AvaticaResultSet extends ArrayFactoryImpl implements ResultSet {
     return getAccessor(columnLabel).getDouble();
   }
 
-  @SuppressWarnings("deprecation")
   public BigDecimal getBigDecimal(
       String columnLabel, int scale) throws SQLException {
     return getAccessor(columnLabel).getBigDecimal(scale);
@@ -351,7 +357,6 @@ public class AvaticaResultSet extends ArrayFactoryImpl implements ResultSet {
     return getAccessor(columnLabel).getAsciiStream();
   }
 
-  @SuppressWarnings("deprecation")
   public InputStream getUnicodeStream(String columnLabel) throws SQLException {
     return getAccessor(columnLabel).getUnicodeStream();
   }
@@ -361,11 +366,12 @@ public class AvaticaResultSet extends ArrayFactoryImpl implements ResultSet {
   }
 
   public SQLWarning getWarnings() throws SQLException {
+    checkOpen();
     return null; // no warnings, since warnings are not supported
   }
 
   public void clearWarnings() throws SQLException {
-    // no-op since warnings are not supported
+    checkOpen();
   }
 
   public String getCursorName() throws SQLException {
@@ -373,6 +379,7 @@ public class AvaticaResultSet extends ArrayFactoryImpl implements ResultSet {
   }
 
   public ResultSetMetaData getMetaData() throws SQLException {
+    checkOpen();
     return resultSetMetaData;
   }
 
@@ -403,14 +410,17 @@ public class AvaticaResultSet extends ArrayFactoryImpl implements ResultSet {
   }
 
   public boolean isBeforeFirst() throws SQLException {
+    checkOpen();
     return beforeFirst;
   }
 
   public boolean isAfterLast() throws SQLException {
+    checkOpen();
     return afterLast;
   }
 
   public boolean isFirst() throws SQLException {
+    checkOpen();
     return row == 1;
   }
 
@@ -435,6 +445,7 @@ public class AvaticaResultSet extends ArrayFactoryImpl implements ResultSet {
   }
 
   public int getRow() throws SQLException {
+    checkOpen();
     return row;
   }
 
@@ -451,38 +462,47 @@ public class AvaticaResultSet extends ArrayFactoryImpl implements ResultSet {
   }
 
   public void setFetchDirection(int direction) throws SQLException {
+    checkOpen();
     this.fetchDirection = direction;
   }
 
   public int getFetchDirection() throws SQLException {
+    checkOpen();
     return fetchDirection;
   }
 
   public void setFetchSize(int fetchSize) throws SQLException {
+    checkOpen();
     this.fetchSize = fetchSize;
   }
 
   public int getFetchSize() throws SQLException {
+    checkOpen();
     return fetchSize;
   }
 
   public int getType() throws SQLException {
+    checkOpen();
     return type;
   }
 
   public int getConcurrency() throws SQLException {
+    checkOpen();
     return concurrency;
   }
 
   public boolean rowUpdated() throws SQLException {
+    checkOpen();
     return false;
   }
 
   public boolean rowInserted() throws SQLException {
+    checkOpen();
     return false;
   }
 
   public boolean rowDeleted() throws SQLException {
+    checkOpen();
     return false;
   }
 
@@ -680,6 +700,7 @@ public class AvaticaResultSet extends ArrayFactoryImpl implements ResultSet {
   }
 
   public AvaticaStatement getStatement() throws SQLException {
+    checkOpen();
     return statement;
   }
 
@@ -808,6 +829,7 @@ public class AvaticaResultSet extends ArrayFactoryImpl implements ResultSet {
   }
 
   public int getHoldability() throws SQLException {
+    checkOpen();
     return holdability;
   }
 

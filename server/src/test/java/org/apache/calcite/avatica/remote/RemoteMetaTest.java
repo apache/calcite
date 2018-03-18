@@ -419,13 +419,14 @@ public class RemoteMetaTest {
       int rowCount = 0;
       try (AvaticaConnection conn = (AvaticaConnection) DriverManager.getConnection(url)) {
         ResultSet rs = conn.getMetaData().getColumns(null, null, null, null);
+        Statement stmt = rs.getStatement();
         while (rs.next()) {
           rowCount++;
         }
         rs.close();
 
         // The implicitly created statement should have been closed
-        assertTrue(rs.getStatement().isClosed());
+        assertTrue(stmt.isClosed());
       }
       // default fetch size is 100, we are well beyond it
       assertTrue(rowCount > 900);

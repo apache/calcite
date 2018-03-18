@@ -129,6 +129,12 @@ public abstract class AvaticaStatement
     return handle.id;
   }
 
+  protected void checkOpen() throws SQLException {
+    if (isClosed()) {
+      throw AvaticaConnection.HELPER.createException("Statement closed");
+    }
+  }
+
   private void checkNotPreparedOrCallable(String s) throws SQLException {
     if (this instanceof PreparedStatement
         || this instanceof CallableStatement) {
@@ -206,6 +212,7 @@ public abstract class AvaticaStatement
   // implement Statement
 
   public boolean execute(String sql) throws SQLException {
+    checkOpen();
     checkNotPreparedOrCallable("execute(String)");
     executeInternal(sql);
     // Result set is null for DML or DDL.
@@ -214,6 +221,7 @@ public abstract class AvaticaStatement
   }
 
   public ResultSet executeQuery(String sql) throws SQLException {
+    checkOpen();
     checkNotPreparedOrCallable("executeQuery(String)");
     try {
       executeInternal(sql);
@@ -233,6 +241,7 @@ public abstract class AvaticaStatement
   }
 
   public long executeLargeUpdate(String sql) throws SQLException {
+    checkOpen();
     checkNotPreparedOrCallable("executeUpdate(String)");
     executeInternal(sql);
     return updateCount;
@@ -269,18 +278,24 @@ public abstract class AvaticaStatement
   }
 
   public int getMaxFieldSize() throws SQLException {
-    throw AvaticaConnection.HELPER.unsupported();
+    checkOpen();
+    return 0;
   }
 
   public void setMaxFieldSize(int max) throws SQLException {
-    throw AvaticaConnection.HELPER.unsupported();
+    checkOpen();
+    if (max != 0) {
+      throw AvaticaConnection.HELPER.createException(
+          "illegal maxField value: " + max);
+    }
   }
 
-  public final int getMaxRows() {
+  public final int getMaxRows() throws SQLException {
     return AvaticaUtils.toSaturatedInt(getLargeMaxRows());
   }
 
-  public long getLargeMaxRows() {
+  public long getLargeMaxRows() throws SQLException {
+    checkOpen();
     return maxRowCount;
   }
 
@@ -289,6 +304,7 @@ public abstract class AvaticaStatement
   }
 
   public void setLargeMaxRows(long maxRowCount) throws SQLException {
+    checkOpen();
     if (maxRowCount < 0) {
       throw AvaticaConnection.HELPER.createException(
           "illegal maxRows value: " + maxRowCount);
@@ -301,6 +317,7 @@ public abstract class AvaticaStatement
   }
 
   public int getQueryTimeout() throws SQLException {
+    checkOpen();
     long timeoutSeconds = getQueryTimeoutMillis() / 1000;
     if (timeoutSeconds > Integer.MAX_VALUE) {
       return Integer.MAX_VALUE;
@@ -317,6 +334,7 @@ public abstract class AvaticaStatement
   }
 
   public void setQueryTimeout(int seconds) throws SQLException {
+    checkOpen();
     if (seconds < 0) {
       throw AvaticaConnection.HELPER.createException(
           "illegal timeout value " + seconds);
@@ -329,6 +347,7 @@ public abstract class AvaticaStatement
   }
 
   public synchronized void cancel() throws SQLException {
+    checkOpen();
     if (openResultSet != null) {
       openResultSet.cancel();
     }
@@ -337,10 +356,12 @@ public abstract class AvaticaStatement
   }
 
   public SQLWarning getWarnings() throws SQLException {
+    checkOpen();
     return null; // no warnings, since warnings are not supported
   }
 
   public void clearWarnings() throws SQLException {
+    checkOpen();
     // no-op since warnings are not supported
   }
 
@@ -349,6 +370,7 @@ public abstract class AvaticaStatement
   }
 
   public ResultSet getResultSet() throws SQLException {
+    checkOpen();
     // NOTE: result set becomes visible in this member while
     // executeQueryInternal is still in progress, and before it has
     // finished executing. Its internal state may not be ready for API
@@ -359,46 +381,59 @@ public abstract class AvaticaStatement
   }
 
   public int getUpdateCount() throws SQLException {
+    checkOpen();
     return AvaticaUtils.toSaturatedInt(updateCount);
   }
 
   public long getLargeUpdateCount() throws SQLException {
+    checkOpen();
     return updateCount;
   }
 
   public boolean getMoreResults() throws SQLException {
+    checkOpen();
     return getMoreResults(CLOSE_CURRENT_RESULT);
   }
 
   public void setFetchDirection(int direction) throws SQLException {
+    checkOpen();
     this.fetchDirection = direction;
   }
 
-  public int getFetchDirection() {
+  public int getFetchDirection() throws SQLException {
+    checkOpen();
     return fetchDirection;
   }
 
   public void setFetchSize(int rows) throws SQLException {
+    checkOpen();
     this.fetchSize = rows;
   }
 
-  public int getFetchSize() {
+  public int getFetchSize() throws SQLException {
+    checkOpen();
     return fetchSize;
   }
 
   public int getResultSetConcurrency() throws SQLException {
-    throw AvaticaConnection.HELPER.unsupported();
+    checkOpen();
+    return resultSetConcurrency;
   }
 
   public int getResultSetType() throws SQLException {
-    throw AvaticaConnection.HELPER.unsupported();
+    checkOpen();
+    return resultSetType;
   }
 
   public void addBatch(String sql) throws SQLException {
+    checkOpen();
+    checkNotPreparedOrCallable("addBatch(String)");
     this.batchedSql.add(Objects.requireNonNull(sql));
   }
 
   public void clearBatch() throws SQLException {
+    checkOpen();
+    checkNotPreparedOrCallable("clearBatch()");
     this.batchedSql.clear();
   }
 
@@ -407,6 +442,7 @@ public abstract class AvaticaStatement
   }
 
   public long[] executeLargeBatch() throws SQLException {
+    checkOpen();
     try {
       return executeBatchInternal();
     } finally {
@@ -416,14 +452,13 @@ public abstract class AvaticaStatement
     }
   }
 
-  public AvaticaConnection getConnection() {
+  public AvaticaConnection getConnection() throws SQLException {
+    checkOpen();
     return connection;
   }
 
   public boolean getMoreResults(int current) throws SQLException {
-    if (closed) {
-      throw AvaticaConnection.HELPER.closed();
-    }
+    checkOpen();
     switch (current) {
     case KEEP_CURRENT_RESULT:
     case CLOSE_ALL_RESULTS:
@@ -478,7 +513,8 @@ public abstract class AvaticaStatement
   }
 
   public int getResultSetHoldability() throws SQLException {
-    throw AvaticaConnection.HELPER.unsupported();
+    checkOpen();
+    return resultSetHoldability;
   }
 
   public boolean isClosed() throws SQLException {
@@ -490,16 +526,19 @@ public abstract class AvaticaStatement
   }
 
   public boolean isPoolable() throws SQLException {
-    throw AvaticaConnection.HELPER.unsupported();
+    checkOpen();
+    return false;
   }
 
   // implements java.sql.Statement.closeOnCompletion (added in JDK 1.7)
   public void closeOnCompletion() throws SQLException {
+    checkOpen();
     closeOnCompletion = true;
   }
 
   // implements java.sql.Statement.isCloseOnCompletion (added in JDK 1.7)
   public boolean isCloseOnCompletion() throws SQLException {
+    checkOpen();
     return closeOnCompletion;
   }
 

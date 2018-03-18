@@ -87,7 +87,8 @@ class AvaticaJdbc41Factory implements AvaticaFactory {
   }
 
   public AvaticaResultSet newResultSet(AvaticaStatement statement,
-      QueryState state, Meta.Signature signature, TimeZone timeZone, Meta.Frame firstFrame) {
+      QueryState state, Meta.Signature signature, TimeZone timeZone, Meta.Frame firstFrame)
+      throws SQLException {
     final ResultSetMetaData metaData =
         newResultSetMetaData(statement, signature);
     return new AvaticaResultSet(statement, state, signature, metaData, timeZone,
