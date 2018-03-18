@@ -132,7 +132,7 @@ public abstract class AvaticaStatement
   private void checkNotPreparedOrCallable(String s) throws SQLException {
     if (this instanceof PreparedStatement
         || this instanceof CallableStatement) {
-      throw connection.HELPER.createException("Cannot call " + s
+      throw AvaticaConnection.HELPER.createException("Cannot call " + s
           + " on prepared or callable statement");
     }
   }
@@ -145,6 +145,7 @@ public abstract class AvaticaStatement
       final long maxRowCount1 = maxRowCount <= 0 ? -1 : maxRowCount;
       for (int i = 0; i < connection.maxRetriesPerExecute; i++) {
         try {
+          @SuppressWarnings("unused")
           Meta.ExecuteResult x =
               connection.prepareAndExecuteInternal(this, sql, maxRowCount1);
           return;
@@ -153,7 +154,7 @@ public abstract class AvaticaStatement
         }
       }
     } catch (RuntimeException e) {
-      throw connection.HELPER.createException("Error while executing SQL \"" + sql + "\": "
+      throw AvaticaConnection.HELPER.createException("Error while executing SQL \"" + sql + "\": "
           + e.getMessage(), e);
     }
 
@@ -217,12 +218,12 @@ public abstract class AvaticaStatement
     try {
       executeInternal(sql);
       if (openResultSet == null) {
-        throw connection.HELPER.createException(
+        throw AvaticaConnection.HELPER.createException(
             "Statement did not return a result set");
       }
       return openResultSet;
     } catch (RuntimeException e) {
-      throw connection.HELPER.createException("Error while executing SQL \"" + sql + "\": "
+      throw AvaticaConnection.HELPER.createException("Error while executing SQL \"" + sql + "\": "
           + e.getMessage(), e);
     }
   }
@@ -241,7 +242,7 @@ public abstract class AvaticaStatement
     try {
       close_();
     } catch (RuntimeException e) {
-      throw connection.HELPER.createException("While closing statement", e);
+      throw AvaticaConnection.HELPER.createException("While closing statement", e);
     }
   }
 
@@ -268,11 +269,11 @@ public abstract class AvaticaStatement
   }
 
   public int getMaxFieldSize() throws SQLException {
-    throw connection.HELPER.unsupported();
+    throw AvaticaConnection.HELPER.unsupported();
   }
 
   public void setMaxFieldSize(int max) throws SQLException {
-    throw connection.HELPER.unsupported();
+    throw AvaticaConnection.HELPER.unsupported();
   }
 
   public final int getMaxRows() {
@@ -289,14 +290,14 @@ public abstract class AvaticaStatement
 
   public void setLargeMaxRows(long maxRowCount) throws SQLException {
     if (maxRowCount < 0) {
-      throw connection.HELPER.createException(
+      throw AvaticaConnection.HELPER.createException(
           "illegal maxRows value: " + maxRowCount);
     }
     this.maxRowCount = maxRowCount;
   }
 
   public void setEscapeProcessing(boolean enable) throws SQLException {
-    throw connection.HELPER.unsupported();
+    throw AvaticaConnection.HELPER.unsupported();
   }
 
   public int getQueryTimeout() throws SQLException {
@@ -317,7 +318,7 @@ public abstract class AvaticaStatement
 
   public void setQueryTimeout(int seconds) throws SQLException {
     if (seconds < 0) {
-      throw connection.HELPER.createException(
+      throw AvaticaConnection.HELPER.createException(
           "illegal timeout value " + seconds);
     }
     setQueryTimeoutMillis(seconds * 1000);
@@ -344,7 +345,7 @@ public abstract class AvaticaStatement
   }
 
   public void setCursorName(String name) throws SQLException {
-    throw connection.HELPER.unsupported();
+    throw AvaticaConnection.HELPER.unsupported();
   }
 
   public ResultSet getResultSet() throws SQLException {
@@ -386,11 +387,11 @@ public abstract class AvaticaStatement
   }
 
   public int getResultSetConcurrency() throws SQLException {
-    throw connection.HELPER.unsupported();
+    throw AvaticaConnection.HELPER.unsupported();
   }
 
   public int getResultSetType() throws SQLException {
-    throw connection.HELPER.unsupported();
+    throw AvaticaConnection.HELPER.unsupported();
   }
 
   public void addBatch(String sql) throws SQLException {
@@ -421,18 +422,18 @@ public abstract class AvaticaStatement
 
   public boolean getMoreResults(int current) throws SQLException {
     if (closed) {
-      throw connection.HELPER.closed();
+      throw AvaticaConnection.HELPER.closed();
     }
     switch (current) {
     case KEEP_CURRENT_RESULT:
     case CLOSE_ALL_RESULTS:
-      throw connection.HELPER.unsupported();
+      throw AvaticaConnection.HELPER.unsupported();
 
     case CLOSE_CURRENT_RESULT:
       break;
 
     default:
-      throw connection.HELPER.createException("value " + current
+      throw AvaticaConnection.HELPER.createException("value " + current
           + " is not one of CLOSE_CURRENT_RESULT, KEEP_CURRENT_RESULT or CLOSE_ALL_RESULTS");
     }
 
@@ -443,41 +444,41 @@ public abstract class AvaticaStatement
   }
 
   public ResultSet getGeneratedKeys() throws SQLException {
-    throw connection.HELPER.unsupported();
+    throw AvaticaConnection.HELPER.unsupported();
   }
 
   public int executeUpdate(
       String sql, int autoGeneratedKeys) throws SQLException {
-    throw connection.HELPER.unsupported();
+    throw AvaticaConnection.HELPER.unsupported();
   }
 
   public int executeUpdate(
       String sql, int[] columnIndexes) throws SQLException {
-    throw connection.HELPER.unsupported();
+    throw AvaticaConnection.HELPER.unsupported();
   }
 
   public int executeUpdate(
       String sql, String[] columnNames) throws SQLException {
-    throw connection.HELPER.unsupported();
+    throw AvaticaConnection.HELPER.unsupported();
   }
 
   public boolean execute(
       String sql, int autoGeneratedKeys) throws SQLException {
-    throw connection.HELPER.unsupported();
+    throw AvaticaConnection.HELPER.unsupported();
   }
 
   public boolean execute(
       String sql, int[] columnIndexes) throws SQLException {
-    throw connection.HELPER.unsupported();
+    throw AvaticaConnection.HELPER.unsupported();
   }
 
   public boolean execute(
       String sql, String[] columnNames) throws SQLException {
-    throw connection.HELPER.unsupported();
+    throw AvaticaConnection.HELPER.unsupported();
   }
 
   public int getResultSetHoldability() throws SQLException {
-    throw connection.HELPER.unsupported();
+    throw AvaticaConnection.HELPER.unsupported();
   }
 
   public boolean isClosed() throws SQLException {
@@ -485,11 +486,11 @@ public abstract class AvaticaStatement
   }
 
   public void setPoolable(boolean poolable) throws SQLException {
-    throw connection.HELPER.unsupported();
+    throw AvaticaConnection.HELPER.unsupported();
   }
 
   public boolean isPoolable() throws SQLException {
-    throw connection.HELPER.unsupported();
+    throw AvaticaConnection.HELPER.unsupported();
   }
 
   // implements java.sql.Statement.closeOnCompletion (added in JDK 1.7)
@@ -508,7 +509,7 @@ public abstract class AvaticaStatement
     if (iface.isInstance(this)) {
       return iface.cast(this);
     }
-    throw connection.HELPER.createException(
+    throw AvaticaConnection.HELPER.createException(
         "does not implement '" + iface + "'");
   }
 
