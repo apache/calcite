@@ -16,8 +16,8 @@
  */
 package org.apache.calcite.sql.fun;
 
-
-
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperatorBinding;
@@ -25,37 +25,51 @@ import org.apache.calcite.sql.SqlSpecialOperator;
 import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.type.InferTypes;
+import org.apache.calcite.sql.type.IntervalSqlType;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
 
 /**
- * A special operator for the subtraction of two DATETIMEs. The format of
- * DATETIME subtraction is:
- *
- * <blockquote><code>"(" &lt;datetime&gt; "-" &lt;datetime&gt; ")"
- * &lt;interval qualifier&gt;</code></blockquote>
- *
- * <p>This operator is special since it needs to hold the
- * additional interval qualifier specification, when in {@link SqlCall} form.
- * In {@link org.apache.calcite.rex.RexNode} form, it has only two parameters,
- * and the return type describes the desired type of interval.
+ * A special operator for adding an INTERVAL with a DATETIME.
  */
-public class SqlDatetimeSubtractionOperator extends SqlSpecialOperator {
+public class SqlDatetimeAdditionOperator extends SqlSpecialOperator {
   //~ Constructors -----------------------------------------------------------
 
-  public SqlDatetimeSubtractionOperator() {
+  public SqlDatetimeAdditionOperator() {
     super(
-        "-",
-        SqlKind.MINUS,
+        "+",
+        SqlKind.PLUS,
         40,
         true,
         ReturnTypes.ARG2_NULLABLE,
         InferTypes.FIRST_KNOWN,
-        OperandTypes.MINUS_DATE_OPERATOR);
+        OperandTypes.PLUS_DATE_OPERATOR);
   }
 
   //~ Methods ----------------------------------------------------------------
+
+  @Override public RelDataType
+  inferReturnType(SqlOperatorBinding opBinding) {
+    final RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
+    final RelDataType leftType = opBinding.getOperandType(0);
+    final IntervalSqlType unitType =
+        (IntervalSqlType) opBinding.getOperandType(1);
+    switch (unitType.getIntervalQualifier().getStartUnit()) {
+    case HOUR:
+    case MINUTE:
+    case SECOND:
+    case MILLISECOND:
+    case MICROSECOND:
+      return typeFactory.createTypeWithNullability(
+          typeFactory.createSqlType(SqlTypeName.TIMESTAMP),
+          leftType.isNullable() || unitType.isNullable());
+    default:
+      return leftType;
+    }
+  }
+
 
   public SqlSyntax getSyntax() {
     return SqlSyntax.SPECIAL;
@@ -67,12 +81,14 @@ public class SqlDatetimeSubtractionOperator extends SqlSpecialOperator {
       int leftPrec,
       int rightPrec) {
     writer.getDialect().unparseSqlDatetimeArithmetic(
-        writer, call, SqlKind.MINUS, leftPrec, rightPrec);
+        writer, call, SqlKind.PLUS, leftPrec, rightPrec);
   }
 
+
+
   @Override public SqlMonotonicity getMonotonicity(SqlOperatorBinding call) {
-    return SqlStdOperatorTable.MINUS.getMonotonicity(call);
+    return SqlStdOperatorTable.PLUS.getMonotonicity(call);
   }
 }
 
-// End SqlDatetimeSubtractionOperator.java
+// End SqlDatetimeAdditionOperator.java

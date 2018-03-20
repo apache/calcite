@@ -17,17 +17,23 @@
 package org.apache.calcite.sql.dialect;
 
 import org.apache.calcite.avatica.util.TimeUnitRange;
+import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.sql.SqlAbstractDateTimeLiteral;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
+import org.apache.calcite.sql.SqlIntervalLiteral;
+import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlLiteral;
+import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.ReturnTypes;
+
+
 
 /**
  * A <code>SqlDialect</code> implementation for the Microsoft SQL Server
@@ -119,6 +125,67 @@ public class MssqlSqlDialect extends SqlDialect {
       throw new IllegalArgumentException("MSSQL does not support FLOOR for time unit: "
           + unit);
     }
+  }
+
+  @Override public void unparseSqlDatetimeArithmetic(SqlWriter writer,
+      SqlCall call, SqlKind sqlKind, int leftPrec, int rightPrec) {
+
+    final SqlWriter.Frame frame = writer.startFunCall("DATEADD");
+    SqlNode operand = call.operand(1);
+    if (operand instanceof SqlIntervalLiteral) {
+      //There is no DATESUB method available, so change the sign.
+      unparseSqlIntervalLiteralMssql(
+          writer, (SqlIntervalLiteral) operand, sqlKind == SqlKind.MINUS ? -1 : 1);
+    } else {
+      operand.unparse(writer, leftPrec, rightPrec);
+    }
+    writer.sep(",", true);
+
+    call.operand(0).unparse(writer, leftPrec, rightPrec);
+    writer.endList(frame);
+  }
+
+  @Override public void unparseSqlIntervalQualifier(SqlWriter writer,
+      SqlIntervalQualifier qualifier, RelDataTypeSystem typeSystem) {
+    switch (qualifier.timeUnitRange) {
+    case YEAR:
+    case QUARTER:
+    case MONTH:
+    case WEEK:
+    case DAY:
+    case HOUR:
+    case MINUTE:
+    case SECOND:
+    case MILLISECOND:
+    case MICROSECOND:
+      final String timeUnit = qualifier.timeUnitRange.startUnit.name();
+      writer.keyword(timeUnit);
+      break;
+    default:
+      throw new AssertionError("Unsupported type: " + qualifier.timeUnitRange);
+    }
+
+    if (null != qualifier.timeUnitRange.endUnit) {
+      throw new AssertionError("End unit is not supported now: "
+          + qualifier.timeUnitRange.endUnit);
+    }
+  }
+
+  @Override public void unparseSqlIntervalLiteral(
+      SqlWriter writer, SqlIntervalLiteral literal, int leftPrec, int rightPrec) {
+    unparseSqlIntervalLiteralMssql(writer, literal, 1);
+  }
+
+  private void unparseSqlIntervalLiteralMssql(
+      SqlWriter writer, SqlIntervalLiteral literal, int sign) {
+    SqlIntervalLiteral.IntervalValue interval
+        = (SqlIntervalLiteral.IntervalValue) literal.getValue();
+    writer.literal(interval.getIntervalQualifier().toSqlString(writer.getDialect()).getSql());
+    writer.sep(",", true);
+    if (interval.getSign() * sign == -1) {
+      writer.print("-");
+    }
+    writer.literal(literal.getValue().toString());
   }
 
   private void unparseFloorWithUnit(SqlWriter writer, SqlCall call, int charLen,

@@ -480,20 +480,22 @@ public abstract class OperandTypes {
       // TODO:  compatibility check
       OperandTypes.or(NUMERIC_NUMERIC, INTERVAL_SAME_SAME, DATETIME_INTERVAL);
 
-  public static final SqlSingleOperandTypeChecker MINUS_DATE_OPERATOR =
-      new FamilyOperandTypeChecker(
+  public static final FamilyOperandTypeChecker DATE_ARITHMETIC_OPERATOR
+      = new FamilyOperandTypeChecker(
           ImmutableList.of(SqlTypeFamily.DATETIME, SqlTypeFamily.DATETIME,
               SqlTypeFamily.DATETIME_INTERVAL),
           Predicates.<Integer>alwaysFalse()) {
-        public boolean checkOperandTypes(
-            SqlCallBinding callBinding,
-            boolean throwOnFailure) {
-          if (!super.checkOperandTypes(callBinding, throwOnFailure)) {
-            return false;
-          }
-          return SAME_SAME.checkOperandTypes(callBinding, throwOnFailure);
-        }
-      };
+            public boolean checkOperandTypes(SqlCallBinding callBinding, boolean throwOnFailure) {
+              if (!super.checkOperandTypes(callBinding, throwOnFailure)) {
+                return false;
+              }
+              return SAME_SAME.checkOperandTypes(callBinding, throwOnFailure);
+            }
+          };
+
+  public static final SqlSingleOperandTypeChecker MINUS_DATE_OPERATOR = DATE_ARITHMETIC_OPERATOR;
+
+  public static final SqlSingleOperandTypeChecker PLUS_DATE_OPERATOR = DATE_ARITHMETIC_OPERATOR;
 
   public static final SqlSingleOperandTypeChecker NUMERIC_OR_INTERVAL =
       OperandTypes.or(NUMERIC, INTERVAL);
