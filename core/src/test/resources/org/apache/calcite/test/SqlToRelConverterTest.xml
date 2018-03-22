@@ -366,7 +366,21 @@ window w as (partition by productId)]]>
         <Resource name="plan">
             <![CDATA[
 LogicalProject(EXPR$0=[DOT(ITEM(DOT(DOT(ITEM($2, 1), 'DETAIL'), 'SKILLS'), +(2, 3)), 'DESC')])
-  LogicalTableScan(table=[[CATALOG, SALES, DEPT_NESTED]])
+  LogicalProject(DEPTNO=[$0], NAME=[$1], TYPE=[$2.TYPE], DESC=[$2.DESC], EMPLOYEES=[$3])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT_NESTED]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testFlattenRecords">
+        <Resource name="sql">
+            <![CDATA[select employees[1] from dept_nested]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(EXPR$0=[$0])
+  LogicalProject(EXPR$0$0=[ITEM($6, 1).EMPNO], EXPR$0$1=[ITEM($6, 1).ENAME], EXPR$0$2=[ITEM($6, 1).DETAIL])
+    LogicalProject(DEPTNO=[$0], NAME=[$1], TYPE=[$2.TYPE], DESC=[$2.DESC], A=[$2.OTHERS.A], B=[$2.OTHERS.B], EMPLOYEES=[$3])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT_NESTED]])
 ]]>
         </Resource>
     </TestCase>

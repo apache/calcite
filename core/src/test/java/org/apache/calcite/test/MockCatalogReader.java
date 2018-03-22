@@ -247,6 +247,7 @@ public class MockCatalogReader extends CalciteCatalogReader {
         MockTable.create(this, salesSchema, "DEPT_NESTED", false, 4);
     deptNestedTable.addColumn("DEPTNO", f.intType, true);
     deptNestedTable.addColumn("NAME", f.varchar10Type);
+    deptNestedTable.addColumn("SKILL", f.skillRecordType);
     deptNestedTable.addColumn("EMPLOYEES", f.empListType);
     registerTable(deptNestedTable);
 
