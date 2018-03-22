@@ -3888,6 +3888,39 @@ public class DruidAdapterIT {
                     + "\"outputType\":\"STRING\"}]"));
   }
 
+  @Test
+  public void testSubStringWithNonConstantIndexes() {
+    final String sql = "SELECT COUNT(*) FROM "
+        + FOODMART_TABLE
+        + " WHERE SUBSTRING(\"product_id\" from CAST(\"store_cost\" as INT)/1000 + 2  "
+        + "for CAST(\"product_id\" as INT)) like '1%'";
+
+    sql(sql, FOODMART).returnsOrdered("EXPR$0=10893")
+        .queryContains(
+            druidChecker("\"queryType\":\"timeseries\"", "like(substring(\\\"product_id\\\""))
+        .explainContains(
+            "PLAN=EnumerableInterpreter\n  DruidQuery(table=[[foodmart, foodmart]], "
+                + "intervals=[[1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z]], "
+                + "filter=[LIKE(SUBSTRING($1, +(/(CAST($91):INTEGER, 1000), 2), CAST($1):INTEGER), '1%')], "
+                + "groups=[{}], aggs=[[COUNT()]])\n\n");
+  }
+
+  @Test
+  public void testSubStringWithNonConstantIndex() {
+    final String sql = "SELECT COUNT(*) FROM "
+        + FOODMART_TABLE
+        + " WHERE SUBSTRING(\"product_id\" from CAST(\"store_cost\" as INT)/1000 + 1) like '1%'";
+
+    sql(sql, FOODMART).returnsOrdered("EXPR$0=36839")
+        .queryContains(druidChecker("like(substring(\\\"product_id\\\""))
+        .explainContains(
+            "PLAN=EnumerableInterpreter\n  DruidQuery(table=[[foodmart, foodmart]], "
+                + "intervals=[[1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z]], "
+                + "filter=[LIKE(SUBSTRING($1, +(/(CAST($91):INTEGER, 1000), 1)), '1%')],"
+                + " groups=[{}], aggs=[[COUNT()]])\n\n");
+  }
+
+
   /**
    * Test case for https://issues.apache.org/jira/browse/CALCITE-2098.
    * Need to make sure that when there we have a valid filter with no conjunction we still push
