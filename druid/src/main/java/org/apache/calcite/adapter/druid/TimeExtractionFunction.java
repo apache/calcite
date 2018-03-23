@@ -59,6 +59,7 @@ public class TimeExtractionFunction implements ExtractionFunction {
 
   private static final ImmutableSet<TimeUnitRange> VALID_TIME_FLOOR = Sets.immutableEnumSet(
       TimeUnitRange.YEAR,
+      TimeUnitRange.QUARTER,
       TimeUnitRange.MONTH,
       TimeUnitRange.DAY,
       TimeUnitRange.WEEK,

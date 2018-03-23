@@ -4413,6 +4413,79 @@ public class DruidAdapterIT {
                 + "{'type':'filter','filter':{'type':'bound','dimension':'$f2','lower':'0',"
                 + "'lowerStrict':true,'ordering':'numeric'}}}"));
   }
+
+  @Test
+  public void testFloorQuarter() {
+    String sql = "SELECT floor(\"timestamp\" TO quarter), SUM(\"store_sales\") FROM "
+        + FOODMART_TABLE
+        + " GROUP BY floor(\"timestamp\" TO quarter)";
+
+    sql(sql, FOODMART).queryContains(
+        druidChecker(
+            "{\"queryType\":\"timeseries\",\"dataSource\":\"foodmart\",\"descending\":false,"
+                + "\"granularity\":{\"type\":\"period\",\"period\":\"P3M\",\"timeZone\":\"UTC\"},"
+                + "\"aggregations\":[{\"type\":\"doubleSum\",\"name\":\"EXPR$1\",\"fieldName\":\"store_sales\"}],"
+                + "\"intervals\":[\"1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z\"],\"context\":{\"skipEmptyBuckets\":true}}"));
+  }
+
+  @Test
+  public void testFloorQuarterPlusDim() {
+    String sql =
+        "SELECT floor(\"timestamp\" TO quarter),\"product_id\",  SUM(\"store_sales\") FROM "
+            + FOODMART_TABLE
+            + " GROUP BY floor(\"timestamp\" TO quarter), \"product_id\"";
+
+    sql(sql, FOODMART).queryContains(
+        druidChecker(
+            "{\"queryType\":\"groupBy\",\"dataSource\":\"foodmart\",\"granularity\":\"all\",\"dimensions\":"
+                + "[{\"type\":\"extraction\",\"dimension\":\"__time\",\"outputName\":\"floor_quarter\",\"extractionFn\":{\"type\":\"timeFormat\"",
+            "\"granularity\":{\"type\":\"period\",\"period\":\"P3M\",\"timeZone\":\"UTC\"},\"timeZone\":\"UTC\",\"locale\":\"und\"}},"
+                + "{\"type\":\"default\",\"dimension\":\"product_id\",\"outputName\":\"product_id\",\"outputType\":\"STRING\"}],"
+                + "\"limitSpec\":{\"type\":\"default\"},\"aggregations\":[{\"type\":\"doubleSum\",\"name\":\"EXPR$2\",\"fieldName\":\"store_sales\"}],"
+                + "\"intervals\":[\"1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z\"]}"));
+  }
+
+
+  @Test
+  public void testExtractQuarterPlusDim() {
+    String sql =
+        "SELECT EXTRACT(quarter from \"timestamp\"),\"product_id\",  SUM(\"store_sales\") FROM "
+            + FOODMART_TABLE
+            + " WHERE \"product_id\" = 1"
+            + " GROUP BY EXTRACT(quarter from \"timestamp\"), \"product_id\"";
+
+    sql(sql, FOODMART).returnsOrdered("EXPR$0=1; product_id=1; EXPR$2=37.050000000000004\n"
+        + "EXPR$0=2; product_id=1; EXPR$2=62.7\n"
+        + "EXPR$0=3; product_id=1; EXPR$2=88.35\n"
+        + "EXPR$0=4; product_id=1; EXPR$2=48.45")
+        .queryContains(
+            druidChecker(
+                "{\"queryType\":\"groupBy\",\"dataSource\":\"foodmart\",\"granularity\":\"all\",\"dimensions\":"
+                    + "[{\"type\":\"default\",\"dimension\":\"vc\",\"outputName\":\"vc\",\"outputType\":\"LONG\"},"
+                    + "{\"type\":\"default\",\"dimension\":\"product_id\",\"outputName\":\"product_id\",\"outputType\":\"STRING\"}],"
+                    + "\"virtualColumns\":[{\"type\":\"expression\",\"name\":\"vc\",\"expression\":\"timestamp_extract(\\\"__time\\\",",
+                "QUARTER"
+            ));
+  }
+
+  @Test
+  public void testExtractQuarter() {
+    String sql = "SELECT EXTRACT(quarter from \"timestamp\"),  SUM(\"store_sales\") FROM "
+        + FOODMART_TABLE
+        + " GROUP BY EXTRACT(quarter from \"timestamp\")";
+
+    sql(sql, FOODMART).returnsOrdered("EXPR$0=1; EXPR$1=139628.34999999971\n"
+        + "EXPR$0=2; EXPR$1=132666.26999999944\n"
+        + "EXPR$0=3; EXPR$1=140271.88999999964\n"
+        + "EXPR$0=4; EXPR$1=152671.61999999985")
+        .queryContains(
+            druidChecker(
+                "{\"queryType\":\"groupBy\",\"dataSource\":\"foodmart\",\"granularity\":\"all\","
+                    + "\"dimensions\":[{\"type\":\"default\",\"dimension\":\"vc\",\"outputName\":\"vc\",\"outputType\":\"LONG\"}],"
+                    + "\"virtualColumns\":[{\"type\":\"expression\",\"name\":\"vc\",\"expression\":\"timestamp_extract(\\\"__time\\\",",
+                "QUARTER"
+            ));
+  }
 }
 
 // End DruidAdapterIT.java
