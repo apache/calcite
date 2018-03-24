@@ -526,11 +526,12 @@ public class SqlValidatorUtil {
       RelDataType rightType,
       List<String> fieldNameList,
       List<RelDataTypeField> systemFieldList) {
+    assert rightType != null;
     assert (fieldNameList == null)
         || (fieldNameList.size()
         == (systemFieldList.size()
         + leftType.getFieldCount()
-        + (rightType == null ? 0 : rightType.getFieldCount())));
+        + rightType.getFieldCount()));
     List<String> nameList = new ArrayList<>();
     final List<RelDataType> typeList = new ArrayList<>();
 
