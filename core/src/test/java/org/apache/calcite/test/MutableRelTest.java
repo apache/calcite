@@ -22,6 +22,7 @@ import org.apache.calcite.plan.hep.HepPlanner;
 import org.apache.calcite.plan.hep.HepProgram;
 import org.apache.calcite.plan.hep.HepProgramBuilder;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.mutable.MutableRel;
 import org.apache.calcite.rel.mutable.MutableRels;
 import org.apache.calcite.rel.rules.FilterJoinRule;
@@ -187,7 +188,8 @@ public class MutableRelTest {
     };
     RelNode origRel = test.createTester().convertSqlToRel(sql).rel;
     if (decorrelate) {
-      origRel = RelDecorrelator.decorrelateQuery(origRel);
+      origRel = RelDecorrelator.decorrelateQuery(origRel,
+          RelFactories.LOGICAL_BUILDER);
     }
     if (rules != null) {
       final HepProgram hepProgram =

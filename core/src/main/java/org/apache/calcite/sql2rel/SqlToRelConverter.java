@@ -459,7 +459,8 @@ public class SqlToRelConverter {
       RelNode rootRel,
       boolean restructure) {
     RelStructuredTypeFlattener typeFlattener =
-        new RelStructuredTypeFlattener(rexBuilder, createToRelContext(), restructure);
+        new RelStructuredTypeFlattener(relBuilder,
+            rexBuilder, createToRelContext(), restructure);
     return typeFlattener.rewrite(rootRel);
   }
 
@@ -1508,7 +1509,8 @@ public class SqlToRelConverter {
     final Blackboard seekBb = createBlackboard(seekScope, null, false);
     RelNode seekRel = convertQueryOrInList(seekBb, seek, targetDataType);
 
-    return RelOptUtil.createExistsPlan(seekRel, subQueryType, logic, notIn);
+    return RelOptUtil.createExistsPlan(seekRel,
+        subQueryType, logic, notIn, relBuilder);
   }
 
   private RelNode convertQueryOrInList(
@@ -2089,8 +2091,8 @@ public class SqlToRelConverter {
       }
       final RelNode input =
           RelOptUtil.createProject(
-              (null != bb.root) ? bb.root : LogicalValues.createOneRow(cluster),
-              exprs, fieldNames, true);
+              (null != bb.root) ? bb.root : LogicalValues.createOneRow(cluster), exprs,
+              fieldNames, true, relBuilder);
 
       Uncollect uncollect =
           new Uncollect(cluster, cluster.traitSetOf(Convention.NONE),
@@ -2775,8 +2777,10 @@ public class SqlToRelConverter {
       bb.setRoot(
           RelOptUtil.createProject(
               inputRel,
-              preExprs,
-              true),
+              Pair.left(preExprs),
+              Pair.right(preExprs),
+              true,
+              relBuilder),
           false);
       bb.mapRootRelToFieldProjection.put(bb.root, r.groupExprProjection);
 
@@ -3027,7 +3031,7 @@ public class SqlToRelConverter {
   }
 
   protected RelNode decorrelateQuery(RelNode rootRel) {
-    return RelDecorrelator.decorrelateQuery(rootRel);
+    return RelDecorrelator.decorrelateQuery(rootRel, config.getRelBuilderFactory());
   }
 
   /**
@@ -3190,7 +3194,8 @@ public class SqlToRelConverter {
               field.getName()));
     }
 
-    source = RelOptUtil.createProject(source, projects, true);
+    source = RelOptUtil.createProject(source,
+        Pair.left(projects), Pair.right(projects), true, relBuilder);
     if (filters.size() > 0) {
       source = RelOptUtil.createFilter(source, filters);
     }
@@ -3337,7 +3342,8 @@ public class SqlToRelConverter {
       }
     }
 
-    return RelOptUtil.createProject(source, sourceExps, fieldNames, true);
+    return RelOptUtil.createProject(source,
+        sourceExps, fieldNames, true, relBuilder);
   }
 
   /** Creates a blackboard for translating the expressions of generated columns
@@ -3578,7 +3584,8 @@ public class SqlToRelConverter {
     }
 
     RelNode massagedRel =
-        RelOptUtil.createProject(join, projects, null, true);
+        RelOptUtil.createProject(join,
+            projects, null, true, relBuilder);
 
     return LogicalTableModify.create(targetTable, catalogReader, massagedRel,
         LogicalTableModify.Operation.MERGE, targetColumnNameList, null, false);
@@ -3780,8 +3787,7 @@ public class SqlToRelConverter {
         RelNode projRel =
             RelOptUtil.createProject(
                 LogicalValues.createOneRow(cluster),
-                selectList,
-                fieldNameList);
+                selectList, fieldNameList, false, relBuilder);
 
         joinList.set(i, projRel);
       }
@@ -3846,7 +3852,8 @@ public class SqlToRelConverter {
         catalogReader.nameMatcher().isCaseSensitive());
 
     bb.setRoot(
-        RelOptUtil.createProject(bb.root, exprs, fieldNames),
+        RelOptUtil.createProject(bb.root,
+            exprs, fieldNames, false, relBuilder),
         false);
 
     assert bb.columnMonotonicities.isEmpty();
@@ -3965,7 +3972,8 @@ public class SqlToRelConverter {
               in,
               Pair.left(exps),
               Pair.right(exps),
-              true));
+              true,
+              relBuilder));
     }
 
     if (unionRels.size() == 0) {
@@ -4116,7 +4124,8 @@ public class SqlToRelConverter {
                 root,
                 newLeftInputExpr,
                 null,
-                true);
+                true,
+                relBuilder);
 
         // maintain the group by mapping in the new LogicalProject
         if (mapRootRelToFieldProjection.containsKey(root)) {

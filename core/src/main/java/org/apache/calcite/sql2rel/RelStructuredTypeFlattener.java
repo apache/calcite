@@ -25,6 +25,7 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelVisitor;
 import org.apache.calcite.rel.core.Collect;
 import org.apache.calcite.rel.core.CorrelationId;
+import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.Sample;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.TableScan;
@@ -65,6 +66,7 @@ import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
+import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.ReflectUtil;
@@ -125,6 +127,7 @@ import java.util.SortedSet;
 public class RelStructuredTypeFlattener implements ReflectiveVisitor {
   //~ Instance fields --------------------------------------------------------
 
+  private final RelBuilder relBuilder;
   private final RexBuilder rexBuilder;
   private final boolean restructure;
 
@@ -137,10 +140,21 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
 
   //~ Constructors -----------------------------------------------------------
 
+  @Deprecated // to be removed before 2.0
   public RelStructuredTypeFlattener(
       RexBuilder rexBuilder,
       RelOptTable.ToRelContext toRelContext,
       boolean restructure) {
+    this(RelFactories.LOGICAL_BUILDER.create(toRelContext.getCluster(), null),
+        rexBuilder, toRelContext, restructure);
+  }
+
+  public RelStructuredTypeFlattener(
+      RelBuilder relBuilder,
+      RexBuilder rexBuilder,
+      RelOptTable.ToRelContext toRelContext,
+      boolean restructure) {
+    this.relBuilder = relBuilder;
     this.rexBuilder = rexBuilder;
     this.toRelContext = toRelContext;
     this.restructure = restructure;
@@ -194,7 +208,9 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
       return RelOptUtil.createProject(
           flattened,
           structuringExps,
-          root.getRowType().getFieldNames());
+          root.getRowType().getFieldNames(),
+          false,
+          relBuilder);
     } else {
       return flattened;
     }
@@ -476,8 +492,10 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
     RelNode newRel =
         RelOptUtil.createProject(
             getNewForOldRel(rel.getInput()),
-            flattenedExpList,
-            false);
+            Pair.left(flattenedExpList),
+            Pair.right(flattenedExpList),
+            false,
+            relBuilder);
     setNewForOldRel(rel, newRel);
   }
 
@@ -661,7 +679,8 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
           rexBuilder.makeRangeReference(newRel),
           flattenedExpList);
       newRel =
-          RelOptUtil.createProject(newRel, flattenedExpList, false);
+          RelOptUtil.createProject(newRel, Pair.left(flattenedExpList),
+              Pair.right(flattenedExpList), false, relBuilder);
     }
     setNewForOldRel(rel, newRel);
   }
@@ -828,7 +847,8 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
     @Override public RexNode visitSubQuery(RexSubQuery subQuery) {
       subQuery = (RexSubQuery) super.visitSubQuery(subQuery);
       RelStructuredTypeFlattener flattener =
-          new RelStructuredTypeFlattener(rexBuilder, toRelContext, restructure);
+          new RelStructuredTypeFlattener(relBuilder, rexBuilder,
+              toRelContext, restructure);
       RelNode rel = flattener.rewrite(subQuery.rel);
       return subQuery.clone(rel);
     }
