@@ -20,7 +20,7 @@ limitations under the License.
   <parent>
     <groupId>org.apache</groupId>
     <artifactId>apache</artifactId>
-    <version>18</version>
+    <version>19</version>
   </parent>
 
   <!-- The basics. -->
@@ -104,14 +104,10 @@ limitations under the License.
     <maven-checkstyle-plugin.version>3.0.0</maven-checkstyle-plugin.version>
     <maven-dependency-plugin.version>2.10</maven-dependency-plugin.version>
     <maven-enforcer-plugin.version>3.0.0-M1</maven-enforcer-plugin.version>
-    <!-- Apache 18 has 3.0.1, but need 3.0.2 for [MSOURCES-94]. -->
-    <maven-jar-plugin.version>3.0.2</maven-jar-plugin.version>
-    <!-- Apache 18 has 2.10.3, but need 2.10.4 for [MJAVADOC-442]. -->
-    <maven-javadoc-plugin.version>2.10.4</maven-javadoc-plugin.version>
+    <!-- Apache 19 has 2.10.4, but need 3.0.0 for [LANG-365]. -->
+    <maven-javadoc-plugin.version>3.0.0</maven-javadoc-plugin.version>
     <maven-scm-provider.version>1.9.4</maven-scm-provider.version>
     <maven-shade-plugin.version>2.1</maven-shade-plugin.version>
-    <!-- Apache 18 has 3.0.0, but need 3.0.1 for [MSOURCES-94]. -->
-    <maven-source-plugin.version>3.0.1</maven-source-plugin.version>
     <mockito.version>2.5.5</mockito.version>
     <mongo-java-driver.version>3.5.0</mongo-java-driver.version>
     <mysql-driver.version>5.1.20</mysql-driver.version>
@@ -683,6 +679,7 @@ limitations under the License.
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-javadoc-plugin</artifactId>
         <configuration>
+          <additionalparam>-html5</additionalparam>
           <links>
             <link>https://docs.oracle.com/javase/9/docs/api/</link>
           </links>
@@ -838,11 +835,9 @@ limitations under the License.
           <artifactId>maven-javadoc-plugin</artifactId>
           <version>${maven-javadoc-plugin.version}</version>
         </plugin>
-        <!-- Override base, which uses version 3.0.0. -->
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-jar-plugin</artifactId>
-          <version>${maven-jar-plugin.version}</version>
           <configuration>
             <archive>
               <manifest>
@@ -856,11 +851,6 @@ limitations under the License.
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-shade-plugin</artifactId>
           <version>${maven-shade-plugin.version}</version>
-        </plugin>
-        <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-source-plugin</artifactId>
-          <version>${maven-source-plugin.version}</version>
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
