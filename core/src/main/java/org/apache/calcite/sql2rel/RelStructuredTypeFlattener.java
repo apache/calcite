@@ -75,6 +75,7 @@ import org.apache.calcite.util.Util;
 import org.apache.calcite.util.mapping.Mappings;
 
 import com.google.common.base.Function;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.SortedSetMultimap;
@@ -627,9 +628,18 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
         // functions which return row types working.
 
         int j = 0;
-        for (RelDataTypeField field : exp.getType().getFieldList()) {
+        RexNode newExp = exp;
+        List<RexNode> oldOperands = ((RexCall) exp).getOperands();
+        if (oldOperands.get(0) instanceof RexInputRef) {
+          RexInputRef inputRef = (RexInputRef) oldOperands.get(0);
+          int newOffset = getNewForOldInput(inputRef.getIndex());
+          newExp = rexBuilder.makeCall(exp.getType(), ((RexCall) exp).getOperator(),
+              ImmutableList.of(
+                  rexBuilder.makeInputRef(inputRef.getType(), newOffset), oldOperands.get(1)));
+        }
+        for (RelDataTypeField field : newExp.getType().getFieldList()) {
           flattenedExps.add(
-              Pair.of(rexBuilder.makeFieldAccess(exp, field.getIndex()),
+              Pair.of(rexBuilder.makeFieldAccess(newExp, field.getIndex()),
                   fieldName + "$" + (j++)));
         }
       } else {
