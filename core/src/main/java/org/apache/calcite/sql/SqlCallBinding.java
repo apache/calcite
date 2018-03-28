@@ -219,7 +219,7 @@ public class SqlCallBinding extends SqlOperatorBinding {
     try {
       final SqlNode node = call.operand(ordinal);
       return SqlLiteral.unchain(node).getValueAs(clazz);
-    } catch (IllegalArgumentException e) {
+    } catch (AssertionError e) {
       return null;
     }
   }
