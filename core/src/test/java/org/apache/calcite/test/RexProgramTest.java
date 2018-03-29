@@ -285,6 +285,14 @@ public class RexProgramTest {
     return rexBuilder.makeCall(SqlStdOperatorTable.GREATER_THAN, n1, n2);
   }
 
+  private RexNode plus(RexNode n1, RexNode n2) {
+    return rexBuilder.makeCall(SqlStdOperatorTable.PLUS, n1, n2);
+  }
+
+  private RexNode coalesce(RexNode... nodes) {
+    return rexBuilder.makeCall(SqlStdOperatorTable.COALESCE, nodes);
+  }
+
   /**
    * Tests construction of a RexProgram.
    */
@@ -1264,6 +1272,15 @@ public class RexProgramTest {
     checkSimplify(gt(hRef, hRef), "false");
     checkSimplify2(gt(iRef, iRef), ">(?0.i, ?0.i)", "false");
     checkSimplify(gt(iRef, hRef), ">(?0.i, ?0.h)");
+
+    checkSimplify(coalesce(hRef, iRef), "?0.h"); // first arg not null
+    checkSimplify(coalesce(iRef, hRef), "COALESCE(?0.i, ?0.h)"); // a0 nullable
+    checkSimplify(coalesce(iRef, iRef), "?0.i"); // repeated arg
+    checkSimplify(coalesce(hRef, hRef), "?0.h"); // repeated arg
+    checkSimplify(coalesce(hRef, literal1), "?0.h");
+    checkSimplify(coalesce(iRef, literal1), "COALESCE(?0.i, 1)");
+    checkSimplify(coalesce(iRef, plus(iRef, hRef), literal1, hRef),
+        "COALESCE(?0.i, +(?0.i, ?0.h), 1)");
   }
 
   @Test public void testSimplifyFilter() {

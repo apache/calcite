@@ -22,6 +22,7 @@ import org.apache.calcite.runtime.FlatLists;
 import org.apache.calcite.util.mapping.Mappings;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.UnmodifiableListIterator;
 
@@ -261,6 +262,14 @@ public class ImmutableIntList extends FlatLists.AbstractFlatList<Integer> {
       integers[i] = i;
     }
     return new ImmutableIntList(integers);
+  }
+
+  /** Returns a copy of this list with all of the given integers added. */
+  public ImmutableIntList appendAll(Iterable<Integer> list) {
+    if (list instanceof Collection && ((Collection) list).isEmpty()) {
+      return this;
+    }
+    return ImmutableIntList.copyOf(Iterables.concat(this, list));
   }
 
   /** Special sub-class of {@link ImmutableIntList} that is always

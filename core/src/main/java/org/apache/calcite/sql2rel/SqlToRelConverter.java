@@ -2038,10 +2038,9 @@ public class SqlToRelConverter {
         final RelDataType leftRowType = leftNamespace.getRowType();
         final RelDataType rightRowType = rightNamespace.getRowType();
         final List<String> columnList =
-            SqlValidatorUtil.deriveNaturalJoinColumnList(leftRowType,
-                rightRowType);
-        conditionExp = convertUsing(leftNamespace, rightNamespace,
-            columnList);
+            SqlValidatorUtil.deriveNaturalJoinColumnList(
+                catalogReader.nameMatcher(), leftRowType, rightRowType);
+        conditionExp = convertUsing(leftNamespace, rightNamespace, columnList);
       } else {
         conditionExp =
             convertJoinCondition(

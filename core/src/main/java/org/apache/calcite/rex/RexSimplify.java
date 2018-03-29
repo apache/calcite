@@ -142,6 +142,8 @@ public class RexSimplify {
       return simplifyNot((RexCall) e);
     case CASE:
       return simplifyCase((RexCall) e);
+    case COALESCE:
+      return simplifyCoalesce((RexCall) e);
     case CAST:
       return simplifyCast((RexCall) e);
     case CEIL:
@@ -398,6 +400,31 @@ public class RexSimplify {
     case AS_IS:
     default:
       return null;
+    }
+  }
+
+  private RexNode simplifyCoalesce(RexCall call) {
+    final Set<String> digests = new HashSet<>();
+    final List<RexNode> operands = new ArrayList<>();
+    for (RexNode operand : call.getOperands()) {
+      operand = simplify(operand);
+      if (digests.add(operand.digest)) {
+        operands.add(operand);
+      }
+      if (!operand.getType().isNullable()) {
+        break;
+      }
+    }
+    switch (operands.size()) {
+    case 0:
+      return rexBuilder.makeNullLiteral(call.type);
+    case 1:
+      return operands.get(0);
+    default:
+      if (operands.equals(call.operands)) {
+        return call;
+      }
+      return call.clone(call.type, operands);
     }
   }
 

@@ -5487,7 +5487,22 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   @Test public void testJoinUsing() {
-    check("select * from emp join dept using (deptno)");
+    final String empDeptType = "RecordType(INTEGER NOT NULL DEPTNO,"
+        + " INTEGER NOT NULL EMPNO,"
+        + " VARCHAR(20) NOT NULL ENAME,"
+        + " VARCHAR(10) NOT NULL JOB,"
+        + " INTEGER MGR,"
+        + " TIMESTAMP(0) NOT NULL HIREDATE,"
+        + " INTEGER NOT NULL SAL,"
+        + " INTEGER NOT NULL COMM,"
+        + " BOOLEAN NOT NULL SLACKER,"
+        + " VARCHAR(10) NOT NULL NAME) NOT NULL";
+    sql("select * from emp join dept using (deptno)").ok()
+        .type(empDeptType);
+
+    // NATURAL has same effect as USING
+    sql("select * from emp natural join dept").ok()
+        .type(empDeptType);
 
     // fail: comm exists on one side not the other
     // todo: The error message could be improved.
@@ -5510,7 +5525,9 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         "Column 'deptno' not found in any table");
 
     // ok to repeat (ok in Oracle10g too)
-    check("select * from emp join dept using (deptno, deptno)");
+    final String sql = "select * from emp join dept using (deptno, deptno)";
+    sql(sql).ok()
+        .type(empDeptType);
 
     // inherited column, not found in either side of the join, in the
     // USING clause
@@ -5553,6 +5570,25 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         "Cannot specify NATURAL keyword with ON or USING clause");
   }
 
+  @Test public void testNaturalJoinCaseSensitive() {
+    // With case-insensitive match, more columns are recognized as join columns
+    // and therefore "*" expands to fewer columns.
+    final String sql = "select *\n"
+        + "from (select empno, deptno from emp)\n"
+        + "natural join (select deptno as \"deptno\", name from dept)";
+    final String type0 = "RecordType(INTEGER NOT NULL EMPNO,"
+        + " INTEGER NOT NULL DEPTNO,"
+        + " INTEGER NOT NULL deptno,"
+        + " VARCHAR(10) NOT NULL NAME) NOT NULL";
+    final String type1 = "RecordType(INTEGER NOT NULL DEPTNO,"
+        + " INTEGER NOT NULL EMPNO,"
+        + " VARCHAR(10) NOT NULL NAME) NOT NULL";
+    sql(sql)
+        .type(type0)
+        .tester(tester.withCaseSensitive(false))
+        .type(type1);
+  }
+
   @Test public void testNaturalJoinIncompatibleDatatype() {
     checkFails("select *\n"
             + "from (select ename as name, hiredate as deptno from emp)\n"
@@ -5561,13 +5597,13 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         "Column 'DEPTNO' matched using NATURAL keyword or USING clause has incompatible types: cannot compare 'TIMESTAMP\\(0\\)' to 'INTEGER'");
 
     // INTEGER and VARCHAR are comparable: VARCHAR implicit converts to INTEGER
-    check("select * from emp natural ^join^\n"
-            + "(select deptno, name as sal from dept)");
+    sql("select * from emp natural ^join^\n"
+        + "(select deptno, name as sal from dept)").ok();
 
     // make sal occur more than once on rhs, it is ignored and therefore
     // there is no error about incompatible types
-    check("select * from emp natural join\n"
-        + " (select deptno, name as sal, 'foo' as sal from dept)");
+    sql("select * from emp natural join\n"
+        + " (select deptno, name as sal, 'foo' as sal from dept)").ok();
   }
 
   @Test public void testJoinUsingIncompatibleDatatype() {
@@ -5577,8 +5613,9 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         "Column 'DEPTNO' matched using NATURAL keyword or USING clause has incompatible types: cannot compare 'TIMESTAMP\\(0\\)' to 'INTEGER'");
 
     // INTEGER and VARCHAR are comparable: VARCHAR implicit converts to INTEGER
-    check("select * from emp\n"
-        + "join (select deptno, name as sal from dept) using (deptno, sal)");
+    final String sql = "select * from emp\n"
+        + "join (select deptno, name as sal from dept) using (deptno, sal)";
+    sql(sql).ok();
   }
 
   @Test public void testJoinUsingInvalidColsFails() {
@@ -5705,16 +5742,51 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   @Test public void testJoinUsingThreeWay() {
-    check("select *\n"
+    final String sql0 = "select *\n"
         + "from emp as e\n"
         + "join dept as d using (deptno)\n"
-        + "join emp as e2 using (empno)");
-    checkFails(
-        "select *\n"
-            + "from emp as e\n"
-            + "join dept as d using (deptno)\n"
-            + "join dept as d2 using (^deptno^)",
-        "Column name 'DEPTNO' in USING clause is not unique on one side of join");
+        + "join emp as e2 using (empno)";
+    sql(sql0).ok();
+
+    final String sql1 = "select *\n"
+        + "from emp as e\n"
+        + "join dept as d using (deptno)\n"
+        + "join dept as d2 using (^deptno^)";
+    final String expected = "Column name 'DEPTNO' in USING clause is not "
+        + "unique on one side of join";
+    sql(sql1).fails(expected);
+
+    final String sql2 = "select *\n"
+        + "from emp as e\n"
+        + "join dept as d using (deptno)";
+    final String type2 = "RecordType(INTEGER NOT NULL DEPTNO,"
+        + " INTEGER NOT NULL EMPNO,"
+        + " VARCHAR(20) NOT NULL ENAME,"
+        + " VARCHAR(10) NOT NULL JOB,"
+        + " INTEGER MGR,"
+        + " TIMESTAMP(0) NOT NULL HIREDATE,"
+        + " INTEGER NOT NULL SAL,"
+        + " INTEGER NOT NULL COMM,"
+        + " BOOLEAN NOT NULL SLACKER,"
+        + " VARCHAR(10) NOT NULL NAME) NOT NULL";
+    sql(sql2).type(type2);
+
+    final String sql3 = "select *\n"
+        + "from emp as e\n"
+        + "join dept as d using (deptno)\n"
+        + "join (values (10, 1000)) as b (empno, bonus) using (empno)";
+    final String type3 = "RecordType(INTEGER NOT NULL EMPNO,"
+        + " INTEGER NOT NULL DEPTNO,"
+        + " VARCHAR(20) NOT NULL ENAME,"
+        + " VARCHAR(10) NOT NULL JOB,"
+        + " INTEGER MGR,"
+        + " TIMESTAMP(0) NOT NULL HIREDATE,"
+        + " INTEGER NOT NULL SAL,"
+        + " INTEGER NOT NULL COMM,"
+        + " BOOLEAN NOT NULL SLACKER,"
+        + " VARCHAR(10) NOT NULL NAME,"
+        + " INTEGER NOT NULL BONUS) NOT NULL";
+    sql(sql3).type(type3);
   }
 
   @Test public void testWhere() {

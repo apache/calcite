@@ -112,7 +112,7 @@ public class ProfilerTest {
 
   @Test public void testProfileScott() throws Exception {
     final String sql = "select * from \"scott\".emp\n"
-        + "join \"scott\".dept using (deptno)";
+        + "join \"scott\".dept on emp.deptno = dept.deptno";
     sql(sql)
         .where(new PredicateImpl<Profiler.Statistic>() {
           public boolean test(Profiler.Statistic statistic) {
@@ -375,7 +375,7 @@ public class ProfilerTest {
 
   private Fluid scott() throws Exception {
     final String sql = "select * from \"scott\".emp\n"
-        + "join \"scott\".dept using (deptno)";
+        + "join \"scott\".dept on emp.deptno = dept.deptno";
     return sql(sql)
         .where(Fluid.STATISTIC_PREDICATE)
         .sort(Fluid.ORDERING.reverse())

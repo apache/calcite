@@ -657,8 +657,8 @@ EnumerableAggregate(group=[{}], C=[COUNT()])
 # left-most leaf, then customer (with filter), then product.
 select *
 from "sales_fact_1997" as s
-  join "customer" as c using ("customer_id")
-  join "product" as p using ("product_id")
+  join "customer" as c on s."customer_id" = c."customer_id"
+  join "product" as p on s."product_id" = p."product_id"
 where c."city" = 'San Francisco';
 EnumerableJoin(condition=[=($0, $38)], joinType=[inner])
   EnumerableJoin(condition=[=($2, $8)], joinType=[inner])
@@ -678,9 +678,9 @@ EnumerableJoin(condition=[=($0, $38)], joinType=[inner])
 !use foodmart
 select *
 from "sales_fact_1997" as s
-  join "customer" as c using ("customer_id")
-  join "product" as p using ("product_id")
-  join "product_class" as pc using ("product_class_id")
+  join "customer" as c on s."customer_id" = c."customer_id"
+  join "product" as p on s."product_id" = p."product_id"
+  join "product_class" as pc on p."product_class_id" = pc."product_class_id"
 where c."city" = 'San Francisco'
  and pc."product_department" = 'Snacks';
 EnumerableCalc(expr#0..56=[{inputs}], product_id0=[$t20], time_id=[$t21], customer_id=[$t22], promotion_id=[$t23], store_id=[$t24], store_sales=[$t25], store_cost=[$t26], unit_sales=[$t27], customer_id0=[$t28], account_num=[$t29], lname=[$t30], fname=[$t31], mi=[$t32], address1=[$t33], address2=[$t34], address3=[$t35], address4=[$t36], city=[$t37], state_province=[$t38], postal_code=[$t39], country=[$t40], customer_region_id=[$t41], phone1=[$t42], phone2=[$t43], birthdate=[$t44], marital_status=[$t45], yearly_income=[$t46], gender=[$t47], total_children=[$t48], num_children_at_home=[$t49], education=[$t50], date_accnt_opened=[$t51], member_card=[$t52], occupation=[$t53], houseowner=[$t54], num_cars_owned=[$t55], fullname=[$t56], product_class_id0=[$t5], product_id=[$t6], brand_name=[$t7], product_name=[$t8], SKU=[$t9], SRP=[$t10], gross_weight=[$t11], net_weight=[$t12], recyclable_package=[$t13], low_fat=[$t14], units_per_case=[$t15], cases_per_pallet=[$t16], shelf_width=[$t17], shelf_height=[$t18], shelf_depth=[$t19], product_class_id=[$t0], product_subcategory=[$t1], product_category=[$t2], product_department=[$t3], product_family=[$t4])

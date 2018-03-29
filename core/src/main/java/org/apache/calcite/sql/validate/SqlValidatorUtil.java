@@ -59,7 +59,6 @@ import com.google.common.collect.Sets;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
@@ -672,19 +671,21 @@ public class SqlValidatorUtil {
    * Derives the list of column names suitable for NATURAL JOIN. These are the
    * columns that occur exactly once on each side of the join.
    *
+   * @param nameMatcher Whether matches are case-sensitive
    * @param leftRowType  Row type of left input to the join
    * @param rightRowType Row type of right input to the join
    * @return List of columns that occur once on each side
    */
   public static List<String> deriveNaturalJoinColumnList(
+      SqlNameMatcher nameMatcher,
       RelDataType leftRowType,
       RelDataType rightRowType) {
     final List<String> naturalColumnNames = new ArrayList<>();
     final List<String> leftNames = leftRowType.getFieldNames();
     final List<String> rightNames = rightRowType.getFieldNames();
     for (String name : leftNames) {
-      if ((Collections.frequency(leftNames, name) == 1)
-          && (Collections.frequency(rightNames, name) == 1)) {
+      if (nameMatcher.frequency(leftNames, name) == 1
+          && nameMatcher.frequency(rightNames, name) == 1) {
         naturalColumnNames.add(name);
       }
     }

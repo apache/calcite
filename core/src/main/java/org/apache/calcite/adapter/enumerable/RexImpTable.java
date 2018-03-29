@@ -104,6 +104,7 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CAST;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CEIL;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CHARACTER_LENGTH;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CHAR_LENGTH;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.COALESCE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.COLLECT;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CONCAT;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.COS;
@@ -361,7 +362,7 @@ public class RexImpTable {
     defineMethod(ELEMENT, BuiltInMethod.ELEMENT.method, NullPolicy.STRICT);
 
     map.put(CASE, new CaseImplementor());
-
+    map.put(COALESCE, new CoalesceImplementor());
     map.put(CAST, new CastOptimizedImplementor());
 
     defineImplementor(REINTERPRET, NullPolicy.STRICT,
@@ -2111,6 +2112,26 @@ public class RexImpTable {
         return ifTrue == null || ifFalse == null
             ? Util.first(ifTrue, ifFalse)
             : Expressions.condition(test, ifTrue, ifFalse);
+      }
+    }
+  }
+
+  /** Implementor for the SQL {@code COALESCE} operator. */
+  private static class CoalesceImplementor implements CallImplementor {
+    public Expression implement(RexToLixTranslator translator, RexCall call,
+        NullAs nullAs) {
+      return implementRecurse(translator, call.operands, nullAs);
+    }
+
+    private Expression implementRecurse(RexToLixTranslator translator,
+        List<RexNode> operands, NullAs nullAs) {
+      if (operands.size() == 1) {
+        return translator.translate(operands.get(0));
+      } else {
+        return Expressions.condition(
+            translator.translate(operands.get(0), NullAs.IS_NULL),
+            translator.translate(operands.get(0), nullAs),
+            implementRecurse(translator, Util.skip(operands), nullAs));
       }
     }
   }

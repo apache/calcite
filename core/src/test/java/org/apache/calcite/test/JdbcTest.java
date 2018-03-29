@@ -1116,8 +1116,10 @@ public class JdbcTest {
         .with(CalciteAssert.Config.FOODMART_CLONE)
         .query("select *\n"
             + "from \"sales_fact_1997\" as s\n"
-            + "  join \"customer\" as c using (\"customer_id\")\n"
-            + "  join \"product\" as p using (\"product_id\")\n"
+            + "join \"customer\" as c\n"
+            + "  on s.\"customer_id\" = c.\"customer_id\"\n"
+            + "join \"product\" as p\n"
+            + "  on s.\"product_id\" = p.\"product_id\"\n"
             + "where c.\"city\" = 'San Francisco'\n"
             + "and p.\"brand_name\" = 'Washington'")
         .explainMatches("including all attributes ",
