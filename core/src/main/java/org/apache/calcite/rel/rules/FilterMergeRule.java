@@ -81,6 +81,8 @@ public class FilterMergeRule extends RelOptRule {
         .filter(newCondition);
 
     call.transformTo(relBuilder.build());
+    // New plan is absolutely better than old plan.
+    call.getPlanner().setImportance(topFilter, 0.0);
   }
 
   /**

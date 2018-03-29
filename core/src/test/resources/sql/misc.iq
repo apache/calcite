@@ -2139,4 +2139,36 @@ where false;
 
 !ok
 
+!use scott
+
+select *
+from (
+  select *
+  from (
+    select cast(null as integer) as d
+    from "scott".emp)
+  where d is null and d is null)
+where d is null;
++---+
+| D |
++---+
+|   |
+|   |
+|   |
+|   |
+|   |
+|   |
+|   |
+|   |
+|   |
+|   |
+|   |
+|   |
+|   |
+|   |
++---+
+(14 rows)
+
+!ok
+
 # End misc.iq
