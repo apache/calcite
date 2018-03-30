@@ -2846,6 +2846,19 @@ public class RelOptRulesTest extends RelOptTestBase {
     checkPlanning(program, sql);
   }
 
+  @Test public void testAggregateProjectPullUpConstants2() {
+    final HepProgram preProgram = new HepProgramBuilder()
+        .addRuleInstance(AggregateProjectMergeRule.INSTANCE)
+        .build();
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(AggregateProjectPullUpConstantsRule.INSTANCE2)
+        .build();
+    final String sql = "select ename, sal\n"
+        + "from (select '1', ename, sal from emp where ename = 'John') subq\n"
+        + "group by ename, sal";
+    checkPlanning(tester, preProgram, new HepPlanner(program), sql);
+  }
+
   @Test public void testPushFilterWithRank() throws Exception {
     HepProgram program = new HepProgramBuilder()
         .addRuleInstance(FilterProjectTransposeRule.INSTANCE).build();
