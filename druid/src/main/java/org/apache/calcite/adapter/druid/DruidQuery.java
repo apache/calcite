@@ -1025,6 +1025,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
       final RelDataType postAggInputRowType = getCluster().getTypeFactory()
           .createStructType(Pair.right(postProject.getInput().getRowType().getFieldList()),
               aggregateStageFieldNames);
+      final Set<String> existingAggFieldsNames = new HashSet<>(aggregateStageFieldNames);
       // this is an index of existing columns coming out aggregate layer. Will use this index to:
       // filter out any project down the road that doesn't change values e.g inputRef/identity cast
       Map<String, String> existingProjects = Maps
@@ -1035,7 +1036,6 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
           });
       for (Pair<RexNode, String> pair : postProject.getNamedProjects()) {
         final RexNode postProjectRexNode = pair.left;
-        final String postProjectFieldName = pair.right;
         String expression = DruidExpressions
               .toDruidExpression(postProjectRexNode, postAggInputRowType, this);
         final String existingFieldName = existingProjects.get(expression);
@@ -1043,8 +1043,11 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
           // simple input ref or Druid runtime identity cast will skip it, since it is here already
           postProjectDimListBuilder.add(existingFieldName);
         } else {
-          postAggs.add(new JsonExpressionPostAgg(postProjectFieldName, expression, null));
-          postProjectDimListBuilder.add(postProjectFieldName);
+          final String uniquelyProjectFieldName = SqlValidatorUtil.uniquify(pair.right,
+              existingAggFieldsNames, SqlValidatorUtil.EXPR_SUGGESTER);
+          postAggs.add(new JsonExpressionPostAgg(uniquelyProjectFieldName, expression, null));
+          postProjectDimListBuilder.add(uniquelyProjectFieldName);
+          existingAggFieldsNames.add(uniquelyProjectFieldName);
         }
       }
       postAggregateStageFieldNames = postProjectDimListBuilder;
