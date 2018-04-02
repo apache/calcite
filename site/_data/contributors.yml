@@ -176,4 +176,9 @@
   githubId: zinking
   org:
   role: Committer
+- name: Shuyi Chen
+  apacheId: shuyichen
+  githubId: suez1224
+  org: Uber
+  role: Committer
 # End contributors.yml
