@@ -17,6 +17,7 @@
 package org.apache.calcite.schema;
 
 import org.apache.calcite.materialize.Lattice;
+import org.apache.calcite.rel.type.RelProtoDataType;
 
 import com.google.common.collect.ImmutableList;
 
@@ -67,6 +68,9 @@ public interface SchemaPlus extends Schema {
 
   /** Adds a function to this schema. */
   void add(String name, Function function);
+
+  /** Adds a type to this schema.  */
+  void add(String name, RelProtoDataType type);
 
   /** Adds a lattice to this schema. */
   void add(String name, Lattice lattice);

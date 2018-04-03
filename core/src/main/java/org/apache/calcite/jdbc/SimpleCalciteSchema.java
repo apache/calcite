@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.jdbc;
 
+import org.apache.calcite.rel.type.RelProtoDataType;
 import org.apache.calcite.schema.Function;
 import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.SchemaVersion;
@@ -42,16 +43,16 @@ class SimpleCalciteSchema extends CalciteSchema {
    * <p>Use {@link CalciteSchema#createRootSchema(boolean)}
    * or {@link #add(String, Schema)}. */
   SimpleCalciteSchema(CalciteSchema parent, Schema schema, String name) {
-    this(parent, schema, name, null, null, null, null, null, null, null);
+    this(parent, schema, name, null, null, null, null, null, null, null, null);
   }
 
   private SimpleCalciteSchema(CalciteSchema parent, Schema schema,
       String name, NameMap<CalciteSchema> subSchemaMap,
-      NameMap<TableEntry> tableMap, NameMap<LatticeEntry> latticeMap,
+      NameMap<TableEntry> tableMap, NameMap<LatticeEntry> latticeMap, NameMap<TypeEntry> typeMap,
       NameMultimap<FunctionEntry> functionMap, NameSet functionNames,
       NameMap<FunctionEntry> nullaryFunctionMap,
       List<? extends List<String>> path) {
-    super(parent, schema, name, subSchemaMap, tableMap, latticeMap,
+    super(parent, schema, name, subSchemaMap, tableMap, latticeMap, typeMap,
         functionMap, functionNames, nullaryFunctionMap, path);
   }
 
@@ -82,6 +83,15 @@ class SimpleCalciteSchema extends CalciteSchema {
     Table table = schema.getTable(tableName);
     if (table != null) {
       return tableEntry(tableName, table);
+    }
+    return null;
+  }
+
+  protected TypeEntry getImplicitType(String name, boolean caseSensitive) {
+    // Check implicit types.
+    RelProtoDataType type = schema.getType(name);
+    if (type != null) {
+      return typeEntry(name, type);
     }
     return null;
   }
@@ -117,6 +127,11 @@ class SimpleCalciteSchema extends CalciteSchema {
 
   protected void addImplicitFuncNamesToBuilder(ImmutableSortedSet.Builder<String> builder) {
     builder.addAll(schema.getFunctionNames());
+  }
+
+  @Override protected void addImplicitTypeNamesToBuilder(
+      ImmutableSortedSet.Builder<String> builder) {
+    builder.addAll(schema.getTypeNames());
   }
 
   protected void addImplicitTablesBasedOnNullaryFunctionsToBuilder(
@@ -155,7 +170,7 @@ class SimpleCalciteSchema extends CalciteSchema {
 
   protected CalciteSchema snapshot(CalciteSchema parent, SchemaVersion version) {
     CalciteSchema snapshot = new SimpleCalciteSchema(parent,
-        schema.snapshot(version), name, null, tableMap, latticeMap,
+        schema.snapshot(version), name, null, tableMap, latticeMap, typeMap,
         functionMap, functionNames, nullaryFunctionMap, getPath());
     for (CalciteSchema subSchema : subSchemaMap.map().values()) {
       CalciteSchema subSchemaSnapshot = subSchema.snapshot(snapshot, version);
