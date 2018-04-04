@@ -44,6 +44,11 @@ on your site.
 <a href="https://apex.apache.org">Apache Apex</a>
 uses Calcite for parsing streaming SQL and query optimization.
 
+### Apache Beam
+
+<a href="https://beam.apache.org">Apache Beam</a>
+uses Calcite for parsing and optimizing SQL.
+
 ### Apache Drill
 
 <a href="https://drill.apache.org">Apache Drill</a>
@@ -53,7 +58,7 @@ uses Calcite for SQL parsing and query optimization.
 
 <a href="https://flink.apache.org">Apache Flink</a>
 uses Calcite for parsing both regular and streaming SQL,
-and for query optimization (under development).
+and for query optimization.
 
 ### Apache Hive
 
@@ -99,6 +104,13 @@ component provides a SQL interface to
 
 <a href="https://www.dremio.com">Dremio</a>
 uses Calcite for SQL parsing and cost-based query optimization.
+
+### HerdDB
+
+<a href="https://herddb.org">HerdDB</a>
+is a distributed JVM-Embeddable Database built on top of
+<a href="https://bookkeeper.apache.org/">Apache BookKeeper</a>.
+It uses Calcite as its SQL Planner.
 
 ### MapD
 

@@ -26,8 +26,8 @@ limitations under the License.
 
 # Upcoming talks
 
-* 2018/04/17-18 [DataEngConf SF](http://www.dataengconf.com/) (San Francisco, CA)
-  * [Don't optimize my queries, optimize my data!](http://www.dataengconf.com/dont-optimize-my-queries-optimize-my-data) (Julian Hyde)
+* 2018/04/17 [DataEngConf SF](https://www.dataengconf.com/) (San Francisco, CA)
+  * [Lazy beats Smart and Fast](https://www.dataengconf.com/features-provided-by-apache-calcite-to-design-maintain-and-use-materializations) (Julian Hyde)
 
 # Project Members
 
