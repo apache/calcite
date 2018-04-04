@@ -118,3 +118,9 @@ It uses Calcite to transparently rewrite queries to use materialized views.
 is a SQL interface to a
 <a href="https://tinkerpop.apache.org/">Apache TinkerPop</a>-enabled
 graph database.
+
+### HerdDB
+
+<a href="https://herddb.org">HerdDB</a>
+is a distributed JVM-Embeddable Database built on top of
+<a href="https://bookkeeper.apache.org/">Apache BookKeeper</a> and uses Calcite as SQL Planner
