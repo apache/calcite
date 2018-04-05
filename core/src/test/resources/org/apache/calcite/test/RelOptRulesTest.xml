@@ -456,6 +456,25 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testCasePushIsAlwaysWorking">
+        <Resource name="sql">
+            <![CDATA[select empno from emp where case when sal > 1000 then empno else sal end = 1]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(EMPNO=[$0])
+  LogicalFilter(condition=[=(CASE(>($5, 1000), $0, $5), 1)])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject(EMPNO=[$0])
+  LogicalFilter(condition=[CASE(>($5, 1000), =($0, 1), =($5, 1))])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testCorrelationScalarAggAndFilter">
         <Resource name="sql">
             <![CDATA[SELECT e1.empno
