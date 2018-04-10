@@ -450,6 +450,15 @@ $ ./src/main/scripts/generate-protobuf.sh
 The following sections are of interest to Calcite committers and in
 particular release managers.
 
+## Merging pull requests (for Calcite committers)
+
+Ask the contributor to squash the PR into a single commit with a message starting with [CALCITE-XXX] where XXX is the associated JIRA issue number.
+You can take this step yourself if needed.
+The contributor's name should also be added in parentheses at the end of the first line of the commit message.
+Finally, after a couple new lines make sure the message contains "Close apache/calcite#YYY" where YYY is the GitHub issue number.
+This is important as it is the only way we have to close issues on GitHub without asking the originator to do so manually.
+When the PR has been merged and pushed, be sure to mark the JIRA issue as resolved (do not use closed as that is reserved for release time).
+
 ## Set up PGP signing keys (for Calcite committers)
 
 Follow instructions [here](https://www.apache.org/dev/release-signing) to
