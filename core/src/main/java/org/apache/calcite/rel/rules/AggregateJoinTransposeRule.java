@@ -78,9 +78,8 @@ public class AggregateJoinTransposeRule extends RelOptRule {
       Class<? extends Join> joinClass, RelBuilderFactory relBuilderFactory,
       boolean allowFunctions) {
     super(
-        operandJ(aggregateClass, null,
-            aggregate -> aggregate.getGroupType() == Aggregate.Group.SIMPLE,
-            operand(joinClass, any())),
+        operandJ(aggregateClass, null, agg -> isAggregateSupported(agg, allowFunctions),
+            operandJ(joinClass, null, join -> join.getJoinType() == JoinRelType.INNER, any())),
         relBuilderFactory, null);
     this.allowFunctions = allowFunctions;
   }
@@ -126,33 +125,32 @@ public class AggregateJoinTransposeRule extends RelOptRule {
         allowFunctions);
   }
 
+  private static boolean isAggregateSupported(Aggregate aggregate, boolean allowFunctions) {
+    if (!allowFunctions && !aggregate.getAggCallList().isEmpty()) {
+      return false;
+    }
+    if (aggregate.getGroupType() != Aggregate.Group.SIMPLE) {
+      return false;
+    }
+    // If any aggregate functions do not support splitting, bail out
+    // If any aggregate call has a filter or is distinct, bail out
+    for (AggregateCall aggregateCall : aggregate.getAggCallList()) {
+      if (aggregateCall.getAggregation().unwrap(SqlSplittableAggFunction.class)
+          == null) {
+        return false;
+      }
+      if (aggregateCall.filterArg >= 0 || aggregateCall.isDistinct()) {
+        return false;
+      }
+    }
+    return true;
+  }
+
   public void onMatch(RelOptRuleCall call) {
     final Aggregate aggregate = call.rel(0);
     final Join join = call.rel(1);
     final RexBuilder rexBuilder = aggregate.getCluster().getRexBuilder();
     final RelBuilder relBuilder = call.builder();
-
-    // If any aggregate functions do not support splitting, bail out
-    // If any aggregate call has a filter, bail out
-    for (AggregateCall aggregateCall : aggregate.getAggCallList()) {
-      if (aggregateCall.getAggregation().unwrap(SqlSplittableAggFunction.class)
-          == null) {
-        return;
-      }
-      if (aggregateCall.filterArg >= 0) {
-        return;
-      }
-    }
-
-    // If it is not an inner join, we do not push the
-    // aggregate operator
-    if (join.getJoinType() != JoinRelType.INNER) {
-      return;
-    }
-
-    if (!allowFunctions && !aggregate.getAggCallList().isEmpty()) {
-      return;
-    }
 
     // Do the columns used by the join appear in the output of the aggregate?
     final ImmutableBitSet aggregateColumns = aggregate.getGroupSet();

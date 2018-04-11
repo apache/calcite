@@ -3564,6 +3564,19 @@ public class RelOptRulesTest extends RelOptTestBase {
     checkPlanning(tester, preProgram, new HepPlanner(program), sql);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2249">[CALCITE-2249]
+   * AggregateJoinTransposeRule generates inequivalent nodes if Aggregate relNode contains
+   * distinct aggregate function.</a>. */
+  @Test public void testPushDistinctAggregateIntoJoin() throws Exception {
+    final HepProgram program = new HepProgramBuilder()
+            .addRuleInstance(AggregateJoinTransposeRule.EXTENDED)
+            .build();
+    final String sql =
+            "select count(distinct sal) from sales.emp join sales.dept on job = name";
+    checkPlanUnchanged(new HepPlanner(program), sql);
+  }
+
   @Test public void testSwapOuterJoin() {
     final HepProgram program = new HepProgramBuilder()
         .addMatchLimit(1)

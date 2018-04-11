@@ -6818,6 +6818,28 @@ LogicalAggregate(group=[{}], EXPR$0=[$SUM0($4)])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testPushDistinctAggregateIntoJoin">
+        <Resource name="sql">
+            <![CDATA[select count(distinct sal) from sales.emp join sales.dept on job = name]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalAggregate(group=[{}], EXPR$0=[COUNT(DISTINCT $0)])
+  LogicalProject(SAL=[$5])
+    LogicalJoin(condition=[=($2, $10)], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalAggregate(group=[{}], EXPR$0=[COUNT(DISTINCT $5)])
+  LogicalJoin(condition=[=($2, $10)], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testPushAggregateThroughJoinDistinct">
         <Resource name="sql">
             <![CDATA[select d.name,
