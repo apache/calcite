@@ -139,7 +139,7 @@ public class AggregateJoinTransposeRule extends RelOptRule {
           == null) {
         return;
       }
-      if (aggregateCall.filterArg >= 0  || aggregateCall.isDistinct()) {
+      if (aggregateCall.filterArg >= 0 || aggregateCall.isDistinct()) {
         return;
       }
     }
