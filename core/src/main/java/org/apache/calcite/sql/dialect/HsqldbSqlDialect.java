@@ -46,8 +46,12 @@ public class HsqldbSqlDialect extends SqlDialect {
     return false;
   }
 
+  @Override public boolean supportsWindowFunctions() {
+    return false;
+  }
+
   @Override public void unparseCall(SqlWriter writer, SqlCall call,
-      int leftPrec, int rightPrec) {
+                                    int leftPrec, int rightPrec) {
     switch (call.getKind()) {
     case FLOOR:
       if (call.operandCount() != 2) {

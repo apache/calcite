@@ -418,6 +418,23 @@ public class JdbcAdapterTest {
     calciteConnection.close();
   }
 
+  @Test public void testOverNonSupportedDialect() {
+    CalciteAssert
+        .model(JdbcTest.FOODMART_MODEL)
+        .enable(CalciteAssert.DB == DatabaseInstance.HSQLDB)
+        .query("select \"store_id\", \"account_id\", \"exp_date\","
+            + " \"time_id\", \"category_id\", \"currency_id\", \"amount\","
+            + " last_value(\"time_id\") over ()"
+            + " as \"last_version\" from \"expense_fact\"")
+        .explainContains("PLAN=EnumerableWindow(window#0=[window(partition {} "
+            + "order by [] range between UNBOUNDED PRECEDING and "
+            + "UNBOUNDED FOLLOWING aggs [LAST_VALUE($3)])])\n"
+            + "  JdbcToEnumerableConverter\n"
+            + "    JdbcTableScan(table=[[foodmart, expense_fact]])\n")
+        .runs()
+        .planHasSql("SELECT *\nFROM \"foodmart\".\"expense_fact\"");
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1506">[CALCITE-1506]
    * Push OVER Clause to underlying SQL via JDBC adapter</a>.
