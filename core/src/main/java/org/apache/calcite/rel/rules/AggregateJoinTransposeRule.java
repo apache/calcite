@@ -133,13 +133,13 @@ public class AggregateJoinTransposeRule extends RelOptRule {
     final RelBuilder relBuilder = call.builder();
 
     // If any aggregate functions do not support splitting, bail out
-    // If any aggregate call has a filter, bail out
+    // If any aggregate call has a filter or is distinct , bail out
     for (AggregateCall aggregateCall : aggregate.getAggCallList()) {
       if (aggregateCall.getAggregation().unwrap(SqlSplittableAggFunction.class)
           == null) {
         return;
       }
-      if (aggregateCall.filterArg >= 0) {
+      if (aggregateCall.filterArg >= 0  || aggregate.isDistinct()) {
         return;
       }
     }
