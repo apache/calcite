@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.jdbc;
 
+import org.apache.calcite.rel.type.RelProtoDataType;
 import org.apache.calcite.schema.Function;
 import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.SchemaVersion;
@@ -44,21 +45,22 @@ class CachingCalciteSchema extends CalciteSchema {
   private final Cached<SubSchemaCache> implicitSubSchemaCache;
   private final Cached<NameSet> implicitTableCache;
   private final Cached<NameSet> implicitFunctionCache;
+  private final Cached<NameSet> implicitTypeCache;
 
   private boolean cache = true;
 
   /** Creates a CachingCalciteSchema. */
   CachingCalciteSchema(CalciteSchema parent, Schema schema, String name) {
-    this(parent, schema, name, null, null, null, null, null, null, null);
+    this(parent, schema, name, null, null, null, null, null, null, null, null);
   }
 
   private CachingCalciteSchema(CalciteSchema parent, Schema schema,
       String name, NameMap<CalciteSchema> subSchemaMap,
-      NameMap<TableEntry> tableMap, NameMap<LatticeEntry> latticeMap,
+      NameMap<TableEntry> tableMap, NameMap<LatticeEntry> latticeMap, NameMap<TypeEntry> typeMap,
       NameMultimap<FunctionEntry> functionMap, NameSet functionNames,
       NameMap<FunctionEntry> nullaryFunctionMap,
       List<? extends List<String>> path) {
-    super(parent, schema, name, subSchemaMap, tableMap, latticeMap,
+    super(parent, schema, name, subSchemaMap, tableMap, latticeMap, typeMap,
         functionMap, functionNames, nullaryFunctionMap, path);
     this.implicitSubSchemaCache =
         new AbstractCached<SubSchemaCache>() {
@@ -79,6 +81,13 @@ class CachingCalciteSchema extends CalciteSchema {
           public NameSet build() {
             return NameSet.immutableCopyOf(
                 CachingCalciteSchema.this.schema.getFunctionNames());
+          }
+        };
+    this.implicitTypeCache =
+        new AbstractCached<NameSet>() {
+          public NameSet build() {
+            return NameSet.immutableCopyOf(
+                CachingCalciteSchema.this.schema.getTypeNames());
           }
         };
   }
@@ -133,6 +142,19 @@ class CachingCalciteSchema extends CalciteSchema {
     return null;
   }
 
+  protected TypeEntry getImplicitType(String name, boolean caseSensitive) {
+    final long now = System.currentTimeMillis();
+    final NameSet implicitTypeNames = implicitTypeCache.get(now);
+    for (String typeName
+        : implicitTypeNames.range(name, caseSensitive)) {
+      final RelProtoDataType type = schema.getType(typeName);
+      if (type != null) {
+        return typeEntry(name, type);
+      }
+    }
+    return null;
+  }
+
   protected void addImplicitSubSchemaToBuilder(
       ImmutableSortedMap.Builder<String, CalciteSchema> builder) {
     ImmutableSortedMap<String, CalciteSchema> explicitSubSchemas = builder.build();
@@ -177,6 +199,13 @@ class CachingCalciteSchema extends CalciteSchema {
     builder.addAll(set.iterable());
   }
 
+  protected void addImplicitTypeNamesToBuilder(ImmutableSortedSet.Builder<String> builder) {
+    // Add implicit types, case-sensitive.
+    final long now = System.currentTimeMillis();
+    final NameSet set = implicitTypeCache.get(now);
+    builder.addAll(set.iterable());
+  }
+
   protected void addImplicitTablesBasedOnNullaryFunctionsToBuilder(
       ImmutableSortedMap.Builder<String, Table> builder) {
     ImmutableSortedMap<String, Table> explicitTables = builder.build();
@@ -217,7 +246,7 @@ class CachingCalciteSchema extends CalciteSchema {
 
   protected CalciteSchema snapshot(CalciteSchema parent, SchemaVersion version) {
     CalciteSchema snapshot = new CachingCalciteSchema(parent,
-        schema.snapshot(version), name, null, tableMap, latticeMap,
+        schema.snapshot(version), name, null, tableMap, latticeMap, typeMap,
         functionMap, functionNames, nullaryFunctionMap, getPath());
     for (CalciteSchema subSchema : subSchemaMap.map().values()) {
       CalciteSchema subSchemaSnapshot = subSchema.snapshot(snapshot, version);

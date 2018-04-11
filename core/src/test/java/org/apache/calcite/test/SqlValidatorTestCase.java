@@ -334,6 +334,10 @@ public class SqlValidatorTestCase {
           if (matcher.matches()) {
             actualLine = Integer.parseInt(matcher.group(1));
             actualColumn = Integer.parseInt(matcher.group(2));
+          } else {
+            if (actualMessage.toString().matches(expectedMsgPattern)) {
+              return;
+            }
           }
         }
       }

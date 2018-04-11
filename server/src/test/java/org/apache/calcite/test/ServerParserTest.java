@@ -92,6 +92,17 @@ public class ServerParserTest extends SqlParserTest {
     sql(sql).ok(expected);
   }
 
+  @Test public void testCreateTypeWithAttributeList() {
+    sql("create type x.mytype1 as (i int not null, j varchar(5) null)")
+        .ok("CREATE TYPE `X`.`MYTYPE1` AS (`I` INTEGER NOT NULL, `J` VARCHAR(5))");
+  }
+
+
+  @Test public void testCreateTypeWithBasetype() {
+    sql("create type mytype1 as varchar(5)")
+        .ok("CREATE TYPE `MYTYPE1` AS VARCHAR(5)");
+  }
+
   @Test public void testCreateTable() {
     sql("create table x (i int not null, j varchar(5) null)")
         .ok("CREATE TABLE `X` (`I` INTEGER NOT NULL, `J` VARCHAR(5))");
@@ -208,6 +219,11 @@ public class ServerParserTest extends SqlParserTest {
   @Test public void testDropForeignSchema() {
     sql("drop foreign schema x")
         .ok("DROP FOREIGN SCHEMA `X`");
+  }
+
+  @Test public void testDropType() {
+    sql("drop type X")
+        .ok("DROP TYPE `X`");
   }
 
   @Test public void testDropTable() {

@@ -191,6 +191,69 @@ void TableElement(List<SqlNode> list) :
     )
 }
 
+SqlNodeList AttributeDefList() :
+{
+    final Span s;
+    final List<SqlNode> list = Lists.newArrayList();
+}
+{
+    <LPAREN> { s = span(); }
+    AttributeDef(list)
+    (
+        <COMMA> AttributeDef(list)
+    )*
+    <RPAREN> {
+        return new SqlNodeList(list, s.end(this));
+    }
+}
+
+void AttributeDef(List<SqlNode> list) :
+{
+    final SqlIdentifier id;
+    final SqlDataTypeSpec type;
+    final boolean nullable;
+    SqlNode e = null;
+    final Span s = Span.of();
+}
+{
+    id = SimpleIdentifier()
+    (
+        type = DataType()
+        (
+            <NULL> { nullable = true; }
+        |
+            <NOT> <NULL> { nullable = false; }
+        |
+            { nullable = true; }
+        )
+    )
+    [ <DEFAULT_> e = Expression(ExprContext.ACCEPT_SUB_QUERY) ]
+    {
+        list.add(SqlDdlNodes.attribute(s.add(id).end(this), id,
+            type.withNullable(nullable), e, null));
+    }
+}
+
+SqlCreate SqlCreateType(Span s, boolean replace) :
+{
+    final SqlIdentifier id;
+    SqlNodeList attributeDefList = null;
+    SqlDataTypeSpec type = null;
+}
+{
+    <TYPE>
+    id = CompoundIdentifier()
+    <AS>
+    (
+        attributeDefList = AttributeDefList()
+    |
+        type = DataType()
+    )
+    {
+        return SqlDdlNodes.createType(s.end(this), replace, id, attributeDefList, type);
+    }
+}
+
 SqlCreate SqlCreateTable(Span s, boolean replace) :
 {
     final boolean ifNotExists;
@@ -254,6 +317,17 @@ SqlDrop SqlDropSchema(Span s, boolean replace) :
     )
     <SCHEMA> ifExists = IfExistsOpt() id = CompoundIdentifier() {
         return SqlDdlNodes.dropSchema(s.end(this), foreign, ifExists, id);
+    }
+}
+
+SqlDrop SqlDropType(Span s, boolean replace) :
+{
+    final boolean ifExists;
+    final SqlIdentifier id;
+}
+{
+    <TYPE> ifExists = IfExistsOpt() id = CompoundIdentifier() {
+        return SqlDdlNodes.dropType(s.end(this), ifExists, id);
     }
 }
 

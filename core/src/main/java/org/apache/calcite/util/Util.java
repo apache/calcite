@@ -158,7 +158,6 @@ public class Util {
               });
 
   //~ Methods ----------------------------------------------------------------
-
   /**
    * Does nothing with its argument. Returns whether it is ensured that
    * the call produces a single value

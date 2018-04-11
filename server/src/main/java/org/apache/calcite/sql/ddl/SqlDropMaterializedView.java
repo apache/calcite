@@ -44,8 +44,7 @@ public class SqlDropMaterializedView extends SqlDropObject {
   }
 
   @Override public void execute(CalcitePrepare.Context context) {
-    final Pair<CalciteSchema, String> pair =
-        SqlDdlNodes.schema(context, true, name);
+    final Pair<CalciteSchema, String> pair = SqlDdlNodes.schema(context, true, name);
     final Table table = pair.left.plus().getTable(pair.right);
     if (table != null) {
       // Materialized view exists.

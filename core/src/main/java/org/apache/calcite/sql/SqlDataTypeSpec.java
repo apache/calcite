@@ -59,6 +59,7 @@ public class SqlDataTypeSpec extends SqlNode {
 
   private final SqlIdentifier collectionsTypeName;
   private final SqlIdentifier typeName;
+  private final SqlIdentifier baseTypeName;
   private final int scale;
   private final int precision;
   private final String charSetName;
@@ -112,9 +113,27 @@ public class SqlDataTypeSpec extends SqlNode {
       TimeZone timeZone,
       Boolean nullable,
       SqlParserPos pos) {
+    this(collectionsTypeName, typeName, typeName, precision, scale, charSetName, timeZone,
+        nullable, pos);
+  }
+
+  /**
+   * Creates a type specification.
+   */
+  public SqlDataTypeSpec(
+      SqlIdentifier collectionsTypeName,
+      SqlIdentifier typeName,
+      SqlIdentifier baseTypeName,
+      int precision,
+      int scale,
+      String charSetName,
+      TimeZone timeZone,
+      Boolean nullable,
+      SqlParserPos pos) {
     super(pos);
     this.collectionsTypeName = collectionsTypeName;
     this.typeName = typeName;
+    this.baseTypeName = baseTypeName;
     this.precision = precision;
     this.scale = scale;
     this.charSetName = charSetName;
@@ -268,27 +287,26 @@ public class SqlDataTypeSpec extends SqlNode {
   }
 
   /**
-   * Throws an error if the type is not built-in.
+   * Throws an error if the type is not found.
    */
   public RelDataType deriveType(SqlValidator validator) {
-    String name = typeName.getSimple();
-
-    // for now we only support builtin datatypes
-    if (SqlTypeName.get(name) == null) {
-      throw validator.newValidationError(this,
-          RESOURCE.unknownDatatypeName(name));
-    }
-
-    if (null != collectionsTypeName) {
-      final String collectionName = collectionsTypeName.getSimple();
-      if (SqlTypeName.get(collectionName) == null) {
-        throw validator.newValidationError(this,
-            RESOURCE.unknownDatatypeName(collectionName));
+    RelDataType relDataType = null;
+    if (typeName.isSimple()) {
+      if (null != collectionsTypeName) {
+        final String collectionName = collectionsTypeName.getSimple();
+        if (SqlTypeName.get(collectionName) == null) {
+          throw validator.newValidationError(this,
+              RESOURCE.unknownDatatypeName(collectionName));
+        }
       }
-    }
 
-    RelDataTypeFactory typeFactory = validator.getTypeFactory();
-    return deriveType(typeFactory);
+      RelDataTypeFactory typeFactory = validator.getTypeFactory();
+      relDataType = deriveType(typeFactory);
+    }
+    if (relDataType == null) {
+      relDataType = validator.getValidatedNodeType(typeName);
+    }
+    return relDataType;
   }
 
   /**
@@ -307,10 +325,15 @@ public class SqlDataTypeSpec extends SqlNode {
    *                 does not explicitly state
    */
   public RelDataType deriveType(RelDataTypeFactory typeFactory,
-      boolean nullable) {
+                                boolean nullable) {
+    if (!typeName.isSimple()) {
+      return null;
+    }
     final String name = typeName.getSimple();
-    final SqlTypeName sqlTypeName =
-        Preconditions.checkNotNull(SqlTypeName.get(name));
+    final SqlTypeName sqlTypeName = SqlTypeName.get(name);
+    if (sqlTypeName == null) {
+      return null;
+    }
 
     // NOTE jvs 15-Jan-2009:  earlier validation is supposed to
     // have caught these, which is why it's OK for them

@@ -21,6 +21,9 @@ import org.apache.calcite.avatica.AvaticaUtils;
 import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.materialize.Lattice;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rel.type.RelProtoDataType;
 import org.apache.calcite.schema.AggregateFunction;
 import org.apache.calcite.schema.ScalarFunction;
 import org.apache.calcite.schema.Schema;
@@ -38,6 +41,7 @@ import org.apache.calcite.schema.impl.TableFunctionImpl;
 import org.apache.calcite.schema.impl.TableMacroImpl;
 import org.apache.calcite.schema.impl.ViewTable;
 import org.apache.calcite.sql.SqlDialectFactory;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
@@ -52,6 +56,7 @@ import java.io.IOException;
 import java.lang.reflect.Field;
 import java.sql.SQLException;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.List;
@@ -469,6 +474,34 @@ public class ModelHandler {
           + "; parent schema '" + schema.getName() + "' is not mutable");
     }
     return schema;
+  }
+
+  public void visit(final JsonType jsonType) {
+    checkRequiredAttributes(jsonType, "name");
+    try {
+      final SchemaPlus schema = currentMutableSchema("type");
+      schema.add(jsonType.name, new RelProtoDataType() {
+        @Override public RelDataType apply(RelDataTypeFactory a0) {
+          if (jsonType.type != null) {
+            return a0.createSqlType(SqlTypeName.get(jsonType.type));
+          } else {
+            List<RelDataType> typeList = new ArrayList<>(jsonType.attributes.size());
+            List<String> fieldNameList = new ArrayList<>(jsonType.attributes.size());
+            for (JsonTypeAttribute jsonTypeAttribute : jsonType.attributes) {
+              RelDataType relDataType = a0.createSqlType(SqlTypeName.get(jsonTypeAttribute.type));
+              if (relDataType == null) {
+                relDataType = currentSchema().getType(jsonTypeAttribute.type).apply(a0);
+              }
+              typeList.add(relDataType);
+              fieldNameList.add(jsonTypeAttribute.name);
+            }
+            return a0.createStructType(typeList, fieldNameList);
+          }
+        }
+      });
+    } catch (Exception e) {
+      throw new RuntimeException("Error instantiating " + jsonType, e);
+    }
   }
 
   public void visit(JsonFunction jsonFunction) {

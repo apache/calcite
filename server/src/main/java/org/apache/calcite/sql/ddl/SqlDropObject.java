@@ -34,8 +34,8 @@ import java.util.List;
 import static org.apache.calcite.util.Static.RESOURCE;
 
 /**
- * Base class for parse trees of {@code DROP TABLE}, {@code DROP VIEW} and
- * {@code DROP MATERIALIZED VIEW} statements.
+ * Base class for parse trees of {@code DROP TABLE}, {@code DROP VIEW},
+ * {@code DROP MATERIALIZED VIEW} and {@code DROP TYPE} statements.
  */
 abstract class SqlDropObject extends SqlDrop
     implements SqlExecutableStatement {
@@ -82,6 +82,13 @@ abstract class SqlDropObject extends SqlDrop
       if (!existed && !ifExists) {
         throw SqlUtil.newContextException(name.getParserPosition(),
             RESOURCE.viewNotFound(name.getSimple()));
+      }
+      break;
+    case DROP_TYPE:
+      existed = schema.removeType(name.getSimple());
+      if (!existed && !ifExists) {
+        throw SqlUtil.newContextException(name.getParserPosition(),
+            RESOURCE.typeNotFound(name.getSimple()));
       }
       break;
     default:

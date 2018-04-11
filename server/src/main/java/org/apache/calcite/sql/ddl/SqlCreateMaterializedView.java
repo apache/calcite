@@ -98,8 +98,7 @@ public class SqlCreateMaterializedView extends SqlCreate
   }
 
   public void execute(CalcitePrepare.Context context) {
-    final Pair<CalciteSchema, String> pair =
-        SqlDdlNodes.schema(context, true, name);
+    final Pair<CalciteSchema, String> pair = SqlDdlNodes.schema(context, true, name);
     if (pair.left.plus().getTable(pair.right) != null) {
       // Materialized view exists.
       if (!ifNotExists) {

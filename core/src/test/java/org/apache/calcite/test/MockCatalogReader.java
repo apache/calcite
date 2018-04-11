@@ -177,6 +177,13 @@ public class MockCatalogReader extends CalciteCatalogReader {
     final InitializerExpressionFactory countingInitializerExpressionFactory =
         new CountingFactory(ImmutableList.of("DEPTNO"));
 
+    registerType(
+        ImmutableList.of(salesSchema.getCatalogName(), salesSchema.getName(), "customBigInt"),
+        new RelProtoDataType() {
+          @Override public RelDataType apply(RelDataTypeFactory a0) {
+            return a0.createSqlType(SqlTypeName.BIGINT);
+          }
+        });
     // Register "EMP" table.
     final MockTable empTable =
         MockTable.create(this, salesSchema, "EMP", false, 14, null,
@@ -621,6 +628,14 @@ public class MockCatalogReader extends CalciteCatalogReader {
 
   //~ Methods ----------------------------------------------------------------
 
+  protected void registerType(final List<String> names, final RelProtoDataType relProtoDataType) {
+    assert names.get(0).equals(DEFAULT_CATALOG);
+    final List<String> schemaPath = Util.skipLast(names);
+    final CalciteSchema schema = SqlValidatorUtil.getSchema(rootSchema,
+        schemaPath, SqlNameMatchers.withCaseSensitive(true));
+    schema.add(Util.last(names), relProtoDataType);
+  }
+
   protected void registerTable(final MockTable table) {
     table.onRegister(typeFactory);
     final WrapperTable wrapperTable = new WrapperTable(table);
@@ -658,7 +673,7 @@ public class MockCatalogReader extends CalciteCatalogReader {
     if (typeName.equalsDeep(addressType.getSqlIdentifier(), Litmus.IGNORE)) {
       return addressType;
     } else {
-      return null;
+      return super.getNamedType(typeName);
     }
   }
 
