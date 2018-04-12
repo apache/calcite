@@ -28,26 +28,29 @@ if (null == expectedVersion) {
   throw new IllegalArgumentException("Did not find Maven project version");
 }
 
-String dockerfilePath = "src/main/dockerhub/Dockerfile";
-File dockerfile = new File(basedir, dockerfilePath);
-if (!dockerfile.isFile()) {
-  throw new FileNotFoundException("Could not file dockerhub Dockerfile at " + dockerfilePath);
-}
+def dockerfiles = ["src/main/dockerhub/Dockerfile", "src/main/dockerhub-hypersql/Dockerfile"]
 
-List<String> lines = Files.readAllLines(dockerfile.toPath());
-for (String line : lines) {
-  line = line.trim();
-  if (line.startsWith(expectedPrefix)) {
-    String value = line.substring(expectedPrefix.length());
-    // Trim leading and trailing quotation marks
-    value = value.substring(1, value.length() - 1);
-    if (expectedVersion.equals(value)) {
-      System.out.println("Found expected version in DockerHub dockerfile of " + value);
-      return true;
-    } else {
-      throw new IllegalArgumentException("Expected Avatica version of " + expectedVersion + " but got " + value);
+for (dockerfilePath in dockerfiles) {
+    File dockerfile = new File(basedir, dockerfilePath);
+    if (!dockerfile.isFile()) {
+      throw new FileNotFoundException("Could not file dockerhub Dockerfile at " + dockerfilePath);
     }
-  }
-}
 
-throw new IllegalArgumentException("Could not extract Avatica version from " + dockerfile);
+    List<String> lines = Files.readAllLines(dockerfile.toPath());
+    for (String line : lines) {
+      line = line.trim();
+      if (line.startsWith(expectedPrefix)) {
+        String value = line.substring(expectedPrefix.length());
+        // Trim leading and trailing quotation marks
+        value = value.substring(1, value.length() - 1);
+        if (expectedVersion.equals(value)) {
+          System.out.println("Found expected version in DockerHub dockerfile of " + value);
+          return true;
+        } else {
+          throw new IllegalArgumentException("Expected Avatica version of " + expectedVersion + " but got " + value);
+        }
+      }
+    }
+
+    throw new IllegalArgumentException("Could not extract Avatica version from " + dockerfile);
+}
