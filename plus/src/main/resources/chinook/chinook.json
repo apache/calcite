@@ -43,6 +43,14 @@
           ]
         },
         {
+          "name" : "SIMPLE_CUSTOMER",
+          "type" : "view",
+          "sql" : [
+            "SELECT c.firstname, c.lastname, c.email ",
+            "FROM chinook.customer AS c"
+          ]
+        },
+        {
           "name": "PREFERRED_GENRES",
           "type": "table",
           "factory": "org.apache.calcite.chinook.PreferredGenresTableFactory"
@@ -51,6 +59,12 @@
           "name": "PREFERRED_ALBUMS",
           "type": "table",
           "factory": "org.apache.calcite.chinook.PreferredAlbumsTableFactory"
+        }
+      ],
+      "functions": [
+        {
+          "name": "ASCONCATOFPARAMS",
+          "className": "org.apache.calcite.chinook.StringConcatFunction"
         }
       ]
     }
