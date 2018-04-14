@@ -25,6 +25,7 @@ matrix:
     - env: IMAGE=maven:3-jdk-10
     - env: IMAGE=maven:3-jdk-9
     - env: IMAGE=maven:3-jdk-8 JDOC=Y
+    - env: IMAGE=maven:3-ibmjava-8
 branches:
   only:
     - master
