@@ -100,6 +100,12 @@ component provides a SQL interface to
 <a href="https://www.dremio.com">Dremio</a>
 uses Calcite for SQL parsing and cost-based query optimization.
 
+### HerdDB
+
+<a href="https://herddb.org">HerdDB</a>
+is a distributed JVM-Embeddable Database built on top of
+<a href="https://bookkeeper.apache.org/">Apache BookKeeper</a> and uses Calcite as SQL Planner.
+
 ### MapD
 
 <a href="https://www.mapd.com">MapD</a>
