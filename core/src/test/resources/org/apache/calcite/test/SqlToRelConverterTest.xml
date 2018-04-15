@@ -5137,4 +5137,18 @@ LogicalProject(A=[$0], B=[$1])
 ]]>
         </Resource>
     </TestCase>
+  <TestCase name="testOrAlwaysTrue">
+    <Resource name="sql">
+      <![CDATA[select SAL from EMPNULLABLES_20
+where SAL IS NOT NULL OR SAL is null]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(SAL=[$5])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], SLACKER=[$8])
+    LogicalFilter(condition=[AND(=($7, 20), >($5, 1000))])
+      LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+]]>
+    </Resource>
+  </TestCase>
 </Root>

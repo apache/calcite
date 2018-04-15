@@ -1181,6 +1181,27 @@ public enum SqlKind {
           LESS_THAN, GREATER_THAN,
           GREATER_THAN_OR_EQUAL, LESS_THAN_OR_EQUAL);
 
+  /**
+   * Category of opposite operators, which can be obtained
+   * by using {@link #negate() method}
+   *
+   * <p>Consists of:
+   * {@link #IS_TRUE},
+   * {@link #IS_NOT_TRUE},
+   * {@link #IS_FALSE},
+   * {@link #IS_NOT_FALSE},
+   * {@link #IS_NULL},
+   * {@link #IS_NOT_NULL},
+   * {@link #IS_DISTINCT_FROM},
+   * {@link #IS_NOT_DISTINCT_FROM}.
+   */
+  public static final Set<SqlKind> OPPOSITE_OPERATORS =
+      EnumSet.of(
+          IS_TRUE, IS_NOT_TRUE,
+          IS_FALSE, IS_NOT_FALSE,
+          IS_NULL, IS_NOT_NULL,
+          IS_DISTINCT_FROM, IS_NOT_DISTINCT_FROM);
+
   /** Lower-case name. */
   public final String lowerName = name().toLowerCase(Locale.ROOT);
   public final String sql;

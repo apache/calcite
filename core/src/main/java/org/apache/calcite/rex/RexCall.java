@@ -24,7 +24,9 @@ import org.apache.calcite.util.Litmus;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Maps;
 
+import java.util.HashMap;
 import java.util.List;
 
 /**
@@ -128,6 +130,20 @@ public class RexCall extends RexNode {
     case IS_FALSE:
     case CAST:
       return operands.get(0).isAlwaysTrue();
+    case OR:
+      HashMap<SqlKind, RexNode> operandsMap = Maps.newHashMap();
+      for (RexNode operand : operands) {
+        SqlKind kind = operand.getKind();
+        if (operand instanceof RexCall && kind.belongsTo(SqlKind.OPPOSITE_OPERATORS)) {
+          RexCall cuurentInnerOperand = (RexCall) getOperands().get(0);
+          RexNode innerOperandOfOppositeOperator = operandsMap.get(kind.negate());
+          if (cuurentInnerOperand.equals(innerOperandOfOppositeOperator)) {
+            return true;
+          }
+          operandsMap.put(kind, cuurentInnerOperand);
+        }
+      }
+      return false;
     default:
       return false;
     }
