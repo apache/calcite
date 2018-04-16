@@ -382,7 +382,7 @@ public class JdbcRules {
             public boolean test(@Nullable Project project) {
               assert project != null;
               return out.dialect.supportsWindowFunctions()
-                  && !RexOver.containsOver(project.getProjects(), null);
+                  || !RexOver.containsOver(project.getProjects(), null);
             }
           },
           Convention.NONE, out, relBuilderFactory, "JdbcProjectRule");
