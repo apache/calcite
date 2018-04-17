@@ -1185,9 +1185,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
       timeseriesGranularity = Granularities.all();
     }
 
-    final boolean isCountStar = Granularities.all() == timeseriesGranularity
-        && aggregations.size() == 1
-        && aggregations.get(0).type.equals("count");
+    final boolean skipEmptyBuckets = Granularities.all() != timeseriesGranularity;
 
     final StringWriter sw = new StringWriter();
     final JsonFactory factory = new JsonFactory();
@@ -1210,7 +1208,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
       // The following field is necessary to conform with SQL semantics (CALCITE-1589)
       generator.writeStartObject();
       // Count(*) returns 0 if result set is empty thus need to set skipEmptyBuckets to false
-      generator.writeBooleanField("skipEmptyBuckets", !isCountStar);
+      generator.writeBooleanField("skipEmptyBuckets", skipEmptyBuckets);
       generator.writeEndObject();
       generator.close();
     } catch (IOException e) {
