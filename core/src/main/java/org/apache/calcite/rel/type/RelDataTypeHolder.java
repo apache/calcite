@@ -57,12 +57,16 @@ class RelDataTypeHolder {
       if (Util.matches(caseSensitive, f.getName(), fieldName)) {
         return Pair.of(f, false);
       }
+      // A dynamic star field matches any field
+      if (f.getType().getSqlTypeName() == SqlTypeName.DYNAMIC_STAR) {
+        return Pair.of(f, false);
+      }
     }
 
     final SqlTypeName typeName = DynamicRecordType.isDynamicStarColName(fieldName)
         ? SqlTypeName.DYNAMIC_STAR : SqlTypeName.ANY;
 
-    // This field does not exist in our field list add it
+    // This field does not exist in our field list; add it
     RelDataTypeField newField = new RelDataTypeFieldImpl(
         fieldName,
         fields.size(),

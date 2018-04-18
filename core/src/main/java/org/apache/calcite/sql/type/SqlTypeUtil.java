@@ -962,6 +962,15 @@ public abstract class SqlTypeUtil {
                     field.getType().getComponentType(),
                     null),
                 -1);
+        if (field.getType() instanceof ArraySqlType) {
+          flattenedCollectionType =
+              typeFactory.createArrayType(
+                  flattenRecordType(
+                      typeFactory,
+                      field.getType().getComponentType(),
+                      null),
+                  -1);
+        }
         field =
             new RelDataTypeFieldImpl(
                 field.getName(),

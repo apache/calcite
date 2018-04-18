@@ -23,6 +23,7 @@ import org.apache.calcite.rel.RelInput;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.SingleRel;
+import org.apache.calcite.rel.type.DynamicRecordType;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
@@ -123,8 +124,19 @@ public class Uncollect extends SingleRel {
     RelDataType inputType = rel.getRowType();
     assert inputType.isStruct() : inputType + " is not a struct";
     final List<RelDataTypeField> fields = inputType.getFieldList();
-    final RelDataTypeFactory.Builder builder =
-        rel.getCluster().getTypeFactory().builder();
+    final RelDataTypeFactory typeFactory = rel.getCluster().getTypeFactory();
+    final RelDataTypeFactory.Builder builder = typeFactory.builder();
+
+    if (fields.size() == 1
+        && fields.get(0).getType().getSqlTypeName() == SqlTypeName.ANY) {
+      // Component type is unknown to Uncollect, build dynamic star record
+      // type. Only consider ONE field case for unknown type.
+      return builder
+          .add(DynamicRecordType.DYNAMIC_STAR_PREFIX, SqlTypeName.ANY)
+          .nullable(true)
+          .build();
+    }
+
     for (RelDataTypeField field : fields) {
       if (field.getType() instanceof MapSqlType) {
         builder.add(SqlUnnestOperator.MAP_KEY_COLUMN_NAME, field.getType().getKeyType());

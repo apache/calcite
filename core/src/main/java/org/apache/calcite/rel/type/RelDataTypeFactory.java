@@ -549,6 +549,15 @@ public interface RelDataTypeFactory {
       return typeFactory.createStructType(kind, types, names);
     }
 
+    /** Creates a dynamic struct type with the current contents of this
+     * builder. */
+    public RelDataType buildDynamic() {
+      final RelDataType dynamicType = new DynamicRecordTypeImpl(typeFactory);
+      final RelDataType type = build();
+      dynamicType.getFieldList().addAll(type.getFieldList());
+      return dynamicType;
+    }
+
     /** Returns whether a field exists with the given name. */
     public boolean nameExists(String name) {
       return names.contains(name);

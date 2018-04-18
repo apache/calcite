@@ -98,7 +98,8 @@ public abstract class SqlToRelTestBase {
 
   protected Tester createTester() {
     return new TesterImpl(getDiffRepos(), false, false, true, false,
-        null, null);
+        null, null, SqlToRelConverter.Config.DEFAULT,
+        SqlConformanceEnum.DEFAULT, Contexts.empty());
   }
 
   /**
@@ -636,7 +637,9 @@ public abstract class SqlToRelTestBase {
     }
 
     public SqlNode parseQuery(String sql) throws Exception {
-      SqlParser parser = SqlParser.create(sql);
+      final SqlParser.Config config =
+          SqlParser.configBuilder().setConformance(getConformance()).build();
+      SqlParser parser = SqlParser.create(sql, config);
       return parser.parseQuery();
     }
 

@@ -723,6 +723,40 @@ LogicalProject(EXPR$0=[CHAR_LENGTH('foo')])
             <![CDATA[values (character_length('foo'))]]>
         </Resource>
     </TestCase>
+    <TestCase name="testDynamicNestedColumn">
+        <Resource name="sql">
+            <![CDATA[select t3.fake_q1['fake_col2'] as fake2
+from (
+  select t2.fake_col as fake_q1
+  from SALES.CUSTOMER as t2) as t3]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(FAKE2=[ITEM($0, 'fake_col2')])
+  LogicalProject(FAKE_Q1=[$0])
+    LogicalTableScan(table=[[CATALOG, SALES, CUSTOMER]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testDynamicSchemaUnnest">
+        <Resource name="sql">
+            <![CDATA[select t1.c_nationkey, t3.fake_col3
+from SALES.CUSTOMER as t1,
+lateral (select t2.fake_col2 as fake_col3
+         from unnest(t1.fake_col) as t2) as t3]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(C_NATIONKEY=[$1], FAKE_COL3=[$2])
+  LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{0}])
+    LogicalTableScan(table=[[CATALOG, SALES, CUSTOMER]])
+    LogicalProject(FAKE_COL3=[ITEM($0, 'FAKE_COL2')])
+      Uncollect
+        LogicalProject(FAKE_COL=[$cor0.FAKE_COL])
+          LogicalValues(tuples=[[{ 0 }]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testOverAvg">
         <Resource name="plan">
             <![CDATA[
@@ -4458,6 +4492,63 @@ LogicalProject(DEPTNO=[$0])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testUnnestArrayAggPlan">
+        <Resource name="sql">
+            <![CDATA[select d.deptno, e2.empno_avg
+from dept_nested as d outer apply
+ (select avg(e.empno) as empno_avg from UNNEST(d.employees) as e) e2]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(DEPTNO=[$0], EMPNO_AVG=[$7])
+  LogicalProject(DEPTNO=[$0], NAME=[$1], TYPE=[$2], DESC=[$3], A=[$4], B=[$5], EMPLOYEES=[$6], EMPNO_AVG=[$7])
+    LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{6}])
+      LogicalProject(DEPTNO=[$0], NAME=[$1], TYPE=[$2.TYPE], DESC=[$2.DESC], A=[$2.OTHERS.A], B=[$2.OTHERS.B], EMPLOYEES=[$3])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT_NESTED]])
+      LogicalAggregate(group=[{}], EMPNO_AVG=[AVG($0)])
+        LogicalProject(EMPNO=[$0])
+          Uncollect
+            LogicalProject(EMPLOYEES=[$cor0.EMPLOYEES_6])
+              LogicalValues(tuples=[[{ 0 }]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testUnnestArrayPlan">
+        <Resource name="sql">
+            <![CDATA[select d.deptno, e2.empno
+from dept_nested as d,
+ UNNEST(d.employees) e2]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(DEPTNO=[$0], EMPNO=[$7])
+  LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{6}])
+    LogicalProject(DEPTNO=[$0], NAME=[$1], TYPE=[$2.TYPE], DESC=[$2.DESC], A=[$2.OTHERS.A], B=[$2.OTHERS.B], EMPLOYEES=[$3])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT_NESTED]])
+    Uncollect
+      LogicalProject(EMPLOYEES=[$cor0.EMPLOYEES_6])
+        LogicalValues(tuples=[[{ 0 }]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testUnnestArrayPlanAs">
+        <Resource name="sql">
+            <![CDATA[select d.deptno, e2.empno
+from dept_nested as d,
+ UNNEST(d.employees) as e2(empno, y, z)]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(DEPTNO=[$0], EMPNO=[$7])
+  LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{6}])
+    LogicalProject(DEPTNO=[$0], NAME=[$1], TYPE=[$2.TYPE], DESC=[$2.DESC], A=[$2.OTHERS.A], B=[$2.OTHERS.B], EMPLOYEES=[$3])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT_NESTED]])
+    Uncollect
+      LogicalProject(EMPLOYEES=[$cor0.EMPLOYEES_6])
+        LogicalValues(tuples=[[{ 0 }]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testWithInsideWhereExistsDecorrelateRex">
         <Resource name="sql">
             <![CDATA[select * from emp
@@ -5072,7 +5163,7 @@ LogicalProject(R_REGIONKEY=[$0], R_NAME=[$1], R_COMMENT=[$2])
             <![CDATA[
 LogicalProject(**=[$0])
   LogicalSort(sort0=[$1], dir0=[ASC])
-    LogicalProject(**=[$0], N_NATIONKEY=[$1])
+    LogicalProject(**=[$0], EXPR$1=[ITEM($0, 'N_NATIONKEY')])
       LogicalTableScan(table=[[CATALOG, SALES, NATION]])
 ]]>
         </Resource>
