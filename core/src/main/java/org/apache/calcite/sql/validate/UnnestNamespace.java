@@ -16,11 +16,14 @@
  */
 package org.apache.calcite.sql.validate;
 
+import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlUnnestOperator;
 import org.apache.calcite.sql.type.MultisetSqlType;
+
 
 /**
  * Namespace for UNNEST.
@@ -46,6 +49,29 @@ class UnnestNamespace extends AbstractNamespace {
   }
 
   //~ Methods ----------------------------------------------------------------
+
+  public void setType(RelDataType type) {
+    this.type = type;
+    this.rowType = convertToStruct(type);
+  }
+
+  private SqlValidatorTable getOrInsertTableToSchema(CalciteSchema schema) {
+    SqlNode toUnnest = this.unnest.operand(0);
+    if (toUnnest instanceof SqlIdentifier) {
+      final SqlIdentifier id = (SqlIdentifier) toUnnest;
+      SqlQualified qualified = this.scope.fullyQualify(id);
+      return qualified.namespace.getTable();
+    }
+    return null;
+  }
+
+  public SqlValidatorTable getTable() {
+    if (unnest.operand(0) instanceof SqlIdentifier) {
+      // When operand of SqlIdentifier type does not have struct, fake a table for UnnestNameSpace
+      return getOrInsertTableToSchema(validator.catalogReader.getRootSchema());
+    }
+    return null;
+  }
 
   protected RelDataType validateImpl(RelDataType targetRowType) {
     // Validate the call and its arguments, and infer the return type.

@@ -17,8 +17,12 @@
 package org.apache.calcite.sql;
 
 
+import org.apache.calcite.rel.type.DynamicRecordType;
+import org.apache.calcite.rel.type.DynamicRecordTypeImpl;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.rel.type.RelDataTypeFieldImpl;
 import org.apache.calcite.sql.type.ArraySqlType;
 import org.apache.calcite.sql.type.MapSqlType;
 import org.apache.calcite.sql.type.MultisetSqlType;
@@ -65,9 +69,23 @@ public class SqlUnnestOperator extends SqlFunctionalOperator {
         opBinding.getTypeFactory().builder();
     for (Integer operand : Util.range(opBinding.getOperandCount())) {
       RelDataType type = opBinding.getOperandType(operand);
+      if (type.getSqlTypeName() == SqlTypeName.ANY) {
+        // when there is one operand has unknown type(ANY), the return type is dynamic star
+        final RelDataTypeFactory factory =  opBinding.getTypeFactory();
+        DynamicRecordType dynRet = new DynamicRecordTypeImpl(factory);
+        RelDataTypeField dynField = new RelDataTypeFieldImpl(
+            DynamicRecordType.DYNAMIC_STAR_PREFIX,
+            0,
+            factory.createTypeWithNullability(
+                factory.createSqlType(SqlTypeName.DYNAMIC_STAR), true));
+        dynRet.getFieldList().add(dynField);
+        return dynRet;
+      }
+
       if (type.isStruct()) {
         type = type.getFieldList().get(0).getType();
       }
+
       assert type instanceof ArraySqlType || type instanceof MultisetSqlType
           || type instanceof MapSqlType;
       if (type instanceof MapSqlType) {
