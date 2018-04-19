@@ -29,6 +29,7 @@ import static org.junit.Assert.assertThat;
  * Tests for {@link RelDistribution}.
  */
 public class RelDistributionTest {
+  @SuppressWarnings("SelfComparison")
   @Test public void testRelDistributionSatisfy() {
     RelDistribution distribution1 = RelDistributions.hash(ImmutableList.of(0));
     RelDistribution distribution2 = RelDistributions.hash(ImmutableList.of(1));

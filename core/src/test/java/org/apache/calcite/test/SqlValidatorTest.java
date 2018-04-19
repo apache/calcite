@@ -679,7 +679,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   // FIXME jvs 2-Feb-2005: all collation-related tests are disabled due to
   // dtbug 280
 
-  public void _testSimpleCollate() {
+  private void _testSimpleCollate() {
     checkExp("'s' collate latin1$en$1");
     checkExpType("'s' collate latin1$en$1", "CHAR(1)");
     checkCollation(
@@ -692,18 +692,18 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         SqlCollation.Coercibility.EXPLICIT);
   }
 
-  public void _testCharsetAndCollateMismatch() {
+  private void _testCharsetAndCollateMismatch() {
     // todo
     checkExpFails("_UTF16's' collate latin1$en$1", "?");
   }
 
-  public void _testDyadicCollateCompare() {
+  private void _testDyadicCollateCompare() {
     checkExp("'s' collate latin1$en$1 < 't'");
     checkExp("'t' > 's' collate latin1$en$1");
     checkExp("'s' collate latin1$en$1 <> 't' collate latin1$en$1");
   }
 
-  public void _testDyadicCompareCollateFails() {
+  private void _testDyadicCompareCollateFails() {
     // two different explicit collations. difference in strength
     checkExpFails("'s' collate latin1$en$1 <= 't' collate latin1$en$2",
         "(?s).*Two explicit different collations.*are illegal.*");
@@ -713,7 +713,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         "(?s).*Two explicit different collations.*are illegal.*");
   }
 
-  public void _testDyadicCollateOperator() {
+  private void _testDyadicCollateOperator() {
     checkCollation(
         "'a' || 'b'",
         "ISO-8859-1$en_US$primary",
@@ -783,7 +783,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         "(?s).*not comparable to each other.*");
   }
 
-  public void _testConvertAndTranslate() {
+  private void _testConvertAndTranslate() {
     checkExp("convert('abc' using conversion)");
     checkExp("translate('abc' using translation)");
   }
@@ -873,7 +873,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     checkExp("'a' similar to 'b' escape 'c'");
   }
 
-  public void _testLikeAndSimilarFails() {
+  private void _testLikeAndSimilarFails() {
     checkExpFails("'a' like _UTF16'b'  escape 'c'",
         "(?s).*Operands _ISO-8859-1.a. COLLATE ISO-8859-1.en_US.primary, _SHIFT_JIS.b..*");
     checkExpFails("'a' similar to _UTF16'b'  escape 'c'",
@@ -3892,7 +3892,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   // test window partition clause. See SQL 2003 specification for detail
-  public void _testWinPartClause() {
+  private void _testWinPartClause() {
     win("window w as (w2 order by deptno), w2 as (^rang^e 100 preceding)")
         .fails("Referenced window cannot have framing declarations");
     // Test specified collation, window clause syntax rule 4,5.
@@ -4806,7 +4806,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   // todo: implement IN
-  public void _testAmbiguousColumnInIn() {
+  private void _testAmbiguousColumnInIn() {
     // ok: cyclic reference
     check("select * from emp as e\n"
         + "where e.deptno in (\n"
@@ -5632,7 +5632,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
 
   // todo: Cannot handle '(a join b)' yet -- we see the '(' and expect to
   // see 'select'.
-  public void _testJoinUsing() {
+  private void _testJoinUsing() {
     check("select * from (emp join bonus using (job))\n"
         + "join dept using (deptno)");
 
@@ -6711,7 +6711,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   // todo: enable when correlating variables work
-  public void _testGroupExpressionEquivalenceCorrelated() {
+  private void _testGroupExpressionEquivalenceCorrelated() {
     // dname comes from dept, so it is constant within the sub-query, and
     // is so is a valid expr in a group-by query
     check("select * from dept where exists ("
@@ -6721,7 +6721,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   // todo: enable when params are implemented
-  public void _testGroupExpressionEquivalenceParams() {
+  private void _testGroupExpressionEquivalenceParams() {
     check("select cast(? as integer) from emp group by cast(? as integer)");
   }
 
@@ -8081,7 +8081,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     }
   }
 
-  public void _testValuesWithAggFuncs() {
+  private void _testValuesWithAggFuncs() {
     checkFails(
         "values(^count(1)^)",
         "Call to xxx is invalid\\. Direct calls to aggregate functions not allowed in ROW definitions\\.");
