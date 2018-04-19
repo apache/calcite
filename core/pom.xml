@@ -176,8 +176,8 @@ limitations under the License.
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
         <configuration>
-          <source>1.7</source>
-          <target>1.7</target>
+          <source>8</source>
+          <target>8</target>
           <excludes>
             <exclude>org/apache/calcite/sql/parser/parserextensiontesting/*.java</exclude>
           </excludes>
