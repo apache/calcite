@@ -91,6 +91,7 @@ public class PrimitiveTest {
   }
 
   /** Tests the {@link Primitive#number(Number)} method. */
+  @SuppressWarnings("TryFailThrowable")
   @Test public void testNumber() {
     Number number = Primitive.SHORT.number(Integer.valueOf(2));
     assertTrue(number instanceof Short);

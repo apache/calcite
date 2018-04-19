@@ -41,7 +41,7 @@ class CachingLatticeStatisticProvider implements LatticeStatisticProvider {
   CachingLatticeStatisticProvider(final Lattice lattice,
       final LatticeStatisticProvider provider) {
     this.lattice = lattice;
-    cache = CacheBuilder.<Lattice.Column>newBuilder()
+    cache = CacheBuilder.newBuilder()
         .build(
             new CacheLoader<Lattice.Column, Double>() {
               public Double load(@Nonnull Lattice.Column key) throws Exception {
