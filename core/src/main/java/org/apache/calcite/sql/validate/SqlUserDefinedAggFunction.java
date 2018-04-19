@@ -37,6 +37,7 @@ import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.List;
 
 /**
@@ -52,6 +53,9 @@ public class SqlUserDefinedAggFunction extends SqlAggFunction {
    * RelDataTypeFactory argument from SqlUserDefinedAggFunction constructor. */
   @Experimental
   public final RelDataTypeFactory typeFactory;
+
+  //this is to identify is a aggregate function
+  public final EnumSet<SqlKind> sqlKindFactory = SqlKind.AGGREGATE;
 
   /** Creates a SqlUserDefinedAggFunction. */
   public SqlUserDefinedAggFunction(SqlIdentifier opName,

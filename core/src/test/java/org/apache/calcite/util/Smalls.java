@@ -623,6 +623,53 @@ public class Smalls {
 
   }
 
+  /** Example of a user-defind aggregate function (UDAF).
+   *   SUM is for Issue 1882 */
+  public static class Sum {
+    public Sum() {
+    }
+
+    public String init() {
+      return "";
+    }
+    public String add(String accumulator, String v) {
+      if (v != null) {
+        accumulator = accumulator + v;
+      }
+      return accumulator;
+    }
+    public String merge(String accumulator0, String accumulator1) {
+      return accumulator0 + accumulator1;
+    }
+    public String result(String accumulator) {
+      return accumulator;
+    }
+  }
+  /** Example of a user-defind aggregate function (UDAF).
+   *  AVG is for Issue 1882 */
+  public static class AVG {
+    public int counter = 0;
+    public AVG() {
+    }
+    public String init() {
+      return "";
+    }
+    public String add(String accumulator, String v) {
+      if (v != null) {
+        accumulator = accumulator + v;
+      }
+      counter++;
+      return accumulator;
+    }
+
+    public String merge(String accumulator0, String accumulator1) {
+      return accumulator0 + accumulator1;
+    }
+    public String result(String accumulator) {
+      return accumulator.substring(0, counter);
+    }
+  }
+
   /** Example of a user-defined aggregate function (UDAF). */
   public static class MySumFunction {
     public MySumFunction() {

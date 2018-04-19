@@ -32,6 +32,7 @@ import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.util.SqlBasicVisitor;
+import org.apache.calcite.sql.validate.SqlUserDefinedAggFunction;
 import org.apache.calcite.util.BarfingInvocationHandler;
 import org.apache.calcite.util.ConversionUtil;
 import org.apache.calcite.util.Glossary;
@@ -388,7 +389,15 @@ public abstract class SqlUtil {
     return Iterators.filter(routines,
         new PredicateImpl<SqlOperator>() {
           public boolean test(SqlOperator input) {
-            return input.getKind() == sqlKind;
+            boolean valid = input.getKind() == sqlKind;
+            if (!valid) {
+              if (input instanceof SqlUserDefinedAggFunction) {
+                valid = ((SqlUserDefinedAggFunction) input).
+                        sqlKindFactory.contains(sqlKind);
+              }
+            }
+
+            return valid;
           }
         });
   }

@@ -698,6 +698,60 @@ public class UdfTest {
         .withDefaultSchema("adhoc");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1882">[CALCITE-1882]
+   * Can't obtain the user defined aggregate function such as sum,avg by calcite </a>.
+   * */
+  @Test
+  public void testSumAVG() {
+    final String empDept = JdbcTest.EmpDeptTableFactory.class.getName();
+    final String sum = Smalls.Sum.class.getName();
+    final String avg = Smalls.AVG.class.getName();
+    final String model = "{\n"
+            + "  version: '1.0',\n"
+            + "   schemas: [\n"
+            + "     {\n"
+            + "       name: 'adhoc',\n"
+            + "       tables: [\n"
+            + "         {\n"
+            + "           name: 'EMPLOYEES',\n"
+            + "           type: 'custom',\n"
+            + "           factory: '" + empDept + "',\n"
+            + "           operand: {'foo': true, 'bar': 345}\n"
+            + "         }\n"
+            + "       ],\n"
+            + "       functions: [\n"
+            + "         {\n"
+            + "           name: 'SUM',\n"
+            + "           className: '" + sum + "'\n"
+            + "         },\n"
+            + "         {\n"
+            + "           name: 'AVG',\n"
+            + "           className: '" + avg + "'\n"
+            + "         }\n"
+            + "       ]\n"
+            + "     }\n"
+            + "   ]\n"
+            + "}";
+    final CalciteAssert.AssertThat with = CalciteAssert.model(model)
+            .withDefaultSchema("adhoc");
+
+    with.query("select SUM(\"name\") as p from EMPLOYEES group by \"deptno\"\n")
+            .returns("P=Eric\nP=BillSebastianTheodore\n");
+    with.query("select SUM(\"name\") as p from EMPLOYEES group by \"commission\"\n")
+            .returns("P=Sebastian\nP=Eric\nP=Bill\nP=Theodore\n");
+    with.query("select AVG(\"name\") as p from EMPLOYEES group by \"deptno\"\n")
+            .returns("P=E\nP=Bil\n");
+    with.query("select AVG(\"name\") as p from EMPLOYEES group by \"commission\"\n")
+            .returns("P=S\nP=E\nP=B\nP=T\n");
+    // test user-defined sum won't affect buildin sum
+    with.query("select SUM(\"empid\") as p from EMPLOYEES group by \"deptno\"\n")
+            .returns("P=200\nP=360\n");
+    // test user-defined avg won't affect buildin avg
+    with.query("select AVG(\"empid\") as p from EMPLOYEES group by \"deptno\"\n")
+            .returns("P=200\nP=120\n");
+  }
+
   /** Tests user-defined aggregate function with FILTER.
    *
    * <p>Also tests that we do not try to push ADAF to JDBC source. */
