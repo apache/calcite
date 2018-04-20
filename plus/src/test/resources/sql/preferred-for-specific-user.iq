@@ -1,0 +1,93 @@
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to you under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+!use CALCITE_AS_SPECIFIC_USER
+!set outputformat mysql
+
+# Preferred genres
+SELECT * FROM preferred_genres;
++----+
+| ID |
++----+
+|  1 |
+| 15 |
+|  2 |
+|  7 |
+|  9 |
++----+
+(5 rows)
+
+!ok
+
+# Preferred albums
+SELECT * FROM preferred_albums;
++-----+
+| ID  |
++-----+
+| 154 |
+| 220 |
+| 321 |
+|   4 |
+|  56 |
++-----+
+(5 rows)
+
+!ok
+
+# Preferred tracks count by genres
+SELECT tr.genreid, COUNT(tr.trackid) as TRACKS_COUNT
+FROM chinook.track AS tr
+JOIN preferred_genres AS pg ON tr.genreid = pg.id
+GROUP BY tr.genreid;
++---------+--------------+
+| genreid | TRACKS_COUNT |
++---------+--------------+
+|       1 |         1297 |
+|      15 |           30 |
+|       2 |          130 |
+|       7 |          579 |
+|       9 |           48 |
++---------+--------------+
+(5 rows)
+
+!ok
+
+# should be just like above Preferred tracks count by genres
+SELECT tr.genreid, COUNT(tr.trackid) as TRACKS_COUNT
+FROM chinook.track AS tr
+WHERE tr.genreid IN (SELECT pg.id FROM preferred_genres AS pg)
+GROUP BY tr.genreid;
++---------+--------------+
+| genreid | TRACKS_COUNT |
++---------+--------------+
+|       1 |         1297 |
+|      15 |           30 |
+|       2 |          130 |
+|       7 |          579 |
+|       9 |           48 |
++---------+--------------+
+(5 rows)
+
+!ok
+
+# Preferred genres
+SELECT COUNT(*) AS TRACKS_COUNT FROM preferred_tracks;
++--------------+
+| TRACKS_COUNT |
++--------------+
+|         2115 |
++--------------+
+(1 row)
+
+!ok

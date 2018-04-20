@@ -65,6 +65,7 @@ import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.util.Holder;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.ImmutableIntList;
+import org.apache.calcite.util.ImmutableNullableList;
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.Pair;
@@ -933,19 +934,15 @@ public class RelBuilder {
    * and optimized in a similar way to the {@link #and} method.
    * If the result is TRUE no filter is created. */
   public RelBuilder filter(Iterable<? extends RexNode> predicates) {
-    final RexNode x = simplifierUnknownAsFalse.simplifyAnds(predicates);
-    if (x.isAlwaysFalse()) {
+    final RexNode simplifiedPredicates =
+        simplifierUnknownAsFalse.simplifyFilterPredicates(predicates);
+    if (simplifiedPredicates == null) {
       return empty();
     }
 
-    // Remove cast of BOOLEAN NOT NULL to BOOLEAN or vice versa. Filter accepts
-    // nullable and not-nullable conditions, but a CAST might get in the way of
-    // other rewrites.
-    final RexNode x2 = simplifierUnknownAsFalse.removeNullabilityCast(x);
-
-    if (!x2.isAlwaysTrue()) {
+    if (!simplifiedPredicates.isAlwaysTrue()) {
       final Frame frame = stack.pop();
-      final RelNode filter = filterFactory.createFilter(frame.rel, x2);
+      final RelNode filter = filterFactory.createFilter(frame.rel, simplifiedPredicates);
       stack.push(new Frame(filter, frame.fields));
     }
     return this;
@@ -1072,6 +1069,51 @@ public class RelBuilder {
    * expressions. */
   public RelBuilder project(RexNode... nodes) {
     return project(ImmutableList.copyOf(nodes));
+  }
+
+  /** Creates a {@link org.apache.calcite.rel.core.Project} of the given
+   * expressions and field names, and optionally optimizing.
+   *
+   * <p>If {@code fieldNames} is null, or if a particular entry in
+   * {@code fieldNames} is null, derives field names from the input
+   * expressions.
+   *
+   * <p>If {@code force} is false,
+   * and the input is a {@code Project},
+   * and the expressions  make the trivial projection ($0, $1, ...),
+   * modifies the input.
+   *
+   * @param nodes       Expressions
+   * @param fieldNames  Suggested field names, or null to generate
+   * @param force       Whether to create a renaming Project if the
+   *                    projections are trivial
+   */
+  public RelBuilder projectNamed(Iterable<? extends RexNode> nodes,
+      Iterable<String> fieldNames, boolean force) {
+    @SuppressWarnings("unchecked") final List<? extends RexNode> nodeList =
+        nodes instanceof List ? (List) nodes : ImmutableList.copyOf(nodes);
+    final List<String> fieldNameList =
+        fieldNames == null ? null
+          : fieldNames instanceof List ? (List<String>) fieldNames
+          : ImmutableNullableList.copyOf(fieldNames);
+    final RelNode input = peek();
+    final RelDataType rowType =
+        RexUtil.createStructType(cluster.getTypeFactory(), nodeList,
+            fieldNameList, SqlValidatorUtil.F_SUGGESTER);
+    if (!force
+        && RexUtil.isIdentity(nodeList, input.getRowType())) {
+      if (input instanceof Project && fieldNames != null) {
+        // Rename columns of child projection if desired field names are given.
+        final Frame frame = stack.pop();
+        final Project childProject = (Project) frame.rel;
+        final Project newInput = childProject.copy(childProject.getTraitSet(),
+            childProject.getInput(), childProject.getProjects(), rowType);
+        stack.push(new Frame(newInput, frame.fields));
+      }
+    } else {
+      project(nodeList, rowType.getFieldNames(), force);
+    }
+    return this;
   }
 
   /** Ensures that the field names match those given.

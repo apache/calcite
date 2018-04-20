@@ -44,6 +44,11 @@ on your site.
 <a href="https://apex.apache.org">Apache Apex</a>
 uses Calcite for parsing streaming SQL and query optimization.
 
+### Apache Beam
+
+<a href="https://beam.apache.org">Apache Beam</a>
+uses Calcite for parsing and optimizing SQL.
+
 ### Apache Drill
 
 <a href="https://drill.apache.org">Apache Drill</a>
@@ -53,7 +58,7 @@ uses Calcite for SQL parsing and query optimization.
 
 <a href="https://flink.apache.org">Apache Flink</a>
 uses Calcite for parsing both regular and streaming SQL,
-and for query optimization (under development).
+and for query optimization.
 
 ### Apache Hive
 
@@ -87,7 +92,7 @@ uses Calcite for parsing streaming SQL and query optimization.
 
 <a href="https://www.uber.com/">Uber</a>'s SQL-based streaming analytics platform
 <a href="https://github.com/uber/AthenaX/">AthenaX</a>
-uses Calcite for SQL parsing and query optimization.
+uses Calcite for parsing SQL and query optimization.
 
 ### Cascading
 
@@ -97,8 +102,15 @@ component provides a SQL interface to
 
 ### Dremio
 
-<a href="http://www.dremio.com">Dremio</a>
+<a href="https://www.dremio.com">Dremio</a>
 uses Calcite for SQL parsing and cost-based query optimization.
+
+### HerdDB
+
+<a href="https://herddb.org">HerdDB</a>
+is a distributed JVM-Embeddable Database built on top of
+<a href="https://bookkeeper.apache.org/">Apache BookKeeper</a>.
+It uses Calcite as its SQL Planner.
 
 ### MapD
 
@@ -116,5 +128,5 @@ It uses Calcite to transparently rewrite queries to use materialized views.
 
 <a href="https://github.com/twilmes/sql-gremlin">SQL-Gremlin</a>
 is a SQL interface to a
-<a href="http://tinkerpop.apache.org/">Apache TinkerPop</a>-enabled
+<a href="https://tinkerpop.apache.org/">Apache TinkerPop</a>-enabled
 graph database.

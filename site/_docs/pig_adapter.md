@@ -25,7 +25,7 @@ limitations under the License.
 # Overview
 
 The Pig adapter allows you to write queries in SQL and execute them using
-<a href="http://pig.apache.org">Apache Pig</a>.
+<a href="https://pig.apache.org">Apache Pig</a>.
 
 # A simple example
 
@@ -79,7 +79,7 @@ t = JOIN t BY tc1, s BY sc0;
 {% endhighlight %}
 
 which is then executed using Pig's runtime, typically MapReduce on
-<a href="http://hadoop.apache.org/">Apache Hadoop</a>.
+<a href="https://hadoop.apache.org/">Apache Hadoop</a>.
 
 # Relationship to Piglet
 

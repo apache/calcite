@@ -76,6 +76,7 @@ import java.util.TreeMap;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.nullValue;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
@@ -1300,8 +1301,26 @@ public class RexProgramTest {
         "false");
 
     // simplify equals boolean
-    checkSimplifyFilter(and(eq(eq(aRef, literal1), trueLiteral), eq(bRef, literal1)),
+    final ImmutableList<RexNode> args =
+        ImmutableList.of(eq(eq(aRef, literal1), trueLiteral),
+            eq(bRef, literal1));
+    checkSimplifyFilter(and(args),
         "AND(=(?0.a, 1), =(?0.b, 1))");
+
+    // as previous, using simplifyFilterPredicates
+    assertThat(simplify.withUnknownAsFalse(true)
+            .simplifyFilterPredicates(args)
+            .toString(),
+        equalTo("AND(=(?0.a, 1), =(?0.b, 1))"));
+
+    // "a = 1 and a = 10" is always false
+    final ImmutableList<RexNode> args2 =
+        ImmutableList.of(eq(aRef, literal1), eq(aRef, literal10));
+    checkSimplifyFilter(and(args2), "false");
+
+    assertThat(simplify.withUnknownAsFalse(true)
+            .simplifyFilterPredicates(args2),
+        nullValue());
 
     // equality on constants, can remove the equality on the variables
     checkSimplifyFilter(and(eq(aRef, literal1), eq(bRef, literal1), eq(aRef, bRef)),

@@ -17,6 +17,7 @@
 package org.apache.calcite.schema;
 
 import org.apache.calcite.materialize.Lattice;
+import org.apache.calcite.util.Bug;
 
 import com.google.common.collect.ImmutableList;
 
@@ -56,7 +57,11 @@ public interface SchemaPlus extends Schema {
   String getName();
 
   // override with stricter return
-  SchemaPlus getSubSchema(String name);
+  default SchemaPlus getSubSchema(String name) {
+    Bug.upgrade("janino 2.7.6 does not work without this method,"
+                + "see https://github.com/janino-compiler/janino/issues/47");
+    throw new UnsupportedOperationException();
+  }
 
   /** Adds a schema as a sub-schema of this schema, and returns the wrapped
    * object. */

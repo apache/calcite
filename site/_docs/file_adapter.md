@@ -29,8 +29,8 @@ and can also read files over various protocols, such as HTTP.
 
 For example if you define:
 
-* States - http://en.wikipedia.org/wiki/List_of_states_and_territories_of_the_United_States
-* Cities - http://en.wikipedia.org/wiki/List_of_United_States_cities_by_population
+* States - https://en.wikipedia.org/wiki/List_of_states_and_territories_of_the_United_States
+* Cities - https://en.wikipedia.org/wiki/List_of_United_States_cities_by_population
 
 You can then write a query like:
 
@@ -167,7 +167,7 @@ Tables can be simply defined for immediate gratification:
 {% highlight json %}
 {
   tableName: "RawCities",
-  url: "http://en.wikipedia.org/wiki/List_of_United_States_cities_by_population"
+  url: "https://en.wikipedia.org/wiki/List_of_United_States_cities_by_population"
 }
 {% endhighlight %}
 
@@ -176,7 +176,7 @@ And subsequently refined for better usability / querying:
 {% highlight json %}
 {
   tableName: "Cities",
-  url: "http://en.wikipedia.org/wiki/List_of_United_States_cities_by_population",
+  url: "https://en.wikipedia.org/wiki/List_of_United_States_cities_by_population",
   path: "#mw-content-text > table.wikitable.sortable",
   index: 0,
   fieldDefs: [
@@ -205,9 +205,9 @@ sqlline> select * from wiki."Cities";
 Note that `Cities` is easier to consume than `RawCities`,
 because its table definition has a field list.
 
-The file adapter uses [Jsoup](http://jsoup.org/) for HTML DOM
+The file adapter uses [Jsoup](https://jsoup.org/) for HTML DOM
 navigation; selectors for both tables and fields follow the
-[Jsoup selector specification](http://jsoup.org/cookbook/extracting-data/selector-syntax).
+[Jsoup selector specification](https://jsoup.org/cookbook/extracting-data/selector-syntax).
 
 Field definitions may be used to rename or skip source fields, to
 select and condition the cell contents and to set a data type.
@@ -219,7 +219,7 @@ within the selected element, match within the selected text, and
 choose a data type for the resulting database column.  Processing
 steps are applied in the order described and replace and match
 patterns are based on
-[Java regular expressions](http://docs.oracle.com/javase/7/docs/api/java/util/regex/Pattern.html).
+[Java regular expressions](https://docs.oracle.com/javase/7/docs/api/java/util/regex/Pattern.html).
 
 ### Further examples
 

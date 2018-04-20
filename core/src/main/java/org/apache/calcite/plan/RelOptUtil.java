@@ -91,7 +91,6 @@ import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.MultisetSqlType;
 import org.apache.calcite.sql.type.SqlTypeName;
-import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.ImmutableBitSet;
@@ -486,7 +485,6 @@ public abstract class RelOptUtil {
 
     if (extraExpr != null) {
       RexBuilder rexBuilder = cluster.getRexBuilder();
-      RelDataTypeFactory typeFactory = rexBuilder.getTypeFactory();
 
       assert extraExpr == rexBuilder.makeLiteral(true);
 
@@ -495,7 +493,11 @@ public abstract class RelOptUtil {
       // agg does not like no agg functions so just pretend it is
       // doing a min(TRUE)
 
-      ret = createProject(ret, ImmutableList.of(extraExpr), null);
+      final RelBuilder relBuilder =
+          RelFactories.LOGICAL_BUILDER.create(cluster, null);
+      ret = relBuilder.push(ret)
+          .project(ImmutableList.of(extraExpr))
+          .build();
 
       final AggregateCall aggCall =
           AggregateCall.create(SqlStdOperatorTable.MIN,
@@ -516,6 +518,17 @@ public abstract class RelOptUtil {
     return ret;
   }
 
+  @Deprecated // to be removed before 2.0
+  public static Exists createExistsPlan(
+      RelNode seekRel,
+      SubQueryType subQueryType,
+      Logic logic,
+      boolean notIn) {
+    final RelBuilder relBuilder =
+        RelFactories.LOGICAL_BUILDER.create(seekRel.getCluster(), null);
+    return createExistsPlan(seekRel, subQueryType, logic, notIn, relBuilder);
+  }
+
   /**
    * Creates a plan suitable for use in <code>EXISTS</code> or <code>IN</code>
    * statements.
@@ -527,6 +540,7 @@ public abstract class RelOptUtil {
    * @param subQueryType Sub-query type
    * @param logic  Whether to use 2- or 3-valued boolean logic
    * @param notIn Whether the operator is NOT IN
+   * @param relBuilder Builder for relational expressions
    *
    * @return A pair of a relational expression which outer joins a boolean
    * condition column, and a numeric offset. The offset is 2 if column 0 is
@@ -537,7 +551,8 @@ public abstract class RelOptUtil {
       RelNode seekRel,
       SubQueryType subQueryType,
       Logic logic,
-      boolean notIn) {
+      boolean notIn,
+      RelBuilder relBuilder) {
     switch (subQueryType) {
     case SCALAR:
       return new Exists(seekRel, false, true);
@@ -574,7 +589,7 @@ public abstract class RelOptUtil {
     final int projectedKeyCount = exprs.size();
     exprs.add(rexBuilder.makeLiteral(true));
 
-    ret = createProject(ret, exprs, null);
+    ret = relBuilder.push(ret).project(exprs).build();
 
     final AggregateCall aggCall =
         AggregateCall.create(SqlStdOperatorTable.MIN,
@@ -625,7 +640,11 @@ public abstract class RelOptUtil {
                   inputField.getIndex()),
               outputField.getName()));
     }
-    return createProject(rel, Pair.left(renames), Pair.right(renames));
+    final RelBuilder relBuilder =
+        RelFactories.LOGICAL_BUILDER.create(rel.getCluster(), null);
+    return relBuilder.push(rel)
+        .project(Pair.left(renames), Pair.right(renames), true)
+        .build();
   }
 
   @Deprecated // to be removed before 2.0
@@ -1660,18 +1679,21 @@ public abstract class RelOptUtil {
       }
     }
 
+    final RelBuilder relBuilder =
+        RelFactories.LOGICAL_BUILDER.create(cluster, null);
+
     // added project if need to produce new keys than the original input
     // fields
     if (newLeftKeyCount > 0) {
-      leftRel = createProject(leftRel, newLeftFields,
-          SqlValidatorUtil.uniquify(newLeftFieldNames,
-              typeSystem.isSchemaCaseSensitive()));
+      leftRel = relBuilder.push(leftRel)
+          .project(newLeftFields, newLeftFieldNames, true)
+          .build();
     }
 
     if (newRightKeyCount > 0) {
-      rightRel = createProject(rightRel, newRightFields,
-          SqlValidatorUtil.uniquify(newRightFieldNames,
-              typeSystem.isSchemaCaseSensitive()));
+      rightRel = relBuilder.push(rightRel)
+          .project(newRightFields, newRightFieldNames)
+          .build();
     }
 
     inputRels[0] = leftRel;
@@ -1692,7 +1714,9 @@ public abstract class RelOptUtil {
     if ((newProjectOutputSize > 0)
         && (newProjectOutputSize < joinOutputFields.size())) {
       final List<Pair<RexNode, String>> newProjects = new ArrayList<>();
-      RexBuilder rexBuilder = joinRel.getCluster().getRexBuilder();
+      final RelBuilder relBuilder =
+          RelFactories.LOGICAL_BUILDER.create(joinRel.getCluster(), null);
+      final RexBuilder rexBuilder = relBuilder.getRexBuilder();
       for (int fieldIndex : outputProj) {
         final RelDataTypeField field = joinOutputFields.get(fieldIndex);
         newProjects.add(
@@ -1702,10 +1726,9 @@ public abstract class RelOptUtil {
       }
 
       // Create a project rel on the output of the join.
-      return createProject(
-          joinRel,
-          Pair.left(newProjects),
-          Pair.right(newProjects));
+      return relBuilder.push(joinRel)
+          .project(Pair.left(newProjects), Pair.right(newProjects), true)
+          .build();
     }
 
     return joinRel;
@@ -2844,34 +2867,29 @@ public abstract class RelOptUtil {
         Mappings.apply3(mapping, rowType.getFieldList()));
   }
 
-  /**
-   * Creates a relational expression which projects a list of expressions.
-   *
-   * @param child         input relational expression
-   * @param exprList      list of expressions for the input columns
-   * @param fieldNameList aliases of the expressions, or null to generate
-   */
+  @Deprecated // to be removed before 2.0
   public static RelNode createProject(
       RelNode child,
       List<? extends RexNode> exprList,
       List<String> fieldNameList) {
-    return createProject(child, exprList, fieldNameList, false);
+    final RelBuilder relBuilder =
+        RelFactories.LOGICAL_BUILDER.create(child.getCluster(), null);
+    return relBuilder.push(child)
+        .project(exprList, fieldNameList, true)
+        .build();
   }
 
-  /**
-   * Creates a relational expression which projects a list of (expression, name)
-   * pairs.
-   *
-   * @param child       input relational expression
-   * @param projectList list of (expression, name) pairs
-   * @param optimize    Whether to optimize
-   */
+  @Deprecated // to be removed before 2.0
   public static RelNode createProject(
       RelNode child,
       List<Pair<RexNode, String>> projectList,
       boolean optimize) {
-    return createProject(child, Pair.left(projectList), Pair.right(projectList),
-        optimize, RelFactories.LOGICAL_BUILDER.create(child.getCluster(), null));
+    final RelBuilder relBuilder =
+        RelFactories.LOGICAL_BUILDER.create(child.getCluster(), null);
+    return relBuilder.push(child)
+        .projectNamed(Pair.left(projectList), Pair.right(projectList),
+            !optimize)
+        .build();
   }
 
   /**
@@ -2890,71 +2908,31 @@ public abstract class RelOptUtil {
         RelFactories.DEFAULT_PROJECT_FACTORY, child, posList);
   }
 
-  /**
-   * Creates a relational expression which projects an array of expressions,
-   * and optionally optimizes.
-   *
-   * <p>The result may not be a
-   * {@link org.apache.calcite.rel.logical.LogicalProject}. If the
-   * projection is trivial, <code>child</code> is returned directly; and future
-   * versions may return other formulations of expressions, such as
-   * {@link org.apache.calcite.rel.logical.LogicalCalc}.
-   *
-   * @param child      input relational expression
-   * @param exprs      list of expressions for the input columns
-   * @param fieldNames aliases of the expressions, or null to generate
-   * @param optimize   Whether to return <code>child</code> unchanged if the
-   *                   projections are trivial.
-   */
+  @Deprecated // to be removed before 2.0
   public static RelNode createProject(
       RelNode child,
       List<? extends RexNode> exprs,
       List<String> fieldNames,
       boolean optimize) {
-    return createProject(child, exprs, fieldNames, optimize,
-        RelFactories.LOGICAL_BUILDER.create(child.getCluster(), null));
+    final RelBuilder relBuilder =
+        RelFactories.LOGICAL_BUILDER.create(child.getCluster(), null);
+    return relBuilder.push(child)
+        .projectNamed(exprs, fieldNames, !optimize)
+        .build();
   }
 
-  /**
-   * Creates a relational expression which projects an array of expressions,
-   * and optionally optimizes.
-   *
-   * <p>The result may not be a
-   * {@link org.apache.calcite.rel.logical.LogicalProject}. If the
-   * projection is trivial, <code>child</code> is returned directly; and future
-   * versions may return other formulations of expressions, such as
-   * {@link org.apache.calcite.rel.logical.LogicalCalc}.
-   *
-   * @param child          input relational expression
-   * @param exprs          list of expressions for the input columns
-   * @param fieldNames     aliases of the expressions, or null to generate
-   * @param optimize       Whether to return <code>child</code> unchanged if the
-   *                       projections are trivial.
-   * @param relBuilder     Factory to create project operators
-   */
+  /** @deprecated Use
+   * {@link RelBuilder#projectNamed(Iterable, Iterable, boolean)} */
+  @Deprecated // to be removed before 2.0
   public static RelNode createProject(
       RelNode child,
       List<? extends RexNode> exprs,
       List<String> fieldNames,
       boolean optimize,
       RelBuilder relBuilder) {
-    final RelOptCluster cluster = child.getCluster();
-    final RelDataType rowType =
-        RexUtil.createStructType(cluster.getTypeFactory(), exprs,
-            fieldNames, SqlValidatorUtil.F_SUGGESTER);
-    if (optimize
-        && RexUtil.isIdentity(exprs, child.getRowType())) {
-      if (child instanceof Project && fieldNames != null) {
-        // Rename columns of child projection if desired field names are given.
-        Project childProject = (Project) child;
-        child = childProject.copy(childProject.getTraitSet(),
-            childProject.getInput(), childProject.getProjects(), rowType);
-      }
-      return child;
-    }
-    relBuilder.push(child);
-    relBuilder.project(exprs, rowType.getFieldNames(), !optimize);
-    return relBuilder.build();
+    return relBuilder.push(child)
+        .projectNamed(exprs, fieldNames, !optimize)
+        .build();
   }
 
   @Deprecated // to be removed before 2.0
@@ -2973,7 +2951,11 @@ public abstract class RelOptUtil {
             return RexInputRef.of(index, fields);
           }
         };
-    return createProject(rel, refs, fieldNames, true);
+    final RelBuilder relBuilder =
+        RelFactories.LOGICAL_BUILDER.create(rel.getCluster(), null);
+    return relBuilder.push(rel)
+        .projectNamed(refs, fieldNames, false)
+        .build();
   }
 
   /**
@@ -3072,29 +3054,32 @@ public abstract class RelOptUtil {
       final RelNode child, final List<Integer> posList) {
     RelDataType rowType = child.getRowType();
     final List<String> fieldNames = rowType.getFieldNames();
-    final RexBuilder rexBuilder = child.getCluster().getRexBuilder();
-    return createProject(child,
-        new AbstractList<RexNode>() {
-          public int size() {
-            return posList.size();
-          }
+    final RelBuilder relBuilder =
+        RelBuilder.proto(factory).create(child.getCluster(), null);
+    final List<RexNode> exprs = new AbstractList<RexNode>() {
+      public int size() {
+        return posList.size();
+      }
 
-          public RexNode get(int index) {
-            final int pos = posList.get(index);
-            return rexBuilder.makeInputRef(child, pos);
-          }
-        },
-        new AbstractList<String>() {
-          public int size() {
-            return posList.size();
-          }
+      public RexNode get(int index) {
+        final int pos = posList.get(index);
+        return relBuilder.getRexBuilder().makeInputRef(child, pos);
+      }
+    };
+    final List<String> names = new AbstractList<String>() {
+      public int size() {
+        return posList.size();
+      }
 
-          public String get(int index) {
-            final int pos = posList.get(index);
-            return fieldNames.get(pos);
-          }
-        }, true,
-        RelBuilder.proto(factory).create(child.getCluster(), null));
+      public String get(int index) {
+        final int pos = posList.get(index);
+        return fieldNames.get(pos);
+      }
+    };
+    return relBuilder
+        .push(child)
+        .projectNamed(exprs, names, false)
+        .build();
   }
 
   @Deprecated // to be removed before 2.0

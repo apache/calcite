@@ -68,11 +68,11 @@ public class GeodeZipsIT {
         .with(GEODE_ZIPS)
         .query("SELECT \"state\", SUM(\"pop\") FROM \"geode\".\"ZIPS\" GROUP BY \"state\"")
         .returnsCount(51)
-        .explainContains("PLAN=GeodeToEnumerableConverterRel\n"
-            + "  GeodeAggregateRel(group=[{1}], EXPR$1=[SUM($0)])\n"
-            + "    GeodeProjectRel(pop=[CAST($3):INTEGER], state=[CAST($4):VARCHAR(2) CHARACTER SET"
+        .explainContains("PLAN=GeodeToEnumerableConverter\n"
+            + "  GeodeAggregate(group=[{1}], EXPR$1=[SUM($0)])\n"
+            + "    GeodeProject(pop=[CAST($3):INTEGER], state=[CAST($4):VARCHAR(2) CHARACTER SET"
             + " \"ISO-8859-1\" COLLATE \"ISO-8859-1$en_US$primary\"])\n"
-            + "      GeodeTableScanRel(table=[[geode_raw, Zips]])\n");
+            + "      GeodeTableScan(table=[[geode_raw, Zips]])\n");
   }
 
   @Test
@@ -84,11 +84,11 @@ public class GeodeZipsIT {
             + "FROM \"geode\".\"ZIPS\" GROUP BY "
             + "\"state\"")
         .returnsCount(51)
-        .explainContains("PLAN=GeodeToEnumerableConverterRel\n"
-            + "  GeodeAggregateRel(group=[{1}], po=[SUM($0)])\n"
-            + "    GeodeProjectRel(pop=[CAST($3):INTEGER], state=[CAST($4):VARCHAR(2) CHARACTER SET"
+        .explainContains("PLAN=GeodeToEnumerableConverter\n"
+            + "  GeodeAggregate(group=[{1}], po=[SUM($0)])\n"
+            + "    GeodeProject(pop=[CAST($3):INTEGER], state=[CAST($4):VARCHAR(2) CHARACTER SET"
             + " \"ISO-8859-1\" COLLATE \"ISO-8859-1$en_US$primary\"])\n"
-            + "      GeodeTableScanRel(table=[[geode_raw, Zips]])\n");
+            + "      GeodeTableScan(table=[[geode_raw, Zips]])\n");
   }
 
   @Test
@@ -100,9 +100,9 @@ public class GeodeZipsIT {
             + "FROM \"geode_raw\".\"Zips\" GROUP"
             + " BY \"state\"")
         .returnsCount(51)
-        .explainContains("PLAN=GeodeToEnumerableConverterRel\n"
-            + "  GeodeAggregateRel(group=[{4}], po=[SUM($3)])\n"
-            + "    GeodeTableScanRel(table=[[geode_raw, Zips]])\n");
+        .explainContains("PLAN=GeodeToEnumerableConverter\n"
+            + "  GeodeAggregate(group=[{4}], po=[SUM($3)])\n"
+            + "    GeodeTableScan(table=[[geode_raw, Zips]])\n");
   }
 
   @Test
@@ -114,9 +114,9 @@ public class GeodeZipsIT {
             + "FROM \"geode_raw\".\"Zips\" "
             + "GROUP BY \"state\"")
         .returnsCount(51)
-        .explainContains("PLAN=GeodeToEnumerableConverterRel\n"
-            + "  GeodeAggregateRel(group=[{4}], po=[SUM($3)])\n"
-            + "    GeodeTableScanRel(table=[[geode_raw, Zips]])\n");
+        .explainContains("PLAN=GeodeToEnumerableConverter\n"
+            + "  GeodeAggregate(group=[{4}], po=[SUM($3)])\n"
+            + "    GeodeTableScan(table=[[geode_raw, Zips]])\n");
   }
 
   @Test
@@ -126,9 +126,9 @@ public class GeodeZipsIT {
         .with(GEODE_ZIPS)
         .query("SELECT MAX(\"pop\") FROM \"geode_raw\".\"Zips\"")
         .returnsCount(1)
-        .explainContains("PLAN=GeodeToEnumerableConverterRel\n"
-            + "  GeodeAggregateRel(group=[{}], EXPR$0=[MAX($3)])\n"
-            + "    GeodeTableScanRel(table=[[geode_raw, Zips]])\n");
+        .explainContains("PLAN=GeodeToEnumerableConverter\n"
+            + "  GeodeAggregate(group=[{}], EXPR$0=[MAX($3)])\n"
+            + "    GeodeTableScan(table=[[geode_raw, Zips]])\n");
   }
 
   @Test
@@ -142,14 +142,14 @@ public class GeodeZipsIT {
         .explainContains("PLAN=EnumerableCalc(expr#0..2=[{inputs}], _id1=[$t0])\n"
             + "  EnumerableLimit(fetch=[1])\n"
             + "    EnumerableJoin(condition=[=($1, $2)], joinType=[inner])\n"
-            + "      GeodeToEnumerableConverterRel\n"
-            + "        GeodeProjectRel(_id=[$0], _id0=[CAST($0):VARCHAR CHARACTER SET "
+            + "      GeodeToEnumerableConverter\n"
+            + "        GeodeProject(_id=[$0], _id0=[CAST($0):VARCHAR CHARACTER SET "
             + "\"ISO-8859-1\" COLLATE \"ISO-8859-1$en_US$primary\"])\n"
-            + "          GeodeTableScanRel(table=[[geode_raw, Zips]])\n"
-            + "      GeodeToEnumerableConverterRel\n"
-            + "        GeodeProjectRel(_id0=[CAST($0):VARCHAR CHARACTER SET \"ISO-8859-1\" COLLATE "
+            + "          GeodeTableScan(table=[[geode_raw, Zips]])\n"
+            + "      GeodeToEnumerableConverter\n"
+            + "        GeodeProject(_id0=[CAST($0):VARCHAR CHARACTER SET \"ISO-8859-1\" COLLATE "
             + "\"ISO-8859-1$en_US$primary\"])\n"
-            + "          GeodeTableScanRel(table=[[geode_raw, Zips]])\n");
+            + "          GeodeTableScan(table=[[geode_raw, Zips]])\n");
   }
 
   @Test
@@ -161,10 +161,10 @@ public class GeodeZipsIT {
             + "FROM \"geode_raw\".\"Zips\" LIMIT 1")
         .returnsCount(1)
         .returns("lat=-74.700748; lon=41.65158\n")
-        .explainContains("PLAN=GeodeToEnumerableConverterRel\n"
-            + "  GeodeProjectRel(lat=[ITEM($2, 0)], lon=[ITEM($2, 1)])\n"
-            + "    GeodeSortRel(fetch=[1])\n"
-            + "      GeodeTableScanRel(table=[[geode_raw, Zips]])\n");
+        .explainContains("PLAN=GeodeToEnumerableConverter\n"
+            + "  GeodeProject(lat=[ITEM($2, 0)], lon=[ITEM($2, 1)])\n"
+            + "    GeodeSort(fetch=[1])\n"
+            + "      GeodeTableScan(table=[[geode_raw, Zips]])\n");
   }
 
   @Test
@@ -176,11 +176,11 @@ public class GeodeZipsIT {
             + "FROM \"geode_raw\".\"Zips\" WHERE \"loc\"[0] < 0 LIMIT 1")
         .returnsCount(1)
         .returns("lat=-74.700748; lon=41.65158\n")
-        .explainContains("PLAN=GeodeToEnumerableConverterRel\n"
-            + "  GeodeProjectRel(lat=[ITEM($2, 0)], lon=[ITEM($2, 1)])\n"
-            + "    GeodeSortRel(fetch=[1])\n"
-            + "      GeodeFilterRel(condition=[<(ITEM($2, 0), 0)])\n"
-            + "        GeodeTableScanRel(table=[[geode_raw, Zips]])\n");
+        .explainContains("PLAN=GeodeToEnumerableConverter\n"
+            + "  GeodeProject(lat=[ITEM($2, 0)], lon=[ITEM($2, 1)])\n"
+            + "    GeodeSort(fetch=[1])\n"
+            + "      GeodeFilter(condition=[<(ITEM($2, 0), 0)])\n"
+            + "        GeodeTableScan(table=[[geode_raw, Zips]])\n");
 
     CalciteAssert.that()
         .enable(enabled())
@@ -188,11 +188,11 @@ public class GeodeZipsIT {
         .query("SELECT \"loc\"[0] as \"lat\", \"loc\"[1] as \"lon\" "
             + "FROM \"geode_raw\".\"Zips\" WHERE \"loc\"[0] > 0 LIMIT 1")
         .returnsCount(0)
-        .explainContains("PLAN=GeodeToEnumerableConverterRel\n"
-            + "  GeodeProjectRel(lat=[ITEM($2, 0)], lon=[ITEM($2, 1)])\n"
-            + "    GeodeSortRel(fetch=[1])\n"
-            + "      GeodeFilterRel(condition=[>(ITEM($2, 0), 0)])\n"
-            + "        GeodeTableScanRel(table=[[geode_raw, Zips]])\n");
+        .explainContains("PLAN=GeodeToEnumerableConverter\n"
+            + "  GeodeProject(lat=[ITEM($2, 0)], lon=[ITEM($2, 1)])\n"
+            + "    GeodeSort(fetch=[1])\n"
+            + "      GeodeFilter(condition=[>(ITEM($2, 0), 0)])\n"
+            + "        GeodeTableScan(table=[[geode_raw, Zips]])\n");
   }
 }
 

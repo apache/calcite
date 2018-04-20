@@ -480,7 +480,7 @@ public abstract class OperandTypes {
       // TODO:  compatibility check
       OperandTypes.or(NUMERIC_NUMERIC, INTERVAL_SAME_SAME, DATETIME_INTERVAL);
 
-  public static final SqlSingleOperandTypeChecker MINUS_DATE_OPERATOR =
+  public static final FamilyOperandTypeChecker MINUS_DATE_OPERATOR =
       new FamilyOperandTypeChecker(
           ImmutableList.of(SqlTypeFamily.DATETIME, SqlTypeFamily.DATETIME,
               SqlTypeFamily.DATETIME_INTERVAL),

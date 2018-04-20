@@ -31,9 +31,9 @@ schema. In particular, all relationships must be many-to-one, heading
 from a fact table at the center of the star.
 
 The name derives from the mathematics: a
-<a href="http://en.wikipedia.org/wiki/Lattice_(order)">lattice</a>
+<a href="https://en.wikipedia.org/wiki/Lattice_(order)">lattice</a>
 is a
-<a href="http://en.wikipedia.org/wiki/Partially_ordered_set">partially
+<a href="https://en.wikipedia.org/wiki/Partially_ordered_set">partially
 ordered set</a> where any two elements have a unique greatest lower
 bound and least upper bound.
 

@@ -134,7 +134,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Properties;
 import java.util.Set;
@@ -142,6 +141,7 @@ import java.util.TimeZone;
 import java.util.regex.Pattern;
 import javax.sql.DataSource;
 
+import static org.apache.calcite.test.Matchers.isLinux;
 import static org.apache.calcite.util.Static.RESOURCE;
 
 import static org.hamcrest.CoreMatchers.containsString;
@@ -268,8 +268,8 @@ public class JdbcTest {
                         + "insert into \"adhoc\".V\n"
                         + "values ('Fred', 56, 123.4)");
                 assertThat(resultSet.next(), is(true));
-                assertThat(Util.toLinux(resultSet.getString(1)),
-                    is(
+                assertThat(resultSet.getString(1),
+                    isLinux(
                         "EnumerableTableModify(table=[[adhoc, MUTABLE_EMPLOYEES]], operation=[INSERT], flattened=[false])\n"
                         + "  EnumerableCalc(expr#0..2=[{inputs}], expr#3=[CAST($t1):JavaType(int) NOT NULL], expr#4=[10], expr#5=[CAST($t0):JavaType(class java.lang.String)], expr#6=[CAST($t2):JavaType(float) NOT NULL], expr#7=[null], empid=[$t3], deptno=[$t4], name=[$t5], salary=[$t6], commission=[$t7])\n"
                         + "    EnumerableValues(tuples=[[{ 'Fred', 56, 123.4 }]])\n"));
@@ -1521,9 +1521,10 @@ public class JdbcTest {
                   final BigDecimal bigDecimal = a0.getBigDecimal(1);
                   fail("expected error, got " + bigDecimal);
                 } catch (SQLException e) {
-                  throw new RuntimeException(e);
-                } catch (NoSuchElementException e) {
-                  // ok
+                  assertThat(e.getMessage(),
+                      is("java.util.NoSuchElementException: Expecting cursor "
+                          + "position to be Position.OK, actual "
+                          + "is Position.BEFORE_START"));
                 }
                 try {
                   assertTrue(a0.next());
@@ -6278,8 +6279,8 @@ public class JdbcTest {
         .returns("C=0\n");
     switch (CalciteAssert.DB) {
     case HSQLDB:
-      assertThat(Util.toLinux(sqls[0]),
-          equalTo("SELECT COUNT(*) AS \"C\"\n"
+      assertThat(sqls[0],
+          isLinux("SELECT COUNT(*) AS \"C\"\n"
               + "FROM \"foodmart\".\"employee\"\n"
               + "WHERE \"first_name\" = 'abcde' AND \"gender\" = 'F'"));
       break;

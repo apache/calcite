@@ -51,6 +51,7 @@ import org.apache.calcite.tools.FrameworkConfig;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.Planner;
 import org.apache.calcite.tools.Program;
+import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelConversionException;
 import org.apache.calcite.tools.ValidationException;
 import org.apache.calcite.util.Pair;
@@ -239,7 +240,10 @@ public class PlannerImpl implements Planner {
     root =
         sqlToRelConverter.convertQuery(validatedSqlNode, false, true);
     root = root.withRel(sqlToRelConverter.flattenTypes(root.rel, true));
-    root = root.withRel(RelDecorrelator.decorrelateQuery(root.rel));
+    final RelBuilder relBuilder =
+        config.getRelBuilderFactory().create(cluster, null);
+    root = root.withRel(
+        RelDecorrelator.decorrelateQuery(root.rel, relBuilder));
     state = State.STATE_5_CONVERTED;
     return root;
   }
@@ -280,7 +284,10 @@ public class PlannerImpl implements Planner {
 
       root = sqlToRelConverter.convertQuery(validatedSqlNode, true, false);
       root = root.withRel(sqlToRelConverter.flattenTypes(root.rel, true));
-      root = root.withRel(RelDecorrelator.decorrelateQuery(root.rel));
+      final RelBuilder relBuilder =
+          config.getRelBuilderFactory().create(cluster, null);
+      root = root.withRel(
+          RelDecorrelator.decorrelateQuery(root.rel, relBuilder));
 
       return PlannerImpl.this.root;
     }
@@ -288,9 +295,9 @@ public class PlannerImpl implements Planner {
 
   // CalciteCatalogReader is stateless; no need to store one
   private CalciteCatalogReader createCatalogReader() {
-    SchemaPlus rootSchema = rootSchema(defaultSchema);
-    Context context = config.getContext();
-    CalciteConnectionConfig connectionConfig = null;
+    final SchemaPlus rootSchema = rootSchema(defaultSchema);
+    final Context context = config.getContext();
+    final CalciteConnectionConfig connectionConfig;
 
     if (context != null) {
       connectionConfig = context.unwrap(CalciteConnectionConfig.class);

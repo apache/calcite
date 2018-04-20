@@ -80,9 +80,9 @@ public class GeodeAdapterBookshopIT {
         .returns("itemNumber=123; description=Run on sentences and drivel on all things mundane;"
             + " retailCost=34.99; yearPublished=2011; author=Daisy Mae West; title=A Treatise of "
             + "Treatises\n")
-        .explainContains("PLAN=GeodeToEnumerableConverterRel\n"
-            + "  GeodeFilterRel(condition=[=(CAST($0):INTEGER, 123)])\n"
-            + "    GeodeTableScanRel(table=[[TEST, BookMaster]])");
+        .explainContains("PLAN=GeodeToEnumerableConverter\n"
+            + "  GeodeFilter(condition=[=(CAST($0):INTEGER, 123)])\n"
+            + "    GeodeTableScan(table=[[TEST, BookMaster]])");
   }
 
   @Test
@@ -96,9 +96,9 @@ public class GeodeAdapterBookshopIT {
         .returns("itemNumber=123; description=Run on sentences and drivel on all things mundane; "
             + "retailCost=34.99; yearPublished=2011; author=Daisy Mae West; title=A Treatise of "
             + "Treatises\n")
-        .explainContains("PLAN=GeodeToEnumerableConverterRel\n"
-            + "  GeodeFilterRel(condition=[AND(>($0, 122), <=($0, 123))])\n"
-            + "    GeodeTableScanRel(table=[[TEST, BookMaster]])");
+        .explainContains("PLAN=GeodeToEnumerableConverter\n"
+            + "  GeodeFilter(condition=[AND(>($0, 122), <=($0, 123))])\n"
+            + "    GeodeTableScan(table=[[TEST, BookMaster]])");
   }
 
   @Test
@@ -110,11 +110,11 @@ public class GeodeAdapterBookshopIT {
             + "WHERE \"itemNumber\" = 123 OR \"itemNumber\" = 789")
         .returnsCount(2)
         .returnsUnordered("author=Jim Heavisides", "author=Daisy Mae West")
-        .explainContains("PLAN=GeodeToEnumerableConverterRel\n"
-            + "  GeodeProjectRel(author=[$4])\n"
-            + "    GeodeFilterRel(condition=[OR(=(CAST($0):INTEGER, 123), "
+        .explainContains("PLAN=GeodeToEnumerableConverter\n"
+            + "  GeodeProject(author=[$4])\n"
+            + "    GeodeFilter(condition=[OR(=(CAST($0):INTEGER, 123), "
             + "=(CAST($0):INTEGER, 789))])\n"
-            + "      GeodeTableScanRel(table=[[TEST, BookMaster]])\n");
+            + "      GeodeTableScan(table=[[TEST, BookMaster]])\n");
   }
 
   @Test
@@ -127,12 +127,12 @@ public class GeodeAdapterBookshopIT {
             + "OR \"author\"='Daisy Mae West'")
         .returnsCount(2)
         .returnsUnordered("author=Jim Heavisides", "author=Daisy Mae West")
-        .explainContains("PLAN=GeodeToEnumerableConverterRel\n"
-            + "  GeodeProjectRel(author=[$4])\n"
-            + "    GeodeFilterRel(condition=[OR(AND(>($0, 123), =(CAST($0):INTEGER, 789)), "
+        .explainContains("PLAN=GeodeToEnumerableConverter\n"
+            + "  GeodeProject(author=[$4])\n"
+            + "    GeodeFilter(condition=[OR(AND(>($0, 123), =(CAST($0):INTEGER, 789)), "
             + "=(CAST($4):VARCHAR CHARACTER SET \"ISO-8859-1\" "
             + "COLLATE \"ISO-8859-1$en_US$primary\", 'Daisy Mae West'))])\n"
-            + "      GeodeTableScanRel(table=[[TEST, BookMaster]])\n"
+            + "      GeodeTableScan(table=[[TEST, BookMaster]])\n"
             + "\n");
   }
 
@@ -159,10 +159,10 @@ public class GeodeAdapterBookshopIT {
         .returnsCount(2)
         .returns("author=Clarence Meeks\n"
             + "author=Jim Heavisides\n")
-        .explainContains("PLAN=GeodeToEnumerableConverterRel\n"
-            + "  GeodeProjectRel(author=[$4])\n"
-            + "    GeodeFilterRel(condition=[>($0, 123)])\n"
-            + "      GeodeTableScanRel(table=[[TEST, BookMaster]])");
+        .explainContains("PLAN=GeodeToEnumerableConverter\n"
+            + "  GeodeProject(author=[$4])\n"
+            + "    GeodeFilter(condition=[>($0, 123)])\n"
+            + "      GeodeTableScan(table=[[TEST, BookMaster]])");
   }
 
   @Test
@@ -175,9 +175,9 @@ public class GeodeAdapterBookshopIT {
         .returns("itemNumber=123; description=Run on sentences and drivel on all things mundane; "
             + "retailCost=34.99; yearPublished=2011; author=Daisy Mae West; title=A Treatise of "
             + "Treatises\n")
-        .explainContains("PLAN=GeodeToEnumerableConverterRel\n"
-            + "  GeodeSortRel(fetch=[1])\n"
-            + "    GeodeTableScanRel(table=[[TEST, BookMaster]])");
+        .explainContains("PLAN=GeodeToEnumerableConverter\n"
+            + "  GeodeSort(fetch=[1])\n"
+            + "    GeodeTableScan(table=[[TEST, BookMaster]])");
   }
 
   @Test
@@ -190,10 +190,10 @@ public class GeodeAdapterBookshopIT {
         .returns("yearPublished=1971\n"
             + "yearPublished=2011\n"
             + "yearPublished=2011\n")
-        .explainContains("PLAN=GeodeToEnumerableConverterRel\n"
-            + "  GeodeSortRel(sort0=[$0], dir0=[ASC])\n"
-            + "    GeodeProjectRel(yearPublished=[$3])\n"
-            + "      GeodeTableScanRel(table=[[TEST, BookMaster]])\n");
+        .explainContains("PLAN=GeodeToEnumerableConverter\n"
+            + "  GeodeSort(sort0=[$0], dir0=[ASC])\n"
+            + "    GeodeProject(yearPublished=[$3])\n"
+            + "      GeodeTableScan(table=[[TEST, BookMaster]])\n");
   }
 
   @Test
@@ -206,10 +206,10 @@ public class GeodeAdapterBookshopIT {
         .returnsCount(2)
         .returns("yearPublished=1971\n"
             + "yearPublished=2011\n")
-        .explainContains("PLAN=GeodeToEnumerableConverterRel\n"
-            + "  GeodeProjectRel(yearPublished=[$3])\n"
-            + "    GeodeSortRel(sort0=[$3], dir0=[ASC], fetch=[2])\n"
-            + "      GeodeTableScanRel(table=[[TEST, BookMaster]])\n");
+        .explainContains("PLAN=GeodeToEnumerableConverter\n"
+            + "  GeodeProject(yearPublished=[$3])\n"
+            + "    GeodeSort(sort0=[$3], dir0=[ASC], fetch=[2])\n"
+            + "      GeodeTableScan(table=[[TEST, BookMaster]])\n");
   }
 
   @Test
@@ -223,10 +223,10 @@ public class GeodeAdapterBookshopIT {
         .returns("yearPublished=1971; itemNumber=456\n"
             + "yearPublished=2011; itemNumber=789\n"
             + "yearPublished=2011; itemNumber=123\n")
-        .explainContains("PLAN=GeodeToEnumerableConverterRel\n"
-            + "  GeodeProjectRel(yearPublished=[$3], itemNumber=[$0])\n"
-            + "    GeodeSortRel(sort0=[$3], sort1=[$0], dir0=[ASC], dir1=[DESC])\n"
-            + "      GeodeTableScanRel(table=[[TEST, BookMaster]])\n");
+        .explainContains("PLAN=GeodeToEnumerableConverter\n"
+            + "  GeodeProject(yearPublished=[$3], itemNumber=[$0])\n"
+            + "    GeodeSort(sort0=[$3], sort1=[$0], dir0=[ASC], dir1=[DESC])\n"
+            + "      GeodeTableScan(table=[[TEST, BookMaster]])\n");
   }
 
   //
@@ -248,10 +248,10 @@ public class GeodeAdapterBookshopIT {
         .returns("yearPublished=1971\n"
             + "yearPublished=2011\n"
             + "yearPublished=2011\n")
-        .explainContains("PLAN=GeodeToEnumerableConverterRel\n"
-            + "  GeodeProjectRel(yearPublished=[$0])\n"
-            + "    GeodeAggregateRel(group=[{3, 4}])\n"
-            + "      GeodeTableScanRel(table=[[TEST, BookMaster]])");
+        .explainContains("PLAN=GeodeToEnumerableConverter\n"
+            + "  GeodeProject(yearPublished=[$0])\n"
+            + "    GeodeAggregate(group=[{3, 4}])\n"
+            + "      GeodeTableScan(table=[[TEST, BookMaster]])");
   }
 
   /**
@@ -267,9 +267,9 @@ public class GeodeAdapterBookshopIT {
         .returnsCount(2)
         .returns("yearPublished=1971\n"
             + "yearPublished=2011\n")
-        .explainContains("PLAN=GeodeToEnumerableConverterRel\n"
-            + "  GeodeAggregateRel(group=[{3}])\n"
-            + "    GeodeTableScanRel(table=[[TEST, BookMaster]])");
+        .explainContains("PLAN=GeodeToEnumerableConverter\n"
+            + "  GeodeAggregate(group=[{3}])\n"
+            + "    GeodeTableScan(table=[[TEST, BookMaster]])");
   }
 
   /**
@@ -286,9 +286,9 @@ public class GeodeAdapterBookshopIT {
         .returnsCount(2)
         .returns("yearPublished=1971; EXPR$1=11.99\n"
             + "yearPublished=2011; EXPR$1=59.99\n")
-        .explainContains("PLAN=GeodeToEnumerableConverterRel\n"
-            + "  GeodeAggregateRel(group=[{3}], EXPR$1=[MAX($2)])\n"
-            + "    GeodeTableScanRel(table=[[TEST, BookMaster]])");
+        .explainContains("PLAN=GeodeToEnumerableConverter\n"
+            + "  GeodeAggregate(group=[{3}], EXPR$1=[MAX($2)])\n"
+            + "    GeodeTableScan(table=[[TEST, BookMaster]])");
   }
 
   @Test
@@ -300,9 +300,9 @@ public class GeodeAdapterBookshopIT {
         .returnsCount(1)
         .returns("EXPR$0=3\n")
         .returnsValue("3")
-        .explainContains("PLAN=GeodeToEnumerableConverterRel\n"
-            + "  GeodeAggregateRel(group=[{}], EXPR$0=[COUNT($2)])\n"
-            + "    GeodeTableScanRel(table=[[TEST, BookMaster]])\n");
+        .explainContains("PLAN=GeodeToEnumerableConverter\n"
+            + "  GeodeAggregate(group=[{}], EXPR$0=[COUNT($2)])\n"
+            + "    GeodeTableScan(table=[[TEST, BookMaster]])\n");
   }
 
   @Test
@@ -313,9 +313,9 @@ public class GeodeAdapterBookshopIT {
         .query("select COUNT(*) from \"BookMaster\"")
         .returnsCount(1)
         .returns("EXPR$0=3\n")
-        .explainContains("PLAN=GeodeToEnumerableConverterRel\n"
-            + "  GeodeAggregateRel(group=[{}], EXPR$0=[COUNT()])\n"
-            + "    GeodeTableScanRel(table=[[TEST, BookMaster]])\n");
+        .explainContains("PLAN=GeodeToEnumerableConverter\n"
+            + "  GeodeAggregate(group=[{}], EXPR$0=[COUNT()])\n"
+            + "    GeodeTableScan(table=[[TEST, BookMaster]])\n");
   }
 
   @Test
@@ -328,9 +328,9 @@ public class GeodeAdapterBookshopIT {
         .returnsCount(2)
         .returns("yearPublished=1971; EXPR$1=1\n"
             + "yearPublished=2011; EXPR$1=2\n")
-        .explainContains("PLAN=GeodeToEnumerableConverterRel\n"
-            + "  GeodeAggregateRel(group=[{3}], EXPR$1=[COUNT($2)])\n"
-            + "    GeodeTableScanRel(table=[[TEST, BookMaster]])\n");
+        .explainContains("PLAN=GeodeToEnumerableConverter\n"
+            + "  GeodeAggregate(group=[{3}], EXPR$1=[COUNT($2)])\n"
+            + "    GeodeTableScan(table=[[TEST, BookMaster]])\n");
   }
 
   @Test
@@ -343,10 +343,10 @@ public class GeodeAdapterBookshopIT {
         .returnsCount(1)
         .returns("EXPR$0=59.99; EXPR$1=11.99; EXPR$2=106.97000122070312; "
             + "EXPR$3=35.65666580200195\n")
-        .explainContains("PLAN=GeodeToEnumerableConverterRel\n"
-            + "  GeodeAggregateRel(group=[{}], EXPR$0=[MAX($2)], EXPR$1=[MIN($2)], EXPR$2=[SUM($2)"
+        .explainContains("PLAN=GeodeToEnumerableConverter\n"
+            + "  GeodeAggregate(group=[{}], EXPR$0=[MAX($2)], EXPR$1=[MIN($2)], EXPR$2=[SUM($2)"
             + "], EXPR$3=[AVG($2)])\n"
-            + "    GeodeTableScanRel(table=[[TEST, BookMaster]])\n");
+            + "    GeodeTableScan(table=[[TEST, BookMaster]])\n");
   }
 
   @Test
@@ -362,10 +362,10 @@ public class GeodeAdapterBookshopIT {
             + "EXPR$4=47.4900016784668\n"
             + "yearPublished=1971; EXPR$1=11.99; EXPR$2=11.99; EXPR$3=11.989999771118164; "
             + "EXPR$4=11.989999771118164\n")
-        .explainContains("PLAN=GeodeToEnumerableConverterRel\n"
-            + "  GeodeAggregateRel(group=[{3}], EXPR$1=[MAX($2)], EXPR$2=[MIN($2)], EXPR$3=[SUM($2)"
+        .explainContains("PLAN=GeodeToEnumerableConverter\n"
+            + "  GeodeAggregate(group=[{3}], EXPR$1=[MAX($2)], EXPR$2=[MIN($2)], EXPR$3=[SUM($2)"
             + "], EXPR$4=[AVG($2)])\n"
-            + "    GeodeTableScanRel(table=[[TEST, BookMaster]])\n");
+            + "    GeodeTableScan(table=[[TEST, BookMaster]])\n");
   }
 
   @Test
@@ -379,10 +379,10 @@ public class GeodeAdapterBookshopIT {
         .returns("yearPublished=2011; MAXCOST=59.99; author=Jim Heavisides\n"
             + "yearPublished=1971; MAXCOST=11.99; author=Clarence Meeks\n"
             + "yearPublished=2011; MAXCOST=34.99; author=Daisy Mae West\n")
-        .explainContains("PLAN=GeodeToEnumerableConverterRel\n"
-            + "  GeodeProjectRel(yearPublished=[$0], MAXCOST=[$2], author=[$1])\n"
-            + "    GeodeAggregateRel(group=[{3, 4}], MAXCOST=[MAX($2)])\n"
-            + "      GeodeTableScanRel(table=[[TEST, BookMaster]])\n");
+        .explainContains("PLAN=GeodeToEnumerableConverter\n"
+            + "  GeodeProject(yearPublished=[$0], MAXCOST=[$2], author=[$1])\n"
+            + "    GeodeAggregate(group=[{3, 4}], MAXCOST=[MAX($2)])\n"
+            + "      GeodeTableScan(table=[[TEST, BookMaster]])\n");
   }
 
   @Test
@@ -392,9 +392,9 @@ public class GeodeAdapterBookshopIT {
         .with(GEODE)
         .query("select * from \"BookCustomer\" limit 2")
         .returnsCount(2)
-        .explainContains("PLAN=GeodeToEnumerableConverterRel\n"
-            + "  GeodeSortRel(fetch=[2])\n"
-            + "    GeodeTableScanRel(table=[[TEST, BookCustomer]])\n");
+        .explainContains("PLAN=GeodeToEnumerableConverter\n"
+            + "  GeodeSort(fetch=[2])\n"
+            + "    GeodeTableScan(table=[[TEST, BookCustomer]])\n");
   }
 
   @Test
@@ -408,10 +408,10 @@ public class GeodeAdapterBookshopIT {
             + "postalCode,country,phoneNumber,addressTag]\n"
             + "primaryAddress=PDX[addressLine1,addressLine2,addressLine3,city,state,postalCode,"
             + "country,phoneNumber,addressTag]\n")
-        .explainContains("PLAN=GeodeToEnumerableConverterRel\n"
-            + "  GeodeProjectRel(primaryAddress=[$3])\n"
-            + "    GeodeSortRel(fetch=[2])\n"
-            + "      GeodeTableScanRel(table=[[TEST, BookCustomer]])\n");
+        .explainContains("PLAN=GeodeToEnumerableConverter\n"
+            + "  GeodeProject(primaryAddress=[$3])\n"
+            + "    GeodeSort(fetch=[2])\n"
+            + "      GeodeTableScan(table=[[TEST, BookCustomer]])\n");
   }
 
   @Test
@@ -423,10 +423,10 @@ public class GeodeAdapterBookshopIT {
         .returnsCount(2)
         .returns("city=Topeka\n"
             + "city=San Francisco\n")
-        .explainContains("PLAN=GeodeToEnumerableConverterRel\n"
-            + "  GeodeProjectRel(city=[ITEM($3, 'city')])\n"
-            + "    GeodeSortRel(fetch=[2])\n"
-            + "      GeodeTableScanRel(table=[[TEST, BookCustomer]])\n");
+        .explainContains("PLAN=GeodeToEnumerableConverter\n"
+            + "  GeodeProject(city=[ITEM($3, 'city')])\n"
+            + "    GeodeSort(fetch=[2])\n"
+            + "      GeodeTableScan(table=[[TEST, BookCustomer]])\n");
   }
 
   @Test
@@ -439,10 +439,10 @@ public class GeodeAdapterBookshopIT {
         .returnsCount(2)
         .returns("EXPR$0=null\n"
             + "EXPR$0=null\n")
-        .explainContains("PLAN=GeodeToEnumerableConverterRel\n"
-            + "  GeodeProjectRel(EXPR$0=[ITEM($3, 'addressLine2')])\n"
-            + "    GeodeSortRel(fetch=[2])\n"
-            + "      GeodeTableScanRel(table=[[TEST, BookCustomer]])\n");
+        .explainContains("PLAN=GeodeToEnumerableConverter\n"
+            + "  GeodeProject(EXPR$0=[ITEM($3, 'addressLine2')])\n"
+            + "    GeodeSort(fetch=[2])\n"
+            + "      GeodeTableScan(table=[[TEST, BookCustomer]])\n");
   }
 
   @Test
@@ -457,10 +457,10 @@ public class GeodeAdapterBookshopIT {
         .returns("postalCode=50505\n"
             + "postalCode=50505\n"
             + "postalCode=50505\n")
-        .explainContains("PLAN=GeodeToEnumerableConverterRel\n"
-            + "  GeodeProjectRel(postalCode=[ITEM($3, 'postalCode')])\n"
-            + "    GeodeFilterRel(condition=[>(ITEM($3, 'postalCode'), '0')])\n"
-            + "      GeodeTableScanRel(table=[[TEST, BookCustomer]])\n");
+        .explainContains("PLAN=GeodeToEnumerableConverter\n"
+            + "  GeodeProject(postalCode=[ITEM($3, 'postalCode')])\n"
+            + "    GeodeFilter(condition=[>(ITEM($3, 'postalCode'), '0')])\n"
+            + "      GeodeTableScan(table=[[TEST, BookCustomer]])\n");
   }
 
 }

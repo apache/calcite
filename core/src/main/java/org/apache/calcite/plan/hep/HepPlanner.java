@@ -368,20 +368,20 @@ public class HepPlanner extends AbstractRelOptPlanner {
       for (RelOptRule rule : rules) {
         HepRelVertex newVertex =
             applyRule(rule, vertex, forceConversions);
-        if (newVertex != null) {
-          ++nMatches;
-          if (nMatches >= currentProgram.matchLimit) {
-            return nMatches;
-          }
-
-          // To the extent possible, pick up where we left
-          // off; have to create a new iterator because old
-          // one was invalidated by transformation.
-          Iterator<HepRelVertex> depthIter = getGraphIterator(newVertex);
-          nMatches = depthFirstApply(depthIter, rules, forceConversions,
-              nMatches);
-          break;
+        if (newVertex == null || newVertex == vertex) {
+          continue;
         }
+        ++nMatches;
+        if (nMatches >= currentProgram.matchLimit) {
+          return nMatches;
+        }
+        // To the extent possible, pick up where we left
+        // off; have to create a new iterator because old
+        // one was invalidated by transformation.
+        Iterator<HepRelVertex> depthIter = getGraphIterator(newVertex);
+        nMatches = depthFirstApply(depthIter, rules, forceConversions,
+            nMatches);
+        break;
       }
     }
     return nMatches;
@@ -404,43 +404,44 @@ public class HepPlanner extends AbstractRelOptPlanner {
 
     int nMatches = 0;
 
-    boolean fixpoint;
+    boolean fixedPoint;
     do {
       Iterator<HepRelVertex> iter = getGraphIterator(root);
-      fixpoint = true;
+      fixedPoint = true;
       while (iter.hasNext()) {
         HepRelVertex vertex = iter.next();
         for (RelOptRule rule : rules) {
           HepRelVertex newVertex =
               applyRule(rule, vertex, forceConversions);
-          if (newVertex != null) {
-            ++nMatches;
-            if (nMatches >= currentProgram.matchLimit) {
-              return;
-            }
-            if (fullRestartAfterTransformation) {
-              iter = getGraphIterator(root);
-            } else {
-              // To the extent possible, pick up where we left
-              // off; have to create a new iterator because old
-              // one was invalidated by transformation.
-              iter = getGraphIterator(newVertex);
-              if (currentProgram.matchOrder == HepMatchOrder.DEPTH_FIRST) {
-                nMatches =
-                    depthFirstApply(iter, rules, forceConversions, nMatches);
-                if (nMatches >= currentProgram.matchLimit) {
-                  return;
-                }
-              }
-              // Remember to go around again since we're
-              // skipping some stuff.
-              fixpoint = false;
-            }
-            break;
+          if (newVertex == null || newVertex == vertex) {
+            continue;
           }
+          ++nMatches;
+          if (nMatches >= currentProgram.matchLimit) {
+            return;
+          }
+          if (fullRestartAfterTransformation) {
+            iter = getGraphIterator(root);
+          } else {
+            // To the extent possible, pick up where we left
+            // off; have to create a new iterator because old
+            // one was invalidated by transformation.
+            iter = getGraphIterator(newVertex);
+            if (currentProgram.matchOrder == HepMatchOrder.DEPTH_FIRST) {
+              nMatches =
+                  depthFirstApply(iter, rules, forceConversions, nMatches);
+              if (nMatches >= currentProgram.matchLimit) {
+                return;
+              }
+            }
+            // Remember to go around again since we're
+            // skipping some stuff.
+            fixedPoint = false;
+          }
+          break;
         }
       }
-    } while (!fixpoint);
+    } while (!fixedPoint);
   }
 
   private Iterator<HepRelVertex> getGraphIterator(HepRelVertex start) {

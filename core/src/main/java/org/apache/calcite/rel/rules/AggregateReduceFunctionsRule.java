@@ -190,7 +190,7 @@ public class AggregateReduceFunctionsRule extends RelOptRule {
               Collections.<String>nCopies(extraArgCount, null)));
     }
     newAggregateRel(relBuilder, oldAggRel, newCalls);
-    relBuilder.project(projList, oldAggRel.getRowType().getFieldNames());
+    newCalcRel(relBuilder, oldAggRel.getRowType(), projList);
     ruleCall.transformTo(relBuilder.build());
   }
 
@@ -565,6 +565,21 @@ public class AggregateReduceFunctionsRule extends RelOptRule {
         relBuilder.groupKey(oldAggregate.getGroupSet(),
             oldAggregate.getGroupSets()),
         newCalls);
+  }
+
+  /**
+   * Add a calc with the expressions to compute the original agg calls from the
+   * decomposed ones.
+   *
+   * @param relBuilder Builder of relational expressions; at the top of its
+   *                   stack is its input
+   * @param rowType The output row type of the original aggregate.
+   * @param exprs The expressions to compute the original agg calls.
+   */
+  protected void newCalcRel(RelBuilder relBuilder,
+      RelDataType rowType,
+      List<RexNode> exprs) {
+    relBuilder.project(exprs, rowType.getFieldNames());
   }
 
   private RelDataType getFieldType(RelNode relNode, int i) {

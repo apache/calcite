@@ -366,7 +366,7 @@ compatible with future changes to the grammar. Making a copy of the grammar file
 quite frequently.
 
 Fortunately, `Parser.jj` is actually an
-[Apache FreeMarker](http://freemarker.apache.org/)
+[Apache FreeMarker](https://freemarker.apache.org/)
 template that contains variables that can be substituted.
 The parser in `calcite-core` instantiates the template with default values of
 the variables, typically empty, but you can override.

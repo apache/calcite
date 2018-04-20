@@ -27,7 +27,6 @@ import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.TestUtil;
-import org.apache.calcite.util.Util;
 
 import com.google.common.base.Function;
 import com.google.common.base.Throwables;
@@ -48,6 +47,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static org.apache.calcite.test.Matchers.containsStringLinux;
 import static org.apache.calcite.test.Matchers.within;
 
 import static org.hamcrest.CoreMatchers.anyOf;
@@ -313,14 +313,14 @@ public class LatticeTest {
             new Function<RelNode, Void>() {
               public Void apply(RelNode relNode) {
                 counter.incrementAndGet();
-                String s = Util.toLinux(RelOptUtil.toString(relNode));
+                String s = RelOptUtil.toString(relNode);
                 assertThat(s,
                     anyOf(
-                        containsString(
+                        containsStringLinux(
                             "LogicalProject(brand_name=[$1], customer_id=[$0])\n"
                             + "  LogicalAggregate(group=[{2, 10}])\n"
                             + "    LogicalTableScan(table=[[adhoc, star]])\n"),
-                        containsString(
+                        containsStringLinux(
                             "LogicalAggregate(group=[{2, 10}])\n"
                             + "  LogicalTableScan(table=[[adhoc, star]])\n")));
                 return null;

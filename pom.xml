@@ -20,14 +20,14 @@ limitations under the License.
   <parent>
     <groupId>org.apache</groupId>
     <artifactId>apache</artifactId>
-    <version>18</version>
+    <version>19</version>
   </parent>
 
   <!-- The basics. -->
   <groupId>org.apache.calcite</groupId>
   <artifactId>calcite</artifactId>
   <packaging>pom</packaging>
-  <version>1.16.0-SNAPSHOT</version>
+  <version>1.17.0-SNAPSHOT</version>
 
   <!-- More project information. -->
   <name>Calcite</name>
@@ -51,17 +51,18 @@ limitations under the License.
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <top.dir>${project.basedir}</top.dir>
     <version.major>1</version.major>
-    <version.minor>15</version.minor>
+    <version.minor>16</version.minor>
 
     <!-- Don't fail the build for vulnerabilities below this threshold. -->
     <failBuildOnCVSS>8</failBuildOnCVSS>
 
     <!-- This list is in alphabetical order. -->
     <airlift-tpch.version>0.1</airlift-tpch.version>
-    <avatica.version>1.10.0</avatica.version>
-    <build-helper-maven-plugin.version>1.9</build-helper-maven-plugin.version>
+    <avatica.version>1.11.0</avatica.version>
+    <build-helper-maven-plugin.version>3.0.0</build-helper-maven-plugin.version>
     <cassandra-driver-core.version>3.4.0</cassandra-driver-core.version>
     <checksum-maven-plugin.version>1.2</checksum-maven-plugin.version>
+    <chinook-data-hsqldb.version>0.1</chinook-data-hsqldb.version>
     <commons-dbcp.version>1.4</commons-dbcp.version>
     <commons-lang3.version>3.2</commons-lang3.version>
     <commons-logging.version>1.1.3</commons-logging.version>
@@ -78,39 +79,38 @@ limitations under the License.
     <geode.version>1.3.0</geode.version>
 
     <!-- We support (and test against) Guava versions between
-         14.0.1 (Hive) and 23.0. Default is 19.0 due to Cassandra adapter.
-         Some versions of Guava do not support JDK 7. -->
+         19.0 and 23.0. Default is 19.0 due to Cassandra adapter. -->
     <guava.version>19.0</guava.version>
     <joda.version>2.8.1</joda.version>
     <h2.version>1.4.185</h2.version>
-    <hadoop.version>2.7.0</hadoop.version>
+    <!-- Require Hadoop 2.7.4+ due to HADOOP-14586 -->
+    <hadoop.version>2.7.5</hadoop.version>
     <hamcrest.version>1.3</hamcrest.version>
     <hppc.version>0.7.1</hppc.version>
-    <hsqldb.version>2.3.1</hsqldb.version>
+    <hsqldb.version>2.4.0</hsqldb.version>
     <httpclient.version>4.5.2</httpclient.version>
     <httpcore.version>4.4.4</httpcore.version>
     <hydromatic-resource.version>0.6</hydromatic-resource.version>
     <hydromatic-toolbox.version>0.3</hydromatic-toolbox.version>
     <hydromatic-tpcds.version>0.4</hydromatic-tpcds.version>
-    <jackson.version>2.6.3</jackson.version>
+    <jackson.version>2.9.4</jackson.version>
     <janino.version>2.7.6</janino.version>
-    <java-diff.version>1.1</java-diff.version>
+    <java-diff.version>1.1.1</java-diff.version>
     <javacc-maven-plugin.version>2.4</javacc-maven-plugin.version>
     <jcip-annotations.version>1.0-1</jcip-annotations.version>
-    <jetty.version>9.2.15.v20160210</jetty.version>
+    <jetty.version>9.2.19.v20160908</jetty.version>
     <jmh.version>1.12</jmh.version>
     <jsoup.version>1.10.2</jsoup.version>
     <junit.version>4.12</junit.version>
     <maven-checkstyle-plugin.version>3.0.0</maven-checkstyle-plugin.version>
     <maven-dependency-plugin.version>2.10</maven-dependency-plugin.version>
-    <!-- Apache 18 has 3.0.1, but need 3.0.2 for [MSOURCES-94]. -->
-    <maven-jar-plugin.version>3.0.2</maven-jar-plugin.version>
-    <!-- Apache 18 has 2.10.3, but need 2.10.4 for [MJAVADOC-442]. -->
-    <maven-javadoc-plugin.version>2.10.4</maven-javadoc-plugin.version>
+    <maven-enforcer-plugin.version>3.0.0-M1</maven-enforcer-plugin.version>
+    <!-- Apache 19 has 2.10.4, but need 3.0.0 for [LANG-1365]. -->
+    <maven-javadoc-plugin.version>3.0.0</maven-javadoc-plugin.version>
     <maven-scm-provider.version>1.9.4</maven-scm-provider.version>
     <maven-shade-plugin.version>2.1</maven-shade-plugin.version>
-    <!-- Apache 18 has 3.0.0, but need 3.0.1 for [MSOURCES-94]. -->
-    <maven-source-plugin.version>3.0.1</maven-source-plugin.version>
+    <!-- Apache 19 has 2.20.1, but need 2.21.0+ for [MPOM-184] -->
+    <maven-surefire-plugin.version>2.21.0</maven-surefire-plugin.version>
     <mockito.version>2.5.5</mockito.version>
     <mongo-java-driver.version>3.5.0</mongo-java-driver.version>
     <mysql-driver.version>5.1.20</mysql-driver.version>
@@ -308,6 +308,11 @@ limitations under the License.
       </dependency>
       <dependency>
         <groupId>net.hydromatic</groupId>
+        <artifactId>chinook-data-hsqldb</artifactId>
+        <version>${chinook-data-hsqldb.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>net.hydromatic</groupId>
         <artifactId>foodmart-data-hsqldb</artifactId>
         <version>${foodmart-data-hsqldb.version}</version>
       </dependency>
@@ -416,6 +421,11 @@ limitations under the License.
       <dependency>
         <groupId>org.hsqldb</groupId>
         <artifactId>hsqldb</artifactId>
+        <version>${hsqldb.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.hsqldb</groupId>
+        <artifactId>sqltool</artifactId>
         <version>${hsqldb.version}</version>
       </dependency>
       <dependency>
@@ -606,8 +616,8 @@ limitations under the License.
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
         <configuration>
-          <source>1.8</source>
-          <target>1.8</target>
+          <source>8</source>
+          <target>8</target>
           <compilerArgument>-Xlint:deprecation</compilerArgument>
         </configuration>
       </plugin>
@@ -661,6 +671,10 @@ limitations under the License.
         </executions>
       </plugin>
       <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-enforcer-plugin</artifactId>
+      </plugin>
+      <plugin>
         <!-- This is the configuration used by "mvn javadoc:javadoc". It is
              configured strict, so that it shows errors such as broken links in
              javadoc on private methods. The configuration for "mvn site" is
@@ -668,6 +682,7 @@ limitations under the License.
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-javadoc-plugin</artifactId>
         <configuration>
+          <additionalparam>-html5</additionalparam>
           <links>
             <link>https://docs.oracle.com/javase/9/docs/api/</link>
           </links>
@@ -775,6 +790,26 @@ limitations under the License.
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-enforcer-plugin</artifactId>
+          <version>${maven-enforcer-plugin.version}</version>
+          <executions>
+            <execution>
+              <id>enforce-java</id>
+              <goals>
+                <goal>enforce</goal>
+              </goals>
+              <configuration>
+                <rules>
+                  <requireJavaVersion>
+                    <version>[1.8,)</version>
+                  </requireJavaVersion>
+                </rules>
+              </configuration>
+            </execution>
+          </executions>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-failsafe-plugin</artifactId>
           <executions>
             <execution>
@@ -803,11 +838,9 @@ limitations under the License.
           <artifactId>maven-javadoc-plugin</artifactId>
           <version>${maven-javadoc-plugin.version}</version>
         </plugin>
-        <!-- Override base, which uses version 3.0.0. -->
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-jar-plugin</artifactId>
-          <version>${maven-jar-plugin.version}</version>
           <configuration>
             <archive>
               <manifest>
@@ -824,12 +857,8 @@ limitations under the License.
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-source-plugin</artifactId>
-          <version>${maven-source-plugin.version}</version>
-        </plugin>
-        <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-surefire-plugin</artifactId>
+          <version>${maven-surefire-plugin.version}</version>
           <configuration>
             <threadCount>1</threadCount>
             <perCoreThreadCount>true</perCoreThreadCount>
@@ -938,7 +967,6 @@ limitations under the License.
             </executions>
             <configuration>
               <algorithms>
-                <algorithm>MD5</algorithm>
                 <algorithm>SHA-256</algorithm>
               </algorithms>
               <failOnError>false</failOnError>

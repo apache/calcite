@@ -322,6 +322,9 @@ public class SubstitutionVisitor {
         operand = canonizeNode(rexBuilder, operand);
         newOperands.put(operand.toString(), operand);
       }
+      if (newOperands.size() < 2) {
+        return newOperands.values().iterator().next();
+      }
       return rexBuilder.makeCall(call.getOperator(),
           ImmutableList.copyOf(newOperands.values()));
     }

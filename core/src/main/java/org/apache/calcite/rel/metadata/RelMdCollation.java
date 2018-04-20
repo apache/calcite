@@ -217,7 +217,7 @@ public class RelMdCollation
     final Multimap<Integer, Integer> targets = LinkedListMultimap.create();
     final Map<Integer, SqlMonotonicity> targetsWithMonotonicity =
         new HashMap<>();
-    for (Ord<RexNode> project : Ord.zip(projects)) {
+    for (Ord<RexNode> project : Ord.<RexNode>zip(projects)) {
       if (project.e instanceof RexInputRef) {
         targets.put(((RexInputRef) project.e).getIndex(), project.i);
       } else if (project.e instanceof RexCall) {

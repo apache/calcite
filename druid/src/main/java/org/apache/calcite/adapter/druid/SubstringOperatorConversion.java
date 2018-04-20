@@ -20,6 +20,7 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 
@@ -43,20 +44,41 @@ public class SubstringOperatorConversion implements DruidSqlOperatorConverter {
       return null;
     }
 
-    final int index = RexLiteral.intValue(call.getOperands().get(1)) - 1;
+    final String startIndex;
+    final String length;
     // SQL is 1-indexed, Druid is 0-indexed.
-    final int length;
+    if (!call.getOperands().get(1).isA(SqlKind.LITERAL)) {
+      final String arg1 = DruidExpressions.toDruidExpression(
+          call.getOperands().get(1), rowType, query);
+      if (arg1 == null) {
+        // can not infer start index expression bailout.
+        return null;
+      }
+      startIndex = DruidQuery.format("(%s - 1)", arg1);
+    } else {
+      startIndex = DruidExpressions.numberLiteral(
+          RexLiteral.intValue(call.getOperands().get(1)) - 1);
+    }
+
     if (call.getOperands().size() > 2) {
-      //case substring from index with length
-      length = RexLiteral.intValue(call.getOperands().get(2));
+      //case substring from start index with length
+      if (!call.getOperands().get(2).isA(SqlKind.LITERAL)) {
+        // case it is an expression try to parse it
+        length = DruidExpressions.toDruidExpression(
+            call.getOperands().get(2), rowType, query);
+        if (length == null) {
+          return null;
+        }
+      } else {
+        // case length is a constant
+        length = DruidExpressions.numberLiteral(RexLiteral.intValue(call.getOperands().get(2)));
+      }
+
     } else {
       //case substring from index to the end
-      length = -1;
+      length = DruidExpressions.numberLiteral(-1);
     }
-    return DruidQuery.format("substring(%s, %s, %s)",
-        arg,
-        DruidExpressions.numberLiteral(index),
-        DruidExpressions.numberLiteral(length));
+    return DruidQuery.format("substring(%s, %s, %s)", arg, startIndex, length);
   }
 }
 
