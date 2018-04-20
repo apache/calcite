@@ -414,8 +414,7 @@ join (
   select "deptno", last_value("empid") over w as r
   from "hr"."emps"
   window w as (partition by "deptno" order by "commission")) b
-on a."deptno" = b."deptno"
-limit 5;
+on a."deptno" = b."deptno" and a.r = b.r;
 
 +--------+-----+-----+
 | deptno | AR  | BR  |
@@ -424,9 +423,37 @@ limit 5;
 |     10 | 110 | 110 |
 |     10 | 110 | 110 |
 |     20 | 200 | 200 |
-|     20 | 200 |     |
 +--------+-----+-----+
-(5 rows)
+(4 rows)
+
+!ok
+
+# [CALCITE-2271] Two windows under a JOIN 2
+select
+ t1.l, t1.key as key1, t2.key as key2
+from
+ (
+  select
+   dense_rank() over (order by key) l,
+   key
+  from
+   unnest(map[1,1,2,2]) k
+ ) t1
+ join
+ (
+  select
+   dense_rank() over(order by key) l,
+   key
+  from
+   unnest(map[2,2]) k
+ ) t2 on (t1.l = t2.l and t1.key + 1 = t2.key);
+
++---+------+------+
+| L | KEY1 | KEY2 |
++---+------+------+
+| 1 |    1 |    2 |
++---+------+------+
+(1 row)
 
 !ok
 
