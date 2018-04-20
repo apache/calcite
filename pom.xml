@@ -87,6 +87,8 @@ limitations under the License.
     <maven-checkstyle-plugin.version>3.0.0</maven-checkstyle-plugin.version>
     <maven-enforcer-plugin.version>3.0.0-M2</maven-enforcer-plugin.version>
     <maven-scm-provider.version>1.11.1</maven-scm-provider.version>
+    <!-- ASF 21 provides 3.1.1 but need 3.2.0 due to MSHADE-289 -->
+    <maven-shade-plugin.version>3.2.0</maven-shade-plugin.version>
     <mockito.version>2.22.0</mockito.version>
     <os-maven-plugin.version>1.6.0</os-maven-plugin.version>
     <owasp-dependency-check.version>3.3.2</owasp-dependency-check.version>
@@ -95,6 +97,8 @@ limitations under the License.
     <scott-data-hsqldb.version>0.1</scott-data-hsqldb.version>
     <servlet.version>4.0.1</servlet.version>
     <slf4j.version>1.7.25</slf4j.version>
+    <spotbugs.version>3.1.7</spotbugs.version>
+    <spotbugs-maven-plugin.version>3.1.6</spotbugs-maven-plugin.version>
   </properties>
   <issueManagement>
     <system>Jira</system>
@@ -496,6 +500,10 @@ limitations under the License.
           </dependency>
         </dependencies>
       </plugin>
+      <plugin>
+        <groupId>com.github.spotbugs</groupId>
+        <artifactId>spotbugs-maven-plugin</artifactId>
+      </plugin>
     </plugins>
     <pluginManagement>
       <plugins>
@@ -573,7 +581,9 @@ limitations under the License.
           <artifactId>maven-javadoc-plugin</artifactId>
         </plugin>
         <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-shade-plugin</artifactId>
+          <version>${maven-shade-plugin.version}</version>
         </plugin>
         <plugin>
           <artifactId>maven-source-plugin</artifactId>
@@ -648,6 +658,31 @@ limitations under the License.
             <checkStaleness>true</checkStaleness>
           </configuration>
         </plugin>
+        <plugin>
+          <groupId>com.github.spotbugs</groupId>
+          <artifactId>spotbugs-maven-plugin</artifactId>
+          <version>${spotbugs-maven-plugin.version}</version>
+          <configuration>
+            <threshold>High</threshold>
+            <failOnError>true</failOnError>
+            <excludeFilterFile>spotbugs-filter.xml</excludeFilterFile>
+          </configuration>
+          <executions>
+            <execution>
+              <goals>
+                <goal>check</goal>
+              </goals>
+            </execution>
+          </executions>
+          <dependencies>
+            <!-- overwrite dependency on spotbugs if you want to specify the version of spotbugs -->
+            <dependency>
+              <groupId>com.github.spotbugs</groupId>
+              <artifactId>spotbugs</artifactId>
+              <version>${spotbugs.version}</version>
+    </dependency>
+  </dependencies>
+        </plugin>
       </plugins>
     </pluginManagement>
   </build>
@@ -663,6 +698,11 @@ limitations under the License.
           <notimestamp>true</notimestamp>
           <windowtitle>Apache Calcite Avatica API</windowtitle>
         </configuration>
+      </plugin>
+      <plugin>
+        <groupId>com.github.spotbugs</groupId>
+        <artifactId>spotbugs-maven-plugin</artifactId>
+        <version>${spotbugs-maven-plugin.version}</version>
       </plugin>
     </plugins>
   </reporting>

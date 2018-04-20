@@ -133,7 +133,7 @@ public abstract class AvaticaConnection implements Connection {
    * {@link AvaticaStatement#executeInternal(Meta.Signature, boolean)}
    * should retry before failing. */
   long getNumStatementRetries(Properties props) {
-    return Long.valueOf(Objects.requireNonNull(props)
+    return Long.parseLong(Objects.requireNonNull(props)
         .getProperty(NUM_EXECUTE_RETRIES_KEY, NUM_EXECUTE_RETRIES_DEFAULT));
   }
 

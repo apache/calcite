@@ -253,7 +253,7 @@ public class DateTimeUtils {
           millis = millis + "0";
         }
 
-        int ms = Integer.valueOf(millis);
+        int ms = Integer.parseInt(millis);
         cal.add(Calendar.MILLISECOND, ms);
       }
     }
