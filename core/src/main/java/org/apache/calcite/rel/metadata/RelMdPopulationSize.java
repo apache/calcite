@@ -69,7 +69,7 @@ public class RelMdPopulationSize
 
   public Double getPopulationSize(Union rel, RelMetadataQuery mq,
       ImmutableBitSet groupKey) {
-    Double population = 0.0;
+    double population = 0.0;
     for (RelNode input : rel.getInputs()) {
       Double subPop = mq.getPopulationSize(input, groupKey);
       if (subPop == null) {

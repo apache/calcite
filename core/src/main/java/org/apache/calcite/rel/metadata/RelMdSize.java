@@ -88,7 +88,7 @@ public class RelMdSize implements MetadataHandler<BuiltInMetadata.Size> {
     if (averageColumnSizes == null) {
       return null;
     }
-    Double d = 0d;
+    double d = 0d;
     final List<RelDataTypeField> fields = rel.getRowType().getFieldList();
     for (Pair<Double, RelDataTypeField> p
         : Pair.zip(averageColumnSizes, fields)) {
@@ -312,7 +312,7 @@ public class RelMdSize implements MetadataHandler<BuiltInMetadata.Size> {
       // Even in large (say VARCHAR(2000)) columns most strings are small
       return Math.min((double) type.getPrecision() * BYTES_PER_CHARACTER, 100d);
     case ROW:
-      Double average = 0.0;
+      double average = 0.0;
       for (RelDataTypeField field : type.getFieldList()) {
         average += averageTypeValueSize(field.getType());
       }

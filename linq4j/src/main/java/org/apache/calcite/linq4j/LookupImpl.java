@@ -88,8 +88,7 @@ class LookupImpl<K, V> extends AbstractEnumerable<Grouping<K, V>>
   public boolean containsValue(Object value) {
     @SuppressWarnings("unchecked")
     List<V> list = (List<V>) value;
-    Enumerable<V> enumerable = Linq4j.asEnumerable(list);
-    return map.containsValue(enumerable);
+    return map.containsValue(list);
   }
 
   public Enumerable<V> get(Object key) {
