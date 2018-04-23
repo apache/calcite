@@ -186,28 +186,13 @@ public class RelMdPredicates
         input.getRowType().getFieldCount(),
         project.getRowType().getFieldCount());
 
-    for (Ord<RexNode> o : Ord.zip(project.getProjects())) {
-      if (o.e instanceof RexInputRef) {
-        int sIdx = ((RexInputRef) o.e).getIndex();
-        m.set(sIdx, o.i);
-        columnsMappedBuilder.set(sIdx);
-      }
-    }
-
-    // Go over childPullUpPredicates. If a predicate only contains columns in
-    // 'columnsMapped' construct a new predicate based on mapping.
-    final ImmutableBitSet columnsMapped = columnsMappedBuilder.build();
-    for (RexNode r : inputInfo.pulledUpPredicates) {
-      RexNode r2 = projectPredicate(rexBuilder, input, r, columnsMapped);
-      if (!r2.isAlwaysTrue()) {
-        r2 = r2.accept(new RexPermuteInputsShuttle(m, input));
-        projectPullUpPredicates.add(r2);
-      }
-    }
-
-    // Project can also generate constants. We need to include them.
     for (Ord<RexNode> expr : Ord.zip(project.getProjects())) {
-      if (RexLiteral.isNullLiteral(expr.e)) {
+      if (expr.e instanceof RexInputRef) {
+        int sIdx = ((RexInputRef) expr.e).getIndex();
+        m.set(sIdx, expr.i);
+        columnsMappedBuilder.set(sIdx);
+      // Project can also generate constants. We need to include them.
+      } else if (RexLiteral.isNullLiteral(expr.e)) {
         projectPullUpPredicates.add(
             rexBuilder.makeCall(SqlStdOperatorTable.IS_NULL,
                 rexBuilder.makeInputRef(project, expr.i)));
@@ -219,6 +204,17 @@ public class RelMdPredicates
             ? SqlStdOperatorTable.IS_NOT_DISTINCT_FROM
             : SqlStdOperatorTable.EQUALS;
         projectPullUpPredicates.add(rexBuilder.makeCall(op, args));
+      }
+    }
+
+    // Go over childPullUpPredicates. If a predicate only contains columns in
+    // 'columnsMapped' construct a new predicate based on mapping.
+    final ImmutableBitSet columnsMapped = columnsMappedBuilder.build();
+    for (RexNode r : inputInfo.pulledUpPredicates) {
+      RexNode r2 = projectPredicate(rexBuilder, input, r, columnsMapped);
+      if (!r2.isAlwaysTrue()) {
+        r2 = r2.accept(new RexPermuteInputsShuttle(m, input));
+        projectPullUpPredicates.add(r2);
       }
     }
     return RelOptPredicateList.of(rexBuilder, projectPullUpPredicates);

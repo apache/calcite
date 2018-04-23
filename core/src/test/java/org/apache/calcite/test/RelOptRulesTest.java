@@ -3047,36 +3047,44 @@ public class RelOptRulesTest extends RelOptTestBase {
         .addRuleInstance(JoinPushTransitivePredicatesRule.INSTANCE)
         .build();
 
-    final HepPlanner hepPlanner =
-        new HepPlanner(new HepProgramBuilder().build());
+    final HepProgram emptyProgram = new HepProgramBuilder().build();
 
     final String sql = "select d.deptno from sales.emp d where d.deptno\n"
         + "IN (select e.deptno from sales.emp e "
         + "where e.deptno = d.deptno or e.deptno = 4)";
-    sql(sql).withPre(preProgram).with(hepPlanner).checkUnchanged();
+    sql(sql).withPre(preProgram).with(emptyProgram).checkUnchanged();
   }
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2205">[CALCITE-2205]
    * One more infinite loop for JoinPushTransitivePredicatesRule</a>. */
   @Test public void testJoinPushTransitivePredicatesRule2() {
-    HepProgram hepProgram = new HepProgramBuilder()
+    HepProgram program = new HepProgramBuilder()
         .addRuleInstance(FilterJoinRule.FILTER_ON_JOIN)
         .addRuleInstance(FilterJoinRule.JOIN)
         .addRuleInstance(JoinPushTransitivePredicatesRule.INSTANCE)
         .build();
-    HepPlanner hepPlanner = new HepPlanner(hepProgram);
-
     final String sql = "select n1.SAL\n"
         + "from EMPNULLABLES_20 n1\n"
         + "where n1.SAL IN (\n"
         + "  select n2.SAL\n"
         + "  from EMPNULLABLES_20 n2\n"
         + "  where n1.SAL = n2.SAL or n1.SAL = 4)";
-    sql(sql)
-        .withDecorrelation(true)
-        .with(hepPlanner)
-        .check();
+    sql(sql).withDecorrelation(true).with(program).check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2275">[CALCITE-2275]
+   * JoinPushTransitivePredicatesRule wrongly pushes down NOT condition</a>. */
+  @Test public void testInferringPredicatesWithNotOperatorInJoinCondition() {
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(FilterJoinRule.FILTER_ON_JOIN)
+        .addRuleInstance(FilterJoinRule.JOIN)
+        .addRuleInstance(JoinPushTransitivePredicatesRule.INSTANCE)
+        .build();
+    final String sql = "select * from sales.emp d\n"
+        + "join sales.emp e on e.deptno = d.deptno and d.deptno not in (4, 6)";
+    sql(sql).withDecorrelation(true).with(program).check();
   }
 
   /** Test case for

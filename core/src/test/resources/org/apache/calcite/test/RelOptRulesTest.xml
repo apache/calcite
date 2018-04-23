@@ -2247,8 +2247,8 @@ LogicalProject(MGR=[CAST(10):INTEGER])
     <TestCase name="testEmptyJoin">
         <Resource name="sql">
             <![CDATA[select * from (
-select * from emp where false)
-join dept using (deptno)]]>
+select * from emp where false) as e
+join dept as d on e.deptno = d.deptno]]>
         </Resource>
         <Resource name="planBefore">
             <![CDATA[
@@ -2270,8 +2270,8 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
     <TestCase name="testEmptyJoinRight">
         <Resource name="sql">
             <![CDATA[select * from (
-select * from emp where false)
-right join dept using (deptno)]]>
+  select * from emp where false) e
+right join dept d on e.deptno = d.deptno]]>
         </Resource>
         <Resource name="planBefore">
             <![CDATA[
@@ -2295,8 +2295,8 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
     <TestCase name="testEmptyJoinLeft">
         <Resource name="sql">
             <![CDATA[select * from (
-select * from emp where false)
-left join dept using (deptno)]]>
+  select * from emp where false) e
+left join dept d on e.deptno = d.deptno]]>
         </Resource>
         <Resource name="planBefore">
             <![CDATA[
@@ -2535,6 +2535,44 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
 LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], BIRTHDATE=[$9])
   LogicalFilter(condition=[AND(>=($9, 2014-01-01), <($9, 2015-01-01))])
     LogicalTableScan(table=[[CATALOG, SALES, EMP_B]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testFilterRemoveIsNotDistinctFromRule">
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalFilter(condition=[IS NOT DISTINCT FROM($7, 20)])
+  LogicalTableScan(table=[[scott, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalFilter(condition=[CASE(IS NULL($7), IS NULL(20), =(CAST($7):TINYINT NOT NULL, 20))])
+  LogicalTableScan(table=[[scott, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testInferringPredicatesWithNotOperatorInJoinCondition">
+        <Resource name="sql">
+            <![CDATA[select * from sales.emp d
+join sales.emp e on e.deptno = d.deptno and d.deptno not in (4, 6)]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], EMPNO0=[$9], ENAME0=[$10], JOB0=[$11], MGR0=[$12], HIREDATE0=[$13], SAL0=[$14], COMM0=[$15], DEPTNO0=[$16], SLACKER0=[$17])
+  LogicalJoin(condition=[AND(=($16, $7), NOT(OR(=($7, 4), =($7, 6))))], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], EMPNO0=[$9], ENAME0=[$10], JOB0=[$11], MGR0=[$12], HIREDATE0=[$13], SAL0=[$14], COMM0=[$15], DEPTNO0=[$16], SLACKER0=[$17])
+  LogicalJoin(condition=[=($16, $7)], joinType=[inner])
+    LogicalFilter(condition=[AND(<>($7, 4), <>($7, 6))])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalFilter(condition=[AND(<>($7, 4), <>($7, 6))])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
     </TestCase>
@@ -5039,7 +5077,7 @@ LogicalProject(EMPNO=[10], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
     <TestCase name="testStrengthenJoinType">
         <Resource name="sql">
             <![CDATA[select *
-from dept left join emp using (deptno)
+from dept left join emp on dept.deptno = emp.deptno
 where emp.deptno is not null and emp.sal > 100]]>
         </Resource>
         <Resource name="planBefore">
@@ -6736,7 +6774,7 @@ LogicalProject(DEPTNO=[$0], NAME=[$1])
     <TestCase name="testSortJoinTranspose1">
         <Resource name="sql">
             <![CDATA[select * from sales.emp e left join (
-select * from sales.dept d) using (deptno)
+  select * from sales.dept d) d on e.deptno = d.deptno
 order by sal limit 10]]>
         </Resource>
         <Resource name="planBefore">
@@ -6832,7 +6870,7 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
     <TestCase name="testSortJoinTranspose2">
         <Resource name="sql">
             <![CDATA[select * from sales.emp e right join (
-select * from sales.dept d) using (deptno)
+  select * from sales.dept d) d on e.deptno = d.deptno
 order by name]]>
         </Resource>
         <Resource name="planBefore">
@@ -6859,8 +6897,8 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
     </TestCase>
     <TestCase name="testSortJoinTranspose3">
         <Resource name="sql">
-            <![CDATA[select * from sales.emp left join (
-select * from sales.dept) using (deptno)
+            <![CDATA[select * from sales.emp e left join (
+  select * from sales.dept) d on e.deptno = d.deptno
 order by sal, name limit 10]]>
         </Resource>
         <Resource name="planBefore">
@@ -6887,7 +6925,7 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
     <TestCase name="testSortJoinTranspose4">
         <Resource name="sql">
             <![CDATA[select * from sales.emp e right join (
-select * from sales.dept d) using (deptno)
+  select * from sales.dept d) d on e.deptno = d.deptno
 order by name]]>
         </Resource>
         <Resource name="planBefore">
@@ -6915,7 +6953,7 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
     <TestCase name="testSortJoinTranspose5">
         <Resource name="sql">
             <![CDATA[select * from sales.emp e right join (
-select * from sales.dept d) using (deptno)
+  select * from sales.dept d) d on e.deptno = d.deptno
 limit 10]]>
         </Resource>
         <Resource name="planBefore">
@@ -8281,20 +8319,6 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
             LogicalFilter(condition=[>($2, 2)])
               LogicalProject(ENAME=[$1], EMPNO=[$0], R=[$5])
                 LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-]]>
-        </Resource>
-    </TestCase>
-    <TestCase name="testFilterRemoveIsNotDistinctFromRule">
-        <Resource name="planBefore">
-          <![CDATA[
-LogicalFilter(condition=[IS NOT DISTINCT FROM($7, 20)])
-  LogicalTableScan(table=[[scott, EMP]])
-]]>
-        </Resource>
-        <Resource name="planAfter">
-          <![CDATA[
-LogicalFilter(condition=[CASE(IS NULL($7), IS NULL(20), =(CAST($7):TINYINT NOT NULL, 20))])
-  LogicalTableScan(table=[[scott, EMP]])
 ]]>
         </Resource>
     </TestCase>
