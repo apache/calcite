@@ -18,13 +18,13 @@
 
 # Checks whether ASCONCATOFPARAMS function is properly computed and not passed to subschema, like jdbc
 SELECT email, ASCONCATOFPARAMS(firstname, lastname) AS joined FROM SIMPLE_CUSTOMER limit 3;
-+-----------------------+--------------------------+
-| email                 | joined                   |
-+-----------------------+--------------------------+
-| ftremblay@gmail.com   | JOIN = François+Tremblay |
-| leonekohler@surfeu.de | JOIN = Leonie+Köhler     |
-| luisg@embraer.com.br  | JOIN = Luís+Gonçalves    |
-+-----------------------+--------------------------+
++-----------------------+------------------------------+
+| email                 | joined                       |
++-----------------------+------------------------------+
+| ftremblay@gmail.com   | CONCAT = [François+Tremblay] |
+| leonekohler@surfeu.de | CONCAT = [Leonie+Köhler]     |
+| luisg@embraer.com.br  | CONCAT = [Luís+Gonçalves]    |
++-----------------------+------------------------------+
 (3 rows)
 
 !ok
