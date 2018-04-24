@@ -39,6 +39,7 @@ import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.RelFactories;
+import org.apache.calcite.rel.core.SemiJoin;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
@@ -1872,7 +1873,8 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
       if (!TableScan.class.isAssignableFrom(c)
               && !Project.class.isAssignableFrom(c)
               && !Filter.class.isAssignableFrom(c)
-              && !Join.class.isAssignableFrom(c)) {
+              && (!Join.class.isAssignableFrom(c)
+              || SemiJoin.class.isAssignableFrom(c))) {
         // Skip it
         return false;
       }

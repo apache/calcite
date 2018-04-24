@@ -1810,6 +1810,15 @@ public class MaterializationTest {
             "expr#5=[10], expr#6=[>($t0, $t5)], expr#7=[30], expr#8=[>=($t7, $t0)]"));
   }
 
+  @Test public void testJoinMaterialization11() {
+    checkNoMaterialize(
+        "select \"empid\" from \"emps\"\n"
+            + "join \"depts\" using (\"deptno\")",
+        "select \"empid\" from \"emps\"\n"
+            + "where \"deptno\" in (select \"deptno\" from \"depts\")",
+        HR_FKUK_MODEL);
+  }
+
   @Test public void testJoinMaterializationUKFK1() {
     checkMaterialize(
         "select \"a\".\"empid\" \"deptno\" from\n"
