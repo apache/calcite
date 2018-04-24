@@ -19,9 +19,12 @@ package org.apache.calcite.test;
 import org.apache.calcite.config.CalciteConnectionConfigImpl;
 import org.apache.calcite.config.CalciteConnectionProperty;
 import org.apache.calcite.config.NullCollation;
+import org.apache.calcite.plan.Context;
 import org.apache.calcite.plan.Contexts;
+import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.prepare.Prepare;
+import org.apache.calcite.prepare.Prepare.CatalogReader;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelRoot;
 import org.apache.calcite.rel.RelVisitor;
@@ -29,11 +32,14 @@ import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.externalize.RelXmlWriter;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rel.type.RelDataTypeSystemImpl;
 import org.apache.calcite.sql.SqlExplainLevel;
+import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.sql2rel.SqlToRelConverter;
+import org.apache.calcite.sql2rel.SqlToRelConverter.Config;
 import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.TestUtil;
@@ -71,6 +77,10 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
 
   /** Sets the SQL statement for a test. */
   public final Sql sql(String sql) {
+    return sql(tester, sql);
+  }
+
+  public final Sql sql(Tester tester, String sql) {
     return new Sql(sql, true, true, tester, false,
         SqlToRelConverter.Config.DEFAULT, tester.getConformance());
   }
@@ -1643,6 +1653,18 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  @Test public void testOverAvg3() {
+    final Tester tester = new TesterImplWithNonStandardTypeFactory(getDiffRepos(),
+        false, false, true, false, null, null);
+
+    // When using a different type factory, some extra casting might be required
+    final String sql = "select var_pop(sal) over w1,\n"
+        + "  avg(sal) over w1\n"
+        + "from emp\n"
+        + "window w1 as (partition by job order by hiredate rows 2 preceding)";
+    sql(tester, sql).ok();
+  }
+
   @Test public void testOverCountStar() {
     final String sql = "select count(sal) over w1,\n"
         + "  count(*) over w1\n"
@@ -2837,6 +2859,53 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
         null, null, SqlToRelConverter.Config.DEFAULT,
         SqlConformanceEnum.DEFAULT, Contexts.of(connectionConfig));
     sql(sql).with(tester).ok();
+  }
+
+  /**
+   * A variant of {@code TesterImpl} with a different type factory always
+   * returning DOUBLE as return type for aggregation functions.
+   *
+   */
+  private final class TesterImplWithNonStandardTypeFactory extends TesterImpl {
+    private TesterImplWithNonStandardTypeFactory(DiffRepository diffRepos,
+        boolean enableDecorrelate, boolean enableTrim, boolean enableExpand,
+        boolean enableLateDecorrelate,
+        Function<RelDataTypeFactory, CatalogReader> catalogReaderFactory,
+        Function<RelOptCluster, RelOptCluster> clusterFactory) {
+      super(diffRepos, enableDecorrelate, enableTrim, enableExpand, enableLateDecorrelate,
+          catalogReaderFactory, clusterFactory);
+    }
+
+    private TesterImplWithNonStandardTypeFactory(DiffRepository diffRepos,
+        boolean enableDecorrelate, boolean enableTrim, boolean enableExpand,
+        boolean enableLateDecorrelate,
+        Function<RelDataTypeFactory, CatalogReader> catalogReaderFactory,
+        Function<RelOptCluster, RelOptCluster> clusterFactory, Config config,
+        SqlConformance conformance, Context context) {
+      super(diffRepos, enableDecorrelate, enableTrim, enableExpand, enableLateDecorrelate,
+          catalogReaderFactory, clusterFactory, config, conformance, context);
+    }
+
+    @Override protected TesterImpl copy(DiffRepository diffRepos, boolean enableDecorrelate,
+        boolean enableTrim, boolean enableExpand, boolean enableLateDecorrelate,
+        Function<RelDataTypeFactory, CatalogReader> catalogReaderFactory,
+        Function<RelOptCluster, RelOptCluster> clusterFactory, Config config,
+        SqlConformance conformance, Context context) {
+      return new TesterImplWithNonStandardTypeFactory(diffRepos, enableDecorrelate, enableTrim,
+          enableExpand, enableLateDecorrelate,
+          catalogReaderFactory, clusterFactory, config, conformance, context);
+    }
+
+    @Override protected RelDataTypeFactory createTypeFactory() {
+      return new SqlTypeFactoryImpl(new RelDataTypeSystemImpl() {
+        @Override public RelDataType deriveAvgAggType(RelDataTypeFactory typeFactory,
+            RelDataType argumentType) {
+          return typeFactory.createTypeWithNullability(
+              typeFactory.createSqlType(SqlTypeName.DOUBLE),
+              argumentType.isNullable());
+        }
+      });
+    }
   }
 
   /**
