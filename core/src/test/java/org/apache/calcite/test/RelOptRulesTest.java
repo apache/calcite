@@ -3096,6 +3096,26 @@ public class RelOptRulesTest extends RelOptTestBase {
     sql(sql).withPre(preProgram).with(program).check();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2278">[CALCITE-2278]
+   * AggregateJoinTransposeRule fails to split agg call for unique input with agg call</a>. */
+  @Test public void testPushAggregateThroughJoinWithUniqueInput() {
+    final HepProgram preProgram = new HepProgramBuilder()
+        .addRuleInstance(AggregateProjectMergeRule.INSTANCE)
+        .build();
+    final HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(AggregateJoinTransposeRule.EXTENDED)
+        .build();
+    final String sql = "select A.job, B.mgr, A.deptno,\n"
+        + "max(B.hiredate1) as hiredate1, sum(B.comm1) as comm1\n"
+        + "from sales.emp as A\n"
+        + "join (select mgr, sal, max(hiredate) as hiredate1,\n"
+        + "    sum(comm) as comm1 from sales.emp group by mgr, sal) as B\n"
+        + "on A.sal=B.sal\n"
+        + "group by A.job, B.mgr, A.deptno";
+    checkPlanning(tester, preProgram, new HepPlanner(program), sql);
+  }
+
   /** SUM is the easiest aggregate function to split. */
   @Test public void testPushAggregateSumThroughJoin() {
     final HepProgram preProgram = new HepProgramBuilder()
