@@ -243,8 +243,13 @@ public class AggregateJoinTransposeRule extends RelOptRule {
               && fieldSet.contains(ImmutableBitSet.of(aggCall.e.getArgList()))) {
             final RexNode singleton = splitter.singleton(rexBuilder,
                 joinInput.getRowType(), aggCall.e.transform(mapping));
+
             if (singleton instanceof RexInputRef) {
-              side.split.put(aggCall.i, ((RexInputRef) singleton).getIndex());
+              final int index = ((RexInputRef) singleton).getIndex();
+              if (!belowAggregateKey.get(index)) {
+                projects.add(singleton);
+              }
+              side.split.put(aggCall.i, index);
             } else {
               projects.add(singleton);
               side.split.put(aggCall.i, projects.size() - 1);
