@@ -26,7 +26,7 @@ limitations under the License.
 For a full list of releases, see
 <a href="https://github.com/apache/calcite-avatica/releases">github</a>.
 Downloads are available on the
-[downloads page]({{ site.baseurl }}/downloads/).
+[downloads page]({{ site.baseurl }}/downloads/avatica.html).
 
 ## <a href="https://github.com/apache/calcite-avatica/releases/tag/calcite-avatica-1.11.0">1.11.0</a> / 2018-03-09
 {: #v1-11-0}

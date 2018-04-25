@@ -3,6 +3,7 @@ layout: news_item
 date: "2017-03-31 17:00:00 +0000"
 author: elserj
 categories: [milestones]
+component: avatica
 ---
 <!--
 {% comment %}

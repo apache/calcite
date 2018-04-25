@@ -12,37 +12,27 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-#
-# Data that defines menu structure
-#
-- title: Overview
-  docs:
-  - index
-  - roadmap
 
-- title: Avatica Reference
-  docs:
-  - client_reference
-  - json_reference
-  - protobuf_reference
-  - howto
-  - security
-  - compatibility
-  - custom_client_artifacts
-  - docker
-  - protocol_testing
-
-- title: Avatica Go Client Reference
-  docs:
-  - go_client_reference
-
-- title: Avatica Meta
-  docs:
-  - history
-  - api
-  - testapi
-
-- title: Avatica Go Client Meta
-  docs:
-  - go_history
-# End docs.yml
+version: '3'
+services:
+  dev:
+    image: jekyll/jekyll:3
+    command: sh -c "./add-avatica-go-docs.sh; jekyll serve --watch --force_polling"
+    ports:
+      - 4000:4000
+    volumes:
+      - .:/srv/jekyll
+  build-site:
+    image: jekyll/jekyll:3
+    command: sh -c "./add-avatica-go-docs.sh; jekyll build"
+    volumes:
+      - .:/srv/jekyll
+  generate-javadoc:
+    image: maven:alpine
+    working_dir: /usr/src/calcite-avatica
+    command: sh -c "mvn -DskipTests -P!compile-protobuf site; rm -rf site/target/avatica/apidocs site/target/avatica/testapidocs; mkdir -p site/target/avatica; mv target/site/apidocs target/site/testapidocs site/target/avatica"
+    volumes:
+      - ../:/usr/src/calcite-avatica
+      - maven-repo:/root/.m2
+volumes:
+  maven-repo:

@@ -4,15 +4,18 @@
       <li class="{% if page.title == 'News' %}current{% endif %}">
         <a href="{{ site.baseurl }}/news/">All News</a>
       </li>
-      <li class="{% if page.title == 'Releases' %}current{% endif %}">
-        <a href="{{ site.baseurl }}/news/releases/">Avatica Releases</a>
+      <li class="{% if page.title == 'Avatica Releases' %}current{% endif %}">
+        <a href="{{ site.baseurl }}/news/avatica-releases/">Avatica Releases</a>
+      </li>
+      <li class="{% if page.title == 'Avatica Go Releases' %}current{% endif %}">
+          <a href="{{ site.baseurl }}/news/avatica-go-releases/">Avatica Go Releases</a>
       </li>
     </ul>
     <h4>Recent Releases</h4>
     <ul>
       {% for post in site.categories.release limit:5 %}
       <li class="{% if page.title == post.title %}current{% endif %}">
-        <a href="{{ site.baseurl }}{{ post.url }}">{{ post.version }}</a>
+        <a href="{{ site.baseurl }}{{ post.url }}">{{post.component}} {{ post.version }}</a>
       </li>
       {% endfor %}
     </ul>

@@ -19,7 +19,7 @@ excerpt_separator: ""
 
 repository: https://github.com/apache/calcite-avatica
 destination: target/avatica
-exclude: [README.md,Gemfile*]
+exclude: [README.md,Gemfile*,add-avatica-go-docs.sh,docker-compose.yml]
 keep_files: [".git", ".svn", "apidocs", "testapidocs"]
 
 collections:

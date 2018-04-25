@@ -1,8 +1,9 @@
 ---
-layout: page
-title: Avatica Downloads
+layout: news
+title: Avatica Go Releases
+permalink: /news/avatica-go-releases/
+author: all
 ---
-
 <!--
 {% comment %}
 Licensed to the Apache Software Foundation (ASF) under one or more
@@ -22,9 +23,8 @@ limitations under the License.
 {% endcomment %}
 -->
 
-The following downloads are available from the Avatica project:
-
-Component         | Download
-:---------------- | :-----------------------------------
-Avatica           | [Source and binaries]({{ site.baseurl }}/downloads/avatica.html)
-Avatica Go Client | [Source]({{ site.baseurl }}/downloads/avatica-go.html)
+{% for post in site.categories.release %}
+  {% if post.component == 'avatica-go' %}
+    {% include news_item.html %}
+  {% endif %}
+{% endfor %}

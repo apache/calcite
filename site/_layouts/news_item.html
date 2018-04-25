@@ -42,8 +42,13 @@ layout: news
   <div class="post-content">
     {{ content }}
     {% if page.categories contains 'release' %}
-    <p>See the <a href="{{ site.baseurl }}/docs/history.html#{{ page.tag }}">release notes</a>;
-      <a href="{{ site.baseurl }}/downloads#source-releases">download</a> the release.</p>
+      {% if page.categories contains 'avatica-go' %}
+        <p>See the <a href="{{ site.baseurl }}/docs/go_history.html#{{ page.tag }}">release notes</a>;
+            <a href="{{ site.baseurl }}/downloads/avatica-go.html#source-releases">download</a> the release.</p>
+      {% else %}
+        <p>See the <a href="{{ site.baseurl }}/docs/history.html#{{ page.tag }}">release notes</a>;
+            <a href="{{ site.baseurl }}/downloads/avatica.html#source-releases">download</a> the release.</p>
+      {% endif %}
     {% endif %}
   </div>
 </article>

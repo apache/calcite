@@ -4,6 +4,7 @@ title: "Splitting Avatica from Calcite"
 date: "2016-03-03 23:57:33 -0500"
 author: elserj
 categories: [milestones]
+component: avatica
 ---
 <!--
 {% comment %}
