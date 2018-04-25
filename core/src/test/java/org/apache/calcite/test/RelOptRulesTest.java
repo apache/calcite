@@ -3846,6 +3846,28 @@ public class RelOptRulesTest extends RelOptTestBase {
     final String planAfter = NL + RelOptUtil.toString(relAfter);
     diffRepos.assertEquals("planAfter", "${planAfter}", planAfter);
   }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2275">[CALCITE-2275]
+   * Using logical NOT operator in Join condition leads to mistakenly
+   * push down this condition.</a>. */
+  @Test public void testInferringPredicatesWithNotOperatorInJoinCondition() {
+    HepProgram hepProgram = new HepProgramBuilder()
+        .addRuleInstance(FilterJoinRule.FILTER_ON_JOIN)
+        .addRuleInstance(FilterJoinRule.JOIN)
+        .addRuleInstance(JoinPushTransitivePredicatesRule.INSTANCE)
+        .build();
+
+    final HepPlanner hepPlanner =
+        new HepPlanner(hepProgram);
+
+    final String sql = "select * from sales.emp d join \n"
+        + "sales.emp e on e.deptno = d.deptno and d.deptno not in (4, 6)";
+    sql(sql)
+        .withDecorrelation(true)
+        .with(hepPlanner)
+        .check();
+  }
 }
 
 // End RelOptRulesTest.java
