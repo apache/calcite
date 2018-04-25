@@ -102,6 +102,11 @@
   githubId: kliewkliew
   org:
   role: Committer
+- name: Kevin Risden
+  apacheId: krisden
+  githubId: risdenk
+  org:
+  role: Committer
 - name: Laurent Goujon
   apacheId: laurent
   githubId: laurentgo
@@ -140,6 +145,11 @@
   githubId: nishantmonu51
   org: Hortonworks
   role: Committer
+- name: Shuyi Chen
+  apacheId: shuyichen
+  githubId: suez1224
+  org: Uber
+  role: Committer
 - name: Slim Bouguerra
   apacheId: bslim
   githubId: b-slim
@@ -166,19 +176,14 @@
   githubId: vvysotskyi
   org:
   role: Committer
-- name: Zhiqiang He
-  apacheId: zhiqianghe
-  githubId: Zhiqiang-He
-  org: Huawei
-  role: Committer
 - name: Zhen Wang
   apacheId: zhenw
   githubId: zinking
   org:
   role: Committer
-- name: Shuyi Chen
-  apacheId: shuyichen
-  githubId: suez1224
-  org: Uber
+- name: Zhiqiang He
+  apacheId: zhiqianghe
+  githubId: Zhiqiang-He
+  org: Huawei
   role: Committer
 # End contributors.yml
