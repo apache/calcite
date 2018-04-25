@@ -60,10 +60,13 @@ import org.apache.calcite.rex.RexMultisetUtil;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexOver;
 import org.apache.calcite.rex.RexProgram;
+import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.runtime.PredicateImpl;
 import org.apache.calcite.schema.ModifiableTable;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlDialect;
+import org.apache.calcite.sql.SqlFunction;
+import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Util;
@@ -381,11 +384,50 @@ public class JdbcRules {
           new PredicateImpl<Project>() {
             public boolean test(@Nullable Project project) {
               assert project != null;
-              return out.dialect.supportsWindowFunctions()
-                  || !RexOver.containsOver(project.getProjects(), null);
+              return (out.dialect.supportsWindowFunctions()
+                  || !RexOver.containsOver(project.getProjects(), null))
+                  && !userDefinedFunctionInProject(project);
             }
+
           },
           Convention.NONE, out, relBuilderFactory, "JdbcProjectRule");
+    }
+
+    private static boolean userDefinedFunctionInProject(Project project) {
+      CheckingUserDefinedFunctionVisitor visitor = new CheckingUserDefinedFunctionVisitor();
+      for (RexNode node : project.getChildExps()) {
+        node.accept(visitor);
+        if (visitor.containsUserDefinedFunction()) {
+          return true;
+        }
+      }
+      return false;
+    }
+
+    /**
+     * Visitor for checking whether part of projection is a user defined function or not
+     */
+    private static class CheckingUserDefinedFunctionVisitor extends RexVisitorImpl<Void> {
+
+      private boolean containsUsedDefinedFunction = false;
+
+      CheckingUserDefinedFunctionVisitor() {
+        super(true);
+      }
+
+      public boolean containsUserDefinedFunction() {
+        return containsUsedDefinedFunction;
+      }
+
+      @Override public Void visitCall(RexCall call) {
+        SqlOperator operator = call.getOperator();
+        if (operator instanceof SqlFunction
+            && ((SqlFunction) operator).getFunctionType().isUserDefined()) {
+          containsUsedDefinedFunction |= true;
+        }
+        return super.visitCall(call);
+      }
+
     }
 
     public RelNode convert(RelNode rel) {
