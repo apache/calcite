@@ -16,9 +16,6 @@
  */
 package org.apache.calcite.test;
 
-import com.google.common.base.Function;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
 import org.apache.calcite.config.CalciteConnectionConfigImpl;
 import org.apache.calcite.plan.Context;
 import org.apache.calcite.plan.Contexts;
@@ -114,16 +111,23 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql2rel.SqlToRelConverter;
 import org.apache.calcite.tools.RelBuilder;
+
+import static org.apache.calcite.plan.RelOptRule.none;
+import static org.apache.calcite.plan.RelOptRule.operand;
+
+import com.google.common.base.Function;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
+
 import org.junit.Ignore;
 import org.junit.Test;
 
-import javax.annotation.Nullable;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
 
-import static org.apache.calcite.plan.RelOptRule.none;
-import static org.apache.calcite.plan.RelOptRule.operand;
+import javax.annotation.Nullable;
+
 import static org.junit.Assert.assertTrue;
 
 /**
@@ -2893,6 +2897,9 @@ public class RelOptRulesTest extends RelOptTestBase {
     checkPlanUnchanged(new HepPlanner(program), sql);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-841">[CALCITE-841]
+   * Redundant windows when window function arguments are expressions</a>. */
   @Test public void testExpressionInWindowFunction() {
     HepProgramBuilder builder = new HepProgramBuilder();
     builder.addRuleClass(ProjectToWindowRule.class);
@@ -3204,10 +3211,7 @@ public class RelOptRulesTest extends RelOptTestBase {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2249">[CALCITE-2249]
    * AggregateJoinTransposeRule generates inequivalent nodes if Aggregate relNode contains
    * distinct aggregate function.</a>. */
-  @Test public void testPushDistinctAggregateIntoJoin() throws Exception {
-    final HepProgram preProgram = new HepProgramBuilder()
-            .addRuleInstance(AggregateProjectMergeRule.INSTANCE)
-            .build();
+  @Test public void testPushDistinctAggregateIntoJoin() {
     final HepProgram program = new HepProgramBuilder()
             .addRuleInstance(AggregateJoinTransposeRule.EXTENDED)
             .build();
@@ -3216,7 +3220,7 @@ public class RelOptRulesTest extends RelOptTestBase {
     checkPlanUnchanged(new HepPlanner(program), sql);
   }
 
-  @Test public void testSwapOuterJoin() throws Exception {
+  @Test public void testSwapOuterJoin() {
     final HepProgram program = new HepProgramBuilder()
         .addMatchLimit(1)
         .addRuleInstance(JoinCommuteRule.SWAP_OUTER)
