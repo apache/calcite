@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.adapter.druid;
 
+import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexLiteral;
@@ -24,7 +25,6 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.Pair;
-import org.apache.calcite.util.TimestampString;
 
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.google.common.annotations.VisibleForTesting;
@@ -37,7 +37,6 @@ import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.List;
 import java.util.Locale;
-import java.util.TimeZone;
 
 import javax.annotation.Nullable;
 
@@ -209,27 +208,23 @@ abstract class DruidJsonFilter implements DruidJson {
     final SimpleDateFormat dateFormatter = new SimpleDateFormat(
         TimeExtractionFunction.ISO_TIME_FORMAT,
         Locale.ROOT);
-    final String timeZone = druidQuery.getConnectionConfig().timeZone();
-    if (timeZone != null) {
-      dateFormatter.setTimeZone(TimeZone.getTimeZone(timeZone));
-    }
+    dateFormatter.setTimeZone(DateTimeUtils.UTC_ZONE);
     final String val;
     final RexLiteral rhsLiteral = (RexLiteral) rexNode;
     if (SqlTypeName.NUMERIC_TYPES.contains(rhsLiteral.getTypeName())) {
       val = String.valueOf(RexLiteral.value(rhsLiteral));
     } else if (SqlTypeName.CHAR_TYPES.contains(rhsLiteral.getTypeName())) {
       val = String.valueOf(RexLiteral.stringValue(rhsLiteral));
-    } else if (SqlTypeName.TIMESTAMP == rhsLiteral.getTypeName() || SqlTypeName.DATE == rhsLiteral
-        .getTypeName() || SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE == rhsLiteral.getTypeName()) {
-      TimestampString timestampString = DruidDateTimeUtils
-          .literalValue(rexNode, TimeZone.getTimeZone(timeZone));
-      if (timestampString == null) {
+    } else if (SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE == rhsLiteral.getTypeName()
+        || SqlTypeName.TIMESTAMP == rhsLiteral.getTypeName()
+        || SqlTypeName.DATE == rhsLiteral.getTypeName()) {
+      Long millisSinceEpoch = DruidDateTimeUtils.literalValue(rexNode);
+      if (millisSinceEpoch == null) {
         throw new AssertionError(
             "Cannot translate Literal" + rexNode + " of type "
                 + rhsLiteral.getTypeName() + " to TimestampString");
       }
-      //@TODO this is unnecessary we can send time as Long (eg millis since epoch) to druid
-      val = dateFormatter.format(timestampString.getMillisSinceEpoch());
+      val = dateFormatter.format(millisSinceEpoch);
     } else {
       // Don't know how to filter on this kind of literal.
       val = null;
