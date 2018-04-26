@@ -268,6 +268,27 @@ public class RexSimplify {
     }
   }
 
+  private void simplifyAndTerms(List<RexNode> terms) {
+    RexSimplify simplify = withUnknownAsFalse(false);
+    for (int i = 0; i < terms.size(); i++) {
+      RexNode t = terms.get(i);
+      if (!SqlKind.COMPARISON.contains(t.getKind())) {
+        continue;
+      }
+      terms.set(i, simplify.simplify(t));
+      RelOptPredicateList newPredicates = predicates.union(rexBuilder,
+          RelOptPredicateList.of(rexBuilder, terms.subList(i, i + 1)));
+      simplify = simplify.withPredicates(newPredicates);
+    }
+    for (int i = 0; i < terms.size(); i++) {
+      RexNode t = terms.get(i);
+      if (SqlKind.COMPARISON.contains(t.getKind())) {
+        continue;
+      }
+      terms.set(i, simplify.simplify(t));
+    }
+  }
+
   private RexNode simplifyNot(RexCall call) {
     final RexNode a = call.getOperands().get(0);
     switch (a.getKind()) {
@@ -564,8 +585,15 @@ public class RexSimplify {
     final List<RexNode> terms = new ArrayList<>();
     final List<RexNode> notTerms = new ArrayList<>();
     RelOptUtil.decomposeConjunction(e, terms, notTerms);
-    simplifyList(terms);
+
+    if (unknownAsFalse) {
+      simplifyAndTerms(terms);
+    } else {
+      simplifyList(terms);
+    }
+
     simplifyList(notTerms);
+
     if (unknownAsFalse) {
       return simplifyAnd2ForUnknownAsFalse(terms, notTerms);
     }
