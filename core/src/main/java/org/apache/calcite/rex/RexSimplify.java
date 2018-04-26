@@ -272,7 +272,8 @@ public class RexSimplify {
     RexSimplify simplify = withUnknownAsFalse(false);
     for (int i = 0; i < terms.size(); i++) {
       RexNode t = terms.get(i);
-      if (!SqlKind.COMPARISON.contains(t.getKind())) {
+      Comparison cmp = Comparison.of(t);
+      if (cmp == null) {
         continue;
       }
       terms.set(i, simplify.simplify(t));
@@ -282,7 +283,8 @@ public class RexSimplify {
     }
     for (int i = 0; i < terms.size(); i++) {
       RexNode t = terms.get(i);
-      if (SqlKind.COMPARISON.contains(t.getKind())) {
+      Comparison cmp = Comparison.of(t);
+      if (cmp != null) {
         continue;
       }
       terms.set(i, simplify.simplify(t));
