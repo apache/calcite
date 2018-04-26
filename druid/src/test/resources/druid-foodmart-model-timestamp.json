@@ -34,7 +34,7 @@
             "interval": "1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z",
             "timestampColumn": {
               "name": "timestamp",
-              "type": "timestamp with local time zone"
+              "type": "timestamp"
             },
             "dimensions": [
               "product_id",

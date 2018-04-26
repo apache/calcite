@@ -196,9 +196,7 @@ public class DruidRules {
             .unwrap(CalciteConnectionConfig.class).timeZone();
         assert timeZone != null;
         intervals = DruidDateTimeUtils.createInterval(
-            RexUtil.composeConjunction(rexBuilder, triple.getLeft(), false),
-
-            query.getConnectionConfig().timeZone());
+            RexUtil.composeConjunction(rexBuilder, triple.getLeft(), false));
         if (intervals == null || intervals.isEmpty()) {
           // Case we have a filter with extract that can not be written as interval push down
           triple.getMiddle().addAll(triple.getLeft());
