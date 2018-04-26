@@ -84,6 +84,7 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
+import static org.junit.Assume.assumeTrue;
 
 /**
  * Contains unit tests for all operators. Each of the methods is named after an
@@ -6489,6 +6490,23 @@ public abstract class SqlOperatorBaseTest {
         "2016-06-30", "DATE NOT NULL");
     tester.checkScalar("timestampadd(MONTH, -1, date '2016-03-31')",
         "2016-02-29", "DATE NOT NULL");
+  }
+
+  @Test public void testTimestampAddFractionalSeconds() {
+    tester.setFor(SqlStdOperatorTable.TIMESTAMP_ADD);
+    tester.checkType(
+        "timestampadd(SQL_TSI_FRAC_SECOND, 2, timestamp '2016-02-24 12:42:25.000000')",
+        // "2016-02-24 12:42:25.000002",
+        "TIMESTAMP(3) NOT NULL");
+
+    // The following test would correctly return "TIMESTAMP(6) NOT NULL" if max
+    // precision were 6 or higher
+    assumeTrue(tester.getValidator().getTypeFactory().getTypeSystem()
+        .getMaxPrecision(SqlTypeName.TIMESTAMP) == 3);
+    tester.checkType(
+        "timestampadd(MICROSECOND, 2, timestamp '2016-02-24 12:42:25.000000')",
+        // "2016-02-24 12:42:25.000002",
+        "TIMESTAMP(3) NOT NULL");
   }
 
   @Test public void testTimestampDiff() {

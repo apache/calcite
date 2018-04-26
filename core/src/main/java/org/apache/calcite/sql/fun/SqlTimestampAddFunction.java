@@ -54,27 +54,49 @@ import org.apache.calcite.sql.type.SqlTypeName;
  *
  * <p>Returns modified timestamp.
  */
-class SqlTimestampAddFunction extends SqlFunction {
+public class SqlTimestampAddFunction extends SqlFunction {
+
+  private static final int MILLISECOND_PRECISION = 3;
+  private static final int MICROSECOND_PRECISION = 6;
 
   private static final SqlReturnTypeInference RETURN_TYPE_INFERENCE =
       new SqlReturnTypeInference() {
         public RelDataType inferReturnType(SqlOperatorBinding opBinding) {
           final RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
-          switch (opBinding.getOperandLiteralValue(0, TimeUnit.class)) {
-          case HOUR:
-          case MINUTE:
-          case SECOND:
-          case MILLISECOND:
-          case MICROSECOND:
-            return typeFactory.createTypeWithNullability(
-                typeFactory.createSqlType(SqlTypeName.TIMESTAMP),
-                opBinding.getOperandType(1).isNullable()
-                    || opBinding.getOperandType(2).isNullable());
-          default:
-            return opBinding.getOperandType(2);
-          }
+          return deduceType(typeFactory,
+              opBinding.getOperandLiteralValue(0, TimeUnit.class),
+              opBinding.getOperandType(1), opBinding.getOperandType(2));
         }
       };
+
+  public static RelDataType deduceType(RelDataTypeFactory typeFactory,
+      TimeUnit timeUnit, RelDataType operandType1, RelDataType operandType2) {
+    switch (timeUnit) {
+    case HOUR:
+    case MINUTE:
+    case SECOND:
+    case MILLISECOND:
+    case MICROSECOND:
+      final RelDataType type;
+      switch (timeUnit) {
+      case MILLISECOND:
+        type = typeFactory.createSqlType(SqlTypeName.TIMESTAMP,
+            MILLISECOND_PRECISION);
+        break;
+      case MICROSECOND:
+        type = typeFactory.createSqlType(SqlTypeName.TIMESTAMP,
+            MICROSECOND_PRECISION);
+        break;
+      default:
+        type = typeFactory.createSqlType(SqlTypeName.TIMESTAMP);
+      }
+      return typeFactory.createTypeWithNullability(type,
+          operandType1.isNullable()
+              || operandType2.isNullable());
+    default:
+      return operandType2;
+    }
+  }
 
   /** Creates a SqlTimestampAddFunction. */
   SqlTimestampAddFunction() {
