@@ -261,6 +261,24 @@ public interface SqlConformance {
   boolean allowNiladicParentheses();
 
   /**
+   * Whether to allow SQL syntax "{@code ROW(expr1, expr2, expr3)}".
+   * <p>The equivalent syntax in standard SQL is
+   * "{@code (expr1, expr2, expr3)}".
+   *
+   * <p>Standard SQL does not allow this because the type is not
+   * well-defined. However, PostgreSQL allows this behavior.
+   *
+   * <p>Standard SQL allows row expressions in other contexts, for instance
+   * inside {@code VALUES} clause.
+   *
+   * <p>Among the built-in conformance levels, true in
+   * {@link SqlConformanceEnum#DEFAULT},
+   * {@link SqlConformanceEnum#LENIENT};
+   * false otherwise.
+   */
+  boolean allowExplicitRowValueConstructor();
+
+  /**
    * Whether to allow mixing table columns with extended columns in
    * {@code INSERT} (or {@code UPSERT}).
    *

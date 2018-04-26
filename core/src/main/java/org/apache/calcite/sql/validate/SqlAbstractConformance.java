@@ -71,6 +71,10 @@ public abstract class SqlAbstractConformance implements SqlConformance {
     return SqlConformanceEnum.DEFAULT.allowNiladicParentheses();
   }
 
+  public boolean allowExplicitRowValueConstructor() {
+    return SqlConformanceEnum.DEFAULT.allowExplicitRowValueConstructor();
+  }
+
   public boolean allowExtend() {
     return SqlConformanceEnum.DEFAULT.allowExtend();
   }
