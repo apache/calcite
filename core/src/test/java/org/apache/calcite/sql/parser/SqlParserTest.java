@@ -1016,6 +1016,26 @@ public class SqlParserTest {
         "SELECT `T`.`R`.`EXPR$1`.`EXPR$2`\n"
             + "FROM (SELECT (ROW((ROW(1, 2)), (ROW(3, 4, 5, 6)))) AS `R`\n"
             + "FROM `SALES`.`DEPTS`) AS `T`");
+
+    // Conformance DEFAULT and LENIENT support explicit row value constructor
+    conformance = SqlConformanceEnum.DEFAULT;
+    check("select row(t1a, t2a) from t1",
+          "SELECT (ROW(`T1A`, `T2A`))\n"
+            + "FROM `T1`");
+    conformance = SqlConformanceEnum.LENIENT;
+    check("select row(t1a, t2a) from t1",
+          "SELECT (ROW(`T1A`, `T2A`))\n"
+            + "FROM `T1`");
+
+    String pattern = "ROW expression encountered in illegal context";
+    conformance = SqlConformanceEnum.MYSQL_5;
+    sql("select ^row(t1a, t2a)^ from t1").fails(pattern);
+    conformance = SqlConformanceEnum.ORACLE_12;
+    sql("select ^row(t1a, t2a)^ from t1").fails(pattern);
+    conformance = SqlConformanceEnum.STRICT_2003;
+    sql("select ^row(t1a, t2a)^ from t1").fails(pattern);
+    conformance = SqlConformanceEnum.SQL_SERVER_2008;
+    sql("select ^row(t1a, t2a)^ from t1").fails(pattern);
   }
 
   @Test public void testPeriod() {
