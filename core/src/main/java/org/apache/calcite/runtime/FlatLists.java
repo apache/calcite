@@ -574,7 +574,7 @@ public class FlatLists {
             && Objects.equals(this.t1, that.t1)
             && Objects.equals(this.t2, that.t2);
       }
-      return o.equals(this);
+      return Arrays.asList(t0, t1, t2).equals(o);
     }
 
     public int hashCode() {
@@ -723,7 +723,7 @@ public class FlatLists {
             && Objects.equals(this.t2, that.t2)
             && Objects.equals(this.t3, that.t3);
       }
-      return o.equals(this);
+      return Arrays.asList(t0, t1, t2, t3).equals(o);
     }
 
     public int hashCode() {
@@ -891,7 +891,7 @@ public class FlatLists {
             && Objects.equals(this.t3, that.t3)
             && Objects.equals(this.t4, that.t4);
       }
-      return o.equals(this);
+      return Arrays.asList(t0, t1, t2, t3, t4).equals(o);
     }
 
     public int hashCode() {
@@ -1079,7 +1079,7 @@ public class FlatLists {
             && Objects.equals(this.t4, that.t4)
             && Objects.equals(this.t5, that.t5);
       }
-      return o.equals(this);
+      return Arrays.asList(t0, t1, t2, t3, t4, t5).equals(o);
     }
 
     public int hashCode() {
