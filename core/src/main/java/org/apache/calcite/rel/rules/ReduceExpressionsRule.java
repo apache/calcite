@@ -584,7 +584,7 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
       }
       RexReplacer replacer =
           new RexReplacer(simplify, removableCasts, reducedExprs,
-              Collections.nCopies(removableCasts.size(), false));
+              Collections.nCopies(removableCasts.size(), false), false);
       replacer.mutate(expList);
     }
 
@@ -599,7 +599,7 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
           Lists.newArrayList(predicates.constantMap.entrySet());
       RexReplacer replacer =
           new RexReplacer(simplify, Pair.left(pairs), Pair.right(pairs),
-              Collections.nCopies(pairs.size(), false));
+              Collections.nCopies(pairs.size(), false), false);
       replacer.mutate(constExps2);
     }
 
@@ -637,7 +637,8 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
     }
 
     RexReplacer replacer =
-        new RexReplacer(simplify, constExps, reducedValues, addCasts);
+        new RexReplacer(simplify, constExps, reducedValues, addCasts,
+            rel instanceof Project);
     replacer.mutate(expList);
     return true;
   }
@@ -757,7 +758,8 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
    * look for RexCall, since nothing else is reducible in the first place.
    */
   protected static class RexReplacer extends RexShuttle {
-    private final RexSimplify simplify;
+    private final ExprSimplifier simplifier;
+    private final RexBuilder rexBuilder;
     private final List<RexNode> reducibleExps;
     private final List<RexNode> reducedValues;
     private final List<Boolean> addCasts;
@@ -766,8 +768,10 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
         RexSimplify simplify,
         List<RexNode> reducibleExps,
         List<RexNode> reducedValues,
-        List<Boolean> addCasts) {
-      this.simplify = simplify;
+        List<Boolean> addCasts,
+        boolean matchNullability) {
+      this.simplifier = new ExprSimplifier(simplify.withUnknownAsFalse(false), matchNullability);
+      this.rexBuilder = simplify.rexBuilder;
       this.reducibleExps = reducibleExps;
       this.reducedValues = reducedValues;
       this.addCasts = addCasts;
@@ -788,7 +792,7 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
       }
       node = super.visitCall(call);
       if (node != call) {
-        node = simplify.withUnknownAsFalse(false).simplify(node);
+        node = simplifier.apply(node);
       }
       return node;
     }
@@ -810,7 +814,7 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
         // the same expression in a Project's digest where it has
         // type VARCHAR(3), and that's wrong.
         replacement =
-            simplify.rexBuilder.makeAbstractCast(call.getType(), replacement);
+            rexBuilder.makeAbstractCast(call.getType(), replacement);
       }
       return replacement;
     }

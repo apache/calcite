@@ -8397,6 +8397,26 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testPartialExpressionReduction">
+        <Resource name="sql">
+            <![CDATA[select
+    EXTRACT(SECOND FROM CAST({ts '2018-01-01 01:23:45'} AS TIMESTAMP)) =
+    EXTRACT(SECOND FROM d) 
+    FROM (VALUES({ts '2018-01-01 01:23:45'})) tbl(d)]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(EXPR$0=[=(EXTRACT(FLAG(SECOND), CAST(CASE(true, 2018-01-01 01:23:45, null)):TIMESTAMP(0)), EXTRACT(FLAG(SECOND), $0))])
+  LogicalValues(tuples=[[{ 2018-01-01 01:23:45 }]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject(EXPR$0=[CAST(=(45, EXTRACT(FLAG(SECOND), $0))):BOOLEAN])
+  LogicalValues(tuples=[[{ 2018-01-01 01:23:45 }]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testWhereNotInCorrelated2">
         <Resource name="sql">
             <![CDATA[select * from emp e1
