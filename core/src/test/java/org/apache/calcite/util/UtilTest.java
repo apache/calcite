@@ -1241,6 +1241,63 @@ public class UtilTest {
     return Arrays.asList(e0, e1, e2);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2287">[CALCITE-2287]
+   * FlatList.equals throws StackOverflowError</a>. */
+  @Test public void testFlat34Equals() {
+    List f3list = FlatLists.of(1, 2, 3);
+    List f4list = FlatLists.of(1, 2, 3, 4);
+    assertThat(f3list.equals(f4list), is(false));
+  }
+
+  @SuppressWarnings("unchecked")
+  @Test public void testFlatListN() {
+    List<List<Object>> list = new ArrayList<>();
+    list.add(FlatLists.of());
+    list.add(FlatLists.<Object>copyOf());
+    list.add(FlatLists.of("A"));
+    list.add(FlatLists.copyOf((Object) "A"));
+    list.add(FlatLists.of("A", "B"));
+    list.add(FlatLists.of((Object) "A", "B"));
+    list.add(Lists.newArrayList(Util.last(list)));
+    list.add(FlatLists.of("A", null));
+    list.add(Lists.newArrayList(Util.last(list)));
+    list.add(FlatLists.of("A", "B", "C"));
+    list.add(Lists.newArrayList(Util.last(list)));
+    list.add(FlatLists.copyOf((Object) "A", "B", "C"));
+    list.add(FlatLists.of("A", null, "C"));
+    list.add(FlatLists.of("A", "B", "C", "D"));
+    list.add(Lists.newArrayList(Util.last(list)));
+    list.add(FlatLists.copyOf((Object) "A", "B", "C", "D"));
+    list.add(FlatLists.of("A", null, "C", "D"));
+    list.add(Lists.newArrayList(Util.last(list)));
+    list.add(FlatLists.of("A", "B", "C", "D", "E"));
+    list.add(Lists.newArrayList(Util.last(list)));
+    list.add(FlatLists.copyOf((Object) "A", "B", "C", "D", "E"));
+    list.add(FlatLists.of("A", null, "C", "D", "E"));
+    list.add(FlatLists.of("A", "B", "C", "D", "E", "F"));
+    list.add(FlatLists.copyOf((Object) "A", "B", "C", "D", "E", "F"));
+    list.add(FlatLists.of("A", null, "C", "D", "E", "F"));
+    list.add((List)
+        FlatLists.of((Comparable) "A", "B", "C", "D", "E", "F", "G"));
+    list.add(FlatLists.copyOf((Object) "A", "B", "C", "D", "E", "F", "G"));
+    list.add(Lists.newArrayList(Util.last(list)));
+    list.add((List)
+        FlatLists.of((Comparable) "A", null, "C", "D", "E", "F", "G"));
+    list.add(Lists.newArrayList(Util.last(list)));
+    for (int i = 0; i < list.size(); i++) {
+      final List<Object> outer = list.get(i);
+      for (List<Object> inner : list) {
+        if (inner.toString().equals("[A, B, C,D]")) {
+          System.out.println(1);
+        }
+        boolean strEq = outer.toString().equals(inner.toString());
+        assertThat(outer.toString() + "=" + inner.toString(),
+            outer.equals(inner), is(strEq));
+      }
+    }
+  }
+
   @Test public void testFlatListProduct() {
     final List<Enumerator<List<String>>> list = new ArrayList<>();
     list.add(Linq4j.enumerator(l2(l1("a"), l1("b"))));
