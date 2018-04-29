@@ -193,7 +193,7 @@ import java.util.Map;
  * java.util.Date       TIMESTAMP
  * </pre>
  *
- * <p><a name="B5">TABLE B-5</a>: Conversions performed by {@code setObject} and
+ * <p><a id="B5">TABLE B-5</a>: Conversions performed by {@code setObject} and
  * {@code setNull} between Java object types and target JDBC types
  *
  * <!--
@@ -242,7 +242,7 @@ import java.util.Map;
  * CHECKSTYLE: ON
  * -->
  *
- * <p><a name="B6">TABLE B-6</a>: Use of {@code ResultSet} getter methods to
+ * <p><a id="B6">TABLE B-6</a>: Use of {@code ResultSet} getter methods to
  * retrieve JDBC data types
  *
  * <!--

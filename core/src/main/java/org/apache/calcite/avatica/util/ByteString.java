@@ -100,7 +100,7 @@ public class ByteString implements Comparable<ByteString>, Serializable {
   /**
    * Returns the given byte array in hexadecimal format.
    *
-   * <p>For example, <tt>toString(new byte[] {0xDE, 0xAD})</tt>
+   * <p>For example, <code>toString(new byte[] {0xDE, 0xAD})</code>
    * returns {@code "DEAD"}.</p>
    *
    * @param bytes Array of bytes
@@ -149,7 +149,7 @@ public class ByteString implements Comparable<ByteString>, Serializable {
   /**
    * Creates a byte string from a hexadecimal or binary string.
    *
-   * <p>For example, <tt>of("DEAD", 16)</tt>
+   * <p>For example, <code>of("DEAD", 16)</code>
    * returns the same as {@code ByteString(new byte[] {0xDE, 0xAD})}.
    *
    * @param string Array of bytes
@@ -269,8 +269,8 @@ public class ByteString implements Comparable<ByteString>, Serializable {
    * Returns the byte at a given position in the byte string.
    *
    * @param i Index
-   * @throws  IndexOutOfBoundsException if the <tt>index</tt> argument is
-   *          negative or not less than <tt>length()</tt>
+   * @throws  IndexOutOfBoundsException if the <code>index</code> argument is
+   *          negative or not less than <code>length()</code>
    * @return Byte at given position
    */
   public byte byteAt(int i) {
