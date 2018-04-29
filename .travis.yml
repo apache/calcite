@@ -45,7 +45,7 @@ install:
 script:
   # Print surefire output to the console instead of files
   - unset _JAVA_OPTIONS
-  - $DOCKERRUN $IMAGE mvn -Dsurefire.useFile=false verify
+  - $DOCKERRUN $IMAGE mvn -Dsurefire.useFile=false verify javadoc:javadoc javadoc:test-javadoc
 git:
   depth: 10000
 sudo: required
