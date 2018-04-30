@@ -2839,6 +2839,20 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).with(tester).ok();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2290">[CALCITE-2290]
+   * Type mismatch during flattening</a>. */
+  @Test public void testCaseFlatten() {
+    final String sql = "SELECT (res1 = 'qwe') res2 "
+        + "FROM ("
+        + "  SELECT ("
+        + "    CASE WHEN (FALSE) "
+        + "      THEN NULL"
+        + "      ELSE 'qwe'"
+        + "    END) res1 FROM (values(1)))";
+    sql(sql).ok();
+  }
+
   /**
    * Visitor that checks that every {@link RelNode} in a tree is valid.
    *

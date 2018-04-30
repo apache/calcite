@@ -5244,4 +5244,22 @@ LogicalProject(A=[$0], B=[$1])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testCaseFlatten">
+        <Resource name="sql">
+            <![CDATA[SELECT (res1 = 'qwe') res2 
+FROM (
+  SELECT (
+    CASE WHEN (FALSE)
+      THEN NULL
+      ELSE 'qwe'
+    END) res1 FROM (values(1)))]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(RES2=[=($0, 'qwe')])
+  LogicalProject(RES1=[CAST('qwe'):CHAR(3) CHARACTER SET "ISO-8859-1" COLLATE "ISO-8859-1$en_US$primary"])
+    LogicalValues(tuples=[[{ 1 }]])
+]]>
+        </Resource>
+    </TestCase>
 </Root>

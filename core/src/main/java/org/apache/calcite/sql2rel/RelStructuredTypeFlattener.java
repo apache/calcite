@@ -827,7 +827,8 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
         RelDataType targetType = removeDistinct(rexCall.getType());
         return rexBuilder.makeCast(
             targetType,
-            input);
+            input,
+            true);
       }
       if (!rexCall.isA(SqlKind.COMPARISON)) {
         return super.visitCall(rexCall);
