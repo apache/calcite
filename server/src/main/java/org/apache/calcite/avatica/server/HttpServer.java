@@ -48,7 +48,10 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.security.Principal;
 import java.security.PrivilegedAction;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.Set;
@@ -75,6 +78,7 @@ public class HttpServer {
   private final AvaticaServerConfiguration config;
   private final Subject subject;
   private final SslContextFactory sslFactory;
+  private final List<ServerCustomizer<Server>> serverCustomizers;
   private final int maxAllowedHeaderSize;
 
   @Deprecated
@@ -134,9 +138,12 @@ public class HttpServer {
    * @param subject The javax.security Subject for the server, or null
    * @param sslFactory A configured SslContextFactory, or null
    */
-  public HttpServer(int port, AvaticaHandler handler, AvaticaServerConfiguration config,
-      Subject subject, SslContextFactory sslFactory) {
-    this(port, handler, config, subject, sslFactory, MAX_ALLOWED_HEADER_SIZE);
+  public HttpServer(int port, AvaticaHandler handler,
+      AvaticaServerConfiguration config, Subject subject,
+      SslContextFactory sslFactory) {
+    this(port, handler, config, subject, sslFactory,
+        Collections.<ServerCustomizer<Server>>emptyList(),
+        MAX_ALLOWED_HEADER_SIZE);
   }
 
   /**
@@ -150,11 +157,29 @@ public class HttpServer {
    */
   public HttpServer(int port, AvaticaHandler handler, AvaticaServerConfiguration config,
       Subject subject, SslContextFactory sslFactory, int maxAllowedHeaderSize) {
+    this(port, handler, config, subject, sslFactory,
+        Collections.<ServerCustomizer<Server>>emptyList(),
+        maxAllowedHeaderSize);
+  }
+
+  /**
+   * Constructs an {@link HttpServer}.
+   * @param port The listen port
+   * @param handler The Handler to run
+   * @param config Optional configuration for the server
+   * @param subject The javax.security Subject for the server, or null
+   * @param sslFactory A configured SslContextFactory, or null
+   * @param maxAllowedHeaderSize A maximum size in bytes that are allowed in an HTTP header
+   */
+  private HttpServer(int port, AvaticaHandler handler, AvaticaServerConfiguration config,
+      Subject subject, SslContextFactory sslFactory,
+      List<ServerCustomizer<Server>> serverCustomizers, int maxAllowedHeaderSize) {
     this.port = port;
     this.handler = handler;
     this.config = config;
     this.subject = subject;
     this.sslFactory = sslFactory;
+    this.serverCustomizers = serverCustomizers;
     this.maxAllowedHeaderSize = maxAllowedHeaderSize;
   }
 
@@ -226,6 +251,11 @@ public class HttpServer {
     handlerList.setHandlers(new Handler[] {avaticaHandler, new DefaultHandler()});
 
     server.setHandler(handlerList);
+    // Apply server customizers
+    for (ServerCustomizer<Server> customizer : this.serverCustomizers) {
+      customizer.customize(server);
+    }
+
     try {
       server.start();
     } catch (Exception e) {
@@ -405,7 +435,7 @@ public class HttpServer {
   /**
    * Builder class for creating instances of {@link HttpServer}.
    */
-  public static class Builder {
+  public static class Builder<T> {
     private int port;
 
     private Service service;
@@ -433,12 +463,23 @@ public class HttpServer {
     private File truststore;
     private String truststorePassword;
 
+    private List<ServerCustomizer<T>> serverCustomizers = Collections.emptyList();
+
     // The maximum size in bytes of an http header the server will read (64KB)
     private int maxAllowedHeaderSize = MAX_ALLOWED_HEADER_SIZE;
 
     public Builder() {}
 
-    public Builder withPort(int port) {
+    /**
+     * Creates a typed Builder for Server customization.
+     * @param <T> The type of HttpServer
+     * @return A typed Builder
+     */
+    public static <T> Builder<T> newBuilder() {
+      return new Builder<>();
+    }
+
+    public Builder<T> withPort(int port) {
       this.port = port;
       return this;
     }
@@ -451,7 +492,7 @@ public class HttpServer {
      * @param serialization The serialization method
      * @return <code>this</code>
      */
-    public Builder withHandler(Service service, Serialization serialization) {
+    public Builder<T> withHandler(Service service, Serialization serialization) {
       this.service = Objects.requireNonNull(service);
       this.serialization = Objects.requireNonNull(serialization);
       return this;
@@ -464,7 +505,7 @@ public class HttpServer {
      * @param handler The handler
      * @return <code>this</code>
      */
-    public Builder withHandler(AvaticaHandler handler) {
+    public Builder<T> withHandler(AvaticaHandler handler) {
       this.handler = Objects.requireNonNull(handler);
       return this;
     }
@@ -475,7 +516,7 @@ public class HttpServer {
      * @param metricsConfig Configuration object for metrics.
      * @return <code>this</code>
      */
-    public Builder withMetricsConfiguration(MetricsSystemConfiguration<?> metricsConfig) {
+    public Builder<T> withMetricsConfiguration(MetricsSystemConfiguration<?> metricsConfig) {
       this.metricsConfig = Objects.requireNonNull(metricsConfig);
       return this;
     }
@@ -488,7 +529,7 @@ public class HttpServer {
      * @param principal A kerberos principal with the realm required.
      * @return <code>this</code>
      */
-    public Builder withSpnego(String principal) {
+    public Builder<T> withSpnego(String principal) {
       return withSpnego(principal, (String[]) null);
     }
 
@@ -504,7 +545,7 @@ public class HttpServer {
      *    should be allowed to authenticate against the server. Can be null.
      * @return <code>this</code>
      */
-    public Builder withSpnego(String principal, String[] additionalAllowedRealms) {
+    public Builder<T> withSpnego(String principal, String[] additionalAllowedRealms) {
       int index = Objects.requireNonNull(principal).lastIndexOf('@');
       if (-1 == index) {
         throw new IllegalArgumentException("Could not find '@' symbol in '" + principal
@@ -525,7 +566,7 @@ public class HttpServer {
      * @param realm The kerberos realm
      * @return <code>this</code>
      */
-    public Builder withSpnego(String principal, String realm) {
+    public Builder<T> withSpnego(String principal, String realm) {
       return this.withSpnego(principal, realm, null);
     }
 
@@ -543,7 +584,7 @@ public class HttpServer {
      *    should be allowed to authenticate against the server. Can be null.
      * @return <code>this</code>
      */
-    public Builder withSpnego(String principal, String realm, String[] additionalAllowedRealms) {
+    public Builder<T> withSpnego(String principal, String realm, String[] additionalAllowedRealms) {
       this.authenticationType = AuthenticationType.SPNEGO;
       this.kerberosPrincipal = Objects.requireNonNull(principal);
       this.kerberosRealm = Objects.requireNonNull(realm);
@@ -557,7 +598,7 @@ public class HttpServer {
      * @param keytab A KeyTab file for the server's login.
      * @return <code>this</code>
      */
-    public Builder withAutomaticLogin(File keytab) {
+    public Builder<T> withAutomaticLogin(File keytab) {
       this.keytab = Objects.requireNonNull(keytab);
       return this;
     }
@@ -569,7 +610,7 @@ public class HttpServer {
      * @param remoteUserCallback User-provided implementation of the callback
      * @return <code>this</code>
      */
-    public Builder withImpersonation(DoAsRemoteUserCallback remoteUserCallback) {
+    public Builder<T> withImpersonation(DoAsRemoteUserCallback remoteUserCallback) {
       this.remoteUserCallback = Objects.requireNonNull(remoteUserCallback);
       return this;
     }
@@ -599,7 +640,7 @@ public class HttpServer {
      * @param allowedRoles An array of allowed roles in the properties file
      * @return <code>this</code>
      */
-    public Builder withBasicAuthentication(String properties, String[] allowedRoles) {
+    public Builder<T> withBasicAuthentication(String properties, String[] allowedRoles) {
       return withAuthentication(AuthenticationType.BASIC, properties, allowedRoles);
     }
 
@@ -614,11 +655,11 @@ public class HttpServer {
      * @param allowedRoles An array of allowed roles in the properties file
      * @return <code>this</code>
      */
-    public Builder withDigestAuthentication(String properties, String[] allowedRoles) {
+    public Builder<T> withDigestAuthentication(String properties, String[] allowedRoles) {
       return withAuthentication(AuthenticationType.DIGEST, properties, allowedRoles);
     }
 
-    private Builder withAuthentication(AuthenticationType authType, String properties,
+    private Builder<T> withAuthentication(AuthenticationType authType, String properties,
         String[] allowedRoles) {
       this.loginServiceRealm = "Avatica";
       this.authenticationType = authType;
@@ -636,7 +677,7 @@ public class HttpServer {
      * @param truststorePassword The truststore's password
      * @return <code>this</code>
      */
-    public Builder withTLS(File keystore, String keystorePassword, File truststore,
+    public Builder<T> withTLS(File keystore, String keystorePassword, File truststore,
         String truststorePassword) {
       this.usingTLS = true;
       this.keystore = Objects.requireNonNull(keystore);
@@ -647,12 +688,29 @@ public class HttpServer {
     }
 
     /**
+     * Adds customizers to configure a Server before startup.
+     *
+     * @param serverCustomizers The customizers to use
+     * @param clazz The type of server to customize
+     * @return <code>this</code>
+     */
+    public Builder<T> withServerCustomizers(List<ServerCustomizer<T>> serverCustomizers,
+        Class<T> clazz) {
+      Objects.requireNonNull(clazz);
+      if (!clazz.isAssignableFrom(Server.class)) {
+        throw new IllegalArgumentException("Only Jetty Server customizers are supported");
+      }
+      this.serverCustomizers = Objects.requireNonNull(serverCustomizers);
+      return this;
+    }
+
+    /**
      * Configures the maximum size, in bytes, of an HTTP header that the server will read.
      *
      * @param maxHeaderSize Maximums HTTP header size in bytes
      * @return <code>this</code>
      */
-    public Builder withMaxHeaderSize(int maxHeaderSize) {
+    public Builder<T> withMaxHeaderSize(int maxHeaderSize) {
       this.maxAllowedHeaderSize = maxHeaderSize;
       return this;
     }
@@ -661,6 +719,7 @@ public class HttpServer {
      * Builds the HttpServer instance from <code>this</code>.
      * @return An HttpServer.
      */
+    @SuppressWarnings("unchecked")
     public HttpServer build() {
       final AvaticaServerConfiguration serverConfig;
       final Subject subject;
@@ -702,7 +761,13 @@ public class HttpServer {
         sslFactory.setTrustStorePassword(truststorePassword);
       }
 
-      return new HttpServer(port, handler, serverConfig, subject, sslFactory,
+      List<ServerCustomizer<Server>> jettyCustomizers = new ArrayList<>();
+      for (ServerCustomizer<?> customizer : this.serverCustomizers) {
+        // Type checked in withServerCustomizers
+        jettyCustomizers.add((ServerCustomizer<Server>) customizer);
+      }
+
+      return new HttpServer(port, handler, serverConfig, subject, sslFactory, jettyCustomizers,
           maxAllowedHeaderSize);
     }
 
