@@ -57,6 +57,10 @@ class RelDataTypeHolder {
       if (Util.matches(caseSensitive, f.getName(), fieldName)) {
         return Pair.of(f, false);
       }
+      // dynamic star field match with any field.
+      if (f.getType().getSqlTypeName() == SqlTypeName.DYNAMIC_STAR) {
+        return Pair.of(f, false);
+      }
     }
 
     final SqlTypeName typeName = DynamicRecordType.isDynamicStarColName(fieldName)
