@@ -200,8 +200,9 @@ public class OsAdapterTest {
   @Test public void testGitCommitsTop() {
     Assume.assumeTrue("no git", hasGit());
     final String q = "select author from git_commits\n"
-        + "group by 1 order by count(*) desc limit 1";
-    sql(q).returnsUnordered("author=Julian Hyde <julianhyde@gmail.com>");
+        + "group by 1 order by count(*) desc limit 2";
+    sql(q).returnsUnordered("author=Julian Hyde <julianhyde@gmail.com>",
+        "author=Julian Hyde <jhyde@apache.org>");
   }
 
   @Test public void testVmstat() {
