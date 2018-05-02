@@ -22,7 +22,7 @@
 # Build classpath on first call.
 # (To force rebuild, remove target/fullclasspath.txt.)
 
-root=$(cd $(dirname $(readlink $0)); pwd)
+root=$(cd "$(dirname "$(readlink $0)")"; pwd)
 
 if [ ! -f ${root}/target/fullclasspath.txt ]; then
   (
