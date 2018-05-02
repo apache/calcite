@@ -35,6 +35,7 @@ import org.apache.calcite.util.Util;
 import com.google.common.collect.Lists;
 import com.google.common.io.PatternFilenameFilter;
 
+import net.hydromatic.quidem.CommandHandler;
 import net.hydromatic.quidem.Quidem;
 
 import org.junit.Test;
@@ -152,7 +153,11 @@ public abstract class QuidemTest {
     try (final Reader reader = Util.reader(inFile);
          final Writer writer = Util.printWriter(outFile);
          final Closer closer = new Closer()) {
-      new Quidem(reader, writer, QuidemTest::getEnv, createConnectionFactory())
+      final Quidem.Config config = Quidem.configBuilder()
+          .withReader(reader)
+          .withWriter(writer)
+          .withConnectionFactory(createConnectionFactory())
+          .withCommandHandler(createCommandHandler())
           .withPropertyHandler((propertyName, value) -> {
             if (propertyName.equals("bindable")) {
               final boolean b = value instanceof Boolean
@@ -165,13 +170,20 @@ public abstract class QuidemTest {
               closer.add(Prepare.THREAD_EXPAND.push(b));
             }
           })
-          .execute();
+          .withEnv(QuidemTest::getEnv)
+          .build();
+      new Quidem(config).execute();
     }
     final String diff = DiffTestCase.diff(inFile, outFile);
     if (!diff.isEmpty()) {
       fail("Files differ: " + outFile + " " + inFile + "\n"
           + diff);
     }
+  }
+
+  /** Creates a command handler. */
+  protected CommandHandler createCommandHandler() {
+    return Quidem.EMPTY_COMMAND_HANDLER;
   }
 
   /** Creates a connection factory. */
@@ -246,7 +258,6 @@ public abstract class QuidemTest {
         return CalciteAssert.that()
             .with(CalciteAssert.Config.REGULAR)
             .with(CalciteAssert.SchemaSpec.POST)
-            .withDefaultSchema("POST")
             .connect();
       case "catchall":
         return CalciteAssert.that()
@@ -257,7 +268,6 @@ public abstract class QuidemTest {
       case "orinoco":
         return CalciteAssert.that()
             .with(CalciteAssert.SchemaSpec.ORINOCO)
-            .withDefaultSchema("ORINOCO")
             .connect();
       case "blank":
         return CalciteAssert.that()
@@ -265,7 +275,6 @@ public abstract class QuidemTest {
                 "org.apache.calcite.sql.parser.parserextensiontesting"
                     + ".ExtensionSqlParserImpl#FACTORY")
             .with(CalciteAssert.SchemaSpec.BLANK)
-            .withDefaultSchema("BLANK")
             .connect();
       case "seq":
         final Connection connection = CalciteAssert.that()

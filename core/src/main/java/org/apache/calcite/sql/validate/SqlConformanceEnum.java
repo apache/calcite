@@ -23,8 +23,13 @@ public enum SqlConformanceEnum implements SqlConformance {
   /** Calcite's default SQL behavior. */
   DEFAULT,
 
-  /** Conformance value that allows just about everything. */
+  /** Conformance value that allows just about everything supported by
+   * Calcite. */
   LENIENT,
+
+  /** Conformance value that allows anything supported by any dialect.
+   * Even more liberal than {@link #LENIENT}. */
+  BABEL,
 
   /** Conformance value that instructs Calcite to use SQL semantics strictly
    * consistent with the SQL:92 standard. */
@@ -66,8 +71,18 @@ public enum SqlConformanceEnum implements SqlConformance {
    * consistent with Microsoft SQL Server version 2008. */
   SQL_SERVER_2008;
 
+  public boolean isLiberal() {
+    switch (this) {
+    case BABEL:
+      return true;
+    default:
+      return false;
+    }
+  }
+
   public boolean isGroupByAlias() {
     switch (this) {
+    case BABEL:
     case LENIENT:
     case MYSQL_5:
       return true;
@@ -78,6 +93,7 @@ public enum SqlConformanceEnum implements SqlConformance {
 
   public boolean isGroupByOrdinal() {
     switch (this) {
+    case BABEL:
     case LENIENT:
     case MYSQL_5:
       return true;
@@ -88,6 +104,7 @@ public enum SqlConformanceEnum implements SqlConformance {
 
   public boolean isHavingAlias() {
     switch (this) {
+    case BABEL:
     case LENIENT:
     case MYSQL_5:
       return true;
@@ -99,6 +116,7 @@ public enum SqlConformanceEnum implements SqlConformance {
   public boolean isSortByOrdinal() {
     switch (this) {
     case DEFAULT:
+    case BABEL:
     case LENIENT:
     case MYSQL_5:
     case ORACLE_10:
@@ -116,6 +134,7 @@ public enum SqlConformanceEnum implements SqlConformance {
   public boolean isSortByAlias() {
     switch (this) {
     case DEFAULT:
+    case BABEL:
     case LENIENT:
     case MYSQL_5:
     case ORACLE_10:
@@ -148,6 +167,7 @@ public enum SqlConformanceEnum implements SqlConformance {
   public boolean isBangEqualAllowed() {
     switch (this) {
     case LENIENT:
+    case BABEL:
     case MYSQL_5:
     case ORACLE_10:
     case ORACLE_12:
@@ -159,6 +179,7 @@ public enum SqlConformanceEnum implements SqlConformance {
 
   @Override public boolean isMinusAllowed() {
     switch (this) {
+    case BABEL:
     case LENIENT:
     case ORACLE_10:
     case ORACLE_12:
@@ -170,6 +191,7 @@ public enum SqlConformanceEnum implements SqlConformance {
 
   @Override public boolean isPercentRemainderAllowed() {
     switch (this) {
+    case BABEL:
     case LENIENT:
     case MYSQL_5:
       return true;
@@ -180,6 +202,7 @@ public enum SqlConformanceEnum implements SqlConformance {
 
   public boolean isApplyAllowed() {
     switch (this) {
+    case BABEL:
     case LENIENT:
     case SQL_SERVER_2008:
     case ORACLE_12:
@@ -191,6 +214,7 @@ public enum SqlConformanceEnum implements SqlConformance {
 
   public boolean isInsertSubsetColumnsAllowed() {
     switch (this) {
+    case BABEL:
     case LENIENT:
     case PRAGMATIC_99:
     case PRAGMATIC_2003:
@@ -202,6 +226,7 @@ public enum SqlConformanceEnum implements SqlConformance {
 
   public boolean allowNiladicParentheses() {
     switch (this) {
+    case BABEL:
     case LENIENT:
     case MYSQL_5:
       return true;
@@ -222,6 +247,7 @@ public enum SqlConformanceEnum implements SqlConformance {
 
   public boolean allowExtend() {
     switch (this) {
+    case BABEL:
     case LENIENT:
       return true;
     default:
@@ -231,6 +257,7 @@ public enum SqlConformanceEnum implements SqlConformance {
 
   public boolean isLimitStartCountAllowed() {
     switch (this) {
+    case BABEL:
     case LENIENT:
     case MYSQL_5:
       return true;
@@ -241,6 +268,7 @@ public enum SqlConformanceEnum implements SqlConformance {
 
   public boolean allowGeometry() {
     switch (this) {
+    case BABEL:
     case LENIENT:
     case MYSQL_5:
     case SQL_SERVER_2008:

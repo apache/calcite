@@ -136,6 +136,18 @@ limitations under the License.
     <xerces.version>2.9.1</xerces.version>
     <sketches.version>0.9.0</sketches.version>
     <fmpp.version>0.9.14</fmpp.version>
+
+    <!-- Other properties (not version numbers) -->
+    <maven-javadoc-plugin.excludePackageNames>
+      org.apache.calcite.benchmarks.generated,
+      org.apache.calcite.sql.parser.babel,
+      org.apache.calcite.sql.parser.ddl,
+      org.apache.calcite.sql.parser.impl,
+      org.apache.calcite.sql.parser.parserextensiontesting,
+      org.apache.calcite.piglet.parser,
+      org.openjdk.jmh,org.apache.calcite.adapter.elasticsearch2
+    </maven-javadoc-plugin.excludePackageNames>
+    <maven-javadoc-plugin.link>https://docs.oracle.com/javase/9/docs/api/</maven-javadoc-plugin.link>
   </properties>
 
   <issueManagement>
@@ -151,6 +163,7 @@ limitations under the License.
   </scm>
 
   <modules>
+    <module>babel</module>
     <module>cassandra</module>
     <module>core</module>
     <module>druid</module>
@@ -720,9 +733,9 @@ limitations under the License.
         <configuration>
           <additionalparam>-html5</additionalparam>
           <links>
-            <link>https://docs.oracle.com/javase/9/docs/api/</link>
+            <link>${maven-javadoc-plugin.link}</link>
           </links>
-          <excludePackageNames>org.apache.calcite.benchmarks.generated,org.apache.calcite.sql.parser.ddl,org.apache.calcite.sql.parser.impl,org.apache.calcite.sql.parser.parserextensiontesting,org.apache.calcite.piglet.parser,org.openjdk.jmh,org.apache.calcite.adapter.elasticsearch2</excludePackageNames>
+          <excludePackageNames>${maven-javadoc-plugin.excludePackageNames}</excludePackageNames>
           <show>private</show>
         </configuration>
       </plugin>
@@ -960,9 +973,9 @@ limitations under the License.
         <version>${maven-javadoc-plugin.version}</version>
         <configuration>
           <links>
-            <link>https://docs.oracle.com/javase/8/docs/api/</link>
+            <link>${maven-javadoc-plugin.link}</link>
           </links>
-          <excludePackageNames>org.apache.calcite.benchmarks.generated,org.apache.calcite.sql.parser.ddl,org.apache.calcite.sql.parser.impl,org.apache.calcite.sql.parser.parserextensiontesting,org.apache.calcite.piglet.parser,org.openjdk.jmh,org.apache.calcite.adapter.elasticsearch2</excludePackageNames>
+          <excludePackageNames>${maven-javadoc-plugin.excludePackageNames}</excludePackageNames>
           <notimestamp>true</notimestamp>
           <windowtitle>Apache Calcite API</windowtitle>
         </configuration>

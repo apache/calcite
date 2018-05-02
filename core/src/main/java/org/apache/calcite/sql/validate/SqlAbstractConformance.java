@@ -23,6 +23,10 @@ package org.apache.calcite.sql.validate;
  * and behaves the same as in {@link SqlConformanceEnum#DEFAULT}.
  */
 public abstract class SqlAbstractConformance implements SqlConformance {
+  public boolean isLiberal() {
+    return SqlConformanceEnum.DEFAULT.isLiberal();
+  }
+
   public boolean isGroupByAlias() {
     return SqlConformanceEnum.DEFAULT.isGroupByAlias();
   }
