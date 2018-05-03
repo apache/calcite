@@ -1641,7 +1641,7 @@ public class DruidAdapterIT {
         + "'ordering':'numeric'},{'type':'bound','dimension':'units_per_case','upper':'15',"
         + "'upperStrict':true,'ordering':'numeric'}]},'aggregations':[{'type':'doubleSum',"
         + "'name':'EXPR$0','fieldName':'store_sales'}],'intervals':['1997-01-01T00:00:00.000Z/"
-        + "1998-01-01T00:00:00.000Z'],'context':{'skipEmptyBuckets':true}}";
+        + "1998-01-01T00:00:00.000Z'],'context':{'skipEmptyBuckets':false}}";
     sql(sql)
         .explainContains("PLAN=EnumerableInterpreter\n"
             + "  DruidQuery(table=[[foodmart, foodmart]], "
@@ -2399,7 +2399,7 @@ public class DruidAdapterIT {
             + "'granularity':'all','filter':{'type':'bound','dimension':'the_year','lower':'1997',"
             + "'lowerStrict':false,'ordering':'numeric'},'aggregations':[{'type':'doubleSum','name'"
             + ":'EXPR$0','fieldName':'store_sales'}],'intervals':['1900-01-09T00:00:00.000Z/2992-01"
-            + "-10T00:00:00.000Z'],'context':{'skipEmptyBuckets':true}}";
+            + "-10T00:00:00.000Z'],'context':{'skipEmptyBuckets':false}}";
 
     sql(sql).queryContains(druidChecker(expectedQuery));
   }
@@ -2414,7 +2414,7 @@ public class DruidAdapterIT {
     String expectedQuery = "{'queryType':'timeseries','dataSource':'foodmart','descending':false,"
             + "'granularity':'all','aggregations':[{'type':'doubleSum','name':'EXPR$0','fieldName':"
             + "'store_sales'}],'intervals':['1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z'],"
-            + "'context':{'skipEmptyBuckets':true}}";
+            + "'context':{'skipEmptyBuckets':false}}";
 
     sql(sql).queryContains(druidChecker(expectedQuery));
   }
@@ -2432,7 +2432,7 @@ public class DruidAdapterIT {
             + "'granularity':'all','aggregations':[{'type':'doubleSum','name':'EXPR$0','fieldName':"
             + "'store_sales'},{'type':'doubleSum','name':'EXPR$1','fieldName':'store_cost'}],"
             + "'intervals':['1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z'],"
-            + "'context':{'skipEmptyBuckets':true}}";
+            + "'context':{'skipEmptyBuckets':false}}";
 
     sql(sql).queryContains(druidChecker(expectedQuery));
   }
@@ -2454,7 +2454,7 @@ public class DruidAdapterIT {
             + "'store_state','value':'CA'},'aggregator':{'type':'doubleSum','name':'EXPR$1',"
             + "'fieldName':'store_cost'}}],'intervals':"
             + "['1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z'],"
-            + "'context':{'skipEmptyBuckets':true}}";
+            + "'context':{'skipEmptyBuckets':false}}";
 
     sql(sql).queryContains(druidChecker(expectedQuery));
   }
@@ -2474,7 +2474,7 @@ public class DruidAdapterIT {
             + "'fieldName':'store_sales'},{'type':'doubleSum','name':'EXPR$1',"
             + "'fieldName':'store_cost'}],'intervals':"
             + "['1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z'],"
-            + "'context':{'skipEmptyBuckets':true}}";
+            + "'context':{'skipEmptyBuckets':false}}";
 
     sql(sql).queryContains(druidChecker(expectedQuery));
   }
@@ -2498,7 +2498,7 @@ public class DruidAdapterIT {
                 + "\"aggregations\":[{\"type\":\"doubleSum\",\"name\":\"EXPR$0\","
                 + "\"fieldName\":\"store_sales\"}],"
                 + "\"intervals\":[\"1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z\"],"
-                + "\"context\":{\"skipEmptyBuckets\":true}}"))
+                + "\"context\":{\"skipEmptyBuckets\":false}}"))
         .explainContains(expectedSubExplain);
   }
 
@@ -2517,7 +2517,6 @@ public class DruidAdapterIT {
                 + "($0)]])";
 
     sql(sql)
-        .returnsOrdered("")
         .explainContains(expectedSubExplain)
         .queryContains(
             druidChecker("\"filter\":{\"type"
@@ -2538,7 +2537,7 @@ public class DruidAdapterIT {
             + "'granularity':'all','filter':{'type':'selector','dimension':'store_city','value':"
             + "'Seattle'},'aggregations':[{'type':'doubleSum','name':'EXPR$0','fieldName':"
             + "'store_sales'}],'intervals':['1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z'],"
-            + "'context':{'skipEmptyBuckets':true}}";
+            + "'context':{'skipEmptyBuckets':false}}";
 
     sql(sql)
         .queryContains(druidChecker(expectedQuery))
@@ -2557,7 +2556,7 @@ public class DruidAdapterIT {
             + "'dimension':'store_state','value':'CA'},'aggregator':{'type':'doubleSum','name':"
             + "'EXPR$0','fieldName':'store_sales'}},{'type':'doubleSum','name':'EXPR$1','fieldName'"
             + ":'store_cost'}],'intervals':['1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z'],"
-            + "'context':{'skipEmptyBuckets':true}}";
+            + "'context':{'skipEmptyBuckets':false}}";
 
     sql(sql).queryContains(druidChecker(expectedQuery));
   }
@@ -2577,7 +2576,7 @@ public class DruidAdapterIT {
             + "'type':'doubleSum','name':'EXPR$0','fieldName':'store_sales'}},{'type':'doubleSum',"
             + "'name':'EXPR$1','fieldName':'store_cost'}],"
             + "'intervals':['1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z'],"
-            + "'context':{'skipEmptyBuckets':true}}";
+            + "'context':{'skipEmptyBuckets':false}}";
 
     sql(sql).queryContains(druidChecker(expectedQuery));
   }
@@ -2600,7 +2599,7 @@ public class DruidAdapterIT {
             + "'dimension':'store_state','value':'WA'},'aggregator':{'type':'doubleSum','name':"
             + "'EXPR$1','fieldName':'store_sales'}}],'intervals':"
             + "['1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z'],"
-            + "'context':{'skipEmptyBuckets':true}}";
+            + "'context':{'skipEmptyBuckets':false}}";
 
     sql(sql)
         .queryContains(druidChecker(expectedQuery))
@@ -2626,7 +2625,7 @@ public class DruidAdapterIT {
             + "'dimension':'store_state','value':'WA'},'aggregator':{'type':'doubleSum','name':"
             + "'EXPR$1','fieldName':'store_sales'}}],'intervals':"
             + "['1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z'],"
-            + "'context':{'skipEmptyBuckets':true}}";
+            + "'context':{'skipEmptyBuckets':false}}";
 
     sql(sql)
         .queryContains(druidChecker(expectedQuery))
@@ -2654,7 +2653,7 @@ public class DruidAdapterIT {
             + "'Super'}]},'aggregations':[{'type':'doubleSum','name':'EXPR$0','fieldName':"
             + "'store_sales'},{'type':'doubleSum','name':'EXPR$1','fieldName':'store_cost'}],"
             + "'intervals':['1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z'],"
-            + "'context':{'skipEmptyBuckets':true}}";
+            + "'context':{'skipEmptyBuckets':false}}";
 
     sql(sql)
         .queryContains(druidChecker(expectedQuery))
@@ -2679,10 +2678,10 @@ public class DruidAdapterIT {
     String expectedFilter = "filter':{'type':'and','fields':[{'type':'bound','dimension':'the_year'"
             + ",'lower':'1997','lowerStrict':true,'ordering':'numeric'},{'type':'bound',"
             + "'dimension':'the_year','upper':'1997','upperStrict':false,'ordering':'numeric'}]}";
+    String context = "'skipEmptyBuckets':false";
 
     sql(sql)
-        .queryContains(druidChecker(expectedFilter))
-        .returnsUnordered("");
+        .queryContains(druidChecker(expectedFilter, context));
   }
 
   /**
@@ -3014,7 +3013,7 @@ public class DruidAdapterIT {
                             + "'foodmart','descending':false,'granularity':'all','aggregations':[{'type':"
                             + "'thetaSketch','name':'EXPR$0','fieldName':'customer_id_ts'}],"
                             + "'intervals':['1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z'],"
-                            + "'context':{'skipEmptyBuckets':true}}"))
+                            + "'context':{'skipEmptyBuckets':false}}"))
             .returnsUnordered("EXPR$0=5581");
 
     foodmartApprox("select sum(\"store_sales\"), "
@@ -3163,7 +3162,7 @@ public class DruidAdapterIT {
             + "'lowerStrict':false,'upper':'1016.0','upperStrict':false,'ordering':'numeric'},"
             + "'aggregations':[{'type':'doubleSum','name':'A','fieldName':'store_cost'}],"
             + "'intervals':['1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z'],"
-            + "'context':{'skipEmptyBuckets':true}}";
+            + "'context':{'skipEmptyBuckets':false}}";
     sql(sqlQuery, FOODMART)
         .explainContains(plan)
         .queryContains(druidChecker(druidQuery))
@@ -3189,7 +3188,7 @@ public class DruidAdapterIT {
             + "'filter':{'type':'not','field':{'type':'bound','dimension':'product_id','"
             + "lower':'1016.0','lowerStrict':false,'upper':'1016.0','upperStrict':false,'ordering':'numeric'}},"
             + "'aggregations':[{'type':'doubleSum','name':'A','fieldName':'store_cost'}],"
-            + "'intervals':['1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z'],'context':{'skipEmptyBuckets':true}}";
+            + "'intervals':['1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z'],'context':{'skipEmptyBuckets':false}}";
     sql(sqlQuery, FOODMART)
         .explainContains(plan)
         .returnsUnordered("A=225541.91720000014")
@@ -4192,7 +4191,7 @@ public class DruidAdapterIT {
         + "'field':{'type':'selector','dimension':'product_id','value':null}},'aggregator':"
         + "{'type':'count','name':'EXPR$0','fieldName':'product_id'}}},"
         + "{'type':'count','name':'EXPR$1'}],'intervals':['1900-01-09T00:00:00.000Z/"
-        + "2992-01-10T00:00:00.000Z'],'context':{'skipEmptyBuckets':true}}";
+        + "2992-01-10T00:00:00.000Z'],'context':{'skipEmptyBuckets':false}}";
 
     sql(sql, FOODMART)
         .returnsOrdered("EXPR$0=24441; EXPR$1=86829")
@@ -4518,6 +4517,19 @@ public class DruidAdapterIT {
                     + "\"virtualColumns\":[{\"type\":\"expression\",\"name\":\"vc\",\"expression\":\"timestamp_extract(\\\"__time\\\",",
                 "QUARTER"
             ));
+  }
+
+
+  // Case https://issues.apache.org/jira/browse/CALCITE-2262
+  @Test
+  public void testSelectCountStarPlusOtherAggs() {
+    final String sql = "SELECT COUNT(*), SUM(\"store_sales\"), COUNT(\"store_sales\") FROM "
+        + FOODMART_TABLE;
+    sql(sql, FOODMART)
+        .returnsOrdered("EXPR$0=86829; EXPR$1=565238.1299999986; EXPR$2=86829")
+        .queryContains(
+            druidChecker("{'queryType':'timeseries'", "'context':{'skipEmptyBuckets':false}}"));
+
   }
 }
 
