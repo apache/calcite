@@ -53,6 +53,10 @@ import com.google.common.collect.ImmutableMap;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Field;
+import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
 import java.sql.SQLException;
 import java.util.ArrayDeque;
 import java.util.Collections;
@@ -71,7 +75,6 @@ public class ModelHandler {
       .configure(JsonParser.Feature.ALLOW_SINGLE_QUOTES, true)
       .configure(JsonParser.Feature.ALLOW_COMMENTS, true);
   private static final ObjectMapper YAML_MAPPER = new YAMLMapper();
-
   private final CalciteConnection connection;
   private final Deque<Pair<String, SchemaPlus>> schemaStack = new ArrayDeque<>();
   private final String modelUri;
@@ -83,7 +86,6 @@ public class ModelHandler {
     super();
     this.connection = connection;
     this.modelUri = uri;
-
     JsonRoot root;
     ObjectMapper mapper;
     if (uri.startsWith("inline:")) {
@@ -95,9 +97,16 @@ public class ModelHandler {
       root = mapper.readValue(inline, JsonRoot.class);
     } else {
       mapper = uri.endsWith(".yaml") || uri.endsWith(".yml") ? YAML_MAPPER : JSON_MAPPER;
-      root = mapper.readValue(new File(uri), JsonRoot.class);
+      root = mapper.readValue(parseModelUrl(uri), JsonRoot.class);
     }
     visit(root);
+  }
+
+  private URL parseModelUrl(String uri) throws MalformedURLException {
+    if (URI.create(uri).getScheme() == null) {
+      uri = "file://" + new File(uri).getAbsolutePath();
+    }
+    return new URL(uri);
   }
 
   /** @deprecated Use {@link #addFunctions}. */
@@ -290,7 +299,7 @@ public class ModelHandler {
 
   /** Adds extra entries to an operand to a custom schema. */
   protected Map<String, Object> operandMap(JsonSchema jsonSchema,
-      Map<String, Object> operand) {
+      Map<String, Object> operand) throws URISyntaxException {
     if (operand == null) {
       return ImmutableMap.of();
     }
@@ -303,13 +312,11 @@ public class ModelHandler {
           builder.put(extraOperand.camelName, modelUri);
           break;
         case BASE_DIRECTORY:
-          File f = null;
+          URI f;
           if (!modelUri.startsWith("inline:")) {
-            final File file = new File(modelUri);
-            f = file.getParentFile();
-          }
-          if (f == null) {
-            f = new File("");
+            f = URI.create(modelUri).resolve("..");
+          } else {
+            f = new URI("");
           }
           builder.put(extraOperand.camelName, f);
           break;

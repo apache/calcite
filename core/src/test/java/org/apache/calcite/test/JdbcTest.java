@@ -93,6 +93,13 @@ import org.apache.calcite.util.Smalls;
 import org.apache.calcite.util.TryThreadLocal;
 import org.apache.calcite.util.Util;
 
+import org.apache.http.HttpStatus;
+import org.apache.http.entity.ContentType;
+import org.apache.http.entity.StringEntity;
+import org.apache.http.impl.bootstrap.HttpServer;
+import org.apache.http.impl.bootstrap.ServerBootstrap;
+
+import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.LinkedListMultimap;
 import com.google.common.collect.Multimap;
@@ -133,6 +140,7 @@ import java.util.Objects;
 import java.util.Properties;
 import java.util.Set;
 import java.util.TimeZone;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.regex.Pattern;
 import javax.sql.DataSource;
@@ -5075,6 +5083,63 @@ public class JdbcTest {
             + "empid=110; deptno=10; name=Theodore; salary=11500.0; commission=250\n");
     that.query("select * from \"adhoc\".EMPLOYEES")
         .throws_("Object 'EMPLOYEES' not found within 'adhoc'");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2209">[CALCITE-2209]
+   * Model defined using custom scheme not using file</a>. */
+  @Test public void testCustomSchemeInModel() throws SQLException {
+    String modelPayload = "{\n"
+        + "  \"version\": \"1.0\",\n"
+        + "  \"defaultSchema\": \"adhoc\",\n"
+        + "  \"schemas\": [\n"
+        + "    {\n"
+        + "      \"name\": \"empty\"\n"
+        + "    },\n"
+        + "    {\n"
+        + "      \"name\": \"adhoc\",\n"
+        + "      \"type\": \"custom\",\n"
+        + "      \"factory\": \"" + MySchemaFactory.class.getName() + "\",\n"
+        + "      \"operand\": {\n"
+        + "        \"tableName\": \"ELVIS\"\n"
+        + "      }\n"
+        + "    }\n"
+        + "  ]\n"
+        + "}";
+    String path = "/json/model";
+    try {
+      HttpServer server = createHttpServer(modelPayload, path);
+      int port = server.getLocalPort();
+      final String url = "jdbc:calcite:model=" + "http://" + "localhost:" + port + path;
+      try (Connection c = DriverManager.getConnection(url);
+           Statement s = c.createStatement();
+           ResultSet r = s.executeQuery("values 1")) {
+        assertThat(r.next(), is(true));
+      } catch (Exception e) {
+        throw new SQLException(e);
+      } finally {
+        server.shutdown(5, TimeUnit.SECONDS);
+      }
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+      // http server not able to start, not necessarily a bug
+    }
+  }
+
+  private HttpServer createHttpServer(String jsonContent, String path)
+      throws IOException {
+    final HttpServer server = ServerBootstrap.bootstrap()
+            .setServerInfo("Test/1.1")
+            .registerHandler(path, (httpRequest, httpResponse, httpContext) -> {
+              httpResponse.setStatusCode(HttpStatus.SC_OK);
+              StringEntity body = new StringEntity(jsonContent, ContentType.APPLICATION_JSON);
+              httpResponse.setEntity(body);
+            })
+            .create();
+
+    server.start();
+
+    return server;
   }
 
   /** Test case for
