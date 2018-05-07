@@ -412,8 +412,7 @@ public class RelBuilderTest {
             .build();
     final String expected = ""
         + "LogicalProject(DEPTNO=[$7], COMM=[CAST($6):SMALLINT NOT NULL],"
-        + " $f2=[OR(=($7, 20), AND(null, =($7, 10), IS NULL($6),"
-        + " IS NULL($7)), =($7, 30))], n2=[IS NULL($2)],"
+        + " $f2=[OR(=($7, 20), =($7, 30))], n2=[IS NULL($2)],"
         + " nn2=[IS NOT NULL($3)], $f5=[20], COMM0=[$6], C=[$6])\n"
         + "  LogicalTableScan(table=[[scott, EMP]])\n";
     assertThat(root, hasTree(expected));

@@ -1211,8 +1211,9 @@ public class RexProgramTest {
         "AND(<=(?0.a, 1), >(?0.a, 1))",
         "false");
 
-    checkSimplify(and(le(aRef, literal1), ge(aRef, literal1)),
-        "AND(<=(?0.a, 1), >=(?0.a, 1))");
+    checkSimplify2(and(le(aRef, literal1), ge(aRef, literal1)),
+        "AND(<=(?0.a, 1), >=(?0.a, 1))",
+        "=(?0.a, 1)");
 
     checkSimplify2(and(lt(aRef, literal1), eq(aRef, literal1), ge(aRef, literal1)),
         "AND(<(?0.a, 1), =(?0.a, 1), >=(?0.a, 1))",
@@ -1312,7 +1313,7 @@ public class RexProgramTest {
         "false");
 
     checkSimplifyFilter(and(le(aRef, literal1), ge(aRef, literal1)),
-        "AND(<=(?0.a, 1), >=(?0.a, 1))");
+        "=(?0.a, 1)");
 
     checkSimplifyFilter(and(lt(aRef, literal1), eq(aRef, literal1), ge(aRef, literal1)),
         "false");
@@ -1470,6 +1471,98 @@ public class RexProgramTest {
         RelOptPredicateList.of(rexBuilder,
             ImmutableList.of(le(aRef, literal5), le(bRef, literal5))),
         "false");
+  }
+
+  @Test public void testSimplifyAndPush() {
+    final RelDataType intType = typeFactory.createSqlType(SqlTypeName.INTEGER);
+    final RelDataType rowType = typeFactory.builder()
+        .add("a", intType)
+        .add("b", intType)
+        .build();
+
+    final RexDynamicParam range = rexBuilder.makeDynamicParam(rowType, 0);
+    final RexNode aRef = rexBuilder.makeFieldAccess(range, 0);
+    final RexNode bRef = rexBuilder.makeFieldAccess(range, 1);
+    final RexLiteral literal1 = rexBuilder.makeExactLiteral(BigDecimal.ONE);
+    final RexLiteral literal5 = rexBuilder.makeExactLiteral(BigDecimal.valueOf(5));
+    final RexLiteral literal10 = rexBuilder.makeExactLiteral(BigDecimal.TEN);
+
+    checkSimplifyFilter(
+        or(
+            or(
+                eq(aRef, literal1),
+                eq(aRef, literal1)),
+            eq(aRef, literal1)),
+        "=(?0.a, 1)");
+
+    checkSimplifyFilter(
+        or(
+            and(
+                eq(aRef, literal1),
+                eq(aRef, literal1)),
+            and(
+                eq(aRef, literal10),
+                eq(aRef, literal1))),
+        "=(?0.a, 1)");
+
+    checkSimplifyFilter(
+        and(
+            eq(aRef, literal1),
+            or(
+                eq(aRef, literal1),
+                eq(aRef, literal10))),
+        "=(?0.a, 1)");
+    checkSimplifyFilter(
+        and(
+            or(
+                eq(aRef, literal1),
+                eq(aRef, literal10)),
+            eq(aRef, literal1)),
+        "=(?0.a, 1)");
+
+    checkSimplifyFilter(
+        and(
+            gt(aRef, literal10),
+            gt(aRef, literal1)),
+        ">(?0.a, 10)");
+
+    checkSimplifyFilter(
+        and(
+            gt(aRef, literal1),
+            gt(aRef, literal10)),
+        ">(?0.a, 10)");
+  }
+
+  @Test public void testSimplifyOrTerms() {
+    final RelDataType intType = typeFactory.createSqlType(SqlTypeName.INTEGER);
+    final RelDataType rowType = typeFactory.builder()
+        .add("a", intType)
+        .build();
+
+    final RexDynamicParam range = rexBuilder.makeDynamicParam(rowType, 0);
+    final RexNode aRef = rexBuilder.makeFieldAccess(range, 0);
+    final RexLiteral literal1 = rexBuilder.makeExactLiteral(BigDecimal.ONE);
+    final RexLiteral literal10 = rexBuilder.makeExactLiteral(BigDecimal.TEN);
+
+    // FIXME: symmetrical doesn't work
+    checkSimplifyFilter(
+        or(
+            ne(aRef, literal1),
+            eq(aRef, literal1)),
+        "true");
+
+    checkSimplifyFilter(
+        or(
+            isNull(aRef),
+            isNotNull(aRef)),
+        "true");
+
+    checkSimplifyFilter(
+        or(
+            isNotNull(aRef),
+            isNull(aRef)),
+        "true");
+
   }
 
   /** Unit test for

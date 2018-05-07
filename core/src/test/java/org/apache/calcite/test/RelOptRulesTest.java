@@ -1546,6 +1546,28 @@ public class RelOptRulesTest extends RelOptTestBase {
     checkPlanning(program, sql);
   }
 
+  @Test public void testOrAlwaysTrue() {
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(ReduceExpressionsRule.PROJECT_INSTANCE)
+        .addRuleInstance(ReduceExpressionsRule.FILTER_INSTANCE)
+        .addRuleInstance(ReduceExpressionsRule.JOIN_INSTANCE)
+        .build();
+    final String sql = "select * from EMPNULLABLES_20 \n"
+        + "where sal is null or sal is not null";
+    checkPlanning(program, sql);
+  }
+
+  @Test public void testOrAlwaysTrue2() {
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(ReduceExpressionsRule.PROJECT_INSTANCE)
+        .addRuleInstance(ReduceExpressionsRule.FILTER_INSTANCE)
+        .addRuleInstance(ReduceExpressionsRule.JOIN_INSTANCE)
+        .build();
+    final String sql = "select * from EMPNULLABLES_20 \n"
+        + "where sal is not null or sal is null";
+    checkPlanning(program, sql);
+  }
+
   @Test public void testReduceConstants2() throws Exception {
     HepProgram program = new HepProgramBuilder()
         .addRuleInstance(ReduceExpressionsRule.PROJECT_INSTANCE)
