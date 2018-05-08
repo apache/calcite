@@ -7956,6 +7956,22 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
                     + "          where e1.deptno + ^emp.deptno^ + 1 = e2.deptno group by ename))",
             "Expression 'EMP.DEPTNO' is not being grouped");
 
+    // correlated fields are aggCall's alias
+    checkFails("select ename, deptno, sum(sal) as s from emp group by ename, deptno\n"
+                    + "having max(sal) > \n"
+                    + "  (select max(sal) from emp e where ^s^ = e.ename group by deptno)",
+            "Column 'S' not found in any table");
+
+    checkFails("select ename, deptno, sum(sal) as s from emp group by ename, deptno\n"
+                    + "having max(sal) > \n"
+                    + "  (select max(sal) from emp e where emp.^s^ = e.ename group by deptno)",
+            "Column 'S' not found in table 'EMP'");
+
+    checkFails("select ename, deptno, sum(sal) as sal from emp group by ename, deptno\n"
+                    + "having max(sal) > \n"
+                    + "  (select max(sal) from emp e where ^emp.sal^ = e.ename group by deptno)",
+            "Expression 'EMP.SAL' is not being grouped");
+
     // IN
     check("select ename, deptno, sum(sal) from emp group by ename, deptno\n"
             + "having deptno in \n"
