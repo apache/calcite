@@ -1568,9 +1568,9 @@ public class RexProgramTest {
     // Careful of the excluded middle!
     // We cannot simplify "b != 1 or b = 1" to "true" because if b is null, the
     // result is unknown.
-    // "b is not unknown" would be a valid simplification.
+    // TODO: "b is not unknown" would be the best simplification.
     assertThat(simplify.withUnknownAsFalse(false).simplify(neOrEq).toString(),
-        equalTo("OR(<>(?0.b, 1), =(?0.b, 1))"));
+        equalTo("OR(<>(?0.b, 1), IS NOT NULL(?0.b))"));
 
     // "a is null or a is not null" ==> "true"
     checkSimplifyFilter(

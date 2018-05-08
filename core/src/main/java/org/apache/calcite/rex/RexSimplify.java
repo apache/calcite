@@ -35,7 +35,6 @@ import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.BoundType;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Range;
 
@@ -295,7 +294,7 @@ public class RexSimplify {
     // visiting "e3(x)" we know both "e1(x)" and "e2(x)" are not true (they
     // may be unknown), because if either of them were true we would have
     // stopped.
-    RexSimplify simplify = withUnknownAsFalse(true);
+    RexSimplify simplify = this;
     for (int i = 0; i < terms.size(); i++) {
       final RexNode t = terms.get(i);
       if (Predicate.of(t) == null) {
@@ -666,6 +665,14 @@ public class RexSimplify {
     if (terms.isEmpty() && notTerms.isEmpty()) {
       return rexBuilder.makeLiteral(true);
     }
+    for (RexNode term : terms) {
+      if (term instanceof RexLiteral) {
+        RexLiteral rexLiteral = (RexLiteral) term;
+        if (((RexLiteral) term).isNull()) {
+          return term;
+        }
+      }
+    }
     // If one of the not-disjunctions is a disjunction that is wholly
     // contained in the disjunctions list, the expression is not
     // satisfiable.
@@ -941,7 +948,11 @@ public class RexSimplify {
       return e;
     } else if (range2.equals(Range.all())) {
       // Term is always satisfied given these predicates
-      return rexBuilder.makeLiteral(true);
+      if (unknownAsFalse) {
+        return rexBuilder.makeLiteral(true);
+      } else {
+        return simplify(rexBuilder.makeCall(SqlStdOperatorTable.IS_NOT_NULL, comparison.ref));
+      }
     } else if (range2.lowerEndpoint().equals(range2.upperEndpoint())) {
       if (range2.lowerBoundType() == BoundType.OPEN
           || range2.upperBoundType() == BoundType.OPEN) {
