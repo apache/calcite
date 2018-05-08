@@ -3242,7 +3242,8 @@ SqlNode Expression3(ExprContext exprContext) :
     }
     list = ParenthesizedSimpleIdentifierList() {
         if (exprContext != ExprContext.ACCEPT_ALL
-            && exprContext != ExprContext.ACCEPT_CURSOR)
+            && exprContext != ExprContext.ACCEPT_CURSOR
+            && !this.conformance.allowExplicitRowValueConstructor())
         {
             throw SqlUtil.newContextException(s.end(list),
                 RESOURCE.illegalRowExpression());

@@ -306,6 +306,20 @@ public interface SqlConformance {
    * false otherwise.
    */
   boolean allowGeometry();
+
+  /**
+   * Whether to allow SQL syntax "{@code ROW(expr1, expr2, expr3)}".
+   * <p>The equivalent syntax in standard SQL is
+   * "{@code (expr1, expr2, expr3)}".
+   *
+   * <p>PostgreSQL allow this behavior.
+   *
+   * <p>Among the built-in conformance levels, true in
+   * {@link SqlConformanceEnum#DEFAULT},
+   * {@link SqlConformanceEnum#LENIENT};
+   * false otherwise.
+   */
+  boolean allowExplicitRowValueConstructor();
 }
 
 // End SqlConformance.java

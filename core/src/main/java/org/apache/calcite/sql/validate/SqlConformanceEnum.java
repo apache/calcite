@@ -239,6 +239,16 @@ public enum SqlConformanceEnum implements SqlConformance {
       return false;
     }
   }
+
+  public boolean allowExplicitRowValueConstructor() {
+    switch (this) {
+    case DEFAULT:
+    case LENIENT:
+      return true;
+    default:
+      return false;
+    }
+  }
 }
 
 // End SqlConformanceEnum.java
