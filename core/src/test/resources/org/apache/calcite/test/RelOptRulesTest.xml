@@ -3078,7 +3078,7 @@ LogicalProject(EXPR$0=[CAST(/($0, $1)):INTEGER NOT NULL])
     </TestCase>
     <TestCase name="testOrAlwaysTrue">
         <Resource name="sql">
-            <![CDATA[select * from EMPNULLABLES_20 
+            <![CDATA[select * from EMPNULLABLES_20
 where sal is null or sal is not null]]>
         </Resource>
         <Resource name="planBefore">
@@ -3101,7 +3101,7 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
     </TestCase>
     <TestCase name="testOrAlwaysTrue2">
         <Resource name="sql">
-            <![CDATA[select * from EMPNULLABLES_20 
+            <![CDATA[select * from EMPNULLABLES_20
 where sal is not null or sal is null]]>
         </Resource>
         <Resource name="planBefore">

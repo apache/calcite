@@ -1552,7 +1552,7 @@ public class RelOptRulesTest extends RelOptTestBase {
         .addRuleInstance(ReduceExpressionsRule.FILTER_INSTANCE)
         .addRuleInstance(ReduceExpressionsRule.JOIN_INSTANCE)
         .build();
-    final String sql = "select * from EMPNULLABLES_20 \n"
+    final String sql = "select * from EMPNULLABLES_20\n"
         + "where sal is null or sal is not null";
     checkPlanning(program, sql);
   }
@@ -1563,7 +1563,7 @@ public class RelOptRulesTest extends RelOptTestBase {
         .addRuleInstance(ReduceExpressionsRule.FILTER_INSTANCE)
         .addRuleInstance(ReduceExpressionsRule.JOIN_INSTANCE)
         .build();
-    final String sql = "select * from EMPNULLABLES_20 \n"
+    final String sql = "select * from EMPNULLABLES_20\n"
         + "where sal is not null or sal is null";
     checkPlanning(program, sql);
   }

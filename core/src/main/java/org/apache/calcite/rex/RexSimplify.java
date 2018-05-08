@@ -291,21 +291,26 @@ public class RexSimplify {
   }
 
   private void simplifyOrTerms(List<RexNode> terms) {
+    // Suppose we are processing "e1(x) OR e2(x) OR e3(x)". When we are
+    // visiting "e3(x)" we know both "e1(x)" and "e2(x)" are not true (they
+    // may be unknown), because if either of them were true we would have
+    // stopped.
     RexSimplify simplify = withUnknownAsFalse(true);
     for (int i = 0; i < terms.size(); i++) {
-      RexNode t = terms.get(i);
+      final RexNode t = terms.get(i);
       if (Predicate.of(t) == null) {
         continue;
       }
-      terms.set(i, simplify.simplify(t));
-      RexNode newPred =
-          simplify.simplify(rexBuilder.makeCall(SqlStdOperatorTable.NOT, terms.get(i)));
-      RelOptPredicateList newPredicates = predicates.union(rexBuilder,
-          RelOptPredicateList.of(rexBuilder, Lists.newArrayList(newPred)));
+      final RexNode t2 = simplify.simplify(t);
+      terms.set(i, t2);
+      final RexNode inverse =
+          simplify.simplify(rexBuilder.makeCall(SqlStdOperatorTable.NOT, t2));
+      final RelOptPredicateList newPredicates = predicates.union(rexBuilder,
+          RelOptPredicateList.of(rexBuilder, ImmutableList.of(inverse)));
       simplify = simplify.withPredicates(newPredicates);
     }
     for (int i = 0; i < terms.size(); i++) {
-      RexNode t = terms.get(i);
+      final RexNode t = terms.get(i);
       if (Predicate.of(t) != null) {
         continue;
       }
@@ -1369,19 +1374,6 @@ public class RexSimplify {
     return null;
   }
 
-  /** Currently supported predicates should be marked with this interface. */
-  private interface Predicate {
-
-    static Predicate of(RexNode t) {
-      Predicate ret = Comparison.of(t);
-      if (ret != null) {
-        return ret;
-      }
-      return IsPredicate.of(t);
-    }
-
-  }
-
   private static <C extends Comparable<C>> Range<C> range(SqlKind comparison,
       C c) {
     switch (comparison) {
@@ -1400,6 +1392,17 @@ public class RexSimplify {
     }
   }
 
+  /** Marker interface for predicates (expressions that evaluate to BOOLEAN). */
+  private interface Predicate {
+    /** Wraps an expression in a Predicate or returns null. */
+    static Predicate of(RexNode t) {
+      final Predicate p = Comparison.of(t);
+      if (p != null) {
+        return p;
+      }
+      return IsPredicate.of(t);
+    }
+  }
 
   /** Comparison between a {@link RexInputRef} or {@link RexFieldAccess} and a
    * literal. Literal may be on left or right side, and may be null. */
@@ -1454,7 +1457,7 @@ public class RexSimplify {
       this.kind = Preconditions.checkNotNull(kind);
     }
 
-    /** Creates a comparison, or returns null. */
+    /** Creates an IS predicate, or returns null. */
     static IsPredicate of(RexNode e) {
       switch (e.getKind()) {
       case IS_NULL:

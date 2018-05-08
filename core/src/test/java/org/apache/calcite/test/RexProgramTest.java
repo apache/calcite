@@ -1536,33 +1536,65 @@ public class RexProgramTest {
   @Test public void testSimplifyOrTerms() {
     final RelDataType intType = typeFactory.createSqlType(SqlTypeName.INTEGER);
     final RelDataType rowType = typeFactory.builder()
-        .add("a", intType)
+        .add("a", intType).nullable(false)
+        .add("b", intType).nullable(true)
+        .add("c", intType).nullable(true)
         .build();
 
     final RexDynamicParam range = rexBuilder.makeDynamicParam(rowType, 0);
     final RexNode aRef = rexBuilder.makeFieldAccess(range, 0);
+    final RexNode bRef = rexBuilder.makeFieldAccess(range, 1);
+    final RexNode cRef = rexBuilder.makeFieldAccess(range, 2);
     final RexLiteral literal1 = rexBuilder.makeExactLiteral(BigDecimal.ONE);
-    final RexLiteral literal10 = rexBuilder.makeExactLiteral(BigDecimal.TEN);
 
-    // FIXME: symmetrical doesn't work
+    // "a != 1 or a = 1" ==> "true"
     checkSimplifyFilter(
-        or(
-            ne(aRef, literal1),
+        or(ne(aRef, literal1),
             eq(aRef, literal1)),
         "true");
 
+    // TODO: make this simplify to "true"
     checkSimplifyFilter(
-        or(
-            isNull(aRef),
+        or(eq(aRef, literal1),
+            ne(aRef, literal1)),
+        "OR(=(?0.a, 1), <>(?0.a, 1))");
+
+    // "b != 1 or b = 1" ==> "true" (valid because we have unknownAsFalse)
+    final RexNode neOrEq = or(
+        ne(bRef, literal1),
+        eq(bRef, literal1));
+    checkSimplifyFilter(neOrEq, "true");
+
+    // Careful of the excluded middle!
+    // We cannot simplify "b != 1 or b = 1" to "true" because if b is null, the
+    // result is unknown.
+    // "b is not unknown" would be a valid simplification.
+    assertThat(simplify.withUnknownAsFalse(false).simplify(neOrEq).toString(),
+        equalTo("OR(<>(?0.b, 1), =(?0.b, 1))"));
+
+    // "a is null or a is not null" ==> "true"
+    checkSimplifyFilter(
+        or(isNull(aRef),
             isNotNull(aRef)),
         "true");
 
+    // "a is not null or a is null" ==> "true"
     checkSimplifyFilter(
-        or(
-            isNotNull(aRef),
+        or(isNotNull(aRef),
             isNull(aRef)),
         "true");
 
+    // "b is not null or b is null" ==> "true" (valid even though b nullable)
+    checkSimplifyFilter(
+        or(isNotNull(bRef),
+            isNull(bRef)),
+        "true");
+
+    // "b is not null or c is null" unchanged
+    checkSimplifyFilter(
+        or(isNotNull(bRef),
+            isNull(cRef)),
+        "OR(IS NOT NULL(?0.b), IS NULL(?0.c))");
   }
 
   /** Unit test for
