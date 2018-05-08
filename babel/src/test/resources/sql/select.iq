@@ -29,6 +29,15 @@ FROM "scott"."EMP" AS "EMP",
 ORDER BY "EMP"."DEPTNO"
 !explain-validated-on all
 
+# LEFT SEMI JOIN (Hive only)
+SELECT *
+FROM emp LEFT SEMI JOIN dept ON emp.deptno = dept.deptno;
+
+SELECT "EMP"."EMPNO", "EMP"."ENAME", "EMP"."JOB", "EMP"."MGR", "EMP"."HIREDATE", "EMP"."SAL", "EMP"."COMM", "EMP"."DEPTNO", "DEPT"."DEPTNO" AS "DEPTNO0", "DEPT"."DNAME", "DEPT"."LOC"
+FROM "scott"."EMP" AS "EMP"
+    LEFT SEMI JOIN "scott"."DEPT" AS "DEPT" ON "EMP"."DEPTNO" = "DEPT"."DEPTNO"
+!explain-validated-on hive
+
 # Test CONNECT BY (Oracle only)
 !if (false) {
 SELECT *

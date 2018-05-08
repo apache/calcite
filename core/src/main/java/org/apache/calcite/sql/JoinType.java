@@ -50,6 +50,13 @@ public enum JoinType {
   RIGHT,
 
   /**
+   * Left semi join.
+   *
+   * <p>Not used by Calcite; only in Babel's Hive dialect.
+   */
+  LEFT_SEMI_JOIN,
+
+  /**
    * Comma join: the good old-fashioned SQL <code>FROM</code> clause,
    * where table expressions are specified with commas between them, and
    * join conditions are specified in the <code>WHERE</code> clause.

@@ -222,6 +222,9 @@ public class SqlJoin extends SqlCall {
       case LEFT:
         writer.sep(natural + "LEFT JOIN");
         break;
+      case LEFT_SEMI_JOIN:
+        writer.sep(natural + "LEFT SEMI JOIN");
+        break;
       case RIGHT:
         writer.sep(natural + "RIGHT JOIN");
         break;

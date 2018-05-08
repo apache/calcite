@@ -15,4 +15,11 @@
 // limitations under the License.
 -->
 
+JoinType LeftSemiJoin() :
+{
+}
+{
+    <LEFT> <SEMI> <JOIN> { return JoinType.LEFT_SEMI_JOIN; }
+}
+
 // End parserImpls.ftl
