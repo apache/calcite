@@ -665,11 +665,6 @@ public class RexSimplify {
     if (terms.isEmpty() && notTerms.isEmpty()) {
       return rexBuilder.makeLiteral(true);
     }
-    for (RexNode term : terms) {
-      if (RexLiteral.isNullLiteral(term)) {
-        return term;
-      }
-    }
     // If one of the not-disjunctions is a disjunction that is wholly
     // contained in the disjunctions list, the expression is not
     // satisfiable.
