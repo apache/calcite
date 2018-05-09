@@ -666,11 +666,8 @@ public class RexSimplify {
       return rexBuilder.makeLiteral(true);
     }
     for (RexNode term : terms) {
-      if (term instanceof RexLiteral) {
-        RexLiteral rexLiteral = (RexLiteral) term;
-        if (((RexLiteral) term).isNull()) {
-          return term;
-        }
+      if (RexLiteral.isNullLiteral(term)) {
+        return term;
       }
     }
     // If one of the not-disjunctions is a disjunction that is wholly
@@ -706,7 +703,7 @@ public class RexSimplify {
   private <C extends Comparable<C>> RexNode simplifyAnd2ForUnknownAsFalse(
       List<RexNode> terms, List<RexNode> notTerms, Class<C> clazz) {
     for (RexNode term : terms) {
-      if (term.isAlwaysFalse()) {
+      if (term.isAlwaysFalse() || RexLiteral.isNullLiteral(term)) {
         return rexBuilder.makeLiteral(false);
       }
     }
@@ -1029,7 +1026,13 @@ public class RexSimplify {
       final RexNode term = simplify(terms.get(i));
       switch (term.getKind()) {
       case LITERAL:
-        if (!RexLiteral.isNullLiteral(term)) {
+        if (RexLiteral.isNullLiteral(term)) {
+          if (unknownAsFalse) {
+            terms.remove(i);
+            --i;
+            continue;
+          }
+        } else {
           if (RexLiteral.booleanValue(term)) {
             return term; // true
           } else {

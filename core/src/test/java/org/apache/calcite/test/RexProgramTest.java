@@ -1597,6 +1597,58 @@ public class RexProgramTest {
         "OR(IS NOT NULL(?0.b), IS NULL(?0.c))");
   }
 
+  @Test public void testSimplifyUnknown() {
+    final RelDataType intType = typeFactory.createSqlType(SqlTypeName.INTEGER);
+    final RelDataType rowType = typeFactory.builder()
+        .add("a", intType).nullable(true)
+        .build();
+
+    final RexDynamicParam range = rexBuilder.makeDynamicParam(rowType, 0);
+    final RexNode aRef = rexBuilder.makeFieldAccess(range, 0);
+    final RexLiteral literal1 = rexBuilder.makeExactLiteral(BigDecimal.ONE);
+
+
+    checkSimplify2(
+        and(
+            eq(aRef, literal1),
+            nullLiteral),
+        "null",
+        "false"
+    );
+    checkSimplify2(
+        and(
+            trueLiteral,
+            nullLiteral),
+        "null",
+        "false");
+    checkSimplify2(
+        and(
+            falseLiteral,
+            nullLiteral),
+        "false",
+        "false");
+
+    checkSimplify2(
+        or(
+            eq(aRef, literal1),
+            nullLiteral),
+        "OR(=(?0.a, 1), null)",
+        "=(?0.a, 1)");
+    checkSimplify2(
+        or(
+            trueLiteral,
+            nullLiteral),
+        "true",
+        "true");
+    checkSimplify2(
+        or(
+            falseLiteral,
+            nullLiteral),
+        "null",
+        "false");
+  }
+
+
   /** Unit test for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1289">[CALCITE-1289]
    * RexUtil.simplifyCase() should account for nullability</a>. */
