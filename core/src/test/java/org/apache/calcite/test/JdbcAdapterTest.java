@@ -470,6 +470,23 @@ public class JdbcAdapterTest {
             + "FROM \"foodmart\".\"expense_fact\"");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2305">[CALCITE-2305]
+   * JDBC adapter generates invalid casts on PostgreSQL, because PostgreSQL does
+   * not have TINYINT and DOUBLE types</a>. */
+  @Test public void testCast() {
+    CalciteAssert
+        .model(JdbcTest.FOODMART_MODEL)
+        .enable(CalciteAssert.DB == CalciteAssert.DatabaseInstance.POSTGRESQL)
+        .query("select cast(\"store_id\" as TINYINT),"
+            + "cast(\"store_id\" as DOUBLE)"
+            + " from \"expense_fact\"")
+        .runs()
+        .planHasSql("SELECT CAST(\"store_id\" AS SMALLINT),"
+            + " CAST(\"store_id\" AS DOUBLE PRECISION)\n"
+            + "FROM \"foodmart\".\"expense_fact\"");
+  }
+
   @Test public void testOverRowsBetweenBoundFollowingAndFollowing() {
     CalciteAssert
         .model(JdbcTest.FOODMART_MODEL)
