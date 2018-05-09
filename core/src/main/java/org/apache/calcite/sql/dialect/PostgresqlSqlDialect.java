@@ -17,11 +17,16 @@
 package org.apache.calcite.sql.dialect;
 
 import org.apache.calcite.avatica.util.TimeUnitRange;
+import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlDialect;
+import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlLiteral;
+import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.fun.SqlFloorFunction;
+import org.apache.calcite.sql.parser.SqlParserPos;
 
 /**
  * A <code>SqlDialect</code> implementation for the PostgreSQL database.
@@ -39,6 +44,23 @@ public class PostgresqlSqlDialect extends SqlDialect {
 
   @Override public boolean supportsCharSet() {
     return false;
+  }
+
+  @Override public SqlNode getCastSpec(RelDataType type) {
+    String castSpec;
+    switch (type.getSqlTypeName()) {
+    case TINYINT:
+      castSpec = "_smallint";
+      break;
+    case DOUBLE:
+      castSpec = "_double precision";
+      break;
+    default:
+      return super.getCastSpec(type);
+    }
+
+    return new SqlDataTypeSpec(new SqlIdentifier(castSpec, SqlParserPos.ZERO),
+        -1, -1, null, null, SqlParserPos.ZERO);
   }
 
   @Override protected boolean requiresAliasForFromItems() {
