@@ -64,6 +64,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.math.BigDecimal;
@@ -1652,6 +1653,26 @@ public class RexProgramTest {
             falseLiteral,
             nullLiteral),
         "null",
+        "false");
+
+  }
+
+  @Ignore
+  @Test public void testSimplifyAnd3() {
+    final RelDataType boolType = typeFactory.createSqlType(SqlTypeName.BOOLEAN);
+    final RelDataType rowType = typeFactory.builder()
+        .add("a", boolType).nullable(true)
+        .build();
+
+    final RexDynamicParam range = rexBuilder.makeDynamicParam(rowType, 0);
+    final RexNode aRef = rexBuilder.makeFieldAccess(range, 0);
+
+    // in case 3 valued logic the result must be unknown if a is unknown
+    checkSimplify2(
+        and(
+            aRef,
+            not(aRef)),
+        "a is null and null",
         "false");
   }
 
