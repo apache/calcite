@@ -276,7 +276,7 @@ public class RexSimplify {
         continue;
       }
       terms.set(i, simplify.simplify(t));
-      RelOptPredicateList newPredicates = predicates.union(rexBuilder,
+      RelOptPredicateList newPredicates = simplify.predicates.union(rexBuilder,
           RelOptPredicateList.of(rexBuilder, terms.subList(i, i + 1)));
       simplify = simplify.withPredicates(newPredicates);
     }
@@ -304,7 +304,7 @@ public class RexSimplify {
       terms.set(i, t2);
       final RexNode inverse =
           simplify.simplify(rexBuilder.makeCall(SqlStdOperatorTable.NOT, t2));
-      final RelOptPredicateList newPredicates = predicates.union(rexBuilder,
+      final RelOptPredicateList newPredicates = simplify.predicates.union(rexBuilder,
           RelOptPredicateList.of(rexBuilder, ImmutableList.of(inverse)));
       simplify = simplify.withPredicates(newPredicates);
     }
