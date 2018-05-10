@@ -752,6 +752,9 @@ public class RexLiteral extends RexNode {
    * translator wants it.
    */
   public Object getValue3() {
+    if (value == null) {
+      return null;
+    }
     switch (typeName) {
     case DECIMAL:
       assert value instanceof BigDecimal;

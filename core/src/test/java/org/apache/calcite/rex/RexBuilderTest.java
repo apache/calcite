@@ -34,6 +34,7 @@ import java.util.TimeZone;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.notNullValue;
+import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
@@ -360,6 +361,19 @@ public class RexBuilderTest {
     assertThat((Integer) literal.getValue2(), is(MOON_DAY));
     assertThat(literal.getValueAs(Calendar.class), notNullValue());
     assertThat(literal.getValueAs(DateString.class), notNullValue());
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2306">[CALCITE-2306]
+   * AssertionError in {@link RexLiteral#getValue3} with null literal of type
+   * DECIMAL</a>. */
+  @Test public void testDecimalLiteral() {
+    final RelDataTypeFactory typeFactory =
+        new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
+    final RelDataType type = typeFactory.createSqlType(SqlTypeName.DECIMAL);
+    final RexBuilder builder = new RexBuilder(typeFactory);
+    final RexLiteral literal = builder.makeExactLiteral(null, type);
+    assertThat(literal.getValue3(), nullValue());
   }
 
   /** Tests {@link DateString} year range. */
