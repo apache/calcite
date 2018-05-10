@@ -475,6 +475,15 @@ public class RexBuilderTest {
     }
   }
 
+  @Test public void testDecimalLiteral() {
+    final RelDataTypeFactory typeFactory =
+            new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
+    RelDataType dateType = typeFactory.createSqlType(SqlTypeName.DECIMAL);
+    final RexBuilder builder = new RexBuilder(typeFactory);
+    RexLiteral literal = builder.makeExactLiteral(null, dateType);
+    assertEquals(null, literal.getValue3());
+  }
+
 }
 
 // End RexBuilderTest.java
