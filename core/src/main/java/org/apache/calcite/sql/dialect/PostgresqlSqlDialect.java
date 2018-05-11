@@ -50,9 +50,11 @@ public class PostgresqlSqlDialect extends SqlDialect {
     String castSpec;
     switch (type.getSqlTypeName()) {
     case TINYINT:
+      // Postgres has no tinyint (1 byte), so instead cast to smallint (2 bytes)
       castSpec = "_smallint";
       break;
     case DOUBLE:
+      // Postgres has a double type but it is named differently
       castSpec = "_double precision";
       break;
     default:
