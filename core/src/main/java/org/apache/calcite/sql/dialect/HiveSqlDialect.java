@@ -59,6 +59,10 @@ public class HiveSqlDialect extends SqlDialect {
 
     return null;
   }
+
+  @Override public boolean supportsCharSet() {
+    return false;
+  }
 }
 
 // End HiveSqlDialect.java
