@@ -24,6 +24,7 @@ import org.apache.calcite.linq4j.QueryProvider;
 import org.apache.calcite.plan.RelOptPredicateList;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.Strong;
+import org.apache.calcite.rel.metadata.NullSentinel;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
@@ -33,6 +34,7 @@ import org.apache.calcite.rex.RexDynamicParam;
 import org.apache.calcite.rex.RexExecutor;
 import org.apache.calcite.rex.RexExecutorImpl;
 import org.apache.calcite.rex.RexInputRef;
+import org.apache.calcite.rex.RexInterpreter;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexLocalRef;
 import org.apache.calcite.rex.RexNode;
@@ -112,7 +114,8 @@ public class RexProgramTest {
     RexExecutor executor =
         new RexExecutorImpl(new DummyTestDataContext());
     simplify =
-        new RexSimplify(rexBuilder, RelOptPredicateList.EMPTY, false, executor);
+        new RexSimplify(rexBuilder, RelOptPredicateList.EMPTY, false, executor)
+            .withParanoid(true);
     trueLiteral = rexBuilder.makeLiteral(true);
     falseLiteral = rexBuilder.makeLiteral(false);
     final RelDataType intType = typeFactory.createSqlType(SqlTypeName.INTEGER);
@@ -1109,6 +1112,8 @@ public class RexProgramTest {
         .add("g", booleanType)
         .add("h", intType)
         .add("i", intNullableType)
+        .add("j", intType)
+        .add("k", intType)
         .build();
 
     final RexDynamicParam range = rexBuilder.makeDynamicParam(rowType, 0);
@@ -1119,6 +1124,8 @@ public class RexProgramTest {
     final RexNode eRef = rexBuilder.makeFieldAccess(range, 4);
     final RexNode hRef = rexBuilder.makeFieldAccess(range, 7);
     final RexNode iRef = rexBuilder.makeFieldAccess(range, 8);
+    final RexNode jRef = rexBuilder.makeFieldAccess(range, 9);
+    final RexNode kRef = rexBuilder.makeFieldAccess(range, 10);
     final RexLiteral literal1 = rexBuilder.makeExactLiteral(BigDecimal.ONE);
 
     // and: remove duplicates
@@ -1208,36 +1215,36 @@ public class RexProgramTest {
         "true");
 
     // condition, and the inverse - nothing to do due to null values
-    checkSimplify2(and(le(aRef, literal1), gt(aRef, literal1)),
-        "AND(<=(?0.a, 1), >(?0.a, 1))",
+    checkSimplify2(and(le(hRef, literal1), gt(hRef, literal1)),
+        "AND(<=(?0.h, 1), >(?0.h, 1))",
         "false");
 
-    checkSimplify2(and(le(aRef, literal1), ge(aRef, literal1)),
-        "AND(<=(?0.a, 1), >=(?0.a, 1))",
-        "=(?0.a, 1)");
+    checkSimplify2(and(le(hRef, literal1), ge(hRef, literal1)),
+        "AND(<=(?0.h, 1), >=(?0.h, 1))",
+        "=(?0.h, 1)");
 
-    checkSimplify2(and(lt(aRef, literal1), eq(aRef, literal1), ge(aRef, literal1)),
-        "AND(<(?0.a, 1), =(?0.a, 1), >=(?0.a, 1))",
+    checkSimplify2(and(lt(hRef, literal1), eq(hRef, literal1), ge(hRef, literal1)),
+        "AND(<(?0.h, 1), =(?0.h, 1), >=(?0.h, 1))",
         "false");
 
-    checkSimplify(and(lt(aRef, literal1), or(falseLiteral, falseLiteral)),
+    checkSimplify(and(lt(hRef, literal1), or(falseLiteral, falseLiteral)),
         "false");
-    checkSimplify(and(lt(aRef, literal1), or(falseLiteral, gt(bRef, cRef))),
-        "AND(<(?0.a, 1), >(?0.b, ?0.c))");
-    checkSimplify(or(lt(aRef, literal1), and(trueLiteral, trueLiteral)),
+    checkSimplify(and(lt(hRef, literal1), or(falseLiteral, gt(jRef, kRef))),
+        "AND(<(?0.h, 1), >(?0.j, ?0.k))");
+    checkSimplify(or(lt(hRef, literal1), and(trueLiteral, trueLiteral)),
         "true");
     checkSimplify(
-        or(lt(aRef, literal1),
+        or(lt(hRef, literal1),
             and(trueLiteral, or(trueLiteral, falseLiteral))),
         "true");
     checkSimplify(
-        or(lt(aRef, literal1),
+        or(lt(hRef, literal1),
             and(trueLiteral, and(trueLiteral, falseLiteral))),
-        "<(?0.a, 1)");
+        "<(?0.h, 1)");
     checkSimplify(
-        or(lt(aRef, literal1),
+        or(lt(hRef, literal1),
             and(trueLiteral, or(falseLiteral, falseLiteral))),
-        "<(?0.a, 1)");
+        "<(?0.h, 1)");
 
     // "x = x" simplifies to "x is not null"
     checkSimplify(eq(literal1, literal1), "true");
@@ -1290,8 +1297,8 @@ public class RexProgramTest {
         typeFactory.createSqlType(SqlTypeName.BOOLEAN);
     final RelDataType intType = typeFactory.createSqlType(SqlTypeName.INTEGER);
     final RelDataType rowType = typeFactory.builder()
-        .add("a", booleanType)
-        .add("b", booleanType)
+        .add("a", intType)
+        .add("b", intType)
         .add("c", booleanType)
         .add("d", booleanType)
         .add("e", booleanType)
@@ -1305,6 +1312,8 @@ public class RexProgramTest {
     final RexNode bRef = rexBuilder.makeFieldAccess(range, 1);
     final RexNode cRef = rexBuilder.makeFieldAccess(range, 2);
     final RexNode dRef = rexBuilder.makeFieldAccess(range, 3);
+    final RexNode eRef = rexBuilder.makeFieldAccess(range, 4);
+    final RexNode fRef = rexBuilder.makeFieldAccess(range, 5);
     final RexLiteral literal1 = rexBuilder.makeExactLiteral(BigDecimal.ONE);
     final RexLiteral literal5 = rexBuilder.makeExactLiteral(new BigDecimal(5));
     final RexLiteral literal10 = rexBuilder.makeExactLiteral(BigDecimal.TEN);
@@ -1360,8 +1369,8 @@ public class RexProgramTest {
 
     // case: trailing false and null, remove
     checkSimplifyFilter(
-        case_(aRef, trueLiteral, bRef, trueLiteral, cRef, falseLiteral, dRef, falseLiteral,
-            unknownLiteral), "CAST(OR(?0.a, ?0.b)):BOOLEAN");
+        case_(cRef, trueLiteral, dRef, trueLiteral, eRef, falseLiteral, fRef,
+            falseLiteral, unknownLiteral), "CAST(OR(?0.c, ?0.d)):BOOLEAN");
 
     // condition with null value for range
     checkSimplifyFilter(and(gt(aRef, unknownLiteral), ge(bRef, literal1)), "false");
@@ -2139,8 +2148,31 @@ public class RexProgramTest {
   }
 
   private RexNode simplify(RexNode e) {
-    return new RexSimplify(rexBuilder, RelOptPredicateList.EMPTY, false,
-        RexUtil.EXECUTOR).simplify(e);
+    final RexSimplify simplify =
+        new RexSimplify(rexBuilder, RelOptPredicateList.EMPTY, false,
+            RexUtil.EXECUTOR).withParanoid(true);
+    return simplify.simplify(e);
+  }
+
+  @Test public void testInterpreter() {
+    assertThat(eval(trueLiteral), is(true));
+    assertThat(eval(nullLiteral), is(NullSentinel.INSTANCE));
+    assertThat(eval(eq(nullLiteral, nullLiteral)),
+        is(NullSentinel.INSTANCE));
+    assertThat(eval(eq(this.trueLiteral, nullLiteral)),
+        is(NullSentinel.INSTANCE));
+    assertThat(eval(eq(falseLiteral, trueLiteral)),
+        is(false));
+    assertThat(eval(ne(falseLiteral, trueLiteral)),
+        is(true));
+    assertThat(eval(ne(falseLiteral, nullLiteral)),
+        is(NullSentinel.INSTANCE));
+    assertThat(eval(and(this.trueLiteral, falseLiteral)),
+        is(false));
+  }
+
+  private Comparable eval(RexNode e) {
+    return RexInterpreter.evaluate(e, ImmutableMap.of());
   }
 }
 

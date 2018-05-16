@@ -97,6 +97,7 @@ import java.util.TimeZone;
 import java.util.jar.JarFile;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collector;
 import javax.annotation.Nullable;
 
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -2344,6 +2345,25 @@ public class Util {
     Calendar calendar = calendar();
     calendar.setTimeInMillis(millis);
     return calendar;
+  }
+
+  /**
+   * Returns a {@code Collector} that accumulates the input elements into a
+   * Guava {@link ImmutableList} via a {@link ImmutableList.Builder}.
+   *
+   * @param <T> Type of the input elements
+   *
+   * @return a {@code Collector} that collects all the input elements into an
+   * {@link ImmutableList}, in encounter order
+   */
+  public static <T> Collector<T, ImmutableList.Builder<T>, ImmutableList<T>>
+      toImmutableList() {
+    return Collector.of(ImmutableList::builder, ImmutableList.Builder::add,
+        (t, u) -> {
+          t.addAll(u.build());
+          return t;
+        },
+        ImmutableList.Builder::build);
   }
 
   //~ Inner Classes ----------------------------------------------------------

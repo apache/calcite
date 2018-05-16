@@ -19,7 +19,11 @@ package org.apache.calcite.rel.metadata;
 /** Placeholder for null values. */
 public enum NullSentinel {
   /** Placeholder for a null value. */
-  INSTANCE,
+  INSTANCE {
+    @Override public String toString() {
+      return "NULL";
+    }
+  },
 
   /** Placeholder that means that a request for metadata is already active,
    * therefore this request forms a cycle. */

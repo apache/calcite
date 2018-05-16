@@ -764,6 +764,27 @@ public class RexLiteral extends RexNode {
     }
   }
 
+  /**
+   * Returns the value of this literal, in the form that {@link RexInterpreter}
+   * wants it.
+   */
+  public Comparable getValue4() {
+    if (value == null) {
+      return null;
+    }
+    switch (typeName) {
+    case TIMESTAMP:
+    case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
+      return getValueAs(Long.class);
+    case DATE:
+    case TIME:
+    case TIME_WITH_LOCAL_TIME_ZONE:
+      return getValueAs(Integer.class);
+    default:
+      return value;
+    }
+  }
+
   /** Returns the value of this literal as an instance of the specified class.
    *
    * <p>The following SQL types allow more than one form:
