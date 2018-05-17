@@ -149,12 +149,12 @@ public class EnumerableJoin extends EquiJoin implements EnumerableRel {
     if (Double.isInfinite(leftRowCount)) {
       rowCount = leftRowCount;
     } else {
-      rowCount += leftRowCount;
+      rowCount += Util.nLogN(leftRowCount);
     }
     if (Double.isInfinite(rightRowCount)) {
       rowCount = rightRowCount;
     } else {
-      rowCount += Util.nLogN(rightRowCount);
+      rowCount += rightRowCount;
     }
     return planner.getCostFactory().makeCost(rowCount, 0, 0);
   }
@@ -202,10 +202,10 @@ public class EnumerableJoin extends EquiJoin implements EnumerableRel {
         physType,
         builder.append(
             Expressions.call(
-                leftExpression,
+                rightExpression,
                 BuiltInMethod.JOIN.method,
                 Expressions.list(
-                    rightExpression,
+                    leftExpression,
                     leftResult.physType.generateAccessor(leftKeys),
                     rightResult.physType.generateAccessor(rightKeys),
                     EnumUtils.joinSelector(joinType,
