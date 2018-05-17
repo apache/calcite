@@ -149,12 +149,12 @@ public class EnumerableJoin extends EquiJoin implements EnumerableRel {
     if (Double.isInfinite(leftRowCount)) {
       rowCount = leftRowCount;
     } else {
-      rowCount += Util.nLogN(leftRowCount);
+      rowCount += leftRowCount;
     }
     if (Double.isInfinite(rightRowCount)) {
       rowCount = rightRowCount;
     } else {
-      rowCount += rightRowCount;
+      rowCount += Util.nLogN(rightRowCount);
     }
     return planner.getCostFactory().makeCost(rowCount, 0, 0);
   }
