@@ -939,12 +939,8 @@ public class RexSimplify {
       // no change
       return e;
     } else if (range2.equals(Range.all())) {
-      // Term is always satisfied given these predicates
-      if (unknownAsFalse) {
-        return rexBuilder.makeLiteral(true);
-      } else {
-        return simplify(rexBuilder.makeCall(SqlStdOperatorTable.IS_NOT_NULL, comparison.ref));
-      }
+      // Range is always satisfied given these predicates; but nullability might be problematic
+      return simplify(rexBuilder.makeCall(SqlStdOperatorTable.IS_NOT_NULL, comparison.ref));
     } else if (range2.lowerEndpoint().equals(range2.upperEndpoint())) {
       if (range2.lowerBoundType() == BoundType.OPEN
           || range2.upperBoundType() == BoundType.OPEN) {

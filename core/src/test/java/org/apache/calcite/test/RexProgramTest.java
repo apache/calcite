@@ -1563,11 +1563,11 @@ public class RexProgramTest {
             ne(aRef, literal1)),
         "OR(=(?0.a, 1), <>(?0.a, 1))");
 
-    // "b != 1 or b = 1" ==> "true" (valid because we have unknownAsFalse)
+    // "b != 1 or b = 1" is not simplifyable because b might be null
     final RexNode neOrEq = or(
         ne(bRef, literal1),
         eq(bRef, literal1));
-    checkSimplifyFilter(neOrEq, "true");
+    checkSimplifyFilter(neOrEq, "OR(<>(?0.b, 1), IS NOT NULL(?0.b))");
 
     // Careful of the excluded middle!
     // We cannot simplify "b != 1 or b = 1" to "true" because if b is null, the
