@@ -937,7 +937,8 @@ public class RelToSqlConverterTest {
             + "(SELECT max(\"product_id\") from \"product\" as \"f2\""
             + "where \"f2\".\"product_class_id\" = \"f1\".\"product_class_id\")"
             + "as \"max_val\" FROM \"product\" as \"f1\"";
-    final String expected = "SELECT `product`.`product_id`, `product`.`product_class_id`, `t1`.`EXPR$0` AS `max_val`\n"
+    final String expected = "SELECT `product`.`product_id`, `product`.`product_class_id`, "
+            + "`t1`.`EXPR$0` AS `max_val`\n"
             + "FROM `foodmart`.`product`\n"
             + "LEFT JOIN (SELECT `product_class_id`, MAX(`product_id`) AS `EXPR$0`\n"
             + "FROM `foodmart`.`product`\n"
