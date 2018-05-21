@@ -28,3 +28,14 @@ SELECT email, ASCONCATOFPARAMS(firstname, lastname) AS joined FROM SIMPLE_CUSTOM
 (3 rows)
 
 !ok
+
+# Checks whether CHOOSENCUSTOMFUNCTION function is properly computed and not passed to subschema, like jdbc
+SELECT * FROM SIMPLE_CUSTOMER WHERE email = CHOSENCUSTOMEREMAIL();
++-----------+----------+---------------------+
+| FIRSTNAME | LASTNAME | EMAIL               |
++-----------+----------+---------------------+
+| François  | Tremblay | ftremblay@gmail.com |
++-----------+----------+---------------------+
+(1 row)
+
+!ok

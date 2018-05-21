@@ -404,32 +404,6 @@ public class JdbcRules {
       return false;
     }
 
-    /**
-     * Visitor for checking whether part of projection is a user defined function or not
-     */
-    private static class CheckingUserDefinedFunctionVisitor extends RexVisitorImpl<Void> {
-
-      private boolean containsUsedDefinedFunction = false;
-
-      CheckingUserDefinedFunctionVisitor() {
-        super(true);
-      }
-
-      public boolean containsUserDefinedFunction() {
-        return containsUsedDefinedFunction;
-      }
-
-      @Override public Void visitCall(RexCall call) {
-        SqlOperator operator = call.getOperator();
-        if (operator instanceof SqlFunction
-            && ((SqlFunction) operator).getFunctionType().isUserDefined()) {
-          containsUsedDefinedFunction |= true;
-        }
-        return super.visitCall(call);
-      }
-
-    }
-
     public RelNode convert(RelNode rel) {
       final Project project = (Project) rel;
 
@@ -495,8 +469,23 @@ public class JdbcRules {
     /** Creates a JdbcFilterRule. */
     public JdbcFilterRule(JdbcConvention out,
         RelBuilderFactory relBuilderFactory) {
-      super(Filter.class, Predicates.<RelNode>alwaysTrue(), Convention.NONE,
-          out, relBuilderFactory, "JdbcFilterRule");
+      super(
+        Filter.class,
+        new PredicateImpl<Filter>() {
+          @Override public boolean test(Filter filter) {
+            return !userDefinedFunctionInFilter(filter);
+          }
+        },
+        Convention.NONE,
+        out,
+        relBuilderFactory,
+        "JdbcFilterRule");
+    }
+
+    private static boolean userDefinedFunctionInFilter(Filter filter) {
+      CheckingUserDefinedFunctionVisitor visitor = new CheckingUserDefinedFunctionVisitor();
+      filter.getCondition().accept(visitor);
+      return visitor.containsUserDefinedFunction();
     }
 
     public RelNode convert(RelNode rel) {
@@ -937,6 +926,33 @@ public class JdbcRules {
       return implementor.implement(this);
     }
   }
+
+  /**
+   * Visitor for checking whether part of projection is a user defined function or not
+   */
+  private static class CheckingUserDefinedFunctionVisitor extends RexVisitorImpl<Void> {
+
+    private boolean containsUsedDefinedFunction = false;
+
+    CheckingUserDefinedFunctionVisitor() {
+      super(true);
+    }
+
+    public boolean containsUserDefinedFunction() {
+      return containsUsedDefinedFunction;
+    }
+
+    @Override public Void visitCall(RexCall call) {
+      SqlOperator operator = call.getOperator();
+      if (operator instanceof SqlFunction
+          && ((SqlFunction) operator).getFunctionType().isUserDefined()) {
+        containsUsedDefinedFunction |= true;
+      }
+      return super.visitCall(call);
+    }
+
+  }
+
 }
 
 // End JdbcRules.java

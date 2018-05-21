@@ -65,6 +65,10 @@
         {
           "name": "ASCONCATOFPARAMS",
           "className": "org.apache.calcite.chinook.StringConcatFunction"
+        },
+        {
+          "name": "CHOSENCUSTOMEREMAIL",
+          "className": "org.apache.calcite.chinook.ChosenCustomerEmail"
         }
       ]
     }
