@@ -260,7 +260,7 @@ public class RexUtil {
    */
   public static boolean isLiteral(RexNode node, boolean allowCast) {
     assert node != null;
-    if (node instanceof RexLiteral) {
+    if (node.isA(SqlKind.LITERAL)) {
       return true;
     }
     if (allowCast) {
@@ -273,6 +273,21 @@ public class RexUtil {
       }
     }
     return false;
+  }
+
+  /**
+   * Checks that every expression from the specified list is literal.
+   *
+   * @param expressionOperands list of expressions to check
+   * @return true if every expression from the specified list is literal.
+   */
+  public static boolean allLiterals(List<RexNode> expressionOperands) {
+    for (RexNode rexNode : expressionOperands) {
+      if (!isLiteral(rexNode, true)) {
+        return false;
+      }
+    }
+    return true;
   }
 
   /**
