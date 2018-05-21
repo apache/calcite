@@ -3772,33 +3772,28 @@ public class DruidAdapterIT {
   }
 
   @Test
-  //Boolean cast are not pushed for now.
   public void testBooleanFilterExpressions() {
     final String sql = "SELECT count(*) from " + FOODMART_TABLE
         + " WHERE (CAST((\"product_id\" <> '1') AS BOOLEAN)) IS TRUE";
     sql(sql, FOODMART)
         .explainContains("PLAN=EnumerableInterpreter\n"
-            + "  BindableAggregate(group=[{}], EXPR$0=[$SUM0($1)])\n"
-            + "    BindableFilter(condition=[IS TRUE(CAST(<>($0, '1')):BOOLEAN)])\n"
-            + "      DruidQuery(table=[[foodmart, foodmart]], "
-            + "intervals=[[1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z]], "
-            + "groups=[{1}], aggs=[[COUNT()]])")
-        .queryContains(druidChecker("\"queryType\":\"groupBy\""))
+                         + "  DruidQuery(table=[[foodmart, foodmart]], intervals=[[1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z]],"
+                         + " filter=[IS TRUE(CAST(<>($1, '1')):BOOLEAN)], groups=[{}], aggs=[[COUNT()]])")
+        .queryContains(druidChecker("\"queryType\":\"timeseries\""))
         .returnsOrdered("EXPR$0=86803");
   }
 
 
   @Test
-  public void testCombinationOfValidAndNotValidFilterts() {
+  public void testCombinationOfValidAndNotValidFilters() {
     final String sql = "SELECT COUNT(*) FROM " + FOODMART_TABLE
         + "WHERE ((CAST(\"product_id\" AS INTEGER) + 1 * \"store_sales\")/(\"store_cost\" - 5) "
         + "<= floor(\"store_sales\") * 25 + 2) AND \"timestamp\" < CAST('1997-01-02' as TIMESTAMP)"
         + "AND CAST(\"store_sales\" > 0 AS BOOLEAN) IS TRUE "
         + "AND \"product_id\" like '1%' AND \"store_cost\" > 1 "
         + "AND EXTRACT(MONTH FROM \"timestamp\") = 01 AND EXTRACT(DAY FROM \"timestamp\") = 01 "
-        + "AND EXTRACT(MONTH FROM \"timestamp\") / 4 + 1 = 1";
-    final String queryType = "{'queryType':'groupBy','dataSource':'foodmart','granularity':'all',"
-        + "'dimensions':[{'type':'default','dimension':'store_sales','outputName':'store_sales','outputType':'DOUBLE'}],";
+        + "AND EXTRACT(MONTH FROM \"timestamp\") / 4 + 1 = 1 ";
+    final String queryType = "{'queryType':'timeseries','dataSource':'foodmart'";
     final String filterExp1 = "{'type':'expression','expression':'(((CAST(\\'product_id\\'";
     final String filterExpPart2 =  " (1 * \\'store_sales\\')) / (\\'store_cost\\' - 5)) "
         + "<= ((floor(\\'store_sales\\') * 25) + 2))'}";
@@ -3820,15 +3815,15 @@ public class DruidAdapterIT {
     final String quarterAsExpressionFilter2 = "MONTH";
     final String quarterAsExpressionFilterTimeZone = "UTC";
     final String quarterAsExpressionFilter3 = "/ 4) + 1) == 1)'}]}";
+    final String booleanAsFilter = "> 0";
     final String plan = "PLAN=EnumerableInterpreter\n"
-        + "  BindableAggregate(group=[{}], EXPR$0=[$SUM0($1)])\n"
-        + "    BindableFilter(condition=[IS TRUE(CAST(>($0, 0)):BOOLEAN)])\n"
-        + "      DruidQuery(table=[[foodmart, foodmart]], "
+        + "  DruidQuery(table=[[foodmart, foodmart]], "
         + "intervals=[[1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z]], "
         + "filter=[AND(<=(/(+(CAST($1):INTEGER, *(1, $90)), -($91, 5)), +(*(FLOOR($90), 25), 2)),"
-        + " LIKE($1, '1%'), >($91, 1), <($0, 1997-01-02 00:00:00), =(EXTRACT(FLAG(MONTH), $0), 1), "
+        + " IS TRUE(CAST(>($90, 0)):BOOLEAN), "
+        + "LIKE($1, '1%'), >($91, 1), <($0, 1997-01-02 00:00:00), =(EXTRACT(FLAG(MONTH), $0), 1), "
         + "=(EXTRACT(FLAG(DAY), $0), 1), =(+(/(EXTRACT(FLAG(MONTH), $0), 4), 1), 1))], "
-        + "groups=[{90}], aggs=[[COUNT()]])";
+        + "groups=[{}], aggs=[[COUNT()]])";
     sql(sql, FOODMART)
         .returnsOrdered("EXPR$0=36")
         .explainContains(plan)
@@ -3837,7 +3832,7 @@ public class DruidAdapterIT {
                 queryType, filterExp1, filterExpPart2, likeExpressionFilter, likeExpressionFilter2,
                 simpleBound, timeSimpleFilter, simpleExtractFilterMonth, simpleExtractFilterDay,
                 quarterAsExpressionFilter, quarterAsExpressionFilterTimeZone,
-                quarterAsExpressionFilter2, quarterAsExpressionFilter3));
+                quarterAsExpressionFilter2, quarterAsExpressionFilter3, booleanAsFilter));
   }
 
 
@@ -4529,6 +4524,19 @@ public class DruidAdapterIT {
         .returnsOrdered("EXPR$0=86829; EXPR$1=565238.1299999986; EXPR$2=86829")
         .queryContains(
             druidChecker("{'queryType':'timeseries'", "'context':{'skipEmptyBuckets':false}}"));
+
+  }
+
+  @Test
+  public void testGroupByWithBooleanExpression() {
+    final String sql = "SELECT \"product_id\" > 1000 as pid_category, COUNT(\"store_sales\") FROM "
+                       + FOODMART_TABLE + "GROUP BY \"product_id\" > 1000";
+    sql(sql, FOODMART)
+        .returnsOrdered("PID_CATEGORY=0; EXPR$1=55789",
+                        "PID_CATEGORY=1; EXPR$1=31040")
+        .queryContains(
+            druidChecker("{\"queryType\":\"groupBy\"",
+                         "\"dimension\":\"vc\",\"outputName\":\"vc\",\"outputType\":\"LONG\"}]"));
 
   }
 }
