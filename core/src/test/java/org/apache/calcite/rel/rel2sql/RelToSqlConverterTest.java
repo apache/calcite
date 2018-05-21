@@ -937,13 +937,12 @@ public class RelToSqlConverterTest {
             + "(SELECT max(\"product_id\") from \"product\" as \"f2\""
             + "where \"f2\".\"product_class_id\" = \"f1\".\"product_class_id\")"
             + "as \"max_val\" FROM \"product\" as \"f1\"";
-    final String expected = "SELECT product.product_id, product.product_class_id, "
-            + "t1.EXPR$0 AS max_val\n"
-            + "FROM foodmart.product AS product\n"
-            + "LEFT JOIN (SELECT product0.product_class_id, MAX(product0.product_id) AS EXPR$0\n"
-            + "FROM foodmart.product AS product0\n"
-            + "GROUP BY product0.product_class_id) AS t1 ON product.product_class_id = t1.product_class_id";
-    sql(query).withDb2().ok(expected);
+    final String expected = "SELECT `product`.`product_id`, `product`.`product_class_id`, `t1`.`EXPR$0` AS `max_val`\n"
+            + "FROM `foodmart`.`product`\n"
+            + "LEFT JOIN (SELECT `product_class_id`, MAX(`product_id`) AS `EXPR$0`\n"
+            + "FROM `foodmart`.`product`\n"
+            + "GROUP BY `product_class_id`) AS `t1` ON `product`.`product_class_id` = `t1`.`product_class_id`";
+    sql(query).withMysql().ok(expected);
   }
 
 
