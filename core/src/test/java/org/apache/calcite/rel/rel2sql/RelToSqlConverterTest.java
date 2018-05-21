@@ -932,6 +932,20 @@ public class RelToSqlConverterTest {
     sql(query).withDb2().ok(expected);
   }
 
+  @Test public void testSubqueryAggregateConversion() {
+    String query = "select \"product_id\", \"product_class_id\","
+            + "(SELECT max(\"product_id\") from \"product\" as \"f2\""
+            + "where \"f2\".\"product_class_id\" = \"f1\".\"product_class_id\")"
+            + "as \"max_val\" FROM \"product\" as \"f1\"";
+    final String expected = "SELECT product.product_id, product.product_class_id, "
+            + "t1.EXPR$0 AS max_val\n"
+            + "FROM foodmart.product AS product\n"
+            + "LEFT JOIN (SELECT product0.product_class_id, MAX(product0.product_id) AS EXPR$0\n"
+            + "FROM foodmart.product AS product0\n"
+            + "GROUP BY product0.product_class_id) AS t1 ON product.product_class_id = t1.product_class_id";
+    sql(query).withDb2().ok(expected);
+  }
+
 
   @Test public void testDb2DialectSelectQueryComplex() {
     String query = "select count(*), \"units_per_case\" "
