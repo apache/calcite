@@ -75,7 +75,6 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.SortedSet;
 
@@ -538,11 +537,7 @@ public class RelToSqlConverter extends SqlImplementor
       RelDataType rowType) {
     String name = rowType.getFieldNames().get(selectList.size());
     String alias = SqlValidatorUtil.getAlias(node, -1);
-    final String lowerName = name.toLowerCase(Locale.ROOT);
-    if (lowerName.startsWith("expr$")) {
-      // Put it in ordinalMap
-      ordinalMap.put(lowerName, node);
-    } else if (alias == null || !alias.equals(name)) {
+    if (alias == null || !alias.equals(name)) {
       node = as(node, name);
     }
     selectList.add(node);
