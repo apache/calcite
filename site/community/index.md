@@ -32,6 +32,12 @@ limitations under the License.
     Sources](https://sigmod2018.org/sigmod_industrial_list.shtml) (Edmon
     Begoli, Jesús Camacho-Rodríguez, Julian Hyde, Michael Mior, Daniel
     Lemire)
+* 2018/06/27 [SF Big Analytics streaming meetup, hosted by Lyft](https://www.meetup.com/SF-Big-Analytics/)
+  (San Francisco, CA)
+  * Foundations of streaming SQL or: How I learned to love stream and
+    table theory (Tyler Akidau)
+  * Data all over the place! How Apache Calcite brings SQL and sanity to
+    streaming and spatial data (Julian Hyde)
 * 2018/09/25 [ApacheCon 2018](https://www.apachecon.com/acna18/) (Montréal, Canada)
   * Spatial query on vanilla databases (Julian Hyde)
   * Don't optimize my queries, optimize my data! (Julian Hyde)
