@@ -5890,6 +5890,13 @@ public class JdbcTest {
             });
   }
 
+  @Test public void testRowComparison() {
+    CalciteAssert.that()
+        .with(CalciteAssert.Config.JDBC_SCOTT)
+        .query("SELECT empno FROM JDBC_SCOTT.emp WHERE (ename, job) < ('Blake', 'Manager')")
+        .returnsUnordered("EMPNO=7876", "EMPNO=7499", "EMPNO=7698");
+  }
+
   @Test public void testUnicode() throws Exception {
     CalciteAssert.AssertThat with =
         CalciteAssert.that().with(CalciteAssert.Config.FOODMART_CLONE);
