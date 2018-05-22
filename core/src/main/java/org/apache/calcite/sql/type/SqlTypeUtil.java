@@ -21,6 +21,7 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeFamily;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rel.type.RelDataTypeFieldImpl;
+import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlCallBinding;
 import org.apache.calcite.sql.SqlCollation;
@@ -38,6 +39,7 @@ import org.apache.calcite.util.Util;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 import java.nio.charset.Charset;
 import java.util.AbstractList;
@@ -1309,6 +1311,58 @@ public abstract class SqlTypeUtil {
     return family;
   }
 
+  /**
+   * Returns whether all types in a collection have the same family, as
+   * determined by {@link #isSameFamily(RelDataType, RelDataType)}.
+   *
+   * @param types Types to check
+   * @return true if all types are of the same family
+   */
+  public static boolean areSameFamily(Iterable<RelDataType> types) {
+    final List<RelDataType> typeList = ImmutableList.copyOf(types);
+    if (Sets.newHashSet(RexUtil.families(typeList)).size() < 2) {
+      return true;
+    }
+    for (Pair<RelDataType, RelDataType> adjacent : Pair.adjacents(typeList)) {
+      if (!isSameFamily(adjacent.left, adjacent.right)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  /**
+   * Returns whether two types are scalar types of the same family, or struct types whose fields
+   * are pairwise of the same family.
+   *
+   * @param type1 First type
+   * @param type2 Second type
+   * @return Whether types have the same family
+   */
+  private static boolean isSameFamily(RelDataType type1, RelDataType type2) {
+    if (type1.isStruct() != type2.isStruct()) {
+      return false;
+    }
+
+    if (type1.isStruct()) {
+      int n = type1.getFieldCount();
+      if (n != type2.getFieldCount()) {
+        return false;
+      }
+      for (Pair<RelDataTypeField, RelDataTypeField> pair
+          : Pair.zip(type1.getFieldList(), type2.getFieldList())) {
+        if (!isSameFamily(pair.left.getType(), pair.right.getType())) {
+          return false;
+        }
+      }
+      return true;
+    }
+
+    final RelDataTypeFamily family1 = family(type1);
+    final RelDataTypeFamily family2 = family(type2);
+    return family1 == family2;
+  }
+
   /** Returns whether a character data type can be implicitly converted to a
    * given family in a compare operation. */
   private static boolean canConvertStringInCompare(RelDataTypeFamily family) {
@@ -1371,6 +1425,8 @@ public abstract class SqlTypeUtil {
   public static boolean isArray(RelDataType type) {
     return type.getSqlTypeName() == SqlTypeName.ARRAY;
   }
+
+
 }
 
 // End SqlTypeUtil.java

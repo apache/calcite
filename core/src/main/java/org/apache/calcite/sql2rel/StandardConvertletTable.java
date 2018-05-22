@@ -73,13 +73,11 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 
 /**
  * Standard implementation of {@link SqlRexConvertletTable}.
@@ -877,9 +875,7 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
       SqlOperandTypeChecker.Consistency consistency, List<RelDataType> types) {
     switch (consistency) {
     case COMPARE:
-      final Set<RelDataTypeFamily> families =
-          Sets.newHashSet(RexUtil.families(types));
-      if (families.size() < 2) {
+      if (SqlTypeUtil.areSameFamily(types)) {
         // All arguments are of same family. No need for explicit casts.
         return null;
       }
