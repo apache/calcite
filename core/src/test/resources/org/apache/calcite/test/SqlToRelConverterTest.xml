@@ -5192,6 +5192,22 @@ LogicalProject(EMPNO=[$0])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testUserDefinedOrderByOver">
+        <Resource name="sql">
+            <![CDATA[select deptno,
+  rank() over(partition by empno order by deptno)
+from emp
+order by row_number() over(partition by empno order by deptno)]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(DEPTNO=[$0], EXPR$1=[$1])
+  LogicalSort(sort0=[$2], dir0=[ASC-nulls-first])
+    LogicalProject(DEPTNO=[$7], EXPR$1=[RANK() OVER (PARTITION BY $0 ORDER BY $7 NULLS FIRST RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)], EXPR$2=[ROW_NUMBER() OVER (PARTITION BY $0 ORDER BY $7 NULLS FIRST ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testWindowOnDynamicStar">
         <Resource name="sql">
             <![CDATA[SELECT SUM(n_nationkey) OVER w

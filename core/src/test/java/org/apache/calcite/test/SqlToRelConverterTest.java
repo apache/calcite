@@ -16,6 +16,10 @@
  */
 package org.apache.calcite.test;
 
+import org.apache.calcite.config.CalciteConnectionConfigImpl;
+import org.apache.calcite.config.CalciteConnectionProperty;
+import org.apache.calcite.config.NullCollation;
+import org.apache.calcite.plan.Contexts;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.prepare.Prepare;
 import org.apache.calcite.rel.RelNode;
@@ -45,6 +49,7 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.ArrayDeque;
 import java.util.Deque;
+import java.util.Properties;
 import java.util.Set;
 
 import static org.hamcrest.CoreMatchers.notNullValue;
@@ -2811,6 +2816,27 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
         + "            END\n"
         + ") AS T";
     sql(sql).ok();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2323">[CALCITE-2323]
+   * Validator should allow alternative nullCollations for ORDER BY in
+   * OVER</a>. */
+  @Test public void testUserDefinedOrderByOver() {
+    String sql = "select deptno,\n"
+        + "  rank() over(partition by empno order by deptno)\n"
+        + "from emp\n"
+        + "order by row_number() over(partition by empno order by deptno)";
+    Properties properties = new Properties();
+    properties.setProperty(
+        CalciteConnectionProperty.DEFAULT_NULL_COLLATION.camelName(),
+        NullCollation.LOW.name());
+    CalciteConnectionConfigImpl connectionConfig =
+        new CalciteConnectionConfigImpl(properties);
+    TesterImpl tester = new TesterImpl(getDiffRepos(), false, false, true, false,
+        null, null, SqlToRelConverter.Config.DEFAULT,
+        SqlConformanceEnum.DEFAULT, Contexts.of(connectionConfig));
+    sql(sql).with(tester).ok();
   }
 
   /**
