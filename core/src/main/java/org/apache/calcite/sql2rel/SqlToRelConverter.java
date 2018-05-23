@@ -17,6 +17,7 @@
 package org.apache.calcite.sql2rel;
 
 import org.apache.calcite.avatica.util.Spaces;
+import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptCluster;
@@ -1884,6 +1885,18 @@ public class SqlToRelConverter {
     for (SqlNode order : orderList) {
       flags.clear();
       RexNode e = bb.convertSortExpression(order, flags);
+      if (!flags.contains(SqlKind.NULLS_LAST) && !flags.contains(SqlKind.NULLS_FIRST)) {
+        boolean desc = flags.contains(SqlKind.DESCENDING) ? true : false;
+        boolean nullsFirst = !validator.getDefaultNullCollation().last(desc);
+        //Calcite's default null collation is HIGH.
+        boolean isCalciteDefaultCollation = NullCollation.HIGH.isDefaultOrder(nullsFirst, desc);
+        if (!isCalciteDefaultCollation) {
+          //Here should add the null direction which is different from the calcite's default null direction.
+          SqlKind nullDirection = nullsFirst ?
+                  SqlKind.NULLS_FIRST : SqlKind.NULLS_LAST;
+          flags.add(nullDirection);
+        }
+      }
       orderKeys.add(new RexFieldCollation(e, flags));
     }
     try {
