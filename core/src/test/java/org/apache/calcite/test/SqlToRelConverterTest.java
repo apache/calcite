@@ -2829,8 +2829,8 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     TesterImpl tester =  new TesterImpl(getDiffRepos(), false, false, true, false,
             null, null, SqlToRelConverter.Config.DEFAULT,
             SqlConformanceEnum.DEFAULT, Contexts.empty()) {
-      @Override
-      public SqlValidator createValidator(SqlValidatorCatalogReader catalogReader, RelDataTypeFactory typeFactory) {
+      @Override public SqlValidator createValidator(
+              SqlValidatorCatalogReader catalogReader, RelDataTypeFactory typeFactory) {
         return new TestLowNullCollationValidator(
                 getOperatorTable(),
                 catalogReader,
@@ -2948,8 +2948,7 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
       super(opTab, catalogReader, typeFactory, conformance);
     }
 
-    @Override
-    public NullCollation getDefaultNullCollation() {
+    @Override public NullCollation getDefaultNullCollation() {
       return NullCollation.LOW;
     }
 

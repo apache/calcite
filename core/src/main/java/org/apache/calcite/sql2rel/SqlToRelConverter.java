@@ -1891,9 +1891,10 @@ public class SqlToRelConverter {
         //Calcite's default null collation is HIGH.
         boolean isCalciteDefaultCollation = NullCollation.HIGH.isDefaultOrder(nullsFirst, desc);
         if (!isCalciteDefaultCollation) {
-          //Here should add the null direction which is different from the calcite's default null direction.
-          SqlKind nullDirection = nullsFirst ?
-                  SqlKind.NULLS_FIRST : SqlKind.NULLS_LAST;
+          //Here should add the null direction which is different
+          // from the calcite's default null direction.
+          SqlKind nullDirection = nullsFirst
+                  ? SqlKind.NULLS_FIRST : SqlKind.NULLS_LAST;
           flags.add(nullDirection);
         }
       }
