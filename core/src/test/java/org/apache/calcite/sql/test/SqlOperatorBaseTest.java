@@ -44,6 +44,7 @@ import org.apache.calcite.sql.type.SqlOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.util.ChainedSqlOperatorTable;
 import org.apache.calcite.sql.util.SqlString;
+import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.sql.validate.SqlValidatorImpl;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
@@ -311,6 +312,23 @@ public abstract class SqlOperatorBaseTest {
                 .with(new CalciteAssert
                     .AddSchemaSpecPostProcessor(CalciteAssert.SchemaSpec.HR))
                 .with("fun", "oracle"));
+  }
+
+  protected SqlTester oracleTester(SqlConformance conformance) {
+    if (conformance == null) {
+      conformance = SqlConformanceEnum.DEFAULT;
+    }
+    return tester
+        .withConformance(conformance)
+        .withOperatorTable(
+            ChainedSqlOperatorTable.of(OracleSqlOperatorTable.instance(),
+                SqlStdOperatorTable.instance()))
+        .withConnectionFactory(
+            CalciteAssert.EMPTY_CONNECTION_FACTORY
+                .with(new CalciteAssert
+                    .AddSchemaSpecPostProcessor(CalciteAssert.SchemaSpec.HR))
+                .with("fun", "oracle")
+                .with("conformance", conformance));
   }
 
   //--- Tests -----------------------------------------------------------
@@ -1577,6 +1595,77 @@ public abstract class SqlOperatorBaseTest {
             + "end",
         "none of the above",
         "CHAR(17) NOT NULL");
+
+    // tests with SqlConformance
+    final SqlTester tester2 =
+        tester.withConformance(SqlConformanceEnum.PRAGMATIC_2003);
+    tester2.checkString(
+        "case 2 when 1 then 'a' when 2 then 'bcd' end",
+        "bcd",
+        "VARCHAR(3)");
+    tester2.checkString(
+        "case 1 when 1 then 'a' when 2 then 'bcd' end",
+        "a",
+        "VARCHAR(3)");
+    tester2.checkString(
+        "case 1 when 1 then cast('a' as varchar(1)) "
+            + "when 2 then cast('bcd' as varchar(3)) end",
+        "a",
+        "VARCHAR(3)");
+
+    tester2.checkString(
+        "case cast(null as int) when cast(null as int)"
+            + " then 'nulls match'"
+            + " else 'nulls do not match' end",
+        "nulls do not match",
+        "VARCHAR(18) NOT NULL");
+    tester2.checkScalarExact(
+        "case when 'a'=cast(null as varchar(1)) then 1 else 2 end",
+        "2");
+
+    // equivalent to "nullif('a',cast(null as varchar(1)))"
+    tester2.checkString(
+        "case when 'a' = cast(null as varchar(1)) then null else 'a' end",
+        "a",
+        "CHAR(1)");
+
+    // multiple values in some cases (introduced in SQL:2011)
+    tester2.checkString(
+        "case 1 "
+            + "when 1, 2 then '1 or 2' "
+            + "when 2 then 'not possible' "
+            + "when 3, 2 then '3' "
+            + "else 'none of the above' "
+            + "end",
+        "1 or 2",
+        "VARCHAR(17) NOT NULL");
+    tester2.checkString(
+        "case 2 "
+            + "when 1, 2 then '1 or 2' "
+            + "when 2 then 'not possible' "
+            + "when 3, 2 then '3' "
+            + "else 'none of the above' "
+            + "end",
+        "1 or 2",
+        "VARCHAR(17) NOT NULL");
+    tester2.checkString(
+        "case 3 "
+            + "when 1, 2 then '1 or 2' "
+            + "when 2 then 'not possible' "
+            + "when 3, 2 then '3' "
+            + "else 'none of the above' "
+            + "end",
+        "3",
+        "VARCHAR(17) NOT NULL");
+    tester2.checkString(
+        "case 4 "
+            + "when 1, 2 then '1 or 2' "
+            + "when 2 then 'not possible' "
+            + "when 3, 2 then '3' "
+            + "else 'none of the above' "
+            + "end",
+        "none of the above",
+        "VARCHAR(17) NOT NULL");
 
     // TODO: Check case with multisets
   }
@@ -5018,6 +5107,11 @@ public abstract class SqlOperatorBaseTest {
         "CHAR(5) NOT NULL");
     tester1.checkScalar("greatest(12, CAST(NULL AS INTEGER), 3)", null, "INTEGER");
     tester1.checkScalar("greatest(false, true)", true, "BOOLEAN NOT NULL");
+
+    final SqlTester tester2 = oracleTester(SqlConformanceEnum.ORACLE_12);
+    tester2.checkString("greatest('on', 'earth')", "on", "VARCHAR(5) NOT NULL");
+    tester2.checkString("greatest('show', 'on', 'earth')", "show",
+        "VARCHAR(5) NOT NULL");
   }
 
   @Test public void testLeastFunc() {
@@ -5028,6 +5122,11 @@ public abstract class SqlOperatorBaseTest {
         "CHAR(5) NOT NULL");
     tester1.checkScalar("least(12, CAST(NULL AS INTEGER), 3)", null, "INTEGER");
     tester1.checkScalar("least(false, true)", false, "BOOLEAN NOT NULL");
+
+    final SqlTester tester2 = oracleTester(SqlConformanceEnum.ORACLE_12);
+    tester2.checkString("least('on', 'earth')", "earth", "VARCHAR(5) NOT NULL");
+    tester2.checkString("least('show', 'on', 'earth')", "earth",
+        "VARCHAR(5) NOT NULL");
   }
 
   @Test public void testNvlFunc() {
@@ -5045,6 +5144,16 @@ public abstract class SqlOperatorBaseTest {
     tester1.checkString("nvl(CAST(NULL AS VARCHAR(20)), 'abc')", "abc",
         "VARCHAR(20) NOT NULL");
     tester1.checkNull(
+        "nvl(CAST(NULL AS VARCHAR(6)), cast(NULL AS VARCHAR(4)))");
+
+    final SqlTester tester2 = oracleTester(SqlConformanceEnum.ORACLE_12);
+    tester2.checkString("nvl('abc', 'de')", "abc", "VARCHAR(3) NOT NULL");
+    tester2.checkString("nvl('abc', 'defg')", "abc", "VARCHAR(4) NOT NULL");
+    tester2.checkString("nvl('abc', CAST(NULL AS VARCHAR(20)))", "abc",
+        "VARCHAR(20) NOT NULL");
+    tester2.checkString("nvl(CAST(NULL AS VARCHAR(20)), 'abc')", "abc",
+        "VARCHAR(20) NOT NULL");
+    tester2.checkNull(
         "nvl(CAST(NULL AS VARCHAR(6)), cast(NULL AS VARCHAR(4)))");
   }
 
@@ -5843,6 +5952,13 @@ public abstract class SqlOperatorBaseTest {
     tester.checkScalarExact(
         "map['washington', 1, 'obama', 44]",
         "(CHAR(10) NOT NULL, INTEGER NOT NULL) MAP NOT NULL",
+        "{washington=1, obama=44}");
+
+    final SqlTester tester2 =
+        tester.withConformance(SqlConformanceEnum.PRAGMATIC_2003);
+    tester2.checkScalarExact(
+        "map['washington', 1, 'obama', 44]",
+        "(VARCHAR(10) NOT NULL, INTEGER NOT NULL) MAP NOT NULL",
         "{washington=1, obama=44}");
   }
 

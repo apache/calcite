@@ -96,6 +96,10 @@ public interface RelDataTypeSystem {
   /** Whether two record types are considered distinct if their field names
    * are the same but in different cases. */
   boolean isSchemaCaseSensitive();
+
+  /** Whether the least restrictive type of a number of CHAR types of different
+   * lengths should be a VARCHAR type. And similarly BINARY to VARBINARY. */
+  boolean shouldConvertRaggedUnionTypesToVarying();
 }
 
 // End RelDataTypeSystem.java

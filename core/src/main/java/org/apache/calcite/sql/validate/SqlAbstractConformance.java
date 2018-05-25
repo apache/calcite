@@ -90,6 +90,10 @@ public abstract class SqlAbstractConformance implements SqlConformance {
   public boolean allowGeometry() {
     return SqlConformanceEnum.DEFAULT.allowGeometry();
   }
+
+  public boolean shouldConvertRaggedUnionTypesToVarying() {
+    return SqlConformanceEnum.DEFAULT.shouldConvertRaggedUnionTypesToVarying();
+  }
 }
 
 // End SqlAbstractConformance.java
