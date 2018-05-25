@@ -1878,14 +1878,18 @@ public class SqlToRelConverter {
             "Relation should have sort key for implicit ORDER BY");
       }
     }
+
     final ImmutableList.Builder<RexFieldCollation> orderKeys =
         ImmutableList.builder();
     final Set<SqlKind> flags = EnumSet.noneOf(SqlKind.class);
     for (SqlNode order : orderList) {
       flags.clear();
-      RexNode e = bb.convertSortExpression(order, flags);
+      RexNode e = bb.convertSortExpression(order, flags,
+              RelFieldCollation.Direction.ASCENDING,
+              RelFieldCollation.NullDirection.UNSPECIFIED);
       orderKeys.add(new RexFieldCollation(e, flags));
     }
+
     try {
       Preconditions.checkArgument(bb.window == null,
           "already in window agg mode");
@@ -4557,15 +4561,47 @@ public class SqlToRelConverter {
      * Converts an item in an ORDER BY clause, extracting DESC, NULLS LAST
      * and NULLS FIRST flags first.
      */
-    public RexNode convertSortExpression(SqlNode expr, Set<SqlKind> flags) {
+    public RexNode convertSortExpression(
+            SqlNode expr,
+            Set<SqlKind> flags,
+            RelFieldCollation.Direction direction,
+            RelFieldCollation.NullDirection nullDirection) {
       switch (expr.getKind()) {
       case DESCENDING:
+        flags.add(expr.getKind());
+        return convertSortExpression(
+                ((SqlCall) expr).operand(0),
+                flags,
+                RelFieldCollation.Direction.DESCENDING,
+                nullDirection);
       case NULLS_LAST:
+        flags.add(expr.getKind());
+        return convertSortExpression(
+                ((SqlCall) expr).operand(0),
+                flags,
+                direction,
+                RelFieldCollation.NullDirection.LAST);
       case NULLS_FIRST:
         flags.add(expr.getKind());
-        final SqlNode operand = ((SqlCall) expr).operand(0);
-        return convertSortExpression(operand, flags);
+        return convertSortExpression(
+                ((SqlCall) expr).operand(0),
+                flags,
+                direction,
+                RelFieldCollation.NullDirection.FIRST);
       default:
+        switch (nullDirection) {
+        case UNSPECIFIED:
+          RelFieldCollation.NullDirection nullDefaultDirection = validator.getDefaultNullCollation()
+                  .last(desc(direction))
+                  ? RelFieldCollation.NullDirection.LAST
+                  : RelFieldCollation.NullDirection.FIRST;
+          if (nullDefaultDirection != direction.defaultNullDirection()) {
+            SqlKind nullDirectionSqlKind = validator.getDefaultNullCollation().last(desc(direction))
+                    ? SqlKind.NULLS_LAST
+                    : SqlKind.NULLS_FIRST;
+            flags.add(nullDirectionSqlKind);
+          }
+        }
         return convertExpression(expr);
       }
     }
