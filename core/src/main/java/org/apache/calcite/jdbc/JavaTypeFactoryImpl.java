@@ -34,6 +34,7 @@ import org.apache.calcite.sql.type.IntervalSqlType;
 import org.apache.calcite.sql.type.JavaToSqlTypeConversionRules;
 import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
@@ -69,6 +70,10 @@ public class JavaTypeFactoryImpl
 
   public JavaTypeFactoryImpl(RelDataTypeSystem typeSystem) {
     super(typeSystem);
+  }
+
+  public JavaTypeFactoryImpl(RelDataTypeSystem typeSystem, SqlConformance sqlConformance) {
+    super(typeSystem, sqlConformance);
   }
 
   public RelDataType createStructType(Class type) {

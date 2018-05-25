@@ -23,6 +23,7 @@ import org.apache.calcite.rel.type.RelDataTypeFamily;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.sql.SqlIntervalQualifier;
+import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.util.Glossary;
 import org.apache.calcite.util.Util;
 
@@ -38,6 +39,10 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
 
   public SqlTypeFactoryImpl(RelDataTypeSystem typeSystem) {
     super(typeSystem);
+  }
+
+  public SqlTypeFactoryImpl(RelDataTypeSystem typeSystem, SqlConformance sqlConformance) {
+    super(typeSystem, sqlConformance);
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -490,18 +495,15 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
   }
 
   /**
-   * Controls behavior discussed <a
-   * href="http://sf.net/mailarchive/message.php?msg_id=13337379">here</a>.
+   * Whether ragged fixed length value union be variable.
    *
-   * @return false (the default) to provide strict SQL:2003 behavior; true to
+   * @return false to provide strict SQL:2003 behavior; true to
    * provide pragmatic behavior
    *
    * @see Glossary#SQL2003 SQL:2003 Part 2 Section 9.3 Syntax Rule 3.a.iii.3
    */
   protected boolean shouldRaggedFixedLengthValueUnionBeVariable() {
-    // TODO jvs 30-Nov-2006:  implement SQL-Flagger support
-    // for warning about non-standard usage
-    return false;
+    return this.sqlConformance.shouldRaggedFixedLengthValueUnionBeVariable();
   }
 
   private RelDataType createDoublePrecisionType() {

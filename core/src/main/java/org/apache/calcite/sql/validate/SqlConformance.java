@@ -324,6 +324,16 @@ public interface SqlConformance {
    * false otherwise.
    */
   boolean allowGeometry();
+
+  /**
+   * Whether ragged fixed length value union be variable.
+   *
+   * @return false to provide strict SQL:2003 behavior; true to
+   * provide pragmatic behavior
+   *
+   * @see Glossary#SQL2003 SQL:2003 Part 2 Section 9.3 Syntax Rule 3.a.iii.3
+   */
+  boolean shouldRaggedFixedLengthValueUnionBeVariable();
 }
 
 // End SqlConformance.java
