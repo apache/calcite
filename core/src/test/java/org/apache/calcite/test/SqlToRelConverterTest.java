@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.test;
 
+import org.apache.calcite.config.CalciteConnectionConfigImpl;
+import org.apache.calcite.config.CalciteConnectionProperty;
 import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.plan.Contexts;
 import org.apache.calcite.plan.RelOptUtil;
@@ -28,13 +30,9 @@ import org.apache.calcite.rel.externalize.RelXmlWriter;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.SqlExplainLevel;
-import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
-import org.apache.calcite.sql.validate.SqlValidator;
-import org.apache.calcite.sql.validate.SqlValidatorCatalogReader;
-import org.apache.calcite.sql.validate.SqlValidatorImpl;
 import org.apache.calcite.sql2rel.SqlToRelConverter;
 import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.Litmus;
@@ -51,6 +49,7 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.ArrayDeque;
 import java.util.Deque;
+import java.util.Properties;
 import java.util.Set;
 
 import static org.hamcrest.CoreMatchers.notNullValue;
@@ -2820,25 +2819,21 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
   }
 
   /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-1313">[CALCITE-1313]
-   * Validator should derive type of expression in ORDER BY</a>.
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2323">[CALCITE-2323]
+   * Validator should allow alternative nullCollations for ORDER BY in OVER.</a>.
    */
   @Test public void testUserDefinedOrderByOver() {
     String sql = "select deptno, rank() over(partition by empno order by deptno)\n"
             + "from emp order by row_number() over(partition by empno order by deptno)";
+    Properties properties = new Properties();
+    properties.setProperty(
+            CalciteConnectionProperty.DEFAULT_NULL_COLLATION.camelName(),
+            NullCollation.LOW.name());
+    CalciteConnectionConfigImpl connectionConfig = new CalciteConnectionConfigImpl(properties);
     TesterImpl tester =  new TesterImpl(getDiffRepos(), false, false, true, false,
             null, null, SqlToRelConverter.Config.DEFAULT,
-            SqlConformanceEnum.DEFAULT, Contexts.empty()) {
-      @Override public SqlValidator createValidator(
-              SqlValidatorCatalogReader catalogReader, RelDataTypeFactory typeFactory) {
-        return new TestLowNullCollationValidator(
-                getOperatorTable(),
-                catalogReader,
-                typeFactory,
-                getConformance());
-      }
-    };
-    tester.assertConvertsTo(sql, "${plan}");
+            SqlConformanceEnum.DEFAULT, Contexts.of(connectionConfig));
+    sql(sql).with(tester).ok();
   }
 
   /**
@@ -2935,26 +2930,6 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     public Sql conformance(SqlConformance conformance) {
       return new Sql(sql, expand, decorrelate, tester, trim, config,
           conformance);
-    }
-  }
-
-  /** Validator for testing. */
-  private static class TestLowNullCollationValidator extends SqlValidatorImpl {
-    TestLowNullCollationValidator(
-        SqlOperatorTable opTab,
-        SqlValidatorCatalogReader catalogReader,
-        RelDataTypeFactory typeFactory,
-        SqlConformance conformance) {
-      super(opTab, catalogReader, typeFactory, conformance);
-    }
-
-    @Override public NullCollation getDefaultNullCollation() {
-      return NullCollation.LOW;
-    }
-
-    // override SqlValidator
-    public boolean shouldExpandIdentifiers() {
-      return true;
     }
   }
 }
