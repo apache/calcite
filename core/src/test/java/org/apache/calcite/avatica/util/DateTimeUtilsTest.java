@@ -313,6 +313,15 @@ public class DateTimeUtilsTest {
     assertThat(unixDateExtract(TimeUnitRange.DOW, 365), is(6L));
     assertThat(unixDateExtract(TimeUnitRange.DOW, 366), is(7L));
 
+    // 1969/12/31 was a Wed (4)
+    assertThat(unixDateExtract(TimeUnitRange.ISODOW, -1), is(3L)); // wed
+    assertThat(unixDateExtract(TimeUnitRange.ISODOW, 0), is(4L)); // thu
+    assertThat(unixDateExtract(TimeUnitRange.ISODOW, 1), is(5L)); // fri
+    assertThat(unixDateExtract(TimeUnitRange.ISODOW, 2), is(6L)); // sat
+    assertThat(unixDateExtract(TimeUnitRange.ISODOW, 3), is(7L)); // sun
+    assertThat(unixDateExtract(TimeUnitRange.ISODOW, 365), is(5L));
+    assertThat(unixDateExtract(TimeUnitRange.ISODOW, 366), is(6L));
+
     assertThat(unixDateExtract(TimeUnitRange.DOY, -1), is(365L));
     assertThat(unixDateExtract(TimeUnitRange.DOY, 0), is(1L));
     assertThat(unixDateExtract(TimeUnitRange.DOY, 1), is(2L));
@@ -342,14 +351,64 @@ public class DateTimeUtilsTest {
         is(1L)); // thu
     assertThat(unixDateExtract(TimeUnitRange.WEEK, ymdToUnixDate(2005, 1, 1)),
         is(53L)); // sat
+    assertThat(unixDateExtract(TimeUnitRange.WEEK, ymdToUnixDate(2005, 1, 2)),
+        is(53L)); // sun
+    assertThat(unixDateExtract(TimeUnitRange.WEEK, ymdToUnixDate(2005, 12, 31)),
+        is(52L)); // sat
     assertThat(unixDateExtract(TimeUnitRange.WEEK, ymdToUnixDate(2006, 1, 1)),
         is(52L)); // sun
+    assertThat(unixDateExtract(TimeUnitRange.WEEK, ymdToUnixDate(2006, 1, 2)),
+        is(1L)); // mon
+    assertThat(unixDateExtract(TimeUnitRange.WEEK, ymdToUnixDate(2006, 12, 31)),
+        is(52L)); // sun
+    assertThat(unixDateExtract(TimeUnitRange.WEEK, ymdToUnixDate(2007, 1, 1)),
+        is(1L)); // mon
+    assertThat(unixDateExtract(TimeUnitRange.WEEK, ymdToUnixDate(2007, 12, 30)),
+        is(52L)); // sun
+    assertThat(unixDateExtract(TimeUnitRange.WEEK, ymdToUnixDate(2007, 12, 31)),
+        is(1L)); // mon
+    assertThat(unixDateExtract(TimeUnitRange.WEEK, ymdToUnixDate(2008, 12, 28)),
+        is(52L)); // sun
+    assertThat(unixDateExtract(TimeUnitRange.WEEK, ymdToUnixDate(2008, 12, 29)),
+        is(1L)); // mon
+    assertThat(unixDateExtract(TimeUnitRange.WEEK, ymdToUnixDate(2008, 12, 30)),
+        is(1L)); // tue
+    assertThat(unixDateExtract(TimeUnitRange.WEEK, ymdToUnixDate(2008, 12, 31)),
+        is(1L)); // wen
+    assertThat(unixDateExtract(TimeUnitRange.WEEK, ymdToUnixDate(2009, 1, 1)),
+        is(1L)); // thu
+    assertThat(unixDateExtract(TimeUnitRange.WEEK, ymdToUnixDate(2009, 12, 31)),
+        is(53L)); // thu
+    assertThat(unixDateExtract(TimeUnitRange.WEEK, ymdToUnixDate(2010, 1, 1)),
+        is(53L)); // fri
+    assertThat(unixDateExtract(TimeUnitRange.WEEK, ymdToUnixDate(2010, 1, 2)),
+        is(53L)); // sat
+    assertThat(unixDateExtract(TimeUnitRange.WEEK, ymdToUnixDate(2010, 1, 3)),
+        is(53L)); // sun
+    assertThat(unixDateExtract(TimeUnitRange.WEEK, ymdToUnixDate(2010, 1, 4)),
+        is(1L)); // mon
+    assertThat(unixDateExtract(TimeUnitRange.WEEK, ymdToUnixDate(2012, 12, 30)),
+        is(52L)); // sun
+    assertThat(unixDateExtract(TimeUnitRange.WEEK, ymdToUnixDate(2012, 12, 31)),
+        is(1L)); // mon
+    assertThat(unixDateExtract(TimeUnitRange.WEEK, ymdToUnixDate(2014, 12, 30)),
+        is(1L)); // tue
+    assertThat(unixDateExtract(TimeUnitRange.WEEK, ymdToUnixDate(2014, 12, 31)),
+        is(1L)); // wen
     assertThat(unixDateExtract(TimeUnitRange.WEEK, ymdToUnixDate(1970, 1, 1)),
         is(1L)); // thu
 
-    assertThat(unixDateExtract(TimeUnitRange.WEEK, -1), is(53L)); // wed
+    // Based on the rule: The number of the ISO 8601 week-numbering week of the year.
+    // By definition, ISO weeks start on Mondays and the first week of a year contains
+    // January 4 of that year. In other words, the first Thursday of a year is in
+    // week 1 of that year.
+    // For that reason 1969-12-31, 1969-12-30 and 1969-12-29 are in the 1-st ISO week of 1970
+    assertThat(unixDateExtract(TimeUnitRange.WEEK, -4), is(52L)); // sun
+    assertThat(unixDateExtract(TimeUnitRange.WEEK, -3), is(1L)); // mon
+    assertThat(unixDateExtract(TimeUnitRange.WEEK, -2), is(1L)); // tue
+    assertThat(unixDateExtract(TimeUnitRange.WEEK, -1), is(1L)); // wed
     assertThat(unixDateExtract(TimeUnitRange.WEEK, 0), is(1L)); // thu
-    assertThat(unixDateExtract(TimeUnitRange.WEEK, 1), is(1L)); // fru
+    assertThat(unixDateExtract(TimeUnitRange.WEEK, 1), is(1L)); // fri
     assertThat(unixDateExtract(TimeUnitRange.WEEK, 2), is(1L)); // sat
     assertThat(unixDateExtract(TimeUnitRange.WEEK, 3), is(1L)); // sun
     assertThat(unixDateExtract(TimeUnitRange.WEEK, 4), is(2L)); // mon
@@ -428,6 +487,32 @@ public class DateTimeUtilsTest {
         unixDateExtract(TimeUnitRange.CENTURY, ymdToUnixDate(-2, 1, 1)),
         is(-1L));
 
+    //The 201st decade started on 2010/01/01. A little bit different but based on
+    //https://www.postgresql.org/docs/9.1/static/functions-datetime.html#FUNCTIONS-DATETIME-EXTRACT
+    assertThat(
+        unixDateExtract(TimeUnitRange.DECADE, ymdToUnixDate(2010, 1, 1)),
+        is(201L));
+    assertThat(
+        unixDateExtract(TimeUnitRange.DECADE, ymdToUnixDate(2000, 12, 31)),
+        is(200L));
+    assertThat(
+        unixDateExtract(TimeUnitRange.DECADE, ymdToUnixDate(1852, 6, 7)),
+        is(185L));
+    assertThat(
+        unixDateExtract(TimeUnitRange.DECADE, ymdToUnixDate(1, 2, 1)),
+        is(0L));
+    // TODO: For a small time range around year 1, due to the Gregorian shift,
+    // we end up in the wrong decade. Should be 1.
+    assertThat(
+        unixDateExtract(TimeUnitRange.DECADE, ymdToUnixDate(1, 1, 1)),
+        is(0L));
+    assertThat(
+        unixDateExtract(TimeUnitRange.DECADE, ymdToUnixDate(-2, 1, 1)),
+        is(0L));
+    assertThat(
+        unixDateExtract(TimeUnitRange.DECADE, ymdToUnixDate(-20, 1, 1)),
+        is(-2L));
+
     // The 3rd millennium started on 2001/01/01
     assertThat(
         unixDateExtract(TimeUnitRange.MILLENNIUM, ymdToUnixDate(2001, 1, 1)),
@@ -447,6 +532,117 @@ public class DateTimeUtilsTest {
     assertThat(
         unixDateExtract(TimeUnitRange.MILLENNIUM, ymdToUnixDate(-2, 1, 1)),
         is(-1L));
+
+    // The ISO 8601 week-numbering year that the date falls in (not applicable
+    // to intervals). Each ISO 8601 week-numbering year begins with the Monday
+    // of the week containing the 4th of January, so in early January or late
+    // December the ISO year may be different from the Gregorian year. See the
+    // week field for more information.
+    assertThat(
+        unixDateExtract(TimeUnitRange.ISOYEAR, ymdToUnixDate(2003, 1, 1)),
+        is(2003L)); // wed
+    assertThat(
+        unixDateExtract(TimeUnitRange.ISOYEAR, ymdToUnixDate(2004, 1, 1)),
+        is(2004L)); // thu
+    assertThat(
+        unixDateExtract(TimeUnitRange.ISOYEAR, ymdToUnixDate(2005, 1, 1)),
+        is(2004L)); // sat
+    assertThat(
+        unixDateExtract(TimeUnitRange.ISOYEAR, ymdToUnixDate(2005, 1, 2)),
+        is(2004L)); // sun
+    assertThat(
+        unixDateExtract(TimeUnitRange.ISOYEAR, ymdToUnixDate(2005, 1, 3)),
+        is(2005L)); // mon
+    assertThat(
+        unixDateExtract(TimeUnitRange.ISOYEAR, ymdToUnixDate(2005, 12, 31)),
+        is(2005L)); // sat
+    assertThat(
+        unixDateExtract(TimeUnitRange.ISOYEAR, ymdToUnixDate(2006, 1, 1)),
+        is(2005L)); // sun
+    assertThat(
+        unixDateExtract(TimeUnitRange.ISOYEAR, ymdToUnixDate(2006, 1, 2)),
+        is(2006L)); // mon
+    assertThat(
+        unixDateExtract(TimeUnitRange.ISOYEAR, ymdToUnixDate(2006, 12, 31)),
+        is(2006L)); // sun
+    assertThat(
+        unixDateExtract(TimeUnitRange.ISOYEAR, ymdToUnixDate(2007, 1, 1)),
+        is(2007L)); // mon
+    assertThat(
+        unixDateExtract(TimeUnitRange.ISOYEAR, ymdToUnixDate(2007, 12, 30)),
+        is(2007L)); // sun
+    assertThat(
+        unixDateExtract(TimeUnitRange.ISOYEAR, ymdToUnixDate(2007, 12, 31)),
+        is(2008L)); // mon
+    assertThat(
+        unixDateExtract(TimeUnitRange.ISOYEAR, ymdToUnixDate(2008, 12, 28)),
+        is(2008L)); // sun
+    assertThat(
+        unixDateExtract(TimeUnitRange.ISOYEAR, ymdToUnixDate(2008, 12, 29)),
+        is(2009L)); // mon
+    assertThat(
+        unixDateExtract(TimeUnitRange.ISOYEAR, ymdToUnixDate(2008, 12, 30)),
+        is(2009L)); // tue
+    assertThat(
+        unixDateExtract(TimeUnitRange.ISOYEAR, ymdToUnixDate(2008, 12, 31)),
+        is(2009L)); // wen
+    assertThat(
+        unixDateExtract(TimeUnitRange.ISOYEAR, ymdToUnixDate(2009, 1, 1)),
+        is(2009L)); // thu
+    assertThat(
+        unixDateExtract(TimeUnitRange.ISOYEAR, ymdToUnixDate(2009, 12, 31)),
+        is(2009L)); // thu
+    assertThat(
+        unixDateExtract(TimeUnitRange.ISOYEAR, ymdToUnixDate(2010, 1, 1)),
+        is(2009L)); // fri
+    assertThat(
+        unixDateExtract(TimeUnitRange.ISOYEAR, ymdToUnixDate(2010, 1, 2)),
+        is(2009L)); // sat
+    assertThat(
+        unixDateExtract(TimeUnitRange.ISOYEAR, ymdToUnixDate(2010, 1, 3)),
+        is(2009L)); // sun
+    assertThat(
+        unixDateExtract(TimeUnitRange.ISOYEAR, ymdToUnixDate(2010, 1, 4)),
+        is(2010L)); // mon
+    assertThat(
+        unixDateExtract(TimeUnitRange.ISOYEAR, ymdToUnixDate(2012, 12, 29)),
+        is(2012L)); // sat
+    assertThat(
+        unixDateExtract(TimeUnitRange.ISOYEAR, ymdToUnixDate(2012, 12, 30)),
+        is(2012L)); // sun
+    assertThat(
+        unixDateExtract(TimeUnitRange.ISOYEAR, ymdToUnixDate(2012, 12, 31)),
+        is(2013L)); // mon
+    assertThat(
+        unixDateExtract(TimeUnitRange.ISOYEAR, ymdToUnixDate(2014, 12, 30)),
+        is(2015L)); // tue
+    assertThat(
+        unixDateExtract(TimeUnitRange.ISOYEAR, ymdToUnixDate(2014, 12, 31)),
+        is(2015L)); // wen
+    assertThat(
+        unixDateExtract(TimeUnitRange.ISOYEAR, ymdToUnixDate(1970, 1, 1)),
+        is(1970L)); // thu
+
+    // For date and timestamp values, the number of seconds since 1970-01-01 00:00:00 UTC
+    // (can be negative); for interval values, the total number of seconds in the interval
+    assertThat(
+        unixDateExtract(TimeUnitRange.EPOCH, ymdToUnixDate(2001, 1, 1)),
+        is(978_307_200L));
+    assertThat(
+        unixDateExtract(TimeUnitRange.EPOCH, ymdToUnixDate(1969, 12, 31)),
+        is(-86_400L));
+    assertThat(
+        unixDateExtract(TimeUnitRange.EPOCH, ymdToUnixDate(1970, 1, 1)),
+        is(0L));
+    assertThat(
+        unixDateExtract(TimeUnitRange.EPOCH, ymdToUnixDate(1, 1, 1)),
+        is(-62_135_596_800L));
+    assertThat(
+        unixDateExtract(TimeUnitRange.EPOCH, ymdToUnixDate(1, 2, 1)),
+        is(-62_132_918_400L));
+    assertThat(
+        unixDateExtract(TimeUnitRange.EPOCH, ymdToUnixDate(-2, 1, 1)),
+        is(-62_230_291_200L));
   }
 
   @Test public void testUnixDate() {
@@ -522,14 +718,20 @@ public class DateTimeUtilsTest {
         is((long) month));
     assertThat(unixDateExtract(TimeUnitRange.DAY, unixDate),
         is((long) day));
+    final long isoYear = unixDateExtract(TimeUnitRange.ISOYEAR, unixDate);
+    assertTrue(isoYear >= year - 1 && isoYear <= year + 1);
     final long w = unixDateExtract(TimeUnitRange.WEEK, unixDate);
     assertTrue(w >= 1 && w <= 53);
     final long dow = unixDateExtract(TimeUnitRange.DOW, unixDate);
     assertTrue(dow >= 1 && dow <= 7);
+    final long iso_dow = unixDateExtract(TimeUnitRange.ISODOW, unixDate);
+    assertTrue(iso_dow >= 1 && iso_dow <= 7);
     final long doy = unixDateExtract(TimeUnitRange.DOY, unixDate);
-    assertTrue(doy >= 1 && dow <= 366);
+    assertTrue(doy >= 1 && doy <= 366);
     final long q = unixDateExtract(TimeUnitRange.QUARTER, unixDate);
     assertTrue(q >= 1 && q <= 4);
+    final long d = unixDateExtract(TimeUnitRange.DECADE, unixDate);
+    assertTrue(d == year / 10);
     final long c = unixDateExtract(TimeUnitRange.CENTURY, unixDate);
     assertTrue(c == (year > 0 ? (year + 99) / 100 : (year - 99) / 100));
     final long m = unixDateExtract(TimeUnitRange.MILLENNIUM, unixDate);

@@ -21,15 +21,16 @@ import java.math.BigDecimal;
 /**
  * Enumeration of time units used to construct an interval.
  *
- * <p>Only {@link #YEAR}, {@link #YEAR}, {@link #MONTH}, {@link #DAY},
+ * <p>Only {@link #YEAR}, {@link #MONTH}, {@link #DAY},
  * {@link #HOUR}, {@link #MINUTE}, {@link #SECOND} can be the unit of a SQL
  * interval.
  *
  * <p>The others ({@link #QUARTER}, {@link #WEEK}, {@link #MILLISECOND},
  * {@link #DOW}, {@link #DOY}, {@link #EPOCH}, {@link #DECADE}, {@link #CENTURY},
- * {@link #MILLENNIUM} and {@link #MICROSECOND}) are convenient to use internally,
- * when converting to and from UNIX timestamps. And also may be arguments to the
- * {@code EXTRACT}, {@code TIMESTAMPADD} and {@code TIMESTAMPDIFF} functions.
+ * {@link #MILLENNIUM}, {@link #MICROSECOND}, {@link #ISODOW} and {@link #ISOYEAR})
+ * are convenient to use internally, when converting to and from UNIX timestamps.
+ * And also may be arguments to the {@code EXTRACT}, {@code TIMESTAMPADD} and
+ * {@code TIMESTAMPDIFF} functions.
  */
 public enum TimeUnit {
   YEAR(true, ' ', BigDecimal.valueOf(12) /* months */, null),
@@ -43,12 +44,14 @@ public enum TimeUnit {
       BigDecimal.valueOf(60)),
 
   QUARTER(true, '*', BigDecimal.valueOf(3) /* months */, BigDecimal.valueOf(4)),
+  ISOYEAR(true, ' ', BigDecimal.valueOf(12) /* months */, null),
   WEEK(false, '*', BigDecimal.valueOf(DateTimeUtils.MILLIS_PER_DAY * 7),
       BigDecimal.valueOf(53)),
   MILLISECOND(false, '.', BigDecimal.ONE, BigDecimal.valueOf(1000)),
   MICROSECOND(false, '.', BigDecimal.ONE.scaleByPowerOfTen(-3),
       BigDecimal.valueOf(1000000)),
   DOW(false, '-', null, null),
+  ISODOW(false, '-', null, null),
   DOY(false, '-', null, null),
   EPOCH(false, '*', null, null),
   DECADE(true, '*', BigDecimal.valueOf(120) /* months */, null),

@@ -39,11 +39,13 @@ public enum TimeUnitRange {
   SECOND(TimeUnit.SECOND, null),
 
   // non-standard time units cannot participate in ranges
+  ISOYEAR(TimeUnit.ISOYEAR, null),
   QUARTER(TimeUnit.QUARTER, null),
   WEEK(TimeUnit.WEEK, null),
   MILLISECOND(TimeUnit.MILLISECOND, null),
   MICROSECOND(TimeUnit.MICROSECOND, null),
   DOW(TimeUnit.DOW, null),
+  ISODOW(TimeUnit.ISODOW, null),
   DOY(TimeUnit.DOY, null),
   EPOCH(TimeUnit.EPOCH, null),
   DECADE(TimeUnit.DECADE, null),
