@@ -1370,6 +1370,29 @@ LogicalProject(EXPR$0=[+($1, $4)])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testPushProjectWithOverPastJoin">
+        <Resource name="sql">
+            <![CDATA[select e.sal + b.comm, count(e.empno) over() from emp e inner join bonus b on e.ename = b.ename and e.deptno = 10]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(EXPR$0=[+($5, $12)], EXPR$1=[COUNT($0) OVER (RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)])
+  LogicalJoin(condition=[AND(=($1, $9), =($7, 10))], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject(EXPR$0=[+($1, $5)], EXPR$1=[$2])
+  LogicalJoin(condition=[AND(=($0, $4), $3)], joinType=[inner])
+    LogicalProject(ENAME=[$1], SAL=[$5], COUNT=[COUNT($0) OVER (RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)], ==[=($7, 10)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(ENAME=[$0], COMM=[$3])
+      LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testPushProjectPastInnerJoinStrong">
         <Resource name="sql">
             <![CDATA[select count(*), case when e.sal < 11 then -1 * e.sal else e.sal end

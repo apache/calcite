@@ -29,6 +29,8 @@ import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexOver;
+import org.apache.calcite.rex.RexSubQuery;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.runtime.PredicateImpl;
@@ -745,6 +747,30 @@ public class PushProjector {
       return super.visitCall(call);
     }
 
+    @Override public RexNode visitOver(RexOver over) {
+      // Since InputSpecialOpFinder might have decided to preserve the whole
+      // expression, let's be sure to first visit it as a regular call to
+      // see if the call has been replaced by something not an over clause.
+      // If not, let's keep going over the normal course of things.
+      // Failure to do so might result in an infinite loop.
+      final RexNode r = visitCall(over);
+      // If call not replaced by a reference, let's use default visitor
+      if (!(r instanceof RexOver)) {
+        return r;
+      }
+      return super.visitOver((RexOver) r);
+    }
+
+    @Override public RexNode visitSubQuery(RexSubQuery subQuery) {
+      // First visit the call as the whole expression might have been
+      // push down, and needs to be replaced by a reference
+      RexNode r = visitCall(subQuery);
+      // If call not replaced by a reference, let's use default visitor
+      if (r instanceof RexSubQuery) {
+        return super.visitSubQuery((RexSubQuery) r);
+      }
+      return r;
+    }
     /**
      * Looks for a matching RexNode from among two lists of RexNodes and
      * returns the offset into the list corresponding to the match, adjusted

@@ -1051,6 +1051,12 @@ public class RelOptRulesTest extends RelOptTestBase {
             + "on e.ename = b.ename and e.deptno = 10");
   }
 
+  @Test public void testPushProjectWithOverPastJoin() {
+    checkPlanning(ProjectJoinTransposeRule.INSTANCE,
+        "select e.sal + b.comm, count(e.empno) over() from emp e inner join bonus b "
+            + "on e.ename = b.ename and e.deptno = 10");
+  }
+
   private static final String NOT_STRONG_EXPR =
       "case when e.sal < 11 then 11 else -1 * e.sal end";
 
