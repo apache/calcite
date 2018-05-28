@@ -66,7 +66,6 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import java.math.BigDecimal;
@@ -1664,8 +1663,8 @@ public class RexProgramTest {
         "false");
   }
 
-  @Ignore
-  @Test public void testSimplifyAnd3() {
+  @Test
+  public void testSimplifyComplementer() {
     final RelDataType boolType = typeFactory.createSqlType(SqlTypeName.BOOLEAN);
     final RelDataType rowType = typeFactory.builder()
         .add("a", boolType).nullable(true)
@@ -1678,7 +1677,7 @@ public class RexProgramTest {
     checkSimplify2(
         and(aRef,
             not(aRef)),
-        "a is null and null",
+        "AND(?0.a, NOT(?0.a))", // probably the best would be: "a is null and null"
         "false");
   }
 

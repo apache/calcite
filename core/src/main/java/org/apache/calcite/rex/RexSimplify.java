@@ -693,6 +693,11 @@ public class RexSimplify {
         return rexBuilder.makeLiteral(false);
       }
     }
+    for (RexNode term : notTerms) {
+      if (term.isAlwaysTrue()) {
+        return rexBuilder.makeLiteral(false);
+      }
+    }
     if (terms.isEmpty() && notTerms.isEmpty()) {
       return rexBuilder.makeLiteral(true);
     }
@@ -703,10 +708,12 @@ public class RexSimplify {
     // Example #1. x AND y AND z AND NOT (x AND y)  - not satisfiable
     // Example #2. x AND y AND NOT (x AND y)        - not satisfiable
     // Example #3. x AND y AND NOT (x AND y AND z)  - may be satisfiable
-    for (RexNode notDisjunction : notTerms) {
-      final List<RexNode> terms2 = RelOptUtil.conjunctions(notDisjunction);
-      if (terms.containsAll(terms2)) {
-        return rexBuilder.makeLiteral(false);
+    if (unknownAsFalse) {
+      for (RexNode notDisjunction : notTerms) {
+        final List<RexNode> terms2 = RelOptUtil.conjunctions(notDisjunction);
+        if (terms.containsAll(terms2)) {
+          return rexBuilder.makeLiteral(false);
+        }
       }
     }
     // Add the NOT disjunctions back in.
