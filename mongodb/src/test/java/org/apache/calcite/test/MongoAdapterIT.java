@@ -414,6 +414,25 @@ public class MongoAdapterIT {
         .returnsCount(29353);
   }
 
+  /**
+   * In some cases filtering fails when subtree has {@code OR} operator.
+   * Seems like filter evaluation is not properly working for filters of type
+   *
+   * <pre>
+   * {@code A and (B or C)}
+   * {@code (A or B) and C}
+   * </pre>
+   * @see <a href="https://issues.apache.org/jira/browse/CALCITE-2331">[CALCITE-2331]</a>
+   */
+  @Ignore("broken; [CALCITE-2331] is logged to fix it")
+  @Test public void testOrFilter() {
+    CalciteAssert.that()
+        .enable(enabled())
+        .with(ZIPS)
+        .query("select state, city from zips where state in ('NY', 'WI') and city = 'NEW YORK'")
+        .returnsCount(40);
+  }
+
   @Test public void testCountGroupByEmpty() {
     CalciteAssert.that()
         .enable(enabled())
