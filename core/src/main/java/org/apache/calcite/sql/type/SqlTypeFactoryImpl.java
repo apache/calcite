@@ -24,7 +24,6 @@ import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.validate.SqlConformance;
-import org.apache.calcite.util.Glossary;
 import org.apache.calcite.util.Util;
 
 import java.nio.charset.Charset;
@@ -320,7 +319,7 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
 
           SqlTypeName newTypeName = type.getSqlTypeName();
 
-          if (shouldRaggedFixedLengthValueUnionBeVariable()) {
+          if (this.sqlConformance.shouldRaggedFixedLengthValueUnionBeVariable()) {
             if (resultType.getPrecision() != type.getPrecision()) {
               if (newTypeName == SqlTypeName.CHAR) {
                 newTypeName = SqlTypeName.VARCHAR;
@@ -492,18 +491,6 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
       resultType = createTypeWithNullability(resultType, true);
     }
     return resultType;
-  }
-
-  /**
-   * Whether ragged fixed length value union be variable.
-   *
-   * @return false to provide strict SQL:2003 behavior; true to
-   * provide pragmatic behavior
-   *
-   * @see Glossary#SQL2003 SQL:2003 Part 2 Section 9.3 Syntax Rule 3.a.iii.3
-   */
-  protected boolean shouldRaggedFixedLengthValueUnionBeVariable() {
-    return this.sqlConformance.shouldRaggedFixedLengthValueUnionBeVariable();
   }
 
   private RelDataType createDoublePrecisionType() {

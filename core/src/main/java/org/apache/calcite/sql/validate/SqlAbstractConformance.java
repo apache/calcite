@@ -92,7 +92,7 @@ public abstract class SqlAbstractConformance implements SqlConformance {
   }
 
   public boolean shouldRaggedFixedLengthValueUnionBeVariable() {
-    return false;
+    return SqlConformanceEnum.DEFAULT.shouldRaggedFixedLengthValueUnionBeVariable();
   }
 }
 

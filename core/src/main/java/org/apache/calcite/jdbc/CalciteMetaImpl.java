@@ -75,6 +75,7 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.regex.Pattern;
 
 /**
@@ -766,6 +767,12 @@ public class CalciteMetaImpl extends MetaImpl {
   public static CalciteConnection connect(CalciteSchema schema,
       JavaTypeFactory typeFactory) {
     return DRIVER.connect(schema, typeFactory);
+  }
+
+  @VisibleForTesting
+  public static CalciteConnection connect(CalciteSchema schema,
+      JavaTypeFactory typeFactory, Properties properties) {
+    return DRIVER.connect(schema, typeFactory, properties);
   }
 
   public boolean syncResults(StatementHandle h, QueryState state, long offset)

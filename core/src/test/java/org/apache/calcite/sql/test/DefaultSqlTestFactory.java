@@ -80,7 +80,8 @@ public class DefaultSqlTestFactory implements SqlTestFactory {
                   final SqlOperatorTable operatorTable =
                       factory.createOperatorTable(factory);
                   final JavaTypeFactory typeFactory =
-                      new JavaTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
+                      new JavaTypeFactoryImpl(RelDataTypeSystem.DEFAULT,
+                          (SqlConformance) factory.get("conformance"));
                   final MockCatalogReader catalogReader =
                       factory.createCatalogReader(factory, typeFactory);
                   return new Xyz(operatorTable, typeFactory, catalogReader);
