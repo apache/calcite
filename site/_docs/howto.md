@@ -530,7 +530,7 @@ svn ci
 The old releases will remain available in the
 [release archive](http://archive.apache.org/dist/calcite/).
 
-Publish the [Docker images](docker.md).
+Publish the [Docker images](docker.html).
 
 Add a release note by copying
 [site/_posts/2016-11-01-release-1.9.0.md]({{ site.sourceRoot }}/site/_posts/2016-11-01-release-1.9.0.md),
