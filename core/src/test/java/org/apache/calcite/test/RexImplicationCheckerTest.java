@@ -376,8 +376,8 @@ public class RexImplicationCheckerTest {
         is("2014"));
   }
 
-  /** Test case for simplifier of floor. */
-  @Test public void testSimplifyFloor() {
+  /** Test case for simplifier of ceil/floor. */
+  @Test public void testSimplifyCeilFloor() {
     // We can add more time units here once they are supported in
     // RexInterpreter, e.g., TimeUnitRange.HOUR, TimeUnitRange.MINUTE,
     // TimeUnitRange.SECOND.
@@ -393,28 +393,48 @@ public class RexImplicationCheckerTest {
       final RexNode innerFloorCall = f.rexBuilder.makeCall(
           SqlStdOperatorTable.FLOOR, literalTs,
           f.rexBuilder.makeFlag(timeUnitRanges.get(i)));
+      final RexNode innerCeilCall = f.rexBuilder.makeCall(
+          SqlStdOperatorTable.CEIL, literalTs,
+          f.rexBuilder.makeFlag(timeUnitRanges.get(i)));
       for (int j = 0; j <= i; j++) {
         final RexNode outerFloorCall = f.rexBuilder.makeCall(
             SqlStdOperatorTable.FLOOR, innerFloorCall,
             f.rexBuilder.makeFlag(timeUnitRanges.get(j)));
-        final RexCall simplifiedExpr = (RexCall) defaultSimplifier.apply(outerFloorCall);
-        assertThat(simplifiedExpr.getKind(), is(SqlKind.FLOOR));
-        assertThat(((RexLiteral) simplifiedExpr.getOperands().get(1)).getValue().toString(),
+        final RexNode outerCeilCall = f.rexBuilder.makeCall(
+            SqlStdOperatorTable.CEIL, innerCeilCall,
+            f.rexBuilder.makeFlag(timeUnitRanges.get(j)));
+        final RexCall floorSimplifiedExpr = (RexCall) defaultSimplifier.apply(outerFloorCall);
+        assertThat(floorSimplifiedExpr.getKind(), is(SqlKind.FLOOR));
+        assertThat(((RexLiteral) floorSimplifiedExpr.getOperands().get(1)).getValue().toString(),
             is(timeUnitRanges.get(j).toString()));
-        assertThat(simplifiedExpr.getOperands().get(0).toString(), is(literalTs.toString()));
+        assertThat(floorSimplifiedExpr.getOperands().get(0).toString(), is(literalTs.toString()));
+        final RexCall ceilSimplifiedExpr = (RexCall) defaultSimplifier.apply(outerCeilCall);
+        assertThat(ceilSimplifiedExpr.getKind(), is(SqlKind.CEIL));
+        assertThat(((RexLiteral) ceilSimplifiedExpr.getOperands().get(1)).getValue().toString(),
+            is(timeUnitRanges.get(j).toString()));
+        assertThat(ceilSimplifiedExpr.getOperands().get(0).toString(), is(literalTs.toString()));
       }
     }
+
     // Negative test
     for (int i = timeUnitRanges.size() - 1; i >= 0; i--) {
       final RexNode innerFloorCall = f.rexBuilder.makeCall(
           SqlStdOperatorTable.FLOOR, literalTs,
           f.rexBuilder.makeFlag(timeUnitRanges.get(i)));
+      final RexNode innerCeilCall = f.rexBuilder.makeCall(
+          SqlStdOperatorTable.CEIL, literalTs,
+          f.rexBuilder.makeFlag(timeUnitRanges.get(i)));
       for (int j = timeUnitRanges.size() - 1; j > i; j--) {
         final RexNode outerFloorCall = f.rexBuilder.makeCall(
             SqlStdOperatorTable.FLOOR, innerFloorCall,
             f.rexBuilder.makeFlag(timeUnitRanges.get(j)));
-        final RexCall simplifiedExpr = (RexCall) defaultSimplifier.apply(outerFloorCall);
-        assertThat(simplifiedExpr.toString(), is(outerFloorCall.toString()));
+        final RexNode outerCeilCall = f.rexBuilder.makeCall(
+            SqlStdOperatorTable.CEIL, innerCeilCall,
+            f.rexBuilder.makeFlag(timeUnitRanges.get(j)));
+        final RexCall floorSimplifiedExpr = (RexCall) defaultSimplifier.apply(outerFloorCall);
+        assertThat(floorSimplifiedExpr.toString(), is(outerFloorCall.toString()));
+        final RexCall ceilSimplifiedExpr = (RexCall) defaultSimplifier.apply(outerCeilCall);
+        assertThat(ceilSimplifiedExpr.toString(), is(outerCeilCall.toString()));
       }
     }
   }
