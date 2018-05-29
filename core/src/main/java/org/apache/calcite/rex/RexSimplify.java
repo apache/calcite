@@ -174,9 +174,8 @@ public class RexSimplify {
       return simplifyCoalesce((RexCall) e);
     case CAST:
       return simplifyCast((RexCall) e);
-    case CEIL:
     case FLOOR:
-      return simplifyCeilFloor((RexCall) e);
+      return simplifyFloor((RexCall) e);
     case IS_NULL:
     case IS_NOT_NULL:
     case IS_TRUE:
@@ -1160,32 +1159,31 @@ public class RexSimplify {
     }
   }
 
-  /** Tries to simplify CEIL/FLOOR function on top of CEIL/FLOOR.
+  /** Tries to simplify FLOOR function on top of FLOOR.
    *
    * <p>Examples:
    * <ul>
    *
-   * <li>{@code ceil(floor($0, flag(hour)), flag(day))} returns {@code ceil($0, flag(day))}
+   * <li>{@code floor(floor($0, flag(hour)), flag(day))} returns {@code floor($0, flag(day))}
    *
    * <li>{@code floor(floor($0, flag(second)), flag(day))} returns {@code floor($0, flag(day))}
    *
-   * <li>{@code floor(ceil($0, flag(day)), flag(second))} does not change
+   * <li>{@code floor(floor($0, flag(day)), flag(second))} does not change
    *
    * </ul>
    */
-  private RexNode simplifyCeilFloor(RexCall e) {
+  private RexNode simplifyFloor(RexCall e) {
     if (e.getOperands().size() != 2) {
-      // Bail out since we only simplify ceil/floor <date>
+      // Bail out since we only simplify floor <date>
       return e;
     }
     final RexNode operand = simplify_(e.getOperands().get(0));
     switch (operand.getKind()) {
-    case CEIL:
     case FLOOR:
-      // CEIL/FLOOR on top of CEIL/FLOOR
+      // FLOOR on top of FLOOR
       final RexCall child = (RexCall) operand;
       if (child.getOperands().size() != 2) {
-        // Bail out since we only simplify ceil/floor <date>
+        // Bail out since we only simplify floor <date>
         return e;
       }
       final RexLiteral parentFlag = (RexLiteral) e.operands.get(1);

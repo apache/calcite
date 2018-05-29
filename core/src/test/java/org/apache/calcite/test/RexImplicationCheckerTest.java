@@ -50,7 +50,6 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
-import org.junit.Ignore;
 import org.junit.Test;
 
 import java.math.BigDecimal;
@@ -377,28 +376,24 @@ public class RexImplicationCheckerTest {
         is("2014"));
   }
 
-  /** Test case for simplifier of ceil and floor. */
-  // Disabled: we wrongly simplify FLOOR(CEIL(2010-10-10, YEAR), YEAR)
-  // to FLOOR(2010-10-10, YEAR)
-  @Ignore("[CALCITE-2332]")
+  /** Test case for simplifier of floor. */
   @Test public void testSimplifyFloor() {
+    // We can add more time units here once they are supported in
+    // RexInterpreter, e.g., TimeUnitRange.HOUR, TimeUnitRange.MINUTE,
+    // TimeUnitRange.SECOND.
     final ImmutableList<TimeUnitRange> timeUnitRanges =
-        ImmutableList.of(TimeUnitRange.WEEK,
-            TimeUnitRange.YEAR, TimeUnitRange.QUARTER, TimeUnitRange.MONTH, TimeUnitRange.DAY,
-            TimeUnitRange.HOUR, TimeUnitRange.MINUTE, TimeUnitRange.SECOND,
-            TimeUnitRange.MILLISECOND, TimeUnitRange.MICROSECOND);
+        ImmutableList.of(TimeUnitRange.YEAR, TimeUnitRange.MONTH);
     final Fixture f = new Fixture();
     final RexUtil.ExprSimplifier defaultSimplifier =
         new RexUtil.ExprSimplifier(f.simplify, true);
 
     final RexNode literalTs =
         f.timestampLiteral(new TimestampString("2010-10-10 00:00:00"));
-    // Exclude WEEK as it is only used for the negative tests
-    for (int i = 1; i < timeUnitRanges.size(); i++) {
+    for (int i = 0; i < timeUnitRanges.size(); i++) {
       final RexNode innerFloorCall = f.rexBuilder.makeCall(
-          SqlStdOperatorTable.CEIL, literalTs,
+          SqlStdOperatorTable.FLOOR, literalTs,
           f.rexBuilder.makeFlag(timeUnitRanges.get(i)));
-      for (int j = 1; j <= i; j++) {
+      for (int j = 0; j <= i; j++) {
         final RexNode outerFloorCall = f.rexBuilder.makeCall(
             SqlStdOperatorTable.FLOOR, innerFloorCall,
             f.rexBuilder.makeFlag(timeUnitRanges.get(j)));
@@ -416,7 +411,7 @@ public class RexImplicationCheckerTest {
           f.rexBuilder.makeFlag(timeUnitRanges.get(i)));
       for (int j = timeUnitRanges.size() - 1; j > i; j--) {
         final RexNode outerFloorCall = f.rexBuilder.makeCall(
-            SqlStdOperatorTable.CEIL, innerFloorCall,
+            SqlStdOperatorTable.FLOOR, innerFloorCall,
             f.rexBuilder.makeFlag(timeUnitRanges.get(j)));
         final RexCall simplifiedExpr = (RexCall) defaultSimplifier.apply(outerFloorCall);
         assertThat(simplifiedExpr.toString(), is(outerFloorCall.toString()));
