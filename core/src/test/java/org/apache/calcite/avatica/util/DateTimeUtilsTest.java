@@ -25,8 +25,6 @@ import java.util.Locale;
 import static org.apache.calcite.avatica.util.DateTimeUtils.EPOCH_JULIAN;
 import static org.apache.calcite.avatica.util.DateTimeUtils.addMonths;
 import static org.apache.calcite.avatica.util.DateTimeUtils.dateStringToUnixDate;
-
-
 import static org.apache.calcite.avatica.util.DateTimeUtils.digitCount;
 import static org.apache.calcite.avatica.util.DateTimeUtils.floorDiv;
 import static org.apache.calcite.avatica.util.DateTimeUtils.floorMod;
@@ -142,6 +140,19 @@ public class DateTimeUtilsTest {
     checkDateString("1972-02-29", 0 + 365 * 2 + 31 + (29 - 1));
     //noinspection PointlessArithmeticExpression
     checkDateString("1972-03-01", 0 + 365 * 2 + 31 + 29 + (1 - 1));
+
+    final int d1900 = -(70 * 365 + 70 / 4);
+    final int century = 100 * 365 + 100 / 4;
+    checkDateString("1900-01-01", d1900);
+    // +1 because 1800 is not a leap year
+    final int d1800 = d1900 - century + 1;
+    checkDateString("1800-01-01", d1800);
+    final int d1700 = d1800 - century + 1;
+    checkDateString("1700-01-01", d1700);
+    final int d1600 = d1700 - century;
+    checkDateString("1600-01-01", d1600);
+    final int d1500 = d1600 - century + 1;
+    checkDateString("1500-01-01", d1500); // fails, about 10 days off
   }
 
   private void checkDateString(String s, int d) {
@@ -410,11 +421,9 @@ public class DateTimeUtilsTest {
     assertThat(
         unixDateExtract(TimeUnitRange.CENTURY, ymdToUnixDate(1, 2, 1)),
         is(1L));
-    // TODO: For a small time range around year 1, due to the Gregorian shift,
-    // we end up in the wrong century. Should be 1.
     assertThat(
         unixDateExtract(TimeUnitRange.CENTURY, ymdToUnixDate(1, 1, 1)),
-        is(0L));
+        is(1L));
     assertThat(
         unixDateExtract(TimeUnitRange.CENTURY, ymdToUnixDate(-2, 1, 1)),
         is(-1L));
@@ -429,17 +438,80 @@ public class DateTimeUtilsTest {
     assertThat(
         unixDateExtract(TimeUnitRange.MILLENNIUM, ymdToUnixDate(1852, 6, 7)),
         is(2L));
-    // TODO: For a small time range around year 1, due to the Gregorian shift,
-    // we end up in the wrong millennium. Should be 1.
     assertThat(
         unixDateExtract(TimeUnitRange.MILLENNIUM, ymdToUnixDate(1, 1, 1)),
-        is(0L));
+        is(1L));
     assertThat(
         unixDateExtract(TimeUnitRange.MILLENNIUM, ymdToUnixDate(1, 2, 1)),
         is(1L));
     assertThat(
         unixDateExtract(TimeUnitRange.MILLENNIUM, ymdToUnixDate(-2, 1, 1)),
         is(-1L));
+  }
+
+  @Test public void testUnixDate() {
+    int days = DateTimeUtils.dateStringToUnixDate("1500-04-30");
+    assertThat(DateTimeUtils.unixDateToString(days), is("1500-04-30"));
+    assertThat(
+        DateTimeUtils.unixDateToString(
+            DateTimeUtils.dateStringToUnixDate(
+                DateTimeUtils.unixDateToString(
+                    DateTimeUtils.dateStringToUnixDate(
+                        DateTimeUtils.unixDateToString(
+                            DateTimeUtils.dateStringToUnixDate("1500-04-30")))))),
+        is("1500-04-30"));
+
+    final int d1900 = -(70 * 365 + 70 / 4);
+    final int century = 100 * 365 + 100 / 4;
+    checkDateString("1900-01-01", d1900);
+    // +1 because 1800 is not a leap year
+    final int d1800 = d1900 - century + 1;
+    checkDateString("1800-01-01", d1800);
+    final int d1700 = d1800 - century + 1;
+    checkDateString("1700-01-01", d1700);
+    final int d1600 = d1700 - century;
+    checkDateString("1600-01-01", d1600);
+    final int d1500 = d1600 - century + 1;
+    checkDateString("1500-01-01", d1500);
+    final int d1400 = d1500 - century + 1;
+    checkDateString("1400-01-01", d1400);
+    final int d1300 = d1400 - century + 1;
+    checkDateString("1300-01-01", d1300);
+    final int d1200 = d1300 - century;
+    checkDateString("1200-01-01", d1200);
+    final int d1100 = d1200 - century + 1;
+    checkDateString("1100-01-01", d1100);
+    final int d1000 = d1100 - century + 1;
+    checkDateString("1000-01-01", d1000);
+    final int d900 = d1000 - century + 1;
+    checkDateString("0900-01-01", d900);
+    final int d800 = d900 - century;
+    checkDateString("0800-01-01", d800);
+    final int d700 = d800 - century + 1;
+    checkDateString("0700-01-01", d700);
+    final int d600 = d700 - century + 1;
+    checkDateString("0600-01-01", d600);
+    final int d500 = d600 - century + 1;
+    checkDateString("0500-01-01", d500);
+    final int d400 = d500 - century;
+    checkDateString("0400-01-01", d400);
+    final int d300 = d400 - century + 1;
+    checkDateString("0300-01-01", d300);
+    final int d200 = d300 - century + 1;
+    checkDateString("0200-01-01", d200);
+    final int d100 = d200 - century + 1;
+    checkDateString("0100-01-01", d100);
+    final int d000 = d100 - century;
+    checkDateString("0000-01-01", d000);
+  }
+
+  @Test public void testDateConversion() {
+    for (int i = 0; i < 4000; ++i) {
+      for (int j = 1; j <= 12; ++j) {
+        String date = String.format(Locale.ENGLISH, "%04d-%02d-28", i, j);
+        assertThat(unixDateToString(ymdToUnixDate(i, j, 28)), is(date));
+      }
+    }
   }
 
   private void thereAndBack(int year, int month, int day) {
