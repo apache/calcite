@@ -33,7 +33,7 @@ Here's some miscellaneous documentation about using Avatica.
 Prerequisites are maven (3.2.1 or later)
 and Java (JDK 8 or later) on your path.
 
-Unpack the source distribution `.tar.gz` or `.zip` file,
+Unpack the source distribution `.tar.gz` file,
 `cd` to the root directory of the unpacked source,
 then build using maven:
 
@@ -254,11 +254,8 @@ Check the artifacts:
   * apache-calcite-avatica-X.Y.Z-src.tar.gz
   * apache-calcite-avatica-X.Y.Z-src.tar.gz.asc
   * apache-calcite-avatica-X.Y.Z-src.tar.gz.sha256
-  * apache-calcite-avatica-X.Y.Z-src.zip
-  * apache-calcite-avatica-X.Y.Z-src.zip.asc
-  * apache-calcite-avatica-X.Y.Z-src.zip.sha256
 * Note that the file names start `apache-calcite-avatica-`.
-* In the two source distros `.tar.gz` and `.zip` (currently there is
+* In the source distro `.tar.gz` (currently there is
   no binary distro), check that all files belong to a directory called
   `apache-calcite-avatica-X.Y.Z-src`.
 * That directory must contain files `NOTICE`, `LICENSE`,
@@ -356,7 +353,7 @@ curl -O https://dist.apache.org/repos/dist/release/calcite/KEYS
 # (Assumes your O/S has a 'shasum' command.)
 function checkHash() {
   cd "$1"
-  for i in *.{zip,pom,gz}; do
+  for i in *.{pom,gz}; do
     if [ ! -f $i ]; then
       continue
     fi
@@ -401,7 +398,6 @@ https://dist.apache.org/repos/dist/dev/calcite/apache-calcite-avatica-X.Y.Z-rcN/
 
 The hashes of the artifacts are as follows:
 src.tar.gz.sha256 XXXX
-src.zip.sha256 XXXX
 
 A staged Maven repository is available for review at:
 https://repository.apache.org/content/repositories/orgapachecalcite-NNNN
