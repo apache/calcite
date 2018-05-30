@@ -112,6 +112,8 @@ import org.junit.runners.Suite;
     SqlJsonFunctionsTest.class,
     SqlTypeNameTest.class,
     ModelTest.class,
+    TypeCoercionTest.class,
+    TypeCoercionConverterTest.class,
     SqlValidatorFeatureTest.class,
     VolcanoPlannerTraitTest.class,
     InterpreterTest.class,
