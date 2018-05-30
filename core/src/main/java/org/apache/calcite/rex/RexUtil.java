@@ -1742,15 +1742,15 @@ public class RexUtil {
   @Deprecated // to be removed before 2.0
   public static RexNode simplifyAnds(RexBuilder rexBuilder,
       Iterable<? extends RexNode> nodes) {
-    return new RexSimplify(rexBuilder, RelOptPredicateList.EMPTY, false,
-        EXECUTOR).simplifyAnds(nodes);
+    return simplifyAnds(rexBuilder, nodes, false);
   }
 
   @Deprecated // to be removed before 2.0
   public static RexNode simplifyAnds(RexBuilder rexBuilder,
       Iterable<? extends RexNode> nodes, boolean unknownAsFalse) {
     return new RexSimplify(rexBuilder, RelOptPredicateList.EMPTY,
-        unknownAsFalse, EXECUTOR).simplifyAnds(nodes);
+        unknownAsFalse, EXECUTOR).simplify(
+            RexUtil.composeConjunction(rexBuilder, nodes, false));
   }
 
   /** Negates a logical expression by adding or removing a NOT. */
@@ -1801,22 +1801,27 @@ public class RexUtil {
   public static RexNode simplifyAnd(RexBuilder rexBuilder, RexCall e,
       boolean unknownAsFalse) {
     return new RexSimplify(rexBuilder, RelOptPredicateList.EMPTY,
-        unknownAsFalse, EXECUTOR).simplifyAnd(e);
+        unknownAsFalse, EXECUTOR).simplify(e);
   }
 
   @Deprecated // to be removed before 2.0
   public static RexNode simplifyAnd2(RexBuilder rexBuilder,
       List<RexNode> terms, List<RexNode> notTerms) {
+    for (RexNode notDisjunction : notTerms) {
+      terms.add(rexBuilder.makeCall(SqlStdOperatorTable.NOT, notDisjunction));
+    }
     return new RexSimplify(rexBuilder, RelOptPredicateList.EMPTY, false,
-        EXECUTOR).simplifyAnd2(terms, notTerms);
+        EXECUTOR).simplify(RexUtil.composeConjunction(rexBuilder, terms, false));
   }
 
   @Deprecated // to be removed before 2.0
   public static RexNode simplifyAnd2ForUnknownAsFalse(RexBuilder rexBuilder,
       List<RexNode> terms, List<RexNode> notTerms) {
-    final Class<Comparable> clazz = Comparable.class;
-    return new RexSimplify(rexBuilder, RelOptPredicateList.EMPTY, true,
-        EXECUTOR).simplifyAnd2ForUnknownAsFalse(terms, notTerms);
+    for (RexNode notDisjunction : notTerms) {
+      terms.add(rexBuilder.makeCall(SqlStdOperatorTable.NOT, notDisjunction));
+    }
+    return new RexSimplify(rexBuilder, RelOptPredicateList.EMPTY, false,
+        EXECUTOR).simplify(RexUtil.composeConjunction(rexBuilder, terms, false));
   }
 
   public static RexNode negate(RexBuilder rexBuilder, RexCall call) {
@@ -1850,14 +1855,14 @@ public class RexUtil {
   @Deprecated // to be removed before 2.0
   public static RexNode simplifyOr(RexBuilder rexBuilder, RexCall call) {
     return new RexSimplify(rexBuilder, RelOptPredicateList.EMPTY, false,
-        EXECUTOR).simplifyOr(call);
+        EXECUTOR).simplify(call);
   }
 
   @Deprecated // to be removed before 2.0
   public static RexNode simplifyOrs(RexBuilder rexBuilder,
       List<RexNode> terms) {
     return new RexSimplify(rexBuilder, RelOptPredicateList.EMPTY, false,
-        EXECUTOR).simplifyOrs(terms);
+        EXECUTOR).simplify(rexBuilder.makeCall(SqlStdOperatorTable.OR, terms));
   }
 
   /**

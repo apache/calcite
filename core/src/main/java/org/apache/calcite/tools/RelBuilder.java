@@ -567,7 +567,8 @@ public class RelBuilder {
    * {@code e AND TRUE} becomes {@code e};
    * {@code e AND e2 AND NOT e} becomes {@code e2}. */
   public RexNode and(Iterable<? extends RexNode> operands) {
-    return simplifier.simplifyAnds(operands);
+    return simplifier.simplify(
+        RexUtil.composeConjunction(cluster.getRexBuilder(), operands, false));
   }
 
   /** Creates an OR. */
