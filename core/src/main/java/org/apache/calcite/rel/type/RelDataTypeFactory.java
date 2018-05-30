@@ -311,6 +311,16 @@ public interface RelDataTypeFactory {
       RelDataType type2);
 
   /**
+   * Create a decimal type equivalent to the numeric {@code type},
+   * this is related to specific system implementation,
+   * you can override this logic if it is required.
+   *
+   * @param type the numeric type to create decimal type with
+   * @return decimal equivalence of the numeric type.
+   */
+  RelDataType decimalOf(RelDataType type);
+
+  /**
    * Creates a
    * {@link org.apache.calcite.rel.type.RelDataTypeFactory.FieldInfoBuilder}.
    * But since {@code FieldInfoBuilder} is deprecated, we recommend that you use
