@@ -29,14 +29,11 @@ import org.junit.runners.Parameterized.Parameters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.UnsupportedEncodingException;
-import java.net.URLDecoder;
 import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.Callable;
 
 import static org.hamcrest.core.StringContains.containsString;
-import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
@@ -129,16 +126,7 @@ public class HttpQueryStringParameterRemoteUserExtractorTest extends HttpAuthBas
     }
 
     @Override public String getHashLoginServiceProperties() {
-      try {
-        final String userPropertiesFile =
-            URLDecoder.decode(HttpQueryStringParameterRemoteUserExtractorTest.class
-                .getResource("/auth-users.properties").getFile(), "UTF-8");
-        assertNotNull("Could not find properties file for basic auth users", userPropertiesFile);
-        return userPropertiesFile;
-      } catch (UnsupportedEncodingException e) {
-        LOG.error("Failed to decode path to Jetty users file", e);
-        throw new RuntimeException(e);
-      }
+      return HttpAuthBase.getHashLoginServicePropertiesString();
     }
   };
 

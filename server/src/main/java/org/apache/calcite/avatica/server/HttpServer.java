@@ -215,44 +215,21 @@ public class HttpServer {
     server = new Server(threadPool);
     server.manage(threadPool);
 
-    final ServerConnector connector = configureConnector(getConnector(), port);
-    ConstraintSecurityHandler securityHandler = null;
-
-    if (null != this.config) {
-      switch (config.getAuthenticationType()) {
-      case SPNEGO:
-        // Get the Handler for SPNEGO authentication
-        securityHandler = configureSpnego(server, connector, this.config);
-        break;
-      case BASIC:
-        securityHandler = configureBasicAuthentication(server, connector, config);
-        break;
-      case DIGEST:
-        securityHandler = configureDigestAuthentication(server, connector, config);
-        break;
-      default:
-        // Pass
-        break;
+    ServerConnector serverConnector = null;
+    HandlerList handlerList = null;
+    if (null != this.config && AuthenticationType.CUSTOM == config.getAuthenticationType()) {
+      if (null != handler || null != sslFactory) {
+        throw new IllegalStateException("Handlers and SSLFactory cannot be configured with "
+                + "the HTTPServer Builder when using CUSTOM Authentication Type.");
       }
+    } else {
+      serverConnector = configureServerConnector();
+      handlerList = configureHandlers();
     }
 
-    server.setConnectors(new Connector[] { connector });
-
-    // Default to using the handler that was passed in
-    final HandlerList handlerList = new HandlerList();
-    Handler avaticaHandler = handler;
-
-    // Wrap the provided handler for security if we made one
-    if (null != securityHandler) {
-      securityHandler.setHandler(handler);
-      avaticaHandler = securityHandler;
-    }
-
-    handlerList.setHandlers(new Handler[] {avaticaHandler, new DefaultHandler()});
-
-    server.setHandler(handlerList);
     // Apply server customizers
     for (ServerCustomizer<Server> customizer : this.serverCustomizers) {
+      LOG.info("Customizing server with customizer: " + customizer.getClass());
       customizer.customize(server);
     }
 
@@ -261,20 +238,72 @@ public class HttpServer {
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
-    port = connector.getLocalPort();
 
-    LOG.info("Service listening on port {}.", getPort());
+    if (null != serverConnector && null != handlerList) {
+      port = serverConnector.getLocalPort();
+      LOG.info("Service listening on port {}.", getPort());
 
-    // Set the information about the address for this server
-    try {
-      this.handler.setServerRpcMetadata(createRpcServerMetadata(connector));
-    } catch (UnknownHostException e) {
-      // Failed to do the DNS lookup, bail out.
-      throw new RuntimeException(e);
+      // Set the information about the address for this server
+      try {
+        this.handler.setServerRpcMetadata(createRpcServerMetadata(serverConnector));
+      } catch (UnknownHostException e) {
+        // Failed to do the DNS lookup, bail out.
+        throw new RuntimeException(e);
+      }
+    } else if (0 == server.getConnectors().length) {
+      String error = "No server connectors have been configured for this Avatica server";
+      LOG.error(error);
+      throw new RuntimeException(error);
     }
   }
 
-  private ServerConnector getConnector() {
+  private ServerConnector configureServerConnector() {
+    final ServerConnector connector = getServerConnector();
+    connector.setIdleTimeout(60 * 1000);
+    connector.setSoLingerTime(-1);
+    connector.setPort(port);
+    server.setConnectors(new Connector[] { connector });
+    return connector;
+  }
+
+  private HandlerList configureHandlers() {
+    final HandlerList handlerList = new HandlerList();
+    Handler avaticaHandler = handler;
+
+    // Wrap the provided handler for security if we made one
+    if (null != config) {
+      ConstraintSecurityHandler securityHandler = getSecurityHandler();
+      securityHandler.setHandler(handler);
+      avaticaHandler = securityHandler;
+    }
+
+    handlerList.setHandlers(new Handler[] {avaticaHandler, new DefaultHandler()});
+
+    server.setHandler(handlerList);
+    return handlerList;
+  }
+
+  private ConstraintSecurityHandler getSecurityHandler() {
+    ConstraintSecurityHandler securityHandler = null;
+    switch (config.getAuthenticationType()) {
+    case SPNEGO:
+      // Get the Handler for SPNEGO authentication
+      securityHandler = configureSpnego(server, this.config);
+      break;
+    case BASIC:
+      securityHandler = configureBasicAuthentication(server, config);
+      break;
+    case DIGEST:
+      securityHandler = configureDigestAuthentication(server, config);
+      break;
+    default:
+      // Pass
+      break;
+    }
+    return securityHandler;
+  }
+
+  protected ServerConnector getServerConnector() {
     HttpConnectionFactory factory = new HttpConnectionFactory();
     factory.getHttpConfiguration().setRequestHeaderSize(maxAllowedHeaderSize);
 
@@ -302,10 +331,9 @@ public class HttpServer {
   /**
    * Configures the <code>connector</code> given the <code>config</code> for using SPNEGO.
    *
-   * @param connector The connector to configure
    * @param config The configuration
    */
-  protected ConstraintSecurityHandler configureSpnego(Server server, ServerConnector connector,
+  protected ConstraintSecurityHandler configureSpnego(Server server,
       AvaticaServerConfiguration config) {
     final String realm = Objects.requireNonNull(config.getKerberosRealm());
     final String principal = Objects.requireNonNull(config.getKerberosPrincipal());
@@ -318,7 +346,7 @@ public class HttpServer {
     // Roles are "realms" for Kerberos/SPNEGO
     final String[] allowedRealms = getAllowedRealms(realm, config);
 
-    return configureCommonAuthentication(server, connector, config, Constraint.__SPNEGO_AUTH,
+    return configureCommonAuthentication(Constraint.__SPNEGO_AUTH,
         allowedRealms, new AvaticaSpnegoAuthenticator(), realm, spnegoLoginService);
   }
 
@@ -336,7 +364,7 @@ public class HttpServer {
   }
 
   protected ConstraintSecurityHandler configureBasicAuthentication(Server server,
-      ServerConnector connector, AvaticaServerConfiguration config) {
+      AvaticaServerConfiguration config) {
     final String[] allowedRoles = config.getAllowedRoles();
     final String realm = config.getHashLoginServiceRealm();
     final String loginServiceProperties = config.getHashLoginServiceProperties();
@@ -344,12 +372,12 @@ public class HttpServer {
     HashLoginService loginService = new HashLoginService(realm, loginServiceProperties);
     server.addBean(loginService);
 
-    return configureCommonAuthentication(server, connector, config, Constraint.__BASIC_AUTH,
+    return configureCommonAuthentication(Constraint.__BASIC_AUTH,
         allowedRoles, new BasicAuthenticator(), null, loginService);
   }
 
   protected ConstraintSecurityHandler configureDigestAuthentication(Server server,
-      ServerConnector connector, AvaticaServerConfiguration config) {
+      AvaticaServerConfiguration config) {
     final String[] allowedRoles = config.getAllowedRoles();
     final String realm = config.getHashLoginServiceRealm();
     final String loginServiceProperties = config.getHashLoginServiceProperties();
@@ -357,12 +385,11 @@ public class HttpServer {
     HashLoginService loginService = new HashLoginService(realm, loginServiceProperties);
     server.addBean(loginService);
 
-    return configureCommonAuthentication(server, connector, config, Constraint.__DIGEST_AUTH,
+    return configureCommonAuthentication(Constraint.__DIGEST_AUTH,
         allowedRoles, new DigestAuthenticator(), null, loginService);
   }
 
-  protected ConstraintSecurityHandler configureCommonAuthentication(Server server,
-      ServerConnector connector, AvaticaServerConfiguration config, String constraintName,
+  protected ConstraintSecurityHandler configureCommonAuthentication(String constraintName,
       String[] allowedRoles, Authenticator authenticator, String realm,
       LoginService loginService) {
 
@@ -467,6 +494,8 @@ public class HttpServer {
 
     // The maximum size in bytes of an http header the server will read (64KB)
     private int maxAllowedHeaderSize = MAX_ALLOWED_HEADER_SIZE;
+    private AvaticaServerConfiguration serverConfig;
+    private Subject subject;
 
     public Builder() {}
 
@@ -659,6 +688,22 @@ public class HttpServer {
       return withAuthentication(AuthenticationType.DIGEST, properties, allowedRoles);
     }
 
+    /**
+     * Configures the server to use CUSTOM authentication mechanism, which can allow users to
+     * combine benefits of multiple auth methods. See <code>CustomAuthHttpServerTest</code> for
+     * examples on how to use it.
+     * Note: Default ServerConnectors and Handlers will NOT be used.
+     * Customize them directly using instances <code>{@link ServerCustomizer}</code>
+     * @param config AvaticaServerConfiguration implementation that configures various details
+     *      about the authentication mechanism for <code>{@link HttpServer}</code>
+     * @return <code>this</code>
+     */
+    public Builder<T> withCustomAuthentication(AvaticaServerConfiguration config) {
+      this.authenticationType = AuthenticationType.CUSTOM;
+      this.serverConfig = config;
+      return this;
+    }
+
     private Builder<T> withAuthentication(AuthenticationType authType, String properties,
         String[] allowedRoles) {
       this.loginServiceRealm = "Avatica";
@@ -721,18 +766,18 @@ public class HttpServer {
      */
     @SuppressWarnings("unchecked")
     public HttpServer build() {
-      final AvaticaServerConfiguration serverConfig;
-      final Subject subject;
       switch (authenticationType) {
       case NONE:
         serverConfig = null;
         subject = null;
+        handler = buildHandler(this, serverConfig);
         break;
       case BASIC:
       case DIGEST:
         // Build the configuration for BASIC or DIGEST authentication.
         serverConfig = buildUserAuthenticationConfiguration(this);
         subject = null;
+        handler = buildHandler(this, serverConfig);
         break;
       case SPNEGO:
         if (usingTLS) {
@@ -746,20 +791,19 @@ public class HttpServer {
           subject = null;
         }
         serverConfig = buildSpnegoConfiguration(this);
+        handler = buildHandler(this, serverConfig);
+        break;
+      case CUSTOM:
+        // We don't need to build any Config here since
+        // serverConfig is already assigned the required AvaticaServerConfiguration
+        serverConfig = buildCustomConfiguration(this);
+        subject = null;
         break;
       default:
         throw new IllegalArgumentException("Unhandled AuthenticationType");
       }
 
-      AvaticaHandler handler = buildHandler(this, serverConfig);
-      SslContextFactory sslFactory = null;
-      if (usingTLS) {
-        sslFactory = new SslContextFactory();
-        sslFactory.setKeyStorePath(this.keystore.getAbsolutePath());
-        sslFactory.setKeyStorePassword(keystorePassword);
-        sslFactory.setTrustStorePath(truststore.getAbsolutePath());
-        sslFactory.setTrustStorePassword(truststorePassword);
-      }
+      SslContextFactory sslFactory = buildSSLContextFactory();
 
       List<ServerCustomizer<Server>> jettyCustomizers = new ArrayList<>();
       for (ServerCustomizer<?> customizer : this.serverCustomizers) {
@@ -769,6 +813,22 @@ public class HttpServer {
 
       return new HttpServer(port, handler, serverConfig, subject, sslFactory, jettyCustomizers,
           maxAllowedHeaderSize);
+    }
+
+    protected SslContextFactory buildSSLContextFactory() {
+      SslContextFactory sslFactory = null;
+      if (usingTLS) {
+        sslFactory = new SslContextFactory();
+        sslFactory.setKeyStorePath(this.keystore.getAbsolutePath());
+        sslFactory.setKeyStorePassword(keystorePassword);
+        sslFactory.setTrustStorePath(truststore.getAbsolutePath());
+        sslFactory.setTrustStorePassword(truststorePassword);
+      }
+      return sslFactory;
+    }
+
+    private AvaticaServerConfiguration buildCustomConfiguration(Builder<T> tBuilder) {
+      return tBuilder.serverConfig;
     }
 
     /**

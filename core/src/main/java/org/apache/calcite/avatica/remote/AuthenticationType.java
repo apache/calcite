@@ -23,7 +23,8 @@ public enum AuthenticationType {
   NONE,
   BASIC,
   DIGEST,
-  SPNEGO;
+  SPNEGO,
+  CUSTOM;
 }
 
 // End AuthenticationType.java

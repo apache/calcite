@@ -7,6 +7,7 @@ auth_types:
   - { name: "HTTP Basic", anchor: "http-basic-authentication" }
   - { name: "HTTP Digest", anchor: "http-digest-authentication" }
   - { name: "Kerberos with SPNEGO", anchor: "kerberos-with-spnego-authentication" }
+  - { name: "Custom Authentication", anchor: "custom-authentication" }
   - { name: "Client implementation", anchor: "client-implementation" }
 ---
 <!--
@@ -255,6 +256,23 @@ config = new AvaticaServerConfiguration() {
   /* ... */
 };
 {% endhighlight %}
+
+## Custom Authentication
+
+Avatica server now offers users to plugin their Custom Authentication mechanism through the HTTPServer Builder.
+This is useful if users want to combine features of various authentication types. Examples include combining 
+basic authentication with impersonation or adding mutual authentication with impersonation. More Examples
+are available in `CustomAuthHttpServerTest` class.
+
+Note: Users need to configure their own `ServerConnectors` and `Handlers` with the help of `ServerCustomizers`.
+{% highlight java %}
+AvaticaServerConfiguration configuration = new ExampleAvaticaServerConfiguration();
+HttpServer server = new HttpServer.Builder()
+    .withCustomAuthentication(configuration)
+    .withPort(8765)
+    .build();
+{% endhighlight %}
+
 
 ## Client implementation
 
