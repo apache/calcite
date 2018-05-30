@@ -463,7 +463,7 @@ public class CalciteRemoteDriverTest {
 
   @Test(expected = SQLException.class)
   public void testAvaticaConnectionException() throws Exception {
-    remoteConnection.isValid(0);
+    remoteConnection.isValid(-1);
   }
 
   @Test(expected = SQLException.class)
