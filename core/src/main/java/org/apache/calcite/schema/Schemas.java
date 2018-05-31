@@ -538,7 +538,7 @@ public final class Schemas {
       return PathImpl.EMPTY;
     }
     if (!rootSchema.name.isEmpty()) {
-      assert rootSchema.name.equals(iterator.next());
+      Preconditions.checkState(rootSchema.name.equals(iterator.next()));
     }
     for (;;) {
       final String name = iterator.next();
