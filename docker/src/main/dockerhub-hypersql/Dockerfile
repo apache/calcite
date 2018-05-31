@@ -17,7 +17,7 @@ ARG AVATICA_VERSION=1.11.0
 FROM apache/calcite-avatica:$AVATICA_VERSION
 MAINTAINER Apache Avatica <dev@calcite.apache.org>
 
-ARG HSQLDB_VERSION="2.4.0"
+ARG HSQLDB_VERSION="2.4.1"
 
 # Dependencies
 ADD https://repo1.maven.org/maven2/net/hydromatic/scott-data-hsqldb/0.1/scott-data-hsqldb-0.1.jar /home/avatica/classpath/
