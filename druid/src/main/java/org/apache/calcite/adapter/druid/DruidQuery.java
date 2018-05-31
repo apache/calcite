@@ -260,7 +260,6 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
     switch (rexNode.getKind()) {
     case INPUT_REF:
       columnName = extractColumnName(rexNode, rowType, druidQuery);
-      //@TODO we can remove this ugly check by treating druid time columns as LONG
       if (rexNode.getType().getSqlTypeName() == SqlTypeName.DATE
           || rexNode.getType().getSqlTypeName() == SqlTypeName.TIMESTAMP
           || rexNode.getType().getSqlTypeName()

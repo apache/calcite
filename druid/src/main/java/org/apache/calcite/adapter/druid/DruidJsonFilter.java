@@ -46,6 +46,9 @@ import javax.annotation.Nullable;
  */
 abstract class DruidJsonFilter implements DruidJson {
 
+  private static final SimpleDateFormat DATE_FORMATTER = getDateFormatter();
+
+
   /**
    * @param rexNode    rexNode to translate to Druid Json Filter
    * @param rowType    rowType associated to rexNode
@@ -205,10 +208,6 @@ abstract class DruidJsonFilter implements DruidJson {
   @Nullable
   private static String toDruidLiteral(RexNode rexNode, RelDataType rowType,
       DruidQuery druidQuery) {
-    final SimpleDateFormat dateFormatter = new SimpleDateFormat(
-        TimeExtractionFunction.ISO_TIME_FORMAT,
-        Locale.ROOT);
-    dateFormatter.setTimeZone(DateTimeUtils.UTC_ZONE);
     final String val;
     final RexLiteral rhsLiteral = (RexLiteral) rexNode;
     if (SqlTypeName.NUMERIC_TYPES.contains(rhsLiteral.getTypeName())) {
@@ -224,7 +223,7 @@ abstract class DruidJsonFilter implements DruidJson {
             "Cannot translate Literal" + rexNode + " of type "
                 + rhsLiteral.getTypeName() + " to TimestampString");
       }
-      val = dateFormatter.format(millisSinceEpoch);
+      val = DATE_FORMATTER.format(millisSinceEpoch);
     } else {
       // Don't know how to filter on this kind of literal.
       val = null;
@@ -631,6 +630,14 @@ abstract class DruidJsonFilter implements DruidJson {
       DruidQuery.writeField(generator, "filter", filter);
       generator.writeEndObject();
     }
+  }
+
+  private static SimpleDateFormat getDateFormatter() {
+    final SimpleDateFormat dateFormatter = new SimpleDateFormat(
+        TimeExtractionFunction.ISO_TIME_FORMAT,
+        Locale.ROOT);
+    dateFormatter.setTimeZone(DateTimeUtils.UTC_ZONE);
+    return dateFormatter;
   }
 }
 

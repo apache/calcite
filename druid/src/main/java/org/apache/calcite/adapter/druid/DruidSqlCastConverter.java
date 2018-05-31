@@ -65,7 +65,8 @@ public class DruidSqlCastConverter implements DruidSqlOperatorConverter {
     } else if (toType == SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE
         && SqlTypeName.DATETIME_TYPES.contains(fromType)) {
       if (timeZone.equals(DateTimeUtils.UTC_ZONE)) {
-        // bail out, we do not need to do anything
+        // bail out, internal representation is the same,
+        // we do not need to do anything
         return operandExpression;
       }
       // to timestamp with local time zone
@@ -76,7 +77,8 @@ public class DruidSqlCastConverter implements DruidSqlOperatorConverter {
     } else if (fromType == SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE
         && SqlTypeName.DATETIME_TYPES.contains(toType)) {
       if (toType != SqlTypeName.DATE && timeZone.equals(DateTimeUtils.UTC_ZONE)) {
-        // bail out, we do not need to do anything
+        // bail out, internal representation is the same,
+        // we do not need to do anything
         return operandExpression;
       }
       // timestamp with local time zone to other types

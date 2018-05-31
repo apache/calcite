@@ -262,9 +262,17 @@ public class DruidDateTimeUtils {
       switch (((RexLiteral) node).getTypeName()) {
       case TIMESTAMP:
       case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
-        return ((RexLiteral) node).getValueAs(TimestampString.class).getMillisSinceEpoch();
+        TimestampString tsVal = ((RexLiteral) node).getValueAs(TimestampString.class);
+        if (tsVal == null) {
+          return null;
+        }
+        return tsVal.getMillisSinceEpoch();
       case DATE:
-        return ((RexLiteral) node).getValueAs(DateString.class).getMillisSinceEpoch();
+        DateString dateVal = ((RexLiteral) node).getValueAs(DateString.class);
+        if (dateVal == null) {
+          return null;
+        }
+        return dateVal.getMillisSinceEpoch();
       }
       break;
     case CAST:
@@ -299,6 +307,7 @@ public class DruidDateTimeUtils {
    * @param node the Rex node
    * @return the granularity, or null if it cannot be inferred
    */
+  @Nullable
   public static Granularity extractGranularity(RexNode node, String timeZone) {
     final int valueIndex;
     final int flagIndex;

@@ -74,13 +74,10 @@ public class ExtractOperatorConversion implements DruidSqlOperatorConverter {
       return null;
     }
 
-    final TimeZone tz;
-    if (arg.getType().getSqlTypeName()
-        == SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE) {
-      tz = TimeZone.getTimeZone(query.getConnectionConfig().timeZone());
-    } else {
-      tz = DateTimeUtils.UTC_ZONE;
-    }
+    final TimeZone tz =
+        arg.getType().getSqlTypeName() == SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE
+            ? TimeZone.getTimeZone(query.getConnectionConfig().timeZone())
+            : DateTimeUtils.UTC_ZONE;
     return DruidExpressions.applyTimeExtract(input, druidUnit, tz);
   }
 }
