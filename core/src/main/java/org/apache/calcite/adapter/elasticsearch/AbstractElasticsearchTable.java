@@ -75,6 +75,18 @@ public abstract class AbstractElasticsearchTable extends AbstractQueryableTable
         relOptTable, this, null);
   }
 
+  /**
+   * In ES 5.x scripted fields start with {@code params._source.foo} while in ES2.x
+   * {@code _source.foo}. Helper method to build correct query based on runtime version of elastic.
+   *
+   * @see <a href="https://github.com/elastic/elasticsearch/issues/20068">_source variable</a>
+   * @see <a href="https://www.elastic.co/guide/en/elasticsearch/reference/master/modules-scripting-fields.html">Scripted Fields</a>
+   */
+  protected String scriptedFieldPrefix() {
+    // this is default pattern starting 5.x
+    return "params._source";
+  }
+
   /** Executes a "find" operation on the underlying type.
    *
    * <p>For example,
