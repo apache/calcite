@@ -27,10 +27,14 @@ import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.util.Pair;
-import org.apache.calcite.util.Util;
+
+import com.google.common.base.Function;
+import com.google.common.collect.Lists;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import javax.annotation.Nullable;
 
 /**
  * Implementation of {@link org.apache.calcite.rel.core.Project}
@@ -57,41 +61,60 @@ public class ElasticsearchProject extends Project implements ElasticsearchRel {
     implementor.visitChild(0, getInput());
 
     final List<String> inFields =
-        ElasticsearchRules.elasticsearchFieldNames(getInput().getRowType());
+            ElasticsearchRules.elasticsearchFieldNames(getInput().getRowType());
     final ElasticsearchRules.RexToElasticsearchTranslator translator =
-        new ElasticsearchRules.RexToElasticsearchTranslator(
-            (JavaTypeFactory) getCluster().getTypeFactory(), inFields);
+            new ElasticsearchRules.RexToElasticsearchTranslator(
+                    (JavaTypeFactory) getCluster().getTypeFactory(), inFields);
 
-    final List<String> findItems = new ArrayList<>();
-    final List<String> scriptFieldItems = new ArrayList<>();
+    final List<String> fields = new ArrayList<>();
+    final List<String> scriptFields = new ArrayList<>();
     for (Pair<RexNode, String> pair: getNamedProjects()) {
       final String name = pair.right;
       final String expr = pair.left.accept(translator);
 
       if (expr.equals("\"" + name + "\"")) {
-        findItems.add(ElasticsearchRules.quote(name));
+        fields.add(name);
       } else if (expr.matches("\"literal\":.+")) {
-        scriptFieldItems.add(ElasticsearchRules.quote(name)
-            + ":{\"script\": "
-            + expr.split(":")[1] + "}");
+        scriptFields.add(ElasticsearchRules.quote(name)
+                + ":{\"script\": "
+                + expr.split(":")[1] + "}");
       } else {
-        scriptFieldItems.add(ElasticsearchRules.quote(name)
-            + ":{\"script\":\"params._source."
-            + expr.replaceAll("\"", "") + "\"}");
+        scriptFields.add(ElasticsearchRules.quote(name)
+                + ":{\"script\":"
+                // _source (ES2) vs params._source (ES5)
+                + "\"" + implementor.elasticsearchTable.scriptedFieldPrefix() + "."
+                + expr.replaceAll("\"", "") + "\"}");
       }
     }
-    final String findString = Util.toString(findItems, "", ", ", "");
-    final String scriptFieldString = "\"script_fields\": {"
-        + Util.toString(scriptFieldItems, "", ", ", "") + "}";
-    final String fieldString = "\"_source\" : [" + findString + "]"
-        + ", " + scriptFieldString;
+
+    StringBuilder query = new StringBuilder();
+    if (scriptFields.isEmpty()) {
+      List<String> newList = Lists.transform(fields, new Function<String, String>() {
+        @Nullable
+        @Override public String apply(@Nullable String input) {
+          return ElasticsearchRules.quote(input);
+        }
+      });
+
+      final String findString = String.join(", ", newList);
+      query.append("\"_source\" : [").append(findString).append("]");
+    } else {
+      // if scripted fields are present, ES ignores _source attribute
+      for (String field: fields) {
+        scriptFields.add(ElasticsearchRules.quote(field) + ":{\"script\": "
+                // _source (ES2) vs params._source (ES5)
+                + "\"" + implementor.elasticsearchTable.scriptedFieldPrefix() + "."
+                + field + "\"}");
+      }
+      query.append("\"script_fields\": {" + String.join(", ", scriptFields) + "}");
+    }
 
     for (String opfield : implementor.list) {
       if (opfield.startsWith("\"_source\"")) {
         implementor.list.remove(opfield);
       }
     }
-    implementor.add(fieldString);
+    implementor.add(query.toString());
   }
 }
 
