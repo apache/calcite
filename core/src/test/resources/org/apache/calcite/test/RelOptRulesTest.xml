@@ -197,6 +197,54 @@ LogicalProject(EXPR$0=[COUNT() OVER (PARTITION BY $0 ORDER BY $0 RANGE BETWEEN U
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testIsNullPushDown">
+        <Resource name="sql">
+            <![CDATA[select w_count from (
+  select count(*) over (w) w_count
+  from emp
+  window w as (partition by empno order by empno)
+) sub_query where w_count is null)]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject(EMPNO=[$0], DEPTNO=[$1], W_COUNT=[$2])
+  LogicalValues(tuples=[[]])
+]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(EMPNO=[$0], DEPTNO=[$1], W_COUNT=[$2])
+  LogicalFilter(condition=[IS NULL($2)])
+    LogicalProject(EMPNO=[$0], DEPTNO=[$7], $2=[$9])
+      LogicalWindow(window#0=[window(partition {7} order by [0] range between UNBOUNDED PRECEDING and CURRENT ROW aggs [COUNT($0)])])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testIsNullPushDown2">
+        <Resource name="sql">
+            <![CDATA[select w_count from (
+  select count(*) over (w) w_count
+  from emp
+  window w as (partition by empno order by empno)
+) sub_query where w_count is null)]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject(EMPNO=[$0], DEPTNO=[$1], W_COUNT=[$2])
+  LogicalValues(tuples=[[]])
+]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(EMPNO=[$0], DEPTNO=[$1], W_COUNT=[$2])
+  LogicalFilter(condition=[IS NULL($2)])
+    LogicalWindow(window#0=[window(partition {} order by [] rows between $2 PRECEDING and $3 PRECEDING aggs [COUNT($0)])])
+      LogicalProject(EMPNO=[$0], DEPTNO=[$7])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testProjectToWindowRuleForMultipleWindows">
         <Resource name="sql">
             <![CDATA[select

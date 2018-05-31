@@ -3269,6 +3269,48 @@ public class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
+  /** Test case for DX-11490
+   * Make sure the planner doesn't fail over wrong push down
+   * of is null */
+  @Test public void testIsNullPushDown() {
+    HepProgramBuilder preBuilder = new HepProgramBuilder();
+    preBuilder.addRuleInstance(ProjectToWindowRule.PROJECT);
+
+    HepProgramBuilder builder = new HepProgramBuilder();
+    builder.addRuleInstance(ReduceExpressionsRule.PROJECT_INSTANCE);
+    builder.addRuleInstance(ReduceExpressionsRule.FILTER_INSTANCE);
+    HepPlanner hepPlanner = new HepPlanner(builder.build());
+
+    final String sql = "select empno, deptno, w_count from (\n"
+        + "  select empno, deptno, count(empno) over (w) w_count\n"
+        + "  from emp\n"
+        + "  window w as (partition by deptno order by empno)\n"
+        + ") sub_query where w_count is null";
+    sql(sql)
+        .withPre(preBuilder.build())
+        .with(hepPlanner)
+        .check();
+  }
+
+  @Test public void testIsNullPushDown2() {
+    HepProgramBuilder preBuilder = new HepProgramBuilder();
+    preBuilder.addRuleInstance(ProjectToWindowRule.PROJECT);
+
+    HepProgramBuilder builder = new HepProgramBuilder();
+    builder.addRuleInstance(ReduceExpressionsRule.PROJECT_INSTANCE);
+    builder.addRuleInstance(ReduceExpressionsRule.FILTER_INSTANCE);
+    HepPlanner hepPlanner = new HepPlanner(builder.build());
+
+    final String sql = "select empno, deptno, w_count from (\n"
+        + "  select empno, deptno, count(empno) over (ROWS BETWEEN 10 PRECEDING AND 1 PRECEDING) w_count\n"
+        + "  from emp\n"
+        + ") sub_query where w_count is null";
+    sql(sql)
+        .withPre(preBuilder.build())
+        .with(hepPlanner)
+        .check();
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-750">[CALCITE-750]
    * Allow windowed aggregate on top of regular aggregate</a>. */
