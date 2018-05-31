@@ -19,6 +19,7 @@ package org.apache.calcite.avatica;
 import org.junit.Test;
 
 import java.io.File;
+import java.nio.file.Paths;
 import java.util.Properties;
 
 import static org.hamcrest.core.Is.is;
@@ -32,14 +33,15 @@ public class ConnectionConfigImplTest {
 
   @Test public void testTrustStore() {
     final String trustStore = "/my/truststore.jks";
-    final String windowsTrustStore = "C:\\my\\truststore.jks";
+    final String windowsTrustStore = "my\\truststore.jks";
     final String pw = "supremelysecret";
     Properties props = new Properties();
     props.setProperty(BuiltInConnectionProperty.TRUSTSTORE.name(), trustStore);
     props.setProperty(BuiltInConnectionProperty.TRUSTSTORE_PASSWORD.name(), pw);
     ConnectionConfigImpl config = new ConnectionConfigImpl(props);
     assertThat(config.truststore().getAbsolutePath(),
-        File.separatorChar == '/' ? is(trustStore) : is(windowsTrustStore));
+        File.separatorChar == '/' ? is(trustStore)
+                : is(Paths.get(".").toAbsolutePath().getRoot() + windowsTrustStore));
     assertThat(config.truststorePassword(), is(pw));
   }
 
