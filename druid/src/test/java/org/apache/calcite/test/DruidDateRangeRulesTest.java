@@ -143,7 +143,7 @@ public class DruidDateRangeRulesTest {
       Matcher<String> intervalMatcher) {
     e = DateRangeRules.replaceTimeUnits(f.rexBuilder, e, "UTC");
     final List<Interval> intervals =
-        DruidDateTimeUtils.createInterval(e, "UTC");
+        DruidDateTimeUtils.createInterval(e);
     assertThat(intervals, notNullValue());
     assertThat(intervals.toString(), intervalMatcher);
   }
@@ -152,7 +152,7 @@ public class DruidDateRangeRulesTest {
     e = DateRangeRules.replaceTimeUnits(f.rexBuilder, e, "UTC");
     final RexNode e2 = f.simplify.simplify(e);
     List<Interval> intervals =
-        DruidDateTimeUtils.createInterval(e2, "UTC");
+        DruidDateTimeUtils.createInterval(e2);
     if (intervals == null) {
       throw new AssertionError("null interval");
     }

@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.adapter.druid;
 
+import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexCall;
@@ -23,6 +24,7 @@ import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.type.SqlTypeName;
 
 import com.google.common.collect.ImmutableMap;
 
@@ -72,8 +74,11 @@ public class ExtractOperatorConversion implements DruidSqlOperatorConverter {
       return null;
     }
 
-    return DruidExpressions.applyTimeExtract(
-        input, druidUnit, TimeZone.getTimeZone(query.getConnectionConfig().timeZone()));
+    final TimeZone tz =
+        arg.getType().getSqlTypeName() == SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE
+            ? TimeZone.getTimeZone(query.getConnectionConfig().timeZone())
+            : DateTimeUtils.UTC_ZONE;
+    return DruidExpressions.applyTimeExtract(input, druidUnit, tz);
   }
 }
 

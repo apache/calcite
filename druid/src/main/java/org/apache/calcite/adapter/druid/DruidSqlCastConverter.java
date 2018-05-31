@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.adapter.druid;
 
+import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexNode;
@@ -56,13 +57,35 @@ public class DruidSqlCastConverter implements DruidSqlOperatorConverter {
 
     if (SqlTypeName.CHAR_TYPES.contains(fromType) && SqlTypeName.DATETIME_TYPES.contains(toType)) {
       //case chars to dates
-      return castCharToDateTime(timeZone, operandExpression,
-          toType);
+      return castCharToDateTime(timeZone, operandExpression, toType);
     } else if (SqlTypeName.DATETIME_TYPES.contains(fromType) && SqlTypeName.CHAR_TYPES.contains
         (toType)) {
       //case dates to chars
-      return castDateTimeToChar(timeZone, operandExpression,
-          fromType);
+      return castDateTimeToChar(timeZone, operandExpression, fromType);
+    } else if (toType == SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE
+        && SqlTypeName.DATETIME_TYPES.contains(fromType)) {
+      if (timeZone.equals(DateTimeUtils.UTC_ZONE)) {
+        // bail out, internal representation is the same,
+        // we do not need to do anything
+        return operandExpression;
+      }
+      // to timestamp with local time zone
+      return castCharToDateTime(
+          timeZone,
+          castDateTimeToChar(DateTimeUtils.UTC_ZONE, operandExpression, fromType),
+          toType);
+    } else if (fromType == SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE
+        && SqlTypeName.DATETIME_TYPES.contains(toType)) {
+      if (toType != SqlTypeName.DATE && timeZone.equals(DateTimeUtils.UTC_ZONE)) {
+        // bail out, internal representation is the same,
+        // we do not need to do anything
+        return operandExpression;
+      }
+      // timestamp with local time zone to other types
+      return castCharToDateTime(
+          DateTimeUtils.UTC_ZONE,
+          castDateTimeToChar(timeZone, operandExpression, fromType),
+          toType);
     } else {
       // Handle other casts.
       final DruidType fromExprType = DruidExpressions.EXPRESSION_TYPES.get(fromType);
@@ -115,8 +138,8 @@ public class DruidSqlCastConverter implements DruidSqlOperatorConverter {
           Period.days(1).toString(),
           "",
           timeZone);
-    } else if (toType == SqlTypeName.TIMESTAMP || toType == SqlTypeName
-        .TIMESTAMP_WITH_LOCAL_TIME_ZONE) {
+    } else if (toType == SqlTypeName.TIMESTAMP
+        || toType == SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE) {
       return timestampExpression;
     } else {
       throw new IllegalStateException(
