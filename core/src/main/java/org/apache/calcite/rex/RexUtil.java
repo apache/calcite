@@ -367,18 +367,17 @@ public class RexUtil {
       return;
     }
     final List<RexNode> operands = ((RexCall) predicate).getOperands();
-    if (operands.size() != 2 && predicate.getKind() == SqlKind.EQUALS) {
-      decompose(excludeSet, predicate);
-      return;
-    }
-    // if it reaches here, we have rexNode equals rexNode
     final RexNode left;
     final RexNode right;
     if (predicate.getKind() == SqlKind.EQUALS) {
       left = operands.get(0);
       right = operands.get(1);
-    } else {
+    } else { // is null
       left = operands.get(0);
+      if (!left.getType().isNullable()) {
+        // There's no sense in inferring $0=null when $0 is not nullable
+        return;
+      }
       right = rexBuilder.makeNullLiteral(left.getType());
     }
     // Note that literals are immutable too, and they can only be compared
