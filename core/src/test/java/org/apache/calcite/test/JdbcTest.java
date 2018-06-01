@@ -109,10 +109,16 @@ import org.hsqldb.jdbcDriver;
 import org.junit.Ignore;
 import org.junit.Test;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.PrintWriter;
 import java.math.BigDecimal;
+import java.net.URL;
+import java.net.URLConnection;
+import java.net.URLStreamHandler;
+import java.net.URLStreamHandlerFactory;
 import java.sql.Array;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
@@ -5088,7 +5094,7 @@ public class JdbcTest {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2209">[CALCITE-2209]
    * Model defined using custom scheme not using file</a>. */
-  @Test public void testCustomSchemeInModel() throws SQLException {
+  @Test public void testHTTPSchemeInModel() throws SQLException {
     String modelPayload = "{\n"
         + "  \"version\": \"1.0\",\n"
         + "  \"defaultSchema\": \"adhoc\",\n"
@@ -5140,6 +5146,60 @@ public class JdbcTest {
     server.start();
 
     return server;
+  }
+
+  @Test public void testCustomURLStreamHandlerInModel() throws SQLException {
+    URL.setURLStreamHandlerFactory(new CustomURLStreamHandlerFactory());
+    final String url = "jdbc:calcite:model=custom://some_path";
+    try (Connection c = DriverManager.getConnection(url);
+         Statement s = c.createStatement();
+         ResultSet r = s.executeQuery("values 1")) {
+      assertThat(r.next(), is(true));
+    } catch (Exception e) {
+      throw new SQLException(e);
+    }
+  }
+
+  private class CustomURLStreamHandlerFactory implements URLStreamHandlerFactory {
+    private final String modelPayload = "{\n"
+        + "  \"version\": \"1.0\",\n"
+        + "  \"defaultSchema\": \"adhoc\",\n"
+        + "  \"schemas\": [\n"
+        + "    {\n"
+        + "      \"name\": \"empty\"\n"
+        + "    },\n"
+        + "    {\n"
+        + "      \"name\": \"adhoc\",\n"
+        + "      \"type\": \"custom\",\n"
+        + "      \"factory\": \"" + MySchemaFactory.class.getName() + "\",\n"
+        + "      \"operand\": {\n"
+        + "        \"tableName\": \"ELVIS\"\n"
+        + "      }\n"
+        + "    }\n"
+        + "  ]\n"
+        + "}";
+    @Override
+    public URLStreamHandler createURLStreamHandler(String protocol) {
+      if (protocol.equals("custom")) {
+        return new URLStreamHandler() {
+          @Override
+          protected URLConnection openConnection(URL u) throws IOException {
+            return new URLConnection(u) {
+              @Override
+              public void connect() throws IOException {
+                return;
+              }
+              @Override
+              public InputStream getInputStream() throws IOException {
+                return new ByteArrayInputStream(modelPayload.getBytes());
+              }
+            };
+          }
+        };
+      } else {
+        return null;
+      }
+    }
   }
 
   /** Test case for
