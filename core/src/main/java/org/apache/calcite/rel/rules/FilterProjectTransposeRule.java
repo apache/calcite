@@ -90,6 +90,13 @@ public class FilterProjectTransposeRule extends RelOptRule {
 
   //~ Methods ----------------------------------------------------------------
 
+  @Override public boolean matches(RelOptRuleCall call) {
+    final Filter filterRel = call.rel(0);
+    final Project project = call.rel(1);
+    return RexUtil.isDeterministic(filterRel.getCondition())
+        && RexUtil.isDeterministic(project.getProjects());
+  }
+
   public void onMatch(RelOptRuleCall call) {
     final Filter filter = call.rel(0);
     final Project project = call.rel(1);

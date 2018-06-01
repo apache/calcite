@@ -25,6 +25,7 @@ import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.rex.RexProgramBuilder;
+import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.tools.RelBuilderFactory;
 
 /**
@@ -59,7 +60,7 @@ public class FilterCalcMergeRule extends RelOptRule {
 
   //~ Methods ----------------------------------------------------------------
 
-  public void onMatch(RelOptRuleCall call) {
+  @Override public boolean matches(RelOptRuleCall call) {
     final LogicalFilter filter = call.rel(0);
     final LogicalCalc calc = call.rel(1);
 
@@ -67,8 +68,18 @@ public class FilterCalcMergeRule extends RelOptRule {
     // That would effectively be pushing a multiset down through a filter.
     // We'll have chance to merge later, when the over is expanded.
     if (calc.getProgram().containsAggs()) {
-      return;
+      return false;
     }
+
+    // Don't merge a filter which contains non-deterministic expr onto a calc and
+    // don't also merge a filter onto a calc which contains non-deterministic expr.
+    return RexUtil.isDeterministic(filter.getCondition())
+        && RexUtil.isDeterministic(calc.getProgram().getExprList());
+  }
+
+  public void onMatch(RelOptRuleCall call) {
+    final LogicalFilter filter = call.rel(0);
+    final LogicalCalc calc = call.rel(1);
 
     // Create a program containing the filter.
     final RexBuilder rexBuilder = filter.getCluster().getRexBuilder();

@@ -23,6 +23,7 @@ import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rex.RexOver;
 import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.rex.RexProgramBuilder;
+import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.tools.RelBuilderFactory;
 
 /**
@@ -58,7 +59,7 @@ public class CalcMergeRule extends RelOptRule {
 
   //~ Methods ----------------------------------------------------------------
 
-  public void onMatch(RelOptRuleCall call) {
+  @Override public boolean matches(RelOptRuleCall call) {
     final Calc topCalc = call.rel(0);
     final Calc bottomCalc = call.rel(1);
 
@@ -67,8 +68,19 @@ public class CalcMergeRule extends RelOptRule {
     // through a filter.
     RexProgram topProgram = topCalc.getProgram();
     if (RexOver.containsOver(topProgram)) {
-      return;
+      return false;
     }
+
+    // Don't merge a calc which contains non-deterministic expr onto a calc and
+    // don't also merge a calc onto a calc which contains non-deterministic expr.
+    return RexUtil.isDeterministic(topProgram.getExprList())
+        && RexUtil.isDeterministic(bottomCalc.getProgram().getExprList());
+  }
+
+  public void onMatch(RelOptRuleCall call) {
+    final Calc topCalc = call.rel(0);
+    final Calc bottomCalc = call.rel(1);
+    RexProgram topProgram = topCalc.getProgram();
 
     // Merge the programs together.
 

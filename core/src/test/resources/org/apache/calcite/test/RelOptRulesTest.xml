@@ -8459,4 +8459,247 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testPushFilterPastAggWithNondeterministicFilter">
+        <Resource name="sql">
+            <![CDATA[select ename, empno, c from
+            (select ename, empno, count(*) as c from emp group by ename, empno) t
+             where rand_substr(ename, 1, 3) = 'Tom' and empno = 10]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(ENAME=[$0], EMPNO=[$1], C=[$2])
+  LogicalFilter(condition=[AND(=(RAND_SUBSTR($0, 1, 3), 'Tom'), =($1, 10))])
+    LogicalAggregate(group=[{0, 1}], C=[COUNT()])
+      LogicalProject(ENAME=[$1], EMPNO=[$0])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject(ENAME=[$0], EMPNO=[$1], C=[$2])
+  LogicalFilter(condition=[=(RAND_SUBSTR($0, 1, 3), 'Tom')])
+    LogicalAggregate(group=[{0, 1}], C=[COUNT()])
+      LogicalFilter(condition=[=($1, 10)])
+        LogicalProject(ENAME=[$1], EMPNO=[$0])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testPushFilterPastAggWithNondeterministicAggCall">
+        <Resource name="sql">
+            <![CDATA[select ename, empno, c from
+ (select ename, empno, rand_avg(sal) as c from emp group by ename, empno) t
+ where empno = 10]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(ENAME=[$0], EMPNO=[$1], C=[$2])
+  LogicalFilter(condition=[=($1, 10)])
+    LogicalAggregate(group=[{0, 1}], C=[RAND_AVG($2)])
+      LogicalProject(ENAME=[$1], EMPNO=[$0], SAL=[$5])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject(ENAME=[$0], EMPNO=[$1], C=[$2])
+  LogicalAggregate(group=[{0, 1}], C=[RAND_AVG($2)])
+    LogicalFilter(condition=[=($1, 10)])
+      LogicalProject(ENAME=[$1], EMPNO=[$0], SAL=[$5])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testPushFilterPastJoinWithNondeterministicFilter">
+        <Resource name="sql">
+            <![CDATA[select * from emp, dept where emp.deptno = dept.deptno and rand_substr(name, 1, 5) = 'Sales']]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(ENAME=[$1], DEPTNO=[$7])
+  LogicalFilter(condition=[AND(=($7, $9), =(RAND_SUBSTR($10, 1, 5), 'Sales'))])
+    LogicalJoin(condition=[true], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject(ENAME=[$1], DEPTNO=[$7])
+  LogicalFilter(condition=[=(RAND_SUBSTR($10, 1, 5), 'Sales')])
+    LogicalJoin(condition=[=($7, $9)], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testPushFilterPastUnionWithNondeterministicFilter">
+        <Resource name="sql">
+            <![CDATA[select * from (
+select * from (values (10, 'a'), (30, 'b')) as t1 (x, y)
+union all
+select * from (values (20, 'c')) as t2 (x, y)
+)
+where rand_substr(y, 1, 2) > 'b' and x > 10]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(X=[$0], Y=[$1])
+  LogicalFilter(condition=[AND(>(RAND_SUBSTR($1, 1, 2), 'b'), >($0, 10))])
+    LogicalUnion(all=[true])
+      LogicalProject(X=[$0], Y=[$1])
+        LogicalValues(tuples=[[{ 10, 'a' }, { 30, 'b' }]])
+      LogicalProject(X=[$0], Y=[$1])
+        LogicalValues(tuples=[[{ 20, 'c' }]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject(X=[$0], Y=[$1])
+  LogicalFilter(condition=[>(RAND_SUBSTR($1, 1, 2), 'b')])
+    LogicalUnion(all=[true])
+      LogicalFilter(condition=[>($0, 10)])
+        LogicalProject(X=[$0], Y=[$1])
+          LogicalValues(tuples=[[{ 10, 'a' }, { 30, 'b' }]])
+      LogicalFilter(condition=[>($0, 10)])
+        LogicalProject(X=[$0], Y=[$1])
+          LogicalValues(tuples=[[{ 20, 'c' }]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testPushFilterPastProjectWithNondeterministicFilter">
+        <Resource name="sql">
+            <![CDATA[select ename, deptno from
+            (select ename, deptno from emp) t
+            where rand_substr(ename, 1, 3) = 'Tom' and deptno > 10]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(ENAME=[$0], DEPTNO=[$1])
+  LogicalFilter(condition=[AND(=(RAND_SUBSTR($0, 1, 3), 'Tom'), >($1, 10))])
+    LogicalProject(ENAME=[$1], DEPTNO=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject(ENAME=[$0], DEPTNO=[$1])
+  LogicalFilter(condition=[AND(=(RAND_SUBSTR($0, 11, 3), 'Tom'), >($1, 10))])
+    LogicalProject(ENAME=[$1], DEPTNO=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testPushFilterPastProjectWithNondeterministicProject">
+        <Resource name="sql">
+            <![CDATA[select ename, deptno from
+(select rand_substr(ename, 1, 3) as ename, deptno from emp) t
+where deptno > 10]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(ENAME=[$0], DEPTNO=[$1])
+  LogicalFilter(condition=[>($1, 10)])
+    LogicalProject(ENAME=[RAND_SUBSTR($1, 1, 3)], DEPTNO=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject(ENAME=[$0], DEPTNO=[$1])
+  LogicalFilter(condition=[>($1, 10)])
+    LogicalProject(ENAME=[RAND_SUBSTR($1, 1, 3)], DEPTNO=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testFilterCalcMergeWithNondeterministicFilter">
+        <Resource name="sql">
+            <![CDATA[select ename, deptno from
+(select ename, deptno from emp) t
+where rand_substr(ename, 1, 3) = 'Tom' and deptno > 10]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalCalc(expr#0..1=[{inputs}], proj#0..1=[{exprs}])
+  LogicalFilter(condition=[AND(=(RAND_SUBSTR($0, 1, 3), 'Tom'), >($1, 10))])
+    LogicalCalc(expr#0..8=[{inputs}], ENAME=[$t1], DEPTNO=[$t7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalCalc(expr#0..1=[{inputs}], proj#0..1=[{exprs}])
+  LogicalFilter(condition=[AND(=(RAND_SUBSTR($0, 1, 3), 'Tom'), >($1, 10))])
+    LogicalCalc(expr#0..8=[{inputs}], ENAME=[$t1], DEPTNO=[$t7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testFilterCalcMergeWithNondeterministicCalc">
+        <Resource name="sql">
+            <![CDATA[select ename, deptno from
+(select rand_substr(ename, 1, 3) as ename, deptno from emp) t
+where and deptno > 10]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalCalc(expr#0..1=[{inputs}], proj#0..1=[{exprs}])
+  LogicalFilter(condition=[>($1, 10)])
+    LogicalCalc(expr#0..8=[{inputs}], expr#9=[1], expr#10=[3], expr#11=[RAND_SUBSTR($t1, $t9, $t10)], ENAME=[$t11], DEPTNO=[$t7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalCalc(expr#0..1=[{inputs}], proj#0..1=[{exprs}])
+  LogicalFilter(condition=[>($1, 10)])
+    LogicalCalc(expr#0..8=[{inputs}], expr#9=[1], expr#10=[3], expr#11=[RAND_SUBSTR($t1, $t9, $t10)], ENAME=[$t11], DEPTNO=[$t7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testCalcMergeWithNondeterministicCalc">
+        <Resource name="sql">
+            <![CDATA[select ename, deptno from
+(select ename, deptno from emp) t
+where rand_substr(ename, 1, 3) = 'Tom' and deptno > 10]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalCalc(expr#0..1=[{inputs}], proj#0..1=[{exprs}])
+  LogicalCalc(expr#0..1=[{inputs}], expr#2=[1], expr#3=[3], expr#4=[RAND_SUBSTR($t0, $t2, $t3)], expr#5=['Tom'], expr#6=[=($t4, $t5)], expr#7=[10], expr#8=[>($t1, $t7)], expr#9=[AND($t6, $t8)], proj#0..1=[{exprs}], $condition=[$t9])
+    LogicalCalc(expr#0..8=[{inputs}], ENAME=[$t1], DEPTNO=[$t7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalCalc(expr#0..1=[{inputs}], proj#0..1=[{exprs}])
+  LogicalCalc(expr#0..1=[{inputs}], expr#2=[1], expr#3=[3], expr#4=[RAND_SUBSTR($t0, $t2, $t3)], expr#5=['Tom'], expr#6=[=($t4, $t5)], expr#7=[10], expr#8=[>($t1, $t7)], expr#9=[AND($t6, $t8)], proj#0..1=[{exprs}], $condition=[$t9])
+    LogicalCalc(expr#0..8=[{inputs}], ENAME=[$t1], DEPTNO=[$t7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testProjectCalcMergeWithNondeterministicProject">
+        <Resource name="sql">
+            <![CDATA[select rand_substr(name, 1, 3) as name, deptno from (select deptno, name from dept where deptno > 10) t]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(NAME=[RAND_SUBSTR($1, 1, 3)], DEPTNO=[$0])
+  LogicalProject(DEPTNO=[$0], NAME=[$1])
+    LogicalCalc(expr#0..1=[{inputs}], expr#2=[10], expr#3=[>($t0, $t2)], proj#0..1=[{exprs}], $condition=[$t3])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalCalc(expr#0..1=[{inputs}], expr#2=[1], expr#3=[3], expr#4=[RAND_SUBSTR($t1, $t2, $t3)], NAME=[$t4], DEPTNO=[$t0])
+  LogicalCalc(expr#0..1=[{inputs}], expr#2=[10], expr#3=[>($t0, $t2)], proj#0..1=[{exprs}], $condition=[$t3])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+    </TestCase>
 </Root>

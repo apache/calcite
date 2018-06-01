@@ -24,11 +24,13 @@ import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.Aggregate.Group;
+import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.ImmutableBitSet;
@@ -88,6 +90,16 @@ public class FilterAggregateTransposeRule extends RelOptRule {
 
   //~ Methods ----------------------------------------------------------------
 
+  @Override public boolean matches(RelOptRuleCall call) {
+    final Aggregate aggRel = call.rel(1);
+    for (AggregateCall aggCall : aggRel.getAggCallList()) {
+      if (!aggCall.getAggregation().isDeterministic()) {
+        return false;
+      }
+    }
+    return true;
+  }
+
   public void onMatch(RelOptRuleCall call) {
     final Filter filterRel = call.rel(0);
     final Aggregate aggRel = call.rel(1);
@@ -108,7 +120,7 @@ public class FilterAggregateTransposeRule extends RelOptRule {
 
     for (RexNode condition : conditions) {
       ImmutableBitSet rCols = RelOptUtil.InputFinder.bits(condition);
-      if (canPush(aggRel, rCols)) {
+      if (RexUtil.isDeterministic(condition) && canPush(aggRel, rCols)) {
         pushedConditions.add(
             condition.accept(
                 new RelOptUtil.RexInputConverter(rexBuilder, origFields,
@@ -117,6 +129,9 @@ public class FilterAggregateTransposeRule extends RelOptRule {
       } else {
         remainingConditions.add(condition);
       }
+    }
+    if (pushedConditions.isEmpty()) {
+      return;
     }
 
     final RelBuilder builder = call.builder();

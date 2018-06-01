@@ -46,8 +46,10 @@ import org.apache.calcite.schema.ColumnStrategy;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.fun.UdfSqlOperatorTable;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
+import org.apache.calcite.sql.util.ChainedSqlOperatorTable;
 import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
@@ -676,7 +678,10 @@ public abstract class SqlToRelTestBase {
      */
     protected SqlOperatorTable createOperatorTable() {
       final MockSqlOperatorTable opTab =
-          new MockSqlOperatorTable(SqlStdOperatorTable.instance());
+          new MockSqlOperatorTable(
+              ChainedSqlOperatorTable.of(
+                  SqlStdOperatorTable.instance(),
+                  UdfSqlOperatorTable.instance()));
       MockSqlOperatorTable.addRamp(opTab);
       return opTab;
     }

@@ -122,31 +122,48 @@ public abstract class FilterJoinRule extends RelOptRule {
 
   protected void perform(RelOptRuleCall call, Filter filter,
       Join join) {
-    final List<RexNode> joinFilters =
-        RelOptUtil.conjunctions(join.getCondition());
-    final List<RexNode> origJoinFilters = ImmutableList.copyOf(joinFilters);
+    final List<RexNode> deterministicJoinFilters = Lists.<RexNode>newArrayList();
+    final List<RexNode> nondeterministicJoinFilters = Lists.<RexNode>newArrayList();
+    for (RexNode expr : RelOptUtil.conjunctions(join.getCondition())) {
+      if (RexUtil.isDeterministic(expr)) {
+        deterministicJoinFilters.add(expr);
+      } else {
+        nondeterministicJoinFilters.add(expr);
+      }
+    }
+    final List<RexNode> origDeterministicJoinFilters =
+        ImmutableList.copyOf(deterministicJoinFilters);
 
     // If there is only the joinRel,
     // make sure it does not match a cartesian product joinRel
     // (with "true" condition), otherwise this rule will be applied
     // again on the new cartesian product joinRel.
-    if (filter == null && joinFilters.isEmpty()) {
+    if (filter == null && deterministicJoinFilters.isEmpty()) {
       return;
     }
 
-    final List<RexNode> aboveFilters =
-        filter != null
-            ? RelOptUtil.conjunctions(filter.getCondition())
-            : Lists.<RexNode>newArrayList();
-    final ImmutableList<RexNode> origAboveFilters =
-        ImmutableList.copyOf(aboveFilters);
+
+    final List<RexNode> deterministicAboveFilters = Lists.<RexNode>newArrayList();
+    final List<RexNode> nondeterministicAboveFilters = Lists.<RexNode>newArrayList();
+    if (filter != null) {
+      for (RexNode expr : RelOptUtil.conjunctions(filter.getCondition())) {
+        if (RexUtil.isDeterministic(expr)) {
+          deterministicAboveFilters.add(expr);
+        } else {
+          nondeterministicAboveFilters.add(expr);
+        }
+      }
+    }
+
+    final ImmutableList<RexNode> origDeterministicAboveFilters =
+        ImmutableList.copyOf(deterministicAboveFilters);
 
     // Simplify Outer Joins
     JoinRelType joinType = join.getJoinType();
     if (smart
-        && !origAboveFilters.isEmpty()
+        && !origDeterministicAboveFilters.isEmpty()
         && join.getJoinType() != JoinRelType.INNER) {
-      joinType = RelOptUtil.simplifyJoin(join, origAboveFilters, joinType);
+      joinType = RelOptUtil.simplifyJoin(join, origDeterministicAboveFilters, joinType);
     }
 
     final List<RexNode> leftFilters = new ArrayList<>();
@@ -164,26 +181,26 @@ public abstract class FilterJoinRule extends RelOptRule {
     boolean filterPushed = false;
     if (RelOptUtil.classifyFilters(
         join,
-        aboveFilters,
+        deterministicAboveFilters,
         joinType,
         !(join instanceof EquiJoin),
         !joinType.generatesNullsOnLeft(),
         !joinType.generatesNullsOnRight(),
-        joinFilters,
+        deterministicJoinFilters,
         leftFilters,
         rightFilters)) {
       filterPushed = true;
     }
 
     // Move join filters up if needed
-    validateJoinFilters(aboveFilters, joinFilters, join, joinType);
+    validateJoinFilters(deterministicAboveFilters, deterministicJoinFilters, join, joinType);
 
     // If no filter got pushed after validate, reset filterPushed flag
     if (leftFilters.isEmpty()
         && rightFilters.isEmpty()
-        && joinFilters.size() == origJoinFilters.size()) {
-      if (Sets.newHashSet(joinFilters)
-          .equals(Sets.newHashSet(origJoinFilters))) {
+        && deterministicJoinFilters.size() == origDeterministicJoinFilters.size()) {
+      if (Sets.newHashSet(deterministicJoinFilters)
+          .equals(Sets.newHashSet(origDeterministicJoinFilters))) {
         filterPushed = false;
       }
     }
@@ -193,12 +210,12 @@ public abstract class FilterJoinRule extends RelOptRule {
     // not on the side which is preserved.
     if (RelOptUtil.classifyFilters(
         join,
-        joinFilters,
+        deterministicJoinFilters,
         joinType,
         false,
         !joinType.generatesNullsOnRight(),
         !joinType.generatesNullsOnLeft(),
-        joinFilters,
+        deterministicJoinFilters,
         leftFilters,
         rightFilters)) {
       filterPushed = true;
@@ -208,7 +225,7 @@ public abstract class FilterJoinRule extends RelOptRule {
     // then this rule is a no-op
     if ((!filterPushed
             && joinType == join.getJoinType())
-        || (joinFilters.isEmpty()
+        || (deterministicJoinFilters.isEmpty()
             && leftFilters.isEmpty()
             && rightFilters.isEmpty())) {
       return;
@@ -229,9 +246,11 @@ public abstract class FilterJoinRule extends RelOptRule {
         ImmutableList.<RelDataType>builder()
             .addAll(RelOptUtil.getFieldTypeList(leftRel.getRowType()))
             .addAll(RelOptUtil.getFieldTypeList(rightRel.getRowType())).build();
+    List<RexNode> leftJoinFilters = Lists.newArrayList(deterministicJoinFilters);
+    leftJoinFilters.addAll(nondeterministicJoinFilters);
     final RexNode joinFilter =
         RexUtil.composeConjunction(rexBuilder,
-            RexUtil.fixUp(rexBuilder, joinFilters, fieldTypes),
+            RexUtil.fixUp(rexBuilder, leftJoinFilters, fieldTypes),
             false);
 
     // If nothing actually got pushed and there is nothing leftover,
@@ -265,9 +284,11 @@ public abstract class FilterJoinRule extends RelOptRule {
     // NOT NULL due to the join-type getting stricter.
     relBuilder.convert(join.getRowType(), false);
 
+    List<RexNode> leftAboveFilters = Lists.newArrayList(deterministicAboveFilters);
+    leftAboveFilters.addAll(nondeterministicAboveFilters);
     // create a FilterRel on top of the join if needed
     relBuilder.filter(
-        RexUtil.fixUp(rexBuilder, aboveFilters,
+        RexUtil.fixUp(rexBuilder, leftAboveFilters,
             RelOptUtil.getFieldTypeList(relBuilder.peek().getRowType())));
 
     call.transformTo(relBuilder.build());

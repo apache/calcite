@@ -27,8 +27,11 @@ import org.apache.calcite.rel.core.SetOp;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
+
+import com.google.common.collect.Lists;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -65,7 +68,22 @@ public class FilterSetOpTransposeRule extends RelOptRule {
     Filter filterRel = call.rel(0);
     SetOp setOp = call.rel(1);
 
-    RexNode condition = filterRel.getCondition();
+    final List<RexNode> deterministicFilters = Lists.<RexNode>newArrayList();
+    final List<RexNode> nondeterministicFilters = Lists.<RexNode>newArrayList();
+    for (RexNode expr : RelOptUtil.conjunctions(filterRel.getCondition())) {
+      if (RexUtil.isDeterministic(expr)) {
+        deterministicFilters.add(expr);
+      } else {
+        nondeterministicFilters.add(expr);
+      }
+    }
+
+    if (deterministicFilters.isEmpty()) {
+      return;
+    }
+
+    final RelBuilder builder = call.builder();
+    final RexNode condition = builder.and(deterministicFilters);
 
     // create filters on top of each setop child, modifying the filter
     // condition to reference each setop child
@@ -89,8 +107,13 @@ public class FilterSetOpTransposeRule extends RelOptRule {
     // create a new setop whose children are the filters created above
     SetOp newSetOp =
         setOp.copy(setOp.getTraitSet(), newSetOpInputs);
+    builder.push(newSetOp);
 
-    call.transformTo(newSetOp);
+    if (!nondeterministicFilters.isEmpty()) {
+      builder.filter(nondeterministicFilters);
+    }
+
+    call.transformTo(builder.build());
   }
 }
 
