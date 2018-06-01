@@ -27,7 +27,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-
 /** Implementation of JDBC {@link Array}. */
 public class ArrayImpl implements Array {
   private final List<Object> list;

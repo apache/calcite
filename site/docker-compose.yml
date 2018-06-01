@@ -36,3 +36,5 @@ services:
       - maven-repo:/root/.m2
 volumes:
   maven-repo:
+
+# End docker-compose.yml

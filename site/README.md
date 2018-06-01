@@ -39,7 +39,7 @@ Site generation currently works best with ruby-2.5.1.
 2. `svn co https://svn.apache.org/repos/asf/calcite/site/avatica target/avatica`
 3. `sudo apt-get install rubygems ruby2.5-dev zlib1g-dev` (linux)
 4. `sudo gem install bundler`
-5. Add avatica-go content: `./add-avatica-go-docs.sh` 
+5. Add avatica-go content: `./add-avatica-go-docs.sh`
 6. `bundle install`
 
 ### Add javadoc

@@ -22,7 +22,6 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 
-
 /**
  * ProtobufService implementation that queries against a remote implementation, using
  * protocol buffers as the serialized form.

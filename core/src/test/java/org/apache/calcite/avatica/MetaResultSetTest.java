@@ -16,7 +16,6 @@
  */
 package org.apache.calcite.avatica;
 
-
 import org.apache.calcite.avatica.remote.TypedValue;
 
 import org.junit.After;

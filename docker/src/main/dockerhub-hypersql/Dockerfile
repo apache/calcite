@@ -25,3 +25,5 @@ ADD https://repo1.maven.org/maven2/org/hsqldb/hsqldb/${HSQLDB_VERSION}/hsqldb-${
 
 # Add on to avatica-server's entrypoint
 CMD ["-u", "jdbc:hsqldb:res:scott"]
+
+# End Dockerfile

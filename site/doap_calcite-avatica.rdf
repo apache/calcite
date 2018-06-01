@@ -28,11 +28,11 @@ limitations under the License.
     <homepage rdf:resource="https://calcite.apache.org/avatica" />
     <asfext:pmc rdf:resource="https://calcite.apache.org/avatica" />
     <shortdesc>Avatica is a JDBC driver framework which is a part of Apache Calcite.</shortdesc>
-    <description>Avatica is defined by a wire API between a client 
-      and a server. The Avatica server is an HTTP server, the 
-      Avatica client is a JDBC driver, and the wire API is defined 
-      by JSON or Protobuf Buffers. The flexibility of the wire API 
-      and HTTP transport allows other Avatica clients to be built 
+    <description>Avatica is defined by a wire API between a client
+      and a server. The Avatica server is an HTTP server, the
+      Avatica client is a JDBC driver, and the wire API is defined
+      by JSON or Protobuf Buffers. The flexibility of the wire API
+      and HTTP transport allows other Avatica clients to be built
       in any language, implementing any client specification.</description>
     <bug-database rdf:resource="https://issues.apache.org/jira/browse/CALCITE" />
     <mailing-list rdf:resource="https://calcite.apache.org/avatica/develop" />
