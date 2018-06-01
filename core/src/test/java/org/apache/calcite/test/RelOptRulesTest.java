@@ -3927,7 +3927,7 @@ public class RelOptRulesTest extends RelOptTestBase {
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2348">[CALCITE-2348]
-   * handling non-deterministic operator in rules */
+   * handling non-deterministic operator in rules</a> */
   @Test public void testPushFilterPastAggWithNondeterministicFilter() {
     final String sql = "select ename, empno, c from\n"
         + " (select ename, empno, count(*) as c from emp group by ename, empno) t\n"
@@ -3937,7 +3937,7 @@ public class RelOptRulesTest extends RelOptTestBase {
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2348">[CALCITE-2348]
-   * handling non-deterministic operator in rules */
+   * handling non-deterministic operator in rules</a> */
   @Test public void testPushFilterPastAggWithNondeterministicAggCall() {
     HepProgram program = new HepProgramBuilder()
         .addRuleInstance(FilterAggregateTransposeRule.INSTANCE)
@@ -3950,7 +3950,7 @@ public class RelOptRulesTest extends RelOptTestBase {
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2348">[CALCITE-2348]
-   * handling non-deterministic operator in rules */
+   * handling non-deterministic operator in rules</a> */
   @Test public void testPushFilterPastJoinWithNondeterministicFilter() {
     HepProgram program = new HepProgramBuilder()
         .addRuleInstance(FilterJoinRule.FILTER_ON_JOIN)
@@ -3963,7 +3963,7 @@ public class RelOptRulesTest extends RelOptTestBase {
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2348">[CALCITE-2348]
-   * handling non-deterministic operator in rules */
+   * handling non-deterministic operator in rules</a> */
   @Test public void testPushFilterPastUnionWithNondeterministicFilter() {
     final String sql = "select * from (\n"
         + "select * from (values (10, 'a'), (30, 'b')) as t1 (x, y)\n"
@@ -3976,7 +3976,7 @@ public class RelOptRulesTest extends RelOptTestBase {
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2348">[CALCITE-2348]
-   * handling non-deterministic operator in rules */
+   * handling non-deterministic operator in rules</a> */
   @Test public void testPushFilterPastProjectWithNondeterministicFilter() {
     HepProgram program = new HepProgramBuilder()
         .addRuleInstance(FilterProjectTransposeRule.INSTANCE)
@@ -3989,7 +3989,7 @@ public class RelOptRulesTest extends RelOptTestBase {
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2348">[CALCITE-2348]
-   * handling non-deterministic operator in rules */
+   * handling non-deterministic operator in rules</a> */
   @Test public void testPushFilterPastProjectWithNondeterministicProject() {
     HepProgram program = new HepProgramBuilder()
         .addRuleInstance(FilterProjectTransposeRule.INSTANCE)
@@ -4002,7 +4002,7 @@ public class RelOptRulesTest extends RelOptTestBase {
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2348">[CALCITE-2348]
-   * handling non-deterministic operator in rules */
+   * handling non-deterministic operator in rules</a> */
   @Test public void testFilterCalcMergeWithNondeterministicFilter() {
     HepProgram preProgram = new HepProgramBuilder()
         .addRuleInstance(ProjectToCalcRule.INSTANCE)
@@ -4018,7 +4018,7 @@ public class RelOptRulesTest extends RelOptTestBase {
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2348">[CALCITE-2348]
-   * handling non-deterministic operator in rules */
+   * handling non-deterministic operator in rules</a> */
   @Test public void testFilterCalcMergeWithNondeterministicCalc() {
     HepProgram preProgram = new HepProgramBuilder()
         .addRuleInstance(ProjectToCalcRule.INSTANCE)
@@ -4034,7 +4034,7 @@ public class RelOptRulesTest extends RelOptTestBase {
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2348">[CALCITE-2348]
-   * handling non-deterministic operator in rules */
+   * handling non-deterministic operator in rules</a> */
   @Test public void testCalcMergeWithNondeterministicCalc() {
     HepProgram preProgram = new HepProgramBuilder()
         .addRuleInstance(ProjectToCalcRule.INSTANCE)
@@ -4051,7 +4051,7 @@ public class RelOptRulesTest extends RelOptTestBase {
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2348">[CALCITE-2348]
-   * handling non-deterministic operator in rules */
+   * handling non-deterministic operator in rules</a> */
   @Test public void testProjectCalcMergeWithNondeterministicProject() {
     HepProgram preProgram = new HepProgramBuilder()
         .addRuleInstance(FilterToCalcRule.INSTANCE)
