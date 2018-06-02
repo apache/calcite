@@ -88,7 +88,7 @@ limitations under the License.
     <!-- Apache 19 has 2.10.4, but need 3.0.0 for [MJAVADOC-524]. -->
     <maven-javadoc-plugin.version>3.0.0</maven-javadoc-plugin.version>
     <maven-scm-provider.version>1.9.4</maven-scm-provider.version>
-    <maven-shade-plugin.version>2.1</maven-shade-plugin.version>
+    <maven-shade-plugin.version>3.1.1</maven-shade-plugin.version>
     <!-- Apache 19 has 2.20.1, but need 2.21.0+ for [MPOM-184] -->
     <maven-surefire-plugin.version>2.21.0</maven-surefire-plugin.version>
     <mockito.version>2.5.5</mockito.version>
