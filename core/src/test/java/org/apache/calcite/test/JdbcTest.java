@@ -114,11 +114,13 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintWriter;
+import java.io.Reader;
 import java.math.BigDecimal;
 import java.net.URL;
 import java.net.URLConnection;
 import java.net.URLStreamHandler;
 import java.net.URLStreamHandlerFactory;
+import java.nio.charset.Charset;
 import java.sql.Array;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
@@ -5093,7 +5095,7 @@ public class JdbcTest {
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2209">[CALCITE-2209]
-   * Model defined using custom scheme not using file</a>. */
+   * Model defined using built-in http scheme handler</a>. */
   @Test public void testHTTPSchemeInModel() throws SQLException {
     String modelPayload = "{\n"
         + "  \"version\": \"1.0\",\n"
@@ -5148,6 +5150,9 @@ public class JdbcTest {
     return server;
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2209">[CALCITE-2209]
+   * Model defined using custom scheme handler</a>. */
   @Test public void testCustomURLStreamHandlerInModel() throws SQLException {
     URL.setURLStreamHandlerFactory(new CustomURLStreamHandlerFactory());
     final String url = "jdbc:calcite:model=custom://some_path";
@@ -5160,6 +5165,9 @@ public class JdbcTest {
     }
   }
 
+  /**
+   * Custom scheme handler factory for creating dummy URLStreamHandler.
+   */
   private class CustomURLStreamHandlerFactory implements URLStreamHandlerFactory {
     private final String modelPayload = "{\n"
         + "  \"version\": \"1.0\",\n"
@@ -5178,20 +5186,16 @@ public class JdbcTest {
         + "    }\n"
         + "  ]\n"
         + "}";
-    @Override
-    public URLStreamHandler createURLStreamHandler(String protocol) {
+    @Override public URLStreamHandler createURLStreamHandler(String protocol) {
       if (protocol.equals("custom")) {
         return new URLStreamHandler() {
-          @Override
-          protected URLConnection openConnection(URL u) throws IOException {
+          @Override protected URLConnection openConnection(URL u) throws IOException {
             return new URLConnection(u) {
-              @Override
-              public void connect() throws IOException {
+              @Override public void connect() throws IOException {
                 return;
               }
-              @Override
-              public InputStream getInputStream() throws IOException {
-                return new ByteArrayInputStream(modelPayload.getBytes());
+              @Override public InputStream getInputStream() throws IOException {
+                return new ByteArrayInputStream(modelPayload.getBytes(Charset.defaultCharset()));
               }
             };
           }
