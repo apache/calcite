@@ -51,6 +51,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.function.BiFunction;
 
 /**
  * Interpreter node that implements an
@@ -142,6 +143,44 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
         return new UdaAccumulatorFactory(
             AggregateFunctionImpl.create(clazz), call, false);
       }
+    } else if (call.getAggregation() == SqlStdOperatorTable.MIN) {
+      final Class<?> clazz;
+      switch (call.getType().getSqlTypeName()) {
+      case INTEGER:
+        clazz = MinInt.class;
+        break;
+      case FLOAT:
+        clazz = MinFloat.class;
+        break;
+      case DOUBLE:
+      case REAL:
+        clazz = MinDouble.class;
+        break;
+      default:
+        clazz = MinLong.class;
+        break;
+      }
+      return new UdaAccumulatorFactory(
+          AggregateFunctionImpl.create(clazz), call, true);
+    } else if (call.getAggregation() == SqlStdOperatorTable.MAX) {
+      final Class<?> clazz;
+      switch (call.getType().getSqlTypeName()) {
+      case INTEGER:
+        clazz = MaxInt.class;
+        break;
+      case FLOAT:
+        clazz = MaxFloat.class;
+        break;
+      case DOUBLE:
+      case REAL:
+        clazz = MaxDouble.class;
+        break;
+      default:
+        clazz = MaxLong.class;
+        break;
+      }
+      return new UdaAccumulatorFactory(
+          AggregateFunctionImpl.create(clazz), call, true);
     } else {
       final JavaTypeFactory typeFactory =
           (JavaTypeFactory) rel.getCluster().getTypeFactory();
@@ -434,6 +473,108 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
     }
     public double result(double accumulator) {
       return accumulator;
+    }
+  }
+
+  /** Common implementation of comparison aggregate methods over numeric
+   * values as a user-defined aggregate.
+   * @param <T> The numeric type
+   */
+  public static class NumericComparison<T> {
+    private final T initialValue;
+    private final BiFunction<T, T, T> comparisonFunction;
+
+    public NumericComparison(T initialValue, BiFunction<T, T, T> comparisonFunction) {
+      this.initialValue = initialValue;
+      this.comparisonFunction = comparisonFunction;
+    }
+
+    public T init() {
+      return this.initialValue;
+    }
+
+    public T add(T accumulator, T value) {
+      return this.comparisonFunction.apply(accumulator, value);
+    }
+
+    public T merge(T accumulator0, T accumulator1) {
+      return add(accumulator0, accumulator1);
+    }
+
+    public T result(T accumulator) {
+      return accumulator;
+    }
+  }
+
+  /** Implementation of {@code MIN} function to calculate the minimum of
+   * {@code integer} values as a user-defined aggregate.
+   */
+  public static class MinInt extends NumericComparison<Integer> {
+    public MinInt() {
+      super(Integer.MAX_VALUE, Math::min);
+    }
+  }
+
+  /** Implementation of {@code MIN} function to calculate the minimum of
+   * {@code long} values as a user-defined aggregate.
+   */
+  public static class MinLong extends NumericComparison<Long> {
+    public MinLong() {
+      super(Long.MAX_VALUE, Math::min);
+    }
+  }
+
+  /** Implementation of {@code MIN} function to calculate the minimum of
+   * {@code float} values as a user-defined aggregate.
+   */
+  public static class MinFloat extends NumericComparison<Float> {
+    public MinFloat() {
+      super(Float.MAX_VALUE, Math::min);
+    }
+  }
+
+  /** Implementation of {@code MIN} function to calculate the minimum of
+   * {@code double} and {@code real} values as a user-defined aggregate.
+   */
+  public static class MinDouble extends NumericComparison<Double> {
+    public MinDouble() {
+      super(Double.MAX_VALUE, Math::max);
+    }
+  }
+
+  /** Implementation of {@code MAX} function to calculate the minimum of
+   * {@code integer} values as a user-defined aggregate.
+   */
+  public static class MaxInt extends NumericComparison<Integer> {
+    public MaxInt() {
+      super(Integer.MIN_VALUE, Math::max);
+    }
+  }
+
+  /** Implementation of {@code MAX} function to calculate the minimum of
+   * {@code long} values as a user-defined aggregate.
+   */
+  public static class MaxLong extends NumericComparison<Long> {
+    public MaxLong() {
+      super(Long.MIN_VALUE, Math::max);
+    }
+  }
+
+  /** Implementation of {@code MAX} function to calculate the minimum of
+   * {@code float} values as a user-defined aggregate.
+   */
+  public static class MaxFloat extends NumericComparison<Float> {
+    public MaxFloat() {
+      super(Float.MIN_VALUE, Math::max);
+    }
+  }
+
+  /** Implementation of {@code MAX} function to calculate the minimum of
+   * {@code double} and {@code real} values as a user-defined aggregate.
+   */
+  public static class MaxDouble extends NumericComparison<Double> {
+    public MaxDouble() {
+      super(Double.MIN_VALUE, Math::max);
     }
   }
 
