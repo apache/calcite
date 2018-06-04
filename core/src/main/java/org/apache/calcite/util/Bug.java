@@ -139,10 +139,6 @@ public abstract class Bug {
    */
   public static final boolean FRG375_FIXED = false;
 
-  /** Whether
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-194">[CALCITE-194]
-   * Array items in MongoDB adapter</a> is fixed. */
-  public static final boolean CALCITE_194_FIXED = false;
 
   /** Whether the remaining issues raised in
    * <a href="https://issues.apache.org/jira/browse/CALCITE-461">[CALCITE-461]
