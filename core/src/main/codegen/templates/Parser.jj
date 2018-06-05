@@ -3528,13 +3528,13 @@ SqlAlter SqlAlter() :
     <ALTER> { s = span(); }
     scope = Scope()
     (
-        alterNode = SqlSetOption(s, scope)
-
 <#-- additional literal parser methods are included here -->
 <#list parser.alterStatementParserMethods as method>
-    |
         alterNode = ${method}(s, scope)
+    |
 </#list>
+
+        alterNode = SqlSetOption(s, scope)
     )
     {
         return alterNode;
