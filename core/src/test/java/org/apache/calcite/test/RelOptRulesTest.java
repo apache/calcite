@@ -3940,7 +3940,7 @@ public class RelOptRulesTest extends RelOptTestBase {
    * handling non-deterministic operator in rules */
   @Test public void testPushFilterPastAggWithNondeterministicAggCall() {
     HepProgram program = new HepProgramBuilder()
-        .addRuleInstance(FilterProjectTransposeRule.INSTANCE)
+        .addRuleInstance(FilterAggregateTransposeRule.INSTANCE)
         .build();
     final String sql = "select ename, empno, c from\n"
         + " (select ename, empno, rand_avg(sal) as c from emp group by ename, empno) t\n"
@@ -3983,7 +3983,7 @@ public class RelOptRulesTest extends RelOptTestBase {
         .build();
     final String sql = "select ename, deptno from\n"
         + "(select ename, deptno from emp) t\n"
-        + "where rand_substr(ename, 1, 3) = 'Tom' and deptno > 10";
+        + "where rand_substr(ename, 1, 3) <> 'Tom' and deptno > 10";
     checkPlanning(tester, null, new HepPlanner(program), sql, true);
   }
 
@@ -3996,7 +3996,7 @@ public class RelOptRulesTest extends RelOptTestBase {
         .build();
     final String sql = "select ename, deptno from\n"
         + "(select rand_substr(ename, 1, 3) as ename, deptno from emp) t\n"
-        + "where deptno > 10";
+        + "where deptno > 10 and ename <> 'Tom'";
     checkPlanning(tester, null, new HepPlanner(program), sql, true);
   }
 

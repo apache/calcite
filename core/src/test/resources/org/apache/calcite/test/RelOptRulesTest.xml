@@ -8571,12 +8571,12 @@ LogicalProject(X=[$0], Y=[$1])
         <Resource name="sql">
             <![CDATA[select ename, deptno from
             (select ename, deptno from emp) t
-            where rand_substr(ename, 1, 3) = 'Tom' and deptno > 10]]>
+            where rand_substr(ename, 1, 3) <> 'Tom' and deptno > 10]]>
         </Resource>
         <Resource name="planBefore">
             <![CDATA[
 LogicalProject(ENAME=[$0], DEPTNO=[$1])
-  LogicalFilter(condition=[AND(=(RAND_SUBSTR($0, 1, 3), 'Tom'), >($1, 10))])
+  LogicalFilter(condition=[AND(<>(RAND_SUBSTR($0, 1, 3), 'Tom'), >($1, 10))])
     LogicalProject(ENAME=[$1], DEPTNO=[$7])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
@@ -8584,7 +8584,7 @@ LogicalProject(ENAME=[$0], DEPTNO=[$1])
         <Resource name="planAfter">
             <![CDATA[
 LogicalProject(ENAME=[$0], DEPTNO=[$1])
-  LogicalFilter(condition=[AND(=(RAND_SUBSTR($0, 11, 3), 'Tom'), >($1, 10))])
+  LogicalFilter(condition=[AND(<>(RAND_SUBSTR($0, 11, 3), 'Tom'), >($1, 10))])
     LogicalProject(ENAME=[$1], DEPTNO=[$7])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
@@ -8594,12 +8594,12 @@ LogicalProject(ENAME=[$0], DEPTNO=[$1])
         <Resource name="sql">
             <![CDATA[select ename, deptno from
 (select rand_substr(ename, 1, 3) as ename, deptno from emp) t
-where deptno > 10]]>
+where deptno > 10 and ename <> 'Tome']]>
         </Resource>
         <Resource name="planBefore">
             <![CDATA[
 LogicalProject(ENAME=[$0], DEPTNO=[$1])
-  LogicalFilter(condition=[>($1, 10)])
+  LogicalFilter(condition=[AND(>($1, 10), <>($0, 'Tom'))])
     LogicalProject(ENAME=[RAND_SUBSTR($1, 1, 3)], DEPTNO=[$7])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
@@ -8607,7 +8607,7 @@ LogicalProject(ENAME=[$0], DEPTNO=[$1])
         <Resource name="planAfter">
             <![CDATA[
 LogicalProject(ENAME=[$0], DEPTNO=[$1])
-  LogicalFilter(condition=[>($1, 10)])
+  LogicalFilter(condition=[AND(>($1, 10), <>($0, 'Tom'))])
     LogicalProject(ENAME=[RAND_SUBSTR($1, 1, 3)], DEPTNO=[$7])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
