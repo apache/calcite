@@ -251,6 +251,9 @@ public abstract class Match extends SingleRel {
       case COUNT:
         aggFunction = SqlStdOperatorTable.COUNT;
         break;
+      case ANY_VALUE:
+        aggFunction = SqlStdOperatorTable.ANY_VALUE;
+        break;
       default:
         for (RexNode rex : call.getOperands()) {
           rex.accept(this);

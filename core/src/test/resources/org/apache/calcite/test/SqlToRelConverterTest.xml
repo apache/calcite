@@ -5292,4 +5292,29 @@ LogicalProject(**=[$1], $unnest=[$2])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testAnyValueAggregateFunctionNoGroupBy">
+        <Resource name="sql">
+            <![CDATA[SELECT any_value(empno) as anyempno FROM emp AS e]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalAggregate(group=[{}], ANYEMPNO=[ANY_VALUE($0)])
+  LogicalProject(EMPNO=[$0])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testAnyValueAggregateFunctionGroupBy">
+        <Resource name="sql">
+            <![CDATA[SELECT any_value(empno) as anyempno FROM emp AS e group by e.sal]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(ANYEMPNO=[$1])
+  LogicalAggregate(group=[{0}], ANYEMPNO=[ANY_VALUE($1)])
+    LogicalProject(SAL=[$5], EMPNO=[$0])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
 </Root>

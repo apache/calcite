@@ -7265,6 +7265,48 @@ public abstract class SqlOperatorBaseTest {
         0d);
   }
 
+  @Test public void testAnyValueFunc() {
+    tester.setFor(SqlStdOperatorTable.ANY_VALUE, VM_EXPAND);
+    tester.checkFails(
+        "any_value(^*^)",
+        "Unknown identifier '\\*'",
+        false);
+    tester.checkType("any_value(1)", "INTEGER");
+    tester.checkType("any_value(1.2)", "DECIMAL(2, 1)");
+    tester.checkType("any_value(DISTINCT 1.5)", "DECIMAL(2, 1)");
+    tester.checkFails(
+        "^any_value()^",
+        "Invalid number of arguments to function 'ANY_VALUE'. Was expecting 1 arguments",
+        false);
+    tester.checkFails(
+        "^any_value(1, 2)^",
+        "Invalid number of arguments to function 'ANY_VALUE'. Was expecting 1 arguments",
+        false);
+    final String[] values = {"0", "CAST(null AS INTEGER)", "2", "2"};
+    if (!enable) {
+      return;
+    }
+    tester.checkAgg(
+        "any_value(x)",
+        values,
+        "0",
+        0d);
+    tester.checkAgg(
+        "any_value(CASE x WHEN 0 THEN NULL ELSE -1 END)",
+        values,
+        "-1",
+        0d);
+    tester.checkAgg(
+        "any_value(DISTINCT CASE x WHEN 0 THEN NULL ELSE -1 END)",
+        values,
+        "-1",
+        0d);
+    tester.checkAgg(
+        "any_value(DISTINCT x)",
+        values,
+        "0",
+        0d);
+  }
   /**
    * Tests that CAST fails when given a value just outside the valid range for
    * that type. For example,
