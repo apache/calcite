@@ -7697,6 +7697,10 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     check("SELECT MAX(5) FROM emp");
   }
 
+  @Test public void testAnyValueFunction() {
+    check("SELECT any_value(ename) from emp");
+  }
+
   @Test public void testFunctionalDistinct() {
     check("select count(distinct sal) from emp");
     checkFails("select COALESCE(^distinct^ sal) from emp",
