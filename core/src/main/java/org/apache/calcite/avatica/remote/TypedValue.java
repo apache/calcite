@@ -655,6 +655,7 @@ public class TypedValue {
       }
       // Intentional fall-through to RTE because we can't serialize something we have no type
       // insight into.
+      // fall through
     case UNRECOGNIZED:
       // Fail?
       throw new RuntimeException("Unhandled value: " + type + " " + o.getClass());
@@ -760,6 +761,7 @@ public class TypedValue {
       }
       // Intentional fall through to RTE. If we sent an object over the wire, it could only
       // possibly be null (at this point). Anything else has to be an error.
+      // fall through
     case UNRECOGNIZED:
       // Fail?
       throw new RuntimeException("Unhandled type: " + protoValue.getType());

@@ -558,6 +558,7 @@ public class ArrayTypeTest {
 
   /**
    * A simple interface to validate to objects in support of type test cases
+   * @param <T> the type of element to be validated
    */
   private interface Validator<T> {
     void validate(T expected, T actual) throws Exception;

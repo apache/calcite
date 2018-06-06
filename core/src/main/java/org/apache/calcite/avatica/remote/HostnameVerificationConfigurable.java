@@ -24,7 +24,7 @@ public interface HostnameVerificationConfigurable {
   /**
    * Describes the support hostname verification methods of {@link AvaticaHttpClient}.
    */
-  public enum HostnameVerification {
+  enum HostnameVerification {
     /**
      * The common name (CN) on the certificate must match the server's hostname.
      */

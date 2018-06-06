@@ -1508,7 +1508,7 @@ public abstract class MetaImpl implements Meta {
     private final int sqlType;
     private final String sqlTypeName;
 
-    public TypeInfo(int sqlType, String sqlTypeName) {
+    private TypeInfo(int sqlType, String sqlTypeName) {
       this.sqlType = sqlType;
       this.sqlTypeName = sqlTypeName;
     }
@@ -1542,7 +1542,7 @@ public abstract class MetaImpl implements Meta {
     private final QueryState state;
     private final Frame firstFrame;
 
-    public FetchIterable(AvaticaStatement stmt, QueryState state, Frame firstFrame) {
+    private FetchIterable(AvaticaStatement stmt, QueryState state, Frame firstFrame) {
       this.stmt = stmt;
       this.state = state;
       this.firstFrame = firstFrame;
@@ -1561,7 +1561,7 @@ public abstract class MetaImpl implements Meta {
     private Iterator<Object> rows;
     private long currentOffset = 0;
 
-    public FetchIterator(AvaticaStatement stmt, QueryState state, Frame firstFrame) {
+    private FetchIterator(AvaticaStatement stmt, QueryState state, Frame firstFrame) {
       this.stmt = stmt;
       this.state = state;
       if (firstFrame == null) {

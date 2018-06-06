@@ -281,7 +281,8 @@ public class ConnectionConfigImpl implements ConnectionConfig {
     }
   }
 
-  /** Callback to parse a property from string to its native type. */
+  /** Callback to parse a property from string to its native type.
+   * @param <T> the native type */
   public interface Converter<T> {
     T apply(ConnectionProperty connectionProperty, String s);
   }

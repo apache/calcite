@@ -289,7 +289,7 @@ public abstract class AbstractCursor implements Cursor {
   static class AccessorImpl implements Accessor {
     protected final Getter getter;
 
-    public AccessorImpl(Getter getter) {
+    AccessorImpl(Getter getter) {
       assert getter != null;
       this.getter = getter;
     }
@@ -434,7 +434,7 @@ public abstract class AbstractCursor implements Cursor {
    * {@link #getLong()} method.
    */
   private abstract static class ExactNumericAccessor extends AccessorImpl {
-    public ExactNumericAccessor(Getter getter) {
+    private ExactNumericAccessor(Getter getter) {
       super(getter);
     }
 
@@ -470,7 +470,7 @@ public abstract class AbstractCursor implements Cursor {
    * corresponds to {@link java.sql.Types#BOOLEAN}.
    */
   private static class BooleanAccessor extends ExactNumericAccessor {
-    public BooleanAccessor(Getter getter) {
+    private BooleanAccessor(Getter getter) {
       super(getter);
     }
 
@@ -489,7 +489,7 @@ public abstract class AbstractCursor implements Cursor {
    * corresponds to {@link java.sql.Types#TINYINT}.
    */
   private static class ByteAccessor extends ExactNumericAccessor {
-    public ByteAccessor(Getter getter) {
+    private ByteAccessor(Getter getter) {
       super(getter);
     }
 
@@ -513,7 +513,7 @@ public abstract class AbstractCursor implements Cursor {
    * corresponds to {@link java.sql.Types#SMALLINT}.
    */
   private static class ShortAccessor extends ExactNumericAccessor {
-    public ShortAccessor(Getter getter) {
+    private ShortAccessor(Getter getter) {
       super(getter);
     }
 
@@ -537,7 +537,7 @@ public abstract class AbstractCursor implements Cursor {
    * corresponds to {@link java.sql.Types#INTEGER}.
    */
   private static class IntAccessor extends ExactNumericAccessor {
-    public IntAccessor(Getter getter) {
+    private IntAccessor(Getter getter) {
       super(getter);
     }
 
@@ -556,7 +556,7 @@ public abstract class AbstractCursor implements Cursor {
    * corresponds to {@link java.sql.Types#BIGINT}.
    */
   private static class LongAccessor extends ExactNumericAccessor {
-    public LongAccessor(Getter getter) {
+    private LongAccessor(Getter getter) {
       super(getter);
     }
 
@@ -571,7 +571,7 @@ public abstract class AbstractCursor implements Cursor {
    */
   private abstract static class ApproximateNumericAccessor
       extends AccessorImpl {
-    public ApproximateNumericAccessor(Getter getter) {
+    private ApproximateNumericAccessor(Getter getter) {
       super(getter);
     }
 
@@ -603,7 +603,7 @@ public abstract class AbstractCursor implements Cursor {
    * corresponds to {@link java.sql.Types#FLOAT}.
    */
   private static class FloatAccessor extends ApproximateNumericAccessor {
-    public FloatAccessor(Getter getter) {
+    private FloatAccessor(Getter getter) {
       super(getter);
     }
 
@@ -622,7 +622,7 @@ public abstract class AbstractCursor implements Cursor {
    * corresponds to {@link java.sql.Types#DOUBLE}.
    */
   private static class DoubleAccessor extends ApproximateNumericAccessor {
-    public DoubleAccessor(Getter getter) {
+    private DoubleAccessor(Getter getter) {
       super(getter);
     }
 
@@ -642,7 +642,7 @@ public abstract class AbstractCursor implements Cursor {
    * {@link #getLong()} method.
    */
   private abstract static class BigNumberAccessor extends AccessorImpl {
-    public BigNumberAccessor(Getter getter) {
+    private BigNumberAccessor(Getter getter) {
       super(getter);
     }
 
@@ -689,7 +689,7 @@ public abstract class AbstractCursor implements Cursor {
    * corresponds to {@link java.sql.Types#DECIMAL}.
    */
   private static class BigDecimalAccessor extends BigNumberAccessor {
-    public BigDecimalAccessor(Getter getter) {
+    private BigDecimalAccessor(Getter getter) {
       super(getter);
     }
 
@@ -717,7 +717,7 @@ public abstract class AbstractCursor implements Cursor {
   static class NumberAccessor extends BigNumberAccessor {
     private final int scale;
 
-    public NumberAccessor(Getter getter, int scale) {
+    NumberAccessor(Getter getter, int scale) {
       super(getter);
       this.scale = scale;
     }
@@ -749,7 +749,7 @@ public abstract class AbstractCursor implements Cursor {
    * and {@link java.sql.Types#VARCHAR}.
    */
   private static class StringAccessor extends AccessorImpl {
-    public StringAccessor(Getter getter) {
+    private StringAccessor(Getter getter) {
       super(getter);
     }
 
@@ -773,7 +773,7 @@ public abstract class AbstractCursor implements Cursor {
   private static class FixedStringAccessor extends StringAccessor {
     protected final Spacer spacer;
 
-    public FixedStringAccessor(Getter getter, int length) {
+    private FixedStringAccessor(Getter getter, int length) {
       super(getter);
       this.spacer = new Spacer(length);
     }
@@ -792,7 +792,7 @@ public abstract class AbstractCursor implements Cursor {
    * corresponds to {@link java.sql.Types#CHAR}.
    */
   private static class StringFromCharAccessor extends FixedStringAccessor {
-    public StringFromCharAccessor(Getter getter, int length) {
+    private StringFromCharAccessor(Getter getter, int length) {
       super(getter, length);
     }
 
@@ -812,7 +812,7 @@ public abstract class AbstractCursor implements Cursor {
    * and {@link java.sql.Types#VARBINARY}.
    */
   private static class BinaryAccessor extends AccessorImpl {
-    public BinaryAccessor(Getter getter) {
+    private BinaryAccessor(Getter getter) {
       super(getter);
     }
 
@@ -855,7 +855,7 @@ public abstract class AbstractCursor implements Cursor {
    * and {@link java.sql.Types#VARBINARY} values in Base64 format.
    */
   private static class BinaryFromStringAccessor extends StringAccessor {
-    public BinaryFromStringAccessor(Getter getter) {
+    private BinaryFromStringAccessor(Getter getter) {
       super(getter);
     }
 
@@ -902,7 +902,7 @@ public abstract class AbstractCursor implements Cursor {
   private static class DateFromNumberAccessor extends NumberAccessor {
     private final Calendar localCalendar;
 
-    public DateFromNumberAccessor(Getter getter, Calendar localCalendar) {
+    private DateFromNumberAccessor(Getter getter, Calendar localCalendar) {
       super(getter, 0);
       this.localCalendar = localCalendar;
     }
@@ -945,7 +945,7 @@ public abstract class AbstractCursor implements Cursor {
   private static class TimeFromNumberAccessor extends NumberAccessor {
     private final Calendar localCalendar;
 
-    public TimeFromNumberAccessor(Getter getter, Calendar localCalendar) {
+    private TimeFromNumberAccessor(Getter getter, Calendar localCalendar) {
       super(getter, 0);
       this.localCalendar = localCalendar;
     }
@@ -987,7 +987,7 @@ public abstract class AbstractCursor implements Cursor {
   private static class TimestampFromNumberAccessor extends NumberAccessor {
     private final Calendar localCalendar;
 
-    public TimestampFromNumberAccessor(Getter getter, Calendar localCalendar) {
+    private TimestampFromNumberAccessor(Getter getter, Calendar localCalendar) {
       super(getter, 0);
       this.localCalendar = localCalendar;
     }
@@ -1037,7 +1037,7 @@ public abstract class AbstractCursor implements Cursor {
    * corresponds to {@link java.sql.Types#DATE}.
    */
   private static class DateAccessor extends ObjectAccessor {
-    public DateAccessor(Getter getter) {
+    private DateAccessor(Getter getter) {
       super(getter);
     }
 
@@ -1076,7 +1076,7 @@ public abstract class AbstractCursor implements Cursor {
    * corresponds to {@link java.sql.Types#TIME}.
    */
   private static class TimeAccessor extends ObjectAccessor {
-    public TimeAccessor(Getter getter) {
+    private TimeAccessor(Getter getter) {
       super(getter);
     }
 
@@ -1114,7 +1114,7 @@ public abstract class AbstractCursor implements Cursor {
    * corresponds to {@link java.sql.Types#TIMESTAMP}.
    */
   private static class TimestampAccessor extends ObjectAccessor {
-    public TimestampAccessor(Getter getter) {
+    private TimestampAccessor(Getter getter) {
       super(getter);
     }
 
@@ -1171,7 +1171,7 @@ public abstract class AbstractCursor implements Cursor {
   private static class TimestampFromUtilDateAccessor extends ObjectAccessor {
     private final Calendar localCalendar;
 
-    public TimestampFromUtilDateAccessor(Getter getter,
+    private TimestampFromUtilDateAccessor(Getter getter,
         Calendar localCalendar) {
       super(getter);
       this.localCalendar = localCalendar;
@@ -1228,7 +1228,7 @@ public abstract class AbstractCursor implements Cursor {
   private static class IntervalYearMonthAccessor extends IntAccessor {
     private final TimeUnitRange range;
 
-    public IntervalYearMonthAccessor(Getter getter, TimeUnitRange range) {
+    private IntervalYearMonthAccessor(Getter getter, TimeUnitRange range) {
       super(getter);
       this.range = range;
     }
@@ -1250,7 +1250,7 @@ public abstract class AbstractCursor implements Cursor {
     private final TimeUnitRange range;
     private final int scale;
 
-    public IntervalDayTimeAccessor(Getter getter, TimeUnitRange range,
+    private IntervalDayTimeAccessor(Getter getter, TimeUnitRange range,
         int scale) {
       super(getter);
       this.range = range;
@@ -1377,7 +1377,7 @@ public abstract class AbstractCursor implements Cursor {
   private static class StructAccessor extends AccessorImpl {
     private final List<Accessor> fieldAccessors;
 
-    public StructAccessor(Getter getter, List<Accessor> fieldAccessors) {
+    private StructAccessor(Getter getter, List<Accessor> fieldAccessors) {
       super(getter);
       this.fieldAccessors = fieldAccessors;
     }
@@ -1419,7 +1419,7 @@ public abstract class AbstractCursor implements Cursor {
    * corresponds to {@link java.sql.Types#JAVA_OBJECT}.
    */
   private static class ObjectAccessor extends AccessorImpl {
-    public ObjectAccessor(Getter getter) {
+    private ObjectAccessor(Getter getter) {
       super(getter);
     }
   }

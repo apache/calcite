@@ -95,7 +95,7 @@ public class ProtobufTranslationImpl implements ProtobufTranslation {
     private final Parser<? extends Message> parser;
     private final Service.Request impl;
 
-    public RequestTranslator(Parser<? extends Message> parser, Service.Request impl) {
+    RequestTranslator(Parser<? extends Message> parser, Service.Request impl) {
       this.parser = parser;
       this.impl = impl;
     }
@@ -120,7 +120,7 @@ public class ProtobufTranslationImpl implements ProtobufTranslation {
     private final Parser<? extends Message> parser;
     private final Service.Response impl;
 
-    public ResponseTranslator(Parser<? extends Message> parser, Service.Response impl) {
+    ResponseTranslator(Parser<? extends Message> parser, Service.Response impl) {
       this.parser = parser;
       this.impl = impl;
     }

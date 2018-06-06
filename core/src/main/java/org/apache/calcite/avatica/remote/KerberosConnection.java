@@ -247,7 +247,7 @@ public class KerberosConnection {
     private final long renewalPeriod;
     private final AtomicBoolean keepRunning = new AtomicBoolean(true);
 
-    public RenewalTask(KerberosConnection utilInstance, LoginContext context, Subject subject,
+    RenewalTask(KerberosConnection utilInstance, LoginContext context, Subject subject,
         Configuration conf, long renewalPeriod) {
       this.utilInstance = Objects.requireNonNull(utilInstance);
       this.context = Objects.requireNonNull(context);

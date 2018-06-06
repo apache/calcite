@@ -145,7 +145,7 @@ public class CustomAuthHttpServerTest extends HttpAuthBase {
   protected void createServer(AvaticaServerConfiguration config, boolean isBasicAuth)
       throws SQLException {
     final JdbcMeta jdbcMeta = new JdbcMeta(CONNECTION_SPEC.url,
-      CONNECTION_SPEC.username, CONNECTION_SPEC.password);
+        CONNECTION_SPEC.username, CONNECTION_SPEC.password);
     LocalService service = new LocalService(jdbcMeta);
 
     ConnectorCustomizer connectorCustomizer = new ConnectorCustomizer();
@@ -194,8 +194,8 @@ public class CustomAuthHttpServerTest extends HttpAuthBase {
     LocalService service;
     boolean isBasicAuth;
 
-    public BasicAuthHandlerCustomizer(AvaticaServerConfiguration configuration
-            , LocalService service, boolean isBasicAuth) {
+    BasicAuthHandlerCustomizer(AvaticaServerConfiguration configuration, LocalService service,
+        boolean isBasicAuth) {
       this.configuration = configuration;
       this.service = service;
       this.isBasicAuth = isBasicAuth;

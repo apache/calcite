@@ -57,7 +57,7 @@ public class Driver extends UnregisteredDriver {
   /**
    * Defines the method of message serialization used by the Driver
    */
-  public static enum Serialization {
+  public enum Serialization {
     JSON,
     PROTOBUF;
   }

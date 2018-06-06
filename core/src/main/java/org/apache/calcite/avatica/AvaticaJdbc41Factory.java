@@ -36,9 +36,12 @@ class AvaticaJdbc41Factory implements AvaticaFactory {
   private final int minor;
 
   /** Creates a JDBC factory. */
+  // CHECKSTYLE: stop RedundantModifierCheck
   public AvaticaJdbc41Factory() {
     this(4, 1);
   }
+  // CHECKSTYLE: resume RedundantModifierCheck
+
 
   /** Creates a JDBC factory with given major/minor version number. */
   protected AvaticaJdbc41Factory(int major, int minor) {
@@ -108,7 +111,7 @@ class AvaticaJdbc41Factory implements AvaticaFactory {
 
   /** Implementation of Statement for JDBC 4.1. */
   private static class AvaticaJdbc41Statement extends AvaticaStatement {
-    public AvaticaJdbc41Statement(AvaticaConnection connection,
+    private AvaticaJdbc41Statement(AvaticaConnection connection,
         Meta.StatementHandle h, int resultSetType, int resultSetConcurrency,
         int resultSetHoldability) {
       super(connection, h, resultSetType, resultSetConcurrency,

@@ -411,8 +411,8 @@ public enum SqlType {
     EnumSet<SqlType> numericTypes = EnumSet.of(TINYINT, SMALLINT, INTEGER,
         BIGINT, REAL, FLOAT, DOUBLE, DECIMAL, NUMERIC, BIT, BOOLEAN);
     Class[] numericClasses = {
-      BigDecimal.class, Boolean.class, Byte.class, Short.class, Integer.class,
-      Long.class, Float.class, Double.class
+        BigDecimal.class, Boolean.class, Byte.class, Short.class, Integer.class,
+        Long.class, Float.class, Double.class
     };
     EnumSet<SqlType> charTypes = EnumSet.of(CHAR, VARCHAR, LONGVARCHAR);
     EnumSet<SqlType> ncharTypes = EnumSet.of(NCHAR, NVARCHAR, LONGNVARCHAR);

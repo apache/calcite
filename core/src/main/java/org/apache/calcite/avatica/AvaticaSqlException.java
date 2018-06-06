@@ -103,12 +103,12 @@ public class AvaticaSqlException extends SQLException {
     private PrintWriter writer;
     private final Type type;
 
-    public PrintStreamOrWriter(PrintStream stream) {
+    private PrintStreamOrWriter(PrintStream stream) {
       this.stream = stream;
       type = Type.STREAM;
     }
 
-    public PrintStreamOrWriter(PrintWriter writer) {
+    private PrintStreamOrWriter(PrintWriter writer) {
       this.writer = writer;
       type = Type.WRITER;
     }

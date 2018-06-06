@@ -1136,7 +1136,7 @@ public class DateTimeUtils {
       implements OffsetDateTimeHandler {
     final Class offsetDateTimeClass;
 
-    public ReflectiveOffsetDateTimeHandler() throws ClassNotFoundException {
+    private ReflectiveOffsetDateTimeHandler() throws ClassNotFoundException {
       offsetDateTimeClass = Class.forName("java.time.OffsetDateTime");
     }
 

@@ -143,67 +143,67 @@ public class ConnectStringParserTest {
   @Test public void testOleDbExamples() throws Throwable {
     // test the parser with examples from OLE DB documentation
     Quad[] quads = {
-      // {reason for test, key, val, string to parse},
-      new Quad(
-          "printable chars",
-          "Jet OLE DB:System Database", "c:\\system.mda",
-          "Jet OLE DB:System Database=c:\\system.mda"),
-      new Quad(
-          "key embedded semi",
-          "Authentication;Info", "Column 5",
-          "Authentication;Info=Column 5"),
-      new Quad(
-          "key embedded equal",
-          "Verification=Security", "True",
-          "Verification==Security=True"),
-      new Quad(
-          "key many equals",
-          "Many==One", "Valid",
-          "Many====One=Valid"),
-      new Quad(
-          "key too many equal",
-          "TooMany=", "False",
-          "TooMany===False"),
-      new Quad(
-          "value embedded quote and semi",
-          "ExtProps", "Data Source='localhost';Key Two='value 2'",
-          "ExtProps=\"Data Source='localhost';Key Two='value 2'\""),
-      new Quad(
-          "value embedded double quote and semi",
-          "ExtProps", "Integrated Security=\"SSPI\";Key Two=\"value 2\"",
-          "ExtProps='Integrated Security=\"SSPI\";Key Two=\"value 2\"'"),
-      new Quad(
-          "value double quoted",
-          "DataSchema", "\"MyCustTable\"",
-          "DataSchema='\"MyCustTable\"'"),
-      new Quad(
-          "value single quoted",
-          "DataSchema", "'MyCustTable'",
-          "DataSchema=\"'MyCustTable'\""),
-      new Quad(
-          "value double quoted double trouble",
-          "Caption", "\"Company's \"new\" customer\"",
-          "Caption=\"\"\"Company's \"\"new\"\" customer\"\"\""),
-      new Quad(
-          "value single quoted double trouble",
-          "Caption", "\"Company's \"new\" customer\"",
-          "Caption='\"Company''s \"new\" customer\"'"),
-      new Quad(
-          "embedded blanks and trim",
-          "My Keyword", "My Value",
-          " My Keyword = My Value ;MyNextValue=Value"),
-      new Quad(
-          "value single quotes preserve blanks",
-          "My Keyword", " My Value ",
-          " My Keyword =' My Value ';MyNextValue=Value"),
-      new Quad(
-          "value double quotes preserve blanks",
-          "My Keyword", " My Value ",
-          " My Keyword =\" My Value \";MyNextValue=Value"),
-      new Quad(
-          "last redundant key wins",
-          "SomeKey", "NextValue",
-          "SomeKey=FirstValue;SomeKey=NextValue"),
+        // {reason for test, key, val, string to parse},
+        new Quad(
+            "printable chars",
+            "Jet OLE DB:System Database", "c:\\system.mda",
+            "Jet OLE DB:System Database=c:\\system.mda"),
+        new Quad(
+            "key embedded semi",
+            "Authentication;Info", "Column 5",
+            "Authentication;Info=Column 5"),
+        new Quad(
+            "key embedded equal",
+            "Verification=Security", "True",
+            "Verification==Security=True"),
+        new Quad(
+            "key many equals",
+            "Many==One", "Valid",
+            "Many====One=Valid"),
+        new Quad(
+            "key too many equal",
+            "TooMany=", "False",
+            "TooMany===False"),
+        new Quad(
+            "value embedded quote and semi",
+            "ExtProps", "Data Source='localhost';Key Two='value 2'",
+            "ExtProps=\"Data Source='localhost';Key Two='value 2'\""),
+        new Quad(
+            "value embedded double quote and semi",
+            "ExtProps", "Integrated Security=\"SSPI\";Key Two=\"value 2\"",
+            "ExtProps='Integrated Security=\"SSPI\";Key Two=\"value 2\"'"),
+        new Quad(
+            "value double quoted",
+            "DataSchema", "\"MyCustTable\"",
+            "DataSchema='\"MyCustTable\"'"),
+        new Quad(
+            "value single quoted",
+            "DataSchema", "'MyCustTable'",
+            "DataSchema=\"'MyCustTable'\""),
+        new Quad(
+            "value double quoted double trouble",
+            "Caption", "\"Company's \"new\" customer\"",
+            "Caption=\"\"\"Company's \"\"new\"\" customer\"\"\""),
+        new Quad(
+            "value single quoted double trouble",
+            "Caption", "\"Company's \"new\" customer\"",
+            "Caption='\"Company''s \"new\" customer\"'"),
+        new Quad(
+            "embedded blanks and trim",
+            "My Keyword", "My Value",
+            " My Keyword = My Value ;MyNextValue=Value"),
+        new Quad(
+            "value single quotes preserve blanks",
+            "My Keyword", " My Value ",
+            " My Keyword =' My Value ';MyNextValue=Value"),
+        new Quad(
+            "value double quotes preserve blanks",
+            "My Keyword", " My Value ",
+            " My Keyword =\" My Value \";MyNextValue=Value"),
+        new Quad(
+            "last redundant key wins",
+            "SomeKey", "NextValue",
+            "SomeKey=FirstValue;SomeKey=NextValue"),
     };
     for (Quad quad : quads) {
       Properties props = ConnectStringParser.parse(quad.str);

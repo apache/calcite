@@ -74,11 +74,11 @@ public class QueryStateTest {
     final boolean nullable = true;
 
     QueryState state = new QueryState(MetaDataOperation.GET_BEST_ROW_IDENTIFIER, new Object[] {
-      catalog,
-      schema,
-      table,
-      scope,
-      nullable
+        catalog,
+        schema,
+        table,
+        scope,
+        nullable
     });
 
     state.invoke(conn, statement);
@@ -103,10 +103,10 @@ public class QueryStateTest {
     final String columnNamePattern = "%";
 
     QueryState state = new QueryState(MetaDataOperation.GET_COLUMN_PRIVILEGES, new Object[] {
-      catalog,
-      schema,
-      table,
-      columnNamePattern
+        catalog,
+        schema,
+        table,
+        columnNamePattern
     });
 
     state.invoke(conn, statement);
@@ -122,10 +122,10 @@ public class QueryStateTest {
     final String columnNamePattern = "%";
 
     QueryState state = new QueryState(MetaDataOperation.GET_COLUMNS, new Object[] {
-      catalog,
-      schemaPattern,
-      tableNamePattern,
-      columnNamePattern
+        catalog,
+        schemaPattern,
+        tableNamePattern,
+        columnNamePattern
     });
 
     state.invoke(conn, statement);
@@ -144,12 +144,12 @@ public class QueryStateTest {
     final String foreignTable = "%";
 
     QueryState state = new QueryState(MetaDataOperation.GET_CROSS_REFERENCE, new Object[] {
-      parentCatalog,
-      parentSchema,
-      parentTable,
-      foreignCatalog,
-      foreignSchema,
-      foreignTable
+        parentCatalog,
+        parentSchema,
+        parentTable,
+        foreignCatalog,
+        foreignSchema,
+        foreignTable
     });
 
     state.invoke(conn, statement);
@@ -165,9 +165,9 @@ public class QueryStateTest {
     final String table = "mytable";
 
     QueryState state = new QueryState(MetaDataOperation.GET_EXPORTED_KEYS, new Object[] {
-      catalog,
-      schema,
-      table
+        catalog,
+        schema,
+        table
     });
 
     state.invoke(conn, statement);
@@ -183,10 +183,10 @@ public class QueryStateTest {
     final String columnNamePattern = "%";
 
     QueryState state = new QueryState(MetaDataOperation.GET_FUNCTION_COLUMNS, new Object[] {
-      catalog,
-      schemaPattern,
-      functionNamePattern,
-      columnNamePattern
+        catalog,
+        schemaPattern,
+        functionNamePattern,
+        columnNamePattern
     });
 
     state.invoke(conn, statement);
@@ -202,9 +202,9 @@ public class QueryStateTest {
     final String functionNamePattern = "%";
 
     QueryState state = new QueryState(MetaDataOperation.GET_FUNCTIONS, new Object[] {
-      catalog,
-      schemaPattern,
-      functionNamePattern
+        catalog,
+        schemaPattern,
+        functionNamePattern
     });
 
     state.invoke(conn, statement);
@@ -219,9 +219,9 @@ public class QueryStateTest {
     final String table = "my_table";
 
     QueryState state = new QueryState(MetaDataOperation.GET_IMPORTED_KEYS, new Object[] {
-      catalog,
-      schema,
-      table
+        catalog,
+        schema,
+        table
     });
 
     state.invoke(conn, statement);
@@ -238,11 +238,11 @@ public class QueryStateTest {
     final boolean approximate = true;
 
     QueryState state = new QueryState(MetaDataOperation.GET_INDEX_INFO, new Object[] {
-      catalog,
-      schema,
-      table,
-      unique,
-      approximate
+        catalog,
+        schema,
+        table,
+        unique,
+        approximate
     });
 
     state.invoke(conn, statement);
@@ -257,9 +257,9 @@ public class QueryStateTest {
     final String table = "my_table";
 
     QueryState state = new QueryState(MetaDataOperation.GET_PRIMARY_KEYS, new Object[] {
-      catalog,
-      schema,
-      table
+        catalog,
+        schema,
+        table
     });
 
     state.invoke(conn, statement);
@@ -275,10 +275,10 @@ public class QueryStateTest {
     final String columnNamePattern = "%";
 
     QueryState state = new QueryState(MetaDataOperation.GET_PROCEDURE_COLUMNS, new Object[] {
-      catalog,
-      schemaPattern,
-      procedureNamePattern,
-      columnNamePattern
+        catalog,
+        schemaPattern,
+        procedureNamePattern,
+        columnNamePattern
     });
 
     state.invoke(conn, statement);
@@ -294,9 +294,9 @@ public class QueryStateTest {
     final String procedureNamePattern = "%";
 
     QueryState state = new QueryState(MetaDataOperation.GET_PROCEDURES, new Object[] {
-      catalog,
-      schemaPattern,
-      procedureNamePattern,
+        catalog,
+        schemaPattern,
+        procedureNamePattern,
     });
 
     state.invoke(conn, statement);
@@ -312,10 +312,10 @@ public class QueryStateTest {
     final String columnNamePattern = "%";
 
     QueryState state = new QueryState(MetaDataOperation.GET_PSEUDO_COLUMNS, new Object[] {
-      catalog,
-      schemaPattern,
-      tableNamePattern,
-      columnNamePattern
+        catalog,
+        schemaPattern,
+        tableNamePattern,
+        columnNamePattern
     });
 
     state.invoke(conn, statement);
@@ -339,8 +339,8 @@ public class QueryStateTest {
     final String schemaPattern = null;
 
     QueryState state = new QueryState(MetaDataOperation.GET_SCHEMAS_WITH_ARGS, new Object[] {
-      catalog,
-      schemaPattern
+        catalog,
+        schemaPattern
     });
 
     state.invoke(conn, statement);
@@ -355,9 +355,9 @@ public class QueryStateTest {
     final String tableNamePattern = "%";
 
     QueryState state = new QueryState(MetaDataOperation.GET_SUPER_TABLES, new Object[] {
-      catalog,
-      schemaPattern,
-      tableNamePattern
+        catalog,
+        schemaPattern,
+        tableNamePattern
     });
 
     state.invoke(conn, statement);
@@ -372,9 +372,9 @@ public class QueryStateTest {
     final String tableNamePattern = "%";
 
     QueryState state = new QueryState(MetaDataOperation.GET_SUPER_TYPES, new Object[] {
-      catalog,
-      schemaPattern,
-      tableNamePattern
+        catalog,
+        schemaPattern,
+        tableNamePattern
     });
 
     state.invoke(conn, statement);
@@ -389,9 +389,9 @@ public class QueryStateTest {
     final String tableNamePattern = "%";
 
     QueryState state = new QueryState(MetaDataOperation.GET_TABLE_PRIVILEGES, new Object[] {
-      catalog,
-      schemaPattern,
-      tableNamePattern
+        catalog,
+        schemaPattern,
+        tableNamePattern
     });
 
     state.invoke(conn, statement);
@@ -407,10 +407,10 @@ public class QueryStateTest {
     final String[] types = new String[] {"VIEW", "TABLE"};
 
     QueryState state = new QueryState(MetaDataOperation.GET_TABLES, new Object[] {
-      catalog,
-      schemaPattern,
-      tableNamePattern,
-      types
+        catalog,
+        schemaPattern,
+        tableNamePattern,
+        types
     });
 
     state.invoke(conn, statement);
@@ -444,10 +444,10 @@ public class QueryStateTest {
     final int[] types = new int[] {1, 2};
 
     QueryState state = new QueryState(MetaDataOperation.GET_UDTS, new Object[] {
-      catalog,
-      schemaPattern,
-      typeNamePattern,
-      types
+        catalog,
+        schemaPattern,
+        typeNamePattern,
+        types
     });
 
     state.invoke(conn, statement);
@@ -462,9 +462,9 @@ public class QueryStateTest {
     final String table = "my_table";
 
     QueryState state = new QueryState(MetaDataOperation.GET_VERSION_COLUMNS, new Object[] {
-      catalog,
-      schemaPattern,
-      table
+        catalog,
+        schemaPattern,
+        table
     });
 
     state.invoke(conn, statement);
@@ -481,11 +481,11 @@ public class QueryStateTest {
     final boolean nullable = true;
 
     QueryState state = new QueryState(MetaDataOperation.GET_BEST_ROW_IDENTIFIER, new Object[] {
-      catalog,
-      schema,
-      table,
-      scope,
-      nullable
+        catalog,
+        schema,
+        table,
+        scope,
+        nullable
     });
 
     assertEquals(state, QueryState.fromProto(state.toProto()));
@@ -495,10 +495,10 @@ public class QueryStateTest {
     final int[] types = new int[] {1, 2};
 
     state = new QueryState(MetaDataOperation.GET_UDTS, new Object[] {
-      catalog,
-      schemaPattern,
-      typeNamePattern,
-      types
+        catalog,
+        schemaPattern,
+        typeNamePattern,
+        types
     });
 
     assertEquals(state, QueryState.fromProto(state.toProto()));

@@ -30,7 +30,7 @@ import org.junit.runners.Suite;
     AvaticaUtilsTest.class,
     ConnectStringParserTest.class,
     RemoteDriverTest.class
-})
+    })
 public class AvaticaSuite {
 }
 

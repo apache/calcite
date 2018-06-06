@@ -461,6 +461,7 @@ public class HttpServer {
 
   /**
    * Builder class for creating instances of {@link HttpServer}.
+   * @param <T> element type
    */
   public static class Builder<T> {
     private int port;

@@ -120,7 +120,9 @@ public abstract class PositionedCursor<T> extends AbstractCursor {
   protected class FieldGetter extends AbstractGetter {
     protected final Field field;
 
-    public FieldGetter(Field field) { this.field = field; }
+    public FieldGetter(Field field) {
+      this.field = field;
+    }
 
     public Object getObject() throws SQLException {
       Object o;
@@ -136,7 +138,8 @@ public abstract class PositionedCursor<T> extends AbstractCursor {
 
   /** Implementation of
    * {@link org.apache.calcite.avatica.util.AbstractCursor.Getter}
-   * that reads entries from a {@link java.util.Map}. */
+   * that reads entries from a {@link java.util.Map}.
+   * @param <K> the key type */
   protected class MapGetter<K> extends AbstractGetter {
     protected final K key;
 

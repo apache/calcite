@@ -151,9 +151,9 @@ public class AvaticaResultSetConversionsTest {
 
       List<Object> row = Collections.<Object>singletonList(
           new Object[] {
-            true, (byte) 1, (short) 2, 3, 4L, 5.0f, 6.0d, "testvalue",
-            new Date(1476130718123L), new Time(1476130718123L),
-            new Timestamp(1476130718123L)
+              true, (byte) 1, (short) 2, 3, 4L, 5.0f, 6.0d, "testvalue",
+              new Date(1476130718123L), new Time(1476130718123L),
+              new Timestamp(1476130718123L)
           });
 
       CursorFactory factory = CursorFactory.deduce(columns, null);

@@ -2289,7 +2289,7 @@ public interface Service {
    * transport over the wire. Thus, {@link Service#apply} will never return
    * an ErrorResponse.
    */
-  public class ErrorResponse extends Response {
+  class ErrorResponse extends Response {
     private static final FieldDescriptor ERROR_MESSAGE_DESCRIPTOR = Responses.ErrorResponse
         .getDescriptor().findFieldByNumber(
             Responses.ErrorResponse.ERROR_MESSAGE_FIELD_NUMBER);
@@ -2646,7 +2646,7 @@ public interface Service {
    * <p>This isn't really a "response", but we want to be able to be able to convert it to protobuf
    * and back again, so ignore that there isn't an explicit endpoint for it.
    */
-  public class RpcMetadataResponse extends Response {
+  class RpcMetadataResponse extends Response {
     private static final FieldDescriptor SERVER_ADDRESS_DESCRIPTOR = Responses.RpcMetadata
         .getDescriptor().findFieldByNumber(Responses.RpcMetadata.SERVER_ADDRESS_FIELD_NUMBER);
     public final String serverAddress;

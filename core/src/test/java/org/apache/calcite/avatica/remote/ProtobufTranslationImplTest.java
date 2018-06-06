@@ -111,7 +111,7 @@ public class ProtobufTranslationImplTest<T> {
   private static class RequestFunc implements IdentityFunction<Request> {
     private final ProtobufTranslation translation;
 
-    public RequestFunc(ProtobufTranslation translation) {
+    private RequestFunc(ProtobufTranslation translation) {
       this.translation = translation;
     }
 
@@ -127,7 +127,7 @@ public class ProtobufTranslationImplTest<T> {
   private static class ResponseFunc implements IdentityFunction<Response> {
     private final ProtobufTranslation translation;
 
-    public ResponseFunc(ProtobufTranslation translation) {
+    private ResponseFunc(ProtobufTranslation translation) {
       this.translation = translation;
     }
 
@@ -244,10 +244,10 @@ public class ProtobufTranslationImplTest<T> {
 
   private static QueryState getMetadataQueryState1() {
     return new QueryState(MetaDataOperation.GET_COLUMNS, new Object[] {
-      "",
-      null,
-      "%",
-      "%"
+        "",
+        null,
+        "%",
+        "%"
     });
   }
 

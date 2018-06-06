@@ -145,45 +145,45 @@ public class RemoteDriverTest {
     // Each test needs to get a fresh Connection and also access some internals on that Connection.
 
     connections.add(
-      new Object[] {
-        "JSON",
-        new Callable<Connection>() {
-          public Connection call() {
-            try {
-              return ljs();
-            } catch (SQLException e) {
-              throw new RuntimeException(e);
-            }
-          }
-        },
-        new QuasiRemoteJdbcServiceInternals(),
-        new Callable<RequestInspection>() {
-          public RequestInspection call() throws Exception {
-            assert null != QuasiRemoteJdbcServiceFactory.requestInspection;
-            return QuasiRemoteJdbcServiceFactory.requestInspection;
-          }
-        } });
+        new Object[] {
+            "JSON",
+            new Callable<Connection>() {
+              public Connection call() {
+                try {
+                  return ljs();
+                } catch (SQLException e) {
+                  throw new RuntimeException(e);
+                }
+              }
+            },
+            new QuasiRemoteJdbcServiceInternals(),
+            new Callable<RequestInspection>() {
+              public RequestInspection call() throws Exception {
+                assert null != QuasiRemoteJdbcServiceFactory.requestInspection;
+                return QuasiRemoteJdbcServiceFactory.requestInspection;
+              }
+            } });
 
     // TODO write the ConnectionInternals implementation
     connections.add(
-      new Object[] {
-        "PROTOBUF",
-        new Callable<Connection>() {
-          public Connection call() {
-            try {
-              return lpbs();
-            } catch (SQLException e) {
-              throw new RuntimeException(e);
-            }
-          }
-        },
-        new QuasiRemoteProtobufJdbcServiceInternals(),
-        new Callable<RequestInspection>() {
-          public RequestInspection call() throws Exception {
-            assert null != QuasiRemotePBJdbcServiceFactory.requestInspection;
-            return QuasiRemotePBJdbcServiceFactory.requestInspection;
-          }
-        } });
+        new Object[] {
+            "PROTOBUF",
+            new Callable<Connection>() {
+              public Connection call() {
+                try {
+                  return lpbs();
+                } catch (SQLException e) {
+                  throw new RuntimeException(e);
+                }
+              }
+            },
+            new QuasiRemoteProtobufJdbcServiceInternals(),
+            new Callable<RequestInspection>() {
+              public RequestInspection call() throws Exception {
+                assert null != QuasiRemotePBJdbcServiceFactory.requestInspection;
+                return QuasiRemotePBJdbcServiceFactory.requestInspection;
+              }
+            } });
 
     return connections;
   }
@@ -475,7 +475,7 @@ public class RemoteDriverTest {
   }
 
   private void checkExecuteFetch(Connection conn, String sql, boolean isPrepare,
-    int fetchCountMatch) throws SQLException {
+      int fetchCountMatch) throws SQLException {
     final Statement exeStatement;
     final ResultSet results;
     getRequestInspection().getRequestLogger().enableAndClear();
@@ -667,9 +667,9 @@ public class RemoteDriverTest {
       assertNull(statement.getResultSet());
 
       final String[] messages = {
-        "Cannot call executeQuery(String) on prepared or callable statement",
-        "Cannot call execute(String) on prepared or callable statement",
-        "Cannot call executeUpdate(String) on prepared or callable statement",
+          "Cannot call executeQuery(String) on prepared or callable statement",
+          "Cannot call execute(String) on prepared or callable statement",
+          "Cannot call executeUpdate(String) on prepared or callable statement",
       };
       for (String sql : new String[]{drop, create, insert, update}) {
         for (int i = 0; i <= 2; i++) {
@@ -2022,7 +2022,7 @@ public class RemoteDriverTest {
           }
         };
 
-    public LoggingLocalJsonService(LocalService localService) {
+    private LoggingLocalJsonService(LocalService localService) {
       super(localService);
     }
 

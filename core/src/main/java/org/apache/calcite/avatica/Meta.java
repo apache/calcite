@@ -746,7 +746,7 @@ public interface Meta {
   }
 
   /** Result of preparing a statement. */
-  public class Signature {
+  class Signature {
     private static final FieldDescriptor SQL_DESCRIPTOR = Common.Signature
         .getDescriptor().findFieldByNumber(Common.Signature.SQL_FIELD_NUMBER);
     private static final FieldDescriptor CURSOR_FACTORY_DESCRIPTOR = Common.Signature
@@ -1190,7 +1190,7 @@ public interface Meta {
   }
 
   /** Connection handle. */
-  public class ConnectionHandle {
+  class ConnectionHandle {
     public final String id;
 
     @Override public String toString() {
@@ -1205,7 +1205,7 @@ public interface Meta {
 
   /** Statement handle. */
   // Visible for testing
-  public class StatementHandle {
+  class StatementHandle {
     private static final FieldDescriptor SIGNATURE_DESCRIPTOR = Common.StatementHandle
         .getDescriptor().findFieldByNumber(Common.StatementHandle.SIGNATURE_FIELD_NUMBER);
     public final String connectionId;
@@ -1275,7 +1275,7 @@ public interface Meta {
       defaultImpl = ConnectionPropertiesImpl.class)
   @JsonSubTypes({
       @JsonSubTypes.Type(value = ConnectionPropertiesImpl.class, name = "connPropsImpl")
-  })
+      })
   interface ConnectionProperties {
 
     /** Overwrite fields in {@code this} with any non-null fields in {@code that}
@@ -1284,7 +1284,7 @@ public interface Meta {
      */
     ConnectionProperties merge(ConnectionProperties that);
 
-    /** @return {@code true} when no properies have been set, {@code false} otherwise. */
+    /** @return {@code true} when no properties have been set, {@code false} otherwise. */
     @JsonIgnore
     boolean isEmpty();
 

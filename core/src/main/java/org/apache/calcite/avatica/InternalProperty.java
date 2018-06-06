@@ -59,7 +59,7 @@ public enum InternalProperty {
     this(type, null, defaultValue);
   }
 
-  private InternalProperty(Type type, Class enumClass, Object defaultValue) {
+  InternalProperty(Type type, Class enumClass, Object defaultValue) {
     this.type = type;
     this.enumClass = enumClass;
     this.defaultValue = defaultValue;

@@ -230,7 +230,7 @@ public class JdbcMeta implements ProtobufMeta {
    * Converts from JDBC metadata to Avatica columns.
    */
   protected static List<ColumnMetaData>
-  columns(ResultSetMetaData metaData) throws SQLException {
+      columns(ResultSetMetaData metaData) throws SQLException {
     if (metaData == null) {
       return Collections.emptyList();
     }

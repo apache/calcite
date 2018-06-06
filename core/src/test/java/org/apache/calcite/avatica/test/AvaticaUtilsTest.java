@@ -211,10 +211,10 @@ public class AvaticaUtilsTest {
 
   @Test public void testLongToIntegerTranslation() {
     long[] longValues = new long[] {Integer.MIN_VALUE, -5, 0, 1, Integer.MAX_VALUE,
-      ((long) Integer.MAX_VALUE) + 1L, Long.MAX_VALUE};
+        ((long) Integer.MAX_VALUE) + 1L, Long.MAX_VALUE};
     int[] convertedValues = AvaticaUtils.toSaturatedInts(longValues);
     int[] intValues = new int[] {Integer.MIN_VALUE, -5, 0, 1, Integer.MAX_VALUE,
-      Integer.MAX_VALUE, Integer.MAX_VALUE};
+        Integer.MAX_VALUE, Integer.MAX_VALUE};
     assertArrayEquals(convertedValues, intValues);
   }
 

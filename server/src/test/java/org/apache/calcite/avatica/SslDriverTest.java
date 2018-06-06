@@ -100,7 +100,7 @@ public class SslDriverTest {
     final LocalService localService = new LocalService(jdbcMeta);
 
     for (Driver.Serialization serialization : new Driver.Serialization[] {
-      Driver.Serialization.JSON, Driver.Serialization.PROTOBUF}) {
+        Driver.Serialization.JSON, Driver.Serialization.PROTOBUF}) {
       // Build and start the server, using TLS
       HttpServer httpServer = new HttpServer.Builder()
           .withPort(0)

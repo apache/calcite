@@ -34,8 +34,9 @@ public interface Handler<T> {
 
   /**
    * Struct that encapsulates the context of the result of a request to Avatica.
+   * @param <T> the response type
    */
-  public class HandlerResponse<T> {
+  class HandlerResponse<T> {
     private final T response;
     private final int statusCode;
 

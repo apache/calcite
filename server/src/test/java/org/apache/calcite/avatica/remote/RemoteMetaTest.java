@@ -116,7 +116,7 @@ public class RemoteMetaTest {
   }
 
   private static Meta.ExecuteResult prepareAndExecuteInternal(AvaticaConnection conn,
-    final AvaticaStatement statement, String sql, int maxRowCount) throws Exception {
+      final AvaticaStatement statement, String sql, int maxRowCount) throws Exception {
     Method m =
         AvaticaConnection.class.getDeclaredMethod("prepareAndExecuteInternal",
             AvaticaStatement.class, String.class, long.class);
@@ -137,7 +137,7 @@ public class RemoteMetaTest {
     try (AvaticaConnection conn = (AvaticaConnection) DriverManager.getConnection(url)) {
       final AvaticaStatement statement = conn.createStatement();
       prepareAndExecuteInternal(conn, statement,
-        "select * from (values ('a', 1), ('b', 2))", 0);
+          "select * from (values ('a', 1), ('b', 2))", 0);
       ResultSet rs = statement.getResultSet();
       int count = 0;
       while (rs.next()) {
@@ -145,7 +145,7 @@ public class RemoteMetaTest {
       }
       assertEquals("Check maxRowCount=0 and ResultSets is 0 row", count, 0);
       assertEquals("Check result set meta is still there",
-        rs.getMetaData().getColumnCount(), 2);
+          rs.getMetaData().getColumnCount(), 2);
       rs.close();
       statement.close();
       conn.close();

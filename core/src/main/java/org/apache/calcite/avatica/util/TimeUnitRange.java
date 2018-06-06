@@ -93,7 +93,8 @@ public enum TimeUnitRange {
     return ordinal() <= MONTH.ordinal();
   }
 
-  /** Immutable pair of values of the same type. */
+  /** Immutable pair of values of the same type.
+   * @param <E> the element type */
   private static class Pair<E> {
     final E left;
     final E right;
