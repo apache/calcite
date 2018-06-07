@@ -214,12 +214,7 @@ public abstract class SubQueryRemoveRule extends RelOptRule {
 
     builder.join(JoinRelType.LEFT, builder.literal(true), variablesSet);
 
-    final ImmutableList.Builder<RexNode> operands = ImmutableList.builder();
-    operands.add(builder.isNotNull(Util.last(builder.fields())),
-        builder.literal(true));
-    operands.add(builder.literal(false));
-
-    return builder.call(SqlStdOperatorTable.CASE, operands.build());
+    return builder.isNotNull(Util.last(builder.fields()));
   }
 
   /**
@@ -292,36 +287,101 @@ public abstract class SubQueryRemoveRule extends RelOptRule {
     builder.push(e.rel);
     final List<RexNode> fields = new ArrayList<>(builder.fields());
 
-    switch (logic) {
-    case TRUE:
-      builder.aggregate(builder.groupKey(fields));
-      break;
-    case TRUE_FALSE_UNKNOWN:
-    case UNKNOWN_AS_TRUE:
-      // Builds the cross join
-      builder.aggregate(builder.groupKey(),
-          builder.count(false, "c"),
-          builder.aggregateCall(SqlStdOperatorTable.COUNT, false, false, null,
-              "ck", builder.fields()));
-      builder.as("ct");
-      if (!variablesSet.isEmpty()) {
-        builder.join(JoinRelType.LEFT, builder.literal(true), variablesSet);
-      } else {
-        builder.join(JoinRelType.INNER, builder.literal(true), variablesSet);
+    // for the case when IN has only literal operands, it may be handled
+    // in the simpler way:
+    //
+    // select e.deptno, 123456 in (select deptno from emp)
+    // from emp as e
+    //
+    // becomes
+    //
+    // SELECT e.deptno,
+    //        CASE
+    //            WHEN dt.cs IS FALSE THEN NULL
+    //            WHEN dt.cs IS NOT NULL THEN TRUE
+    //            WHEN e.deptno IS NULL THEN NULL
+    //            ELSE FALSE
+    //        END
+    // FROM emp AS e
+    // CROSS JOIN
+    //   (SELECT DISTINCT CASE
+    //                        WHEN deptno IS NULL THEN FALSE
+    //                        ELSE TRUE
+    //                    END cs
+    //    FROM emp
+    //    WHERE deptno=123
+    //      OR deptno IS NULL) AS dt
+    //
+
+    boolean allLiterals = RexUtil.allLiterals(e.getOperands());
+    final List<RexNode> expressionOperands = new ArrayList<>(e.getOperands());
+    if (allLiterals) {
+      final List<RexNode> conditions = new ArrayList<>();
+      for (Pair<RexNode, RexNode> pair
+          : Pair.zip(expressionOperands, fields)) {
+        conditions.add(
+            builder.equals(pair.left, pair.right));
       }
-      offset += 2;
-      builder.push(e.rel);
-      // fall through
-    default:
-      fields.add(builder.alias(builder.literal(true), "i"));
-      builder.project(fields);
-      builder.distinct();
+      switch (logic) {
+      case TRUE:
+      case TRUE_FALSE:
+        builder.filter(conditions);
+        builder.project(builder.alias(builder.literal(true), "cs"));
+        builder.distinct();
+        break;
+      default:
+        List<RexNode> isNullConditions = new ArrayList<>();
+        for (RexNode field : fields) {
+          isNullConditions.add(builder.isNull(field));
+        }
+        builder.filter(
+            builder.or(
+                builder.and(conditions),
+                builder.or(isNullConditions)));
+        final ImmutableList.Builder<RexNode> operands = ImmutableList.builder();
+        operands.add(builder.or(isNullConditions), builder.literal(false));
+        operands.add(builder.literal(true));
+        RexNode project = builder.call(SqlStdOperatorTable.CASE, operands.build());
+        builder.project(builder.alias(project, "cs"));
+
+        builder.distinct();
+      }
+      // clears expressionOperands and fields lists since
+      // all expressions were used in the filter
+      expressionOperands.clear();
+      fields.clear();
+    } else {
+      switch (logic) {
+      case TRUE:
+        builder.aggregate(builder.groupKey(fields));
+        break;
+      case TRUE_FALSE_UNKNOWN:
+      case UNKNOWN_AS_TRUE:
+        // Builds the cross join
+        builder.aggregate(builder.groupKey(),
+            builder.count(false, "c"),
+            builder.aggregateCall(SqlStdOperatorTable.COUNT, false, false, null,
+                "ck", builder.fields()));
+        builder.as("ct");
+        if (!variablesSet.isEmpty()) {
+          builder.join(JoinRelType.LEFT, builder.literal(true), variablesSet);
+        } else {
+          builder.join(JoinRelType.INNER, builder.literal(true), variablesSet);
+        }
+        offset += 2;
+        builder.push(e.rel);
+        // fall through
+      default:
+        fields.add(builder.alias(builder.literal(true), "i"));
+        builder.project(fields);
+        builder.distinct();
+      }
     }
 
     builder.as("dt");
     final List<RexNode> conditions = new ArrayList<>();
     for (Pair<RexNode, RexNode> pair
-        : Pair.zip(e.getOperands(), builder.fields())) {
+        : Pair.zip(expressionOperands, builder.fields())) {
       conditions.add(
           builder.equals(pair.left, RexUtil.shift(pair.right, offset)));
     }
@@ -335,17 +395,31 @@ public abstract class SubQueryRemoveRule extends RelOptRule {
 
     final ImmutableList.Builder<RexNode> operands = ImmutableList.builder();
 
+    Boolean b = true;
     switch (logic) {
     case TRUE_FALSE_UNKNOWN:
+      b = null;
+      // fall through
     case UNKNOWN_AS_TRUE:
+      if (allLiterals) {
+        operands.add(
+            builder.equals(builder.field("cs"), builder.literal(false)),
+            builder.literal(b));
+        break;
+      }
       operands.add(
           builder.equals(builder.field("ct", "c"), builder.literal(0)),
           builder.literal(false));
       break;
     }
 
-    operands.add(builder.isNotNull(Util.last(builder.fields())),
-        builder.literal(true));
+    if (allLiterals) {
+      operands.add(builder.isNotNull(builder.field("cs")),
+          builder.literal(true));
+    } else {
+      operands.add(builder.isNotNull(Util.last(builder.fields())),
+          builder.literal(true));
+    }
 
     final List<RexNode> keyIsNulls = new ArrayList<>();
     for (RexNode operand : e.getOperands()) {
@@ -358,19 +432,16 @@ public abstract class SubQueryRemoveRule extends RelOptRule {
       operands.add(builder.or(keyIsNulls), builder.literal(null));
     }
 
-    Boolean b = true;
-    switch (logic) {
-    case TRUE_FALSE_UNKNOWN:
-      b = null;
-      // fall through
-    case UNKNOWN_AS_TRUE:
-      operands.add(
-          builder.call(SqlStdOperatorTable.LESS_THAN,
-              builder.field("ct", "ck"), builder.field("ct", "c")),
-          builder.literal(b));
-      break;
+    if (!allLiterals) {
+      switch (logic) {
+      case TRUE_FALSE_UNKNOWN:
+      case UNKNOWN_AS_TRUE:
+        operands.add(
+            builder.call(SqlStdOperatorTable.LESS_THAN,
+                builder.field("ct", "ck"), builder.field("ct", "c")),
+            builder.literal(b));
+      }
     }
-
     operands.add(builder.literal(false));
     return builder.call(SqlStdOperatorTable.CASE, operands.build());
   }

@@ -757,4 +757,1149 @@ and empno in (7876, 7698, 7900);
 
 !ok
 
+!set outputformat psql
+
+!set expand false
+
+# [CALCITE-2329] Enhance SubQueryRemoveRule to rewrite IN operator with the constant from the left side more optimally
+# Test project null IN null
+select sal,
+  cast(null as int) IN (
+    select cast(null as int)
+    from "scott".dept)
+from "scott".emp;
+ SAL     | EXPR$1
+---------+--------
+ 1100.00 | null
+ 1250.00 | null
+ 1250.00 | null
+ 1300.00 | null
+ 1500.00 | null
+ 1600.00 | null
+ 2450.00 | null
+ 2850.00 | null
+ 2975.00 | null
+ 3000.00 | null
+ 3000.00 | null
+ 5000.00 | null
+  800.00 | null
+  950.00 | null
+(14 rows)
+
+!ok
+EnumerableCalc(expr#0..2=[{inputs}], expr#3=[false], expr#4=[=($t2, $t3)], expr#5=[null], expr#6=[IS NOT NULL($t2)], expr#7=[true], expr#8=[null], expr#9=[IS NULL($t8)], expr#10=[CASE($t4, $t5, $t6, $t7, $t9, $t5, $t3)], SAL=[$t1], EXPR$1=[$t10])
+  EnumerableJoin(condition=[true], joinType=[left])
+    EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5])
+      EnumerableTableScan(table=[[scott, EMP]])
+    EnumerableAggregate(group=[{0}])
+      EnumerableCalc(expr#0..2=[{inputs}], expr#3=[false], expr#4=[null], expr#5=[IS NULL($t4)], cs=[$t3], $condition=[$t5])
+        EnumerableTableScan(table=[[scott, DEPT]])
+!plan
+
+# Test project literal IN null non-correlated
+select sal,
+  123 IN (
+    select cast(null as int)
+    from "scott".dept)
+from "scott".emp;
+ SAL     | EXPR$1
+---------+--------
+ 1100.00 | null
+ 1250.00 | null
+ 1250.00 | null
+ 1300.00 | null
+ 1500.00 | null
+ 1600.00 | null
+ 2450.00 | null
+ 2850.00 | null
+ 2975.00 | null
+ 3000.00 | null
+ 3000.00 | null
+ 5000.00 | null
+  800.00 | null
+  950.00 | null
+(14 rows)
+
+!ok
+EnumerableCalc(expr#0..2=[{inputs}], expr#3=[false], expr#4=[=($t2, $t3)], expr#5=[null], expr#6=[IS NOT NULL($t2)], expr#7=[true], expr#8=[CASE($t4, $t5, $t6, $t7, $t3)], SAL=[$t1], EXPR$1=[$t8])
+  EnumerableJoin(condition=[true], joinType=[left])
+    EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5])
+      EnumerableTableScan(table=[[scott, EMP]])
+    EnumerableAggregate(group=[{0}])
+      EnumerableCalc(expr#0..2=[{inputs}], expr#3=[false], expr#4=[123], expr#5=[null], expr#6=[=($t4, $t5)], expr#7=[IS NULL($t5)], expr#8=[OR($t6, $t7)], cs=[$t3], $condition=[$t8])
+        EnumerableTableScan(table=[[scott, DEPT]])
+!plan
+
+# Test project null IN literal non-correlated
+select sal,
+  cast(null as int) IN (
+    select 1
+    from "scott".dept)
+from "scott".emp;
+ SAL     | EXPR$1
+---------+--------
+ 1100.00 | null
+ 1250.00 | null
+ 1250.00 | null
+ 1300.00 | null
+ 1500.00 | null
+ 1600.00 | null
+ 2450.00 | null
+ 2850.00 | null
+ 2975.00 | null
+ 3000.00 | null
+ 3000.00 | null
+ 5000.00 | null
+  800.00 | null
+  950.00 | null
+(14 rows)
+
+!ok
+EnumerableCalc(expr#0..2=[{inputs}], expr#3=[false], expr#4=[=($t2, $t3)], expr#5=[null], expr#6=[IS NOT NULL($t2)], expr#7=[true], expr#8=[null], expr#9=[IS NULL($t8)], expr#10=[CASE($t4, $t5, $t6, $t7, $t9, $t5, $t3)], SAL=[$t1], EXPR$1=[$t10])
+  EnumerableJoin(condition=[true], joinType=[left])
+    EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5])
+      EnumerableTableScan(table=[[scott, EMP]])
+    EnumerableAggregate(group=[{0}])
+      EnumerableCalc(expr#0..2=[{inputs}], expr#3=[true], expr#4=[null], expr#5=[1], expr#6=[=($t4, $t5)], cs=[$t3], $condition=[$t6])
+        EnumerableTableScan(table=[[scott, DEPT]])
+!plan
+
+# Test project null IN required
+select sal,
+  cast(null as int) IN (
+    select deptno
+    from "scott".dept)
+from "scott".emp;
+ SAL     | EXPR$1
+---------+--------
+ 1100.00 | null
+ 1250.00 | null
+ 1250.00 | null
+ 1300.00 | null
+ 1500.00 | null
+ 1600.00 | null
+ 2450.00 | null
+ 2850.00 | null
+ 2975.00 | null
+ 3000.00 | null
+ 3000.00 | null
+ 5000.00 | null
+  800.00 | null
+  950.00 | null
+(14 rows)
+
+!ok
+EnumerableCalc(expr#0..2=[{inputs}], expr#3=[false], expr#4=[=($t2, $t3)], expr#5=[null], expr#6=[IS NOT NULL($t2)], expr#7=[true], expr#8=[null], expr#9=[IS NULL($t8)], expr#10=[CASE($t4, $t5, $t6, $t7, $t9, $t5, $t3)], SAL=[$t1], EXPR$1=[$t10])
+  EnumerableJoin(condition=[true], joinType=[left])
+    EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5])
+      EnumerableTableScan(table=[[scott, EMP]])
+    EnumerableAggregate(group=[{0}])
+      EnumerableCalc(expr#0..2=[{inputs}], expr#3=[true], expr#4=[null], expr#5=[=($t4, $t0)], cs=[$t3], $condition=[$t5])
+        EnumerableTableScan(table=[[scott, DEPT]])
+!plan
+
+# Test project null IN nullable
+select sal,
+  cast(null as int) IN (
+    select case when true then deptno else null end
+    from "scott".dept)
+from "scott".emp;
+ SAL     | EXPR$1
+---------+--------
+ 1100.00 | null
+ 1250.00 | null
+ 1250.00 | null
+ 1300.00 | null
+ 1500.00 | null
+ 1600.00 | null
+ 2450.00 | null
+ 2850.00 | null
+ 2975.00 | null
+ 3000.00 | null
+ 3000.00 | null
+ 5000.00 | null
+  800.00 | null
+  950.00 | null
+(14 rows)
+
+!ok
+EnumerableCalc(expr#0..2=[{inputs}], expr#3=[false], expr#4=[=($t2, $t3)], expr#5=[null], expr#6=[IS NOT NULL($t2)], expr#7=[true], expr#8=[null], expr#9=[IS NULL($t8)], expr#10=[CASE($t4, $t5, $t6, $t7, $t9, $t5, $t3)], SAL=[$t1], EXPR$1=[$t10])
+  EnumerableJoin(condition=[true], joinType=[left])
+    EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5])
+      EnumerableTableScan(table=[[scott, EMP]])
+    EnumerableAggregate(group=[{0}])
+      EnumerableCalc(expr#0..2=[{inputs}], expr#3=[true], expr#4=[null], expr#5=[CAST($t0):TINYINT], expr#6=[=($t4, $t5)], expr#7=[IS NULL($t5)], expr#8=[OR($t6, $t7)], cs=[$t3], $condition=[$t8])
+        EnumerableTableScan(table=[[scott, DEPT]])
+!plan
+
+# Test project literal IN required
+select sal,
+  10 IN (
+    select deptno
+    from "scott".dept)
+from "scott".emp;
+ SAL     | EXPR$1
+---------+--------
+ 1100.00 | true
+ 1250.00 | true
+ 1250.00 | true
+ 1300.00 | true
+ 1500.00 | true
+ 1600.00 | true
+ 2450.00 | true
+ 2850.00 | true
+ 2975.00 | true
+ 3000.00 | true
+ 3000.00 | true
+ 5000.00 | true
+  800.00 | true
+  950.00 | true
+(14 rows)
+
+!ok
+EnumerableCalc(expr#0..2=[{inputs}], expr#3=[IS NOT NULL($t2)], SAL=[$t1], EXPR$1=[$t3])
+  EnumerableJoin(condition=[true], joinType=[left])
+    EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5])
+      EnumerableTableScan(table=[[scott, EMP]])
+    EnumerableAggregate(group=[{0}])
+      EnumerableCalc(expr#0..2=[{inputs}], expr#3=[true], expr#4=[10], expr#5=[=($t4, $t0)], cs=[$t3], $condition=[$t5])
+        EnumerableTableScan(table=[[scott, DEPT]])
+!plan
+
+# Test project literal IN nullable
+select sal,
+  10 IN (
+    select case when true then deptno else null end
+    from "scott".dept)
+from "scott".emp;
+ SAL     | EXPR$1
+---------+--------
+ 1100.00 | true
+ 1250.00 | true
+ 1250.00 | true
+ 1300.00 | true
+ 1500.00 | true
+ 1600.00 | true
+ 2450.00 | true
+ 2850.00 | true
+ 2975.00 | true
+ 3000.00 | true
+ 3000.00 | true
+ 5000.00 | true
+  800.00 | true
+  950.00 | true
+(14 rows)
+
+!ok
+EnumerableCalc(expr#0..2=[{inputs}], expr#3=[false], expr#4=[=($t2, $t3)], expr#5=[null], expr#6=[IS NOT NULL($t2)], expr#7=[true], expr#8=[CASE($t4, $t5, $t6, $t7, $t3)], SAL=[$t1], EXPR$1=[$t8])
+  EnumerableJoin(condition=[true], joinType=[left])
+    EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5])
+      EnumerableTableScan(table=[[scott, EMP]])
+    EnumerableAggregate(group=[{0}])
+      EnumerableCalc(expr#0..2=[{inputs}], expr#3=[true], expr#4=[10], expr#5=[CAST($t0):TINYINT], expr#6=[=($t4, $t5)], expr#7=[IS NULL($t5)], expr#8=[OR($t6, $t7)], cs=[$t3], $condition=[$t8])
+        EnumerableTableScan(table=[[scott, DEPT]])
+!plan
+
+# Test project null NOT IN null non-correlated
+select sal,
+  cast(null as int) NOT IN (
+    select cast(null as int)
+    from "scott".dept)
+from "scott".emp;
+ SAL     | EXPR$1
+---------+--------
+ 1100.00 | null
+ 1250.00 | null
+ 1250.00 | null
+ 1300.00 | null
+ 1500.00 | null
+ 1600.00 | null
+ 2450.00 | null
+ 2850.00 | null
+ 2975.00 | null
+ 3000.00 | null
+ 3000.00 | null
+ 5000.00 | null
+  800.00 | null
+  950.00 | null
+(14 rows)
+
+!ok
+EnumerableCalc(expr#0..2=[{inputs}], expr#3=[false], expr#4=[=($t2, $t3)], expr#5=[null], expr#6=[IS NOT NULL($t2)], expr#7=[true], expr#8=[null], expr#9=[IS NULL($t8)], expr#10=[CASE($t4, $t5, $t6, $t7, $t9, $t5, $t3)], expr#11=[NOT($t10)], SAL=[$t1], EXPR$1=[$t11])
+  EnumerableJoin(condition=[true], joinType=[left])
+    EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5])
+      EnumerableTableScan(table=[[scott, EMP]])
+    EnumerableAggregate(group=[{0}])
+      EnumerableCalc(expr#0..2=[{inputs}], expr#3=[false], expr#4=[null], expr#5=[IS NULL($t4)], cs=[$t3], $condition=[$t5])
+        EnumerableTableScan(table=[[scott, DEPT]])
+!plan
+
+# Test project literal NOT IN null non-correlated
+select sal,
+  123 NOT IN (
+    select cast(null as int)
+    from "scott".dept)
+from "scott".emp;
+ SAL     | EXPR$1
+---------+--------
+ 1100.00 | null
+ 1250.00 | null
+ 1250.00 | null
+ 1300.00 | null
+ 1500.00 | null
+ 1600.00 | null
+ 2450.00 | null
+ 2850.00 | null
+ 2975.00 | null
+ 3000.00 | null
+ 3000.00 | null
+ 5000.00 | null
+  800.00 | null
+  950.00 | null
+(14 rows)
+
+!ok
+EnumerableCalc(expr#0..2=[{inputs}], expr#3=[false], expr#4=[=($t2, $t3)], expr#5=[null], expr#6=[IS NOT NULL($t2)], expr#7=[true], expr#8=[CASE($t4, $t5, $t6, $t7, $t3)], expr#9=[NOT($t8)], SAL=[$t1], EXPR$1=[$t9])
+  EnumerableJoin(condition=[true], joinType=[left])
+    EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5])
+      EnumerableTableScan(table=[[scott, EMP]])
+    EnumerableAggregate(group=[{0}])
+      EnumerableCalc(expr#0..2=[{inputs}], expr#3=[false], expr#4=[123], expr#5=[null], expr#6=[=($t4, $t5)], expr#7=[IS NULL($t5)], expr#8=[OR($t6, $t7)], cs=[$t3], $condition=[$t8])
+        EnumerableTableScan(table=[[scott, DEPT]])
+!plan
+
+# Test project null NOT IN literal non-correlated
+select sal,
+  cast(null as int) NOT IN (
+    select 1
+    from "scott".dept)
+from "scott".emp;
+ SAL     | EXPR$1
+---------+--------
+ 1100.00 | null
+ 1250.00 | null
+ 1250.00 | null
+ 1300.00 | null
+ 1500.00 | null
+ 1600.00 | null
+ 2450.00 | null
+ 2850.00 | null
+ 2975.00 | null
+ 3000.00 | null
+ 3000.00 | null
+ 5000.00 | null
+  800.00 | null
+  950.00 | null
+(14 rows)
+
+!ok
+EnumerableCalc(expr#0..2=[{inputs}], expr#3=[false], expr#4=[=($t2, $t3)], expr#5=[null], expr#6=[IS NOT NULL($t2)], expr#7=[true], expr#8=[null], expr#9=[IS NULL($t8)], expr#10=[CASE($t4, $t5, $t6, $t7, $t9, $t5, $t3)], expr#11=[NOT($t10)], SAL=[$t1], EXPR$1=[$t11])
+  EnumerableJoin(condition=[true], joinType=[left])
+    EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5])
+      EnumerableTableScan(table=[[scott, EMP]])
+    EnumerableAggregate(group=[{0}])
+      EnumerableCalc(expr#0..2=[{inputs}], expr#3=[true], expr#4=[null], expr#5=[1], expr#6=[=($t4, $t5)], cs=[$t3], $condition=[$t6])
+        EnumerableTableScan(table=[[scott, DEPT]])
+!plan
+
+# Test project null NOT IN required
+select sal,
+  cast(null as int) NOT IN (
+    select deptno
+    from "scott".dept)
+from "scott".emp;
+ SAL     | EXPR$1
+---------+--------
+ 1100.00 | null
+ 1250.00 | null
+ 1250.00 | null
+ 1300.00 | null
+ 1500.00 | null
+ 1600.00 | null
+ 2450.00 | null
+ 2850.00 | null
+ 2975.00 | null
+ 3000.00 | null
+ 3000.00 | null
+ 5000.00 | null
+  800.00 | null
+  950.00 | null
+(14 rows)
+
+!ok
+EnumerableCalc(expr#0..2=[{inputs}], expr#3=[false], expr#4=[=($t2, $t3)], expr#5=[null], expr#6=[IS NOT NULL($t2)], expr#7=[true], expr#8=[null], expr#9=[IS NULL($t8)], expr#10=[CASE($t4, $t5, $t6, $t7, $t9, $t5, $t3)], expr#11=[NOT($t10)], SAL=[$t1], EXPR$1=[$t11])
+  EnumerableJoin(condition=[true], joinType=[left])
+    EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5])
+      EnumerableTableScan(table=[[scott, EMP]])
+    EnumerableAggregate(group=[{0}])
+      EnumerableCalc(expr#0..2=[{inputs}], expr#3=[true], expr#4=[null], expr#5=[=($t4, $t0)], cs=[$t3], $condition=[$t5])
+        EnumerableTableScan(table=[[scott, DEPT]])
+!plan
+
+# Test project null NOT IN nullable
+select sal,
+  cast(null as int) NOT IN (
+    select case when true then deptno else null end
+    from "scott".dept)
+from "scott".emp;
+ SAL     | EXPR$1
+---------+--------
+ 1100.00 | null
+ 1250.00 | null
+ 1250.00 | null
+ 1300.00 | null
+ 1500.00 | null
+ 1600.00 | null
+ 2450.00 | null
+ 2850.00 | null
+ 2975.00 | null
+ 3000.00 | null
+ 3000.00 | null
+ 5000.00 | null
+  800.00 | null
+  950.00 | null
+(14 rows)
+
+!ok
+EnumerableCalc(expr#0..2=[{inputs}], expr#3=[false], expr#4=[=($t2, $t3)], expr#5=[null], expr#6=[IS NOT NULL($t2)], expr#7=[true], expr#8=[null], expr#9=[IS NULL($t8)], expr#10=[CASE($t4, $t5, $t6, $t7, $t9, $t5, $t3)], expr#11=[NOT($t10)], SAL=[$t1], EXPR$1=[$t11])
+  EnumerableJoin(condition=[true], joinType=[left])
+    EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5])
+      EnumerableTableScan(table=[[scott, EMP]])
+    EnumerableAggregate(group=[{0}])
+      EnumerableCalc(expr#0..2=[{inputs}], expr#3=[true], expr#4=[null], expr#5=[CAST($t0):TINYINT], expr#6=[=($t4, $t5)], expr#7=[IS NULL($t5)], expr#8=[OR($t6, $t7)], cs=[$t3], $condition=[$t8])
+        EnumerableTableScan(table=[[scott, DEPT]])
+!plan
+
+# Test project literal NOT IN required
+select sal,
+  10 NOT IN (
+    select deptno
+    from "scott".dept)
+from "scott".emp;
+ SAL     | EXPR$1
+---------+--------
+ 1100.00 | false
+ 1250.00 | false
+ 1250.00 | false
+ 1300.00 | false
+ 1500.00 | false
+ 1600.00 | false
+ 2450.00 | false
+ 2850.00 | false
+ 2975.00 | false
+ 3000.00 | false
+ 3000.00 | false
+ 5000.00 | false
+  800.00 | false
+  950.00 | false
+(14 rows)
+
+!ok
+EnumerableCalc(expr#0..2=[{inputs}], expr#3=[IS NOT NULL($t2)], expr#4=[true], expr#5=[false], expr#6=[CASE($t3, $t4, $t5)], expr#7=[NOT($t6)], SAL=[$t1], EXPR$1=[$t7])
+  EnumerableJoin(condition=[true], joinType=[left])
+    EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5])
+      EnumerableTableScan(table=[[scott, EMP]])
+    EnumerableAggregate(group=[{0}])
+      EnumerableCalc(expr#0..2=[{inputs}], expr#3=[true], expr#4=[10], expr#5=[=($t4, $t0)], cs=[$t3], $condition=[$t5])
+        EnumerableTableScan(table=[[scott, DEPT]])
+!plan
+
+# Test project literal NOT IN nullable
+select sal,
+  10 NOT IN (
+    select case when true then deptno else null end
+    from "scott".dept)
+from "scott".emp;
+ SAL     | EXPR$1
+---------+--------
+ 1100.00 | false
+ 1250.00 | false
+ 1250.00 | false
+ 1300.00 | false
+ 1500.00 | false
+ 1600.00 | false
+ 2450.00 | false
+ 2850.00 | false
+ 2975.00 | false
+ 3000.00 | false
+ 3000.00 | false
+ 5000.00 | false
+  800.00 | false
+  950.00 | false
+(14 rows)
+
+!ok
+EnumerableCalc(expr#0..2=[{inputs}], expr#3=[false], expr#4=[=($t2, $t3)], expr#5=[null], expr#6=[IS NOT NULL($t2)], expr#7=[true], expr#8=[CASE($t4, $t5, $t6, $t7, $t3)], expr#9=[NOT($t8)], SAL=[$t1], EXPR$1=[$t9])
+  EnumerableJoin(condition=[true], joinType=[left])
+    EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5])
+      EnumerableTableScan(table=[[scott, EMP]])
+    EnumerableAggregate(group=[{0}])
+      EnumerableCalc(expr#0..2=[{inputs}], expr#3=[true], expr#4=[10], expr#5=[CAST($t0):TINYINT], expr#6=[=($t4, $t5)], expr#7=[IS NULL($t5)], expr#8=[OR($t6, $t7)], cs=[$t3], $condition=[$t8])
+        EnumerableTableScan(table=[[scott, DEPT]])
+!plan
+
+# Test project null IN required is unknown
+select sal,
+  cast(null as int) IN (
+    select deptno
+    from "scott".dept) is unknown
+from "scott".emp;
+ SAL     | EXPR$1
+---------+--------
+ 1100.00 | true
+ 1250.00 | true
+ 1250.00 | true
+ 1300.00 | true
+ 1500.00 | true
+ 1600.00 | true
+ 2450.00 | true
+ 2850.00 | true
+ 2975.00 | true
+ 3000.00 | true
+ 3000.00 | true
+ 5000.00 | true
+  800.00 | true
+  950.00 | true
+(14 rows)
+
+!ok
+EnumerableCalc(expr#0..2=[{inputs}], expr#3=[false], expr#4=[=($t2, $t3)], expr#5=[null], expr#6=[IS NOT NULL($t2)], expr#7=[true], expr#8=[null], expr#9=[IS NULL($t8)], expr#10=[CASE($t4, $t5, $t6, $t7, $t9, $t5, $t3)], expr#11=[IS NULL($t10)], SAL=[$t1], EXPR$1=[$t11])
+  EnumerableJoin(condition=[true], joinType=[left])
+    EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5])
+      EnumerableTableScan(table=[[scott, EMP]])
+    EnumerableAggregate(group=[{0}])
+      EnumerableCalc(expr#0..2=[{inputs}], expr#3=[true], expr#4=[null], expr#5=[=($t4, $t0)], cs=[$t3], $condition=[$t5])
+        EnumerableTableScan(table=[[scott, DEPT]])
+!plan
+
+# Test filter null IN null
+select sal from "scott".emp
+  where cast(null as int) IN (
+    select cast(null as int)
+    from "scott".dept);
+ SAL
+-----
+(0 rows)
+
+!ok
+EnumerableValues(tuples=[[]])
+!plan
+
+# Test filter literal IN null non-correlated
+select sal from "scott".emp
+  where 123 IN (
+    select cast(null as int)
+    from "scott".dept);
+ SAL
+-----
+(0 rows)
+
+!ok
+EnumerableCalc(expr#0..2=[{inputs}], SAL=[$t2])
+  EnumerableJoin(condition=[true], joinType=[inner])
+    EnumerableAggregate(group=[{0}])
+      EnumerableCalc(expr#0..2=[{inputs}], expr#3=[true], expr#4=[123], expr#5=[null], expr#6=[=($t4, $t5)], cs=[$t3], $condition=[$t6])
+        EnumerableTableScan(table=[[scott, DEPT]])
+    EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5])
+      EnumerableTableScan(table=[[scott, EMP]])
+!plan
+
+# Test filter null IN literal non-correlated
+select sal from "scott".emp
+  where cast(null as int) IN (
+    select 1
+    from "scott".dept);
+ SAL
+-----
+(0 rows)
+
+!ok
+EnumerableCalc(expr#0..2=[{inputs}], SAL=[$t2])
+  EnumerableJoin(condition=[true], joinType=[inner])
+    EnumerableAggregate(group=[{0}])
+      EnumerableCalc(expr#0..2=[{inputs}], expr#3=[true], expr#4=[null], expr#5=[1], expr#6=[=($t4, $t5)], cs=[$t3], $condition=[$t6])
+        EnumerableTableScan(table=[[scott, DEPT]])
+    EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5])
+      EnumerableTableScan(table=[[scott, EMP]])
+!plan
+
+# Test filter null IN required
+select sal from "scott".emp
+  where cast(null as int) IN (
+    select deptno
+    from "scott".dept);
+ SAL
+-----
+(0 rows)
+
+!ok
+EnumerableCalc(expr#0..2=[{inputs}], SAL=[$t2])
+  EnumerableJoin(condition=[true], joinType=[inner])
+    EnumerableAggregate(group=[{0}])
+      EnumerableCalc(expr#0..2=[{inputs}], expr#3=[true], expr#4=[null], expr#5=[=($t4, $t0)], cs=[$t3], $condition=[$t5])
+        EnumerableTableScan(table=[[scott, DEPT]])
+    EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5])
+      EnumerableTableScan(table=[[scott, EMP]])
+!plan
+
+# Test filter null IN nullable
+select sal from "scott".emp
+  where cast(null as int) IN (
+    select case when true then deptno else null end
+    from "scott".dept);
+ SAL
+-----
+(0 rows)
+
+!ok
+EnumerableCalc(expr#0..2=[{inputs}], SAL=[$t2])
+  EnumerableJoin(condition=[true], joinType=[inner])
+    EnumerableAggregate(group=[{0}])
+      EnumerableCalc(expr#0..2=[{inputs}], expr#3=[true], expr#4=[null], expr#5=[CAST($t0):TINYINT], expr#6=[=($t4, $t5)], cs=[$t3], $condition=[$t6])
+        EnumerableTableScan(table=[[scott, DEPT]])
+    EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5])
+      EnumerableTableScan(table=[[scott, EMP]])
+!plan
+
+# Test filter literal IN required
+select sal from "scott".emp
+  where 10 IN (
+    select deptno
+    from "scott".dept);
+ SAL
+---------
+ 1100.00
+ 1250.00
+ 1250.00
+ 1300.00
+ 1500.00
+ 1600.00
+ 2450.00
+ 2850.00
+ 2975.00
+ 3000.00
+ 3000.00
+ 5000.00
+  800.00
+  950.00
+(14 rows)
+
+!ok
+EnumerableCalc(expr#0..2=[{inputs}], SAL=[$t2])
+  EnumerableJoin(condition=[true], joinType=[inner])
+    EnumerableAggregate(group=[{0}])
+      EnumerableCalc(expr#0..2=[{inputs}], expr#3=[true], expr#4=[10], expr#5=[=($t4, $t0)], cs=[$t3], $condition=[$t5])
+        EnumerableTableScan(table=[[scott, DEPT]])
+    EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5])
+      EnumerableTableScan(table=[[scott, EMP]])
+!plan
+
+# Test filter literal IN nullable
+select sal from "scott".emp
+  where 10 IN (
+    select case when true then deptno else null end
+    from "scott".dept);
+ SAL
+---------
+ 1100.00
+ 1250.00
+ 1250.00
+ 1300.00
+ 1500.00
+ 1600.00
+ 2450.00
+ 2850.00
+ 2975.00
+ 3000.00
+ 3000.00
+ 5000.00
+  800.00
+  950.00
+(14 rows)
+
+!ok
+EnumerableCalc(expr#0..2=[{inputs}], SAL=[$t2])
+  EnumerableJoin(condition=[true], joinType=[inner])
+    EnumerableAggregate(group=[{0}])
+      EnumerableCalc(expr#0..2=[{inputs}], expr#3=[true], expr#4=[10], expr#5=[CAST($t0):TINYINT], expr#6=[=($t4, $t5)], cs=[$t3], $condition=[$t6])
+        EnumerableTableScan(table=[[scott, DEPT]])
+    EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5])
+      EnumerableTableScan(table=[[scott, EMP]])
+!plan
+
+# Test filter null NOT IN null non-correlated
+select sal from "scott".emp
+  where cast(null as int) NOT IN (
+    select cast(null as int)
+    from "scott".dept);
+ SAL
+-----
+(0 rows)
+
+!ok
+EnumerableCalc(expr#0..2=[{inputs}], expr#3=[false], expr#4=[=($t2, $t3)], expr#5=[true], expr#6=[IS NOT NULL($t2)], expr#7=[null], expr#8=[IS NULL($t7)], expr#9=[null], expr#10=[CASE($t4, $t5, $t6, $t5, $t8, $t9, $t3)], expr#11=[NOT($t10)], SAL=[$t1], $condition=[$t11])
+  EnumerableJoin(condition=[true], joinType=[left])
+    EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5])
+      EnumerableTableScan(table=[[scott, EMP]])
+    EnumerableAggregate(group=[{0}])
+      EnumerableCalc(expr#0..2=[{inputs}], expr#3=[false], expr#4=[null], expr#5=[IS NULL($t4)], cs=[$t3], $condition=[$t5])
+        EnumerableTableScan(table=[[scott, DEPT]])
+!plan
+
+# Test filter literal NOT IN null non-correlated
+select sal from "scott".emp
+  where 123 NOT IN (
+    select cast(null as int)
+    from "scott".dept);
+ SAL
+-----
+(0 rows)
+
+!ok
+EnumerableCalc(expr#0..2=[{inputs}], expr#3=[false], expr#4=[=($t2, $t3)], expr#5=[true], expr#6=[IS NOT NULL($t2)], expr#7=[CASE($t4, $t5, $t6, $t5, $t3)], expr#8=[NOT($t7)], SAL=[$t1], $condition=[$t8])
+  EnumerableJoin(condition=[true], joinType=[left])
+    EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5])
+      EnumerableTableScan(table=[[scott, EMP]])
+    EnumerableAggregate(group=[{0}])
+      EnumerableCalc(expr#0..2=[{inputs}], expr#3=[false], expr#4=[123], expr#5=[null], expr#6=[=($t4, $t5)], expr#7=[IS NULL($t5)], expr#8=[OR($t6, $t7)], cs=[$t3], $condition=[$t8])
+        EnumerableTableScan(table=[[scott, DEPT]])
+!plan
+
+# Test filter null NOT IN literal non-correlated
+select sal from "scott".emp
+  where cast(null as int) NOT IN (
+    select 1
+    from "scott".dept);
+ SAL
+-----
+(0 rows)
+
+!ok
+EnumerableCalc(expr#0..2=[{inputs}], expr#3=[false], expr#4=[=($t2, $t3)], expr#5=[true], expr#6=[IS NOT NULL($t2)], expr#7=[null], expr#8=[IS NULL($t7)], expr#9=[null], expr#10=[CASE($t4, $t5, $t6, $t5, $t8, $t9, $t3)], expr#11=[NOT($t10)], SAL=[$t1], $condition=[$t11])
+  EnumerableJoin(condition=[true], joinType=[left])
+    EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5])
+      EnumerableTableScan(table=[[scott, EMP]])
+    EnumerableAggregate(group=[{0}])
+      EnumerableCalc(expr#0..2=[{inputs}], expr#3=[true], expr#4=[null], expr#5=[1], expr#6=[=($t4, $t5)], cs=[$t3], $condition=[$t6])
+        EnumerableTableScan(table=[[scott, DEPT]])
+!plan
+
+# Test filter null NOT IN required
+select sal from "scott".emp
+  where cast(null as int) NOT IN (
+    select deptno
+    from "scott".dept);
+ SAL
+-----
+(0 rows)
+
+!ok
+EnumerableCalc(expr#0..2=[{inputs}], expr#3=[false], expr#4=[=($t2, $t3)], expr#5=[true], expr#6=[IS NOT NULL($t2)], expr#7=[null], expr#8=[IS NULL($t7)], expr#9=[null], expr#10=[CASE($t4, $t5, $t6, $t5, $t8, $t9, $t3)], expr#11=[NOT($t10)], SAL=[$t1], $condition=[$t11])
+  EnumerableJoin(condition=[true], joinType=[left])
+    EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5])
+      EnumerableTableScan(table=[[scott, EMP]])
+    EnumerableAggregate(group=[{0}])
+      EnumerableCalc(expr#0..2=[{inputs}], expr#3=[true], expr#4=[null], expr#5=[=($t4, $t0)], cs=[$t3], $condition=[$t5])
+        EnumerableTableScan(table=[[scott, DEPT]])
+!plan
+
+# Test filter null NOT IN nullable
+select sal from "scott".emp
+  where cast(null as int) NOT IN (
+    select case when true then deptno else null end
+    from "scott".dept);
+ SAL
+-----
+(0 rows)
+
+!ok
+EnumerableCalc(expr#0..2=[{inputs}], expr#3=[false], expr#4=[=($t2, $t3)], expr#5=[true], expr#6=[IS NOT NULL($t2)], expr#7=[null], expr#8=[IS NULL($t7)], expr#9=[null], expr#10=[CASE($t4, $t5, $t6, $t5, $t8, $t9, $t3)], expr#11=[NOT($t10)], SAL=[$t1], $condition=[$t11])
+  EnumerableJoin(condition=[true], joinType=[left])
+    EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5])
+      EnumerableTableScan(table=[[scott, EMP]])
+    EnumerableAggregate(group=[{0}])
+      EnumerableCalc(expr#0..2=[{inputs}], expr#3=[true], expr#4=[null], expr#5=[CAST($t0):TINYINT], expr#6=[=($t4, $t5)], expr#7=[IS NULL($t5)], expr#8=[OR($t6, $t7)], cs=[$t3], $condition=[$t8])
+        EnumerableTableScan(table=[[scott, DEPT]])
+!plan
+
+# Test filter literal NOT IN required
+select sal from "scott".emp
+  where 10 NOT IN (
+    select deptno
+    from "scott".dept);
+ SAL
+-----
+(0 rows)
+
+!ok
+EnumerableCalc(expr#0..2=[{inputs}], expr#3=[false], expr#4=[=($t2, $t3)], expr#5=[true], expr#6=[IS NOT NULL($t2)], expr#7=[CASE($t4, $t5, $t6, $t5, $t3)], expr#8=[NOT($t7)], SAL=[$t1], $condition=[$t8])
+  EnumerableJoin(condition=[true], joinType=[left])
+    EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5])
+      EnumerableTableScan(table=[[scott, EMP]])
+    EnumerableAggregate(group=[{0}])
+      EnumerableCalc(expr#0..2=[{inputs}], expr#3=[true], expr#4=[10], expr#5=[=($t4, $t0)], cs=[$t3], $condition=[$t5])
+        EnumerableTableScan(table=[[scott, DEPT]])
+!plan
+
+# Test filter literal NOT IN nullable
+select sal from "scott".emp
+  where 10 NOT IN (
+    select case when true then deptno else null end
+    from "scott".dept);
+ SAL
+-----
+(0 rows)
+
+!ok
+EnumerableCalc(expr#0..2=[{inputs}], expr#3=[false], expr#4=[=($t2, $t3)], expr#5=[true], expr#6=[IS NOT NULL($t2)], expr#7=[CASE($t4, $t5, $t6, $t5, $t3)], expr#8=[NOT($t7)], SAL=[$t1], $condition=[$t8])
+  EnumerableJoin(condition=[true], joinType=[left])
+    EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5])
+      EnumerableTableScan(table=[[scott, EMP]])
+    EnumerableAggregate(group=[{0}])
+      EnumerableCalc(expr#0..2=[{inputs}], expr#3=[true], expr#4=[10], expr#5=[CAST($t0):TINYINT], expr#6=[=($t4, $t5)], expr#7=[IS NULL($t5)], expr#8=[OR($t6, $t7)], cs=[$t3], $condition=[$t8])
+        EnumerableTableScan(table=[[scott, DEPT]])
+!plan
+
+# Test filter null IN required is unknown
+select sal from "scott".emp
+  where cast(null as int) IN (
+    select deptno
+    from "scott".dept) is unknown;
+ SAL
+---------
+ 1100.00
+ 1250.00
+ 1250.00
+ 1300.00
+ 1500.00
+ 1600.00
+ 2450.00
+ 2850.00
+ 2975.00
+ 3000.00
+ 3000.00
+ 5000.00
+  800.00
+  950.00
+(14 rows)
+
+!ok
+EnumerableCalc(expr#0..2=[{inputs}], expr#3=[false], expr#4=[=($t2, $t3)], expr#5=[null], expr#6=[IS NOT NULL($t2)], expr#7=[true], expr#8=[null], expr#9=[IS NULL($t8)], expr#10=[CASE($t4, $t5, $t6, $t7, $t9, $t5, $t3)], expr#11=[IS NULL($t10)], SAL=[$t1], $condition=[$t11])
+  EnumerableJoin(condition=[true], joinType=[left])
+    EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5])
+      EnumerableTableScan(table=[[scott, EMP]])
+    EnumerableAggregate(group=[{0}])
+      EnumerableCalc(expr#0..2=[{inputs}], expr#3=[true], expr#4=[null], expr#5=[=($t4, $t0)], cs=[$t3], $condition=[$t5])
+        EnumerableTableScan(table=[[scott, DEPT]])
+!plan
+
+#-------------------------------
+
+# Test filter null IN null correlated
+select sal from "scott".emp e
+  where cast(null as int) IN (
+    select cast(null as int)
+    from "scott".dept d where e.deptno=d.deptno);
+ SAL
+-----
+(0 rows)
+
+!ok
+EnumerableValues(tuples=[[]])
+!plan
+
+# Test filter literal IN null correlated
+select sal from "scott".emp e
+  where 123 IN (
+    select cast(null as int)
+    from "scott".dept d where e.deptno=d.deptno);
+ SAL
+-----
+(0 rows)
+
+!ok
+EnumerableCalc(expr#0..3=[{inputs}], SAL=[$t2])
+  EnumerableJoin(condition=[=($0, $3)], joinType=[inner])
+    EnumerableCalc(expr#0..2=[{inputs}], expr#3=[123], expr#4=[null], expr#5=[=($t3, $t4)], DEPTNO=[$t0], $condition=[$t5])
+      EnumerableTableScan(table=[[scott, DEPT]])
+    EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5], DEPTNO=[$t7])
+      EnumerableTableScan(table=[[scott, EMP]])
+!plan
+
+# Test filter null IN literal correlated
+select sal from "scott".emp e
+  where cast(null as int) IN (
+    select 1
+    from "scott".dept d where e.deptno=d.deptno);
+ SAL
+-----
+(0 rows)
+
+!ok
+EnumerableCalc(expr#0..3=[{inputs}], SAL=[$t2])
+  EnumerableJoin(condition=[=($0, $3)], joinType=[inner])
+    EnumerableCalc(expr#0..2=[{inputs}], expr#3=[null], expr#4=[1], expr#5=[=($t3, $t4)], DEPTNO=[$t0], $condition=[$t5])
+      EnumerableTableScan(table=[[scott, DEPT]])
+    EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5], DEPTNO=[$t7])
+      EnumerableTableScan(table=[[scott, EMP]])
+!plan
+
+# Test filter null IN required correlated
+select sal from "scott".emp e
+  where cast(null as int) IN (
+    select deptno
+    from "scott".dept d where e.deptno=d.deptno);
+ SAL
+-----
+(0 rows)
+
+!ok
+EnumerableCalc(expr#0..3=[{inputs}], SAL=[$t2])
+  EnumerableJoin(condition=[=($0, $3)], joinType=[inner])
+    EnumerableCalc(expr#0..2=[{inputs}], expr#3=[null], expr#4=[=($t3, $t0)], DEPTNO=[$t0], $condition=[$t4])
+      EnumerableTableScan(table=[[scott, DEPT]])
+    EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5], DEPTNO=[$t7])
+      EnumerableTableScan(table=[[scott, EMP]])
+!plan
+
+# Test filter null IN nullable correlated
+select sal from "scott".emp e
+  where cast(null as int) IN (
+    select case when true then deptno else null end
+    from "scott".dept d where e.deptno=d.deptno);
+ SAL
+-----
+(0 rows)
+
+!ok
+EnumerableCalc(expr#0..3=[{inputs}], SAL=[$t2])
+  EnumerableJoin(condition=[=($0, $3)], joinType=[inner])
+    EnumerableCalc(expr#0..2=[{inputs}], expr#3=[null], expr#4=[CAST($t0):TINYINT], expr#5=[=($t3, $t4)], DEPTNO=[$t0], $condition=[$t5])
+      EnumerableTableScan(table=[[scott, DEPT]])
+    EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5], DEPTNO=[$t7])
+      EnumerableTableScan(table=[[scott, EMP]])
+!plan
+
+# Test filter literal IN required correlated
+select sal from "scott".emp e
+  where 10 IN (
+    select deptno
+    from "scott".dept d where e.deptno=d.deptno);
+ SAL
+---------
+ 1300.00
+ 2450.00
+ 5000.00
+(3 rows)
+
+!ok
+EnumerableCalc(expr#0..3=[{inputs}], SAL=[$t2])
+  EnumerableJoin(condition=[=($0, $3)], joinType=[inner])
+    EnumerableCalc(expr#0..2=[{inputs}], expr#3=[10], expr#4=[=($t3, $t0)], DEPTNO=[$t0], $condition=[$t4])
+      EnumerableTableScan(table=[[scott, DEPT]])
+    EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5], DEPTNO=[$t7])
+      EnumerableTableScan(table=[[scott, EMP]])
+!plan
+
+# Test filter literal IN nullable correlated
+select sal from "scott".emp e
+  where 10 IN (
+    select case when true then deptno else null end
+    from "scott".dept d where e.deptno=d.deptno);
+ SAL
+---------
+ 1300.00
+ 2450.00
+ 5000.00
+(3 rows)
+
+!ok
+EnumerableCalc(expr#0..3=[{inputs}], SAL=[$t2])
+  EnumerableJoin(condition=[=($0, $3)], joinType=[inner])
+    EnumerableCalc(expr#0..2=[{inputs}], expr#3=[10], expr#4=[CAST($t0):TINYINT], expr#5=[=($t3, $t4)], DEPTNO=[$t0], $condition=[$t5])
+      EnumerableTableScan(table=[[scott, DEPT]])
+    EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5], DEPTNO=[$t7])
+      EnumerableTableScan(table=[[scott, EMP]])
+!plan
+
+# Test filter null NOT IN null correlated
+select sal from "scott".emp e
+  where cast(null as int) NOT IN (
+    select cast(null as int)
+    from "scott".dept d where e.deptno=d.deptno);
+ SAL
+-----
+(0 rows)
+
+!ok
+EnumerableCalc(expr#0..4=[{inputs}], expr#5=[false], expr#6=[=($t3, $t5)], expr#7=[true], expr#8=[IS NOT NULL($t3)], expr#9=[null], expr#10=[IS NULL($t9)], expr#11=[null], expr#12=[CASE($t6, $t7, $t8, $t7, $t10, $t11, $t5)], expr#13=[NOT($t12)], SAL=[$t1], $condition=[$t13])
+  EnumerableJoin(condition=[=($2, $4)], joinType=[left])
+    EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5], DEPTNO=[$t7])
+      EnumerableTableScan(table=[[scott, EMP]])
+    EnumerableCalc(expr#0..2=[{inputs}], expr#3=[false], expr#4=[null], expr#5=[IS NULL($t4)], cs=[$t3], DEPTNO=[$t0], $condition=[$t5])
+      EnumerableTableScan(table=[[scott, DEPT]])
+!plan
+
+# Test filter literal NOT IN null correlated
+select sal from "scott".emp e
+  where 123 NOT IN (
+    select cast(null as int)
+    from "scott".dept d where e.deptno=d.deptno);
+ SAL
+-----
+(0 rows)
+
+!ok
+EnumerableCalc(expr#0..4=[{inputs}], expr#5=[false], expr#6=[=($t3, $t5)], expr#7=[true], expr#8=[IS NOT NULL($t3)], expr#9=[CASE($t6, $t7, $t8, $t7, $t5)], expr#10=[NOT($t9)], SAL=[$t1], $condition=[$t10])
+  EnumerableJoin(condition=[=($2, $4)], joinType=[left])
+    EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5], DEPTNO=[$t7])
+      EnumerableTableScan(table=[[scott, EMP]])
+    EnumerableCalc(expr#0..2=[{inputs}], expr#3=[false], expr#4=[123], expr#5=[null], expr#6=[=($t4, $t5)], expr#7=[IS NULL($t5)], expr#8=[OR($t6, $t7)], cs=[$t3], DEPTNO=[$t0], $condition=[$t8])
+      EnumerableTableScan(table=[[scott, DEPT]])
+!plan
+
+# Test filter null NOT IN literal correlated
+select sal from "scott".emp e
+  where cast(null as int) NOT IN (
+    select 1
+    from "scott".dept d where e.deptno=d.deptno);
+ SAL
+-----
+(0 rows)
+
+!ok
+EnumerableCalc(expr#0..4=[{inputs}], expr#5=[false], expr#6=[=($t4, $t5)], expr#7=[true], expr#8=[IS NOT NULL($t4)], expr#9=[null], expr#10=[IS NULL($t9)], expr#11=[null], expr#12=[CASE($t6, $t7, $t8, $t7, $t10, $t11, $t5)], expr#13=[NOT($t12)], SAL=[$t1], $condition=[$t13])
+  EnumerableJoin(condition=[=($2, $3)], joinType=[left])
+    EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5], DEPTNO=[$t7])
+      EnumerableTableScan(table=[[scott, EMP]])
+    EnumerableCalc(expr#0..2=[{inputs}], expr#3=[true], expr#4=[null], expr#5=[1], expr#6=[=($t4, $t5)], DEPTNO=[$t0], $f1=[$t3], $condition=[$t6])
+      EnumerableTableScan(table=[[scott, DEPT]])
+!plan
+
+# Test filter null NOT IN required correlated
+select sal from "scott".emp e
+  where cast(null as int) NOT IN (
+    select deptno
+    from "scott".dept d where e.deptno=d.deptno);
+ SAL
+-----
+(0 rows)
+
+!ok
+EnumerableCalc(expr#0..4=[{inputs}], expr#5=[false], expr#6=[=($t4, $t5)], expr#7=[true], expr#8=[IS NOT NULL($t4)], expr#9=[null], expr#10=[IS NULL($t9)], expr#11=[null], expr#12=[CASE($t6, $t7, $t8, $t7, $t10, $t11, $t5)], expr#13=[NOT($t12)], SAL=[$t1], $condition=[$t13])
+  EnumerableJoin(condition=[=($2, $3)], joinType=[left])
+    EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5], DEPTNO=[$t7])
+      EnumerableTableScan(table=[[scott, EMP]])
+    EnumerableCalc(expr#0..2=[{inputs}], expr#3=[true], expr#4=[null], expr#5=[=($t4, $t0)], DEPTNO1=[$t0], $f1=[$t3], $condition=[$t5])
+      EnumerableTableScan(table=[[scott, DEPT]])
+!plan
+
+# Test filter null NOT IN nullable correlated
+select sal from "scott".emp e
+  where cast(null as int) NOT IN (
+    select case when true then deptno else null end
+    from "scott".dept d where e.deptno=d.deptno);
+ SAL
+-----
+(0 rows)
+
+!ok
+EnumerableCalc(expr#0..4=[{inputs}], expr#5=[false], expr#6=[=($t3, $t5)], expr#7=[true], expr#8=[IS NOT NULL($t3)], expr#9=[null], expr#10=[IS NULL($t9)], expr#11=[null], expr#12=[CASE($t6, $t7, $t8, $t7, $t10, $t11, $t5)], expr#13=[NOT($t12)], SAL=[$t1], $condition=[$t13])
+  EnumerableJoin(condition=[=($2, $4)], joinType=[left])
+    EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5], DEPTNO=[$t7])
+      EnumerableTableScan(table=[[scott, EMP]])
+    EnumerableCalc(expr#0..2=[{inputs}], expr#3=[true], expr#4=[null], expr#5=[CAST($t0):TINYINT], expr#6=[=($t4, $t5)], expr#7=[IS NULL($t5)], expr#8=[OR($t6, $t7)], cs=[$t3], DEPTNO=[$t0], $condition=[$t8])
+      EnumerableTableScan(table=[[scott, DEPT]])
+!plan
+
+# Test filter literal NOT IN required correlated
+select sal from "scott".emp e
+  where 10 NOT IN (
+    select deptno
+    from "scott".dept d where e.deptno=d.deptno);
+ SAL
+---------
+ 1100.00
+ 1250.00
+ 1250.00
+ 1500.00
+ 1600.00
+ 2850.00
+ 2975.00
+ 3000.00
+ 3000.00
+  800.00
+  950.00
+(11 rows)
+
+!ok
+EnumerableCalc(expr#0..4=[{inputs}], expr#5=[false], expr#6=[=($t4, $t5)], expr#7=[true], expr#8=[IS NOT NULL($t4)], expr#9=[CASE($t6, $t7, $t8, $t7, $t5)], expr#10=[NOT($t9)], SAL=[$t1], $condition=[$t10])
+  EnumerableJoin(condition=[=($2, $3)], joinType=[left])
+    EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5], DEPTNO=[$t7])
+      EnumerableTableScan(table=[[scott, EMP]])
+    EnumerableCalc(expr#0..2=[{inputs}], expr#3=[true], expr#4=[10], expr#5=[=($t4, $t0)], DEPTNO1=[$t0], $f1=[$t3], $condition=[$t5])
+      EnumerableTableScan(table=[[scott, DEPT]])
+!plan
+
+# Test filter literal NOT IN nullable correlated
+select sal from "scott".emp e
+  where 10 NOT IN (
+    select case when true then deptno else null end
+    from "scott".dept d where e.deptno=d.deptno);
+ SAL
+---------
+ 1100.00
+ 1250.00
+ 1250.00
+ 1500.00
+ 1600.00
+ 2850.00
+ 2975.00
+ 3000.00
+ 3000.00
+  800.00
+  950.00
+(11 rows)
+
+!ok
+EnumerableCalc(expr#0..4=[{inputs}], expr#5=[false], expr#6=[=($t3, $t5)], expr#7=[true], expr#8=[IS NOT NULL($t3)], expr#9=[CASE($t6, $t7, $t8, $t7, $t5)], expr#10=[NOT($t9)], SAL=[$t1], $condition=[$t10])
+  EnumerableJoin(condition=[=($2, $4)], joinType=[left])
+    EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5], DEPTNO=[$t7])
+      EnumerableTableScan(table=[[scott, EMP]])
+    EnumerableCalc(expr#0..2=[{inputs}], expr#3=[true], expr#4=[10], expr#5=[CAST($t0):TINYINT], expr#6=[=($t4, $t5)], expr#7=[IS NULL($t5)], expr#8=[OR($t6, $t7)], cs=[$t3], DEPTNO=[$t0], $condition=[$t8])
+      EnumerableTableScan(table=[[scott, DEPT]])
+!plan
+
+# Test filter null IN required is unknown correlated
+select sal from "scott".emp e
+  where cast(null as int) IN (
+    select deptno
+    from "scott".dept d where e.deptno=d.deptno) is unknown;
+ SAL
+---------
+ 1100.00
+ 1250.00
+ 1250.00
+ 1300.00
+ 1500.00
+ 1600.00
+ 2450.00
+ 2850.00
+ 2975.00
+ 3000.00
+ 3000.00
+ 5000.00
+  800.00
+  950.00
+(14 rows)
+
+!ok
+EnumerableCalc(expr#0..4=[{inputs}], expr#5=[false], expr#6=[=($t4, $t5)], expr#7=[null], expr#8=[IS NOT NULL($t4)], expr#9=[true], expr#10=[null], expr#11=[IS NULL($t10)], expr#12=[CASE($t6, $t7, $t8, $t9, $t11, $t7, $t5)], expr#13=[IS NULL($t12)], SAL=[$t1], $condition=[$t13])
+  EnumerableJoin(condition=[=($2, $3)], joinType=[left])
+    EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5], DEPTNO=[$t7])
+      EnumerableTableScan(table=[[scott, EMP]])
+    EnumerableCalc(expr#0..2=[{inputs}], expr#3=[true], expr#4=[null], expr#5=[=($t4, $t0)], DEPTNO1=[$t0], $f1=[$t3], $condition=[$t5])
+      EnumerableTableScan(table=[[scott, DEPT]])
+!plan
+
 # End sub-query.iq

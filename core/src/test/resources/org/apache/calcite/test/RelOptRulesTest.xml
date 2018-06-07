@@ -7378,7 +7378,7 @@ LogicalFilter(condition=[<($0, 20)])
         </Resource>
         <Resource name="planAfter">
             <![CDATA[
-LogicalProject(EMPNO=[$0], D=[CASE(IS NOT NULL($9), true, false)])
+LogicalProject(EMPNO=[$0], D=[IS NOT NULL($9)])
   LogicalJoin(condition=[true], joinType=[left])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalAggregate(group=[{0}])
