@@ -48,6 +48,7 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Lists;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -104,14 +105,16 @@ public abstract class SubQueryRemoveRule extends RelOptRule {
   }
 
   /**
-   * Rewrites scalar sub-query into aggregate rel nodes.
+   * Rewrites a scalar sub-query into an
+   * {@link org.apache.calcite.rel.core.Aggregate}.
    *
    * @param e            IN sub-query to rewrite
-   * @param variablesSet a set of variables used by a relational
+   * @param variablesSet A set of variables used by a relational
    *                     expression of the specified RexSubQuery
-   * @param builder      RelBuilder instance
-   * @param offset       offset to shift {@link RexInputRef}
-   * @return RexNode instance which may be used to replace specified RexSubQuery.
+   * @param builder      Builder
+   * @param offset       Offset to shift {@link RexInputRef}
+   *
+   * @return Expression that may be used to replace the RexSubQuery
    */
   private RexNode rewriteScalarQuery(RexSubQuery e, Set<CorrelationId> variablesSet,
       RelBuilder builder, int inputCount, int offset) {
@@ -129,11 +132,12 @@ public abstract class SubQueryRemoveRule extends RelOptRule {
   }
 
   /**
-   * Rewrites SOME sub-query into join rel nodes.
+   * Rewrites a SOME sub-query into a {@link Join}.
    *
    * @param e            SOME sub-query to rewrite
-   * @param builder      RelBuilder instance
-   * @return RexNode instance which may be used to replace specified RexSubQuery.
+   * @param builder      Builder
+   *
+   * @return Expression that may be used to replace the RexSubQuery
    */
   private RexNode rewriteSome(RexSubQuery e, RelBuilder builder) {
     // Most general case, where the left and right keys might have nulls, and
@@ -183,14 +187,15 @@ public abstract class SubQueryRemoveRule extends RelOptRule {
   }
 
   /**
-   * Rewrites EXISTS RexSubQuery into join rel nodes.
+   * Rewrites an EXISTS RexSubQuery into a {@link Join}.
    *
    * @param e            EXISTS sub-query to rewrite
-   * @param variablesSet a set of variables used by a relational
+   * @param variablesSet A set of variables used by a relational
    *                     expression of the specified RexSubQuery
-   * @param logic        a suitable logic for evaluating
-   * @param builder      RelBuilder instance
-   * @return RexNode instance which may be used to replace specified RexSubQuery.
+   * @param logic        Logic for evaluating
+   * @param builder      Builder
+   *
+   * @return Expression that may be used to replace the RexSubQuery
    */
   private RexNode rewriteExists(RexSubQuery e, Set<CorrelationId> variablesSet,
       RelOptUtil.Logic logic, RelBuilder builder) {
@@ -218,15 +223,16 @@ public abstract class SubQueryRemoveRule extends RelOptRule {
   }
 
   /**
-   * Rewrites IN RexSubQuery into join rel nodes.
+   * Rewrites an IN RexSubQuery into a {@link Join}.
    *
    * @param e            IN sub-query to rewrite
-   * @param variablesSet a set of variables used by a relational
+   * @param variablesSet A set of variables used by a relational
    *                     expression of the specified RexSubQuery
-   * @param logic        a suitable logic for evaluating
-   * @param builder      RelBuilder instance
-   * @param offset       offset to shift {@link RexInputRef}
-   * @return RexNode instance which may be used to replace specified RexSubQuery.
+   * @param logic        Logic for evaluating
+   * @param builder      Builder
+   * @param offset       Offset to shift {@link RexInputRef}
+   *
+   * @return Expression that may be used to replace the RexSubQuery
    */
   private RexNode rewriteIn(RexSubQuery e, Set<CorrelationId> variablesSet,
       RelOptUtil.Logic logic, RelBuilder builder, int offset) {
@@ -295,33 +301,26 @@ public abstract class SubQueryRemoveRule extends RelOptRule {
     //
     // becomes
     //
-    // SELECT e.deptno,
-    //        CASE
-    //            WHEN dt.cs IS FALSE THEN NULL
-    //            WHEN dt.cs IS NOT NULL THEN TRUE
-    //            WHEN e.deptno IS NULL THEN NULL
-    //            ELSE FALSE
-    //        END
-    // FROM emp AS e
-    // CROSS JOIN
-    //   (SELECT DISTINCT CASE
-    //                        WHEN deptno IS NULL THEN FALSE
-    //                        ELSE TRUE
-    //                    END cs
-    //    FROM emp
-    //    WHERE deptno=123
-    //      OR deptno IS NULL) AS dt
+    // select e.deptno,
+    //   case
+    //   when dt.cs IS FALSE THEN NULL
+    //   when dt.cs IS NOT NULL THEN TRUE
+    //   when e.deptno IS NULL THEN NULL
+    //   else false
+    //   end
+    // from emp AS e
+    // cross join (
+    //   select distinct deptno is not null as cs
+    //   from emp
+    //   where deptno = 123 or deptno is null) as dt
     //
 
     boolean allLiterals = RexUtil.allLiterals(e.getOperands());
     final List<RexNode> expressionOperands = new ArrayList<>(e.getOperands());
     if (allLiterals) {
-      final List<RexNode> conditions = new ArrayList<>();
-      for (Pair<RexNode, RexNode> pair
-          : Pair.zip(expressionOperands, fields)) {
-        conditions.add(
-            builder.equals(pair.left, pair.right));
-      }
+      final List<RexNode> conditions =
+          Lists.transform(Pair.zip(expressionOperands, fields),
+              pair -> builder.equals(pair.left, pair.right));
       switch (logic) {
       case TRUE:
       case TRUE_FALSE:
@@ -330,18 +329,11 @@ public abstract class SubQueryRemoveRule extends RelOptRule {
         builder.distinct();
         break;
       default:
-        List<RexNode> isNullConditions = new ArrayList<>();
-        for (RexNode field : fields) {
-          isNullConditions.add(builder.isNull(field));
-        }
         builder.filter(
             builder.or(
                 builder.and(conditions),
-                builder.or(isNullConditions)));
-        final ImmutableList.Builder<RexNode> operands = ImmutableList.builder();
-        operands.add(builder.or(isNullConditions), builder.literal(false));
-        operands.add(builder.literal(true));
-        RexNode project = builder.call(SqlStdOperatorTable.CASE, operands.build());
+                builder.or(Lists.transform(fields, builder::isNull))));
+        RexNode project = builder.and(Lists.transform(fields, builder::isNotNull));
         builder.project(builder.alias(project, "cs"));
 
         builder.distinct();
@@ -394,7 +386,6 @@ public abstract class SubQueryRemoveRule extends RelOptRule {
     builder.join(JoinRelType.LEFT, builder.and(conditions), variablesSet);
 
     final ImmutableList.Builder<RexNode> operands = ImmutableList.builder();
-
     Boolean b = true;
     switch (logic) {
     case TRUE_FALSE_UNKNOWN:
@@ -405,11 +396,11 @@ public abstract class SubQueryRemoveRule extends RelOptRule {
         operands.add(
             builder.equals(builder.field("cs"), builder.literal(false)),
             builder.literal(b));
-        break;
+      } else {
+        operands.add(
+            builder.equals(builder.field("ct", "c"), builder.literal(0)),
+            builder.literal(false));
       }
-      operands.add(
-          builder.equals(builder.field("ct", "c"), builder.literal(0)),
-          builder.literal(false));
       break;
     }
 
@@ -469,11 +460,9 @@ public abstract class SubQueryRemoveRule extends RelOptRule {
     return projects;
   }
 
-  /**
-   * Rule for converting sub-queries from project expressions into the {@link Correlate}.
-   */
+  /** Rule that converts sub-queries from project expressions into
+   * {@link Correlate} instances. */
   public static class SubQueryProjectRemoveRule extends SubQueryRemoveRule {
-
     public SubQueryProjectRemoveRule(RelBuilderFactory relBuilderFactory) {
       super(
           operand(Project.class, null, RexUtil.SubQueryFinder.PROJECT_PREDICATE,
@@ -500,11 +489,9 @@ public abstract class SubQueryRemoveRule extends RelOptRule {
     }
   }
 
-  /**
-   * Rule for converting sub-queries from filter expressions into the {@link Correlate}.
-   */
+  /** Rule that converts a sub-queries from filter expressions into
+   * {@link Correlate} instances. */
   public static class SubQueryFilterRemoveRule extends SubQueryRemoveRule {
-
     public SubQueryFilterRemoveRule(RelBuilderFactory relBuilderFactory) {
       super(
           operand(Filter.class, null, RexUtil.SubQueryFinder.FILTER_PREDICATE,
@@ -539,9 +526,8 @@ public abstract class SubQueryRemoveRule extends RelOptRule {
     }
   }
 
-  /**
-   * Rule for converting sub-queries from join expressions into the {@link Correlate}.
-   */
+  /** Rule that converts sub-queries from join expressions into
+   * {@link Correlate} instances. */
   public static class SubQueryJoinRemoveRule extends SubQueryRemoveRule {
     public SubQueryJoinRemoveRule(RelBuilderFactory relBuilderFactory) {
       super(

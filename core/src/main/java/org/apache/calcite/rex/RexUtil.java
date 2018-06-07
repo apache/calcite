@@ -276,7 +276,7 @@ public class RexUtil {
   }
 
   /**
-   * Checks that every expression from the specified list is literal.
+   * Returns whether every expression in a list is a literal.
    *
    * @param expressionOperands list of expressions to check
    * @return true if every expression from the specified list is literal.

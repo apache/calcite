@@ -1902,4 +1902,85 @@ EnumerableCalc(expr#0..4=[{inputs}], expr#5=[false], expr#6=[=($t4, $t5)], expr#
       EnumerableTableScan(table=[[scott, DEPT]])
 !plan
 
+
+# Test project constant IN an expression that is sometimes null
+select sal,
+  20 IN (
+    select case when deptno > 10 then deptno else null end
+    from "scott".dept)
+from "scott".emp;
+ SAL     | EXPR$1
+---------+--------
+ 1100.00 | true
+ 1250.00 | true
+ 1250.00 | true
+ 1300.00 | true
+ 1500.00 | true
+ 1600.00 | true
+ 2450.00 | true
+ 2850.00 | true
+ 2975.00 | true
+ 3000.00 | true
+ 3000.00 | true
+ 5000.00 | true
+  800.00 | true
+  950.00 | true
+(14 rows)
+
+!ok
+
+# Test project constant IN an nullable expression in an empty relation
+select sal,
+  20 IN (
+    select case when deptno > 10 then deptno else null end
+    from "scott".dept
+    where deptno < 0)
+from "scott".emp;
+ SAL     | EXPR$1
+---------+--------
+ 1100.00 | false
+ 1250.00 | false
+ 1250.00 | false
+ 1300.00 | false
+ 1500.00 | false
+ 1600.00 | false
+ 2450.00 | false
+ 2850.00 | false
+ 2975.00 | false
+ 3000.00 | false
+ 3000.00 | false
+ 5000.00 | false
+  800.00 | false
+  950.00 | false
+(14 rows)
+
+!ok
+
+# Test project null IN an nullable expression in an empty relation
+select sal,
+  cast(null as integer) IN (
+    select case when deptno > 10 then deptno else null end
+    from "scott".dept
+    where deptno < 0)
+from "scott".emp;
+ SAL     | EXPR$1
+---------+--------
+ 1100.00 | false
+ 1250.00 | false
+ 1250.00 | false
+ 1300.00 | false
+ 1500.00 | false
+ 1600.00 | false
+ 2450.00 | false
+ 2850.00 | false
+ 2975.00 | false
+ 3000.00 | false
+ 3000.00 | false
+ 5000.00 | false
+  800.00 | false
+  950.00 | false
+(14 rows)
+
+!ok
+
 # End sub-query.iq
