@@ -48,7 +48,6 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Function;
 
 /**
  * Context required to simplify a row-expression.
@@ -157,7 +156,8 @@ public class RexSimplify {
    * @param e Expression to simplify
    */
   public RexNode simplify(RexNode e) {
-    return verify(e, simplifier -> simplifier.simplify_(e));
+    RexNode simplified = this.withParanoid(false).simplify_(e);
+    return verify(e, simplified);
   }
 
   private RexNode simplify_(RexNode e) {
@@ -1044,10 +1044,6 @@ public class RexSimplify {
   /** Simplifies a list of terms and combines them into an OR.
    * Modifies the list in place. */
   private RexNode simplifyOrs(List<RexNode> terms) {
-    if (paranoid) {
-      final RexNode before = RexUtil.composeDisjunction(rexBuilder, terms);
-      return verify(before, simplifier -> simplifier.simplifyOrs(terms));
-    }
     for (int i = 0; i < terms.size(); i++) {
       final RexNode term = simplify_(terms.get(i));
       switch (term.getKind()) {
@@ -1073,9 +1069,7 @@ public class RexSimplify {
     return RexUtil.composeDisjunction(rexBuilder, terms);
   }
 
-  private RexNode verify(RexNode before,
-      Function<RexSimplify, RexNode> simplifier) {
-    final RexNode simplified = simplifier.apply(withParanoid(false));
+  private RexNode verify(RexNode before, RexNode simplified) {
     if (!paranoid) {
       return simplified;
     }
