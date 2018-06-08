@@ -22,6 +22,8 @@ import org.apache.calcite.sql.type.JavaToSqlTypeConversionRules;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
+import org.apache.calcite.sql.validate.SqlConformance;
+import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.util.Glossary;
 import org.apache.calcite.util.Util;
 
@@ -99,12 +101,20 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
           .build();
 
   protected final RelDataTypeSystem typeSystem;
+  protected final SqlConformance sqlConformance;
 
   //~ Constructors -----------------------------------------------------------
 
   /** Creates a type factory. */
   protected RelDataTypeFactoryImpl(RelDataTypeSystem typeSystem) {
     this.typeSystem = Preconditions.checkNotNull(typeSystem);
+    this.sqlConformance = SqlConformanceEnum.DEFAULT;
+  }
+
+  /** Creates a type factory. */
+  protected RelDataTypeFactoryImpl(RelDataTypeSystem typeSystem, SqlConformance sqlConformance) {
+    this.typeSystem = Preconditions.checkNotNull(typeSystem);
+    this.sqlConformance = Preconditions.checkNotNull(sqlConformance);
   }
 
   //~ Methods ----------------------------------------------------------------

@@ -324,6 +324,23 @@ public interface SqlConformance {
    * false otherwise.
    */
   boolean allowGeometry();
+
+  /**
+   * Whether to convert type variable when union ragged fixed length value.
+   *
+   * <p>Return false to provide strict SQL:2003 behavior; true to provide
+   * pragmatic behavior.
+   *
+   * <p>Among the built-in conformance levels, true in
+   * {@link SqlConformanceEnum#PRAGMATIC_99},
+   * {@link SqlConformanceEnum#PRAGMATIC_2003},
+   * {@link SqlConformanceEnum#MYSQL_5};
+   * {@link SqlConformanceEnum#ORACLE_10};
+   * {@link SqlConformanceEnum#ORACLE_12};
+   * {@link SqlConformanceEnum#SQL_SERVER_2008};
+   * false otherwise.
+   */
+  boolean shouldRaggedFixedLengthValueUnionBeVariable();
 }
 
 // End SqlConformance.java

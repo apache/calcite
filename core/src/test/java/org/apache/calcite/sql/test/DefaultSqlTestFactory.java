@@ -80,7 +80,8 @@ public class DefaultSqlTestFactory implements SqlTestFactory {
                   final SqlOperatorTable operatorTable =
                       factory.createOperatorTable(factory);
                   final JavaTypeFactory typeFactory =
-                      new JavaTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
+                      new JavaTypeFactoryImpl(RelDataTypeSystem.DEFAULT,
+                          (SqlConformance) factory.get("conformance"));
                   final MockCatalogReader catalogReader =
                       factory.createCatalogReader(factory, typeFactory);
                   return new Xyz(operatorTable, typeFactory, catalogReader);
@@ -90,7 +91,7 @@ public class DefaultSqlTestFactory implements SqlTestFactory {
   public static final DefaultSqlTestFactory INSTANCE =
       new DefaultSqlTestFactory();
 
-  private DefaultSqlTestFactory() {
+  public DefaultSqlTestFactory() {
   }
 
   public MockCatalogReader createCatalogReader(SqlTestFactory testFactory,
@@ -134,7 +135,7 @@ public class DefaultSqlTestFactory implements SqlTestFactory {
   }
 
   /** State that can be cached and shared among tests. */
-  private static class Xyz {
+  protected static class Xyz {
     private final SqlOperatorTable operatorTable;
     private final JavaTypeFactory typeFactory;
     private final MockCatalogReader catalogReader;
@@ -144,6 +145,18 @@ public class DefaultSqlTestFactory implements SqlTestFactory {
       this.operatorTable = operatorTable;
       this.typeFactory = typeFactory;
       this.catalogReader = catalogReader;
+    }
+
+    public SqlOperatorTable getOperatorTable() {
+      return operatorTable;
+    }
+
+    public JavaTypeFactory getTypeFactory() {
+      return typeFactory;
+    }
+
+    public MockCatalogReader getCatalogReader() {
+      return catalogReader;
     }
   }
 }

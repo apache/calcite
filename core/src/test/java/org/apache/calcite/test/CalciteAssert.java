@@ -1122,6 +1122,10 @@ public class CalciteAssert {
     public ConnectionFactory with(ConnectionPostProcessor postProcessor) {
       throw new UnsupportedOperationException();
     }
+
+    public Properties getProperties() {
+      return new Properties();
+    }
   }
 
   /** Connection post processor */
@@ -1207,6 +1211,10 @@ public class CalciteAssert {
             "Unable to get pooled connection for " + factory, e.getCause());
       }
     }
+
+    public Properties getProperties() {
+      return factory.getProperties();
+    }
   }
 
   /** Connection factory that uses a given map of (name, value) pairs and
@@ -1219,6 +1227,14 @@ public class CalciteAssert {
         ImmutableList<ConnectionPostProcessor> postProcessors) {
       this.map = Preconditions.checkNotNull(map);
       this.postProcessors = Preconditions.checkNotNull(postProcessors);
+    }
+
+    public Properties getProperties() {
+      final Properties info = new Properties();
+      for (Map.Entry<String, String> entry : map.entrySet()) {
+        info.setProperty(entry.getKey(), entry.getValue());
+      }
+      return info;
     }
 
     @Override public boolean equals(Object obj) {
