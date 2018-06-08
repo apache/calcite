@@ -26,6 +26,7 @@ import org.apache.calcite.util.Source;
 import org.apache.calcite.util.Sources;
 
 import java.io.File;
+import java.net.URI;
 import java.util.Map;
 
 /**
@@ -44,9 +45,9 @@ public class CsvStreamTableFactory implements TableFactory<CsvTable> {
       Map<String, Object> operand, RelDataType rowType) {
     String fileName = (String) operand.get("file");
     File file = new File(fileName);
-    final File base =
-        (File) operand.get(ModelHandler.ExtraOperand.BASE_DIRECTORY.camelName);
-    if (base != null && !file.isAbsolute()) {
+    final URI uri = (URI) operand.get(ModelHandler.ExtraOperand.BASE_DIRECTORY.camelName);
+    if (uri != null && !file.isAbsolute()) {
+      final File base = new File(uri);
       file = new File(base, fileName);
     }
     final Source source = Sources.of(file);

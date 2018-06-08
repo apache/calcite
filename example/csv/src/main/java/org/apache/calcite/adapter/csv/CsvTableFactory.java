@@ -26,6 +26,7 @@ import org.apache.calcite.util.Source;
 import org.apache.calcite.util.Sources;
 
 import java.io.File;
+import java.net.URI;
 import java.util.Map;
 
 /**
@@ -43,8 +44,8 @@ public class CsvTableFactory implements TableFactory<CsvTable> {
   public CsvTable create(SchemaPlus schema, String name,
       Map<String, Object> operand, RelDataType rowType) {
     String fileName = (String) operand.get("file");
-    final File base =
-        (File) operand.get(ModelHandler.ExtraOperand.BASE_DIRECTORY.camelName);
+    final URI uri = (URI) operand.get(ModelHandler.ExtraOperand.BASE_DIRECTORY.camelName);
+    final File base = new File(uri);
     final Source source = Sources.file(base, fileName);
     final RelProtoDataType protoRowType =
         rowType != null ? RelDataTypeImpl.proto(rowType) : null;

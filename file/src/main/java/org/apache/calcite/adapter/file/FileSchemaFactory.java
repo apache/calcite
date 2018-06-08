@@ -22,6 +22,7 @@ import org.apache.calcite.schema.SchemaFactory;
 import org.apache.calcite.schema.SchemaPlus;
 
 import java.io.File;
+import java.net.URI;
 import java.util.List;
 import java.util.Map;
 
@@ -41,8 +42,11 @@ public class FileSchemaFactory implements SchemaFactory {
       Map<String, Object> operand) {
     @SuppressWarnings("unchecked") List<Map<String, Object>> tables =
         (List) operand.get("tables");
-    final File baseDirectory =
-        (File) operand.get(ModelHandler.ExtraOperand.BASE_DIRECTORY.camelName);
+    File baseDirectory = null;
+    final URI uri = (URI) operand.get(ModelHandler.ExtraOperand.BASE_DIRECTORY.camelName);
+    if (uri != null) {
+      baseDirectory = new File(uri);
+    }
     File directoryFile = baseDirectory;
     final String directory = (String) operand.get("directory");
     if (baseDirectory != null && directory != null) {

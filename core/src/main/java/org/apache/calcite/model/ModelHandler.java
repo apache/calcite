@@ -85,10 +85,10 @@ public class ModelHandler {
       throws IOException {
     super();
     this.connection = connection;
-    this.modelUri = uri;
     JsonRoot root;
     ObjectMapper mapper;
     if (uri.startsWith("inline:")) {
+      this.modelUri = uri;
       // trim here is to correctly autodetect if it is json or not in case of leading spaces
       String inline = uri.substring("inline:".length()).trim();
       mapper = (inline.startsWith("/*") || inline.startsWith("{"))
@@ -97,7 +97,9 @@ public class ModelHandler {
       root = mapper.readValue(inline, JsonRoot.class);
     } else {
       mapper = uri.endsWith(".yaml") || uri.endsWith(".yml") ? YAML_MAPPER : JSON_MAPPER;
-      root = mapper.readValue(parseModelUrl(uri), JsonRoot.class);
+      URL model = parseModelUrl(uri);
+      this.modelUri = model.toString();
+      root = mapper.readValue(model, JsonRoot.class);
     }
     visit(root);
   }
@@ -314,9 +316,10 @@ public class ModelHandler {
         case BASE_DIRECTORY:
           URI f;
           if (!modelUri.startsWith("inline:")) {
-            f = URI.create(modelUri).resolve("..");
+            f = URI.create(modelUri).resolve(".");
           } else {
-            f = new URI("");
+            final File file = new File("");
+            f = URI.create("file://" + file.getAbsolutePath());
           }
           builder.put(extraOperand.camelName, f);
           break;

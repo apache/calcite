@@ -22,6 +22,7 @@ import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.TableFactory;
 
 import java.io.File;
+import java.net.URI;
 import java.util.List;
 import java.util.Map;
 
@@ -40,9 +41,9 @@ public class PigTableFactory implements TableFactory<PigTable> {
       Map<String, Object> operand, RelDataType rowType) {
     String fileName = (String) operand.get("file");
     File file = new File(fileName);
-    final File base =
-        (File) operand.get(ModelHandler.ExtraOperand.BASE_DIRECTORY.camelName);
-    if (base != null && !file.isAbsolute()) {
+    final URI uri = (URI) operand.get(ModelHandler.ExtraOperand.BASE_DIRECTORY.camelName);
+    if (uri != null && !file.isAbsolute()) {
+      final File base = new File(uri);
       file = new File(base, fileName);
     }
     final List<String> fieldNames = (List<String>) operand.get("columns");

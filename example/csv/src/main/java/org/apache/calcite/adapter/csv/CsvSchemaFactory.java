@@ -22,6 +22,7 @@ import org.apache.calcite.schema.SchemaFactory;
 import org.apache.calcite.schema.SchemaPlus;
 
 import java.io.File;
+import java.net.URI;
 import java.util.Locale;
 import java.util.Map;
 
@@ -46,10 +47,11 @@ public class CsvSchemaFactory implements SchemaFactory {
   public Schema create(SchemaPlus parentSchema, String name,
       Map<String, Object> operand) {
     final String directory = (String) operand.get("directory");
-    final File base =
-        (File) operand.get(ModelHandler.ExtraOperand.BASE_DIRECTORY.camelName);
+    final URI uri = (URI) operand.get(ModelHandler.ExtraOperand.BASE_DIRECTORY.camelName);
+
     File directoryFile = new File(directory);
-    if (base != null && !directoryFile.isAbsolute()) {
+    if (uri != null && !directoryFile.isAbsolute()) {
+      final File base = new File(uri);
       directoryFile = new File(base, directory);
     }
     String flavorName = (String) operand.get("flavor");
