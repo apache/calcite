@@ -48,11 +48,11 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Lists;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Transform that converts IN, EXISTS and scalar sub-queries into joins.
@@ -247,8 +247,8 @@ public abstract class SubQueryRemoveRule extends RelOptRule {
     // select e.deptno,
     //   case
     //   when ct.c = 0 then false
-    //   when dt.i is not null then true
     //   when e.deptno is null then null
+    //   when dt.i is not null then true
     //   when ct.ck < ct.c then null
     //   else false
     //   end
@@ -303,24 +303,33 @@ public abstract class SubQueryRemoveRule extends RelOptRule {
     //
     // select e.deptno,
     //   case
+    //   when dt.c IS NULL THEN FALSE
+    //   when e.deptno IS NULL THEN NULL
     //   when dt.cs IS FALSE THEN NULL
     //   when dt.cs IS NOT NULL THEN TRUE
-    //   when e.deptno IS NULL THEN NULL
     //   else false
     //   end
     // from emp AS e
     // cross join (
-    //   select distinct deptno is not null as cs
+    //   select distinct deptno is not null as cs, count(*) as c
     //   from emp
-    //   where deptno = 123 or deptno is null) as dt
+    //   where deptno = 123456 or deptno is null or e.deptno is null
+    //   order by cs desc limit 1) as dt
     //
 
     boolean allLiterals = RexUtil.allLiterals(e.getOperands());
     final List<RexNode> expressionOperands = new ArrayList<>(e.getOperands());
+
+    final List<RexNode> keyIsNulls = e.getOperands().stream()
+        .filter(operand -> operand.getType().isNullable())
+        .map(builder::isNull)
+        .collect(Collectors.toList());
+
     if (allLiterals) {
       final List<RexNode> conditions =
-          Lists.transform(Pair.zip(expressionOperands, fields),
-              pair -> builder.equals(pair.left, pair.right));
+          Pair.zip(expressionOperands, fields).stream()
+              .map(pair -> builder.equals(pair.left, pair.right))
+              .collect(Collectors.toList());
       switch (logic) {
       case TRUE:
       case TRUE_FALSE:
@@ -329,14 +338,38 @@ public abstract class SubQueryRemoveRule extends RelOptRule {
         builder.distinct();
         break;
       default:
+        List<RexNode> isNullOpperands = fields.stream()
+            .map(builder::isNull)
+            .collect(Collectors.toList());
+        // uses keyIsNulls conditions in the filter to avoid empty results
+        isNullOpperands.addAll(keyIsNulls);
         builder.filter(
             builder.or(
                 builder.and(conditions),
-                builder.or(Lists.transform(fields, builder::isNull))));
-        RexNode project = builder.and(Lists.transform(fields, builder::isNotNull));
+                builder.or(
+                    isNullOpperands
+                )));
+        RexNode project = builder.and(
+            fields.stream()
+                .map(builder::isNotNull)
+                .collect(Collectors.toList()));
         builder.project(builder.alias(project, "cs"));
 
-        builder.distinct();
+        if (variablesSet.isEmpty()) {
+          builder.aggregate(builder.groupKey(builder.field("cs")),
+              builder.count(false, "c"));
+
+          // sorts input with desc order since we are interested
+          // only in the case when one of the values is true.
+          // When true value is absent then we are interested
+          // only in false value.
+          builder.sortLimit(0, 1,
+              ImmutableList.of(
+                  builder.call(SqlStdOperatorTable.DESC,
+                      builder.field("cs"))));
+        } else {
+          builder.distinct();
+        }
       }
       // clears expressionOperands and fields lists since
       // all expressions were used in the filter
@@ -371,12 +404,11 @@ public abstract class SubQueryRemoveRule extends RelOptRule {
     }
 
     builder.as("dt");
-    final List<RexNode> conditions = new ArrayList<>();
-    for (Pair<RexNode, RexNode> pair
-        : Pair.zip(expressionOperands, builder.fields())) {
-      conditions.add(
-          builder.equals(pair.left, RexUtil.shift(pair.right, offset)));
-    }
+    int refOffset = offset;
+    final List<RexNode> conditions =
+        Pair.zip(expressionOperands, builder.fields()).stream()
+            .map(pair -> builder.equals(pair.left, RexUtil.shift(pair.right, refOffset)))
+            .collect(Collectors.toList());
     switch (logic) {
     case TRUE:
       builder.join(JoinRelType.INNER, builder.and(conditions), variablesSet);
@@ -393,6 +425,13 @@ public abstract class SubQueryRemoveRule extends RelOptRule {
       // fall through
     case UNKNOWN_AS_TRUE:
       if (allLiterals) {
+        // Considers case when right side of IN is empty
+        // for the case of non-correlated sub-queries
+        if (variablesSet.isEmpty()) {
+          operands.add(
+              builder.isNull(builder.field("c")),
+              builder.literal(false));
+        }
         operands.add(
             builder.equals(builder.field("cs"), builder.literal(false)),
             builder.literal(b));
@@ -404,23 +443,16 @@ public abstract class SubQueryRemoveRule extends RelOptRule {
       break;
     }
 
+    if (!keyIsNulls.isEmpty()) {
+      operands.add(builder.or(keyIsNulls), builder.literal(null));
+    }
+
     if (allLiterals) {
       operands.add(builder.isNotNull(builder.field("cs")),
           builder.literal(true));
     } else {
       operands.add(builder.isNotNull(Util.last(builder.fields())),
           builder.literal(true));
-    }
-
-    final List<RexNode> keyIsNulls = new ArrayList<>();
-    for (RexNode operand : e.getOperands()) {
-      if (operand.getType().isNullable()) {
-        keyIsNulls.add(builder.isNull(operand));
-      }
-    }
-
-    if (!keyIsNulls.isEmpty()) {
-      operands.add(builder.or(keyIsNulls), builder.literal(null));
     }
 
     if (!allLiterals) {

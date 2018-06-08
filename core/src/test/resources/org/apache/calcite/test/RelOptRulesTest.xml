@@ -7839,7 +7839,7 @@ LogicalProject(DEPTNO=[$1])
         </Resource>
         <Resource name="planAfter">
             <![CDATA[
-LogicalProject(EMPNO=[$0], D=[CASE(=($2, 0), false, IS NOT NULL($5), true, IS NULL($1), null, <($3, $2), null, false)])
+LogicalProject(EMPNO=[$0], D=[CASE(=($2, 0), false, IS NULL($1), null, IS NOT NULL($5), true, <($3, $2), null, false)])
   LogicalJoin(condition=[=($1, $4)], joinType=[left])
     LogicalJoin(condition=[true], joinType=[inner])
       LogicalProject(EMPNO=[$0], DEPTNO=[CASE(true, CAST($7):INTEGER, null)])
