@@ -5515,15 +5515,6 @@ public abstract class SqlOperatorBaseTest {
                       // '1970-01-01 00:00:00' for given date
         "BIGINT NOT NULL");
 
-    if (TODO) {
-      // Looks like there is a bug in current execution code which returns 13
-      // instead of 0
-      tester.checkScalar(
-          "extract(second from date '2008-2-23')",
-          "0",
-          "BIGINT NOT NULL");
-    }
-
     tester.checkScalar(
         "extract(second from date '2008-2-23')",
         "0",
