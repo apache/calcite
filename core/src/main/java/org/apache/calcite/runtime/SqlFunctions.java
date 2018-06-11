@@ -45,12 +45,16 @@ import java.sql.Timestamp;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.TimeZone;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Pattern;
@@ -2103,6 +2107,92 @@ public class SqlFunctions {
     default:
       throw new RuntimeException("more than one value");
     }
+  }
+
+  /** Support the MEMBER OF function. */
+  public static boolean memberOf(Object object, Collection collection) {
+    return collection.contains(object);
+  }
+
+  /** Support the MULTISET INTERSECT DISTINCT function. */
+  public static Collection multisetIntersectDistinct(
+      Collection collection1, Collection collection2) {
+    Set resultCollection = new HashSet(collection1.size());
+    resultCollection.addAll(collection1);
+    resultCollection.retainAll(collection2);
+    return new ArrayList(resultCollection);
+  }
+
+  /** Support the MULTISET INTERSECT ALL function. */
+  public static Collection multisetIntersectAll(Collection collection1, Collection collection2) {
+    List resultCollection = new ArrayList(collection1.size());
+    resultCollection.addAll(collection1);
+    resultCollection.retainAll(collection2);
+    return resultCollection;
+  }
+
+  /** Support the MULTISET EXCEPT ALL function. */
+  public static Collection multisetExceptAll(Collection collection1, Collection collection2) {
+    List resultCollection = new ArrayList(collection1.size());
+    resultCollection.addAll(collection1);
+    resultCollection.removeAll(collection2);
+    return resultCollection;
+  }
+
+  /** Support the MULTISET EXCEPT DISTINCT function. */
+  public static Collection multisetExceptDistinct(Collection collection1, Collection collection2) {
+    Set resultCollection = new HashSet(collection1.size());
+    resultCollection.addAll(collection1);
+    resultCollection.removeAll(collection2);
+    return new ArrayList(resultCollection);
+  }
+
+  /** Support the IS A SET function. */
+  public static boolean isASet(Collection collection) {
+    if (collection instanceof Set) {
+      return true;
+    }
+    // capacity calculation is in the same way like for new HashSet(Collection)
+    // however return immediately in case of duplicates
+    Set set = new HashSet(Math.max((int) (collection.size() / .75f) + 1, 16));
+    for (Object element: collection) {
+      if (!set.add(element)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  /** Support the SUBMULTISET OF function. */
+  public static boolean subMultisetOf(Collection possibleSubMultiset, Collection multiset) {
+    if (possibleSubMultiset.size() > multiset.size()) {
+      return false;
+    }
+    Collection multisetLocal = new LinkedList(multiset);
+    for (Object element: possibleSubMultiset) {
+      if (!multisetLocal.remove(element)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  /** Support the MULTISET UNION function. */
+  public static Collection multisetUnionDistinct(Collection collection1, Collection collection2) {
+    // capacity calculation is in the same way like for new HashSet(Collection)
+    Set resultCollection =
+        new HashSet(Math.max((int) ((collection1.size() + collection2.size()) / .75f) + 1, 16));
+    resultCollection.addAll(collection1);
+    resultCollection.addAll(collection2);
+    return new ArrayList(resultCollection);
+  }
+
+  /** Support the MULTISET UNION ALL function. */
+  public static Collection multisetUnionAll(Collection collection1, Collection collection2) {
+    List resultCollection = new ArrayList(collection1.size() + collection2.size());
+    resultCollection.addAll(collection1);
+    resultCollection.addAll(collection2);
+    return resultCollection;
   }
 
   public static Function1<Object, Enumerable<ComparableList<Comparable>>> flatProduct(
