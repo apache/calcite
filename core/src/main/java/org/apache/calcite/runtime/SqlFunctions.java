@@ -45,12 +45,16 @@ import java.sql.Timestamp;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.TimeZone;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Pattern;
@@ -2103,6 +2107,101 @@ public class SqlFunctions {
     default:
       throw new RuntimeException("more than one value");
     }
+  }
+
+  /** Support the MEMBER OF function. */
+  public static boolean memberOf(Object object, Collection collection) {
+    return collection.contains(object);
+  }
+
+  /** Support the MULTISET INTERSECT DISTINCT function. */
+  public static <E> Collection<E> multisetIntersectDistinct(Collection<E> c1,
+      Collection<E> c2) {
+    final Set<E> result = new HashSet<E>(c1);
+    result.retainAll(c2);
+    return new ArrayList<E>(result);
+  }
+
+  /** Support the MULTISET INTERSECT ALL function. */
+  public static <E> Collection<E> multisetIntersectAll(Collection<E> c1,
+      Collection<E> c2) {
+    final List<E> result = new ArrayList<>(c1.size());
+    final List<E> c2Copy = new ArrayList<>(c2);
+    for (E e : c1) {
+      if (c2Copy.remove(e)) {
+        result.add(e);
+      }
+    }
+    return result;
+  }
+
+  /** Support the MULTISET EXCEPT ALL function. */
+  public static <E> Collection<E> multisetExceptAll(Collection<E> c1,
+      Collection<E> c2) {
+    final List<E> result = new LinkedList<>(c1);
+    for (E e : c2) {
+      result.remove(e);
+    }
+    return result;
+  }
+
+  /** Support the MULTISET EXCEPT DISTINCT function. */
+  public static <E> Collection<E> multisetExceptDistinct(Collection<E> c1,
+      Collection<E> c2) {
+    final Set<E> result = new HashSet<>(c1);
+    result.removeAll(c2);
+    return new ArrayList<>(result);
+  }
+
+  /** Support the IS A SET function. */
+  public static boolean isASet(Collection collection) {
+    if (collection instanceof Set) {
+      return true;
+    }
+    // capacity calculation is in the same way like for new HashSet(Collection)
+    // however return immediately in case of duplicates
+    Set set = new HashSet(Math.max((int) (collection.size() / .75f) + 1, 16));
+    for (Object e : collection) {
+      if (!set.add(e)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  /** Support the SUBMULTISET OF function. */
+  public static boolean submultisetOf(Collection possibleSubMultiset,
+      Collection multiset) {
+    if (possibleSubMultiset.size() > multiset.size()) {
+      return false;
+    }
+    Collection multisetLocal = new LinkedList(multiset);
+    for (Object e : possibleSubMultiset) {
+      if (!multisetLocal.remove(e)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  /** Support the MULTISET UNION function. */
+  public static Collection multisetUnionDistinct(Collection collection1,
+      Collection collection2) {
+    // capacity calculation is in the same way like for new HashSet(Collection)
+    Set resultCollection =
+        new HashSet(Math.max((int) ((collection1.size() + collection2.size()) / .75f) + 1, 16));
+    resultCollection.addAll(collection1);
+    resultCollection.addAll(collection2);
+    return new ArrayList(resultCollection);
+  }
+
+  /** Support the MULTISET UNION ALL function. */
+  public static Collection multisetUnionAll(Collection collection1,
+      Collection collection2) {
+    List resultCollection = new ArrayList(collection1.size() + collection2.size());
+    resultCollection.addAll(collection1);
+    resultCollection.addAll(collection2);
+    return resultCollection;
   }
 
   public static Function1<Object, Enumerable<ComparableList<Comparable>>> flatProduct(

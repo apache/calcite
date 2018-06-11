@@ -33,7 +33,6 @@ package ${parser.package};
 import ${importStr};
 </#list>
 
-
 import org.apache.calcite.avatica.util.Casing;
 import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.avatica.util.TimeUnit;
@@ -5326,31 +5325,32 @@ SqlBinaryOperator BinaryQueryOperator() :
  */
 SqlBinaryOperator BinaryMultisetOperator() :
 {
-    SqlBinaryOperator op;
 }
 {
     // If both the ALL or DISTINCT keywords are missing, DISTINCT is implicit
     <MULTISET>
     (
-        <UNION> { op = SqlStdOperatorTable.MULTISET_UNION; }
+        <UNION>
         [
-            <ALL> { op = SqlStdOperatorTable.MULTISET_UNION_ALL; }
-        |   <DISTINCT> { op = SqlStdOperatorTable.MULTISET_UNION; }
+            <ALL>
+        |   <DISTINCT> { return SqlStdOperatorTable.MULTISET_UNION_DISTINCT; }
         ]
+        { return SqlStdOperatorTable.MULTISET_UNION; }
     |
-        <INTERSECT> { op = SqlStdOperatorTable.MULTISET_INTERSECT; }
+        <INTERSECT>
         [
-            <ALL> { op = SqlStdOperatorTable.MULTISET_INTERSECT_ALL; }
-        |   <DISTINCT> { op = SqlStdOperatorTable.MULTISET_INTERSECT; }
+            <ALL>
+        |   <DISTINCT> { return SqlStdOperatorTable.MULTISET_INTERSECT_DISTINCT; }
         ]
+        { return SqlStdOperatorTable.MULTISET_INTERSECT; }
     |
-        <EXCEPT> { op = SqlStdOperatorTable.MULTISET_EXCEPT; }
+        <EXCEPT>
         [
-            <ALL> { op = SqlStdOperatorTable.MULTISET_EXCEPT_ALL; }
-        |   <DISTINCT> { op = SqlStdOperatorTable.MULTISET_EXCEPT; }
+            <ALL>
+        |   <DISTINCT> { return SqlStdOperatorTable.MULTISET_EXCEPT_DISTINCT; }
         ]
+        { return SqlStdOperatorTable.MULTISET_EXCEPT; }
     )
-    { return op; }
 }
 
 /**
@@ -5390,7 +5390,8 @@ SqlBinaryOperator BinaryRowOperator() :
 |   LOOKAHEAD(2) <IS> <DISTINCT> <FROM> { return SqlStdOperatorTable.IS_DISTINCT_FROM; }
 |   <IS> <NOT> <DISTINCT> <FROM> { return SqlStdOperatorTable.IS_NOT_DISTINCT_FROM; }
 |   <MEMBER> <OF> { return SqlStdOperatorTable.MEMBER_OF; }
-|   <SUBMULTISET> <OF> { return SqlStdOperatorTable.SUBMULTISET_OF; }
+|   LOOKAHEAD(2) <SUBMULTISET> <OF> { return SqlStdOperatorTable.SUBMULTISET_OF; }
+|   <NOT> <SUBMULTISET> <OF> { return SqlStdOperatorTable.NOT_SUBMULTISET_OF; }
 |   <CONTAINS> { return SqlStdOperatorTable.CONTAINS; }
 |   <OVERLAPS> { return SqlStdOperatorTable.OVERLAPS; }
 |   <EQUALS> { return SqlStdOperatorTable.PERIOD_EQUALS; }
@@ -5429,6 +5430,8 @@ SqlPostfixOperator PostfixRowOperator() :
         |   <TRUE> { return SqlStdOperatorTable.IS_NOT_TRUE; }
         |   <FALSE> { return SqlStdOperatorTable.IS_NOT_FALSE; }
         |   <UNKNOWN> { return SqlStdOperatorTable.IS_NOT_UNKNOWN; }
+        |   <A> <SET> { return SqlStdOperatorTable.IS_NOT_A_SET; }
+        |   <EMPTY> { return SqlStdOperatorTable.IS_NOT_EMPTY; }
         )
     |
         (
@@ -5436,6 +5439,7 @@ SqlPostfixOperator PostfixRowOperator() :
         |   <TRUE> { return SqlStdOperatorTable.IS_TRUE; }
         |   <FALSE> { return SqlStdOperatorTable.IS_FALSE; }
         |   <UNKNOWN> { return SqlStdOperatorTable.IS_UNKNOWN; }
+        |   <EMPTY> { return SqlStdOperatorTable.IS_EMPTY; }
         )
     )
 }

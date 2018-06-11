@@ -758,6 +758,58 @@ public class SqlFunctionsTest {
     }
   }
 
+  @Test public void testMultiset() {
+    final List<String> abacee = Arrays.asList("a", "b", "a", "c", "e", "e");
+    final List<String> adaa = Arrays.asList("a", "d", "a", "a");
+    final List<String> addc = Arrays.asList("a", "d", "c", "d", "c");
+    final List<String> z = Collections.emptyList();
+    assertThat(SqlFunctions.multisetExceptAll(abacee, addc),
+        is(Arrays.asList("b", "a", "e", "e")));
+    assertThat(SqlFunctions.multisetExceptAll(abacee, z), is(abacee));
+    assertThat(SqlFunctions.multisetExceptAll(z, z), is(z));
+    assertThat(SqlFunctions.multisetExceptAll(z, addc), is(z));
+
+    assertThat(SqlFunctions.multisetExceptDistinct(abacee, addc),
+        is(Arrays.asList("b", "e")));
+    assertThat(SqlFunctions.multisetExceptDistinct(abacee, z),
+        is(Arrays.asList("a", "b", "c", "e")));
+    assertThat(SqlFunctions.multisetExceptDistinct(z, z), is(z));
+    assertThat(SqlFunctions.multisetExceptDistinct(z, addc), is(z));
+
+    assertThat(SqlFunctions.multisetIntersectAll(abacee, addc),
+        is(Arrays.asList("a", "c")));
+    assertThat(SqlFunctions.multisetIntersectAll(abacee, adaa),
+        is(Arrays.asList("a", "a")));
+    assertThat(SqlFunctions.multisetIntersectAll(adaa, abacee),
+        is(Arrays.asList("a", "a")));
+    assertThat(SqlFunctions.multisetIntersectAll(abacee, z), is(z));
+    assertThat(SqlFunctions.multisetIntersectAll(z, z), is(z));
+    assertThat(SqlFunctions.multisetIntersectAll(z, addc), is(z));
+
+    assertThat(SqlFunctions.multisetIntersectDistinct(abacee, addc),
+        is(Arrays.asList("a", "c")));
+    assertThat(SqlFunctions.multisetIntersectDistinct(abacee, adaa),
+        is(Collections.singletonList("a")));
+    assertThat(SqlFunctions.multisetIntersectDistinct(adaa, abacee),
+        is(Collections.singletonList("a")));
+    assertThat(SqlFunctions.multisetIntersectDistinct(abacee, z), is(z));
+    assertThat(SqlFunctions.multisetIntersectDistinct(z, z), is(z));
+    assertThat(SqlFunctions.multisetIntersectDistinct(z, addc), is(z));
+
+    assertThat(SqlFunctions.multisetUnionAll(abacee, addc),
+        is(Arrays.asList("a", "b", "a", "c", "e", "e", "a", "d", "c", "d", "c")));
+    assertThat(SqlFunctions.multisetUnionAll(abacee, z), is(abacee));
+    assertThat(SqlFunctions.multisetUnionAll(z, z), is(z));
+    assertThat(SqlFunctions.multisetUnionAll(z, addc), is(addc));
+
+    assertThat(SqlFunctions.multisetUnionDistinct(abacee, addc),
+        is(Arrays.asList("a", "b", "c", "d", "e")));
+    assertThat(SqlFunctions.multisetUnionDistinct(abacee, z),
+        is(Arrays.asList("a", "b", "c", "e")));
+    assertThat(SqlFunctions.multisetUnionDistinct(z, z), is(z));
+    assertThat(SqlFunctions.multisetUnionDistinct(z, addc),
+        is(Arrays.asList("a", "c", "d")));
+  }
 }
 
 // End SqlFunctionsTest.java
