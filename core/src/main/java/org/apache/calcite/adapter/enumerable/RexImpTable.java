@@ -2023,6 +2023,14 @@ public class RexImpTable {
           throw new AssertionError("unexpected " + sqlTypeName);
         }
         break;
+      case HOUR:
+      case MINUTE:
+      case SECOND:
+        switch (sqlTypeName) {
+        case DATE:
+          return Expressions.multiply(operand, Expressions.constant(0L));
+        }
+        break;
       }
 
       operand = mod(operand, getFactor(unit));
