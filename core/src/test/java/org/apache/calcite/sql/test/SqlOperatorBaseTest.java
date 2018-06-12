@@ -843,6 +843,56 @@ public abstract class SqlOperatorBaseTest {
         "cast(INTERVAL '5' day as integer)",
         "INTEGER NOT NULL",
         "5");
+
+    // Interval to integer
+    tester.checkScalarExact(
+            "cast(INTERVAL '1' year as integer)",
+            "INTEGER NOT NULL",
+            "1");
+    tester.checkScalarExact(
+            "cast((INTERVAL '1' year - INTERVAL '2' year) as integer)",
+            "INTEGER NOT NULL",
+            "-1");
+    tester.checkScalarExact(
+            "cast(INTERVAL '1' month as integer)",
+            "INTEGER NOT NULL",
+            "1");
+    tester.checkScalarExact(
+            "cast((INTERVAL '1' month - INTERVAL '2' month) as integer)",
+            "INTEGER NOT NULL",
+            "-1");
+    tester.checkScalarExact(
+            "cast(INTERVAL '1' day as integer)",
+            "INTEGER NOT NULL",
+            "1");
+    tester.checkScalarExact(
+            "cast((INTERVAL '1' day - INTERVAL '2' day) as integer)",
+            "INTEGER NOT NULL",
+            "-1");
+    tester.checkScalarExact(
+            "cast(INTERVAL '1' hour as integer)",
+            "INTEGER NOT NULL",
+            "1");
+    tester.checkScalarExact(
+            "cast((INTERVAL '1' hour - INTERVAL '2' hour) as integer)",
+            "INTEGER NOT NULL",
+            "-1");
+    tester.checkScalarExact(
+            "cast(INTERVAL '1' hour as integer)",
+            "INTEGER NOT NULL",
+            "1");
+    tester.checkScalarExact(
+            "cast((INTERVAL '1' minute - INTERVAL '2' minute) as integer)",
+            "INTEGER NOT NULL",
+            "-1");
+    tester.checkScalarExact(
+            "cast(INTERVAL '1' minute as integer)",
+            "INTEGER NOT NULL",
+            "1");
+    tester.checkScalarExact(
+            "cast((INTERVAL '1' second - INTERVAL '2' second) as integer)",
+            "INTEGER NOT NULL",
+            "-1");
   }
 
   @Test public void testCastToInterval() {
