@@ -63,6 +63,10 @@ public class CalciteConnectionConfigImpl extends ConnectionConfigImpl
         .getBoolean();
   }
 
+  @Override public boolean nullIsEmpty() {
+    return CalciteConnectionProperty.NULL_IS_EMPTY.wrap(properties).getBoolean();
+  }
+
   public boolean autoTemp() {
     return CalciteConnectionProperty.AUTO_TEMP.wrap(properties).getBoolean();
   }
