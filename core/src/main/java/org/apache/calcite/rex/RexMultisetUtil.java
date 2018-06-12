@@ -40,14 +40,16 @@ public class RexMultisetUtil {
           SqlStdOperatorTable.CAST,
           SqlStdOperatorTable.ELEMENT,
           SqlStdOperatorTable.ELEMENT_SLICE,
-          SqlStdOperatorTable.MULTISET_EXCEPT_ALL,
+          SqlStdOperatorTable.MULTISET_EXCEPT_DISTINCT,
           SqlStdOperatorTable.MULTISET_EXCEPT,
-          SqlStdOperatorTable.MULTISET_INTERSECT_ALL,
+          SqlStdOperatorTable.MULTISET_INTERSECT_DISTINCT,
           SqlStdOperatorTable.MULTISET_INTERSECT,
-          SqlStdOperatorTable.MULTISET_UNION_ALL,
+          SqlStdOperatorTable.MULTISET_UNION_DISTINCT,
           SqlStdOperatorTable.MULTISET_UNION,
           SqlStdOperatorTable.IS_A_SET,
+          SqlStdOperatorTable.IS_NOT_A_SET,
           SqlStdOperatorTable.MEMBER_OF,
+          SqlStdOperatorTable.NOT_SUBMULTISET_OF,
           SqlStdOperatorTable.SUBMULTISET_OF);
 
   //~ Methods ----------------------------------------------------------------

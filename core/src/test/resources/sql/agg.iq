@@ -1075,6 +1075,65 @@ FROM "scott".emp;
 !ok
 !}
 
+# MULTISET EXCEPT
+values multiset ['a', 'c', 'a'] multiset except multiset ['a'];
++--------+
+| EXPR$0 |
++--------+
+| [c, a] |
++--------+
+(1 row)
+
+!ok
+
+# MULTISET EXCEPT ALL
+values multiset ['a', 'c', 'a'] multiset except all multiset ['a'];
++--------+
+| EXPR$0 |
++--------+
+| [c, a] |
++--------+
+(1 row)
+
+!ok
+
+# MULTISET EXCEPT DISTINCT
+values multiset ['a', 'c', 'a'] multiset except distinct multiset ['a'];
++--------+
+| EXPR$0 |
++--------+
+| [c]    |
++--------+
+(1 row)
+
+!ok
+
+# FUSION
+select cardinality(fusion(empnos)) as f_empnos_length from (select deptno, collect(empno) as empnos
+from "scott".emp
+group by deptno);
++-----------------+
+| F_EMPNOS_LENGTH |
++-----------------+
+|              14 |
++-----------------+
+(1 row)
+
+!ok
+
+# FUSION
+select fusion(deptnos) as deptnos from (select collect(distinct deptno) as deptnos
+from "scott".emp
+group by deptno);
++--------------+
+| DEPTNOS      |
++--------------+
+| [20, 10, 30] |
++--------------+
+(1 row)
+
+!ok
+
 # COLLECT
 select deptno, collect(empno) as empnos
 from "scott".emp

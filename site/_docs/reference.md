@@ -1267,6 +1267,16 @@ Not implemented:
 |:--------------- |:-----------
 | ELEMENT(value)  | Returns the sole element of a array or multiset; null if the collection is empty; throws if it has more than one element.
 | CARDINALITY(value) | Returns the number of elements in an array or multiset.
+| value MEMBER OF multiset | Returns whether the *value* is a member of *multiset*.
+| multiset IS A SET | Whether *multiset* is a SET (has no duplicates).
+| multiset IS NOT A SET | Whether *multiset* is NOT A SET (has duplicates).
+| multiset IS EMPTY | Whether *multiset* is EMPTY.
+| multiset IS NOT EMPTY | Whether *multiset* is NOT EMPTY.
+| multiset SUBMULTISET OF multiset2 | Whether *multiset* is a SUBMULTISET OF *multiset2*.
+| multiset NOT SUBMULTISET OF multiset2 | Whether *multiset* is NOT a SUBMULTISET OF *multiset2*.
+| multiset MULTISET UNION [ ALL &#124; DISTINCT ] multiset2 | Returns a union *multiset* and *multiset2*. If neither ALL nor DISTINCT is specified then ALL is default. 
+| multiset MULTISET INTERSECT [ ALL &#124; DISTINCT ] multiset2 | Returns a intersection of *multiset* and *multiset2*. If neither ALL nor DISTINCT is specified then ALL is default.
+| multiset MULTISET EXCEPT [ ALL &#124; DISTINCT ] multiset2 | Returns an except of *multiset* and *multiset2*. If neither ALL nor DISTINCT is specified then ALL is default.
 
 See also: UNNEST relational operator converts a collection to a relation.
 
@@ -1481,6 +1491,7 @@ passed to the aggregate function.
 | Operator syntax                    | Description
 |:---------------------------------- |:-----------
 | COLLECT( [ ALL &#124; DISTINCT ] value)       | Returns a multiset of the values
+| FUSION( multiset )       | Returns a multiset union of a multiset value in all rows
 | COUNT( [ ALL &#124; DISTINCT ] value [, value ]*) | Returns the number of input rows for which *value* is not null (wholly not null if *value* is composite)
 | COUNT(*)                           | Returns the number of input rows
 | APPROX_COUNT_DISTINCT(value [, value ]*)      | Returns the approximate number of distinct values of *value*; the database is allowed to use an approximation but is not required to
