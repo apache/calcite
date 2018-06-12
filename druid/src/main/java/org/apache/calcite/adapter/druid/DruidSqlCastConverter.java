@@ -56,8 +56,8 @@ public class DruidSqlCastConverter implements DruidSqlOperatorConverter {
 
     if (SqlTypeName.CHAR_TYPES.contains(fromType) && SqlTypeName.DATETIME_TYPES.contains(toType)) {
       //case chars to dates
-      return castCharToDateTime(timeZone, operandExpression,
-          toType);
+      return castCharToDateTime(timeZone, operandExpression, toType,
+          druidQuery.getConnectionConfig().nullIsEmpty() ? "" : null);
     } else if (SqlTypeName.DATETIME_TYPES.contains(fromType) && SqlTypeName.CHAR_TYPES.contains
         (toType)) {
       //case dates to chars
@@ -99,13 +99,13 @@ public class DruidSqlCastConverter implements DruidSqlOperatorConverter {
   private static String castCharToDateTime(
       TimeZone timeZone,
       String operand,
-      final SqlTypeName toType) {
+      final SqlTypeName toType, String format) {
     // Cast strings to date times by parsing them from SQL format.
     final String timestampExpression = DruidExpressions.functionCall(
         "timestamp_parse",
         ImmutableList.of(
             operand,
-            DruidExpressions.stringLiteral(""),
+            DruidExpressions.stringLiteral(format),
             DruidExpressions.stringLiteral(timeZone.getID())));
 
     if (toType == SqlTypeName.DATE) {
