@@ -17,7 +17,6 @@
 package org.apache.calcite.test;
 
 import org.apache.calcite.linq4j.Ord;
-import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
@@ -221,10 +220,8 @@ public class MongoAdapterIT {
                 "{$project: {STATE: '$state', ID: '$_id'}}"));
   }
 
-  @Ignore
+
   @Test public void testFilterSort() {
-    // LONGITUDE and LATITUDE are null because of CALCITE-194.
-    Util.discard(Bug.CALCITE_194_FIXED);
     CalciteAssert.that()
         .enable(enabled())
         .with(ZIPS)
@@ -232,22 +229,22 @@ public class MongoAdapterIT {
             + "where city = 'SPRINGFIELD' and id >= '70000'\n"
             + "order by state, id")
         .returns(""
-            + "CITY=SPRINGFIELD; LONGITUDE=null; LATITUDE=null; POP=752; STATE=AR; ID=72157\n"
-            + "CITY=SPRINGFIELD; LONGITUDE=null; LATITUDE=null; POP=1992; STATE=CO; ID=81073\n"
-            + "CITY=SPRINGFIELD; LONGITUDE=null; LATITUDE=null; POP=5597; STATE=LA; ID=70462\n"
-            + "CITY=SPRINGFIELD; LONGITUDE=null; LATITUDE=null; POP=32384; STATE=OR; ID=97477\n"
-            + "CITY=SPRINGFIELD; LONGITUDE=null; LATITUDE=null; POP=27521; STATE=OR; ID=97478\n")
+            + "CITY=SPRINGFIELD; LONGITUDE=-92.54567; LATITUDE=35.274879; POP=752; STATE=AR; ID=72157\n"
+            + "CITY=SPRINGFIELD; LONGITUDE=-102.617322; LATITUDE=37.406727; POP=1992; STATE=CO; ID=81073\n"
+            + "CITY=SPRINGFIELD; LONGITUDE=-90.577479; LATITUDE=30.415738; POP=5597; STATE=LA; ID=70462\n"
+            + "CITY=SPRINGFIELD; LONGITUDE=-123.015259; LATITUDE=44.06106; POP=32384; STATE=OR; ID=97477\n"
+            + "CITY=SPRINGFIELD; LONGITUDE=-122.917108; LATITUDE=44.056056; POP=27521; STATE=OR; ID=97478\n")
         .queryContains(
             mongoChecker(
                 "{\n"
-                    + "  $match: {\n"
-                    + "    city: \"SPRINGFIELD\",\n"
-                    + "    _id: {\n"
-                    + "      $gte: \"70000\"\n"
+                    + "  \"$match\": {\n"
+                    + "    \"city\": \"SPRINGFIELD\",\n"
+                    + "    \"_id\": {\n"
+                    + "      \"$gte\": \"70000\"\n"
                     + "    }\n"
                     + "  }\n"
                     + "}",
-                "{$project: {CITY: '$city', LONGITUDE: '$loc[0]', LATITUDE: '$loc[1]', POP: '$pop', STATE: '$state', ID: '$_id'}}",
+                "{$project: {CITY: '$city', LONGITUDE: { $arrayElemAt: [ '$loc', 0 ] }, LATITUDE: { $arrayElemAt: [ '$loc', 1 ] }, POP: '$pop', STATE: '$state', ID: '$_id'}}",
                 "{$sort: {STATE: 1, ID: 1}}"))
         .explainContains("PLAN=MongoToEnumerableConverter\n"
             + "  MongoSort(sort0=[$4], sort1=[$5], dir0=[ASC], dir1=[ASC])\n"
@@ -265,10 +262,10 @@ public class MongoAdapterIT {
             + "order by state desc, pop")
         .limit(4)
         .returns(""
-            + "CITY=SHERIDAN; LONGITUDE=null; LATITUDE=null; POP=20025; STATE=WY; ID=82801\n"
-            + "CITY=MOUNTLAKE TERRAC; LONGITUDE=null; LATITUDE=null; POP=20059; STATE=WA; ID=98043\n"
-            + "CITY=FALMOUTH; LONGITUDE=null; LATITUDE=null; POP=20039; STATE=VA; ID=22405\n"
-            + "CITY=FORT WORTH; LONGITUDE=null; LATITUDE=null; POP=20012; STATE=TX; ID=76104\n");
+            + "CITY=SHERIDAN; LONGITUDE=-106.964795; LATITUDE=44.78486; POP=20025; STATE=WY; ID=82801\n"
+            + "CITY=MOUNTLAKE TERRAC; LONGITUDE=-122.304036; LATITUDE=47.793061; POP=20059; STATE=WA; ID=98043\n"
+            + "CITY=FALMOUTH; LONGITUDE=-77.404537; LATITUDE=38.314557; POP=20039; STATE=VA; ID=22405\n"
+            + "CITY=FORT WORTH; LONGITUDE=-97.318409; LATITUDE=32.725551; POP=20012; STATE=TX; ID=76104\n");
   }
 
   @Ignore("broken; [CALCITE-2115] is logged to fix it")
@@ -323,7 +320,7 @@ public class MongoAdapterIT {
                     + "    \"state\": \"OK\"\n"
                     + "  }\n"
                     + "}",
-                "{$project: {CITY: '$city', LONGITUDE: '$loc[0]', LATITUDE: '$loc[1]', POP: '$pop', STATE: '$state', ID: '$_id'}}"));
+                "{$project: {CITY: '$city', LONGITUDE: { $arrayElemAt: [ '$loc', 0 ] }, LATITUDE: { $arrayElemAt: [ '$loc', 1 ] }, POP: '$pop', STATE: '$state', ID: '$_id'}}"));
   }
 
   @Test public void testSelectWhere() {
