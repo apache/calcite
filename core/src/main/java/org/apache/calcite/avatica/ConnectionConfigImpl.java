@@ -106,6 +106,23 @@ public class ConnectionConfigImpl implements ConnectionConfig {
     return BuiltInConnectionProperty.TRUSTSTORE_PASSWORD.wrap(properties).getString();
   }
 
+  public File keystore() {
+    String filename = BuiltInConnectionProperty.KEYSTORE.wrap(properties).getString();
+    if (null == filename) {
+      return null;
+    }
+    return new File(filename);
+  }
+
+  public String keystorePassword() {
+    return BuiltInConnectionProperty.KEYSTORE_PASSWORD.wrap(properties).getString();
+  }
+
+  public String keyPassword() {
+    return BuiltInConnectionProperty.KEY_PASSWORD.wrap(properties).getString();
+
+  }
+
   public HostnameVerification hostnameVerification() {
     return BuiltInConnectionProperty.HOSTNAME_VERIFICATION.wrap(properties)
         .getEnum(HostnameVerification.class);

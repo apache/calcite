@@ -28,6 +28,7 @@ import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.protocol.HttpClientContext;
 import org.apache.http.config.Lookup;
+import org.apache.http.config.Registry;
 import org.apache.http.config.RegistryBuilder;
 import org.apache.http.conn.socket.ConnectionSocketFactory;
 import org.apache.http.conn.socket.PlainConnectionSocketFactory;
@@ -42,6 +43,7 @@ import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
+import org.apache.http.ssl.SSLContextBuilder;
 import org.apache.http.ssl.SSLContexts;
 import org.apache.http.util.EntityUtils;
 
@@ -64,7 +66,8 @@ import javax.net.ssl.SSLContext;
  * sent and received across the wire.
  */
 public class AvaticaCommonsHttpClientImpl implements AvaticaHttpClient,
-    UsernamePasswordAuthenticateable, TrustStoreConfigurable, HostnameVerificationConfigurable {
+    UsernamePasswordAuthenticateable, TrustStoreConfigurable,
+        KeyStoreConfigurable, HostnameVerificationConfigurable {
   private static final Logger LOG = LoggerFactory.getLogger(AvaticaCommonsHttpClientImpl.class);
 
   // Some basic exposed configurations
@@ -78,14 +81,19 @@ public class AvaticaCommonsHttpClientImpl implements AvaticaHttpClient,
   protected final URI uri;
   protected BasicAuthCache authCache;
   protected CloseableHttpClient client;
-  PoolingHttpClientConnectionManager pool;
+  protected Registry<ConnectionSocketFactory> socketFactoryRegistry;
+  protected PoolingHttpClientConnectionManager pool;
 
   protected UsernamePasswordCredentials credentials = null;
   protected CredentialsProvider credentialsProvider = null;
   protected Lookup<AuthSchemeProvider> authRegistry = null;
 
+  protected boolean configureHttpsSocket = false;
   protected File truststore = null;
+  protected File keystore = null;
   protected String truststorePassword = null;
+  protected String keystorePassword = null;
+  protected String keyPassword = null;
   protected HostnameVerification hostnameVerification = null;
 
   public AvaticaCommonsHttpClientImpl(URL url) {
@@ -95,29 +103,15 @@ public class AvaticaCommonsHttpClientImpl implements AvaticaHttpClient,
   }
 
   private void initializeClient() {
-    SSLConnectionSocketFactory sslFactory = null;
-    if (null != truststore && null != truststorePassword) {
-      try {
-        SSLContext sslcontext = SSLContexts.custom().loadTrustMaterial(
-            truststore, truststorePassword.toCharArray()).build();
+    socketFactoryRegistry = this.configureSocketFactories();
+    configureConnectionPool(socketFactoryRegistry);
+    this.authCache = new BasicAuthCache();
+    // A single thread-safe HttpClient, pooling connections via the ConnectionManager
+    this.client = HttpClients.custom().setConnectionManager(pool).build();
+  }
 
-        final HostnameVerifier verifier = getHostnameVerifier(hostnameVerification);
-
-        sslFactory = new SSLConnectionSocketFactory(sslcontext, verifier);
-      } catch (Exception e) {
-        throw new RuntimeException(e);
-      }
-    } else {
-      LOG.debug("Not configuring HTTPS because of missing truststore/password");
-    }
-
-    RegistryBuilder<ConnectionSocketFactory> registryBuilder = RegistryBuilder.create();
-    registryBuilder.register("http", PlainConnectionSocketFactory.getSocketFactory());
-    // Only register the SSL factory when provided
-    if (null != sslFactory) {
-      registryBuilder.register("https", sslFactory);
-    }
-    pool = new PoolingHttpClientConnectionManager(registryBuilder.build());
+  protected void configureConnectionPool(Registry<ConnectionSocketFactory> registry) {
+    pool = new PoolingHttpClientConnectionManager(registry);
     // Increase max total connection to 100
     final String maxCnxns =
         System.getProperty(MAX_POOLED_CONNECTIONS_KEY,
@@ -127,11 +121,57 @@ public class AvaticaCommonsHttpClientImpl implements AvaticaHttpClient,
     final String maxCnxnsPerRoute = System.getProperty(MAX_POOLED_CONNECTION_PER_ROUTE_KEY,
         MAX_POOLED_CONNECTION_PER_ROUTE_DEFAULT);
     pool.setDefaultMaxPerRoute(Integer.parseInt(maxCnxnsPerRoute));
+  }
 
-    this.authCache = new BasicAuthCache();
+  protected Registry<ConnectionSocketFactory> configureSocketFactories() {
+    RegistryBuilder<ConnectionSocketFactory> registryBuilder = RegistryBuilder.create();
+    if (host.getSchemeName().equalsIgnoreCase("https")) {
+      configureHttpsRegistry(registryBuilder);
+    } else {
+      configureHttpRegistry(registryBuilder);
+    }
+    return registryBuilder.build();
+  }
 
-    // A single thread-safe HttpClient, pooling connections via the ConnectionManager
-    this.client = HttpClients.custom().setConnectionManager(pool).build();
+  protected void configureHttpsRegistry(RegistryBuilder<ConnectionSocketFactory> registryBuilder) {
+    if (!configureHttpsSocket) {
+      LOG.debug("HTTPS Socket not being configured because no truststore/keystore provided");
+      return;
+    }
+
+    try {
+      SSLContext sslContext = getSSLContext();
+      final HostnameVerifier verifier = getHostnameVerifier(hostnameVerification);
+      SSLConnectionSocketFactory sslFactory = new SSLConnectionSocketFactory(sslContext, verifier);
+      registryBuilder.register("https", sslFactory);
+    } catch (Exception e) {
+      LOG.error("HTTPS registry configuration failed");
+      throw new RuntimeException(e);
+    }
+  }
+
+  private SSLContext getSSLContext() throws Exception {
+    SSLContextBuilder sslContextBuilder = SSLContexts.custom();
+    if (null != truststore && null != truststorePassword) {
+      loadTrustStore(sslContextBuilder);
+    }
+    if (null != keystore && null != keystorePassword && null != keyPassword) {
+      loadKeyStore(sslContextBuilder);
+    }
+    return sslContextBuilder.build();
+  }
+
+  protected void loadKeyStore(SSLContextBuilder sslContextBuilder) throws Exception {
+    sslContextBuilder.loadKeyMaterial(keystore,
+            keystorePassword.toCharArray(), keyPassword.toCharArray());
+  }
+
+  protected void loadTrustStore(SSLContextBuilder sslContextBuilder) throws Exception {
+    sslContextBuilder.loadTrustMaterial(truststore, truststorePassword.toCharArray());
+  }
+
+  protected void configureHttpRegistry(RegistryBuilder<ConnectionSocketFactory> registryBuilder) {
+    registryBuilder.register("http", PlainConnectionSocketFactory.getSocketFactory());
   }
 
   /**
@@ -244,11 +284,25 @@ public class AvaticaCommonsHttpClientImpl implements AvaticaHttpClient,
           "Truststore is must be an existing, regular file: " + truststore);
     }
     this.truststorePassword = Objects.requireNonNull(password);
+    configureHttpsSocket = true;
+    initializeClient();
+  }
+
+  @Override public void setKeyStore(File keystore, String keystorepassword, String keypassword) {
+    this.keystore = Objects.requireNonNull(keystore);
+    if (!keystore.exists() || !keystore.isFile()) {
+      throw new IllegalArgumentException(
+              "Keystore is must be an existing, regular file: " + keystore);
+    }
+    this.keystorePassword = Objects.requireNonNull(keystorepassword);
+    this.keyPassword = Objects.requireNonNull(keypassword);
+    configureHttpsSocket = true;
     initializeClient();
   }
 
   @Override public void setHostnameVerification(HostnameVerification verification) {
     this.hostnameVerification = Objects.requireNonNull(verification);
+    configureHttpsSocket = true;
     initializeClient();
   }
 }

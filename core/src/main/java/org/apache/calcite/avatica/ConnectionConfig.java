@@ -54,6 +54,12 @@ public interface ConnectionConfig {
   File truststore();
   /** @see BuiltInConnectionProperty#TRUSTSTORE_PASSWORD */
   String truststorePassword();
+  /** @see BuiltInConnectionProperty#KEYSTORE */
+  File keystore();
+  /** @see BuiltInConnectionProperty#KEYSTORE_PASSWORD */
+  String keystorePassword();
+  /** @see BuiltInConnectionProperty#KEY_PASSWORD */
+  String keyPassword();
   /** @see BuiltInConnectionProperty#HOSTNAME_VERIFICATION */
   HostnameVerification hostnameVerification();
 }

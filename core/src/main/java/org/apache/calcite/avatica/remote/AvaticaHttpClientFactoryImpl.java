@@ -74,10 +74,23 @@ public class AvaticaHttpClientFactoryImpl implements AvaticaHttpClientFactory {
       File truststore = config.truststore();
       String truststorePassword = config.truststorePassword();
       if (null != truststore && null != truststorePassword) {
-        ((TrustStoreConfigurable) client).setTrustStore(truststore, truststorePassword);
+        ((TrustStoreConfigurable) client)
+                .setTrustStore(truststore, truststorePassword);
       }
     } else {
       LOG.debug("{} is not capable of SSL/TLS communication", client.getClass().getName());
+    }
+
+    if (client instanceof KeyStoreConfigurable) {
+      File keystore = config.keystore();
+      String keystorePassword = config.keystorePassword();
+      String keyPassword = config.keyPassword();
+      if (null != keystore && null != keystorePassword && null != keyPassword) {
+        ((KeyStoreConfigurable) client)
+                .setKeyStore(keystore, keystorePassword, keyPassword);
+      }
+    } else {
+      LOG.debug("{} is not capable of Mutual authentication", client.getClass().getName());
     }
 
     // Set the SSL hostname verification if the client supports it
