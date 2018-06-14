@@ -44,6 +44,7 @@ public enum TimeUnitRange {
   WEEK(TimeUnit.WEEK, null),
   MILLISECOND(TimeUnit.MILLISECOND, null),
   MICROSECOND(TimeUnit.MICROSECOND, null),
+  NANOSECOND(TimeUnit.NANOSECOND, null),
   DOW(TimeUnit.DOW, null),
   ISODOW(TimeUnit.ISODOW, null),
   DOY(TimeUnit.DOY, null),

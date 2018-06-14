@@ -27,8 +27,9 @@ import java.math.BigDecimal;
  *
  * <p>The others ({@link #QUARTER}, {@link #WEEK}, {@link #MILLISECOND},
  * {@link #DOW}, {@link #DOY}, {@link #EPOCH}, {@link #DECADE}, {@link #CENTURY},
- * {@link #MILLENNIUM}, {@link #MICROSECOND}, {@link #ISODOW} and {@link #ISOYEAR})
- * are convenient to use internally, when converting to and from UNIX timestamps.
+ * {@link #MILLENNIUM}, {@link #MICROSECOND}, {@link #NANOSECOND}, {@link #ISODOW}
+ * and {@link #ISOYEAR}) are convenient to use internally,
+ * when converting to and from UNIX timestamps.
  * And also may be arguments to the {@code EXTRACT}, {@code TIMESTAMPADD} and
  * {@code TIMESTAMPDIFF} functions.
  */
@@ -49,7 +50,9 @@ public enum TimeUnit {
       BigDecimal.valueOf(53)),
   MILLISECOND(false, '.', BigDecimal.ONE, BigDecimal.valueOf(1000)),
   MICROSECOND(false, '.', BigDecimal.ONE.scaleByPowerOfTen(-3),
-      BigDecimal.valueOf(1000000)),
+      BigDecimal.valueOf(1000_000)),
+  NANOSECOND(false, '.', BigDecimal.ONE.scaleByPowerOfTen(-6),
+      BigDecimal.valueOf(1000_000_000)),
   DOW(false, '-', null, null),
   ISODOW(false, '-', null, null),
   DOY(false, '-', null, null),
