@@ -25,14 +25,13 @@ import static org.junit.Assume.assumeTrue;
 /**
  * Used to trigger integration tests from maven (thus class name is suffixed with {@code IT}).
  *
- * <p>If you want to run integration tests from IDE manually set
+ * If you want to run integration tests from IDE manually set
  * {@code -Dcalcite.integrationTest=true} system property.
- *
+ * <br>
  * For command line use:
  * <pre>
  *     $ mvn install -Pit
  * </pre>
- * </p>
  */
 public class MongoAdapterIT extends MongoAdapterTest {
 
