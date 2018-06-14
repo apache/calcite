@@ -18,6 +18,7 @@ package org.apache.calcite.avatica.util;
 
 import org.junit.Test;
 
+import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Locale;
@@ -48,6 +49,7 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
@@ -87,6 +89,66 @@ public class DateTimeUtilsTest {
     assertThat(floorMod(0, 3), is(0L));
     assertThat(floorMod(1, 3), is(1L));
     assertThat(floorMod(-1, 3), is(2L));
+  }
+
+  @Test public void testTimeUnitRange() {
+    assertSame(TimeUnitRange.of(TimeUnit.YEAR, null), TimeUnitRange.YEAR);
+    assertSame(TimeUnitRange.of(TimeUnit.YEAR, TimeUnit.MONTH), TimeUnitRange.YEAR_TO_MONTH);
+    assertSame(TimeUnitRange.of(TimeUnit.MONTH, null), TimeUnitRange.MONTH);
+    assertSame(TimeUnitRange.of(TimeUnit.DAY, null), TimeUnitRange.DAY);
+    assertSame(TimeUnitRange.of(TimeUnit.DAY, TimeUnit.HOUR), TimeUnitRange.DAY_TO_HOUR);
+    assertSame(TimeUnitRange.of(TimeUnit.DAY, TimeUnit.MINUTE), TimeUnitRange.DAY_TO_MINUTE);
+    assertSame(TimeUnitRange.of(TimeUnit.DAY, TimeUnit.SECOND), TimeUnitRange.DAY_TO_SECOND);
+    assertSame(TimeUnitRange.of(TimeUnit.HOUR, null), TimeUnitRange.HOUR);
+    assertSame(TimeUnitRange.of(TimeUnit.HOUR, TimeUnit.MINUTE), TimeUnitRange.HOUR_TO_MINUTE);
+    assertSame(TimeUnitRange.of(TimeUnit.HOUR, TimeUnit.SECOND), TimeUnitRange.HOUR_TO_SECOND);
+    assertSame(TimeUnitRange.of(TimeUnit.MINUTE, null), TimeUnitRange.MINUTE);
+    assertSame(TimeUnitRange.of(TimeUnit.MINUTE, TimeUnit.SECOND), TimeUnitRange.MINUTE_TO_SECOND);
+    assertSame(TimeUnitRange.of(TimeUnit.SECOND, null), TimeUnitRange.SECOND);
+    assertSame(TimeUnitRange.of(TimeUnit.ISOYEAR, null), TimeUnitRange.ISOYEAR);
+    assertSame(TimeUnitRange.of(TimeUnit.QUARTER, null), TimeUnitRange.QUARTER);
+    assertSame(TimeUnitRange.of(TimeUnit.WEEK, null), TimeUnitRange.WEEK);
+    assertSame(TimeUnitRange.of(TimeUnit.MILLISECOND, null), TimeUnitRange.MILLISECOND);
+    assertSame(TimeUnitRange.of(TimeUnit.MICROSECOND, null), TimeUnitRange.MICROSECOND);
+    assertSame(TimeUnitRange.of(TimeUnit.NANOSECOND, null), TimeUnitRange.NANOSECOND);
+    assertSame(TimeUnitRange.of(TimeUnit.DOW, null), TimeUnitRange.DOW);
+    assertSame(TimeUnitRange.of(TimeUnit.ISODOW, null), TimeUnitRange.ISODOW);
+    assertSame(TimeUnitRange.of(TimeUnit.DOY, null), TimeUnitRange.DOY);
+    assertSame(TimeUnitRange.of(TimeUnit.EPOCH, null), TimeUnitRange.EPOCH);
+    assertSame(TimeUnitRange.of(TimeUnit.DECADE, null), TimeUnitRange.DECADE);
+    assertSame(TimeUnitRange.of(TimeUnit.CENTURY, null), TimeUnitRange.CENTURY);
+    assertSame(TimeUnitRange.of(TimeUnit.MILLENNIUM, null), TimeUnitRange.MILLENNIUM);
+  }
+
+  @Test public void testTimeUnitMultipliers() {
+    assertEquals(TimeUnit.NANOSECOND.multiplier,
+        TimeUnit.MICROSECOND.multiplier.divide(BigDecimal.valueOf(1000)));
+    assertEquals(TimeUnit.MICROSECOND.multiplier,
+        TimeUnit.MILLISECOND.multiplier.divide(BigDecimal.valueOf(1000)));
+    assertEquals(TimeUnit.MILLISECOND.multiplier,
+        TimeUnit.SECOND.multiplier.divide(BigDecimal.valueOf(1000)));
+    assertEquals(BigDecimal.valueOf(60),
+        TimeUnit.HOUR.multiplier.divide(TimeUnit.MINUTE.multiplier));
+    assertEquals(BigDecimal.valueOf(60),
+        TimeUnit.MINUTE.multiplier.divide(TimeUnit.SECOND.multiplier));
+    assertEquals(BigDecimal.valueOf(24),
+        TimeUnit.DAY.multiplier.divide(TimeUnit.HOUR.multiplier));
+    assertEquals(BigDecimal.valueOf(7),
+        TimeUnit.WEEK.multiplier.divide(TimeUnit.DAY.multiplier));
+    assertEquals(BigDecimal.valueOf(4),
+        TimeUnit.YEAR.multiplier.divide(TimeUnit.QUARTER.multiplier));
+    assertEquals(BigDecimal.valueOf(12),
+        TimeUnit.YEAR.multiplier.divide(TimeUnit.MONTH.multiplier));
+    assertEquals(BigDecimal.valueOf(12),
+        TimeUnit.ISOYEAR.multiplier.divide(TimeUnit.MONTH.multiplier));
+    assertEquals(BigDecimal.valueOf(3),
+        TimeUnit.QUARTER.multiplier.divide(TimeUnit.MONTH.multiplier));
+    assertEquals(BigDecimal.valueOf(10),
+        TimeUnit.DECADE.multiplier.divide(TimeUnit.YEAR.multiplier));
+    assertEquals(BigDecimal.valueOf(100),
+        TimeUnit.CENTURY.multiplier.divide(TimeUnit.YEAR.multiplier));
+    assertEquals(BigDecimal.valueOf(1000),
+        TimeUnit.MILLENNIUM.multiplier.divide(TimeUnit.YEAR.multiplier));
   }
 
   @Test public void testUnixDateToString() {
