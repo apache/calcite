@@ -32,8 +32,8 @@ public interface CalciteConnectionConfig extends ConnectionConfig {
   boolean approximateTopN();
   /** @see CalciteConnectionProperty#APPROXIMATE_DECIMAL */
   boolean approximateDecimal();
-  /** @see CalciteConnectionProperty#NULL_IS_EMPTY */
-  boolean nullIsEmpty();
+  /** @see CalciteConnectionProperty#NULL_EQUAL_TO_EMPTY */
+  boolean nullEqualToEmpty();
   /** @see CalciteConnectionProperty#AUTO_TEMP */
   boolean autoTemp();
   /** @see CalciteConnectionProperty#MATERIALIZATIONS_ENABLED */
