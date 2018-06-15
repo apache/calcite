@@ -26,7 +26,6 @@ import org.junit.Test;
 import java.io.File;
 import java.net.URL;
 
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doNothing;
@@ -51,8 +50,6 @@ public class AvaticaCommonsHttpClientImplSocketFactoryTest {
 
   @Test public void testPlainSocketFactory() throws Exception {
     configureHttpClient();
-    assertFalse("Https socket should not be configured"
-            + " without truststore/keystore", client.configureHttpsSocket);
     verifyFactoryInstance(client, HTTP_REGISTRY, PlainConnectionSocketFactory.class);
     verifyFactoryInstance(client, HTTPS_REGISTRY, null);
     verify(client, times(0)).loadTrustStore(any(SSLContextBuilder.class));
@@ -62,8 +59,6 @@ public class AvaticaCommonsHttpClientImplSocketFactoryTest {
   @Test public void testTrustStoreLoadedInFactory() throws Exception {
     configureHttpsClient();
     client.setTrustStore(storeFile, password);
-    assertTrue("Https socket should be configured"
-            + " with truststore", client.configureHttpsSocket);
     verifyFactoryInstance(client, HTTP_REGISTRY, null);
     verifyFactoryInstance(client, HTTPS_REGISTRY, SSLConnectionSocketFactory.class);
     verify(client, times(1)).configureSocketFactories();
@@ -74,8 +69,6 @@ public class AvaticaCommonsHttpClientImplSocketFactoryTest {
   @Test public void testKeyStoreLoadedInFactory() throws Exception {
     configureHttpsClient();
     client.setKeyStore(storeFile, password, password);
-    assertTrue("Https socket should be configured"
-            + " with keystore", client.configureHttpsSocket);
     verifyFactoryInstance(client, HTTP_REGISTRY, null);
     verifyFactoryInstance(client, HTTPS_REGISTRY, SSLConnectionSocketFactory.class);
     verify(client, times(1)).configureSocketFactories();

@@ -88,7 +88,6 @@ public class AvaticaCommonsHttpClientImpl implements AvaticaHttpClient,
   protected CredentialsProvider credentialsProvider = null;
   protected Lookup<AuthSchemeProvider> authRegistry = null;
 
-  protected boolean configureHttpsSocket = false;
   protected File truststore = null;
   protected File keystore = null;
   protected String truststorePassword = null;
@@ -134,11 +133,6 @@ public class AvaticaCommonsHttpClientImpl implements AvaticaHttpClient,
   }
 
   protected void configureHttpsRegistry(RegistryBuilder<ConnectionSocketFactory> registryBuilder) {
-    if (!configureHttpsSocket) {
-      LOG.debug("HTTPS Socket not being configured because no truststore/keystore provided");
-      return;
-    }
-
     try {
       SSLContext sslContext = getSSLContext();
       final HostnameVerifier verifier = getHostnameVerifier(hostnameVerification);
@@ -284,7 +278,6 @@ public class AvaticaCommonsHttpClientImpl implements AvaticaHttpClient,
           "Truststore is must be an existing, regular file: " + truststore);
     }
     this.truststorePassword = Objects.requireNonNull(password);
-    configureHttpsSocket = true;
     initializeClient();
   }
 
@@ -296,13 +289,11 @@ public class AvaticaCommonsHttpClientImpl implements AvaticaHttpClient,
     }
     this.keystorePassword = Objects.requireNonNull(keystorepassword);
     this.keyPassword = Objects.requireNonNull(keypassword);
-    configureHttpsSocket = true;
     initializeClient();
   }
 
   @Override public void setHostnameVerification(HostnameVerification verification) {
     this.hostnameVerification = Objects.requireNonNull(verification);
-    configureHttpsSocket = true;
     initializeClient();
   }
 }
