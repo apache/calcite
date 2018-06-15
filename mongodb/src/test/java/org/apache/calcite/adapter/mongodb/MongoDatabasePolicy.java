@@ -28,46 +28,46 @@ import com.mongodb.client.MongoDatabase;
 import org.junit.rules.ExternalResource;
 
 /**
- * Instantiates new connection to fongo (or mongo) database depending on current profile
- * (unit or integration tests).
+ * Instantiates a new connection to Fongo (or Mongo) database depending on the
+ * current profile (unit or integration tests).
  *
- * By default, this rule is executed as part of a unit test and in-memory database
- * <a href="https://github.com/fakemongo/fongo">fongo</a> is used.
+ * <p>By default, this rule is executed as part of a unit test and in-memory database
+ * <a href="https://github.com/fakemongo/fongo">Fongo</a> is used.
  *
- * <p>However, if maven profile is set to {@code IT} (eg. via command line
- * {@code $ mvn -Pit install}) this rule will connect to existing (external)
- * mongo instance ({@code localhost})</p>
- *
+ * <p>However, if the maven profile is set to {@code IT} (eg. via command line
+ * {@code $ mvn -Pit install}) this rule will connect to an existing (external)
+ * Mongo instance ({@code localhost}).
  */
-class MongoDatabaseRule extends ExternalResource {
+class MongoDatabasePolicy extends ExternalResource {
 
   private static final String DB_NAME = "test";
 
   private final MongoDatabase database;
   private final MongoClient client;
 
-  private MongoDatabaseRule(MongoClient client) {
+  private MongoDatabasePolicy(MongoClient client) {
     this.client = Preconditions.checkNotNull(client, "client");
     this.database = client.getDatabase(DB_NAME);
   }
 
   /**
-   * Create an instance based on current maven profile (as defined by {@code -Pit}).
-   * @return new instance of the rule to be used by unit tests
+   * Creates an instance based on current maven profile (as defined by {@code -Pit}).
+   *
+   * @return new instance of the policy to be used by unit tests
    */
-  static MongoDatabaseRule create() {
+  static MongoDatabasePolicy create() {
     final MongoClient client;
     if (MongoAssertions.useMongo()) {
       // use to real client (connects to mongo)
       client = new MongoClient();
     } else if (MongoAssertions.useFongo()) {
       // in-memory DB (fake Mongo)
-      client = new Fongo(MongoDatabaseRule.class.getSimpleName()).getMongo();
+      client = new Fongo(MongoDatabasePolicy.class.getSimpleName()).getMongo();
     } else {
       throw new UnsupportedOperationException("I can only connect to Mongo or Fongo instances");
     }
 
-    return new MongoDatabaseRule(client);
+    return new MongoDatabasePolicy(client);
   }
 
 
@@ -81,4 +81,4 @@ class MongoDatabaseRule extends ExternalResource {
 
 }
 
-// End MongoDatabaseRule.java
+// End MongoDatabasePolicy.java

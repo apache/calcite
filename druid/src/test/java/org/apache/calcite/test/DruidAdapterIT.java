@@ -71,8 +71,8 @@ import static org.junit.Assert.assertTrue;
  *   <li>push HAVING into "groupBy" query</li>
  * </ul>
  *
- * These tests use "timestamp with local time zone" type for the
- * Druid timestamp column, instead of "timestamp" type  as
+ * <p>These tests use TIMESTAMP WITH LOCAL TIME ZONE type for the
+ * Druid timestamp column, instead of TIMESTAMP type as
  * {@link DruidAdapterIT2}.
  */
 public class DruidAdapterIT {

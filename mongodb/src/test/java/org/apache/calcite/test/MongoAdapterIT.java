@@ -25,10 +25,10 @@ import static org.junit.Assume.assumeTrue;
 /**
  * Used to trigger integration tests from maven (thus class name is suffixed with {@code IT}).
  *
- * If you want to run integration tests from IDE manually set
+ * <p>If you want to run integration tests from the, IDE manually set the
  * {@code -Dcalcite.integrationTest=true} system property.
- * <br>
- * For command line use:
+ *
+ * <p>For command line use:
  * <pre>
  *     $ mvn install -Pit
  * </pre>

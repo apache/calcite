@@ -23,18 +23,18 @@ import java.util.List;
 import javax.annotation.Nullable;
 
 /**
- * Internal util methods for ElasticSearch tests
+ * Utility methods for Elasticsearch tests.
  */
-public class ElasticChecker {
+public class ElasticsearchChecker {
 
-  private ElasticChecker() {}
+  private ElasticsearchChecker() {}
 
-
-  /** Returns a function that checks that a particular Elasticsearch pipeline is
+  /**
+   * Returns a function that checks that a particular Elasticsearch pipeline is
    * generated to implement a query.
    *
-   * @param strings list of expected queries
-   * @return function to perform the check
+   * @param strings expected expressions
+   * @return validation function
    */
   public static Function<List, Void> elasticsearchChecker(final String... strings) {
     return new Function<List, Void>() {
@@ -50,4 +50,4 @@ public class ElasticChecker {
   }
 }
 
-// End ElasticChecker.java
+// End ElasticsearchChecker.java

@@ -118,7 +118,7 @@ class EmbeddedElasticsearchNode implements AutoCloseable {
   }
 
   /**
-   * Exposes elastic
+   * Exposes an Elasticsearch
    * <a href="https://www.elastic.co/guide/en/elasticsearch/client/java-api/current/transport-client.html">transport client</a>
    * (use of HTTP client is preferred).
    *

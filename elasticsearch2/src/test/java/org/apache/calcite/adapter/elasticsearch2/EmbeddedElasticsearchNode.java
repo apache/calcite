@@ -36,15 +36,15 @@ import java.util.Collection;
 import java.util.Collections;
 
 /**
- * Represents a single elastic search node which can run embedded in a java application.
+ * Represents a single Elasticsearch node that can run embedded in a java application.
  * Intended for unit and integration tests. Settings and plugins are crafted for Calcite.
  */
-class EmbeddedElasticNode implements AutoCloseable {
+class EmbeddedElasticsearchNode implements AutoCloseable {
 
   private final LocalNode node;
   private volatile boolean  isStarted;
 
-  private EmbeddedElasticNode(LocalNode node) {
+  private EmbeddedElasticsearchNode(LocalNode node) {
     this.node = Preconditions.checkNotNull(node, "node");
   }
 
@@ -66,10 +66,10 @@ class EmbeddedElasticNode implements AutoCloseable {
    * @param settings ES settings for the node
    * @return un-started node; call {@link #start()} to start the instance
    */
-  private static EmbeddedElasticNode create(Settings settings) {
+  private static EmbeddedElasticsearchNode create(Settings settings) {
     // ensure GroovyPlugin is installed or otherwise scripted fields would not work
     LocalNode node = new LocalNode(settings, Collections.singleton(GroovyPlugin.class));
-    return new EmbeddedElasticNode(node);
+    return new EmbeddedElasticsearchNode(node);
   }
 
   /**
@@ -78,7 +78,7 @@ class EmbeddedElasticNode implements AutoCloseable {
    *
    * @return node with default configuration
    */
-  public static EmbeddedElasticNode create() {
+  public static EmbeddedElasticsearchNode create() {
     File data = Files.createTempDir();
     data.deleteOnExit();
     File home = Files.createTempDir();
@@ -127,7 +127,7 @@ class EmbeddedElasticNode implements AutoCloseable {
   }
 
   /**
-   * Exposes elastic
+   * Exposes an Elasticsearch
    * <a href="https://www.elastic.co/guide/en/elasticsearch/client/java-api/current/transport-client.html">transport client</a>
    * (use of HTTP client is preferred).
    *
@@ -151,4 +151,4 @@ class EmbeddedElasticNode implements AutoCloseable {
   }
 }
 
-// End EmbeddedElasticNode.java
+// End EmbeddedElasticsearchNode.java
