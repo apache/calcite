@@ -48,10 +48,9 @@ public enum CalciteConnectionProperty implements ConnectionProperty {
    * DECIMAL types are acceptable. */
   APPROXIMATE_DECIMAL("approximateDecimal", Type.BOOLEAN, false, false),
 
-  /**
-   * Whether to treat empty strings as null for Druid Adapter.
+  /** Whether to treat empty strings as null for Druid Adapter.
    */
-  NULL_IS_EMPTY("nullIsEmpty", Type.BOOLEAN, true, false),
+  NULL_EQUAL_TO_EMPTY("nullEqualToEmpty", Type.BOOLEAN, true, false),
 
   /** Whether to store query results in temporary tables. */
   AUTO_TEMP("autoTemp", Type.BOOLEAN, false, false),

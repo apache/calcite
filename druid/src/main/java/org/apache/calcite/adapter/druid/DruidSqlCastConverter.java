@@ -57,7 +57,7 @@ public class DruidSqlCastConverter implements DruidSqlOperatorConverter {
     if (SqlTypeName.CHAR_TYPES.contains(fromType) && SqlTypeName.DATETIME_TYPES.contains(toType)) {
       //case chars to dates
       return castCharToDateTime(timeZone, operandExpression, toType,
-          druidQuery.getConnectionConfig().nullIsEmpty() ? "" : null);
+          druidQuery.getConnectionConfig().nullEqualToEmpty() ? "" : null);
     } else if (SqlTypeName.DATETIME_TYPES.contains(fromType) && SqlTypeName.CHAR_TYPES.contains
         (toType)) {
       //case dates to chars
