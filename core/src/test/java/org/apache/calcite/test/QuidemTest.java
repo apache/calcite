@@ -72,7 +72,8 @@ public abstract class QuidemTest {
   private Method findMethod(String path) {
     // E.g. path "sql/agg.iq" gives method "testSqlAgg"
     String methodName =
-        AvaticaUtils.toCamelCase("test_" + path.replace('/', '_').replaceAll("\\.iq$", ""));
+        AvaticaUtils.toCamelCase(
+            "test_" + path.replace(File.separatorChar, '_').replaceAll("\\.iq$", ""));
     Method m;
     try {
       m = getClass().getMethod(methodName);
