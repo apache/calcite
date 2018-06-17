@@ -28,6 +28,82 @@ For a full list of releases, see
 Downloads are available on the
 [downloads page]({{ site.baseurl }}/downloads/avatica.html).
 
+## <a href="https://github.com/apache/calcite-avatica/releases/tag/calcite-avatica-1.12.0">1.12.0</a> / 2018-06-15
+{: #v1-12-0}
+
+Apache Calcite Avatica 1.12.0 includes more than 20 bugs fixes and new features. ZIP archives will no longer be
+produced from this release onwards.
+
+Compatibility: This release is tested
+on Linux, macOS, Microsoft Windows;
+using Oracle JDK 8, 9, 10, 11;
+using IBM Java 8;
+Guava versions 14.0 to 23.0;
+other software versions as specified in `pom.xml`.
+
+Features and bug fixes
+
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1520">CALCITE-1520</a>]
+  Implement isValid for AvaticaConnection
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-2212">CALCITE-2212</a>]
+  Enforce minimum JDK 8 via maven-enforcer-plugin
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-2268">CALCITE-2268</a>]
+  Bump HSQLDB to 2.4.0 in Avatica Docker image
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-2272">CALCITE-2272</a>]
+  Bump dependencies: Apache Parent POM 19, JDK 10 Surefire and JDK 10 Javadoc
+  Fix Javadoc generation
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-2218">CALCITE-2218</a>]
+  Fix AvaticaResultSet#getRow()
+* Add Docker Hub image for HSQLDB
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-2289">CALCITE-2289</a>]
+  Enable html5 for Javadoc on JDK 9+
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-2284">CALCITE-2284</a>]
+  Allow Jetty Server to be customized before startup
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-2333">CALCITE-2333</a>]
+  Stop generating ZIP archives for release
+* Bump HSQLDB dependency to 2.4.1
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-2294">CALCITE-2294</a>]
+  Allow customization for AvaticaServerConfiguration for plugging new authentication mechanisms (Karan Mehta)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1884">CALCITE-1884</a>]
+  DateTimeUtils produces incorrect results for days before the Gregorian cutover (Haohui Mai and Sergey Nuyanzin)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-2303">CALCITE-2303</a>]
+  Support MICROSECONDS, MILLISECONDS, EPOCH, ISODOW, ISOYEAR and DECADE time units in EXTRACT function (Sergey Nuyanzin)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-2350">CALCITE-2350</a>]
+  Fix cannot shade Avatica with Guava 21.0 or higher
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-2341">CALCITE-2341</a>]
+  Fix Javadoc plugin incompatibility
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-2352">CALCITE-2352</a>]
+  Update checkstyle to 6.18 and update supressions.xml
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-2219">CALCITE-2219</a>]
+  Update Connection, Statement, PreparedStatement and ResultSet to throw an exception if resource is closed.
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-2361">CALCITE-2361</a>]
+  Upgrade Bouncycastle to 1.59
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-2299">CALCITE-2299</a>]
+  Add support for NANOSECOND in TimeUnit and TimeUnitRange 
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-2285">CALCITE-2285</a>]
+  Support client cert keystore for Avatica client
+  
+Tests
+
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-2210">CALCITE-2210</a>]
+  Remove oraclejdk7, add oraclejdk9, add oraclejdk10, and add ibmjava to .travis.yml
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-2255">CALCITE-2255</a>]
+  Add JDK 11 .travis.yml
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-2022">CALCITE-2022</a>]
+  Add dynamic drive calculation to correctly determine trust store location when testing on Windows (Sergey Nuyanzin)
+
+Website and Documentation
+
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1160">CALCITE-1160</a>]
+  Redirect from Avatica community to Calcite community
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1937">CALCITE-1937</a>]
+  Update Avatica website to support the inclusion of Avatica-Go's content and add option for using docker to develop
+  and build the website
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-1914">CALCITE-1914</a>]
+  Add DOAP (Description of a Project) file for Avatica
+* Fix broken link in HOWTO
+* Add missing license header to avatica-go docs generation script
+
 ## <a href="https://github.com/apache/calcite-avatica/releases/tag/calcite-avatica-1.11.0">1.11.0</a> / 2018-03-09
 {: #v1-11-0}
 

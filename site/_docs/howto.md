@@ -38,8 +38,8 @@ Unpack the source distribution `.tar.gz` file,
 then build using maven:
 
 {% highlight bash %}
-$ tar xvfz apache-calcite-avatica-1.11.0-src.tar.gz
-$ cd apache-calcite-avatica-1.11.0-src
+$ tar xvfz apache-calcite-avatica-1.12.0-src.tar.gz
+$ cd apache-calcite-avatica-1.12.0-src
 $ mvn install
 {% endhighlight %}
 
@@ -239,12 +239,12 @@ index 4617a4e..4ccd97f 100644
 +++ b/docker/src/main/dockerhub/Dockerfile
 @@ -23,3 +23,3 @@ RUN mkdir -p /home/avatica/classpath
 # This line must be preserved. The Maven build will verify this version matches its version
--ARG AVATICA_VERSION="1.11.0"
-+ARG AVATICA_VERSION="1.11.0-SNAPSHOT"
+-ARG AVATICA_VERSION="1.12.0"
++ARG AVATICA_VERSION="1.12.0-SNAPSHOT"
 EOF
 
 # Do a dry run of the release:prepare step, which sets version numbers.
-# Typically we increment minor version: If X.Y.Z is 1.10.0, X2.Y2.Z2 is 1.11.0.
+# Typically we increment minor version: If X.Y.Z is 1.11.0, X2.Y2.Z2 is 1.12.0.
 mvn -DdryRun=true -DreleaseVersion=X.Y.Z -DdevelopmentVersion=X2.Y2.Z2-SNAPSHOT -Dtag=avatica-X.Y.Z-rcN -Papache-release -Duser.name=${asf.username} release:prepare
 {% endhighlight %}
 
@@ -281,7 +281,7 @@ If successful, remove the `-DdryRun` flag and run the release for real.
 
 {% highlight bash %}
 # Prepare sets the version numbers, creates a tag, and pushes it to git.
-# Typically we increment minor version: If X.Y.Z is 1.10.0, X2.Y2.Z2 is 1.11.0.
+# Typically we increment minor version: If X.Y.Z is 1.11.0, X2.Y2.Z2 is 1.12.0.
 mvn -DreleaseVersion=X.Y.Z -DdevelopmentVersion=X2.Y2.Z2-SNAPSHOT -Dtag=avatica-X.Y.Z-rcN -Papache-release -Duser.name=${asf.username} release:prepare
 
 # Perform checks out the tagged version, builds, and deploys to the staging repository
