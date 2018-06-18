@@ -51,7 +51,7 @@ public class SqlAsOperator extends SqlSpecialOperator {
         true,
         ReturnTypes.ARG0,
         InferTypes.RETURN_TYPE,
-        OperandTypes.ANY_ANY);
+        OperandTypes.ANY_IGNORE);
   }
 
   protected SqlAsOperator(String name, SqlKind kind, int prec,

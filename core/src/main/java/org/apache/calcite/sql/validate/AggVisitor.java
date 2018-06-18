@@ -18,6 +18,7 @@ package org.apache.calcite.sql.validate;
 
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlFunction;
+import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlOperatorTable;
@@ -87,15 +88,18 @@ abstract class AggVisitor extends SqlBasicVisitor<Void> {
       final SqlFunction sqlFunction = (SqlFunction) operator;
       if (sqlFunction.getFunctionType().isUserDefinedNotSpecificFunction()) {
         final List<SqlOperator> list = new ArrayList<>();
-        opTab.lookupOperatorOverloads(sqlFunction.getSqlIdentifier(),
-            sqlFunction.getFunctionType(), SqlSyntax.FUNCTION, list,
-            nameMatcher);
-        for (SqlOperator operator2 : list) {
-          if (operator2.isAggregator() && !operator2.requiresOver()) {
-            // If nested aggregates disallowed or found aggregate at invalid
-            // level
-            if (aggregate) {
-              found(call);
+        final SqlIdentifier identifier = sqlFunction.getSqlIdentifier();
+        if (identifier != null) {
+          opTab.lookupOperatorOverloads(identifier,
+              sqlFunction.getFunctionType(), SqlSyntax.FUNCTION, list,
+              nameMatcher);
+          for (SqlOperator operator2 : list) {
+            if (operator2.isAggregator() && !operator2.requiresOver()) {
+              // If nested aggregates disallowed or found aggregate at invalid
+              // level
+              if (aggregate) {
+                found(call);
+              }
             }
           }
         }

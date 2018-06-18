@@ -441,8 +441,15 @@ public abstract class OperandTypes {
 
   public static final SqlSingleOperandTypeChecker ANY_ANY =
       family(SqlTypeFamily.ANY, SqlTypeFamily.ANY);
+  public static final SqlSingleOperandTypeChecker ANY_IGNORE =
+      family(SqlTypeFamily.ANY, SqlTypeFamily.IGNORE);
+  public static final SqlSingleOperandTypeChecker IGNORE_ANY =
+      family(SqlTypeFamily.IGNORE, SqlTypeFamily.ANY);
   public static final SqlSingleOperandTypeChecker ANY_NUMERIC =
       family(SqlTypeFamily.ANY, SqlTypeFamily.NUMERIC);
+
+  public static final SqlSingleOperandTypeChecker CURSOR =
+      family(SqlTypeFamily.CURSOR);
 
   /**
    * Parameter type-checking strategy where type must a nullable time interval,

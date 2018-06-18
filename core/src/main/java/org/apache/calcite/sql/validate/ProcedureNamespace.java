@@ -21,6 +21,8 @@ import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlCallBinding;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.SqlTableFunction;
+import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeName;
 
 /**
@@ -54,21 +56,18 @@ public class ProcedureNamespace extends AbstractNamespace {
     final SqlOperator operator = call.getOperator();
     final SqlCallBinding callBinding =
         new SqlCallBinding(validator, scope, call);
-    if (operator instanceof SqlUserDefinedTableFunction) {
-      assert type.getSqlTypeName() == SqlTypeName.CURSOR
-          : "User-defined table function should have CURSOR type, not " + type;
-      final SqlUserDefinedTableFunction udf =
-          (SqlUserDefinedTableFunction) operator;
-      return udf.getRowType(validator.typeFactory, callBinding.operands());
-    } else if (operator instanceof SqlUserDefinedTableMacro) {
-      assert type.getSqlTypeName() == SqlTypeName.CURSOR
-          : "User-defined table macro should have CURSOR type, not " + type;
-      final SqlUserDefinedTableMacro udf =
-          (SqlUserDefinedTableMacro) operator;
-      return udf.getTable(validator.typeFactory, callBinding.operands())
-          .getRowType(validator.typeFactory);
+    if (!(operator instanceof SqlTableFunction)) {
+      throw new IllegalArgumentException("Argument must be a table function: "
+          + operator.getNameAsId());
     }
-    return type;
+    final SqlTableFunction tableFunction = (SqlTableFunction) operator;
+    if (type.getSqlTypeName() != SqlTypeName.CURSOR) {
+      throw new IllegalArgumentException("Table function should have CURSOR "
+          + "type, not " + type);
+    }
+    final SqlReturnTypeInference rowTypeInference =
+        tableFunction.getRowTypeInference();
+    return rowTypeInference.inferReturnType(callBinding);
   }
 
   public SqlNode getNode() {

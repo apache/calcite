@@ -113,6 +113,11 @@ public abstract class ReflectiveFunctionBase implements Function {
       final int ordinal = builder.size();
       builder.add(
           new FunctionParameter() {
+            @Override public String toString() {
+              return ordinal + ": " + name + " " + type.getSimpleName()
+                  + (optional ? "?" : "");
+            }
+
             public int getOrdinal() {
               return ordinal;
             }

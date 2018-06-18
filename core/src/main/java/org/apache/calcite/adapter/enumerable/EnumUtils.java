@@ -32,6 +32,7 @@ import org.apache.calcite.linq4j.tree.ConstantUntypedNull;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.ExpressionType;
 import org.apache.calcite.linq4j.tree.Expressions;
+import org.apache.calcite.linq4j.tree.FunctionExpression;
 import org.apache.calcite.linq4j.tree.MethodCallExpression;
 import org.apache.calcite.linq4j.tree.MethodDeclaration;
 import org.apache.calcite.linq4j.tree.ParameterExpression;
@@ -321,7 +322,7 @@ public class EnumUtils {
    */
   public static Expression convert(Expression operand, Type toType) {
     final Type fromType = operand.getType();
-    return EnumUtils.convert(operand, fromType, toType);
+    return convert(operand, fromType, toType);
   }
 
   /**
@@ -539,6 +540,23 @@ public class EnumUtils {
       }
     }
     return Expressions.convert_(operand, toType);
+  }
+
+  /** Converts a value to a given class. */
+  public static <T> T evaluate(Object o, Class<T> clazz) {
+    // We need optimization here for constant folding.
+    // Not all the expressions can be interpreted (e.g. ternary), so
+    // we rely on optimization capabilities to fold non-interpretable
+    // expressions.
+    //noinspection unchecked
+    clazz = Primitive.box(clazz);
+    BlockBuilder bb = new BlockBuilder();
+    final Expression expr =
+        convert(Expressions.constant(o), clazz);
+    bb.add(Expressions.return_(null, expr));
+    final FunctionExpression convert =
+        Expressions.lambda(bb.toBlock(), ImmutableList.of());
+    return clazz.cast(convert.compile().dynamicInvoke());
   }
 
   private static boolean isA(Type fromType, Primitive primitive) {

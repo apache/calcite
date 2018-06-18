@@ -52,7 +52,7 @@ public class SqlOverOperator extends SqlBinaryOperator {
         true,
         ReturnTypes.ARG0_FORCE_NULLABLE,
         null,
-        OperandTypes.ANY_ANY);
+        OperandTypes.ANY_IGNORE);
   }
 
   //~ Methods ----------------------------------------------------------------

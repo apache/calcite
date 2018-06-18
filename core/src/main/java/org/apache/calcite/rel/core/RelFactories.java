@@ -46,9 +46,14 @@ import org.apache.calcite.rel.logical.LogicalUnion;
 import org.apache.calcite.rel.logical.LogicalValues;
 import org.apache.calcite.rel.metadata.RelColumnMapping;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexCallBinding;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlOperatorBinding;
+import org.apache.calcite.sql.SqlTableFunction;
+import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.ImmutableBitSet;
@@ -512,8 +517,16 @@ public class RelFactories {
     @Override public RelNode createTableFunctionScan(RelOptCluster cluster,
         List<RelNode> inputs, RexNode rexCall, Type elementType,
         Set<RelColumnMapping> columnMappings) {
+      final RexCall call = (RexCall) rexCall;
+      final SqlOperatorBinding callBinding =
+          new RexCallBinding(cluster.getTypeFactory(), call.getOperator(),
+              call.operands, ImmutableList.of());
+      final SqlTableFunction operator = (SqlTableFunction) call.getOperator();
+      final SqlReturnTypeInference rowTypeInference =
+          operator.getRowTypeInference();
+      final RelDataType rowType = rowTypeInference.inferReturnType(callBinding);
       return LogicalTableFunctionScan.create(cluster, inputs, rexCall,
-          elementType, rexCall.getType(), columnMappings);
+          elementType, rowType, columnMappings);
     }
   }
 

@@ -33,6 +33,7 @@ import java.math.BigDecimal;
 import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import javax.annotation.Nonnull;
 
 import static org.apache.calcite.util.Static.RESOURCE;
 
@@ -126,6 +127,10 @@ public class SqlIntervalQualifier extends SqlNode {
   }
 
   //~ Methods ----------------------------------------------------------------
+
+  @Nonnull @Override public SqlKind getKind() {
+    return SqlKind.INTERVAL_QUALIFIER;
+  }
 
   public SqlTypeName typeName() {
     switch (timeUnitRange) {

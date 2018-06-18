@@ -216,16 +216,22 @@ public abstract class SqlUtil {
     if (node instanceof SqlLiteral) {
       return true;
     }
-    if (allowCast) {
-      if (node.getKind() == SqlKind.CAST) {
-        SqlCall call = (SqlCall) node;
-        if (isLiteral(call.operand(0), false)) {
-          // node is "CAST(literal as type)"
-          return true;
-        }
-      }
+    if (!allowCast) {
+      return false;
     }
-    return false;
+    switch (node.getKind()) {
+    case CAST:
+      // "CAST(e AS type)" is literal if "e" is literal
+      return isLiteral(((SqlCall) node).operand(0), true);
+    case MAP_VALUE_CONSTRUCTOR:
+    case ARRAY_VALUE_CONSTRUCTOR:
+      return ((SqlCall) node).getOperandList().stream()
+          .allMatch(o -> isLiteral(o, true));
+    case DEFAULT:
+      return true; // DEFAULT is always NULL
+    default:
+      return false;
+    }
   }
 
   /**

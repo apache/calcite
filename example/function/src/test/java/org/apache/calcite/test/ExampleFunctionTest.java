@@ -75,7 +75,7 @@ class ExampleFunctionTest {
   }
 
   public void checkMazeTableFunction(Boolean solution, String maze)
-      throws SQLException, ClassNotFoundException {
+      throws SQLException {
     Connection connection = DriverManager.getConnection("jdbc:calcite:");
     CalciteConnection calciteConnection =
         connection.unwrap(CalciteConnection.class);

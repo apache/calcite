@@ -554,6 +554,9 @@ public interface CalciteResource {
   ExInst<CalciteException> illegalArgumentForTableFunctionCall(String a0,
       String a1, String a2);
 
+  @BaseMessage("Cannot call table function here: ''{0}''")
+  ExInst<CalciteException> cannotCallTableFunctionHere(String a0);
+
   @BaseMessage("''{0}'' is not a valid datetime format")
   ExInst<CalciteException> invalidDatetimeFormat(String a0);
 

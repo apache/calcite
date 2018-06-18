@@ -16,11 +16,15 @@
  */
 package org.apache.calcite.sql;
 
+import org.apache.calcite.adapter.enumerable.EnumUtils;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactoryImpl;
 import org.apache.calcite.runtime.CalciteException;
 import org.apache.calcite.runtime.Resources;
+import org.apache.calcite.sql.fun.SqlLiteralChainOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SelectScope;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
 import org.apache.calcite.sql.validate.SqlValidator;
@@ -28,12 +32,16 @@ import org.apache.calcite.sql.validate.SqlValidatorException;
 import org.apache.calcite.sql.validate.SqlValidatorNamespace;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
+import org.apache.calcite.util.ImmutableNullableList;
 import org.apache.calcite.util.NlsString;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 import static org.apache.calcite.util.Static.RESOURCE;
 
@@ -212,20 +220,86 @@ public class SqlCallBinding extends SqlOperatorBinding {
   }
 
   @Override public <T> T getOperandLiteralValue(int ordinal, Class<T> clazz) {
-    try {
-      final SqlNode node = call.operand(ordinal);
-      return SqlLiteral.unchain(node).getValueAs(clazz);
-    } catch (IllegalArgumentException e) {
+    final SqlNode node = operand(ordinal);
+    return valueAs(node, clazz);
+  }
+
+  @Override public Object getOperandLiteralValue(int ordinal, RelDataType type) {
+    if (!(type instanceof RelDataTypeFactoryImpl.JavaType)) {
       return null;
+    }
+    final Class<?> clazz = ((RelDataTypeFactoryImpl.JavaType) type).getJavaClass();
+    final Object o = getOperandLiteralValue(ordinal, Object.class);
+    if (o == null) {
+      return null;
+    }
+    if (clazz.isInstance(o)) {
+      return clazz.cast(o);
+    }
+    final Object o2 = o instanceof NlsString ? ((NlsString) o).getValue() : o;
+    return EnumUtils.evaluate(o2, clazz);
+  }
+
+  private <T> T valueAs(SqlNode node, Class<T> clazz) {
+    final SqlLiteral literal;
+    switch (node.getKind()) {
+    case ARRAY_VALUE_CONSTRUCTOR:
+      final List<Object> list = new ArrayList<>();
+      for (SqlNode o : ((SqlCall) node).getOperandList()) {
+        list.add(valueAs(o, Object.class));
+      }
+      return clazz.cast(ImmutableNullableList.copyOf(list));
+
+    case MAP_VALUE_CONSTRUCTOR:
+      final ImmutableMap.Builder<Object, Object> builder2 =
+          ImmutableMap.builder();
+      final List<SqlNode> operands = ((SqlCall) node).getOperandList();
+      for (int i = 0; i < operands.size(); i += 2) {
+        final SqlNode key = operands.get(i);
+        final SqlNode value = operands.get(i + 1);
+        builder2.put(Objects.requireNonNull(valueAs(key, Object.class)),
+            Objects.requireNonNull(valueAs(value, Object.class)));
+      }
+      return clazz.cast(builder2.build());
+
+    case CAST:
+      return valueAs(((SqlCall) node).operand(0), clazz);
+
+    case LITERAL:
+      literal = (SqlLiteral) node;
+      if (literal.getTypeName() == SqlTypeName.NULL) {
+        return null;
+      }
+      return literal.getValueAs(clazz);
+
+    case LITERAL_CHAIN:
+      literal = SqlLiteralChainOperator.concatenateOperands((SqlCall) node);
+      return literal.getValueAs(clazz);
+
+    case INTERVAL_QUALIFIER:
+      final SqlIntervalQualifier q = (SqlIntervalQualifier) node;
+      final SqlIntervalLiteral.IntervalValue intervalValue =
+          new SqlIntervalLiteral.IntervalValue(q, 1, q.toString());
+      literal = new SqlLiteral(intervalValue, q.typeName(), q.pos);
+      return literal.getValueAs(clazz);
+
+    case DEFAULT:
+      return null; // currently NULL is the only default value
+
+    default:
+      if (SqlUtil.isNullLiteral(node, true)) {
+        return null; // NULL literal
+      }
+      return null; // not a literal
     }
   }
 
   @Override public boolean isOperandNull(int ordinal, boolean allowCast) {
-    return SqlUtil.isNullLiteral(call.operand(ordinal), allowCast);
+    return SqlUtil.isNullLiteral(operand(ordinal), allowCast);
   }
 
   @Override public boolean isOperandLiteral(int ordinal, boolean allowCast) {
-    return SqlUtil.isLiteral(call.operand(ordinal), allowCast);
+    return SqlUtil.isLiteral(operand(ordinal), allowCast);
   }
 
   @Override public int getOperandCount() {

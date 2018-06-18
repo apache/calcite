@@ -18,9 +18,6 @@ package org.apache.calcite.test;
 
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
-import org.apache.calcite.rel.type.RelDataTypeFieldImpl;
-import org.apache.calcite.rel.type.RelRecordType;
-import org.apache.calcite.rel.type.StructKind;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
@@ -29,9 +26,11 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlOperatorBinding;
 import org.apache.calcite.sql.SqlOperatorTable;
+import org.apache.calcite.sql.SqlTableFunction;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
+import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.util.ChainedSqlOperatorTable;
@@ -40,7 +39,6 @@ import org.apache.calcite.util.Optionality;
 
 import com.google.common.collect.ImmutableList;
 
-import java.util.Arrays;
 
 /**
  * Mock operator table for testing purposes. Contains the standard SQL operator
@@ -69,43 +67,81 @@ public class MockSqlOperatorTable extends ChainedSqlOperatorTable {
     opTab.addOperator(new MyFunction());
     opTab.addOperator(new MyAvgAggFunction());
     opTab.addOperator(new RowFunction());
+    opTab.addOperator(new NotATableFunction());
+    opTab.addOperator(new BadTableFunction());
   }
 
   /** "RAMP" user-defined function. */
-  public static class RampFunction extends SqlFunction {
+  public static class RampFunction extends SqlFunction
+      implements SqlTableFunction {
     public RampFunction() {
       super("RAMP",
           SqlKind.OTHER_FUNCTION,
-          null,
+          ReturnTypes.CURSOR,
           null,
           OperandTypes.NUMERIC,
-          SqlFunctionCategory.USER_DEFINED_FUNCTION);
+          SqlFunctionCategory.USER_DEFINED_TABLE_FUNCTION);
     }
 
-    public RelDataType inferReturnType(SqlOperatorBinding opBinding) {
-      final RelDataTypeFactory typeFactory =
-          opBinding.getTypeFactory();
-      return typeFactory.builder()
+    @Override public SqlReturnTypeInference getRowTypeInference() {
+      return opBinding -> opBinding.getTypeFactory().builder()
           .add("I", SqlTypeName.INTEGER)
           .build();
     }
   }
 
-  /** "DEDUP" user-defined function. */
-  public static class DedupFunction extends SqlFunction {
-    public DedupFunction() {
-      super("DEDUP",
+  /** Not valid as a table function, even though it returns CURSOR, because
+   * it does not implement {@link SqlTableFunction}. */
+  public static class NotATableFunction extends SqlFunction {
+    public NotATableFunction() {
+      super("BAD_RAMP",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.CURSOR,
+          null,
+          OperandTypes.NUMERIC,
+          SqlFunctionCategory.USER_DEFINED_FUNCTION);
+    }
+  }
+
+  /** Another bad table function: declares itself as a table function but does
+   * not return CURSOR. */
+  public static class BadTableFunction extends SqlFunction
+      implements SqlTableFunction {
+    public BadTableFunction() {
+      super("BAD_TABLE_FUNCTION",
           SqlKind.OTHER_FUNCTION,
           null,
           null,
-          OperandTypes.VARIADIC,
-          SqlFunctionCategory.USER_DEFINED_FUNCTION);
+          OperandTypes.NUMERIC,
+          SqlFunctionCategory.USER_DEFINED_TABLE_FUNCTION);
     }
 
     public RelDataType inferReturnType(SqlOperatorBinding opBinding) {
-      final RelDataTypeFactory typeFactory =
-          opBinding.getTypeFactory();
-      return typeFactory.builder()
+      // This is wrong. A table function should return CURSOR.
+      return opBinding.getTypeFactory().builder()
+          .add("I", SqlTypeName.INTEGER)
+          .build();
+    }
+
+    @Override public SqlReturnTypeInference getRowTypeInference() {
+      return this::inferReturnType;
+    }
+  }
+
+  /** "DEDUP" user-defined function. */
+  public static class DedupFunction extends SqlFunction
+      implements SqlTableFunction {
+    public DedupFunction() {
+      super("DEDUP",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.CURSOR,
+          null,
+          OperandTypes.VARIADIC,
+          SqlFunctionCategory.USER_DEFINED_TABLE_FUNCTION);
+    }
+
+    @Override public SqlReturnTypeInference getRowTypeInference() {
+      return opBinding -> opBinding.getTypeFactory().builder()
           .add("NAME", SqlTypeName.VARCHAR, 1024)
           .build();
     }
@@ -177,36 +213,25 @@ public class MockSqlOperatorTable extends ChainedSqlOperatorTable {
 
   /** "ROW_FUNC" user-defined function whose return type is
    * nullable row type with non-nullable fields. */
-  public static class RowFunction extends SqlFunction {
-    public RowFunction() {
-      super("ROW_FUNC",
-          SqlKind.OTHER_FUNCTION,
-          null,
-          null,
-          OperandTypes.NILADIC,
-          SqlFunctionCategory.USER_DEFINED_FUNCTION);
+  public static class RowFunction extends SqlFunction
+      implements SqlTableFunction {
+    RowFunction() {
+      super("ROW_FUNC", SqlKind.OTHER_FUNCTION, ReturnTypes.CURSOR, null,
+          OperandTypes.NILADIC, SqlFunctionCategory.USER_DEFINED_FUNCTION);
     }
 
-    public RelDataType inferReturnType(SqlOperatorBinding opBinding) {
-      final RelDataTypeFactory typeFactory =
-          opBinding.getTypeFactory();
-      final RelDataType bigIntNotNull = typeFactory.createSqlType(SqlTypeName.BIGINT);
-      final RelDataType bigIntNullable =
-          typeFactory.createTypeWithNullability(bigIntNotNull, true);
-      return new RelRecordType(
-          StructKind.FULLY_QUALIFIED,
-          Arrays.asList(
-              new RelDataTypeFieldImpl(
-                  "NOT_NULL_FIELD",
-                  0,
-                  bigIntNotNull),
-              new RelDataTypeFieldImpl(
-                  "NULLABLE_FIELD",
-                  0,
-                  bigIntNullable)
-          ),
-          true
-      );
+    private static RelDataType inferRowType(SqlOperatorBinding opBinding) {
+      final RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
+      final RelDataType bigintType =
+          typeFactory.createSqlType(SqlTypeName.BIGINT);
+      return typeFactory.builder()
+          .add("NOT_NULL_FIELD", bigintType)
+          .add("NULLABLE_FIELD", bigintType).nullable(true)
+          .build();
+    }
+
+    @Override public SqlReturnTypeInference getRowTypeInference() {
+      return RowFunction::inferRowType;
     }
   }
 }

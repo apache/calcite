@@ -65,8 +65,22 @@ public class FamilyOperandTypeChecker implements SqlSingleOperandTypeChecker,
       SqlNode node,
       int iFormalOperand,
       boolean throwOnFailure) {
-    SqlTypeFamily family = families.get(iFormalOperand);
-    if (family == SqlTypeFamily.ANY) {
+    final SqlTypeFamily family = families.get(iFormalOperand);
+    switch (family) {
+    case ANY:
+      final RelDataType type = callBinding.getValidator()
+          .deriveType(callBinding.getScope(), node);
+      SqlTypeName typeName = type.getSqlTypeName();
+
+      if (typeName == SqlTypeName.CURSOR) {
+        // We do not allow CURSOR operands, even for ANY
+        if (throwOnFailure) {
+          throw callBinding.newValidationSignatureError();
+        }
+        return false;
+      }
+      // fall through
+    case IGNORE:
       // no need to check
       return true;
     }

@@ -135,6 +135,18 @@ public abstract class SqlOperatorBinding {
     throw new UnsupportedOperationException();
   }
 
+  /**
+   * Gets the value of a literal operand as a Calcite type.
+   *
+   * @param ordinal zero-based ordinal of operand of interest
+   * @param type Desired valued type
+   *
+   * @return value of operand
+   */
+  public Object getOperandLiteralValue(int ordinal, RelDataType type) {
+    throw new UnsupportedOperationException();
+  }
+
   @Deprecated // to be removed before 2.0
   public Comparable getOperandLiteralValue(int ordinal) {
     return getOperandLiteralValue(ordinal, Comparable.class);
