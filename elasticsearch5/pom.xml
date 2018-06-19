@@ -78,6 +78,35 @@ limitations under the License.
       <version>${elasticsearch5-java-driver.version}</version>
     </dependency>
     <dependency>
+      <groupId>org.elasticsearch.plugin</groupId>
+      <artifactId>transport-netty3-client</artifactId>
+      <version>${elasticsearch5-java-driver.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <!-- Elastic search doesn't export painless script artifact to maven central.
+      Using 3rd party version (codelibs)
+      This JAR is used only in tests
+      https://discuss.elastic.co/t/5-0-0-using-painless-in-esintegtestcase/64447/13
+      -->
+      <groupId>org.codelibs.elasticsearch.module</groupId>
+      <artifactId>lang-painless</artifactId>
+      <version>${elasticsearch5-java-driver.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.logging.log4j</groupId>
+      <artifactId>log4j-api</artifactId>
+      <version>${log4j2.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.logging.log4j</groupId>
+      <artifactId>log4j-core</artifactId>
+      <version>${log4j2.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
       <groupId>com.carrotsearch</groupId>
       <artifactId>hppc</artifactId>
       <version>${hppc.version}</version>
@@ -110,6 +139,8 @@ limitations under the License.
                 <ignoredUnusedDeclaredDependency>org.apache.calcite.avatica:avatica</ignoredUnusedDeclaredDependency>
                 <ignoredUnusedDeclaredDependency>org.slf4j:slf4j-api</ignoredUnusedDeclaredDependency>
                 <ignoredUnusedDeclaredDependency>org.slf4j:slf4j-log4j12</ignoredUnusedDeclaredDependency>
+                <ignoredUnusedDeclaredDependency>org.apache.logging.log4j:log4j-api</ignoredUnusedDeclaredDependency>
+                <ignoredUnusedDeclaredDependency>org.apache.logging.log4j:log4j-core</ignoredUnusedDeclaredDependency>
               </ignoredUnusedDeclaredDependencies>
             </configuration>
           </execution>

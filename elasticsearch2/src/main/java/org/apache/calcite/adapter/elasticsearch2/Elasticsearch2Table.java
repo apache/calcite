@@ -45,8 +45,15 @@ public class Elasticsearch2Table extends AbstractElasticsearchTable {
     this.client = client;
   }
 
+  /**
+   * ES version 2.x. To access document attributes ES2 uses {@code _source.foo} syntax.
+   */
+  @Override protected String scriptedFieldPrefix() {
+    return "_source";
+  }
+
   @Override protected Enumerable<Object> find(String index, List<String> ops,
-      List<Map.Entry<String, Class>> fields) {
+                                              List<Map.Entry<String, Class>> fields) {
     final String dbName = index;
 
     final String queryString = "{" + Util.toString(ops, "", ", ", "") + "}";

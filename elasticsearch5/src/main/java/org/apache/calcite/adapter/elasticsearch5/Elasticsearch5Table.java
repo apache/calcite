@@ -25,15 +25,19 @@ import org.apache.calcite.linq4j.function.Function1;
 import org.apache.calcite.util.Util;
 
 import org.elasticsearch.client.Client;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.XContent;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.index.query.QueryParseContext;
 import org.elasticsearch.search.SearchHit;
+import org.elasticsearch.search.SearchModule;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -61,13 +65,16 @@ public class Elasticsearch5Table extends AbstractElasticsearchTable {
       searchSourceBuilder = new SearchSourceBuilder();
     } else {
       String queryString = "{" + Util.toString(ops, "", ", ", "") + "}";
-      NamedXContentRegistry xContentRegistry = NamedXContentRegistry.EMPTY;
       XContent xContent = JsonXContent.jsonXContent;
+      SearchModule searchModule = new SearchModule(Settings.EMPTY, false, Collections.emptyList());
+      NamedXContentRegistry xContentRegistry =
+              new NamedXContentRegistry(searchModule.getNamedXContents());
+
       try (XContentParser parser = xContent.createParser(xContentRegistry, queryString)) {
         final QueryParseContext queryParseContext = new QueryParseContext(parser);
         searchSourceBuilder = SearchSourceBuilder.fromXContent(queryParseContext);
       } catch (IOException ex) {
-        throw new RuntimeException(ex);
+        throw new UncheckedIOException(ex);
       }
     }
     final Function1<SearchHit, Object> getter = Elasticsearch5Enumerator.getter(fields);

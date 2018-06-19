@@ -66,8 +66,8 @@ limitations under the License.
     <commons-dbcp.version>1.4</commons-dbcp.version>
     <commons-lang3.version>3.2</commons-lang3.version>
     <commons-logging.version>1.1.3</commons-logging.version>
-    <elasticsearch-java-driver.version>2.3.2</elasticsearch-java-driver.version>
-    <elasticsearch5-java-driver.version>5.5.2</elasticsearch5-java-driver.version>
+    <elasticsearch-java-driver.version>2.4.6</elasticsearch-java-driver.version>
+    <elasticsearch5-java-driver.version>5.6.9</elasticsearch5-java-driver.version>
     <esri-geometry-api.version>2.0.0</esri-geometry-api.version>
     <findbugs.version>3.0.1</findbugs.version>
     <fmpp-maven-plugin.version>1.0</fmpp-maven-plugin.version>
@@ -128,6 +128,7 @@ limitations under the License.
     <scott-data-hsqldb.version>0.1</scott-data-hsqldb.version>
     <servlet.version>3.0.1</servlet.version>
     <slf4j.version>1.7.13</slf4j.version>
+    <log4j2.version>2.11.0</log4j2.version>
     <spark.version>2.2.0</spark.version>
     <sqlline.version>1.4.0</sqlline.version>
     <xalan.version>2.7.1</xalan.version>
@@ -457,6 +458,11 @@ limitations under the License.
         <version>${elasticsearch-java-driver.version}</version>
       </dependency>
       <dependency>
+        <groupId>org.elasticsearch.module</groupId>
+        <artifactId>lang-groovy</artifactId>
+        <version>${elasticsearch-java-driver.version}</version>
+      </dependency>
+      <dependency>
         <groupId>org.mongodb</groupId>
         <artifactId>mongo-java-driver</artifactId>
         <version>${mongo-java-driver.version}</version>
@@ -490,6 +496,16 @@ limitations under the License.
         <groupId>org.slf4j</groupId>
         <artifactId>slf4j-log4j12</artifactId>
         <version>${slf4j.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.logging.log4j</groupId>
+        <artifactId>log4j-api</artifactId>
+        <version>${log4j2.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.logging.log4j</groupId>
+        <artifactId>log4j-core</artifactId>
+        <version>${log4j2.version}</version>
       </dependency>
       <dependency>
         <groupId>sqlline</groupId>
