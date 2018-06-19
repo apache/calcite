@@ -21,7 +21,6 @@ import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelInput;
 import org.apache.calcite.rel.RelNode;
-import org.apache.calcite.rel.RelShuttle;
 import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.Join;
@@ -179,10 +178,6 @@ public final class LogicalJoin extends Join {
     return new LogicalJoin(getCluster(),
         getCluster().traitSetOf(Convention.NONE), left, right, conditionExpr,
         variablesSet, joinType, semiJoinDone, systemFieldList);
-  }
-
-  @Override public RelNode accept(RelShuttle shuttle) {
-    return shuttle.visit(this);
   }
 
   public RelWriter explainTerms(RelWriter pw) {

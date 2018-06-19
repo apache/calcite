@@ -23,6 +23,7 @@ import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.AbstractRelNode;
 import org.apache.calcite.rel.RelInput;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelShuttle;
 import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlKind;
@@ -136,6 +137,15 @@ public abstract class SetOp extends AbstractRelNode {
       }
     }
     return true;
+  }
+
+  @Override public RelNode accept(RelShuttle shuttle) {
+    if (shuttle.visit(this)) {
+      for (RelNode child : inputs) {
+        child.accept(shuttle);
+      }
+    }
+    return shuttle.leave(this);
   }
 }
 

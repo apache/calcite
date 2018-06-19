@@ -47,6 +47,8 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.List;
 
 /**
@@ -91,112 +93,7 @@ public class RelOptMaterialization {
       final RelOptTable starRelOptTable) {
     final StarTable starTable = starRelOptTable.unwrap(StarTable.class);
     assert starTable != null;
-    RelNode rel2 = rel.accept(
-        new RelShuttleImpl() {
-          @Override public RelNode visit(TableScan scan) {
-            RelOptTable relOptTable = scan.getTable();
-            final Table table = relOptTable.unwrap(Table.class);
-            if (table.equals(starTable.tables.get(0))) {
-              Mappings.TargetMapping mapping =
-                  Mappings.createShiftMapping(
-                      starRelOptTable.getRowType().getFieldCount(),
-                      0, 0, relOptTable.getRowType().getFieldCount());
-
-              final RelOptCluster cluster = scan.getCluster();
-              final RelNode scan2 =
-                  starRelOptTable.toRel(RelOptUtil.getContext(cluster));
-              return RelOptUtil.createProject(scan2,
-                  Mappings.asList(mapping.inverse()));
-            }
-            return scan;
-          }
-
-          @Override public RelNode visit(LogicalJoin join) {
-            for (;;) {
-              RelNode rel = super.visit(join);
-              if (rel == join || !(rel instanceof LogicalJoin)) {
-                return rel;
-              }
-              join = (LogicalJoin) rel;
-              final ProjectFilterTable left =
-                  ProjectFilterTable.of(join.getLeft());
-              if (left != null) {
-                final ProjectFilterTable right =
-                    ProjectFilterTable.of(join.getRight());
-                if (right != null) {
-                  try {
-                    match(left, right, join.getCluster());
-                  } catch (Util.FoundOne e) {
-                    return (RelNode) e.getNode();
-                  }
-                }
-              }
-            }
-          }
-
-          /** Throws a {@link org.apache.calcite.util.Util.FoundOne} containing
-           * a {@link org.apache.calcite.rel.logical.LogicalTableScan} on
-           * success.  (Yes, an exception for normal operation.) */
-          private void match(ProjectFilterTable left, ProjectFilterTable right,
-              RelOptCluster cluster) {
-            final Mappings.TargetMapping leftMapping = left.mapping();
-            final Mappings.TargetMapping rightMapping = right.mapping();
-            final RelOptTable leftRelOptTable = left.getTable();
-            final Table leftTable = leftRelOptTable.unwrap(Table.class);
-            final int leftCount = leftRelOptTable.getRowType().getFieldCount();
-            final RelOptTable rightRelOptTable = right.getTable();
-            final Table rightTable = rightRelOptTable.unwrap(Table.class);
-            if (leftTable instanceof StarTable
-                && ((StarTable) leftTable).tables.contains(rightTable)) {
-              final int offset =
-                  ((StarTable) leftTable).columnOffset(rightTable);
-              Mappings.TargetMapping mapping =
-                  Mappings.merge(leftMapping,
-                      Mappings.offsetTarget(
-                          Mappings.offsetSource(rightMapping, offset),
-                          leftMapping.getTargetCount()));
-              final RelNode project = RelOptUtil.createProject(
-                  LogicalTableScan.create(cluster, leftRelOptTable),
-                  Mappings.asList(mapping.inverse()));
-              final List<RexNode> conditions = Lists.newArrayList();
-              if (left.condition != null) {
-                conditions.add(left.condition);
-              }
-              if (right.condition != null) {
-                conditions.add(
-                    RexUtil.apply(mapping,
-                        RexUtil.shift(right.condition, offset)));
-              }
-              final RelNode filter =
-                  RelOptUtil.createFilter(project, conditions);
-              throw new Util.FoundOne(filter);
-            }
-            if (rightTable instanceof StarTable
-                && ((StarTable) rightTable).tables.contains(leftTable)) {
-              final int offset =
-                  ((StarTable) rightTable).columnOffset(leftTable);
-              Mappings.TargetMapping mapping =
-                  Mappings.merge(
-                      Mappings.offsetSource(leftMapping, offset),
-                      Mappings.offsetTarget(rightMapping, leftCount));
-              final RelNode project = RelOptUtil.createProject(
-                  LogicalTableScan.create(cluster, rightRelOptTable),
-                  Mappings.asList(mapping.inverse()));
-              final List<RexNode> conditions = Lists.newArrayList();
-              if (left.condition != null) {
-                conditions.add(
-                    RexUtil.apply(mapping,
-                        RexUtil.shift(left.condition, offset)));
-              }
-              if (right.condition != null) {
-                conditions.add(RexUtil.apply(mapping, right.condition));
-              }
-              final RelNode filter =
-                  RelOptUtil.createFilter(project, conditions);
-              throw new Util.FoundOne(filter);
-            }
-          }
-        });
+    RelNode rel2 = rel.accept(new TryUseStarShuttle(starTable, starRelOptTable, rel));
     if (rel2 == rel) {
       // No rewrite happened.
       return null;
@@ -293,6 +190,144 @@ public class RelOptMaterialization {
               SqlExplainLevel.DIGEST_ATTRIBUTES));
     }
     return rel2;
+  }
+
+  /**
+   * A RelShuttle implementation used in
+   * {@link org.apache.calcite.plan.RelOptMaterialization#tryUseStar(RelNode, RelOptTable)}.
+   */
+  private static class TryUseStarShuttle extends RelShuttleImpl {
+
+    private final StarTable starTable;
+    private final RelOptTable starRelOptTable;
+    private RelNode root;
+    private Deque<RelNode> results;
+
+    TryUseStarShuttle(final StarTable starTable, RelOptTable starRelOptTable, RelNode root) {
+      this.starTable = starTable;
+      this.starRelOptTable = starRelOptTable;
+      this.root = root;
+      results = new ArrayDeque<>();
+    }
+
+    @Override public boolean visitTableScan(TableScan scan) {
+      return false;
+    }
+
+    @Override public RelNode leaveTableScan(TableScan scan) {
+      RelOptTable relOptTable = scan.getTable();
+      final Table table = relOptTable.unwrap(Table.class);
+      if (table.equals(starTable.tables.get(0))) {
+        Mappings.TargetMapping mapping =
+            Mappings.createShiftMapping(
+                starRelOptTable.getRowType().getFieldCount(),
+                0, 0, relOptTable.getRowType().getFieldCount());
+
+        final RelOptCluster cluster = scan.getCluster();
+        final RelNode scan2 =
+            starRelOptTable.toRel(RelOptUtil.getContext(cluster));
+        return RelOptUtil.createProject(scan2,
+            Mappings.asList(mapping.inverse()));
+      }
+      return scan;
+    }
+
+    @Override public boolean visitLogicalJoin(LogicalJoin join) {
+      if (join == root) {
+        results.push(join);
+        return true;
+      }
+      for (;;) {
+        TryUseStarShuttle shuttle = new TryUseStarShuttle(starTable, starRelOptTable, join);
+        RelNode rel = join.accept(shuttle);
+        if (rel == join || !(rel instanceof LogicalJoin)) {
+          results.push(rel);
+          return false;
+        }
+        join = (LogicalJoin) rel;
+        final ProjectFilterTable left =
+            ProjectFilterTable.of(join.getLeft());
+        if (left != null) {
+          final ProjectFilterTable right =
+              ProjectFilterTable.of(join.getRight());
+          if (right != null) {
+            try {
+              match(left, right, join.getCluster());
+            } catch (Util.FoundOne e) {
+              results.push((RelNode) e.getNode());
+              return false;
+            }
+          }
+        }
+      }
+    }
+
+    @Override public RelNode leaveLogicalJoin(LogicalJoin join) {
+      return results.pop();
+    }
+
+    /** Throws a {@link Util.FoundOne} containing
+     * a {@link LogicalTableScan} on
+     * success.  (Yes, an exception for normal operation.) */
+    private void match(ProjectFilterTable left, ProjectFilterTable right,
+        RelOptCluster cluster) {
+      final Mappings.TargetMapping leftMapping = left.mapping();
+      final Mappings.TargetMapping rightMapping = right.mapping();
+      final RelOptTable leftRelOptTable = left.getTable();
+      final Table leftTable = leftRelOptTable.unwrap(Table.class);
+      final int leftCount = leftRelOptTable.getRowType().getFieldCount();
+      final RelOptTable rightRelOptTable = right.getTable();
+      final Table rightTable = rightRelOptTable.unwrap(Table.class);
+      if (leftTable instanceof StarTable
+          && ((StarTable) leftTable).tables.contains(rightTable)) {
+        final int offset =
+            ((StarTable) leftTable).columnOffset(rightTable);
+        Mappings.TargetMapping mapping =
+            Mappings.merge(leftMapping,
+                Mappings.offsetTarget(
+                    Mappings.offsetSource(rightMapping, offset),
+                    leftMapping.getTargetCount()));
+        final RelNode project = RelOptUtil.createProject(
+            LogicalTableScan.create(cluster, leftRelOptTable),
+            Mappings.asList(mapping.inverse()));
+        final List<RexNode> conditions = Lists.newArrayList();
+        if (left.condition != null) {
+          conditions.add(left.condition);
+        }
+        if (right.condition != null) {
+          conditions.add(
+              RexUtil.apply(mapping,
+                  RexUtil.shift(right.condition, offset)));
+        }
+        final RelNode filter =
+            RelOptUtil.createFilter(project, conditions);
+        throw new Util.FoundOne(filter);
+      }
+      if (rightTable instanceof StarTable
+          && ((StarTable) rightTable).tables.contains(leftTable)) {
+        final int offset =
+            ((StarTable) rightTable).columnOffset(leftTable);
+        Mappings.TargetMapping mapping =
+            Mappings.merge(
+                Mappings.offsetSource(leftMapping, offset),
+                Mappings.offsetTarget(rightMapping, leftCount));
+        final RelNode project = RelOptUtil.createProject(
+            LogicalTableScan.create(cluster, rightRelOptTable),
+            Mappings.asList(mapping.inverse()));
+        final List<RexNode> conditions = Lists.newArrayList();
+        if (left.condition != null) {
+          conditions.add(
+              RexUtil.apply(mapping,
+                  RexUtil.shift(left.condition, offset)));
+        }
+        if (right.condition != null) {
+          conditions.add(RexUtil.apply(mapping, right.condition));
+        }
+        final RelNode filter =
+            RelOptUtil.createFilter(project, conditions);
+        throw new Util.FoundOne(filter);
+      }
+    }
   }
 }
 

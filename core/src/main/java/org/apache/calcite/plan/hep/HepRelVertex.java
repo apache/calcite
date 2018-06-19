@@ -21,6 +21,7 @@ import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.AbstractRelNode;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelShuttle;
 import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
@@ -93,6 +94,12 @@ public class HepRelVertex extends AbstractRelNode {
    */
   public RelNode getCurrentRel() {
     return currentRel;
+  }
+
+  public RelNode accept(RelShuttle shuttle) {
+    // Call fall-back method. Specific logical types (such as LogicalProject
+    // and LogicalJoin) have their own RelShuttle.visit methods.
+    return currentRel.accept(shuttle);
   }
 }
 

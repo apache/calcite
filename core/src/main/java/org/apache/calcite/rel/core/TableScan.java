@@ -164,7 +164,8 @@ public abstract class TableScan extends AbstractRelNode {
   }
 
   @Override public RelNode accept(RelShuttle shuttle) {
-    return shuttle.visit(this);
+    shuttle.visit(this);
+    return shuttle.leave(this);
   }
 }
 

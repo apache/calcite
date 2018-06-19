@@ -16,8 +16,8 @@
  */
 package org.apache.calcite.sql2rel;
 
-import org.apache.calcite.rel.RelHomogeneousShuttle;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelShuttleImpl;
 import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rex.RexCorrelVariable;
 import org.apache.calcite.rex.RexFieldAccess;
@@ -25,43 +25,44 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.rex.RexSubQuery;
 
+import java.util.function.Function;
+
 /**
  * Shuttle that finds references to a given {@link CorrelationId} within a tree
  * of {@link RelNode}s.
  */
-public abstract class CorrelationReferenceFinder extends RelHomogeneousShuttle {
+public class CorrelationReferenceFinder extends RelShuttleImpl {
   private final MyRexVisitor rexVisitor;
 
   /** Creates CorrelationReferenceFinder. */
-  protected CorrelationReferenceFinder() {
-    rexVisitor = new MyRexVisitor(this);
+  public CorrelationReferenceFinder(Function<RexFieldAccess, RexNode> handler) {
+    rexVisitor = new MyRexVisitor(handler);
   }
 
-  protected abstract RexNode handle(RexFieldAccess fieldAccess);
 
-  @Override public RelNode visit(RelNode other) {
-    RelNode next = super.visit(other);
-    return next.accept(rexVisitor);
+  @Override public RelNode doLeave(RelNode other) {
+    return other.accept(rexVisitor);
   }
 
   /**
    * Replaces alternative names of correlation variable to its canonical name.
    */
   private static class MyRexVisitor extends RexShuttle {
-    private final CorrelationReferenceFinder finder;
+    private final Function<RexFieldAccess, RexNode> handler;
 
-    private MyRexVisitor(CorrelationReferenceFinder finder) {
-      this.finder = finder;
+    private MyRexVisitor(Function<RexFieldAccess, RexNode> handler) {
+      this.handler = handler;
     }
 
     @Override public RexNode visitFieldAccess(RexFieldAccess fieldAccess) {
       if (fieldAccess.getReferenceExpr() instanceof RexCorrelVariable) {
-        return finder.handle(fieldAccess);
+        return handler.apply(fieldAccess);
       }
       return super.visitFieldAccess(fieldAccess);
     }
 
     @Override public RexNode visitSubQuery(RexSubQuery subQuery) {
+      CorrelationReferenceFinder finder = new CorrelationReferenceFinder(handler);
       final RelNode r = subQuery.rel.accept(finder); // look inside sub-queries
       if (r != subQuery.rel) {
         subQuery = subQuery.clone(r);

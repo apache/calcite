@@ -26,20 +26,6 @@ import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelShuttle;
-import org.apache.calcite.rel.core.TableFunctionScan;
-import org.apache.calcite.rel.core.TableScan;
-import org.apache.calcite.rel.logical.LogicalAggregate;
-import org.apache.calcite.rel.logical.LogicalCorrelate;
-import org.apache.calcite.rel.logical.LogicalExchange;
-import org.apache.calcite.rel.logical.LogicalFilter;
-import org.apache.calcite.rel.logical.LogicalIntersect;
-import org.apache.calcite.rel.logical.LogicalJoin;
-import org.apache.calcite.rel.logical.LogicalMatch;
-import org.apache.calcite.rel.logical.LogicalMinus;
-import org.apache.calcite.rel.logical.LogicalProject;
-import org.apache.calcite.rel.logical.LogicalSort;
-import org.apache.calcite.rel.logical.LogicalUnion;
-import org.apache.calcite.rel.logical.LogicalValues;
 import org.apache.calcite.schema.Schemas;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.impl.StarTable;
@@ -147,49 +133,11 @@ class CalciteMaterializer extends CalcitePrepareImpl.CalcitePreparingStmt {
   /** Implementation of {@link RelShuttle} that returns each relational
    * expression unchanged. It does not visit inputs. */
   static class RelNullShuttle implements RelShuttle {
-    public RelNode visit(TableScan scan) {
-      return scan;
+    public boolean visit(RelNode other) {
+      return false;
     }
-    public RelNode visit(TableFunctionScan scan) {
-      return scan;
-    }
-    public RelNode visit(LogicalValues values) {
-      return values;
-    }
-    public RelNode visit(LogicalFilter filter) {
-      return filter;
-    }
-    public RelNode visit(LogicalProject project) {
-      return project;
-    }
-    public RelNode visit(LogicalJoin join) {
-      return join;
-    }
-    public RelNode visit(LogicalCorrelate correlate) {
-      return correlate;
-    }
-    public RelNode visit(LogicalUnion union) {
-      return union;
-    }
-    public RelNode visit(LogicalIntersect intersect) {
-      return intersect;
-    }
-    public RelNode visit(LogicalMinus minus) {
-      return minus;
-    }
-    public RelNode visit(LogicalAggregate aggregate) {
-      return aggregate;
-    }
-    public RelNode visit(LogicalMatch match) {
-      return match;
-    }
-    public RelNode visit(LogicalSort sort) {
-      return sort;
-    }
-    public RelNode visit(LogicalExchange exchange) {
-      return exchange;
-    }
-    public RelNode visit(RelNode other) {
+
+    @Override public RelNode leave(final RelNode other) {
       return other;
     }
   }
