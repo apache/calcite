@@ -1100,6 +1100,7 @@ public abstract class EnumerableDefaults {
                     }
                   }
                   inners = Linq4j.enumerator(list);
+                  outers.close();
                   outers = Linq4j.singletonNullEnumerator();
                   outers.moveNext();
                   unmatchedKeys = null; // don't do the 'leftovers' again
