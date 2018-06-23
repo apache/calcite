@@ -61,6 +61,7 @@ import org.apache.calcite.rel.rules.CalcMergeRule;
 import org.apache.calcite.rel.rules.CoerceInputsRule;
 import org.apache.calcite.rel.rules.DateRangeRules;
 import org.apache.calcite.rel.rules.FilterAggregateTransposeRule;
+import org.apache.calcite.rel.rules.FilterCalcMergeRule;
 import org.apache.calcite.rel.rules.FilterJoinRule;
 import org.apache.calcite.rel.rules.FilterMergeRule;
 import org.apache.calcite.rel.rules.FilterProjectTransposeRule;
@@ -76,6 +77,7 @@ import org.apache.calcite.rel.rules.JoinPushExpressionsRule;
 import org.apache.calcite.rel.rules.JoinPushTransitivePredicatesRule;
 import org.apache.calcite.rel.rules.JoinToMultiJoinRule;
 import org.apache.calcite.rel.rules.JoinUnionTransposeRule;
+import org.apache.calcite.rel.rules.ProjectCalcMergeRule;
 import org.apache.calcite.rel.rules.ProjectFilterTransposeRule;
 import org.apache.calcite.rel.rules.ProjectJoinTransposeRule;
 import org.apache.calcite.rel.rules.ProjectMergeRule;
@@ -3921,6 +3923,145 @@ public class RelOptRulesTest extends RelOptTestBase {
     final RelNode relAfter = hepPlanner.findBestExp();
     final String planAfter = NL + RelOptUtil.toString(relAfter);
     diffRepos.assertEquals("planAfter", "${planAfter}", planAfter);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2348">[CALCITE-2348]
+   * handling non-deterministic operator in rules</a> */
+  @Test public void testPushFilterPastAggWithNondeterministicFilter() {
+    final String sql = "select ename, empno, c from\n"
+        + " (select ename, empno, count(*) as c from emp group by ename, empno) t\n"
+        + " where rand_substr(ename, 1, 3) = 'Tom' and empno = 10";
+    checkPlanning(FilterAggregateTransposeRule.INSTANCE, sql);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2348">[CALCITE-2348]
+   * handling non-deterministic operator in rules</a> */
+  @Test public void testPushFilterPastAggWithNondeterministicAggCall() {
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(FilterAggregateTransposeRule.INSTANCE)
+        .build();
+    final String sql = "select ename, empno, c from\n"
+        + " (select ename, empno, rand_avg(sal) as c from emp group by ename, empno) t\n"
+        + " where empno = 10";
+    checkPlanning(tester, null, new HepPlanner(program), sql, true);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2348">[CALCITE-2348]
+   * handling non-deterministic operator in rules</a> */
+  @Test public void testPushFilterPastJoinWithNondeterministicFilter() {
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(FilterJoinRule.FILTER_ON_JOIN)
+        .addRuleInstance(FilterJoinRule.JOIN)
+        .build();
+    final String sql = "select ename, emp.deptno from emp, dept\n"
+        + "where emp.deptno = dept.deptno and rand_substr(name, 1, 5) = 'Sales'";
+    checkPlanning(program, sql);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2348">[CALCITE-2348]
+   * handling non-deterministic operator in rules</a> */
+  @Test public void testPushFilterPastUnionWithNondeterministicFilter() {
+    final String sql = "select * from (\n"
+        + "select * from (values (10, 'a'), (30, 'b')) as t1 (x, y)\n"
+        + "union all\n"
+        + "select * from (values (20, 'c')) as t2 (x, y)\n"
+        + ")\n"
+        + "where rand_substr(y, 1, 2) > 'b' and x > 10";
+    checkPlanning(FilterSetOpTransposeRule.INSTANCE, sql);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2348">[CALCITE-2348]
+   * handling non-deterministic operator in rules</a> */
+  @Test public void testPushFilterPastProjectWithNondeterministicFilter() {
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(FilterProjectTransposeRule.INSTANCE)
+        .build();
+    final String sql = "select ename, deptno from\n"
+        + "(select ename, deptno from emp) t\n"
+        + "where rand_substr(ename, 1, 3) <> 'Tom' and deptno > 10";
+    checkPlanning(tester, null, new HepPlanner(program), sql, true);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2348">[CALCITE-2348]
+   * handling non-deterministic operator in rules</a> */
+  @Test public void testPushFilterPastProjectWithNondeterministicProject() {
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(FilterProjectTransposeRule.INSTANCE)
+        .build();
+    final String sql = "select ename, deptno from\n"
+        + "(select rand_substr(ename, 1, 3) as ename, deptno from emp) t\n"
+        + "where deptno > 10 and ename <> 'Tom'";
+    checkPlanning(tester, null, new HepPlanner(program), sql, true);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2348">[CALCITE-2348]
+   * handling non-deterministic operator in rules</a> */
+  @Test public void testFilterCalcMergeWithNondeterministicFilter() {
+    HepProgram preProgram = new HepProgramBuilder()
+        .addRuleInstance(ProjectToCalcRule.INSTANCE)
+        .build();
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(FilterCalcMergeRule.INSTANCE)
+        .build();
+    final String sql = "select ename, deptno from\n"
+        + "(select ename, deptno from emp) t\n"
+        + "where rand_substr(ename, 1, 3) = 'Tom' and deptno > 10";
+    checkPlanning(tester, preProgram, new HepPlanner(program), sql, true);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2348">[CALCITE-2348]
+   * handling non-deterministic operator in rules</a> */
+  @Test public void testFilterCalcMergeWithNondeterministicCalc() {
+    HepProgram preProgram = new HepProgramBuilder()
+        .addRuleInstance(ProjectToCalcRule.INSTANCE)
+        .build();
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(FilterCalcMergeRule.INSTANCE)
+        .build();
+    final String sql = "select ename, deptno from\n"
+        + "(select rand_substr(ename, 1, 3) as ename, deptno from emp) t\n"
+        + "where deptno > 10";
+    checkPlanning(tester, preProgram, new HepPlanner(program), sql, true);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2348">[CALCITE-2348]
+   * handling non-deterministic operator in rules</a> */
+  @Test public void testCalcMergeWithNondeterministicCalc() {
+    HepProgram preProgram = new HepProgramBuilder()
+        .addRuleInstance(ProjectToCalcRule.INSTANCE)
+        .addRuleInstance(FilterToCalcRule.INSTANCE)
+        .build();
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(CalcMergeRule.INSTANCE)
+        .build();
+    final String sql = "select ename, deptno from\n"
+        + "(select ename, deptno from emp) t\n"
+        + "where rand_substr(ename, 1, 3) = 'Tom' and deptno > 10";
+    checkPlanning(tester, preProgram, new HepPlanner(program), sql, true);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2348">[CALCITE-2348]
+   * handling non-deterministic operator in rules</a> */
+  @Test public void testProjectCalcMergeWithNondeterministicProject() {
+    HepProgram preProgram = new HepProgramBuilder()
+        .addRuleInstance(FilterToCalcRule.INSTANCE)
+        .build();
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(ProjectCalcMergeRule.INSTANCE)
+        .build();
+    final String sql = "select rand_substr(name, 1, 3) as name, deptno from\n"
+        + "(select deptno, name from dept where deptno > 10) t";
+    checkPlanning(tester, preProgram, new HepPlanner(program), sql);
   }
 }
 

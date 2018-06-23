@@ -592,6 +592,21 @@ public class RexUtil {
     }
   }
 
+  /**
+   * Returns whether a given expressions is deterministic.
+   *
+   * @param list Expression
+   * @return true if tree result is deterministic, false otherwise
+   */
+  public static boolean isDeterministic(List<RexNode> list) {
+    for (RexNode e : list) {
+      if (!isDeterministic(e)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
   public static List<RexNode> retainDeterministic(List<RexNode> list) {
     List<RexNode> conjuctions = Lists.newArrayList();
     for (RexNode x : list) {

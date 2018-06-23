@@ -27,6 +27,7 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexOver;
 import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.rex.RexProgramBuilder;
+import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.Pair;
 
@@ -82,7 +83,10 @@ public class ProjectCalcMergeRule extends RelOptRule {
             null,
             project.getRowType(),
             cluster.getRexBuilder());
-    if (RexOver.containsOver(program)) {
+    // Don't merge a project onto a calc which contains non-deterministic expr.
+    if (RexOver.containsOver(program)
+        || !RexUtil.isDeterministic(project.getProjects())
+        || !RexUtil.isDeterministic(calc.getProgram().getExprList())) {
       LogicalCalc projectAsCalc = LogicalCalc.create(calc, program);
       call.transformTo(projectAsCalc);
       return;
