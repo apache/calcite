@@ -90,6 +90,8 @@ public class OsAdapterTest {
   }
 
   @Test public void testDu() {
+    Assume.assumeFalse("Skip: the 'du' table does not work on Windows",
+        isWindows());
     sql("select * from du")
         .returns(
             new Function<ResultSet, Void>() {
@@ -108,6 +110,8 @@ public class OsAdapterTest {
   }
 
   @Test public void testDuFilterSortLimit() {
+    Assume.assumeFalse("Skip: the 'du' table does not work on Windows",
+        isWindows());
     sql("select * from du where path like '%/src/test/java/%'\n"
         + "order by 1 limit 2")
         .returns(
