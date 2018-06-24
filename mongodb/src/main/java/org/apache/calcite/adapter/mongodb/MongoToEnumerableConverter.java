@@ -140,7 +140,12 @@ public class MongoToEnumerableConverter
   }
 
   /** E.g. {@code constantArrayList("x", "y")} returns
-   * "Arrays.asList('x', 'y')". */
+   * "Arrays.asList('x', 'y')".
+   *
+   * @param values List of values
+   * @param clazz Type of values
+   * @return expression
+   */
   private static <T> MethodCallExpression constantArrayList(List<T> values,
       Class clazz) {
     return Expressions.call(

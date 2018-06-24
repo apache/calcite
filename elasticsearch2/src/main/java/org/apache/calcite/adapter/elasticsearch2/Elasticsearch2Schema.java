@@ -92,6 +92,9 @@ public class Elasticsearch2Schema extends AbstractSchema
   /**
    * Allows schema to be instantiated from existing elastic search client.
    * This constructor is used in tests.
+   *
+   * @param client Existing (injectable) client instance
+   * @param index Index name
    */
   @VisibleForTesting
   Elasticsearch2Schema(Client client, String index) {

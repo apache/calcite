@@ -751,8 +751,13 @@ public class MongoAdapterTest implements SchemaFactory {
             });
   }
 
-  /** Returns a function that checks that a particular MongoDB pipeline is
-   * generated to implement a query. */
+  /**
+   * Returns a function that checks that a particular MongoDB pipeline is
+   * generated to implement a query.
+   *
+   * @param strings Expected expressions
+   * @return validation function
+   */
   private static Function<List, Void> mongoChecker(final String... strings) {
     return new Function<List, Void>() {
       public Void apply(List actual) {

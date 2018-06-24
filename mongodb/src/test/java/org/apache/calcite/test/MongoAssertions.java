@@ -40,8 +40,13 @@ public class MongoAssertions {
 
   private MongoAssertions() {}
 
-  /** Similar to {@link CalciteAssert#checkResultUnordered}, but filters strings
-   * before comparing them. */
+  /**
+   * Similar to {@link CalciteAssert#checkResultUnordered}, but filters strings
+   * before comparing them.
+   *
+   * @param lines Expected expressions
+   * @return validation function
+   */
   public static Function<ResultSet, Void> checkResultUnordered(
       final String... lines) {
     return new Function<ResultSet, Void>() {
@@ -73,6 +78,8 @@ public class MongoAssertions {
    * Whether to run Mongo integration tests. Enabled by default, however test is only
    * included if "it" profile is activated ({@code -Pit}). To disable,
    * specify {@code -Dcalcite.test.mongodb=false} on the Java command line.
+   *
+   * @return Whether current tests should use an external mongo instance
    */
   public static boolean useMongo() {
     return Util.getBooleanProperty("calcite.integrationTest")
@@ -81,11 +88,13 @@ public class MongoAssertions {
 
   /**
    * Checks wherever tests should use Fongo instead of Mongo. Opposite of {@link #useMongo()}.
+   *
+   * @return Whether current tests should use embedded
+   * <a href="https://github.com/fakemongo/fongo">Fongo</a> instance
    */
   public static boolean useFongo() {
     return !useMongo();
   }
-
 
   /**
    * Used to skip tests if current instance is not mongo. Some functionalities

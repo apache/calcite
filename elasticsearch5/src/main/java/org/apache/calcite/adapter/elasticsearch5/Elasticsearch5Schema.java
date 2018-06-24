@@ -92,6 +92,8 @@ public class Elasticsearch5Schema extends AbstractSchema
   /**
    * Allows schema to be instantiated from existing elastic search client.
    * This constructor is used in tests.
+   * @param client existing client instance
+   * @param index name of ES index
    */
   @VisibleForTesting
   Elasticsearch5Schema(Client client, String index) {

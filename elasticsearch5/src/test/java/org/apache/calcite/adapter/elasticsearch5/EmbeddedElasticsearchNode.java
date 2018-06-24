@@ -39,30 +39,35 @@ import java.util.Collection;
  * Represents a single elastic search node which can run embedded in a java application.
  * Intended for unit and integration tests. Settings and plugins are crafted for Calcite.
  */
-class EmbeddedElasticNode implements AutoCloseable {
+class EmbeddedElasticsearchNode implements AutoCloseable {
 
   private final Node node;
   private volatile boolean  isStarted;
 
-  private EmbeddedElasticNode(Node node) {
+  private EmbeddedElasticsearchNode(Node node) {
     this.node = Preconditions.checkNotNull(node, "node");
   }
 
 
   /**
    * Creates an instance with existing settings
+   *
+   * @param settings ES configuration
+   * @return un-initialized node. Use {@link #start()} explicitly.
    */
-  private static EmbeddedElasticNode create(Settings settings) {
+  private static EmbeddedElasticsearchNode create(Settings settings) {
     // ensure GroovyPlugin is installed or otherwise scripted fields would not work
     Node node = new LocalNode(settings, Arrays.asList(Netty3Plugin.class, PainlessPlugin.class));
-    return new EmbeddedElasticNode(node);
+    return new EmbeddedElasticsearchNode(node);
   }
 
   /**
    * Creates elastic node as single member of a cluster. Node will not be started
    * unless {@link #start()} is explicitly called.
+   *
+   * @return un-initialized node. Use {@link #start()} explicitly.
    */
-  public static EmbeddedElasticNode create() {
+  public static EmbeddedElasticsearchNode create() {
     File data = Files.createTempDir();
     data.deleteOnExit();
     File home = Files.createTempDir();
@@ -95,9 +100,11 @@ class EmbeddedElasticNode implements AutoCloseable {
   }
 
   /**
-   * Returns current address to connect to with HTTP client.
+   * Returns the current address to connect to with HTTP client.
+   *
+   * @return {@code HTTP} protocol connection parameters
    */
-  public TransportAddress httpAddress() {
+  TransportAddress httpAddress() {
     Preconditions.checkState(isStarted, "node is not started");
 
     NodesInfoResponse response =  client().admin().cluster().prepareNodesInfo()
@@ -113,8 +120,9 @@ class EmbeddedElasticNode implements AutoCloseable {
   /**
    * Exposes elastic
    * <a href="https://www.elastic.co/guide/en/elasticsearch/client/java-api/current/transport-client.html">transport client</a>
-   *
    * (use of HTTP client is preferred).
+   *
+   * @return ES client API on a running instance
    */
   public Client client() {
     Preconditions.checkState(isStarted, "node is not started");
@@ -150,4 +158,4 @@ class EmbeddedElasticNode implements AutoCloseable {
   }
 }
 
-// End EmbeddedElasticNode.java
+// End EmbeddedElasticsearchNode.java
