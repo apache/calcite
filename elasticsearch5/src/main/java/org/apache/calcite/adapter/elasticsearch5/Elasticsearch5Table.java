@@ -50,8 +50,11 @@ public class Elasticsearch5Table extends AbstractElasticsearchTable {
 
   /**
    * Creates an Elasticsearch5Table.
+   * @param client existing ES instance
+   * @param indexName ES index name
+   * @param typeName ES type
    */
-  public Elasticsearch5Table(Client client, String indexName, String typeName) {
+  Elasticsearch5Table(Client client, String indexName, String typeName) {
     super(indexName, typeName);
     this.client = client;
   }

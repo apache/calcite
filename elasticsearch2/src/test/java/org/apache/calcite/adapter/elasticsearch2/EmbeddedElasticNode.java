@@ -63,6 +63,9 @@ class EmbeddedElasticNode implements AutoCloseable {
 
   /**
    * Creates an instance with existing settings
+   *
+   * @param settings ES settings for the node
+   * @return un-started node. use explicitly {@link #start()} to start the instance.
    */
   private static EmbeddedElasticNode create(Settings settings) {
     // ensure GroovyPlugin is installed or otherwise scripted fields would not work
@@ -73,6 +76,8 @@ class EmbeddedElasticNode implements AutoCloseable {
   /**
    * Creates elastic node as single member of a cluster. Node will not be started
    * unless {@link #start()} is explicitly called.
+   *
+   * @return node with default configuration
    */
   public static EmbeddedElasticNode create() {
     File data = Files.createTempDir();
@@ -106,6 +111,8 @@ class EmbeddedElasticNode implements AutoCloseable {
 
   /**
    * Returns current address to connect to with HTTP client.
+   *
+   * @return {@code HTTP} address (hostname / port).
    */
   public TransportAddress httpAddress() {
     Preconditions.checkState(isStarted, "node is not started");
@@ -123,8 +130,9 @@ class EmbeddedElasticNode implements AutoCloseable {
   /**
    * Exposes elastic
    * <a href="https://www.elastic.co/guide/en/elasticsearch/client/java-api/current/transport-client.html">transport client</a>
-   *
    * (use of HTTP client is preferred).
+   *
+   * @return client API to access ES functionality
    */
   public Client client() {
     Preconditions.checkState(isStarted, "node is not started");

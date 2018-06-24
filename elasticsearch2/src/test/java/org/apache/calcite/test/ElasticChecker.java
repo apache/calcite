@@ -31,7 +31,11 @@ public class ElasticChecker {
 
 
   /** Returns a function that checks that a particular Elasticsearch pipeline is
-   * generated to implement a query. */
+   * generated to implement a query.
+   *
+   * @param strings list of expected queries
+   * @return function to perform the check
+   */
   public static Function<List, Void> elasticsearchChecker(final String... strings) {
     return new Function<List, Void>() {
       @Nullable

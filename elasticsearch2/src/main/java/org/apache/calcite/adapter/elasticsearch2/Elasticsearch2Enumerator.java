@@ -98,6 +98,7 @@ public class Elasticsearch2Enumerator implements Enumerator<Object> {
    * objects.
    *
    * @param fields List of fields to project
+   * @return function which converts search result into generic array.
    */
   private static Function1<SearchHit, Object[]> listGetter(
       final List<Map.Entry<String, Class>> fields) {
