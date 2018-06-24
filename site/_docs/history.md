@@ -28,7 +28,7 @@ For a full list of releases, see
 Downloads are available on the
 [downloads page]({{ site.baseurl }}/downloads/avatica.html).
 
-## <a href="https://github.com/apache/calcite-avatica/releases/tag/calcite-avatica-1.12.0">1.12.0</a> / 2018-06-15
+## <a href="https://github.com/apache/calcite-avatica/releases/tag/calcite-avatica-1.12.0">1.12.0</a> / 2018-06-24
 {: #v1-12-0}
 
 Apache Calcite Avatica 1.12.0 includes more than 20 bugs fixes and new features. ZIP archives will no longer be
@@ -58,7 +58,7 @@ Features and bug fixes
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-2289">CALCITE-2289</a>]
   Enable html5 for Javadoc on JDK 9+
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-2284">CALCITE-2284</a>]
-  Allow Jetty Server to be customized before startup
+  Allow Jetty Server to be customized before startup (Alex Araujo)
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-2333">CALCITE-2333</a>]
   Stop generating ZIP archives for release
 * Bump HSQLDB dependency to 2.4.1
@@ -81,7 +81,7 @@ Features and bug fixes
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-2299">CALCITE-2299</a>]
   Add support for NANOSECOND in TimeUnit and TimeUnitRange 
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-2285">CALCITE-2285</a>]
-  Support client cert keystore for Avatica client
+  Support client cert keystore for Avatica client (Karan Mehta)
   
 Tests
 
