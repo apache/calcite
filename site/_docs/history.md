@@ -28,7 +28,7 @@ For a full list of releases, see
 Downloads are available on the
 [downloads page]({{ site.baseurl }}/downloads/avatica.html).
 
-## <a href="https://github.com/apache/calcite-avatica/releases/tag/calcite-avatica-1.12.0">1.12.0</a> / 2018-06-24
+## <a href="https://github.com/apache/calcite-avatica/releases/tag/rel/avatica-1.12.0">1.12.0</a> / 2018-06-24
 {: #v1-12-0}
 
 Apache Calcite Avatica 1.12.0 includes more than 20 bugs fixes and new features. ZIP archives will no longer be
@@ -104,7 +104,7 @@ Website and Documentation
 * Fix broken link in HOWTO
 * Add missing license header to avatica-go docs generation script
 
-## <a href="https://github.com/apache/calcite-avatica/releases/tag/calcite-avatica-1.11.0">1.11.0</a> / 2018-03-09
+## <a href="https://github.com/apache/calcite-avatica/releases/tag/rel/avatica-1.11.0">1.11.0</a> / 2018-03-09
 {: #v1-11-0}
 
 Apache Calcite Avatica 1.11.0 adds support for JDK 10 and drops
@@ -178,7 +178,7 @@ Web site and documentation
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-1878">CALCITE-1878</a>]
   Update the website for protobuf changes in 1.10.0
 
-## <a href="https://github.com/apache/calcite-avatica/releases/tag/calcite-avatica-1.10.0">1.10.0</a> / 2017-05-30
+## <a href="https://github.com/apache/calcite-avatica/releases/tag/rel/avatica-1.10.0">1.10.0</a> / 2017-05-30
 {: #v1-10-0}
 
 Apache Calcite Avatica 1.10.0 is the first release since
