@@ -76,6 +76,7 @@ import org.apache.calcite.rel.rules.JoinPushExpressionsRule;
 import org.apache.calcite.rel.rules.JoinPushTransitivePredicatesRule;
 import org.apache.calcite.rel.rules.JoinToMultiJoinRule;
 import org.apache.calcite.rel.rules.JoinUnionTransposeRule;
+import org.apache.calcite.rel.rules.ProjectCorrelateTransposeRule;
 import org.apache.calcite.rel.rules.ProjectFilterTransposeRule;
 import org.apache.calcite.rel.rules.ProjectJoinTransposeRule;
 import org.apache.calcite.rel.rules.ProjectMergeRule;
@@ -85,6 +86,7 @@ import org.apache.calcite.rel.rules.ProjectToCalcRule;
 import org.apache.calcite.rel.rules.ProjectToWindowRule;
 import org.apache.calcite.rel.rules.ProjectWindowTransposeRule;
 import org.apache.calcite.rel.rules.PruneEmptyRules;
+import org.apache.calcite.rel.rules.PushProjector;
 import org.apache.calcite.rel.rules.ReduceExpressionsRule;
 import org.apache.calcite.rel.rules.SemiJoinFilterTransposeRule;
 import org.apache.calcite.rel.rules.SemiJoinJoinTransposeRule;
@@ -103,6 +105,7 @@ import org.apache.calcite.rel.rules.UnionToDistinctRule;
 import org.apache.calcite.rel.rules.ValuesReduceRule;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.runtime.PredicateImpl;
@@ -173,6 +176,20 @@ import static org.junit.Assert.assertTrue;
  */
 public class RelOptRulesTest extends RelOptTestBase {
   //~ Methods ----------------------------------------------------------------
+
+  private final PushProjector.ExprCondition skipItem = new PushProjector.ExprCondition() {
+
+    @Override public boolean apply(RexNode rexNode) {
+      return false;
+    }
+    @Override public boolean test(RexNode expr) {
+      if (expr instanceof RexCall) {
+        RexCall call = (RexCall) expr;
+        return "item".equalsIgnoreCase(call.getOperator().getName());
+      }
+      return false;
+    }
+  };
 
   protected DiffRepository getDiffRepos() {
     return DiffRepository.lookup(RelOptRulesTest.class);
@@ -1049,6 +1066,37 @@ public class RelOptRulesTest extends RelOptTestBase {
     checkPlanning(ProjectJoinTransposeRule.INSTANCE,
         "select e.sal + b.comm from emp e inner join bonus b "
             + "on e.ename = b.ename and e.deptno = 10");
+  }
+
+  @Test public void testProjectCorrelateTransposeDynamic() {
+    ProjectCorrelateTransposeRule customPCTrans =
+        new ProjectCorrelateTransposeRule(skipItem, RelFactories.LOGICAL_BUILDER);
+
+    checkPlanningDynamic(customPCTrans,
+        "select t1.c_nationkey, t2.fake_col2 "
+        + "from SALES.CUSTOMER as t1, "
+        + "unnest(t1.fake_col) as t2");
+  }
+
+  @Test public void testProjectCorrelateTransposeWithExprCond() {
+    ProjectCorrelateTransposeRule customPCTrans =
+        new ProjectCorrelateTransposeRule(skipItem, RelFactories.LOGICAL_BUILDER);
+
+    checkPlanning(customPCTrans,
+        "select t1.name, t2.ename "
+            + "from DEPT_NESTED as t1, "
+            + "unnest(t1.employees) as t2");
+  }
+
+  @Test public void testProjectCorrelateTranspose() {
+    ProjectCorrelateTransposeRule customPCTrans =
+        new ProjectCorrelateTransposeRule(PushProjector.ExprCondition.TRUE,
+            RelFactories.LOGICAL_BUILDER);
+
+    checkPlanning(customPCTrans,
+        "select t1.name, t2.ename "
+            + "from DEPT_NESTED as t1, "
+            + "unnest(t1.employees) as t2");
   }
 
   private static final String NOT_STRONG_EXPR =
