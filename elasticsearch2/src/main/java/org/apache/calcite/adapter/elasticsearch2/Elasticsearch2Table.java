@@ -39,8 +39,12 @@ public class Elasticsearch2Table extends AbstractElasticsearchTable {
 
   /**
    * Creates an Elasticsearch2Table.
+   *
+   * @param client existing ES instance
+   * @param indexName name of the index
+   * @param typeName index type
    */
-  public Elasticsearch2Table(Client client, String indexName, String typeName) {
+  Elasticsearch2Table(Client client, String indexName, String typeName) {
     super(indexName, typeName);
     this.client = client;
   }

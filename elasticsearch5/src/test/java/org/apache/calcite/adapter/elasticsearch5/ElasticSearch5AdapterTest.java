@@ -60,6 +60,8 @@ public class ElasticSearch5AdapterTest {
 
   /**
    * Used to create {@code zips} index and insert some data
+   *
+   * @throws Exception when ES instance setup failed
    */
   @BeforeClass
   public static void setupInstance() throws Exception {
@@ -148,7 +150,7 @@ public class ElasticSearch5AdapterTest {
    * Tests using calcite view
    */
   @Test
-  public void view() throws Exception {
+  public void view() {
     calciteAssert()
           .query("select * from zips where \"city\" = 'BROOKLYN'")
           .returns("city=BROOKLYN; longitude=-73.956985; latitude=40.646694; "

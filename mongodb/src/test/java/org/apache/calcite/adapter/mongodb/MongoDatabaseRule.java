@@ -53,6 +53,7 @@ class MongoDatabaseRule extends ExternalResource {
 
   /**
    * Create an instance based on current maven profile (as defined by {@code -Pit}).
+   * @return new instance of the rule to be used by unit tests
    */
   static MongoDatabaseRule create() {
     final MongoClient client;

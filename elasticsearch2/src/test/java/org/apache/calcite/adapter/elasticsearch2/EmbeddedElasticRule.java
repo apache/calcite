@@ -28,24 +28,22 @@ import org.junit.rules.ExternalResource;
  *
  * This rule should be used as follows:
  * <pre>
- *  {@code
  *
  *  public class MyTest {
- *    @literal @ClassRule
+ *    &#64;ClassRule
  *    public static final ElasticSearchRule RULE = ElasticSearchRule.create();
  *
- *    @literal @BeforeClass
- *    public void setup() {
+ *    &#64;BeforeClass
+ *    public static void setup() {
  *       // ... populate instance
  *    }
  *
- *    @literal @Test
+ *    &#64;Test
  *    public void myTest() {
  *      TransportAddress address = RULE.httpAddress();
- *      // ....
+ *      // .... (connect)
  *    }
- *  }
- *  }
+ * }
  * </pre>
  *
  * @see ExternalResource
@@ -72,6 +70,8 @@ class EmbeddedElasticRule extends ExternalResource {
 
   /**
    * Factory method to create this rule.
+   *
+   * @return new rule instance to be used in unit tests
    */
   public static EmbeddedElasticRule create() {
     return new EmbeddedElasticRule(EmbeddedElasticNode.create());
@@ -79,6 +79,8 @@ class EmbeddedElasticRule extends ExternalResource {
 
   /**
    * Exposes current ES transport client.
+   *
+   * @return initialized instance of ES
    */
   Client client() {
     return node.client();
@@ -86,6 +88,8 @@ class EmbeddedElasticRule extends ExternalResource {
 
   /**
    * HTTP address for rest clients (can be ES native or any other).
+   *
+   * @return HTTP hostname/port to connect to this ES instance.
    */
   TransportAddress httpAddress() {
     return node.httpAddress();
