@@ -5163,6 +5163,7 @@ SqlIdentifier ReservedFunctionName() :
     |   <MINUTE>
     |   <MOD>
     |   <MONTH>
+    |   <NTH_VALUE>
     |   <NTILE>
     |   <NULLIF>
     |   <OCTET_LENGTH>
