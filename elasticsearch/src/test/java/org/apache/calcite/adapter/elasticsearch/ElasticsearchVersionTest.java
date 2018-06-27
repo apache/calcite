@@ -36,6 +36,7 @@ public class ElasticsearchVersionTest {
     assertEquals(ElasticsearchVersion.fromString("6.0.1"), ElasticsearchVersion.ES6);
     assertEquals(ElasticsearchVersion.fromString("7.0.1"), ElasticsearchVersion.ES7);
     assertEquals(ElasticsearchVersion.fromString("111.0.1"), ElasticsearchVersion.UNKNOWN);
+    assertEquals(ElasticsearchVersion.fromString("2020.12.12"), ElasticsearchVersion.UNKNOWN);
 
     assertFails("");
     assertFails(".");

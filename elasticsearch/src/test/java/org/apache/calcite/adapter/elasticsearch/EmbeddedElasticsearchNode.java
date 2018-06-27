@@ -56,7 +56,7 @@ class EmbeddedElasticsearchNode implements AutoCloseable {
    * @return instance which needs to be explicitly started (using {@link #start()})
    */
   private static EmbeddedElasticsearchNode create(Settings settings) {
-    // ensure GroovyPlugin is installed or otherwise scripted fields would not work
+    // ensure PainlessPlugin is installed or otherwise scripted fields would not work
     Node node = new LocalNode(settings, Arrays.asList(Netty4Plugin.class, PainlessPlugin.class));
     return new EmbeddedElasticsearchNode(node);
   }
@@ -64,9 +64,10 @@ class EmbeddedElasticsearchNode implements AutoCloseable {
   /**
    * Creates elastic node as single member of a cluster. Node will not be started
    * unless {@link #start()} is explicitly called.
+   * <p>Need {@code synchronized} because of static caches inside ES (which are not thread safe).
    * @return instance which needs to be explicitly started (using {@link #start()})
    */
-  public static EmbeddedElasticsearchNode create() {
+  public static synchronized EmbeddedElasticsearchNode create() {
     File data = Files.createTempDir();
     data.deleteOnExit();
     File home = Files.createTempDir();
@@ -77,6 +78,9 @@ class EmbeddedElasticsearchNode implements AutoCloseable {
         .put("path.home", home.getAbsolutePath())
         .put("path.data", data.getAbsolutePath())
         .put("http.type", "netty4")
+        // allow multiple instances to run in parallel
+        .put("transport.tcp.port", 0)
+        .put("http.port", 0)
         .put("network.host", "localhost")
         .build();
 

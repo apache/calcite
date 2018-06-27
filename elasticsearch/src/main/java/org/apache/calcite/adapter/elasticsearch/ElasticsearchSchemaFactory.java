@@ -25,7 +25,6 @@ import org.apache.http.HttpHost;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
 import com.google.common.base.Preconditions;
 
 import org.elasticsearch.client.RestClient;

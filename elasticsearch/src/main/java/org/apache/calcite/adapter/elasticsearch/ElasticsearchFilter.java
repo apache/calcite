@@ -32,15 +32,22 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.util.JsonBuilder;
 import org.apache.calcite.util.Pair;
 
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 
+import java.io.IOException;
+import java.io.StringWriter;
+import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+
 
 /**
  * Implementation of a {@link org.apache.calcite.rel.core.Filter}
@@ -75,9 +82,37 @@ public class ElasticsearchFilter extends Filter implements ElasticsearchRel {
     } else {
       fieldNames = ElasticsearchRules.elasticsearchFieldNames(getRowType());
     }
-    Translator translator = new Translator(fieldNames);
-    String match = translator.translateMatch(condition);
-    implementor.add(match);
+    ObjectMapper mapper = implementor.elasticsearchTable.mapper;
+    PredicateAnalyzerTranslator translator = new PredicateAnalyzerTranslator(mapper);
+    try {
+      implementor.add(translator.translateMatch(condition));
+    } catch (IOException e) {
+      throw new UncheckedIOException(e);
+    } catch (ExpressionNotAnalyzableException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  /**
+   * New version of translator which uses visitor pattern
+   * and allow to process more complex (boolean) predicates.
+   */
+  static class PredicateAnalyzerTranslator {
+    private final ObjectMapper mapper;
+
+    PredicateAnalyzerTranslator(final ObjectMapper mapper) {
+      this.mapper = Objects.requireNonNull(mapper, "mapper");
+    }
+
+    String translateMatch(RexNode condition) throws IOException, ExpressionNotAnalyzableException {
+
+      StringWriter writer = new StringWriter();
+      JsonGenerator generator = mapper.getFactory().createGenerator(writer);
+      QueryBuilders.constantScoreQuery(PredicateAnalyzer.analyze(condition)).writeJson(generator);
+      generator.flush();
+      generator.close();
+      return "\"query\" : " + writer.toString();
+    }
   }
 
   /**
