@@ -18,15 +18,15 @@ package org.apache.calcite.test;
 
 import org.apache.calcite.util.Util;
 
+import com.google.common.base.Function;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.function.Consumer;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
@@ -47,26 +47,29 @@ public class MongoAssertions {
    * @param lines Expected expressions
    * @return validation function
    */
-  public static Consumer<ResultSet> checkResultUnordered(
+  public static Function<ResultSet, Void> checkResultUnordered(
       final String... lines) {
-    return resultSet -> {
-      try {
-        final List<String> expectedList =
-            Ordering.natural().immutableSortedCopy(Arrays.asList(lines));
+    return new Function<ResultSet, Void>() {
+      public Void apply(ResultSet resultSet) {
+        try {
+          final List<String> expectedList =
+              Ordering.natural().immutableSortedCopy(Arrays.asList(lines));
 
-        final List<String> actualList = new ArrayList<>();
-        CalciteAssert.toStringList(resultSet, actualList);
-        for (int i = 0; i < actualList.size(); i++) {
-          String s = actualList.get(i);
-          actualList.set(i,
-              s.replaceAll("\\.0;", ";").replaceAll("\\.0$", ""));
+          final List<String> actualList = Lists.newArrayList();
+          CalciteAssert.toStringList(resultSet, actualList);
+          for (int i = 0; i < actualList.size(); i++) {
+            String s = actualList.get(i);
+            actualList.set(i,
+                s.replaceAll("\\.0;", ";").replaceAll("\\.0$", ""));
+          }
+          Collections.sort(actualList);
+
+          assertThat(Ordering.natural().immutableSortedCopy(actualList),
+              equalTo(expectedList));
+          return null;
+        } catch (SQLException e) {
+          throw new RuntimeException(e);
         }
-        Collections.sort(actualList);
-
-        assertThat(Ordering.natural().immutableSortedCopy(actualList),
-            equalTo(expectedList));
-      } catch (SQLException e) {
-        throw new RuntimeException(e);
       }
     };
   }

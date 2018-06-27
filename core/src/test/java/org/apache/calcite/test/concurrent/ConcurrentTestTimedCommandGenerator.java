@@ -79,9 +79,13 @@ public class ConcurrentTestTimedCommandGenerator
       }
     }
 
-    return () -> new TimedIterator<ConcurrentTestCommand>(
-        getCommands(threadId),
-        endTimeMillis);
+    return new Iterable<ConcurrentTestCommand>() {
+      public Iterator<ConcurrentTestCommand> iterator() {
+        return new TimedIterator<ConcurrentTestCommand>(
+            getCommands(threadId),
+            endTimeMillis);
+      }
+    };
   }
 
   /**

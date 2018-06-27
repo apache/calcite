@@ -25,6 +25,7 @@ import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.Linq4j;
 import org.apache.calcite.linq4j.QueryProvider;
 import org.apache.calcite.linq4j.function.Function1;
+import org.apache.calcite.linq4j.function.Predicate1;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.linq4j.tree.ParameterExpression;
 import org.apache.calcite.linq4j.tree.Primitive;
@@ -36,6 +37,7 @@ import org.apache.calcite.schema.impl.ViewTable;
 import org.apache.calcite.util.Smalls;
 import org.apache.calcite.util.Util;
 
+import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 
 import org.junit.Assert;
@@ -102,14 +104,14 @@ public class ReflectiveSchemaTest {
                 "asQueryable"),
             Employee.class)
             .where(
-                Expressions.lambda(
+                Expressions.<Predicate1<Employee>>lambda(
                     Expressions.lessThan(
                         Expressions.field(
                             e, "empid"),
                         Expressions.constant(160)),
                     e))
             .where(
-                Expressions.lambda(
+                Expressions.<Predicate1<Employee>>lambda(
                     Expressions.greaterThan(
                         Expressions.field(
                             e, "empid"),
@@ -337,50 +339,53 @@ public class ReflectiveSchemaTest {
           "select " + fn + "(\"" + field.getName() + "\") as c\n"
               + "from \"s\".\"everyTypes\"")
           .returns(
-              input -> {
-                int n = 0;
-                try {
-                  while (input.next()) {
-                    final Object o = get(input);
-                    Util.discard(o);
-                    ++n;
+              new Function<ResultSet, Void>() {
+                public Void apply(ResultSet input) {
+                  int n = 0;
+                  try {
+                    while (input.next()) {
+                      final Object o = get(input);
+                      Util.discard(o);
+                      ++n;
+                    }
+                  } catch (SQLException e) {
+                    throw new RuntimeException(e);
                   }
-                } catch (SQLException e) {
-                  throw new RuntimeException(e);
+                  assertThat(n, equalTo(1));
+                  return null;
                 }
-                assertThat(n, equalTo(1));
-              });
-    }
-  }
 
-  private Object get(ResultSet input) throws SQLException {
-    final int type = input.getMetaData().getColumnType(1);
-    switch (type) {
-    case java.sql.Types.BOOLEAN:
-      return input.getBoolean(1);
-    case java.sql.Types.TINYINT:
-      return input.getByte(1);
-    case java.sql.Types.SMALLINT:
-      return input.getShort(1);
-    case java.sql.Types.INTEGER:
-      return input.getInt(1);
-    case java.sql.Types.BIGINT:
-      return input.getLong(1);
-    case java.sql.Types.REAL:
-      return input.getFloat(1);
-    case java.sql.Types.DOUBLE:
-      return input.getDouble(1);
-    case java.sql.Types.CHAR:
-    case java.sql.Types.VARCHAR:
-      return input.getString(1);
-    case java.sql.Types.DATE:
-      return input.getDate(1);
-    case java.sql.Types.TIME:
-      return input.getTime(1);
-    case java.sql.Types.TIMESTAMP:
-      return input.getTimestamp(1);
-    default:
-      throw new AssertionError(type);
+                private Object get(ResultSet input) throws SQLException {
+                  final int type = input.getMetaData().getColumnType(1);
+                  switch (type) {
+                  case java.sql.Types.BOOLEAN:
+                    return input.getBoolean(1);
+                  case java.sql.Types.TINYINT:
+                    return input.getByte(1);
+                  case java.sql.Types.SMALLINT:
+                    return input.getShort(1);
+                  case java.sql.Types.INTEGER:
+                    return input.getInt(1);
+                  case java.sql.Types.BIGINT:
+                    return input.getLong(1);
+                  case java.sql.Types.REAL:
+                    return input.getFloat(1);
+                  case java.sql.Types.DOUBLE:
+                    return input.getDouble(1);
+                  case java.sql.Types.CHAR:
+                  case java.sql.Types.VARCHAR:
+                    return input.getString(1);
+                  case java.sql.Types.DATE:
+                    return input.getDate(1);
+                  case java.sql.Types.TIME:
+                    return input.getTime(1);
+                  case java.sql.Types.TIMESTAMP:
+                    return input.getTimestamp(1);
+                  default:
+                    throw new AssertionError(type);
+                  }
+                }
+              });
     }
   }
 
@@ -388,46 +393,49 @@ public class ReflectiveSchemaTest {
     CalciteAssert.that()
         .withSchema("s", CATCHALL).query("select * from \"s\".\"everyTypes\"")
         .returns(
-            resultSet -> {
-              try {
-                final ResultSetMetaData metaData = resultSet.getMetaData();
-                check(metaData, "primitiveBoolean", Boolean.class);
-                check(metaData, "primitiveByte", Byte.class);
-                check(metaData, "primitiveChar", String.class);
-                check(metaData, "primitiveShort", Short.class);
-                check(metaData, "primitiveInt", Integer.class);
-                check(metaData, "primitiveLong", Long.class);
-                check(metaData, "primitiveFloat", Float.class);
-                check(metaData, "primitiveDouble", Double.class);
-                check(metaData, "wrapperBoolean", Boolean.class);
-                check(metaData, "wrapperByte", Byte.class);
-                check(metaData, "wrapperCharacter", String.class);
-                check(metaData, "wrapperShort", Short.class);
-                check(metaData, "wrapperInteger", Integer.class);
-                check(metaData, "wrapperLong", Long.class);
-                check(metaData, "wrapperFloat", Float.class);
-                check(metaData, "wrapperDouble", Double.class);
-                check(metaData, "sqlDate", java.sql.Date.class);
-                check(metaData, "sqlTime", Time.class);
-                check(metaData, "sqlTimestamp", Timestamp.class);
-                check(metaData, "utilDate", Timestamp.class);
-                check(metaData, "string", String.class);
-              } catch (SQLException e) {
-                throw new RuntimeException(e);
+            new Function<ResultSet, Void>() {
+              public Void apply(ResultSet input) {
+                try {
+                  final ResultSetMetaData metaData = input.getMetaData();
+                  check(metaData, "primitiveBoolean", Boolean.class);
+                  check(metaData, "primitiveByte", Byte.class);
+                  check(metaData, "primitiveChar", String.class);
+                  check(metaData, "primitiveShort", Short.class);
+                  check(metaData, "primitiveInt", Integer.class);
+                  check(metaData, "primitiveLong", Long.class);
+                  check(metaData, "primitiveFloat", Float.class);
+                  check(metaData, "primitiveDouble", Double.class);
+                  check(metaData, "wrapperBoolean", Boolean.class);
+                  check(metaData, "wrapperByte", Byte.class);
+                  check(metaData, "wrapperCharacter", String.class);
+                  check(metaData, "wrapperShort", Short.class);
+                  check(metaData, "wrapperInteger", Integer.class);
+                  check(metaData, "wrapperLong", Long.class);
+                  check(metaData, "wrapperFloat", Float.class);
+                  check(metaData, "wrapperDouble", Double.class);
+                  check(metaData, "sqlDate", java.sql.Date.class);
+                  check(metaData, "sqlTime", Time.class);
+                  check(metaData, "sqlTimestamp", Timestamp.class);
+                  check(metaData, "utilDate", Timestamp.class);
+                  check(metaData, "string", String.class);
+                  return null;
+                } catch (SQLException e) {
+                  throw new RuntimeException(e);
+                }
+              }
+
+              private void check(ResultSetMetaData metaData, String columnName,
+                  Class expectedType) throws SQLException {
+                for (int i = 1; i <= metaData.getColumnCount(); i++) {
+                  if (metaData.getColumnName(i).equals(columnName)) {
+                    assertThat(metaData.getColumnClassName(i),
+                        equalTo(expectedType.getName()));
+                    return;
+                  }
+                }
+                Assert.fail("column not found: " + columnName);
               }
             });
-  }
-
-  private void check(ResultSetMetaData metaData, String columnName,
-      Class expectedType) throws SQLException {
-    for (int i = 1; i <= metaData.getColumnCount(); i++) {
-      if (metaData.getColumnName(i).equals(columnName)) {
-        assertThat(metaData.getColumnClassName(i),
-            equalTo(expectedType.getName()));
-        return;
-      }
-    }
-    Assert.fail("column not found: " + columnName);
   }
 
   @Test public void testJavaBoolean() throws Exception {
@@ -545,7 +553,7 @@ public class ReflectiveSchemaTest {
             + " " + fn + " " + name2 + " as c\n"
             + "from \"s\".\"everyTypes\"\n"
             + "where " + name + " <> 0")
-            .returns(resultSet -> { });
+            .returns(CalciteAssert.<ResultSet, Void>constantNull());
       }
     }
   }
@@ -563,19 +571,23 @@ public class ReflectiveSchemaTest {
   @Test public void testAvgInt() throws Exception {
     CalciteAssert.that().withSchema("s", CATCHALL).with(Lex.JAVA)
         .query("select primitiveLong, avg(primitiveInt)\n"
-            + "from s.everyTypes\n"
-            + "group by primitiveLong order by primitiveLong")
-        .returns(input -> {
-          StringBuilder buf = new StringBuilder();
-          try {
-            while (input.next()) {
-              buf.append(input.getInt(2)).append("\n");
-            }
-          } catch (SQLException e) {
-            throw new RuntimeException(e);
-          }
-          assertThat(buf.toString(), equalTo("0\n2147483647\n"));
-        });
+                + "from s.everyTypes\n"
+                + "group by primitiveLong order by primitiveLong")
+        .returns(
+            new Function<ResultSet, Void>() {
+              public Void apply(ResultSet input) {
+                StringBuilder buf = new StringBuilder();
+                try {
+                  while (input.next()) {
+                    buf.append(input.getInt(2)).append("\n");
+                  }
+                } catch (SQLException e) {
+                  throw new RuntimeException(e);
+                }
+                assertThat(buf.toString(), equalTo("0\n2147483647\n"));
+                return null;
+              }
+            });
   }
 
   private static boolean isNumeric(Class type) {
@@ -824,7 +836,12 @@ public class ReflectiveSchemaTest {
 
     static Enumerable<Field> numericFields() {
       return fields()
-          .where(v1 -> isNumeric(v1.getType()));
+          .where(
+              new Predicate1<Field>() {
+                public boolean apply(Field v1) {
+                  return isNumeric(v1.getType());
+                }
+              });
     }
   }
 

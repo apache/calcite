@@ -29,6 +29,7 @@ import org.apache.calcite.util.TimestampString;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.trace.CalciteTrace;
 
+import com.google.common.base.Function;
 import com.google.common.collect.BoundType;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
@@ -82,26 +83,29 @@ public class DruidDateTimeUtils {
 
   protected static List<Interval> toInterval(
       List<Range<Long>> ranges) {
-    List<Interval> intervals = Lists.transform(ranges, range -> {
-      if (!range.hasLowerBound() && !range.hasUpperBound()) {
-        return DruidTable.DEFAULT_INTERVAL;
-      }
-      long start = range.hasLowerBound()
-          ? range.lowerEndpoint().longValue()
-          : DruidTable.DEFAULT_INTERVAL.getStartMillis();
-      long end = range.hasUpperBound()
-          ? range.upperEndpoint().longValue()
-          : DruidTable.DEFAULT_INTERVAL.getEndMillis();
-      if (range.hasLowerBound()
-          && range.lowerBoundType() == BoundType.OPEN) {
-        start++;
-      }
-      if (range.hasUpperBound()
-          && range.upperBoundType() == BoundType.CLOSED) {
-        end++;
-      }
-      return new Interval(start, end, ISOChronology.getInstanceUTC());
-    });
+    List<Interval> intervals = Lists.transform(ranges,
+        new Function<Range<Long>, Interval>() {
+          public Interval apply(Range<Long> range) {
+            if (!range.hasLowerBound() && !range.hasUpperBound()) {
+              return DruidTable.DEFAULT_INTERVAL;
+            }
+            long start = range.hasLowerBound()
+                ? range.lowerEndpoint().longValue()
+                : DruidTable.DEFAULT_INTERVAL.getStartMillis();
+            long end = range.hasUpperBound()
+                ? range.upperEndpoint().longValue()
+                : DruidTable.DEFAULT_INTERVAL.getEndMillis();
+            if (range.hasLowerBound()
+                && range.lowerBoundType() == BoundType.OPEN) {
+              start++;
+            }
+            if (range.hasUpperBound()
+                && range.upperBoundType() == BoundType.CLOSED) {
+              end++;
+            }
+            return new Interval(start, end, ISOChronology.getInstanceUTC());
+          }
+        });
     if (LOGGER.isDebugEnabled()) {
       LOGGER.debug("Converted time ranges " + ranges + " to interval " + intervals);
     }
@@ -125,7 +129,7 @@ public class DruidDateTimeUtils {
 
     case OR: {
       RexCall call = (RexCall) node;
-      List<Range<Long>> intervals = new ArrayList<>();
+      List<Range<Long>> intervals = Lists.newArrayList();
       for (RexNode child : call.getOperands()) {
         List<Range<Long>> extracted =
             extractRanges(child, withNot);

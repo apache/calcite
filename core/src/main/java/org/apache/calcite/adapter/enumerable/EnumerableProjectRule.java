@@ -23,18 +23,15 @@ import org.apache.calcite.rel.convert.ConverterRule;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.logical.LogicalProject;
 
-import java.util.function.Predicate;
-
 /**
  * Rule to convert a {@link org.apache.calcite.rel.logical.LogicalProject} to an
  * {@link EnumerableProject}.
  */
 class EnumerableProjectRule extends ConverterRule {
   EnumerableProjectRule() {
-    super(LogicalProject.class,
-        (Predicate<LogicalProject>) RelOptUtil::containsMultisetOrWindowedAgg,
-        Convention.NONE, EnumerableConvention.INSTANCE,
-        RelFactories.LOGICAL_BUILDER, "EnumerableProjectRule");
+    super(LogicalProject.class, RelOptUtil.PROJECT_PREDICATE, Convention.NONE,
+        EnumerableConvention.INSTANCE, RelFactories.LOGICAL_BUILDER,
+        "EnumerableProjectRule");
   }
 
   public RelNode convert(RelNode rel) {

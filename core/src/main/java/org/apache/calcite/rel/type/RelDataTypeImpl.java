@@ -27,10 +27,10 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 
 import java.io.Serializable;
 import java.nio.charset.Charset;
-import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -85,7 +85,7 @@ public abstract class RelDataTypeImpl
       }
     }
     if (elideRecord) {
-      final List<Slot> slots = new ArrayList<>();
+      final List<Slot> slots = Lists.newArrayList();
       getFieldRecurse(slots, this, 0, fieldName, caseSensitive);
     loop:
       for (Slot slot : slots) {
@@ -298,7 +298,11 @@ public abstract class RelDataTypeImpl
    */
   public static RelProtoDataType proto(final RelDataType protoType) {
     assert protoType != null;
-    return typeFactory -> typeFactory.copyType(protoType);
+    return new RelProtoDataType() {
+      public RelDataType apply(RelDataTypeFactory typeFactory) {
+        return typeFactory.copyType(protoType);
+      }
+    };
   }
 
   /** Returns a {@link org.apache.calcite.rel.type.RelProtoDataType}
@@ -314,9 +318,11 @@ public abstract class RelDataTypeImpl
   public static RelProtoDataType proto(final SqlTypeName typeName,
       final boolean nullable) {
     assert typeName != null;
-    return typeFactory -> {
-      final RelDataType type = typeFactory.createSqlType(typeName);
-      return typeFactory.createTypeWithNullability(type, nullable);
+    return new RelProtoDataType() {
+      public RelDataType apply(RelDataTypeFactory typeFactory) {
+        final RelDataType type = typeFactory.createSqlType(typeName);
+        return typeFactory.createTypeWithNullability(type, nullable);
+      }
     };
   }
 
@@ -334,9 +340,11 @@ public abstract class RelDataTypeImpl
   public static RelProtoDataType proto(final SqlTypeName typeName,
       final int precision, final boolean nullable) {
     assert typeName != null;
-    return typeFactory -> {
-      final RelDataType type = typeFactory.createSqlType(typeName, precision);
-      return typeFactory.createTypeWithNullability(type, nullable);
+    return new RelProtoDataType() {
+      public RelDataType apply(RelDataTypeFactory typeFactory) {
+        final RelDataType type = typeFactory.createSqlType(typeName, precision);
+        return typeFactory.createTypeWithNullability(type, nullable);
+      }
     };
   }
 
@@ -354,10 +362,12 @@ public abstract class RelDataTypeImpl
    */
   public static RelProtoDataType proto(final SqlTypeName typeName,
       final int precision, final int scale, final boolean nullable) {
-    return typeFactory -> {
-      final RelDataType type =
-          typeFactory.createSqlType(typeName, precision, scale);
-      return typeFactory.createTypeWithNullability(type, nullable);
+    return new RelProtoDataType() {
+      public RelDataType apply(RelDataTypeFactory typeFactory) {
+        final RelDataType type =
+            typeFactory.createSqlType(typeName, precision, scale);
+        return typeFactory.createTypeWithNullability(type, nullable);
+      }
     };
   }
 

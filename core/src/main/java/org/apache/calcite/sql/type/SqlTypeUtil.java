@@ -36,7 +36,9 @@ import org.apache.calcite.util.NumberUtil;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 import java.nio.charset.Charset;
@@ -44,7 +46,6 @@ import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.Objects;
 
 import static org.apache.calcite.util.Static.RESOURCE;
 
@@ -65,7 +66,7 @@ public abstract class SqlTypeUtil {
     assert argTypes.size() >= 2;
 
     // Filter out ANY elements.
-    List<RelDataType> argTypes2 = new ArrayList<>();
+    List<RelDataType> argTypes2 = Lists.newArrayList();
     for (RelDataType t : argTypes) {
       if (!isAny(t)) {
         argTypes2.add(t);
@@ -201,7 +202,7 @@ public abstract class SqlTypeUtil {
       final RelDataTypeFactory typeFactory,
       final List<RelDataType> argTypes,
       RelDataType type) {
-    Objects.requireNonNull(type);
+    Preconditions.checkNotNull(type);
     if (containsNullable(argTypes)) {
       type = typeFactory.createTypeWithNullability(type, true);
     }
@@ -1182,8 +1183,8 @@ public abstract class SqlTypeUtil {
   public static RelDataType createEmptyStructType(
       RelDataTypeFactory typeFactory) {
     return typeFactory.createStructType(
-        ImmutableList.of(),
-        ImmutableList.of());
+        ImmutableList.<RelDataType>of(),
+        ImmutableList.<String>of());
   }
 
   /** Returns whether a type is flat. It is not flat if it is a record type that

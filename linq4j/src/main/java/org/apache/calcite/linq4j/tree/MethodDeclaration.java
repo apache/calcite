@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.linq4j.tree;
 
+import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 
 import java.lang.reflect.Modifier;
@@ -68,7 +69,12 @@ public class MethodDeclaration extends MemberDeclaration {
         .append(' ')
         .append(name)
         .list("(", ", ", ")",
-            Lists.transform(parameters, ParameterExpression::declString))
+            Lists.transform(parameters,
+                new Function<ParameterExpression, String>() {
+                  public String apply(ParameterExpression a0) {
+                    return a0.declString();
+                  }
+                }))
         .append(' ')
         .append(body);
     writer.newlineAndIndent();

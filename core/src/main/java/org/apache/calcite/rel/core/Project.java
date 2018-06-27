@@ -41,6 +41,7 @@ import org.apache.calcite.util.Util;
 import org.apache.calcite.util.mapping.MappingType;
 import org.apache.calcite.util.mapping.Mappings;
 
+import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
@@ -193,7 +194,13 @@ public abstract class Project extends SingleRel {
       return litmus.fail("field names not distinct: {}", rowType);
     }
     //CHECKSTYLE: IGNORE 1
-    if (false && !Util.isDistinct(Lists.transform(exps, RexNode::toString))) {
+    if (false && !Util.isDistinct(
+        Lists.transform(exps,
+            new Function<RexNode, Object>() {
+              public Object apply(RexNode a0) {
+                return a0.toString();
+              }
+            }))) {
       // Projecting the same expression twice is usually a bad idea,
       // because it may create expressions downstream which are equivalent
       // but which look different. We can't ban duplicate projects,

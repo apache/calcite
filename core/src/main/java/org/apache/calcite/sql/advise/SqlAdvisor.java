@@ -18,6 +18,7 @@ package org.apache.calcite.sql.advise;
 
 import org.apache.calcite.runtime.CalciteContextException;
 import org.apache.calcite.runtime.CalciteException;
+import org.apache.calcite.runtime.PredicateImpl;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlSelect;
@@ -44,7 +45,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
-import java.util.Objects;
 
 /**
  * An assistant which offers hints and corrections to a partially-formed SQL
@@ -240,11 +240,18 @@ public class SqlAdvisor {
   private static boolean isSelectListItem(SqlNode root,
       final SqlParserPos pos) {
     List<SqlNode> nodes = SqlUtil.getAncestry(root,
-        input -> input instanceof SqlIdentifier
-            && Util.last(((SqlIdentifier) input).names)
-                .equals(UPPER_HINT_TOKEN),
-        input -> Objects.requireNonNull(input).getParserPosition()
-            .startsAt(pos));
+        new PredicateImpl<SqlNode>() {
+          public boolean test(SqlNode input) {
+            return input instanceof SqlIdentifier
+                && Util.last(((SqlIdentifier) input).names)
+                    .equals(UPPER_HINT_TOKEN);
+          }
+        },
+        new PredicateImpl<SqlNode>() {
+          public boolean test(SqlNode input) {
+            return input.getParserPosition().startsAt(pos);
+          }
+        });
     assert nodes.get(0) == root;
     nodes = Lists.reverse(nodes);
     return nodes.size() > 2

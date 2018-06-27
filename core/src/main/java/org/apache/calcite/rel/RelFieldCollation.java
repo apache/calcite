@@ -18,6 +18,8 @@ package org.apache.calcite.rel;
 
 import org.apache.calcite.sql.validate.SqlMonotonicity;
 
+import com.google.common.base.Preconditions;
+
 import java.util.Objects;
 
 /**
@@ -207,8 +209,8 @@ public class RelFieldCollation {
       Direction direction,
       NullDirection nullDirection) {
     this.fieldIndex = fieldIndex;
-    this.direction = Objects.requireNonNull(direction);
-    this.nullDirection = Objects.requireNonNull(nullDirection);
+    this.direction = Preconditions.checkNotNull(direction);
+    this.nullDirection = Preconditions.checkNotNull(nullDirection);
   }
 
   //~ Methods ----------------------------------------------------------------

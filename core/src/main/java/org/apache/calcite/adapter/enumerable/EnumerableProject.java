@@ -18,6 +18,7 @@ package org.apache.calcite.adapter.enumerable;
 
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Project;
@@ -25,9 +26,9 @@ import org.apache.calcite.rel.metadata.RelMdCollation;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.rex.RexUtil;
-import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.util.Util;
+
+import com.google.common.base.Supplier;
 
 import java.util.List;
 
@@ -72,17 +73,12 @@ public class EnumerableProject extends Project implements EnumerableRel {
     final RelTraitSet traitSet =
         cluster.traitSet().replace(EnumerableConvention.INSTANCE)
             .replaceIfs(RelCollationTraitDef.INSTANCE,
-                () -> RelMdCollation.project(mq, input, projects));
+                new Supplier<List<RelCollation>>() {
+                  public List<RelCollation> get() {
+                    return RelMdCollation.project(mq, input, projects);
+                  }
+                });
     return new EnumerableProject(cluster, traitSet, input, projects, rowType);
-  }
-
-  static RelNode create(RelNode child, List<? extends RexNode> projects,
-      List<String> fieldNames) {
-    final RelOptCluster cluster = child.getCluster();
-    final RelDataType rowType =
-        RexUtil.createStructType(cluster.getTypeFactory(), projects,
-          fieldNames, SqlValidatorUtil.F_SUGGESTER);
-    return create(child, projects, rowType);
   }
 
   public EnumerableProject copy(RelTraitSet traitSet, RelNode input,

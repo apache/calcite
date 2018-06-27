@@ -31,6 +31,8 @@ import org.apache.calcite.schema.TranslatableTable;
 import org.apache.calcite.schema.impl.AbstractTableQueryable;
 import org.apache.calcite.sql.type.SqlTypeName;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -43,16 +45,19 @@ abstract class AbstractElasticsearchTable extends AbstractQueryableTable
 
   final String indexName;
   final String typeName;
+  final ObjectMapper mapper;
 
   /**
    * Creates an ElasticsearchTable.
    * @param indexName Elastic Search index
    * @param typeName Elastic Search index type
+   * @param mapper Jackson API to parse (and created) JSON documents
    */
-  AbstractElasticsearchTable(String indexName, String typeName) {
+  AbstractElasticsearchTable(String indexName, String typeName, ObjectMapper mapper) {
     super(Object[].class);
     this.indexName = Objects.requireNonNull(indexName, "indexName");
     this.typeName = Objects.requireNonNull(typeName, "typeName");
+    this.mapper = Objects.requireNonNull(mapper, "mapper");
   }
 
   @Override public String toString() {

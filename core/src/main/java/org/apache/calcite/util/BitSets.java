@@ -85,21 +85,25 @@ public final class BitSets {
    * @return Iterable
    */
   public static Iterable<Integer> toIter(final BitSet bitSet) {
-    return () -> new Iterator<Integer>() {
-      int i = bitSet.nextSetBit(0);
+    return new Iterable<Integer>() {
+      public Iterator<Integer> iterator() {
+        return new Iterator<Integer>() {
+          int i = bitSet.nextSetBit(0);
 
-      public boolean hasNext() {
-        return i >= 0;
-      }
+          public boolean hasNext() {
+            return i >= 0;
+          }
 
-      public Integer next() {
-        int prev = i;
-        i = bitSet.nextSetBit(i + 1);
-        return prev;
-      }
+          public Integer next() {
+            int prev = i;
+            i = bitSet.nextSetBit(i + 1);
+            return prev;
+          }
 
-      public void remove() {
-        throw new UnsupportedOperationException();
+          public void remove() {
+            throw new UnsupportedOperationException();
+          }
+        };
       }
     };
   }

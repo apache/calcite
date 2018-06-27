@@ -186,20 +186,22 @@ public abstract class ReturnTypes {
    * BOOLEAN.
    */
   public static final SqlReturnTypeInference BOOLEAN_NULLABLE_OPTIMIZED =
-      opBinding -> {
+      new SqlReturnTypeInference() {
         // Equivalent to
         //   cascade(ARG0, SqlTypeTransforms.TO_NULLABLE);
         // but implemented by hand because used in AND, which is a very common
         // operator.
-        final int n = opBinding.getOperandCount();
-        RelDataType type1 = null;
-        for (int i = 0; i < n; i++) {
-          type1 = opBinding.getOperandType(i);
-          if (type1.isNullable()) {
-            break;
+        public RelDataType inferReturnType(SqlOperatorBinding opBinding) {
+          final int n = opBinding.getOperandCount();
+          RelDataType type1 = null;
+          for (int i = 0; i < n; i++) {
+            type1 = opBinding.getOperandType(i);
+            if (type1.isNullable()) {
+              break;
+            }
           }
+          return type1;
         }
-        return type1;
       };
 
   /**
@@ -298,36 +300,44 @@ public abstract class ReturnTypes {
    * @see Glossary#SQL99 SQL:1999 Part 2 Section 9.3
    */
   public static final SqlReturnTypeInference LEAST_RESTRICTIVE =
-      opBinding -> opBinding.getTypeFactory().leastRestrictive(
-          opBinding.collectOperandTypes());
+      new SqlReturnTypeInference() {
+        public RelDataType inferReturnType(SqlOperatorBinding opBinding) {
+          return opBinding.getTypeFactory().leastRestrictive(
+              opBinding.collectOperandTypes());
+        }
+      };
   /**
    * Returns the same type as the multiset carries. The multiset type returned
    * is the least restrictive of the call's multiset operands
    */
-  public static final SqlReturnTypeInference MULTISET = opBinding -> {
-    ExplicitOperatorBinding newBinding =
-        new ExplicitOperatorBinding(
-            opBinding,
-            new AbstractList<RelDataType>() {
-              // CHECKSTYLE: IGNORE 12
-              public RelDataType get(int index) {
-                RelDataType type =
-                    opBinding.getOperandType(index)
-                        .getComponentType();
-                assert type != null;
-                return type;
-              }
+  public static final SqlReturnTypeInference MULTISET =
+      new SqlReturnTypeInference() {
+        public RelDataType inferReturnType(
+            final SqlOperatorBinding opBinding) {
+          ExplicitOperatorBinding newBinding =
+              new ExplicitOperatorBinding(
+                  opBinding,
+                  new AbstractList<RelDataType>() {
+                    // CHECKSTYLE: IGNORE 12
+                    public RelDataType get(int index) {
+                      RelDataType type =
+                          opBinding.getOperandType(index)
+                              .getComponentType();
+                      assert type != null;
+                      return type;
+                    }
 
-              public int size() {
-                return opBinding.getOperandCount();
-              }
-            });
-    RelDataType biggestElementType =
-        LEAST_RESTRICTIVE.inferReturnType(newBinding);
-    return opBinding.getTypeFactory().createMultisetType(
-        biggestElementType,
-        -1);
-  };
+                    public int size() {
+                      return opBinding.getOperandCount();
+                    }
+                  });
+          RelDataType biggestElementType =
+              LEAST_RESTRICTIVE.inferReturnType(newBinding);
+          return opBinding.getTypeFactory().createMultisetType(
+              biggestElementType,
+              -1);
+        }
+      };
 
   /**
    * Returns a multiset type.
@@ -373,29 +383,33 @@ public abstract class ReturnTypes {
    * The result type of a call is a decimal with a scale of 0, and the same
    * precision and nullability as the first argument.
    */
-  public static final SqlReturnTypeInference DECIMAL_SCALE0 = opBinding -> {
-    RelDataType type1 = opBinding.getOperandType(0);
-    if (SqlTypeUtil.isDecimal(type1)) {
-      if (type1.getScale() == 0) {
-        return type1;
-      } else {
-        int p = type1.getPrecision();
-        RelDataType ret;
-        ret =
-            opBinding.getTypeFactory().createSqlType(
-                SqlTypeName.DECIMAL,
-                p,
-                0);
-        if (type1.isNullable()) {
-          ret =
-              opBinding.getTypeFactory()
-                  .createTypeWithNullability(ret, true);
+  public static final SqlReturnTypeInference DECIMAL_SCALE0 =
+      new SqlReturnTypeInference() {
+        public RelDataType inferReturnType(
+            SqlOperatorBinding opBinding) {
+          RelDataType type1 = opBinding.getOperandType(0);
+          if (SqlTypeUtil.isDecimal(type1)) {
+            if (type1.getScale() == 0) {
+              return type1;
+            } else {
+              int p = type1.getPrecision();
+              RelDataType ret;
+              ret =
+                  opBinding.getTypeFactory().createSqlType(
+                      SqlTypeName.DECIMAL,
+                      p,
+                      0);
+              if (type1.isNullable()) {
+                ret =
+                    opBinding.getTypeFactory()
+                        .createTypeWithNullability(ret, true);
+              }
+              return ret;
+            }
+          }
+          return null;
         }
-        return ret;
-      }
-    }
-    return null;
-  };
+      };
   /**
    * Type-inference strategy whereby the result type of a call is
    * {@link #DECIMAL_SCALE0} with a fallback to {@link #ARG0} This rule
@@ -409,12 +423,15 @@ public abstract class ReturnTypes {
    * product of two exact numeric operands where at least one of the operands
    * is a decimal.
    */
-  public static final SqlReturnTypeInference DECIMAL_PRODUCT = opBinding -> {
-    RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
-    RelDataType type1 = opBinding.getOperandType(0);
-    RelDataType type2 = opBinding.getOperandType(1);
-    return typeFactory.createDecimalProduct(type1, type2);
-  };
+  public static final SqlReturnTypeInference DECIMAL_PRODUCT =
+      new SqlReturnTypeInference() {
+        public RelDataType inferReturnType(SqlOperatorBinding opBinding) {
+          RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
+          RelDataType type1 = opBinding.getOperandType(0);
+          RelDataType type2 = opBinding.getOperandType(1);
+          return typeFactory.createDecimalProduct(type1, type2);
+        }
+      };
   /**
    * Same as {@link #DECIMAL_PRODUCT} but returns with nullability if any of
    * the operands is nullable by using
@@ -439,12 +456,16 @@ public abstract class ReturnTypes {
    * product of two exact numeric operands where at least one of the operands
    * is a decimal.
    */
-  public static final SqlReturnTypeInference DECIMAL_QUOTIENT = opBinding -> {
-    RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
-    RelDataType type1 = opBinding.getOperandType(0);
-    RelDataType type2 = opBinding.getOperandType(1);
-    return typeFactory.createDecimalQuotient(type1, type2);
-  };
+  public static final SqlReturnTypeInference DECIMAL_QUOTIENT =
+      new SqlReturnTypeInference() {
+        public RelDataType inferReturnType(
+            SqlOperatorBinding opBinding) {
+          RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
+          RelDataType type1 = opBinding.getOperandType(0);
+          RelDataType type2 = opBinding.getOperandType(1);
+          return typeFactory.createDecimalQuotient(type1, type2);
+        }
+      };
   /**
    * Same as {@link #DECIMAL_QUOTIENT} but returns with nullability if any of
    * the operands is nullable by using
@@ -479,38 +500,42 @@ public abstract class ReturnTypes {
    *
    * @see Glossary#SQL2003 SQL:2003 Part 2 Section 6.26
    */
-  public static final SqlReturnTypeInference DECIMAL_SUM = opBinding -> {
-    RelDataType type1 = opBinding.getOperandType(0);
-    RelDataType type2 = opBinding.getOperandType(1);
-    if (SqlTypeUtil.isExactNumeric(type1)
-        && SqlTypeUtil.isExactNumeric(type2)) {
-      if (SqlTypeUtil.isDecimal(type1)
-          || SqlTypeUtil.isDecimal(type2)) {
-        int p1 = type1.getPrecision();
-        int p2 = type2.getPrecision();
-        int s1 = type1.getScale();
-        int s2 = type2.getScale();
+  public static final SqlReturnTypeInference DECIMAL_SUM =
+      new SqlReturnTypeInference() {
+        public RelDataType inferReturnType(
+            SqlOperatorBinding opBinding) {
+          RelDataType type1 = opBinding.getOperandType(0);
+          RelDataType type2 = opBinding.getOperandType(1);
+          if (SqlTypeUtil.isExactNumeric(type1)
+              && SqlTypeUtil.isExactNumeric(type2)) {
+            if (SqlTypeUtil.isDecimal(type1)
+                || SqlTypeUtil.isDecimal(type2)) {
+              int p1 = type1.getPrecision();
+              int p2 = type2.getPrecision();
+              int s1 = type1.getScale();
+              int s2 = type2.getScale();
 
-        final RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
-        int scale = Math.max(s1, s2);
-        final RelDataTypeSystem typeSystem = typeFactory.getTypeSystem();
-        assert scale <= typeSystem.getMaxNumericScale();
-        int precision = Math.max(p1 - s1, p2 - s2) + scale + 1;
-        precision =
-            Math.min(
-                precision,
-                typeSystem.getMaxNumericPrecision());
-        assert precision > 0;
+              final RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
+              int scale = Math.max(s1, s2);
+              final RelDataTypeSystem typeSystem = typeFactory.getTypeSystem();
+              assert scale <= typeSystem.getMaxNumericScale();
+              int precision = Math.max(p1 - s1, p2 - s2) + scale + 1;
+              precision =
+                  Math.min(
+                      precision,
+                      typeSystem.getMaxNumericPrecision());
+              assert precision > 0;
 
-        return typeFactory.createSqlType(
-            SqlTypeName.DECIMAL,
-            precision,
-            scale);
-      }
-    }
+              return typeFactory.createSqlType(
+                  SqlTypeName.DECIMAL,
+                  precision,
+                  scale);
+            }
+          }
 
-    return null;
-  };
+          return null;
+        }
+      };
   /**
    * Same as {@link #DECIMAL_SUM} but returns with nullability if any
    * of the operands is nullable by using
@@ -546,73 +571,75 @@ public abstract class ReturnTypes {
    * </ul>
    */
   public static final SqlReturnTypeInference DYADIC_STRING_SUM_PRECISION =
-      opBinding -> {
-        final RelDataType argType0 = opBinding.getOperandType(0);
-        final RelDataType argType1 = opBinding.getOperandType(1);
+      new SqlReturnTypeInference() {
+        public RelDataType inferReturnType(SqlOperatorBinding opBinding) {
+          final RelDataType argType0 = opBinding.getOperandType(0);
+          final RelDataType argType1 = opBinding.getOperandType(1);
 
-        final boolean containsAnyType =
-            (argType0.getSqlTypeName() == SqlTypeName.ANY)
-                || (argType1.getSqlTypeName() == SqlTypeName.ANY);
+          final boolean containsAnyType =
+              (argType0.getSqlTypeName() == SqlTypeName.ANY)
+                  || (argType1.getSqlTypeName() == SqlTypeName.ANY);
 
-        if (!containsAnyType
-            && !(SqlTypeUtil.inCharOrBinaryFamilies(argType0)
-            && SqlTypeUtil.inCharOrBinaryFamilies(argType1))) {
-          Preconditions.checkArgument(
-              SqlTypeUtil.sameNamedType(argType0, argType1));
-        }
-        SqlCollation pickedCollation = null;
-        if (!containsAnyType
-            && SqlTypeUtil.inCharFamily(argType0)) {
-          if (!SqlTypeUtil.isCharTypeComparable(
-              opBinding.collectOperandTypes().subList(0, 2))) {
-            throw opBinding.newError(
-                RESOURCE.typeNotComparable(
-                    argType0.getFullTypeString(),
-                    argType1.getFullTypeString()));
+          if (!containsAnyType
+              && !(SqlTypeUtil.inCharOrBinaryFamilies(argType0)
+                  && SqlTypeUtil.inCharOrBinaryFamilies(argType1))) {
+            Preconditions.checkArgument(
+                SqlTypeUtil.sameNamedType(argType0, argType1));
+          }
+          SqlCollation pickedCollation = null;
+          if (!containsAnyType
+              && SqlTypeUtil.inCharFamily(argType0)) {
+            if (!SqlTypeUtil.isCharTypeComparable(
+                opBinding.collectOperandTypes().subList(0, 2))) {
+              throw opBinding.newError(
+                  RESOURCE.typeNotComparable(
+                      argType0.getFullTypeString(),
+                      argType1.getFullTypeString()));
+            }
+
+            pickedCollation =
+                SqlCollation.getCoercibilityDyadicOperator(
+                    argType0.getCollation(), argType1.getCollation());
+            assert null != pickedCollation;
           }
 
-          pickedCollation =
-              SqlCollation.getCoercibilityDyadicOperator(
-                  argType0.getCollation(), argType1.getCollation());
-          assert null != pickedCollation;
-        }
+          // Determine whether result is variable-length
+          SqlTypeName typeName =
+              argType0.getSqlTypeName();
+          if (SqlTypeUtil.isBoundedVariableWidth(argType1)) {
+            typeName = argType1.getSqlTypeName();
+          }
 
-        // Determine whether result is variable-length
-        SqlTypeName typeName =
-            argType0.getSqlTypeName();
-        if (SqlTypeUtil.isBoundedVariableWidth(argType1)) {
-          typeName = argType1.getSqlTypeName();
-        }
-
-        RelDataType ret;
-        int typePrecision;
-        final long x =
-            (long) argType0.getPrecision() + (long) argType1.getPrecision();
-        final RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
-        final RelDataTypeSystem typeSystem = typeFactory.getTypeSystem();
-        if (argType0.getPrecision() == RelDataType.PRECISION_NOT_SPECIFIED
-            || argType1.getPrecision() == RelDataType.PRECISION_NOT_SPECIFIED
-            || x > typeSystem.getMaxPrecision(typeName)) {
-          typePrecision = RelDataType.PRECISION_NOT_SPECIFIED;
-        } else {
-          typePrecision = (int) x;
-        }
-
-        ret = typeFactory.createSqlType(typeName, typePrecision);
-        if (null != pickedCollation) {
-          RelDataType pickedType;
-          if (argType0.getCollation().equals(pickedCollation)) {
-            pickedType = argType0;
-          } else if (argType1.getCollation().equals(pickedCollation)) {
-            pickedType = argType1;
+          RelDataType ret;
+          int typePrecision;
+          final long x =
+              (long) argType0.getPrecision() + (long) argType1.getPrecision();
+          final RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
+          final RelDataTypeSystem typeSystem = typeFactory.getTypeSystem();
+          if (argType0.getPrecision() == RelDataType.PRECISION_NOT_SPECIFIED
+              || argType1.getPrecision() == RelDataType.PRECISION_NOT_SPECIFIED
+              || x > typeSystem.getMaxPrecision(typeName)) {
+            typePrecision = RelDataType.PRECISION_NOT_SPECIFIED;
           } else {
-            throw new AssertionError("should never come here");
+            typePrecision = (int) x;
           }
-          ret =
-              typeFactory.createTypeWithCharsetAndCollation(ret,
-                  pickedType.getCharset(), pickedType.getCollation());
+
+          ret = typeFactory.createSqlType(typeName, typePrecision);
+          if (null != pickedCollation) {
+            RelDataType pickedType;
+            if (argType0.getCollation().equals(pickedCollation)) {
+              pickedType = argType0;
+            } else if (argType1.getCollation().equals(pickedCollation)) {
+              pickedType = argType1;
+            } else {
+              throw new AssertionError("should never come here");
+            }
+            ret =
+                typeFactory.createTypeWithCharsetAndCollation(ret,
+                    pickedType.getCharset(), pickedType.getCollation());
+          }
+          return ret;
         }
-        return ret;
       };
 
   /**
@@ -636,72 +663,88 @@ public abstract class ReturnTypes {
    * as a {@link org.apache.calcite.sql.validate.SqlValidatorNamespace}, and
    * therefore the result type of the call is the type of that namespace.
    */
-  public static final SqlReturnTypeInference SCOPE = opBinding -> {
-    SqlCallBinding callBinding = (SqlCallBinding) opBinding;
-    return callBinding.getValidator().getNamespace(
-        callBinding.getCall()).getRowType();
-  };
+  public static final SqlReturnTypeInference SCOPE =
+      new SqlReturnTypeInference() {
+        public RelDataType inferReturnType(
+            SqlOperatorBinding opBinding) {
+          SqlCallBinding callBinding = (SqlCallBinding) opBinding;
+          return callBinding.getValidator().getNamespace(
+              callBinding.getCall()).getRowType();
+        }
+      };
 
   /**
    * Returns a multiset of column #0 of a multiset. For example, given
    * <code>RECORD(x INTEGER, y DATE) MULTISET</code>, returns <code>INTEGER
    * MULTISET</code>.
    */
-  public static final SqlReturnTypeInference MULTISET_PROJECT0 = opBinding -> {
-    assert opBinding.getOperandCount() == 1;
-    final RelDataType recordMultisetType =
-        opBinding.getOperandType(0);
-    RelDataType multisetType =
-        recordMultisetType.getComponentType();
-    assert multisetType != null : "expected a multiset type: "
-        + recordMultisetType;
-    final List<RelDataTypeField> fields =
-        multisetType.getFieldList();
-    assert fields.size() > 0;
-    final RelDataType firstColType = fields.get(0).getType();
-    return opBinding.getTypeFactory().createMultisetType(
-        firstColType,
-        -1);
-  };
+  public static final SqlReturnTypeInference MULTISET_PROJECT0 =
+      new SqlReturnTypeInference() {
+        public RelDataType inferReturnType(
+            SqlOperatorBinding opBinding) {
+          assert opBinding.getOperandCount() == 1;
+          final RelDataType recordMultisetType =
+              opBinding.getOperandType(0);
+          RelDataType multisetType =
+              recordMultisetType.getComponentType();
+          assert multisetType != null : "expected a multiset type: "
+              + recordMultisetType;
+          final List<RelDataTypeField> fields =
+              multisetType.getFieldList();
+          assert fields.size() > 0;
+          final RelDataType firstColType = fields.get(0).getType();
+          return opBinding.getTypeFactory().createMultisetType(
+              firstColType,
+              -1);
+        }
+      };
   /**
    * Returns a multiset of the first column of a multiset. For example, given
    * <code>INTEGER MULTISET</code>, returns <code>RECORD(x INTEGER)
    * MULTISET</code>.
    */
-  public static final SqlReturnTypeInference MULTISET_RECORD = opBinding -> {
-    assert opBinding.getOperandCount() == 1;
-    final RelDataType multisetType = opBinding.getOperandType(0);
-    RelDataType componentType = multisetType.getComponentType();
-    assert componentType != null : "expected a multiset type: "
-        + multisetType;
-    final RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
-    final RelDataType type = typeFactory.builder()
-        .add(SqlUtil.deriveAliasFromOrdinal(0), componentType).build();
-    return typeFactory.createMultisetType(type, -1);
-  };
+  public static final SqlReturnTypeInference MULTISET_RECORD =
+      new SqlReturnTypeInference() {
+        public RelDataType inferReturnType(
+            SqlOperatorBinding opBinding) {
+          assert opBinding.getOperandCount() == 1;
+          final RelDataType multisetType = opBinding.getOperandType(0);
+          RelDataType componentType = multisetType.getComponentType();
+          assert componentType != null : "expected a multiset type: "
+              + multisetType;
+          final RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
+          final RelDataType type = typeFactory.builder()
+              .add(SqlUtil.deriveAliasFromOrdinal(0), componentType).build();
+          return typeFactory.createMultisetType(type, -1);
+        }
+      };
   /**
    * Returns the field type of a structured type which has only one field. For
    * example, given {@code RECORD(x INTEGER)} returns {@code INTEGER}.
    */
-  public static final SqlReturnTypeInference RECORD_TO_SCALAR = opBinding -> {
-    assert opBinding.getOperandCount() == 1;
+  public static final SqlReturnTypeInference RECORD_TO_SCALAR =
+      new SqlReturnTypeInference() {
+        public RelDataType inferReturnType(
+            SqlOperatorBinding opBinding) {
+          assert opBinding.getOperandCount() == 1;
 
-    final RelDataType recordType = opBinding.getOperandType(0);
+          final RelDataType recordType = opBinding.getOperandType(0);
 
-    boolean isStruct = recordType.isStruct();
-    int fieldCount = recordType.getFieldCount();
+          boolean isStruct = recordType.isStruct();
+          int fieldCount = recordType.getFieldCount();
 
-    assert isStruct && (fieldCount == 1);
+          assert isStruct && (fieldCount == 1);
 
-    RelDataTypeField fieldType = recordType.getFieldList().get(0);
-    assert fieldType != null
-        : "expected a record type with one field: "
-        + recordType;
-    final RelDataType firstColType = fieldType.getType();
-    return opBinding.getTypeFactory().createTypeWithNullability(
-        firstColType,
-        true);
-  };
+          RelDataTypeField fieldType = recordType.getFieldList().get(0);
+          assert fieldType != null
+              : "expected a record type with one field: "
+              + recordType;
+          final RelDataType firstColType = fieldType.getType();
+          return opBinding.getTypeFactory().createTypeWithNullability(
+              firstColType,
+              true);
+        }
+      };
 
   /**
    * Type-inference strategy for SUM aggregate function inferred from the
@@ -710,16 +753,20 @@ public abstract class ReturnTypes {
    * with the default implementation of RelDataTypeSystem, s has the same
    * type name as x.
    */
-  public static final SqlReturnTypeInference AGG_SUM = opBinding -> {
-    final RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
-    final RelDataType type = typeFactory.getTypeSystem()
-        .deriveSumType(typeFactory, opBinding.getOperandType(0));
-    if (opBinding.getGroupCount() == 0 || opBinding.hasFilter()) {
-      return typeFactory.createTypeWithNullability(type, true);
-    } else {
-      return type;
-    }
-  };
+  public static final SqlReturnTypeInference AGG_SUM =
+      new SqlReturnTypeInference() {
+        @Override public RelDataType
+        inferReturnType(SqlOperatorBinding opBinding) {
+          final RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
+          final RelDataType type = typeFactory.getTypeSystem()
+              .deriveSumType(typeFactory, opBinding.getOperandType(0));
+          if (opBinding.getGroupCount() == 0 || opBinding.hasFilter()) {
+            return typeFactory.createTypeWithNullability(type, true);
+          } else {
+            return type;
+          }
+        }
+      };
 
   /**
    * Type-inference strategy for $SUM0 aggregate function inferred from the
@@ -728,55 +775,72 @@ public abstract class ReturnTypes {
    * x.
    */
   public static final SqlReturnTypeInference AGG_SUM_EMPTY_IS_ZERO =
-      opBinding -> {
-        final RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
-        final RelDataType sumType = typeFactory.getTypeSystem()
-            .deriveSumType(typeFactory, opBinding.getOperandType(0));
-        // SUM0 should not return null.
-        return typeFactory.createTypeWithNullability(sumType, false);
+      new SqlReturnTypeInference() {
+        @Override public RelDataType
+        inferReturnType(SqlOperatorBinding opBinding) {
+          final RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
+          final RelDataType sumType = typeFactory.getTypeSystem()
+              .deriveSumType(typeFactory, opBinding.getOperandType(0));
+          // SUM0 should not return null.
+          return typeFactory.createTypeWithNullability(sumType, false);
+        }
       };
 
   /**
    * Type-inference strategy for the {@code CUME_DIST} and {@code PERCENT_RANK}
    * aggregate functions.
    */
-  public static final SqlReturnTypeInference FRACTIONAL_RANK = opBinding -> {
-    final RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
-    return typeFactory.getTypeSystem().deriveFractionalRankType(typeFactory);
-  };
+  public static final SqlReturnTypeInference FRACTIONAL_RANK =
+      new SqlReturnTypeInference() {
+        @Override public RelDataType
+        inferReturnType(SqlOperatorBinding opBinding) {
+          final RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
+          return typeFactory.getTypeSystem().deriveFractionalRankType(typeFactory);
+        }
+      };
 
   /**
    * Type-inference strategy for the {@code NTILE}, {@code RANK},
    * {@code DENSE_RANK}, and {@code ROW_NUMBER} aggregate functions.
    */
-  public static final SqlReturnTypeInference RANK = opBinding -> {
-    final RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
-    return typeFactory.getTypeSystem().deriveRankType(typeFactory);
-  };
+  public static final SqlReturnTypeInference RANK =
+      new SqlReturnTypeInference() {
+        @Override public RelDataType
+        inferReturnType(SqlOperatorBinding opBinding) {
+          final RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
+          return typeFactory.getTypeSystem().deriveRankType(typeFactory);
+        }
+      };
 
-  public static final SqlReturnTypeInference AVG_AGG_FUNCTION = opBinding -> {
-    final RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
-    final RelDataType relDataType =
-        typeFactory.getTypeSystem().deriveAvgAggType(typeFactory,
-            opBinding.getOperandType(0));
-    if (opBinding.getGroupCount() == 0 || opBinding.hasFilter()) {
-      return typeFactory.createTypeWithNullability(relDataType, true);
-    } else {
-      return relDataType;
-    }
-  };
+  public static final SqlReturnTypeInference AVG_AGG_FUNCTION =
+      new SqlReturnTypeInference() {
+        @Override public RelDataType
+        inferReturnType(SqlOperatorBinding opBinding) {
+          final RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
+          final RelDataType relDataType = typeFactory.getTypeSystem().deriveAvgAggType(
+              typeFactory, opBinding.getOperandType(0));
+          if (opBinding.getGroupCount() == 0 || opBinding.hasFilter()) {
+            return typeFactory.createTypeWithNullability(relDataType, true);
+          } else {
+            return relDataType;
+          }
+        }
+      };
 
-  public static final SqlReturnTypeInference COVAR_FUNCTION = opBinding -> {
-    final RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
-    final RelDataType relDataType =
-        typeFactory.getTypeSystem().deriveCovarType(typeFactory,
-            opBinding.getOperandType(0), opBinding.getOperandType(1));
-    if (opBinding.getGroupCount() == 0 || opBinding.hasFilter()) {
-      return typeFactory.createTypeWithNullability(relDataType, true);
-    } else {
-      return relDataType;
-    }
-  };
+  public static final SqlReturnTypeInference COVAR_FUNCTION =
+      new SqlReturnTypeInference() {
+        @Override public RelDataType
+        inferReturnType(SqlOperatorBinding opBinding) {
+          final RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
+          final RelDataType relDataType = typeFactory.getTypeSystem().deriveCovarType(
+              typeFactory, opBinding.getOperandType(0), opBinding.getOperandType(1));
+          if (opBinding.getGroupCount() == 0 || opBinding.hasFilter()) {
+            return typeFactory.createTypeWithNullability(relDataType, true);
+          } else {
+            return relDataType;
+          }
+        }
+      };
 }
 
 // End ReturnTypes.java

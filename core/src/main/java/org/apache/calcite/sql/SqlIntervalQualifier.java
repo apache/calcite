@@ -29,8 +29,9 @@ import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Util;
 
+import com.google.common.base.Preconditions;
+
 import java.math.BigDecimal;
-import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -108,7 +109,7 @@ public class SqlIntervalQualifier extends SqlNode {
       endUnit = null;
     }
     this.timeUnitRange =
-        TimeUnitRange.of(Objects.requireNonNull(startUnit), endUnit);
+        TimeUnitRange.of(Preconditions.checkNotNull(startUnit), endUnit);
     this.startPrecision = startPrecision;
     this.fractionalSecondPrecision = fractionalSecondPrecision;
   }
@@ -166,7 +167,6 @@ public class SqlIntervalQualifier extends SqlNode {
     case MILLISECOND:
     case EPOCH:
     case MICROSECOND:
-    case NANOSECOND:
       return SqlTypeName.INTERVAL_SECOND;
     default:
       throw new AssertionError(timeUnitRange);

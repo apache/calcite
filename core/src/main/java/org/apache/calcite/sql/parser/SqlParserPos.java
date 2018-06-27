@@ -18,6 +18,7 @@ package org.apache.calcite.sql.parser;
 
 import org.apache.calcite.sql.SqlNode;
 
+import com.google.common.base.Function;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 
@@ -44,6 +45,13 @@ public class SqlParserPos implements Serializable {
   public static final SqlParserPos ZERO = new SqlParserPos(0, 0);
 
   private static final long serialVersionUID = 1L;
+
+  private static final Function<SqlNode, SqlParserPos> NODE_TO_POS =
+      new Function<SqlNode, SqlParserPos>() {
+        public SqlParserPos apply(SqlNode input) {
+          return input.getParserPosition();
+        }
+      };
 
   //~ Instance fields --------------------------------------------------------
 
@@ -182,7 +190,7 @@ public class SqlParserPos implements Serializable {
   }
 
   private static Iterable<SqlParserPos> toPos(Iterable<SqlNode> nodes) {
-    return Iterables.transform(nodes, SqlNode::getParserPosition);
+    return Iterables.transform(nodes, NODE_TO_POS);
   }
 
   /**
@@ -190,7 +198,7 @@ public class SqlParserPos implements Serializable {
    * which spans from the beginning of the first to the end of the last.
    */
   public static SqlParserPos sum(final List<? extends SqlNode> nodes) {
-    return sum(Lists.transform(nodes, SqlNode::getParserPosition));
+    return sum(Lists.transform(nodes, NODE_TO_POS));
   }
 
   /**

@@ -16,17 +16,12 @@
  */
 package org.apache.calcite.sql.fun;
 
-import org.apache.calcite.avatica.util.TimeUnit;
-import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlKind;
-import org.apache.calcite.sql.SqlOperatorBinding;
 import org.apache.calcite.sql.type.OperandTypes;
-import org.apache.calcite.sql.type.SqlReturnTypeInference;
+import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlTypeFamily;
-import org.apache.calcite.sql.type.SqlTypeName;
 
 /**
  * The <code>TIMESTAMPDIFF</code> function, which calculates the difference
@@ -40,8 +35,8 @@ import org.apache.calcite.sql.type.SqlTypeName;
  * </blockquote>
  *
  * <p>The interval time unit can one of the following literals:<ul>
- * <li>NANOSECOND (and synonym SQL_TSI_FRAC_SECOND)
- * <li>MICROSECOND (and synonyms SQL_TSI_MICROSECOND, FRAC_SECOND)
+ * <li>MICROSECOND (and synonyms SQL_TSI_MICROSECOND, FRAC_SECOND,
+ *     SQL_TSI_FRAC_SECOND)
  * <li>SECOND (and synonym SQL_TSI_SECOND)
  * <li>MINUTE (and synonym  SQL_TSI_MINUTE)
  * <li>HOUR (and synonym  SQL_TSI_HOUR)
@@ -57,24 +52,9 @@ import org.apache.calcite.sql.type.SqlTypeName;
  */
 class SqlTimestampDiffFunction extends SqlFunction {
   /** Creates a SqlTimestampDiffFunction. */
-  private static final SqlReturnTypeInference RETURN_TYPE_INFERENCE =
-      new SqlReturnTypeInference() {
-        public RelDataType inferReturnType(SqlOperatorBinding opBinding) {
-          final RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
-          SqlTypeName sqlTypeName =
-              opBinding.getOperandLiteralValue(0, TimeUnit.class) == TimeUnit.NANOSECOND
-                  ? SqlTypeName.BIGINT
-                  : SqlTypeName.INTEGER;
-          return typeFactory.createTypeWithNullability(
-              typeFactory.createSqlType(sqlTypeName),
-              opBinding.getOperandType(1).isNullable()
-              || opBinding.getOperandType(2).isNullable());
-        }
-      };
-
   SqlTimestampDiffFunction() {
     super("TIMESTAMPDIFF", SqlKind.TIMESTAMP_DIFF,
-        RETURN_TYPE_INFERENCE, null,
+        ReturnTypes.INTEGER_NULLABLE, null,
         OperandTypes.family(SqlTypeFamily.ANY, SqlTypeFamily.DATETIME,
             SqlTypeFamily.DATETIME),
         SqlFunctionCategory.TIMEDATE);

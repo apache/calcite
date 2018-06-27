@@ -38,8 +38,9 @@ import com.esri.core.geometry.SpatialReference;
 import com.esri.core.geometry.WktExportFlags;
 import com.esri.core.geometry.WktImportFlags;
 
+import com.google.common.base.Preconditions;
+
 import java.math.BigDecimal;
-import java.util.Objects;
 
 /**
  * Helper methods to implement Geo-spatial functions in generated code.
@@ -573,7 +574,7 @@ public class GeoFunctions {
     final Geometry g;
 
     SimpleGeom(Geometry g) {
-      this.g = Objects.requireNonNull(g);
+      this.g = Preconditions.checkNotNull(g);
     }
 
     @Override public String toString() {
@@ -605,7 +606,7 @@ public class GeoFunctions {
     final MapGeometry mg;
 
     MapGeom(MapGeometry mg) {
-      this.mg = Objects.requireNonNull(mg);
+      this.mg = Preconditions.checkNotNull(mg);
     }
 
     @Override public String toString() {

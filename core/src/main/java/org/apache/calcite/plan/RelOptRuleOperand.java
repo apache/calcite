@@ -18,11 +18,12 @@ package org.apache.calcite.plan;
 
 import org.apache.calcite.rel.RelNode;
 
+import com.google.common.base.Preconditions;
+import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
 
 import java.util.List;
 import java.util.Objects;
-import java.util.function.Predicate;
 
 /**
  * Operand that determines whether a {@link RelOptRule}
@@ -117,10 +118,10 @@ public class RelOptRuleOperand {
       assert children.size() > 0;
     }
     this.childPolicy = childPolicy;
-    this.clazz = Objects.requireNonNull(clazz);
+    this.clazz = Preconditions.checkNotNull(clazz);
     this.trait = trait;
     //noinspection unchecked
-    this.predicate = Objects.requireNonNull((Predicate) predicate);
+    this.predicate = Preconditions.checkNotNull((Predicate) predicate);
     this.children = children;
     for (RelOptRuleOperand child : this.children) {
       assert child.parent == null : "cannot re-use operands";
@@ -211,7 +212,7 @@ public class RelOptRuleOperand {
     if ((trait != null) && !rel.getTraitSet().contains(trait)) {
       return false;
     }
-    return predicate.test(rel);
+    return predicate.apply(rel);
   }
 }
 

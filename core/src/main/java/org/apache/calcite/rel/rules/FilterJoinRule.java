@@ -33,15 +33,14 @@ import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Objects;
-
-import static org.apache.calcite.plan.RelOptUtil.conjunctions;
 
 /**
  * Planner rule that pushes filters above and
@@ -50,7 +49,12 @@ import static org.apache.calcite.plan.RelOptUtil.conjunctions;
 public abstract class FilterJoinRule extends RelOptRule {
   /** Predicate that always returns true. With this predicate, every filter
    * will be pushed into the ON clause. */
-  public static final Predicate TRUE_PREDICATE = (join, joinType, exp) -> true;
+  public static final Predicate TRUE_PREDICATE =
+      new Predicate() {
+        public boolean apply(Join join, JoinRelType joinType, RexNode exp) {
+          return true;
+        }
+      };
 
   /** Rule that pushes predicates from a Filter into the Join below them. */
   public static final FilterJoinRule FILTER_ON_JOIN =
@@ -86,7 +90,7 @@ public abstract class FilterJoinRule extends RelOptRule {
       boolean smart, RelBuilderFactory relBuilderFactory, Predicate predicate) {
     super(operand, relBuilderFactory, "FilterJoinRule:" + id);
     this.smart = smart;
-    this.predicate = Objects.requireNonNull(predicate);
+    this.predicate = Preconditions.checkNotNull(predicate);
   }
 
   /**
@@ -132,8 +136,8 @@ public abstract class FilterJoinRule extends RelOptRule {
 
     final List<RexNode> aboveFilters =
         filter != null
-            ? conjunctions(filter.getCondition())
-            : new ArrayList<>();
+            ? RelOptUtil.conjunctions(filter.getCondition())
+            : Lists.<RexNode>newArrayList();
     final ImmutableList<RexNode> origAboveFilters =
         ImmutableList.copyOf(aboveFilters);
 

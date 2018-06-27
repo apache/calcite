@@ -20,6 +20,7 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlOperatorBinding;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SameOperandTypeChecker;
@@ -55,18 +56,21 @@ public class SqlLeadLagAggFunction extends SqlAggFunction {
               }));
 
   private static final SqlReturnTypeInference RETURN_TYPE =
-      ReturnTypes.cascade(ReturnTypes.ARG0, (binding, type) -> {
-        // Result is NOT NULL if NOT NULL default value is provided
-        SqlTypeTransform transform;
-        if (binding.getOperandCount() < 3) {
-          transform = SqlTypeTransforms.FORCE_NULLABLE;
-        } else {
-          RelDataType defValueType = binding.getOperandType(2);
-          transform = defValueType.isNullable()
-              ? SqlTypeTransforms.FORCE_NULLABLE
-              : SqlTypeTransforms.TO_NOT_NULLABLE;
+      ReturnTypes.cascade(ReturnTypes.ARG0, new SqlTypeTransform() {
+        public RelDataType transformType(SqlOperatorBinding binding,
+            RelDataType type) {
+          // Result is NOT NULL if NOT NULL default value is provided
+          SqlTypeTransform transform;
+          if (binding.getOperandCount() < 3) {
+            transform = SqlTypeTransforms.FORCE_NULLABLE;
+          } else {
+            RelDataType defValueType = binding.getOperandType(2);
+            transform = defValueType.isNullable()
+                ? SqlTypeTransforms.FORCE_NULLABLE
+                : SqlTypeTransforms.TO_NOT_NULLABLE;
+          }
+          return transform.transformType(binding, type);
         }
-        return transform.transformType(binding, type);
       });
 
   public SqlLeadLagAggFunction(SqlKind kind) {

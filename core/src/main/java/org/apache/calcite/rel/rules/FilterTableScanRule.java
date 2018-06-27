@@ -27,6 +27,7 @@ import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
+import org.apache.calcite.runtime.PredicateImpl;
 import org.apache.calcite.schema.FilterableTable;
 import org.apache.calcite.schema.ProjectableFilterableTable;
 import org.apache.calcite.tools.RelBuilderFactory;
@@ -34,6 +35,7 @@ import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.mapping.Mapping;
 import org.apache.calcite.util.mapping.Mappings;
 
+import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
 
 /**
@@ -50,17 +52,22 @@ import com.google.common.collect.ImmutableList;
  * @see org.apache.calcite.rel.rules.ProjectTableScanRule
  */
 public abstract class FilterTableScanRule extends RelOptRule {
-  @SuppressWarnings("Guava")
-  @Deprecated // to be removed before 2.0
-  public static final com.google.common.base.Predicate<TableScan> PREDICATE =
-      FilterTableScanRule::test;
+  public static final Predicate<TableScan> PREDICATE =
+      new PredicateImpl<TableScan>() {
+        public boolean test(TableScan scan) {
+          // We can only push filters into a FilterableTable or
+          // ProjectableFilterableTable.
+          final RelOptTable table = scan.getTable();
+          return table.unwrap(FilterableTable.class) != null
+              || table.unwrap(ProjectableFilterableTable.class) != null;
+        }
+      };
 
   /** Rule that matches Filter on TableScan. */
   public static final FilterTableScanRule INSTANCE =
       new FilterTableScanRule(
           operand(Filter.class,
-              operandJ(TableScan.class, null, FilterTableScanRule::test,
-                  none())),
+              operand(TableScan.class, null, PREDICATE, none())),
           RelFactories.LOGICAL_BUILDER,
           "FilterTableScanRule") {
         public void onMatch(RelOptRuleCall call) {
@@ -75,8 +82,7 @@ public abstract class FilterTableScanRule extends RelOptRule {
       new FilterTableScanRule(
           operand(Filter.class,
               operand(EnumerableInterpreter.class,
-                  operandJ(TableScan.class, null, FilterTableScanRule::test,
-                      none()))),
+                  operand(TableScan.class, null, PREDICATE, none()))),
           RelFactories.LOGICAL_BUILDER,
           "FilterTableScanRule:interpreter") {
         public void onMatch(RelOptRuleCall call) {
@@ -100,14 +106,6 @@ public abstract class FilterTableScanRule extends RelOptRule {
   }
 
   //~ Methods ----------------------------------------------------------------
-
-  public static boolean test(TableScan scan) {
-    // We can only push filters into a FilterableTable or
-    // ProjectableFilterableTable.
-    final RelOptTable table = scan.getTable();
-    return table.unwrap(FilterableTable.class) != null
-        || table.unwrap(ProjectableFilterableTable.class) != null;
-  }
 
   protected void apply(RelOptRuleCall call, Filter filter, TableScan scan) {
     final ImmutableIntList projects;

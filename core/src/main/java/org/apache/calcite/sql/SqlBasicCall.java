@@ -19,8 +19,9 @@ package org.apache.calcite.sql;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.util.UnmodifiableArrayList;
 
+import com.google.common.base.Preconditions;
+
 import java.util.List;
-import java.util.Objects;
 
 /**
  * Implementation of {@link SqlCall} that keeps its operands in an array.
@@ -45,7 +46,7 @@ public class SqlBasicCall extends SqlCall {
       boolean expanded,
       SqlLiteral functionQualifier) {
     super(pos);
-    this.operator = Objects.requireNonNull(operator);
+    this.operator = Preconditions.checkNotNull(operator);
     this.operands = operands;
     this.expanded = expanded;
     this.functionQuantifier = functionQualifier;
@@ -64,7 +65,7 @@ public class SqlBasicCall extends SqlCall {
   }
 
   public void setOperator(SqlOperator operator) {
-    this.operator = Objects.requireNonNull(operator);
+    this.operator = Preconditions.checkNotNull(operator);
   }
 
   public SqlOperator getOperator() {

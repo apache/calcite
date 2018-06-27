@@ -27,6 +27,8 @@ import org.apache.calcite.schema.impl.TableFunctionImpl;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.util.Smalls;
 
+import com.google.common.base.Function;
+
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -380,18 +382,22 @@ public class TableFunctionTest {
     final String q = "select *\n"
         + "from table(\"s\".\"fibonacci\"())";
     with().query(q)
-        .returns(r -> {
-          try {
-            final List<Long> numbers = new ArrayList<>();
-            while (r.next() && numbers.size() < 13) {
-              numbers.add(r.getLong(1));
-            }
-            assertThat(numbers.toString(),
-                is("[1, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144, 233]"));
-          } catch (SQLException e) {
-            throw new RuntimeException(e);
-          }
-        });
+        .returns(
+            new Function<ResultSet, Void>() {
+              public Void apply(ResultSet r) {
+                try {
+                  final List<Long> numbers = new ArrayList<>();
+                  while (r.next() && numbers.size() < 13) {
+                    numbers.add(r.getLong(1));
+                  }
+                  assertThat(numbers.toString(),
+                      is("[1, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144, 233]"));
+                  return null;
+                } catch (SQLException e) {
+                  throw new RuntimeException(e);
+                }
+              }
+            });
   }
 
   @Test public void testUserDefinedTableFunction7() {

@@ -42,7 +42,11 @@ public class ClassDeclarationFinder extends Shuttle {
 
   private static final Function1<ClassDeclarationFinder,
       ClassDeclarationFinder> DEFAULT_CHILD_FACTORY =
-      DeterministicCodeOptimizer::new;
+      new Function1<ClassDeclarationFinder, ClassDeclarationFinder>() {
+      public ClassDeclarationFinder apply(ClassDeclarationFinder a0) {
+        return new DeterministicCodeOptimizer(a0);
+      }
+    };
 
   /**
    * Creates visitor that uses default optimizer.
@@ -90,18 +94,20 @@ public class ClassDeclarationFinder extends Shuttle {
     try {
       final Constructor<? extends ClassDeclarationFinder> constructor =
           optimizingClass.getConstructor(ClassDeclarationFinder.class);
-      return a0 -> {
-        try {
-          return constructor.newInstance(a0);
-        } catch (InstantiationException e) {
-          throw new IllegalStateException(
-              "Unable to create optimizer via " + constructor, e);
-        } catch (IllegalAccessException e) {
-          throw new IllegalStateException(
-              "Unable to create optimizer via " + constructor, e);
-        } catch (InvocationTargetException e) {
-          throw new IllegalStateException(
-              "Unable to create optimizer via " + constructor, e);
+      return new Function1<ClassDeclarationFinder, ClassDeclarationFinder>() {
+        public ClassDeclarationFinder apply(ClassDeclarationFinder a0) {
+          try {
+            return constructor.newInstance(a0);
+          } catch (InstantiationException e) {
+            throw new IllegalStateException(
+                "Unable to create optimizer via " + constructor, e);
+          } catch (IllegalAccessException e) {
+            throw new IllegalStateException(
+                "Unable to create optimizer via " + constructor, e);
+          } catch (InvocationTargetException e) {
+            throw new IllegalStateException(
+                "Unable to create optimizer via " + constructor, e);
+          }
         }
       };
     } catch (NoSuchMethodException e) {

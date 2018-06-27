@@ -18,6 +18,8 @@ package org.apache.calcite.util;
 
 import org.apache.calcite.test.CalciteAssert;
 
+import com.google.common.base.Function;
+
 import org.junit.Assume;
 import org.junit.Test;
 
@@ -26,11 +28,9 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Objects;
 import java.util.Random;
 import java.util.Set;
 import java.util.TreeSet;
-import java.util.function.Function;
 
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.core.Is.is;
@@ -51,44 +51,58 @@ public class PartiallyOrderedSetTest {
   final Random random = new Random(seed);
 
   static final PartiallyOrderedSet.Ordering<String> STRING_SUBSET_ORDERING =
-      (e1, e2) -> {
-        // e1 < e2 if every char in e1 is also in e2
-        for (int i = 0; i < e1.length(); i++) {
-          if (e2.indexOf(e1.charAt(i)) < 0) {
-            return false;
+      new PartiallyOrderedSet.Ordering<String>() {
+        public boolean lessThan(String e1, String e2) {
+          // e1 < e2 if every char in e1 is also in e2
+          for (int i = 0; i < e1.length(); i++) {
+            if (e2.indexOf(e1.charAt(i)) < 0) {
+              return false;
+            }
           }
+          return true;
         }
-        return true;
       };
 
-  /** As an ordering, integers are ordered by division.
-   * Top is 1, its children are primes, etc. */
-  private static boolean isDivisor(int e1, int e2) {
-    return e2 % e1 == 0;
-  }
+  // Integers, ordered by division. Top is 1, its children are primes,
+  // etc.
+  static final PartiallyOrderedSet.Ordering<Integer> IS_DIVISOR =
+      new PartiallyOrderedSet.Ordering<Integer>() {
+        public boolean lessThan(Integer e1, Integer e2) {
+          return e2 % e1 == 0;
+        }
+      };
 
-  /** As an ordering, bottom is 1, parents are primes, etc. */
-  private static boolean isDivisorInverse(Integer e1, Integer e2) {
-    return isDivisor(e2, e1);
-  }
+  // Bottom is 1, parents are primes, etc.
+  static final PartiallyOrderedSet.Ordering<Integer> IS_DIVISOR_INVERSE =
+      new PartiallyOrderedSet.Ordering<Integer>() {
+        public boolean lessThan(Integer e1, Integer e2) {
+          return e1 % e2 == 0;
+        }
+      };
 
-  /** As an ordering, integers are ordered by bit inclusion.
-   * E.g. the children of 14 (1110) are 12 (1100), 10 (1010) and 6 (0110). */
-  private static boolean isBitSubset(int e1, int e2) {
-    return (e2 & e1) == e2;
-  }
+  // Ordered by bit inclusion. E.g. the children of 14 (1110) are
+  // 12 (1100), 10 (1010) and 6 (0110).
+  static final PartiallyOrderedSet.Ordering<Integer> IS_BIT_SUBSET =
+      new PartiallyOrderedSet.Ordering<Integer>() {
+        public boolean lessThan(Integer e1, Integer e2) {
+          return (e2 & e1) == e2;
+        }
+      };
 
-  /** As an ordering, integers are ordered by bit inclusion.
-   * E.g. the parents of 14 (1110) are 12 (1100), 10 (1010) and 6 (0110). */
-  private static boolean isBitSuperset(Integer e1, Integer e2) {
-    return (e2 & e1) == e1;
-  }
+  // Ordered by bit inclusion. E.g. the children of 14 (1110) are
+  // 12 (1100), 10 (1010) and 6 (0110).
+  static final PartiallyOrderedSet.Ordering<Integer> IS_BIT_SUPERSET =
+      new PartiallyOrderedSet.Ordering<Integer>() {
+        public boolean lessThan(Integer e1, Integer e2) {
+          return (e2 & e1) == e1;
+        }
+      };
 
   @Test public void testPoset() {
     String empty = "''";
     String abcd = "'abcd'";
-    final PartiallyOrderedSet<String> poset =
-        new PartiallyOrderedSet<>(STRING_SUBSET_ORDERING);
+    PartiallyOrderedSet<String> poset =
+        new PartiallyOrderedSet<String>(STRING_SUBSET_ORDERING);
     assertEquals(0, poset.size());
 
     final StringBuilder buf = new StringBuilder();
@@ -181,8 +195,8 @@ public class PartiallyOrderedSetTest {
   }
 
   @Test public void testPosetTricky() {
-    final PartiallyOrderedSet<String> poset =
-        new PartiallyOrderedSet<>(STRING_SUBSET_ORDERING);
+    PartiallyOrderedSet<String> poset =
+        new PartiallyOrderedSet<String>(STRING_SUBSET_ORDERING);
 
     // A tricky little poset with 4 elements:
     // {a <= ab and ac, b < ab, ab, ac}
@@ -199,7 +213,7 @@ public class PartiallyOrderedSetTest {
 
   @Test public void testPosetBits() {
     final PartiallyOrderedSet<Integer> poset =
-        new PartiallyOrderedSet<>(PartiallyOrderedSetTest::isBitSuperset);
+        new PartiallyOrderedSet<Integer>(IS_BIT_SUPERSET);
     poset.add(2112); // {6, 11} i.e. 64 + 2048
     poset.add(2240); // {6, 7, 11} i.e. 64 + 128 + 2048
     poset.add(2496); // {6, 7, 8, 11} i.e. 64 + 128 + 256 + 2048
@@ -212,7 +226,7 @@ public class PartiallyOrderedSetTest {
 
   @Test public void testPosetBitsLarge() {
     final PartiallyOrderedSet<Integer> poset =
-        new PartiallyOrderedSet<>(PartiallyOrderedSetTest::isBitSuperset);
+        new PartiallyOrderedSet<>(IS_BIT_SUPERSET);
     checkPosetBitsLarge(poset, 30000, 2921, 164782);
   }
 
@@ -220,9 +234,11 @@ public class PartiallyOrderedSetTest {
     Assume.assumeTrue("too slow to run every day", CalciteAssert.ENABLE_SLOW);
     final int n = 30000;
     final PartiallyOrderedSet<Integer> poset =
-        new PartiallyOrderedSet<>(PartiallyOrderedSetTest::isBitSuperset,
-            (Function<Integer, Iterable<Integer>>) i -> {
-              int r = Objects.requireNonNull(i); // bits not yet cleared
+        new PartiallyOrderedSet<>(IS_BIT_SUPERSET,
+          new Function<Integer, Iterable<Integer>>() {
+            public Iterable<Integer> apply(Integer input) {
+              final int i = input;
+              int r = i; // bits not yet cleared
               final List<Integer> list = new ArrayList<>();
               for (int z = 1; r != 0; z <<= 1) {
                 if ((i & z) != 0) {
@@ -231,9 +247,11 @@ public class PartiallyOrderedSetTest {
                 }
               }
               return list;
-            },
-            i -> {
-              Objects.requireNonNull(i);
+            }
+          },
+          new Function<Integer, Iterable<Integer>>() {
+            public Iterable<Integer> apply(Integer input) {
+              final int i = input;
               final List<Integer> list = new ArrayList<>();
               for (int z = 1; z <= n; z <<= 1) {
                 if ((i & z) == 0) {
@@ -241,7 +259,8 @@ public class PartiallyOrderedSetTest {
                 }
               }
               return list;
-            });
+            }
+          });
     checkPosetBitsLarge(poset, n, 2921, 11961);
   }
 
@@ -267,7 +286,7 @@ public class PartiallyOrderedSetTest {
 
   @Test public void testPosetBitsRemoveParent() {
     final PartiallyOrderedSet<Integer> poset =
-        new PartiallyOrderedSet<>(PartiallyOrderedSetTest::isBitSuperset);
+        new PartiallyOrderedSet<Integer>(IS_BIT_SUPERSET);
     poset.add(66); // {bit 2, bit 6}
     poset.add(68); // {bit 3, bit 6}
     poset.add(72); // {bit 4, bit 6}
@@ -279,14 +298,13 @@ public class PartiallyOrderedSetTest {
 
   @Test public void testDivisorPoset() {
     PartiallyOrderedSet<Integer> integers =
-        new PartiallyOrderedSet<>(PartiallyOrderedSetTest::isDivisor,
-            range(1, 1000));
+        new PartiallyOrderedSet<Integer>(IS_DIVISOR, range(1, 1000));
     assertEquals(
         "[1, 2, 3, 4, 5, 6, 8, 10, 12, 15, 20, 24, 30, 40, 60]",
-        new TreeSet<>(integers.getDescendants(120)).toString());
+        new TreeSet<Integer>(integers.getDescendants(120)).toString());
     assertEquals(
         "[240, 360, 480, 600, 720, 840, 960]",
-        new TreeSet<>(integers.getAncestors(120)).toString());
+        new TreeSet<Integer>(integers.getAncestors(120)).toString());
     assertTrue(integers.getDescendants(1).isEmpty());
     assertEquals(
         998,
@@ -295,15 +313,14 @@ public class PartiallyOrderedSetTest {
   }
 
   @Test public void testDivisorSeries() {
-    checkPoset(PartiallyOrderedSetTest::isDivisor, DEBUG, range(1, SCALE * 3),
-        false);
+    checkPoset(IS_DIVISOR, DEBUG, range(1, SCALE * 3), false);
   }
 
   @Test public void testDivisorRandom() {
     boolean ok = false;
     try {
-      checkPoset(PartiallyOrderedSetTest::isDivisor, DEBUG,
-          random(random, SCALE, SCALE * 3), false);
+      checkPoset(
+          IS_DIVISOR, DEBUG, random(random, SCALE, SCALE * 3), false);
       ok = true;
     } finally {
       if (!ok) {
@@ -315,8 +332,8 @@ public class PartiallyOrderedSetTest {
   @Test public void testDivisorRandomWithRemoval() {
     boolean ok = false;
     try {
-      checkPoset(PartiallyOrderedSetTest::isDivisor, DEBUG,
-          random(random, SCALE, SCALE * 3), true);
+      checkPoset(
+          IS_DIVISOR, DEBUG, random(random, SCALE, SCALE * 3), true);
       ok = true;
     } finally {
       if (!ok) {
@@ -326,14 +343,14 @@ public class PartiallyOrderedSetTest {
   }
 
   @Test public void testDivisorInverseSeries() {
-    checkPoset(PartiallyOrderedSetTest::isDivisorInverse, DEBUG,
-        range(1, SCALE * 3), false);
+    checkPoset(IS_DIVISOR_INVERSE, DEBUG, range(1, SCALE * 3), false);
   }
 
   @Test public void testDivisorInverseRandom() {
     boolean ok = false;
     try {
-      checkPoset(PartiallyOrderedSetTest::isDivisorInverse, DEBUG, random(random, SCALE, SCALE * 3),
+      checkPoset(
+          IS_DIVISOR_INVERSE, DEBUG, random(random, SCALE, SCALE * 3),
           false);
       ok = true;
     } finally {
@@ -346,7 +363,8 @@ public class PartiallyOrderedSetTest {
   @Test public void testDivisorInverseRandomWithRemoval() {
     boolean ok = false;
     try {
-      checkPoset(PartiallyOrderedSetTest::isDivisorInverse, DEBUG, random(random, SCALE, SCALE * 3),
+      checkPoset(
+          IS_DIVISOR_INVERSE, DEBUG, random(random, SCALE, SCALE * 3),
           true);
       ok = true;
     } finally {
@@ -357,14 +375,14 @@ public class PartiallyOrderedSetTest {
   }
 
   @Test public void testSubsetSeries() {
-    checkPoset(PartiallyOrderedSetTest::isBitSubset, DEBUG, range(1, SCALE / 2), false);
+    checkPoset(IS_BIT_SUBSET, DEBUG, range(1, SCALE / 2), false);
   }
 
   @Test public void testSubsetRandom() {
     boolean ok = false;
     try {
-      checkPoset(PartiallyOrderedSetTest::isBitSubset, DEBUG,
-          random(random, SCALE / 4, SCALE), false);
+      checkPoset(
+          IS_BIT_SUBSET, DEBUG, random(random, SCALE / 4, SCALE), false);
       ok = true;
     } finally {
       if (!ok) {
@@ -386,7 +404,7 @@ public class PartiallyOrderedSetTest {
       Iterable<Integer> generator,
       boolean remove) {
     final PartiallyOrderedSet<Integer> poset =
-        new PartiallyOrderedSet<>(ordering);
+        new PartiallyOrderedSet<Integer>(ordering);
     int n = 0;
     int z = 0;
     if (debug) {
@@ -446,7 +464,7 @@ public class PartiallyOrderedSetTest {
 
   private static Iterable<Integer> random(
       Random random, final int size, final int max) {
-    final Set<Integer> set = new LinkedHashSet<>();
+    final Set<Integer> set = new LinkedHashSet<Integer>();
     while (set.size() < size) {
       set.add(random.nextInt(max) + 1);
     }
@@ -454,7 +472,9 @@ public class PartiallyOrderedSetTest {
   }
 
   private static void assertEqualsList(String expected, List<String> ss) {
-    assertEquals(expected, new TreeSet<>(ss).toString());
+    assertEquals(
+        expected,
+        new TreeSet<String>(ss).toString());
   }
 
 }

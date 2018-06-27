@@ -31,9 +31,10 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.util.BuiltInMethod;
-import org.apache.calcite.util.Util;
 
+import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -47,6 +48,13 @@ import java.util.List;
  * style.
  */
 public class EnumUtils {
+
+  private static final Function<RexNode, Type> REX_TO_INTERNAL_TYPE =
+      new Function<RexNode, Type>() {
+        public Type apply(RexNode node) {
+          return toInternal(node.getType());
+        }
+      };
 
   private EnumUtils() {}
 
@@ -225,7 +233,7 @@ public class EnumUtils {
   }
 
   static List<Type> internalTypes(List<? extends RexNode> operandList) {
-    return Util.transform(operandList, node -> toInternal(node.getType()));
+    return Lists.transform(operandList, REX_TO_INTERNAL_TYPE);
   }
 
   static Expression enforce(final Type storageType,

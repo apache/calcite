@@ -153,7 +153,7 @@ public abstract class Types {
     for (Type type : types) {
       classes.add(toClass(type));
     }
-    return classes.toArray(new Class[0]);
+    return classes.toArray(new Class[classes.size()]);
   }
 
   static Class[] toClassArray(Iterable<? extends Expression> arguments) {
@@ -161,7 +161,7 @@ public abstract class Types {
     for (Expression argument : arguments) {
       classes.add(toClass(argument.getType()));
     }
-    return classes.toArray(new Class[0]);
+    return classes.toArray(new Class[classes.size()]);
   }
 
   /**
@@ -562,7 +562,7 @@ public abstract class Types {
     }
 
     public Type[] getActualTypeArguments() {
-      return typeArguments.toArray(new Type[0]);
+      return typeArguments.toArray(new Type[typeArguments.size()]);
     }
 
     public Type getRawType() {

@@ -61,7 +61,7 @@ public class JavaCompilerArgs {
     while (tok.hasMoreTokens()) {
       list.add(tok.nextToken());
     }
-    setStringArray(list.toArray(new String[0]));
+    setStringArray(list.toArray(new String[list.size()]));
   }
 
   /**
@@ -90,7 +90,7 @@ public class JavaCompilerArgs {
 
   public String[] getStringArray() {
     argsList.addAll(fileNameList);
-    return argsList.toArray(new String[0]);
+    return argsList.toArray(new String[argsList.size()]);
   }
 
   public void addFile(String fileName) {
@@ -98,7 +98,7 @@ public class JavaCompilerArgs {
   }
 
   public String[] getFileNames() {
-    return fileNameList.toArray(new String[0]);
+    return fileNameList.toArray(new String[fileNameList.size()]);
   }
 
   public void setVerbose(boolean verbose) {

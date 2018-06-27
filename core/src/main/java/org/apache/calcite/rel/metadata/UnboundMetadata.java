@@ -24,7 +24,6 @@ import org.apache.calcite.rel.RelNode;
  *
  * @param <M> Metadata type
  */
-@FunctionalInterface
 public interface UnboundMetadata<M extends Metadata> {
   M bind(RelNode rel, RelMetadataQuery mq);
 }

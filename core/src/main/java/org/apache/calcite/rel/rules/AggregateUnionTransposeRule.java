@@ -39,8 +39,8 @@ import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 
-import java.util.ArrayList;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
@@ -147,7 +147,7 @@ public class AggregateUnionTransposeRule extends RelOptRule {
 
   private List<AggregateCall> transformAggCalls(RelNode input, int groupCount,
       List<AggregateCall> origCalls) {
-    final List<AggregateCall> newCalls = new ArrayList<>();
+    final List<AggregateCall> newCalls = Lists.newArrayList();
     for (Ord<AggregateCall> ord : Ord.zip(origCalls)) {
       final AggregateCall origCall = ord.e;
       if (origCall.isDistinct()

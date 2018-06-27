@@ -50,8 +50,8 @@ import org.apache.calcite.sql2rel.SqlRexConvertletTable;
 import org.apache.calcite.sql2rel.SqlToRelConverter;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 
-import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -126,7 +126,7 @@ class CalciteMaterializer extends CalcitePrepareImpl.CalcitePreparingStmt {
       // Don't waste effort converting to leaf-join form.
       return ImmutableList.of();
     }
-    final List<Callback> list = new ArrayList<>();
+    final List<Callback> list = Lists.newArrayList();
     final RelNode rel2 =
         RelOptMaterialization.toLeafJoinForm(queryRel);
     for (CalciteSchema.TableEntry starTable : starTables) {

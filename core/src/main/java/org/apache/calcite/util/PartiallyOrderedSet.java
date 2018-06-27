@@ -16,7 +16,10 @@
  */
 package org.apache.calcite.util;
 
+import com.google.common.base.Function;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 
 import java.util.AbstractSet;
 import java.util.ArrayDeque;
@@ -29,9 +32,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
-import java.util.function.Function;
 
 /**
  * Partially-ordered set.
@@ -70,7 +71,11 @@ public class PartiallyOrderedSet<E> extends AbstractSet<E> {
    * 6 (0110).
    */
   public static final Ordering<ImmutableBitSet> BIT_SET_INCLUSION_ORDERING =
-      ImmutableBitSet::contains;
+      new Ordering<ImmutableBitSet>() {
+        public boolean lessThan(ImmutableBitSet e1, ImmutableBitSet e2) {
+          return e1.contains(e2);
+        }
+      };
 
   private final Map<E, Node<E>> map;
   private final Function<E, Iterable<E>> parentFunction;
@@ -94,7 +99,7 @@ public class PartiallyOrderedSet<E> extends AbstractSet<E> {
    * @param ordering Ordering relation
    */
   public PartiallyOrderedSet(Ordering<E> ordering) {
-    this(ordering, new HashMap<>(), null, null);
+    this(ordering, new HashMap<E, Node<E>>(), null, null);
   }
 
   /**
@@ -106,16 +111,7 @@ public class PartiallyOrderedSet<E> extends AbstractSet<E> {
   public PartiallyOrderedSet(Ordering<E> ordering,
       Function<E, Iterable<E>> childFunction,
       Function<E, Iterable<E>> parentFunction) {
-    this(ordering, new HashMap<>(), childFunction, parentFunction);
-  }
-
-  @SuppressWarnings("Guava")
-  @Deprecated // to be removed before 2.0
-  public PartiallyOrderedSet(Ordering<E> ordering,
-      com.google.common.base.Function<E, Iterable<E>> childFunction,
-      com.google.common.base.Function<E, Iterable<E>> parentFunction) {
-    this(ordering, (Function<E, Iterable<E>>) childFunction::apply,
-        parentFunction::apply);
+    this(ordering, new HashMap<E, Node<E>>(), childFunction, parentFunction);
   }
 
   /**
@@ -126,7 +122,8 @@ public class PartiallyOrderedSet<E> extends AbstractSet<E> {
    * @param collection Initial contents of partially-ordered set
    */
   public PartiallyOrderedSet(Ordering<E> ordering, Collection<E> collection) {
-    this(ordering, new HashMap<>(collection.size() * 3 / 2), null, null);
+    this(ordering, new HashMap<E, Node<E>>(collection.size() * 3 / 2), null,
+        null);
     addAll(collection);
   }
 
@@ -542,7 +539,8 @@ public class PartiallyOrderedSet<E> extends AbstractSet<E> {
     // breadth-first search, to iterate over every element once, printing
     // those nearest the top element first
     final Set<E> seen = new HashSet<>();
-    final Deque<E> unseen = new ArrayDeque<>(getNonChildren());
+    final Deque<E> unseen = new ArrayDeque<>();
+    unseen.addAll(getNonChildren());
     while (!unseen.isEmpty()) {
       E e = unseen.pop();
       buf.append("  ");
@@ -643,7 +641,7 @@ public class PartiallyOrderedSet<E> extends AbstractSet<E> {
       if (hypothetical) {
         if (parentFunction != null) {
           final List<E> list = new ArrayList<>();
-          closure(parentFunction, e, list, new HashSet<>());
+          closure(parentFunction, e, list, new HashSet<E>());
           return list;
         } else {
           return ImmutableList.copyOf(strip(findParents(e)));
@@ -658,7 +656,7 @@ public class PartiallyOrderedSet<E> extends AbstractSet<E> {
 
   private void closure(Function<E, Iterable<E>> generator, E e, List<E> list,
       Set<E> set) {
-    for (E p : Objects.requireNonNull(generator.apply(e))) {
+    for (E p : Preconditions.checkNotNull(generator.apply(e))) {
       if (set.add(e)) {
         if (map.containsKey(p)) {
           list.add(p);
@@ -713,7 +711,12 @@ public class PartiallyOrderedSet<E> extends AbstractSet<E> {
       // Similarly child list and bottom element.
       return ImmutableList.of();
     }
-    return Util.transform(list, node -> node.e);
+    return Lists.transform(list,
+      new Function<Node<E>, E>() {
+        public E apply(Node<E> node) {
+          return node.e;
+        }
+      });
   }
 
   /** Converts an iterable of nodes into the list of the elements inside.

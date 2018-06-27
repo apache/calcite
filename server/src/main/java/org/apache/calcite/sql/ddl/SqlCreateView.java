@@ -39,10 +39,10 @@ import org.apache.calcite.util.ImmutableNullableList;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
 import java.util.List;
-import java.util.Objects;
 
 import static org.apache.calcite.util.Static.RESOURCE;
 
@@ -62,9 +62,9 @@ public class SqlCreateView extends SqlCreate
   SqlCreateView(SqlParserPos pos, boolean replace, SqlIdentifier name,
       SqlNodeList columnList, SqlNode query) {
     super(OPERATOR, pos, replace, false);
-    this.name = Objects.requireNonNull(name);
+    this.name = Preconditions.checkNotNull(name);
     this.columnList = columnList; // may be null
-    this.query = Objects.requireNonNull(query);
+    this.query = Preconditions.checkNotNull(query);
   }
 
   public List<SqlNode> getOperandList() {

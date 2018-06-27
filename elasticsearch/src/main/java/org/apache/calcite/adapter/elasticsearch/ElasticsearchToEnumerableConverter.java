@@ -39,10 +39,13 @@ import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.Pair;
 
+import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 
 import java.util.AbstractList;
 import java.util.List;
+
+import javax.annotation.Nullable;
 
 /**
  * Relational expression representing a scan of a table in an Elasticsearch data source.
@@ -117,7 +120,13 @@ public class ElasticsearchToEnumerableConverter extends ConverterImpl implements
    * @return list of constant expressions
    */
   private static <T> List<Expression> constantList(List<T> values) {
-    return Lists.transform(values, Expressions::constant);
+    return Lists.transform(values,
+        new Function<T, Expression>() {
+          @Nullable
+          @Override public Expression apply(@Nullable T t) {
+            return Expressions.constant(t);
+          }
+        });
   }
 }
 

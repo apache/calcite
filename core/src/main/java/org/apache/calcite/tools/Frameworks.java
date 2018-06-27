@@ -37,12 +37,12 @@ import org.apache.calcite.sql2rel.SqlToRelConverter;
 import org.apache.calcite.sql2rel.StandardConvertletTable;
 import org.apache.calcite.util.Util;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.util.List;
-import java.util.Objects;
 import java.util.Properties;
 
 /**
@@ -200,23 +200,24 @@ public class Frameworks {
     }
 
     public ConfigBuilder context(Context c) {
-      this.context = Objects.requireNonNull(c);
+      this.context = Preconditions.checkNotNull(c);
       return this;
     }
 
     public ConfigBuilder executor(RexExecutor executor) {
-      this.executor = Objects.requireNonNull(executor);
+      Preconditions.checkNotNull(executor);
+      this.executor = executor;
       return this;
     }
 
     public ConfigBuilder convertletTable(
         SqlRexConvertletTable convertletTable) {
-      this.convertletTable = Objects.requireNonNull(convertletTable);
+      this.convertletTable = Preconditions.checkNotNull(convertletTable);
       return this;
     }
 
     public ConfigBuilder operatorTable(SqlOperatorTable operatorTable) {
-      this.operatorTable = Objects.requireNonNull(operatorTable);
+      this.operatorTable = Preconditions.checkNotNull(operatorTable);
       return this;
     }
 
@@ -235,14 +236,14 @@ public class Frameworks {
     }
 
     public ConfigBuilder parserConfig(SqlParser.Config parserConfig) {
-      this.parserConfig = Objects.requireNonNull(parserConfig);
+      this.parserConfig = Preconditions.checkNotNull(parserConfig);
       return this;
     }
 
     public ConfigBuilder sqlToRelConverterConfig(
         SqlToRelConverter.Config sqlToRelConverterConfig) {
       this.sqlToRelConverterConfig =
-          Objects.requireNonNull(sqlToRelConverterConfig);
+          Preconditions.checkNotNull(sqlToRelConverterConfig);
       return this;
     }
 
@@ -261,7 +262,7 @@ public class Frameworks {
     }
 
     public ConfigBuilder ruleSets(List<RuleSet> ruleSets) {
-      return programs(Programs.listOf(Objects.requireNonNull(ruleSets)));
+      return programs(Programs.listOf(Preconditions.checkNotNull(ruleSets)));
     }
 
     public ConfigBuilder programs(List<Program> programs) {
@@ -275,7 +276,7 @@ public class Frameworks {
     }
 
     public ConfigBuilder typeSystem(RelDataTypeSystem typeSystem) {
-      this.typeSystem = Objects.requireNonNull(typeSystem);
+      this.typeSystem = Preconditions.checkNotNull(typeSystem);
       return this;
     }
   }

@@ -16,12 +16,12 @@
  */
 package org.apache.calcite.plan;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Ordering;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.Objects;
 
 /**
  * A trait that consists of a list of traits, all of the same type.
@@ -40,7 +40,7 @@ class RelCompositeTrait<T extends RelMultipleTrait> implements RelTrait {
   // Must remain private. Does not copy the array.
   private RelCompositeTrait(RelTraitDef traitDef, T[] traits) {
     this.traitDef = traitDef;
-    this.traits = Objects.requireNonNull(traits);
+    this.traits = Preconditions.checkNotNull(traits);
     //noinspection unchecked
     assert Ordering.natural()
         .isStrictlyOrdered(Arrays.asList((Comparable[]) traits))
@@ -59,7 +59,7 @@ class RelCompositeTrait<T extends RelMultipleTrait> implements RelTrait {
       compositeTrait = new EmptyCompositeTrait<T>(def);
     } else {
       final RelMultipleTrait[] traits =
-          traitList.toArray(new RelMultipleTrait[0]);
+          traitList.toArray(new RelMultipleTrait[traitList.size()]);
       for (int i = 0; i < traits.length; i++) {
         traits[i] = (T) def.canonize(traits[i]);
       }

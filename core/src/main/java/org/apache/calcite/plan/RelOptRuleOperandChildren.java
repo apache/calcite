@@ -34,12 +34,12 @@ public class RelOptRuleOperandChildren {
   static final RelOptRuleOperandChildren ANY_CHILDREN =
       new RelOptRuleOperandChildren(
           RelOptRuleOperandChildPolicy.ANY,
-          ImmutableList.of());
+          ImmutableList.<RelOptRuleOperand>of());
 
   static final RelOptRuleOperandChildren LEAF_CHILDREN =
       new RelOptRuleOperandChildren(
           RelOptRuleOperandChildPolicy.LEAF,
-          ImmutableList.of());
+          ImmutableList.<RelOptRuleOperand>of());
 
   final RelOptRuleOperandChildPolicy policy;
   final ImmutableList<RelOptRuleOperand> operands;

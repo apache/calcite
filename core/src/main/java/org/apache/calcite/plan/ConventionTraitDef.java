@@ -32,6 +32,7 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 
 import java.util.List;
+import javax.annotation.Nonnull;
 
 /**
  * Definition of the the convention trait.
@@ -58,8 +59,12 @@ public class ConventionTraitDef extends RelTraitDef<Convention> {
    * the planner goes away, so does the cache entry.
    */
   private final LoadingCache<RelOptPlanner, ConversionData> conversionCache =
-      CacheBuilder.newBuilder().weakKeys()
-          .build(CacheLoader.from(ConversionData::new));
+      CacheBuilder.newBuilder().weakKeys().build(
+          new CacheLoader<RelOptPlanner, ConversionData>() {
+            public ConversionData load(@Nonnull RelOptPlanner key) {
+              return new ConversionData();
+            }
+          });
 
   //~ Constructors -----------------------------------------------------------
 

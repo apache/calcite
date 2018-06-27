@@ -76,7 +76,7 @@ public class SqlLineTest {
     } else {
       args.add("--run=" + scriptFile.getAbsolutePath());
     }
-    return run(args.toArray(new String[0]));
+    return run(args.toArray(new String[args.size()]));
   }
 
   /**

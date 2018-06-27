@@ -28,11 +28,12 @@ import org.apache.calcite.tools.FrameworkConfig;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.Planner;
 
+import com.google.common.collect.Lists;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -129,7 +130,7 @@ public class InterpreterTest {
 
   private static void assertRows(Interpreter interpreter,
       boolean unordered, String... rows) {
-    final List<String> list = new ArrayList<>();
+    final List<String> list = Lists.newArrayList();
     for (Object[] row : interpreter) {
       list.add(Arrays.toString(row));
     }

@@ -35,6 +35,7 @@ import org.apache.calcite.rel.logical.LogicalTableScan;
 import org.apache.calcite.rel.logical.LogicalUnion;
 import org.apache.calcite.rel.logical.LogicalValues;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SemiJoinType;
@@ -271,7 +272,7 @@ public class RelFactories {
         RexNode condition, Set<CorrelationId> variablesSet,
         JoinRelType joinType, boolean semiJoinDone) {
       return LogicalJoin.create(left, right, condition, variablesSet, joinType,
-          semiJoinDone, ImmutableList.of());
+          semiJoinDone, ImmutableList.<RelDataTypeField>of());
     }
 
     public RelNode createJoin(RelNode left, RelNode right, RexNode condition,

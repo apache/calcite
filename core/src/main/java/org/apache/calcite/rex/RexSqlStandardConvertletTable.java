@@ -189,21 +189,26 @@ public class RexSqlStandardConvertletTable
    */
   private void registerTypeAppendOp(final SqlOperator op) {
     registerOp(
-        op, (converter, call) -> {
-          SqlNode[] operands =
-              convertExpressionList(converter, call.operands);
-          if (operands == null) {
-            return null;
+        op,
+        new RexSqlConvertlet() {
+          public SqlNode convertCall(
+              RexToSqlNodeConverter converter,
+              RexCall call) {
+            SqlNode[] operands =
+                convertExpressionList(converter, call.operands);
+            if (operands == null) {
+              return null;
+            }
+            List<SqlNode> operandList =
+                new ArrayList<SqlNode>(Arrays.asList(operands));
+            SqlDataTypeSpec typeSpec =
+                SqlTypeUtil.convertTypeToSpec(call.getType());
+            operandList.add(typeSpec);
+            return new SqlBasicCall(
+                op,
+                operandList.toArray(new SqlNode[operandList.size()]),
+                SqlParserPos.ZERO);
           }
-          List<SqlNode> operandList =
-              new ArrayList<SqlNode>(Arrays.asList(operands));
-          SqlDataTypeSpec typeSpec =
-              SqlTypeUtil.convertTypeToSpec(call.getType());
-          operandList.add(typeSpec);
-          return new SqlBasicCall(
-              op,
-              operandList.toArray(new SqlNode[0]),
-              SqlParserPos.ZERO);
         });
   }
 
@@ -215,28 +220,33 @@ public class RexSqlStandardConvertletTable
    */
   private void registerCaseOp(final SqlOperator op) {
     registerOp(
-        op, (converter, call) -> {
-          assert op instanceof SqlCaseOperator;
-          SqlNode[] operands =
-              convertExpressionList(converter, call.operands);
-          if (operands == null) {
-            return null;
+        op,
+        new RexSqlConvertlet() {
+          public SqlNode convertCall(
+              RexToSqlNodeConverter converter,
+              RexCall call) {
+            assert op instanceof SqlCaseOperator;
+            SqlNode[] operands =
+                convertExpressionList(converter, call.operands);
+            if (operands == null) {
+              return null;
+            }
+            SqlNodeList whenList = new SqlNodeList(SqlParserPos.ZERO);
+            SqlNodeList thenList = new SqlNodeList(SqlParserPos.ZERO);
+            int i = 0;
+            while (i < operands.length - 1) {
+              whenList.add(operands[i]);
+              ++i;
+              thenList.add(operands[i]);
+              ++i;
+            }
+            SqlNode elseExpr = operands[i];
+            SqlNode[] newOperands = new SqlNode[3];
+            newOperands[0] = whenList;
+            newOperands[1] = thenList;
+            newOperands[2] = elseExpr;
+            return op.createCall(null, SqlParserPos.ZERO, newOperands);
           }
-          SqlNodeList whenList = new SqlNodeList(SqlParserPos.ZERO);
-          SqlNodeList thenList = new SqlNodeList(SqlParserPos.ZERO);
-          int i = 0;
-          while (i < operands.length - 1) {
-            whenList.add(operands[i]);
-            ++i;
-            thenList.add(operands[i]);
-            ++i;
-          }
-          SqlNode elseExpr = operands[i];
-          SqlNode[] newOperands = new SqlNode[3];
-          newOperands[0] = whenList;
-          newOperands[1] = thenList;
-          newOperands[2] = elseExpr;
-          return op.createCall(null, SqlParserPos.ZERO, newOperands);
         });
   }
 

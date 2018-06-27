@@ -867,12 +867,6 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
       new SqlFirstLastValueAggFunction(SqlKind.FIRST_VALUE);
 
   /**
-   * <code>NTH_VALUE</code> aggregate function.
-   */
-  public static final SqlAggFunction NTH_VALUE =
-      new SqlNthValueAggFunction(SqlKind.NTH_VALUE);
-
-  /**
    * <code>LEAD</code> aggregate function.
    */
   public static final SqlAggFunction LEAD =
@@ -2248,7 +2242,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
       for (final SqlGroupedWindowFunction f
           : ((SqlGroupedWindowFunction) op).getAuxiliaryFunctions()) {
         builder.add(
-            Pair.of(copy(call, f),
+            Pair.<SqlNode, AuxiliaryConverter>of(copy(call, f),
                 new AuxiliaryConverter.Impl(f)));
       }
       return builder.build();
@@ -2259,7 +2253,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   /** Creates a copy of a call with a new operator. */
   private static SqlCall copy(SqlCall call, SqlOperator operator) {
     final List<SqlNode> list = call.getOperandList();
-    return new SqlBasicCall(operator, list.toArray(new SqlNode[0]),
+    return new SqlBasicCall(operator, list.toArray(new SqlNode[list.size()]),
         call.getParserPosition());
   }
 
@@ -2302,7 +2296,6 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
       throw new AssertionError(comparisonKind);
     }
   }
-
 }
 
 // End SqlStdOperatorTable.java

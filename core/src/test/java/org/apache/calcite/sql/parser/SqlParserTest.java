@@ -550,7 +550,11 @@ public class SqlParserTest {
   private static final String ANY = "(?s).*";
 
   private static final ThreadLocal<boolean[]> LINUXIFY =
-      ThreadLocal.withInitial(() -> new boolean[] {true});
+      new ThreadLocal<boolean[]>() {
+        @Override protected boolean[] initialValue() {
+          return new boolean[] {true};
+        }
+      };
 
   Quoting quoting = Quoting.DOUBLE_QUOTE;
   Casing unquotedCasing = Casing.TO_UPPER;
@@ -6915,8 +6919,8 @@ public class SqlParserTest {
   @Test public void testTimestampAddAndDiff() {
     Map<String, List<String>> tsi = ImmutableMap.<String, List<String>>builder()
         .put("MICROSECOND",
-            Arrays.asList("FRAC_SECOND", "MICROSECOND", "SQL_TSI_MICROSECOND"))
-        .put("NANOSECOND", Arrays.asList("NANOSECOND", "SQL_TSI_FRAC_SECOND"))
+            Arrays.asList("FRAC_SECOND", "MICROSECOND",
+                "SQL_TSI_FRAC_SECOND", "SQL_TSI_MICROSECOND"))
         .put("SECOND", Arrays.asList("SECOND", "SQL_TSI_SECOND"))
         .put("MINUTE", Arrays.asList("MINUTE", "SQL_TSI_MINUTE"))
         .put("HOUR", Arrays.asList("HOUR", "SQL_TSI_HOUR"))

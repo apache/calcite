@@ -31,8 +31,8 @@ import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.ImmutableBitSet;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -73,7 +73,7 @@ public class AggregateProjectMergeRule extends RelOptRule {
 
   public static RelNode apply(RelOptRuleCall call, Aggregate aggregate,
       Project project) {
-    final List<Integer> newKeys = new ArrayList<>();
+    final List<Integer> newKeys = Lists.newArrayList();
     final Map<Integer, Integer> map = new HashMap<>();
     for (int key : aggregate.getGroupSet()) {
       final RexNode rex = project.getProjects().get(key);
@@ -131,7 +131,7 @@ public class AggregateProjectMergeRule extends RelOptRule {
     final RelBuilder relBuilder = call.builder();
     relBuilder.push(newAggregate);
     if (!newKeys.equals(newGroupSet.asList())) {
-      final List<Integer> posList = new ArrayList<>();
+      final List<Integer> posList = Lists.newArrayList();
       for (int newKey : newKeys) {
         posList.add(newGroupSet.indexOf(newKey));
       }

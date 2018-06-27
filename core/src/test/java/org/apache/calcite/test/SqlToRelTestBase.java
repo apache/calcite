@@ -62,13 +62,13 @@ import org.apache.calcite.sql2rel.StandardConvertletTable;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.ImmutableBitSet;
 
+import com.google.common.base.Function;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
-import java.util.function.Function;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -111,42 +111,43 @@ public abstract class SqlToRelTestBase {
 
   protected Tester getTesterWithDynamicTable() {
     return tester.withCatalogReaderFactory(
-        typeFactory -> new MockCatalogReader(typeFactory, true) {
-            @Override public MockCatalogReader init() {
-              // CREATE SCHEMA "SALES;
-              // CREATE DYNAMIC TABLE "NATION"
-              // CREATE DYNAMIC TABLE "CUSTOMER"
+        new Function<RelDataTypeFactory, Prepare.CatalogReader>() {
+          public Prepare.CatalogReader apply(RelDataTypeFactory typeFactory) {
+            return new MockCatalogReader(typeFactory, true) {
+              @Override public MockCatalogReader init() {
+                // CREATE SCHEMA "SALES;
+                // CREATE DYNAMIC TABLE "NATION"
+                // CREATE DYNAMIC TABLE "CUSTOMER"
 
-              MockSchema schema = new MockSchema("SALES");
-              registerSchema(schema);
+                MockSchema schema = new MockSchema("SALES");
+                registerSchema(schema);
 
-              MockTable nationTable =
-                  new MockDynamicTable(this, schema.getCatalogName(),
-                      schema.getName(), "NATION", false, 100);
-              registerTable(nationTable);
+                MockTable nationTable = new MockDynamicTable(this, schema.getCatalogName(),
+                    schema.getName(), "NATION", false, 100);
+                registerTable(nationTable);
 
-              MockTable customerTable =
-                  new MockDynamicTable(this, schema.getCatalogName(),
-                      schema.getName(), "CUSTOMER", false, 100);
-              registerTable(customerTable);
+                MockTable customerTable = new MockDynamicTable(this, schema.getCatalogName(),
+                    schema.getName(), "CUSTOMER", false, 100);
+                registerTable(customerTable);
 
-              // CREATE TABLE "REGION" - static table with known schema.
-              final RelDataType intType =
-                  typeFactory.createSqlType(SqlTypeName.INTEGER);
-              final RelDataType varcharType =
-                  typeFactory.createSqlType(SqlTypeName.VARCHAR);
+                // CREATE TABLE "REGION" - static table with known schema.
+                final RelDataType intType =
+                    typeFactory.createSqlType(SqlTypeName.INTEGER);
+                final RelDataType varcharType =
+                    typeFactory.createSqlType(SqlTypeName.VARCHAR);
 
-              MockTable regionTable =
-                  MockTable.create(this, schema, "REGION", false, 100);
-              regionTable.addColumn("R_REGIONKEY", intType);
-              regionTable.addColumn("R_NAME", varcharType);
-              regionTable.addColumn("R_COMMENT", varcharType);
-              registerTable(regionTable);
+                MockTable regionTable = MockTable.create(this, schema, "REGION", false, 100);
+                regionTable.addColumn("R_REGIONKEY", intType);
+                regionTable.addColumn("R_NAME", varcharType);
+                regionTable.addColumn("R_COMMENT", varcharType);
+                registerTable(regionTable);
 
-              return this;
-            }
-            // CHECKSTYLE: IGNORE 1
-          }.init());
+                return this;
+              }
+              // CHECKSTYLE: IGNORE 1
+            }.init();
+          }
+        });
   }
 
   /**
@@ -604,7 +605,7 @@ public abstract class SqlToRelTestBase {
     }
 
     public RelRoot convertSqlToRel(String sql) {
-      Objects.requireNonNull(sql);
+      Preconditions.checkNotNull(sql);
       final SqlNode sqlQuery;
       final SqlToRelConverter.Config localConfig;
       try {

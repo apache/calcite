@@ -22,11 +22,11 @@ import org.apache.calcite.sql.SqlOperandCountRange;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.util.Util;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
 import java.util.AbstractList;
 import java.util.List;
-import java.util.Objects;
 import javax.annotation.Nullable;
 
 /**
@@ -93,8 +93,8 @@ public class CompositeOperandTypeChecker implements SqlOperandTypeChecker {
       ImmutableList<? extends SqlOperandTypeChecker> allowedRules,
       @Nullable String allowedSignatures,
       @Nullable SqlOperandCountRange range) {
-    this.allowedRules = Objects.requireNonNull(allowedRules);
-    this.composition = Objects.requireNonNull(composition);
+    this.allowedRules = Preconditions.checkNotNull(allowedRules);
+    this.composition = Preconditions.checkNotNull(composition);
     this.allowedSignatures = allowedSignatures;
     this.range = range;
     assert (range != null) == (composition == Composition.REPEAT);

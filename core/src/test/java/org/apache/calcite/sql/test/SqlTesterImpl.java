@@ -56,6 +56,8 @@ import com.google.common.collect.ImmutableList;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -596,15 +598,21 @@ public class SqlTesterImpl implements SqlTester, AutoCloseable {
           }
         });
     final List<SqlNode> nodes = new ArrayList<>(literalSet);
-    nodes.sort((o1, o2) -> {
-      final SqlParserPos pos0 = o1.getParserPosition();
-      final SqlParserPos pos1 = o2.getParserPosition();
-      int c = -Utilities.compare(pos0.getLineNum(), pos1.getLineNum());
-      if (c != 0) {
-        return c;
-      }
-      return -Utilities.compare(pos0.getColumnNum(), pos1.getColumnNum());
-    });
+    Collections.sort(
+        nodes,
+        new Comparator<SqlNode>() {
+          public int compare(SqlNode o1, SqlNode o2) {
+            final SqlParserPos pos0 = o1.getParserPosition();
+            final SqlParserPos pos1 = o2.getParserPosition();
+            int c = -Utilities.compare(
+                pos0.getLineNum(), pos1.getLineNum());
+            if (c != 0) {
+              return c;
+            }
+            return -Utilities.compare(
+                pos0.getColumnNum(), pos1.getColumnNum());
+          }
+        });
     String sql2 = sql;
     final List<Pair<String, String>> values = new ArrayList<>();
     int p = 0;
@@ -647,26 +655,30 @@ public class SqlTesterImpl implements SqlTester, AutoCloseable {
     // Why an explicit iterable rather than a list? If there is
     // a syntax error in the expression, the calling code discovers it
     // before we try to parse it to do substitutions on the parse tree.
-    return () -> new Iterator<String>() {
-      int i = 0;
+    return new Iterable<String>() {
+      public Iterator<String> iterator() {
+        return new Iterator<String>() {
+          int i = 0;
 
-      public void remove() {
-        throw new UnsupportedOperationException();
-      }
+          public void remove() {
+            throw new UnsupportedOperationException();
+          }
 
-      public String next() {
-        switch (i++) {
-        case 0:
-          return buildQuery(expression);
-        case 1:
-          return buildQuery2(expression);
-        default:
-          throw new NoSuchElementException();
-        }
-      }
+          public String next() {
+            switch (i++) {
+            case 0:
+              return buildQuery(expression);
+            case 1:
+              return buildQuery2(expression);
+            default:
+              throw new NoSuchElementException();
+            }
+          }
 
-      public boolean hasNext() {
-        return i < 2;
+          public boolean hasNext() {
+            return i < 2;
+          }
+        };
       }
     };
   }

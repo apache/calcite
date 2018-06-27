@@ -49,7 +49,7 @@ abstract class SqlDropObject extends SqlDrop
   }
 
   public List<SqlNode> getOperandList() {
-    return ImmutableList.of(name);
+    return ImmutableList.<SqlNode>of(name);
   }
 
   @Override public void unparse(SqlWriter writer, int leftPrec, int rightPrec) {

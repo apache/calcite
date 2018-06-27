@@ -26,6 +26,7 @@ import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.linq4j.tree.FieldDeclaration;
 import org.apache.calcite.linq4j.tree.FunctionExpression;
+import org.apache.calcite.linq4j.tree.MemberDeclaration;
 import org.apache.calcite.linq4j.tree.MethodCallExpression;
 import org.apache.calcite.linq4j.tree.NewExpression;
 import org.apache.calcite.linq4j.tree.Node;
@@ -33,7 +34,6 @@ import org.apache.calcite.linq4j.tree.ParameterExpression;
 import org.apache.calcite.linq4j.tree.Shuttle;
 import org.apache.calcite.linq4j.tree.Types;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
 import org.junit.Test;
@@ -195,7 +195,7 @@ public class ExpressionTest {
             Expressions.foldOr(list1)));
 
     final List<Expression> list2 =
-        Collections.singletonList(
+        Collections.<Expression>singletonList(
             Expressions.constant(true));
     assertEquals(
         "true",
@@ -355,7 +355,7 @@ public class ExpressionTest {
             Expressions.lambda(
                 Function1.class,
                 Expressions.call(
-                    paramX, "length", Collections.emptyList()),
+                    paramX, "length", Collections.<Expression>emptyList()),
                 Arrays.asList(paramX))));
 
     // 1-dimensional array with initializer
@@ -421,7 +421,7 @@ public class ExpressionTest {
                             Object.class),
                         String.class),
                     "length",
-                    Collections.emptyList()),
+                    Collections.<Expression>emptyList()),
                 Integer.TYPE)));
 
     // resolving a static method
@@ -635,8 +635,8 @@ public class ExpressionTest {
             Expressions.statement(
                 Expressions.new_(
                     Types.of(AbstractList.class, String.class),
-                    Collections.emptyList(),
-                    Arrays.asList(
+                    Collections.<Expression>emptyList(),
+                    Arrays.<MemberDeclaration>asList(
                         Expressions.fieldDecl(
                             Modifier.PUBLIC | Modifier.FINAL,
                             Expressions.parameter(
@@ -647,12 +647,12 @@ public class ExpressionTest {
                             Modifier.PUBLIC,
                             Integer.TYPE,
                             "size",
-                            Collections.emptyList(),
+                            Collections.<ParameterExpression>emptyList(),
                             Blocks.toFunctionBlock(
                                 Expressions.call(
                                     bazParameter,
                                     "size",
-                                    Collections.emptyList()))),
+                                    Collections.<Expression>emptyList()))),
                         Expressions.methodDecl(
                             Modifier.PUBLIC,
                             String.class,
@@ -668,7 +668,8 @@ public class ExpressionTest {
                                                 indexParameter)),
                                         String.class),
                                     "toUpperCase",
-                                    ImmutableList.of())))))));
+                                    Collections
+                                        .<Expression>emptyList())))))));
     assertEquals(
         "{\n"
             + "  final java.util.List<String> baz = java.util.Arrays.asList(\"foo\", \"bar\");\n"
@@ -1048,8 +1049,8 @@ public class ExpressionTest {
     final NewExpression newExpression =
         Expressions.new_(
             Object.class,
-            ImmutableList.of(),
-            Arrays.asList(
+            Collections.<Expression>emptyList(),
+            Arrays.<MemberDeclaration>asList(
                 Expressions.fieldDecl(
                     Modifier.PUBLIC | Modifier.FINAL,
                     Expressions.parameter(String.class, "foo"),
@@ -1058,8 +1059,8 @@ public class ExpressionTest {
                     Modifier.PUBLIC | Modifier.STATIC,
                     "MyClass",
                     null,
-                    ImmutableList.of(),
-                    Arrays.asList(
+                    Collections.<Type>emptyList(),
+                    Arrays.<MemberDeclaration>asList(
                         new FieldDeclaration(
                             0,
                             Expressions.parameter(int.class, "x"),

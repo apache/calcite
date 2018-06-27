@@ -73,7 +73,30 @@ public class DefaultSqlTestFactory implements SqlTestFactory {
    * Caching improves SqlValidatorTest from 23s to 8s,
    * and CalciteSqlOperatorTest from 65s to 43s. */
   private final LoadingCache<SqlTestFactory, Xyz> cache =
-      CacheBuilder.newBuilder().build(CacheLoader.from(Xyz::from));
+      CacheBuilder.newBuilder()
+          .build(
+              new CacheLoader<SqlTestFactory, Xyz>() {
+                public Xyz load(@Nonnull SqlTestFactory factory)
+                    throws Exception {
+                  final SqlOperatorTable operatorTable =
+                      factory.createOperatorTable(factory);
+                  RelDataTypeSystem typeSystem = RelDataTypeSystem.DEFAULT;
+                  final SqlConformance conformance =
+                      (SqlConformance) factory.get("conformance");
+                  if (conformance.shouldConvertRaggedUnionTypesToVarying()) {
+                    typeSystem = new DelegatingTypeSystem(typeSystem) {
+                      public boolean shouldConvertRaggedUnionTypesToVarying() {
+                        return true;
+                      }
+                    };
+                  }
+                  final JavaTypeFactory typeFactory =
+                      new JavaTypeFactoryImpl(typeSystem);
+                  final MockCatalogReader catalogReader =
+                      factory.createCatalogReader(factory, typeFactory);
+                  return new Xyz(operatorTable, typeFactory, catalogReader);
+                }
+              });
 
   public static final DefaultSqlTestFactory INSTANCE =
       new DefaultSqlTestFactory();
@@ -134,24 +157,16 @@ public class DefaultSqlTestFactory implements SqlTestFactory {
       this.catalogReader = catalogReader;
     }
 
-    static Xyz from(@Nonnull SqlTestFactory factory) {
-      final SqlOperatorTable operatorTable =
-          factory.createOperatorTable(factory);
-      RelDataTypeSystem typeSystem = RelDataTypeSystem.DEFAULT;
-      final SqlConformance conformance =
-          (SqlConformance) factory.get("conformance");
-      if (conformance.shouldConvertRaggedUnionTypesToVarying()) {
-        typeSystem = new DelegatingTypeSystem(typeSystem) {
-          public boolean shouldConvertRaggedUnionTypesToVarying() {
-            return true;
-          }
-        };
-      }
-      final JavaTypeFactory typeFactory =
-          new JavaTypeFactoryImpl(typeSystem);
-      final MockCatalogReader catalogReader =
-          factory.createCatalogReader(factory, typeFactory);
-      return new Xyz(operatorTable, typeFactory, catalogReader);
+    public SqlOperatorTable getOperatorTable() {
+      return operatorTable;
+    }
+
+    public JavaTypeFactory getTypeFactory() {
+      return typeFactory;
+    }
+
+    public MockCatalogReader getCatalogReader() {
+      return catalogReader;
     }
   }
 }

@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.adapter.tpcds;
 
+import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.prepare.Prepare;
@@ -34,6 +35,8 @@ import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.Holder;
 import org.apache.calcite.util.Pair;
 
+import com.google.common.base.Function;
+
 import net.hydromatic.tpcds.query.Query;
 
 import org.junit.Ignore;
@@ -41,7 +44,6 @@ import org.junit.Test;
 
 import java.util.List;
 import java.util.Random;
-import java.util.function.Consumer;
 
 /** Unit test for {@link org.apache.calcite.adapter.tpcds.TpcdsSchema}.
  *
@@ -49,13 +51,20 @@ import java.util.function.Consumer;
  * command-line.
  * (See {@link org.apache.calcite.test.CalciteAssert#ENABLE_SLOW}.)</p> */
 public class TpcdsTest {
-  private static Consumer<Pair<List<Prepare.Materialization>, Holder<Program>>>
-      handler(boolean bushy, int minJoinCount) {
-    return pair -> pair.right.set(
-        Programs.sequence(
-            Programs.heuristicJoinOrder(Programs.RULE_SET, bushy,
-                minJoinCount),
-            Programs.CALC_PROGRAM));
+  private static Function<Pair<List<Prepare.Materialization>, Holder<Program>>, Void> handler(
+      final boolean bushy, final int minJoinCount) {
+    return new Function<Pair<List<Prepare.Materialization>, Holder<Program>>,
+        Void>() {
+      public Void apply(
+          Pair<List<Prepare.Materialization>, Holder<Program>> pair) {
+        pair.right.set(
+            Programs.sequence(
+                Programs.heuristicJoinOrder(Programs.RULE_SET, bushy,
+                    minJoinCount),
+                Programs.CALC_PROGRAM));
+        return null;
+      }
+    };
   }
 
   private static String schema(String name, String scaleFactor) {
@@ -197,9 +206,13 @@ public class TpcdsTest {
   public Frameworks.ConfigBuilder config() throws Exception {
     final Holder<SchemaPlus> root = Holder.of(null);
     CalciteAssert.model(TPCDS_MODEL)
-        .doWithConnection(connection -> {
-          root.set(connection.getRootSchema().getSubSchema("TPCDS"));
-        });
+        .doWithConnection(
+            new Function<CalciteConnection, Object>() {
+              public Object apply(CalciteConnection input) {
+                root.set(input.getRootSchema().getSubSchema("TPCDS"));
+                return null;
+              }
+            });
     return Frameworks.newConfigBuilder()
         .parserConfig(SqlParser.Config.DEFAULT)
         .defaultSchema(root.get())

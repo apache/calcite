@@ -23,11 +23,12 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 
+import com.google.common.base.Preconditions;
+
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 
 /**
  * RelDataTypeFactory is a factory for datatype descriptors. It defines methods
@@ -407,7 +408,7 @@ public interface RelDataTypeFactory {
      * Creates a Builder with the given type factory.
      */
     public Builder(RelDataTypeFactory typeFactory) {
-      this.typeFactory = Objects.requireNonNull(typeFactory);
+      this.typeFactory = Preconditions.checkNotNull(typeFactory);
     }
 
     /**

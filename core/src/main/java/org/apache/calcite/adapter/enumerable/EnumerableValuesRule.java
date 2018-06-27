@@ -22,7 +22,7 @@ import org.apache.calcite.rel.convert.ConverterRule;
 import org.apache.calcite.rel.logical.LogicalValues;
 import org.apache.calcite.tools.RelBuilderFactory;
 
-import java.util.function.Predicate;
+import com.google.common.base.Predicates;
 
 /** Planner rule that converts a
  * {@link org.apache.calcite.rel.logical.LogicalValues}
@@ -35,7 +35,7 @@ public class EnumerableValuesRule extends ConverterRule {
    * @param relBuilderFactory Builder for relational expressions
    */
   public EnumerableValuesRule(RelBuilderFactory relBuilderFactory) {
-    super(LogicalValues.class, (Predicate<RelNode>) r -> true,
+    super(LogicalValues.class, Predicates.<RelNode>alwaysTrue(),
         Convention.NONE, EnumerableConvention.INSTANCE, relBuilderFactory,
         "EnumerableValuesRule");
   }

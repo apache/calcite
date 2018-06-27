@@ -75,8 +75,7 @@ public class SqlUserDefinedFunction extends SqlFunction {
   }
 
   @Override public List<String> getParamNames() {
-    return Lists.transform(function.getParameters(),
-        FunctionParameter::getName);
+    return Lists.transform(function.getParameters(), FunctionParameter.NAME_FN);
   }
 }
 

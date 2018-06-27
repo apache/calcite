@@ -27,14 +27,22 @@ public interface Predicate1<T0> extends Function<Boolean> {
    *
    * @see Functions#truePredicate1()
    */
-  Predicate1<Object> TRUE = v0 -> true;
+  Predicate1<Object> TRUE = new Predicate1<Object>() {
+    public boolean apply(Object v0) {
+      return true;
+    }
+  };
 
   /**
    * Predicate that always evaluates to {@code false}.
    *
    * @see Functions#falsePredicate1()
    */
-  Predicate1<Object> FALSE = v0 -> false;
+  Predicate1<Object> FALSE = new Predicate1<Object>() {
+    public boolean apply(Object v0) {
+      return false;
+    }
+  };
 
   boolean apply(T0 v0);
 }

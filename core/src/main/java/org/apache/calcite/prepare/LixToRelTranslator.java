@@ -102,7 +102,7 @@ class LixToRelTranslator implements RelOptTable.ToRelContext {
                 typeFactory.createJavaType(
                     Types.toClass(
                         Types.getElementType(call.targetExpression.getType()))),
-                ImmutableList.of(),
+                ImmutableList.<String>of(),
                 call.targetExpression));
 
       case SCHEMA_GET_TABLE:
@@ -110,7 +110,7 @@ class LixToRelTranslator implements RelOptTable.ToRelContext {
             RelOptTableImpl.create(null,
                 typeFactory.createJavaType((Class)
                     ((ConstantExpression) call.expressions.get(1)).value),
-                ImmutableList.of(),
+                ImmutableList.<String>of(),
                 call.targetExpression));
 
       default:

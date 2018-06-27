@@ -52,7 +52,11 @@ public class Ord<E> implements Map.Entry<Integer, E> {
    * Creates an iterable of {@code Ord}s over an iterable.
    */
   public static <E> Iterable<Ord<E>> zip(final Iterable<? extends E> iterable) {
-    return () -> zip(iterable.iterator());
+    return new Iterable<Ord<E>>() {
+      public Iterator<Ord<E>> iterator() {
+        return zip(iterable.iterator());
+      }
+    };
   }
 
   /**
@@ -110,19 +114,23 @@ public class Ord<E> implements Map.Entry<Integer, E> {
    */
   public static <E> Iterable<Ord<E>> reverse(Iterable<? extends E> elements) {
     final ImmutableList<E> elementList = ImmutableList.copyOf(elements);
-    return () -> new Iterator<Ord<E>>() {
-      int i = elementList.size() - 1;
+    return new Iterable<Ord<E>>() {
+      public Iterator<Ord<E>> iterator() {
+        return new Iterator<Ord<E>>() {
+          int i = elementList.size() - 1;
 
-      public boolean hasNext() {
-        return i >= 0;
-      }
+          public boolean hasNext() {
+            return i >= 0;
+          }
 
-      public Ord<E> next() {
-        return Ord.of(i, elementList.get(i--));
-      }
+          public Ord<E> next() {
+            return Ord.of(i, elementList.get(i--));
+          }
 
-      public void remove() {
-        throw new UnsupportedOperationException("remove");
+          public void remove() {
+            throw new UnsupportedOperationException("remove");
+          }
+        };
       }
     };
   }

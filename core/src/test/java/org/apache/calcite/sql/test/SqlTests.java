@@ -52,14 +52,20 @@ public abstract class SqlTests {
   /**
    * Checker which allows any type.
    */
-  public static final TypeChecker ANY_TYPE_CHECKER = type -> {
-  };
+  public static final TypeChecker ANY_TYPE_CHECKER =
+      new TypeChecker() {
+        public void checkType(RelDataType type) {
+        }
+      };
 
   /**
    * Checker that allows any number or type of parameters.
    */
-  public static final ParameterChecker ANY_PARAMETER_CHECKER = parameterRowType -> {
-  };
+  public static final ParameterChecker ANY_PARAMETER_CHECKER =
+      new ParameterChecker() {
+        public void checkParameters(RelDataType parameterRowType) {
+        }
+      };
 
   /**
    * Helper function to get the string representation of a RelDataType
@@ -383,6 +389,13 @@ public abstract class SqlTests {
       compareResultSet(resultSet, expected);
     }
   }
+
+  /** Result checker that accepts any result. */
+  public static final ResultChecker ANY_RESULT_CHECKER =
+      new ResultChecker() {
+        public void checkResult(ResultSet result) {
+        }
+      };
 }
 
 // End SqlTests.java

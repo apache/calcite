@@ -27,6 +27,7 @@ import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 
+import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 
 import java.util.ArrayList;
@@ -76,8 +77,7 @@ public class PigFilter extends Filter implements PigRel {
     for (RexNode node : RelOptUtil.conjunctions(condition)) {
       filterConditionsConjunction.add(getSingleFilterCondition(implementor, node));
     }
-    String allFilterConditions =
-        String.join(" AND ", filterConditionsConjunction);
+    String allFilterConditions = Joiner.on(" AND ").join(filterConditionsConjunction);
     return relationAlias + " = FILTER " + relationAlias + " BY " + allFilterConditions + ';';
   }
 

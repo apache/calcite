@@ -18,8 +18,10 @@ package org.apache.calcite.materialize;
 
 import org.apache.calcite.util.Util;
 
+import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Lists;
 
 import org.pentaho.aggdes.algorithm.Algorithm;
 import org.pentaho.aggdes.algorithm.Progress;
@@ -44,6 +46,13 @@ import java.util.List;
  * for a given lattice.
  */
 public class TileSuggester {
+  private static final Function<Attribute, Lattice.Column> TO_COLUMN =
+      new Function<Attribute, Lattice.Column>() {
+        public Lattice.Column apply(Attribute input) {
+          return ((AttributeImpl) input).column;
+        }
+      };
+
   private final Lattice lattice;
 
   public TileSuggester(Lattice lattice) {
@@ -197,8 +206,7 @@ public class TileSuggester {
     }
 
     public double getRowCount(List<Attribute> attributes) {
-      return lattice.getRowCount(
-          Util.transform(attributes, input -> ((AttributeImpl) input).column));
+      return lattice.getRowCount(Lists.transform(attributes, TO_COLUMN));
     }
 
     public double getSpace(List<Attribute> attributes) {

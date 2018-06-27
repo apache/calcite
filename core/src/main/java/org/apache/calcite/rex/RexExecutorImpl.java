@@ -116,8 +116,11 @@ public class RexExecutorImpl implements RexExecutor {
   public void reduce(RexBuilder rexBuilder, List<RexNode> constExps,
       List<RexNode> reducedValues) {
     final String code = compile(rexBuilder, constExps,
-        (list, index, storageType) -> {
-          throw new UnsupportedOperationException();
+        new RexToLixTranslator.InputGetter() {
+          public Expression field(BlockBuilder list, int index,
+              Type storageType) {
+            throw new UnsupportedOperationException();
+          }
         });
 
     final RexExecutable executable = new RexExecutable(code, constExps);

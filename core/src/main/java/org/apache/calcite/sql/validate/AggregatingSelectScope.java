@@ -27,6 +27,7 @@ import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Pair;
 
+import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -36,7 +37,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Supplier;
 
 import static org.apache.calcite.sql.SqlUtil.stripAs;
 
@@ -58,15 +58,18 @@ public class AggregatingSelectScope
   private List<SqlNode> temporaryGroupExprList;
 
   public final Supplier<Resolved> resolved =
-      Suppliers.memoize(() -> {
-        assert temporaryGroupExprList == null;
-        temporaryGroupExprList = new ArrayList<>();
-        try {
-          return resolve();
-        } finally {
-          temporaryGroupExprList = null;
-        }
-      })::get;
+      Suppliers.memoize(
+          new Supplier<Resolved>() {
+            public Resolved get() {
+              assert temporaryGroupExprList == null;
+              temporaryGroupExprList = new ArrayList<>();
+              try {
+                return resolve();
+              } finally {
+                temporaryGroupExprList = null;
+              }
+            }
+          });
 
   //~ Constructors -----------------------------------------------------------
 
@@ -146,18 +149,18 @@ public class AggregatingSelectScope
       for (SqlNode selectItem : selectScope.getExpandedSelectList()) {
         groupExprs.add(stripAs(selectItem));
       }
-      return Pair.of(ImmutableList.of(), groupExprs.build());
+      return Pair.of(ImmutableList.<SqlNode>of(), groupExprs.build());
     } else if (select.getGroup() != null) {
       if (temporaryGroupExprList != null) {
         // we are in the middle of resolving
-        return Pair.of(ImmutableList.of(),
+        return Pair.of(ImmutableList.<SqlNode>of(),
             ImmutableList.copyOf(temporaryGroupExprList));
       } else {
         final Resolved resolved = this.resolved.get();
         return Pair.of(resolved.extraExprList, resolved.groupExprList);
       }
     } else {
-      return Pair.of(ImmutableList.of(), ImmutableList.of());
+      return Pair.of(ImmutableList.<SqlNode>of(), ImmutableList.<SqlNode>of());
     }
   }
 

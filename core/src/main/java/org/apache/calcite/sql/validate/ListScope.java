@@ -23,6 +23,7 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
@@ -31,7 +32,6 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 
 import static org.apache.calcite.util.Static.RESOURCE;
 
@@ -57,7 +57,7 @@ public abstract class ListScope extends DelegatingScope {
 
   @Override public void addChild(SqlValidatorNamespace ns, String alias,
       boolean nullable) {
-    Objects.requireNonNull(alias);
+    Preconditions.checkNotNull(alias);
     children.add(new ScopeChild(children.size(), alias, ns, nullable));
   }
 
@@ -67,7 +67,7 @@ public abstract class ListScope extends DelegatingScope {
    * @return list of child namespaces
    */
   public List<SqlValidatorNamespace> getChildren() {
-    return Lists.transform(children, scopeChild -> scopeChild.namespace);
+    return Lists.transform(children, ScopeChild.NAMESPACE_FN);
   }
 
   /**
@@ -76,7 +76,7 @@ public abstract class ListScope extends DelegatingScope {
    * @return list of child namespaces
    */
   List<String> getChildNames() {
-    return Lists.transform(children, scopeChild -> scopeChild.name);
+    return Lists.transform(children, ScopeChild.NAME_FN);
   }
 
   private ScopeChild findChild(List<String> names,

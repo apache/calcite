@@ -25,10 +25,12 @@ import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.ReflectiveVisitor;
 import org.apache.calcite.util.Util;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Multimap;
 
+import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -40,7 +42,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -129,68 +130,80 @@ public class ReflectiveRelMetadataProvider
         builder.add(space.find(key, method));
       }
       final List<Method> handlerMethods = builder.build();
-      final UnboundMetadata function = (rel, mq) ->
-          (Metadata) Proxy.newProxyInstance(
-              space.metadataClass0.getClassLoader(),
-              new Class[]{space.metadataClass0}, (proxy, method, args) -> {
-                // Suppose we are an implementation of Selectivity
-                // that wraps "filter", a LogicalFilter. Then we
-                // implement
-                //   Selectivity.selectivity(rex)
-                // by calling method
-                //   new SelectivityImpl().selectivity(filter, rex)
-                if (method.equals(BuiltInMethod.METADATA_REL.method)) {
-                  return rel;
-                }
-                if (method.equals(BuiltInMethod.OBJECT_TO_STRING.method)) {
-                  return space.metadataClass0.getSimpleName() + "(" + rel + ")";
-                }
-                int i = methods.indexOf(method);
-                if (i < 0) {
-                  throw new AssertionError("not handled: " + method
-                      + " for " + rel);
-                }
-                final Method handlerMethod = handlerMethods.get(i);
-                if (handlerMethod == null) {
-                  throw new AssertionError("not handled: " + method
-                      + " for " + rel);
-                }
-                final Object[] args1;
-                final List key1;
-                if (args == null) {
-                  args1 = new Object[]{rel, mq};
-                  key1 = FlatLists.of(rel, method);
-                } else {
-                  args1 = new Object[args.length + 2];
-                  args1[0] = rel;
-                  args1[1] = mq;
-                  System.arraycopy(args, 0, args1, 2, args.length);
+      final UnboundMetadata function =
+          new UnboundMetadata() {
+            public Metadata bind(final RelNode rel,
+                final RelMetadataQuery mq) {
+              return (Metadata) Proxy.newProxyInstance(
+                  space.metadataClass0.getClassLoader(),
+                  new Class[]{space.metadataClass0},
+                  new InvocationHandler() {
+                    public Object invoke(Object proxy, Method method,
+                        Object[] args) throws Throwable {
+                      // Suppose we are an implementation of Selectivity
+                      // that wraps "filter", a LogicalFilter. Then we
+                      // implement
+                      //   Selectivity.selectivity(rex)
+                      // by calling method
+                      //   new SelectivityImpl().selectivity(filter, rex)
+                      if (method.equals(
+                          BuiltInMethod.METADATA_REL.method)) {
+                        return rel;
+                      }
+                      if (method.equals(
+                          BuiltInMethod.OBJECT_TO_STRING.method)) {
+                        return space.metadataClass0.getSimpleName() + "(" + rel
+                            + ")";
+                      }
+                      int i = methods.indexOf(method);
+                      if (i < 0) {
+                        throw new AssertionError("not handled: " + method
+                            + " for " + rel);
+                      }
+                      final Method handlerMethod = handlerMethods.get(i);
+                      if (handlerMethod == null) {
+                        throw new AssertionError("not handled: " + method
+                            + " for " + rel);
+                      }
+                      final Object[] args1;
+                      final List key;
+                      if (args == null) {
+                        args1 = new Object[]{rel, mq};
+                        key = FlatLists.of(rel, method);
+                      } else {
+                        args1 = new Object[args.length + 2];
+                        args1[0] = rel;
+                        args1[1] = mq;
+                        System.arraycopy(args, 0, args1, 2, args.length);
 
-                  final Object[] args2 = args1.clone();
-                  args2[1] = method; // replace RelMetadataQuery with method
-                  for (int j = 0; j < args2.length; j++) {
-                    if (args2[j] == null) {
-                      args2[j] = NullSentinel.INSTANCE;
-                    } else if (args2[j] instanceof RexNode) {
-                      // Can't use RexNode.equals - it is not deep
-                      args2[j] = args2[j].toString();
+                        final Object[] args2 = args1.clone();
+                        args2[1] = method; // replace RelMetadataQuery with method
+                        for (int j = 0; j < args2.length; j++) {
+                          if (args2[j] == null) {
+                            args2[j] = NullSentinel.INSTANCE;
+                          } else if (args2[j] instanceof RexNode) {
+                            // Can't use RexNode.equals - it is not deep
+                            args2[j] = args2[j].toString();
+                          }
+                        }
+                        key = FlatLists.copyOf(args2);
+                      }
+                      if (mq.map.put(key, NullSentinel.INSTANCE) != null) {
+                        throw CyclicMetadataException.INSTANCE;
+                      }
+                      try {
+                        return handlerMethod.invoke(target, args1);
+                      } catch (InvocationTargetException
+                          | UndeclaredThrowableException e) {
+                        Util.throwIfUnchecked(e.getCause());
+                        throw new RuntimeException(e.getCause());
+                      } finally {
+                        mq.map.remove(key);
+                      }
                     }
-                  }
-                  key1 = FlatLists.copyOf(args2);
-                }
-                if (mq.map.put(key1, NullSentinel.INSTANCE) != null) {
-                  throw CyclicMetadataException.INSTANCE;
-                }
-                try {
-                  return handlerMethod.invoke(target, args1);
-                } catch (InvocationTargetException
-                    | UndeclaredThrowableException e) {
-                  Util.throwIfUnchecked(e.getCause());
-                  throw new RuntimeException(e.getCause());
-                } finally {
-                  mq.map.remove(key1);
-                }
-              });
+                  });
+            }
+          };
       methodsMap.put(key, function);
     }
     return new ReflectiveRelMetadataProvider(methodsMap, space.metadataClass0,
@@ -300,7 +313,7 @@ public class ReflectiveRelMetadataProvider
      * {@code map}. */
     @SuppressWarnings({ "unchecked", "SuspiciousMethodCalls" })
     Method find(final Class<? extends RelNode> relNodeClass, Method method) {
-      Objects.requireNonNull(relNodeClass);
+      Preconditions.checkNotNull(relNodeClass);
       for (Class r = relNodeClass;;) {
         Method implementingMethod = handlerMap.get(Pair.of(r, method));
         if (implementingMethod != null) {

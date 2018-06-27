@@ -30,6 +30,7 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.rex.RexVisitorImpl;
+import org.apache.calcite.runtime.PredicateImpl;
 import org.apache.calcite.runtime.SqlFunctions;
 import org.apache.calcite.sql.SqlBinaryOperator;
 import org.apache.calcite.sql.SqlKind;
@@ -43,6 +44,8 @@ import org.apache.calcite.util.TimestampWithTimeZoneString;
 import org.apache.calcite.util.Util;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
+import com.google.common.base.Predicate;
 import com.google.common.collect.BoundType;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -61,10 +64,8 @@ import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.TimeZone;
-import java.util.function.Predicate;
 
 /**
  * Collection of planner rules that convert
@@ -91,15 +92,17 @@ public abstract class DateRangeRules {
   private DateRangeRules() {}
 
   private static final Predicate<Filter> FILTER_PREDICATE =
-      filter -> {
-        try (ExtractFinder finder = ExtractFinder.THREAD_INSTANCES.get()) {
-          assert finder.timeUnits.isEmpty() && finder.opKinds.isEmpty()
-              : "previous user did not clean up";
-          filter.getCondition().accept(finder);
-          // bail out if there is no EXTRACT of YEAR, or call to FLOOR or CEIL
-          return finder.timeUnits.contains(TimeUnitRange.YEAR)
-              || finder.opKinds.contains(SqlKind.FLOOR)
-              || finder.opKinds.contains(SqlKind.CEIL);
+      new PredicateImpl<Filter>() {
+        @Override public boolean test(Filter filter) {
+          try (ExtractFinder finder = ExtractFinder.THREAD_INSTANCES.get()) {
+            assert finder.timeUnits.isEmpty() && finder.opKinds.isEmpty()
+                : "previous user did not clean up";
+            filter.getCondition().accept(finder);
+            // bail out if there is no EXTRACT of YEAR, or call to FLOOR or CEIL
+            return finder.timeUnits.contains(TimeUnitRange.YEAR)
+                || finder.opKinds.contains(SqlKind.FLOOR)
+                || finder.opKinds.contains(SqlKind.CEIL);
+          }
         }
       };
 
@@ -171,7 +174,7 @@ public abstract class DateRangeRules {
   @SuppressWarnings("WeakerAccess")
   public static class FilterDateRangeRule extends RelOptRule {
     public FilterDateRangeRule(RelBuilderFactory relBuilderFactory) {
-      super(operandJ(Filter.class, null, FILTER_PREDICATE, any()),
+      super(operand(Filter.class, null, FILTER_PREDICATE, any()),
           relBuilderFactory, "FilterDateRangeRule");
     }
 
@@ -202,7 +205,11 @@ public abstract class DateRangeRules {
     private final Set<SqlKind> opKinds = EnumSet.noneOf(SqlKind.class);
 
     private static final ThreadLocal<ExtractFinder> THREAD_INSTANCES =
-        ThreadLocal.withInitial(ExtractFinder::new);
+        new ThreadLocal<ExtractFinder>() {
+          @Override protected ExtractFinder initialValue() {
+            return new ExtractFinder();
+          }
+        };
 
     private ExtractFinder() {
       super(true);
@@ -246,12 +253,12 @@ public abstract class DateRangeRules {
     ExtractShuttle(RexBuilder rexBuilder, TimeUnitRange timeUnit,
         Map<String, RangeSet<Calendar>> operandRanges,
         ImmutableSortedSet<TimeUnitRange> timeUnitRanges, String timeZone) {
-      this.rexBuilder = Objects.requireNonNull(rexBuilder);
-      this.timeUnit = Objects.requireNonNull(timeUnit);
+      this.rexBuilder = Preconditions.checkNotNull(rexBuilder);
+      this.timeUnit = Preconditions.checkNotNull(timeUnit);
       Bug.upgrade("Change type to Map<RexNode, RangeSet<Calendar>> when"
           + " [CALCITE-1367] is fixed");
-      this.operandRanges = Objects.requireNonNull(operandRanges);
-      this.timeUnitRanges = Objects.requireNonNull(timeUnitRanges);
+      this.operandRanges = Preconditions.checkNotNull(operandRanges);
+      this.timeUnitRanges = Preconditions.checkNotNull(timeUnitRanges);
       this.timeZone = timeZone;
     }
 

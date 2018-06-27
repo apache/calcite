@@ -497,9 +497,8 @@ public abstract class SubQueryRemoveRule extends RelOptRule {
   public static class SubQueryProjectRemoveRule extends SubQueryRemoveRule {
     public SubQueryProjectRemoveRule(RelBuilderFactory relBuilderFactory) {
       super(
-          operandJ(Project.class, null,
-              RexUtil.SubQueryFinder::containsSubQuery, any()),
-          relBuilderFactory, "SubQueryRemoveRule:Project");
+          operand(Project.class, null, RexUtil.SubQueryFinder.PROJECT_PREDICATE,
+              any()), relBuilderFactory, "SubQueryRemoveRule:Project");
     }
 
     public void onMatch(RelOptRuleCall call) {
@@ -527,7 +526,7 @@ public abstract class SubQueryRemoveRule extends RelOptRule {
   public static class SubQueryFilterRemoveRule extends SubQueryRemoveRule {
     public SubQueryFilterRemoveRule(RelBuilderFactory relBuilderFactory) {
       super(
-          operandJ(Filter.class, null, RexUtil.SubQueryFinder::containsSubQuery,
+          operand(Filter.class, null, RexUtil.SubQueryFinder.FILTER_PREDICATE,
               any()), relBuilderFactory, "SubQueryRemoveRule:Filter");
     }
 
@@ -564,7 +563,7 @@ public abstract class SubQueryRemoveRule extends RelOptRule {
   public static class SubQueryJoinRemoveRule extends SubQueryRemoveRule {
     public SubQueryJoinRemoveRule(RelBuilderFactory relBuilderFactory) {
       super(
-          operandJ(Join.class, null, RexUtil.SubQueryFinder::containsSubQuery,
+          operand(Join.class, null, RexUtil.SubQueryFinder.JOIN_PREDICATE,
               any()), relBuilderFactory, "SubQueryRemoveRule:Join");
     }
 

@@ -19,12 +19,13 @@ package org.apache.calcite.adapter.mongodb;
 import org.apache.calcite.test.MongoAssertions;
 
 import com.github.fakemongo.Fongo;
+
+import com.google.common.base.Preconditions;
+
 import com.mongodb.MongoClient;
 import com.mongodb.client.MongoDatabase;
 
 import org.junit.rules.ExternalResource;
-
-import java.util.Objects;
 
 /**
  * Instantiates a new connection to Fongo (or Mongo) database depending on the
@@ -45,7 +46,7 @@ class MongoDatabasePolicy extends ExternalResource {
   private final MongoClient client;
 
   private MongoDatabasePolicy(MongoClient client) {
-    this.client = Objects.requireNonNull(client, "client");
+    this.client = Preconditions.checkNotNull(client, "client");
     this.database = client.getDatabase(DB_NAME);
   }
 

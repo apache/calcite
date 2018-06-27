@@ -22,6 +22,7 @@ import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Maps;
 
 import java.lang.reflect.Array;
+import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.sql.Connection;
@@ -73,56 +74,59 @@ public interface Compatible {
     Compatible create() {
       return (Compatible) Proxy.newProxyInstance(
           Compatible.class.getClassLoader(),
-          new Class<?>[] {Compatible.class}, (proxy, method, args) -> {
-            if (method.getName().equals("asMap")) {
-              // Use the Guava implementation Maps.asMap if it is available
-              try {
-                //noinspection ConfusingArgumentToVarargsMethod
-                final Method guavaMethod = Maps.class.getMethod(
-                    method.getName(), method.getParameterTypes());
-                return guavaMethod.invoke(null, args);
-              } catch (NoSuchMethodException e) {
-                Set set = (Set) args[0];
-                Function function = (Function) args[1];
-                return CompatibleGuava11.asMap(set, function);
+          new Class<?>[] {Compatible.class},
+          new InvocationHandler() {
+            public Object invoke(Object proxy, Method method, Object[] args)
+                throws Throwable {
+              if (method.getName().equals("asMap")) {
+                // Use the Guava implementation Maps.asMap if it is available
+                try {
+                  //noinspection ConfusingArgumentToVarargsMethod
+                  final Method guavaMethod = Maps.class.getMethod(
+                      method.getName(), method.getParameterTypes());
+                  return guavaMethod.invoke(null, args);
+                } catch (NoSuchMethodException e) {
+                  Set set = (Set) args[0];
+                  Function function = (Function) args[1];
+                  return CompatibleGuava11.asMap(set, function);
+                }
               }
-            }
-            if (method.getName().equals("navigableSet")) {
-              ImmutableSortedSet set = (ImmutableSortedSet) args[0];
-              return CompatibleGuava11.navigableSet(set);
-            }
-            if (method.getName().equals("navigableMap")) {
-              ImmutableSortedMap map = (ImmutableSortedMap) args[0];
-              return CompatibleGuava11.navigableMap(map);
-            }
-            if (method.getName().equals("immutableNavigableMap")) {
-              Map map = (Map) args[0];
-              ImmutableSortedMap sortedMap = ImmutableSortedMap.copyOf(map);
-              return CompatibleGuava11.navigableMap(sortedMap);
-            }
-            if (method.getName().equals("setSchema")) {
-              Connection connection = (Connection) args[0];
-              String schema = (String) args[1];
-              final Method method1 =
-                  connection.getClass().getMethod("setSchema", String.class);
-              return method1.invoke(connection, schema);
-            }
-            if (method.getName().equals("getParameterName")) {
-              final Method m = (Method) args[0];
-              final int i = (Integer) args[1];
-              try {
+              if (method.getName().equals("navigableSet")) {
+                ImmutableSortedSet set = (ImmutableSortedSet) args[0];
+                return CompatibleGuava11.navigableSet(set);
+              }
+              if (method.getName().equals("navigableMap")) {
+                ImmutableSortedMap map = (ImmutableSortedMap) args[0];
+                return CompatibleGuava11.navigableMap(map);
+              }
+              if (method.getName().equals("immutableNavigableMap")) {
+                Map map = (Map) args[0];
+                ImmutableSortedMap sortedMap = ImmutableSortedMap.copyOf(map);
+                return CompatibleGuava11.navigableMap(sortedMap);
+              }
+              if (method.getName().equals("setSchema")) {
+                Connection connection = (Connection) args[0];
+                String schema = (String) args[1];
                 final Method method1 =
-                    m.getClass().getMethod("getParameters");
-                Object parameters = method1.invoke(m);
-                final Object parameter = Array.get(parameters, i);
-                final Method method3 =
-                    parameter.getClass().getMethod("getName");
-                return method3.invoke(parameter);
-              } catch (NoSuchMethodException e) {
-                return "arg" + i;
+                    connection.getClass().getMethod("setSchema", String.class);
+                return method1.invoke(connection, schema);
               }
+              if (method.getName().equals("getParameterName")) {
+                final Method m = (Method) args[0];
+                final int i = (Integer) args[1];
+                try {
+                  final Method method1 =
+                      m.getClass().getMethod("getParameters");
+                  Object parameters = method1.invoke(m);
+                  final Object parameter = Array.get(parameters, i);
+                  final Method method3 = parameter.getClass().getMethod("getName");
+                  return method3.invoke(parameter);
+                } catch (NoSuchMethodException e) {
+                  return "arg" + i;
+                }
+              }
+              return null;
             }
-            return null;
           });
     }
   }

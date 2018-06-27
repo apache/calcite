@@ -88,6 +88,7 @@ limitations under the License.
     <!-- Require Hadoop 2.7.4+ due to HADOOP-14586 -->
     <hadoop.version>2.7.5</hadoop.version>
     <hamcrest.version>1.3</hamcrest.version>
+    <hppc.version>0.7.1</hppc.version>
     <hsqldb.version>2.4.0</hsqldb.version>
     <httpclient.version>4.5.2</httpclient.version>
     <httpcore.version>4.4.4</httpcore.version>
@@ -122,7 +123,7 @@ limitations under the License.
     <pig.version>0.16.0</pig.version>
     <aggdesigner.version>6.0</aggdesigner.version>
     <postgresql.version>9.3-1102-jdbc3</postgresql.version>
-    <quidem.version>0.9</quidem.version>
+    <quidem.version>0.8</quidem.version>
     <scala.version>2.10.3</scala.version>
     <scott-data-hsqldb.version>0.1</scott-data-hsqldb.version>
     <servlet.version>3.0.1</servlet.version>
@@ -134,7 +135,7 @@ limitations under the License.
     <xerces.version>2.9.1</xerces.version>
     <sketches.version>0.9.0</sketches.version>
     <fmpp.version>0.9.14</fmpp.version>
-
+    
     <!-- Other properties (not version numbers) -->
     <maven-javadoc-plugin.excludePackageNames>
       org.apache.calcite.benchmarks.generated,
@@ -161,7 +162,6 @@ limitations under the License.
   </scm>
 
   <modules>
-    <module>babel</module>
     <module>cassandra</module>
     <module>core</module>
     <module>druid</module>
@@ -235,6 +235,11 @@ limitations under the License.
         <groupId>org.apache.commons</groupId>
         <artifactId>commons-pool2</artifactId>
         <version>${commons-pool2.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.carrotsearch</groupId>
+        <artifactId>hppc</artifactId>
+        <version>${hppc.version}</version>
       </dependency>
       <dependency>
         <groupId>com.datastax.cassandra</groupId>
@@ -720,9 +725,9 @@ limitations under the License.
         <configuration>
           <additionalparam>-html5</additionalparam>
           <links>
-            <link>${maven-javadoc-plugin.link}</link>
+            <link>https://docs.oracle.com/javase/9/docs/api/</link>
           </links>
-          <excludePackageNames>${maven-javadoc-plugin.excludePackageNames}</excludePackageNames>
+          <excludePackageNames>org.apache.calcite.benchmarks.generated,org.apache.calcite.sql.parser.ddl,org.apache.calcite.sql.parser.impl,org.apache.calcite.sql.parser.parserextensiontesting,org.apache.calcite.piglet.parser,org.openjdk.jmh</excludePackageNames>
           <show>private</show>
         </configuration>
       </plugin>
@@ -960,9 +965,9 @@ limitations under the License.
         <version>${maven-javadoc-plugin.version}</version>
         <configuration>
           <links>
-            <link>${maven-javadoc-plugin.link}</link>
+            <link>https://docs.oracle.com/javase/8/docs/api/</link>
           </links>
-          <excludePackageNames>${maven-javadoc-plugin.excludePackageNames}</excludePackageNames>
+          <excludePackageNames>org.apache.calcite.benchmarks.generated,org.apache.calcite.sql.parser.ddl,org.apache.calcite.sql.parser.impl,org.apache.calcite.sql.parser.parserextensiontesting,org.apache.calcite.piglet.parser,org.openjdk.jmh</excludePackageNames>
           <notimestamp>true</notimestamp>
           <windowtitle>Apache Calcite API</windowtitle>
         </configuration>

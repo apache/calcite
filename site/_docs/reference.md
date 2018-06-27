@@ -614,7 +614,6 @@ MORE,
 MUMPS,
 NAME,
 NAMES,
-NANOSECOND,
 **NATIONAL**,
 **NATURAL**,
 **NCHAR**,
@@ -1539,7 +1538,6 @@ Not implemented:
 | LAST_VALUE(value) OVER window             | Returns *value* evaluated at the row that is the last row of the window frame
 | LEAD(value, offset, default) OVER window  | Returns *value* evaluated at the row that is *offset* rows after the current row within the partition; if there is no such row, instead returns *default*. Both *offset* and *default* are evaluated with respect to the current row. If omitted, *offset* defaults to 1 and *default* to NULL
 | LAG(value, offset, default) OVER window   | Returns *value* evaluated at the row that is *offset* rows before the current row within the partition; if there is no such row, instead returns *default*. Both *offset* and *default* are evaluated with respect to the current row. If omitted, *offset* defaults to 1 and *default* to NULL
-| NTH_VALUE(value, nth) OVER window         | Returns *value* evaluated at the row that is the *n*th row of the window frame
 | NTILE(value) OVER window                  | Returns an integer ranging from 1 to *value*, dividing the partition as equally as possible
 
 Not implemented:
@@ -1550,7 +1548,7 @@ Not implemented:
 * LAST_VALUE(value) IGNORE NULLS OVER window
 * PERCENT_RANK(value) OVER window
 * CUME_DIST(value) OVER window
-* NTH_VALUE(value, nth) [ FROM { FIRST | LAST } ] IGNORE NULLS OVER window
+* NTH_VALUE(value, nth) OVER window
 
 ### Grouping functions
 

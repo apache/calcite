@@ -57,7 +57,9 @@ import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.Util;
 
+import com.google.common.base.Supplier;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Maps;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
@@ -72,7 +74,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Supplier;
 
 import static org.apache.calcite.linq4j.tree.ExpressionType.Add;
 import static org.apache.calcite.linq4j.tree.ExpressionType.AndAlso;
@@ -178,7 +179,6 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.NOT_EQUALS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.NOT_LIKE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.NOT_SIMILAR_TO;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.NOT_SUBMULTISET_OF;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.NTH_VALUE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.NTILE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.OR;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.OVERLAY;
@@ -231,9 +231,9 @@ public class RexImpTable {
 
   private final Map<SqlOperator, CallImplementor> map = new HashMap<>();
   private final Map<SqlAggFunction, Supplier<? extends AggImplementor>> aggMap =
-      new HashMap<>();
+      Maps.newHashMap();
   private final Map<SqlAggFunction, Supplier<? extends WinAggImplementor>> winAggMap =
-      new HashMap<>();
+      Maps.newHashMap();
 
   RexImpTable() {
     defineMethod(ROW, BuiltInMethod.ARRAY.method, NullPolicy.ANY);
@@ -327,7 +327,12 @@ public class RexImpTable {
     defineMethod(TAN, "tan", NullPolicy.STRICT);
     defineMethod(TRUNCATE, "struncate", NullPolicy.STRICT);
 
-    map.put(PI, (translator, call, nullAs) -> Expressions.constant(Math.PI));
+    map.put(PI, new CallImplementor() {
+      @Override public Expression implement(RexToLixTranslator translator,
+          RexCall call, NullAs nullAs) {
+        return Expressions.constant(Math.PI);
+      }
+    });
 
     // datetime
     defineImplementor(DATETIME_PLUS, NullPolicy.STRICT,
@@ -408,7 +413,13 @@ public class RexImpTable {
     map.put(ARRAY_VALUE_CONSTRUCTOR, value);
     map.put(ITEM, new ItemImplementor());
 
-    map.put(DEFAULT, (translator, call, nullAs) -> Expressions.constant(null));
+    map.put(DEFAULT,
+        new CallImplementor() {
+          public Expression implement(RexToLixTranslator translator,
+              RexCall call, NullAs nullAs) {
+            return Expressions.constant(null);
+          }
+        });
 
     // Sequences
     defineImplementor(CURRENT_VALUE, NullPolicy.STRICT,
@@ -456,7 +467,6 @@ public class RexImpTable {
     winAggMap.put(ROW_NUMBER, constructorSupplier(RowNumberImplementor.class));
     winAggMap.put(FIRST_VALUE,
         constructorSupplier(FirstValueImplementor.class));
-    winAggMap.put(NTH_VALUE, constructorSupplier(NthValueImplementor.class));
     winAggMap.put(LAST_VALUE, constructorSupplier(LastValueImplementor.class));
     winAggMap.put(LEAD, constructorSupplier(LeadImplementor.class));
     winAggMap.put(LAG, constructorSupplier(LagImplementor.class));
@@ -472,13 +482,15 @@ public class RexImpTable {
       throw new IllegalArgumentException(
           klass + " should implement zero arguments constructor");
     }
-    return () -> {
-      try {
-        return constructor.newInstance();
-      } catch (InstantiationException | IllegalAccessException
-          | InvocationTargetException e) {
-        throw new IllegalStateException(
-            "Error while creating aggregate implementor " + constructor, e);
+    return new Supplier<T>() {
+      public T get() {
+        try {
+          return constructor.newInstance();
+        } catch (InstantiationException | IllegalAccessException
+            | InvocationTargetException e) {
+          throw new IllegalStateException(
+              "Error while creating aggregate implementor " + constructor, e);
+        }
       }
     };
   }
@@ -516,9 +528,14 @@ public class RexImpTable {
     case ANY:
     case STRICT:
     case SEMI_STRICT:
-      return (translator, call, nullAs) -> implementNullSemantics0(
-          translator, call, nullAs, nullPolicy, harmonize,
-          implementor);
+      return new CallImplementor() {
+        public Expression implement(
+            RexToLixTranslator translator, RexCall call, NullAs nullAs) {
+          return implementNullSemantics0(
+              translator, call, nullAs, nullPolicy, harmonize,
+              implementor);
+        }
+      };
     case AND:
 /* TODO:
             if (nullAs == NullAs.FALSE) {
@@ -532,38 +549,41 @@ public class RexImpTable {
       // b0 == null ? (b1 == null || b1 ? null : Boolean.FALSE)
       //   : b0 ? b1
       //   : Boolean.FALSE;
-      return (translator, call, nullAs) -> {
-        assert call.getOperator() == AND
-            : "AND null semantics is supported only for AND operator. Actual operator is "
-            + String.valueOf(call.getOperator());
-        final RexCall call2 = call2(false, translator, call);
-        switch (nullAs) {
-        case NOT_POSSIBLE: // Just foldAnd
-        case TRUE:
-          // AND call should return false iff has FALSEs,
-          // thus if we convert nulls to true then no harm is made
-        case FALSE:
-          // AND call should return false iff has FALSEs or has NULLs,
-          // thus if we convert nulls to false, no harm is made
-          final List<Expression> expressions =
-              translator.translateList(call2.getOperands(), nullAs);
-          return Expressions.foldAnd(expressions);
-        case NULL:
-        case IS_NULL:
-        case IS_NOT_NULL:
-          final List<Expression> nullAsTrue =
-              translator.translateList(call2.getOperands(), NullAs.TRUE);
-          final List<Expression> nullAsIsNull =
-              translator.translateList(call2.getOperands(), NullAs.IS_NULL);
-          Expression hasFalse =
-              Expressions.not(Expressions.foldAnd(nullAsTrue));
-          Expression hasNull = Expressions.foldOr(nullAsIsNull);
-          return nullAs.handle(
-              Expressions.condition(hasFalse, BOXED_FALSE_EXPR,
-                  Expressions.condition(hasNull, NULL_EXPR, BOXED_TRUE_EXPR)));
-        default:
-          throw new IllegalArgumentException(
-              "Unknown nullAs when implementing AND: " + nullAs);
+      return new CallImplementor() {
+        public Expression implement(
+            RexToLixTranslator translator, RexCall call, NullAs nullAs) {
+          assert call.getOperator() == AND
+              : "AND null semantics is supported only for AND operator. Actual operator is "
+              + String.valueOf(call.getOperator());
+          final RexCall call2 = call2(false, translator, call);
+          switch (nullAs) {
+          case NOT_POSSIBLE: // Just foldAnd
+          case TRUE:
+            // AND call should return false iff has FALSEs,
+            // thus if we convert nulls to true then no harm is made
+          case FALSE:
+            // AND call should return false iff has FALSEs or has NULLs,
+            // thus if we convert nulls to false, no harm is made
+            final List<Expression> expressions =
+                translator.translateList(call2.getOperands(), nullAs);
+            return Expressions.foldAnd(expressions);
+          case NULL:
+          case IS_NULL:
+          case IS_NOT_NULL:
+            final List<Expression> nullAsTrue =
+                translator.translateList(call2.getOperands(), NullAs.TRUE);
+            final List<Expression> nullAsIsNull =
+                translator.translateList(call2.getOperands(), NullAs.IS_NULL);
+            Expression hasFalse = Expressions.not(Expressions.foldAnd(nullAsTrue));
+            Expression hasNull = Expressions.foldOr(nullAsIsNull);
+            Expression result = nullAs.handle(
+                Expressions.condition(hasFalse, BOXED_FALSE_EXPR,
+                    Expressions.condition(hasNull, NULL_EXPR, BOXED_TRUE_EXPR)));
+            return result;
+          default:
+            throw new IllegalArgumentException(
+                "Unknown nullAs when implementing AND: " + nullAs);
+          }
         }
       };
     case OR:
@@ -574,38 +594,41 @@ public class RexImpTable {
       // b0 == null ? (b1 == null || !b1 ? null : Boolean.TRUE)
       //   : !b0 ? b1
       //   : Boolean.TRUE;
-      return (translator, call, nullAs) -> {
-        assert call.getOperator() == OR
-            : "OR null semantics is supported only for OR operator. Actual operator is "
-            + String.valueOf(call.getOperator());
-        final RexCall call2 = call2(harmonize, translator, call);
-        switch (nullAs) {
-        case NOT_POSSIBLE: // Just foldOr
-        case TRUE:
-          // This should return false iff all arguments are FALSE,
-          // thus we convert nulls to TRUE and foldOr
-        case FALSE:
-          // This should return true iff has TRUE arguments,
-          // thus we convert nulls to FALSE and foldOr
-          final List<Expression> expressions =
-              translator.translateList(call2.getOperands(), nullAs);
-          return Expressions.foldOr(expressions);
-        case NULL:
-        case IS_NULL:
-        case IS_NOT_NULL:
-          final List<Expression> nullAsFalse =
-              translator.translateList(call2.getOperands(), NullAs.FALSE);
-          final List<Expression> nullAsIsNull =
-              translator.translateList(call2.getOperands(), NullAs.IS_NULL);
-          Expression hasTrue = Expressions.foldOr(nullAsFalse);
-          Expression hasNull = Expressions.foldOr(nullAsIsNull);
-          Expression result = nullAs.handle(
-              Expressions.condition(hasTrue, BOXED_TRUE_EXPR,
-                  Expressions.condition(hasNull, NULL_EXPR, BOXED_FALSE_EXPR)));
-          return result;
-        default:
-          throw new IllegalArgumentException(
-              "Unknown nullAs when implementing OR: " + nullAs);
+      return new CallImplementor() {
+        public Expression implement(
+            RexToLixTranslator translator, RexCall call, final NullAs nullAs) {
+          assert call.getOperator() == OR
+              : "OR null semantics is supported only for OR operator. Actual operator is "
+              + String.valueOf(call.getOperator());
+          final RexCall call2 = call2(harmonize, translator, call);
+          switch (nullAs) {
+          case NOT_POSSIBLE: // Just foldOr
+          case TRUE:
+            // This should return false iff all arguments are FALSE,
+            // thus we convert nulls to TRUE and foldOr
+          case FALSE:
+            // This should return true iff has TRUE arguments,
+            // thus we convert nulls to FALSE and foldOr
+            final List<Expression> expressions =
+                translator.translateList(call2.getOperands(), nullAs);
+            return Expressions.foldOr(expressions);
+          case NULL:
+          case IS_NULL:
+          case IS_NOT_NULL:
+            final List<Expression> nullAsFalse =
+                translator.translateList(call2.getOperands(), NullAs.FALSE);
+            final List<Expression> nullAsIsNull =
+                translator.translateList(call2.getOperands(), NullAs.IS_NULL);
+            Expression hasTrue = Expressions.foldOr(nullAsFalse);
+            Expression hasNull = Expressions.foldOr(nullAsIsNull);
+            Expression result = nullAs.handle(
+                Expressions.condition(hasTrue, BOXED_TRUE_EXPR,
+                    Expressions.condition(hasNull, NULL_EXPR, BOXED_FALSE_EXPR)));
+            return result;
+          default:
+            throw new IllegalArgumentException(
+                "Unknown nullAs when implementing OR: " + nullAs);
+          }
         }
       };
     case NOT:
@@ -638,10 +661,13 @@ public class RexImpTable {
         }
       };
     case NONE:
-      return (translator, call, nullAs) -> {
-        final RexCall call2 = call2(false, translator, call);
-        return implementCall(
-            translator, call2, implementor, nullAs);
+      return new CallImplementor() {
+        public Expression implement(
+            RexToLixTranslator translator, RexCall call, NullAs nullAs) {
+          final RexCall call2 = call2(false, translator, call);
+          return implementCall(
+              translator, call2, implementor, nullAs);
+        }
       };
     default:
       throw new AssertionError(nullPolicy);
@@ -1357,9 +1383,9 @@ public class RexImpTable {
 
     @Override public List<Type> getNotNullState(AggContext info) {
       if (afi.isStatic) {
-        return Collections.singletonList(afi.accumulatorType);
+        return Collections.<Type>singletonList(afi.accumulatorType);
       }
-      return Arrays.asList(afi.accumulatorType, afi.declaringClass);
+      return Arrays.<Type>asList(afi.accumulatorType, afi.declaringClass);
     }
 
     @Override protected void implementNotNullReset(AggContext info,
@@ -1516,62 +1542,6 @@ public class RexImpTable {
   static class LastValueImplementor extends FirstLastValueImplementor {
     protected LastValueImplementor() {
       super(SeekType.END);
-    }
-  }
-
-  /** Implementor for the {@code NTH_VALUE}
-   * windowed aggregate function. */
-  static class NthValueImplementor implements WinAggImplementor {
-    public List<Type> getStateType(AggContext info) {
-      return Collections.emptyList();
-    }
-
-    public void implementReset(AggContext info, AggResetContext reset) {
-      // no op
-    }
-
-    public void implementAdd(AggContext info, AggAddContext add) {
-      // no op
-    }
-
-    public boolean needCacheWhenFrameIntact() {
-      return true;
-    }
-
-    public Expression implementResult(AggContext info,
-        AggResultContext result) {
-      WinAggResultContext winResult = (WinAggResultContext) result;
-
-      List<RexNode> rexArgs = winResult.rexArguments();
-
-      ParameterExpression res = Expressions.parameter(0, info.returnType(),
-          result.currentBlock().newName("nth"));
-
-      RexToLixTranslator currentRowTranslator =
-          winResult.rowTranslator(
-              winResult.computeIndex(Expressions.constant(0), SeekType.START));
-
-      Expression dstIndex = winResult.computeIndex(
-          Expressions.subtract(
-              currentRowTranslator.translate(rexArgs.get(1), int.class),
-              Expressions.constant(1)), SeekType.START);
-
-      Expression rowInRange = winResult.rowInPartition(dstIndex);
-
-      BlockBuilder thenBlock = result.nestBlock();
-      Expression nthValue = winResult.rowTranslator(dstIndex)
-          .translate(rexArgs.get(0), res.type);
-      thenBlock.add(Expressions.statement(Expressions.assign(res, nthValue)));
-      result.exitBlock();
-      BlockStatement thenBranch = thenBlock.toBlock();
-
-      Expression defaultValue = getDefaultValue(res.type);
-
-      result.currentBlock().add(Expressions.declare(0, res, null));
-      result.currentBlock().add(
-          Expressions.ifThenElse(rowInRange, thenBranch,
-              Expressions.statement(Expressions.assign(res, defaultValue))));
-      return res;
     }
   }
 

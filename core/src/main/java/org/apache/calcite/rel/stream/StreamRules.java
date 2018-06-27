@@ -45,8 +45,8 @@ import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 
-import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -130,8 +130,7 @@ public class StreamRules {
     public DeltaAggregateTransposeRule(RelBuilderFactory relBuilderFactory) {
       super(
           operand(Delta.class,
-              operandJ(Aggregate.class, null, Aggregate::noIndicator,
-                  any())),
+              operand(Aggregate.class, null, Aggregate.NO_INDICATOR, any())),
           relBuilderFactory, null);
     }
 
@@ -194,7 +193,7 @@ public class StreamRules {
       final Delta delta = call.rel(0);
       Util.discard(delta);
       final Union union = call.rel(1);
-      final List<RelNode> newInputs = new ArrayList<>();
+      final List<RelNode> newInputs = Lists.newArrayList();
       for (RelNode input : union.getInputs()) {
         final LogicalDelta newDelta =
             LogicalDelta.create(input);
@@ -327,7 +326,7 @@ public class StreamRules {
           join.isSemiJoinDone(),
           ImmutableList.copyOf(join.getSystemFieldList()));
 
-      List<RelNode> inputsToUnion = new ArrayList<>();
+      List<RelNode> inputsToUnion = Lists.newArrayList();
       inputsToUnion.add(joinL);
       inputsToUnion.add(joinR);
 

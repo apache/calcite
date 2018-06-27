@@ -48,8 +48,10 @@ import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.LinkedListMultimap;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Ordering;
 
@@ -58,7 +60,6 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
@@ -168,7 +169,7 @@ public class RelMdCollation
   public ImmutableList<RelCollation> collations(RelSubset rel,
       RelMetadataQuery mq) {
     return ImmutableList.copyOf(
-        Objects.requireNonNull(
+        Preconditions.checkNotNull(
             rel.getTraitSet().getTraits(RelCollationTraitDef.INSTANCE)));
   }
 
@@ -301,10 +302,10 @@ public class RelMdCollation
   public static List<RelCollation> values(RelMetadataQuery mq,
       RelDataType rowType, ImmutableList<ImmutableList<RexLiteral>> tuples) {
     Util.discard(mq); // for future use
-    final List<RelCollation> list = new ArrayList<>();
+    final List<RelCollation> list = Lists.newArrayList();
     final int n = rowType.getFieldCount();
     final List<Pair<RelFieldCollation, Ordering<List<RexLiteral>>>> pairs =
-        new ArrayList<>();
+        Lists.newArrayList();
   outer:
     for (int i = 0; i < n; i++) {
       pairs.clear();

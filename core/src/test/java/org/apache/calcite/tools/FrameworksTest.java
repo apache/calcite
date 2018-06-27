@@ -19,6 +19,7 @@ package org.apache.calcite.tools;
 import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.enumerable.EnumerableConvention;
 import org.apache.calcite.adapter.enumerable.EnumerableTableScan;
+import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.QueryProvider;
 import org.apache.calcite.linq4j.Queryable;
@@ -35,6 +36,7 @@ import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.plan.volcano.AbstractConverter;
 import org.apache.calcite.prepare.CalcitePrepareImpl;
 import org.apache.calcite.prepare.Prepare;
+import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelDistributionTraitDef;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.TableModify;
@@ -70,6 +72,7 @@ import org.apache.calcite.test.CalciteAssert;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Util;
 
+import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 
 import org.junit.Test;
@@ -92,51 +95,55 @@ import static org.junit.Assert.fail;
 public class FrameworksTest {
   @Test public void testOptimize() {
     RelNode x =
-        Frameworks.withPlanner((cluster, relOptSchema, rootSchema) -> {
-          final RelDataTypeFactory typeFactory = cluster.getTypeFactory();
-          final Table table = new AbstractTable() {
-            public RelDataType getRowType(RelDataTypeFactory typeFactory) {
-              final RelDataType stringType =
-                  typeFactory.createJavaType(String.class);
-              final RelDataType integerType =
-                  typeFactory.createJavaType(Integer.class);
-              return typeFactory.builder()
-                  .add("s", stringType)
-                  .add("i", integerType)
-                  .build();
-            }
-          };
+        Frameworks.withPlanner(new Frameworks.PlannerAction<RelNode>() {
+          public RelNode apply(RelOptCluster cluster,
+              RelOptSchema relOptSchema,
+              SchemaPlus rootSchema) {
+            final RelDataTypeFactory typeFactory = cluster.getTypeFactory();
+            final Table table = new AbstractTable() {
+              public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+                final RelDataType stringType =
+                    typeFactory.createJavaType(String.class);
+                final RelDataType integerType =
+                    typeFactory.createJavaType(Integer.class);
+                return typeFactory.builder()
+                    .add("s", stringType)
+                    .add("i", integerType)
+                    .build();
+              }
+            };
 
-          // "SELECT * FROM myTable"
-          final RelOptAbstractTable relOptTable = new RelOptAbstractTable(
-              relOptSchema,
-              "myTable",
-              table.getRowType(typeFactory)) {
-          };
-          final EnumerableTableScan tableRel =
-              EnumerableTableScan.create(cluster, relOptTable);
+            // "SELECT * FROM myTable"
+            final RelOptAbstractTable relOptTable = new RelOptAbstractTable(
+                relOptSchema,
+                "myTable",
+                table.getRowType(typeFactory)) {
+            };
+            final EnumerableTableScan tableRel =
+                EnumerableTableScan.create(cluster, relOptTable);
 
-          // "WHERE i > 1"
-          final RexBuilder rexBuilder = cluster.getRexBuilder();
-          final RexNode condition =
-              rexBuilder.makeCall(SqlStdOperatorTable.GREATER_THAN,
-                  rexBuilder.makeFieldAccess(
-                      rexBuilder.makeRangeReference(tableRel), "i", true),
-                  rexBuilder.makeExactLiteral(BigDecimal.ONE));
-          final LogicalFilter filter =
-              LogicalFilter.create(tableRel, condition);
+            // "WHERE i > 1"
+            final RexBuilder rexBuilder = cluster.getRexBuilder();
+            final RexNode condition =
+                rexBuilder.makeCall(SqlStdOperatorTable.GREATER_THAN,
+                    rexBuilder.makeFieldAccess(
+                        rexBuilder.makeRangeReference(tableRel), "i", true),
+                    rexBuilder.makeExactLiteral(BigDecimal.ONE));
+            final LogicalFilter filter =
+                LogicalFilter.create(tableRel, condition);
 
-          // Specify that the result should be in Enumerable convention.
-          final RelNode rootRel = filter;
-          final RelOptPlanner planner = cluster.getPlanner();
-          RelTraitSet desiredTraits =
-              cluster.traitSet().replace(EnumerableConvention.INSTANCE);
-          final RelNode rootRel2 = planner.changeTraits(rootRel,
-              desiredTraits);
-          planner.setRoot(rootRel2);
+            // Specify that the result should be in Enumerable convention.
+            final RelNode rootRel = filter;
+            final RelOptPlanner planner = cluster.getPlanner();
+            RelTraitSet desiredTraits =
+                cluster.traitSet().replace(EnumerableConvention.INSTANCE);
+            final RelNode rootRel2 = planner.changeTraits(rootRel,
+                desiredTraits);
+            planner.setRoot(rootRel2);
 
-          // Now, plan.
-          return planner.findBestExp();
+            // Now, plan.
+            return planner.findBestExp();
+          }
         });
     String s =
         RelOptUtil.dumpPlan("", x, SqlExplainFormat.TEXT,
@@ -264,35 +271,38 @@ public class FrameworksTest {
   @Test public void testJdbcValues() throws Exception {
     CalciteAssert.that()
         .with(CalciteAssert.SchemaSpec.JDBC_SCOTT)
-        .doWithConnection(connection -> {
-          try {
-            final FrameworkConfig config = Frameworks.newConfigBuilder()
-                .defaultSchema(connection.getRootSchema())
-                .build();
-            final RelBuilder builder = RelBuilder.create(config);
-            final RelRunner runner = connection.unwrap(RelRunner.class);
+        .doWithConnection(new Function<CalciteConnection, Void>() {
+          public Void apply(CalciteConnection conn) {
+            try {
+              final FrameworkConfig config = Frameworks.newConfigBuilder()
+                  .defaultSchema(conn.getRootSchema())
+                  .build();
+              final RelBuilder builder = RelBuilder.create(config);
+              final RelRunner runner = conn.unwrap(RelRunner.class);
 
-            final RelNode values =
-                builder.values(new String[]{"a", "b"}, "X", 1, "Y", 2)
-                    .project(builder.field("a"))
-                    .build();
+              final RelNode values =
+                  builder.values(new String[]{"a", "b"}, "X", 1, "Y", 2)
+                      .project(builder.field("a"))
+                      .build();
 
-            // If you run the "values" query before the "scan" query,
-            // everything works fine. JdbcValues is never instantiated in any
-            // of the 3 queries.
-            if (false) {
-              runner.prepare(values).executeQuery();
+              // If you run the "values" query before the "scan" query,
+              // everything works fine. JdbcValues is never instantiated in any
+              // of the 3 queries.
+              if (false) {
+                runner.prepare(values).executeQuery();
+              }
+
+              final RelNode scan = builder.scan("JDBC_SCOTT", "EMP").build();
+              runner.prepare(scan).executeQuery();
+              builder.clear();
+
+              // running this after the scott query causes the exception
+              RelRunner runner2 = conn.unwrap(RelRunner.class);
+              runner2.prepare(values).executeQuery();
+              return null;
+            } catch (Exception e) {
+              throw new RuntimeException(e);
             }
-
-            final RelNode scan = builder.scan("JDBC_SCOTT", "EMP").build();
-            runner.prepare(scan).executeQuery();
-            builder.clear();
-
-            // running this after the scott query causes the exception
-            RelRunner runner2 = connection.unwrap(RelRunner.class);
-            runner2.prepare(values).executeQuery();
-          } catch (Exception e) {
-            throw new RuntimeException(e);
           }
         });
   }
@@ -377,7 +387,7 @@ public class FrameworksTest {
     public Statistic getStatistic() {
       return Statistics.of(15D,
           ImmutableList.of(ImmutableBitSet.of(0)),
-          ImmutableList.of());
+          ImmutableList.<RelCollation>of());
     }
 
     public Enumerable<Object[]> scan(DataContext root, List<RexNode> filters,

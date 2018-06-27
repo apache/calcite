@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.linq4j.tree;
 
+import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 
 import java.lang.reflect.Modifier;
@@ -67,13 +68,16 @@ public class ConstructorDeclaration extends MemberDeclaration {
     writer
         .append(resultType)
         .list("(", ", ", ")",
-            Lists.transform(parameters, parameter -> {
-              final String modifiers1 =
-                  Modifier.toString(parameter.modifier);
-              return modifiers1 + (modifiers1.isEmpty() ? "" : " ")
-                  + Types.className(parameter.getType()) + " "
-                  + parameter.name;
-            }))
+            Lists.transform(parameters,
+                new Function<ParameterExpression, String>() {
+                  public String apply(ParameterExpression parameter) {
+                    final String modifiers =
+                        Modifier.toString(parameter.modifier);
+                    return modifiers + (modifiers.isEmpty() ? "" : " ")
+                        + Types.className(parameter.getType()) + " "
+                        + parameter.name;
+                  }
+                }))
         .append(' ').append(body);
     writer.newlineAndIndent();
   }

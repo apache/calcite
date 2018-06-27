@@ -24,7 +24,7 @@ import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.logical.LogicalTableFunctionScan;
 import org.apache.calcite.tools.RelBuilderFactory;
 
-import java.util.function.Predicate;
+import com.google.common.base.Predicates;
 
 /** Planner rule that converts a
  * {@link org.apache.calcite.rel.logical.LogicalTableFunctionScan}
@@ -42,7 +42,7 @@ public class EnumerableTableFunctionScanRule extends ConverterRule {
    * @param relBuilderFactory Builder for relational expressions
    */
   public EnumerableTableFunctionScanRule(RelBuilderFactory relBuilderFactory) {
-    super(LogicalTableFunctionScan.class, (Predicate<RelNode>) r -> true,
+    super(LogicalTableFunctionScan.class, Predicates.<RelNode>alwaysTrue(),
         Convention.NONE, EnumerableConvention.INSTANCE, relBuilderFactory,
         "EnumerableTableFunctionScanRule");
   }

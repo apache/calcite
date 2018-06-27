@@ -22,12 +22,16 @@ import org.apache.calcite.materialize.Lattice;
 import org.apache.calcite.prepare.CalcitePrepareImpl;
 import org.apache.calcite.rel.metadata.NullSentinel;
 import org.apache.calcite.runtime.FlatLists;
+import org.apache.calcite.runtime.PredicateImpl;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.PartiallyOrderedSet;
 import org.apache.calcite.util.Util;
 
+import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Iterables;
@@ -42,6 +46,7 @@ import java.util.Arrays;
 import java.util.BitSet;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -52,7 +57,6 @@ import java.util.Queue;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
-import java.util.function.Predicate;
 
 import static org.apache.calcite.profile.ProfilerImpl.CompositeCollector.OF;
 
@@ -115,17 +119,20 @@ public class ProfilerImpl implements Profiler {
      * not yet been computed. We may add some of those successors to
      * {@link #spaceQueue}. */
     final Queue<Space> doneQueue =
-        new PriorityQueue<>(100, (s0, s1) -> {
-          // The space with 0 columns is more interesting than
-          // any space with 1 column, and so forth.
-          // For spaces with 2 or more columns we compare "surprise":
-          // how many fewer values did it have than expected?
-          int c = Integer.compare(s0.columns.size(), s1.columns.size());
-          if (c == 0) {
-            c = Double.compare(s0.surprise(), s1.surprise());
-          }
-          return c;
-        });
+        new PriorityQueue<>(100,
+          new Comparator<Space>() {
+            public int compare(Space s0, Space s1) {
+              // The space with 0 columns is more interesting than
+              // any space with 1 column, and so forth.
+              // For spaces with 2 or more columns we compare "surprise":
+              // how many fewer values did it have than expected?
+              int c = Integer.compare(s0.columns.size(), s1.columns.size());
+              if (c == 0) {
+                c = Double.compare(s0.surprise(), s1.surprise());
+              }
+              return c;
+            }
+          });
     final SurpriseQueue surprises;
 
     /** Combinations of columns that we will compute next pass. */
@@ -136,11 +143,20 @@ public class ProfilerImpl implements Profiler {
      * Ensures that we do not calculate the same combination more than once,
      * even though we generate a column set from multiple parents. */
     final Set<ImmutableBitSet> resultSet = new HashSet<>();
-    final PartiallyOrderedSet<Space> results =
-        new PartiallyOrderedSet<>((e1, e2) ->
-            e2.columnOrdinals.contains(e1.columnOrdinals));
+    final PartiallyOrderedSet<Space> results = new PartiallyOrderedSet<>(
+        new PartiallyOrderedSet.Ordering<Space>() {
+          public boolean lessThan(Space e1, Space e2) {
+            return e2.columnOrdinals.contains(e1.columnOrdinals);
+          }
+        });
     private final List<ImmutableBitSet> keyOrdinalLists =
         new ArrayList<>();
+    final Function<Integer, Column> get =
+        new Function<Integer, Column>() {
+          public Column apply(Integer input) {
+            return columns.get(input);
+          }
+        };
     private int rowCount;
 
     /**
@@ -246,7 +262,7 @@ public class ProfilerImpl implements Profiler {
                     || doneSpace.columnOrdinals.cardinality() == 0
                     || !containsKey(
                         doneSpace.columnOrdinals.set(column.ordinal))
-                    && predicate.test(Pair.of(doneSpace, column))) {
+                    && predicate.apply(Pair.of(doneSpace, column))) {
                   final ImmutableBitSet nextOrdinals =
                       doneSpace.columnOrdinals.set(column.ordinal);
                   if (resultSet.add(nextOrdinals)) {
@@ -432,8 +448,7 @@ public class ProfilerImpl implements Profiler {
 
 
     private ImmutableSortedSet<Column> toColumns(Iterable<Integer> ordinals) {
-      return ImmutableSortedSet.copyOf(
-          Iterables.transform(ordinals, columns::get));
+      return ImmutableSortedSet.copyOf(Iterables.transform(ordinals, get));
     }
   }
 
@@ -485,7 +500,7 @@ public class ProfilerImpl implements Profiler {
   /** Builds a {@link org.apache.calcite.profile.ProfilerImpl}. */
   public static class Builder {
     int combinationsPerPass = 100;
-    Predicate<Pair<Space, Column>> predicate = p -> true;
+    Predicate<Pair<Space, Column>> predicate = Predicates.alwaysTrue();
 
     public ProfilerImpl build() {
       return new ProfilerImpl(combinationsPerPass, 200, predicate);
@@ -498,9 +513,11 @@ public class ProfilerImpl implements Profiler {
 
     public Builder withMinimumSurprise(double v) {
       predicate =
-          spaceColumnPair -> {
-            final Space space = spaceColumnPair.left;
-            return false;
+          new PredicateImpl<Pair<Space, Column>>() {
+            public boolean test(Pair<Space, Column> spaceColumnPair) {
+              final Space space = spaceColumnPair.left;
+              return false;
+            }
           };
       return this;
     }
@@ -607,7 +624,7 @@ public class ProfilerImpl implements Profiler {
             new ArrayList<>(
                 Collections.nCopies(columnOrdinals[columnOrdinals.length - 1]
                         + 1,
-                    null));
+                    (Comparable) null));
         for (FlatLists.ComparableList value : this.values) {
           for (int i = 0; i < value.size(); i++) {
             Comparable c = (Comparable) value.get(i);
@@ -742,7 +759,7 @@ public class ProfilerImpl implements Profiler {
     int count = 0;
     final Deque<Double> deque = new ArrayDeque<>();
     final PriorityQueue<Double> priorityQueue =
-        new PriorityQueue<>(11, Ordering.natural());
+        new PriorityQueue<>(11, Ordering.<Double>natural());
 
     SurpriseQueue(int warmUpCount, int size) {
       this.warmUpCount = warmUpCount;

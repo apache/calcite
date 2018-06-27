@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.sql.type;
 
+import com.google.common.base.Preconditions;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
@@ -27,9 +28,9 @@ import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
+import javax.annotation.Nonnull;
 
 /**
  * Rules that determine whether a type is assignable from another type.
@@ -370,8 +371,8 @@ public class SqlTypeAssignmentRules {
   public boolean canCastFrom(
       SqlTypeName to,
       SqlTypeName from) {
-    Objects.requireNonNull(to);
-    Objects.requireNonNull(from);
+    Preconditions.checkNotNull(to);
+    Preconditions.checkNotNull(from);
 
     if (to == SqlTypeName.NULL) {
       return false;
@@ -399,8 +400,13 @@ public class SqlTypeAssignmentRules {
     Builder() {
       this.map = new HashMap<>();
       this.sets =
-          CacheBuilder.newBuilder()
-              .build(CacheLoader.from(set -> Sets.immutableEnumSet(set)));
+          CacheBuilder.newBuilder().build(
+              new CacheLoader<Set<SqlTypeName>, ImmutableSet<SqlTypeName>>() {
+                public ImmutableSet<SqlTypeName> load(
+                    @Nonnull Set<SqlTypeName> key) {
+                  return Sets.immutableEnumSet(key);
+                }
+              });
     }
 
     /** Creates a Builder as a copy of another Builder. */

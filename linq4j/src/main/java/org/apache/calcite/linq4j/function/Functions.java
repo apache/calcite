@@ -37,7 +37,7 @@ public abstract class Functions {
   private Functions() {}
 
   public static final Map<Class<? extends Function>, Class> FUNCTION_RESULT_TYPES =
-      Collections.unmodifiableMap(
+      Collections.<Class<? extends Function>, Class>unmodifiableMap(
           map(Function0.class, Object.class,
               Function1.class, Object.class,
               Function2.class, Object.class,
@@ -74,10 +74,19 @@ public abstract class Functions {
   private static final EqualityComparer<Object[]> ARRAY_COMPARER =
       new ArrayEqualityComparer();
 
-  private static final Function1 CONSTANT_NULL_FUNCTION1 = s -> null;
+  private static final Function1 CONSTANT_NULL_FUNCTION1 =
+      new Function1() {
+        public Object apply(Object s) {
+          return null;
+        }
+      };
 
   private static final Function1 TO_STRING_FUNCTION1 =
-      (Function1<Object, String>) Object::toString;
+      new Function1<Object, String>() {
+        public String apply(Object a0) {
+          return a0.toString();
+        }
+      };
 
   @SuppressWarnings("unchecked")
   private static <K, V> Map<K, V> map(K k, V v, Object... rest) {
@@ -99,7 +108,11 @@ public abstract class Functions {
 
   /** Returns a 1-parameter function that always returns the same value. */
   public static <T, R> Function1<T, R> constant(final R r) {
-    return s -> r;
+    return new Function1<T, R>() {
+      public R apply(T s) {
+        return r;
+      }
+    };
   }
 
   /** Returns a 1-parameter function that always returns null. */
@@ -181,12 +194,20 @@ public abstract class Functions {
    * @return Predicate that tests for desired type
    */
   public static <T, T2> Predicate1<T> ofTypePredicate(final Class<T2> clazz) {
-    return v1 -> v1 == null || clazz.isInstance(v1);
+    return new Predicate1<T>() {
+      public boolean apply(T v1) {
+        return v1 == null || clazz.isInstance(v1);
+      }
+    };
   }
 
   public static <T1, T2> Predicate2<T1, T2> toPredicate2(
       final Predicate1<T1> p1) {
-    return (v1, v2) -> p1.apply(v1);
+    return new Predicate2<T1, T2>() {
+      public boolean apply(T1 v1, T2 v2) {
+        return p1.apply(v1);
+      }
+    };
   }
 
   /**
@@ -194,7 +215,11 @@ public abstract class Functions {
    */
   public static <T1, T2> Predicate2<T1, T2> toPredicate(
       final Function2<T1, T2, Boolean> function) {
-    return function::apply;
+    return new Predicate2<T1, T2>() {
+      public boolean apply(T1 v1, T2 v2) {
+        return function.apply(v1, v2);
+      }
+    };
   }
 
   /**
@@ -202,7 +227,11 @@ public abstract class Functions {
    */
   private static <T> Predicate1<T> toPredicate(
       final Function1<T, Boolean> function) {
-    return function::apply;
+    return new Predicate1<T>() {
+      public boolean apply(T v1) {
+        return function.apply(v1);
+      }
+    };
   }
 
   /**
@@ -231,7 +260,11 @@ public abstract class Functions {
    */
   public static <T1> Function1<T1, Integer> adapt(
       final IntegerFunction1<T1> f) {
-    return f::apply;
+    return new Function1<T1, Integer>() {
+      public Integer apply(T1 a0) {
+        return f.apply(a0);
+      }
+    };
   }
 
   /**
@@ -239,7 +272,11 @@ public abstract class Functions {
    * an {@link Function1} returning a {@link Double}.
    */
   public static <T1> Function1<T1, Double> adapt(final DoubleFunction1<T1> f) {
-    return f::apply;
+    return new Function1<T1, Double>() {
+      public Double apply(T1 a0) {
+        return f.apply(a0);
+      }
+    };
   }
 
   /**
@@ -247,7 +284,11 @@ public abstract class Functions {
    * an {@link Function1} returning a {@link Long}.
    */
   public static <T1> Function1<T1, Long> adapt(final LongFunction1<T1> f) {
-    return f::apply;
+    return new Function1<T1, Long>() {
+      public Long apply(T1 a0) {
+        return f.apply(a0);
+      }
+    };
   }
 
   /**
@@ -255,7 +296,11 @@ public abstract class Functions {
    * an {@link Function1} returning a {@link Float}.
    */
   public static <T1> Function1<T1, Float> adapt(final FloatFunction1<T1> f) {
-    return f::apply;
+    return new Function1<T1, Float>() {
+      public Float apply(T1 a0) {
+        return f.apply(a0);
+      }
+    };
   }
 
   /**

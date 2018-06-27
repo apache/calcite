@@ -55,7 +55,7 @@ public class ElasticsearchSchema extends AbstractSchema {
    * @param mapper mapper for JSON (de)serialization
    * @param index name of ES index
    */
-  ElasticsearchSchema(RestClient client, ObjectMapper mapper, String index) {
+  public ElasticsearchSchema(RestClient client, ObjectMapper mapper, String index) {
     super();
     this.client = Objects.requireNonNull(client, "client");
     this.mapper = Objects.requireNonNull(mapper, "mapper");
@@ -82,7 +82,7 @@ public class ElasticsearchSchema extends AbstractSchema {
    * @throws IllegalStateException if reply is not understood
    */
   private Set<String> listTypes() throws IOException  {
-    final String endpoint = index + "/_mapping";
+    final String endpoint = "/" + index + "/_mapping";
     final Response response = client.performRequest("GET", endpoint);
     try (InputStream is = response.getEntity().getContent()) {
       JsonNode root = mapper.readTree(is);

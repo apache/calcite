@@ -95,7 +95,7 @@ public abstract class TableFunctionScan extends AbstractRelNode {
         input.getCluster(), input.getTraitSet(), input.getInputs(),
         input.getExpression("invocation"), (Type) input.get("elementType"),
         input.getRowType("rowType"),
-        ImmutableSet.of());
+        ImmutableSet.<RelColumnMapping>of());
   }
 
   //~ Methods ----------------------------------------------------------------
