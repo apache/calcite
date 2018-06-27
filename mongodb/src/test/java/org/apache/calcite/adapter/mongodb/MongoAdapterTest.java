@@ -54,8 +54,9 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.text.SimpleDateFormat;
-import java.util.Date;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -95,9 +96,10 @@ public class MongoAdapterTest implements SchemaFactory {
     if (datatypes.count() > 0) {
       datatypes.deleteMany(new BsonDocument());
     }
+
     BsonDocument doc = new BsonDocument();
-    Date date = new SimpleDateFormat("yyyy-MM-dd", Locale.ROOT).parse("2012-09-05");
-    doc.put("date", new BsonDateTime(date.getTime()));
+    Instant instant = LocalDate.of(2012, 9, 5).atStartOfDay(ZoneOffset.UTC).toInstant();
+    doc.put("date", new BsonDateTime(instant.toEpochMilli()));
     doc.put("value", new BsonInt32(1231));
     doc.put("ownerId", new BsonString("531e7789e4b0853ddb861313"));
     datatypes.insertOne(doc);
@@ -697,21 +699,6 @@ public class MongoAdapterTest implements SchemaFactory {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-286">[CALCITE-286]
    * Error casting MongoDB date</a>. */
   @Test public void testDate() {
-    // Assumes that you have created the following collection before running
-    // this test:
-    //
-    // $ mongo
-    // > use test
-    // switched to db test
-    // > db.createCollection("datatypes")
-    // { "ok" : 1 }
-    // > db.datatypes.insert( {
-    //     "_id" : ObjectId("53655599e4b0c980df0a8c27"),
-    //     "_class" : "com.ericblue.Test",
-    //     "date" : ISODate("2012-09-05T07:00:00Z"),
-    //     "value" : 1231,
-    //     "ownerId" : "531e7789e4b0853ddb861313"
-    //   } )
     assertModel("{\n"
         + "  version: '1.0',\n"
         + "  defaultSchema: 'test',\n"
