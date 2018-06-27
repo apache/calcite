@@ -26,6 +26,7 @@ import java.sql.Types;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 /** Implementation of JDBC {@link Array}. */
 public class ArrayImpl implements Array {
@@ -218,6 +219,17 @@ public class ArrayImpl implements Array {
 
   @Override public void free() throws SQLException {
     // nothing to do
+  }
+
+  public static boolean equalContents(Array left, Array right) throws SQLException {
+    ResultSet leftResultSet = left.getResultSet();
+    ResultSet rightResultSet = right.getResultSet();
+    while (leftResultSet.next() && rightResultSet.next()) {
+      if (!Objects.equals(leftResultSet.getObject(1), rightResultSet.getObject(1))) {
+        return false;
+      }
+    }
+    return !leftResultSet.next() && !rightResultSet.next();
   }
 
   /** Factory that can create a ResultSet or Array based on a stream of values. */

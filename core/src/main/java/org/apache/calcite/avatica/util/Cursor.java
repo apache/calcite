@@ -30,6 +30,7 @@ import java.sql.NClob;
 import java.sql.Ref;
 import java.sql.SQLException;
 import java.sql.SQLXML;
+import java.sql.Struct;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.Calendar;
@@ -121,6 +122,8 @@ public interface Cursor extends AutoCloseable {
     Clob getClob() throws SQLException;
 
     Array getArray() throws SQLException;
+
+    Struct getStruct() throws SQLException;
 
     Date getDate(Calendar calendar) throws SQLException;
 

@@ -17,7 +17,11 @@
 package org.apache.calcite.avatica;
 
 import org.apache.calcite.avatica.remote.TypedValue;
+import org.apache.calcite.avatica.util.ArrayFactoryImpl;
+import org.apache.calcite.avatica.util.ArrayImpl;
 import org.apache.calcite.avatica.util.DateTimeUtils;
+import org.apache.calcite.avatica.util.StructImpl;
+import org.apache.calcite.avatica.util.Unsafe;
 
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -42,6 +46,7 @@ import java.sql.ResultSet;
 import java.sql.SQLDataException;
 import java.sql.SQLException;
 import java.sql.SQLXML;
+import java.sql.Struct;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.sql.Types;
@@ -56,6 +61,7 @@ import java.util.Properties;
 import static org.hamcrest.CoreMatchers.isA;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 /**
@@ -147,13 +153,34 @@ public class AvaticaResultSetConversionsTest {
           columnMetaData("timestamp", 10,
               ColumnMetaData.scalar(Types.TIMESTAMP, "TIMESTAMP",
                   ColumnMetaData.Rep.JAVA_SQL_TIMESTAMP),
+              DatabaseMetaData.columnNoNulls),
+          columnMetaData("array", 11,
+              ColumnMetaData.array(
+                  ColumnMetaData.scalar(Types.INTEGER, "INTEGER",
+                      ColumnMetaData.Rep.PRIMITIVE_INT),
+                  "ARRAY",
+                  ColumnMetaData.Rep.ARRAY),
+              DatabaseMetaData.columnNoNulls),
+          columnMetaData("struct", 12,
+              ColumnMetaData.struct(
+                  Arrays.asList(
+                      columnMetaData("int", 0,
+                          ColumnMetaData.scalar(Types.INTEGER, "INTEGER",
+                              ColumnMetaData.Rep.PRIMITIVE_INT),
+                          DatabaseMetaData.columnNoNulls),
+                      columnMetaData("bool", 1,
+                          ColumnMetaData.scalar(Types.BOOLEAN, "BOOLEAN",
+                              ColumnMetaData.Rep.PRIMITIVE_BOOLEAN),
+                          DatabaseMetaData.columnNoNulls))),
               DatabaseMetaData.columnNoNulls));
 
       List<Object> row = Collections.<Object>singletonList(
           new Object[] {
               true, (byte) 1, (short) 2, 3, 4L, 5.0f, 6.0d, "testvalue",
               new Date(1476130718123L), new Time(1476130718123L),
-              new Timestamp(1476130718123L)
+              new Timestamp(1476130718123L),
+              Arrays.asList(1, 2, 3),
+              new StructImpl(Arrays.asList(42, false))
           });
 
       CursorFactory factory = CursorFactory.deduce(columns, null);
@@ -415,6 +442,15 @@ public class AvaticaResultSetConversionsTest {
       }
     }
 
+    public void testGetStruct(ResultSet resultSet) throws SQLException {
+      try {
+        g.getStruct(resultSet);
+        fail("Was expecting to throw SQLDataException");
+      } catch (Exception e) {
+        assertThat(e, isA((Class) SQLDataException.class)); // success
+      }
+    }
+
     public void getURL(ResultSet resultSet) throws SQLException {
       try {
         g.getURL(resultSet);
@@ -503,6 +539,38 @@ public class AvaticaResultSetConversionsTest {
 
     @Override public void testGetDouble(ResultSet resultSet) throws SQLException {
       assertEquals(1.0d, g.getDouble(resultSet), 0);
+    }
+  }
+
+  /**
+   * Accessor test helper for array column.
+   */
+  private static final class ArrayAccessorTestHelper extends AccessorTestHelper {
+    private ArrayAccessorTestHelper(Getter g) {
+      super(g);
+    }
+
+    @Override public void testGetArray(ResultSet resultSet) throws SQLException {
+      ColumnMetaData.ScalarType intType =
+          ColumnMetaData.scalar(Types.INTEGER, "INTEGER", ColumnMetaData.Rep.INTEGER);
+      Array expectedArray =
+          new ArrayFactoryImpl(Unsafe.localCalendar().getTimeZone()).createArray(
+              intType, Arrays.asList(1, 2, 3));
+      assertTrue(ArrayImpl.equalContents(expectedArray, g.getArray(resultSet)));
+    }
+  }
+
+  /**
+   * Accessor test helper for row column.
+   */
+  private static final class StructAccessorTestHelper extends AccessorTestHelper {
+    private StructAccessorTestHelper(Getter g) {
+      super(g);
+    }
+
+    @Override public void testGetStruct(ResultSet resultSet) throws SQLException {
+      Struct expectedStruct = new StructImpl(Arrays.asList(42, false));
+      assertEquals(expectedStruct, g.getStruct(resultSet));
     }
   }
 
@@ -937,7 +1005,7 @@ public class AvaticaResultSetConversionsTest {
     }
   }
 
-  @Parameters
+  @Parameters(name = "{index}: {0}")
   public static Collection<AccessorTestHelper> data() {
     return Arrays.asList(
         new BooleanAccessorTestHelper(new OrdinalGetter(1)),
@@ -961,7 +1029,11 @@ public class AvaticaResultSetConversionsTest {
         new TimeAccessorTestHelper(new OrdinalGetter(10)),
         new TimeAccessorTestHelper(new LabelGetter("time")),
         new TimestampAccessorTestHelper(new OrdinalGetter(11)),
-        new TimestampAccessorTestHelper(new LabelGetter("timestamp")));
+        new TimestampAccessorTestHelper(new LabelGetter("timestamp")),
+        new ArrayAccessorTestHelper(new OrdinalGetter(12)),
+        new ArrayAccessorTestHelper(new LabelGetter("array")),
+        new StructAccessorTestHelper(new OrdinalGetter(13)),
+        new StructAccessorTestHelper(new LabelGetter("struct")));
   }
 
   private final AccessorTestHelper testHelper;
@@ -1127,6 +1199,8 @@ public class AvaticaResultSetConversionsTest {
     byte[] getBytes(ResultSet r) throws SQLException;
     InputStream getAsciiStream(ResultSet r) throws SQLException;
     InputStream getBinaryStream(ResultSet r) throws SQLException;
+    Array getArray(ResultSet r) throws SQLException;
+    Struct getStruct(ResultSet r) throws SQLException;
     Object getCharacterStream(ResultSet r) throws SQLException;
     Object getNCharacterStream(ResultSet r) throws SQLException;
     Object getObject(ResultSet r) throws SQLException;
@@ -1137,7 +1211,6 @@ public class AvaticaResultSetConversionsTest {
     Object getNClob(ResultSet r) throws SQLException;
     Object getURL(ResultSet r) throws SQLException;
     Object getSQLXML(ResultSet r) throws SQLException;
-    Object getArray(ResultSet r) throws SQLException;
   }
 
   /** Retrieves the value of a column in a result set, addressing by column
@@ -1266,8 +1339,12 @@ public class AvaticaResultSetConversionsTest {
       return r.getSQLXML(ordinal);
     }
 
-    public Object getArray(ResultSet r) throws SQLException {
+    public Array getArray(ResultSet r) throws SQLException {
       return r.getArray(ordinal);
+    }
+
+    public Struct getStruct(ResultSet r) throws SQLException {
+      return (Struct) r.getObject(ordinal);
     }
   }
 
@@ -1399,6 +1476,10 @@ public class AvaticaResultSetConversionsTest {
 
     public Array getArray(ResultSet r) throws SQLException {
       return r.getArray(label);
+    }
+
+    public Struct getStruct(ResultSet r) throws SQLException {
+      return (Struct) r.getObject(label);
     }
   }
 }

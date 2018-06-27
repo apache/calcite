@@ -298,8 +298,9 @@ public class AvaticaSite {
     case Types.NCLOB:
     case Types.REF:
     case Types.SQLXML:
-    case Types.STRUCT:
       throw notImplemented();
+    case Types.STRUCT:
+      return accessor.getStruct();
     case Types.ARRAY:
       return accessor.getArray();
     case Types.BIGINT:
