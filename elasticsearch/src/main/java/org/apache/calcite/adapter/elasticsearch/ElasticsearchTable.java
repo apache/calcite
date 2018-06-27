@@ -48,18 +48,18 @@ import java.util.Objects;
 public class ElasticsearchTable extends AbstractElasticsearchTable {
   private final RestClient restClient;
   private final ElasticsearchVersion version;
-  private final ObjectMapper mapper;
+
 
   /**
    * Creates an ElasticsearchTable.
    * @param client low-level ES rest client
+   * @param mapper Jackson API
    * @param indexName elastic search index
    * @param typeName elastic searh index type
    */
-  ElasticsearchTable(RestClient client, String indexName, String typeName) {
-    super(indexName, typeName);
+  ElasticsearchTable(RestClient client, ObjectMapper mapper, String indexName, String typeName) {
+    super(indexName, typeName, Objects.requireNonNull(mapper, "mapper"));
     this.restClient = Objects.requireNonNull(client, "client");
-    this.mapper = new ObjectMapper();
     try {
       this.version = detectVersion(client, mapper);
     } catch (IOException e) {
@@ -89,7 +89,9 @@ public class ElasticsearchTable extends AbstractElasticsearchTable {
 
   @Override protected String scriptedFieldPrefix() {
     // ES2 vs ES5 scripted field difference
-    return version == ElasticsearchVersion.ES2 ? "_source" : "params._source";
+    return version == ElasticsearchVersion.ES2
+        ? ElasticsearchConstants.SOURCE_GROOVY
+        : ElasticsearchConstants.SOURCE_PAINLESS;
   }
 
   @Override protected Enumerable<Object> find(String index, List<String> ops,
@@ -117,7 +119,6 @@ public class ElasticsearchTable extends AbstractElasticsearchTable {
     String uri = String.format(Locale.ROOT, "/%s/%s/_search", indexName, typeName);
     HttpEntity entity = new StringEntity(query, ContentType.APPLICATION_JSON);
     Response response = restClient.performRequest("POST", uri, Collections.emptyMap(), entity);
-
     if (response.getStatusLine().getStatusCode() != HttpStatus.SC_OK) {
       final String error = EntityUtils.toString(response.getEntity());
       final String message = String.format(Locale.ROOT,

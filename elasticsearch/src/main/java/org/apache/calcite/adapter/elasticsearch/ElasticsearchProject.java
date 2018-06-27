@@ -28,10 +28,9 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.util.Pair;
 
-import com.google.common.collect.Lists;
-
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Implementation of {@link org.apache.calcite.rel.core.Project}
@@ -86,7 +85,8 @@ public class ElasticsearchProject extends Project implements ElasticsearchRel {
 
     StringBuilder query = new StringBuilder();
     if (scriptFields.isEmpty()) {
-      List<String> newList = Lists.transform(fields, ElasticsearchRules::quote);
+      List<String> newList = fields.stream().map(ElasticsearchRules::quote)
+          .collect(Collectors.toList());
 
       final String findString = String.join(", ", newList);
       query.append("\"_source\" : [").append(findString).append("]");
@@ -94,13 +94,11 @@ public class ElasticsearchProject extends Project implements ElasticsearchRel {
       // if scripted fields are present, ES ignores _source attribute
       for (String field: fields) {
         scriptFields.add(ElasticsearchRules.quote(field) + ":{\"script\": "
-            // _source (ES2) vs params._source (ES5)
-            + "\"" + implementor.elasticsearchTable.scriptedFieldPrefix() + "."
-            + field + "\"}");
+                // _source (ES2) vs params._source (ES5)
+                + "\"" + implementor.elasticsearchTable.scriptedFieldPrefix() + "."
+                + field + "\"}");
       }
-      query.append("\"script_fields\": {")
-          .append(String.join(", ", scriptFields))
-          .append("}");
+      query.append("\"script_fields\": {" + String.join(", ", scriptFields) + "}");
     }
 
     for (String opfield : implementor.list) {

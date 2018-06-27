@@ -98,6 +98,10 @@ class ElasticsearchRules {
     return "\"" + s + "\"";
   }
 
+  static String stripQuotes(String s) {
+    return s.startsWith("\"") && s.endsWith("\"") ? s.substring(1, s.length() - 1) : s;
+  }
+
   /**
    * Translator from {@link RexNode} to strings in Elasticsearch's expression
    * language.
@@ -144,10 +148,6 @@ class ElasticsearchRules {
       }
       throw new IllegalArgumentException("Translation of " + call.toString()
         + "is not supported by ElasticsearchProject");
-    }
-
-    private String stripQuotes(String s) {
-      return s.startsWith("'") && s.endsWith("'") ? s.substring(1, s.length() - 1) : s;
     }
 
     List<String> visitList(List<RexNode> list) {
