@@ -56,16 +56,19 @@ public class DruidSqlCastConverter implements DruidSqlOperatorConverter {
     final TimeZone timeZone = TimeZone.getTimeZone(timeZoneConf == null ? "UTC" : timeZoneConf);
     final boolean nullEqualToEmpty = druidQuery.getConnectionConfig().nullEqualToEmpty();
 
-    if (SqlTypeName.CHAR_TYPES.contains(fromType) && SqlTypeName.DATETIME_TYPES.contains(toType)) {
+    if (SqlTypeName.CHAR_TYPES.contains(fromType)
+        && SqlTypeName.DATETIME_TYPES.contains(toType)) {
       //case chars to dates
-      return castCharToDateTime(timeZone, operandExpression, toType,
-          nullEqualToEmpty ? "" : null);
-    } else if (SqlTypeName.DATETIME_TYPES.contains(fromType) && SqlTypeName.CHAR_TYPES.contains
-        (toType)) {
+      return castCharToDateTime(toType == SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE
+              ? timeZone : DateTimeUtils.UTC_ZONE,
+          operandExpression, toType, nullEqualToEmpty ? "" : null);
+    } else if (SqlTypeName.DATETIME_TYPES.contains(fromType)
+        && SqlTypeName.CHAR_TYPES.contains(toType)) {
       //case dates to chars
-      return castDateTimeToChar(timeZone, operandExpression, fromType);
-    } else if (toType == SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE
-        && SqlTypeName.DATETIME_TYPES.contains(fromType)) {
+      return castDateTimeToChar(fromType == SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE
+          ? timeZone : DateTimeUtils.UTC_ZONE, operandExpression, fromType);
+    } else if (SqlTypeName.DATETIME_TYPES.contains(fromType)
+        && toType == SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE) {
       if (timeZone.equals(DateTimeUtils.UTC_ZONE)) {
         // bail out, internal representation is the same,
         // we do not need to do anything

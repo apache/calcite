@@ -3969,6 +3969,17 @@ public class DruidAdapterIT2 {
                 "QUARTER"
             ));
   }
+
+  @Test
+  public void testCastTimestamp() {
+    final String sql = "Select cast(cast(\"timestamp\" as timestamp) as varchar) as t"
+        + " from \"foodmart\" order by t limit 1";
+
+    sql(sql, FOODMART)
+        .returnsOrdered("T=1997-01-01 00:00:00")
+        .queryContains(
+            druidChecker("UTC"));
+  }
 }
 
 // End DruidAdapterIT2.java
