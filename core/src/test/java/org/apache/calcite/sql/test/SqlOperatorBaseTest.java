@@ -5700,6 +5700,16 @@ public abstract class SqlOperatorBaseTest {
           "BIGINT NOT NULL");
 
       tester.checkScalar(
+          "extract(millisecond from interval '4-2' year to month)",
+          "0",
+          "BIGINT NOT NULL");
+
+      tester.checkScalar(
+          "extract(microsecond from interval '4-2' year to month)",
+          "0",
+          "BIGINT NOT NULL");
+
+      tester.checkScalar(
           "extract(minute from interval '4-2' year to month)",
           "0",
           "BIGINT NOT NULL");
@@ -5715,13 +5725,15 @@ public abstract class SqlOperatorBaseTest {
           "BIGINT NOT NULL");
     }
 
-    // Postgres doesn't support DOW, DOY and WEEK on INTERVAL YEAR MONTH type.
-    // SQL standard doesn't have extract units for DOW, DOY and WEEK.
+    // Postgres doesn't support DOW, ISODOW, DOY and WEEK on INTERVAL YEAR MONTH type.
+    // SQL standard doesn't have extract units for DOW, ISODOW, DOY and WEEK.
     tester.checkFails("^extract(doy from interval '4-2' year to month)^",
         INVALID_EXTRACT_UNIT_VALIDATION_ERROR, false);
     tester.checkFails("^extract(dow from interval '4-2' year to month)^",
         INVALID_EXTRACT_UNIT_VALIDATION_ERROR, false);
     tester.checkFails("^extract(week from interval '4-2' year to month)^",
+        INVALID_EXTRACT_UNIT_VALIDATION_ERROR, false);
+    tester.checkFails("^extract(isodow from interval '4-2' year to month)^",
         INVALID_EXTRACT_UNIT_VALIDATION_ERROR, false);
 
     tester.checkScalar(
@@ -5772,6 +5784,16 @@ public abstract class SqlOperatorBaseTest {
     }
 
     tester.checkScalar(
+        "extract(millisecond from interval '2 3:4:5.678' day to second)",
+        "5678",
+        "BIGINT NOT NULL");
+
+    tester.checkScalar(
+        "extract(microsecond from interval '2 3:4:5.678' day to second)",
+        "5678000",
+        "BIGINT NOT NULL");
+
+    tester.checkScalar(
         "extract(second from interval '2 3:4:5.678' day to second)",
         "5",
         "BIGINT NOT NULL");
@@ -5791,13 +5813,15 @@ public abstract class SqlOperatorBaseTest {
         "2",
         "BIGINT NOT NULL");
 
-    // Postgres doesn't support DOW, DOY and WEEK on INTERVAL DAY TIME type.
-    // SQL standard doesn't have extract units for DOW, DOY and WEEK.
+    // Postgres doesn't support DOW, ISODOW, DOY and WEEK on INTERVAL DAY TIME type.
+    // SQL standard doesn't have extract units for DOW, ISODOW, DOY and WEEK.
     tester.checkFails("extract(doy from interval '2 3:4:5.678' day to second)",
         INVALID_EXTRACT_UNIT_CONVERTLET_ERROR, true);
     tester.checkFails("extract(dow from interval '2 3:4:5.678' day to second)",
         INVALID_EXTRACT_UNIT_CONVERTLET_ERROR, true);
     tester.checkFails("extract(week from interval '2 3:4:5.678' day to second)",
+        INVALID_EXTRACT_UNIT_CONVERTLET_ERROR, true);
+    tester.checkFails("extract(isodow from interval '2 3:4:5.678' day to second)",
         INVALID_EXTRACT_UNIT_CONVERTLET_ERROR, true);
 
     tester.checkFails(
@@ -5818,6 +5842,13 @@ public abstract class SqlOperatorBaseTest {
         "^extract(year from interval '2 3:4:5.678' day to second)^",
         "(?s)Cannot apply 'EXTRACT' to arguments of type 'EXTRACT\\(<INTERVAL "
             + "YEAR> FROM <INTERVAL DAY TO SECOND>\\)'\\. Supported "
+            + "form\\(s\\):.*",
+        false);
+
+    tester.checkFails(
+        "^extract(isoyear from interval '2 3:4:5.678' day to second)^",
+        "(?s)Cannot apply 'EXTRACT' to arguments of type 'EXTRACT\\(<INTERVAL "
+            + "ISOYEAR> FROM <INTERVAL DAY TO SECOND>\\)'\\. Supported "
             + "form\\(s\\):.*",
         false);
 
@@ -5887,6 +5918,11 @@ public abstract class SqlOperatorBaseTest {
         "BIGINT NOT NULL");
 
     tester.checkScalar(
+        "extract(isoyear from date '2008-2-23')",
+        "2008",
+        "BIGINT NOT NULL");
+
+    tester.checkScalar(
         "extract(doy from date '2008-2-23')",
         "54",
         "BIGINT NOT NULL");
@@ -5899,6 +5935,16 @@ public abstract class SqlOperatorBaseTest {
     tester.checkScalar(
         "extract(dow from date '2008-2-24')",
         "1",
+        "BIGINT NOT NULL");
+
+    tester.checkScalar(
+        "extract(isodow from date '2008-2-23')",
+        "6",
+        "BIGINT NOT NULL");
+
+    tester.checkScalar(
+        "extract(isodow from date '2008-2-24')",
+        "7",
         "BIGINT NOT NULL");
 
     tester.checkScalar(
@@ -5960,6 +6006,16 @@ public abstract class SqlOperatorBaseTest {
         "BIGINT NOT NULL");
 
     tester.checkScalar(
+        "extract(millisecond from timestamp '2008-2-23 12:34:56')",
+        "56000",
+        "BIGINT NOT NULL");
+
+    tester.checkScalar(
+        "extract(microsecond from timestamp '2008-2-23 12:34:56')",
+        "56000000",
+        "BIGINT NOT NULL");
+
+    tester.checkScalar(
         "extract(minute from timestamp '2008-2-23 12:34:56')",
         "34",
         "BIGINT NOT NULL");
@@ -5986,6 +6042,11 @@ public abstract class SqlOperatorBaseTest {
 
     tester.checkScalar(
         "extract(year from timestamp '2008-2-23 12:34:56')",
+        "2008",
+        "BIGINT NOT NULL");
+
+    tester.checkScalar(
+        "extract(isoyear from timestamp '2008-2-23 12:34:56')",
         "2008",
         "BIGINT NOT NULL");
 
@@ -6066,6 +6127,17 @@ public abstract class SqlOperatorBaseTest {
         "extract(second from interval '2 3:4:5.678' day to second)",
         "5",
         "BIGINT NOT NULL");
+
+    tester.checkScalar(
+        "extract(millisecond from interval '2 3:4:5.678' day to second)",
+        "5678",
+        "BIGINT NOT NULL");
+
+    tester.checkScalar(
+        "extract(microsecond from interval '2 3:4:5.678' day to second)",
+        "5678000",
+        "BIGINT NOT NULL");
+
     tester.checkNull(
         "extract(month from cast(null as interval year))");
   }
@@ -6078,6 +6150,11 @@ public abstract class SqlOperatorBaseTest {
 
     tester.checkScalar(
         "extract(year from date '2008-2-23')",
+        "2008",
+        "BIGINT NOT NULL");
+
+    tester.checkScalar(
+        "extract(isoyear from date '2008-2-23')",
         "2008",
         "BIGINT NOT NULL");
 
@@ -6109,6 +6186,12 @@ public abstract class SqlOperatorBaseTest {
 
     tester.checkNull(
         "extract(second from cast(null as time))");
+
+    tester.checkNull(
+        "extract(millisecond from cast(null as time))");
+
+    tester.checkNull(
+        "extract(microsecond from cast(null as time))");
   }
 
   @Test public void testArrayValueConstructor() {

@@ -4080,12 +4080,16 @@ SqlIntervalQualifier IntervalQualifier() :
 TimeUnit TimeUnit() :
 {}
 {
-    <SECOND> { return TimeUnit.SECOND; }
+    <MICROSECOND> { return TimeUnit.MICROSECOND; }
+|   <MILLISECOND> { return TimeUnit.MILLISECOND; }
+|   <SECOND> { return TimeUnit.SECOND; }
 |   <MINUTE> { return TimeUnit.MINUTE; }
 |   <HOUR> { return TimeUnit.HOUR; }
 |   <DAY> { return TimeUnit.DAY; }
 |   <DOW> { return TimeUnit.DOW; }
 |   <DOY> { return TimeUnit.DOY; }
+|   <ISODOW> { return TimeUnit.ISODOW; }
+|   <ISOYEAR> { return TimeUnit.ISOYEAR; }
 |   <WEEK> { return TimeUnit.WEEK; }
 |   <MONTH> { return TimeUnit.MONTH; }
 |   <QUARTER> { return TimeUnit.QUARTER; }
@@ -5704,6 +5708,8 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < INTO: "INTO" >
 |   < INVOKER: "INVOKER" >
 |   < IS: "IS" >
+|   < ISODOW: "ISODOW" >
+|   < ISOYEAR: "ISOYEAR" >
 |   < ISOLATION: "ISOLATION" >
 |   < JAVA: "JAVA" >
 |   < JOIN: "JOIN" >
@@ -5751,6 +5757,7 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < MESSAGE_TEXT: "MESSAGE_TEXT" >
 |   < METHOD: "METHOD" >
 |   < MICROSECOND: "MICROSECOND" >
+|   < MILLISECOND: "MILLISECOND" >
 |   < MILLENNIUM: "MILLENNIUM" >
 |   < MIN: "MIN" >
 |   < MINUTE: "MINUTE" >
@@ -6221,6 +6228,8 @@ String CommonNonReservedKeyWord() :
     |   <INSTANCE>
     |   <INSTANTIABLE>
     |   <INVOKER>
+    |   <ISODOW>
+    |   <ISOYEAR>
     |   <ISOLATION>
     |   <JAVA>
     |   <JSON>
@@ -6242,6 +6251,7 @@ String CommonNonReservedKeyWord() :
     |   <MESSAGE_LENGTH>
     |   <MESSAGE_OCTET_LENGTH>
     |   <MESSAGE_TEXT>
+    |   <MILLISECOND>
     |   <MILLENNIUM>
     |   <MINVALUE>
     |   <MORE_>
