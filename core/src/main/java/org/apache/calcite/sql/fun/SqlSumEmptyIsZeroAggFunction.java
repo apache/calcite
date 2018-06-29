@@ -45,7 +45,7 @@ public class SqlSumEmptyIsZeroAggFunction extends SqlAggFunction {
         SqlKind.SUM0,
         ReturnTypes.AGG_SUM_EMPTY_IS_ZERO,
         null,
-        OperandTypes.NUMERIC,
+        OperandTypes.or(OperandTypes.NUMERIC, OperandTypes.NUMERIC_NUMERIC),
         SqlFunctionCategory.NUMERIC,
         false,
         false);

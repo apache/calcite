@@ -67,6 +67,7 @@ import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.SqlValidator;
+import org.apache.calcite.sql.validate.SqlValidatorImpl;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
@@ -77,6 +78,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Standard implementation of {@link SqlRexConvertletTable}.
@@ -237,6 +239,14 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
         new AvgVarianceConvertlet(SqlKind.VAR_SAMP));
     registerOp(SqlStdOperatorTable.VARIANCE,
         new AvgVarianceConvertlet(SqlKind.VAR_SAMP));
+    registerOp(SqlStdOperatorTable.COVAR_POP,
+        new RegrCovarianceConvertlet(SqlKind.COVAR_POP));
+    registerOp(SqlStdOperatorTable.COVAR_SAMP,
+        new RegrCovarianceConvertlet(SqlKind.COVAR_SAMP));
+    registerOp(SqlStdOperatorTable.REGR_SXX,
+        new RegrCovarianceConvertlet(SqlKind.REGR_SXX));
+    registerOp(SqlStdOperatorTable.REGR_SYY,
+        new RegrCovarianceConvertlet(SqlKind.REGR_SYY));
 
     final SqlRexConvertlet floorCeilConvertlet = new FloorCeilConvertlet();
     registerOp(SqlStdOperatorTable.FLOOR, floorCeilConvertlet);
@@ -342,14 +352,26 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
     SqlNodeList thenList = call.getThenOperands();
     assert whenList.size() == thenList.size();
 
+    RexBuilder rexBuilder = cx.getRexBuilder();
     final List<RexNode> exprList = new ArrayList<>();
     for (int i = 0; i < whenList.size(); i++) {
-      exprList.add(cx.convertExpression(whenList.get(i)));
-      exprList.add(cx.convertExpression(thenList.get(i)));
+      if (SqlUtil.isNullLiteral(whenList.get(i), false)) {
+        exprList.add(rexBuilder.constantNull());
+      } else {
+        exprList.add(cx.convertExpression(whenList.get(i)));
+      }
+      if (SqlUtil.isNullLiteral(thenList.get(i), false)) {
+        exprList.add(rexBuilder.constantNull());
+      } else {
+        exprList.add(cx.convertExpression(thenList.get(i)));
+      }
     }
-    exprList.add(cx.convertExpression(call.getElseOperand()));
+    if (SqlUtil.isNullLiteral(call.getElseOperand(), false)) {
+      exprList.add(rexBuilder.constantNull());
+    } else {
+      exprList.add(cx.convertExpression(call.getElseOperand()));
+    }
 
-    RexBuilder rexBuilder = cx.getRexBuilder();
     RelDataType type =
         rexBuilder.deriveReturnType(call.getOperator(), exprList);
     for (int i : elseArgs(exprList.size())) {
@@ -473,11 +495,13 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
       return castToValidatedType(cx, call, cx.convertExpression(left));
     }
     SqlDataTypeSpec dataType = (SqlDataTypeSpec) right;
+    RelDataType type = dataType.deriveType(typeFactory);
     if (SqlUtil.isNullLiteral(left, false)) {
+      final SqlValidatorImpl validator = (SqlValidatorImpl) cx.getValidator();
+      validator.setValidatedNodeType(left, type);
       return cx.convertExpression(left);
     }
     RexNode arg = cx.convertExpression(left);
-    RelDataType type = dataType.deriveType(typeFactory);
     if (type == null) {
       type = cx.getValidator().getValidatedNodeType(dataType.getTypeName());
     }
@@ -1061,6 +1085,143 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
     return rexBuilder.makeCast(type, e);
   }
 
+  /** Convertlet that handles {@code COVAR_POP}, {@code COVAR_SAMP},
+   * {@code REGR_SXX}, {@code REGR_SYY} windowed aggregate functions.
+   */
+  private static class RegrCovarianceConvertlet implements SqlRexConvertlet {
+    private final SqlKind kind;
+
+    RegrCovarianceConvertlet(SqlKind kind) {
+      this.kind = kind;
+    }
+
+    public RexNode convertCall(SqlRexContext cx, SqlCall call) {
+      assert call.operandCount() == 2;
+      final SqlNode arg1 = call.operand(0);
+      final SqlNode arg2 = call.operand(1);
+      final SqlNode expr;
+      final RelDataType type =
+          cx.getValidator().getValidatedNodeType(call);
+      switch (kind) {
+      case COVAR_POP:
+        expr = expandCovariance(arg1, arg2, null, type, cx, true, false);
+        break;
+      case COVAR_SAMP:
+        expr = expandCovariance(arg1, arg2, null, type, cx, false, false);
+        break;
+      case REGR_SXX:
+        expr = expandRegrSzz(arg2, arg1, type, cx, true);
+        break;
+      case REGR_SYY:
+        expr = expandRegrSzz(arg1, arg2, type, cx, true);
+        break;
+      default:
+        throw Util.unexpected(kind);
+      }
+      RexNode rex = cx.convertExpression(expr);
+      return cx.getRexBuilder().ensureType(type, rex, true);
+    }
+
+    private SqlNode expandRegrSzz(
+        final SqlNode arg1, final SqlNode arg2,
+        final RelDataType avgType, final SqlRexContext cx, boolean variance) {
+      final SqlParserPos pos = SqlParserPos.ZERO;
+      final SqlNode count =
+          SqlStdOperatorTable.REGR_COUNT.createCall(pos, arg1, arg2);
+      final SqlNode varPop =
+          expandCovariance(arg1, variance ? arg1 : arg2, arg2, avgType, cx, true, false);
+      final RexNode varPopRex = cx.convertExpression(varPop);
+      final SqlNode varPopCast;
+      varPopCast = getCastedSqlNode(varPop, avgType, pos, varPopRex);
+      return SqlStdOperatorTable.MULTIPLY.createCall(pos, varPopCast, count);
+    }
+
+    private SqlNode expandCovariance(
+        final SqlNode arg0Input,
+        final SqlNode arg1Input,
+        final SqlNode dependent,
+        final RelDataType varType,
+        final SqlRexContext cx,
+        boolean biased,
+        boolean sqrt) {
+      // covar_pop(x1, x2) ==>
+      //     (sum(x1 * x2) - sum(x2) * sum(x1) / count(x1, x2))
+      //     / count(x1, x2)
+      //
+      // covar_samp(x1, x2) ==>
+      //     (sum(x1 * x2) - sum(x1) * sum(x2) / count(x1, x2))
+      //     / (count(x1, x2) - 1)
+      final SqlParserPos pos = SqlParserPos.ZERO;
+      final SqlLiteral nullLiteral = SqlLiteral.createNull(SqlParserPos.ZERO);
+
+      final RexNode arg0Rex = cx.convertExpression(arg0Input);
+      final RexNode arg1Rex = cx.convertExpression(arg1Input);
+
+      final SqlNode arg0 = getCastedSqlNode(arg0Input, varType, pos, arg0Rex);
+      final SqlNode arg1 = getCastedSqlNode(arg1Input, varType, pos, arg1Rex);
+      final SqlNode argSquared = SqlStdOperatorTable.MULTIPLY.createCall(pos, arg0, arg1);
+      final SqlNode sumArgSquared;
+      final SqlNode sum0;
+      final SqlNode sum1;
+      final SqlNode count;
+      if (dependent == null) {
+        sumArgSquared = SqlStdOperatorTable.SUM.createCall(pos, argSquared);
+        sum0 = SqlStdOperatorTable.SUM.createCall(pos, arg0, arg1);
+        sum1 = SqlStdOperatorTable.SUM.createCall(pos, arg1, arg0);
+        count = SqlStdOperatorTable.REGR_COUNT.createCall(pos, arg0, arg1);
+      } else {
+        sumArgSquared = SqlStdOperatorTable.SUM.createCall(pos, argSquared, dependent);
+        sum0 = SqlStdOperatorTable.SUM.createCall(
+            pos, arg0, Objects.equals(dependent, arg0Input) ? arg1 : dependent);
+        sum1 = SqlStdOperatorTable.SUM.createCall(
+            pos, arg1, Objects.equals(dependent, arg1Input) ? arg0 : dependent);
+        count = SqlStdOperatorTable.REGR_COUNT.createCall(
+            pos, arg0, Objects.equals(dependent, arg0Input) ? arg1 : dependent);
+      }
+
+      final SqlNode sumSquared = SqlStdOperatorTable.MULTIPLY.createCall(pos, sum0, sum1);
+      final SqlNode countCasted =
+          getCastedSqlNode(count, varType, pos, cx.convertExpression(count));
+
+      final SqlNode avgSumSquared =
+          SqlStdOperatorTable.DIVIDE.createCall(pos, sumSquared, countCasted);
+      final SqlNode diff = SqlStdOperatorTable.MINUS.createCall(pos, sumArgSquared, avgSumSquared);
+      SqlNode denominator;
+      if (biased) {
+        denominator = countCasted;
+      } else {
+        final SqlNumericLiteral one = SqlLiteral.createExactNumeric("1", pos);
+        denominator = new SqlCase(SqlParserPos.ZERO, countCasted,
+            SqlNodeList.of(SqlStdOperatorTable.EQUALS.createCall(pos, countCasted, one)),
+            SqlNodeList.of(getCastedSqlNode(nullLiteral, varType, pos, null)),
+            SqlStdOperatorTable.MINUS.createCall(pos, countCasted, one));
+      }
+      final SqlNode div = SqlStdOperatorTable.DIVIDE.createCall(pos, diff, denominator);
+
+      SqlNode result = div;
+      if (sqrt) {
+        final SqlNumericLiteral half = SqlLiteral.createExactNumeric("0.5", pos);
+        result = SqlStdOperatorTable.POWER.createCall(pos, div, half);
+      }
+      return result;
+    }
+
+    private SqlNode getCastedSqlNode(
+        SqlNode argInput,
+        RelDataType varType,
+        SqlParserPos pos,
+        RexNode argRex) {
+      SqlNode arg;
+      if (argRex != null && !argRex.getType().equals(varType)) {
+        arg = SqlStdOperatorTable.CAST.createCall(
+            pos, argInput, SqlTypeUtil.convertTypeToSpec(varType));
+      } else {
+        arg = argInput;
+      }
+      return arg;
+    }
+  }
+
   /** Convertlet that handles {@code AVG} and {@code VARIANCE}
    * windowed aggregate functions. */
   private static class AvgVarianceConvertlet implements SqlRexConvertlet {
@@ -1106,14 +1267,7 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
           SqlStdOperatorTable.SUM.createCall(pos, arg);
       final RexNode sumRex = cx.convertExpression(sum);
       final SqlNode sumCast;
-      if (!sumRex.getType().equals(avgType)) {
-        sumCast = SqlStdOperatorTable.CAST.createCall(pos,
-            new SqlDataTypeSpec(
-                new SqlIdentifier(avgType.getSqlTypeName().getName(), pos),
-                avgType.getPrecision(), avgType.getScale(), null, null, pos));
-      } else {
-        sumCast = sum;
-      }
+      sumCast = getCastedSqlNode(sum, avgType, pos, sumRex);
       final SqlNode count =
           SqlStdOperatorTable.COUNT.createCall(pos, arg);
       return SqlStdOperatorTable.DIVIDE.createCall(
@@ -1147,53 +1301,65 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
       //     / (count(x) - 1)
       final SqlParserPos pos = SqlParserPos.ZERO;
 
-      final RexNode argRex = cx.convertExpression(argInput);
-      final SqlNode arg;
-      if (!argRex.getType().equals(varType)) {
-        arg = SqlStdOperatorTable.CAST.createCall(pos,
-            new SqlDataTypeSpec(new SqlIdentifier(varType.getSqlTypeName().getName(), pos),
-                varType.getPrecision(), varType.getScale(), null, null, pos));
+      final SqlNode arg = getCastedSqlNode(argInput, varType, pos, cx.convertExpression(argInput));
+
+      final SqlNode argSquared = SqlStdOperatorTable.MULTIPLY.createCall(pos, arg, arg);
+      final SqlNode argSquaredCasted =
+          getCastedSqlNode(argSquared, varType, pos, cx.convertExpression(argSquared));
+      final SqlNode sumArgSquared = SqlStdOperatorTable.SUM.createCall(pos, argSquaredCasted);
+      final SqlNode sumArgSquaredCasted =
+          getCastedSqlNode(sumArgSquared, varType, pos, cx.convertExpression(sumArgSquared));
+      final SqlNode sum = SqlStdOperatorTable.SUM.createCall(pos, arg);
+      final SqlNode sumCasted = getCastedSqlNode(sum, varType, pos, cx.convertExpression(sum));
+      final SqlNode sumSquared =
+          SqlStdOperatorTable.MULTIPLY.createCall(pos, sumCasted, sumCasted);
+      final SqlNode sumSquaredCasted =
+          getCastedSqlNode(sumSquared, varType, pos, cx.convertExpression(sumSquared));
+      final SqlNode count = SqlStdOperatorTable.COUNT.createCall(pos, arg);
+      final SqlNode countCasted =
+          getCastedSqlNode(count, varType, pos, cx.convertExpression(count));
+      final SqlNode avgSumSquared =
+          SqlStdOperatorTable.DIVIDE.createCall(pos, sumSquaredCasted, countCasted);
+      final SqlNode avgSumSquaredCasted =
+          getCastedSqlNode(avgSumSquared, varType, pos, cx.convertExpression(avgSumSquared));
+      final SqlNode diff =
+          SqlStdOperatorTable.MINUS.createCall(pos, sumArgSquaredCasted, avgSumSquaredCasted);
+      final SqlNode diffCasted =
+          getCastedSqlNode(diff, varType, pos, cx.convertExpression(diff));
+      final SqlNode denominator;
+      if (biased) {
+        denominator = countCasted;
+      } else {
+        final SqlNumericLiteral one = SqlLiteral.createExactNumeric("1", pos);
+        final SqlLiteral nullLiteral = SqlLiteral.createNull(SqlParserPos.ZERO);
+        denominator = new SqlCase(SqlParserPos.ZERO,
+            count,
+            SqlNodeList.of(SqlStdOperatorTable.EQUALS.createCall(pos, count, one)),
+            SqlNodeList.of(getCastedSqlNode(nullLiteral, varType, pos, null)),
+            SqlStdOperatorTable.MINUS.createCall(pos, count, one));
+      }
+      final SqlNode div =
+          SqlStdOperatorTable.DIVIDE.createCall(pos, diffCasted, denominator);
+      final SqlNode divCasted = getCastedSqlNode(div, varType, pos, cx.convertExpression(div));
+
+      SqlNode result = div;
+      if (sqrt) {
+        final SqlNumericLiteral half = SqlLiteral.createExactNumeric("0.5", pos);
+        result = SqlStdOperatorTable.POWER.createCall(pos, divCasted, half);
+      }
+      return result;
+    }
+
+    private SqlNode getCastedSqlNode(
+        SqlNode argInput, RelDataType varType, SqlParserPos pos, RexNode argRex) {
+      SqlNode arg;
+      if (argRex != null && !argRex.getType().equals(varType)) {
+        arg = SqlStdOperatorTable.CAST.createCall(
+            pos, argInput, SqlTypeUtil.convertTypeToSpec(varType));
       } else {
         arg = argInput;
       }
-
-      final SqlNode argSquared =
-          SqlStdOperatorTable.MULTIPLY.createCall(pos, arg, arg);
-      final SqlNode sumArgSquared =
-          SqlStdOperatorTable.SUM.createCall(pos, argSquared);
-      final SqlNode sum =
-          SqlStdOperatorTable.SUM.createCall(pos, arg);
-      final SqlNode sumSquared =
-          SqlStdOperatorTable.MULTIPLY.createCall(pos, sum, sum);
-      final SqlNode count =
-          SqlStdOperatorTable.COUNT.createCall(pos, arg);
-      final SqlNode avgSumSquared =
-          SqlStdOperatorTable.DIVIDE.createCall(
-              pos, sumSquared, count);
-      final SqlNode diff =
-          SqlStdOperatorTable.MINUS.createCall(
-              pos, sumArgSquared, avgSumSquared);
-      final SqlNode denominator;
-      if (biased) {
-        denominator = count;
-      } else {
-        final SqlNumericLiteral one =
-            SqlLiteral.createExactNumeric("1", pos);
-        denominator =
-            SqlStdOperatorTable.MINUS.createCall(
-                pos, count, one);
-      }
-      final SqlNode div =
-          SqlStdOperatorTable.DIVIDE.createCall(
-              pos, diff, denominator);
-      SqlNode result = div;
-      if (sqrt) {
-        final SqlNumericLiteral half =
-            SqlLiteral.createExactNumeric("0.5", pos);
-        result =
-            SqlStdOperatorTable.POWER.createCall(pos, div, half);
-      }
-      return result;
+      return arg;
     }
   }
 

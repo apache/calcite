@@ -46,9 +46,11 @@ public class SqlCountAggFunction extends SqlAggFunction {
 
   public SqlCountAggFunction(String name) {
     super(name, null, SqlKind.COUNT, ReturnTypes.BIGINT, null,
-        SqlValidator.STRICT
-            ? OperandTypes.ANY
-            : OperandTypes.ONE_OR_MORE,
+        "REGR_COUNT".equals(name)
+            ? OperandTypes.NUMERIC_NUMERIC
+            : SqlValidator.STRICT
+                ? OperandTypes.ANY
+                : OperandTypes.ONE_OR_MORE,
         SqlFunctionCategory.NUMERIC, false, false);
   }
 

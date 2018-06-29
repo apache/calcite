@@ -5171,6 +5171,7 @@ SqlIdentifier ReservedFunctionName() :
     |   <PERCENT_RANK>
     |   <POWER>
     |   <RANK>
+    |   <REGR_COUNT>
     |   <REGR_SXX>
     |   <REGR_SYY>
     |   <ROW_NUMBER>

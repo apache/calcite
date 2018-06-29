@@ -766,7 +766,7 @@ public abstract class ReturnTypes {
     }
   };
 
-  public static final SqlReturnTypeInference COVAR_FUNCTION = opBinding -> {
+  public static final SqlReturnTypeInference COVAR_REGR_FUNCTION = opBinding -> {
     final RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
     final RelDataType relDataType =
         typeFactory.getTypeSystem().deriveCovarType(typeFactory,
