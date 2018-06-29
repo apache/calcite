@@ -1287,6 +1287,32 @@ public class RelToSqlConverterTest {
         .ok(expected);
   }
 
+  @Test public void testFloorMysqlHour() {
+    String query = "SELECT floor(\"hire_date\" TO HOUR) FROM \"employee\"";
+    String expected = "SELECT DATE_FORMAT(`hire_date`, '%Y-%m-%d %H:00:00')\n"
+        + "FROM `foodmart`.`employee`";
+    sql(query)
+        .withMysql()
+        .ok(expected);
+  }
+
+  @Test public void testFloorMysqlMinute() {
+    String query = "SELECT floor(\"hire_date\" TO MINUTE) FROM \"employee\"";
+    String expected = "SELECT DATE_FORMAT(`hire_date`, '%Y-%m-%d %H:%i:00')\n"
+        + "FROM `foodmart`.`employee`";
+    sql(query)
+        .withMysql()
+        .ok(expected);
+  }
+
+  @Test public void testFloorMysqlSecond() {
+    String query = "SELECT floor(\"hire_date\" TO SECOND) FROM \"employee\"";
+    String expected = "SELECT DATE_FORMAT(`hire_date`, '%Y-%m-%d %H:%i:%s')\n"
+        + "FROM `foodmart`.`employee`";
+    sql(query)
+        .withMysql()
+        .ok(expected);
+  }
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1826">[CALCITE-1826]
    * JDBC dialect-specific FLOOR fails when in GROUP BY</a>. */
@@ -1304,9 +1330,9 @@ public class RelToSqlConverterTest {
         + "FROM \"foodmart\".\"employee\"\n"
         + "GROUP BY DATE_TRUNC('MINUTE', \"hire_date\")";
     final String expectedMysql = "SELECT"
-        + " DATE_FORMAT(`hire_date`, '%Y-%m-%d %k:%i:00')\n"
+        + " DATE_FORMAT(`hire_date`, '%Y-%m-%d %H:%i:00')\n"
         + "FROM `foodmart`.`employee`\n"
-        + "GROUP BY DATE_FORMAT(`hire_date`, '%Y-%m-%d %k:%i:00')";
+        + "GROUP BY DATE_FORMAT(`hire_date`, '%Y-%m-%d %H:%i:00')";
     sql(query)
         .withHsqldb()
         .ok(expected)
