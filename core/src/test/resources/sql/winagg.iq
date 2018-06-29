@@ -566,7 +566,6 @@ EnumerableSort(sort0=[$0], dir0=[ASC])
 !ok
 
 # [CALCITE-2402] COVAR_POP, REGR_COUNT functions
-# SUM(x, y) = SUM(x) WHERE y IS NOT NULL
 # COVAR_POP(x, y) = (SUM(x * y) - SUM(x, y) * SUM(y, x) / REGR_COUNT(x, y)) / REGR_COUNT(x, y)
 select emps."AGE", emps."DEPTNO",
  sum(emps."AGE" * emps."DEPTNO") over() as "sum(age * deptno)",
@@ -586,8 +585,8 @@ from emps order by emps."AGE";
 
 !ok
 
-# [CALCITE-2402] COVAR_POP, REGR_COUNT functions
-# SUM(x, y) = SUM(x) WHERE y IS NOT NULL
+# [CALCITE-2402] COVAR_POP, REGR_COUNT functions with partition by
+# SUM(x, y) = SUM(x) FILTER (WHERE y IS NOT NULL)
 # COVAR_POP(x, y) = (SUM(x * y) - SUM(x, y) * SUM(y, x) / REGR_COUNT(x, y)) / REGR_COUNT(x, y)
 select emps."AGE", emps."DEPTNO", emps."GENDER",
  sum(emps."AGE" * emps."DEPTNO") over(partition by emps."GENDER") as "sum(age * deptno)",
@@ -608,7 +607,7 @@ from emps order by emps."GENDER";
 !ok
 
 # [CALCITE-2402] COVAR_SAMP functions
-# SUM(x, y) = SUM(x) WHERE y IS NOT NULL
+# SUM(x, y) = SUM(x) FILTER (WHERE y IS NOT NULL)
 # COVAR_SAMP(x, y) = (SUM(x * y) - SUM(x, y) * SUM(y, x) / REGR_COUNT(x, y)) / (REGR_COUNT(x, y) - 1)
 select emps."AGE", emps."DEPTNO", emps."GENDER",
  covar_samp(emps."AGE", emps."AGE") over() as "var_samp",
@@ -650,8 +649,8 @@ from emps order by emps."AGE";
 
 !ok
 
-# [CALCITE-2402] REGR_SXX, REGR_SXY, REGR_SYY functions
-# SUM(x, y) = SUM(x) WHERE y IS NOT NULL
+# [CALCITE-1776, CALCITE-2402] REGR_SXX, REGR_SXY, REGR_SYY functions
+# SUM(x, y) = SUM(x) filter (WHERE y IS NOT NULL)
 # REGR_SXX(x, y) = REGR_COUNT(x, y) * VAR_POP(y, y)
 # REGR_SXY(x, y) = REGR_COUNT(x, y) * COVAR_POP(x, y)
 # REGR_SYY(x, y) = REGR_COUNT(x, y) * VAR_POP(x, x)
@@ -659,23 +658,24 @@ from emps order by emps."AGE";
 ## VAR_POP(y, y) = (SUM(y * y, x) - SUM(y, x) * SUM(y, x) / REGR_COUNT(x, y)) / REGR_COUNT(x, y)
 select emps."AGE", emps."DEPTNO",
  regr_sxx(emps."AGE", emps."DEPTNO") over() as "regr_sxx(age, deptno)",
+ regr_sxy(emps."AGE", emps."DEPTNO") over() as "regr_sxy(age, deptno)",
  regr_syy(emps."AGE", emps."DEPTNO") over() as "regr_syy(age, deptno)"
 from emps order by emps."AGE";
-+-----+--------+-----------------------+-----------------------+
-| AGE | DEPTNO | regr_sxx(age, deptno) | regr_syy(age, deptno) |
-+-----+--------+-----------------------+-----------------------+
-|   5 |     20 |                    66 |                  3015 |
-|  25 |     10 |                    66 |                  3015 |
-|  80 |     20 |                    66 |                  3015 |
-|     |     40 |                    66 |                  3015 |
-|     |     40 |                    66 |                  3015 |
-+-----+--------+-----------------------+-----------------------+
++-----+--------+-----------------------+-----------------------+-----------------------+
+| AGE | DEPTNO | regr_sxx(age, deptno) | regr_sxy(age, deptno) | regr_syy(age, deptno) |
++-----+--------+-----------------------+-----------------------+-----------------------+
+|   5 |     20 |                    66 |                   117 |                  3015 |
+|  25 |     10 |                    66 |                   117 |                  3015 |
+|  80 |     20 |                    66 |                   117 |                  3015 |
+|     |     40 |                    66 |                   117 |                  3015 |
+|     |     40 |                    66 |                   117 |                  3015 |
++-----+--------+-----------------------+-----------------------+-----------------------+
 (5 rows)
 
 !ok
 
-# [CALCITE-2402] REGR_SXX, REGR_SXY, REGR_SYY functions
-# SUM(x, y) = SUM(x) WHERE y IS NOT NULL
+# [CALCITE-1776, CALCITE-2402] REGR_SXX, REGR_SXY, REGR_SYY functions
+# SUM(x, y) = SUM(x) filter (WHERE y IS NOT NULL)
 # REGR_SXX(x, y) = REGR_COUNT(x, y) * COVAR_POP(y, y)
 # REGR_SXY(x, y) = REGR_COUNT(x, y) * COVAR_POP(x, y)
 # REGR_SYY(x, y) = REGR_COUNT(x, y) * COVAR_POP(x, x)
@@ -683,17 +683,106 @@ from emps order by emps."AGE";
 ## COVAR_POP(y, y) = (SUM(y * y, x) - SUM(y, x) * SUM(y, x) / REGR_COUNT(x, y)) / REGR_COUNT(x, y)
 select emps."AGE", emps."DEPTNO", emps."GENDER",
  regr_sxx(emps."AGE", emps."DEPTNO") over(partition by emps."GENDER") as "regr_sxx(age, deptno)",
+ regr_sxy(emps."AGE", emps."DEPTNO") over(partition by emps."GENDER") as "regr_sxy(age, deptno)",
  regr_syy(emps."AGE", emps."DEPTNO") over(partition by emps."GENDER") as "regr_syy(age, deptno)"
 from emps order by emps."GENDER";
-+-----+--------+--------+-----------------------+-----------------------+
-| AGE | DEPTNO | GENDER | regr_sxx(age, deptno) | regr_syy(age, deptno) |
-+-----+--------+--------+-----------------------+-----------------------+
-|   5 |     20 | F      |                     0 |                     0 |
-|     |     40 | F      |                     0 |                     0 |
-|  80 |     20 | M      |                     0 |                     0 |
-|     |     40 | M      |                     0 |                     0 |
-|  25 |     10 |        |                     0 |                     0 |
-+-----+--------+--------+-----------------------+-----------------------+
++-----+--------+--------+-----------------------+-----------------------+-----------------------+
+| AGE | DEPTNO | GENDER | regr_sxx(age, deptno) | regr_sxy(age, deptno) | regr_syy(age, deptno) |
++-----+--------+--------+-----------------------+-----------------------+-----------------------+
+|   5 |     20 | F      |                     0 |                     0 |                     0 |
+|     |     40 | F      |                     0 |                     0 |                     0 |
+|  80 |     20 | M      |                     0 |                     0 |                     0 |
+|     |     40 | M      |                     0 |                     0 |                     0 |
+|  25 |     10 |        |                     0 |                     0 |                     0 |
++-----+--------+--------+-----------------------+-----------------------+-----------------------+
+(5 rows)
+
+!ok
+
+# [CALCITE-1776] REGR_AVGX, REGR_AVGY functions
+# SUM(x, y) = SUM(x) filter (WHERE y IS NOT NULL)
+# REGR_AVGX(x, y) = SUM(x, y) / REGR_COUNT(x, y)
+# REGR_AVGY(x, y) = SUM(y, x) / REGR_COUNT(x, y)
+select emps."AGE", emps."DEPTNO",
+ regr_avgx(emps."DEPTNO", emps."AGE") over() as "regr_avgx(deptno, age)",
+ regr_avgy(emps."DEPTNO", emps."AGE") over() as "regr_avgy(deptno, age)",
+ regr_avgy(emps."AGE", emps."DEPTNO") over() as "regr_avgy(age, deptno)",
+ regr_avgx(emps."AGE", emps."DEPTNO") over() as "regr_avgx(age, deptno)"
+from emps order by emps."AGE";
++-----+--------+------------------------+------------------------+------------------------+------------------------+
+| AGE | DEPTNO | regr_avgx(deptno, age) | regr_avgy(deptno, age) | regr_avgy(age, deptno) | regr_avgx(age, deptno) |
++-----+--------+------------------------+------------------------+------------------------+------------------------+
+|   5 |     20 |                     36 |                     16 |                     36 |                     16 |
+|  25 |     10 |                     36 |                     16 |                     36 |                     16 |
+|  80 |     20 |                     36 |                     16 |                     36 |                     16 |
+|     |     40 |                     36 |                     16 |                     36 |                     16 |
+|     |     40 |                     36 |                     16 |                     36 |                     16 |
++-----+--------+------------------------+------------------------+------------------------+------------------------+
+(5 rows)
+
+!ok
+
+# [CALCITE-1776] REGR_AVGX, REGR_AVGY functions
+# SUM(x, y) = SUM(x) filter (WHERE y IS NOT NULL)
+# REGR_AVGX(x, y) = SUM(x, y) / REGR_COUNT(x, y)
+# REGR_AVGY(x, y) = SUM(y, x) / REGR_COUNT(x, y)
+select emps."AGE", emps."DEPTNO", emps."GENDER",
+ regr_avgx(emps."DEPTNO", emps."AGE") over(partition by emps."GENDER") as "regr_avgx(deptno, age)",
+ regr_avgy(emps."DEPTNO", emps."AGE") over(partition by emps."GENDER") as "regr_avgy(deptno, age)",
+ regr_avgy(emps."AGE", emps."DEPTNO") over(partition by emps."GENDER") as "regr_avgy(age, deptno)",
+ regr_avgx(emps."AGE", emps."DEPTNO") over(partition by emps."GENDER") as "regr_avgx(age, deptno)"
+from emps order by emps."GENDER";
++-----+--------+--------+------------------------+------------------------+------------------------+------------------------+
+| AGE | DEPTNO | GENDER | regr_avgx(deptno, age) | regr_avgy(deptno, age) | regr_avgy(age, deptno) | regr_avgx(age, deptno) |
++-----+--------+--------+------------------------+------------------------+------------------------+------------------------+
+|   5 |     20 | F      |                      5 |                     20 |                      5 |                     20 |
+|     |     40 | F      |                      5 |                     20 |                      5 |                     20 |
+|  80 |     20 | M      |                     80 |                     20 |                     80 |                     20 |
+|     |     40 | M      |                     80 |                     20 |                     80 |                     20 |
+|  25 |     10 |        |                     25 |                     10 |                     25 |                     10 |
++-----+--------+--------+------------------------+------------------------+------------------------+------------------------+
+(5 rows)
+
+!ok
+
+# [CALCITE-1776] REGR_SLOPE, REGR_INTERCEPT functions
+# REGR_SLOPE(x, y) = COVAR_POP(x, y) / VAR_POP(y)
+# REGR_INTERCEPT(x, y) = REGR_AVGX(x, y) - REGR_SLOPE(x, y) * REGR_AVGY(x, y)
+select emps."AGE", emps."DEPTNO", emps."MANAGER",
+ regr_slope(emps."AGE", emps."DEPTNO") over() as "regr_slope(age, deptno)",
+ regr_slope(emps."AGE", emps."DEPTNO") over(partition by emps."MANAGER") as "regr_slope(age, deptno) by manager",
+ regr_intercept(emps."DEPTNO", emps."AGE") over() as "regr_intercept(deptno, age)"
+from emps order by emps."AGE";
++-----+--------+---------+-------------------------+------------------------------------+-----------------------------+
+| AGE | DEPTNO | MANAGER | regr_slope(age, deptno) | regr_slope(age, deptno) by manager | regr_intercept(deptno, age) |
++-----+--------+---------+-------------------------+------------------------------------+-----------------------------+
+|   5 |     20 | true    |                       1 |                                    |                          16 |
+|  25 |     10 | false   |                       1 |                                  5 |                          16 |
+|  80 |     20 | false   |                       1 |                                  5 |                          16 |
+|     |     40 | true    |                       1 |                                    |                          16 |
+|     |     40 | true    |                       1 |                                    |                          16 |
++-----+--------+---------+-------------------------+------------------------------------+-----------------------------+
+(5 rows)
+
+!ok
+
+# [CALCITE-1776] CORR, REGR_R2 functions
+# CORR(x, y) = COVAR_POP(x, y) / (STDDEV_POP(x) * STDDEV_POP(y))
+select emps."EMPNO", emps."DEPTNO", emps."MANAGER",
+ corr(emps."EMPNO", emps."DEPTNO") over() as "corr",
+ corr(emps."EMPNO", emps."DEPTNO") over(partition by emps."MANAGER") as "corr by mng",
+ regr_r2(emps."AGE", emps."DEPTNO") over() as "regr_r2",
+ regr_r2(emps."EMPNO", emps."DEPTNO") over(partition by emps."MANAGER") as "regr_r2 by mng"
+from emps order by emps."EMPNO";
++-------+--------+---------+------+-------------+---------+----------------+
+| EMPNO | DEPTNO | MANAGER | corr | corr by mng | regr_r2 | regr_r2 by mng |
++-------+--------+---------+------+-------------+---------+----------------+
+|   100 |     10 | false   |    0 |           0 |       0 |              0 |
+|   110 |     20 | false   |    0 |           0 |       0 |              0 |
+|   110 |     40 | true    |    0 |           0 |       0 |              0 |
+|   120 |     20 | true    |    0 |           0 |       0 |              0 |
+|   130 |     40 | true    |    0 |           0 |       0 |              0 |
++-------+--------+---------+------+-------------+---------+----------------+
 (5 rows)
 
 !ok

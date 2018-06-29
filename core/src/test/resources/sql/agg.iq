@@ -2715,35 +2715,37 @@ EnumerableAggregate(group=[{}], REGR_COUNT(COMM, SAL)=[REGR_COUNT($6, $5)], REGR
 SELECT
   regr_sxx(COMM, SAL) as "REGR_SXX(COMM, SAL)",
   regr_syy(COMM, SAL) as "REGR_SYY(COMM, SAL)",
+  regr_sxy(COMM, SAL) as "REGR_SXY(COMM, SAL)",
   regr_sxx(SAL, COMM) as "REGR_SXX(SAL, COMM)",
   regr_syy(SAL, COMM) as "REGR_SYY(SAL, COMM)"
 from "scott".emp;
-+---------------------+---------------------+---------------------+---------------------+
-| REGR_SXX(COMM, SAL) | REGR_SYY(COMM, SAL) | REGR_SXX(SAL, COMM) | REGR_SYY(SAL, COMM) |
-+---------------------+---------------------+---------------------+---------------------+
-|          95000.0000 |        1090000.0000 |        1090000.0000 |          95000.0000 |
-+---------------------+---------------------+---------------------+---------------------+
++---------------------+---------------------+---------------------+---------------------+---------------------+
+| REGR_SXX(COMM, SAL) | REGR_SYY(COMM, SAL) | REGR_SXY(COMM, SAL) | REGR_SXX(SAL, COMM) | REGR_SYY(SAL, COMM) |
++---------------------+---------------------+---------------------+---------------------+---------------------+
+|          95000.0000 |        1090000.0000 |        -225000.0000 |        1090000.0000 |          95000.0000 |
++---------------------+---------------------+---------------------+---------------------+---------------------+
 (1 row)
 
 !ok
 
-# [CALCITE-1776, CALCITE-2402] COVAR_POP, COVAR_SAMP, VAR_SAMP, VAR_POP
+# [CALCITE-1776, CALCITE-2402] COVAR_POP, COVAR_SAMP, VAR_SAMP, VAR_POP, CORR
 SELECT
   covar_pop(COMM, COMM) as "COVAR_POP(COMM, COMM)",
   covar_samp(SAL, SAL) as "COVAR_SAMP(SAL, SAL)",
   var_pop(COMM) as "VAR_POP(COMM)",
-  var_samp(SAL) as "VAR_SAMP(SAL)"
+  var_samp(SAL) as "VAR_SAMP(SAL)",
+  corr(SAL, COMM) as "CORR(SAL, COMM)"
 from "scott".emp;
-+-----------------------+----------------------+---------------+-------------------+
-| COVAR_POP(COMM, COMM) | COVAR_SAMP(SAL, SAL) | VAR_POP(COMM) | VAR_SAMP(SAL)     |
-+-----------------------+----------------------+---------------+-------------------+
-|           272500.0000 |    1398313.873626374 |   272500.0000 | 1398313.873626374 |
-+-----------------------+----------------------+---------------+-------------------+
++-----------------------+----------------------+---------------+-------------------+--------------------+
+| COVAR_POP(COMM, COMM) | COVAR_SAMP(SAL, SAL) | VAR_POP(COMM) | VAR_SAMP(SAL)     | CORR(SAL, COMM)    |
++-----------------------+----------------------+---------------+-------------------+--------------------+
+|           272500.0000 |    1398313.873626374 |   272500.0000 | 1398313.873626374 | -2.423927082485599 |
++-----------------------+----------------------+---------------+-------------------+--------------------+
 (1 row)
 
 !ok
 
-# [CALCITE-1776, CALCITE-2402] REGR_COUNT with group by
+# [CALCITE-2402] REGR_COUNT with group by
 SELECT SAL, regr_count(COMM, SAL) as "REGR_COUNT(COMM, SAL)",
    regr_count(EMPNO, SAL) as "REGR_COUNT(EMPNO, SAL)"
 from "scott".emp group by SAL;
@@ -2767,26 +2769,125 @@ from "scott".emp group by SAL;
 
 !ok
 
-# [CALCITE-1776, CALCITE-2402] COVAR_POP, COVAR_SAMP, VAR_SAMP, VAR_POP with group by
+# [CALCITE-1776, CALCITE-2402] COVAR_POP, COVAR_SAMP, VAR_SAMP, VAR_POP, CORR with group by
 SELECT
   MONTH(HIREDATE) as "MONTH",
   covar_samp(SAL, COMM) as "COVAR_SAMP(SAL, COMM)",
   var_pop(COMM) as "VAR_POP(COMM)",
-  var_samp(SAL) as "VAR_SAMP(SAL)"
+  var_samp(SAL) as "VAR_SAMP(SAL)",
+  corr(SAL, COMM) as "CORR(SAL, COMM)"
 from "scott".emp
 group by MONTH(HIREDATE);
-+-------+-----------------------+---------------+-------------------+
-| MONTH | COVAR_SAMP(SAL, COMM) | VAR_POP(COMM) | VAR_SAMP(SAL)     |
-+-------+-----------------------+---------------+-------------------+
-|     1 |                       |               |      1201250.0000 |
-|    11 |                       |               |                   |
-|    12 |                       |               | 1510833.333333334 |
-|     2 |           -35000.0000 |    10000.0000 |  831458.333333335 |
-|     4 |                       |               |                   |
-|     5 |                       |               |                   |
-|     6 |                       |               |                   |
-|     9 |          -175000.0000 |   490000.0000 |        31250.0000 |
-+-------+-----------------------+---------------+-------------------+
++-------+-----------------------+---------------+-------------------+--------------------+
+| MONTH | COVAR_SAMP(SAL, COMM) | VAR_POP(COMM) | VAR_SAMP(SAL)     | CORR(SAL, COMM)    |
++-------+-----------------------+---------------+-------------------+--------------------+
+|     1 |                       |               |      1201250.0000 |                    |
+|    11 |                       |               |                   |                    |
+|    12 |                       |               | 1510833.333333334 |                    |
+|     2 |           -35000.0000 |    10000.0000 |  831458.333333335 | -22.85714285714286 |
+|     4 |                       |               |                   |                    |
+|     5 |                       |               |                   |                    |
+|     6 |                       |               |                   |                    |
+|     9 |          -175000.0000 |   490000.0000 |        31250.0000 |             0.2000 |
++-------+-----------------------+---------------+-------------------+--------------------+
+(8 rows)
+
+!ok
+
+# [CALCITE-1776] REGR_AVGX, REGR_AVGY
+SELECT
+  regr_avgx(SAL, COMM) as "REGR_AVGX(SAL, COMM)",
+  regr_avgy(SAL, COMM) as "REGR_AVGY(SAL, COMM)",
+  regr_avgx(SAL, DEPTNO) as "REGR_AVGX(SAL, DEPTNO)",
+  regr_avgy(SAL, DEPTNO) as "REGR_AVGY(SAL, DEPTNO)"
+from "scott".emp;
++----------------------+----------------------+------------------------+------------------------+
+| REGR_AVGX(SAL, COMM) | REGR_AVGY(SAL, COMM) | REGR_AVGX(SAL, DEPTNO) | REGR_AVGY(SAL, DEPTNO) |
++----------------------+----------------------+------------------------+------------------------+
+|              1400.00 |               550.00 |      2073.214285714286 |                      3 |
++----------------------+----------------------+------------------------+------------------------+
+(1 row)
+
+!ok
+
+# [CALCITE-1776] REGR_SLOPE, REGR_R2, REGR_INTERCEPT
+SELECT
+  regr_slope(SAL, COMM) as "REGR_SLOPE(SAL, COMM)",
+  regr_intercept(SAL, COMM) as "REGR_INTERCEPT(SAL, COMM)",
+  regr_r2(SAL, COMM) as "REGR_R2(SAL, COMM)"
+from "scott".emp;
++-----------------------+---------------------------+----------------------+
+| REGR_SLOPE(SAL, COMM) | REGR_INTERCEPT(SAL, COMM) | REGR_R2(SAL, COMM)   |
++-----------------------+---------------------------+----------------------+
+|   -0.2064220183486239 |   1513.532110091743145000 | 50625000000.00000000 |
++-----------------------+---------------------------+----------------------+
+(1 row)
+
+!ok
+
+# [CALCITE-1776, CALCITE-2402] REGR_SXX, REGR_SXY, REGR_SYY with group by
+SELECT MONTH(HIREDATE) as "MONTH",
+  regr_sxx(COMM, SAL) as "REGR_SXX(COMM, SAL)",
+  regr_syy(COMM, SAL) as "REGR_SYY(COMM, SAL)",
+  regr_sxy(COMM, SAL) as "REGR_SXY(COMM, SAL)",
+  regr_sxx(SAL, COMM) as "REGR_SXX(SAL, COMM)",
+  regr_syy(SAL, COMM) as "REGR_SYY(SAL, COMM)"
+from "scott".emp group by MONTH(HIREDATE);
++-------+---------------------+---------------------+---------------------+---------------------+---------------------+
+| MONTH | REGR_SXX(COMM, SAL) | REGR_SYY(COMM, SAL) | REGR_SXY(COMM, SAL) | REGR_SXX(SAL, COMM) | REGR_SYY(SAL, COMM) |
++-------+---------------------+---------------------+---------------------+---------------------+---------------------+
+|     1 |                     |                     |                     |                     |                     |
+|    11 |                     |                     |                     |                     |                     |
+|    12 |                     |                     |                     |                     |                     |
+|     2 |          61250.0000 |          20000.0000 |         -35000.0000 |          20000.0000 |          61250.0000 |
+|     4 |                     |                     |                     |                     |                     |
+|     5 |                     |                     |                     |                     |                     |
+|     6 |                     |                     |                     |                     |                     |
+|     9 |          31250.0000 |         980000.0000 |        -175000.0000 |         980000.0000 |          31250.0000 |
++-------+---------------------+---------------------+---------------------+---------------------+---------------------+
+(8 rows)
+
+!ok
+
+# [CALCITE-1776] REGR_AVGX, REGR_AVGY with group by
+SELECT MONTH(HIREDATE) as "MONTH",
+  regr_avgx(SAL, COMM) as "REGR_AVGX(SAL, COMM)",
+  regr_avgy(SAL, COMM) as "REGR_AVGY(SAL, COMM)"
+from "scott".emp group by MONTH(HIREDATE);
++-------+----------------------+----------------------+
+| MONTH | REGR_AVGX(SAL, COMM) | REGR_AVGY(SAL, COMM) |
++-------+----------------------+----------------------+
+|     1 |                      |                      |
+|    11 |                      |                      |
+|    12 |                      |                      |
+|     2 |              1425.00 |               400.00 |
+|     4 |                      |                      |
+|     5 |                      |                      |
+|     6 |                      |                      |
+|     9 |              1375.00 |               700.00 |
++-------+----------------------+----------------------+
+(8 rows)
+
+!ok
+
+# [CALCITE-1776] REGR_SLOPE, REGR_R2, REGR_INTERCEPT with group by
+SELECT MONTH(HIREDATE) as "MONTH",
+  regr_slope(SAL, COMM) as "REGR_SLOPE(SAL, COMM)",
+  regr_intercept(SAL, COMM) as "REGR_INTERCEPT(SAL, COMM)",
+  regr_r2(SAL, COMM) as "REGR_R2(SAL, COMM)"
+from "scott".emp group by MONTH(HIREDATE);
++-------+-----------------------+---------------------------+----------------------+
+| MONTH | REGR_SLOPE(SAL, COMM) | REGR_INTERCEPT(SAL, COMM) | REGR_R2(SAL, COMM)   |
++-------+-----------------------+---------------------------+----------------------+
+|     1 |                       |                           |                      |
+|    11 |                       |                           |                      |
+|    12 |                       |                           |                      |
+|     2 |                 -1.75 |                 2125.0000 |  1225000000.00000000 |
+|     4 |                       |                           |                      |
+|     5 |                       |                           |                      |
+|     6 |                       |                           |                      |
+|     9 |   -0.1785714285714286 |   1500.000000000000020000 | 30625000000.00000000 |
++-------+-----------------------+---------------------------+----------------------+
 (8 rows)
 
 !ok

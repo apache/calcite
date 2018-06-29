@@ -808,11 +808,32 @@ public enum SqlKind {
   /** The {@code COVAR_SAMP} aggregate function. */
   COVAR_SAMP,
 
+  /** The {@code CORR} aggregate function. */
+  CORR,
+
+  /** The {@code REGR_AVGX} aggregate function. */
+  REGR_AVGX,
+
+  /** The {@code REGR_AVGY} aggregate function. */
+  REGR_AVGY,
+
   /** The {@code REGR_COUNT} aggregate function. */
   REGR_COUNT,
 
+  /** The {@code REGR_INTERCEPT} aggregate function. */
+  REGR_INTERCEPT,
+
+  /** The {@code REGR_R2} aggregate function. */
+  REGR_R2,
+
+  /** The {@code REGR_SLOPE} aggregate function. */
+  REGR_SLOPE,
+
   /** The {@code REGR_SXX} aggregate function. */
   REGR_SXX,
+
+  /** The {@code REGR_SXY} aggregate function. */
+  REGR_SXY,
 
   /** The {@code REGR_SYY} aggregate function. */
   REGR_SYY,
@@ -1090,7 +1111,8 @@ public enum SqlKind {
    */
   public static final EnumSet<SqlKind> AGGREGATE =
       EnumSet.of(COUNT, SUM, SUM0, MIN, MAX, LEAD, LAG, FIRST_VALUE,
-          LAST_VALUE, COVAR_POP, COVAR_SAMP, REGR_COUNT, REGR_SXX, REGR_SYY,
+          LAST_VALUE, COVAR_POP, COVAR_SAMP, CORR, REGR_AVGX, REGR_AVGY, REGR_COUNT,
+          REGR_INTERCEPT, REGR_R2, REGR_SLOPE, REGR_SXX, REGR_SXY, REGR_SYY,
           AVG, STDDEV_POP, STDDEV_SAMP, VAR_POP, VAR_SAMP, NTILE, COLLECT,
           MODE, FUSION, SINGLE_VALUE, ROW_NUMBER, RANK, PERCENT_RANK, DENSE_RANK,
           CUME_DIST, JSON_ARRAYAGG, JSON_OBJECTAGG, BIT_AND, BIT_OR, BIT_XOR,
@@ -1215,11 +1237,13 @@ public enum SqlKind {
   /**
    * Category of SqlCovarAggFunction.
    *
-   * <p>Consists of {@link #COVAR_POP}, {@link #COVAR_SAMP}, {@link #REGR_SXX},
-   * {@link #REGR_SYY}.
+   * <p>Consists of {@link #COVAR_POP}, {@link #COVAR_SAMP}, {@link #CORR} {@link #REGR_AVGX},
+   * {@link #REGR_AVGY}, {@link #REGR_AVGY}, {@link #REGR_INTERCEPT}, {@link #REGR_R2},
+   * {@link #REGR_SLOPE}, {@link #REGR_SXX}, {@link #REGR_SXY}, {@link #REGR_SYY}.
    */
   public static final Set<SqlKind> COVAR_AVG_AGG_FUNCTIONS =
-      EnumSet.of(COVAR_POP, COVAR_SAMP, REGR_COUNT, REGR_SXX, REGR_SYY);
+      EnumSet.of(COVAR_POP, COVAR_SAMP, CORR, REGR_AVGX, REGR_AVGY, REGR_COUNT,
+          REGR_INTERCEPT, REGR_R2, REGR_SLOPE, REGR_SXX, REGR_SXY, REGR_SYY);
 
   /**
    * Category of comparison operators.

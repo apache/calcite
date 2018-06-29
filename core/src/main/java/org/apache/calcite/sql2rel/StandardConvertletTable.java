@@ -230,7 +230,7 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
     // division by zero. We need the cast because SUM and COUNT may use
     // different types, say BIGINT.
     //
-    // Similarly STDDEV_POP and STDDEV_SAMP, VAR_POP and VAR_SAMP.
+    // Similarly STDDEV_POP and STDDEV_SAMP, VAR_POP, VAR_SAMP and REGR_*.
     registerOp(SqlStdOperatorTable.AVG,
         new AvgVarianceConvertlet(SqlKind.AVG));
     registerOp(SqlStdOperatorTable.STDDEV_POP,
@@ -249,8 +249,22 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
         new RegrCovarianceConvertlet(SqlKind.COVAR_POP));
     registerOp(SqlStdOperatorTable.COVAR_SAMP,
         new RegrCovarianceConvertlet(SqlKind.COVAR_SAMP));
+    registerOp(SqlStdOperatorTable.CORR,
+        new RegrCovarianceConvertlet(SqlKind.CORR));
+    registerOp(SqlStdOperatorTable.REGR_AVGX,
+        new RegrCovarianceConvertlet(SqlKind.REGR_AVGX));
+    registerOp(SqlStdOperatorTable.REGR_AVGY,
+        new RegrCovarianceConvertlet(SqlKind.REGR_AVGY));
+    registerOp(SqlStdOperatorTable.REGR_INTERCEPT,
+        new RegrCovarianceConvertlet(SqlKind.REGR_INTERCEPT));
+    registerOp(SqlStdOperatorTable.REGR_R2,
+        new RegrCovarianceConvertlet(SqlKind.REGR_R2));
+    registerOp(SqlStdOperatorTable.REGR_SLOPE,
+        new RegrCovarianceConvertlet(SqlKind.REGR_SLOPE));
     registerOp(SqlStdOperatorTable.REGR_SXX,
         new RegrCovarianceConvertlet(SqlKind.REGR_SXX));
+    registerOp(SqlStdOperatorTable.REGR_SXY,
+        new RegrCovarianceConvertlet(SqlKind.REGR_SXY));
     registerOp(SqlStdOperatorTable.REGR_SYY,
         new RegrCovarianceConvertlet(SqlKind.REGR_SYY));
 
@@ -1316,8 +1330,10 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
     return rexBuilder.makeCast(type, e);
   }
 
-  /** Convertlet that handles {@code COVAR_POP}, {@code COVAR_SAMP},
-   * {@code REGR_SXX}, {@code REGR_SYY} windowed aggregate functions.
+  /** Convertlet that handles {@code CORR}, {@code COVAR_POP}, {@code COVAR_SAMP},
+   * {@code REGR_AVGX}, {@code REGR_AVGY}, {@code REGR_INTERCEPT}, {@code REGR_R2},
+   * {@code REGR_SLOPE}, {@code REGR_SXX}, {@code REGR_SXY}, {@code REGR_SYY}
+   * windowed aggregate functions.
    */
   private static class RegrCovarianceConvertlet implements SqlRexConvertlet {
     private final SqlKind kind;
@@ -1334,14 +1350,35 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
       final RelDataType type =
           cx.getValidator().getValidatedNodeType(call);
       switch (kind) {
+      case CORR:
+        expr = expandCorr(arg1, arg2, type, cx);
+        break;
       case COVAR_POP:
         expr = expandCovariance(arg1, arg2, null, type, cx, true);
         break;
       case COVAR_SAMP:
         expr = expandCovariance(arg1, arg2, null, type, cx, false);
         break;
+      case REGR_AVGY:
+        expr = expandRegrAvg(arg1, arg2, type, cx);
+        break;
+      case REGR_AVGX:
+        expr = expandRegrAvg(arg2, arg1, type, cx);
+        break;
+      case REGR_INTERCEPT:
+        expr = expandRegrIntercept(arg1, arg2, type, cx);
+        break;
+      case REGR_R2:
+        expr = expandR2(arg1, arg2, type, cx);
+        break;
+      case REGR_SLOPE:
+        expr = expandRegrSlope(arg1, arg2, type, cx);
+        break;
       case REGR_SXX:
         expr = expandRegrSzz(arg2, arg1, type, cx, true);
+        break;
+      case REGR_SXY:
+        expr = expandRegrSzz(arg1, arg2, type, cx, false);
         break;
       case REGR_SYY:
         expr = expandRegrSzz(arg1, arg2, type, cx, true);
@@ -1353,9 +1390,94 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
       return cx.getRexBuilder().ensureType(type, rex, true);
     }
 
+    private static SqlNode expandCorr(
+        final SqlNode arg1, final SqlNode arg2,
+        final RelDataType avgType, final SqlRexContext cx) {
+      // corr(x, y) ==>
+      //     covar_pop(x, y) / case (stddev_pop(x) * stddev_pop(y)) = 0 then null
+      //                       else stddev_pop(x) * stddev_pop(y) end
+      final SqlParserPos pos = SqlParserPos.ZERO;
+      final SqlNode covarPop = expandCovariance(arg1, arg2, null, avgType, cx, false);
+      final SqlNode stddevPop1 = expandCovariance(arg1, arg1, null, avgType, cx, false);
+      final SqlNode stddevPop2 = expandCovariance(arg2, arg2, null, avgType, cx, false);
+      final RexNode covarPopRex = cx.convertExpression(covarPop);
+      final SqlNode covarPopCast = getCastedSqlNode(covarPop, avgType, pos, covarPopRex);
+      final SqlNode denominator =
+          SqlStdOperatorTable.MULTIPLY.createCall(pos, stddevPop1, stddevPop2);
+      return SqlStdOperatorTable.DIVIDE.createCall(pos, covarPopCast, denominator);
+    }
+
+    private static SqlNode expandR2(
+        final SqlNode arg1, final SqlNode arg2,
+        final RelDataType avgType, final SqlRexContext cx) {
+      // regr_r2(x, y) ==>
+      //     case when var_pop(y) = 0 then null
+      //     when var_pop(x) = 0 and var_pop(y) != 0 then 1
+      //     when var_pop(x) > 0 and var_pop(y) != 0 then power(corr(x, y), 2)
+      //     else null end
+      final SqlParserPos pos = SqlParserPos.ZERO;
+      final SqlNode varPop1 = expandCovariance(arg1, arg1, arg2, avgType, cx, false);
+      final SqlNode varPop2 = expandCovariance(arg2, arg2, arg1, avgType, cx, false);
+      final SqlNode corr = expandCorr(arg1, arg2, avgType, cx);
+      final SqlNode corrSquared = SqlStdOperatorTable.MULTIPLY.createCall(pos, corr, corr);
+      final SqlNumericLiteral one = SqlLiteral.createExactNumeric("1", pos);
+      final SqlNumericLiteral zero = SqlLiteral.createExactNumeric("0", pos);
+      return SqlStdOperatorTable.CASE.createCall(pos,
+          zero,
+          SqlNodeList.of(SqlStdOperatorTable.EQUALS.createCall(pos, zero, varPop2),
+              SqlStdOperatorTable.AND.createCall(
+                  pos,
+                  SqlStdOperatorTable.EQUALS.createCall(pos, zero, varPop1),
+                  SqlStdOperatorTable.NOT_EQUALS.createCall(pos, zero, varPop2)),
+              SqlStdOperatorTable.AND.createCall(
+                  pos,
+                  SqlStdOperatorTable.GREATER_THAN.createCall(pos, varPop1, zero),
+                  SqlStdOperatorTable.NOT_EQUALS.createCall(pos, zero, varPop2))),
+              SqlNodeList.of(SqlLiteral.createNull(pos), one, corrSquared),
+          SqlLiteral.createNull(pos));
+    }
+
+    private static SqlNode expandRegrIntercept(
+        final SqlNode arg1, final SqlNode arg2,
+        final RelDataType avgType, final SqlRexContext cx) {
+      // regr_intercept(x, y) ==>
+      //     regr_avgx(x, y) - regr_slope(x, y) * regr_avgy(x, y)
+      final SqlParserPos pos = SqlParserPos.ZERO;
+      final SqlNode regrAvg1 = expandRegrAvg(arg1, arg2, avgType, cx);
+      final SqlNode regrAvg2 = expandRegrAvg(arg2, arg1, avgType, cx);
+      final SqlNode regrSlope = expandRegrSlope(arg1, arg2, avgType, cx);
+      final SqlNode product = SqlStdOperatorTable.MULTIPLY.createCall(pos, regrSlope, regrAvg2);
+      return SqlStdOperatorTable.MINUS.createCall(pos, regrAvg1, product);
+    }
+
+    private static SqlNode expandRegrAvg(
+        final SqlNode arg1, final SqlNode arg2,
+        final RelDataType avgType, final SqlRexContext cx) {
+      // regr_avgx(x, y) ==>
+      //     (sum(y) filter (where x is not null)) / regr_count(x, y)
+      //
+      // regr_avgy(x, y) ==>
+      //     (sum(x) filter (where y is not null)) / regr_count(x, y)
+      final SqlParserPos pos = SqlParserPos.ZERO;
+      final SqlNode sum = SqlStdOperatorTable.SUM.createCall(pos, arg1, arg2);
+      final RexNode sumRex = cx.convertExpression(sum);
+      final SqlNode sumCast = getCastedSqlNode(sum, avgType, pos, sumRex);
+      final SqlNode count =
+          SqlStdOperatorTable.REGR_COUNT.createCall(pos, arg1, arg2);
+      return SqlStdOperatorTable.DIVIDE.createCall(pos, sumCast, count);
+    }
+
     private static SqlNode expandRegrSzz(
         final SqlNode arg1, final SqlNode arg2,
         final RelDataType avgType, final SqlRexContext cx, boolean variance) {
+      // regr_sxx(x, y) ==>
+      //     regr_count(x, y) * var_pop(y)
+      //
+      // regr_sxy(x, y) ==>
+      //     regr_count(x, y) * covar_pop(x, y)
+      //
+      // regr_syy(x, y) ==>
+      //     regr_count(x, y) * var_pop(x)
       final SqlParserPos pos = SqlParserPos.ZERO;
       final SqlNode count =
           SqlStdOperatorTable.REGR_COUNT.createCall(pos, arg1, arg2);
@@ -1367,6 +1489,25 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
       return SqlStdOperatorTable.MULTIPLY.createCall(pos, varPopCast, count);
     }
 
+    private static SqlNode expandRegrSlope(
+        final SqlNode arg1, final SqlNode arg2,
+        final RelDataType avgType, final SqlRexContext cx) {
+      // regr_slope(x, y) ==>
+      //     covar_pop(x * y) / case when var_pop(y) = 0 then null else var_pop(y) end
+      final SqlParserPos pos = SqlParserPos.ZERO;
+      final SqlNode covarPop = expandCovariance(arg1, arg2, null,  avgType, cx, true);
+      final SqlNode varPop = expandCovariance(arg2, arg2, arg1, avgType, cx, true);
+      final RexNode varPopRex = cx.convertExpression(varPop);
+      final SqlNode varPopCast = getCastedSqlNode(varPop, avgType, pos, varPopRex);
+      final SqlLiteral nullLiteral = SqlLiteral.createNull(SqlParserPos.ZERO);
+      final SqlNumericLiteral zero = SqlLiteral.createExactNumeric("0", pos);
+      return new SqlCase(SqlParserPos.ZERO,
+          varPopCast,
+          SqlNodeList.of(SqlStdOperatorTable.EQUALS.createCall(pos, varPopCast, zero)),
+          SqlNodeList.of(nullLiteral),
+          SqlStdOperatorTable.DIVIDE.createCall(pos, covarPop, varPopCast));
+    }
+
     private static SqlNode expandCovariance(
         final SqlNode arg0Input,
         final SqlNode arg1Input,
@@ -1374,13 +1515,17 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
         final RelDataType varType,
         final SqlRexContext cx,
         boolean biased) {
-      // covar_pop(x1, x2) ==>
-      //     (sum(x1 * x2) - sum(x2) * sum(x1) / count(x1, x2))
-      //     / count(x1, x2)
+      // covar_pop(x, y) ==>
+      //   (sum(x * y)
+      //      - (sum(x) filter (where y is not null)) * (sum(y) filter (where x is not null))
+      //        / regr_count(x, y))
+      //    / regr_count(x, y)
       //
-      // covar_samp(x1, x2) ==>
-      //     (sum(x1 * x2) - sum(x1) * sum(x2) / count(x1, x2))
-      //     / (count(x1, x2) - 1)
+      // covar_samp(x, y) ==>
+      //   (sum(x * y)
+      //      - (sum(x) filter (where y is not null)) * (sum(y) filter (where x is not null))
+      //         / regr_count(x, y))
+      //   / case regr_count(x, y) when 1 then null else regr_count(x, y) - 1 end
       final SqlParserPos pos = SqlParserPos.ZERO;
       final SqlLiteral nullLiteral = SqlLiteral.createNull(SqlParserPos.ZERO);
 
