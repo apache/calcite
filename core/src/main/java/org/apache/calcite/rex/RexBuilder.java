@@ -503,6 +503,9 @@ public class RexBuilder {
       SqlTypeName typeName = literal.getTypeName();
       if (canRemoveCastFromLiteral(type, value, typeName)) {
         switch (typeName) {
+        case INTERVAL_YEAR:
+        case INTERVAL_YEAR_MONTH:
+        case INTERVAL_MONTH:
         case INTERVAL_DAY:
         case INTERVAL_DAY_HOUR:
         case INTERVAL_DAY_MINUTE:
