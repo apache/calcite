@@ -2159,7 +2159,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       return registerFrom(
           parentScope,
           usingScope,
-          true,
+          register,
           ((SqlCall) node).operand(0),
           enclosingNode,
           alias,

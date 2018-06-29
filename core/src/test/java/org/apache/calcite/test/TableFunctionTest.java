@@ -20,6 +20,7 @@ import org.apache.calcite.config.CalciteConnectionProperty;
 import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.schema.ScannableTable;
 import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.TableFunction;
 import org.apache.calcite.schema.impl.AbstractSchema;
 import org.apache.calcite.schema.impl.TableFunctionImpl;
@@ -87,22 +88,22 @@ public class TableFunctionTest {
   /**
    * Tests a table function with literal arguments.
    */
-  @Test public void testTableFunction()
-      throws SQLException, ClassNotFoundException {
-    Connection connection =
-        DriverManager.getConnection("jdbc:calcite:");
-    CalciteConnection calciteConnection =
-        connection.unwrap(CalciteConnection.class);
-    SchemaPlus rootSchema = calciteConnection.getRootSchema();
-    SchemaPlus schema = rootSchema.add("s", new AbstractSchema());
-    final TableFunction table =
-        TableFunctionImpl.create(Smalls.GENERATE_STRINGS_METHOD);
-    schema.add("GenerateStrings", table);
-    ResultSet resultSet = connection.createStatement().executeQuery("select *\n"
-        + "from table(\"s\".\"GenerateStrings\"(5)) as t(n, c)\n"
-        + "where char_length(c) > 3");
-    assertThat(CalciteAssert.toString(resultSet),
-        equalTo("N=4; C=abcd\n"));
+  @Test public void testTableFunction() throws SQLException {
+    try (Connection connection = DriverManager.getConnection("jdbc:calcite:")) {
+      CalciteConnection calciteConnection =
+          connection.unwrap(CalciteConnection.class);
+      SchemaPlus rootSchema = calciteConnection.getRootSchema();
+      SchemaPlus schema = rootSchema.add("s", new AbstractSchema());
+      final TableFunction table =
+          TableFunctionImpl.create(Smalls.GENERATE_STRINGS_METHOD);
+      schema.add("GenerateStrings", table);
+      final String sql = "select *\n"
+          + "from table(\"s\".\"GenerateStrings\"(5)) as t(n, c)\n"
+          + "where char_length(c) > 3";
+      ResultSet resultSet = connection.createStatement().executeQuery(sql);
+      assertThat(CalciteAssert.toString(resultSet),
+          equalTo("N=4; C=abcd\n"));
+    }
   }
 
   /**
@@ -432,6 +433,34 @@ public class TableFunctionTest {
               "C=5; N=2",
               "C=5; N=3",
               "C=5; N=5");
+    }
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2382">[CALCITE-2382]
+   * Sub-query lateral joined to table function</a>. */
+  @Test public void testInlineViewLateralTableFunction() throws SQLException {
+    try (Connection connection = DriverManager.getConnection("jdbc:calcite:")) {
+      CalciteConnection calciteConnection =
+          connection.unwrap(CalciteConnection.class);
+      SchemaPlus rootSchema = calciteConnection.getRootSchema();
+      SchemaPlus schema = rootSchema.add("s", new AbstractSchema());
+      final TableFunction table =
+          TableFunctionImpl.create(Smalls.GENERATE_STRINGS_METHOD);
+      schema.add("GenerateStrings", table);
+      Table tbl = new ScannableTableTest.SimpleTable();
+      schema.add("t", tbl);
+
+      final String sql = "select *\n"
+          + "from (select 5 as f0 from \"s\".\"t\") \"a\",\n"
+          + "  lateral table(\"s\".\"GenerateStrings\"(f0)) as t(n, c)\n"
+          + "where char_length(c) > 3";
+      ResultSet resultSet = connection.createStatement().executeQuery(sql);
+      final String expected = "F0=5; N=4; C=abcd\n"
+          + "F0=5; N=4; C=abcd\n"
+          + "F0=5; N=4; C=abcd\n"
+          + "F0=5; N=4; C=abcd\n";
+      assertThat(CalciteAssert.toString(resultSet), equalTo(expected));
     }
   }
 }
