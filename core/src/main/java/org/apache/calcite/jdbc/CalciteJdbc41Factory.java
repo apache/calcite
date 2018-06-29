@@ -92,7 +92,8 @@ public class CalciteJdbc41Factory extends CalciteFactory {
   }
 
   public CalciteResultSet newResultSet(AvaticaStatement statement, QueryState state,
-      Meta.Signature signature, TimeZone timeZone, Meta.Frame firstFrame) {
+      Meta.Signature signature, TimeZone timeZone, Meta.Frame firstFrame)
+      throws SQLException {
     final ResultSetMetaData metaData =
         newResultSetMetaData(statement, signature);
     final CalcitePrepare.CalciteSignature calciteSignature =

@@ -47,7 +47,7 @@ public class CalciteResultSet extends AvaticaResultSet {
   CalciteResultSet(AvaticaStatement statement,
       CalcitePrepare.CalciteSignature calciteSignature,
       ResultSetMetaData resultSetMetaData, TimeZone timeZone,
-      Meta.Frame firstFrame) {
+      Meta.Frame firstFrame) throws SQLException {
     super(statement, null, calciteSignature, resultSetMetaData, timeZone, firstFrame);
   }
 
@@ -69,7 +69,7 @@ public class CalciteResultSet extends AvaticaResultSet {
   }
 
   @Override public ResultSet create(ColumnMetaData.AvaticaType elementType,
-      Iterable<Object> iterable) {
+      Iterable<Object> iterable) throws SQLException {
     final List<ColumnMetaData> columnMetaDataList;
     if (elementType instanceof ColumnMetaData.StructType) {
       columnMetaDataList = ((ColumnMetaData.StructType) elementType).columns;
@@ -111,7 +111,7 @@ public class CalciteResultSet extends AvaticaResultSet {
   }
 
   // do not make public
-  CalciteConnectionImpl getCalciteConnection() {
+  CalciteConnectionImpl getCalciteConnection() throws SQLException {
     return (CalciteConnectionImpl) statement.getConnection();
   }
 }

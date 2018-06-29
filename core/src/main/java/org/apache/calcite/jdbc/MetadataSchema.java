@@ -25,6 +25,7 @@ import org.apache.calcite.schema.impl.AbstractSchema;
 
 import com.google.common.collect.ImmutableMap;
 
+import java.sql.SQLException;
 import java.util.Map;
 
 import static org.apache.calcite.jdbc.CalciteMetaImpl.MetaColumn;
@@ -38,7 +39,12 @@ class MetadataSchema extends AbstractSchema {
           new CalciteMetaImpl.MetadataTable<MetaColumn>(MetaColumn.class) {
             public Enumerator<MetaColumn> enumerator(
                 final CalciteMetaImpl meta) {
-              final String catalog = meta.getConnection().getCatalog();
+              final String catalog;
+              try {
+                catalog = meta.getConnection().getCatalog();
+              } catch (SQLException e) {
+                throw new RuntimeException(e);
+              }
               return meta.tables(catalog).selectMany(
                   new Function1<MetaTable, Enumerable<MetaColumn>>() {
                     public Enumerable<MetaColumn> apply(MetaTable table) {
@@ -50,7 +56,12 @@ class MetadataSchema extends AbstractSchema {
           "TABLES",
           new CalciteMetaImpl.MetadataTable<MetaTable>(MetaTable.class) {
             public Enumerator<MetaTable> enumerator(CalciteMetaImpl meta) {
-              final String catalog = meta.getConnection().getCatalog();
+              final String catalog;
+              try {
+                catalog = meta.getConnection().getCatalog();
+              } catch (SQLException e) {
+                throw new RuntimeException(e);
+              }
               return meta.tables(catalog).enumerator();
             }
           });

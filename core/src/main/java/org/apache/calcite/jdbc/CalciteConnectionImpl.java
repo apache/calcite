@@ -447,7 +447,12 @@ abstract class CalciteConnectionImpl
 
     private SqlAdvisor getSqlAdvisor() {
       final CalciteConnectionImpl con = (CalciteConnectionImpl) queryProvider;
-      final String schemaName = con.getSchema();
+      final String schemaName;
+      try {
+        schemaName = con.getSchema();
+      } catch (SQLException e) {
+        throw new RuntimeException(e);
+      }
       final List<String> schemaPath =
           schemaName == null
               ? ImmutableList.<String>of()
@@ -500,7 +505,12 @@ abstract class CalciteConnectionImpl
     }
 
     public List<String> getDefaultSchemaPath() {
-      final String schemaName = connection.getSchema();
+      final String schemaName;
+      try {
+        schemaName = connection.getSchema();
+      } catch (SQLException e) {
+        throw new RuntimeException(e);
+      }
       return schemaName == null
           ? ImmutableList.<String>of()
           : ImmutableList.of(schemaName);
