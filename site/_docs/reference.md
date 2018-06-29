@@ -1510,6 +1510,7 @@ passed to the aggregate function.
 | VAR_SAMP( [ ALL &#124; DISTINCT ] numeric)    | Returns the sample variance (square of the sample standard deviation) of *numeric* across all input values
 | COVAR_POP(numeric1, numeric2)      | Returns the population covariance of the pair (*numeric1*, *numeric2*) across all input values
 | COVAR_SAMP(numeric1, numeric2)     | Returns the sample covariance of the pair (*numeric1*, *numeric2*) across all input values
+| REGR_COUNT(numeric1, numeric2)     | Returns the number of rows where both dependent and independent expressions are not null
 | REGR_SXX(numeric1, numeric2)       | Returns the sum of squares of the dependent expression in a linear regression model
 | REGR_SYY(numeric1, numeric2)       | Returns the sum of squares of the independent expression in a linear regression model
 
@@ -1517,7 +1518,6 @@ Not implemented:
 
 * REGR_AVGX(numeric1, numeric2)
 * REGR_AVGY(numeric1, numeric2)
-* REGR_COUNT(numeric1, numeric2)
 * REGR_INTERCEPT(numeric1, numeric2)
 * REGR_R2(numeric1, numeric2)
 * REGR_SLOPE(numeric1, numeric2)
