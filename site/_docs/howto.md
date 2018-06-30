@@ -507,7 +507,8 @@ Before you start:
   (i.e. gives no errors; warnings are OK)
 * Generate a report of vulnerabilities that occur among dependencies,
   using `-Ppedantic`; if you like, run again with `-DfailBuildOnCVSS=8` to see
-  whether serious vulnerabilities exist.
+  whether serious vulnerabilities exist. Report to [private@calcite.apache.org](mailto:private@calcite.apache.org)
+  if new critical vulnerabilities are found among dependencies.
 * Make sure that `mvn apache-rat:check` succeeds. (It will be run as part of
   the release, but it's better to trouble-shoot early.)
 * Decide the supported configurations of JDK, operating system and
