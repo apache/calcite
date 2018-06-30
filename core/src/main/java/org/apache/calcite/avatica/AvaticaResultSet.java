@@ -267,6 +267,7 @@ public class AvaticaResultSet extends ArrayFactoryImpl implements ResultSet {
     return getAccessor(columnIndex).getDouble();
   }
 
+  @SuppressWarnings("deprecation")
   public BigDecimal getBigDecimal(
       int columnIndex, int scale) throws SQLException {
     return getAccessor(columnIndex).getBigDecimal(scale);
@@ -292,6 +293,7 @@ public class AvaticaResultSet extends ArrayFactoryImpl implements ResultSet {
     return getAccessor(columnIndex).getAsciiStream();
   }
 
+  @SuppressWarnings("deprecation")
   public InputStream getUnicodeStream(int columnIndex) throws SQLException {
     return getAccessor(columnIndex).getUnicodeStream();
   }
@@ -332,6 +334,7 @@ public class AvaticaResultSet extends ArrayFactoryImpl implements ResultSet {
     return getAccessor(columnLabel).getDouble();
   }
 
+  @SuppressWarnings("deprecation")
   public BigDecimal getBigDecimal(
       String columnLabel, int scale) throws SQLException {
     return getAccessor(columnLabel).getBigDecimal(scale);
@@ -357,6 +360,7 @@ public class AvaticaResultSet extends ArrayFactoryImpl implements ResultSet {
     return getAccessor(columnLabel).getAsciiStream();
   }
 
+  @SuppressWarnings("deprecation")
   public InputStream getUnicodeStream(String columnLabel) throws SQLException {
     return getAccessor(columnLabel).getUnicodeStream();
   }

@@ -441,7 +441,7 @@ limitations under the License.
                 <artifactId>guava</artifactId>
               </exclusion>
             </exclusions>
-          </dependency>  
+          </dependency>
           <!-- checkstyle requires Guava 19 -->
         </dependencies>
       </plugin>

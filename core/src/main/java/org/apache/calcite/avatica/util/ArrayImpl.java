@@ -221,6 +221,11 @@ public class ArrayImpl implements Array {
     // nothing to do
   }
 
+  /** Returns whether two arrays have the same contents.
+   *
+   * <p>Arrays must have the same size, and elements in the same order.
+   * Elements are compared using {@link Object#equals(Object)}, and null
+   * values are equal to each other. */
   public static boolean equalContents(Array left, Array right) throws SQLException {
     ResultSet leftResultSet = left.getResultSet();
     ResultSet rightResultSet = right.getResultSet();
@@ -240,7 +245,7 @@ public class ArrayImpl implements Array {
      *
      * @param elementType The type of the elements
      * @param iterable The elements
-     * @throws SQLException
+     * @throws SQLException on error
      */
     ResultSet create(ColumnMetaData.AvaticaType elementType, Iterable<Object> iterable)
         throws SQLException;
