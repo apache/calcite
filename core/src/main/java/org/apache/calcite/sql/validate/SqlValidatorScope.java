@@ -298,6 +298,10 @@ public interface SqlValidatorScope {
       if (scope instanceof TableScope) {
         scope = scope.getValidator().getSelectScope((SqlSelect) scope.getNode());
       }
+      if (scope instanceof AggregatingSelectScope) {
+        scope = ((AggregatingSelectScope) scope).parent;
+        assert scope instanceof SelectScope;
+      }
       resolves.add(
           new Resolve(namespace, nullable, scope, path, remainingNames));
     }

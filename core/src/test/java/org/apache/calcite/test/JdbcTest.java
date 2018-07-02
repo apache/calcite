@@ -2092,6 +2092,17 @@ public class JdbcTest {
             "empid=150; deptno=10; name=Sebastian; salary=7000.0; commission=null");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2381">[CALCITE-2391]
+   * Aggregate query with UNNEST or LATERAL fails with
+   * ClassCastException</a>. */
+  @Test public void testAggUnnestColumn() {
+    final String sql = "select count(d.\"name\") as c\n"
+        + "from \"hr\".\"depts\" as d,\n"
+        + " UNNEST(d.\"employees\") as e";
+    CalciteAssert.hr().query(sql).returnsUnordered("C=3");
+  }
+
   @Test public void testArrayElement() {
     CalciteAssert.that()
         .with(CalciteAssert.Config.REGULAR)
