@@ -40,8 +40,8 @@ import org.apache.calcite.sql.type.SqlTypeName;
  * </blockquote>
  *
  * <p>The interval time unit can one of the following literals:<ul>
- * <li>MICROSECOND (and synonyms SQL_TSI_MICROSECOND, FRAC_SECOND,
- *     SQL_TSI_FRAC_SECOND)
+ * <li>NANOSECOND (and synonym SQL_TSI_FRAC_SECOND)
+ * <li>MICROSECOND (and synonyms SQL_TSI_MICROSECOND, FRAC_SECOND)
  * <li>SECOND (and synonym SQL_TSI_SECOND)
  * <li>MINUTE (and synonym  SQL_TSI_MINUTE)
  * <li>HOUR (and synonym  SQL_TSI_HOUR)

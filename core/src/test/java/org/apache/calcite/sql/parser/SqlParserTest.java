@@ -6919,8 +6919,8 @@ public class SqlParserTest {
   @Test public void testTimestampAddAndDiff() {
     Map<String, List<String>> tsi = ImmutableMap.<String, List<String>>builder()
         .put("MICROSECOND",
-            Arrays.asList("FRAC_SECOND", "MICROSECOND",
-                "SQL_TSI_FRAC_SECOND", "SQL_TSI_MICROSECOND"))
+            Arrays.asList("FRAC_SECOND", "MICROSECOND", "SQL_TSI_MICROSECOND"))
+        .put("NANOSECOND", Arrays.asList("NANOSECOND", "SQL_TSI_FRAC_SECOND"))
         .put("SECOND", Arrays.asList("SECOND", "SQL_TSI_SECOND"))
         .put("MINUTE", Arrays.asList("MINUTE", "SQL_TSI_MINUTE"))
         .put("HOUR", Arrays.asList("HOUR", "SQL_TSI_HOUR"))
