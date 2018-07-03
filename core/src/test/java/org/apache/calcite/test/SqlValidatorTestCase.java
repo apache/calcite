@@ -107,7 +107,11 @@ public class SqlValidatorTestCase {
   }
 
   public final Sql sql(String sql) {
-    return new Sql(tester, sql);
+    return new Sql(tester, sql, true);
+  }
+
+  public final Sql expr(String sql) {
+    return new Sql(tester, sql, false);
   }
 
   public final Sql winSql(String sql) {
@@ -559,17 +563,23 @@ public class SqlValidatorTestCase {
     private final SqlTester tester;
     private final String sql;
 
-    Sql(SqlTester tester, String sql) {
+    /** Creates a Sql.
+     *
+     * @param tester Tester
+     * @param sql SQL query or expression
+     * @param query True if {@code sql} is a query, false if it is an expression
+     */
+    Sql(SqlTester tester, String sql, boolean query) {
       this.tester = tester;
-      this.sql = sql;
+      this.sql = query ? sql : SqlTesterImpl.buildQuery(sql);
     }
 
     Sql tester(SqlTester tester) {
-      return new Sql(tester, sql);
+      return new Sql(tester, sql, true);
     }
 
     public Sql sql(String sql) {
-      return new Sql(tester, sql);
+      return new Sql(tester, sql, true);
     }
 
     Sql withExtendedCatalog() {
@@ -629,7 +639,7 @@ public class SqlValidatorTestCase {
      * a test once at a conformance level where it fails, then run it again
      * at a conformance level where it succeeds. */
     public Sql sansCarets() {
-      return new Sql(tester, sql.replace("^", ""));
+      return new Sql(tester, sql.replace("^", ""), true);
     }
   }
 }

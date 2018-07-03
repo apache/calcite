@@ -68,13 +68,13 @@ public class SqlTimestampAddFunction extends SqlFunction {
 
   public static RelDataType deduceType(RelDataTypeFactory typeFactory,
       TimeUnit timeUnit, RelDataType operandType1, RelDataType operandType2) {
+    final RelDataType type;
     switch (timeUnit) {
     case HOUR:
     case MINUTE:
     case SECOND:
     case MILLISECOND:
     case MICROSECOND:
-      final RelDataType type;
       switch (timeUnit) {
       case MILLISECOND:
         type = typeFactory.createSqlType(SqlTypeName.TIMESTAMP,
@@ -87,12 +87,13 @@ public class SqlTimestampAddFunction extends SqlFunction {
       default:
         type = typeFactory.createSqlType(SqlTypeName.TIMESTAMP);
       }
-      return typeFactory.createTypeWithNullability(type,
-          operandType1.isNullable()
-              || operandType2.isNullable());
+      break;
     default:
-      return operandType2;
+      type = operandType2;
     }
+    return typeFactory.createTypeWithNullability(type,
+        operandType1.isNullable()
+            || operandType2.isNullable());
   }
 
   /** Creates a SqlTimestampAddFunction. */

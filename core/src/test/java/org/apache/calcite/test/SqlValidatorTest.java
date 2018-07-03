@@ -3490,6 +3490,22 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
             + " INTERVAL SECOND\\(1, 0\\)");
   }
 
+  @Test public void testDatetimePlusNullInterval() {
+    expr("TIME '8:8:8' + cast(NULL AS interval hour)").columnType("TIME(0)");
+    expr("TIME '8:8:8' + cast(NULL AS interval YEAR)").columnType("TIME(0)");
+    expr("TIMESTAMP '1990-12-12 12:12:12' + cast(NULL AS interval hour)")
+        .columnType("TIMESTAMP(0)");
+    expr("TIMESTAMP '1990-12-12 12:12:12' + cast(NULL AS interval YEAR)")
+        .columnType("TIMESTAMP(0)");
+
+    expr("cast(NULL AS interval hour) + TIME '8:8:8'").columnType("TIME(0)");
+    expr("cast(NULL AS interval YEAR) + TIME '8:8:8'").columnType("TIME(0)");
+    expr("cast(NULL AS interval hour) + TIMESTAMP '1990-12-12 12:12:12'")
+        .columnType("TIMESTAMP(0)");
+    expr("cast(NULL AS interval YEAR) + TIMESTAMP '1990-12-12 12:12:12'")
+        .columnType("TIMESTAMP(0)");
+  }
+
   @Test public void testIntervalLiterals() {
     // First check that min, max, and defaults are what we expect
     // (values used in subtests depend on these being true to
@@ -3680,6 +3696,15 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         "(?s).*Was expecting one of.*");
     checkWholeExpFails("timestampdiff(incorrect, current_timestamp, current_timestamp)",
         "(?s).*Was expecting one of.*");
+  }
+
+  @Test public void testTimestampAddNullInterval() {
+    expr("timestampadd(SQL_TSI_SECOND, cast(NULL AS INTEGER),"
+        + " current_timestamp)")
+        .columnType("TIMESTAMP(0)");
+    expr("timestampadd(SQL_TSI_DAY, cast(NULL AS INTEGER),"
+        + " current_timestamp)")
+        .columnType("TIMESTAMP(0)");
   }
 
   @Test public void testNumericOperators() {
