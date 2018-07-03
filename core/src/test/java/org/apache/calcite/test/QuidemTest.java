@@ -18,6 +18,7 @@ package org.apache.calcite.test;
 
 import org.apache.calcite.adapter.java.ReflectiveSchema;
 import org.apache.calcite.avatica.AvaticaUtils;
+import org.apache.calcite.config.CalciteConnectionProperty;
 import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.prepare.Prepare;
 import org.apache.calcite.rel.type.RelDataType;
@@ -72,7 +73,8 @@ public abstract class QuidemTest {
   private Method findMethod(String path) {
     // E.g. path "sql/agg.iq" gives method "testSqlAgg"
     String methodName =
-        AvaticaUtils.toCamelCase("test_" + path.replace('/', '_').replaceAll("\\.iq$", ""));
+        AvaticaUtils.toCamelCase(
+            "test_" + path.replace(File.separatorChar, '_').replaceAll("\\.iq$", ""));
     Method m;
     try {
       m = getClass().getMethod(methodName);
@@ -270,7 +272,7 @@ public abstract class QuidemTest {
             .connect();
       case "blank":
         return CalciteAssert.that()
-            .with("parserFactory",
+            .with(CalciteConnectionProperty.PARSER_FACTORY,
                 "org.apache.calcite.sql.parser.parserextensiontesting"
                     + ".ExtensionSqlParserImpl#FACTORY")
             .with(CalciteAssert.SchemaSpec.BLANK)

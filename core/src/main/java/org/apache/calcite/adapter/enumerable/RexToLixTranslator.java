@@ -592,7 +592,7 @@ public class RexToLixTranslator {
         convert = RexImpTable.multiplyDivide(convert, multiplier, divider);
       }
     }
-    return convert;
+    return scaleIntervalToNumber(sourceType, targetType, convert);
   }
 
   /** Adapts an expression with "normal" result to one that adheres to
@@ -1255,6 +1255,36 @@ public class RexToLixTranslator {
 
   public Expression getRoot() {
     return root;
+  }
+
+  private static Expression scaleIntervalToNumber(
+      RelDataType sourceType,
+      RelDataType targetType,
+      Expression operand) {
+    switch (targetType.getSqlTypeName().getFamily()) {
+    case NUMERIC:
+      switch (sourceType.getSqlTypeName()) {
+      case INTERVAL_YEAR:
+      case INTERVAL_YEAR_MONTH:
+      case INTERVAL_MONTH:
+      case INTERVAL_DAY:
+      case INTERVAL_DAY_HOUR:
+      case INTERVAL_DAY_MINUTE:
+      case INTERVAL_DAY_SECOND:
+      case INTERVAL_HOUR:
+      case INTERVAL_HOUR_MINUTE:
+      case INTERVAL_HOUR_SECOND:
+      case INTERVAL_MINUTE:
+      case INTERVAL_MINUTE_SECOND:
+      case INTERVAL_SECOND:
+        // Scale to the given field.
+        final BigDecimal multiplier = BigDecimal.ONE;
+        final BigDecimal divider =
+            sourceType.getSqlTypeName().getEndUnit().multiplier;
+        return RexImpTable.multiplyDivide(operand, multiplier, divider);
+      }
+    }
+    return operand;
   }
 
   /** Translates a field of an input to an expression. */

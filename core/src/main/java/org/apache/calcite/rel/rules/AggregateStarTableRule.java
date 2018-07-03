@@ -16,11 +16,13 @@
  */
 package org.apache.calcite.rel.rules;
 
+import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.materialize.Lattice;
 import org.apache.calcite.materialize.TileKey;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptLattice;
+import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptRuleOperand;
@@ -113,14 +115,22 @@ public class AggregateStarTableRule extends RelOptRule {
 
   protected void apply(RelOptRuleCall call, Project postProject,
       final Aggregate aggregate, StarTable.StarTableScan scan) {
+    final RelOptPlanner planner = call.getPlanner();
+    final CalciteConnectionConfig config =
+        planner.getContext().unwrap(CalciteConnectionConfig.class);
+    if (config == null || !config.createMaterializations()) {
+      // Disable this rule if we if materializations are disabled - in
+      // particular, if we are in a recursive statement that is being used to
+      // populate a materialization
+      return;
+    }
     final RelOptCluster cluster = scan.getCluster();
     final RelOptTable table = scan.getTable();
-    final RelOptLattice lattice = call.getPlanner().getLattice(table);
+    final RelOptLattice lattice = planner.getLattice(table);
     final List<Lattice.Measure> measures =
         lattice.lattice.toMeasures(aggregate.getAggCallList());
     final Pair<CalciteSchema.TableEntry, TileKey> pair =
-        lattice.getAggregate(
-            call.getPlanner(), aggregate.getGroupSet(), measures);
+        lattice.getAggregate(planner, aggregate.getGroupSet(), measures);
     if (pair == null) {
       return;
     }

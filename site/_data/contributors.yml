@@ -17,6 +17,7 @@
 # Pages such as developer.md use this data.
 #
 - name: Alan Gates
+  emeritus: 2018/05/04
   apacheId: gates
   githubId: alanfgates
   org: Hortonworks

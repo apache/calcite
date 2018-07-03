@@ -43,9 +43,11 @@ public class MongoSchema extends AbstractSchema {
    * Creates a MongoDB schema.
    *
    * @param host Mongo host, e.g. "localhost"
+   * @param credentialsList Optional credentials (empty list for none)
+   * @param options Mongo connection options
    * @param database Mongo database name, e.g. "foodmart"
    */
-  public MongoSchema(String host, String database,
+  MongoSchema(String host, String database,
       List<MongoCredential> credentialsList, MongoClientOptions options) {
     super();
     try {

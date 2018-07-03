@@ -20,6 +20,7 @@ import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.Strong;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.Correlate;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.SemiJoin;
@@ -32,6 +33,7 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.runtime.PredicateImpl;
+import org.apache.calcite.sql.SemiJoinType;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.BitSets;
@@ -250,6 +252,45 @@ public class PushProjector {
         strongBitmap = ImmutableBitSet.range(nSysFields, nChildFields);
       }
 
+    } else if (childRel instanceof Correlate) {
+      Correlate corrRel = (Correlate) childRel;
+      List<RelDataTypeField> leftFields =
+          corrRel.getLeft().getRowType().getFieldList();
+      List<RelDataTypeField> rightFields =
+          corrRel.getRight().getRowType().getFieldList();
+      nFields = leftFields.size();
+      SemiJoinType joinType = corrRel.getJoinType();
+      switch (joinType) {
+      case SEMI:
+      case ANTI:
+        nFieldsRight = 0;
+        break;
+      default:
+        nFieldsRight = rightFields.size();
+      }
+      nSysFields = 0;
+      childBitmap =
+          ImmutableBitSet.range(0, nFields);
+      rightBitmap =
+          ImmutableBitSet.range(nFields, nChildFields);
+
+      // Required columns need to be included in project
+      projRefs.or(BitSets.of(corrRel.getRequiredColumns()));
+
+      switch (joinType) {
+      case INNER:
+        strongBitmap = ImmutableBitSet.of();
+        break;
+      case ANTI:
+      case SEMI:  // All the left-input's columns must be strong
+        strongBitmap = ImmutableBitSet.range(0, nFields);
+        break;
+      case LEFT: // All the right-input's columns must be strong
+        strongBitmap = ImmutableBitSet.range(nFields, nChildFields);
+        break;
+      default:
+        strongBitmap = ImmutableBitSet.range(0, nChildFields);
+      }
     } else {
       nFields = nChildFields;
       nFieldsRight = 0;
@@ -260,8 +301,8 @@ public class PushProjector {
     }
     assert nChildFields == nSysFields + nFields + nFieldsRight;
 
-    childPreserveExprs = new ArrayList<RexNode>();
-    rightPreserveExprs = new ArrayList<RexNode>();
+    childPreserveExprs = new ArrayList<>();
+    rightPreserveExprs = new ArrayList<>();
 
     rexBuilder = childRel.getCluster().getRexBuilder();
   }

@@ -28,7 +28,10 @@ import org.apache.calcite.avatica.AvaticaStatement;
 import org.apache.calcite.avatica.Handler;
 import org.apache.calcite.avatica.HandlerImpl;
 import org.apache.calcite.avatica.Meta;
+import org.apache.calcite.avatica.util.Casing;
+import org.apache.calcite.avatica.util.Quoting;
 import org.apache.calcite.config.CalciteConnectionConfig;
+import org.apache.calcite.config.CalciteConnectionProperty;
 import org.apache.calcite.config.Lex;
 import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.jdbc.CalciteConnection;
@@ -655,8 +658,7 @@ public class JdbcTest {
         resultSet.next();
         fail("resultSet.next() should throw SQLException when closed");
       } catch (SQLException e) {
-        assertThat(e.getMessage(),
-            containsString("next() called on closed cursor"));
+        assertThat(e.getMessage(), containsString("ResultSet closed"));
       }
       assertEquals(0, closeCount[0]);
       assertEquals(0, statementCloseCount[0]);
@@ -2090,6 +2092,17 @@ public class JdbcTest {
             "empid=150; deptno=10; name=Sebastian; salary=7000.0; commission=null");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2381">[CALCITE-2391]
+   * Aggregate query with UNNEST or LATERAL fails with
+   * ClassCastException</a>. */
+  @Test public void testAggUnnestColumn() {
+    final String sql = "select count(d.\"name\") as c\n"
+        + "from \"hr\".\"depts\" as d,\n"
+        + " UNNEST(d.\"employees\") as e";
+    CalciteAssert.hr().query(sql).returnsUnordered("C=3");
+  }
+
   @Test public void testArrayElement() {
     CalciteAssert.that()
         .with(CalciteAssert.Config.REGULAR)
@@ -2107,6 +2120,35 @@ public class JdbcTest {
             "empid=100; deptno=10; name=Bill; salary=10000.0; commission=1000; deptno0=10; name0=Sales; employees=[{100, 10, Bill, 10000.0, 1000}, {150, 10, Sebastian, 7000.0, null}]; location={-122, 38}",
             "empid=110; deptno=10; name=Theodore; salary=11500.0; commission=250; deptno0=10; name0=Sales; employees=[{100, 10, Bill, 10000.0, 1000}, {150, 10, Sebastian, 7000.0, null}]; location={-122, 38}",
             "empid=150; deptno=10; name=Sebastian; salary=7000.0; commission=null; deptno0=10; name0=Sales; employees=[{100, 10, Bill, 10000.0, 1000}, {150, 10, Sebastian, 7000.0, null}]; location={-122, 38}");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-531">[CALCITE-531]
+   * Window function does not work in LATERAL</a>. */
+  @Test public void testLateralWithOver() {
+    final String sql = "select \"emps\".\"name\", d.\"deptno\", d.m\n"
+        + "from \"hr\".\"emps\",\n"
+        + "  LATERAL (\n"
+        + "    select \"depts\".\"deptno\",\n"
+        + "      max(\"deptno\" + \"emps\".\"empid\") over (\n"
+        + "        partition by \"emps\".\"deptno\") as m\n"
+        + "     from \"hr\".\"depts\"\n"
+        + "     where \"emps\".\"deptno\" = \"depts\".\"deptno\") as d";
+    CalciteAssert.that()
+        .with(CalciteAssert.Config.REGULAR)
+        .query(sql)
+        .returnsUnordered("name=Bill; deptno=10; M=190",
+            "name=Bill; deptno=30; M=190",
+            "name=Bill; deptno=40; M=190",
+            "name=Eric; deptno=10; M=240",
+            "name=Eric; deptno=30; M=240",
+            "name=Eric; deptno=40; M=240",
+            "name=Sebastian; deptno=10; M=190",
+            "name=Sebastian; deptno=30; M=190",
+            "name=Sebastian; deptno=40; M=190",
+            "name=Theodore; deptno=10; M=190",
+            "name=Theodore; deptno=30; M=190",
+            "name=Theodore; deptno=40; M=190");
   }
 
   /** Per SQL std, UNNEST is implicitly LATERAL. */
@@ -3033,7 +3075,7 @@ public class JdbcTest {
     };
     final CalciteAssert.AssertThat with = CalciteAssert.that()
         .with(CalciteAssert.Config.FOODMART_CLONE)
-        .with("defaultNullCollation", nullCollation.name());
+        .with(CalciteConnectionProperty.DEFAULT_NULL_COLLATION, nullCollation);
     final String sql = "select \"store_id\", \"grocery_sqft\" from \"store\"\n"
         + "where \"store_id\" < 3 order by 2 "
         + (desc ? " DESC" : "");
@@ -4579,7 +4621,7 @@ public class JdbcTest {
         + " select 1 from \"hr\".\"depts\"\n"
         + " where \"emps\".\"deptno\"=\"depts\".\"deptno\")";
     CalciteAssert.hr()
-        .with("forceDecorrelate", false)
+        .with(CalciteConnectionProperty.FORCE_DECORRELATE, false)
         .query(sql)
         .explainContains(plan)
         .returnsUnordered(
@@ -5649,7 +5691,7 @@ public class JdbcTest {
    * is executed. */
   @Test public void testCurrentTimestamp() throws Exception {
     CalciteAssert.that()
-        .with("timezone", "GMT+1:00")
+        .with(CalciteConnectionProperty.TIME_ZONE, "GMT+1:00")
         .doWithConnection(
             new Function<CalciteConnection, Void>() {
               public Void apply(CalciteConnection connection) {
@@ -5689,9 +5731,7 @@ public class JdbcTest {
   /** Test for timestamps and time zones, based on pgsql TimezoneTest. */
   @Test public void testGetTimestamp() throws Exception {
     CalciteAssert.that()
-        .with("timezone", "GMT+1:00")
-        // Workaround, until [CALCITE-1667] is fixed in Avatica
-        .with("TIME_ZONE", "GMT+1:00")
+        .with(CalciteConnectionProperty.TIME_ZONE, "GMT+1:00")
         .doWithConnection(
             new Function<CalciteConnection, Void>() {
               public Void apply(CalciteConnection connection) {
@@ -6111,10 +6151,10 @@ public class JdbcTest {
   @Test public void testLexOracleAsJava() throws Exception {
     CalciteAssert.that()
         .with(Lex.ORACLE)
-        .with("quoting", "BACK_TICK")
-        .with("unquotedCasing", "UNCHANGED")
-        .with("quotedCasing", "UNCHANGED")
-        .with("caseSensitive", "TRUE")
+        .with(CalciteConnectionProperty.QUOTING, Quoting.BACK_TICK)
+        .with(CalciteConnectionProperty.UNQUOTED_CASING, Casing.UNCHANGED)
+        .with(CalciteConnectionProperty.QUOTED_CASING, Casing.UNCHANGED)
+        .with(CalciteConnectionProperty.CASE_SENSITIVE, true)
         .doWithConnection(
             new Function<CalciteConnection, Void>() {
               public Void apply(CalciteConnection connection) {
@@ -6212,7 +6252,7 @@ public class JdbcTest {
 
   @Test public void testFunOracle() {
     CalciteAssert.that(CalciteAssert.Config.REGULAR)
-        .with("fun", "oracle")
+        .with(CalciteConnectionProperty.FUN, "oracle")
         .query("select nvl(\"commission\", -99) as c from \"hr\".\"emps\"")
         .returnsUnordered("C=-99",
             "C=1000",
@@ -6233,7 +6273,7 @@ public class JdbcTest {
         + "  ST_PointFromText('POINT(-71.0642.28)') as c\n"
         + "from \"hr\".\"emps\"";
     CalciteAssert.that(CalciteAssert.Config.REGULAR)
-        .with("fun", "spatial")
+        .with(CalciteConnectionProperty.FUN, "spatial")
         .query(sql)
         .returnsUnordered("C={\"x\":-71.0642,\"y\":0.28}");
 

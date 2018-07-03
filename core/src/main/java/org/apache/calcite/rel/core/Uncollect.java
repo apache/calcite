@@ -23,7 +23,6 @@ import org.apache.calcite.rel.RelInput;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.SingleRel;
-import org.apache.calcite.rel.type.DynamicRecordType;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
@@ -129,10 +128,10 @@ public class Uncollect extends SingleRel {
 
     if (fields.size() == 1
         && fields.get(0).getType().getSqlTypeName() == SqlTypeName.ANY) {
-      // Component type is unknown to Uncollect, build dynamic star record
-      // type. Only consider ONE field case for unknown type.
+      // Component type is unknown to Uncollect, build a row type with input column name
+      // and Any type.
       return builder
-          .add(DynamicRecordType.DYNAMIC_STAR_PREFIX, SqlTypeName.ANY)
+          .add(fields.get(0).getName(), SqlTypeName.ANY)
           .nullable(true)
           .build();
     }

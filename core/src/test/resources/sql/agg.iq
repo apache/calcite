@@ -1075,6 +1075,69 @@ FROM "scott".emp;
 !ok
 !}
 
+# FUSION rolled up using CARDINALITY
+select cardinality(fusion(empnos)) as f_empnos_length
+from (
+  select deptno, collect(empno) as empnos
+  from "scott".emp
+  group by deptno);
++-----------------+
+| F_EMPNOS_LENGTH |
++-----------------+
+|              14 |
++-----------------+
+(1 row)
+
+!ok
+
+# FUSION
+select cardinality(fusion(empnos)) as f_empnos_length from (select deptno, collect(empno) as empnos
+from "scott".emp
+group by deptno);
++-----------------+
+| F_EMPNOS_LENGTH |
++-----------------+
+|              14 |
++-----------------+
+(1 row)
+
+!ok
+
+# FUSION on sub-total
+select job, fusion(empnos) as empnos
+from (
+  select job, collect(empno) as empnos
+  from "scott".emp
+  group by deptno, job)
+group by job;
++-----------+--------------------------+
+| JOB       | EMPNOS                   |
++-----------+--------------------------+
+| ANALYST   | [7788, 7902]             |
+| CLERK     | [7934, 7369, 7876, 7900] |
+| MANAGER   | [7782, 7566, 7698]       |
+| PRESIDENT | [7839]                   |
+| SALESMAN  | [7499, 7521, 7654, 7844] |
++-----------+--------------------------+
+(5 rows)
+
+!ok
+
+# FUSION grand total
+select fusion(deptnos) as deptnos
+from (
+  select collect(distinct deptno) as deptnos
+  from "scott".emp
+  group by deptno);
++--------------+
+| DEPTNOS      |
++--------------+
+| [20, 10, 30] |
++--------------+
+(1 row)
+
+!ok
+
 # COLLECT
 select deptno, collect(empno) as empnos
 from "scott".emp

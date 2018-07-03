@@ -160,13 +160,13 @@ class EmptyScope implements SqlValidatorScope {
           table2 = RelOptTableImpl.create(relOptSchema, rowType, entry, null);
         }
         namespace = new TableNamespace(validator, table2);
-        resolved.found(namespace, false, this, path, remainingNames);
+        resolved.found(namespace, false, null, path, remainingNames);
         return;
       }
       // neither sub-schema nor table
       if (namespace != null
           && !remainingNames.equals(names)) {
-        resolved.found(namespace, false, this, path, remainingNames);
+        resolved.found(namespace, false, null, path, remainingNames);
       }
       return;
     }

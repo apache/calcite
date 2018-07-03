@@ -117,7 +117,14 @@ public class SqlUserDefinedTableMacro extends SqlFunction {
               + pair.left.getOrdinal() + " (" + pair.left.getName()
               + ") is not literal: " + pair.right);
         }
-        arguments.add(null);
+        final RelDataType type = pair.left.getType(typeFactory);
+        final Object value;
+        if (type.isNullable()) {
+          value = null;
+        } else {
+          value = 0L;
+        }
+        arguments.add(value);
       }
     }
     return arguments;

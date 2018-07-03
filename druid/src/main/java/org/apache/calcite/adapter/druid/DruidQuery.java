@@ -18,6 +18,7 @@ package org.apache.calcite.adapter.druid;
 
 import org.apache.calcite.DataContext;
 import org.apache.calcite.avatica.ColumnMetaData;
+import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.interpreter.BindableRel;
 import org.apache.calcite.interpreter.Bindables;
@@ -259,11 +260,13 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
     switch (rexNode.getKind()) {
     case INPUT_REF:
       columnName = extractColumnName(rexNode, rowType, druidQuery);
-      //@TODO we can remove this ugly check by treating druid time columns as LONG
-      if (rexNode.getType().getFamily() == SqlTypeFamily.DATE
-          || rexNode.getType().getFamily() == SqlTypeFamily.TIMESTAMP) {
-        extractionFunction = TimeExtractionFunction
-            .createDefault(druidQuery.getConnectionConfig().timeZone());
+      if (rexNode.getType().getSqlTypeName() == SqlTypeName.DATE
+          || rexNode.getType().getSqlTypeName() == SqlTypeName.TIMESTAMP
+          || rexNode.getType().getSqlTypeName()
+          == SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE) {
+        // Use UTC for DATE and TIMESTAMP types
+        extractionFunction = TimeExtractionFunction.createDefault(
+            DateTimeUtils.UTC_ZONE.getID());
       } else {
         extractionFunction = null;
       }
@@ -278,12 +281,24 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
       if (!TimeExtractionFunction.isValidTimeExtract((RexCall) rexNode)) {
         return Pair.of(null, null);
       }
-      extractionFunction =
-          TimeExtractionFunction.createExtractFromGranularity(granularity,
-              druidQuery.getConnectionConfig().timeZone());
-      columnName =
-          extractColumnName(((RexCall) rexNode).getOperands().get(1), rowType, druidQuery);
-
+      RexNode extractValueNode = ((RexCall) rexNode).getOperands().get(1);
+      if (extractValueNode.getType().getSqlTypeName() == SqlTypeName.DATE
+          || extractValueNode.getType().getSqlTypeName() == SqlTypeName.TIMESTAMP) {
+        // Use 'UTC' at the extraction level
+        extractionFunction =
+            TimeExtractionFunction.createExtractFromGranularity(
+                granularity, DateTimeUtils.UTC_ZONE.getID());
+        columnName = extractColumnName(extractValueNode, rowType, druidQuery);
+      } else if (extractValueNode.getType().getSqlTypeName()
+          == SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE) {
+        // Use local time zone at the extraction level
+        extractionFunction =
+          TimeExtractionFunction.createExtractFromGranularity(
+              granularity, druidQuery.getConnectionConfig().timeZone());
+        columnName = extractColumnName(extractValueNode, rowType, druidQuery);
+      } else {
+        return Pair.of(null, null);
+      }
       break;
     case FLOOR:
       granularity = DruidDateTimeUtils
@@ -295,11 +310,20 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
       if (!TimeExtractionFunction.isValidTimeFloor((RexCall) rexNode)) {
         return Pair.of(null, null);
       }
-      extractionFunction =
-          TimeExtractionFunction
-              .createFloorFromGranularity(granularity, druidQuery.getConnectionConfig().timeZone());
-      columnName =
-          extractColumnName(((RexCall) rexNode).getOperands().get(0), rowType, druidQuery);
+      RexNode floorValueNode = ((RexCall) rexNode).getOperands().get(0);
+      if (floorValueNode.getType().getSqlTypeName() == SqlTypeName.DATE
+          || floorValueNode.getType().getSqlTypeName() == SqlTypeName.TIMESTAMP
+          || floorValueNode.getType().getSqlTypeName()
+          == SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE) {
+        // Use 'UTC' at the extraction level, since all datetime types
+        // are represented in 'UTC'
+        extractionFunction =
+            TimeExtractionFunction.createFloorFromGranularity(
+                granularity, DateTimeUtils.UTC_ZONE.getID());
+        columnName = extractColumnName(floorValueNode, rowType, druidQuery);
+      } else {
+        return Pair.of(null, null);
+      }
       break;
     case CAST:
       // CASE we have a cast over InputRef. Check that cast is valid
@@ -310,8 +334,8 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
           extractColumnName(((RexCall) rexNode).getOperands().get(0), rowType, druidQuery);
       // CASE CAST to TIME/DATE need to make sure that we have valid extraction fn
       final SqlTypeName toTypeName = rexNode.getType().getSqlTypeName();
-      if (toTypeName.getFamily() == SqlTypeFamily.TIMESTAMP
-          || toTypeName.getFamily() == SqlTypeFamily.DATETIME) {
+      if (toTypeName == SqlTypeName.DATE || toTypeName == SqlTypeName.TIMESTAMP
+          || toTypeName == SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE) {
         extractionFunction = TimeExtractionFunction.translateCastToTimeExtract(rexNode,
             TimeZone.getTimeZone(druidQuery.getConnectionConfig().timeZone()));
         if (extractionFunction == null) {

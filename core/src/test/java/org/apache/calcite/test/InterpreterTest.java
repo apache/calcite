@@ -176,10 +176,36 @@ public class InterpreterTest {
         "[6, George]");
   }
 
-  @Test public void testAggregate() throws Exception {
+  @Test public void testAggregateCount() throws Exception {
     rootSchema.add("beatles", new ScannableTableTest.BeatlesTable());
     SqlNode parse =
         planner.parse("select  count(*) from \"beatles\"");
+
+    SqlNode validate = planner.validate(parse);
+    RelNode convert = planner.rel(validate).rel;
+
+    final Interpreter interpreter = new Interpreter(dataContext, convert);
+    assertRows(interpreter,
+        "[4]");
+  }
+
+  @Test public void testAggregateMax() throws Exception {
+    rootSchema.add("beatles", new ScannableTableTest.BeatlesTable());
+    SqlNode parse =
+        planner.parse("select  max(\"i\") from \"beatles\"");
+
+    SqlNode validate = planner.validate(parse);
+    RelNode convert = planner.rel(validate).rel;
+
+    final Interpreter interpreter = new Interpreter(dataContext, convert);
+    assertRows(interpreter,
+        "[6]");
+  }
+
+  @Test public void testAggregateMin() throws Exception {
+    rootSchema.add("beatles", new ScannableTableTest.BeatlesTable());
+    SqlNode parse =
+        planner.parse("select  min(\"i\") from \"beatles\"");
 
     SqlNode validate = planner.validate(parse);
     RelNode convert = planner.rel(validate).rel;

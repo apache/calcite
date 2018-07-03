@@ -262,7 +262,7 @@
  * </ol>
  * <h2>References</h2>
  *
- * <p>1. <a name="graefe93" href="http://citeseer.nj.nec.com/graefe93volcano.html">The
+ * <p>1. <a id="graefe93" href="http://citeseer.nj.nec.com/graefe93volcano.html">The
  *     Volcano Optimizer
  *     Generator: Extensibility and Efficient Search - Goetz Graefe, William J.
  *     McKenna

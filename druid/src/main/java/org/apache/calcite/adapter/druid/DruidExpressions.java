@@ -68,6 +68,13 @@ public class DruidExpressions {
     for (SqlTypeName type : SqlTypeName.STRING_TYPES) {
       builder.put(type, DruidType.STRING);
     }
+
+    // booleans in expressions are returned from druid as long.
+    // Druid will return 0 for false, non-zero value for true and null for absent value.
+    for (SqlTypeName type : SqlTypeName.BOOLEAN_TYPES) {
+      builder.put(type, DruidType.LONG);
+    }
+
     // Timestamps are treated as longs (millis since the epoch) in Druid expressions.
     builder.put(SqlTypeName.TIMESTAMP, DruidType.LONG);
     builder.put(SqlTypeName.DATE, DruidType.LONG);
@@ -139,11 +146,11 @@ public class DruidExpressions {
       } else if (SqlTypeName.STRING_TYPES.contains(sqlTypeName)) {
         return
             DruidExpressions.stringLiteral(RexLiteral.stringValue(rexNode));
-      } else if (SqlTypeName.TIMESTAMP == sqlTypeName || SqlTypeName.DATE == sqlTypeName
+      } else if (SqlTypeName.DATE == sqlTypeName
+          || SqlTypeName.TIMESTAMP == sqlTypeName
           || SqlTypeName.TIME_WITH_LOCAL_TIME_ZONE == sqlTypeName) {
-        return DruidExpressions.numberLiteral(DruidDateTimeUtils
-            .literalValue(rexNode, TimeZone.getTimeZone(druidRel.getConnectionConfig().timeZone()))
-            .getMillisSinceEpoch());
+        return DruidExpressions.numberLiteral(
+            DruidDateTimeUtils.literalValue(rexNode));
       } else if (SqlTypeName.BOOLEAN == sqlTypeName) {
         return DruidExpressions.numberLiteral(RexLiteral.booleanValue(rexNode) ? 1 : 0);
       }

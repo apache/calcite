@@ -45,6 +45,7 @@ import org.apache.calcite.materialize.Lattice;
 import org.apache.calcite.materialize.MaterializationService;
 import org.apache.calcite.prepare.CalciteCatalogReader;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.type.DelegatingTypeSystem;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.schema.SchemaPlus;
@@ -119,8 +120,18 @@ abstract class CalciteConnectionImpl
     if (typeFactory != null) {
       this.typeFactory = typeFactory;
     } else {
-      final RelDataTypeSystem typeSystem =
+      RelDataTypeSystem typeSystem =
           cfg.typeSystem(RelDataTypeSystem.class, RelDataTypeSystem.DEFAULT);
+      if (cfg.conformance().shouldConvertRaggedUnionTypesToVarying()) {
+        typeSystem =
+            new DelegatingTypeSystem(typeSystem) {
+              @Override public boolean
+              shouldConvertRaggedUnionTypesToVarying() {
+                return true;
+              }
+            };
+        cfg.typeSystem(RelDataTypeSystem.class, RelDataTypeSystem.DEFAULT);
+      }
       this.typeFactory = new JavaTypeFactoryImpl(typeSystem);
     }
     this.rootSchema =
@@ -436,7 +447,12 @@ abstract class CalciteConnectionImpl
 
     private SqlAdvisor getSqlAdvisor() {
       final CalciteConnectionImpl con = (CalciteConnectionImpl) queryProvider;
-      final String schemaName = con.getSchema();
+      final String schemaName;
+      try {
+        schemaName = con.getSchema();
+      } catch (SQLException e) {
+        throw new RuntimeException(e);
+      }
       final List<String> schemaPath =
           schemaName == null
               ? ImmutableList.<String>of()
@@ -489,7 +505,12 @@ abstract class CalciteConnectionImpl
     }
 
     public List<String> getDefaultSchemaPath() {
-      final String schemaName = connection.getSchema();
+      final String schemaName;
+      try {
+        schemaName = connection.getSchema();
+      } catch (SQLException e) {
+        throw new RuntimeException(e);
+      }
       return schemaName == null
           ? ImmutableList.<String>of()
           : ImmutableList.of(schemaName);

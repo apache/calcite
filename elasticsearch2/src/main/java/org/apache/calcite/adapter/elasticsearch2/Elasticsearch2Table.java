@@ -39,14 +39,25 @@ public class Elasticsearch2Table extends AbstractElasticsearchTable {
 
   /**
    * Creates an Elasticsearch2Table.
+   *
+   * @param client Existing ES instance
+   * @param indexName Name of the index
+   * @param typeName Index type
    */
-  public Elasticsearch2Table(Client client, String indexName, String typeName) {
+  Elasticsearch2Table(Client client, String indexName, String typeName) {
     super(indexName, typeName);
     this.client = client;
   }
 
+  /**
+   * ES version 2.x. To access document attributes ES2 uses {@code _source.foo} syntax.
+   */
+  @Override protected String scriptedFieldPrefix() {
+    return "_source";
+  }
+
   @Override protected Enumerable<Object> find(String index, List<String> ops,
-      List<Map.Entry<String, Class>> fields) {
+                                              List<Map.Entry<String, Class>> fields) {
     final String dbName = index;
 
     final String queryString = "{" + Util.toString(ops, "", ", ", "") + "}";

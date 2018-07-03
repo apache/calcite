@@ -20,6 +20,7 @@ import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.clone.CloneSchema;
 import org.apache.calcite.adapter.java.ReflectiveSchema;
 import org.apache.calcite.adapter.jdbc.JdbcSchema;
+import org.apache.calcite.avatica.ConnectionProperty;
 import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.config.CalciteConnectionProperty;
 import org.apache.calcite.config.Lex;
@@ -50,20 +51,19 @@ import org.apache.calcite.util.JsonBuilder;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
+import org.apache.commons.dbcp2.PoolableConnectionFactory;
+import org.apache.commons.dbcp2.PoolingDataSource;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.pool2.impl.GenericObjectPool;
 
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
-import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.CacheLoader;
-import com.google.common.cache.LoadingCache;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultiset;
 import com.google.common.collect.Lists;
-import com.google.common.util.concurrent.UncheckedExecutionException;
 
 import net.hydromatic.foodmart.data.hsqldb.FoodmartHsqldb;
 import net.hydromatic.scott.data.hsqldb.ScottHsqldb;
@@ -95,9 +95,7 @@ import java.util.Objects;
 import java.util.Properties;
 import java.util.TimeZone;
 import java.util.TreeSet;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.sql.DataSource;
 
@@ -544,18 +542,20 @@ public class CalciteAssert {
         "With materializationsEnabled=" + materializationsEnabled
             + ", limit=" + limit;
     try (final Closer closer = new Closer()) {
-      if (connection instanceof CalciteConnection) {
-        CalciteConnection calciteConnection = (CalciteConnection) connection;
-        calciteConnection.getProperties().setProperty(
+      if (connection.isWrapperFor(CalciteConnection.class)) {
+        final CalciteConnection calciteConnection =
+            connection.unwrap(CalciteConnection.class);
+        final Properties properties = calciteConnection.getProperties();
+        properties.setProperty(
             CalciteConnectionProperty.MATERIALIZATIONS_ENABLED.camelName(),
             Boolean.toString(materializationsEnabled));
-        calciteConnection.getProperties().setProperty(
+        properties.setProperty(
             CalciteConnectionProperty.CREATE_MATERIALIZATIONS.camelName(),
             Boolean.toString(materializationsEnabled));
-        if (!calciteConnection.getProperties()
+        if (!properties
             .containsKey(CalciteConnectionProperty.TIME_ZONE.camelName())) {
           // Do not override id some test has already set this property.
-          calciteConnection.getProperties().setProperty(
+          properties.setProperty(
               CalciteConnectionProperty.TIME_ZONE.camelName(),
               DateTimeUtils.UTC_ZONE.getID());
         }
@@ -882,10 +882,6 @@ public class CalciteAssert {
     }
 
     public AssertThat with(Config config) {
-      if (config == Config.SPARK) {
-        return with("spark", "true");
-      }
-
       switch (config) {
       case EMPTY:
         return EMPTY;
@@ -896,7 +892,7 @@ public class CalciteAssert {
         return with(SchemaSpec.HR, SchemaSpec.REFLECTIVE_FOODMART);
       case GEO:
         return with(SchemaSpec.GEO)
-            .with(CalciteConnectionProperty.CONFORMANCE.camelName(),
+            .with(CalciteConnectionProperty.CONFORMANCE,
                 SqlConformanceEnum.LENIENT);
       case LINGUAL:
         return with(SchemaSpec.LINGUAL);
@@ -910,6 +906,8 @@ public class CalciteAssert {
         return with(SchemaSpec.JDBC_SCOTT);
       case SCOTT:
         return with(SchemaSpec.SCOTT);
+      case SPARK:
+        return with(CalciteConnectionProperty.SPARK, true);
       default:
         throw Util.unexpected(config);
       }
@@ -941,9 +939,16 @@ public class CalciteAssert {
       return new AssertThat(connectionFactory.with(property, value));
     }
 
+    public AssertThat with(ConnectionProperty property, Object value) {
+      if (!property.type().valid(value, property.valueClass())) {
+        throw new IllegalArgumentException();
+      }
+      return new AssertThat(connectionFactory.with(property, value));
+    }
+
     /** Sets Lex property **/
     public AssertThat with(Lex lex) {
-      return with(CalciteConnectionProperty.LEX.name(), lex.toString());
+      return with(CalciteConnectionProperty.LEX, lex);
     }
 
     /** Sets the default schema to a given schema. */
@@ -957,7 +962,7 @@ public class CalciteAssert {
     }
 
     public final AssertThat withModel(String model) {
-      return with("model", "inline:" + model);
+      return with(CalciteConnectionProperty.MODEL, "inline:" + model);
     }
 
     public final AssertThat withMaterializations(String model,
@@ -1031,8 +1036,7 @@ public class CalciteAssert {
     public AssertThat connectThrows(
         Function<Throwable, Void> exceptionChecker) {
       Throwable throwable;
-      try {
-        Connection x = connectionFactory.createConnection();
+      try (Connection x = connectionFactory.createConnection()) {
         try {
           x.close();
         } catch (SQLException e) {
@@ -1060,16 +1064,13 @@ public class CalciteAssert {
     /** Creates a {@link DataContext} and executes a callback. */
     public <T> AssertThat doWithDataContext(Function<DataContext, T> fn)
         throws Exception {
-      CalciteConnection connection =
-          (CalciteConnection) connectionFactory.createConnection();
-      final DataContext dataContext = CalciteMetaImpl.createDataContext(
-          connection);
-      try {
+      try (CalciteConnection connection =
+               (CalciteConnection) connectionFactory.createConnection()) {
+        final DataContext dataContext =
+            CalciteMetaImpl.createDataContext(connection);
         T t = fn.apply(dataContext);
         Util.discard(t);
         return AssertThat.this;
-      } finally {
-        connection.close();
       }
     }
 
@@ -1116,6 +1117,10 @@ public class CalciteAssert {
     public abstract Connection createConnection() throws SQLException;
 
     public ConnectionFactory with(String property, Object value) {
+      throw new UnsupportedOperationException();
+    }
+
+    public ConnectionFactory with(ConnectionProperty property, Object value) {
       throw new UnsupportedOperationException();
     }
 
@@ -1181,31 +1186,18 @@ public class CalciteAssert {
   /** Connection factory that uses the same instance of connections. */
   private static class PoolingConnectionFactory
       extends ConnectionFactory {
-
-    /** Connection pool. */
-    private static class Pool {
-      private static final LoadingCache<ConnectionFactory, Connection> POOL =
-          CacheBuilder.newBuilder().build(
-              new CacheLoader<ConnectionFactory, Connection>() {
-                public Connection load(@Nonnull ConnectionFactory key) throws Exception {
-                  return key.createConnection();
-                }
-              });
-    }
-
-    private final ConnectionFactory factory;
+    private final PoolingDataSource dataSource;
 
     PoolingConnectionFactory(final ConnectionFactory factory) {
-      this.factory = factory;
+      final PoolableConnectionFactory connectionFactory =
+          new PoolableConnectionFactory(factory::createConnection, null);
+      connectionFactory.setRollbackOnReturn(false);
+      this.dataSource = new PoolingDataSource<>(
+          new GenericObjectPool<>(connectionFactory));
     }
 
     public Connection createConnection() throws SQLException {
-      try {
-        return Pool.POOL.get(factory);
-      } catch (UncheckedExecutionException | ExecutionException e) {
-        throw new SQLException(
-            "Unable to get pooled connection for " + factory, e.getCause());
-      }
+      return dataSource.getConnection();
     }
   }
 
@@ -1249,6 +1241,13 @@ public class CalciteAssert {
       return new MapConnectionFactory(
           FlatLists.append(this.map, property, value.toString()),
           postProcessors);
+    }
+
+    public ConnectionFactory with(ConnectionProperty property, Object value) {
+      if (!property.type().valid(value, property.valueClass())) {
+        throw new IllegalArgumentException();
+      }
+      return with(property.camelName(), value.toString());
     }
 
     public ConnectionFactory with(
@@ -1334,8 +1333,8 @@ public class CalciteAssert {
     }
 
     public final AssertQuery updates(int count) {
-      try {
-        assertQuery(createConnection(), sql, limit, materializationsEnabled,
+      try (final Connection connection = createConnection()) {
+        assertQuery(connection, sql, limit, materializationsEnabled,
             hooks, null, checkUpdateCount(count), null);
         return this;
       } catch (Exception e) {
@@ -1346,8 +1345,8 @@ public class CalciteAssert {
 
     protected AssertQuery returns(String sql,
         Function<ResultSet, Void> checker) {
-      try {
-        assertQuery(createConnection(), sql, limit, materializationsEnabled,
+      try (final Connection connection = createConnection()) {
+        assertQuery(connection, sql, limit, materializationsEnabled,
             hooks, checker, null, null);
         return this;
       } catch (Exception e) {
@@ -1370,8 +1369,8 @@ public class CalciteAssert {
     }
 
     public AssertQuery throws_(String message) {
-      try {
-        assertQuery(createConnection(), sql, limit, materializationsEnabled,
+      try (final Connection connection = createConnection()) {
+        assertQuery(connection, sql, limit, materializationsEnabled,
             hooks, null, null, checkException(message));
         return this;
       } catch (Exception e) {
@@ -1387,14 +1386,13 @@ public class CalciteAssert {
      * @param optionalMessage An optional message to check for in the output stacktrace
      * */
     public AssertQuery failsAtValidation(String optionalMessage) {
-      try {
-        assertQuery(createConnection(), sql, limit, materializationsEnabled,
-                hooks, null, null,
-                checkValidationException(optionalMessage));
+      try (final Connection connection = createConnection()) {
+        assertQuery(connection, sql, limit, materializationsEnabled,
+            hooks, null, null, checkValidationException(optionalMessage));
         return this;
       } catch (Exception e) {
-        throw new RuntimeException(
-                "exception while executing [" + sql + "]", e);
+        throw new RuntimeException("exception while executing [" + sql + "]",
+            e);
       }
     }
 
@@ -1407,8 +1405,8 @@ public class CalciteAssert {
     }
 
     public AssertQuery runs() {
-      try {
-        assertQuery(createConnection(), sql, limit, materializationsEnabled,
+      try (final Connection connection = createConnection()) {
+        assertQuery(connection, sql, limit, materializationsEnabled,
             hooks, null, null, null);
         return this;
       } catch (Exception e) {
@@ -1418,8 +1416,8 @@ public class CalciteAssert {
     }
 
     public AssertQuery typeIs(String expected) {
-      try {
-        assertQuery(createConnection(), sql, limit, false,
+      try (final Connection connection = createConnection()) {
+        assertQuery(connection, sql, limit, false,
             hooks, checkResultType(expected), null, null);
         return this;
       } catch (Exception e) {
@@ -1436,8 +1434,8 @@ public class CalciteAssert {
     }
 
     public AssertQuery convertMatches(final Function<RelNode, Void> checker) {
-      try {
-        assertPrepare(createConnection(), sql, this.materializationsEnabled,
+      try (final Connection connection = createConnection()) {
+        assertPrepare(connection, sql, this.materializationsEnabled,
             checker, null);
         return this;
       } catch (Exception e) {
@@ -1448,9 +1446,8 @@ public class CalciteAssert {
 
     public AssertQuery substitutionMatches(
         final Function<RelNode, Void> checker) {
-      try {
-        assertPrepare(createConnection(), sql, materializationsEnabled,
-            null, checker);
+      try (final Connection connection = createConnection()) {
+        assertPrepare(connection, sql, materializationsEnabled, null, checker);
         return this;
       } catch (Exception e) {
         throw new RuntimeException("exception while preparing [" + sql + "]",
@@ -1512,8 +1509,8 @@ public class CalciteAssert {
               return null;
             }
           });
-      try {
-        assertQuery(createConnection(), sql, limit, materializationsEnabled,
+      try (final Connection connection = createConnection()) {
+        assertQuery(connection, sql, limit, materializationsEnabled,
             hooks, null, checkUpdate, null);
         assertNotNull(plan);
       } catch (Exception e) {
@@ -1535,8 +1532,8 @@ public class CalciteAssert {
               return null;
             }
           });
-      try {
-        assertQuery(createConnection(), sql, limit, materializationsEnabled,
+      try (final Connection connection = createConnection()) {
+        assertQuery(connection, sql, limit, materializationsEnabled,
             hooks, null, null, null);
         predicate1.apply(list);
         return this;
@@ -1617,8 +1614,7 @@ public class CalciteAssert {
     }
 
     public final AssertMetaData returns(Function<ResultSet, Void> checker) {
-      try {
-        Connection c = connectionFactory.createConnection();
+      try (final Connection c = connectionFactory.createConnection()) {
         final ResultSet resultSet = function.apply(c);
         checker.apply(resultSet);
         resultSet.close();

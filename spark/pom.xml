@@ -62,6 +62,14 @@ limitations under the License.
     <dependency>
       <groupId>org.apache.spark</groupId>
       <artifactId>spark-core_2.10</artifactId>
+      <exclusions>
+        <!-- Excludes py4j lib, since it has vulnerabilities
+          with level >= 8. -->
+        <exclusion>
+          <groupId>net.sf.py4j</groupId>
+          <artifactId>py4j</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
     <dependency>
       <groupId>org.eclipse.jetty</groupId>

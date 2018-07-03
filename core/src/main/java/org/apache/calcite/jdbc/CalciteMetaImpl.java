@@ -372,8 +372,14 @@ public class CalciteMetaImpl extends MetaImpl {
   }
 
   Enumerable<MetaCatalog> catalogs() {
+    final String catalog;
+    try {
+      catalog = connection.getCatalog();
+    } catch (SQLException e) {
+      throw new RuntimeException(e);
+    }
     return Linq4j.asEnumerable(
-        ImmutableList.of(new MetaCatalog(connection.getCatalog())));
+        ImmutableList.of(new MetaCatalog(catalog)));
   }
 
   Enumerable<MetaTableType> tableTypes() {
@@ -382,7 +388,7 @@ public class CalciteMetaImpl extends MetaImpl {
             new MetaTableType("TABLE"), new MetaTableType("VIEW")));
   }
 
-  Enumerable<MetaSchema> schemas(String catalog) {
+  Enumerable<MetaSchema> schemas(final String catalog) {
     return Linq4j.asEnumerable(
         getConnection().rootSchema.getSubSchemaMap().values())
         .select(
@@ -390,7 +396,7 @@ public class CalciteMetaImpl extends MetaImpl {
               public MetaSchema apply(CalciteSchema calciteSchema) {
                 return new CalciteMetaSchema(
                     calciteSchema,
-                    connection.getCatalog(),
+                    catalog,
                     calciteSchema.getName());
               }
             })

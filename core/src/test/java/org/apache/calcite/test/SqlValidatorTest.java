@@ -4812,8 +4812,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         "RecordType(CHAR(2) NOT NULL A, INTEGER NOT NULL B) NOT NULL");
   }
 
-  // todo: implement IN
-  public void _testAmbiguousColumnInIn() {
+  @Test public void testAmbiguousColumnInIn() {
     // ok: cyclic reference
     check("select * from emp as e\n"
         + "where e.deptno in (\n"
@@ -7506,7 +7505,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   @Test public void testUnnestArrayColumn() {
-    final String sql = "select d.deptno, e.*\n"
+    final String sql1 = "select d.deptno, e.*\n"
         + "from dept_nested as d,\n"
         + " UNNEST(d.employees) as e";
     final String type = "RecordType(INTEGER NOT NULL DEPTNO,"
@@ -7515,13 +7514,25 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + " RecordType(RecordType(VARCHAR(10) NOT NULL TYPE, VARCHAR(20) NOT NULL DESC,"
         + " RecordType(VARCHAR(10) NOT NULL A, VARCHAR(10) NOT NULL B) NOT NULL OTHERS)"
         + " NOT NULL ARRAY NOT NULL SKILLS) NOT NULL DETAIL) NOT NULL";
-    sql(sql).type(type);
+    sql(sql1).type(type);
+
+    // equivalent query without table alias
+    final String sql1b = "select d.deptno, e.*\n"
+        + "from dept_nested as d,\n"
+        + " UNNEST(employees) as e";
+    sql(sql1b).type(type);
 
     // equivalent query using CROSS JOIN
     final String sql2 = "select d.deptno, e.*\n"
         + "from dept_nested as d CROSS JOIN\n"
         + " UNNEST(d.employees) as e";
     sql(sql2).type(type);
+
+    // equivalent query using CROSS JOIN, without table alias
+    final String sql2b = "select d.deptno, e.*\n"
+        + "from dept_nested as d CROSS JOIN\n"
+        + " UNNEST(employees) as e";
+    sql(sql2b).type(type);
 
     // LATERAL works left-to-right
     final String sql3 = "select d.deptno, e.*\n"
@@ -8669,13 +8680,17 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "IS DISTINCT FROM left\n"
         + "IS NOT DISTINCT FROM left\n"
         + "MEMBER OF left\n"
+        + "NOT SUBMULTISET OF left\n"
         + "OVERLAPS left\n"
         + "PRECEDES left\n"
         + "SUBMULTISET OF left\n"
         + "SUCCEEDS left\n"
         + "\n"
         + "IS A SET post\n"
+        + "IS EMPTY post\n"
         + "IS FALSE post\n"
+        + "IS NOT A SET post\n"
+        + "IS NOT EMPTY post\n"
         + "IS NOT FALSE post\n"
         + "IS NOT NULL post\n"
         + "IS NOT TRUE post\n"
@@ -8698,17 +8713,17 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "\n"
         + "INTERSECT left\n"
         + "INTERSECT ALL left\n"
-        + "MULTISET INTERSECT left\n"
         + "MULTISET INTERSECT ALL left\n"
+        + "MULTISET INTERSECT DISTINCT left\n"
         + "NULLS FIRST post\n"
         + "NULLS LAST post\n"
         + "\n"
         + "EXCEPT left\n"
         + "EXCEPT ALL left\n"
-        + "MULTISET EXCEPT left\n"
         + "MULTISET EXCEPT ALL left\n"
-        + "MULTISET UNION left\n"
+        + "MULTISET EXCEPT DISTINCT left\n"
         + "MULTISET UNION ALL left\n"
+        + "MULTISET UNION DISTINCT left\n"
         + "UNION left\n"
         + "UNION ALL left\n"
         + "\n"
