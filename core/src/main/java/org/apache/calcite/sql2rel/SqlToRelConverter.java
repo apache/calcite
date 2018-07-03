@@ -2528,7 +2528,10 @@ public class SqlToRelConverter {
       // Add new node to leaves.
       leaves.add(r);
     }
-    return new CorrelationUse(correlNames.get(0), requiredColumns.build(), r);
+
+    ImmutableBitSet bitSet = requiredColumns.build();
+    correlNames.get(0).setColumnIndex(bitSet);
+    return new CorrelationUse(correlNames.get(0), bitSet, r);
   }
 
   /**
