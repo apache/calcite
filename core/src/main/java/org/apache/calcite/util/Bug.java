@@ -174,6 +174,12 @@ public abstract class Bug {
    * when dynamic tables are used</a> is fixed. */
   public static final boolean CALCITE_2400_FIXED = false;
 
+  /** Whether
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2401">[CALCITE-2401]
+   * Improve RelMdPredicates performance</a>
+   */
+  public static final boolean CALCITE_2401_FIXED = false;
+
   /**
    * Use this to flag temporary code.
    */
