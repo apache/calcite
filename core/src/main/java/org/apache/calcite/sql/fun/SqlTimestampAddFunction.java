@@ -94,7 +94,8 @@ public class SqlTimestampAddFunction extends SqlFunction {
           operandType1.isNullable()
               || operandType2.isNullable());
     default:
-      return operandType2;
+      return typeFactory.createTypeWithNullability(operandType2,
+          operandType1.isNullable() || operandType2.isNullable());
     }
   }
 
