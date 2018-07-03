@@ -24,9 +24,11 @@ import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.prepare.Prepare;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelRoot;
+import org.apache.calcite.rel.RelShuttleImpl;
 import org.apache.calcite.rel.RelVisitor;
 import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.externalize.RelXmlWriter;
+import org.apache.calcite.rel.logical.LogicalCorrelate;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.sql.validate.SqlConformance;
@@ -52,6 +54,7 @@ import java.util.Set;
 
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 
 /**
  * Unit test for {@link org.apache.calcite.sql2rel.SqlToRelConverter}.
@@ -2808,6 +2811,33 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
         null, null, SqlToRelConverter.Config.DEFAULT,
         SqlConformanceEnum.DEFAULT, Contexts.of(connectionConfig));
     sql(sql).with(tester).ok();
+  }
+
+  @Test public void testCorrelationIdHasColumnIndex() {
+    final String sql = "select * from emp\n"
+            + "where exists (\n"
+            + "  with dept2 as (select * from dept where dept.deptno >= emp.deptno)\n"
+            + "  select 1 from dept2 where deptno <= emp.deptno)";
+
+    final RelNode root = tester.convertSqlToRel(sql).rel;
+
+    // There should be one RelNode with a correlationId. That correlationId should
+    // have a non-empty set of columns.
+    final boolean[] hasValidCorrelationId = new boolean[] { false };
+    final RelShuttleImpl visitor = new RelShuttleImpl() {
+      @Override public RelNode visit(LogicalCorrelate correlate) {
+        if (!hasValidCorrelationId[0]) {
+          if (!correlate.getCorrelationId().getColumnIndex().isEmpty()) {
+            hasValidCorrelationId[0] = true;
+          }
+        }
+
+        return super.visit(correlate);
+      }
+    };
+
+    root.accept(visitor);
+    assertTrue("The column index on a CorrelationId must be non-empty.", hasValidCorrelationId[0]);
   }
 
   /**

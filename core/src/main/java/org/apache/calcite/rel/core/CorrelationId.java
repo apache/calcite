@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.rel.core;
 
+import org.apache.calcite.util.ImmutableBitSet;
+
 import com.google.common.collect.ImmutableSet;
 
 import java.util.Set;
@@ -32,6 +34,13 @@ public class CorrelationId implements Cloneable, Comparable<CorrelationId> {
 
   private final int id;
   private final String name;
+
+  /**
+   * columnIndex is only used when unparsing the reltree into a sql to pushdown.
+   * A CorrelationId is uniquely defined by its id and name.  Do not add columnIndex
+   * to hashCode/equals.
+   */
+  private transient ImmutableBitSet columnIndex = ImmutableBitSet.of();
 
   /**
    * Creates a correlation identifier.
@@ -87,6 +96,15 @@ public class CorrelationId implements Cloneable, Comparable<CorrelationId> {
 
   public int compareTo(CorrelationId other) {
     return id - other.id;
+  }
+
+  public void setColumnIndex(ImmutableBitSet columnIndex) {
+    assert this.columnIndex.isEmpty();
+    this.columnIndex = columnIndex;
+  }
+
+  public ImmutableBitSet getColumnIndex() {
+    return columnIndex;
   }
 
   @Override public int hashCode() {
