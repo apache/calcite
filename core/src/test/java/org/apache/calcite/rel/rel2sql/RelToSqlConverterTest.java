@@ -26,9 +26,12 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.rules.UnionMergeRule;
 import org.apache.calcite.runtime.FlatLists;
 import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlDialect.Context;
 import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlSelect;
+import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.dialect.CalciteSqlDialect;
 import org.apache.calcite.sql.dialect.HiveSqlDialect;
 import org.apache.calcite.sql.dialect.JethroDataSqlDialect;
@@ -2512,6 +2515,27 @@ public class RelToSqlConverterTest {
         + " \"sales_fact_1997\".\"store_sales\") AS \"t0\"\n"
         + "GROUP BY \"t0\".\"city\"";
     sql(query).ok(expected);
+  }
+
+  @Test public void testUnparseSelectMustUseDialect() {
+    final String query = "select * from \"product\"";
+    final String expected = "SELECT *\n"
+        + "FROM foodmart.product";
+
+    final boolean[] callsUnparseCallOnSqlSelect = {false};
+    final SqlDialect dialect = new SqlDialect(SqlDialect.EMPTY_CONTEXT) {
+      @Override public void unparseCall(SqlWriter writer, SqlCall call,
+          int leftPrec, int rightPrec) {
+        if (call instanceof SqlSelect) {
+          callsUnparseCallOnSqlSelect[0] = true;
+        }
+        super.unparseCall(writer, call, leftPrec, rightPrec);
+      }
+    };
+    sql(query).dialect(dialect).ok(expected);
+
+    assertThat("Dialect must be able to customize unparseCall() for SqlSelect",
+        callsUnparseCallOnSqlSelect[0], is(true));
   }
 
   /** Fluid interface to run tests. */
