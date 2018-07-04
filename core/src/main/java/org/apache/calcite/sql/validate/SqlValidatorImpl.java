@@ -474,9 +474,11 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     final SqlParserPos startPosition = identifier.getParserPosition();
     switch (identifier.names.size()) {
     case 1:
+      boolean hasDynamicStruct = false;
       for (ScopeChild child : scope.children) {
         final int before = fields.size();
         if (child.namespace.getRowType().isDynamicStruct()) {
+          hasDynamicStruct = true;
           // don't expand star if the underneath table is dynamic.
           // Treat this star as a special field in validation/conversion and
           // wait until execution time to expand this star.
@@ -532,7 +534,9 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       }
       // If NATURAL JOIN or USING is present, move key fields to the front of
       // the list.
-      new Permute(scope.getNode().getFrom(), 0).permute(selectItems, fields);
+      if (!hasDynamicStruct || Bug.CALCITE_2400_FIXED) {
+        new Permute(scope.getNode().getFrom(), 0).permute(selectItems, fields);
+      }
       return true;
 
     default:
