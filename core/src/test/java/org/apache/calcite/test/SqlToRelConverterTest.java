@@ -114,6 +114,14 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  @Test
+  public void testJoinUsingDynamicTable() {
+    final String sql = "select * from SALES.NATION t1\n"
+        + "join SALES.NATION t2\n"
+        + "using (n_nationkey)";
+    sql(sql).with(getTesterWithDynamicTable()).ok();
+  }
+
   /**
    * Tests that AND(x, AND(y, z)) gets flattened to AND(x, y, z).
    */
