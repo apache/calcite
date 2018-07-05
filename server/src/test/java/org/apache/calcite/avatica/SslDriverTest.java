@@ -28,12 +28,11 @@ import org.bouncycastle.asn1.x500.style.RFC4519Style;
 import org.bouncycastle.asn1.x509.BasicConstraints;
 import org.bouncycastle.asn1.x509.Extension;
 import org.bouncycastle.asn1.x509.KeyUsage;
-import org.bouncycastle.cert.CertIOException;
 import org.bouncycastle.cert.X509CertificateHolder;
+import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
 import org.bouncycastle.cert.jcajce.JcaX509ExtensionUtils;
 import org.bouncycastle.cert.jcajce.JcaX509v3CertificateBuilder;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
-import org.bouncycastle.jce.provider.X509CertificateObject;
 import org.bouncycastle.operator.OperatorCreationException;
 import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
 import org.junit.AfterClass;
@@ -52,12 +51,12 @@ import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.KeyStore;
 import java.security.NoSuchAlgorithmException;
-import java.security.NoSuchProviderException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.Security;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
@@ -78,7 +77,6 @@ import static org.junit.Assert.assertTrue;
 public class SslDriverTest {
   private static final Logger LOG = LoggerFactory.getLogger(SslDriverTest.class);
 
-  private static File keystore;
   private static final String KEYSTORE_PASSWORD = "avaticasecret";
   private static final ConnectionSpec CONNECTION_SPEC = ConnectionSpec.HSQLDB;
   private static final List<HttpServer> SERVERS_TO_STOP = new ArrayList<>();
@@ -88,7 +86,7 @@ public class SslDriverTest {
 
     // Create a self-signed cert
     File target = new File(System.getProperty("user.dir"), "target");
-    keystore = new File(target, "avatica-test.jks");
+    File keystore = new File(target, "avatica-test.jks");
     if (keystore.isFile()) {
       assertTrue("Failed to delete keystore: " + keystore, keystore.delete());
     }
@@ -121,7 +119,7 @@ public class SslDriverTest {
     return parameters;
   }
 
-  @AfterClass public static void stopKdc() throws Exception {
+  @AfterClass public static void stopKdc() {
     for (HttpServer server : SERVERS_TO_STOP) {
       server.stop();
     }
@@ -170,7 +168,7 @@ public class SslDriverTest {
       try {
         KeyPair kp = generateKeyPair();
 
-        X509CertificateObject cert = generateCert(keyName, kp, true, kp.getPublic(),
+        X509Certificate cert = generateCert(keyName, kp, true, kp.getPublic(),
             kp.getPrivate());
 
         char[] password = keystorePassword.toCharArray();
@@ -186,15 +184,15 @@ public class SslDriverTest {
       }
     }
 
-    private KeyPair generateKeyPair() throws NoSuchAlgorithmException, NoSuchProviderException {
+    private KeyPair generateKeyPair() throws NoSuchAlgorithmException {
       KeyPairGenerator gen = KeyPairGenerator.getInstance(ENC_ALGORITHM);
       gen.initialize(2048);
       return gen.generateKeyPair();
     }
 
-    private X509CertificateObject generateCert(String keyName, KeyPair kp, boolean isCertAuthority,
-        PublicKey signerPublicKey, PrivateKey signerPrivateKey) throws IOException,
-        CertIOException, OperatorCreationException, CertificateException,
+    private X509Certificate generateCert(String keyName, KeyPair kp, boolean isCertAuthority,
+                                         PublicKey signerPublicKey, PrivateKey signerPrivateKey)
+        throws IOException, OperatorCreationException, CertificateException,
         NoSuchAlgorithmException {
       Calendar startDate = DateTimeUtils.calendar();
       Calendar endDate = DateTimeUtils.calendar();
@@ -215,9 +213,9 @@ public class SslDriverTest {
       if (isCertAuthority) {
         certGen.addExtension(Extension.keyUsage, true, new KeyUsage(KeyUsage.keyCertSign));
       }
-      X509CertificateHolder cert = certGen.build(
+      X509CertificateHolder certificateHolder = certGen.build(
           new JcaContentSignerBuilder(SIGNING_ALGORITHM).build(signerPrivateKey));
-      return new X509CertificateObject(cert.toASN1Structure());
+      return new JcaX509CertificateConverter().getCertificate(certificateHolder);
     }
   }
 }
