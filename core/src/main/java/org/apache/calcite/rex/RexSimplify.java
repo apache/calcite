@@ -28,6 +28,7 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
@@ -125,7 +126,9 @@ public class RexSimplify {
   }
 
   /** Returns a RexSimplify the same as this but with a specified {@link #predicateElimination}
-   * value. */
+   * value.
+   * This is introduced temporarily; until CALCITE-2401 is fixed
+   */
   private RexSimplify withPredicateElimination(boolean predicateElimination) {
     return predicateElimination == this.predicateElimination
       ? this
@@ -1622,7 +1625,8 @@ public class RexSimplify {
    * @return simplified conjunction of predicates for the filter, null if always false
    */
   public RexNode simplifyFilterPredicates(Iterable<? extends RexNode> predicates) {
-    final RexNode simplifiedAnds = withPredicateElimination(false).simplifyAnds(predicates);
+    final RexNode simplifiedAnds = withPredicateElimination(Bug.CALCITE_2401_FIXED)
+        .simplifyAnds(predicates);
     if (simplifiedAnds.isAlwaysFalse()) {
       return null;
     }
