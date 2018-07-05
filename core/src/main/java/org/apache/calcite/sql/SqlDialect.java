@@ -32,7 +32,6 @@ import org.apache.calcite.sql.type.BasicSqlType;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 
 import com.google.common.base.Preconditions;
-import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 
 import org.slf4j.Logger;
@@ -44,6 +43,8 @@ import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
+import java.util.function.Supplier;
 import java.util.regex.Pattern;
 import javax.annotation.Nonnull;
 
@@ -135,9 +136,9 @@ public class SqlDialect {
    * @param context All the information necessary to create a dialect
    */
   public SqlDialect(Context context) {
-    this.nullCollation = Preconditions.checkNotNull(context.nullCollation());
+    this.nullCollation = Objects.requireNonNull(context.nullCollation());
     this.databaseProduct =
-        Preconditions.checkNotNull(context.databaseProduct());
+        Objects.requireNonNull(context.databaseProduct());
     String identifierQuoteString = context.identifierQuoteString();
     if (identifierQuoteString != null) {
       identifierQuoteString = identifierQuoteString.trim();
@@ -897,32 +898,24 @@ public class SqlDialect {
      */
     UNKNOWN("Unknown", "`", NullCollation.HIGH);
 
-    private final Supplier<SqlDialect> dialect =
-        Suppliers.memoize(new Supplier<SqlDialect>() {
-          public SqlDialect get() {
-            final SqlDialect dialect =
-                SqlDialectFactoryImpl.simple(DatabaseProduct.this);
-            if (dialect != null) {
-              return dialect;
-            }
-            return new SqlDialect(SqlDialect.EMPTY_CONTEXT
-                .withDatabaseProduct(DatabaseProduct.this)
-                .withDatabaseProductName(databaseProductName)
-                .withIdentifierQuoteString(quoteString)
-                .withNullCollation(nullCollation));
-          }
-        });
-
-    private String databaseProductName;
-    private String quoteString;
-    private final NullCollation nullCollation;
+    private final Supplier<SqlDialect> dialect;
 
     DatabaseProduct(String databaseProductName, String quoteString,
         NullCollation nullCollation) {
-      this.databaseProductName =
-          Preconditions.checkNotNull(databaseProductName);
-      this.quoteString = quoteString;
-      this.nullCollation = Preconditions.checkNotNull(nullCollation);
+      Objects.requireNonNull(databaseProductName);
+      Objects.requireNonNull(nullCollation);
+      dialect = Suppliers.memoize(() -> {
+        final SqlDialect dialect =
+            SqlDialectFactoryImpl.simple(DatabaseProduct.this);
+        if (dialect != null) {
+          return dialect;
+        }
+        return new SqlDialect(SqlDialect.EMPTY_CONTEXT
+            .withDatabaseProduct(DatabaseProduct.this)
+            .withDatabaseProductName(databaseProductName)
+            .withIdentifierQuoteString(quoteString)
+            .withNullCollation(nullCollation));
+      })::get;
     }
 
     /**
@@ -980,14 +973,14 @@ public class SqlDialect {
         int databaseMajorVersion, int databaseMinorVersion,
         String identifierQuoteString, NullCollation nullCollation,
         JethroDataSqlDialect.JethroInfo jethroInfo) {
-      this.databaseProduct = Preconditions.checkNotNull(databaseProduct);
+      this.databaseProduct = Objects.requireNonNull(databaseProduct);
       this.databaseProductName = databaseProductName;
       this.databaseVersion = databaseVersion;
       this.databaseMajorVersion = databaseMajorVersion;
       this.databaseMinorVersion = databaseMinorVersion;
       this.identifierQuoteString = identifierQuoteString;
-      this.nullCollation = Preconditions.checkNotNull(nullCollation);
-      this.jethroInfo = Preconditions.checkNotNull(jethroInfo);
+      this.nullCollation = Objects.requireNonNull(nullCollation);
+      this.jethroInfo = Objects.requireNonNull(jethroInfo);
     }
 
     @Nonnull public DatabaseProduct databaseProduct() {

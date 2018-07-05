@@ -50,10 +50,6 @@ import java.util.Set;
  *   <li>The name and parent schema are as specified in the constructor
  *       arguments.</li>
  * </ul>
- *
- * <p>For constructing custom maps and multi-maps, we recommend
- * {@link com.google.common.base.Suppliers} and
- * {@link com.google.common.collect.Maps}.</p>
  */
 public class AbstractSchema implements Schema {
   public AbstractSchema() {

@@ -19,7 +19,6 @@ package org.apache.calcite.jdbc;
 import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.java.AbstractQueryableTable;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
-import org.apache.calcite.avatica.AvaticaParameter;
 import org.apache.calcite.avatica.AvaticaStatement;
 import org.apache.calcite.avatica.AvaticaUtils;
 import org.apache.calcite.avatica.ColumnMetaData;
@@ -37,11 +36,9 @@ import org.apache.calcite.linq4j.Queryable;
 import org.apache.calcite.linq4j.function.Function1;
 import org.apache.calcite.linq4j.function.Functions;
 import org.apache.calcite.linq4j.function.Predicate1;
-import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeFactoryImpl;
-import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.runtime.FlatLists;
 import org.apache.calcite.runtime.Hook;
@@ -60,7 +57,6 @@ import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.primitives.Ints;
@@ -75,6 +71,7 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.regex.Pattern;
 
 /**
@@ -98,11 +95,7 @@ public class CalciteMetaImpl extends MetaImpl {
       return Functions.truePredicate1();
     }
     final Pattern regex = likeToRegex(pattern);
-    return new Predicate1<T>() {
-      public boolean apply(T v1) {
-        return regex.matcher(v1.getName()).matches();
-      }
-    };
+    return v1 -> regex.matcher(v1.getName()).matches();
   }
 
   static Predicate1<String> matcher(final Pat pattern) {
@@ -110,11 +103,7 @@ public class CalciteMetaImpl extends MetaImpl {
       return Functions.truePredicate1();
     }
     final Pattern regex = likeToRegex(pattern);
-    return new Predicate1<String>() {
-      public boolean apply(String v1) {
-        return regex.matcher(v1).matches();
-      }
-    };
+    return v1 -> regex.matcher(v1).matches();
   }
 
   /** Converts a LIKE-style pattern (where '%' represents a wild-card, escaped
@@ -190,7 +179,7 @@ public class CalciteMetaImpl extends MetaImpl {
     }
     //noinspection unchecked
     final Iterable<Object> iterable = (Iterable<Object>) (Iterable) enumerable;
-    return createResultSet(Collections.<String, Object>emptyMap(),
+    return createResultSet(Collections.emptyMap(),
         columns, CursorFactory.record(clazz, fields, fieldNames),
         new Frame(0, true, iterable));
   }
@@ -199,7 +188,7 @@ public class CalciteMetaImpl extends MetaImpl {
   createEmptyResultSet(final Class<E> clazz) {
     final List<ColumnMetaData> columns = fieldMetaData(clazz).columns;
     final CursorFactory cursorFactory = CursorFactory.deduce(columns, clazz);
-    return createResultSet(Collections.<String, Object>emptyMap(), columns,
+    return createResultSet(Collections.emptyMap(), columns,
         cursorFactory, Frame.EMPTY);
   }
 
@@ -211,8 +200,8 @@ public class CalciteMetaImpl extends MetaImpl {
       final AvaticaStatement statement = connection.createStatement();
       final CalcitePrepare.CalciteSignature<Object> signature =
           new CalcitePrepare.CalciteSignature<Object>("",
-              ImmutableList.<AvaticaParameter>of(), internalParameters, null,
-              columns, cursorFactory, null, ImmutableList.<RelCollation>of(), -1,
+              ImmutableList.of(), internalParameters, null,
+              columns, cursorFactory, null, ImmutableList.of(), -1,
               null, Meta.StatementType.SELECT) {
             @Override public Enumerable<Object> enumerable(
                 DataContext dataContext) {
@@ -268,21 +257,12 @@ public class CalciteMetaImpl extends MetaImpl {
     if (typeList == null) {
       typeFilter = Functions.truePredicate1();
     } else {
-      typeFilter = new Predicate1<MetaTable>() {
-        public boolean apply(MetaTable v1) {
-          return typeList.contains(v1.tableType);
-        }
-      };
+      typeFilter = v1 -> typeList.contains(v1.tableType);
     }
     final Predicate1<MetaSchema> schemaMatcher = namedMatcher(schemaPattern);
     return createResultSet(schemas(catalog)
             .where(schemaMatcher)
-            .selectMany(
-                new Function1<MetaSchema, Enumerable<MetaTable>>() {
-                  public Enumerable<MetaTable> apply(MetaSchema schema) {
-                    return tables(schema, matcher(tableNamePattern));
-                  }
-                })
+            .selectMany(schema -> tables(schema, matcher(tableNamePattern)))
             .where(typeFilter),
         MetaTable.class,
         "TABLE_CAT",
@@ -331,18 +311,8 @@ public class CalciteMetaImpl extends MetaImpl {
         namedMatcher(columnNamePattern);
     return createResultSet(schemas(catalog)
             .where(schemaMatcher)
-            .selectMany(
-                new Function1<MetaSchema, Enumerable<MetaTable>>() {
-                  public Enumerable<MetaTable> apply(MetaSchema schema) {
-                    return tables(schema, tableNameMatcher);
-                  }
-                })
-            .selectMany(
-                new Function1<MetaTable, Enumerable<MetaColumn>>() {
-                  public Enumerable<MetaColumn> apply(MetaTable schema) {
-                    return columns(schema);
-                  }
-                })
+            .selectMany(schema -> tables(schema, tableNameMatcher))
+            .selectMany(this::columns)
             .where(columnMatcher),
         MetaColumn.class,
         "TABLE_CAT",
@@ -391,75 +361,49 @@ public class CalciteMetaImpl extends MetaImpl {
   Enumerable<MetaSchema> schemas(final String catalog) {
     return Linq4j.asEnumerable(
         getConnection().rootSchema.getSubSchemaMap().values())
-        .select(
-            new Function1<CalciteSchema, MetaSchema>() {
-              public MetaSchema apply(CalciteSchema calciteSchema) {
-                return new CalciteMetaSchema(
-                    calciteSchema,
-                    catalog,
-                    calciteSchema.getName());
-              }
-            })
-        .orderBy(
-            new Function1<MetaSchema, Comparable>() {
-              public Comparable apply(MetaSchema metaSchema) {
-                return (Comparable) FlatLists.of(
-                    Util.first(metaSchema.tableCatalog, ""),
-                    metaSchema.tableSchem);
-              }
-            });
+        .select((Function1<CalciteSchema, MetaSchema>) calciteSchema ->
+            new CalciteMetaSchema(calciteSchema, catalog,
+                calciteSchema.getName()))
+        .orderBy((Function1<MetaSchema, Comparable>) metaSchema ->
+            (Comparable) FlatLists.of(Util.first(metaSchema.tableCatalog, ""),
+                metaSchema.tableSchem));
   }
 
   Enumerable<MetaTable> tables(String catalog) {
     return schemas(catalog)
-        .selectMany(
-            new Function1<MetaSchema, Enumerable<MetaTable>>() {
-              public Enumerable<MetaTable> apply(MetaSchema schema) {
-                return tables(schema, Functions.<String>truePredicate1());
-              }
-            });
+        .selectMany(schema ->
+            tables(schema, Functions.<String>truePredicate1()));
   }
 
   Enumerable<MetaTable> tables(final MetaSchema schema_) {
     final CalciteMetaSchema schema = (CalciteMetaSchema) schema_;
     return Linq4j.asEnumerable(schema.calciteSchema.getTableNames())
-        .select(
-            new Function1<String, MetaTable>() {
-              public MetaTable apply(String name) {
-                final Table table =
-                    schema.calciteSchema.getTable(name, true).getTable();
-                return new CalciteMetaTable(table,
-                    schema.tableCatalog,
-                    schema.tableSchem,
-                    name);
-              }
-            })
+        .select((Function1<String, MetaTable>) name -> {
+          final Table table =
+              schema.calciteSchema.getTable(name, true).getTable();
+          return new CalciteMetaTable(table,
+              schema.tableCatalog,
+              schema.tableSchem,
+              name);
+        })
         .concat(
             Linq4j.asEnumerable(
                 schema.calciteSchema.getTablesBasedOnNullaryFunctions()
                     .entrySet())
-                .select(
-                    new Function1<Map.Entry<String, Table>, MetaTable>() {
-                      public MetaTable apply(Map.Entry<String, Table> pair) {
-                        final Table table = pair.getValue();
-                        return new CalciteMetaTable(table,
-                            schema.tableCatalog,
-                            schema.tableSchem,
-                            pair.getKey());
-                      }
-                    }));
+                .select(pair -> {
+                  final Table table = pair.getValue();
+                  return new CalciteMetaTable(table,
+                      schema.tableCatalog,
+                      schema.tableSchem,
+                      pair.getKey());
+                }));
   }
 
   Enumerable<MetaTable> tables(
       final MetaSchema schema,
       final Predicate1<String> matcher) {
     return tables(schema)
-        .where(
-            new Predicate1<MetaTable>() {
-              public boolean apply(MetaTable v1) {
-                return matcher.apply(v1.getName());
-              }
-            });
+        .where(v1 -> matcher.apply(v1.getName()));
   }
 
   private ImmutableList<MetaTypeInfo> getAllDefaultType() {
@@ -499,35 +443,32 @@ public class CalciteMetaImpl extends MetaImpl {
     final RelDataType rowType =
         table.calciteTable.getRowType(getConnection().typeFactory);
     return Linq4j.asEnumerable(rowType.getFieldList())
-        .select(
-            new Function1<RelDataTypeField, MetaColumn>() {
-              public MetaColumn apply(RelDataTypeField field) {
-                final int precision =
-                    field.getType().getSqlTypeName().allowsPrec()
-                        && !(field.getType()
-                        instanceof RelDataTypeFactoryImpl.JavaType)
-                        ? field.getType().getPrecision()
-                        : -1;
-                return new MetaColumn(
-                    table.tableCat,
-                    table.tableSchem,
-                    table.tableName,
-                    field.getName(),
-                    field.getType().getSqlTypeName().getJdbcOrdinal(),
-                    field.getType().getFullTypeString(),
-                    precision,
-                    field.getType().getSqlTypeName().allowsScale()
-                        ? field.getType().getScale()
-                        : null,
-                    10,
-                    field.getType().isNullable()
-                        ? DatabaseMetaData.columnNullable
-                        : DatabaseMetaData.columnNoNulls,
-                    precision,
-                    field.getIndex() + 1,
-                    field.getType().isNullable() ? "YES" : "NO");
-              }
-            });
+        .select(field -> {
+          final int precision =
+              field.getType().getSqlTypeName().allowsPrec()
+                  && !(field.getType()
+                  instanceof RelDataTypeFactoryImpl.JavaType)
+                  ? field.getType().getPrecision()
+                  : -1;
+          return new MetaColumn(
+              table.tableCat,
+              table.tableSchem,
+              table.tableName,
+              field.getName(),
+              field.getType().getSqlTypeName().getJdbcOrdinal(),
+              field.getType().getFullTypeString(),
+              precision,
+              field.getType().getSqlTypeName().allowsScale()
+                  ? field.getType().getScale()
+                  : null,
+              10,
+              field.getType().isNullable()
+                  ? DatabaseMetaData.columnNullable
+                  : DatabaseMetaData.columnNoNulls,
+              precision,
+              field.getIndex() + 1,
+              field.getType().isNullable() ? "YES" : "NO");
+        });
   }
 
   public MetaResultSet getSchemas(ConnectionHandle ch, String catalog, Pat schemaPattern) {
@@ -745,7 +686,7 @@ public class CalciteMetaImpl extends MetaImpl {
           public void execute() throws SQLException {
             if (signature.statementType.canUpdate()) {
               final Iterable<Object> iterable =
-                  _createIterable(h, signature, ImmutableList.<TypedValue>of(),
+                  _createIterable(h, signature, ImmutableList.of(),
                       null);
               final Iterator<Object> iterator = iterable.iterator();
               updateCount = ((Number) iterator.next()).longValue();
@@ -763,7 +704,7 @@ public class CalciteMetaImpl extends MetaImpl {
   @VisibleForTesting
   public static DataContext createDataContext(CalciteConnection connection) {
     return ((CalciteConnectionImpl) connection)
-        .createDataContext(ImmutableMap.<String, Object>of(),
+        .createDataContext(ImmutableMap.of(),
             CalciteSchema.from(connection.getRootSchema()));
   }
 
@@ -796,7 +737,7 @@ public class CalciteMetaImpl extends MetaImpl {
         String tableSchem, String tableName) {
       super(tableCat, tableSchem, tableName,
           calciteTable.getJdbcTableType().jdbcName);
-      this.calciteTable = Preconditions.checkNotNull(calciteTable);
+      this.calciteTable = Objects.requireNonNull(calciteTable);
     }
   }
 

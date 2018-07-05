@@ -51,7 +51,7 @@ abstract class DefaultQueryable<T> extends DefaultEnumerable<T>
    * Creates a DefaultQueryable using a factory that records events.
    */
   protected DefaultQueryable() {
-    this(QueryableRecorder.<T>instance());
+    this(QueryableRecorder.instance());
   }
 
   /**

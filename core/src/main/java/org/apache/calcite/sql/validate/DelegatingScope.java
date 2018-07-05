@@ -462,7 +462,7 @@ public abstract class DelegatingScope implements SqlValidatorScope {
                 return kind;
               }
             };
-        Collections.sort(resolved.resolves, c);
+        resolved.resolves.sort(c);
         if (c.compare(resolved.resolves.get(0), resolved.resolves.get(1)) == 0) {
           throw validator.newValidationError(suffix,
               RESOURCE.columnAmbiguous(suffix.toString()));

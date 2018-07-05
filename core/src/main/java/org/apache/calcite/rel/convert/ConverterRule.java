@@ -25,9 +25,8 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.tools.RelBuilderFactory;
 
-import com.google.common.base.Preconditions;
-import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
+import java.util.Objects;
+import java.util.function.Predicate;
 
 /**
  * Abstract base class for a rule which converts from one calling convention to
@@ -51,14 +50,15 @@ public abstract class ConverterRule extends RelOptRule {
    */
   public ConverterRule(Class<? extends RelNode> clazz, RelTrait in,
       RelTrait out, String description) {
-    this(clazz, Predicates.<RelNode>alwaysTrue(), in, out,
+    this(clazz, (Predicate<RelNode>) r -> true, in, out,
         RelFactories.LOGICAL_BUILDER, description);
   }
 
+  @SuppressWarnings("Guava")
   @Deprecated // to be removed before 2.0
   public <R extends RelNode> ConverterRule(Class<R> clazz,
-      Predicate<? super R> predicate, RelTrait in, RelTrait out,
-      String description) {
+      com.google.common.base.Predicate<? super R> predicate,
+      RelTrait in, RelTrait out, String description) {
     this(clazz, predicate, in, out, RelFactories.LOGICAL_BUILDER, description);
   }
 
@@ -80,11 +80,20 @@ public abstract class ConverterRule extends RelOptRule {
         description == null
             ? "ConverterRule<in=" + in + ",out=" + out + ">"
             : description);
-    this.inTrait = Preconditions.checkNotNull(in);
-    this.outTrait = Preconditions.checkNotNull(out);
+    this.inTrait = Objects.requireNonNull(in);
+    this.outTrait = Objects.requireNonNull(out);
 
     // Source and target traits must have same type
     assert in.getTraitDef() == out.getTraitDef();
+  }
+
+  @SuppressWarnings("Guava")
+  @Deprecated // to be removed before 2.0
+  public <R extends RelNode> ConverterRule(Class<R> clazz,
+      com.google.common.base.Predicate<? super R> predicate, RelTrait in,
+      RelTrait out, RelBuilderFactory relBuilderFactory, String description) {
+    this(clazz, (Predicate<? super R>) predicate::apply, in, out,
+        relBuilderFactory, description);
   }
 
   //~ Methods ----------------------------------------------------------------

@@ -57,9 +57,7 @@ import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.TimestampString;
 import org.apache.calcite.util.Util;
 
-import com.google.common.base.Function;
 import com.google.common.base.Throwables;
-import com.google.common.collect.Lists;
 
 import org.junit.Before;
 import org.junit.Ignore;
@@ -79,6 +77,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.TimeZone;
+import java.util.function.Consumer;
 import java.util.regex.Pattern;
 
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -5083,9 +5082,7 @@ public abstract class SqlOperatorBaseTest {
     final Hook.Closeable closeable;
     if (CalciteAssert.ENABLE_SLOW) {
       calendar = getCalendarNotTooNear(Calendar.HOUR_OF_DAY);
-      closeable = new Hook.Closeable() {
-        public void close() {}
-      };
+      closeable = () -> { };
     } else {
       calendar = Util.calendar();
       calendar.set(Calendar.YEAR, 2014);
@@ -5097,12 +5094,7 @@ public abstract class SqlOperatorBaseTest {
       calendar.set(Calendar.MILLISECOND, 15);
       final long timeInMillis = calendar.getTimeInMillis();
       closeable = Hook.CURRENT_TIME.addThread(
-          new Function<Holder<Long>, Void>() {
-            public Void apply(Holder<Long> o) {
-              o.set(timeInMillis);
-              return null;
-            }
-          });
+          (Consumer<Holder<Long>>) o -> o.set(timeInMillis));
     }
 
     SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:", Locale.ROOT);
@@ -5530,7 +5522,8 @@ public abstract class SqlOperatorBaseTest {
         "Invalid number of arguments to function 'COLLECT'. Was expecting 1 arguments",
         false);
     final String[] values = {"0", "CAST(null AS INTEGER)", "2", "2"};
-    tester.checkAgg("collect(x)", values, Arrays.asList("[0, 2, 2]"), (double) 0);
+    tester.checkAgg("collect(x)", values,
+        Collections.singletonList("[0, 2, 2]"), (double) 0);
     Object result1 = -3;
     if (!enable) {
       return;
@@ -7470,7 +7463,7 @@ public abstract class SqlOperatorBaseTest {
                 query = SqlTesterImpl.buildQuery(s);
               }
               tester.check(query, SqlTests.ANY_TYPE_CHECKER,
-                  SqlTests.ANY_PARAMETER_CHECKER, SqlTests.ANY_RESULT_CHECKER);
+                  SqlTests.ANY_PARAMETER_CHECKER, result -> { });
             }
           } catch (Error e) {
             System.out.println(s + ": " + e.getMessage());
@@ -7674,8 +7667,8 @@ public abstract class SqlOperatorBaseTest {
   /** Builds lists of types and sample values. */
   static class Builder {
     final RelDataTypeFactory typeFactory;
-    final List<RelDataType> types = Lists.newArrayList();
-    final List<ValueType> values = Lists.newArrayList();
+    final List<RelDataType> types = new ArrayList<>();
+    final List<ValueType> values = new ArrayList<>();
 
     Builder(RelDataTypeFactory typeFactory) {
       this.typeFactory = typeFactory;

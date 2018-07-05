@@ -72,22 +72,16 @@ public class Elasticsearch5Enumerator implements Enumerator<Object> {
   }
 
   private static Function1<SearchHit, Map> mapGetter() {
-    return new Function1<SearchHit, Map>() {
-      public Map apply(SearchHit searchHitFields) {
-        return (Map) searchHitFields.getFields();
-      }
-    };
+    return searchHitFields -> (Map) searchHitFields.getFields();
   }
 
   private static Function1<SearchHit, Object> singletonGetter(final String fieldName,
       final Class fieldClass) {
-    return new Function1<SearchHit, Object>() {
-      public Object apply(SearchHit searchHitFields) {
-        if (searchHitFields.getFields().isEmpty()) {
-          return convert(searchHitFields.getSource(), fieldClass);
-        } else {
-          return convert(searchHitFields.getFields(), fieldClass);
-        }
+    return searchHitFields -> {
+      if (searchHitFields.getFields().isEmpty()) {
+        return convert(searchHitFields.getSource(), fieldClass);
+      } else {
+        return convert(searchHitFields.getFields(), fieldClass);
       }
     };
   }
@@ -101,22 +95,20 @@ public class Elasticsearch5Enumerator implements Enumerator<Object> {
    */
   private static Function1<SearchHit, Object[]> listGetter(
       final List<Map.Entry<String, Class>> fields) {
-    return new Function1<SearchHit, Object[]>() {
-      public Object[] apply(SearchHit searchHitFields) {
-        Object[] objects = new Object[fields.size()];
-        for (int i = 0; i < fields.size(); i++) {
-          final Map.Entry<String, Class> field = fields.get(i);
-          final String name = field.getKey();
-          if (searchHitFields.getFields().isEmpty()) {
-            objects[i] = convert(searchHitFields.getSource().get(name),
-                field.getValue());
-          } else {
-            objects[i] = convert(searchHitFields.getField(name).getValue(),
-                field.getValue());
-          }
+    return searchHitFields -> {
+      Object[] objects = new Object[fields.size()];
+      for (int i = 0; i < fields.size(); i++) {
+        final Map.Entry<String, Class> field = fields.get(i);
+        final String name = field.getKey();
+        if (searchHitFields.getFields().isEmpty()) {
+          objects[i] = convert(searchHitFields.getSource().get(name),
+              field.getValue());
+        } else {
+          objects[i] = convert(searchHitFields.getField(name).getValue(),
+              field.getValue());
         }
-        return objects;
       }
+      return objects;
     };
   }
 

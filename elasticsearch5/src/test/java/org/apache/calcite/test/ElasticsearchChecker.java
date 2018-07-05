@@ -16,11 +16,8 @@
  */
 package org.apache.calcite.test;
 
-import com.google.common.base.Function;
-
 import java.util.List;
-
-import javax.annotation.Nullable;
+import java.util.function.Consumer;
 
 /**
  * Utility methods for Elasticsearch tests.
@@ -29,23 +26,18 @@ public class ElasticsearchChecker {
 
   private ElasticsearchChecker() {}
 
-  /**
-   * Returns a function that checks that a particular Elasticsearch pipeline is
+  /** Returns a function that checks that a particular Elasticsearch pipeline is
    * generated to implement a query.
    *
-   * @param strings expected expressions
-   * @return validation function
+   * @param strings list of expected queries
+   * @return function to perform the check
    */
-  public static Function<List, Void> elasticsearchChecker(final String... strings) {
-    return new Function<List, Void>() {
-      @Nullable
-      @Override public Void apply(@Nullable List actual) {
-        Object[] actualArray = actual == null || actual.isEmpty() ? null
-            : ((List) actual.get(0)).toArray();
-        CalciteAssert.assertArrayEqual("expected Elasticsearch query not found", strings,
-            actualArray);
-        return null;
-      }
+  public static Consumer<List> elasticsearchChecker(final String... strings) {
+    return actual -> {
+      Object[] actualArray = actual == null || actual.isEmpty() ? null
+          : ((List) actual.get(0)).toArray();
+      CalciteAssert.assertArrayEqual("expected Elasticsearch query not found", strings,
+          actualArray);
     };
   }
 }

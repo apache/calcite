@@ -16,10 +16,9 @@
  */
 package org.apache.calcite.rel;
 
-import com.google.common.collect.Lists;
-
 import org.junit.Test;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -49,7 +48,7 @@ public class RelCollationTest {
         is(false));
     assertThat(RelCollations.contains(collation21, Arrays.asList(2, 1, 3)),
         is(false));
-    assertThat(RelCollations.contains(collation21, Arrays.<Integer>asList()),
+    assertThat(RelCollations.contains(collation21, Arrays.asList()),
         is(true));
 
     // if there are duplicates in keys, later occurrences are ignored
@@ -73,7 +72,7 @@ public class RelCollationTest {
         is(false));
     assertThat(RelCollations.contains(collation1, Arrays.asList(1, 2, 1)),
         is(false));
-    assertThat(RelCollations.contains(collation1, Arrays.<Integer>asList()),
+    assertThat(RelCollations.contains(collation1, Arrays.asList()),
         is(true));
   }
 
@@ -90,7 +89,7 @@ public class RelCollationTest {
   }
 
   private static RelCollation collation(int... ordinals) {
-    final List<RelFieldCollation> list = Lists.newArrayList();
+    final List<RelFieldCollation> list = new ArrayList<>();
     for (int ordinal : ordinals) {
       list.add(new RelFieldCollation(ordinal));
     }

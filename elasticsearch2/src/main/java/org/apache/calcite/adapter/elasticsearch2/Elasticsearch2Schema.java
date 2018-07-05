@@ -21,10 +21,7 @@ import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.impl.AbstractSchema;
 
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
-
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Preconditions;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
@@ -44,6 +41,7 @@ import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * Schema mapped onto an index of ELASTICSEARCH types.
@@ -98,8 +96,8 @@ public class Elasticsearch2Schema extends AbstractSchema
    */
   @VisibleForTesting
   Elasticsearch2Schema(Client client, String index) {
-    this.client = Preconditions.checkNotNull(client, "client");
-    this.index = Preconditions.checkNotNull(index, "index");
+    this.client = Objects.requireNonNull(client, "client");
+    this.index = Objects.requireNonNull(index, "index");
   }
 
   @Override protected Map<String, Table> getTableMap() {

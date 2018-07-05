@@ -16,12 +16,11 @@
  */
 package org.apache.calcite.adapter.elasticsearch5;
 
-import com.google.common.base.Preconditions;
-
 import org.elasticsearch.client.Client;
 import org.elasticsearch.common.transport.TransportAddress;
-
 import org.junit.rules.ExternalResource;
+
+import java.util.Objects;
 
 /**
  * Junit rule that is used to initialize a single Elasticsearch node for tests.
@@ -56,7 +55,7 @@ class EmbeddedElasticsearchPolicy extends ExternalResource {
   private final EmbeddedElasticsearchNode node;
 
   private EmbeddedElasticsearchPolicy(EmbeddedElasticsearchNode resource) {
-    this.node = Preconditions.checkNotNull(resource, "resource");
+    this.node = Objects.requireNonNull(resource, "resource");
   }
 
   @Override protected void before() throws Throwable {

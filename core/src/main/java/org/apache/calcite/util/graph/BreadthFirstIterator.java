@@ -41,11 +41,7 @@ public class BreadthFirstIterator<V, E extends DefaultEdge>
 
   public static <V, E extends DefaultEdge> Iterable<V> of(
       final DirectedGraph<V, E> graph, final V root) {
-    return new Iterable<V>() {
-      public Iterator<V> iterator() {
-        return new BreadthFirstIterator<V, E>(graph, root);
-      }
-    };
+    return () -> new BreadthFirstIterator<V, E>(graph, root);
   }
 
   /** Populates a set with the nodes reachable from a given node. */

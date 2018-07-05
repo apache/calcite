@@ -48,8 +48,8 @@ import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.mapping.AbstractSourceMapping;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -62,14 +62,14 @@ import java.util.List;
 public class AggregateStarTableRule extends RelOptRule {
   public static final AggregateStarTableRule INSTANCE =
       new AggregateStarTableRule(
-          operand(Aggregate.class, null, Aggregate.IS_SIMPLE,
+          operandJ(Aggregate.class, null, Aggregate::isSimple,
               some(operand(StarTable.StarTableScan.class, none()))),
           RelFactories.LOGICAL_BUILDER,
           "AggregateStarTableRule");
 
   public static final AggregateStarTableRule INSTANCE2 =
       new AggregateStarTableRule(
-          operand(Aggregate.class, null, Aggregate.IS_SIMPLE,
+          operandJ(Aggregate.class, null, Aggregate::isSimple,
               operand(Project.class,
                   operand(StarTable.StarTableScan.class, none()))),
           RelFactories.LOGICAL_BUILDER,
@@ -164,7 +164,7 @@ public class AggregateStarTableRule extends RelOptRule {
             + aggregate.getGroupSet());
       }
       assert tileKey.dimensions.contains(aggregate.getGroupSet());
-      final List<AggregateCall> aggCalls = Lists.newArrayList();
+      final List<AggregateCall> aggCalls = new ArrayList<>();
       ImmutableBitSet.Builder groupSet = ImmutableBitSet.builder();
       for (int key : aggregate.getGroupSet()) {
         groupSet.set(tileKey.dimensions.indexOf(key));
@@ -242,7 +242,7 @@ public class AggregateStarTableRule extends RelOptRule {
     // Second, try to satisfy the aggregation based on group set columns.
   tryGroup:
     {
-      List<Integer> newArgs = Lists.newArrayList();
+      List<Integer> newArgs = new ArrayList<>();
       for (Integer arg : aggregateCall.getArgList()) {
         int z = tileKey.dimensions.indexOf(arg);
         if (z < 0) {

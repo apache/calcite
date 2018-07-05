@@ -22,7 +22,6 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlKind;
-import org.apache.calcite.sql.SqlOperatorBinding;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeFamily;
@@ -60,13 +59,11 @@ public class SqlTimestampAddFunction extends SqlFunction {
   private static final int MICROSECOND_PRECISION = 6;
 
   private static final SqlReturnTypeInference RETURN_TYPE_INFERENCE =
-      new SqlReturnTypeInference() {
-        public RelDataType inferReturnType(SqlOperatorBinding opBinding) {
-          final RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
-          return deduceType(typeFactory,
-              opBinding.getOperandLiteralValue(0, TimeUnit.class),
-              opBinding.getOperandType(1), opBinding.getOperandType(2));
-        }
+      opBinding -> {
+        final RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
+        return deduceType(typeFactory,
+            opBinding.getOperandLiteralValue(0, TimeUnit.class),
+            opBinding.getOperandType(1), opBinding.getOperandType(2));
       };
 
   public static RelDataType deduceType(RelDataTypeFactory typeFactory,

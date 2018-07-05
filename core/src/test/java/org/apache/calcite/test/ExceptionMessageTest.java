@@ -27,7 +27,6 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.Iterator;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -51,10 +50,8 @@ public class ExceptionMessageTest {
         new Entry(2, "name2")
     };
 
-    public Iterable<Entry> badEntries = new Iterable<Entry>() {
-      public Iterator<Entry> iterator() {
-        throw new IllegalStateException("Can't iterate over badEntries");
-      }
+    public Iterable<Entry> badEntries = () -> {
+      throw new IllegalStateException("Can't iterate over badEntries");
     };
   }
 

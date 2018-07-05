@@ -17,13 +17,11 @@
 package org.apache.calcite.sql.validate;
 
 import org.apache.calcite.linq4j.Linq4j;
-import org.apache.calcite.linq4j.function.Function1;
-import org.apache.calcite.linq4j.function.Predicate1;
 import org.apache.calcite.sql.SqlNode;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Sets;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -51,20 +49,10 @@ class CatalogScope extends DelegatingScope {
     this.schemaNames =
         Linq4j.asEnumerable(
             validator.getCatalogReader()
-                .getAllSchemaObjectNames(ImmutableList.<String>of()))
-            .where(
-                new Predicate1<SqlMoniker>() {
-                  public boolean apply(SqlMoniker input) {
-                    return input.getType() == SqlMonikerType.SCHEMA;
-                  }
-                })
-            .select(
-                new Function1<SqlMoniker, List<String>>() {
-                  public List<String> apply(SqlMoniker input) {
-                    return input.getFullyQualifiedNames();
-                  }
-                })
-            .into(Sets.<List<String>>newHashSet());
+                .getAllSchemaObjectNames(ImmutableList.of()))
+            .where(input -> input.getType() == SqlMonikerType.SCHEMA)
+            .select(SqlMoniker::getFullyQualifiedNames)
+            .into(new HashSet<>());
   }
 
   //~ Methods ----------------------------------------------------------------

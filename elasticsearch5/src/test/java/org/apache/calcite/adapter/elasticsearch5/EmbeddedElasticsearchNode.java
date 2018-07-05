@@ -34,6 +34,7 @@ import org.elasticsearch.transport.Netty3Plugin;
 import java.io.File;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Objects;
 
 /**
  * Represents a single elastic search node which can run embedded in a java application.
@@ -45,7 +46,7 @@ class EmbeddedElasticsearchNode implements AutoCloseable {
   private volatile boolean  isStarted;
 
   private EmbeddedElasticsearchNode(Node node) {
-    this.node = Preconditions.checkNotNull(node, "node");
+    this.node = Objects.requireNonNull(node, "node");
   }
 
 

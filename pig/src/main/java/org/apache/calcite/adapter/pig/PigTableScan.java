@@ -29,8 +29,6 @@ import org.apache.calcite.rel.type.RelDataTypeField;
 
 import org.apache.pig.data.DataType;
 
-import com.google.common.base.Joiner;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -65,7 +63,7 @@ public class PigTableScan extends TableScan implements PigRel {
     for (RelDataTypeField f : getTable().getRowType().getFieldList()) {
       fieldNamesAndTypes.add(getConcatenatedFieldNameAndTypeForPigSchema(implementor, f));
     }
-    return Joiner.on(", ").join(fieldNamesAndTypes);
+    return String.join(", ", fieldNamesAndTypes);
   }
 
   private String getConcatenatedFieldNameAndTypeForPigSchema(Implementor implementor,

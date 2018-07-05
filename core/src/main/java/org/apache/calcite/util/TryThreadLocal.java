@@ -50,13 +50,11 @@ public class TryThreadLocal<T> extends ThreadLocal<T> {
   public Memo push(T value) {
     final T previous = get();
     set(value);
-    return new Memo() {
-      public void close() {
-        if (previous == initialValue) {
-          remove();
-        } else {
-          set(previous);
-        }
+    return () -> {
+      if (previous == initialValue) {
+        remove();
+      } else {
+        set(previous);
       }
     };
   }

@@ -39,14 +39,12 @@ import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
 import java.util.AbstractList;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
@@ -173,7 +171,7 @@ public class PhysTypeImpl implements PhysType {
       JavaRowFormat targetFormat) {
     final PhysType targetPhysType =
         project(fields, true, targetFormat);
-    final List<Expression> expressions = Lists.newArrayList();
+    final List<Expression> expressions = new ArrayList<>();
     for (Ord<Integer> ord : Ord.zip(fields)) {
       final Integer field = ord.e;
       if (usedFields.contains(field)) {
@@ -210,8 +208,7 @@ public class PhysTypeImpl implements PhysType {
         project(fields, targetFormat);
     switch (format) {
     case SCALAR:
-      return Pair.of(parameter.getType(),
-          Collections.<Expression>singletonList(parameter));
+      return Pair.of(parameter.getType(), ImmutableList.of(parameter));
     default:
       return Pair.of(targetPhysType.getJavaRowType(),
           fieldReferences(parameter, fields));
@@ -262,8 +259,7 @@ public class PhysTypeImpl implements PhysType {
               Function1.class,
               fieldReference(parameter, collation.getFieldIndex()),
               parameter);
-      return Pair.<Expression, Expression>of(
-          selector,
+      return Pair.of(selector,
           Expressions.call(
               BuiltInMethod.NULLS_COMPARATOR.method,
               Expressions.constant(
@@ -332,7 +328,7 @@ public class PhysTypeImpl implements PhysType {
         Expressions.return_(null, Expressions.constant(0)));
 
     final List<MemberDeclaration> memberDeclarations =
-        Expressions.<MemberDeclaration>list(
+        Expressions.list(
             Expressions.methodDecl(
                 Modifier.PUBLIC,
                 int.class,
@@ -366,11 +362,9 @@ public class PhysTypeImpl implements PhysType {
               ImmutableList.of(parameterO0, parameterO1),
               bridgeBody.toBlock()));
     }
-    return Pair.<Expression, Expression>of(
-        selector,
-        Expressions.new_(
-            Comparator.class,
-            Collections.<Expression>emptyList(),
+    return Pair.of(selector,
+        Expressions.new_(Comparator.class,
+            ImmutableList.of(),
             memberDeclarations));
   }
 
@@ -433,7 +427,7 @@ public class PhysTypeImpl implements PhysType {
         Expressions.return_(null, Expressions.constant(0)));
 
     final List<MemberDeclaration> memberDeclarations =
-        Expressions.<MemberDeclaration>list(
+        Expressions.list(
             Expressions.methodDecl(
                 Modifier.PUBLIC,
                 int.class,
@@ -468,7 +462,7 @@ public class PhysTypeImpl implements PhysType {
     }
     return Expressions.new_(
         Comparator.class,
-        Collections.<Expression>emptyList(),
+        ImmutableList.of(),
         memberDeclarations);
   }
 

@@ -372,6 +372,10 @@ public class FlatLists {
 
     @SuppressWarnings({"unchecked" })
     public <T2> T2[] toArray(T2[] a) {
+      if (a.length < 1) {
+        // Make a new array of a's runtime type, but my contents:
+        return (T2[]) Arrays.copyOf(toArray(), 1, a.getClass());
+      }
       a[0] = (T2) t0;
       return a;
     }
@@ -500,6 +504,10 @@ public class FlatLists {
 
     @SuppressWarnings({"unchecked" })
     public <T2> T2[] toArray(T2[] a) {
+      if (a.length < 2) {
+        // Make a new array of a's runtime type, but my contents:
+        return (T2[]) Arrays.copyOf(toArray(), 2, a.getClass());
+      }
       a[0] = (T2) t0;
       a[1] = (T2) t1;
       return a;
@@ -645,6 +653,10 @@ public class FlatLists {
 
     @SuppressWarnings({"unchecked" })
     public <T2> T2[] toArray(T2[] a) {
+      if (a.length < 3) {
+        // Make a new array of a's runtime type, but my contents:
+        return (T2[]) Arrays.copyOf(toArray(), 3, a.getClass());
+      }
       a[0] = (T2) t0;
       a[1] = (T2) t1;
       a[2] = (T2) t2;
@@ -809,6 +821,10 @@ public class FlatLists {
 
     @SuppressWarnings({"unchecked" })
     public <T2> T2[] toArray(T2[] a) {
+      if (a.length < 4) {
+        // Make a new array of a's runtime type, but my contents:
+        return (T2[]) Arrays.copyOf(toArray(), 4, a.getClass());
+      }
       a[0] = (T2) t0;
       a[1] = (T2) t1;
       a[2] = (T2) t2;
@@ -992,6 +1008,10 @@ public class FlatLists {
 
     @SuppressWarnings({"unchecked" })
     public <T2> T2[] toArray(T2[] a) {
+      if (a.length < 5) {
+        // Make a new array of a's runtime type, but my contents:
+        return (T2[]) Arrays.copyOf(toArray(), 5, a.getClass());
+      }
       a[0] = (T2) t0;
       a[1] = (T2) t1;
       a[2] = (T2) t2;
@@ -1195,6 +1215,10 @@ public class FlatLists {
 
     @SuppressWarnings({"unchecked" })
     public <T2> T2[] toArray(T2[] a) {
+      if (a.length < 6) {
+        // Make a new array of a's runtime type, but my contents:
+        return (T2[]) Arrays.copyOf(toArray(), 6, a.getClass());
+      }
       a[0] = (T2) t0;
       a[1] = (T2) t1;
       a[2] = (T2) t2;

@@ -32,7 +32,6 @@ import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.rex.RexVisitorImpl;
-import org.apache.calcite.runtime.PredicateImpl;
 import org.apache.calcite.sql.SemiJoinType;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.tools.RelBuilder;
@@ -40,16 +39,15 @@ import org.apache.calcite.util.BitSets;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Pair;
 
-import com.google.common.base.Preconditions;
-import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Lists;
 
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
+import java.util.function.Predicate;
 
 /**
  * PushProjector is a utility class used to perform operations used in push
@@ -212,7 +210,7 @@ public class PushProjector {
     this.origFilter = origFilter;
     this.childRel = childRel;
     this.preserveExprCondition = preserveExprCondition;
-    this.relBuilder = Preconditions.checkNotNull(relBuilder);
+    this.relBuilder = Objects.requireNonNull(relBuilder);
     if (origProj == null) {
       origProjExprs = ImmutableList.of();
     } else {
@@ -615,7 +613,7 @@ public class PushProjector {
    * @return the created projection
    */
   public RelNode createNewProject(RelNode projChild, int[] adjustments) {
-    final List<Pair<RexNode, String>> projects = Lists.newArrayList();
+    final List<Pair<RexNode, String>> projects = new ArrayList<>();
 
     if (origProj != null) {
       for (Pair<RexNode, String> p : origProj.getNamedProjects()) {
@@ -850,34 +848,19 @@ public class PushProjector {
     /**
      * Constant condition that replies {@code false} for all expressions.
      */
-    ExprCondition FALSE =
-        new ExprConditionImpl() {
-          @Override public boolean test(RexNode expr) {
-            return false;
-          }
-        };
+    ExprCondition FALSE = expr -> false;
 
     /**
      * Constant condition that replies {@code true} for all expressions.
      */
-    ExprCondition TRUE =
-        new ExprConditionImpl() {
-          @Override public boolean test(RexNode expr) {
-            return true;
-          }
-        };
-  }
-
-  /** Implementation of {@link ExprCondition}. */
-  abstract static class ExprConditionImpl extends PredicateImpl<RexNode>
-      implements ExprCondition {
+    ExprCondition TRUE = expr -> true;
   }
 
   /**
    * An expression condition that evaluates to true if the expression is
    * a call to one of a set of operators.
    */
-  class OperatorExprCondition extends ExprConditionImpl {
+  class OperatorExprCondition implements ExprCondition {
     private final Set<SqlOperator> operatorSet;
 
     /**

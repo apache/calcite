@@ -38,7 +38,6 @@ import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.Util;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
@@ -52,6 +51,7 @@ import java.sql.Statement;
 import java.util.Collection;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import javax.sql.DataSource;
 
@@ -89,8 +89,8 @@ public class JdbcSchema implements Schema {
       JdbcConvention convention, String catalog, String schema,
       ImmutableMap<String, JdbcTable> tableMap) {
     super();
-    this.dataSource = Preconditions.checkNotNull(dataSource);
-    this.dialect = Preconditions.checkNotNull(dialect);
+    this.dataSource = Objects.requireNonNull(dataSource);
+    this.dialect = Objects.requireNonNull(dialect);
     this.convention = convention;
     this.catalog = catalog;
     this.schema = schema;

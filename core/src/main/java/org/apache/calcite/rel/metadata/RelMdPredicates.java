@@ -18,7 +18,6 @@ package org.apache.calcite.rel.metadata;
 
 import org.apache.calcite.linq4j.Linq4j;
 import org.apache.calcite.linq4j.Ord;
-import org.apache.calcite.linq4j.function.Predicate1;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptPredicateList;
 import org.apache.calcite.plan.RelOptUtil;
@@ -58,11 +57,9 @@ import org.apache.calcite.util.mapping.Mapping;
 import org.apache.calcite.util.mapping.MappingType;
 import org.apache.calcite.util.mapping.Mappings;
 
-import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 
 import java.util.ArrayList;
 import java.util.BitSet;
@@ -73,8 +70,10 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Set;
 import java.util.SortedMap;
+import java.util.TreeMap;
 
 /**
  * Utility to infer Predicates that are applicable above a RelNode.
@@ -511,7 +510,7 @@ public class RelMdPredicates
       allFieldsBitSet = ImmutableBitSet.range(0,
           nSysFields + nFieldsLeft + nFieldsRight);
 
-      exprFields = Maps.newHashMap();
+      exprFields = new HashMap<>();
       allExprDigests = new HashSet<>();
 
       if (lPreds == null) {
@@ -544,7 +543,7 @@ public class RelMdPredicates
         }
       }
 
-      equivalence = Maps.newTreeMap();
+      equivalence = new TreeMap<>();
       equalityPredicates = new HashSet<>();
       for (int i = 0; i < nSysFields + nFieldsLeft + nFieldsRight; i++) {
         equivalence.put(i, BitSets.of(i));
@@ -560,12 +559,7 @@ public class RelMdPredicates
 
       final EquivalenceFinder eF = new EquivalenceFinder();
       new ArrayList<>(
-          Lists.transform(exprs,
-              new Function<RexNode, Void>() {
-                public Void apply(RexNode input) {
-                  return input.accept(eF);
-                }
-              }));
+          Lists.transform(exprs, input -> input.accept(eF)));
 
       equivalence = BitSets.closure(equivalence);
     }
@@ -695,14 +689,12 @@ public class RelMdPredicates
     }
 
     Iterable<Mapping> mappings(final RexNode predicate) {
-      return new Iterable<Mapping>() {
-        public Iterator<Mapping> iterator() {
-          ImmutableBitSet fields = exprFields.get(predicate.toString());
-          if (fields.cardinality() == 0) {
-            return Collections.emptyIterator();
-          }
-          return new ExprsItr(fields);
+      return () -> {
+        ImmutableBitSet fields = exprFields.get(predicate.toString());
+        if (fields.cardinality() == 0) {
+          return Collections.emptyIterator();
         }
+        return new ExprsItr(fields);
       };
     }
 
@@ -722,11 +714,7 @@ public class RelMdPredicates
     }
 
     RexNode compose(RexBuilder rexBuilder, Iterable<RexNode> exprs) {
-      exprs = Linq4j.asEnumerable(exprs).where(new Predicate1<RexNode>() {
-        public boolean apply(RexNode expr) {
-          return expr != null;
-        }
-      });
+      exprs = Linq4j.asEnumerable(exprs).where(Objects::nonNull);
       return RexUtil.composeConjunction(rexBuilder, exprs, false);
     }
 

@@ -27,9 +27,7 @@ import java.net.URLConnection;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
-import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.HttpsURLConnection;
-import javax.net.ssl.SSLSession;
 
 /**
  * Utilities for connecting to REST services such as Splunk via HTTP.
@@ -49,12 +47,7 @@ public class HttpUtils {
       HttpsURLConnection httpsConn = (HttpsURLConnection) httpConn;
       httpsConn.setSSLSocketFactory(
           TrustAllSslSocketFactory.createSSLSocketFactory());
-      httpsConn.setHostnameVerifier(
-          new HostnameVerifier() {
-            public boolean verify(String arg0, SSLSession arg1) {
-              return true;
-            }
-          });
+      httpsConn.setHostnameVerifier((arg0, arg1) -> true);
     }
 
     return httpConn;

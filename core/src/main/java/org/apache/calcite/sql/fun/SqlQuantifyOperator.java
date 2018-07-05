@@ -20,6 +20,8 @@ import org.apache.calcite.sql.SqlKind;
 
 import com.google.common.base.Preconditions;
 
+import java.util.Objects;
+
 /**
  * Definition of the SQL <code>ALL</code> and <code>SOME</code>operators.
  *
@@ -47,7 +49,7 @@ public class SqlQuantifyOperator extends SqlInOperator {
    */
   SqlQuantifyOperator(SqlKind kind, SqlKind comparisonKind) {
     super(comparisonKind.sql + " " + kind, kind);
-    this.comparisonKind = Preconditions.checkNotNull(comparisonKind);
+    this.comparisonKind = Objects.requireNonNull(comparisonKind);
     Preconditions.checkArgument(comparisonKind == SqlKind.EQUALS
         || comparisonKind == SqlKind.NOT_EQUALS
         || comparisonKind == SqlKind.LESS_THAN_OR_EQUAL

@@ -80,17 +80,11 @@ class Maze {
     final StringBuilder b2 = new StringBuilder();
     final CellContent cellContent;
     if (space) {
-      cellContent = new CellContent() {
-        public String get(int c) {
-          return "  ";
-        }
-      };
+      cellContent = c -> "  ";
     } else {
-      cellContent = new CellContent() {
-        public String get(int c) {
-          String s = region(c) + "";
-          return s.length() == 1 ? " " + s : s;
-        }
+      cellContent = c -> {
+        String s = region(c) + "";
+        return s.length() == 1 ? " " + s : s;
       };
     }
     for (int y = 0; y < height; y++) {
@@ -113,11 +107,7 @@ class Maze {
     if (solutionSet == null) {
       cellContent = CellContent.SPACE;
     } else {
-      cellContent = new CellContent() {
-        public String get(int c) {
-          return solutionSet.contains(c) ? "* " : "  ";
-        }
-      };
+      cellContent = c -> solutionSet.contains(c) ? "* " : "  ";
     }
     return new Enumerator<String>() {
       int i = -1;
@@ -352,11 +342,7 @@ class Maze {
   /** Callback to get what to print in a particular cell. Must be two characters
    * long, usually two spaces. */
   interface CellContent {
-    CellContent SPACE = new CellContent() {
-      public String get(int c) {
-        return "  ";
-      }
-    };
+    CellContent SPACE = c -> "  ";
 
     String get(int c);
   }

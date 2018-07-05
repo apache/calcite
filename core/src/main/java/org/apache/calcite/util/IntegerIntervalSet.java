@@ -91,13 +91,10 @@ public class IntegerIntervalSet extends AbstractSet<Integer> {
   private Enumerator<Integer> enumerator() {
     final int[] bounds = {Integer.MAX_VALUE, Integer.MIN_VALUE};
     visit(
-        s,
-        new Handler() {
-          public void range(int start, int end, boolean exclude) {
-            if (!exclude) {
-              bounds[0] = Math.min(bounds[0], start);
-              bounds[1] = Math.max(bounds[1], end);
-            }
+        s, (start, end, exclude) -> {
+          if (!exclude) {
+            bounds[0] = Math.min(bounds[0], start);
+            bounds[1] = Math.max(bounds[1], end);
           }
         });
     return new Enumerator<Integer>() {
@@ -136,12 +133,9 @@ public class IntegerIntervalSet extends AbstractSet<Integer> {
   public boolean contains(final int n) {
     final boolean[] bs = {false};
     visit(
-        s,
-        new Handler() {
-          public void range(int start, int end, boolean exclude) {
-            if (start <= n && n <= end) {
-              bs[0] = !exclude;
-            }
+        s, (start, end, exclude) -> {
+          if (start <= n && n <= end) {
+            bs[0] = !exclude;
           }
         });
     return bs[0];

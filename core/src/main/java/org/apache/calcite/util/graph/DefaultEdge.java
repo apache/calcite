@@ -40,11 +40,7 @@ public class DefaultEdge {
   }
 
   public static <V> DirectedGraph.EdgeFactory<V, DefaultEdge> factory() {
-    return new DirectedGraph.EdgeFactory<V, DefaultEdge>() {
-      public DefaultEdge createEdge(V v0, V v1) {
-        return new DefaultEdge(v0, v1);
-      }
-    };
+    return DefaultEdge::new;
   }
 }
 

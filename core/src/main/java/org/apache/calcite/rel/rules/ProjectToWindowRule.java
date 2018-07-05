@@ -38,7 +38,6 @@ import org.apache.calcite.rex.RexOver;
 import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.rex.RexWindow;
-import org.apache.calcite.runtime.PredicateImpl;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.ImmutableIntList;
@@ -48,11 +47,9 @@ import org.apache.calcite.util.graph.DefaultEdge;
 import org.apache.calcite.util.graph.DirectedGraph;
 import org.apache.calcite.util.graph.TopologicalOrderIterator;
 
-import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
-import com.google.common.base.Predicate;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -77,20 +74,6 @@ import java.util.Set;
  */
 public abstract class ProjectToWindowRule extends RelOptRule {
   //~ Static fields/initializers ---------------------------------------------
-
-  private static final Predicate<Calc> PREDICATE =
-      new PredicateImpl<Calc>() {
-        public boolean test(Calc calc) {
-          return RexOver.containsOver(calc.getProgram());
-        }
-      };
-
-  private static final Predicate<Project> PREDICATE2 =
-      new PredicateImpl<Project>() {
-        public boolean test(Project project) {
-          return RexOver.containsOver(project.getProjects(), null);
-        }
-      };
 
   public static final ProjectToWindowRule INSTANCE =
       new CalcToWindowRule(RelFactories.LOGICAL_BUILDER);
@@ -129,7 +112,8 @@ public abstract class ProjectToWindowRule extends RelOptRule {
      */
     public CalcToWindowRule(RelBuilderFactory relBuilderFactory) {
       super(
-          operand(Calc.class, null, PREDICATE, any()),
+          operandJ(Calc.class, null,
+              calc -> RexOver.containsOver(calc.getProgram()), any()),
           relBuilderFactory, "ProjectToWindowRule");
     }
 
@@ -158,7 +142,10 @@ public abstract class ProjectToWindowRule extends RelOptRule {
      */
     public ProjectToLogicalProjectAndWindowRule(
         RelBuilderFactory relBuilderFactory) {
-      super(operand(Project.class, null, PREDICATE2, any()),
+      super(
+          operandJ(Project.class, null,
+              project -> RexOver.containsOver(project.getProjects(), null),
+              any()),
           relBuilderFactory, "ProjectToWindowRule:project");
     }
 
@@ -191,11 +178,7 @@ public abstract class ProjectToWindowRule extends RelOptRule {
           if (!program.projectsOnlyIdentity()) {
             relBuilder.project(
                 Lists.transform(program.getProjectList(),
-                    new Function<RexLocalRef, RexNode>() {
-                      public RexNode apply(RexLocalRef a0) {
-                        return program.expandLocalRef(a0);
-                      }
-                    }),
+                    program::expandLocalRef),
                 calc.getRowType().getFieldNames());
           }
           return relBuilder.build();
@@ -314,7 +297,7 @@ public abstract class ProjectToWindowRule extends RelOptRule {
 
           // This RexOver cannot be added into any existing cohort
           if (!isFound) {
-            final Set<Integer> newSet = Sets.newHashSet(i);
+            final Set<Integer> newSet = new HashSet<>(ImmutableList.of(i));
             windowToIndices.add(Pair.of(over.getWindow(), newSet));
           }
         }

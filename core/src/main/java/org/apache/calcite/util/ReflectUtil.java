@@ -286,7 +286,7 @@ public abstract class ReflectUtil {
         visitorClass,
         visiteeClass,
         visitMethodName,
-        Collections.<Class>emptyList());
+        Collections.emptyList());
   }
 
   /**
@@ -426,7 +426,7 @@ public abstract class ReflectUtil {
             visitorClass,
             visiteeClass,
             visitMethodName,
-            Collections.<Class>emptyList());
+            Collections.emptyList());
       }
 
       public Method lookupVisitMethod(

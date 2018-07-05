@@ -28,63 +28,33 @@ import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexLiteral;
-import org.apache.calcite.runtime.PredicateImpl;
 import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.util.Pair;
 
-import com.google.common.base.Function;
-import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
 import java.util.List;
+import java.util.function.Predicate;
 
 /**
  * Relational expression whose value is a sequence of zero or more literal row
  * values.
  */
 public abstract class Values extends AbstractRelNode {
-  /**
-   * Lambda that helps render tuples as strings.
-   */
-  private static final Function<ImmutableList<RexLiteral>, Object> F =
-      new Function<ImmutableList<RexLiteral>, Object>() {
-        public Object apply(ImmutableList<RexLiteral> tuple) {
-          String s = tuple.toString();
-          assert s.startsWith("[");
-          assert s.endsWith("]");
-          return "{ " + s.substring(1, s.length() - 1) + " }";
-        }
-      };
 
-  /** Predicate, to be used when defining an operand of a {@link RelOptRule},
-   * that returns true if a Values contains zero tuples.
-   *
-   * <p>This is the conventional way to represent an empty relational
-   * expression. There are several rules that recognize empty relational
-   * expressions and prune away that section of the tree.
-   */
-  public static final Predicate<? super Values> IS_EMPTY =
-      new PredicateImpl<Values>() {
-        public boolean test(Values values) {
-          return values.getTuples().isEmpty();
-        }
-      };
+  public static final Predicate<? super Values> IS_EMPTY_J = Values::isEmpty;
 
-  /** Predicate, to be used when defining an operand of a {@link RelOptRule},
-   * that returns true if a Values contains one or more tuples.
-   *
-   * <p>This is the conventional way to represent an empty relational
-   * expression. There are several rules that recognize empty relational
-   * expressions and prune away that section of the tree.
-   */
-  public static final Predicate<? super Values> IS_NOT_EMPTY =
-      new PredicateImpl<Values>() {
-        public boolean test(Values values) {
-          return !values.getTuples().isEmpty();
-        }
-      };
+  @SuppressWarnings("Guava")
+  @Deprecated // to be removed before 2.0
+  public static final com.google.common.base.Predicate<? super Values>
+      IS_EMPTY = Values::isEmpty;
+
+  @SuppressWarnings("Guava")
+  @Deprecated // to be removed before 2.0
+  public static final com.google.common.base.Predicate<? super Values>
+      IS_NOT_EMPTY = Values::isNotEmpty;
 
   //~ Instance fields --------------------------------------------------------
 
@@ -124,7 +94,39 @@ public abstract class Values extends AbstractRelNode {
         input.getTuples("tuples"), input.getTraitSet());
   }
 
+  /**
+   * Helps render tuples as strings.
+   */
+  private static Object apply(ImmutableList<RexLiteral> tuple) {
+    String s = tuple.toString();
+    assert s.startsWith("[");
+    assert s.endsWith("]");
+    return "{ " + s.substring(1, s.length() - 1) + " }";
+  }
+
   //~ Methods ----------------------------------------------------------------
+
+  /** Predicate, to be used when defining an operand of a {@link RelOptRule},
+   * that returns true if a Values contains zero tuples.
+   *
+   * <p>This is the conventional way to represent an empty relational
+   * expression. There are several rules that recognize empty relational
+   * expressions and prune away that section of the tree.
+   */
+  public static boolean isEmpty(Values values) {
+    return values.getTuples().isEmpty();
+  }
+
+  /** Predicate, to be used when defining an operand of a {@link RelOptRule},
+   * that returns true if a Values contains one or more tuples.
+   *
+   * <p>This is the conventional way to represent an empty relational
+   * expression. There are several rules that recognize empty relational
+   * expressions and prune away that section of the tree.
+   */
+  public static boolean isNotEmpty(Values values) {
+    return !isEmpty(values);
+  }
 
   public ImmutableList<ImmutableList<RexLiteral>> getTuples(RelInput input) {
     return input.getTuples("tuples");
@@ -188,7 +190,7 @@ public abstract class Values extends AbstractRelNode {
         .itemIf("type", rowType,
             pw.getDetailLevel() == SqlExplainLevel.DIGEST_ATTRIBUTES)
         .itemIf("type", rowType.getFieldList(), pw.nest())
-        .itemIf("tuples", Lists.transform(tuples, F), !pw.nest())
+        .itemIf("tuples", Lists.transform(tuples, Values::apply), !pw.nest())
         .itemIf("tuples", tuples, pw.nest());
   }
 }

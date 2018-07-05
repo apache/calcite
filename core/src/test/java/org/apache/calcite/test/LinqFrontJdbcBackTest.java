@@ -17,7 +17,6 @@
 package org.apache.calcite.test;
 
 import org.apache.calcite.jdbc.CalciteConnection;
-import org.apache.calcite.linq4j.function.Predicate1;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.linq4j.tree.ParameterExpression;
 import org.apache.calcite.schema.SchemaPlus;
@@ -47,7 +46,7 @@ public class LinqFrontJdbcBackTest {
             rootSchema.getSubSchema("foodmart"),
             JdbcTest.Customer.class, "customer")
             .where(
-                Expressions.<Predicate1<JdbcTest.Customer>>lambda(
+                Expressions.lambda(
                     Expressions.lessThan(
                         Expressions.field(c, "customer_id"),
                         Expressions.constant(5)),

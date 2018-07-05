@@ -24,7 +24,7 @@ import org.apache.calcite.rel.logical.LogicalTableModify;
 import org.apache.calcite.schema.ModifiableTable;
 import org.apache.calcite.tools.RelBuilderFactory;
 
-import com.google.common.base.Predicates;
+import java.util.function.Predicate;
 
 /** Planner rule that converts a
  * {@link org.apache.calcite.rel.logical.LogicalTableModify}
@@ -37,7 +37,7 @@ public class EnumerableTableModifyRule extends ConverterRule {
    * @param relBuilderFactory Builder for relational expressions
    */
   public EnumerableTableModifyRule(RelBuilderFactory relBuilderFactory) {
-    super(LogicalTableModify.class, Predicates.<RelNode>alwaysTrue(),
+    super(LogicalTableModify.class, (Predicate<RelNode>) r -> true,
         Convention.NONE, EnumerableConvention.INSTANCE, relBuilderFactory,
         "EnumerableTableModificationRule");
   }

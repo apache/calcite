@@ -24,10 +24,7 @@ import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
-import org.apache.calcite.runtime.PredicateImpl;
 import org.apache.calcite.tools.RelBuilderFactory;
-
-import com.google.common.base.Predicate;
 
 import java.util.List;
 
@@ -43,14 +40,6 @@ import java.util.List;
  * @see ProjectMergeRule
  */
 public class ProjectRemoveRule extends RelOptRule {
-  //~ Static fields/initializers ---------------------------------------------
-  private static final Predicate<Project> PREDICATE =
-      new PredicateImpl<Project>() {
-        public boolean test(Project input) {
-          return isTrivial(input);
-        }
-      };
-
   public static final ProjectRemoveRule INSTANCE =
       new ProjectRemoveRule(RelFactories.LOGICAL_BUILDER);
 
@@ -64,8 +53,8 @@ public class ProjectRemoveRule extends RelOptRule {
   public ProjectRemoveRule(RelBuilderFactory relBuilderFactory) {
     // Create a specialized operand to detect non-matches early. This keeps
     // the rule queue short.
-    super(operand(Project.class, null, PREDICATE, any()), relBuilderFactory,
-        null);
+    super(operandJ(Project.class, null, ProjectRemoveRule::isTrivial, any()),
+        relBuilderFactory, null);
   }
 
   //~ Methods ----------------------------------------------------------------

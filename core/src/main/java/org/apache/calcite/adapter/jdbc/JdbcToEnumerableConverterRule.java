@@ -22,7 +22,7 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterRule;
 import org.apache.calcite.tools.RelBuilderFactory;
 
-import com.google.common.base.Predicates;
+import java.util.function.Predicate;
 
 /**
  * Rule to convert a relational expression from
@@ -33,7 +33,7 @@ public class JdbcToEnumerableConverterRule extends ConverterRule {
   /** Creates a JdbcToEnumerableConverterRule. */
   public JdbcToEnumerableConverterRule(JdbcConvention out,
       RelBuilderFactory relBuilderFactory) {
-    super(RelNode.class, Predicates.<RelNode>alwaysTrue(), out,
+    super(RelNode.class, (Predicate<RelNode>) r -> true, out,
         EnumerableConvention.INSTANCE, relBuilderFactory,
         "JdbcToEnumerableConverterRule:" + out);
   }

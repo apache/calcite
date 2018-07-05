@@ -27,7 +27,6 @@ import com.google.common.util.concurrent.UncheckedExecutionException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
-import javax.annotation.Nonnull;
 
 /**
  * Implementation of {@link LatticeStatisticProvider} that caches single-column
@@ -41,13 +40,8 @@ class CachingLatticeStatisticProvider implements LatticeStatisticProvider {
   CachingLatticeStatisticProvider(final Lattice lattice,
       final LatticeStatisticProvider provider) {
     this.lattice = lattice;
-    cache = CacheBuilder.<Lattice.Column>newBuilder()
-        .build(
-            new CacheLoader<Lattice.Column, Double>() {
-              public Double load(@Nonnull Lattice.Column key) throws Exception {
-                return provider.cardinality(ImmutableList.of(key));
-              }
-            });
+    cache = CacheBuilder.<Lattice.Column>newBuilder().build(
+        CacheLoader.from(key -> provider.cardinality(ImmutableList.of(key))));
   }
 
   public double cardinality(List<Lattice.Column> columns) {

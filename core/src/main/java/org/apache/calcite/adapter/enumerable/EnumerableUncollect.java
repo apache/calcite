@@ -116,7 +116,7 @@ public class EnumerableUncollect extends Uncollect implements EnumerableRel {
             Expressions.constant(Ints.toArray(fieldCounts)),
             Expressions.constant(withOrdinality),
             Expressions.constant(
-                inputTypes.toArray(new FlatProductInputType[inputTypes.size()])));
+                inputTypes.toArray(new FlatProductInputType[0])));
     builder.add(
         Expressions.return_(null,
             Expressions.call(child_,

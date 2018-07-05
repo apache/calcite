@@ -42,11 +42,7 @@ public class TopologicalOrderIterator<V, E extends DefaultEdge>
 
   public static <V, E extends DefaultEdge> Iterable<V> of(
       final DirectedGraph<V, E> graph) {
-    return new Iterable<V>() {
-      public Iterator<V> iterator() {
-        return new TopologicalOrderIterator<V, E>(graph);
-      }
-    };
+    return () -> new TopologicalOrderIterator<V, E>(graph);
   }
 
   private void populate(Map<V, int[]> countMap, List<V> empties) {

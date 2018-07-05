@@ -24,7 +24,6 @@ import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.util.mapping.Mapping;
 import org.apache.calcite.util.mapping.Mappings;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
 import java.util.List;
@@ -89,9 +88,9 @@ public class AggregateCall {
       int filterArg,
       RelDataType type,
       String name) {
-    this.type = Preconditions.checkNotNull(type);
+    this.type = Objects.requireNonNull(type);
     this.name = name;
-    this.aggFunction = Preconditions.checkNotNull(aggFunction);
+    this.aggFunction = Objects.requireNonNull(aggFunction);
     this.argList = ImmutableList.copyOf(argList);
     this.filterArg = filterArg;
     this.distinct = distinct;

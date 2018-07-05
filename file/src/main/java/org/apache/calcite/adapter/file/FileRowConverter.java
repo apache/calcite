@@ -21,8 +21,6 @@ import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.util.Pair;
 
-import com.google.common.base.Joiner;
-
 import com.joestelmach.natty.DateGroup;
 import com.joestelmach.natty.Parser;
 
@@ -31,7 +29,6 @@ import org.jsoup.select.Elements;
 
 import java.text.NumberFormat;
 import java.text.ParseException;
-
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -41,7 +38,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
 
 /**
  * FileRowConverter.
@@ -267,7 +263,7 @@ class FileRowConverter {
         }
       }
 
-      String cellString = Joiner.on(" ").join(cellText).trim();
+      String cellString = String.join(" ", cellText).trim();
 
       // replace
       if (this.replacePattern != null) {

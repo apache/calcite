@@ -22,9 +22,6 @@ import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.Util;
 
-import com.google.common.base.Function;
-import com.google.common.collect.Lists;
-
 import java.util.List;
 
 /**
@@ -34,12 +31,6 @@ import java.util.List;
  * {@link SqlTypeName#CHAR}.
  */
 public class SqlCharStringLiteral extends SqlAbstractStringLiteral {
-  private static final Function<SqlLiteral, NlsString> F =
-      new Function<SqlLiteral, NlsString>() {
-        public NlsString apply(SqlLiteral literal) {
-          return ((SqlCharStringLiteral) literal).getNlsString();
-        }
-      };
 
   //~ Constructors -----------------------------------------------------------
 
@@ -83,7 +74,9 @@ public class SqlCharStringLiteral extends SqlAbstractStringLiteral {
 
   protected SqlAbstractStringLiteral concat1(List<SqlLiteral> literals) {
     return new SqlCharStringLiteral(
-        NlsString.concat(Lists.transform(literals, F)),
+        NlsString.concat(
+            Util.transform(literals,
+                literal -> ((SqlCharStringLiteral) literal).getNlsString())),
         literals.get(0).getParserPosition());
   }
 }

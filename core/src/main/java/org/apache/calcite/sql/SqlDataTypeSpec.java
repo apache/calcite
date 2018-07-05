@@ -28,8 +28,6 @@ import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Util;
 
-import com.google.common.base.Preconditions;
-
 import java.nio.charset.Charset;
 import java.util.Objects;
 import java.util.TimeZone;
@@ -364,7 +362,7 @@ public class SqlDataTypeSpec extends SqlNode {
         charset = typeFactory.getDefaultCharset();
       } else {
         String javaCharSetName =
-            Preconditions.checkNotNull(
+            Objects.requireNonNull(
                 SqlUtil.translateCharacterSetName(charSetName), charSetName);
         charset = Charset.forName(javaCharSetName);
       }
@@ -378,7 +376,7 @@ public class SqlDataTypeSpec extends SqlNode {
     if (null != collectionsTypeName) {
       final String collectionName = collectionsTypeName.getSimple();
       final SqlTypeName collectionsSqlTypeName =
-          Preconditions.checkNotNull(SqlTypeName.get(collectionName),
+          Objects.requireNonNull(SqlTypeName.get(collectionName),
               collectionName);
 
       switch (collectionsSqlTypeName) {

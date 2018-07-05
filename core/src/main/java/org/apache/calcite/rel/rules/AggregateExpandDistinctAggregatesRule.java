@@ -308,7 +308,7 @@ public final class AggregateExpandDistinctAggregatesRule extends RelOptRule {
 
     // Add aggregate A (see the reference example above), the top aggregate
     // to handle the rest of the aggregation that the bottom aggregate hasn't handled
-    final List<AggregateCall> topAggregateCalls = Lists.newArrayList();
+    final List<AggregateCall> topAggregateCalls = new ArrayList<>();
     // Use the remapped arguments for the (non)distinct aggregate calls
     int nonDistinctAggCallProcessedSoFar = 0;
     for (AggregateCall aggCall : originalAggCalls) {
@@ -707,7 +707,7 @@ public final class AggregateExpandDistinctAggregatesRule extends RelOptRule {
     // where {f0, f1, ...} are the GROUP BY fields.
     final List<RelDataTypeField> distinctFields =
         relBuilder.peek().getRowType().getFieldList();
-    final List<RexNode> conditions = Lists.newArrayList();
+    final List<RexNode> conditions = new ArrayList<>();
     for (i = 0; i < groupAndIndicatorCount; ++i) {
       // null values form its own group
       // use "is not distinct from" so that the join condition
@@ -845,7 +845,7 @@ public final class AggregateExpandDistinctAggregatesRule extends RelOptRule {
     relBuilder.push(
         aggregate.copy(aggregate.getTraitSet(), relBuilder.build(), false,
             ImmutableBitSet.range(projects.size()),
-            null, ImmutableList.<AggregateCall>of()));
+            null, ImmutableList.of()));
     return relBuilder;
   }
 }

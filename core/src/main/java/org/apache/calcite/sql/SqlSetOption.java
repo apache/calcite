@@ -21,8 +21,7 @@ import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.util.ImmutableNullableList;
 
-import com.google.common.collect.Lists;
-
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -107,7 +106,7 @@ public class SqlSetOption extends SqlAlter {
   }
 
   @Override public List<SqlNode> getOperandList() {
-    final List<SqlNode> operandList = Lists.newArrayList();
+    final List<SqlNode> operandList = new ArrayList<>();
     if (scope == null) {
       operandList.add(null);
     } else {

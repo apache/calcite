@@ -21,7 +21,6 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlKind;
-import org.apache.calcite.sql.SqlOperatorBinding;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
@@ -44,22 +43,20 @@ public class OracleSqlOperatorTable extends ReflectiveSqlOperatorTable {
 
   /** Return type inference for {@code DECODE}. */
   protected static final SqlReturnTypeInference DECODE_RETURN_TYPE =
-      new SqlReturnTypeInference() {
-        public RelDataType inferReturnType(SqlOperatorBinding opBinding) {
-          final List<RelDataType> list = new ArrayList<>();
-          for (int i = 1, n = opBinding.getOperandCount(); i < n; i++) {
-            if (i < n - 1) {
-              ++i;
-            }
-            list.add(opBinding.getOperandType(i));
+      opBinding -> {
+        final List<RelDataType> list = new ArrayList<>();
+        for (int i = 1, n = opBinding.getOperandCount(); i < n; i++) {
+          if (i < n - 1) {
+            ++i;
           }
-          final RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
-          RelDataType type = typeFactory.leastRestrictive(list);
-          if (opBinding.getOperandCount() % 2 == 1) {
-            type = typeFactory.createTypeWithNullability(type, true);
-          }
-          return type;
+          list.add(opBinding.getOperandType(i));
         }
+        final RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
+        RelDataType type = typeFactory.leastRestrictive(list);
+        if (opBinding.getOperandCount() % 2 == 1) {
+          type = typeFactory.createTypeWithNullability(type, true);
+        }
+        return type;
       };
 
   /** The "DECODE(v, v1, result1, [v2, result2, ...], resultN)" function. */

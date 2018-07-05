@@ -51,51 +51,45 @@ public class ResultSetEnumerable<T> extends AbstractEnumerable<T> {
       ResultSetEnumerable.class);
 
   private static final Function1<ResultSet, Function0<Object>> AUTO_ROW_BUILDER_FACTORY =
-      new Function1<ResultSet, Function0<Object>>() {
-        public Function0<Object> apply(final ResultSet resultSet) {
-          final ResultSetMetaData metaData;
-          final int columnCount;
-          try {
-            metaData = resultSet.getMetaData();
-            columnCount = metaData.getColumnCount();
-          } catch (SQLException e) {
-            throw new RuntimeException(e);
-          }
-          if (columnCount == 1) {
-            return new Function0<Object>() {
-              public Object apply() {
-                try {
-                  return resultSet.getObject(1);
-                } catch (SQLException e) {
-                  throw new RuntimeException(e);
-                }
-              }
-            };
-          } else {
-            //noinspection unchecked
-            return (Function0) new Function0<Object[]>() {
-              public Object[] apply() {
-                try {
-                  final List<Object> list = new ArrayList<Object>();
-                  for (int i = 0; i < columnCount; i++) {
-                    if (metaData.getColumnType(i + 1) == Types.TIMESTAMP) {
-                      long v = resultSet.getLong(i + 1);
-                      if (v == 0 && resultSet.wasNull()) {
-                        list.add(null);
-                      } else {
-                        list.add(v);
-                      }
-                    } else {
-                      list.add(resultSet.getObject(i + 1));
-                    }
+      resultSet -> {
+        final ResultSetMetaData metaData;
+        final int columnCount;
+        try {
+          metaData = resultSet.getMetaData();
+          columnCount = metaData.getColumnCount();
+        } catch (SQLException e) {
+          throw new RuntimeException(e);
+        }
+        if (columnCount == 1) {
+          return () -> {
+            try {
+              return resultSet.getObject(1);
+            } catch (SQLException e) {
+              throw new RuntimeException(e);
+            }
+          };
+        } else {
+          //noinspection unchecked
+          return (Function0) () -> {
+            try {
+              final List<Object> list = new ArrayList<Object>();
+              for (int i = 0; i < columnCount; i++) {
+                if (metaData.getColumnType(i + 1) == Types.TIMESTAMP) {
+                  long v = resultSet.getLong(i + 1);
+                  if (v == 0 && resultSet.wasNull()) {
+                    list.add(null);
+                  } else {
+                    list.add(v);
                   }
-                  return list.toArray();
-                } catch (SQLException e) {
-                  throw new RuntimeException(e);
+                } else {
+                  list.add(resultSet.getObject(i + 1));
                 }
               }
-            };
-          }
+              return list.toArray();
+            } catch (SQLException e) {
+              throw new RuntimeException(e);
+            }
+          };
         }
       };
 
@@ -227,43 +221,37 @@ public class ResultSetEnumerable<T> extends AbstractEnumerable<T> {
 
   private static Function1<ResultSet, Function0<Object>>
       primitiveRowBuilderFactory(final Primitive[] primitives) {
-    return new Function1<ResultSet, Function0<Object>>() {
-      public Function0<Object> apply(final ResultSet resultSet) {
-        final ResultSetMetaData metaData;
-        final int columnCount;
-        try {
-          metaData = resultSet.getMetaData();
-          columnCount = metaData.getColumnCount();
-        } catch (SQLException e) {
-          throw new RuntimeException(e);
-        }
-        assert columnCount == primitives.length;
-        if (columnCount == 1) {
-          return new Function0<Object>() {
-            public Object apply() {
-              try {
-                return resultSet.getObject(1);
-              } catch (SQLException e) {
-                throw new RuntimeException(e);
-              }
-            }
-          };
-        }
-        //noinspection unchecked
-        return (Function0) new Function0<Object[]>() {
-          public Object[] apply() {
-            try {
-              final List<Object> list = new ArrayList<Object>();
-              for (int i = 0; i < columnCount; i++) {
-                list.add(primitives[i].jdbcGet(resultSet, i + 1));
-              }
-              return list.toArray();
-            } catch (SQLException e) {
-              throw new RuntimeException(e);
-            }
+    return resultSet -> {
+      final ResultSetMetaData metaData;
+      final int columnCount;
+      try {
+        metaData = resultSet.getMetaData();
+        columnCount = metaData.getColumnCount();
+      } catch (SQLException e) {
+        throw new RuntimeException(e);
+      }
+      assert columnCount == primitives.length;
+      if (columnCount == 1) {
+        return () -> {
+          try {
+            return resultSet.getObject(1);
+          } catch (SQLException e) {
+            throw new RuntimeException(e);
           }
         };
       }
+      //noinspection unchecked
+      return (Function0) () -> {
+        try {
+          final List<Object> list = new ArrayList<Object>();
+          for (int i = 0; i < columnCount; i++) {
+            list.add(primitives[i].jdbcGet(resultSet, i + 1));
+          }
+          return list.toArray();
+        } catch (SQLException e) {
+          throw new RuntimeException(e);
+        }
+      };
     };
   }
 }

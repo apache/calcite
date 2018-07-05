@@ -20,14 +20,13 @@ import org.apache.calcite.linq4j.CorrelateJoinType;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.linq4j.Linq4j;
-import org.apache.calcite.linq4j.function.Function1;
 import org.apache.calcite.linq4j.function.Function2;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
 
 import org.junit.Test;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.Assert.assertArrayEquals;
@@ -37,11 +36,7 @@ import static org.junit.Assert.assertArrayEquals;
  */
 public class CorrelateJoinTest {
   static final Function2<Integer, Integer, Integer[]> SELECT_BOTH =
-      new Function2<Integer, Integer, Integer[]>() {
-        public Integer[] apply(Integer v0, Integer v1) {
-          return new Integer[]{v0, v1};
-        }
-      };
+      (v0, v1) -> new Integer[]{v0, v1};
 
   @Test public void testInner() {
     testJoin(CorrelateJoinType.INNER, new Integer[][]{
@@ -82,23 +77,20 @@ public class CorrelateJoinTest {
   public void testJoin(CorrelateJoinType joinType, Integer[][] expected) {
     Enumerable<Integer[]> join =
         Linq4j.asEnumerable(ImmutableList.of(1, 2, 3, 10, 20, 30))
-            .correlateJoin(joinType,
-                new Function1<Integer, Enumerable<Integer>>() {
-                  public Enumerable<Integer> apply(Integer a0) {
-                    if (a0 == 1 || a0 == 10) {
-                      return Linq4j.emptyEnumerable();
-                    }
-                    if (a0 == 2 || a0 == 20) {
-                      return Linq4j.singletonEnumerable(a0 * 10);
-                    }
-                    if (a0 == 3 || a0 == 30) {
-                      return Linq4j.asEnumerable(
-                          ImmutableList.of(-a0 * 10, -a0 * 20));
-                    }
-                    throw new IllegalArgumentException(
-                        "Unexpected input " + a0);
-                  }
-                }, SELECT_BOTH);
+            .correlateJoin(joinType, a0 -> {
+              if (a0 == 1 || a0 == 10) {
+                return Linq4j.emptyEnumerable();
+              }
+              if (a0 == 2 || a0 == 20) {
+                return Linq4j.singletonEnumerable(a0 * 10);
+              }
+              if (a0 == 3 || a0 == 30) {
+                return Linq4j.asEnumerable(
+                    ImmutableList.of(-a0 * 10, -a0 * 20));
+              }
+              throw new IllegalArgumentException(
+                  "Unexpected input " + a0);
+            }, SELECT_BOTH);
     for (int i = 0; i < 2; i++) {
       Enumerator<Integer[]> e = join.enumerator();
       checkResults(e, expected);
@@ -107,7 +99,7 @@ public class CorrelateJoinTest {
   }
 
   private void checkResults(Enumerator<Integer[]> e, Integer[][] expected) {
-    List<Integer[]> res = Lists.newArrayList();
+    List<Integer[]> res = new ArrayList<>();
     while (e.moveNext()) {
       res.add(e.current());
     }

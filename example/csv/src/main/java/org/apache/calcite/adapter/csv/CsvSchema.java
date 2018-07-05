@@ -24,7 +24,6 @@ import org.apache.calcite.util.Sources;
 import com.google.common.collect.ImmutableMap;
 
 import java.io.File;
-import java.io.FilenameFilter;
 import java.util.Map;
 
 /**
@@ -77,14 +76,11 @@ public class CsvSchema extends AbstractSchema {
     // Look for files in the directory ending in ".csv", ".csv.gz", ".json",
     // ".json.gz".
     final Source baseSource = Sources.of(directoryFile);
-    File[] files = directoryFile.listFiles(
-        new FilenameFilter() {
-          public boolean accept(File dir, String name) {
-            final String nameSansGz = trim(name, ".gz");
-            return nameSansGz.endsWith(".csv")
-                || nameSansGz.endsWith(".json");
-          }
-        });
+    File[] files = directoryFile.listFiles((dir, name) -> {
+      final String nameSansGz = trim(name, ".gz");
+      return nameSansGz.endsWith(".csv")
+          || nameSansGz.endsWith(".json");
+    });
     if (files == null) {
       System.out.println("directory " + directoryFile + " not found");
       files = new File[0];

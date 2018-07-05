@@ -23,7 +23,7 @@ import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.util.PrecedenceClimbingParser;
 import org.apache.calcite.util.Util;
 
-import com.google.common.base.Predicate;
+import java.util.function.Predicate;
 
 /**
  * Generic operator for nodes with special syntax.

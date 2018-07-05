@@ -23,15 +23,18 @@ import org.apache.calcite.rel.convert.ConverterRule;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.logical.LogicalFilter;
 
+import java.util.function.Predicate;
+
 /**
  * Rule to convert a {@link org.apache.calcite.rel.logical.LogicalFilter} to an
  * {@link EnumerableFilter}.
  */
 class EnumerableFilterRule extends ConverterRule {
   EnumerableFilterRule() {
-    super(LogicalFilter.class, RelOptUtil.FILTER_PREDICATE, Convention.NONE,
-        EnumerableConvention.INSTANCE, RelFactories.LOGICAL_BUILDER,
-        "EnumerableFilterRule");
+    super(LogicalFilter.class,
+        (Predicate<LogicalFilter>) RelOptUtil::containsMultisetOrWindowedAgg,
+        Convention.NONE, EnumerableConvention.INSTANCE,
+        RelFactories.LOGICAL_BUILDER, "EnumerableFilterRule");
   }
 
   public RelNode convert(RelNode rel) {

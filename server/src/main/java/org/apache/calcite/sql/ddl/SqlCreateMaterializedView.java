@@ -43,10 +43,10 @@ import org.apache.calcite.sql2rel.NullInitializerExpressionFactory;
 import org.apache.calcite.util.ImmutableNullableList;
 import org.apache.calcite.util.Pair;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
 import java.util.List;
+import java.util.Objects;
 
 import static org.apache.calcite.util.Static.RESOURCE;
 
@@ -68,9 +68,9 @@ public class SqlCreateMaterializedView extends SqlCreate
       boolean ifNotExists, SqlIdentifier name, SqlNodeList columnList,
       SqlNode query) {
     super(OPERATOR, pos, replace, ifNotExists);
-    this.name = Preconditions.checkNotNull(name);
+    this.name = Objects.requireNonNull(name);
     this.columnList = columnList; // may be null
-    this.query = Preconditions.checkNotNull(query);
+    this.query = Objects.requireNonNull(query);
   }
 
   public List<SqlNode> getOperandList() {

@@ -24,10 +24,10 @@ import org.apache.calcite.sql.SqlOperandCountRange;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlUtil;
 
-import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
 
 import java.util.List;
+import java.util.function.Predicate;
 
 import static org.apache.calcite.util.Static.RESOURCE;
 
@@ -55,7 +55,7 @@ public class FamilyOperandTypeChecker implements SqlSingleOperandTypeChecker {
   //~ Methods ----------------------------------------------------------------
 
   public boolean isOptional(int i) {
-    return optional.apply(i);
+    return optional.test(i);
   }
 
   public boolean checkSingleOperandType(
@@ -120,7 +120,7 @@ public class FamilyOperandTypeChecker implements SqlSingleOperandTypeChecker {
   public SqlOperandCountRange getOperandCountRange() {
     final int max = families.size();
     int min = max;
-    while (min > 0 && optional.apply(min - 1)) {
+    while (min > 0 && optional.test(min - 1)) {
       --min;
     }
     return SqlOperandCountRanges.between(min, max);

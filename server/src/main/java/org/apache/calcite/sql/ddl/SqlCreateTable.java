@@ -73,6 +73,7 @@ import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Objects;
 
 import static org.apache.calcite.util.Static.RESOURCE;
 
@@ -92,7 +93,7 @@ public class SqlCreateTable extends SqlCreate
   SqlCreateTable(SqlParserPos pos, boolean replace, boolean ifNotExists,
       SqlIdentifier name, SqlNodeList columnList, SqlNode query) {
     super(OPERATOR, pos, replace, ifNotExists);
-    this.name = Preconditions.checkNotNull(name);
+    this.name = Objects.requireNonNull(name);
     this.columnList = columnList; // may be null
     this.query = query; // for "CREATE TABLE ... AS query"; may be null
   }
@@ -245,7 +246,7 @@ public class SqlCreateTable extends SqlCreate
         ColumnStrategy strategy) {
       this.expr = expr;
       this.type = type;
-      this.strategy = Preconditions.checkNotNull(strategy);
+      this.strategy = Objects.requireNonNull(strategy);
       Preconditions.checkArgument(
           strategy == ColumnStrategy.NULLABLE
               || strategy == ColumnStrategy.NOT_NULLABLE
@@ -299,10 +300,10 @@ public class SqlCreateTable extends SqlCreate
         RelProtoDataType protoRowType,
         InitializerExpressionFactory initializerExpressionFactory) {
       super(name);
-      this.protoStoredRowType = Preconditions.checkNotNull(protoStoredRowType);
-      this.protoRowType = Preconditions.checkNotNull(protoRowType);
+      this.protoStoredRowType = Objects.requireNonNull(protoStoredRowType);
+      this.protoRowType = Objects.requireNonNull(protoRowType);
       this.initializerExpressionFactory =
-          Preconditions.checkNotNull(initializerExpressionFactory);
+          Objects.requireNonNull(initializerExpressionFactory);
     }
 
     public Collection getModifiableCollection() {

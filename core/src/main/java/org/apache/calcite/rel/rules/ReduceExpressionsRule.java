@@ -377,7 +377,7 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
       final List<RexNode> exprList = program.getExprList();
 
       // Form a list of expressions with sub-expressions fully expanded.
-      final List<RexNode> expandedExprList = Lists.newArrayList();
+      final List<RexNode> expandedExprList = new ArrayList<>();
       final RexShuttle shuttle =
           new RexShuttle() {
             public RexNode visitLocalRef(RexLocalRef localRef) {
@@ -394,7 +394,7 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
             new RexProgramBuilder(
                 calc.getInput().getRowType(),
                 calc.getCluster().getRexBuilder());
-        final List<RexLocalRef> list = Lists.newArrayList();
+        final List<RexLocalRef> list = new ArrayList<>();
         for (RexNode expr : expandedExprList) {
           list.add(builder.registerInput(expr));
         }
@@ -563,9 +563,9 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
     changed |= new CaseShuttle().mutate(expList);
 
     // Find reducible expressions.
-    final List<RexNode> constExps = Lists.newArrayList();
-    List<Boolean> addCasts = Lists.newArrayList();
-    final List<RexNode> removableCasts = Lists.newArrayList();
+    final List<RexNode> constExps = new ArrayList<>();
+    List<Boolean> addCasts = new ArrayList<>();
+    final List<RexNode> removableCasts = new ArrayList<>();
     findReducibleExps(rel.getCluster().getTypeFactory(), expList,
         predicates.constantMap, constExps, addCasts, removableCasts);
     if (constExps.isEmpty() && removableCasts.isEmpty()) {
@@ -577,7 +577,7 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
     // reducing that argument to a constant first will result in not being
     // able to locate the original cast expression.
     if (!removableCasts.isEmpty()) {
-      final List<RexNode> reducedExprs = Lists.newArrayList();
+      final List<RexNode> reducedExprs = new ArrayList<>();
       for (RexNode exp : removableCasts) {
         RexCall call = (RexCall) exp;
         reducedExprs.add(call.getOperands().get(0));
@@ -616,7 +616,7 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
       return changed;
     }
 
-    final List<RexNode> reducedValues = Lists.newArrayList();
+    final List<RexNode> reducedValues = new ArrayList<>();
     executor.reduce(simplify.rexBuilder, constExps2, reducedValues);
 
     // Use RexNode.digest to judge whether each newly generated RexNode

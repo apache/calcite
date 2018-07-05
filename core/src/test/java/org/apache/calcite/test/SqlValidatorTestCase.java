@@ -28,7 +28,6 @@ import org.apache.calcite.sql.test.DelegatingSqlTestFactory;
 import org.apache.calcite.sql.test.SqlTestFactory;
 import org.apache.calcite.sql.test.SqlTester;
 import org.apache.calcite.sql.test.SqlTesterImpl;
-import org.apache.calcite.sql.test.SqlTests;
 import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
@@ -620,13 +619,9 @@ public class SqlValidatorTestCase {
     }
 
     public Sql bindType(final String bindType) {
-      tester.check(sql, null,
-          new SqlTester.ParameterChecker() {
-            public void checkParameters(RelDataType parameterRowType) {
-              assertThat(parameterRowType.toString(), is(bindType));
-            }
-          },
-          SqlTests.ANY_RESULT_CHECKER);
+      tester.check(sql, null, parameterRowType ->
+          assertThat(parameterRowType.toString(), is(bindType)),
+          result -> { });
       return this;
     }
 

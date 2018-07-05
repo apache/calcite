@@ -22,10 +22,10 @@ import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.util.Litmus;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
 import java.util.List;
+import java.util.Objects;
 
 /**
  * An expression formed by a call to an operator with zero or more expressions
@@ -56,8 +56,8 @@ public class RexCall extends RexNode {
       RelDataType type,
       SqlOperator op,
       List<? extends RexNode> operands) {
-    this.type = Preconditions.checkNotNull(type);
-    this.op = Preconditions.checkNotNull(op);
+    this.type = Objects.requireNonNull(type);
+    this.op = Objects.requireNonNull(op);
     this.operands = ImmutableList.copyOf(operands);
     assert op.getKind() != null : op;
     assert op.validRexOperands(operands.size(), Litmus.THROW) : this;

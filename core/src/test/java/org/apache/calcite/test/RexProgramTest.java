@@ -62,7 +62,6 @@ import org.apache.calcite.util.Util;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.LinkedHashMultimap;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 
 import org.junit.Before;
@@ -129,7 +128,7 @@ public class RexProgramTest {
 
     DummyTestDataContext() {
       this.map =
-          ImmutableMap.<String, Object>of(
+          ImmutableMap.of(
               Variable.TIME_ZONE.camelName, TimeZone.getTimeZone("America/Los_Angeles"),
               Variable.CURRENT_TIMESTAMP.camelName, 1311120000000L);
     }
@@ -1007,7 +1006,7 @@ public class RexProgramTest {
     }
     final RelDataType rowType3 = builder.build();
     final RexDynamicParam range3 = rexBuilder.makeDynamicParam(rowType3, 0);
-    final List<RexNode> list = Lists.newArrayList();
+    final List<RexNode> list = new ArrayList<>();
     for (int i = 0; i < n; i++) {
       list.add(
           and(rexBuilder.makeFieldAccess(range3, i * 2),

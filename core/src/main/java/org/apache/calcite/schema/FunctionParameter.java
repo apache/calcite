@@ -26,14 +26,6 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
  * {@link java.lang.reflect.Parameter} was too confusing.</p>
  */
 public interface FunctionParameter {
-  /** Function to get the name of a parameter. */
-  com.google.common.base.Function<FunctionParameter, String> NAME_FN =
-      new com.google.common.base.Function<FunctionParameter, String>() {
-        public String apply(FunctionParameter p) {
-          return p.getName();
-        }
-      };
-
   /**
    * Zero-based ordinal of this parameter within the member's parameter
    * list.

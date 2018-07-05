@@ -16,22 +16,18 @@
  */
 package org.apache.calcite.test;
 
-import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.materialize.Lattice;
 import org.apache.calcite.materialize.Lattices;
 import org.apache.calcite.materialize.MaterializationService;
 import org.apache.calcite.plan.RelOptUtil;
-import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.TestUtil;
 
-import com.google.common.base.Function;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
 
 import org.junit.Assume;
 import org.junit.Ignore;
@@ -42,10 +38,12 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
 
 import static org.apache.calcite.test.Matchers.containsStringLinux;
 import static org.apache.calcite.test.Matchers.within;
@@ -166,29 +164,26 @@ public class LatticeTest {
    * schema. */
   @Test public void testLatticeSql() throws Exception {
     modelWithLattice("EMPLOYEES", "select * from \"foodmart\".\"days\"")
-        .doWithConnection(new Function<CalciteConnection, Void>() {
-          public Void apply(CalciteConnection c) {
-            final SchemaPlus schema = c.getRootSchema();
-            final SchemaPlus adhoc = schema.getSubSchema("adhoc");
-            assertThat(adhoc.getTableNames().contains("EMPLOYEES"), is(true));
-            final Map.Entry<String, CalciteSchema.LatticeEntry> entry =
-                adhoc.unwrap(CalciteSchema.class).getLatticeMap().firstEntry();
-            final Lattice lattice = entry.getValue().getLattice();
-            final String sql = "SELECT \"days\".\"day\"\n"
-                + "FROM \"foodmart\".\"days\" AS \"days\"\n"
-                + "GROUP BY \"days\".\"day\"";
-            assertThat(
-                lattice.sql(ImmutableBitSet.of(0),
-                    ImmutableList.<Lattice.Measure>of()), is(sql));
-            final String sql2 = "SELECT"
-                + " \"days\".\"day\", \"days\".\"week_day\"\n"
-                + "FROM \"foodmart\".\"days\" AS \"days\"";
-            assertThat(
-                lattice.sql(ImmutableBitSet.of(0, 1), false,
-                    ImmutableList.<Lattice.Measure>of()),
-                is(sql2));
-            return null;
-          }
+        .doWithConnection(c -> {
+          final SchemaPlus schema = c.getRootSchema();
+          final SchemaPlus adhoc = schema.getSubSchema("adhoc");
+          assertThat(adhoc.getTableNames().contains("EMPLOYEES"), is(true));
+          final Map.Entry<String, CalciteSchema.LatticeEntry> entry =
+              adhoc.unwrap(CalciteSchema.class).getLatticeMap().firstEntry();
+          final Lattice lattice = entry.getValue().getLattice();
+          final String sql = "SELECT \"days\".\"day\"\n"
+              + "FROM \"foodmart\".\"days\" AS \"days\"\n"
+              + "GROUP BY \"days\".\"day\"";
+          assertThat(
+              lattice.sql(ImmutableBitSet.of(0),
+                  ImmutableList.of()), is(sql));
+          final String sql2 = "SELECT"
+              + " \"days\".\"day\", \"days\".\"week_day\"\n"
+              + "FROM \"foodmart\".\"days\" AS \"days\"";
+          assertThat(
+              lattice.sql(ImmutableBitSet.of(0, 1), false,
+                  ImmutableList.of()),
+              is(sql2));
         });
   }
 
@@ -309,23 +304,20 @@ public class LatticeTest {
             + "from \"foodmart\".\"sales_fact_1997\" as s\n"
             + "join \"foodmart\".\"product\" as p using (\"product_id\")\n")
         .enableMaterializations(true)
-        .substitutionMatches(
-            new Function<RelNode, Void>() {
-              public Void apply(RelNode relNode) {
-                counter.incrementAndGet();
-                String s = RelOptUtil.toString(relNode);
-                assertThat(s,
-                    anyOf(
-                        containsStringLinux(
-                            "LogicalProject(brand_name=[$1], customer_id=[$0])\n"
-                            + "  LogicalAggregate(group=[{2, 10}])\n"
-                            + "    LogicalTableScan(table=[[adhoc, star]])\n"),
-                        containsStringLinux(
-                            "LogicalAggregate(group=[{2, 10}])\n"
-                            + "  LogicalTableScan(table=[[adhoc, star]])\n")));
-                return null;
-              }
-            });
+        .substitutionMatches(relNode -> {
+          counter.incrementAndGet();
+          String s = RelOptUtil.toString(relNode);
+          assertThat(s,
+              anyOf(
+                  containsStringLinux(
+                      "LogicalProject(brand_name=[$1], customer_id=[$0])\n"
+                      + "  LogicalAggregate(group=[{2, 10}])\n"
+                      + "    LogicalTableScan(table=[[adhoc, star]])\n"),
+                  containsStringLinux(
+                      "LogicalAggregate(group=[{2, 10}])\n"
+                      + "  LogicalTableScan(table=[[adhoc, star]])\n")));
+          return null;
+        });
     assertThat(counter.intValue(), equalTo(2));
     that.explainContains(""
         + "EnumerableCalc(expr#0..1=[{inputs}], brand_name=[$t1], customer_id=[$t0])\n"
@@ -334,13 +326,9 @@ public class LatticeTest {
 
     // Run the same query again and see whether it uses the same
     // materialization.
-    that.withHook(
-        Hook.CREATE_MATERIALIZATION,
-        new Function<String, Void>() {
-          public Void apply(String materializationName) {
-            counter.incrementAndGet();
-            return null;
-          }
+    that.withHook(Hook.CREATE_MATERIALIZATION,
+        materializationName -> {
+          counter.incrementAndGet();
         })
         .returnsCount(69203);
 
@@ -546,18 +534,11 @@ public class LatticeTest {
   /** Tests that two queries of the same dimensionality that use different
    * measures can use the same materialization. */
   @Test public void testGroupByEmpty3() {
-    final List<String> mats = Lists.newArrayList();
-    final Function<String, Void> handler =
-        new Function<String, Void>() {
-          public Void apply(String materializationName) {
-            mats.add(materializationName);
-            return null;
-          }
-        };
+    final List<String> mats = new ArrayList<>();
     final CalciteAssert.AssertThat that = foodmartModel().pooled();
     that.query("select sum(\"unit_sales\") as s, count(*) as c\n"
             + "from \"foodmart\".\"sales_fact_1997\"")
-        .withHook(Hook.CREATE_MATERIALIZATION, handler)
+        .withHook(Hook.CREATE_MATERIALIZATION, (Consumer<String>) mats::add)
         .enableMaterializations(true)
         .explainContains("EnumerableTableScan(table=[[adhoc, m{}]])")
         .enable(CalciteAssert.DB != CalciteAssert.DatabaseInstance.ORACLE)
@@ -567,7 +548,7 @@ public class LatticeTest {
     // A similar query can use the same materialization.
     that.query("select sum(\"unit_sales\") as s\n"
         + "from \"foodmart\".\"sales_fact_1997\"")
-        .withHook(Hook.CREATE_MATERIALIZATION, handler)
+        .withHook(Hook.CREATE_MATERIALIZATION, (Consumer<String>) mats::add)
         .enableMaterializations(true)
         .enable(CalciteAssert.DB != CalciteAssert.DatabaseInstance.ORACLE)
         .returnsUnordered("S=266773.0000");

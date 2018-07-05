@@ -231,7 +231,7 @@ public abstract class RelOptRuleCall {
    *            expression of the rule call, {@code call.rels(0)}
    */
   public final void transformTo(RelNode rel) {
-    transformTo(rel, ImmutableMap.<RelNode, RelNode>of());
+    transformTo(rel, ImmutableMap.of());
   }
 
   /** Creates a {@link org.apache.calcite.tools.RelBuilder} to be used by

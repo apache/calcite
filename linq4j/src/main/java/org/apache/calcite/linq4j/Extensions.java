@@ -111,109 +111,51 @@ public abstract class Extensions {
   private Extensions() {}
 
   static final Function2<BigDecimal, BigDecimal, BigDecimal> BIG_DECIMAL_SUM =
-      new Function2<BigDecimal, BigDecimal, BigDecimal>() {
-        public BigDecimal apply(BigDecimal v1, BigDecimal v2) {
-          return v1.add(v2);
-        }
-      };
+      BigDecimal::add;
 
   static final Function2<Float, Float, Float> FLOAT_SUM =
-      new Function2<Float, Float, Float>() {
-        public Float apply(Float v1, Float v2) {
-          return v1 + v2;
-        }
-      };
+      (v1, v2) -> v1 + v2;
 
   static final Function2<Double, Double, Double> DOUBLE_SUM =
-      new Function2<Double, Double, Double>() {
-        public Double apply(Double v1, Double v2) {
-          return v1 + v2;
-        }
-      };
+      (v1, v2) -> v1 + v2;
 
   static final Function2<Integer, Integer, Integer> INTEGER_SUM =
-      new Function2<Integer, Integer, Integer>() {
-        public Integer apply(Integer v1, Integer v2) {
-          return v1 + v2;
-        }
-      };
+      (v1, v2) -> v1 + v2;
 
   static final Function2<Long, Long, Long> LONG_SUM =
-      new Function2<Long, Long, Long>() {
-        public Long apply(Long v1, Long v2) {
-          return v1 + v2;
-        }
-      };
+      (v1, v2) -> v1 + v2;
 
-  static final Function2 COMPARABLE_MIN =
-      new Function2<Comparable, Comparable, Comparable>() {
-        public Comparable apply(Comparable v1, Comparable v2) {
-          return v1 == null || v1.compareTo(v2) > 0 ? v2 : v1;
-        }
-      };
+  @SuppressWarnings("unchecked")
+  static final Function2<Comparable, Comparable, Comparable> COMPARABLE_MIN =
+      (v1, v2) -> v1 == null || v1.compareTo(v2) > 0 ? v2 : v1;
 
-  static final Function2 COMPARABLE_MAX =
-      new Function2<Comparable, Comparable, Comparable>() {
-        public Comparable apply(Comparable v1, Comparable v2) {
-          return v1 == null || v1.compareTo(v2) < 0 ? v2 : v1;
-        }
-      };
+  @SuppressWarnings("unchecked")
+  static final Function2<Comparable, Comparable, Comparable> COMPARABLE_MAX =
+      (v1, v2) -> v1 == null || v1.compareTo(v2) < 0 ? v2 : v1;
 
   static final Function2<Float, Float, Float> FLOAT_MIN =
-      new Function2<Float, Float, Float>() {
-        public Float apply(Float v1, Float v2) {
-          return v1 == null || v1.compareTo(v2) > 0 ? v2 : v1;
-        }
-      };
+      (v1, v2) -> v1 == null || v1.compareTo(v2) > 0 ? v2 : v1;
 
   static final Function2<Float, Float, Float> FLOAT_MAX =
-      new Function2<Float, Float, Float>() {
-        public Float apply(Float v1, Float v2) {
-          return v1 == null || v1.compareTo(v2) < 0 ? v2 : v1;
-        }
-      };
+      (v1, v2) -> v1 == null || v1.compareTo(v2) < 0 ? v2 : v1;
 
   static final Function2<Double, Double, Double> DOUBLE_MIN =
-      new Function2<Double, Double, Double>() {
-        public Double apply(Double v1, Double v2) {
-          return v1 == null || v1.compareTo(v2) > 0 ? v2 : v1;
-        }
-      };
+      (v1, v2) -> v1 == null || v1.compareTo(v2) > 0 ? v2 : v1;
 
   static final Function2<Double, Double, Double> DOUBLE_MAX =
-      new Function2<Double, Double, Double>() {
-        public Double apply(Double v1, Double v2) {
-          return v1 == null || v1.compareTo(v2) < 0 ? v2 : v1;
-        }
-      };
+      (v1, v2) -> v1 == null || v1.compareTo(v2) < 0 ? v2 : v1;
 
   static final Function2<Integer, Integer, Integer> INTEGER_MIN =
-      new Function2<Integer, Integer, Integer>() {
-        public Integer apply(Integer v1, Integer v2) {
-          return v1 == null || v1.compareTo(v2) > 0 ? v2 : v1;
-        }
-      };
+      (v1, v2) -> v1 == null || v1.compareTo(v2) > 0 ? v2 : v1;
 
   static final Function2<Integer, Integer, Integer> INTEGER_MAX =
-      new Function2<Integer, Integer, Integer>() {
-        public Integer apply(Integer v1, Integer v2) {
-          return v1 == null || v1.compareTo(v2) < 0 ? v2 : v1;
-        }
-      };
+      (v1, v2) -> v1 == null || v1.compareTo(v2) < 0 ? v2 : v1;
 
   static final Function2<Long, Long, Long> LONG_MIN =
-      new Function2<Long, Long, Long>() {
-        public Long apply(Long v1, Long v2) {
-          return v1 == null || v1.compareTo(v2) > 0 ? v2 : v1;
-        }
-      };
+      (v1, v2) -> v1 == null || v1.compareTo(v2) > 0 ? v2 : v1;
 
   static final Function2<Long, Long, Long> LONG_MAX =
-      new Function2<Long, Long, Long>() {
-        public Long apply(Long v1, Long v2) {
-          return v1 == null || v1.compareTo(v2) < 0 ? v2 : v1;
-        }
-      };
+      (v1, v2) -> v1 == null || v1.compareTo(v2) < 0 ? v2 : v1;
 
   // flags a piece of code we're yet to implement
   public static RuntimeException todo() {
@@ -228,17 +170,8 @@ public abstract class Extensions {
             Linq4j.DEFAULT_PROVIDER, (Class) Object.class, null, source);
   }
 
-  private static final Comparator<Comparable> COMPARABLE_COMPARATOR =
-      new Comparator<Comparable>() {
-        public int compare(Comparable o1, Comparable o2) {
-          //noinspection unchecked
-          return o1.compareTo(o2);
-        }
-      };
-
   static <T extends Comparable<T>> Comparator<T> comparableComparator() {
-    //noinspection unchecked
-    return (Comparator<T>) (Comparator) COMPARABLE_COMPARATOR;
+    return Comparable::compareTo;
   }
 }
 

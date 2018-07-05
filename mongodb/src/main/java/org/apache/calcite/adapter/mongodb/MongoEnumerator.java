@@ -79,20 +79,12 @@ class MongoEnumerator implements Enumerator<Object> {
   }
 
   static Function1<Document, Map> mapGetter() {
-    return new Function1<Document, Map>() {
-      public Map apply(Document a0) {
-        return (Map) a0;
-      }
-    };
+    return a0 -> (Map) a0;
   }
 
   static Function1<Document, Object> singletonGetter(final String fieldName,
       final Class fieldClass) {
-    return new Function1<Document, Object>() {
-      public Object apply(Document a0) {
-        return convert(a0.get(fieldName), fieldClass);
-      }
-    };
+    return a0 -> convert(a0.get(fieldName), fieldClass);
   }
 
   /**
@@ -100,16 +92,14 @@ class MongoEnumerator implements Enumerator<Object> {
    */
   static Function1<Document, Object[]> listGetter(
       final List<Map.Entry<String, Class>> fields) {
-    return new Function1<Document, Object[]>() {
-      public Object[] apply(Document a0) {
-        Object[] objects = new Object[fields.size()];
-        for (int i = 0; i < fields.size(); i++) {
-          final Map.Entry<String, Class> field = fields.get(i);
-          final String name = field.getKey();
-          objects[i] = convert(a0.get(name), field.getValue());
-        }
-        return objects;
+    return a0 -> {
+      Object[] objects = new Object[fields.size()];
+      for (int i = 0; i < fields.size(); i++) {
+        final Map.Entry<String, Class> field = fields.get(i);
+        final String name = field.getKey();
+        objects[i] = convert(a0.get(name), field.getValue());
       }
+      return objects;
     };
   }
 

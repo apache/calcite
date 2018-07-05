@@ -32,7 +32,6 @@ import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.Closer;
 import org.apache.calcite.util.Util;
 
-import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 import com.google.common.io.PatternFilenameFilter;
 
@@ -53,6 +52,7 @@ import java.sql.DriverManager;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.function.Function;
 
 import static org.junit.Assert.fail;
 
@@ -68,6 +68,26 @@ public abstract class QuidemTest {
   protected QuidemTest(String path) {
     this.path = path;
     this.method = findMethod(path);
+  }
+
+  private static Object getEnv(String varName) {
+    switch (varName) {
+    case "jdk18":
+      return System.getProperty("java.version").startsWith("1.8");
+    case "fixed":
+      // Quidem requires a Guava function
+      return (com.google.common.base.Function<String, Object>) v -> {
+        switch (v) {
+        case "calcite1045":
+          return Bug.CALCITE_1045_FIXED;
+        case "calcite1048":
+          return Bug.CALCITE_1048_FIXED;
+        }
+        return null;
+      };
+    default:
+      return null;
+    }
   }
 
   private Method findMethod(String path) {
@@ -103,11 +123,7 @@ public abstract class QuidemTest {
           : "f: " + f.getAbsolutePath() + "; base: " + base;
       paths.add(f.getAbsolutePath().substring(base.length()));
     }
-    return Lists.transform(paths, new Function<String, Object[]>() {
-      public Object[] apply(String path) {
-        return new Object[] {path};
-      }
-    });
+    return Lists.transform(paths, path -> new Object[] {path});
   }
 
   protected void checkRun(String path) throws Exception {
@@ -136,19 +152,17 @@ public abstract class QuidemTest {
     try (final Reader reader = Util.reader(inFile);
          final Writer writer = Util.printWriter(outFile);
          final Closer closer = new Closer()) {
-      new Quidem(reader, writer, env(), createConnectionFactory())
-          .withPropertyHandler(new Quidem.PropertyHandler() {
-            public void onSet(String propertyName, Object value) {
-              if (propertyName.equals("bindable")) {
-                final boolean b = value instanceof Boolean
-                    && (Boolean) value;
-                closer.add(Hook.ENABLE_BINDABLE.addThread(Hook.property(b)));
-              }
-              if (propertyName.equals("expand")) {
-                final boolean b = value instanceof Boolean
-                    && (Boolean) value;
-                closer.add(Prepare.THREAD_EXPAND.push(b));
-              }
+      new Quidem(reader, writer, QuidemTest::getEnv, createConnectionFactory())
+          .withPropertyHandler((propertyName, value) -> {
+            if (propertyName.equals("bindable")) {
+              final boolean b = value instanceof Boolean
+                  && (Boolean) value;
+              closer.add(Hook.ENABLE_BINDABLE.addThread(Hook.propertyJ(b)));
+            }
+            if (propertyName.equals("expand")) {
+              final boolean b = value instanceof Boolean
+                  && (Boolean) value;
+              closer.add(Prepare.THREAD_EXPAND.push(b));
             }
           })
           .execute();
@@ -177,31 +191,6 @@ public abstract class QuidemTest {
     return File.separatorChar == '\\'
         ? s.replace('\\', '/')
         : s;
-  }
-
-  private Function<String, Object> env() {
-    return new Function<String, Object>() {
-      public Object apply(String varName) {
-        switch (varName) {
-        case "jdk18":
-          return System.getProperty("java.version").startsWith("1.8");
-        case "fixed":
-          return new Function<String, Object>() {
-            public Object apply(String v) {
-              switch (v) {
-              case "calcite1045":
-                return Bug.CALCITE_1045_FIXED;
-              case "calcite1048":
-                return Bug.CALCITE_1048_FIXED;
-              }
-              return null;
-            }
-          };
-        default:
-          return null;
-        }
-      }
-    };
   }
 
   @Test public void test() throws Exception {

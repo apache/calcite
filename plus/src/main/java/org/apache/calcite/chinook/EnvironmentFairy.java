@@ -26,11 +26,8 @@ package org.apache.calcite.chinook;
  */
 public class EnvironmentFairy {
 
-  private static final ThreadLocal<User> USER = new ThreadLocal<User>() {
-    @Override protected User initialValue() {
-      return User.ADMIN;
-    }
-  };
+  private static final ThreadLocal<User> USER =
+      ThreadLocal.withInitial(() -> User.ADMIN);
 
   private EnvironmentFairy() {
   }

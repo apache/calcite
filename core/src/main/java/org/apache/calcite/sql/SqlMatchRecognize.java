@@ -26,6 +26,7 @@ import org.apache.calcite.util.ImmutableNullableList;
 import com.google.common.base.Preconditions;
 
 import java.util.List;
+import java.util.Objects;
 import javax.annotation.Nonnull;
 
 /**
@@ -75,20 +76,20 @@ public class SqlMatchRecognize extends SqlCall {
       SqlLiteral rowsPerMatch, SqlNodeList partitionList,
       SqlNodeList orderList, SqlLiteral interval) {
     super(pos);
-    this.tableRef = Preconditions.checkNotNull(tableRef);
-    this.pattern = Preconditions.checkNotNull(pattern);
+    this.tableRef = Objects.requireNonNull(tableRef);
+    this.pattern = Objects.requireNonNull(pattern);
     this.strictStart = strictStart;
     this.strictEnd = strictEnd;
-    this.patternDefList = Preconditions.checkNotNull(patternDefList);
+    this.patternDefList = Objects.requireNonNull(patternDefList);
     Preconditions.checkArgument(patternDefList.size() > 0);
-    this.measureList = Preconditions.checkNotNull(measureList);
+    this.measureList = Objects.requireNonNull(measureList);
     this.after = after;
     this.subsetList = subsetList;
     Preconditions.checkArgument(rowsPerMatch == null
         || rowsPerMatch.value instanceof RowsPerMatchOption);
     this.rowsPerMatch = rowsPerMatch;
-    this.partitionList = Preconditions.checkNotNull(partitionList);
-    this.orderList = Preconditions.checkNotNull(orderList);
+    this.partitionList = Objects.requireNonNull(partitionList);
+    this.orderList = Objects.requireNonNull(orderList);
     this.interval = interval;
   }
 
@@ -119,7 +120,7 @@ public class SqlMatchRecognize extends SqlCall {
   @Override public void setOperand(int i, SqlNode operand) {
     switch (i) {
     case OPERAND_TABLE_REF:
-      tableRef = Preconditions.checkNotNull(operand);
+      tableRef = Objects.requireNonNull(operand);
       break;
     case OPERAND_PATTERN:
       pattern = operand;
@@ -131,11 +132,11 @@ public class SqlMatchRecognize extends SqlCall {
       strictEnd = (SqlLiteral) operand;
       break;
     case OPERAND_PATTERN_DEFINES:
-      patternDefList = Preconditions.checkNotNull((SqlNodeList) operand);
+      patternDefList = Objects.requireNonNull((SqlNodeList) operand);
       Preconditions.checkArgument(patternDefList.size() > 0);
       break;
     case OPERAND_MEASURES:
-      measureList = Preconditions.checkNotNull((SqlNodeList) operand);
+      measureList = Objects.requireNonNull((SqlNodeList) operand);
       break;
     case OPERAND_AFTER:
       after = operand;

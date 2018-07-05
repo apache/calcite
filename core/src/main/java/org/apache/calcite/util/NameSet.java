@@ -34,16 +34,13 @@ public class NameSet {
    * collection sorted on this comparator, we can find case-insensitive matches
    * for a given string using a range scan between the upper-case string and
    * the lower-case string. */
-  public static final Comparator<String> COMPARATOR =
-      new Comparator<String>() {
-        public int compare(String o1, String o2) {
-          int c = o1.compareToIgnoreCase(o2);
-          if (c == 0) {
-            c = o1.compareTo(o2);
-          }
-          return c;
-        }
-      };
+  public static final Comparator<String> COMPARATOR = (o1, o2) -> {
+    int c = o1.compareToIgnoreCase(o2);
+    if (c == 0) {
+      c = o1.compareTo(o2);
+    }
+    return c;
+  };
 
   private final NavigableSet<String> names;
 

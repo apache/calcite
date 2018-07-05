@@ -25,11 +25,11 @@ import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.mapping.Mappings;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Root of a tree of {@link RelNode}.
@@ -92,7 +92,7 @@ public class RelRoot {
     this.validatedRowType = validatedRowType;
     this.kind = kind;
     this.fields = ImmutableList.copyOf(fields);
-    this.collation = Preconditions.checkNotNull(collation);
+    this.collation = Objects.requireNonNull(collation);
   }
 
   /** Creates a simple RelRoot. */

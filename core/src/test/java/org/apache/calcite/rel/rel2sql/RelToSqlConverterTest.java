@@ -17,8 +17,6 @@
 package org.apache.calcite.rel.rel2sql;
 
 import org.apache.calcite.config.NullCollation;
-import org.apache.calcite.plan.RelOptLattice;
-import org.apache.calcite.plan.RelOptMaterialization;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.plan.hep.HepPlanner;
@@ -46,14 +44,12 @@ import org.apache.calcite.tools.Programs;
 import org.apache.calcite.tools.RuleSet;
 import org.apache.calcite.tools.RuleSets;
 
-import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 
 import org.junit.Test;
 
 import java.util.List;
-
-import junit.framework.AssertionFailedError;
+import java.util.function.Function;
 
 import static org.apache.calcite.test.Matchers.isLinux;
 
@@ -81,7 +77,7 @@ public class RelToSqlConverterTest {
   private Sql sql(String sql) {
     return new Sql(CalciteAssert.SchemaSpec.JDBC_FOODMART, sql,
         CalciteSqlDialect.DEFAULT, DEFAULT_REL_CONFIG,
-        ImmutableList.<Function<RelNode, RelNode>>of());
+        ImmutableList.of());
   }
 
   private static Planner getPlanner(List<RelTraitDef> traitDefs,
@@ -2578,13 +2574,10 @@ public class RelToSqlConverterTest {
 
     Sql optimize(final RuleSet ruleSet, final RelOptPlanner relOptPlanner) {
       return new Sql(schemaSpec, sql, dialect, config,
-          FlatLists.append(transforms, new Function<RelNode, RelNode>() {
-            public RelNode apply(RelNode r) {
-              Program program = Programs.of(ruleSet);
-              return program.run(relOptPlanner, r, r.getTraitSet(),
-                  ImmutableList.<RelOptMaterialization>of(),
-                  ImmutableList.<RelOptLattice>of());
-            }
+          FlatLists.append(transforms, r -> {
+            Program program = Programs.of(ruleSet);
+            return program.run(relOptPlanner, r, r.getTraitSet(),
+                ImmutableList.of(), ImmutableList.of());
           }));
     }
 
@@ -2596,7 +2589,7 @@ public class RelToSqlConverterTest {
     Sql throws_(String errorMessage) {
       try {
         final String s = exec();
-        throw new AssertionFailedError("Expected exception with message `"
+        throw new AssertionError("Expected exception with message `"
             + errorMessage + "` but nothing was thrown; got " + s);
       } catch (Exception e) {
         assertThat(e.getMessage(), is(errorMessage));

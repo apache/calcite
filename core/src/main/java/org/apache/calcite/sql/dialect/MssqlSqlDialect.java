@@ -33,8 +33,6 @@ import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.ReturnTypes;
 
-
-
 /**
  * A <code>SqlDialect</code> implementation for the Microsoft SQL Server
  * database.

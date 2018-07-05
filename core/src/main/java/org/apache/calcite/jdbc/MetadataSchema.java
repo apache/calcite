@@ -16,9 +16,7 @@
  */
 package org.apache.calcite.jdbc;
 
-import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.Enumerator;
-import org.apache.calcite.linq4j.function.Function1;
 import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.impl.AbstractSchema;
@@ -34,7 +32,7 @@ import static org.apache.calcite.jdbc.CalciteMetaImpl.MetaTable;
 /** Schema that contains metadata tables such as "TABLES" and "COLUMNS". */
 class MetadataSchema extends AbstractSchema {
   private static final Map<String, Table> TABLE_MAP =
-      ImmutableMap.<String, Table>of(
+      ImmutableMap.of(
           "COLUMNS",
           new CalciteMetaImpl.MetadataTable<MetaColumn>(MetaColumn.class) {
             public Enumerator<MetaColumn> enumerator(
@@ -45,12 +43,8 @@ class MetadataSchema extends AbstractSchema {
               } catch (SQLException e) {
                 throw new RuntimeException(e);
               }
-              return meta.tables(catalog).selectMany(
-                  new Function1<MetaTable, Enumerable<MetaColumn>>() {
-                    public Enumerable<MetaColumn> apply(MetaTable table) {
-                      return meta.columns(table);
-                    }
-                  }).enumerator();
+              return meta.tables(catalog)
+                  .selectMany(meta::columns).enumerator();
             }
           },
           "TABLES",

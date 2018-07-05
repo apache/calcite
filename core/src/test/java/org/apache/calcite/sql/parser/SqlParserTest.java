@@ -550,11 +550,7 @@ public class SqlParserTest {
   private static final String ANY = "(?s).*";
 
   private static final ThreadLocal<boolean[]> LINUXIFY =
-      new ThreadLocal<boolean[]>() {
-        @Override protected boolean[] initialValue() {
-          return new boolean[] {true};
-        }
-      };
+      ThreadLocal.withInitial(() -> new boolean[] {true});
 
   Quoting quoting = Quoting.DOUBLE_QUOTE;
   Casing unquotedCasing = Casing.TO_UPPER;

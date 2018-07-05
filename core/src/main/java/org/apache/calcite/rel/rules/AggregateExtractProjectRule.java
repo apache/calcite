@@ -24,7 +24,6 @@ import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.runtime.PredicateImpl;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.ImmutableBitSet;
@@ -32,15 +31,11 @@ import org.apache.calcite.util.mapping.Mapping;
 import org.apache.calcite.util.mapping.MappingType;
 import org.apache.calcite.util.mapping.Mappings;
 
-import com.google.common.base.Function;
-import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 
 import java.util.ArrayList;
 import java.util.List;
-
-import javax.annotation.Nullable;
 
 /**
  * Rule to extract a {@link org.apache.calcite.rel.core.Project}
@@ -55,16 +50,6 @@ import javax.annotation.Nullable;
  */
 public class AggregateExtractProjectRule extends RelOptRule {
 
-  /** Predicate that prevents matching against an {@code Aggregate} whose input
-   * is already a {@code Project}. This will prevent this rule firing
-   * repeatedly. */
-  private static final Predicate<RelNode> PREDICATE =
-      new PredicateImpl<RelNode>() {
-        public boolean test(@Nullable RelNode relNode) {
-          return !(relNode instanceof Project);
-        }
-      };
-
   /**
    * Creates an AggregateExtractProjectRule.
    *
@@ -74,7 +59,11 @@ public class AggregateExtractProjectRule extends RelOptRule {
       Class<? extends Aggregate> aggregateClass,
       Class<? extends RelNode> inputClass,
       RelBuilderFactory relBuilderFactory) {
-    this(operand(aggregateClass, operand(inputClass, null, PREDICATE, any())),
+    // Predicate prevents matching against an Aggregate whose input
+    // is already a Project. Prevents this rule firing repeatedly.
+    this(
+        operand(aggregateClass,
+            operandJ(inputClass, null, r -> !(r instanceof Project), any())),
         relBuilderFactory);
   }
 
@@ -119,11 +108,7 @@ public class AggregateExtractProjectRule extends RelOptRule {
     final ImmutableList<ImmutableBitSet> newGroupSets =
         ImmutableList.copyOf(
             Iterables.transform(aggregate.getGroupSets(),
-                new Function<ImmutableBitSet, ImmutableBitSet>() {
-                  public ImmutableBitSet apply(ImmutableBitSet input) {
-                    return Mappings.apply(mapping, input);
-                  }
-                }));
+                bitSet -> Mappings.apply(mapping, bitSet)));
     final List<RelBuilder.AggCall> newAggCallList = new ArrayList<>();
     for (AggregateCall aggCall : aggregate.getAggCallList()) {
       final ImmutableList<RexNode> args =

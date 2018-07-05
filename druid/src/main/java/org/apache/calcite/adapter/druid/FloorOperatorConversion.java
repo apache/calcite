@@ -28,7 +28,6 @@ import java.util.TimeZone;
 
 import javax.annotation.Nullable;
 
-
 /**
  * DruidSqlOperatorConverter implementation that handles Floor operations conversions
  */

@@ -49,6 +49,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 
 import static org.apache.calcite.util.Static.RESOURCE;
 
@@ -71,7 +72,7 @@ public class SqlCreateForeignSchema extends SqlCreate
       SqlIdentifier name, SqlNode type, SqlNode library,
       SqlNodeList optionList) {
     super(OPERATOR, pos, replace, ifNotExists);
-    this.name = Preconditions.checkNotNull(name);
+    this.name = Objects.requireNonNull(name);
     this.type = type;
     this.library = library;
     Preconditions.checkArgument((type == null) != (library == null),

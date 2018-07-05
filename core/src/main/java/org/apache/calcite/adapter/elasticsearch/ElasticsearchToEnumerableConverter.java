@@ -21,7 +21,6 @@ import org.apache.calcite.adapter.enumerable.EnumerableRelImplementor;
 import org.apache.calcite.adapter.enumerable.JavaRowFormat;
 import org.apache.calcite.adapter.enumerable.PhysType;
 import org.apache.calcite.adapter.enumerable.PhysTypeImpl;
-
 import org.apache.calcite.linq4j.tree.BlockBuilder;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
@@ -40,12 +39,10 @@ import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.Pair;
 
-import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 
 import java.util.AbstractList;
 import java.util.List;
-import javax.annotation.Nullable;
 
 /**
  * Relational expression representing a scan of a table in an Elasticsearch data source.
@@ -111,13 +108,7 @@ public class ElasticsearchToEnumerableConverter extends ConverterImpl implements
   /** E.g. {@code constantList("x", "y")} returns
    * {@code {ConstantExpression("x"), ConstantExpression("y")}}. */
   private static <T> List<Expression> constantList(List<T> values) {
-    return Lists.transform(values,
-        new Function<T, Expression>() {
-          @Nullable
-          @Override public Expression apply(@Nullable T t) {
-            return Expressions.constant(t);
-          }
-        });
+    return Lists.transform(values, Expressions::constant);
   }
 }
 

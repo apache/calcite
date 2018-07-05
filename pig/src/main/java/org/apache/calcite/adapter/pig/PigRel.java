@@ -19,8 +19,6 @@ package org.apache.calcite.adapter.pig;
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.rel.RelNode;
 
-import com.google.common.base.Joiner;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -83,7 +81,7 @@ public interface PigRel extends RelNode {
     }
 
     public String getScript() {
-      return Joiner.on("\n").join(statements);
+      return String.join("\n", statements);
     }
   }
 }

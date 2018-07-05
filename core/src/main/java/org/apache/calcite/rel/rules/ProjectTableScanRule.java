@@ -26,14 +26,12 @@ import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.runtime.PredicateImpl;
 import org.apache.calcite.schema.ProjectableFilterableTable;
 import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.mapping.Mapping;
 import org.apache.calcite.util.mapping.Mappings;
 
-import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
 
 import java.util.List;
@@ -50,20 +48,17 @@ import java.util.List;
  * @see FilterTableScanRule
  */
 public abstract class ProjectTableScanRule extends RelOptRule {
-  public static final Predicate<TableScan> PREDICATE =
-      new PredicateImpl<TableScan>() {
-        public boolean test(TableScan scan) {
-          // We can only push projects into a ProjectableFilterableTable.
-          final RelOptTable table = scan.getTable();
-          return table.unwrap(ProjectableFilterableTable.class) != null;
-        }
-      };
+  @SuppressWarnings("Guava")
+  @Deprecated // to be removed before 2.0
+  public static final com.google.common.base.Predicate<TableScan> PREDICATE =
+      ProjectTableScanRule::test;
 
   /** Rule that matches Project on TableScan. */
   public static final ProjectTableScanRule INSTANCE =
       new ProjectTableScanRule(
           operand(Project.class,
-              operand(TableScan.class, null, PREDICATE, none())),
+              operandJ(TableScan.class, null, ProjectTableScanRule::test,
+                  none())),
           RelFactories.LOGICAL_BUILDER,
           "ProjectScanRule") {
         @Override public void onMatch(RelOptRuleCall call) {
@@ -78,7 +73,8 @@ public abstract class ProjectTableScanRule extends RelOptRule {
       new ProjectTableScanRule(
           operand(Project.class,
               operand(EnumerableInterpreter.class,
-                  operand(TableScan.class, null, PREDICATE, none()))),
+                  operandJ(TableScan.class, null, ProjectTableScanRule::test,
+                      none()))),
           RelFactories.LOGICAL_BUILDER,
           "ProjectScanRule:interpreter") {
         @Override public void onMatch(RelOptRuleCall call) {
@@ -97,6 +93,12 @@ public abstract class ProjectTableScanRule extends RelOptRule {
   }
 
   //~ Methods ----------------------------------------------------------------
+
+  protected static boolean test(TableScan scan) {
+    // We can only push projects into a ProjectableFilterableTable.
+    final RelOptTable table = scan.getTable();
+    return table.unwrap(ProjectableFilterableTable.class) != null;
+  }
 
   protected void apply(RelOptRuleCall call, Project project, TableScan scan) {
     final RelOptTable table = scan.getTable();

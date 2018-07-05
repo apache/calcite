@@ -79,31 +79,20 @@ public class SqlFunctions {
   private static final TimeZone LOCAL_TZ = TimeZone.getDefault();
 
   private static final Function1<List<Object>, Enumerable<Object>> LIST_AS_ENUMERABLE =
-      new Function1<List<Object>, Enumerable<Object>>() {
-        public Enumerable<Object> apply(List<Object> list) {
-          return Linq4j.asEnumerable(list);
-        }
-      };
+      Linq4j::asEnumerable;
 
   private static final Function1<Object[], Enumerable<Object[]>> ARRAY_CARTESIAN_PRODUCT =
-      new Function1<Object[], Enumerable<Object[]>>() {
-        public Enumerable<Object[]> apply(Object[] lists) {
-          final List<Enumerator<Object>> enumerators = new ArrayList<>();
-          for (Object list : lists) {
-            enumerators.add(Linq4j.enumerator((List) list));
-          }
-          final Enumerator<List<Object>> product = Linq4j.product(enumerators);
-          return new AbstractEnumerable<Object[]>() {
-            public Enumerator<Object[]> enumerator() {
-              return Linq4j.transform(product,
-                  new Function1<List<Object>, Object[]>() {
-                    public Object[] apply(List<Object> list) {
-                      return list.toArray();
-                    }
-                  });
-            }
-          };
+      lists -> {
+        final List<Enumerator<Object>> enumerators = new ArrayList<>();
+        for (Object list : lists) {
+          enumerators.add(Linq4j.enumerator((List) list));
         }
+        final Enumerator<List<Object>> product = Linq4j.product(enumerators);
+        return new AbstractEnumerable<Object[]>() {
+          public Enumerator<Object[]> enumerator() {
+            return Linq4j.transform(product, List::toArray);
+          }
+        };
       };
 
   /** Holds, for each thread, a map from sequence name to sequence current
@@ -113,11 +102,7 @@ public class SqlFunctions {
    * that sequences can be parsed, validated and planned. A real application
    * will want persistent values for sequences, shared among threads. */
   private static final ThreadLocal<Map<String, AtomicLong>> THREAD_SEQUENCES =
-      new ThreadLocal<Map<String, AtomicLong>>() {
-        @Override protected Map<String, AtomicLong> initialValue() {
-          return new HashMap<String, AtomicLong>();
-        }
-      };
+      ThreadLocal.withInitial(HashMap::new);
 
   private SqlFunctions() {
   }
@@ -2212,20 +2197,12 @@ public class SqlFunctions {
         //noinspection unchecked
         return (Function1) LIST_AS_ENUMERABLE;
       } else {
-        return new Function1<Object, Enumerable<ComparableList<Comparable>>>() {
-          public Enumerable<ComparableList<Comparable>> apply(Object row) {
-            return p2(new Object[] { row }, fieldCounts, withOrdinality,
-                  inputTypes);
-          }
-        };
+        return row -> p2(new Object[] { row }, fieldCounts, withOrdinality,
+              inputTypes);
       }
     }
-    return new Function1<Object, Enumerable<FlatLists.ComparableList<Comparable>>>() {
-      public Enumerable<FlatLists.ComparableList<Comparable>> apply(Object lists) {
-        return p2((Object[]) lists, fieldCounts, withOrdinality,
-            inputTypes);
-      }
-    };
+    return lists -> p2((Object[]) lists, fieldCounts, withOrdinality,
+        inputTypes);
   }
 
   private static Enumerable<FlatLists.ComparableList<Comparable>> p2(
@@ -2243,12 +2220,7 @@ public class SqlFunctions {
             (List<Comparable>) inputObject;
         enumerators.add(
             Linq4j.transform(
-                Linq4j.enumerator(list),
-                new Function1<Comparable, List<Comparable>>() {
-                  public List<Comparable> apply(Comparable a0) {
-                    return FlatLists.of(a0);
-                  }
-                }));
+                Linq4j.enumerator(list), FlatLists::of));
         break;
       case LIST:
         @SuppressWarnings("unchecked") List<List<Comparable>> listList =
@@ -2262,11 +2234,7 @@ public class SqlFunctions {
             Linq4j.enumerator(map.entrySet());
 
         Enumerator<List<Comparable>> transformed = Linq4j.transform(enumerator,
-            new Function1<Entry<Comparable, Comparable>, List<Comparable>>() {
-              public List<Comparable> apply(Entry<Comparable, Comparable> e) {
-                return FlatLists.of(e.getKey(), e.getValue());
-              }
-            });
+            e -> FlatLists.of(e.getKey(), e.getValue()));
         enumerators.add(transformed);
         break;
       default:

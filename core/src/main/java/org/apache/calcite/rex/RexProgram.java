@@ -34,7 +34,6 @@ import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Permutation;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
 
 import java.io.PrintWriter;
@@ -514,7 +513,7 @@ public class RexProgram {
    * <p>Neither list is null.
    * The filters are evaluated first. */
   public Pair<ImmutableList<RexNode>, ImmutableList<RexNode>> split() {
-    final List<RexNode> filters = Lists.newArrayList();
+    final List<RexNode> filters = new ArrayList<>();
     if (condition != null) {
       RelOptUtil.decomposeConjunction(expandLocalRef(condition), filters);
     }
@@ -574,7 +573,7 @@ public class RexProgram {
       // to the output.
       outputCollations.add(RelCollations.of(fieldCollations));
     }
-    Collections.sort(outputCollations, Ordering.natural());
+    outputCollations.sort(Ordering.natural());
   }
 
   /**

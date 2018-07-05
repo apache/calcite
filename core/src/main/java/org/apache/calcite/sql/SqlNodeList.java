@@ -172,7 +172,7 @@ public class SqlNodeList extends SqlNode implements Iterable<SqlNode> {
   }
 
   public SqlNode[] toArray() {
-    return list.toArray(new SqlNode[list.size()]);
+    return list.toArray(new SqlNode[0]);
   }
 
   public static boolean isEmptyList(final SqlNode node) {

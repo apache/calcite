@@ -24,9 +24,8 @@ import org.apache.calcite.linq4j.tree.BlockBuilder;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
 
-import com.google.common.base.Function;
-
 import java.util.List;
+import java.util.function.Function;
 
 /**
  * Implementation of
@@ -37,6 +36,13 @@ public abstract class WinAggAddContextImpl extends WinAggResultContextImpl
   public WinAggAddContextImpl(BlockBuilder block, List<Expression> accumulator,
       Function<BlockBuilder, WinAggFrameResultContext> frame) {
     super(block, accumulator, frame);
+  }
+
+  @SuppressWarnings("Guava")
+  @Deprecated // to be removed before 2.0
+  public WinAggAddContextImpl(BlockBuilder block, List<Expression> accumulator,
+      com.google.common.base.Function<BlockBuilder, WinAggFrameResultContext> frame) {
+    this(block, accumulator, (Function<BlockBuilder, WinAggFrameResultContext>) frame::apply);
   }
 
   public final RexToLixTranslator rowTranslator() {

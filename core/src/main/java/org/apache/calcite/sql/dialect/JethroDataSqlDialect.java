@@ -23,8 +23,6 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.type.SqlTypeName;
 
-import com.google.common.base.Preconditions;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.LinkedHashMultimap;
@@ -38,8 +36,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
-
 
 /**
  * A <code>SqlDialect</code> implementation for the JethroData database.
@@ -126,7 +124,7 @@ public class JethroDataSqlDialect extends SqlDialect {
     private final List<SqlTypeName> operandTypes;
 
     JethroSupportedFunction(String name, String operands) {
-      Preconditions.checkNotNull(name); // not currently used
+      Objects.requireNonNull(name); // not currently used
       final ImmutableList.Builder<SqlTypeName> b = ImmutableList.builder();
       for (String strType : operands.split(":")) {
         b.add(parse(strType));
@@ -222,7 +220,7 @@ public class JethroDataSqlDialect extends SqlDialect {
   /** Information about the capabilities of a Jethro database. */
   public static class JethroInfo {
     public static final JethroInfo EMPTY = new JethroInfo(
-        ImmutableSetMultimap.<String, JethroSupportedFunction>of());
+        ImmutableSetMultimap.of());
 
     private final ImmutableSetMultimap<String, JethroSupportedFunction> supportedFunctions;
 

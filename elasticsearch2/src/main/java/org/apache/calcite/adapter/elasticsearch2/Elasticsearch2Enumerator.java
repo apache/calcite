@@ -73,22 +73,16 @@ public class Elasticsearch2Enumerator implements Enumerator<Object> {
   }
 
   private static Function1<SearchHit, Map> mapGetter() {
-    return new Function1<SearchHit, Map>() {
-      public Map apply(SearchHit searchHitFields) {
-        return (Map) searchHitFields.fields();
-      }
-    };
+    return searchHitFields -> (Map) searchHitFields.fields();
   }
 
   private static Function1<SearchHit, Object> singletonGetter(final String fieldName,
       final Class fieldClass) {
-    return new Function1<SearchHit, Object>() {
-      public Object apply(SearchHit searchHitFields) {
-        if (searchHitFields.fields().isEmpty()) {
-          return convert(searchHitFields.getSource(), fieldClass);
-        } else {
-          return convert(searchHitFields.getFields(), fieldClass);
-        }
+    return searchHitFields -> {
+      if (searchHitFields.fields().isEmpty()) {
+        return convert(searchHitFields.getSource(), fieldClass);
+      } else {
+        return convert(searchHitFields.getFields(), fieldClass);
       }
     };
   }
@@ -103,23 +97,21 @@ public class Elasticsearch2Enumerator implements Enumerator<Object> {
    */
   private static Function1<SearchHit, Object[]> listGetter(
       final List<Map.Entry<String, Class>> fields) {
-    return new Function1<SearchHit, Object[]>() {
-      public Object[] apply(SearchHit hit) {
-        Object[] objects = new Object[fields.size()];
-        for (int i = 0; i < fields.size(); i++) {
-          final Map.Entry<String, Class> field = fields.get(i);
-          final String name = field.getKey();
-          if (hit.fields().isEmpty()) {
-            objects[i] = convert(hit.getSource().get(name), field.getValue());
-          } else if (hit.fields().containsKey(name)) {
-            objects[i] = convert(hit.field(name).getValue(), field.getValue());
-          } else {
-            throw new IllegalStateException(
-                String.format(Locale.ROOT, "No result for %s", field));
-          }
+    return hit -> {
+      Object[] objects = new Object[fields.size()];
+      for (int i = 0; i < fields.size(); i++) {
+        final Map.Entry<String, Class> field = fields.get(i);
+        final String name = field.getKey();
+        if (hit.fields().isEmpty()) {
+          objects[i] = convert(hit.getSource().get(name), field.getValue());
+        } else if (hit.fields().containsKey(name)) {
+          objects[i] = convert(hit.field(name).getValue(), field.getValue());
+        } else {
+          throw new IllegalStateException(
+              String.format(Locale.ROOT, "No result for %s", field));
         }
-        return objects;
       }
+      return objects;
     };
   }
 

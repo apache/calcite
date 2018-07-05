@@ -17,7 +17,6 @@
 package org.apache.calcite.interpreter;
 
 import org.apache.calcite.adapter.enumerable.JavaRowFormat;
-import org.apache.calcite.adapter.enumerable.PhysType;
 import org.apache.calcite.adapter.enumerable.PhysTypeImpl;
 import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
 import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
@@ -40,7 +39,6 @@ import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
 
 import org.codehaus.commons.compiler.CompileException;
 import org.codehaus.commons.compiler.CompilerFactoryFactory;
@@ -50,7 +48,7 @@ import org.codehaus.commons.compiler.ICompilerFactory;
 import java.io.IOException;
 import java.io.StringReader;
 import java.lang.reflect.Modifier;
-import java.lang.reflect.Type;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -85,17 +83,14 @@ public class JaninoRexCompiler implements Interpreter.ScalarCompiler {
     final RexToLixTranslator.InputGetter inputGetter =
         new RexToLixTranslator.InputGetterImpl(
             ImmutableList.of(
-                Pair.<Expression, PhysType>of(
+                Pair.of(
                     Expressions.field(context_,
                         BuiltInMethod.CONTEXT_VALUES.field),
                     PhysTypeImpl.of(javaTypeFactory, inputRowType,
                         JavaRowFormat.ARRAY, false))));
-    final Function1<String, RexToLixTranslator.InputGetter> correlates =
-        new Function1<String, RexToLixTranslator.InputGetter>() {
-          public RexToLixTranslator.InputGetter apply(String a0) {
-            throw new UnsupportedOperationException();
-          }
-        };
+    final Function1<String, RexToLixTranslator.InputGetter> correlates = a0 -> {
+      throw new UnsupportedOperationException();
+    };
     final Expression root =
         Expressions.field(context_, BuiltInMethod.CONTEXT_ROOT.field);
     final List<Expression> list =
@@ -117,7 +112,7 @@ public class JaninoRexCompiler implements Interpreter.ScalarCompiler {
    * compiles. */
   static Scalar baz(ParameterExpression context_,
       ParameterExpression outputValues_, BlockStatement block) {
-    final List<MemberDeclaration> declarations = Lists.newArrayList();
+    final List<MemberDeclaration> declarations = new ArrayList<>();
 
     // public void execute(Context, Object[] outputValues)
     declarations.add(
@@ -145,7 +140,7 @@ public class JaninoRexCompiler implements Interpreter.ScalarCompiler {
 
     final ClassDeclaration classDeclaration =
         Expressions.classDecl(Modifier.PUBLIC, "Buzz", null,
-            ImmutableList.<Type>of(Scalar.class), declarations);
+            ImmutableList.of(Scalar.class), declarations);
     String s = Expressions.toString(declarations, "\n", false);
     if (CalcitePrepareImpl.DEBUG) {
       Util.debugCode(System.out, s);

@@ -56,11 +56,7 @@ public abstract class CalciteTrace {
   public static final Logger PARSER_LOGGER = getParserTracer();
 
   private static final ThreadLocal<Function2<Void, File, String>> DYNAMIC_HANDLER =
-      new ThreadLocal<Function2<Void, File, String>>() {
-        @Override protected Function2<Void, File, String> initialValue() {
-          return Functions.ignore2();
-        }
-      };
+      ThreadLocal.withInitial(Functions::ignore2);
 
   //~ Methods ----------------------------------------------------------------
 

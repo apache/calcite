@@ -17,10 +17,10 @@
 package org.apache.calcite.adapter.druid;
 
 import com.fasterxml.jackson.core.JsonGenerator;
-import com.google.common.base.Preconditions;
 
 import java.io.IOException;
 import java.util.Locale;
+import java.util.Objects;
 
 import static org.apache.calcite.adapter.druid.DruidQuery.writeFieldIf;
 
@@ -36,8 +36,8 @@ public class VirtualColumn implements DruidJson {
   private final DruidType outputType;
 
   public VirtualColumn(String name, String expression, DruidType outputType) {
-    this.name = Preconditions.checkNotNull(name);
-    this.expression = Preconditions.checkNotNull(expression);
+    this.name = Objects.requireNonNull(name);
+    this.expression = Objects.requireNonNull(expression);
     this.outputType = outputType == null ? DruidType.FLOAT : outputType;
   }
 
