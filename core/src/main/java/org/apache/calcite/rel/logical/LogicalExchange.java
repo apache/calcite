@@ -23,7 +23,6 @@ import org.apache.calcite.rel.RelDistribution;
 import org.apache.calcite.rel.RelDistributionTraitDef;
 import org.apache.calcite.rel.RelInput;
 import org.apache.calcite.rel.RelNode;
-import org.apache.calcite.rel.RelShuttle;
 import org.apache.calcite.rel.core.Exchange;
 
 /**
@@ -67,9 +66,6 @@ public final class LogicalExchange extends Exchange {
         newDistribution);
   }
 
-  @Override public RelNode accept(RelShuttle shuttle) {
-    return shuttle.visit(this);
-  }
 }
 
 // End LogicalExchange.java

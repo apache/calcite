@@ -44,7 +44,6 @@ import org.apache.calcite.rel.type.RelDataTypeImpl;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCorrelVariable;
 import org.apache.calcite.rex.RexDynamicParam;
-import org.apache.calcite.rex.RexFieldAccess;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexPermuteInputsShuttle;
@@ -140,7 +139,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
     this(validator,
         RelBuilder.proto(projectFactory, filterFactory, joinFactory,
             semiJoinFactory, sortFactory, aggregateFactory, setOpFactory)
-        .create(cluster, null));
+            .create(cluster, null));
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -200,16 +199,15 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
     // fields.
     for (final CorrelationId correlation : rel.getVariablesSet()) {
       rel.accept(
-          new CorrelationReferenceFinder() {
-            protected RexNode handle(RexFieldAccess fieldAccess) {
-              final RexCorrelVariable v =
-                  (RexCorrelVariable) fieldAccess.getReferenceExpr();
-              if (v.id.equals(correlation)) {
-                fieldsUsedBuilder.set(fieldAccess.getField().getIndex());
-              }
-              return fieldAccess;
+          new CorrelationReferenceFinder((fieldAccess) -> {
+            final RexCorrelVariable v =
+                (RexCorrelVariable) fieldAccess.getReferenceExpr();
+            if (v.id.equals(correlation)) {
+              fieldsUsedBuilder.set(fieldAccess.getField().getIndex());
             }
-          });
+            return fieldAccess;
+          })
+      );
     }
 
     return dispatchTrimFields(input, fieldsUsedBuilder.build(), extraFields);
@@ -295,29 +293,28 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
     final RexBuilder rexBuilder = relBuilder.getRexBuilder();
     for (final CorrelationId correlation : r.getVariablesSet()) {
       r = r.accept(
-          new CorrelationReferenceFinder() {
-            protected RexNode handle(RexFieldAccess fieldAccess) {
-              final RexCorrelVariable v =
-                  (RexCorrelVariable) fieldAccess.getReferenceExpr();
-              if (v.id.equals(correlation)
-                  && v.getType().getFieldCount() == mapping.getSourceCount()) {
-                final int old = fieldAccess.getField().getIndex();
-                final int new_ = mapping.getTarget(old);
-                final RelDataTypeFactory.Builder typeBuilder =
-                    relBuilder.getTypeFactory().builder();
-                for (int target : Util.range(mapping.getTargetCount())) {
-                  typeBuilder.add(
-                      v.getType().getFieldList().get(mapping.getSource(target)));
-                }
-                final RexNode newV =
-                    rexBuilder.makeCorrel(typeBuilder.build(), v.id);
-                if (old != new_) {
-                  return rexBuilder.makeFieldAccess(newV, new_);
-                }
+          new CorrelationReferenceFinder((fieldAccess) -> {
+            final RexCorrelVariable v =
+                (RexCorrelVariable) fieldAccess.getReferenceExpr();
+            if (v.id.equals(correlation)
+                && v.getType().getFieldCount() == mapping.getSourceCount()) {
+              final int old = fieldAccess.getField().getIndex();
+              final int new_ = mapping.getTarget(old);
+              final RelDataTypeFactory.Builder typeBuilder =
+                  relBuilder.getTypeFactory().builder();
+              for (int target : Util.range(mapping.getTargetCount())) {
+                typeBuilder.add(
+                    v.getType().getFieldList().get(mapping.getSource(target)));
               }
-              return fieldAccess;
+              final RexNode newV =
+                  rexBuilder.makeCorrel(typeBuilder.build(), v.id);
+              if (old != new_) {
+                return rexBuilder.makeFieldAccess(newV, new_);
+              }
             }
-          });
+            return fieldAccess;
+          })
+      );
     }
     return new TrimResult(r, mapping);
   }

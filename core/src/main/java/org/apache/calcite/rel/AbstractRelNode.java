@@ -274,7 +274,12 @@ public abstract class AbstractRelNode implements RelNode {
   public RelNode accept(RelShuttle shuttle) {
     // Call fall-back method. Specific logical types (such as LogicalProject
     // and LogicalJoin) have their own RelShuttle.visit methods.
-    return shuttle.visit(this);
+    if (shuttle.visit(this)) {
+      for (RelNode input : getInputs()) {
+        input.accept(shuttle);
+      }
+    }
+    return shuttle.leave(this);
   }
 
   public RelNode accept(RexShuttle shuttle) {

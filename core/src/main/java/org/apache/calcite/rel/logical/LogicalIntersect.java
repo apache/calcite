@@ -21,7 +21,6 @@ import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelInput;
 import org.apache.calcite.rel.RelNode;
-import org.apache.calcite.rel.RelShuttle;
 import org.apache.calcite.rel.core.Intersect;
 
 import java.util.List;
@@ -72,9 +71,6 @@ public final class LogicalIntersect extends Intersect {
     return new LogicalIntersect(getCluster(), traitSet, inputs, all);
   }
 
-  @Override public RelNode accept(RelShuttle shuttle) {
-    return shuttle.visit(this);
-  }
 }
 
 // End LogicalIntersect.java

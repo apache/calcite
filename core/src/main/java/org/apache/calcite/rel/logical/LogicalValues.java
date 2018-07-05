@@ -121,7 +121,8 @@ public class LogicalValues extends Values {
   }
 
   @Override public RelNode accept(RelShuttle shuttle) {
-    return shuttle.visit(this);
+    shuttle.visit(this);
+    return shuttle.leave(this);
   }
 }
 

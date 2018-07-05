@@ -25,7 +25,6 @@ import org.apache.calcite.rel.RelDistribution;
 import org.apache.calcite.rel.RelDistributionTraitDef;
 import org.apache.calcite.rel.RelInput;
 import org.apache.calcite.rel.RelNode;
-import org.apache.calcite.rel.RelShuttle;
 import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.Filter;
@@ -135,10 +134,6 @@ public final class LogicalFilter extends Filter {
     assert traitSet.containsIfApplicable(Convention.NONE);
     return new LogicalFilter(getCluster(), traitSet, input, condition,
         variablesSet);
-  }
-
-  @Override public RelNode accept(RelShuttle shuttle) {
-    return shuttle.visit(this);
   }
 
   @Override public RelWriter explainTerms(RelWriter pw) {

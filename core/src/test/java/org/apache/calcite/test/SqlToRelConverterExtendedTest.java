@@ -66,9 +66,9 @@ public class SqlToRelConverterExtendedTest extends SqlToRelConverterTest {
     // Find the schema. If there are no tables in the plan, we won't need one.
     final RelOptSchema[] schemas = {null};
     rel.accept(new RelShuttleImpl() {
-      @Override public RelNode visit(TableScan scan) {
+      @Override public boolean visitTableScan(TableScan scan) {
         schemas[0] = scan.getTable().getRelOptSchema();
-        return super.visit(scan);
+        return false;
       }
     });
 
