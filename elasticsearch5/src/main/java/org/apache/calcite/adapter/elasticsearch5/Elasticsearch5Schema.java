@@ -22,6 +22,8 @@ import org.apache.calcite.schema.impl.AbstractSchema;
 
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
@@ -87,6 +89,19 @@ public class Elasticsearch5Schema extends AbstractSchema
     }
   }
 
+  /**
+   * Allows schema to be instantiated from existing elastic search client.
+   * This constructor is used in tests.
+   * @param client existing client instance
+   * @param index name of ES index
+   */
+  @VisibleForTesting
+  Elasticsearch5Schema(Client client, String index) {
+    this.client = Preconditions.checkNotNull(client, "client");
+    this.index = Preconditions.checkNotNull(index, "index");
+  }
+
+
   @Override protected Map<String, Table> getTableMap() {
     final ImmutableMap.Builder<String, Table> builder = ImmutableMap.builder();
 
@@ -123,8 +138,10 @@ public class Elasticsearch5Schema extends AbstractSchema
 
     final List<DiscoveryNode> nodes =
         ImmutableList.copyOf(transportClient.connectedNodes());
+
     if (nodes.isEmpty()) {
-      throw new RuntimeException("Cannot connect to any elasticsearch nodes");
+      throw new IllegalStateException("Cannot connect to any elasticsearch node from "
+              + transportNodes);
     }
 
     client = transportClient;

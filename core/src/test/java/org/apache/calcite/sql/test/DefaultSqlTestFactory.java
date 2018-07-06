@@ -20,6 +20,7 @@ import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.avatica.util.Casing;
 import org.apache.calcite.avatica.util.Quoting;
 import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
+import org.apache.calcite.rel.type.DelegatingTypeSystem;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.advise.SqlAdvisor;
@@ -79,8 +80,18 @@ public class DefaultSqlTestFactory implements SqlTestFactory {
                     throws Exception {
                   final SqlOperatorTable operatorTable =
                       factory.createOperatorTable(factory);
+                  RelDataTypeSystem typeSystem = RelDataTypeSystem.DEFAULT;
+                  final SqlConformance conformance =
+                      (SqlConformance) factory.get("conformance");
+                  if (conformance.shouldConvertRaggedUnionTypesToVarying()) {
+                    typeSystem = new DelegatingTypeSystem(typeSystem) {
+                      public boolean shouldConvertRaggedUnionTypesToVarying() {
+                        return true;
+                      }
+                    };
+                  }
                   final JavaTypeFactory typeFactory =
-                      new JavaTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
+                      new JavaTypeFactoryImpl(typeSystem);
                   final MockCatalogReader catalogReader =
                       factory.createCatalogReader(factory, typeFactory);
                   return new Xyz(operatorTable, typeFactory, catalogReader);
@@ -144,6 +155,18 @@ public class DefaultSqlTestFactory implements SqlTestFactory {
       this.operatorTable = operatorTable;
       this.typeFactory = typeFactory;
       this.catalogReader = catalogReader;
+    }
+
+    public SqlOperatorTable getOperatorTable() {
+      return operatorTable;
+    }
+
+    public JavaTypeFactory getTypeFactory() {
+      return typeFactory;
+    }
+
+    public MockCatalogReader getCatalogReader() {
+      return catalogReader;
     }
   }
 }

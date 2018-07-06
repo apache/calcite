@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.adapter.druid;
 
+import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexCall;
@@ -23,6 +24,7 @@ import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.type.SqlTypeName;
 
 import java.util.TimeZone;
 
@@ -63,11 +65,14 @@ public class CeilOperatorConversion implements DruidSqlOperatorConverter {
       if (isoPeriodFormat == null) {
         return null;
       }
+      final TimeZone tz;
+      if (arg.getType().getSqlTypeName() == SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE) {
+        tz = TimeZone.getTimeZone(query.getConnectionConfig().timeZone());
+      } else {
+        tz = DateTimeUtils.UTC_ZONE;
+      }
       return DruidExpressions.applyTimestampCeil(
-          druidExpression,
-          isoPeriodFormat,
-          "",
-          TimeZone.getTimeZone(query.getConnectionConfig().timeZone()));
+          druidExpression, isoPeriodFormat, "", tz);
     } else {
       return null;
     }

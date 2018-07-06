@@ -7377,7 +7377,7 @@ LogicalFilter(condition=[<($0, 20)])
         </Resource>
         <Resource name="planAfter">
             <![CDATA[
-LogicalProject(EMPNO=[$0], D=[CASE(IS NOT NULL($9), true, false)])
+LogicalProject(EMPNO=[$0], D=[IS NOT NULL($9)])
   LogicalJoin(condition=[true], joinType=[left])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalAggregate(group=[{0}])
@@ -7838,7 +7838,7 @@ LogicalProject(DEPTNO=[$1])
         </Resource>
         <Resource name="planAfter">
             <![CDATA[
-LogicalProject(EMPNO=[$0], D=[CASE(=($2, 0), false, IS NOT NULL($5), true, IS NULL($1), null, <($3, $2), null, false)])
+LogicalProject(EMPNO=[$0], D=[CASE(=($2, 0), false, IS NULL($1), null, IS NOT NULL($5), true, <($3, $2), null, false)])
   LogicalJoin(condition=[=($1, $4)], joinType=[left])
     LogicalJoin(condition=[true], joinType=[inner])
       LogicalProject(EMPNO=[$0], DEPTNO=[CASE(true, CAST($7):INTEGER, null)])
@@ -8458,4 +8458,183 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testProjectCorrelateTransposeWithExprCond">
+        <Resource name="sql">
+            <![CDATA[select t1.name, t2.ename
+from DEPT_NESTED as t1,
+unnest(t1.employees) as t2]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(NAME=[$1], ENAME=[$5])
+  LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{3}])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT_NESTED]])
+    Uncollect
+      LogicalProject(EMPLOYEES=[$cor0.EMPLOYEES])
+        LogicalValues(tuples=[[{ 0 }]])
+]]>
+        </Resource>
+
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject(NAME=[$0], ENAME=[$2])
+  LogicalCorrelate(correlation=[$cor1], joinType=[inner], requiredColumns=[{1}])
+    LogicalProject(NAME=[$1], EMPLOYEES=[$3])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT_NESTED]])
+    LogicalProject(ENAME=[$1])
+      Uncollect
+        LogicalProject(EMPLOYEES=[$cor1.EMPLOYEES])
+          LogicalValues(tuples=[[{ 0 }]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testProjectCorrelateTransposeDynamic">
+        <Resource name="sql">
+            <![CDATA[select t1.c_nationkey, t2.fake_col2
+from SALES.CUSTOMER as t1,
+unnest(t1.fake_col) as t2]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(C_NATIONKEY=[$1], FAKE_COL2=[$2])
+  LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{0}])
+    LogicalTableScan(table=[[CATALOG, SALES, CUSTOMER]])
+    LogicalProject(A=[$0])
+      Uncollect
+        LogicalProject(FAKE_COL=[$cor0.FAKE_COL])
+          LogicalValues(tuples=[[{ 0 }]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject(C_NATIONKEY=[$1], FAKE_COL2=[$2])
+  LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{0}])
+    LogicalTableScan(table=[[CATALOG, SALES, CUSTOMER]])
+    LogicalProject(A=[$0])
+      Uncollect
+        LogicalProject(FAKE_COL=[$cor0.FAKE_COL])
+          LogicalValues(tuples=[[{ 0 }]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testProjectCorrelateTranspose">
+        <Resource name="sql">
+            <![CDATA[select t1.name, t2.ename
+from DEPT_NESTED as t1,
+unnest(t1.employees) as t2]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(NAME=[$1], ENAME=[$5])
+  LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{3}])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT_NESTED]])
+    Uncollect
+      LogicalProject(EMPLOYEES=[$cor0.EMPLOYEES])
+        LogicalValues(tuples=[[{ 0 }]])
+]]>
+        </Resource>
+
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject(NAME=[$0], ENAME=[$2])
+  LogicalCorrelate(correlation=[$cor1], joinType=[inner], requiredColumns=[{1}])
+    LogicalProject(NAME=[$1], EMPLOYEES=[$3])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT_NESTED]])
+    LogicalProject(ENAME=[$1])
+      Uncollect
+        LogicalProject(EMPLOYEES=[$cor1.EMPLOYEES])
+          LogicalValues(tuples=[[{ 0 }]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testProjectCorrelateTranspose">
+        <Resource name="sql">
+            <![CDATA[select t1.name, t2.ename
+from DEPT_NESTED as t1,
+unnest(t1.employees) as t2]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(NAME=[$1], ENAME=[$5])
+  LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{3}])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT_NESTED]])
+    Uncollect
+      LogicalProject(EMPLOYEES=[$cor0.EMPLOYEES])
+        LogicalValues(tuples=[[{ 0 }]])
+]]>
+        </Resource>
+
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject(NAME=[$0], ENAME=[$2])
+  LogicalCorrelate(correlation=[$cor1], joinType=[inner], requiredColumns=[{1}])
+    LogicalProject(NAME=[$1], EMPLOYEES=[$3])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT_NESTED]])
+    LogicalProject(ENAME=[$1])
+      Uncollect
+        LogicalProject(EMPLOYEES=[$cor1.EMPLOYEES])
+          LogicalValues(tuples=[[{ 0 }]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testProjectCorrelateTransposeRuleLeftCorrelate">
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(EMPNO=[$0])
+  LogicalFilter(condition=[IS NOT NULL($9)])
+    LogicalCorrelate(correlation=[$cor1], joinType=[left], requiredColumns=[{0, 7}])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalAggregate(group=[{}], agg#0=[MIN($0)])
+        LogicalProject($f0=[true])
+          LogicalProject(EMPNO=[$cor1.EMPNO], DEPTNO=[$0])
+            LogicalFilter(condition=[=($cor1.DEPTNO, $0)])
+              LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject(EMPNO=[$0])
+  LogicalFilter(condition=[IS NOT NULL($1)])
+    LogicalProject(EMPNO=[$0], $f0=[$2])
+      LogicalCorrelate(correlation=[$cor2], joinType=[left], requiredColumns=[{0, 1}])
+        LogicalProject(EMPNO=[$0], DEPTNO=[$7])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalProject($f0=[$0])
+          LogicalAggregate(group=[{}], agg#0=[MIN($0)])
+            LogicalProject($f0=[true])
+              LogicalProject(EMPNO=[$cor2.EMPNO], DEPTNO=[$0])
+                LogicalFilter(condition=[=($cor2.DEPTNO, $0)])
+                  LogicalProject(DEPTNO=[$0])
+                    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+    </TestCase>
+
+    <TestCase name="testProjectCorrelateTransposeRuleSemiCorrelate">
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalCorrelate(correlation=[$cor0], joinType=[semi], requiredColumns=[{0}])
+  LogicalProject(f=[$0])
+    LogicalValues(tuples=[[{ '1', '2' }]])
+  LogicalProject
+    LogicalProject(f3=[$0], $f1=[$cor0.f])
+      LogicalValues(tuples=[[{ '1', '2' }]])
+]]>
+        </Resource>
+    </TestCase>
+
+    <TestCase name="testProjectCorrelateTransposeRuleAntiCorrelate">
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalCorrelate(correlation=[$cor0], joinType=[anti], requiredColumns=[{0}])
+  LogicalProject(f=[$0])
+    LogicalValues(tuples=[[{ '1', '2' }]])
+  LogicalProject
+    LogicalProject(f3=[$0], $f1=[$cor0.f])
+      LogicalValues(tuples=[[{ '1', '2' }]])
+]]>
+        </Resource>
+    </TestCase>
+
 </Root>

@@ -247,7 +247,7 @@
  *
  * <p>The output from each thread is stored in a temporary file until
  * the test completes. At that point, the files are merged together
- * into a single <tt>.log</tt> file containing the results of each
+ * into a single <code>.log</code> file containing the results of each
  * thread, in the order the threads were defined. The output for the
  * example script looks like:
  *

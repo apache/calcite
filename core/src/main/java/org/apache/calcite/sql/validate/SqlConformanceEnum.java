@@ -249,6 +249,20 @@ public enum SqlConformanceEnum implements SqlConformance {
       return false;
     }
   }
+
+  public boolean shouldConvertRaggedUnionTypesToVarying() {
+    switch (this) {
+    case PRAGMATIC_99:
+    case PRAGMATIC_2003:
+    case MYSQL_5:
+    case ORACLE_10:
+    case ORACLE_12:
+    case SQL_SERVER_2008:
+      return true;
+    default:
+      return false;
+    }
+  }
 }
 
 // End SqlConformanceEnum.java

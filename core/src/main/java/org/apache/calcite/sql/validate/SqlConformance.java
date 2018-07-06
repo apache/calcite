@@ -324,6 +324,34 @@ public interface SqlConformance {
    * false otherwise.
    */
   boolean allowGeometry();
+
+  /**
+   * Whether the least restrictive type of a number of CHAR types of different
+   * lengths should be a VARCHAR type. And similarly BINARY to VARBINARY.
+   *
+   * <p>For example, consider the query
+   *
+   * <blockquote><pre>SELECT 'abcde' UNION SELECT 'xyz'</pre></blockquote>
+   *
+   * <p>The input columns have types {@code CHAR(5)} and {@code CHAR(3)}, and
+   * we need a result type that is large enough for both:
+   * <ul>
+   * <li>Under strict SQL:2003 behavior, its column has type {@code CHAR(5)},
+   *     and the value in the second row will have trailing spaces.
+   * <li>With lenient behavior, its column has type {@code VARCHAR(5)}, and the
+   *     values have no trailing spaces.
+   * </ul>
+   *
+   * <p>Among the built-in conformance levels, true in
+   * {@link SqlConformanceEnum#PRAGMATIC_99},
+   * {@link SqlConformanceEnum#PRAGMATIC_2003},
+   * {@link SqlConformanceEnum#MYSQL_5};
+   * {@link SqlConformanceEnum#ORACLE_10};
+   * {@link SqlConformanceEnum#ORACLE_12};
+   * {@link SqlConformanceEnum#SQL_SERVER_2008};
+   * false otherwise.
+   */
+  boolean shouldConvertRaggedUnionTypesToVarying();
 }
 
 // End SqlConformance.java

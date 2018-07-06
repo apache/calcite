@@ -26,6 +26,7 @@ import org.elasticsearch.search.SearchHit;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 /**
@@ -97,19 +98,24 @@ public class Elasticsearch2Enumerator implements Enumerator<Object> {
    * objects.
    *
    * @param fields List of fields to project
+   *
+   * @return function that converts the search result into a generic array
    */
   private static Function1<SearchHit, Object[]> listGetter(
       final List<Map.Entry<String, Class>> fields) {
     return new Function1<SearchHit, Object[]>() {
-      public Object[] apply(SearchHit searchHitFields) {
+      public Object[] apply(SearchHit hit) {
         Object[] objects = new Object[fields.size()];
         for (int i = 0; i < fields.size(); i++) {
           final Map.Entry<String, Class> field = fields.get(i);
           final String name = field.getKey();
-          if (searchHitFields.fields().isEmpty()) {
-            objects[i] = convert(searchHitFields.getSource().get(name), field.getValue());
+          if (hit.fields().isEmpty()) {
+            objects[i] = convert(hit.getSource().get(name), field.getValue());
+          } else if (hit.fields().containsKey(name)) {
+            objects[i] = convert(hit.field(name).getValue(), field.getValue());
           } else {
-            objects[i] = convert(searchHitFields.field(name).getValue(), field.getValue());
+            throw new IllegalStateException(
+                String.format(Locale.ROOT, "No result for %s", field));
           }
         }
         return objects;

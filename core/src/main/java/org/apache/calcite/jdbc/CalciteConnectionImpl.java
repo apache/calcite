@@ -45,6 +45,7 @@ import org.apache.calcite.materialize.Lattice;
 import org.apache.calcite.materialize.MaterializationService;
 import org.apache.calcite.prepare.CalciteCatalogReader;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.type.DelegatingTypeSystem;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.schema.SchemaPlus;
@@ -119,8 +120,18 @@ abstract class CalciteConnectionImpl
     if (typeFactory != null) {
       this.typeFactory = typeFactory;
     } else {
-      final RelDataTypeSystem typeSystem =
+      RelDataTypeSystem typeSystem =
           cfg.typeSystem(RelDataTypeSystem.class, RelDataTypeSystem.DEFAULT);
+      if (cfg.conformance().shouldConvertRaggedUnionTypesToVarying()) {
+        typeSystem =
+            new DelegatingTypeSystem(typeSystem) {
+              @Override public boolean
+              shouldConvertRaggedUnionTypesToVarying() {
+                return true;
+              }
+            };
+        cfg.typeSystem(RelDataTypeSystem.class, RelDataTypeSystem.DEFAULT);
+      }
       this.typeFactory = new JavaTypeFactoryImpl(typeSystem);
     }
     this.rootSchema =

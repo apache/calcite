@@ -1956,7 +1956,7 @@ public class SqlToRelConverter {
       call = (SqlCall) from;
       convertFrom(bb, call.operand(0));
       if (call.operandCount() > 2
-          && bb.root instanceof Values) {
+          && (bb.root instanceof Values || bb.root instanceof Uncollect)) {
         final List<String> fieldNames = new ArrayList<>();
         for (SqlNode node : Util.skip(call.getOperandList(), 2)) {
           fieldNames.add(((SqlIdentifier) node).getSimple());

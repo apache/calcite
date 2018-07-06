@@ -4296,34 +4296,34 @@ public class SqlParserTest {
   }
 
   @Test public void testMultisetUnion() {
-    checkExp("a multiset union b", "(`A` MULTISET UNION `B`)");
+    checkExp("a multiset union b", "(`A` MULTISET UNION ALL `B`)");
     checkExp("a multiset union all b", "(`A` MULTISET UNION ALL `B`)");
-    checkExp("a multiset union distinct b", "(`A` MULTISET UNION `B`)");
+    checkExp("a multiset union distinct b", "(`A` MULTISET UNION DISTINCT `B`)");
   }
 
   @Test public void testMultisetExcept() {
-    checkExp("a multiset EXCEPT b", "(`A` MULTISET EXCEPT `B`)");
+    checkExp("a multiset EXCEPT b", "(`A` MULTISET EXCEPT ALL `B`)");
     checkExp("a multiset EXCEPT all b", "(`A` MULTISET EXCEPT ALL `B`)");
-    checkExp("a multiset EXCEPT distinct b", "(`A` MULTISET EXCEPT `B`)");
+    checkExp("a multiset EXCEPT distinct b", "(`A` MULTISET EXCEPT DISTINCT `B`)");
   }
 
   @Test public void testMultisetIntersect() {
-    checkExp("a multiset INTERSECT b", "(`A` MULTISET INTERSECT `B`)");
+    checkExp("a multiset INTERSECT b", "(`A` MULTISET INTERSECT ALL `B`)");
     checkExp(
         "a multiset INTERSECT all b",
         "(`A` MULTISET INTERSECT ALL `B`)");
     checkExp(
         "a multiset INTERSECT distinct b",
-        "(`A` MULTISET INTERSECT `B`)");
+        "(`A` MULTISET INTERSECT DISTINCT `B`)");
   }
 
   @Test public void testMultisetMixed() {
     checkExp(
         "multiset[1] MULTISET union b",
-        "((MULTISET[1]) MULTISET UNION `B`)");
+        "((MULTISET[1]) MULTISET UNION ALL `B`)");
     checkExp(
         "a MULTISET union b multiset intersect c multiset except d multiset union e",
-        "(((`A` MULTISET UNION (`B` MULTISET INTERSECT `C`)) MULTISET EXCEPT `D`) MULTISET UNION `E`)");
+        "(((`A` MULTISET UNION ALL (`B` MULTISET INTERSECT ALL `C`)) MULTISET EXCEPT ALL `D`) MULTISET UNION ALL `E`)");
   }
 
   @Test public void testMapItem() {

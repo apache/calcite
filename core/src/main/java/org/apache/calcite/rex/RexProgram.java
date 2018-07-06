@@ -53,7 +53,7 @@ import java.util.Set;
  *
  * <p>Programs are immutable. It may help to use a {@link RexProgramBuilder},
  * which has the same relationship to {@link RexProgram} as {@link StringBuffer}
- * does has to {@link String}.
+ * has to {@link String}.
  *
  * <p>A program can contain aggregate functions. If it does, the arguments to
  * each aggregate function must be an {@link RexInputRef}.

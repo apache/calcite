@@ -60,6 +60,9 @@ abstract class RelOptTestBase extends SqlToRelTestBase {
     return super.createTester().withDecorrelation(false);
   }
 
+  protected Tester createDynamicTester() {
+    return getTesterWithDynamicTable();
+  }
   /**
    * Checks the plan for a SQL statement before/after executing a given rule.
    *
@@ -74,6 +77,38 @@ abstract class RelOptTestBase extends SqlToRelTestBase {
 
     checkPlanning(
         programBuilder.build(),
+        sql);
+  }
+
+  /**
+   * Checks the plan for a SQL statement before/after executing a given rule.
+   *
+   * @param rule Planner rule
+   * @param sql  SQL query
+   */
+  protected void checkPlanningDynamic(
+      RelOptRule rule,
+      String sql) {
+    HepProgramBuilder programBuilder = HepProgram.builder();
+    programBuilder.addRuleInstance(rule);
+
+    checkPlanning(
+        createDynamicTester(),
+        null,
+        new HepPlanner(programBuilder.build()),
+        sql);
+  }
+  /**
+   * Checks the plan for a SQL statement before/after executing a given rule.
+   *
+   * @param sql  SQL query
+   */
+  protected void checkPlanningDynamic(
+      String sql) {
+    checkPlanning(
+        createDynamicTester(),
+        null,
+        new HepPlanner(HepProgram.builder().build()),
         sql);
   }
 
