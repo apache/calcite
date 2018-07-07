@@ -51,7 +51,7 @@ limitations under the License.
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <top.dir>${project.basedir}</top.dir>
     <version.major>1</version.major>
-    <version.minor>16</version.minor>
+    <version.minor>17</version.minor>
 
     <!-- Don't fail the build for vulnerabilities below this threshold. -->
     <failBuildOnCVSS>8</failBuildOnCVSS>
