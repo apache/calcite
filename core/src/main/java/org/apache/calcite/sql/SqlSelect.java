@@ -234,10 +234,10 @@ public class SqlSelect extends SqlCall {
       // ORDER. In this case, we don't need a wrapper frame.)
       final SqlWriter.Frame frame =
           writer.startList(SqlWriter.FrameTypeEnum.SUB_QUERY, "(", ")");
-      getOperator().unparse(writer, this, 0, 0);
+      writer.getDialect().unparseCall(writer, this, 0, 0);
       writer.endList(frame);
     } else {
-      getOperator().unparse(writer, this, leftPrec, rightPrec);
+      writer.getDialect().unparseCall(writer, this, leftPrec, rightPrec);
     }
   }
 
