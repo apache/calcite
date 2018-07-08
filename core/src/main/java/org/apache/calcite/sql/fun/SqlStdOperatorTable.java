@@ -867,6 +867,19 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
       new SqlFirstLastValueAggFunction(SqlKind.FIRST_VALUE);
 
   /**
+   * <code>NTH_VALUE</code> aggregate function.
+   */
+  public static final SqlAggFunction NTH_VALUE =
+      new SqlAggFunction("NTH_VALUE",
+          null,
+          SqlKind.NTH_VALUE,
+          ReturnTypes.ARG0_NULLABLE_IF_EMPTY,
+          null,
+          OperandTypes.ANY_NUMERIC,
+          SqlFunctionCategory.NUMERIC, false, true) {
+      };
+
+  /**
    * <code>LEAD</code> aggregate function.
    */
   public static final SqlAggFunction LEAD =

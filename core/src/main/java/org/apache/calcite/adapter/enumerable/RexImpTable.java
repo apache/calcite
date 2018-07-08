@@ -179,6 +179,7 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.NOT_EQUALS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.NOT_LIKE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.NOT_SIMILAR_TO;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.NOT_SUBMULTISET_OF;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.NTH_VALUE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.NTILE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.OR;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.OVERLAY;
@@ -467,6 +468,7 @@ public class RexImpTable {
     winAggMap.put(ROW_NUMBER, constructorSupplier(RowNumberImplementor.class));
     winAggMap.put(FIRST_VALUE,
         constructorSupplier(FirstValueImplementor.class));
+    winAggMap.put(NTH_VALUE, constructorSupplier(NthValueImplementor.class));
     winAggMap.put(LAST_VALUE, constructorSupplier(LastValueImplementor.class));
     winAggMap.put(LEAD, constructorSupplier(LeadImplementor.class));
     winAggMap.put(LAG, constructorSupplier(LagImplementor.class));
@@ -1542,6 +1544,64 @@ public class RexImpTable {
   static class LastValueImplementor extends FirstLastValueImplementor {
     protected LastValueImplementor() {
       super(SeekType.END);
+    }
+  }
+
+  /** Implementor for the {@code NTH_VALUE}
+   * windowed aggregate function. */
+  static class NthValueImplementor implements WinAggImplementor {
+
+    public List<Type> getStateType(AggContext info) {
+      return Collections.emptyList();
+    }
+
+    public void implementReset(AggContext info, AggResetContext reset) {
+      // no op
+    }
+
+    public void implementAdd(AggContext info, AggAddContext add) {
+      // no op
+    }
+
+    public boolean needCacheWhenFrameIntact() {
+      return true;
+    }
+
+    public Expression implementResult(AggContext info,
+                                      AggResultContext result) {
+      WinAggResultContext winResult = (WinAggResultContext) result;
+
+      List<RexNode> rexArgs = winResult.rexArguments();
+
+      ParameterExpression res = Expressions.parameter(0, info.returnType(),
+              result.currentBlock().newName("nth"));
+
+      RexToLixTranslator currentRowTranslator =
+              winResult.rowTranslator(
+                      winResult.computeIndex(Expressions.constant(0), SeekType.START));
+
+
+      Expression dstIndex = winResult.computeIndex(
+          Expressions.subtract(
+              currentRowTranslator.translate(rexArgs.get(1), int.class),
+              Expressions.constant(1)), SeekType.START);
+
+      Expression rowInRange = winResult.rowInPartition(dstIndex);
+
+      BlockBuilder thenBlock = result.nestBlock();
+      Expression nthValue = winResult.rowTranslator(dstIndex).translate(
+              rexArgs.get(0), res.type);
+      thenBlock.add(Expressions.statement(Expressions.assign(res, nthValue)));
+      result.exitBlock();
+      BlockStatement thenBranch = thenBlock.toBlock();
+
+      Expression defaultValue = getDefaultValue(res.type);
+
+      result.currentBlock().add(Expressions.declare(0, res, null));
+      result.currentBlock().add(
+              Expressions.ifThenElse(rowInRange, thenBranch,
+                      Expressions.statement(Expressions.assign(res, defaultValue))));
+      return res;
     }
   }
 

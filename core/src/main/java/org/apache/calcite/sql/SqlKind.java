@@ -879,6 +879,9 @@ public enum SqlKind {
   /** The {@code NTILE} aggregate function. */
   NTILE,
 
+  /** The {@code NTH_VALUE} aggregate function. */
+  NTH_VALUE,
+
   /** The {@code COLLECT} aggregate function. */
   COLLECT,
 
