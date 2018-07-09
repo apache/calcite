@@ -472,6 +472,10 @@ file by following instructions in the `KEYS` file.
 ball because that would be
 [redundant](https://issues.apache.org/jira/browse/CALCITE-1746).)
 
+## Set up Maven repository credentials (for Calcite committers)
+
+Follow the instructions [here](http://www.apache.org/dev/publishing-maven-artifacts.html#dev-env) to add your credentials to your maven configuration.
+
 ## Making a snapshot (for Calcite committers)
 
 Before you start:
@@ -581,7 +585,12 @@ mvn clean
 
 # Do a dry run of the release:prepare step, which sets version numbers
 # (accept the default tag name of calcite-X.Y.Z)
+# Note X.Y.Z is the current version we're trying to release, and X.Y+1.Z is the next development version.
+# For example, if I am currently building a release for 1.16.0, X.Y.Z would be 1.16.0 and X.Y+1.Z would be 1.17.0.
 mvn -DdryRun=true -DskipTests -DreleaseVersion=X.Y.Z -DdevelopmentVersion=X.Y+1.Z-SNAPSHOT -Papache-release -Darguments="-Dgpg.passphrase=${GPG_PASSPHRASE}" release:prepare 2>&1 | tee /tmp/prepare-dry.log
+
+# If you have multiple GPG keys, you can select the key used to sign the release by adding `-Dgpg.keyname=${GPG_KEY_ID}` to `-Darguments`:
+mvn -DdryRun=true -DskipTests -DreleaseVersion=X.Y.Z -DdevelopmentVersion=X.Y+1.Z-SNAPSHOT -Papache-release -Darguments="-Dgpg.passphrase=${GPG_PASSPHRASE} -Dgpg.keyname=${GPG_KEY_ID}" release:prepare 2>&1 | tee /tmp/prepare-dry.log
 {% endhighlight %}
 
 Check the artifacts.
@@ -616,7 +625,12 @@ For this step you'll have to add the [Apache servers](https://maven.apache.org/d
 
 {% highlight bash %}
 # Prepare sets the version numbers, creates a tag, and pushes it to git
+# Note X.Y.Z is the current version we're trying to release, and X.Y+1.Z is the next development version.
+# For example, if I am currently building a release for 1.16.0, X.Y.Z would be 1.16.0 and X.Y+1.Z would be 1.17.0.
 mvn -DdryRun=false -DskipTests -DreleaseVersion=X.Y.Z -DdevelopmentVersion=X.Y+1.Z-SNAPSHOT -Papache-release -Darguments="-Dgpg.passphrase=${GPG_PASSPHRASE}" release:prepare 2>&1 | tee /tmp/prepare.log
+
+# If you have multiple GPG keys, you can select the key used to sign the release by adding `-Dgpg.keyname=${GPG_KEY_ID}` to `-Darguments`:
+mvn -DdryRun=false -DskipTests -DreleaseVersion=X.Y.Z -DdevelopmentVersion=X.Y+1.Z-SNAPSHOT -Papache-release -Darguments="-Dgpg.passphrase=${GPG_PASSPHRASE} -Dgpg.keyname=${GPG_KEY_ID}" release:prepare 2>&1 | tee /tmp/prepare-dry.log
 
 # Perform checks out the tagged version, builds, and deploys to the staging repository
 mvn -DskipTests -Papache-release -Darguments="-Dgpg.passphrase=${GPG_PASSPHRASE}" release:perform 2>&1 | tee /tmp/perform.log
