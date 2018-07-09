@@ -232,7 +232,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
 
   void executeInstruction(
       HepInstruction.MatchOrder instruction) {
-    LOGGER.trace("Setting match limit to {}", instruction.order);
+    LOGGER.trace("Setting match order to {}", instruction.order);
     currentProgram.matchOrder = instruction.order;
   }
 
