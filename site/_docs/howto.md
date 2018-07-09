@@ -169,6 +169,10 @@ fi
 Also, ensure that `default-cache-ttl 6000` is set in `~/.gnupg/gpg-agent.conf`
 to guarantee that your credentials will be cached for the duration of the build.
 
+## Set up Maven repository credentials (for Calcite committers)
+
+Follow the instructions [here](http://www.apache.org/dev/publishing-maven-artifacts.html#dev-env) to add your credentials to your maven configuration.
+
 ## Making a snapshot (for Calcite committers)
 
 Before you start:
@@ -245,7 +249,13 @@ EOF
 
 # Do a dry run of the release:prepare step, which sets version numbers.
 # Typically we increment minor version: If X.Y.Z is 1.11.0, X2.Y2.Z2 is 1.12.0.
+# Note X.Y.Z is the current version we're trying to release, and X2.Y2.Z2 is the next development version.
+# For example, if I am currently building a release for 1.11.0, X.Y.Z would be 1.11.0 and X2.Y2.Z2 would be 1.12.0.
 mvn -DdryRun=true -DreleaseVersion=X.Y.Z -DdevelopmentVersion=X2.Y2.Z2-SNAPSHOT -Dtag=avatica-X.Y.Z-rcN -Papache-release -Duser.name=${asf.username} release:prepare
+
+# If you have multiple GPG keys, you can select the key used to sign the release by appending `-Darguments=-Dgpg.keyname=your_key_id`:
+mvn -DdryRun=true -DreleaseVersion=X.Y.Z -DdevelopmentVersion=X2.Y2.Z2-SNAPSHOT -Dtag=avatica-X.Y.Z-rcN -Papache-release -Duser.name=${asf.username} release:prepare -Darguments=-Dgpg.keyname=your_key_id
+
 {% endhighlight %}
 
 Check the artifacts:
@@ -282,7 +292,12 @@ If successful, remove the `-DdryRun` flag and run the release for real.
 {% highlight bash %}
 # Prepare sets the version numbers, creates a tag, and pushes it to git.
 # Typically we increment minor version: If X.Y.Z is 1.11.0, X2.Y2.Z2 is 1.12.0.
+# Note X.Y.Z is the current version we're trying to release, and X2.Y2.Z2 is the next development version.
+# For example, if I am currently building a release for 1.11.0, X.Y.Z would be 1.11.0 and X2.Y2.Z2 would be 1.12.0.
 mvn -DreleaseVersion=X.Y.Z -DdevelopmentVersion=X2.Y2.Z2-SNAPSHOT -Dtag=avatica-X.Y.Z-rcN -Papache-release -Duser.name=${asf.username} release:prepare
+
+# If you have multiple GPG keys, you can select the key used to sign the release by appending `-Darguments=-Dgpg.keyname=your_key_id`:
+mvn -DreleaseVersion=X.Y.Z -DdevelopmentVersion=X2.Y2.Z2-SNAPSHOT -Dtag=avatica-X.Y.Z-rcN -Papache-release -Duser.name=${asf.username} release:prepare -Darguments=-Dgpg.keyname=your_key_id
 
 # Perform checks out the tagged version, builds, and deploys to the staging repository
 mvn -Papache-release -Duser.name=${asf.username} release:perform -Darguments="-DskipTests"
